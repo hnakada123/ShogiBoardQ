@@ -6,13 +6,12 @@
 
 
 #include <QObject>
-#include <QPointer>
 #include <QStringList>
 #include <QVector>
 #include <QTimer>
 #include <limits>
 
-class EngineAnalysisTab;
+class BranchTreeManager;
 
 /**
  * @brief 指定局面群のUSI解析実行を管理するコーディネータ
@@ -59,8 +58,8 @@ public:
     /// 依存オブジェクトを更新する
     void setDeps(const Deps& d);
 
-    /// 解析タブ参照を設定する（非所有）
-    void setAnalysisTab(EngineAnalysisTab* tab);
+    /// 分岐ツリーマネージャー参照を設定する（非所有）
+    void setBranchTreeManager(BranchTreeManager* manager);
 
     /// 解析オプションを設定する
     void setOptions(const Options& opt);
@@ -132,7 +131,7 @@ private:
     int  m_currentPly = -1;          ///< 現在解析中の手数
     QString m_pendingPosCmd;         ///< `sendGoCommand()`待機中の`position`コマンド
 
-    QPointer<EngineAnalysisTab> m_analysisTab;  ///< 解析タブ参照（非所有）
+    BranchTreeManager* m_branchTreeManager = nullptr;  ///< 分岐ツリーマネージャー参照（非所有）
     QTimer m_stopTimer;                         ///< `go infinite`後に`stop`送信するタイマー
 
     // --- 内部処理 ---

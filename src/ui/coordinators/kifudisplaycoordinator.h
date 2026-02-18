@@ -15,7 +15,7 @@ class KifuNavigationState;
 class KifuNavigationController;
 class RecordPane;
 class BranchTreeWidget;
-class EngineAnalysisTab;
+class BranchTreeManager;
 class KifuRecordListModel;
 class KifuBranchListModel;
 class LiveGameSession;
@@ -61,9 +61,9 @@ public:
     void setBranchModel(KifuBranchListModel* model);
 
     /**
-     * @brief エンジン解析タブを設定（分岐ツリーハイライト用）
+     * @brief 分岐ツリーマネージャーを設定（分岐ツリーハイライト用）
      */
-    void setAnalysisTab(EngineAnalysisTab* tab);
+    void setBranchTreeManager(BranchTreeManager* manager);
 
     /**
      * @brief ライブ対局セッションを設定
@@ -217,7 +217,7 @@ private:
 
     RecordPane* m_recordPane = nullptr;
     BranchTreeWidget* m_branchTreeWidget = nullptr;
-    EngineAnalysisTab* m_analysisTab = nullptr;
+    BranchTreeManager* m_branchTreeManager = nullptr;
     KifuRecordListModel* m_recordModel = nullptr;
     KifuBranchListModel* m_branchModel = nullptr;
     LiveGameSession* m_liveSession = nullptr;

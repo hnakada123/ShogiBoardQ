@@ -217,6 +217,8 @@ add_shogi_test(tst_gamerecordmodel
     tst_gamerecordmodel.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/gamerecordmodel.cpp
+    ${SRC}/kifu/formats/csaexporter.cpp
+    ${SRC}/kifu/formats/jkfexporter.cpp
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp

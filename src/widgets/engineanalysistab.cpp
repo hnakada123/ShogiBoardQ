@@ -2,6 +2,9 @@
 /// @brief エンジン解析タブクラスの実装
 
 #include "engineanalysistab.h"
+#include "commenteditorpanel.h"
+#include "considerationtabmanager.h"
+#include "logviewfontmanager.h"
 #include "buttonstyles.h"
 
 #include <QTabWidget>
@@ -9,114 +12,26 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QPlainTextEdit>
-#include <QTextBrowser>
-#include <QTextEdit>
 #include <QGraphicsView>
-#include <QGraphicsScene>
-#include <QGraphicsPathItem>
-#include <QGraphicsSimpleTextItem>
-#include <QPainterPath>
 #include <QHeaderView>
 #include <QFont>
-#include <QMouseEvent>
-#include <QtMath>
-#include <QFontMetrics>
-#include <QRegularExpression>
-#include <QQueue>
-#include <QSet>
 #include <QToolButton>
 #include <QPushButton>
-#include <QDesktopServices>
-#include <QUrl>
 #include <QLabel>
-#include <QMessageBox>
 #include <QTimer>       // 列幅設定の遅延用
 #include <QLineEdit>    // CSAコマンド入力用
 #include <QComboBox>    // USIコマンド送信先選択用
-#include <QSpinBox>     // 候補手の数用
-#include <QRadioButton> // 思考時間設定用
-#include <QCheckBox>    // 矢印表示チェックボックス用
-#include <QPalette>     // 経過時間ラベル色変更用
 #include <QTextCursor>      // ログ色付け用
 #include <QTextCharFormat>  // ログ色付け用
 #include <QItemSelectionModel>
-#include <QSettings>        // エンジンリスト読み込み用
-#include <QDir>             // エンジンリスト読み込み用
 #include <QSizePolicy>
-#include <QApplication>     // エンジンリスト読み込み用
-#include "enginesettingsconstants.h"  // エンジン設定定数
 
 #include "settingsservice.h"  // フォントサイズ保存用
-#include <QFontDatabase>      // フォント検索用
-#include <QFontInfo>          // フォントデバッグ用
 #include "loggingcategory.h"
 #include "numericrightaligncommadelegate.h"
 #include "engineinfowidget.h"
-#include "flowlayout.h"  // 自動折り返しレイアウト
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
-
-// ===================== ヘルパー関数 =====================
-
-// クロスプラットフォーム対応の日本語フォントを取得
-static QString getJapaneseFontFamily()
-{
-    // 優先順位付きフォントリスト（OS別に最適なフォントを優先）
-#ifdef Q_OS_WIN
-    // Windows: 標準フォントを優先（アンチエイリアスが安定）
-    static const QStringList candidates = {
-        QStringLiteral("Yu Gothic UI"),      // Windows 10/11
-        QStringLiteral("Meiryo UI"),         // Windows Vista以降
-        QStringLiteral("Meiryo"),            // Windows Vista以降
-        QStringLiteral("MS UI Gothic"),      // Windows XP以降
-        QStringLiteral("Noto Sans JP"),      // インストールされている場合
-        QStringLiteral("MS Gothic"),         // フォールバック
-    };
-#elif defined(Q_OS_MAC)
-    // macOS
-    static const QStringList candidates = {
-        QStringLiteral("Hiragino Sans"),
-        QStringLiteral("Hiragino Kaku Gothic ProN"),
-        QStringLiteral("Noto Sans JP"),
-    };
-#else
-    // Linux
-    static const QStringList candidates = {
-        QStringLiteral("Noto Sans CJK JP"),
-        QStringLiteral("Noto Sans JP"),
-        QStringLiteral("IPAGothic"),
-    };
-#endif
-
-    const QStringList availableFamilies = QFontDatabase::families();
-    
-    // デバッグ: 利用可能なフォント数を出力
-    qCDebug(lcUi) << "[FontDebug] Available font families count:" << availableFamilies.size();
-    
-    for (const QString &candidate : candidates) {
-        if (availableFamilies.contains(candidate)) {
-            qCDebug(lcUi) << "[FontDebug] Selected font:" << candidate;
-            return candidate;
-        }
-    }
-
-    // 見つからない場合はシステムデフォルト
-    qCDebug(lcUi) << "[FontDebug] No Japanese font found, using system default";
-    return QString();
-}
-
-// フォント情報をデバッグ出力するヘルパー
-static void debugFontInfo(const QFont &font, const QString &context)
-{
-    QFontInfo info(font);
-    qCDebug(lcUi) << "[FontDebug]" << context;
-    qCDebug(lcUi) << "  Requested family:" << font.family();
-    qCDebug(lcUi) << "  Actual family:" << info.family();
-    qCDebug(lcUi) << "  Point size:" << info.pointSize();
-    qCDebug(lcUi) << "  Pixel size:" << info.pixelSize();
-    qCDebug(lcUi) << "  Style hint:" << font.styleHint();
-    qCDebug(lcUi) << "  Exact match:" << info.exactMatch();
-}
 
 namespace {
 // ツールバーの幅制約を緩和する（ドックウィンドウで縮小可能にする）
@@ -140,10 +55,6 @@ EngineAnalysisTab::EngineAnalysisTab(QWidget* parent)
 
 EngineAnalysisTab::~EngineAnalysisTab()
 {
-    // viewportポインタをクリア（オブジェクトは既に削除されている可能性があるため、
-    // removeEventFilterは呼ばない。Qtが自動的に処理する）
-    m_commentViewport = nullptr;
-    m_branchTreeViewport = nullptr;
 }
 
 void EngineAnalysisTab::buildUi()
@@ -247,191 +158,17 @@ void EngineAnalysisTab::buildUi()
     m_tab->addTab(page, tr("思考"));
 
     // --- 検討タブ ---
-    // SettingsServiceからフォントサイズを読み込み
-    m_considerationFontSize = SettingsService::considerationFontSize();
-
-    QWidget* considerationPage = new QWidget(m_tab);
-    auto* considerationLayout = new QVBoxLayout(considerationPage);
-    considerationLayout->setContentsMargins(4, 4, 4, 4);
-    considerationLayout->setSpacing(4);
-
-    // 検討タブ用ツールバー（A-/A+ボタン、エンジン設定、思考時間、候補手の数）
-    // FlowLayoutを使用して、幅が足りない場合は自動的に複数行に折り返す
-    m_considerationToolbar = new QWidget(considerationPage);
-    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);  // margin=2, hSpacing=8, vSpacing=4
-
-    // フォントサイズ減少ボタン（A-）
-    m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
-    m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
-    m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnConsiderationFontDecrease->setFixedSize(28, 24);
-    m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
-            this, &EngineAnalysisTab::onConsiderationFontDecrease);
-
-    // フォントサイズ増加ボタン（A+）
-    m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
-    m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
-    m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnConsiderationFontIncrease->setFixedSize(28, 24);
-    m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
-            this, &EngineAnalysisTab::onConsiderationFontIncrease);
-
-    // エンジン選択コンボボックス
-    m_engineComboBox = new QComboBox(m_considerationToolbar);
-    m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
-    m_engineComboBox->setMinimumWidth(150);
-    connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EngineAnalysisTab::onEngineComboBoxChanged);
-
-    // エンジン設定ボタン
-    m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
-    m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
-    m_btnEngineSettings->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnEngineSettings, &QPushButton::clicked,
-            this, &EngineAnalysisTab::onEngineSettingsClicked);
-
-    // 時間無制限ラジオボタン
-    m_unlimitedTimeRadioButton = new QRadioButton(tr("時間無制限"), m_considerationToolbar);
-    m_unlimitedTimeRadioButton->setToolTip(tr("時間制限なしで検討します"));
-    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled,
-            this, &EngineAnalysisTab::onTimeSettingChanged);
-
-    // 検討時間ラジオボタン
-    m_considerationTimeRadioButton = new QRadioButton(tr("検討時間"), m_considerationToolbar);
-    m_considerationTimeRadioButton->setToolTip(tr("指定した秒数まで検討します"));
-    connect(m_considerationTimeRadioButton, &QRadioButton::toggled,
-            this, &EngineAnalysisTab::onTimeSettingChanged);
-
-    // 検討時間スピンボックス
-    m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
-    m_byoyomiSecSpinBox->setRange(1, 3600);
-    m_byoyomiSecSpinBox->setValue(20);
-    m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
-    connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &EngineAnalysisTab::onTimeSettingChanged);
-
-    // 「秒まで」ラベル
-    m_byoyomiSecUnitLabel = new QLabel(tr("秒まで"), m_considerationToolbar);
-
-    // 経過時間ラベル
-    m_elapsedTimeLabel = new QLabel(tr("経過: 0:00"), m_considerationToolbar);
-    m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
-    // 経過時間ラベルは常に赤色で表示
     {
-        QPalette palette = m_elapsedTimeLabel->palette();
-        palette.setColor(QPalette::WindowText, Qt::red);
-        m_elapsedTimeLabel->setPalette(palette);
+        QWidget* considerationPage = new QWidget(m_tab);
+        auto* considerationLayout = new QVBoxLayout(considerationPage);
+        considerationLayout->setContentsMargins(4, 4, 4, 4);
+        considerationLayout->setSpacing(4);
+
+        ensureConsiderationTabManager();
+        m_considerationTabManager->buildConsiderationUi(considerationPage);
+
+        m_considerationTabIndex = m_tab->addTab(considerationPage, tr("検討"));
     }
-
-    // 経過時間更新タイマー
-    m_elapsedTimer = new QTimer(this);
-    m_elapsedTimer->setInterval(1000);  // 1秒ごと
-    connect(m_elapsedTimer, &QTimer::timeout, this, &EngineAnalysisTab::onElapsedTimerTick);
-
-    m_multiPVLabel = new QLabel(tr("候補手の数"), m_considerationToolbar);
-    m_multiPVComboBox = new QComboBox(m_considerationToolbar);
-    // 1〜10手の選択肢を追加
-    for (int i = 1; i <= 10; ++i) {
-        m_multiPVComboBox->addItem(tr("%1手").arg(i), i);
-    }
-    m_multiPVComboBox->setCurrentIndex(0);  // デフォルト1手
-    m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
-
-    // 矢印表示チェックボックス
-    m_showArrowsCheckBox = new QCheckBox(tr("矢印表示"), m_considerationToolbar);
-    m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
-    m_showArrowsCheckBox->setChecked(true);  // デフォルトは表示
-    connect(m_showArrowsCheckBox, &QCheckBox::toggled,
-            this, &EngineAnalysisTab::showArrowsChanged);
-
-    // 検討開始/中止ボタン（初期状態は「検討開始」）
-    m_btnStopConsideration = new QToolButton(m_considerationToolbar);
-    m_btnStopConsideration->setText(tr("検討開始"));
-    m_btnStopConsideration->setToolTip(tr("検討を開始します"));
-    m_btnStopConsideration->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnStopConsideration, &QToolButton::clicked,
-            this, &EngineAnalysisTab::startConsiderationRequested);
-
-    // ツールバーにウィジェットを追加（FlowLayoutで自動折り返し）
-    toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
-    toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
-    toolbarLayout->addWidget(m_engineComboBox);
-    toolbarLayout->addWidget(m_btnEngineSettings);
-    toolbarLayout->addWidget(m_unlimitedTimeRadioButton);
-    toolbarLayout->addWidget(m_considerationTimeRadioButton);
-    toolbarLayout->addWidget(m_byoyomiSecSpinBox);
-    toolbarLayout->addWidget(m_byoyomiSecUnitLabel);
-    toolbarLayout->addWidget(m_elapsedTimeLabel);
-    toolbarLayout->addWidget(m_multiPVLabel);
-    toolbarLayout->addWidget(m_multiPVComboBox);
-    toolbarLayout->addWidget(m_showArrowsCheckBox);
-    toolbarLayout->addWidget(m_btnStopConsideration);
-
-    // コンボボックスの値変更シグナルを接続
-    connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EngineAnalysisTab::onMultiPVComboBoxChanged);
-
-    // エンジンリストを読み込み、設定を復元
-    loadEngineList();
-    loadConsiderationTabSettings();
-
-    m_considerationInfo = new EngineInfoWidget(considerationPage, false, false);  // showFontButtons=false, showPredictedMove=false（検討タブでは予想手を非表示）
-    m_considerationInfo->setWidgetIndex(2);  // 検討タブ用のインデックス
-    m_considerationInfo->setFontSize(m_considerationFontSize);  // 保存されたフォントサイズを適用
-    m_considerationView = new QTableView(considerationPage);
-
-    // 検討タブのヘッダ設定
-    setupThinkingViewHeader(m_considerationView);
-
-    // 検討タブの読み筋テーブルのクリックシグナルを接続
-    connect(m_considerationView, &QTableView::clicked,
-            this, &EngineAnalysisTab::onConsiderationViewClicked);
-
-    // 保存されたフォントサイズを適用
-    {
-        QFont font = m_considerationView->font();
-        font.setPointSize(m_considerationFontSize);
-        m_considerationView->setFont(font);
-        // スタイルシートでヘッダーの色とフォントサイズを設定（棋譜タブと統一）
-        QString headerStyle = QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  padding: 2px 6px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "  font-size: %1pt;"
-            "}")
-            .arg(m_considerationFontSize);
-        m_considerationView->setStyleSheet(headerStyle);
-        const int rowHeight = m_considerationView->fontMetrics().height() + 4;
-        m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
-
-        // ツールバー要素にも適用
-        m_btnConsiderationFontDecrease->setFont(font);
-        m_btnConsiderationFontIncrease->setFont(font);
-        m_engineComboBox->setFont(font);
-        m_btnEngineSettings->setFont(font);
-        m_unlimitedTimeRadioButton->setFont(font);
-        m_considerationTimeRadioButton->setFont(font);
-        m_byoyomiSecSpinBox->setFont(font);
-        m_byoyomiSecUnitLabel->setFont(font);
-        m_elapsedTimeLabel->setFont(font);
-        m_multiPVLabel->setFont(font);
-        m_multiPVComboBox->setFont(font);
-        m_showArrowsCheckBox->setFont(font);
-        m_btnStopConsideration->setFont(font);
-    }
-
-    considerationLayout->addWidget(m_considerationToolbar);
-    considerationLayout->addWidget(m_considerationInfo);
-    considerationLayout->addWidget(m_considerationView, 1);
-
-    m_considerationTabIndex = m_tab->addTab(considerationPage, tr("検討"));
 
     // --- USI通信ログ ---
     // ツールバー付きコンテナに変更
@@ -455,9 +192,6 @@ void EngineAnalysisTab::buildUi()
     m_tab->addTab(m_usiLogContainer, tr("USI通信ログ"));
 
     // --- CSA通信ログ ---
-    // SettingsServiceからフォントサイズを読み込み
-    m_csaLogFontSize = SettingsService::csaLogFontSize();
-
     m_csaLogContainer = new QWidget(m_tab);
     QVBoxLayout* csaLogLayout = new QVBoxLayout(m_csaLogContainer);
     csaLogLayout->setContentsMargins(4, 4, 4, 4);
@@ -473,133 +207,43 @@ void EngineAnalysisTab::buildUi()
 
     m_csaLog = new QPlainTextEdit(m_csaLogContainer);
     m_csaLog->setReadOnly(true);
-    // 保存されたフォントサイズを適用
-    {
-        QFont font = m_csaLog->font();
-        font.setPointSize(m_csaLogFontSize);
-        m_csaLog->setFont(font);
-    }
     csaLogLayout->addWidget(m_csaLog);
 
     m_tab->addTab(m_csaLogContainer, tr("CSA通信ログ"));
 
     // --- 棋譜コメント ---
-    // コメント欄とツールバーを含むコンテナ
-    QWidget* commentContainer = new QWidget(m_tab);
-    QVBoxLayout* commentLayout = new QVBoxLayout(commentContainer);
-    commentLayout->setContentsMargins(4, 4, 4, 4);
-    commentLayout->setSpacing(2);
-
-    // ツールバーを構築
-    buildCommentToolbar();
-    commentLayout->addWidget(m_commentToolbar);
-
-    m_comment = new QTextEdit(commentContainer);
-    m_comment->setReadOnly(false);  // 編集可能にする
-    m_comment->setAcceptRichText(true);
-    m_comment->setPlaceholderText(tr("コメントを表示・編集"));
-    commentLayout->addWidget(m_comment);
-
-    // コメントのURLクリックを処理するためのイベントフィルター
-    if (m_comment->viewport()) {
-        m_commentViewport = m_comment->viewport();
-        m_commentViewport->installEventFilter(this);
-    }
-
-    // コメント変更時の検知
-    connect(m_comment, &QTextEdit::textChanged,
-            this, &EngineAnalysisTab::onCommentTextChanged);
-
+    ensureCommentEditor();
+    QWidget* commentContainer = m_commentEditor->buildCommentUi(m_tab);
     m_tab->addTab(commentContainer, tr("棋譜コメント"));
 
     // --- 分岐ツリー ---
-    m_branchTree = new QGraphicsView(m_tab);
-    m_branchTree->setRenderHint(QPainter::Antialiasing, true);
-    m_branchTree->setRenderHint(QPainter::TextAntialiasing, true);  // テキストのアンチエイリアス
-    m_branchTree->setRenderHint(QPainter::SmoothPixmapTransform, true);  // 滑らかな変換
-    m_branchTree->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_branchTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    {
+        auto* branchView = new QGraphicsView(m_tab);
+        branchView->setRenderHint(QPainter::Antialiasing, true);
+        branchView->setRenderHint(QPainter::TextAntialiasing, true);
+        branchView->setRenderHint(QPainter::SmoothPixmapTransform, true);
+        branchView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        branchView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        branchView->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-    // デバッグ: レンダリングヒントを出力
-    qCDebug(lcUi) << "[FontDebug] QGraphicsView render hints:"
-             << "Antialiasing=" << m_branchTree->renderHints().testFlag(QPainter::Antialiasing)
-             << "TextAntialiasing=" << m_branchTree->renderHints().testFlag(QPainter::TextAntialiasing);
+        ensureBranchTreeManager();
+        m_branchTreeManager->setView(branchView);
+        // シグナル転送（BranchTreeManager → EngineAnalysisTab）
+        connect(m_branchTreeManager, &BranchTreeManager::branchNodeActivated,
+                this, &EngineAnalysisTab::branchNodeActivated);
 
-    m_scene = new QGraphicsScene(m_branchTree);
-    m_branchTree->setScene(m_scene);
-
-    m_tab->addTab(m_branchTree, tr("分岐ツリー"));
+        m_tab->addTab(branchView, tr("分岐ツリー"));
+    }
 
     // 初回起動時（あるいは再構築時）にモデルが既にあるなら即時適用
     reapplyViewTuning(m_view1, m_model1);  // 右寄せ＋3桁カンマ＆列幅チューニング
     reapplyViewTuning(m_view2, m_model2);
 
-    // --- 分岐ツリーのクリック検知（二重 install 防止のガード付き） ---
-    if (m_branchTree && m_branchTree->viewport()) {
-        QWidget* vp = m_branchTree->viewport();
-        if (!vp->property("branchFilterInstalled").toBool()) {
-            m_branchTreeViewport = vp;
-            vp->installEventFilter(this);
-            vp->setProperty("branchFilterInstalled", true);
-        }
-    }
+    // フォントマネージャーの初期化
+    initUsiLogFontManager();
+    initCsaLogFontManager();
+    initThinkingFontManager();
 
-    // 設定ファイルからフォントサイズを読み込んで適用
-    m_usiLogFontSize = SettingsService::usiLogFontSize();
-    if (m_usiLog) {
-        QFont font = m_usiLog->font();
-        font.setPointSize(m_usiLogFontSize);
-        m_usiLog->setFont(font);
-    }
-    
-    m_currentFontSize = SettingsService::commentFontSize();
-    if (m_comment) {
-        QFont font = m_comment->font();
-        font.setPointSize(m_currentFontSize);
-        m_comment->setFont(font);
-    }
-    
-    // 思考タブのフォントサイズを読み込んで適用
-    m_thinkingFontSize = SettingsService::thinkingFontSize();
-    if (m_thinkingFontSize != 10) {  // デフォルト以外の場合のみ適用
-        QFont font;
-        font.setPointSize(m_thinkingFontSize);
-        // 上段（EngineInfoWidget）
-        if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
-        if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
-        // 下段（TableView）- スタイルシートでヘッダーの色とフォントサイズを設定（棋譜タブと統一）
-        QString headerStyle = QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  padding: 2px 6px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "  font-size: %1pt;"
-            "}")
-            .arg(m_thinkingFontSize);
-
-        if (m_view1) {
-            m_view1->setFont(font);
-            m_view1->setStyleSheet(headerStyle);
-        }
-        if (m_view2) {
-            m_view2->setFont(font);
-            m_view2->setStyleSheet(headerStyle);
-        }
-        // 検討タブ
-        if (m_considerationInfo) m_considerationInfo->setFontSize(m_thinkingFontSize);
-        if (m_considerationView) {
-            m_considerationView->setFont(font);
-            m_considerationView->setStyleSheet(headerStyle);
-        }
-    }
-
-    // 起動直後でも「開始局面」だけは描く
-    rebuildBranchTree();
 }
 
 // 思考ページを独立したウィジェットとして作成
@@ -656,34 +300,8 @@ QWidget* EngineAnalysisTab::createThinkingPage(QWidget* parent)
     m_info2->setVisible(false);
     m_view2->setVisible(false);
 
-    // フォントサイズを適用
-    m_thinkingFontSize = SettingsService::thinkingFontSize();
-    if (m_thinkingFontSize != 10) {
-        QFont font;
-        font.setPointSize(m_thinkingFontSize);
-        if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
-        if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
-        QString headerStyle = QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  padding: 2px 6px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "  font-size: %1pt;"
-            "}")
-            .arg(m_thinkingFontSize);
-        if (m_view1) {
-            m_view1->setFont(font);
-            m_view1->setStyleSheet(headerStyle);
-        }
-        if (m_view2) {
-            m_view2->setFont(font);
-            m_view2->setStyleSheet(headerStyle);
-        }
-    }
+    // フォントマネージャーの初期化
+    initThinkingFontManager();
 
     return page;
 }
@@ -691,149 +309,13 @@ QWidget* EngineAnalysisTab::createThinkingPage(QWidget* parent)
 // 検討ページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createConsiderationPage(QWidget* parent)
 {
-    m_considerationFontSize = SettingsService::considerationFontSize();
-
     QWidget* considerationPage = new QWidget(parent);
     auto* considerationLayout = new QVBoxLayout(considerationPage);
     considerationLayout->setContentsMargins(4, 4, 4, 4);
     considerationLayout->setSpacing(4);
 
-    // ツールバー（FlowLayout使用）
-    m_considerationToolbar = new QWidget(considerationPage);
-    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);
-
-    m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
-    m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
-    m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnConsiderationFontDecrease->setFixedSize(28, 24);
-    m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
-            this, &EngineAnalysisTab::onConsiderationFontDecrease);
-
-    m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
-    m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
-    m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnConsiderationFontIncrease->setFixedSize(28, 24);
-    m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
-            this, &EngineAnalysisTab::onConsiderationFontIncrease);
-
-    m_engineComboBox = new QComboBox(m_considerationToolbar);
-    m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
-    m_engineComboBox->setMinimumWidth(150);
-    connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EngineAnalysisTab::onEngineComboBoxChanged);
-
-    m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
-    m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
-    m_btnEngineSettings->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnEngineSettings, &QPushButton::clicked,
-            this, &EngineAnalysisTab::onEngineSettingsClicked);
-
-    m_unlimitedTimeRadioButton = new QRadioButton(tr("時間無制限"), m_considerationToolbar);
-    m_unlimitedTimeRadioButton->setToolTip(tr("時間制限なしで検討します"));
-    connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled,
-            this, &EngineAnalysisTab::onTimeSettingChanged);
-
-    m_considerationTimeRadioButton = new QRadioButton(tr("検討時間"), m_considerationToolbar);
-    m_considerationTimeRadioButton->setToolTip(tr("指定した秒数まで検討します"));
-    connect(m_considerationTimeRadioButton, &QRadioButton::toggled,
-            this, &EngineAnalysisTab::onTimeSettingChanged);
-
-    m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
-    m_byoyomiSecSpinBox->setRange(1, 3600);
-    m_byoyomiSecSpinBox->setValue(20);
-    m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
-    connect(m_byoyomiSecSpinBox, QOverload<int>::of(&QSpinBox::valueChanged),
-            this, &EngineAnalysisTab::onTimeSettingChanged);
-
-    m_byoyomiSecUnitLabel = new QLabel(tr("秒まで"), m_considerationToolbar);
-
-    m_elapsedTimeLabel = new QLabel(tr("経過: 0:00"), m_considerationToolbar);
-    m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
-    {
-        QPalette palette = m_elapsedTimeLabel->palette();
-        palette.setColor(QPalette::WindowText, Qt::red);
-        m_elapsedTimeLabel->setPalette(palette);
-    }
-
-    m_elapsedTimer = new QTimer(this);
-    m_elapsedTimer->setInterval(1000);
-    connect(m_elapsedTimer, &QTimer::timeout, this, &EngineAnalysisTab::onElapsedTimerTick);
-
-    m_multiPVLabel = new QLabel(tr("候補手の数"), m_considerationToolbar);
-    m_multiPVComboBox = new QComboBox(m_considerationToolbar);
-    for (int i = 1; i <= 10; ++i) {
-        m_multiPVComboBox->addItem(tr("%1手").arg(i), i);
-    }
-    m_multiPVComboBox->setCurrentIndex(0);
-    m_multiPVComboBox->setToolTip(tr("評価値が大きい順に表示する候補手の数を指定します"));
-
-    m_showArrowsCheckBox = new QCheckBox(tr("矢印表示"), m_considerationToolbar);
-    m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
-    m_showArrowsCheckBox->setChecked(true);
-    connect(m_showArrowsCheckBox, &QCheckBox::toggled,
-            this, &EngineAnalysisTab::showArrowsChanged);
-
-    m_btnStopConsideration = new QToolButton(m_considerationToolbar);
-    m_btnStopConsideration->setText(tr("検討開始"));
-    m_btnStopConsideration->setToolTip(tr("検討を開始します"));
-    m_btnStopConsideration->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnStopConsideration, &QToolButton::clicked,
-            this, &EngineAnalysisTab::startConsiderationRequested);
-
-    toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
-    toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
-    toolbarLayout->addWidget(m_engineComboBox);
-    toolbarLayout->addWidget(m_btnEngineSettings);
-    toolbarLayout->addWidget(m_unlimitedTimeRadioButton);
-    toolbarLayout->addWidget(m_considerationTimeRadioButton);
-    toolbarLayout->addWidget(m_byoyomiSecSpinBox);
-    toolbarLayout->addWidget(m_byoyomiSecUnitLabel);
-    toolbarLayout->addWidget(m_elapsedTimeLabel);
-    toolbarLayout->addWidget(m_multiPVLabel);
-    toolbarLayout->addWidget(m_multiPVComboBox);
-    toolbarLayout->addWidget(m_showArrowsCheckBox);
-    toolbarLayout->addWidget(m_btnStopConsideration);
-
-    connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EngineAnalysisTab::onMultiPVComboBoxChanged);
-
-    loadEngineList();
-    loadConsiderationTabSettings();
-
-    m_considerationInfo = new EngineInfoWidget(considerationPage, false, false);
-    m_considerationInfo->setWidgetIndex(2);
-    m_considerationInfo->setFontSize(m_considerationFontSize);
-    m_considerationView = new QTableView(considerationPage);
-
-    setupThinkingViewHeader(m_considerationView);
-
-    connect(m_considerationView, &QTableView::clicked,
-            this, &EngineAnalysisTab::onConsiderationViewClicked);
-
-    {
-        QFont font = m_considerationView->font();
-        font.setPointSize(m_considerationFontSize);
-        m_considerationView->setFont(font);
-        QString headerStyle = QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  padding: 2px 6px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "  font-size: %1pt;"
-            "}")
-            .arg(m_considerationFontSize);
-        m_considerationView->setStyleSheet(headerStyle);
-    }
-
-    considerationLayout->addWidget(m_considerationToolbar);
-    considerationLayout->addWidget(m_considerationInfo);
-    considerationLayout->addWidget(m_considerationView, 1);
+    ensureConsiderationTabManager();
+    m_considerationTabManager->buildConsiderationUi(considerationPage);
 
     return considerationPage;
 }
@@ -856,12 +338,7 @@ QWidget* EngineAnalysisTab::createUsiLogPage(QWidget* parent)
     m_usiLog->setReadOnly(true);
     usiLogLayout->addWidget(m_usiLog);
 
-    m_usiLogFontSize = SettingsService::usiLogFontSize();
-    if (m_usiLog) {
-        QFont font = m_usiLog->font();
-        font.setPointSize(m_usiLogFontSize);
-        m_usiLog->setFont(font);
-    }
+    initUsiLogFontManager();
 
     return m_usiLogContainer;
 }
@@ -869,8 +346,6 @@ QWidget* EngineAnalysisTab::createUsiLogPage(QWidget* parent)
 // CSA通信ログページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createCsaLogPage(QWidget* parent)
 {
-    m_csaLogFontSize = SettingsService::csaLogFontSize();
-
     m_csaLogContainer = new QWidget(parent);
     QVBoxLayout* csaLogLayout = new QVBoxLayout(m_csaLogContainer);
     csaLogLayout->setContentsMargins(4, 4, 4, 4);
@@ -884,12 +359,9 @@ QWidget* EngineAnalysisTab::createCsaLogPage(QWidget* parent)
 
     m_csaLog = new QPlainTextEdit(m_csaLogContainer);
     m_csaLog->setReadOnly(true);
-    {
-        QFont font = m_csaLog->font();
-        font.setPointSize(m_csaLogFontSize);
-        m_csaLog->setFont(font);
-    }
     csaLogLayout->addWidget(m_csaLog);
+
+    initCsaLogFontManager();
 
     return m_csaLogContainer;
 }
@@ -897,64 +369,28 @@ QWidget* EngineAnalysisTab::createCsaLogPage(QWidget* parent)
 // 棋譜コメントページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createCommentPage(QWidget* parent)
 {
-    QWidget* commentContainer = new QWidget(parent);
-    QVBoxLayout* commentLayout = new QVBoxLayout(commentContainer);
-    commentLayout->setContentsMargins(4, 4, 4, 4);
-    commentLayout->setSpacing(2);
-
-    buildCommentToolbar();
-    commentLayout->addWidget(m_commentToolbar);
-
-    m_comment = new QTextEdit(commentContainer);
-    m_comment->setReadOnly(false);
-    m_comment->setAcceptRichText(true);
-    m_comment->setPlaceholderText(tr("コメントを表示・編集"));
-    commentLayout->addWidget(m_comment);
-
-    if (m_comment->viewport()) {
-        m_commentViewport = m_comment->viewport();
-        m_commentViewport->installEventFilter(this);
-    }
-
-    connect(m_comment, &QTextEdit::textChanged,
-            this, &EngineAnalysisTab::onCommentTextChanged);
-
-    m_currentFontSize = SettingsService::commentFontSize();
-    if (m_comment) {
-        QFont font = m_comment->font();
-        font.setPointSize(m_currentFontSize);
-        m_comment->setFont(font);
-    }
-
-    return commentContainer;
+    ensureCommentEditor();
+    return m_commentEditor->buildCommentUi(parent);
 }
 
 // 分岐ツリーページを独立したウィジェットとして作成
 QWidget* EngineAnalysisTab::createBranchTreePage(QWidget* parent)
 {
-    m_branchTree = new QGraphicsView(parent);
-    m_branchTree->setRenderHint(QPainter::Antialiasing, true);
-    m_branchTree->setRenderHint(QPainter::TextAntialiasing, true);
-    m_branchTree->setRenderHint(QPainter::SmoothPixmapTransform, true);
-    m_branchTree->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_branchTree->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_branchTree->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+    auto* branchView = new QGraphicsView(parent);
+    branchView->setRenderHint(QPainter::Antialiasing, true);
+    branchView->setRenderHint(QPainter::TextAntialiasing, true);
+    branchView->setRenderHint(QPainter::SmoothPixmapTransform, true);
+    branchView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    branchView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    branchView->setAlignment(Qt::AlignLeft | Qt::AlignTop);
 
-    m_scene = new QGraphicsScene(m_branchTree);
-    m_branchTree->setScene(m_scene);
+    ensureBranchTreeManager();
+    m_branchTreeManager->setView(branchView);
+    // シグナル転送（BranchTreeManager → EngineAnalysisTab）
+    connect(m_branchTreeManager, &BranchTreeManager::branchNodeActivated,
+            this, &EngineAnalysisTab::branchNodeActivated);
 
-    if (m_branchTree && m_branchTree->viewport()) {
-        QWidget* vp = m_branchTree->viewport();
-        if (!vp->property("branchFilterInstalled").toBool()) {
-            m_branchTreeViewport = vp;
-            vp->installEventFilter(this);
-            vp->setProperty("branchFilterInstalled", true);
-        }
-    }
-
-    rebuildBranchTree();
-
-    return m_branchTree;
+    return branchView;
 }
 
 void EngineAnalysisTab::reapplyViewTuning(QTableView* v, QAbstractItemModel* m)
@@ -1080,515 +516,69 @@ void EngineAnalysisTab::setAnalysisVisible(bool on)
 
 void EngineAnalysisTab::setCommentHtml(const QString& html)
 {
-    if (m_comment) {
-        qCDebug(lcUi).noquote()
-            << "[EngineAnalysisTab] setCommentHtml ENTER:"
-            << " html.len=" << html.size()
-            << " m_isCommentDirty(before)=" << m_isCommentDirty;
-        
-        // 元のコメントを保存（変更検知用）
-        // HTMLからプレーンテキストを取得して保存
-        QString processedHtml = convertUrlsToLinks(html);
-        m_comment->setHtml(processedHtml);
-        m_originalComment = m_comment->toPlainText();
-        
-        qCDebug(lcUi).noquote()
-            << "[EngineAnalysisTab] setCommentHtml:"
-            << " m_originalComment.len=" << m_originalComment.size();
-        
-        // 編集状態をリセット
-        m_isCommentDirty = false;
-        updateEditingIndicator();
-        
-        qCDebug(lcUi).noquote()
-            << "[EngineAnalysisTab] setCommentHtml LEAVE:"
-            << " m_isCommentDirty=" << m_isCommentDirty;
+    ensureCommentEditor();
+    m_commentEditor->setCommentHtml(html);
+}
+
+// ===================== 分岐ツリー：BranchTreeManager への委譲 =====================
+
+void EngineAnalysisTab::ensureBranchTreeManager()
+{
+    if (!m_branchTreeManager) {
+        m_branchTreeManager = new BranchTreeManager(this);
     }
 }
 
-// ===================== 分岐ツリー・データ設定 =====================
+BranchTreeManager* EngineAnalysisTab::branchTreeManager()
+{
+    ensureBranchTreeManager();
+    return m_branchTreeManager;
+}
 
 void EngineAnalysisTab::setBranchTreeRows(const QVector<ResolvedRowLite>& rows)
 {
-    m_rows = rows;
-    rebuildBranchTree();
+    ensureBranchTreeManager();
+    m_branchTreeManager->setBranchTreeRows(rows);
 }
-
-// ===================== ノード/エッジ描画（＋登録） =====================
-
-// ノード（指し手札）を描く：row=0(本譜)/1..(分岐), ply=手数(1始まり), rawText=指し手
-QGraphicsPathItem* EngineAnalysisTab::addNode(int row, int ply, const QString& rawText)
-{
-    // レイアウト
-    static constexpr qreal STEP_X   = 110.0;
-    static constexpr qreal BASE_X   = 40.0;
-    static constexpr qreal SHIFT_X  = 40.0;   // ← 現在使っているオフセットと揃える
-    static constexpr qreal BASE_Y   = 40.0;
-    static constexpr qreal STEP_Y   = 56.0;
-    static constexpr qreal RADIUS   = 8.0;
-    static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
-    static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
-
-    // デバッグ: 初回のみフォント情報を出力
-    static bool fontDebugDone = false;
-    if (!fontDebugDone) {
-        debugFontInfo(LABEL_FONT, "addNode LABEL_FONT");
-        debugFontInfo(MOVE_NO_FONT, "addNode MOVE_NO_FONT");
-        fontDebugDone = true;
-    }
-
-    const qreal x = BASE_X + SHIFT_X + ply * STEP_X;
-    const qreal y = BASE_Y + row * STEP_Y;
-
-    // 先頭の手数数字（全角/半角）を除去
-    static const QRegularExpression kDropHeadNumber(QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
-    QString labelText = rawText;
-    labelText.replace(kDropHeadNumber, QString());
-    labelText = labelText.trimmed();
-
-    // 棋譜欄では分岐ありを示すため末尾に '+' を付けているが、
-    // 分岐ツリーでは装飾を表示しないのでここで取り除く
-    if (labelText.endsWith(QLatin1Char('+'))) {
-        labelText.chop(1);
-        labelText = labelText.trimmed();
-    }
-
-    const bool odd = (ply % 2) == 1; // 奇数=先手、偶数=後手
-
-    // 分岐も本譜と同じ配色に統一
-    const QColor mainOdd (196, 230, 255); // 先手=水色
-    const QColor mainEven(255, 223, 196); // 後手=ピーチ
-    const QColor fill = odd ? mainOdd : mainEven;
-
-    // 札サイズ
-    const QFontMetrics fm(LABEL_FONT);
-    const int  wText = fm.horizontalAdvance(labelText);
-    const int  hText = fm.height();
-    const qreal padX = 12.0, padY = 6.0;
-    const qreal rectW = qMax<qreal>(70.0, wText + padX * 2);
-    const qreal rectH = qMax<qreal>(24.0, hText + padY * 2);
-
-    // 角丸札
-    QPainterPath path;
-    const QRectF rect(x - rectW / 2.0, y - rectH / 2.0, rectW, rectH);
-    path.addRoundedRect(rect, RADIUS, RADIUS);
-
-    auto* item = m_scene->addPath(path, QPen(Qt::black, 1.2));
-    item->setBrush(fill);
-    item->setZValue(10);
-    item->setData(ROLE_ORIGINAL_BRUSH, item->brush().color().rgba());
-
-    // メタ
-    item->setData(ROLE_ROW, row);
-    item->setData(ROLE_PLY, ply);
-    item->setData(BR_ROLE_KIND, (row == 0) ? BNK_Main : BNK_Var);
-    if (row == 0) item->setData(BR_ROLE_PLY, ply); // 既存クリック処理互換
-
-    // 指し手ラベル（中央）
-    auto* textItem = m_scene->addSimpleText(labelText, LABEL_FONT);
-    const QRectF br = textItem->boundingRect();
-    textItem->setParentItem(item);
-    textItem->setPos(rect.center().x() - br.width() / 2.0,
-                     rect.center().y() - br.height() / 2.0);
-
-    // 「n手目」ラベルは本譜の上だけに表示（分岐 row!=0 では表示しない）
-    if (row == 0) {
-        const QString moveNo = tr("%1手目").arg(ply);
-        auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
-        const QRectF nbr = noItem->boundingRect();
-        noItem->setParentItem(item);
-        const qreal gap = 4.0;
-        noItem->setPos(rect.center().x() - nbr.width() / 2.0,
-                       rect.top() - gap - nbr.height());
-    }
-
-    // クリック解決用（従来）
-    m_nodeIndex.insert(qMakePair(row, ply), item);
-
-    // グラフ登録（vid はここでは row と同義で十分）
-    const int nodeId = registerNode(/*vid*/row, row, ply, item);
-    item->setData(ROLE_NODE_ID, nodeId);
-
-    return item;
-}
-
-void EngineAnalysisTab::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
-{
-    if (!from || !to) return;
-
-    // ノードの中心（シーン座標）
-    const QPointF a = from->sceneBoundingRect().center();
-    const QPointF b = to->sceneBoundingRect().center();
-
-    // 緩やかなベジェ
-    QPainterPath path(a);
-    const QPointF c1(a.x() + 8, a.y());
-    const QPointF c2(b.x() - 8, b.y());
-    path.cubicTo(c1, c2, b);
-
-    auto* edge = m_scene->addPath(path, QPen(QColor(90, 90, 90), 1.0));
-    edge->setZValue(0); // ← 線は常に背面（長方形の中に罫線が見えなくなる）
-
-    // グラフ接続
-    const int prevId = from->data(ROLE_NODE_ID).toInt();
-    const int nextId = to  ->data(ROLE_NODE_ID).toInt();
-    if (prevId > 0 && nextId > 0) linkEdge(prevId, nextId);
-}
-
-// --- 追加ヘルパ：row(>=1) の分岐元となる「親行」を決める ---
-int EngineAnalysisTab::resolveParentRowForVariation(int row) const
-{
-    if (row < 1 || row >= m_rows.size()) {
-        qCWarning(lcUi).noquote() << "[EngineAnalysisTab] resolveParentRowForVariation: row out of range"
-                             << "row=" << row << "m_rows.size=" << m_rows.size();
-        return 0;
-    }
-
-    // 以前は startPly の前後関係から親を「推測」していたが、
-    //    データとして渡された parent を正しく使うように変更しました。
-    //    これにより、2局目の後に1局目の途中から分岐した3局目（row=2）が来た場合でも、
-    //    parent=0（1局目）を正しく参照できるようになります。
-
-    const int p = m_rows.at(row).parent;
-    if (p >= 0 && p < m_rows.size()) {
-        return p;
-    }
-
-    return 0; // フォールバック：本譜
-}
-
-// ===================== シーン再構築 =====================
-
-void EngineAnalysisTab::rebuildBranchTree()
-{
-    if (!m_scene) return;
-    m_scene->clear();
-    m_nodeIndex.clear();
-
-    // グラフもクリア
-    clearBranchGraph();
-    m_prevSelected = nullptr;
-
-    // レイアウト定数（既存と同値）
-    static constexpr qreal STEP_X   = 110.0;
-    static constexpr qreal BASE_X   = 40.0;
-    static constexpr qreal SHIFT_X  = 40.0;   // addNode() と同じ
-    static constexpr qreal BASE_Y   = 40.0;
-    static constexpr qreal STEP_Y   = 56.0;
-    static constexpr qreal RADIUS   = 8.0;
-    static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
-    static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
-
-    // デバッグ: 初回のみフォント情報を出力
-    static bool fontDebugDone2 = false;
-    if (!fontDebugDone2) {
-        debugFontInfo(LABEL_FONT, "rebuildBranchGraph LABEL_FONT");
-        debugFontInfo(MOVE_NO_FONT, "rebuildBranchGraph MOVE_NO_FONT");
-        fontDebugDone2 = true;
-    }
-
-    // ===== まず「開始局面」を必ず描画（m_rows が空でも表示） =====
-    QGraphicsPathItem* startNode = nullptr;
-    {
-        const qreal x = BASE_X + SHIFT_X;
-        const qreal y = BASE_Y + 0 * STEP_Y;
-        const QString label = tr("開始局面");
-
-        const QFontMetrics fm(LABEL_FONT);
-        const int  wText = fm.horizontalAdvance(label);
-        const int  hText = fm.height();
-        const qreal padX = 14.0, padY = 8.0;
-        const qreal rectW = qMax<qreal>(84.0, wText + padX * 2);
-        const qreal rectH = qMax<qreal>(26.0, hText + padY * 2);
-
-        QPainterPath path;
-        const QRectF rect(x - rectW / 2.0, y - rectH / 2.0, rectW, rectH);
-        path.addRoundedRect(rect, RADIUS, RADIUS);
-
-        startNode = m_scene->addPath(path, QPen(Qt::black, 1.4));
-        startNode->setBrush(QColor(235, 235, 235));
-        startNode->setZValue(10);
-
-        startNode->setData(ROLE_ROW, 0);
-        startNode->setData(ROLE_PLY, 0);
-        startNode->setData(BR_ROLE_KIND, BNK_Start);
-        startNode->setData(ROLE_ORIGINAL_BRUSH, startNode->brush().color().rgba());
-        m_nodeIndex.insert(qMakePair(0, 0), startNode);
-
-        auto* t = m_scene->addSimpleText(label, LABEL_FONT);
-        const QRectF br = t->boundingRect();
-        t->setParentItem(startNode);
-        t->setPos(rect.center().x() - br.width() / 2.0,
-                  rect.center().y() - br.height() / 2.0);
-
-        const int nid = registerNode(/*vid*/0, /*row*/0, /*ply*/0, startNode);
-        startNode->setData(ROLE_NODE_ID, nid);
-    }
-
-    // ===== 本譜 row=0（手札） =====
-    if (!m_rows.isEmpty()) {
-        const auto& main = m_rows.at(0);
-
-        QGraphicsPathItem* prev = startNode;
-        // disp[0]は開始局面エントリ（prettyMoveが空）なのでスキップ
-        // disp[1]から処理し、ply=1から開始
-        for (qsizetype i = 1; i < main.disp.size(); ++i) {
-            const auto& it = main.disp.at(i);
-            const int ply = static_cast<int>(i);  // disp[i]はi手目
-            QGraphicsPathItem* node = addNode(0, ply, it.prettyMove);
-            if (prev) addEdge(prev, node);
-            prev = node;
-        }
-    }
-
-    // ===== 分岐 row=1.. =====
-    qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: m_rows.size=" << m_rows.size();
-    for (qsizetype row = 1; row < m_rows.size(); ++row) {
-        const auto& rv = m_rows.at(row);
-        const int startPly = qMax(1, rv.startPly);      // 1-origin
-        qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: row=" << row
-                           << " startPly=" << startPly
-                           << " rv.disp.size=" << rv.disp.size()
-                           << " rv.parent=" << rv.parent;
-
-        // 1) 親行を決定
-        const int parentRow = resolveParentRowForVariation(static_cast<int>(row));
-
-        // 2) 親と繋ぐ“合流手”は (startPly - 1) 手目のノード
-        const int joinPly = startPly - 1;
-
-        // 親の joinPly ノードを取得。無ければ本譜→開始局面へフォールバック。
-        //修正: ターミナルノード（投了など）への接続は避ける
-        static const QStringList kTerminalKeywords = {
-            QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
-            QStringLiteral("千日手"), QStringLiteral("切れ負け"),
-            QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
-            QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"),
-            QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰"),
-        };
-        auto isTerminalPly = [&](int targetRow, int ply) -> bool {
-            if (targetRow < 0 || targetRow >= m_rows.size()) return false;
-            const auto& rowData = m_rows.at(targetRow);
-            if (ply < 0 || ply >= rowData.disp.size()) return false;
-            const QString& text = rowData.disp.at(ply).prettyMove;
-            for (const auto& kw : kTerminalKeywords) {
-                if (text.contains(kw)) return true;
-            }
-            return false;
-        };
-
-        QGraphicsPathItem* prev = nullptr;
-
-        // 1. 親行のjoinPly手目を試す（ターミナルでなければ）
-        if (!isTerminalPly(parentRow, joinPly)) {
-            prev = m_nodeIndex.value(qMakePair(parentRow, joinPly), nullptr);
-        }
-
-        // 2. なければ本譜のjoinPly手目を試す（ターミナルでなければ）
-        if (!prev && !isTerminalPly(0, joinPly)) {
-            prev = m_nodeIndex.value(qMakePair(0, joinPly), nullptr);
-        }
-
-        // 3. それでもなければ、親行のjoinPlyより前の最後の非ターミナルノードを探す
-        if (!prev) {
-            for (int p = joinPly - 1; p >= 0; --p) {
-                if (!isTerminalPly(parentRow, p)) {
-                    prev = m_nodeIndex.value(qMakePair(parentRow, p), nullptr);
-                    if (prev) break;
-                }
-                if (!prev && !isTerminalPly(0, p)) {
-                    prev = m_nodeIndex.value(qMakePair(0, p), nullptr);
-                    if (prev) break;
-                }
-            }
-        }
-
-        // 4. 最終フォールバック: 開始局面
-        if (!prev) {
-            prev = m_nodeIndex.value(qMakePair(0, 0), nullptr);
-        }
-
-        // 3) 分岐の手リストを「開始手以降だけ」にスライス
-        // 新データ構造: disp[0]=開始局面エントリ, disp[i]=i手目 (i>=1)
-        // startPly手目から描画するので、disp[startPly]から開始
-        const int cut   = startPly;                       // disp[startPly]がstartPly手目
-        const qsizetype total = rv.disp.size();
-        const int take  = (cut < total) ? static_cast<int>(total - cut) : 0;
-        qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: row=" << row
-                           << " cut=" << cut << " total=" << total << " take=" << take;
-        if (take <= 0) {
-            qCDebug(lcUi).noquote() << "[EAT] rebuildBranchTree: SKIPPING row=" << row << " (no moves to draw)";
-            continue;                              // 描くもの無し
-        }
-
-        // 4) 切り出した手だけを絶対手数で並べる（absPly = startPly + i）
-        for (int i = 0; i < take; ++i) {
-            const auto& it = rv.disp.at(cut + i);
-            const int absPly = startPly + i;
-
-            QGraphicsPathItem* node = addNode(static_cast<int>(row), absPly, it.prettyMove);
-
-            // クリック用メタ
-            node->setData(BR_ROLE_STARTPLY, startPly);
-            node->setData(BR_ROLE_BUCKET,   row - 1);
-
-            if (prev) addEdge(prev, node);
-            prev = node;
-        }
-    }
-
-    // ===== “一番上”の手数ラベルを最大手数まで補完表示 =====
-    // 本譜ノード（row=0）が無い手（=本譜手数を超える手）についても、上段に「n手目」を表示する
-    int maxAbsPly = 0;
-    {
-        // 既に描いた全ノードから最大 ply を求める
-        const auto keys = m_nodeIndex.keys();
-        for (const auto& k : keys) {
-            const int ply = k.second; // QPair<int,int> の second が ply
-            if (ply > maxAbsPly) maxAbsPly = ply;
-        }
-    }
-
-    if (maxAbsPly > 0) {
-        const QFontMetrics fmLabel(LABEL_FONT);
-        const QFontMetrics fmMoveNo(MOVE_NO_FONT);
-        const int hText = fmLabel.height();
-        const qreal padY = 6.0; // addNode() と同じ
-        const qreal rectH = qMax<qreal>(24.0, hText + padY * 2);
-        const qreal gap   = 4.0;
-        const qreal baselineY = BASE_Y + 0 * STEP_Y;
-        const qreal topY = (baselineY - rectH / 2.0) - gap; // 「n手目」テキストの下辺基準
-
-        for (int ply = 1; ply <= maxAbsPly; ++ply) {
-            // すでに本譜ノードがある手（row=0, ply）は addNode() 側でラベルを付け済み
-            if (m_nodeIndex.contains(qMakePair(0, ply))) continue;
-
-            const QString moveNo = tr("%1手目").arg(ply);
-            auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
-            const QRectF nbr = noItem->boundingRect();
-
-            const qreal x = BASE_X + SHIFT_X + ply * STEP_X;
-            noItem->setZValue(15); // 札より少し前面
-            noItem->setPos(x - nbr.width() / 2.0, topY - nbr.height());
-        }
-    }
-
-    // ===== シーン境界 =====
-    // disp[0]は開始局面エントリなので、指し手数は disp.size() - 1
-    const int mainLen = m_rows.isEmpty() ? 0 : static_cast<int>(qMax(qsizetype(0), m_rows.at(0).disp.size() - 1));
-    const int spanLen = qMax(mainLen, maxAbsPly);
-    const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, spanLen + 6) + 40.0;
-    const qreal height = 30 + STEP_Y * static_cast<qreal>(qMax(qsizetype(2), m_rows.size() + 1));
-    m_scene->setSceneRect(QRectF(0, 0, width, height));
-
-    // 【追加】初期状態で「開始局面」（row=0, ply=0）をハイライト（黄色）にする
-    // これにより m_prevSelected が「開始局面」に設定され、
-    // 次の手がハイライトされる際に「開始局面」は自動的に元の色に戻されます。
-    highlightBranchTreeAt(0, 0, /*centerOn=*/false);
-}
-
-// ===================== ハイライト（フォールバック対応） =====================
 
 void EngineAnalysisTab::highlightBranchTreeAt(int row, int ply, bool centerOn)
 {
-    // まず (row,ply) 直指定
-    auto it = m_nodeIndex.find(qMakePair(row, ply));
-    if (it != m_nodeIndex.end()) {
-        highlightNodeId(it.value()->data(ROLE_NODE_ID).toInt(), centerOn);
-        return;
-    }
+    ensureBranchTreeManager();
+    m_branchTreeManager->highlightBranchTreeAt(row, ply, centerOn);
+}
 
-    // 無ければグラフでフォールバック（分岐開始前は親行へ、あるいは next/prev を辿る）
-    const int nid = graphFallbackToPly(row, ply);
-    if (nid > 0) {
-        highlightNodeId(nid, centerOn);
+void EngineAnalysisTab::setBranchTreeClickEnabled(bool enabled)
+{
+    ensureBranchTreeManager();
+    m_branchTreeManager->setBranchTreeClickEnabled(enabled);
+}
+
+bool EngineAnalysisTab::isBranchTreeClickEnabled() const
+{
+    if (!m_branchTreeManager) return true;
+    return m_branchTreeManager->isBranchTreeClickEnabled();
+}
+
+// ===================== CommentEditorPanel 初期化 =====================
+
+void EngineAnalysisTab::ensureCommentEditor()
+{
+    if (!m_commentEditor) {
+        m_commentEditor = new CommentEditorPanel(this);
+        // シグナル転送（CommentEditorPanel → EngineAnalysisTab）
+        connect(m_commentEditor, &CommentEditorPanel::commentUpdated,
+                this, &EngineAnalysisTab::commentUpdated);
+        connect(m_commentEditor, &CommentEditorPanel::requestApplyStart,
+                this, &EngineAnalysisTab::requestApplyStart);
+        connect(m_commentEditor, &CommentEditorPanel::requestApplyMainAtPly,
+                this, &EngineAnalysisTab::requestApplyMainAtPly);
     }
 }
 
-void EngineAnalysisTab::highlightNodeId(int nodeId, bool centerOn)
+CommentEditorPanel* EngineAnalysisTab::commentEditor()
 {
-    if (nodeId <= 0) return;
-    const auto node = m_nodesById.value(nodeId);
-    QGraphicsPathItem* item = node.item;
-    if (!item) return;
-
-    // 直前ハイライト復元
-    if (m_prevSelected) {
-        const auto argb = m_prevSelected->data(ROLE_ORIGINAL_BRUSH).toUInt();
-        m_prevSelected->setBrush(QColor::fromRgba(argb));
-        m_prevSelected->setPen(QPen(Qt::black, 1.2));
-        m_prevSelected->setZValue(10);
-        m_prevSelected = nullptr;
-    }
-
-    // 黄色へ
-    item->setBrush(QColor(255, 235, 80));
-    item->setPen(QPen(Qt::black, 1.8));
-    item->setZValue(20);
-    m_prevSelected = item;
-
-    if (centerOn && m_branchTree) m_branchTree->centerOn(item);
-}
-
-// ===================== クリック検出 =====================
-bool EngineAnalysisTab::eventFilter(QObject* obj, QEvent* ev)
-{
-    // ウィジェット削除中は早期リターン（クラッシュ防止）
-    if (!obj || ev->type() == QEvent::Destroy) {
-        return QWidget::eventFilter(obj, ev);
-    }
-
-    // コメント内のURLクリック処理
-    // 保存したviewportポインタを使用（viewport()の呼び出しを避ける）
-    if (m_commentViewport && obj == m_commentViewport
-        && ev->type() == QEvent::MouseButtonRelease)
-    {
-        auto* me = static_cast<QMouseEvent*>(ev);
-        if (me->button() == Qt::LeftButton && m_comment) {
-            // クリック位置にあるアンカー（URL）を取得
-            const QString anchor = m_comment->anchorAt(me->pos());
-            if (!anchor.isEmpty()) {
-                // URLをブラウザで開く
-                QDesktopServices::openUrl(QUrl(anchor));
-                return true;  // イベントを消費
-            }
-        }
-    }
-
-    // 分岐ツリーのクリック処理
-    // 保存したviewportポインタを使用
-    if (m_branchTreeViewport && obj == m_branchTreeViewport
-        && ev->type() == QEvent::MouseButtonRelease)
-    {
-        // 対局中はクリックを無効化（スクロールバーは引き続き動作可能）
-        if (!m_branchTreeClickEnabled) {
-            return false;
-        }
-
-        auto* me = static_cast<QMouseEvent*>(ev);
-        if (!(me->button() & Qt::LeftButton)) return QWidget::eventFilter(obj, ev);
-
-        const QPointF scenePt = m_branchTree->mapToScene(me->pos());
-        QGraphicsItem* hit =
-            m_branchTree->scene() ? m_branchTree->scene()->itemAt(scenePt, QTransform()) : nullptr;
-
-        // 子(Text)に当たることがあるので親まで遡る
-        while (hit && !hit->data(BR_ROLE_KIND).isValid())
-            hit = hit->parentItem();
-        if (!hit) return false;
-
-        // クリックされたノードの絶対(row, ply)
-        const int row = hit->data(ROLE_ROW).toInt();  // 0=Main, 1..=VarN
-        const int ply = hit->data(ROLE_PLY).toInt();  // 0=開始局面, 1..=手数
-
-        // 即時の視覚フィードバック（黄色）※任意だが体感向上
-        highlightBranchTreeAt(row, ply, /*centerOn=*/false);
-
-        // 新API：MainWindow 側で (row, ply) をそのまま適用
-        emit branchNodeActivated(row, ply);
-        return true;
-    }
-    return QWidget::eventFilter(obj, ev);
+    ensureCommentEditor();
+    return m_commentEditor;
 }
 
 // ===== 互換API 実装 =====
@@ -1616,134 +606,8 @@ void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel* m)
 
 void EngineAnalysisTab::setCommentText(const QString& text)
 {
-    // 旧コード互換：プレーンテキストで設定（URLをリンクに変換）
-    if (m_comment) {
-        QString htmlText = convertUrlsToLinks(text);
-        m_comment->setHtml(htmlText);
-    }
-}
-
-// ===================== グラフAPI 実装 =====================
-
-void EngineAnalysisTab::clearBranchGraph()
-{
-    m_nodeIdByRowPly.clear();
-    m_nodesById.clear();
-    m_prevIds.clear();
-    m_nextIds.clear();
-    m_rowEntryNode.clear();
-    m_nextNodeId = 1;
-}
-
-int EngineAnalysisTab::registerNode(int vid, int row, int ply, QGraphicsPathItem* item)
-{
-    if (!item) return -1;
-    const int id = m_nextNodeId++;
-
-    BranchGraphNode n;
-    n.id   = id;
-    n.vid  = vid;
-    n.row  = row;
-    n.ply  = ply;
-    n.item = item;
-
-    m_nodesById.insert(id, n);
-    m_nodeIdByRowPly.insert(qMakePair(row, ply), id);
-
-    // 行のエントリノード（最初に登録されたもの）を覚えておくと探索が楽
-    if (!m_rowEntryNode.contains(row))
-        m_rowEntryNode.insert(row, id);
-
-    return id;
-}
-
-void EngineAnalysisTab::linkEdge(int prevId, int nextId)
-{
-    if (prevId <= 0 || nextId <= 0) return;
-    m_nextIds[prevId].push_back(nextId);
-    m_prevIds[nextId].push_back(prevId);
-}
-
-// ===================== フォールバック探索 =====================
-
-int EngineAnalysisTab::graphFallbackToPly(int row, int targetPly) const
-{
-    // 1) まず (row, ply) にノードがあるならそれ
-    const int direct = nodeIdFor(row, targetPly);
-    if (direct > 0) return direct;
-
-    // 2) 分岐行の「開始手より前」なら親行へ委譲する
-    if (row >= 1 && row < m_rows.size()) {
-        const int startPly = qMax(1, m_rows.at(row).startPly);
-        if (targetPly < startPly) {
-            const int parentRow = resolveParentRowForVariation(row);
-            return graphFallbackToPly(parentRow, targetPly);
-        }
-    }
-
-    // 3) 同じ行内で近いノードから next を辿って同一 ply を探す
-    //    まず「targetPly 以下で最も近い既存 ply」を見つける
-    int seedId = -1;
-    for (int p = targetPly; p >= 0; --p) {
-        seedId = nodeIdFor(row, p);
-        if (seedId > 0) break;
-    }
-    if (seedId <= 0) {
-        // 行に何も無ければ、行の入口（例えば開始局面や最初の手）から辿る
-        seedId = m_rowEntryNode.value(row, -1);
-    }
-
-    if (seedId > 0) {
-        // BFSで next を辿り、targetPly と一致する ply を持つノードを探す
-        QQueue<int> q;
-        QSet<int> seen;
-        q.enqueue(seedId);
-        seen.insert(seedId);
-
-        while (!q.isEmpty()) {
-            const int cur = q.dequeue();
-            const auto node = m_nodesById.value(cur);
-            if (node.ply == targetPly) return cur;
-
-            const auto nexts = m_nextIds.value(cur);
-            for (int nx : nexts) {
-                if (!seen.contains(nx)) {
-                    seen.insert(nx);
-                    q.enqueue(nx);
-                }
-            }
-        }
-    }
-
-    // 4) それでも見つからない場合、親行へ委譲してみる（最終手段）
-    if (row >= 1 && row < m_rows.size()) {
-        const int parentRow = resolveParentRowForVariation(row);
-        if (parentRow != row) {
-            const int viaParent = graphFallbackToPly(parentRow, targetPly);
-            if (viaParent > 0) return viaParent;
-        }
-    }
-
-    // 5) 本譜 row=0 の seed からも探索してみる
-    {
-        int seed0 = nodeIdFor(0, targetPly);
-        if (seed0 <= 0) seed0 = m_rowEntryNode.value(0, -1);
-        if (seed0 > 0) {
-            QQueue<int> q;
-            QSet<int> seen;
-            q.enqueue(seed0);
-            seen.insert(seed0);
-            while (!q.isEmpty()) {
-                const int cur = q.dequeue();
-                const auto node = m_nodesById.value(cur);
-                if (node.ply == targetPly) return cur;
-                const auto nexts = m_nextIds.value(cur);
-                for (int nx : nexts) if (!seen.contains(nx)) { seen.insert(nx); q.enqueue(nx); }
-            }
-        }
-    }
-
-    return -1;
+    ensureCommentEditor();
+    m_commentEditor->setCommentText(text);
 }
 
 // ヘッダの基本設定（モデル設定前でもOK）
@@ -1919,36 +783,28 @@ void EngineAnalysisTab::buildUsiLogToolbar()
     relaxToolbarWidth(m_usiLogToolbar);
 }
 
-// USI通信ログフォントサイズ変更
-void EngineAnalysisTab::updateUsiLogFontSize(int delta)
+void EngineAnalysisTab::initUsiLogFontManager()
 {
-    m_usiLogFontSize += delta;
-    if (m_usiLogFontSize < 8) m_usiLogFontSize = 8;
-    if (m_usiLogFontSize > 24) m_usiLogFontSize = 24;
-
-    QFont font;
-    font.setPointSize(m_usiLogFontSize);
-
-    if (m_usiLog) {
-        m_usiLog->setFont(font);
-    }
-
-    // コマンドバーのフォントサイズも更新
-    if (m_usiTargetCombo) m_usiTargetCombo->setFont(font);
-    if (m_usiCommandInput) m_usiCommandInput->setFont(font);
-
-    // 設定ファイルに保存
-    SettingsService::setUsiLogFontSize(m_usiLogFontSize);
+    m_usiLogFontSize = SettingsService::usiLogFontSize();
+    m_usiLogFontManager = std::make_unique<LogViewFontManager>(m_usiLogFontSize, m_usiLog);
+    m_usiLogFontManager->setPostApplyCallback([this](int size) {
+        QFont font;
+        font.setPointSize(size);
+        if (m_usiTargetCombo) m_usiTargetCombo->setFont(font);
+        if (m_usiCommandInput) m_usiCommandInput->setFont(font);
+        SettingsService::setUsiLogFontSize(size);
+    });
+    m_usiLogFontManager->apply();
 }
 
 void EngineAnalysisTab::onUsiLogFontIncrease()
 {
-    updateUsiLogFontSize(1);
+    m_usiLogFontManager->increase();
 }
 
 void EngineAnalysisTab::onUsiLogFontDecrease()
 {
-    updateUsiLogFontSize(-1);
+    m_usiLogFontManager->decrease();
 }
 
 // USIコマンドバーを構築
@@ -2033,437 +889,92 @@ void EngineAnalysisTab::onEngine2NameChanged()
     }
 }
 
-// 思考タブフォントサイズ変更
-void EngineAnalysisTab::updateThinkingFontSize(int delta)
+void EngineAnalysisTab::initThinkingFontManager()
 {
-    m_thinkingFontSize += delta;
-    if (m_thinkingFontSize < 8) m_thinkingFontSize = 8;
-    if (m_thinkingFontSize > 24) m_thinkingFontSize = 24;
+    m_thinkingFontSize = SettingsService::thinkingFontSize();
+    m_thinkingFontManager = std::make_unique<LogViewFontManager>(m_thinkingFontSize, nullptr);
+    m_thinkingFontManager->setPostApplyCallback([this](int size) {
+        QFont font;
+        font.setPointSize(size);
 
-    QFont font;
-    font.setPointSize(m_thinkingFontSize);
+        // 上段（EngineInfoWidget）のフォントサイズ変更
+        if (m_info1) m_info1->setFontSize(size);
+        if (m_info2) m_info2->setFontSize(size);
 
-    // 上段（EngineInfoWidget）のフォントサイズ変更
-    if (m_info1) m_info1->setFontSize(m_thinkingFontSize);
-    if (m_info2) m_info2->setFontSize(m_thinkingFontSize);
+        // 下段（TableView）のフォントサイズ変更
+        QString headerStyle = QStringLiteral(
+            "QHeaderView::section {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #40acff, stop:1 #209cee);"
+            "  color: white;"
+            "  font-weight: normal;"
+            "  padding: 2px 6px;"
+            "  border: none;"
+            "  border-bottom: 1px solid #209cee;"
+            "  font-size: %1pt;"
+            "}")
+            .arg(size);
 
-    // 下段（TableView）のフォントサイズ変更
-    // スタイルシートでヘッダーの色とフォントサイズを設定（棋譜タブと統一）
-    QString headerStyle = QStringLiteral(
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "  font-size: %1pt;"
-        "}")
-        .arg(m_thinkingFontSize);
+        if (m_view1) {
+            m_view1->setFont(font);
+            m_view1->setStyleSheet(headerStyle);
+            const int rowHeight = m_view1->fontMetrics().height() + 4;
+            m_view1->verticalHeader()->setDefaultSectionSize(rowHeight);
+        }
+        if (m_view2) {
+            m_view2->setFont(font);
+            m_view2->setStyleSheet(headerStyle);
+            const int rowHeight = m_view2->fontMetrics().height() + 4;
+            m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
+        }
 
-    if (m_view1) {
-        m_view1->setFont(font);
-        m_view1->setStyleSheet(headerStyle);
-        // 行の高さもフォントサイズに合わせて更新
-        const int rowHeight = m_view1->fontMetrics().height() + 4;
-        m_view1->verticalHeader()->setDefaultSectionSize(rowHeight);
+        SettingsService::setThinkingFontSize(size);
+    });
+    if (m_thinkingFontSize != 10) {
+        m_thinkingFontManager->apply();
     }
-    if (m_view2) {
-        m_view2->setFont(font);
-        m_view2->setStyleSheet(headerStyle);
-        // 行の高さもフォントサイズに合わせて更新
-        const int rowHeight = m_view2->fontMetrics().height() + 4;
-        m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
-    }
-
-    // 設定ファイルに保存
-    SettingsService::setThinkingFontSize(m_thinkingFontSize);
 }
 
 void EngineAnalysisTab::onThinkingFontIncrease()
 {
-    updateThinkingFontSize(1);
+    m_thinkingFontManager->increase();
 }
 
 void EngineAnalysisTab::onThinkingFontDecrease()
 {
-    updateThinkingFontSize(-1);
+    m_thinkingFontManager->decrease();
 }
 
-// 検討タブのフォントサイズを変更
-void EngineAnalysisTab::updateConsiderationFontSize(int delta)
-{
-    m_considerationFontSize += delta;
-    if (m_considerationFontSize < 8) m_considerationFontSize = 8;
-    if (m_considerationFontSize > 24) m_considerationFontSize = 24;
+// ===================== CommentEditorPanel への委譲 =====================
 
-    QFont font;
-    font.setPointSize(m_considerationFontSize);
-
-    // ツールバーの要素にフォントサイズを適用
-    if (m_btnConsiderationFontDecrease) m_btnConsiderationFontDecrease->setFont(font);
-    if (m_btnConsiderationFontIncrease) m_btnConsiderationFontIncrease->setFont(font);
-    if (m_engineComboBox) m_engineComboBox->setFont(font);
-    if (m_btnEngineSettings) m_btnEngineSettings->setFont(font);
-    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setFont(font);
-    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setFont(font);
-    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setFont(font);
-    if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setFont(font);
-    if (m_elapsedTimeLabel) m_elapsedTimeLabel->setFont(font);
-    if (m_multiPVLabel) m_multiPVLabel->setFont(font);
-    if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
-    if (m_showArrowsCheckBox) m_showArrowsCheckBox->setFont(font);
-    if (m_btnStopConsideration) m_btnStopConsideration->setFont(font);
-
-    // 上段（EngineInfoWidget）のフォントサイズ変更
-    if (m_considerationInfo) m_considerationInfo->setFontSize(m_considerationFontSize);
-
-    // 下段（TableView）のフォントサイズ変更
-    // スタイルシートでヘッダーの色とフォントサイズを設定（棋譜タブと統一）
-    QString headerStyle = QStringLiteral(
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "  font-size: %1pt;"
-        "}")
-        .arg(m_considerationFontSize);
-
-    if (m_considerationView) {
-        m_considerationView->setFont(font);
-        m_considerationView->setStyleSheet(headerStyle);
-        // 行の高さもフォントサイズに合わせて更新
-        const int rowHeight = m_considerationView->fontMetrics().height() + 4;
-        m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
-    }
-
-    // 設定ファイルに保存
-    SettingsService::setConsiderationFontSize(m_considerationFontSize);
-}
-
-void EngineAnalysisTab::onConsiderationFontIncrease()
-{
-    updateConsiderationFontSize(1);
-}
-
-void EngineAnalysisTab::onConsiderationFontDecrease()
-{
-    updateConsiderationFontSize(-1);
-}
-
-// コメントツールバーを構築
-void EngineAnalysisTab::buildCommentToolbar()
-{
-    m_commentToolbar = new QWidget(this);
-    QHBoxLayout* toolbarLayout = new QHBoxLayout(m_commentToolbar);
-    toolbarLayout->setContentsMargins(2, 2, 2, 2);
-    toolbarLayout->setSpacing(4);
-
-    // フォントサイズ減少ボタン
-    m_btnFontDecrease = new QToolButton(m_commentToolbar);
-    m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnFontDecrease->setFixedSize(28, 24);
-    m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnFontDecrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontDecrease);
-
-    // フォントサイズ増加ボタン
-    m_btnFontIncrease = new QToolButton(m_commentToolbar);
-    m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnFontIncrease->setFixedSize(28, 24);
-    m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    connect(m_btnFontIncrease, &QToolButton::clicked, this, &EngineAnalysisTab::onFontIncrease);
-
-    // undoボタン（元に戻す）
-    m_btnCommentUndo = new QToolButton(m_commentToolbar);
-    m_btnCommentUndo->setText(QStringLiteral("↩"));
-    m_btnCommentUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
-    m_btnCommentUndo->setFixedSize(28, 24);
-    m_btnCommentUndo->setStyleSheet(ButtonStyles::undoRedo());
-    connect(m_btnCommentUndo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentUndo);
-
-    // redoボタン（やり直す）
-    m_btnCommentRedo = new QToolButton(m_commentToolbar);
-    m_btnCommentRedo->setText(QStringLiteral("↪"));
-    m_btnCommentRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
-    m_btnCommentRedo->setFixedSize(28, 24);
-    m_btnCommentRedo->setStyleSheet(ButtonStyles::undoRedo());
-    connect(m_btnCommentRedo, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentRedo);
-
-    // 切り取りボタン
-    m_btnCommentCut = new QToolButton(m_commentToolbar);
-    m_btnCommentCut->setText(QStringLiteral("✂"));
-    m_btnCommentCut->setToolTip(tr("切り取り (Ctrl+X)"));
-    m_btnCommentCut->setFixedSize(28, 24);
-    m_btnCommentCut->setStyleSheet(ButtonStyles::editOperation());
-    connect(m_btnCommentCut, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCut);
-
-    // コピーボタン
-    m_btnCommentCopy = new QToolButton(m_commentToolbar);
-    m_btnCommentCopy->setText(QStringLiteral("📋"));
-    m_btnCommentCopy->setToolTip(tr("コピー (Ctrl+C)"));
-    m_btnCommentCopy->setFixedSize(28, 24);
-    m_btnCommentCopy->setStyleSheet(ButtonStyles::editOperation());
-    connect(m_btnCommentCopy, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentCopy);
-
-    // 貼り付けボタン
-    m_btnCommentPaste = new QToolButton(m_commentToolbar);
-    m_btnCommentPaste->setText(QStringLiteral("📄"));
-    m_btnCommentPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
-    m_btnCommentPaste->setFixedSize(28, 24);
-    m_btnCommentPaste->setStyleSheet(ButtonStyles::editOperation());
-    connect(m_btnCommentPaste, &QToolButton::clicked, this, &EngineAnalysisTab::onCommentPaste);
-
-    // 「修正中」ラベル（赤字）
-    m_editingLabel = new QLabel(tr("修正中"), m_commentToolbar);
-    m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
-    m_editingLabel->setVisible(false);  // 初期状態は非表示
-
-    // コメント更新ボタン
-    m_btnUpdateComment = new QPushButton(tr("コメント更新"), m_commentToolbar);
-    m_btnUpdateComment->setToolTip(tr("編集したコメントを棋譜に反映する"));
-    m_btnUpdateComment->setFixedHeight(24);
-    m_btnUpdateComment->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnUpdateComment, &QPushButton::clicked, this, &EngineAnalysisTab::onUpdateCommentClicked);
-
-    // レイアウトに追加（更新ボタンを左側に配置）
-    toolbarLayout->addWidget(m_btnFontDecrease);
-    toolbarLayout->addWidget(m_btnFontIncrease);
-    toolbarLayout->addWidget(m_btnCommentUndo);
-    toolbarLayout->addWidget(m_btnCommentRedo);
-    toolbarLayout->addWidget(m_btnCommentCut);
-    toolbarLayout->addWidget(m_btnCommentCopy);
-    toolbarLayout->addWidget(m_btnCommentPaste);
-    toolbarLayout->addSpacing(8);
-    toolbarLayout->addWidget(m_btnUpdateComment);
-    toolbarLayout->addSpacing(8);
-    toolbarLayout->addWidget(m_editingLabel);
-    toolbarLayout->addStretch();
-
-    m_commentToolbar->setLayout(toolbarLayout);
-    relaxToolbarWidth(m_commentToolbar);
-}
-
-// フォントサイズ更新
-void EngineAnalysisTab::updateCommentFontSize(int delta)
-{
-    m_currentFontSize += delta;
-    if (m_currentFontSize < 8) m_currentFontSize = 8;
-    if (m_currentFontSize > 24) m_currentFontSize = 24;
-
-    if (m_comment) {
-        QFont font = m_comment->font();
-        font.setPointSize(m_currentFontSize);
-        m_comment->setFont(font);
-    }
-    
-    // 設定ファイルに保存
-    SettingsService::setCommentFontSize(m_currentFontSize);
-}
-
-// コメントのundo（QTextEditのundo機能を使用）
-void EngineAnalysisTab::onCommentUndo()
-{
-    if (!m_comment) return;
-    m_comment->undo();
-}
-
-// コメントのredo（やり直す）
-void EngineAnalysisTab::onCommentRedo()
-{
-    if (!m_comment) return;
-    m_comment->redo();
-}
-
-// コメントの切り取り
-void EngineAnalysisTab::onCommentCut()
-{
-    if (!m_comment) return;
-    m_comment->cut();
-}
-
-// コメントのコピー
-void EngineAnalysisTab::onCommentCopy()
-{
-    if (!m_comment) return;
-    m_comment->copy();
-}
-
-// コメントの貼り付け
-void EngineAnalysisTab::onCommentPaste()
-{
-    if (!m_comment) return;
-    m_comment->paste();
-}
-
-// URLをHTMLリンクに変換
-QString EngineAnalysisTab::convertUrlsToLinks(const QString& text)
-{
-    QString result = text;
-    
-    // URLパターン（http, https, ftp）
-    static const QRegularExpression urlPattern(
-        QStringLiteral(R"((https?://|ftp://)[^\s<>"']+)"),
-        QRegularExpression::CaseInsensitiveOption
-    );
-    
-    // すでにリンクになっているか確認するための正規表現
-    static const QRegularExpression existingLinkPattern(
-        QStringLiteral(R"(<a\s+[^>]*href=)"),
-        QRegularExpression::CaseInsensitiveOption
-    );
-    
-    // すでにHTMLにリンクが含まれている場合はそのまま返す
-    if (existingLinkPattern.match(result).hasMatch()) {
-        return result;
-    }
-    
-    // 改行を<br>に変換
-    result.replace(QStringLiteral("\n"), QStringLiteral("<br>"));
-    
-    // URLをリンクに変換
-    QRegularExpressionMatchIterator i = urlPattern.globalMatch(result);
-    QVector<QPair<int, int>> matches;
-    while (i.hasNext()) {
-        QRegularExpressionMatch match = i.next();
-        matches.append(qMakePair(match.capturedStart(), match.capturedLength()));
-    }
-    
-    // 後ろから置換して位置がずれないようにする
-    for (qsizetype j = matches.size() - 1; j >= 0; --j) {
-        int start = matches[j].first;
-        int length = matches[j].second;
-        QString url = result.mid(start, length);
-        QString link = QStringLiteral("<a href=\"%1\" style=\"color: blue; text-decoration: underline;\">%1</a>").arg(url);
-        result.replace(start, length, link);
-    }
-    
-    return result;
-}
-
-// フォントサイズ増加スロット
-void EngineAnalysisTab::onFontIncrease()
-{
-    updateCommentFontSize(1);
-}
-
-// フォントサイズ減少スロット
-void EngineAnalysisTab::onFontDecrease()
-{
-    updateCommentFontSize(-1);
-}
-
-// コメント更新ボタンクリック時のスロット
-void EngineAnalysisTab::onUpdateCommentClicked()
-{
-    if (!m_comment) return;
-    
-    // HTMLからプレーンテキストを取得
-    QString newComment = m_comment->toPlainText();
-    
-    // シグナルを発行
-    emit commentUpdated(m_currentMoveIndex, newComment);
-    
-    // 編集状態をクリア
-    m_originalComment = newComment;
-    m_isCommentDirty = false;
-    updateEditingIndicator();
-}
-
-// 現在の手数インデックスを設定
 void EngineAnalysisTab::setCurrentMoveIndex(int index)
 {
-    qCDebug(lcUi).noquote()
-        << "[EngineAnalysisTab] setCurrentMoveIndex:"
-        << " old=" << m_currentMoveIndex
-        << " new=" << index;
-    m_currentMoveIndex = index;
+    ensureCommentEditor();
+    m_commentEditor->setCurrentMoveIndex(index);
 }
 
-// コメントテキスト変更時のスロット
-void EngineAnalysisTab::onCommentTextChanged()
+int EngineAnalysisTab::currentMoveIndex() const
 {
-    if (!m_comment) return;
-    
-    // 現在のテキストと元のテキストを比較
-    QString currentText = m_comment->toPlainText();
-    bool isDirty = (currentText != m_originalComment);
-    
-    // デバッグ出力
-    qCDebug(lcUi).noquote()
-        << "[EngineAnalysisTab] onCommentTextChanged:"
-        << " currentText.len=" << currentText.size()
-        << " originalComment.len=" << m_originalComment.size()
-        << " isDirty=" << isDirty
-        << " m_isCommentDirty(before)=" << m_isCommentDirty;
-    
-    if (m_isCommentDirty != isDirty) {
-        m_isCommentDirty = isDirty;
-        updateEditingIndicator();
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] m_isCommentDirty changed to:" << m_isCommentDirty;
-    }
+    if (!m_commentEditor) return -1;
+    return m_commentEditor->currentMoveIndex();
 }
 
-// 「修正中」表示の更新
-void EngineAnalysisTab::updateEditingIndicator()
+bool EngineAnalysisTab::hasUnsavedComment() const
 {
-    if (m_editingLabel) {
-        m_editingLabel->setVisible(m_isCommentDirty);
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] updateEditingIndicator: visible=" << m_isCommentDirty;
-    }
+    if (!m_commentEditor) return false;
+    return m_commentEditor->hasUnsavedComment();
 }
 
-// 未保存編集の警告ダイアログ
 bool EngineAnalysisTab::confirmDiscardUnsavedComment()
 {
-    qCDebug(lcUi).noquote()
-        << "[EngineAnalysisTab] confirmDiscardUnsavedComment ENTER:"
-        << " m_isCommentDirty=" << m_isCommentDirty;
-    
-    if (!m_isCommentDirty) {
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: not dirty, returning true";
-        return true;  // 変更がなければそのまま移動OK
-    }
-    
-    qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: showing QMessageBox...";
-    
-    QMessageBox::StandardButton reply = QMessageBox::warning(
-        this,
-        tr("未保存のコメント"),
-        tr("コメントが編集されていますが、まだ更新されていません。\n"
-           "変更を破棄して移動しますか？"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-    );
-    
-    qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: reply=" << reply;
-    
-    if (reply == QMessageBox::Yes) {
-        // 変更を破棄
-        m_isCommentDirty = false;
-        updateEditingIndicator();
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose Yes, returning true";
-        return true;
-    }
-    
-    qCDebug(lcUi).noquote() << "[EngineAnalysisTab] confirmDiscardUnsavedComment: user chose No, returning false";
-    return false;  // 移動をキャンセル
+    ensureCommentEditor();
+    return m_commentEditor->confirmDiscardUnsavedComment();
 }
 
-// 編集状態をクリア
 void EngineAnalysisTab::clearCommentDirty()
 {
-    if (m_comment) {
-        m_originalComment = m_comment->toPlainText();
-    }
-    m_isCommentDirty = false;
-    updateEditingIndicator();
+    ensureCommentEditor();
+    m_commentEditor->clearCommentDirty();
 }
 
 // エンジン1の読み筋テーブルクリック処理
@@ -2485,17 +996,6 @@ void EngineAnalysisTab::onView2Clicked(const QModelIndex& index)
     if (index.column() == 4) {
         qCDebug(lcUi) << "[EngineAnalysisTab] onView2Clicked: row=" << index.row() << "(盤面ボタン)";
         emit pvRowClicked(1, index.row());
-    }
-}
-
-// 検討タブの読み筋テーブルクリック処理
-void EngineAnalysisTab::onConsiderationViewClicked(const QModelIndex& index)
-{
-    if (!index.isValid()) return;
-    // 「盤面」列（列4）のクリック時のみ読み筋表示ウィンドウを開く
-    if (index.column() == 4) {
-        qCDebug(lcUi) << "[EngineAnalysisTab] onConsiderationViewClicked: row=" << index.row() << "(盤面ボタン)";
-        emit pvRowClicked(2, index.row());  // engineIndex=2 は検討タブ
     }
 }
 
@@ -2587,45 +1087,28 @@ void EngineAnalysisTab::buildCsaLogToolbar()
     relaxToolbarWidth(m_csaLogToolbar);
 }
 
-// CSA通信ログフォントサイズ変更
-void EngineAnalysisTab::updateCsaLogFontSize(int delta)
+void EngineAnalysisTab::initCsaLogFontManager()
 {
-    m_csaLogFontSize += delta;
-    if (m_csaLogFontSize < 8) m_csaLogFontSize = 8;
-    if (m_csaLogFontSize > 24) m_csaLogFontSize = 24;
-
-    // ログ表示エリア
-    if (m_csaLog) {
-        QFont font = m_csaLog->font();
-        font.setPointSize(m_csaLogFontSize);
-        m_csaLog->setFont(font);
-    }
-
-    // コマンド入力部分も同じフォントサイズに
-    if (m_btnCsaSendToServer) {
-        QFont font = m_btnCsaSendToServer->font();
-        font.setPointSize(m_csaLogFontSize);
-        m_btnCsaSendToServer->setFont(font);
-    }
-
-    if (m_csaCommandInput) {
-        QFont font = m_csaCommandInput->font();
-        font.setPointSize(m_csaLogFontSize);
-        m_csaCommandInput->setFont(font);
-    }
-
-    // SettingsServiceに保存
-    SettingsService::setCsaLogFontSize(m_csaLogFontSize);
+    m_csaLogFontSize = SettingsService::csaLogFontSize();
+    m_csaLogFontManager = std::make_unique<LogViewFontManager>(m_csaLogFontSize, m_csaLog);
+    m_csaLogFontManager->setPostApplyCallback([this](int size) {
+        QFont font;
+        font.setPointSize(size);
+        if (m_btnCsaSendToServer) m_btnCsaSendToServer->setFont(font);
+        if (m_csaCommandInput) m_csaCommandInput->setFont(font);
+        SettingsService::setCsaLogFontSize(size);
+    });
+    m_csaLogFontManager->apply();
 }
 
 void EngineAnalysisTab::onCsaLogFontIncrease()
 {
-    updateCsaLogFontSize(1);
+    m_csaLogFontManager->increase();
 }
 
 void EngineAnalysisTab::onCsaLogFontDecrease()
 {
-    updateCsaLogFontSize(-1);
+    m_csaLogFontManager->decrease();
 }
 
 // CSA通信ログ追記
@@ -2704,17 +1187,56 @@ void EngineAnalysisTab::onCsaCommandEntered()
     m_csaCommandInput->clear();
 }
 
-// 検討タブ用モデル設定
-void EngineAnalysisTab::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
+// ===================== ConsiderationTabManager 初期化・委譲 =====================
+
+void EngineAnalysisTab::ensureConsiderationTabManager()
 {
-    m_considerationModel = m;
-    if (m_considerationView && m) {
-        m_considerationView->setModel(m);
-        reapplyViewTuning(m_considerationView, m);
+    if (!m_considerationTabManager) {
+        m_considerationTabManager = new ConsiderationTabManager(this);
+        // シグナル転送（ConsiderationTabManager → EngineAnalysisTab）
+        connect(m_considerationTabManager, &ConsiderationTabManager::considerationMultiPVChanged,
+                this, &EngineAnalysisTab::considerationMultiPVChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::stopConsiderationRequested,
+                this, &EngineAnalysisTab::stopConsiderationRequested);
+        connect(m_considerationTabManager, &ConsiderationTabManager::startConsiderationRequested,
+                this, &EngineAnalysisTab::startConsiderationRequested);
+        connect(m_considerationTabManager, &ConsiderationTabManager::engineSettingsRequested,
+                this, &EngineAnalysisTab::engineSettingsRequested);
+        connect(m_considerationTabManager, &ConsiderationTabManager::considerationTimeSettingsChanged,
+                this, &EngineAnalysisTab::considerationTimeSettingsChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::showArrowsChanged,
+                this, &EngineAnalysisTab::showArrowsChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::considerationEngineChanged,
+                this, &EngineAnalysisTab::considerationEngineChanged);
+        connect(m_considerationTabManager, &ConsiderationTabManager::pvRowClicked,
+                this, &EngineAnalysisTab::pvRowClicked);
     }
 }
 
-// 検討タブに切り替える
+ConsiderationTabManager* EngineAnalysisTab::considerationTabManager()
+{
+    ensureConsiderationTabManager();
+    return m_considerationTabManager;
+}
+
+EngineInfoWidget* EngineAnalysisTab::considerationInfo() const
+{
+    if (!m_considerationTabManager) return nullptr;
+    return m_considerationTabManager->considerationInfo();
+}
+
+QTableView* EngineAnalysisTab::considerationView() const
+{
+    if (!m_considerationTabManager) return nullptr;
+    return m_considerationTabManager->considerationView();
+}
+
+void EngineAnalysisTab::setConsiderationThinkingModel(ShogiEngineThinkingModel* m)
+{
+    ensureConsiderationTabManager();
+    m_considerationTabManager->setConsiderationThinkingModel(m);
+}
+
 void EngineAnalysisTab::switchToConsiderationTab()
 {
     if (m_tab && m_considerationTabIndex >= 0) {
@@ -2722,44 +1244,34 @@ void EngineAnalysisTab::switchToConsiderationTab()
     }
 }
 
-// 思考タブに切り替える
 void EngineAnalysisTab::switchToThinkingTab()
 {
     if (m_tab) {
-        // 思考タブは常にインデックス0
         m_tab->setCurrentIndex(0);
     }
 }
 
-// 検討タブの候補手の数を取得
 int EngineAnalysisTab::considerationMultiPV() const
 {
-    if (m_multiPVComboBox) {
-        return m_multiPVComboBox->currentData().toInt();
-    }
-    return 1;  // デフォルト
+    if (!m_considerationTabManager) return 1;
+    return m_considerationTabManager->considerationMultiPV();
 }
 
-// 検討タブの候補手の数を設定
 void EngineAnalysisTab::setConsiderationMultiPV(int value)
 {
-    if (m_multiPVComboBox) {
-        // 値からインデックスを計算（1→0, 2→1, ...）
-        int index = qBound(0, value - 1, m_multiPVComboBox->count() - 1);
-        m_multiPVComboBox->setCurrentIndex(index);
-    }
+    ensureConsiderationTabManager();
+    m_considerationTabManager->setConsiderationMultiPV(value);
 }
 
 void EngineAnalysisTab::clearThinkingViewSelection(int engineIndex)
 {
-    // engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ
     QTableView* view = nullptr;
     if (engineIndex == 0) {
         view = m_view1;
     } else if (engineIndex == 1) {
         view = m_view2;
     } else if (engineIndex == 2) {
-        view = m_considerationView;
+        view = considerationView();
     }
     if (!view) return;
 
@@ -2769,317 +1281,89 @@ void EngineAnalysisTab::clearThinkingViewSelection(int engineIndex)
     }
 }
 
-// コンボボックスの値変更スロット
-void EngineAnalysisTab::onMultiPVComboBoxChanged(int index)
+void EngineAnalysisTab::setConsiderationTimeLimit(bool unlimited, int byoyomiSecVal)
 {
-    Q_UNUSED(index);
-    if (m_multiPVComboBox) {
-        int value = m_multiPVComboBox->currentData().toInt();
-        emit considerationMultiPVChanged(value);
-    }
+    ensureConsiderationTabManager();
+    m_considerationTabManager->setConsiderationTimeLimit(unlimited, byoyomiSecVal);
 }
 
-// 検討タブの時間設定を表示
-void EngineAnalysisTab::setConsiderationTimeLimit(bool unlimited, int byoyomiSec)
-{
-    // 時間制限を保存（経過時間タイマーの自動停止用）
-    m_considerationTimeLimitSec = unlimited ? 0 : byoyomiSec;
-
-    // ラジオボタンとスピンボックスを更新
-    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
-        // シグナル一時停止（設定変更の循環を防ぐ）
-        m_unlimitedTimeRadioButton->blockSignals(true);
-        m_considerationTimeRadioButton->blockSignals(true);
-        m_byoyomiSecSpinBox->blockSignals(true);
-
-        if (unlimited) {
-            m_unlimitedTimeRadioButton->setChecked(true);
-        } else {
-            m_considerationTimeRadioButton->setChecked(true);
-            m_byoyomiSecSpinBox->setValue(byoyomiSec);
-        }
-
-        m_unlimitedTimeRadioButton->blockSignals(false);
-        m_considerationTimeRadioButton->blockSignals(false);
-        m_byoyomiSecSpinBox->blockSignals(false);
-    }
-}
-
-// 検討タブのエンジン名を設定
 void EngineAnalysisTab::setConsiderationEngineName(const QString& name)
 {
-    if (m_considerationInfo) {
-        m_considerationInfo->setDisplayNameFallback(name);
-    }
+    ensureConsiderationTabManager();
+    m_considerationTabManager->setConsiderationEngineName(name);
 }
 
-// 経過時間タイマー開始
 void EngineAnalysisTab::startElapsedTimer()
 {
-    if (m_elapsedTimer) {
-        m_elapsedSeconds = 0;
-        if (m_elapsedTimeLabel) {
-            m_elapsedTimeLabel->setText(tr("経過: 0:00"));
-            // 検討中は赤色で表示
-            QPalette palette = m_elapsedTimeLabel->palette();
-            palette.setColor(QPalette::WindowText, Qt::red);
-            m_elapsedTimeLabel->setPalette(palette);
-        }
-        m_elapsedTimer->start();
-    }
+    ensureConsiderationTabManager();
+    m_considerationTabManager->startElapsedTimer();
 }
 
-// 経過時間タイマー停止
 void EngineAnalysisTab::stopElapsedTimer()
 {
-    if (m_elapsedTimer) {
-        m_elapsedTimer->stop();
+    if (m_considerationTabManager) {
+        m_considerationTabManager->stopElapsedTimer();
     }
 }
 
-// 経過時間リセット
 void EngineAnalysisTab::resetElapsedTimer()
 {
-    if (m_elapsedTimer) {
-        m_elapsedTimer->stop();
-    }
-    m_elapsedSeconds = 0;
-    if (m_elapsedTimeLabel) {
-        m_elapsedTimeLabel->setText(tr("経過: 0:00"));
+    if (m_considerationTabManager) {
+        m_considerationTabManager->resetElapsedTimer();
     }
 }
 
-// 検討実行状態の設定（ボタン表示切替用）
 void EngineAnalysisTab::setConsiderationRunning(bool running)
 {
-    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] ENTER running=" << running;
-
-    // 検討実行中フラグを更新
-    m_considerationRunning = running;
-
-    if (!m_btnStopConsideration) {
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] button is null, returning";
-        return;
-    }
-
-    // ボタンを無効化（切り替え中のクリックを防止）
-    m_btnStopConsideration->setEnabled(false);
-
-    // 既存のシグナル接続を切断
-    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] disconnecting button signals";
-    m_btnStopConsideration->disconnect();
-
-    if (running) {
-        // 検討中: 「検討中止」ボタンを表示
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討中止'";
-        m_btnStopConsideration->setText(tr("検討中止"));
-        m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
-        connect(m_btnStopConsideration, &QToolButton::clicked,
-                this, &EngineAnalysisTab::stopConsiderationRequested);
-        // 検討開始時はすぐに有効化して良い
-        m_btnStopConsideration->setEnabled(true);
-    } else {
-        // 検討停止中: 「検討開始」ボタンを表示
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] setting button to '検討開始'";
-        m_btnStopConsideration->setText(tr("検討開始"));
-        m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
-        connect(m_btnStopConsideration, &QToolButton::clicked,
-                this, &EngineAnalysisTab::startConsiderationRequested);
-        // 検討停止時はボタンの再有効化を次のイベントループに遅延
-        // これにより、シグナルチェーン完了後まで新しいクリックを受け付けない
-        QTimer::singleShot(0, this, [this]() {
-            if (m_btnStopConsideration) {
-                m_btnStopConsideration->setEnabled(true);
-                qCDebug(lcUi).noquote() << "[EngineAnalysisTab] button re-enabled after deferred timer";
-            }
-        });
-    }
-
-    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::setConsiderationRunning] EXIT";
+    ensureConsiderationTabManager();
+    m_considerationTabManager->setConsiderationRunning(running);
 }
 
-// 経過時間タイマー更新
-void EngineAnalysisTab::onElapsedTimerTick()
-{
-    m_elapsedSeconds++;
-
-    // 時間制限がある場合、制限に達したらタイマーを停止
-    if (m_considerationTimeLimitSec > 0 && m_elapsedSeconds >= m_considerationTimeLimitSec) {
-        if (m_elapsedTimer) {
-            m_elapsedTimer->stop();
-        }
-        // 制限時間ちょうどに設定（超過を防ぐ）
-        m_elapsedSeconds = m_considerationTimeLimitSec;
-    }
-
-    const int minutes = m_elapsedSeconds / 60;
-    const int seconds = m_elapsedSeconds % 60;
-
-    if (m_elapsedTimeLabel) {
-        m_elapsedTimeLabel->setText(tr("経過: %1:%2")
-            .arg(minutes)
-            .arg(seconds, 2, 10, QLatin1Char('0')));
-    }
-}
-
-// エンジンリストを設定ファイルから読み込む
 void EngineAnalysisTab::loadEngineList()
 {
-    if (!m_engineComboBox) return;
-
-    m_engineComboBox->clear();
-
-    // 設定ファイルからエンジンリストを読み込む
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
-
-    const int size = settings.beginReadArray(EngineSettingsConstants::EnginesGroupName);
-    for (int i = 0; i < size; i++) {
-        settings.setArrayIndex(i);
-        const QString name = settings.value(EngineSettingsConstants::EngineNameKey).toString();
-        m_engineComboBox->addItem(name);
-    }
-    settings.endArray();
+    ensureConsiderationTabManager();
+    m_considerationTabManager->loadEngineList();
 }
 
-// 検討タブの設定を復元
 void EngineAnalysisTab::loadConsiderationTabSettings()
 {
-    // エンジン選択を復元
-    const int engineIndex = SettingsService::considerationEngineIndex();
-    if (m_engineComboBox && engineIndex >= 0 && engineIndex < m_engineComboBox->count()) {
-        m_engineComboBox->setCurrentIndex(engineIndex);
-    }
-
-    // 時間設定を復元
-    const bool unlimitedTime = SettingsService::considerationUnlimitedTime();
-    const int byoyomiSec = SettingsService::considerationByoyomiSec();
-
-    if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
-        if (unlimitedTime) {
-            m_unlimitedTimeRadioButton->setChecked(true);
-        } else {
-            m_considerationTimeRadioButton->setChecked(true);
-        }
-        m_byoyomiSecSpinBox->setValue(byoyomiSec > 0 ? byoyomiSec : 20);
-    }
-
-    // 候補手の数を復元
-    const int multiPV = SettingsService::considerationMultiPV();
-    if (m_multiPVComboBox && multiPV >= 1 && multiPV <= 10) {
-        m_multiPVComboBox->setCurrentIndex(multiPV - 1);
-    }
+    ensureConsiderationTabManager();
+    m_considerationTabManager->loadConsiderationTabSettings();
 }
 
-// 検討タブの設定を保存
 void EngineAnalysisTab::saveConsiderationTabSettings()
 {
-    // エンジン選択を保存
-    if (m_engineComboBox) {
-        SettingsService::setConsiderationEngineIndex(m_engineComboBox->currentIndex());
-    }
-
-    // 時間設定を保存
-    if (m_unlimitedTimeRadioButton && m_byoyomiSecSpinBox) {
-        SettingsService::setConsiderationUnlimitedTime(m_unlimitedTimeRadioButton->isChecked());
-        SettingsService::setConsiderationByoyomiSec(m_byoyomiSecSpinBox->value());
-    }
-
-    // 候補手の数を保存
-    if (m_multiPVComboBox) {
-        SettingsService::setConsiderationMultiPV(m_multiPVComboBox->currentData().toInt());
+    if (m_considerationTabManager) {
+        m_considerationTabManager->saveConsiderationTabSettings();
     }
 }
 
-// エンジン設定ボタンクリック
-void EngineAnalysisTab::onEngineSettingsClicked()
-{
-    if (!m_engineComboBox) return;
-
-    const int engineNumber = m_engineComboBox->currentIndex();
-    const QString engineName = m_engineComboBox->currentText();
-
-    if (engineName.isEmpty()) {
-        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
-        return;
-    }
-
-    emit engineSettingsRequested(engineNumber, engineName);
-}
-
-// 時間設定変更スロット
-void EngineAnalysisTab::onTimeSettingChanged()
-{
-    // 設定を保存
-    saveConsiderationTabSettings();
-
-    // 時間制限を内部変数に反映
-    const bool unlimited = isUnlimitedTime();
-    const int sec = byoyomiSec();
-    m_considerationTimeLimitSec = unlimited ? 0 : sec;
-
-    // シグナルを発行
-    emit considerationTimeSettingsChanged(unlimited, sec);
-}
-
-// エンジン選択変更スロット
-void EngineAnalysisTab::onEngineComboBoxChanged(int index)
-{
-    qCDebug(lcUi).noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] index=" << index
-                       << "m_considerationRunning=" << m_considerationRunning;
-
-    // 設定を保存
-    saveConsiderationTabSettings();
-
-    // 検討中の場合のみエンジン変更シグナルを発行
-    if (m_considerationRunning && m_engineComboBox) {
-        const QString engineName = m_engineComboBox->currentText();
-        qCDebug(lcUi).noquote() << "[EngineAnalysisTab::onEngineComboBoxChanged] emitting considerationEngineChanged"
-                           << "index=" << index << "name=" << engineName;
-        emit considerationEngineChanged(index, engineName);
-    }
-}
-
-// 選択されたエンジンのインデックスを取得
 int EngineAnalysisTab::selectedEngineIndex() const
 {
-    if (m_engineComboBox) {
-        return m_engineComboBox->currentIndex();
-    }
-    return 0;
+    if (!m_considerationTabManager) return 0;
+    return m_considerationTabManager->selectedEngineIndex();
 }
 
-// 選択されたエンジンの名前を取得
 QString EngineAnalysisTab::selectedEngineName() const
 {
-    if (m_engineComboBox) {
-        return m_engineComboBox->currentText();
-    }
-    return QString();
+    if (!m_considerationTabManager) return QString();
+    return m_considerationTabManager->selectedEngineName();
 }
 
-// 時間無制限かどうかを取得
 bool EngineAnalysisTab::isUnlimitedTime() const
 {
-    if (m_unlimitedTimeRadioButton) {
-        return m_unlimitedTimeRadioButton->isChecked();
-    }
-    return true;
+    if (!m_considerationTabManager) return true;
+    return m_considerationTabManager->isUnlimitedTime();
 }
 
-// 検討時間（秒）を取得
 int EngineAnalysisTab::byoyomiSec() const
 {
-    if (m_byoyomiSecSpinBox) {
-        return m_byoyomiSecSpinBox->value();
-    }
-    return 20;
+    if (!m_considerationTabManager) return 20;
+    return m_considerationTabManager->byoyomiSec();
 }
 
-// 矢印表示チェックボックスの状態を取得
 bool EngineAnalysisTab::isShowArrowsChecked() const
 {
-    if (m_showArrowsCheckBox) {
-        return m_showArrowsCheckBox->isChecked();
-    }
-    return true;
+    if (!m_considerationTabManager) return true;
+    return m_considerationTabManager->isShowArrowsChecked();
 }

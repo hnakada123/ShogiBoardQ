@@ -7,7 +7,6 @@
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
-#include "engineanalysistab.h"
 #include "csatosfenconverter.h"
 #include "ki2tosfenconverter.h"
 #include "jkftosfenconverter.h"
@@ -61,7 +60,7 @@ KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
 {
     // 必要ならデバッグ時にチェック
     // Q_ASSERT(m_sfenHistory && "sfenRecord must not be null");
-    // m_analysisTab は setAnalysisTab() 経由で後から設定される
+    // m_branchTreeManager は setBranchTreeManager() 経由で後から設定される
     // m_shogiView は setShogiView() 経由で後から設定される
 }
 
@@ -798,14 +797,14 @@ void KifuLoadCoordinator::applyParsedResultCommon(
     logStep("applyBranchMarksForCurrentLine");
 
     // 12) 分岐ツリーへ供給
-    if (m_analysisTab && m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        QVector<EngineAnalysisTab::ResolvedRowLite> rows;
+    if (m_branchTreeManager && m_branchTree != nullptr && !m_branchTree->isEmpty()) {
+        QVector<BranchTreeManager::ResolvedRowLite> rows;
         QVector<BranchLine> lines = m_branchTree->allLines();
         rows.reserve(lines.size());
 
         for (int i = 0; i < lines.size(); ++i) {
             const BranchLine& line = lines.at(i);
-            EngineAnalysisTab::ResolvedRowLite x;
+            BranchTreeManager::ResolvedRowLite x;
             x.startPly = line.branchPly;
             x.parent = (line.branchPoint != nullptr)
                            ? m_branchTree->findLineIndexForNode(line.branchPoint)
@@ -825,8 +824,8 @@ void KifuLoadCoordinator::applyParsedResultCommon(
             rows.push_back(std::move(x));
         }
 
-        m_analysisTab->setBranchTreeRows(rows);
-        m_analysisTab->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
+        m_branchTreeManager->setBranchTreeRows(rows);
+        m_branchTreeManager->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
     }
     logStep("setBranchTreeRows");
 
@@ -943,9 +942,14 @@ void KifuLoadCoordinator::addGameInfoTabIfMissing()
     // タブがない場合のみ追加
     int anchorIdx = -1;
 
-    // 1) EngineAnalysisTab（検討タブ）の直後に入れる
-    if (m_analysisTab)
-        anchorIdx = m_tab->indexOf(m_analysisTab);
+    // 1) タブタイトルで「思考」を探して直後に入れる
+    for (int i = 0; i < m_tab->count(); ++i) {
+        const QString t = m_tab->tabText(i);
+        if (t.contains(tr("思考")) || t.contains("Thinking", Qt::CaseInsensitive)) {
+            anchorIdx = i;
+            break;
+        }
+    }
 
     // 2) 念のため、タブタイトルで「コメント/Comments」を探してその直後に入れるフォールバック
     if (anchorIdx < 0) {
@@ -1169,9 +1173,9 @@ void KifuLoadCoordinator::logImportSummary(const QString& filePath,
     }
 }
 
-void KifuLoadCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
+void KifuLoadCoordinator::setBranchTreeManager(BranchTreeManager* manager)
 {
-    m_analysisTab = tab;
+    m_branchTreeManager = manager;
 }
 
 
@@ -1250,9 +1254,9 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
     m_branchablePlySet.clear();
 
     // 3) 分岐ツリーUIをクリア
-    if (m_analysisTab) {
-        QVector<EngineAnalysisTab::ResolvedRowLite> emptyRows;
-        m_analysisTab->setBranchTreeRows(emptyRows);
+    if (m_branchTreeManager) {
+        QVector<BranchTreeManager::ResolvedRowLite> emptyRows;
+        m_branchTreeManager->setBranchTreeRows(emptyRows);
     }
 
     qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: done";

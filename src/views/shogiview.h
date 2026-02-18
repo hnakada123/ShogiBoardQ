@@ -18,6 +18,8 @@
 
 #include "elidelabel.h"
 #include "shogigamecontroller.h"
+#include "shogiviewinteraction.h"
+#include "shogiviewlayout.h"
 
 #include <QIcon>
 #include <QMap>
@@ -30,6 +32,7 @@ Q_DECLARE_LOGGING_CATEGORY(lcView)
 
 // 前方宣言（ヘッダ依存を軽減）
 class ShogiBoard;
+class ShogiViewHighlighting;
 class GlobalToolTip;
 class QLabel;
 class QPainter;
@@ -107,8 +110,8 @@ public:
     void addHighlight(Highlight *hl);            // 追加（所有権ポリシーは呼び出し側設計に依存）
     void removeHighlight(Highlight *hl);         // 1件削除
     void removeHighlightAllData();               // 全削除
-    Highlight *highlight(int index) const { return m_highlights.at(index); }
-    int highlightCount() const { return static_cast<int>(m_highlights.size()); }
+    Highlight *highlight(int index) const;
+    int highlightCount() const;
 
     // ───────────────────────────── 矢印表示（検討機能用） ─────────────────────
     // 盤上に矢印を描画するためのデータ構造
@@ -197,13 +200,14 @@ public:
     bool gameOverStyleLock() const { return m_gameOverStyleLock; }
 
     // ── 状態管理
-    // 既存 enum に 0秒用の状態を追加
     enum class Urgency { Normal, Warn10, Warn5 };
-    Urgency m_urgency = Urgency::Normal;
 
     // しきい値（ミリ秒）
     static constexpr qint64 kWarn10Ms = 10'000;
     static constexpr qint64 kWarn5Ms  = 5'000;
+
+    // ハイライト/矢印/手番表示の管理クラスへのアクセサ
+    ShogiViewHighlighting* highlighting() const;
 
     void setUrgencyVisuals(Urgency u);
 
@@ -260,7 +264,6 @@ private:
     void drawPiece(QPainter* painter, int file, int rank);
 
     void drawFourStars(QPainter* painter);                     // 4隅の星（装飾）
-    void drawHighlights(QPainter* painter);                    // ハイライト（含む駒台疑似座標）
 
     // 駒台（マス背景）
     void drawBlackStandField(QPainter* painter, int file, int rank) const;
@@ -278,8 +281,7 @@ private:
     void drawPiecesWhiteStandInNormalMode(QPainter* painter);
     void drawPiecesStandFeatures(QPainter* painter);
 
-    // ドラッグ中の駒（カーソル追従）
-    void drawDraggingPiece(QPainter* painter);
+    // ドラッグ中の駒描画は m_interaction に委譲
 
     // 駒台の駒・枚数描画の共通ロジック
     void drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const;
@@ -291,70 +293,33 @@ private:
     // ───────────────────────────── ラベルとレイアウト ──────────────────────
     void updateBlackClockLabelGeometry();   // 黒側ラベルのジオメトリ更新
     void updateWhiteClockLabelGeometry();   // 白側ラベルのジオメトリ更新
-    QRect blackStandBoundingRect() const;   // 黒側駒台の外接矩形
-    QRect whiteStandBoundingRect() const;   // 白側駒台の外接矩形
-    void  recalcLayoutParams();             // 内部レイアウト定数の再計算
 
     // フォントを矩形にフィットさせる（時計用）
     void fitLabelFontToRect(QLabel* label, const QString& text,
                             const QRect& rect, int paddingPx = 2);
 
-    // 盤・駒台境界のユーティリティ
-    int  boardLeftPx()  const;
-    int  boardRightPx() const;
-    int  standInnerEdgePx(bool rightSide) const;
-    int  minGapForRankLabelsPx() const;
+    // レイアウト委譲ヘルパ（m_board 経由で盤サイズを渡す）
+    QRect blackStandBoundingRect() const;
+    QRect whiteStandBoundingRect() const;
+    int   boardLeftPx() const;
+    int   boardRightPx() const;
+    int   standInnerEdgePx(bool rightSide) const;
+    void  recalcLayoutParams();
 
     // 名前ラベル/ツールチップ
     void    refreshNameLabels();                 // 向きマーク付与の表示更新
     static QString stripMarks(const QString&);   // ▲▼▽△ の除去
-
-    // 手番ハイライト
-    void   applyTurnHighlight(bool blackActive);
 
 private:
     // ───────────────────────────── 内部状態（モデル/描画/入力） ────────────────
     // モデル
     QPointer<ShogiBoard> m_board;       // 局面。寿命は外部管理（QPointerで安全）
 
-    // 描画寸法・配置
-    int   m_squareSize { 50 };          // 1マスの基準ピクセル（横幅基準）
-    QSize m_fieldSize;                  // 1マスの QSize（縦長の実比率）
+    // レイアウト計算を委譲するクラス
+    ShogiViewLayout m_layout;
 
-    // 将棋盤の実際の比率
-    // 9×9マス部分: 縦 34.8cm × 横 31.7cm
-    // 1マス: 縦 3.867cm × 横 3.522cm → 比率 縦/横 ≈ 1.098
-    static constexpr double kSquareAspectRatio = 34.8 / 31.7;  // ≈ 1.098
-
-    // 将棋盤の余白（実際の将棋盤に近い比率）
-    // 実際の将棋盤: 縦36.4cm×横33.3cm, 余白各約0.8cm
-    // 余白比率: 横 0.8/33.3 ≈ 2.4%, 縦 0.8/36.4 ≈ 2.2%
-    int   m_boardMarginPx { 0 };        // 将棋盤余白のピクセル数
-
-    int   m_param1 { 0 };               // 先手側スタンドの水平寄せ量（px）
-    int   m_param2 { 0 };               // 後手側スタンドの水平寄せ量（px）
-    int   m_offsetX{ 0 };               // 盤の左端 X（boardLeftPx 相当）
-    int   m_offsetY{ 20 };              // 盤の上端 Y のオフセット
-    bool  m_flipMode{ false };          // 反転表示
-
-    // ラベル帯とフォント
-    int    m_labelGapPx  { 8 };         // 盤とラベルのすき間
-    int    m_labelBandPx { 36 };        // ラベル帯の厚み
-    double m_labelFontPt { 12.0 };      // ラベル用の基準フォントサイズ（pt）
-    double m_nameFontScale { 0.36 };    // 名前ラベルのスケール
-    double m_rankFontScale { 0.8 };     // 段ラベルのスケール
-
-    // 盤‐駒台ギャップ
-    double m_standGapCols { 0.6 };      // 列数換算（0.0〜2.0）
-    int    m_standGapPx   { 0 };        // 実効ギャップ（px）
-
-    // リソース（駒アイコン・ハイライト）
+    // リソース（駒アイコン）
     QMap<QChar, QIcon>  m_pieces;       // 駒文字 → QIcon
-    QList<Highlight*>   m_highlights;   // ハイライト（所有権は呼び出し側設計に依存）
-
-    // 矢印表示（検討機能用）
-    QVector<Arrow>  m_arrows;           // 表示する矢印リスト
-    void drawArrows(QPainter* painter); // 矢印描画ヘルパ
 
     // ラベル（子ウィジェット）
     QLabel*     m_blackClockLabel { nullptr };
@@ -367,48 +332,9 @@ private:
     QString m_blackNameBase;
     QString m_whiteNameBase;
 
-    // 入力/ドラッグ
-    bool   m_mouseClickMode   { true };   // クリック操作モード
-    bool   m_positionEditMode { false };  // 局面編集モード
-    bool   m_dragging         { false };  // ドラッグ中
-    QPoint m_dragFrom;                    // つまみ上げ元のマス
-    QChar  m_dragPiece { ' ' };           // ドラッグ中の駒文字
-    QPoint m_dragPos;                     // カーソル座標（ウィジェット系）
-    bool   m_dragFromStand { false };     // 駒台からのドラッグか
-    QMap<QChar,int> m_tempPieceStandCounts; // ドラッグ中の一時在庫
+    // 入力/ドラッグ（ShogiViewInteraction に委譲）
+    ShogiViewInteraction m_interaction;
 
-    // 手番ハイライト
-    QColor m_highlightBg    = QColor(255, 255, 0);
-    QColor m_highlightFgOn  = QColor(0, 0, 255);
-    QColor m_highlightFgOff = QColor(51, 51, 51);
-    bool   m_blackActive    = true;
-
-    // 既存の「手番ハイライト色」を Normal として利用
-    // 追加：10秒/5秒で使う配色
-    QColor m_urgencyBgWarn10 = QColor(255, 193, 7);// 濃いめの黄橙
-    QColor m_urgencyFgWarn10 = QColor(32, 32, 32); // 黒系
-    QColor m_urgencyBgWarn5  = QColor(229, 57, 53); // 赤
-    QColor m_urgencyFgWarn5  = QColor(255, 255, 255); // 白
-
-    // ── 色（数値指定で clazy 回避）
-    const QColor kTurnBg   = QColor(255, 255,   0); // 通常背景（黄）
-    const QColor kTurnFg   = QColor(  0,  64, 255);  // 通常文字（青）
-
-    const QColor kWarn10Bg = QColor(255, 255,   0); // 10秒 背景（黄）
-    const QColor kWarn10Fg = QColor(  0,   0, 255); // 10秒 文字（青）
-
-    const QColor kWarn5Bg  = QColor(255, 255,   0); // 5秒 背景（黄）
-    const QColor kWarn5Fg  = QColor(255,   0,   0); // 5秒 文字（赤）
-
-    const QColor kWarn10Border = QColor(  0,  0, 255); // 10秒 枠色（青）
-    const QColor kWarn5Border  = QColor(255,   0,   0); // 5秒 枠色（赤）
-
-    // ── ヘルパ
-    void setLabelStyle(QLabel* lbl,
-                       const QColor& fg, const QColor& bg,
-                       int borderPx, const QColor& borderColor,
-                       bool bold);
-    static QString toRgb(const QColor& c);              // "rgb(r,g,b)" 生成
 
     // エラー状態
     bool   m_errorOccurred { false };
@@ -416,8 +342,8 @@ private:
     // 自前ツールチップ
     GlobalToolTip* m_tooltip = nullptr;
 
-    // 起動直後や対局前に、両側を同じ基準タイポグラフィに整える
-    void applyStartupTypography();
+    // ハイライト/矢印/手番表示の管理クラス
+    ShogiViewHighlighting* m_highlighting = nullptr;
 
     // 追加: ログ用に保持
     qint64 m_blackTimeMs = -1;

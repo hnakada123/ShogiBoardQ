@@ -5,7 +5,7 @@
 
 #include "loggingcategory.h"
 
-#include "engineanalysistab.h"
+#include "considerationtabmanager.h"
 #include "shogiview.h"
 #include "matchcoordinator.h"
 #include "dialogcoordinator.h"
@@ -15,7 +15,8 @@
 ConsiderationWiring::ConsiderationWiring(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_parentWidget(deps.parentWidget)
-    , m_analysisTab(deps.analysisTab)
+    , m_considerationTabManager(deps.considerationTabManager)
+    , m_thinkingInfo1(deps.thinkingInfo1)
     , m_shogiView(deps.shogiView)
     , m_match(deps.match)
     , m_dialogCoordinator(deps.dialogCoordinator)
@@ -30,7 +31,8 @@ ConsiderationWiring::ConsiderationWiring(const Deps& deps, QObject* parent)
 void ConsiderationWiring::updateDeps(const Deps& deps)
 {
     m_parentWidget = deps.parentWidget;
-    m_analysisTab = deps.analysisTab;
+    m_considerationTabManager = deps.considerationTabManager;
+    m_thinkingInfo1 = deps.thinkingInfo1;
     m_shogiView = deps.shogiView;
     m_match = deps.match;
     m_dialogCoordinator = deps.dialogCoordinator;
@@ -48,7 +50,8 @@ void ConsiderationWiring::ensureUIController()
     if (m_uiController) return;
 
     m_uiController = new ConsiderationModeUIController(this);
-    m_uiController->setAnalysisTab(m_analysisTab);
+    m_uiController->setConsiderationTabManager(m_considerationTabManager);
+    m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
     m_uiController->setShogiView(m_shogiView);
     m_uiController->setMatchCoordinator(m_match);
     m_uiController->setConsiderationModel(m_considerationModel);
@@ -81,7 +84,7 @@ void ConsiderationWiring::displayConsiderationDialog()
     }
 
     if (m_dialogCoordinator) {
-        m_dialogCoordinator->setAnalysisTab(m_analysisTab);
+        m_dialogCoordinator->setConsiderationTabManager(m_considerationTabManager);
         // 検討開始前にモードを設定（onSetEngineNamesで検討タブにエンジン名を設定するため）
         const PlayMode previousMode = *m_playMode;
         *m_playMode = PlayMode::ConsiderationMode;
@@ -134,7 +137,8 @@ void ConsiderationWiring::onModeStarted()
 {
     ensureUIController();
     if (m_uiController) {
-        m_uiController->setAnalysisTab(m_analysisTab);
+        m_uiController->setConsiderationTabManager(m_considerationTabManager);
+        m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
         m_uiController->setConsiderationModel(m_considerationModel);
         m_uiController->setCommLogModel(m_commLogModel);
         m_uiController->onModeStarted();
@@ -145,7 +149,8 @@ void ConsiderationWiring::onTimeSettingsReady(bool unlimited, int byoyomiSec)
 {
     ensureUIController();
     if (m_uiController) {
-        m_uiController->setAnalysisTab(m_analysisTab);
+        m_uiController->setConsiderationTabManager(m_considerationTabManager);
+        m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
         m_uiController->setMatchCoordinator(m_match);
         m_uiController->onTimeSettingsReady(unlimited, byoyomiSec);
     }
@@ -155,7 +160,8 @@ void ConsiderationWiring::onDialogMultiPVReady(int multiPV)
 {
     ensureUIController();
     if (m_uiController) {
-        m_uiController->setAnalysisTab(m_analysisTab);
+        m_uiController->setConsiderationTabManager(m_considerationTabManager);
+        m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
         m_uiController->onDialogMultiPVReady(multiPV);
     }
 }
@@ -172,7 +178,8 @@ void ConsiderationWiring::updateArrows()
     ensureUIController();
     if (m_uiController) {
         m_uiController->setShogiView(m_shogiView);
-        m_uiController->setAnalysisTab(m_analysisTab);
+        m_uiController->setConsiderationTabManager(m_considerationTabManager);
+        m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
         m_uiController->setConsiderationModel(m_considerationModel);
         if (m_currentSfenStr) {
             m_uiController->setCurrentSfenStr(*m_currentSfenStr);
@@ -196,7 +203,8 @@ bool ConsiderationWiring::updatePositionIfNeeded(int row, const QString& newPosi
     ensureUIController();
     if (m_uiController) {
         m_uiController->setMatchCoordinator(m_match);
-        m_uiController->setAnalysisTab(m_analysisTab);
+        m_uiController->setConsiderationTabManager(m_considerationTabManager);
+        m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
         return m_uiController->updatePositionIfInConsiderationMode(
             row, newPosition, gameMoves, kifuRecordModel);
     }

@@ -889,6 +889,140 @@ static bool isPathClear(int fromFile, int fromRank, int toFile, int toRank,
 }
 
 // ----------------------------------------------------------------------------
+// collectCandidates - 移動先に到達可能な候補駒を盤面から収集
+// ----------------------------------------------------------------------------
+
+QVector<Ki2ToSfenConverter::Candidate> Ki2ToSfenConverter::collectCandidates(
+    QChar pieceUpper, bool moveIsPromoted,
+    int toFile, int toRank,
+    bool blackToMove,
+    const QString boardState[9][9])
+{
+    QVector<Candidate> candidates;
+
+    for (int r = 0; r < 9; ++r) {
+        for (int f = 0; f < 9; ++f) {
+            const QString& token = boardState[r][f];
+            if (token.isEmpty()) continue;
+
+            QChar tokenPiece;
+            bool tokenPromoted, tokenBlack;
+            if (!parseToken(token, tokenPiece, tokenPromoted, tokenBlack)) continue;
+            if (tokenBlack != blackToMove) continue;
+            if (tokenPiece != pieceUpper) continue;
+            // KI2では「角」は未成りの角のみ、「馬」は成った角のみにマッチ
+            if (tokenPromoted != moveIsPromoted) continue;
+
+            const int candFile = 9 - f;  // col 0 = 9筋
+            const int candRank = r + 1;  // row 0 = 1段
+
+            if (!canPieceMoveTo(pieceUpper, tokenPromoted, candFile, candRank,
+                                toFile, toRank, blackToMove))
+                continue;
+
+            // 飛び駒（飛車、角、香車）の経路確認
+            if (pieceUpper == QLatin1Char('R') || pieceUpper == QLatin1Char('B') ||
+                pieceUpper == QLatin1Char('L')) {
+                if (!isPathClear(candFile, candRank, toFile, toRank, boardState))
+                    continue;
+            }
+
+            candidates.push_back({candFile, candRank});
+        }
+    }
+
+    return candidates;
+}
+
+// ----------------------------------------------------------------------------
+// filterByDirection - 右/左/上/引/寄/直 の修飾語で候補を絞り込む
+// ----------------------------------------------------------------------------
+
+QVector<Ki2ToSfenConverter::Candidate> Ki2ToSfenConverter::filterByDirection(
+    const QVector<Candidate>& candidates,
+    const QString& modifier,
+    bool blackToMove,
+    int toFile, int toRank)
+{
+    if (modifier.isEmpty()) return candidates;
+
+    const int forward = blackToMove ? -1 : 1;
+    QVector<Candidate> filtered = candidates;
+
+    // 「右」: 先手→筋が小さい側、後手→筋が大きい側
+    if (modifier.contains(QChar(u'右'))) {
+        int targetFile = blackToMove ? 9 : 0;
+        for (const auto& c : std::as_const(filtered)) {
+            if (blackToMove) {
+                if (targetFile == 9 || c.file < targetFile) targetFile = c.file;
+            } else {
+                if (targetFile == 0 || c.file > targetFile) targetFile = c.file;
+            }
+        }
+        QVector<Candidate> tmp;
+        for (const auto& c : std::as_const(filtered)) {
+            if (c.file == targetFile) tmp.push_back(c);
+        }
+        if (!tmp.isEmpty()) filtered = tmp;
+    }
+
+    // 「左」: 先手→筋が大きい側、後手→筋が小さい側
+    if (modifier.contains(QChar(u'左'))) {
+        int targetFile = blackToMove ? 0 : 9;
+        for (const auto& c : std::as_const(filtered)) {
+            if (blackToMove) {
+                if (targetFile == 0 || c.file > targetFile) targetFile = c.file;
+            } else {
+                if (targetFile == 9 || c.file < targetFile) targetFile = c.file;
+            }
+        }
+        QVector<Candidate> tmp;
+        for (const auto& c : std::as_const(filtered)) {
+            if (c.file == targetFile) tmp.push_back(c);
+        }
+        if (!tmp.isEmpty()) filtered = tmp;
+    }
+
+    // 「上」「行」: 前進（移動元が移動先より後方）
+    if (modifier.contains(QChar(u'上')) || modifier.contains(QChar(u'行'))) {
+        QVector<Candidate> tmp;
+        for (const auto& c : std::as_const(filtered)) {
+            if ((toRank - c.rank) * forward > 0) tmp.push_back(c);
+        }
+        if (!tmp.isEmpty()) filtered = tmp;
+    }
+
+    // 「引」: 後退（移動元が移動先より前方）
+    if (modifier.contains(QChar(u'引'))) {
+        QVector<Candidate> tmp;
+        for (const auto& c : std::as_const(filtered)) {
+            if ((toRank - c.rank) * forward < 0) tmp.push_back(c);
+        }
+        if (!tmp.isEmpty()) filtered = tmp;
+    }
+
+    // 「寄」: 横移動（同じ段からの移動）
+    if (modifier.contains(QChar(u'寄'))) {
+        QVector<Candidate> tmp;
+        for (const auto& c : std::as_const(filtered)) {
+            if (c.rank == toRank) tmp.push_back(c);
+        }
+        if (!tmp.isEmpty()) filtered = tmp;
+    }
+
+    // 「直」: 真っ直ぐ（同じ筋からの前進）
+    if (modifier.contains(QChar(u'直'))) {
+        QVector<Candidate> tmp;
+        for (const auto& c : std::as_const(filtered)) {
+            if (c.file == toFile) tmp.push_back(c);
+        }
+        if (!tmp.isEmpty()) filtered = tmp;
+    }
+
+    return filtered;
+}
+
+// ----------------------------------------------------------------------------
 // inferSourceSquare - 移動元座標を推測
 // ----------------------------------------------------------------------------
 
@@ -900,175 +1034,24 @@ bool Ki2ToSfenConverter::inferSourceSquare(QChar pieceUpper,
                                             const QString boardState[9][9],
                                             int& outFromFile, int& outFromRank)
 {
-    // pieceUpper: 駒の基本種別 (B, R, P, L, N, S, G, K)
-    // moveIsPromoted: 移動テキストが成駒を示しているか
-    //   - 「角」→ false, 「馬」→ true
-    //   - 「飛」→ false, 「龍/竜」→ true
-    //   - 「歩」→ false, 「と」→ true
-    // 盤上の駒とマッチするには、両方の条件が一致する必要がある
-    
-    // 候補を収集
-    struct Candidate {
-        int file;
-        int rank;
-        bool isPromoted;
-    };
-    QVector<Candidate> candidates;
-    
-    for (int r = 0; r < 9; ++r) {
-        for (int f = 0; f < 9; ++f) {
-            const QString& token = boardState[r][f];
-            if (token.isEmpty()) continue;
-            
-            QChar tokenPiece;
-            bool tokenPromoted, tokenBlack;
-            if (!parseToken(token, tokenPiece, tokenPromoted, tokenBlack)) continue;
-            
-            // 手番の駒か確認
-            if (tokenBlack != blackToMove) continue;
-            
-            // 駒種が一致するか
-            if (tokenPiece != pieceUpper) continue;
-            
-            // 成り状態が一致するか
-            // KI2では「角」は未成りの角のみ、「馬」は成った角のみにマッチ
-            if (tokenPromoted != moveIsPromoted) continue;
-            
-            // 盤面座標から棋譜座標へ変換
-            const int candFile = 9 - f; // col 0 = 9筋
-            const int candRank = r + 1; // row 0 = 1段
-            
-            // 移動可能か確認（駒の動きのルール）
-            if (!canPieceMoveTo(pieceUpper, tokenPromoted, candFile, candRank, toFile, toRank, blackToMove)) {
-                continue;
-            }
-            
-            // 飛び駒（飛車、角、香車、馬、龍）の場合、途中に駒がないか確認
-            bool pathBlocked = false;
-            if (pieceUpper == QLatin1Char('R') || pieceUpper == QLatin1Char('B') || 
-                pieceUpper == QLatin1Char('L')) {
-                pathBlocked = !isPathClear(candFile, candRank, toFile, toRank, boardState);
-            }
-            
-            if (pathBlocked) continue;
-            
-            candidates.push_back({candFile, candRank, tokenPromoted});
-        }
-    }
-    
-    if (candidates.isEmpty()) {
-        return false;
-    }
-    
+    const auto candidates = collectCandidates(pieceUpper, moveIsPromoted,
+                                               toFile, toRank,
+                                               blackToMove, boardState);
+    if (candidates.isEmpty()) return false;
+
     if (candidates.size() == 1) {
         outFromFile = candidates[0].file;
         outFromRank = candidates[0].rank;
         return true;
     }
-    
-    // 複数候補がある場合は修飾語で絞り込む
-    // 先手視点での方向（後手は逆）
-    const int forward = blackToMove ? -1 : 1;
-    
-    QVector<Candidate> filtered = candidates;
-    
-    // 「右」「左」で筋を絞り込む
-    // 先手から見て右は筋が小さい方向（1筋側）
-    // 後手から見て右は筋が大きい方向（9筋側）
-    if (modifier.contains(QChar(u'右'))) {
-        int targetFile = blackToMove ? 9 : 0; // 初期値を範囲外に
-        for (const auto& c : std::as_const(filtered)) {
-            if (blackToMove) {
-                // 先手から見て右 = 筋が小さい
-                if (targetFile == 9 || c.file < targetFile) targetFile = c.file;
-            } else {
-                // 後手から見て右 = 筋が大きい
-                if (targetFile == 0 || c.file > targetFile) targetFile = c.file;
-            }
-        }
-        QVector<Candidate> newFiltered;
-        for (const auto& c : std::as_const(filtered)) {
-            if (c.file == targetFile) newFiltered.push_back(c);
-        }
-        if (!newFiltered.isEmpty()) filtered = newFiltered;
-    }
-    
-    if (modifier.contains(QChar(u'左'))) {
-        int targetFile = blackToMove ? 0 : 9; // 初期値を範囲外に
-        for (const auto& c : std::as_const(filtered)) {
-            if (blackToMove) {
-                // 先手から見て左 = 筋が大きい
-                if (targetFile == 0 || c.file > targetFile) targetFile = c.file;
-            } else {
-                // 後手から見て左 = 筋が小さい
-                if (targetFile == 9 || c.file < targetFile) targetFile = c.file;
-            }
-        }
-        QVector<Candidate> newFiltered;
-        for (const auto& c : std::as_const(filtered)) {
-            if (c.file == targetFile) newFiltered.push_back(c);
-        }
-        if (!newFiltered.isEmpty()) filtered = newFiltered;
-    }
-    
-    // 「上」「引」で段を絞り込む
-    // 「上」は前進（先手なら段が大きい位置から）
-    // 「引」は後退（先手なら段が小さい位置から）
-    if (modifier.contains(QChar(u'上')) || modifier.contains(QChar(u'行'))) {
-        // 上がる = 前進 = 移動元は移動先より後ろ
-        QVector<Candidate> newFiltered;
-        for (const auto& c : std::as_const(filtered)) {
-            const int dr = toRank - c.rank;
-            if (dr * forward > 0) { // 前進している
-                newFiltered.push_back(c);
-            }
-        }
-        if (!newFiltered.isEmpty()) filtered = newFiltered;
-    }
-    
-    if (modifier.contains(QChar(u'引'))) {
-        // 引く = 後退 = 移動元は移動先より前
-        QVector<Candidate> newFiltered;
-        for (const auto& c : std::as_const(filtered)) {
-            const int dr = toRank - c.rank;
-            if (dr * forward < 0) { // 後退している
-                newFiltered.push_back(c);
-            }
-        }
-        if (!newFiltered.isEmpty()) filtered = newFiltered;
-    }
-    
-    // 「寄」は横移動（同じ段からの移動）
-    if (modifier.contains(QChar(u'寄'))) {
-        QVector<Candidate> newFiltered;
-        for (const auto& c : std::as_const(filtered)) {
-            if (c.rank == toRank) {
-                newFiltered.push_back(c);
-            }
-        }
-        if (!newFiltered.isEmpty()) filtered = newFiltered;
-    }
-    
-    // 「直」は真っ直ぐ（同じ筋からの前進）
-    if (modifier.contains(QChar(u'直'))) {
-        QVector<Candidate> newFiltered;
-        for (const auto& c : std::as_const(filtered)) {
-            if (c.file == toFile) {
-                newFiltered.push_back(c);
-            }
-        }
-        if (!newFiltered.isEmpty()) filtered = newFiltered;
-    }
-    
-    if (!filtered.isEmpty()) {
-        outFromFile = filtered[0].file;
-        outFromRank = filtered[0].rank;
-        return true;
-    }
-    
-    // それでも絞り込めない場合は最初の候補を返す
-    outFromFile = candidates[0].file;
-    outFromRank = candidates[0].rank;
+
+    // 複数候補 → 修飾語で絞り込む
+    const auto filtered = filterByDirection(candidates, modifier,
+                                             blackToMove, toFile, toRank);
+
+    // filterByDirection は空を返さない（フィルタが効かない場合は元の候補を維持）
+    outFromFile = filtered[0].file;
+    outFromRank = filtered[0].rank;
     return true;
 }
 

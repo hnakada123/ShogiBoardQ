@@ -90,14 +90,6 @@ private:
                                    QMap<QChar, int>& whiteHands);
 
     // 移動元座標を推測
-    // pieceUpper: 駒種（大文字）
-    // moveIsPromoted: 移動テキストが成駒を示しているか（馬、龍など）
-    // toFile, toRank: 移動先座標（1-9）
-    // modifier: 移動修飾語（右/左/上/引/寄/直、なければ空）
-    // blackToMove: 先手番ならtrue
-    // boardState: 現在の盤面
-    // outFromFile, outFromRank: 推測した移動元座標
-    // returns: 成功時true
     static bool inferSourceSquare(QChar pieceUpper,
                                    bool moveIsPromoted,
                                    int toFile, int toRank,
@@ -105,6 +97,24 @@ private:
                                    bool blackToMove,
                                    const QString boardState[9][9],
                                    int& outFromFile, int& outFromRank);
+
+    // inferSourceSquare のヘルパ
+    struct Candidate {
+        int file;
+        int rank;
+    };
+
+    // 移動先に到達可能な候補駒を盤面から収集
+    static QVector<Candidate> collectCandidates(QChar pieceUpper, bool moveIsPromoted,
+                                                 int toFile, int toRank,
+                                                 bool blackToMove,
+                                                 const QString boardState[9][9]);
+
+    // 右/左/上/引/寄/直 の修飾語で候補を絞り込む
+    static QVector<Candidate> filterByDirection(const QVector<Candidate>& candidates,
+                                                 const QString& modifier,
+                                                 bool blackToMove,
+                                                 int toFile, int toRank);
 
     // 指定された駒が指定マスに移動できるかチェック
     static bool canPieceMoveTo(QChar pieceUpper, bool isPromoted,

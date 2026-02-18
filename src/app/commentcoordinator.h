@@ -9,7 +9,7 @@
 #include <QString>
 #include <QStringList>
 
-class EngineAnalysisTab;
+class CommentEditorPanel;
 class RecordPane;
 class GameRecordModel;
 class GameRecordPresenter;
@@ -30,7 +30,7 @@ public:
     explicit CommentCoordinator(QObject* parent = nullptr);
 
     // 依存オブジェクトの設定
-    void setAnalysisTab(EngineAnalysisTab* tab) { m_analysisTab = tab; }
+    void setCommentEditor(CommentEditorPanel* editor) { m_commentEditor = editor; }
     void setRecordPane(RecordPane* pane) { m_recordPane = pane; }
     void setGameRecordModel(GameRecordModel* model) { m_gameRecord = model; }
     void setRecordPresenter(GameRecordPresenter* presenter) { m_recordPresenter = presenter; }
@@ -85,7 +85,7 @@ signals:
     void ensureGameRecordModelRequested();
 
 private:
-    EngineAnalysisTab* m_analysisTab = nullptr;
+    CommentEditorPanel* m_commentEditor = nullptr;
     RecordPane* m_recordPane = nullptr;
     GameRecordModel* m_gameRecord = nullptr;
     GameRecordPresenter* m_recordPresenter = nullptr;

@@ -9,7 +9,8 @@
 #include <QVector>
 #include <QString>
 
-class EngineAnalysisTab;
+class ConsiderationTabManager;
+class EngineInfoWidget;
 class ShogiView;
 class MatchCoordinator;
 class ShogiEngineThinkingModel;
@@ -37,8 +38,11 @@ public:
 
     // --- 依存オブジェクト設定 ---
 
-    /// 解析タブ参照を設定する（非所有）
-    void setAnalysisTab(EngineAnalysisTab* tab);
+    /// 検討タブマネージャー参照を設定する（非所有）
+    void setConsiderationTabManager(ConsiderationTabManager* manager);
+
+    /// 思考タブのEngineInfoWidget参照を設定する（非所有）
+    void setThinkingEngineInfo(EngineInfoWidget* info);
 
     /// 盤面ビュー参照を設定する（非所有）
     void setShogiView(ShogiView* view);
@@ -160,7 +164,8 @@ private:
      */
     void connectArrowUpdateSignals();
 
-    EngineAnalysisTab* m_analysisTab = nullptr;  ///< 解析タブ（非所有）
+    ConsiderationTabManager* m_considerationTabManager = nullptr;  ///< 検討タブマネージャー（非所有）
+    EngineInfoWidget* m_thinkingInfo1 = nullptr;  ///< 思考タブのEngineInfoWidget（非所有）
     ShogiView* m_shogiView = nullptr;  ///< 盤面ビュー（非所有）
     MatchCoordinator* m_match = nullptr;  ///< 対局司令塔（非所有）
     ShogiEngineThinkingModel* m_considerationModel = nullptr;  ///< 検討モデル（非所有）

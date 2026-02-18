@@ -116,6 +116,7 @@ class CsaGameWiring;
 class BranchRowDelegate;
 class JosekiWindowWiring;
 class PlayerInfoWiring;
+class MatchCoordinatorWiring;
 class PreStartCleanupHandler;
 class MenuWindowWiring;
 class UsiCommandController;
@@ -491,7 +492,6 @@ private:
 
     // --- 試合進行（司令塔） ---
     MatchCoordinator* m_match = nullptr;      ///< 対局進行の司令塔（非所有）
-    QMetaObject::Connection m_timeConn;       ///< 時間更新シグナルの接続ハンドル
 
     // --- 連続対局設定 ---
     GameStartCoordinator::TimeControl m_lastTimeControl; ///< 前回の時間設定（連続対局用）
@@ -552,6 +552,7 @@ private:
     JosekiWindowWiring*       m_josekiWiring = nullptr;         ///< 定跡ウィンドウUI配線（非所有）
     MenuWindowWiring*         m_menuWiring = nullptr;           ///< メニューウィンドウUI配線（非所有）
     PlayerInfoWiring*         m_playerInfoWiring = nullptr;     ///< 対局者情報UI配線（非所有）
+    MatchCoordinatorWiring*   m_matchWiring = nullptr;          ///< MatchCoordinator配線（非所有）
 
     // --- 対局開始前クリーンアップ ---
     PreStartCleanupHandler*   m_preStartCleanupHandler = nullptr; ///< 対局開始前クリーンアップハンドラ（非所有）
@@ -600,6 +601,8 @@ private:
     void initializeCentralGameDisplay();
     /// 遅延初期化: TimeControlControllerを生成し依存を設定する
     void ensureTimeController();
+    /// MatchCoordinatorWiringを遅延初期化する
+    void ensureMatchCoordinatorWiring();
     /// MatchCoordinatorを初期化し配線する
     void initMatchCoordinator();
     /// 棋譜欄ウィジェットをセットアップする

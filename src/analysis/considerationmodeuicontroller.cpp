@@ -4,7 +4,7 @@
 #include "considerationmodeuicontroller.h"
 
 #include "analysisflowcontroller.h"
-#include "engineanalysistab.h"
+#include "considerationtabmanager.h"
 #include "engineinfowidget.h"
 #include "shogiview.h"
 #include "matchcoordinator.h"
@@ -21,9 +21,14 @@ ConsiderationModeUIController::ConsiderationModeUIController(QObject* parent)
 {
 }
 
-void ConsiderationModeUIController::setAnalysisTab(EngineAnalysisTab* tab)
+void ConsiderationModeUIController::setConsiderationTabManager(ConsiderationTabManager* manager)
 {
-    m_analysisTab = tab;
+    m_considerationTabManager = manager;
+}
+
+void ConsiderationModeUIController::setThinkingEngineInfo(EngineInfoWidget* info)
+{
+    m_thinkingInfo1 = info;
 }
 
 void ConsiderationModeUIController::setShogiView(ShogiView* view)
@@ -61,25 +66,25 @@ void ConsiderationModeUIController::onModeStarted()
 {
     qCDebug(lcAnalysis).noquote() << "Initializing consideration mode";
 
-    if (m_analysisTab && m_considerationModel) {
+    if (m_considerationTabManager && m_considerationModel) {
         // 検討タブに専用モデルを設定
-        m_analysisTab->setConsiderationThinkingModel(m_considerationModel);
+        m_considerationTabManager->setConsiderationThinkingModel(m_considerationModel);
 
         // 検討タブのEngineInfoWidgetにもモデルを設定
-        if (m_analysisTab->considerationInfo() && m_commLogModel) {
-            m_analysisTab->considerationInfo()->setModel(m_commLogModel);
+        if (m_considerationTabManager->considerationInfo() && m_commLogModel) {
+            m_considerationTabManager->considerationInfo()->setModel(m_commLogModel);
         }
 
         // 思考タブのEngineInfoWidgetにもモデルを設定
-        if (m_analysisTab->info1() && m_commLogModel) {
-            m_analysisTab->info1()->setModel(m_commLogModel);
+        if (m_thinkingInfo1 && m_commLogModel) {
+            m_thinkingInfo1->setModel(m_commLogModel);
         }
 
         // 矢印更新用のシグナル接続
         connectArrowUpdateSignals();
 
         // 矢印表示チェックボックスの状態変更時
-        connect(m_analysisTab, &EngineAnalysisTab::showArrowsChanged,
+        connect(m_considerationTabManager, &ConsiderationTabManager::showArrowsChanged,
                 this, &ConsiderationModeUIController::onShowArrowsChanged,
                 Qt::UniqueConnection);
     }
@@ -90,28 +95,28 @@ void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoy
     qCDebug(lcAnalysis).noquote() << "onTimeSettingsReady: unlimited=" << unlimited
                                   << "byoyomiSec=" << byoyomiSec;
 
-    if (m_analysisTab) {
+    if (m_considerationTabManager) {
         // 時間設定を検討タブに反映
-        m_analysisTab->setConsiderationTimeLimit(unlimited, byoyomiSec);
+        m_considerationTabManager->setConsiderationTimeLimit(unlimited, byoyomiSec);
 
         // 経過時間タイマーを開始
-        m_analysisTab->startElapsedTimer();
+        m_considerationTabManager->startElapsedTimer();
 
         // ボタンを「検討中止」に切り替え
-        m_analysisTab->setConsiderationRunning(true);
+        m_considerationTabManager->setConsiderationRunning(true);
 
         // 検討中のMultiPV変更を接続
-        connect(m_analysisTab, &EngineAnalysisTab::considerationMultiPVChanged,
+        connect(m_considerationTabManager, &ConsiderationTabManager::considerationMultiPVChanged,
                 this, &ConsiderationModeUIController::onMultiPVChanged,
                 Qt::UniqueConnection);
 
         // 検討中止ボタンを接続
-        connect(m_analysisTab, &EngineAnalysisTab::stopConsiderationRequested,
+        connect(m_considerationTabManager, &ConsiderationTabManager::stopConsiderationRequested,
                 this, &ConsiderationModeUIController::stopRequested,
                 Qt::UniqueConnection);
 
         // 検討開始ボタンを接続
-        connect(m_analysisTab, &EngineAnalysisTab::startConsiderationRequested,
+        connect(m_considerationTabManager, &ConsiderationTabManager::startConsiderationRequested,
                 this, &ConsiderationModeUIController::startRequested,
                 Qt::UniqueConnection);
     }
@@ -133,14 +138,14 @@ void ConsiderationModeUIController::onModeEnded()
 {
     qCDebug(lcAnalysis).noquote() << "consideration mode ended";
 
-    if (m_analysisTab) {
+    if (m_considerationTabManager) {
         // 経過時間タイマーを停止
         qCDebug(lcAnalysis).noquote() << "Stopping elapsed timer";
-        m_analysisTab->stopElapsedTimer();
+        m_considerationTabManager->stopElapsedTimer();
 
         // ボタンを「検討開始」に切り替え
         qCDebug(lcAnalysis).noquote() << "Calling setConsiderationRunning(false)";
-        m_analysisTab->setConsiderationRunning(false);
+        m_considerationTabManager->setConsiderationRunning(false);
         qCDebug(lcAnalysis).noquote() << "setConsiderationRunning(false) returned";
     }
 
@@ -154,10 +159,10 @@ void ConsiderationModeUIController::onWaitingStarted()
 {
     qCDebug(lcAnalysis).noquote() << "onWaitingStarted";
 
-    if (m_analysisTab) {
+    if (m_considerationTabManager) {
         // 経過時間タイマーを停止（ボタンは「検討中止」のまま）
         qCDebug(lcAnalysis).noquote() << "Stopping elapsed timer";
-        m_analysisTab->stopElapsedTimer();
+        m_considerationTabManager->stopElapsedTimer();
         // setConsiderationRunning(false) は呼ばない（ボタンは「検討中止」のまま）
     }
 }
@@ -175,8 +180,8 @@ void ConsiderationModeUIController::onDialogMultiPVReady(int multiPV)
     qCDebug(lcAnalysis).noquote() << "onDialogMultiPVReady: multiPV=" << multiPV;
 
     // 検討タブのMultiPVコンボボックスを更新
-    if (m_analysisTab) {
-        m_analysisTab->setConsiderationMultiPV(multiPV);
+    if (m_considerationTabManager) {
+        m_considerationTabManager->setConsiderationMultiPV(multiPV);
     }
 }
 
@@ -263,7 +268,7 @@ void ConsiderationModeUIController::updateArrows()
     }
 
     // 「矢印表示」チェックボックスの状態を確認
-    if (m_analysisTab && !m_analysisTab->isShowArrowsChecked()) {
+    if (m_considerationTabManager && !m_considerationTabManager->isShowArrowsChecked()) {
         m_shogiView->clearArrows();
         return;
     }
@@ -363,8 +368,8 @@ bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(
                                   << "previousFileTo=" << previousFileTo << "previousRankTo=" << previousRankTo;
 
     // ポジションが変更された場合、経過時間タイマーをリセットして再開
-    if (updated && m_analysisTab) {
-        m_analysisTab->startElapsedTimer();
+    if (updated && m_considerationTabManager) {
+        m_considerationTabManager->startElapsedTimer();
     }
 
     return updated;

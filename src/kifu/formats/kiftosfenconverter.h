@@ -72,6 +72,18 @@ private:
     // - 初手より前にある '*' コメント行と '&しおり' を収集し、改行で連結して返す
     // - 取得対象は「最初の指し手行」まで（BODや各種ヘッダは自動スキップ）
     static QString extractOpeningComment(const QString& filePath);
+
+    // ---------- parseWithVariations ヘルパ ----------
+    static void extractMainLine(const QString& kifPath, KifParseResult& out, QString* errorMessage);
+    static QString findBranchBaseSfen(const QVector<KifVariation>& vars,
+                                      const KifLine& mainLine,
+                                      int branchPointPly);
+    static KifVariation parseVariationBlock(const QStringList& blockLines,
+                                            int startPly,
+                                            const QString& baseSfen);
+    static void extractMovesFromBlock(const QStringList& blockLines,
+                                      int startPly,
+                                      KifLine& line);
 };
 
 #endif // KIFTOSFENCONVERTER_H

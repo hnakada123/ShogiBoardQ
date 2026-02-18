@@ -8,7 +8,7 @@
 #include "kifunavigationcontroller.h"
 #include "recordpane.h"
 #include "branchtreewidget.h"
-#include "engineanalysistab.h"
+#include "branchtreemanager.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "kifudisplay.h"
@@ -58,9 +58,9 @@ void KifuDisplayCoordinator::setBranchModel(KifuBranchListModel* model)
     m_branchModel = model;
 }
 
-void KifuDisplayCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
+void KifuDisplayCoordinator::setBranchTreeManager(BranchTreeManager* manager)
 {
-    m_analysisTab = tab;
+    m_branchTreeManager = manager;
 }
 
 void KifuDisplayCoordinator::setLiveGameSession(LiveGameSession* session)
@@ -326,9 +326,9 @@ void KifuDisplayCoordinator::onBranchTreeHighlightRequired(int lineIndex, int pl
     if (m_branchTreeWidget != nullptr) {
         m_branchTreeWidget->highlightNode(lineIndex, ply);
     }
-    // EngineAnalysisTab がある場合はそちらを使用（通常はこちら）
-    if (m_analysisTab != nullptr) {
-        m_analysisTab->highlightBranchTreeAt(lineIndex, ply, /*centerOn=*/false);
+    // BranchTreeManager がある場合はそちらを使用（通常はこちら）
+    if (m_branchTreeManager != nullptr) {
+        m_branchTreeManager->highlightBranchTreeAt(lineIndex, ply, /*centerOn=*/false);
     }
 }
 
@@ -826,9 +826,9 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     if (m_branchTreeWidget != nullptr) {
         m_branchTreeWidget->highlightNode(highlightLineIndex, ply);
     }
-    // EngineAnalysisTab がある場合はそちらも使用（通常はこちらが表示される）
-    if (m_analysisTab != nullptr) {
-        m_analysisTab->highlightBranchTreeAt(highlightLineIndex, ply, /*centerOn=*/false);
+    // BranchTreeManager がある場合はそちらも使用（通常はこちらが表示される）
+    if (m_branchTreeManager != nullptr) {
+        m_branchTreeManager->highlightBranchTreeAt(highlightLineIndex, ply, /*centerOn=*/false);
     }
 
     // 重要: onRecordHighlightRequired() は呼び出さない
@@ -944,16 +944,16 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     const int liveLineIndex = (m_liveSession != nullptr) ? m_liveSession->currentLineIndex() : 0;
     KifuBranchNode* liveNode = (m_liveSession != nullptr) ? m_liveSession->liveNode() : nullptr;
 
-    // EngineAnalysisTab の分岐ツリーを更新
+    // BranchTreeManager の分岐ツリーを更新
     // addMoveQuiet() は treeChanged() を発火しないため、ここで明示的に更新する
-    if (m_analysisTab != nullptr && m_tree != nullptr) {
+    if (m_branchTreeManager != nullptr && m_tree != nullptr) {
         // KifuBranchTree から ResolvedRowLite 形式に変換
-        QVector<EngineAnalysisTab::ResolvedRowLite> rows;
+        QVector<BranchTreeManager::ResolvedRowLite> rows;
         QVector<BranchLine> lines = m_tree->allLines();
 
         for (int lineIdx = 0; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);
-            EngineAnalysisTab::ResolvedRowLite row;
+            BranchTreeManager::ResolvedRowLite row;
             row.startPly = (line.branchPly > 0) ? line.branchPly : 1;
 
             // branchPointから親行インデックスを正しく計算する
@@ -988,12 +988,12 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
             rows.append(row);
         }
 
-        m_analysisTab->setBranchTreeRows(rows);
+        m_branchTreeManager->setBranchTreeRows(rows);
 
         // ハイライト更新
         if (m_liveSession != nullptr) {
             const int totalPly = m_liveSession->totalPly();
-            m_analysisTab->highlightBranchTreeAt(liveLineIndex, totalPly, false);
+            m_branchTreeManager->highlightBranchTreeAt(liveLineIndex, totalPly, false);
         }
     }
 

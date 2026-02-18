@@ -22,6 +22,7 @@ class ShogiEngineThinkingModel;
 class KifuAnalysisListModel;
 class KifuRecordListModel;
 class EngineAnalysisTab;
+class ConsiderationTabManager;
 class ShogiGameController;
 class ConsiderationFlowController;
 class TsumeSearchFlowController;
@@ -90,9 +91,14 @@ public:
     void setAnalysisModel(KifuAnalysisListModel* model);
 
     /**
-     * @brief 解析タブを設定
+     * @brief 解析タブを設定（棋譜解析フロー用）
      */
     void setAnalysisTab(EngineAnalysisTab* tab);
+
+    /**
+     * @brief 検討タブマネージャーを設定（検討パラメータ取得用）
+     */
+    void setConsiderationTabManager(ConsiderationTabManager* manager);
 
     // --------------------------------------------------------
     // 情報ダイアログ
@@ -369,6 +375,7 @@ private:
     ShogiEngineThinkingModel* m_thinkingModel = nullptr;
     KifuAnalysisListModel* m_analysisModel = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
+    ConsiderationTabManager* m_considerationTabManager = nullptr;
 
     // Flow コントローラ（遅延生成）
     AnalysisFlowController* m_analysisFlow = nullptr;
