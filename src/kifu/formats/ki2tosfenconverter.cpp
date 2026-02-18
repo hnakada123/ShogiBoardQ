@@ -2,6 +2,7 @@
 /// @brief KI2形式棋譜コンバータクラスの実装
 
 #include "ki2tosfenconverter.h"
+#include "kiftosfenconverter.h"
 #include "kifreader.h"
 #include "parsecommon.h"
 
@@ -1806,26 +1807,6 @@ bool Ki2ToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
                                                   QString* detectedLabel,
                                                   QString* warn)
 {
-    Q_UNUSED(warn);
-    
-    // 簡易実装：BOD形式のパースは複雑なので、
-    // ここでは「手合割」ヘッダのみを見る
-    // 完全なBODパースが必要な場合はKifToSfenConverterの実装を流用
-    
-    for (const QString& line : lines) {
-        const QString t = line.trimmed();
-        if (t.contains(QStringLiteral("手合割")) || t.contains(QStringLiteral("手合"))) {
-            QString label = t;
-            label.remove(afterColonRe());
-            label = label.trimmed();
-            
-            if (!label.isEmpty()) {
-                outSfen = mapHandicapToSfenImpl(label);
-                if (detectedLabel) *detectedLabel = label;
-                return true;
-            }
-        }
-    }
-    
-    return false;
+    // KifToSfenConverterの完全なBODパーサに委譲
+    return KifToSfenConverter::buildInitialSfenFromBod(lines, outSfen, detectedLabel, warn);
 }
