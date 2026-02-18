@@ -221,68 +221,68 @@
 <context>
     <name>CommentEditorPanel</name>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="57"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="58"/>
         <source>コメントを表示・編集</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="138"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="139"/>
         <source>未保存のコメント</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="139"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="140"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="314"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="315"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="321"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="322"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="328"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="329"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="335"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="336"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="342"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="343"/>
         <source>切り取り (Ctrl+X)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="349"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="351"/>
         <source>コピー (Ctrl+C)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="356"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="359"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="361"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="364"/>
         <source>修正中</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="365"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="368"/>
         <source>コメント更新</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="366"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="369"/>
         <source>編集したコメントを棋譜に反映する</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1727,84 +1727,89 @@ Move %3: %4</source>
 <context>
     <name>GameInfoPaneController</name>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="53"/>
         <source>項目</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="53"/>
         <source>内容</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="80"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="81"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="89"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="90"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="98"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="99"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="107"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="108"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="116"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="117"/>
         <source>切り取り (Ctrl+X)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="125"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="127"/>
         <source>コピー (Ctrl+C)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="134"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="137"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="141"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="146"/>
+        <source>新しい行を追加する</source>
+        <translation>新しい行を追加する</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="153"/>
         <source>修正中</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="146"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="158"/>
         <source>対局情報更新</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="147"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="159"/>
         <source>編集した対局情報を棋譜に反映する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="241"/>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="266"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="254"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="279"/>
         <source>先手</source>
         <translation type="unfinished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="253"/>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="268"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="266"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="281"/>
         <source>後手</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="287"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="300"/>
         <source>未保存の対局情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="288"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="301"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation type="unfinished"></translation>
@@ -4344,10 +4349,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="726"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="730"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="746"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="750"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="729"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="733"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="749"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="753"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="183"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="187"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="203"/>
@@ -4357,10 +4362,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="727"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="735"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="743"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="751"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="730"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="738"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="746"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="754"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -4369,10 +4374,10 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="731"/>
         <location filename="../../src/kifu/gamerecordmodel.cpp" line="734"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="742"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="747"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="737"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="745"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="750"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="191"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="199"/>
@@ -4381,13 +4386,13 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="738"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="741"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="195"/>
         <source>Engine1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="739"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="742"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
         <source>Engine2</source>
         <translation type="unfinished"></translation>
@@ -4449,28 +4454,48 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="67"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</source>
-        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</translation>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;すべてのファイル (*)</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="115"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)</source>
-        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)</translation>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;すべてのファイル (*)</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
-        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</translation>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="232"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
-        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</translation>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="301"/>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</source>
+        <translation type="vanished">KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)</source>
+        <translation type="vanished">KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
+        <translation type="vanished">KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
+        <translation type="vanished">KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</translation>
+    </message>
+    <message>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
-        <translation>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
+        <translation type="vanished">KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="70"/>

@@ -16,6 +16,7 @@
 #include <QClipboard>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QIcon>
 #include "loggingcategory.h"
 
 GameInfoPaneController::GameInfoPaneController(QObject* parent)
@@ -121,7 +122,8 @@ void GameInfoPaneController::buildToolbar()
 
     // コピーボタン
     m_btnCopy = new QToolButton(m_toolbar);
-    m_btnCopy->setText(QStringLiteral("📋"));
+    m_btnCopy->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy"),
+                                         QIcon(QStringLiteral(":/images/actions/editCopy.svg"))));
     m_btnCopy->setToolTip(tr("コピー (Ctrl+C)"));
     m_btnCopy->setFixedSize(28, 24);
     m_btnCopy->setStyleSheet(ButtonStyles::editOperation());
@@ -130,12 +132,22 @@ void GameInfoPaneController::buildToolbar()
 
     // 貼り付けボタン
     m_btnPaste = new QToolButton(m_toolbar);
-    m_btnPaste->setText(QStringLiteral("📄"));
+    m_btnPaste->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste"),
+                                          QIcon(QStringLiteral(":/images/actions/editPaste.svg"))));
     m_btnPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
     m_btnPaste->setFixedSize(28, 24);
     m_btnPaste->setStyleSheet(ButtonStyles::editOperation());
     QObject::connect(m_btnPaste, &QToolButton::clicked,
                      this, &GameInfoPaneController::paste);
+
+    // 行追加ボタン
+    m_btnAddRow = new QToolButton(m_toolbar);
+    m_btnAddRow->setText(QStringLiteral("+"));
+    m_btnAddRow->setToolTip(tr("新しい行を追加する"));
+    m_btnAddRow->setFixedSize(28, 24);
+    m_btnAddRow->setStyleSheet(ButtonStyles::editOperation());
+    QObject::connect(m_btnAddRow, &QToolButton::clicked,
+                     this, &GameInfoPaneController::addRow);
 
     // 「修正中」ラベル
     m_editingLabel = new QLabel(tr("修正中"), m_toolbar);
@@ -158,6 +170,7 @@ void GameInfoPaneController::buildToolbar()
     layout->addWidget(m_btnCut);
     layout->addWidget(m_btnCopy);
     layout->addWidget(m_btnPaste);
+    layout->addWidget(m_btnAddRow);
     layout->addSpacing(8);
     layout->addWidget(m_btnUpdate);
     layout->addSpacing(8);
@@ -373,6 +386,29 @@ void GameInfoPaneController::paste()
         QString text = QApplication::clipboard()->text();
         item->setText(text);
     }
+}
+
+void GameInfoPaneController::addRow()
+{
+    if (!m_table) return;
+
+    const int newRow = m_table->rowCount();
+    m_table->blockSignals(true);
+    m_table->setRowCount(newRow + 1);
+
+    // 両列とも編集可能（ユーザー定義の項目のため）
+    auto* keyItem = new QTableWidgetItem();
+    auto* valueItem = new QTableWidgetItem();
+    m_table->setItem(newRow, 0, keyItem);
+    m_table->setItem(newRow, 1, valueItem);
+    m_table->blockSignals(false);
+
+    // 新しい行の項目名セルを選択して編集開始
+    m_table->setCurrentCell(newRow, 0);
+    m_table->editItem(keyItem);
+
+    // dirty状態を更新
+    onCellChanged(newRow, 0);
 }
 
 void GameInfoPaneController::applyChanges()

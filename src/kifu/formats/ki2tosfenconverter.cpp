@@ -217,7 +217,7 @@ bool Ki2ToSfenConverter::isKi2MoveLine(const QString& line)
     const QString t = line.trimmed();
     if (t.isEmpty()) return false;
     const QChar first = t.at(0);
-    return (first == QChar(u'▲') || first == QChar(u'△') ||
+    return (first == QChar(u'▲') || first == QChar(u'△') || first == QChar(u'▽') ||
             first == QChar(u'☗') || first == QChar(u'☖'));
 }
 
@@ -388,6 +388,7 @@ bool Ki2ToSfenConverter::findDestination(const QString& moveText, int& toFile, i
     QString line = moveText;
     line.remove(QChar(u'▲'));
     line.remove(QChar(u'△'));
+    line.remove(QChar(u'▽'));
     line.remove(QChar(u'☗'));
     line.remove(QChar(u'☖'));
 
@@ -447,6 +448,7 @@ bool Ki2ToSfenConverter::isPromotionMoveText(const QString& moveText)
     head.remove(QRegularExpression(QStringLiteral("[右左上下引寄直行]+")));
     head.remove(QChar(u'▲'));
     head.remove(QChar(u'△'));
+    head.remove(QChar(u'▽'));
     head.remove(QChar(u'☗'));
     head.remove(QChar(u'☖'));
     head = head.trimmed();
@@ -489,7 +491,7 @@ QStringList Ki2ToSfenConverter::extractMovesFromLine(const QString& line)
     const QString t = line.trimmed();
     
     // ▲または△で区切って指し手を抽出
-    static const QRegularExpression moveRe(QStringLiteral("([▲△☗☖][^▲△☗☖]+)"));
+    static const QRegularExpression moveRe(QStringLiteral("([▲△▽☗☖][^▲△▽☗☖]+)"));
     QRegularExpressionMatchIterator it = moveRe.globalMatch(t);
     while (it.hasNext()) {
         QRegularExpressionMatch m = it.next();
@@ -942,6 +944,192 @@ QVector<Ki2ToSfenConverter::Candidate> Ki2ToSfenConverter::filterByDirection(
     }
 
     return filtered;
+}
+
+// ----------------------------------------------------------------------------
+// generateModifier - 候補駒から修飾子を生成（KI2書き出し用）
+// ----------------------------------------------------------------------------
+
+QString Ki2ToSfenConverter::generateModifier(
+    const QVector<Candidate>& candidates,
+    int srcFile, int srcRank,
+    int dstFile, int dstRank,
+    bool blackToMove)
+{
+    if (candidates.size() <= 1) return QString();
+
+    const int forward = blackToMove ? -1 : 1;
+
+    // 単一修飾子の候補を列挙
+    QStringList singleModifiers;
+
+    // 右/左: 筋が異なる候補がある場合
+    {
+        bool hasDifferentFile = false;
+        for (const auto& c : std::as_const(candidates)) {
+            if (c.file != srcFile || c.rank != srcRank) {
+                if (c.file != srcFile) {
+                    hasDifferentFile = true;
+                    break;
+                }
+            }
+        }
+        if (hasDifferentFile) {
+            singleModifiers << QStringLiteral("右") << QStringLiteral("左");
+        }
+    }
+
+    // 上/引/寄: 移動方向に基づく
+    const int dr = dstRank - srcRank;
+    if (dr * forward > 0) {
+        // 前進
+        singleModifiers << QStringLiteral("上");
+        // 同筋なら「直」も候補
+        if (srcFile == dstFile) {
+            singleModifiers << QStringLiteral("直");
+        }
+    } else if (dr * forward < 0) {
+        // 後退
+        singleModifiers << QStringLiteral("引");
+    } else {
+        // 横移動
+        singleModifiers << QStringLiteral("寄");
+    }
+
+    // 各単一修飾子で filterByDirection を呼び、一意に特定できるか試す
+    for (const QString& mod : std::as_const(singleModifiers)) {
+        const auto filtered = filterByDirection(candidates, mod, blackToMove, dstFile, dstRank);
+        if (filtered.size() == 1 && filtered[0].file == srcFile && filtered[0].rank == srcRank) {
+            return mod;
+        }
+    }
+
+    // 単一で不十分な場合、組合せを試す
+    static const QStringList combos = {
+        QStringLiteral("右上"), QStringLiteral("右引"),
+        QStringLiteral("左上"), QStringLiteral("左引"),
+        QStringLiteral("右寄"), QStringLiteral("左寄"),
+    };
+
+    for (const QString& combo : combos) {
+        const auto filtered = filterByDirection(candidates, combo, blackToMove, dstFile, dstRank);
+        if (filtered.size() == 1 && filtered[0].file == srcFile && filtered[0].rank == srcRank) {
+            return combo;
+        }
+    }
+
+    // フォールバック: 修飾子なし
+    return QString();
+}
+
+// ----------------------------------------------------------------------------
+// convertPrettyMoveToKi2 - KIF形式の指し手をKI2形式に変換
+// ----------------------------------------------------------------------------
+
+QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
+    const QString& prettyMove,
+    QString boardState[9][9],
+    QMap<QChar, int>& blackHands,
+    QMap<QChar, int>& whiteHands,
+    bool blackToMove,
+    int& prevToFile, int& prevToRank)
+{
+    // 1. 移動元 (FF) を正規表現で抽出
+    static const QRegularExpression fromPosRe(QStringLiteral("\\(([0-9])([0-9])\\)$"));
+    const QRegularExpressionMatch fromMatch = fromPosRe.match(prettyMove);
+
+    int srcFile = 0, srcRank = 0;
+    bool hasSource = false;
+    if (fromMatch.hasMatch()) {
+        srcFile = fromMatch.captured(1).at(0).toLatin1() - '0';
+        srcRank = fromMatch.captured(2).at(0).toLatin1() - '0';
+        hasSource = true;
+    }
+
+    // 2. 移動先座標を取得
+    int dstFile = 0, dstRank = 0;
+    bool isSame = false;
+    if (!findDestination(prettyMove, dstFile, dstRank, isSame)) {
+        // 解析できない場合はそのまま返す（(xx)だけ除去）
+        QString result = prettyMove;
+        result.remove(fromPosRe);
+        return result;
+    }
+    if (isSame) {
+        dstFile = prevToFile;
+        dstRank = prevToRank;
+    }
+
+    // 3. 駒種を取得
+    QChar pieceUpper;
+    bool isPromoted = false;
+    if (!getPieceTypeAndPromoted(prettyMove, pieceUpper, isPromoted)) {
+        QString result = prettyMove;
+        result.remove(fromPosRe);
+        return result;
+    }
+
+    // 4. ki2Moveテキストを構築（移動元除去）
+    QString ki2Move = prettyMove;
+    ki2Move.remove(fromPosRe);
+
+    // 5. 「打」の場合は修飾子不要
+    bool isDrop = prettyMove.contains(QChar(u'打'));
+    if (!isDrop && !hasSource) {
+        // 移動元がない場合も打ちの可能性がある（盤上に移動可能な駒がない場合）
+        isDrop = true;
+    }
+
+    if (!isDrop && hasSource) {
+        // 6. collectCandidates で同種駒の候補を収集
+        const auto candidates = collectCandidates(pieceUpper, isPromoted,
+                                                   dstFile, dstRank,
+                                                   blackToMove, boardState);
+
+        // 7. 候補が2以上なら修飾子を生成
+        if (candidates.size() >= 2) {
+            const QString modifier = generateModifier(candidates, srcFile, srcRank,
+                                                       dstFile, dstRank, blackToMove);
+            if (!modifier.isEmpty()) {
+                // 修飾子の挿入位置: 駒名の後、成/不成の前
+                // ki2Move は "▲５二金" or "△５二金成" or "▲同　金" 等
+                // 成/不成の直前に挿入する
+                static const QRegularExpression promoteSuffixRe(QStringLiteral("(成|不成)$"));
+                const QRegularExpressionMatch pm = promoteSuffixRe.match(ki2Move);
+                if (pm.hasMatch()) {
+                    // 成/不成がある場合: その前に挿入
+                    const qsizetype pos = pm.capturedStart(1);
+                    ki2Move.insert(pos, modifier);
+                } else {
+                    // 成/不成がない場合: 末尾に追加
+                    ki2Move.append(modifier);
+                }
+            }
+        }
+    }
+
+    // 8. USI文字列を構築して盤面を更新
+    if (isDrop) {
+        // 駒打ち
+        const QChar toRankLetter = rankNumToLetter(dstRank);
+        const QString usi = QStringLiteral("%1*%2%3").arg(pieceUpper).arg(dstFile).arg(toRankLetter);
+        applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
+    } else if (hasSource) {
+        // 盤上の移動
+        const QChar fromRankLetter = rankNumToLetter(srcRank);
+        const QChar toRankLetter = rankNumToLetter(dstRank);
+        QString usi = QStringLiteral("%1%2%3%4").arg(srcFile).arg(fromRankLetter).arg(dstFile).arg(toRankLetter);
+        if (isPromotionMoveText(prettyMove)) {
+            usi += QLatin1Char('+');
+        }
+        applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
+    }
+
+    // 9. prevToFile/prevToRank を更新
+    prevToFile = dstFile;
+    prevToRank = dstRank;
+
+    return ki2Move;
 }
 
 // ----------------------------------------------------------------------------
@@ -1408,6 +1596,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
                 QString moveBody = move;
                 moveBody.remove(QChar(u'▲'));
                 moveBody.remove(QChar(u'△'));
+                moveBody.remove(QChar(u'▽'));
                 moveBody.remove(QChar(u'☗'));
                 moveBody.remove(QChar(u'☖'));
                 moveBody = moveBody.trimmed();
@@ -1438,6 +1627,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
                 // USI変換失敗時はそのまま
                 prettyMove = move;
                 if (!prettyMove.startsWith(QChar(u'▲')) && !prettyMove.startsWith(QChar(u'△')) &&
+                    !prettyMove.startsWith(QChar(u'▽')) &&
                     !prettyMove.startsWith(QChar(u'☗')) && !prettyMove.startsWith(QChar(u'☖'))) {
                     prettyMove = teban + prettyMove;
                 }

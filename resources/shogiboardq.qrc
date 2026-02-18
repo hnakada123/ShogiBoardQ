@@ -90,5 +90,7 @@
         <file>images/actions/actionUsage.svg</file>
         <file>images/actions/actionVersionInfo.svg</file>
         <file>images/actions/actionSaveEvalGraphImage.svg</file>
+        <file>images/actions/editCopy.svg</file>
+        <file>images/actions/editPaste.svg</file>
     </qresource>
 </RCC>
