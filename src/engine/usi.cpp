@@ -411,11 +411,13 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
         return;
     }
 
-    changeDirectoryToEnginePath(engineFile);
+    if (!changeDirectoryToEnginePath(engineFile)) {
+        return;
+    }
     startAndInitializeEngine(engineFile, enginename);
 }
 
-void Usi::changeDirectoryToEnginePath(const QString& engineFile)
+bool Usi::changeDirectoryToEnginePath(const QString& engineFile)
 {
     const QFileInfo fileInfo(engineFile);
 
@@ -423,7 +425,10 @@ void Usi::changeDirectoryToEnginePath(const QString& engineFile)
         cleanupEngineProcessAndThread();
         emit errorOccurred(tr("Failed to change directory to %1").arg(fileInfo.path()));
         cancelCurrentOperation();
+        return false;
     }
+
+    return true;
 }
 
 void Usi::startAndInitializeEngine(const QString& engineFile, const QString& enginename)

@@ -615,7 +615,9 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
         return;
     }
 
-    if (line.contains(QStringLiteral("readyok"))) {
+    const QString trimmed = line.trimmed();
+
+    if (trimmed == QStringLiteral("readyok")) {
         m_readyOkReceived = true;
         emit readyOkReceived();
         return;
@@ -632,7 +634,7 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
         return;
     }
 
-    if (line.contains(QStringLiteral("usiok"))) {
+    if (trimmed == QStringLiteral("usiok")) {
         m_usiOkReceived = true;
         emit usiOkReceived();
         return;

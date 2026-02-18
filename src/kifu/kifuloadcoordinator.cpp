@@ -270,8 +270,7 @@ void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
         "loadJkfFromFile",
         // 解析関数
         [](const QString& path, KifParseResult& res, QString* warn) {
-            JkfToSfenConverter::parseWithVariations(path, res, warn);
-            return true;  // JKFは戻り値がvoidなので常にtrue
+            return JkfToSfenConverter::parseWithVariations(path, res, warn);
         },
         // 初期SFEN検出（JKF専用）
         [](const QString& path, QString* label) {
@@ -293,8 +292,7 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
         "loadKifuFromFile",
         // 解析関数
         [](const QString& path, KifParseResult& res, QString* warn) {
-            KifToSfenConverter::parseWithVariations(path, res, warn);
-            return true;  // KIFは戻り値がvoidなので常にtrue
+            return KifToSfenConverter::parseWithVariations(path, res, warn);
         },
         // 初期SFEN検出（デフォルト使用）
         KifuDetectSfenFunc(),
@@ -314,8 +312,7 @@ void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
         "loadUsenFromFile",
         // 解析関数
         [](const QString& path, KifParseResult& res, QString* warn) {
-            UsenToSfenConverter::parseWithVariations(path, res, warn);
-            return true;  // USENは戻り値がvoidなので常にtrue
+            return UsenToSfenConverter::parseWithVariations(path, res, warn);
         },
         // 初期SFEN検出（USEN専用）
         [](const QString& path, QString* label) {
@@ -337,8 +334,7 @@ void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
         "loadUsiFromFile",
         // 解析関数
         [](const QString& path, KifParseResult& res, QString* warn) {
-            UsiToSfenConverter::parseWithVariations(path, res, warn);
-            return true;  // USIは戻り値がvoidなので常にtrue
+            return UsiToSfenConverter::parseWithVariations(path, res, warn);
         },
         // 初期SFEN検出（USI専用）
         [](const QString& path, QString* label) {
@@ -1261,4 +1257,3 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
 
     qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: done";
 }
-

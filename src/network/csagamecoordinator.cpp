@@ -12,6 +12,7 @@
 #include "shogienginethinkingmodel.h"
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"
+#include "sfencsapositionconverter.h"
 
 #include <QSettings>
 #include <QRegularExpression>
@@ -168,6 +169,12 @@ void CsaGameCoordinator::onHumanMove(const QPoint& from, const QPoint& to, bool 
     }
 
     QString csaMove = boardToCSA(from, to, promote);
+    if (csaMove.isEmpty()) {
+        qCWarning(lcNetwork) << "Failed to build CSA move from board coordinates";
+        emit errorOccurred(tr("CSA指し手の生成に失敗しました。"));
+        emit logMessage(tr("CSA指し手の生成に失敗しました。"), true);
+        return;
+    }
     qCDebug(lcNetwork) << "Generated CSA move:" << csaMove;
 
     m_client->sendMove(csaMove);
@@ -476,6 +483,21 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
         toFile = move[3].digitValue();
         toRank = move[4].digitValue();
 
+        const bool invalidTo = (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9);
+        const bool invalidFrom = !((fromFile == 0 && fromRank == 0) ||
+                                   (fromFile >= 1 && fromFile <= 9 &&
+                                    fromRank >= 1 && fromRank <= 9));
+        if (invalidTo || invalidFrom) {
+            qCWarning(lcNetwork) << "Invalid confirmed CSA move coordinates:"
+                                 << "fromFile=" << fromFile << "fromRank=" << fromRank
+                                 << "toFile=" << toFile << "toRank=" << toRank
+                                 << "move=" << move;
+            emit logMessage(tr("不正な座標の指し手確認を受信しました: %1").arg(move), true);
+            emit errorOccurred(tr("サーバーからの指し手確認の座標が不正です: %1").arg(move));
+            setGameState(GameState::Error);
+            return;
+        }
+
         if (fromFile == 0 && fromRank == 0) {
             // 駒打ちの場合、移動元は無効
             from = QPoint(-1, -1);
@@ -674,9 +696,14 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
     QString displayMsg = message;
     if (displayMsg.startsWith(QStringLiteral("LOGIN "))) {
         // パスワード部分をマスク（"LOGIN username password" 形式）
-        qsizetype commaPos = displayMsg.indexOf(QLatin1Char(','));
-        if (commaPos > 0) {
-            displayMsg = displayMsg.left(commaPos + 1) + QStringLiteral("*****");
+        const QStringList parts = displayMsg.split(QRegularExpression(QStringLiteral("\\s+")),
+                                                   Qt::SkipEmptyParts);
+        if (parts.size() >= 3) {
+            QStringList masked = parts;
+            masked[2] = QStringLiteral("*****");
+            displayMsg = masked.join(QLatin1Char(' '));
+        } else {
+            displayMsg = QStringLiteral("LOGIN *****");
         }
     }
     emit csaCommLogAppended(QStringLiteral("◀ ") + displayMsg);
@@ -807,7 +834,8 @@ QString CsaGameCoordinator::usiToCsa(const QString& usiMove, bool isBlack) const
         }
 
         if (csaPiece.isEmpty()) {
-            csaPiece = QStringLiteral("FU");
+            qCWarning(lcNetwork) << "usiToCsa: failed to resolve source piece, usiMove=" << usiMove;
+            return QString();
         }
 
         csaMove = QString("%1%2%3%4%5%6")
@@ -869,8 +897,9 @@ QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, boo
         qCDebug(lcNetwork) << "WARNING: gameController or board is null!";
     }
     if (csaPiece.isEmpty()) {
-        csaPiece = QStringLiteral("FU");
-        qCDebug(lcNetwork) << "csaPiece was empty, defaulting to FU";
+        qCWarning(lcNetwork) << "boardToCSA: failed to resolve piece at move"
+                             << "from=" << from << "to=" << to << "promote=" << promote;
+        return QString();
     }
 
     QString result = QString("%1%2%3%4%5%6")
@@ -1017,10 +1046,19 @@ void CsaGameCoordinator::setupInitialPosition()
         return;
     }
 
-    // 平手初期局面のSFEN
-    // TODO: CSA局面行からのSFEN変換（現在は平手固定）
-    const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    m_gameController->board()->setSfen(hiratePosition);
+    const QString hiratePosition =
+        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+
+    QString startSfen;
+    QString parseError;
+    const bool parsed = SfenCsaPositionConverter::fromCsaPositionLines(
+        m_gameSummary.positionLines, &startSfen, &parseError);
+    if (!parsed || startSfen.isEmpty()) {
+        qCWarning(lcNetwork).noquote()
+            << "CSA position parse failed. fallback to hirate. error=" << parseError;
+        startSfen = hiratePosition;
+    }
+    m_gameController->board()->setSfen(startSfen);
 
     // SFENを生成（盤面 + 持ち駒 + 手番）
     QString boardSfen = m_gameController->board()->convertBoardToSfen();
@@ -1033,7 +1071,10 @@ void CsaGameCoordinator::setupInitialPosition()
         m_sfenHistory->append(m_startSfen);
     }
 
-    m_positionStr = QStringLiteral("position startpos");
+    const bool isHirate = (m_startSfen.trimmed() == hiratePosition);
+    m_positionStr = isHirate
+        ? QStringLiteral("position startpos")
+        : QStringLiteral("position sfen %1").arg(m_startSfen);
     m_usiMoves.clear();
 
     for (const QString& move : std::as_const(m_gameSummary.moves)) {

@@ -6,6 +6,7 @@
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "kifulogging.h"
+#include "sfencsapositionconverter.h"
 
 #include <QDateTime>
 #include <QRegularExpression>
@@ -504,10 +505,18 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         out << QStringLiteral("PI");
         out << QStringLiteral("+");  // 先手番
     } else {
-        // 任意の開始局面（SFEN形式から変換）
-        // TODO: SFEN→CSA局面変換の実装（複雑なため省略、平手のみ対応）
-        out << QStringLiteral("PI");  // フォールバック: 平手
-        out << QStringLiteral("+");
+        bool converted = false;
+        QString convErr;
+        const QStringList csaPos =
+            SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &converted, &convErr);
+        if (converted && !csaPos.isEmpty()) {
+            out << csaPos;
+        } else {
+            qCWarning(lcKifu).noquote()
+                << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;
+            out << QStringLiteral("PI");
+            out << QStringLiteral("+");
+        }
     }
 
     // 7) 本譜の指し手を収集
