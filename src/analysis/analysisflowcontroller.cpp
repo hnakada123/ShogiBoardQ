@@ -8,7 +8,6 @@
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
 #include "kifurecordlistmodel.h"
-#include "engineanalysistab.h"
 #include "kifudisplay.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
@@ -62,7 +61,6 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     m_moveRecords   = d.moveRecords;
     m_recordModel   = d.recordModel;
     m_analysisModel = d.analysisModel;
-    m_analysisTab   = d.analysisTab;
     m_usi           = d.usi;
     m_logModel      = d.logModel;
     m_activePly     = d.activePly;

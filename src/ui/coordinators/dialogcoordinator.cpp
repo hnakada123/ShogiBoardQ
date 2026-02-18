@@ -16,7 +16,6 @@
 #include "matchcoordinator.h"
 #include "shogigamecontroller.h"
 #include "kifuanalysislistmodel.h"
-#include "engineanalysistab.h"
 #include "considerationtabmanager.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
@@ -148,11 +147,6 @@ void DialogCoordinator::setAnalysisModel(KifuAnalysisListModel* model)
     m_analysisModel = model;
 }
 
-void DialogCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
-{
-    m_analysisTab = tab;
-}
-
 void DialogCoordinator::setConsiderationTabManager(ConsiderationTabManager* manager)
 {
     m_considerationTabManager = manager;
@@ -281,7 +275,6 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.moveRecords = params.moveRecords;
     d.recordModel = params.recordModel;
     d.analysisModel = m_analysisModel;
-    d.analysisTab = m_analysisTab;
     d.usi = m_usi;
     d.logModel = m_logModel;
     d.thinkingModel = m_thinkingModel;

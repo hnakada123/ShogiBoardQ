@@ -17,7 +17,6 @@
 Q_DECLARE_LOGGING_CATEGORY(lcAnalysis)
 
 class KifuAnalysisDialog;
-class EngineAnalysisTab;
 class KifuAnalysisListModel;
 class KifuRecordListModel;
 class AnalysisResultsPresenter;
@@ -46,7 +45,6 @@ public:
         QList<KifuDisplay *>*        moveRecords = nullptr;   ///< 旧棋譜データ（任意、非所有）
         KifuRecordListModel*         recordModel = nullptr;   ///< 棋譜表示モデル（任意、非所有）
         KifuAnalysisListModel*       analysisModel = nullptr; ///< 解析結果モデル（必須、非所有）
-        EngineAnalysisTab*           analysisTab = nullptr;   ///< 解析タブ（任意、非所有）
         Usi*                         usi = nullptr;           ///< USI通信窓口（必須、非所有）
         UsiCommLogModel*             logModel = nullptr;      ///< 通信ログモデル（任意、非所有）
         ShogiEngineThinkingModel*    thinkingModel = nullptr; ///< 思考情報モデル（任意、非所有）
@@ -134,7 +132,6 @@ private:
     QList<KifuDisplay *>*  m_moveRecords = nullptr; ///< 旧棋譜データ（非所有）
     KifuRecordListModel*   m_recordModel = nullptr; ///< 棋譜モデル（非所有）
     KifuAnalysisListModel* m_analysisModel = nullptr; ///< 解析結果モデル（非所有）
-    EngineAnalysisTab*     m_analysisTab = nullptr; ///< 解析タブ（非所有）
     Usi*                   m_usi = nullptr;         ///< USI通信窓口（非所有）
     UsiCommLogModel*       m_logModel = nullptr;    ///< USIログモデル（非所有）
     int                    m_activePly = 0;         ///< 開始時の手数
