@@ -337,9 +337,10 @@ private:
     /**
      * @brief BranchLineからKI2形式で変化を出力
      * @param line 分岐ライン
+     * @param startSfen 開始局面のSFEN（盤面追跡用）
      * @param out 出力先
      */
-    void outputKi2VariationFromBranchLine(const BranchLine& line, QStringList& out) const;
+    void outputKi2VariationFromBranchLine(const BranchLine& line, const QString& startSfen, QStringList& out) const;
 
     // === USEN形式出力用ヘルパ ===
     /**

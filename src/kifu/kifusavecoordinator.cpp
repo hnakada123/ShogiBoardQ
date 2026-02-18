@@ -64,7 +64,7 @@ QString saveViaDialogWithKi2(QWidget* parent,
     QDir::setCurrent(QApplication::applicationDirPath());
 
     // フィルタを作成（KI2形式も選択可能）
-    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)");
+    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;すべてのファイル (*)");
 
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
@@ -112,7 +112,7 @@ QString saveViaDialogWithAllFormats(QWidget* parent,
     QDir::setCurrent(QApplication::applicationDirPath());
 
     // フィルタを作成（KIF/KI2/CSA形式が選択可能）
-    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;すべてのファイル (*)");
+    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;すべてのファイル (*)");
 
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
@@ -167,7 +167,7 @@ QString saveViaDialogWithJkf(QWidget* parent,
     QDir::setCurrent(QApplication::applicationDirPath());
 
     // フィルタを作成（KIF/KI2/CSA/JKF形式が選択可能）
-    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)");
+    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)");
 
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
@@ -229,7 +229,7 @@ QString saveViaDialogWithUsen(QWidget* parent,
     QDir::setCurrent(QApplication::applicationDirPath());
 
     // フィルタを作成（KIF/KI2/CSA/JKF/USEN形式が選択可能）
-    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)");
+    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)");
 
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
@@ -298,7 +298,7 @@ QString saveViaDialogWithUsi(QWidget* parent,
     QDir::setCurrent(QApplication::applicationDirPath());
 
     // フィルタを作成（KIF/KI2/CSA/JKF/USEN/USI形式が選択可能）
-    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)");
+    const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)");
 
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);

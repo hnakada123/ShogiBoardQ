@@ -56,6 +56,34 @@ public:
     static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
                                         QString* detectedLabel = nullptr, QString* warn = nullptr);
 
+    // SFENから盤面状態を初期化
+    static void initBoardFromSfen(const QString& sfen,
+                                   QString boardState[9][9],
+                                   QMap<QChar, int>& blackHands,
+                                   QMap<QChar, int>& whiteHands);
+
+    // 盤面に指し手を適用
+    static void applyMoveToBoard(const QString& usi,
+                                  QString boardState[9][9],
+                                  QMap<QChar, int>& blackHands,
+                                  QMap<QChar, int>& whiteHands,
+                                  bool blackToMove);
+
+    /// KIF形式の prettyMove を KI2形式に変換（修飾子自動生成、盤面更新）
+    /// @param prettyMove KIF形式テキスト（例: "▲５二金(41)"）
+    /// @param boardState 9x9盤面配列（関数内で更新される）
+    /// @param blackHands/whiteHands 持ち駒（関数内で更新される）
+    /// @param blackToMove 先手番ならtrue
+    /// @param prevToFile/prevToRank 直前の移動先（「同」対応、関数内で更新される）
+    /// @return KI2形式テキスト（例: "△５二金左"）
+    static QString convertPrettyMoveToKi2(
+        const QString& prettyMove,
+        QString boardState[9][9],
+        QMap<QChar, int>& blackHands,
+        QMap<QChar, int>& whiteHands,
+        bool blackToMove,
+        int& prevToFile, int& prevToRank);
+
 private:
     // ---------- KI2固有のヘルパ ----------
 
@@ -75,19 +103,6 @@ private:
                                         QMap<QChar, int>& whiteHands,
                                         bool blackToMove,
                                         int& prevToFile, int& prevToRank);
-
-    // 盤面に指し手を適用
-    static void applyMoveToBoard(const QString& usi,
-                                  QString boardState[9][9],
-                                  QMap<QChar, int>& blackHands,
-                                  QMap<QChar, int>& whiteHands,
-                                  bool blackToMove);
-
-    // SFENから盤面状態を初期化
-    static void initBoardFromSfen(const QString& sfen,
-                                   QString boardState[9][9],
-                                   QMap<QChar, int>& blackHands,
-                                   QMap<QChar, int>& whiteHands);
 
     // 移動元座標を推測
     static bool inferSourceSquare(QChar pieceUpper,
@@ -115,6 +130,13 @@ private:
                                                  const QString& modifier,
                                                  bool blackToMove,
                                                  int toFile, int toRank);
+
+    // 候補駒から修飾子を生成（KI2書き出し用）
+    static QString generateModifier(
+        const QVector<Candidate>& candidates,
+        int srcFile, int srcRank,
+        int dstFile, int dstRank,
+        bool blackToMove);
 
     // 指定された駒が指定マスに移動できるかチェック
     static bool canPieceMoveTo(QChar pieceUpper, bool isPromoted,

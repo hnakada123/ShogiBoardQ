@@ -461,6 +461,7 @@ QList<KifDisplayItem> KifuBranchTree::getDisplayItemsForLine(int lineIndex) cons
         item.comment = node->comment();
         item.bookmark = node->bookmark();
         item.timeText = node->timeText();
+        item.ply = node->ply();
         result.append(item);
     }
 

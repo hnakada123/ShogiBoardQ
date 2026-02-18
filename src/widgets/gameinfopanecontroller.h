@@ -88,6 +88,9 @@ public slots:
     /// 貼り付け
     void paste();
 
+    /// 新しい行を追加
+    void addRow();
+
     /// 対局情報を更新（編集を確定）
     void applyChanges();
 
@@ -119,6 +122,7 @@ private:
     QToolButton*  m_btnCut = nullptr;
     QToolButton*  m_btnCopy = nullptr;
     QToolButton*  m_btnPaste = nullptr;
+    QToolButton*  m_btnAddRow = nullptr;
     QLabel*       m_editingLabel = nullptr;
     QPushButton*  m_btnUpdate = nullptr;
 

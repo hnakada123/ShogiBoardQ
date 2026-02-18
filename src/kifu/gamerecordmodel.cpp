@@ -4,6 +4,7 @@
 #include "gamerecordmodel.h"
 #include "csaexporter.h"
 #include "jkfexporter.h"
+#include "ki2tosfenconverter.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
 
@@ -508,9 +509,11 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
         }
     }
 
-    // 5) 開始局面の処理（prettyMoveが空のエントリ）
+    // 5) 開始局面の処理（prettyMoveが空 or "開始局面" テキストのエントリ）
     int startIdx = 0;
-    if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
+    if (!disp.isEmpty()
+        && (disp[0].prettyMove.trimmed().isEmpty()
+            || disp[0].prettyMove.contains(QStringLiteral("開始局面")))) {
         // 開始局面のしおり・コメントを先に出力
         appendKifBookmarks(disp[0].bookmark, out);
         appendKifComments(disp[0].comment, out);
@@ -852,13 +855,22 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
 
     // 3) 開始局面のしおり・コメントを先に出力
     int startIdx = 0;
-    if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
+    if (!disp.isEmpty()
+        && (disp[0].prettyMove.trimmed().isEmpty()
+            || disp[0].prettyMove.contains(QStringLiteral("開始局面")))) {
         appendKifBookmarks(disp[0].bookmark, out);
         appendKifComments(disp[0].comment, out);
         startIdx = 1; // 実際の指し手は次から
     }
 
-    // 4) 各指し手を出力（KI2形式）
+    // 4) 盤面状態を初期化（修飾子生成用）
+    QString boardState[9][9];
+    QMap<QChar, int> blackHands, whiteHands;
+    Ki2ToSfenConverter::initBoardFromSfen(ctx.startSfen, boardState, blackHands, whiteHands);
+    bool blackToMove = !ctx.startSfen.contains(QStringLiteral(" w "));
+    int prevToFile = 0, prevToRank = 0;
+
+    // 5) 各指し手を出力（KI2形式）
     int moveNo = 1;
     int lastActualMoveNo = 0;
     QString terminalMove;
@@ -875,18 +887,32 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
         // 終局語の判定
         const bool isTerminal = isTerminalMove(moveText);
 
-        // KI2形式: 手番記号は維持、(xx)の移動元は削除
-        QString ki2Move = moveText;
-        // 移動元情報 (xx) を削除
-        static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
-        ki2Move.remove(fromPosPattern);
+        // KI2形式: 修飾子付き変換 + 盤面更新
+        QString ki2Move;
+        if (!isTerminal) {
+            ki2Move = Ki2ToSfenConverter::convertPrettyMoveToKi2(
+                moveText, boardState, blackHands, whiteHands,
+                blackToMove, prevToFile, prevToRank);
+            blackToMove = !blackToMove;
+        } else {
+            ki2Move = moveText;
+            // 移動元情報 (xx) を削除（終局語の場合は通常不要だが念のため）
+            static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
+            ki2Move.remove(fromPosPattern);
+        }
 
         const QString cmt = it.comment.trimmed();
         const QString bm = it.bookmark.trimmed();
         const bool hasComment = !cmt.isEmpty();
         const bool hasBookmark = !bm.isEmpty();
 
-        if (hasComment || hasBookmark || lastMoveHadComment || isTerminal) {
+        if (isTerminal) {
+            // 終局手（投了など）は結果行で表すため、指し手としては出力しない
+            if (!movesOnLine.isEmpty()) {
+                out << movesOnLine.join(QStringLiteral("    "));
+                movesOnLine.clear();
+            }
+        } else if (hasComment || hasBookmark || lastMoveHadComment) {
             // コメント/しおりがある場合は指し手を吐き出してから単独行で出力
             if (!movesOnLine.isEmpty()) {
                 out << movesOnLine.join(QStringLiteral("    "));
@@ -919,16 +945,16 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
         out << movesOnLine.join(QStringLiteral("    "));
     }
 
-    // 5) 終了行
+    // 6) 終了行
     out << buildEndingLine(lastActualMoveNo, terminalMove);
 
-    // 6) 変化（分岐）を出力（KifuBranchTree から）
+    // 7) 変化（分岐）を出力（KifuBranchTree から）
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
         QVector<BranchLine> lines = m_branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);
-            outputKi2VariationFromBranchLine(line, out);
+            outputKi2VariationFromBranchLine(line, ctx.startSfen, out);
         }
     }
 
@@ -939,7 +965,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
     return out;
 }
 
-void GameRecordModel::outputKi2VariationFromBranchLine(const BranchLine& line, QStringList& out) const
+void GameRecordModel::outputKi2VariationFromBranchLine(const BranchLine& line, const QString& startSfen, QStringList& out) const
 {
     // 本譜（lineIndex == 0）の場合は何もしない
     if (line.lineIndex == 0) {
@@ -948,6 +974,25 @@ void GameRecordModel::outputKi2VariationFromBranchLine(const BranchLine& line, Q
 
     // 変化ヘッダを出力
     out << QStringLiteral("変化：%1手").arg(line.branchPly);
+
+    // 盤面状態を初期化し、分岐点まで進める
+    QString boardState[9][9];
+    QMap<QChar, int> blackHands, whiteHands;
+    Ki2ToSfenConverter::initBoardFromSfen(startSfen, boardState, blackHands, whiteHands);
+    bool blackToMove = !startSfen.contains(QStringLiteral(" w "));
+    int prevToFile = 0, prevToRank = 0;
+
+    // 分岐点より前のノードで盤面を進める（出力はしない）
+    for (KifuBranchNode* node : std::as_const(line.nodes)) {
+        if (node->ply() >= line.branchPly) break;
+        const QString moveText = node->displayText().trimmed();
+        if (moveText.isEmpty() || isTerminalMove(moveText)) continue;
+
+        Ki2ToSfenConverter::convertPrettyMoveToKi2(
+            moveText, boardState, blackHands, whiteHands,
+            blackToMove, prevToFile, prevToRank);
+        blackToMove = !blackToMove;
+    }
 
     // 変化の指し手を出力（branchPly以降のノード）
     QStringList movesOnLine;
@@ -964,16 +1009,25 @@ void GameRecordModel::outputKi2VariationFromBranchLine(const BranchLine& line, Q
         // 空の指し手はスキップ
         if (moveText.isEmpty()) continue;
 
-        // KI2形式: 手番記号は維持、(xx)の移動元は削除
-        QString ki2Move = moveText;
-        static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
-        ki2Move.remove(fromPosPattern);
+        const bool isTerminal = isTerminalMove(moveText);
+
+        // KI2形式: 修飾子付き変換 + 盤面更新
+        QString ki2Move;
+        if (!isTerminal) {
+            ki2Move = Ki2ToSfenConverter::convertPrettyMoveToKi2(
+                moveText, boardState, blackHands, whiteHands,
+                blackToMove, prevToFile, prevToRank);
+            blackToMove = !blackToMove;
+        } else {
+            ki2Move = moveText;
+            static const QRegularExpression fromPosPattern(QStringLiteral("\\([0-9０-９]+[0-9０-９]+\\)$"));
+            ki2Move.remove(fromPosPattern);
+        }
 
         const QString cmt = node->comment().trimmed();
         const QString bm = node->bookmark().trimmed();
         const bool hasComment = !cmt.isEmpty();
         const bool hasBookmark = !bm.isEmpty();
-        const bool isTerminal = isTerminalMove(moveText);
 
         if (hasComment || hasBookmark || lastMoveHadComment || isTerminal) {
             if (!movesOnLine.isEmpty()) {

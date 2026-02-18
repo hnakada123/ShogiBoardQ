@@ -19,6 +19,7 @@
 #include <QUrl>
 #include <QMessageBox>
 #include <QSizePolicy>
+#include <QIcon>
 
 namespace {
 void relaxToolbarWidth(QWidget* toolbar)
@@ -345,14 +346,16 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     connect(m_btnCommentCut, &QToolButton::clicked, this, &CommentEditorPanel::onCommentCut);
 
     m_btnCommentCopy = new QToolButton(m_commentToolbar);
-    m_btnCommentCopy->setText(QStringLiteral("📋"));
+    m_btnCommentCopy->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy"),
+                                                QIcon(QStringLiteral(":/images/actions/editCopy.svg"))));
     m_btnCommentCopy->setToolTip(tr("コピー (Ctrl+C)"));
     m_btnCommentCopy->setFixedSize(28, 24);
     m_btnCommentCopy->setStyleSheet(ButtonStyles::editOperation());
     connect(m_btnCommentCopy, &QToolButton::clicked, this, &CommentEditorPanel::onCommentCopy);
 
     m_btnCommentPaste = new QToolButton(m_commentToolbar);
-    m_btnCommentPaste->setText(QStringLiteral("📄"));
+    m_btnCommentPaste->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste"),
+                                                 QIcon(QStringLiteral(":/images/actions/editPaste.svg"))));
     m_btnCommentPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
     m_btnCommentPaste->setFixedSize(28, 24);
     m_btnCommentPaste->setStyleSheet(ButtonStyles::editOperation());
