@@ -383,15 +383,6 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
         fmt = FMT_SFEN;
         qCDebug(lcKifu).noquote() << "detected format: SFEN";
     }
-    // BOD判定（局面図: "後手の持駒" や "+--" で始まる罫線）
-    else if (trimmed.contains(QStringLiteral("後手の持駒")) ||
-             trimmed.contains(QStringLiteral("先手の持駒")) ||
-             trimmed.contains(QRegularExpression(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption)) ||
-             trimmed.contains(QStringLiteral("|v")) ||
-             trimmed.contains(QStringLiteral("| ・"))) {
-        fmt = FMT_BOD;
-        qCDebug(lcKifu).noquote() << "detected format: BOD";
-    }
     // JSON判定（JKF）
     else if (trimmed.startsWith(QLatin1Char('{'))) {
         fmt = FMT_JKF;
@@ -416,15 +407,27 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
         qCDebug(lcKifu).noquote() << "detected format: CSA";
     }
     // KIF判定（"手数----" ヘッダまたは数字で始まる行）
+    // ※BODヘッダ付きKIFファイルもここで正しくKIFとして認識される
     else if (content.contains(QStringLiteral("手数----")) ||
              content.contains(QRegularExpression(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]")))) {
         fmt = FMT_KIF;
         qCDebug(lcKifu).noquote() << "detected format: KIF";
     }
     // KI2判定（▲△で始まる指し手）
+    // ※BODヘッダ付きKI2ファイルもここで正しくKI2として認識される
     else if (content.contains(QRegularExpression(QStringLiteral("[▲△][０-９一二三四五六七八九同]")))) {
         fmt = FMT_KI2;
         qCDebug(lcKifu).noquote() << "detected format: KI2";
+    }
+    // BOD判定（局面図のみ: 指し手を含まない局面図）
+    // ※KIF/KI2の指し手がある場合は上の判定で先にマッチするため、ここは局面のみの場合
+    else if (trimmed.contains(QStringLiteral("後手の持駒")) ||
+             trimmed.contains(QStringLiteral("先手の持駒")) ||
+             trimmed.contains(QRegularExpression(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption)) ||
+             trimmed.contains(QStringLiteral("|v")) ||
+             trimmed.contains(QStringLiteral("| ・"))) {
+        fmt = FMT_BOD;
+        qCDebug(lcKifu).noquote() << "detected format: BOD";
     }
 
     if (fmt == FMT_UNKNOWN) {
