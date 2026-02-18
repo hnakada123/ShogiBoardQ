@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QString>
 #include <functional>
+#include <memory>
 #include <QStringList>
 #include <QVector>
 #include <QDateTime>
@@ -23,6 +24,8 @@ class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class ShogiGameController;
 class ShogiClock;
+class GameModeStrategy;
+class EngineVsEngineStrategy;
 class ShogiView;
 class Usi;
 class KifuRecordListModel;
@@ -39,6 +42,10 @@ class StartGameDialog;
  */
 class MatchCoordinator : public QObject {
     Q_OBJECT
+
+    friend class HumanVsHumanStrategy;
+    friend class HumanVsEngineStrategy;
+    friend class EngineVsEngineStrategy;
 
 public:
     // --- 型定義 ---
@@ -225,10 +232,8 @@ public:
     void armTurnTimerIfNeeded();
     void finishTurnTimerAndSetConsiderationFor(Player mover);
 
-    // --- HvE: 人間の計測 ---
+    // --- HvE: 人間タイマー解除（Strategy委譲） ---
 
-    void armHumanTimerIfNeeded();
-    void finishHumanTimerAndSetConsideration();
     void disarmHumanTimerIfNeeded();
 
     // --- USI時間計算 ---
@@ -241,14 +246,8 @@ public:
     /// USI position文字列の初期化
     void initializePositionStringsForStart(const QString& sfenStart);
 
-    /// 初手がエンジン手番なら go を発行する
+    /// 初手がエンジン手番なら go を発行する（Strategy委譲）
     void startInitialEngineMoveIfNeeded();
-
-    /// 人間が着手した後のHvE処理
-    void onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo);
-
-    /// 人間が着手した後のHvE処理（整形済み棋譜文字列付き）
-    void onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo, const QString& prettyMove);
 
     // --- UNDO ---
 
@@ -383,8 +382,9 @@ public:
     /// 終局1回だけの棋譜追記と重複防止を一括処理する
     void appendGameOverLineAndMark(Cause cause, Player loser);
 
-    /// HvH: 人間着手後の後処理（時計消費設定/次手番開始など）
-    void onHumanMove_HvH(ShogiGameController::Player moverBefore);
+    /// 人間着手後の後処理（Strategy へ委譲）
+    void onHumanMove(const QPoint& from, const QPoint& to,
+                     const QString& prettyMove);
 
     /// 現在の状況に応じて適切なエンジンへstopを送り、即時bestmoveを促す
     void forceImmediateMove();
@@ -497,19 +497,11 @@ private:
     GoTimes computeGoTimes() const;
     void displayResultsAndUpdateGui(const GameEndInfo& info);
     void initPositionStringsFromSfen(const QString& sfenBase);
-    void startInitialEngineMoveFor(Player engineSide);
     void wireResignToArbiter(Usi* engine, bool asP1);
     void wireWinToArbiter(Usi* engine, bool asP1);
     void emitTimeUpdateFromClock();
     void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
     void sendRawTo(Usi* which, const QString& cmd);
-
-    void startHumanVsHuman(const StartOptions& opt);
-    void startHumanVsEngine(const StartOptions& opt, bool engineIsP1);
-    void initPositionStringsForEvE(const QString& sfenStart);
-    void startEngineVsEngine(const StartOptions& opt);
-    void startEvEFirstMoveByBlack();
-    void startEvEFirstMoveByWhite();
 
     void wireClock();
     void unwireClock();
@@ -519,7 +511,6 @@ private slots:
     void onEngine2Resign();
     void onEngine1Win();
     void onEngine2Win();
-    void kickNextEvETurn();
     void onClockTick();
     void onUsiError(const QString& msg);
     void onCheckmateSolved(const QStringList& pv);
@@ -539,6 +530,8 @@ private:
     Usi*                 m_usi1 = nullptr;    ///< エンジン1
     Usi*                 m_usi2 = nullptr;    ///< エンジン2
     Hooks                m_hooks;             ///< UIコールバック群
+
+    std::unique_ptr<GameModeStrategy> m_strategy; ///< 対局モード別Strategy
 
     Player m_cur = P1;                        ///< 現在手番
 
@@ -561,16 +554,6 @@ private:
     QStringList* m_sfenHistory = nullptr;     ///< SFEN履歴（共有ポインタ、非所有）
     QStringList m_sharedSfenRecord;          ///< 共有ポインタ未指定時の内部SFEN履歴
     QVector<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
-
-    // --- EvE専用 ---
-
-    QStringList        m_eveSfenRecord;      ///< EvEフォールバック用SFEN履歴
-    QVector<ShogiMove> m_eveGameMoves;       ///< EvEフォールバック用指し手
-    int                m_eveMoveIndex = 0;   ///< EvEフォールバック用手数
-
-    // 共有sfenRecordが設定されていればそれを使い、なければローカルを使う
-    QStringList* sfenRecordForEvE() { return m_sfenHistory ? m_sfenHistory : &m_eveSfenRecord; }
-    QVector<ShogiMove>& gameMovesForEvE() { return m_sfenHistory ? m_gameMoves : m_eveGameMoves; }
 
     // u_.gameMoves（MainWindowのポインタ）が設定されていればそれを使う
     QVector<ShogiMove>& gameMovesRef() {
@@ -599,13 +582,6 @@ private:
     QString m_humanName2;                     ///< 後手人間名
     QString m_engineNameForSave1;             ///< 先手エンジン名（保存用）
     QString m_engineNameForSave2;             ///< 後手エンジン名（保存用）
-
-    // --- ターンタイマー ---
-
-    QElapsedTimer m_turnTimer;                ///< HvHターン計測用
-    bool          m_turnTimerArmed  = false;  ///< HvHターンタイマー起動済みフラグ
-    QElapsedTimer m_humanTurnTimer;           ///< HvE人間側計測用
-    bool          m_humanTimerArmed = false;  ///< HvE人間タイマー起動済みフラグ
 
     // --- 時計接続管理 ---
 

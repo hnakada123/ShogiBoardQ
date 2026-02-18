@@ -9,7 +9,7 @@
 #include <QTableView>
 #include <QItemSelectionModel>
 
-#include "engineanalysistab.h"
+#include "commenteditorpanel.h"
 #include "recordpane.h"
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
@@ -23,20 +23,20 @@ CommentCoordinator::CommentCoordinator(QObject* parent)
 
 void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
 {
-    // 現在の手数インデックスをEngineAnalysisTabに設定
-    if (m_analysisTab && m_currentMoveIndex) {
-        m_analysisTab->setCurrentMoveIndex(*m_currentMoveIndex);
+    // 現在の手数インデックスをCommentEditorPanelに設定
+    if (m_commentEditor && m_currentMoveIndex) {
+        m_commentEditor->setCurrentMoveIndex(*m_currentMoveIndex);
     }
 
     if (asHtml) {
         // 「*の手前で改行」＋「URLリンク化」付きのHTMLに整形して配信
         const QString html = KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(text);
-        if (m_analysisTab) m_analysisTab->setCommentHtml(html);
-        if (m_recordPane)  m_recordPane->setBranchCommentHtml(html);
+        if (m_commentEditor) m_commentEditor->setCommentHtml(html);
+        if (m_recordPane)    m_recordPane->setBranchCommentHtml(html);
     } else {
         // プレーンテキスト経路は従来通り
-        if (m_analysisTab) m_analysisTab->setCommentText(text);
-        if (m_recordPane)  m_recordPane->setBranchCommentText(text);
+        if (m_commentEditor) m_commentEditor->setCommentText(text);
+        if (m_recordPane)    m_recordPane->setBranchCommentText(text);
     }
 }
 

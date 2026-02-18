@@ -267,7 +267,7 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     case PlayMode::HumanVsHuman: {
         qCDebug(lcUi) << "HvH: delegate post-human-move to MatchCoordinator";
         if (m_match) {
-            m_match->onHumanMove_HvH(moverBefore);
+            m_match->onHumanMove(hFrom, hTo, QString());
         }
 
         // HvH でも「指し手＋考慮時間」を棋譜欄に追記する
@@ -304,8 +304,8 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
         if (m_match) {
-            qCDebug(lcUi) << "HvE: forwarding to MatchCoordinator::onHumanMove_HvE";
-            m_match->onHumanMove_HvE(hFrom, hTo, m_lastMove);
+            qCDebug(lcUi) << "HvE: forwarding to MatchCoordinator::onHumanMove";
+            m_match->onHumanMove(hFrom, hTo, m_lastMove);
         }
         break;
 

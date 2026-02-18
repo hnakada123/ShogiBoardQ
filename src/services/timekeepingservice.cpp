@@ -50,7 +50,6 @@ void TimekeepingService::finalizeTurnPresentation(ShogiClock* clock,
             gc && ((gc->currentPlayer() == ShogiGameController::Player1) ||
                    (gc->currentPlayer() == ShogiGameController::Player2));
         if (humanTurn) {
-            match->armHumanTimerIfNeeded();
             match->armTurnTimerIfNeeded();
         } else {
             match->disarmHumanTimerIfNeeded();

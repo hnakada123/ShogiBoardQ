@@ -13,14 +13,13 @@
 
 #include "kifulogging.h"
 #include "kiftosfenconverter.h"
-#include "engineanalysistab.h"
+#include "branchtreemanager.h"
 #include "shogiview.h"
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
 
 class KifuBranchTree;
 class KifuNavigationState;
-class EngineAnalysisTab;
 
 /**
  * @brief 棋譜ファイルの読み込みと内部データ構築を統括するコーディネータ
@@ -97,7 +96,7 @@ public:
 
     // --- 外部オブジェクト設定 ---
 
-    void setAnalysisTab(EngineAnalysisTab* tab);
+    void setBranchTreeManager(BranchTreeManager* manager);
     void setShogiView(ShogiView* view) { m_shogiView = view; }
     void setBranchTree(KifuBranchTree* tree) { m_branchTree = tree; }
     void setNavigationState(KifuNavigationState* state) { m_navState = state; }
@@ -150,7 +149,7 @@ private:
     // --- UIウィジェット（非所有） ---
     QTableWidget* m_gameInfoTable;            ///< 対局情報テーブル（非所有）
     QDockWidget*  m_gameInfoDock;             ///< 対局情報ドック（非所有）
-    EngineAnalysisTab* m_analysisTab = nullptr; ///< 解析タブ（setAnalysisTab()経由で設定、非所有）
+    BranchTreeManager* m_branchTreeManager = nullptr; ///< 分岐ツリーマネージャー（setBranchTreeManager()経由で設定、非所有）
     QTabWidget* m_tab;                        ///< メインタブウィジェット（非所有）
     ShogiView* m_shogiView = nullptr;         ///< 盤面ビュー（setShogiView()経由で設定、非所有）
 

@@ -10,9 +10,7 @@
 #include <QStringList>
 #include <QVector>
 #include <QList>
-#include <QSet>
-#include <QJsonObject>
-#include <QJsonArray>
+#include <QDateTime>
 #include <functional>
 
 #include "kifdisplayitem.h"
@@ -265,6 +263,28 @@ public:
      */
     int activeRow() const;
 
+    // --- データアクセス（エクスポータ向け） ---
+
+    /**
+     * @brief KifuBranchTree への読み取り専用アクセス
+     */
+    KifuBranchTree* branchTree() const { return m_branchTree; }
+
+    /**
+     * @brief 本譜の表示データを収集（エクスポート用）
+     */
+    QList<KifDisplayItem> collectMainlineForExport() const;
+
+    /**
+     * @brief 出力コンテキストからヘッダ情報を収集
+     */
+    static QList<KifGameInfoItem> collectGameInfo(const ExportContext& ctx);
+
+    /**
+     * @brief 出力コンテキストから対局者名を解決
+     */
+    static void resolvePlayerNames(const ExportContext& ctx, QString& outBlack, QString& outWhite);
+
 signals:
     /**
      * @brief コメントが変更された
@@ -304,9 +324,6 @@ private:
 
     // === 内部ヘルパ ===
     void syncToExternalStores(int ply, const QString& comment);
-    QList<KifDisplayItem> collectMainlineForExport() const;
-    static QList<KifGameInfoItem> collectGameInfo(const ExportContext& ctx);
-    static void resolvePlayerNames(const ExportContext& ctx, QString& outBlack, QString& outWhite);
 
     // === 分岐出力用ヘルパ ===
     /**
@@ -323,52 +340,6 @@ private:
      * @param out 出力先
      */
     void outputKi2VariationFromBranchLine(const BranchLine& line, QStringList& out) const;
-
-    // === JKF形式出力用ヘルパ ===
-    /**
-     * @brief JKF形式のヘッダ部分を構築
-     * @param ctx 出力コンテキスト
-     * @return QJsonObject 形式のヘッダ
-     */
-    QJsonObject buildJkfHeader(const ExportContext& ctx) const;
-
-    /**
-     * @brief JKF形式の初期局面部分を構築
-     * @param ctx 出力コンテキスト
-     * @return QJsonObject 形式の初期局面
-     */
-    QJsonObject buildJkfInitial(const ExportContext& ctx) const;
-
-    /**
-     * @brief 指し手をJKF形式の move オブジェクトに変換
-     * @param disp 表示用指し手データ
-     * @param prevToX 前回の移動先X座標（"同〜"判定用）
-     * @param prevToY 前回の移動先Y座標（"同〜"判定用）
-     * @param ply 手数
-     * @return QJsonObject 形式の指し手
-     */
-    QJsonObject convertMoveToJkf(const KifDisplayItem& disp, int& prevToX, int& prevToY, int ply) const;
-
-    /**
-     * @brief JKF形式の moves 配列を構築（本譜）
-     * @param disp 表示用指し手データリスト
-     * @return QJsonArray 形式の指し手配列
-     */
-    QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp) const;
-
-    /**
-     * @brief KifuBranchTree から JKF形式の分岐を追加
-     * @param movesArray 本譜の指し手配列
-     */
-    void addJkfForksFromTree(QJsonArray& movesArray) const;
-
-    /**
-     * @brief KifuBranchNode から JKF形式の分岐指し手配列を構築（新システム）
-     * @param node 分岐開始ノード
-     * @param visitedNodes 訪問済みノードIDのセット
-     * @return QJsonArray 形式の分岐指し手配列
-     */
-    QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& visitedNodes) const;
 
     // === USEN形式出力用ヘルパ ===
     /**

@@ -102,6 +102,7 @@
 #include "csagamewiring.h"
 #include "playerinfowiring.h"
 #include "considerationwiring.h"        // 検討モードUI配線
+#include "matchcoordinatorwiring.h"    // MatchCoordinator配線
 
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -884,6 +885,9 @@ void MainWindow::displayKifuAnalysisDialog()
     // 解析に必要な依存オブジェクトを設定
     m_dialogCoordinator->setAnalysisModel(m_analysisModel);
     m_dialogCoordinator->setAnalysisTab(m_analysisTab);
+    if (m_analysisTab) {
+        m_dialogCoordinator->setConsiderationTabManager(m_analysisTab->considerationTabManager());
+    }
     m_dialogCoordinator->setUsiEngine(m_usi1);
     m_dialogCoordinator->setLogModel(m_lineEditModel1);
     m_dialogCoordinator->setThinkingModel(m_modelThinking1);
@@ -1654,9 +1658,9 @@ void MainWindow::initializeBranchNavigationClasses()
             m_displayCoordinator->setBranchTreeWidget(m_branchTreeWidget);
         }
 
-        // EngineAnalysisTab を設定（分岐ツリーハイライト用）
+        // BranchTreeManager を設定（分岐ツリーハイライト用）
         if (m_analysisTab != nullptr) {
-            m_displayCoordinator->setAnalysisTab(m_analysisTab);
+            m_displayCoordinator->setBranchTreeManager(m_analysisTab->branchTreeManager());
         }
 
         m_displayCoordinator->wireSignals();
@@ -1943,15 +1947,9 @@ void MainWindow::createAnalysisResultsDock()
     m_analysisResultsDock = m_dockCreationService->createAnalysisResultsDock();
 }
 
-// MatchCoordinator 構築と配線の集約ポイント。
-void MainWindow::initMatchCoordinator()
+// `ensureMatchCoordinatorWiring`: MatchCoordinatorWiring を遅延初期化し Deps を更新する。
+void MainWindow::ensureMatchCoordinatorWiring()
 {
-    // 依存が揃っていない場合は何もしない
-    if (!m_gameController || !m_shogiView) return;
-
-    // まず時計を用意（nullでも可だが、あれば渡す）
-    ensureTimeController();
-
     using std::placeholders::_1;
     using std::placeholders::_2;
     using std::placeholders::_3;
@@ -1959,176 +1957,136 @@ void MainWindow::initMatchCoordinator()
     using std::placeholders::_5;
     using std::placeholders::_6;
 
-    // --- MatchCoordinator::Deps を構築（UI hooks は従来どおりここで設定） ---
-    MatchCoordinator::Deps d;
-    d.gc    = m_gameController;
-    d.clock = m_timeController ? m_timeController->clock() : nullptr;
-    d.view  = m_shogiView;
-    d.usi1  = m_usi1;
-    d.usi2  = m_usi2;
+    const bool firstTime = !m_matchWiring;
+    if (!m_matchWiring) {
+        m_matchWiring = new MatchCoordinatorWiring(this);
+    }
 
-    // （EvE 用）ログ／思考モデル
-    d.comm1  = m_lineEditModel1;
-    d.think1 = m_modelThinking1;
-    d.comm2  = m_lineEditModel2;
-    d.think2 = m_modelThinking2;
+    // --- MatchCoordinator::Hooks を構築（MainWindow メソッドへの std::bind） ---
+    MatchCoordinator::Hooks hooks;
 
-    d.sfenRecord = sfenRecord();
-
-    // 評価値グラフ更新フック（EvaluationGraphController直接）
     ensureEvaluationGraphController();
-    d.hooks.appendEvalP1       = std::bind(&EvaluationGraphController::redrawEngine1Graph, m_evalGraphController, -1);
-    d.hooks.appendEvalP2       = std::bind(&EvaluationGraphController::redrawEngine2Graph, m_evalGraphController, -1);
-    d.hooks.updateTurnDisplay  = [this](MatchCoordinator::Player cur) {
+    hooks.appendEvalP1       = std::bind(&EvaluationGraphController::redrawEngine1Graph, m_evalGraphController, -1);
+    hooks.appendEvalP2       = std::bind(&EvaluationGraphController::redrawEngine2Graph, m_evalGraphController, -1);
+    hooks.updateTurnDisplay  = [this](MatchCoordinator::Player cur) {
         const auto now = (cur == MatchCoordinator::P2)
                              ? ShogiGameController::Player2
                              : ShogiGameController::Player1;
         onTurnManagerChanged(now);
     };
-    d.hooks.sendGoToEngine = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
+    hooks.sendGoToEngine = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
         if (m_match) m_match->sendGoToEngine(which, t);
     };
-    d.hooks.sendStopToEngine = [this](Usi* which) {
+    hooks.sendStopToEngine = [this](Usi* which) {
         if (m_match) m_match->sendStopToEngine(which);
     };
-    d.hooks.sendRawToEngine = [this](Usi* which, const QString& cmd) {
+    hooks.sendRawToEngine = [this](Usi* which, const QString& cmd) {
         if (m_match) m_match->sendRawToEngine(which, cmd);
     };
-    d.hooks.initializeNewGame  = std::bind(&MainWindow::initializeNewGameHook, this, _1);
-    d.hooks.renderBoardFromGc  = std::bind(&MainWindow::renderBoardFromGc, this);
-    d.hooks.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights, this, _1, _2);
-    d.hooks.appendKifuLine     = std::bind(&MainWindow::appendKifuLineHook, this, _1, _2);
+    hooks.initializeNewGame  = std::bind(&MainWindow::initializeNewGameHook, this, _1);
+    hooks.renderBoardFromGc  = std::bind(&MainWindow::renderBoardFromGc, this);
+    hooks.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights, this, _1, _2);
+    hooks.appendKifuLine     = std::bind(&MainWindow::appendKifuLineHook, this, _1, _2);
+    hooks.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox, this, _1, _2);
+    hooks.remainingMsFor     = std::bind(&MainWindow::getRemainingMsFor, this, _1);
+    hooks.incrementMsFor     = std::bind(&MainWindow::getIncrementMsFor, this, _1);
+    hooks.byoyomiMs          = std::bind(&MainWindow::getByoyomiMs, this);
 
-    d.hooks.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox, this, _1, _2);
-
-    d.hooks.remainingMsFor = std::bind(&MainWindow::getRemainingMsFor, this, _1);
-    d.hooks.incrementMsFor = std::bind(&MainWindow::getIncrementMsFor, this, _1);
-    d.hooks.byoyomiMs      = std::bind(&MainWindow::getByoyomiMs, this);
-
-    // 対局者名の更新フック（PlayerInfoWiring経由）
     ensurePlayerInfoWiring();
-    d.hooks.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_playerInfoWiring, _1, _2);
-    d.hooks.setEngineNames  = std::bind(&PlayerInfoWiring::onSetEngineNames, m_playerInfoWiring, _1, _2);
+    hooks.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_playerInfoWiring, _1, _2);
+    hooks.setEngineNames  = std::bind(&PlayerInfoWiring::onSetEngineNames, m_playerInfoWiring, _1, _2);
+    hooks.autoSaveKifu    = std::bind(&MainWindow::autoSaveKifuToFile, this, _1, _2, _3, _4, _5, _6);
 
-    d.hooks.autoSaveKifu = std::bind(&MainWindow::autoSaveKifuToFile, this, _1, _2, _3, _4, _5, _6);
+    // --- UndoHooks を構築 ---
+    MatchCoordinator::UndoHooks undoHooks;
+    undoHooks.getMainRowGuard                 = std::bind(&MainWindow::getMainRowGuard, this);
+    undoHooks.setMainRowGuard                 = std::bind(&MainWindow::setMainRowGuard, this, _1);
+    undoHooks.updateHighlightsForPly          = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
+    undoHooks.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay, this);
+    undoHooks.isHumanSide                     = std::bind(&MainWindow::isHumanSide, this, _1);
+    undoHooks.isHvH                           = std::bind(&MainWindow::isHvH, this);
 
-    // `m_gameStartCoordinator` は MatchCoordinator の生成/配線専用。
-    // 画面側の開始操作を受ける `m_gameStart` とは役割を分ける。
-    // --- GameStartCoordinator の確保（1 回だけ） ---
-    if (!m_gameStartCoordinator) {
-        GameStartCoordinator::Deps gd;
-        gd.match = nullptr;
-        gd.clock = m_timeController ? m_timeController->clock() : nullptr;
-        gd.gc    = m_gameController;
-        gd.view  = m_shogiView;
+    // --- Deps を構築して更新 ---
+    MatchCoordinatorWiring::Deps deps;
+    deps.gc    = m_gameController;
+    deps.view  = m_shogiView;
+    deps.usi1  = m_usi1;
+    deps.usi2  = m_usi2;
+    deps.comm1  = m_lineEditModel1;
+    deps.think1 = m_modelThinking1;
+    deps.comm2  = m_lineEditModel2;
+    deps.think2 = m_modelThinking2;
+    deps.sfenRecord = sfenRecord();
+    deps.playMode   = &m_playMode;
 
-        m_gameStartCoordinator = new GameStartCoordinator(gd, this);
+    deps.timePresenter   = m_timePresenter;
+    deps.boardController = m_boardController;
 
-        // timeUpdated
-        if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
-        m_timeConn = connect(
-            m_gameStartCoordinator, &GameStartCoordinator::timeUpdated,
-            m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
-            Qt::UniqueConnection);
+    deps.kifuRecordModel  = m_kifuRecordModel;
+    deps.gameMoves        = &m_gameMoves;
+    deps.positionStrList  = &m_positionStrList;
+    deps.currentMoveIndex = &m_currentMoveIndex;
 
-        // requestAppendGameOverMove
-        connect(m_gameStartCoordinator, &GameStartCoordinator::requestAppendGameOverMove,
-                this,                   &MainWindow::onRequestAppendGameOverMove,
+    deps.hooks     = hooks;
+    deps.undoHooks = undoHooks;
+
+    // 遅延初期化コールバック
+    deps.ensureTimeController           = std::bind(&MainWindow::ensureTimeController, this);
+    deps.ensureEvaluationGraphController = std::bind(&MainWindow::ensureEvaluationGraphController, this);
+    deps.ensurePlayerInfoWiring         = std::bind(&MainWindow::ensurePlayerInfoWiring, this);
+    deps.ensureUsiCommandController     = std::bind(&MainWindow::ensureUsiCommandController, this);
+    deps.ensureUiStatePolicyManager     = std::bind(&MainWindow::ensureUiStatePolicyManager, this);
+    deps.connectBoardClicks             = std::bind(&MainWindow::connectBoardClicks, this);
+    deps.connectMoveRequested           = std::bind(&MainWindow::connectMoveRequested, this);
+
+    // 遅延初期化オブジェクトのゲッター
+    deps.getClock = [this]() -> ShogiClock* {
+        return m_timeController ? m_timeController->clock() : nullptr;
+    };
+    deps.getTimeController = [this]() -> TimeControlController* {
+        return m_timeController;
+    };
+    deps.getEvalGraphController = [this]() -> EvaluationGraphController* {
+        return m_evalGraphController;
+    };
+    deps.getUiStatePolicy = [this]() -> UiStatePolicyManager* {
+        return m_uiStatePolicy;
+    };
+
+    m_matchWiring->updateDeps(deps);
+
+    // 初回のみ: 転送シグナルを MainWindow スロットに接続
+    if (firstTime) {
+        connect(m_matchWiring, &MatchCoordinatorWiring::requestAppendGameOverMove,
+                this,          &MainWindow::onRequestAppendGameOverMove,
                 Qt::UniqueConnection);
-
-        // boardFlipped
-        connect(m_gameStartCoordinator, &GameStartCoordinator::boardFlipped,
-                this,                   &MainWindow::onBoardFlipped,
+        connect(m_matchWiring, &MatchCoordinatorWiring::boardFlipped,
+                this,          &MainWindow::onBoardFlipped,
                 Qt::UniqueConnection);
-
-        // gameOverStateChanged
-        connect(m_gameStartCoordinator, &GameStartCoordinator::gameOverStateChanged,
-                this,                   &MainWindow::onGameOverStateChanged,
+        connect(m_matchWiring, &MatchCoordinatorWiring::gameOverStateChanged,
+                this,          &MainWindow::onGameOverStateChanged,
                 Qt::UniqueConnection);
-
-        // gameEnded → onMatchGameEnded
-        connect(
-            m_gameStartCoordinator, &GameStartCoordinator::matchGameEnded,
-            this, &MainWindow::onMatchGameEnded,
-            Qt::UniqueConnection);
-
-        // 対局終了時にUI状態を「アイドル」に遷移
-        ensureUiStatePolicyManager();
-        connect(m_gameStartCoordinator, &GameStartCoordinator::matchGameEnded,
-                m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle,
+        connect(m_matchWiring, &MatchCoordinatorWiring::matchGameEnded,
+                this,          &MainWindow::onMatchGameEnded,
                 Qt::UniqueConnection);
-    }
-
-    // --- MatchCoordinator（司令塔）の生成＆初期配線 ---
-    m_match = m_gameStartCoordinator->createAndWireMatch(d, this);
-
-    // USIコマンドコントローラへ司令塔を反映
-    ensureUsiCommandController();
-
-    // PlayMode を司令塔へ伝達（従来どおり）
-    if (m_match) {
-        m_match->setPlayMode(m_playMode);
-    }
-
-    if (m_evalGraphController) {
-        m_evalGraphController->setMatchCoordinator(m_match);
-        m_evalGraphController->setSfenRecord(sfenRecord());
-    }
-
-    if (m_match) {
-        MatchCoordinator::UndoRefs u;
-        u.recordModel      = m_kifuRecordModel;      // 棋譜テーブルのモデル
-        u.gameMoves        = &m_gameMoves;           // 内部の着手配列
-        u.positionStrList  = &m_positionStrList;     // "position ..." 履歴（あれば）
-        u.sfenRecord       = sfenRecord();           // SFEN の履歴（Presenterと同一）
-        u.currentMoveIndex = &m_currentMoveIndex;    // 現在手数（0起点）
-        u.gc               = m_gameController;       // 盤ロジック
-        u.boardCtl         = m_boardController;      // ハイライト消去など（null可）
-        u.clock            = m_timeController ? m_timeController->clock() : nullptr;  // 時計（null可）
-        u.view             = m_shogiView;            // クリック可否の切替
-
-        MatchCoordinator::UndoHooks h;
-        h.getMainRowGuard                 = std::bind(&MainWindow::getMainRowGuard, this);
-        h.setMainRowGuard                 = std::bind(&MainWindow::setMainRowGuard, this, _1);
-        h.updateHighlightsForPly          = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
-        h.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay, this);
-        // 評価値などの巻戻しが必要なら将来ここに追加：
-        // h.handleUndoMove               = std::bind(&MainWindow::onUndoMove, this, _1);
-        h.isHumanSide                     = std::bind(&MainWindow::isHumanSide, this, _1);
-        h.isHvH                           = std::bind(&MainWindow::isHvH, this);
-
-        m_match->setUndoBindings(u, h);
-
-        // 検討モード終了・詰み探索終了時にUI状態を「アイドル」に遷移
-        ensureUiStatePolicyManager();
-        connect(m_match, &MatchCoordinator::considerationModeEnded,
-                m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle,
-                Qt::UniqueConnection);
-        connect(m_match, &MatchCoordinator::tsumeSearchModeEnded,
-                m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle,
+        connect(m_matchWiring, &MatchCoordinatorWiring::resignationTriggered,
+                this,          &MainWindow::onResignationTriggered,
                 Qt::UniqueConnection);
     }
+}
 
-    if (m_timeController) {
-        m_timeController->setMatchCoordinator(m_match);
-    }
+// MatchCoordinator 構築と配線の集約ポイント。
+void MainWindow::initMatchCoordinator()
+{
+    // 依存が揃っていない場合は何もしない
+    if (!m_gameController || !m_shogiView) return;
 
-    // Clock → MainWindow の投了シグナルは従来どおり UI 側で受ける
-    ShogiClock* clock = m_timeController ? m_timeController->clock() : nullptr;
-    if (clock) {
-        connect(clock, &ShogiClock::resignationTriggered,
-                this, &MainWindow::onResignationTriggered, Qt::UniqueConnection);
-    }
+    ensureMatchCoordinatorWiring();
+    m_matchWiring->wireConnections();
 
-    // 盤クリックの配線
-    connectBoardClicks();
-
-    // 人間操作 → 合法判定＆適用の配線
-    connectMoveRequested();
-
-    // 既定モード（必要に応じて開始時に上書き）
-    if (m_boardController)
-        m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
+    // Wiring が生成したオブジェクトを MainWindow に反映
+    m_match = m_matchWiring->match();
+    m_gameStartCoordinator = m_matchWiring->gameStartCoordinator();
 }
 
 // `ensureTimeController`: Time Controller を必要に応じて生成し、依存関係を更新する。
@@ -2278,7 +2236,9 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
     ensureCommentCoordinator();
     if (m_commentCoordinator) {
         // 最新の依存を同期
-        m_commentCoordinator->setAnalysisTab(m_analysisTab);
+        if (m_analysisTab) {
+            m_commentCoordinator->setCommentEditor(m_analysisTab->commentEditor());
+        }
         m_commentCoordinator->setRecordPane(m_recordPane);
         m_commentCoordinator->broadcastComment(text, asHtml);
     }
@@ -3561,7 +3521,9 @@ void MainWindow::createAndWireKifuLoadCoordinator()
             this, &MainWindow::onBranchTreeBuilt, Qt::UniqueConnection);
 
     // Analysisタブ・ShogiViewとの配線
-    m_kifuLoadCoordinator->setAnalysisTab(m_analysisTab);
+    if (m_analysisTab) {
+        m_kifuLoadCoordinator->setBranchTreeManager(m_analysisTab->branchTreeManager());
+    }
     m_kifuLoadCoordinator->setShogiView(m_shogiView);
 
     // UI更新通知
@@ -4129,7 +4091,8 @@ void MainWindow::ensureConsiderationWiring()
 
     ConsiderationWiring::Deps deps;
     deps.parentWidget = this;
-    deps.analysisTab = m_analysisTab;
+    deps.considerationTabManager = m_analysisTab ? m_analysisTab->considerationTabManager() : nullptr;
+    deps.thinkingInfo1 = m_analysisTab ? m_analysisTab->info1() : nullptr;
     deps.shogiView = m_shogiView;
     deps.match = m_match;
     deps.dialogCoordinator = m_dialogCoordinator;
@@ -4143,7 +4106,8 @@ void MainWindow::ensureConsiderationWiring()
         if (m_considerationWiring) {
             ConsiderationWiring::Deps updated;
             updated.parentWidget = this;
-            updated.analysisTab = m_analysisTab;
+            updated.considerationTabManager = m_analysisTab ? m_analysisTab->considerationTabManager() : nullptr;
+            updated.thinkingInfo1 = m_analysisTab ? m_analysisTab->info1() : nullptr;
             updated.shogiView = m_shogiView;
             updated.match = m_match;
             updated.dialogCoordinator = m_dialogCoordinator;
@@ -4201,7 +4165,9 @@ void MainWindow::ensureCommentCoordinator()
     if (m_commentCoordinator) return;
 
     m_commentCoordinator = new CommentCoordinator(this);
-    m_commentCoordinator->setAnalysisTab(m_analysisTab);
+    if (m_analysisTab) {
+        m_commentCoordinator->setCommentEditor(m_analysisTab->commentEditor());
+    }
     m_commentCoordinator->setRecordPane(m_recordPane);
     m_commentCoordinator->setRecordPresenter(m_recordPresenter);
     m_commentCoordinator->setStatusBar(ui->statusbar);

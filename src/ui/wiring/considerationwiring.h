@@ -12,7 +12,8 @@
 #include "playmode.h"
 
 class QWidget;
-class EngineAnalysisTab;
+class ConsiderationTabManager;
+class EngineInfoWidget;
 class ShogiView;
 class MatchCoordinator;
 class DialogCoordinator;
@@ -38,7 +39,8 @@ class ConsiderationWiring : public QObject
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;
-        EngineAnalysisTab* analysisTab = nullptr;
+        ConsiderationTabManager* considerationTabManager = nullptr;
+        EngineInfoWidget* thinkingInfo1 = nullptr;
         ShogiView* shogiView = nullptr;
         MatchCoordinator* match = nullptr;
         DialogCoordinator* dialogCoordinator = nullptr;
@@ -119,7 +121,8 @@ private:
     void ensureUIController();
 
     QWidget* m_parentWidget = nullptr;
-    EngineAnalysisTab* m_analysisTab = nullptr;
+    ConsiderationTabManager* m_considerationTabManager = nullptr;
+    EngineInfoWidget* m_thinkingInfo1 = nullptr;
     ShogiView* m_shogiView = nullptr;
     MatchCoordinator* m_match = nullptr;
     DialogCoordinator* m_dialogCoordinator = nullptr;

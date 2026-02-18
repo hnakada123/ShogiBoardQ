@@ -228,6 +228,217 @@ static inline bool mapKanjiPiece(const QString& s, QChar& base, bool& promoted)
     return false;
 }
 
+// BOD盤面解析用: 空白判定（全角スペースを含む）
+static inline bool isSpaceLike(QChar ch) {
+    return ch.isSpace() || ch == QChar(0x3000);
+}
+
+// BOD盤面解析用: 漢数字→int（〇/零→0対応、不明→-1）
+// 注意: KifToSfenConverter::kanjiDigitToInt() とは別仕様
+static inline int bodKanjiDigit(QChar c) {
+    switch (c.unicode()) {
+    case u'〇': case u'零': return 0;
+    case u'一': return 1; case u'二': return 2; case u'三': return 3;
+    case u'四': return 4; case u'五': return 5; case u'六': return 6;
+    case u'七': return 7; case u'八': return 8; case u'九': return 9;
+    default: return -1;
+    }
+}
+
+// 漢数字文字列→int（「十六」→16 など）
+static int parseKanjiNumberString(const QString& s) {
+    if (s.isEmpty()) return -1;
+    qsizetype idx = s.indexOf(QChar(u'十'));
+    if (idx >= 0) {
+        int tens = 1;
+        if (idx > 0) {
+            int d = bodKanjiDigit(s.at(0));
+            if (d <= 0) return -1;
+            tens = d;
+        }
+        int ones = 0;
+        if (idx + 1 < s.size()) {
+            int d = bodKanjiDigit(s.at(idx + 1));
+            if (d < 0) return -1;
+            ones = d;
+        }
+        return tens * 10 + ones;
+    }
+    if (s.size() == 1) {
+        int d = bodKanjiDigit(s.at(0));
+        return (d >= 0) ? d : -1;
+    }
+    return -1;
+}
+
+// 持駒トークンから個数を解析（「歩十八」→18, 「金」→1）
+static int parseCountSuffixFlexible(const QString& token) {
+    if (token.size() <= 1) return 1;
+    QString rest = token.mid(1).trimmed();
+    if (rest.isEmpty()) return 1;
+    static const QRegularExpression reAscii(QStringLiteral("^(?:[×x*]?)(\\d+)$"));
+    QRegularExpressionMatch m = reAscii.match(rest);
+    if (m.hasMatch()) return m.captured(1).toInt();
+    int n = parseKanjiNumberString(rest);
+    return (n > 0) ? n : 1;
+}
+
+// 全角数字→半角ASCII変換
+static QString zenk2ascii(QString s) {
+    static const QString z = QStringLiteral("０１２３４５６７８９");
+    for (qsizetype i = 0; i < s.size(); ++i) {
+        qsizetype idx = z.indexOf(s.at(i));
+        if (idx >= 0) s[i] = QChar('0' + static_cast<int>(idx));
+    }
+    return s;
+}
+
+// BOD枠付き行から内容とランク文字を抽出
+// "| ... |一" → inner="...", rankKanji='一'
+static bool extractFramedContent(const QString& line, QString& inner, QChar& rankKanji) {
+    static const QRegularExpression rowRe(QStringLiteral("^\\s*\\|(.+)\\|\\s*([一二三四五六七八九])\\s*$"));
+    QRegularExpressionMatch m = rowRe.match(line);
+    if (!m.hasMatch()) return false;
+    inner = m.captured(1);
+    rankKanji = m.captured(2).at(0);
+    return true;
+}
+
+// 盤面行の内容文字列から9マスの駒トークンを抽出
+static QStringList tokenizeBodRowContent(const QString& inner) {
+    static const QString promotedSingles = QStringLiteral("と杏圭全馬龍竜");
+    static const QString baseSingles = QStringLiteral("歩香桂銀金角飛玉王") + promotedSingles;
+
+    QStringList tokens;
+    qsizetype i = 0, n = inner.size();
+    while (i < n && tokens.size() < 9) {
+        while (i < n && isSpaceLike(inner.at(i))) ++i;
+        if (i >= n) break;
+
+        QChar ch = inner.at(i);
+
+        // 特殊空白・プレフィックス処理
+        if (ch == QChar(0xFF65)) { tokens << QStringLiteral("・"); ++i; continue; } // ･
+        if (ch == QChar(0xFF56)) { ch = QLatin1Char('v'); } // ｖ
+
+        if (ch == QChar(0x30FB)) { // '・'
+            tokens << QStringLiteral("・");
+            ++i;
+            continue;
+        }
+
+        // 後手駒 (v + 駒文字)
+        if (ch == QLatin1Char('v')) {
+            ++i;
+            while (i < n && isSpaceLike(inner.at(i))) ++i;
+            if (i < n && baseSingles.contains(inner.at(i))) {
+                tokens << (QStringLiteral("v") + inner.at(i));
+                ++i;
+            } else {
+                tokens << QStringLiteral("・");
+            }
+            continue;
+        }
+
+        // 先手駒 (単独文字)
+        if (baseSingles.contains(ch)) {
+            tokens << QString(ch);
+            ++i;
+            continue;
+        }
+
+        // どれにも当てはまらない文字は読み飛ばす
+        ++i;
+    }
+
+    // 9マスに満たない場合は空白で埋める
+    while (tokens.size() < 9) tokens << QStringLiteral("・");
+    return tokens;
+}
+
+// 盤面行を解析して9マスの駒トークンとランク文字を返す
+static bool parseBodRow(const QString& line, QStringList& outTokens, QChar& outRankKanji, bool hasFrame) {
+    QString inner;
+    if (hasFrame) {
+        if (!extractFramedContent(line, inner, outRankKanji)) return false;
+    } else {
+        inner = line.trimmed();
+        outRankKanji = QChar();
+    }
+    outTokens = tokenizeBodRowContent(inner);
+    return true;
+}
+
+// 駒トークン列からSFEN行文字列を生成（空点を数字に圧縮）
+static QString rowTokensToSfen(const QStringList& tokens) {
+    QString row;
+    int empty = 0;
+    auto flushEmpty = [&](){
+        if (empty > 0) { row += QString::number(empty); empty = 0; }
+    };
+
+    int used = 0;
+    for (const QString& tok : std::as_const(tokens)) {
+        if (used >= 9) break;
+
+        if (tok == QStringLiteral("・")) {
+            ++empty; ++used;
+            continue;
+        }
+
+        const bool gote = tok.startsWith(QLatin1Char('v'));
+        const QString body = gote ? tok.mid(1) : tok;
+
+        QChar base; bool promoted = false;
+        if (!mapKanjiPiece(body, base, promoted)) {
+            ++empty; ++used;
+            continue;
+        }
+
+        flushEmpty();
+        if (promoted) row += QLatin1Char('+');
+        row += (gote ? base.toLower() : base.toUpper());
+        ++used;
+    }
+    while (used < 9) { ++empty; ++used; }
+    flushEmpty();
+    return row;
+}
+
+// BOD持駒行の解析
+static void parseBodHandsLine(const QString& line, QMap<QChar,int>& outCounts, bool isBlack) {
+    static const QString prefixB = QStringLiteral("先手の持駒");
+    static const QString prefixW = QStringLiteral("後手の持駒");
+    QString t = line.trimmed();
+    if (!t.startsWith(prefixB) && !t.startsWith(prefixW)) return;
+
+    const bool sideBlack = t.startsWith(prefixB);
+    if (sideBlack != isBlack) return;
+
+    qsizetype idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
+    if (idx < 0) return;
+
+    QString rhs = t.mid(idx+1).trimmed();
+    if (rhs == QStringLiteral("なし")) return;
+
+    rhs.replace(QChar(u'、'), QLatin1Char(' '));
+    rhs.replace(QChar(0x3000), QLatin1Char(' '));
+    const QStringList toks = rhs.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+
+    for (QString tok : toks) {
+        tok = tok.trimmed();
+        if (tok.isEmpty()) continue;
+
+        QChar head = tok.at(0);
+        QChar base; bool promoted = false;
+        if (!mapKanjiPiece(QString(head), base, promoted)) continue;
+        if (base == QLatin1Char('K')) continue;
+
+        int cnt = parseCountSuffixFlexible(tok);
+        outCounts[base] += cnt;
+    }
+}
+
 } // namespace
 
 namespace {
@@ -653,82 +864,30 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
 {
     out = KifParseResult{};
 
-    // 本譜
-    QString teai;
-    out.mainline.baseSfen = detectInitialSfenFromFile(kifPath, &teai);
-    out.mainline.disp     = extractMovesWithTimes(kifPath, errorMessage);
-    out.mainline.usiMoves = convertFile(kifPath, errorMessage);
+    // フェーズ1: 本譜抽出
+    extractMainLine(kifPath, out, errorMessage);
 
-    // 本譜のSFEN列を生成（分岐のbaseSfen計算用）
-    // sfenList[0] = baseSfen, sfenList[i] = i手目後の局面
-    out.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
-        out.mainline.baseSfen, out.mainline.usiMoves, false);
-    qCDebug(lcKifu).noquote() << "mainline sfenList built: size=" << out.mainline.sfenList.size();
-
-    // 変化抽出
+    // フェーズ2: 変化抽出用にファイル読み込み
     QString usedEnc;
     QStringList lines;
     if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) {
         return false;
     }
 
+    // フェーズ3: 変化ブロックの収集と解析
     QVector<KifVariation> vars;
     int i = 0;
 
     while (i < lines.size()) {
-        QString l = lines.at(i).trimmed();
+        const QString l = lines.at(i).trimmed();
         if (l.isEmpty() || isSkippableLine(l) || isBoardHeaderOrFrame(l)) { ++i; continue; }
 
-        QRegularExpressionMatch m = variationHeaderCaptureRe().match(l);
+        const QRegularExpressionMatch m = variationHeaderCaptureRe().match(l);
         if (!m.hasMatch()) { ++i; continue; }
 
         const int startPly = flexDigitsToInt_NoDetach(m.captured(1));
-        KifVariation var; var.startPly = startPly;
 
-        // 分岐の開始局面SFENを決定
-        // ネストした分岐に対応：既存の分岐から分岐点を探す
-        // startPly=5 の分岐は、4手目の局面から分岐するので、
-        // 4手目を含む分岐（または本譜）からbaseSfenを取得する
-        int branchPointPly = startPly - 1;
-        QString foundBaseSfen;
-        QString foundSource;
-
-        // まず既存の分岐から探す（後方の分岐が前方の分岐から派生する可能性があるため）
-        // 分岐開始手数が小さく、かつ branchPointPly を含む分岐を探す
-        for (qsizetype vi = vars.size() - 1; vi >= 0; --vi) {
-            const KifVariation& prevVar = vars.at(vi);
-            // この分岐が branchPointPly の局面を持っているか？
-            // prevVar.startPly から始まり、prevVar.line.sfenList で局面列を持つ
-            // sfenList[0] = baseSfen (startPly-1手目), sfenList[k] = startPly-1+k 手目
-            if (prevVar.startPly <= branchPointPly && !prevVar.line.sfenList.isEmpty()) {
-                // この分岐の sfenList でのインデックス
-                qsizetype idxInPrevVar = branchPointPly - (prevVar.startPly - 1);
-                if (idxInPrevVar >= 0 && idxInPrevVar < prevVar.line.sfenList.size()) {
-                    foundBaseSfen = prevVar.line.sfenList.at(idxInPrevVar);
-                    foundSource = QStringLiteral("variation %1 (startPly=%2)").arg(vi).arg(prevVar.startPly);
-                    break;
-                }
-            }
-        }
-
-        // 分岐から見つからなければ本譜から探す
-        if (foundBaseSfen.isEmpty()) {
-            if (branchPointPly >= 0 && branchPointPly < out.mainline.sfenList.size()) {
-                foundBaseSfen = out.mainline.sfenList.at(branchPointPly);
-                foundSource = QStringLiteral("mainline");
-            }
-        }
-
-        if (!foundBaseSfen.isEmpty()) {
-            var.line.baseSfen = foundBaseSfen;
-            qCDebug(lcKifu).noquote() << "variation startPly=" << startPly
-                               << "baseSfen from" << foundSource
-                               << "=" << var.line.baseSfen.left(60);
-        } else {
-            qCDebug(lcKifu).noquote() << "variation startPly=" << startPly
-                               << "baseSfen: NOT FOUND";
-        }
-
+        // ブロック行の収集（次の変化ヘッダまたは空行まで）
         ++i;
         QStringList block;
         for (; i < lines.size(); ++i) {
@@ -738,184 +897,240 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
             block << s;
         }
 
+        // 分岐元の局面SFENを特定
+        const QString baseSfen = findBranchBaseSfen(vars, out.mainline, startPly - 1);
+
         // 変化ブロック解析
-        {
-            int prevToFile = 0, prevToRank = 0;
-            int moveIndex = var.startPly - 1;
-            QString commentBuf;
-            bool firstVarMoveFound = false;
-
-            for (const QString& raw : std::as_const(block)) {
-                QString lineStr = raw;
-
-                if (isCommentLine(lineStr)) {
-                    QString c = lineStr.mid(1).trimmed();
-                    if (!c.isEmpty()) {
-                        if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
-                        commentBuf += c;
-                    }
-                    continue;
-                }
-
-                // 変化内のしおり：直前の手の bookmark フィールドに付与
-                if (isBookmarkLine(lineStr)) {
-                    const QString name = lineStr.mid(1).trimmed();
-                    if (!name.isEmpty() && !var.line.disp.isEmpty()) {
-                        QString& dst = var.line.disp.last().bookmark;
-                        if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                        dst += name;
-                    }
-                    continue;
-                }
-
-                if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
-
-                // --- 1行複数手ループ ---
-                while (!lineStr.isEmpty()) {
-                    int digits2 = 0;
-                    if (!startsWithMoveNumber(lineStr, &digits2)) break;
-
-                    int j = digits2;
-                    while (j < lineStr.size() && lineStr.at(j).isSpace()) ++j;
-                    if (j >= lineStr.size()) break;
-
-                    QString rest = lineStr.mid(j).trimmed();
-
-                    // 時間抽出
-                    QRegularExpressionMatch tm = kifTimeRe().match(rest);
-                    QString timeText;
-                    if (tm.hasMatch()) {
-                        timeText = normalizeTimeMatch(tm);
-                        rest = rest.left(tm.capturedStart(0)).trimmed();
-                    } else {
-                        QRegularExpressionMatch nm = nextMoveNumberRe().match(rest);
-                        if (nm.hasMatch()) rest = rest.left(nm.capturedStart()).trimmed();
-                    }
-
-                    // インラインコメント除去
-                    int cIdx = static_cast<int>(rest.indexOf(QChar(u'*')));
-                    if (cIdx < 0) cIdx = static_cast<int>(rest.indexOf(QChar(u'＊')));
-                    if (cIdx >= 0) {
-                        QString ic = rest.mid(cIdx+1).trimmed();
-                        if (!ic.isEmpty()) {
-                            if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
-                            commentBuf += ic;
-                        }
-                        rest = rest.left(cIdx).trimmed();
-                    }
-
-                    // 終局語？
-                    QString term;
-                    bool isTerm = isTerminalWord(rest, &term);
-
-                    if (isTerm) {
-                        // 直前の指し手にコメントを付与
-                        if (!commentBuf.isEmpty() && !var.line.disp.isEmpty()) {
-                            QString& dst = var.line.disp.last().comment;
-                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                            dst += commentBuf;
-                            commentBuf.clear();
-                        }
-
-                        ++moveIndex;
-                        const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-
-                        // 本譜と同じく「千日手は 00:00 / 累計」を優先
-                        auto z2 = [](int x){ return QStringLiteral("%1").arg(x, 2, 10, QLatin1Char('0')); };
-                        QString cum = QStringLiteral("00:00:00");
-                        if (tm.hasMatch()) {
-                            const bool hasCum = tm.lastCapturedIndex() >= 5 && tm.captured(3).size();
-                            if (hasCum) {
-                                const int HH = flexDigitsToInt_NoDetach(tm.captured(3));
-                                const int MM = flexDigitsToInt_NoDetach(tm.captured(4));
-                                const int SS = flexDigitsToInt_NoDetach(tm.captured(5));
-                                cum = z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
-                            }
-                        }
-
-                        KifDisplayItem item;
-                        item.prettyMove = teban + term;
-                        item.ply = moveIndex;
-                        if (term == QStringLiteral("千日手")) {
-                            item.timeText = QStringLiteral("00:00/") + cum;
-                        } else {
-                            item.timeText = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
-                        }
-                        item.comment = QString();
-                        var.line.disp.push_back(item);
-
-                        lineStr.clear();
-                        break;
-                    }
-
-                    // 通常手
-                    // 直前の指し手にコメントを付与（ただし変化の最初の指し手の前のコメントは無視）
-                    if (!commentBuf.isEmpty() && firstVarMoveFound && !var.line.disp.isEmpty()) {
-                        QString& dst = var.line.disp.last().comment;
-                        if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                        dst += commentBuf;
-                        commentBuf.clear();
-                    } else if (firstVarMoveFound) {
-                        commentBuf.clear(); // 変化ブロック先頭のコメントは捨てる（本譜由来のため）
-                    }
-
-                    firstVarMoveFound = true;
-
-                    ++moveIndex;
-                    const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-                    KifDisplayItem item;
-                    item.prettyMove = teban + rest;
-                    item.timeText   = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
-                    item.comment    = QString();
-                    item.ply        = moveIndex;
-                    var.line.disp.push_back(item);
-
-                    // USI
-                    QString usi;
-                    if (convertMoveLine(rest, usi, prevToFile, prevToRank)) {
-                        var.line.usiMoves << usi;
-                    }
-
-                    // 続行
-                    if (tm.hasMatch()) {
-                        int consumed = j + static_cast<int>(tm.capturedEnd(0));
-                        lineStr = lineStr.mid(consumed).trimmed();
-                    } else {
-                        static const auto& s_next = *[]() {
-                            static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
-                            return &r;
-                        }();
-                        QRegularExpressionMatch nm = s_next.match(lineStr, j);
-                        if (nm.hasMatch()) lineStr = lineStr.mid(nm.capturedStart()).trimmed();
-                        else lineStr.clear();
-                    }
-                }
-            }
-
-            // 最後の指し手の後に残っているコメントを付与
-            if (!commentBuf.isEmpty() && !var.line.disp.isEmpty()) {
-                QString& dst = var.line.disp.last().comment;
-                if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                dst += commentBuf;
-            }
-        }
-
-        // この分岐のsfenListとgameMovesを生成
-        if (!var.line.baseSfen.isEmpty() && !var.line.usiMoves.isEmpty()) {
-            var.line.sfenList = SfenPositionTracer::buildSfenRecord(
-                var.line.baseSfen, var.line.usiMoves, false);
-            var.line.gameMoves = SfenPositionTracer::buildGameMoves(
-                var.line.baseSfen, var.line.usiMoves);
-            qCDebug(lcKifu).noquote() << "variation startPly=" << var.startPly
-                               << "sfenList built: size=" << var.line.sfenList.size()
-                               << "gameMoves built: size=" << var.line.gameMoves.size();
-        }
-
-        vars.push_back(var);
+        vars.push_back(parseVariationBlock(block, startPly, baseSfen));
     }
 
     out.variations = vars;
     return true;
+}
+
+// ---------- parseWithVariations ヘルパ ----------
+
+void KifToSfenConverter::extractMainLine(const QString& kifPath,
+                                          KifParseResult& out,
+                                          QString* errorMessage)
+{
+    QString teai;
+    out.mainline.baseSfen = detectInitialSfenFromFile(kifPath, &teai);
+    out.mainline.disp     = extractMovesWithTimes(kifPath, errorMessage);
+    out.mainline.usiMoves = convertFile(kifPath, errorMessage);
+
+    out.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
+        out.mainline.baseSfen, out.mainline.usiMoves, false);
+    qCDebug(lcKifu).noquote() << "mainline sfenList built: size=" << out.mainline.sfenList.size();
+}
+
+QString KifToSfenConverter::findBranchBaseSfen(const QVector<KifVariation>& vars,
+                                                const KifLine& mainLine,
+                                                int branchPointPly)
+{
+    // まず既存の分岐から探す（後方の分岐が前方の分岐から派生する可能性があるため）
+    for (qsizetype vi = vars.size() - 1; vi >= 0; --vi) {
+        const KifVariation& prevVar = vars.at(vi);
+        if (prevVar.startPly <= branchPointPly && !prevVar.line.sfenList.isEmpty()) {
+            const qsizetype idx = branchPointPly - (prevVar.startPly - 1);
+            if (idx >= 0 && idx < prevVar.line.sfenList.size()) {
+                qCDebug(lcKifu).noquote()
+                    << "variation baseSfen from variation" << vi
+                    << "(startPly=" << prevVar.startPly << ")";
+                return prevVar.line.sfenList.at(idx);
+            }
+        }
+    }
+
+    // 分岐から見つからなければ本譜から探す
+    if (branchPointPly >= 0 && branchPointPly < mainLine.sfenList.size()) {
+        qCDebug(lcKifu).noquote() << "variation baseSfen from mainline";
+        return mainLine.sfenList.at(branchPointPly);
+    }
+
+    qCDebug(lcKifu).noquote() << "variation baseSfen: NOT FOUND";
+    return {};
+}
+
+KifVariation KifToSfenConverter::parseVariationBlock(const QStringList& blockLines,
+                                                      int startPly,
+                                                      const QString& baseSfen)
+{
+    KifVariation var;
+    var.startPly = startPly;
+    var.line.baseSfen = baseSfen;
+
+    extractMovesFromBlock(blockLines, startPly, var.line);
+
+    if (!var.line.baseSfen.isEmpty() && !var.line.usiMoves.isEmpty()) {
+        var.line.sfenList = SfenPositionTracer::buildSfenRecord(
+            var.line.baseSfen, var.line.usiMoves, false);
+        var.line.gameMoves = SfenPositionTracer::buildGameMoves(
+            var.line.baseSfen, var.line.usiMoves);
+        qCDebug(lcKifu).noquote() << "variation startPly=" << var.startPly
+                           << "sfenList built: size=" << var.line.sfenList.size()
+                           << "gameMoves built: size=" << var.line.gameMoves.size();
+    }
+
+    return var;
+}
+
+void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
+                                                int startPly,
+                                                KifLine& line)
+{
+    int prevToFile = 0, prevToRank = 0;
+    int moveIndex = startPly - 1;
+    QString commentBuf;
+    bool firstMoveFound = false;
+
+    for (const QString& raw : std::as_const(blockLines)) {
+        QString lineStr = raw;
+
+        if (isCommentLine(lineStr)) {
+            const QString c = lineStr.mid(1).trimmed();
+            if (!c.isEmpty()) {
+                if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
+                commentBuf += c;
+            }
+            continue;
+        }
+
+        if (isBookmarkLine(lineStr)) {
+            const QString name = lineStr.mid(1).trimmed();
+            if (!name.isEmpty() && !line.disp.isEmpty()) {
+                QString& dst = line.disp.last().bookmark;
+                if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                dst += name;
+            }
+            continue;
+        }
+
+        if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
+
+        // 1行複数手ループ
+        while (!lineStr.isEmpty()) {
+            int digits = 0;
+            if (!startsWithMoveNumber(lineStr, &digits)) break;
+
+            int j = digits;
+            while (j < lineStr.size() && lineStr.at(j).isSpace()) ++j;
+            if (j >= lineStr.size()) break;
+
+            QString rest = lineStr.mid(j).trimmed();
+
+            // 時間抽出
+            QRegularExpressionMatch tm = kifTimeRe().match(rest);
+            QString timeText;
+            if (tm.hasMatch()) {
+                timeText = normalizeTimeMatch(tm);
+                rest = rest.left(tm.capturedStart(0)).trimmed();
+            } else {
+                QRegularExpressionMatch nm = nextMoveNumberRe().match(rest);
+                if (nm.hasMatch()) rest = rest.left(nm.capturedStart()).trimmed();
+            }
+
+            // インラインコメント除去
+            int cIdx = static_cast<int>(rest.indexOf(QChar(u'*')));
+            if (cIdx < 0) cIdx = static_cast<int>(rest.indexOf(QChar(u'＊')));
+            if (cIdx >= 0) {
+                const QString ic = rest.mid(cIdx + 1).trimmed();
+                if (!ic.isEmpty()) {
+                    if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
+                    commentBuf += ic;
+                }
+                rest = rest.left(cIdx).trimmed();
+            }
+
+            // 終局語
+            QString term;
+            if (isTerminalWord(rest, &term)) {
+                if (!commentBuf.isEmpty() && !line.disp.isEmpty()) {
+                    QString& dst = line.disp.last().comment;
+                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                    dst += commentBuf;
+                    commentBuf.clear();
+                }
+
+                ++moveIndex;
+                const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+
+                auto z2 = [](int x){ return QStringLiteral("%1").arg(x, 2, 10, QLatin1Char('0')); };
+                QString cum = QStringLiteral("00:00:00");
+                if (tm.hasMatch()) {
+                    const bool hasCum = tm.lastCapturedIndex() >= 5 && tm.captured(3).size();
+                    if (hasCum) {
+                        const int HH = flexDigitsToInt_NoDetach(tm.captured(3));
+                        const int MM = flexDigitsToInt_NoDetach(tm.captured(4));
+                        const int SS = flexDigitsToInt_NoDetach(tm.captured(5));
+                        cum = z2(HH) + QLatin1Char(':') + z2(MM) + QLatin1Char(':') + z2(SS);
+                    }
+                }
+
+                KifDisplayItem item;
+                item.prettyMove = teban + term;
+                item.ply = moveIndex;
+                if (term == QStringLiteral("千日手")) {
+                    item.timeText = QStringLiteral("00:00/") + cum;
+                } else {
+                    item.timeText = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
+                }
+                item.comment = QString();
+                line.disp.push_back(item);
+
+                lineStr.clear();
+                break;
+            }
+
+            // 通常手: 直前の指し手にコメントを付与（変化の最初の指し手の前のコメントは無視）
+            if (!commentBuf.isEmpty() && firstMoveFound && !line.disp.isEmpty()) {
+                QString& dst = line.disp.last().comment;
+                if (!dst.isEmpty()) dst += QLatin1Char('\n');
+                dst += commentBuf;
+                commentBuf.clear();
+            } else if (firstMoveFound) {
+                commentBuf.clear();
+            }
+
+            firstMoveFound = true;
+
+            ++moveIndex;
+            const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+            KifDisplayItem item;
+            item.prettyMove = teban + rest;
+            item.timeText   = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
+            item.comment    = QString();
+            item.ply        = moveIndex;
+            line.disp.push_back(item);
+
+            // USI変換
+            QString usi;
+            if (convertMoveLine(rest, usi, prevToFile, prevToRank)) {
+                line.usiMoves << usi;
+            }
+
+            // 続行（lineStr を進める）
+            if (tm.hasMatch()) {
+                int consumed = j + static_cast<int>(tm.capturedEnd(0));
+                lineStr = lineStr.mid(consumed).trimmed();
+            } else {
+                static const auto& s_next = *[]() {
+                    static const QRegularExpression r(QStringLiteral("\\s+[0-9０-９]"));
+                    return &r;
+                }();
+                QRegularExpressionMatch nm = s_next.match(lineStr, j);
+                if (nm.hasMatch()) lineStr = lineStr.mid(nm.capturedStart()).trimmed();
+                else lineStr.clear();
+            }
+        }
+    }
+
+    // 最後の指し手の後に残っているコメントを付与
+    if (!commentBuf.isEmpty() && !line.disp.isEmpty()) {
+        QString& dst = line.disp.last().comment;
+        if (!dst.isEmpty()) dst += QLatin1Char('\n');
+        dst += commentBuf;
+    }
 }
 
 // ===== private helpers =====
@@ -1293,234 +1508,29 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
                                                  QString* detectedLabel,
                                                  QString* /*warn*/)
 {
-    // 1) ── ヘルパ群（この関数内のみで使用） ───────────────────────────────
-    auto isSpaceLike = [](QChar ch)->bool {
-        return ch.isSpace() || ch == QChar(0x3000); // 全角スペース
-    };
-
-    // 1行の盤面文字列（枠線の有無を問わず）から9マスの駒トークンを抽出する
-    // hasFrame=true の場合は "| ... |一" の形式を想定（ランク文字も抽出）
-    // hasFrame=false の場合は "香桂銀..." の形式を想定（ランク文字はなし）
-    auto parseBodRowCommon = [&](const QString& line, QStringList& outTokens, QChar& outRankKanji, bool hasFrame)->bool {
-        outTokens.clear();
-        QString inner;
-
-        if (hasFrame) {
-            static const QRegularExpression rowRe(QStringLiteral("^\\s*\\|(.+)\\|\\s*([一二三四五六七八九])\\s*$"));
-            QRegularExpressionMatch m = rowRe.match(line);
-            if (!m.hasMatch()) return false;
-            inner = m.captured(1);
-            outRankKanji = m.captured(2).at(0);
-        } else {
-            // 枠なし：行全体を解析対象とする（コメント等は事前に除去されている前提）
-            inner = line.trimmed();
-            outRankKanji = QChar(); // 呼び出し元でインデックス管理する
-        }
-
-        const QString promotedSingles = QStringLiteral("と杏圭全馬龍竜");
-        const QString baseSingles = QStringLiteral("歩香桂銀金角飛玉王") + promotedSingles;
-
-        qsizetype i = 0, n = inner.size();
-        while (i < n && outTokens.size() < 9) {
-            while (i < n && isSpaceLike(inner.at(i))) ++i;
-            if (i >= n) break;
-
-            QChar ch = inner.at(i);
-
-            // 特殊空白・プレフィックス処理
-            if (ch == QChar(0xFF65)) { outTokens << QStringLiteral("・"); ++i; continue; } // ･
-            if (ch == QChar(0xFF56)) { ch = QLatin1Char('v'); } // ｖ
-
-            if (ch == QChar(0x30FB)) { // '・'
-                outTokens << QStringLiteral("・");
-                ++i;
-                continue;
-            }
-
-            // 後手駒 (v + 駒文字)
-            if (ch == QLatin1Char('v')) {
-                ++i;
-                while (i < n && isSpaceLike(inner.at(i))) ++i;
-                if (i < n) {
-                    QChar p = inner.at(i);
-                    if (baseSingles.contains(p)) {
-                        outTokens << (QStringLiteral("v") + p);
-                        ++i;
-                    } else {
-                        outTokens << QStringLiteral("・");
-                    }
-                } else {
-                    outTokens << QStringLiteral("・");
-                }
-                continue;
-            }
-
-            // 先手駒 (単独文字)
-            if (baseSingles.contains(ch)) {
-                outTokens << QString(ch);
-                ++i;
-                continue;
-            }
-
-            // どれにも当てはまらない文字は読み飛ばす
-            ++i;
-        }
-
-        // 9マスに満たない場合は空白で埋める（仕様上の安全策）
-        while (outTokens.size() < 9) outTokens << QStringLiteral("・");
-        return true;
-    };
-
-    // SFEN行生成（空点を数字に圧縮）
-    auto rowTokensToSfen = [&](const QStringList& tokens)->QString {
-        QString row;
-        int empty = 0;
-        auto flushEmpty = [&](){
-            if (empty > 0) { row += QString::number(empty); empty = 0; }
-        };
-
-        int used = 0;
-        for (const QString& tok : std::as_const(tokens)) {
-            if (used >= 9) break;
-
-            if (tok == QStringLiteral("・")) {
-                ++empty; ++used;
-                continue;
-            }
-
-            const bool gote = tok.startsWith(QLatin1Char('v'));
-            const QString body = gote ? tok.mid(1) : tok;
-
-            QChar base; bool promoted = false;
-            if (!mapKanjiPiece(body, base, promoted)) {
-                ++empty; ++used;
-                continue;
-            }
-
-            flushEmpty();
-            if (promoted) row += QLatin1Char('+');
-            row += (gote ? base.toLower() : base.toUpper());
-            ++used;
-        }
-        while (used < 9) { ++empty; ++used; }
-        flushEmpty();
-        return row;
-    };
-
-    // 持駒解析用ヘルパ
-    auto kanjiDigit = [](QChar c)->int {
-        switch (c.unicode()) {
-        case u'〇': case u'零': return 0;
-        case u'一': return 1; case u'二': return 2; case u'三': return 3;
-        case u'四': return 4; case u'五': return 5; case u'六': return 6;
-        case u'七': return 7; case u'八': return 8; case u'九': return 9;
-        default: return -1;
-        }
-    };
-    auto parseKanjiNumberString = [&](const QString& s)->int {
-        if (s.isEmpty()) return -1;
-        qsizetype idx = s.indexOf(QChar(u'十'));
-        if (idx >= 0) {
-            int tens = 1;
-            if (idx > 0) {
-                int d = kanjiDigit(s.at(0));
-                if (d <= 0) return -1;
-                tens = d;
-            }
-            int ones = 0;
-            if (idx + 1 < s.size()) {
-                int d = kanjiDigit(s.at(idx + 1));
-                if (d < 0) return -1;
-                ones = d;
-            }
-            return tens * 10 + ones;
-        }
-        if (s.size() == 1) {
-            int d = kanjiDigit(s.at(0));
-            return (d >= 0) ? d : -1;
-        }
-        return -1;
-    };
-    auto parseCountSuffixFlexible = [&](const QString& token)->int {
-        if (token.size() <= 1) return 1;
-        QString rest = token.mid(1).trimmed();
-        if (rest.isEmpty()) return 1;
-        static const QRegularExpression reAscii(QStringLiteral("^(?:[×x*]?)(\\d+)$"));
-        QRegularExpressionMatch m = reAscii.match(rest);
-        if (m.hasMatch()) return m.captured(1).toInt();
-        int n = parseKanjiNumberString(rest);
-        return (n > 0) ? n : 1;
-    };
-
-    auto parseHandsLine = [&](const QString& line, QMap<QChar,int>& outCounts, bool isBlack) {
-        static const QString prefixB = QStringLiteral("先手の持駒");
-        static const QString prefixW = QStringLiteral("後手の持駒");
-        QString t = line.trimmed();
-        if (!t.startsWith(prefixB) && !t.startsWith(prefixW)) return;
-
-        const bool sideBlack = t.startsWith(prefixB);
-        if (sideBlack != isBlack) return;
-
-        qsizetype idx = t.indexOf(QChar(u'：')); if (idx < 0) idx = t.indexOf(QLatin1Char(':'));
-        if (idx < 0) return;
-
-        QString rhs = t.mid(idx+1).trimmed();
-        if (rhs == QStringLiteral("なし")) return;
-
-        rhs.replace(QChar(u'、'), QLatin1Char(' '));
-        rhs.replace(QChar(0x3000), QLatin1Char(' '));
-        const QStringList toks = rhs.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
-
-        for (QString tok : toks) {
-            tok = tok.trimmed();
-            if (tok.isEmpty()) continue;
-
-            QChar head = tok.at(0);
-            QChar base; bool promoted=false;
-            if (!mapKanjiPiece(QString(head), base, promoted)) continue;
-            if (base == QLatin1Char('K')) continue;
-
-            int cnt = parseCountSuffixFlexible(tok);
-            outCounts[base] += cnt;
-        }
-    };
-
-    auto zenk2ascii = [](QString s)->QString{
-        static const QString z = QStringLiteral("０１２３４５６７８９");
-        for (qsizetype i=0;i<s.size();++i) {
-            qsizetype idx = z.indexOf(s.at(i));
-            if (idx >= 0) s[i] = QChar('0' + static_cast<int>(idx));
-        }
-        return s;
-    };
-
-    // 2) ── 盤面情報の収集 ────────────────────────────────────────────────
-    // モード判別：「配置：」ヘッダがあるか、通常のBOD枠があるか
+    // 1) ── 盤面情報の収集 ────────────────────────────────────────────────
+    static const QChar ranks_1to9[9] = {u'一',u'二',u'三',u'四',u'五',u'六',u'七',u'八',u'九'};
     QMap<QChar, QString> rowByRank;
-    bool foundPlacementHeader = false;
-    int placementStartLineIndex = -1;
 
+    // モード判別：「配置：」ヘッダがあるか、通常のBOD枠があるか
+    int placementStartLineIndex = -1;
     for (qsizetype i = 0; i < lines.size(); ++i) {
         if (lines.at(i).contains(QStringLiteral("配置：")) || lines.at(i).contains(QStringLiteral("配置:"))) {
-            foundPlacementHeader = true;
             placementStartLineIndex = static_cast<int>(i);
             break;
         }
     }
 
-    if (foundPlacementHeader) {
+    if (placementStartLineIndex >= 0) {
         // --- 「配置：」形式 ---
-        // ヘッダの次の行から9行分を読む
-        static const QChar ranks_1to9[9] = {u'一',u'二',u'三',u'四',u'五',u'六',u'七',u'八',u'九'};
         int currentRankIdx = 0;
-
         for (qsizetype i = placementStartLineIndex + 1; i < lines.size() && currentRankIdx < 9; ++i) {
             const QString& raw = lines.at(i);
-            if (raw.trimmed().isEmpty()) continue; // 空行スキップ
+            if (raw.trimmed().isEmpty()) continue;
 
             QStringList toks;
-            QChar dummyRank; // 使わない
-            if (parseBodRowCommon(raw, toks, dummyRank, false /*no frame*/)) {
+            QChar dummyRank;
+            if (parseBodRow(raw, toks, dummyRank, false)) {
                 rowByRank[ranks_1to9[currentRankIdx]] = rowTokensToSfen(toks);
                 currentRankIdx++;
             }
@@ -1532,34 +1542,31 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
         for (const QString& raw : std::as_const(lines)) {
             QStringList toks;
             QChar rank;
-            if (parseBodRowCommon(raw, toks, rank, true /*has frame*/)) {
+            if (parseBodRow(raw, toks, rank, true)) {
                 rowByRank[rank] = rowTokensToSfen(toks);
             }
         }
         if (detectedLabel && !rowByRank.isEmpty()) *detectedLabel = QStringLiteral("BOD");
     }
 
-    if (rowByRank.size() != 9) {
-        // BODが見つからない場合は単にfalseを返す（平手などの判定へ進むため）
-        return false;
-    }
+    if (rowByRank.size() != 9) return false;
 
-    // 3) ── 持駒 ──────────────────────────────────────────────────────────────
+    // 2) ── 持駒 ──────────────────────────────────────────────────────────────
     QMap<QChar,int> handB, handW;
     for (const QString& line : std::as_const(lines)) {
-        parseHandsLine(line, handB, true);
-        parseHandsLine(line, handW, false);
+        parseBodHandsLine(line, handB, true);
+        parseBodHandsLine(line, handW, false);
     }
 
-    // 4) ── 手番 ──────────────────────────────────────────────────────────────
-    QChar turn = QLatin1Char('b'); // 既定: 先手番
+    // 3) ── 手番 ──────────────────────────────────────────────────────────────
+    QChar turn = QLatin1Char('b');
     for (const QString& l : std::as_const(lines)) {
         const QString t = l.trimmed();
         if (t.contains(QStringLiteral("先手番"))) { turn = QLatin1Char('b'); break; }
         if (t.contains(QStringLiteral("後手番"))) { turn = QLatin1Char('w'); break; }
     }
 
-    // 5) ── 手数 ────────────────────────────────────────────────────────────
+    // 4) ── 手数 ──────────────────────────────────────────────────────────────
     int moveNumber = 1;
     static const QRegularExpression reTeSu(QStringLiteral("手数\\s*[=＝]\\s*([0-9０-９]+)"));
     for (const QString& l : std::as_const(lines)) {
@@ -1570,8 +1577,7 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
         }
     }
 
-    // 6) ── SFEN組み立て ─────────────────────────────────────────────────────
-    static const QChar ranks_1to9[9] = {u'一',u'二',u'三',u'四',u'五',u'六',u'七',u'八',u'九'};
+    // 5) ── SFEN組み立て ─────────────────────────────────────────────────────
     QStringList boardRows;
     for (QChar rk : ranks_1to9) {
         boardRows << rowByRank.value(rk);

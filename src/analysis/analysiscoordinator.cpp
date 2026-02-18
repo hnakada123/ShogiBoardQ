@@ -3,7 +3,7 @@
 
 #include "analysiscoordinator.h"
 #include "analysisflowcontroller.h"
-#include "engineanalysistab.h"
+#include "branchtreemanager.h"
 
 #include <QRegularExpression>
 #include <QGlobalStatic>
@@ -30,9 +30,9 @@ void AnalysisCoordinator::setDeps(const Deps& d)
     m_deps = d;
 }
 
-void AnalysisCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
+void AnalysisCoordinator::setBranchTreeManager(BranchTreeManager* manager)
 {
-    m_analysisTab = tab;
+    m_branchTreeManager = manager;
 }
 
 void AnalysisCoordinator::setOptions(const Options& opt)
@@ -191,8 +191,8 @@ void AnalysisCoordinator::sendGoCommand()
     m_stopTimer.start(m_opt.movetimeMs);
 
     // 分析進行に応じたツリーハイライトなどが必要ならここで
-    if (m_analysisTab && m_opt.centerTree) {
-        m_analysisTab->highlightBranchTreeAt(/*row=*/0, m_currentPly, /*centerOn=*/true);
+    if (m_branchTreeManager && m_opt.centerTree) {
+        m_branchTreeManager->highlightBranchTreeAt(/*row=*/0, m_currentPly, /*centerOn=*/true);
     }
 }
 

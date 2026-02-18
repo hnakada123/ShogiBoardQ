@@ -17,6 +17,7 @@
 #include "shogigamecontroller.h"
 #include "kifuanalysislistmodel.h"
 #include "engineanalysistab.h"
+#include "considerationtabmanager.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
@@ -150,6 +151,11 @@ void DialogCoordinator::setAnalysisModel(KifuAnalysisListModel* model)
 void DialogCoordinator::setAnalysisTab(EngineAnalysisTab* tab)
 {
     m_analysisTab = tab;
+}
+
+void DialogCoordinator::setConsiderationTabManager(ConsiderationTabManager* manager)
+{
+    m_considerationTabManager = manager;
 }
 
 // --------------------------------------------------------
@@ -409,7 +415,7 @@ bool DialogCoordinator::startConsiderationFromContext()
     qCDebug(lcUi).noquote() << "startConsiderationFromContext";
 
     // エンジンが選択されているかチェック
-    if (m_analysisTab && m_analysisTab->selectedEngineName().isEmpty()) {
+    if (m_considerationTabManager && m_considerationTabManager->selectedEngineName().isEmpty()) {
         QMessageBox::critical(m_parentWidget, tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return false;
     }
@@ -440,18 +446,18 @@ bool DialogCoordinator::startConsiderationFromContext()
     }
 
     // 検討タブの設定を保存
-    if (m_analysisTab) {
-        m_analysisTab->saveConsiderationTabSettings();
+    if (m_considerationTabManager) {
+        m_considerationTabManager->saveConsiderationTabSettings();
     }
 
     // 検討タブの設定を使用して直接検討を開始
     ConsiderationDirectParams params;
     params.position = position;
-    params.engineIndex = m_analysisTab ? m_analysisTab->selectedEngineIndex() : 0;
-    params.engineName = m_analysisTab ? m_analysisTab->selectedEngineName() : QString();
-    params.unlimitedTime = m_analysisTab ? m_analysisTab->isUnlimitedTime() : true;
-    params.byoyomiSec = m_analysisTab ? m_analysisTab->byoyomiSec() : 20;
-    params.multiPV = m_analysisTab ? m_analysisTab->considerationMultiPV() : 1;
+    params.engineIndex = m_considerationTabManager ? m_considerationTabManager->selectedEngineIndex() : 0;
+    params.engineName = m_considerationTabManager ? m_considerationTabManager->selectedEngineName() : QString();
+    params.unlimitedTime = m_considerationTabManager ? m_considerationTabManager->isUnlimitedTime() : true;
+    params.byoyomiSec = m_considerationTabManager ? m_considerationTabManager->byoyomiSec() : 20;
+    params.multiPV = m_considerationTabManager ? m_considerationTabManager->considerationMultiPV() : 1;
     params.considerationModel = m_considerationCtx.considerationModel ? *m_considerationCtx.considerationModel : nullptr;
 
     // 選択中の指し手の移動先を取得（「同」表記のため）

@@ -2,6 +2,10 @@
 /// @brief 対局進行コーディネータ（司令塔）クラスの実装
 
 #include "matchcoordinator.h"
+#include "gamemodestrategy.h"
+#include "humanvshumanstrategy.h"
+#include "humanvsenginestrategy.h"
+#include "enginevsenginestrategy.h"
 #include "shogiclock.h"
 #include "usi.h"
 #include "shogiview.h"
@@ -124,8 +128,7 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
 
     // デバッグ：どのリストを使うか明示
     qCDebug(lcGame).noquote()
-        << "shared sfenRecord*=" << static_cast<const void*>(m_sfenHistory)
-        << " eveSfenRecord@=" << static_cast<const void*>(&m_eveSfenRecord);
+        << "shared sfenRecord*=" << static_cast<const void*>(m_sfenHistory);
 
     // 共有ポインタが未指定の場合は内部履歴を使用
     if (!d.sfenRecord) {
@@ -866,11 +869,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     if (m_gc) m_gc->setCurrentPlayer(startSide);
     if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
 
-    // EvE 用の内部棋譜コンテナを初期化
-    m_eveSfenRecord.clear();
-    m_eveGameMoves.clear();
-    m_eveMoveIndex = 0;
-
     // HvE/HvH 共通の安全策
     m_currentMoveIndex = 0;
 
@@ -993,6 +991,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     }
 
     // ---- モード別の起動ルート
+    m_strategy.reset();
     switch (m_playMode) {
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine: {
@@ -1000,36 +999,46 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         initEnginesForEvE(opt.engineName1, opt.engineName2);
         initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
         initializeAndStartEngineFor(P2, opt.enginePath2, opt.engineName2);
-        startEngineVsEngine(opt);
+        m_strategy = std::make_unique<EngineVsEngineStrategy>(this, opt, this);
+        m_strategy->start();
         break;
     }
 
     // 平手：先手エンジン（P1エンジン固定）
     case PlayMode::EvenEngineVsHuman: {
-        startHumanVsEngine(opt, /*engineIsP1=*/true);
+        m_strategy = std::make_unique<HumanVsEngineStrategy>(
+            this, /*engineIsP1=*/true, opt.enginePath1, opt.engineName1);
+        m_strategy->start();
         break;
     }
 
     // 平手：後手エンジン（P2エンジン固定）
     case PlayMode::EvenHumanVsEngine: {
-        startHumanVsEngine(opt, /*engineIsP1=*/false);
+        m_strategy = std::make_unique<HumanVsEngineStrategy>(
+            this, /*engineIsP1=*/false, opt.enginePath2, opt.engineName2);
+        m_strategy->start();
         break;
     }
 
     // 駒落ち：先手エンジン（下手＝P1エンジン固定）
     case PlayMode::HandicapEngineVsHuman: {
-        startHumanVsEngine(opt, /*engineIsP1=*/true);
+        m_strategy = std::make_unique<HumanVsEngineStrategy>(
+            this, /*engineIsP1=*/true, opt.enginePath1, opt.engineName1);
+        m_strategy->start();
         break;
     }
 
     // 駒落ち：後手エンジン（上手＝P2エンジン固定）
     case PlayMode::HandicapHumanVsEngine: {
-        startHumanVsEngine(opt, /*engineIsP1=*/false);
+        m_strategy = std::make_unique<HumanVsEngineStrategy>(
+            this, /*engineIsP1=*/false, opt.enginePath2, opt.engineName2);
+        m_strategy->start();
         break;
     }
 
     case PlayMode::HumanVsHuman:
-        startHumanVsHuman(opt);
+        m_strategy = std::make_unique<HumanVsHumanStrategy>(this);
+        m_strategy->start();
         break;
 
     default:
@@ -1045,349 +1054,6 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
                        << "hist.last=" << (m_positionStrHistory.isEmpty() ? QString("<empty>") : m_positionStrHistory.constLast());
 }
 
-// ============================================================
-// 対局モード別の開始処理
-// ============================================================
-
-void MatchCoordinator::startHumanVsHuman(const StartOptions& /*opt*/)
-{
-    if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] Start HvH"));
-
-    // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
-    ShogiGameController::Player side =
-        m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer;
-    if (side == ShogiGameController::NoPlayer) {
-        side = ShogiGameController::Player1;         // 既定は先手
-        if (m_gc) m_gc->setCurrentPlayer(side);
-    }
-
-    m_cur = (side == ShogiGameController::Player2) ? P2 : P1;
-
-    // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    updateTurnDisplay(m_cur);
-}
-
-// HvE（人間対エンジン）
-//   engineIsP1 == true ならエンジンは先手座席、false なら後手座席
-void MatchCoordinator::startHumanVsEngine(const StartOptions& opt, bool engineIsP1)
-{
-    if (m_hooks.log) {
-        m_hooks.log(QStringLiteral("[Match] Start HvE (engineIsP1=%1)").arg(engineIsP1));
-    }
-
-    // 以前のエンジンは破棄（安全化）
-    destroyEngines();
-
-    // engineIsP1 に応じて適切なエンジン情報を選択する
-    //    - engineIsP1=true（エンジン対人間）: エンジン1の情報を使う
-    //    - engineIsP1=false（人間対エンジン）: エンジン2の情報を使う
-    //    ただし、思考モデルは常にエンジン1スロット（m_comm1/m_think1）を使用
-    const QString& enginePath = engineIsP1 ? opt.enginePath1 : opt.enginePath2;
-    const QString& engineName = engineIsP1 ? opt.engineName1 : opt.engineName2;
-
-    // HvEでは思考モデルは常にエンジン1スロット（m_comm1/m_think1）を使用
-    UsiCommLogModel*          comm  = m_comm1;
-    ShogiEngineThinkingModel* think = m_think1;
-    if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
-    if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
-
-    // 思考タブのエンジン名表示用（EngineAnalysisTab は log model を参照）
-    const QString dispName = engineName.isEmpty() ? QStringLiteral("Engine") : engineName;
-    if (comm) comm->setEngineName(dispName);
-
-    // USI を生成（この時点ではプロセス未起動）
-    // HvEでは常に m_usi1 を使用
-    m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
-    m_usi2 = nullptr;
-
-    // 投了配線
-    wireResignToArbiter(m_usi1, /*asP1=*/engineIsP1);
-    // 入玉宣言勝ち配線
-    wireWinToArbiter(m_usi1, /*asP1=*/engineIsP1);
-
-    // ログ識別（UI 表示用）
-    if (m_usi1) {
-        m_usi1->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("P1"), dispName);
-        m_usi1->setSquelchResignLogging(false);
-    }
-
-    // USI エンジンを起動（path/name 必須）
-    const Player engineSide = engineIsP1 ? P1 : P2;
-    initializeAndStartEngineFor(engineSide, enginePath, engineName);
-
-    // configureAndStart()で既にエンジン名が正しく設定されているため、
-    // ここでの setEngineNames 呼び出しは不要（e2を空で上書きしてしまう問題があった）
-    // if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName1, QString());
-
-    // --- 手番の単一ソースを確立：GC → m_cur → 表示 ---
-    ShogiGameController::Player side =
-        m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer;
-    if (side == ShogiGameController::NoPlayer) {
-        // 既定は先手（SFEN未指定時）
-        side = ShogiGameController::Player1;
-        if (m_gc) m_gc->setCurrentPlayer(side);
-    }
-    m_cur = (side == ShogiGameController::Player2) ? P2 : P1;
-
-    // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    updateTurnDisplay(m_cur);
-}
-
-// EvE の初手を開始する（起動・初期化済み前提）
-void MatchCoordinator::startEngineVsEngine(const StartOptions& opt)
-{
-    if (!m_usi1 || !m_usi2 || !m_gc) return;
-
-    // EvE対局で初手からタイマーを動作させるため、ここで時計を開始する
-    if (m_clock) {
-        m_clock->startClock();
-        qCDebug(lcGame) << "Clock started";
-    }
-
-    // 駒落ちの場合、SFENで手番が「w」（後手番）になっている
-    // GCの currentPlayer() がその手番を持っているはず
-    if (m_gc->currentPlayer() == ShogiGameController::NoPlayer) {
-        // 平手なら先手から、駒落ちならSFENに従う
-        m_gc->setCurrentPlayer(ShogiGameController::Player1);
-    }
-    m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay(m_cur);
-
-    initPositionStringsForEvE(opt.sfenStart);
-
-    // 駒落ちの場合は後手（上手）から開始
-    const bool isHandicap = (m_playMode == PlayMode::HandicapEngineVsEngine);
-    const bool whiteToMove = (m_gc->currentPlayer() == ShogiGameController::Player2);
-
-    if (isHandicap && whiteToMove) {
-        // 駒落ち：後手（上手 = m_usi2）が初手を指す
-        startEvEFirstMoveByWhite();
-    } else {
-        // 平手：先手（下手 = m_usi1）が初手を指す
-        startEvEFirstMoveByBlack();
-    }
-}
-
-// 平手EvE：先手から開始
-void MatchCoordinator::startEvEFirstMoveByBlack()
-{
-    const GoTimes t1 = computeGoTimes();
-    const QString btimeStr1 = QString::number(t1.btime);
-    const QString wtimeStr1 = QString::number(t1.wtime);
-
-    QPoint p1From(-1, -1), p1To(-1, -1);
-    m_gc->setPromote(false);
-
-    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
-        m_positionStr1, m_positionPonder1,
-        p1From, p1To,
-        static_cast<int>(t1.byoyomi),
-        btimeStr1, wtimeStr1,
-        static_cast<int>(t1.binc), static_cast<int>(t1.winc),
-        (t1.byoyomi > 0)
-        );
-
-    QString rec1;
-    PlayMode pm = m_playMode;
-
-    // 先手1手目：次の手を渡す
-    int nextEve = m_eveMoveIndex + 1;
-    if (!m_gc->validateAndMove(
-            p1From, p1To, rec1,
-            pm,
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_clock) {
-        const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
-        m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-        m_clock->applyByoyomiAndResetConsideration1();
-    }
-    if (m_hooks.appendKifuLine && m_clock) {
-        m_hooks.appendKifuLine(rec1, m_clock->getPlayer1ConsiderationAndTotalTime());
-    }
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
-    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
-
-    if (m_usi2) {
-        m_usi2->setPreviousFileTo(p1To.x());
-        m_usi2->setPreviousRankTo(p1To.y());
-    }
-
-    m_positionStr2     = m_positionStr1;
-    m_positionPonder2.clear();
-
-    const GoTimes t2 = computeGoTimes();
-    const QString btimeStr2 = QString::number(t2.btime);
-    const QString wtimeStr2 = QString::number(t2.wtime);
-
-    QPoint p2From(-1, -1), p2To(-1, -1);
-    m_gc->setPromote(false);
-
-    m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
-        m_positionStr2, m_positionPonder2,
-        p2From, p2To,
-        static_cast<int>(t2.byoyomi),
-        btimeStr2, wtimeStr2,
-        static_cast<int>(t2.binc), static_cast<int>(t2.winc),
-        (t2.byoyomi > 0)
-        );
-
-    QString rec2;
-
-    // 後手1手目：次の手を渡す
-    nextEve = m_eveMoveIndex + 1;
-    if (!m_gc->validateAndMove(
-            p2From, p2To, rec2,
-            pm,
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_clock) {
-        const qint64 thinkMs = m_usi2 ? m_usi2->lastBestmoveElapsedMs() : 0;
-        m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-        m_clock->applyByoyomiAndResetConsideration2();
-    }
-    if (m_hooks.appendKifuLine && m_clock) {
-        m_hooks.appendKifuLine(rec2, m_clock->getPlayer2ConsiderationAndTotalTime());
-    }
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
-    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
-
-    // P2の手をP1のポジション文字列に同期
-    m_positionStr1 = m_positionStr2;
-
-    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn);
-}
-
-// 駒落ちEvE：後手（上手）から開始
-void MatchCoordinator::startEvEFirstMoveByWhite()
-{
-    // 後手（上手 = m_usi2）が初手を指す
-    const GoTimes t2 = computeGoTimes();
-    const QString btimeStr2 = QString::number(t2.btime);
-    const QString wtimeStr2 = QString::number(t2.wtime);
-
-    QPoint p2From(-1, -1), p2To(-1, -1);
-    m_gc->setPromote(false);
-
-    m_usi2->handleEngineVsHumanOrEngineMatchCommunication(
-        m_positionStr2, m_positionPonder2,
-        p2From, p2To,
-        static_cast<int>(t2.byoyomi),
-        btimeStr2, wtimeStr2,
-        static_cast<int>(t2.binc), static_cast<int>(t2.winc),
-        (t2.byoyomi > 0)
-        );
-
-    QString rec2;
-    PlayMode pm = m_playMode;
-
-    // 後手（上手）1手目
-    int nextEve = m_eveMoveIndex + 1;
-    if (!m_gc->validateAndMove(
-            p2From, p2To, rec2,
-            pm,
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_clock) {
-        const qint64 thinkMs = m_usi2 ? m_usi2->lastBestmoveElapsedMs() : 0;
-        m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-        m_clock->applyByoyomiAndResetConsideration2();
-    }
-    if (m_hooks.appendKifuLine && m_clock) {
-        m_hooks.appendKifuLine(rec2, m_clock->getPlayer2ConsiderationAndTotalTime());
-    }
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p2From, p2To);
-    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
-
-    if (m_usi1) {
-        m_usi1->setPreviousFileTo(p2To.x());
-        m_usi1->setPreviousRankTo(p2To.y());
-    }
-
-    m_positionStr1     = m_positionStr2;
-    m_positionPonder1.clear();
-
-    // 先手（下手 = m_usi1）が2手目を指す
-    const GoTimes t1 = computeGoTimes();
-    const QString btimeStr1 = QString::number(t1.btime);
-    const QString wtimeStr1 = QString::number(t1.wtime);
-
-    QPoint p1From(-1, -1), p1To(-1, -1);
-    m_gc->setPromote(false);
-
-    m_usi1->handleEngineVsHumanOrEngineMatchCommunication(
-        m_positionStr1, m_positionPonder1,
-        p1From, p1To,
-        static_cast<int>(t1.byoyomi),
-        btimeStr1, wtimeStr1,
-        static_cast<int>(t1.binc), static_cast<int>(t1.winc),
-        (t1.byoyomi > 0)
-        );
-
-    QString rec1;
-
-    // 先手（下手）2手目
-    nextEve = m_eveMoveIndex + 1;
-    if (!m_gc->validateAndMove(
-            p1From, p1To, rec1,
-            pm,
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_clock) {
-        const qint64 thinkMs = m_usi1 ? m_usi1->lastBestmoveElapsedMs() : 0;
-        m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-        m_clock->applyByoyomiAndResetConsideration1();
-    }
-    if (m_hooks.appendKifuLine && m_clock) {
-        m_hooks.appendKifuLine(rec1, m_clock->getPlayer1ConsiderationAndTotalTime());
-    }
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(p1From, p1To);
-    updateTurnDisplay((m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2);
-
-    // P1の手をP2のポジション文字列に同期
-    m_positionStr2 = m_positionStr1;
-
-    QTimer::singleShot(std::chrono::milliseconds(0), this, &MatchCoordinator::kickNextEvETurn);
-}
-
 Usi* MatchCoordinator::primaryEngine() const
 {
     return m_usi1;
@@ -1396,122 +1062,6 @@ Usi* MatchCoordinator::primaryEngine() const
 Usi* MatchCoordinator::secondaryEngine() const
 {
     return m_usi2;
-}
-
-void MatchCoordinator::initPositionStringsForEvE(const QString& sfenStart)
-{
-    m_positionStr1.clear();
-    m_positionPonder1.clear();
-    m_positionStr2.clear();
-    m_positionPonder2.clear();
-
-    // 平手の場合は startpos を使用、駒落ちの場合は sfen を使用
-    static const QString kStartBoard =
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-
-    QString base;
-    if (m_playMode == PlayMode::HandicapEngineVsEngine && !sfenStart.isEmpty()) {
-        // SFENから盤面部分を抽出して平手かどうか判定
-        QString checkSfen = sfenStart;
-        if (checkSfen.startsWith(QLatin1String("position sfen "))) {
-            checkSfen = checkSfen.mid(QStringLiteral("position sfen ").size()).trimmed();
-        }
-        const QStringList tok = checkSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-        const bool isStandardStart = (!tok.isEmpty() && tok[0] == kStartBoard);
-
-        if (!isStandardStart) {
-            // 駒落ち：position sfen <sfen> moves の形式を使用
-            if (sfenStart.startsWith(QLatin1String("position "))) {
-                base = sfenStart;
-                // 末尾に " moves" がなければ追加
-                if (!base.contains(QLatin1String(" moves"))) {
-                    base += QStringLiteral(" moves");
-                }
-            } else {
-                base = QStringLiteral("position sfen ") + sfenStart + QStringLiteral(" moves");
-            }
-        } else {
-            base = QStringLiteral("position startpos moves");
-        }
-    } else {
-        base = QStringLiteral("position startpos moves");
-    }
-    m_positionStr1 = base;
-    m_positionStr2 = base;
-}
-
-void MatchCoordinator::kickNextEvETurn()
-{
-    if (m_playMode != PlayMode::EvenEngineVsEngine && m_playMode != PlayMode::HandicapEngineVsEngine) return;
-    if (!m_usi1 || !m_usi2 || !m_gc) return;
-
-    const bool p1ToMove = (m_gc->currentPlayer() == ShogiGameController::Player1);
-    Usi* mover    = p1ToMove ? m_usi1 : m_usi2;
-    Usi* receiver = p1ToMove ? m_usi2 : m_usi1;
-
-    QString& pos    = p1ToMove ? m_positionStr1     : m_positionStr2;
-    QString& ponder = p1ToMove ? m_positionPonder1  : m_positionPonder2;
-
-    QPoint from(-1,-1), to(-1,-1);
-    if (!engineThinkApplyMove(mover, pos, ponder, &from, &to))
-        return;
-
-    QString rec;
-
-    // 次の手を渡す
-    int nextEve = m_eveMoveIndex + 1;
-    if (!m_gc->validateAndMove(from, to, rec, m_playMode,
-                               nextEve, sfenRecordForEvE(), gameMovesForEvE())) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    // 相手側のポジション文字列を同期
-    if (p1ToMove) {
-        m_positionStr2 = m_positionStr1;
-    } else {
-        m_positionStr1 = m_positionStr2;
-    }
-
-    if (m_clock) {
-        const qint64 thinkMs = mover ? mover->lastBestmoveElapsedMs() : 0;
-        if (p1ToMove) {
-            m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-            m_clock->applyByoyomiAndResetConsideration1();
-        } else {
-            m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-            m_clock->applyByoyomiAndResetConsideration2();
-        }
-    }
-    if (m_hooks.appendKifuLine && m_clock) {
-        const QString elapsed = p1ToMove
-                                    ? m_clock->getPlayer1ConsiderationAndTotalTime()
-                                    : m_clock->getPlayer2ConsiderationAndTotalTime();
-        m_hooks.appendKifuLine(rec, elapsed);
-    }
-
-    if (receiver) {
-        receiver->setPreviousFileTo(to.x());
-        receiver->setPreviousRankTo(to.y());
-    }
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(from, to);
-    updateTurnDisplay(
-        (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2
-        );
-
-    // 千日手チェック
-    if (checkAndHandleSennichite()) return;
-
-    // 最大手数チェック
-    if (m_maxMoves > 0 && m_eveMoveIndex >= m_maxMoves) {
-        handleMaxMovesJishogi();
-        return;
-    }
-
-    QTimer::singleShot(0, this, &MatchCoordinator::kickNextEvETurn);
 }
 
 // ============================================================
@@ -1553,54 +1103,15 @@ qint64 MatchCoordinator::turnEpochFor(Player side) const {
 // ============================================================
 
 void MatchCoordinator::armTurnTimerIfNeeded() {
-    if (!m_turnTimerArmed) {
-        m_turnTimer.start();
-        m_turnTimerArmed = true;
-    }
+    if (m_strategy) m_strategy->armTurnTimerIfNeeded();
 }
 
 void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player mover) {
-    if (!m_turnTimerArmed) return;
-    const qint64 ms = m_turnTimer.isValid() ? m_turnTimer.elapsed() : 0;
-    if (m_clock) {
-        if (mover == P1) m_clock->setPlayer1ConsiderationTime(static_cast<int>(ms));
-        else             m_clock->setPlayer2ConsiderationTime(static_cast<int>(ms));
-    }
-    m_turnTimer.invalidate();
-    m_turnTimerArmed = false;
-}
-
-// ============================================================
-// 人間側の計測（HvEでの人間手）
-// ============================================================
-
-void MatchCoordinator::armHumanTimerIfNeeded() {
-    if (!m_humanTimerArmed) {
-        m_humanTurnTimer.start();
-        m_humanTimerArmed = true;
-    }
-}
-
-void MatchCoordinator::finishHumanTimerAndSetConsideration() {
-    // どちらが「人間側」かは Main からのフックで取得（HvE想定）
-    if (!m_hooks.humanPlayerSide) return;
-    const Player side = m_hooks.humanPlayerSide();
-
-    // ShogiClock 内部の考慮msをそのまま反映
-    if (m_clock) {
-        const qint64 clkMs = (side == P1) ? m_clock->player1ConsiderationMs()
-                                          : m_clock->player2ConsiderationMs();
-        if (side == P1) m_clock->setPlayer1ConsiderationTime(static_cast<int>(clkMs));
-        else            m_clock->setPlayer2ConsiderationTime(static_cast<int>(clkMs));
-    }
-    if (m_humanTurnTimer.isValid()) m_humanTurnTimer.invalidate();
-    m_humanTimerArmed = false;
+    if (m_strategy) m_strategy->finishTurnTimerAndSetConsideration(static_cast<int>(mover));
 }
 
 void MatchCoordinator::disarmHumanTimerIfNeeded() {
-    if (!m_humanTimerArmed) return;
-    m_humanTimerArmed = false;
-    m_humanTurnTimer.invalidate();
+    if (m_strategy) m_strategy->disarmTurnTimer();
 }
 
 // ============================================================
@@ -2388,346 +1899,9 @@ void MatchCoordinator::initPositionStringsFromSfen(const QString& sfenBase)
     }
 }
 
-// ---------------------------------------------
-// 初手がエンジン手番なら 1手だけ起動
-// ---------------------------------------------
 void MatchCoordinator::startInitialEngineMoveIfNeeded()
 {
-    if (!m_gc) return;
-
-    const bool engineIsP1 = (m_playMode == PlayMode::EvenEngineVsHuman) || (m_playMode == PlayMode::HandicapEngineVsHuman);
-    const bool engineIsP2 = (m_playMode == PlayMode::EvenHumanVsEngine) || (m_playMode == PlayMode::HandicapHumanVsEngine);
-
-    const auto sideToMove = m_gc->currentPlayer();
-
-    if (engineIsP1 && sideToMove == ShogiGameController::Player1) {
-        startInitialEngineMoveFor(P1);
-    } else if (engineIsP2 && sideToMove == ShogiGameController::Player2) {
-        startInitialEngineMoveFor(P2);
-    }
-}
-
-// （内部）指定したエンジン側で 1手だけ指す
-void MatchCoordinator::startInitialEngineMoveFor(Player engineSide)
-{
-    Usi* eng = primaryEngine();
-    if (!eng || !m_gc) return;
-
-    auto extractMoveNumber = [](const QString& sfen) -> int {
-        const QStringList tok = sfen.split(' ', Qt::SkipEmptyParts);
-        if (tok.size() >= 5) return tok.last().toInt();
-        return -1;
-    };
-
-    if (m_positionStr1.isEmpty()) {
-        initPositionStringsFromSfen(QString()); // startpos moves
-    }
-    if (!m_positionStr1.startsWith(QLatin1String("position "))) {
-        m_positionStr1 = QStringLiteral("position startpos moves");
-    }
-
-    const int mcCur = m_currentMoveIndex;
-    const qsizetype recSizeBefore = m_sfenHistory ? m_sfenHistory->size() : -1;
-    const QString recTailBefore = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
-    qCDebug(lcGame).noquote() << "HvE:init enter  mcCur=" << mcCur
-                             << " recSizeBefore=" << recSizeBefore
-                             << " recTailBefore='" << recTailBefore << "'";
-
-    qint64 bMs = 0, wMs = 0;
-    computeGoTimesForUSI(bMs, wMs);
-    const QString bTime = QString::number(bMs);
-    const QString wTime = QString::number(wMs);
-
-    const auto tc = timeControl();
-    const int  byoyomiMs = (engineSide == P1) ? tc.byoyomiMs1 : tc.byoyomiMs2;
-
-    QPoint eFrom(-1, -1), eTo(-1, -1);
-    m_gc->setPromote(false);
-
-    eng->handleEngineVsHumanOrEngineMatchCommunication(
-        m_positionStr1,
-        m_positionPonder1,
-        eFrom, eTo,
-        byoyomiMs,
-        bTime, wTime,
-        tc.incMs1, tc.incMs2,
-        tc.useByoyomi
-        );
-
-    QString rec;
-    int nextIdx = mcCur + 1;
-    const bool ok = m_gc->validateAndMove(
-        eFrom, eTo, rec, m_playMode,
-        nextIdx, m_sfenHistory, gameMovesRef());
-
-    const QString recTailAfter = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
-    const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
-
-    qCDebug(lcGame).noquote() << "HvE:init v&m=" << ok
-                             << " nextIdx=" << nextIdx
-                             << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
-
-    if (!ok) return;
-
-    // エンジン初手の手数インデックスを更新（同期漏れ防止）
-    m_currentMoveIndex = nextIdx;
-
-    const qint64 thinkMs = eng->lastBestmoveElapsedMs();
-    if (m_clock) {
-        if (engineSide == P1) {
-            m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-            m_clock->applyByoyomiAndResetConsideration1(); // ← 条件を外して常に適用
-        } else {
-            m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-            m_clock->applyByoyomiAndResetConsideration2(); // ← 条件を外して常に適用
-        }
-    }
-    if (m_hooks.appendKifuLine && m_clock) {
-        const QString elapsed = (engineSide == P1)
-        ? m_clock->getPlayer1ConsiderationAndTotalTime()
-        : m_clock->getPlayer2ConsiderationAndTotalTime();
-        m_hooks.appendKifuLine(rec, elapsed);
-    }
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay(m_cur);
-
-    armHumanTimerIfNeeded();
-
-    qCDebug(lcGame) << "about to call appendEval, engineSide=" << (engineSide == P1 ? "P1" : "P2");
-    if (engineSide == P1) {
-        qCDebug(lcGame) << "calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
-        if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
-    } else {
-        qCDebug(lcGame) << "calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
-        if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
-    }
-
-    // 千日手チェック
-    if (checkAndHandleSennichite()) return;
-
-    // 最大手数チェック
-    if (m_maxMoves > 0 && nextIdx >= m_maxMoves) {
-        handleMaxMovesJishogi();
-        return;
-    }
-}
-
-// ---------------------------------------------
-// HvE: 人間が指した直後の 1手返しを司令塔で完結
-// ---------------------------------------------
-void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo)
-{
-    auto extractMoveNumber = [](const QString& sfen) -> int {
-        const QStringList tok = sfen.split(' ', Qt::SkipEmptyParts);
-        // SFEN は <board> <turn> <hands> <move> の 4 トークン
-        if (tok.size() >= 4) return tok.last().toInt();
-        return -1;
-    };
-
-    // sfenRecordと手数インデックスを同期
-    int mcCur = m_currentMoveIndex;
-    if (m_sfenHistory) {
-        const int fromRec = static_cast<int>(qMax(qsizetype(0), m_sfenHistory->size() - 1));
-        if (fromRec != mcCur) {
-            qCDebug(lcGame) << "HvE sync mcCur" << mcCur << "->" << fromRec
-                            << "(by recSize=" << m_sfenHistory->size() << ")";
-            mcCur = fromRec;
-            m_currentMoveIndex = fromRec;
-        }
-    }
-
-    const qsizetype recSizeBefore = m_sfenHistory ? m_sfenHistory->size() : -1;
-    const QString recTailBefore = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
-    qCDebug(lcGame).noquote() << "HvE enter  mcCur=" << mcCur
-                             << " recSizeBefore=" << recSizeBefore
-                             << " recTailBefore='" << recTailBefore << "'"
-                             << " humanFrom=" << humanFrom << " humanTo=" << humanTo;
-
-    // 人間側のストップウォッチ締め＆考慮確定（既存）
-    finishHumanTimerAndSetConsideration();
-
-    if (Usi* eng = primaryEngine()) {
-        eng->setPreviousFileTo(humanTo.x());
-        eng->setPreviousRankTo(humanTo.y());
-    }
-
-    // USIに渡す残り時間
-    qint64 bMs = 0, wMs = 0;
-    computeGoTimesForUSI(bMs, wMs);
-    const QString bTime = QString::number(bMs);
-    const QString wTime = QString::number(wMs);
-
-    const bool engineIsP1 =
-        (m_playMode == PlayMode::EvenEngineVsHuman) || (m_playMode == PlayMode::HandicapEngineVsHuman);
-    const ShogiGameController::Player engineSeat =
-        engineIsP1 ? ShogiGameController::Player1 : ShogiGameController::Player2;
-
-    // 千日手チェック（人間の手の後）
-    if (checkAndHandleSennichite()) return;
-
-    const bool engineTurnNow = (m_gc && (m_gc->currentPlayer() == engineSeat));
-    qCDebug(lcGame).noquote() << "HvE engineTurnNow=" << engineTurnNow
-                             << " engineSeat=" << int(engineSeat);
-    if (!engineTurnNow) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
-
-    Usi* eng = primaryEngine();
-    if (!eng || !m_gc || !m_sfenHistory) { if (!gameOverState().isOver) armHumanTimerIfNeeded(); return; }
-
-    if (m_positionStr1.isEmpty()) { initPositionStringsFromSfen(QString()); }
-    if (!m_positionStr1.startsWith(QLatin1String("position "))) {
-        m_positionStr1 = QStringLiteral("position startpos moves");
-    }
-
-    const auto tc = timeControl();
-    const int byoyomiMs = engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
-
-    QPoint eFrom = humanFrom, eTo = humanTo;
-    m_gc->setPromote(false);
-
-    eng->handleHumanVsEngineCommunication(
-        m_positionStr1, m_positionPonder1,
-        eFrom, eTo,
-        byoyomiMs,
-        bTime, wTime,
-        m_positionStrHistory,
-        tc.incMs1, tc.incMs2,
-        tc.useByoyomi
-        );
-
-    QString rec;
-    int nextIdx = mcCur + 1;
-    const bool ok = m_gc->validateAndMove(
-        eFrom, eTo, rec, m_playMode,
-        nextIdx, m_sfenHistory, gameMovesRef());
-
-    const QString recTailAfter = (m_sfenHistory && !m_sfenHistory->isEmpty()) ? m_sfenHistory->last() : QString();
-    const int recTailNum = recTailAfter.isEmpty() ? -1 : extractMoveNumber(recTailAfter);
-
-    qCDebug(lcGame).noquote() << "HvE v&m=" << ok
-                             << " argMove(nextIdx)=" << nextIdx
-                             << " mcCur(before sync calc)=" << mcCur
-                             << " recTailAfter='" << recTailAfter << "' num=" << recTailNum;
-
-    if (ok) {
-        m_currentMoveIndex = nextIdx;
-        qCDebug(lcGame).noquote() << "HvE mcCur ->" << m_currentMoveIndex;
-    } else {
-        if (!gameOverState().isOver) armHumanTimerIfNeeded();
-        return;
-    }
-
-    // 千日手チェック（エンジンの手の後）
-    if (checkAndHandleSennichite()) return;
-
-    if (m_hooks.showMoveHighlights) m_hooks.showMoveHighlights(eFrom, eTo);
-
-    // エンジンの考慮時間を確定してから棋譜に追記する
-    const qint64 thinkMs = eng->lastBestmoveElapsedMs();
-    if (m_clock) {
-        if (m_gc->currentPlayer() == ShogiGameController::Player1) {
-            // 直前に指したのは後手(P2)
-            m_clock->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-            m_clock->applyByoyomiAndResetConsideration2(); // ← 追加
-        } else {
-            // 直前に指したのは先手(P1)
-            m_clock->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-            m_clock->applyByoyomiAndResetConsideration1(); // ← 追加
-        }
-    }
-
-    if (m_hooks.appendKifuLine && m_clock) {
-        const QString elapsed = (m_gc->currentPlayer() == ShogiGameController::Player1)
-        ? m_clock->getPlayer2ConsiderationAndTotalTime()
-        : m_clock->getPlayer1ConsiderationAndTotalTime();
-        m_hooks.appendKifuLine(rec, elapsed);
-    }
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-    m_cur = (m_gc->currentPlayer() == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay(m_cur);
-
-    // エンジン着手後の評価値追加
-    // engineIsP1: エンジンがP1（先手）の場合 → appendEvalP1
-    //             エンジンがP2（後手）の場合 → appendEvalP2
-    qCDebug(lcGame) << "onHumanMove: about to call appendEval, engineIsP1=" << engineIsP1;
-    if (engineIsP1) {
-        qCDebug(lcGame) << "onHumanMove: calling appendEvalP1, hook set=" << (m_hooks.appendEvalP1 ? "YES" : "NO");
-        if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
-    } else {
-        qCDebug(lcGame) << "onHumanMove: calling appendEvalP2, hook set=" << (m_hooks.appendEvalP2 ? "YES" : "NO");
-        if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
-    }
-
-    // 最大手数チェック
-    if (m_maxMoves > 0 && m_currentMoveIndex >= m_maxMoves) {
-        handleMaxMovesJishogi();
-        return;
-    }
-
-    if (!gameOverState().isOver) armHumanTimerIfNeeded();
-}
-
-// 人間手直後に「考慮時間確定 → byoyomi/inc 適用 → KIF追記 → 人間手ハイライト」を済ませ、
-// その後のエンジン1手返し等は既存の2引数版へ委譲する。
-void MatchCoordinator::onHumanMove_HvE(const QPoint& humanFrom, const QPoint& humanTo, const QString& prettyMove)
-{
-    const bool humanIsP1 =
-        (m_playMode == PlayMode::EvenHumanVsEngine) || (m_playMode == PlayMode::HandicapHumanVsEngine);
-    const ShogiGameController::Player engineSeat =
-        humanIsP1 ? ShogiGameController::Player2 : ShogiGameController::Player1;
-
-    // 0) 人間手のハイライト
-    if (m_hooks.showMoveHighlights) {
-        m_hooks.showMoveHighlights(humanFrom, humanTo);
-    }
-
-    // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
-    if (m_clock) {
-        if (humanIsP1) {
-            const qint64 ms = m_clock->player1ConsiderationMs();
-            m_clock->setPlayer1ConsiderationTime(static_cast<int>(ms));
-            m_clock->applyByoyomiAndResetConsideration1();
-
-            if (m_hooks.appendKifuLine) {
-                m_hooks.appendKifuLine(prettyMove, m_clock->getPlayer1ConsiderationAndTotalTime());
-            }
-            // 従来互換：クリア
-            m_clock->setPlayer1ConsiderationTime(0);
-        } else {
-            const qint64 ms = m_clock->player2ConsiderationMs();
-            m_clock->setPlayer2ConsiderationTime(static_cast<int>(ms));
-            m_clock->applyByoyomiAndResetConsideration2();
-
-            if (m_hooks.appendKifuLine) {
-                m_hooks.appendKifuLine(prettyMove, m_clock->getPlayer2ConsiderationAndTotalTime());
-            }
-            // 従来互換：クリア
-            m_clock->setPlayer2ConsiderationTime(0);
-        }
-
-        // ラベルなど即時更新
-        pokeTimeUpdateNow();
-    }
-
-    // 人間手の棋譜追記中にUI側の手番同期が割り込み、GC手番が人間側へ戻ることがある。
-    // エンジン返し手の直前で、司令塔の期待手番（エンジン席）へ補正しておく。
-    if (m_gc && m_gc->currentPlayer() != engineSeat) {
-        qCDebug(lcGame).noquote()
-            << "HvE(pretty): correcting GC turn before engine reply"
-            << " current=" << static_cast<int>(m_gc->currentPlayer())
-            << " expected(engineSeat)=" << static_cast<int>(engineSeat);
-        m_gc->setCurrentPlayer(engineSeat);
-    }
-
-    // 「次の手番」ラベルをエンジン側に切り替える
-    // （TurnSyncBridge 経由のシグナルは棋譜追記中の再入で確実に到達しない場合がある）
-    updateTurnDisplay(humanIsP1 ? P2 : P1);
-
-    // 2) 以降（エンジン go → bestmove → 盤/棋譜反映）は既存の2引数版に委譲
-    //    finishHumanTimerAndSetConsideration() は2引数版の先頭で呼ばれるが、二重でも実害が出ない想定。
-    onHumanMove_HvE(humanFrom, humanTo);
+    if (m_strategy) m_strategy->startInitialMoveIfNeeded();
 }
 
 void MatchCoordinator::setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks) {
@@ -3168,31 +2342,10 @@ void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
     markGameOverMoveAppended();
 }
 
-void MatchCoordinator::onHumanMove_HvH(ShogiGameController::Player moverBefore)
+void MatchCoordinator::onHumanMove(const QPoint& from, const QPoint& to,
+                                   const QString& prettyMove)
 {
-    // 千日手チェック（SFENは呼び出し前に追加済み）
-    if (checkAndHandleSennichite()) return;
-
-    const Player moverP = (moverBefore == ShogiGameController::Player1) ? P1 : P2;
-
-    // 直前手の消費時間（consideration）を確定
-    finishTurnTimerAndSetConsiderationFor(moverP);
-
-    // HvH でも秒読み/インクリメントを適用し、総考慮へ加算して表示値を確定
-    if (m_clock) {
-        if (moverP == P1) {
-            m_clock->applyByoyomiAndResetConsideration1();
-        } else {
-            m_clock->applyByoyomiAndResetConsideration2();
-        }
-    }
-
-    // 表示更新（時計ラベル等）
-    if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] HvH: finalize previous turn"));
-    if (m_clock)     handleTimeUpdated(); // 既存の UI 更新経路
-
-    // 次手番の計測と UI 準備
-    armTurnTimerIfNeeded();
+    if (m_strategy) m_strategy->onHumanMove(from, to, prettyMove);
 }
 
 void MatchCoordinator::forceImmediateMove()
@@ -3389,11 +2542,11 @@ bool MatchCoordinator::checkAndHandleSennichite()
 {
     if (m_gameOver.isOver) return false;
 
-    // EvEの場合はEvE用のSFEN履歴を使用
-    const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
-    const QStringList* rec = isEvE ? sfenRecordForEvE() : m_sfenHistory;
+    // EvEの場合はEvE Strategy内のSFEN履歴を使用
+    const QStringList* rec = m_sfenHistory;
+    if (auto* eve = dynamic_cast<EngineVsEngineStrategy*>(m_strategy.get())) {
+        rec = eve->sfenRecordForEvE();
+    }
     if (!rec || rec->size() < 4) return false;
 
     const auto result = SennichiteDetector::check(*rec);
