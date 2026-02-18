@@ -884,7 +884,6 @@ void MainWindow::displayKifuAnalysisDialog()
 
     // 解析に必要な依存オブジェクトを設定
     m_dialogCoordinator->setAnalysisModel(m_analysisModel);
-    m_dialogCoordinator->setAnalysisTab(m_analysisTab);
     if (m_analysisTab) {
         m_dialogCoordinator->setConsiderationTabManager(m_analysisTab->considerationTabManager());
     }

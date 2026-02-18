@@ -4,45 +4,45 @@
 <context>
     <name>AnalysisFlowController</name>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="47"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="816"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="46"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="814"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="51"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="820"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="50"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="818"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="55"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="54"/>
         <source>内部エラー: Usi インスタンスが未初期化です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="206"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="204"/>
         <source>エンジン選択が不正です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="557"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="669"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="555"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="667"/>
         <source>（定跡）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="961"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="959"/>
         <source>先手</source>
         <translation type="unfinished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="962"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="960"/>
         <source>後手</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="1119"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="1117"/>
         <source>エンジンエラー: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1161,18 +1161,18 @@
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="419"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="412"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="685"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="678"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="419"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="691"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="412"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="684"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
@@ -3649,27 +3649,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1180"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1179"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1181"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1180"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3800"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3799"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3802"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3801"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3805"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3804"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3694,7 +3694,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3295"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3294"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3703,17 +3703,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3774"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3773"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3776"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3775"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3780"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3779"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
