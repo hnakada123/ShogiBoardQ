@@ -8,6 +8,8 @@ set(SRC ${CMAKE_SOURCE_DIR}/src)
 set(TEST_STUBS
     ${CMAKE_CURRENT_SOURCE_DIR}/test_stubs.cpp
     ${SRC}/common/errorbus.cpp
+    ${SRC}/kifu/formats/parsecommon.cpp
+    ${SRC}/kifu/formats/sfencsapositionconverter.cpp
 )
 
 # Common include directories for all tests

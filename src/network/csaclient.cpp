@@ -349,6 +349,11 @@ void CsaClient::processLine(const QString& line)
             // 対局拒否
             // REJECT:<GameID> by <rejector>
             qsizetype byIndex = line.indexOf(QStringLiteral(" by "));
+            if (byIndex <= 7 || byIndex + 4 >= line.size()) {
+                qCWarning(lcNetwork) << "Malformed REJECT line:" << line;
+                emit errorOccurred(tr("不正なREJECT応答を受信しました: %1").arg(line));
+                return;
+            }
             QString gameId = line.mid(7, static_cast<int>(byIndex) - 7);
             QString rejector = line.mid(static_cast<int>(byIndex) + 4);
             setConnectionState(ConnectionState::WaitingForGame);
@@ -680,5 +685,11 @@ void CsaClient::setConnectionState(ConnectionState state)
 
 int CsaClient::parseConsumedTime(const QString& timeStr) const
 {
-    return timeStr.toInt();
+    bool ok = false;
+    const int value = timeStr.toInt(&ok);
+    if (!ok || value < 0) {
+        qCWarning(lcNetwork) << "Invalid consumed time token:" << timeStr;
+        return 0;
+    }
+    return value;
 }

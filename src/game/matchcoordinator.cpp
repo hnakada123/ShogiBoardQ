@@ -20,6 +20,7 @@
 #include "kifurecordlistmodel.h"
 #include "sfenpositiontracer.h"
 #include "sennichitedetector.h"
+#include "enginegameovernotifier.h"
 
 Q_LOGGING_CATEGORY(lcGame, "shogi.game")
 
@@ -161,55 +162,16 @@ void MatchCoordinator::handleResign() {
 
     // 投了は「現在手番側」が行う：GCの現在手番から判定
     info.loser = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
-    // 勝者は敗者の逆（loserと同じソースから計算）
-    const Player winner = (info.loser == P1) ? P2 : P1;
-
-    // エンジンへの最終通知（HvE / EvE の両方に対応）
-    // HvE/HvH は PlayMode から判定（m_usi2 の状態に依存しない）
-    const bool isHvE = (m_playMode == PlayMode::EvenHumanVsEngine) ||
-                       (m_playMode == PlayMode::EvenEngineVsHuman) ||
-                       (m_playMode == PlayMode::HandicapHumanVsEngine) ||
-                       (m_playMode == PlayMode::HandicapEngineVsHuman);
-    const bool isHvH = (m_playMode == PlayMode::HumanVsHuman);
-
-    if (m_hooks.sendRawToEngine) {
-        if (isHvE) {
-            // HvE：人間が投了＝エンジン勝ち。
-            if (m_usi1) {
-                m_hooks.sendRawToEngine(m_usi1, QStringLiteral("gameover win"));
-                m_hooks.sendRawToEngine(m_usi1, QStringLiteral("quit"));
-            }
-        } else if (!isHvH) {
-            // EvE：勝者/敗者のエンジンそれぞれに通知
-            Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
-            Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
-            if (loseEng) m_hooks.sendRawToEngine(loseEng, QStringLiteral("gameover lose"));
-            if (winEng)  {
-                m_hooks.sendRawToEngine(winEng,  QStringLiteral("gameover win"));
-                m_hooks.sendRawToEngine(winEng,  QStringLiteral("quit"));
-            }
+    auto rawSender = [this](Usi* which, const QString& cmd) {
+        if (!which) return;
+        if (m_hooks.sendRawToEngine) {
+            m_hooks.sendRawToEngine(which, cmd);
+        } else {
+            sendRawTo(which, cmd);
         }
-        // HvH の場合はエンジンへの通知不要
-    } else {
-        // hooks未指定でも最低限の通知を司令塔内で実施
-        if (isHvE) {
-            // HvE：人間が投了＝エンジン勝ち。
-            if (m_usi1) {
-                sendRawTo(m_usi1, QStringLiteral("gameover win"));
-                sendRawTo(m_usi1, QStringLiteral("quit"));
-            }
-        } else if (!isHvH) {
-            // EvE：勝者/敗者のエンジンそれぞれに通知
-            Usi* winEng  = (winner     == P1) ? m_usi1 : m_usi2;
-            Usi* loseEng = (info.loser == P1) ? m_usi1 : m_usi2;
-            if (loseEng) sendRawTo(loseEng, QStringLiteral("gameover lose"));
-            if (winEng)  {
-                sendRawTo(winEng,  QStringLiteral("gameover win"));
-                sendRawTo(winEng,  QStringLiteral("quit"));
-            }
-        }
-        // HvH の場合はエンジンへの通知不要
-    }
+    };
+    EngineGameOverNotifier::notifyResignation(
+        m_playMode, info.loser == P1, m_usi1, m_usi2, rawSender);
 
     // 司令塔のゲームオーバー状態を確定（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UIへ）
     setGameOver(info, /*loserIsP1=*/(info.loser==P1), /*appendMoveOnce=*/true);
@@ -226,18 +188,18 @@ void MatchCoordinator::handleEngineResign(int idx) {
     info.cause = Cause::Resignation;
     info.loser = (idx == 1 ? P1 : P2);
 
-    // 負け側には lose + quit、勝ち側には win + quit を送る
-    Usi* loserEng  = (info.loser == P1) ? m_usi1 : m_usi2;
-    Usi* winnerEng = (info.loser == P1) ? m_usi2 : m_usi1;
-
-    if (loserEng) {
-        loserEng->sendGameOverLoseAndQuitCommands();
-        loserEng->setSquelchResignLogging(true); // 任意：終局後の雑音ログ抑制
-    }
-    if (winnerEng) {
-        winnerEng->sendGameOverWinAndQuitCommands();
-        winnerEng->setSquelchResignLogging(true);
-    }
+    auto rawSender = [this](Usi* which, const QString& cmd) {
+        if (!which) return;
+        if (m_hooks.sendRawToEngine) {
+            m_hooks.sendRawToEngine(which, cmd);
+        } else {
+            sendRawTo(which, cmd);
+        }
+    };
+    EngineGameOverNotifier::notifyResignation(
+        m_playMode, info.loser == P1, m_usi1, m_usi2, rawSender);
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+    if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
     // 司令塔のゲームオーバー状態を確定（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UIへ）
     const bool loserIsP1 = (info.loser == P1);
@@ -283,54 +245,18 @@ void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, 
         info.loser = declarer;  // 宣言者が敗者
     }
 
-    // エンジンへの終了通知
-    const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
-    if (isEvE) {
-        if (isDraw) {
-            // 引き分け
-            if (m_usi1) {
-                m_usi1->sendGameOverCommand(QStringLiteral("draw"));
-                m_usi1->sendQuitCommand();
-                m_usi1->setSquelchResignLogging(true);
-            }
-            if (m_usi2) {
-                m_usi2->sendGameOverCommand(QStringLiteral("draw"));
-                m_usi2->sendQuitCommand();
-                m_usi2->setSquelchResignLogging(true);
-            }
+    auto rawSender = [this](Usi* which, const QString& cmd) {
+        if (!which) return;
+        if (m_hooks.sendRawToEngine) {
+            m_hooks.sendRawToEngine(which, cmd);
         } else {
-            // 勝敗あり
-            Usi* winnerEng = (info.loser == P1) ? m_usi2 : m_usi1;
-            Usi* loserEng  = (info.loser == P1) ? m_usi1 : m_usi2;
-            if (winnerEng) {
-                winnerEng->sendGameOverCommand(QStringLiteral("win"));
-                winnerEng->sendQuitCommand();
-                winnerEng->setSquelchResignLogging(true);
-            }
-            if (loserEng) {
-                loserEng->sendGameOverCommand(QStringLiteral("lose"));
-                loserEng->sendQuitCommand();
-                loserEng->setSquelchResignLogging(true);
-            }
+            sendRawTo(which, cmd);
         }
-    } else {
-        // HvE の場合は主エンジンへ通知
-        if (Usi* eng = primaryEngine()) {
-            if (isDraw) {
-                eng->sendGameOverCommand(QStringLiteral("draw"));
-            } else if (info.loser == P1) {
-                // P1（人間）の負け
-                eng->sendGameOverCommand(QStringLiteral("win"));
-            } else {
-                // P2（エンジン）の負け
-                eng->sendGameOverCommand(QStringLiteral("lose"));
-            }
-            eng->sendQuitCommand();
-            eng->setSquelchResignLogging(true);
-        }
-    }
+    };
+    EngineGameOverNotifier::notifyNyugyoku(
+        m_playMode, isDraw, info.loser == P1, m_usi1, m_usi2, rawSender);
+    if (m_usi1) m_usi1->setSquelchResignLogging(true);
+    if (m_usi2) m_usi2->setSquelchResignLogging(true);
 
     // 終局状態を確定
     const bool loserIsP1 = (info.loser == P1);

@@ -276,7 +276,7 @@ private:
     // --- プライベートメソッド ---
     
     void setupConnections();
-    void changeDirectoryToEnginePath(const QString& engineFile);
+    bool changeDirectoryToEnginePath(const QString& engineFile);
     void cloneCurrentBoardData();
     void applyMovesToBoardFromBestMoveAndPonder();
     

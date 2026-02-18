@@ -88,6 +88,7 @@ class EvaluationChartWidget;
 class BoardSyncPresenter;
 class AnalysisResultsPresenter;
 class GameStartCoordinator;
+class GameSessionFacade;
 class AnalysisCoordinator;
 class GameRecordPresenter;
 class TimeDisplayPresenter;
@@ -573,6 +574,7 @@ private:
     UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
     RecordNavigationHandler* m_recordNavHandler = nullptr;             ///< 棋譜ナビゲーションハンドラ（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
+    GameSessionFacade* m_gameSessionFacade = nullptr;                  ///< 対局セッションファサード（非所有）
 
     // --- 分岐ナビゲーション ---
     KifuBranchTree* m_branchTree = nullptr;              ///< 分岐ツリーデータ（非所有）

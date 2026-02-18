@@ -4,54 +4,23 @@
 #include "kiftosfenconverter.h"
 #include "kifreader.h"
 #include "board/sfenpositiontracer.h"
+#include "parsecommon.h"
 
 #include <QRegularExpression>
 #include "kifulogging.h"
 #include <QMap>
-#include <array>
-
-// 全角数字文字列（exit-time destructor回避）
-static const QString& zenkakuDigitsStr() {
-    static const auto& s = *[]() {
-        static const QString str = QStringLiteral("０１２３４５６７８９");
-        return &str;
-    }();
-    return s;
-}
-
-// 半角/全角の数字1桁 → int（0..9）。クラス外から使える軽量ラッパ
-static inline int asciiDigitToInt(QChar c) {
-    const ushort u = c.unicode();
-    return (u >= '0' && u <= '9') ? (u - '0') : 0;
-}
-static inline int zenkakuDigitToInt(QChar c) {
-    const int idx = static_cast<int>(zenkakuDigitsStr().indexOf(c));
-    return (idx >= 0) ? idx : 0;
-}
 
 // 1桁（半角/全角）→ int。QString の range-for を使わず detach 回避。
 static inline int flexDigitToInt_NoDetach(QChar c)
 {
-    int v = asciiDigitToInt(c);
-    if (!v) v = zenkakuDigitToInt(c);
-    return v;
+    return KifuParseCommon::flexDigitToIntNoDetach(c);
 }
 
 // 文字列に含まれる（半角/全角）数字を int へ。
 // QString を range-for しない（detach 回避）。
 static int flexDigitsToInt_NoDetach(const QString& t)
 {
-    int v = 0;
-    const int n = static_cast<int>(t.size());
-    for (int i = 0; i < n; ++i) {
-        const QChar ch = t.at(i);
-        int d = asciiDigitToInt(ch);
-        if (!d) d = zenkakuDigitToInt(ch);
-        if (!d && ch != QChar(u'0') && ch != QChar(u'０')) continue;
-        if (ch == QChar(u'0') || ch == QChar(u'０')) d = 0;
-        v = v * 10 + d;
-    }
-    return v;
+    return KifuParseCommon::flexDigitsToIntNoDetach(t);
 }
 
 namespace {
@@ -132,42 +101,14 @@ static const QRegularExpression& nextMoveNumberRe()
 // --- 終局語の統一リスト（KIF仕様に準拠 + 表記ゆらぎ吸収） ---
 // isTerminalWord と containsAnyTerminal で共通使用
 static const auto& kTerminalWords() {
-    static const auto& arr = *[]() {
-        static const std::array<QString, 16> a = {{
-            // 主要な終局語
-            QStringLiteral("中断"),
-            QStringLiteral("投了"),
-            QStringLiteral("持将棋"),
-            QStringLiteral("千日手"),
-            QStringLiteral("切れ負け"),
-            QStringLiteral("時間切れ"),  // 切れ負けの別表記
-            QStringLiteral("反則勝ち"),
-            QStringLiteral("反則負け"),
-            QStringLiteral("不戦勝"),
-            QStringLiteral("不戦敗"),
-            // 詰関連
-            QStringLiteral("詰み"),
-            QStringLiteral("詰"),         // 詰みの短縮形
-            QStringLiteral("不詰"),
-            // 宣言系（表記ゆらぎを吸収）
-            QStringLiteral("入玉勝ち"),
-            QStringLiteral("宣言勝ち"),
-            QStringLiteral("入玉宣言勝ち")
-        }};
-        return &a;
-    }();
-    return arr;
+    return KifuParseCommon::terminalWords();
 }
 
 // --- 終局語の判定（KIF仕様に準拠） ---
 // 該当すれば normalized に表記をそのまま返す（例: "千日手"）
 static inline bool isTerminalWord(const QString& s, QString* normalized)
 {
-    const QString t = s.trimmed();
-    for (const QString& w : kTerminalWords()) {
-        if (t == w) { if (normalized) *normalized = w; return true; }
-    }
-    return false;
+    return KifuParseCommon::isTerminalWordExact(s, normalized);
 }
 
 // --- 持駒SFEN生成 ---
@@ -199,33 +140,7 @@ namespace {
 // 例: 「歩/と」「香/杏」「桂/圭」「銀/全」「角/馬」「飛/龍/竜」「玉/王」
 static inline bool mapKanjiPiece(const QString& s, QChar& base, bool& promoted)
 {
-    promoted = false;
-
-    if (s.contains(QChar(u'歩')) || s.contains(QChar(u'と'))) {
-        base = QLatin1Char('P'); promoted = s.contains(QChar(u'と')); return true;
-    }
-    if (s.contains(QChar(u'香')) || s.contains(QChar(u'杏'))) {
-        base = QLatin1Char('L'); promoted = s.contains(QChar(u'杏')); return true;
-    }
-    if (s.contains(QChar(u'桂')) || s.contains(QChar(u'圭'))) {
-        base = QLatin1Char('N'); promoted = s.contains(QChar(u'圭')); return true;
-    }
-    if (s.contains(QChar(u'銀')) || s.contains(QChar(u'全'))) {
-        base = QLatin1Char('S'); promoted = s.contains(QChar(u'全')); return true;
-    }
-    if (s.contains(QChar(u'金'))) {
-        base = QLatin1Char('G'); return true;
-    }
-    if (s.contains(QChar(u'角')) || s.contains(QChar(u'馬'))) {
-        base = QLatin1Char('B'); promoted = s.contains(QChar(u'馬')); return true;
-    }
-    if (s.contains(QChar(u'飛')) || s.contains(QChar(u'龍')) || s.contains(QChar(u'竜'))) {
-        base = QLatin1Char('R'); promoted = (s.contains(QChar(u'龍')) || s.contains(QChar(u'竜'))); return true;
-    }
-    if (s.contains(QChar(u'玉')) || s.contains(QChar(u'王'))) {
-        base = QLatin1Char('K'); return true;
-    }
-    return false;
+    return KifuParseCommon::mapKanjiPiece(s, base, promoted);
 }
 
 // BOD盤面解析用: 空白判定（全角スペースを含む）
