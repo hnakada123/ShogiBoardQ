@@ -35,6 +35,9 @@ public:
     /// 指定行のShogiInfoRecordを取得する（読み取り専用）
     const ShogiInfoRecord* recordAt(int row) const;
 
+    /// 指定multipv値を持つ行のインデックスを返す（見つからなければ -1）
+    int findRowByMultipv(int multipv) const;
+
     /**
      * @brief MultiPVモードで行を更新または挿入する
      * @param record 挿入するレコード（所有権を移譲）
@@ -47,6 +50,9 @@ public:
 
     /// 全行を評価値の高い順にソートする
     void sortByScore();
+
+    /// 指定行数を超えた古い行（末尾）を削除する
+    void trimToMaxRows(int maxRows);
 };
 
 #endif // SHOGIENGINETHINKINGMODEL_H

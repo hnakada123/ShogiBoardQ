@@ -2,6 +2,7 @@
 /// @brief 分岐ツリーデータモデルクラスの実装
 
 #include "kifubranchtree.h"
+#include <algorithm>
 
 KifuBranchTree::KifuBranchTree(QObject* parent)
     : QObject(parent)
@@ -266,9 +267,10 @@ QVector<KifuBranchNode*> KifuBranchTree::pathToNode(KifuBranchNode* node) const
 {
     QVector<KifuBranchNode*> path;
     while (node != nullptr) {
-        path.prepend(node);
+        path.append(node);
         node = node->parent();
     }
+    std::reverse(path.begin(), path.end());
     return path;
 }
 

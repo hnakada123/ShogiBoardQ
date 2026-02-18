@@ -22,8 +22,10 @@
 #include "shogiviewlayout.h"
 
 #include <QIcon>
+#include <QHash>
 #include <QMap>
 #include <QPointer>
+#include <QPixmap>
 #include <QWidget>
 #include <QLoggingCategory>
 #include <QPushButton>
@@ -94,6 +96,10 @@ public:
     // 盤/ラベル座標計算（反転考慮）
     QRect calculateSquareRectangleBasedOnBoardState(int file, int rank) const;
     QRect calculateRectangleForRankOrFileLabel(int file, int rank) const;
+
+    // キャッシュ済みマス矩形（描画用：レイアウト変更時に自動再構築）
+    QRect cachedFieldRect(int file, int rank) const;
+    void  invalidateFieldRectCache();
 
     // ───────────────────────────── 駒画像管理 ────────────────────────────────
     void  setPiece(char type, const QIcon &icon); // 駒文字 → アイコン登録
@@ -320,6 +326,11 @@ private:
 
     // リソース（駒アイコン）
     QMap<QChar, QIcon>  m_pieces;       // 駒文字 → QIcon
+    mutable QHash<quint64, QPixmap> m_standPiecePixmapCache; // 駒台描画用pixmapキャッシュ
+
+    // マス矩形キャッシュ（レイアウト変更時に無効化、描画時に遅延再構築）
+    mutable QHash<quint64, QRect> m_fieldRectCache;
+    mutable bool m_fieldRectCacheValid = false;
 
     // ラベル（子ウィジェット）
     QLabel*     m_blackClockLabel { nullptr };

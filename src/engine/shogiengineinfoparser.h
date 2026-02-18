@@ -50,7 +50,7 @@ public:
      * USI形式の読み筋（例: "7g7h 2f2e 8e8f"）を解析し、
      * 漢字表記（例: "△７八馬(77)▲２五歩(26)△８六歩(85)"）に変換する。
      */
-    void parseEngineOutputAndUpdateState(QString& line, const ShogiGameController* algorithm,  QVector<QChar>& clonedBoardData,
+    void parseEngineOutputAndUpdateState(const QString& line, const ShogiGameController* algorithm,  QVector<QChar>& clonedBoardData,
                                          const bool isPondering);
 
     void setThinkingStartPlayer(ShogiGameController::Player player);
@@ -117,15 +117,15 @@ private:
     QString m_pvUsiStr;         ///< USI形式の読み筋文字列
     QString m_hashfull;         ///< ハッシュ使用率（千分率）
     QString m_searchedHand;     ///< 探索手（読み筋の先頭手）
-    int m_previousFileTo;       ///< 直前の指し手の筋
-    int m_previousRankTo;       ///< 直前の指し手の段
+    int m_previousFileTo = 0;   ///< 直前の指し手の筋
+    int m_previousRankTo = 0;   ///< 直前の指し手の段
 
     QMap<int, QChar> m_pieceMap;            ///< 駒台の段番号 → 駒文字
     QMap<QChar, QChar> m_promoteMap;        ///< 駒文字 → 成駒文字
     QMap<QChar, int> m_pieceCharToIntMap;   ///< 駒文字 → 駒台の段番号
     QMap<QChar, QString> m_pieceMapping;    ///< 駒文字 → 漢字の駒名
 
-    EvaluationBound m_evaluationBound;      ///< 評価値の境界種別
+    EvaluationBound m_evaluationBound = EvaluationBound::None; ///< 評価値の境界種別
 
     /// 思考開始時の手番（info処理中は局面更新の影響を受けない）
     ShogiGameController::Player m_thinkingStartPlayer = ShogiGameController::Player1;
@@ -176,7 +176,7 @@ private:
                                const bool isPondering);
 
     /// pvトークンを順に解析し、盤面コピー上で指し手をシミュレートする
-    int parsePvAndSimulateMoves(const QStringList& pvstr, const ShogiGameController* m_algorithm, QVector<QChar> copyBoardData,
+    int parsePvAndSimulateMoves(const QStringList& pvstr, const ShogiGameController* m_algorithm, QVector<QChar>& copyBoardData,
                                 const bool isPondering);
 
     /// score cp / score mate / lowerbound / upperbound を解析する
@@ -185,6 +185,9 @@ private:
     /// currmoveサブコマンドの指し手を漢字表記に変換する
     QString convertCurrMoveToKanjiNotation(const QString& str, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
                                            const bool isPondering);
+
+    /// 1行ごとの解析結果を初期化する（再利用時の状態リーク防止）
+    void clearParsedInfo();
 };
 
 #endif // SHOGIENGINEINFOPARSER_H

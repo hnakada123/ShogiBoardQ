@@ -37,7 +37,7 @@ class ThinkingInfoPresenter : public QObject
 
 public:
     explicit ThinkingInfoPresenter(QObject* parent = nullptr);
-    ~ThinkingInfoPresenter() override = default;
+    ~ThinkingInfoPresenter() override;
 
     // --- 依存関係設定 ---
     
@@ -184,6 +184,7 @@ private:
 
     QStringList m_infoBuffer;           ///< info行バッファ
     bool m_flushScheduled = false;      ///< フラッシュ予約済みフラグ
+    std::unique_ptr<ShogiEngineInfoParser> m_infoParser; ///< 再利用するinfoパーサ
 };
 
 #endif // THINKINGINFOPRESENTER_H

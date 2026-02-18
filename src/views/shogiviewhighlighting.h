@@ -7,7 +7,9 @@
 #include "shogiview.h"
 
 #include <QColor>
+#include <QHash>
 #include <QList>
+#include <QPixmap>
 #include <QVector>
 
 class QPainter;
@@ -34,6 +36,7 @@ public:
     // ──────────────── 矢印管理 ────────────────
     void setArrows(const QVector<ShogiView::Arrow>& arrows);
     void clearArrows();
+    void clearDropPieceCache();
 
     // ──────────────── 手番ハイライト ────────────────
     void setActiveSide(bool blackTurn);
@@ -66,6 +69,9 @@ private:
     // ハイライト/矢印データ
     QList<ShogiView::Highlight*> m_highlights;
     QVector<ShogiView::Arrow> m_arrows;
+
+    // 駒打ち矢印の駒画像キャッシュ（キー: 駒文字+サイズ）
+    mutable QHash<quint64, QPixmap> m_arrowDropPieceCache;
 
     // 手番ハイライト色
     QColor m_highlightBg    = QColor(255, 255, 0);
