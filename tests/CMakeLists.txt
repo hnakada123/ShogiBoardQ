@@ -122,6 +122,7 @@ add_shogi_test(tst_ki2converter
     tst_ki2converter.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/formats/ki2tosfenconverter.cpp
+    ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
