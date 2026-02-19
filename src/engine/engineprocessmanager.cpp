@@ -74,6 +74,9 @@ void EngineProcessManager::stopProcess()
 {
     if (!m_process) return;
 
+    // waitForFinished() 中のシグナル配信を防ぐため、先にシグナルを切断
+    disconnect(m_process, nullptr, this, nullptr);
+
     if (m_process->state() == QProcess::Running) {
         // quitコマンドは上位クラス（USIProtocolHandler）から送信済みと想定
         if (!m_process->waitForFinished(3000)) {
@@ -85,8 +88,7 @@ void EngineProcessManager::stopProcess()
         }
     }
 
-    disconnect(m_process, nullptr, this, nullptr);
-    m_process->deleteLater();
+    delete m_process;
     m_process = nullptr;
 
     m_shutdownState = ShutdownState::Running;
