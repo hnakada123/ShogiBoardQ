@@ -70,16 +70,6 @@ namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 // --- 前方宣言（Qt / 各種コントローラ） ---
-class QPainter;
-class QStyleOptionViewItem;
-class QModelIndex;
-class QGraphicsView;
-class QGraphicsPathItem;
-class QTableView;
-class QEvent;
-class QLabel;
-class QToolButton;
-class QPushButton;
 class ShogiView;
 class EvaluationChartWidget;
 class BoardSyncPresenter;
@@ -112,7 +102,6 @@ class CsaGameCoordinator;
 class CsaWaitingDialog;
 class JosekiWindow;
 class CsaGameWiring;
-class BranchRowDelegate;
 class JosekiWindowWiring;
 class PlayerInfoWiring;
 class MatchCoordinatorWiring;
@@ -402,7 +391,6 @@ private:
     // --- USI / エンジン連携 ---
     Usi*        m_usi1 = nullptr;              ///< 先手側USIエンジン（非所有）
     Usi*        m_usi2 = nullptr;              ///< 後手側USIエンジン（非所有）
-    QString     m_positionStr1;               ///< エンジン1用positionコマンド文字列
     QStringList m_positionStrList;            ///< 各手数のpositionコマンドリスト
     /// 対局中に生成したUSI指し手列。
     /// 棋譜読み込み時は KifuLoadCoordinator 側のUSI列を参照する。
@@ -410,7 +398,6 @@ private:
 
     // --- UI 構成 ---
     QTabWidget* m_tab = nullptr;              ///< メインタブウィジェット
-    QWidget*    m_gameRecordLayoutWidget = nullptr; ///< 棋譜レイアウト用コンテナ
     QSplitter*  m_hsplit = nullptr;           ///< 水平スプリッター
     QWidget*    m_central = nullptr;          ///< セントラルウィジェット
     QVBoxLayout* m_centralLayout = nullptr;   ///< セントラルウィジェットのレイアウト
@@ -439,7 +426,6 @@ private:
     QString           m_humanName1, m_humanName2;   ///< 対局者名（人間側）
     QString           m_engineName1, m_engineName2; ///< 対局者名（エンジン側）
     QList<KifuDisplay *>* m_moveRecords = nullptr;  ///< 指し手表示レコード（非所有）
-    QString           defaultSaveFileName;          ///< デフォルトの保存ファイル名
     QString           kifuSaveFileName;             ///< 棋譜保存ファイル名
     QVector<ShogiMove> m_gameMoves;                 ///< 対局中の指し手列
 
@@ -453,7 +439,6 @@ private:
     QVector<QString> m_commentsByRow;         ///< 行ごとのコメント
     int m_activePly          = 0;             ///< 現在アクティブな手数
     int m_currentSelectedPly = 0;             ///< 現在選択中の手数
-    QMetaObject::Connection m_connKifuRowChanged; ///< 棋譜行変更シグナルの接続ハンドル
     bool m_onMainRowGuard = false;            ///< 行変更処理の再入防止ガード
 
     // --- 棋譜データ中央管理 ---
@@ -552,8 +537,6 @@ private:
     PreStartCleanupHandler*   m_preStartCleanupHandler = nullptr; ///< 対局開始前クリーンアップハンドラ（非所有）
 
     // --- 言語設定 ---
-    QActionGroup* m_languageActionGroup = nullptr; ///< 言語切替用アクショングループ
-
     // --- 補助コントローラ群 ---
     JishogiScoreDialogController* m_jishogiController = nullptr;       ///< 持将棋スコアダイアログコントローラ（非所有）
     NyugyokuDeclarationHandler* m_nyugyokuHandler = nullptr;           ///< 入玉宣言ハンドラ（非所有）

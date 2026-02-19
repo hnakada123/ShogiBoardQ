@@ -78,7 +78,6 @@ public slots:
 
 signals:
     void moveRequested(const QPoint& from, const QPoint& to); ///< 着手要求（→ MainWindow / Coordinator）
-    void selectionChanged(const QPoint& pos); ///< 駒選択変更の通知
 
 private:
     // --- ハイライト系ヘルパ ---

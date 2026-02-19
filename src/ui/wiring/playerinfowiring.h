@@ -206,22 +206,6 @@ public slots:
                                const QString& engine1, const QString& engine2,
                                int playMode);
 
-    /**
-     * @brief 対局者名確定時の処理（持ち時間情報付き）
-     * @param human1 人間1名
-     * @param human2 人間2名
-     * @param engine1 エンジン1名
-     * @param engine2 エンジン2名
-     * @param playMode プレイモード
-     * @param startSfen 開始局面SFEN文字列
-     * @param timeInfo 時間制御情報
-     */
-    void onPlayerNamesResolvedWithTime(const QString& human1, const QString& human2,
-                                       const QString& engine1, const QString& engine2,
-                                       int playMode,
-                                       const QString& startSfen,
-                                       const TimeControlInfo& timeInfo);
-
 signals:
     /**
      * @brief 対局情報が更新された

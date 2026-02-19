@@ -52,55 +52,11 @@ bool copyKif(const ExportContext& ctx);
 /// @return 成功した場合true
 bool copyKi2(const ExportContext& ctx);
 
-/// CSA形式で棋譜をクリップボードにコピー
-/// @return 成功した場合true
-bool copyCsa(const ExportContext& ctx);
-
-/// USI形式（全て）で棋譜をクリップボードにコピー
-/// @return 成功した場合true
-bool copyUsi(const ExportContext& ctx);
-
-/// USI形式（現在の指し手まで）で棋譜をクリップボードにコピー
-/// @return 成功した場合true
-bool copyUsiCurrent(const ExportContext& ctx, int currentMoveIndex);
-
-/// JKF形式で棋譜をクリップボードにコピー
-/// @return 成功した場合true
-bool copyJkf(const ExportContext& ctx);
-
-/// USEN形式で棋譜をクリップボードにコピー
-/// @return 成功した場合true
-bool copyUsen(const ExportContext& ctx);
-
-/// SFEN形式で局面をクリップボードにコピー
-/// @return 成功した場合true
-bool copySfen(const ExportContext& ctx);
-
-/// BOD形式で局面をクリップボードにコピー
-/// @return 成功した場合true
-bool copyBod(const ExportContext& ctx);
-
 /// ShogiMoveリストからUSI形式の指し手リストを生成
 QStringList gameMovesToUsiMoves(const QVector<ShogiMove>& moves);
 
 /// SFENレコードからUSI形式の指し手リストを生成
 QStringList sfenRecordToUsiMoves(const QStringList& sfenRecord);
-
-/// クリップボードから棋譜テキストを取得
-QString getClipboardText();
-
-/// 棋譜形式を自動判定
-enum class KifuFormat {
-    Unknown,
-    Kif,
-    Ki2,
-    Csa,
-    Usi,
-    Jkf,
-    Usen,
-    Sfen
-};
-KifuFormat detectFormat(const QString& text);
 
 } // namespace KifuClipboardService
 

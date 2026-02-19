@@ -330,8 +330,6 @@ void MainWindow::connectCoreSignals()
                 this, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
     }
     if (m_shogiView) {
-        connect(m_shogiView, &ShogiView::errorOccurred,
-                this, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
         bool connected = connect(m_shogiView, &ShogiView::fieldSizeChanged,
                 this, &MainWindow::onBoardSizeChanged, Qt::UniqueConnection);
         qCDebug(lcApp) << "fieldSizeChanged -> onBoardSizeChanged connected:" << connected
@@ -1206,7 +1204,6 @@ void MainWindow::resetToInitialState()
     m_engineName2.clear();
 
     // エンジン用positionコマンドのクリア
-    m_positionStr1.clear();
     m_positionStrList.clear();
 
     // 時間表示用キャッシュのリセット
@@ -1218,7 +1215,6 @@ void MainWindow::resetToInitialState()
     m_commentsByRow.clear();
 
     // 保存ファイル名のクリア（新規なので保存先を未設定に戻す）
-    defaultSaveFileName.clear();
     kifuSaveFileName.clear();
 
     // リプレイモードをリセット（対局中にリプレイ→新規のケース対応）
@@ -3150,10 +3146,6 @@ void MainWindow::ensurePreStartCleanupHandler()
     deps.navState = m_navState;
 
     m_preStartCleanupHandler = new PreStartCleanupHandler(deps, this);
-
-    // PreStartCleanupHandlerからのシグナルをMainWindowに接続
-    connect(m_preStartCleanupHandler, &PreStartCleanupHandler::broadcastCommentRequested,
-            this, &MainWindow::broadcastComment);
 
     qCDebug(lcApp).noquote() << "ensurePreStartCleanupHandler_: created and connected";
 }

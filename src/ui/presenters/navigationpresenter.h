@@ -36,10 +36,6 @@ public:
     // 依存オブジェクトの差し替え
     void setDeps(const Deps& d);
 
-signals:
-    // UI が更新されたことを通知（必要に応じて受ける）
-    void branchUiUpdated(int row, int ply);
-
 private:
     void highlightBranchTree(int row, int ply);
 

@@ -86,7 +86,6 @@ public:
      * @brief 指し手を追加する（treeChanged シグナルを発火しない）
      *
      * ライブ対局中など、treeChanged による UI 更新を避けたい場合に使用。
-     * nodeAdded シグナルのみ発火する。
      */
     KifuBranchNode* addMoveQuiet(KifuBranchNode* parent,
                                  const ShogiMove& move,
@@ -148,11 +147,6 @@ public:
     QVector<KifuBranchNode*> pathToNode(KifuBranchNode* node) const;
 
     /**
-     * @brief 指定ノードの分岐候補を取得（兄弟ノード）
-     */
-    QVector<KifuBranchNode*> branchesAt(KifuBranchNode* node) const;
-
-    /**
      * @brief 全てのラインを取得
      */
     QVector<BranchLine> allLines() const;
@@ -208,35 +202,11 @@ public:
      */
     QStringList getSfenListForLine(int lineIndex) const;
 
-    /**
-     * @brief 指定ラインの指し手リストを取得
-     * @param lineIndex ラインインデックス（0=本譜）
-     * @return ShogiMoveのリスト（インデックス0=1手目、終局手は含まない）
-     */
-    QVector<ShogiMove> getGameMovesForLine(int lineIndex) const;
-
-    /**
-     * @brief 指定ラインのコメントリストを取得
-     * @param lineIndex ラインインデックス（0=本譜）
-     * @return コメントのリスト（インデックス対応はSFENと同じ）
-     */
-    QStringList getCommentsForLine(int lineIndex) const;
-
 signals:
     /**
      * @brief ツリー構造が変更された
      */
     void treeChanged();
-
-    /**
-     * @brief ノードが追加された
-     */
-    void nodeAdded(KifuBranchNode* node);
-
-    /**
-     * @brief ノードが削除された
-     */
-    void nodeRemoved(int nodeId);
 
     /**
      * @brief コメントが変更された

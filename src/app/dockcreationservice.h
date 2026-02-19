@@ -68,10 +68,6 @@ public:
     QDockWidget* josekiWindowDock() const { return m_josekiWindowDock; }
     QDockWidget* analysisResultsDock() const { return m_analysisResultsDock; }
 
-signals:
-    // 評価値グラフのフローティング状態変更通知
-    void evalChartFloatingChanged(bool floating);
-
 private:
     // 共通のドック設定ヘルパー
     void setupDockFeatures(QDockWidget* dock, const QString& objectName);

@@ -16,8 +16,6 @@ class QLabel;
 class QPushButton;
 class QComboBox;
 class QHBoxLayout;
-class QSettings;
-
 class EvaluationChartWidget : public QWidget
 {
     Q_OBJECT

@@ -294,13 +294,6 @@ signals:
     void commentChanged(int ply, const QString& newComment);
 
     /**
-     * @brief しおりが変更された
-     * @param ply 変更された手数
-     * @param newBookmark 新しいしおり
-     */
-    void bookmarkChanged(int ply, const QString& newBookmark);
-
-    /**
      * @brief データが変更された（保存が必要）
      */
     void dataChanged();

@@ -115,7 +115,6 @@ void PlayerInfoController::applyPlayersNamesForMode()
     m_shogiView->setBlackPlayerName(blackName);
     m_shogiView->setWhitePlayerName(whiteName);
 
-    Q_EMIT playerNamesUpdated(blackName, whiteName);
 }
 
 void PlayerInfoController::applyEngineNamesToLogModels()
@@ -217,7 +216,6 @@ void PlayerInfoController::onSetPlayersNames(const QString& p1, const QString& p
     // 対局情報タブの先手・後手を更新
     updateGameInfoPlayerNames(p1, p2);
 
-    Q_EMIT playerNamesUpdated(p1, p2);
 }
 
 void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2)

@@ -408,7 +408,6 @@ void GameRecordModel::setBookmark(int ply, const QString& bookmark)
 
     if (oldBookmark != bookmark) {
         m_isDirty = true;
-        emit bookmarkChanged(ply, bookmark);
         emit dataChanged();
 
         if (m_bookmarkUpdateCallback) {

@@ -196,7 +196,6 @@ QString KifuExportController::saveToFile()
             m_deps.gameRecord->clearDirty();
         }
         Q_EMIT statusMessage(tr("棋譜を保存しました: %1").arg(path), 5000);
-        Q_EMIT fileSaved(path);
     }
     
     return path;
@@ -247,7 +246,6 @@ bool KifuExportController::overwriteFile(const QString& filePath)
             m_deps.gameRecord->clearDirty();
         }
         Q_EMIT statusMessage(tr("棋譜を上書き保存しました: %1").arg(filePath), 5000);
-        Q_EMIT fileSaved(filePath);
     } else {
         QMessageBox::warning(m_parentWidget, tr("KIF Save Error"), error);
     }
@@ -293,7 +291,6 @@ bool KifuExportController::autoSaveToDir(const QString& saveDir, QString* outPat
         }
         if (outPath) *outPath = filePath;
         Q_EMIT statusMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
-        Q_EMIT fileSaved(filePath);
     } else {
         qCWarning(lcKifu).noquote() << "autoSaveToDir failed:" << errorText;
         ErrorBus::instance().postError(

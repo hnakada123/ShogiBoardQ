@@ -64,10 +64,6 @@ private slots:
     // プロセスの標準エラー出力を処理する。
     void processEngineErrorOutput();
 
-signals:
-    // MainWindowにエラーを報告するためのシグナル
-    void errorReported(const QString& errorMessage);
-
 private:
     Ui::EngineRegistrationDialog *ui;
 

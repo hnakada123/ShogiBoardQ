@@ -14,8 +14,6 @@ class KifuRecordListModel;
 class RecordPane;
 struct KifDisplayItem;
 class QTableView;
-class QItemSelectionModel;
-
 class GameRecordPresenter : public QObject {
     Q_OBJECT
 public:
@@ -38,14 +36,6 @@ public:
     // 1手分を末尾に追記（対局中のライブ更新でも使用）
     void appendMoveLine(const QString& prettyMove, const QString& elapsedTime);
 
-    // 1手分を末尾に追記（コメント付き：棋譜ファイル読み込み時に使用）
-    void appendMoveLineWithComment(const QString& prettyMove, const QString& elapsedTime, const QString& comment);
-
-    int  currentMoveIndex() const { return m_currentMoveIndex; }
-
-signals:
-    void modelReset(); // 必要なら MainWindow 側でハンドリング
-
 private:
     Deps        m_d;
     int         m_currentMoveIndex {0};
@@ -54,14 +44,6 @@ private:
 public:
     // 追加：コメントを Presenter 側で管理
     void setCommentsByRow(const QStringList& commentsByRow);
-    // 追加：disp からコメント配列を構築（rowCount = sfenRecord->size() or disp.size()+1）
-    void setCommentsFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount);
-
-    // 追加：KifuView の選択変更を Presenter が直接受け取り、MainWindow へ signal を転送
-    void bindKifuSelection(QTableView* kifuView);
-
-    // 補助：行に対応するコメント取得
-    QString commentForRow(int row) const;
 
     // disp をモデルに反映し、コメントと行数を整えて、選択変更の配線までを一括実行
     void displayAndWire(const QList<KifDisplayItem>& disp,
@@ -76,6 +58,10 @@ signals:
     void currentRowChanged(int row, const QString& comment);
 
 private:
+    void setCommentsFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount);
+    void bindKifuSelection(QTableView* kifuView);
+    QString commentForRow(int row) const;
+
     QPointer<QTableView> m_kifuView;
     QMetaObject::Connection m_connRowChanged;
     QStringList m_commentsByRow;

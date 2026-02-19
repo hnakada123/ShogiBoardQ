@@ -46,16 +46,6 @@ void KifuBranchNode::addChild(KifuBranchNode* child)
     }
 }
 
-void KifuBranchNode::removeChild(KifuBranchNode* child)
-{
-    if (child) {
-        m_children.removeOne(child);
-        if (child->parent() == this) {
-            child->setParent(nullptr);
-        }
-    }
-}
-
 KifuBranchNode* KifuBranchNode::childAt(int index) const
 {
     if (index >= 0 && index < m_children.size()) {
@@ -76,17 +66,6 @@ bool KifuBranchNode::isMainLine() const
     // 親の最初の子が自分なら本譜
     const auto& siblings = m_parent->children();
     return !siblings.isEmpty() && siblings.first() == this;
-}
-
-int KifuBranchNode::depth() const
-{
-    int d = 0;
-    const KifuBranchNode* node = this;
-    while (node->parent() != nullptr) {
-        d++;
-        node = node->parent();
-    }
-    return d;
 }
 
 QString KifuBranchNode::lineName() const

@@ -74,7 +74,6 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
         const QString errorMessage =
             tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the black player's stand.");
         qCWarning(lcCore, "Invalid rank for black stand: %d", rank);
-        emit errorOccurred(errorMessage);
         return QChar();
     } else if (file == 11) {
         const auto it = pieceMapWhite.find(rank);
@@ -83,13 +82,11 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
         const QString errorMessage =
             tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the white player's stand.");
         qCWarning(lcCore, "Invalid rank for white stand: %d", rank);
-        emit errorOccurred(errorMessage);
         return QChar();
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiBoard::getPieceCharacter. Invalid file value.");
         qCWarning(lcCore, "Invalid file value: %d", file);
-        emit errorOccurred(errorMessage);
         return QChar();
     }
 }
@@ -192,7 +189,6 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
         const QString errorMessage = tr("An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. SFEN string must contain exactly 9 parts.");
 
         qCWarning(lcCore, "SFEN parts != 9: %s", qUtf8Printable(initialSfenStr));
-        emit errorOccurred(errorMessage);
         return QString();
     }
 
@@ -222,8 +218,6 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
 
                 qCWarning(lcCore, "Unexpected SFEN char: %s at rank %d in %s",
                          qUtf8Printable(QString(ch)), i, qUtf8Printable(rankStr));
-
-                emit errorOccurred(errorMessage);
                 return QString();
             }
         }
@@ -232,8 +226,6 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
             const QString errorMessage = tr("An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. Each rank must contain exactly 9 pieces or empty squares.");
 
             qCWarning(lcCore, "SFEN rank piece count: %d in %s", pieceCount, qUtf8Printable(initialSfenStr));
-
-            emit errorOccurred(errorMessage);
             return QString();
         }
     }
@@ -257,8 +249,6 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
         const QString errorMessage = tr("An error occurred in ShogiBoard::setPieceStandFromSFEN. The piece stand string contains a space.");
 
         qCWarning(lcCore, "Piece stand string contains space: %s", qUtf8Printable(str));
-
-        emit errorOccurred(errorMessage);
         return;
     }
 
@@ -282,8 +272,6 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
 
                     qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
                              i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-
-                    emit errorOccurred(errorMessage);
                     return;
                 }
             }
@@ -303,8 +291,6 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
 
                     qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
                              i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-
-                    emit errorOccurred(errorMessage);
                     return;
                 }
             }
@@ -317,8 +303,6 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
             const QString errorMessage = tr("An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type in piece stand string.");
 
             qCWarning(lcCore, "Invalid piece type in stand string: %s", qUtf8Printable(str));
-
-            emit errorOccurred(errorMessage);
             return;
         }
     }
@@ -367,7 +351,6 @@ bool ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qCWarning(lcCore, "SFEN components: %lld in %s",
                  static_cast<long long>(sfenComponents.size()), qUtf8Printable(sfenStr));
 
-        emit errorOccurred(errorMessage);
         return false;
     }
 
@@ -384,7 +367,6 @@ bool ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
         qCWarning(lcCore, "Invalid turn: %s in %s",
                  qUtf8Printable(playerTurnStr), qUtf8Printable(sfenStr));
 
-        emit errorOccurred(errorMessage);
         return false;
     }
 
@@ -398,7 +380,6 @@ bool ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
 
         qCWarning(lcCore, "Invalid move number in SFEN: %s", qUtf8Printable(sfenStr));
 
-        emit errorOccurred(errorMessage);
         return false;
     }
 

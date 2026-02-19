@@ -60,13 +60,6 @@ public slots:
      */
     void onEnglishTriggered();
 
-signals:
-    /**
-     * @brief 言語が変更されたことを通知
-     * @param lang 新しい言語コード
-     */
-    void languageChanged(const QString& lang);
-
 private:
     /**
      * @brief 言語を変更する

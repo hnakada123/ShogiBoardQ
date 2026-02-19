@@ -275,15 +275,6 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
     );
 }
 
-void PlayerInfoWiring::onPlayerNamesResolvedWithTime(const QString& human1, const QString& human2,
-                                                       const QString& engine1, const QString& engine2,
-                                                       int playMode,
-                                                       const QString& startSfen,
-                                                       const TimeControlInfo& timeInfo)
-{
-    resolveNamesAndSetupGameInfo(human1, human2, engine1, engine2, playMode, startSfen, timeInfo);
-}
-
 void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
 {
     qCDebug(lcUi) << "onGameInfoUpdated: items=" << items.size();

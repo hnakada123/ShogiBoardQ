@@ -73,7 +73,6 @@ void LanguageController::changeLanguage(const QString& lang)
             tr("言語設定を変更しました。\n変更を反映するにはアプリケーションを再起動してください。"));
     }
 
-    emit languageChanged(lang);
 }
 
 void LanguageController::onSystemLanguageTriggered()

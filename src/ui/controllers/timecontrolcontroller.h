@@ -179,17 +179,6 @@ public:
      */
     qint64 getByoyomiMs() const;
 
-Q_SIGNALS:
-    /**
-     * @brief プレイヤー1（先手）がタイムアウトした
-     */
-    void player1TimedOut();
-
-    /**
-     * @brief プレイヤー2（後手）がタイムアウトした
-     */
-    void player2TimedOut();
-
 private Q_SLOTS:
     /**
      * @brief ShogiClockからのタイムアウト通知（先手）

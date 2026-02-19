@@ -79,12 +79,6 @@ int main(int argc, char *argv[])
     qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString&) {});
 #endif
 
-    // 高DPI対応（Qt 6ではデフォルトで有効だが明示的に設定）
-#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
-    QApplication::setAttribute(Qt::AA_EnableHighDpiScaling);
-    QApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
-#endif
-
     QApplication a(argc, argv);
     a.setApplicationName("ShogiBoardQ");
 

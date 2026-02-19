@@ -9,97 +9,6 @@
 #include "kifdisplayitem.h"
 #include "kifulogging.h"
 
-KifuBranchTree* KifuBranchTreeBuilder::fromResolvedRows(const QVector<ResolvedRow>& rows,
-                                                        const QString& startSfen)
-{
-    if (rows.isEmpty()) {
-        return nullptr;
-    }
-
-    auto* tree = new KifuBranchTree();
-    tree->setRootSfen(startSfen);
-
-    // 行ごとの最終ノードを記録（分岐接続用）
-    QVector<KifuBranchNode*> rowEndNodes(rows.size(), nullptr);
-
-    // 本譜（row=0）を先に処理
-    const ResolvedRow& mainRow = rows.at(0);
-    KifuBranchNode* currentNode = tree->root();
-
-    // disp[0]は開始局面のラベルなのでスキップ、disp[1]以降が実際の指し手
-    for (int i = 1; i < mainRow.disp.size(); ++i) {
-        const KifDisplayItem& item = mainRow.disp.at(i);
-        QString sfen = (i < mainRow.sfen.size()) ? mainRow.sfen.at(i) : QString();
-        ShogiMove move;
-        if (i - 1 < mainRow.gm.size()) {
-            move = mainRow.gm.at(i - 1);
-        }
-
-        currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);
-        if (currentNode != nullptr) {
-            currentNode->setComment(item.comment);
-            currentNode->setBookmark(item.bookmark);
-        }
-    }
-    rowEndNodes[0] = currentNode;
-
-    // 分岐行（row=1以降）を処理
-    for (int rowIdx = 1; rowIdx < rows.size(); ++rowIdx) {
-        const ResolvedRow& row = rows.at(rowIdx);
-        int parentRowIdx = row.parent;
-        qCDebug(lcKifu).noquote() << "row" << rowIdx << ": parent=" << row.parent
-                                  << "startPly=" << row.startPly << "disp.size=" << row.disp.size();
-        if (parentRowIdx < 0) {
-            parentRowIdx = 0;  // 親がなければ本譜から
-        }
-
-        // 分岐開始点を見つける
-        int branchPly = row.startPly;
-        KifuBranchNode* branchPoint = nullptr;
-
-        // 親行から分岐点を探す
-        if (parentRowIdx < rowEndNodes.size() && rowEndNodes[parentRowIdx] != nullptr) {
-            branchPoint = tree->findByPlyOnLine(rowEndNodes[parentRowIdx], branchPly - 1);
-            qCDebug(lcKifu).noquote() << "findByPlyOnLine(rowEndNodes[" << parentRowIdx << "], "
-                                      << (branchPly - 1) << ") = " << (branchPoint ? branchPoint->displayText() : "null");
-        }
-
-        if (branchPoint == nullptr) {
-            // フォールバック: 本譜から探す
-            branchPoint = tree->findByPlyOnMainLine(branchPly - 1);
-            qCDebug(lcKifu).noquote() << "FALLBACK findByPlyOnMainLine(" << (branchPly - 1) << ") = "
-                                      << (branchPoint ? branchPoint->displayText() : "null");
-        }
-
-        if (branchPoint == nullptr) {
-            // まだ見つからない場合はルートから
-            branchPoint = tree->root();
-        }
-
-        currentNode = branchPoint;
-
-        // この分岐の指し手を追加
-        // disp[0..startPly-1]は親からコピーされたプレフィックスなのでスキップ
-        // disp[startPly]以降がこの分岐の実際の手
-        for (int i = branchPly; i < row.disp.size(); ++i) {
-            const KifDisplayItem& item = row.disp.at(i);
-            QString sfen = (i < row.sfen.size()) ? row.sfen.at(i) : QString();
-            ShogiMove move;
-            if (i - 1 < row.gm.size()) {
-                move = row.gm.at(i - 1);
-            }
-
-            currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);
-            if (currentNode != nullptr) {
-                currentNode->setComment(item.comment);
-            }
-        }
-        rowEndNodes[rowIdx] = currentNode;
-    }
-
-    return tree;
-}
-
 KifuBranchTree* KifuBranchTreeBuilder::fromKifParseResult(const KifParseResult& result,
                                                           const QString& startSfen)
 {
@@ -127,17 +36,6 @@ void KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
     for (const KifVariation& var : std::as_const(result.variations)) {
         addKifLineToTree(tree, var.line, var.startPly);
     }
-}
-
-KifuBranchTree* KifuBranchTreeBuilder::fromKifLine(const KifLine& line,
-                                                   const QString& startSfen)
-{
-    auto* tree = new KifuBranchTree();
-    tree->setRootSfen(startSfen);
-
-    addKifLineToTree(tree, line, 1);
-
-    return tree;
 }
 
 void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
