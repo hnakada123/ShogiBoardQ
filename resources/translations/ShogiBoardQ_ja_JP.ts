@@ -5,13 +5,13 @@
     <name>AnalysisFlowController</name>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="46"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="814"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="819"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="50"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="818"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="823"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -32,17 +32,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="959"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="964"/>
         <source>先手</source>
         <translation type="unfinished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="960"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="965"/>
         <source>後手</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="1117"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="1122"/>
         <source>エンジンエラー: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1494,32 +1494,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="319"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="321"/>
         <source>The process failed to start.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="322"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="324"/>
         <source>The process crashed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="325"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="327"/>
         <source>The process timed out.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="328"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="330"/>
         <source>An error occurred while writing data.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="331"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="333"/>
         <source>An error occurred while reading data.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="335"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="337"/>
         <source>An unknown error occurred.</source>
         <translation type="unfinished"></translation>
     </message>

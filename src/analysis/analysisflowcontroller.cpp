@@ -790,6 +790,11 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
 
     m_running = false;
 
+    // エンジンプロセスを終了させる
+    if (m_usi) {
+        m_usi->sendQuitCommand();
+    }
+
     if (m_presenter) {
         m_presenter->setStopButtonEnabled(false);
     }
