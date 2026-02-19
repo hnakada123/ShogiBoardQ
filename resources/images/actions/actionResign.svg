@@ -6,8 +6,15 @@
             text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
         </style>
     </defs>
-    <circle cx="64" cy="64" r="64" fill="#9E9E9E"/>
-        <rect x="48" y="16" width="32" height="56" rx="4" fill="white"/>
-        <polygon points="48,72 80,72 64,108" fill="white"/>
-        <line x1="28" y1="120" x2="100" y2="120" stroke="white" stroke-width="6" stroke-linecap="round"/>
+    <!-- Board background -->
+    <rect x="0" y="0" width="128" height="128" fill="#D4A574" stroke="#8B4513" stroke-width="4"/>
+    <line x1="0" y1="42.7" x2="128" y2="42.7" stroke="#8B4513" stroke-width="2"/>
+    <line x1="0" y1="85.3" x2="128" y2="85.3" stroke="#8B4513" stroke-width="2"/>
+    <line x1="42.7" y1="0" x2="42.7" y2="128" stroke="#8B4513" stroke-width="2"/>
+    <line x1="85.3" y1="0" x2="85.3" y2="128" stroke="#8B4513" stroke-width="2"/>
+    <!-- Fallen king piece (tilted ~130 degrees = toppled over) -->
+    <g transform="translate(64, 68) rotate(130)">
+        <polygon points="0,-34 -18,-10 -15,34 15,34 18,-10" fill="#1A1A1A"/>
+        <text x="0" y="22" text-anchor="middle" font-family="serif" font-size="24" fill="white">玉</text>
+    </g>
 </svg>
