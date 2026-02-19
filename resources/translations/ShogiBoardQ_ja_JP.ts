@@ -5553,17 +5553,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="429"/>
+        <location filename="../../src/engine/usi.cpp" line="430"/>
         <source>Engine file path is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="446"/>
+        <location filename="../../src/engine/usi.cpp" line="447"/>
         <source>Failed to change directory to %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="938"/>
+        <location filename="../../src/engine/usi.cpp" line="939"/>
         <source>Timeout waiting for bestmove.</source>
         <translation type="unfinished"></translation>
     </message>

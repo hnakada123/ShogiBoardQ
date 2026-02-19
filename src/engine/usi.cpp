@@ -248,7 +248,8 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
                       << "multipv=" << multipv << "scoreCp=" << scoreCp;
 
     // 思考タブへ追記（通常モード: 先頭に追加）
-    if (m_thinkingModel) {
+    // 読み筋（PV）が空の行は表示しない（詰み探索の中間結果など）
+    if (m_thinkingModel && !pvKanjiStr.isEmpty()) {
         const ShogiInfoRecord* topRecord =
             (m_thinkingModel->rowCount() > 0) ? m_thinkingModel->recordAt(0) : nullptr;
         if (!isSameThinkingPayload(topRecord, time, depth, nodes, score, pvKanjiStr, usiPv,

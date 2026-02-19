@@ -6570,12 +6570,12 @@ Are you sure you want to declare?</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="429"/>
+        <location filename="../../src/engine/usi.cpp" line="430"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="446"/>
+        <location filename="../../src/engine/usi.cpp" line="447"/>
         <source>Failed to change directory to %1</source>
         <translation>Failed to change directory to %1</translation>
     </message>
@@ -6584,7 +6584,7 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="938"/>
+        <location filename="../../src/engine/usi.cpp" line="939"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
