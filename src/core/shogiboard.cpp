@@ -62,6 +62,10 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
     static const QMap<int, QChar> pieceMapWhite = {{2,'k'},{3,'r'},{4,'b'},{5,'g'},{6,'s'},{7,'n'},{8,'l'},{9,'p'}};
 
     if (file >= 1 && file <= 9) {
+        if (rank < 1 || rank > ranks()) {
+            qCWarning(lcCore, "Invalid rank for board access: file=%d rank=%d", file, rank);
+            return QChar(' ');
+        }
         return m_boardData.at((rank - 1) * files() + (file - 1));
     } else if (file == 10) {
         const auto it = pieceMapBlack.find(rank);

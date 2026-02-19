@@ -377,130 +377,130 @@ Discard changes and move?</translation>
         <translation type="unfinished">Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="64"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="63"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="72"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="70"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="78"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="76"/>
         <source>エンジン設定</source>
         <translation type="unfinished">Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="79"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="77"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="85"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="83"/>
         <source>時間無制限</source>
         <translation type="unfinished">Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="86"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="84"/>
         <source>時間制限なしで検討します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="91"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="89"/>
         <source>検討時間</source>
         <translation type="unfinished">Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="92"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="90"/>
         <source>指定した秒数まで検討します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="100"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="98"/>
         <source>検討時間（秒）を指定します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="105"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="103"/>
         <source>秒まで</source>
         <translation type="unfinished">seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="108"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="405"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="428"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="106"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="403"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="426"/>
         <source>経過: 0:00</source>
         <translation type="unfinished">Elapsed: 0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="109"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="107"/>
         <source>検討開始からの経過時間</source>
         <translation type="unfinished">Elapsed time since consideration started</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="122"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="120"/>
         <source>候補手の数</source>
         <translation type="unfinished">Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="125"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="123"/>
         <source>%1手</source>
         <translation type="unfinished">%1手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="128"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="126"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation type="unfinished">Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="131"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="129"/>
         <source>矢印表示</source>
         <translation type="unfinished">Show Arrows</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="132"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="130"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation type="unfinished">Displays arrows for the best moves on the board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="139"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="458"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="137"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="456"/>
         <source>検討開始</source>
         <translation type="unfinished">Start Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="140"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="138"/>
         <source>検討を開始します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="451"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="449"/>
         <source>検討中止</source>
         <translation type="unfinished">Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="452"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="450"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation type="unfinished">Stop analysis and terminate the engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="459"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="457"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation type="unfinished">Open consideration dialog to start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="580"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="590"/>
         <source>エラー</source>
         <translation type="unfinished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="580"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="590"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="613"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="623"/>
         <source>経過: %1:%2</source>
         <translation type="unfinished">Elapsed: %1:%2</translation>
     </message>
@@ -4147,34 +4147,34 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="697"/>
-        <location filename="../../src/app/mainwindow.cpp" line="712"/>
+        <location filename="../../src/app/mainwindow.cpp" line="702"/>
+        <location filename="../../src/app/mainwindow.cpp" line="717"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="697"/>
-        <location filename="../../src/app/mainwindow.cpp" line="712"/>
+        <location filename="../../src/app/mainwindow.cpp" line="702"/>
+        <location filename="../../src/app/mainwindow.cpp" line="717"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1194"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1199"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3850"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3859"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3852"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3861"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3855"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3864"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4470,7 +4470,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1193"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1198"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
@@ -4543,17 +4543,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3816"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3818"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3827"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3822"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4562,7 +4562,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3328"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3337"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -6069,63 +6069,63 @@ Are you sure you want to declare?</translation>
 <context>
     <name>ShogiBoard</name>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="71"/>
+        <location filename="../../src/core/shogiboard.cpp" line="75"/>
         <source>An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the black player&apos;s stand.</source>
         <translation>An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the black player&apos;s stand.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="80"/>
+        <location filename="../../src/core/shogiboard.cpp" line="84"/>
         <source>An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the white player&apos;s stand.</source>
         <translation>An error occurred in ShogiBoard::getPieceCharacter. Invalid rank for the white player&apos;s stand.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="86"/>
+        <location filename="../../src/core/shogiboard.cpp" line="90"/>
         <source>An error occurred in ShogiBoard::getPieceCharacter. Invalid file value.</source>
         <translation>An error occurred in ShogiBoard::getPieceCharacter. Invalid file value.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="188"/>
+        <location filename="../../src/core/shogiboard.cpp" line="192"/>
         <source>An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. SFEN string must contain exactly 9 parts.</source>
         <translation>An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. SFEN string must contain exactly 9 parts.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="217"/>
+        <location filename="../../src/core/shogiboard.cpp" line="221"/>
         <source>An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. Unexpected character in SFEN string.</source>
         <translation>An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. Unexpected character in SFEN string.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="228"/>
+        <location filename="../../src/core/shogiboard.cpp" line="232"/>
         <source>An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. Each rank must contain exactly 9 pieces or empty squares.</source>
         <translation>An error occurred in ShogiBoard::validateAndConvertSfenBoardStr. Each rank must contain exactly 9 pieces or empty squares.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="253"/>
+        <location filename="../../src/core/shogiboard.cpp" line="257"/>
         <source>An error occurred in ShogiBoard::setPieceStandFromSFEN. The piece stand string contains a space.</source>
         <translation>An error occurred in ShogiBoard::setPieceStandFromSFEN. The piece stand string contains a space.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="277"/>
-        <location filename="../../src/core/shogiboard.cpp" line="298"/>
+        <location filename="../../src/core/shogiboard.cpp" line="281"/>
+        <location filename="../../src/core/shogiboard.cpp" line="302"/>
         <source>An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type after number.</source>
         <translation>An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type after number.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="313"/>
+        <location filename="../../src/core/shogiboard.cpp" line="317"/>
         <source>An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type in piece stand string.</source>
         <translation>An error occurred in ShogiBoard::setPieceStandFromSFEN. Invalid piece type in piece stand string.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="361"/>
+        <location filename="../../src/core/shogiboard.cpp" line="365"/>
         <source>An error occurred in ShogiBoard::validateSfenString. SFEN string must be separated by exactly 3 spaces.</source>
         <translation>An error occurred in ShogiBoard::validateSfenString. SFEN string must be separated by exactly 3 spaces.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="378"/>
+        <location filename="../../src/core/shogiboard.cpp" line="382"/>
         <source>An error occurred in ShogiBoard::validateSfenString. SFEN string must specify either black &apos;b&apos; or white &apos;w&apos;.</source>
         <translation>An error occurred in ShogiBoard::validateSfenString. SFEN string must specify either black &apos;b&apos; or white &apos;w&apos;.</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiboard.cpp" line="393"/>
+        <location filename="../../src/core/shogiboard.cpp" line="397"/>
         <source>An error occurred in ShogiBoard::validateSfenString. The last part of the SFEN string must be a positive integer (indicating the next move number).</source>
         <translation>An error occurred in ShogiBoard::validateSfenString. The last part of the SFEN string must be a positive integer (indicating the next move number).</translation>
     </message>
@@ -6622,7 +6622,7 @@ Are you sure you want to declare?</translation>
         <translation>USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="1006"/>
+        <location filename="../../src/engine/usi.cpp" line="1021"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>

@@ -56,11 +56,16 @@ void UiStatePolicyManager::buildPolicyTable()
     // =====================================================================
     // ファイルメニュー
     // =====================================================================
-    // 新規/開く/上書き保存/名前を付けて保存: Idle, 詰み探索中, 検討中のみ有効
-    for (E elem : {E::FileNew, E::FileOpen, E::FileSave, E::FileSaveAs}) {
+    // 新規/開く: Idle のみ有効（検討中・詰み探索中はゲーム状態変更不可）
+    for (E elem : {E::FileNew, E::FileOpen}) {
         setAll(elem, P::Disabled);
-        set(S::Idle,              elem, P::Enabled);
-        set(S::DuringTsumeSearch, elem, P::Enabled);
+        set(S::Idle, elem, P::Enabled);
+    }
+    // 上書き保存/名前を付けて保存: Idle, 詰み探索中, 検討中で有効（状態を変更しない）
+    for (E elem : {E::FileSave, E::FileSaveAs}) {
+        setAll(elem, P::Disabled);
+        set(S::Idle,                elem, P::Enabled);
+        set(S::DuringTsumeSearch,   elem, P::Enabled);
         set(S::DuringConsideration, elem, P::Enabled);
     }
     // 盤面画像保存/評価値グラフ画像保存/終了: 常に有効
@@ -80,17 +85,13 @@ void UiStatePolicyManager::buildPolicyTable()
     // 局面コピー: 常に有効
     setAll(E::EditCopyPosition, P::Enabled);
 
-    // 棋譜貼り付け: Idle, 詰み探索中, 検討中のみ有効
+    // 棋譜貼り付け: Idle のみ有効（検討中・詰み探索中はゲーム状態変更不可）
     setAll(E::EditPasteKifu, P::Disabled);
-    set(S::Idle,              E::EditPasteKifu, P::Enabled);
-    set(S::DuringTsumeSearch, E::EditPasteKifu, P::Enabled);
-    set(S::DuringConsideration, E::EditPasteKifu, P::Enabled);
+    set(S::Idle, E::EditPasteKifu, P::Enabled);
 
-    // SFENビューア: Idle, 詰み探索中, 検討中のみ有効
+    // SFEN集ビューア: Idle のみ有効（検討中・詰み探索中は局面読み込み不可）
     setAll(E::EditSfenViewer, P::Disabled);
-    set(S::Idle,              E::EditSfenViewer, P::Enabled);
-    set(S::DuringTsumeSearch, E::EditSfenViewer, P::Enabled);
-    set(S::DuringConsideration, E::EditSfenViewer, P::Enabled);
+    set(S::Idle, E::EditSfenViewer, P::Enabled);
 
     // 盤面画像コピー: 常に有効
     setAll(E::EditCopyBoardImage, P::Enabled);
@@ -191,6 +192,16 @@ void UiStatePolicyManager::buildPolicyTable()
 // ======================================================================
 // 状態適用
 // ======================================================================
+
+bool UiStatePolicyManager::isEnabled(UiElement element) const
+{
+    const auto& policies = m_policyTable.value(m_currentState);
+    const auto it = policies.find(element);
+    if (it != policies.end()) {
+        return it.value() == Policy::Enabled || it.value() == Policy::Shown;
+    }
+    return true;
+}
 
 void UiStatePolicyManager::applyState(AppState state)
 {

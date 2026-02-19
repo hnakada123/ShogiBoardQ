@@ -115,6 +115,9 @@ public:
     /// 現在の状態を返す
     AppState currentState() const { return m_currentState; }
 
+    /// 指定要素が現在の状態で有効（Enabled/Shown）かを返す
+    bool isEnabled(UiElement element) const;
+
 public slots:
     /// 各状態遷移用の便利スロット（シグナル直結用）
     void transitionToIdle();

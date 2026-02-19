@@ -757,8 +757,13 @@ QString Usi::computeBaseSfenFromBoard() const
     if (!m_gameController || !m_gameController->board()) return QString();
 
     ShogiBoard* board = m_gameController->board();
-    QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
-                   ? QStringLiteral("b") : QStringLiteral("w");
+    // board->currentPlayer() は setSfen() 時に SFEN の手番フィールドから設定されるため、
+    // 棋譜ナビゲーション後も正しい手番を返す。
+    // m_gameController->currentPlayer() は対局中の手番管理用であり、
+    // ナビゲーション時には更新されないため使用しない。
+    const QString boardTurn = board->currentPlayer();
+    const QString turn = (boardTurn == QStringLiteral("w"))
+                         ? QStringLiteral("w") : QStringLiteral("b");
     return board->convertBoardToSfen() + QStringLiteral(" ") + turn +
            QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
 }
@@ -768,12 +773,17 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
 {
     if (usiMove.length() < 4) return;
 
+    // USI形式の座標検証（筋: 1-9, 段: a-i）
+    auto isValidRank = [](QChar ch) { return ch >= 'a' && ch <= 'i'; };
+
     bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
 
     if (usiMove.at(1) == QLatin1Char('*')) {
         // 駒打ち: "P*5e"
         int fileTo = usiMove.at(2).digitValue();
         int rankTo = usiMove.at(3).toLatin1() - 'a' + 1;
+        if (fileTo < 1 || fileTo > 9 || !isValidRank(usiMove.at(3))) return;
+
         QChar pieceChar = isSenteMove ? usiMove.at(0).toUpper() : usiMove.at(0).toLower();
 
         board->decrementPieceOnStand(pieceChar);
@@ -784,6 +794,11 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
         int rankFrom = usiMove.at(1).toLatin1() - 'a' + 1;
         int fileTo = usiMove.at(2).digitValue();
         int rankTo = usiMove.at(3).toLatin1() - 'a' + 1;
+
+        if (fileFrom < 1 || fileFrom > 9 || !isValidRank(usiMove.at(1)) ||
+            fileTo < 1 || fileTo > 9 || !isValidRank(usiMove.at(3))) {
+            return;
+        }
 
         QChar movingPiece = board->getPieceCharacter(fileFrom, rankFrom);
         QChar capturedPiece = board->getPieceCharacter(fileTo, rankTo);
@@ -1056,13 +1071,11 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
     }
 
     // 思考開始時の局面SFENを保存（読み筋表示用）
-    if (m_gameController && m_gameController->board()) {
-        ShogiBoard* board = m_gameController->board();
-        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
-                       ? QStringLiteral("b") : QStringLiteral("w");
-        QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
-                          QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
-        m_presenter->setBaseSfen(baseSfen);
+    {
+        QString baseSfen = computeBaseSfenFromBoard();
+        if (!baseSfen.isEmpty()) {
+            m_presenter->setBaseSfen(baseSfen);
+        }
     }
 
     cloneCurrentBoardData();
@@ -1108,13 +1121,11 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
     }
 
     // 思考開始時の局面SFENを保存（読み筋表示用）
-    if (m_gameController && m_gameController->board()) {
-        ShogiBoard* board = m_gameController->board();
-        QString turn = (m_gameController->currentPlayer() == ShogiGameController::Player1)
-                       ? QStringLiteral("b") : QStringLiteral("w");
-        QString baseSfen = board->convertBoardToSfen() + QStringLiteral(" ") + turn +
-                          QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
-        m_presenter->setBaseSfen(baseSfen);
+    {
+        QString baseSfen = computeBaseSfenFromBoard();
+        if (!baseSfen.isEmpty()) {
+            m_presenter->setBaseSfen(baseSfen);
+        }
     }
 
     cloneCurrentBoardData();
