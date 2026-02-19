@@ -481,6 +481,20 @@ void JosekiWindow::applyFontSize()
         header->setFixedHeight(fm.height() + 12);
         m_tableWidget->verticalHeader()->setDefaultSectionSize(fm.height() + 12);
 
+        // ヘッダーの背景色と文字色を設定（棋譜ドックと統一）
+        m_tableWidget->setStyleSheet(QStringLiteral(
+            "QHeaderView::section {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #40acff, stop:1 #209cee);"
+            "  color: white;"
+            "  font-weight: normal;"
+            "  padding: 4px;"
+            "  border: none;"
+            "  border-bottom: 1px solid #209cee;"
+            "  font-size: %1pt;"
+            "}")
+            .arg(m_fontSize));
+
         // 各列幅をヘッダー文字幅に合わせて調整
         for (int col = 0; col < m_tableWidget->columnCount(); ++col) {
             QString headerText = m_tableWidget->horizontalHeaderItem(col)
@@ -977,6 +991,10 @@ void JosekiWindow::updateJosekiDisplay()
         m_tableWidget->setItem(i, 9, commentItem);
     }
     
+    // 定跡手・予想応手の列幅をコンテンツに合わせて自動調整
+    m_tableWidget->resizeColumnToContents(2);
+    m_tableWidget->resizeColumnToContents(3);
+
     // ステータス表示を更新
     updateStatusDisplay();
 }
