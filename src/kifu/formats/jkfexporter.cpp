@@ -518,7 +518,8 @@ static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
     for (qsizetype i = 0; i < disp.size(); ++i) {
         const auto& item = disp[i];
 
-        if (i == 0 && item.prettyMove.trimmed().isEmpty()) {
+        if (i == 0 && (item.prettyMove.trimmed().isEmpty()
+                       || item.prettyMove.contains(QStringLiteral("開始局面")))) {
             // 開始局面のコメント
             QJsonObject openingMove;
             if (!item.comment.isEmpty()) {
