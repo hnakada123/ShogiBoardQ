@@ -3652,44 +3652,44 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="451"/>
+        <location filename="../../src/app/mainwindow.cpp" line="450"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="700"/>
-        <location filename="../../src/app/mainwindow.cpp" line="715"/>
+        <location filename="../../src/app/mainwindow.cpp" line="699"/>
+        <location filename="../../src/app/mainwindow.cpp" line="714"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="700"/>
-        <location filename="../../src/app/mainwindow.cpp" line="715"/>
+        <location filename="../../src/app/mainwindow.cpp" line="699"/>
+        <location filename="../../src/app/mainwindow.cpp" line="714"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1345"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1344"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1346"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1345"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4015"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4014"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4017"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4016"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4020"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4019"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3714,7 +3714,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3493"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3492"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3723,17 +3723,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3981"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3980"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3983"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3982"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3987"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3986"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

@@ -60,7 +60,6 @@
 #include "boardsyncpresenter.h"
 #include "gamestartcoordinator.h"
 #include "navigationpresenter.h"
-#include "analysiscoordinator.h"
 #include "kifuanalysislistmodel.h"
 #include "gamerecordpresenter.h"
 #include "timecontrolutil.h"
