@@ -439,11 +439,9 @@ private:
     QString           m_humanName1, m_humanName2;   ///< 対局者名（人間側）
     QString           m_engineName1, m_engineName2; ///< 対局者名（エンジン側）
     QList<KifuDisplay *>* m_moveRecords = nullptr;  ///< 指し手表示レコード（非所有）
-    QStringList       m_kifuDataList;               ///< 棋譜データリスト
     QString           defaultSaveFileName;          ///< デフォルトの保存ファイル名
     QString           kifuSaveFileName;             ///< 棋譜保存ファイル名
     QVector<ShogiMove> m_gameMoves;                 ///< 対局中の指し手列
-    QList<KifDisplayItem> m_liveDisp;               ///< リアルタイム棋譜表示データ
 
     // --- 時計 / 時刻管理 ---
     TimeControlController* m_timeController = nullptr; ///< 時間制御コントローラ（非所有）
@@ -452,7 +450,6 @@ private:
     GameInfoPaneController* m_gameInfoController = nullptr; ///< 対局情報ペイン管理（非所有）
 
     // --- 棋譜表示 / 分岐操作 ---
-    QSet<int> m_branchablePlySet;             ///< 分岐可能な手数の集合
     QVector<QString> m_commentsByRow;         ///< 行ごとのコメント
     int m_activePly          = 0;             ///< 現在アクティブな手数
     int m_currentSelectedPly = 0;             ///< 現在選択中の手数

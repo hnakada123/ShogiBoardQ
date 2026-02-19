@@ -3254,19 +3254,19 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="448"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="595"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="550"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="646"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="500"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="596"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="551"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="647"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
@@ -4159,22 +4159,22 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1199"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1350"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3859"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4016"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3861"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4018"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3864"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4021"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4470,7 +4470,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1198"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1349"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
@@ -4543,17 +4543,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3982"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3827"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3984"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3988"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4562,7 +4562,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3337"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3494"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -6234,42 +6234,42 @@ Are you sure you want to declare?</translation>
         <translation>An error occurred in ShogiGameController::setBoard: null board was passed.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="173"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="178"/>
         <source>An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.</source>
         <translation>An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="236"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="241"/>
         <source>An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.</source>
         <translation>An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="146"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="151"/>
         <source>An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.</source>
         <translation>An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="358"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="363"/>
         <source>An error occurred in ShogiGameController::validateAndMove: board() is null.</source>
         <translation>An error occurred in ShogiGameController::validateAndMove: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="390"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="395"/>
         <source>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</source>
         <translation>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="478"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="483"/>
         <source>An error occurred in ShogiGameController::editPosition: board() is null.</source>
         <translation>An error occurred in ShogiGameController::editPosition: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="666"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="671"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</source>
         <translation>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="672"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="677"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</source>
         <translation>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</translation>
     </message>

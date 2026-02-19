@@ -2978,19 +2978,19 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="448"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="595"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="550"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="646"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="500"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="596"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="551"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="647"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3675,27 +3675,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1198"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1349"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1199"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1350"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3859"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4016"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3861"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4018"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3864"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4021"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3720,7 +3720,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3337"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3494"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3729,17 +3729,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3825"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3982"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3827"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3984"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3988"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5272,42 +5272,42 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="173"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="178"/>
         <source>An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="236"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="241"/>
         <source>An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="146"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="151"/>
         <source>An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="358"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="363"/>
         <source>An error occurred in ShogiGameController::validateAndMove: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="390"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="395"/>
         <source>An error occurred in ShogiGameController::validateAndMove: the source square is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="478"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="483"/>
         <source>An error occurred in ShogiGameController::editPosition: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="666"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="671"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/shogigamecontroller.cpp" line="672"/>
+        <location filename="../../src/game/shogigamecontroller.cpp" line="677"/>
         <source>An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.</source>
         <translation type="unfinished"></translation>
     </message>

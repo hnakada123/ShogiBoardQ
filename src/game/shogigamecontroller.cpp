@@ -89,6 +89,11 @@ void ShogiGameController::setResult(Result value)
     }
 }
 
+void ShogiGameController::resetResult()
+{
+    m_result = NoResult;
+}
+
 // ============================================================
 // 成り制御
 // ============================================================

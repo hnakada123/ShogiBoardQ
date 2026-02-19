@@ -117,6 +117,9 @@ public:
     /// 結果未確定の場合に最終決定する
     void finalizeGameResult();
 
+    /// 対局結果をNoResultにリセットする（新規時用）
+    void resetResult();
+
 public slots:
     /**
      * @brief SFEN文字列から新規対局を準備する

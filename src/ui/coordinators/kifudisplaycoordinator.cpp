@@ -35,6 +35,14 @@ KifuDisplayCoordinator::KifuDisplayCoordinator(
 {
 }
 
+void KifuDisplayCoordinator::resetTracking()
+{
+    m_lastLineIndex = 0;
+    m_lastModelLineIndex = -1;
+    m_expectedTreeLineIndex = 0;
+    m_expectedTreePly = 0;
+}
+
 void KifuDisplayCoordinator::setRecordPane(RecordPane* pane)
 {
     m_recordPane = pane;
@@ -414,6 +422,49 @@ void KifuDisplayCoordinator::updateBranchTreeView()
 {
     if (m_branchTreeWidget != nullptr) {
         m_branchTreeWidget->setTree(m_tree);
+    }
+
+    // BranchTreeManager も更新（分岐ツリードックの表示）
+    if (m_branchTreeManager != nullptr && m_tree != nullptr) {
+        QVector<BranchTreeManager::ResolvedRowLite> rows;
+        const QVector<BranchLine> lines = m_tree->allLines();
+
+        for (int lineIdx = 0; lineIdx < lines.size(); ++lineIdx) {
+            const BranchLine& line = lines.at(lineIdx);
+            BranchTreeManager::ResolvedRowLite row;
+            row.startPly = (line.branchPly > 0) ? line.branchPly : 1;
+
+            row.parent = -1;
+            if (line.branchPoint != nullptr) {
+                for (int j = 0; j < lines.size(); ++j) {
+                    if (j == lineIdx) continue;
+                    if (lines.at(j).nodes.contains(line.branchPoint)) {
+                        row.parent = j;
+                        break;
+                    }
+                }
+            }
+
+            for (KifuBranchNode* node : std::as_const(line.nodes)) {
+                KifDisplayItem item;
+                if (node->ply() == 0) {
+                    item.prettyMove = QString();
+                } else {
+                    item.prettyMove = node->displayText();
+                }
+                item.timeText = node->timeText();
+                item.comment = node->comment();
+                row.disp.append(item);
+                row.sfen.append(node->sfen());
+            }
+
+            rows.append(row);
+        }
+
+        m_branchTreeManager->setBranchTreeRows(rows);
+    } else if (m_branchTreeManager != nullptr) {
+        // ツリーが null の場合は空にする
+        m_branchTreeManager->setBranchTreeRows({});
     }
 }
 
