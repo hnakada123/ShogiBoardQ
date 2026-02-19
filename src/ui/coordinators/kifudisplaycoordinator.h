@@ -112,6 +112,11 @@ public slots:
      */
     void onTreeChanged();
 
+    /**
+     * @brief トラッキング状態を初期値にリセットする（新規時用）
+     */
+    void resetTracking();
+
     // === 一致性検証 ===
 
     /**

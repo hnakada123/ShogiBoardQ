@@ -1167,18 +1167,169 @@ void MainWindow::saveSettingsAndClose()
 // GUIを初期画面表示に戻す。
 void MainWindow::resetToInitialState()
 {
-    // 既存呼び出し互換のため残し、内部は司令塔フックへ集約
+    // 「新規」のため局面情報を初期化してから完全クリーンアップを実行する。
+    // performCleanup() は m_currentSelectedPly > 0 かつ m_currentSfenStr が
+    // 非初期局面の場合、棋譜を保持しようとする（途中局面開始の対局用）。
+    // ここで事前にリセットすることで、完全クリアを保証する。
+    static const QString kHirateStartSfen = QStringLiteral(
+        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    m_startSfenStr = kHirateStartSfen;
+    m_currentSfenStr = QStringLiteral("startpos");
+    m_currentSelectedPly = 0;
+
+    // エンジン・通信の停止（クリーンアップ前に実行して副作用を防ぐ）
+    if (m_match) {
+        m_match->stopAnalysisEngine();
+        m_match->clearGameOverState();
+    }
+    if (m_csaGameCoordinator) {
+        m_csaGameCoordinator->stopGame();
+    }
+    if (m_consecutiveGamesController) {
+        m_consecutiveGamesController->reset();
+    }
+
     onPreStartCleanupRequested();
 
-    // Op3固有: 対局情報クリア
+    // プレイモードを初期状態にリセット
+    m_playMode = PlayMode::NotStarted;
+
+    // ゲーム状態フラグのリセット
+    m_lastMove.clear();
+    m_resumeSfenStr.clear();
+    m_errorOccurred = false;
+
+    // 対局者名のリセット
+    m_humanName1.clear();
+    m_humanName2.clear();
+    m_engineName1.clear();
+    m_engineName2.clear();
+
+    // エンジン用positionコマンドのクリア
+    m_positionStr1.clear();
+    m_positionStrList.clear();
+
+    // 時間表示用キャッシュのリセット
+    m_lastP1Turn = true;
+    m_lastP1Ms = 0;
+    m_lastP2Ms = 0;
+
+    // コメント配列のクリア
+    m_commentsByRow.clear();
+
+    // 保存ファイル名のクリア（新規なので保存先を未設定に戻す）
+    defaultSaveFileName.clear();
+    kifuSaveFileName.clear();
+
+    // リプレイモードをリセット（対局中にリプレイ→新規のケース対応）
+    if (m_replayController) {
+        m_replayController->setReplayMode(false);
+        m_replayController->exitLiveAppendMode();
+        m_replayController->setResumeFromCurrent(false);
+    }
+
+    // ShogiGameControllerのゲーム結果をリセット
+    if (m_gameController) {
+        m_gameController->resetResult();
+    }
+
+    // KifuNavigationStateの分岐選択メモリをクリア
+    if (m_navState) {
+        m_navState->clearLineSelectionMemory();
+    }
+
+    // GameStateControllerのプレイモードを同期
+    if (m_gameStateController) {
+        m_gameStateController->setPlayMode(PlayMode::NotStarted);
+    }
+
+    // GameRecordModelのコメント・しおり・変更フラグをクリア
+    if (m_gameRecord) {
+        m_gameRecord->clear();
+    }
+
+    // GameRecordPresenterのキャッシュデータをクリア
+    if (m_recordPresenter) {
+        m_recordPresenter->clearLiveDisp();
+        m_recordPresenter->setCommentsByRow({});
+    }
+
+    // KifuDisplayCoordinatorのトラッキング状態をリセット
+    if (m_displayCoordinator) {
+        m_displayCoordinator->resetTracking();
+    }
+
+    // BoardInteractionControllerの2クリック入力途中状態をキャンセル
+    if (m_boardController) {
+        m_boardController->cancelPendingClick();
+    }
+
+    // 棋譜解析用の指し手レコードをクリア
+    if (m_moveRecords) {
+        m_moveRecords->clear();
+    }
+
+    // 評価値グラフのエンジン名をクリア
+    if (m_evalGraphController) {
+        m_evalGraphController->setEngine1Name({});
+        m_evalGraphController->setEngine2Name({});
+    }
+
+    // 対局終了時刻をクリア
+    if (m_timeController) {
+        m_timeController->clearGameEndTime();
+    }
+
+    // 再入防止ガードフラグのリセット
+    m_skipBoardSyncForBranchNav = false;
+    m_onMainRowGuard = false;
+
+    // sfenRecord / 対局指し手リストをクリア
+    if (auto* rec = sfenRecord()) {
+        rec->clear();
+        rec->append(kHirateStartSfen);
+    }
+    m_gameUsiMoves.clear();
+    m_gameMoves.clear();
+
+    // 対局情報クリア
     if (m_gameInfoController) {
         m_gameInfoController->setGameInfo({});
     }
-    // Op3固有: 分岐ツリー完全リセット
+    // performCleanup() が開始したライブゲームセッションを破棄
+    // （「新規」は対局開始ではないため）
+    if (m_liveGameSession && m_liveGameSession->isActive()) {
+        m_liveGameSession->discard();
+    }
+    // 分岐ツリー完全リセット
     if (m_kifuLoadCoordinator) {
         m_kifuLoadCoordinator->resetBranchTreeForNewGame();
+    } else if (m_branchTree) {
+        // m_kifuLoadCoordinator が未作成（棋譜読み込みなしで対局した場合）でも
+        // 分岐ツリーを直接クリアする
+        if (m_navState) {
+            m_navState->setCurrentNode(nullptr);
+            m_navState->resetPreferredLineIndex();
+        }
+        m_branchTree->setRootSfen(kHirateStartSfen);
+        if (m_navState) {
+            m_navState->goToRoot();
+        }
     }
-    // Op3固有: 定跡ウィンドウ更新
+    // 盤面を平手初期局面にリセットして再描画
+    if (m_gameController && m_gameController->board() && m_shogiView) {
+        m_gameController->board()->setSfen(kHirateStartSfen);
+        m_shogiView->applyBoardAndRender(m_gameController->board());
+    }
+    // 手番表示を先手に更新
+    if (m_shogiView) {
+        m_shogiView->updateTurnIndicator(ShogiGameController::Player1);
+    }
+    // UI状態をアイドルに遷移（メニュー・ナビゲーションボタン等のポリシー適用）
+    if (m_uiStatePolicy) {
+        m_uiStatePolicy->transitionToIdle();
+    }
+    // 定跡ウィンドウ更新
     updateJosekiWindow();
 }
 
@@ -3132,6 +3283,12 @@ void MainWindow::clearSessionDependentUi()
     if (m_analysisTab) {
         m_analysisTab->clearUsiLog();
         m_analysisTab->clearCsaLog();
+        // 検討ドックのエンジン情報をクリア（モデル切断で全セル空にする）
+        if (m_analysisTab->considerationInfo())
+            m_analysisTab->considerationInfo()->setModel(nullptr);
+        // 検討ドックの経過時間とボタン状態をリセット
+        m_analysisTab->resetElapsedTimer();
+        m_analysisTab->setConsiderationRunning(false);
     }
     if (m_analysisModel)
         m_analysisModel->clearAllItems();

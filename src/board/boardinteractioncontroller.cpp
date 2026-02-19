@@ -153,6 +153,12 @@ void BoardInteractionController::onHighlightsCleared()
     m_movedField     = nullptr;
 }
 
+void BoardInteractionController::cancelPendingClick()
+{
+    m_waitingSecondClick = false;
+    m_clickPoint = QPoint();
+}
+
 void BoardInteractionController::clearSelectionHighlight()
 {
     m_clickPoint = QPoint();

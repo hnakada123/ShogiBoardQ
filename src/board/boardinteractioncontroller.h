@@ -60,6 +60,9 @@ public:
     /// すべてのハイライトを削除する
     void clearAllHighlights();
 
+    /// 2クリック入力の途中状態をキャンセルする（新規時用）
+    void cancelPendingClick();
+
 public slots:
     /// 左クリック: 駒選択→移動先指定の2クリック処理
     void onLeftClick(const QPoint& pt);
