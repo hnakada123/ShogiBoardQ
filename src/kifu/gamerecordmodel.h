@@ -387,6 +387,14 @@ private:
      * @return USIの終局コード（例: "resign", "rep_draw"）、該当なしは空文字列
      */
     static QString getUsiTerminalCode(const QString& terminalMove);
+
+    // === BOD形式出力用ヘルパ ===
+    /**
+     * @brief SFENから開始局面のBOD行リストを生成
+     * @param sfen SFEN形式の局面文字列
+     * @return BOD形式の行リスト（空SFENまたは平手の場合は空リスト）
+     */
+    static QStringList sfenToBodLines(const QString& sfen);
 };
 
 #endif // GAMERECORDMODEL_H
