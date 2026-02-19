@@ -63,26 +63,8 @@ public:
     /// 局面編集モードで駒を移動し、盤面を更新する
     bool editPosition(const QPoint& outFrom, const QPoint& outTo);
 
-    /// 指し手を漢字の棋譜文字列に変換する（例: "▲７六歩(77)"）
-    QString convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo);
-
-    /// 投了時などの対局結果を設定する（現手番の相手を勝ちにする）
-    void gameResult();
-
-    /// 歩・桂・香の行き所のない駒に対して成りフラグを強制設定する
-    void setMandatoryPromotionFlag(const int fileTo, const int rankTo, const QChar source);
-
     /// 局面編集モードで右クリックによる成/不成を切り替える
     void switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const;
-
-    // --- 禁じ手チェック ---
-
-    bool checkTwoPawn(const QChar source, const int fileFrom, const int fileTo) const;
-    bool checkWhetherAllyPiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
-    bool checkNumberStandPiece(const QChar source, const int fileFrom) const;
-    bool checkFromPieceStandToPieceStand(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
-    bool checkGetKingOpponentPiece(const QChar source, const QChar dest) const;
-    bool checkMovePiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
 
     // --- SFEN・手番 ---
 
@@ -157,6 +139,24 @@ private:
 
     void setupBoard();
     void setBoard(ShogiBoard* board);
+
+    /// 指し手を漢字の棋譜文字列に変換する（例: "▲７六歩(77)"）
+    QString convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo);
+
+    /// 投了時などの対局結果を設定する（現手番の相手を勝ちにする）
+    void gameResult();
+
+    /// 歩・桂・香の行き所のない駒に対して成りフラグを強制設定する
+    void setMandatoryPromotionFlag(const int fileTo, const int rankTo, const QChar source);
+
+    // --- 禁じ手チェック ---
+
+    bool checkTwoPawn(const QChar source, const int fileFrom, const int fileTo) const;
+    bool checkWhetherAllyPiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
+    bool checkNumberStandPiece(const QChar source, const int fileFrom) const;
+    bool checkFromPieceStandToPieceStand(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
+    bool checkGetKingOpponentPiece(const QChar source, const QChar dest) const;
+    bool checkMovePiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
     void setResult(Result);
 
     /// アルファベットの駒文字を漢字表記に変換する
