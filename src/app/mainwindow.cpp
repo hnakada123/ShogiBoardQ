@@ -624,8 +624,13 @@ void MainWindow::disableArrowButtons()
 }
 
 // 棋譜欄の下の矢印ボタンを有効にする。
+// UiStatePolicyManagerがナビゲーション無効状態の場合はスキップする。
 void MainWindow::enableArrowButtons()
 {
+    if (m_uiStatePolicy &&
+        !m_uiStatePolicy->isEnabled(UiStatePolicyManager::UiElement::WidgetNavigation)) {
+        return;
+    }
     if (m_recordPane) m_recordPane->setArrowButtonsEnabled(true);
 }
 
@@ -3114,6 +3119,10 @@ void MainWindow::onPreStartCleanupRequested()
 // セッション依存UIコンポーネント（思考・検討・USI/CSAログ・棋譜解析）をクリアする。
 void MainWindow::clearSessionDependentUi()
 {
+    if (m_lineEditModel1)
+        m_lineEditModel1->clear();
+    if (m_lineEditModel2)
+        m_lineEditModel2->clear();
     if (m_modelThinking1)
         m_modelThinking1->clearAllItems();
     if (m_modelThinking2)

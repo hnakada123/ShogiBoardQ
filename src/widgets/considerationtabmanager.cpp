@@ -53,7 +53,6 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
     m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
     m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
     m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnConsiderationFontDecrease->setFixedSize(28, 24);
     m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::fontButton());
     connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
             this, &ConsiderationTabManager::onConsiderationFontDecrease);
@@ -62,7 +61,6 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
     m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
     m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
     m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnConsiderationFontIncrease->setFixedSize(28, 24);
     m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::fontButton());
     connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
             this, &ConsiderationTabManager::onConsiderationFontIncrease);
@@ -499,8 +497,20 @@ void ConsiderationTabManager::initFontManager()
         font.setPointSize(size);
 
         // ツールバー要素のフォントサイズ更新
-        if (m_btnConsiderationFontDecrease) m_btnConsiderationFontDecrease->setFont(font);
-        if (m_btnConsiderationFontIncrease) m_btnConsiderationFontIncrease->setFont(font);
+        // A+/A- ボタンはフォントサイズに合わせてボタンサイズも更新
+        {
+            const QFontMetrics fm(font);
+            const int btnW = fm.horizontalAdvance(QStringLiteral("A+")) + 12;
+            const int btnH = fm.height() + 8;
+            if (m_btnConsiderationFontDecrease) {
+                m_btnConsiderationFontDecrease->setFont(font);
+                m_btnConsiderationFontDecrease->setFixedSize(btnW, btnH);
+            }
+            if (m_btnConsiderationFontIncrease) {
+                m_btnConsiderationFontIncrease->setFont(font);
+                m_btnConsiderationFontIncrease->setFixedSize(btnW, btnH);
+            }
+        }
         if (m_engineComboBox) m_engineComboBox->setFont(font);
         if (m_btnEngineSettings) m_btnEngineSettings->setFont(font);
         if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setFont(font);

@@ -498,8 +498,9 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
     bool promote = false;
 
     m_pvKanjiStr.clear();
-    m_pvUsiStr = pvTokens.join(QStringLiteral(" "));
+    m_pvUsiStr.clear();
 
+    QStringList validUsiMoves;
     for (qsizetype i = 0; i < pvTokens.size(); ++i) {
         const QString& token = pvTokens.at(i);
 
@@ -508,13 +509,18 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
             if (i == pvTokens.size() - 1) {
                 // 末尾の "(57.54%)" 等はそのまま付加して終了
                 m_pvKanjiStr += " " + token;
+                // m_pvUsiStr には非指し手トークンを含めない
+                m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
                 return 0;
             }
+            m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
             return -1;
         }
         if (rc < 0) {
+            m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
             return -1;
         }
+        validUsiMoves.append(token);
 
         const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
         const QString kanjiMovePiece = getPieceKanjiName(movingPiece);
@@ -535,6 +541,7 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
         movePieceToSquare(clonedBoardData, movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
     }
 
+    m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
     return 0;
 }
 

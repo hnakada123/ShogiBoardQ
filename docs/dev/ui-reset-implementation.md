@@ -29,6 +29,8 @@ USI通信ログの `QPlainTextEdit`（`m_usiLog`）をクリアする public メ
 
 | 対象 | メンバ変数 | クリア方法 |
 |---|---|---|
+| エンジン情報ヘッダー（先手） | `m_lineEditModel1` | `clear()` |
+| エンジン情報ヘッダー（後手） | `m_lineEditModel2` | `clear()` |
 | 思考結果（先手） | `m_modelThinking1` | `clearAllItems()` |
 | 思考結果（後手） | `m_modelThinking2` | `clearAllItems()` |
 | 検討結果 | `m_considerationModel` | `clearAllItems()` |

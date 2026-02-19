@@ -433,9 +433,15 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
     // 例: "7g7f" (移動), "P*5e" (打つ)
     if (usiMove.length() < 4) return;
 
+    // USI形式の座標検証ヘルパ（筋: 1-9, 段: a-i → 1-9）
+    auto isValidFile = [](QChar ch) { return ch >= '1' && ch <= '9'; };
+    auto isValidRank = [](QChar ch) { return ch >= 'a' && ch <= 'i'; };
+
     // 打つ手（駒打ち）の場合
     if (usiMove.at(1) == '*') {
         // 例: "P*5e"
+        if (!isValidFile(usiMove.at(2)) || !isValidRank(usiMove.at(3))) return;
+
         QChar pieceChar = usiMove.at(0);
         int toFile = usiMove.at(2).toLatin1() - '0';  // '5' -> 5
         int toRank = usiMove.at(3).toLatin1() - 'a' + 1;  // 'e' -> 5
@@ -458,6 +464,11 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
 
     // 移動手の場合
     // 例: "7g7f" または "7g7f+"
+    if (!isValidFile(usiMove.at(0)) || !isValidRank(usiMove.at(1)) ||
+        !isValidFile(usiMove.at(2)) || !isValidRank(usiMove.at(3))) {
+        return;
+    }
+
     int fromFile = usiMove.at(0).toLatin1() - '0';  // '7' -> 7
     int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;  // 'g' -> 7
     int toFile = usiMove.at(2).toLatin1() - '0';
