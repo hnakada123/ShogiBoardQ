@@ -7,6 +7,7 @@
 #include "loggingcategory.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
+#include "buttonstyles.h"
 #include <QApplication>
 #include <QDir>
 #include <QFileDialog>
@@ -33,6 +34,14 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
 
     // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
     loadEnginesFromSettings();
+
+    // ボタンスタイルを適用
+    ui->addEngineButton->setStyleSheet(ButtonStyles::editOperation());
+    ui->removeEngineButton->setStyleSheet(ButtonStyles::dangerStop());
+    ui->configureEngineButton->setStyleSheet(ButtonStyles::primaryAction());
+    ui->closeButton->setStyleSheet(ButtonStyles::secondaryNeutral());
+    ui->fontDecreaseButton->setStyleSheet(ButtonStyles::fontButton());
+    ui->fontIncreaseButton->setStyleSheet(ButtonStyles::fontButton());
 
     // フォントサイズを適用
     applyFontSize();
