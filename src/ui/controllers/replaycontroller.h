@@ -122,19 +122,6 @@ public:
      */
     bool isResumeFromCurrent() const;
 
-Q_SIGNALS:
-    /**
-     * @brief リプレイモードが変更された
-     * @param isReplay 新しいリプレイモード状態
-     */
-    void replayModeChanged(bool isReplay);
-
-    /**
-     * @brief ライブ追記モードが変更された
-     * @param isLive 新しいライブ追記モード状態
-     */
-    void liveAppendModeChanged(bool isLive);
-
 private:
     ShogiClock* m_clock = nullptr;
     ShogiView* m_view = nullptr;

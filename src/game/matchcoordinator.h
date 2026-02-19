@@ -454,9 +454,6 @@ signals:
     /// 終局の通知（→ GameStartCoordinator::matchGameEnded へ再送出）
     void gameEnded(const GameEndInfo& info);
 
-    /// USI計算時間の更新通知（MainWindow → bTime/wTime 表示）
-    void timesForUSIUpdated(qint64 bMs, qint64 wMs);
-
     /**
      * @brief 時計更新通知
      * @param p1ms 先手残りms
@@ -477,16 +474,6 @@ signals:
 
     /// 検討待機開始時に発火する（経過タイマー停止用）
     void considerationWaitingStarted();
-
-    void uiUpdateTurnAndClock(const QString& turnText,
-                              const QString& p1Text,
-                              const QString& p2Text);
-    void uiNotifyTimeout(int player);
-    void uiNotifyResign();
-    void uiNotifyGameEnded();
-
-    /// 司令塔内のタイムティックが進んだ際に発火する
-    void timeTick();
 
 private:
     // --- 内部ヘルパ ---
@@ -564,8 +551,6 @@ private:
 
     qint64 m_turnEpochP1Ms = -1;             ///< P1の手開始エポック（ms）
     qint64 m_turnEpochP2Ms = -1;             ///< P2の手開始エポック（ms）
-    QString m_bTimeStr, m_wTimeStr;          ///< USI表記用の残り時間文字列
-
     // --- 時間ルール ---
 
     TimeControl m_tc;                         ///< 時間制御設定

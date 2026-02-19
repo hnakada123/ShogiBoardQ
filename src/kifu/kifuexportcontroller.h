@@ -189,11 +189,6 @@ Q_SIGNALS:
      */
     void statusMessage(const QString& message, int timeout);
 
-    /**
-     * @brief 保存完了時に発火
-     */
-    void fileSaved(const QString& path);
-
 private:
     /**
      * @brief USI指し手リストを取得（複数ソースから優先順位で）

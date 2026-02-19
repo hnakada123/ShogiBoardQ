@@ -77,10 +77,6 @@ public slots:
     /// 対局開始前のクリーンアップを実行する（→ GameStartCoordinator::requestPreStartCleanup）
     void performCleanup();
 
-signals:
-    /// コメント欄クリアを要求する（→ CommentCoordinator）
-    void broadcastCommentRequested(const QString& text, bool asHtml);
-
 public:
     /**
      * @brief 「現在の局面から開始」かどうかの判定ロジック

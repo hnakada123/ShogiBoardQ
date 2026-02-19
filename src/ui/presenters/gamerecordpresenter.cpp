@@ -24,7 +24,6 @@ void GameRecordPresenter::clear() {
     m_currentMoveIndex = 0;
     if (m_d.model) {
         m_d.model->clearAllItems();
-        emit modelReset();
     }
 }
 
@@ -171,68 +170,6 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
     }
 }
 
-void GameRecordPresenter::appendMoveLineWithComment(const QString& prettyMove, const QString& elapsedTime, const QString& comment)
-{
-    const QString last = prettyMove.trimmed();
-    if (last.isEmpty()) {
-        qCDebug(lcUi) << "skip empty move line";
-        return;
-    }
-
-    // --- 手数の算出 ---
-    int moveRows = 0;
-    if (m_d.model) {
-        moveRows = m_d.model->rowCount();
-
-        if (moveRows > 0) {
-            const QModelIndex headIdx = m_d.model->index(0, 0);
-            const QString headText = m_d.model->data(headIdx, Qt::DisplayRole).toString();
-
-            if (headText.contains(tr("開始局面"))
-                || headText.contains(QStringLiteral("平手"))
-                || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
-                moveRows -= 1;
-                if (moveRows < 0) moveRows = 0;
-            }
-        }
-    }
-
-    const int nextMoveNumber = moveRows + 1;
-    m_currentMoveIndex = nextMoveNumber;
-
-    const QString moveNumberStr = QString::number(m_currentMoveIndex);
-    const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
-    const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + last;
-
-    QString kifuLine = recordLine + QStringLiteral(" ( ") + elapsedTime + QLatin1String(" )");
-    kifuLine.remove(QStringLiteral("▲"));
-    kifuLine.remove(QStringLiteral("△"));
-    m_kifuDataList.append(kifuLine);
-
-    if (m_d.model) {
-        // コメント付きで KifuDisplay を追加
-        m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime, comment));
-
-        const int newRow = m_d.model->rowCount() - 1;
-        m_d.model->setCurrentHighlightRow(newRow);
-
-        // QTableViewの選択モデルでも新しい行を選択（黄色表示のため）
-        if (m_kifuView) {
-            if (auto* sel = m_kifuView->selectionModel()) {
-                const QModelIndex idx = m_d.model->index(newRow, 0);
-                sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-            }
-        } else if (m_d.recordPane) {
-            if (auto* view = m_d.recordPane->kifuView()) {
-                if (auto* sel = view->selectionModel()) {
-                    const QModelIndex idx = m_d.model->index(newRow, 0);
-                    sel->setCurrentIndex(idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-                }
-            }
-        }
-    }
-}
-
 void GameRecordPresenter::setCommentsByRow(const QStringList& commentsByRow)
 {
     m_commentsByRow = commentsByRow;
@@ -241,7 +178,6 @@ void GameRecordPresenter::setCommentsByRow(const QStringList& commentsByRow)
 void GameRecordPresenter::setCommentsFromDisplayItems(const QList<KifDisplayItem>& disp,
                                                       int rowCount)
 {
-    // rowCount: 0手目(初期局面)を含む行数
     m_commentsByRow.clear();
     m_commentsByRow.resize(qMax(0, rowCount));
 
@@ -249,14 +185,6 @@ void GameRecordPresenter::setCommentsFromDisplayItems(const QList<KifDisplayItem
     if (m_commentsByRow.isEmpty()) {
         return;
     }
-
-    // --- 新しいデータ構造 ---
-    // disp[0] = 開始局面エントリ（prettyMove が空、comment に開始局面コメント）
-    // disp[1] = 1手目（prettyMove に指し手、comment に1手目のコメント）
-    // disp[2] = 2手目（prettyMove に指し手、comment に2手目のコメント）
-    // ...
-    // つまり、disp[i].comment は i 手目のコメントに対応
-    // m_commentsByRow[i] にも disp[i].comment をそのまま割り当てる
 
     const int rows = static_cast<int>(m_commentsByRow.size());
     for (int r = 0; r < rows; ++r) {

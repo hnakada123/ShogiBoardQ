@@ -120,8 +120,6 @@ void Usi::setupConnections()
             this, &Usi::bestMoveResignReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveWinReceived,
             this, &Usi::bestMoveWinReceived);
-    connect(m_protocolHandler.get(), &UsiProtocolHandler::stopOrPonderhitSent,
-            this, &Usi::stopOrPonderhitCommandSent);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::errorOccurred,
             this, &Usi::errorOccurred);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::infoLineReceived,
@@ -323,16 +321,6 @@ void Usi::setPvKanjiStr(const QString& newPvKanjiStr)
     m_pvKanjiStr = newPvKanjiStr;
 }
 
-QString Usi::convertFirstPlayerPieceNumberToSymbol(int rankFrom) const
-{
-    return m_protocolHandler->convertFirstPlayerPieceSymbol(rankFrom);
-}
-
-QString Usi::convertSecondPlayerPieceNumberToSymbol(int rankFrom) const
-{
-    return m_protocolHandler->convertSecondPlayerPieceSymbol(rankFrom);
-}
-
 void Usi::parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo)
 {
     m_protocolHandler->parseMoveCoordinates(fileFrom, rankFrom, fileTo, rankTo);
@@ -424,18 +412,6 @@ void Usi::setLogModel(UsiCommLogModel* m)
     m_commLogModel = m;
     // Presenterはシグナル経由で更新するため、モデル参照は不要
 }
-
-#ifdef QT_DEBUG
-ShogiEngineThinkingModel* Usi::debugThinkingModel() const
-{
-    return m_thinkingModel;
-}
-
-UsiCommLogModel* Usi::debugLogModel() const
-{
-    return m_commLogModel;
-}
-#endif
 
 void Usi::cancelCurrentOperation()
 {
@@ -570,42 +546,6 @@ void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString
                               addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
 }
 
-void Usi::sendGoDepthCommand(int depth)
-{
-    cloneCurrentBoardData();
-    m_protocolHandler->sendGoDepth(depth);
-}
-
-void Usi::sendGoNodesCommand(qint64 nodes)
-{
-    cloneCurrentBoardData();
-    m_protocolHandler->sendGoNodes(nodes);
-}
-
-void Usi::sendGoMovetimeCommand(int timeMs)
-{
-    cloneCurrentBoardData();
-    m_protocolHandler->sendGoMovetime(timeMs);
-}
-
-void Usi::sendGoSearchmovesCommand(const QStringList& moves, bool infinite)
-{
-    cloneCurrentBoardData();
-    m_protocolHandler->sendGoSearchmoves(moves, infinite);
-}
-
-void Usi::sendGoSearchmovesDepthCommand(const QStringList& moves, int depth)
-{
-    cloneCurrentBoardData();
-    m_protocolHandler->sendGoSearchmovesDepth(moves, depth);
-}
-
-void Usi::sendGoSearchmovesMovetimeCommand(const QStringList& moves, int timeMs)
-{
-    cloneCurrentBoardData();
-    m_protocolHandler->sendGoSearchmovesMovetime(moves, timeMs);
-}
-
 void Usi::sendRaw(const QString& command) const
 {
     m_protocolHandler->sendRaw(command);
@@ -684,32 +624,9 @@ void Usi::sendGameOverWinAndQuitCommands()
     m_protocolHandler->sendQuit();
 }
 
-void Usi::waitForStopOrPonderhitCommand()
-{
-    m_protocolHandler->waitForStopOrPonderhit();
-}
-
 // ============================================================
 // 詰将棋関連
 // ============================================================
-
-void Usi::sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite)
-{
-    if (!m_processManager->isRunning()) {
-        emit errorOccurred(tr("USI engine is not running."));
-        cancelCurrentOperation();
-        return;
-    }
-
-    m_protocolHandler->sendPosition(QStringLiteral("position sfen %1").arg(sfen.trimmed()));
-    m_protocolHandler->sendGoMate(timeMs, infinite);
-}
-
-void Usi::sendStopForMate()
-{
-    if (!m_processManager->isRunning()) return;
-    m_protocolHandler->sendStop();
-}
 
 void Usi::executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec)
 {

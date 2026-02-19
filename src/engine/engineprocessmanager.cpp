@@ -343,6 +343,8 @@ void EngineProcessManager::onProcessError(QProcess::ProcessError error)
 
 void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus status)
 {
+    Q_UNUSED(exitCode)
+    Q_UNUSED(status)
     // プロセス終了時にバッファに残ったデータを最後に処理する
     if (m_process) {
         const QByteArray outTail = m_process->readAllStandardOutput();
@@ -361,7 +363,6 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
     }
 
     m_shutdownState = ShutdownState::IgnoreAll;
-    emit processFinished(exitCode, status);
 }
 
 void EngineProcessManager::scheduleMoreReading()

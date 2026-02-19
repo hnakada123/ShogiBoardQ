@@ -105,9 +105,6 @@ public:
     void printPieceCount() const;
 
 signals:
-    /// エラー発生通知（現在connect先なし）
-    void errorOccurred(const QString& errorMessage);
-
     /// 盤面全体リセット通知（→ ShogiView::repaint）
     void boardReset();
 

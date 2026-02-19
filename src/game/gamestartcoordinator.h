@@ -165,9 +165,6 @@ signals:
     /// 時計適用の依頼（MainWindow側の既存ロジックへ接続）
     void requestApplyTimeControl(const GameStartCoordinator::TimeControl& tc);
 
-    /// 互換用エイリアス（requestApplyTimeControlと同時には使用しない）
-    void applyTimeControlRequested(const GameStartCoordinator::TimeControl& tc);
-
     // --- 進捗通知 ---
 
     /// 対局開始完了の通知（→ MainWindow::disableNavigationForGame, onGameStarted）
@@ -222,10 +219,6 @@ private:
     PlayMode determinePlayMode(int initPositionNumber,
                                bool isPlayer1Human,
                                bool isPlayer2Human) const;
-
-signals:
-    /// エラー表示をUI層に委譲する
-    void requestDisplayError(const QString& message) const;
 
 private:
     /// SFENから手番（'b' or 'w'）を抽出する

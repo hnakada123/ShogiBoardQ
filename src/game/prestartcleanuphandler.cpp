@@ -85,8 +85,6 @@ void PreStartCleanupHandler::performCleanup()
     updatePlyTracking(startFromCurrentPos, keepRow);
     clearBranchModel();
 
-    Q_EMIT broadcastCommentRequested(QString(), true);
-
     resetUsiLogModels();
     resetTimeControl();
     resetEvaluationGraph();

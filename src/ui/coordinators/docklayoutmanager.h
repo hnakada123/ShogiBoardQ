@@ -126,12 +126,6 @@ public:
      */
     void saveDockStates();
 
-signals:
-    /**
-     * @brief レイアウトが変更されたとき
-     */
-    void layoutChanged();
-
 private:
     /**
      * @brief すべてのドックを表示状態にする（復元前の準備）

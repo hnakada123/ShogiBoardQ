@@ -114,7 +114,7 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                            << (m_branchPoint ? m_branchPoint->ply() : -1);
 
         if (parent != nullptr) {
-            // addMoveQuiet() を使用: nodeAdded のみ発火、treeChanged は発火しない
+            // addMoveQuiet() を使用: treeChanged は発火しない
             m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
             qCDebug(lcKifu).noquote() << "addMove: added to tree, m_liveParent ply="
                                << (m_liveParent ? m_liveParent->ply() : -1)
@@ -146,6 +146,7 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
 void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayText,
                                        const QString& elapsed)
 {
+    Q_UNUSED(type)
     if (!canAddMove()) {
         qCWarning(lcKifu) << "Cannot add terminal - session not active or already terminated";
         return;
@@ -168,8 +169,6 @@ void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayT
     }
 
     m_hasTerminal = true;
-
-    emit terminalAdded(type);
 }
 
 KifuBranchNode* LiveGameSession::commit()

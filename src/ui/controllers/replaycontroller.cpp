@@ -89,7 +89,6 @@ void ReplayController::setReplayMode(bool on)
         }
     }
 
-    Q_EMIT replayModeChanged(on);
 }
 
 bool ReplayController::isReplayMode() const
@@ -117,7 +116,6 @@ void ReplayController::enterLiveAppendMode()
         }
     }
 
-    Q_EMIT liveAppendModeChanged(true);
 }
 
 void ReplayController::exitLiveAppendMode()
@@ -136,7 +134,6 @@ void ReplayController::exitLiveAppendMode()
         }
     }
 
-    Q_EMIT liveAppendModeChanged(false);
 }
 
 bool ReplayController::isLiveAppendMode() const

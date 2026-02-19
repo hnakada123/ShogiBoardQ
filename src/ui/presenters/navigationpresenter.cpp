@@ -29,7 +29,6 @@ void NavigationPresenter::refreshAll(int row, int ply)
     const int safePly = qMax(0, ply);
 
     highlightBranchTree(safeRow, safePly);
-    emit branchUiUpdated(safeRow, safePly);
 }
 
 void NavigationPresenter::refreshBranchCandidates(int row, int ply)
@@ -46,5 +45,4 @@ void NavigationPresenter::updateAfterBranchListChanged(int row, int ply)
     const int safePly = qMax(0, ply);
 
     highlightBranchTree(safeRow, safePly);
-    emit branchUiUpdated(safeRow, safePly);
 }

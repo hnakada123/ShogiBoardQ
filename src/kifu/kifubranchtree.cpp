@@ -86,7 +86,6 @@ KifuBranchNode* KifuBranchTree::addMove(KifuBranchNode* parent,
     parent->addChild(node);
     invalidateLineCache();
 
-    emit nodeAdded(node);
     emit treeChanged();
 
     return node;
@@ -116,7 +115,6 @@ KifuBranchNode* KifuBranchTree::addTerminalMove(KifuBranchNode* parent,
     parent->addChild(node);
     invalidateLineCache();
 
-    emit nodeAdded(node);
     emit treeChanged();
 
     return node;
@@ -150,9 +148,6 @@ KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
 
     parent->addChild(node);
     invalidateLineCache();
-
-    // nodeAdded のみ発火、treeChanged は発火しない
-    emit nodeAdded(node);
 
     return node;
 }
@@ -272,21 +267,6 @@ QVector<KifuBranchNode*> KifuBranchTree::pathToNode(KifuBranchNode* node) const
     }
     std::reverse(path.begin(), path.end());
     return path;
-}
-
-QVector<KifuBranchNode*> KifuBranchTree::branchesAt(KifuBranchNode* node) const
-{
-    QVector<KifuBranchNode*> result;
-    if (node == nullptr || node->parent() == nullptr) {
-        return result;
-    }
-
-    // 親の全ての子（自分を含む）を返す
-    KifuBranchNode* parent = node->parent();
-    for (KifuBranchNode* child : std::as_const(parent->children())) {
-        result.append(child);
-    }
-    return result;
 }
 
 QVector<BranchLine> KifuBranchTree::allLines() const
@@ -485,39 +465,3 @@ QStringList KifuBranchTree::getSfenListForLine(int lineIndex) const
     return result;
 }
 
-QVector<ShogiMove> KifuBranchTree::getGameMovesForLine(int lineIndex) const
-{
-    QVector<ShogiMove> result;
-
-    QVector<BranchLine> lines = allLines();
-    if (lineIndex < 0 || lineIndex >= lines.size()) {
-        return result;
-    }
-
-    const BranchLine& line = lines.at(lineIndex);
-    for (KifuBranchNode* node : std::as_const(line.nodes)) {
-        // ply=0（開始局面）と終局手は含めない
-        if (node->isActualMove()) {
-            result.append(node->move());
-        }
-    }
-
-    return result;
-}
-
-QStringList KifuBranchTree::getCommentsForLine(int lineIndex) const
-{
-    QStringList result;
-
-    QVector<BranchLine> lines = allLines();
-    if (lineIndex < 0 || lineIndex >= lines.size()) {
-        return result;
-    }
-
-    const BranchLine& line = lines.at(lineIndex);
-    for (KifuBranchNode* node : std::as_const(line.nodes)) {
-        result.append(node->comment());
-    }
-
-    return result;
-}

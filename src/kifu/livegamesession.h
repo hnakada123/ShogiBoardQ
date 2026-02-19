@@ -173,11 +173,6 @@ signals:
     void moveAdded(int ply, const QString& displayText);
 
     /**
-     * @brief 終局手が追加された
-     */
-    void terminalAdded(TerminalType type);
-
-    /**
      * @brief セッションが確定された
      */
     void sessionCommitted(KifuBranchNode* newLineEnd);

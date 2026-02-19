@@ -97,9 +97,6 @@ signals:
     /// プロセスエラー発生（→ USIProtocolHandler）
     void processError(QProcess::ProcessError error, const QString& errorMessage);
 
-    /// プロセス終了通知（→ USIProtocolHandler）
-    void processFinished(int exitCode, QProcess::ExitStatus status);
-
     /// エンジン名を"id name"応答から検出（→ USIProtocolHandler）
     void engineNameDetected(const QString& name);
 

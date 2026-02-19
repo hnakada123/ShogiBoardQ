@@ -86,8 +86,6 @@ public:
 
     // --- SFEN・手番 ---
 
-    /// 局面編集後のSFENをリストに追加する
-    void updateSfenRecordAfterEdit(QStringList* m_sfenHistory);
     void changeCurrentPlayer();
 
     // --- 成り制御 ---
@@ -101,18 +99,11 @@ public:
      * @param promote 強制モード時の成り/不成（true=成り、false=不成）
      */
     void setForcedPromotion(bool force, bool promote = false);
-    void clearForcedPromotion();
-
-    /// 直前着手の移動先（筋, 段）を返す
-    QPoint lastMoveTo() const;
 
     // --- 対局結果制御 ---
 
     /// 時間切れによる敗北を適用する（clockPlayer: 1=先手負け, 2=後手負け）
     void applyTimeoutLossFor(int clockPlayer);
-
-    /// 現在手番側の投了を適用する
-    void applyResignationOfCurrentSide();
 
     /// 結果未確定の場合に最終決定する
     void finalizeGameResult();
@@ -147,9 +138,6 @@ signals:
 
     /// 着手が確定した（→ TurnSyncBridge）
     void moveCommitted(ShogiGameController::Player mover, int ply);
-
-    /// エラー発生を報告する（→ ErrorBus）
-    void errorOccurred(const QString& errorMessage);
 
 private:
     // --- メンバー変数 ---

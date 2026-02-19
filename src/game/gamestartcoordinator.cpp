@@ -98,7 +98,6 @@ void GameStartCoordinator::start(const StartParams& params)
     // UI（時計）へ適用依頼
     if (tc.enabled || hasAny) {
         emit requestApplyTimeControl(tc);
-        emit applyTimeControlRequested(tc);
     }
 
     // 司令塔にも直に反映（UIシグナルの非同期順序に影響されないように）
@@ -142,9 +141,7 @@ void GameStartCoordinator::prepare(const Request& req)
     // --- 1) ダイアログから時間設定を抽出 ---
     const TimeControl tc = extractTimeControlFromDialog(req.startDialog);
 
-    // 互換のため従来のシグナルも両方飛ばす（他所で受けている場合がある）
     emit requestApplyTimeControl(tc);
-    emit applyTimeControlRequested(tc);
 
     qCDebug(lcGame).noquote()
         << "normalized TimeControl: "
@@ -614,8 +611,6 @@ PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
     const PlayMode mode = determinePlayMode(initPositionNumber, p1Human, p2Human);
 
     if (mode == PlayMode::PlayModeError) {
-        emit requestDisplayError(tr("An error occurred in GameStartCoordinator::determinePlayMode. "
-                                    "There is a mistake in the game options."));
         qCWarning(lcGame).noquote() << "setPlayMode: PlayMode::PlayModeError"
                              << "initPos=" << initPositionNumber
                              << " p1Human=" << p1Human << " p2Human=" << p2Human

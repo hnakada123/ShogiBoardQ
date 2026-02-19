@@ -135,19 +135,6 @@ private slots:
         QVERIFY(spy.count() >= 1);
     }
 
-    void signal_nodeAdded()
-    {
-        KifuBranchTree tree;
-        tree.setRootSfen(kHirateSfen);
-
-        QSignalSpy spy(&tree, &KifuBranchTree::nodeAdded);
-        QVERIFY(spy.isValid());
-
-        ShogiMove move;
-        tree.addMove(tree.root(), move, QStringLiteral("test"), QStringLiteral("sfen"));
-        QCOMPARE(spy.count(), 1);
-    }
-
     void stressTest_200Moves()
     {
         KifuBranchTree tree;

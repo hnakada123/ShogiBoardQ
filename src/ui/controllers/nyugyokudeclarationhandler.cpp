@@ -208,8 +208,5 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
 
     QMessageBox::information(parentWidget, tr("入玉宣言結果"), finalMessage);
 
-    // シグナル発行
-    emit declarationCompleted(result);
-
     return true;
 }

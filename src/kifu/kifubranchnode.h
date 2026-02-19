@@ -93,7 +93,6 @@ public:
     /// 子ノード（分岐）を取得
     const QVector<KifuBranchNode*>& children() const { return m_children; }
     void addChild(KifuBranchNode* child);
-    void removeChild(KifuBranchNode* child);
     int childCount() const { return static_cast<int>(m_children.size()); }
     KifuBranchNode* childAt(int index) const;
 
@@ -101,9 +100,6 @@ public:
 
     /// 本譜かどうか（親の最初の子であるかどうかで判定）
     bool isMainLine() const;
-
-    /// ルートからの深さ
-    int depth() const;
 
     /// このノードが属するラインの名前（"本譜", "分岐1", "分岐2"...）
     QString lineName() const;
@@ -122,8 +118,6 @@ public:
 
     /// このノードの兄弟ノードを取得（自分を除く）
     QVector<KifuBranchNode*> siblings() const;
-
-    bool isRoot() const { return m_parent == nullptr; }
 
 private:
     int m_nodeId = -1;                                  ///< ノードID（ツリー内で一意）

@@ -58,9 +58,7 @@ void ShogiGameController::setupBoard()
 void ShogiGameController::setBoard(ShogiBoard* board)
 {
     if (!board) {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::setBoard: null board was passed.");
-        emit errorOccurred(errorMessage);
+        qCWarning(lcGame) << "setBoard: null board was passed.";
         return;
     }
 
@@ -115,12 +113,6 @@ void ShogiGameController::setForcedPromotion(bool force, bool promote)
     qCDebug(lcGame) << "setForcedPromotion: force=" << force << "promote=" << promote;
 }
 
-void ShogiGameController::clearForcedPromotion()
-{
-    m_forcedPromotionMode = false;
-    m_forcedPromotionValue = false;
-}
-
 // ============================================================
 // 手番管理
 // ============================================================
@@ -147,10 +139,7 @@ QString ShogiGameController::getNextPlayerSfen()
     } else if (currentPlayer() == Player2) {
         nextPlayerColorSfen = QStringLiteral("b");
     } else {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::getNextPlayerSfen: Invalid player state.");
-        qCDebug(lcGame) << "currentPlayer() =" << currentPlayer();
-        emit errorOccurred(errorMessage);
+        qCWarning(lcGame) << "getNextPlayerSfen: Invalid player state. currentPlayer() =" << currentPlayer();
         return QString();
     }
 
@@ -174,9 +163,7 @@ FastMoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(FastMove
 QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo)
 {
     if (currentPlayer() != Player1 && currentPlayer() != Player2) {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::convertMoveToKanjiStr: current player is invalid.");
-        emit errorOccurred(errorMessage);
+        qCWarning(lcGame) << "convertMoveToKanjiStr: current player is invalid.";
         return QString();
     }
 
@@ -238,8 +225,7 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
         return it.value();
     }
     else {
-        const QString errorMessage = tr("An error occurred in ShogiGameController::getPieceKanji: The piece %1 is not found.").arg(piece);
-        emit errorOccurred(errorMessage);
+        qCWarning(lcGame) << "getPieceKanji: The piece" << piece << "is not found.";
     }
 
     return QString();
@@ -359,9 +345,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
                       << " recSize(before)=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
 
     if (!board()) {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::validateAndMove: board() is null.");
-        emit errorOccurred(errorMessage);
+        qCWarning(lcGame) << "validateAndMove: board() is null.";
         emit endDragSignal();
         return false;
     }
@@ -391,9 +375,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     // 盤上移動のとき、移動元が空白なら不正
     if ((fileFrom >= 1 && fileFrom <= 9) && movingPiece == QLatin1Char(' ')) {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::validateAndMove: the source square is empty.");
-        emit errorOccurred(errorMessage);
+        qCWarning(lcGame) << "validateAndMove: the source square is empty.";
         emit endDragSignal();
         return false;
     }
@@ -479,9 +461,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outTo)
 {
     if (!board()) {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::editPosition: board() is null.");
-        emit errorOccurred(errorMessage);
+        qCWarning(lcGame) << "editPosition: board() is null.";
         return false;
     }
 
@@ -664,36 +644,6 @@ bool ShogiGameController::checkGetKingOpponentPiece(const QChar source, const QC
 // SFEN更新
 // ============================================================
 
-void ShogiGameController::updateSfenRecordAfterEdit(QStringList* m_sfenHistory)
-{
-    if (!board()) {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::updateSfenRecordAfterEdit: board() is null.");
-        emit errorOccurred(errorMessage);
-        return;
-    }
-    if (!m_sfenHistory) {
-        const QString errorMessage =
-            tr("An error occurred in ShogiGameController::updateSfenRecordAfterEdit: record list is null.");
-        emit errorOccurred(errorMessage);
-        return;
-    }
-
-    // moveIndex=-1 を渡すと addSfenRecord 側の (+2) で " 1 " になる仕様
-    const int moveIndex = -1;
-
-    // 編集メニューの「手番変更」に追従
-    const QString nextTurn = (currentPlayer() == ShogiGameController::Player1)
-                                 ? QStringLiteral("b") : QStringLiteral("w");
-
-    board()->addSfenRecord(nextTurn, moveIndex, m_sfenHistory);
-}
-
-QPoint ShogiGameController::lastMoveTo() const
-{
-    return QPoint(previousFileTo, previousRankTo);
-}
-
 // ============================================================
 // 対局結果制御（時間切れ・投了・最終決定）
 // ============================================================
@@ -708,20 +658,6 @@ void ShogiGameController::applyTimeoutLossFor(int clockPlayer)
         setResult(Player1Wins);
     } else {
         qCWarning(lcGame).noquote() << "applyTimeoutLossFor: invalid clockPlayer =" << clockPlayer;
-    }
-}
-
-void ShogiGameController::applyResignationOfCurrentSide()
-{
-    if (m_result != NoResult) return;
-
-    if (m_currentPlayer == Player1) {
-        setResult(Player2Wins);
-    } else if (m_currentPlayer == Player2) {
-        setResult(Player1Wins);
-    } else {
-        qCWarning(lcGame).noquote() << "applyResignationOfCurrentSide: currentPlayer is NoPlayer, defaulting to Draw";
-        setResult(Draw);
     }
 }
 

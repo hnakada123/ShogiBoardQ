@@ -240,7 +240,6 @@ void TimeControlController::onClockPlayer1TimeOut()
     if (m_match) {
         m_match->handlePlayerTimeOut(1);  // 1 = 先手
     }
-    Q_EMIT player1TimedOut();
 }
 
 void TimeControlController::onClockPlayer2TimeOut()
@@ -249,5 +248,4 @@ void TimeControlController::onClockPlayer2TimeOut()
     if (m_match) {
         m_match->handlePlayerTimeOut(2);  // 2 = 後手
     }
-    Q_EMIT player2TimedOut();
 }

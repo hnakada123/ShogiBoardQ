@@ -1109,9 +1109,6 @@ void MatchCoordinator::computeGoTimesForUSI(qint64& outB, qint64& outW) const {
 void MatchCoordinator::refreshGoTimes() {
     qint64 b=0, w=0;
     computeGoTimesForUSI(b, w);
-    m_bTimeStr = QString::number(b);
-    m_wTimeStr = QString::number(w);
-    emit timesForUSIUpdated(b, w);
 }
 
 void MatchCoordinator::setClock(ShogiClock* clock)
@@ -2126,12 +2123,6 @@ void MatchCoordinator::startMatchTimingAndMaybeInitialGo()
 
 void MatchCoordinator::handleTimeUpdated()
 {
-    // MainWindow::onMatchTimeUpdated → 司令塔へ
-    emit timeTick(); // UI側はこの信号でリフレッシュをかける
-
-    QString turn, p1, p2;
-    recomputeClockSnapshot(turn, p1, p2);
-    emit uiUpdateTurnAndClock(turn, p1, p2);
 }
 
 void MatchCoordinator::handlePlayerTimeOut(int player)
@@ -2139,7 +2130,6 @@ void MatchCoordinator::handlePlayerTimeOut(int player)
     if (!m_gc) return;
     // 負け処理を司令塔で集約
     m_gc->applyTimeoutLossFor(player);
-    emit uiNotifyTimeout(player);
     handleGameEnded();
 }
 
@@ -2147,7 +2137,6 @@ void MatchCoordinator::handleGameEnded()
 {
     if (!m_gc) return;
     m_gc->finalizeGameResult();
-    emit uiNotifyGameEnded();
 }
 
 // これに置き換え（該当関数のみ）

@@ -80,9 +80,6 @@ public:
     QString pvKanjiStr() const;
     void setPvKanjiStr(const QString& newPvKanjiStr);
 
-    QString convertFirstPlayerPieceNumberToSymbol(int rankFrom) const;
-    QString convertSecondPlayerPieceNumberToSymbol(int rankFrom) const;
-
     void parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo);
 
     void initializeAndStartEngineCommunication(QString& engineFile, QString& enginename);
@@ -107,7 +104,6 @@ public:
     QChar rankToAlphabet(int rank) const;
     void sendGameOverWinAndQuitCommands();
     void sendStopCommand();
-    void waitForStopOrPonderhitCommand();
 
     void executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV = 1);
 
@@ -150,21 +146,6 @@ public:
 
     void sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
                        int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
-
-    void sendGoDepthCommand(int depth);       ///< go depth <x> - 指定深さまで探索
-    void sendGoNodesCommand(qint64 nodes);    ///< go nodes <x> - 指定ノード数まで探索
-    void sendGoMovetimeCommand(int timeMs);   ///< go movetime <x> - 指定時間(ms)探索
-
-    /// go searchmoves <move1> ... <movei> [infinite] - 指定した手のみを探索
-    /// @param moves 探索対象の手（USI形式、例: "7g7f", "8h2b+"）
-    /// @param infinite trueの場合 "go searchmoves ... infinite" を送信
-    void sendGoSearchmovesCommand(const QStringList& moves, bool infinite = true);
-
-    /// go searchmoves <move1> ... <movei> depth <x> - 指定した手のみを指定深さまで探索
-    void sendGoSearchmovesDepthCommand(const QStringList& moves, int depth);
-
-    /// go searchmoves <move1> ... <movei> movetime <x> - 指定した手のみを指定時間探索
-    void sendGoSearchmovesMovetimeCommand(const QStringList& moves, int timeMs);
 
     void sendRaw(const QString& command) const;
 
@@ -213,25 +194,15 @@ public:
 
     void cleanupEngineProcessAndThread(bool clearThinking = true);
 
-    void sendPositionAndGoMate(const QString& sfen, int timeMs, bool infinite);
-    void sendStopForMate();
-
     void startAndInitializeEngine(const QString& engineFile, const QString& enginename);
 
     void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
     void sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr);
     void cancelCurrentOperation();
 
-#ifdef QT_DEBUG
-    ShogiEngineThinkingModel* debugThinkingModel() const;
-    UsiCommLogModel* debugLogModel() const;
-#endif
-
 signals:
-    void stopOrPonderhitCommandSent();                ///< stop/ponderhit送信完了（ProtocolHandler → 外部）
     void bestMoveResignReceived();                    ///< bestmove resign受信（ProtocolHandler → 外部）
     void bestMoveWinReceived();                       ///< bestmove win（入玉宣言勝ち）受信（ProtocolHandler → 外部）
-    void sigTsumeCheckmate(const Usi::TsumeResult& result); ///< 詰探索結果通知
     void checkmateSolved(const QStringList& pvMoves); ///< 詰みあり（ProtocolHandler → TsumeSearchFlowController）
     void checkmateNoMate();                           ///< 詰みなし（ProtocolHandler → TsumeSearchFlowController）
     void checkmateNotImplemented();                   ///< 詰探索未対応（ProtocolHandler → TsumeSearchFlowController）
@@ -266,7 +237,6 @@ private:
     int m_previousRankTo = 0;                        ///< 前回の指し手の移動先段
     QString m_lastUsiMove;                           ///< 開始局面に至った最後の指し手（USI形式、読み筋ハイライト用）
     QVector<QChar> m_clonedBoardData;                ///< 読み筋変換用にクローンした盤面データ
-    bool m_analysisMode = false;                     ///< 解析モード中かどうか
     bool m_gameoverSent = false;                     ///< gameover送信済みフラグ（重複送信防止）
     QString m_pvKanjiStr;                            ///< 読み筋の漢字表記
     QPointer<ShogiEngineThinkingModel> m_considerationModel; ///< 検討タブ用モデルへの参照（非所有）

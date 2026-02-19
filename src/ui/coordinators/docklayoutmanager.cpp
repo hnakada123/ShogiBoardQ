@@ -129,8 +129,6 @@ void DockLayoutManager::resetToDefault()
     if (recordDock) {
         m_mainWindow->resizeDocks({recordDock}, {350}, Qt::Horizontal);
     }
-
-    emit layoutChanged();
 }
 
 void DockLayoutManager::saveLayoutAs()
@@ -172,8 +170,6 @@ void DockLayoutManager::saveLayoutAs()
 
     QMessageBox::information(m_mainWindow, tr("保存完了"),
         tr("レイアウト「%1」を保存しました。").arg(name));
-
-    emit layoutChanged();
 }
 
 void DockLayoutManager::restoreLayout(const QString& name)
@@ -192,8 +188,6 @@ void DockLayoutManager::restoreLayout(const QString& name)
 
     // 状態を復元
     m_mainWindow->restoreState(state);
-
-    emit layoutChanged();
 }
 
 void DockLayoutManager::deleteLayout(const QString& name)

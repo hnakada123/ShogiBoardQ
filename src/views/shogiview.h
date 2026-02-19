@@ -237,7 +237,6 @@ signals:
     void fieldSizeChanged(QSize fieldSize);  // setFieldSize 内で発火
     void clicked(const QPoint&);             // 左クリック
     void rightClicked(const QPoint&);        // 右クリック
-    void errorOccurred(const QString& errorMessage);
     void highlightsCleared();                // removeHighlightAllData() で発火
 
 protected:

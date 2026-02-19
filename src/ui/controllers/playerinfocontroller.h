@@ -113,11 +113,6 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     /**
-     * @brief 対局者名が更新された
-     */
-    void playerNamesUpdated(const QString& black, const QString& white);
-
-    /**
      * @brief エンジン名が更新された
      */
     void engineNamesUpdated(const QString& engine1, const QString& engine2);

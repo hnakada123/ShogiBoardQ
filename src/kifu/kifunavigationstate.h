@@ -159,11 +159,6 @@ signals:
      */
     void currentNodeChanged(KifuBranchNode* newNode, KifuBranchNode* oldNode);
 
-    /**
-     * @brief ラインが変更された
-     */
-    void lineChanged(int newLineIndex, int oldLineIndex);
-
 private:
     KifuBranchTree* m_tree = nullptr;
     KifuBranchNode* m_currentNode = nullptr;

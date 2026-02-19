@@ -52,12 +52,6 @@ public:
      */
     bool handleDeclaration(QWidget* parentWidget, ShogiBoard* board, int playMode);
 
-signals:
-    /**
-     * @brief 宣言結果を通知
-     */
-    void declarationCompleted(const DeclarationResult& result);
-
 private:
     /**
      * @brief 宣言条件の判定文字列を生成

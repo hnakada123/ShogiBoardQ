@@ -260,8 +260,6 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         *m_currentMoveIndex = static_cast<int>(m_sfenHistory->size() - 1);
     }
 
-    Q_EMIT moveApplied(hFrom, hTo, ok);
-
     // --- 対局モードごとの後処理 ---
     switch (modeNow) {
     case PlayMode::HumanVsHuman: {

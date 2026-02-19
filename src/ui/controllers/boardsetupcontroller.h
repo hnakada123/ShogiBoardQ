@@ -109,11 +109,6 @@ public Q_SLOTS:
 
 Q_SIGNALS:
     /**
-     * @brief 着手が適用された
-     */
-    void moveApplied(const QPoint& from, const QPoint& to, bool success);
-
-    /**
      * @brief CSA通信対局での指し手要求
      * @param from 移動元
      * @param to 移動先

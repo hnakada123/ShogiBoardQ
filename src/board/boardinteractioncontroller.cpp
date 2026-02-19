@@ -71,7 +71,6 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
             return;
         }
 
-        emit selectionChanged(pt);
         return;
     }
 

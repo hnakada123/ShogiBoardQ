@@ -9,7 +9,6 @@
 #include <QVector>
 
 class KifuBranchTree;
-struct ResolvedRow;
 struct KifParseResult;
 struct KifLine;
 struct KifDisplayItem;
@@ -21,15 +20,6 @@ struct ShogiMove;
 class KifuBranchTreeBuilder
 {
 public:
-    /**
-     * @brief ResolvedRowsからツリーを構築（移行用）
-     * @param rows 既存のResolvedRows
-     * @param startSfen 開始局面のSFEN
-     * @return 構築されたツリー（呼び出し側で所有権を持つ）
-     */
-    static KifuBranchTree* fromResolvedRows(const QVector<ResolvedRow>& rows,
-                                            const QString& startSfen);
-
     /**
      * @brief KifParseResultからツリーを構築（新規パス）
      * @param result パース結果
@@ -48,15 +38,6 @@ public:
     static void buildFromKifParseResult(KifuBranchTree* tree,
                                         const KifParseResult& result,
                                         const QString& startSfen);
-
-    /**
-     * @brief 単一のKifLineからツリーを構築（分岐なし）
-     * @param line 棋譜ライン
-     * @param startSfen 開始局面のSFEN
-     * @return 構築されたツリー（呼び出し側で所有権を持つ）
-     */
-    static KifuBranchTree* fromKifLine(const KifLine& line,
-                                       const QString& startSfen);
 
 private:
     KifuBranchTreeBuilder() = default;
