@@ -1164,6 +1164,17 @@ void MainWindow::resetToInitialState()
 {
     // 既存呼び出し互換のため残し、内部は司令塔フックへ集約
     onPreStartCleanupRequested();
+
+    // Op3固有: 対局情報クリア
+    if (m_gameInfoController) {
+        m_gameInfoController->setGameInfo({});
+    }
+    // Op3固有: 分岐ツリー完全リセット
+    if (m_kifuLoadCoordinator) {
+        m_kifuLoadCoordinator->resetBranchTreeForNewGame();
+    }
+    // Op3固有: 定跡ウィンドウ更新
+    updateJosekiWindow();
 }
 
 // 棋譜ファイルをダイアログから選択し、そのファイルを開く。
@@ -1190,6 +1201,7 @@ void MainWindow::chooseAndLoadKifuFile()
     SettingsService::setLastKifuDirectory(fileInfo.absolutePath());
 
     setReplayMode(true);
+    clearUiBeforeKifuLoad();
     ensurePlayerInfoWiring();
     if (m_playerInfoWiring) {
         m_playerInfoWiring->ensureGameInfoController();
@@ -3096,6 +3108,37 @@ void MainWindow::onPreStartCleanupRequested()
     if (m_preStartCleanupHandler) {
         m_preStartCleanupHandler->performCleanup();
     }
+    clearSessionDependentUi();
+}
+
+// セッション依存UIコンポーネント（思考・検討・USI/CSAログ・棋譜解析）をクリアする。
+void MainWindow::clearSessionDependentUi()
+{
+    if (m_modelThinking1)
+        m_modelThinking1->clearAllItems();
+    if (m_modelThinking2)
+        m_modelThinking2->clearAllItems();
+    if (m_considerationModel)
+        m_considerationModel->clearAllItems();
+    if (m_analysisTab) {
+        m_analysisTab->clearUsiLog();
+        m_analysisTab->clearCsaLog();
+    }
+    if (m_analysisModel)
+        m_analysisModel->clearAllItems();
+}
+
+// 棋譜読み込み前に全UIをクリアする（共通クリア＋評価値グラフ＋コメント）。
+void MainWindow::clearUiBeforeKifuLoad()
+{
+    clearSessionDependentUi();
+
+    if (m_evalChart)
+        m_evalChart->clearAll();
+    if (m_evalGraphController)
+        m_evalGraphController->clearScores();
+
+    broadcastComment(QString(), true);
 }
 
 // `onApplyTimeControlRequested`: Apply Time Control Requested のイベント受信時処理を行う。
@@ -3761,6 +3804,8 @@ void MainWindow::onKifuPasteImportRequested(const QString& content)
 {
     qCDebug(lcApp).noquote() << "onKifuPasteImportRequested_: content length =" << content.size();
 
+    clearUiBeforeKifuLoad();
+
     // KifuLoadCoordinator を確保
     ensureKifuLoadCoordinatorForLive();
 
@@ -3796,6 +3841,7 @@ void MainWindow::displaySfenCollectionViewer()
 
 void MainWindow::onSfenCollectionPositionSelected(const QString& sfen)
 {
+    clearUiBeforeKifuLoad();
     ensureKifuLoadCoordinatorForLive();
 
     if (m_kifuLoadCoordinator) {

@@ -583,6 +583,10 @@ private:
     // --- privateメソッド ---
 
     // --- UI / 表示更新 ---
+    /// セッション依存UIコンポーネント（思考・検討・ログ・解析）をクリアする
+    void clearSessionDependentUi();
+    /// 棋譜読み込み前に全UIをクリアする（共通クリア＋評価値グラフ＋コメント）
+    void clearUiBeforeKifuLoad();
     /// 指し手確定後に棋譜表示を更新する
     void updateGameRecord(const QString& elapsedTime);
     /// 手番表示を更新する

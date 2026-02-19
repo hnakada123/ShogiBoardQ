@@ -1131,6 +1131,14 @@ void EngineAnalysisTab::clearCsaLog()
     }
 }
 
+// USI通信ログクリア
+void EngineAnalysisTab::clearUsiLog()
+{
+    if (m_usiLog) {
+        m_usiLog->clear();
+    }
+}
+
 // CSAコマンド入力バーを構築
 void EngineAnalysisTab::buildCsaCommandBar()
 {

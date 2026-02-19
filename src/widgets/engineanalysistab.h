@@ -82,6 +82,8 @@ public:
     void appendCsaLog(const QString& line);
     // CSA通信ログクリア
     void clearCsaLog();
+    // USI通信ログクリア
+    void clearUsiLog();
 
     // USI通信ログにステータスメッセージを追記
     void appendUsiLogStatus(const QString& message);
