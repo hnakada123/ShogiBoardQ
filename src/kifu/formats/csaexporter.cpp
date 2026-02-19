@@ -153,6 +153,42 @@ public:
         board[6][8] = {GI, true}; board[7][8] = {KE, true}; board[8][8] = {KY, true};
     }
 
+    // SFENから盤面を初期化（非標準局面用）
+    void initFromSfen(const QString& sfen) {
+        // 盤面クリア
+        for (int f = 0; f < 9; ++f)
+            for (int r = 0; r < 9; ++r)
+                board[f][r] = {EMPTY, true};
+
+        const QStringList parts = sfen.trimmed().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+        if (parts.isEmpty()) { initHirate(); return; }
+
+        const QStringList ranks = parts[0].split(QLatin1Char('/'));
+        for (int rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
+            const QString& row = ranks[rank];
+            int file = 9;  // 9筋から開始（左から右へ）
+            bool promoted = false;
+            for (int i = 0; i < row.size() && file >= 1; ++i) {
+                const QChar ch = row.at(i);
+                if (ch == QLatin1Char('+')) {
+                    promoted = true;
+                    continue;
+                }
+                if (ch.isDigit()) {
+                    file -= ch.digitValue();
+                    promoted = false;
+                    continue;
+                }
+                const bool sente = ch.isUpper();
+                PieceType piece = charToPiece(ch);
+                if (promoted) piece = promote(piece);
+                at(file, rank + 1) = {piece, sente};
+                --file;
+                promoted = false;
+            }
+        }
+    }
+
     Square& at(int file, int rank) {
         return board[file - 1][rank - 1];
     }
@@ -511,6 +547,8 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &converted, &convErr);
         if (converted && !csaPos.isEmpty()) {
             out << csaPos;
+            // 非標準局面: 盤面追跡を開始SFENで初期化
+            boardTracker.initFromSfen(ctx.startSfen);
         } else {
             qCWarning(lcKifu).noquote()
                 << "SFEN->CSA position conversion failed. fallback to PI. error=" << convErr;
@@ -569,8 +607,14 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
     }
 
     // 8) 各指し手を出力
+    // 手番をSFENから判定（非標準局面は後手番の場合がある）
     int moveNo = 1;
-    bool isSente = true;  // 先手から開始
+    bool isSente = true;
+    if (!ctx.startSfen.isEmpty()) {
+        const QStringList sfenParts = ctx.startSfen.trimmed().split(QLatin1Char(' '));
+        if (sfenParts.size() >= 2 && sfenParts[1] == QStringLiteral("w"))
+            isSente = false;
+    }
     QString terminalMove;
     int processedMoves = 0;
     int skippedEmpty = 0;
