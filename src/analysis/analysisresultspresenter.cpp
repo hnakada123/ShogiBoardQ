@@ -134,12 +134,12 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
         "QTableView::item:selected { background-color: rgb(255, 255, 0); color: black; }"
         "QHeaderView::section {"
         "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+        "    stop:0 #40acff, stop:1 #209cee);"
         "  color: white;"
         "  font-weight: normal;"
         "  padding: 2px 6px;"
         "  border: none;"
-        "  border-bottom: 1px solid #2d7dd2;"
+        "  border-bottom: 1px solid #209cee;"
         "}"
     ));
 
@@ -378,13 +378,13 @@ void AnalysisResultsPresenter::increaseFontSize()
         m_header->setStyleSheet(QStringLiteral(
             "QHeaderView::section {"
             "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+            "    stop:0 #40acff, stop:1 #209cee);"
             "  color: white;"
             "  font-weight: normal;"
             "  font-size: %1pt;"
             "  padding: 2px 6px;"
             "  border: none;"
-            "  border-bottom: 1px solid #2d7dd2;"
+            "  border-bottom: 1px solid #209cee;"
             "}").arg(newSize));
     }
 
@@ -409,13 +409,13 @@ void AnalysisResultsPresenter::decreaseFontSize()
         m_header->setStyleSheet(QStringLiteral(
             "QHeaderView::section {"
             "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+            "    stop:0 #40acff, stop:1 #209cee);"
             "  color: white;"
             "  font-weight: normal;"
             "  font-size: %1pt;"
             "  padding: 2px 6px;"
             "  border: none;"
-            "  border-bottom: 1px solid #2d7dd2;"
+            "  border-bottom: 1px solid #209cee;"
             "}").arg(newSize));
     }
 
@@ -447,13 +447,13 @@ void AnalysisResultsPresenter::restoreFontSize()
         m_header->setStyleSheet(QStringLiteral(
             "QHeaderView::section {"
             "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #4a9eff, stop:1 #2d7dd2);"
+            "    stop:0 #40acff, stop:1 #209cee);"
             "  color: white;"
             "  font-weight: normal;"
             "  font-size: %1pt;"
             "  padding: 2px 6px;"
             "  border: none;"
-            "  border-bottom: 1px solid #2d7dd2;"
+            "  border-bottom: 1px solid #209cee;"
             "}").arg(savedSize));
     }
 }

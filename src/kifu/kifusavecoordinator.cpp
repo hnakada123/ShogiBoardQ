@@ -11,6 +11,7 @@
 
 #include "kifuioservice.h"   // writeKifuFile / makeDefaultSaveFileName
 #include "playmode.h"
+#include "settingsservice.h"
 
 namespace KifuSaveCoordinator {
 
@@ -29,12 +30,16 @@ QString saveViaDialog(QWidget* parent,
     if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
-    // ダイアログのカレントを実行ディレクトリへ
-    QDir::setCurrent(QApplication::applicationDirPath());
+    // 前回保存したディレクトリを復元
+    const QString lastDir = SettingsService::lastKifuSaveDirectory();
+    if (!lastDir.isEmpty())
+        defaultName = QDir(lastDir).filePath(defaultName);
 
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("Save File"), defaultName, QObject::tr("Kif(*.kifu)"));
     if (path.isEmpty()) return QString();
+
+    SettingsService::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     QString err;
     if (!KifuIoService::writeKifuFile(path, kifuLines, &err)) {
@@ -60,8 +65,10 @@ QString saveViaDialogWithKi2(QWidget* parent,
     if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
-    // ダイアログのカレントを実行ディレクトリへ
-    QDir::setCurrent(QApplication::applicationDirPath());
+    // 前回保存したディレクトリを復元
+    const QString lastDir = SettingsService::lastKifuSaveDirectory();
+    if (!lastDir.isEmpty())
+        defaultName = QDir(lastDir).filePath(defaultName);
 
     // フィルタを作成（KI2形式も選択可能）
     const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;すべてのファイル (*)");
@@ -69,6 +76,8 @@ QString saveViaDialogWithKi2(QWidget* parent,
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
     if (path.isEmpty()) return QString();
+
+    SettingsService::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
     QString err;
@@ -108,8 +117,10 @@ QString saveViaDialogWithAllFormats(QWidget* parent,
     if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
-    // ダイアログのカレントを実行ディレクトリへ
-    QDir::setCurrent(QApplication::applicationDirPath());
+    // 前回保存したディレクトリを復元
+    const QString lastDir = SettingsService::lastKifuSaveDirectory();
+    if (!lastDir.isEmpty())
+        defaultName = QDir(lastDir).filePath(defaultName);
 
     // フィルタを作成（KIF/KI2/CSA形式が選択可能）
     const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;すべてのファイル (*)");
@@ -117,6 +128,8 @@ QString saveViaDialogWithAllFormats(QWidget* parent,
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
     if (path.isEmpty()) return QString();
+
+    SettingsService::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
     QString err;
@@ -163,8 +176,10 @@ QString saveViaDialogWithJkf(QWidget* parent,
     if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
-    // ダイアログのカレントを実行ディレクトリへ
-    QDir::setCurrent(QApplication::applicationDirPath());
+    // 前回保存したディレクトリを復元
+    const QString lastDir = SettingsService::lastKifuSaveDirectory();
+    if (!lastDir.isEmpty())
+        defaultName = QDir(lastDir).filePath(defaultName);
 
     // フィルタを作成（KIF/KI2/CSA/JKF形式が選択可能）
     const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)");
@@ -172,6 +187,8 @@ QString saveViaDialogWithJkf(QWidget* parent,
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
     if (path.isEmpty()) return QString();
+
+    SettingsService::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
     QString err;
@@ -225,8 +242,10 @@ QString saveViaDialogWithUsen(QWidget* parent,
     if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
-    // ダイアログのカレントを実行ディレクトリへ
-    QDir::setCurrent(QApplication::applicationDirPath());
+    // 前回保存したディレクトリを復元
+    const QString lastDir = SettingsService::lastKifuSaveDirectory();
+    if (!lastDir.isEmpty())
+        defaultName = QDir(lastDir).filePath(defaultName);
 
     // フィルタを作成（KIF/KI2/CSA/JKF/USEN形式が選択可能）
     const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)");
@@ -234,6 +253,8 @@ QString saveViaDialogWithUsen(QWidget* parent,
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
     if (path.isEmpty()) return QString();
+
+    SettingsService::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
     QString err;
@@ -294,8 +315,10 @@ QString saveViaDialogWithUsi(QWidget* parent,
     if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
         defaultName = "untitled.kifu";
 
-    // ダイアログのカレントを実行ディレクトリへ
-    QDir::setCurrent(QApplication::applicationDirPath());
+    // 前回保存したディレクトリを復元
+    const QString lastDir = SettingsService::lastKifuSaveDirectory();
+    if (!lastDir.isEmpty())
+        defaultName = QDir(lastDir).filePath(defaultName);
 
     // フィルタを作成（KIF/KI2/CSA/JKF/USEN/USI形式が選択可能）
     const QString filter = QObject::tr("KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)");
@@ -303,6 +326,8 @@ QString saveViaDialogWithUsi(QWidget* parent,
     const QString path = QFileDialog::getSaveFileName(
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
     if (path.isEmpty()) return QString();
+
+    SettingsService::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
     QString err;
