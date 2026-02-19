@@ -38,6 +38,13 @@ QString lastKifuDirectory();
 /// 最後に開いた棋譜ファイルのディレクトリを保存します。
 void setLastKifuDirectory(const QString& dir);
 
+/// 最後に保存した棋譜ファイルのディレクトリを取得します。
+/// 未設定の場合は空文字列を返します。
+QString lastKifuSaveDirectory();
+
+/// 最後に保存した棋譜ファイルのディレクトリを保存します。
+void setLastKifuSaveDirectory(const QString& dir);
+
 /// フォントサイズ関連
 /// USI通信ログタブのフォントサイズを取得（デフォルト: 10）
 int usiLogFontSize();

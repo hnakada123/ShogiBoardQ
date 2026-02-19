@@ -5378,37 +5378,37 @@ Are you sure you want to declare?</translation>
         <translation>Failed to close file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="36"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="39"/>
         <source>Save File</source>
         <translation>Save File</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="36"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="39"/>
         <source>Kif(*.kifu)</source>
         <translation>Kif(*.kifu)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="67"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="74"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;すべてのファイル (*)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="115"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="126"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;すべてのファイル (*)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="185"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;すべてのファイル (*)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="232"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="251"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;すべてのファイル (*)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="301"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="324"/>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5437,11 +5437,11 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="70"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="118"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="173"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="235"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="304"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="77"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="129"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="188"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="254"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="327"/>
         <source>名前を付けて保存</source>
         <translation>Save As</translation>
     </message>

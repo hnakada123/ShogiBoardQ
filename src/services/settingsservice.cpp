@@ -68,6 +68,18 @@ void setLastKifuDirectory(const QString& dir)
     s.setValue("General/lastKifuDirectory", dir);
 }
 
+QString lastKifuSaveDirectory()
+{
+    QSettings& s = openSettings();
+    return s.value("General/lastKifuSaveDirectory", QString()).toString();
+}
+
+void setLastKifuSaveDirectory(const QString& dir)
+{
+    QSettings& s = openSettings();
+    s.setValue("General/lastKifuSaveDirectory", dir);
+}
+
 // USI通信ログタブのフォントサイズを取得
 int usiLogFontSize()
 {
