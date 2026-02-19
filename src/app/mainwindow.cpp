@@ -3275,9 +3275,16 @@ void MainWindow::clearSessionDependentUi()
     if (m_analysisTab) {
         m_analysisTab->clearUsiLog();
         m_analysisTab->clearCsaLog();
+        // 思考タブのエンジン名フォールバックをクリア
+        if (m_analysisTab->info1())
+            m_analysisTab->info1()->setDisplayNameFallback(QString());
+        if (m_analysisTab->info2())
+            m_analysisTab->info2()->setDisplayNameFallback(QString());
         // 検討ドックのエンジン情報をクリア（モデル切断で全セル空にする）
         if (m_analysisTab->considerationInfo())
             m_analysisTab->considerationInfo()->setModel(nullptr);
+        // 検討タブのエンジン名フォールバックをクリア
+        m_analysisTab->setConsiderationEngineName(QString());
         // 検討ドックの経過時間とボタン状態をリセット
         m_analysisTab->resetElapsedTimer();
         m_analysisTab->setConsiderationRunning(false);
