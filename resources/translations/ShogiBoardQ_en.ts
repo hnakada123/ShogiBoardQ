@@ -143,46 +143,46 @@ Analyzed moves: %1</translation>
         <translation type="unfinished">A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="186"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="329"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="386"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="187"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="330"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="387"/>
         <source>%1（既定値 %2）</source>
         <translation>%1 (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="229"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="230"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="234"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="235"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="259"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="260"/>
         <source>%1</source>
         <translation>%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="272"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="273"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation>Please enter a value of %1 or more. (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="275"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="276"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="478"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="479"/>
         <source>
 作者: %1</source>
         <translation>
 Author: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="547"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="548"/>
         <source>適用</source>
         <translation>Apply</translation>
     </message>
@@ -1753,7 +1753,7 @@ Discard changes and move?</translation>
         <translation type="vanished">An error occurred in EngineRegistrationDialog::onProcessError. An unknown error occurred.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="214"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="223"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
@@ -1782,78 +1782,78 @@ Discard changes and move?</translation>
         <translation type="vanished">An error occurred in EngineRegistrationDialog::startEngine. Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="120"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="129"/>
         <source>エンジンからエラー出力がありました: %1</source>
         <translation>Engine error output: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="131"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="140"/>
         <source>エンジンの起動に失敗しました。</source>
         <translation>Failed to start the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="143"/>
         <source>エンジンがクラッシュしました。</source>
         <translation>The engine crashed.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="137"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="146"/>
         <source>エンジンがタイムアウトしました。</source>
         <translation>The engine timed out.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="149"/>
         <source>エンジンへのデータ書き込み中にエラーが発生しました。</source>
         <translation>An error occurred while writing data to the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="152"/>
         <source>エンジンからのデータ読み込み中にエラーが発生しました。</source>
         <translation>An error occurred while reading data from the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="147"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="156"/>
         <source>不明なエラーが発生しました。</source>
         <translation>An unknown error occurred.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="162"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="171"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="248"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="257"/>
         <source>ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。</source>
         <translation>Could not change to directory %1. Failed to add the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="273"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="282"/>
         <source>エンジン %1 は既に追加されています。</source>
         <translation>Engine %1 is already added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="381"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="390"/>
         <source>指定されたエンジンファイルが存在しません: %1</source>
         <translation>The specified engine file does not exist: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="409"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="418"/>
         <source>エンジンの起動に失敗しました: %1</source>
         <translation>Failed to start the engine: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="453"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="462"/>
         <source>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</source>
         <translation>This shogi engine is already registered. Please delete the existing registration first.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="465"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="773"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="474"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="782"/>
         <source>将棋エンジンを1つ選択してください。</source>
         <translation>Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="587"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="596"/>
         <source>USI_Hash option added.</source>
         <translation>USI_Hash option added.</translation>
     </message>
@@ -1866,13 +1866,13 @@ Discard changes and move?</translation>
         <translation type="vanished">New option added:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="682"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="693"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="691"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="702"/>
         <source>オプション行の形式が無効です。</source>
         <translation>Invalid option line format.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="736"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="745"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>Duplicate engine option found.</translation>
     </message>
@@ -5341,12 +5341,12 @@ Are you sure you want to declare?</translation>
         <translation>The file must be a value between 1 and 9. (got %1)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="583"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="589"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="585"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="591"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>

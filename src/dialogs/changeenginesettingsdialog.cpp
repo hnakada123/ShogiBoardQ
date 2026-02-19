@@ -6,6 +6,7 @@
 #include "engineoptiondescriptions.h"
 #include "settingsservice.h"
 #include "ui_changeenginesettingsdialog.h"
+#include "buttonstyles.h"
 #include <QApplication>
 #include <QSettings>
 #include <QGroupBox>
@@ -555,6 +556,11 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
 
     // "Cancel"ボタンが押された場合、エンジン設定ダイアログを保存せずに終了する。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+    // ボタンスタイルを適用
+    ui->restoreButton->setStyleSheet(ButtonStyles::undoRedo());
+    ui->fontDecreaseButton->setStyleSheet(ButtonStyles::fontButton());
+    ui->fontIncreaseButton->setStyleSheet(ButtonStyles::fontButton());
 
     // フォントサイズ変更ボタンの接続
     connect(ui->fontIncreaseButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::increaseFontSize);
