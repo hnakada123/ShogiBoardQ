@@ -1192,24 +1192,34 @@ QString GameRecordModel::sfenToUsenPosition(const QString& sfen)
 {
     // 平手初期局面のチェック
     static const QString kHirateSfenPrefix = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    
+
     const QString trimmed = sfen.trimmed();
     if (trimmed.isEmpty()) {
-        return QStringLiteral("0");  // 平手
+        return QString();  // 平手: 空文字列（~の前に何も置かない）
     }
-    
-    // 平手初期局面の場合は "0" を返す
+
+    // 平手初期局面の場合は空文字列を返す
     if (trimmed.startsWith(kHirateSfenPrefix)) {
-        return QStringLiteral("0");
+        return QString();
     }
-    
+
     // カスタム局面: SFEN -> USEN変換
+    // 手数（4番目のフィールド）を除去してからエンコード
+    // SFEN形式: "board turn hands [movecount]"
+    const QStringList parts = trimmed.split(QLatin1Char(' '));
+    QString sfenWithoutMoveCount;
+    if (parts.size() >= 3) {
+        sfenWithoutMoveCount = parts[0] + QLatin1Char(' ') + parts[1] + QLatin1Char(' ') + parts[2];
+    } else {
+        sfenWithoutMoveCount = trimmed;
+    }
+
     // '/' -> '_', ' ' -> '.', '+' -> 'z'
-    QString usen = trimmed;
+    QString usen = sfenWithoutMoveCount;
     usen.replace(QLatin1Char('/'), QLatin1Char('_'));
     usen.replace(QLatin1Char(' '), QLatin1Char('.'));
     usen.replace(QLatin1Char('+'), QLatin1Char('z'));
-    
+
     return usen;
 }
 
@@ -1409,7 +1419,9 @@ QStringList GameRecordModel::toUsenLines(const ExportContext& ctx, const QString
     }
     
     // 本譜のUSEN文字列を構築
-    QString usen = QStringLiteral("~%1.%2").arg(position, mainMoves);
+    // USEN構造: [初期局面]~[オフセット].[指し手][.終局コード]
+    // 初期局面は~の前に置く（平手の場合は空）、本譜のオフセットは0
+    QString usen = position + QStringLiteral("~0.%1").arg(mainMoves);
     
     // 終局コードを追加
     if (!terminalCode.isEmpty()) {
