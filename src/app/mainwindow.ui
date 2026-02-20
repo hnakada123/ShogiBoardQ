@@ -67,6 +67,7 @@
     <addaction name="actionSfenCollectionViewer"/>
     <addaction name="separator"/>
     <addaction name="actionCopyBoardToClipboard"/>
+    <addaction name="actionCopyEvalGraphToClipboard"/>
     <addaction name="separator"/>
     <addaction name="actionStartEditPosition"/>
     <addaction name="actionEndEditPosition"/>
@@ -224,6 +225,15 @@
    </property>
    <property name="text">
     <string>将棋盤画像コピー</string>
+   </property>
+  </action>
+  <action name="actionCopyEvalGraphToClipboard">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionCopyEvalGraphToClipboard.svg</normaloff>:/images/actions/actionCopyEvalGraphToClipboard.svg</iconset>
+   </property>
+   <property name="text">
+    <string>評価値グラフ画像コピー</string>
    </property>
   </action>
   <action name="actionFlipBoard">

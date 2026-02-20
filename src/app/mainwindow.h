@@ -144,6 +144,7 @@ public slots:
     void saveShogiBoardImage();
     void saveEvaluationGraphImage();
     void copyBoardToClipboard();
+    void copyEvalGraphToClipboard();
     void openWebsiteInExternalBrowser();
     void saveKifuToFile();
     void overwriteKifuFile();

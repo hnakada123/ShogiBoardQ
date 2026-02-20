@@ -64,6 +64,7 @@ public:
         EditPasteKifu,
         EditSfenViewer,
         EditCopyBoardImage,
+        EditCopyEvalGraphImage,
         EditStartPosition,     ///< 局面編集開始
         EditEndPosition,       ///< 局面編集終了
         EditSetHirate,         ///< 平手初期配置
