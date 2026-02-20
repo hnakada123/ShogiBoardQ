@@ -2972,19 +2972,19 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="522"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="547"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="573"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="669"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="622"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="718"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="574"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="670"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="623"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="719"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
