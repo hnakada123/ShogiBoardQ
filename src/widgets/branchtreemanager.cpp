@@ -137,6 +137,8 @@ void BranchTreeManager::clearBranchGraph()
     m_nextIds.clear();
     m_rowEntryNode.clear();
     m_nextNodeId = 1;
+    m_lastHighlightedRow = -1;
+    m_lastHighlightedPly = -1;
 }
 
 int BranchTreeManager::registerNode(int vid, int row, int ply, QGraphicsPathItem* item)
@@ -512,6 +514,8 @@ void BranchTreeManager::highlightNodeId(int nodeId, bool centerOn)
     item->setPen(QPen(Qt::black, 1.8));
     item->setZValue(20);
     m_prevSelected = item;
+    m_lastHighlightedRow = node.row;
+    m_lastHighlightedPly = node.ply;
 
     if (centerOn && m_branchTree) m_branchTree->centerOn(item);
 }

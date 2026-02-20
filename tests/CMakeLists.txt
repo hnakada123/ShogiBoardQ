@@ -288,3 +288,35 @@ add_shogi_test(tst_integration
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/board/sfenpositiontracer.cpp
 )
+
+# ============================================================
+# Unit 12: UI Display Consistency (Board / Record / Branch Tree)
+# ============================================================
+add_shogi_test(tst_ui_display_consistency
+    tst_ui_display_consistency.cpp
+    test_stubs_ui_display.cpp
+    ${SRC}/ui/coordinators/kifudisplaycoordinator.cpp
+    ${SRC}/navigation/kifunavigationcontroller.cpp
+    ${SRC}/kifu/kifunavigationstate.cpp
+    ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchnode.cpp
+    ${SRC}/kifu/livegamesession.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/models/kifurecordlistmodel.cpp
+    ${SRC}/models/kifubranchlistmodel.cpp
+    ${SRC}/widgets/kifudisplay.cpp
+    ${SRC}/widgets/kifubranchdisplay.cpp
+    ${SRC}/widgets/recordpane.cpp
+    ${SRC}/widgets/branchtreemanager.cpp
+    ${SRC}/widgets/branchtreewidget.cpp
+    ${SRC}/services/settingsservice.cpp
+    ${SRC}/board/sfenpositiontracer.cpp
+)
+
+# ヘッドレスCI環境でもWidgetsテストを実行できるようにする
+set_tests_properties(tst_ui_display_consistency PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)

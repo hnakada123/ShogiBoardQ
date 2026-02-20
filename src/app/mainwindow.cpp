@@ -1094,6 +1094,27 @@ void MainWindow::initializeGame()
     //       ここではクリアしない。プリセット選択時のSFEN上書きは
     //       GameStartCoordinator::initializeGame() 側で行う。
 
+    // 分岐ツリーから途中局面で再対局する場合、sfenRecord() を
+    // 現在のラインのSFENで再構築する。これにより、前の対局の異なる分岐の
+    // SFENが混在してSFEN差分によるハイライトが誤動作する問題を防ぐ。
+    // 重要: resolveCurrentSfenForGameStart() より前に実行する必要がある。
+    //       sfenRecord が本譜のままだと、分岐局面ではなく本譜の SFEN が
+    //       m_currentSfenStr に設定されてしまい、対局開始SFENが誤る。
+    if (m_branchTree != nullptr && m_navState != nullptr
+        && sfenRecord() != nullptr && m_currentSelectedPly > 0) {
+        const int lineIndex = m_navState->currentLineIndex();
+        const QStringList branchSfens = m_branchTree->getSfenListForLine(lineIndex);
+        if (!branchSfens.isEmpty() && m_currentSelectedPly < branchSfens.size()) {
+            sfenRecord()->clear();
+            for (int i = 0; i <= m_currentSelectedPly; ++i) {
+                sfenRecord()->append(branchSfens.at(i));
+            }
+            qCDebug(lcApp).noquote()
+                << "initializeGame: rebuilt sfenRecord from branchTree line=" << lineIndex
+                << " entries=" << sfenRecord()->size();
+        }
+    }
+
     // 現在の局面SFEN（棋譜レコードから最優先で取得）
     {
         qCDebug(lcApp).noquote() << "initializeGame: BEFORE resolve, m_currentSfenStr=" << m_currentSfenStr.left(50);
@@ -1112,24 +1133,6 @@ void MainWindow::initializeGame()
     qCDebug(lcApp).noquote() << "initializeGame: FINAL m_currentSfenStr=" << m_currentSfenStr.left(50)
                        << " m_startSfenStr=" << m_startSfenStr.left(50)
                        << " m_currentSelectedPly=" << m_currentSelectedPly;
-
-    // 分岐ツリーから途中局面で再対局する場合、sfenRecord() を
-    // 現在のラインのSFENで再構築する。これにより、前の対局の異なる分岐の
-    // SFENが混在してSFEN差分によるハイライトが誤動作する問題を防ぐ。
-    if (m_branchTree != nullptr && m_navState != nullptr
-        && sfenRecord() != nullptr && m_currentSelectedPly > 0) {
-        const int lineIndex = m_navState->currentLineIndex();
-        const QStringList branchSfens = m_branchTree->getSfenListForLine(lineIndex);
-        if (!branchSfens.isEmpty() && m_currentSelectedPly < branchSfens.size()) {
-            sfenRecord()->clear();
-            for (int i = 0; i <= m_currentSelectedPly; ++i) {
-                sfenRecord()->append(branchSfens.at(i));
-            }
-            qCDebug(lcApp).noquote()
-                << "initializeGame: rebuilt sfenRecord from branchTree line=" << lineIndex
-                << " entries=" << sfenRecord()->size();
-        }
-    }
 
     GameStartCoordinator::Ctx c;
     c.view            = m_shogiView;
@@ -1688,8 +1691,11 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     // 現在局面SFENの更新:
     // 分岐ライン表示中は `sfenRecord()` が本譜ベースのため不整合が起こり得る。
     // そのため分岐中は branchTree を優先し、通常時のみ sfenRecord を使う。
+    // ただし、対局進行中は sfenRecord を正とする（分岐ツリーには対局開始前の
+    // KIF 継続手が残っている可能性があるため）。
+    const bool gameActive = isGameActivelyInProgress();
     bool foundInBranch = false;
-    if (m_navState != nullptr && !m_navState->isOnMainLine() && m_branchTree != nullptr) {
+    if (!gameActive && m_navState != nullptr && !m_navState->isOnMainLine() && m_branchTree != nullptr) {
         const int lineIndex = m_navState->currentLineIndex();
         QVector<BranchLine> lines = m_branchTree->allLines();
         if (lineIndex >= 0 && lineIndex < lines.size()) {
@@ -1827,6 +1833,24 @@ void MainWindow::initializeBranchNavigationClasses()
         if (m_analysisTab != nullptr) {
             m_displayCoordinator->setBranchTreeManager(m_analysisTab->branchTreeManager());
         }
+
+        m_displayCoordinator->setBoardSfenProvider([this]() {
+            if (m_gameController == nullptr || m_gameController->board() == nullptr) {
+                return QString();
+            }
+            ShogiBoard* board = m_gameController->board();
+            QString standPart = board->convertStandToSfen();
+            if (standPart.isEmpty()) {
+                standPart = QStringLiteral("-");
+            }
+            const QString turnPart = !board->currentPlayer().isEmpty()
+                ? board->currentPlayer()
+                : ((m_gameController->currentPlayer() == ShogiGameController::Player2)
+                    ? QStringLiteral("w")
+                    : QStringLiteral("b"));
+            return QStringLiteral("%1 %2 %3 1")
+                .arg(board->convertBoardToSfen(), turnPart, standPart);
+        });
 
         m_displayCoordinator->wireSignals();
 
@@ -2867,6 +2891,33 @@ void MainWindow::ensureGameStateController()
         m_activePly = activePly;
         m_currentSelectedPly = selectedPly;
         m_currentMoveIndex = moveIndex;
+
+        // 対局終了後、ナビゲーション状態をUIの表示位置と同期する。
+        // 本譜固定で探すと、分岐表示中に「1手戻る」が本譜へ飛ぶため、
+        // 現在ライン上の同一plyノードを優先して同期する。
+        if (m_navState && m_branchTree) {
+            KifuBranchNode* node = nullptr;
+
+            const int currentLine = m_navState->currentLineIndex();
+            const QVector<BranchLine> lines = m_branchTree->allLines();
+            if (currentLine >= 0 && currentLine < lines.size()) {
+                const BranchLine& line = lines.at(currentLine);
+                for (KifuBranchNode* candidate : std::as_const(line.nodes)) {
+                    if (candidate != nullptr && candidate->ply() == selectedPly) {
+                        node = candidate;
+                        break;
+                    }
+                }
+            }
+
+            if (node == nullptr) {
+                node = m_branchTree->findByPlyOnMainLine(selectedPly);
+            }
+
+            if (node) {
+                m_navState->setCurrentNode(node);
+            }
+        }
     });
 }
 
@@ -3476,33 +3527,13 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
         }
     }
 
-    // 盤面・ハイライト同期
-    if (row >= 0) {
-        syncBoardAndHighlightsAtRow(row);
-
-        // 現在手数トラッキングを更新
-        m_activePly = row;
-        m_currentSelectedPly = row;
-        m_currentMoveIndex = row;
-
-    }
+    // 局面同期は RecordPane::mainRowChanged → RecordNavigationHandler 経路で一元管理する。
+    // ここで再度 syncBoardAndHighlightsAtRow() を呼ぶと、本譜ベース同期で
+    // 分岐ラインの反映を上書きしてしまうため、コメント通知のみに限定する。
 
     // コメント表示
     const QString cmt = comment.trimmed();
     broadcastComment(cmt.isEmpty() ? tr("コメントなし") : cmt, true);
-
-    // 矢印ボタンなどの活性化
-    enableArrowButtons();
-
-    // 検討モード中であれば、選択した手の局面で検討を再開
-    if (m_playMode == PlayMode::ConsiderationMode) {
-        const QString newPosition = buildPositionStringForIndex(row);
-        ensureConsiderationWiring();
-        if (m_considerationWiring) {
-            m_considerationWiring->updatePositionIfNeeded(
-                row, newPosition, &m_gameMoves, m_kifuRecordModel);
-        }
-    }
 }
 
 // `onFlowError`: Flow Error のイベント受信時処理を行う。
@@ -3786,6 +3817,24 @@ bool MainWindow::getMainRowGuard() const
 void MainWindow::setMainRowGuard(bool on)
 {
     m_onMainRowGuard = on;
+}
+
+// 対局が進行中（終局前）かどうかを判定する。
+// 分岐ツリーのSFENで盤面が上書きされるのを防ぐガードに使用。
+bool MainWindow::isGameActivelyInProgress() const
+{
+    switch (m_playMode) {
+    case PlayMode::HumanVsHuman:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
+    case PlayMode::HandicapEngineVsHuman:
+    case PlayMode::HandicapEngineVsEngine:
+        return m_match && !m_match->gameOverState().isOver;
+    default:
+        return false;
+    }
 }
 
 // `isHvH`: Hv H かどうかを判定する。

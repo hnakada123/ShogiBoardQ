@@ -90,13 +90,13 @@ Analyzed moves: %1</translation>
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="237"/>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="474"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="239"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="476"/>
         <source>%1手目</source>
         <translation type="unfinished">Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="324"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="326"/>
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2077,15 +2077,15 @@ Discard changes and continue?</translation>
 <context>
     <name>GameStartCoordinator</name>
     <message>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="329"/>
         <location filename="../../src/game/gamestartcoordinator.cpp" line="335"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="341"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="345"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="339"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="342"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="346"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="336"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="340"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
@@ -3252,19 +3252,19 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="522"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="550"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="646"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="573"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="669"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="551"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="647"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="574"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="670"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
@@ -4157,22 +4157,22 @@ Please restart the application to apply the changes.</translation>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1345"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1348"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4014"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4063"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4016"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4065"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4019"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4068"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4468,7 +4468,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1344"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1347"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
@@ -4541,17 +4541,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3980"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4029"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3982"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4031"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3986"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4035"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4560,7 +4560,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3492"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3536"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>

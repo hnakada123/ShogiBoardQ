@@ -40,11 +40,18 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     }
     s_inProgress = true;
 
-    // 分岐ナビゲーション中は二重更新を防ぐため盤面同期をスキップ
+    // 分岐ナビゲーション中は二重更新を防ぐ。
+    // ただし、ユーザーが別手を明示的に選んだ場合は処理を継続する。
     if (m_deps.skipBoardSyncForBranchNav && *m_deps.skipBoardSyncForBranchNav) {
-        qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (branch navigation in progress)";
-        s_inProgress = false;
-        return;
+        const int statePly = (m_deps.navState != nullptr) ? m_deps.navState->currentPly() : -1;
+        if (row == statePly) {
+            qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (branch navigation in progress, same ply)";
+            s_inProgress = false;
+            return;
+        }
+        qCDebug(lcNavigation) << "onMainRowChanged: branch navigation guard active but proceeding"
+                              << "(requested row differs from current ply)"
+                              << "row=" << row << "statePly=" << statePly;
     }
 
     // CSA対局進行中は盤面がサーバーと同期されるため、ユーザー操作による盤面変更を抑止する
@@ -56,11 +63,32 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         }
     }
 
+    // 対局進行中（HvE/HvH/EvE）は sfenRecord の更新が正であるため、
+    // 分岐ツリーからの盤面上書きをスキップする。
+    // 分岐ツリーには対局開始前の KIF 継続手が残っており、
+    // エンジンの実際の指し手と異なる局面で盤面が上書きされてしまうのを防ぐ。
+    const bool gameActivelyInProgress = [&]() {
+        if (!m_deps.playMode || !m_deps.match) return false;
+        switch (*m_deps.playMode) {
+        case PlayMode::HumanVsHuman:
+        case PlayMode::EvenHumanVsEngine:
+        case PlayMode::EvenEngineVsHuman:
+        case PlayMode::EvenEngineVsEngine:
+        case PlayMode::HandicapHumanVsEngine:
+        case PlayMode::HandicapEngineVsHuman:
+        case PlayMode::HandicapEngineVsEngine:
+            return !m_deps.match->gameOverState().isOver;
+        default:
+            return false;
+        }
+    }();
+
     // 盤面同期とUI更新
     if (row >= 0) {
         // 分岐ライン上の場合は分岐ツリーからSFENを取得して盤面を更新
+        // ただし、対局進行中は sfenRecord を正とするためスキップする
         bool handledByBranchTree = false;
-        if (m_deps.navState != nullptr && !m_deps.navState->isOnMainLine() && m_deps.branchTree != nullptr) {
+        if (!gameActivelyInProgress && m_deps.navState != nullptr && !m_deps.navState->isOnMainLine() && m_deps.branchTree != nullptr) {
             const int lineIndex = m_deps.navState->currentLineIndex();
             QVector<BranchLine> lines = m_deps.branchTree->allLines();
             if (lineIndex >= 0 && lineIndex < lines.size()) {
@@ -71,11 +99,16 @@ void RecordNavigationHandler::onMainRowChanged(int row)
                     if (row > 0 && (row - 1) < line.nodes.size()) {
                         prevSfen = line.nodes.at(row - 1)->sfen();
                     }
-                    qCDebug(lcNavigation).noquote() << "onMainRowChanged: using branch tree SFEN"
-                                                    << "lineIndex=" << lineIndex << "row=" << row
-                                                    << "sfen=" << currentSfen.left(40);
-                    emit branchBoardSyncRequired(currentSfen, prevSfen);
-                    handledByBranchTree = true;
+                    if (!currentSfen.isEmpty()) {
+                        qCDebug(lcNavigation).noquote() << "onMainRowChanged: using branch tree SFEN"
+                                                        << "lineIndex=" << lineIndex << "row=" << row
+                                                        << "sfen=" << currentSfen.left(40);
+                        emit branchBoardSyncRequired(currentSfen, prevSfen);
+                        handledByBranchTree = true;
+                    } else {
+                        qCDebug(lcNavigation).noquote() << "onMainRowChanged: branch tree SFEN is empty,"
+                                                        << "fallback to boardSyncRequired row=" << row;
+                    }
                 }
             }
         }
@@ -118,7 +151,9 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     emit enableArrowButtonsRequired();
 
     // m_currentSfenStrを現在の局面に更新
-    bool isOnVariation = (m_deps.navState != nullptr && !m_deps.navState->isOnMainLine());
+    // 対局進行中は分岐状態に関係なく sfenRecord を正とする
+    bool isOnVariation = !gameActivelyInProgress
+                         && (m_deps.navState != nullptr && !m_deps.navState->isOnMainLine());
     if (!isOnVariation && row >= 0 && m_deps.sfenRecord && row < m_deps.sfenRecord->size()) {
         if (m_deps.currentSfenStr) {
             *m_deps.currentSfenStr = m_deps.sfenRecord->at(row);
@@ -140,7 +175,8 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         const int lineIndex = (m_deps.navState != nullptr) ? m_deps.navState->currentLineIndex() : 0;
 
         // 分岐ライン上では m_branchTree から正しいSFENを取得
-        if (m_deps.navState != nullptr && !m_deps.navState->isOnMainLine() && m_deps.branchTree != nullptr) {
+        // 対局進行中は sfenRecord を正とするためスキップする
+        if (!gameActivelyInProgress && m_deps.navState != nullptr && !m_deps.navState->isOnMainLine() && m_deps.branchTree != nullptr) {
             QVector<BranchLine> lines = m_deps.branchTree->allLines();
             if (lineIndex >= 0 && lineIndex < lines.size()) {
                 const BranchLine& line = lines.at(lineIndex);
@@ -156,9 +192,19 @@ void RecordNavigationHandler::onMainRowChanged(int row)
             sfen = m_deps.sfenRecord->at(row);
         }
 
-        if (!sfen.isEmpty()) {
-            m_deps.displayCoordinator->onPositionChanged(lineIndex, row, sfen);
+        // 補助フォールバック: SFENが取れなくても、plyベースでノード同期は可能。
+        // onPositionChanged() は sfen を直接参照しないため、空でも処理させる。
+        if (sfen.isEmpty() && m_deps.branchTree != nullptr && lineIndex >= 0) {
+            QVector<BranchLine> lines = m_deps.branchTree->allLines();
+            if (lineIndex < lines.size()) {
+                const BranchLine& line = lines.at(lineIndex);
+                if (row >= 0 && row < line.nodes.size() && line.nodes.at(row) != nullptr) {
+                    sfen = line.nodes.at(row)->sfen();
+                }
+            }
         }
+
+        m_deps.displayCoordinator->onPositionChanged(lineIndex, row, sfen);
     }
 
     qCDebug(lcNavigation) << "onMainRowChanged LEAVE row=" << row;

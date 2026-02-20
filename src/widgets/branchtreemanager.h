@@ -68,6 +68,9 @@ public:
     // --- 公開API ---
     void setBranchTreeRows(const QVector<ResolvedRowLite>& rows);
     void highlightBranchTreeAt(int row, int ply, bool centerOn = false);
+    int lastHighlightedRow() const { return m_lastHighlightedRow; }
+    int lastHighlightedPly() const { return m_lastHighlightedPly; }
+    bool hasHighlightedNode() const { return m_lastHighlightedRow >= 0 && m_lastHighlightedPly >= 0; }
 
     void clearBranchGraph();
     int  registerNode(int vid, int row, int ply, QGraphicsPathItem* item);
@@ -110,6 +113,8 @@ private:
     QHash<int, QVector<int>>    m_nextIds;
     QHash<int, int>             m_rowEntryNode;
     int m_nextNodeId = 1;
+    int m_lastHighlightedRow = -1;
+    int m_lastHighlightedPly = -1;
 };
 
 #endif // BRANCHTREEMANAGER_H

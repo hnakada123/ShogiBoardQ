@@ -206,16 +206,10 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     }
 
     // --- 0) 開始前クリーンアップをUI層へ依頼 ---
-    // cleanup中にm_currentSfenStrがbranchPointのSFENに更新される可能性がある
+    // 注意: cleanup 内で selectStartRow(0) → syncBoardAndHighlightsAtRow(0) が
+    //       m_currentSfenStr を初期局面（ply 0）のSFENに上書きしてしまう。
+    //       baseSfen はこの上書きの影響を受けないよう、cleanup 前に確定済み。
     emit requestPreStartCleanup();
-
-    // cleanup後にm_currentSfenStrが変更されていたらbaseSfenを更新
-    if (c.currentSfenStr && !c.currentSfenStr->isEmpty() && *c.currentSfenStr != baseSfen) {
-        qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: baseSfen updated after cleanup"
-                           << "old=" << baseSfen.left(50)
-                           << "new=" << c.currentSfenStr->left(50);
-        baseSfen = *(c.currentSfenStr);
-    }
 
     // --- 2) ベースSFENの適用 ---
     if (baseSfen == QLatin1String("startpos")) {

@@ -84,13 +84,13 @@
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="237"/>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="474"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="239"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="476"/>
         <source>%1手目</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager.cpp" line="324"/>
+        <location filename="../../src/widgets/branchtreemanager.cpp" line="326"/>
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1836,15 +1836,15 @@ Move %3: %4</source>
 <context>
     <name>GameStartCoordinator</name>
     <message>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="329"/>
         <location filename="../../src/game/gamestartcoordinator.cpp" line="335"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="341"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="345"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="339"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="342"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="346"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="336"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="340"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2972,19 +2972,19 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="499"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="522"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="550"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="646"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="573"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="669"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="551"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="647"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="574"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="670"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3669,27 +3669,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1344"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1347"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1345"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1348"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4014"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4063"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4016"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4065"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4019"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4068"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3714,7 +3714,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3492"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3536"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3723,17 +3723,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3980"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4029"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3982"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4031"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3986"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4035"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
