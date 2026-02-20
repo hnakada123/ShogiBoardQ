@@ -362,6 +362,10 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
     }
 
     // 分岐のデコード
+    // USEN形式では各分岐は「直前に記述された手順」からの派生として扱う。
+    // lastLineUsiMoves は直前に記述された手順の全USI指し手列を保持する。
+    QStringList lastLineUsiMoves = mainUsiMoves;
+
     for (const auto& var : std::as_const(variations)) {
         int startPly = var.first;
         const QString& varUsen = var.second;
@@ -369,21 +373,26 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
         QString varTerminal;
         QStringList varUsiMoves = decodeUsenMoves(varUsen, &varTerminal);
 
-        KifVariation kifVar;
-        kifVar.startPly = startPly;
-        kifVar.line.baseSfen = QString();  // 分岐は相対的な開始点から
-        kifVar.line.usiMoves = varUsiMoves;
+        // 直前の手順から分岐点までの指し手を取得
+        int offset = startPly - 1;  // 0-indexed
+        QStringList prefixMoves;
+        for (int i = 0; i < offset && i < lastLineUsiMoves.size(); ++i) {
+            prefixMoves.append(lastLineUsiMoves[i]);
+        }
 
-        // 分岐用のSfenPositionTracerを初期化
-        // 本譜のstartPly手目までの局面を再現する
+        // 分岐点の局面を再現する
         SfenPositionTracer varTracer;
         if (!varTracer.setFromSfen(initialSfen)) {
             varTracer.resetToStartpos();
         }
-        // 本譜のstartPly-1手目まで適用
-        for (qsizetype i = 0; i < startPly - 1 && i < mainUsiMoves.size(); ++i) {
-            varTracer.applyUsiMove(mainUsiMoves[i]);
+        for (const QString& move : std::as_const(prefixMoves)) {
+            varTracer.applyUsiMove(move);
         }
+
+        KifVariation kifVar;
+        kifVar.startPly = startPly;
+        kifVar.line.baseSfen = varTracer.toSfenString();
+        kifVar.line.usiMoves = varUsiMoves;
 
         // 表示用データ
         int prevToFile = 0, prevToRank = 0;
@@ -422,7 +431,14 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
             kifVar.line.disp.push_back(termItem);
         }
 
+        // sfenList を構築（ツリービルダーが findBySfen で正しい分岐点を見つけるために必要）
+        kifVar.line.sfenList = SfenPositionTracer::buildSfenRecord(
+            kifVar.line.baseSfen, varUsiMoves, !varTerminal.isEmpty());
+
         out.variations.push_back(kifVar);
+
+        // 直前の手順を更新: prefix + 今回の分岐の指し手
+        lastLineUsiMoves = prefixMoves + varUsiMoves;
     }
 
     return true;
