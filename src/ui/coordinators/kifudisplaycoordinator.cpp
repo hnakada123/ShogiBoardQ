@@ -64,6 +64,7 @@ void KifuDisplayCoordinator::resetTracking()
     m_lastModelLineIndex = -1;
     m_expectedTreeLineIndex = 0;
     m_expectedTreePly = 0;
+    m_pendingNavResultCheck = false;
 }
 
 void KifuDisplayCoordinator::setRecordPane(RecordPane* pane)
@@ -270,6 +271,13 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
         if (node->parent() != nullptr) {
             prevSfen = node->parent()->sfen();
         }
+        // 投了・中断などSFENを持たない特殊ノードの場合、親ノードのSFENを使用
+        // （盤面は変わらないので currentSfen == prevSfen となり、ハイライトがクリアされる）
+        if (currentSfen.isEmpty() && !prevSfen.isEmpty()) {
+            currentSfen = prevSfen;
+            qCDebug(lcUi).noquote() << "onNavigationCompleted: terminal node (empty SFEN),"
+                               << "using parent's SFEN";
+        }
         qCDebug(lcUi).noquote() << "onNavigationCompleted: emitting boardWithHighlightsRequired"
                            << "currentSfen=" << currentSfen.left(40)
                            << "prevSfen=" << (prevSfen.isEmpty() ? "(empty)" : prevSfen.left(40));
@@ -278,11 +286,10 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
 
     highlightCurrentPosition();
 
-    // ナビゲーション完了時の一致性チェック
-    if (!verifyDisplayConsistency()) {
-        qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
-        qCDebug(lcUi).noquote() << getConsistencyReport();
-    }
+    // 一致性チェックは onBranchCandidatesUpdateRequired 完了後に遅延実行する。
+    // emitUpdateSignals() のシグナル順は navigationCompleted → branchCandidatesUpdateRequired
+    // であり、ここではまだ候補モデルが更新されていないため偽陽性が出る。
+    m_pendingNavResultCheck = true;
 }
 
 void KifuDisplayCoordinator::onBoardUpdateRequired(const QString& sfen)
@@ -369,6 +376,16 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
         return;
     }
 
+    // 候補の詳細をログ出力
+    {
+        QStringList candidateTexts;
+        for (KifuBranchNode* node : std::as_const(candidates)) {
+            candidateTexts << node->displayText();
+        }
+        qCDebug(lcUi).noquote() << "onBranchCandidatesUpdateRequired: count=" << candidates.size()
+                            << "[" << candidateTexts.join(QStringLiteral(", ")) << "]";
+    }
+
     m_branchModel->resetBranchCandidates();
 
     if (candidates.isEmpty()) {
@@ -378,6 +395,7 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
         if (m_recordPane != nullptr && m_recordPane->branchView() != nullptr) {
             m_recordPane->branchView()->setEnabled(true);
         }
+        runPendingNavResultCheck();
         return;
     }
 
@@ -414,6 +432,8 @@ void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<Kifu
     if (m_recordPane != nullptr && m_recordPane->branchView() != nullptr) {
         m_recordPane->branchView()->setEnabled(true);
     }
+
+    runPendingNavResultCheck();
 }
 
 void KifuDisplayCoordinator::onTreeChanged()
@@ -503,7 +523,12 @@ void KifuDisplayCoordinator::updateBranchCandidatesView()
 
 void KifuDisplayCoordinator::highlightCurrentPosition()
 {
+    qCDebug(lcUi).noquote() << "highlightCurrentPosition ENTER"
+                        << "ply=" << (m_state ? m_state->currentPly() : -1)
+                        << "lineIndex=" << (m_state ? m_state->currentLineIndex() : -1);
+
     if (m_state == nullptr) {
+        qCDebug(lcUi).noquote() << "highlightCurrentPosition: early return (null state)";
         return;
     }
 
@@ -521,6 +546,30 @@ void KifuDisplayCoordinator::highlightCurrentPosition()
         const QString comment = m_state->currentNode()->comment().trimmed();
         emit commentUpdateRequired(ply, comment.isEmpty() ? tr("コメントなし") : comment, true);
     }
+
+    qCDebug(lcUi).noquote() << "highlightCurrentPosition LEAVE ply=" << ply << "lineIndex=" << lineIndex;
+}
+
+void KifuDisplayCoordinator::runPendingNavResultCheck()
+{
+    if (!m_pendingNavResultCheck) {
+        return;
+    }
+    m_pendingNavResultCheck = false;
+
+    const bool consistent = verifyDisplayConsistency();
+    if (!consistent) {
+        qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
+        qCDebug(lcUi).noquote() << getConsistencyReport();
+    }
+
+    const DisplaySnapshot snap = captureDisplaySnapshot();
+    qCDebug(lcUi).noquote() << "NAV-RESULT: ply=" << snap.statePly
+                        << "line=" << snap.stateLineIndex
+                        << "recordHighlight=" << snap.modelHighlightRow
+                        << "treeHL=(" << snap.treeHighlightLineIndex << "," << snap.treeHighlightPly << ")"
+                        << "candidates=" << snap.branchCandidateCount
+                        << "consistent=" << (consistent ? "YES" : "NO");
 }
 
 void KifuDisplayCoordinator::populateRecordModel()
@@ -909,9 +958,21 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     // MainWindowが既にビューの選択を管理しているため
 
     // 位置変更完了時の一致性チェック
-    if (!verifyDisplayConsistency()) {
+    const bool consistent = verifyDisplayConsistency();
+    if (!consistent) {
         qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
         qCDebug(lcUi).noquote() << getConsistencyReport();
+    }
+
+    // NAV-RESULT サマリー（常に出力）
+    {
+        const DisplaySnapshot snap = captureDisplaySnapshot();
+        qCDebug(lcUi).noquote() << "NAV-RESULT: ply=" << snap.statePly
+                            << "line=" << snap.stateLineIndex
+                            << "recordHighlight=" << snap.modelHighlightRow
+                            << "treeHL=(" << snap.treeHighlightLineIndex << "," << snap.treeHighlightPly << ")"
+                            << "candidates=" << snap.branchCandidateCount
+                            << "consistent=" << (consistent ? "YES" : "NO");
     }
 
     qCDebug(lcUi).noquote() << "onPositionChanged LEAVE";
@@ -1041,11 +1102,34 @@ bool KifuDisplayCoordinator::verifyDisplayConsistencyDetailed(QString* reason) c
     if (m_branchTreeManager != nullptr && snapshot.treeHighlightLineIndex >= 0 && snapshot.treeHighlightPly >= 0) {
         if (snapshot.treeHighlightLineIndex != snapshot.stateLineIndex
             || snapshot.treeHighlightPly != snapshot.statePly) {
-            return fail(QStringLiteral("分岐ツリーハイライト不一致: tree=(%1,%2) state=(%3,%4)")
-                        .arg(snapshot.treeHighlightLineIndex)
-                        .arg(snapshot.treeHighlightPly)
-                        .arg(snapshot.stateLineIndex)
-                        .arg(snapshot.statePly));
+            // 共有ノードチェック: 分岐点より前のノードは複数ラインで共有されるため、
+            // ツリーウィジェット上ではライン0（または親ライン）にハイライトされる。
+            // ply が一致し、両ラインの同じ ply に同一ノードがあれば一致とみなす。
+            bool isSharedNode = false;
+            if (snapshot.treeHighlightPly == snapshot.statePly && m_tree != nullptr) {
+                const QVector<BranchLine> allLines = m_tree->allLines();
+                if (snapshot.treeHighlightLineIndex < allLines.size()
+                    && snapshot.stateLineIndex < allLines.size()) {
+                    auto findAtPly = [](const BranchLine& ln, int p) -> KifuBranchNode* {
+                        for (KifuBranchNode* n : std::as_const(ln.nodes)) {
+                            if (n->ply() == p) return n;
+                        }
+                        return nullptr;
+                    };
+                    KifuBranchNode* treeNode = findAtPly(allLines.at(snapshot.treeHighlightLineIndex),
+                                                         snapshot.treeHighlightPly);
+                    KifuBranchNode* stateNode = findAtPly(allLines.at(snapshot.stateLineIndex),
+                                                          snapshot.statePly);
+                    isSharedNode = (treeNode != nullptr && treeNode == stateNode);
+                }
+            }
+            if (!isSharedNode) {
+                return fail(QStringLiteral("分岐ツリーハイライト不一致: tree=(%1,%2) state=(%3,%4)")
+                            .arg(snapshot.treeHighlightLineIndex)
+                            .arg(snapshot.treeHighlightPly)
+                            .arg(snapshot.stateLineIndex)
+                            .arg(snapshot.statePly));
+            }
         }
     }
 

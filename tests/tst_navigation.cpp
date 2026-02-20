@@ -219,6 +219,50 @@ private slots:
         QCOMPARE(spy.at(0).at(0).toInt(), 0);
     }
 
+    void handleBranchNodeActivated_switchesToMainLineFromNestedBranch()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+
+        ShogiMove move;
+        auto* root = tree.root();
+        QVERIFY(root != nullptr);
+
+        // 本譜: 1 -> 2 -> 3(main) -> 4(main) -> 5(main)
+        auto* main1 = tree.addMove(root, move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main4 = tree.addMove(main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
+        QVERIFY(tree.addMove(main4, move, QStringLiteral("main5"), QStringLiteral("sfen5")) != nullptr);
+
+        // 分岐: 2手目から分岐し、さらに5手目で入れ子分岐
+        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        QVERIFY(tree.addMove(branch4, move, QStringLiteral("branch5_main"), QStringLiteral("bsfen5m")) != nullptr);
+        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+        QVERIFY(branch5Nested != nullptr);
+
+        KifuNavigationState state;
+        state.setTree(&tree);
+
+        KifuNavigationController controller;
+        controller.setTreeAndState(&tree, &state);
+
+        const int nestedLineIndex = tree.findLineIndexForNode(branch5Nested);
+        QVERIFY(nestedLineIndex > 0);
+
+        // まず入れ子分岐（5手目）を選択
+        controller.handleBranchNodeActivated(nestedLineIndex, 5);
+        QCOMPARE(state.currentNode(), branch5Nested);
+        QCOMPARE(state.currentLineIndex(), nestedLineIndex);
+
+        // 次に本譜3手目をクリックしたとき、分岐3手目に吸われず本譜3手目へ遷移すること
+        controller.handleBranchNodeActivated(/*row=*/0, /*ply=*/3);
+        QCOMPARE(state.currentNode(), main3);
+        QCOMPARE(state.currentLineIndex(), 0);
+        QVERIFY(state.isOnMainLine());
+    }
+
     void stressTest_randomNavigation()
     {
         KifuBranchTree tree;

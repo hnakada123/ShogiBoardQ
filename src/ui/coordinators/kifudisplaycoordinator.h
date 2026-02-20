@@ -254,6 +254,7 @@ private:
     void updateBranchTreeView();
     void updateBranchCandidatesView();
     void highlightCurrentPosition();
+    void runPendingNavResultCheck();
     void populateRecordModel();
     void populateBranchMarks();
     void populateRecordModelFromPath(const QVector<KifuBranchNode*>& path, int highlightPly);
@@ -276,6 +277,9 @@ private:
     // ツリーハイライトの期待値追跡（一致性検証用）
     int m_expectedTreeLineIndex = 0;
     int m_expectedTreePly = 0;
+
+    // onNavigationCompleted → onBranchCandidatesUpdateRequired 間の遅延チェック用
+    bool m_pendingNavResultCheck = false;
 };
 
 #endif // KIFUDISPLAYCOORDINATOR_H
