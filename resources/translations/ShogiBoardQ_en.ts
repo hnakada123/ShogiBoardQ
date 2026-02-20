@@ -5272,10 +5272,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="735"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="739"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="755"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="759"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="752"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="756"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="772"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="776"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="183"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="187"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="203"/>
@@ -5285,10 +5285,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="736"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="744"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="752"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="760"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="753"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="761"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="769"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="777"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -5297,10 +5297,10 @@ Are you sure you want to declare?</translation>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="740"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="743"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="751"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="756"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="757"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="760"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="768"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="773"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="191"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="199"/>
@@ -5309,13 +5309,13 @@ Are you sure you want to declare?</translation>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="747"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="764"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="195"/>
         <source>Engine1</source>
         <translation>Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="748"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="765"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
         <source>Engine2</source>
         <translation>Engine2</translation>
