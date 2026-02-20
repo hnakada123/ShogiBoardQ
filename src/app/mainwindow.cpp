@@ -522,6 +522,13 @@ void MainWindow::copyBoardToClipboard()
     BoardImageExporter::copyToClipboard(m_shogiView);
 }
 
+// 評価値グラフの画像をクリップボードにコピーする。
+void MainWindow::copyEvalGraphToClipboard()
+{
+    if (!m_evalChart) return;
+    BoardImageExporter::copyToClipboard(m_evalChart->chartViewWidget());
+}
+
 // `saveShogiBoardImage`: Shogi Board Image を保存する。
 void MainWindow::saveShogiBoardImage()
 {

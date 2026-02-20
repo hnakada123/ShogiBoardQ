@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <title>評価値グラフ画像コピー</title>
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1A237E"/>
+      <stop offset="100%" stop-color="#283593"/>
+    </linearGradient>
+    <linearGradient id="graphBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#E3F2FD"/>
+      <stop offset="100%" stop-color="#BBDEFB"/>
+    </linearGradient>
+    <clipPath id="graphClip">
+      <rect x="4" y="4" width="92" height="92" rx="4"/>
+    </clipPath>
+  </defs>
+
+  <!-- 背景（全面） -->
+  <rect x="0" y="0" width="128" height="128" rx="12" fill="url(#bgGrad)"/>
+
+  <!-- グラフ用紙エリア -->
+  <rect x="4" y="4" width="92" height="92" rx="4" fill="url(#graphBg)" stroke="#90CAF9" stroke-width="1.5"/>
+
+  <!-- グリッド線（方眼紙風） -->
+  <g stroke="#90CAF9" stroke-width="0.5" opacity="0.5">
+    <line x1="4" y1="27" x2="96" y2="27"/>
+    <line x1="4" y1="50" x2="96" y2="50"/>
+    <line x1="4" y1="73" x2="96" y2="73"/>
+    <line x1="27" y1="4" x2="27" y2="96"/>
+    <line x1="50" y1="4" x2="50" y2="96"/>
+    <line x1="73" y1="4" x2="73" y2="96"/>
+  </g>
+
+  <!-- 中央ゼロ線（評価値の基準線） -->
+  <line x1="4" y1="50" x2="96" y2="50" stroke="#1565C0" stroke-width="1.5" stroke-dasharray="3,2"/>
+
+  <!-- 先手側の塗りつぶし（上半分・正の評価） -->
+  <polygon points="8,50 18,42 28,38 38,30 48,35 58,22 68,28 78,18 88,24 92,20 92,50"
+           fill="#F44336" fill-opacity="0.15" clip-path="url(#graphClip)"/>
+
+  <!-- 下半分エリアの薄い塗り -->
+  <polygon points="8,50 14,55 20,52 30,58 40,62 50,56 60,65 70,72 80,68 88,75 92,78 92,50"
+           fill="#1565C0" fill-opacity="0.15" clip-path="url(#graphClip)"/>
+
+  <!-- 評価値の折れ線グラフ（メイン） -->
+  <polyline points="8,50 14,55 18,42 24,44 28,38 34,36 38,30 44,32 48,35 52,28 58,22 64,25 68,28 72,20 78,18 82,22 88,24 92,20"
+            fill="none" stroke="#F44336" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 対局手数の軸ラベル風の目盛り -->
+  <g fill="#1565C0" font-family="sans-serif" font-size="6" opacity="0.7">
+    <text x="8" y="94">0</text>
+    <text x="46" y="94">50</text>
+    <text x="82" y="94">100</text>
+  </g>
+
+  <!-- Y軸ラベル風 -->
+  <g fill="#1565C0" font-family="sans-serif" font-size="5" opacity="0.7" text-anchor="end">
+    <text x="12" y="30">+</text>
+    <text x="12" y="76">-</text>
+  </g>
+
+  <!-- 右下にクリップボードバッジ -->
+  <g transform="translate(80, 80)">
+    <rect x="0" y="0" width="48" height="48" rx="12" fill="#B0BEC5" stroke="#607D8B" stroke-width="2"/>
+    <!-- クリップボード本体 -->
+    <rect x="10" y="12" width="28" height="30" rx="2" fill="white" stroke="#455A64" stroke-width="1.5"/>
+    <!-- クリップボードのクリップ -->
+    <rect x="16" y="8" width="16" height="8" rx="2" fill="#78909C" stroke="#455A64" stroke-width="1"/>
+    <!-- テキスト行 -->
+    <line x1="16" y1="24" x2="32" y2="24" stroke="#455A64" stroke-width="2"/>
+    <line x1="16" y1="30" x2="28" y2="30" stroke="#455A64" stroke-width="2"/>
+    <line x1="16" y1="36" x2="24" y2="36" stroke="#455A64" stroke-width="2"/>
+  </g>
+</svg>

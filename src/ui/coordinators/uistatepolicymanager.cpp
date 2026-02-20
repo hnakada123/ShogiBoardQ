@@ -96,6 +96,9 @@ void UiStatePolicyManager::buildPolicyTable()
     // 盤面画像コピー: 常に有効
     setAll(E::EditCopyBoardImage, P::Enabled);
 
+    // 評価値グラフ画像コピー: 常に有効
+    setAll(E::EditCopyEvalGraphImage, P::Enabled);
+
     // 局面編集開始: Idle のみ表示、それ以外は非表示
     setAll(E::EditStartPosition, P::Hidden);
     set(S::Idle, E::EditStartPosition, P::Shown);
@@ -339,6 +342,9 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         break;
     case UiElement::EditCopyBoardImage:
         applyActionPolicy(ui ? ui->actionCopyBoardToClipboard : nullptr, policy);
+        break;
+    case UiElement::EditCopyEvalGraphImage:
+        applyActionPolicy(ui ? ui->actionCopyEvalGraphToClipboard : nullptr, policy);
         break;
 
     // --- 編集メニュー（局面編集系） ---
