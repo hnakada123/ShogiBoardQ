@@ -595,11 +595,8 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
 
     // 優先0: KifuBranchTree から取得（新システム）
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        // 現在のラインインデックスを取得（デフォルトは本譜=0）
-        int lineIndex = 0;
-        if (m_navState != nullptr) {
-            lineIndex = m_navState->currentLineIndex();
-        }
+        // 本譜は常にlineIndex=0（ナビゲーション状態に依存しない）
+        constexpr int lineIndex = 0;
 
         result = m_branchTree->getDisplayItemsForLine(lineIndex);
         qCDebug(lcKifu).noquote() << "collectMainlineForExport: from BranchTree"

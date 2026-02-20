@@ -4343,10 +4343,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="738"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="742"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="758"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="762"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="735"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="739"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="755"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="759"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="183"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="187"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="203"/>
@@ -4356,10 +4356,10 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="739"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="747"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="755"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="763"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="736"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="744"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="752"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="760"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -4368,10 +4368,10 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="740"/>
         <location filename="../../src/kifu/gamerecordmodel.cpp" line="743"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="746"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="754"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="759"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="751"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="756"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="191"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="199"/>
@@ -4380,13 +4380,13 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="750"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="747"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="195"/>
         <source>Engine1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="751"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="748"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
         <source>Engine2</source>
         <translation type="unfinished"></translation>
