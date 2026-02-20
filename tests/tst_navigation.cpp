@@ -162,6 +162,63 @@ private slots:
         QCOMPARE(state.currentPly(), 5);
     }
 
+    // 対局終了後のナビゲーション：resetBranchContext() → goToRoot() の後、
+    // ナビ状態を最終手に再設定すれば goBack が正しく動作することを確認する。
+    void goBack_afterGameOverNavSync()
+    {
+        KifuBranchTree tree;
+        buildTestTree(tree);
+
+        KifuNavigationState state;
+        state.setTree(&tree);
+
+        KifuNavigationController controller;
+        controller.setTreeAndState(&tree, &state);
+
+        // 対局終了時の流れをシミュレート:
+        // 1) resetBranchContext() → goToRoot()
+        state.goToRoot();
+        QCOMPARE(state.currentPly(), 0);
+
+        // 2) updatePlyState で最終手に同期
+        KifuBranchNode* lastNode = tree.findByPlyOnMainLine(7);
+        QVERIFY(lastNode != nullptr);
+        state.setCurrentNode(lastNode);
+        QCOMPARE(state.currentPly(), 7);
+
+        // 3) goBack(1) で正しく1手戻れることを確認
+        QSignalSpy spy(&controller, &KifuNavigationController::recordHighlightRequired);
+        controller.goBack(1);
+        QCOMPARE(state.currentPly(), 6);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toInt(), 6);
+
+        // 4) さらにもう1手戻る
+        controller.goBack(1);
+        QCOMPARE(state.currentPly(), 5);
+    }
+
+    // goToRoot() 直後（ナビ同期なし）に goBack しても、ply 0 のまま留まることを確認。
+    void goBack_atRootStaysAtRoot()
+    {
+        KifuBranchTree tree;
+        buildTestTree(tree);
+
+        KifuNavigationState state;
+        state.setTree(&tree);
+        state.goToRoot();
+
+        KifuNavigationController controller;
+        controller.setTreeAndState(&tree, &state);
+
+        QSignalSpy spy(&controller, &KifuNavigationController::recordHighlightRequired);
+        controller.goBack(1);
+        // ルートからは戻れないが、シグナルは発火する（ply 0 のまま）
+        QCOMPARE(state.currentPly(), 0);
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toInt(), 0);
+    }
+
     void stressTest_randomNavigation()
     {
         KifuBranchTree tree;

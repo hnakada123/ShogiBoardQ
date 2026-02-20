@@ -20,8 +20,26 @@
 #include <QTableView>
 #include <QModelIndex>
 #include <QTextStream>
+#include <QStringList>
+#include <utility>
 
 Q_LOGGING_CATEGORY(lcUi, "shogi.ui")
+
+namespace {
+QString normalizeSfenForCompare(const QString& sfen)
+{
+    const QString trimmed = sfen.trimmed();
+    if (trimmed.isEmpty()) {
+        return QString();
+    }
+    const QStringList parts = trimmed.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (parts.size() < 3) {
+        return trimmed;
+    }
+    // 盤面・手番・持ち駒までを比較対象にする（手数は除外）
+    return QStringLiteral("%1 %2 %3").arg(parts.at(0), parts.at(1), parts.at(2));
+}
+}
 
 KifuDisplayCoordinator::KifuDisplayCoordinator(
     KifuBranchTree* tree,
@@ -33,6 +51,11 @@ KifuDisplayCoordinator::KifuDisplayCoordinator(
     , m_state(state)
     , m_navController(navController)
 {
+}
+
+void KifuDisplayCoordinator::setBoardSfenProvider(BoardSfenProvider provider)
+{
+    m_boardSfenProvider = std::move(provider);
 }
 
 void KifuDisplayCoordinator::resetTracking()
@@ -551,7 +574,7 @@ void KifuDisplayCoordinator::populateRecordModel()
         tr("（１手 / 合計）"),
         QString(),
         openingBookmark,
-        this);
+        m_recordModel);
     m_recordModel->appendItem(startItem);
 
     // 各指し手を追加
@@ -577,7 +600,7 @@ void KifuDisplayCoordinator::populateRecordModel()
             node->timeText(),
             node->comment(),
             node->bookmark(),
-            this
+            m_recordModel
         );
         m_recordModel->appendItem(item);
     }
@@ -647,7 +670,7 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
         tr("（１手 / 合計）"),
         QString(),
         openingBookmark,
-        this);
+        m_recordModel);
     m_recordModel->appendItem(startItem);
 
     QSet<int> branchPlys;
@@ -673,7 +696,7 @@ void KifuDisplayCoordinator::populateRecordModelFromPath(const QVector<KifuBranc
             node->timeText(),
             node->comment(),
             node->bookmark(),
-            this
+            m_recordModel
         );
         m_recordModel->appendItem(item);
     }
@@ -894,46 +917,178 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     qCDebug(lcUi).noquote() << "onPositionChanged LEAVE";
 }
 
-bool KifuDisplayCoordinator::verifyDisplayConsistency() const
+KifuDisplayCoordinator::DisplaySnapshot KifuDisplayCoordinator::captureDisplaySnapshot() const
 {
-    // m_state がない場合は検証不可
-    if (m_state == nullptr || m_tree == nullptr) {
-        return true;  // 検証対象がないので true を返す
+    DisplaySnapshot snapshot;
+    snapshot.trackedLineIndex = m_lastLineIndex;
+    snapshot.modelLineIndex = m_lastModelLineIndex;
+    snapshot.expectedTreeLineIndex = m_expectedTreeLineIndex;
+    snapshot.expectedTreePly = m_expectedTreePly;
+
+    if (m_state != nullptr) {
+        snapshot.stateLineIndex = m_state->currentLineIndex();
+        snapshot.statePly = m_state->currentPly();
+        snapshot.stateOnMainLine = m_state->isOnMainLine();
+        snapshot.stateSfen = m_state->currentSfen();
+        snapshot.stateSfenNormalized = normalizeSfenForCompare(snapshot.stateSfen);
     }
 
-    bool consistent = true;
-
-    // 1. m_lastLineIndex と m_state->currentLineIndex() の一致を検証
-    const int stateLineIndex = m_state->currentLineIndex();
-    if (m_lastLineIndex != stateLineIndex) {
-        consistent = false;
-    }
-
-    // 2. 棋譜欄の内容が期待するラインの内容と一致するかを検証
     if (m_recordModel != nullptr) {
-        QVector<BranchLine> lines = m_tree->allLines();
-        if (stateLineIndex >= 0 && stateLineIndex < lines.size()) {
-            const BranchLine& line = lines.at(stateLineIndex);
-            const int expectedRowCount = line.nodes.isEmpty() ? 1 : static_cast<int>(line.nodes.size());
-            const int actualRowCount = m_recordModel->rowCount();
+        snapshot.modelRowCount = m_recordModel->rowCount();
+        snapshot.modelHighlightRow = m_recordModel->currentHighlightRow();
 
-            // 行数が大きく異なる場合は不一致
-            if (qAbs(expectedRowCount - actualRowCount) > 1) {
-                consistent = false;
+        if (snapshot.statePly >= 0 && snapshot.statePly < m_recordModel->rowCount()) {
+            if (KifuDisplay* item = m_recordModel->item(snapshot.statePly)) {
+                snapshot.displayedMoveAtPly = item->currentMove();
             }
         }
     }
 
-    // 3. ツリーハイライトの期待値と実際の状態を比較
-    // ハイライト要求後の lineIndex と ply が state と一致しているか
-    if (m_expectedTreeLineIndex != stateLineIndex ||
-        m_expectedTreePly != m_state->currentPly()) {
-        // 注: これは状態遷移中に一時的に発生することがあるため、
-        // ここでは警告ログを出すが consistent には影響させない
-        // 本当の不一致は m_lastLineIndex と stateLineIndex の比較で検出
+    if (m_tree != nullptr && snapshot.stateLineIndex >= 0) {
+        const QVector<BranchLine> lines = m_tree->allLines();
+        if (snapshot.stateLineIndex < lines.size()) {
+            const BranchLine& line = lines.at(snapshot.stateLineIndex);
+            for (KifuBranchNode* node : std::as_const(line.nodes)) {
+                if (node != nullptr && node->ply() == snapshot.statePly) {
+                    snapshot.expectedMoveAtPly = node->displayText();
+                    break;
+                }
+            }
+        }
     }
 
-    return consistent;
+    if (m_branchTreeManager != nullptr && m_branchTreeManager->hasHighlightedNode()) {
+        snapshot.treeHighlightLineIndex = m_branchTreeManager->lastHighlightedRow();
+        snapshot.treeHighlightPly = m_branchTreeManager->lastHighlightedPly();
+    }
+
+    if (m_branchModel != nullptr) {
+        snapshot.branchCandidateCount = m_branchModel->branchCandidateCount();
+        snapshot.hasBackToMainRow = m_branchModel->hasBackToMainRow();
+    }
+
+    if (m_boardSfenProvider) {
+        snapshot.boardSfen = m_boardSfenProvider();
+        snapshot.boardSfenNormalized = normalizeSfenForCompare(snapshot.boardSfen);
+    }
+
+    return snapshot;
+}
+
+bool KifuDisplayCoordinator::verifyDisplayConsistencyDetailed(QString* reason) const
+{
+    if (reason != nullptr) {
+        reason->clear();
+    }
+
+    // m_state がない場合は検証不可
+    if (m_state == nullptr || m_tree == nullptr) {
+        return true;
+    }
+
+    const DisplaySnapshot snapshot = captureDisplaySnapshot();
+    auto fail = [&](const QString& msg) {
+        if (reason != nullptr) {
+            *reason = msg;
+        }
+        return false;
+    };
+
+    // 1. コーディネータ追跡ラインと状態ライン
+    if (snapshot.trackedLineIndex != snapshot.stateLineIndex) {
+        return fail(QStringLiteral("ライン不一致: tracked=%1 state=%2")
+                    .arg(snapshot.trackedLineIndex)
+                    .arg(snapshot.stateLineIndex));
+    }
+
+    // 2. 棋譜欄モデルのライン/行/ハイライト
+    if (m_recordModel != nullptr) {
+        if (snapshot.modelLineIndex >= 0 && snapshot.modelLineIndex != snapshot.stateLineIndex) {
+            return fail(QStringLiteral("棋譜欄ライン不一致: model=%1 state=%2")
+                        .arg(snapshot.modelLineIndex)
+                        .arg(snapshot.stateLineIndex));
+        }
+        if (snapshot.modelHighlightRow != snapshot.statePly) {
+            return fail(QStringLiteral("棋譜欄ハイライト不一致: modelHighlight=%1 statePly=%2")
+                        .arg(snapshot.modelHighlightRow)
+                        .arg(snapshot.statePly));
+        }
+
+        const QVector<BranchLine> lines = m_tree->allLines();
+        if (snapshot.stateLineIndex >= 0 && snapshot.stateLineIndex < lines.size()) {
+            const BranchLine& line = lines.at(snapshot.stateLineIndex);
+            const int expectedRowCount = line.nodes.isEmpty() ? 1 : static_cast<int>(line.nodes.size());
+            if (qAbs(expectedRowCount - snapshot.modelRowCount) > 1) {
+                return fail(QStringLiteral("棋譜欄行数不一致: expected~=%1 actual=%2")
+                            .arg(expectedRowCount)
+                            .arg(snapshot.modelRowCount));
+            }
+        }
+
+        if (snapshot.statePly == 0) {
+            if (!snapshot.displayedMoveAtPly.contains(QStringLiteral("開始局面"))) {
+                return fail(QStringLiteral("棋譜欄0行が開始局面ではありません: [%1]")
+                            .arg(snapshot.displayedMoveAtPly));
+            }
+        } else if (!snapshot.expectedMoveAtPly.isEmpty()
+                   && !snapshot.displayedMoveAtPly.contains(snapshot.expectedMoveAtPly)) {
+            return fail(QStringLiteral("棋譜欄指し手不一致: expected contains [%1], actual [%2]")
+                        .arg(snapshot.expectedMoveAtPly, snapshot.displayedMoveAtPly));
+        }
+    }
+
+    // 3. 分岐ツリーハイライト（BranchTreeManager）
+    if (m_branchTreeManager != nullptr && snapshot.treeHighlightLineIndex >= 0 && snapshot.treeHighlightPly >= 0) {
+        if (snapshot.treeHighlightLineIndex != snapshot.stateLineIndex
+            || snapshot.treeHighlightPly != snapshot.statePly) {
+            return fail(QStringLiteral("分岐ツリーハイライト不一致: tree=(%1,%2) state=(%3,%4)")
+                        .arg(snapshot.treeHighlightLineIndex)
+                        .arg(snapshot.treeHighlightPly)
+                        .arg(snapshot.stateLineIndex)
+                        .arg(snapshot.statePly));
+        }
+    }
+
+    // 4. 分岐候補欄
+    if (m_branchModel != nullptr && m_state->currentNode() != nullptr) {
+        int expectedCandidateCount = 0;
+        if (KifuBranchNode* parent = m_state->currentNode()->parent();
+            parent != nullptr && parent->childCount() > 1) {
+            expectedCandidateCount = parent->childCount();
+            for (int i = 0; i < expectedCandidateCount; ++i) {
+                if (m_branchModel->labelAt(i) != parent->childAt(i)->displayText()) {
+                    return fail(QStringLiteral("分岐候補指し手不一致: row=%1 expected=[%2] actual=[%3]")
+                                .arg(i)
+                                .arg(parent->childAt(i)->displayText(), m_branchModel->labelAt(i)));
+                }
+            }
+        }
+        if (snapshot.branchCandidateCount != expectedCandidateCount) {
+            return fail(QStringLiteral("分岐候補件数不一致: expected=%1 actual=%2")
+                        .arg(expectedCandidateCount)
+                        .arg(snapshot.branchCandidateCount));
+        }
+        const bool expectedBackToMain = (expectedCandidateCount > 0 && !snapshot.stateOnMainLine);
+        if (snapshot.hasBackToMainRow != expectedBackToMain) {
+            return fail(QStringLiteral("本譜に戻る表示不一致: expected=%1 actual=%2")
+                        .arg(expectedBackToMain ? QStringLiteral("true") : QStringLiteral("false"),
+                             snapshot.hasBackToMainRow ? QStringLiteral("true") : QStringLiteral("false")));
+        }
+    }
+
+    // 5. 盤面SFEN（任意）
+    if (!snapshot.boardSfenNormalized.isEmpty() && !snapshot.stateSfenNormalized.isEmpty()
+        && snapshot.boardSfenNormalized != snapshot.stateSfenNormalized) {
+        return fail(QStringLiteral("盤面SFEN不一致: board=[%1] state=[%2]")
+                    .arg(snapshot.boardSfenNormalized, snapshot.stateSfenNormalized));
+    }
+
+    return true;
+}
+
+bool KifuDisplayCoordinator::verifyDisplayConsistency() const
+{
+    return verifyDisplayConsistencyDetailed(nullptr);
 }
 
 QString KifuDisplayCoordinator::getConsistencyReport() const
@@ -943,44 +1098,47 @@ QString KifuDisplayCoordinator::getConsistencyReport() const
 
     out << "=== Consistency Report ===" << Qt::endl;
 
+    QString reason;
+    const DisplaySnapshot snapshot = captureDisplaySnapshot();
+    const bool consistent = verifyDisplayConsistencyDetailed(&reason);
+
     // State 情報
-    if (m_state != nullptr) {
-        out << "State: lineIndex=" << m_state->currentLineIndex()
-            << ", ply=" << m_state->currentPly()
-            << ", preferredLineIndex=" << m_state->preferredLineIndex()
-            << Qt::endl;
-    } else {
-        out << "State: null" << Qt::endl;
-    }
+    out << "State: lineIndex=" << snapshot.stateLineIndex
+        << ", ply=" << snapshot.statePly
+        << ", onMainLine=" << (snapshot.stateOnMainLine ? "true" : "false")
+        << ", sfen=" << snapshot.stateSfenNormalized
+        << Qt::endl;
 
     // Coordinator 情報
-    out << "Coordinator: m_lastLineIndex=" << m_lastLineIndex << Qt::endl;
+    out << "Coordinator: trackedLine=" << snapshot.trackedLineIndex
+        << ", modelLine=" << snapshot.modelLineIndex
+        << ", expectedTree=(" << snapshot.expectedTreeLineIndex << "," << snapshot.expectedTreePly << ")"
+        << Qt::endl;
 
     // Model 情報
     if (m_recordModel != nullptr) {
-        out << "Model: rowCount=" << m_recordModel->rowCount()
-            << ", highlightRow=" << m_recordModel->currentHighlightRow()
+        out << "Model: rowCount=" << snapshot.modelRowCount
+            << ", highlightRow=" << snapshot.modelHighlightRow
             << Qt::endl;
-
-        // 棋譜欄の内容を出力（最大5行）
-        const int maxRows = qMin(m_recordModel->rowCount(), 5);
-        for (int i = 1; i <= maxRows && i < m_recordModel->rowCount(); ++i) {
-            KifuDisplay* item = m_recordModel->item(i);
-            if (item != nullptr) {
-                out << "  kifu[" << i << "]: " << item->currentMove() << Qt::endl;
-            }
-        }
+        out << "ModelMoveAtPly: actual=[" << snapshot.displayedMoveAtPly
+            << "] expected=[" << snapshot.expectedMoveAtPly << "]" << Qt::endl;
     } else {
         out << "Model: null" << Qt::endl;
     }
 
-    // ツリーハイライト期待値
-    out << "ExpectedTreeHighlight: lineIndex=" << m_expectedTreeLineIndex
-        << ", ply=" << m_expectedTreePly << Qt::endl;
+    out << "TreeHighlight(actual): lineIndex=" << snapshot.treeHighlightLineIndex
+        << ", ply=" << snapshot.treeHighlightPly << Qt::endl;
+
+    out << "BranchCandidates: count=" << snapshot.branchCandidateCount
+        << ", hasBackToMain=" << (snapshot.hasBackToMainRow ? "true" : "false") << Qt::endl;
+
+    out << "BoardSfen(normalized): " << snapshot.boardSfenNormalized << Qt::endl;
 
     // 一致性判定結果
-    const bool consistent = verifyDisplayConsistency();
     out << "Consistent: " << (consistent ? "YES" : "NO") << Qt::endl;
+    if (!reason.isEmpty()) {
+        out << "Reason: " << reason << Qt::endl;
+    }
 
     return report;
 }

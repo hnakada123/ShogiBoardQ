@@ -1210,11 +1210,8 @@ void KifuLoadCoordinator::applyBranchMarksForCurrentLine()
 void KifuLoadCoordinator::resetBranchContext()
 {
     m_branchPlyContext = -1;
-    // 本譜行に戻す
-    if (m_navState != nullptr) {
-        m_navState->goToRoot();
-        m_navState->resetPreferredLineIndex();
-    }
+    // 対局終了時に表示中ラインを強制的に本譜へ戻すと、
+    // UI表示とナビゲーション状態が不整合になるため、ここでは触らない。
 }
 
 // 分岐ツリーを完全リセット（新規対局開始時に使用）

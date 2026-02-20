@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QVector>
 #include <QSet>
+#include <functional>
 
 class KifuBranchTree;
 class KifuBranchNode;
@@ -32,11 +33,40 @@ class KifuDisplayCoordinator : public QObject
     Q_OBJECT
 
 public:
+    struct DisplaySnapshot {
+        int stateLineIndex = -1;
+        int statePly = -1;
+        bool stateOnMainLine = true;
+        int trackedLineIndex = -1;
+        int modelLineIndex = -1;
+        int modelRowCount = -1;
+        int modelHighlightRow = -1;
+        int expectedTreeLineIndex = -1;
+        int expectedTreePly = -1;
+        int treeHighlightLineIndex = -1;
+        int treeHighlightPly = -1;
+        int branchCandidateCount = -1;
+        bool hasBackToMainRow = false;
+        QString stateSfen;
+        QString stateSfenNormalized;
+        QString boardSfen;
+        QString boardSfenNormalized;
+        QString displayedMoveAtPly;
+        QString expectedMoveAtPly;
+    };
+
+    using BoardSfenProvider = std::function<QString()>;
+
     explicit KifuDisplayCoordinator(
         KifuBranchTree* tree,
         KifuNavigationState* state,
         KifuNavigationController* navController,
         QObject* parent = nullptr);
+
+    /**
+     * @brief 盤面表示中のSFEN取得コールバックを設定
+     */
+    void setBoardSfenProvider(BoardSfenProvider provider);
 
     // === UI要素の設定 ===
 
@@ -76,6 +106,18 @@ public:
      * @brief シグナル接続を行う
      */
     void wireSignals();
+
+    /**
+     * @brief 現在の表示スナップショットを取得する
+     */
+    DisplaySnapshot captureDisplaySnapshot() const;
+
+    /**
+     * @brief 表示状態の一致性を詳細検証する
+     * @param reason 不一致時の理由（任意）
+     * @return 一致している場合は true
+     */
+    bool verifyDisplayConsistencyDetailed(QString* reason = nullptr) const;
 
 public slots:
     // === KifuNavigationControllerからのシグナルを受けるスロット ===
@@ -226,6 +268,7 @@ private:
     KifuRecordListModel* m_recordModel = nullptr;
     KifuBranchListModel* m_branchModel = nullptr;
     LiveGameSession* m_liveSession = nullptr;
+    BoardSfenProvider m_boardSfenProvider;
 
     int m_lastLineIndex = 0;  // ライン変更検出用
     int m_lastModelLineIndex = -1;  // 棋譜モデルが実際に表示しているライン (-1 = 不明)

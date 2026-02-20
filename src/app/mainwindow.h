@@ -791,6 +791,7 @@ private:
     bool getMainRowGuard() const;
     void setMainRowGuard(bool on);
     /// 人間vs人間モードかどうかを判定する
+    bool isGameActivelyInProgress() const;
     bool isHvH() const;
     /// 指定プレイヤーが人間側かどうかを判定する
     bool isHumanSide(ShogiGameController::Player p) const;
