@@ -505,6 +505,11 @@ QSize josekiMoveDialogSize();
 /// 定跡手編集ダイアログのウィンドウサイズを保存
 void setJosekiMoveDialogSize(const QSize& size);
 
+/// 詰将棋局面生成のファイル保存で最後に使用したディレクトリを取得
+QString tsumeshogiGeneratorLastSaveDirectory();
+/// 詰将棋局面生成のファイル保存で最後に使用したディレクトリを保存
+void setTsumeshogiGeneratorLastSaveDirectory(const QString& dir);
+
 /// 詰将棋局面生成ダイアログのウィンドウサイズを取得（デフォルト: 600x550）
 QSize tsumeshogiGeneratorDialogSize();
 /// 詰将棋局面生成ダイアログのウィンドウサイズを保存

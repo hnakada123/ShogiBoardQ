@@ -26,6 +26,8 @@ QString saveViaDialogWithUsi(QWidget* parent,
                               const QString& human2,
                               const QString& engine1,
                               const QString& engine2,
+                              bool hasBranches = false,
+                              bool hasTimeInfo = false,
                               QString* outError = nullptr);
 
 // 既存ファイルへ上書き保存

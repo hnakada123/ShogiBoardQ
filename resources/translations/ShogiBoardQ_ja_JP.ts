@@ -1494,32 +1494,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="321"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="329"/>
         <source>The process failed to start.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="324"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="332"/>
         <source>The process crashed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="327"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="335"/>
         <source>The process timed out.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="330"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="338"/>
         <source>An error occurred while writing data.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="333"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="341"/>
         <source>An error occurred while reading data.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="337"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="345"/>
         <source>An unknown error occurred.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2997,146 +2997,146 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="198"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="215"/>
         <source>棋譜を保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="248"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="265"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="250"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="267"/>
         <source>KIF Save Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="261"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="278"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="266"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="283"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="273"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="290"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="293"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="310"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="297"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="314"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="311"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="330"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="328"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="347"/>
         <source>KIF形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="327"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="344"/>
         <source>KIF形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="340"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="359"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="357"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="376"/>
         <source>KI2形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="356"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="373"/>
         <source>KI2形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="378"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="395"/>
         <source>CSA形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="387"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="404"/>
         <source>CSA形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="391"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="422"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="459"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="488"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="519"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="582"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="760"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="408"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="439"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="476"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="505"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="536"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="599"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="777"/>
         <source>クリップボードへのコピーに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="409"/>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="446"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="426"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="463"/>
         <source>USI形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="418"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="435"/>
         <source>USI形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="455"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="472"/>
         <source>USI形式（現在の指し手まで）の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="475"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="492"/>
         <source>JKF形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="484"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="501"/>
         <source>JKF形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="506"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="523"/>
         <source>USEN形式の棋譜データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="515"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="532"/>
         <source>USEN形式の棋譜をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="570"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="587"/>
         <source>SFEN形式の局面データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="577"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="594"/>
         <source>SFEN形式の局面をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="742"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="759"/>
         <source>BOD形式の局面データがありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="748"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="765"/>
         <source>SFEN形式の解析に失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="755"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="772"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4422,34 +4422,87 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="81"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="83"/>
         <source>File path is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="90"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="92"/>
         <source>Failed to create directory: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="99"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="101"/>
         <source>Could not open the file for writing: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="111"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="109"/>
+        <source>Shift_JIS encoder is not available on this system.</source>
+        <translation>Shift_JIS エンコーダが利用できません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="124"/>
         <source>Failed to write data to file.</source>
         <translation>ファイルへのデータ書き込みに失敗しました。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="116"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="131"/>
         <source>Failed to close file: %1</source>
         <translation>ファイルのクローズに失敗しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="44"/>
-        <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2u *.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
-        <translation type="unfinished"></translation>
+        <source>KIF形式 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
+        <translation type="vanished">KIF形式 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="47"/>
+        <source>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
+        <translation>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="77"/>
+        <source>KI2形式で保存</source>
+        <translation>KI2形式で保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="78"/>
+        <source>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
+保存を続けますか？</source>
+        <translation>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
+保存を続けますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="101"/>
+        <source>CSA形式で保存</source>
+        <translation>CSA形式で保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="102"/>
+        <source>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
+保存を続けますか？</source>
+        <translation>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
+保存を続けますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="131"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="143"/>
+        <source>USI形式で保存</source>
+        <translation>USI形式で保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="132"/>
+        <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
+保存を続けますか？</source>
+        <translation>USI形式は分岐に対応していないため、分岐の情報は保存されません。
+保存を続けますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="144"/>
+        <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
+保存を続けますか？</source>
+        <translation>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
+保存を続けますか？</translation>
     </message>
     <message>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</source>
@@ -4472,12 +4525,13 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="47"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="59"/>
         <source>名前を付けて保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisresultspresenter.cpp" line="40"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="56"/>
         <source>表示</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5571,162 +5625,198 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>TsumeshogiGeneratorDialog</name>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="34"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="182"/>
         <source>詰将棋局面生成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="57"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="205"/>
         <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="62"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="210"/>
         <source>エンジン:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="66"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="214"/>
         <source>設定...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="71"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="219"/>
         <source>生成設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="81"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="229"/>
         <source> 手詰</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="82"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="230"/>
         <source>目標手数:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="87"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="93"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="235"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="241"/>
         <source> 枚</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="88"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="236"/>
         <source>攻め駒上限:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="94"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="242"/>
         <source>守り駒上限:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="99"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="247"/>
         <source> マス（玉中心）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="100"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="248"/>
         <source>配置範囲:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="253"/>
         <source> 秒</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="106"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="254"/>
         <source>探索時間/局面:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="111"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="259"/>
         <source>無制限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="260"/>
         <source>生成上限:</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="118"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="266"/>
         <source>開始</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="120"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="268"/>
         <source>停止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="128"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="276"/>
         <source>探索済み: 0 局面 / 発見: 0 局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="130"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="278"/>
         <source>経過時間: 00:00:00</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="282"/>
         <source>結果一覧</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="287"/>
         <source>#</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="287"/>
         <source>SFEN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="287"/>
         <source>手数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="287"/>
+        <source>盤面</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="313"/>
+        <source>ファイル保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="317"/>
         <source>選択コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="167"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="321"/>
         <source>全コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="171"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="325"/>
         <source>閉じる</source>
         <translation type="unfinished">閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="244"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="316"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="360"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="400"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="476"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="495"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="570"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="244"/>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="360"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="400"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="570"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="305"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="465"/>
         <source>探索済み: %1 局面 / 発見: %2 局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="306"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="466"/>
         <source>経過時間: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="486"/>
+        <source>SFENをファイルに保存</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="488"/>
+        <source>テキストファイル (*.txt);;すべてのファイル (*)</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="496"/>
+        <source>ファイルを保存できませんでした: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="560"/>
+        <source>攻方</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="560"/>
+        <source>玉方</source>
         <translation type="unfinished"></translation>
     </message>
 </context>

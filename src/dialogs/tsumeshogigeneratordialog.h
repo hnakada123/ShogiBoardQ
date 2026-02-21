@@ -37,10 +37,12 @@ private slots:
     void onProgressUpdated(int tried, int found, qint64 elapsedMs);
     void onGeneratorFinished();
     void onGeneratorError(const QString& message);
+    void onSaveToFile();
     void onCopySelected();
     void onCopyAll();
     void onFontIncrease();
     void onFontDecrease();
+    void onResultTableClicked(const QModelIndex& index);
     void showEngineSettingsDialog();
 
 private:
@@ -85,6 +87,9 @@ private:
     // フォントボタン
     QToolButton* m_btnFontDecrease = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;
+
+    // ファイル保存ボタン
+    QPushButton* m_btnSaveToFile = nullptr;
 
     // コピーボタン
     QPushButton* m_btnCopySelected = nullptr;
