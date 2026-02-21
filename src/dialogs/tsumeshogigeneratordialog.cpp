@@ -291,8 +291,10 @@ void TsumeshogiGeneratorDialog::setupUi()
     m_tableResults->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
     m_tableResults->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
     m_tableResults->setItemDelegateForColumn(2, new BoardButtonDelegate(m_tableResults));
+    m_tableResults->verticalHeader()->setVisible(false);
     m_tableResults->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tableResults->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    applyTableHeaderStyle();
     mainLayout->addWidget(m_tableResults);
 
     // --- 下部ボタン行 ---
@@ -307,6 +309,10 @@ void TsumeshogiGeneratorDialog::setupUi()
     m_btnFontIncrease->setText(QStringLiteral("A+"));
     m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
     bottomLayout->addWidget(m_btnFontIncrease);
+
+    m_btnRestoreDefaults = new QPushButton(tr("既定値に戻す"), this);
+    m_btnRestoreDefaults->setStyleSheet(ButtonStyles::undoRedo());
+    bottomLayout->addWidget(m_btnRestoreDefaults);
 
     bottomLayout->addStretch();
 
@@ -337,6 +343,7 @@ void TsumeshogiGeneratorDialog::setupUi()
     connect(m_btnClose, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
     connect(m_btnFontIncrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontIncrease);
     connect(m_btnFontDecrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontDecrease);
+    connect(m_btnRestoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
     connect(m_btnEngineSetting, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     connect(m_tableResults, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
 
@@ -359,6 +366,7 @@ void TsumeshogiGeneratorDialog::readEngineNameAndDir()
         Engine engine;
         engine.name = settings.value(EngineNameKey).toString();
         engine.path = settings.value(EnginePathKey).toString();
+        engine.author = settings.value(EngineAuthorKey).toString();
         m_comboEngine->addItem(engine.name);
         m_engineList.append(engine);
     }
@@ -542,6 +550,16 @@ void TsumeshogiGeneratorDialog::onFontDecrease()
     updateFontSize(-1);
 }
 
+void TsumeshogiGeneratorDialog::onRestoreDefaults()
+{
+    m_spinTargetMoves->setValue(3);
+    m_spinMaxAttack->setValue(4);
+    m_spinMaxDefend->setValue(1);
+    m_spinAttackRange->setValue(3);
+    m_spinTimeout->setValue(5);
+    m_spinMaxPositions->setValue(10);
+}
+
 void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)
 {
     if (!index.isValid() || index.column() != 2)
@@ -574,6 +592,7 @@ void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
     ChangeEngineSettingsDialog dialog(this);
     dialog.setEngineNumber(engineIndex);
     dialog.setEngineName(m_engineList.at(engineIndex).name);
+    dialog.setEngineAuthor(m_engineList.at(engineIndex).author);
     dialog.setupEngineOptionsDialog();
     dialog.exec();
 }
@@ -607,6 +626,27 @@ void TsumeshogiGeneratorDialog::applyFontSize()
             comboBox->view()->setFont(f);
         }
     }
+
+    applyTableHeaderStyle();
+}
+
+void TsumeshogiGeneratorDialog::applyTableHeaderStyle()
+{
+    if (!m_tableResults)
+        return;
+
+    m_tableResults->setStyleSheet(
+        QStringLiteral(
+            "QHeaderView::section {"
+            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
+            "    stop:0 #40acff, stop:1 #209cee);"
+            "  color: white;"
+            "  font-weight: normal;"
+            "  font-size: %1pt;"
+            "  padding: 2px 6px;"
+            "  border: none;"
+            "  border-bottom: 1px solid #209cee;"
+            "}").arg(m_fontSize));
 }
 
 void TsumeshogiGeneratorDialog::setRunningState(bool running)

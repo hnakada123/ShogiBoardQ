@@ -87,6 +87,7 @@
         <file>images/actions/actionToggleTimeColumn.svg</file>
         <file>images/actions/actionToolbar.svg</file>
         <file>images/actions/actionTsumeShogiSearch.svg</file>
+        <file>images/actions/actionTsumeshogiGenerator.svg</file>
         <file>images/actions/actionUndoMove.svg</file>
         <file>images/actions/actionUsage.svg</file>
         <file>images/actions/actionVersionInfo.svg</file>

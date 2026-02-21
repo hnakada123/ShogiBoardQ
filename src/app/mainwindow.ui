@@ -710,6 +710,10 @@
    </property>
   </action>
   <action name="actionTsumeshogiGenerator">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionTsumeshogiGenerator.svg</normaloff>:/images/actions/actionTsumeshogiGenerator.svg</iconset>
+   </property>
    <property name="text">
     <string>詰将棋局面生成</string>
    </property>

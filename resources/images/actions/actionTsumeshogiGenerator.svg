@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>詰将棋局面生成</title>
+    <defs>
+        <style>
+            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
+        </style>
+    </defs>
+    <circle cx="64" cy="64" r="64" fill="#9C27B0"/>
+    <!-- Shogi king piece -->
+    <polygon points="52,16 34,66 70,66" fill="#FFD700"/>
+    <text x="52" y="52" text-anchor="middle" font-family="serif" font-size="24" fill="#7B1FA2">王</text>
+    <!-- Large 4-pointed sparkle star (top right) -->
+    <path d="M100,36 L103,46 L114,48 L103,50 L100,60 L97,50 L86,48 L97,46 Z" fill="white"/>
+    <!-- Small sparkle star (bottom right) -->
+    <path d="M90,86 L92,92 L98,94 L92,96 L90,102 L88,96 L82,94 L88,92 Z" fill="white" opacity="0.7"/>
+    <!-- Tiny sparkle (bottom left) -->
+    <path d="M30,90 L31,94 L35,95 L31,96 L30,100 L29,96 L25,95 L29,94 Z" fill="white" opacity="0.5"/>
+</svg>
