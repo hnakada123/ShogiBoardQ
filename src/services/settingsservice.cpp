@@ -1451,6 +1451,20 @@ void setJosekiMoveDialogSize(const QSize& size)
     s.setValue("SizeRelated/josekiMoveDialogSize", size);
 }
 
+// 詰将棋局面生成のファイル保存で最後に使用したディレクトリを取得
+QString tsumeshogiGeneratorLastSaveDirectory()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/lastSaveDirectory", QString()).toString();
+}
+
+// 詰将棋局面生成のファイル保存で最後に使用したディレクトリを保存
+void setTsumeshogiGeneratorLastSaveDirectory(const QString& dir)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/lastSaveDirectory", dir);
+}
+
 // 詰将棋局面生成ダイアログのウィンドウサイズを取得
 QSize tsumeshogiGeneratorDialogSize()
 {

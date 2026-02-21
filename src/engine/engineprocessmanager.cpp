@@ -234,6 +234,11 @@ void EngineProcessManager::onReadyReadStdout()
 
     if (!m_process) return;
 
+    // シグナル受信側が所有者チェーンを破壊する場合に備えたガード。
+    // 例: dataReceived → Usi::checkmateSolved → TsumeshogiGenerator::cleanup()
+    //     → m_usi.reset() で EngineProcessManager が削除されるケース。
+    QPointer<EngineProcessManager> guard(this);
+
     m_processedLines = 0;
 
     while (m_process && m_process->canReadLine() && m_processedLines < kMaxLinesPerChunk) {
@@ -250,6 +255,7 @@ void EngineProcessManager::onReadyReadStdout()
             if (!name.isEmpty() && m_logEngineName.isEmpty()) {
                 m_logEngineName = name;
                 emit engineNameDetected(name);
+                if (!guard) return;
             }
         }
 
@@ -263,6 +269,7 @@ void EngineProcessManager::onReadyReadStdout()
             if (line.startsWith(QStringLiteral("info string")) &&
                 m_postQuitInfoStringLinesLeft > 0) {
                 emit dataReceived(line);
+                if (!guard) return;
                 decrementPostQuitLines();
             } else {
                 qCDebug(lcEngine).nospace() << logPrefix() << " [drop-after-quit] " << line;
@@ -272,6 +279,7 @@ void EngineProcessManager::onReadyReadStdout()
         }
 
         emit dataReceived(line);
+        if (!guard) return;
         qCDebug(lcEngine).nospace() << logPrefix() << " 受信: " << line;
 
         ++m_processedLines;
@@ -347,6 +355,7 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
     Q_UNUSED(status)
     // プロセス終了時にバッファに残ったデータを最後に処理する
     if (m_process) {
+        QPointer<EngineProcessManager> guard(this);
         const QByteArray outTail = m_process->readAllStandardOutput();
         const QByteArray errTail = m_process->readAllStandardError();
 
@@ -354,9 +363,10 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
             const QStringList lines = QString::fromUtf8(outTail).split('\n', Qt::SkipEmptyParts);
             for (const QString& line : lines) {
                 const QString trimmed = line.trimmed();
-                if (!trimmed.isEmpty() && 
+                if (!trimmed.isEmpty() &&
                     m_shutdownState != ShutdownState::IgnoreAll) {
                     emit dataReceived(trimmed);
+                    if (!guard) return;
                 }
             }
         }

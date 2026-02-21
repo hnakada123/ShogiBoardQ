@@ -7,25 +7,173 @@
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"
 #include "tsumeshogigenerator.h"
+#include "pvboarddialog.h"
+#include "shogiboard.h"
 
 #include <QAbstractItemView>
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QFile>
+#include <QFileDialog>
+#include <QFileInfo>
 #include <QFormLayout>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPushButton>
 #include <QSettings>
 #include <QSpinBox>
+#include <QStyledItemDelegate>
 #include <QTableWidget>
+#include <QTextStream>
 #include <QToolButton>
 #include <QVBoxLayout>
 
 using namespace EngineSettingsConstants;
+
+/// 「表示」ボタン列用のデリゲート
+/// 選択状態に関わらず青背景・白文字を維持する
+class BoardButtonDelegate : public QStyledItemDelegate
+{
+public:
+    explicit BoardButtonDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& /*index*/) const override
+    {
+        painter->save();
+
+        // 背景色（常に青色）
+        QColor bgColor(0x20, 0x9c, 0xee);
+        painter->fillRect(option.rect, bgColor);
+
+        // テキスト「表示」を白色で中央に描画
+        painter->setPen(Qt::white);
+        painter->drawText(option.rect, Qt::AlignCenter, QObject::tr("表示"));
+
+        painter->restore();
+    }
+};
+
+/// ShogiBoard内部の駒文字を漢字表記に変換
+static QString pieceCharToKanji(QChar piece)
+{
+    switch (piece.toUpper().toLatin1()) {
+    case 'P': return QStringLiteral("歩");
+    case 'L': return QStringLiteral("香");
+    case 'N': return QStringLiteral("桂");
+    case 'S': return QStringLiteral("銀");
+    case 'G': return QStringLiteral("金");
+    case 'B': return QStringLiteral("角");
+    case 'R': return QStringLiteral("飛");
+    case 'K': return QStringLiteral("玉");
+    case 'Q': return QStringLiteral("と");
+    case 'M': return QStringLiteral("成香");
+    case 'O': return QStringLiteral("成桂");
+    case 'T': return QStringLiteral("成銀");
+    case 'C': return QStringLiteral("馬");
+    case 'U': return QStringLiteral("龍");
+    default:  return {};
+    }
+}
+
+/// USI形式のPVから漢字表記の読み筋テキストを生成
+static QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
+{
+    static const QChar kFullWidthDigits[] = {
+        u'０', u'１', u'２', u'３', u'４',
+        u'５', u'６', u'７', u'８', u'９'
+    };
+    static const QString kKanjiRanks[] = {
+        QStringLiteral("〇"), QStringLiteral("一"), QStringLiteral("二"),
+        QStringLiteral("三"), QStringLiteral("四"), QStringLiteral("五"),
+        QStringLiteral("六"), QStringLiteral("七"), QStringLiteral("八"),
+        QStringLiteral("九")
+    };
+    static const QMap<QChar, QChar> kDemoteMap = {
+        {'Q','P'},{'M','L'},{'O','N'},{'T','S'},{'C','B'},{'U','R'},
+        {'q','p'},{'m','l'},{'o','n'},{'t','s'},{'c','b'},{'u','r'}
+    };
+
+    ShogiBoard board;
+    board.setSfen(baseSfen);
+    bool blackToMove = !baseSfen.contains(QStringLiteral(" w "));
+
+    QString result;
+
+    for (const QString& usiMove : std::as_const(pvMoves)) {
+        if (usiMove.length() < 4) continue;
+        const QString turnMark = blackToMove ? QStringLiteral("▲") : QStringLiteral("△");
+
+        if (usiMove.at(1) == QLatin1Char('*')) {
+            // 駒打ち: "P*5e"
+            const QChar pieceChar = usiMove.at(0);
+            const int toFile = usiMove.at(2).toLatin1() - '0';
+            const int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+
+            if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9) {
+                result += turnMark;
+                result += kFullWidthDigits[toFile];
+                result += kKanjiRanks[toRank];
+                result += pieceCharToKanji(pieceChar);
+                result += QStringLiteral("打");
+            }
+
+            // 盤面に反映
+            const QChar boardPiece = blackToMove ? pieceChar.toUpper() : pieceChar.toLower();
+            board.movePieceToSquare(boardPiece, 0, 0, toFile, toRank, false);
+            if (board.m_pieceStand.contains(boardPiece) && board.m_pieceStand[boardPiece] > 0) {
+                board.m_pieceStand[boardPiece]--;
+            }
+        } else {
+            // 通常移動: "7g7f" or "7g7f+"
+            const int fromFile = usiMove.at(0).toLatin1() - '0';
+            const int fromRank = usiMove.at(1).toLatin1() - 'a' + 1;
+            const int toFile = usiMove.at(2).toLatin1() - '0';
+            const int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
+            const bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
+
+            const QChar piece = board.getPieceCharacter(fromFile, fromRank);
+
+            if (fromFile >= 1 && fromFile <= 9 && fromRank >= 1 && fromRank <= 9 &&
+                toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9) {
+                result += turnMark;
+                result += kFullWidthDigits[toFile];
+                result += kKanjiRanks[toRank];
+                result += pieceCharToKanji(piece);
+                if (promote) {
+                    result += QStringLiteral("成");
+                }
+                result += QLatin1Char('(');
+                result += QString::number(fromFile);
+                result += QString::number(fromRank);
+                result += QLatin1Char(')');
+            }
+
+            // 駒取りの処理
+            const QChar captured = board.getPieceCharacter(toFile, toRank);
+            if (captured != QLatin1Char(' ')) {
+                QChar standPiece = captured;
+                if (kDemoteMap.contains(standPiece)) {
+                    standPiece = kDemoteMap[standPiece];
+                }
+                standPiece = standPiece.isUpper() ? standPiece.toLower() : standPiece.toUpper();
+                board.m_pieceStand[standPiece]++;
+            }
+
+            // 移動を盤面に反映
+            board.movePieceToSquare(piece, fromFile, fromRank, toFile, toRank, promote);
+        }
+
+        blackToMove = !blackToMove;
+    }
+
+    return result;
+}
 
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     : QDialog(parent)
@@ -135,12 +283,14 @@ void TsumeshogiGeneratorDialog::setupUi()
     resultLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
     mainLayout->addWidget(resultLabel);
 
-    m_tableResults = new QTableWidget(0, 3, this);
-    m_tableResults->setHorizontalHeaderLabels({tr("#"), tr("SFEN"), tr("手数")});
+    m_tableResults = new QTableWidget(0, 4, this);
+    m_tableResults->setHorizontalHeaderLabels({tr("#"), tr("SFEN"), tr("盤面"), tr("手数")});
     m_tableResults->horizontalHeader()->setStretchLastSection(false);
     m_tableResults->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_tableResults->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     m_tableResults->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
+    m_tableResults->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
+    m_tableResults->setItemDelegateForColumn(2, new BoardButtonDelegate(m_tableResults));
     m_tableResults->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tableResults->setEditTriggers(QAbstractItemView::NoEditTriggers);
     mainLayout->addWidget(m_tableResults);
@@ -160,6 +310,10 @@ void TsumeshogiGeneratorDialog::setupUi()
 
     bottomLayout->addStretch();
 
+    m_btnSaveToFile = new QPushButton(tr("ファイル保存"), this);
+    m_btnSaveToFile->setStyleSheet(ButtonStyles::fileOperation());
+    bottomLayout->addWidget(m_btnSaveToFile);
+
     m_btnCopySelected = new QPushButton(tr("選択コピー"), this);
     m_btnCopySelected->setStyleSheet(ButtonStyles::editOperation());
     bottomLayout->addWidget(m_btnCopySelected);
@@ -177,12 +331,14 @@ void TsumeshogiGeneratorDialog::setupUi()
     // --- シグナル接続 ---
     connect(m_btnStart, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStartClicked);
     connect(m_btnStop, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStopClicked);
+    connect(m_btnSaveToFile, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onSaveToFile);
     connect(m_btnCopySelected, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopySelected);
     connect(m_btnCopyAll, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onCopyAll);
     connect(m_btnClose, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::close);
     connect(m_btnFontIncrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontIncrease);
     connect(m_btnFontDecrease, &QToolButton::clicked, this, &TsumeshogiGeneratorDialog::onFontDecrease);
     connect(m_btnEngineSetting, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
+    connect(m_tableResults, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
 
     // ウィンドウサイズ復元
     const QSize savedSize = SettingsService::tsumeshogiGeneratorDialogSize();
@@ -290,11 +446,15 @@ void TsumeshogiGeneratorDialog::onPositionFound(const QString& sfen, const QStri
     itemNum->setTextAlignment(Qt::AlignCenter);
     m_tableResults->setItem(row, 0, itemNum);
 
-    m_tableResults->setItem(row, 1, new QTableWidgetItem(sfen));
+    auto* itemSfen = new QTableWidgetItem(sfen);
+    itemSfen->setData(Qt::UserRole, QVariant(pv));
+    m_tableResults->setItem(row, 1, itemSfen);
+
+    m_tableResults->setItem(row, 2, new QTableWidgetItem());
 
     auto* itemMoves = new QTableWidgetItem(QString::number(pv.size()));
     itemMoves->setTextAlignment(Qt::AlignCenter);
-    m_tableResults->setItem(row, 2, itemMoves);
+    m_tableResults->setItem(row, 3, itemMoves);
 
     // 最新行にスクロール
     m_tableResults->scrollToBottom();
@@ -315,6 +475,35 @@ void TsumeshogiGeneratorDialog::onGeneratorError(const QString& message)
 {
     QMessageBox::warning(this, tr("エラー"), message);
     setRunningState(false);
+}
+
+void TsumeshogiGeneratorDialog::onSaveToFile()
+{
+    if (m_tableResults->rowCount() == 0) return;
+
+    const QString filePath = QFileDialog::getSaveFileName(
+        this,
+        tr("SFENをファイルに保存"),
+        SettingsService::tsumeshogiGeneratorLastSaveDirectory(),
+        tr("テキストファイル (*.txt);;すべてのファイル (*)"));
+    if (filePath.isEmpty()) return;
+
+    SettingsService::setTsumeshogiGeneratorLastSaveDirectory(QFileInfo(filePath).absolutePath());
+
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QMessageBox::warning(this, tr("エラー"),
+                             tr("ファイルを保存できませんでした: %1").arg(file.errorString()));
+        return;
+    }
+
+    QTextStream out(&file);
+    for (int row = 0; row < m_tableResults->rowCount(); ++row) {
+        const auto* item = m_tableResults->item(row, 1);
+        if (item) {
+            out << item->text() << '\n';
+        }
+    }
 }
 
 void TsumeshogiGeneratorDialog::onCopySelected()
@@ -351,6 +540,27 @@ void TsumeshogiGeneratorDialog::onFontIncrease()
 void TsumeshogiGeneratorDialog::onFontDecrease()
 {
     updateFontSize(-1);
+}
+
+void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)
+{
+    if (!index.isValid() || index.column() != 2)
+        return;
+
+    const auto* sfenItem = m_tableResults->item(index.row(), 1);
+    if (!sfenItem)
+        return;
+
+    const QString sfen = sfenItem->text();
+    const QStringList pv = sfenItem->data(Qt::UserRole).toStringList();
+    if (pv.isEmpty())
+        return;
+
+    auto* dlg = new PvBoardDialog(sfen, pv, this);
+    dlg->setPlayerNames(tr("攻方"), tr("玉方"));
+    dlg->setKanjiPv(buildKanjiPv(sfen, pv));
+    dlg->setAttribute(Qt::WA_DeleteOnClose);
+    dlg->show();
 }
 
 void TsumeshogiGeneratorDialog::showEngineSettingsDialog()

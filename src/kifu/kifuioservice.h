@@ -23,7 +23,8 @@ QString makeDefaultSaveFileName(PlayMode mode,
 
 bool writeKifuFile(const QString& filePath,
                    const QStringList& kifuLines,
-                   QString* errorText);
+                   QString* errorText,
+                   bool useShiftJis = false);
 
 } // namespace
 

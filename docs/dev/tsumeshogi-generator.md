@@ -264,7 +264,7 @@ struct ParsedSfen {
 │ │ 2 │ 9/9/9/...         │  3 │             │
 │ └───┴──────────────────┴────┘             │
 │                                           │
-│ [A-] [A+]    [選択コピー] [全コピー] [閉じる] │
+│ [A-] [A+]  [ファイル保存] [選択コピー] [全コピー] [閉じる] │
 └─────────────────────────────────────────┘
 ```
 
@@ -319,4 +319,4 @@ SettingsService を通じて以下の設定が保存・復元される:
 | `src/analysis/tsumeshogipositiongenerator.h` | ~70 | 局面生成クラス定義 |
 | `src/analysis/tsumeshogipositiongenerator.cpp` | ~360 | 局面生成クラス実装 |
 | `src/dialogs/tsumeshogigeneratordialog.h` | ~110 | ダイアログ定義 |
-| `src/dialogs/tsumeshogigeneratordialog.cpp` | ~430 | ダイアログ実装 |
+| `src/dialogs/tsumeshogigeneratordialog.cpp` | ~630 | ダイアログ実装 |

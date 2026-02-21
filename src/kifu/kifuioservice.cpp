@@ -5,6 +5,7 @@
 
 #include <QFile>
 #include <QTextStream>
+#include <QStringEncoder>
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
@@ -75,7 +76,8 @@ QString KifuIoService::makeDefaultSaveFileName(PlayMode mode,
 
 bool KifuIoService::writeKifuFile(const QString& filePath,
                                   const QStringList& kifuLines,
-                                  QString* errorText)
+                                  QString* errorText,
+                                  bool useShiftJis)
 {
     if (filePath.isEmpty()) {
         if (errorText) *errorText = QObject::tr("File path is empty.");
@@ -101,16 +103,29 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
         return false;
     }
 
-    QTextStream out(&file);
-    // Qt6 の QTextStream は既定で UTF-8。特に設定不要。
-    for (const QString& line : kifuLines) {
-        out << line << QLatin1Char('\n');
+    if (useShiftJis) {
+        QStringEncoder encoder("Shift-JIS");
+        if (!encoder.isValid()) {
+            if (errorText) *errorText = QObject::tr("Shift_JIS encoder is not available on this system.");
+            return false;
+        }
+        for (const QString& line : kifuLines) {
+            file.write(encoder.encode(line));
+            file.write(encoder.encode(QStringLiteral("\n")));
+        }
+    } else {
+        QTextStream out(&file);
+        // Qt6 の QTextStream は既定で UTF-8。特に設定不要。
+        for (const QString& line : kifuLines) {
+            out << line << QLatin1Char('\n');
+        }
+        out.flush();
+        if (out.status() != QTextStream::Ok) {
+            if (errorText) *errorText = QObject::tr("Failed to write data to file.");
+            return false;
+        }
     }
-    out.flush();
-    if (out.status() != QTextStream::Ok) {
-        if (errorText) *errorText = QObject::tr("Failed to write data to file.");
-        return false;
-    }
+
     file.close();
     if (file.error() != QFile::NoError) {
         if (errorText) *errorText = QObject::tr("Failed to close file: %1").arg(file.errorString());

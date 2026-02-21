@@ -182,14 +182,31 @@ QString KifuExportController::saveToFile()
                               << usiLines.size() << "USI lines";
     
     m_kifuDataList = kifLines;
-    
+
+    // 分岐の有無を判定
+    const bool hasBranches = m_deps.gameRecord->branchTree()
+                             && m_deps.gameRecord->branchTree()->lineCount() > 1;
+
+    // 消費時間の有無を判定
+    bool hasTimeInfo = false;
+    if (KifuBranchTree* tree = m_deps.gameRecord->branchTree()) {
+        const auto mainNodes = tree->mainLine();
+        for (const auto* node : std::as_const(mainNodes)) {
+            if (!node->timeText().isEmpty()) {
+                hasTimeInfo = true;
+                break;
+            }
+        }
+    }
+
     const QString path = KifuSaveCoordinator::saveViaDialogWithUsi(
         m_parentWidget,
         kifLines, ki2Lines, csaLines,
         jkfLines, usenLines, usiLines,
         m_deps.playMode,
         m_deps.humanName1, m_deps.humanName2,
-        m_deps.engineName1, m_deps.engineName2);
+        m_deps.engineName1, m_deps.engineName2,
+        hasBranches, hasTimeInfo);
     
     if (!path.isEmpty()) {
         if (m_deps.gameRecord) {
