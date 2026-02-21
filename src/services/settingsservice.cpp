@@ -1451,4 +1451,130 @@ void setJosekiMoveDialogSize(const QSize& size)
     s.setValue("SizeRelated/josekiMoveDialogSize", size);
 }
 
+// 詰将棋局面生成ダイアログのウィンドウサイズを取得
+QSize tsumeshogiGeneratorDialogSize()
+{
+    QSettings& s = openSettings();
+    return s.value("SizeRelated/tsumeshogiGeneratorDialogSize", QSize(600, 550)).toSize();
+}
+
+// 詰将棋局面生成ダイアログのウィンドウサイズを保存
+void setTsumeshogiGeneratorDialogSize(const QSize& size)
+{
+    QSettings& s = openSettings();
+    s.setValue("SizeRelated/tsumeshogiGeneratorDialogSize", size);
+}
+
+// 詰将棋局面生成ダイアログのフォントサイズを取得
+int tsumeshogiGeneratorFontSize()
+{
+    QSettings& s = openSettings();
+    return s.value("FontSize/tsumeshogiGenerator", 10).toInt();
+}
+
+// 詰将棋局面生成ダイアログのフォントサイズを保存
+void setTsumeshogiGeneratorFontSize(int size)
+{
+    QSettings& s = openSettings();
+    s.setValue("FontSize/tsumeshogiGenerator", size);
+}
+
+// 詰将棋局面生成の最後に選択したエンジン番号を取得
+int tsumeshogiGeneratorEngineIndex()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/engineIndex", 0).toInt();
+}
+
+// 詰将棋局面生成の最後に選択したエンジン番号を保存
+void setTsumeshogiGeneratorEngineIndex(int index)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/engineIndex", index);
+}
+
+// 詰将棋局面生成の目標手数を取得
+int tsumeshogiGeneratorTargetMoves()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/targetMoves", 3).toInt();
+}
+
+// 詰将棋局面生成の目標手数を保存
+void setTsumeshogiGeneratorTargetMoves(int moves)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/targetMoves", moves);
+}
+
+// 詰将棋局面生成の攻め駒上限を取得
+int tsumeshogiGeneratorMaxAttackPieces()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/maxAttackPieces", 4).toInt();
+}
+
+// 詰将棋局面生成の攻め駒上限を保存
+void setTsumeshogiGeneratorMaxAttackPieces(int count)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/maxAttackPieces", count);
+}
+
+// 詰将棋局面生成の守り駒上限を取得
+int tsumeshogiGeneratorMaxDefendPieces()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/maxDefendPieces", 1).toInt();
+}
+
+// 詰将棋局面生成の守り駒上限を保存
+void setTsumeshogiGeneratorMaxDefendPieces(int count)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/maxDefendPieces", count);
+}
+
+// 詰将棋局面生成の配置範囲を取得
+int tsumeshogiGeneratorAttackRange()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/attackRange", 3).toInt();
+}
+
+// 詰将棋局面生成の配置範囲を保存
+void setTsumeshogiGeneratorAttackRange(int range)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/attackRange", range);
+}
+
+// 詰将棋局面生成の探索時間(秒)を取得
+int tsumeshogiGeneratorTimeoutSec()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/timeoutSec", 5).toInt();
+}
+
+// 詰将棋局面生成の探索時間(秒)を保存
+void setTsumeshogiGeneratorTimeoutSec(int sec)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/timeoutSec", sec);
+}
+
+// 詰将棋局面生成の生成上限を取得
+int tsumeshogiGeneratorMaxPositions()
+{
+    QSettings& s = openSettings();
+    return s.value("TsumeshogiGenerator/maxPositions", 10).toInt();
+}
+
+// 詰将棋局面生成の生成上限を保存
+void setTsumeshogiGeneratorMaxPositions(int count)
+{
+    QSettings& s = openSettings();
+    s.setValue("TsumeshogiGenerator/maxPositions", count);
+}
+
 } // namespace SettingsService

@@ -180,6 +180,8 @@ public slots:
     void displayTsumeShogiSearchDialog();
     /// 詰み探索エンジンを終了する
     void stopTsumeSearch();
+    /// 詰将棋局面生成ダイアログを表示する
+    void displayTsumeshogiGeneratorDialog();
     void displayCsaGameDialog();
     void displayJosekiWindow();
     /// 現在の局面で定跡ウィンドウを更新する
