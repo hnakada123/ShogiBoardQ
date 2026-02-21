@@ -42,6 +42,7 @@ private slots:
     void onCopyAll();
     void onFontIncrease();
     void onFontDecrease();
+    void onRestoreDefaults();
     void onResultTableClicked(const QModelIndex& index);
     void showEngineSettingsDialog();
 
@@ -50,6 +51,7 @@ private:
     struct Engine {
         QString name;
         QString path;
+        QString author;
     };
 
     void setupUi();
@@ -58,6 +60,7 @@ private:
     void saveSettings();
     void updateFontSize(int delta);
     void applyFontSize();
+    void applyTableHeaderStyle();
     void setRunningState(bool running);
     QString formatElapsedTime(qint64 ms) const;
 
@@ -87,6 +90,9 @@ private:
     // フォントボタン
     QToolButton* m_btnFontDecrease = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;
+
+    // 既定値に戻すボタン
+    QPushButton* m_btnRestoreDefaults = nullptr;
 
     // ファイル保存ボタン
     QPushButton* m_btnSaveToFile = nullptr;
