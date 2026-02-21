@@ -125,6 +125,7 @@
 #include "recordnavigationhandler.h"
 #include "uistatepolicymanager.h"
 #include "gamesessionfacade.h"
+#include "tsumeshogigeneratordialog.h"
 
 Q_LOGGING_CATEGORY(lcApp, "shogi.app")
 
@@ -868,6 +869,13 @@ void MainWindow::stopTsumeSearch()
     if (m_match) {
         m_match->stopAnalysisEngine();
     }
+}
+
+// 詰将棋局面生成ダイアログを表示する
+void MainWindow::displayTsumeshogiGeneratorDialog()
+{
+    TsumeshogiGeneratorDialog dialog(this);
+    dialog.exec();
 }
 
 // 棋譜解析ダイアログを表示する。

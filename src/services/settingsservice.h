@@ -505,6 +505,51 @@ QSize josekiMoveDialogSize();
 /// 定跡手編集ダイアログのウィンドウサイズを保存
 void setJosekiMoveDialogSize(const QSize& size);
 
+/// 詰将棋局面生成ダイアログのウィンドウサイズを取得（デフォルト: 600x550）
+QSize tsumeshogiGeneratorDialogSize();
+/// 詰将棋局面生成ダイアログのウィンドウサイズを保存
+void setTsumeshogiGeneratorDialogSize(const QSize& size);
+
+/// 詰将棋局面生成ダイアログのフォントサイズを取得（デフォルト: 10）
+int tsumeshogiGeneratorFontSize();
+/// 詰将棋局面生成ダイアログのフォントサイズを保存
+void setTsumeshogiGeneratorFontSize(int size);
+
+/// 詰将棋局面生成の最後に選択したエンジン番号を取得（デフォルト: 0）
+int tsumeshogiGeneratorEngineIndex();
+/// 詰将棋局面生成の最後に選択したエンジン番号を保存
+void setTsumeshogiGeneratorEngineIndex(int index);
+
+/// 詰将棋局面生成の目標手数を取得（デフォルト: 3）
+int tsumeshogiGeneratorTargetMoves();
+/// 詰将棋局面生成の目標手数を保存
+void setTsumeshogiGeneratorTargetMoves(int moves);
+
+/// 詰将棋局面生成の攻め駒上限を取得（デフォルト: 4）
+int tsumeshogiGeneratorMaxAttackPieces();
+/// 詰将棋局面生成の攻め駒上限を保存
+void setTsumeshogiGeneratorMaxAttackPieces(int count);
+
+/// 詰将棋局面生成の守り駒上限を取得（デフォルト: 1）
+int tsumeshogiGeneratorMaxDefendPieces();
+/// 詰将棋局面生成の守り駒上限を保存
+void setTsumeshogiGeneratorMaxDefendPieces(int count);
+
+/// 詰将棋局面生成の配置範囲を取得（デフォルト: 3）
+int tsumeshogiGeneratorAttackRange();
+/// 詰将棋局面生成の配置範囲を保存
+void setTsumeshogiGeneratorAttackRange(int range);
+
+/// 詰将棋局面生成の探索時間(秒)を取得（デフォルト: 5）
+int tsumeshogiGeneratorTimeoutSec();
+/// 詰将棋局面生成の探索時間(秒)を保存
+void setTsumeshogiGeneratorTimeoutSec(int sec);
+
+/// 詰将棋局面生成の生成上限を取得（デフォルト: 10, 0=無制限）
+int tsumeshogiGeneratorMaxPositions();
+/// 詰将棋局面生成の生成上限を保存
+void setTsumeshogiGeneratorMaxPositions(int count);
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H
