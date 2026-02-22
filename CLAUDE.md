@@ -222,3 +222,16 @@ void setMyDialogSize(const QSize& size)
       , m_model(model)
   ```
 - **Debug logging**: `docs/dev/debug-logging-guidelines.md` に従う。`qDebug()` はデバッグビルド専用。リリースビルドでは `QT_NO_DEBUG_OUTPUT` により無効化される
+- **clazy 警告を出さないコーディング**: clazy level0,level1 の警告が出ないようにコードを書くこと。特に以下に注意:
+  - **`clazy-fully-qualified-moc-types`**: `signals:` / `public slots:` の引数型はMOCが正規化できるよう完全修飾する。ネスト型は `ClassName::NestedType` と記述する。Qt6では `QVector` は `QList` に正規化されるため `QList` を使う
+    ```cpp
+    // Good - ネスト型を完全修飾
+    void gameEnded(const MatchCoordinator::GameEndInfo& info);
+    void gameStateChanged(CsaGameCoordinator::GameState state);
+
+    // Bad - MOCが正規化できない
+    void gameEnded(const GameEndInfo& info);
+    void gameStateChanged(GameState state);
+    ```
+  - **`clazy-const-signal-or-slot`**: `const` メソッドやgetter（引数なし＋戻り値あり）を `signals:` / `public slots:` に置かない。`connect()` で使わないメソッドは `public:` セクションに配置する
+  - **`clazy-range-loop-detach`**: 上記の `std::as_const()` を使用する
