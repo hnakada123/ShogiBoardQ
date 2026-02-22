@@ -14,6 +14,12 @@
 #include <QRegularExpression>
 #include <QSet>
 
+static const QRegularExpression& newlineRe()
+{
+    static const QRegularExpression re(QStringLiteral("\r?\n"));
+    return re;
+}
+
 // ========================================
 // ヘルパ関数（JKFエクスポート専用）
 // ========================================
@@ -490,7 +496,7 @@ static QJsonObject convertMoveToJkf(const KifDisplayItem& disp, int& prevToX, in
     // コメント
     if (!disp.comment.isEmpty()) {
         QJsonArray comments;
-        const QStringList lines = disp.comment.split(QRegularExpression(QStringLiteral("\r?\n")));
+        const QStringList lines = disp.comment.split(newlineRe());
         for (const QString& line : lines) {
             const QString trimmed = line.trimmed();
             // KIF形式の*プレフィックスを除去
@@ -524,7 +530,7 @@ static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
             QJsonObject openingMove;
             if (!item.comment.isEmpty()) {
                 QJsonArray comments;
-                const QStringList lines = item.comment.split(QRegularExpression(QStringLiteral("\r?\n")));
+                const QStringList lines = item.comment.split(newlineRe());
                 for (const QString& line : lines) {
                     const QString trimmed = line.trimmed();
                     if (trimmed.startsWith(QLatin1Char('*'))) {

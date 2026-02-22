@@ -12,7 +12,7 @@
 class QMenu;
 class QAction;
 class EvaluationChartWidget;
-class RecordPane;
+#include "recordpane.h"
 class EngineAnalysisTab;
 class GameInfoPaneController;
 class AnalysisResultsPresenter;

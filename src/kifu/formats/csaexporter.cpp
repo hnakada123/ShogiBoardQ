@@ -12,6 +12,12 @@
 #include <QRegularExpression>
 #include <QStringList>
 
+static const QRegularExpression& newlineRe()
+{
+    static const QRegularExpression re(QStringLiteral("\r?\n"));
+    return re;
+}
+
 // ========================================
 // ヘルパ関数（CSAエクスポート専用）
 // ========================================
@@ -572,7 +578,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
     if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
         const QString cmt = disp[0].comment.trimmed();
         if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            const QStringList lines = cmt.split(newlineRe(), Qt::KeepEmptyParts);
             for (const QString& raw : lines) {
                 QString t = raw.trimmed();
                 if (t.isEmpty()) continue;
@@ -722,7 +728,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         // コメント出力
         const QString cmt = it.comment.trimmed();
         if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            const QStringList lines = cmt.split(newlineRe(), Qt::KeepEmptyParts);
             for (const QString& raw : lines) {
                 QString t = raw.trimmed();
                 if (t.isEmpty()) continue;

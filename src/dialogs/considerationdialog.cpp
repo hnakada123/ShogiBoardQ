@@ -5,7 +5,6 @@
 #include "buttonstyles.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_considerationdialog.h"
-#include "enginesettingsconstants.h"
 #include "settingsservice.h"
 #include <QAbstractItemView>
 #include <QComboBox>
@@ -13,8 +12,6 @@
 #include <QTextStream>
 #include <QMessageBox>
 #include <QPushButton>
-
-using namespace EngineSettingsConstants;
 
 // 検討ダイアログを表示する。
 ConsiderationDialog::ConsiderationDialog(QWidget *parent)

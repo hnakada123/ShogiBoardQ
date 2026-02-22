@@ -18,9 +18,9 @@
 namespace {
 
 /// 将棋の平手初期配置（board部分）
-static const QString kInitialBoard =
-    QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-static const QString kInitialStand = QStringLiteral("-");
+static constexpr char kInitialBoard[] =
+    "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL";
+static constexpr char kInitialStand[] = "-";
 
 /// 入力文字列（startpos / sfen ... / 最小SFEN / 不明形式）を最小SFENに正規化する
 static QString toMinimalSfen(const QString& in)
@@ -30,7 +30,8 @@ static QString toMinimalSfen(const QString& in)
         return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
     }
 
-    const QStringList parts = s.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts);
+    static const QRegularExpression whitespace(QStringLiteral("\\s+"));
+    const QStringList parts = s.split(whitespace, Qt::SkipEmptyParts);
     if (parts.isEmpty()) {
         return QStringLiteral("%1 %2 %3 %4").arg(kInitialBoard, "b", kInitialStand, "1");
     }

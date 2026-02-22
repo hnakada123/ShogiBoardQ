@@ -3,7 +3,6 @@
 
 #include "uiactionswiring.h"
 #include "ui_mainwindow.h"        // Ui::MainWindow
-#include "shogiview.h"
 #include "mainwindow.h"           // MainWindow のスロットを型安全に結ぶため
 #include "kifuexportcontroller.h"
 #include <QApplication>

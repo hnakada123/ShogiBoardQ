@@ -10,14 +10,11 @@
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
-#include "enginesettingsconstants.h"
 #include "settingsservice.h"
 #include "sfencsapositionconverter.h"
 
 #include <QSettings>
 #include <QRegularExpression>
-
-using namespace EngineSettingsConstants;
 
 // ============================================================
 // 初期化・破棄
@@ -696,8 +693,8 @@ void CsaGameCoordinator::onRawMessageSent(const QString& message)
     QString displayMsg = message;
     if (displayMsg.startsWith(QStringLiteral("LOGIN "))) {
         // パスワード部分をマスク（"LOGIN username password" 形式）
-        const QStringList parts = displayMsg.split(QRegularExpression(QStringLiteral("\\s+")),
-                                                   Qt::SkipEmptyParts);
+        static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
+        const QStringList parts = displayMsg.split(kWhitespaceRe, Qt::SkipEmptyParts);
         if (parts.size() >= 3) {
             QStringList masked = parts;
             masked[2] = QStringLiteral("*****");

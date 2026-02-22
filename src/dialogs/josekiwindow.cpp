@@ -23,6 +23,7 @@
 #include <QToolButton>
 #include <QClipboard>
 #include <QApplication>
+#include <QStringView>
 #include <QTimer>
 
 JosekiWindow::JosekiWindow(QWidget *parent)
@@ -1134,8 +1135,8 @@ void JosekiWindow::onMoveResult(bool success, const QString &usiMove)
 }
 
 // 全角数字と漢数字のテーブル
-static const QString kZenkakuDigits = QStringLiteral(" １２３４５６７８９");  // インデックス1-9
-static const QString kKanjiRanks = QStringLiteral(" 一二三四五六七八九");    // インデックス1-9
+static constexpr QStringView kZenkakuDigits = u" １２３４５６７８９";  // インデックス1-9
+static constexpr QStringView kKanjiRanks = u" 一二三四五六七八九";    // インデックス1-9
 
 QString JosekiWindow::pieceToKanji(QChar pieceChar, bool promoted)
 {
@@ -1813,7 +1814,6 @@ void JosekiWindow::onMergeFromCurrentKifu()
         
         // ファイルパスを設定
         m_currentFilePath = filePath;
-        QFileInfo fi(filePath);
         m_filePathLabel->setText(filePath);
         m_filePathLabel->setStyleSheet(QString());
         

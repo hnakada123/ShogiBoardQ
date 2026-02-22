@@ -119,6 +119,25 @@ public:
      */
     bool verifyDisplayConsistencyDetailed(QString* reason = nullptr) const;
 
+    // === 一致性検証 ===
+
+    /**
+     * @brief 表示状態の一致性を検証する
+     * @return 一致している場合は true
+     *
+     * 以下の項目を検証する:
+     * - m_lastLineIndex と m_state->currentLineIndex() の一致
+     * - 棋譜欄の内容が現在のラインと一致しているか
+     * - ツリーハイライトの期待値と実際の状態
+     */
+    bool verifyDisplayConsistency() const;
+
+    /**
+     * @brief 一致性レポートを生成する
+     * @return 診断情報を含む文字列
+     */
+    QString getConsistencyReport() const;
+
 public slots:
     // === KifuNavigationControllerからのシグナルを受けるスロット ===
 
@@ -145,7 +164,8 @@ public slots:
     /**
      * @brief 分岐候補更新要求
      */
-    void onBranchCandidatesUpdateRequired(const QVector<KifuBranchNode*>& candidates);
+    // NOLINTNEXTLINE(clazy-fully-qualified-moc-types) -- QList<Ptr> false positive in clazy 1.17
+    void onBranchCandidatesUpdateRequired(const QList<KifuBranchNode *>& candidates);
 
     // === ツリー変更時 ===
 
@@ -158,25 +178,6 @@ public slots:
      * @brief トラッキング状態を初期値にリセットする（新規時用）
      */
     void resetTracking();
-
-    // === 一致性検証 ===
-
-    /**
-     * @brief 表示状態の一致性を検証する
-     * @return 一致している場合は true
-     *
-     * 以下の項目を検証する:
-     * - m_lastLineIndex と m_state->currentLineIndex() の一致
-     * - 棋譜欄の内容が現在のラインと一致しているか
-     * - ツリーハイライトの期待値と実際の状態
-     */
-    bool verifyDisplayConsistency() const;
-
-    /**
-     * @brief 一致性レポートを生成する
-     * @return 診断情報を含む文字列
-     */
-    QString getConsistencyReport() const;
 
     /**
      * @brief 分岐ツリーノードクリック時

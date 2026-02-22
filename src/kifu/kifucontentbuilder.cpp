@@ -34,7 +34,8 @@ QStringList KifuContentBuilder::buildKifuDataList(const KifuExportContext& ctx)
     for (const auto& it : disp) {
         const QString cmt = it.comment.trimmed();
         if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+            static const QRegularExpression newlineRe(QStringLiteral("\r?\n"));
+            const QStringList lines = cmt.split(newlineRe, Qt::KeepEmptyParts);
             for (const QString& raw : lines) {
                 const QString t = raw.trimmed();
                 if (t.isEmpty()) continue;

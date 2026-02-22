@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpression>
+#include <QStringView>
 #include "kifulogging.h"
 
 // ============================================================================
@@ -43,7 +44,7 @@ namespace {
 static const char* kHirateSfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
 
 // base36文字セット
-static const QString kBase36Chars = QStringLiteral("0123456789abcdefghijklmnopqrstuvwxyz");
+static constexpr QStringView kBase36Chars = u"0123456789abcdefghijklmnopqrstuvwxyz";
 
 // 終局理由コードのマッピング (スライド Image 5より)
 struct TerminalInfo {
@@ -72,8 +73,8 @@ static bool isTerminalCode(const QString& code)
 }
 
 // 全角数字と漢数字
-static const QString kZenkakuDigits = QStringLiteral("０１２３４５６７８９");
-static const QString kKanjiRanks = QStringLiteral("〇一二三四五六七八九");
+static constexpr QStringView kZenkakuDigits = u"０１２３４５６７８９";
+static constexpr QStringView kKanjiRanks = u"〇一二三四五六七八九";
 
 // 段番号から行文字へ (1-9 -> 'a'-'i')
 inline QChar rankToChar(int r) {

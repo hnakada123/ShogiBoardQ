@@ -51,7 +51,8 @@ void MenuWindowWiring::collectCategoriesFromMenuBar()
     QList<MenuWindow::CategoryInfo> categories;
 
     // メニューバーの各メニューを走査
-    for (QAction* menuAction : m_menuBar->actions()) {
+    const auto menuBarActions = m_menuBar->actions();
+    for (QAction* menuAction : menuBarActions) {
         QMenu* menu = menuAction->menu();
         if (!menu) continue;
 
@@ -80,7 +81,8 @@ static void collectActionsFromMenuHelper(QMenu* menu, QList<QAction*>& actions)
 {
     if (!menu) return;
 
-    for (QAction* action : menu->actions()) {
+    const auto menuActions = menu->actions();
+    for (QAction* action : menuActions) {
         if (action->isSeparator()) continue;
 
         // サブメニューがある場合は再帰的に処理

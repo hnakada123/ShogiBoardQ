@@ -446,7 +446,8 @@ bool Ki2ToSfenConverter::isPromotionMoveText(const QString& moveText)
     qsizetype u = head.indexOf(QChar(u'打'));
     if (u >= 0) head = head.left(u);
 
-    head.remove(QRegularExpression(QStringLiteral("[右左上下引寄直行]+")));
+    static const QRegularExpression kDirectionRe(QStringLiteral("[右左上下引寄直行]+"));
+    head.remove(kDirectionRe);
     head.remove(QChar(u'▲'));
     head.remove(QChar(u'△'));
     head.remove(QChar(u'▽'));

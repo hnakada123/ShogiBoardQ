@@ -27,7 +27,6 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QElapsedTimer>
-#include <functional>
 
 Q_LOGGING_CATEGORY(lcKifu, "shogi.kifu")
 
@@ -373,12 +372,19 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
 
     const QString trimmed = content.trimmed();
 
-    // SFEN判定（盤面パターン: 小文字/大文字の駒文字と数字、スラッシュ区切り）
-    // 例: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
-    // または "sfen lnsgkgsnl/..." の形式
+    // フォーマット判定用の正規表現（static で一度だけ構築）
     static const QRegularExpression sfenPattern(
         QStringLiteral("^(sfen\\s+)?[lnsgkrpbLNSGKRPB1-9+]+(/[lnsgkrpbLNSGKRPB1-9+]+){8}\\s+[bw]\\s+[-\\w]+\\s+\\d+")
     );
+    static const QRegularExpression csaLineStartRe(QStringLiteral("^[+-][0-9]"));
+    static const QRegularExpression csaNewlineRe(QStringLiteral("\\n[+-][0-9]"));
+    static const QRegularExpression kifMoveRe(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]"));
+    static const QRegularExpression ki2MoveRe(QStringLiteral("[▲△][０-９一二三四五六七八九同]"));
+    static const QRegularExpression bodBorderRe(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption);
+
+    // SFEN判定（盤面パターン: 小文字/大文字の駒文字と数字、スラッシュ区切り）
+    // 例: "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
+    // または "sfen lnsgkgsnl/..." の形式
     if (sfenPattern.match(trimmed).hasMatch()) {
         fmt = FMT_SFEN;
         qCDebug(lcKifu).noquote() << "detected format: SFEN";
@@ -401,21 +407,21 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     // CSA判定（V2ヘッダまたは +/- で始まる指し手行）
     else if (trimmed.startsWith(QLatin1String("V2")) ||
              trimmed.startsWith(QLatin1String("'")) ||
-             QRegularExpression(QStringLiteral("^[+-][0-9]")).match(trimmed).hasMatch() ||
-             content.contains(QRegularExpression(QStringLiteral("\\n[+-][0-9]")))) {
+             csaLineStartRe.match(trimmed).hasMatch() ||
+             content.contains(csaNewlineRe)) {
         fmt = FMT_CSA;
         qCDebug(lcKifu).noquote() << "detected format: CSA";
     }
     // KIF判定（"手数----" ヘッダまたは数字で始まる行）
     // ※BODヘッダ付きKIFファイルもここで正しくKIFとして認識される
     else if (content.contains(QStringLiteral("手数----")) ||
-             content.contains(QRegularExpression(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]")))) {
+             content.contains(kifMoveRe)) {
         fmt = FMT_KIF;
         qCDebug(lcKifu).noquote() << "detected format: KIF";
     }
     // KI2判定（▲△で始まる指し手）
     // ※BODヘッダ付きKI2ファイルもここで正しくKI2として認識される
-    else if (content.contains(QRegularExpression(QStringLiteral("[▲△][０-９一二三四五六七八九同]")))) {
+    else if (content.contains(ki2MoveRe)) {
         fmt = FMT_KI2;
         qCDebug(lcKifu).noquote() << "detected format: KI2";
     }
@@ -423,7 +429,7 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     // ※KIF/KI2の指し手がある場合は上の判定で先にマッチするため、ここは局面のみの場合
     else if (trimmed.contains(QStringLiteral("後手の持駒")) ||
              trimmed.contains(QStringLiteral("先手の持駒")) ||
-             trimmed.contains(QRegularExpression(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption)) ||
+             trimmed.contains(bodBorderRe) ||
              trimmed.contains(QStringLiteral("|v")) ||
              trimmed.contains(QStringLiteral("| ・"))) {
         fmt = FMT_BOD;

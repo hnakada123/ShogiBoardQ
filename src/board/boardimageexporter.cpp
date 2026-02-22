@@ -40,7 +40,8 @@ void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const 
     if (!boardWidget) return;
 
     QSet<QString> fmts;
-    for (const QByteArray& f : QImageWriter::supportedImageFormats())
+    const auto supportedFormats = QImageWriter::supportedImageFormats();
+    for (const QByteArray& f : std::as_const(supportedFormats))
         fmts.insert(QString::fromLatin1(f).toLower());
     if (fmts.isEmpty()) {
         QMessageBox::critical(parent, QObject::tr("Error"),

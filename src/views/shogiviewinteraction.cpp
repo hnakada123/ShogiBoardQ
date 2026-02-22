@@ -70,10 +70,10 @@ QPoint ShogiViewInteraction::getClickedSquareInDefaultState(const QPoint& pos,
 
     // 2) 駒台の外接矩形（正しい左右・上下に修正）
     //   先手（file=10）：右側 layout.param2() 基準、下帯 rank 5..8
-    const QRect senteStandRect(layout.offsetX() + static_cast<int>(layout.param2()),
+    const QRect senteStandRect(layout.offsetX() + layout.param2(),
                                layout.offsetY() + 5 * h, 2 * w, 4 * h);
     //   後手（file=11）：左側 layout.param1() 基準、上帯 rank 0..3
-    const QRect goteStandRect (layout.offsetX() - static_cast<int>(layout.param1()),
+    const QRect goteStandRect (layout.offsetX() - layout.param1(),
                               layout.offsetY() + 0 * h, 2 * w, 4 * h);
 
     // 3) 局面編集モード中のドラッグドロップ先（駒種でセル固定）
@@ -196,10 +196,10 @@ QPoint ShogiViewInteraction::getClickedSquareInFlippedState(const QPoint& pos,
 
     // 2) 駒台の外接矩形（反転時は先手が左側、後手が右側）
     //   先手（file=10）：左側 layout.param1() 基準、上帯 rank 0..3
-    const QRect senteStandRect(layout.offsetX() - static_cast<int>(layout.param1()),
+    const QRect senteStandRect(layout.offsetX() - layout.param1(),
                                layout.offsetY() + 0 * h, 2 * w, 4 * h);
     //   後手（file=11）：右側 layout.param2() 基準、下帯 rank 5..8
-    const QRect goteStandRect (layout.offsetX() + static_cast<int>(layout.param2()),
+    const QRect goteStandRect (layout.offsetX() + layout.param2(),
                                layout.offsetY() + 5 * h, 2 * w, 4 * h);
 
     // 3) ドラッグ中の駒台ドロップ

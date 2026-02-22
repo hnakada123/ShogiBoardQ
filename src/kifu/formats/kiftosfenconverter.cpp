@@ -338,7 +338,8 @@ static void parseBodHandsLine(const QString& line, QMap<QChar,int>& outCounts, b
 
     rhs.replace(QChar(u'、'), QLatin1Char(' '));
     rhs.replace(QChar(0x3000), QLatin1Char(' '));
-    const QStringList toks = rhs.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+    static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
+    const QStringList toks = rhs.split(kWhitespaceRe, Qt::SkipEmptyParts);
 
     for (QString tok : toks) {
         tok = tok.trimmed();

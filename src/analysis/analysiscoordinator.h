@@ -76,6 +76,9 @@ public:
     /// 現在の解析を中断する
     void stop();
 
+    /// 現在解析中の手数を返す
+    int currentPly() const { return m_currentPly; }
+
 signals:
     /// USIコマンド送信を要求する（→ Usi::sendRaw）
     void requestSendUsiCommand(const QString& line);
@@ -100,7 +103,9 @@ signals:
     /// GUI更新後にgo送信するための2段階通知
     void positionPrepared(int ply, const QString& positionCmd);
 
-public slots:
+public:
+    // --- AnalysisFlowController から呼ばれるメソッド ---
+
     /// エンジンの`info ...`行を受け取る（AnalysisFlowController::onInfoLineReceivedから呼出）
     void onEngineInfoLine(const QString& line);
 
@@ -109,9 +114,6 @@ public slots:
 
     /// 局面表示更新完了後に`position`/`go`を送信する（AnalysisFlowController::onPositionPreparedから呼出）
     void sendGoCommand();
-
-    /// 現在解析中の手数を返す
-    int currentPly() const { return m_currentPly; }
 
 private:
     /// `info`行から抽出した最小限の解析情報

@@ -83,6 +83,7 @@ public:
         GameCancelAnalysis,
         GameTsumeSearch,
         GameStopTsumeSearch,
+        GameTsumeshogiGenerator,  ///< 詰将棋局面生成
         GameJishogiScore,
         GameNyugyokuDeclaration,
 

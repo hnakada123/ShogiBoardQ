@@ -188,7 +188,7 @@ void MenuWindow::updateFavoritesTab()
 
     // お気に入りアクションを追加
     QList<QAction*> favoriteActions;
-    for (const QString& actionName : m_favoriteActionNames) {
+    for (const QString& actionName : std::as_const(m_favoriteActionNames)) {
         QAction* action = findActionByName(actionName);
         if (action) {
             favoriteActions.append(action);
@@ -200,7 +200,7 @@ void MenuWindow::updateFavoritesTab()
 
 void MenuWindow::updateCustomizeModeForAllTabs()
 {
-    for (MenuButtonWidget* btn : m_allButtons) {
+    for (MenuButtonWidget* btn : std::as_const(m_allButtons)) {
         if (!btn) continue;
 
         // このボタンがお気に入りタブに属しているかどうかを判定
@@ -345,7 +345,7 @@ void MenuWindow::onFontSizeDecrease()
 
 void MenuWindow::updateAllButtonSizes()
 {
-    for (MenuButtonWidget* btn : m_allButtons) {
+    for (MenuButtonWidget* btn : std::as_const(m_allButtons)) {
         if (btn) {
             btn->updateSizes(m_buttonSize, m_fontSize, m_iconSize);
         }
