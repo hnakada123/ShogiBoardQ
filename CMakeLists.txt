@@ -266,9 +266,13 @@ target_link_libraries(ShogiBoardQ PRIVATE
     Qt6::Network
 )
 
+# アプリケーションバージョン (CalVer: YYYY.MM.DD)
+set(APP_VERSION "2026.02.22")
+
 # リリースビルドではqDebug()出力を無効化
 target_compile_definitions(ShogiBoardQ PRIVATE
     $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
+    APP_VERSION="${APP_VERSION}"
 )
 
 # ==== Bundle properties ====

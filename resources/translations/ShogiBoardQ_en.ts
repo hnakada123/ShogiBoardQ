@@ -6915,7 +6915,7 @@ Do you want to continue?</translation>
         <translation>Version Info</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="259"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="299"/>
         <source>OK</source>
         <translation>OK</translation>
     </message>
@@ -6925,12 +6925,12 @@ Do you want to continue?</translation>
         <translation>ShogiBoardQ</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="158"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="198"/>
         <source>Hiroshi Nakada</source>
         <translation>Hiroshi Nakada</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="16"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="17"/>
         <source>ビルド日時: %1 %2</source>
         <translation>Build: %1 %2</translation>
     </message>

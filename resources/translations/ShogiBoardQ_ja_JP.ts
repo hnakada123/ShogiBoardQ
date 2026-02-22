@@ -5843,7 +5843,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="259"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="299"/>
         <source>OK</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5853,12 +5853,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.ui" line="158"/>
+        <location filename="../../src/dialogs/versiondialog.ui" line="198"/>
         <source>Hiroshi Nakada</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/versiondialog.cpp" line="16"/>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="17"/>
         <source>ビルド日時: %1 %2</source>
         <translation></translation>
     </message>
