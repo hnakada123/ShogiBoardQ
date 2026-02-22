@@ -205,7 +205,7 @@ public:
 
 signals:
     /// 接続状態が変化した時に発行する（→ CsaGameCoordinator::onConnectionStateChanged）
-    void connectionStateChanged(ConnectionState state);
+    void connectionStateChanged(CsaClient::ConnectionState state);
 
 
     /// エラーが発生した時に発行する（→ CsaGameCoordinator::onClientError）
@@ -221,7 +221,7 @@ signals:
     void logoutCompleted();
 
     /// 対局条件（Game_Summary）を受信した時に発行する（→ CsaGameCoordinator::onGameSummaryReceived）
-    void gameSummaryReceived(const GameSummary& summary);
+    void gameSummaryReceived(const CsaClient::GameSummary& summary);
 
     /// 対局が開始した時（START:受信時）に発行する（→ CsaGameCoordinator::onGameStarted）
     void gameStarted(const QString& gameId);
@@ -236,7 +236,7 @@ signals:
     void moveConfirmed(const QString& move, int consumedTimeMs);
 
     /// 対局が終了した時に発行する（→ CsaGameCoordinator::onClientGameEnded）
-    void gameEnded(GameResult result, GameEndCause cause, int consumedTimeMs);
+    void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
 
     /// 中断が通知された時に発行する（→ CsaGameCoordinator::onGameInterrupted）
     void gameInterrupted();

@@ -357,7 +357,7 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
     if (m_process) {
         QPointer<EngineProcessManager> guard(this);
         const QByteArray outTail = m_process->readAllStandardOutput();
-        const QByteArray errTail = m_process->readAllStandardError();
+        m_process->readAllStandardError();
 
         if (!outTail.isEmpty()) {
             const QStringList lines = QString::fromUtf8(outTail).split('\n', Qt::SkipEmptyParts);

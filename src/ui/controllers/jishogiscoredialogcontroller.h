@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QWidget>
 
+class QLabel;
 class ShogiBoard;
 
 /**
@@ -32,6 +33,10 @@ public:
      */
     void showDialog(QWidget* parentWidget, ShogiBoard* board);
 
+private slots:
+    void shrinkFont();
+    void enlargeFont();
+
 private:
     /**
      * @brief 宣言条件の判定文字列を生成する
@@ -43,6 +48,8 @@ private:
      */
     QString buildConditionString(bool kingInEnemyTerritory, int piecesInEnemyTerritory,
                                   bool inCheck, int declarationPoints) const;
+
+    QLabel* m_scoreLabel = nullptr;
 };
 
 #endif // JISHOGISCOREDIALOGCONTROLLER_H

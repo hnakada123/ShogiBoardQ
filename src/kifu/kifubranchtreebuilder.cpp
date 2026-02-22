@@ -4,7 +4,6 @@
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
-#include "kifutypes.h"
 #include "kifparsetypes.h"
 #include "kifdisplayitem.h"
 #include "kifulogging.h"

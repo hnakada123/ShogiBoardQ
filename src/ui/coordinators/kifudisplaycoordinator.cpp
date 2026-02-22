@@ -370,7 +370,7 @@ void KifuDisplayCoordinator::onBranchTreeHighlightRequired(int lineIndex, int pl
     }
 }
 
-void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QVector<KifuBranchNode*>& candidates)
+void KifuDisplayCoordinator::onBranchCandidatesUpdateRequired(const QList<KifuBranchNode*>& candidates)
 {
     if (m_branchModel == nullptr) {
         return;

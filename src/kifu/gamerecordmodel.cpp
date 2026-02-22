@@ -13,7 +13,7 @@
 #include <QRegularExpression>
 #include "kifulogging.h"
 #include <QPair>
-#include <algorithm>
+#include <QStringView>
 
 // ========================================
 // KIF形式の定数
@@ -24,10 +24,10 @@ namespace KifFormat {
     constexpr int kMoveTextWidth = 12;     // 指し手テキストの幅（左寄せ）
 
     // セパレータ行
-    const QString kSeparatorLine = QStringLiteral("手数----指手---------消費時間--");
+    constexpr QStringView kSeparatorLine = u"手数----指手---------消費時間--";
 
     // 既定の消費時間
-    const QString kDefaultTime = QStringLiteral("( 0:00/00:00:00)");
+    constexpr QStringView kDefaultTime = u"( 0:00/00:00:00)";
 }
 
 // ========================================
@@ -56,7 +56,7 @@ static QString formatKifTime(const QString& timeText)
     // 既に括弧付きならそのまま返す
     if (timeText.startsWith(QLatin1Char('('))) return timeText;
     // 空なら既定値
-    if (timeText.isEmpty()) return KifFormat::kDefaultTime;
+    if (timeText.isEmpty()) return KifFormat::kDefaultTime.toString();
 
     // mm:ss/HH:MM:SS 形式を解析して ( m:ss/HH:MM:SS) 形式に変換
     const QStringList parts = timeText.split(QLatin1Char('/'));
@@ -242,7 +242,8 @@ static void appendKifComments(const QString& comment, QStringList& out)
 {
     if (comment.trimmed().isEmpty()) return;
 
-    const QStringList lines = comment.split(QRegularExpression(QStringLiteral("\r?\n")), Qt::KeepEmptyParts);
+    static const QRegularExpression newlineRe(QStringLiteral("\r?\n"));
+    const QStringList lines = comment.split(newlineRe, Qt::KeepEmptyParts);
     for (const QString& raw : lines) {
         const QString t = raw.trimmed();
         if (t.isEmpty()) continue;
@@ -518,7 +519,7 @@ QStringList GameRecordModel::toKifLines(const ExportContext& ctx) const
     }
 
     // 2) セパレータ
-    out << KifFormat::kSeparatorLine;
+    out << KifFormat::kSeparatorLine.toString();
 
     // 3) 本譜の指し手を収集
     const QList<KifDisplayItem> disp = collectMainlineForExport();
@@ -1107,7 +1108,7 @@ static int usiPieceToUsenDropCode(QChar usiPiece)
 }
 
 // base36文字セット
-static const QString kUsenBase36Chars = QStringLiteral("0123456789abcdefghijklmnopqrstuvwxyz");
+static constexpr QStringView kUsenBase36Chars = u"0123456789abcdefghijklmnopqrstuvwxyz";
 
 QString GameRecordModel::intToBase36(int moveCode)
 {
@@ -1692,10 +1693,7 @@ QStringList GameRecordModel::toUsiLines(const ExportContext& ctx, const QStringL
         }
     }
     
-    // 2) 指し手部分を構築
-    QString movesStr;
-    
-    // USI moves が渡された場合はそれを使用
+    // 2) USI moves が渡された場合はそれを使用
     QStringList mainlineUsi = usiMoves;
     
     // 3) 終局コードを取得

@@ -96,16 +96,16 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     QVBoxLayout* mainLayout = new QVBoxLayout(&dialog);
 
     // テキスト表示用ラベル
-    QLabel* label = new QLabel(message);
-    label->setAlignment(Qt::AlignLeft);
+    m_scoreLabel = new QLabel(message);
+    m_scoreLabel->setAlignment(Qt::AlignLeft);
 
     // 保存されたフォントサイズを読み込む
     int savedFontSize = SettingsService::jishogiScoreFontSize();
-    QFont labelFont = label->font();
+    QFont labelFont = m_scoreLabel->font();
     labelFont.setPointSize(savedFontSize);
-    label->setFont(labelFont);
+    m_scoreLabel->setFont(labelFont);
 
-    mainLayout->addWidget(label);
+    mainLayout->addWidget(m_scoreLabel);
 
     // ボタン用レイアウト
     QHBoxLayout* buttonLayout = new QHBoxLayout();
@@ -114,24 +114,14 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     QPushButton* shrinkButton = new QPushButton(tr("A-"));
     shrinkButton->setFixedWidth(40);
     shrinkButton->setStyleSheet(ButtonStyles::fontButton());
-    connect(shrinkButton, &QPushButton::clicked, [label]() {
-        QFont font = label->font();
-        if (font.pointSize() > 6) {
-            font.setPointSize(font.pointSize() - 1);
-            label->setFont(font);
-        }
-    });
+    connect(shrinkButton, &QPushButton::clicked, this, &JishogiScoreDialogController::shrinkFont);
     buttonLayout->addWidget(shrinkButton);
 
     // A+ ボタン（文字拡大）
     QPushButton* enlargeButton = new QPushButton(tr("A+"));
     enlargeButton->setFixedWidth(40);
     enlargeButton->setStyleSheet(ButtonStyles::fontButton());
-    connect(enlargeButton, &QPushButton::clicked, [label]() {
-        QFont font = label->font();
-        font.setPointSize(font.pointSize() + 1);
-        label->setFont(font);
-    });
+    connect(enlargeButton, &QPushButton::clicked, this, &JishogiScoreDialogController::enlargeFont);
     buttonLayout->addWidget(enlargeButton);
 
     buttonLayout->addStretch();
@@ -147,6 +137,25 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     dialog.exec();
 
     // ダイアログを閉じる際にフォントサイズとウィンドウサイズを保存
-    SettingsService::setJishogiScoreFontSize(label->font().pointSize());
+    SettingsService::setJishogiScoreFontSize(m_scoreLabel->font().pointSize());
     SettingsService::setJishogiScoreDialogSize(dialog.size());
+    m_scoreLabel = nullptr;
+}
+
+void JishogiScoreDialogController::shrinkFont()
+{
+    if (!m_scoreLabel) return;
+    QFont font = m_scoreLabel->font();
+    if (font.pointSize() > 6) {
+        font.setPointSize(font.pointSize() - 1);
+        m_scoreLabel->setFont(font);
+    }
+}
+
+void JishogiScoreDialogController::enlargeFont()
+{
+    if (!m_scoreLabel) return;
+    QFont font = m_scoreLabel->font();
+    font.setPointSize(font.pointSize() + 1);
+    m_scoreLabel->setFont(font);
 }

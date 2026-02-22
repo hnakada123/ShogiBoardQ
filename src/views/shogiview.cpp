@@ -4,7 +4,6 @@
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
-#include "enginesettingsconstants.h"
 #include "settingsservice.h"
 #include "elidelabel.h"
 #include "globaltooltip.h"
@@ -31,8 +30,8 @@
 static QString ensureNoBorderRadiusStyle(const QString& base)
 {
     QString s = base;
-    QRegularExpression re(R"(border-radius\s*:\s*[^;]+;?)",
-                          QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression re(R"(border-radius\s*:\s*[^;]+;?)",
+                                       QRegularExpression::CaseInsensitiveOption);
     if (re.match(s).hasMatch()) {
         s.replace(re, "border-radius:0px;");
     } else {
@@ -47,8 +46,8 @@ static QString removeFontSizeFromStyle(const QString& base)
 {
     QString s = base;
     // font-size プロパティを除去
-    QRegularExpression re(R"(font-size\s*:\s*[^;]+;?)",
-                          QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression re(R"(font-size\s*:\s*[^;]+;?)",
+                                       QRegularExpression::CaseInsensitiveOption);
     s.remove(re);
     return s;
 }
@@ -60,8 +59,6 @@ static void enforceSquareCorners(QLabel* lab)
 }
 
 Q_LOGGING_CATEGORY(lcView, "shogi.view")
-
-using namespace EngineSettingsConstants;
 
 // Highlight基底クラスのデストラクタ（out-of-line定義でweak-vtables警告を回避）
 ShogiView::Highlight::~Highlight() {}

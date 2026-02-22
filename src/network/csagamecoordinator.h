@@ -145,7 +145,7 @@ signals:
      * @brief 対局状態が変化した時に発行（→ CsaGameWiring::onCsaGameStateChanged）
      * @param state 新しい状態
      */
-    void gameStateChanged(GameState state);
+    void gameStateChanged(CsaGameCoordinator::GameState state);
 
     /**
      * @brief エラーが発生した時に発行（→ CsaGameWiring::onCsaGameError）

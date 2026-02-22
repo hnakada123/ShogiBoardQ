@@ -154,6 +154,10 @@ void UiStatePolicyManager::buildPolicyTable()
     setAll(E::GameStopTsumeSearch, P::Disabled);
     set(S::DuringTsumeSearch, E::GameStopTsumeSearch, P::Enabled);
 
+    // 詰将棋局面生成: Idle のみ有効
+    setAll(E::GameTsumeshogiGenerator, P::Disabled);
+    set(S::Idle, E::GameTsumeshogiGenerator, P::Enabled);
+
     // 持将棋点数: 常に有効
     setAll(E::GameJishogiScore, P::Enabled);
 
@@ -397,6 +401,9 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         break;
     case UiElement::GameStopTsumeSearch:
         applyActionPolicy(ui ? ui->actionStopTsumeSearch : nullptr, policy);
+        break;
+    case UiElement::GameTsumeshogiGenerator:
+        applyActionPolicy(ui ? ui->actionTsumeshogiGenerator : nullptr, policy);
         break;
     case UiElement::GameJishogiScore:
         applyActionPolicy(ui ? ui->actionJishogiScore : nullptr, policy);

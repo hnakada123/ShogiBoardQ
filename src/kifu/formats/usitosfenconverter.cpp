@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QRegularExpression>
+#include <QStringView>
 #include <QDebug>
 
 // ============================================================================
@@ -73,8 +74,8 @@ static const TerminalInfo kTerminalCodes[] = {
 };
 
 // 全角数字と漢数字
-static const QString kZenkakuDigits = QStringLiteral("０１２３４５６７８９");
-static const QString kKanjiRanks = QStringLiteral("〇一二三四五六七八九");
+static constexpr QStringView kZenkakuDigits = u"０１２３４５６７８９";
+static constexpr QStringView kKanjiRanks = u"〇一二三四五六七八九";
 
 // 終局理由コードかどうかを判定（kTerminalCodesを参照して一貫性を保つ）
 static bool isTerminalCode(const QString& str)
@@ -471,7 +472,8 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
     if (terminalCode) terminalCode->clear();
     
     if (!movesStr.isEmpty()) {
-        QStringList tokens = movesStr.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+        static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
+        QStringList tokens = movesStr.split(kWhitespaceRe, Qt::SkipEmptyParts);
         
         for (const QString& token : std::as_const(tokens)) {
             if (isTerminalCode(token)) {

@@ -452,7 +452,7 @@ signals:
     void boardFlipped(bool nowFlipped);
 
     /// 終局の通知（→ GameStartCoordinator::matchGameEnded へ再送出）
-    void gameEnded(const GameEndInfo& info);
+    void gameEnded(const MatchCoordinator::GameEndInfo& info);
 
     /**
      * @brief 時計更新通知
@@ -463,8 +463,8 @@ signals:
      */
     void timeUpdated(qint64 p1ms, qint64 p2ms, bool p1turn, qint64 urgencyMs);
 
-    void gameOverStateChanged(const GameOverState& st);
-    void requestAppendGameOverMove(const GameEndInfo& info);
+    void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
+    void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
     /// 検討モード終了時に発火する
     void considerationModeEnded();

@@ -3,7 +3,6 @@
 
 #include "csatosfenconverter.h"
 #include "kifdisplayitem.h"
-#include "shogimove.h"
 
 #include <QStringDecoder>
 

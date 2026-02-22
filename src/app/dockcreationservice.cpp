@@ -7,7 +7,6 @@
 #include <QAction>
 
 #include "evaluationchartwidget.h"
-#include "recordpane.h"
 #include "engineanalysistab.h"
 #include "gameinfopanecontroller.h"
 #include "analysisresultspresenter.h"

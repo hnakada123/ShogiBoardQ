@@ -856,7 +856,7 @@ void PvBoardDialog::parseKanjiMoves()
     // 漢字表記の読み筋を個々の手に分割
     // 例: "△３四歩(33)▲２六歩(27)△８四歩(83)" → ["△３四歩(33)", "▲２六歩(27)", "△８四歩(83)"]
     // ▲ または △ で始まる各手を抽出
-    QRegularExpression re(QStringLiteral("([▲△][^▲△]+)"));
+    static const QRegularExpression re(QStringLiteral("([▲△][^▲△]+)"));
     QRegularExpressionMatchIterator it = re.globalMatch(m_kanjiPv);
     
     while (it.hasNext()) {

@@ -31,16 +31,13 @@
 #include "shogigamecontroller.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
-#include "shogiclock.h"
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
 #include "kifuloadcoordinator.h"
-#include "kifutypes.h"
 #include "positioneditcontroller.h"
 #include "gamestartcoordinator.h"
 #include "analysisflowcontroller.h"
-#include "pvboarddialog.h"
 #include "kifuclipboardservice.h"
 #include "gameinfopanecontroller.h"  // KifGameInfoItem
 

@@ -15,7 +15,6 @@
 #include "shogiboard.h"
 #include "boardinteractioncontroller.h"
 #include "startgamedialog.h"
-#include "enginesettingsconstants.h"
 #include "settingsservice.h"
 #include "kifurecordlistmodel.h"
 #include "sfenpositiontracer.h"
@@ -2012,8 +2011,6 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
 
     // --- 対局ダイアログなし：INI から直近選択を復元（StartGameDialog と同じ仕様）
     {
-        using namespace EngineSettingsConstants;
-
         QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
 
         // 1) エンジン一覧（name/path）の読み出し

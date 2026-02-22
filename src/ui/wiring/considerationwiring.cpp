@@ -5,7 +5,6 @@
 
 #include "loggingcategory.h"
 
-#include "considerationtabmanager.h"
 #include "shogiview.h"
 #include "matchcoordinator.h"
 #include "dialogcoordinator.h"

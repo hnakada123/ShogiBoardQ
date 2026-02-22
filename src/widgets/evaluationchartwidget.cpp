@@ -956,7 +956,7 @@ void EvaluationChartWidget::trimToPly(int maxPly)
         if (!series) return;
         QList<QPointF> points = series->points();
         QList<QPointF> kept;
-        for (const QPointF& p : points) {
+        for (const QPointF& p : std::as_const(points)) {
             if (p.x() <= maxPly) {
                 kept.append(p);
             }

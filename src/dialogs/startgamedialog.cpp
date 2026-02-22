@@ -4,8 +4,8 @@
 #include "startgamedialog.h"
 #include "ui_startgamedialog.h"
 #include "changeenginesettingsdialog.h"
-#include "enginesettingsconstants.h"
 #include "settingsservice.h"
+#include "enginesettingsconstants.h"
 #include "buttonstyles.h"
 #include <QSettings>
 #include <QMessageBox>

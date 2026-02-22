@@ -12,32 +12,27 @@
 #include <QRegularExpression>
 #include <QStackedWidget>
 
+#include <algorithm>
+#include <array>
+
 // 筋の表示用（1-9）
-static const QStringList kFileLabels = {
-    QStringLiteral("１"), QStringLiteral("２"), QStringLiteral("３"),
-    QStringLiteral("４"), QStringLiteral("５"), QStringLiteral("６"),
-    QStringLiteral("７"), QStringLiteral("８"), QStringLiteral("９")
+static constexpr std::array<QStringView, 9> kFileLabels = {
+    u"１", u"２", u"３", u"４", u"５", u"６", u"７", u"８", u"９"
 };
 
 // 段の表示用（一〜九）
-static const QStringList kRankLabels = {
-    QStringLiteral("一"), QStringLiteral("二"), QStringLiteral("三"),
-    QStringLiteral("四"), QStringLiteral("五"), QStringLiteral("六"),
-    QStringLiteral("七"), QStringLiteral("八"), QStringLiteral("九")
+static constexpr std::array<QStringView, 9> kRankLabels = {
+    u"一", u"二", u"三", u"四", u"五", u"六", u"七", u"八", u"九"
 };
 
 // 駒種の表示用
-static const QStringList kPieceLabels = {
-    QStringLiteral("歩"), QStringLiteral("香"), QStringLiteral("桂"),
-    QStringLiteral("銀"), QStringLiteral("金"), QStringLiteral("角"),
-    QStringLiteral("飛")
+static constexpr std::array<QStringView, 7> kPieceLabels = {
+    u"歩", u"香", u"桂", u"銀", u"金", u"角", u"飛"
 };
 
 // 駒種のUSI形式
-static const QStringList kPieceUsi = {
-    QStringLiteral("P"), QStringLiteral("L"), QStringLiteral("N"),
-    QStringLiteral("S"), QStringLiteral("G"), QStringLiteral("B"),
-    QStringLiteral("R")
+static constexpr std::array<QStringView, 7> kPieceUsi = {
+    u"P", u"L", u"N", u"S", u"G", u"B", u"R"
 };
 
 JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
@@ -244,22 +239,22 @@ QGroupBox* JosekiMoveDialog::createMoveInputWidget(QWidget *parent, bool isNextM
     
     // 筋のコンボボックス設定
     for (int i = 0; i < 9; ++i) {
-        fromFileCombo->addItem(kFileLabels[i], i + 1);
+        fromFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
     }
     // 段のコンボボックス設定
     for (int i = 0; i < 9; ++i) {
-        fromRankCombo->addItem(kRankLabels[i], QChar('a' + i));
+        fromRankCombo->addItem(kRankLabels[static_cast<size_t>(i)].toString(), QChar('a' + i));
     }
-    
+
     QLabel *toLabel = new QLabel(tr("移動先:"), boardWidget);
     QComboBox *toFileCombo = new QComboBox(boardWidget);
     QComboBox *toRankCombo = new QComboBox(boardWidget);
-    
+
     for (int i = 0; i < 9; ++i) {
-        toFileCombo->addItem(kFileLabels[i], i + 1);
+        toFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
     }
     for (int i = 0; i < 9; ++i) {
-        toRankCombo->addItem(kRankLabels[i], QChar('a' + i));
+        toRankCombo->addItem(kRankLabels[static_cast<size_t>(i)].toString(), QChar('a' + i));
     }
     
     QLabel *promoteLabel = new QLabel(tr("成り:"), boardWidget);
@@ -288,8 +283,8 @@ QGroupBox* JosekiMoveDialog::createMoveInputWidget(QWidget *parent, bool isNextM
     
     QLabel *pieceLabel = new QLabel(tr("駒種:"), dropWidget);
     QComboBox *pieceCombo = new QComboBox(dropWidget);
-    for (int i = 0; i < kPieceLabels.size(); ++i) {
-        pieceCombo->addItem(kPieceLabels[i], kPieceUsi[i]);
+    for (size_t i = 0; i < kPieceLabels.size(); ++i) {
+        pieceCombo->addItem(kPieceLabels[i].toString(), kPieceUsi[i].toString());
     }
     
     QLabel *dropToLabel = new QLabel(tr("打ち先:"), dropWidget);
@@ -297,10 +292,10 @@ QGroupBox* JosekiMoveDialog::createMoveInputWidget(QWidget *parent, bool isNextM
     QComboBox *dropToRankCombo = new QComboBox(dropWidget);
     
     for (int i = 0; i < 9; ++i) {
-        dropToFileCombo->addItem(kFileLabels[i], i + 1);
+        dropToFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
     }
     for (int i = 0; i < 9; ++i) {
-        dropToRankCombo->addItem(kRankLabels[i], QChar('a' + i));
+        dropToRankCombo->addItem(kRankLabels[static_cast<size_t>(i)].toString(), QChar('a' + i));
     }
     
     dropLayout->addWidget(pieceLabel);
@@ -704,9 +699,9 @@ void JosekiMoveDialog::setComboFromUsi(const QString &usiMove, bool isNextMove)
         int toRank = usiMove.at(3).toLatin1() - 'a';
         
         // 駒種を設定
-        qsizetype pieceIdx = kPieceUsi.indexOf(QString(piece));
-        if (pieceIdx >= 0) {
-            pieceCombo->setCurrentIndex(static_cast<int>(pieceIdx));
+        auto it = std::find(kPieceUsi.begin(), kPieceUsi.end(), QStringView(&piece, 1));
+        if (it != kPieceUsi.end()) {
+            pieceCombo->setCurrentIndex(static_cast<int>(std::distance(kPieceUsi.begin(), it)));
         }
         
         // 打ち先のコンボボックスを取得して設定（メンバ変数を直接使用）
