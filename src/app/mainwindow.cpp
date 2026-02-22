@@ -272,7 +272,15 @@ void MainWindow::buildGamePanels()
     // 12) 棋譜解析結果のQDockWidget作成（初期状態は非表示）
     createAnalysisResultsDock();
 
-    // 13) central への初期化（主要ウィジェットはドックへ移行済み）
+    // 13) アクティブタブを設定（全ドック作成後に実行）
+    if (m_dockCreationService) {
+        if (m_dockCreationService->thinkingDock())
+            m_dockCreationService->thinkingDock()->raise();
+        if (m_dockCreationService->recordPaneDock())
+            m_dockCreationService->recordPaneDock()->raise();
+    }
+
+    // 14) central への初期化（主要ウィジェットはドックへ移行済み）
     initializeCentralGameDisplay();
 
     // 14) ドックレイアウト関連アクションをDockLayoutManagerに配線

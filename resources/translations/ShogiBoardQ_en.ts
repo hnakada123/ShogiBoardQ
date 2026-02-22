@@ -1218,73 +1218,73 @@ Cause: %2</translation>
     <name>DockCreationService</name>
     <message>
         <location filename="../../src/app/dockcreationservice.cpp" line="76"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="83"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="88"/>
         <source>評価値グラフ</source>
         <translation type="unfinished">Evaluation Graph</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="109"/>
         <location filename="../../src/app/dockcreationservice.cpp" line="114"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="119"/>
         <source>棋譜</source>
         <translation type="unfinished">Game Record</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="151"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="153"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="156"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="158"/>
         <source>対局情報</source>
         <translation type="unfinished">Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="157"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="159"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="162"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="164"/>
         <source>思考</source>
         <translation type="unfinished">Thinking</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="162"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="164"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="167"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="169"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="167"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="169"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="172"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="174"/>
         <source>USI通信ログ</source>
         <translation type="unfinished">USI Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="172"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="174"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="177"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="179"/>
         <source>CSA通信ログ</source>
         <translation type="unfinished">CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="177"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="179"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="182"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="184"/>
         <source>棋譜コメント</source>
         <translation type="unfinished">Comments</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="182"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="184"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="187"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="189"/>
         <source>分岐ツリー</source>
         <translation type="unfinished">Branch Tree</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="223"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="228"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="221"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="232"/>
         <source>メニュー</source>
         <translation type="unfinished">Menu</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="252"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="258"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="256"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="268"/>
         <source>定跡</source>
         <translation type="unfinished">Joseki</translation>
     </message>
     <message>
-        <location filename="../../src/app/dockcreationservice.cpp" line="275"/>
-        <location filename="../../src/app/dockcreationservice.cpp" line="288"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="285"/>
+        <location filename="../../src/app/dockcreationservice.cpp" line="298"/>
         <source>棋譜解析</source>
         <translation>Game Analysis</translation>
     </message>
@@ -4142,7 +4142,7 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="451"/>
+        <location filename="../../src/app/mainwindow.cpp" line="459"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
@@ -4155,34 +4155,34 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="707"/>
-        <location filename="../../src/app/mainwindow.cpp" line="722"/>
+        <location filename="../../src/app/mainwindow.cpp" line="715"/>
+        <location filename="../../src/app/mainwindow.cpp" line="730"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="707"/>
-        <location filename="../../src/app/mainwindow.cpp" line="722"/>
+        <location filename="../../src/app/mainwindow.cpp" line="715"/>
+        <location filename="../../src/app/mainwindow.cpp" line="730"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1363"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1371"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4078"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4086"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4080"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4088"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4083"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4091"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4478,7 +4478,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1362"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1370"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
@@ -4551,17 +4551,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4044"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4052"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4046"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4054"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4050"/>
+        <location filename="../../src/app/mainwindow.cpp" line="4058"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4570,7 +4570,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3551"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3559"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>

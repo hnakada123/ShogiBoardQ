@@ -79,6 +79,11 @@ QDockWidget* DockCreationService::createEvalChartDock()
 
     m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_evalChartDock);
 
+    // 下部タブエリアにタブ化
+    if (m_branchTreeDock) {
+        m_mainWindow->tabifyDockWidget(m_branchTreeDock, m_evalChartDock);
+    }
+
     if (m_displayMenu) {
         addToggleActionToMenu(m_evalChartDock, tr("評価値グラフ"));
     }
@@ -193,13 +198,6 @@ void DockCreationService::createAnalysisDocks()
     m_mainWindow->tabifyDockWidget(m_csaLogDock, m_commentDock);
     m_mainWindow->tabifyDockWidget(m_commentDock, m_branchTreeDock);
 
-    // 対局情報ドックをアクティブにする
-    if (m_gameInfoDock) {
-        m_gameInfoDock->raise();
-    } else if (m_thinkingDock) {
-        m_thinkingDock->raise();
-    }
-
     // モデルを設定
     if (m_modelThinking1 && m_modelThinking2 && m_lineEditModel1 && m_lineEditModel2) {
         m_analysisTab->setModels(m_modelThinking1, m_modelThinking2, m_lineEditModel1, m_lineEditModel2);
@@ -225,6 +223,12 @@ QDockWidget* DockCreationService::createMenuWindowDock()
     m_menuWindowDock->setWidget(menuWindow);
 
     m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_menuWindowDock);
+
+    // 棋譜ドックとタブ化
+    if (m_recordPaneDock) {
+        m_mainWindow->tabifyDockWidget(m_recordPaneDock, m_menuWindowDock);
+    }
+
     addToggleActionToMenu(m_menuWindowDock, tr("メニュー"));
 
     restoreDockState(m_menuWindowDock,
@@ -254,7 +258,13 @@ QDockWidget* DockCreationService::createJosekiWindowDock()
     m_josekiWindowDock->setWidget(josekiWindow);
     josekiWindow->setDockWidget(m_josekiWindowDock);
 
-    m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, m_josekiWindowDock);
+    m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, m_josekiWindowDock);
+
+    // 下部タブエリアにタブ化
+    if (m_branchTreeDock) {
+        m_mainWindow->tabifyDockWidget(m_branchTreeDock, m_josekiWindowDock);
+    }
+
     addToggleActionToMenu(m_josekiWindowDock, tr("定跡"));
 
     restoreDockState(m_josekiWindowDock,
