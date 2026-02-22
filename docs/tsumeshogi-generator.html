@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>詰将棋局面生成 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの詰将棋局面生成機能を紹介します。ランダムに詰将棋の候補局面を生成し、USIエンジンで詰み探索を行い、指定手数の詰みが存在する局面を自動で発見します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/tsumeshogi-generator.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/tsumeshogi-generator.html">
+    <meta property="og:title" content="詰将棋局面生成 - ShogiBoardQ">
+    <meta property="og:description" content="ShogiBoardQの詰将棋局面生成機能を紹介。ランダム局面生成とUSIエンジンによる詰み検証で、指定手数の詰将棋を自動発見。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/generator-02-results.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="詰将棋局面生成 - ShogiBoardQ">
+    <meta name="twitter:description" content="ShogiBoardQの詰将棋局面生成機能を紹介。ランダム局面生成とUSIエンジンによる詰み検証で、指定手数の詰将棋を自動発見。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/generator-02-results.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="index.html">ホーム</a></li>
+            <li><a href="#overview">概要</a></li>
+            <li><a href="#generation">局面生成</a></li>
+            <li><a href="#results">生成結果</a></li>
+            <li><a href="#replay">手順の確認</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>詰将棋局面生成</h1>
+        <p class="hero-subtitle">ランダム局面生成とUSIエンジンによる詰み検証で詰将棋を自動生成</p>
+        <div class="hero-badges">
+            <span class="badge">自動生成</span>
+            <span class="badge">不要駒トリミング</span>
+            <span class="badge">SFEN出力</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Overview -->
+<section id="overview" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">概要</h2>
+        <p class="section-desc">ランダムに詰将棋の候補局面を生成し、USIエンジンで詰みを検証します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">機能の特徴</span>
+                </div>
+                <p class="guide-step-text">詰将棋局面生成機能は、以下の処理を自動で行います。</p>
+                <ul class="guide-step-text">
+                    <li>ランダムに詰将棋の候補局面を生成</li>
+                    <li>USIエンジン（go mate コマンド）で詰み探索を実行し、指定手数の詰みがある局面を発見</li>
+                    <li>発見した局面に対して不要駒トリミング処理を行い、最小限の駒で構成された局面に最適化</li>
+                    <li>結果をSFEN形式で一覧表示し、ファイル保存やクリップボードへのコピーが可能</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Generation -->
+<section id="generation" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">局面生成の設定</h2>
+        <p class="section-desc">生成ダイアログで各種パラメータを設定して局面生成を開始します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">詰将棋局面生成ダイアログ</span>
+                </div>
+                <p class="guide-step-text">メニューの「ツール」→「詰将棋局面生成」からダイアログを開きます。以下の項目を設定できます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>エンジン設定</strong>：詰み探索に使用するUSIエンジンの選択・設定</li>
+                    <li><strong>目標手数</strong>：生成する詰将棋の手数（例：3手詰、5手詰）</li>
+                    <li><strong>攻め駒上限</strong>：攻方の駒数の上限（盤上＋持駒の合計）</li>
+                    <li><strong>守り駒上限</strong>：守方の駒数の上限（玉を除く）</li>
+                    <li><strong>配置範囲</strong>：玉を中心とした攻め駒の配置範囲（マス数）</li>
+                    <li><strong>探索時間/局面</strong>：1局面あたりのエンジン探索時間</li>
+                    <li><strong>生成上限</strong>：発見する局面数の上限</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi-generator/generator-01-dialog.png" alt="詰将棋局面生成ダイアログ">
+                    <p class="screenshot-caption">詰将棋局面生成ダイアログ：エンジン・生成パラメータを設定して「開始」で生成開始</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">ランダム局面生成のしくみ</span>
+                </div>
+                <p class="guide-step-text">局面生成は以下の手順で自動的に行われます。</p>
+                <ul class="guide-step-text">
+                    <li>後手の玉を9x9盤面のランダムな位置に配置</li>
+                    <li>攻め駒を玉の周辺に配置（盤上または持駒としてランダムに振り分け）</li>
+                    <li>守り駒を玉の周辺に配置</li>
+                    <li>未使用の駒は全て受方（後手）持駒に追加（40駒保存則）</li>
+                    <li>初期局面で王手がかかっていないことを検証</li>
+                </ul>
+                <p class="guide-step-text">生成された候補局面はUSIエンジンに送信され、指定手数ちょうどの詰みがある局面のみが採択されます。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Results -->
+<section id="results" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">生成結果</h2>
+        <p class="section-desc">発見された詰将棋局面が一覧表示されます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">結果一覧</span>
+                </div>
+                <p class="guide-step-text">指定手数の詰みが発見されると、不要駒トリミング処理が行われた後、結果一覧に追加されます。トリミング処理により、詰み手数を変えずに除去可能な駒が自動的に取り除かれ、最小限の駒で構成された局面が出力されます。</p>
+                <p class="guide-step-text">結果一覧では以下の操作が行えます。</p>
+                <ul class="guide-step-text">
+                    <li><strong>盤面ボタン</strong>：クリックすると読み筋表示ウィンドウで詰み手順を確認</li>
+                    <li><strong>ファイル保存</strong>：結果をSFEN形式のテキストファイルに保存</li>
+                    <li><strong>選択コピー</strong>：選択した局面のSFENをクリップボードにコピー</li>
+                    <li><strong>全コピー</strong>：全局面のSFENをクリップボードにコピー</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi-generator/generator-02-results.png" alt="詰将棋局面生成の結果一覧">
+                    <p class="screenshot-caption">生成結果：10局面の3手詰を発見（探索済み1400局面、経過時間00:01:32）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">不要駒トリミング</span>
+                </div>
+                <p class="guide-step-text">不要駒トリミングは、ランダム生成された局面に含まれる「飾り駒」（取り除いても詰み手順に影響しない駒）を自動的に除去する処理です。</p>
+                <ul class="guide-step-text">
+                    <li>盤上の攻方・守方の駒、攻方の持駒を1枚ずつ試行的に除去</li>
+                    <li>除去しても同じ手数で詰む場合は除去を確定</li>
+                    <li>除去した駒は後手持駒に移動（40駒保存則を維持）</li>
+                    <li>1枚除去するたびに再チェックし、新たに不要になった駒も除去</li>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Replay -->
+<section id="replay" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">詰み手順の確認</h2>
+        <p class="section-desc">生成された詰将棋の手順を読み筋表示ウィンドウで確認できます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">読み筋表示ウィンドウ</span>
+                </div>
+                <p class="guide-step-text">結果一覧の「盤面」ボタンをクリックすると、読み筋表示ウィンドウが開きます。詰み手順を将棋盤上で1手ずつ再生して確認できます。「1手進む」「1手戻る」ボタンで手順を前後に移動できます。</p>
+                <div class="screenshot-item">
+                    <img src="images/tsumeshogi-generator/generator-03-replay.png" alt="読み筋表示ウィンドウで詰み手順を確認">
+                    <p class="screenshot-caption">読み筋表示：生成された3手詰の局面を盤面上で確認（手数 0/3）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; ホームに戻る</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
