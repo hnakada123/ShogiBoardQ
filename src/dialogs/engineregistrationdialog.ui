@@ -15,91 +15,14 @@
   </property>
   <layout class="QVBoxLayout" name="mainLayout">
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <spacer name="horizontalSpacer_3">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Minimum</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <widget class="QListWidget" name="engineListWidget">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-         <horstretch>1</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer_2">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Minimum</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-     <item>
-      <layout class="QVBoxLayout" name="verticalLayout">
-       <item>
-        <widget class="QPushButton" name="addEngineButton">
-         <property name="text">
-          <string>追加</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="removeEngineButton">
-         <property name="text">
-          <string>削除</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="configureEngineButton">
-         <property name="text">
-          <string>設定</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <spacer name="horizontalSpacer">
-       <property name="orientation">
-        <enum>Qt::Horizontal</enum>
-       </property>
-       <property name="sizeType">
-        <enum>QSizePolicy::Minimum</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
-       </property>
-      </spacer>
-     </item>
-    </layout>
+    <widget class="QListWidget" name="engineListWidget">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+       <horstretch>1</horstretch>
+       <verstretch>1</verstretch>
+      </sizepolicy>
+     </property>
+    </widget>
    </item>
    <item>
     <layout class="QHBoxLayout" name="bottomLayout">
@@ -108,10 +31,10 @@
        <property name="text">
         <string>A-</string>
        </property>
-       <property name="maximumSize">
+       <property name="minimumSize">
         <size>
-         <width>40</width>
-         <height>16777215</height>
+         <width>60</width>
+         <height>0</height>
         </size>
        </property>
       </widget>
@@ -121,16 +44,16 @@
        <property name="text">
         <string>A+</string>
        </property>
-       <property name="maximumSize">
+       <property name="minimumSize">
         <size>
-         <width>40</width>
-         <height>16777215</height>
+         <width>60</width>
+         <height>0</height>
         </size>
        </property>
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer_4">
+      <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
@@ -141,6 +64,27 @@
         </size>
        </property>
       </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="addEngineButton">
+       <property name="text">
+        <string>追加</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="removeEngineButton">
+       <property name="text">
+        <string>削除</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="configureEngineButton">
+       <property name="text">
+        <string>設定</string>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QPushButton" name="closeButton">
