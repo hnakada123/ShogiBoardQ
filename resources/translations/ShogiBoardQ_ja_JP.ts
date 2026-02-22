@@ -1532,37 +1532,37 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="66"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="71"/>
         <source>追加</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="73"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="78"/>
         <source>削除</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="80"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="85"/>
         <source>設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="109"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="32"/>
         <source>A-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="122"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="45"/>
         <source>A+</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="148"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.ui" line="92"/>
         <source>閉じる</source>
         <translation type="unfinished">閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="223"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="226"/>
         <source>ファイルの選択</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1607,49 +1607,49 @@
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="257"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="260"/>
         <source>ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="282"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="285"/>
         <source>エンジン %1 は既に追加されています。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="390"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="393"/>
         <source>指定されたエンジンファイルが存在しません: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="418"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="421"/>
         <source>エンジンの起動に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="462"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="465"/>
         <source>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="474"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="782"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="477"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="785"/>
         <source>将棋エンジンを1つ選択してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="596"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="599"/>
         <source>USI_Hash option added.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="691"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="702"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="694"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="705"/>
         <source>オプション行の形式が無効です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="745"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="748"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation type="unfinished"></translation>
     </message>

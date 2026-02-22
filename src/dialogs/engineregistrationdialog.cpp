@@ -219,6 +219,9 @@ Engine EngineRegistrationDialog::readEngineFromSettings(const QSettings& setting
 // エンジン登録ダイアログで選択したエンジンを追加する。
 void EngineRegistrationDialog::addEngineFromFileSelection()
 {
+    // 前回のエラー状態をリセットする
+    m_errorOccurred = false;
+
     // ファイルの選択ダイアログのタイトル
     const QString fileSelectionDialogTitle = tr("ファイルの選択");
 
@@ -836,6 +839,9 @@ void EngineRegistrationDialog::applyFontSize()
     font.setPointSize(m_fontSize);
     this->setFont(font);
 
-    // リストウィジェットにもフォントを設定
-    ui->engineListWidget->setFont(font);
+    // すべての子ウィジェットにフォントを明示的に設定する（KDE Breezeでは親の設定が伝搬しないため）
+    const auto widgets = findChildren<QWidget*>();
+    for (QWidget* widget : widgets) {
+        widget->setFont(font);
+    }
 }
