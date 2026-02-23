@@ -5,6 +5,7 @@
 #include <QString>
 
 #include "playmode.h"
+#include "shogitypes.h"
 
 class Usi;
 

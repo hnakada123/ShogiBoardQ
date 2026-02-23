@@ -56,7 +56,7 @@ void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString&, QString&,
                                                          QPoint&, QPoint&,
                                                          int, const QString&, const QString&,
                                                          int, int, bool) {}
-void Usi::sendGameOverCommand(const QString&) {}
+void Usi::sendGameOverCommand(GameOverResult) {}
 void Usi::sendQuitCommand() {}
 QChar Usi::rankToAlphabet(int) const { return QChar(); }
 void Usi::sendGameOverWinAndQuitCommands() {}

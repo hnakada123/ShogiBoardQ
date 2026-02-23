@@ -402,9 +402,9 @@ void UsiProtocolHandler::sendPonderHit()
     m_phase = SearchPhase::Main;
 }
 
-void UsiProtocolHandler::sendGameOver(const QString& result)
+void UsiProtocolHandler::sendGameOver(GameOverResult result)
 {
-    sendCommand("gameover " + result);
+    sendCommand(QStringLiteral("gameover ") + gameOverResultToString(result));
 }
 
 void UsiProtocolHandler::sendQuit()
@@ -673,26 +673,26 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
     m_bestMoveReceived = true;
 
-    if (m_bestMove.compare(QStringLiteral("resign"), Qt::CaseInsensitive) == 0) {
+    m_specialMove = parseSpecialMove(m_bestMove);
+
+    if (m_specialMove == SpecialMove::Resign) {
         // 重複シグナル防止
         if (m_resignNotified) {
             qCDebug(lcEngine) << "[dup-resign-ignored]";
             return;
         }
         m_resignNotified = true;
-        m_isResignMove = true;
         emit bestMoveResignReceived();
         return;
     }
 
-    if (m_bestMove.compare(QStringLiteral("win"), Qt::CaseInsensitive) == 0) {
+    if (m_specialMove == SpecialMove::Win) {
         // 重複シグナル防止
         if (m_winNotified) {
             qCDebug(lcEngine) << "[dup-win-ignored]";
             return;
         }
         m_winNotified = true;
-        m_isWinMove = true;
         emit bestMoveWinReceived();
         return;
     }
@@ -740,11 +740,8 @@ void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom,
     fileFrom = rankFrom = fileTo = rankTo = -1;
 
     const QString move = m_bestMove.trimmed();
-    const QString lmove = move.toLower();
 
-    if (lmove == QLatin1String("resign") ||
-        lmove == QLatin1String("win") ||
-        lmove == QLatin1String("draw")) {
+    if (m_specialMove != SpecialMove::None) {
         if (m_gameController) m_gameController->setPromote(false);
         return;
     }

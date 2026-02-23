@@ -486,7 +486,7 @@ void Usi::cleanupEngineProcessAndThread(bool clearThinking)
 // コマンド送信
 // ============================================================
 
-void Usi::sendGameOverCommand(const QString& result)
+void Usi::sendGameOverCommand(GameOverResult result)
 {
     m_protocolHandler->sendGameOver(result);
 }
@@ -606,7 +606,7 @@ void Usi::sendGameOverLoseAndQuitCommands()
     if (!m_processManager->isRunning()) return;
 
     if (!m_gameoverSent) {
-        m_protocolHandler->sendGameOver("lose");
+        m_protocolHandler->sendGameOver(GameOverResult::Lose);
         m_gameoverSent = true;
     }
 
@@ -618,7 +618,7 @@ void Usi::sendGameOverWinAndQuitCommands()
     if (!m_processManager->isRunning()) return;
 
     if (!m_gameoverSent) {
-        m_protocolHandler->sendGameOver("win");
+        m_protocolHandler->sendGameOver(GameOverResult::Win);
         m_gameoverSent = true;
     }
 

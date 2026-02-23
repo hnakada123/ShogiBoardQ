@@ -6877,32 +6877,32 @@ Do you want to continue?</translation>
         <translation>Invalid bestmove format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="753"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="750"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>Invalid bestmove format: &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="773"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="770"/>
         <source>Invalid move coordinates in moveFrom: file=%1, rank=%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="792"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="789"/>
         <source>Invalid move format in moveFrom</source>
         <translation>Invalid move format in moveFrom</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="799"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="796"/>
         <source>Invalid move format in moveTo</source>
         <translation>Invalid move format in moveTo</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="807"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="804"/>
         <source>Invalid move coordinates in moveTo: file=%1, rank=%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="834"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="831"/>
         <source>Invalid fileFrom value</source>
         <translation>Invalid fileFrom value</translation>
     </message>
