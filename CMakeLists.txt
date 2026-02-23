@@ -313,7 +313,7 @@ target_link_libraries(ShogiBoardQ PRIVATE
 )
 
 # アプリケーションバージョン (CalVer: YYYY.MM.DD)
-set(APP_VERSION "2026.02.22")
+set(APP_VERSION "2026.02.23")
 
 # リリースビルドではqDebug()出力を無効化
 target_compile_definitions(ShogiBoardQ PRIVATE
