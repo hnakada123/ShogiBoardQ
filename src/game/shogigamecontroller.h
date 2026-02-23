@@ -8,6 +8,7 @@
 #include <QObject>
 #include "fastmovevalidator.h"
 #include "playmode.h"
+#include "shogitypes.h"
 
 class ShogiBoard;
 
@@ -179,8 +180,8 @@ private:
                          const FastMoveValidator::Turn& turnMove,
                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, QChar& piece,  ShogiMove& currentMove);
 
-    /// 相手の手番をSFEN形式（"b" or "w"）で取得する
-    QString getNextPlayerSfen();
+    /// 相手の手番をTurnで取得する
+    Turn getNextPlayerSfen();
 
     /// MoveValidatorに渡す手番を取得する
     FastMoveValidator::Turn getCurrentTurnForValidator(FastMoveValidator& validator);

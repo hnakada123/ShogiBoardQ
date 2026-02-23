@@ -8,6 +8,7 @@
 #include <QVector>
 #include <QMap>
 #include <QLoggingCategory>
+#include "shogitypes.h"
 
 Q_DECLARE_LOGGING_CATEGORY(lcCore)
 
@@ -41,7 +42,7 @@ public:
 
     int ranks() const { return m_ranks; }
     int files() const { return m_files; }
-    QString currentPlayer() const;
+    Turn currentPlayer() const;
 
     // --- SFEN変換 ---
 
@@ -60,7 +61,7 @@ public:
     QString convertStandToSfen() const;
 
     /// 現局面のSFENレコードをリストに追加する
-    void addSfenRecord(const QString& nextTurn, const int moveNumber, QStringList* m_sfenHistory);
+    void addSfenRecord(Turn nextTurn, const int moveNumber, QStringList* m_sfenHistory);
 
     // --- 駒操作 ---
 
@@ -116,7 +117,7 @@ private:
     int m_files;                    ///< 盤の筋数（9）
     QVector<QChar> m_boardData;     ///< 81マスの駒文字データ
     int m_currentMoveNumber;        ///< SFEN文字列の手数
-    QString m_currentPlayer;        ///< 現在の手番（"b" or "w"）
+    Turn m_currentPlayer = Turn::Black; ///< 現在の手番
 
     // --- 内部操作 ---
     void setData(const int file, const int rank, const QChar value);

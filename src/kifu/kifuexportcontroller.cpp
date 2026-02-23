@@ -568,7 +568,7 @@ KifuExportController::PositionData KifuExportController::getCurrentPositionData(
         const QString boardSfen = board->convertBoardToSfen();
         QString standSfen = board->convertStandToSfen();
         if (standSfen.isEmpty()) standSfen = QStringLiteral("-");
-        const QString turn = board->currentPlayer();
+        const QString turn = turnToSfen(board->currentPlayer());
         const int moveNum = qMax(1, currentPly() + 1);
         data.sfenStr = QStringLiteral("%1 %2 %3 %4").arg(boardSfen, turn, standSfen, QString::number(moveNum));
         data.moveIndex = currentPly();

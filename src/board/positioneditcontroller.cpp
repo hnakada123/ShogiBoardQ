@@ -68,18 +68,6 @@ static QString forceTurnAndPly(const QString& minimalSfen, QChar turnBW, int ply
     return QStringLiteral("%1 %2 %3 %4").arg(t[0], t[1], t[2], t[3]);
 }
 
-static QChar toBW(ShogiGameController::Player p)
-{
-    return (p == ShogiGameController::Player2) ? QLatin1Char('w') : QLatin1Char('b');
-}
-
-static ShogiGameController::Player fromBW(const QString& bw)
-{
-    return (bw == QStringLiteral("w"))
-    ? ShogiGameController::Player2
-    : ShogiGameController::Player1;
-}
-
 } // namespace
 
 // ======================================================================
@@ -105,7 +93,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     // GCの手番から desiredTurn を決める（未設定なら先手扱い）
     ShogiGameController::Player preSide = c.gc->currentPlayer();
     if (preSide == ShogiGameController::NoPlayer) preSide = ShogiGameController::Player1;
-    const QChar desiredTurn = toBW(preSide);
+    const QChar desiredTurn = (preSide == ShogiGameController::Player2) ? QLatin1Char('w') : QLatin1Char('b');
 
     // 編集開始SFENの決定（record / current / resume / 盤面 から）
     QString baseSfen;
@@ -131,7 +119,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         } else {
             baseSfen = QStringLiteral("%1 %2 %3 %4")
                            .arg(board->convertBoardToSfen(),
-                                board->currentPlayer(),
+                                turnToSfen(board->currentPlayer()),
                                 board->convertStandToSfen(),
                                 QString::number(1));
         }
@@ -160,8 +148,8 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     }
 
     // GC の手番を盤へ同期
-    const QString bw = board->currentPlayer();
-    c.gc->setCurrentPlayer(fromBW(bw));
+    const Turn boardTurn = board->currentPlayer();
+    c.gc->setCurrentPlayer(boardTurn == Turn::White ? ShogiGameController::Player2 : ShogiGameController::Player1);
 
     // 「編集終了」ボタン表示
     if (c.onShowEditExitButton) c.onShowEditExitButton();

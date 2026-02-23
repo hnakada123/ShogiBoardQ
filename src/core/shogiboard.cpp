@@ -48,7 +48,7 @@ const QMap<QChar, int>& ShogiBoard::getPieceStand() const
     return m_pieceStand;
 }
 
-QString ShogiBoard::currentPlayer() const
+Turn ShogiBoard::currentPlayer() const
 {
     return m_currentPlayer;
 }
@@ -337,7 +337,7 @@ bool ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardSt
     QString playerTurnStr = sfenComponents.at(1);
 
     if (playerTurnStr == "b" || playerTurnStr == "w") {
-        m_currentPlayer = playerTurnStr;
+        m_currentPlayer = sfenToTurn(playerTurnStr);
     }
     else {
         qCWarning(lcCore, "Invalid turn: %s in %s",
@@ -465,7 +465,7 @@ QString ShogiBoard::convertStandToSfen() const
 // SFEN記録
 // ============================================================
 
-void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringList* sfenRecord)
+void ShogiBoard::addSfenRecord(Turn nextTurn, int moveIndex, QStringList* sfenRecord)
 {
     if (!sfenRecord) {
         qCWarning(lcCore, "addSfenRecord: sfenRecord is null");
@@ -482,13 +482,14 @@ void ShogiBoard::addSfenRecord(const QString& nextTurn, int moveIndex, QStringLi
     QString stand = convertStandToSfen();
     if (stand.isEmpty()) stand = QStringLiteral("-");
 
+    const QString nextTurnStr = turnToSfen(nextTurn);
     qCDebug(lcCore, "addSfenRecord BEFORE size= %lld nextTurn= %s moveIndex= %d => field= %d",
-            static_cast<long long>(before), qUtf8Printable(nextTurn), moveIndex, moveCountField);
+            static_cast<long long>(before), qUtf8Printable(nextTurnStr), moveIndex, moveCountField);
     qCDebug(lcCore, "addSfenRecord board= %s stand= %s",
             qUtf8Printable(boardSfen), qUtf8Printable(stand));
 
     const QString sfen = QStringLiteral("%1 %2 %3 %4")
-                             .arg(boardSfen, nextTurn, stand, QString::number(moveCountField));
+                             .arg(boardSfen, nextTurnStr, stand, QString::number(moveCountField));
     sfenRecord->append(sfen);
 
     qCDebug(lcCore, "addSfenRecord AFTER size= %lld appended= %s",

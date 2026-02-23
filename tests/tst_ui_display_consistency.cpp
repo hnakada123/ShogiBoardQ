@@ -26,10 +26,7 @@ static QString buildCurrentBoardSfen(ShogiBoard* board)
     if (standPart.isEmpty()) {
         standPart = QStringLiteral("-");
     }
-    QString turnPart = board->currentPlayer();
-    if (turnPart.isEmpty()) {
-        turnPart = QStringLiteral("b");
-    }
+    const QString turnPart = turnToSfen(board->currentPlayer());
     return QStringLiteral("%1 %2 %3 1")
         .arg(board->convertBoardToSfen(), turnPart, standPart);
 }

@@ -35,6 +35,21 @@ void TurnManager::toggle() {
 }
 
 // ============================================================
+// Turn enum 変換
+// ============================================================
+
+Turn TurnManager::toTurn() const {
+    return (m_side == ShogiGameController::Player2)
+               ? Turn::White : Turn::Black;
+}
+
+void TurnManager::setFromTurn(Turn t) {
+    set(t == Turn::White
+            ? ShogiGameController::Player2
+            : ShogiGameController::Player1);
+}
+
+// ============================================================
 // SFEN "b"/"w" 変換
 // ============================================================
 

@@ -142,8 +142,8 @@ void RecordNavigationHandler::onMainRowChanged(int row)
 
         // 盤面の手番ラベルを更新
         if (m_deps.shogiView && m_deps.shogiView->board()) {
-            const QString bw = m_deps.shogiView->board()->currentPlayer();
-            const bool isBlackTurn = (bw != QStringLiteral("w"));
+            const Turn boardTurn = m_deps.shogiView->board()->currentPlayer();
+            const bool isBlackTurn = (boardTurn == Turn::Black);
             m_deps.shogiView->setActiveSide(isBlackTurn);
 
             const auto player = isBlackTurn ? ShogiGameController::Player1 : ShogiGameController::Player2;
