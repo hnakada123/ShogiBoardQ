@@ -679,9 +679,8 @@ QString Usi::computeBaseSfenFromBoard() const
     // 棋譜ナビゲーション後も正しい手番を返す。
     // m_gameController->currentPlayer() は対局中の手番管理用であり、
     // ナビゲーション時には更新されないため使用しない。
-    const QString boardTurn = board->currentPlayer();
-    const QString turn = (boardTurn == QStringLiteral("w"))
-                         ? QStringLiteral("w") : QStringLiteral("b");
+    const Turn boardTurn = board->currentPlayer();
+    const QString turn = turnToSfen(boardTurn);
     return board->convertBoardToSfen() + QStringLiteral(" ") + turn +
            QStringLiteral(" ") + board->convertStandToSfen() + QStringLiteral(" 1");
 }

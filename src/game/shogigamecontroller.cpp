@@ -42,8 +42,8 @@ void ShogiGameController::newGame(QString& initialSfenString)
     setResult(NoResult);
 
     // SFEN の手番フィールドから GC の手番を同期
-    const QString boardTurn = board()->currentPlayer();
-    setCurrentPlayer((boardTurn == QLatin1String("w")) ? Player2 : Player1);
+    const Turn boardTurn = board()->currentPlayer();
+    setCurrentPlayer(boardTurn == Turn::White ? Player2 : Player1);
 
     // 前の対局の最終手の移動先が残ると「同」表記が誤表示されるためリセット
     previousFileTo = 0;
@@ -130,20 +130,16 @@ void ShogiGameController::changeCurrentPlayer()
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
 }
 
-QString ShogiGameController::getNextPlayerSfen()
+Turn ShogiGameController::getNextPlayerSfen()
 {
-    QString nextPlayerColorSfen;
-
     if (currentPlayer() == Player1) {
-        nextPlayerColorSfen = QStringLiteral("w");
+        return Turn::White;
     } else if (currentPlayer() == Player2) {
-        nextPlayerColorSfen = QStringLiteral("b");
+        return Turn::Black;
     } else {
         qCWarning(lcGame) << "getNextPlayerSfen: Invalid player state. currentPlayer() =" << currentPlayer();
-        return QString();
+        return Turn::Black;
     }
-
-    return nextPlayerColorSfen;
 }
 
 FastMoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(FastMoveValidator& validator)
@@ -390,22 +386,19 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     }
 
     // 手番SFENの取得を先に行い、異常時は盤面更新前に打ち切る
-    QString nextPlayerColorSfen = getNextPlayerSfen();
-    if (nextPlayerColorSfen.isEmpty()) {
-        return false;
-    }
+    const Turn nextPlayerTurn = getNextPlayerSfen();
 
     gameMoves.append(currentMove);
 
     board()->updateBoardAndPieceStand(movingPiece, capturedPiece, fileFrom, rankFrom, fileTo, rankTo, m_promote);
 
 
-    qCDebug(lcGame).noquote() << "pre-add: nextTurn=" << nextPlayerColorSfen
+    qCDebug(lcGame).noquote() << "pre-add: nextTurn=" << turnToSfen(nextPlayerTurn)
                        << " moveIndex=" << moveNumber
                        << " rec*=" << static_cast<const void*>(m_sfenHistory)
                        << " size(before)=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
 
-    board()->addSfenRecord(nextPlayerColorSfen, moveNumber, m_sfenHistory);
+    board()->addSfenRecord(nextPlayerTurn, moveNumber, m_sfenHistory);
 
     qCDebug(lcGame).noquote() << "post-add: size(after)=" << (m_sfenHistory ? m_sfenHistory->size() : -1)
                        << " head=" << (m_sfenHistory && !m_sfenHistory->isEmpty() ? m_sfenHistory->first() : QString())

@@ -227,7 +227,7 @@ void ShogiBoard::setSfen(const QString&)
 }
 QChar ShogiBoard::getPieceCharacter(int, int) { return QChar(' '); }
 const QMap<QChar, int>& ShogiBoard::getPieceStand() const { return m_pieceStand; }
-QString ShogiBoard::currentPlayer() const { return QStringLiteral("b"); }
+Turn ShogiBoard::currentPlayer() const { return Turn::Black; }
 QString ShogiBoard::convertBoardToSfen() { return {}; }
 QString ShogiBoard::convertStandToSfen() const { return {}; }
 

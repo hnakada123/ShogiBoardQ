@@ -1054,10 +1054,10 @@ void MainWindow::setCurrentTurn()
     }
 
     // 非ライブ用途（棋譜ナビゲーション等）は盤面SFENの手番を優先。
-    const QString bw = (m_shogiView && m_shogiView->board())
-                           ? m_shogiView->board()->currentPlayer()
-                           : QStringLiteral("b");
-    tm->setFromSfenToken(bw);
+    const Turn boardTurn = (m_shogiView && m_shogiView->board())
+                               ? m_shogiView->board()->currentPlayer()
+                               : Turn::Black;
+    tm->setFromTurn(boardTurn);
 
     // 盤面起点の同期時のみ GC へ反映する。
     if (m_gameController) m_gameController->setCurrentPlayer(tm->toGc());
@@ -1886,11 +1886,7 @@ void MainWindow::initializeBranchNavigationClasses()
             if (standPart.isEmpty()) {
                 standPart = QStringLiteral("-");
             }
-            const QString turnPart = !board->currentPlayer().isEmpty()
-                ? board->currentPlayer()
-                : ((m_gameController->currentPlayer() == ShogiGameController::Player2)
-                    ? QStringLiteral("w")
-                    : QStringLiteral("b"));
+            const QString turnPart = turnToSfen(board->currentPlayer());
             return QStringLiteral("%1 %2 %3 1")
                 .arg(board->convertBoardToSfen(), turnPart, standPart);
         });

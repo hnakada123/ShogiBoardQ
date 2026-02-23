@@ -1060,8 +1060,8 @@ void CsaGameCoordinator::setupInitialPosition()
     // SFENを生成（盤面 + 持ち駒 + 手番）
     QString boardSfen = m_gameController->board()->convertBoardToSfen();
     QString standSfen = m_gameController->board()->convertStandToSfen();
-    QString currentPlayer = m_gameController->board()->currentPlayer();
-    m_startSfen = QString("%1 %2 %3 1").arg(boardSfen, currentPlayer, standSfen);
+    const QString currentPlayerStr = turnToSfen(m_gameController->board()->currentPlayer());
+    m_startSfen = QString("%1 %2 %3 1").arg(boardSfen, currentPlayerStr, standSfen);
 
     if (m_sfenHistory) {
         m_sfenHistory->clear();

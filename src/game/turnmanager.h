@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include "shogigamecontroller.h"
+#include "shogitypes.h"
 
 /**
  * @brief 手番の単一ソースとして、表現形式の変換とシグナル配信を行う
@@ -25,6 +26,10 @@ public:
     Side side() const;
     void set(Side s);
     void toggle();
+
+    // --- Turn enum 変換 ---
+    Turn toTurn() const;
+    void setFromTurn(Turn t);
 
     // --- SFEN "b"/"w" 変換 ---
     QString toSfenToken() const;
