@@ -4,7 +4,15 @@
       "Bash(find:*)",
       "Bash(tail:*)",
       "Bash(cmake:*)",
-      "Bash(git rm:*)"
+      "Bash(git rm:*)",
+      "Bash(git stash:*)",
+      "Bash(identify:*)",
+      "Bash(scripts/build-linux.sh:*)",
+      "Bash(tee:*)",
+      "Bash(ls:*)",
+      "Bash(readelf:*)",
+      "Bash(qmake6:*)",
+      "Bash(./scripts/build-linux.sh:*)"
     ]
   }
 }
