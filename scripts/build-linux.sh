@@ -28,14 +28,16 @@ set -euo pipefail
 APP_NAME="ShogiBoardQ"
 BUILD_DIR="build"
 APPDIR="${BUILD_DIR}/AppDir"
-APPIMAGE_NAME="${APP_NAME}-x86_64.AppImage"
+APPIMAGE_NAME="${APP_NAME}-linux-x86_64.AppImage"
 ICON_PATH="resources/icons/shogiboardq.png"
 DESKTOP_PATH="resources/platform/shogiboardq.desktop"
 
 LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT_URL="https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage"
+APPIMAGETOOL_URL="https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
 LINUXDEPLOY="${BUILD_DIR}/linuxdeploy-x86_64.AppImage"
 LINUXDEPLOY_QT="${BUILD_DIR}/linuxdeploy-plugin-qt-x86_64.AppImage"
+APPIMAGETOOL="${BUILD_DIR}/appimagetool-x86_64.AppImage"
 
 # ──────────────────────────────────────────────
 # デフォルトオプション
@@ -213,6 +215,7 @@ download_if_missing() {
 
 download_if_missing "$LINUXDEPLOY_URL" "$LINUXDEPLOY"
 download_if_missing "$LINUXDEPLOY_QT_URL" "$LINUXDEPLOY_QT"
+download_if_missing "$APPIMAGETOOL_URL" "$APPIMAGETOOL"
 
 # ──────────────────────────────────────────────
 # Step 8: AppDir 作成 + linuxdeploy 実行
@@ -224,9 +227,102 @@ info "AppImage を作成中..."
 rm -rf "$APPDIR"
 
 # linuxdeploy で AppImage を作成
-# QMAKE 環境変数で Qt のパスを指定（Qt Online Installer の場合）
+# Qt6 の qmake を明示指定（Qt5 が混入するのを防ぐ）
+QMAKE6="$(command -v qmake6 2>/dev/null || command -v qmake-qt6 2>/dev/null || true)"
+if [[ -z "$QMAKE6" ]]; then
+    die "qmake6 が見つかりません。qt6-base-dev をインストールしてください。"
+fi
+info "qmake: $QMAKE6"
+
+# Step 8a: フィルタ済み Qt プラグインディレクトリを作成
+# KDE 画像フォーマットプラグイン (kimg_*) 等は依存ライブラリが不足している
+# 場合があり、linuxdeploy-plugin-qt がエラー終了する。
+# 問題のあるプラグインを除外したディレクトリを作成し、qmake ラッパー経由で
+# linuxdeploy-plugin-qt に参照させる。
+info "フィルタ済み Qt プラグインディレクトリを作成中..."
+QT_PLUGINS_SRC="$("$QMAKE6" -query QT_INSTALL_PLUGINS)"
+FILTERED_PLUGINS="$(pwd)/${BUILD_DIR}/qt-plugins-filtered"
+rm -rf "$FILTERED_PLUGINS"
+
+# 必要なプラグインのみをホワイトリストで選択
+link_plugins() {
+    local category="$1"
+    shift
+    local src_dir="$QT_PLUGINS_SRC/$category"
+    [[ -d "$src_dir" ]] || return 0
+    mkdir -p "$FILTERED_PLUGINS/$category"
+    for name in "$@"; do
+        [[ -f "$src_dir/$name" ]] && ln -s "$src_dir/$name" "$FILTERED_PLUGINS/$category/"
+    done
+}
+
+# platforms: X11 のみ
+link_plugins platforms libqxcb.so
+
+# xcbglintegrations: OpenGL 統合
+link_plugins xcbglintegrations libqxcb-glx-integration.so libqxcb-egl-integration.so
+
+# imageformats: 将棋盤アプリに必要な最小限
+link_plugins imageformats libqgif.so libqjpeg.so libqsvg.so libqico.so
+
+# iconengines: SVG アイコン
+link_plugins iconengines libqsvgicon.so
+
+# platforminputcontexts: 日本語入力（compose, fcitx5, ibus）
+link_plugins platforminputcontexts \
+    libcomposeplatforminputcontextplugin.so \
+    libfcitx5platforminputcontextplugin.so \
+    libibusplatforminputcontextplugin.so
+
+# platformthemes: デスクトップ統合
+link_plugins platformthemes libqxdgdesktopportal.so
+
+# tls: ネットワーク通信用
+link_plugins tls libqopensslbackend.so libqcertonlybackend.so
+
+# qmake ラッパーを作成（QT_INSTALL_PLUGINS をフィルタ済みパスに差し替え）
+# linuxdeploy-plugin-qt が確実に見つけられるよう絶対パスを使用
+QMAKE_WRAPPER="$(pwd)/${BUILD_DIR}/qmake-wrapper"
+cat > "$QMAKE_WRAPPER" <<WRAPPER_EOF
+#!/bin/bash
+if [[ "\$1" == "-query" && -z "\$2" ]]; then
+    "$QMAKE6" -query | sed 's|^QT_INSTALL_PLUGINS:.*|QT_INSTALL_PLUGINS:${FILTERED_PLUGINS}|'
+elif [[ "\$1" == "-query" && "\$2" == "QT_INSTALL_PLUGINS" ]]; then
+    echo "${FILTERED_PLUGINS}"
+else
+    exec "$QMAKE6" "\$@"
+fi
+WRAPPER_EOF
+chmod +x "$QMAKE_WRAPPER"
+export QMAKE="$QMAKE_WRAPPER"
+
 export EXTRA_QT_PLUGINS="svg;iconengines"
-export OUTPUT="$APPIMAGE_NAME"
+
+# linuxdeploy 内蔵の strip は古く、最新の .relr.dyn セクションを
+# 認識できない場合がある。linuxdeploy の strip をスキップし、
+# 後からシステムの strip を手動適用する。
+export NO_STRIP=true
+
+# アイコンが 512x512 を超える場合、linuxdeploy が拒否するため
+# 512x512 にリサイズしたコピーを使用する
+ICON_DEPLOY="$ICON_PATH"
+if command -v magick &>/dev/null; then
+    ICON_SIZE=$(magick identify -format '%w' "$ICON_PATH" 2>/dev/null || true)
+    if [[ -n "$ICON_SIZE" ]] && [[ "$ICON_SIZE" -gt 512 ]]; then
+        ICON_DEPLOY="${BUILD_DIR}/shogiboardq.png"
+        info "アイコンを 512x512 にリサイズ中..."
+        magick "$ICON_PATH" -resize 512x512 "$ICON_DEPLOY"
+    fi
+elif command -v convert &>/dev/null; then
+    ICON_SIZE=$(identify -format '%w' "$ICON_PATH" 2>/dev/null || true)
+    if [[ -n "$ICON_SIZE" ]] && [[ "$ICON_SIZE" -gt 512 ]]; then
+        ICON_DEPLOY="${BUILD_DIR}/shogiboardq.png"
+        info "アイコンを 512x512 にリサイズ中..."
+        convert "$ICON_PATH" -resize 512x512 "$ICON_DEPLOY"
+    fi
+else
+    warn "ImageMagick が見つかりません。アイコンサイズの調整をスキップします。"
+fi
 
 # .qm ファイルを実行ファイルと同じ場所にデプロイするため、
 # まず AppDir/usr/bin/ に手動コピーしてから linuxdeploy を実行
@@ -240,13 +336,87 @@ for qm in "$BUILD_DIR"/*.qm; do
     fi
 done
 
+# Step 8b: linuxdeploy で AppDir を作成（AppImage 生成はまだしない）
+info "AppDir を構築中..."
 "$LINUXDEPLOY" \
     --appdir "$APPDIR" \
     --executable "${APPDIR}/usr/bin/${APP_NAME}" \
     --desktop-file "$DESKTOP_PATH" \
-    --icon-file "$ICON_PATH" \
-    --plugin qt \
-    --output appimage
+    --icon-file "$ICON_DEPLOY" \
+    --plugin qt
+
+# Step 8c: 不要ライブラリを削除
+# ホストシステムに存在するライブラリや、不要プラグインが引き込んだ
+# 依存ライブラリを除去して AppImage サイズを削減する
+info "不要ライブラリを削除中..."
+APPDIR_LIB="${APPDIR}/usr/lib"
+BEFORE_SIZE=$(du -sm "$APPDIR_LIB" | cut -f1)
+
+# libicudata: 32MB。ホストに必ず存在し、バージョン依存も低い
+rm -f "$APPDIR_LIB"/libicudata.so*
+
+# fcitx5 プラグインが引き込んだ不要ライブラリ
+rm -f "$APPDIR_LIB"/libQt6WaylandClient.so*
+rm -f "$APPDIR_LIB"/libFcitx5Qt6DBusAddons.so*
+rm -f "$APPDIR_LIB"/libwayland-cursor.so*
+
+# 除外したプラグインの専用依存ライブラリ
+# (libqmng, libqtiff, libqjp2, libqwebp, libqtga, libqicns 等を除外したため)
+rm -f "$APPDIR_LIB"/libmng.so* "$APPDIR_LIB"/liblcms2.so*
+rm -f "$APPDIR_LIB"/libtiff.so* "$APPDIR_LIB"/libjbig.so* "$APPDIR_LIB"/liblzma.so*
+rm -f "$APPDIR_LIB"/libdeflate.so*
+rm -f "$APPDIR_LIB"/libjasper.so*
+rm -f "$APPDIR_LIB"/libwebp.so* "$APPDIR_LIB"/libwebpdemux.so* "$APPDIR_LIB"/libwebpmux.so*
+rm -f "$APPDIR_LIB"/libsharpyuv.so*
+
+AFTER_SIZE=$(du -sm "$APPDIR_LIB" | cut -f1)
+info "ライブラリ削減: ${BEFORE_SIZE}MB → ${AFTER_SIZE}MB（$((BEFORE_SIZE - AFTER_SIZE))MB 削減）"
+
+# Step 8d: システムの strip で AppDir 内のバイナリをストリップ
+info "AppDir 内のバイナリをストリップ中..."
+find "$APPDIR" -type f \( -name '*.so*' -o -executable \) -print0 | \
+    while IFS= read -r -d '' file; do
+        if file "$file" | grep -q 'ELF'; then
+            strip --strip-unneeded "$file" 2>/dev/null || true
+        fi
+    done
+
+# Step 8e: AppRun をラッパースクリプトに置き換え
+# linuxdeploy はシンボリックリンクを作成するが、システムの Qt プラグイン
+# （KDE プラットフォームテーマ、Breeze スタイル等）をフォールバックとして
+# 参照するために環境変数の設定が必要
+info "AppRun ラッパースクリプトを作成中..."
+rm -f "$APPDIR/AppRun"
+cat > "$APPDIR/AppRun" <<'APPRUN_EOF'
+#!/bin/bash
+HERE="$(dirname "$(readlink -f "$0")")"
+
+# バンドルされたプラグインに加え、システムの Qt プラグインディレクトリを
+# フォールバックとして追加する。これにより KDE/GNOME 等のデスクトップ
+# テーマとスタイルをシステムから利用でき、ネイティブに近い体感速度になる。
+SYSTEM_QT_PLUGIN_DIRS=(
+    /usr/lib/qt6/plugins
+    /usr/lib/x86_64-linux-gnu/qt6/plugins
+    /usr/lib64/qt6/plugins
+)
+
+QT_PLUGIN_PATH="${HERE}/usr/plugins"
+for dir in "${SYSTEM_QT_PLUGIN_DIRS[@]}"; do
+    if [[ -d "$dir" ]]; then
+        QT_PLUGIN_PATH="${QT_PLUGIN_PATH}:${dir}"
+    fi
+done
+export QT_PLUGIN_PATH
+
+exec "${HERE}/usr/bin/ShogiBoardQ" "$@"
+APPRUN_EOF
+chmod +x "$APPDIR/AppRun"
+
+# Step 8f: appimagetool で AppImage を生成
+# linuxdeploy --output appimage は依存ライブラリを再デプロイしてしまうため、
+# クリーンアップ済みの AppDir をそのままパッケージングする appimagetool を使用
+info "AppImage を生成中..."
+"$APPIMAGETOOL" "$APPDIR" "$APPIMAGE_NAME"
 
 # ──────────────────────────────────────────────
 # Step 9: 検証

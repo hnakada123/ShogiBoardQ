@@ -5,9 +5,12 @@
 CMakeLists.txt.user
 .cache
 /out
+/squashfs-root
 
 # Qt Creator user files
 *.user
 CMakeUserPresets.json
 
 debug.log
+ShogiBoardQ-linux-x86_64.AppImage
+ShogiBoardQ-linux.zip
