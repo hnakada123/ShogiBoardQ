@@ -18,7 +18,9 @@
       "Bash(cd /home/nakada/GitHub/ShogiBoardQ/build && ctest --output-on-failure 2>&1)",
       "Bash(./tests/tst_preset_gamestart_cleanup:*)",
       "Bash(./build/tests/tst_preset_gamestart_cleanup:*)",
-      "Bash(ctest:*)"
+      "Bash(ctest:*)",
+      "Bash(wc:*)",
+      "Bash(python3:*)"
     ]
   }
 }
