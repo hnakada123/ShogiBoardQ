@@ -268,6 +268,26 @@ add_shogi_test(tst_positionedit_gamestart
 )
 
 # ============================================================
+# Unit 10b: Preset Game Start → Cleanup Flow
+# ============================================================
+add_shogi_test(tst_preset_gamestart_cleanup
+    tst_preset_gamestart_cleanup.cpp
+    test_stubs_cleanup.cpp
+    ${TEST_STUBS}
+    ${SRC}/game/prestartcleanuphandler.cpp
+    ${SRC}/engine/usicommlogmodel.cpp
+    ${SRC}/models/kifurecordlistmodel.cpp
+    ${SRC}/models/kifubranchlistmodel.cpp
+    ${SRC}/widgets/kifudisplay.cpp
+    ${SRC}/widgets/kifubranchdisplay.cpp
+    ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchnode.cpp
+    ${SRC}/kifu/kifunavigationstate.cpp
+    ${SRC}/kifu/livegamesession.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# ============================================================
 # Unit 11: Integration / Stress Tests
 # ============================================================
 add_shogi_test(tst_integration

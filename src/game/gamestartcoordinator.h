@@ -198,6 +198,9 @@ signals:
     /// 対局開始後に棋譜欄の指定行を選択する（現在局面から開始時に使用）
     void requestSelectKifuRow(int row);
 
+    /// 分岐ツリーの完全リセットを依頼（kifuLoadCoordinator が null の場合用）
+    void requestBranchTreeResetForNewGame();
+
 private:
     bool validate(const StartParams& params, QString& whyNot) const;
 

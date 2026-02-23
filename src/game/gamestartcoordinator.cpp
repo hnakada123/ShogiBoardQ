@@ -844,12 +844,22 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         if (idx >= static_cast<int>(presets.size())) idx = static_cast<int>(presets.size()) - 1;
         startSfen = presets[static_cast<size_t>(idx)];
 
+        // プリセット局面は新規対局なので、全UIコンポーネントをクリアする。
+        // shouldStartFromCurrentPosition() が false を返すよう
+        // currentSfenStr を "startpos" に設定してフルクリアを強制する。
+        if (c.currentSfenStr) {
+            *c.currentSfenStr = QStringLiteral("startpos");
+        }
+        emit requestPreStartCleanup();
+
         Ctx c2 = c; c2.startDlg = dlg;
         prepareInitialPosition(c2);
 
         // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
         if (c.kifuLoadCoordinator) {
             c.kifuLoadCoordinator->resetBranchTreeForNewGame();
+        } else {
+            emit requestBranchTreeResetForNewGame();
         }
     }
 

@@ -1683,6 +1683,26 @@ void MainWindow::onRequestSelectKifuRow(int row)
     }
 }
 
+void MainWindow::onBranchTreeResetForNewGame()
+{
+    // performCleanup() が開始したライブゲームセッションを破棄
+    // （新規対局のため、新しいセッションがゲーム開始フローで再作成される）
+    if (m_liveGameSession && m_liveGameSession->isActive()) {
+        m_liveGameSession->discard();
+    }
+    // resetToInitialState() と同じパターンで分岐ツリーを直接リセット
+    if (m_branchTree) {
+        if (m_navState) {
+            m_navState->setCurrentNode(nullptr);
+            m_navState->resetPreferredLineIndex();
+        }
+        m_branchTree->setRootSfen(m_startSfenStr);
+        if (m_navState) {
+            m_navState->goToRoot();
+        }
+    }
+}
+
 // `syncBoardAndHighlightsAtRow`: 指定手数の盤面・ハイライト・関連UI状態を同期する。
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
@@ -3319,6 +3339,11 @@ void MainWindow::ensureGameStartCoordinator()
     // 現在局面から開始時、対局開始後に棋譜欄の指定行を選択
     connect(m_gameStart, &GameStartCoordinator::requestSelectKifuRow,
             this, &MainWindow::onRequestSelectKifuRow,
+            Qt::UniqueConnection);
+
+    // kifuLoadCoordinator 未生成時の分岐ツリーリセット
+    connect(m_gameStart, &GameStartCoordinator::requestBranchTreeResetForNewGame,
+            this, &MainWindow::onBranchTreeResetForNewGame,
             Qt::UniqueConnection);
 }
 

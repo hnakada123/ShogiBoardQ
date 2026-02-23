@@ -370,6 +370,9 @@ private slots:
     /// 対局開始後に棋譜欄の指定行を選択する（GameStartCoordinator::requestSelectKifuRow に接続）
     void onRequestSelectKifuRow(int row);
 
+    /// kifuLoadCoordinator未生成時の分岐ツリーリセット（resetToInitialStateと同パターン）
+    void onBranchTreeResetForNewGame();
+
     // --- private ---
 private:
     // --- メンバー変数 ---
