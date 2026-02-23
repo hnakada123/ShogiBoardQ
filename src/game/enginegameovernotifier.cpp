@@ -24,12 +24,12 @@ bool isEvE(PlayMode mode)
            mode == PlayMode::HandicapEngineVsEngine;
 }
 
-void sendQuitPair(Usi* engine, const QString& result, const RawSender& sendRaw)
+void sendQuitPair(Usi* engine, GameOverResult result, const RawSender& sendRaw)
 {
     if (!engine || !sendRaw) {
         return;
     }
-    sendRaw(engine, QStringLiteral("gameover ") + result);
+    sendRaw(engine, QStringLiteral("gameover ") + gameOverResultToString(result));
     sendRaw(engine, QStringLiteral("quit"));
 }
 
@@ -46,7 +46,7 @@ void notifyResignation(PlayMode playMode,
     }
 
     if (isHvE(playMode)) {
-        const QString result = loserIsP1 ? QStringLiteral("win") : QStringLiteral("lose");
+        const auto result = loserIsP1 ? GameOverResult::Win : GameOverResult::Lose;
         sendQuitPair(usi1, result, sendRaw);
         return;
     }
@@ -55,9 +55,9 @@ void notifyResignation(PlayMode playMode,
         Usi* winner = loserIsP1 ? usi2 : usi1;
         Usi* loser = loserIsP1 ? usi1 : usi2;
         if (loser) {
-            sendRaw(loser, QStringLiteral("gameover lose"));
+            sendRaw(loser, QStringLiteral("gameover ") + gameOverResultToString(GameOverResult::Lose));
         }
-        sendQuitPair(winner, QStringLiteral("win"), sendRaw);
+        sendQuitPair(winner, GameOverResult::Win, sendRaw);
     }
 }
 
@@ -74,24 +74,24 @@ void notifyNyugyoku(PlayMode playMode,
 
     if (isHvE(playMode)) {
         if (isDraw) {
-            sendQuitPair(usi1, QStringLiteral("draw"), sendRaw);
+            sendQuitPair(usi1, GameOverResult::Draw, sendRaw);
             return;
         }
-        const QString result = loserIsP1 ? QStringLiteral("win") : QStringLiteral("lose");
+        const auto result = loserIsP1 ? GameOverResult::Win : GameOverResult::Lose;
         sendQuitPair(usi1, result, sendRaw);
         return;
     }
 
     if (isEvE(playMode)) {
         if (isDraw) {
-            sendQuitPair(usi1, QStringLiteral("draw"), sendRaw);
-            sendQuitPair(usi2, QStringLiteral("draw"), sendRaw);
+            sendQuitPair(usi1, GameOverResult::Draw, sendRaw);
+            sendQuitPair(usi2, GameOverResult::Draw, sendRaw);
             return;
         }
         Usi* winner = loserIsP1 ? usi2 : usi1;
         Usi* loser = loserIsP1 ? usi1 : usi2;
-        sendQuitPair(winner, QStringLiteral("win"), sendRaw);
-        sendQuitPair(loser, QStringLiteral("lose"), sendRaw);
+        sendQuitPair(winner, GameOverResult::Win, sendRaw);
+        sendQuitPair(loser, GameOverResult::Lose, sendRaw);
     }
 }
 

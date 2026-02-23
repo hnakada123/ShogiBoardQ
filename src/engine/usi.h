@@ -98,7 +98,7 @@ public:
                                                        int addEachMoveMiliSec1,
                                                        int addEachMoveMiliSec2, bool useByoyomi);
 
-    void sendGameOverCommand(const QString& result);
+    void sendGameOverCommand(GameOverResult result);
     void sendQuitCommand();
     QChar rankToAlphabet(int rank) const;
     void sendGameOverWinAndQuitCommands();

@@ -1270,18 +1270,18 @@ void MatchCoordinator::handleBreakOff()
 
         // gameover 通知を送る（中断は引き分け扱い）
         if (m_usi1) {
-            m_usi1->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi1->sendGameOverCommand(GameOverResult::Draw);
             m_usi1->setSquelchResignLogging(true);
         }
         if (m_usi2) {
-            m_usi2->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi2->sendGameOverCommand(GameOverResult::Draw);
             m_usi2->setSquelchResignLogging(true);
         }
     } else {
         // HvE: 主エンジンに stop を送って思考を中断
         if (Usi* eng = primaryEngine()) {
             eng->sendStopCommand();
-            eng->sendGameOverCommand(QStringLiteral("draw"));
+            eng->sendGameOverCommand(GameOverResult::Draw);
             eng->setSquelchResignLogging(true);
         }
     }
@@ -2413,19 +2413,19 @@ void MatchCoordinator::handleMaxMovesJishogi()
         (m_playMode == PlayMode::HandicapEngineVsEngine);
     if (isEvE) {
         if (m_usi1) {
-            m_usi1->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi1->sendGameOverCommand(GameOverResult::Draw);
             m_usi1->sendQuitCommand();
             m_usi1->setSquelchResignLogging(true);
         }
         if (m_usi2) {
-            m_usi2->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi2->sendGameOverCommand(GameOverResult::Draw);
             m_usi2->sendQuitCommand();
             m_usi2->setSquelchResignLogging(true);
         }
     } else {
         // HvE の場合は主エンジンへ通知
         if (Usi* eng = primaryEngine()) {
-            eng->sendGameOverCommand(QStringLiteral("draw"));
+            eng->sendGameOverCommand(GameOverResult::Draw);
             eng->sendQuitCommand();
             eng->setSquelchResignLogging(true);
         }
@@ -2492,18 +2492,18 @@ void MatchCoordinator::handleSennichite()
         (m_playMode == PlayMode::HandicapEngineVsEngine);
     if (isEvE) {
         if (m_usi1) {
-            m_usi1->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi1->sendGameOverCommand(GameOverResult::Draw);
             m_usi1->sendQuitCommand();
             m_usi1->setSquelchResignLogging(true);
         }
         if (m_usi2) {
-            m_usi2->sendGameOverCommand(QStringLiteral("draw"));
+            m_usi2->sendGameOverCommand(GameOverResult::Draw);
             m_usi2->sendQuitCommand();
             m_usi2->setSquelchResignLogging(true);
         }
     } else {
         if (Usi* eng = primaryEngine()) {
-            eng->sendGameOverCommand(QStringLiteral("draw"));
+            eng->sendGameOverCommand(GameOverResult::Draw);
             eng->sendQuitCommand();
             eng->setSquelchResignLogging(true);
         }
@@ -2542,13 +2542,13 @@ void MatchCoordinator::handleOuteSennichite(bool p1Loses)
         (m_playMode == PlayMode::HandicapEngineVsEngine);
     if (isEvE) {
         if (m_usi1) {
-            const QString result = (winner == P1) ? QStringLiteral("win") : QStringLiteral("lose");
+            const auto result = (winner == P1) ? GameOverResult::Win : GameOverResult::Lose;
             m_usi1->sendGameOverCommand(result);
             m_usi1->sendQuitCommand();
             m_usi1->setSquelchResignLogging(true);
         }
         if (m_usi2) {
-            const QString result = (winner == P2) ? QStringLiteral("win") : QStringLiteral("lose");
+            const auto result = (winner == P2) ? GameOverResult::Win : GameOverResult::Lose;
             m_usi2->sendGameOverCommand(result);
             m_usi2->sendQuitCommand();
             m_usi2->setSquelchResignLogging(true);
@@ -2559,7 +2559,7 @@ void MatchCoordinator::handleOuteSennichite(bool p1Loses)
             const bool engineIsP1 =
                 (m_playMode == PlayMode::EvenEngineVsHuman) || (m_playMode == PlayMode::HandicapEngineVsHuman);
             const Player engineSide = engineIsP1 ? P1 : P2;
-            const QString result = (winner == engineSide) ? QStringLiteral("win") : QStringLiteral("lose");
+            const auto result = (winner == engineSide) ? GameOverResult::Win : GameOverResult::Lose;
             eng->sendGameOverCommand(result);
             eng->sendQuitCommand();
             eng->setSquelchResignLogging(true);

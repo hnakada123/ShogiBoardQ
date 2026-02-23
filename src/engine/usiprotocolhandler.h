@@ -13,6 +13,8 @@
 #include <QElapsedTimer>
 #include <QPointer>
 
+#include "shogitypes.h"
+
 class EngineProcessManager;
 class ThinkingInfoPresenter;
 class ShogiGameController;
@@ -104,7 +106,7 @@ public:
 
     void sendStop();
     void sendPonderHit();
-    void sendGameOver(const QString& result);
+    void sendGameOver(GameOverResult result);
     void sendQuit();
     void sendSetOption(const QString& name, const QString& value);
     void sendSetOption(const QString& name, const QString& value, const QString& type);
@@ -135,14 +137,14 @@ public:
 
     // --- 状態管理 ---
     
-    bool isResignMove() const { return m_isResignMove; }
-    bool isWinMove() const { return m_isWinMove; }
+    bool isResignMove() const { return m_specialMove == SpecialMove::Resign; }
+    bool isWinMove() const { return m_specialMove == SpecialMove::Win; }
+    SpecialMove specialMove() const { return m_specialMove; }
     bool isPonderEnabled() const { return m_isPonderEnabled; }
     SearchPhase currentPhase() const { return m_phase; }
     qint64 lastBestmoveElapsedMs() const { return m_lastGoToBestmoveMs; }
 
-    void setResignMove(bool value) { m_isResignMove = value; }
-    void setWinMove(bool value) { m_isWinMove = value; }
+    void setSpecialMove(SpecialMove sm) { m_specialMove = sm; }
     void resetResignNotified() { m_resignNotified = false; }
     void resetWinNotified() { m_winNotified = false; }
     void markHardTimeout() { m_timeoutDeclared = true; }
@@ -211,8 +213,7 @@ private:
     bool m_usiOkReceived = false;     ///< usiok受信済み
     bool m_readyOkReceived = false;   ///< readyok受信済み
     bool m_bestMoveReceived = false;  ///< bestmove受信済み
-    bool m_isResignMove = false;      ///< 投了手
-    bool m_isWinMove = false;         ///< 入玉宣言勝ち
+    SpecialMove m_specialMove = SpecialMove::None; ///< 特殊手（投了/入玉宣言勝ち等）
     bool m_isPonderEnabled = false;   ///< USI_Ponderが有効
 
     // --- 指し手情報 ---
