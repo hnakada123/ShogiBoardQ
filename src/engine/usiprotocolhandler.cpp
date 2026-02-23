@@ -2,7 +2,7 @@
 /// @brief USIプロトコル送受信管理クラスの実装
 
 #include "usiprotocolhandler.h"
-#include "usi.h"
+#include "enginelogging.h"
 #include "engineprocessmanager.h"
 #include "thinkinginfopresenter.h"
 #include "shogigamecontroller.h"

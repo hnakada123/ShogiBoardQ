@@ -22,6 +22,10 @@ private:
     }
 
 private slots:
+    // ========================================
+    // Existing tests
+    // ========================================
+
     void parse_basic()
     {
         KifParseResult result;
@@ -48,6 +52,232 @@ private slots:
         }
         QVERIFY(foundSente);
         QVERIFY(foundGote);
+    }
+
+    // ========================================
+    // Normal: piece move (+7776FU -> 7g7f)
+    // ========================================
+
+    void parse_pieceMove()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
+        QVERIFY(ok);
+        QVERIFY(result.mainline.usiMoves.size() >= 1);
+        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("7g7f"));
+    }
+
+    // ========================================
+    // Normal: piece drop (+0055KA -> B*5e)
+    // ========================================
+
+    void parse_pieceDrop()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("test_drop.csa")), result, &warn);
+        QVERIFY(ok);
+        // Moves: +7776FU, -3334FU, +8822UM, -3122GI, +0055KA
+        QVERIFY(result.mainline.usiMoves.size() >= 5);
+        QCOMPARE(result.mainline.usiMoves.at(4), QStringLiteral("B*5e"));
+    }
+
+    // ========================================
+    // Normal: promotion (+8822UM -> 8h2b+)
+    // ========================================
+
+    void parse_promotion()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("test_promote.csa")), result, &warn);
+        QVERIFY(ok);
+        // Moves: +7776FU, -3334FU, +8822UM
+        QVERIFY(result.mainline.usiMoves.size() >= 3);
+        QCOMPARE(result.mainline.usiMoves.at(2), QStringLiteral("8h2b+"));
+    }
+
+    // ========================================
+    // Normal: non-promotion (knight move without promotion)
+    // ========================================
+
+    void parse_nonPromotion()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("test_various_pieces.csa")), result, &warn);
+        QVERIFY(ok);
+        // Move 5: +8977KE (knight from 8,9 to 7,7 as KE, no promotion)
+        QVERIFY(result.mainline.usiMoves.size() >= 5);
+        QCOMPARE(result.mainline.usiMoves.at(4), QStringLiteral("8i7g"));
+    }
+
+    // ========================================
+    // Normal: various piece moves
+    // ========================================
+
+    void parse_variousPieces()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("test_various_pieces.csa")), result, &warn);
+        QVERIFY(ok);
+        // +7776FU -> 7g7f (pawn)
+        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("7g7f"));
+        // -8384FU -> 8c8d (pawn)
+        QCOMPARE(result.mainline.usiMoves.at(1), QStringLiteral("8c8d"));
+        // +1716FU -> 1g1f (pawn)
+        QCOMPARE(result.mainline.usiMoves.at(2), QStringLiteral("1g1f"));
+        // -8485FU -> 8d8e (pawn)
+        QCOMPARE(result.mainline.usiMoves.at(3), QStringLiteral("8d8e"));
+        // +8977KE -> 8i7g (knight)
+        QCOMPARE(result.mainline.usiMoves.at(4), QStringLiteral("8i7g"));
+        // -4132KI -> 4a3b (gold)
+        QCOMPARE(result.mainline.usiMoves.at(5), QStringLiteral("4a3b"));
+        // +9998KY -> 9i9h (lance)
+        QCOMPARE(result.mainline.usiMoves.at(6), QStringLiteral("9i9h"));
+        // -6152KI -> 6a5b (gold)
+        QCOMPARE(result.mainline.usiMoves.at(7), QStringLiteral("6a5b"));
+        // +2726FU -> 2g2f (pawn)
+        QCOMPARE(result.mainline.usiMoves.at(8), QStringLiteral("2g2f"));
+        // -5142OU -> 5a4b (king)
+        QCOMPARE(result.mainline.usiMoves.at(9), QStringLiteral("5a4b"));
+        // +8855KA -> 8h5e (bishop)
+        QCOMPARE(result.mainline.usiMoves.at(10), QStringLiteral("8h5e"));
+    }
+
+    // ========================================
+    // Normal: hirate start position SFEN
+    // ========================================
+
+    void parse_hirateStartSfen()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("test_basic.csa")), result, &warn);
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.baseSfen,
+                 QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+    }
+
+    // ========================================
+    // Normal: handicap position (2-piece handicap)
+    // ========================================
+
+    void parse_handicapPosition()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("test_handicap_2piece.csa")), result, &warn);
+        QVERIFY(ok);
+        // 2-piece handicap: no rook/bishop for white, gote moves first
+        QCOMPARE(result.mainline.baseSfen,
+                 QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
+        QVERIFY(result.mainline.usiMoves.size() >= 2);
+        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("3c3d"));
+        QCOMPARE(result.mainline.usiMoves.at(1), QStringLiteral("7g7f"));
+    }
+
+    // ========================================
+    // Error: non-existent file
+    // ========================================
+
+    void parse_nonExistentFile()
+    {
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(
+            fixturePath(QStringLiteral("nonexistent.csa")), result, &warn);
+        QVERIFY(!ok);
+    }
+
+    // ========================================
+    // Error: empty file
+    // ========================================
+
+    void parse_emptyFile()
+    {
+        // Create a temporary empty file
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Should still succeed (parse returns true even with no moves)
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 0);
+    }
+
+    // ========================================
+    // Error: invalid piece name (+7776XX)
+    // ========================================
+
+    void parse_invalidPieceName()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badpiece_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+7776XX\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Parse succeeds but the invalid move is skipped
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 0);
+        QVERIFY(!warn.isEmpty());
+    }
+
+    // ========================================
+    // Error: format error (no +/- prefix)
+    // ========================================
+
+    void parse_formatError_noPrefix()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_noprefix_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n7776FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Line without +/- is ignored (not a move line)
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 0);
+    }
+
+    // ========================================
+    // Error: short token (too few chars)
+    // ========================================
+
+    void parse_shortToken()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_short_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+77FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 0);
+        QVERIFY(!warn.isEmpty());
     }
 };
 

@@ -4,7 +4,6 @@
 /// @file usi.h
 /// @brief USIプロトコル通信ファサードクラスの定義
 
-#include <QLoggingCategory>
 #include <QObject>
 #include <QPoint>
 #include <QString>
@@ -15,7 +14,7 @@
 #include <QTimer>
 #include <memory>
 
-Q_DECLARE_LOGGING_CATEGORY(lcEngine)
+#include "enginelogging.h"
 
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"

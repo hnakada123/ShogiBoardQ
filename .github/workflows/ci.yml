@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Configure
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: cd build && ctest --output-on-failure
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+
+      - name: Configure with clang-tidy
+        run: cmake -B build -S . -DENABLE_CLANG_TIDY=ON
+
+      - name: Build and check
+        run: |
+          cmake --build build --parallel 2>&1 | tee build.log
+          if grep -q "warning:.*\[-clang" build.log; then
+            echo "::error::clang-tidy warnings detected"
+            grep "warning:.*\[-clang" build.log
+            exit 1
+          fi
+
+  translation-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check unfinished translations
+        run: |
+          total=0
+          echo "## Translation Status" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Unfinished |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-----------|" >> "$GITHUB_STEP_SUMMARY"
+          for f in resources/translations/*.ts; do
+            count=$(grep -c 'type="unfinished"' "$f" || true)
+            total=$((total + count))
+            echo "| $(basename "$f") | $count |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Total unfinished: $total**" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -gt 0 ]; then
+            echo "::warning::$total unfinished translation(s) found"
+          fi

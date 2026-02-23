@@ -20,7 +20,12 @@
       "Bash(./build/tests/tst_preset_gamestart_cleanup:*)",
       "Bash(ctest:*)",
       "Bash(wc:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(/home/nakada/GitHub/ShogiBoardQ/build/tests/tst_usiprotocolhandler:*)",
+      "Bash(cd /home/nakada/GitHub/ShogiBoardQ/build && ./tests/tst_csaconverter 2>&1)",
+      "Bash(./tests/tst_usiconverter:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_analysisflow:*)",
+      "Bash(ninja:*)"
     ]
   }
 }
