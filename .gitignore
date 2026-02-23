@@ -4,8 +4,10 @@
 /build-tidy
 CMakeLists.txt.user
 .cache
+/out
 
 # Qt Creator user files
 *.user
+CMakeUserPresets.json
 
 debug.log

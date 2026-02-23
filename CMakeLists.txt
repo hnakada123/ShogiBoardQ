@@ -126,6 +126,52 @@ endif()
 #endif()
 # --- ここまで
 
+# ==== Qt6 自動検出 ====
+# CMAKE_PREFIX_PATH が未設定の場合、一般的なインストールパスから Qt6 を探す
+if(NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR AND NOT DEFINED ENV{QTDIR})
+    # 探索候補のベースディレクトリ
+    if(APPLE)
+        set(_qt_platform_suffix "macos")
+    elseif(WIN32)
+        set(_qt_platform_suffix "msvc*")
+    else()
+        set(_qt_platform_suffix "gcc_64")
+    endif()
+
+    # Qt インストーラの標準パス
+    set(_qt_search_roots
+        "$ENV{HOME}/Qt"        # macOS / Linux
+        "C:/Qt"                # Windows
+        "D:/Qt"                # Windows (別ドライブ)
+    )
+
+    foreach(_root ${_qt_search_roots})
+        file(GLOB _qt_versions "${_root}/6.*")
+        if(_qt_versions)
+            # バージョン番号でソートして最新を選択
+            list(SORT _qt_versions COMPARE NATURAL ORDER DESCENDING)
+            foreach(_ver_dir ${_qt_versions})
+                file(GLOB _qt_platform_dirs "${_ver_dir}/${_qt_platform_suffix}")
+                if(_qt_platform_dirs)
+                    list(GET _qt_platform_dirs 0 _qt_dir)
+                    set(CMAKE_PREFIX_PATH "${_qt_dir}")
+                    message(STATUS "Auto-detected Qt6: ${_qt_dir}")
+                    break()
+                endif()
+            endforeach()
+            if(CMAKE_PREFIX_PATH)
+                break()
+            endif()
+        endif()
+    endforeach()
+
+    unset(_qt_platform_suffix)
+    unset(_qt_search_roots)
+    unset(_qt_versions)
+    unset(_qt_platform_dirs)
+    unset(_qt_dir)
+endif()
+
 # ==== Qt6 packages ====
 find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Charts Network)
 
