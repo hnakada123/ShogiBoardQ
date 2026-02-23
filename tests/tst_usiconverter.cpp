@@ -25,6 +25,10 @@ private:
     }
 
 private slots:
+    // ========================================
+    // Existing tests
+    // ========================================
+
     void detectInitialSfen()
     {
         QString sfen = UsiToSfenConverter::detectInitialSfenFromFile(
@@ -40,6 +44,264 @@ private slots:
         QVERIFY2(error.isEmpty(), qPrintable(error));
         QCOMPARE(moves.size(), 7);
         QCOMPARE(moves, kExpectedUsiMoves);
+    }
+
+    // ========================================
+    // Normal: piece move (7g7f)
+    // ========================================
+
+    void convertFile_pieceMove()
+    {
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(
+            fixturePath(QStringLiteral("test_basic.usi")), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QVERIFY(moves.size() >= 1);
+        QCOMPARE(moves.at(0), QStringLiteral("7g7f"));
+    }
+
+    // ========================================
+    // Normal: piece drop (P*5e)
+    // ========================================
+
+    void convertFile_pieceDrop()
+    {
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(
+            fixturePath(QStringLiteral("test_drops.usi")), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        // Moves: 7g7f 3c3d 8h2b+ 3a2b P*5e
+        QCOMPARE(moves.size(), 5);
+        QCOMPARE(moves.at(4), QStringLiteral("P*5e"));
+    }
+
+    // ========================================
+    // Normal: promotion (8h2b+)
+    // ========================================
+
+    void convertFile_promotion()
+    {
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(
+            fixturePath(QStringLiteral("test_drops.usi")), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QVERIFY(moves.size() >= 3);
+        QCOMPARE(moves.at(2), QStringLiteral("8h2b+"));
+    }
+
+    // ========================================
+    // Normal: non-promotion (8h2b without +)
+    // ========================================
+
+    void convertFile_nonPromotion()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_noprom_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position startpos moves 7g7f 3c3d 8h2b\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves.size(), 3);
+        QCOMPARE(moves.at(2), QStringLiteral("8h2b"));
+    }
+
+    // ========================================
+    // Normal: various piece drops
+    // ========================================
+
+    void convertFile_variousDrops()
+    {
+        // Test each drop piece type individually
+        struct DropCase {
+            const char* moveStr;
+            QString expected;
+        };
+        DropCase cases[] = {
+            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b P*5e", QStringLiteral("P*5e")},
+            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b L*1a", QStringLiteral("L*1a")},
+            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b N*3c", QStringLiteral("N*3c")},
+            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b S*5e", QStringLiteral("S*5e")},
+            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b G*4d", QStringLiteral("G*4d")},
+            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b B*5e", QStringLiteral("B*5e")},
+            {"position startpos moves 7g7f 3c3d 8h2b+ 3a2b R*5e", QStringLiteral("R*5e")},
+        };
+
+        for (const auto& tc : cases) {
+            QTemporaryFile tmp;
+            tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_drop_XXXXXX.usi"));
+            QVERIFY(tmp.open());
+            tmp.write(tc.moveStr);
+            tmp.write("\n");
+            tmp.close();
+
+            QString error;
+            QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+            QVERIFY2(error.isEmpty(), qPrintable(error));
+            QVERIFY(moves.size() >= 5);
+            QCOMPARE(moves.last(), tc.expected);
+        }
+    }
+
+    // ========================================
+    // Normal: sfen position + moves
+    // ========================================
+
+    void convertFile_sfenPosition()
+    {
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(
+            fixturePath(QStringLiteral("test_sfen.usi")), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves.size(), 3);
+        QCOMPARE(moves.at(0), QStringLiteral("7g7f"));
+        QCOMPARE(moves.at(1), QStringLiteral("3c3d"));
+        QCOMPARE(moves.at(2), QStringLiteral("2g2f"));
+    }
+
+    void detectSfen_sfenPosition()
+    {
+        QString sfen = UsiToSfenConverter::detectInitialSfenFromFile(
+            fixturePath(QStringLiteral("test_sfen.usi")));
+        QCOMPARE(sfen, kHirateSfen);
+    }
+
+    // ========================================
+    // Normal: terminal code (resign)
+    // ========================================
+
+    void parseWithVariations_resign()
+    {
+        KifParseResult result;
+        QString error;
+        bool ok = UsiToSfenConverter::parseWithVariations(
+            fixturePath(QStringLiteral("test_resign.usi")), result, &error);
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 2);
+        QCOMPARE(result.mainline.usiMoves.at(0), QStringLiteral("7g7f"));
+        QCOMPARE(result.mainline.usiMoves.at(1), QStringLiteral("3c3d"));
+    }
+
+    // ========================================
+    // Normal: terminal code to Japanese
+    // ========================================
+
+    void terminalCodeToJapanese()
+    {
+        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("resign")),
+                 QStringLiteral("投了"));
+        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("break")),
+                 QStringLiteral("中断"));
+        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("rep_draw")),
+                 QStringLiteral("千日手"));
+        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("timeout")),
+                 QStringLiteral("時間切れ"));
+        QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("win")),
+                 QStringLiteral("入玉勝ち"));
+    }
+
+    // ========================================
+    // Error: non-existent file
+    // ========================================
+
+    void convertFile_nonExistentFile()
+    {
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(
+            fixturePath(QStringLiteral("nonexistent.usi")), &error);
+        QVERIFY(moves.isEmpty());
+    }
+
+    // ========================================
+    // Error: empty file
+    // ========================================
+
+    void convertFile_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY(moves.isEmpty());
+    }
+
+    // ========================================
+    // Error: short string (only "7g")
+    // ========================================
+
+    void convertFile_shortString()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_short_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position startpos moves 7g\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        // "7g" is not a valid move, should be skipped
+        QCOMPARE(moves.size(), 0);
+    }
+
+    // ========================================
+    // Error: invalid drop piece (X*5e)
+    // ========================================
+
+    void convertFile_invalidDropPiece()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_baddrop_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position startpos moves X*5e\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        // "X*5e" has invalid piece, should be skipped
+        QCOMPARE(moves.size(), 0);
+    }
+
+    // ========================================
+    // Error: out-of-range coordinate (0a1b)
+    // ========================================
+
+    void convertFile_outOfRange()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_oor_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position startpos moves 0a1b\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        // "0a1b" has column 0 which is invalid, should be skipped
+        QCOMPARE(moves.size(), 0);
+    }
+
+    // ========================================
+    // Normal: position keyword omitted
+    // ========================================
+
+    void convertFile_noPositionKeyword()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_nopos_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("startpos moves 7g7f 3c3d\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves.size(), 2);
+        QCOMPARE(moves.at(0), QStringLiteral("7g7f"));
+        QCOMPARE(moves.at(1), QStringLiteral("3c3d"));
     }
 };
 

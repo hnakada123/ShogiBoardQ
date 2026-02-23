@@ -310,6 +310,15 @@ add_shogi_test(tst_integration
 )
 
 # ============================================================
+# Unit 13: USI Protocol Handler
+# ============================================================
+add_shogi_test(tst_usiprotocolhandler
+    tst_usiprotocolhandler.cpp
+    test_stubs_usiprotocol.cpp
+    ${SRC}/engine/usiprotocolhandler.cpp
+)
+
+# ============================================================
 # Unit 12: UI Display Consistency (Board / Record / Branch Tree)
 # ============================================================
 add_shogi_test(tst_ui_display_consistency
@@ -338,5 +347,19 @@ add_shogi_test(tst_ui_display_consistency
 
 # ヘッドレスCI環境でもWidgetsテストを実行できるようにする
 set_tests_properties(tst_ui_display_consistency PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
+# ============================================================
+# Unit 14: AnalysisFlowController
+# ============================================================
+add_shogi_test(tst_analysisflow
+    tst_analysisflow.cpp
+    test_stubs_analysisflow.cpp
+    ${SRC}/analysis/analysisflowcontroller.cpp
+    ${SRC}/analysis/analysiscoordinator.cpp
+)
+
+set_tests_properties(tst_analysisflow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
