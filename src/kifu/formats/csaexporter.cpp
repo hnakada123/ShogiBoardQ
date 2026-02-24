@@ -5,7 +5,7 @@
 #include "gamerecordmodel.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
-#include "kifulogging.h"
+#include "logcategories.h"
 #include "sfencsapositionconverter.h"
 
 #include <QDateTime>

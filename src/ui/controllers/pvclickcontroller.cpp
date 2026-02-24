@@ -3,7 +3,7 @@
 
 #include "pvclickcontroller.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
@@ -411,7 +411,7 @@ QString PvClickController::resolveLastUsiMove() const
 
         if (lastMove.fromSquare.x() == 0 && lastMove.fromSquare.y() == 0) {
             // 駒打ちの場合: P*5e 形式
-            QChar pieceChar = lastMove.movingPiece.toUpper();
+            QChar pieceChar = pieceToChar(toBlack(lastMove.movingPiece));
             QChar rankChar = QChar('a' + toRank - 1);
             lastUsiMove = QString("%1*%2%3").arg(pieceChar).arg(toFile).arg(rankChar);
         } else {

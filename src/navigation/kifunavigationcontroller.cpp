@@ -7,10 +7,9 @@
 #include "kifunavigationstate.h"
 #include "shogiutils.h"
 
-#include <QLoggingCategory>
-#include <QPushButton>
+#include "logcategories.h"
 
-Q_LOGGING_CATEGORY(lcNavigation, "shogi.navigation")
+#include <QPushButton>
 
 // ============================================================
 // 初期化
@@ -598,7 +597,7 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
         if (targetNode->isActualMove()) {
             const ShogiMove& move = targetNode->move();
             // movingPieceが空白の場合はデフォルト構築された無効な指し手（KIF分岐でgameMoves未設定時）
-            if (move.movingPiece != QLatin1Char(' ')) {
+            if (move.movingPiece != Piece::None) {
                 fileTo = move.toSquare.x();
                 rankTo = move.toSquare.y();
                 usiMove = ShogiUtils::moveToUsi(move);

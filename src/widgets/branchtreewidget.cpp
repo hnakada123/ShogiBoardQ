@@ -14,7 +14,7 @@
 #include <QMouseEvent>
 #include <QPainterPath>
 #include <QRegularExpression>
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 // ===================== ヘルパー関数 =====================
 

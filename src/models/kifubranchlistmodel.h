@@ -114,9 +114,6 @@ private:
     int m_activePly = -1;                   ///< アクティブなグローバル手数
 
 signals:
-    /// アクティブノードが変更された（ビュー再レイアウト等に使用）
-    void activeNodeChanged(int nodeId);
-
     /// アクティブな変化番号/手数が変更された
     void activeVidPlyChanged(int vid, int ply);
 

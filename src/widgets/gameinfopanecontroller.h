@@ -98,9 +98,6 @@ signals:
     /// 対局情報が更新された（applyChanges後）
     void gameInfoUpdated(const QList<KifGameInfoItem>& items);
 
-    /// 編集状態が変化した
-    void dirtyStateChanged(bool dirty);
-
 private slots:
     void onCellChanged(int row, int column);
 

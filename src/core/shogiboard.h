@@ -7,10 +7,7 @@
 #include <QObject>
 #include <QVector>
 #include <QMap>
-#include <QLoggingCategory>
 #include "shogitypes.h"
-
-Q_DECLARE_LOGGING_CATEGORY(lcCore)
 
 /**
  * @brief 将棋盤の盤面データと駒台を管理するクラス
@@ -27,24 +24,31 @@ class ShogiBoard : public QObject
 public:
     explicit ShogiBoard(int ranks = 9, int files = 9, QObject *parent = nullptr);
 
-    QMap<QChar, int> m_pieceStand;  ///< 駒台データ（駒文字 → 枚数）
+    QMap<Piece, int> m_pieceStand;  ///< 駒台データ（駒 → 枚数）
 
     // --- 盤面アクセス ---
 
-    /// 指定マスの駒文字を返す（盤上・駒台共通）
-    QChar getPieceCharacter(const int file, const int rank);
+    /// 指定マスの駒を返す（盤上・駒台共通）
+    Piece getPieceCharacter(const int file, const int rank);
 
-    /// 盤面データ（81マスの駒文字配列）を返す
-    const QVector<QChar>& boardData() const;
+    /// 盤面データ（81マスの駒配列）を返す
+    const QVector<Piece>& boardData() const;
 
     /// 駒台データを返す
-    const QMap<QChar, int>& getPieceStand() const;
+    const QMap<Piece, int>& getPieceStand() const;
 
     int ranks() const { return m_ranks; }
     int files() const { return m_files; }
     Turn currentPlayer() const;
 
     // --- SFEN変換 ---
+
+    /**
+     * @brief SFEN文字列をパースし、各要素に分解する（副作用なし）
+     * @param sfenStr 盤面＋手番＋駒台＋手数を含むSFEN文字列
+     * @return パース成功時は SfenComponents、失敗時は std::nullopt
+     */
+    static std::optional<SfenComponents> parseSfen(const QString& sfenStr);
 
     /**
      * @brief SFEN文字列で盤面全体を更新する
@@ -66,28 +70,28 @@ public:
     // --- 駒操作 ---
 
     /// 指定マスへ駒を移動する（配置データのみ更新）
-    void movePieceToSquare(QChar selectedPiece, const int fileFrom, const int rankFrom,
+    void movePieceToSquare(Piece selectedPiece, const int fileFrom, const int rankFrom,
                            const int fileTo, const int rankTo, const bool promote);
 
     /// 局面編集用: 盤面と駒台を同時に更新する
-    void updateBoardAndPieceStand(const QChar source, const QChar dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote);
+    void updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote);
 
     /// 局面編集用: 指定マスの駒を成/不成に切り替える
     void promoteOrDemotePiece(const int fileFrom, const int rankFrom);
 
     /// 駒台に打てる駒があるか判定する
-    bool isPieceAvailableOnStand(const QChar source, const int fileFrom) const;
+    bool isPieceAvailableOnStand(const Piece source, const int fileFrom) const;
 
     // --- 駒台操作 ---
 
     /// 取った駒を駒台に追加する（成駒は元の駒に変換）
-    void addPieceToStand(QChar dest);
+    void addPieceToStand(Piece dest);
 
     /// 駒台の駒を1枚増やす
-    void incrementPieceOnStand(const QChar dest);
+    void incrementPieceOnStand(const Piece dest);
 
     /// 駒台の駒を1枚減らす（駒打ち時）
-    void decrementPieceOnStand(QChar source);
+    void decrementPieceOnStand(Piece source);
 
     // --- 盤面リセット ---
 
@@ -115,23 +119,23 @@ signals:
 private:
     int m_ranks;                    ///< 盤の段数（9）
     int m_files;                    ///< 盤の筋数（9）
-    QVector<QChar> m_boardData;     ///< 81マスの駒文字データ
+    QVector<Piece> m_boardData;     ///< 81マスの駒データ
     int m_currentMoveNumber;        ///< SFEN文字列の手数
     Turn m_currentPlayer = Turn::Black; ///< 現在の手番
 
     // --- 内部操作 ---
-    void setData(const int file, const int rank, const QChar value);
+    void setData(const int file, const int rank, const Piece value);
     void initBoard();
-    bool setDataInternal(const int file, const int rank, const QChar value);
+    bool setDataInternal(const int file, const int rank, const Piece value);
     void setPieceStandFromSfen(const QString& str);
     QString validateAndConvertSfenBoardStr(QString sfenStr);
     void setPiecePlacementFromSfen(QString& initialSfenStr);
     bool validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr);
     void printPlayerPieces(const QString& player, const QString& pieceSet) const;
-    QChar convertPieceChar(const QChar c) const;
-    QChar convertPromotedPieceToOriginal(const QChar dest) const;
+    Piece convertPieceChar(const Piece c) const;
+    Piece convertPromotedPieceToOriginal(const Piece dest) const;
     void setInitialPieceStandValues();
-    QString convertPieceToSfen(const QChar piece) const;
+    QString convertPieceToSfen(const Piece piece) const;
 };
 
 #endif // SHOGIBOARD_H

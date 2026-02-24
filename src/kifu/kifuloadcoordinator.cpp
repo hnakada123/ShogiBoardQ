@@ -16,7 +16,8 @@
 #include "kifubranchtreebuilder.h"
 #include "kifunavigationstate.h"
 
-#include <QLoggingCategory>
+#include "logcategories.h"
+
 #include <QStyledItemDelegate>
 #include <QAbstractItemView>         // view->model() を使うなら
 #include <QFile>
@@ -27,8 +28,6 @@
 #include <QDir>
 #include <QRegularExpression>
 #include <QElapsedTimer>
-
-Q_LOGGING_CATEGORY(lcKifu, "shogi.kifu")
 
 KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
                                          QStringList& positionStrList,
@@ -584,7 +583,6 @@ bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
     }
 
     // シグナルを発行（displayGameRecordでモデルが更新される）
-    emit setReplayMode(true);
     emit displayGameRecord(disp);
     qCDebug(lcKifu) << "emitting syncBoardAndHighlightsAtRow(0) from loadPositionFromSfen";
     emit syncBoardAndHighlightsAtRow(0);

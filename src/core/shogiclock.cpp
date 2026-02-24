@@ -2,10 +2,9 @@
 /// @brief 将棋対局用タイマー管理クラスの実装
 
 #include "shogiclock.h"
+#include "logcategories.h"
 #include <QtGlobal>
 #include <QDebug>
-
-Q_LOGGING_CATEGORY(lcShogiClock, "shogi.clock")
 
 // ============================================================
 // 構築

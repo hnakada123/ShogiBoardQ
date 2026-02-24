@@ -3,6 +3,7 @@
 
 #include "analysiscoordinator.h"
 #include "analysisflowcontroller.h"
+#include "logcategories.h"
 #include "branchtreemanager.h"
 
 #include <QRegularExpression>
@@ -59,8 +60,6 @@ void AnalysisCoordinator::startAnalyzeRange()
     if (m_opt.startPly < 0) m_opt.startPly = 0;
     if (m_opt.startPly > m_opt.endPly) m_opt.startPly = m_opt.endPly;
 
-    emit analysisStarted(m_opt.startPly, m_opt.endPly, m_mode);
-
     // MultiPV は setoption で設定（対応エンジンのみ有効）
     if (m_opt.multiPV > 1) {
         send(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));
@@ -83,8 +82,6 @@ void AnalysisCoordinator::startAnalyzeSingle(int ply)
 
     m_opt.startPly = qMax(0, ply);
     m_opt.endPly   = m_opt.startPly;
-
-    emit analysisStarted(m_opt.startPly, m_opt.endPly, m_mode);
 
     if (m_opt.multiPV > 1) {
         send(QStringLiteral("setoption name MultiPV value %1").arg(m_opt.multiPV));

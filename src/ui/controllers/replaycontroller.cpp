@@ -3,7 +3,7 @@
 
 #include "replaycontroller.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QTableView>
 #include <QAbstractItemView>
 

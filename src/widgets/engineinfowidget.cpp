@@ -3,7 +3,7 @@
 
 #include "engineinfowidget.h"
 #include "buttonstyles.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QTableWidget>

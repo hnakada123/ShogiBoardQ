@@ -153,12 +153,6 @@ public:
      */
     void clearLineSelections();
 
-signals:
-    /**
-     * @brief 現在ノードが変更された
-     */
-    void currentNodeChanged(KifuBranchNode* newNode, KifuBranchNode* oldNode);
-
 private:
     KifuBranchTree* m_tree = nullptr;
     KifuBranchNode* m_currentNode = nullptr;

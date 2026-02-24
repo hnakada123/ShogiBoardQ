@@ -5,7 +5,7 @@
 
 ShogiMove::ShogiMove() = default;
 
-ShogiMove::ShogiMove(const QPoint& from, const QPoint& to, QChar moving, QChar captured, bool promotion)
+ShogiMove::ShogiMove(const QPoint& from, const QPoint& to, Piece moving, Piece captured, bool promotion)
     : fromSquare(from), toSquare(to), movingPiece(moving), capturedPiece(captured), isPromotion(promotion) {}
 
 bool ShogiMove::operator==(const ShogiMove& other) const {
@@ -19,8 +19,8 @@ bool ShogiMove::operator==(const ShogiMove& other) const {
 std::ostream& operator<<(std::ostream& os, const ShogiMove& move) {
     os << "From: (" << move.fromSquare.x() + 1 << ", " << move.fromSquare.y() + 1 << ')';
     os << " To: (" << move.toSquare.x() + 1 << ", " << move.toSquare.y() + 1 << ')';
-    os << " Moving Piece: " << move.movingPiece.toLatin1();
-    os << " Captured Piece: " << move.capturedPiece.toLatin1();
+    os << " Moving Piece: " << static_cast<char>(move.movingPiece);
+    os << " Captured Piece: " << static_cast<char>(move.capturedPiece);
     os << " Promotion: " << (move.isPromotion ? "true" : "false");
     return os;
 }
@@ -35,8 +35,8 @@ QDebug operator<<(QDebug dbg, const ShogiMove& move) {
     dbg.nospace()
         << "From:(" << disp(move.fromSquare.x()) << "," << disp(move.fromSquare.y()) << ") "
         << "To:("   << disp(move.toSquare.x())   << "," << disp(move.toSquare.y())   << ") "
-        << "Moving:"   << move.movingPiece
-        << " Captured:" << move.capturedPiece
+        << "Moving:"   << pieceToChar(move.movingPiece)
+        << " Captured:" << pieceToChar(move.capturedPiece)
         << " Promotion:" << (move.isPromotion ? "true" : "false");
     return dbg;
 }

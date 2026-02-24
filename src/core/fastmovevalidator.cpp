@@ -389,19 +389,19 @@ struct Position {
 }
 
 void loadPosition(Position& pos,
-                  const QVector<QChar>& boardData,
-                  const QMap<QChar, int>& pieceStand)
+                  const QVector<Piece>& boardData,
+                  const QMap<Piece, int>& pieceStand)
 {
     pos.board.fill(kEmpty);
     pos.hands.fill(0);
 
     const int boardSize = std::min(static_cast<int>(boardData.size()), FastMoveValidator::NUM_BOARD_SQUARES);
     for (int i = 0; i < boardSize; ++i) {
-        pos.board[static_cast<std::size_t>(i)] = boardData[static_cast<qsizetype>(i)].toLatin1();
+        pos.board[static_cast<std::size_t>(i)] = static_cast<char>(boardData[static_cast<qsizetype>(i)]);
     }
 
     for (auto it = pieceStand.constBegin(); it != pieceStand.constEnd(); ++it) {
-        const char piece = it.key().toLatin1();
+        const char piece = static_cast<char>(it.key());
         const FastMoveValidator::Turn owner = isBlackPiece(piece) ? FastMoveValidator::BLACK : FastMoveValidator::WHITE;
         const int idx = handIndex(owner, piece);
         if (idx >= 0) {
@@ -871,7 +871,7 @@ void collectDestinations(const Position& pos,
 
     internal.kind = MoveKind::Drop;
     internal.from = -1;
-    internal.piece = move.movingPiece.toLatin1();
+    internal.piece = static_cast<char>(move.movingPiece);
     return internal;
 }
 
@@ -887,7 +887,7 @@ void collectDestinations(const Position& pos,
 
     const int to = toIndex(toX, toY);
     const char boardCaptured = pos.board[static_cast<std::size_t>(to)];
-    const char captured = move.capturedPiece.toLatin1();
+    const char captured = static_cast<char>(move.capturedPiece);
     // capturedPiece が指定されている場合は盤面実体と一致していることを要求する。
     if (captured != kEmpty && captured != boardCaptured) {
         return false;
@@ -899,7 +899,7 @@ void collectDestinations(const Position& pos,
         if (boardPiece == kEmpty || !belongsToTurn(turn, boardPiece)) {
             return false;
         }
-        return boardPiece == move.movingPiece.toLatin1();
+        return boardPiece == static_cast<char>(move.movingPiece);
     }
 
     const int handFile = (turn == FastMoveValidator::BLACK)
@@ -908,19 +908,19 @@ void collectDestinations(const Position& pos,
     if (move.fromSquare.x() != handFile) {
         return false;
     }
-    if (move.fromSquare.y() != expectedHandRank(turn, move.movingPiece.toLatin1())) {
+    if (move.fromSquare.y() != expectedHandRank(turn, static_cast<char>(move.movingPiece))) {
         return false;
     }
 
-    const char piece = move.movingPiece.toLatin1();
+    const char piece = static_cast<char>(move.movingPiece);
     return belongsToTurn(turn, piece) && hasHandPiece(pos, turn, piece);
 }
 
 } // namespace
 
 LegalMoveStatus FastMoveValidator::isLegalMove(const Turn& turn,
-                                               const QVector<QChar>& boardData,
-                                               const QMap<QChar, int>& pieceStand,
+                                               const QVector<Piece>& boardData,
+                                               const QMap<Piece, int>& pieceStand,
                                                ShogiMove& currentMove) const
 {
     Position pos;
@@ -943,8 +943,8 @@ LegalMoveStatus FastMoveValidator::isLegalMove(const Turn& turn,
 }
 
 int FastMoveValidator::generateLegalMoves(const Turn& turn,
-                                          const QVector<QChar>& boardData,
-                                          const QMap<QChar, int>& pieceStand) const
+                                          const QVector<Piece>& boardData,
+                                          const QMap<Piece, int>& pieceStand) const
 {
     Position pos;
     loadPosition(pos, boardData, pieceStand);
@@ -1013,10 +1013,10 @@ int FastMoveValidator::generateLegalMoves(const Turn& turn,
 }
 
 int FastMoveValidator::checkIfKingInCheck(const Turn& turn,
-                                          const QVector<QChar>& boardData) const
+                                          const QVector<Piece>& boardData) const
 {
     Position pos;
-    QMap<QChar, int> emptyStand;
+    QMap<Piece, int> emptyStand;
     loadPosition(pos, boardData, emptyStand);
     return countChecks(pos, turn);
 }

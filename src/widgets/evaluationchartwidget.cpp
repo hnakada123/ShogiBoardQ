@@ -15,7 +15,7 @@
 #include <QPen>
 #include <QFont>
 #include <QColor>
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QtGlobal>
 #include <QThread>
 #include <QLabel>

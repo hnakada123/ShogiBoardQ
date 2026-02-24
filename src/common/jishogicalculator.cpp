@@ -9,8 +9,8 @@
 // ============================================================================
 
 JishogiCalculator::JishogiResult JishogiCalculator::calculate(
-    const QVector<QChar>& boardData,
-    const QMap<QChar, int>& pieceStand)
+    const QVector<Piece>& boardData,
+    const QMap<Piece, int>& pieceStand)
 {
     // 処理フロー:
     // 1. 盤面を走査して各駒の点数を集計
@@ -32,15 +32,15 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
             int index = (rank - 1) * 9 + (file - 1);
             if (index < 0 || index >= boardData.size()) continue;
 
-            QChar piece = boardData[index];
-            if (piece == ' ' || piece == QChar()) continue;
+            Piece piece = boardData[index];
+            if (piece == Piece::None) continue;
 
             int points = getPiecePoints(piece);
 
             if (isSentePiece(piece)) {
                 result.sente.totalPoints += points;
 
-                if (piece == 'K') {
+                if (piece == Piece::BlackKing) {
                     // 先手の玉が敵陣（1-3段目）にいるか
                     if (rank <= 3) {
                         result.sente.kingInEnemyTerritory = true;
@@ -55,7 +55,7 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
             } else if (isGotePiece(piece)) {
                 result.gote.totalPoints += points;
 
-                if (piece == 'k') {
+                if (piece == Piece::WhiteKing) {
                     // 後手の玉が敵陣（7-9段目）にいるか
                     if (rank >= 7) {
                         result.gote.kingInEnemyTerritory = true;
@@ -72,10 +72,8 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
     }
 
     // 駒台の駒を加算
-    // 先手の持ち駒: 大文字（P, L, N, S, G, B, R）
-    // 後手の持ち駒: 小文字（p, l, n, s, g, b, r）
     for (auto it = pieceStand.constBegin(); it != pieceStand.constEnd(); ++it) {
-        QChar piece = it.key();
+        Piece piece = it.key();
         int count = it.value();
         int points = getPiecePoints(piece) * count;
 
@@ -145,41 +143,39 @@ QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, b
 // ============================================================================
 
 /// 成駒は成る前の駒と同じ点数
-int JishogiCalculator::getPiecePoints(QChar piece)
+int JishogiCalculator::getPiecePoints(Piece piece)
 {
     // 大駒（飛車・角・龍・馬）: 5点
     // 小駒（金・銀・桂・香・歩・と金・成香・成桂・成銀）: 1点
     // 玉: 0点
-    QChar upper = piece.toUpper();
-
-    if (upper == 'K') {
+    if (piece == Piece::BlackKing || piece == Piece::WhiteKing) {
         return 0;
     }
 
-    // 大駒: R（飛車）, B（角）, U（龍）, C（馬）
     if (isMajorPiece(piece)) {
         return 5;
     }
 
-    // それ以外の駒（小駒）: 1点
-    // P（歩）, L（香車）, N（桂馬）, S（銀）, G（金）
-    // Q（と金）, M（成香）, O（成桂）, T（成銀）
     return 1;
 }
 
-bool JishogiCalculator::isMajorPiece(QChar piece)
+bool JishogiCalculator::isMajorPiece(Piece piece)
 {
-    QChar upper = piece.toUpper();
-    // R: 飛車, U: 龍（成り飛車）, B: 角, C: 馬（成り角）
-    return upper == 'R' || upper == 'B' || upper == 'U' || upper == 'C';
+    switch (piece) {
+    case Piece::BlackRook: case Piece::BlackBishop: case Piece::BlackDragon: case Piece::BlackHorse:
+    case Piece::WhiteRook: case Piece::WhiteBishop: case Piece::WhiteDragon: case Piece::WhiteHorse:
+        return true;
+    default:
+        return false;
+    }
 }
 
-bool JishogiCalculator::isSentePiece(QChar piece)
+bool JishogiCalculator::isSentePiece(Piece piece)
 {
-    return piece.isUpper();
+    return isBlackPiece(piece);
 }
 
-bool JishogiCalculator::isGotePiece(QChar piece)
+bool JishogiCalculator::isGotePiece(Piece piece)
 {
-    return piece.isLower();
+    return isWhitePiece(piece);
 }

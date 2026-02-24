@@ -195,26 +195,401 @@ set(UI_FILES
 )
 
 # ==== Sources (機能別ディレクトリ構造) ====
-# GLOB_RECURSE + CONFIGURE_DEPENDS でファイルを自動収集
-file(GLOB_RECURSE SRC_APP        CONFIGURE_DEPENDS src/app/*.cpp)
-file(GLOB_RECURSE SRC_CORE       CONFIGURE_DEPENDS src/core/*.cpp)
-file(GLOB_RECURSE SRC_GAME       CONFIGURE_DEPENDS src/game/*.cpp)
-file(GLOB_RECURSE SRC_KIFU       CONFIGURE_DEPENDS src/kifu/*.cpp)
-file(GLOB_RECURSE SRC_ANALYSIS   CONFIGURE_DEPENDS src/analysis/*.cpp)
-file(GLOB_RECURSE SRC_ENGINE     CONFIGURE_DEPENDS src/engine/*.cpp)
-file(GLOB_RECURSE SRC_NETWORK    CONFIGURE_DEPENDS src/network/*.cpp)
-file(GLOB_RECURSE SRC_NAVIGATION CONFIGURE_DEPENDS src/navigation/*.cpp)
-file(GLOB_RECURSE SRC_BOARD      CONFIGURE_DEPENDS src/board/*.cpp)
-file(GLOB_RECURSE SRC_UI         CONFIGURE_DEPENDS src/ui/*.cpp)
-file(GLOB_RECURSE SRC_VIEWS      CONFIGURE_DEPENDS src/views/*.cpp)
-file(GLOB_RECURSE SRC_WIDGETS    CONFIGURE_DEPENDS src/widgets/*.cpp)
-file(GLOB_RECURSE SRC_DIALOGS    CONFIGURE_DEPENDS src/dialogs/*.cpp)
-file(GLOB_RECURSE SRC_MODELS     CONFIGURE_DEPENDS src/models/*.cpp)
-file(GLOB_RECURSE SRC_SERVICES   CONFIGURE_DEPENDS src/services/*.cpp)
-file(GLOB_RECURSE SRC_COMMON     CONFIGURE_DEPENDS src/common/*.cpp)
+# ソースファイル一覧の更新: ./scripts/update-sources.sh
 
-# ==== Headers (for AUTOMOC - ソースと同じディレクトリに配置) ====
-file(GLOB_RECURSE HDRS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h)
+set(SRC_APP
+    src/app/commentcoordinator.cpp
+    src/app/commentcoordinator.h
+    src/app/dockcreationservice.cpp
+    src/app/dockcreationservice.h
+    src/app/main.cpp
+    src/app/mainwindow.cpp
+    src/app/mainwindow.h
+)
+
+set(SRC_CORE
+    src/core/fastmovevalidator.cpp
+    src/core/fastmovevalidator.h
+    src/core/legalmovestatus.h
+    src/core/playmode.h
+    src/core/sfenutils.h
+    src/core/shogiboard.cpp
+    src/core/shogiboard.h
+    src/core/shogiclock.cpp
+    src/core/shogiclock.h
+    src/core/shogimove.cpp
+    src/core/shogimove.h
+    src/core/shogitypes.h
+    src/core/shogiutils.cpp
+    src/core/shogiutils.h
+)
+
+set(SRC_GAME
+    src/game/consecutivegamescontroller.cpp
+    src/game/consecutivegamescontroller.h
+    src/game/enginegameovernotifier.cpp
+    src/game/enginegameovernotifier.h
+    src/game/enginevsenginestrategy.cpp
+    src/game/enginevsenginestrategy.h
+    src/game/gamemodestrategy.h
+    src/game/gamesessionfacade.cpp
+    src/game/gamesessionfacade.h
+    src/game/gamestartcoordinator.cpp
+    src/game/gamestartcoordinator.h
+    src/game/gamestatecontroller.cpp
+    src/game/gamestatecontroller.h
+    src/game/humanvsenginestrategy.cpp
+    src/game/humanvsenginestrategy.h
+    src/game/humanvshumanstrategy.cpp
+    src/game/humanvshumanstrategy.h
+    src/game/matchcoordinator.cpp
+    src/game/matchcoordinator.h
+    src/game/prestartcleanuphandler.cpp
+    src/game/prestartcleanuphandler.h
+    src/game/promotionflow.cpp
+    src/game/promotionflow.h
+    src/game/sennichitedetector.cpp
+    src/game/sennichitedetector.h
+    src/game/shogigamecontroller.cpp
+    src/game/shogigamecontroller.h
+    src/game/strategycontext.h
+    src/game/turnmanager.cpp
+    src/game/turnmanager.h
+    src/game/turnsyncbridge.cpp
+    src/game/turnsyncbridge.h
+)
+
+set(SRC_KIFU
+    src/kifu/formats/csaexporter.cpp
+    src/kifu/formats/csaexporter.h
+    src/kifu/formats/csatosfenconverter.cpp
+    src/kifu/formats/csatosfenconverter.h
+    src/kifu/formats/jkfexporter.cpp
+    src/kifu/formats/jkfexporter.h
+    src/kifu/formats/jkftosfenconverter.cpp
+    src/kifu/formats/jkftosfenconverter.h
+    src/kifu/formats/ki2tosfenconverter.cpp
+    src/kifu/formats/ki2tosfenconverter.h
+    src/kifu/formats/kiftosfenconverter.cpp
+    src/kifu/formats/kiftosfenconverter.h
+    src/kifu/formats/notationutils.cpp
+    src/kifu/formats/notationutils.h
+    src/kifu/formats/parsecommon.cpp
+    src/kifu/formats/parsecommon.h
+    src/kifu/formats/sfencsapositionconverter.cpp
+    src/kifu/formats/sfencsapositionconverter.h
+    src/kifu/formats/usentosfenconverter.cpp
+    src/kifu/formats/usentosfenconverter.h
+    src/kifu/formats/usitosfenconverter.cpp
+    src/kifu/formats/usitosfenconverter.h
+    src/kifu/gamerecordmodel.cpp
+    src/kifu/gamerecordmodel.h
+    src/kifu/kifdisplayitem.h
+    src/kifu/kifparsetypes.h
+    src/kifu/kifreader.cpp
+    src/kifu/kifreader.h
+    src/kifu/kifubranchtree.cpp
+    src/kifu/kifubranchtree.h
+    src/kifu/kifubranchtreebuilder.cpp
+    src/kifu/kifubranchtreebuilder.h
+    src/kifu/kifubranchnode.cpp
+    src/kifu/kifubranchnode.h
+    src/kifu/kifuclipboardservice.cpp
+    src/kifu/kifuclipboardservice.h
+    src/kifu/kifucontentbuilder.cpp
+    src/kifu/kifucontentbuilder.h
+    src/kifu/kifuexportcontroller.cpp
+    src/kifu/kifuexportcontroller.h
+    src/kifu/kifuioservice.cpp
+    src/kifu/kifuioservice.h
+    src/kifu/kifuloadcoordinator.cpp
+    src/kifu/kifuloadcoordinator.h
+    src/kifu/kifunavigationstate.cpp
+    src/kifu/kifunavigationstate.h
+    src/kifu/kifusavecoordinator.cpp
+    src/kifu/kifusavecoordinator.h
+    src/kifu/kifutypes.h
+    src/kifu/livegamesession.cpp
+    src/kifu/livegamesession.h
+    src/kifu/shogiinforecord.cpp
+    src/kifu/shogiinforecord.h
+)
+
+set(SRC_ANALYSIS
+    src/analysis/analysiscoordinator.cpp
+    src/analysis/analysiscoordinator.h
+    src/analysis/analysisflowcontroller.cpp
+    src/analysis/analysisflowcontroller.h
+    src/analysis/analysisresultspresenter.cpp
+    src/analysis/analysisresultspresenter.h
+    src/analysis/considerationflowcontroller.cpp
+    src/analysis/considerationflowcontroller.h
+    src/analysis/considerationmodeuicontroller.cpp
+    src/analysis/considerationmodeuicontroller.h
+    src/analysis/kifuanalysislistmodel.cpp
+    src/analysis/kifuanalysislistmodel.h
+    src/analysis/tsumeshogigenerator.cpp
+    src/analysis/tsumeshogigenerator.h
+    src/analysis/tsumeshogipositiongenerator.cpp
+    src/analysis/tsumeshogipositiongenerator.h
+    src/analysis/tsumesearchflowcontroller.cpp
+    src/analysis/tsumesearchflowcontroller.h
+)
+
+set(SRC_ENGINE
+    src/engine/engineoptiondescriptions.cpp
+    src/engine/engineoptiondescriptions.h
+    src/engine/engineoptions.h
+    src/engine/engineprocessmanager.cpp
+    src/engine/engineprocessmanager.h
+    src/engine/enginesettingsconstants.h
+    src/engine/enginesettingscoordinator.cpp
+    src/engine/enginesettingscoordinator.h
+    src/engine/shogiengineinfoparser.cpp
+    src/engine/shogiengineinfoparser.h
+    src/engine/shogienginethinkingmodel.cpp
+    src/engine/shogienginethinkingmodel.h
+    src/engine/thinkinginfopresenter.cpp
+    src/engine/thinkinginfopresenter.h
+    src/engine/usi.cpp
+    src/engine/usi.h
+    src/engine/usicommlogmodel.cpp
+    src/engine/usicommlogmodel.h
+    src/engine/usiprotocolhandler.cpp
+    src/engine/usiprotocolhandler.h
+)
+
+set(SRC_NETWORK
+    src/network/csaclient.cpp
+    src/network/csaclient.h
+    src/network/csagamecoordinator.cpp
+    src/network/csagamecoordinator.h
+)
+
+set(SRC_NAVIGATION
+    src/navigation/kifunavigationcontroller.cpp
+    src/navigation/kifunavigationcontroller.h
+    src/navigation/recordnavigationhandler.cpp
+    src/navigation/recordnavigationhandler.h
+)
+
+set(SRC_BOARD
+    src/board/boardimageexporter.cpp
+    src/board/boardimageexporter.h
+    src/board/boardinteractioncontroller.cpp
+    src/board/boardinteractioncontroller.h
+    src/board/positioneditcontroller.cpp
+    src/board/positioneditcontroller.h
+    src/board/sfenpositiontracer.cpp
+    src/board/sfenpositiontracer.h
+)
+
+set(SRC_UI
+    src/ui/controllers/boardsetupcontroller.cpp
+    src/ui/controllers/boardsetupcontroller.h
+    src/ui/controllers/evaluationgraphcontroller.cpp
+    src/ui/controllers/evaluationgraphcontroller.h
+    src/ui/controllers/jishogiscoredialogcontroller.cpp
+    src/ui/controllers/jishogiscoredialogcontroller.h
+    src/ui/controllers/languagecontroller.cpp
+    src/ui/controllers/languagecontroller.h
+    src/ui/controllers/nyugyokudeclarationhandler.cpp
+    src/ui/controllers/nyugyokudeclarationhandler.h
+    src/ui/controllers/playerinfocontroller.cpp
+    src/ui/controllers/playerinfocontroller.h
+    src/ui/controllers/pvclickcontroller.cpp
+    src/ui/controllers/pvclickcontroller.h
+    src/ui/controllers/replaycontroller.cpp
+    src/ui/controllers/replaycontroller.h
+    src/ui/controllers/timecontrolcontroller.cpp
+    src/ui/controllers/timecontrolcontroller.h
+    src/ui/controllers/usicommandcontroller.cpp
+    src/ui/controllers/usicommandcontroller.h
+    src/ui/coordinators/aboutcoordinator.cpp
+    src/ui/coordinators/aboutcoordinator.h
+    src/ui/coordinators/dialogcoordinator.cpp
+    src/ui/coordinators/dialogcoordinator.h
+    src/ui/coordinators/dialogorchestrator.cpp
+    src/ui/coordinators/dialogorchestrator.h
+    src/ui/coordinators/docklayoutmanager.cpp
+    src/ui/coordinators/docklayoutmanager.h
+    src/ui/coordinators/dockuicoordinator.cpp
+    src/ui/coordinators/dockuicoordinator.h
+    src/ui/coordinators/gamelayoutbuilder.cpp
+    src/ui/coordinators/gamelayoutbuilder.h
+    src/ui/coordinators/kifudisplaycoordinator.cpp
+    src/ui/coordinators/kifudisplaycoordinator.h
+    src/ui/coordinators/positioneditcoordinator.cpp
+    src/ui/coordinators/positioneditcoordinator.h
+    src/ui/coordinators/uistatepolicymanager.cpp
+    src/ui/coordinators/uistatepolicymanager.h
+    src/ui/presenters/boardsyncpresenter.cpp
+    src/ui/presenters/boardsyncpresenter.h
+    src/ui/presenters/evalgraphpresenter.cpp
+    src/ui/presenters/evalgraphpresenter.h
+    src/ui/presenters/gamerecordpresenter.cpp
+    src/ui/presenters/gamerecordpresenter.h
+    src/ui/presenters/navigationpresenter.cpp
+    src/ui/presenters/navigationpresenter.h
+    src/ui/presenters/timedisplaypresenter.cpp
+    src/ui/presenters/timedisplaypresenter.h
+    src/ui/wiring/analysistabwiring.cpp
+    src/ui/wiring/analysistabwiring.h
+    src/ui/wiring/considerationwiring.cpp
+    src/ui/wiring/considerationwiring.h
+    src/ui/wiring/csagamewiring.cpp
+    src/ui/wiring/csagamewiring.h
+    src/ui/wiring/editactionswiring.cpp
+    src/ui/wiring/editactionswiring.h
+    src/ui/wiring/fileactionswiring.cpp
+    src/ui/wiring/fileactionswiring.h
+    src/ui/wiring/gameactionswiring.cpp
+    src/ui/wiring/gameactionswiring.h
+    src/ui/wiring/josekiwindowwiring.cpp
+    src/ui/wiring/josekiwindowwiring.h
+    src/ui/wiring/matchcoordinatorhooksfactory.cpp
+    src/ui/wiring/matchcoordinatorhooksfactory.h
+    src/ui/wiring/matchcoordinatorwiring.cpp
+    src/ui/wiring/matchcoordinatorwiring.h
+    src/ui/wiring/menuwindowwiring.cpp
+    src/ui/wiring/menuwindowwiring.h
+    src/ui/wiring/playerinfowiring.cpp
+    src/ui/wiring/playerinfowiring.h
+    src/ui/wiring/recordpanewiring.cpp
+    src/ui/wiring/recordpanewiring.h
+    src/ui/wiring/uiactionswiring.cpp
+    src/ui/wiring/uiactionswiring.h
+    src/ui/wiring/viewactionswiring.cpp
+    src/ui/wiring/viewactionswiring.h
+)
+
+set(SRC_VIEWS
+    src/views/shogiview.cpp
+    src/views/shogiview.h
+    src/views/shogiviewhighlighting.cpp
+    src/views/shogiviewhighlighting.h
+    src/views/shogiviewinteraction.cpp
+    src/views/shogiviewinteraction.h
+    src/views/shogiviewlayout.cpp
+    src/views/shogiviewlayout.h
+)
+
+set(SRC_WIDGETS
+    src/widgets/apptooltipfilter.cpp
+    src/widgets/apptooltipfilter.h
+    src/widgets/branchrowdelegate.cpp
+    src/widgets/branchrowdelegate.h
+    src/widgets/branchtreemanager.cpp
+    src/widgets/branchtreemanager.h
+    src/widgets/branchtreewidget.cpp
+    src/widgets/branchtreewidget.h
+    src/widgets/collapsiblegroupbox.cpp
+    src/widgets/collapsiblegroupbox.h
+    src/widgets/commenteditorpanel.cpp
+    src/widgets/commenteditorpanel.h
+    src/widgets/considerationtabmanager.cpp
+    src/widgets/considerationtabmanager.h
+    src/widgets/elidelabel.cpp
+    src/widgets/elidelabel.h
+    src/widgets/engineanalysistab.cpp
+    src/widgets/engineanalysistab.h
+    src/widgets/engineinfowidget.cpp
+    src/widgets/engineinfowidget.h
+    src/widgets/evaluationchartwidget.cpp
+    src/widgets/evaluationchartwidget.h
+    src/widgets/flowlayout.cpp
+    src/widgets/flowlayout.h
+    src/widgets/gameinfopanecontroller.cpp
+    src/widgets/gameinfopanecontroller.h
+    src/widgets/globaltooltip.cpp
+    src/widgets/globaltooltip.h
+    src/widgets/kifuanalysisresultsdisplay.cpp
+    src/widgets/kifuanalysisresultsdisplay.h
+    src/widgets/kifubranchdisplay.cpp
+    src/widgets/kifubranchdisplay.h
+    src/widgets/kifudisplay.cpp
+    src/widgets/kifudisplay.h
+    src/widgets/logviewfontmanager.cpp
+    src/widgets/logviewfontmanager.h
+    src/widgets/longlongspinbox.cpp
+    src/widgets/longlongspinbox.h
+    src/widgets/menubuttonwidget.cpp
+    src/widgets/menubuttonwidget.h
+    src/widgets/numericrightaligncommadelegate.h
+    src/widgets/recordpane.cpp
+    src/widgets/recordpane.h
+)
+
+set(SRC_DIALOGS
+    src/dialogs/changeenginesettingsdialog.cpp
+    src/dialogs/changeenginesettingsdialog.h
+    src/dialogs/considerationdialog.cpp
+    src/dialogs/considerationdialog.h
+    src/dialogs/csagamedialog.cpp
+    src/dialogs/csagamedialog.h
+    src/dialogs/csawaitingdialog.cpp
+    src/dialogs/csawaitingdialog.h
+    src/dialogs/engineregistrationdialog.cpp
+    src/dialogs/engineregistrationdialog.h
+    src/dialogs/josekimergedialog.cpp
+    src/dialogs/josekimergedialog.h
+    src/dialogs/josekimovedialog.cpp
+    src/dialogs/josekimovedialog.h
+    src/dialogs/josekiwindow.cpp
+    src/dialogs/josekiwindow.h
+    src/dialogs/kifuanalysisdialog.cpp
+    src/dialogs/kifuanalysisdialog.h
+    src/dialogs/kifupastedialog.cpp
+    src/dialogs/kifupastedialog.h
+    src/dialogs/menuwindow.cpp
+    src/dialogs/menuwindow.h
+    src/dialogs/promotedialog.cpp
+    src/dialogs/promotedialog.h
+    src/dialogs/pvboarddialog.cpp
+    src/dialogs/pvboarddialog.h
+    src/dialogs/sfencollectiondialog.cpp
+    src/dialogs/sfencollectiondialog.h
+    src/dialogs/startgamedialog.cpp
+    src/dialogs/startgamedialog.h
+    src/dialogs/tsumeshogigeneratordialog.cpp
+    src/dialogs/tsumeshogigeneratordialog.h
+    src/dialogs/tsumeshogisearchdialog.cpp
+    src/dialogs/tsumeshogisearchdialog.h
+    src/dialogs/versiondialog.cpp
+    src/dialogs/versiondialog.h
+)
+
+set(SRC_MODELS
+    src/models/abstractlistmodel.h
+    src/models/kifubranchlistmodel.cpp
+    src/models/kifubranchlistmodel.h
+    src/models/kifurecordlistmodel.cpp
+    src/models/kifurecordlistmodel.h
+)
+
+set(SRC_SERVICES
+    src/services/playernameservice.cpp
+    src/services/playernameservice.h
+    src/services/settingskeys.h
+    src/services/settingsservice.cpp
+    src/services/settingsservice.h
+    src/services/timecontrolutil.cpp
+    src/services/timecontrolutil.h
+    src/services/timekeepingservice.cpp
+    src/services/timekeepingservice.h
+)
+
+set(SRC_COMMON
+    src/common/buttonstyles.h
+    src/common/errorbus.cpp
+    src/common/errorbus.h
+    src/common/jishogicalculator.cpp
+    src/common/jishogicalculator.h
+    src/common/logcategories.cpp
+    src/common/logcategories.h
+    src/common/tsumepositionutil.cpp
+    src/common/tsumepositionutil.h
+)
 
 # ==== Application Icon ====
 # Windows用リソースファイル
@@ -250,7 +625,6 @@ qt_add_executable(ShogiBoardQ
     ${SRC_SERVICES}
     ${SRC_COMMON}
     ${UI_FILES}
-    ${HDRS}
     resources/shogiboardq.qrc
     ${APP_ICON_RESOURCE_WINDOWS}
     ${APP_ICON_MACOS}

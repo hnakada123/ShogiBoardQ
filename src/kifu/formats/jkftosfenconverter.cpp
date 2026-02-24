@@ -2,6 +2,7 @@
 /// @brief JKF形式棋譜コンバータクラスの実装
 
 #include "jkftosfenconverter.h"
+#include "notationutils.h"
 
 #include <QFile>
 #include <QJsonDocument>
@@ -813,23 +814,15 @@ QString JkfToSfenConverter::convertMoveToUsi(const QJsonObject& move, int& prevT
         else if (piece == QStringLiteral("HI")) pieceChar = QLatin1Char('R');
         else return QString();
 
-        usi = QStringLiteral("%1*%2%3").arg(pieceChar).arg(toX).arg(rankNumToLetter(toY));
+        usi = NotationUtils::formatSfenDrop(pieceChar, toX, toY);
     } else {
         // 移動
         const QJsonObject from = move[QStringLiteral("from")].toObject();
         const int fromX = from[QStringLiteral("x")].toInt();
         const int fromY = from[QStringLiteral("y")].toInt();
 
-        usi = QStringLiteral("%1%2%3%4")
-            .arg(fromX)
-            .arg(rankNumToLetter(fromY))
-            .arg(toX)
-            .arg(rankNumToLetter(toY));
-
-        // 成り
-        if (move.contains(QStringLiteral("promote")) && move[QStringLiteral("promote")].toBool()) {
-            usi += QLatin1Char('+');
-        }
+        const bool promotes = move.contains(QStringLiteral("promote")) && move[QStringLiteral("promote")].toBool();
+        usi = NotationUtils::formatSfenMove(fromX, fromY, toX, toY, promotes);
     }
 
     prevToX = toX;
@@ -948,12 +941,6 @@ int JkfToSfenConverter::pieceKindFromCsa(const QString& kind)
 QString JkfToSfenConverter::pieceKindToKanji(const QString& kind)
 {
     return pieceKindToKanjiImpl(kind);
-}
-
-QChar JkfToSfenConverter::rankNumToLetter(int r)
-{
-    if (r < 1 || r > 9) return QChar();
-    return QChar(QLatin1Char(static_cast<char>('a' + (r - 1))));
 }
 
 QString JkfToSfenConverter::relativeToModifier(const QString& relative)

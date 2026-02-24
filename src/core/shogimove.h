@@ -8,6 +8,7 @@
 #include <iostream>
 #include <QVector>
 #include <QDebug>
+#include "shogitypes.h"
 
 /**
  * @brief 1手分の指し手情報を保持する構造体
@@ -20,12 +21,12 @@
 struct ShogiMove {
     QPoint fromSquare{0, 0};   ///< 移動元の座標（盤上:0-8、駒台:9=先手,10=後手）
     QPoint toSquare{0, 0};     ///< 移動先の座標（0-8）
-    QChar movingPiece = QLatin1Char(' ');  ///< 動かした自分の駒（SFEN表記）
-    QChar capturedPiece = QLatin1Char(' '); ///< 取った相手の駒（なければ空白 ' '）
+    Piece movingPiece = Piece::None;   ///< 動かした自分の駒（SFEN表記）
+    Piece capturedPiece = Piece::None; ///< 取った相手の駒（なければ None）
     bool isPromotion = false;  ///< 成りフラグ
 
     ShogiMove();
-    ShogiMove(const QPoint &from, const QPoint &to, QChar moving, QChar captured, bool promotion);
+    ShogiMove(const QPoint &from, const QPoint &to, Piece moving, Piece captured, bool promotion);
 
     bool operator==(const ShogiMove& other) const;
     friend std::ostream& operator<<(std::ostream& os, const ShogiMove& move);

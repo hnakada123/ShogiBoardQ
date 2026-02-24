@@ -97,9 +97,6 @@ private:
     // 駒種の日本語名を取得
     static QString pieceKindToKanji(const QString& kind);
 
-    // USI形式の段番号変換 (1-9 -> a-i)
-    static QChar rankNumToLetter(int r);
-
     // 相対情報（relative）から修飾語を生成（右、左、上、引など）
     static QString relativeToModifier(const QString& relative);
 };

@@ -3,7 +3,7 @@
 
 #include "playerinfowiring.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QTabWidget>
 
 #include "gameinfopanecontroller.h"
@@ -31,10 +31,6 @@ void PlayerInfoWiring::ensureGameInfoController()
     if (m_gameInfoController) return;
 
     m_gameInfoController = new GameInfoPaneController(m_parentWidget);
-
-    // 対局情報更新時のシグナル接続
-    connect(m_gameInfoController, &GameInfoPaneController::gameInfoUpdated,
-            this, &PlayerInfoWiring::onGameInfoUpdated);
 
     qCDebug(lcUi) << "GameInfoPaneController created";
 }
@@ -135,15 +131,12 @@ void PlayerInfoWiring::onSetEngineNames(const QString& e1, const QString& e2)
         }
         m_playerInfoController->onSetEngineNames(e1, e2);
 
-        // MainWindow側のメンバ変数を同期（シグナルで通知）
+        // 外部参照も更新
         const QString newEngine1 = m_playerInfoController->engineName1();
         const QString newEngine2 = m_playerInfoController->engineName2();
-
-        // 外部参照も更新
         if (m_engineName1) *m_engineName1 = newEngine1;
         if (m_engineName2) *m_engineName2 = newEngine2;
 
-        Q_EMIT engineNamesUpdated(newEngine1, newEngine2);
     }
 
     // 検討モード・詰み探索モードの場合、検討タブと思考タブにエンジン名を設定
@@ -209,8 +202,6 @@ void PlayerInfoWiring::onPlayerNamesResolved(const QString& human1, const QStrin
         m_playerInfoController->onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
     }
 
-    // シグナルで通知
-    Q_EMIT playerNamesResolved(human1, human2, engine1, engine2, playMode);
 }
 
 void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const QString& human2,
@@ -273,12 +264,6 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         timeInfo.byoyomiMs,
         timeInfo.incrementMs
     );
-}
-
-void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
-{
-    qCDebug(lcUi) << "onGameInfoUpdated: items=" << items.size();
-    Q_EMIT gameInfoUpdated(items);
 }
 
 void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,

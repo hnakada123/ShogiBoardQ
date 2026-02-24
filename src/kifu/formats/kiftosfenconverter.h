@@ -51,8 +51,6 @@ private:
     static bool isBoardHeaderOrFrame(const QString& line);
     static bool isBodHeader(const QString& line);
     static bool containsAnyTerminal(const QString& s, QString* matched = nullptr);
-    static int  kanjiDigitToInt(QChar c);
-    static QChar rankNumToLetter(int r); // 1..9 -> 'a'..'i'
 
     // 目的地（「同」対応）を読む
     static bool findDestination(const QString& line, int& toFile, int& toRank, bool& isSameAsPrev);

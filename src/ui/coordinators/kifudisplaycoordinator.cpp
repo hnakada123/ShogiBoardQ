@@ -15,7 +15,7 @@
 #include "kifdisplayitem.h"
 #include "livegamesession.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include <QTableView>
 #include <QModelIndex>
@@ -23,7 +23,6 @@
 #include <QStringList>
 #include <utility>
 
-Q_LOGGING_CATEGORY(lcUi, "shogi.ui")
 
 namespace {
 QString normalizeSfenForCompare(const QString& sfen)

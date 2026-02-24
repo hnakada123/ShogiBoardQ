@@ -5,22 +5,21 @@
 /// @brief 人間 vs エンジンモードの Strategy 実装
 
 #include "gamemodestrategy.h"
+#include "matchcoordinator.h"
 
 #include <QElapsedTimer>
 #include <QString>
-
-class MatchCoordinator;
 
 /**
  * @brief 人間 vs エンジンモードの対局ロジック
  *
  * MatchCoordinator から HvE 固有の処理（開始・着手後処理・人間ターンタイマー・
  * エンジン初手・エンジン返し手）を分離した Strategy 実装。
- * 共通処理は MatchCoordinator のメソッドを呼ぶ。
+ * 共通処理は StrategyContext 経由で呼ぶ。
  */
 class HumanVsEngineStrategy : public GameModeStrategy {
 public:
-    HumanVsEngineStrategy(MatchCoordinator* coordinator,
+    HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
                           bool engineIsP1,
                           const QString& enginePath,
                           const QString& engineName);
@@ -45,7 +44,7 @@ private:
     /// 人間タイマーを停止し考慮時間を確定する
     void finishHumanTimerInternal();
 
-    MatchCoordinator* m_coordinator;
+    MatchCoordinator::StrategyContext& m_ctx;
     bool m_engineIsP1;
     QString m_enginePath;
     QString m_engineName;

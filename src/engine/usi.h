@@ -14,7 +14,7 @@
 #include <QTimer>
 #include <memory>
 
-#include "enginelogging.h"
+#include "logcategories.h"
 
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"

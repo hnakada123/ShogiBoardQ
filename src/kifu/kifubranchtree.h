@@ -208,11 +208,6 @@ signals:
      */
     void treeChanged();
 
-    /**
-     * @brief コメントが変更された
-     */
-    void commentChanged(int nodeId, const QString& comment);
-
 private:
     KifuBranchNode* createNode();
     void collectLinesRecursive(KifuBranchNode* node,

@@ -83,9 +83,6 @@ signals:
     /// USIコマンド送信を要求する（→ Usi::sendRaw）
     void requestSendUsiCommand(const QString& line);
 
-    /// 解析開始を通知する（emitされるが現在AnalysisFlowControllerでは未接続）
-    void analysisStarted(int startPly, int endPly, AnalysisCoordinator::Mode mode);
-
     /// 解析終了を通知する（→ AnalysisFlowController::onAnalysisFinished）
     void analysisFinished(AnalysisCoordinator::Mode mode);
 

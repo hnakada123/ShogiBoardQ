@@ -96,9 +96,6 @@ private:
     // 盤面トークンから日本語駒名を取得（成駒対応: +P->と, +B->馬 etc.）
     static QString tokenToKanji(const QString& token);
 
-    // USI形式の段番号変換 (1-9 -> a-i)
-    static QChar rankNumToLetter(int r);
-
     // USI形式の段文字から数値変換 (a-i -> 1-9)
     static int rankLetterToNum(QChar c);
 };

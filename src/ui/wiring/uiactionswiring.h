@@ -2,20 +2,21 @@
 #define UIACTIONSWIRING_H
 
 /// @file uiactionswiring.h
-/// @brief メニュー/ツールバーアクションのシグナル/スロット接続クラスの定義
+/// @brief メニュー/ツールバーアクションのシグナル/スロット接続ファサードの定義
 
 #include <QObject>
 
-class ShogiView;
 namespace Ui { class MainWindow; }
+class FileActionsWiring;
+class GameActionsWiring;
+class EditActionsWiring;
+class ViewActionsWiring;
 
 /**
- * @brief メニューやツールバーのQActionをMainWindowスロットに接続するクラス
+ * @brief メニューやツールバーのQActionをMainWindowスロットに接続するファサード
  *
  * UIアクション（ファイル操作、対局、盤操作、解析など）の
- * シグナル/スロット接続を一括で行う。
- *
- * @todo remove コメントスタイルガイド適用済み
+ * シグナル/スロット接続をドメイン別サブクラスへ委譲する。
  */
 class UiActionsWiring : public QObject {
     Q_OBJECT
@@ -23,7 +24,6 @@ public:
     /// 依存オブジェクト
     struct Deps {
         Ui::MainWindow* ui = nullptr;       ///< UIオブジェクト
-        ShogiView*      shogiView = nullptr; ///< 盤面ビュー（拡大/縮小を直結）
         QObject*        ctx = nullptr;       ///< 受け側オブジェクト（MainWindow*）
     };
 
@@ -35,6 +35,10 @@ public:
 
 private:
     Deps m_d;
+    FileActionsWiring* m_fileWiring = nullptr;
+    GameActionsWiring* m_gameWiring = nullptr;
+    EditActionsWiring* m_editWiring = nullptr;
+    ViewActionsWiring* m_viewWiring = nullptr;
 };
 
 #endif // UIACTIONSWIRING_H

@@ -2,6 +2,14 @@
 /// @brief 定跡ウィンドウクラスの実装
 
 #include "josekiwindow.h"
+
+#include <QVBoxLayout>
+#include <QGroupBox>
+#include <QCloseEvent>
+#include <QShowEvent>
+#include <QFrame>
+#include <QDockWidget>
+
 #include "buttonstyles.h"
 #include "josekimovedialog.h"
 #include "josekimergedialog.h"
@@ -16,7 +24,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QFileInfo>
 #include <QDir>
 #include <QLocale>

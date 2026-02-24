@@ -296,8 +296,6 @@ signals:
     /**
      * @brief データが変更された（保存が必要）
      */
-    void dataChanged();
-
 private:
     // === 内部データ（権威を持つ） ===
     QVector<QString> m_comments;   ///< 手数インデックス → コメント

@@ -59,14 +59,14 @@ public:
     // SFENから盤面状態を初期化
     static void initBoardFromSfen(const QString& sfen,
                                    QString boardState[9][9],
-                                   QMap<QChar, int>& blackHands,
-                                   QMap<QChar, int>& whiteHands);
+                                   QMap<Piece, int>& blackHands,
+                                   QMap<Piece, int>& whiteHands);
 
     // 盤面に指し手を適用
     static void applyMoveToBoard(const QString& usi,
                                   QString boardState[9][9],
-                                  QMap<QChar, int>& blackHands,
-                                  QMap<QChar, int>& whiteHands,
+                                  QMap<Piece, int>& blackHands,
+                                  QMap<Piece, int>& whiteHands,
                                   bool blackToMove);
 
     /// KIF形式の prettyMove を KI2形式に変換（修飾子自動生成、盤面更新）
@@ -79,8 +79,8 @@ public:
     static QString convertPrettyMoveToKi2(
         const QString& prettyMove,
         QString boardState[9][9],
-        QMap<QChar, int>& blackHands,
-        QMap<QChar, int>& whiteHands,
+        QMap<Piece, int>& blackHands,
+        QMap<Piece, int>& whiteHands,
         bool blackToMove,
         int& prevToFile, int& prevToRank);
 
@@ -99,13 +99,13 @@ private:
     // 戻り値: USI形式の指し手（失敗時は空文字列）
     static QString convertKi2MoveToUsi(const QString& moveText,
                                         QString boardState[9][9],
-                                        QMap<QChar, int>& blackHands,
-                                        QMap<QChar, int>& whiteHands,
+                                        QMap<Piece, int>& blackHands,
+                                        QMap<Piece, int>& whiteHands,
                                         bool blackToMove,
                                         int& prevToFile, int& prevToRank);
 
     // 移動元座標を推測
-    static bool inferSourceSquare(QChar pieceUpper,
+    static bool inferSourceSquare(Piece pieceUpper,
                                    bool moveIsPromoted,
                                    int toFile, int toRank,
                                    const QString& modifier,
@@ -120,7 +120,7 @@ private:
     };
 
     // 移動先に到達可能な候補駒を盤面から収集
-    static QVector<Candidate> collectCandidates(QChar pieceUpper, bool moveIsPromoted,
+    static QVector<Candidate> collectCandidates(Piece pieceUpper, bool moveIsPromoted,
                                                  int toFile, int toRank,
                                                  bool blackToMove,
                                                  const QString boardState[9][9]);
@@ -139,28 +139,26 @@ private:
         bool blackToMove);
 
     // 指定された駒が指定マスに移動できるかチェック
-    static bool canPieceMoveTo(QChar pieceUpper, bool isPromoted,
+    static bool canPieceMoveTo(Piece pieceUpper, bool isPromoted,
                                 int fromFile, int fromRank,
                                 int toFile, int toRank,
                                 bool blackToMove);
 
     // 盤面トークンから駒情報を抽出
     // returns: (基本駒種の大文字, 成りフラグ, 先手フラグ)
-    static bool parseToken(const QString& token, QChar& pieceUpper, bool& isPromoted, bool& isBlack);
+    static bool parseToken(const QString& token, Piece& pieceUpper, bool& isPromoted, bool& isBlack);
 
     // ---------- 共通ヘルパ（KifToSfenConverterと同様） ----------
     static bool isSkippableLine(const QString& line);
     static bool isBoardHeaderOrFrame(const QString& line);
     static bool isBodHeader(const QString& line);
     static bool containsAnyTerminal(const QString& s, QString* matched = nullptr);
-    static int  kanjiDigitToInt(QChar c);
-    static QChar rankNumToLetter(int r); // 1..9 -> 'a'..'i'
 
     // 目的地（「同」対応）を読む
     static bool findDestination(const QString& moveText, int& toFile, int& toRank, bool& isSameAsPrev);
 
-    // 駒種（漢字）→ USI基底文字（'P','L',...）
-    static QChar pieceKanjiToUsiUpper(const QString& s);
+    // 駒種（漢字）→ USI基底駒（BlackPawn, BlackLance,...）
+    static Piece pieceKanjiToUsiUpper(const QString& s);
 
     // 成駒表記が含まれているか
     static bool isPromotionMoveText(const QString& moveText);

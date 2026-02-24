@@ -4,12 +4,12 @@
 /// @file fastmovevalidator.h
 /// @brief 高速な合法手判定クラスの定義
 
-#include <QChar>
 #include <QMap>
 #include <QVector>
 
 #include "legalmovestatus.h"
 #include "shogimove.h"
+#include "shogitypes.h"
 
 /**
  * @brief 将棋の合法手判定・合法手数生成・王手判定を行う軽量バリデータ
@@ -44,8 +44,8 @@ public:
      * @return 成り手/不成手の合法可否を保持するステータス
      */
     LegalMoveStatus isLegalMove(const Turn& turn,
-                                const QVector<QChar>& boardData,
-                                const QMap<QChar, int>& pieceStand,
+                                const QVector<Piece>& boardData,
+                                const QMap<Piece, int>& pieceStand,
                                 ShogiMove& currentMove) const;
 
     /**
@@ -56,8 +56,8 @@ public:
      * @return 合法手数
      */
     int generateLegalMoves(const Turn& turn,
-                           const QVector<QChar>& boardData,
-                           const QMap<QChar, int>& pieceStand) const;
+                           const QVector<Piece>& boardData,
+                           const QMap<Piece, int>& pieceStand) const;
 
     /**
      * @brief 指定手番の玉が王手されている数を返す
@@ -66,7 +66,7 @@ public:
      * @return 王手している相手駒の数（0以上）
      */
     int checkIfKingInCheck(const Turn& turn,
-                           const QVector<QChar>& boardData) const;
+                           const QVector<Piece>& boardData) const;
 };
 
 #endif // FASTMOVEVALIDATOR_H

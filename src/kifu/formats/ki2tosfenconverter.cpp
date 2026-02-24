@@ -5,9 +5,10 @@
 #include "kiftosfenconverter.h"
 #include "kifreader.h"
 #include "parsecommon.h"
+#include "notationutils.h"
 
 #include <QRegularExpression>
-#include "kifulogging.h"
+#include "logcategories.h"
 #include <QMap>
 
 // ============================================================================
@@ -153,38 +154,10 @@ static inline bool isResultLine(const QString& line)
     return resultPatternRe().match(line).hasMatch();
 }
 
-// 駒の漢字 → (USI基底文字, 成りフラグ)
-static inline bool mapKanjiPiece(const QString& s, QChar& base, bool& promoted)
+// 駒の漢字 → (USI基底駒, 成りフラグ)
+static inline bool mapKanjiPiece(const QString& s, Piece& base, bool& promoted)
 {
     return KifuParseCommon::mapKanjiPiece(s, base, promoted);
-}
-
-// 手合 → 初期SFEN
-static QString mapHandicapToSfenImpl(const QString& label) {
-    static const char* kEven = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-    struct Pair { const char* key; const char* sfen; };
-    static const Pair tbl[] = {
-        {"平手",   kEven},
-        {"香落ち", "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"右香落ち", "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"角落ち", "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"飛車落ち", "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"飛香落ち", "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"二枚落ち", "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"三枚落ち", "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"四枚落ち", "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"五枚落ち", "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"左五枚落ち", "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"六枚落ち", "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"左七枚落ち", "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"右七枚落ち", "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"八枚落ち", "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-        {"十枚落ち", "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-    };
-    for (const auto& p : tbl) {
-        if (label.contains(QString::fromUtf8(p.key))) return QString::fromUtf8(p.sfen);
-    }
-    return QString::fromUtf8(kEven);
 }
 
 } // anonymous namespace
@@ -228,37 +201,7 @@ bool Ki2ToSfenConverter::isKi2MoveLine(const QString& line)
 
 QString Ki2ToSfenConverter::mapHandicapToSfen(const QString& label)
 {
-    return mapHandicapToSfenImpl(label);
-}
-
-// ----------------------------------------------------------------------------
-// kanjiDigitToInt
-// ----------------------------------------------------------------------------
-
-int Ki2ToSfenConverter::kanjiDigitToInt(QChar c)
-{
-    switch (c.unicode()) {
-    case u'一': return 1;
-    case u'二': return 2;
-    case u'三': return 3;
-    case u'四': return 4;
-    case u'五': return 5;
-    case u'六': return 6;
-    case u'七': return 7;
-    case u'八': return 8;
-    case u'九': return 9;
-    default: return 0;
-    }
-}
-
-// ----------------------------------------------------------------------------
-// rankNumToLetter
-// ----------------------------------------------------------------------------
-
-QChar Ki2ToSfenConverter::rankNumToLetter(int r)
-{
-    if (r < 1 || r > 9) return QChar();
-    return QChar(QLatin1Char(static_cast<char>('a' + (r - 1))));
+    return NotationUtils::mapHandicapToSfen(label);
 }
 
 // ----------------------------------------------------------------------------
@@ -404,7 +347,7 @@ bool Ki2ToSfenConverter::findDestination(const QString& moveText, int& toFile, i
     const QChar rch = m.capturedView(2).at(0);
 
     toFile = flexDigitToInt_NoDetach(fch);
-    int r  = kanjiDigitToInt(rch);
+    int r  = NotationUtils::kanjiDigitToInt(rch);
     if (r == 0) r = flexDigitToInt_NoDetach(rch);
     toRank = r;
 
@@ -415,20 +358,20 @@ bool Ki2ToSfenConverter::findDestination(const QString& moveText, int& toFile, i
 // pieceKanjiToUsiUpper - 駒種（漢字）→ USI基底文字
 // ----------------------------------------------------------------------------
 
-QChar Ki2ToSfenConverter::pieceKanjiToUsiUpper(const QString& s)
+Piece Ki2ToSfenConverter::pieceKanjiToUsiUpper(const QString& s)
 {
-    QChar base; bool promoted = false;
-    if (!mapKanjiPiece(s, base, promoted)) return QChar();
+    Piece base = Piece::None; bool promoted = false;
+    if (!mapKanjiPiece(s, base, promoted)) return Piece::None;
     return base;
 }
 
 // 駒種と成りフラグを取得するヘルパ
-static bool getPieceTypeAndPromoted(const QString& moveText, QChar& pieceUpper, bool& isPromoted)
+static bool getPieceTypeAndPromoted(const QString& moveText, Piece& pieceUpper, bool& isPromoted)
 {
     isPromoted = false;
-    pieceUpper = QChar();
-    
-    QChar base;
+    pieceUpper = Piece::None;
+
+    Piece base = Piece::None;
     if (!mapKanjiPiece(moveText, base, isPromoted)) return false;
     pieceUpper = base;
     return true;
@@ -515,14 +458,14 @@ QStringList Ki2ToSfenConverter::extractMovesFromLine(const QString& line)
 // parseToken - 盤面トークンを解析
 // ----------------------------------------------------------------------------
 
-bool Ki2ToSfenConverter::parseToken(const QString& token, QChar& pieceUpper, bool& isPromoted, bool& isBlack)
+bool Ki2ToSfenConverter::parseToken(const QString& token, Piece& pieceUpper, bool& isPromoted, bool& isBlack)
 {
     if (token.isEmpty()) return false;
-    
+
     isPromoted = (token.startsWith(QLatin1Char('+')));
     const QChar ch = isPromoted ? token.at(1) : token.at(0);
     isBlack = ch.isUpper();
-    pieceUpper = ch.toUpper();
+    pieceUpper = toBlack(charToPiece(ch));
     return true;
 }
 
@@ -532,8 +475,8 @@ bool Ki2ToSfenConverter::parseToken(const QString& token, QChar& pieceUpper, boo
 
 void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
                                             QString boardState[9][9],
-                                            QMap<QChar, int>& blackHands,
-                                            QMap<QChar, int>& whiteHands)
+                                            QMap<Piece, int>& blackHands,
+                                            QMap<Piece, int>& whiteHands)
 {
     // 盤面クリア
     for (int r = 0; r < 9; ++r) {
@@ -583,10 +526,11 @@ void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
                     const bool black = ch.isUpper();
                     const int n = (num > 0) ? num : 1;
                     num = 0;
+                    const Piece basePiece = toBlack(charToPiece(ch));
                     if (black) {
-                        blackHands[ch.toUpper()] += n;
+                        blackHands[basePiece] += n;
                     } else {
-                        whiteHands[ch.toUpper()] += n;
+                        whiteHands[basePiece] += n;
                     }
                 }
             }
@@ -600,8 +544,8 @@ void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
 
 void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
                                            QString boardState[9][9],
-                                           QMap<QChar, int>& blackHands,
-                                           QMap<QChar, int>& whiteHands,
+                                           QMap<Piece, int>& blackHands,
+                                           QMap<Piece, int>& whiteHands,
                                            bool blackToMove)
 {
     if (usi.isEmpty()) return;
@@ -610,71 +554,71 @@ void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
     if (usi.contains(QLatin1Char('*'))) {
         const qsizetype star = usi.indexOf('*');
         if (star != 1 || usi.size() < 4) return;
-        
-        const QChar up = usi.at(0).toUpper();
+
+        const Piece up = toBlack(charToPiece(usi.at(0)));
         const int file = usi.at(2).toLatin1() - '0'; // 1-9
         const int rankIdx = usi.at(3).toLatin1() - 'a'; // 0-8
-        
+
         if (file < 1 || file > 9 || rankIdx < 0 || rankIdx > 8) return;
-        
+
         const int colIdx = 9 - file; // 9筋が col 0
-        
+
         // 持ち駒から減らす
-        QMap<QChar, int>& hands = blackToMove ? blackHands : whiteHands;
+        QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
         if (hands.value(up, 0) > 0) {
             hands[up]--;
         }
-        
+
         // 盤に置く
-        const QChar piece = blackToMove ? up : up.toLower();
-        boardState[rankIdx][colIdx] = QString(piece);
+        const QChar pieceChar = pieceToChar(blackToMove ? up : toWhite(up));
+        boardState[rankIdx][colIdx] = QString(pieceChar);
         return;
     }
 
     // 通常手: "7g7f" or "2b3c+"
     if (usi.size() < 4) return;
-    
+
     const int fileFrom = usi.at(0).toLatin1() - '0';
     const int rankFromIdx = usi.at(1).toLatin1() - 'a';
     const int fileTo = usi.at(2).toLatin1() - '0';
     const int rankToIdx = usi.at(3).toLatin1() - 'a';
     const bool promote = (usi.size() >= 5 && usi.at(4) == QLatin1Char('+'));
-    
+
     if (fileFrom < 1 || fileFrom > 9 || rankFromIdx < 0 || rankFromIdx > 8) return;
     if (fileTo < 1 || fileTo > 9 || rankToIdx < 0 || rankToIdx > 8) return;
-    
+
     const int colFrom = 9 - fileFrom;
     const int colTo = 9 - fileTo;
-    
+
     // 移動元の駒を取得
     QString fromToken = boardState[rankFromIdx][colFrom];
     if (fromToken.isEmpty()) return;
-    
+
     // 移動先に駒があれば持ち駒に
     const QString toToken = boardState[rankToIdx][colTo];
     if (!toToken.isEmpty()) {
-        QChar capPiece;
+        Piece capPiece = Piece::None;
         bool capPromoted, capBlack;
         if (parseToken(toToken, capPiece, capPromoted, capBlack)) {
             // 成り駒は元の駒に戻す
-            QMap<QChar, int>& hands = blackToMove ? blackHands : whiteHands;
+            QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
             hands[capPiece]++;
         }
     }
-    
+
     // 駒を移動
-    QChar movingPiece;
+    Piece movingPiece = Piece::None;
     bool wasPromoted, isBlack;
     if (parseToken(fromToken, movingPiece, wasPromoted, isBlack)) {
         const bool nowPromoted = promote || wasPromoted;
-        const QChar outPiece = blackToMove ? movingPiece : movingPiece.toLower();
+        const QChar outChar = pieceToChar(blackToMove ? movingPiece : toWhite(movingPiece));
         if (nowPromoted) {
-            boardState[rankToIdx][colTo] = QString(QLatin1Char('+')) + outPiece;
+            boardState[rankToIdx][colTo] = QString(QLatin1Char('+')) + outChar;
         } else {
-            boardState[rankToIdx][colTo] = QString(outPiece);
+            boardState[rankToIdx][colTo] = QString(outChar);
         }
     }
-    
+
     boardState[rankFromIdx][colFrom].clear();
 }
 
@@ -682,19 +626,19 @@ void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
 // canPieceMoveTo - 駒が移動可能かチェック
 // ----------------------------------------------------------------------------
 
-bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
+bool Ki2ToSfenConverter::canPieceMoveTo(Piece pieceUpper, bool isPromoted,
                                          int fromFile, int fromRank,
                                          int toFile, int toRank,
                                          bool blackToMove)
 {
     const int df = toFile - fromFile;
     const int dr = toRank - fromRank;
-    
+
     // 先手は上（段が小さくなる方向）へ、後手は下へ進む
     const int forward = blackToMove ? -1 : 1;
-    
-    switch (pieceUpper.unicode()) {
-    case 'P': // 歩
+
+    switch (pieceUpper) {
+    case Piece::BlackPawn: // 歩
         if (isPromoted) {
             // と金（金と同じ動き）
             if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
@@ -706,7 +650,7 @@ bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
         }
         return (df == 0 && dr == forward);
         
-    case 'L': // 香
+    case Piece::BlackLance: // 香
         if (isPromoted) {
             // 成香（金と同じ動き）
             if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
@@ -718,7 +662,7 @@ bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
         }
         return (df == 0 && dr * forward > 0); // 前方に直進
         
-    case 'N': // 桂
+    case Piece::BlackKnight: // 桂
         if (isPromoted) {
             // 成桂（金と同じ動き）
             if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
@@ -730,7 +674,7 @@ bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
         }
         return (qAbs(df) == 1 && dr == 2 * forward);
         
-    case 'S': // 銀
+    case Piece::BlackSilver: // 銀
         if (isPromoted) {
             // 成銀（金と同じ動き）
             if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
@@ -749,7 +693,7 @@ bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
         }
         return false;
         
-    case 'G': // 金
+    case Piece::BlackGold: // 金
         if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
             if (df == 0 && dr == -forward) return false; // 真後ろは不可
             if (qAbs(df) == 1 && dr == -forward) return false; // 斜め後ろは不可
@@ -757,7 +701,7 @@ bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
         }
         return false;
         
-    case 'B': // 角
+    case Piece::BlackBishop: // 角
         if (isPromoted) {
             // 馬（角の動き + 周囲1マス）
             if (qAbs(df) == qAbs(dr) && df != 0) return true;
@@ -766,7 +710,7 @@ bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
         }
         return (qAbs(df) == qAbs(dr) && df != 0);
         
-    case 'R': // 飛
+    case Piece::BlackRook: // 飛
         if (isPromoted) {
             // 龍（飛車の動き + 斜め1マス）
             if ((df == 0 && dr != 0) || (df != 0 && dr == 0)) return true;
@@ -775,7 +719,7 @@ bool Ki2ToSfenConverter::canPieceMoveTo(QChar pieceUpper, bool isPromoted,
         }
         return ((df == 0 && dr != 0) || (df != 0 && dr == 0));
         
-    case 'K': // 玉
+    case Piece::BlackKing: // 玉
         return (qAbs(df) <= 1 && qAbs(dr) <= 1 && (df != 0 || dr != 0));
         
     default:
@@ -819,7 +763,7 @@ static bool isPathClear(int fromFile, int fromRank, int toFile, int toRank,
 // ----------------------------------------------------------------------------
 
 QVector<Ki2ToSfenConverter::Candidate> Ki2ToSfenConverter::collectCandidates(
-    QChar pieceUpper, bool moveIsPromoted,
+    Piece pieceUpper, bool moveIsPromoted,
     int toFile, int toRank,
     bool blackToMove,
     const QString boardState[9][9])
@@ -831,7 +775,7 @@ QVector<Ki2ToSfenConverter::Candidate> Ki2ToSfenConverter::collectCandidates(
             const QString& token = boardState[r][f];
             if (token.isEmpty()) continue;
 
-            QChar tokenPiece;
+            Piece tokenPiece = Piece::None;
             bool tokenPromoted, tokenBlack;
             if (!parseToken(token, tokenPiece, tokenPromoted, tokenBlack)) continue;
             if (tokenBlack != blackToMove) continue;
@@ -847,8 +791,8 @@ QVector<Ki2ToSfenConverter::Candidate> Ki2ToSfenConverter::collectCandidates(
                 continue;
 
             // 飛び駒（飛車、角、香車）の経路確認
-            if (pieceUpper == QLatin1Char('R') || pieceUpper == QLatin1Char('B') ||
-                pieceUpper == QLatin1Char('L')) {
+            if (pieceUpper == Piece::BlackRook || pieceUpper == Piece::BlackBishop ||
+                pieceUpper == Piece::BlackLance) {
                 if (!isPathClear(candFile, candRank, toFile, toRank, boardState))
                     continue;
             }
@@ -1031,8 +975,8 @@ QString Ki2ToSfenConverter::generateModifier(
 QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
     const QString& prettyMove,
     QString boardState[9][9],
-    QMap<QChar, int>& blackHands,
-    QMap<QChar, int>& whiteHands,
+    QMap<Piece, int>& blackHands,
+    QMap<Piece, int>& whiteHands,
     bool blackToMove,
     int& prevToFile, int& prevToRank)
 {
@@ -1063,7 +1007,7 @@ QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
     }
 
     // 3. 駒種を取得
-    QChar pieceUpper;
+    Piece pieceUpper = Piece::None;
     bool isPromoted = false;
     if (!getPieceTypeAndPromoted(prettyMove, pieceUpper, isPromoted)) {
         QString result = prettyMove;
@@ -1113,17 +1057,11 @@ QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
     // 8. USI文字列を構築して盤面を更新
     if (isDrop) {
         // 駒打ち
-        const QChar toRankLetter = rankNumToLetter(dstRank);
-        const QString usi = QStringLiteral("%1*%2%3").arg(pieceUpper).arg(dstFile).arg(toRankLetter);
+        const QString usi = NotationUtils::formatSfenDrop(pieceToChar(pieceUpper), dstFile, dstRank);
         applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
     } else if (hasSource) {
         // 盤上の移動
-        const QChar fromRankLetter = rankNumToLetter(srcRank);
-        const QChar toRankLetter = rankNumToLetter(dstRank);
-        QString usi = QStringLiteral("%1%2%3%4").arg(srcFile).arg(fromRankLetter).arg(dstFile).arg(toRankLetter);
-        if (isPromotionMoveText(prettyMove)) {
-            usi += QLatin1Char('+');
-        }
+        const QString usi = NotationUtils::formatSfenMove(srcFile, srcRank, dstFile, dstRank, isPromotionMoveText(prettyMove));
         applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
     }
 
@@ -1138,7 +1076,7 @@ QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
 // inferSourceSquare - 移動元座標を推測
 // ----------------------------------------------------------------------------
 
-bool Ki2ToSfenConverter::inferSourceSquare(QChar pieceUpper,
+bool Ki2ToSfenConverter::inferSourceSquare(Piece pieceUpper,
                                             bool moveIsPromoted,
                                             int toFile, int toRank,
                                             const QString& modifier,
@@ -1173,8 +1111,8 @@ bool Ki2ToSfenConverter::inferSourceSquare(QChar pieceUpper,
 
 QString Ki2ToSfenConverter::convertKi2MoveToUsi(const QString& moveText,
                                                  QString boardState[9][9],
-                                                 QMap<QChar, int>& blackHands,
-                                                 QMap<QChar, int>& whiteHands,
+                                                 QMap<Piece, int>& blackHands,
+                                                 QMap<Piece, int>& whiteHands,
                                                  bool blackToMove,
                                                  int& prevToFile, int& prevToRank)
 {
@@ -1206,62 +1144,55 @@ QString Ki2ToSfenConverter::convertKi2MoveToUsi(const QString& moveText,
     }
     
     // 駒種と成り状態を取得
-    // 例：「角」→ pieceUpper='B', moveIsPromoted=false
-    //     「馬」→ pieceUpper='B', moveIsPromoted=true
-    QChar pieceUpper;
+    // 例：「角」→ pieceUpper=BlackBishop, moveIsPromoted=false
+    //     「馬」→ pieceUpper=BlackBishop, moveIsPromoted=true
+    Piece pieceUpper = Piece::None;
     bool moveIsPromoted = false;
     if (!getPieceTypeAndPromoted(moveText, pieceUpper, moveIsPromoted)) {
         return QString();
     }
-    
+
     // 明示的な「打」があるかどうか
     bool explicitDrop = moveText.contains(QChar(u'打'));
-    
+
     // 盤上に移動可能な駒があるか確認
     // moveIsPromotedを渡して、成駒と未成駒を区別する
     const QString modifier = extractMoveModifier(moveText);
     int fromFile = 0, fromRank = 0;
     bool canMoveFromBoard = inferSourceSquare(pieceUpper, moveIsPromoted, toFile, toRank, modifier, blackToMove, boardState, fromFile, fromRank);
-    
+
     // 持ち駒にあるか確認（成駒は持ち駒にならない）
-    QMap<QChar, int>& hands = blackToMove ? blackHands : whiteHands;
+    QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
     bool hasInHand = !moveIsPromoted && (hands.value(pieceUpper, 0) > 0);
-    
+
     // 打ちかどうかの判定
     // 1. 明示的に「打」がある場合
     // 2. 盤上に移動可能な駒がなく、持ち駒にある場合（成駒は打てない）
     bool isDrop = explicitDrop;
-    
+
     if (!isDrop && !canMoveFromBoard && hasInHand) {
         // 盤上に移動可能な駒がないが持ち駒にある → 打ち
         isDrop = true;
     }
-    
+
     QString usi;
-    
+
     if (isDrop) {
         // 駒打ち
         if (!hasInHand) {
-            qCWarning(lcKifu) << "No piece in hand for drop:" << pieceUpper << "move:" << moveText;
+            qCWarning(lcKifu) << "No piece in hand for drop:" << pieceToChar(pieceUpper) << "move:" << moveText;
             return QString();
         }
-        
-        const QChar toRankLetter = rankNumToLetter(toRank);
-        usi = QStringLiteral("%1*%2%3").arg(pieceUpper).arg(toFile).arg(toRankLetter);
+
+        usi = NotationUtils::formatSfenDrop(pieceToChar(pieceUpper), toFile, toRank);
     } else {
         // 盤上の移動
         if (!canMoveFromBoard) {
             qCWarning(lcKifu) << "Cannot infer source square for:" << moveText;
             return QString();
         }
-        
-        const QChar fromRankLetter = rankNumToLetter(fromRank);
-        const QChar toRankLetter = rankNumToLetter(toRank);
-        usi = QStringLiteral("%1%2%3%4").arg(fromFile).arg(fromRankLetter).arg(toFile).arg(toRankLetter);
-        
-        if (isPromotionMoveText(moveText)) {
-            usi += QLatin1Char('+');
-        }
+
+        usi = NotationUtils::formatSfenMove(fromFile, fromRank, toFile, toRank, isPromotionMoveText(moveText));
     }
     
     // 「同」のために保存
@@ -1281,7 +1212,7 @@ QString Ki2ToSfenConverter::detectInitialSfenFromFile(const QString& ki2Path, QS
     QStringList lines;
     if (!KifReader::readLinesAuto(ki2Path, lines, &usedEnc, &warn)) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return mapHandicapToSfenImpl(QStringLiteral("平手"));
+        return NotationUtils::mapHandicapToSfen(QStringLiteral("平手"));
     }
 
     // BODを試す
@@ -1301,14 +1232,14 @@ QString Ki2ToSfenConverter::detectInitialSfenFromFile(const QString& ki2Path, QS
     }
     if (found.isEmpty()) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return mapHandicapToSfenImpl(QStringLiteral("平手"));
+        return NotationUtils::mapHandicapToSfen(QStringLiteral("平手"));
     }
 
     QString label = found;
     label.remove(afterColonRe());
     label = label.trimmed();
     if (detectedLabel) *detectedLabel = label;
-    return mapHandicapToSfenImpl(label);
+    return NotationUtils::mapHandicapToSfen(label);
 }
 
 // ----------------------------------------------------------------------------
@@ -1333,7 +1264,7 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
 
     // 盤面を初期化
     QString boardState[9][9];
-    QMap<QChar, int> blackHands, whiteHands;
+    QMap<Piece, int> blackHands, whiteHands;
     initBoardFromSfen(initialSfen, boardState, blackHands, whiteHands);
 
     // 手番を判定（SFENの第2フィールド）
@@ -1416,7 +1347,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
 
     // 盤面を初期化
     QString boardState[9][9];
-    QMap<QChar, int> blackHands, whiteHands;
+    QMap<Piece, int> blackHands, whiteHands;
     initBoardFromSfen(initialSfen, boardState, blackHands, whiteHands);
 
     // 手番を判定

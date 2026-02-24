@@ -97,9 +97,6 @@ signals:
     /// プロセスエラー発生（→ USIProtocolHandler）
     void processError(QProcess::ProcessError error, const QString& errorMessage);
 
-    /// エンジン名を"id name"応答から検出（→ USIProtocolHandler）
-    void engineNameDetected(const QString& name);
-
 private slots:
     void onReadyReadStdout();
     void onReadyReadStderr();

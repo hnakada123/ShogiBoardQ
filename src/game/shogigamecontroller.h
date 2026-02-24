@@ -104,12 +104,6 @@ public slots:
     void newGame(QString& startsfenstr);
 
 signals:
-    /// 盤面が変更された（→ ShogiView）
-    void boardChanged(ShogiBoard *);
-
-    /// 対局結果が確定した（→ MatchCoordinator）
-    void gameOver(ShogiGameController::Result);
-
     /// 成り/不成の選択ダイアログ表示を要求する（→ PromotionFlow）
     void showPromotionDialog();
 
@@ -148,26 +142,26 @@ private:
     void gameResult();
 
     /// 歩・桂・香の行き所のない駒に対して成りフラグを強制設定する
-    void setMandatoryPromotionFlag(const int fileTo, const int rankTo, const QChar source);
+    void setMandatoryPromotionFlag(const int fileTo, const int rankTo, const Piece source);
 
     // --- 禁じ手チェック ---
 
-    bool checkTwoPawn(const QChar source, const int fileFrom, const int fileTo) const;
-    bool checkWhetherAllyPiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
-    bool checkNumberStandPiece(const QChar source, const int fileFrom) const;
-    bool checkFromPieceStandToPieceStand(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
-    bool checkGetKingOpponentPiece(const QChar source, const QChar dest) const;
-    bool checkMovePiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const;
+    bool checkTwoPawn(const Piece source, const int fileFrom, const int fileTo) const;
+    bool checkWhetherAllyPiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const;
+    bool checkNumberStandPiece(const Piece source, const int fileFrom) const;
+    bool checkFromPieceStandToPieceStand(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const;
+    bool checkGetKingOpponentPiece(const Piece source, const Piece dest) const;
+    bool checkMovePiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const;
     void setResult(Result);
 
     /// アルファベットの駒文字を漢字表記に変換する
-    QString getPieceKanji(const QChar& piece);
+    QString getPieceKanji(const Piece piece);
 
     /// 指定された駒が成り可能な駒かを判定する
-    bool isPromotablePiece(QChar& piece);
+    bool isPromotablePiece(Piece piece);
 
     /// 成り/不成の選択ダイアログを表示して結果を反映する
-    void decidePromotionByDialog(QChar &piece, int &rankFrom, int &rankTo);
+    void decidePromotionByDialog(Piece piece, int &rankFrom, int &rankTo);
 
     /// 現在の手番が人間操作かどうかを判定する
     bool isCurrentPlayerHumanControlled(PlayMode& playMode);
@@ -178,7 +172,7 @@ private:
      */
     bool decidePromotion(PlayMode& playMode, FastMoveValidator& validator,
                          const FastMoveValidator::Turn& turnMove,
-                         int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, QChar& piece,  ShogiMove& currentMove);
+                         int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove);
 
     /// 相手の手番をTurnで取得する
     Turn getNextPlayerSfen();

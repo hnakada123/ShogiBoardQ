@@ -2,6 +2,7 @@
 /// @brief 対局開始コーディネータクラスの実装
 
 #include "gamestartcoordinator.h"
+#include "logcategories.h"
 #include "kifurecordlistmodel.h"
 #include "kifuloadcoordinator.h"
 #include "shogiboard.h"

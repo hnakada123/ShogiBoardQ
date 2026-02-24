@@ -8,8 +8,10 @@ set(SRC ${CMAKE_SOURCE_DIR}/src)
 set(TEST_STUBS
     ${CMAKE_CURRENT_SOURCE_DIR}/test_stubs.cpp
     ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
     ${SRC}/kifu/formats/parsecommon.cpp
     ${SRC}/kifu/formats/sfencsapositionconverter.cpp
+    ${SRC}/kifu/formats/notationutils.cpp
 )
 
 # Common include directories for all tests
@@ -73,6 +75,7 @@ add_shogi_test(tst_coredatastructures
 # ============================================================
 add_shogi_test(tst_shogiboard
     tst_shogiboard.cpp
+    ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogimove.cpp
 )
@@ -100,6 +103,7 @@ add_shogi_test(tst_fastmovevalidator
 # ============================================================
 add_shogi_test(tst_shogiclock
     tst_shogiclock.cpp
+    ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiclock.cpp
 )
 
@@ -315,6 +319,7 @@ add_shogi_test(tst_integration
 add_shogi_test(tst_usiprotocolhandler
     tst_usiprotocolhandler.cpp
     test_stubs_usiprotocol.cpp
+    ${SRC}/common/logcategories.cpp
     ${SRC}/engine/usiprotocolhandler.cpp
 )
 
@@ -324,6 +329,7 @@ add_shogi_test(tst_usiprotocolhandler
 add_shogi_test(tst_ui_display_consistency
     tst_ui_display_consistency.cpp
     test_stubs_ui_display.cpp
+    ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/kifudisplaycoordinator.cpp
     ${SRC}/navigation/kifunavigationcontroller.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
@@ -356,6 +362,7 @@ set_tests_properties(tst_ui_display_consistency PROPERTIES
 add_shogi_test(tst_analysisflow
     tst_analysisflow.cpp
     test_stubs_analysisflow.cpp
+    ${SRC}/common/logcategories.cpp
     ${SRC}/analysis/analysisflowcontroller.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
 )

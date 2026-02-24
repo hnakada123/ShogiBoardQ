@@ -18,7 +18,7 @@
 #include <QSet>
 #include <QTransform>
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 // ===================== ヘルパー関数 =====================
 

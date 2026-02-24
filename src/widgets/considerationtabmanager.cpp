@@ -6,7 +6,7 @@
 #include "buttonstyles.h"
 #include "engineinfowidget.h"
 #include "flowlayout.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
 #include "settingsservice.h"
 #include "shogienginethinkingmodel.h"

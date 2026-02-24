@@ -4,7 +4,7 @@
 #include "kifreader.h"
 
 #include <QByteArray>
-#include "kifulogging.h"
+#include "logcategories.h"
 #include <QFile>
 #include <QStringDecoder>
 

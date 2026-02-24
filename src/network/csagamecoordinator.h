@@ -13,8 +13,8 @@
 
 #include "csaclient.h"
 #include "shogimove.h"
-#include "kifurecordlistmodel.h"
 
+class KifuRecordListModel;
 class ShogiGameController;
 class ShogiView;
 class ShogiClock;
@@ -195,8 +195,6 @@ signals:
      * @brief 対局情報を受信した時に発行（→ CsaGameWiring::onCsaGameSummaryReceived）
      * @param summary 対局情報
      */
-    void gameSummaryReceived(const CsaClient::GameSummary& summary);
-
     /**
      * @brief ログメッセージを発行（→ CsaGameWiring::onCsaLogMessage）
      * @param message ログメッセージ
@@ -283,12 +281,12 @@ private:
     QString boardToCSA(const QPoint& from, const QPoint& to, bool promote) const;
 
     /**
-     * @brief 駒文字（SFEN形式）をCSA形式の駒文字に変換する
-     * @param pieceChar 駒文字（P, L, N, S, G, B, R, K, +P等）
+     * @brief 駒（Piece enum）をCSA形式の駒文字に変換する
+     * @param piece 駒（Piece enum値）
      * @param promote 成るかどうか
      * @return CSA形式の駒名（FU, KY, KE, GI, KI, KA, HI, OU, TO等）
      */
-    QString pieceCharToCsa(QChar pieceChar, bool promote) const;
+    QString pieceCharToCsa(Piece piece, bool promote) const;
 
     /**
      * @brief CSA形式の指し手を表示用文字列に変換する
@@ -355,12 +353,12 @@ private:
     int pieceTypeFromCsa(const QString& csaPiece) const;
 
     /**
-     * @brief CSA駒種をSFEN駒文字に変換
+     * @brief CSA駒種をPiece enumに変換
      * @param csaPiece CSA形式の駒記号
      * @param isBlack 先手の駒かどうか
-     * @return SFEN形式の駒文字
+     * @return Piece enum値
      */
-    QChar csaPieceToSfenChar(const QString& csaPiece, bool isBlack) const;
+    Piece csaPieceToSfenPiece(const QString& csaPiece, bool isBlack) const;
 
     /**
      * @brief クリーンアップ処理

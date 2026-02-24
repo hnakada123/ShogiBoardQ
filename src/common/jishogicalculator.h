@@ -6,8 +6,8 @@
 
 #include <QVector>
 #include <QMap>
-#include <QChar>
 #include <QString>
+#include "shogitypes.h"
 
 /**
  * @brief 持将棋（入玉宣言法）の点数計算を行うユーティリティクラス
@@ -38,8 +38,8 @@ public:
     // --- 公開API ---
 
     /// 盤面データと駒台データから点数を計算する
-    static JishogiResult calculate(const QVector<QChar>& boardData,
-                                   const QMap<QChar, int>& pieceStand);
+    static JishogiResult calculate(const QVector<Piece>& boardData,
+                                   const QMap<Piece, int>& pieceStand);
 
     /// 宣言条件を満たしているか（玉が敵陣、敵陣に10枚以上、王手がかかっていない）
     /// @param kingInCheck 玉が王手されているかどうか
@@ -63,16 +63,16 @@ private:
     // --- 内部ヘルパー ---
 
     /// 駒の点数を取得する（大駒: 5点、小駒: 1点、玉: 0点）
-    static int getPiecePoints(QChar piece);
+    static int getPiecePoints(Piece piece);
 
     /// 駒が大駒（飛車・角・龍・馬）かどうかを判定する
-    static bool isMajorPiece(QChar piece);
+    static bool isMajorPiece(Piece piece);
 
     /// 先手の駒かどうかを判定する（大文字）
-    static bool isSentePiece(QChar piece);
+    static bool isSentePiece(Piece piece);
 
     /// 後手の駒かどうかを判定する（小文字）
-    static bool isGotePiece(QChar piece);
+    static bool isGotePiece(Piece piece);
 };
 
 #endif // JISHOGICALCULATOR_H

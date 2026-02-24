@@ -4,7 +4,7 @@
 #include "commenteditorpanel.h"
 #include "buttonstyles.h"
 #include "settingsservice.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include <QTextEdit>
 #include <QToolButton>

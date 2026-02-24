@@ -254,7 +254,6 @@ void EngineProcessManager::onReadyReadStdout()
             const QString name = line.mid(8).trimmed();
             if (!name.isEmpty() && m_logEngineName.isEmpty()) {
                 m_logEngineName = name;
-                emit engineNameDetected(name);
                 if (!guard) return;
             }
         }

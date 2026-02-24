@@ -9,9 +9,7 @@
 #include "boardinteractioncontroller.h"
 
 #include <QAction>
-#include <QLoggingCategory>
-
-Q_LOGGING_CATEGORY(lcUiPolicy, "shogi.ui.policy")
+#include "logcategories.h"
 
 // ======================================================================
 // 初期化

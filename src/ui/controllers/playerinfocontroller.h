@@ -111,17 +111,6 @@ public Q_SLOTS:
                                const QString& engine1, const QString& engine2,
                                int playMode);
 
-Q_SIGNALS:
-    /**
-     * @brief エンジン名が更新された
-     */
-    void engineNamesUpdated(const QString& engine1, const QString& engine2);
-
-    /**
-     * @brief PlayModeが変更された
-     */
-    void playModeChanged(PlayMode mode);
-
 private:
     ShogiView* m_shogiView = nullptr;
     GameInfoPaneController* m_gameInfoController = nullptr;

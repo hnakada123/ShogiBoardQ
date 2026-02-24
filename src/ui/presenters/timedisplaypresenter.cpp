@@ -4,7 +4,7 @@
 #include "timedisplaypresenter.h"
 #include "shogiview.h"
 #include "shogiclock.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QTime>
 
 TimeDisplayPresenter::TimeDisplayPresenter(ShogiView* view, QObject* parent)

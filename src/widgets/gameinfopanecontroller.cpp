@@ -17,7 +17,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QIcon>
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 GameInfoPaneController::GameInfoPaneController(QObject* parent)
     : QObject(parent)
@@ -438,7 +438,6 @@ void GameInfoPaneController::onCellChanged(int row, int column)
 
     if (wasDirty != m_dirty) {
         updateEditingIndicator();
-        emit dirtyStateChanged(m_dirty);
     }
 }
 

@@ -3,6 +3,7 @@
 
 #include "tsumesearchflowcontroller.h"
 
+#include "logcategories.h"
 #include "analysisflowcontroller.h"
 #include "tsumeshogisearchdialog.h"
 #include "matchcoordinator.h"

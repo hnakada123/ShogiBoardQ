@@ -7,6 +7,7 @@
 #include <QString>
 #include <QRandomGenerator>
 #include <QVector>
+#include "shogitypes.h"
 
 /**
  * @brief ランダムな詰将棋候補局面をSFEN文字列として生成する
@@ -64,7 +65,7 @@ private:
     bool needsPromotion(PieceType pt, int rank, bool isAttacker) const;
     bool isInvalidPlacement(PieceType pt, int rank, bool isAttacker) const;
     bool isKingInCheck() const;
-    QVector<QChar> buildBoardData() const;
+    QVector<Piece> buildBoardData() const;
     static QChar promotedPieceChar(QChar base);
     QString buildSfen() const;
 };

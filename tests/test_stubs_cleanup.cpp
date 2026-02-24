@@ -5,10 +5,7 @@
 /// 呼ばれないシンボルのスタブ実装を提供する。
 
 #include <QLabel>
-#include <QLoggingCategory>
 
-// usicommlogmodel.cpp が参照するログカテゴリ
-Q_LOGGING_CATEGORY(lcEngine, "shogi.engine")
 #include "boardinteractioncontroller.h"
 #include "shogiview.h"
 #include "timecontrolcontroller.h"

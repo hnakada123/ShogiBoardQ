@@ -27,7 +27,7 @@
 #include <QSizePolicy>
 
 #include "settingsservice.h"  // フォントサイズ保存用
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"

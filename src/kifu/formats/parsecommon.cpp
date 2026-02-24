@@ -105,50 +105,74 @@ bool isTerminalWordContains(const QString& text, QString* normalized)
     return false;
 }
 
-bool mapKanjiPiece(const QString& text, QChar& base, bool& promoted)
+bool mapKanjiPiece(const QString& text, Piece& base, bool& promoted)
 {
     promoted = false;
 
     if (text.contains(QChar(u'歩')) || text.contains(QChar(u'と'))) {
-        base = QLatin1Char('P');
+        base = Piece::BlackPawn;
         promoted = text.contains(QChar(u'と'));
         return true;
     }
     if (text.contains(QChar(u'香')) || text.contains(QChar(u'杏'))) {
-        base = QLatin1Char('L');
+        base = Piece::BlackLance;
         promoted = text.contains(QChar(u'杏'));
         return true;
     }
     if (text.contains(QChar(u'桂')) || text.contains(QChar(u'圭'))) {
-        base = QLatin1Char('N');
+        base = Piece::BlackKnight;
         promoted = text.contains(QChar(u'圭'));
         return true;
     }
     if (text.contains(QChar(u'銀')) || text.contains(QChar(u'全'))) {
-        base = QLatin1Char('S');
+        base = Piece::BlackSilver;
         promoted = text.contains(QChar(u'全'));
         return true;
     }
     if (text.contains(QChar(u'金'))) {
-        base = QLatin1Char('G');
+        base = Piece::BlackGold;
         return true;
     }
     if (text.contains(QChar(u'角')) || text.contains(QChar(u'馬'))) {
-        base = QLatin1Char('B');
+        base = Piece::BlackBishop;
         promoted = text.contains(QChar(u'馬'));
         return true;
     }
     if (text.contains(QChar(u'飛')) || text.contains(QChar(u'龍')) || text.contains(QChar(u'竜'))) {
-        base = QLatin1Char('R');
+        base = Piece::BlackRook;
         promoted = (text.contains(QChar(u'龍')) || text.contains(QChar(u'竜')));
         return true;
     }
     if (text.contains(QChar(u'玉')) || text.contains(QChar(u'王'))) {
-        base = QLatin1Char('K');
+        base = Piece::BlackKing;
         return true;
     }
 
     return false;
+}
+
+std::optional<int> parseFileChar(QChar ch)
+{
+    const ushort u = ch.unicode();
+    if (u >= '1' && u <= '9')
+        return u - '0';
+    return std::nullopt;
+}
+
+std::optional<int> parseRankChar(QChar ch)
+{
+    const ushort u = ch.unicode();
+    if (u >= 'a' && u <= 'i')
+        return u - 'a' + 1;
+    return std::nullopt;
+}
+
+std::optional<int> parseDigit(QChar ch)
+{
+    const ushort u = ch.unicode();
+    if (u >= '0' && u <= '9')
+        return u - '0';
+    return std::nullopt;
 }
 
 } // namespace KifuParseCommon

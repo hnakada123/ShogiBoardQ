@@ -6,40 +6,35 @@
 
 
 // --- Qt ヘッダー ---
-#include <QLoggingCategory>
 #include <QMainWindow>
 #include <QDockWidget>
 #include <QSplitter>
-#include <QStyledItemDelegate>
-#include <QTableWidget>
-#include <QTime>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <QActionGroup>
 #include <QPointer>
 
-// --- プロジェクトヘッダー（値型で使用） ---
+// --- プロジェクトヘッダー（値型・MOC制約で必要） ---
 #include "playmode.h"
 #include "shogimove.h"
+#include "kifdisplayitem.h"
 #include "matchcoordinator.h"
-#include "kifurecordlistmodel.h"
-#include "kifuanalysislistmodel.h"
-
-// --- プロジェクトヘッダー（依存の強いモジュール） ---
-#include "kifubranchlistmodel.h"
-#include "shogienginethinkingmodel.h"
+#include "matchcoordinatorwiring.h"
 #include "shogigamecontroller.h"
-#include "usi.h"
-#include "usicommlogmodel.h"
-#include "recordpane.h"
-#include "engineanalysistab.h"
-#include "boardinteractioncontroller.h"
-#include "kifuloadcoordinator.h"
-#include "positioneditcontroller.h"
 #include "gamestartcoordinator.h"
-#include "analysisflowcontroller.h"
-#include "kifuclipboardservice.h"
-#include "gameinfopanecontroller.h"  // KifGameInfoItem
+
+// --- 前方宣言（ポインタメンバのみ使用） ---
+class KifuRecordListModel;
+class KifuAnalysisListModel;
+class KifuBranchListModel;
+class KifuDisplay;
+class ShogiEngineThinkingModel;
+class Usi;
+class UsiCommLogModel;
+class RecordPane;
+class EngineAnalysisTab;
+class BoardInteractionController;
+class KifuLoadCoordinator;
+class PositionEditController;
 
 // --- 前方宣言（新規コントローラ） ---
 class JishogiScoreDialogController;
@@ -59,8 +54,6 @@ class KifuNavigationController;
 class KifuDisplayCoordinator;
 class BranchTreeWidget;
 class LiveGameSession;
-
-Q_DECLARE_LOGGING_CATEGORY(lcApp)
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -101,7 +94,6 @@ class JosekiWindow;
 class CsaGameWiring;
 class JosekiWindowWiring;
 class PlayerInfoWiring;
-class MatchCoordinatorWiring;
 class PreStartCleanupHandler;
 class MenuWindowWiring;
 class UsiCommandController;
@@ -160,9 +152,14 @@ public slots:
     void saveSettingsAndClose();
     /// 盤面・棋譜・状態を初期状態にリセットする
     void resetToInitialState();
-    /// AnalysisFlowController等からのエラーを受け取る
-    void onFlowError(const QString& msg);
-
+    /// エンジン・通信の停止
+    void resetEngineState();
+    /// ゲーム状態変数のリセット
+    void resetGameState();
+    /// データモデルのクリア
+    void resetModels(const QString& hirateStartSfen);
+    /// UI要素の状態リセット（盤面描画、UIポリシー）
+    void resetUiState(const QString& hirateStartSfen);
     // --- ダイアログ表示 ---
     void displayPromotionDialog();
     void displayEngineSettingsDialog();
@@ -191,9 +188,6 @@ public slots:
     // --- ツールバー / ドック ---
     /// ツールバーの表示/非表示を切り替える（actionToolBar に接続）
     void onToolBarVisibilityToggled(bool visible);
-    /// 全ドックの移動・リサイズのロック状態を切り替える
-    void onDocksLockToggled(bool locked);
-
     // --- その他操作 ---
     /// 直近2手を取り消す（「待った」相当）
     void undoLastTwoMoves();
@@ -244,8 +238,6 @@ private slots:
 
     // --- ナビゲーションボタン制御 ---
 
-    /// ナビゲーション矢印ボタンを無効化する
-    void disableArrowButtons();
     /// ナビゲーション矢印ボタンを有効化する
     void enableArrowButtons();
 
@@ -588,6 +580,16 @@ private:
     void ensureTimeController();
     /// MatchCoordinatorWiringを遅延初期化する
     void ensureMatchCoordinatorWiring();
+    /// MatchCoordinator用フックを構築する
+    MatchCoordinator::Hooks buildMatchHooks();
+    /// MatchCoordinator用アンドゥフックを構築する
+    MatchCoordinator::UndoHooks buildMatchUndoHooks();
+    /// MatchCoordinatorWiringの依存構造体を構築する
+    MatchCoordinatorWiring::Deps buildMatchWiringDeps(
+        const MatchCoordinator::Hooks& hooks,
+        const MatchCoordinator::UndoHooks& undoHooks);
+    /// MatchCoordinatorWiringの転送シグナルを接続する
+    void wireMatchWiringSignals();
     /// MatchCoordinatorを初期化し配線する
     void initMatchCoordinator();
     /// 棋譜欄ウィジェットをセットアップする
@@ -612,6 +614,10 @@ private:
     void createAnalysisResultsDock();
     /// 分岐ナビゲーション関連クラスを初期化する
     void initializeBranchNavigationClasses();
+    /// 分岐ナビゲーションのモデルを生成する
+    void createBranchNavigationModels();
+    /// 分岐ナビゲーションのシグナルを接続する
+    void wireBranchNavigationSignals();
 
     // --- ゲーム開始 / 切替 ---
     /// SFEN文字列で新規対局を初期化する

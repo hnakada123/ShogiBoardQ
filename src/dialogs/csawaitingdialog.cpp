@@ -13,7 +13,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QTextCursor>
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "settingsservice.h"  // フォントサイズ保存用
 

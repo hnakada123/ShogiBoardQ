@@ -9,7 +9,8 @@
 
 #include <QModelIndex>
 #include <QItemSelectionModel>
-#include "loggingcategory.h"
+#include <QTableView>
+#include "logcategories.h"
 
 RecordPaneWiring::RecordPaneWiring(const Deps& d, QObject* parent)
     : QObject(parent), m_d(d)

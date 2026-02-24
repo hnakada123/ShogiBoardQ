@@ -87,10 +87,6 @@ public Q_SLOTS:
     /// 終局手追加要求のハンドラ（→ MatchCoordinator::requestAppendGameOverMove から接続）
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
-Q_SIGNALS:
-    /// 終局処理完了を通知
-    void gameOverProcessed();
-
 private:
     MatchCoordinator* m_match = nullptr;                ///< 非所有
     ShogiView* m_shogiView = nullptr;                   ///< 非所有

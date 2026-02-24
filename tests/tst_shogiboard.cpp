@@ -23,19 +23,19 @@ private slots:
         QCOMPARE(data.size(), 81);
 
         // Rank 1 (index 0-8): l n s g k g s n l
-        QCOMPARE(data[0], QLatin1Char('l'));
-        QCOMPARE(data[4], QLatin1Char('k'));
-        QCOMPARE(data[8], QLatin1Char('l'));
+        QCOMPARE(data[0], Piece::WhiteLance);
+        QCOMPARE(data[4], Piece::WhiteKing);
+        QCOMPARE(data[8], Piece::WhiteLance);
 
         // Rank 7 (index 54-62): P P P P P P P P P
         for (int i = 54; i <= 62; ++i) {
-            QCOMPARE(data[i], QLatin1Char('P'));
+            QCOMPARE(data[i], Piece::BlackPawn);
         }
 
         // Rank 9 (index 72-80): L N S G K G S N L
-        QCOMPARE(data[72], QLatin1Char('L'));
-        QCOMPARE(data[76], QLatin1Char('K'));
-        QCOMPARE(data[80], QLatin1Char('L'));
+        QCOMPARE(data[72], Piece::BlackLance);
+        QCOMPARE(data[76], Piece::BlackKing);
+        QCOMPARE(data[80], Piece::BlackLance);
     }
 
     void sfen_roundTrip_hirate()
@@ -65,9 +65,9 @@ private slots:
         board.setSfen(sfen);
 
         const auto& data = board.boardData();
-        // SFEN file order is 9→1, so 6+P2 = files 9-4 empty, file 3 has +P, files 2-1 empty
+        // SFEN file order is 9->1, so 6+P2 = files 9-4 empty, file 3 has +P, files 2-1 empty
         // index = (rank-1)*9 + (file-1) = (4-1)*9 + (3-1) = 29
-        QCOMPARE(data[29], QLatin1Char('Q')); // +P → internal 'Q'
+        QCOMPARE(data[29], Piece::BlackPromotedPawn); // +P -> internal 'Q'
     }
 
     void convertStandToSfen()
@@ -96,13 +96,13 @@ private slots:
         board.setSfen(kHirateSfen);
 
         // Move pawn from 7g (file=7, rank=7) to 7f (file=7, rank=6)
-        board.movePieceToSquare(QLatin1Char('P'), 7, 7, 7, 6, false);
+        board.movePieceToSquare(Piece::BlackPawn, 7, 7, 7, 6, false);
 
         const auto& data = board.boardData();
         // 7g should be empty: index = (7-1)*9 + (7-1) = 60
-        QCOMPARE(data[60], QLatin1Char(' '));
+        QCOMPARE(data[60], Piece::None);
         // 7f should have P: index = (6-1)*9 + (7-1) = 51
-        QCOMPARE(data[51], QLatin1Char('P'));
+        QCOMPARE(data[51], Piece::BlackPawn);
     }
 
     void movePiece_withPromotion()
@@ -113,11 +113,11 @@ private slots:
         board.setSfen(sfen);
 
         // Move P from rank 3 to rank 2 with promotion
-        board.movePieceToSquare(QLatin1Char('P'), 5, 3, 5, 2, true);
+        board.movePieceToSquare(Piece::BlackPawn, 5, 3, 5, 2, true);
 
         const auto& data = board.boardData();
         // 5b (file=5, rank=2): index = (2-1)*9 + (5-1) = 13
-        QCOMPARE(data[13], QLatin1Char('Q')); // Promoted pawn
+        QCOMPARE(data[13], Piece::BlackPromotedPawn); // Promoted pawn
     }
 
     // === Piece Stand ===
@@ -126,9 +126,9 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        int before = board.getPieceStand().value(QLatin1Char('P'), 0);
-        board.addPieceToStand(QLatin1Char('p')); // Capture opponent's pawn
-        int after = board.getPieceStand().value(QLatin1Char('P'), 0);
+        int before = board.getPieceStand().value(Piece::BlackPawn, 0);
+        board.addPieceToStand(Piece::WhitePawn); // Capture opponent's pawn
+        int after = board.getPieceStand().value(Piece::BlackPawn, 0);
         QCOMPARE(after, before + 1);
     }
 
@@ -136,10 +136,10 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        int before = board.getPieceStand().value(QLatin1Char('P'), 0);
-        // Capture promoted pawn 'q' (opponent's +P) → should convert to 'P'
-        board.addPieceToStand(QLatin1Char('q'));
-        int after = board.getPieceStand().value(QLatin1Char('P'), 0);
+        int before = board.getPieceStand().value(Piece::BlackPawn, 0);
+        // Capture promoted pawn (opponent's +P) -> should convert to P
+        board.addPieceToStand(Piece::WhitePromotedPawn);
+        int after = board.getPieceStand().value(Piece::BlackPawn, 0);
         QCOMPARE(after, before + 1);
     }
 
@@ -148,12 +148,12 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
 
-        int before = board.getPieceStand().value(QLatin1Char('P'), 0);
-        board.incrementPieceOnStand(QLatin1Char('P'));
-        QCOMPARE(board.getPieceStand().value(QLatin1Char('P'), 0), before + 1);
+        int before = board.getPieceStand().value(Piece::BlackPawn, 0);
+        board.incrementPieceOnStand(Piece::BlackPawn);
+        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), before + 1);
 
-        board.decrementPieceOnStand(QLatin1Char('P'));
-        QCOMPARE(board.getPieceStand().value(QLatin1Char('P'), 0), before);
+        board.decrementPieceOnStand(Piece::BlackPawn);
+        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), before);
     }
 
     // === Board Operations ===
@@ -167,7 +167,7 @@ private slots:
         const auto& data = board.boardData();
         // All squares should be empty
         for (int i = 0; i < 81; ++i) {
-            QCOMPARE(data[i], QLatin1Char(' '));
+            QCOMPARE(data[i], Piece::None);
         }
     }
 
@@ -180,17 +180,17 @@ private slots:
 
         const auto& data = board.boardData();
         // P at rank2 file9: index = (2-1)*9 + (9-1) = 17
-        QCOMPARE(data[17], QLatin1Char('P'));
+        QCOMPARE(data[17], Piece::BlackPawn);
         // rank8 file1: index = (8-1)*9 + (1-1) = 63, should be empty
-        QCOMPARE(data[63], QLatin1Char(' '));
+        QCOMPARE(data[63], Piece::None);
 
         board.flipSides();
 
-        // After 180° rotation + case swap:
-        // P at [17] → p at [80-17] = [63]
-        QCOMPARE(board.boardData()[63], QLatin1Char('p'));
+        // After 180 rotation + case swap:
+        // P at [17] -> p at [80-17] = [63]
+        QCOMPARE(board.boardData()[63], Piece::WhitePawn);
         // Original [17] should now be empty
-        QCOMPARE(board.boardData()[17], QLatin1Char(' '));
+        QCOMPARE(board.boardData()[17], Piece::None);
     }
 
     // === Signals ===
@@ -213,7 +213,7 @@ private slots:
         QSignalSpy spy(&board, &ShogiBoard::dataChanged);
         QVERIFY(spy.isValid());
 
-        board.movePieceToSquare(QLatin1Char('P'), 7, 7, 7, 6, false);
+        board.movePieceToSquare(Piece::BlackPawn, 7, 7, 7, 6, false);
         QVERIFY(spy.count() >= 1);
     }
 };

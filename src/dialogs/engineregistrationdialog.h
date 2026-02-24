@@ -8,6 +8,7 @@
 #include <QDialog>
 #include <QProcess>
 #include <QSettings>
+#include <memory>
 #include "engineoptions.h"
 
 namespace Ui {
@@ -68,7 +69,7 @@ private:
     Ui::EngineRegistrationDialog *ui;
 
     // 将棋エンジンのプロセス
-    QProcess* m_process = nullptr;
+    std::unique_ptr<QProcess> m_process;
 
     // エラーが発生したかどうかを示すフラグ
     bool m_errorOccurred = false;

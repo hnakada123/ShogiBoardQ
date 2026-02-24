@@ -4,7 +4,7 @@
 #include "engineregistrationdialog.h"
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
 #include "buttonstyles.h"
@@ -69,12 +69,12 @@ EngineRegistrationDialog::~EngineRegistrationDialog()
 void EngineRegistrationDialog::cleanupEngineProcess()
 {
     // プロセスが存在しない場合は何もしない。
-    if (m_process == nullptr) {
+    if (!m_process) {
         return;
     }
 
     // プロセスのシグナル・スロットの接続を解除する。
-    disconnect(m_process, nullptr, this, nullptr);
+    disconnect(m_process.get(), nullptr, this, nullptr);
 
     // プロセスの状態が実行中の場合
     if (m_process->state() == QProcess::Running) {
@@ -89,8 +89,7 @@ void EngineRegistrationDialog::cleanupEngineProcess()
     }
 
     // プロセスオブジェクトを削除する。
-    delete m_process;
-    m_process = nullptr;
+    m_process.reset();
 }
 
 // シグナル・スロットの接続を行う。
@@ -399,16 +398,16 @@ void EngineRegistrationDialog::startEngine(const QString& engineFile)
     cleanupEngineProcess();
 
     // 新しいプロセスを作成する。
-    m_process = new QProcess;
+    m_process = std::make_unique<QProcess>();
 
     // 標準出力が読み取り可能になったときにプロセスの出力を処理するスロットを接続
-    connect(m_process, &QProcess::readyReadStandardOutput, this, &EngineRegistrationDialog::processEngineOutput);
+    connect(m_process.get(), &QProcess::readyReadStandardOutput, this, &EngineRegistrationDialog::processEngineOutput);
 
     // 標準エラー出力が読み取り可能になったときにプロセスのエラー出力を処理するスロットを接続
-    connect(m_process, &QProcess::readyReadStandardError, this, &EngineRegistrationDialog::processEngineErrorOutput);
+    connect(m_process.get(), &QProcess::readyReadStandardError, this, &EngineRegistrationDialog::processEngineErrorOutput);
 
     // プロセスのエラーが発生したときに呼び出されるスロットを接続
-    connect(m_process, &QProcess::errorOccurred, this, &EngineRegistrationDialog::onProcessError);
+    connect(m_process.get(), &QProcess::errorOccurred, this, &EngineRegistrationDialog::onProcessError);
 
     // 将棋エンジンの起動引数を設定（必要に応じて）
     QStringList args;

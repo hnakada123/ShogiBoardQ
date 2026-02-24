@@ -419,7 +419,6 @@ void KifuBranchTree::setComment(int nodeId, const QString& comment)
     KifuBranchNode* node = nodeAt(nodeId);
     if (node != nullptr) {
         node->setComment(comment);
-        emit commentChanged(nodeId, comment);
     }
 }
 

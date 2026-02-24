@@ -2,8 +2,10 @@
 /// @brief USI形式棋譜コンバータクラスの実装
 
 #include "usitosfenconverter.h"
+#include "parsecommon.h"
 #include "sfenpositiontracer.h"
 #include "kifreader.h"
+#include "logcategories.h"
 
 #include <QFile>
 #include <QTextStream>
@@ -148,9 +150,13 @@ static QString extractPieceTokenFromUsi(const QString& usi, SfenPositionTracer& 
     }
 
     // 盤上移動の場合は盤面から取得
-    int fromFile = usi.at(0).toLatin1() - '0';
+    auto fromFile = KifuParseCommon::parseFileChar(usi.at(0));
+    if (!fromFile) {
+        qCWarning(lcKifu) << "invalid file char:" << usi;
+        return QString();
+    }
     QChar fromRankChar = usi.at(1);
-    return tracer.tokenAtFileRank(fromFile, fromRankChar);
+    return tracer.tokenAtFileRank(*fromFile, fromRankChar);
 }
 
 // ============================================================================
@@ -563,44 +569,46 @@ QString UsiToSfenConverter::usiToPrettyMove(const QString& usi, int plyNumber,
     // 駒打ちのパターン: P*7f
     if (usi.size() >= 4 && usi.at(1) == QChar('*')) {
         QChar pieceChar = usi.at(0);
-        int toFile = usi.at(2).toLatin1() - '0';
-        int toRank = usi.at(3).toLatin1() - 'a' + 1;
+        auto toFile = KifuParseCommon::parseFileChar(usi.at(2));
+        auto toRank = KifuParseCommon::parseRankChar(usi.at(3));
+        if (!toFile || !toRank) {
+            qCWarning(lcKifu) << "invalid drop coord:" << usi;
+            return teban + QStringLiteral("?");
+        }
 
         QString kanji = pieceToKanji(pieceChar);
 
         QString result = teban;
-        if (toFile >= 1 && toFile <= 9) result += kZenkakuDigits.at(toFile);
-        if (toRank >= 1 && toRank <= 9) result += kKanjiRanks.at(toRank);
+        result += kZenkakuDigits.at(*toFile);
+        result += kKanjiRanks.at(*toRank);
         result += kanji + QStringLiteral("打");
 
-        prevToFile = toFile;
-        prevToRank = toRank;
+        prevToFile = *toFile;
+        prevToRank = *toRank;
 
         return result;
     }
 
     // 通常移動のパターン: 7g7f, 7g7f+
     if (usi.size() >= 4) {
-        int fromFile = usi.at(0).toLatin1() - '0';
-        int fromRank = usi.at(1).toLatin1() - 'a' + 1;
-        int toFile = usi.at(2).toLatin1() - '0';
-        int toRank = usi.at(3).toLatin1() - 'a' + 1;
-        bool promotes = (usi.size() >= 5 && usi.at(4) == QChar('+'));
-
-        // 範囲チェック
-        if (fromFile < 1 || fromFile > 9 || fromRank < 1 || fromRank > 9 ||
-            toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) {
+        auto fromFile = KifuParseCommon::parseFileChar(usi.at(0));
+        auto fromRank = KifuParseCommon::parseRankChar(usi.at(1));
+        auto toFile = KifuParseCommon::parseFileChar(usi.at(2));
+        auto toRank = KifuParseCommon::parseRankChar(usi.at(3));
+        if (!fromFile || !fromRank || !toFile || !toRank) {
+            qCWarning(lcKifu) << "invalid move coord:" << usi;
             return teban + QStringLiteral("?");
         }
+        bool promotes = (usi.size() >= 5 && usi.at(4) == QChar('+'));
 
         QString result = teban;
 
         // 同じ場所への移動
-        if (toFile == prevToFile && toRank == prevToRank) {
+        if (*toFile == prevToFile && *toRank == prevToRank) {
             result += QStringLiteral("同　");
         } else {
-            if (toFile >= 1 && toFile <= 9) result += kZenkakuDigits.at(toFile);
-            if (toRank >= 1 && toRank <= 9) result += kKanjiRanks.at(toRank);
+            result += kZenkakuDigits.at(*toFile);
+            result += kKanjiRanks.at(*toRank);
         }
 
         // 駒種を取得（pieceTokenから）
@@ -613,10 +621,10 @@ QString UsiToSfenConverter::usiToPrettyMove(const QString& usi, int plyNumber,
         }
 
         // 移動元
-        result += QStringLiteral("(") + QString::number(fromFile) + QString::number(fromRank) + QStringLiteral(")");
+        result += QStringLiteral("(") + QString::number(*fromFile) + QString::number(*fromRank) + QStringLiteral(")");
 
-        prevToFile = toFile;
-        prevToRank = toRank;
+        prevToFile = *toFile;
+        prevToRank = *toRank;
 
         return result;
     }
@@ -663,7 +671,5 @@ QString UsiToSfenConverter::tokenToKanji(const QString& token)
 
 int UsiToSfenConverter::rankLetterToNum(QChar c)
 {
-    char ch = c.toLatin1();
-    if (ch >= 'a' && ch <= 'i') return ch - 'a' + 1;
-    return 0;
+    return KifuParseCommon::parseRankChar(c).value_or(0);
 }

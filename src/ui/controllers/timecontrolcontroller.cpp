@@ -3,7 +3,7 @@
 
 #include "timecontrolcontroller.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "shogiclock.h"
 #include "matchcoordinator.h"

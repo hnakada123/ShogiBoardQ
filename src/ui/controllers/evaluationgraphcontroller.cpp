@@ -3,7 +3,7 @@
 
 #include "evaluationgraphcontroller.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QTimer>
 
 #include "evalgraphpresenter.h"

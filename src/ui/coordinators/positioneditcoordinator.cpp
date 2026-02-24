@@ -5,7 +5,7 @@
 
 #include <QAction>
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "shogiview.h"
 #include "shogigamecontroller.h"

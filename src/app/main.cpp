@@ -2,6 +2,7 @@
 /// @brief アプリケーションエントリーポイントの実装
 
 #include "mainwindow.h"
+#include "logcategories.h"
 #include "settingsservice.h"
 
 #include <QApplication>

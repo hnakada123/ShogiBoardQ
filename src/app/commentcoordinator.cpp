@@ -2,6 +2,7 @@
 /// @brief コメントコーディネータクラスの実装
 
 #include "commentcoordinator.h"
+#include "logcategories.h"
 #include "mainwindow.h"
 
 #include <QStatusBar>

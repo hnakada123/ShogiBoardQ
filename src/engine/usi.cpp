@@ -11,10 +11,19 @@
 #include <QApplication>
 #include <QTimer>
 
-Q_LOGGING_CATEGORY(lcEngine, "shogi.engine")
-
 namespace {
 constexpr int kMaxThinkingRows = 500;
+
+/// QVector<Piece> → QVector<QChar> 変換（ShogiBoard::boardData() → 内部クローン用）
+QVector<QChar> pieceVectorToCharVector(const QVector<Piece>& pieces)
+{
+    QVector<QChar> chars;
+    chars.reserve(pieces.size());
+    for (const Piece p : pieces) {
+        chars.append(pieceToChar(p));
+    }
+    return chars;
+}
 
 [[nodiscard]] bool isSameThinkingPayload(const ShogiInfoRecord* record,
                                          const QString& time,
@@ -561,7 +570,7 @@ void Usi::prepareBoardDataForAnalysis()
 {
     qCDebug(lcEngine) << "prepareBoardDataForAnalysis";
     if (m_gameController && m_gameController->board()) {
-        m_clonedBoardData = m_gameController->board()->boardData();
+        m_clonedBoardData = pieceVectorToCharVector(m_gameController->board()->boardData());
         qCDebug(lcEngine) << "盤面クローン完了: size=" << m_clonedBoardData.size();
         m_presenter->setClonedBoardData(m_clonedBoardData);
     } else {
@@ -657,7 +666,7 @@ void Usi::cloneCurrentBoardData()
         qCWarning(lcEngine) << "cloneCurrentBoardData: boardがnull";
         return;
     }
-    m_clonedBoardData = m_gameController->board()->boardData();
+    m_clonedBoardData = pieceVectorToCharVector(m_gameController->board()->boardData());
     qCDebug(lcEngine) << "cloneCurrentBoardData: size=" << m_clonedBoardData.size();
     m_presenter->setClonedBoardData(m_clonedBoardData);
 }
@@ -702,9 +711,10 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
         if (fileTo < 1 || fileTo > 9 || !isValidRank(usiMove.at(3))) return;
 
         QChar pieceChar = isSenteMove ? usiMove.at(0).toUpper() : usiMove.at(0).toLower();
+        Piece piece = charToPiece(pieceChar);
 
-        board->decrementPieceOnStand(pieceChar);
-        board->movePieceToSquare(pieceChar, 10, 0, fileTo, rankTo, false);
+        board->decrementPieceOnStand(piece);
+        board->movePieceToSquare(piece, 10, 0, fileTo, rankTo, false);
     } else {
         // 盤上の移動: "8c8d" or "8c8d+"
         int fileFrom = usiMove.at(0).digitValue();
@@ -717,10 +727,10 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
             return;
         }
 
-        QChar movingPiece = board->getPieceCharacter(fileFrom, rankFrom);
-        QChar capturedPiece = board->getPieceCharacter(fileTo, rankTo);
+        Piece movingPiece = board->getPieceCharacter(fileFrom, rankFrom);
+        Piece capturedPiece = board->getPieceCharacter(fileTo, rankTo);
 
-        if (!capturedPiece.isNull() && capturedPiece != QLatin1Char(' ')) {
+        if (capturedPiece != Piece::None) {
             board->addPieceToStand(capturedPiece);
         }
 

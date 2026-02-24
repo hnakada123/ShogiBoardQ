@@ -3,7 +3,7 @@
 
 #include "playerinfocontroller.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "shogiview.h"
 #include "gameinfopanecontroller.h"
@@ -56,10 +56,7 @@ void PlayerInfoController::setAnalysisTab(EngineAnalysisTab* tab)
 
 void PlayerInfoController::setPlayMode(PlayMode mode)
 {
-    if (m_playMode != mode) {
-        m_playMode = mode;
-        Q_EMIT playModeChanged(mode);
-    }
+    m_playMode = mode;
 }
 
 void PlayerInfoController::setHumanNames(const QString& name1, const QString& name2)
@@ -252,8 +249,6 @@ void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2
         qCDebug(lcUi).noquote() << "onSetEngineNames: m_evalGraphController is NULL!";
     }
 
-    Q_EMIT engineNamesUpdated(e1, e2);
-
     qCDebug(lcUi).noquote() << "onSetEngineNames END";
 }
 
@@ -287,5 +282,4 @@ void PlayerInfoController::onPlayerNamesResolved(const QString& human1, const QS
     // 対局情報タブを更新
     updateGameInfoForCurrentMatch();
 
-    Q_EMIT playModeChanged(m_playMode);
 }

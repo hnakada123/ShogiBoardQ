@@ -3,6 +3,7 @@
 
 #include "analysisresultspresenter.h"
 #include "analysisflowcontroller.h"
+#include "logcategories.h"
 #include "buttonstyles.h"
 #include <QDockWidget>
 #include <QTableView>

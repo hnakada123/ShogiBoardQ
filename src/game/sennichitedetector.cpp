@@ -5,9 +5,7 @@
 #include "shogiboard.h"
 #include "fastmovevalidator.h"
 
-#include <QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(lcGame)
+#include "logcategories.h"
 
 QString SennichiteDetector::positionKey(const QString& sfen)
 {

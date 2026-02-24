@@ -98,10 +98,6 @@ public:
     void setScore(const QString& newScore);
     QString score() const;
 
-signals:
-    /// エラーを報告する（→ ErrorBus経由でMainWindow）
-    void errorOccurred(const QString& errorMessage);
-
 private:
     QString m_depth;            ///< 探索深さ
     QString m_seldepth;         ///< 選択的探索深さ

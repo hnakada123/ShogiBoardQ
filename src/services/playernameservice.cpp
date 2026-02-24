@@ -2,7 +2,7 @@
 /// @brief プレイヤー名解決サービスクラスの実装
 
 #include "playernameservice.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 // ============================================================
 // 名前解決 API

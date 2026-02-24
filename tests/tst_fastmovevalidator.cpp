@@ -29,7 +29,7 @@ private slots:
         board.setSfen(kHirateSfen);
         FastMoveValidator validator;
 
-        ShogiMove move(QPoint(6, 6), QPoint(6, 5), QLatin1Char('P'), QLatin1Char(' '), false);
+        ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
         const auto status = validator.isLegalMove(
             FastMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
 
@@ -45,7 +45,7 @@ private slots:
         FastMoveValidator validator;
 
         ShogiMove move(QPoint(FastMoveValidator::BLACK_HAND_FILE, 0), QPoint(4, 4),
-                       QLatin1Char('P'), QLatin1Char(' '), false);
+                       Piece::BlackPawn, Piece::None, false);
         const auto status = validator.isLegalMove(
             FastMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
 
@@ -59,7 +59,7 @@ private slots:
         board.setSfen(kHirateSfen);
         FastMoveValidator validator;
 
-        ShogiMove move(QPoint(6, 6), QPoint(6, 7), QLatin1Char('P'), QLatin1Char(' '), false);
+        ShogiMove move(QPoint(6, 6), QPoint(6, 7), Piece::BlackPawn, Piece::None, false);
         const auto status = validator.isLegalMove(
             FastMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
 
@@ -86,7 +86,7 @@ private slots:
         board.setSfen(sfen);
         FastMoveValidator validator;
 
-        ShogiMove move(QPoint(4, 3), QPoint(4, 2), QLatin1Char('P'), QLatin1Char(' '), false);
+        ShogiMove move(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false);
         const auto status = validator.isLegalMove(
             FastMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
 
@@ -100,7 +100,7 @@ private slots:
         board.setSfen(sfen);
         FastMoveValidator validator;
 
-        ShogiMove move(QPoint(8, 1), QPoint(8, 0), QLatin1Char('P'), QLatin1Char(' '), false);
+        ShogiMove move(QPoint(8, 1), QPoint(8, 0), Piece::BlackPawn, Piece::None, false);
         const auto status = validator.isLegalMove(
             FastMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
 

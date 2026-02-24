@@ -4,13 +4,6 @@
 /// テスト実行ファイルが依存する最小限のシンボルを提供する。
 /// 本体の巨大な依存ツリーを回避するために使用。
 
-#include <QLoggingCategory>
-
-// === ログカテゴリ ===
-Q_LOGGING_CATEGORY(lcGame, "shogi.game")
-Q_LOGGING_CATEGORY(lcKifu, "shogi.kifu")
-Q_LOGGING_CATEGORY(lcUi, "shogi.ui")
-
 // === ShogiView スタブ（settingsservice.cpp が参照する最小シンボル） ===
 #include "shogiview.h"
 int ShogiView::squareSize() const { return 50; }

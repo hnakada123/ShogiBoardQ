@@ -5,7 +5,7 @@
 #include "matchcoordinator.h"
 #include "usi.h"
 #include <QList>
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 namespace EvalGraphPresenter {
 

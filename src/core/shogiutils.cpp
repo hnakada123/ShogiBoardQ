@@ -4,6 +4,7 @@
 #include "shogiutils.h"
 #include "shogimove.h"
 #include "errorbus.h"
+#include "logcategories.h"
 #include <QAbstractItemModel>
 #include <QModelIndex>
 #include <QStringList>
@@ -75,7 +76,7 @@ QString moveToUsi(const ShogiMove& move)
 
     // 駒打ち: fromXが9（先手駒台）または10（後手駒台）
     if (fromX == 9 || fromX == 10) {
-        QChar piece = move.movingPiece.toUpper();
+        QChar piece = pieceToChar(toBlack(move.movingPiece));
         return QStringLiteral("%1*%2%3").arg(piece).arg(toFile).arg(toRank);
     }
 

@@ -3,6 +3,7 @@
 
 #include "recordnavigationhandler.h"
 
+#include "logcategories.h"
 #include "kifunavigationcontroller.h"
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"

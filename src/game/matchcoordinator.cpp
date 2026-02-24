@@ -2,6 +2,7 @@
 /// @brief 対局進行コーディネータ（司令塔）クラスの実装
 
 #include "matchcoordinator.h"
+#include "strategycontext.h"
 #include "gamemodestrategy.h"
 #include "humanvshumanstrategy.h"
 #include "humanvsenginestrategy.h"
@@ -20,8 +21,7 @@
 #include "sfenpositiontracer.h"
 #include "sennichitedetector.h"
 #include "enginegameovernotifier.h"
-
-Q_LOGGING_CATEGORY(lcGame, "shogi.game")
+#include "logcategories.h"
 
 #include <limits>
 #include <QObject>
@@ -135,10 +135,17 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
         qCWarning(lcGame) << "Deps.sfenRecord is null. Using internal sfen history buffer.";
     }
 
+    m_strategyCtx = std::make_unique<StrategyContext>(*this);
+
     wireClock();
 }
 
 MatchCoordinator::~MatchCoordinator() = default;
+
+MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
+{
+    return *m_strategyCtx;
+}
 
 void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
     m_usi1 = e1;
@@ -924,7 +931,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
         initEnginesForEvE(opt.engineName1, opt.engineName2);
         initializeAndStartEngineFor(P1, opt.enginePath1, opt.engineName1);
         initializeAndStartEngineFor(P2, opt.enginePath2, opt.engineName2);
-        m_strategy = std::make_unique<EngineVsEngineStrategy>(this, opt, this);
+        m_strategy = std::make_unique<EngineVsEngineStrategy>(*m_strategyCtx, opt, this);
         m_strategy->start();
         break;
     }
@@ -932,7 +939,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     // 平手：先手エンジン（P1エンジン固定）
     case PlayMode::EvenEngineVsHuman: {
         m_strategy = std::make_unique<HumanVsEngineStrategy>(
-            this, /*engineIsP1=*/true, opt.enginePath1, opt.engineName1);
+            *m_strategyCtx, /*engineIsP1=*/true, opt.enginePath1, opt.engineName1);
         m_strategy->start();
         break;
     }
@@ -940,7 +947,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     // 平手：後手エンジン（P2エンジン固定）
     case PlayMode::EvenHumanVsEngine: {
         m_strategy = std::make_unique<HumanVsEngineStrategy>(
-            this, /*engineIsP1=*/false, opt.enginePath2, opt.engineName2);
+            *m_strategyCtx, /*engineIsP1=*/false, opt.enginePath2, opt.engineName2);
         m_strategy->start();
         break;
     }
@@ -948,7 +955,7 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     // 駒落ち：先手エンジン（下手＝P1エンジン固定）
     case PlayMode::HandicapEngineVsHuman: {
         m_strategy = std::make_unique<HumanVsEngineStrategy>(
-            this, /*engineIsP1=*/true, opt.enginePath1, opt.engineName1);
+            *m_strategyCtx, /*engineIsP1=*/true, opt.enginePath1, opt.engineName1);
         m_strategy->start();
         break;
     }
@@ -956,13 +963,13 @@ void MatchCoordinator::configureAndStart(const StartOptions& opt)
     // 駒落ち：後手エンジン（上手＝P2エンジン固定）
     case PlayMode::HandicapHumanVsEngine: {
         m_strategy = std::make_unique<HumanVsEngineStrategy>(
-            this, /*engineIsP1=*/false, opt.enginePath2, opt.engineName2);
+            *m_strategyCtx, /*engineIsP1=*/false, opt.enginePath2, opt.engineName2);
         m_strategy->start();
         break;
     }
 
     case PlayMode::HumanVsHuman:
-        m_strategy = std::make_unique<HumanVsHumanStrategy>(this);
+        m_strategy = std::make_unique<HumanVsHumanStrategy>(*m_strategyCtx);
         m_strategy->start();
         break;
 

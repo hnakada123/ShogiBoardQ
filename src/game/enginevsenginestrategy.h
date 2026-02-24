@@ -26,7 +26,7 @@ class EngineVsEngineStrategy : public QObject, public GameModeStrategy {
     Q_OBJECT
 
 public:
-    EngineVsEngineStrategy(MatchCoordinator* coordinator,
+    EngineVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
                            const MatchCoordinator::StartOptions& opt,
                            QObject* parent = nullptr);
 
@@ -48,7 +48,7 @@ private:
     void startEvEFirstMoveByBlack();
     void startEvEFirstMoveByWhite();
 
-    MatchCoordinator* m_coordinator;
+    MatchCoordinator::StrategyContext& m_ctx;
     MatchCoordinator::StartOptions m_opt;
 
     /// EvE専用の棋譜コンテナ
