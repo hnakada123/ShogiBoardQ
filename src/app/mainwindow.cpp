@@ -42,7 +42,6 @@
 #include "boardinteractioncontroller.h"
 #include "considerationflowcontroller.h"
 #include "shogiutils.h"
-#include "gamelayoutbuilder.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -106,6 +105,7 @@
 #include "csagamewiring.h"
 #include "playerinfowiring.h"
 #include "considerationwiring.h"        // 検討モードUI配線
+#include "dialoglaunchwiring.h"         // ダイアログ起動配線
 #include "matchcoordinatorwiring.h"    // MatchCoordinator配線
 #include "matchcoordinatorhooksfactory.h"
 
@@ -174,6 +174,9 @@ MainWindow::MainWindow(QWidget *parent)
     // ウィンドウ設定の復元（位置/サイズなど）
     restoreWindowAndSync();
 
+    // ダイアログ起動配線（connectAllActions より先に初期化）
+    initializeDialogLaunchWiring();
+
     // メニュー/アクションのconnect（関数ポインタで統一）
     connectAllActions();
 
@@ -203,6 +206,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(m_evalChartResizeTimer, &QTimer::timeout,
             this, &MainWindow::performDeferredEvalChartResize);
 }
+
+MainWindow::~MainWindow() = default;
 
 // `setupCentralWidgetContainer`: Central Widget Container をセットアップする。
 void MainWindow::setupCentralWidgetContainer()
@@ -312,6 +317,59 @@ void MainWindow::restoreWindowAndSync()
     }
 }
 
+void MainWindow::initializeDialogLaunchWiring()
+{
+    DialogLaunchWiring::Deps d;
+    d.parentWidget = this;
+    d.playMode = &m_playMode;
+
+    // 遅延初期化ゲッター
+    d.getDialogCoordinator = [this]() { ensureDialogCoordinator(); return m_dialogCoordinator; };
+    d.getGameController    = [this]() { return m_gameController; };
+    d.getMatch             = [this]() { return m_match; };
+    d.getShogiView         = [this]() { return m_shogiView; };
+    d.getJishogiController = [this]() { ensureJishogiController(); return m_jishogiController; };
+    d.getNyugyokuHandler   = [this]() { ensureNyugyokuHandler(); return m_nyugyokuHandler; };
+    d.getCsaGameWiring     = [this]() { ensureCsaGameWiring(); return m_csaGameWiring; };
+    d.getBoardSetupController = [this]() { ensureBoardSetupController(); return m_boardSetupController; };
+    d.getPlayerInfoWiring  = [this]() { ensurePlayerInfoWiring(); return m_playerInfoWiring; };
+    d.getAnalysisPresenter = [this]() { ensureAnalysisPresenter(); return m_analysisPresenter; };
+    d.getUsi1              = [this]() { return m_usi1; };
+    d.getAnalysisTab       = [this]() { return m_analysisTab; };
+    d.getLineEditModel1    = [this]() { return m_lineEditModel1; };
+    d.getModelThinking1    = [this]() { return m_modelThinking1; };
+    d.getKifuRecordModel   = [this]() { return m_kifuRecordModel; };
+    d.getKifuLoadCoordinator = [this]() { return m_kifuLoadCoordinator; };
+    d.getEvalChart         = [this]() { return m_evalChart; };
+    d.getSfenRecord        = [this]() { return sfenRecord(); };
+
+    // 値型メンバーへのポインタ
+    d.moveRecords   = &m_moveRecords;
+    d.gameUsiMoves  = &m_gameUsiMoves;
+    d.activePly     = &m_activePly;
+
+    // ダブルポインタ
+    d.csaGameDialog      = &m_csaGameDialog;
+    d.csaGameCoordinator = &m_csaGameCoordinator;
+    d.gameInfoController = &m_gameInfoController;
+    d.analysisModel      = &m_analysisModel;
+
+    // メニューウィンドウドック
+    d.menuWindowDock     = &m_menuWindowDock;
+    d.createMenuWindowDock = [this]() { createMenuWindowDock(); };
+
+    // 局面集ダイアログ
+    d.sfenCollectionDialog = &m_sfenCollectionDialog;
+
+    m_dialogLaunchWiring = new DialogLaunchWiring(d, this);
+
+    // シグナル中継
+    connect(m_dialogLaunchWiring, &DialogLaunchWiring::sfenCollectionPositionSelected,
+            this, &MainWindow::onSfenCollectionPositionSelected);
+    connect(m_dialogLaunchWiring, &DialogLaunchWiring::csaEngineScoreUpdated,
+            this, &MainWindow::onCsaEngineScoreUpdated);
+}
+
 // `connectAllActions`: All Actions のシグナル接続を行う。
 void MainWindow::connectAllActions()
 {
@@ -319,7 +377,8 @@ void MainWindow::connectAllActions()
     if (!m_actionsWiring) {
         UiActionsWiring::Deps d;
         d.ui  = ui;
-        d.ctx = this; // MainWindow のスロットに繋ぐ
+        d.ctx = this;
+        d.dlw = m_dialogLaunchWiring;
         m_actionsWiring = new UiActionsWiring(d, this);
     }
     m_actionsWiring->wire();
@@ -333,7 +392,7 @@ void MainWindow::connectCoreSignals()
     // 将棋盤表示・昇格・ドラッグ終了・指し手確定
     if (m_gameController) {
         connect(m_gameController, &ShogiGameController::showPromotionDialog,
-                this, &MainWindow::displayPromotionDialog, Qt::UniqueConnection);
+                m_dialogLaunchWiring, &DialogLaunchWiring::displayPromotionDialog, Qt::UniqueConnection);
 
         connect(m_gameController, &ShogiGameController::endDragSignal,
                 m_shogiView,      &ShogiView::endDrag, Qt::UniqueConnection);
@@ -402,9 +461,8 @@ void MainWindow::initializeComponents()
     // 局面履歴（SFEN列）は MatchCoordinator 側で所有する。
     // MainWindow初期化時点で司令塔が未生成の場合があるため、ここでは触らない。
 
-    // 棋譜表示用のレコードリストを確保（ここでは容器だけ用意）
-    if (!m_moveRecords) m_moveRecords = new QList<KifuDisplay *>;
-    else                m_moveRecords->clear();
+    // 棋譜表示用のレコードリストをクリア
+    m_moveRecords.clear();
 
     // ゲーム中の指し手リストをクリア
     m_gameMoves.clear();
@@ -588,11 +646,6 @@ void MainWindow::initializeCentralGameDisplay()
     // セントラルウィジェットには将棋盤が配置されている
     // setupBoardInCenter() で設定済みのため、レイアウトはクリアしない
 
-    // GameLayoutBuilder は不要になったのでクリーンアップ
-    if (m_layoutBuilder) {
-        delete m_layoutBuilder;
-        m_layoutBuilder = nullptr;
-    }
     m_hsplit = nullptr;  // 使用しなくなったためクリア
 }
 
@@ -697,91 +750,12 @@ void MainWindow::updateTurnStatus(int currentPlayer)
     m_shogiView->setActiveSide(currentPlayer == 1);
 }
 
-// `displayVersionInformation`: Version Information を表示する。
-void MainWindow::displayVersionInformation()
-{
-    ensureDialogCoordinator();
-    if (m_dialogCoordinator) {
-        m_dialogCoordinator->showVersionInformation();
-    }
-}
-
-// `displayJishogiScoreDialog`: Jishogi Score Dialog を表示する。
-void MainWindow::displayJishogiScoreDialog()
-{
-    if (!m_shogiView || !m_shogiView->board()) {
-        QMessageBox::warning(this, tr("エラー"), tr("盤面データがありません。"));
-        return;
-    }
-
-    ensureJishogiController();
-    if (m_jishogiController) {
-        m_jishogiController->showDialog(this, m_shogiView->board());
-    }
-}
-
-// `handleNyugyokuDeclaration`: Nyugyoku Declaration を処理する。
-void MainWindow::handleNyugyokuDeclaration()
-{
-    // 盤面データの確認
-    if (!m_shogiView || !m_shogiView->board()) {
-        QMessageBox::warning(this, tr("エラー"), tr("盤面データがありません。"));
-        return;
-    }
-
-    ensureNyugyokuHandler();
-    if (m_nyugyokuHandler) {
-        m_nyugyokuHandler->setGameController(m_gameController);
-        m_nyugyokuHandler->setMatchCoordinator(m_match);
-        m_nyugyokuHandler->handleDeclaration(this, m_shogiView->board(), static_cast<int>(m_playMode));
-    }
-}
-
 // `openWebsiteInExternalBrowser`: Website In External Browser を開く。
 void MainWindow::openWebsiteInExternalBrowser()
 {
     ensureDialogCoordinator();
     if (m_dialogCoordinator) {
         m_dialogCoordinator->openProjectWebsite();
-    }
-}
-
-// `displayEngineSettingsDialog`: Engine Settings Dialog を表示する。
-void MainWindow::displayEngineSettingsDialog()
-{
-    ensureDialogCoordinator();
-    if (m_dialogCoordinator) {
-        m_dialogCoordinator->showEngineSettingsDialog();
-    }
-}
-
-// 成る・不成の選択ダイアログを起動する。
-void MainWindow::displayPromotionDialog()
-{
-    if (!m_gameController) return;
-    ensureDialogCoordinator();
-    if (m_dialogCoordinator) {
-        const bool promote = m_dialogCoordinator->showPromotionDialog();
-        m_gameController->setPromote(promote);
-    }
-}
-
-// 定跡ウィンドウ（ドック）を表示/非表示にトグルする。
-void MainWindow::displayJosekiWindow()
-{
-    // ドックが未作成の場合は作成
-    if (!m_josekiWindowDock) {
-        createJosekiWindowDock();
-    }
-
-    // ドックの表示/非表示をトグル
-    if (m_josekiWindowDock) {
-        if (m_josekiWindowDock->isVisible()) {
-            m_josekiWindowDock->hide();
-        } else {
-            m_josekiWindowDock->show();
-            m_josekiWindowDock->raise();
-        }
     }
 }
 
@@ -797,77 +771,6 @@ void MainWindow::updateJosekiWindow()
     }
 }
 
-// `displayMenuWindow`: Menu Window を表示する。
-void MainWindow::displayMenuWindow()
-{
-    // ドックが未作成の場合は作成
-    if (!m_menuWindowDock) {
-        createMenuWindowDock();
-    }
-
-    // ドックの表示/非表示をトグル
-    if (m_menuWindowDock) {
-        if (m_menuWindowDock->isVisible()) {
-            m_menuWindowDock->hide();
-        } else {
-            m_menuWindowDock->show();
-            m_menuWindowDock->raise();
-        }
-    }
-}
-
-// `displayCsaGameDialog`: Csa Game Dialog を表示する。
-void MainWindow::displayCsaGameDialog()
-{
-    // ダイアログが未作成の場合は作成する
-    if (!m_csaGameDialog) {
-        m_csaGameDialog = new CsaGameDialog(this);
-    }
-
-    // ダイアログを表示する
-    if (m_csaGameDialog->exec() == QDialog::Accepted) {
-        // CsaGameWiringを確保
-        ensureCsaGameWiring();
-        if (!m_csaGameWiring) {
-            qCWarning(lcApp).noquote() << "displayCsaGameDialog: CsaGameWiring is null";
-            return;
-        }
-
-        // BoardSetupControllerを確保して設定
-        ensureBoardSetupController();
-        m_csaGameWiring->setBoardSetupController(m_boardSetupController);
-        m_csaGameWiring->setAnalysisTab(m_analysisTab);
-
-        // プレイモードをCSA通信対局に設定
-        m_playMode = PlayMode::CsaNetworkMode;
-
-        // CSA対局を開始（ロジックはCsaGameWiringに委譲）
-        m_csaGameWiring->startCsaGame(m_csaGameDialog, this);
-
-        // CsaGameCoordinatorの参照を保持（他のコードとの互換性のため）
-        m_csaGameCoordinator = m_csaGameWiring->coordinator();
-
-        // CSA対局でエンジンを使用する場合、評価値グラフ更新用のシグナル接続
-        if (m_csaGameCoordinator) {
-            connect(m_csaGameCoordinator, &CsaGameCoordinator::engineScoreUpdated,
-                    this, &MainWindow::onCsaEngineScoreUpdated,
-                    Qt::UniqueConnection);
-        }
-    }
-}
-
-// `displayTsumeShogiSearchDialog`: Tsume Shogi Search Dialog を表示する。
-void MainWindow::displayTsumeShogiSearchDialog()
-{
-    // 解析モード切替
-    m_playMode = PlayMode::TsumiSearchMode;
-
-    ensureDialogCoordinator();
-    if (m_dialogCoordinator) {
-        m_dialogCoordinator->showTsumeSearchDialogFromContext();
-    }
-}
-
 // 詰み探索エンジンを終了する
 void MainWindow::stopTsumeSearch()
 {
@@ -875,65 +778,6 @@ void MainWindow::stopTsumeSearch()
     if (m_match) {
         m_match->stopAnalysisEngine();
     }
-}
-
-// 詰将棋局面生成ダイアログを表示する
-void MainWindow::displayTsumeshogiGeneratorDialog()
-{
-    TsumeshogiGeneratorDialog dialog(this);
-    dialog.exec();
-}
-
-// 棋譜解析ダイアログを表示する。
-void MainWindow::displayKifuAnalysisDialog()
-{
-    qCDebug(lcApp).noquote() << "displayKifuAnalysisDialog START";
-
-    // 解析モードに遷移
-    m_playMode = PlayMode::AnalysisMode;
-
-    // 解析モデルが未生成ならここで作成
-    if (!m_analysisModel) {
-        m_analysisModel = new KifuAnalysisListModel(this);
-    }
-
-    ensureDialogCoordinator();
-    if (!m_dialogCoordinator) return;
-
-    // 依存オブジェクトを確保
-    ensurePlayerInfoWiring();
-    if (m_playerInfoWiring) {
-        m_playerInfoWiring->ensureGameInfoController();
-        m_gameInfoController = m_playerInfoWiring->gameInfoController();
-    }
-    ensureAnalysisPresenter();
-
-    // 解析に必要な依存オブジェクトを設定
-    m_dialogCoordinator->setAnalysisModel(m_analysisModel);
-    if (m_analysisTab) {
-        m_dialogCoordinator->setConsiderationTabManager(m_analysisTab->considerationTabManager());
-    }
-    m_dialogCoordinator->setUsiEngine(m_usi1);
-    m_dialogCoordinator->setLogModel(m_lineEditModel1);
-    m_dialogCoordinator->setThinkingModel(m_modelThinking1);
-
-    // 棋譜解析コンテキストを更新（遅延初期化されたオブジェクトを反映）
-    DialogCoordinator::KifuAnalysisContext kifuCtx;
-    kifuCtx.sfenRecord = sfenRecord();
-    kifuCtx.moveRecords = m_moveRecords;
-    kifuCtx.recordModel = m_kifuRecordModel;
-    kifuCtx.activePly = &m_activePly;
-    kifuCtx.gameController = m_gameController;
-    kifuCtx.gameInfoController = m_gameInfoController;
-    kifuCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    kifuCtx.evalChart = m_evalChart;
-    kifuCtx.gameUsiMoves = &m_gameUsiMoves;
-    kifuCtx.presenter = m_analysisPresenter;
-    kifuCtx.getBoardFlipped = [this]() { return m_shogiView ? m_shogiView->getFlipMode() : false; };
-    m_dialogCoordinator->setKifuAnalysisContext(kifuCtx);
-
-    // コンテキストから自動パラメータ構築してダイアログを表示
-    m_dialogCoordinator->showKifuAnalysisDialogFromContext();
 }
 
 // `cancelKifuAnalysis`: Kifu Analysis を中止する。
@@ -1286,9 +1130,7 @@ void MainWindow::resetModels(const QString& hirateStartSfen)
         m_boardController->cancelPendingClick();
     }
 
-    if (m_moveRecords) {
-        m_moveRecords->clear();
-    }
+    m_moveRecords.clear();
 
     if (m_evalGraphController) {
         m_evalGraphController->setEngine1Name({});
@@ -2328,7 +2170,7 @@ void MainWindow::initMatchCoordinator()
             ensureMatchCoordinatorWiring();
             return m_matchWiring;
         };
-        m_gameSessionFacade = new GameSessionFacade(deps);
+        m_gameSessionFacade = std::make_unique<GameSessionFacade>(deps);
     }
 
     if (!m_gameSessionFacade->initialize()) {
@@ -2835,7 +2677,7 @@ void MainWindow::ensureDialogCoordinator()
     // 棋譜解析コンテキストを設定
     DialogCoordinator::KifuAnalysisContext kifuCtx;
     kifuCtx.sfenRecord = sfenRecord();
-    kifuCtx.moveRecords = m_moveRecords;
+    kifuCtx.moveRecords = &m_moveRecords;
     kifuCtx.recordModel = m_kifuRecordModel;
     kifuCtx.activePly = &m_activePly;
     kifuCtx.gameController = m_gameController;
@@ -4093,22 +3935,6 @@ void MainWindow::onKifuPasteImportRequested(const QString& content)
         qCWarning(lcApp) << "onKifuPasteImportRequested_: m_kifuLoadCoordinator is null";
         ui->statusbar->showMessage(tr("棋譜の取り込みに失敗しました（内部エラー）"), 3000);
     }
-}
-
-void MainWindow::displaySfenCollectionViewer()
-{
-    // 既にダイアログが開いている場合はアクティブにする
-    if (m_sfenCollectionDialog) {
-        m_sfenCollectionDialog->raise();
-        m_sfenCollectionDialog->activateWindow();
-        return;
-    }
-
-    m_sfenCollectionDialog = new SfenCollectionDialog(this);
-    m_sfenCollectionDialog->setAttribute(Qt::WA_DeleteOnClose);
-    connect(m_sfenCollectionDialog, &SfenCollectionDialog::positionSelected,
-            this, &MainWindow::onSfenCollectionPositionSelected);
-    m_sfenCollectionDialog->show();
 }
 
 void MainWindow::onSfenCollectionPositionSelected(const QString& sfen)

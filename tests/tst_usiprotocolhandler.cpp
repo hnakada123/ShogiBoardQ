@@ -6,6 +6,7 @@
 
 #include <QtTest>
 #include <QSignalSpy>
+#include <optional>
 
 #include "usiprotocolhandler.h"
 
@@ -407,9 +408,17 @@ private slots:
 
     void alphabetToRank_basic()
     {
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('a')), 1);
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('e')), 5);
-        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('i')), 9);
+        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('a')), std::optional<int>(1));
+        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('e')), std::optional<int>(5));
+        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('i')), std::optional<int>(9));
+    }
+
+    void alphabetToRank_invalidInput()
+    {
+        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('z')), std::nullopt);
+        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('A')), std::nullopt);
+        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('0')), std::nullopt);
+        QCOMPARE(UsiProtocolHandler::alphabetToRank(QChar('j')), std::nullopt);
     }
 
     // ================================================================

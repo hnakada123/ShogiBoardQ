@@ -8,6 +8,7 @@
 
 namespace Ui { class MainWindow; }
 class MainWindow;
+class DialogLaunchWiring;
 
 /**
  * @brief 盤操作・表示関連のQActionをMainWindowスロットに接続するクラス
@@ -22,6 +23,7 @@ public:
     struct Deps {
         Ui::MainWindow* ui = nullptr;
         MainWindow* mw = nullptr;
+        DialogLaunchWiring* dlw = nullptr;
     };
 
     explicit ViewActionsWiring(const Deps& d, QObject* parent = nullptr)

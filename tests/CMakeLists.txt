@@ -75,6 +75,7 @@ add_shogi_test(tst_coredatastructures
 # ============================================================
 add_shogi_test(tst_shogiboard
     tst_shogiboard.cpp
+    ${SRC}/common/errorbus.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogimove.cpp

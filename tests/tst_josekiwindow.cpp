@@ -172,7 +172,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
 
     JosekiWindow window;
     window.show();
-    QTest::qWaitForWindowExposed(&window);
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
 
     // A+ を3回押してフォントサイズを 13 にする
     // onFontSizeIncrease() を直接呼び出す
@@ -195,7 +195,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     window.hide();
     QTest::qWait(100);
     window.show();
-    QTest::qWaitForWindowExposed(&window);
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
 
     // フォントサイズが保持されているか
     QCOMPARE(window.font().pointSize(), 13);
@@ -206,7 +206,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     {
         JosekiWindow window2;
         window2.show();
-        QTest::qWaitForWindowExposed(&window2);
+        QVERIFY(QTest::qWaitForWindowExposed(&window2));
 
         // 再起動後もフォントサイズが 13 か
         QCOMPARE(window2.font().pointSize(), 13);
@@ -319,7 +319,7 @@ void TestJosekiWindow::testSetCurrentSfenShowsPositionSummary()
 {
     JosekiWindow window;
     window.show();
-    QTest::qWaitForWindowExposed(&window);
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
 
     // 初期状態は「(未設定)」
     QLabel *summaryLabel = nullptr;

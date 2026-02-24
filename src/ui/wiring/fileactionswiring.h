@@ -8,6 +8,7 @@
 
 namespace Ui { class MainWindow; }
 class MainWindow;
+class DialogLaunchWiring;
 
 /**
  * @brief ファイル/アプリ関連のQActionをMainWindowスロットに接続するクラス
@@ -20,6 +21,7 @@ public:
     struct Deps {
         Ui::MainWindow* ui = nullptr;
         MainWindow* mw = nullptr;
+        DialogLaunchWiring* dlw = nullptr;
     };
 
     explicit FileActionsWiring(const Deps& d, QObject* parent = nullptr)

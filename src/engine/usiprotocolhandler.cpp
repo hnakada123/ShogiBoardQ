@@ -765,12 +765,13 @@ void UsiProtocolHandler::parseMoveFrom(const QString& move, int& fileFrom, int& 
 {
     if (QStringLiteral("123456789").contains(move[0])) {
         fileFrom = move[0].digitValue();
-        rankFrom = alphabetToRank(move[1]);
-        if (fileFrom < 1 || fileFrom > 9 || rankFrom < 1 || rankFrom > 9) {
-            emit errorOccurred(tr("Invalid move coordinates in moveFrom: file=%1, rank=%2").arg(fileFrom).arg(rankFrom));
+        auto optRank = alphabetToRank(move[1]);
+        if (!optRank || fileFrom < 1 || fileFrom > 9) {
+            emit errorOccurred(tr("Invalid move coordinates in moveFrom: file=%1, rank=%2").arg(fileFrom).arg(optRank.value_or(-1)));
             cancelCurrentOperation();
             return;
         }
+        rankFrom = *optRank;
         return;
     }
 
@@ -799,12 +800,13 @@ void UsiProtocolHandler::parseMoveTo(const QString& move, int& fileTo, int& rank
     }
 
     fileTo = move[2].digitValue();
-    rankTo = alphabetToRank(move[3]);
-    if (fileTo < 1 || fileTo > 9 || rankTo < 1 || rankTo > 9) {
-        emit errorOccurred(tr("Invalid move coordinates in moveTo: file=%1, rank=%2").arg(fileTo).arg(rankTo));
+    auto optRank = alphabetToRank(move[3]);
+    if (!optRank || fileTo < 1 || fileTo > 9) {
+        emit errorOccurred(tr("Invalid move coordinates in moveTo: file=%1, rank=%2").arg(fileTo).arg(optRank.value_or(-1)));
         cancelCurrentOperation();
         return;
     }
+    rankTo = *optRank;
 }
 
 QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoint& to,
@@ -841,12 +843,19 @@ QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoi
 
 QChar UsiProtocolHandler::rankToAlphabet(int rank)
 {
+    if (rank < 1 || rank > 9) {
+        qCWarning(lcEngine, "rankToAlphabet: rank %d out of range 1-9", rank);
+        return QChar('?');
+    }
     return QChar('a' + rank - 1);
 }
 
-int UsiProtocolHandler::alphabetToRank(QChar c)
+std::optional<int> UsiProtocolHandler::alphabetToRank(QChar c)
 {
-    return c.toLatin1() - 'a' + 1;
+    const char ch = c.toLatin1();
+    if (ch < 'a' || ch > 'i')
+        return std::nullopt;
+    return ch - 'a' + 1;
 }
 
 QString UsiProtocolHandler::convertFirstPlayerPieceSymbol(int rankFrom) const

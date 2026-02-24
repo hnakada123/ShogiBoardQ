@@ -267,23 +267,20 @@ void DockLayoutManager::updateSavedLayoutsMenu()
 
             // 復元アクション
             QAction* restoreAction = layoutMenu->addAction(tr("復元"));
-            connect(restoreAction, &QAction::triggered, this, [this, name]() {
-                restoreLayout(name);
-            });
+            restoreAction->setData(name);
+            connect(restoreAction, &QAction::triggered, this, &DockLayoutManager::onRestoreLayoutTriggered);
 
             // 起動時のレイアウトに設定
             QAction* setStartupAction = layoutMenu->addAction(tr("起動時のレイアウトに設定"));
-            connect(setStartupAction, &QAction::triggered, this, [this, name]() {
-                setAsStartupLayout(name);
-            });
+            setStartupAction->setData(name);
+            connect(setStartupAction, &QAction::triggered, this, &DockLayoutManager::onSetStartupLayoutTriggered);
 
             layoutMenu->addSeparator();
 
             // 削除アクション
             QAction* deleteAction = layoutMenu->addAction(tr("削除"));
-            connect(deleteAction, &QAction::triggered, this, [this, name]() {
-                deleteLayout(name);
-            });
+            deleteAction->setData(name);
+            connect(deleteAction, &QAction::triggered, this, &DockLayoutManager::onDeleteLayoutTriggered);
         }
     }
 
@@ -335,6 +332,30 @@ void DockLayoutManager::setDocksLocked(bool locked)
             d->setAllowedAreas(areas);
             d->setFeatures(features);
         }
+    }
+}
+
+void DockLayoutManager::onRestoreLayoutTriggered()
+{
+    auto* action = qobject_cast<QAction*>(sender());
+    if (action) {
+        restoreLayout(action->data().toString());
+    }
+}
+
+void DockLayoutManager::onSetStartupLayoutTriggered()
+{
+    auto* action = qobject_cast<QAction*>(sender());
+    if (action) {
+        setAsStartupLayout(action->data().toString());
+    }
+}
+
+void DockLayoutManager::onDeleteLayoutTriggered()
+{
+    auto* action = qobject_cast<QAction*>(sender());
+    if (action) {
+        deleteLayout(action->data().toString());
     }
 }
 

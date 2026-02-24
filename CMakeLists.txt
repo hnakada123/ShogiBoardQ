@@ -439,6 +439,8 @@ set(SRC_UI
     src/ui/wiring/considerationwiring.h
     src/ui/wiring/csagamewiring.cpp
     src/ui/wiring/csagamewiring.h
+    src/ui/wiring/dialoglaunchwiring.cpp
+    src/ui/wiring/dialoglaunchwiring.h
     src/ui/wiring/editactionswiring.cpp
     src/ui/wiring/editactionswiring.h
     src/ui/wiring/fileactionswiring.cpp

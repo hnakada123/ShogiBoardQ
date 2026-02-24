@@ -8,6 +8,7 @@
 
 namespace Ui { class MainWindow; }
 class MainWindow;
+class DialogLaunchWiring;
 class KifuExportController;
 
 /**
@@ -23,6 +24,7 @@ public:
         Ui::MainWindow* ui = nullptr;
         MainWindow* mw = nullptr;
         KifuExportController* kec = nullptr;
+        DialogLaunchWiring* dlw = nullptr;
     };
 
     explicit EditActionsWiring(const Deps& d, QObject* parent = nullptr)

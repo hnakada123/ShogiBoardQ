@@ -12,6 +12,7 @@
 #include <QPoint>
 #include <QElapsedTimer>
 #include <QPointer>
+#include <optional>
 
 #include "shogitypes.h"
 
@@ -157,7 +158,7 @@ public:
     // --- 座標変換ユーティリティ ---
     
     static QChar rankToAlphabet(int rank);
-    static int alphabetToRank(QChar c);
+    static std::optional<int> alphabetToRank(QChar c);
     QString convertFirstPlayerPieceSymbol(int rankFrom) const;
     QString convertSecondPlayerPieceSymbol(int rankFrom) const;
 

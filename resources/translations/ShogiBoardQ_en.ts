@@ -1366,17 +1366,17 @@ The default layout will be used on next startup.</translation>
         <translation type="unfinished">Restore</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="275"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="274"/>
         <source>起動時のレイアウトに設定</source>
         <translation type="unfinished">Set as Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="283"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="281"/>
         <source>削除</source>
         <translation type="unfinished">Delete</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="292"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="289"/>
         <source>起動時のレイアウトをクリア</source>
         <translation type="unfinished">Clear Startup Layout</translation>
     </message>
@@ -4142,7 +4142,7 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="463"/>
+        <location filename="../../src/app/mainwindow.cpp" line="521"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
@@ -4155,34 +4155,34 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Are you sure you want to resign?</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="713"/>
-        <location filename="../../src/app/mainwindow.cpp" line="728"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="70"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="86"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="713"/>
-        <location filename="../../src/app/mainwindow.cpp" line="728"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="71"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="87"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1365"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1207"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4122"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3948"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4124"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3950"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4127"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3953"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4478,7 +4478,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Clear Startup Layout</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1364"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1206"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
@@ -4551,17 +4551,17 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Failed to auto-save game record: %1</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4088"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3930"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4090"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3932"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4094"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3936"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
@@ -4570,7 +4570,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3601"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3443"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -6152,6 +6152,16 @@ Do you want to continue?</translation>
         <source>An error occurred in ShogiBoard::validateSfenString. The last part of the SFEN string must be a positive integer (indicating the next move number).</source>
         <translation type="vanished">An error occurred in ShogiBoard::validateSfenString. The last part of the SFEN string must be a positive integer (indicating the next move number).</translation>
     </message>
+    <message>
+        <location filename="../../src/core/shogiboard.cpp" line="403"/>
+        <source>SFEN board parse error: %1</source>
+        <translation>SFEN board parse error: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/core/shogiboard.cpp" line="407"/>
+        <source>SFEN piece stand parse error: %1</source>
+        <translation>SFEN piece stand parse error: %1</translation>
+    </message>
 </context>
 <context>
     <name>ShogiEngineInfoParser</name>
@@ -6832,12 +6842,12 @@ Do you want to continue?</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="439"/>
+        <location filename="../../src/engine/usi.cpp" line="456"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="456"/>
+        <location filename="../../src/engine/usi.cpp" line="473"/>
         <source>Failed to change directory to %1</source>
         <translation>Failed to change directory to %1</translation>
     </message>
@@ -6846,7 +6856,7 @@ Do you want to continue?</translation>
         <translation type="vanished">USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="948"/>
+        <location filename="../../src/engine/usi.cpp" line="959"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>
@@ -6887,22 +6897,22 @@ Do you want to continue?</translation>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="789"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="790"/>
         <source>Invalid move format in moveFrom</source>
         <translation>Invalid move format in moveFrom</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="796"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="797"/>
         <source>Invalid move format in moveTo</source>
         <translation>Invalid move format in moveTo</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="804"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="805"/>
         <source>Invalid move coordinates in moveTo: file=%1, rank=%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="831"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="833"/>
         <source>Invalid fileFrom value</source>
         <translation>Invalid fileFrom value</translation>
     </message>

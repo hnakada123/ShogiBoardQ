@@ -114,12 +114,9 @@ void CollapsibleGroupBox::setExpanded(bool expanded)
         m_contentAnimation->setEndValue(0);
 
         // アニメーション終了後にコンテンツを非表示
-        connect(m_animationGroup, &QParallelAnimationGroup::finished, this, [this]() {
-            if (!m_expanded) {
-                m_contentFrame->setVisible(false);
-                m_contentFrame->setMaximumHeight(QWIDGETSIZE_MAX);
-            }
-        }, Qt::SingleShotConnection);
+        connect(m_animationGroup, &QParallelAnimationGroup::finished,
+                this, &CollapsibleGroupBox::onCollapseAnimationFinished,
+                Qt::SingleShotConnection);
 
         m_animationGroup->start();
     }
@@ -130,4 +127,12 @@ void CollapsibleGroupBox::setExpanded(bool expanded)
 void CollapsibleGroupBox::onToggleClicked()
 {
     setExpanded(!m_expanded);
+}
+
+void CollapsibleGroupBox::onCollapseAnimationFinished()
+{
+    if (!m_expanded) {
+        m_contentFrame->setVisible(false);
+        m_contentFrame->setMaximumHeight(QWIDGETSIZE_MAX);
+    }
 }

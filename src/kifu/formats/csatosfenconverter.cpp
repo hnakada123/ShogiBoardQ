@@ -15,6 +15,7 @@ namespace {
 
 using Piece = CsaToSfenConverter::Piece;
 using Color = CsaToSfenConverter::Color;
+using Board = CsaToSfenConverter::Board;
 
 static Piece pieceFromCsa2(const QString& two)
 {
@@ -77,16 +78,13 @@ static QString csaResultToLabel(const QString& token)
     return QString();
 }
 
-// P1..P9 行
-static bool applyPRowLine(const QString& raw, CsaToSfenConverter::Board& b)
+// P行のトークン化（+XX/-XX/* 形式の9トークンに分割）
+static QStringList tokenizePRow(const QString& raw)
 {
-    if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
-    const int row = (raw.size() >= 2 && raw.at(1).isDigit()) ? raw.at(1).digitValue() : -1;
-    if (row < 1 || row > 9) return false;
-
     QString rest = raw.mid(2).trimmed();
     rest.replace(QLatin1Char('\t'), QLatin1Char(' '));
 
+    // 正規化：+/-/* の前後にスペースを挿入
     QString norm; norm.reserve(rest.size() * 2);
     for (qsizetype i = 0; i < rest.size(); ++i) {
         const QChar c = rest.at(i);
@@ -104,24 +102,34 @@ static bool applyPRowLine(const QString& raw, CsaToSfenConverter::Board& b)
         }
     }
     QStringList toks = norm.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (toks.size() == 9) return toks;
 
-    if (toks.size() != 9) {
-        QStringList ts; ts.reserve(9);
-        for (qsizetype j = 0; j < rest.size(); ++j) {
-            const QChar c = rest.at(j);
-            if (c == QLatin1Char('*')) {
-                ts.append(QStringLiteral("*"));
-            } else if (c == QLatin1Char('+') || c == QLatin1Char('-')) {
-                if (j + 2 < rest.size()) {
-                    const QString t = QString(c) + rest.at(j + 1) + rest.at(j + 2);
-                    ts.append(t);
-                    j += 2;
-                }
+    // フォールバック：スペースなし密着形式を直接解析
+    QStringList ts; ts.reserve(9);
+    for (qsizetype j = 0; j < rest.size(); ++j) {
+        const QChar c = rest.at(j);
+        if (c == QLatin1Char('*')) {
+            ts.append(QStringLiteral("*"));
+        } else if (c == QLatin1Char('+') || c == QLatin1Char('-')) {
+            if (j + 2 < rest.size()) {
+                const QString t = QString(c) + rest.at(j + 1) + rest.at(j + 2);
+                ts.append(t);
+                j += 2;
             }
         }
-        if (ts.size() != 9) return false;
-        toks = ts;
     }
+    return ts;
+}
+
+// P1..P9 行
+static bool applyPRowLine(const QString& raw, Board& b)
+{
+    if (raw.size() < 2 || raw.at(0) != QLatin1Char('P')) return false;
+    const int row = raw.at(1).isDigit() ? raw.at(1).digitValue() : -1;
+    if (row < 1 || row > 9) return false;
+
+    const QStringList toks = tokenizePRow(raw);
+    if (toks.size() != 9) return false;
 
     for (int i = 0; i < 9; ++i) {
         const QString t = toks.at(i);
@@ -132,10 +140,10 @@ static bool applyPRowLine(const QString& raw, CsaToSfenConverter::Board& b)
             continue;
         }
         if (t.size() != 3) return false;
-        const CsaToSfenConverter::Color side =
+        const Color side =
             (t.at(0) == QLatin1Char('+')) ? CsaToSfenConverter::Black
                                           : CsaToSfenConverter::White;
-        const CsaToSfenConverter::Piece pc = pieceFromCsa2(t.mid(1, 2));
+        const Piece pc = pieceFromCsa2(t.mid(1, 2));
         b.sq[x][row] = { pc, side };
     }
     return true;
@@ -250,6 +258,31 @@ static QString handsToSfen(const int bH[7], const int wH[7])
     append(s, wH[6], QLatin1Char('p'));
     if (s.isEmpty()) return QStringLiteral("-");
     return s;
+}
+
+// 00AL後処理: 盤上・持駒で使われていない残り駒を指定側の持駒に追加
+static void processAlRemainder(Board& board, int bH[7], int wH[7], bool alBlack, bool alWhite)
+{
+    using C = CsaToSfenConverter;
+    const int TOTAL[7] = {2, 2, 4, 4, 4, 4, 18}; // R,B,G,S,N,L,P
+    int used[7] = {0, 0, 0, 0, 0, 0, 0};
+    for (int x = 1; x <= 9; ++x) {
+        for (int y = 1; y <= 9; ++y) {
+            switch (basePieceOfLocal(board.sq[x][y].p)) {
+            case C::HI: ++used[0]; break; case C::KA: ++used[1]; break;
+            case C::KI: ++used[2]; break; case C::GI: ++used[3]; break;
+            case C::KE: ++used[4]; break; case C::KY: ++used[5]; break;
+            case C::FU: ++used[6]; break; default: break;
+            }
+        }
+    }
+    for (int k = 0; k < 7; ++k) used[k] += bH[k] + wH[k];
+    for (int k = 0; k < 7; ++k) {
+        const int rem = TOTAL[k] - used[k];
+        if (rem <= 0) continue;
+        if (alBlack) bH[k] += rem;
+        if (alWhite) wH[k] += rem;
+    }
 }
 
 } // namespace
@@ -455,24 +488,8 @@ bool CsaToSfenConverter::parseStartPos(const QStringList& lines, int& idx,
     idx = i;
 
     // 00AL の後処理：未使用駒を指定側の持駒へ
-    if (alBlack || alWhite) {
-        const int TOTAL[7] = {2,2,4,4,4,4,18}; // R,B,G,S,N,L,P
-        int used[7] = {0,0,0,0,0,0,0};
-        for (int x = 1; x <= 9; ++x)
-            for (int y = 1; y <= 9; ++y) {
-                const Piece p = board.sq[x][y].p;
-                switch (basePieceOf(p)) {
-                case HI: ++used[0]; break; case KA: ++used[1]; break; case KI: ++used[2]; break;
-                case GI: ++used[3]; break; case KE: ++used[4]; break; case KY: ++used[5]; break;
-                case FU: ++used[6]; break; default: break;
-                }
-            }
-        for (int k = 0; k < 7; ++k) { used[k] += bH[k] + wH[k]; }
-        int rem[7] = {0,0,0,0,0,0,0};
-        for (int k = 0; k < 7; ++k) { rem[k] = TOTAL[k] - used[k]; if (rem[k] < 0) rem[k] = 0; }
-        if (alBlack) for (int k = 0; k < 7; ++k) bH[k] += rem[k];
-        if (alWhite) for (int k = 0; k < 7; ++k) wH[k] += rem[k];
-    }
+    if (alBlack || alWhite)
+        processAlRemainder(board, bH, wH, alBlack, alWhite);
 
     // base SFEN を構築
     QString boardField = sawAnyP || sawPI
@@ -769,17 +786,132 @@ static QString composeTimeText(qint64 moveMs, qint64 cumMs)
 }
 
 // ============================================================
+// メインパーサ ヘルパ
+// ============================================================
+
+namespace {
+
+// parse() のループ状態を束ねる構造体
+struct CsaParseState {
+    KifParseResult& out;
+    CsaToSfenConverter::Board& board;
+    CsaToSfenConverter::Color turn;
+    QString* warn;
+    int prevTx = -1;
+    int prevTy = -1;
+    qint64 cumMs[2] = {0, 0};
+    int lastMover = -1;
+    bool lastDispIsResult = false;
+    int lastResultDispIndex = -1;
+    int lastResultSideIdx = -1;
+    int moveCount = 0;
+    bool firstMoveFound = false;
+    QStringList pendingComments;
+    KifDisplayItem openingItem;
+};
+
+static bool isTurnMarker(const QString& token)
+{
+    return token.size() == 1 &&
+           (token.at(0) == QLatin1Char('+') || token.at(0) == QLatin1Char('-'));
+}
+
+// 開始局面エントリをまだ追加していなければ追加し、pendingCommentsを処理する
+static void ensureOpeningItemAdded(CsaParseState& st)
+{
+    if (st.firstMoveFound) {
+        // 直前の指し手に pending コメントを付与
+        if (!st.pendingComments.isEmpty() && st.out.mainline.disp.size() > 1) {
+            QString& dst = st.out.mainline.disp.last().comment;
+            if (!dst.isEmpty()) dst += QLatin1Char('\n');
+            dst += st.pendingComments.join(QStringLiteral("\n"));
+            st.pendingComments.clear();
+        }
+        return;
+    }
+    st.firstMoveFound = true;
+    st.openingItem.comment = st.pendingComments.isEmpty()
+        ? QString()
+        : st.pendingComments.join(QStringLiteral("\n"));
+    st.out.mainline.disp.append(st.openingItem);
+    st.pendingComments.clear();
+}
+
+// コメント処理（attachToResult: カンマ区切り行内では結果コードに直接付与）
+static void handleCsaComment(const QString& token, CsaParseState& st, bool attachToResult)
+{
+    const QString norm = normalizeCsaCommentLine(token);
+    if (norm.isNull()) return;
+
+    if (attachToResult && st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
+        st.lastResultDispIndex < st.out.mainline.disp.size()) {
+        QString& dst = st.out.mainline.disp[st.lastResultDispIndex].comment;
+        if (!dst.isEmpty()) dst += QLatin1Char('\n');
+        dst += norm;
+    } else {
+        st.pendingComments.append(norm);
+    }
+}
+
+static void handleCsaTurnMarker(const QString& token, CsaParseState& st)
+{
+    st.turn = (token.at(0) == QLatin1Char('+'))
+        ? CsaToSfenConverter::Black : CsaToSfenConverter::White;
+    st.lastDispIsResult = false;
+    st.lastResultDispIndex = -1;
+    st.lastResultSideIdx = -1;
+}
+
+static void handleCsaResultCode(const QString& token, CsaParseState& st)
+{
+    ensureOpeningItemAdded(st);
+
+    const QString sideMark = (st.turn == CsaToSfenConverter::Black)
+        ? QStringLiteral("▲") : QStringLiteral("△");
+    QString label = csaResultToLabel(token);
+    if (label.isEmpty()) label = token;
+
+    KifDisplayItem di;
+    di.prettyMove = sideMark + label;
+    di.ply = st.moveCount;
+    st.out.mainline.disp.append(di);
+
+    st.lastDispIsResult = true;
+    st.lastResultDispIndex = static_cast<int>(st.out.mainline.disp.size() - 1);
+    st.lastResultSideIdx = (st.turn == CsaToSfenConverter::Black) ? 0 : 1;
+}
+
+static void handleCsaTimeToken(const QString& token, CsaParseState& st)
+{
+    qint64 moveMs = 0;
+    if (!parseTimeTokenMs(token, moveMs)) {
+        if (st.warn) *st.warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
+        return;
+    }
+
+    if (st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
+        st.lastResultDispIndex < st.out.mainline.disp.size()) {
+        if (st.lastResultSideIdx >= 0) {
+            st.cumMs[st.lastResultSideIdx] += moveMs;
+            st.out.mainline.disp[st.lastResultDispIndex].timeText =
+                composeTimeText(moveMs, st.cumMs[st.lastResultSideIdx]);
+        } else {
+            st.out.mainline.disp[st.lastResultDispIndex].timeText = composeTimeText(moveMs, 0);
+        }
+    } else if (!st.out.mainline.disp.isEmpty() && st.lastMover >= 0) {
+        st.cumMs[st.lastMover] += moveMs;
+        st.out.mainline.disp.last().timeText = composeTimeText(moveMs, st.cumMs[st.lastMover]);
+    }
+}
+
+} // namespace
+
+// ============================================================
 // メインパーサ
 // ============================================================
 
 bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QString* warn)
 {
-    // 処理フロー:
-    // 1. ファイル読み込み・エンコーディング検出
-    // 2. 開始局面の解析（PI/P行/手番）
-    // 3. 指し手・コメント・終局コードのループ処理
-    // 4. 残コメントの付与
-
     QStringList lines;
     if (!readAllLinesDetectEncoding(filePath, lines, warn)) return false;
 
@@ -796,279 +928,76 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         return false;
     }
 
-    QStringList pendingComments;
-    // 注意: CSA形式では「+」の後、初手の前にコメントが来る
-    // collectPreMoveCommentBlock_ は「+」の前を探すため使えない
-    // 代わりに、メインループで初手が見つかるまでコメントを蓄積する
-
-    // 開始局面エントリ（コメントは後で設定）
-    KifDisplayItem openingItem;
-    openingItem.prettyMove = QString();  // 開始局面は空
-    openingItem.timeText   = QStringLiteral("00:00/00:00:00");
-    openingItem.ply        = 0;
-    // openingItem.comment は初手が見つかったときに設定
-
-    bool firstMoveFound = false;  // 初手が見つかったか
-
-    int prevTx = -1, prevTy = -1;
-
-    qint64 cumMs[2] = {0, 0};
-    int    lastMover = -1;
-
-    bool lastDispIsResult = false;
-    int  lastResultDispIndex = -1;
-    int  lastResultSideIdx   = -1;
-
-    int moveCount = 0;  // 手数カウンター（ply）
-
-    // 次に指す側
-    Color turn = stm;
+    CsaParseState st{out, board, stm, warn,
+                      -1, -1, {0, 0}, -1,
+                      false, -1, -1, 0, false,
+                      {}, {}};
+    st.openingItem.prettyMove = QString();
+    st.openingItem.timeText   = QStringLiteral("00:00/00:00:00");
+    st.openingItem.ply        = 0;
 
     for (qsizetype i = idx; i < lines.size(); ++i) {
         QString s = lines.at(i);
         if (s.isEmpty()) continue;
-        s.replace("\r\n", "\n");
         s = s.trimmed();
         if (s.isEmpty()) continue;
 
-        // 1 行に複数トークン（, 区切り）
-        if (s.contains(QLatin1Char(','))) {
-            const QStringList tokens = s.split(QLatin1Char(','), Qt::SkipEmptyParts);
-            for (const QString& tokenRaw : tokens) {
-                const QString token = tokenRaw.trimmed();
-                if (token.isEmpty()) continue;
+        const bool isCommaLine = s.contains(QLatin1Char(','));
+        const QStringList tokens = s.split(QLatin1Char(','), Qt::SkipEmptyParts);
+        for (const QString& tokenRaw : std::as_const(tokens)) {
+            const QString token = tokenRaw.trimmed();
+            if (token.isEmpty()) continue;
 
-                // コメント
-                if (token.startsWith(QLatin1Char('\''))) {
-                    const QString norm = normalizeCsaCommentLine(token);
-                    if (!norm.isNull()) {
-                        if (lastDispIsResult && lastResultDispIndex >= 0 &&
-                            lastResultDispIndex < out.mainline.disp.size()) {
-                            QString& dst = out.mainline.disp[lastResultDispIndex].comment;
-                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                            dst += norm;
-                        } else {
-                            pendingComments.append(norm);
-                        }
-                    }
+            if (token.startsWith(QLatin1Char('\''))) {
+                handleCsaComment(token, st, isCommaLine);
+            } else if (isTurnMarker(token)) {
+                handleCsaTurnMarker(token, st);
+            } else if (token.startsWith(QLatin1Char('%'))) {
+                handleCsaResultCode(token, st);
+            } else if (isCommaLine && token.startsWith(QLatin1Char('T'))) {
+                handleCsaTimeToken(token, st);
+            } else if (isMoveLine(token)) {
+                const QChar head  = token.at(0);
+                const Color mover = (head == QLatin1Char('+')) ? Black : White;
+
+                QString usi, pretty;
+                if (!parseMoveLine(token, mover, st.board, st.prevTx, st.prevTy,
+                                    usi, pretty, st.warn)) {
+                    if (st.warn) *st.warn += QStringLiteral("Failed to parse move: %1\n").arg(token);
                     continue;
                 }
 
-                // 手番明示
-                if (token.size() == 1 && (token[0] == QLatin1Char('+') || token[0] == QLatin1Char('-'))) {
-                    turn = (token[0] == QLatin1Char('+')) ? Black : White;
-                    lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
-                    continue;
-                }
+                ensureOpeningItemAdded(st);
 
-                // 結果コード（%...）
-                if (token.startsWith(QLatin1Char('%'))) {
-                    // 結果コードが来たが、まだ初手が見つかっていない場合
-                    if (!firstMoveFound) {
-                        firstMoveFound = true;
-                        openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
-                        out.mainline.disp.append(openingItem);
-                        pendingComments.clear();
-                    } else {
-                        // 直前の指し手に pending コメントを付与
-                        if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
-                            QString& dst = out.mainline.disp.last().comment;
-                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                            dst += pendingComments.join(QStringLiteral("\n"));
-                            pendingComments.clear();
-                        }
-                    }
+                st.out.mainline.usiMoves.append(usi);
+                ++st.moveCount;
+                KifDisplayItem di;
+                di.prettyMove = pretty;
+                di.ply = st.moveCount;
+                st.out.mainline.disp.append(di);
 
-                    const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
-                    QString label = csaResultToLabel(token);
-                    if (label.isEmpty()) label = token;
-
-                    KifDisplayItem di;
-                    di.prettyMove = sideMark + label;
-                    di.ply = moveCount;
-                    di.comment = QString();  // 結果コードのコメントは後で付与される
-                    out.mainline.disp.append(di);
-
-                    lastDispIsResult   = true;
-                    lastResultDispIndex = static_cast<int>(out.mainline.disp.size() - 1);
-                    lastResultSideIdx   = (turn == Black) ? 0 : 1;
-                    continue;
-                }
-
-                // 時間（T...）
-                if (token.startsWith(QLatin1Char('T'))) {
-                    qint64 moveMs = 0;
-                    if (parseTimeTokenMs(token, moveMs)) {
-                        if (lastDispIsResult && lastResultDispIndex >= 0 &&
-                            lastResultDispIndex < out.mainline.disp.size())
-                        {
-                            if (lastResultSideIdx >= 0) {
-                                cumMs[lastResultSideIdx] += moveMs;
-                                out.mainline.disp[lastResultDispIndex].timeText =
-                                    composeTimeText(moveMs, cumMs[lastResultSideIdx]);
-                            } else {
-                                out.mainline.disp[lastResultDispIndex].timeText = composeTimeText(moveMs, 0);
-                            }
-                        } else if (!out.mainline.disp.isEmpty() && lastMover >= 0) {
-                            cumMs[lastMover] += moveMs;
-                            out.mainline.disp.last().timeText = composeTimeText(moveMs, cumMs[lastMover]);
-                        }
-                    } else if (warn) {
-                        *warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
-                    }
-                    continue;
-                }
-
-                // 通常の指し手
-                if (isMoveLine(token)) {
-                    const QChar head  = token.at(0);
-                    const Color mover = (head == QLatin1Char('+')) ? Black : White;
-
-                    QString usi, pretty;
-                    if (!parseMoveLine(token, mover, board, prevTx, prevTy, usi, pretty, warn)) {
-                        if (warn) *warn += QStringLiteral("Failed to parse move: %1\n").arg(token);
-                        continue;
-                    }
-
-                    // 初手が見つかった時に開始局面エントリを追加
-                    if (!firstMoveFound) {
-                        firstMoveFound = true;
-                        openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
-                        out.mainline.disp.append(openingItem);
-                        pendingComments.clear();
-                    } else {
-                        // 直前の指し手に pending コメントを付与
-                        if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
-                            QString& dst = out.mainline.disp.last().comment;
-                            if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                            dst += pendingComments.join(QStringLiteral("\n"));
-                            pendingComments.clear();
-                        }
-                    }
-
-                    out.mainline.usiMoves.append(usi);
-                    ++moveCount;
-                    KifDisplayItem di;
-                    di.prettyMove = pretty;
-                    di.ply = moveCount;
-                    di.comment = QString();  // コメントは後で付与
-                    out.mainline.disp.append(di);
-
-                    lastMover = (mover == Black) ? 0 : 1;
-                    lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
-
-                    turn = (mover == Black) ? White : Black;
-                    continue;
-                }
+                st.lastMover = (mover == Black) ? 0 : 1;
+                st.lastDispIsResult = false;
+                st.lastResultDispIndex = -1;
+                st.lastResultSideIdx = -1;
+                st.turn = (mover == Black) ? White : Black;
             }
-            continue;
         }
-
-        // 単独行・コメント
-        if (isCommentLine(s)) {
-            const QString norm = normalizeCsaCommentLine(s);
-            if (!norm.isNull()) pendingComments.append(norm);
-            continue;
-        }
-
-        // 単独行・手番明示
-        if (s == QLatin1String("+") || s == QLatin1String("-")) {
-            turn = (s == QLatin1String("+")) ? Black : White;
-            lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
-            continue;
-        }
-
-        // 単独行・結果コード
-        if (isResultLine(s)) {
-            // 結果コードが来たが、まだ初手が見つかっていない場合
-            if (!firstMoveFound) {
-                firstMoveFound = true;
-                openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
-                out.mainline.disp.append(openingItem);
-                pendingComments.clear();
-            } else {
-                // 直前の指し手に pending コメントを付与
-                if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
-                    QString& dst = out.mainline.disp.last().comment;
-                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                    dst += pendingComments.join(QStringLiteral("\n"));
-                    pendingComments.clear();
-                }
-            }
-
-            const QString sideMark = (turn == Black) ? QStringLiteral("▲") : QStringLiteral("△");
-            QString label = csaResultToLabel(s);
-            if (label.isEmpty()) label = s;
-
-            KifDisplayItem di;
-            di.prettyMove = sideMark + label;
-            di.ply = moveCount;
-            di.comment = QString();  // 結果コードのコメントは後で付与される
-            out.mainline.disp.append(di);
-
-            lastDispIsResult   = true;
-            lastResultDispIndex = static_cast<int>(out.mainline.disp.size() - 1);
-            lastResultSideIdx   = (turn == Black) ? 0 : 1;
-            continue;
-        }
-
-        // 単独行・指し手
-        if (isMoveLine(s)) {
-            const QChar head  = s.at(0);
-            const Color mover = (head == QLatin1Char('+')) ? Black : White;
-
-            QString usi, pretty;
-            if (!parseMoveLine(s, mover, board, prevTx, prevTy, usi, pretty, warn)) {
-                if (warn) *warn += QStringLiteral("Failed to parse move: %1\n").arg(s);
-                continue;
-            }
-
-            // 初手が見つかった時に開始局面エントリを追加
-            if (!firstMoveFound) {
-                firstMoveFound = true;
-                openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
-                out.mainline.disp.append(openingItem);
-                pendingComments.clear();
-            } else {
-                // 直前の指し手に pending コメントを付与
-                if (!pendingComments.isEmpty() && out.mainline.disp.size() > 1) {
-                    QString& dst = out.mainline.disp.last().comment;
-                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                    dst += pendingComments.join(QStringLiteral("\n"));
-                    pendingComments.clear();
-                }
-            }
-
-            out.mainline.usiMoves.append(usi);
-            ++moveCount;
-            KifDisplayItem di;
-            di.prettyMove = pretty;
-            di.ply = moveCount;
-            di.comment = QString();  // コメントは後で付与
-            out.mainline.disp.append(di);
-
-            lastMover = (mover == Black) ? 0 : 1;
-            lastDispIsResult = false; lastResultDispIndex = -1; lastResultSideIdx = -1;
-
-            turn = (mover == Black) ? White : Black;
-            continue;
-        }
-
-        // その他は無視
     }
 
     // 指し手が一つも見つからなかった場合でも開始局面エントリを追加
-    if (!firstMoveFound) {
-        openingItem.comment = pendingComments.isEmpty() ? QString() : pendingComments.join(QStringLiteral("\n"));
-        out.mainline.disp.append(openingItem);
-        pendingComments.clear();
+    if (!st.firstMoveFound) {
+        st.openingItem.comment = st.pendingComments.isEmpty()
+            ? QString() : st.pendingComments.join(QStringLiteral("\n"));
+        st.out.mainline.disp.append(st.openingItem);
+        st.pendingComments.clear();
     }
 
     // 最後の指し手の後に残っているコメントを付与
-    if (!pendingComments.isEmpty() && !out.mainline.disp.isEmpty()) {
-        QString& dst = out.mainline.disp.last().comment;
+    if (!st.pendingComments.isEmpty() && !st.out.mainline.disp.isEmpty()) {
+        QString& dst = st.out.mainline.disp.last().comment;
         if (!dst.isEmpty()) dst += QLatin1Char('\n');
-        dst += pendingComments.join(QStringLiteral("\n"));
+        dst += st.pendingComments.join(QStringLiteral("\n"));
     }
 
     return true;

@@ -123,9 +123,7 @@ void MenuButtonWidget::setupUi()
     // アクションの有効/無効状態を反映
     if (m_action) {
         m_mainButton->setEnabled(m_action->isEnabled());
-        connect(m_action, &QAction::changed, this, [this]() {
-            m_mainButton->setEnabled(m_action->isEnabled());
-        });
+        connect(m_action, &QAction::changed, this, &MenuButtonWidget::onActionChanged);
     }
 }
 
@@ -173,6 +171,11 @@ void MenuButtonWidget::onRemoveButtonClicked()
     if (m_action) {
         Q_EMIT removeFromFavorites(m_action->objectName());
     }
+}
+
+void MenuButtonWidget::onActionChanged()
+{
+    m_mainButton->setEnabled(m_action->isEnabled());
 }
 
 void MenuButtonWidget::mousePressEvent(QMouseEvent* event)
