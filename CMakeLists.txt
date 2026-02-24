@@ -225,6 +225,8 @@ set(SRC_CORE
 )
 
 set(SRC_GAME
+    src/game/analysissessionhandler.cpp
+    src/game/analysissessionhandler.h
     src/game/consecutivegamescontroller.cpp
     src/game/consecutivegamescontroller.h
     src/game/enginegameovernotifier.cpp

@@ -164,7 +164,7 @@ private:
     bool m_stoppedByUser = false;                        ///< ユーザー中止フラグ
     UsiCommLogModel* m_ownedLogModel = nullptr;          ///< 内部生成ログモデル（所有）
     ShogiEngineThinkingModel* m_ownedThinkingModel = nullptr; ///< 内部生成思考モデル（所有）
-    ShogiGameController* m_gameController = nullptr;     ///< 内部生成GC（所有）
+    ShogiGameController* m_gameController = nullptr;     ///< 盤面同期用GC（非所有、Deps経由）
 };
 
 #endif // ANALYSISFLOWCONTROLLER_H

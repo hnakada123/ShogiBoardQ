@@ -694,8 +694,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
                        << " c.sfenRecord size=" << (c.sfenRecord ? c.sfenRecord->size() : -1);
 
     // --- 1) ダイアログ生成＆受付 ---
-    StartGameDialog* dlg = new StartGameDialog;
-    if (!dlg) return;
+    StartGameDialog dlg;
 
     // 局面編集後の場合、開始局面を「現在の局面」に強制設定
     static const QString kHirateSfen = QStringLiteral(
@@ -724,18 +723,17 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const bool hasEditedStart = !editedStartSfen.isEmpty();
 
     if (hasEditedStart) {
-        dlg->forceCurrentPositionSelection();
+        dlg.forceCurrentPositionSelection();
     }
 
-    if (dlg->exec() != QDialog::Accepted) {
-        delete dlg;
+    if (dlg.exec() != QDialog::Accepted) {
         return;
     }
 
     // --- 2) ダイアログから必要情報を先に取得 ---
-    int  initPosNo = dlg->startingPositionNumber();
-    const bool p1Human   = dlg->isHuman1();
-    const bool p2Human   = dlg->isHuman2();
+    int  initPosNo = dlg.startingPositionNumber();
+    const bool p1Human   = dlg.isHuman1();
+    const bool p2Human   = dlg.isHuman2();
 
     qCDebug(lcGame).noquote() << "initializeGame: after dialog, initPosNo=" << initPosNo;
 
@@ -799,7 +797,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         }
 
         Ctx c2 = c;
-        c2.startDlg = dlg;
+        c2.startDlg = &dlg;
         prepareDataCurrentPosition(c2);
 
         // 分岐セットアップは LiveGameSession::startFromNode で行う
@@ -853,7 +851,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         }
         emit requestPreStartCleanup();
 
-        Ctx c2 = c; c2.startDlg = dlg;
+        Ctx c2 = c; c2.startDlg = &dlg;
         prepareInitialPosition(c2);
 
         // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
@@ -920,13 +918,12 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     // --- 5) StartOptions 構築 ---
     if (!m_match) {
-        delete dlg;
         return;
     }
     MatchCoordinator::StartOptions opt =
-        m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, dlg);
+        m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, &dlg);
 
-    m_match->ensureHumanAtBottomIfApplicable(dlg, c.bottomIsP1);
+    m_match->ensureHumanAtBottomIfApplicable(&dlg, c.bottomIsP1);
 
     // --- 6) TimeControl を ms で構築 ---
     auto hms_to_ms = [](int h, int m)->qint64 {
@@ -938,14 +935,14 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         return qMax(0, s) * 1000ll;
     };
 
-    const int h1   = dlg->basicTimeHour1();
-    const int m1   = dlg->basicTimeMinutes1();
-    const int h2   = dlg->basicTimeHour2();
-    const int m2   = dlg->basicTimeMinutes2();
-    const int byo1 = dlg->byoyomiSec1();
-    const int byo2 = dlg->byoyomiSec2();
-    const int inc1 = dlg->addEachMoveSec1();
-    const int inc2 = dlg->addEachMoveSec2();
+    const int h1   = dlg.basicTimeHour1();
+    const int m1   = dlg.basicTimeMinutes1();
+    const int h2   = dlg.basicTimeHour2();
+    const int m2   = dlg.basicTimeMinutes2();
+    const int byo1 = dlg.byoyomiSec1();
+    const int byo2 = dlg.byoyomiSec2();
+    const int inc1 = dlg.addEachMoveSec1();
+    const int inc2 = dlg.addEachMoveSec2();
 
     TimeControl tc;
     tc.p1.baseMs      = hms_to_ms(h1, m1);
@@ -976,7 +973,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     // --- 7) 時計の準備と配線・起動は prepare() に委譲 ---
     Request req;
-    req.startDialog = dlg;
+    req.startDialog = &dlg;
     req.startSfen   = seedSfen;
     req.clock       = c.clock ? c.clock : m_match->clock();
     // 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み
@@ -985,8 +982,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     prepare(req);
 
     // --- 8) 対局者名をMainWindowに通知（startの前に。EvE初手で評価値グラフが動くため） ---
-    const QString human1 = dlg->humanName1();
-    const QString human2 = dlg->humanName2();
+    const QString human1 = dlg.humanName1();
+    const QString human2 = dlg.humanName2();
     const QString engine1 = opt.engineName1;
     const QString engine2 = opt.engineName2;
     qCDebug(lcGame).noquote() << "startGameAfterDialog: BEFORE playerNamesResolved";
@@ -994,8 +991,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
 
     // --- 8.5) 連続対局設定を通知（EvE対局時のみ有効） ---
-    const int consecutiveGames = dlg->consecutiveGames();
-    const bool switchTurn = dlg->isSwitchTurnEachGame();
+    const int consecutiveGames = dlg.consecutiveGames();
+    const bool switchTurn = dlg.isSwitchTurnEachGame();
     emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
     qCDebug(lcGame).noquote() << "consecutiveGames=" << consecutiveGames << " switchTurn=" << switchTurn;
 
@@ -1027,8 +1024,6 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         // 初手がエンジン手番なら go を起動（1回だけ）
         m_match->startInitialEngineMoveIfNeeded();
     }
-
-    delete dlg;
 }
 
 // ============================================================
