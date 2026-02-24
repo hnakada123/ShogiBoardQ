@@ -76,6 +76,9 @@ public:
     // 現在のライブ記録を取得
     const QList<KifDisplayItem>& liveDisp() const { return m_liveDisp; }
 
+    // 外部からの可変アクセス（GameRecordModel のバインド用）
+    QList<KifDisplayItem>* liveDispPtr() { return &m_liveDisp; }
+
     // ライブ記録をクリア
     void clearLiveDisp() { m_liveDisp.clear(); }
 

@@ -85,6 +85,7 @@ void MatchCoordinatorWiring::wireConnections()
     d.comm2  = m_comm2;
     d.think2 = m_think2;
     d.sfenRecord = m_sfenRecord;
+    d.gameMoves  = m_gameMoves;
     d.hooks = m_hooks;
 
     // --- GameStartCoordinator の確保（1 回だけ） ---
@@ -113,14 +114,9 @@ void MatchCoordinatorWiring::wireConnections()
     if (m_match) {
         MatchCoordinator::UndoRefs u;
         u.recordModel      = m_kifuRecordModel;
-        u.gameMoves        = m_gameMoves;
         u.positionStrList  = m_positionStrList;
-        u.sfenRecord       = m_sfenRecord;
         u.currentMoveIndex = m_currentMoveIndex;
-        u.gc               = m_gc;
         u.boardCtl         = m_boardController;
-        u.clock            = m_getClock ? m_getClock() : nullptr;
-        u.view             = m_view;
 
         m_match->setUndoBindings(u, m_undoHooks);
 

@@ -138,9 +138,10 @@
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
-    , m_lineEditModel1(new UsiCommLogModel(this))
-    , m_lineEditModel2(new UsiCommLogModel(this))
 {
+    m_models.commLog1 = new UsiCommLogModel(this);
+    m_models.commLog2 = new UsiCommLogModel(this);
+
     ui->setupUi(this);
 
     // 起動時の初期化順序は依存関係に合わせて固定する。
@@ -253,7 +254,7 @@ void MainWindow::buildGamePanels()
     createRecordPaneDock();
 
     // 3) 将棋盤・駒台の初期化（従来順序を維持）
-    startNewShogiGame(m_startSfenStr);
+    startNewShogiGame(m_state.startSfenStr);
 
     // 4) 将棋盤をQDockWidgetとして作成
     setupBoardInCenter();
@@ -321,7 +322,7 @@ void MainWindow::initializeDialogLaunchWiring()
 {
     DialogLaunchWiring::Deps d;
     d.parentWidget = this;
-    d.playMode = &m_playMode;
+    d.playMode = &m_state.playMode;
 
     // 遅延初期化ゲッター
     d.getDialogCoordinator = [this]() { ensureDialogCoordinator(); return m_dialogCoordinator; };
@@ -336,26 +337,26 @@ void MainWindow::initializeDialogLaunchWiring()
     d.getAnalysisPresenter = [this]() { ensureAnalysisPresenter(); return m_analysisPresenter; };
     d.getUsi1              = [this]() { return m_usi1; };
     d.getAnalysisTab       = [this]() { return m_analysisTab; };
-    d.getLineEditModel1    = [this]() { return m_lineEditModel1; };
-    d.getModelThinking1    = [this]() { return m_modelThinking1; };
-    d.getKifuRecordModel   = [this]() { return m_kifuRecordModel; };
+    d.getLineEditModel1    = [this]() { return m_models.commLog1; };
+    d.getModelThinking1    = [this]() { return m_models.thinking1; };
+    d.getKifuRecordModel   = [this]() { return m_models.kifuRecord; };
     d.getKifuLoadCoordinator = [this]() { return m_kifuLoadCoordinator; };
     d.getEvalChart         = [this]() { return m_evalChart; };
     d.getSfenRecord        = [this]() { return sfenRecord(); };
 
     // 値型メンバーへのポインタ
-    d.moveRecords   = &m_moveRecords;
-    d.gameUsiMoves  = &m_gameUsiMoves;
-    d.activePly     = &m_activePly;
+    d.moveRecords   = &m_kifu.moveRecords;
+    d.gameUsiMoves  = &m_kifu.gameUsiMoves;
+    d.activePly     = &m_kifu.activePly;
 
     // ダブルポインタ
     d.csaGameDialog      = &m_csaGameDialog;
     d.csaGameCoordinator = &m_csaGameCoordinator;
     d.gameInfoController = &m_gameInfoController;
-    d.analysisModel      = &m_analysisModel;
+    d.analysisModel      = &m_models.analysis;
 
     // メニューウィンドウドック
-    d.menuWindowDock     = &m_menuWindowDock;
+    d.menuWindowDock     = &m_docks.menuWindow;
     d.createMenuWindowDock = [this]() { createMenuWindowDock(); };
 
     // 局面集ダイアログ
@@ -449,27 +450,44 @@ void MainWindow::onErrorBusOccurred(const QString& msg)
 // GUIを構成するWidgetなどを生成する。（リファクタ後）
 void MainWindow::initializeComponents()
 {
-    // --- Core models ---
+    initializeGameControllerAndKifu();
+    initializeOrResetShogiView();
+
+    // 盤・駒台操作の配線（BoardInteractionController など）
+    setupBoardInteractionController();
+
+    initializeBoardModel();
+
+    // --- Turn 初期化 & 同期 ---
+    setCurrentTurn();
+    ensureTurnSyncBridge();
+
+    // --- 表示名・ログモデル名の初期反映 ---
+    setPlayersNamesForMode();
+    setEngineNamesBasedOnMode();
+    updateSecondEngineVisibility();
+}
+
+void MainWindow::initializeGameControllerAndKifu()
+{
     // ShogiGameController は QObject 親を付けてリーク防止
     if (!m_gameController) {
         m_gameController = new ShogiGameController(this);
-    } else {
-        // 再初期化に備えて、必要ならシグナル切断などをここで行う
-        // m_gameController->disconnect(this);
     }
 
     // 局面履歴（SFEN列）は MatchCoordinator 側で所有する。
     // MainWindow初期化時点で司令塔が未生成の場合があるため、ここでは触らない。
 
     // 棋譜表示用のレコードリストをクリア
-    m_moveRecords.clear();
+    m_kifu.moveRecords.clear();
 
     // ゲーム中の指し手リストをクリア
-    m_gameMoves.clear();
-    m_gameUsiMoves.clear();
+    m_kifu.gameMoves.clear();
+    m_kifu.gameUsiMoves.clear();
+}
 
-
-    // --- View ---
+void MainWindow::initializeOrResetShogiView()
+{
     if (!m_shogiView) {
         m_shogiView = new ShogiView(this);     // 親をMainWindowに
         m_shogiView->setNameFontScale(0.30);   // 好みの倍率（表示前に設定）
@@ -478,13 +496,12 @@ void MainWindow::initializeComponents()
         m_shogiView->setParent(this);
         m_shogiView->setNameFontScale(0.30);
     }
+}
 
-    // 盤・駒台操作の配線（BoardInteractionController など）
-    setupBoardInteractionController();
-
-    // --- Board model 初期化 ---
-    // m_startSfenStr が "startpos ..." の場合は必ず完全 SFEN に正規化してから newGame。
-    QString start = m_startSfenStr;
+void MainWindow::initializeBoardModel()
+{
+    // m_state.startSfenStr が "startpos ..." の場合は必ず完全 SFEN に正規化してから newGame。
+    QString start = m_state.startSfenStr;
     if (start.isEmpty()) {
         // 既定：平手初期局面の完全SFEN
         start = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -497,26 +514,13 @@ void MainWindow::initializeComponents()
     if (m_shogiView->board() != m_gameController->board()) {
         m_shogiView->setBoard(m_gameController->board());
     }
-
-    // --- Turn 初期化 & 同期 ---
-    // 1) TurnManager 側の初期手番（b→Player1）を立ち上げる
-    setCurrentTurn();
-
-    // 2) GC ↔ TurnManager のブリッジ確立＆初期同期（内部で gc->currentPlayer() を反映）
-    ensureTurnSyncBridge();
-
-    // --- 表示名・ログモデル名の初期反映 ---
-    // setPlayersNamesForMode / setEngineNamesBasedOnMode がサービスへ移設済みでも呼び出し名は同じ
-    setPlayersNamesForMode();
-    setEngineNamesBasedOnMode();
-    updateSecondEngineVisibility();
 }
 
 void MainWindow::displayErrorMessage(const QString& errorMessage)
 {
-    m_errorOccurred = true;
+    m_state.errorOccurred = true;
 
-    m_shogiView->setErrorOccurred(m_errorOccurred);
+    m_shogiView->setErrorOccurred(m_state.errorOccurred);
 
     QMessageBox::critical(this, tr("Error"), errorMessage);
 }
@@ -536,7 +540,7 @@ void MainWindow::undoLastTwoMoves()
             if (m_evalGraphController) {
                 // HvE: 先手(Human) vs 後手(Engine) → P2（後手エンジン）のグラフを使用
                 // EvH: 先手(Engine) vs 後手(Human) → P1（先手エンジン）のグラフを使用
-                switch (m_playMode) {
+                switch (m_state.playMode) {
                 case PlayMode::EvenHumanVsEngine:
                 case PlayMode::HandicapHumanVsEngine:
                     // 後手がエンジン → P2を削除
@@ -572,7 +576,7 @@ void MainWindow::initializeNewGame(QString& startSfenStr)
         m_gameController->newGame(startSfenStr);
     }
     // ← ここは Coordinator に委譲
-    GameStartCoordinator::applyResumePositionIfAny(m_gameController, m_shogiView, m_resumeSfenStr);
+    GameStartCoordinator::applyResumePositionIfAny(m_gameController, m_shogiView, m_state.resumeSfenStr);
 }
 
 // 対局モードに応じて将棋盤上部に表示される対局者名をセットする。
@@ -580,9 +584,9 @@ void MainWindow::setPlayersNamesForMode()
 {
     ensurePlayerInfoController();
     if (m_playerInfoController) {
-        m_playerInfoController->setPlayMode(m_playMode);
-        m_playerInfoController->setHumanNames(m_humanName1, m_humanName2);
-        m_playerInfoController->setEngineNames(m_engineName1, m_engineName2);
+        m_playerInfoController->setPlayMode(m_state.playMode);
+        m_playerInfoController->setHumanNames(m_player.humanName1, m_player.humanName2);
+        m_playerInfoController->setEngineNames(m_player.engineName1, m_player.engineName2);
         m_playerInfoController->applyPlayersNamesForMode();
     }
 }
@@ -619,8 +623,8 @@ void MainWindow::setEngineNamesBasedOnMode()
 {
     ensurePlayerInfoController();
     if (m_playerInfoController) {
-        m_playerInfoController->setPlayMode(m_playMode);
-        m_playerInfoController->setEngineNames(m_engineName1, m_engineName2);
+        m_playerInfoController->setPlayMode(m_state.playMode);
+        m_playerInfoController->setEngineNames(m_player.engineName1, m_player.engineName2);
         m_playerInfoController->applyEngineNamesToLogModels();
     }
 }
@@ -629,7 +633,7 @@ void MainWindow::updateSecondEngineVisibility()
 {
     ensurePlayerInfoController();
     if (m_playerInfoController) {
-        m_playerInfoController->setPlayMode(m_playMode);
+        m_playerInfoController->setPlayMode(m_state.playMode);
         m_playerInfoController->updateSecondEngineVisibility();
     }
 }
@@ -646,7 +650,6 @@ void MainWindow::initializeCentralGameDisplay()
     // セントラルウィジェットには将棋盤が配置されている
     // setupBoardInCenter() で設定済みのため、レイアウトはクリアしない
 
-    m_hsplit = nullptr;  // 使用しなくなったためクリア
 }
 
 // `startNewShogiGame`: New Shogi Game を開始する。
@@ -679,11 +682,11 @@ void MainWindow::startNewShogiGame(QString& startSfenStr)
     if (!m_match) return;
 
     m_match->prepareAndStartGame(
-        m_playMode,
+        m_state.playMode,
         startSfenStr,
         sfenRecord(),
         nullptr,
-        m_bottomIsP1
+        m_player.bottomIsP1
         );
 }
 
@@ -704,7 +707,7 @@ void MainWindow::enableArrowButtons()
 void MainWindow::handleResignation()
 {
     // CSA通信対局モードの場合
-    if (m_playMode == PlayMode::CsaNetworkMode && m_csaGameCoordinator) {
+    if (m_state.playMode == PlayMode::CsaNetworkMode && m_csaGameCoordinator) {
         m_csaGameCoordinator->onResign();
         return;
     }
@@ -725,8 +728,8 @@ void MainWindow::ensureEvaluationGraphController()
     m_evalGraphController->setEvalChart(m_evalChart);
     m_evalGraphController->setMatchCoordinator(m_match);
     m_evalGraphController->setSfenRecord(sfenRecord());
-    m_evalGraphController->setEngine1Name(m_engineName1);
-    m_evalGraphController->setEngine2Name(m_engineName2);
+    m_evalGraphController->setEngine1Name(m_player.engineName1);
+    m_evalGraphController->setEngine2Name(m_player.engineName2);
 
     // PlayerInfoControllerが既に存在する場合は、EvalGraphControllerを設定
     if (m_playerInfoController) {
@@ -763,7 +766,7 @@ void MainWindow::openWebsiteInExternalBrowser()
 void MainWindow::updateJosekiWindow()
 {
     // ドックが非表示の場合は更新をスキップ
-    if (m_josekiWindowDock && !m_josekiWindowDock->isVisible()) {
+    if (m_docks.josekiWindow && !m_docks.josekiWindow->isVisible()) {
         return;
     }
     if (m_josekiWiring) {
@@ -791,7 +794,7 @@ void MainWindow::cancelKifuAnalysis()
             m_dialogCoordinator->stopKifuAnalysis();
             
             // 解析前のモードに戻す
-            m_playMode = PlayMode::NotStarted;
+            m_state.playMode = PlayMode::NotStarted;
             
             qCDebug(lcApp).noquote() << "cancelKifuAnalysis: analysis cancelled";
         } else {
@@ -875,14 +878,14 @@ void MainWindow::setCurrentTurn()
     }
 
     const bool isLivePlayMode =
-        (m_playMode == PlayMode::HumanVsHuman) ||
-        (m_playMode == PlayMode::EvenHumanVsEngine) ||
-        (m_playMode == PlayMode::EvenEngineVsHuman) ||
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsHuman) ||
-        (m_playMode == PlayMode::HandicapHumanVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine) ||
-        (m_playMode == PlayMode::CsaNetworkMode);
+        (m_state.playMode == PlayMode::HumanVsHuman) ||
+        (m_state.playMode == PlayMode::EvenHumanVsEngine) ||
+        (m_state.playMode == PlayMode::EvenEngineVsHuman) ||
+        (m_state.playMode == PlayMode::EvenEngineVsEngine) ||
+        (m_state.playMode == PlayMode::HandicapEngineVsHuman) ||
+        (m_state.playMode == PlayMode::HandicapHumanVsEngine) ||
+        (m_state.playMode == PlayMode::HandicapEngineVsEngine) ||
+        (m_state.playMode == PlayMode::CsaNetworkMode);
 
     // ライブ対局中は GC を手番の単一ソースとする。
     // ShogiBoard::currentPlayer() は setSfen() 経由でのみ更新されるため、
@@ -908,16 +911,16 @@ void MainWindow::setCurrentTurn()
 // `resolveCurrentSfenForGameStart`: Current Sfen For Game Start を解決する。
 QString MainWindow::resolveCurrentSfenForGameStart() const
 {
-    qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: m_currentSelectedPly=" << m_currentSelectedPly
+    qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: m_kifu.currentSelectedPly=" << m_kifu.currentSelectedPly
                        << " sfenRecord()=" << (sfenRecord() ? "exists" : "null")
                        << " size=" << (sfenRecord() ? sfenRecord()->size() : -1);
 
     // 1) 棋譜SFENリストの「選択手」から取得（最優先）
     if (sfenRecord()) {
         const qsizetype size = sfenRecord()->size();
-        // m_currentSelectedPly が [0..size-1] のインデックスである前提（本プロジェクトの慣習）
+        // m_kifu.currentSelectedPly が [0..size-1] のインデックスである前提（本プロジェクトの慣習）
         // 1始まりの場合はプロジェクト実装に合わせて +0 / -1 調整してください。
-        int idx = m_currentSelectedPly;
+        int idx = m_kifu.currentSelectedPly;
         qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: initial idx=" << idx;
         if (idx < 0) {
             // 0手目（開始局面）などのとき
@@ -955,7 +958,7 @@ void MainWindow::initializeGame()
 {
     ensureGameStartCoordinator();
 
-    // 注意: m_startSfenStr は局面編集時にセットされている場合があるため、
+    // 注意: m_state.startSfenStr は局面編集時にセットされている場合があるため、
     //       ここではクリアしない。プリセット選択時のSFEN上書きは
     //       GameStartCoordinator::initializeGame() 側で行う。
 
@@ -964,14 +967,14 @@ void MainWindow::initializeGame()
     // SFENが混在してSFEN差分によるハイライトが誤動作する問題を防ぐ。
     // 重要: resolveCurrentSfenForGameStart() より前に実行する必要がある。
     //       sfenRecord が本譜のままだと、分岐局面ではなく本譜の SFEN が
-    //       m_currentSfenStr に設定されてしまい、対局開始SFENが誤る。
-    if (m_branchTree != nullptr && m_navState != nullptr
-        && sfenRecord() != nullptr && m_currentSelectedPly > 0) {
-        const int lineIndex = m_navState->currentLineIndex();
-        const QStringList branchSfens = m_branchTree->getSfenListForLine(lineIndex);
-        if (!branchSfens.isEmpty() && m_currentSelectedPly < branchSfens.size()) {
+    //       m_state.currentSfenStr に設定されてしまい、対局開始SFENが誤る。
+    if (m_branchNav.branchTree != nullptr && m_branchNav.navState != nullptr
+        && sfenRecord() != nullptr && m_kifu.currentSelectedPly > 0) {
+        const int lineIndex = m_branchNav.navState->currentLineIndex();
+        const QStringList branchSfens = m_branchNav.branchTree->getSfenListForLine(lineIndex);
+        if (!branchSfens.isEmpty() && m_kifu.currentSelectedPly < branchSfens.size()) {
             sfenRecord()->clear();
-            for (int i = 0; i <= m_currentSelectedPly; ++i) {
+            for (int i = 0; i <= m_kifu.currentSelectedPly; ++i) {
                 sfenRecord()->append(branchSfens.at(i));
             }
             qCDebug(lcApp).noquote()
@@ -982,12 +985,12 @@ void MainWindow::initializeGame()
 
     // 現在の局面SFEN（棋譜レコードから最優先で取得）
     {
-        qCDebug(lcApp).noquote() << "initializeGame: BEFORE resolve, m_currentSfenStr=" << m_currentSfenStr.left(50);
+        qCDebug(lcApp).noquote() << "initializeGame: BEFORE resolve, m_state.currentSfenStr=" << m_state.currentSfenStr.left(50);
         const QString sfen = resolveCurrentSfenForGameStart().trimmed();
         qCDebug(lcApp).noquote() << "initializeGame: resolved sfen=" << sfen.left(50);
         if (!sfen.isEmpty()) {
-            m_currentSfenStr = sfen;
-            qCDebug(lcApp).noquote() << "initializeGame: SET m_currentSfenStr=" << m_currentSfenStr.left(50);
+            m_state.currentSfenStr = sfen;
+            qCDebug(lcApp).noquote() << "initializeGame: SET m_state.currentSfenStr=" << m_state.currentSfenStr.left(50);
         } else {
             // 何も取れないケースは珍しいが、空のままでも司令塔側で安全にフォールバックされる。
             // ここでは何もしない（ログのみ）
@@ -995,22 +998,22 @@ void MainWindow::initializeGame()
         }
     }
 
-    qCDebug(lcApp).noquote() << "initializeGame: FINAL m_currentSfenStr=" << m_currentSfenStr.left(50)
-                       << " m_startSfenStr=" << m_startSfenStr.left(50)
-                       << " m_currentSelectedPly=" << m_currentSelectedPly;
+    qCDebug(lcApp).noquote() << "initializeGame: FINAL m_state.currentSfenStr=" << m_state.currentSfenStr.left(50)
+                       << " m_state.startSfenStr=" << m_state.startSfenStr.left(50)
+                       << " m_kifu.currentSelectedPly=" << m_kifu.currentSelectedPly;
 
     GameStartCoordinator::Ctx c;
     c.view            = m_shogiView;
     c.gc              = m_gameController;
     c.clock           = m_timeController ? m_timeController->clock() : nullptr;
     c.sfenRecord      = sfenRecord();          // QStringList*
-    c.kifuModel       = m_kifuRecordModel;     // 棋譜欄モデル（終端行削除に使用）
+    c.kifuModel       = m_models.kifuRecord;     // 棋譜欄モデル（終端行削除に使用）
     c.kifuLoadCoordinator = m_kifuLoadCoordinator;  // 分岐構造の設定用
-    c.currentSfenStr  = &m_currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
-    c.startSfenStr    = &m_startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
-    c.selectedPly     = m_currentSelectedPly;  // 1始まり/0始まりはプロジェクト規約に準拠
+    c.currentSfenStr  = &m_state.currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
+    c.startSfenStr    = &m_state.startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
+    c.selectedPly     = m_kifu.currentSelectedPly;  // 1始まり/0始まりはプロジェクト規約に準拠
     c.isReplayMode    = m_replayController ? m_replayController->isReplayMode() : false;
-    c.bottomIsP1      = m_bottomIsP1;
+    c.bottomIsP1      = m_player.bottomIsP1;
 
     m_gameStart->initializeGame(c);
 }
@@ -1036,12 +1039,12 @@ void MainWindow::resetToInitialState()
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
     // 「新規」のため局面情報を初期化してから完全クリーンアップを実行する。
-    // performCleanup() は m_currentSelectedPly > 0 かつ m_currentSfenStr が
+    // performCleanup() は m_kifu.currentSelectedPly > 0 かつ m_state.currentSfenStr が
     // 非初期局面の場合、棋譜を保持しようとする（途中局面開始の対局用）。
     // ここで事前にリセットすることで、完全クリアを保証する。
-    m_startSfenStr = kHirateStartSfen;
-    m_currentSfenStr = QStringLiteral("startpos");
-    m_currentSelectedPly = 0;
+    m_state.startSfenStr = kHirateStartSfen;
+    m_state.currentSfenStr = QStringLiteral("startpos");
+    m_kifu.currentSelectedPly = 0;
 
     resetEngineState();
     onPreStartCleanupRequested();
@@ -1066,31 +1069,31 @@ void MainWindow::resetEngineState()
 
 void MainWindow::resetGameState()
 {
-    m_playMode = PlayMode::NotStarted;
+    m_state.playMode = PlayMode::NotStarted;
 
-    m_lastMove.clear();
-    m_resumeSfenStr.clear();
-    m_errorOccurred = false;
+    m_state.lastMove.clear();
+    m_state.resumeSfenStr.clear();
+    m_state.errorOccurred = false;
 
-    m_humanName1.clear();
-    m_humanName2.clear();
-    m_engineName1.clear();
-    m_engineName2.clear();
+    m_player.humanName1.clear();
+    m_player.humanName2.clear();
+    m_player.engineName1.clear();
+    m_player.engineName2.clear();
 
-    m_positionStrList.clear();
+    m_kifu.positionStrList.clear();
 
-    m_lastP1Turn = true;
-    m_lastP1Ms = 0;
-    m_lastP2Ms = 0;
+    m_player.lastP1Turn = true;
+    m_player.lastP1Ms = 0;
+    m_player.lastP2Ms = 0;
 
-    m_commentsByRow.clear();
-    kifuSaveFileName.clear();
+    m_kifu.commentsByRow.clear();
+    m_kifu.saveFileName.clear();
 
-    m_skipBoardSyncForBranchNav = false;
-    m_onMainRowGuard = false;
+    m_state.skipBoardSyncForBranchNav = false;
+    m_kifu.onMainRowGuard = false;
 
-    m_gameUsiMoves.clear();
-    m_gameMoves.clear();
+    m_kifu.gameUsiMoves.clear();
+    m_kifu.gameMoves.clear();
 
     if (m_replayController) {
         m_replayController->setReplayMode(false);
@@ -1109,12 +1112,15 @@ void MainWindow::resetGameState()
 
 void MainWindow::resetModels(const QString& hirateStartSfen)
 {
-    if (m_navState) {
-        m_navState->clearLineSelectionMemory();
-    }
+    clearPresentationState();
+    clearGameDataModels(hirateStartSfen);
+    resetBranchTreeForNewState(hirateStartSfen);
+}
 
-    if (m_gameRecord) {
-        m_gameRecord->clear();
+void MainWindow::clearPresentationState()
+{
+    if (m_branchNav.navState) {
+        m_branchNav.navState->clearLineSelectionMemory();
     }
 
     if (m_recordPresenter) {
@@ -1122,15 +1128,22 @@ void MainWindow::resetModels(const QString& hirateStartSfen)
         m_recordPresenter->setCommentsByRow({});
     }
 
-    if (m_displayCoordinator) {
-        m_displayCoordinator->resetTracking();
+    if (m_branchNav.displayCoordinator) {
+        m_branchNav.displayCoordinator->resetTracking();
     }
 
     if (m_boardController) {
         m_boardController->cancelPendingClick();
     }
+}
 
-    m_moveRecords.clear();
+void MainWindow::clearGameDataModels(const QString& hirateStartSfen)
+{
+    if (m_models.gameRecord) {
+        m_models.gameRecord->clear();
+    }
+
+    m_kifu.moveRecords.clear();
 
     if (m_evalGraphController) {
         m_evalGraphController->setEngine1Name({});
@@ -1149,24 +1162,27 @@ void MainWindow::resetModels(const QString& hirateStartSfen)
     if (m_gameInfoController) {
         m_gameInfoController->setGameInfo({});
     }
+}
 
+void MainWindow::resetBranchTreeForNewState(const QString& hirateStartSfen)
+{
     // performCleanup() が開始したライブゲームセッションを破棄
     // （「新規」は対局開始ではないため）
-    if (m_liveGameSession && m_liveGameSession->isActive()) {
-        m_liveGameSession->discard();
+    if (m_branchNav.liveGameSession && m_branchNav.liveGameSession->isActive()) {
+        m_branchNav.liveGameSession->discard();
     }
 
     // 分岐ツリー完全リセット
     if (m_kifuLoadCoordinator) {
         m_kifuLoadCoordinator->resetBranchTreeForNewGame();
-    } else if (m_branchTree) {
-        if (m_navState) {
-            m_navState->setCurrentNode(nullptr);
-            m_navState->resetPreferredLineIndex();
+    } else if (m_branchNav.branchTree) {
+        if (m_branchNav.navState) {
+            m_branchNav.navState->setCurrentNode(nullptr);
+            m_branchNav.navState->resetPreferredLineIndex();
         }
-        m_branchTree->setRootSfen(hirateStartSfen);
-        if (m_navState) {
-            m_navState->goToRoot();
+        m_branchNav.branchTree->setRootSfen(hirateStartSfen);
+        if (m_branchNav.navState) {
+            m_branchNav.navState->goToRoot();
         }
     }
 }
@@ -1251,10 +1267,10 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
 
     // 棋譜読み込み時は対局で記録したUSI形式指し手リストをクリア
     // （代わりに KifuLoadCoordinator::kifuUsiMovesPtr() を使用する）
-    m_gameUsiMoves.clear();
-    m_gameMoves.clear();
+    m_kifu.gameUsiMoves.clear();
+    m_kifu.gameMoves.clear();
 
-    if (!m_kifuRecordModel) return;
+    if (!m_models.kifuRecord) return;
 
     ensureRecordPresenter();
     if (!m_recordPresenter) return;
@@ -1265,15 +1281,15 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
                              : static_cast<int>(moveCount + 1);
 
     ensureGameRecordModel();
-    if (m_gameRecord) {
-        m_gameRecord->initializeFromDisplayItems(disp, rowCount);
+    if (m_models.gameRecord) {
+        m_models.gameRecord->initializeFromDisplayItems(disp, rowCount);
     }
     qCDebug(lcApp).noquote() << QStringLiteral("GameRecordModel init: %1 ms").arg(timer.elapsed());
 
-    m_commentsByRow.clear();
-    m_commentsByRow.resize(rowCount);
+    m_kifu.commentsByRow.clear();
+    m_kifu.commentsByRow.resize(rowCount);
     for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
-        m_commentsByRow[i] = disp[i].comment;
+        m_kifu.commentsByRow[i] = disp[i].comment;
     }
     qCDebug(lcApp).noquote() << "displayGameRecord: initialized with" << rowCount << "entries";
 
@@ -1365,17 +1381,17 @@ void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
     qCDebug(lcApp).noquote() << "appendKifuLine ENTER: text=" << text
                        << "elapsedTime=" << elapsedTime;
 
-    // KIF 追記の既存フローに合わせて m_lastMove を経由し、updateGameRecord() を1回だけ呼ぶ
-    m_lastMove = text;
+    // KIF 追記の既存フローに合わせて m_state.lastMove を経由し、updateGameRecord() を1回だけ呼ぶ
+    m_state.lastMove = text;
 
     // ここで棋譜へ 1 行追加（手数インクリメントやモデル反映は updateGameRecord が面倒を見る）
     updateGameRecord(elapsedTime);
 
     qCDebug(lcApp).noquote() << "appendKifuLine AFTER updateGameRecord:"
-                       << "kifuModel.rowCount=" << (m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1);
+                       << "kifuModel.rowCount=" << (m_models.kifuRecord ? m_models.kifuRecord->rowCount() : -1);
 
     // 二重追記防止のためクリア
-    m_lastMove.clear();
+    m_state.lastMove.clear();
 }
 
 // 人間の手番かどうかを判定するヘルパー
@@ -1383,7 +1399,7 @@ void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 bool MainWindow::isHumanTurnNow() const
 {
     // 対局中でなければ常に true（編集等では制限しない）
-    switch (m_playMode) {
+    switch (m_state.playMode) {
     case PlayMode::HumanVsHuman:
         // HvH では両者人間なので常に true
         return true;
@@ -1439,7 +1455,7 @@ void MainWindow::onPlayerNamesResolved(const QString& human1, const QString& hum
 
             m_playerInfoWiring->resolveNamesAndSetupGameInfo(
                 human1, human2, engine1, engine2, playMode,
-                m_startSfenStr, tcInfo);
+                m_state.startSfenStr, tcInfo);
         } else {
             m_playerInfoWiring->onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
         }
@@ -1460,13 +1476,13 @@ void MainWindow::onConsecutiveGamesConfigured(int totalGames, bool switchTurn)
 void MainWindow::onGameStarted(const MatchCoordinator::StartOptions& opt)
 {
     // 対局開始時は MatchCoordinator 側の確定モードをUI側にも同期する。
-    m_playMode = opt.mode;
+    m_state.playMode = opt.mode;
 
     // 開始局面のSFENを同期（定跡ウィンドウ等が参照する）
     if (!opt.sfenStart.isEmpty()) {
-        m_currentSfenStr = opt.sfenStart;
+        m_state.currentSfenStr = opt.sfenStart;
     } else if (sfenRecord() && !sfenRecord()->isEmpty()) {
-        m_currentSfenStr = sfenRecord()->first();
+        m_state.currentSfenStr = sfenRecord()->first();
     }
     updateJosekiWindow();
 
@@ -1510,18 +1526,18 @@ void MainWindow::onBranchTreeResetForNewGame()
 {
     // performCleanup() が開始したライブゲームセッションを破棄
     // （新規対局のため、新しいセッションがゲーム開始フローで再作成される）
-    if (m_liveGameSession && m_liveGameSession->isActive()) {
-        m_liveGameSession->discard();
+    if (m_branchNav.liveGameSession && m_branchNav.liveGameSession->isActive()) {
+        m_branchNav.liveGameSession->discard();
     }
     // resetToInitialState() と同じパターンで分岐ツリーを直接リセット
-    if (m_branchTree) {
-        if (m_navState) {
-            m_navState->setCurrentNode(nullptr);
-            m_navState->resetPreferredLineIndex();
+    if (m_branchNav.branchTree) {
+        if (m_branchNav.navState) {
+            m_branchNav.navState->setCurrentNode(nullptr);
+            m_branchNav.navState->resetPreferredLineIndex();
         }
-        m_branchTree->setRootSfen(m_startSfenStr);
-        if (m_navState) {
-            m_navState->goToRoot();
+        m_branchNav.branchTree->setRootSfen(m_state.startSfenStr);
+        if (m_branchNav.navState) {
+            m_branchNav.navState->goToRoot();
         }
     }
 }
@@ -1534,7 +1550,7 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     // 分岐ナビゲーション中に発生する再入を抑止する。
     // 分岐側の同期は `loadBoardWithHighlights()` が責務を持つため、
     // 通常経路の同期をここで走らせると二重反映になる。
-    if (m_skipBoardSyncForBranchNav) {
+    if (m_state.skipBoardSyncForBranchNav) {
         qCDebug(lcApp) << "syncBoardAndHighlightsAtRow skipped (branch navigation in progress)";
         return;
     }
@@ -1561,21 +1577,21 @@ void MainWindow::syncBoardAndHighlightsAtRow(int ply)
     // KIF 継続手が残っている可能性があるため）。
     const bool gameActive = isGameActivelyInProgress();
     bool foundInBranch = false;
-    if (!gameActive && m_navState != nullptr && !m_navState->isOnMainLine() && m_branchTree != nullptr) {
-        const int lineIndex = m_navState->currentLineIndex();
-        QVector<BranchLine> lines = m_branchTree->allLines();
+    if (!gameActive && m_branchNav.navState != nullptr && !m_branchNav.navState->isOnMainLine() && m_branchNav.branchTree != nullptr) {
+        const int lineIndex = m_branchNav.navState->currentLineIndex();
+        QVector<BranchLine> lines = m_branchNav.branchTree->allLines();
         if (lineIndex >= 0 && lineIndex < lines.size()) {
             const BranchLine& line = lines.at(lineIndex);
             if (ply >= 0 && ply < line.nodes.size()) {
-                m_currentSfenStr = line.nodes.at(ply)->sfen();
+                m_state.currentSfenStr = line.nodes.at(ply)->sfen();
                 foundInBranch = true;
-                qCDebug(lcApp) << "syncBoardAndHighlightsAtRow: updated m_currentSfenStr from branchTree";
+                qCDebug(lcApp) << "syncBoardAndHighlightsAtRow: updated m_state.currentSfenStr from branchTree";
             }
         }
     }
     if (!foundInBranch && sfenRecord() && ply >= 0 && ply < sfenRecord()->size()) {
-        m_currentSfenStr = sfenRecord()->at(ply);
-        qCDebug(lcApp) << "syncBoardAndHighlightsAtRow: updated m_currentSfenStr=" << m_currentSfenStr;
+        m_state.currentSfenStr = sfenRecord()->at(ply);
+        qCDebug(lcApp) << "syncBoardAndHighlightsAtRow: updated m_state.currentSfenStr=" << m_state.currentSfenStr;
     }
 
     // 定跡ウィンドウを更新
@@ -1589,7 +1605,7 @@ void MainWindow::navigateKifuViewToRow(int ply)
 {
     qCDebug(lcApp).noquote() << "navigateKifuViewToRow ENTER ply=" << ply;
 
-    if (!m_recordPane || !m_kifuRecordModel) {
+    if (!m_recordPane || !m_models.kifuRecord) {
         qCDebug(lcApp).noquote() << "navigateKifuViewToRow ABORT: recordPane or kifuRecordModel is null";
         return;
     }
@@ -1600,13 +1616,13 @@ void MainWindow::navigateKifuViewToRow(int ply)
         return;
     }
 
-    const int rows = m_kifuRecordModel->rowCount();
+    const int rows = m_models.kifuRecord->rowCount();
     const int safe = (rows > 0) ? qBound(0, ply, rows - 1) : 0;
 
     qCDebug(lcApp).noquote() << "navigateKifuViewToRow: ply=" << ply
                        << "rows=" << rows << "safe=" << safe;
 
-    const QModelIndex idx = m_kifuRecordModel->index(safe, 0);
+    const QModelIndex idx = m_models.kifuRecord->index(safe, 0);
     if (idx.isValid()) {
         if (auto* sel = view->selectionModel()) {
             sel->setCurrentIndex(
@@ -1618,15 +1634,15 @@ void MainWindow::navigateKifuViewToRow(int ply)
     }
 
     // 棋譜欄のハイライト行を更新
-    m_kifuRecordModel->setCurrentHighlightRow(safe);
+    m_models.kifuRecord->setCurrentHighlightRow(safe);
 
     // 盤・ハイライト即時同期
     syncBoardAndHighlightsAtRow(safe);
 
     // トラッキングを更新
-    m_activePly = safe;
-    m_currentSelectedPly = safe;
-    m_currentMoveIndex = safe;
+    m_kifu.activePly = safe;
+    m_kifu.currentSelectedPly = safe;
+    m_state.currentMoveIndex = safe;
 
     // 手番表示を更新
     setCurrentTurn();
@@ -1651,20 +1667,20 @@ void MainWindow::initializeBranchNavigationClasses()
 void MainWindow::createBranchNavigationModels()
 {
     // ツリーの作成
-    if (m_branchTree == nullptr) {
-        m_branchTree = new KifuBranchTree(this);
+    if (m_branchNav.branchTree == nullptr) {
+        m_branchNav.branchTree = new KifuBranchTree(this);
     }
 
     // ナビゲーション状態の作成
-    if (m_navState == nullptr) {
-        m_navState = new KifuNavigationState(this);
-        m_navState->setTree(m_branchTree);
+    if (m_branchNav.navState == nullptr) {
+        m_branchNav.navState = new KifuNavigationState(this);
+        m_branchNav.navState->setTree(m_branchNav.branchTree);
     }
 
     // ナビゲーションコントローラの作成
-    if (m_kifuNavController == nullptr) {
-        m_kifuNavController = new KifuNavigationController(this);
-        m_kifuNavController->setTreeAndState(m_branchTree, m_navState);
+    if (m_branchNav.kifuNavController == nullptr) {
+        m_branchNav.kifuNavController = new KifuNavigationController(this);
+        m_branchNav.kifuNavController->setTreeAndState(m_branchNav.branchTree, m_branchNav.navState);
 
         // ボタン接続（RecordPaneが存在する場合）
         if (m_recordPane != nullptr) {
@@ -1675,44 +1691,51 @@ void MainWindow::createBranchNavigationModels()
             buttons.next = m_recordPane->nextButton();
             buttons.fwd10 = m_recordPane->fwd10Button();
             buttons.last = m_recordPane->lastButton();
-            m_kifuNavController->connectButtons(buttons);
+            m_branchNav.kifuNavController->connectButtons(buttons);
             qCDebug(lcApp).noquote() << "createBranchNavigationModels: KifuNavigationController buttons connected";
         }
     }
 
     // ライブゲームセッションの作成
-    if (m_liveGameSession == nullptr) {
-        m_liveGameSession = new LiveGameSession(this);
-        m_liveGameSession->setTree(m_branchTree);
+    if (m_branchNav.liveGameSession == nullptr) {
+        m_branchNav.liveGameSession = new LiveGameSession(this);
+        m_branchNav.liveGameSession->setTree(m_branchNav.branchTree);
     }
 }
 
 void MainWindow::wireBranchNavigationSignals()
 {
     // 表示コーディネーターの作成
-    qCDebug(lcApp).noquote() << "wireBranchNavigationSignals: m_displayCoordinator=" << (m_displayCoordinator ? "exists" : "null");
-    if (m_displayCoordinator != nullptr) {
+    qCDebug(lcApp).noquote() << "wireBranchNavigationSignals: m_branchNav.displayCoordinator=" << (m_branchNav.displayCoordinator ? "exists" : "null");
+    if (m_branchNav.displayCoordinator != nullptr) {
         return;
     }
 
     qCDebug(lcApp).noquote() << "wireBranchNavigationSignals: creating KifuDisplayCoordinator";
-    m_displayCoordinator = new KifuDisplayCoordinator(
-        m_branchTree, m_navState, m_kifuNavController, this);
-    m_displayCoordinator->setRecordPane(m_recordPane);
-    m_displayCoordinator->setRecordModel(m_kifuRecordModel);
-    m_displayCoordinator->setBranchModel(m_kifuBranchModel);
+    m_branchNav.displayCoordinator = new KifuDisplayCoordinator(
+        m_branchNav.branchTree, m_branchNav.navState, m_branchNav.kifuNavController, this);
+
+    configureBranchDisplayCoordinator();
+    connectBranchDisplaySignals();
+}
+
+void MainWindow::configureBranchDisplayCoordinator()
+{
+    m_branchNav.displayCoordinator->setRecordPane(m_recordPane);
+    m_branchNav.displayCoordinator->setRecordModel(m_models.kifuRecord);
+    m_branchNav.displayCoordinator->setBranchModel(m_models.kifuBranch);
 
     // 分岐ツリーウィジェットを設定（EngineAnalysisTabから取得）
-    if (m_branchTreeWidget != nullptr) {
-        m_displayCoordinator->setBranchTreeWidget(m_branchTreeWidget);
+    if (m_branchNav.branchTreeWidget != nullptr) {
+        m_branchNav.displayCoordinator->setBranchTreeWidget(m_branchNav.branchTreeWidget);
     }
 
     // BranchTreeManager を設定（分岐ツリーハイライト用）
     if (m_analysisTab != nullptr) {
-        m_displayCoordinator->setBranchTreeManager(m_analysisTab->branchTreeManager());
+        m_branchNav.displayCoordinator->setBranchTreeManager(m_analysisTab->branchTreeManager());
     }
 
-    m_displayCoordinator->setBoardSfenProvider([this]() {
+    m_branchNav.displayCoordinator->setBoardSfenProvider([this]() {
         if (m_gameController == nullptr || m_gameController->board() == nullptr) {
             return QString();
         }
@@ -1726,28 +1749,31 @@ void MainWindow::wireBranchNavigationSignals()
             .arg(board->convertBoardToSfen(), turnPart, standPart);
     });
 
-    m_displayCoordinator->wireSignals();
+    m_branchNav.displayCoordinator->wireSignals();
 
-    if (m_liveGameSession != nullptr) {
-        m_displayCoordinator->setLiveGameSession(m_liveGameSession);
+    if (m_branchNav.liveGameSession != nullptr) {
+        m_branchNav.displayCoordinator->setLiveGameSession(m_branchNav.liveGameSession);
     }
+}
 
+void MainWindow::connectBranchDisplaySignals()
+{
     // 盤面とハイライト更新シグナルを接続（新システム用）
-    connect(m_displayCoordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired,
+    connect(m_branchNav.displayCoordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired,
             this, &MainWindow::loadBoardWithHighlights);
 
     // コメント表示シグナルを接続
-    connect(m_displayCoordinator, &KifuDisplayCoordinator::commentUpdateRequired,
+    connect(m_branchNav.displayCoordinator, &KifuDisplayCoordinator::commentUpdateRequired,
             this, &MainWindow::onNavigationCommentUpdate);
 
     // 盤面のみ更新シグナル（通常は boardWithHighlightsRequired を使用）
-    connect(m_displayCoordinator, &KifuDisplayCoordinator::boardSfenChanged,
+    connect(m_branchNav.displayCoordinator, &KifuDisplayCoordinator::boardSfenChanged,
             this, &MainWindow::loadBoardFromSfen);
 
-    connect(m_kifuNavController, &KifuNavigationController::lineSelectionChanged,
+    connect(m_branchNav.kifuNavController, &KifuNavigationController::lineSelectionChanged,
             this, &MainWindow::onLineSelectionChanged);
 
-    connect(m_kifuNavController, &KifuNavigationController::branchNodeHandled,
+    connect(m_branchNav.kifuNavController, &KifuNavigationController::branchNodeHandled,
             this, &MainWindow::onBranchNodeHandled);
 }
 
@@ -1755,16 +1781,16 @@ void MainWindow::wireBranchNavigationSignals()
 void MainWindow::setupRecordPane()
 {
     // モデルの用意（従来どおり）
-    if (!m_kifuRecordModel) m_kifuRecordModel = new KifuRecordListModel(this);
-    if (!m_kifuBranchModel) m_kifuBranchModel = new KifuBranchListModel(this);
+    if (!m_models.kifuRecord) m_models.kifuRecord = new KifuRecordListModel(this);
+    if (!m_models.kifuBranch) m_models.kifuBranch = new KifuBranchListModel(this);
 
     // Wiring の生成
     if (!m_recordPaneWiring) {
         RecordPaneWiring::Deps d;
         d.parent      = m_central;                               // 親ウィジェット
         d.ctx         = this;                                    // RecordPane::mainRowChanged の受け先
-        d.recordModel = m_kifuRecordModel;
-        d.branchModel = m_kifuBranchModel;
+        d.recordModel = m_models.kifuRecord;
+        d.branchModel = m_models.kifuBranch;
 
         m_recordPaneWiring = new RecordPaneWiring(d, this);
     }
@@ -1784,8 +1810,8 @@ void MainWindow::setupEngineAnalysisTab()
     if (!m_analysisWiring) {
         AnalysisTabWiring::Deps d;
         d.centralParent = m_central;         // 既存の central エリア
-        d.log1          = m_lineEditModel1;  // USIログ(先手)
-        d.log2          = m_lineEditModel2;  // USIログ(後手)
+        d.log1          = m_models.commLog1;  // USIログ(先手)
+        d.log2          = m_models.commLog2;  // USIログ(後手)
 
         m_analysisWiring = new AnalysisTabWiring(d, this);
         m_analysisWiring->buildUiAndWire();
@@ -1794,19 +1820,25 @@ void MainWindow::setupEngineAnalysisTab()
     // 配線クラスから出来上がった部品を受け取る（MainWindow の既存フィールドへ反映）
     m_analysisTab    = m_analysisWiring->analysisTab();
     m_tab            = m_analysisWiring->tab();
-    m_modelThinking1 = m_analysisWiring->thinking1();
-    m_modelThinking2 = m_analysisWiring->thinking2();
+    m_models.thinking1 = m_analysisWiring->thinking1();
+    m_models.thinking2 = m_analysisWiring->thinking2();
 
-    if (Q_UNLIKELY(!m_analysisTab) || Q_UNLIKELY(!m_modelThinking1) || Q_UNLIKELY(!m_modelThinking2)) {
+    if (Q_UNLIKELY(!m_analysisTab) || Q_UNLIKELY(!m_models.thinking1) || Q_UNLIKELY(!m_models.thinking2)) {
         qCWarning(lcApp, "ensureAnalysisTabWiring: analysis wiring produced null components "
                   "(tab=%p, thinking1=%p, thinking2=%p)",
                   static_cast<void*>(m_analysisTab),
-                  static_cast<void*>(m_modelThinking1),
-                  static_cast<void*>(m_modelThinking2));
+                  static_cast<void*>(m_models.thinking1),
+                  static_cast<void*>(m_models.thinking2));
         return;
     }
 
-    // 分岐ツリーのアクティベートを MainWindow スロットへ（ラムダ不使用）
+    connectAnalysisTabSignals();
+    configureAnalysisTabDependencies();
+}
+
+void MainWindow::connectAnalysisTabSignals()
+{
+    // 分岐ツリーのアクティベートを MainWindow スロットへ
     QObject::connect(
         m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
         this,          &MainWindow::onBranchNodeActivated,
@@ -1844,7 +1876,10 @@ void MainWindow::setupEngineAnalysisTab()
         m_analysisTab, &EngineAnalysisTab::considerationEngineChanged,
         m_considerationWiring, &ConsiderationWiring::onEngineChanged,
         Qt::UniqueConnection);
+}
 
+void MainWindow::configureAnalysisTabDependencies()
+{
     // PlayerInfoControllerにもm_analysisTabを設定
     if (m_playerInfoController) {
         m_playerInfoController->setAnalysisTab(m_analysisTab);
@@ -1862,11 +1897,11 @@ void MainWindow::setupEngineAnalysisTab()
         m_gameInfoController = m_playerInfoWiring->gameInfoController();
     }
 
-    if (!m_considerationModel) {
-        m_considerationModel = new ShogiEngineThinkingModel(this);
+    if (!m_models.consideration) {
+        m_models.consideration = new ShogiEngineThinkingModel(this);
     }
     if (m_analysisTab) {
-        m_analysisTab->setConsiderationThinkingModel(m_considerationModel);
+        m_analysisTab->setConsiderationThinkingModel(m_models.consideration);
     }
 }
 
@@ -1884,7 +1919,7 @@ void MainWindow::createEvalChartDock()
     // DockCreationServiceに委譲
     ensureDockCreationService();
     m_dockCreationService->setEvalChart(m_evalChart);
-    m_evalChartDock = m_dockCreationService->createEvalChartDock();
+    m_docks.evalChart = m_dockCreationService->createEvalChartDock();
 }
 
 // `createRecordPaneDock`: Record Pane Dock を作成する。
@@ -1898,7 +1933,7 @@ void MainWindow::createRecordPaneDock()
     // DockCreationServiceに委譲
     ensureDockCreationService();
     m_dockCreationService->setRecordPane(m_recordPane);
-    m_recordPaneDock = m_dockCreationService->createRecordPaneDock();
+    m_docks.recordPane = m_dockCreationService->createRecordPaneDock();
 }
 
 // `createAnalysisDocks`: Analysis Docks を作成する。
@@ -1920,17 +1955,17 @@ void MainWindow::createAnalysisDocks()
     ensureDockCreationService();
     m_dockCreationService->setAnalysisTab(m_analysisTab);
     m_dockCreationService->setGameInfoController(m_gameInfoController);
-    m_dockCreationService->setModels(m_modelThinking1, m_modelThinking2, m_lineEditModel1, m_lineEditModel2);
+    m_dockCreationService->setModels(m_models.thinking1, m_models.thinking2, m_models.commLog1, m_models.commLog2);
     m_dockCreationService->createAnalysisDocks();
 
     // 作成されたドックへの参照を取得
-    m_gameInfoDock = m_dockCreationService->gameInfoDock();
-    m_thinkingDock = m_dockCreationService->thinkingDock();
-    m_considerationDock = m_dockCreationService->considerationDock();
-    m_usiLogDock = m_dockCreationService->usiLogDock();
-    m_csaLogDock = m_dockCreationService->csaLogDock();
-    m_commentDock = m_dockCreationService->commentDock();
-    m_branchTreeDock = m_dockCreationService->branchTreeDock();
+    m_docks.gameInfo = m_dockCreationService->gameInfoDock();
+    m_docks.thinking = m_dockCreationService->thinkingDock();
+    m_docks.consideration = m_dockCreationService->considerationDock();
+    m_docks.usiLog = m_dockCreationService->usiLogDock();
+    m_docks.csaLog = m_dockCreationService->csaLogDock();
+    m_docks.comment = m_dockCreationService->commentDock();
+    m_docks.branchTree = m_dockCreationService->branchTreeDock();
 }
 
 // `setupBoardInCenter`: Board In Center をセットアップする。
@@ -1973,7 +2008,7 @@ void MainWindow::createMenuWindowDock()
     // DockCreationServiceに委譲
     ensureDockCreationService();
     m_dockCreationService->setMenuWiring(m_menuWiring);
-    m_menuWindowDock = m_dockCreationService->createMenuWindowDock();
+    m_docks.menuWindow = m_dockCreationService->createMenuWindowDock();
 }
 
 // `createJosekiWindowDock`: Joseki Window Dock を作成する。
@@ -1989,12 +2024,12 @@ void MainWindow::createJosekiWindowDock()
     // DockCreationServiceに委譲
     ensureDockCreationService();
     m_dockCreationService->setJosekiWiring(m_josekiWiring);
-    m_josekiWindowDock = m_dockCreationService->createJosekiWindowDock();
+    m_docks.josekiWindow = m_dockCreationService->createJosekiWindowDock();
 
     // ドックが表示されたときに定跡ウィンドウを更新する
     // （トグルアクション経由で表示された場合にも対応）
-    if (m_josekiWindowDock) {
-        connect(m_josekiWindowDock, &QDockWidget::visibilityChanged,
+    if (m_docks.josekiWindow) {
+        connect(m_docks.josekiWindow, &QDockWidget::visibilityChanged,
                 this, &MainWindow::updateJosekiWindow);
     }
 }
@@ -2012,7 +2047,7 @@ void MainWindow::createAnalysisResultsDock()
     // DockCreationServiceに委譲
     ensureDockCreationService();
     m_dockCreationService->setAnalysisPresenter(m_analysisPresenter);
-    m_analysisResultsDock = m_dockCreationService->createAnalysisResultsDock();
+    m_docks.analysisResults = m_dockCreationService->createAnalysisResultsDock();
 }
 
 // `ensureMatchCoordinatorWiring`: MatchCoordinatorWiring を遅延初期化し Deps を更新する。
@@ -2077,12 +2112,9 @@ MatchCoordinator::UndoHooks MainWindow::buildMatchUndoHooks()
     using std::placeholders::_1;
 
     MatchCoordinatorHooksFactory::UndoDeps undoDeps;
-    undoDeps.getMainRowGuard = std::bind(&MainWindow::getMainRowGuard, this);
-    undoDeps.setMainRowGuard = std::bind(&MainWindow::setMainRowGuard, this, _1);
     undoDeps.updateHighlightsForPly = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
     undoDeps.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay, this);
     undoDeps.isHumanSide = std::bind(&MainWindow::isHumanSide, this, _1);
-    undoDeps.isHvH = std::bind(&MainWindow::isHvH, this);
     return MatchCoordinatorHooksFactory::buildUndoHooks(undoDeps);
 }
 
@@ -2095,20 +2127,20 @@ MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps(
     deps.view  = m_shogiView;
     deps.usi1  = m_usi1;
     deps.usi2  = m_usi2;
-    deps.comm1  = m_lineEditModel1;
-    deps.think1 = m_modelThinking1;
-    deps.comm2  = m_lineEditModel2;
-    deps.think2 = m_modelThinking2;
+    deps.comm1  = m_models.commLog1;
+    deps.think1 = m_models.thinking1;
+    deps.comm2  = m_models.commLog2;
+    deps.think2 = m_models.thinking2;
     deps.sfenRecord = sfenRecord();
-    deps.playMode   = &m_playMode;
+    deps.playMode   = &m_state.playMode;
 
     deps.timePresenter   = m_timePresenter;
     deps.boardController = m_boardController;
 
-    deps.kifuRecordModel  = m_kifuRecordModel;
-    deps.gameMoves        = &m_gameMoves;
-    deps.positionStrList  = &m_positionStrList;
-    deps.currentMoveIndex = &m_currentMoveIndex;
+    deps.kifuRecordModel  = m_models.kifuRecord;
+    deps.gameMoves        = &m_kifu.gameMoves;
+    deps.positionStrList  = &m_kifu.positionStrList;
+    deps.currentMoveIndex = &m_state.currentMoveIndex;
 
     deps.hooks     = hooks;
     deps.undoHooks = undoHooks;
@@ -2213,8 +2245,8 @@ void MainWindow::onMatchGameEnded(const MatchCoordinator::GameEndInfo& info)
         }
     }
 
-    const bool isEvE = (m_playMode == PlayMode::EvenEngineVsEngine ||
-                        m_playMode == PlayMode::HandicapEngineVsEngine);
+    const bool isEvE = (m_state.playMode == PlayMode::EvenEngineVsEngine ||
+                        m_state.playMode == PlayMode::HandicapEngineVsEngine);
     ensureConsecutiveGamesController();
     if (isEvE && m_consecutiveGamesController && m_consecutiveGamesController->shouldStartNextGame()) {
         qCDebug(lcApp) << "EvE game ended, starting next consecutive game...";
@@ -2250,9 +2282,9 @@ void MainWindow::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo
         m_gameStateController->onRequestAppendGameOverMove(info);
     }
 
-    if (m_liveGameSession != nullptr && m_liveGameSession->isActive()) {
+    if (m_branchNav.liveGameSession != nullptr && m_branchNav.liveGameSession->isActive()) {
         qCDebug(lcApp) << "onRequestAppendGameOverMove: committing live game session";
-        m_liveGameSession->commit();
+        m_branchNav.liveGameSession->commit();
     }
 }
 
@@ -2298,14 +2330,14 @@ void MainWindow::connectMoveRequested()
 void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 {
     qCDebug(lcApp).noquote() << "onMoveRequested_: from=" << from << " to=" << to
-                       << " m_playMode=" << static_cast<int>(m_playMode)
+                       << " m_state.playMode=" << static_cast<int>(m_state.playMode)
                        << " m_match=" << (m_match ? "valid" : "null")
                        << " matchMode=" << (m_match ? static_cast<int>(m_match->playMode()) : -1);
     
     ensureBoardSetupController();
     if (m_boardSetupController) {
         // 最新の状態を同期
-        m_boardSetupController->setPlayMode(m_playMode);
+        m_boardSetupController->setPlayMode(m_state.playMode);
         m_boardSetupController->setMatchCoordinator(m_match);
         m_boardSetupController->setSfenRecord(sfenRecord());
         m_boardSetupController->setPositionEditController(m_posEdit);
@@ -2340,7 +2372,7 @@ void MainWindow::broadcastComment(const QString& text, bool asHtml)
 // `onNavigationCommentUpdate`: ナビゲーション起因のコメント表示更新。
 void MainWindow::onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml)
 {
-    m_currentMoveIndex = ply;
+    m_state.currentMoveIndex = ply;
     broadcastComment(comment, asHtml);
 }
 
@@ -2348,13 +2380,13 @@ void MainWindow::onNavigationCommentUpdate(int ply, const QString& comment, bool
 void MainWindow::onBranchNodeActivated(int row, int ply)
 {
     qCDebug(lcApp).noquote() << "onBranchNodeActivated ENTER row=" << row << "ply=" << ply;
-    if (m_kifuNavController == nullptr) {
+    if (m_branchNav.kifuNavController == nullptr) {
         qCDebug(lcApp).noquote() << "onBranchNodeActivated: kifuNavController is null";
         return;
     }
 
     // KifuNavigationControllerに委譲
-    m_kifuNavController->handleBranchNodeActivated(row, ply);
+    m_branchNav.kifuNavController->handleBranchNodeActivated(row, ply);
     qCDebug(lcApp).noquote() << "onBranchNodeActivated LEAVE";
 }
 
@@ -2367,24 +2399,24 @@ void MainWindow::onBranchNodeHandled(int ply, const QString& sfen,
                        << "sfen=" << sfen
                        << "fileTo=" << previousFileTo << "rankTo=" << previousRankTo
                        << "usiMove=" << lastUsiMove
-                       << "playMode=" << static_cast<int>(m_playMode)
+                       << "playMode=" << static_cast<int>(m_state.playMode)
                        << "match=" << (m_match ? "valid" : "null");
 
     // plyインデックス変数を更新
-    m_activePly = ply;
-    m_currentSelectedPly = ply;
-    m_currentMoveIndex = ply;
+    m_kifu.activePly = ply;
+    m_kifu.currentSelectedPly = ply;
+    m_state.currentMoveIndex = ply;
 
-    // m_currentSfenStr を更新
+    // m_state.currentSfenStr を更新
     if (!sfen.isEmpty()) {
-        m_currentSfenStr = sfen;
+        m_state.currentSfenStr = sfen;
     }
 
     // 定跡ウィンドウを更新
     updateJosekiWindow();
 
     // 検討モード時はエンジンに新しい局面を送信
-    if (m_playMode == PlayMode::ConsiderationMode && m_match && !sfen.isEmpty()) {
+    if (m_state.playMode == PlayMode::ConsiderationMode && m_match && !sfen.isEmpty()) {
         const QString newPosition = QStringLiteral("position sfen ") + sfen;
         qCDebug(lcApp).noquote() << "onBranchNodeHandled: sending to engine:" << newPosition;
         if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo, lastUsiMove)) {
@@ -2406,24 +2438,24 @@ void MainWindow::onBranchTreeBuilt()
     qCDebug(lcApp) << "onBranchTreeBuilt: updating new navigation system";
 
     // 新しいナビゲーションシステムを更新
-    if (m_navState != nullptr && m_branchTree != nullptr) {
-        m_navState->setTree(m_branchTree);
+    if (m_branchNav.navState != nullptr && m_branchNav.branchTree != nullptr) {
+        m_branchNav.navState->setTree(m_branchNav.branchTree);
     }
 
     // 分岐ツリーウィジェットを更新
-    if (m_branchTreeWidget != nullptr && m_branchTree != nullptr) {
-        m_branchTreeWidget->setTree(m_branchTree);
+    if (m_branchNav.branchTreeWidget != nullptr && m_branchNav.branchTree != nullptr) {
+        m_branchNav.branchTreeWidget->setTree(m_branchNav.branchTree);
     }
 
     // 表示コーディネーターにツリー変更を通知
-    if (m_displayCoordinator != nullptr) {
-        m_displayCoordinator->onTreeChanged();
+    if (m_branchNav.displayCoordinator != nullptr) {
+        m_branchNav.displayCoordinator->onTreeChanged();
     }
 
-    if (m_gameRecord != nullptr && m_branchTree != nullptr) {
-        m_gameRecord->setBranchTree(m_branchTree);
-        if (m_navState != nullptr) {
-            m_gameRecord->setNavigationState(m_navState);
+    if (m_models.gameRecord != nullptr && m_branchNav.branchTree != nullptr) {
+        m_models.gameRecord->setBranchTree(m_branchNav.branchTree);
+        if (m_branchNav.navState != nullptr) {
+            m_models.gameRecord->setNavigationState(m_branchNav.navState);
         }
     }
 }
@@ -2445,7 +2477,7 @@ void MainWindow::loadBoardFromSfen(const QString& sfen)
         // 手番表示を更新
         setCurrentTurn();
         // 現在のSFEN文字列を更新
-        m_currentSfenStr = sfen;
+        m_state.currentSfenStr = sfen;
 
         qCDebug(lcApp) << "loadBoardFromSfen: board updated successfully";
     } else {
@@ -2467,7 +2499,7 @@ void MainWindow::onLineSelectionChanged(int newLineIndex)
 void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
     // 分岐由来の局面切替では通常同期との競合を避けるため、ガードを立てる。
-    m_skipBoardSyncForBranchNav = true;
+    m_state.skipBoardSyncForBranchNav = true;
 
     // 盤面更新とハイライト計算は BoardSyncPresenter に委譲する。
     ensureBoardSyncPresenter();
@@ -2478,12 +2510,12 @@ void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QStri
     // 手番表示を更新
     if (!currentSfen.isEmpty()) {
         setCurrentTurn();
-        m_currentSfenStr = currentSfen;
+        m_state.currentSfenStr = currentSfen;
     }
 
     // 同一イベントループ内の連鎖通知を吸収したあと、次周回でガードを解除する。
     QTimer::singleShot(0, this, [this]() {
-        m_skipBoardSyncForBranchNav = false;
+        m_state.skipBoardSyncForBranchNav = false;
     });
 }
 
@@ -2492,34 +2524,34 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 {
     ensureBoardSetupController();
     if (m_boardSetupController) {
-        m_boardSetupController->setPlayMode(m_playMode);
+        m_boardSetupController->setPlayMode(m_state.playMode);
         m_boardSetupController->onMoveCommitted(mover, ply);
     }
 
     // USI形式の指し手を記録（詰み探索などで使用）
-    // m_gameMovesの最新の指し手をUSI形式に変換して追加
-    if (!m_gameMoves.isEmpty()) {
-        const ShogiMove& lastMove = m_gameMoves.last();
+    // m_kifu.gameMovesの最新の指し手をUSI形式に変換して追加
+    if (!m_kifu.gameMoves.isEmpty()) {
+        const ShogiMove& lastMove = m_kifu.gameMoves.last();
         const QString usiMove = ShogiUtils::moveToUsi(lastMove);
         if (!usiMove.isEmpty()) {
-            // m_gameUsiMovesのサイズがm_gameMoves.size()-1の場合のみ追加
+            // m_kifu.gameUsiMovesのサイズがm_kifu.gameMoves.size()-1の場合のみ追加
             // （重複追加を防ぐ）
-            if (m_gameUsiMoves.size() == m_gameMoves.size() - 1) {
-                m_gameUsiMoves.append(usiMove);
+            if (m_kifu.gameUsiMoves.size() == m_kifu.gameMoves.size() - 1) {
+                m_kifu.gameUsiMoves.append(usiMove);
                 qCDebug(lcApp).noquote() << "onMoveCommitted: added USI move:" << usiMove
-                                   << "m_gameUsiMoves.size()=" << m_gameUsiMoves.size();
+                                   << "m_kifu.gameUsiMoves.size()=" << m_kifu.gameUsiMoves.size();
             }
         }
     }
 
-    // m_currentSfenStrを現在の局面に更新
+    // m_state.currentSfenStrを現在の局面に更新
     // sfenRecord()の最新のSFENを取得（plyはタイミングの問題で信頼できない）
     if (sfenRecord() && !sfenRecord()->isEmpty()) {
         // 最新のSFENを取得
-        m_currentSfenStr = sfenRecord()->last();
+        m_state.currentSfenStr = sfenRecord()->last();
         qCDebug(lcApp) << "onMoveCommitted: ply=" << ply
                  << "sfenRecord.size()=" << sfenRecord()->size()
-                 << "using last sfen=" << m_currentSfenStr;
+                 << "using last sfen=" << m_state.currentSfenStr;
     }
 
     // 定跡ウィンドウを更新
@@ -2540,7 +2572,7 @@ void MainWindow::flipBoardAndUpdatePlayerInfo()
 
     if (m_timePresenter) {
         m_timePresenter->onMatchTimeUpdated(
-            m_lastP1Ms, m_lastP2Ms, m_lastP1Turn, /*urgencyMs(未使用)*/ 0);
+            m_player.lastP1Ms, m_player.lastP2Ms, m_player.lastP1Turn, /*urgencyMs(未使用)*/ 0);
     }
 
     m_shogiView->update();
@@ -2575,7 +2607,7 @@ void MainWindow::setupNameAndClockFonts()
 // 盤反転の通知を受けたら、手前が先手かどうかのフラグをトグル
 void MainWindow::onBoardFlipped(bool /*flipped*/)
 {
-    m_bottomIsP1 = !m_bottomIsP1;
+    m_player.bottomIsP1 = !m_player.bottomIsP1;
 
     // （必要なら）プレイヤー名や駒台ラベルの入れ替えなど既存処理をここに
     flipBoardAndUpdatePlayerInfo();
@@ -2648,47 +2680,58 @@ void MainWindow::ensureDialogCoordinator()
     m_dialogCoordinator->setMatchCoordinator(m_match);
     m_dialogCoordinator->setGameController(m_gameController);
 
+    bindDialogCoordinatorContexts();
+    wireDialogCoordinatorSignals();
+}
+
+// DialogCoordinatorに検討・詰み探索・棋譜解析の各コンテキストを設定する。
+void MainWindow::bindDialogCoordinatorContexts()
+{
     // 検討コンテキストを設定
     DialogCoordinator::ConsiderationContext conCtx;
     conCtx.gameController = m_gameController;
-    conCtx.gameMoves = &m_gameMoves;
-    conCtx.currentMoveIndex = &m_currentMoveIndex;
-    conCtx.kifuRecordModel = m_kifuRecordModel;
+    conCtx.gameMoves = &m_kifu.gameMoves;
+    conCtx.currentMoveIndex = &m_state.currentMoveIndex;
+    conCtx.kifuRecordModel = m_models.kifuRecord;
     conCtx.sfenRecord = sfenRecord();
-    conCtx.startSfenStr = &m_startSfenStr;
-    conCtx.currentSfenStr = &m_currentSfenStr;
-    conCtx.branchTree = m_branchTree;
-    conCtx.navState = m_navState;
-    conCtx.considerationModel = &m_considerationModel;
-    conCtx.gameUsiMoves = &m_gameUsiMoves;
+    conCtx.startSfenStr = &m_state.startSfenStr;
+    conCtx.currentSfenStr = &m_state.currentSfenStr;
+    conCtx.branchTree = m_branchNav.branchTree;
+    conCtx.navState = m_branchNav.navState;
+    conCtx.considerationModel = &m_models.consideration;
+    conCtx.gameUsiMoves = &m_kifu.gameUsiMoves;
     conCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
     m_dialogCoordinator->setConsiderationContext(conCtx);
 
     // 詰み探索コンテキストを設定
     DialogCoordinator::TsumeSearchContext tsumeCtx;
     tsumeCtx.sfenRecord = sfenRecord();
-    tsumeCtx.startSfenStr = &m_startSfenStr;
-    tsumeCtx.positionStrList = &m_positionStrList;
-    tsumeCtx.currentMoveIndex = &m_currentMoveIndex;
-    tsumeCtx.gameUsiMoves = &m_gameUsiMoves;
+    tsumeCtx.startSfenStr = &m_state.startSfenStr;
+    tsumeCtx.positionStrList = &m_kifu.positionStrList;
+    tsumeCtx.currentMoveIndex = &m_state.currentMoveIndex;
+    tsumeCtx.gameUsiMoves = &m_kifu.gameUsiMoves;
     tsumeCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
     m_dialogCoordinator->setTsumeSearchContext(tsumeCtx);
 
     // 棋譜解析コンテキストを設定
     DialogCoordinator::KifuAnalysisContext kifuCtx;
     kifuCtx.sfenRecord = sfenRecord();
-    kifuCtx.moveRecords = &m_moveRecords;
-    kifuCtx.recordModel = m_kifuRecordModel;
-    kifuCtx.activePly = &m_activePly;
+    kifuCtx.moveRecords = &m_kifu.moveRecords;
+    kifuCtx.recordModel = m_models.kifuRecord;
+    kifuCtx.activePly = &m_kifu.activePly;
     kifuCtx.gameController = m_gameController;
     kifuCtx.gameInfoController = m_gameInfoController;
     kifuCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
     kifuCtx.evalChart = m_evalChart;
-    kifuCtx.gameUsiMoves = &m_gameUsiMoves;
+    kifuCtx.gameUsiMoves = &m_kifu.gameUsiMoves;
     kifuCtx.presenter = m_analysisPresenter;
     kifuCtx.getBoardFlipped = [this]() { return m_shogiView ? m_shogiView->getFlipMode() : false; };
     m_dialogCoordinator->setKifuAnalysisContext(kifuCtx);
+}
 
+// DialogCoordinatorのシグナル/スロット接続を行う。
+void MainWindow::wireDialogCoordinatorSignals()
+{
     // 検討モード関連シグナルをオーケストレータ経由で接続
     ensureConsiderationWiring();
     DialogOrchestrator::wireConsiderationSignals(m_dialogCoordinator, m_considerationWiring);
@@ -2734,8 +2777,8 @@ void MainWindow::updateKifuExportDependencies()
     if (!m_kifuExportController) return;
 
     KifuExportController::Dependencies deps;
-    deps.gameRecord = m_gameRecord;
-    deps.kifuRecordModel = m_kifuRecordModel;
+    deps.gameRecord = m_models.gameRecord;
+    deps.kifuRecordModel = m_models.kifuRecord;
     deps.gameInfoController = m_gameInfoController;
     deps.timeController = m_timeController;
     deps.kifuLoadCoordinator = m_kifuLoadCoordinator;
@@ -2745,19 +2788,19 @@ void MainWindow::updateKifuExportDependencies()
     deps.gameController = m_gameController;
     deps.statusBar = ui ? ui->statusbar : nullptr;
     deps.sfenRecord = sfenRecord();
-    deps.usiMoves = &m_gameUsiMoves;
+    deps.usiMoves = &m_kifu.gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
-    deps.commentsByRow = &m_commentsByRow;
-    deps.startSfenStr = m_startSfenStr;
-    deps.playMode = m_playMode;
-    deps.humanName1 = m_humanName1;
-    deps.humanName2 = m_humanName2;
-    deps.engineName1 = m_engineName1;
-    deps.engineName2 = m_engineName2;
-    deps.activeResolvedRow = (m_navState != nullptr) ? m_navState->currentLineIndex() : 0;
-    deps.currentMoveIndex = m_currentMoveIndex;
-    deps.activePly = m_activePly;
-    deps.currentSelectedPly = m_currentSelectedPly;
+    deps.commentsByRow = &m_kifu.commentsByRow;
+    deps.startSfenStr = m_state.startSfenStr;
+    deps.playMode = m_state.playMode;
+    deps.humanName1 = m_player.humanName1;
+    deps.humanName2 = m_player.humanName2;
+    deps.engineName1 = m_player.engineName1;
+    deps.engineName2 = m_player.engineName2;
+    deps.activeResolvedRow = (m_branchNav.navState != nullptr) ? m_branchNav.navState->currentLineIndex() : 0;
+    deps.currentMoveIndex = m_state.currentMoveIndex;
+    deps.activePly = m_kifu.activePly;
+    deps.currentSelectedPly = m_kifu.currentSelectedPly;
 
     m_kifuExportController->setDependencies(deps);
 }
@@ -2776,9 +2819,15 @@ void MainWindow::ensureGameStateController()
     m_gameStateController->setReplayController(m_replayController);
     m_gameStateController->setTimeController(m_timeController);
     m_gameStateController->setKifuLoadCoordinator(m_kifuLoadCoordinator);
-    m_gameStateController->setKifuRecordModel(m_kifuRecordModel);
-    m_gameStateController->setPlayMode(m_playMode);
+    m_gameStateController->setKifuRecordModel(m_models.kifuRecord);
+    m_gameStateController->setPlayMode(m_state.playMode);
 
+    bindGameStateControllerCallbacks();
+}
+
+// GameStateControllerのコールバックを設定する。
+void MainWindow::bindGameStateControllerCallbacks()
+{
     // コールバックの設定: 対局終了時にUI状態を「アイドル」に遷移
     ensureUiStatePolicyManager();
     m_gameStateController->setEnableArrowButtonsCallback(
@@ -2786,22 +2835,22 @@ void MainWindow::ensureGameStateController()
     m_gameStateController->setSetReplayModeCallback(
         std::bind(&MainWindow::setReplayMode, this, std::placeholders::_1));
     m_gameStateController->setRefreshBranchTreeCallback([this]() {
-        m_currentSelectedPly = 0;  // リセット
+        m_kifu.currentSelectedPly = 0;  // リセット
         refreshBranchTreeLive();
     });
     m_gameStateController->setUpdatePlyStateCallback([this](int activePly, int selectedPly, int moveIndex) {
-        m_activePly = activePly;
-        m_currentSelectedPly = selectedPly;
-        m_currentMoveIndex = moveIndex;
+        m_kifu.activePly = activePly;
+        m_kifu.currentSelectedPly = selectedPly;
+        m_state.currentMoveIndex = moveIndex;
 
         // 対局終了後、ナビゲーション状態をUIの表示位置と同期する。
         // 本譜固定で探すと、分岐表示中に「1手戻る」が本譜へ飛ぶため、
         // 現在ライン上の同一plyノードを優先して同期する。
-        if (m_navState && m_branchTree) {
+        if (m_branchNav.navState && m_branchNav.branchTree) {
             KifuBranchNode* node = nullptr;
 
-            const int currentLine = m_navState->currentLineIndex();
-            const QVector<BranchLine> lines = m_branchTree->allLines();
+            const int currentLine = m_branchNav.navState->currentLineIndex();
+            const QVector<BranchLine> lines = m_branchNav.branchTree->allLines();
             if (currentLine >= 0 && currentLine < lines.size()) {
                 const BranchLine& line = lines.at(currentLine);
                 for (KifuBranchNode* candidate : std::as_const(line.nodes)) {
@@ -2813,11 +2862,11 @@ void MainWindow::ensureGameStateController()
             }
 
             if (node == nullptr) {
-                node = m_branchTree->findByPlyOnMainLine(selectedPly);
+                node = m_branchNav.branchTree->findByPlyOnMainLine(selectedPly);
             }
 
             if (node) {
-                m_navState->setCurrentNode(node);
+                m_branchNav.navState->setCurrentNode(node);
             }
         }
     });
@@ -2837,7 +2886,7 @@ void MainWindow::ensurePlayerInfoController()
     // PlayerInfoControllerが取得できた場合、追加の依存オブジェクトを設定
     if (m_playerInfoController) {
         m_playerInfoController->setEvalGraphController(m_evalGraphController);
-        m_playerInfoController->setLogModels(m_lineEditModel1, m_lineEditModel2);
+        m_playerInfoController->setLogModels(m_models.commLog1, m_models.commLog2);
         m_playerInfoController->setAnalysisTab(m_analysisTab);
     }
 }
@@ -2855,10 +2904,15 @@ void MainWindow::ensureBoardSetupController()
     m_boardSetupController->setMatchCoordinator(m_match);
     m_boardSetupController->setTimeController(m_timeController);
     m_boardSetupController->setSfenRecord(sfenRecord());
-    m_boardSetupController->setGameMoves(&m_gameMoves);
-    m_boardSetupController->setCurrentMoveIndex(&m_currentMoveIndex);
+    m_boardSetupController->setGameMoves(&m_kifu.gameMoves);
+    m_boardSetupController->setCurrentMoveIndex(&m_state.currentMoveIndex);
 
-    // コールバックの設定
+    bindBoardSetupControllerCallbacks();
+}
+
+// BoardSetupControllerのコールバックを設定する。
+void MainWindow::bindBoardSetupControllerCallbacks()
+{
     m_boardSetupController->setEnsurePositionEditCallback([this]() {
         ensurePositionEditController();
     });
@@ -2866,7 +2920,7 @@ void MainWindow::ensureBoardSetupController()
         ensureTimeController();
     });
     m_boardSetupController->setUpdateGameRecordCallback([this](const QString& moveText, const QString& elapsed) {
-        m_lastMove = moveText;
+        m_state.lastMove = moveText;
         updateGameRecord(elapsed);
     });
     m_boardSetupController->setRedrawEngine1GraphCallback([this](int ply) {
@@ -2890,12 +2944,12 @@ void MainWindow::ensurePvClickController()
     m_pvClickController = new PvClickController(this);
 
     // 依存オブジェクトの設定
-    m_pvClickController->setThinkingModels(m_modelThinking1, m_modelThinking2);
-    m_pvClickController->setConsiderationModel(m_considerationModel);
-    m_pvClickController->setLogModels(m_lineEditModel1, m_lineEditModel2);
+    m_pvClickController->setThinkingModels(m_models.thinking1, m_models.thinking2);
+    m_pvClickController->setConsiderationModel(m_models.consideration);
+    m_pvClickController->setLogModels(m_models.commLog1, m_models.commLog2);
     m_pvClickController->setSfenRecord(sfenRecord());
-    m_pvClickController->setGameMoves(&m_gameMoves);
-    m_pvClickController->setUsiMoves(&m_gameUsiMoves);
+    m_pvClickController->setGameMoves(&m_kifu.gameMoves);
+    m_pvClickController->setUsiMoves(&m_kifu.gameUsiMoves);
     QObject::connect(
         m_pvClickController, &PvClickController::pvDialogClosed,
         this,                &MainWindow::onPvDialogClosed,
@@ -2920,13 +2974,19 @@ void MainWindow::ensurePositionEditCoordinator()
     m_posEditCoordinator->setSfenRecord(sfenRecord());
 
     // 状態参照の設定
-    m_posEditCoordinator->setCurrentSelectedPly(&m_currentSelectedPly);
-    m_posEditCoordinator->setActivePly(&m_activePly);
-    m_posEditCoordinator->setStartSfenStr(&m_startSfenStr);
-    m_posEditCoordinator->setCurrentSfenStr(&m_currentSfenStr);
-    m_posEditCoordinator->setResumeSfenStr(&m_resumeSfenStr);
-    m_posEditCoordinator->setOnMainRowGuard(&m_onMainRowGuard);
+    m_posEditCoordinator->setCurrentSelectedPly(&m_kifu.currentSelectedPly);
+    m_posEditCoordinator->setActivePly(&m_kifu.activePly);
+    m_posEditCoordinator->setStartSfenStr(&m_state.startSfenStr);
+    m_posEditCoordinator->setCurrentSfenStr(&m_state.currentSfenStr);
+    m_posEditCoordinator->setResumeSfenStr(&m_state.resumeSfenStr);
+    m_posEditCoordinator->setOnMainRowGuard(&m_kifu.onMainRowGuard);
 
+    bindPositionEditCoordinatorCallbacks();
+}
+
+// PositionEditCoordinatorのコールバックとアクションを設定する。
+void MainWindow::bindPositionEditCoordinatorCallbacks()
+{
     // コールバックの設定：局面編集状態の遷移をUiStatePolicyManagerに委譲
     ensureUiStatePolicyManager();
     m_posEditCoordinator->setApplyEditMenuStateCallback([this](bool editing) {
@@ -2963,7 +3023,7 @@ void MainWindow::ensureCsaGameWiring()
     deps.coordinator = m_csaGameCoordinator;
     deps.gameController = m_gameController;
     deps.shogiView = m_shogiView;
-    deps.kifuRecordModel = m_kifuRecordModel;
+    deps.kifuRecordModel = m_models.kifuRecord;
     deps.recordPane = m_recordPane;
     deps.boardController = m_boardController;
     deps.statusBar = ui ? ui->statusbar : nullptr;
@@ -2971,14 +3031,21 @@ void MainWindow::ensureCsaGameWiring()
     // CSA対局開始用の追加依存オブジェクト
     deps.analysisTab = m_analysisTab;
     deps.boardSetupController = m_boardSetupController;
-    deps.usiCommLog = m_lineEditModel1;
-    deps.engineThinking = m_modelThinking1;
+    deps.usiCommLog = m_models.commLog1;
+    deps.engineThinking = m_models.thinking1;
     deps.timeController = m_timeController;
-    deps.gameMoves = &m_gameMoves;
+    deps.gameMoves = &m_kifu.gameMoves;
 
     m_csaGameWiring = new CsaGameWiring(deps, this);
 
-    // CsaGameWiringからのシグナルをMainWindowに接続
+    wireCsaGameWiringSignals();
+
+    qCDebug(lcApp).noquote() << "ensureCsaGameWiring_: created and connected";
+}
+
+// CsaGameWiringのシグナル/スロット接続を行う。
+void MainWindow::wireCsaGameWiringSignals()
+{
     // CSA対局開始/終了時のUI状態遷移
     ensureUiStatePolicyManager();
     connect(m_csaGameWiring, &CsaGameWiring::disableNavigationRequested,
@@ -2995,8 +3062,6 @@ void MainWindow::ensureCsaGameWiring()
             this, &MainWindow::onCsaShowGameEndDialog);
     connect(m_csaGameWiring, &CsaGameWiring::errorMessageRequested,
             this, &MainWindow::displayErrorMessage);
-
-    qCDebug(lcApp).noquote() << "ensureCsaGameWiring_: created and connected";
 }
 
 // `ensureJosekiWiring`: Joseki Wiring を必要に応じて生成し、依存関係を更新する。
@@ -3007,13 +3072,13 @@ void MainWindow::ensureJosekiWiring()
     JosekiWindowWiring::Dependencies deps;
     deps.parentWidget = this;
     deps.gameController = m_gameController;
-    deps.kifuRecordModel = m_kifuRecordModel;
+    deps.kifuRecordModel = m_models.kifuRecord;
     deps.sfenRecord = sfenRecord();
-    deps.usiMoves = &m_gameUsiMoves;
-    deps.currentSfenStr = &m_currentSfenStr;
-    deps.currentMoveIndex = &m_currentMoveIndex;
-    deps.currentSelectedPly = &m_currentSelectedPly;
-    deps.playMode = &m_playMode;
+    deps.usiMoves = &m_kifu.gameUsiMoves;
+    deps.currentSfenStr = &m_state.currentSfenStr;
+    deps.currentMoveIndex = &m_state.currentMoveIndex;
+    deps.currentSelectedPly = &m_kifu.currentSelectedPly;
+    deps.playMode = &m_state.playMode;
 
     m_josekiWiring = new JosekiWindowWiring(deps, this);
 
@@ -3049,11 +3114,11 @@ void MainWindow::ensurePlayerInfoWiring()
     deps.parentWidget = this;
     deps.tabWidget = m_tab;
     deps.shogiView = m_shogiView;
-    deps.playMode = &m_playMode;
-    deps.humanName1 = &m_humanName1;
-    deps.humanName2 = &m_humanName2;
-    deps.engineName1 = &m_engineName1;
-    deps.engineName2 = &m_engineName2;
+    deps.playMode = &m_state.playMode;
+    deps.humanName1 = &m_player.humanName1;
+    deps.humanName2 = &m_player.humanName2;
+    deps.engineName1 = &m_player.engineName1;
+    deps.engineName2 = &m_player.engineName2;
 
     m_playerInfoWiring = new PlayerInfoWiring(deps, this);
 
@@ -3080,22 +3145,22 @@ void MainWindow::ensurePreStartCleanupHandler()
     PreStartCleanupHandler::Dependencies deps;
     deps.boardController = m_boardController;
     deps.shogiView = m_shogiView;
-    deps.kifuRecordModel = m_kifuRecordModel;
-    deps.kifuBranchModel = m_kifuBranchModel;
-    deps.lineEditModel1 = m_lineEditModel1;
-    deps.lineEditModel2 = m_lineEditModel2;
+    deps.kifuRecordModel = m_models.kifuRecord;
+    deps.kifuBranchModel = m_models.kifuBranch;
+    deps.lineEditModel1 = m_models.commLog1;
+    deps.lineEditModel2 = m_models.commLog2;
     deps.timeController = m_timeController;
     deps.evalChart = m_evalChart;
     deps.evalGraphController = m_evalGraphController;
     deps.recordPane = m_recordPane;
-    deps.startSfenStr = &m_startSfenStr;
-    deps.currentSfenStr = &m_currentSfenStr;
-    deps.activePly = &m_activePly;
-    deps.currentSelectedPly = &m_currentSelectedPly;
-    deps.currentMoveIndex = &m_currentMoveIndex;
-    deps.liveGameSession = m_liveGameSession;
-    deps.branchTree = m_branchTree;
-    deps.navState = m_navState;
+    deps.startSfenStr = &m_state.startSfenStr;
+    deps.currentSfenStr = &m_state.currentSfenStr;
+    deps.activePly = &m_kifu.activePly;
+    deps.currentSelectedPly = &m_kifu.currentSelectedPly;
+    deps.currentMoveIndex = &m_state.currentMoveIndex;
+    deps.liveGameSession = m_branchNav.liveGameSession;
+    deps.branchTree = m_branchNav.branchTree;
+    deps.navState = m_branchNav.navState;
 
     m_preStartCleanupHandler = new PreStartCleanupHandler(deps, this);
 
@@ -3139,7 +3204,7 @@ void MainWindow::ensureBoardSyncPresenter()
     d.view       = m_shogiView;
     d.bic        = m_boardController;
     d.sfenRecord = sfenRecord();
-    d.gameMoves  = &m_gameMoves;
+    d.gameMoves  = &m_kifu.gameMoves;
 
     m_boardSync = new BoardSyncPresenter(d, this);
 
@@ -3166,6 +3231,12 @@ void MainWindow::ensureGameStartCoordinator()
 
     m_gameStart = new GameStartCoordinator(d, this);
 
+    wireGameStartCoordinatorSignals();
+}
+
+// GameStartCoordinatorのシグナル/スロット接続を行う。
+void MainWindow::wireGameStartCoordinatorSignals()
+{
     // 依頼シグナルを既存メソッドへ接続（ラムダ不使用）
     connect(m_gameStart, &GameStartCoordinator::requestPreStartCleanup,
             this, &MainWindow::onPreStartCleanupRequested);
@@ -3219,16 +3290,16 @@ void MainWindow::onPreStartCleanupRequested()
 // セッション依存UIコンポーネント（思考・検討・USI/CSAログ・棋譜解析）をクリアする。
 void MainWindow::clearSessionDependentUi()
 {
-    if (m_lineEditModel1)
-        m_lineEditModel1->clear();
-    if (m_lineEditModel2)
-        m_lineEditModel2->clear();
-    if (m_modelThinking1)
-        m_modelThinking1->clearAllItems();
-    if (m_modelThinking2)
-        m_modelThinking2->clearAllItems();
-    if (m_considerationModel)
-        m_considerationModel->clearAllItems();
+    if (m_models.commLog1)
+        m_models.commLog1->clear();
+    if (m_models.commLog2)
+        m_models.commLog2->clear();
+    if (m_models.thinking1)
+        m_models.thinking1->clearAllItems();
+    if (m_models.thinking2)
+        m_models.thinking2->clearAllItems();
+    if (m_models.consideration)
+        m_models.consideration->clearAllItems();
     if (m_analysisTab) {
         m_analysisTab->clearUsiLog();
         m_analysisTab->clearCsaLog();
@@ -3246,8 +3317,8 @@ void MainWindow::clearSessionDependentUi()
         m_analysisTab->resetElapsedTimer();
         m_analysisTab->setConsiderationRunning(false);
     }
-    if (m_analysisModel)
-        m_analysisModel->clearAllItems();
+    if (m_models.analysis)
+        m_models.analysis->clearAllItems();
 }
 
 // 棋譜読み込み前に全UIをクリアする（共通クリア＋評価値グラフ＋コメント）。
@@ -3277,7 +3348,7 @@ void MainWindow::onApplyTimeControlRequested(const GameStartCoordinator::TimeCon
 
     // 時間設定の適用をTimeControlControllerに委譲
     if (m_timeController) {
-        m_timeController->applyTimeControl(tc, m_match, m_startSfenStr, m_currentSfenStr, m_shogiView);
+        m_timeController->applyTimeControl(tc, m_match, m_state.startSfenStr, m_state.currentSfenStr, m_shogiView);
     }
 
     // 対局情報ドックに持ち時間を追加
@@ -3298,7 +3369,7 @@ void MainWindow::ensureRecordPresenter()
     if (m_recordPresenter) return;
 
     GameRecordPresenter::Deps d;
-    d.model      = m_kifuRecordModel;
+    d.model      = m_models.kifuRecord;
     d.recordPane = m_recordPane;
 
     m_recordPresenter = new GameRecordPresenter(d, this);
@@ -3316,16 +3387,16 @@ void MainWindow::ensureRecordPresenter()
 // `ensureLiveGameSessionStarted`: Live Game Session Started を必要に応じて生成し、依存関係を更新する。
 void MainWindow::ensureLiveGameSessionStarted()
 {
-    if (m_liveGameSession == nullptr || m_branchTree == nullptr) {
+    if (m_branchNav.liveGameSession == nullptr || m_branchNav.branchTree == nullptr) {
         return;
     }
 
-    if (m_liveGameSession->isActive()) {
+    if (m_branchNav.liveGameSession->isActive()) {
         return;  // 既に開始済み
     }
 
     // ルートノードが必要（performCleanup で作成済みのはず）
-    if (m_branchTree->root() == nullptr) {
+    if (m_branchNav.branchTree->root() == nullptr) {
         qCWarning(lcApp).noquote() << "ensureLiveGameSessionStarted: root is null, cannot start session";
         return;
     }
@@ -3335,25 +3406,25 @@ void MainWindow::ensureLiveGameSessionStarted()
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
     // 現在の局面が途中局面かどうかを判定
-    const QString currentSfen = m_currentSfenStr.trimmed();
+    const QString currentSfen = m_state.currentSfenStr.trimmed();
     bool isFromMidPosition = !currentSfen.isEmpty() &&
                               currentSfen != QStringLiteral("startpos") &&
                               !currentSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
 
     if (isFromMidPosition) {
         // 途中局面から開始: SFENからノードを探す
-        KifuBranchNode* branchPoint = m_branchTree->findBySfen(currentSfen);
+        KifuBranchNode* branchPoint = m_branchNav.branchTree->findBySfen(currentSfen);
         if (branchPoint != nullptr) {
-            m_liveGameSession->startFromNode(branchPoint);
+            m_branchNav.liveGameSession->startFromNode(branchPoint);
             qCDebug(lcApp).noquote() << "ensureLiveGameSessionStarted: started from node, ply=" << branchPoint->ply();
         } else {
             // ノードが見つからない場合はルートから開始
             qCWarning(lcApp).noquote() << "ensureLiveGameSessionStarted: branchPoint not found for sfen, starting from root";
-            m_liveGameSession->startFromRoot();
+            m_branchNav.liveGameSession->startFromRoot();
         }
     } else {
         // 新規対局: ルートから開始
-        m_liveGameSession->startFromRoot();
+        m_branchNav.liveGameSession->startFromRoot();
         qCDebug(lcApp).noquote() << "ensureLiveGameSessionStarted: session started from root";
     }
 }
@@ -3363,7 +3434,7 @@ void MainWindow::initializeNewGameHook(const QString& s)
 {
     // --- デバッグ：誰がこの関数を呼び出したか追跡 ---
     qCDebug(lcApp) << "MainWindow::initializeNewGameHook called with sfen:" << s;
-    qCDebug(lcApp) << "  PlayMode:" << static_cast<int>(m_playMode);
+    qCDebug(lcApp) << "  PlayMode:" << static_cast<int>(m_state.playMode);
     qCDebug(lcApp) << "  Call stack trace requested";
     
     // --- 司令塔からのコールバック：UI側の初期化のみ行う ---
@@ -3413,7 +3484,7 @@ void MainWindow::onRecordRowChangedByPresenter(int row, const QString& comment)
 {
     qCDebug(lcApp) << "onRecordRowChangedByPresenter called: row=" << row
              << "comment=" << comment.left(30) << "..."
-             << "playMode=" << static_cast<int>(m_playMode);
+             << "playMode=" << static_cast<int>(m_state.playMode);
 
 
     // 未保存コメントの確認
@@ -3476,15 +3547,15 @@ qint64 MainWindow::getIncrementMsFor(MatchCoordinator::Player p) const
 // `buildPositionStringForIndex`: Position String For Index を構築する。
 QString MainWindow::buildPositionStringForIndex(int moveIndex) const
 {
-    // 1) m_positionStrList に該当インデックスがあればそれを使用（棋譜読み込み時）
-    if (moveIndex >= 0 && moveIndex < m_positionStrList.size()) {
-        return m_positionStrList.at(moveIndex);
+    // 1) m_kifu.positionStrList に該当インデックスがあればそれを使用（棋譜読み込み時）
+    if (moveIndex >= 0 && moveIndex < m_kifu.positionStrList.size()) {
+        return m_kifu.positionStrList.at(moveIndex);
     }
 
-    // 2) 対局後: m_gameUsiMoves または m_kifuLoadCoordinator から構築
+    // 2) 対局後: m_kifu.gameUsiMoves または m_kifuLoadCoordinator から構築
     const QStringList* usiMoves = nullptr;
-    if (!m_gameUsiMoves.isEmpty()) {
-        usiMoves = &m_gameUsiMoves;
+    if (!m_kifu.gameUsiMoves.isEmpty()) {
+        usiMoves = &m_kifu.gameUsiMoves;
     } else if (m_kifuLoadCoordinator) {
         usiMoves = m_kifuLoadCoordinator->kifuUsiMovesPtr();
     }
@@ -3492,10 +3563,10 @@ QString MainWindow::buildPositionStringForIndex(int moveIndex) const
     // 開始局面コマンドを決定
     QString startCmd;
     const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    if (m_startSfenStr.isEmpty() || m_startSfenStr == kHirateSfen) {
+    if (m_state.startSfenStr.isEmpty() || m_state.startSfenStr == kHirateSfen) {
         startCmd = QStringLiteral("startpos");
     } else {
-        startCmd = QStringLiteral("sfen ") + m_startSfenStr;
+        startCmd = QStringLiteral("sfen ") + m_state.startSfenStr;
     }
 
     if (usiMoves && !usiMoves->isEmpty()) {
@@ -3542,9 +3613,9 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
 void MainWindow::onBuildPositionRequired(int row)
 {
     qCDebug(lcApp).noquote() << "onBuildPositionRequired ENTER row=" << row
-                       << "playMode=" << static_cast<int>(m_playMode)
+                       << "playMode=" << static_cast<int>(m_state.playMode)
                        << "match=" << (m_match ? "valid" : "null");
-    if (m_playMode != PlayMode::ConsiderationMode || !m_match) {
+    if (m_state.playMode != PlayMode::ConsiderationMode || !m_match) {
         qCDebug(lcApp).noquote() << "onBuildPositionRequired: not in consideration mode or no match, returning";
         return;
     }
@@ -3555,54 +3626,11 @@ void MainWindow::onBuildPositionRequired(int row)
         return;
     }
 
-    // 選択した手の移動先を取得（「同」表記のため）
     int previousFileTo = 0;
     int previousRankTo = 0;
-    if (row >= 0 && row < m_gameMoves.size()) {
-        const QPoint& toSquare = m_gameMoves.at(row).toSquare;
-        previousFileTo = toSquare.x();
-        previousRankTo = toSquare.y();
-    } else if (m_kifuRecordModel && row > 0 && row < m_kifuRecordModel->rowCount()) {
-        // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
-        ShogiUtils::parseMoveCoordinateFromModel(m_kifuRecordModel, row, &previousFileTo, &previousRankTo);
-    }
+    resolvePreviousMoveCoordinates(row, previousFileTo, previousRankTo);
 
-    // 開始局面に至った最後の指し手を取得（読み筋表示ウィンドウのハイライト用）
-    QString lastUsiMove;
-    if (row > 0) {
-        // 分岐ライン上では、現在ラインのノードを優先する。
-        if (m_navState && m_branchTree) {
-            const int lineIndex = m_navState->currentLineIndex();
-            const QVector<BranchLine> lines = m_branchTree->allLines();
-            if (lineIndex >= 0 && lineIndex < lines.size()) {
-                const BranchLine& line = lines.at(lineIndex);
-                for (KifuBranchNode* node : line.nodes) {
-                    if (!node) continue;
-                    if (node->ply() == row && node->isActualMove()) {
-                        const ShogiMove mv = node->move();
-                        if (mv.movingPiece != Piece::None) {
-                            lastUsiMove = ShogiUtils::moveToUsi(mv);
-                        }
-                        break;
-                    }
-                }
-            }
-        }
-
-        const int usiIdx = row - 1;
-        if (lastUsiMove.isEmpty() && usiIdx >= 0) {
-            if (!m_gameUsiMoves.isEmpty() && usiIdx < m_gameUsiMoves.size()) {
-                lastUsiMove = m_gameUsiMoves.at(usiIdx);
-            } else if (m_kifuLoadCoordinator) {
-                const QStringList& kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMoves();
-                if (usiIdx < kifuUsiMoves.size()) {
-                    lastUsiMove = kifuUsiMoves.at(usiIdx);
-                }
-            } else if (usiIdx < m_gameMoves.size()) {
-                lastUsiMove = ShogiUtils::moveToUsi(m_gameMoves.at(usiIdx));
-            }
-        }
-    }
+    const QString lastUsiMove = resolveLastUsiMoveForPly(row);
 
     if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo, lastUsiMove)) {
         // ポジションが変更された場合、経過時間タイマーをリセットして再開
@@ -3610,6 +3638,64 @@ void MainWindow::onBuildPositionRequired(int row)
             m_analysisTab->startElapsedTimer();
         }
     }
+}
+
+void MainWindow::resolvePreviousMoveCoordinates(int row, int& fileTo, int& rankTo) const
+{
+    fileTo = 0;
+    rankTo = 0;
+    if (row >= 0 && row < m_kifu.gameMoves.size()) {
+        const QPoint& toSquare = m_kifu.gameMoves.at(row).toSquare;
+        fileTo = toSquare.x();
+        rankTo = toSquare.y();
+    } else if (m_models.kifuRecord && row > 0 && row < m_models.kifuRecord->rowCount()) {
+        // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
+        ShogiUtils::parseMoveCoordinateFromModel(m_models.kifuRecord, row, &fileTo, &rankTo);
+    }
+}
+
+QString MainWindow::resolveLastUsiMoveForPly(int row) const
+{
+    if (row <= 0) {
+        return {};
+    }
+
+    QString lastUsiMove;
+
+    // 分岐ライン上では、現在ラインのノードを優先する。
+    if (m_branchNav.navState && m_branchNav.branchTree) {
+        const int lineIndex = m_branchNav.navState->currentLineIndex();
+        const QVector<BranchLine> lines = m_branchNav.branchTree->allLines();
+        if (lineIndex >= 0 && lineIndex < lines.size()) {
+            const BranchLine& line = lines.at(lineIndex);
+            for (KifuBranchNode* node : line.nodes) {
+                if (!node) continue;
+                if (node->ply() == row && node->isActualMove()) {
+                    const ShogiMove mv = node->move();
+                    if (mv.movingPiece != Piece::None) {
+                        lastUsiMove = ShogiUtils::moveToUsi(mv);
+                    }
+                    break;
+                }
+            }
+        }
+    }
+
+    const int usiIdx = row - 1;
+    if (lastUsiMove.isEmpty() && usiIdx >= 0) {
+        if (!m_kifu.gameUsiMoves.isEmpty() && usiIdx < m_kifu.gameUsiMoves.size()) {
+            lastUsiMove = m_kifu.gameUsiMoves.at(usiIdx);
+        } else if (m_kifuLoadCoordinator) {
+            const QStringList& kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMoves();
+            if (usiIdx < kifuUsiMoves.size()) {
+                lastUsiMove = kifuUsiMoves.at(usiIdx);
+            }
+        } else if (usiIdx < m_kifu.gameMoves.size()) {
+            lastUsiMove = ShogiUtils::moveToUsi(m_kifu.gameMoves.at(usiIdx));
+        }
+    }
+
+    return lastUsiMove;
 }
 
 // ============================================================
@@ -3622,27 +3708,27 @@ void MainWindow::createAndWireKifuLoadCoordinator()
     }
 
     m_kifuLoadCoordinator = new KifuLoadCoordinator(
-        /* gameMoves           */ m_gameMoves,
-        /* positionStrList     */ m_positionStrList,
-        /* activePly           */ m_activePly,
-        /* currentSelectedPly  */ m_currentSelectedPly,
-        /* currentMoveIndex    */ m_currentMoveIndex,
+        /* gameMoves           */ m_kifu.gameMoves,
+        /* positionStrList     */ m_kifu.positionStrList,
+        /* activePly           */ m_kifu.activePly,
+        /* currentSelectedPly  */ m_kifu.currentSelectedPly,
+        /* currentMoveIndex    */ m_state.currentMoveIndex,
         /* sfenRecord          */ sfenRecord(),
         /* gameInfoTable       */ m_gameInfoController ? m_gameInfoController->tableWidget() : nullptr,
         /* gameInfoDock        */ nullptr,  // GameInfoPaneControllerに移行済み
         /* tab                 */ m_tab,
         /* recordPane          */ m_recordPane,
-        /* kifuRecordModel     */ m_kifuRecordModel,
-        /* kifuBranchModel     */ m_kifuBranchModel,
+        /* kifuRecordModel     */ m_models.kifuRecord,
+        /* kifuBranchModel     */ m_models.kifuBranch,
         /* parent              */ this
         );
 
     // 分岐ツリーとナビゲーション状態を設定
-    if (m_branchTree != nullptr) {
-        m_kifuLoadCoordinator->setBranchTree(m_branchTree);
+    if (m_branchNav.branchTree != nullptr) {
+        m_kifuLoadCoordinator->setBranchTree(m_branchNav.branchTree);
     }
-    if (m_navState != nullptr) {
-        m_kifuLoadCoordinator->setNavigationState(m_navState);
+    if (m_branchNav.navState != nullptr) {
+        m_kifuLoadCoordinator->setNavigationState(m_branchNav.navState);
     }
 
     // 分岐ツリー構築完了シグナルを接続
@@ -3709,22 +3795,11 @@ void MainWindow::refreshBranchTreeLive()
 
 // ============================================================
 
-bool MainWindow::getMainRowGuard() const
-{
-    return m_onMainRowGuard;
-}
-
-// `setMainRowGuard`: Main Row Guard を設定する。
-void MainWindow::setMainRowGuard(bool on)
-{
-    m_onMainRowGuard = on;
-}
-
 // 対局が進行中（終局前）かどうかを判定する。
 // 分岐ツリーのSFENで盤面が上書きされるのを防ぐガードに使用。
 bool MainWindow::isGameActivelyInProgress() const
 {
-    switch (m_playMode) {
+    switch (m_state.playMode) {
     case PlayMode::HumanVsHuman:
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::EvenEngineVsHuman:
@@ -3744,7 +3819,7 @@ bool MainWindow::isHvH() const
     if (m_gameStateController) {
         return m_gameStateController->isHvH();
     }
-    return (m_playMode == PlayMode::HumanVsHuman);
+    return (m_state.playMode == PlayMode::HumanVsHuman);
 }
 
 // `isHumanSide`: Human Side かどうかを判定する。
@@ -3754,7 +3829,7 @@ bool MainWindow::isHumanSide(ShogiGameController::Player p) const
         return m_gameStateController->isHumanSide(p);
     }
     // フォールバック
-    switch (m_playMode) {
+    switch (m_state.playMode) {
     case PlayMode::HumanVsHuman:
         return true;
     case PlayMode::EvenHumanVsEngine:
@@ -3797,20 +3872,20 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
 
     ensureRecordPresenter();
     if (m_recordPresenter) {
-        m_recordPresenter->appendMoveLine(m_lastMove, elapsedTime);
+        m_recordPresenter->appendMoveLine(m_state.lastMove, elapsedTime);
 
-        if (!m_lastMove.isEmpty()) {
-            m_recordPresenter->addLiveKifItem(m_lastMove, elapsedTime);
+        if (!m_state.lastMove.isEmpty()) {
+            m_recordPresenter->addLiveKifItem(m_state.lastMove, elapsedTime);
         }
     }
 
-    if (m_liveGameSession != nullptr && !m_lastMove.isEmpty()) {
+    if (m_branchNav.liveGameSession != nullptr && !m_state.lastMove.isEmpty()) {
         // セッションが未開始の場合は遅延開始
-        if (!m_liveGameSession->isActive()) {
+        if (!m_branchNav.liveGameSession->isActive()) {
             ensureLiveGameSessionStarted();
         }
 
-        if (m_liveGameSession->isActive()) {
+        if (m_branchNav.liveGameSession->isActive()) {
             //    実際の盤面から完全な SFEN を構築する必要がある
             QString sfen;
             if (m_gameController && m_gameController->board()) {
@@ -3827,7 +3902,7 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
                     standPart = QStringLiteral("-");
                 }
                 // 手数は anchorPly + 現在のセッション内の手数 + 1
-                const int moveCount = m_liveGameSession->totalPly() + 1;
+                const int moveCount = m_branchNav.liveGameSession->totalPly() + 1;
                 sfen = QStringLiteral("%1 %2 %3 %4")
                            .arg(boardPart, turnPart, standPart, QString::number(moveCount));
                 qCDebug(lcApp).noquote() << "appendMoveLineToRecordPane: constructed full SFEN for LiveGameSession"
@@ -3839,15 +3914,15 @@ void MainWindow::updateGameRecord(const QString& elapsedTime)
             }
 
             ShogiMove move;
-            if (!m_gameMoves.isEmpty()) {
-                move = m_gameMoves.last();
+            if (!m_kifu.gameMoves.isEmpty()) {
+                move = m_kifu.gameMoves.last();
             }
 
-            m_liveGameSession->addMove(move, m_lastMove, sfen, elapsedTime);
+            m_branchNav.liveGameSession->addMove(move, m_state.lastMove, sfen, elapsedTime);
         }
     }
 
-    m_lastMove.clear();
+    m_state.lastMove.clear();
 }
 
 // 新しい保存関数
@@ -3859,7 +3934,7 @@ void MainWindow::saveKifuToFile()
 
     const QString path = m_kifuExportController->saveToFile();
     if (!path.isEmpty()) {
-        kifuSaveFileName = path;
+        m_kifu.saveFileName = path;
     }
 }
 
@@ -3889,7 +3964,7 @@ void MainWindow::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
     QString savedPath;
     const bool ok = m_kifuExportController->autoSaveToDir(saveDir, &savedPath);
     if (ok && !savedPath.isEmpty()) {
-        kifuSaveFileName = savedPath;
+        m_kifu.saveFileName = savedPath;
     }
 }
 
@@ -3957,7 +4032,7 @@ void MainWindow::onSfenCollectionPositionSelected(const QString& sfen)
 // `overwriteKifuFile`: 既存保存先への上書き保存を行う（保存先未確定なら通常保存へフォールバック）。
 void MainWindow::overwriteKifuFile()
 {
-    if (kifuSaveFileName.isEmpty()) {
+    if (m_kifu.saveFileName.isEmpty()) {
         saveKifuToFile();
         return;
     }
@@ -3965,63 +4040,62 @@ void MainWindow::overwriteKifuFile()
     ensureGameRecordModel();
     ensureKifuExportController();
     updateKifuExportDependencies();
-    m_kifuExportController->overwriteFile(kifuSaveFileName);
+    m_kifuExportController->overwriteFile(m_kifu.saveFileName);
 }
 
 void MainWindow::onCommentUpdated(int moveIndex, const QString& newComment)
 {
-    // EngineAnalysisTab::m_currentMoveIndex は broadcastComment() 経由でしか
-    // 同期されないため、信頼できる MainWindow::m_currentMoveIndex を優先する。
-    const int effectiveIndex = (m_currentMoveIndex >= 0) ? m_currentMoveIndex : moveIndex;
+    // EngineAnalysisTab::m_state.currentMoveIndex は broadcastComment() 経由でしか
+    // 同期されないため、信頼できる MainWindow::m_state.currentMoveIndex を優先する。
+    const int effectiveIndex = (m_state.currentMoveIndex >= 0) ? m_state.currentMoveIndex : moveIndex;
 
     qCDebug(lcApp).noquote()
         << "onCommentUpdated:"
         << " signalIndex=" << moveIndex
-        << " m_currentMoveIndex=" << m_currentMoveIndex
+        << " m_state.currentMoveIndex=" << m_state.currentMoveIndex
         << " effectiveIndex=" << effectiveIndex;
 
     ensureGameRecordModel();
     ensureCommentCoordinator();
     if (m_commentCoordinator) {
-        m_commentCoordinator->setGameRecordModel(m_gameRecord);
+        m_commentCoordinator->setGameRecordModel(m_models.gameRecord);
         m_commentCoordinator->onCommentUpdated(effectiveIndex, newComment);
     }
 }
 
 void MainWindow::ensureGameRecordModel()
 {
-    if (m_gameRecord) return;
+    if (m_models.gameRecord) return;
 
-    m_gameRecord = new GameRecordModel(this);
+    m_models.gameRecord = new GameRecordModel(this);
 
     // 外部データストアをバインド
     QList<KifDisplayItem>* liveDispPtr = nullptr;
     if (m_recordPresenter) {
-        // const_cast は GameRecordModel 内部での同期更新に必要
-        liveDispPtr = const_cast<QList<KifDisplayItem>*>(&m_recordPresenter->liveDisp());
+        liveDispPtr = m_recordPresenter->liveDispPtr();
     }
 
-    m_gameRecord->bind(liveDispPtr);
+    m_models.gameRecord->bind(liveDispPtr);
 
-    if (m_branchTree != nullptr) {
-        m_gameRecord->setBranchTree(m_branchTree);
+    if (m_branchNav.branchTree != nullptr) {
+        m_models.gameRecord->setBranchTree(m_branchNav.branchTree);
     }
-    if (m_navState != nullptr) {
-        m_gameRecord->setNavigationState(m_navState);
+    if (m_branchNav.navState != nullptr) {
+        m_models.gameRecord->setNavigationState(m_branchNav.navState);
     }
 
     // commentChanged シグナルを接続（将来の拡張用）
-    connect(m_gameRecord, &GameRecordModel::commentChanged,
+    connect(m_models.gameRecord, &GameRecordModel::commentChanged,
             this, &MainWindow::onGameRecordCommentChanged);
 
     // コメント更新時のコールバックを設定
-    // m_commentsByRow 同期、RecordPresenter通知、UI更新を自動実行
-    m_gameRecord->setCommentUpdateCallback(
+    // m_kifu.commentsByRow 同期、RecordPresenter通知、UI更新を自動実行
+    m_models.gameRecord->setCommentUpdateCallback(
         std::bind(&MainWindow::onCommentUpdateCallback, this,
                   std::placeholders::_1, std::placeholders::_2));
 
     // しおり更新時のコールバックを設定
-    m_gameRecord->setBookmarkUpdateCallback(
+    m_models.gameRecord->setBookmarkUpdateCallback(
         std::bind(&MainWindow::onBookmarkUpdateCallback, this,
                   std::placeholders::_1, std::placeholders::_2));
 
@@ -4042,7 +4116,7 @@ void MainWindow::onCommentUpdateCallback(int ply, const QString& comment)
     ensureCommentCoordinator();
     if (m_commentCoordinator) {
         m_commentCoordinator->setRecordPresenter(m_recordPresenter);
-        m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
+        m_commentCoordinator->setKifuRecordListModel(m_models.kifuRecord);
         m_commentCoordinator->onCommentUpdateCallback(ply, comment);
     }
 }
@@ -4052,7 +4126,7 @@ void MainWindow::onBookmarkUpdateCallback(int ply, const QString& bookmark)
 {
     ensureCommentCoordinator();
     if (m_commentCoordinator) {
-        m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
+        m_commentCoordinator->setKifuRecordListModel(m_models.kifuRecord);
         m_commentCoordinator->onBookmarkUpdateCallback(ply, bookmark);
     }
 }
@@ -4065,8 +4139,8 @@ void MainWindow::onBookmarkEditRequested()
     ensureGameRecordModel();
     if (m_commentCoordinator) {
         m_commentCoordinator->setRecordPresenter(m_recordPresenter);
-        m_commentCoordinator->setGameRecordModel(m_gameRecord);
-        m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
+        m_commentCoordinator->setGameRecordModel(m_models.gameRecord);
+        m_commentCoordinator->setKifuRecordListModel(m_models.kifuRecord);
         m_commentCoordinator->onBookmarkEditRequested();
     }
 }
@@ -4076,14 +4150,14 @@ void MainWindow::onPvRowClicked(int engineIndex, int row)
     ensurePvClickController();
     if (m_pvClickController) {
         // 状態を同期
-        m_pvClickController->setPlayMode(m_playMode);
-        m_pvClickController->setPlayerNames(m_humanName1, m_humanName2, m_engineName1, m_engineName2);
-        m_pvClickController->setCurrentSfen(m_currentSfenStr);
-        m_pvClickController->setStartSfen(m_startSfenStr);
+        m_pvClickController->setPlayMode(m_state.playMode);
+        m_pvClickController->setPlayerNames(m_player.humanName1, m_player.humanName2, m_player.engineName1, m_player.engineName2);
+        m_pvClickController->setCurrentSfen(m_state.currentSfenStr);
+        m_pvClickController->setStartSfen(m_state.startSfenStr);
         // 現在選択されている棋譜行のインデックスを設定（ハイライト用）
-        m_pvClickController->setCurrentRecordIndex(m_currentMoveIndex);
+        m_pvClickController->setCurrentRecordIndex(m_state.currentMoveIndex);
         // 検討モデルを更新（検討タブから呼ばれた場合に必要）
-        m_pvClickController->setConsiderationModel(m_considerationModel);
+        m_pvClickController->setConsiderationModel(m_models.consideration);
         m_pvClickController->setBoardFlipped(m_shogiView ? m_shogiView->getFlipMode() : false);
         m_pvClickController->onPvRowClicked(engineIndex, row);
     }
@@ -4110,7 +4184,7 @@ void MainWindow::onTabCurrentChanged(int index)
 
 void MainWindow::onCsaPlayModeChanged(int mode)
 {
-    m_playMode = static_cast<PlayMode>(mode);
+    m_state.playMode = static_cast<PlayMode>(mode);
     qCDebug(lcApp).noquote() << "onCsaPlayModeChanged_: mode=" << mode;
 }
 
@@ -4244,10 +4318,10 @@ void MainWindow::ensureConsiderationWiring()
     deps.shogiView = m_shogiView;
     deps.match = m_match;
     deps.dialogCoordinator = m_dialogCoordinator;
-    deps.considerationModel = m_considerationModel;
-    deps.commLogModel = m_lineEditModel1;
-    deps.playMode = &m_playMode;
-    deps.currentSfenStr = &m_currentSfenStr;
+    deps.considerationModel = m_models.consideration;
+    deps.commLogModel = m_models.commLog1;
+    deps.playMode = &m_state.playMode;
+    deps.currentSfenStr = &m_state.currentSfenStr;
     deps.ensureDialogCoordinator = [this]() {
         ensureDialogCoordinator();
         // 初期化後に最新の依存をConsiderationWiringへ反映
@@ -4259,10 +4333,10 @@ void MainWindow::ensureConsiderationWiring()
             updated.shogiView = m_shogiView;
             updated.match = m_match;
             updated.dialogCoordinator = m_dialogCoordinator;
-            updated.considerationModel = m_considerationModel;
-            updated.commLogModel = m_lineEditModel1;
-            updated.playMode = &m_playMode;
-            updated.currentSfenStr = &m_currentSfenStr;
+            updated.considerationModel = m_models.consideration;
+            updated.commLogModel = m_models.commLog1;
+            updated.playMode = &m_state.playMode;
+            updated.currentSfenStr = &m_state.currentSfenStr;
             m_considerationWiring->updateDeps(updated);
         }
     };
@@ -4282,17 +4356,17 @@ void MainWindow::ensureDockLayoutManager()
     m_dockLayoutManager = new DockLayoutManager(this, this);
 
     // ドックを登録
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Menu, m_menuWindowDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Joseki, m_josekiWindowDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Record, m_recordPaneDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::GameInfo, m_gameInfoDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Thinking, m_thinkingDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Consideration, m_considerationDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::UsiLog, m_usiLogDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::CsaLog, m_csaLogDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Comment, m_commentDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::BranchTree, m_branchTreeDock);
-    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::EvalChart, m_evalChartDock);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Menu, m_docks.menuWindow);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Joseki, m_docks.josekiWindow);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Record, m_docks.recordPane);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::GameInfo, m_docks.gameInfo);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Thinking, m_docks.thinking);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Consideration, m_docks.consideration);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::UsiLog, m_docks.usiLog);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::CsaLog, m_docks.csaLog);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Comment, m_docks.comment);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::BranchTree, m_docks.branchTree);
+    m_dockLayoutManager->registerDock(DockLayoutManager::DockType::EvalChart, m_docks.evalChart);
 
     // 保存済みレイアウトメニューを設定
     m_dockLayoutManager->setSavedLayoutsMenu(ui->menuSavedLayouts);
@@ -4319,10 +4393,10 @@ void MainWindow::ensureCommentCoordinator()
     m_commentCoordinator->setRecordPane(m_recordPane);
     m_commentCoordinator->setRecordPresenter(m_recordPresenter);
     m_commentCoordinator->setStatusBar(ui->statusbar);
-    m_commentCoordinator->setCurrentMoveIndex(&m_currentMoveIndex);
-    m_commentCoordinator->setCommentsByRow(&m_commentsByRow);
-    m_commentCoordinator->setGameRecordModel(m_gameRecord);
-    m_commentCoordinator->setKifuRecordListModel(m_kifuRecordModel);
+    m_commentCoordinator->setCurrentMoveIndex(&m_state.currentMoveIndex);
+    m_commentCoordinator->setCommentsByRow(&m_kifu.commentsByRow);
+    m_commentCoordinator->setGameRecordModel(m_models.gameRecord);
+    m_commentCoordinator->setKifuRecordListModel(m_models.kifuRecord);
 
     // GameRecordModel初期化要求時のシグナル接続
     connect(m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
@@ -4342,39 +4416,50 @@ void MainWindow::ensureUsiCommandController()
 // `ensureRecordNavigationHandler`: Record Navigation Handler を必要に応じて生成し、依存関係を更新する。
 void MainWindow::ensureRecordNavigationHandler()
 {
-    if (!m_recordNavHandler) {
+    const bool firstTime = !m_recordNavHandler;
+    if (firstTime) {
         m_recordNavHandler = new RecordNavigationHandler(this);
-
-        // シグナル接続
-        connect(m_recordNavHandler, &RecordNavigationHandler::boardSyncRequired,
-                this, &MainWindow::syncBoardAndHighlightsAtRow);
-        connect(m_recordNavHandler, &RecordNavigationHandler::branchBoardSyncRequired,
-                this, &MainWindow::loadBoardWithHighlights);
-        connect(m_recordNavHandler, &RecordNavigationHandler::enableArrowButtonsRequired,
-                this, &MainWindow::enableArrowButtons);
-        connect(m_recordNavHandler, &RecordNavigationHandler::turnUpdateRequired,
-                this, &MainWindow::setCurrentTurn);
-        connect(m_recordNavHandler, &RecordNavigationHandler::josekiUpdateRequired,
-                this, &MainWindow::updateJosekiWindow);
-        connect(m_recordNavHandler, &RecordNavigationHandler::buildPositionRequired,
-                this, &MainWindow::onBuildPositionRequired);
+        wireRecordNavigationHandlerSignals();
     }
 
+    bindRecordNavigationHandlerDeps();
+}
+
+// RecordNavigationHandlerのシグナル/スロット接続を行う。
+void MainWindow::wireRecordNavigationHandlerSignals()
+{
+    connect(m_recordNavHandler, &RecordNavigationHandler::boardSyncRequired,
+            this, &MainWindow::syncBoardAndHighlightsAtRow);
+    connect(m_recordNavHandler, &RecordNavigationHandler::branchBoardSyncRequired,
+            this, &MainWindow::loadBoardWithHighlights);
+    connect(m_recordNavHandler, &RecordNavigationHandler::enableArrowButtonsRequired,
+            this, &MainWindow::enableArrowButtons);
+    connect(m_recordNavHandler, &RecordNavigationHandler::turnUpdateRequired,
+            this, &MainWindow::setCurrentTurn);
+    connect(m_recordNavHandler, &RecordNavigationHandler::josekiUpdateRequired,
+            this, &MainWindow::updateJosekiWindow);
+    connect(m_recordNavHandler, &RecordNavigationHandler::buildPositionRequired,
+            this, &MainWindow::onBuildPositionRequired);
+}
+
+// RecordNavigationHandlerの依存オブジェクトを更新する。
+void MainWindow::bindRecordNavigationHandlerDeps()
+{
     RecordNavigationHandler::Deps deps;
-    deps.navState = m_navState;
-    deps.branchTree = m_branchTree;
-    deps.displayCoordinator = m_displayCoordinator;
-    deps.kifuRecordModel = m_kifuRecordModel;
+    deps.navState = m_branchNav.navState;
+    deps.branchTree = m_branchNav.branchTree;
+    deps.displayCoordinator = m_branchNav.displayCoordinator;
+    deps.kifuRecordModel = m_models.kifuRecord;
     deps.shogiView = m_shogiView;
     deps.evalGraphController = m_evalGraphController;
     deps.sfenRecord = sfenRecord();
-    deps.activePly = &m_activePly;
-    deps.currentSelectedPly = &m_currentSelectedPly;
-    deps.currentMoveIndex = &m_currentMoveIndex;
-    deps.currentSfenStr = &m_currentSfenStr;
-    deps.skipBoardSyncForBranchNav = &m_skipBoardSyncForBranchNav;
+    deps.activePly = &m_kifu.activePly;
+    deps.currentSelectedPly = &m_kifu.currentSelectedPly;
+    deps.currentMoveIndex = &m_state.currentMoveIndex;
+    deps.currentSfenStr = &m_state.currentSfenStr;
+    deps.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
     deps.csaGameCoordinator = m_csaGameCoordinator;
-    deps.playMode = &m_playMode;
+    deps.playMode = &m_state.playMode;
     deps.match = m_match;
     m_recordNavHandler->updateDeps(deps);
 }

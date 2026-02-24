@@ -52,6 +52,7 @@ public:
         UsiCommLogModel* comm2 = nullptr;
         ShogiEngineThinkingModel* think2 = nullptr;
         QStringList* sfenRecord = nullptr;
+        QVector<ShogiMove>* gameMoves = nullptr;
         PlayMode* playMode = nullptr;
 
         // --- GameStartCoordinator 配線用 ---
@@ -62,7 +63,6 @@ public:
 
         // --- UndoRefs 構築用 ---
         KifuRecordListModel* kifuRecordModel = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
         QStringList* positionStrList = nullptr;
         int* currentMoveIndex = nullptr;
 

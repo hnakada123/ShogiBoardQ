@@ -41,11 +41,8 @@ MatchCoordinator::Hooks MatchCoordinatorHooksFactory::buildHooks(const HookDeps&
 MatchCoordinator::UndoHooks MatchCoordinatorHooksFactory::buildUndoHooks(const UndoDeps& deps)
 {
     MatchCoordinator::UndoHooks undoHooks;
-    undoHooks.getMainRowGuard = deps.getMainRowGuard;
-    undoHooks.setMainRowGuard = deps.setMainRowGuard;
     undoHooks.updateHighlightsForPly = deps.updateHighlightsForPly;
     undoHooks.updateTurnAndTimekeepingDisplay = deps.updateTurnAndTimekeepingDisplay;
     undoHooks.isHumanSide = deps.isHumanSide;
-    undoHooks.isHvH = deps.isHvH;
     return undoHooks;
 }

@@ -29,6 +29,7 @@ class Usi;
 class KifuRecordListModel;
 class BoardInteractionController;
 class StartGameDialog;
+class AnalysisSessionHandler;
 
 /**
  * @brief 対局進行/終局/時計/USI送受のハブとなる司令塔クラス
@@ -142,6 +143,7 @@ public:
         ShogiEngineThinkingModel*  think2 = nullptr; ///< エンジン2思考情報（非所有）
         Hooks                hooks;                  ///< UIコールバック群
         QStringList* sfenRecord = nullptr;           ///< SFEN履歴（非所有）
+        QVector<ShogiMove>* gameMoves = nullptr;     ///< 指し手リスト（非所有、外部共有用）
     };
 
     // --- 対局開始オプション ---
@@ -247,29 +249,19 @@ public:
 
     // --- UNDO ---
 
-    /// UNDO に必要な参照（ランタイム状態を司令塔に集約）
+    /// UNDO に必要な外部参照（Deps/既存メンバと重複しない UNDO 固有の参照のみ）
     struct UndoRefs {
         KifuRecordListModel*          recordModel      = nullptr;  ///< 棋譜モデル
-        QVector<ShogiMove>*           gameMoves        = nullptr;  ///< 指し手リスト
         QStringList*                  positionStrList  = nullptr;  ///< position文字列リスト（NULLable）
-        QStringList*                  sfenRecord       = nullptr;  ///< SFEN履歴（NULLable）
         int*                          currentMoveIndex = nullptr;  ///< 現在手数インデックス
-
-        ShogiGameController*          gc       = nullptr;   ///< ゲームコントローラ
         BoardInteractionController*   boardCtl = nullptr;   ///< 盤面操作コントローラ
-        ShogiClock*                   clock    = nullptr;   ///< 将棋時計
-        ShogiView*                    view     = nullptr;   ///< 盤面ビュー
     };
 
-    /// UNDO時のUI/雑務コールバック群
+    /// UNDO時のUIコールバック群
     struct UndoHooks {
-        std::function<bool()>                         getMainRowGuard;                ///< 行ガード取得（省略可）
-        std::function<void(bool)>                     setMainRowGuard;                ///< 行ガード設定（省略可）
         std::function<void(int /*ply*/)>              updateHighlightsForPly;         ///< ハイライト更新
         std::function<void()>                         updateTurnAndTimekeepingDisplay; ///< 手番/時計表示更新
-        std::function<void(int /*moveNumber*/)>       handleUndoMove;                 ///< 評価値等の巻き戻し
         std::function<bool(ShogiGameController::Player)> isHumanSide;                 ///< 人間側判定（必須）
-        std::function<bool()>                         isHvH;                          ///< HvH判定（必須）
     };
 
     void setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks);
@@ -486,6 +478,29 @@ private:
     void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
     void sendRawTo(Usi* which, const QString& cmd);
 
+    // --- configureAndStart 分解ヘルパ ---
+
+    /// 過去対局の履歴探索結果
+    struct HistorySearchResult {
+        QString bestBaseFull;      ///< 一致したゲームのフルposition文字列
+        int bestGameIdx  = -1;     ///< 一致したゲームのインデックス
+        int bestMatchPly = -1;     ///< 一致した手数
+    };
+
+    /// 既存履歴の同期と過去対局の探索
+    HistorySearchResult syncAndSearchGameHistory(const QString& targetSfen);
+
+    /// オプション適用・フック呼び出し・UI初期化
+    void applyStartOptionsAndHooks(const StartOptions& opt);
+
+    /// 過去対局履歴を用いたposition文字列の構築（フォールバック含む）
+    void buildPositionStringsFromHistory(const StartOptions& opt,
+                                         const QString& targetSfen,
+                                         const HistorySearchResult& searchResult);
+
+    /// PlayMode別のStrategy生成と起動
+    void createAndStartModeStrategy(const StartOptions& opt);
+
     void wireClock();
     void unwireClock();
 
@@ -496,13 +511,6 @@ private slots:
     void onEngine2Win();
     void onClockTick();
     void onUsiError(const QString& msg);
-    void onCheckmateSolved(const QStringList& pv);
-    void onCheckmateNoMate();
-    void onCheckmateNotImplemented();
-    void onCheckmateUnknown();
-    void onTsumeBestMoveReceived();
-    void onConsiderationBestMoveReceived();
-    void restartConsiderationDeferred();
 
 private:
     // --- コアオブジェクト（非所有、寿命はMainWindow側で管理） ---
@@ -522,10 +530,10 @@ private:
     // --- モデル ---
 
     PlayMode                 m_playMode = PlayMode::NotStarted; ///< 対局モード
-    UsiCommLogModel*         m_comm1    = nullptr;   ///< エンジン1通信ログ
-    ShogiEngineThinkingModel*m_think1   = nullptr;   ///< エンジン1思考情報
-    UsiCommLogModel*         m_comm2    = nullptr;   ///< エンジン2通信ログ
-    ShogiEngineThinkingModel*m_think2   = nullptr;   ///< エンジン2思考情報
+    UsiCommLogModel*         m_comm1    = nullptr;   ///< エンジン1通信ログ（非所有）
+    ShogiEngineThinkingModel*m_think1   = nullptr;   ///< エンジン1思考情報（非所有）
+    UsiCommLogModel*         m_comm2    = nullptr;   ///< エンジン2通信ログ（非所有）
+    ShogiEngineThinkingModel*m_think2   = nullptr;   ///< エンジン2思考情報（非所有）
 
     // --- USI position文字列 ---
 
@@ -538,10 +546,11 @@ private:
     QStringList* m_sfenHistory = nullptr;     ///< SFEN履歴（共有ポインタ、非所有）
     QStringList m_sharedSfenRecord;          ///< 共有ポインタ未指定時の内部SFEN履歴
     QVector<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
+    QVector<ShogiMove>* m_externalGameMoves = nullptr; ///< 外部共有の指し手リスト（非所有、Deps経由）
 
-    // u_.gameMoves（MainWindowのポインタ）が設定されていればそれを使う
+    // 外部共有ポインタが設定されていればそれを使う（Deps経由で注入）
     QVector<ShogiMove>& gameMovesRef() {
-        return u_.gameMoves ? *u_.gameMoves : m_gameMoves;
+        return m_externalGameMoves ? *m_externalGameMoves : m_gameMoves;
     }
 
     // --- ターン計測 ---
@@ -572,25 +581,13 @@ private:
     // --- 終局状態 ---
 
     GameOverState m_gameOver;                 ///< 終局状態
-    bool m_inTsumeSearchMode = false;         ///< 詰み探索モード中か
-    bool m_inConsiderationMode = false;       ///< 検討モード中か
-
-    // --- 検討モード状態 ---
-
-    QString m_considerationPositionStr;       ///< 検討中のposition文字列
-    int m_considerationByoyomiMs = 0;         ///< 検討の時間制限（ms）
-    int m_considerationMultiPV = 1;           ///< 検討の候補手数
-    ShogiEngineThinkingModel* m_considerationModelPtr = nullptr; ///< 検討タブ用モデル
-    bool m_considerationRestartPending = false;    ///< 検討再開待ちフラグ
-    bool m_considerationRestartInProgress = false;  ///< 検討再開処理中フラグ（再入防止）
-    bool m_considerationWaiting = false;      ///< 検討待機中フラグ
-    QString m_considerationEnginePath;        ///< 検討中のエンジンパス
-    QString m_considerationEngineName;        ///< 検討中のエンジン名
-    int m_considerationPreviousFileTo = 0;    ///< 前回の移動先の筋
-    int m_considerationPreviousRankTo = 0;    ///< 前回の移動先の段
-    QString m_considerationLastUsiMove;       ///< 最後の指し手（USI形式）
 
     bool m_engineShutdownInProgress = false;  ///< エンジン破棄中フラグ（再入防止）
+
+    // --- 検討・詰み探索セッション管理 ---
+
+    std::unique_ptr<AnalysisSessionHandler> m_analysisSession; ///< 検討・詰み探索ハンドラ
+    void ensureAnalysisSession();             ///< ハンドラの遅延生成
 
     // --- UNDO ---
 

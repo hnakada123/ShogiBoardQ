@@ -8,7 +8,6 @@
 // --- Qt ヘッダー ---
 #include <QMainWindow>
 #include <QDockWidget>
-#include <QSplitter>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QPointer>
@@ -353,14 +352,89 @@ private slots:
 private:
     // --- メンバー変数 ---
 
-    // --- 基本状態 / ゲーム状態 ---
-    QString  m_startSfenStr = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");  ///< 開始局面のSFEN文字列
-    QString  m_currentSfenStr = QStringLiteral("startpos"); ///< 現在の局面のSFEN文字列
-    QString  m_resumeSfenStr;                 ///< 再開時の局面SFEN文字列
-    bool     m_errorOccurred = false;         ///< エラー発生フラグ
-    int      m_currentMoveIndex = 0;          ///< 現在の手数インデックス
-    QString  m_lastMove;                      ///< 直近の指し手（USI形式）
-    PlayMode m_playMode = PlayMode::NotStarted; ///< 現在のプレイモード
+    // === サブシステム単位の状態集約構造体 ===
+
+    /// ドックウィジェット群
+    struct DockWidgets {
+        QDockWidget* evalChart = nullptr;
+        QDockWidget* recordPane = nullptr;
+        QDockWidget* gameInfo = nullptr;
+        QDockWidget* thinking = nullptr;
+        QDockWidget* consideration = nullptr;
+        QDockWidget* usiLog = nullptr;
+        QDockWidget* csaLog = nullptr;
+        QDockWidget* comment = nullptr;
+        QDockWidget* branchTree = nullptr;
+        QDockWidget* menuWindow = nullptr;
+        QDockWidget* josekiWindow = nullptr;
+        QDockWidget* analysisResults = nullptr;
+    };
+    DockWidgets m_docks;
+
+    /// 対局者状態
+    struct PlayerState {
+        QString humanName1;
+        QString humanName2;
+        QString engineName1;
+        QString engineName2;
+        bool bottomIsP1 = true;
+        bool lastP1Turn = true;
+        qint64 lastP1Ms = 0;
+        qint64 lastP2Ms = 0;
+    };
+    PlayerState m_player;
+
+    /// データモデル群
+    struct DataModels {
+        KifuRecordListModel* kifuRecord = nullptr;
+        KifuBranchListModel* kifuBranch = nullptr;
+        ShogiEngineThinkingModel* thinking1 = nullptr;
+        ShogiEngineThinkingModel* thinking2 = nullptr;
+        ShogiEngineThinkingModel* consideration = nullptr;
+        KifuAnalysisListModel* analysis = nullptr;
+        UsiCommLogModel* commLog1 = nullptr;
+        UsiCommLogModel* commLog2 = nullptr;
+        GameRecordModel* gameRecord = nullptr;
+    };
+    DataModels m_models;
+
+    /// 分岐ナビゲーション
+    struct BranchNavigation {
+        KifuBranchTree* branchTree = nullptr;
+        KifuNavigationState* navState = nullptr;
+        KifuNavigationController* kifuNavController = nullptr;
+        KifuDisplayCoordinator* displayCoordinator = nullptr;
+        BranchTreeWidget* branchTreeWidget = nullptr;
+        LiveGameSession* liveGameSession = nullptr;
+    };
+    BranchNavigation m_branchNav;
+
+    /// 棋譜状態
+    struct KifuState {
+        QStringList positionStrList;
+        QStringList gameUsiMoves;
+        QVector<QString> commentsByRow;
+        int activePly = 0;
+        int currentSelectedPly = 0;
+        bool onMainRowGuard = false;
+        QList<KifuDisplay*> moveRecords;
+        QVector<ShogiMove> gameMoves;
+        QString saveFileName;
+    };
+    KifuState m_kifu;
+
+    /// ゲーム状態
+    struct GameState {
+        QString startSfenStr = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        QString currentSfenStr = QStringLiteral("startpos");
+        QString resumeSfenStr;
+        bool errorOccurred = false;
+        int currentMoveIndex = 0;
+        QString lastMove;
+        PlayMode playMode = PlayMode::NotStarted;
+        bool skipBoardSyncForBranchNav = false;
+    };
+    GameState m_state;
 
     // --- 将棋盤 / コントローラ ---
     ShogiView*                   m_shogiView = nullptr;       ///< 将棋盤ビュー（非所有）
@@ -370,43 +444,24 @@ private:
     // --- USI / エンジン連携 ---
     Usi*        m_usi1 = nullptr;              ///< 先手側USIエンジン（非所有）
     Usi*        m_usi2 = nullptr;              ///< 後手側USIエンジン（非所有）
-    QStringList m_positionStrList;            ///< 各手数のpositionコマンドリスト
-    /// 対局中に生成したUSI指し手列。
-    /// 棋譜読み込み時は KifuLoadCoordinator 側のUSI列を参照する。
-    QStringList m_gameUsiMoves;
 
     // --- UI 構成 ---
-    QTabWidget* m_tab = nullptr;              ///< メインタブウィジェット
-    QSplitter*  m_hsplit = nullptr;           ///< 水平スプリッター
-    QWidget*    m_central = nullptr;          ///< セントラルウィジェット
-    QVBoxLayout* m_centralLayout = nullptr;   ///< セントラルウィジェットのレイアウト
+    QTabWidget* m_tab = nullptr;              ///< メインタブウィジェット（非所有、AnalysisTabWiring管理）
+    QWidget*    m_central = nullptr;          ///< セントラルウィジェット（非所有、ui管理）
+    QVBoxLayout* m_centralLayout = nullptr;   ///< セントラルウィジェットのレイアウト（非所有、m_central管理）
 
     // --- ダイアログ / 補助ウィンドウ ---
-    CsaGameDialog*           m_csaGameDialog = nullptr;           ///< CSA対局ダイアログ
-    CsaWaitingDialog*        m_csaWaitingDialog = nullptr;        ///< CSA待機ダイアログ
+    CsaGameDialog*           m_csaGameDialog = nullptr;           ///< CSA対局ダイアログ（非所有）
+    CsaWaitingDialog*        m_csaWaitingDialog = nullptr;        ///< CSA待機ダイアログ（非所有）
     QPointer<KifuPasteDialog>      m_kifuPasteDialog;             ///< 棋譜貼り付けダイアログ（キャッシュ）
     QPointer<SfenCollectionDialog> m_sfenCollectionDialog;        ///< 局面集ビューアダイアログ（キャッシュ）
 
     // --- CSA通信対局コーディネータ ---
     CsaGameCoordinator*      m_csaGameCoordinator = nullptr;     ///< CSA通信対局管理（非所有）
 
-    // --- モデル群 ---
-    KifuRecordListModel*       m_kifuRecordModel  = nullptr;     ///< 棋譜レコードリストモデル
-    KifuBranchListModel*       m_kifuBranchModel  = nullptr;     ///< 分岐リストモデル
-    ShogiEngineThinkingModel*  m_modelThinking1   = nullptr;     ///< エンジン1思考モデル
-    ShogiEngineThinkingModel*  m_modelThinking2   = nullptr;     ///< エンジン2思考モデル
-    ShogiEngineThinkingModel*  m_considerationModel = nullptr;   ///< 検討タブ専用モデル
-    KifuAnalysisListModel*     m_analysisModel    = nullptr;     ///< 棋譜解析結果モデル
-    UsiCommLogModel*           m_lineEditModel1   = nullptr;     ///< USI通信ログモデル（エンジン1）
-    UsiCommLogModel*           m_lineEditModel2   = nullptr;     ///< USI通信ログモデル（エンジン2）
 
-    // --- 記録 / 評価 / 表示用データ ---
-    EvaluationGraphController* m_evalGraphController = nullptr;  ///< 評価値グラフ管理
-    QString           m_humanName1, m_humanName2;   ///< 対局者名（人間側）
-    QString           m_engineName1, m_engineName2; ///< 対局者名（エンジン側）
-    QList<KifuDisplay *> m_moveRecords;              ///< 指し手表示レコード
-    QString           kifuSaveFileName;             ///< 棋譜保存ファイル名
-    QVector<ShogiMove> m_gameMoves;                 ///< 対局中の指し手列
+    // --- 記録 / 評価 ---
+    EvaluationGraphController* m_evalGraphController = nullptr;  ///< 評価値グラフ管理（非所有）
 
     // --- 時計 / 時刻管理 ---
     TimeControlController* m_timeController = nullptr; ///< 時間制御コントローラ（非所有）
@@ -414,39 +469,14 @@ private:
     // --- 対局情報タブ ---
     GameInfoPaneController* m_gameInfoController = nullptr; ///< 対局情報ペイン管理（非所有）
 
-    // --- 棋譜表示 / 分岐操作 ---
-    QVector<QString> m_commentsByRow;         ///< 行ごとのコメント
-    int m_activePly          = 0;             ///< 現在アクティブな手数
-    int m_currentSelectedPly = 0;             ///< 現在選択中の手数
-    bool m_onMainRowGuard = false;            ///< 行変更処理の再入防止ガード
 
-    // --- 棋譜データ中央管理 ---
-    GameRecordModel* m_gameRecord = nullptr;  ///< 棋譜データモデル（非所有）
 
     // --- 新UI部品 / ナビゲーション ---
     RecordPane*        m_recordPane = nullptr;   ///< 棋譜欄ウィジェット（非所有）
     EngineAnalysisTab* m_analysisTab = nullptr;  ///< エンジン解析タブ（非所有）
 
-    // --- 評価値グラフドック ---
-    QDockWidget*           m_evalChartDock = nullptr; ///< 評価値グラフ用ドック
-    EvaluationChartWidget* m_evalChart = nullptr;     ///< 評価値グラフウィジェット
-
-    // --- 棋譜欄ドック ---
-    QDockWidget*           m_recordPaneDock = nullptr; ///< 棋譜欄用ドック
-
-    // --- 解析ドック群 ---
-    QDockWidget*           m_gameInfoDock = nullptr;      ///< 対局情報ドック
-    QDockWidget*           m_thinkingDock = nullptr;      ///< 思考ドック
-    QDockWidget*           m_considerationDock = nullptr;  ///< 検討ドック
-    QDockWidget*           m_usiLogDock = nullptr;        ///< USI通信ログドック
-    QDockWidget*           m_csaLogDock = nullptr;        ///< CSA通信ログドック
-    QDockWidget*           m_commentDock = nullptr;       ///< 棋譜コメントドック
-    QDockWidget*           m_branchTreeDock = nullptr;    ///< 分岐ツリードック
-
-    // --- その他ドック ---
-    QDockWidget*           m_menuWindowDock = nullptr;      ///< メニューウィンドウドック
-    QDockWidget*           m_josekiWindowDock = nullptr;    ///< 定跡ウィンドウドック
-    QDockWidget*           m_analysisResultsDock = nullptr;  ///< 棋譜解析結果ドック
+    // --- 評価値グラフ ---
+    EvaluationChartWidget* m_evalChart = nullptr;     ///< 評価値グラフウィジェット（非所有）
 
     // --- 試合進行（司令塔） ---
     MatchCoordinator* m_match = nullptr;      ///< 対局進行の司令塔（非所有）
@@ -457,16 +487,9 @@ private:
     // --- リプレイ制御 ---
     ReplayController* m_replayController = nullptr; ///< リプレイコントローラ（非所有）
 
-    // --- 手番 / 残時間 ---
-    bool   m_lastP1Turn = true;               ///< 直近の手番（true=先手）
-    qint64 m_lastP1Ms   = 0;                  ///< 先手の残り時間（ms）
-    qint64 m_lastP2Ms   = 0;                  ///< 後手の残り時間（ms）
-
-    // --- 手番方向 ---
-    bool m_bottomIsP1 = true;                 ///< 画面下側が先手かどうか
 
     // --- 評価値グラフ高さ調整 ---
-    QTimer* m_evalChartResizeTimer = nullptr;  ///< 高さ調整用デバウンスタイマー
+    QTimer* m_evalChartResizeTimer = nullptr;  ///< 高さ調整用デバウンスタイマー（非所有）
 
     // --- コーディネータ / プレゼンタ ---
     KifuLoadCoordinator*      m_kifuLoadCoordinator = nullptr; ///< 棋譜読込コーディネータ（非所有）
@@ -531,13 +554,6 @@ private:
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
     std::unique_ptr<GameSessionFacade> m_gameSessionFacade;             ///< 対局セッションファサード（所有）
 
-    // --- 分岐ナビゲーション ---
-    KifuBranchTree* m_branchTree = nullptr;              ///< 分岐ツリーデータ（非所有）
-    KifuNavigationState* m_navState = nullptr;           ///< 棋譜ナビゲーション状態（非所有）
-    KifuNavigationController* m_kifuNavController = nullptr; ///< 棋譜ナビゲーションコントローラ（非所有）
-    KifuDisplayCoordinator* m_displayCoordinator = nullptr;  ///< 棋譜表示コーディネータ（非所有）
-    BranchTreeWidget* m_branchTreeWidget = nullptr;      ///< 分岐ツリーウィジェット（非所有）
-    LiveGameSession* m_liveGameSession = nullptr;        ///< リアルタイム対局セッション（非所有）
 
     // --- privateメソッド ---
 
@@ -556,6 +572,12 @@ private:
     // --- 初期化 / セットアップ ---
     /// 各種コンポーネントの初期化を行う
     void initializeComponents();
+    /// ゲームコントローラと棋譜状態を初期化する
+    void initializeGameControllerAndKifu();
+    /// ShogiViewを生成または再初期化する
+    void initializeOrResetShogiView();
+    /// 盤面モデルを初期化する（SFEN正規化・ボード接続）
+    void initializeBoardModel();
     /// 水平方向のゲームレイアウトを構築する
     void setupHorizontalGameLayout();
     /// セントラルゲーム表示を初期化する
@@ -580,6 +602,10 @@ private:
     void setupRecordPane();
     /// エンジン解析タブをセットアップする
     void setupEngineAnalysisTab();
+    /// エンジン解析タブのシグナル接続を行う
+    void connectAnalysisTabSignals();
+    /// エンジン解析タブの依存コンポーネントを設定する
+    void configureAnalysisTabDependencies();
     /// 盤面操作コントローラをセットアップする
     void setupBoardInteractionController();
     /// 評価値グラフのQDockWidgetを作成する
@@ -602,6 +628,10 @@ private:
     void createBranchNavigationModels();
     /// 分岐ナビゲーションのシグナルを接続する
     void wireBranchNavigationSignals();
+    /// 分岐表示コーディネーターを設定する
+    void configureBranchDisplayCoordinator();
+    /// 分岐表示コーディネーターのシグナルを接続する
+    void connectBranchDisplaySignals();
 
     // --- ゲーム開始 / 切替 ---
     /// SFEN文字列で新規対局を初期化する
@@ -618,6 +648,20 @@ private:
     void saveWindowAndBoardSettings();
     /// 保存済みウィンドウ設定を復元する
     void loadWindowSettings();
+
+    // --- resetModels ヘルパー ---
+    /// プレゼンテーション層の状態をクリアする
+    void clearPresentationState();
+    /// ゲームデータモデルをクリアする
+    void clearGameDataModels(const QString& hirateStartSfen);
+    /// 分岐ツリーを新規状態にリセットする
+    void resetBranchTreeForNewState(const QString& hirateStartSfen);
+
+    // --- onBuildPositionRequired ヘルパー ---
+    /// 指定手数の直前の指し手座標を解決する
+    void resolvePreviousMoveCoordinates(int row, int& fileTo, int& rankTo) const;
+    /// 指定手数の最後のUSI指し手文字列を解決する
+    QString resolveLastUsiMoveForPly(int row) const;
 
     // --- ユーティリティ ---
     /// プレイモードに応じて対局者名を設定する
@@ -714,6 +758,26 @@ private:
     void ensureRecordNavigationHandler();
     void ensureUiStatePolicyManager();
 
+    // --- ensure* 分割ヘルパー（bind/wire） ---
+    /// DialogCoordinatorに検討・詰み探索・棋譜解析の各コンテキストを設定する
+    void bindDialogCoordinatorContexts();
+    /// DialogCoordinatorのシグナル/スロット接続を行う
+    void wireDialogCoordinatorSignals();
+    /// GameStartCoordinatorのシグナル/スロット接続を行う
+    void wireGameStartCoordinatorSignals();
+    /// GameStateControllerのコールバックを設定する
+    void bindGameStateControllerCallbacks();
+    /// CsaGameWiringのシグナル/スロット接続を行う
+    void wireCsaGameWiringSignals();
+    /// BoardSetupControllerのコールバックを設定する
+    void bindBoardSetupControllerCallbacks();
+    /// PositionEditCoordinatorのコールバックとアクションを設定する
+    void bindPositionEditCoordinatorCallbacks();
+    /// RecordNavigationHandlerのシグナル/スロット接続を行う
+    void wireRecordNavigationHandlerSignals();
+    /// RecordNavigationHandlerの依存オブジェクトを更新する
+    void bindRecordNavigationHandlerDeps();
+
     // --- コンストラクタ分割先 ---
     /// セントラルウィジェットのコンテナを構築する
     void setupCentralWidgetContainer();
@@ -783,8 +847,6 @@ private:
     void refreshBranchTreeLive();
 
     // --- ガード / 判定ヘルパー ---
-    bool getMainRowGuard() const;
-    void setMainRowGuard(bool on);
     /// 人間vs人間モードかどうかを判定する
     bool isGameActivelyInProgress() const;
     bool isHvH() const;
@@ -804,8 +866,6 @@ private:
     /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（const版）
     const QStringList* sfenRecord() const;
 
-    /// 分岐ナビゲーション由来の盤面更新中に、通常の同期処理が再入しないようにするガード
-    bool m_skipBoardSyncForBranchNav = false;
 };
 
 #endif // MAINWINDOW_H

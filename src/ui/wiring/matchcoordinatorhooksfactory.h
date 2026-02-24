@@ -37,12 +37,9 @@ public:
     };
 
     struct UndoDeps {
-        std::function<bool()> getMainRowGuard;
-        std::function<void(bool)> setMainRowGuard;
         std::function<void(int)> updateHighlightsForPly;
         std::function<void()> updateTurnAndTimekeepingDisplay;
         std::function<bool(ShogiGameController::Player)> isHumanSide;
-        std::function<bool()> isHvH;
     };
 
     static MatchCoordinator::Hooks buildHooks(const HookDeps& deps);
