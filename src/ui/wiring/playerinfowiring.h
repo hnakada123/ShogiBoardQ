@@ -208,42 +208,10 @@ public slots:
 
 signals:
     /**
-     * @brief 対局情報が更新された
-     * @param items 更新された対局情報
-     */
-    void gameInfoUpdated(const QList<KifGameInfoItem>& items);
-
-    /**
-     * @brief エンジン名が更新された
-     * @param engine1 エンジン1名
-     * @param engine2 エンジン2名
-     */
-    void engineNamesUpdated(const QString& engine1, const QString& engine2);
-
-    /**
-     * @brief プレイヤー名が確定した
-     * @param human1 人間1名
-     * @param human2 人間2名
-     * @param engine1 エンジン1名
-     * @param engine2 エンジン2名
-     * @param playMode プレイモード
-     */
-    void playerNamesResolved(const QString& human1, const QString& human2,
-                             const QString& engine1, const QString& engine2,
-                             int playMode);
-
-    /**
      * @brief タブ変更時
      * @param index タブインデックス
      */
     void tabCurrentChanged(int index);
-
-private slots:
-    /**
-     * @brief GameInfoPaneControllerからの更新通知
-     * @param items 対局情報リスト
-     */
-    void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
 
 private:
     /**

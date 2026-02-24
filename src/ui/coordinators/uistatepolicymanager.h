@@ -6,9 +6,6 @@
 
 #include <QObject>
 #include <QHash>
-#include <QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(lcUiPolicy)
 
 class QAction;
 class RecordPane;

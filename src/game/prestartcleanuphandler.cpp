@@ -2,6 +2,7 @@
 /// @brief 対局開始前クリーンアップハンドラクラスの実装
 
 #include "prestartcleanuphandler.h"
+#include "logcategories.h"
 #include "matchcoordinator.h"
 
 #include <QDebug>

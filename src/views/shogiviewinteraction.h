@@ -4,6 +4,8 @@
 /// @file shogiviewinteraction.h
 /// @brief 将棋盤面のマウス操作・ドラッグの責務を担うクラスの定義
 
+#include "shogitypes.h"
+
 #include <QChar>
 #include <QIcon>
 #include <QMap>
@@ -47,20 +49,20 @@ public:
     bool positionEditMode() const { return m_positionEditMode; }
     bool dragging() const { return m_dragging; }
     QPoint dragFrom() const { return m_dragFrom; }
-    QChar dragPiece() const { return m_dragPiece; }
+    Piece dragPiece() const { return m_dragPiece; }
     QPoint dragPos() const { return m_dragPos; }
     bool dragFromStand() const { return m_dragFromStand; }
-    const QMap<QChar, int>& tempPieceStandCounts() const { return m_tempPieceStandCounts; }
+    const QMap<Piece, int>& tempPieceStandCounts() const { return m_tempPieceStandCounts; }
 
 private:
     bool   m_mouseClickMode   = true;
     bool   m_positionEditMode = false;
     bool   m_dragging         = false;
     QPoint m_dragFrom;
-    QChar  m_dragPiece        = ' ';
+    Piece  m_dragPiece        = Piece::None;
     QPoint m_dragPos;
     bool   m_dragFromStand    = false;
-    QMap<QChar, int> m_tempPieceStandCounts;
+    QMap<Piece, int> m_tempPieceStandCounts;
 };
 
 #endif // SHOGIVIEWINTERACTION_H

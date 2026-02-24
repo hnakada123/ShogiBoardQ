@@ -2,9 +2,7 @@
 /// @brief CSAプロトコルクライアントクラスの実装
 
 #include "csaclient.h"
-#include <QLoggingCategory>
-
-Q_LOGGING_CATEGORY(lcNetwork, "shogi.network")
+#include "logcategories.h"
 
 CsaClient::GameSummary::GameSummary()
 {

@@ -4,6 +4,8 @@
 #include <QChar>
 #include <QString>
 #include <array>
+#include <optional>
+#include "shogitypes.h"
 
 namespace KifuParseCommon {
 
@@ -16,7 +18,11 @@ const std::array<QString, 16>& terminalWords();
 bool isTerminalWordExact(const QString& text, QString* normalized = nullptr);
 bool isTerminalWordContains(const QString& text, QString* normalized = nullptr);
 
-bool mapKanjiPiece(const QString& text, QChar& base, bool& promoted);
+bool mapKanjiPiece(const QString& text, Piece& base, bool& promoted);
+
+std::optional<int> parseFileChar(QChar ch);   // '1'〜'9' → 1〜9
+std::optional<int> parseRankChar(QChar ch);   // 'a'〜'i' → 1〜9
+std::optional<int> parseDigit(QChar ch);      // '0'〜'9' → 0〜9
 
 } // namespace KifuParseCommon
 

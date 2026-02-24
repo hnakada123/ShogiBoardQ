@@ -7,7 +7,7 @@
 #include "boardinteractioncontroller.h"
 #include "shogiboard.h"
 #include "shogimove.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
     : QObject(parent)
@@ -280,12 +280,12 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 
     // 駒種から駒台の疑似座標を取得（先手: file=10, 後手: file=11）
     // 駒種（大文字=先手, 小文字=後手）→ 疑似座標を返す
-    auto pieceToStandCoord = [](QChar piece) -> QPoint {
+    auto pieceToStandCoord = [](Piece piece) -> QPoint {
         // 先手（大文字）の場合: file=10
         // 後手（小文字）の場合: file=11
-        const bool isBlack = piece.isUpper();
-        const int file = isBlack ? 10 : 11;
-        const QChar upper = piece.toUpper();
+        const bool black = isBlackPiece(piece);
+        const int file = black ? 10 : 11;
+        const Piece upper = toBlack(piece);
 
         // 駒種→rank のマッピング（shogiview.cpp の standPseudoToBase の逆引き）
         // 先手駒台（file=10）:
@@ -295,30 +295,30 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         //   左列(baseFile=1): r→3, g→5, n→7, p→9
         //   右列(baseFile=2): k→2, b→4, s→6, l→8
         int rank = -1;
-        if (isBlack) {
+        if (black) {
             // 先手駒台
-            switch (upper.toLatin1()) {
-            case 'K': rank = 8; break;  // 玉
-            case 'R': rank = 7; break;  // 飛
-            case 'B': rank = 6; break;  // 角
-            case 'G': rank = 5; break;  // 金
-            case 'S': rank = 4; break;  // 銀
-            case 'N': rank = 3; break;  // 桂
-            case 'L': rank = 2; break;  // 香
-            case 'P': rank = 1; break;  // 歩
+            switch (upper) {
+            case Piece::BlackKing:   rank = 8; break;  // 玉
+            case Piece::BlackRook:   rank = 7; break;  // 飛
+            case Piece::BlackBishop: rank = 6; break;  // 角
+            case Piece::BlackGold:   rank = 5; break;  // 金
+            case Piece::BlackSilver: rank = 4; break;  // 銀
+            case Piece::BlackKnight: rank = 3; break;  // 桂
+            case Piece::BlackLance:  rank = 2; break;  // 香
+            case Piece::BlackPawn:   rank = 1; break;  // 歩
             default: break;
             }
         } else {
             // 後手駒台
-            switch (upper.toLatin1()) {
-            case 'K': rank = 2; break;  // 玉
-            case 'R': rank = 3; break;  // 飛
-            case 'B': rank = 4; break;  // 角
-            case 'G': rank = 5; break;  // 金
-            case 'S': rank = 6; break;  // 銀
-            case 'N': rank = 7; break;  // 桂
-            case 'L': rank = 8; break;  // 香
-            case 'P': rank = 9; break;  // 歩
+            switch (upper) {
+            case Piece::BlackKing:   rank = 2; break;  // 玉
+            case Piece::BlackRook:   rank = 3; break;  // 飛
+            case Piece::BlackBishop: rank = 4; break;  // 角
+            case Piece::BlackGold:   rank = 5; break;  // 金
+            case Piece::BlackSilver: rank = 6; break;  // 銀
+            case Piece::BlackKnight: rank = 7; break;  // 桂
+            case Piece::BlackLance:  rank = 8; break;  // 香
+            case Piece::BlackPawn:   rank = 9; break;  // 歩
             default: break;
             }
         }
@@ -410,7 +410,7 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         m_bic->showMoveHighlights(from1, to1);
     } else if (!droppedPiece.isNull()) {
         // 駒打ち：打った駒種から駒台の疑似座標を取得
-        const QPoint standCoord = pieceToStandCoord(droppedPiece);
+        const QPoint standCoord = pieceToStandCoord(charToPiece(droppedPiece));
         qCDebug(lcUi).noquote() << "drop highlight: piece=" << droppedPiece
                            << " standCoord=(" << standCoord.x() << "," << standCoord.y() << ")";
         m_bic->showMoveHighlights(standCoord, to1);

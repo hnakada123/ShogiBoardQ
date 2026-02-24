@@ -331,7 +331,7 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
     }
     
     qCDebug(lcEngine) << "updateLastScore: after=" << m_lastScoreCp;
-    emit scoreUpdated(m_lastScoreCp, m_scoreStr);
+
 }
 
 void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, int& scoreInt)
@@ -379,7 +379,7 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
         if (isMultipv1) {
             m_scoreStr = info->scoreMate();
             m_lastScoreCp = scoreInt;
-            emit scoreUpdated(m_lastScoreCp, m_scoreStr);
+        
         }
     } else {
         // score cp の場合

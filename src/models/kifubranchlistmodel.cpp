@@ -2,7 +2,7 @@
 /// @brief 分岐候補リストモデルクラスの実装
 
 #include "kifubranchlistmodel.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QBrush>
 #include <QColor>
 #include <QFont>
@@ -228,7 +228,6 @@ void KifuBranchListModel::setActiveNode(int nodeId)
     // ここでビュー再描画（全体 or 必要範囲）を促す
     // ※あなたの実装に合わせて適切な index 範囲を渡してください。
     emit dataChanged(index(0,0), index(rowCount()-1, columnCount()-1));
-    emit activeNodeChanged(nodeId);
 
     const auto& n = m_nodes[nodeId];
     qCDebug(lcUi).nospace()
@@ -307,9 +306,6 @@ void KifuBranchListModel::clear()
     m_activeNodeId = -1;
 
     endResetModel();
-
-    // アクティブノードの変更（無効化）を通知
-    emit activeNodeChanged(-1);
 }
 
 void KifuBranchListModel::setCurrentHighlightRow(int row)

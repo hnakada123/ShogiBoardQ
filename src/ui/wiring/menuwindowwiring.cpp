@@ -7,7 +7,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 MenuWindowWiring::MenuWindowWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)

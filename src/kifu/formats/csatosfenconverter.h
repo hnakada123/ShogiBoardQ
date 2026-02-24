@@ -83,13 +83,9 @@ private:
     // --- 変換ユーティリティ ---
 
     static bool parseCsaMoveToken(const QString& token, int& fx, int& fy, int& tx, int& ty, Piece& afterPiece);
-    static QChar usiRankLetter(int y);
-    static QString toUsiSquare(int x, int y);
     static bool   isPromotedPiece(Piece p);
     static Piece  basePieceOf(Piece p);
     static QString pieceKanji(Piece p);
-    static QString zenkakuDigit(int d);
-    static QString kanjiRank(int y);
     static bool   inside(int v);
 };
 

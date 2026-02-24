@@ -12,7 +12,7 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QRegularExpression>
 #include <QCloseEvent>
 #include <QWheelEvent>
@@ -451,13 +451,15 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
             pieceChar = pieceChar.toLower();
         }
 
+        Piece piece = charToPiece(pieceChar);
+
         // 駒を配置
-        board->movePieceToSquare(pieceChar, 0, 0, toFile, toRank, false);
+        board->movePieceToSquare(piece, 0, 0, toFile, toRank, false);
 
         // 駒台から減らす
-        QMap<QChar, int>& stand = board->m_pieceStand;
-        if (stand.contains(pieceChar) && stand[pieceChar] > 0) {
-            stand[pieceChar]--;
+        QMap<Piece, int>& stand = board->m_pieceStand;
+        if (stand.contains(piece) && stand[piece] > 0) {
+            stand[piece]--;
         }
         return;
     }
@@ -476,23 +478,15 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
     bool promote = (usiMove.length() >= 5 && usiMove.at(4) == '+');
 
     // 移動元の駒を取得
-    QChar piece = board->getPieceCharacter(fromFile, fromRank);
+    Piece piece = board->getPieceCharacter(fromFile, fromRank);
 
     // 移動先に駒があれば取る
-    QChar captured = board->getPieceCharacter(toFile, toRank);
-    if (captured != ' ') {
-        // 駒を駒台に追加
-        QChar standPiece = captured;
+    Piece captured = board->getPieceCharacter(toFile, toRank);
+    if (captured != Piece::None) {
         // 成駒を元に戻す
-        static const QMap<QChar, QChar> demoteMap = {
-            {'Q','P'},{'M','L'},{'O','N'},{'T','S'},{'C','B'},{'U','R'},
-            {'q','p'},{'m','l'},{'o','n'},{'t','s'},{'c','b'},{'u','r'}
-        };
-        if (demoteMap.contains(standPiece)) {
-            standPiece = demoteMap[standPiece];
-        }
+        Piece standPiece = demote(captured);
         // 相手の駒を自分の駒に変換
-        standPiece = standPiece.isUpper() ? standPiece.toLower() : standPiece.toUpper();
+        standPiece = isBlackPiece(standPiece) ? toWhite(standPiece) : toBlack(standPiece);
         board->m_pieceStand[standPiece]++;
     }
 
@@ -524,14 +518,12 @@ void PvBoardDialog::clearMoveHighlights()
     if (!m_shogiView) return;
 
     if (m_fromHighlight) {
-        m_shogiView->removeHighlight(m_fromHighlight);
-        delete m_fromHighlight;
-        m_fromHighlight = nullptr;
+        m_shogiView->removeHighlight(m_fromHighlight.get());
+        m_fromHighlight.reset();
     }
     if (m_toHighlight) {
-        m_shogiView->removeHighlight(m_toHighlight);
-        delete m_toHighlight;
-        m_toHighlight = nullptr;
+        m_shogiView->removeHighlight(m_toHighlight.get());
+        m_toHighlight.reset();
     }
 }
 
@@ -744,20 +736,20 @@ void PvBoardDialog::updateMoveHighlights()
                          << " to=" << toFile << toRank
                          << " drop=" << droppedPiece;
                 if (fromFile > 0 && fromRank > 0) {
-                    m_fromHighlight = new ShogiView::FieldHighlight(fromFile, fromRank, QColor(255, 0, 0, 50));
-                    m_shogiView->addHighlight(m_fromHighlight);
+                    m_fromHighlight = std::make_unique<ShogiView::FieldHighlight>(fromFile, fromRank, QColor(255, 0, 0, 50));
+                    m_shogiView->addHighlight(m_fromHighlight.get());
                 } else if (!droppedPiece.isNull()) {
                     const bool isBlack = droppedPiece.isUpper();
                     QPoint standCoord = getStandPseudoCoord(droppedPiece, isBlack);
                     if (!standCoord.isNull()) {
-                        m_fromHighlight = new ShogiView::FieldHighlight(
+                        m_fromHighlight = std::make_unique<ShogiView::FieldHighlight>(
                             standCoord.x(), standCoord.y(), QColor(255, 0, 0, 50));
-                        m_shogiView->addHighlight(m_fromHighlight);
+                        m_shogiView->addHighlight(m_fromHighlight.get());
                     }
                 }
                 if (toFile > 0 && toRank > 0) {
-                    m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
-                    m_shogiView->addHighlight(m_toHighlight);
+                    m_toHighlight = std::make_unique<ShogiView::FieldHighlight>(toFile, toRank, QColor(255, 255, 0));
+                    m_shogiView->addHighlight(m_toHighlight.get());
                 }
                 m_shogiView->update();
                 qCDebug(lcUi) << "updateMoveHighlights: diff highlight applied";
@@ -813,14 +805,14 @@ void PvBoardDialog::updateMoveHighlights()
         QPoint standCoord = getStandPseudoCoord(pieceChar, isBlackMove);
         if (!standCoord.isNull()) {
             // 移動元（駒台）を薄い赤でハイライト
-            m_fromHighlight = new ShogiView::FieldHighlight(
+            m_fromHighlight = std::make_unique<ShogiView::FieldHighlight>(
                 standCoord.x(), standCoord.y(), QColor(255, 0, 0, 50));
-            m_shogiView->addHighlight(m_fromHighlight);
+            m_shogiView->addHighlight(m_fromHighlight.get());
         }
 
         // 移動先（盤上）を黄色でハイライト
-        m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
-        m_shogiView->addHighlight(m_toHighlight);
+        m_toHighlight = std::make_unique<ShogiView::FieldHighlight>(toFile, toRank, QColor(255, 255, 0));
+        m_shogiView->addHighlight(m_toHighlight.get());
         qCDebug(lcUi) << "updateMoveHighlights: added drop highlights";
     } else {
         // 通常の移動（例: "7g7f" または "7g7f+"）
@@ -832,12 +824,12 @@ void PvBoardDialog::updateMoveHighlights()
                  << " fromRank=" << fromRank << " toFile=" << toFile << " toRank=" << toRank;
 
         // 移動元（薄いピンク/赤）
-        m_fromHighlight = new ShogiView::FieldHighlight(fromFile, fromRank, QColor(255, 0, 0, 50));
-        m_shogiView->addHighlight(m_fromHighlight);
+        m_fromHighlight = std::make_unique<ShogiView::FieldHighlight>(fromFile, fromRank, QColor(255, 0, 0, 50));
+        m_shogiView->addHighlight(m_fromHighlight.get());
 
         // 移動先（黄色）
-        m_toHighlight = new ShogiView::FieldHighlight(toFile, toRank, QColor(255, 255, 0));
-        m_shogiView->addHighlight(m_toHighlight);
+        m_toHighlight = std::make_unique<ShogiView::FieldHighlight>(toFile, toRank, QColor(255, 255, 0));
+        m_shogiView->addHighlight(m_toHighlight.get());
         qCDebug(lcUi) << "updateMoveHighlights: added normal move highlights";
     }
 

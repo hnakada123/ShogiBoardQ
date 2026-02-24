@@ -5,6 +5,7 @@
 
 #include <QDebug>
 
+#include "logcategories.h"
 #include "matchcoordinator.h"
 #include <QAbstractItemView>
 
@@ -276,7 +277,6 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
         m_shogiView->removeHighlightAllData();
     }
 
-    Q_EMIT gameOverProcessed();
 }
 
 void GameStateController::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info)

@@ -8,6 +8,7 @@
 #include <QDialog>
 #include <QStringList>
 #include <QVector>
+#include <memory>
 #include "shogiview.h"
 
 class ShogiBoard;
@@ -139,8 +140,8 @@ private:
     QLabel* m_pvLabel = nullptr;
 
     // ハイライト用
-    ShogiView::FieldHighlight* m_fromHighlight = nullptr;  ///< 移動元ハイライト
-    ShogiView::FieldHighlight* m_toHighlight = nullptr;    ///< 移動先ハイライト
+    std::unique_ptr<ShogiView::FieldHighlight> m_fromHighlight;  ///< 移動元ハイライト
+    std::unique_ptr<ShogiView::FieldHighlight> m_toHighlight;    ///< 移動先ハイライト
 };
 
 #endif // PVBOARDDIALOG_H

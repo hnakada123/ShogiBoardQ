@@ -6,7 +6,7 @@
 #include "kifubranchnode.h"
 #include "kifparsetypes.h"
 #include "kifdisplayitem.h"
-#include "kifulogging.h"
+#include "logcategories.h"
 
 KifuBranchTree* KifuBranchTreeBuilder::fromKifParseResult(const KifParseResult& result,
                                                           const QString& startSfen)

@@ -2,9 +2,7 @@
 /// @brief 将棋盤の状態管理・SFEN変換・駒台操作の実装
 
 #include "shogiboard.h"
-#include <QLoggingCategory>
-
-Q_LOGGING_CATEGORY(lcCore, "shogi.core")
+#include "logcategories.h"
 
 // ============================================================
 // 初期化
@@ -19,17 +17,21 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject *parent)
 
 void ShogiBoard::initBoard()
 {
-    m_boardData.fill(' ', ranks() * files());
+    m_boardData.fill(Piece::None, ranks() * files());
 }
 
 void ShogiBoard::initStand()
 {
     m_pieceStand.clear();
 
-    static const QList<QChar> pieces = {'p', 'l', 'n', 's', 'g', 'b', 'r', 'k',
-                                        'P', 'L', 'N', 'S', 'G', 'B', 'R', 'K'};
+    static const QList<Piece> pieces = {
+        Piece::WhitePawn, Piece::WhiteLance, Piece::WhiteKnight, Piece::WhiteSilver,
+        Piece::WhiteGold, Piece::WhiteBishop, Piece::WhiteRook, Piece::WhiteKing,
+        Piece::BlackPawn, Piece::BlackLance, Piece::BlackKnight, Piece::BlackSilver,
+        Piece::BlackGold, Piece::BlackBishop, Piece::BlackRook, Piece::BlackKing
+    };
 
-    for (const QChar& piece : pieces) {
+    for (const Piece& piece : pieces) {
         m_pieceStand.insert(piece, 0);
     }
 }
@@ -38,12 +40,12 @@ void ShogiBoard::initStand()
 // 盤面アクセス
 // ============================================================
 
-const QVector<QChar>& ShogiBoard::boardData() const
+const QVector<Piece>& ShogiBoard::boardData() const
 {
     return m_boardData;
 }
 
-const QMap<QChar, int>& ShogiBoard::getPieceStand() const
+const QMap<Piece, int>& ShogiBoard::getPieceStand() const
 {
     return m_pieceStand;
 }
@@ -53,18 +55,26 @@ Turn ShogiBoard::currentPlayer() const
     return m_currentPlayer;
 }
 
-// 指定した位置の駒を表す文字を返す。
+// 指定した位置の駒を返す。
 // file: 筋（1〜9は盤上、10と11は先手と後手の駒台）
 // rank: 段（先手は1〜7「歩、香車、桂馬、銀、金、角、飛車」、後手は3〜9「飛車、角、金、銀、桂馬、香車、歩」を使用）
-QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
+Piece ShogiBoard::getPieceCharacter(const int file, const int rank)
 {
-    static const QMap<int, QChar> pieceMapBlack = {{1,'P'},{2,'L'},{3,'N'},{4,'S'},{5,'G'},{6,'B'},{7,'R'},{8,'K'}};
-    static const QMap<int, QChar> pieceMapWhite = {{2,'k'},{3,'r'},{4,'b'},{5,'g'},{6,'s'},{7,'n'},{8,'l'},{9,'p'}};
+    static const QMap<int, Piece> pieceMapBlack = {
+        {1, Piece::BlackPawn}, {2, Piece::BlackLance}, {3, Piece::BlackKnight},
+        {4, Piece::BlackSilver}, {5, Piece::BlackGold}, {6, Piece::BlackBishop},
+        {7, Piece::BlackRook}, {8, Piece::BlackKing}
+    };
+    static const QMap<int, Piece> pieceMapWhite = {
+        {2, Piece::WhiteKing}, {3, Piece::WhiteRook}, {4, Piece::WhiteBishop},
+        {5, Piece::WhiteGold}, {6, Piece::WhiteSilver}, {7, Piece::WhiteKnight},
+        {8, Piece::WhiteLance}, {9, Piece::WhitePawn}
+    };
 
     if (file >= 1 && file <= 9) {
         if (rank < 1 || rank > ranks()) {
             qCWarning(lcCore, "Invalid rank for board access: file=%d rank=%d", file, rank);
-            return QChar(' ');
+            return Piece::None;
         }
         return m_boardData.at((rank - 1) * files() + (file - 1));
     } else if (file == 10) {
@@ -72,20 +82,20 @@ QChar ShogiBoard::getPieceCharacter(const int file, const int rank)
         if (it != pieceMapBlack.end()) return it.value();
 
         qCWarning(lcCore, "Invalid rank for black stand: %d", rank);
-        return QChar();
+        return Piece::None;
     } else if (file == 11) {
         const auto it = pieceMapWhite.find(rank);
         if (it != pieceMapWhite.end()) return it.value();
 
         qCWarning(lcCore, "Invalid rank for white stand: %d", rank);
-        return QChar();
+        return Piece::None;
     } else {
         qCWarning(lcCore, "Invalid file value: %d", file);
-        return QChar();
+        return Piece::None;
     }
 }
 
-bool ShogiBoard::setDataInternal(const int file, const int rank, const QChar piece)
+bool ShogiBoard::setDataInternal(const int file, const int rank, const Piece piece)
 {
     int index = (rank - 1) * files() + (file - 1);
 
@@ -100,7 +110,7 @@ bool ShogiBoard::setDataInternal(const int file, const int rank, const QChar pie
 // 盤面操作
 // ============================================================
 
-void ShogiBoard::setData(const int file, const int rank, const QChar piece)
+void ShogiBoard::setData(const int file, const int rank, const Piece piece)
 {
     if (setDataInternal(file, rank, piece)) {
         // ShogiView::setBoardのconnectで再描画がトリガされる
@@ -109,25 +119,17 @@ void ShogiBoard::setData(const int file, const int rank, const QChar piece)
 }
 
 // 編集局面でも使用されるため、歩/桂/香の禁置き段では自動で成駒に置き換える（必成）。
-void ShogiBoard::movePieceToSquare(QChar selectedPiece, const int fileFrom, const int rankFrom,
+void ShogiBoard::movePieceToSquare(Piece selectedPiece, const int fileFrom, const int rankFrom,
                                    const int fileTo, const int rankTo, const bool promote)
 {
-    auto promotedOf = [](QChar p)->QChar {
-        static const QMap<QChar, QChar> promoteMap = {
-            {'P','Q'},{'L','M'},{'N','O'},{'S','T'},{'B','C'},{'R','U'},
-            {'p','q'},{'l','m'},{'n','o'},{'s','t'},{'b','c'},{'r','u'}
-        };
-        return promoteMap.contains(p) ? promoteMap[p] : p;
-    };
-
     // 1) 「成る」指定が来ていれば、先に成駒へ
     if (promote) {
-        selectedPiece = promotedOf(selectedPiece);
+        selectedPiece = ::promote(selectedPiece);
     }
 
     // 2) 元位置を空白に
     if ((fileFrom >= 1) && (fileFrom <= 9)) {
-        setData(fileFrom, rankFrom, ' ');
+        setData(fileFrom, rankFrom, Piece::None);
     }
 
     // 3) まず素の駒を置く（盤上のみ）
@@ -135,23 +137,23 @@ void ShogiBoard::movePieceToSquare(QChar selectedPiece, const int fileFrom, cons
         setData(fileTo, rankTo, selectedPiece);
 
         // 4) 置いた結果に対して「必成」補正（歩/桂/香）
-        QChar placed = getPieceCharacter(fileTo, rankTo);
+        Piece placed = getPieceCharacter(fileTo, rankTo);
 
         // 先手の必成
-        if (placed == 'P' && rankTo == 1) {
-            setData(fileTo, rankTo, 'Q'); // 先手歩 → と金
-        } else if (placed == 'L' && rankTo == 1) {
-            setData(fileTo, rankTo, 'M'); // 先手香 → 成香
-        } else if (placed == 'N' && (rankTo == 1 || rankTo == 2)) {
-            setData(fileTo, rankTo, 'O'); // 先手桂 → 成桂
+        if (placed == Piece::BlackPawn && rankTo == 1) {
+            setData(fileTo, rankTo, Piece::BlackPromotedPawn);
+        } else if (placed == Piece::BlackLance && rankTo == 1) {
+            setData(fileTo, rankTo, Piece::BlackPromotedLance);
+        } else if (placed == Piece::BlackKnight && (rankTo == 1 || rankTo == 2)) {
+            setData(fileTo, rankTo, Piece::BlackPromotedKnight);
         }
         // 後手の必成
-        else if (placed == 'p' && rankTo == 9) {
-            setData(fileTo, rankTo, 'q'); // 後手歩 → と金
-        } else if (placed == 'l' && rankTo == 9) {
-            setData(fileTo, rankTo, 'm'); // 後手香 → 成香
-        } else if (placed == 'n' && (rankTo == 8 || rankTo == 9)) {
-            setData(fileTo, rankTo, 'o'); // 後手桂 → 成桂
+        else if (placed == Piece::WhitePawn && rankTo == 9) {
+            setData(fileTo, rankTo, Piece::WhitePromotedPawn);
+        } else if (placed == Piece::WhiteLance && rankTo == 9) {
+            setData(fileTo, rankTo, Piece::WhitePromotedLance);
+        } else if (placed == Piece::WhiteKnight && (rankTo == 8 || rankTo == 9)) {
+            setData(fileTo, rankTo, Piece::WhitePromotedKnight);
         }
     }
 }
@@ -243,15 +245,20 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
     for (int i = 0; i < str.length(); ++i) {
         if (str[i].isDigit()) {
             if (isTwoDigits) {
-                if (i + 1 < str.length() && m_pieceStand.contains(str[i + 1])) {
-                    // 10の位と1の位を合算
-                    int twoDigits = 10 * str[i - 1].digitValue() + str[i].digitValue();
-
-                    QChar pieceType = str[i + 1];
-                    m_pieceStand[pieceType] += twoDigits;
-                    ++i;
-
-                    isTwoDigits = false;
+                if (i + 1 < str.length()) {
+                    Piece p = charToPiece(str[i + 1]);
+                    if (m_pieceStand.contains(p)) {
+                        // 10の位と1の位を合算
+                        int twoDigits = 10 * str[i - 1].digitValue() + str[i].digitValue();
+                        m_pieceStand[p] += twoDigits;
+                        ++i;
+                        isTwoDigits = false;
+                    }
+                    else {
+                        qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
+                                 i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
+                        return;
+                    }
                 }
                 else {
                     qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
@@ -260,15 +267,21 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                 }
             }
             else {
-                if (i + 1 < str.length() && m_pieceStand.contains(str[i + 1])) {
-                    int count = str[i].digitValue();
-
-                    QChar pieceType = str[i + 1];
-                    m_pieceStand[pieceType] += count;
-                    ++i;
-                }
-                else if (str[i+1].isDigit()) {
-                    isTwoDigits = true;
+                if (i + 1 < str.length()) {
+                    Piece p = charToPiece(str[i + 1]);
+                    if (m_pieceStand.contains(p)) {
+                        int count = str[i].digitValue();
+                        m_pieceStand[p] += count;
+                        ++i;
+                    }
+                    else if (str[i+1].isDigit()) {
+                        isTwoDigits = true;
+                    }
+                    else {
+                        qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
+                                 i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
+                        return;
+                    }
                 }
                 else {
                     qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
@@ -278,12 +291,15 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
             }
         }
         // 数字が前にない場合は1枚と数える
-        else if (m_pieceStand.contains(str[i])) {
-            m_pieceStand[str[i]] += 1;
-        }
         else {
-            qCWarning(lcCore, "Invalid piece type in stand string: %s", qUtf8Printable(str));
-            return;
+            Piece p = charToPiece(str[i]);
+            if (m_pieceStand.contains(p)) {
+                m_pieceStand[p] += 1;
+            }
+            else {
+                qCWarning(lcCore, "Invalid piece type in stand string: %s", qUtf8Printable(str));
+                return;
+            }
         }
     }
 }
@@ -296,67 +312,72 @@ void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
     int strIndex = 0;
     int emptySquares = 0;
     const int fileCount = files();
-    QChar pieceChar;
+    Piece pieceVal;
 
     for (int rank = 1; rank <= ranks(); ++rank) {
         for (int file = fileCount; file > 0; --file) {
             if (emptySquares > 0) {
-                pieceChar = ' ';
+                pieceVal = Piece::None;
                 emptySquares--;
             }
             else {
-                pieceChar = sfenStr.at(strIndex++);
+                QChar pieceChar = sfenStr.at(strIndex++);
 
                 if (pieceChar.isDigit()) {
                     emptySquares = pieceChar.toLatin1() - '0';
-                    pieceChar = ' ';
+                    pieceVal = Piece::None;
                     emptySquares--;
                 }
+                else {
+                    pieceVal = charToPiece(pieceChar);
+                }
             }
-            setDataInternal(file, rank, pieceChar.toLatin1());
+            setDataInternal(file, rank, pieceVal);
         }
 
         strIndex++;
     }
 }
 
+// SFEN文字列をパースし、各要素に分解する（副作用なしの static メソッド）。
+std::optional<SfenComponents> ShogiBoard::parseSfen(const QString& sfenStr)
+{
+    QStringList parts = sfenStr.split(QLatin1Char(' '));
+
+    if (parts.size() != 4) {
+        qCWarning(lcCore, "SFEN components: %lld in %s",
+                 static_cast<long long>(parts.size()), qUtf8Printable(sfenStr));
+        return std::nullopt;
+    }
+
+    const QString& turnStr = parts.at(1);
+    if (turnStr != QLatin1String("b") && turnStr != QLatin1String("w")) {
+        qCWarning(lcCore, "Invalid turn: %s in %s",
+                 qUtf8Printable(turnStr), qUtf8Printable(sfenStr));
+        return std::nullopt;
+    }
+
+    bool ok;
+    int moveNumber = parts.at(3).toInt(&ok);
+    if (!ok || moveNumber <= 0) {
+        qCWarning(lcCore, "Invalid move number in SFEN: %s", qUtf8Printable(sfenStr));
+        return std::nullopt;
+    }
+
+    return SfenComponents{parts.at(0), parts.at(2), sfenToTurn(turnStr), moveNumber};
+}
+
 // SFEN文字列を検証し、盤面・手番・持ち駒・手数の各要素に分解する。
 bool ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr)
 {
-    QStringList sfenComponents = sfenStr.split(" ");
-
-    if (sfenComponents.size() != 4) {
-        qCWarning(lcCore, "SFEN components: %lld in %s",
-                 static_cast<long long>(sfenComponents.size()), qUtf8Printable(sfenStr));
-
+    auto result = parseSfen(sfenStr);
+    if (!result)
         return false;
-    }
 
-    sfenBoardStr = sfenComponents.at(0);
-
-    QString playerTurnStr = sfenComponents.at(1);
-
-    if (playerTurnStr == "b" || playerTurnStr == "w") {
-        m_currentPlayer = sfenToTurn(playerTurnStr);
-    }
-    else {
-        qCWarning(lcCore, "Invalid turn: %s in %s",
-                 qUtf8Printable(playerTurnStr), qUtf8Printable(sfenStr));
-
-        return false;
-    }
-
-    sfenStandStr = sfenComponents.at(2);
-
-    bool conversionSuccessful;
-    m_currentMoveNumber = sfenComponents.at(3).toInt(&conversionSuccessful);
-
-    if (!conversionSuccessful || m_currentMoveNumber <= 0) {
-        qCWarning(lcCore, "Invalid move number in SFEN: %s", qUtf8Printable(sfenStr));
-
-        return false;
-    }
-
+    sfenBoardStr = result->board;
+    sfenStandStr = result->stand;
+    m_currentPlayer = result->turn;
+    m_currentMoveNumber = result->moveNumber;
     return true;
 }
 
@@ -370,22 +391,22 @@ void ShogiBoard::setSfen(const QString& sfenStr)
     // 4. 再描画シグナルを発行
 
     {
-        const QString preview = (sfenStr.size() > 200) ? sfenStr.left(200) + " ..." : sfenStr;
+        const QString preview = (sfenStr.size() > 200) ? sfenStr.left(200) + QStringLiteral(" ...") : sfenStr;
         qCDebug(lcCore, "setSfen: %s", qUtf8Printable(preview));
         if (sfenStr.startsWith(QLatin1String("position "))) {
             qCWarning(lcCore, "NON-SFEN passed to setSfen (caller bug)");
         }
     }
 
-    QString sfenBoardStr;
-    QString sfenStandStr;
-
-    if (!validateSfenString(sfenStr, sfenBoardStr, sfenStandStr))
+    auto parsed = parseSfen(sfenStr);
+    if (!parsed)
         return;
 
-    setPiecePlacementFromSfen(sfenBoardStr);
+    m_currentPlayer = parsed->turn;
+    m_currentMoveNumber = parsed->moveNumber;
 
-    setPieceStandFromSfen(sfenStandStr);
+    setPiecePlacementFromSfen(parsed->board);
+    setPieceStandFromSfen(parsed->stand);
 
     // ShogiView::setBoardのconnectで再描画がトリガされる
     emit boardReset();
@@ -395,13 +416,18 @@ void ShogiBoard::setSfen(const QString& sfenStr)
 // SFEN出力
 // ============================================================
 
-QString ShogiBoard::convertPieceToSfen(const QChar piece) const
+QString ShogiBoard::convertPieceToSfen(const Piece piece) const
 {
-    static const QMap<QChar, QString> sfenMap = {{'Q', "+P"}, {'M', "+L"}, {'O', "+N"}, {'T', "+S"},
-                                                 {'C', "+B"}, {'U', "+R"}, {'q', "+p"}, {'m', "+l"},
-                                                 {'o', "+n"}, {'t', "+s"}, {'c', "+b"}, {'u', "+r"}};
+    static const QMap<Piece, QString> sfenMap = {
+        {Piece::BlackPromotedPawn, "+P"}, {Piece::BlackPromotedLance, "+L"},
+        {Piece::BlackPromotedKnight, "+N"}, {Piece::BlackPromotedSilver, "+S"},
+        {Piece::BlackHorse, "+B"}, {Piece::BlackDragon, "+R"},
+        {Piece::WhitePromotedPawn, "+p"}, {Piece::WhitePromotedLance, "+l"},
+        {Piece::WhitePromotedKnight, "+n"}, {Piece::WhitePromotedSilver, "+s"},
+        {Piece::WhiteHorse, "+b"}, {Piece::WhiteDragon, "+r"}
+    };
 
-    return sfenMap.contains(piece) ? sfenMap.value(piece) : QString(piece);
+    return sfenMap.contains(piece) ? sfenMap.value(piece) : QString(pieceToChar(piece));
 }
 
 QString ShogiBoard::convertBoardToSfen()
@@ -412,9 +438,9 @@ QString ShogiBoard::convertBoardToSfen()
     for (int rank = 1; rank <= ranks(); ++rank) {
         int spacecount = 0;
         for (int file = files(); file > 0; --file) {
-            QChar piece = getPieceCharacter(file, rank);
+            Piece piece = getPieceCharacter(file, rank);
 
-            if (piece == ' ') {
+            if (piece == Piece::None) {
                 spacecount++;
 
                 if (spacecount == 9 || file == 1) {
@@ -442,9 +468,12 @@ QString ShogiBoard::convertStandToSfen() const
     QString handPiece;
     handPiece.reserve(40);
 
-    static const QList<QChar> keys = {'R', 'B', 'G', 'S', 'N', 'L', 'P'};
+    static const QList<Piece> keys = {
+        Piece::BlackRook, Piece::BlackBishop, Piece::BlackGold,
+        Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance, Piece::BlackPawn
+    };
 
-    for(const auto& key : keys) {
+    for (const auto& key : keys) {
         // 先手
         int value = m_pieceStand.value(key, 0);
         if (value > 0) {
@@ -452,9 +481,10 @@ QString ShogiBoard::convertStandToSfen() const
         }
 
         // 後手
-        value = m_pieceStand.value(key.toLower(), 0);
+        Piece whiteKey = toWhite(key);
+        value = m_pieceStand.value(whiteKey, 0);
         if (value > 0) {
-            handPiece += (value > 1 ? QString::number(value) : "") + convertPieceToSfen(key.toLower());
+            handPiece += (value > 1 ? QString::number(value) : "") + convertPieceToSfen(whiteKey);
         }
     }
 
@@ -522,32 +552,29 @@ void ShogiBoard::addSfenRecord(Turn nextTurn, int moveIndex, QStringList* sfenRe
 // 駒台操作
 // ============================================================
 
-// 成駒は相手の生駒に変換し、それ以外は大文字/小文字を反転する。
-QChar ShogiBoard::convertPieceChar(const QChar c) const
+// 成駒は相手の生駒に変換し、それ以外は先後を反転する。
+Piece ShogiBoard::convertPieceChar(const Piece c) const
 {
-    static const QMap<QChar, QChar> conversionMap = {
-        {'Q', 'p'}, {'M', 'l'}, {'O', 'n'}, {'T', 's'}, {'C', 'b'}, {'U', 'r'},
-        {'q', 'P'}, {'m', 'L'}, {'o', 'N'}, {'t', 'S'}, {'c', 'B'}, {'u', 'R'}
-    };
-
-    if (conversionMap.contains(c)) {
-        return conversionMap.value(c);
+    // 成駒→相手の生駒
+    if (isPromoted(c)) {
+        Piece base = demote(c);
+        return isBlackPiece(base) ? toWhite(base) : toBlack(base);
     }
-
-    return c.isUpper() ? c.toLower() : c.toUpper();
+    // 非成駒→先後反転
+    return isBlackPiece(c) ? toWhite(c) : toBlack(c);
 }
 
 // 指したマスに相手の駒があった場合、自分の駒台の枚数に1加える。
-void ShogiBoard::addPieceToStand(QChar dest)
+void ShogiBoard::addPieceToStand(Piece dest)
 {
-    QChar pieceChar = convertPieceChar(dest);
+    Piece pieceChar = convertPieceChar(dest);
 
     if (m_pieceStand.contains(pieceChar)) {
             m_pieceStand[pieceChar]++;
     }
 }
 
-void ShogiBoard::decrementPieceOnStand(QChar source)
+void ShogiBoard::decrementPieceOnStand(Piece source)
 {
     if (m_pieceStand.contains(source)) {
         m_pieceStand[source]--;
@@ -555,7 +582,7 @@ void ShogiBoard::decrementPieceOnStand(QChar source)
 }
 
 // 駒台から指そうとした場合、駒台の駒数が0以下なら指せない。
-bool ShogiBoard::isPieceAvailableOnStand(const QChar source, const int fileFrom) const
+bool ShogiBoard::isPieceAvailableOnStand(const Piece source, const int fileFrom) const
 {
     if (fileFrom == 10 || fileFrom == 11) {
         if (m_pieceStand.contains(source) && m_pieceStand[source] > 0) {
@@ -571,20 +598,18 @@ bool ShogiBoard::isPieceAvailableOnStand(const QChar source, const int fileFrom)
     }
 }
 
-QChar ShogiBoard::convertPromotedPieceToOriginal(const QChar dest) const
+Piece ShogiBoard::convertPromotedPieceToOriginal(const Piece dest) const
 {
-    static const QMap<QChar, QChar> promotedToOriginalMap = {
-        {'Q', 'P'}, {'M', 'L'}, {'O', 'N'}, {'T', 'S'}, {'C', 'B'}, {'U', 'R'},
-        {'q', 'p'}, {'m', 'l'}, {'o', 'n'}, {'t', 's'}, {'c', 'b'}, {'u', 'r'}
-    };
-
-    return promotedToOriginalMap.value(dest, dest);
+    if (isPromoted(dest)) {
+        return demote(dest);
+    }
+    return dest;
 }
 
 // 自分の駒台に駒を置いた場合、自分の駒台の枚数に1加える。
-void ShogiBoard::incrementPieceOnStand(const QChar dest)
+void ShogiBoard::incrementPieceOnStand(const Piece dest)
 {
-    QChar originalPiece = convertPromotedPieceToOriginal(dest);
+    Piece originalPiece = convertPromotedPieceToOriginal(dest);
 
     if (m_pieceStand.contains(originalPiece)) {
         m_pieceStand[originalPiece]++;
@@ -596,7 +621,7 @@ void ShogiBoard::incrementPieceOnStand(const QChar dest)
 // ============================================================
 
 // 局面編集中に使用される。将棋盤と駒台の駒を更新する。
-void ShogiBoard::updateBoardAndPieceStand(const QChar source, const QChar dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote)
+void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote)
 {
     if (fileTo < 10) {
         // 指したマスに相手の駒があった場合、自分の駒台に加える
@@ -615,9 +640,13 @@ void ShogiBoard::updateBoardAndPieceStand(const QChar source, const QChar dest, 
 
 void ShogiBoard::setInitialPieceStandValues()
 {
-    static const QList<QPair<QChar, int>> initialValues = {
-        {'P', 9}, {'L', 2}, {'N', 2}, {'S', 2}, {'G', 2}, {'B', 1}, {'R', 1}, {'K', 1},
-        {'k', 1}, {'r', 1}, {'b', 1}, {'g', 2}, {'s', 2}, {'n', 2}, {'l', 2}, {'p', 9},
+    static const QList<QPair<Piece, int>> initialValues = {
+        {Piece::BlackPawn, 9}, {Piece::BlackLance, 2}, {Piece::BlackKnight, 2},
+        {Piece::BlackSilver, 2}, {Piece::BlackGold, 2}, {Piece::BlackBishop, 1},
+        {Piece::BlackRook, 1}, {Piece::BlackKing, 1},
+        {Piece::WhiteKing, 1}, {Piece::WhiteRook, 1}, {Piece::WhiteBishop, 1},
+        {Piece::WhiteGold, 2}, {Piece::WhiteSilver, 2}, {Piece::WhiteKnight, 2},
+        {Piece::WhiteLance, 2}, {Piece::WhitePawn, 9},
     };
 
     for (const auto& pair : initialValues) {
@@ -628,29 +657,34 @@ void ShogiBoard::setInitialPieceStandValues()
 // 先手と後手の駒を同じ枚数にして全ての駒を駒台に載せる。
 void ShogiBoard::resetGameBoard()
 {
-    m_boardData.fill(' ', ranks() * files());
+    m_boardData.fill(Piece::None, ranks() * files());
     setInitialPieceStandValues();
 }
 
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
 void ShogiBoard::flipSides()
 {
-    QVector<QChar> originalBoardData = m_boardData;
-    QVector<QChar> newBoardData;
+    QVector<Piece> originalBoardData = m_boardData;
+    QVector<Piece> newBoardData;
 
     for (int i = 0; i < 81; i++) {
-        QChar pieceChar = originalBoardData.at(80 - i);
-        pieceChar = pieceChar.isLower() ? pieceChar.toUpper() : pieceChar.toLower();
-        newBoardData.append(pieceChar);
+        Piece piece = originalBoardData.at(80 - i);
+        // 先後反転
+        if (isBlackPiece(piece)) {
+            piece = toWhite(piece);
+        } else if (isWhitePiece(piece)) {
+            piece = toBlack(piece);
+        }
+        newBoardData.append(piece);
     }
 
     m_boardData = newBoardData;
 
-    const QMap<QChar, int> originalPieceStand = m_pieceStand;
+    const QMap<Piece, int> originalPieceStand = m_pieceStand;
 
     for (auto it = originalPieceStand.cbegin(); it != originalPieceStand.cend(); ++it) {
-        QChar flippedChar = it.key().isLower() ? it.key().toUpper() : it.key().toLower();
-        m_pieceStand[flippedChar] = it.value();
+        Piece flipped = isBlackPiece(it.key()) ? toWhite(it.key()) : toBlack(it.key());
+        m_pieceStand[flipped] = it.value();
     }
 }
 
@@ -666,22 +700,22 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     // 2. 禁置き段・二歩の候補をフィルタ
     // 3. フィルタ済みリストで次の候補に切り替え
 
-    auto nextInCycle = [](const QVector<QChar>& cyc, QChar cur)->QChar {
+    auto nextInCycle = [](const QVector<Piece>& cyc, Piece cur)->Piece {
         qsizetype idx = cyc.indexOf(cur);
         if (idx < 0) return cur;
         return cyc[(idx + 1) % cyc.size()];
     };
 
-    const auto lanceCycle  = QVector<QChar>{'L','M','l','m'};
-    const auto knightCycle = QVector<QChar>{'N','O','n','o'};
-    const auto silverCycle = QVector<QChar>{'S','T','s','t'};
-    const auto bishopCycle = QVector<QChar>{'B','C','b','c'};
-    const auto rookCycle   = QVector<QChar>{'R','U','r','u'};
-    const auto pawnCycle   = QVector<QChar>{'P','Q','p','q'};
+    const auto lanceCycle  = QVector<Piece>{Piece::BlackLance, Piece::BlackPromotedLance, Piece::WhiteLance, Piece::WhitePromotedLance};
+    const auto knightCycle = QVector<Piece>{Piece::BlackKnight, Piece::BlackPromotedKnight, Piece::WhiteKnight, Piece::WhitePromotedKnight};
+    const auto silverCycle = QVector<Piece>{Piece::BlackSilver, Piece::BlackPromotedSilver, Piece::WhiteSilver, Piece::WhitePromotedSilver};
+    const auto bishopCycle = QVector<Piece>{Piece::BlackBishop, Piece::BlackHorse, Piece::WhiteBishop, Piece::WhiteHorse};
+    const auto rookCycle   = QVector<Piece>{Piece::BlackRook, Piece::BlackDragon, Piece::WhiteRook, Piece::WhiteDragon};
+    const auto pawnCycle   = QVector<Piece>{Piece::BlackPawn, Piece::BlackPromotedPawn, Piece::WhitePawn, Piece::WhitePromotedPawn};
 
-    const QChar cur = getPieceCharacter(fileFrom, rankFrom);
-    QVector<QChar> base;
-    switch (cur.unicode()) {
+    const Piece cur = getPieceCharacter(fileFrom, rankFrom);
+    QVector<Piece> base;
+    switch (static_cast<char>(cur)) {
     case 'L': case 'M': case 'l': case 'm': base = lanceCycle;  break;
     case 'N': case 'O': case 'n': case 'o': base = knightCycle; break;
     case 'S': case 'T': case 's': case 't': base = silverCycle; break;
@@ -694,44 +728,44 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 
     const bool onBoard = (fileFrom >= 1 && fileFrom <= 9);
 
-    auto isRankDisallowed = [&](QChar piece)->bool {
+    auto isRankDisallowed = [&](Piece piece)->bool {
         if (!onBoard) return false;
-        if (piece == 'L' && rankFrom == 1) return true;
-        if (piece == 'N' && (rankFrom == 1 || rankFrom == 2)) return true;
-        if (piece == 'P' && rankFrom == 1) return true;
-        if (piece == 'l' && rankFrom == 9) return true;
-        if (piece == 'n' && (rankFrom == 8 || rankFrom == 9)) return true;
-        if (piece == 'p' && rankFrom == 9) return true;
+        if (piece == Piece::BlackLance && rankFrom == 1) return true;
+        if (piece == Piece::BlackKnight && (rankFrom == 1 || rankFrom == 2)) return true;
+        if (piece == Piece::BlackPawn && rankFrom == 1) return true;
+        if (piece == Piece::WhiteLance && rankFrom == 9) return true;
+        if (piece == Piece::WhiteKnight && (rankFrom == 8 || rankFrom == 9)) return true;
+        if (piece == Piece::WhitePawn && rankFrom == 9) return true;
         return false;
     };
 
-    auto isNiFuDisallowed = [&](QChar candidate)->bool {
+    auto isNiFuDisallowed = [&](Piece candidate)->bool {
         if (!onBoard) return false;
-        if (candidate != 'P' && candidate != 'p') return false;
+        if (candidate != Piece::BlackPawn && candidate != Piece::WhitePawn) return false;
         for (int r = 1; r <= 9; ++r) {
             if (r == rankFrom) continue;
-            const QChar pc = getPieceCharacter(fileFrom, r);
-            if (candidate == 'P' && pc == 'P') return true;
-            if (candidate == 'p' && pc == 'p') return true;
+            const Piece pc = getPieceCharacter(fileFrom, r);
+            if (candidate == Piece::BlackPawn && pc == Piece::BlackPawn) return true;
+            if (candidate == Piece::WhitePawn && pc == Piece::WhitePawn) return true;
         }
         return false;
     };
 
-    auto isDisallowed = [&](QChar piece)->bool {
+    auto isDisallowed = [&](Piece piece)->bool {
         return isRankDisallowed(piece) || isNiFuDisallowed(piece);
     };
 
-    QVector<QChar> filtered;
+    QVector<Piece> filtered;
     filtered.reserve(base.size());
-    for (QChar p : std::as_const(base)) {
+    for (Piece p : std::as_const(base)) {
         if (!isDisallowed(p)) filtered.push_back(p);
     }
     if (filtered.isEmpty()) return;
 
     // 現在形がfiltered外（既に禁止形）なら、baseを回して最初の許可形へジャンプ
-    QChar next = cur;
+    Piece next = cur;
     if (filtered.indexOf(cur) < 0) {
-        QChar probe = cur;
+        Piece probe = cur;
         for (qsizetype i = 0; i < base.size(); ++i) {
             probe = nextInCycle(base, probe);
             if (filtered.indexOf(probe) >= 0) { next = probe; break; }
@@ -750,15 +784,11 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 
 void ShogiBoard::printPlayerPieces(const QString& player, const QString& pieceSet) const
 {
-    static const QMap<QChar, QString> pieceNames = {
-        {'K', "玉"}, {'R', "飛"}, {'B', "角"}, {'G', "金"}, {'S', "銀"}, {'N', "桂"}, {'L', "香"}, {'P', "歩"},
-        {'k', "玉"}, {'r', "飛"}, {'b', "角"}, {'g', "金"}, {'s', "銀"}, {'n', "桂"}, {'l', "香"}, {'p', "歩"}
-    };
-
     qCDebug(lcCore, "%s の持ち駒", qUtf8Printable(player));
 
-    for (const QChar& piece : pieceSet) {
-        qCDebug(lcCore, "%s  %d", qUtf8Printable(pieceNames[piece]), m_pieceStand[piece]);
+    for (const QChar& ch : pieceSet) {
+        Piece piece = charToPiece(ch);
+        qCDebug(lcCore, "%s  %d", qUtf8Printable(QString(ch)), m_pieceStand.value(piece, 0));
     }
 }
 
@@ -771,20 +801,20 @@ void ShogiBoard::printPieceStand()
 void ShogiBoard::printPieceCount() const
 {
     qCDebug(lcCore, "先手の持ち駒:");
-    qCDebug(lcCore, "歩:  %d", m_pieceStand['P']);
-    qCDebug(lcCore, "香車:  %d", m_pieceStand['L']);
-    qCDebug(lcCore, "桂馬:  %d", m_pieceStand['N']);
-    qCDebug(lcCore, "銀:  %d", m_pieceStand['S']);
-    qCDebug(lcCore, "金:  %d", m_pieceStand['G']);
-    qCDebug(lcCore, "角:  %d", m_pieceStand['B']);
-    qCDebug(lcCore, "飛車:  %d", m_pieceStand['R']);
+    qCDebug(lcCore, "歩:  %d", m_pieceStand.value(Piece::BlackPawn, 0));
+    qCDebug(lcCore, "香車:  %d", m_pieceStand.value(Piece::BlackLance, 0));
+    qCDebug(lcCore, "桂馬:  %d", m_pieceStand.value(Piece::BlackKnight, 0));
+    qCDebug(lcCore, "銀:  %d", m_pieceStand.value(Piece::BlackSilver, 0));
+    qCDebug(lcCore, "金:  %d", m_pieceStand.value(Piece::BlackGold, 0));
+    qCDebug(lcCore, "角:  %d", m_pieceStand.value(Piece::BlackBishop, 0));
+    qCDebug(lcCore, "飛車:  %d", m_pieceStand.value(Piece::BlackRook, 0));
 
     qCDebug(lcCore, "後手の持ち駒:");
-    qCDebug(lcCore, "歩:  %d", m_pieceStand['p']);
-    qCDebug(lcCore, "香車:  %d", m_pieceStand['l']);
-    qCDebug(lcCore, "桂馬:  %d", m_pieceStand['n']);
-    qCDebug(lcCore, "銀:  %d", m_pieceStand['s']);
-    qCDebug(lcCore, "金:  %d", m_pieceStand['g']);
-    qCDebug(lcCore, "角:  %d", m_pieceStand['b']);
-    qCDebug(lcCore, "飛車:  %d", m_pieceStand['r']);
+    qCDebug(lcCore, "歩:  %d", m_pieceStand.value(Piece::WhitePawn, 0));
+    qCDebug(lcCore, "香車:  %d", m_pieceStand.value(Piece::WhiteLance, 0));
+    qCDebug(lcCore, "桂馬:  %d", m_pieceStand.value(Piece::WhiteKnight, 0));
+    qCDebug(lcCore, "銀:  %d", m_pieceStand.value(Piece::WhiteSilver, 0));
+    qCDebug(lcCore, "金:  %d", m_pieceStand.value(Piece::WhiteGold, 0));
+    qCDebug(lcCore, "角:  %d", m_pieceStand.value(Piece::WhiteBishop, 0));
+    qCDebug(lcCore, "飛車:  %d", m_pieceStand.value(Piece::WhiteRook, 0));
 }

@@ -3,7 +3,7 @@
 
 #include "csagamewiring.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QStatusBar>
 #include <QModelIndex>
 #include <QTableView>

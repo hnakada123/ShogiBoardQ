@@ -10,7 +10,7 @@
 #include <QMessageBox>
 #include <QAction>
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 DockLayoutManager::DockLayoutManager(QMainWindow* mainWindow, QObject* parent)
     : QObject(parent)

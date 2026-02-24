@@ -9,7 +9,7 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QFileInfo>
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)

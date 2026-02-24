@@ -3,7 +3,7 @@
 
 #include "timecontrolutil.h"
 #include "gamestartcoordinator.h"
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include "shogiclock.h"
 #include <QTime>
 

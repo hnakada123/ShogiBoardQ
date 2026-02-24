@@ -4,7 +4,7 @@
 #include "livegamesession.h"
 #include "kifubranchtree.h"
 
-#include "kifulogging.h"
+#include "logcategories.h"
 #include <QSet>
 
 LiveGameSession::LiveGameSession(QObject* parent)

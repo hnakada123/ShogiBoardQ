@@ -3,7 +3,7 @@
 
 #include "usicommandcontroller.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "matchcoordinator.h"
 #include "engineanalysistab.h"

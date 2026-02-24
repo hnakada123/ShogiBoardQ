@@ -555,6 +555,10 @@ int tsumeshogiGeneratorMaxPositions();
 /// 詰将棋局面生成の生成上限を保存
 void setTsumeshogiGeneratorMaxPositions(int count);
 
+/// 設定バージョンのマイグレーション
+/// アプリ起動時に呼び出し、必要に応じて設定キーの移行を行う
+void migrateSettingsIfNeeded();
+
 } // namespace SettingsService
 
 #endif // SETTINGSSERVICE_H

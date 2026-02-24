@@ -4,7 +4,7 @@
 #include "kifunavigationstate.h"
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
-#include "kifulogging.h"
+#include "logcategories.h"
 
 KifuNavigationState::KifuNavigationState(QObject* parent)
     : QObject(parent)
@@ -106,8 +106,6 @@ void KifuNavigationState::setCurrentNode(KifuBranchNode* node)
                               << "newNodeDisplayText=" << (node ? node->displayText() : "null");
 
     m_currentNode = node;
-
-    emit currentNodeChanged(m_currentNode, oldNode);
 }
 
 void KifuNavigationState::goToRoot()

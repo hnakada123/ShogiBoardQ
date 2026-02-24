@@ -9,7 +9,7 @@
 #include <QLabel>
 #include <QDebug>
 
-Q_DECLARE_LOGGING_CATEGORY(lcView)
+#include "logcategories.h"
 
 // 駒台セル矩形の計算ユーティリティ（shogiview.cpp と同一ロジック）
 static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int offsetY, const QRect& fieldRect, bool leftSide)

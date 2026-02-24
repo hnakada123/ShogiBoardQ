@@ -3,7 +3,7 @@
 
 #include "boardsetupcontroller.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QTimer>
 #include <QWheelEvent>
 #include <QEvent>

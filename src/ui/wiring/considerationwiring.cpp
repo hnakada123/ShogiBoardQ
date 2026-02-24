@@ -3,7 +3,7 @@
 
 #include "considerationwiring.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "shogiview.h"
 #include "matchcoordinator.h"

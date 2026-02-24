@@ -8,7 +8,7 @@
 #include "recordpane.h"
 
 #include <QAbstractItemView>
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QTableView>
 #include <QItemSelectionModel>
 

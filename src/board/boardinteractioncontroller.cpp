@@ -6,12 +6,11 @@
 #include "shogiview.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
+#include "shogitypes.h"
 #include <QColor>
 #include <QClipboard>
 #include <QApplication>
-#include <QLoggingCategory>
-
-Q_LOGGING_CATEGORY(lcBoard, "shogi.board")
+#include "logcategories.h"
 
 // ======================================================================
 // 初期化
@@ -22,8 +21,11 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
                                                        QObject* parent)
     : QObject(parent), m_view(view), m_gc(gc)
 {
-    Q_ASSERT(m_view);
-    Q_ASSERT(m_gc);
+    if (Q_UNLIKELY(!m_view) || Q_UNLIKELY(!m_gc)) {
+        qCWarning(lcBoard, "BoardInteractionController: required dependency is null (view=%p, gc=%p)",
+                  static_cast<void*>(m_view), static_cast<void*>(m_gc));
+        return;
+    }
 
     // ShogiView::removeHighlightAllData() が呼ばれたときに
     // 本クラスが保持するハイライトポインタをnullにする（ダングリングポインタ防止）
@@ -51,7 +53,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
 
     // 駒台クリック時：枚数0を弾く（1stクリックのときのみ）
     if (!m_waitingSecondClick && (pt.x() == kBlackStandFile || pt.x() == kWhiteStandFile)) {
-        const QChar piece = m_view->board()->getPieceCharacter(pt.x(), pt.y());
+        const Piece piece = m_view->board()->getPieceCharacter(pt.x(), pt.y());
         if (m_view->board()->getPieceStand().value(piece) <= 0) {
             return; // 持ち駒がないマスはドラッグさせない
         }
@@ -174,7 +176,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     auto* board = m_view->board();
     const int file = field.x();
     const int rank = field.y();
-    const QChar value = board->getPieceCharacter(file, rank);
+    const Piece value = board->getPieceCharacter(file, rank);
 
     // 盤編集モードでないとき、相手の駒台は触らせない
     if (!m_view->positionEditMode()) {
@@ -196,7 +198,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     }
 
     // 盤上の空白は選択しない
-    if (value == QChar(' ')) {
+    if (value == Piece::None) {
         m_clickPoint = QPoint();
         return;
     }
@@ -255,7 +257,7 @@ void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field
 
     // 盤外（駒台）や空白は何もしない
     if (file >= kBlackStandFile) return;
-    if (board->getPieceCharacter(file, rank) == QChar(' ')) return;
+    if (board->getPieceCharacter(file, rank) == Piece::None) return;
 
     m_gc->switchPiecePromotionStatusOnRightClick(file, rank);
 

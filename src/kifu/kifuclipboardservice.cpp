@@ -3,7 +3,7 @@
 
 #include "kifuclipboardservice.h"
 #include "gamerecordmodel.h"
-#include "kifulogging.h"
+#include "logcategories.h"
 #include "shogimove.h"
 
 #include <QApplication>
@@ -99,7 +99,7 @@ QStringList gameMovesToUsiMoves(const QVector<ShogiMove>& moves)
         // 駒打ち判定: x >= 9 は駒打ち
         if (mv.fromSquare.x() >= 9) {
             // 駒打ち: "P*5e" 形式
-            QChar pieceChar = mv.movingPiece.toUpper();
+            QChar pieceChar = pieceToChar(toBlack(mv.movingPiece));
             int toFile = mv.toSquare.x() + 1;
             int toRank = mv.toSquare.y() + 1;
             QChar toRankChar = QChar('a' + toRank - 1);

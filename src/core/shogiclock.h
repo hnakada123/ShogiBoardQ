@@ -8,9 +8,6 @@
 #include <QTimer>
 #include <QStack>
 #include <QElapsedTimer>
-#include <QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(lcShogiClock)
 
 /**
  * @brief 将棋対局の持ち時間・秒読み・インクリメント・考慮時間を管理するクラス

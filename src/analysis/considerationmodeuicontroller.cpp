@@ -3,6 +3,7 @@
 
 #include "considerationmodeuicontroller.h"
 
+#include "logcategories.h"
 #include "analysisflowcontroller.h"
 #include "considerationtabmanager.h"
 #include "engineinfowidget.h"

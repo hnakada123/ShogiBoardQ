@@ -4,7 +4,6 @@
 /// usiprotocolhandler.cpp が参照する外部シンボルのスタブ実装を提供する。
 /// テストではエンジンプロセスを起動せず、プロトコル解析ロジックのみを検証する。
 
-#include <QLoggingCategory>
 #include <QProcess>
 
 #include "engineprocessmanager.h"
@@ -12,9 +11,6 @@
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
 #include "settingsservice.h"
-
-// === ログカテゴリ ===
-Q_LOGGING_CATEGORY(lcEngine, "shogi.engine")
 
 // === EngineProcessManager スタブ ===
 EngineProcessManager::EngineProcessManager(QObject* parent) : QObject(parent) {}

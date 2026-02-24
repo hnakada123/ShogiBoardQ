@@ -6,7 +6,7 @@
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "kifubranchtree.h"
-#include "kifulogging.h"
+#include "logcategories.h"
 
 #include <QJsonArray>
 #include <QJsonDocument>

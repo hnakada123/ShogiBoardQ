@@ -12,11 +12,9 @@
 #include <QVector>
 #include <QDateTime>
 #include <QElapsedTimer>
-#include <QLoggingCategory>
 
 #include "shogigamecontroller.h"
 
-Q_DECLARE_LOGGING_CATEGORY(lcGame)
 #include "shogimove.h"
 #include "playmode.h"
 
@@ -43,11 +41,9 @@ class StartGameDialog;
 class MatchCoordinator : public QObject {
     Q_OBJECT
 
-    friend class HumanVsHumanStrategy;
-    friend class HumanVsEngineStrategy;
-    friend class EngineVsEngineStrategy;
-
 public:
+    class StrategyContext;
+    StrategyContext& strategyCtx();
     // --- 型定義 ---
 
     /// 対局者を表す列挙値
@@ -518,7 +514,8 @@ private:
     Usi*                 m_usi2 = nullptr;    ///< エンジン2
     Hooks                m_hooks;             ///< UIコールバック群
 
-    std::unique_ptr<GameModeStrategy> m_strategy; ///< 対局モード別Strategy
+    std::unique_ptr<StrategyContext>  m_strategyCtx; ///< Strategy用コンテキスト
+    std::unique_ptr<GameModeStrategy> m_strategy;    ///< 対局モード別Strategy
 
     Player m_cur = P1;                        ///< 現在手番
 

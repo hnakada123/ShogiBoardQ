@@ -2,6 +2,7 @@
 /// @brief USI手列を順に適用して各手後のSFEN局面を生成する簡易トレーサの実装
 
 #include "sfenpositiontracer.h"
+#include "shogitypes.h"
 #include <QtGlobal>
 #include <QHash>
 #include <QPoint>
@@ -377,7 +378,7 @@ QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen
             const QChar  captured= QLatin1Char(' ');
             const bool   promo   = false;
 
-            out.push_back(ShogiMove(from, to, moving, captured, promo));
+            out.push_back(ShogiMove(from, to, charToPiece(moving), charToPiece(captured), promo));
             tracer.applyUsiMove(usi);
             continue;
         }
@@ -402,7 +403,7 @@ QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen
         const QChar moving   = tokenToOneChar(fromTok);
         const QChar captured = tokenToOneChar(toTok);
 
-        out.push_back(ShogiMove(from, to, moving, captured, isProm));
+        out.push_back(ShogiMove(from, to, charToPiece(moving), charToPiece(captured), isProm));
         tracer.applyUsiMove(usi);
     }
 

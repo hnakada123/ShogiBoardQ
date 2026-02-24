@@ -9,22 +9,22 @@
 #include <QPushButton>
 #include <QToolButton>
 #include <QCheckBox>
-#include <QVBoxLayout>
-#include <QGroupBox>
 #include <QLabel>
 #include <QTableWidget>
 #include <QMap>
 #include <QVector>
-#include <QCloseEvent>
-#include <QShowEvent>
 #include <QMenu>
 #include <QStringList>
 #include <QAction>
-#include <QFrame>
 #include <QSet>
-#include <QDockWidget>
 
 // 前方宣言
+class QVBoxLayout;
+class QGroupBox;
+class QCloseEvent;
+class QShowEvent;
+class QFrame;
+class QDockWidget;
 class SfenPositionTracer;
 
 /**

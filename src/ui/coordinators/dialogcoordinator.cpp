@@ -5,7 +5,7 @@
 
 #include <QWidget>
 #include <QMessageBox>
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "aboutcoordinator.h"
 #include "enginesettingscoordinator.h"
@@ -418,7 +418,7 @@ bool DialogCoordinator::startConsiderationFromContext()
         const int moveIdx = *m_considerationCtx.currentMoveIndex;
         const int movesSize = static_cast<int>(m_considerationCtx.gameMoves->size());
         if (movesSize > 0 && moveIdx >= 0 && moveIdx < movesSize) {
-            if (m_considerationCtx.gameMoves->at(moveIdx).movingPiece.isUpper())
+            if (isBlackPiece(m_considerationCtx.gameMoves->at(moveIdx).movingPiece))
                 m_considerationCtx.gameController->setCurrentPlayer(ShogiGameController::Player1);
             else
                 m_considerationCtx.gameController->setCurrentPlayer(ShogiGameController::Player2);
@@ -503,7 +503,7 @@ bool DialogCoordinator::startConsiderationFromContext()
 
                 if (currentNode) {
                     const ShogiMove mv = currentNode->move();
-                    if (mv.movingPiece != QLatin1Char(' ')) {
+                    if (mv.movingPiece != Piece::None) {
                         params.lastUsiMove = ShogiUtils::moveToUsi(mv);
                         qCDebug(lcUi).noquote() << "lastUsiMove (from branch node move):" << params.lastUsiMove;
                     }

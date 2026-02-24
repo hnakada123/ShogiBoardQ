@@ -251,9 +251,9 @@ QChar TsumeshogiPositionGenerator::promotedPieceChar(QChar base)
     return promotionMap.value(base, base);
 }
 
-QVector<QChar> TsumeshogiPositionGenerator::buildBoardData() const
+QVector<Piece> TsumeshogiPositionGenerator::buildBoardData() const
 {
-    QVector<QChar> boardData(81, QChar(' '));
+    QVector<Piece> boardData(81, Piece::None);
 
     for (int rank = 0; rank < 9; ++rank) {
         for (int file = 0; file < 9; ++file) {
@@ -263,9 +263,9 @@ QVector<QChar> TsumeshogiPositionGenerator::buildBoardData() const
             if (c.unicode() >= 0xE000) {
                 // 成駒: Private Use Area からベース文字を復元し、成駒文字に変換
                 const QChar base = QChar(c.unicode() - 0xE000);
-                boardData[rank * 9 + file] = promotedPieceChar(base);
+                boardData[rank * 9 + file] = charToPiece(promotedPieceChar(base));
             } else {
-                boardData[rank * 9 + file] = c;
+                boardData[rank * 9 + file] = charToPiece(c);
             }
         }
     }
@@ -274,7 +274,7 @@ QVector<QChar> TsumeshogiPositionGenerator::buildBoardData() const
 
 bool TsumeshogiPositionGenerator::isKingInCheck() const
 {
-    const QVector<QChar> boardData = buildBoardData();
+    const QVector<Piece> boardData = buildBoardData();
     FastMoveValidator validator;
     // 後手(WHITE)の玉に先手(BLACK)の駒から王手がかかっているか
     return validator.checkIfKingInCheck(FastMoveValidator::WHITE, boardData) > 0;

@@ -79,7 +79,7 @@ QPoint ShogiViewInteraction::getClickedSquareInDefaultState(const QPoint& pos,
     // 3) 局面編集モード中のドラッグドロップ先（駒種でセル固定）
     if (m_positionEditMode && m_dragging) {
         if (senteStandRect.contains(pos)) {
-            const QChar p = m_dragPiece;
+            const QChar p = pieceToChar(m_dragPiece);
             if (p != QChar(' ')) {
                 const QChar up = baseFrom(p).toUpper(); // 成→未成→大文字
                 if      (up == 'P') return QPoint(10, 1);
@@ -94,7 +94,7 @@ QPoint ShogiViewInteraction::getClickedSquareInDefaultState(const QPoint& pos,
             return QPoint();
         }
         if (goteStandRect.contains(pos)) {
-            const QChar p = m_dragPiece;
+            const QChar p = pieceToChar(m_dragPiece);
             if (p != QChar(' ')) {
                 const QChar low = baseFrom(p); // 成→未成（小文字）
                 if      (low == 'p') return QPoint(11, 9);
@@ -205,7 +205,7 @@ QPoint ShogiViewInteraction::getClickedSquareInFlippedState(const QPoint& pos,
     // 3) ドラッグ中の駒台ドロップ
     if (m_positionEditMode && m_dragging) {
         if (senteStandRect.contains(pos)) {
-            const QChar p = m_dragPiece;
+            const QChar p = pieceToChar(m_dragPiece);
             if (p != QChar(' ')) {
                 const QChar up = baseFrom(p).toUpper();
                 if      (up == 'P') return QPoint(10, 1);
@@ -220,7 +220,7 @@ QPoint ShogiViewInteraction::getClickedSquareInFlippedState(const QPoint& pos,
             return QPoint();
         }
         if (goteStandRect.contains(pos)) {
-            const QChar p = m_dragPiece;
+            const QChar p = pieceToChar(m_dragPiece);
             if (p != QChar(' ')) {
                 const QChar low = baseFrom(p);
                 if      (low == 'p') return QPoint(11, 9);
@@ -296,7 +296,7 @@ void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
     // 【駒台からのドラッグ可否チェック】
     // file=10/11 は駒台。対象駒の在庫が 0 以下ならドラッグ開始しない。
     if ((from.x() == 10 || from.x() == 11)) {
-        QChar piece = board->getPieceCharacter(from.x(), from.y());
+        Piece piece = board->getPieceCharacter(from.x(), from.y());
         if (board->m_pieceStand.value(piece) <= 0) return;
     }
 
@@ -335,10 +335,10 @@ void ShogiViewInteraction::drawDraggingPiece(QPainter& painter,
                                               const QMap<QChar, QIcon>& pieces)
 {
     // 【前提確認】ドラッグ中でなければ何もしない／駒種が空白なら描かない
-    if (!m_dragging || m_dragPiece == ' ') return;
+    if (!m_dragging || m_dragPiece == Piece::None) return;
 
     // 【アイコン取得】該当駒のアイコンが無ければ描かない（安全弁）
-    const QIcon icon = pieces.value(QChar(m_dragPiece), QIcon());
+    const QIcon icon = pieces.value(pieceToChar(m_dragPiece), QIcon());
     if (icon.isNull()) return;
 
     // 【描画矩形算出】ドラッグ座標を矩形の中心に据える（縦長マス）

@@ -3,7 +3,7 @@
 
 #include "josekiwindowwiring.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 
 #include "josekiwindow.h"
 #include "shogigamecontroller.h"

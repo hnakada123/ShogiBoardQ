@@ -6,6 +6,7 @@
 #include <QPoint>
 #include <QDebug>
 
+#include "logcategories.h"
 #include "matchcoordinator.h"
 #include "shogiboard.h"
 #include "shogimove.h"
@@ -67,7 +68,6 @@ void ShogiGameController::setBoard(ShogiBoard* board)
     if (m_board) delete m_board;
 
     m_board = board;
-    emit boardChanged(m_board);
 }
 
 // ============================================================
@@ -78,13 +78,7 @@ void ShogiGameController::setResult(Result value)
 {
     if (result() == value) return;
 
-    // 初回設定時のみ gameOver シグナルを発行する
-    if (result() == NoResult) {
-        m_result = value;
-        emit gameOver(m_result);
-    } else {
-        m_result = value;
-    }
+    m_result = value;
 }
 
 void ShogiGameController::resetResult()
@@ -205,7 +199,7 @@ QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const in
     return moveStr;
 }
 
-QString ShogiGameController::getPieceKanji(const QChar& piece)
+QString ShogiGameController::getPieceKanji(const Piece piece)
 {
     static const QMap<QChar, QString> pieceKanjiNames = {
         {' ', "　"},
@@ -215,13 +209,14 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
         {'q', "と"}, {'m', "杏"}, {'o', "圭"}, {'t', "全"}, {'c', "馬"}, {'u', "龍"}
     };
 
-    auto it = pieceKanjiNames.find(piece);
+    const QChar pieceChar = pieceToChar(piece);
+    auto it = pieceKanjiNames.find(pieceChar);
 
     if (it != pieceKanjiNames.end()) {
         return it.value();
     }
     else {
-        qCWarning(lcGame) << "getPieceKanji: The piece" << piece << "is not found.";
+        qCWarning(lcGame) << "getPieceKanji: The piece" << pieceChar << "is not found.";
     }
 
     return QString();
@@ -233,7 +228,7 @@ QString ShogiGameController::getPieceKanji(const QChar& piece)
 
 bool ShogiGameController::decidePromotion(PlayMode& playMode, FastMoveValidator& validator,
                                           const FastMoveValidator::Turn& turnMove,
-                                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, QChar& piece, ShogiMove& currentMove)
+                                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove)
 {
     // 駒台には指せない
     if (fileTo >= 10) return false;
@@ -296,7 +291,7 @@ bool ShogiGameController::isCurrentPlayerHumanControlled(PlayMode& playMode)
            || (playMode == PlayMode::CsaNetworkMode);
 }
 
-void ShogiGameController::decidePromotionByDialog(QChar& piece, int& rankFrom, int& rankTo)
+void ShogiGameController::decidePromotionByDialog(Piece piece, int& rankFrom, int& rankTo)
 {
     auto player = currentPlayer();
 
@@ -316,10 +311,17 @@ void ShogiGameController::decidePromotionByDialog(QChar& piece, int& rankFrom, i
     }
 }
 
-bool ShogiGameController::isPromotablePiece(QChar& piece)
+bool ShogiGameController::isPromotablePiece(Piece piece)
 {
-    static const QString promotablePieces = "PLNSBRplnsbr";
-    return promotablePieces.contains(piece);
+    switch (piece) {
+    case Piece::BlackPawn:   case Piece::BlackLance:  case Piece::BlackKnight:
+    case Piece::BlackSilver: case Piece::BlackBishop: case Piece::BlackRook:
+    case Piece::WhitePawn:   case Piece::WhiteLance:  case Piece::WhiteKnight:
+    case Piece::WhiteSilver: case Piece::WhiteBishop: case Piece::WhiteRook:
+        return true;
+    default:
+        return false;
+    }
 }
 
 // ============================================================
@@ -366,11 +368,11 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     QPoint fromPoint(fileFrom - 1, rankFrom - 1);
     QPoint toPoint(fileTo - 1, rankTo - 1);
 
-    QChar movingPiece   = board()->getPieceCharacter(fileFrom, rankFrom);
-    QChar capturedPiece = board()->getPieceCharacter(fileTo,   rankTo);
+    Piece movingPiece   = board()->getPieceCharacter(fileFrom, rankFrom);
+    Piece capturedPiece = board()->getPieceCharacter(fileTo,   rankTo);
 
     // 盤上移動のとき、移動元が空白なら不正
-    if ((fileFrom >= 1 && fileFrom <= 9) && movingPiece == QLatin1Char(' ')) {
+    if ((fileFrom >= 1 && fileFrom <= 9) && movingPiece == Piece::None) {
         qCWarning(lcGame) << "validateAndMove: the source square is empty.";
         emit endDragSignal();
         return false;
@@ -463,11 +465,11 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
     int fileTo = outTo.x();
     int rankTo = outTo.y();
 
-    QChar source = board()->getPieceCharacter(fileFrom, rankFrom);
-    QChar dest = board()->getPieceCharacter(fileTo, rankTo);
+    Piece source = board()->getPieceCharacter(fileFrom, rankFrom);
+    Piece dest = board()->getPieceCharacter(fileTo, rankTo);
 
-    // 移動元の駒の大文字/小文字から手番を推定
-    if (source.isUpper()) {
+    // 移動元の駒の先手/後手から手番を推定
+    if (isBlackPiece(source)) {
         setCurrentPlayer(Player1);
     } else {
         setCurrentPlayer(Player2);
@@ -486,7 +488,7 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
 // 禁じ手チェック
 // ============================================================
 
-bool ShogiGameController::checkMovePiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const
+bool ShogiGameController::checkMovePiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const
 {
     if (!checkTwoPawn(source, fileFrom, fileTo)) return false;
     if (!checkWhetherAllyPiece(source, dest, fileFrom, fileTo)) return false;
@@ -497,23 +499,23 @@ bool ShogiGameController::checkMovePiece(const QChar source, const QChar dest, c
     return true;
 }
 
-bool ShogiGameController::checkNumberStandPiece(const QChar source, const int fileFrom) const
+bool ShogiGameController::checkNumberStandPiece(const Piece source, const int fileFrom) const
 {
     return board()->isPieceAvailableOnStand(source, fileFrom);
 }
 
-bool ShogiGameController::checkWhetherAllyPiece(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const
+bool ShogiGameController::checkWhetherAllyPiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const
 {
     if (fileTo < 10) {
-        // 同じ大文字/小文字同士の場合は味方の駒
-        if (source.isUpper() && dest.isUpper()) {
+        // 同じ先手/後手同士の場合は味方の駒
+        if (isBlackPiece(source) && isBlackPiece(dest)) {
             if ((fileFrom < 10) && (fileTo > 9)) {
                 return true;
             } else {
                 return false;
             }
         }
-        if (source.isLower() && dest.isLower()) {
+        if (isWhitePiece(source) && isWhitePiece(dest)) {
             if ((fileFrom < 10) && (fileTo > 9)) {
                 return true;
             } else {
@@ -525,23 +527,23 @@ bool ShogiGameController::checkWhetherAllyPiece(const QChar source, const QChar 
     return true;
 }
 
-bool ShogiGameController::checkTwoPawn(const QChar source, const int fileFrom, const int fileTo) const
+bool ShogiGameController::checkTwoPawn(const Piece source, const int fileFrom, const int fileTo) const
 {
     // 同じ筋内の移動は二歩にならない
     if (fileFrom == fileTo) return true;
 
-    if (source == 'P') {
+    if (source == Piece::BlackPawn) {
         if (fileTo < 10) {
             for (int rank = 1; rank <= 9; rank++) {
-                if (board()->getPieceCharacter(fileTo, rank) == 'P') return false;
+                if (board()->getPieceCharacter(fileTo, rank) == Piece::BlackPawn) return false;
             }
         }
     }
 
-    if (source == 'p') {
+    if (source == Piece::WhitePawn) {
         if (fileTo < 10) {
             for (int rank = 1; rank <= 9; rank++) {
-                if (board()->getPieceCharacter(fileTo, rank) == 'p') return false;
+                if (board()->getPieceCharacter(fileTo, rank) == Piece::WhitePawn) return false;
             }
         }
     }
@@ -549,7 +551,7 @@ bool ShogiGameController::checkTwoPawn(const QChar source, const int fileFrom, c
     return true;
 }
 
-void ShogiGameController::setMandatoryPromotionFlag(const int fileTo, const int rankTo, const QChar source)
+void ShogiGameController::setMandatoryPromotionFlag(const int fileTo, const int rankTo, const Piece source)
 {
     m_promote = false;
 
@@ -559,17 +561,17 @@ void ShogiGameController::setMandatoryPromotionFlag(const int fileTo, const int 
     }
 
     // 先手: 歩・香は1段目、桂は1-2段目で必ず成る
-    if ((source == 'P' && rankTo == 1) ||
-        (source == 'L' && rankTo == 1) ||
-        (source == 'N' && rankTo <= 2)) {
+    if ((source == Piece::BlackPawn && rankTo == 1) ||
+        (source == Piece::BlackLance && rankTo == 1) ||
+        (source == Piece::BlackKnight && rankTo <= 2)) {
         m_promote = true;
         return;
     }
 
     // 後手: 歩・香は9段目、桂は8-9段目で必ず成る
-    if ((source == 'p' && rankTo == 9) ||
-        (source == 'l' && rankTo == 9) ||
-        (source == 'n' && rankTo >= 8)) {
+    if ((source == Piece::WhitePawn && rankTo == 9) ||
+        (source == Piece::WhiteLance && rankTo == 9) ||
+        (source == Piece::WhiteKnight && rankTo >= 8)) {
         m_promote = true;
         return;
     }
@@ -598,12 +600,12 @@ void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileF
 }
 
 
-bool ShogiGameController::checkFromPieceStandToPieceStand(const QChar source, const QChar dest, const int fileFrom, const int fileTo) const
+bool ShogiGameController::checkFromPieceStandToPieceStand(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const
 {
     // 先手駒台→後手駒台: 同種の駒のみ移動可能
     if ((fileFrom == 10) && (fileTo == 11)) {
-        QChar c = dest.toUpper();
-        if (source == c) {
+        Piece destAsBlack = toBlack(dest);
+        if (source == destAsBlack) {
             return true;
         } else {
             return false;
@@ -611,8 +613,8 @@ bool ShogiGameController::checkFromPieceStandToPieceStand(const QChar source, co
     }
     // 後手駒台→先手駒台: 同種の駒のみ移動可能
     if ((fileFrom == 11) && (fileTo == 10)) {
-        QChar c = dest.toLower();
-        if (source == c) {
+        Piece destAsWhite = toWhite(dest);
+        if (source == destAsWhite) {
             return true;
         } else {
             return false;
@@ -622,13 +624,13 @@ bool ShogiGameController::checkFromPieceStandToPieceStand(const QChar source, co
     return true;
 }
 
-bool ShogiGameController::checkGetKingOpponentPiece(const QChar source, const QChar dest) const
+bool ShogiGameController::checkGetKingOpponentPiece(const Piece source, const Piece dest) const
 {
     // 後手の駒で先手玉は取れない
-    if ((dest == 'K') && source.isLower()) return false;
+    if ((dest == Piece::BlackKing) && isWhitePiece(source)) return false;
 
     // 先手の駒で後手玉は取れない
-    if ((dest == 'k') && source.isUpper()) return false;
+    if ((dest == Piece::WhiteKing) && isBlackPiece(source)) return false;
 
     return true;
 }

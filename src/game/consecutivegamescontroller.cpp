@@ -2,6 +2,7 @@
 /// @brief 連続対局の進行管理と手番入れ替えの実装
 
 #include "consecutivegamescontroller.h"
+#include "logcategories.h"
 #include "timecontrolcontroller.h"
 #include "shogiclock.h"
 #include "timecontrolutil.h"

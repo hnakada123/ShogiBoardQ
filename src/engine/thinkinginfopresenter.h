@@ -120,9 +120,6 @@ signals:
     
     // --- 評価値関連シグナル ---
     
-    /// 評価値更新シグナル（未接続）
-    void scoreUpdated(int scoreCp, const QString& scoreStr);
-    
     // --- エンジン情報関連シグナル ---
     
     /// 探索手更新シグナル（→ Usi::onSearchedMoveUpdated）

@@ -2,6 +2,7 @@
 /// @brief CSA通信対局コーディネータクラスの実装
 
 #include "csagamecoordinator.h"
+#include "kifurecordlistmodel.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "shogiclock.h"
@@ -260,7 +261,6 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
                         .arg(summary.totalTime)
                         .arg(summary.byoyomi));
 
-    emit gameSummaryReceived(summary);
     setGameState(GameState::WaitingForAgree);
 
     emit logMessage(tr("対局条件に同意します..."));
@@ -370,10 +370,10 @@ void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
         if (promotedPieces.contains(destPiece)) {
             // 盤面から移動元の駒を取得して、未成駒かどうか確認
             if (m_gameController && m_gameController->board()) {
-                QChar srcPieceChar = m_gameController->board()->getPieceCharacter(fromFile, fromRank);
+                Piece srcPiece = m_gameController->board()->getPieceCharacter(fromFile, fromRank);
                 // 未成駒の文字（大文字小文字両方）
                 static const QString unpromoted = QStringLiteral("PLNSBRplnsbr");
-                if (unpromoted.contains(srcPieceChar)) {
+                if (unpromoted.contains(pieceToChar(srcPiece))) {
                     isPromotion = true;
                 }
             }
@@ -824,10 +824,9 @@ QString CsaGameCoordinator::usiToCsa(const QString& usiMove, bool isBlack) const
 
         QString csaPiece;
         if (m_gameController && m_gameController->board()) {
-            // ShogiBoardはgetPieceCharacter()でQCharを返す
             // 内部座標系: file=1-9, rank=1-9
-            QChar pieceChar = m_gameController->board()->getPieceCharacter(fromFile, fromRank);
-            csaPiece = pieceCharToCsa(pieceChar, promote);
+            Piece piece = m_gameController->board()->getPieceCharacter(fromFile, fromRank);
+            csaPiece = pieceCharToCsa(piece, promote);
         }
 
         if (csaPiece.isEmpty()) {
@@ -874,21 +873,21 @@ QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, boo
 
     QString csaPiece;
     if (m_gameController && m_gameController->board()) {
-        QChar pieceChar;
+        Piece piece;
         if (isDrop) {
             // 駒台からの打ち駒の場合: from.x()=10(先手駒台) or 11(後手駒台)
             // from.y() は駒種インデックス (1=P, 2=L, 3=N, 4=S, 5=G, 6=B, 7=R, 8=K)
-            pieceChar = m_gameController->board()->getPieceCharacter(from.x(), from.y());
-            qCDebug(lcNetwork) << "Got pieceChar from stand:" << pieceChar
+            piece = m_gameController->board()->getPieceCharacter(from.x(), from.y());
+            qCDebug(lcNetwork) << "Got piece from stand:" << pieceToChar(piece)
                                << "at file=" << from.x() << "rank=" << from.y();
         } else {
             // 通常の移動: validateAndMoveで既に盤面が更新されているので、
             // 移動先(to)から駒を取得する
-            pieceChar = m_gameController->board()->getPieceCharacter(toFile, toRank);
-            qCDebug(lcNetwork) << "Got pieceChar from board (at destination):" << pieceChar
+            piece = m_gameController->board()->getPieceCharacter(toFile, toRank);
+            qCDebug(lcNetwork) << "Got piece from board (at destination):" << pieceToChar(piece)
                                << "at file=" << toFile << "rank=" << toRank;
         }
-        csaPiece = pieceCharToCsa(pieceChar, promote);
+        csaPiece = pieceCharToCsa(piece, promote);
         qCDebug(lcNetwork) << "Converted to CSA piece:" << csaPiece;
     } else {
         qCDebug(lcNetwork) << "WARNING: gameController or board is null!";
@@ -911,7 +910,7 @@ QString CsaGameCoordinator::boardToCSA(const QPoint& from, const QPoint& to, boo
     return result;
 }
 
-QString CsaGameCoordinator::pieceCharToCsa(QChar pieceChar, bool promote) const
+QString CsaGameCoordinator::pieceCharToCsa(Piece piece, bool promote) const
 {
     // ShogiBoardの駒表現:
     // 先手（大文字）: P=歩, L=香, N=桂, S=銀, G=金, B=角, R=飛, K=玉
@@ -919,7 +918,7 @@ QString CsaGameCoordinator::pieceCharToCsa(QChar pieceChar, bool promote) const
     // 後手（小文字）: p=歩, l=香, n=桂, s=銀, g=金, b=角, r=飛, k=玉
     //               q=と金, m=成香, o=成桂, t=成銀, c=馬, u=龍
 
-    char c = pieceChar.toLatin1();
+    char c = static_cast<char>(piece);
 
     // 成り駒の判定（大文字・小文字両方に対応）
     switch (c) {
@@ -960,7 +959,7 @@ QString CsaGameCoordinator::pieceCharToCsa(QChar pieceChar, bool promote) const
     case 'k': return QStringLiteral("OU");
 
     default:
-        qCWarning(lcNetwork) << "Unknown piece character:" << pieceChar;
+        qCWarning(lcNetwork) << "Unknown piece character:" << pieceToChar(piece);
         return QStringLiteral("FU");
     }
 }
@@ -1271,15 +1270,15 @@ void CsaGameCoordinator::startEngineThinking()
     if (isDrop) {
         // 駒打ちの場合: fromFile=10(先手駒台) or 11(後手駒台)
         // fromRank は駒種インデックス
-        QChar pieceChar = board->getPieceCharacter(fromFile, fromRank);
-        csaPiece = pieceCharToCsa(pieceChar, false);
+        Piece piece = board->getPieceCharacter(fromFile, fromRank);
+        csaPiece = pieceCharToCsa(piece, false);
         // CSA駒打ちは fromFile=0, fromRank=0
         fromFile = 0;
         fromRank = 0;
     } else {
         // 通常移動: 盤面更新前なので移動元から駒を取得
-        QChar pieceChar = board->getPieceCharacter(fromFile, fromRank);
-        csaPiece = pieceCharToCsa(pieceChar, promote);
+        Piece piece = board->getPieceCharacter(fromFile, fromRank);
+        csaPiece = pieceCharToCsa(piece, promote);
     }
     
     QString csaMove = QString("%1%2%3%4%5%6")
@@ -1295,25 +1294,25 @@ void CsaGameCoordinator::startEngineThinking()
     // 盤面を更新（movePieceToSquareを使用）
     if (!isDrop) {
         // 盤上の駒を移動
-        QChar pieceChar = board->getPieceCharacter(from.x(), from.y());
+        Piece movingPiece = board->getPieceCharacter(from.x(), from.y());
 
         // 移動先の駒を取得（駒を取る場合に必要）
-        QChar capturedPiece = board->getPieceCharacter(toFile, toRank);
+        Piece capturedPiece = board->getPieceCharacter(toFile, toRank);
 
         // 駒を取った場合は駒台に追加
-        if (!capturedPiece.isNull() && capturedPiece != QLatin1Char(' ')) {
+        if (capturedPiece != Piece::None) {
             board->addPieceToStand(capturedPiece);
         }
 
-        board->movePieceToSquare(pieceChar, from.x(), from.y(), toFile, toRank, promote);
+        board->movePieceToSquare(movingPiece, from.x(), from.y(), toFile, toRank, promote);
     } else {
         // 駒打ち
-        QChar pieceChar = board->getPieceCharacter(from.x(), from.y());
+        Piece dropPiece = board->getPieceCharacter(from.x(), from.y());
 
         // 駒台から駒を減らす
-        board->decrementPieceOnStand(pieceChar);
+        board->decrementPieceOnStand(dropPiece);
 
-        board->movePieceToSquare(pieceChar, 0, 0, toFile, toRank, false);
+        board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);
     }
 
     // 手番を変更
@@ -1378,17 +1377,17 @@ bool CsaGameCoordinator::applyMoveToBoard(const QString& csaMove)
     to = QPoint(9 - toFile, toRank - 1);
 
     // ShogiBoard::movePieceToSquareを使用
-    QChar selectedPiece = m_gameController->board()->getPieceCharacter(
+    Piece selectedPiece = m_gameController->board()->getPieceCharacter(
         fromFile == 0 ? 0 : fromFile, fromRank == 0 ? 0 : fromRank);
 
     // 盤面を直接更新
     if (fromFile != 0 || fromRank != 0) {
         // 通常移動
         // 移動先の駒を取得（駒を取る場合に必要）
-        QChar capturedPiece = m_gameController->board()->getPieceCharacter(toFile, toRank);
+        Piece capturedPiece = m_gameController->board()->getPieceCharacter(toFile, toRank);
 
         // 駒を取った場合は駒台に追加
-        if (!capturedPiece.isNull() && capturedPiece != QLatin1Char(' ')) {
+        if (capturedPiece != Piece::None) {
             m_gameController->board()->addPieceToStand(capturedPiece);
         }
 
@@ -1397,13 +1396,13 @@ bool CsaGameCoordinator::applyMoveToBoard(const QString& csaMove)
     } else {
         // 駒打ち
         // 駒台から駒を減らし、盤面に配置
-        QChar pieceChar = csaPieceToSfenChar(piece, turnSign == QLatin1Char('+'));
+        Piece dropPiece = csaPieceToSfenPiece(piece, turnSign == QLatin1Char('+'));
 
         // 駒台から駒を減らす
-        m_gameController->board()->decrementPieceOnStand(pieceChar);
+        m_gameController->board()->decrementPieceOnStand(dropPiece);
 
         m_gameController->board()->movePieceToSquare(
-            pieceChar, 0, 0, toFile, toRank, false);
+            dropPiece, 0, 0, toFile, toRank, false);
     }
 
     // 手番を変更
@@ -1451,20 +1450,20 @@ int CsaGameCoordinator::pieceTypeFromCsa(const QString& csaPiece) const
     return 0;
 }
 
-QChar CsaGameCoordinator::csaPieceToSfenChar(const QString& csaPiece, bool isBlack) const
+Piece CsaGameCoordinator::csaPieceToSfenPiece(const QString& csaPiece, bool isBlack) const
 {
-    QChar c;
-    if (csaPiece == QStringLiteral("FU")) c = QLatin1Char('P');
-    else if (csaPiece == QStringLiteral("KY")) c = QLatin1Char('L');
-    else if (csaPiece == QStringLiteral("KE")) c = QLatin1Char('N');
-    else if (csaPiece == QStringLiteral("GI")) c = QLatin1Char('S');
-    else if (csaPiece == QStringLiteral("KI")) c = QLatin1Char('G');
-    else if (csaPiece == QStringLiteral("KA")) c = QLatin1Char('B');
-    else if (csaPiece == QStringLiteral("HI")) c = QLatin1Char('R');
-    else if (csaPiece == QStringLiteral("OU")) c = QLatin1Char('K');
-    else c = QLatin1Char('P');
+    Piece blackPiece;
+    if (csaPiece == QStringLiteral("FU")) blackPiece = Piece::BlackPawn;
+    else if (csaPiece == QStringLiteral("KY")) blackPiece = Piece::BlackLance;
+    else if (csaPiece == QStringLiteral("KE")) blackPiece = Piece::BlackKnight;
+    else if (csaPiece == QStringLiteral("GI")) blackPiece = Piece::BlackSilver;
+    else if (csaPiece == QStringLiteral("KI")) blackPiece = Piece::BlackGold;
+    else if (csaPiece == QStringLiteral("KA")) blackPiece = Piece::BlackBishop;
+    else if (csaPiece == QStringLiteral("HI")) blackPiece = Piece::BlackRook;
+    else if (csaPiece == QStringLiteral("OU")) blackPiece = Piece::BlackKing;
+    else blackPiece = Piece::BlackPawn;
 
-    return isBlack ? c.toUpper() : c.toLower();
+    return isBlack ? blackPiece : toWhite(blackPiece);
 }
 
 QString CsaGameCoordinator::csaPieceToUsi(const QString& csaPiece) const

@@ -8,7 +8,7 @@
 #include <QApplication>
 #include <QStatusBar>
 #include <QTableWidget>
-#include "kifulogging.h"
+#include "logcategories.h"
 #include <QMessageBox>
 #include <QDir>
 #include <QDateTime>
@@ -792,7 +792,7 @@ QStringList KifuExportController::gameMovesToUsiMoves(const QVector<ShogiMove>& 
         
         if (mv.fromSquare.x() >= 9) {
             // 駒打ち
-            QChar pieceChar = mv.movingPiece.toUpper();
+            QChar pieceChar = pieceToChar(toBlack(mv.movingPiece));
             int toFile = mv.toSquare.x() + 1;
             int toRank = mv.toSquare.y() + 1;
             QChar toRankChar = QChar('a' + toRank - 1);

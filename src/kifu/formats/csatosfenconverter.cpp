@@ -3,6 +3,7 @@
 
 #include "csatosfenconverter.h"
 #include "kifdisplayitem.h"
+#include "notationutils.h"
 
 #include <QStringDecoder>
 
@@ -531,24 +532,22 @@ bool CsaToSfenConverter::parseMoveLine(const QString& line, Color mover, Board& 
     }
 
     // USI
-    const QString toSq = toUsiSquare(tx, ty);
     QString usi;
     if (isDrop) {
-        QString usiPiece;
+        QChar usiPieceChar;
         switch (after) {
-        case FU: usiPiece = QStringLiteral("P"); break;
-        case KY: usiPiece = QStringLiteral("L"); break;
-        case KE: usiPiece = QStringLiteral("N"); break;
-        case GI: usiPiece = QStringLiteral("S"); break;
-        case KI: usiPiece = QStringLiteral("G"); break;
-        case KA: usiPiece = QStringLiteral("B"); break;
-        case HI: usiPiece = QStringLiteral("R"); break;
-        default: usiPiece = QStringLiteral("P"); break;
+        case FU: usiPieceChar = QLatin1Char('P'); break;
+        case KY: usiPieceChar = QLatin1Char('L'); break;
+        case KE: usiPieceChar = QLatin1Char('N'); break;
+        case GI: usiPieceChar = QLatin1Char('S'); break;
+        case KI: usiPieceChar = QLatin1Char('G'); break;
+        case KA: usiPieceChar = QLatin1Char('B'); break;
+        case HI: usiPieceChar = QLatin1Char('R'); break;
+        default: usiPieceChar = QLatin1Char('P'); break;
         }
-        usi = usiPiece + QStringLiteral("*") + toSq;
+        usi = NotationUtils::formatSfenDrop(usiPieceChar, tx, ty);
     } else {
-        const QString fromSq = toUsiSquare(fx, fy);
-        usi = fromSq + toSq + (promote ? QStringLiteral("+") : QString());
+        usi = NotationUtils::formatSfenMove(fx, fy, tx, ty, promote);
     }
     usiMoveOut = usi;
 
@@ -557,7 +556,7 @@ bool CsaToSfenConverter::parseMoveLine(const QString& line, Color mover, Board& 
 
     if (isDrop) {
         const QString pj = pieceKanji(after);
-        const QString dest = zenkakuDigit(tx) + kanjiRank(ty);
+        const QString dest = NotationUtils::intToZenkakuDigit(tx) + NotationUtils::intToKanjiDigit(ty);
         prettyOut = sideMark + dest + pj + QStringLiteral("打");
     } else {
         QString pj;
@@ -567,7 +566,7 @@ bool CsaToSfenConverter::parseMoveLine(const QString& line, Color mover, Board& 
 
         QString dest;
         if (tx == prevTx && ty == prevTy) dest = QStringLiteral("同　");
-        else dest = zenkakuDigit(tx) + kanjiRank(ty);
+        else dest = NotationUtils::intToZenkakuDigit(tx) + NotationUtils::intToKanjiDigit(ty);
 
         const QString origin = QStringLiteral("(") + QString::number(fx) + QString::number(fy) + QStringLiteral(")");
         prettyOut = sideMark + dest + pj + origin;
@@ -623,17 +622,6 @@ bool CsaToSfenConverter::parseCsaMoveToken(const QString& token,
 // 文字変換ユーティリティ
 // ============================================================
 
-QChar CsaToSfenConverter::usiRankLetter(int y)
-{
-    static const char table[10] = {0,'a','b','c','d','e','f','g','h','i'};
-    if (y < 1 || y > 9) return QLatin1Char('a');
-    return QLatin1Char(table[y]);
-}
-
-QString CsaToSfenConverter::toUsiSquare(int x, int y)
-{
-    return QString::number(x) + usiRankLetter(y);
-}
 
 bool CsaToSfenConverter::isPromotedPiece(Piece p)
 {
@@ -670,21 +658,6 @@ QString CsaToSfenConverter::pieceKanji(Piece p)
     }
 }
 
-QString CsaToSfenConverter::zenkakuDigit(int d)
-{
-    static const QChar map[] = { QChar(u'０'),QChar(u'１'),QChar(u'２'),QChar(u'３'),QChar(u'４'),
-                                QChar(u'５'),QChar(u'６'),QChar(u'７'),QChar(u'８'),QChar(u'９') };
-    if (d >= 1 && d <= 9) return QString(map[d]);
-    return QString(QChar(u'？'));
-}
-
-QString CsaToSfenConverter::kanjiRank(int y)
-{
-    static const QChar map[10] = { QChar(), QChar(u'一'), QChar(u'二'), QChar(u'三'), QChar(u'四'),
-                                  QChar(u'五'), QChar(u'六'), QChar(u'七'), QChar(u'八'), QChar(u'九') };
-    if (y >= 1 && y <= 9) return QString(map[y]);
-    return QString(QChar(u'？'));
-}
 
 bool CsaToSfenConverter::inside(int v)
 {

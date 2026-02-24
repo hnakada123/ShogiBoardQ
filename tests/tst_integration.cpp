@@ -33,7 +33,7 @@ private:
         int count = 0;
         const auto& data = board.boardData();
         for (int i = 0; i < data.size(); ++i) {
-            if (data[i] != QLatin1Char(' ')) {
+            if (data[i] != Piece::None) {
                 ++count;
             }
         }
@@ -75,14 +75,14 @@ private slots:
                         for (int rank = 9; rank >= 2 && !moved; --rank) {
                             const auto& data = board.boardData();
                             int idx = (rank - 1) * 9 + (file - 1);
-                            if (data[idx] == QLatin1Char('P')) {
+                            if (data[idx] == Piece::BlackPawn) {
                                 ShogiMove m(QPoint(file - 1, rank - 1),
                                            QPoint(file - 1, rank - 2),
-                                           QLatin1Char('P'), QLatin1Char(' '), false);
+                                           Piece::BlackPawn, Piece::None, false);
                                 auto status = validator.isLegalMove(
                                     turn, board.boardData(), board.getPieceStand(), m);
                                 if (status.nonPromotingMoveExists) {
-                                    board.movePieceToSquare(QLatin1Char('P'),
+                                    board.movePieceToSquare(Piece::BlackPawn,
                                                           file, rank, file, rank - 1, false);
                                     moved = true;
                                 }

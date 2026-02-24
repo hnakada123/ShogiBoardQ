@@ -10,9 +10,6 @@
 #include <QStringList>
 #include <QTcpSocket>
 #include <QTimer>
-#include <QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(lcNetwork)
 
 /**
  * @brief CSAプロトコルクライアントクラス

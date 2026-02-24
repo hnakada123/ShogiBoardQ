@@ -11,7 +11,7 @@
 #include <QTableWidget>
 #include <QDateTime>
 #include <QRegularExpression>
-#include "kifulogging.h"
+#include "logcategories.h"
 #include <QPair>
 #include <QStringView>
 
@@ -349,7 +349,6 @@ void GameRecordModel::setComment(int ply, const QString& comment)
     if (oldComment != comment) {
         m_isDirty = true;
         emit commentChanged(ply, comment);
-        emit dataChanged();
 
         // 4) コールバックを呼び出し（RecordPresenterへの通知など）
         if (m_commentUpdateCallback) {
@@ -420,7 +419,6 @@ void GameRecordModel::setBookmark(int ply, const QString& bookmark)
 
     if (oldBookmark != bookmark) {
         m_isDirty = true;
-        emit dataChanged();
 
         if (m_bookmarkUpdateCallback) {
             m_bookmarkUpdateCallback(ply, bookmark);
@@ -873,7 +871,7 @@ QStringList GameRecordModel::toKi2Lines(const ExportContext& ctx) const
 
     // 4) 盤面状態を初期化（修飾子生成用）
     QString boardState[9][9];
-    QMap<QChar, int> blackHands, whiteHands;
+    QMap<Piece, int> blackHands, whiteHands;
     Ki2ToSfenConverter::initBoardFromSfen(ctx.startSfen, boardState, blackHands, whiteHands);
     bool blackToMove = !ctx.startSfen.contains(QStringLiteral(" w "));
     int prevToFile = 0, prevToRank = 0;
@@ -986,7 +984,7 @@ void GameRecordModel::outputKi2VariationFromBranchLine(const BranchLine& line, c
 
     // 盤面状態を初期化し、分岐点まで進める
     QString boardState[9][9];
-    QMap<QChar, int> blackHands, whiteHands;
+    QMap<Piece, int> blackHands, whiteHands;
     Ki2ToSfenConverter::initBoardFromSfen(startSfen, boardState, blackHands, whiteHands);
     bool blackToMove = !startSfen.contains(QStringLiteral(" w "));
     int prevToFile = 0, prevToRank = 0;

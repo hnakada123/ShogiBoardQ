@@ -11,7 +11,7 @@
 #include <QStyledItemDelegate>
 #include <functional>
 
-#include "kifulogging.h"
+#include "logcategories.h"
 #include "kiftosfenconverter.h"
 #include "branchtreemanager.h"
 #include "shogiview.h"
@@ -120,9 +120,6 @@ public:
 signals:
     /// 棋譜読み込み中のエラーを通知する
     void errorOccurred(const QString& errorMessage);
-
-    /// リプレイモードの切り替えを要求する
-    void setReplayMode(bool on);
 
     /// 棋譜の表示データが準備できた時に通知する
     void displayGameRecord(const QList<KifDisplayItem> disp);

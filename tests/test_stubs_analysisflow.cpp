@@ -4,7 +4,6 @@
 /// analysisflowcontroller.cpp / analysiscoordinator.cpp が参照する
 /// 外部シンボルのスタブ実装を提供する。
 
-#include <QLoggingCategory>
 #include <QObject>
 #include <QProcess>
 #include <QVector>
@@ -31,10 +30,6 @@
 #include "branchtreemanager.h"
 #include "settingsservice.h"
 #include "shogiinforecord.h"
-
-// === ログカテゴリ ===
-Q_LOGGING_CATEGORY(lcEngine, "shogi.engine")
-Q_LOGGING_CATEGORY(lcCore, "shogi.core")
 
 // === Usi スタブ ===
 Usi::Usi(UsiCommLogModel*, ShogiEngineThinkingModel*,
@@ -217,16 +212,17 @@ void KifuDisplay::setBookmark(const QString& bookmark) { m_bookmark = bookmark; 
 ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
     : QObject(parent), m_ranks(ranks), m_files(files)
 {
-    m_boardData.fill(QChar(' '), ranks * files);
+    m_boardData.fill(Piece::None, ranks * files);
 }
-const QVector<QChar>& ShogiBoard::boardData() const { return m_boardData; }
+const QVector<Piece>& ShogiBoard::boardData() const { return m_boardData; }
+std::optional<SfenComponents> ShogiBoard::parseSfen(const QString&) { return std::nullopt; }
 void ShogiBoard::setSfen(const QString&)
 {
     // スタブ: 81マスのダミーデータを設定
-    m_boardData.fill(QChar(' '), m_ranks * m_files);
+    m_boardData.fill(Piece::None, m_ranks * m_files);
 }
-QChar ShogiBoard::getPieceCharacter(int, int) { return QChar(' '); }
-const QMap<QChar, int>& ShogiBoard::getPieceStand() const { return m_pieceStand; }
+Piece ShogiBoard::getPieceCharacter(int, int) { return Piece::None; }
+const QMap<Piece, int>& ShogiBoard::getPieceStand() const { return m_pieceStand; }
 Turn ShogiBoard::currentPlayer() const { return Turn::Black; }
 QString ShogiBoard::convertBoardToSfen() { return {}; }
 QString ShogiBoard::convertStandToSfen() const { return {}; }

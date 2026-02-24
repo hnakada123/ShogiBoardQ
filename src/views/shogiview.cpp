@@ -8,6 +8,7 @@
 #include "elidelabel.h"
 #include "globaltooltip.h"
 #include "shogigamecontroller.h"
+#include "logcategories.h"
 
 #include <QColor>
 #include <QMouseEvent>
@@ -58,7 +59,6 @@ static void enforceSquareCorners(QLabel* lab)
     lab->setStyleSheet(ensureNoBorderRadiusStyle(lab->styleSheet()));
 }
 
-Q_LOGGING_CATEGORY(lcView, "shogi.view")
 
 // Highlight基底クラスのデストラクタ（out-of-line定義でweak-vtables警告を回避）
 ShogiView::Highlight::~Highlight() {}
@@ -997,12 +997,12 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
                        fieldRect.height());
 
     // 【盤から駒種を取得】
-    QChar value = m_board->getPieceCharacter(file, rank);
+    Piece pieceValue = m_board->getPieceCharacter(file, rank);
 
     // 【アイコン描画】
     // 空白でなければ駒に対応する QIcon を取得し、存在する場合のみ中央揃えで描く。
-    if (value != ' ') {
-        const QIcon icon = piece(value);
+    if (pieceValue != Piece::None) {
+        const QIcon icon = piece(pieceToChar(pieceValue));
         if (!icon.isNull()) {
             // SmoothPixmapTransform は paintEvent 側の共通設定で有効化済みを想定。
             icon.paint(painter, adjustedRect, Qt::AlignCenter);
@@ -1030,9 +1030,10 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
  */
 void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
 {
-    const int count = (m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(value))
-    ? m_interaction.tempPieceStandCounts()[value]
-    : m_board->m_pieceStand.value(value);
+    const Piece pieceKey = charToPiece(value);
+    const int count = (m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey))
+    ? m_interaction.tempPieceStandCounts()[pieceKey]
+    : m_board->m_pieceStand.value(pieceKey);
     if (count <= 0 || value == QLatin1Char(' ')) return;
 
     const QIcon icon = piece(value);
@@ -1643,7 +1644,7 @@ void ShogiView::shogiProblemInitialPosition()
         "5+r1kl/6p2/6Bpn/9/7P1/9/9/9/9 b RSb4g3s3n3l15p 1";
     board()->setSfen(shogiProblemInitialSFENStr);  // (2)
 
-    board()->incrementPieceOnStand('K');  // (3) 先手持駒に K を1枚追加（仕様は ShogiBoard に依存）
+    board()->incrementPieceOnStand(Piece::BlackKing);  // (3) 先手持駒に K を1枚追加（仕様は ShogiBoard に依存）
     update();                              // (4)
 }
 // 盤面の先後を入れ替える（左右/上下の反転や先後の立場入替を ShogiBoard 側に依頼）。

@@ -7,7 +7,7 @@
 #include "kifubranchlistmodel.h"
 #include "settingsservice.h"
 
-#include "loggingcategory.h"
+#include "logcategories.h"
 #include <QTextBrowser>
 #include <QTableView>
 #include <QHeaderView>

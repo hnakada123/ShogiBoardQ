@@ -5,9 +5,10 @@
 #include "kifreader.h"
 #include "board/sfenpositiontracer.h"
 #include "parsecommon.h"
+#include "notationutils.h"
 
 #include <QRegularExpression>
-#include "kifulogging.h"
+#include "logcategories.h"
 #include <QMap>
 
 // 1桁（半角/全角）→ int。QString の range-for を使わず detach 回避。
@@ -113,17 +114,17 @@ static inline bool isTerminalWord(const QString& s, QString* normalized)
 
 // --- 持駒SFEN生成 ---
 // 持駒マップからSFEN形式の持駒文字列を生成
-static QString buildHandsSfen(const QMap<QChar,int>& black, const QMap<QChar,int>& white)
+static QString buildHandsSfen(const QMap<Piece,int>& black, const QMap<Piece,int>& white)
 {
-    auto emitSide = [](const QMap<QChar,int>& m, bool gote)->QString{
-        const char order[] = {'R','B','G','S','N','L','P'};
+    auto emitSide = [](const QMap<Piece,int>& m, bool gote)->QString{
+        const Piece order[] = {Piece::BlackRook, Piece::BlackBishop, Piece::BlackGold,
+                               Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance, Piece::BlackPawn};
         QString s;
-        for (char c : order) {
-            const QChar key = QLatin1Char(c);
-            int cnt = m.value(key, 0);
+        for (Piece p : order) {
+            int cnt = m.value(p, 0);
             if (cnt <= 0) continue;
             if (cnt > 1) s += QString::number(cnt);
-            s += (gote ? key.toLower() : key);
+            s += pieceToChar(gote ? toWhite(p) : p);
         }
         return s;
     };
@@ -136,9 +137,9 @@ static QString buildHandsSfen(const QMap<QChar,int>& black, const QMap<QChar,int
 
 namespace {
 
-// KIF/BOD 共通：駒の漢字/略字 → (USI基底文字, 成りフラグ)
+// KIF/BOD 共通：駒の漢字/略字 → (Piece基底, 成りフラグ)
 // 例: 「歩/と」「香/杏」「桂/圭」「銀/全」「角/馬」「飛/龍/竜」「玉/王」
-static inline bool mapKanjiPiece(const QString& s, QChar& base, bool& promoted)
+static inline bool mapKanjiPiece(const QString& s, Piece& base, bool& promoted)
 {
     return KifuParseCommon::mapKanjiPiece(s, base, promoted);
 }
@@ -304,7 +305,7 @@ static QString rowTokensToSfen(const QStringList& tokens) {
         const bool gote = tok.startsWith(QLatin1Char('v'));
         const QString body = gote ? tok.mid(1) : tok;
 
-        QChar base; bool promoted = false;
+        Piece base; bool promoted = false;
         if (!mapKanjiPiece(body, base, promoted)) {
             ++empty; ++used;
             continue;
@@ -312,7 +313,7 @@ static QString rowTokensToSfen(const QStringList& tokens) {
 
         flushEmpty();
         if (promoted) row += QLatin1Char('+');
-        row += (gote ? base.toLower() : base.toUpper());
+        row += pieceToChar(gote ? toWhite(base) : base);
         ++used;
     }
     while (used < 9) { ++empty; ++used; }
@@ -321,7 +322,7 @@ static QString rowTokensToSfen(const QStringList& tokens) {
 }
 
 // BOD持駒行の解析
-static void parseBodHandsLine(const QString& line, QMap<QChar,int>& outCounts, bool isBlack) {
+static void parseBodHandsLine(const QString& line, QMap<Piece,int>& outCounts, bool isBlack) {
     static const QString prefixB = QStringLiteral("先手の持駒");
     static const QString prefixW = QStringLiteral("後手の持駒");
     QString t = line.trimmed();
@@ -346,9 +347,9 @@ static void parseBodHandsLine(const QString& line, QMap<QChar,int>& outCounts, b
         if (tok.isEmpty()) continue;
 
         QChar head = tok.at(0);
-        QChar base; bool promoted = false;
+        Piece base; bool promoted = false;
         if (!mapKanjiPiece(QString(head), base, promoted)) continue;
-        if (base == QLatin1Char('K')) continue;
+        if (base == Piece::BlackKing) continue;
 
         int cnt = parseCountSuffixFlexible(tok);
         outCounts[base] += cnt;
@@ -358,35 +359,6 @@ static void parseBodHandsLine(const QString& line, QMap<QChar,int>& outCounts, b
 } // namespace
 
 namespace {
-
-// 手合 → 初期SFEN（ユーザー提示の固定マップ）
-// 手合 → 初期SFEN（ユーザー提示の固定マップ）
-static QString mapHandicapToSfenImpl(const QString& label) {
-    static const char* kEven = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-    struct Pair { const char* key; const char* sfen; };
-    static const Pair tbl[] = {
-                               {"平手",   kEven},
-                               {"香落ち", "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"右香落ち", "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"角落ち", "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"飛車落ち", "lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"飛香落ち", "lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"二枚落ち", "lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"三枚落ち", "lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"四枚落ち", "1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"五枚落ち", "2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"左五枚落ち", "1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"六枚落ち", "2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"左七枚落ち", "2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"右七枚落ち", "3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"八枚落ち", "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               {"十枚落ち", "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
-                               };
-    for (const auto& p : tbl) {
-        if (label.contains(QString::fromUtf8(p.key))) return QString::fromUtf8(p.sfen);
-    }
-    return QString::fromUtf8(kEven);
-}
 
 // 行頭が手数（半/全角）か？（「手数＝」などのBODは除外）
 bool startsWithMoveNumber(const QString& line, int* outDigits=nullptr) {
@@ -413,7 +385,7 @@ bool startsWithMoveNumber(const QString& line, int* outDigits=nullptr) {
 // ===== public =====
 
 QString KifToSfenConverter::mapHandicapToSfen(const QString& label) {
-    return mapHandicapToSfenImpl(label);
+    return NotationUtils::mapHandicapToSfen(label);
 }
 
 QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QString* detectedLabel)
@@ -422,7 +394,7 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     QStringList lines;
     if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, &warn)) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return mapHandicapToSfenImpl(QStringLiteral("平手"));
+        return NotationUtils::mapHandicapToSfen(QStringLiteral("平手"));
     }
 
     // 先に BOD を試す
@@ -442,7 +414,7 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     }
     if (found.isEmpty()) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return mapHandicapToSfenImpl(QStringLiteral("平手"));
+        return NotationUtils::mapHandicapToSfen(QStringLiteral("平手"));
     }
 
     static const QRegularExpression s_afterColon(QStringLiteral("^.*[:：]"));
@@ -450,7 +422,7 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
     label.remove(s_afterColon);
     label = label.trimmed();
     if (detectedLabel) *detectedLabel = label;
-    return mapHandicapToSfenImpl(label);
+    return NotationUtils::mapHandicapToSfen(label);
 }
 
 QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath,
@@ -1154,28 +1126,6 @@ bool KifToSfenConverter::containsAnyTerminal(const QString& s, QString* matched)
     return false;
 }
 
-int KifToSfenConverter::kanjiDigitToInt(QChar c)
-{
-    switch (c.unicode()) {
-    case u'一': return 1;
-    case u'二': return 2;
-    case u'三': return 3;
-    case u'四': return 4;
-    case u'五': return 5;
-    case u'六': return 6;
-    case u'七': return 7;
-    case u'八': return 8;
-    case u'九': return 9;
-    default: return 0;
-    }
-}
-
-QChar KifToSfenConverter::rankNumToLetter(int r)
-{
-    if (r < 1 || r > 9) return QChar();
-    return QChar(QLatin1Char(static_cast<char>('a' + (r - 1))));
-}
-
 bool KifToSfenConverter::findDestination(const QString& line, int& toFile, int& toRank, bool& isSameAsPrev)
 {
     isSameAsPrev = false;
@@ -1210,7 +1160,7 @@ bool KifToSfenConverter::findDestination(const QString& line, int& toFile, int& 
     const QChar rch = m.capturedView(2).at(0);
 
     toFile = flexDigitToInt_NoDetach(fch);
-    int r  = KifToSfenConverter::kanjiDigitToInt(rch); // 漢数字を優先
+    int r  = NotationUtils::kanjiDigitToInt(rch); // 漢数字を優先
     if (r == 0) r = flexDigitToInt_NoDetach(rch);     // 半/全角数字ならこちら
     toRank = r;
 
@@ -1219,10 +1169,10 @@ bool KifToSfenConverter::findDestination(const QString& line, int& toFile, int& 
 
 QChar KifToSfenConverter::pieceKanjiToUsiUpper(const QString& s)
 {
-    QChar base; bool promoted = false;
+    Piece base = Piece::None; bool promoted = false;
     if (!mapKanjiPiece(s, base, promoted)) return QChar();
     // ドロップでは成り情報は不要。USIの基底文字（先手=大文字）を返す
-    return base;
+    return pieceToChar(base);
 }
 
 bool KifToSfenConverter::isPromotionMoveText(const QString& line)
@@ -1286,7 +1236,6 @@ bool KifToSfenConverter::convertMoveLine(const QString& moveText,
     if (!findDestination(line, toF, toR, same)) return false;
     if (same) { toF = prevToFile; toR = prevToRank; }
     if (!(toF >= 1 && toF <= 9 && toR >= 1 && toR <= 9)) return false;
-    const QChar toRankLetter = rankNumToLetter(toR);
 
     // 打ち？
     const bool isDrop = line.contains(QStringLiteral("打"));
@@ -1317,12 +1266,10 @@ bool KifToSfenConverter::convertMoveLine(const QString& moveText,
         // 駒種を拾う
         const QChar usiPiece = pieceKanjiToUsiUpper(line);
         if (usiPiece.isNull()) return false;
-        usi = QStringLiteral("%1*%2%3").arg(usiPiece).arg(toF).arg(toRankLetter);
+        usi = NotationUtils::formatSfenDrop(usiPiece, toF, toR);
     } else {
         if (!(fromF >= 1 && fromF <= 9 && fromR >= 1 && fromR <= 9)) return false;
-        const QChar fromRankLetter = rankNumToLetter(fromR);
-        usi = QStringLiteral("%1%2%3%4").arg(fromF).arg(fromRankLetter).arg(toF).arg(toRankLetter);
-        if (isPromotionMoveText(line)) usi += QLatin1Char('+');
+        usi = NotationUtils::formatSfenMove(fromF, fromR, toF, toR, isPromotionMoveText(line));
     }
 
     // 「同」のために保存
@@ -1468,7 +1415,7 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
     if (rowByRank.size() != 9) return false;
 
     // 2) ── 持駒 ──────────────────────────────────────────────────────────────
-    QMap<QChar,int> handB, handW;
+    QMap<Piece,int> handB, handW;
     for (const QString& line : std::as_const(lines)) {
         parseBodHandsLine(line, handB, true);
         parseBodHandsLine(line, handW, false);

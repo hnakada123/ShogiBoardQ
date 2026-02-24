@@ -8,7 +8,7 @@
 #include <QTextStream>
 #include <QRegularExpression>
 #include <QStringView>
-#include "kifulogging.h"
+#include "logcategories.h"
 
 // ============================================================================
 // USEN (Url Safe sfen-Extended Notation) デコーダ
@@ -900,12 +900,6 @@ QString UsenToSfenConverter::tokenToKanji(const QString& token)
     case 'K': return QStringLiteral("玉");
     default: return QStringLiteral("?");
     }
-}
-
-QChar UsenToSfenConverter::rankNumToLetter(int r)
-{
-    if (r < 1 || r > 9) return QChar();
-    return QChar('a' + r - 1);
 }
 
 int UsenToSfenConverter::rankLetterToNum(QChar c)

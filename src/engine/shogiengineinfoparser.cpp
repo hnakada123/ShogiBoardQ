@@ -172,7 +172,7 @@ int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar)
     }
     else {
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.").arg(rankChar);
-        emit errorOccurred(errorMessage);
+        qCWarning(lcEngine).noquote() << errorMessage;
         return -1;
     }
 }
@@ -199,7 +199,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
     if (moveStr.length() < 4) {
         const QString errorMessage =
             tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.").arg(moveStr);
-        emit errorOccurred(errorMessage);
+        qCWarning(lcEngine).noquote() << errorMessage;
         return -1;
     }
 
@@ -227,7 +227,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
         if (rankFrom <= 0) {
             const QString errorMessage =
                 tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.");
-            emit errorOccurred(errorMessage);
+            qCWarning(lcEngine).noquote() << errorMessage;
             return -1;
         }
     } else if (moveChars[1] == QLatin1Char('*')) {
@@ -238,13 +238,13 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
         } else {
             const QString errorMessage =
                 tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.");
-            emit errorOccurred(errorMessage);
+            qCWarning(lcEngine).noquote() << errorMessage;
             return -1;
         }
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.");
-        emit errorOccurred(errorMessage);
+        qCWarning(lcEngine).noquote() << errorMessage;
         return -1;
     }
 
@@ -254,7 +254,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.");
-        emit errorOccurred(errorMessage);
+        qCWarning(lcEngine).noquote() << errorMessage;
         return -1;
     }
 
@@ -264,14 +264,13 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
         if (rankTo <= 0) {
             const QString errorMessage =
                 tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.");
-            emit errorOccurred(errorMessage);
+            qCWarning(lcEngine).noquote() << errorMessage;
             return -1;
         }
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.");
-        qCDebug(lcEngine) << "moveChars[3]=" << moveChars[3];
-        emit errorOccurred(errorMessage);
+        qCWarning(lcEngine).noquote() << errorMessage << "moveChars[3]=" << moveChars[3];
         return -1;
     }
 
@@ -328,7 +327,7 @@ QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol)
     }
     else {
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character '%1' does not exist.").arg(symbol);
-        emit errorOccurred(errorMessage);
+        qCWarning(lcEngine).noquote() << errorMessage;
         return QString();
     }
 }
@@ -345,15 +344,13 @@ QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, 
             return iter.value();
         } else {
             QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.");
-            qCDebug(lcEngine) << "rank=" << rank;
-            emit errorOccurred(errorMessage);
+            qCWarning(lcEngine).noquote() << errorMessage << "rank=" << rank;
             return QChar();
         }
     }
     else {
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.");
-        qCDebug(lcEngine) << "file=" << file;
-        emit errorOccurred(errorMessage);
+        qCWarning(lcEngine).noquote() << errorMessage << "file=" << file;
         return QChar();
     }
 }
