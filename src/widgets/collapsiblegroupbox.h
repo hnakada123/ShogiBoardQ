@@ -37,6 +37,8 @@ signals:
 private slots:
     // トグルボタンがクリックされた時の処理
     void onToggleClicked();
+    // 折りたたみアニメーション完了後にコンテンツを非表示にする
+    void onCollapseAnimationFinished();
 
 private:
     // ヘッダーボタン（タイトルと矢印を表示）

@@ -1038,15 +1038,10 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinator::Deps& deps,
                                                            QObject* parentForMatch)
 {
-    // 既存があれば破棄
+    // 既存があれば破棄（Qt親子ツリーから自動除去される）
     if (m_match) {
         m_match->disconnect(this);
-        if (m_match->parent() == parentForMatch) {
-            delete m_match;
-        } else {
-            m_match->setParent(nullptr);
-            delete m_match;
-        }
+        delete m_match;
         m_match = nullptr;
     }
 

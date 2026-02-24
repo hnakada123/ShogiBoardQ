@@ -127,10 +127,9 @@ private:
     void setData(const int file, const int rank, const Piece value);
     void initBoard();
     bool setDataInternal(const int file, const int rank, const Piece value);
-    void setPieceStandFromSfen(const QString& str);
-    QString validateAndConvertSfenBoardStr(QString sfenStr);
-    void setPiecePlacementFromSfen(QString& initialSfenStr);
-    bool validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr);
+    bool setPieceStandFromSfen(const QString& str);
+    std::optional<QString> validateAndConvertSfenBoardStr(QString sfenStr);
+    bool setPiecePlacementFromSfen(QString& initialSfenStr);
     void printPlayerPieces(const QString& player, const QString& pieceSet) const;
     Piece convertPieceChar(const Piece c) const;
     Piece convertPromotedPieceToOriginal(const Piece dest) const;

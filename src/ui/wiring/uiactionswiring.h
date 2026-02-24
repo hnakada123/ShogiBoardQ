@@ -7,6 +7,7 @@
 #include <QObject>
 
 namespace Ui { class MainWindow; }
+class DialogLaunchWiring;
 class FileActionsWiring;
 class GameActionsWiring;
 class EditActionsWiring;
@@ -25,6 +26,7 @@ public:
     struct Deps {
         Ui::MainWindow* ui = nullptr;       ///< UIオブジェクト
         QObject*        ctx = nullptr;       ///< 受け側オブジェクト（MainWindow*）
+        DialogLaunchWiring* dlw = nullptr;   ///< ダイアログ起動配線
     };
 
     explicit UiActionsWiring(const Deps& d, QObject* parent=nullptr)

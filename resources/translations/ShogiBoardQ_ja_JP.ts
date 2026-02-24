@@ -1349,17 +1349,17 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="275"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="274"/>
         <source>起動時のレイアウトに設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="283"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="281"/>
         <source>削除</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="292"/>
+        <location filename="../../src/ui/coordinators/docklayoutmanager.cpp" line="289"/>
         <source>起動時のレイアウトをクリア</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3662,44 +3662,44 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="463"/>
+        <location filename="../../src/app/mainwindow.cpp" line="521"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="713"/>
-        <location filename="../../src/app/mainwindow.cpp" line="728"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="70"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="86"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="713"/>
-        <location filename="../../src/app/mainwindow.cpp" line="728"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="71"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="87"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1364"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1206"/>
         <source>棋譜ファイルを開く</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1365"/>
+        <location filename="../../src/app/mainwindow.cpp" line="1207"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4122"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3948"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4124"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3950"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4127"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3953"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3724,7 +3724,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3601"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3443"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3733,17 +3733,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4088"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3930"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4090"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3932"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="4094"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3936"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5129,6 +5129,19 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
+    <name>ShogiBoard</name>
+    <message>
+        <location filename="../../src/core/shogiboard.cpp" line="403"/>
+        <source>SFEN board parse error: %1</source>
+        <translation>SFEN盤面の解析エラー: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/core/shogiboard.cpp" line="407"/>
+        <source>SFEN piece stand parse error: %1</source>
+        <translation>SFEN持ち駒の解析エラー: %1</translation>
+    </message>
+</context>
+<context>
     <name>ShogiEngineInfoParser</name>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser.cpp" line="174"/>
@@ -5764,17 +5777,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="439"/>
+        <location filename="../../src/engine/usi.cpp" line="456"/>
         <source>Engine file path is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="456"/>
+        <location filename="../../src/engine/usi.cpp" line="473"/>
         <source>Failed to change directory to %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="948"/>
+        <location filename="../../src/engine/usi.cpp" line="959"/>
         <source>Timeout waiting for bestmove.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5815,22 +5828,22 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="789"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="790"/>
         <source>Invalid move format in moveFrom</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="796"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="797"/>
         <source>Invalid move format in moveTo</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="804"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="805"/>
         <source>Invalid move coordinates in moveTo: file=%1, rank=%2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="831"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="833"/>
         <source>Invalid fileFrom value</source>
         <translation type="unfinished"></translation>
     </message>

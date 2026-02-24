@@ -290,6 +290,10 @@ private slots:
     void onHashUsageUpdated(const QString& hashUsage);
     void onCommLogAppended(const QString& log);
     void onClearThinkingInfoRequested();
+    /// 解析停止タイマー発火時の処理（executeAnalysisCommunication用）
+    void onAnalysisStopTimeout();
+    /// 検討停止タイマー発火時の処理（sendAnalysisCommands用）
+    void onConsiderationStopTimeout();
     /// 思考情報を思考タブ・検討タブ・外部へ中継する
     void onThinkingInfoUpdated(const QString& time, const QString& depth,
                                const QString& nodes, const QString& score,

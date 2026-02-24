@@ -4,18 +4,20 @@
 #include "viewactionswiring.h"
 #include "ui_mainwindow.h"
 #include "mainwindow.h"
+#include "dialoglaunchwiring.h"
 
 void ViewActionsWiring::wire()
 {
-    auto* ui = m_d.ui;
-    auto* mw = m_d.mw;
+    auto* ui  = m_d.ui;
+    auto* mw  = m_d.mw;
+    auto* dlw = m_d.dlw;
 
     // 盤操作・表示
     QObject::connect(ui->actionFlipBoard,                  &QAction::triggered, mw, &MainWindow::onActionFlipBoardTriggered,    Qt::UniqueConnection);
     QObject::connect(ui->actionCopyBoardToClipboard,       &QAction::triggered, mw, &MainWindow::copyBoardToClipboard,          Qt::UniqueConnection);
     QObject::connect(ui->actionCopyEvalGraphToClipboard,   &QAction::triggered, mw, &MainWindow::copyEvalGraphToClipboard,      Qt::UniqueConnection);
     QObject::connect(ui->actionMakeImmediateMove,          &QAction::triggered, mw, &MainWindow::movePieceImmediately,          Qt::UniqueConnection);
-    QObject::connect(ui->actionMenuWindow,                 &QAction::triggered, mw, &MainWindow::displayMenuWindow,             Qt::UniqueConnection);
+    QObject::connect(ui->actionMenuWindow,                 &QAction::triggered, dlw, &DialogLaunchWiring::displayMenuWindow,    Qt::UniqueConnection);
     QObject::connect(ui->actionEnlargeBoard,               &QAction::triggered, mw, &MainWindow::onActionEnlargeBoardTriggered, Qt::UniqueConnection);
     QObject::connect(ui->actionShrinkBoard,                &QAction::triggered, mw, &MainWindow::onActionShrinkBoardTriggered,  Qt::UniqueConnection);
     QObject::connect(ui->actionUndoMove,                   &QAction::triggered, mw, &MainWindow::undoLastTwoMoves,              Qt::UniqueConnection);

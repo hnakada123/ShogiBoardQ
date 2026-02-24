@@ -36,7 +36,11 @@
       "Bash(echo === $file ===:*)",
       "Bash(echo:*)",
       "Bash(done)",
-      "Bash(echo === Verifying Type B signals ===:*)"
+      "Bash(echo === Verifying Type B signals ===:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen ctest:*)",
+      "Bash(./build/tests/tst_kifconverter:*)",
+      "Bash(./build/tests/tst_ki2converter:*)",
+      "Bash(./build/tests/tst_csaconverter:*)"
     ]
   }
 }

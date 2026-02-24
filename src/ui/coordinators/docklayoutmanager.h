@@ -139,6 +139,13 @@ private:
      */
     QDockWidget* dock(DockType type) const;
 
+    /// sender() の QAction::data() からレイアウト名を取得して restoreLayout を呼ぶ
+    void onRestoreLayoutTriggered();
+    /// sender() の QAction::data() からレイアウト名を取得して setAsStartupLayout を呼ぶ
+    void onSetStartupLayoutTriggered();
+    /// sender() の QAction::data() からレイアウト名を取得して deleteLayout を呼ぶ
+    void onDeleteLayoutTriggered();
+
     QMainWindow* m_mainWindow = nullptr;
     QMenu* m_savedLayoutsMenu = nullptr;
     QList<QDockWidget*> m_docks;

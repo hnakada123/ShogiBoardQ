@@ -115,6 +115,8 @@ void Usi::onNpsUpdated(const QString&) {}
 void Usi::onHashUsageUpdated(const QString&) {}
 void Usi::onCommLogAppended(const QString&) {}
 void Usi::onClearThinkingInfoRequested() {}
+void Usi::onAnalysisStopTimeout() {}
+void Usi::onConsiderationStopTimeout() {}
 void Usi::onThinkingInfoUpdated(const QString&, const QString&, const QString&,
                                  const QString&, const QString&, const QString&,
                                  const QString&, int, int) {}

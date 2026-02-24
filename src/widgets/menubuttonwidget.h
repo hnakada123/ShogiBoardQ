@@ -109,6 +109,7 @@ private slots:
     void onMainButtonClicked();
     void onAddButtonClicked();
     void onRemoveButtonClicked();
+    void onActionChanged();
 
 private:
     void setupUi();

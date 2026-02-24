@@ -2,6 +2,7 @@
 /// @brief USIプロトコル通信ファサードクラスの実装
 
 #include "usi.h"
+#include "parsecommon.h"
 #include "shogiboard.h"
 #include "shogiengineinfoparser.h"
 #include "shogiinforecord.h"
@@ -232,6 +233,22 @@ void Usi::onCommLogAppended(const QString& log)
     if (m_commLogModel) {
         m_commLogModel->appendUsiCommLog(log);
     }
+}
+
+void Usi::onAnalysisStopTimeout()
+{
+    qCDebug(lcEngine) << "解析停止タイマー発火";
+    m_protocolHandler->sendStop();
+    m_analysisStopTimer = nullptr;
+}
+
+void Usi::onConsiderationStopTimeout()
+{
+    if (m_processManager && m_processManager->isRunning()) {
+        qCDebug(lcEngine) << "検討停止タイマー発火";
+        m_protocolHandler->sendStop();
+    }
+    m_analysisStopTimer = nullptr;
 }
 
 void Usi::onClearThinkingInfoRequested()
@@ -699,42 +716,36 @@ static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool 
 {
     if (usiMove.length() < 4) return;
 
-    // USI形式の座標検証（筋: 1-9, 段: a-i）
-    auto isValidRank = [](QChar ch) { return ch >= 'a' && ch <= 'i'; };
-
     bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
 
     if (usiMove.at(1) == QLatin1Char('*')) {
         // 駒打ち: "P*5e"
-        int fileTo = usiMove.at(2).digitValue();
-        int rankTo = usiMove.at(3).toLatin1() - 'a' + 1;
-        if (fileTo < 1 || fileTo > 9 || !isValidRank(usiMove.at(3))) return;
+        auto fileTo = KifuParseCommon::parseFileChar(usiMove.at(2));
+        auto rankTo = KifuParseCommon::parseRankChar(usiMove.at(3));
+        if (!fileTo || !rankTo) return;
 
         QChar pieceChar = isSenteMove ? usiMove.at(0).toUpper() : usiMove.at(0).toLower();
         Piece piece = charToPiece(pieceChar);
 
         board->decrementPieceOnStand(piece);
-        board->movePieceToSquare(piece, 10, 0, fileTo, rankTo, false);
+        board->movePieceToSquare(piece, 10, 0, *fileTo, *rankTo, false);
     } else {
         // 盤上の移動: "8c8d" or "8c8d+"
-        int fileFrom = usiMove.at(0).digitValue();
-        int rankFrom = usiMove.at(1).toLatin1() - 'a' + 1;
-        int fileTo = usiMove.at(2).digitValue();
-        int rankTo = usiMove.at(3).toLatin1() - 'a' + 1;
+        auto fileFrom = KifuParseCommon::parseFileChar(usiMove.at(0));
+        auto rankFrom = KifuParseCommon::parseRankChar(usiMove.at(1));
+        auto fileTo = KifuParseCommon::parseFileChar(usiMove.at(2));
+        auto rankTo = KifuParseCommon::parseRankChar(usiMove.at(3));
 
-        if (fileFrom < 1 || fileFrom > 9 || !isValidRank(usiMove.at(1)) ||
-            fileTo < 1 || fileTo > 9 || !isValidRank(usiMove.at(3))) {
-            return;
-        }
+        if (!fileFrom || !rankFrom || !fileTo || !rankTo) return;
 
-        Piece movingPiece = board->getPieceCharacter(fileFrom, rankFrom);
-        Piece capturedPiece = board->getPieceCharacter(fileTo, rankTo);
+        Piece movingPiece = board->getPieceCharacter(*fileFrom, *rankFrom);
+        Piece capturedPiece = board->getPieceCharacter(*fileTo, *rankTo);
 
         if (capturedPiece != Piece::None) {
             board->addPieceToStand(capturedPiece);
         }
 
-        board->movePieceToSquare(movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
+        board->movePieceToSquare(movingPiece, *fileFrom, *rankFrom, *fileTo, *rankTo, promote);
     }
 }
 
@@ -1020,11 +1031,7 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
         // タイムアウト後にstop送信（メンバータイマーを使用）
         m_analysisStopTimer = new QTimer(this);
         m_analysisStopTimer->setSingleShot(true);
-        connect(m_analysisStopTimer, &QTimer::timeout, this, [this]() {
-            qCDebug(lcEngine) << "解析停止タイマー発火";
-            m_protocolHandler->sendStop();
-            m_analysisStopTimer = nullptr;
-        });
+        connect(m_analysisStopTimer, &QTimer::timeout, this, &Usi::onAnalysisStopTimeout);
         m_analysisStopTimer->start(byoyomiMilliSec);
 
         static constexpr int kPostStopGraceMs = 4000;
@@ -1069,13 +1076,7 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
     if (byoyomiMilliSec > 0) {
         m_analysisStopTimer = new QTimer(this);
         m_analysisStopTimer->setSingleShot(true);
-        connect(m_analysisStopTimer, &QTimer::timeout, this, [this]() {
-            if (m_processManager && m_processManager->isRunning()) {
-                qCDebug(lcEngine) << "検討停止タイマー発火";
-                m_protocolHandler->sendStop();
-            }
-            m_analysisStopTimer = nullptr;  // タイマーは自動削除される（deleteLater済み）
-        });
+        connect(m_analysisStopTimer, &QTimer::timeout, this, &Usi::onConsiderationStopTimeout);
         m_analysisStopTimer->start(byoyomiMilliSec);
     }
 

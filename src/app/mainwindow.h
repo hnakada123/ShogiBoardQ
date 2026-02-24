@@ -12,6 +12,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QPointer>
+#include <memory>
 
 // --- プロジェクトヘッダー（値型・MOC制約で必要） ---
 #include "playmode.h"
@@ -72,7 +73,6 @@ class TimeDisplayPresenter;
 class AnalysisTabWiring;
 class RecordPaneWiring;
 class UiActionsWiring;
-class GameLayoutBuilder;
 class GameRecordModel;
 class KifuPasteDialog;
 class SfenCollectionDialog;
@@ -96,6 +96,7 @@ class JosekiWindowWiring;
 class PlayerInfoWiring;
 class PreStartCleanupHandler;
 class MenuWindowWiring;
+class DialogLaunchWiring;
 class UsiCommandController;
 class RecordNavigationHandler;
 class UiStatePolicyManager;
@@ -120,6 +121,7 @@ class MainWindow : public QMainWindow
     // --- public ---
 public:
     explicit MainWindow(QWidget* parent = nullptr);
+    ~MainWindow() override;
 
     EvaluationChartWidget* evalChart() const { return m_evalChart; }
 
@@ -142,10 +144,6 @@ public slots:
     /// クリップボード上の棋譜テキストを読み込む
     void pasteKifuFromClipboard();
 
-    // --- 局面集ビューア ---
-    /// 局面集ビューアダイアログを表示する
-    void displaySfenCollectionViewer();
-
     // --- エラー / 一般UI ---
     void displayErrorMessage(const QString& message);
     /// ウィンドウ設定を保存してアプリを終了する
@@ -160,30 +158,16 @@ public slots:
     void resetModels(const QString& hirateStartSfen);
     /// UI要素の状態リセット（盤面描画、UIポリシー）
     void resetUiState(const QString& hirateStartSfen);
-    // --- ダイアログ表示 ---
-    void displayPromotionDialog();
-    void displayEngineSettingsDialog();
-    void displayVersionInformation();
-    void displayKifuAnalysisDialog();
     /// 実行中の棋譜解析を中止する
     void cancelKifuAnalysis();
     /// 棋譜解析の進捗を受け取る（AnalysisCoordinator::analysisProgress に接続）
     void onKifuAnalysisProgress(int ply, int scoreCp);
     /// 棋譜解析結果リストの行選択時に該当局面へ遷移する
     void onKifuAnalysisResultRowSelected(int row);
-    void displayTsumeShogiSearchDialog();
     /// 詰み探索エンジンを終了する
     void stopTsumeSearch();
-    /// 詰将棋局面生成ダイアログを表示する
-    void displayTsumeshogiGeneratorDialog();
-    void displayCsaGameDialog();
-    void displayJosekiWindow();
     /// 現在の局面で定跡ウィンドウを更新する
     void updateJosekiWindow();
-    void displayMenuWindow();
-    void displayJishogiScoreDialog();
-    /// 入玉宣言の判定と処理を行う
-    void handleNyugyokuDeclaration();
 
     // --- ツールバー / ドック ---
     /// ツールバーの表示/非表示を切り替える（actionToolBar に接続）
@@ -420,7 +404,7 @@ private:
     EvaluationGraphController* m_evalGraphController = nullptr;  ///< 評価値グラフ管理
     QString           m_humanName1, m_humanName2;   ///< 対局者名（人間側）
     QString           m_engineName1, m_engineName2; ///< 対局者名（エンジン側）
-    QList<KifuDisplay *>* m_moveRecords = nullptr;  ///< 指し手表示レコード（非所有）
+    QList<KifuDisplay *> m_moveRecords;              ///< 指し手表示レコード
     QString           kifuSaveFileName;             ///< 棋譜保存ファイル名
     QVector<ShogiMove> m_gameMoves;                 ///< 対局中の指し手列
 
@@ -498,7 +482,6 @@ private:
     AnalysisTabWiring*        m_analysisWiring = nullptr;      ///< 解析タブ配線（非所有）
     RecordPaneWiring*         m_recordPaneWiring = nullptr;    ///< 棋譜欄配線（非所有）
     UiActionsWiring*          m_actionsWiring    = nullptr;    ///< UIアクション配線（非所有）
-    GameLayoutBuilder*        m_layoutBuilder    = nullptr;    ///< ゲームレイアウト構築（非所有）
 
     // --- ダイアログ管理 ---
     DialogCoordinator*        m_dialogCoordinator = nullptr;   ///< ダイアログ管理コーディネータ（非所有）
@@ -526,6 +509,7 @@ private:
     JosekiWindowWiring*       m_josekiWiring = nullptr;         ///< 定跡ウィンドウUI配線（非所有）
     MenuWindowWiring*         m_menuWiring = nullptr;           ///< メニューウィンドウUI配線（非所有）
     PlayerInfoWiring*         m_playerInfoWiring = nullptr;     ///< 対局者情報UI配線（非所有）
+    DialogLaunchWiring*       m_dialogLaunchWiring = nullptr;   ///< ダイアログ起動配線（非所有）
     MatchCoordinatorWiring*   m_matchWiring = nullptr;          ///< MatchCoordinator配線（非所有）
 
     // --- 対局開始前クリーンアップ ---
@@ -545,7 +529,7 @@ private:
     UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
     RecordNavigationHandler* m_recordNavHandler = nullptr;             ///< 棋譜ナビゲーションハンドラ（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
-    GameSessionFacade* m_gameSessionFacade = nullptr;                  ///< 対局セッションファサード（非所有）
+    std::unique_ptr<GameSessionFacade> m_gameSessionFacade;             ///< 対局セッションファサード（所有）
 
     // --- 分岐ナビゲーション ---
     KifuBranchTree* m_branchTree = nullptr;              ///< 分岐ツリーデータ（非所有）
@@ -739,6 +723,8 @@ private:
     void buildGamePanels();
     /// ウィンドウ設定を復元し状態を同期する
     void restoreWindowAndSync();
+    /// ダイアログ起動配線を初期化する
+    void initializeDialogLaunchWiring();
     /// 全メニューアクションのシグナル/スロットを接続する
     void connectAllActions();
     /// コアシグナル群を接続する

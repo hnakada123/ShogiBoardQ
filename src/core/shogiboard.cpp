@@ -2,6 +2,7 @@
 /// @brief 将棋盤の状態管理・SFEN変換・駒台操作の実装
 
 #include "shogiboard.h"
+#include "errorbus.h"
 #include "logcategories.h"
 
 // ============================================================
@@ -163,7 +164,7 @@ void ShogiBoard::movePieceToSquare(Piece selectedPiece, const int fileFrom, cons
 // ============================================================
 
 // 将棋盤内のみのSFEN文字列を入力し、エラーチェックを行い、成り駒を1文字に変換したSFEN文字列を返す。
-QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
+std::optional<QString> ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
 {
     // 処理フロー:
     // 1. 成り駒文字列（"+P"等）を1文字に変換
@@ -183,7 +184,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
 
     if (sfenParts.size() != 9) {
         qCWarning(lcCore, "SFEN parts != 9: %s", qUtf8Printable(initialSfenStr));
-        return QString();
+        return std::nullopt;
     }
 
     // 各段に配置可能な駒のリスト
@@ -210,7 +211,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
             } else {
                 qCWarning(lcCore, "Unexpected SFEN char: %s at rank %d in %s",
                          qUtf8Printable(QString(ch)), i, qUtf8Printable(rankStr));
-                return QString();
+                return std::nullopt;
             }
         }
 
@@ -224,7 +225,7 @@ QString ShogiBoard::validateAndConvertSfenBoardStr(QString initialSfenStr)
 }
 
 // SFEN文字列の持ち駒部分を解析し、駒台に各駒の枚数をセットする。
-void ShogiBoard::setPieceStandFromSfen(const QString& str)
+bool ShogiBoard::setPieceStandFromSfen(const QString& str)
 {
     // 処理フロー:
     // 1. 初期化（全持ち駒を0に）
@@ -233,11 +234,11 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
 
     initStand();
 
-    if (str == "-") return;
+    if (str == "-") return true;
 
     if (str.contains(' ')) {
         qCWarning(lcCore, "Piece stand string contains space: %s", qUtf8Printable(str));
-        return;
+        return false;
     }
 
     bool isTwoDigits = false;
@@ -257,13 +258,13 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                     else {
                         qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
                                  i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                        return;
+                        return false;
                     }
                 }
                 else {
                     qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
                              i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                    return;
+                    return false;
                 }
             }
             else {
@@ -280,13 +281,13 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
                     else {
                         qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
                                  i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                        return;
+                        return false;
                     }
                 }
                 else {
                     qCWarning(lcCore, "Invalid piece after number at %d: %s in %s",
                              i, qUtf8Printable(QString(str[i])), qUtf8Printable(str));
-                    return;
+                    return false;
                 }
             }
         }
@@ -298,17 +299,19 @@ void ShogiBoard::setPieceStandFromSfen(const QString& str)
             }
             else {
                 qCWarning(lcCore, "Invalid piece type in stand string: %s", qUtf8Printable(str));
-                return;
+                return false;
             }
         }
     }
+    return true;
 }
 
-void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
+bool ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
 {
-    QString sfenStr = validateAndConvertSfenBoardStr(initialSfenStr);
-    if (sfenStr.isEmpty()) return;
+    auto opt = validateAndConvertSfenBoardStr(initialSfenStr);
+    if (!opt) return false;
 
+    const QString& sfenStr = *opt;
     int strIndex = 0;
     int emptySquares = 0;
     const int fileCount = files();
@@ -321,6 +324,10 @@ void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
                 emptySquares--;
             }
             else {
+                if (strIndex >= sfenStr.size()) {
+                    qCWarning(lcCore, "SFEN string too short at rank=%d file=%d", rank, file);
+                    return false;
+                }
                 QChar pieceChar = sfenStr.at(strIndex++);
 
                 if (pieceChar.isDigit()) {
@@ -337,6 +344,7 @@ void ShogiBoard::setPiecePlacementFromSfen(QString& initialSfenStr)
 
         strIndex++;
     }
+    return true;
 }
 
 // SFEN文字列をパースし、各要素に分解する（副作用なしの static メソッド）。
@@ -367,20 +375,6 @@ std::optional<SfenComponents> ShogiBoard::parseSfen(const QString& sfenStr)
     return SfenComponents{parts.at(0), parts.at(2), sfenToTurn(turnStr), moveNumber};
 }
 
-// SFEN文字列を検証し、盤面・手番・持ち駒・手数の各要素に分解する。
-bool ShogiBoard::validateSfenString(const QString& sfenStr, QString& sfenBoardStr, QString& sfenStandStr)
-{
-    auto result = parseSfen(sfenStr);
-    if (!result)
-        return false;
-
-    sfenBoardStr = result->board;
-    sfenStandStr = result->stand;
-    m_currentPlayer = result->turn;
-    m_currentMoveNumber = result->moveNumber;
-    return true;
-}
-
 // SFEN文字列で将棋盤全体（盤面＋駒台）を更新し再描画する。
 void ShogiBoard::setSfen(const QString& sfenStr)
 {
@@ -405,8 +399,14 @@ void ShogiBoard::setSfen(const QString& sfenStr)
     m_currentPlayer = parsed->turn;
     m_currentMoveNumber = parsed->moveNumber;
 
-    setPiecePlacementFromSfen(parsed->board);
-    setPieceStandFromSfen(parsed->stand);
+    if (!setPiecePlacementFromSfen(parsed->board)) {
+        ErrorBus::instance().postError(tr("SFEN board parse error: %1").arg(sfenStr.left(80)));
+        return;
+    }
+    if (!setPieceStandFromSfen(parsed->stand)) {
+        ErrorBus::instance().postError(tr("SFEN piece stand parse error: %1").arg(sfenStr.left(80)));
+        return;
+    }
 
     // ShogiView::setBoardのconnectで再描画がトリガされる
     emit boardReset();

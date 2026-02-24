@@ -29,12 +29,6 @@ static int flexDigitsToInt_NoDetach(const QString& t)
     return KifuParseCommon::flexDigitsToIntNoDetach(t);
 }
 
-// --- 終局語の統一リスト（KI2仕様に準拠 + 表記ゆらぎ吸収） ---
-// isTerminalWord と containsAnyTerminal で共通使用
-static const auto& kTerminalWords() {
-    return KifuParseCommon::terminalWords();
-}
-
 // --- 終局語の判定 ---
 static inline bool isTerminalWord(const QString& s, QString* normalized)
 {
@@ -210,31 +204,7 @@ QString Ki2ToSfenConverter::mapHandicapToSfen(const QString& label)
 
 bool Ki2ToSfenConverter::isSkippableLine(const QString& line)
 {
-    if (line.isEmpty()) return true;
-    if (line.startsWith(QLatin1Char('#'))) return true;
-
-    static const QStringList keys = {
-        QStringLiteral("開始日時"), QStringLiteral("終了日時"), QStringLiteral("対局日"),
-        QStringLiteral("棋戦"), QStringLiteral("戦型"), QStringLiteral("持ち時間"),
-        QStringLiteral("秒読み"), QStringLiteral("消費時間"), QStringLiteral("場所"),
-        QStringLiteral("表題"),   QStringLiteral("掲載"),   QStringLiteral("記録係"),
-        QStringLiteral("備考"),   QStringLiteral("図"),     QStringLiteral("振り駒"),
-        QStringLiteral("先手省略名"), QStringLiteral("後手省略名"),
-        QStringLiteral("先手："), QStringLiteral("後手："),
-        QStringLiteral("先手番"), QStringLiteral("後手番"),
-        QStringLiteral("手合割"), QStringLiteral("手合"),
-        QStringLiteral("手数＝")
-    };
-    for (const auto& k : keys) {
-        if (line.contains(k)) return true;
-    }
-
-    if (line.startsWith(QLatin1Char('&'))) return true;
-
-    // 「まで○手で...」は終局行として処理するのでスキップしない
-    // （この判定を削除）
-
-    return false;
+    return KifuParseCommon::isKifSkippableHeaderLine(line);
 }
 
 // ----------------------------------------------------------------------------
@@ -243,62 +213,7 @@ bool Ki2ToSfenConverter::isSkippableLine(const QString& line)
 
 bool Ki2ToSfenConverter::isBoardHeaderOrFrame(const QString& line)
 {
-    if (line.trimmed().isEmpty()) return false;
-
-    static const QString kDigitsZ   = QStringLiteral("１２３４５６７８９");
-    static const QString kKanjiRow  = QStringLiteral("一二三四五六七八九");
-    // 公式BOD形式はASCII罫線(+, -, |)を使用するが、
-    // ウェブ等からコピーされた盤面がUnicode罫線を含む場合にも対応
-    static const QString kBoxChars  = QStringLiteral("┌┬┐┏┳┓└┴┘┗┻┛│┃─━┼");
-
-    // 先頭「９ ８ ７ … １」
-    {
-        int digitCount = 0;
-        bool onlyDigitsAndSpace = true;
-        for (qsizetype i = 0; i < line.size(); ++i) {
-            const QChar ch = line.at(i);
-            if (ch.isSpace()) continue;
-            const ushort u = ch.unicode();
-            const bool ascii19 = (u >= QChar(u'1').unicode() && u <= QChar(u'9').unicode());
-            const bool zenk19  = kDigitsZ.contains(ch);
-            if (ascii19 || zenk19) { ++digitCount; continue; }
-            onlyDigitsAndSpace = false; break;
-        }
-        if (onlyDigitsAndSpace && digitCount >= 5) return true;
-    }
-
-    // 罫線
-    {
-        const QString s = line.trimmed();
-        if ((s.startsWith(QLatin1Char('+')) && s.endsWith(QLatin1Char('+'))) ||
-            (s.startsWith(QChar(u'|')) && s.endsWith(QChar(u'|')))) {
-            return true;
-        }
-        int boxCount = 0;
-        for (qsizetype i = 0; i < s.size(); ++i) if (kBoxChars.contains(s.at(i))) ++boxCount;
-        if (boxCount >= qMax(3, static_cast<int>(s.size()) / 2)) return true;
-    }
-
-    // 持駒見出し
-    if (line.contains(QStringLiteral("先手の持駒")) ||
-        line.contains(QStringLiteral("後手の持駒")))
-        return true;
-
-    // 下部見出し（"一二三…九"）
-    {
-        const QString t = line.trimmed();
-        if (!t.isEmpty()) {
-            bool ok = true; int kanjiCount = 0;
-            for (qsizetype i = 0; i < t.size(); ++i) {
-                const QChar ch = t.at(i);
-                if (kKanjiRow.contains(ch)) { ++kanjiCount; continue; }
-                if (ch.isSpace()) continue;
-                ok = false; break;
-            }
-            if (ok && kanjiCount >= 5) return true;
-        }
-    }
-    return false;
+    return KifuParseCommon::isBoardHeaderOrFrame(line);
 }
 
 // ----------------------------------------------------------------------------
@@ -307,11 +222,7 @@ bool Ki2ToSfenConverter::isBoardHeaderOrFrame(const QString& line)
 
 bool Ki2ToSfenConverter::containsAnyTerminal(const QString& s, QString* matched)
 {
-    // kTerminalWords() を使用（終局語リストの統一）
-    for (const QString& w : kTerminalWords()) {
-        if (s.contains(w)) { if (matched) *matched = w; return true; }
-    }
-    return false;
+    return KifuParseCommon::containsAnyTerminal(s, matched);
 }
 
 // ----------------------------------------------------------------------------
@@ -473,30 +384,13 @@ bool Ki2ToSfenConverter::parseToken(const QString& token, Piece& pieceUpper, boo
 // initBoardFromSfen - SFENから盤面を初期化
 // ----------------------------------------------------------------------------
 
-void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
-                                            QString boardState[9][9],
-                                            QMap<Piece, int>& blackHands,
-                                            QMap<Piece, int>& whiteHands)
+// SFEN盤面フィールド（第1フィールド）を盤面配列に解析
+static void parseSfenBoardField(const QString& boardStr, QString boardState[9][9])
 {
-    // 盤面クリア
-    for (int r = 0; r < 9; ++r) {
-        for (int f = 0; f < 9; ++f) {
-            boardState[r][f].clear();
-        }
-    }
-    blackHands.clear();
-    whiteHands.clear();
-
-    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (parts.isEmpty()) return;
-
-    // 盤面部分（第1フィールド）
-    const QString board = parts[0];
-    const QStringList ranks = board.split(QLatin1Char('/'));
-    
+    const QStringList ranks = boardStr.split(QLatin1Char('/'));
     for (qsizetype r = 0; r < qMin(qsizetype(9), ranks.size()); ++r) {
         const QString& row = ranks[r];
-        int f = 0; // file index (0 = 9筋, 8 = 1筋)
+        int f = 0;
         for (qsizetype i = 0; i < row.size() && f < 9; ++i) {
             const QChar ch = row.at(i);
             if (ch.isDigit()) {
@@ -512,29 +406,47 @@ void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
             }
         }
     }
+}
 
-    // 持ち駒（第3フィールド）
-    if (parts.size() >= 3) {
-        const QString hands = parts[2];
-        if (hands != QStringLiteral("-")) {
-            int num = 0;
-            for (qsizetype i = 0; i < hands.size(); ++i) {
-                const QChar ch = hands.at(i);
-                if (ch.isDigit()) {
-                    num = num * 10 + ch.digitValue();
-                } else {
-                    const bool black = ch.isUpper();
-                    const int n = (num > 0) ? num : 1;
-                    num = 0;
-                    const Piece basePiece = toBlack(charToPiece(ch));
-                    if (black) {
-                        blackHands[basePiece] += n;
-                    } else {
-                        whiteHands[basePiece] += n;
-                    }
-                }
-            }
+// SFEN持駒フィールド（第3フィールド）を持駒マップに解析
+static void parseSfenHandsField(const QString& handsStr,
+                                 QMap<Piece, int>& blackHands, QMap<Piece, int>& whiteHands)
+{
+    if (handsStr == QStringLiteral("-")) return;
+    int num = 0;
+    for (qsizetype i = 0; i < handsStr.size(); ++i) {
+        const QChar ch = handsStr.at(i);
+        if (ch.isDigit()) {
+            num = num * 10 + ch.digitValue();
+        } else {
+            const bool black = ch.isUpper();
+            const int n = (num > 0) ? num : 1;
+            num = 0;
+            const Piece basePiece = toBlack(charToPiece(ch));
+            if (black) blackHands[basePiece] += n;
+            else       whiteHands[basePiece] += n;
         }
+    }
+}
+
+void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
+                                            QString boardState[9][9],
+                                            QMap<Piece, int>& blackHands,
+                                            QMap<Piece, int>& whiteHands)
+{
+    for (int r = 0; r < 9; ++r)
+        for (int f = 0; f < 9; ++f)
+            boardState[r][f].clear();
+    blackHands.clear();
+    whiteHands.clear();
+
+    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (parts.isEmpty()) return;
+
+    parseSfenBoardField(parts[0], boardState);
+
+    if (parts.size() >= 3) {
+        parseSfenHandsField(parts[2], blackHands, whiteHands);
     }
 }
 
@@ -542,40 +454,41 @@ void Ki2ToSfenConverter::initBoardFromSfen(const QString& sfen,
 // applyMoveToBoard - 盤面に指し手を適用
 // ----------------------------------------------------------------------------
 
-void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
-                                           QString boardState[9][9],
-                                           QMap<Piece, int>& blackHands,
-                                           QMap<Piece, int>& whiteHands,
-                                           bool blackToMove)
+// 盤面トークンから駒情報を抽出（フリー関数版）
+static bool parseBoardToken(const QString& token, Piece& pieceUpper, bool& isPromoted, bool& isBlack)
 {
-    if (usi.isEmpty()) return;
+    if (token.isEmpty()) return false;
+    isPromoted = (token.startsWith(QLatin1Char('+')));
+    const QChar ch = isPromoted ? token.at(1) : token.at(0);
+    isBlack = ch.isUpper();
+    pieceUpper = toBlack(charToPiece(ch));
+    return true;
+}
 
-    // 駒打ち: "P*5e"
-    if (usi.contains(QLatin1Char('*'))) {
-        const qsizetype star = usi.indexOf('*');
-        if (star != 1 || usi.size() < 4) return;
+// 駒打ちを盤面に適用
+static void applyDropToBoard(const QString& usi, QString boardState[9][9],
+                              QMap<Piece, int>& hands, bool blackToMove)
+{
+    const qsizetype star = usi.indexOf('*');
+    if (star != 1 || usi.size() < 4) return;
 
-        const Piece up = toBlack(charToPiece(usi.at(0)));
-        const int file = usi.at(2).toLatin1() - '0'; // 1-9
-        const int rankIdx = usi.at(3).toLatin1() - 'a'; // 0-8
+    const Piece up = toBlack(charToPiece(usi.at(0)));
+    const int file = usi.at(2).toLatin1() - '0';
+    const int rankIdx = usi.at(3).toLatin1() - 'a';
 
-        if (file < 1 || file > 9 || rankIdx < 0 || rankIdx > 8) return;
+    if (file < 1 || file > 9 || rankIdx < 0 || rankIdx > 8) return;
 
-        const int colIdx = 9 - file; // 9筋が col 0
+    const int colIdx = 9 - file;
+    if (hands.value(up, 0) > 0) hands[up]--;
 
-        // 持ち駒から減らす
-        QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
-        if (hands.value(up, 0) > 0) {
-            hands[up]--;
-        }
+    const QChar pieceChar = pieceToChar(blackToMove ? up : toWhite(up));
+    boardState[rankIdx][colIdx] = QString(pieceChar);
+}
 
-        // 盤に置く
-        const QChar pieceChar = pieceToChar(blackToMove ? up : toWhite(up));
-        boardState[rankIdx][colIdx] = QString(pieceChar);
-        return;
-    }
-
-    // 通常手: "7g7f" or "2b3c+"
+// 盤上移動を盤面に適用
+static void applyMoveOnBoard(const QString& usi, QString boardState[9][9],
+                              QMap<Piece, int>& capHands, bool blackToMove)
+{
     if (usi.size() < 4) return;
 
     const int fileFrom = usi.at(0).toLatin1() - '0';
@@ -590,26 +503,23 @@ void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
     const int colFrom = 9 - fileFrom;
     const int colTo = 9 - fileTo;
 
-    // 移動元の駒を取得
-    QString fromToken = boardState[rankFromIdx][colFrom];
+    const QString fromToken = boardState[rankFromIdx][colFrom];
     if (fromToken.isEmpty()) return;
 
-    // 移動先に駒があれば持ち駒に
+    // 取った駒を持ち駒に追加
     const QString toToken = boardState[rankToIdx][colTo];
     if (!toToken.isEmpty()) {
         Piece capPiece = Piece::None;
         bool capPromoted, capBlack;
-        if (parseToken(toToken, capPiece, capPromoted, capBlack)) {
-            // 成り駒は元の駒に戻す
-            QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
-            hands[capPiece]++;
+        if (parseBoardToken(toToken, capPiece, capPromoted, capBlack)) {
+            capHands[capPiece]++;
         }
     }
 
     // 駒を移動
     Piece movingPiece = Piece::None;
     bool wasPromoted, isBlack;
-    if (parseToken(fromToken, movingPiece, wasPromoted, isBlack)) {
+    if (parseBoardToken(fromToken, movingPiece, wasPromoted, isBlack)) {
         const bool nowPromoted = promote || wasPromoted;
         const QChar outChar = pieceToChar(blackToMove ? movingPiece : toWhite(movingPiece));
         if (nowPromoted) {
@@ -622,9 +532,35 @@ void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
     boardState[rankFromIdx][colFrom].clear();
 }
 
+void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
+                                           QString boardState[9][9],
+                                           QMap<Piece, int>& blackHands,
+                                           QMap<Piece, int>& whiteHands,
+                                           bool blackToMove)
+{
+    if (usi.isEmpty()) return;
+
+    if (usi.contains(QLatin1Char('*'))) {
+        QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
+        applyDropToBoard(usi, boardState, hands, blackToMove);
+    } else {
+        QMap<Piece, int>& hands = blackToMove ? blackHands : whiteHands;
+        applyMoveOnBoard(usi, boardState, hands, blackToMove);
+    }
+}
+
 // ----------------------------------------------------------------------------
 // canPieceMoveTo - 駒が移動可能かチェック
 // ----------------------------------------------------------------------------
+
+// 金と同じ動き（と金、成香、成桂、成銀、金で共用）
+static bool isGoldLikeMove(int df, int dr, int forward)
+{
+    if (qAbs(df) > 1 || qAbs(dr) > 1) return false;
+    if (df == 0 && dr == -forward) return false;     // 真後ろは不可
+    if (qAbs(df) == 1 && dr == -forward) return false; // 斜め後ろは不可
+    return true;
+}
 
 bool Ki2ToSfenConverter::canPieceMoveTo(Piece pieceUpper, bool isPromoted,
                                          int fromFile, int fromRank,
@@ -633,95 +569,51 @@ bool Ki2ToSfenConverter::canPieceMoveTo(Piece pieceUpper, bool isPromoted,
 {
     const int df = toFile - fromFile;
     const int dr = toRank - fromRank;
-
-    // 先手は上（段が小さくなる方向）へ、後手は下へ進む
     const int forward = blackToMove ? -1 : 1;
 
     switch (pieceUpper) {
-    case Piece::BlackPawn: // 歩
-        if (isPromoted) {
-            // と金（金と同じ動き）
-            if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
-                if (df == 0 && dr == -forward) return false; // 真後ろは不可
-                if (qAbs(df) == 1 && dr == -forward) return false; // 斜め後ろは不可
-                return true;
-            }
-            return false;
-        }
-        return (df == 0 && dr == forward);
-        
-    case Piece::BlackLance: // 香
-        if (isPromoted) {
-            // 成香（金と同じ動き）
-            if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
-                if (df == 0 && dr == -forward) return false;
-                if (qAbs(df) == 1 && dr == -forward) return false;
-                return true;
-            }
-            return false;
-        }
-        return (df == 0 && dr * forward > 0); // 前方に直進
-        
-    case Piece::BlackKnight: // 桂
-        if (isPromoted) {
-            // 成桂（金と同じ動き）
-            if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
-                if (df == 0 && dr == -forward) return false;
-                if (qAbs(df) == 1 && dr == -forward) return false;
-                return true;
-            }
-            return false;
-        }
-        return (qAbs(df) == 1 && dr == 2 * forward);
-        
-    case Piece::BlackSilver: // 銀
-        if (isPromoted) {
-            // 成銀（金と同じ動き）
-            if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
-                if (df == 0 && dr == -forward) return false;
-                if (qAbs(df) == 1 && dr == -forward) return false;
-                return true;
-            }
-            return false;
-        }
-        // 銀の動き：前3方向と斜め後ろ2方向
+    case Piece::BlackPawn:
+        return isPromoted ? isGoldLikeMove(df, dr, forward)
+                          : (df == 0 && dr == forward);
+
+    case Piece::BlackLance:
+        return isPromoted ? isGoldLikeMove(df, dr, forward)
+                          : (df == 0 && dr * forward > 0);
+
+    case Piece::BlackKnight:
+        return isPromoted ? isGoldLikeMove(df, dr, forward)
+                          : (qAbs(df) == 1 && dr == 2 * forward);
+
+    case Piece::BlackSilver:
+        if (isPromoted) return isGoldLikeMove(df, dr, forward);
         if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
-            if (df == 0 && dr == -forward) return false; // 真後ろは不可
-            if (df == 0 && dr == 0) return false; // その場は不可
-            if (qAbs(df) == 1 && dr == 0) return false; // 横は不可
+            if (df == 0 && dr == -forward) return false;
+            if (df == 0 && dr == 0) return false;
+            if (qAbs(df) == 1 && dr == 0) return false;
             return true;
         }
         return false;
-        
-    case Piece::BlackGold: // 金
-        if (qAbs(df) <= 1 && qAbs(dr) <= 1) {
-            if (df == 0 && dr == -forward) return false; // 真後ろは不可
-            if (qAbs(df) == 1 && dr == -forward) return false; // 斜め後ろは不可
-            return true;
-        }
-        return false;
-        
-    case Piece::BlackBishop: // 角
+
+    case Piece::BlackGold:
+        return isGoldLikeMove(df, dr, forward);
+
+    case Piece::BlackBishop:
         if (isPromoted) {
-            // 馬（角の動き + 周囲1マス）
             if (qAbs(df) == qAbs(dr) && df != 0) return true;
-            if (qAbs(df) <= 1 && qAbs(dr) <= 1 && (df != 0 || dr != 0)) return true;
-            return false;
+            return (qAbs(df) <= 1 && qAbs(dr) <= 1 && (df != 0 || dr != 0));
         }
         return (qAbs(df) == qAbs(dr) && df != 0);
-        
-    case Piece::BlackRook: // 飛
+
+    case Piece::BlackRook:
         if (isPromoted) {
-            // 龍（飛車の動き + 斜め1マス）
             if ((df == 0 && dr != 0) || (df != 0 && dr == 0)) return true;
-            if (qAbs(df) <= 1 && qAbs(dr) <= 1 && qAbs(df) == qAbs(dr) && df != 0) return true;
-            return false;
+            return (qAbs(df) <= 1 && qAbs(dr) <= 1 && qAbs(df) == qAbs(dr) && df != 0);
         }
         return ((df == 0 && dr != 0) || (df != 0 && dr == 0));
-        
-    case Piece::BlackKing: // 玉
+
+    case Piece::BlackKing:
         return (qAbs(df) <= 1 && qAbs(dr) <= 1 && (df != 0 || dr != 0));
-        
+
     default:
         return false;
     }
@@ -1331,6 +1223,68 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
 // extractMovesWithTimes - 指し手と時間を抽出
 // ----------------------------------------------------------------------------
 
+// KI2の指し手テキストとUSI結果からKIF形式 prettyMove を構築
+static QString buildKi2PrettyMove(const QString& move, const QString& usi, const QString& teban)
+{
+    if (usi.isEmpty()) {
+        // USI変換失敗時はそのまま
+        QString prettyMove = move;
+        if (!prettyMove.startsWith(QChar(u'▲')) && !prettyMove.startsWith(QChar(u'△')) &&
+            !prettyMove.startsWith(QChar(u'▽')) &&
+            !prettyMove.startsWith(QChar(u'☗')) && !prettyMove.startsWith(QChar(u'☖'))) {
+            prettyMove = teban + prettyMove;
+        }
+        return prettyMove;
+    }
+
+    // ▲/△を除いた指し手部分
+    QString moveBody = move;
+    moveBody.remove(QChar(u'▲'));
+    moveBody.remove(QChar(u'△'));
+    moveBody.remove(QChar(u'▽'));
+    moveBody.remove(QChar(u'☗'));
+    moveBody.remove(QChar(u'☖'));
+    moveBody = moveBody.trimmed();
+
+    if (usi.contains(QLatin1Char('*'))) {
+        // 駒打ち：「打」がなければ追加
+        return moveBody.contains(QChar(u'打'))
+            ? (teban + moveBody)
+            : (teban + moveBody + QStringLiteral("打"));
+    }
+
+    // 盤上の移動：移動元座標を追加
+    if (usi.size() >= 4) {
+        const int fromFile = usi.at(0).toLatin1() - '0';
+        const int fromRank = usi.at(1).toLatin1() - 'a' + 1;
+        return teban + moveBody + QStringLiteral("(%1%2)").arg(fromFile).arg(fromRank);
+    }
+    return teban + moveBody;
+}
+
+// 終局語のKI2 DisplayItemを生成してリストに追加し、gameEndedをtrueにする
+static void handleKi2TerminalWord(const QString& term, int& moveIndex,
+                                   QString& commentBuf, QList<KifDisplayItem>& out,
+                                   bool& firstMoveFound, bool& gameEnded,
+                                   const QString& openingCommentBuf,
+                                   const QString& openingBookmarkBuf)
+{
+    if (!firstMoveFound) {
+        firstMoveFound = true;
+        out.push_back(KifuParseCommon::createOpeningDisplayItem(openingCommentBuf, openingBookmarkBuf));
+    }
+    KifuParseCommon::flushCommentToLastItem(commentBuf, out);
+
+    ++moveIndex;
+    const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+    KifDisplayItem item;
+    item.prettyMove = teban + term;
+    item.timeText = QStringLiteral("00:00/00:00:00");
+    item.ply = moveIndex;
+    out.push_back(item);
+    gameEnded = true;
+}
+
 QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& ki2Path,
                                                                  QString* errorMessage)
 {
@@ -1342,26 +1296,21 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
         return out;
     }
 
-    // 初期SFENを取得
     const QString initialSfen = detectInitialSfenFromFile(ki2Path);
 
-    // 盤面を初期化
     QString boardState[9][9];
     QMap<Piece, int> blackHands, whiteHands;
     initBoardFromSfen(initialSfen, boardState, blackHands, whiteHands);
 
-    // 手番を判定
     bool blackToMove = true;
     {
         const QStringList parts = initialSfen.split(QLatin1Char(' '));
-        if (parts.size() >= 2) {
-            blackToMove = (parts[1] == QStringLiteral("b"));
-        }
+        if (parts.size() >= 2) blackToMove = (parts[1] == QStringLiteral("b"));
     }
 
-    QString openingCommentBuf;  // 開始局面用コメント
-    QString openingBookmarkBuf; // 開始局面用しおり
-    QString commentBuf;        // 指し手後のコメント
+    QString openingCommentBuf;
+    QString openingBookmarkBuf;
+    QString commentBuf;
     int moveIndex = blackToMove ? 0 : 1;
     int prevToFile = 0, prevToRank = 0;
     bool gameEnded = false;
@@ -1369,37 +1318,25 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
 
     for (const QString& raw : std::as_const(lines)) {
         const QString lineStr = raw.trimmed();
-        
         if (gameEnded) break;
 
         // コメント行
         if (isCommentLine(lineStr)) {
-            QString c = lineStr.mid(1).trimmed();
+            const QString c = lineStr.mid(1).trimmed();
             if (!c.isEmpty()) {
-                if (!firstMoveFound) {
-                    // 最初の指し手の前のコメント → 開始局面用
-                    if (!openingCommentBuf.isEmpty()) openingCommentBuf += QLatin1Char('\n');
-                    openingCommentBuf += c;
-                } else {
-                    // 指し手後のコメント → 直前の指し手用
-                    if (!commentBuf.isEmpty()) commentBuf += QLatin1Char('\n');
-                    commentBuf += c;
-                }
+                KifuParseCommon::appendLine(firstMoveFound ? commentBuf : openingCommentBuf, c);
             }
             continue;
         }
 
-        // しおり行 → bookmark フィールドに格納
+        // しおり行
         if (isBookmarkLine(lineStr)) {
             const QString name = lineStr.mid(1).trimmed();
             if (!name.isEmpty()) {
                 if (firstMoveFound && out.size() > 1) {
-                    QString& dst = out.last().bookmark;
-                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                    dst += name;
+                    KifuParseCommon::appendLine(out.last().bookmark, name);
                 } else {
-                    if (!openingBookmarkBuf.isEmpty()) openingBookmarkBuf += QLatin1Char('\n');
-                    openingBookmarkBuf += name;
+                    KifuParseCommon::appendLine(openingBookmarkBuf, name);
                 }
             }
             continue;
@@ -1410,37 +1347,8 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
             QString terminalWord;
             int resultMoveCount = 0;
             if (parseResultLine(lineStr, terminalWord, resultMoveCount)) {
-                // 最初の指し手が見つかる前に終局語が来た場合
-                if (!firstMoveFound) {
-                    firstMoveFound = true;
-                    KifDisplayItem openingItem;
-                    openingItem.prettyMove = QString();
-                    openingItem.timeText   = QStringLiteral("00:00/00:00:00");
-                    openingItem.comment    = openingCommentBuf;
-                    openingItem.bookmark   = openingBookmarkBuf;
-                    openingItem.ply        = 0;
-                    out.push_back(openingItem);
-                }
-
-                // 直前の指し手にコメントを付与
-                if (!commentBuf.isEmpty() && out.size() > 1) {
-                    QString& dst = out.last().comment;
-                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                    dst += commentBuf;
-                    commentBuf.clear();
-                }
-
-                ++moveIndex;
-                const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-
-                KifDisplayItem item;
-                item.prettyMove = teban + terminalWord;
-                item.timeText = QStringLiteral("00:00/00:00:00");
-                item.comment = QString();
-                item.ply = moveIndex;
-
-                out.push_back(item);
-                gameEnded = true;
+                handleKi2TerminalWord(terminalWord, moveIndex, commentBuf, out,
+                                       firstMoveFound, gameEnded, openingCommentBuf, openingBookmarkBuf);
             }
             continue;
         }
@@ -1448,153 +1356,50 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
         if (lineStr.isEmpty() || isSkippableLine(lineStr) || isBoardHeaderOrFrame(lineStr)) continue;
         if (!isKi2MoveLine(lineStr)) continue;
 
-        // 1行から複数の指し手を抽出
         const QStringList moves = extractMovesFromLine(lineStr);
 
         for (const QString& move : moves) {
             // 終局語判定
             QString term;
             if (isTerminalWord(move, &term)) {
-                // 最初の指し手が見つかる前に終局語が来た場合
-                if (!firstMoveFound) {
-                    firstMoveFound = true;
-                    KifDisplayItem openingItem;
-                    openingItem.prettyMove = QString();
-                    openingItem.timeText   = QStringLiteral("00:00/00:00:00");
-                    openingItem.comment    = openingCommentBuf;
-                    openingItem.bookmark   = openingBookmarkBuf;
-                    openingItem.ply        = 0;
-                    out.push_back(openingItem);
-                }
-
-                // 直前の指し手にコメントを付与
-                if (!commentBuf.isEmpty() && out.size() > 1) {
-                    QString& dst = out.last().comment;
-                    if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                    dst += commentBuf;
-                    commentBuf.clear();
-                }
-
-                ++moveIndex;
-                const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-
-                KifDisplayItem item;
-                item.prettyMove = teban + term;
-                item.timeText = QStringLiteral("00:00/00:00:00");
-                item.comment = QString();
-                item.ply = moveIndex;
-
-                out.push_back(item);
-                gameEnded = true;
+                handleKi2TerminalWord(term, moveIndex, commentBuf, out,
+                                       firstMoveFound, gameEnded, openingCommentBuf, openingBookmarkBuf);
                 break;
             }
 
-            // 最初の指し手が見つかった時に開始局面エントリを挿入
             if (!firstMoveFound) {
                 firstMoveFound = true;
-                KifDisplayItem openingItem;
-                openingItem.prettyMove = QString();
-                openingItem.timeText   = QStringLiteral("00:00/00:00:00");
-                openingItem.comment    = openingCommentBuf;
-                openingItem.bookmark   = openingBookmarkBuf;
-                openingItem.ply        = 0;
-                out.push_back(openingItem);
+                out.push_back(KifuParseCommon::createOpeningDisplayItem(openingCommentBuf, openingBookmarkBuf));
             }
+            KifuParseCommon::flushCommentToLastItem(commentBuf, out);
 
-            // 直前の指し手にコメントを付与
-            if (!commentBuf.isEmpty() && out.size() > 1) {
-                QString& dst = out.last().comment;
-                if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                dst += commentBuf;
-                commentBuf.clear();
-            }
-
-            // USI変換して移動元を取得
             const QString usi = convertKi2MoveToUsi(move, boardState, blackHands, whiteHands,
                                                      blackToMove, prevToFile, prevToRank);
 
-            // 通常手
             ++moveIndex;
             const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
 
-            // prettyMoveを構築（移動元座標を追加）
-            QString prettyMove;
-            if (!usi.isEmpty()) {
-                // 移動先と駒種を取得
-                int toFile = 0, toRank = 0;
-                bool isSame = false;
-                findDestination(move, toFile, toRank, isSame);
-                
-                // ▲/△を除いた指し手部分
-                QString moveBody = move;
-                moveBody.remove(QChar(u'▲'));
-                moveBody.remove(QChar(u'△'));
-                moveBody.remove(QChar(u'▽'));
-                moveBody.remove(QChar(u'☗'));
-                moveBody.remove(QChar(u'☖'));
-                moveBody = moveBody.trimmed();
-                
-                if (usi.contains(QLatin1Char('*'))) {
-                    // 駒打ち：「打」がなければ追加
-                    if (!moveBody.contains(QChar(u'打'))) {
-                        // 駒名の後に「打」を挿入
-                        prettyMove = teban + moveBody + QStringLiteral("打");
-                    } else {
-                        prettyMove = teban + moveBody;
-                    }
-                } else {
-                    // 盤上の移動：移動元座標を追加
-                    // USIから移動元を取得（例: "7g7f" → from=7g）
-                    if (usi.size() >= 4) {
-                        const int fromFile = usi.at(0).toLatin1() - '0';
-                        const int fromRank = usi.at(1).toLatin1() - 'a' + 1;
-                        prettyMove = teban + moveBody + QStringLiteral("(%1%2)").arg(fromFile).arg(fromRank);
-                    } else {
-                        prettyMove = teban + moveBody;
-                    }
-                }
-                
-                // 盤面を更新
-                applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
-            } else {
-                // USI変換失敗時はそのまま
-                prettyMove = move;
-                if (!prettyMove.startsWith(QChar(u'▲')) && !prettyMove.startsWith(QChar(u'△')) &&
-                    !prettyMove.startsWith(QChar(u'▽')) &&
-                    !prettyMove.startsWith(QChar(u'☗')) && !prettyMove.startsWith(QChar(u'☖'))) {
-                    prettyMove = teban + prettyMove;
-                }
-            }
-
             KifDisplayItem item;
-            item.prettyMove = prettyMove;
-            item.timeText = QStringLiteral("00:00/00:00:00"); // KI2には時間情報がない
-            item.comment = QString();  // コメントは次の指し手で付与される
+            item.prettyMove = buildKi2PrettyMove(move, usi, teban);
+            item.timeText = QStringLiteral("00:00/00:00:00");
             item.ply = moveIndex;
-
             out.push_back(item);
-            
-            // 手番を交代
+
+            if (!usi.isEmpty()) {
+                applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
+            }
             blackToMove = !blackToMove;
         }
     }
 
     // 最後の指し手の後に残っているコメントを付与
     if (!commentBuf.isEmpty() && !out.isEmpty()) {
-        QString& dst = out.last().comment;
-        if (!dst.isEmpty()) dst += QLatin1Char('\n');
-        dst += commentBuf;
+        KifuParseCommon::appendLine(out.last().comment, commentBuf);
     }
 
     // 指し手が一つもなかった場合でも開始局面エントリを追加
     if (out.isEmpty()) {
-        KifDisplayItem openingItem;
-        openingItem.prettyMove = QString();
-        openingItem.timeText   = QStringLiteral("00:00/00:00:00");
-        openingItem.comment    = openingCommentBuf;
-        openingItem.bookmark   = openingBookmarkBuf;
-        openingItem.ply        = 0;
-        out.push_back(openingItem);
+        out.push_back(KifuParseCommon::createOpeningDisplayItem(openingCommentBuf, openingBookmarkBuf));
     }
 
     return out;
