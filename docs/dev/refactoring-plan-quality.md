@@ -45,6 +45,14 @@ Phase 5: ビルド・ツーリング整備        ← 任意のタイミング
 Phase 6: シグナル/スロット整理         ← Phase 4 完了後推奨
   ├─ Task 19: デッドシグナル/スロット棚卸し      [独立]
   └─ Task 20: UiActionsWiring の機能別分割       [Task 19 に依存]
+
+Phase 7: コード品質改善（Task 21 観察に基づく）← 任意のタイミング
+  ├─ Task 22: ビルド警告ゼロ化                   [独立, 最優先]
+  ├─ Task 23: 所有権の明確化・unique_ptr 移行    [独立]
+  ├─ Task 24: MainWindow 責務分割               [Task 23 後推奨]
+  ├─ Task 25: lambda connect の解消             [独立]
+  ├─ Task 26: パーサーの複雑さ低減              [独立]
+  └─ Task 27: エラーハンドリングの一貫性向上     [独立]
 ```
 
 ---
