@@ -3751,7 +3751,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="539"/>
+        <location filename="../../src/app/mainwindow.cpp" line="548"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3804,7 +3804,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3213"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3100"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>

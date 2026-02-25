@@ -205,6 +205,8 @@ set(SRC_APP
     src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
+    src/app/kifunavigationcoordinator.cpp
+    src/app/kifunavigationcoordinator.h
     src/app/livegamesessionupdater.cpp
     src/app/livegamesessionupdater.h
     src/app/mainwindowcompositionroot.cpp
