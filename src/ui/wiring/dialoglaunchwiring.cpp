@@ -22,6 +22,7 @@
 #include "kifuanalysislistmodel.h"
 #include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
+#include "evaluationchartwidget.h"
 #include "logcategories.h"
 
 DialogLaunchWiring::DialogLaunchWiring(const Deps& deps, QObject* parent)
@@ -176,7 +177,7 @@ void DialogLaunchWiring::displayCsaGameDialog()
         CsaGameCoordinator* coord = csaWiring->coordinator();
         if (coord) {
             connect(coord, &CsaGameCoordinator::engineScoreUpdated,
-                    this, &DialogLaunchWiring::csaEngineScoreUpdated,
+                    this, &DialogLaunchWiring::onCsaEngineScoreUpdatedInternal,
                     Qt::UniqueConnection);
         }
     }
@@ -255,4 +256,24 @@ void DialogLaunchWiring::displaySfenCollectionViewer()
     connect(dlg, &SfenCollectionDialog::positionSelected,
             this, &DialogLaunchWiring::sfenCollectionPositionSelected);
     dlg->show();
+}
+
+void DialogLaunchWiring::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply)
+{
+    qCDebug(lcUi).noquote() << "onCsaEngineScoreUpdatedInternal: scoreCp=" << scoreCp << "ply=" << ply;
+
+    auto* evalChart = m_deps.getEvalChart ? m_deps.getEvalChart() : nullptr;
+    if (!evalChart) {
+        qCDebug(lcUi).noquote() << "onCsaEngineScoreUpdatedInternal: evalChart is NULL";
+        return;
+    }
+
+    auto* csaCoord = m_deps.getCsaGameCoordinator ? m_deps.getCsaGameCoordinator() : nullptr;
+    if (csaCoord) {
+        if (csaCoord->isBlackSide()) {
+            evalChart->appendScoreP1(ply, scoreCp, false);
+        } else {
+            evalChart->appendScoreP2(ply, -scoreCp, false);
+        }
+    }
 }

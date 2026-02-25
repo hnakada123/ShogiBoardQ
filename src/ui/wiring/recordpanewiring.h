@@ -11,6 +11,7 @@ class QWidget;
 class RecordPane;
 class KifuRecordListModel;
 class KifuBranchListModel;
+class CommentCoordinator;
 
 class RecordPaneWiring : public QObject {
     Q_OBJECT
@@ -20,6 +21,7 @@ public:
         QObject*             ctx = nullptr;            // RecordPane::mainRowChanged などを受ける QObject（MainWindow*）
         KifuRecordListModel* recordModel = nullptr;    // 棋譜モデル
         KifuBranchListModel* branchModel = nullptr;    // 分岐候補モデル
+        CommentCoordinator*  commentCoordinator = nullptr; // しおり編集接続先
     };
 
     explicit RecordPaneWiring(const Deps& d, QObject* parent=nullptr);

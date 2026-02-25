@@ -78,6 +78,14 @@ public slots:
      */
     void onBookmarkUpdateCallback(int ply, const QString& bookmark);
 
+    /**
+     * @brief ナビゲーション起因のコメント表示更新
+     * @param ply 手数インデックス（m_currentMoveIndexも同期する）
+     * @param comment コメントテキスト
+     * @param asHtml HTMLとして配信する場合はtrue
+     */
+    void onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml);
+
 signals:
     /**
      * @brief GameRecordModelの初期化が必要な時に発行

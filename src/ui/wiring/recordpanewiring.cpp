@@ -6,6 +6,7 @@
 #include "kifurecordlistmodel.h"
 #include "kifudisplay.h"
 #include "mainwindow.h"
+#include "commentcoordinator.h"
 
 #include <QModelIndex>
 #include <QItemSelectionModel>
@@ -26,8 +27,10 @@ void RecordPaneWiring::buildUiAndWire()
             QObject::connect(m_pane, &RecordPane::mainRowChanged,
                              mw,     &MainWindow::onRecordPaneMainRowChanged,
                              Qt::UniqueConnection);
+        }
+        if (m_d.commentCoordinator) {
             QObject::connect(m_pane, &RecordPane::bookmarkEditRequested,
-                             mw,     &MainWindow::onBookmarkEditRequested,
+                             m_d.commentCoordinator, &CommentCoordinator::onBookmarkEditRequested,
                              Qt::UniqueConnection);
         }
 

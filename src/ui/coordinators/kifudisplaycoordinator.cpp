@@ -956,6 +956,12 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     // 重要: onRecordHighlightRequired() は呼び出さない
     // MainWindowが既にビューの選択を管理しているため
 
+    // コメント表示の更新
+    {
+        const QString comment = targetNode->comment().trimmed();
+        emit commentUpdateRequired(ply, comment.isEmpty() ? tr("コメントなし") : comment, true);
+    }
+
     // 位置変更完了時の一致性チェック
     const bool consistent = verifyDisplayConsistency();
     if (!consistent) {

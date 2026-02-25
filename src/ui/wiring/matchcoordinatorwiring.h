@@ -12,6 +12,7 @@
 
 #include "matchcoordinator.h"
 #include "gamestartcoordinator.h"
+#include "matchcoordinatorhooksfactory.h"
 
 class ShogiGameController;
 class ShogiView;
@@ -87,6 +88,51 @@ public:
         std::function<EvaluationGraphController*()> getEvalGraphController;
         std::function<UiStatePolicyManager*()> getUiStatePolicy;
     };
+
+    /// MainWindow から渡されるコールバック・ポインタ群（buildDeps の入力）
+    struct BuilderInputs {
+        // --- HookDeps 構築用コールバック ---
+        MatchCoordinatorHooksFactory::HookDeps hookDeps;
+        MatchCoordinatorHooksFactory::UndoDeps undoDeps;
+
+        // --- Deps に直接設定する値 ---
+        ShogiGameController* gc = nullptr;
+        ShogiView* view = nullptr;
+        Usi* usi1 = nullptr;
+        Usi* usi2 = nullptr;
+        UsiCommLogModel* comm1 = nullptr;
+        ShogiEngineThinkingModel* think1 = nullptr;
+        UsiCommLogModel* comm2 = nullptr;
+        ShogiEngineThinkingModel* think2 = nullptr;
+        QStringList* sfenRecord = nullptr;
+        PlayMode* playMode = nullptr;
+
+        TimeDisplayPresenter* timePresenter = nullptr;
+        BoardInteractionController* boardController = nullptr;
+
+        KifuRecordListModel* kifuRecordModel = nullptr;
+        QVector<ShogiMove>* gameMoves = nullptr;
+        QStringList* positionStrList = nullptr;
+        int* currentMoveIndex = nullptr;
+
+        // --- 遅延初期化コールバック ---
+        std::function<void()> ensureTimeController;
+        std::function<void()> ensureEvaluationGraphController;
+        std::function<void()> ensurePlayerInfoWiring;
+        std::function<void()> ensureUsiCommandController;
+        std::function<void()> ensureUiStatePolicyManager;
+        std::function<void()> connectBoardClicks;
+        std::function<void()> connectMoveRequested;
+
+        // --- 遅延初期化オブジェクトのゲッター ---
+        std::function<ShogiClock*()> getClock;
+        std::function<TimeControlController*()> getTimeController;
+        std::function<EvaluationGraphController*()> getEvalGraphController;
+        std::function<UiStatePolicyManager*()> getUiStatePolicy;
+    };
+
+    /// BuilderInputs から Deps を構築する
+    static Deps buildDeps(const BuilderInputs& inputs);
 
     explicit MatchCoordinatorWiring(QObject* parent = nullptr);
     ~MatchCoordinatorWiring() override;

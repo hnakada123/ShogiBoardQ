@@ -90,6 +90,9 @@ public:
 
         // 局面集ダイアログ
         QPointer<SfenCollectionDialog>* sfenCollectionDialog = nullptr;
+
+        // CSA通信対局のエンジン評価値グラフ用
+        std::function<CsaGameCoordinator*()> getCsaGameCoordinator;
     };
 
     explicit DialogLaunchWiring(const Deps& deps, QObject* parent = nullptr);
@@ -112,7 +115,9 @@ public slots:
 
 signals:
     void sfenCollectionPositionSelected(const QString& sfen);
-    void csaEngineScoreUpdated(int scoreCp, int ply);
+
+private slots:
+    void onCsaEngineScoreUpdatedInternal(int scoreCp, int ply);
 
 private:
     Deps m_deps;

@@ -12,6 +12,7 @@
 
 #include "csagamecoordinator.h"
 #include "shogimove.h"
+#include "playmode.h"
 
 class ShogiGameController;
 class ShogiView;
@@ -62,6 +63,10 @@ public:
         ShogiEngineThinkingModel* engineThinking = nullptr;
         TimeControlController* timeController = nullptr;
         QVector<ShogiMove>* gameMoves = nullptr;
+        // PlayMode への直接書き込み用
+        PlayMode* playMode = nullptr;
+        // 親ウィジェット（ダイアログ表示用）
+        QWidget* parentWidget = nullptr;
     };
 
     /**
@@ -175,6 +180,12 @@ public slots:
     void onWaitingCancelled();
 
 private slots:
+    /// PlayMode変更を内部で処理する（MainWindowへの転送不要）
+    void onPlayModeChangedInternal(int mode);
+
+    /// 対局終了ダイアログを内部で表示する（MainWindowへの転送不要）
+    void showGameEndDialogInternal(const QString& title, const QString& message);
+
     /**
      * @brief 対局開始時の処理
      * @param blackName 先手名
@@ -253,6 +264,11 @@ private:
     ShogiEngineThinkingModel* m_engineThinking = nullptr;
     TimeControlController* m_timeController = nullptr;
     QVector<ShogiMove>* m_gameMoves = nullptr;
+
+    // PlayMode への直接書き込み用
+    PlayMode* m_playMode = nullptr;
+    // 親ウィジェット（ダイアログ表示用）
+    QWidget* m_parentWidget = nullptr;
 
     // 内部状態
     int m_activePly = 0;

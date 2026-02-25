@@ -122,6 +122,9 @@ add_shogi_test(tst_kifconverter
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/kifu/kifubranchnode.cpp
+    ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtreebuilder.cpp
+    ${SRC}/common/errorbus.cpp
 )
 
 add_shogi_test(tst_ki2converter

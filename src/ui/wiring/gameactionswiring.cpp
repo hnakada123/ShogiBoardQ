@@ -5,12 +5,14 @@
 #include "ui_mainwindow.h"
 #include "mainwindow.h"
 #include "dialoglaunchwiring.h"
+#include "dialogcoordinatorwiring.h"
 
 void GameActionsWiring::wire()
 {
     auto* ui  = m_d.ui;
     auto* mw  = m_d.mw;
     auto* dlw = m_d.dlw;
+    auto* dcw = m_d.dcw;
 
     // 対局
     QObject::connect(ui->actionNewGame,      &QAction::triggered, mw,  &MainWindow::resetToInitialState,  Qt::UniqueConnection);
@@ -22,7 +24,7 @@ void GameActionsWiring::wire()
     // 解析/検討/詰み・エンジン設定
     QObject::connect(ui->actionEngineSettings,       &QAction::triggered, dlw, &DialogLaunchWiring::displayEngineSettingsDialog,       Qt::UniqueConnection);
     QObject::connect(ui->actionAnalyzeKifu,          &QAction::triggered, dlw, &DialogLaunchWiring::displayKifuAnalysisDialog,         Qt::UniqueConnection);
-    QObject::connect(ui->actionCancelAnalyzeKifu,    &QAction::triggered, mw,  &MainWindow::cancelKifuAnalysis,                       Qt::UniqueConnection);
+    QObject::connect(ui->actionCancelAnalyzeKifu,    &QAction::triggered, dcw, &DialogCoordinatorWiring::cancelKifuAnalysis,           Qt::UniqueConnection);
     QObject::connect(ui->actionStartEditPosition,    &QAction::triggered, mw,  &MainWindow::beginPositionEditing,                     Qt::UniqueConnection);
     QObject::connect(ui->actionEndEditPosition,      &QAction::triggered, mw,  &MainWindow::finishPositionEditing,                    Qt::UniqueConnection);
     QObject::connect(ui->actionTsumeShogiSearch,     &QAction::triggered, dlw, &DialogLaunchWiring::displayTsumeShogiSearchDialog,    Qt::UniqueConnection);

@@ -228,37 +228,37 @@
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="69"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="76"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="117"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="124"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="141"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="148"/>
         <source>手を選択してください</source>
         <translation>手を選択してください</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="162"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="169"/>
         <source>しおりを編集</source>
         <translation>しおりを編集</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="163"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="170"/>
         <source>しおり名（手数: %1）:</source>
         <translation>しおり名（手数: %1）:</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="179"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="186"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>しおりを削除しました（手数: %1）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="181"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="188"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>しおりを設定しました（手数: %1）</translation>
     </message>
@@ -1017,27 +1017,27 @@
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="105"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="114"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="106"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="115"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="131"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="140"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="143"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="152"/>
         <source>負け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="200"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="209"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -1045,77 +1045,77 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="201"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="210"/>
         <source>対局終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="211"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="220"/>
         <source>対局終了: %1 (%2)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="259"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="268"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="259"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="268"/>
         <source>後手番</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="311"/>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="312"/>
-        <source>投了</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="314"/>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="315"/>
-        <source>時間切れ</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="317"/>
-        <source>反則</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="318"/>
-        <source>反則負け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="320"/>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
-        <source>千日手</source>
+        <source>投了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="323"/>
-        <source>連続王手の千日手</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="324"/>
-        <source>反則負け（連続王手）</source>
+        <source>時間切れ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="326"/>
+        <source>反則</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="327"/>
-        <source>入玉宣言</source>
+        <source>反則負け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="329"/>
         <location filename="../../src/ui/wiring/csagamewiring.cpp" line="330"/>
+        <source>千日手</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="332"/>
+        <source>連続王手の千日手</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="333"/>
+        <source>反則負け（連続王手）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="335"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="336"/>
+        <source>入玉宣言</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="338"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="339"/>
         <source>中断</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="349"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="371"/>
         <source>通信対局をキャンセルしました</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3018,6 +3018,7 @@ OKを選択すると保存先が指定できます。</source>
     <name>KifuDisplayCoordinator</name>
     <message>
         <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="546"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="962"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3184,6 +3185,49 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/kifu/kifuexportcontroller.cpp" line="772"/>
         <source>BOD形式の局面をクリップボードにコピーしました</source>
         <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
+    <name>KifuFileController</name>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="33"/>
+        <source>棋譜ファイルを開く</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="34"/>
+        <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
+        <translation type="unfinished">棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="124"/>
+        <source>棋譜を取り込みました</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="126"/>
+        <source>棋譜の取り込みに失敗しました</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="132"/>
+        <source>棋譜の取り込みに失敗しました（内部エラー）</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="147"/>
+        <source>局面を反映しました</source>
+        <translation type="unfinished">局面を反映しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="149"/>
+        <source>局面の反映に失敗しました</source>
+        <translation type="unfinished">局面の反映に失敗しました</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="154"/>
+        <source>局面の反映に失敗しました（内部エラー）</source>
+        <translation type="unfinished">局面の反映に失敗しました（内部エラー）</translation>
     </message>
 </context>
 <context>
@@ -3707,46 +3751,37 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="524"/>
+        <location filename="../../src/app/mainwindow.cpp" line="537"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="70"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="86"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="71"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="87"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="71"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="87"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="72"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="88"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1221"/>
-        <source>棋譜ファイルを開く</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="1222"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
-        <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
+        <translation type="vanished">棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3849"/>
         <source>局面を反映しました</source>
-        <translation>局面を反映しました</translation>
+        <translation type="vanished">局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3851"/>
         <source>局面の反映に失敗しました</source>
-        <translation>局面の反映に失敗しました</translation>
+        <translation type="vanished">局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3854"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
-        <translation>局面の反映に失敗しました（内部エラー）</translation>
+        <translation type="vanished">局面の反映に失敗しました（内部エラー）</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="675"/>
@@ -3769,28 +3804,13 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3427"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3281"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <source>定跡</source>
         <translation type="vanished">定跡</translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
-        <source>棋譜を取り込みました</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3833"/>
-        <source>棋譜の取り込みに失敗しました</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3837"/>
-        <source>棋譜の取り込みに失敗しました（内部エラー）</source>
-        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -4995,13 +5015,13 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>RecordPaneWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="52"/>
         <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="55"/>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="58"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="56"/>
+        <location filename="../../src/ui/wiring/recordpanewiring.cpp" line="59"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>

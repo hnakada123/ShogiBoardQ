@@ -11,6 +11,48 @@
 #include "uistatepolicymanager.h"
 #include "boardinteractioncontroller.h"
 #include "shogiclock.h"
+#include "matchcoordinatorhooksfactory.h"
+
+MatchCoordinatorWiring::Deps MatchCoordinatorWiring::buildDeps(const BuilderInputs& in)
+{
+    Deps deps;
+    deps.gc    = in.gc;
+    deps.view  = in.view;
+    deps.usi1  = in.usi1;
+    deps.usi2  = in.usi2;
+    deps.comm1  = in.comm1;
+    deps.think1 = in.think1;
+    deps.comm2  = in.comm2;
+    deps.think2 = in.think2;
+    deps.sfenRecord = in.sfenRecord;
+    deps.playMode   = in.playMode;
+
+    deps.timePresenter   = in.timePresenter;
+    deps.boardController = in.boardController;
+
+    deps.kifuRecordModel  = in.kifuRecordModel;
+    deps.gameMoves        = in.gameMoves;
+    deps.positionStrList  = in.positionStrList;
+    deps.currentMoveIndex = in.currentMoveIndex;
+
+    deps.hooks     = MatchCoordinatorHooksFactory::buildHooks(in.hookDeps);
+    deps.undoHooks = MatchCoordinatorHooksFactory::buildUndoHooks(in.undoDeps);
+
+    deps.ensureTimeController           = in.ensureTimeController;
+    deps.ensureEvaluationGraphController = in.ensureEvaluationGraphController;
+    deps.ensurePlayerInfoWiring         = in.ensurePlayerInfoWiring;
+    deps.ensureUsiCommandController     = in.ensureUsiCommandController;
+    deps.ensureUiStatePolicyManager     = in.ensureUiStatePolicyManager;
+    deps.connectBoardClicks             = in.connectBoardClicks;
+    deps.connectMoveRequested           = in.connectMoveRequested;
+
+    deps.getClock              = in.getClock;
+    deps.getTimeController     = in.getTimeController;
+    deps.getEvalGraphController = in.getEvalGraphController;
+    deps.getUiStatePolicy      = in.getUiStatePolicy;
+
+    return deps;
+}
 
 MatchCoordinatorWiring::MatchCoordinatorWiring(QObject* parent)
     : QObject(parent)

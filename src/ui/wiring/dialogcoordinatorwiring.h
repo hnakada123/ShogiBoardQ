@@ -9,8 +9,9 @@
 #include <QVector>
 #include <functional>
 
+#include "playmode.h"
+
 class QWidget;
-class MainWindow;
 class DialogCoordinator;
 class MatchCoordinator;
 class ShogiGameController;
@@ -24,6 +25,8 @@ class EvaluationChartWidget;
 class AnalysisResultsPresenter;
 class ConsiderationWiring;
 class UiStatePolicyManager;
+class EngineAnalysisTab;
+class RecordPane;
 struct ShogiMove;
 class KifuDisplay;
 
@@ -43,7 +46,6 @@ public:
     struct Deps {
         // --- 生成に必要な依存 ---
         QWidget* parentWidget = nullptr;               ///< 親ウィジェット（DialogCoordinator コンストラクタ用）
-        MainWindow* mainWindow = nullptr;              ///< MainWindow（シグナル接続先）
         MatchCoordinator* match = nullptr;             ///< 対局調整（非所有）
         ShogiGameController* gameController = nullptr; ///< ゲーム制御（非所有）
 
@@ -76,6 +78,12 @@ public:
         // --- 遅延初期化コールバック ---
         std::function<ConsiderationWiring*()> getConsiderationWiring; ///< ConsiderationWiring取得
         std::function<UiStatePolicyManager*()> getUiStatePolicyManager; ///< UiStatePolicyManager取得
+
+        // --- 解析イベントハンドラ用 ---
+        EvaluationChartWidget* evalChartWidget = nullptr;   ///< 評価値グラフ（非所有）
+        EngineAnalysisTab* analysisTab = nullptr;           ///< エンジン解析タブ（非所有）
+        PlayMode* playMode = nullptr;                       ///< プレイモード（外部所有）
+        std::function<void(int)> navigateKifuViewToRow;     ///< 棋譜ビューの行遷移コールバック
     };
 
     explicit DialogCoordinatorWiring(QObject* parent = nullptr);
@@ -86,12 +94,25 @@ public:
     /// DialogCoordinator を返す（未生成時は nullptr）
     DialogCoordinator* coordinator() const { return m_coordinator; }
 
+public slots:
+    /// 棋譜解析の中止
+    void cancelKifuAnalysis();
+    /// 棋譜解析の進捗を受け取る
+    void onKifuAnalysisProgress(int ply, int scoreCp);
+    /// 棋譜解析結果リストの行選択時に該当局面へ遷移する
+    void onKifuAnalysisResultRowSelected(int row);
+
 private:
     void wireSignals(const Deps& deps);
     void bindContexts(const Deps& deps);
 
     DialogCoordinator* m_coordinator = nullptr;
-    MainWindow* m_mainWindow = nullptr;
+
+    // 解析イベントハンドラ用
+    EvaluationChartWidget* m_evalChartWidget = nullptr;
+    EngineAnalysisTab* m_analysisTab = nullptr;
+    PlayMode* m_playMode = nullptr;
+    std::function<void(int)> m_navigateKifuViewToRow;
 };
 
 #endif // DIALOGCOORDINATORWIRING_H
