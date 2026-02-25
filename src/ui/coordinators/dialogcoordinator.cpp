@@ -25,8 +25,7 @@
 #include "evaluationchartwidget.h"
 #include "shogimove.h"
 #include "kifurecordlistmodel.h"
-#include "kifubranchtree.h"
-#include "kifunavigationstate.h"
+#include "considerationpositionresolver.h"
 #include "shogiutils.h"
 
 namespace {
@@ -425,11 +424,24 @@ bool DialogCoordinator::startConsiderationFromContext()
         }
     }
 
-    // 送信する position を決定
     const int currentMoveIdx = m_considerationCtx.currentMoveIndex ? *m_considerationCtx.currentMoveIndex : 0;
-    const QString position = buildPositionStringForIndex(currentMoveIdx);
 
-    qCDebug(lcUi).noquote() << "startConsiderationFromContext: position=" << position.left(50);
+    // ConsiderationPositionResolver で局面・ハイライト情報を一括解決
+    ConsiderationPositionResolver::Inputs resolverInputs;
+    resolverInputs.currentSfenStr = m_considerationCtx.currentSfenStr;
+    resolverInputs.gameUsiMoves = m_considerationCtx.gameUsiMoves;
+    resolverInputs.gameMoves = m_considerationCtx.gameMoves;
+    resolverInputs.startSfenStr = m_considerationCtx.startSfenStr;
+    resolverInputs.sfenRecord = m_considerationCtx.sfenRecord;
+    resolverInputs.kifuLoadCoordinator = m_considerationCtx.kifuLoadCoordinator;
+    resolverInputs.kifuRecordModel = m_considerationCtx.kifuRecordModel;
+    resolverInputs.branchTree = m_considerationCtx.branchTree;
+    resolverInputs.navState = m_considerationCtx.navState;
+
+    const ConsiderationPositionResolver resolver(resolverInputs);
+    const auto resolved = resolver.resolveForRow(currentMoveIdx);
+
+    qCDebug(lcUi).noquote() << "startConsiderationFromContext: position=" << resolved.position.left(50);
 
     // 検討タブ専用モデルを作成（なければ）
     if (m_considerationCtx.considerationModel) {
@@ -445,111 +457,27 @@ bool DialogCoordinator::startConsiderationFromContext()
 
     // 検討タブの設定を使用して直接検討を開始
     ConsiderationDirectParams params;
-    params.position = position;
+    params.position = resolved.position;
     params.engineIndex = m_considerationTabManager ? m_considerationTabManager->selectedEngineIndex() : 0;
     params.engineName = m_considerationTabManager ? m_considerationTabManager->selectedEngineName() : QString();
     params.unlimitedTime = m_considerationTabManager ? m_considerationTabManager->isUnlimitedTime() : true;
     params.byoyomiSec = m_considerationTabManager ? m_considerationTabManager->byoyomiSec() : 20;
     params.multiPV = m_considerationTabManager ? m_considerationTabManager->considerationMultiPV() : 1;
     params.considerationModel = m_considerationCtx.considerationModel ? *m_considerationCtx.considerationModel : nullptr;
+    params.previousFileTo = resolved.previousFileTo;
+    params.previousRankTo = resolved.previousRankTo;
+    params.lastUsiMove = resolved.lastUsiMove;
 
-    // 選択中の指し手の移動先を取得（「同」表記のため）
-    const int moveIdx = m_considerationCtx.currentMoveIndex ? *m_considerationCtx.currentMoveIndex : 0;
-    qCDebug(lcUi).noquote() << "startConsiderationFromContext: moveIdx=" << moveIdx;
-
-    if (m_considerationCtx.gameMoves) {
-        const int movesSize = static_cast<int>(m_considerationCtx.gameMoves->size());
-        if (moveIdx >= 0 && moveIdx < movesSize) {
-            // 対局中の場合: m_gameMoves から直接取得
-            const QPoint& toSquare = m_considerationCtx.gameMoves->at(moveIdx).toSquare;
-            params.previousFileTo = toSquare.x();
-            params.previousRankTo = toSquare.y();
-            qCDebug(lcUi).noquote() << "previousFileTo/RankTo (from gameMoves):"
-                               << params.previousFileTo << "/" << params.previousRankTo;
-        }
-    }
-
-    if (params.previousFileTo == 0 && m_considerationCtx.kifuRecordModel && moveIdx > 0) {
-        // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
-        const int modelRowCount = m_considerationCtx.kifuRecordModel->rowCount();
-        if (moveIdx < modelRowCount) {
-            int fileTo = 0, rankTo = 0;
-            if (ShogiUtils::parseMoveCoordinateFromModel(m_considerationCtx.kifuRecordModel, moveIdx, &fileTo, &rankTo)) {
-                params.previousFileTo = fileTo;
-                params.previousRankTo = rankTo;
-                qCDebug(lcUi).noquote() << "previousFileTo/RankTo (from recordModel):"
-                                   << params.previousFileTo << "/" << params.previousRankTo;
-            }
-        }
-    }
-
-    // 開始局面に至った最後の指し手を取得（読み筋表示ウィンドウのハイライト用）
-    // moveIdx=0 は開始局面なので直前の指し手なし
-    // moveIdx>=1 の場合、その局面に至った指し手は moveIdx-1 番目の指し手
-    if (moveIdx > 0) {
-        // 分岐ライン上では、現在ラインのノードを最優先で参照する。
-        if (m_considerationCtx.branchTree && m_considerationCtx.navState) {
-            const int lineIndex = m_considerationCtx.navState->currentLineIndex();
-            const QVector<BranchLine> lines = m_considerationCtx.branchTree->allLines();
-            if (lineIndex >= 0 && lineIndex < lines.size()) {
-                KifuBranchNode* currentNode = nullptr;
-                const BranchLine& line = lines.at(lineIndex);
-                for (KifuBranchNode* node : line.nodes) {
-                    if (!node) continue;
-                    if (node->ply() == moveIdx) {
-                        currentNode = node;
-                    }
-                }
-
-                if (currentNode) {
-                    const ShogiMove mv = currentNode->move();
-                    if (mv.movingPiece != Piece::None) {
-                        params.lastUsiMove = ShogiUtils::moveToUsi(mv);
-                        qCDebug(lcUi).noquote() << "lastUsiMove (from branch node move):" << params.lastUsiMove;
-                    }
-                }
-            }
-        }
-
-        // move情報が不完全なケースに備え、棋譜表示文字列からUSIを抽出。
-        if (params.lastUsiMove.isEmpty() && m_considerationCtx.kifuRecordModel) {
-            const int rowCount = m_considerationCtx.kifuRecordModel->rowCount();
-            if (moveIdx >= 0 && moveIdx < rowCount) {
-                const QString moveLabel =
-                    m_considerationCtx.kifuRecordModel->index(moveIdx, 0).data(Qt::DisplayRole).toString();
-                params.lastUsiMove = extractUsiMoveFromKanjiLabel(
-                    moveLabel, params.previousFileTo, params.previousRankTo);
-                qCDebug(lcUi).noquote() << "lastUsiMove (from record label):" << params.lastUsiMove
-                                   << " label=" << moveLabel;
-            }
-        }
-
-        // フォールバック: gameMoves から変換
-        if (params.lastUsiMove.isEmpty() && m_considerationCtx.gameMoves) {
-            const int moveIdx2 = moveIdx - 1;
-            if (moveIdx2 >= 0 && moveIdx2 < m_considerationCtx.gameMoves->size()) {
-                params.lastUsiMove = ShogiUtils::moveToUsi(m_considerationCtx.gameMoves->at(moveIdx2));
-                qCDebug(lcUi).noquote() << "lastUsiMove (from gameMoves):" << params.lastUsiMove;
-            }
-        }
-
-        // 対局中: gameUsiMoves から取得
-        if (params.lastUsiMove.isEmpty() && m_considerationCtx.gameUsiMoves && !m_considerationCtx.gameUsiMoves->isEmpty()) {
-            const int usiIdx = moveIdx - 1;
-            if (usiIdx >= 0 && usiIdx < m_considerationCtx.gameUsiMoves->size()) {
-                params.lastUsiMove = m_considerationCtx.gameUsiMoves->at(usiIdx);
-                qCDebug(lcUi).noquote() << "lastUsiMove (from gameUsiMoves):" << params.lastUsiMove;
-            }
-        }
-
-        // 棋譜読み込み時: kifuLoadCoordinator から取得
-        if (params.lastUsiMove.isEmpty() && m_considerationCtx.kifuLoadCoordinator) {
-            const QStringList& kifuUsiMoves = m_considerationCtx.kifuLoadCoordinator->kifuUsiMoves();
-            const int usiIdx = moveIdx - 1;
-            if (usiIdx >= 0 && usiIdx < kifuUsiMoves.size()) {
-                params.lastUsiMove = kifuUsiMoves.at(usiIdx);
-                qCDebug(lcUi).noquote() << "lastUsiMove (from kifuLoadCoordinator):" << params.lastUsiMove;
-            }
+    // 漢字表記からUSI指し手を抽出（UI固有フォールバック: resolver では解決できない場合）
+    if (params.lastUsiMove.isEmpty() && currentMoveIdx > 0 && m_considerationCtx.kifuRecordModel) {
+        const int rowCount = m_considerationCtx.kifuRecordModel->rowCount();
+        if (currentMoveIdx < rowCount) {
+            const QString moveLabel =
+                m_considerationCtx.kifuRecordModel->index(currentMoveIdx, 0).data(Qt::DisplayRole).toString();
+            params.lastUsiMove = extractUsiMoveFromKanjiLabel(
+                moveLabel, params.previousFileTo, params.previousRankTo);
+            qCDebug(lcUi).noquote() << "lastUsiMove (from record label fallback):" << params.lastUsiMove
+                               << " label=" << moveLabel;
         }
     }
 
@@ -562,43 +490,6 @@ bool DialogCoordinator::startConsiderationFromContext()
     startConsiderationDirect(params);
     qCDebug(lcUi).noquote() << "startConsiderationFromContext EXIT";
     return true;
-}
-
-QString DialogCoordinator::buildPositionStringForIndex(int moveIndex) const
-{
-    // 平手初期局面のSFEN
-    static const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
-    const QString startSfen = m_considerationCtx.startSfenStr ? *m_considerationCtx.startSfenStr : QString();
-    const QStringList* sfenRecord = m_considerationCtx.sfenRecord;
-    const QString currentSfen = m_considerationCtx.currentSfenStr ? m_considerationCtx.currentSfenStr->trimmed() : QString();
-
-    // 分岐を含む現在表示局面を最優先で使用する。
-    if (!currentSfen.isEmpty()) {
-        if (currentSfen.startsWith(QStringLiteral("position "))) {
-            return currentSfen;
-        }
-        if (currentSfen.startsWith(QStringLiteral("sfen "))) {
-            return QStringLiteral("position ") + currentSfen;
-        }
-        return QStringLiteral("position sfen ") + currentSfen;
-    }
-
-    if (!sfenRecord || sfenRecord->isEmpty()) {
-        // sfenRecordがない場合は startpos を返す
-        if (startSfen.isEmpty() || startSfen == kHirateSfen) {
-            return QStringLiteral("position startpos");
-        } else {
-            return QStringLiteral("position sfen ") + startSfen;
-        }
-    }
-
-    // 指定インデックスの局面が存在するか確認
-    const int idx = qBound(0, moveIndex, static_cast<int>(sfenRecord->size()) - 1);
-    const QString indexedSfen = sfenRecord->at(idx);
-
-    // position sfen 形式で返す（指定局面を直接SFENで送信）
-    return QStringLiteral("position sfen ") + indexedSfen;
 }
 
 // --------------------------------------------------------

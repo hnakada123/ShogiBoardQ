@@ -48,13 +48,16 @@ public:
         UsiCommLogModel* commLogModel = nullptr;
         PlayMode* playMode = nullptr;
         QString* currentSfenStr = nullptr;
-        std::function<void()> ensureDialogCoordinator;  // 遅延初期化コールバック
+        std::function<void()> ensureDialogCoordinator;  ///< DialogCoordinator 遅延初期化コールバック
     };
 
     explicit ConsiderationWiring(const Deps& deps, QObject* parent = nullptr);
     ~ConsiderationWiring() override = default;
 
     void updateDeps(const Deps& deps);
+
+    /// DialogCoordinator の遅延初期化完了後にポインタだけを更新する
+    void setDialogCoordinator(DialogCoordinator* dc);
 
     ConsiderationModeUIController* uiController() const { return m_uiController; }
 
@@ -111,11 +114,11 @@ public slots:
                                 const QVector<ShogiMove>* gameMoves,
                                 KifuRecordListModel* kifuRecordModel);
 
-signals:
+private slots:
     /**
-     * @brief 検討中止が要求されたとき
+     * @brief 検討中止要求を処理する（エンジン停止を実行）
      */
-    void stopRequested();
+    void handleStopRequest();
 
 private:
     void ensureUIController();

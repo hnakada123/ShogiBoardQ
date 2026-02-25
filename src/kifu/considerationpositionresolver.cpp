@@ -36,6 +36,20 @@ ConsiderationPositionResolver::resolveForRow(int row) const
 
 QString ConsiderationPositionResolver::buildPositionStringForIndex(int moveIndex) const
 {
+    // 0) 分岐局面の現在表示SFENを最優先（DialogCoordinator経由の場合）
+    if (m_inputs.currentSfenStr) {
+        const QString currentSfen = m_inputs.currentSfenStr->trimmed();
+        if (!currentSfen.isEmpty()) {
+            if (currentSfen.startsWith(QStringLiteral("position "))) {
+                return currentSfen;
+            }
+            if (currentSfen.startsWith(QStringLiteral("sfen "))) {
+                return QStringLiteral("position ") + currentSfen;
+            }
+            return QStringLiteral("position sfen ") + currentSfen;
+        }
+    }
+
     // 1) 棋譜読み込み時に構築済みのposition文字列があればそれを優先
     if (m_inputs.positionStrList &&
         moveIndex >= 0 && moveIndex < m_inputs.positionStrList->size()) {
@@ -69,7 +83,11 @@ QString ConsiderationPositionResolver::buildPositionStringForIndex(int moveIndex
         return QStringLiteral("position sfen ") + sfen;
     }
 
-    return {};
+    // 4) 開始局面フォールバック（sfenRecordもUSI movesもない場合）
+    if (startSfen.isEmpty() || startSfen == kHirateSfen) {
+        return QStringLiteral("position startpos");
+    }
+    return QStringLiteral("position sfen ") + startSfen;
 }
 
 void ConsiderationPositionResolver::resolvePreviousMoveCoordinates(

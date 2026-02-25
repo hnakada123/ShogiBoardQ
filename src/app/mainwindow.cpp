@@ -105,6 +105,7 @@
 #include "playerinfowiring.h"
 #include "considerationwiring.h"        // 検討モードUI配線
 #include "dialoglaunchwiring.h"         // ダイアログ起動配線
+#include "dialogcoordinatorwiring.h"   // DialogCoordinator配線
 #include "matchcoordinatorwiring.h"    // MatchCoordinator配線
 #include "matchcoordinatorhooksfactory.h"
 
@@ -124,12 +125,11 @@
 #include "docklayoutmanager.h"
 #include "dockuicoordinator.h"
 #include "dockcreationservice.h"
-#include "dialogorchestrator.h"
 #include "commentcoordinator.h"
 #include "usicommandcontroller.h"
 #include "recordnavigationhandler.h"
+#include "recordnavigationwiring.h"
 #include "uistatepolicymanager.h"
-#include "gamesessionfacade.h"
 #include "tsumeshogigeneratordialog.h"
 #include "logcategories.h"
 
@@ -2060,9 +2060,7 @@ void MainWindow::ensureMatchCoordinatorWiring()
     ensureEvaluationGraphController();
     ensurePlayerInfoWiring();
 
-    auto hooks = buildMatchHooks();
-    auto undoHooks = buildMatchUndoHooks();
-    auto deps = buildMatchWiringDeps(hooks, undoHooks);
+    auto deps = buildMatchWiringDeps();
     m_matchWiring->updateDeps(deps);
 
     // 初回のみ: 転送シグナルを MainWindow スロットに接続
@@ -2071,7 +2069,7 @@ void MainWindow::ensureMatchCoordinatorWiring()
     }
 }
 
-MatchCoordinator::Hooks MainWindow::buildMatchHooks()
+MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps()
 {
     using std::placeholders::_1;
     using std::placeholders::_2;
@@ -2080,6 +2078,7 @@ MatchCoordinator::Hooks MainWindow::buildMatchHooks()
     using std::placeholders::_5;
     using std::placeholders::_6;
 
+    // --- Hooks 構築 ---
     MatchCoordinatorHooksFactory::HookDeps hookDeps;
     hookDeps.evalGraphController = m_evalGraphController;
     hookDeps.onTurnChanged = std::bind(&MainWindow::onTurnManagerChanged, this, _1);
@@ -2103,24 +2102,14 @@ MatchCoordinator::Hooks MainWindow::buildMatchHooks()
     hookDeps.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_playerInfoWiring, _1, _2);
     hookDeps.setEngineNames = std::bind(&PlayerInfoWiring::onSetEngineNames, m_playerInfoWiring, _1, _2);
     hookDeps.autoSaveKifu = std::bind(&MainWindow::autoSaveKifuToFile, this, _1, _2, _3, _4, _5, _6);
-    return MatchCoordinatorHooksFactory::buildHooks(hookDeps);
-}
 
-MatchCoordinator::UndoHooks MainWindow::buildMatchUndoHooks()
-{
-    using std::placeholders::_1;
-
+    // --- UndoHooks 構築 ---
     MatchCoordinatorHooksFactory::UndoDeps undoDeps;
     undoDeps.updateHighlightsForPly = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
     undoDeps.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay, this);
     undoDeps.isHumanSide = std::bind(&MainWindow::isHumanSide, this, _1);
-    return MatchCoordinatorHooksFactory::buildUndoHooks(undoDeps);
-}
 
-MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps(
-    const MatchCoordinator::Hooks& hooks,
-    const MatchCoordinator::UndoHooks& undoHooks)
-{
+    // --- Deps 構築 ---
     MatchCoordinatorWiring::Deps deps;
     deps.gc    = m_gameController;
     deps.view  = m_shogiView;
@@ -2141,8 +2130,8 @@ MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps(
     deps.positionStrList  = &m_kifu.positionStrList;
     deps.currentMoveIndex = &m_state.currentMoveIndex;
 
-    deps.hooks     = hooks;
-    deps.undoHooks = undoHooks;
+    deps.hooks     = MatchCoordinatorHooksFactory::buildHooks(hookDeps);
+    deps.undoHooks = MatchCoordinatorHooksFactory::buildUndoHooks(undoDeps);
 
     // 遅延初期化コールバック
     deps.ensureTimeController           = std::bind(&MainWindow::ensureTimeController, this);
@@ -2172,6 +2161,7 @@ MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps(
 
 void MainWindow::wireMatchWiringSignals()
 {
+    // --- MatchCoordinator/Clock 転送シグナル ---
     connect(m_matchWiring, &MatchCoordinatorWiring::requestAppendGameOverMove,
             this,          &MainWindow::onRequestAppendGameOverMove,
             Qt::UniqueConnection);
@@ -2187,30 +2177,46 @@ void MainWindow::wireMatchWiringSignals()
     connect(m_matchWiring, &MatchCoordinatorWiring::resignationTriggered,
             this,          &MainWindow::onResignationTriggered,
             Qt::UniqueConnection);
+
+    // --- メニュー GameStartCoordinator 転送シグナル ---
+    connect(m_matchWiring, &MatchCoordinatorWiring::requestPreStartCleanup,
+            this,          &MainWindow::onPreStartCleanupRequested,
+            Qt::UniqueConnection);
+    connect(m_matchWiring, &MatchCoordinatorWiring::requestApplyTimeControl,
+            this,          &MainWindow::onApplyTimeControlRequested,
+            Qt::UniqueConnection);
+    connect(m_matchWiring, &MatchCoordinatorWiring::menuPlayerNamesResolved,
+            this,          &MainWindow::onPlayerNamesResolved,
+            Qt::UniqueConnection);
+    connect(m_matchWiring, &MatchCoordinatorWiring::consecutiveGamesConfigured,
+            this,          &MainWindow::onConsecutiveGamesConfigured,
+            Qt::UniqueConnection);
+    connect(m_matchWiring, &MatchCoordinatorWiring::gameStarted,
+            this,          &MainWindow::onGameStarted,
+            Qt::UniqueConnection);
+    connect(m_matchWiring, &MatchCoordinatorWiring::requestSelectKifuRow,
+            this,          &MainWindow::onRequestSelectKifuRow,
+            Qt::UniqueConnection);
+    connect(m_matchWiring, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame,
+            this,          &MainWindow::onBranchTreeResetForNewGame,
+            Qt::UniqueConnection);
 }
 
 // MatchCoordinator 構築と配線の集約ポイント。
 void MainWindow::initMatchCoordinator()
 {
-    // 依存が揃っていない場合は何もしない
     if (!m_gameController || !m_shogiView) return;
 
-    if (!m_gameSessionFacade) {
-        GameSessionFacade::Deps deps;
-        deps.ensureAndGetWiring = [this]() -> MatchCoordinatorWiring* {
-            ensureMatchCoordinatorWiring();
-            return m_matchWiring;
-        };
-        m_gameSessionFacade = std::make_unique<GameSessionFacade>(deps);
-    }
+    ensureMatchCoordinatorWiring();
 
-    if (!m_gameSessionFacade->initialize()) {
+    if (!m_matchWiring->initializeSession(
+            std::bind(&MainWindow::ensureMatchCoordinatorWiring, this))) {
         return;
     }
 
     // Facade が生成したオブジェクトを MainWindow に反映
-    m_match = m_gameSessionFacade->match();
-    m_gameStartCoordinator = m_gameSessionFacade->gameStartCoordinator();
+    m_match = m_matchWiring->match();
+    m_gameStartCoordinator = m_matchWiring->gameStartCoordinator();
 }
 
 // `ensureTimeController`: Time Controller を必要に応じて生成し、依存関係を更新する。
@@ -2670,82 +2676,43 @@ void MainWindow::ensureReplayController()
     m_replayController->setRecordPane(m_recordPane);
 }
 
-// `ensureDialogCoordinator`: Dialog Coordinator を必要に応じて生成し、依存関係を更新する。
+// `ensureDialogCoordinator`: DialogCoordinatorWiring 経由で生成・配線・コンテキスト設定を行う。
 void MainWindow::ensureDialogCoordinator()
 {
     if (m_dialogCoordinator) return;
 
-    m_dialogCoordinator = new DialogCoordinator(this, this);
-    m_dialogCoordinator->setMatchCoordinator(m_match);
-    m_dialogCoordinator->setGameController(m_gameController);
+    if (!m_dialogCoordinatorWiring) {
+        m_dialogCoordinatorWiring = new DialogCoordinatorWiring(this);
+    }
 
-    bindDialogCoordinatorContexts();
-    wireDialogCoordinatorSignals();
-}
+    DialogCoordinatorWiring::Deps deps;
+    deps.parentWidget = this;
+    deps.mainWindow = this;
+    deps.match = m_match;
+    deps.gameController = m_gameController;
+    deps.sfenRecord = sfenRecord();
+    deps.currentMoveIndex = &m_state.currentMoveIndex;
+    deps.gameUsiMoves = &m_kifu.gameUsiMoves;
+    deps.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    deps.startSfenStr = &m_state.startSfenStr;
+    deps.gameMoves = &m_kifu.gameMoves;
+    deps.kifuRecordModel = m_models.kifuRecord;
+    deps.currentSfenStr = &m_state.currentSfenStr;
+    deps.branchTree = m_branchNav.branchTree;
+    deps.navState = m_branchNav.navState;
+    deps.considerationModel = &m_models.consideration;
+    deps.positionStrList = &m_kifu.positionStrList;
+    deps.moveRecords = &m_kifu.moveRecords;
+    deps.activePly = &m_kifu.activePly;
+    deps.gameInfoController = m_gameInfoController;
+    deps.evalChart = m_evalChart;
+    deps.presenter = m_analysisPresenter;
+    deps.getBoardFlipped = [this]() { return m_shogiView ? m_shogiView->getFlipMode() : false; };
+    deps.getConsiderationWiring = [this]() { ensureConsiderationWiring(); return m_considerationWiring; };
+    deps.getUiStatePolicyManager = [this]() { ensureUiStatePolicyManager(); return m_uiStatePolicy; };
 
-// DialogCoordinatorに検討・詰み探索・棋譜解析の各コンテキストを設定する。
-void MainWindow::bindDialogCoordinatorContexts()
-{
-    // 検討コンテキストを設定
-    DialogCoordinator::ConsiderationContext conCtx;
-    conCtx.gameController = m_gameController;
-    conCtx.gameMoves = &m_kifu.gameMoves;
-    conCtx.currentMoveIndex = &m_state.currentMoveIndex;
-    conCtx.kifuRecordModel = m_models.kifuRecord;
-    conCtx.sfenRecord = sfenRecord();
-    conCtx.startSfenStr = &m_state.startSfenStr;
-    conCtx.currentSfenStr = &m_state.currentSfenStr;
-    conCtx.branchTree = m_branchNav.branchTree;
-    conCtx.navState = m_branchNav.navState;
-    conCtx.considerationModel = &m_models.consideration;
-    conCtx.gameUsiMoves = &m_kifu.gameUsiMoves;
-    conCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    m_dialogCoordinator->setConsiderationContext(conCtx);
-
-    // 詰み探索コンテキストを設定
-    DialogCoordinator::TsumeSearchContext tsumeCtx;
-    tsumeCtx.sfenRecord = sfenRecord();
-    tsumeCtx.startSfenStr = &m_state.startSfenStr;
-    tsumeCtx.positionStrList = &m_kifu.positionStrList;
-    tsumeCtx.currentMoveIndex = &m_state.currentMoveIndex;
-    tsumeCtx.gameUsiMoves = &m_kifu.gameUsiMoves;
-    tsumeCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    m_dialogCoordinator->setTsumeSearchContext(tsumeCtx);
-
-    // 棋譜解析コンテキストを設定
-    DialogCoordinator::KifuAnalysisContext kifuCtx;
-    kifuCtx.sfenRecord = sfenRecord();
-    kifuCtx.moveRecords = &m_kifu.moveRecords;
-    kifuCtx.recordModel = m_models.kifuRecord;
-    kifuCtx.activePly = &m_kifu.activePly;
-    kifuCtx.gameController = m_gameController;
-    kifuCtx.gameInfoController = m_gameInfoController;
-    kifuCtx.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    kifuCtx.evalChart = m_evalChart;
-    kifuCtx.gameUsiMoves = &m_kifu.gameUsiMoves;
-    kifuCtx.presenter = m_analysisPresenter;
-    kifuCtx.getBoardFlipped = [this]() { return m_shogiView ? m_shogiView->getFlipMode() : false; };
-    m_dialogCoordinator->setKifuAnalysisContext(kifuCtx);
-}
-
-// DialogCoordinatorのシグナル/スロット接続を行う。
-void MainWindow::wireDialogCoordinatorSignals()
-{
-    // 検討モード関連シグナルをオーケストレータ経由で接続
-    ensureConsiderationWiring();
-    DialogOrchestrator::wireConsiderationSignals(m_dialogCoordinator, m_considerationWiring);
-
-    // 解析進捗シグナルを接続
-    connect(m_dialogCoordinator, &DialogCoordinator::analysisProgressReported,
-            this, &MainWindow::onKifuAnalysisProgress);
-
-    // 解析結果行選択シグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
-    connect(m_dialogCoordinator, &DialogCoordinator::analysisResultRowSelected,
-            this, &MainWindow::onKifuAnalysisResultRowSelected);
-
-    // UI状態遷移シグナルを接続
-    ensureUiStatePolicyManager();
-    DialogOrchestrator::wireUiStateSignals(m_dialogCoordinator, m_uiStatePolicy);
+    m_dialogCoordinatorWiring->ensure(deps);
+    m_dialogCoordinator = m_dialogCoordinatorWiring->coordinator();
 }
 
 // `ensureKifuExportController`: Kifu Export Controller を必要に応じて生成し、依存関係を更新する。
@@ -3217,63 +3184,14 @@ void MainWindow::ensureAnalysisPresenter()
         m_analysisPresenter = new AnalysisResultsPresenter(this);
 }
 
-// `ensureGameStartCoordinator`: Game Start Coordinator を必要に応じて生成し、依存関係を更新する。
+// `ensureGameStartCoordinator`: MatchCoordinatorWiring に委譲して Menu GameStartCoordinator を遅延生成する。
 void MainWindow::ensureGameStartCoordinator()
 {
     if (m_gameStart) return;
 
-    GameStartCoordinator::Deps d;
-    d.match = m_match;
-    d.clock = m_timeController ? m_timeController->clock() : nullptr;
-    d.gc    = m_gameController;
-    d.view  = m_shogiView;
-
-    m_gameStart = new GameStartCoordinator(d, this);
-
-    wireGameStartCoordinatorSignals();
-}
-
-// GameStartCoordinatorのシグナル/スロット接続を行う。
-void MainWindow::wireGameStartCoordinatorSignals()
-{
-    // 依頼シグナルを既存メソッドへ接続（ラムダ不使用）
-    connect(m_gameStart, &GameStartCoordinator::requestPreStartCleanup,
-            this, &MainWindow::onPreStartCleanupRequested);
-
-    connect(m_gameStart, &GameStartCoordinator::requestApplyTimeControl,
-            this, &MainWindow::onApplyTimeControlRequested);
-
-    // 対局者名確定シグナルを接続
-    connect(m_gameStart, &GameStartCoordinator::playerNamesResolved,
-            this, &MainWindow::onPlayerNamesResolved);
-
-    // 連続対局設定シグナルを接続
-    connect(m_gameStart, &GameStartCoordinator::consecutiveGamesConfigured,
-            this, &MainWindow::onConsecutiveGamesConfigured);
-
-    // 対局開始時にUI状態を「対局中」に遷移
-    ensureUiStatePolicyManager();
-    connect(m_gameStart, &GameStartCoordinator::started,
-            m_uiStatePolicy, &UiStatePolicyManager::transitionToDuringGame);
-
-    // 対局開始時の設定を保存（連続対局用）
-    connect(m_gameStart, &GameStartCoordinator::started,
-            this, &MainWindow::onGameStarted);
-
-    // 盤面反転シグナルを接続（人を手前に表示する機能用）
-    connect(m_gameStart, &GameStartCoordinator::boardFlipped,
-            this, &MainWindow::onBoardFlipped,
-            Qt::UniqueConnection);
-
-    // 現在局面から開始時、対局開始後に棋譜欄の指定行を選択
-    connect(m_gameStart, &GameStartCoordinator::requestSelectKifuRow,
-            this, &MainWindow::onRequestSelectKifuRow,
-            Qt::UniqueConnection);
-
-    // kifuLoadCoordinator 未生成時の分岐ツリーリセット
-    connect(m_gameStart, &GameStartCoordinator::requestBranchTreeResetForNewGame,
-            this, &MainWindow::onBranchTreeResetForNewGame,
-            Qt::UniqueConnection);
+    ensureMatchCoordinatorWiring();
+    m_matchWiring->ensureMenuGameStartCoordinator();
+    m_gameStart = m_matchWiring->menuGameStartCoordinator();
 }
 
 // `onPreStartCleanupRequested`: Pre Start Cleanup Requested のイベント受信時処理を行う。
@@ -3562,7 +3480,7 @@ void MainWindow::showGameOverMessageBox(const QString& title, const QString& mes
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
     ensureRecordNavigationHandler();
-    m_recordNavHandler->onMainRowChanged(row);
+    m_recordNavWiring->handler()->onMainRowChanged(row);
 }
 
 // `onBuildPositionRequired`: Build Position Required のイベント受信時処理を行う。
@@ -4205,15 +4123,6 @@ void MainWindow::ensureLanguageController()
         ui->actionLanguageEnglish);
 }
 
-// `ensureConsiderationUIController`: Consideration UIController を必要に応じて生成し、依存関係を更新する。
-void MainWindow::ensureConsiderationUIController()
-{
-    ensureConsiderationWiring();
-    if (m_considerationWiring) {
-        m_considerationUIController = m_considerationWiring->uiController();
-    }
-}
-
 // `ensureConsiderationWiring`: Consideration Wiring を必要に応じて生成し、依存関係を更新する。
 void MainWindow::ensureConsiderationWiring()
 {
@@ -4232,28 +4141,12 @@ void MainWindow::ensureConsiderationWiring()
     deps.currentSfenStr = &m_state.currentSfenStr;
     deps.ensureDialogCoordinator = [this]() {
         ensureDialogCoordinator();
-        // 初期化後に最新の依存をConsiderationWiringへ反映
         if (m_considerationWiring) {
-            ConsiderationWiring::Deps updated;
-            updated.parentWidget = this;
-            updated.considerationTabManager = m_analysisTab ? m_analysisTab->considerationTabManager() : nullptr;
-            updated.thinkingInfo1 = m_analysisTab ? m_analysisTab->info1() : nullptr;
-            updated.shogiView = m_shogiView;
-            updated.match = m_match;
-            updated.dialogCoordinator = m_dialogCoordinator;
-            updated.considerationModel = m_models.consideration;
-            updated.commLogModel = m_models.commLog1;
-            updated.playMode = &m_state.playMode;
-            updated.currentSfenStr = &m_state.currentSfenStr;
-            m_considerationWiring->updateDeps(updated);
+            m_considerationWiring->setDialogCoordinator(m_dialogCoordinator);
         }
     };
 
     m_considerationWiring = new ConsiderationWiring(deps, this);
-
-    // ConsiderationWiringからのシグナルを接続
-    connect(m_considerationWiring, &ConsiderationWiring::stopRequested,
-            this, &MainWindow::stopTsumeSearch);
 }
 
 // `ensureDockLayoutManager`: Dock Layout Manager を必要に応じて生成し、依存関係を更新する。
@@ -4321,39 +4214,14 @@ void MainWindow::ensureUsiCommandController()
     m_usiCommandController->setAnalysisTab(m_analysisTab);
 }
 
-// `ensureRecordNavigationHandler`: Record Navigation Handler を必要に応じて生成し、依存関係を更新する。
+// `ensureRecordNavigationHandler`: RecordNavigationWiringに委譲して生成・配線・依存設定を行う。
 void MainWindow::ensureRecordNavigationHandler()
 {
-    const bool firstTime = !m_recordNavHandler;
-    if (firstTime) {
-        m_recordNavHandler = new RecordNavigationHandler(this);
-        wireRecordNavigationHandlerSignals();
-    }
+    if (!m_recordNavWiring)
+        m_recordNavWiring = new RecordNavigationWiring(this);
 
-    bindRecordNavigationHandlerDeps();
-}
-
-// RecordNavigationHandlerのシグナル/スロット接続を行う。
-void MainWindow::wireRecordNavigationHandlerSignals()
-{
-    connect(m_recordNavHandler, &RecordNavigationHandler::boardSyncRequired,
-            this, &MainWindow::syncBoardAndHighlightsAtRow);
-    connect(m_recordNavHandler, &RecordNavigationHandler::branchBoardSyncRequired,
-            this, &MainWindow::loadBoardWithHighlights);
-    connect(m_recordNavHandler, &RecordNavigationHandler::enableArrowButtonsRequired,
-            this, &MainWindow::enableArrowButtons);
-    connect(m_recordNavHandler, &RecordNavigationHandler::turnUpdateRequired,
-            this, &MainWindow::setCurrentTurn);
-    connect(m_recordNavHandler, &RecordNavigationHandler::josekiUpdateRequired,
-            this, &MainWindow::updateJosekiWindow);
-    connect(m_recordNavHandler, &RecordNavigationHandler::buildPositionRequired,
-            this, &MainWindow::onBuildPositionRequired);
-}
-
-// RecordNavigationHandlerの依存オブジェクトを更新する。
-void MainWindow::bindRecordNavigationHandlerDeps()
-{
-    RecordNavigationHandler::Deps deps;
+    RecordNavigationWiring::Deps deps;
+    deps.mainWindow = this;
     deps.navState = m_branchNav.navState;
     deps.branchTree = m_branchNav.branchTree;
     deps.displayCoordinator = m_branchNav.displayCoordinator;
@@ -4369,7 +4237,7 @@ void MainWindow::bindRecordNavigationHandlerDeps()
     deps.csaGameCoordinator = m_csaGameCoordinator;
     deps.playMode = &m_state.playMode;
     deps.match = m_match;
-    m_recordNavHandler->updateDeps(deps);
+    m_recordNavWiring->ensure(deps);
 }
 
 // `ensureUiStatePolicyManager`: UI State Policy Manager を必要に応じて生成し、依存関係を更新する。
