@@ -2,36 +2,19 @@
 /// @brief アプリケーションのメインウィンドウ実装
 
 #include <QMessageBox>
-#include <QInputDialog>
-#include <QMenu>
 #include <QDesktopServices>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <QHeaderView>
-#include <QItemSelectionModel>
-#include <QFileDialog>
-#include <QFileInfo>
 #include <QToolButton>
-#include <QWidgetAction>
 #include <QMetaType>
-#include <QScrollBar>
-#include <QScrollArea>
-#include <QPushButton>
-#include <QDialog>
 #include <QSettings>
 #include <QSignalBlocker>
-#include <QLabel>
 #include <QApplication>
 #include <QClipboard>
-#include <QLineEdit>
 #include <QElapsedTimer>
 #include <QTimer>
-#include <QSizePolicy>
 #include <functional>
-#include <limits>
-#include <QPainter>
 #include <QFontDatabase>
-#include <QRegularExpression>
 
 #include "mainwindow.h"
 #include "mainwindowgamestartservice.h"
@@ -43,14 +26,11 @@
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "boardinteractioncontroller.h"
-#include "considerationflowcontroller.h"
 #include "considerationpositionresolver.h"
 #include "shogiutils.h"
 #include "shogigamecontroller.h"
-#include "shogiboard.h"
 #include "shogiview.h"
 #include "timedisplaypresenter.h"
-#include "tsumesearchflowcontroller.h"
 #include "ui_mainwindow.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
@@ -62,33 +42,21 @@
 #include "errorbus.h"
 #include "kifuloadcoordinator.h"
 #include "evaluationchartwidget.h"
-#include "timekeepingservice.h"
 #include "positioneditcontroller.h"
 #include "analysisresultspresenter.h"
 #include "boardsyncpresenter.h"
+#include "boardloadservice.h"
 #include "gamestartcoordinator.h"
-#include "navigationpresenter.h"
-#include "kifuanalysislistmodel.h"
 #include "gamerecordpresenter.h"
-#include "timecontrolutil.h"
-#include "analysisflowcontroller.h"
 #include "sfenutils.h"
 #include "turnsyncbridge.h"
-#include "promotionflow.h"
-#include "kifusavecoordinator.h"
-#include "evalgraphpresenter.h"
 #include "settingsservice.h"
-#include "aboutcoordinator.h"
-#include "enginesettingscoordinator.h"
 #include "analysistabwiring.h"
 #include "recordpanewiring.h"
 #include "recordpane.h"
 #include "uiactionswiring.h"
 #include "gamerecordmodel.h"
-#include "pvboarddialog.h"
-#include "sfencollectiondialog.h"
 #include "gameinfopanecontroller.h"
-#include "kifuclipboardservice.h"
 #include "evaluationgraphcontroller.h"
 #include "timecontrolcontroller.h"
 #include "replaycontroller.h"
@@ -101,21 +69,21 @@
 #include "pvclickcontroller.h"
 #include "positioneditcoordinator.h"
 #include "csagamecoordinator.h"
-#include "csawaitingdialog.h"
 #include "josekiwindowwiring.h"
 #include "menuwindowwiring.h"
 #include "csagamewiring.h"
 #include "playerinfowiring.h"
-#include "considerationwiring.h"        // 検討モードUI配線
-#include "dialoglaunchwiring.h"         // ダイアログ起動配線
-#include "dialogcoordinatorwiring.h"   // DialogCoordinator配線
-#include "matchcoordinatorwiring.h"    // MatchCoordinator配線
-#include "matchcoordinatorhooksfactory.h"
+#include "considerationwiring.h"
+#include "dialoglaunchwiring.h"
+#include "dialogcoordinatorwiring.h"
+#include "matchcoordinatorwiring.h"
 #include "mainwindowdepsfactory.h"
 #include "mainwindowcompositionroot.h"
 #include "livegamesessionupdater.h"
+#include "gamerecordupdateservice.h"
 #include "kifunavigationcoordinator.h"
 #include "branchnavigationwiring.h"
+#include "mainwindowuibootstrapper.h"
 
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -129,16 +97,15 @@
 #include "nyugyokudeclarationhandler.h"
 #include "consecutivegamescontroller.h"
 #include "languagecontroller.h"
-#include "considerationmodeuicontroller.h"
 #include "docklayoutmanager.h"
-#include "dockuicoordinator.h"
 #include "dockcreationservice.h"
 #include "commentcoordinator.h"
 #include "usicommandcontroller.h"
 #include "recordnavigationhandler.h"
 #include "recordnavigationwiring.h"
 #include "uistatepolicymanager.h"
-#include "tsumeshogigeneratordialog.h"
+#include "playmodepolicyservice.h"
+#include "turnstatesyncservice.h"
 #include "logcategories.h"
 
 #ifdef QT_DEBUG
@@ -173,6 +140,15 @@ MainWindow::MainWindow(QWidget *parent)
 
     // コア部品（GC, View, 盤モデル etc.）は既存関数で初期化
     initializeComponents();
+
+    // プレイモード判定サービスを生成し、初期依存を設定
+    m_playModePolicy = new PlayModePolicyService();
+    {
+        PlayModePolicyService::Deps policyDeps;
+        policyDeps.playMode = &m_state.playMode;
+        policyDeps.gameController = m_gameController;
+        m_playModePolicy->updateDeps(policyDeps);
+    }
 
     if (!m_timePresenter) m_timePresenter = new TimeDisplayPresenter(m_shogiView, this);
 
@@ -226,7 +202,10 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::performDeferredEvalChartResize);
 }
 
-MainWindow::~MainWindow() = default;
+MainWindow::~MainWindow()
+{
+    delete m_playModePolicy;
+}
 
 // `setupCentralWidgetContainer`: Central Widget Container をセットアップする。
 void MainWindow::setupCentralWidgetContainer()
@@ -258,82 +237,18 @@ void MainWindow::configureToolBarFromUi()
     }
 }
 
-// `buildGamePanels`: Game Panels を構築する。
+// `buildGamePanels`: Game Panels を構築する（MainWindowUiBootstrapper に委譲）。
 void MainWindow::buildGamePanels()
 {
-    // MainWindow が管理する主要パネルを依存順に構築する。
-    // RecordPane を先に用意することで、後続の分岐ナビ初期化が
-    // ボタン/ビュー参照を安全に取得できる。
-
-    // 1) 記録ペイン（RecordPane）など UI 部の初期化
-    setupRecordPane();
-
-    // 2) 棋譜欄をQDockWidgetとして作成
-    createRecordPaneDock();
-
-    // 3) 将棋盤・駒台の初期化（従来順序を維持）
-    startNewShogiGame(m_state.startSfenStr);
-
-    // 4) 将棋盤をQDockWidgetとして作成
-    setupBoardInCenter();
-
-    // 5) エンジン解析タブの構築
-    setupEngineAnalysisTab();
-
-    // 6) 解析用ドックを作成（独立した複数ドック）
-    createAnalysisDocks();
-
-    // 7) 分岐ナビゲーションクラスの初期化
-    initializeBranchNavigationClasses();
-
-    // 8) 評価値グラフのQDockWidget作成
-    createEvalChartDock();
-
-    // 9) ドックを固定アクションの初期状態を設定
-    ui->actionLockDocks->setChecked(SettingsService::docksLocked());
-
-    // 10) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
-    createMenuWindowDock();
-
-    // 11) 定跡ウィンドウのQDockWidget作成（デフォルトは非表示）
-    createJosekiWindowDock();
-
-    // 12) 棋譜解析結果のQDockWidget作成（初期状態は非表示）
-    createAnalysisResultsDock();
-
-    // 13) アクティブタブを設定（全ドック作成後に実行）
-    if (m_dockCreationService) {
-        if (m_dockCreationService->thinkingDock())
-            m_dockCreationService->thinkingDock()->raise();
-        if (m_dockCreationService->recordPaneDock())
-            m_dockCreationService->recordPaneDock()->raise();
-    }
-
-    // 14) central への初期化（主要ウィジェットはドックへ移行済み）
-    initializeCentralGameDisplay();
-
-    // 14) ドックレイアウト関連アクションをDockLayoutManagerに配線
-    ensureDockLayoutManager();
-    if (m_dockLayoutManager) {
-        DockUiCoordinator::wireLayoutMenu(
-            m_dockLayoutManager,
-            ui->actionResetDockLayout,
-            ui->actionSaveDockLayout,
-            ui->actionLockDocks,
-            ui->menuSavedLayouts);
-    }
+    MainWindowUiBootstrapper bootstrapper(*this);
+    bootstrapper.buildGamePanels();
 }
 
-// `restoreWindowAndSync`: Window And Sync を復元する。
+// `restoreWindowAndSync`: Window And Sync を復元する（MainWindowUiBootstrapper に委譲）。
 void MainWindow::restoreWindowAndSync()
 {
-    loadWindowSettings();
-
-    // 起動時のカスタムレイアウトがあれば復元
-    ensureDockLayoutManager();
-    if (m_dockLayoutManager) {
-        m_dockLayoutManager->restoreStartupLayoutIfSet();
-    }
+    MainWindowUiBootstrapper bootstrapper(*this);
+    bootstrapper.restoreWindowAndSync();
 }
 
 void MainWindow::initializeDialogLaunchWiring()
@@ -461,14 +376,11 @@ void MainWindow::installAppToolTips()
     }
 }
 
-// `finalizeCoordinators`: Coordinators の最終初期化を行う。
+// `finalizeCoordinators`: Coordinators の最終初期化を行う（MainWindowUiBootstrapper に委譲）。
 void MainWindow::finalizeCoordinators()
 {
-    initMatchCoordinator();
-    setupNameAndClockFonts();
-    ensurePositionEditController();
-    ensureBoardSyncPresenter();
-    ensureAnalysisPresenter();
+    MainWindowUiBootstrapper bootstrapper(*this);
+    bootstrapper.finalizeCoordinators();
 }
 
 // `onErrorBusOccurred`: Error Bus Occurred のイベント受信時処理を行う。
@@ -665,20 +577,6 @@ void MainWindow::updateSecondEngineVisibility()
     }
 }
 
-// 以前は対局者名と残り時間、将棋盤のレイアウトを構築していた。
-void MainWindow::setupHorizontalGameLayout()
-{
-    // 何もしない（すべてのウィジェットはドックに移動）
-}
-
-// `initializeCentralGameDisplay`: Central Game Display を初期化する。
-void MainWindow::initializeCentralGameDisplay()
-{
-    // セントラルウィジェットには将棋盤が配置されている
-    // setupBoardInCenter() で設定済みのため、レイアウトはクリアしない
-
-}
-
 // `startNewShogiGame`: New Shogi Game を開始する。
 void MainWindow::startNewShogiGame(QString& startSfenStr)
 {
@@ -814,65 +712,15 @@ void MainWindow::stopTsumeSearch()
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
-    // 1) UI側（先手=1, 後手=2）に反映
-    const int cur = (now == ShogiGameController::Player2) ? 2 : 1;
-    updateTurnStatus(cur);
-
-    // 2) 盤モデルの手番は GC に集約
-    if (m_gameController) {
-        m_gameController->setCurrentPlayer(now);
-    }
-
-    if (m_shogiView) {
-        m_shogiView->updateTurnIndicator(now);
-    }
-
-    // （必要なら：ここでログやステータスバー更新などを追加）
+    ensureTurnStateSyncService();
+    m_turnStateSync->onTurnManagerChanged(now);
 }
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    // TurnManager を確保
-    TurnManager* tm = this->findChild<TurnManager*>(QStringLiteral("TurnManager"));
-    if (!tm) {
-        tm = new TurnManager(this);
-        tm->setObjectName(QStringLiteral("TurnManager"));
-        // ラムダを使わず、メンバ関数に接続
-        connect(tm, &TurnManager::changed,
-                this, &MainWindow::onTurnManagerChanged,
-                Qt::UniqueConnection);
-    }
-
-    const bool isLivePlayMode =
-        (m_state.playMode == PlayMode::HumanVsHuman) ||
-        (m_state.playMode == PlayMode::EvenHumanVsEngine) ||
-        (m_state.playMode == PlayMode::EvenEngineVsHuman) ||
-        (m_state.playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_state.playMode == PlayMode::HandicapEngineVsHuman) ||
-        (m_state.playMode == PlayMode::HandicapHumanVsEngine) ||
-        (m_state.playMode == PlayMode::HandicapEngineVsEngine) ||
-        (m_state.playMode == PlayMode::CsaNetworkMode);
-
-    // ライブ対局中は GC を手番の単一ソースとする。
-    // ShogiBoard::currentPlayer() は setSfen() 経由でのみ更新されるため、
-    // 指し手適用直後に board 側を参照すると古い手番へ巻き戻ることがある。
-    if (isLivePlayMode && m_gameController) {
-        const auto gcTurn = m_gameController->currentPlayer();
-        if (gcTurn == ShogiGameController::Player1 || gcTurn == ShogiGameController::Player2) {
-            tm->setFromGc(gcTurn);
-            return;
-        }
-    }
-
-    // 非ライブ用途（棋譜ナビゲーション等）は盤面SFENの手番を優先。
-    const Turn boardTurn = (m_shogiView && m_shogiView->board())
-                               ? m_shogiView->board()->currentPlayer()
-                               : Turn::Black;
-    tm->setFromTurn(boardTurn);
-
-    // 盤面起点の同期時のみ GC へ反映する。
-    if (m_gameController) m_gameController->setCurrentPlayer(tm->toGc());
+    ensureTurnStateSyncService();
+    m_turnStateSync->setCurrentTurn();
 }
 
 QStringList* MainWindow::sfenRecord()
@@ -1164,61 +1012,20 @@ void MainWindow::setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlay
     }
 }
 
-// `appendKifuLine`: 棋譜1行の追記を記録更新フローへ橋渡しする。
+// `appendKifuLine`: GameRecordUpdateService へ委譲。
 void MainWindow::appendKifuLine(const QString& text, const QString& elapsedTime)
 {
-    qCDebug(lcApp).noquote() << "appendKifuLine ENTER: text=" << text
-                       << "elapsedTime=" << elapsedTime;
-
-    // KIF 追記の既存フローに合わせて m_state.lastMove を経由し、updateGameRecord() を1回だけ呼ぶ
-    m_state.lastMove = text;
-
-    // ここで棋譜へ 1 行追加（手数インクリメントやモデル反映は updateGameRecord が面倒を見る）
-    updateGameRecord(elapsedTime);
-
-    qCDebug(lcApp).noquote() << "appendKifuLine AFTER updateGameRecord:"
-                       << "kifuModel.rowCount=" << (m_models.kifuRecord ? m_models.kifuRecord->rowCount() : -1);
-
-    // 二重追記防止のためクリア
-    m_state.lastMove.clear();
+    ensureGameRecordUpdateService();
+    m_gameRecordUpdateService->appendKifuLine(text, elapsedTime);
 }
 
-// 人間の手番かどうかを判定するヘルパー
-// 対局中で、現在手番が人間なら true を返す
+// 人間の手番かどうかを判定する（PlayModePolicyService に委譲）
 bool MainWindow::isHumanTurnNow() const
 {
-    // 対局中でなければ常に true（編集等では制限しない）
-    switch (m_state.playMode) {
-    case PlayMode::HumanVsHuman:
-        // HvH では両者人間なので常に true
-        return true;
-
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-        // 人間が先手（Player1）の場合、Player1の手番なら true
-        return (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player1);
-
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::HandicapEngineVsHuman:
-        // 人間が後手（Player2）の場合、Player2の手番なら true
-        return (m_gameController && m_gameController->currentPlayer() == ShogiGameController::Player2);
-
-    case PlayMode::CsaNetworkMode:
-        // CSA通信対局では CsaGameCoordinator の isMyTurn() を使用
-        if (m_csaGameCoordinator) {
-            return m_csaGameCoordinator->isMyTurn();
-        }
-        return false;
-
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapEngineVsEngine:
-        // EvE では人間は操作しない
-        return false;
-
-    default:
-        // PlayMode::NotStarted, PlayMode::AnalysisMode, PlayMode::ConsiderationMode, PlayMode::TsumiSearchMode 等は制限なし
-        return true;
+    if (m_playModePolicy) {
+        return m_playModePolicy->isHumanTurnNow();
     }
+    return true;
 }
 
 // 対局者名確定時のスロット（PlayerInfoWiring経由）
@@ -1985,54 +1792,14 @@ void MainWindow::onBranchTreeBuilt()
 
 void MainWindow::loadBoardFromSfen(const QString& sfen)
 {
-    qCDebug(lcApp).noquote() << "loadBoardFromSfen: sfen=" << sfen.left(60);
-
-    if (sfen.isEmpty()) {
-        qCWarning(lcApp) << "loadBoardFromSfen: empty SFEN, skipping";
-        return;
-    }
-
-    if (m_gameController && m_gameController->board() && m_shogiView) {
-        // 盤面を設定
-        m_gameController->board()->setSfen(sfen);
-        // ビューに反映
-        m_shogiView->applyBoardAndRender(m_gameController->board());
-        // 手番表示を更新
-        setCurrentTurn();
-        // 現在のSFEN文字列を更新
-        m_state.currentSfenStr = sfen;
-
-        qCDebug(lcApp) << "loadBoardFromSfen: board updated successfully";
-    } else {
-        qCWarning(lcApp) << "loadBoardFromSfen: missing dependencies"
-                   << "gc=" << m_gameController
-                   << "board=" << (m_gameController ? m_gameController->board() : nullptr)
-                   << "view=" << m_shogiView;
-    }
+    ensureBoardLoadService();
+    m_boardLoadService->loadFromSfen(sfen);
 }
 
-// SFENから盤面とハイライトを更新（分岐ナビゲーション用）
 void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
-    // 分岐由来の局面切替では通常同期との競合を避けるため、ガードを立てる。
-    m_state.skipBoardSyncForBranchNav = true;
-
-    // 盤面更新とハイライト計算は BoardSyncPresenter に委譲する。
-    ensureBoardSyncPresenter();
-    if (m_boardSync) {
-        m_boardSync->loadBoardWithHighlights(currentSfen, prevSfen);
-    }
-
-    // 手番表示を更新
-    if (!currentSfen.isEmpty()) {
-        setCurrentTurn();
-        m_state.currentSfenStr = currentSfen;
-    }
-
-    // 同一イベントループ内の連鎖通知を吸収したあと、次周回でガードを解除する。
-    QTimer::singleShot(0, this, [this]() {
-        m_state.skipBoardSyncForBranchNav = false;
-    });
+    ensureBoardLoadService();
+    m_boardLoadService->loadWithHighlights(currentSfen, prevSfen);
 }
 
 // 毎手の着手確定時：ライブ分岐ツリー更新をイベントループ後段に遅延
@@ -2044,33 +1811,10 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
         m_boardSetupController->onMoveCommitted(mover, ply);
     }
 
-    // USI形式の指し手を記録（詰み探索などで使用）
-    // m_kifu.gameMovesの最新の指し手をUSI形式に変換して追加
-    if (!m_kifu.gameMoves.isEmpty()) {
-        const ShogiMove& lastMove = m_kifu.gameMoves.last();
-        const QString usiMove = ShogiUtils::moveToUsi(lastMove);
-        if (!usiMove.isEmpty()) {
-            // m_kifu.gameUsiMovesのサイズがm_kifu.gameMoves.size()-1の場合のみ追加
-            // （重複追加を防ぐ）
-            if (m_kifu.gameUsiMoves.size() == m_kifu.gameMoves.size() - 1) {
-                m_kifu.gameUsiMoves.append(usiMove);
-                qCDebug(lcApp).noquote() << "onMoveCommitted: added USI move:" << usiMove
-                                   << "m_kifu.gameUsiMoves.size()=" << m_kifu.gameUsiMoves.size();
-            }
-        }
-    }
+    // USI追記・SFEN更新を GameRecordUpdateService へ委譲
+    ensureGameRecordUpdateService();
+    m_gameRecordUpdateService->recordUsiMoveAndUpdateSfen();
 
-    // m_state.currentSfenStrを現在の局面に更新
-    // sfenRecord()の最新のSFENを取得（plyはタイミングの問題で信頼できない）
-    if (sfenRecord() && !sfenRecord()->isEmpty()) {
-        // 最新のSFENを取得
-        m_state.currentSfenStr = sfenRecord()->last();
-        qCDebug(lcApp) << "onMoveCommitted: ply=" << ply
-                 << "sfenRecord.size()=" << sfenRecord()->size()
-                 << "using last sfen=" << m_state.currentSfenStr;
-    }
-
-    // 定跡ウィンドウを更新
     updateJosekiWindow();
 }
 
@@ -2262,6 +2006,16 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.evalGraphController = m_evalGraphController;
     refs.analysisPresenter = m_analysisPresenter;
     refs.analysisTab = m_analysisTab;
+
+    // PlayModePolicyService の依存を最新状態に更新
+    if (m_playModePolicy) {
+        PlayModePolicyService::Deps policyDeps;
+        policyDeps.playMode = &m_state.playMode;
+        policyDeps.gameController = m_gameController;
+        policyDeps.match = m_match;
+        policyDeps.csaGameCoordinator = m_csaGameCoordinator;
+        m_playModePolicy->updateDeps(policyDeps);
+    }
 
     return refs;
 }
@@ -2675,6 +2429,29 @@ void MainWindow::ensureBoardSyncPresenter()
     qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: created m_boardSync*=" << static_cast<const void*>(m_boardSync);
 }
 
+// `ensureBoardLoadService`: BoardLoadService を必要に応じて生成し、依存関係を更新する。
+void MainWindow::ensureBoardLoadService()
+{
+    if (!m_boardLoadService) {
+        m_boardLoadService = new BoardLoadService(this);
+    }
+
+    ensureBoardSyncPresenter();
+
+    BoardLoadService::Deps deps;
+    deps.gc = m_gameController;
+    deps.view = m_shogiView;
+    deps.boardSync = m_boardSync;
+    deps.currentSfenStr = &m_state.currentSfenStr;
+    deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, this);
+    deps.ensureBoardSyncPresenter = std::bind(&MainWindow::ensureBoardSyncPresenter, this);
+    deps.beginBranchNavGuard = [this]() {
+        ensureKifuNavigationCoordinator();
+        m_kifuNavCoordinator->beginBranchNavGuard();
+    };
+    m_boardLoadService->updateDeps(deps);
+}
+
 // `ensureAnalysisPresenter`: Analysis Presenter を必要に応じて生成し、依存関係を更新する。
 void MainWindow::ensureAnalysisPresenter()
 {
@@ -2818,6 +2595,52 @@ void MainWindow::ensureLiveGameSessionUpdater()
     deps.sfenRecord = sfenRecord();
     deps.currentSfenStr = &m_state.currentSfenStr;
     m_liveGameSessionUpdater->updateDeps(deps);
+}
+
+void MainWindow::ensureGameRecordUpdateService()
+{
+    if (!m_gameRecordUpdateService) {
+        m_gameRecordUpdateService = std::make_unique<GameRecordUpdateService>();
+    }
+
+    GameRecordUpdateService::Deps deps;
+    deps.ensureRecordPresenter = [this]() -> GameRecordPresenter* {
+        ensureRecordPresenter();
+        return m_recordPresenter;
+    };
+    deps.ensureLiveGameSessionUpdater = [this]() -> LiveGameSessionUpdater* {
+        ensureLiveGameSessionUpdater();
+        return m_liveGameSessionUpdater.get();
+    };
+    deps.match = m_match;
+    deps.liveGameSession = m_branchNav.liveGameSession;
+    deps.gameMoves = &m_kifu.gameMoves;
+    deps.gameUsiMoves = &m_kifu.gameUsiMoves;
+    deps.currentSfenStr = &m_state.currentSfenStr;
+    deps.sfenRecord = sfenRecord();
+    m_gameRecordUpdateService->updateDeps(deps);
+}
+
+void MainWindow::ensureTurnStateSyncService()
+{
+    if (!m_turnStateSync) {
+        m_turnStateSync = std::make_unique<TurnStateSyncService>();
+    }
+
+    TurnStateSyncService::Deps deps;
+    deps.gameController = m_gameController;
+    deps.shogiView = m_shogiView;
+    deps.timeController = m_timeController;
+    deps.timePresenter = m_timePresenter;
+    deps.playMode = &m_state.playMode;
+    deps.turnManagerParent = this;
+    deps.updateTurnStatus = std::bind(&MainWindow::updateTurnStatus, this, std::placeholders::_1);
+    deps.onTurnManagerCreated = [this](TurnManager* tm) {
+        connect(tm, &TurnManager::changed,
+                this, &MainWindow::onTurnManagerChanged,
+                Qt::UniqueConnection);
+    };
+    m_turnStateSync->updateDeps(deps);
 }
 
 // UIスレッド安全のため queued 呼び出しにしています
@@ -3071,99 +2894,45 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
 
 // ============================================================
 
-// 対局が進行中（終局前）かどうかを判定する。
-// 分岐ツリーのSFENで盤面が上書きされるのを防ぐガードに使用。
+// 対局が進行中（終局前）かどうかを判定する（PlayModePolicyService に委譲）
 bool MainWindow::isGameActivelyInProgress() const
 {
-    switch (m_state.playMode) {
-    case PlayMode::HumanVsHuman:
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-    case PlayMode::HandicapEngineVsHuman:
-    case PlayMode::HandicapEngineVsEngine:
-        return m_match && !m_match->gameOverState().isOver;
-    default:
-        return false;
+    if (m_playModePolicy) {
+        return m_playModePolicy->isGameActivelyInProgress();
     }
+    return false;
 }
 
-// `isHvH`: Hv H かどうかを判定する。
+// 人間 vs 人間モードかどうかを判定する（PlayModePolicyService に委譲）
 bool MainWindow::isHvH() const
 {
-    if (m_gameStateController) {
-        return m_gameStateController->isHvH();
+    if (m_playModePolicy) {
+        return m_playModePolicy->isHvH();
     }
-    return (m_state.playMode == PlayMode::HumanVsHuman);
+    return false;
 }
 
-// `isHumanSide`: Human Side かどうかを判定する。
+// 指定プレイヤーが人間側かどうかを判定する（PlayModePolicyService に委譲）
 bool MainWindow::isHumanSide(ShogiGameController::Player p) const
 {
-    if (m_gameStateController) {
-        return m_gameStateController->isHumanSide(p);
+    if (m_playModePolicy) {
+        return m_playModePolicy->isHumanSide(p);
     }
-    // フォールバック
-    switch (m_state.playMode) {
-    case PlayMode::HumanVsHuman:
-        return true;
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-        return (p == ShogiGameController::Player1);
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::HandicapEngineVsHuman:
-        return (p == ShogiGameController::Player2);
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapEngineVsEngine:
-        return false;
-    default:
-        return true;
-    }
+    return true;
 }
 
 // `updateTurnAndTimekeepingDisplay`: Turn And Timekeeping Display を更新する。
 void MainWindow::updateTurnAndTimekeepingDisplay()
 {
-    // 手番ラベルなど
-    setCurrentTurn();
-
-    // 時計の再描画（Presenterに現在値を流し直し）
-    ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
-    if (m_timePresenter && clk) {
-        const qint64 p1 = clk->getPlayer1TimeIntMs();
-        const qint64 p2 = clk->getPlayer2TimeIntMs();
-        const bool p1turn =
-            (m_gameController ? (m_gameController->currentPlayer() == ShogiGameController::Player1) : true);
-        m_timePresenter->onMatchTimeUpdated(p1, p2, p1turn, /*urgencyMs*/ 0);
-    }
+    ensureTurnStateSyncService();
+    m_turnStateSync->updateTurnAndTimekeepingDisplay();
 }
 
-// `updateGameRecord`: Game Record を更新する。
+// `updateGameRecord`: GameRecordUpdateService へ委譲。
 void MainWindow::updateGameRecord(const QString& elapsedTime)
 {
-    const bool gameOverAppended =
-        (m_match && m_match->gameOverState().isOver && m_match->gameOverState().moveAppended);
-    if (gameOverAppended) return;
-
-    ensureRecordPresenter();
-    if (m_recordPresenter) {
-        m_recordPresenter->appendMoveLine(m_state.lastMove, elapsedTime);
-
-        if (!m_state.lastMove.isEmpty()) {
-            m_recordPresenter->addLiveKifItem(m_state.lastMove, elapsedTime);
-        }
-    }
-
-    if (m_branchNav.liveGameSession != nullptr && !m_state.lastMove.isEmpty()) {
-        ensureLiveGameSessionUpdater();
-        ShogiMove move;
-        if (!m_kifu.gameMoves.isEmpty()) {
-            move = m_kifu.gameMoves.last();
-        }
-        m_liveGameSessionUpdater->appendMove(move, m_state.lastMove, elapsedTime);
-    }
-
+    ensureGameRecordUpdateService();
+    m_gameRecordUpdateService->updateGameRecord(m_state.lastMove, elapsedTime);
     m_state.lastMove.clear();
 }
 

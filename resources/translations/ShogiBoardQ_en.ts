@@ -4291,7 +4291,7 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="555"/>
+        <location filename="../../src/app/mainwindow.cpp" line="467"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
@@ -4711,7 +4711,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2904"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2727"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>

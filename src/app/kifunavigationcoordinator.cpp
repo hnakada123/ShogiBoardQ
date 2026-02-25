@@ -5,6 +5,7 @@
 
 #include <QTableView>
 #include <QItemSelectionModel>
+#include <QTimer>
 
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
@@ -190,4 +191,20 @@ void KifuNavigationCoordinator::handleBranchNodeHandled(
         qCDebug(lcApp).noquote() << "onBranchNodeHandled: NOT in consideration mode or match/sfen missing";
     }
     qCDebug(lcApp).noquote() << "onBranchNodeHandled LEAVE";
+}
+
+void KifuNavigationCoordinator::beginBranchNavGuard()
+{
+    if (m_deps.skipBoardSyncForBranchNav) {
+        *m_deps.skipBoardSyncForBranchNav = true;
+    }
+    // 同一イベントループ内の連鎖通知を吸収したあと、次周回でガードを解除する。
+    QTimer::singleShot(0, this, &KifuNavigationCoordinator::clearBranchNavGuard);
+}
+
+void KifuNavigationCoordinator::clearBranchNavGuard()
+{
+    if (m_deps.skipBoardSyncForBranchNav) {
+        *m_deps.skipBoardSyncForBranchNav = false;
+    }
 }
