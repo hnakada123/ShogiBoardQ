@@ -606,6 +606,10 @@ set(SRC_MODELS
 )
 
 set(SRC_SERVICES
+    src/services/debugscreenshotservice.cpp
+    src/services/debugscreenshotservice.h
+    src/services/debugscreenshotwiring.cpp
+    src/services/debugscreenshotwiring.h
     src/services/playernameservice.cpp
     src/services/playernameservice.h
     src/services/settingskeys.h
