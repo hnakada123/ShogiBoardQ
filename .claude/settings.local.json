@@ -40,7 +40,10 @@
       "Bash(QT_QPA_PLATFORM=offscreen ctest:*)",
       "Bash(./build/tests/tst_kifconverter:*)",
       "Bash(./build/tests/tst_ki2converter:*)",
-      "Bash(./build/tests/tst_csaconverter:*)"
+      "Bash(./build/tests/tst_csaconverter:*)",
+      "Bash(head:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_game_start_flow:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_kifu_comment_sync:*)"
     ]
   }
 }
