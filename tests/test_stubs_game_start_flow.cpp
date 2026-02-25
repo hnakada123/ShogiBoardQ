@@ -14,6 +14,7 @@
 #include <QSize>
 
 #include "matchcoordinator.h"
+#include "gamestartorchestrator.h"
 #include "gamemodestrategy.h"
 #include "analysissessionhandler.h"
 #include "shogiclock.h"
@@ -224,20 +225,18 @@ bool MatchCoordinator::tryRemoveLastItems(QObject*, int) { return false; }
 void MatchCoordinator::setGameInProgressActions(bool) {}
 void MatchCoordinator::updateTurnDisplay(Player) {}
 MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const { return {}; }
-void MatchCoordinator::displayResultsAndUpdateGui(const GameEndInfo&) {}
 void MatchCoordinator::initPositionStringsFromSfen(const QString&) {}
 void MatchCoordinator::wireResignToArbiter(Usi*, bool) {}
 void MatchCoordinator::wireWinToArbiter(Usi*, bool) {}
 void MatchCoordinator::emitTimeUpdateFromClock() {}
 void MatchCoordinator::recomputeClockSnapshot(QString&, QString&, QString&) const {}
 void MatchCoordinator::sendRawTo(Usi*, const QString&) {}
-MatchCoordinator::HistorySearchResult MatchCoordinator::syncAndSearchGameHistory(const QString&) { return {}; }
-void MatchCoordinator::applyStartOptionsAndHooks(const StartOptions&) {}
-void MatchCoordinator::buildPositionStringsFromHistory(const StartOptions&, const QString&, const HistorySearchResult&) {}
 void MatchCoordinator::createAndStartModeStrategy(const StartOptions&) {}
+void MatchCoordinator::ensureGameStartOrchestrator() {}
 void MatchCoordinator::wireClock() {}
 void MatchCoordinator::unwireClock() {}
 void MatchCoordinator::ensureAnalysisSession() {}
+void MatchCoordinator::ensureGameEndHandler() {}
 
 // private slots
 void MatchCoordinator::onEngine1Resign() {}

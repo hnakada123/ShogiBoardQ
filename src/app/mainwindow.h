@@ -11,6 +11,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QPointer>
+#include <memory>
 
 // --- プロジェクトヘッダー（値型・MOC制約で必要） ---
 #include "playmode.h"
@@ -100,6 +101,7 @@ class UiStatePolicyManager;
 class MainWindowCompositionRoot;
 class LiveGameSessionUpdater;
 class KifuNavigationCoordinator;
+class BranchNavigationWiring;
 
 #ifdef QT_DEBUG
 class DebugScreenshotWiring;
@@ -190,7 +192,7 @@ public slots:
 
     // --- protected ---
 protected:
-    Ui::MainWindow* ui = nullptr;              ///< Ui::MainWindowフォームへのポインタ
+    std::unique_ptr<Ui::MainWindow> ui;        ///< Ui::MainWindowフォームへのポインタ
     void closeEvent(QCloseEvent* event) override;
 
     // --- private slots ---
@@ -280,9 +282,6 @@ private slots:
 
     /// 分岐ツリーの構築完了を処理する（KifuBranchTreeBuilder::treeBuilt に接続）
     void onBranchTreeBuilt();
-
-    /// 分岐ラインの選択変更を処理する（BranchTreeWidget::lineSelectionChanged に接続）
-    void onLineSelectionChanged(int newLineIndex);
 
     /// SFEN文字列から直接盤面を読み込む（分岐ナビゲーション用）
     void loadBoardFromSfen(const QString& sfen);
@@ -526,7 +525,8 @@ private:
     UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
     RecordNavigationWiring* m_recordNavWiring = nullptr;               ///< 棋譜ナビゲーション配線（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
-    LiveGameSessionUpdater* m_liveGameSessionUpdater = nullptr;        ///< LiveGameSession更新ロジック（所有）
+    std::unique_ptr<LiveGameSessionUpdater> m_liveGameSessionUpdater;  ///< LiveGameSession更新ロジック（所有）
+    BranchNavigationWiring* m_branchNavWiring = nullptr;              ///< 分岐ナビゲーション配線（非所有）
     KifuNavigationCoordinator* m_kifuNavCoordinator = nullptr;        ///< 棋譜ナビゲーション同期（非所有）
 
 #ifdef QT_DEBUG
@@ -596,14 +596,6 @@ private:
     void createAnalysisResultsDock();
     /// 分岐ナビゲーション関連クラスを初期化する
     void initializeBranchNavigationClasses();
-    /// 分岐ナビゲーションのモデルを生成する
-    void createBranchNavigationModels();
-    /// 分岐ナビゲーションのシグナルを接続する
-    void wireBranchNavigationSignals();
-    /// 分岐表示コーディネーターを設定する
-    void configureBranchDisplayCoordinator();
-    /// 分岐表示コーディネーターのシグナルを接続する
-    void connectBranchDisplaySignals();
 
     // --- ゲーム開始 / 切替 ---
     /// SFEN文字列で新規対局を初期化する
@@ -717,14 +709,10 @@ private:
     void ensureKifuNavigationCoordinator();
 
     // --- ensure* 分割ヘルパー（bind/wire） ---
-    /// GameStateControllerのコールバックを設定する
-    void bindGameStateControllerCallbacks();
     /// CsaGameWiringのシグナル/スロット接続を行う
     void wireCsaGameWiringSignals();
-    /// BoardSetupControllerのコールバックを設定する
-    void bindBoardSetupControllerCallbacks();
-    /// PositionEditCoordinatorのコールバックとアクションを設定する
-    void bindPositionEditCoordinatorCallbacks();
+    /// ナビゲーション状態をUIの表示位置と同期する
+    void syncNavStateToPly(int selectedPly);
 
     // --- コンストラクタ分割先 ---
     /// セントラルウィジェットのコンテナを構築する
@@ -786,8 +774,8 @@ private:
 
     // --- 棋譜自動保存 ---
     // --- 分岐ツリー更新 ---
-    /// リアルタイム対局中の分岐ツリーを再構築する
-    void refreshBranchTreeLive();
+    /// BranchNavigationWiring を初期化し外部シグナルを接続する
+    void ensureBranchNavigationWiring();
 
     // --- ガード / 判定ヘルパー ---
     /// 人間vs人間モードかどうかを判定する

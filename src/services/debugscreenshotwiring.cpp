@@ -1,8 +1,9 @@
 /// @file debugscreenshotwiring.cpp
 /// @brief F12キーでスクリーンショットを撮るためのショートカット配線の実装
-#ifdef QT_DEBUG
 
 #include "debugscreenshotwiring.h"
+
+#ifdef QT_DEBUG
 #include "debugscreenshotservice.h"
 
 #include <QMainWindow>

@@ -257,6 +257,10 @@ set(SRC_GAME
     src/game/consecutivegamescontroller.h
     src/game/enginegameovernotifier.cpp
     src/game/enginegameovernotifier.h
+    src/game/gameendhandler.cpp
+    src/game/gameendhandler.h
+    src/game/gamestartorchestrator.cpp
+    src/game/gamestartorchestrator.h
     src/game/enginevsenginestrategy.cpp
     src/game/enginevsenginestrategy.h
     src/game/gamemodestrategy.h
@@ -471,6 +475,8 @@ set(SRC_UI
     src/ui/wiring/considerationwiring.h
     src/ui/wiring/csagamewiring.cpp
     src/ui/wiring/csagamewiring.h
+    src/ui/wiring/branchnavigationwiring.cpp
+    src/ui/wiring/branchnavigationwiring.h
     src/ui/wiring/dialogcoordinatorwiring.cpp
     src/ui/wiring/dialogcoordinatorwiring.h
     src/ui/wiring/dialoglaunchwiring.cpp

@@ -10,7 +10,7 @@
 class LiveGameSession;
 class KifuBranchTree;
 class ShogiGameController;
-class ShogiMove;
+struct ShogiMove;
 
 /**
  * @brief LiveGameSession の更新ロジックを集約するクラス

@@ -30,6 +30,8 @@ class KifuRecordListModel;
 class BoardInteractionController;
 class StartGameDialog;
 class AnalysisSessionHandler;
+class GameEndHandler;
+class GameStartOrchestrator;
 
 /**
  * @brief 対局進行/終局/時計/USI送受のハブとなる司令塔クラス
@@ -470,7 +472,6 @@ private:
     void setGameInProgressActions(bool inProgress);
     void updateTurnDisplay(Player p);
     GoTimes computeGoTimes() const;
-    void displayResultsAndUpdateGui(const GameEndInfo& info);
     void initPositionStringsFromSfen(const QString& sfenBase);
     void wireResignToArbiter(Usi* engine, bool asP1);
     void wireWinToArbiter(Usi* engine, bool asP1);
@@ -478,25 +479,12 @@ private:
     void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
     void sendRawTo(Usi* which, const QString& cmd);
 
-    // --- configureAndStart 分解ヘルパ ---
-
-    /// 過去対局の履歴探索結果
-    struct HistorySearchResult {
-        QString bestBaseFull;      ///< 一致したゲームのフルposition文字列
-        int bestGameIdx  = -1;     ///< 一致したゲームのインデックス
-        int bestMatchPly = -1;     ///< 一致した手数
+    /// GUI側からモデルが注入されていない場合にフォールバック生成する（1=エンジン1, 2=エンジン2）
+    struct EngineModelPair {
+        UsiCommLogModel* comm = nullptr;
+        ShogiEngineThinkingModel* think = nullptr;
     };
-
-    /// 既存履歴の同期と過去対局の探索
-    HistorySearchResult syncAndSearchGameHistory(const QString& targetSfen);
-
-    /// オプション適用・フック呼び出し・UI初期化
-    void applyStartOptionsAndHooks(const StartOptions& opt);
-
-    /// 過去対局履歴を用いたposition文字列の構築（フォールバック含む）
-    void buildPositionStringsFromHistory(const StartOptions& opt,
-                                         const QString& targetSfen,
-                                         const HistorySearchResult& searchResult);
+    EngineModelPair ensureEngineModels(int engineIndex);
 
     /// PlayMode別のStrategy生成と起動
     void createAndStartModeStrategy(const StartOptions& opt);
@@ -588,6 +576,16 @@ private:
 
     std::unique_ptr<AnalysisSessionHandler> m_analysisSession; ///< 検討・詰み探索ハンドラ
     void ensureAnalysisSession();             ///< ハンドラの遅延生成
+
+    // --- 終局処理ハンドラ ---
+
+    GameEndHandler* m_gameEndHandler = nullptr; ///< 終局処理ハンドラ（Qt parent 管理）
+    void ensureGameEndHandler();               ///< ハンドラの遅延生成
+
+    // --- 対局開始オーケストレータ ---
+
+    std::unique_ptr<GameStartOrchestrator> m_gameStartOrchestrator; ///< 対局開始オーケストレータ
+    void ensureGameStartOrchestrator();        ///< オーケストレータの遅延生成
 
     // --- UNDO ---
 

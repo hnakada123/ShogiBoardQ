@@ -1,5 +1,7 @@
 #ifndef DEBUGSCREENSHOTWIRING_H
 #define DEBUGSCREENSHOTWIRING_H
+
+#include <QtGlobal> // QT_DEBUG の定義に必要
 #ifdef QT_DEBUG
 
 /// @file debugscreenshotwiring.h

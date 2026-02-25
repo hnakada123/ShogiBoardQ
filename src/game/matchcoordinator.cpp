@@ -2,6 +2,8 @@
 /// @brief 対局進行コーディネータ（司令塔）クラスの実装
 
 #include "matchcoordinator.h"
+#include "gameendhandler.h"
+#include "gamestartorchestrator.h"
 #include "analysissessionhandler.h"
 #include "strategycontext.h"
 #include "gamemodestrategy.h"
@@ -16,12 +18,7 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "boardinteractioncontroller.h"
-#include "startgamedialog.h"
-#include "settingsservice.h"
 #include "kifurecordlistmodel.h"
-#include "sfenpositiontracer.h"
-#include "sennichitedetector.h"
-#include "enginegameovernotifier.h"
 #include "logcategories.h"
 
 #include <limits>
@@ -33,7 +30,6 @@
 #include <QTimer>
 #include <QMetaObject>
 #include <QMetaMethod>
-#include <QSettings>
 #include <QThread>
 #include <QCoreApplication>
 
@@ -42,106 +38,6 @@ static bool isStandardStartposSfen(const QString& sfen)
 {
     const QString canon = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     return (!sfen.isEmpty() && sfen.trimmed() == canon);
-}
-
-// ---------- configureAndStart 分解用ユーティリティ ----------
-
-/// 探索対象SFENを正規化する（"startpos"→初期SFEN、"position sfen ..."→素のSFEN）
-static QString normalizeTargetSfen(const QString& sfenStart)
-{
-    QString target = sfenStart.trimmed();
-    if (target == QLatin1String("startpos")) {
-        return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    }
-    if (target.startsWith(QLatin1String("position sfen "))) {
-        return target.mid(14).trimmed();
-    }
-    return target;
-}
-
-/// SFEN文字列から開始手番を決定する
-static ShogiGameController::Player decideStartSideFromSfen(const QString& sfen)
-{
-    auto start = ShogiGameController::Player1;
-    if (sfen.isEmpty()) return start;
-    const QStringList tok = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (tok.size() < 2) return start;
-
-    qsizetype sideIdx = -1;
-    if (tok.size() >= 4
-        && tok[0] == QLatin1String("position")
-        && tok[1] == QLatin1String("sfen")) {
-        sideIdx = 3; // "position sfen <board> <side> ..."
-    } else {
-        sideIdx = 1; // "<board> <side> ..."
-    }
-
-    if (sideIdx >= 0 && sideIdx < tok.size()) {
-        if (tok[sideIdx].compare(QLatin1String("w"), Qt::CaseInsensitive) == 0) {
-            start = ShogiGameController::Player2; // 後手番
-        }
-    }
-    return start;
-}
-
-/// SFEN末尾の手数フィールドから、保持すべき手数を計算する（N → N-1）
-static int parseKeepMovesFromSfen(const QString& sfenLike)
-{
-    QString s = sfenLike.trimmed();
-    if (s.startsWith(QLatin1String("position sfen "))) {
-        s = s.mid(QStringLiteral("position sfen ").size()).trimmed();
-    }
-    const QStringList tok = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (tok.size() >= 4) {
-        bool ok = false;
-        const int mv = tok.last().toInt(&ok);
-        if (ok) return qMax(0, mv - 1);
-    }
-    return -1;
-}
-
-/// "position ... moves ..." の手順を先頭 keep 手だけ残してトリムする
-static QString trimMovesPreserveHeader(const QString& full, int keep)
-{
-    const QString movesKey = QStringLiteral(" moves ");
-    const qsizetype pos = full.indexOf(movesKey);
-    QString head = full.trimmed();
-    QString tail;
-    if (pos >= 0) {
-        head = full.left(pos).trimmed();
-        tail = full.mid(pos + movesKey.size()).trimmed();
-    }
-    if (keep <= 0 || tail.isEmpty()) return head;
-    QStringList mv = tail.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (keep < mv.size()) mv = mv.mid(0, keep);
-    if (mv.isEmpty()) return head;
-    return head + movesKey + mv.join(QLatin1Char(' '));
-}
-
-/// position文字列中のmoves数をカウントする
-static int countMovesInPositionStr(const QString& posStr)
-{
-    const qsizetype idx = posStr.indexOf(QLatin1String(" moves "));
-    if (idx < 0) return 0;
-    const QString after = posStr.mid(idx + 7).trimmed();
-    if (after.isEmpty()) return 0;
-    return static_cast<int>(after.split(QLatin1Char(' '), Qt::SkipEmptyParts).size());
-}
-
-/// "position sfen" 接頭辞対応の平手初期局面判定（手数フィールドは無視）
-static bool hasStandardStartposBoard(const QString& sfenLike)
-{
-    QString s = sfenLike.trimmed();
-    if (s.startsWith(QLatin1String("position sfen "))) {
-        s = s.mid(QStringLiteral("position sfen ").size()).trimmed();
-    }
-    const QStringList tok = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (tok.size() < 3) return false;
-    static const QString kStartBoard =
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    return (tok[0] == kStartBoard
-            && tok[1] == QLatin1String("b")
-            && tok[2] == QLatin1String("-"));
 }
 
 // 直前のフル position 文字列から、先頭 handCount 手だけ残したベースを作る。
@@ -264,6 +160,95 @@ void MatchCoordinator::ensureAnalysisSession()
     m_analysisSession->setHooks(hooks);
 }
 
+void MatchCoordinator::ensureGameEndHandler()
+{
+    if (m_gameEndHandler) return;
+    m_gameEndHandler = new GameEndHandler(this);
+
+    // シグナル転送（GameEndHandler → MatchCoordinator）
+    connect(m_gameEndHandler, &GameEndHandler::gameEnded,
+            this,             &MatchCoordinator::gameEnded);
+
+    // Refs 設定
+    GameEndHandler::Refs refs;
+    refs.gc        = m_gc;
+    refs.clock     = m_clock;
+    refs.usi1      = &m_usi1;
+    refs.usi2      = &m_usi2;
+    refs.playMode  = &m_playMode;
+    refs.gameOver  = &m_gameOver;
+    refs.strategyProvider = [this]() -> GameModeStrategy* { return m_strategy.get(); };
+    refs.sfenHistory = m_sfenHistory;
+    m_gameEndHandler->setRefs(refs);
+
+    // Hooks 設定
+    GameEndHandler::Hooks hooks;
+    hooks.disarmHumanTimerIfNeeded = [this]() { disarmHumanTimerIfNeeded(); };
+    hooks.primaryEngine     = [this]() -> Usi* { return primaryEngine(); };
+    hooks.turnEpochFor      = [this](Player p) -> qint64 { return turnEpochFor(p); };
+    hooks.setGameInProgressActions = [this](bool b) { setGameInProgressActions(b); };
+    hooks.setGameOver       = [this](const GameEndInfo& info, bool loserIsP1, bool append) {
+        setGameOver(info, loserIsP1, append);
+    };
+    hooks.markGameOverMoveAppended = [this]() { markGameOverMoveAppended(); };
+    hooks.appendKifuLine    = m_hooks.appendKifuLine;
+    hooks.showGameOverDialog = m_hooks.showGameOverDialog;
+    hooks.log               = m_hooks.log;
+    hooks.autoSaveKifuIfEnabled = [this]() {
+        if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.autoSaveKifu) {
+            qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
+            m_hooks.autoSaveKifu(m_kifuSaveDir, m_playMode,
+                                 m_humanName1, m_humanName2,
+                                 m_engineNameForSave1, m_engineNameForSave2);
+        }
+    };
+    m_gameEndHandler->setHooks(hooks);
+}
+
+void MatchCoordinator::ensureGameStartOrchestrator()
+{
+    if (m_gameStartOrchestrator) return;
+    m_gameStartOrchestrator = std::make_unique<GameStartOrchestrator>();
+
+    // Refs 設定
+    GameStartOrchestrator::Refs refs;
+    refs.gc                 = m_gc;
+    refs.playMode           = &m_playMode;
+    refs.maxMoves           = &m_maxMoves;
+    refs.currentTurn        = &m_cur;
+    refs.currentMoveIndex   = &m_currentMoveIndex;
+    refs.autoSaveKifu       = &m_autoSaveKifu;
+    refs.kifuSaveDir        = &m_kifuSaveDir;
+    refs.humanName1         = &m_humanName1;
+    refs.humanName2         = &m_humanName2;
+    refs.engineNameForSave1 = &m_engineNameForSave1;
+    refs.engineNameForSave2 = &m_engineNameForSave2;
+    refs.positionStr1       = &m_positionStr1;
+    refs.positionPonder1    = &m_positionPonder1;
+    refs.positionStrHistory = &m_positionStrHistory;
+    refs.allGameHistories   = &m_allGameHistories;
+    m_gameStartOrchestrator->setRefs(refs);
+
+    // Hooks 設定
+    GameStartOrchestrator::Hooks hooks;
+    hooks.initializeNewGame = m_hooks.initializeNewGame;
+    hooks.setPlayersNames   = m_hooks.setPlayersNames;
+    hooks.setEngineNames    = m_hooks.setEngineNames;
+    hooks.setGameActions    = m_hooks.setGameActions;
+    hooks.renderBoardFromGc = m_hooks.renderBoardFromGc;
+    hooks.clearGameOverState = [this]() { clearGameOverState(); };
+    hooks.updateTurnDisplay  = [this](Player p) { updateTurnDisplay(p); };
+    hooks.initializePositionStringsForStart = [this](const QString& s) {
+        initializePositionStringsForStart(s);
+    };
+    hooks.createAndStartModeStrategy = [this](const StartOptions& opt) {
+        createAndStartModeStrategy(opt);
+    };
+    hooks.flipBoard = [this]() { flipBoard(); };
+    hooks.startInitialEngineMoveIfNeeded = [this]() { startInitialEngineMoveIfNeeded(); };
+    m_gameStartOrchestrator->setHooks(hooks);
+}
+
 MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
 {
     return *m_strategyCtx;
@@ -279,118 +264,24 @@ void MatchCoordinator::updateUsiPtrs(Usi* e1, Usi* e2) {
 // ============================================================
 
 void MatchCoordinator::handleResign() {
-    // すでに終局なら何もしない（中断後のタイムアウト等で呼ばれるのを防ぐ）
-    if (m_gameOver.isOver) {
-        qCDebug(lcGame) << "handleResign: already game over, ignoring";
-        return;
-    }
-
-    GameEndInfo info;
-    info.cause = Cause::Resignation;
-
-    // 投了は「現在手番側」が行う：GCの現在手番から判定
-    info.loser = (m_gc && m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        if (!which) return;
-        if (m_hooks.sendRawToEngine) {
-            m_hooks.sendRawToEngine(which, cmd);
-        } else {
-            sendRawTo(which, cmd);
-        }
-    };
-    EngineGameOverNotifier::notifyResignation(
-        m_playMode, info.loser == P1, m_usi1, m_usi2, rawSender);
-
-    // 司令塔のゲームオーバー状態を確定（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UIへ）
-    setGameOver(info, /*loserIsP1=*/(info.loser==P1), /*appendMoveOnce=*/true);
-
-    // 投了時も結果ダイアログを表示
-    displayResultsAndUpdateGui(info);
+    ensureGameEndHandler();
+    m_gameEndHandler->handleResign();
 }
 
 void MatchCoordinator::handleEngineResign(int idx) {
-    // エンジン投了時はまず時計だけ停止（stop は送らない）
-    if (m_clock) m_clock->stopClock();
-
-    GameEndInfo info;
-    info.cause = Cause::Resignation;
-    info.loser = (idx == 1 ? P1 : P2);
-
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        if (!which) return;
-        if (m_hooks.sendRawToEngine) {
-            m_hooks.sendRawToEngine(which, cmd);
-        } else {
-            sendRawTo(which, cmd);
-        }
-    };
-    EngineGameOverNotifier::notifyResignation(
-        m_playMode, info.loser == P1, m_usi1, m_usi2, rawSender);
-    if (m_usi1) m_usi1->setSquelchResignLogging(true);
-    if (m_usi2) m_usi2->setSquelchResignLogging(true);
-
-    // 司令塔のゲームオーバー状態を確定（棋譜「投了」一意追記は appendMoveOnce=true で司令塔→UIへ）
-    const bool loserIsP1 = (info.loser == P1);
-    setGameOver(info, loserIsP1, /*appendMoveOnce=*/true);
-
-    // エンジン投了時も結果ダイアログを表示
-    displayResultsAndUpdateGui(info);
+    ensureGameEndHandler();
+    m_gameEndHandler->handleEngineResign(idx);
 }
 
 void MatchCoordinator::handleEngineWin(int idx) {
-    // エンジン入玉宣言勝ち＝宣言者がエンジン、成功=true、引き分け=false
-    const Player declarer = (idx == 1 ? P1 : P2);
-    handleNyugyokuDeclaration(declarer, /*success=*/true, /*isDraw=*/false);
+    ensureGameEndHandler();
+    m_gameEndHandler->handleEngineWin(idx);
 }
 
 void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw)
 {
-    // すでに終局なら何もしない
-    if (m_gameOver.isOver) return;
-
-    qCInfo(lcGame) << "handleNyugyokuDeclaration(): declarer=" << (declarer == P1 ? "P1" : "P2")
-                    << " success=" << success << " isDraw=" << isDraw;
-
-    // 進行系タイマを停止
-    disarmHumanTimerIfNeeded();
-
-    // 時計を停止
-    if (m_clock) m_clock->stopClock();
-
-    // GameEndInfo を構築
-    GameEndInfo info;
-    if (isDraw) {
-        // 持将棋（引き分け）
-        info.cause = Cause::Jishogi;
-        info.loser = declarer;  // 持将棋は勝敗なし、宣言者のマーク表示用
-    } else if (success) {
-        // 入玉宣言勝ち
-        info.cause = Cause::NyugyokuWin;
-        info.loser = (declarer == P1) ? P2 : P1;  // 宣言者の相手が敗者
-    } else {
-        // 入玉宣言失敗（反則負け）
-        info.cause = Cause::IllegalMove;
-        info.loser = declarer;  // 宣言者が敗者
-    }
-
-    auto rawSender = [this](Usi* which, const QString& cmd) {
-        if (!which) return;
-        if (m_hooks.sendRawToEngine) {
-            m_hooks.sendRawToEngine(which, cmd);
-        } else {
-            sendRawTo(which, cmd);
-        }
-    };
-    EngineGameOverNotifier::notifyNyugyoku(
-        m_playMode, isDraw, info.loser == P1, m_usi1, m_usi2, rawSender);
-    if (m_usi1) m_usi1->setSquelchResignLogging(true);
-    if (m_usi2) m_usi2->setSquelchResignLogging(true);
-
-    // 終局状態を確定
-    const bool loserIsP1 = (info.loser == P1);
-    setGameOver(info, loserIsP1, /*appendMoveOnce=*/true);
-
-    // 結果ダイアログは既にMainWindowで表示済みなので省略
+    ensureGameEndHandler();
+    m_gameEndHandler->handleNyugyokuDeclaration(declarer, success, isDraw);
 }
 
 // ============================================================
@@ -412,68 +303,7 @@ void MatchCoordinator::updateTurnDisplay(Player p) {
     if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(p);
 }
 
-void MatchCoordinator::displayResultsAndUpdateGui(const GameEndInfo& info) {
-    // 対局中メニューのON/OFFなどUI側の状態を更新
-    setGameInProgressActions(false);
-
-    // 先後の文字列（日本語）
-    const bool loserIsP1  = (info.loser == P1);
-    const QString loserJP = loserIsP1 ? tr("先手") : tr("後手");
-    const QString winnerJP= loserIsP1 ? tr("後手") : tr("先手");
-
-    // メッセージ本文（日本語）
-    QString msg;
-    switch (info.cause) {
-    case Cause::Resignation:
-        // 例）「先手の投了。後手の勝ちです。」
-        msg = tr("%1の投了。%2の勝ちです。").arg(loserJP, winnerJP);
-        break;
-    case Cause::Timeout:
-        // 例）「先手の時間切れ。後手の勝ちです。」
-        msg = tr("%1の時間切れ。%2の勝ちです。").arg(loserJP, winnerJP);
-        break;
-    case Cause::Jishogi:
-        // 持将棋（最大手数到達）
-        msg = tr("最大手数に達しました。持将棋です。");
-        break;
-    case Cause::NyugyokuWin:
-        // 入玉宣言勝ち
-        msg = tr("%1の入玉宣言。%2の勝ちです。").arg(winnerJP, winnerJP);
-        break;
-    case Cause::IllegalMove:
-        // 反則負け（入玉宣言失敗など）
-        msg = tr("%1の反則負け。%2の勝ちです。").arg(loserJP, winnerJP);
-        break;
-    case Cause::Sennichite:
-        msg = tr("千日手が成立しました。");
-        break;
-    case Cause::OuteSennichite:
-        msg = tr("%1の連続王手の千日手。%2の勝ちです。").arg(loserJP, winnerJP);
-        break;
-    case Cause::BreakOff:
-    default:
-        // 念のためのフォールバック
-        msg = tr("対局が終了しました。");
-        break;
-    }
-
-    // ダイアログ表示（MainWindow 側フックで QMessageBox を出します）
-    if (m_hooks.showGameOverDialog) {
-        m_hooks.showGameOverDialog(tr("対局終了"), msg);
-    }
-
-    if (m_hooks.log) m_hooks.log(QStringLiteral("Game ended"));
-
-    // 棋譜自動保存
-    if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.autoSaveKifu) {
-        qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
-        m_hooks.autoSaveKifu(m_kifuSaveDir, m_playMode,
-                             m_humanName1, m_humanName2,
-                             m_engineNameForSave1, m_engineNameForSave2);
-    }
-
-    emit gameEnded(info);
-}
+// displayResultsAndUpdateGui は GameEndHandler に移動済み
 
 // ============================================================
 // エンジン管理
@@ -606,6 +436,23 @@ void MatchCoordinator::setPlayMode(PlayMode m)
     m_playMode = m;
 }
 
+MatchCoordinator::EngineModelPair MatchCoordinator::ensureEngineModels(int engineIndex)
+{
+    UsiCommLogModel*&          commRef  = (engineIndex == 1) ? m_comm1  : m_comm2;
+    ShogiEngineThinkingModel*& thinkRef = (engineIndex == 1) ? m_think1 : m_think2;
+
+    if (!commRef) {
+        commRef = new UsiCommLogModel(this);
+        qCWarning(lcGame) << "comm" << engineIndex << "fallback created";
+    }
+    if (!thinkRef) {
+        thinkRef = new ShogiEngineThinkingModel(this);
+        qCWarning(lcGame) << "think" << engineIndex << "fallback created";
+    }
+
+    return { commRef, thinkRef };
+}
+
 void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
                                          const QString& engineName2)
 {
@@ -613,21 +460,14 @@ void MatchCoordinator::initEnginesForEvE(const QString& engineName1,
     destroyEngines();
 
     // モデル（GUI から貰えない場合はフォールバック生成）
-    UsiCommLogModel*          comm1  = m_comm1 ? m_comm1 : new UsiCommLogModel(this);
-    ShogiEngineThinkingModel* think1 = m_think1 ? m_think1 : new ShogiEngineThinkingModel(this);
-    UsiCommLogModel*          comm2  = m_comm2 ? m_comm2 : new UsiCommLogModel(this);
-    ShogiEngineThinkingModel* think2 = m_think2 ? m_think2 : new ShogiEngineThinkingModel(this);
-
-    if (!m_comm1)  { m_comm1  = comm1;  qCWarning(lcGame) << "EvE comm1 fallback created"; }
-    if (!m_think1) { m_think1 = think1; qCWarning(lcGame) << "EvE think1 fallback created"; }
-    if (!m_comm2)  { m_comm2  = comm2;  qCWarning(lcGame) << "EvE comm2 fallback created"; }
-    if (!m_think2) { m_think2 = think2; qCWarning(lcGame) << "EvE think2 fallback created"; }
+    auto [comm1, think1] = ensureEngineModels(1);
+    auto [comm2, think2] = ensureEngineModels(2);
 
     // 思考タブのエンジン名表示用（EngineAnalysisTab は log model を参照）
     const QString dispName1 = engineName1.isEmpty() ? QStringLiteral("Engine") : engineName1;
     const QString dispName2 = engineName2.isEmpty() ? QStringLiteral("Engine") : engineName2;
-    if (comm1) comm1->setEngineName(dispName1);
-    if (comm2) comm2->setEngineName(dispName2);
+    comm1->setEngineName(dispName1);
+    comm2->setEngineName(dispName2);
 
     // USI を生成（この時点ではプロセス未起動）
     m_usi1 = new Usi(comm1, think1, m_gc, m_playMode, this);
@@ -756,240 +596,16 @@ bool MatchCoordinator::engineMoveOnce(Usi* eng,
 }
 
 // ============================================================
-// 対局開始フロー
+// 対局開始フロー（GameStartOrchestrator へ委譲）
 // ============================================================
 
 void MatchCoordinator::configureAndStart(const StartOptions& opt)
 {
-    // 1. 既存履歴同期と探索
-    const QString targetSfen = normalizeTargetSfen(opt.sfenStart);
-    const HistorySearchResult searchResult = syncAndSearchGameHistory(targetSfen);
-
-    // 2. フック呼び出し / UI初期化
-    applyStartOptionsAndHooks(opt);
-
-    // 3. 開始SFEN正規化とposition文字列構築
-    buildPositionStringsFromHistory(opt, targetSfen, searchResult);
-
-    // 4. PlayMode別起動
-    createAndStartModeStrategy(opt);
-
-    qCDebug(lcGame).noquote() << "configureAndStart: LEAVE m_positionStr1(final)=" << m_positionStr1
-                       << "hist.size=" << m_positionStrHistory.size()
-                       << "hist.last=" << (m_positionStrHistory.isEmpty() ? QString("<empty>") : m_positionStrHistory.constLast());
+    ensureGameStartOrchestrator();
+    m_gameStartOrchestrator->configureAndStart(opt);
 }
 
-// ------------------------------------------------------------------
-// configureAndStart 分解: 1. 既存履歴同期と探索
-// ------------------------------------------------------------------
-MatchCoordinator::HistorySearchResult
-MatchCoordinator::syncAndSearchGameHistory(const QString& targetSfen)
-{
-    // 直前の対局で更新された m_positionStr1 を履歴に反映してから保存
-    // （ゲーム中に指し手が追加されても m_positionStrHistory は更新されないため、
-    //   次の対局開始時に最終状態を確定させる）
-    if (!m_positionStr1.isEmpty() && m_positionStr1.startsWith(QLatin1String("position "))) {
-        if (m_positionStrHistory.isEmpty()) {
-            m_positionStrHistory.append(m_positionStr1);
-        } else if (m_positionStrHistory.constLast() != m_positionStr1) {
-            m_positionStrHistory[m_positionStrHistory.size() - 1] = m_positionStr1;
-        }
-        qCDebug(lcGame).noquote() << "configureAndStart: synced m_positionStrHistory with m_positionStr1=" << m_positionStr1;
-    }
-
-    // 直前の対局履歴が残っていれば、確定した過去の対局として蓄積
-    if (!m_positionStrHistory.isEmpty()) {
-        m_allGameHistories.append(m_positionStrHistory);
-        while (m_allGameHistories.size() > kMaxGameHistories) {
-            m_allGameHistories.removeFirst();
-        }
-    }
-
-    // --- 過去対局のどれをベースに切り詰めるかを探索 ---
-    HistorySearchResult result;
-
-    if (m_allGameHistories.isEmpty()) return result;
-
-    qCDebug(lcGame) << "=== Accumulated Game Histories (Count:" << m_allGameHistories.size() << ") ===";
-    for (qsizetype i = 0; i < m_allGameHistories.size(); ++i) {
-        qCDebug(lcGame) << " [Game" << (i + 1) << "]";
-        const QStringList& rec = m_allGameHistories.at(i);
-        for (const QString& pos : rec) {
-            qCDebug(lcGame).noquote() << "  " << pos;
-        }
-    }
-    qCDebug(lcGame) << "=======================================================";
-    qCDebug(lcGame) << "--- Searching for start position in previous games ---";
-
-    for (qsizetype i = 0; i < m_allGameHistories.size(); ++i) {
-        const QStringList& hist = m_allGameHistories.at(i);
-        if (hist.isEmpty()) continue;
-
-        const QString fullCmd = hist.last();
-        SfenPositionTracer tracer;
-        QStringList moves;
-
-        if (fullCmd.startsWith(QLatin1String("position startpos"))) {
-            tracer.resetToStartpos();
-            if (fullCmd.contains(QLatin1String(" moves "))) {
-                moves = fullCmd.section(QLatin1String(" moves "), 1)
-                    .split(QLatin1Char(' '), Qt::SkipEmptyParts);
-            }
-        } else if (fullCmd.startsWith(QLatin1String("position sfen "))) {
-            const qsizetype mIdx = fullCmd.indexOf(QLatin1String(" moves "));
-            const QString sfenPart = (mIdx == -1) ? fullCmd.mid(14)
-                                                  : fullCmd.mid(14, mIdx - 14);
-            tracer.setFromSfen(sfenPart);
-            if (mIdx != -1) {
-                moves = fullCmd.mid(mIdx + 7).split(QLatin1Char(' '), Qt::SkipEmptyParts);
-            }
-        }
-
-        // 0手目（開始局面）の比較
-        if (tracer.toSfenString() == targetSfen) {
-            qCDebug(lcGame).noquote()
-                << QString(" -> MATCH FOUND: [Game %1] Start Position (Move 0)").arg(i + 1);
-            if (result.bestGameIdx == -1) {
-                result.bestGameIdx  = static_cast<int>(i);
-                result.bestBaseFull = fullCmd;
-                result.bestMatchPly = 0;
-            }
-        }
-
-        // 1手ずつ進めて比較
-        for (qsizetype m = 0; m < moves.size(); ++m) {
-            tracer.applyUsiMove(moves[m]);
-            if (tracer.toSfenString() == targetSfen) {
-                qCDebug(lcGame).noquote()
-                    << QString(" -> MATCH FOUND: [Game %1] Move %2").arg(i + 1).arg(m + 1);
-                if (result.bestGameIdx == -1) {
-                    result.bestGameIdx  = static_cast<int>(i);
-                    result.bestBaseFull = fullCmd;
-                    result.bestMatchPly = static_cast<int>(m + 1);
-                }
-            }
-        }
-    }
-    qCDebug(lcGame) << "----------------------------------------------------";
-
-    return result;
-}
-
-// ------------------------------------------------------------------
-// configureAndStart 分解: 2. フック呼び出し / UI初期化
-// ------------------------------------------------------------------
-void MatchCoordinator::applyStartOptionsAndHooks(const StartOptions& opt)
-{
-    // 前回の対局終了状態をクリア（再対局時に棋譜追加がブロックされる問題を修正）
-    clearGameOverState();
-
-    m_playMode = opt.mode;
-    m_maxMoves = opt.maxMoves;
-
-    // 棋譜自動保存設定を保存
-    m_autoSaveKifu = opt.autoSaveKifu;
-    m_kifuSaveDir = opt.kifuSaveDir;
-    m_humanName1 = opt.humanName1;
-    m_humanName2 = opt.humanName2;
-    m_engineNameForSave1 = opt.engineName1;
-    m_engineNameForSave2 = opt.engineName2;
-
-    // 盤・名前などの初期化（GUI側へ委譲）
-    qCDebug(lcGame).noquote() << "configureAndStart: calling hooks";
-    qCDebug(lcGame).noquote() << "configureAndStart: opt.engineName1=" << opt.engineName1 << " opt.engineName2=" << opt.engineName2;
-    if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(opt.sfenStart);
-    if (m_hooks.setPlayersNames) {
-        qCDebug(lcGame).noquote() << "configureAndStart: calling setPlayersNames(\"\", \"\")";
-        m_hooks.setPlayersNames(QString(), QString());
-    }
-    if (m_hooks.setEngineNames) {
-        qCDebug(lcGame).noquote() << "configureAndStart: calling setEngineNames(" << opt.engineName1 << "," << opt.engineName2 << ")";
-        m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
-    }
-    if (m_hooks.setGameActions) m_hooks.setGameActions(true);
-    qCDebug(lcGame).noquote() << "configureAndStart: hooks done";
-
-    // 開始手番の決定
-    const ShogiGameController::Player startSide = decideStartSideFromSfen(opt.sfenStart);
-    if (m_gc) m_gc->setCurrentPlayer(startSide);
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-
-    // HvE/HvH 共通の安全策
-    m_currentMoveIndex = 0;
-
-    // 司令塔の内部手番も GC に同期（既存互換）
-    m_cur = (startSide == ShogiGameController::Player2) ? P2 : P1;
-    updateTurnDisplay(m_cur);
-}
-
-// ------------------------------------------------------------------
-// configureAndStart 分解: 3. 開始SFEN正規化とposition文字列構築
-// ------------------------------------------------------------------
-void MatchCoordinator::buildPositionStringsFromHistory(
-    const StartOptions& opt,
-    const QString& /*targetSfen*/,
-    const HistorySearchResult& searchResult)
-{
-    const int keepMoves = parseKeepMovesFromSfen(opt.sfenStart);
-    qCDebug(lcGame).noquote() << "configureAndStart: keepMoves(from sfenStart)=" << keepMoves;
-
-    // --- ベース候補：探索一致ゲームのみ採用
-    // マッチしなかった場合は履歴からの再利用をスキップ
-    // （異なる初期局面の履歴を再利用すると、駒落ちなのに "position startpos" が送信される問題が発生するため）
-    QString candidateBase;
-    if (!searchResult.bestBaseFull.isEmpty()) {
-        candidateBase = searchResult.bestBaseFull;
-        qCDebug(lcGame).noquote()
-            << "configureAndStart: base=matched game"
-            << "gameIdx=" << (searchResult.bestGameIdx + 1) << "matchPly=" << searchResult.bestMatchPly
-            << "full=" << candidateBase;
-    }
-
-    bool applied = false;
-    if (!candidateBase.isEmpty() && keepMoves >= 0) {
-        if (candidateBase.startsWith(QLatin1String("position "))) {
-            const QString trimmed = trimMovesPreserveHeader(candidateBase, keepMoves);
-            qCDebug(lcGame).noquote() << "configureAndStart: trimmed(base, keep=" << keepMoves << ")=" << trimmed;
-
-            const int actualMoves = countMovesInPositionStr(trimmed);
-
-            if (actualMoves >= keepMoves) {
-                m_positionStr1     = trimmed;
-                m_positionPonder1  = trimmed;
-
-                // 履歴はベースを差し替えて 1 件から再スタート（UNDO用）
-                m_positionStrHistory.clear();
-                m_positionStrHistory.append(trimmed);
-
-                applied = true;
-                qCDebug(lcGame).noquote() << "configureAndStart: applied=true (actualMoves=" << actualMoves << " >= keepMoves=" << keepMoves << ")";
-            } else {
-                qCDebug(lcGame).noquote() << "configureAndStart: candidateBase has insufficient moves (actualMoves=" << actualMoves << " < keepMoves=" << keepMoves << "), falling back to SFEN";
-            }
-        } else {
-            qCWarning(lcGame).noquote()
-                << "configureAndStart: candidateBase is not 'position ...' :" << candidateBase;
-        }
-    }
-
-    // ---- 履歴／一致ベースが使えないときのフォールバック
-    if (!applied) {
-        // 従来の初期化（position sfen <sfen> ... をそのまま使う）
-        initializePositionStringsForStart(opt.sfenStart);
-
-        // さらに、平手startposかつ明示のkeepMoves>0 なら、startpos形式で再構築
-        if (hasStandardStartposBoard(opt.sfenStart) && keepMoves > 0) {
-            m_positionStr1     = QStringLiteral("position startpos");
-            m_positionPonder1  = m_positionStr1;
-            m_positionStrHistory.clear();
-            m_positionStrHistory.append(m_positionStr1);
-        }
-    }
-}
-
-// ------------------------------------------------------------------
-// configureAndStart 分解: 4. PlayMode別起動
-// ------------------------------------------------------------------
+// createAndStartModeStrategy は Strategy 生成が MC に密結合のため残留
 void MatchCoordinator::createAndStartModeStrategy(const StartOptions& opt)
 {
     m_strategy.reset();
@@ -1296,78 +912,11 @@ void MatchCoordinator::markGameOverMoveAppended()
 void MatchCoordinator::handleBreakOff()
 {
     // エンジンの投了シグナルを切断（レースコンディション防止）
-    // これにより、エンジンからの "bestmove resign" が処理されても
-    // 棋譜に「投了」が追加されることを防ぐ
-    if (m_usi1) {
-        QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, nullptr);
-    }
-    if (m_usi2) {
-        QObject::disconnect(m_usi2, &Usi::bestMoveResignReceived, this, nullptr);
-    }
+    if (m_usi1) QObject::disconnect(m_usi1, &Usi::bestMoveResignReceived, this, nullptr);
+    if (m_usi2) QObject::disconnect(m_usi2, &Usi::bestMoveResignReceived, this, nullptr);
 
-    // すでに終局なら何もしない
-    if (m_gameOver.isOver) return;
-
-    // 終局フラグを立てる
-    m_gameOver.isOver         = true;
-    m_gameOver.when           = QDateTime::currentDateTime();
-    m_gameOver.hasLast        = true;
-    m_gameOver.lastInfo.cause = Cause::BreakOff;
-
-    // 現在手番を loser に設定（中断時のマーク表示用、実際の勝敗はない）
-    const ShogiGameController::Player gcTurn =
-        (m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer);
-    m_gameOver.lastInfo.loser = (gcTurn == ShogiGameController::Player1) ? P1 : P2;
-
-    // 時計を即座に停止 & ゲームオーバーマーク（タイムアウト処理を防ぐ）
-    if (m_clock) {
-        m_clock->markGameOver();
-        m_clock->stopClock();
-    }
-
-    // 進行系タイマを停止（人間用のみでOK）
-    disarmHumanTimerIfNeeded();
-
-    // EvE かどうかを判定（エンジン終了処理に必要）
-    const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
-
-    // 思考中のエンジンを中断してから終了通知を送る
-    if (isEvE) {
-        // EvE: 両方のエンジンに stop を送って思考を中断
-        if (m_usi1) m_usi1->sendStopCommand();
-        if (m_usi2) m_usi2->sendStopCommand();
-
-        // gameover 通知を送る（中断は引き分け扱い）
-        if (m_usi1) {
-            m_usi1->sendGameOverCommand(GameOverResult::Draw);
-            m_usi1->setSquelchResignLogging(true);
-        }
-        if (m_usi2) {
-            m_usi2->sendGameOverCommand(GameOverResult::Draw);
-            m_usi2->setSquelchResignLogging(true);
-        }
-    } else {
-        // HvE: 主エンジンに stop を送って思考を中断
-        if (Usi* eng = primaryEngine()) {
-            eng->sendStopCommand();
-            eng->sendGameOverCommand(GameOverResult::Draw);
-            eng->setSquelchResignLogging(true);
-        }
-    }
-
-    // UI側に終局を通知（対局者名・時間ラベルのスタイル維持のため）
-    // appendBreakOffLineAndMark() より先に emit して setGameOverStyleLock(true) を設定し、
-    // リプレイモード遷移時の clearTurnHighlight() で黄色ハイライトが消えないようにする
-    emit gameEnded(m_gameOver.lastInfo);
-
-    // 中断行の生成＋KIF追記＋一度だけの追記ブロック確定（内部で emit 済み）
-    appendBreakOffLineAndMark();
-
-    // 起動中エンジンに quit
-    if (m_usi1) m_usi1->sendQuitCommand();
-    if (m_usi2) m_usi2->sendQuitCommand();
+    ensureGameEndHandler();
+    m_gameEndHandler->handleBreakOff();
 }
 
 // 検討を開始する（単発エンジンセッション）
@@ -1402,15 +951,8 @@ void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
     QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 
     // 3) 表示モデル（無ければ生成して保持）
-    UsiCommLogModel*          comm  = m_comm1;
-    ShogiEngineThinkingModel* think = m_think1;
-    if (!comm)  { comm  = new UsiCommLogModel(this);          m_comm1  = comm;  }
-    if (!think) { think = new ShogiEngineThinkingModel(this); m_think1 = think; }
-
-    // エンジン名をログモデルに設定（思考タブ表示用）
-    if (comm) {
-        comm->setEngineName(opt.engineName);
-    }
+    auto [comm, think] = ensureEngineModels(1);
+    comm->setEngineName(opt.engineName);
 
     // 4) 単発エンジン生成（常に m_usi1 を使用）
     m_usi1 = new Usi(comm, think, m_gc, m_playMode, this);
@@ -1689,7 +1231,7 @@ bool MatchCoordinator::tryRemoveLastItems(QObject* model, int n) {
 }
 
 // ============================================================
-// 対局開始オプション構築
+// 対局開始オプション構築（GameStartOrchestrator へ委譲）
 // ============================================================
 
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
@@ -1698,135 +1240,14 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     const QStringList* sfenRecord,
     const StartGameDialog* dlg) const
 {
-    StartOptions opt;
-    opt.mode = mode;
-
-    // --- 開始SFEN（空なら既定=司令塔側で startpos 扱い）
-    if (!startSfenStr.isEmpty()) {
-        opt.sfenStart = startSfenStr;
-    } else if (sfenRecord && !sfenRecord->isEmpty()) {
-        opt.sfenStart = sfenRecord->first();
-    } else {
-        opt.sfenStart.clear();
-    }
-
-    // --- エンジン座席（PlayMode から）
-    const bool engineIsP1 =
-        (mode == PlayMode::EvenEngineVsHuman) ||
-        (mode == PlayMode::HandicapEngineVsHuman);
-    opt.engineIsP1 = engineIsP1;
-    opt.engineIsP2 = !engineIsP1;
-
-    // --- 対局ダイアログあり：そのまま採用
-    if (dlg) {
-        const auto engines = dlg->getEngineList();
-
-        const int idx1 = dlg->engineNumber1();
-        if (idx1 >= 0 && idx1 < engines.size()) {
-            opt.engineName1 = dlg->engineName1();
-            opt.enginePath1 = engines.at(idx1).path;
-        }
-
-        const int idx2 = dlg->engineNumber2();
-        if (idx2 >= 0 && idx2 < engines.size()) {
-            opt.engineName2 = dlg->engineName2();
-            opt.enginePath2 = engines.at(idx2).path;
-        }
-
-        // 最大手数を取得
-        opt.maxMoves = dlg->maxMoves();
-
-        // 棋譜自動保存設定を取得
-        opt.autoSaveKifu = dlg->isAutoSaveKifu();
-        opt.kifuSaveDir = dlg->kifuSaveDir();
-
-        // 対局者名を取得
-        opt.humanName1 = dlg->humanName1();
-        opt.humanName2 = dlg->humanName2();
-
-        return opt;
-    }
-
-    // --- 対局ダイアログなし：INI から直近選択を復元（StartGameDialog と同じ仕様）
-    {
-        QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
-
-        // 1) エンジン一覧（name/path）の読み出し
-        struct Eng { QString name; QString path; };
-        QVector<Eng> list;
-        int count = settings.beginReadArray("Engines");
-        for (int i = 0; i < count; ++i) {
-            settings.setArrayIndex(i);
-            Eng e;
-            e.name = settings.value("name").toString();
-            e.path = settings.value("path").toString();
-            list.push_back(e);
-        }
-        settings.endArray();
-
-        auto pathForName = [&](const QString& nm) -> QString {
-            if (nm.isEmpty()) return {};
-            for (const auto& e : list) {
-                if (e.name == nm) return e.path;
-            }
-            return {};
-        };
-
-        // 2) 直近の対局設定（GameSettings）からエンジン名を取得
-        settings.beginGroup("GameSettings");
-        const QString name1 = settings.value("engineName1").toString();
-        const QString name2 = settings.value("engineName2").toString();
-        settings.endGroup();
-
-        if (!name1.isEmpty()) {
-            opt.engineName1 = name1;
-            opt.enginePath1 = pathForName(name1);
-        }
-        if (!name2.isEmpty()) {
-            opt.engineName2 = name2;
-            opt.enginePath2 = pathForName(name2);
-        }
-        // パスが空でもここでは許容（initializeAndStartEngineCommunication 内で失敗は通知）
-        return opt;
-    }
+    return GameStartOrchestrator::buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
 }
-
-// ============================================================
-// 盤面反転・対局準備
-// ============================================================
 
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1)
 {
-    if (!dlg) return;
-
-    // 「人を手前に表示する」がチェックされていない場合は何もしない
-    if (!dlg->isShowHumanInFront()) {
-        return;
-    }
-
-    const bool humanP1  = dlg->isHuman1();
-    const bool humanP2  = dlg->isHuman2();
-    const bool oneHuman = (humanP1 ^ humanP2); // HvE / EvH のときだけ true
-
-    if (!oneHuman) {
-        // HvH / EvE は対象外（仕様どおり）
-        return;
-    }
-
-    // 「現在の向き（bottomIsP1）」と「人間が先手か？」が食い違っていたら1回だけ反転
-    const bool needFlip = (humanP1 != bottomIsP1);
-    if (needFlip) {
-        // MainWindow::onActionFlipBoardTriggered(false) の代わりに司令塔から反転
-        // 既存の flipBoard() が view と内部状態を適切に切り替える想定
-        this->flipBoard();
-        // この呼び出しにより、既存の onBoardFlipped シグナル連鎖で
-        // MainWindow 側の m_bottomIsP1 も従来どおりトグルされます
-    }
+    ensureGameStartOrchestrator();
+    m_gameStartOrchestrator->ensureHumanAtBottomIfApplicable(dlg, bottomIsP1);
 }
-
-// ============================================================
-// 対局開始メインエントリ
-// ============================================================
 
 void MatchCoordinator::prepareAndStartGame(PlayMode mode,
                                            const QString& startSfenStr,
@@ -1834,17 +1255,8 @@ void MatchCoordinator::prepareAndStartGame(PlayMode mode,
                                            const StartGameDialog* dlg,
                                            bool bottomIsP1)
 {
-    // 1) オプション構築
-    StartOptions opt = buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
-
-    // 2) 人間を手前へ（必要なら反転）
-    ensureHumanAtBottomIfApplicable(dlg, bottomIsP1);
-
-    // 3) 対局の構成と開始
-    configureAndStart(opt);
-
-    // 4) 初手がエンジン手番なら go→bestmove
-    startInitialEngineMoveIfNeeded();
+    ensureGameStartOrchestrator();
+    m_gameStartOrchestrator->prepareAndStartGame(mode, startSfenStr, sfenRecord, dlg, bottomIsP1);
 }
 
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo()
@@ -1910,86 +1322,8 @@ PlayMode MatchCoordinator::playMode() const
 
 void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
 {
-    if (!m_gameOver.isOver) return;
-    if (m_gameOver.moveAppended) return;
-    if (!m_clock || !m_hooks.appendKifuLine) {
-        markGameOverMoveAppended();
-        return;
-    }
-
-    // 残り時間を固定
-    m_clock->stopClock();
-
-    // 表記（KIF形式に準拠、▲/△は絶対座席）
-    QString line;
-    if (cause == Cause::Jishogi) {
-        // 持将棋（入玉宣言で引き分け、または最大手数到達）
-        // loserには宣言者が入っている（勝敗はないがマーク表示用）
-        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
-        line = QStringLiteral("%1持将棋").arg(mark);
-    } else if (cause == Cause::NyugyokuWin) {
-        // 入玉宣言で勝ち（loserは敗者＝宣言者の相手、勝者のマークを使用）
-        const QString mark = (loser == P1) ? QStringLiteral("△") : QStringLiteral("▲");
-        line = QStringLiteral("%1入玉勝ち").arg(mark);
-    } else if (cause == Cause::IllegalMove) {
-        // 反則負け（入玉宣言失敗など、敗者のマークを使用）
-        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
-        line = QStringLiteral("%1反則負け").arg(mark);
-    } else if (cause == Cause::Sennichite) {
-        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
-        line = QStringLiteral("%1千日手").arg(mark);
-    } else if (cause == Cause::OuteSennichite) {
-        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
-        line = QStringLiteral("%1連続王手の千日手").arg(mark);
-    } else if (cause == Cause::BreakOff) {
-        // 中断（loserには現在手番が入っている）
-        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
-        line = QStringLiteral("%1中断").arg(mark);
-    } else {
-        const QString mark = (loser == P1) ? QStringLiteral("▲") : QStringLiteral("△");
-        line = (cause == Cause::Resignation)
-                   ? QStringLiteral("%1投了").arg(mark)
-                   : QStringLiteral("%1時間切れ").arg(mark);
-    }
-
-    // 「この手」の思考時間を確定（KIF 表示のため）
-    // エポックが設定されている場合はそれを使用、未設定の場合はShogiClock内部の考慮時間を使用
-    const qint64 epochMs = turnEpochFor(loser);
-    qint64 considerMs = 0;
-    
-    if (epochMs > 0) {
-        // エポックが設定されている場合：経過時間を計算
-        const qint64 now = QDateTime::currentMSecsSinceEpoch();
-        considerMs = now - epochMs;
-        if (considerMs < 0) considerMs = 0;
-    } else {
-        // エポックが未設定の場合：ShogiClock内部で累積された考慮時間を使用
-        considerMs = (loser == P1) ? m_clock->player1ConsiderationMs()
-                                   : m_clock->player2ConsiderationMs();
-    }
-    
-    if (loser == P1) m_clock->setPlayer1ConsiderationTime(int(considerMs));
-    else             m_clock->setPlayer2ConsiderationTime(int(considerMs));
-
-    // 秒読み適用と総考慮時間への加算を行い、表示用文字列を取得
-    if (loser == P1) {
-        m_clock->applyByoyomiAndResetConsideration1();
-    } else {
-        m_clock->applyByoyomiAndResetConsideration2();
-    }
-
-    const QString elapsed = (loser == P1)
-                                ? m_clock->getPlayer1ConsiderationAndTotalTime()
-                                : m_clock->getPlayer2ConsiderationAndTotalTime();
-
-    // 1回だけ即時追記
-    m_hooks.appendKifuLine(line, elapsed);
-
-    // HvE/HvH の人間用ストップウォッチ解除
-    disarmHumanTimerIfNeeded();
-
-    // 重複追記ブロックを有効化
-    markGameOverMoveAppended();
+    ensureGameEndHandler();
+    m_gameEndHandler->appendGameOverLineAndMark(cause, loser);
 }
 
 void MatchCoordinator::onHumanMove(const QPoint& from, const QPoint& to,
@@ -2071,251 +1405,32 @@ void MatchCoordinator::sendRawToEngine(Usi* which, const QString& cmd)
 
 void MatchCoordinator::appendBreakOffLineAndMark()
 {
-    // 既に終局でなければ何もしない
-    if (!m_gameOver.isOver) return;
-
-    // すでに「中断」等が追記済みなら二重追記防止
-    if (m_gameOver.moveAppended) return;
-
-    // 現在手番（＝次に指す側）を GC から取得
-    const ShogiGameController::Player gcTurn =
-        (m_gc ? m_gc->currentPlayer() : ShogiGameController::NoPlayer);
-
-    // ▲/△は「絶対座席」を表記（P1=▲, P2=△）
-    const Player curP = (gcTurn == ShogiGameController::Player1) ? P1 : P2;
-    const QString line = (curP == P1) ? QStringLiteral("▲中断") : QStringLiteral("△中断");
-
-    // 「この手」の考慮時間を確定（KIF用）
-    if (m_clock) {
-        // 残り時間を固定
-        m_clock->stopClock();
-        
-        const qint64 epochMs = turnEpochFor(curP);
-        qint64 considerMs = 0;
-        
-        if (epochMs > 0) {
-            // エポックが設定されている場合：経過時間を計算
-            const qint64 now = QDateTime::currentMSecsSinceEpoch();
-            considerMs = now - epochMs;
-            if (considerMs < 0) considerMs = 0;
-        } else {
-            // エポックが未設定の場合：ShogiClock内部で累積された考慮時間を使用
-            considerMs = (curP == P1) ? m_clock->player1ConsiderationMs()
-                                      : m_clock->player2ConsiderationMs();
-        }
-
-        if (curP == P1) m_clock->setPlayer1ConsiderationTime(int(considerMs));
-        else            m_clock->setPlayer2ConsiderationTime(int(considerMs));
-        
-        // 秒読み適用と総考慮時間への加算
-        if (curP == P1) {
-            m_clock->applyByoyomiAndResetConsideration1();
-        } else {
-            m_clock->applyByoyomiAndResetConsideration2();
-        }
-    }
-
-    // "MM:SS/HH:MM:SS" を時計から取得
-    QString elapsed;
-    if (m_clock) {
-        elapsed = (curP == P1)
-        ? m_clock->getPlayer1ConsiderationAndTotalTime()
-        : m_clock->getPlayer2ConsiderationAndTotalTime();
-    }
-
-    // 棋譜欄に 1 回だけ即時追記（MainWindow::appendKifuLine につながる Hook）
-    if (m_hooks.appendKifuLine) {
-        m_hooks.appendKifuLine(line, elapsed);
-    }
-
-    // 人間用ストップウォッチ解除（HvE/HvHに備える既存パターン）
-    disarmHumanTimerIfNeeded();
-
-    // 二重追記ブロック確定（以降は UI 側からも重複しない）
-    markGameOverMoveAppended();
+    ensureGameEndHandler();
+    m_gameEndHandler->appendBreakOffLineAndMark();
 }
 
 void MatchCoordinator::handleMaxMovesJishogi()
 {
-    // すでに終局なら何もしない
-    if (m_gameOver.isOver) return;
-
-    qCInfo(lcGame) << "handleMaxMovesJishogi(): max moves reached";
-
-    // 進行系タイマを停止
-    disarmHumanTimerIfNeeded();
-
-    // エンジンへの終了通知（EvE の場合）
-    const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
-    if (isEvE) {
-        if (m_usi1) {
-            m_usi1->sendGameOverCommand(GameOverResult::Draw);
-            m_usi1->sendQuitCommand();
-            m_usi1->setSquelchResignLogging(true);
-        }
-        if (m_usi2) {
-            m_usi2->sendGameOverCommand(GameOverResult::Draw);
-            m_usi2->sendQuitCommand();
-            m_usi2->setSquelchResignLogging(true);
-        }
-    } else {
-        // HvE の場合は主エンジンへ通知
-        if (Usi* eng = primaryEngine()) {
-            eng->sendGameOverCommand(GameOverResult::Draw);
-            eng->sendQuitCommand();
-            eng->setSquelchResignLogging(true);
-        }
-    }
-
-    // GameEndInfo を構築（持将棋は loser を便宜上 P1 とする）
-    GameEndInfo info;
-    info.cause = Cause::Jishogi;
-    info.loser = P1;  // 持将棋は勝敗なし
-
-    // 終局状態を確定
-    m_gameOver.isOver        = true;
-    m_gameOver.when          = QDateTime::currentDateTime();
-    m_gameOver.hasLast       = true;
-    m_gameOver.lastInfo      = info;
-    m_gameOver.lastLoserIsP1 = true;
-
-    // 棋譜欄に「持将棋」を追記
-    appendGameOverLineAndMark(Cause::Jishogi, P1);
-
-    // 結果ダイアログの表示
-    displayResultsAndUpdateGui(info);
+    ensureGameEndHandler();
+    m_gameEndHandler->handleMaxMovesJishogi();
 }
 
 bool MatchCoordinator::checkAndHandleSennichite()
 {
-    if (m_gameOver.isOver) return false;
-
-    // EvEの場合はEvE Strategy内のSFEN履歴を使用
-    const QStringList* rec = m_sfenHistory;
-    if (auto* eve = dynamic_cast<EngineVsEngineStrategy*>(m_strategy.get())) {
-        rec = eve->sfenRecordForEvE();
-    }
-    if (!rec || rec->size() < 4) return false;
-
-    const auto result = SennichiteDetector::check(*rec);
-    switch (result) {
-    case SennichiteDetector::Result::None:
-        return false;
-    case SennichiteDetector::Result::Draw:
-        handleSennichite();
-        return true;
-    case SennichiteDetector::Result::ContinuousCheckByP1:
-        handleOuteSennichite(true);   // P1（先手）の反則負け
-        return true;
-    case SennichiteDetector::Result::ContinuousCheckByP2:
-        handleOuteSennichite(false);  // P2（後手）の反則負け
-        return true;
-    }
-    return false;
+    ensureGameEndHandler();
+    return m_gameEndHandler->checkAndHandleSennichite();
 }
 
 void MatchCoordinator::handleSennichite()
 {
-    if (m_gameOver.isOver) return;
-
-    qCInfo(lcGame) << "handleSennichite(): draw by repetition";
-
-    disarmHumanTimerIfNeeded();
-
-    // エンジンへの終了通知
-    const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
-    if (isEvE) {
-        if (m_usi1) {
-            m_usi1->sendGameOverCommand(GameOverResult::Draw);
-            m_usi1->sendQuitCommand();
-            m_usi1->setSquelchResignLogging(true);
-        }
-        if (m_usi2) {
-            m_usi2->sendGameOverCommand(GameOverResult::Draw);
-            m_usi2->sendQuitCommand();
-            m_usi2->setSquelchResignLogging(true);
-        }
-    } else {
-        if (Usi* eng = primaryEngine()) {
-            eng->sendGameOverCommand(GameOverResult::Draw);
-            eng->sendQuitCommand();
-            eng->setSquelchResignLogging(true);
-        }
-    }
-
-    // GameEndInfo を構築（千日手は引き分け、loser を便宜上 P1 とする）
-    GameEndInfo info;
-    info.cause = Cause::Sennichite;
-    info.loser = P1;
-
-    m_gameOver.isOver        = true;
-    m_gameOver.when          = QDateTime::currentDateTime();
-    m_gameOver.hasLast       = true;
-    m_gameOver.lastInfo      = info;
-    m_gameOver.lastLoserIsP1 = true;
-
-    appendGameOverLineAndMark(Cause::Sennichite, P1);
-    displayResultsAndUpdateGui(info);
+    ensureGameEndHandler();
+    m_gameEndHandler->handleSennichite();
 }
 
 void MatchCoordinator::handleOuteSennichite(bool p1Loses)
 {
-    if (m_gameOver.isOver) return;
-
-    const Player loser  = p1Loses ? P1 : P2;
-    const Player winner = p1Loses ? P2 : P1;
-
-    qCInfo(lcGame) << "handleOuteSennichite(): continuous check by"
-                   << (p1Loses ? "P1(sente)" : "P2(gote)");
-
-    disarmHumanTimerIfNeeded();
-
-    // エンジンへの終了通知（勝敗が確定）
-    const bool isEvE =
-        (m_playMode == PlayMode::EvenEngineVsEngine) ||
-        (m_playMode == PlayMode::HandicapEngineVsEngine);
-    if (isEvE) {
-        if (m_usi1) {
-            const auto result = (winner == P1) ? GameOverResult::Win : GameOverResult::Lose;
-            m_usi1->sendGameOverCommand(result);
-            m_usi1->sendQuitCommand();
-            m_usi1->setSquelchResignLogging(true);
-        }
-        if (m_usi2) {
-            const auto result = (winner == P2) ? GameOverResult::Win : GameOverResult::Lose;
-            m_usi2->sendGameOverCommand(result);
-            m_usi2->sendQuitCommand();
-            m_usi2->setSquelchResignLogging(true);
-        }
-    } else {
-        if (Usi* eng = primaryEngine()) {
-            // HvE: エンジンが勝者側なら win、負者側なら lose
-            const bool engineIsP1 =
-                (m_playMode == PlayMode::EvenEngineVsHuman) || (m_playMode == PlayMode::HandicapEngineVsHuman);
-            const Player engineSide = engineIsP1 ? P1 : P2;
-            const auto result = (winner == engineSide) ? GameOverResult::Win : GameOverResult::Lose;
-            eng->sendGameOverCommand(result);
-            eng->sendQuitCommand();
-            eng->setSquelchResignLogging(true);
-        }
-    }
-
-    GameEndInfo info;
-    info.cause = Cause::OuteSennichite;
-    info.loser = loser;
-
-    m_gameOver.isOver        = true;
-    m_gameOver.when          = QDateTime::currentDateTime();
-    m_gameOver.hasLast       = true;
-    m_gameOver.lastInfo      = info;
-    m_gameOver.lastLoserIsP1 = p1Loses;
-
-    appendGameOverLineAndMark(Cause::OuteSennichite, loser);
-    displayResultsAndUpdateGui(info);
+    ensureGameEndHandler();
+    m_gameEndHandler->handleOuteSennichite(p1Loses);
 }
 
 ShogiClock* MatchCoordinator::clock()
