@@ -99,6 +99,7 @@ class DialogCoordinatorWiring;
 class UiStatePolicyManager;
 class MainWindowCompositionRoot;
 class LiveGameSessionUpdater;
+class KifuNavigationCoordinator;
 
 /**
  * @brief アプリ全体の UI と対局進行を束ねるファサード
@@ -522,6 +523,7 @@ private:
     RecordNavigationWiring* m_recordNavWiring = nullptr;               ///< 棋譜ナビゲーション配線（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
     LiveGameSessionUpdater* m_liveGameSessionUpdater = nullptr;        ///< LiveGameSession更新ロジック（所有）
+    KifuNavigationCoordinator* m_kifuNavCoordinator = nullptr;        ///< 棋譜ナビゲーション同期（非所有）
 
 
     // --- privateメソッド ---
@@ -704,6 +706,8 @@ private:
     /// 遅延初期化: RecordNavigationHandlerを生成し依存を設定する
     void ensureRecordNavigationHandler();
     void ensureUiStatePolicyManager();
+    /// 遅延初期化: KifuNavigationCoordinatorを生成し依存を設定する
+    void ensureKifuNavigationCoordinator();
 
     // --- ensure* 分割ヘルパー（bind/wire） ---
     /// GameStateControllerのコールバックを設定する

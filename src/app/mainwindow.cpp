@@ -114,6 +114,7 @@
 #include "mainwindowdepsfactory.h"
 #include "mainwindowcompositionroot.h"
 #include "livegamesessionupdater.h"
+#include "kifunavigationcoordinator.h"
 
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -1326,112 +1327,18 @@ void MainWindow::onBranchTreeResetForNewGame()
     }
 }
 
-// `syncBoardAndHighlightsAtRow`: 指定手数の盤面・ハイライト・関連UI状態を同期する。
+// `syncBoardAndHighlightsAtRow`: KifuNavigationCoordinator へ委譲。
 void MainWindow::syncBoardAndHighlightsAtRow(int ply)
 {
-    qCDebug(lcApp) << "syncBoardAndHighlightsAtRow ENTER ply=" << ply;
-
-    // 分岐ナビゲーション中に発生する再入を抑止する。
-    // 分岐側の同期は `loadBoardWithHighlights()` が責務を持つため、
-    // 通常経路の同期をここで走らせると二重反映になる。
-    if (m_state.skipBoardSyncForBranchNav) {
-        qCDebug(lcApp) << "syncBoardAndHighlightsAtRow skipped (branch navigation in progress)";
-        return;
-    }
-
-    // 位置編集モード中はスキップ
-    if (m_shogiView && m_shogiView->positionEditMode()) {
-        qCDebug(lcApp) << "syncBoardAndHighlightsAtRow skipped (edit-mode)";
-        return;
-    }
-
-    // BoardSyncPresenterを確保して盤面同期
-    ensureBoardSyncPresenter();
-    if (m_boardSync) {
-        m_boardSync->syncBoardAndHighlightsAtRow(ply);
-    }
-
-    // 矢印ボタンの活性化
-    enableArrowButtons();
-
-    // 現在局面SFENの更新:
-    // 分岐ライン表示中は `sfenRecord()` が本譜ベースのため不整合が起こり得る。
-    // そのため分岐中は branchTree を優先し、通常時のみ sfenRecord を使う。
-    // ただし、対局進行中は sfenRecord を正とする（分岐ツリーには対局開始前の
-    // KIF 継続手が残っている可能性があるため）。
-    const bool gameActive = isGameActivelyInProgress();
-    bool foundInBranch = false;
-    if (!gameActive && m_branchNav.navState != nullptr && !m_branchNav.navState->isOnMainLine() && m_branchNav.branchTree != nullptr) {
-        const int lineIndex = m_branchNav.navState->currentLineIndex();
-        QVector<BranchLine> lines = m_branchNav.branchTree->allLines();
-        if (lineIndex >= 0 && lineIndex < lines.size()) {
-            const BranchLine& line = lines.at(lineIndex);
-            if (ply >= 0 && ply < line.nodes.size()) {
-                m_state.currentSfenStr = line.nodes.at(ply)->sfen();
-                foundInBranch = true;
-                qCDebug(lcApp) << "syncBoardAndHighlightsAtRow: updated m_state.currentSfenStr from branchTree";
-            }
-        }
-    }
-    if (!foundInBranch && sfenRecord() && ply >= 0 && ply < sfenRecord()->size()) {
-        m_state.currentSfenStr = sfenRecord()->at(ply);
-        qCDebug(lcApp) << "syncBoardAndHighlightsAtRow: updated m_state.currentSfenStr=" << m_state.currentSfenStr;
-    }
-
-    // 定跡ウィンドウを更新
-    updateJosekiWindow();
-
-    qCDebug(lcApp) << "syncBoardAndHighlightsAtRow LEAVE";
+    ensureKifuNavigationCoordinator();
+    m_kifuNavCoordinator->syncBoardAndHighlightsAtRow(ply);
 }
 
-// `navigateKifuViewToRow`: 棋譜表の対象行へ移動し、盤面と手番表示を追従更新する。
+// `navigateKifuViewToRow`: KifuNavigationCoordinator へ委譲。
 void MainWindow::navigateKifuViewToRow(int ply)
 {
-    qCDebug(lcApp).noquote() << "navigateKifuViewToRow ENTER ply=" << ply;
-
-    if (!m_recordPane || !m_models.kifuRecord) {
-        qCDebug(lcApp).noquote() << "navigateKifuViewToRow ABORT: recordPane or kifuRecordModel is null";
-        return;
-    }
-
-    QTableView* view = m_recordPane->kifuView();
-    if (!view) {
-        qCDebug(lcApp).noquote() << "navigateKifuViewToRow ABORT: kifuView is null";
-        return;
-    }
-
-    const int rows = m_models.kifuRecord->rowCount();
-    const int safe = (rows > 0) ? qBound(0, ply, rows - 1) : 0;
-
-    qCDebug(lcApp).noquote() << "navigateKifuViewToRow: ply=" << ply
-                       << "rows=" << rows << "safe=" << safe;
-
-    const QModelIndex idx = m_models.kifuRecord->index(safe, 0);
-    if (idx.isValid()) {
-        if (auto* sel = view->selectionModel()) {
-            sel->setCurrentIndex(
-                idx, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-        } else {
-            view->setCurrentIndex(idx);
-        }
-        view->scrollTo(idx, QAbstractItemView::PositionAtCenter);
-    }
-
-    // 棋譜欄のハイライト行を更新
-    m_models.kifuRecord->setCurrentHighlightRow(safe);
-
-    // 盤・ハイライト即時同期
-    syncBoardAndHighlightsAtRow(safe);
-
-    // トラッキングを更新
-    m_kifu.activePly = safe;
-    m_kifu.currentSelectedPly = safe;
-    m_state.currentMoveIndex = safe;
-
-    // 手番表示を更新
-    setCurrentTurn();
-
-    qCDebug(lcApp).noquote() << "navigateKifuViewToRow LEAVE";
+    ensureKifuNavigationCoordinator();
+    m_kifuNavCoordinator->navigateToRow(ply);
 }
 
 // `kifuExportController`: 棋譜エクスポートコントローラを取得する。
@@ -2158,47 +2065,13 @@ void MainWindow::onBranchNodeActivated(int row, int ply)
     qCDebug(lcApp).noquote() << "onBranchNodeActivated LEAVE";
 }
 
-// `onBranchNodeHandled`: Branch Node Handled のイベント受信時処理を行う。
+// `onBranchNodeHandled`: KifuNavigationCoordinator へ委譲。
 void MainWindow::onBranchNodeHandled(int ply, const QString& sfen,
                                      int previousFileTo, int previousRankTo,
                                      const QString& lastUsiMove)
 {
-    qCDebug(lcApp).noquote() << "onBranchNodeHandled ENTER ply=" << ply
-                       << "sfen=" << sfen
-                       << "fileTo=" << previousFileTo << "rankTo=" << previousRankTo
-                       << "usiMove=" << lastUsiMove
-                       << "playMode=" << static_cast<int>(m_state.playMode)
-                       << "match=" << (m_match ? "valid" : "null");
-
-    // plyインデックス変数を更新
-    m_kifu.activePly = ply;
-    m_kifu.currentSelectedPly = ply;
-    m_state.currentMoveIndex = ply;
-
-    // m_state.currentSfenStr を更新
-    if (!sfen.isEmpty()) {
-        m_state.currentSfenStr = sfen;
-    }
-
-    // 定跡ウィンドウを更新
-    updateJosekiWindow();
-
-    // 検討モード時はエンジンに新しい局面を送信
-    if (m_state.playMode == PlayMode::ConsiderationMode && m_match && !sfen.isEmpty()) {
-        const QString newPosition = QStringLiteral("position sfen ") + sfen;
-        qCDebug(lcApp).noquote() << "onBranchNodeHandled: sending to engine:" << newPosition;
-        if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo, lastUsiMove)) {
-            qCDebug(lcApp).noquote() << "onBranchNodeHandled: updateConsiderationPosition returned true";
-            if (m_analysisTab) {
-                m_analysisTab->startElapsedTimer();
-            }
-        } else {
-            qCDebug(lcApp).noquote() << "onBranchNodeHandled: updateConsiderationPosition returned false (same position or not in consideration)";
-        }
-    } else {
-        qCDebug(lcApp).noquote() << "onBranchNodeHandled: NOT in consideration mode or match/sfen missing";
-    }
-    qCDebug(lcApp).noquote() << "onBranchNodeHandled LEAVE";
+    ensureKifuNavigationCoordinator();
+    m_kifuNavCoordinator->handleBranchNodeHandled(ply, sfen, previousFileTo, previousRankTo, lastUsiMove);
 }
 
 void MainWindow::onBranchTreeBuilt()
@@ -3763,4 +3636,48 @@ void MainWindow::ensureUiStatePolicyManager()
     deps.analysisTab = m_analysisTab;
     deps.boardController = m_boardController;
     m_uiStatePolicy->updateDeps(deps);
+}
+
+// `ensureKifuNavigationCoordinator`: KifuNavigationCoordinator を必要に応じて生成し、依存関係を更新する。
+void MainWindow::ensureKifuNavigationCoordinator()
+{
+    if (!m_kifuNavCoordinator) {
+        m_kifuNavCoordinator = new KifuNavigationCoordinator(this);
+    }
+
+    KifuNavigationCoordinator::Deps deps;
+
+    // UI
+    deps.recordPane = m_recordPane;
+    deps.kifuRecordModel = m_models.kifuRecord;
+
+    // Board sync
+    deps.boardSync = m_boardSync;
+    deps.shogiView = m_shogiView;
+
+    // Navigation state
+    deps.navState = m_branchNav.navState;
+    deps.branchTree = m_branchNav.branchTree;
+
+    // External state pointers
+    deps.activePly = &m_kifu.activePly;
+    deps.currentSelectedPly = &m_kifu.currentSelectedPly;
+    deps.currentMoveIndex = &m_state.currentMoveIndex;
+    deps.currentSfenStr = &m_state.currentSfenStr;
+    deps.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
+    deps.playMode = &m_state.playMode;
+
+    // Coordinators
+    deps.match = m_match;
+    deps.analysisTab = m_analysisTab;
+    deps.uiStatePolicy = m_uiStatePolicy;
+
+    // Callbacks
+    deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, this);
+    deps.updateJosekiWindow = std::bind(&MainWindow::updateJosekiWindow, this);
+    deps.ensureBoardSyncPresenter = std::bind(&MainWindow::ensureBoardSyncPresenter, this);
+    deps.isGameActivelyInProgress = std::bind(&MainWindow::isGameActivelyInProgress, this);
+    deps.getSfenRecord = [this]() -> QStringList* { return sfenRecord(); };
+
+    m_kifuNavCoordinator->updateDeps(deps);
 }
