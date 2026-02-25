@@ -140,6 +140,10 @@
 #include "tsumeshogigeneratordialog.h"
 #include "logcategories.h"
 
+#ifdef QT_DEBUG
+#include "debugscreenshotwiring.h"
+#endif
+
 // MainWindow を初期化し、主要コンポーネントを構築する。
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -208,6 +212,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ドックレイアウト関連のメニュー配線をDockLayoutManagerへ移譲
     ensureDockLayoutManager();
+
+#ifdef QT_DEBUG
+    // デバッグ用スクリーンショット機能（F12キーで /tmp/shogiboardq-debug/ にPNG保存）
+    m_debugScreenshotWiring = new DebugScreenshotWiring(this, this);
+#endif
 
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
     m_evalChartResizeTimer = new QTimer(this);

@@ -101,6 +101,10 @@ class MainWindowCompositionRoot;
 class LiveGameSessionUpdater;
 class KifuNavigationCoordinator;
 
+#ifdef QT_DEBUG
+class DebugScreenshotWiring;
+#endif
+
 /**
  * @brief アプリ全体の UI と対局進行を束ねるファサード
  *
@@ -525,6 +529,9 @@ private:
     LiveGameSessionUpdater* m_liveGameSessionUpdater = nullptr;        ///< LiveGameSession更新ロジック（所有）
     KifuNavigationCoordinator* m_kifuNavCoordinator = nullptr;        ///< 棋譜ナビゲーション同期（非所有）
 
+#ifdef QT_DEBUG
+    DebugScreenshotWiring* m_debugScreenshotWiring = nullptr;        ///< デバッグ用スクリーンショット配線
+#endif
 
     // --- privateメソッド ---
 
