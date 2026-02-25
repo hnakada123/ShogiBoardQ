@@ -62,8 +62,8 @@ QT_END_NAMESPACE
 class ShogiView;
 class EvaluationChartWidget;
 class BoardSyncPresenter;
+class BoardLoadService;
 class AnalysisResultsPresenter;
-class AnalysisCoordinator;
 class GameRecordPresenter;
 class TimeDisplayPresenter;
 class AnalysisTabWiring;
@@ -85,8 +85,6 @@ class PvClickController;
 class PositionEditCoordinator;
 class CsaGameDialog;
 class CsaGameCoordinator;
-class CsaWaitingDialog;
-class JosekiWindow;
 class CsaGameWiring;
 class JosekiWindowWiring;
 class PlayerInfoWiring;
@@ -102,6 +100,9 @@ class MainWindowCompositionRoot;
 class LiveGameSessionUpdater;
 class KifuNavigationCoordinator;
 class BranchNavigationWiring;
+class PlayModePolicyService;
+class GameRecordUpdateService;
+class TurnStateSyncService;
 
 #ifdef QT_DEBUG
 class DebugScreenshotWiring;
@@ -125,6 +126,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
     friend class RecordNavigationWiring;
+    friend class MainWindowUiBootstrapper;
 
     // --- public ---
 public:
@@ -425,7 +427,6 @@ private:
 
     // --- ダイアログ / 補助ウィンドウ ---
     CsaGameDialog*           m_csaGameDialog = nullptr;           ///< CSA対局ダイアログ（非所有）
-    CsaWaitingDialog*        m_csaWaitingDialog = nullptr;        ///< CSA待機ダイアログ（非所有）
     QPointer<SfenCollectionDialog> m_sfenCollectionDialog;        ///< 局面集ビューアダイアログ（キャッシュ）
 
     // --- CSA通信対局コーディネータ ---
@@ -467,6 +468,7 @@ private:
     KifuLoadCoordinator*      m_kifuLoadCoordinator = nullptr; ///< 棋譜読込コーディネータ（非所有）
     PositionEditController*   m_posEdit = nullptr;             ///< 局面編集コントローラ（非所有）
     BoardSyncPresenter*       m_boardSync = nullptr;           ///< 盤面同期プレゼンタ（非所有）
+    BoardLoadService*         m_boardLoadService = nullptr;    ///< 盤面読み込みサービス（非所有）
     AnalysisResultsPresenter* m_analysisPresenter = nullptr;   ///< 解析結果プレゼンタ（非所有）
     /// メニュー操作など通常の「対局開始」入口を担当
     GameStartCoordinator*     m_gameStart = nullptr;           ///< 対局開始コーディネータ（非所有）
@@ -488,6 +490,7 @@ private:
 
     // --- ゲーム状態管理 ---
     GameStateController*      m_gameStateController = nullptr;  ///< ゲーム状態コントローラ（非所有）
+    PlayModePolicyService*    m_playModePolicy = nullptr;       ///< プレイモード判定サービス（所有）
 
     // --- 対局者情報管理 ---
     PlayerInfoController*     m_playerInfoController = nullptr; ///< 対局者情報コントローラ（非所有）
@@ -526,6 +529,8 @@ private:
     RecordNavigationWiring* m_recordNavWiring = nullptr;               ///< 棋譜ナビゲーション配線（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
     std::unique_ptr<LiveGameSessionUpdater> m_liveGameSessionUpdater;  ///< LiveGameSession更新ロジック（所有）
+    std::unique_ptr<GameRecordUpdateService> m_gameRecordUpdateService; ///< 棋譜追記・ライブ更新サービス（所有）
+    std::unique_ptr<TurnStateSyncService> m_turnStateSync;             ///< 手番同期サービス（所有）
     BranchNavigationWiring* m_branchNavWiring = nullptr;              ///< 分岐ナビゲーション配線（非所有）
     KifuNavigationCoordinator* m_kifuNavCoordinator = nullptr;        ///< 棋譜ナビゲーション同期（非所有）
 
@@ -556,10 +561,6 @@ private:
     void initializeOrResetShogiView();
     /// 盤面モデルを初期化する（SFEN正規化・ボード接続）
     void initializeBoardModel();
-    /// 水平方向のゲームレイアウトを構築する
-    void setupHorizontalGameLayout();
-    /// セントラルゲーム表示を初期化する
-    void initializeCentralGameDisplay();
     /// 遅延初期化: TimeControlControllerを生成し依存を設定する
     void ensureTimeController();
     /// MatchCoordinatorWiringを遅延初期化する
@@ -642,6 +643,8 @@ private:
     void ensurePositionEditController();
     /// 遅延初期化: BoardSyncPresenterを生成し依存を設定する
     void ensureBoardSyncPresenter();
+    /// 遅延初期化: BoardLoadServiceを生成し依存を設定する
+    void ensureBoardLoadService();
     /// 遅延初期化: AnalysisResultsPresenterを生成し依存を設定する
     void ensureAnalysisPresenter();
     /// 遅延初期化: GameStartCoordinatorを生成し依存を設定する
@@ -652,6 +655,10 @@ private:
     void ensureLiveGameSessionStarted();
     /// 遅延初期化: LiveGameSessionUpdaterを生成し依存を設定する
     void ensureLiveGameSessionUpdater();
+    /// 遅延初期化: GameRecordUpdateServiceを生成し依存を設定する
+    void ensureGameRecordUpdateService();
+    /// 遅延初期化: TurnStateSyncServiceを生成し依存を設定する
+    void ensureTurnStateSyncService();
     /// 遅延初期化: リアルタイム対局用にKifuLoadCoordinatorを準備する
     void ensureKifuLoadCoordinatorForLive();
     /// 遅延初期化: GameRecordModelを生成する

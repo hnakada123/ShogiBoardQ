@@ -81,6 +81,13 @@ public:
                                  int previousFileTo, int previousRankTo,
                                  const QString& lastUsiMove);
 
+    /// 分岐ナビゲーション中の盤面同期スキップガードを開始する
+    void beginBranchNavGuard();
+
+private slots:
+    /// 分岐ナビゲーションガードを解除する（QTimer::singleShot から呼ばれる）
+    void clearBranchNavGuard();
+
 private:
     Deps m_deps;
 };

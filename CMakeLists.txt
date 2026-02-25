@@ -207,6 +207,12 @@ set(SRC_APP
     src/app/mainwindow.h
     src/app/kifunavigationcoordinator.cpp
     src/app/kifunavigationcoordinator.h
+    src/app/boardloadservice.cpp
+    src/app/boardloadservice.h
+    src/app/gamerecordupdateservice.cpp
+    src/app/gamerecordupdateservice.h
+    src/app/turnstatesyncservice.cpp
+    src/app/turnstatesyncservice.h
     src/app/livegamesessionupdater.cpp
     src/app/livegamesessionupdater.h
     src/app/mainwindowcompositionroot.cpp
@@ -220,6 +226,10 @@ set(SRC_APP
     src/app/mainwindowresetservice.cpp
     src/app/mainwindowresetservice.h
     src/app/mainwindowruntimerefs.h
+    src/app/mainwindowuibootstrapper.cpp
+    src/app/mainwindowuibootstrapper.h
+    src/app/playmodepolicyservice.cpp
+    src/app/playmodepolicyservice.h
 )
 
 set(SRC_CORE

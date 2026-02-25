@@ -34,9 +34,16 @@ lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translatio
 
 ヘッダーファイル（.h）は対応するソースファイル（.cpp）と同じディレクトリに配置されています。
 
-- **app/**: アプリケーションエントリーポイント
+- **app/**: アプリケーションエントリーポイントと委譲先サービス
   - `main.cpp` - Entry point
   - `mainwindow.cpp/.h/.ui` - Main window
+  - `mainwindowcompositionroot.cpp/.h` - ensure*生成ロジック集約
+  - `mainwindowuibootstrapper.cpp/.h` - UI初期化ステップのオーケストレーション
+  - `playmodepolicyservice.cpp/.h` - プレイモード依存の判定ロジック
+  - `turnstatesyncservice.cpp/.h` - 手番同期（TurnManager/GC/View/時計）
+  - `gamerecordupdateservice.cpp/.h` - 棋譜追記・ライブセッション更新
+  - `boardloadservice.cpp/.h` - SFEN盤面適用・ハイライト同期
+  - `kifunavigationcoordinator.cpp/.h` - 棋譜ナビゲーション同期
 
 - **core/**: 純粋なゲームロジック（Qt GUI非依存）
   - `shogiboard.cpp/.h` - Board state and piece management
