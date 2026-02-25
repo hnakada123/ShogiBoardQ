@@ -241,6 +241,28 @@ add_shogi_test(tst_gamerecordmodel
 )
 
 # ============================================================
+# Unit 8b: Kifu Comment Sync (GameRecordModel ↔ liveDisp / BranchTree)
+# ============================================================
+add_shogi_test(tst_kifu_comment_sync
+    tst_kifu_comment_sync.cpp
+    ${TEST_STUBS}
+    ${SRC}/kifu/gamerecordmodel.cpp
+    ${SRC}/kifu/formats/csaexporter.cpp
+    ${SRC}/kifu/formats/jkfexporter.cpp
+    ${SRC}/kifu/formats/ki2tosfenconverter.cpp
+    ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchnode.cpp
+    ${SRC}/kifu/kifunavigationstate.cpp
+    ${SRC}/board/sfenpositiontracer.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/kifucontentbuilder.cpp
+)
+
+# ============================================================
 # Unit 9: JosekiWindow Settings Persistence
 # ============================================================
 add_shogi_test(tst_josekiwindow
@@ -369,5 +391,20 @@ add_shogi_test(tst_analysisflow
 )
 
 set_tests_properties(tst_analysisflow PROPERTIES
+    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+)
+
+# ============================================================
+# Unit 15: Game Start Flow (GameStartCoordinator)
+# ============================================================
+add_shogi_test(tst_game_start_flow
+    tst_game_start_flow.cpp
+    test_stubs_game_start_flow.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/game/gamestartcoordinator.cpp
+    ${SRC}/services/playernameservice.cpp
+)
+
+set_tests_properties(tst_game_start_flow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )

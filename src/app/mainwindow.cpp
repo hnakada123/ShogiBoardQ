@@ -97,7 +97,6 @@
 #include "boardsetupcontroller.h"
 #include "pvclickcontroller.h"
 #include "positioneditcoordinator.h"
-#include "csagamedialog.h"
 #include "csagamecoordinator.h"
 #include "csawaitingdialog.h"
 #include "josekiwindowwiring.h"
