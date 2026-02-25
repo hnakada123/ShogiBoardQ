@@ -1,0 +1,91 @@
+#ifndef MAINWINDOWRUNTIMEREFS_H
+#define MAINWINDOWRUNTIMEREFS_H
+
+/// @file mainwindowruntimerefs.h
+/// @brief MainWindow が保持する注入対象参照をまとめて運ぶ値オブジェクトの定義
+
+#include <QList>
+#include <QStringList>
+#include <QVector>
+
+// --- 前方宣言 ---
+class QWidget;
+class MainWindow;
+class QStatusBar;
+struct ShogiMove;
+class KifuDisplay;
+enum class PlayMode;
+
+class MatchCoordinator;
+class ShogiGameController;
+class ShogiView;
+class KifuLoadCoordinator;
+class CsaGameCoordinator;
+
+class KifuRecordListModel;
+class ShogiEngineThinkingModel;
+
+class KifuBranchTree;
+class KifuNavigationState;
+class KifuDisplayCoordinator;
+
+class GameInfoPaneController;
+class EvaluationChartWidget;
+class EvaluationGraphController;
+class AnalysisResultsPresenter;
+class EngineAnalysisTab;
+
+/**
+ * @brief MainWindow が保持する注入対象参照をまとめて運ぶ値オブジェクト
+ *
+ * MainWindowDepsFactory が各 Wiring/Controller 用の Deps を組み立てる際に使用する。
+ * 全メンバは nullptr またはゼロ初期化のデフォルト値を持つ。
+ */
+struct MainWindowRuntimeRefs {
+    // --- UI 参照 ---
+    QWidget* parentWidget = nullptr;           ///< 親ウィジェット（QWidget* として使用する場面向け）
+    MainWindow* mainWindow = nullptr;          ///< MainWindow（シグナル接続先、RecordNavigationWiring用）
+    QStatusBar* statusBar = nullptr;           ///< ステータスバー
+
+    // --- サービス参照 ---
+    MatchCoordinator* match = nullptr;                     ///< 対局調整（非所有）
+    ShogiGameController* gameController = nullptr;         ///< ゲーム制御（非所有）
+    ShogiView* shogiView = nullptr;                        ///< 将棋盤ビュー（非所有）
+    KifuLoadCoordinator* kifuLoadCoordinator = nullptr;    ///< 棋譜読み込みコーディネータ（非所有）
+    CsaGameCoordinator* csaGameCoordinator = nullptr;      ///< CSA対局コーディネータ（非所有）
+
+    // --- モデル参照 ---
+    KifuRecordListModel* kifuRecordModel = nullptr;            ///< 棋譜リストモデル（非所有）
+    ShogiEngineThinkingModel** considerationModel = nullptr;   ///< 検討モデル（ダブルポインタ、外部所有）
+
+    // --- 状態参照（ポインタ） ---
+    PlayMode* playMode = nullptr;                          ///< 対局モード（外部所有）
+    int* currentMoveIndex = nullptr;                       ///< 現在の手インデックス（外部所有）
+    QString* currentSfenStr = nullptr;                     ///< 現在局面SFEN文字列（外部所有）
+    QString* startSfenStr = nullptr;                       ///< 開始局面SFEN文字列（外部所有）
+    bool* skipBoardSyncForBranchNav = nullptr;             ///< 分岐ナビ中の盤面同期スキップフラグ（外部所有）
+
+    // --- 棋譜参照 ---
+    QStringList* sfenRecord = nullptr;                     ///< SFEN記録（外部所有）
+    QVector<ShogiMove>* gameMoves = nullptr;               ///< 指し手リスト（外部所有）
+    QStringList* gameUsiMoves = nullptr;                   ///< USI形式指し手リスト（外部所有）
+    QList<KifuDisplay*>* moveRecords = nullptr;            ///< 移動記録（外部所有）
+    QStringList* positionStrList = nullptr;                ///< 局面文字列リスト（外部所有）
+    int* activePly = nullptr;                              ///< アクティブ手数（外部所有）
+    int* currentSelectedPly = nullptr;                     ///< 選択中手数（外部所有）
+    QString* saveFileName = nullptr;                       ///< 保存先ファイルパス（外部所有）
+
+    // --- 分岐ナビゲーション参照 ---
+    KifuBranchTree* branchTree = nullptr;                  ///< 分岐ツリー（非所有）
+    KifuNavigationState* navState = nullptr;               ///< ナビゲーション状態（非所有）
+    KifuDisplayCoordinator* displayCoordinator = nullptr;  ///< 棋譜表示コーディネータ（非所有）
+
+    // --- その他参照 ---
+    GameInfoPaneController* gameInfoController = nullptr;      ///< 対局情報コントローラ（非所有）
+    EvaluationChartWidget* evalChart = nullptr;                 ///< 評価値グラフ（非所有）
+    EvaluationGraphController* evalGraphController = nullptr;  ///< 評価値グラフ制御（非所有）
+    AnalysisResultsPresenter* analysisPresenter = nullptr;     ///< 解析結果プレゼンタ（非所有）
+    EngineAnalysisTab* analysisTab = nullptr;                   ///< エンジン解析タブ（非所有）
+};
+
+#endif // MAINWINDOWRUNTIMEREFS_H
