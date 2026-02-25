@@ -11,7 +11,6 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QPointer>
-#include <memory>
 
 // --- プロジェクトヘッダー（値型・MOC制約で必要） ---
 #include "playmode.h"
@@ -20,7 +19,6 @@
 #include "matchcoordinator.h"
 #include "matchcoordinatorwiring.h"
 #include "shogigamecontroller.h"
-#include "gamestartcoordinator.h"
 
 // --- 前方宣言（ポインタメンバのみ使用） ---
 class KifuRecordListModel;
@@ -41,7 +39,6 @@ class JishogiScoreDialogController;
 class NyugyokuDeclarationHandler;
 class ConsecutiveGamesController;
 class LanguageController;
-class ConsiderationModeUIController;
 class ConsiderationWiring;
 class DockLayoutManager;
 class DockCreationService;
@@ -64,8 +61,6 @@ class ShogiView;
 class EvaluationChartWidget;
 class BoardSyncPresenter;
 class AnalysisResultsPresenter;
-class GameStartCoordinator;
-class GameSessionFacade;
 class AnalysisCoordinator;
 class GameRecordPresenter;
 class TimeDisplayPresenter;
@@ -98,6 +93,8 @@ class MenuWindowWiring;
 class DialogLaunchWiring;
 class UsiCommandController;
 class RecordNavigationHandler;
+class RecordNavigationWiring;
+class DialogCoordinatorWiring;
 class UiStatePolicyManager;
 
 /**
@@ -116,6 +113,8 @@ class UiStatePolicyManager;
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
+    friend class RecordNavigationWiring;
 
     // --- public ---
 public:
@@ -507,6 +506,7 @@ private:
     UiActionsWiring*          m_actionsWiring    = nullptr;    ///< UIアクション配線（非所有）
 
     // --- ダイアログ管理 ---
+    DialogCoordinatorWiring*  m_dialogCoordinatorWiring = nullptr; ///< DialogCoordinator配線（非所有）
     DialogCoordinator*        m_dialogCoordinator = nullptr;   ///< ダイアログ管理コーディネータ（非所有）
 
     // --- 棋譜エクスポート管理 ---
@@ -544,15 +544,13 @@ private:
     NyugyokuDeclarationHandler* m_nyugyokuHandler = nullptr;           ///< 入玉宣言ハンドラ（非所有）
     ConsecutiveGamesController* m_consecutiveGamesController = nullptr; ///< 連続対局コントローラ（非所有）
     LanguageController* m_languageController = nullptr;                ///< 言語設定コントローラ（非所有）
-    ConsiderationModeUIController* m_considerationUIController = nullptr; ///< 検討モードUIコントローラ（非所有）
     ConsiderationWiring* m_considerationWiring = nullptr;              ///< 検討モード配線（非所有）
     DockLayoutManager* m_dockLayoutManager = nullptr;                  ///< ドックレイアウト管理（非所有）
     DockCreationService* m_dockCreationService = nullptr;              ///< ドック生成サービス（非所有）
     CommentCoordinator* m_commentCoordinator = nullptr;                ///< コメントコーディネータ（非所有）
     UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
-    RecordNavigationHandler* m_recordNavHandler = nullptr;             ///< 棋譜ナビゲーションハンドラ（非所有）
+    RecordNavigationWiring* m_recordNavWiring = nullptr;               ///< 棋譜ナビゲーション配線（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
-    std::unique_ptr<GameSessionFacade> m_gameSessionFacade;             ///< 対局セッションファサード（所有）
 
 
     // --- privateメソッド ---
@@ -586,14 +584,8 @@ private:
     void ensureTimeController();
     /// MatchCoordinatorWiringを遅延初期化する
     void ensureMatchCoordinatorWiring();
-    /// MatchCoordinator用フックを構築する
-    MatchCoordinator::Hooks buildMatchHooks();
-    /// MatchCoordinator用アンドゥフックを構築する
-    MatchCoordinator::UndoHooks buildMatchUndoHooks();
     /// MatchCoordinatorWiringの依存構造体を構築する
-    MatchCoordinatorWiring::Deps buildMatchWiringDeps(
-        const MatchCoordinator::Hooks& hooks,
-        const MatchCoordinator::UndoHooks& undoHooks);
+    MatchCoordinatorWiring::Deps buildMatchWiringDeps();
     /// MatchCoordinatorWiringの転送シグナルを接続する
     void wireMatchWiringSignals();
     /// MatchCoordinatorを初期化し配線する
@@ -736,8 +728,6 @@ private:
     void ensureConsecutiveGamesController();
     /// 遅延初期化: LanguageControllerを生成し依存を設定する
     void ensureLanguageController();
-    /// 遅延初期化: ConsiderationModeUIControllerを生成し依存を設定する
-    void ensureConsiderationUIController();
     /// 遅延初期化: ConsiderationWiringを生成し依存を設定する
     void ensureConsiderationWiring();
     /// 遅延初期化: DockLayoutManagerを生成し依存を設定する
@@ -753,12 +743,6 @@ private:
     void ensureUiStatePolicyManager();
 
     // --- ensure* 分割ヘルパー（bind/wire） ---
-    /// DialogCoordinatorに検討・詰み探索・棋譜解析の各コンテキストを設定する
-    void bindDialogCoordinatorContexts();
-    /// DialogCoordinatorのシグナル/スロット接続を行う
-    void wireDialogCoordinatorSignals();
-    /// GameStartCoordinatorのシグナル/スロット接続を行う
-    void wireGameStartCoordinatorSignals();
     /// GameStateControllerのコールバックを設定する
     void bindGameStateControllerCallbacks();
     /// CsaGameWiringのシグナル/スロット接続を行う
@@ -767,10 +751,6 @@ private:
     void bindBoardSetupControllerCallbacks();
     /// PositionEditCoordinatorのコールバックとアクションを設定する
     void bindPositionEditCoordinatorCallbacks();
-    /// RecordNavigationHandlerのシグナル/スロット接続を行う
-    void wireRecordNavigationHandlerSignals();
-    /// RecordNavigationHandlerの依存オブジェクトを更新する
-    void bindRecordNavigationHandlerDeps();
 
     // --- コンストラクタ分割先 ---
     /// セントラルウィジェットのコンテナを構築する

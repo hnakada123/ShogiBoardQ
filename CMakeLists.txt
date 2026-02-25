@@ -443,6 +443,8 @@ set(SRC_UI
     src/ui/wiring/considerationwiring.h
     src/ui/wiring/csagamewiring.cpp
     src/ui/wiring/csagamewiring.h
+    src/ui/wiring/dialogcoordinatorwiring.cpp
+    src/ui/wiring/dialogcoordinatorwiring.h
     src/ui/wiring/dialoglaunchwiring.cpp
     src/ui/wiring/dialoglaunchwiring.h
     src/ui/wiring/editactionswiring.cpp
@@ -461,6 +463,8 @@ set(SRC_UI
     src/ui/wiring/menuwindowwiring.h
     src/ui/wiring/playerinfowiring.cpp
     src/ui/wiring/playerinfowiring.h
+    src/ui/wiring/recordnavigationwiring.cpp
+    src/ui/wiring/recordnavigationwiring.h
     src/ui/wiring/recordpanewiring.cpp
     src/ui/wiring/recordpanewiring.h
     src/ui/wiring/uiactionswiring.cpp

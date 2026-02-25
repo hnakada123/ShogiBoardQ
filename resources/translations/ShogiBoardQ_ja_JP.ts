@@ -1227,18 +1227,18 @@
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="412"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="411"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="678"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="569"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="412"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="684"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="411"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="575"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
@@ -3734,17 +3734,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation>棋譜ファイル (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF形式 (*.kif *.kifu *.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USI形式 (*.usi *.sfen);;USEN形式 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3931"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3849"/>
         <source>局面を反映しました</source>
         <translation>局面を反映しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3933"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3851"/>
         <source>局面の反映に失敗しました</source>
         <translation>局面の反映に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3936"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3854"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>局面の反映に失敗しました（内部エラー）</translation>
     </message>
@@ -3769,7 +3769,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3509"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3427"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3778,17 +3778,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">定跡</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3913"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3831"/>
         <source>棋譜を取り込みました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3915"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3833"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3919"/>
+        <location filename="../../src/app/mainwindow.cpp" line="3837"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation type="unfinished"></translation>
     </message>

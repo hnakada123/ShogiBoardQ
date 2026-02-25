@@ -24,6 +24,7 @@ class ConsiderationPositionResolver
 {
 public:
     struct Inputs {
+        const QString* currentSfenStr = nullptr;       // 分岐局面の現在表示SFEN（最優先）
         const QStringList* positionStrList = nullptr;
         const QStringList* gameUsiMoves = nullptr;
         const QVector<ShogiMove>* gameMoves = nullptr;

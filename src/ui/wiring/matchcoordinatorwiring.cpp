@@ -4,6 +4,7 @@
 #include "matchcoordinatorwiring.h"
 
 #include "gamestartcoordinator.h"
+#include "gamesessionfacade.h"
 #include "evaluationgraphcontroller.h"
 #include "timecontrolcontroller.h"
 #include "timedisplaypresenter.h"
@@ -15,6 +16,8 @@ MatchCoordinatorWiring::MatchCoordinatorWiring(QObject* parent)
     : QObject(parent)
 {
 }
+
+MatchCoordinatorWiring::~MatchCoordinatorWiring() = default;
 
 void MatchCoordinatorWiring::updateDeps(const Deps& deps)
 {
@@ -205,4 +208,84 @@ void MatchCoordinatorWiring::ensureGameStartCoordinator()
                 uiPolicy, &UiStatePolicyManager::transitionToIdle,
                 Qt::UniqueConnection);
     }
+}
+
+void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
+{
+    if (m_menuGameStart) return;
+
+    GameStartCoordinator::Deps d;
+    d.match = m_match;
+    d.clock = m_getClock ? m_getClock() : nullptr;
+    d.gc    = m_gc;
+    d.view  = m_view;
+
+    m_menuGameStart = new GameStartCoordinator(d, this);
+
+    // --- 11 connect: GameStartCoordinator → 転送シグナル / 内部配線 ---
+
+    // 対局開始前クリーンアップ
+    connect(m_menuGameStart, &GameStartCoordinator::requestPreStartCleanup,
+            this, &MatchCoordinatorWiring::requestPreStartCleanup,
+            Qt::UniqueConnection);
+
+    // 時間制御の適用
+    connect(m_menuGameStart, &GameStartCoordinator::requestApplyTimeControl,
+            this, &MatchCoordinatorWiring::requestApplyTimeControl,
+            Qt::UniqueConnection);
+
+    // 対局者名確定
+    connect(m_menuGameStart, &GameStartCoordinator::playerNamesResolved,
+            this, &MatchCoordinatorWiring::menuPlayerNamesResolved,
+            Qt::UniqueConnection);
+
+    // 連続対局設定
+    connect(m_menuGameStart, &GameStartCoordinator::consecutiveGamesConfigured,
+            this, &MatchCoordinatorWiring::consecutiveGamesConfigured,
+            Qt::UniqueConnection);
+
+    // 対局開始時にUI状態を「対局中」に遷移
+    if (m_ensureUiStatePolicyManager) m_ensureUiStatePolicyManager();
+    auto* uiPolicy = m_getUiStatePolicy ? m_getUiStatePolicy() : nullptr;
+    if (uiPolicy) {
+        connect(m_menuGameStart, &GameStartCoordinator::started,
+                uiPolicy, &UiStatePolicyManager::transitionToDuringGame,
+                Qt::UniqueConnection);
+    }
+
+    // 対局開始通知を転送
+    connect(m_menuGameStart, &GameStartCoordinator::started,
+            this, &MatchCoordinatorWiring::gameStarted,
+            Qt::UniqueConnection);
+
+    // 盤面反転シグナルを転送
+    connect(m_menuGameStart, &GameStartCoordinator::boardFlipped,
+            this, &MatchCoordinatorWiring::boardFlipped,
+            Qt::UniqueConnection);
+
+    // 棋譜欄の行選択要求
+    connect(m_menuGameStart, &GameStartCoordinator::requestSelectKifuRow,
+            this, &MatchCoordinatorWiring::requestSelectKifuRow,
+            Qt::UniqueConnection);
+
+    // 分岐ツリーリセット要求
+    connect(m_menuGameStart, &GameStartCoordinator::requestBranchTreeResetForNewGame,
+            this, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame,
+            Qt::UniqueConnection);
+}
+
+bool MatchCoordinatorWiring::initializeSession(std::function<void()> ensureWiringCallback)
+{
+    if (!m_gc || !m_view) return false;
+
+    if (!m_sessionFacade) {
+        GameSessionFacade::Deps deps;
+        deps.ensureAndGetWiring = [this, cb = std::move(ensureWiringCallback)]() -> MatchCoordinatorWiring* {
+            if (cb) cb();
+            return this;
+        };
+        m_sessionFacade = std::make_unique<GameSessionFacade>(deps);
+    }
+
+    return m_sessionFacade->initialize();
 }

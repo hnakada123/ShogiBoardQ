@@ -382,8 +382,6 @@ private:
     static void extractPlayerNames(const QList<KifGameInfoItem>& gameInfo,
                                    QString& outBlackName, QString& outWhiteName);
 
-    // ヘルパー: 検討用のposition文字列を構築
-    QString buildPositionStringForIndex(int moveIndex) const;
 };
 
 #endif // DIALOGCOORDINATOR_H

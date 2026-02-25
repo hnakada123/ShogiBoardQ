@@ -44,6 +44,11 @@ void ConsiderationWiring::updateDeps(const Deps& deps)
     }
 }
 
+void ConsiderationWiring::setDialogCoordinator(DialogCoordinator* dc)
+{
+    m_dialogCoordinator = dc;
+}
+
 void ConsiderationWiring::ensureUIController()
 {
     if (m_uiController) return;
@@ -58,7 +63,7 @@ void ConsiderationWiring::ensureUIController()
 
     // コントローラからのシグナルを接続
     connect(m_uiController, &ConsiderationModeUIController::stopRequested,
-            this, &ConsiderationWiring::stopRequested);
+            this, &ConsiderationWiring::handleStopRequest);
     connect(m_uiController, &ConsiderationModeUIController::startRequested,
             this, &ConsiderationWiring::displayConsiderationDialog);
     connect(m_uiController, &ConsiderationModeUIController::multiPVChangeRequested,
@@ -208,4 +213,11 @@ bool ConsiderationWiring::updatePositionIfNeeded(int row, const QString& newPosi
             row, newPosition, gameMoves, kifuRecordModel);
     }
     return false;
+}
+
+void ConsiderationWiring::handleStopRequest()
+{
+    if (m_match) {
+        m_match->stopAnalysisEngine();
+    }
 }

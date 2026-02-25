@@ -8,8 +8,10 @@
 #include <QObject>
 #include <QMetaObject>
 #include <functional>
+#include <memory>
 
 #include "matchcoordinator.h"
+#include "gamestartcoordinator.h"
 
 class ShogiGameController;
 class ShogiView;
@@ -17,7 +19,6 @@ class ShogiClock;
 class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
-class GameStartCoordinator;
 class EvaluationGraphController;
 class PlayerInfoWiring;
 class TimeDisplayPresenter;
@@ -25,6 +26,7 @@ class TimeControlController;
 class UiStatePolicyManager;
 class BoardInteractionController;
 class KifuRecordListModel;
+class GameSessionFacade;
 
 /**
  * @brief MatchCoordinator関連のUI配線を担当するクラス
@@ -87,7 +89,7 @@ public:
     };
 
     explicit MatchCoordinatorWiring(QObject* parent = nullptr);
-    ~MatchCoordinatorWiring() override = default;
+    ~MatchCoordinatorWiring() override;
 
     void updateDeps(const Deps& deps);
 
@@ -98,11 +100,31 @@ public:
      */
     void wireConnections();
 
+    /**
+     * @brief メニュー操作用 GameStartCoordinator を遅延生成し配線する
+     *
+     * MainWindow::ensureGameStartCoordinator() から委譲される。
+     * 11 connect をこのクラス内に集約する。
+     */
+    void ensureMenuGameStartCoordinator();
+
+    /**
+     * @brief GameSessionFacade を介した MatchCoordinator の構築・初期化
+     *
+     * MainWindow::initMatchCoordinator() から委譲される。
+     * @param ensureWiringCallback Deps更新を行うコールバック（MainWindow::ensureMatchCoordinatorWiring）
+     * @return 初期化成功なら true
+     */
+    bool initializeSession(std::function<void()> ensureWiringCallback);
+
     /// 生成された MatchCoordinator を返す（非所有）
     MatchCoordinator* match() const { return m_match; }
 
     /// GameStartCoordinator を返す（非所有）
     GameStartCoordinator* gameStartCoordinator() const { return m_gameStartCoordinator; }
+
+    /// メニュー操作用 GameStartCoordinator を返す（非所有）
+    GameStartCoordinator* menuGameStartCoordinator() const { return m_menuGameStart; }
 
 signals:
     // --- GameStartCoordinator シグナルの転送 ---
@@ -123,6 +145,31 @@ signals:
 
     /// 時間切れ投了通知
     void resignationTriggered();
+
+    // --- メニュー GameStartCoordinator シグナルの転送 ---
+
+    /// 対局開始前クリーンアップ要求
+    void requestPreStartCleanup();
+
+    /// 時間制御の適用要求
+    void requestApplyTimeControl(const GameStartCoordinator::TimeControl& tc);
+
+    /// 対局者名確定通知（メニュー開始用）
+    void menuPlayerNamesResolved(const QString& human1, const QString& human2,
+                                 const QString& engine1, const QString& engine2,
+                                 int playMode);
+
+    /// 連続対局設定通知
+    void consecutiveGamesConfigured(int totalGames, bool switchTurn);
+
+    /// 対局開始通知
+    void gameStarted(const MatchCoordinator::StartOptions& opt);
+
+    /// 棋譜欄の行選択要求
+    void requestSelectKifuRow(int row);
+
+    /// 分岐ツリーリセット要求（新規対局用）
+    void requestBranchTreeResetForNewGame();
 
 private:
     void ensureGameStartCoordinator();
@@ -165,9 +212,11 @@ private:
 
     // --- 内部管理オブジェクト ---
     GameStartCoordinator* m_gameStartCoordinator = nullptr;
+    GameStartCoordinator* m_menuGameStart = nullptr;
     MatchCoordinator* m_match = nullptr;
     QMetaObject::Connection m_timeConn;
     QMetaObject::Connection m_clockConn;
+    std::unique_ptr<GameSessionFacade> m_sessionFacade;
 };
 
 #endif // MATCHCOORDINATORWIRING_H
