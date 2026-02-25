@@ -10,6 +10,7 @@ namespace Ui { class MainWindow; }
 class MainWindow;
 class DialogLaunchWiring;
 class KifuExportController;
+class KifuFileController;
 
 /**
  * @brief 編集メニュー関連のQActionをスロットに接続するクラス
@@ -25,6 +26,7 @@ public:
         MainWindow* mw = nullptr;
         KifuExportController* kec = nullptr;
         DialogLaunchWiring* dlw = nullptr;
+        KifuFileController* kfc = nullptr;   ///< 棋譜ファイル操作コントローラ
     };
 
     explicit EditActionsWiring(const Deps& d, QObject* parent = nullptr)

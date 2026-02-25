@@ -5,14 +5,15 @@
 #include "ui_mainwindow.h"
 #include "mainwindow.h"
 #include "kifuexportcontroller.h"
+#include "kifufilecontroller.h"
 #include "dialoglaunchwiring.h"
 
 void EditActionsWiring::wire()
 {
     auto* ui  = m_d.ui;
-    auto* mw  = m_d.mw;
     auto* kec = m_d.kec;
     auto* dlw = m_d.dlw;
+    auto* kfc = m_d.kfc;
 
     // 棋譜コピー
     QObject::connect(ui->actionCopyKIF,        &QAction::triggered, kec, &KifuExportController::copyKifToClipboard,        Qt::UniqueConnection);
@@ -28,7 +29,7 @@ void EditActionsWiring::wire()
     QObject::connect(ui->actionCopyBOD,        &QAction::triggered, kec, &KifuExportController::copyBodToClipboard,        Qt::UniqueConnection);
 
     // 棋譜貼り付け
-    QObject::connect(ui->actionPasteKifu,            &QAction::triggered, mw, &MainWindow::pasteKifuFromClipboard,         Qt::UniqueConnection);
+    QObject::connect(ui->actionPasteKifu,            &QAction::triggered, kfc, &KifuFileController::pasteKifuFromClipboard, Qt::UniqueConnection);
 
     // 局面集ビューア
     QObject::connect(ui->actionSfenCollectionViewer, &QAction::triggered, dlw, &DialogLaunchWiring::displaySfenCollectionViewer, Qt::UniqueConnection);

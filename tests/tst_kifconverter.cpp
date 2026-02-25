@@ -4,6 +4,9 @@
 #include "kiftosfenconverter.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
+#include "kifubranchtree.h"
+#include "kifubranchtreebuilder.h"
+#include "kifubranchnode.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -117,6 +120,64 @@ private slots:
             }
         }
         QVERIFY(hasComment);
+    }
+
+    // KIF → parseWithVariations → KifuBranchTreeBuilder → node comments テスト
+    void realKif_commentsTransferToBranchTree()
+    {
+        const QString path = fixturePath(QStringLiteral("test_kiou_comments.kif"));
+        if (!QFile::exists(path)) {
+            QSKIP("test_kiou_comments.kif not found in fixtures");
+        }
+
+        // 1. パース
+        KifParseResult result;
+        QString error;
+        bool ok = KifToSfenConverter::parseWithVariations(path, result, &error);
+        QVERIFY2(ok, qPrintable(QStringLiteral("Parse failed: ") + error));
+        QVERIFY2(!result.mainline.disp.isEmpty(), "No display items parsed");
+
+        // 2. KifDisplayItem にコメントがあることを確認
+        int dispCommentCount = 0;
+        for (const auto& item : std::as_const(result.mainline.disp)) {
+            if (!item.comment.isEmpty()) {
+                ++dispCommentCount;
+            }
+        }
+        qWarning("[TEST] KifDisplayItem comment count: %d / %lld total items",
+                 dispCommentCount, static_cast<long long>(result.mainline.disp.size()));
+        QVERIFY2(dispCommentCount > 0,
+                 "No comments found in KifDisplayItem list");
+
+        // 3. 初期SFENを取得
+        QString initialSfen = KifToSfenConverter::detectInitialSfenFromFile(path);
+        if (initialSfen.isEmpty()) {
+            initialSfen = kHirateSfen;
+        }
+
+        // 4. KifuBranchTree を構築
+        KifuBranchTree tree;
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, result, initialSfen);
+        QVERIFY2(tree.nodeCount() > 0, "Branch tree is empty after build");
+
+        // 5. ツリーノードのコメントを確認
+        QVector<BranchLine> lines = tree.allLines();
+        QVERIFY2(!lines.isEmpty(), "No branch lines");
+
+        int treeCommentCount = 0;
+        const BranchLine& mainLine = lines.at(0);
+        for (KifuBranchNode* node : std::as_const(mainLine.nodes)) {
+            if (!node->comment().isEmpty()) {
+                ++treeCommentCount;
+            }
+        }
+        qWarning("[TEST] KifuBranchNode comment count: %d / %lld main line nodes",
+                 treeCommentCount, static_cast<long long>(mainLine.nodes.size()));
+        QVERIFY2(treeCommentCount > 0,
+                 qPrintable(QStringLiteral(
+                     "No comments found in KifuBranchNode tree! "
+                     "dispCommentCount=%1 but treeCommentCount=0")
+                     .arg(dispCommentCount)));
     }
 };
 

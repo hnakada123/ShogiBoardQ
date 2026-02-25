@@ -8,6 +8,8 @@
 
 namespace Ui { class MainWindow; }
 class DialogLaunchWiring;
+class DialogCoordinatorWiring;
+class KifuFileController;
 class FileActionsWiring;
 class GameActionsWiring;
 class EditActionsWiring;
@@ -27,6 +29,8 @@ public:
         Ui::MainWindow* ui = nullptr;       ///< UIオブジェクト
         QObject*        ctx = nullptr;       ///< 受け側オブジェクト（MainWindow*）
         DialogLaunchWiring* dlw = nullptr;   ///< ダイアログ起動配線
+        DialogCoordinatorWiring* dcw = nullptr; ///< DialogCoordinator配線（解析中止用）
+        KifuFileController* kfc = nullptr;      ///< 棋譜ファイル操作コントローラ
     };
 
     explicit UiActionsWiring(const Deps& d, QObject* parent=nullptr)

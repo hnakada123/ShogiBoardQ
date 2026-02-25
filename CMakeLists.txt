@@ -205,6 +205,8 @@ set(SRC_APP
     src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
+    src/app/mainwindowresetservice.cpp
+    src/app/mainwindowresetservice.h
 )
 
 set(SRC_CORE
@@ -315,6 +317,8 @@ set(SRC_KIFU
     src/kifu/kifucontentbuilder.h
     src/kifu/kifuexportcontroller.cpp
     src/kifu/kifuexportcontroller.h
+    src/kifu/kifufilecontroller.cpp
+    src/kifu/kifufilecontroller.h
     src/kifu/kifuioservice.cpp
     src/kifu/kifuioservice.h
     src/kifu/kifuloadcoordinator.cpp

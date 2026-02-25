@@ -53,7 +53,19 @@
       "Bash(./build/tests/tst_enginemovevalidator_crosscheck:*)",
       "Bash(./build/tests/bench_movevalidator:*)",
       "Bash(for i in 1 2; do echo \"=== Run $i ===\" && ./build/tests/bench_movevalidator 2>&1; done)",
-      "Bash(./build/tests/tst_fmvconverter:*)"
+      "Bash(./build/tests/tst_fmvconverter:*)",
+      "Bash(lupdate:*)",
+      "Bash(QT_LOGGING_RULES=\"app.debug=true;ui.debug=true;navigation.debug=true;kifu.debug=true\" timeout 8 ./build/ShogiBoardQ:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen QT_LOGGING_RULES=\"app.debug=true;ui.debug=true;navigation.debug=true;kifu.debug=true\" timeout 8 ./build/ShogiBoardQ:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen timeout 5 ./build/ShogiBoardQ:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/ShogiBoardQ:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_ui_display_consistency:*)",
+      "Bash(timeout 10 ./build/ShogiBoardQ:*)",
+      "Bash(pgrep:*)",
+      "Bash(grep DIAG:*)",
+      "Bash(DISPLAY=:1 bash:*)",
+      "Bash(pkill:*)",
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_kifconverter:*)"
     ]
   }
 }

@@ -68,7 +68,6 @@ class AnalysisTabWiring;
 class RecordPaneWiring;
 class UiActionsWiring;
 class GameRecordModel;
-class KifuPasteDialog;
 class SfenCollectionDialog;
 class GameInfoPaneController;
 class EvaluationGraphController;
@@ -76,6 +75,7 @@ class TimeControlController;
 class ReplayController;
 class DialogCoordinator;
 class KifuExportController;
+class KifuFileController;
 class GameStateController;
 class PlayerInfoController;
 class BoardSetupController;
@@ -129,18 +129,11 @@ public:
     // --- public slots ---
 public slots:
     // --- ファイル I/O ---
-    void chooseAndLoadKifuFile();
     void saveShogiBoardImage();
     void saveEvaluationGraphImage();
     void copyBoardToClipboard();
     void copyEvalGraphToClipboard();
     void openWebsiteInExternalBrowser();
-    void saveKifuToFile();
-    void overwriteKifuFile();
-
-    // --- クリップボード操作 ---
-    /// クリップボード上の棋譜テキストを読み込む
-    void pasteKifuFromClipboard();
 
     // --- エラー / 一般UI ---
     void displayErrorMessage(const QString& message);
@@ -156,12 +149,6 @@ public slots:
     void resetModels(const QString& hirateStartSfen);
     /// UI要素の状態リセット（盤面描画、UIポリシー）
     void resetUiState(const QString& hirateStartSfen);
-    /// 実行中の棋譜解析を中止する
-    void cancelKifuAnalysis();
-    /// 棋譜解析の進捗を受け取る（AnalysisCoordinator::analysisProgress に接続）
-    void onKifuAnalysisProgress(int ply, int scoreCp);
-    /// 棋譜解析結果リストの行選択時に該当局面へ遷移する
-    void onKifuAnalysisResultRowSelected(int row);
     /// 詰み探索エンジンを終了する
     void stopTsumeSearch();
     /// 現在の局面で定跡ウィンドウを更新する
@@ -192,8 +179,6 @@ public slots:
     void movePieceImmediately();
     /// 棋譜欄の行選択変更を処理する（RecordPane::mainRowChanged に接続）
     void onRecordPaneMainRowChanged(int row);
-    /// しおり編集リクエスト（RecordPane::bookmarkEditRequested に接続）
-    void onBookmarkEditRequested();
 
     // --- protected ---
 protected:
@@ -247,15 +232,6 @@ private slots:
     /// リプレイモードの開始/終了を切り替える
     void setReplayMode(bool on);
 
-    // --- CSA通信対局（CsaGameWiring経由） ---
-
-    /// CSA通信対局のPlayMode変更通知（CsaGameWiring::playModeChanged に接続）
-    void onCsaPlayModeChanged(int mode);
-    /// CSA通信対局の終了ダイアログ表示要求（CsaGameWiring::showGameEndDialog に接続）
-    void onCsaShowGameEndDialog(const QString& title, const QString& message);
-    /// CSA通信対局のエンジン評価値更新（CsaGameWiring::engineScoreUpdated に接続）
-    void onCsaEngineScoreUpdated(int scoreCp, int ply);
-
     // --- 定跡ウィンドウ（JosekiWindowWiring経由） ---
 
     /// 定跡ウィンドウからの強制成り設定変更（JosekiWindowWiring::forcedPromotion に接続）
@@ -278,22 +254,10 @@ private slots:
     void syncBoardAndHighlightsAtRow(int ply1);
     /// RecordPresenterからの行変更通知を処理する
     void onRecordRowChangedByPresenter(int row, const QString& comment);
-    /// コメント更新通知を処理する
-    void onCommentUpdated(int moveIndex, const QString& newComment);
     /// 読み筋行クリック時にPVボードダイアログを表示/更新する
     void onPvRowClicked(int engineIndex, int row);
     /// PVボードダイアログ閉時のクリーンアップ
     void onPvDialogClosed(int engineIndex);
-    /// 棋譜貼り付けダイアログからのインポート要求を処理する
-    void onKifuPasteImportRequested(const QString& content);
-    /// 局面集ビューアから選択された局面をメインGUIに反映する
-    void onSfenCollectionPositionSelected(const QString& sfen);
-    /// GameRecordModelのコメント変更を検出して反映する
-    void onGameRecordCommentChanged(int ply, const QString& comment);
-    /// CommentCoordinatorからのコメント更新コールバック
-    void onCommentUpdateCallback(int ply, const QString& comment);
-    /// しおり更新コールバック（GameRecordModelから呼ばれる）
-    void onBookmarkUpdateCallback(int ply, const QString& bookmark);
     // --- 分岐ノード活性化 ---
 
     /// 分岐ツリーのノード活性化を処理する（BranchTreeWidget::nodeActivated に接続）
@@ -452,7 +416,6 @@ private:
     // --- ダイアログ / 補助ウィンドウ ---
     CsaGameDialog*           m_csaGameDialog = nullptr;           ///< CSA対局ダイアログ（非所有）
     CsaWaitingDialog*        m_csaWaitingDialog = nullptr;        ///< CSA待機ダイアログ（非所有）
-    QPointer<KifuPasteDialog>      m_kifuPasteDialog;             ///< 棋譜貼り付けダイアログ（キャッシュ）
     QPointer<SfenCollectionDialog> m_sfenCollectionDialog;        ///< 局面集ビューアダイアログ（キャッシュ）
 
     // --- CSA通信対局コーディネータ ---
@@ -509,7 +472,8 @@ private:
     DialogCoordinatorWiring*  m_dialogCoordinatorWiring = nullptr; ///< DialogCoordinator配線（非所有）
     DialogCoordinator*        m_dialogCoordinator = nullptr;   ///< ダイアログ管理コーディネータ（非所有）
 
-    // --- 棋譜エクスポート管理 ---
+    // --- 棋譜ファイル管理 ---
+    KifuFileController*       m_kifuFileController = nullptr;   ///< 棋譜ファイル操作コントローラ（所有）
     KifuExportController*     m_kifuExportController = nullptr; ///< 棋譜エクスポートコントローラ（非所有）
 
     // --- ゲーム状態管理 ---
@@ -641,14 +605,6 @@ private:
     /// 保存済みウィンドウ設定を復元する
     void loadWindowSettings();
 
-    // --- resetModels ヘルパー ---
-    /// プレゼンテーション層の状態をクリアする
-    void clearPresentationState();
-    /// ゲームデータモデルをクリアする
-    void clearGameDataModels(const QString& hirateStartSfen);
-    /// 分岐ツリーを新規状態にリセットする
-    void resetBranchTreeForNewState(const QString& hirateStartSfen);
-
     // --- ユーティリティ ---
     /// プレイモードに応じて対局者名を設定する
     void setPlayersNamesForMode();
@@ -658,10 +614,6 @@ private:
     void setGameOverMove(MatchCoordinator::Cause cause, bool loserIsPlayerOne);
     /// 棋譜行を追加する
     void appendKifuLine(const QString& text, const QString& elapsedTime);
-    /// コメントを各関連コンポーネントに配信する
-    void broadcastComment(const QString& text, bool asHtml=false);
-    /// ナビゲーション起因のコメント表示更新（手数インデックスも同期する）
-    void onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml);
 
     // --- 手番チェック ---
     /// 現在の手番が人間かどうかを判定する
@@ -696,6 +648,8 @@ private:
     void ensureGameRecordModel();
     /// 遅延初期化: DialogCoordinatorを生成し依存を設定する
     void ensureDialogCoordinator();
+    /// 遅延初期化: KifuFileControllerを生成し依存を設定する
+    void ensureKifuFileController();
     /// 遅延初期化: KifuExportControllerを生成し依存を設定する
     void ensureKifuExportController();
     /// KifuExportControllerの依存オブジェクトを最新状態に更新する
@@ -775,8 +729,6 @@ private:
     // --- KifuLoadCoordinator ヘルパー ---
     /// KifuLoadCoordinatorを作成しシグナル/スロットを配線する
     void createAndWireKifuLoadCoordinator();
-    /// 指定パスの棋譜ファイルを読み込む
-    void dispatchKifuLoad(const QString& filePath);
 
     // --- 棋譜ナビゲーション ---
     /// 棋譜ビューを指定手数の行にスクロールする
@@ -809,11 +761,6 @@ private:
     void showGameOverMessageBox(const QString& title, const QString& message);
 
     // --- 棋譜自動保存 ---
-    /// プレイモードと対局者名に基づいて棋譜を自動保存する
-    void autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
-                             const QString& humanName1, const QString& humanName2,
-                             const QString& engineName1, const QString& engineName2);
-
     // --- 分岐ツリー更新 ---
     /// リアルタイム対局中の分岐ツリーを再構築する
     void refreshBranchTreeLive();

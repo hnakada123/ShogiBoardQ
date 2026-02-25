@@ -4,6 +4,7 @@
 #include "csagamewiring.h"
 
 #include "logcategories.h"
+#include <QMessageBox>
 #include <QStatusBar>
 #include <QModelIndex>
 #include <QTableView>
@@ -40,6 +41,8 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_engineThinking(deps.engineThinking)
     , m_timeController(deps.timeController)
     , m_gameMoves(deps.gameMoves)
+    , m_playMode(deps.playMode)
+    , m_parentWidget(deps.parentWidget)
 {
 }
 
@@ -72,6 +75,12 @@ void CsaGameWiring::wire()
             this, &CsaGameWiring::onMoveHighlightRequested);
     connect(m_coordinator, &CsaGameCoordinator::errorOccurred,
             this, &CsaGameWiring::errorMessageRequested);
+
+    // PlayMode変更・対局終了ダイアログを内部で処理
+    connect(this, &CsaGameWiring::playModeChanged,
+            this, &CsaGameWiring::onPlayModeChangedInternal);
+    connect(this, &CsaGameWiring::showGameEndDialogRequested,
+            this, &CsaGameWiring::showGameEndDialogInternal);
 
     qCDebug(lcUi) << "wire: connected all signals";
 }
@@ -330,6 +339,19 @@ QString CsaGameWiring::buildEndLineText(const QString& cause, bool loserIsBlack)
         return tr("中断");
     }
     return cause;
+}
+
+void CsaGameWiring::onPlayModeChangedInternal(int mode)
+{
+    if (m_playMode) {
+        *m_playMode = static_cast<PlayMode>(mode);
+    }
+    qCDebug(lcUi) << "onPlayModeChangedInternal: mode=" << mode;
+}
+
+void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QString& message)
+{
+    QMessageBox::information(m_parentWidget, title, message);
 }
 
 void CsaGameWiring::onWaitingCancelled()

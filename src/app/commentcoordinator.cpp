@@ -43,14 +43,21 @@ void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
 
 void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComment)
 {
+    // m_currentMoveIndex を優先して有効なインデックスを決定する
+    // (EngineAnalysisTab::m_state.currentMoveIndex は broadcastComment() 経由でしか
+    // 同期されないため、MainWindow::m_state.currentMoveIndex を信頼する)
+    const int effectiveIndex = (m_currentMoveIndex && *m_currentMoveIndex >= 0)
+                                   ? *m_currentMoveIndex : moveIndex;
+
     qCDebug(lcApp).noquote()
         << "onCommentUpdated"
-        << " moveIndex=" << moveIndex
+        << " signalIndex=" << moveIndex
+        << " effectiveIndex=" << effectiveIndex
         << " newComment.len=" << newComment.size();
 
     // 有効な手数インデックスかチェック
-    if (moveIndex < 0) {
-        qCWarning(lcApp).noquote() << "onCommentUpdated: invalid moveIndex";
+    if (effectiveIndex < 0) {
+        qCWarning(lcApp).noquote() << "onCommentUpdated: invalid effectiveIndex";
         return;
     }
 
@@ -61,12 +68,12 @@ void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComme
 
     // GameRecordModel を使ってコメントを更新
     if (m_gameRecord) {
-        m_gameRecord->setComment(moveIndex, newComment);
+        m_gameRecord->setComment(effectiveIndex, newComment);
     }
 
     // ステータスバーに通知
     if (m_statusBar) {
-        m_statusBar->showMessage(tr("コメントを更新しました（手数: %1）").arg(moveIndex), 3000);
+        m_statusBar->showMessage(tr("コメントを更新しました（手数: %1）").arg(effectiveIndex), 3000);
     }
 }
 
@@ -181,6 +188,14 @@ void CommentCoordinator::onBookmarkEditRequested()
             m_statusBar->showMessage(tr("しおりを設定しました（手数: %1）").arg(ply), 3000);
         }
     }
+}
+
+void CommentCoordinator::onNavigationCommentUpdate(int ply, const QString& comment, bool asHtml)
+{
+    if (m_currentMoveIndex) {
+        *m_currentMoveIndex = ply;
+    }
+    broadcastComment(comment, asHtml);
 }
 
 void CommentCoordinator::onBookmarkUpdateCallback(int ply, const QString& bookmark)

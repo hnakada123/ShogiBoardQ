@@ -4,7 +4,11 @@
 #include "dialogcoordinatorwiring.h"
 #include "dialogcoordinator.h"
 #include "dialogorchestrator.h"
-#include "mainwindow.h"
+#include "evaluationchartwidget.h"
+#include "engineanalysistab.h"
+#include "logcategories.h"
+
+#include <limits>
 
 DialogCoordinatorWiring::DialogCoordinatorWiring(QObject* parent)
     : QObject(parent)
@@ -12,7 +16,10 @@ DialogCoordinatorWiring::DialogCoordinatorWiring(QObject* parent)
 
 void DialogCoordinatorWiring::ensure(const Deps& deps)
 {
-    m_mainWindow = deps.mainWindow;
+    m_evalChartWidget = deps.evalChartWidget;
+    m_analysisTab = deps.analysisTab;
+    m_playMode = deps.playMode;
+    m_navigateKifuViewToRow = deps.navigateKifuViewToRow;
 
     const bool firstTime = !m_coordinator;
     if (firstTime) {
@@ -31,13 +38,13 @@ void DialogCoordinatorWiring::wireSignals(const Deps& deps)
     ConsiderationWiring* considerationWiring = deps.getConsiderationWiring();
     DialogOrchestrator::wireConsiderationSignals(m_coordinator, considerationWiring);
 
-    // 解析進捗シグナルを接続
+    // 解析進捗シグナルを自身のスロットに接続
     connect(m_coordinator, &DialogCoordinator::analysisProgressReported,
-            m_mainWindow, &MainWindow::onKifuAnalysisProgress);
+            this, &DialogCoordinatorWiring::onKifuAnalysisProgress);
 
-    // 解析結果行選択シグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
+    // 解析結果行選択シグナルを自身のスロットに接続
     connect(m_coordinator, &DialogCoordinator::analysisResultRowSelected,
-            m_mainWindow, &MainWindow::onKifuAnalysisResultRowSelected);
+            this, &DialogCoordinatorWiring::onKifuAnalysisResultRowSelected);
 
     // UI状態遷移シグナルをオーケストレータ経由で接続
     UiStatePolicyManager* uiStatePolicy = deps.getUiStatePolicyManager();
@@ -86,4 +93,56 @@ void DialogCoordinatorWiring::bindContexts(const Deps& deps)
     kifuCtx.presenter = deps.presenter;
     kifuCtx.getBoardFlipped = deps.getBoardFlipped;
     m_coordinator->setKifuAnalysisContext(kifuCtx);
+}
+
+void DialogCoordinatorWiring::cancelKifuAnalysis()
+{
+    qCDebug(lcUi) << "cancelKifuAnalysis called";
+
+    if (m_coordinator) {
+        if (m_coordinator->isKifuAnalysisRunning()) {
+            m_coordinator->stopKifuAnalysis();
+
+            if (m_playMode) {
+                *m_playMode = PlayMode::NotStarted;
+            }
+
+            qCDebug(lcUi) << "cancelKifuAnalysis: analysis cancelled";
+        } else {
+            qCDebug(lcUi) << "cancelKifuAnalysis: no analysis running";
+        }
+    }
+}
+
+void DialogCoordinatorWiring::onKifuAnalysisProgress(int ply, int scoreCp)
+{
+    qCDebug(lcUi) << "onKifuAnalysisProgress: ply=" << ply << "scoreCp=" << scoreCp;
+
+    // 1) 棋譜欄の該当行をハイライトし、盤面を更新
+    if (m_navigateKifuViewToRow) {
+        m_navigateKifuViewToRow(ply);
+    }
+
+    // 2) 評価値グラフに評価値をプロット
+    static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
+    if (scoreCp != POSITION_ONLY_MARKER && m_evalChartWidget) {
+        m_evalChartWidget->appendScoreP1(ply, scoreCp, false);
+    }
+}
+
+void DialogCoordinatorWiring::onKifuAnalysisResultRowSelected(int row)
+{
+    qCDebug(lcUi) << "onKifuAnalysisResultRowSelected: row=" << row;
+
+    const int ply = row;
+
+    // 1) 棋譜欄の該当行をハイライトし、盤面を更新
+    if (m_navigateKifuViewToRow) {
+        m_navigateKifuViewToRow(ply);
+    }
+
+    // 2) 分岐ツリーの該当手数をハイライト
+    if (m_analysisTab) {
+        m_analysisTab->highlightBranchTreeAt(/*row=*/0, ply, /*centerOn=*/true);
+    }
 }

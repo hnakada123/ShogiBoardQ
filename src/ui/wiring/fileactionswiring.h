@@ -9,6 +9,7 @@
 namespace Ui { class MainWindow; }
 class MainWindow;
 class DialogLaunchWiring;
+class KifuFileController;
 
 /**
  * @brief ファイル/アプリ関連のQActionをMainWindowスロットに接続するクラス
@@ -22,6 +23,7 @@ public:
         Ui::MainWindow* ui = nullptr;
         MainWindow* mw = nullptr;
         DialogLaunchWiring* dlw = nullptr;
+        KifuFileController* kfc = nullptr;  ///< 棋譜ファイル操作コントローラ
     };
 
     explicit FileActionsWiring(const Deps& d, QObject* parent = nullptr)

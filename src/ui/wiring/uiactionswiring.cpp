@@ -19,9 +19,9 @@ void UiActionsWiring::wire()
     }
 
     if (!m_fileWiring) {
-        m_fileWiring = new FileActionsWiring({m_d.ui, mw, m_d.dlw}, this);
-        m_gameWiring = new GameActionsWiring({m_d.ui, mw, m_d.dlw}, this);
-        m_editWiring = new EditActionsWiring({m_d.ui, mw, mw->kifuExportController(), m_d.dlw}, this);
+        m_fileWiring = new FileActionsWiring({m_d.ui, mw, m_d.dlw, m_d.kfc}, this);
+        m_gameWiring = new GameActionsWiring({m_d.ui, mw, m_d.dlw, m_d.dcw}, this);
+        m_editWiring = new EditActionsWiring({m_d.ui, mw, mw->kifuExportController(), m_d.dlw, m_d.kfc}, this);
         m_viewWiring = new ViewActionsWiring({m_d.ui, mw, m_d.dlw}, this);
     }
 

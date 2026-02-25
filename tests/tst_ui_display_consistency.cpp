@@ -247,6 +247,95 @@ private slots:
         QVERIFY(!h.coordinator.verifyDisplayConsistencyDetailed(&reason));
         QVERIFY(reason.contains(QStringLiteral("棋譜欄")));
     }
+
+    // コメント表示テスト: goToNode（矢印キーナビゲーション）経路でコメントが通知されることを確認
+    void commentUpdateRequired_emittedOnGoToNode()
+    {
+        UiHarness h;
+        // ply 3 のノードにコメントを設定
+        QVector<BranchLine> lines = h.tree.allLines();
+        QVERIFY(!lines.isEmpty());
+        QVERIFY(lines.at(0).nodes.size() > 3);
+        KifuBranchNode* node3 = lines.at(0).nodes.at(3);
+        QVERIFY(node3 != nullptr);
+        node3->setComment(QStringLiteral("テストコメント"));
+
+        // commentUpdateRequired シグナルを監視
+        QSignalSpy spy(&h.coordinator, &KifuDisplayCoordinator::commentUpdateRequired);
+
+        // ノードへナビゲート
+        h.nav.goToNode(node3);
+        QCoreApplication::processEvents();
+
+        // シグナルが発火されたことを確認
+        QVERIFY2(spy.count() > 0,
+                 qPrintable(QStringLiteral("commentUpdateRequired not emitted (goToNode path). count=%1")
+                            .arg(spy.count())));
+
+        // コメント内容を確認（最後に発火されたシグナルを使用）
+        const QList<QVariant> lastArgs = spy.last();
+        const int emittedPly = lastArgs.at(0).toInt();
+        const QString emittedComment = lastArgs.at(1).toString();
+        QCOMPARE(emittedPly, 3);
+        QVERIFY2(emittedComment.contains(QStringLiteral("テストコメント")),
+                 qPrintable(QStringLiteral("Expected comment containing 'テストコメント' but got: '%1'")
+                            .arg(emittedComment)));
+    }
+
+    // コメント表示テスト: onPositionChanged（棋譜欄行選択）経路でコメントが通知されることを確認
+    void commentUpdateRequired_emittedOnPositionChanged()
+    {
+        UiHarness h;
+        // ply 2 のノードにコメントを設定
+        QVector<BranchLine> lines = h.tree.allLines();
+        QVERIFY(!lines.isEmpty());
+        QVERIFY(lines.at(0).nodes.size() > 2);
+        KifuBranchNode* node2 = lines.at(0).nodes.at(2);
+        QVERIFY(node2 != nullptr);
+        node2->setComment(QStringLiteral("行選択コメント"));
+
+        // commentUpdateRequired シグナルを監視
+        QSignalSpy spy(&h.coordinator, &KifuDisplayCoordinator::commentUpdateRequired);
+
+        // onPositionChanged を直接呼び出し（棋譜欄行選択パス）
+        h.coordinator.onPositionChanged(0, 2, node2->sfen());
+        QCoreApplication::processEvents();
+
+        // シグナルが発火されたことを確認
+        QVERIFY2(spy.count() > 0,
+                 qPrintable(QStringLiteral("commentUpdateRequired not emitted (onPositionChanged path). count=%1")
+                            .arg(spy.count())));
+
+        // コメント内容を確認
+        const QList<QVariant> lastArgs = spy.last();
+        const int emittedPly = lastArgs.at(0).toInt();
+        const QString emittedComment = lastArgs.at(1).toString();
+        QCOMPARE(emittedPly, 2);
+        QVERIFY2(emittedComment.contains(QStringLiteral("行選択コメント")),
+                 qPrintable(QStringLiteral("Expected comment containing '行選択コメント' but got: '%1'")
+                            .arg(emittedComment)));
+    }
+
+    // コメントなしノードでは「コメントなし」が通知されることを確認
+    void commentUpdateRequired_emitsNoCommentPlaceholder()
+    {
+        UiHarness h;
+        // ply 1 のノードはコメントなし
+        QVector<BranchLine> lines = h.tree.allLines();
+        QVERIFY(!lines.isEmpty());
+        QVERIFY(lines.at(0).nodes.size() > 1);
+        KifuBranchNode* node1 = lines.at(0).nodes.at(1);
+        QVERIFY(node1 != nullptr);
+        QVERIFY(node1->comment().isEmpty());
+
+        QSignalSpy spy(&h.coordinator, &KifuDisplayCoordinator::commentUpdateRequired);
+
+        h.coordinator.onPositionChanged(0, 1, node1->sfen());
+        QCoreApplication::processEvents();
+
+        QVERIFY2(spy.count() > 0,
+                 "commentUpdateRequired not emitted for empty comment node");
+    }
 };
 
 QTEST_MAIN(TestUiDisplayConsistency)

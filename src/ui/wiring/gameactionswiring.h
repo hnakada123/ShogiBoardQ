@@ -9,6 +9,7 @@
 namespace Ui { class MainWindow; }
 class MainWindow;
 class DialogLaunchWiring;
+class DialogCoordinatorWiring;
 
 /**
  * @brief 対局・解析・検討・詰み関連のQActionをMainWindowスロットに接続するクラス
@@ -23,6 +24,7 @@ public:
         Ui::MainWindow* ui = nullptr;
         MainWindow* mw = nullptr;
         DialogLaunchWiring* dlw = nullptr;
+        DialogCoordinatorWiring* dcw = nullptr; ///< 解析中止スロット接続先
     };
 
     explicit GameActionsWiring(const Deps& d, QObject* parent = nullptr)
