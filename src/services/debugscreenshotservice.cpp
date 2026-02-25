@@ -1,8 +1,9 @@
 /// @file debugscreenshotservice.cpp
 /// @brief デバッグ用スクリーンショットキャプチャサービスの実装
-#ifdef QT_DEBUG
 
 #include "debugscreenshotservice.h"
+
+#ifdef QT_DEBUG
 
 #include <QMainWindow>
 #include <QWidget>

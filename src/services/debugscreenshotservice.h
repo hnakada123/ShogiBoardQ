@@ -1,11 +1,14 @@
 #ifndef DEBUGSCREENSHOTSERVICE_H
 #define DEBUGSCREENSHOTSERVICE_H
+
+#include <QtGlobal> // QT_DEBUG の定義に必要
 #ifdef QT_DEBUG
 
 /// @file debugscreenshotservice.h
 /// @brief デバッグ用スクリーンショットキャプチャサービス
 
 #include <QString>
+class QImage;
 class QMainWindow;
 class QWidget;
 

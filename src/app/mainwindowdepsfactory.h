@@ -9,6 +9,8 @@
 #include "kifu/kifufilecontroller.h"
 #include "ui/wiring/recordnavigationwiring.h"
 
+class QAction;
+
 /**
  * @brief MainWindowRuntimeRefs を受け取り、各 Wiring/Controller 用の Deps を生成する純粋ファクトリ
  *
@@ -40,6 +42,38 @@ public:
         std::function<void()> ensureKifuLoadCoordinatorForLive;            ///< ライブ用 KifuLoadCoordinator 確保
         std::function<KifuExportController*()> getKifuExportController;    ///< KifuExportController 取得
         std::function<KifuLoadCoordinator*()> getKifuLoadCoordinator;      ///< KifuLoadCoordinator 取得
+    };
+
+    /// GameStateController 用コールバック群
+    struct GameStateControllerCallbacks {
+        std::function<void()> enableArrowButtons;
+        std::function<void(bool)> setReplayMode;
+        std::function<void()> refreshBranchTree;
+        std::function<void(int, int, int)> updatePlyState;
+    };
+
+    /// BoardSetupController 用コールバック群
+    struct BoardSetupControllerCallbacks {
+        std::function<void()> ensurePositionEdit;
+        std::function<void()> ensureTimeController;
+        std::function<void(const QString&, const QString&)> updateGameRecord;
+        std::function<void(int)> redrawEngine1Graph;
+        std::function<void(int)> redrawEngine2Graph;
+    };
+
+    /// PositionEditCoordinator 用コールバック群
+    struct PositionEditCoordinatorCallbacks {
+        std::function<void(bool)> applyEditMenuState;
+        std::function<void()> ensurePositionEdit;
+        QAction* actionReturnAllPiecesToStand = nullptr;
+        QAction* actionSetHiratePosition = nullptr;
+        QAction* actionSetTsumePosition = nullptr;
+        QAction* actionChangeTurn = nullptr;
+    };
+
+    /// ConsiderationWiring 用コールバック群
+    struct ConsiderationWiringCallbacks {
+        std::function<void()> ensureDialogCoordinator;
     };
 
     /// DialogCoordinatorWiring::Deps を生成する

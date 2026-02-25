@@ -2010,6 +2010,66 @@ Move %3: %4</translation>
     </message>
 </context>
 <context>
+    <name>GameEndHandler</name>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="291"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="292"/>
+        <source>先手</source>
+        <translation type="unfinished">Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="291"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="292"/>
+        <source>後手</source>
+        <translation type="unfinished">White</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="297"/>
+        <source>%1の投了。%2の勝ちです。</source>
+        <translation type="unfinished">%1 resigned. %2 wins.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="299"/>
+        <source>%1の時間切れ。%2の勝ちです。</source>
+        <translation type="unfinished">%1 ran out of time. %2 wins.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="301"/>
+        <source>最大手数に達しました。持将棋です。</source>
+        <translation type="unfinished">Maximum moves reached. Jishogi (impasse).</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="303"/>
+        <source>%1の入玉宣言。%2の勝ちです。</source>
+        <translation type="unfinished">%1 declared entering king. %2 wins.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="305"/>
+        <source>%1の反則負け。%2の勝ちです。</source>
+        <translation type="unfinished">%1 committed a foul. %2 wins.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="307"/>
+        <source>千日手が成立しました。</source>
+        <translation type="unfinished">Sennichite (draw by repetition).</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="309"/>
+        <source>%1の連続王手の千日手。%2の勝ちです。</source>
+        <translation type="unfinished">Perpetual check by %1. %2 wins.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="312"/>
+        <source>対局が終了しました。</source>
+        <translation type="unfinished">The game has ended.</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="315"/>
+        <source>対局終了</source>
+        <translation type="unfinished">Game Over</translation>
+    </message>
+</context>
+<context>
     <name>GameInfoPaneController</name>
     <message>
         <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="53"/>
@@ -4231,7 +4291,7 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="557"/>
+        <location filename="../../src/app/mainwindow.cpp" line="555"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
@@ -4651,7 +4711,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3109"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2904"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -4665,61 +4725,48 @@ Please restart the application to apply the changes.</translation>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="421"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="422"/>
         <source>先手</source>
-        <translation>Black</translation>
+        <translation type="vanished">Black</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="421"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="422"/>
         <source>後手</source>
-        <translation>White</translation>
+        <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="429"/>
         <source>%1の投了。%2の勝ちです。</source>
-        <translation>%1 resigned. %2 wins.</translation>
+        <translation type="vanished">%1 resigned. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="433"/>
         <source>%1の時間切れ。%2の勝ちです。</source>
-        <translation>%1 ran out of time. %2 wins.</translation>
+        <translation type="vanished">%1 ran out of time. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="437"/>
         <source>最大手数に達しました。持将棋です。</source>
-        <translation>Maximum moves reached. Jishogi (impasse).</translation>
+        <translation type="vanished">Maximum moves reached. Jishogi (impasse).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="441"/>
         <source>%1の入玉宣言。%2の勝ちです。</source>
-        <translation>%1 declared entering king. %2 wins.</translation>
+        <translation type="vanished">%1 declared entering king. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="445"/>
         <source>%1の反則負け。%2の勝ちです。</source>
-        <translation>%1 committed a foul. %2 wins.</translation>
+        <translation type="vanished">%1 committed a foul. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="448"/>
         <source>千日手が成立しました。</source>
-        <translation>Sennichite (draw by repetition).</translation>
+        <translation type="vanished">Sennichite (draw by repetition).</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
-        <translation>Perpetual check by %1. %2 wins.</translation>
+        <translation type="vanished">Perpetual check by %1. %2 wins.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="456"/>
         <source>対局が終了しました。</source>
-        <translation>The game has ended.</translation>
+        <translation type="vanished">The game has ended.</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="462"/>
         <source>対局終了</source>
-        <translation>Game Over</translation>
+        <translation type="vanished">Game Over</translation>
     </message>
     <message>
         <source>詰みあり（手順 %1 手）</source>
@@ -4746,7 +4793,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Search completed</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1510"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1052"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -4755,7 +4802,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1510"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1052"/>
         <source>対局中断</source>
         <translation>Game interrupted</translation>
     </message>
@@ -5398,12 +5445,12 @@ Are you sure you want to declare?</translation>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1886"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1298"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1886"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1298"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>

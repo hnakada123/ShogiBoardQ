@@ -35,6 +35,18 @@ class EvaluationGraphController;
 class AnalysisResultsPresenter;
 class EngineAnalysisTab;
 
+class RecordPane;
+class GameRecordPresenter;
+class ReplayController;
+class TimeControlController;
+class BoardInteractionController;
+class PositionEditController;
+class DialogCoordinator;
+class PlayerInfoWiring;
+class UsiCommLogModel;
+class GameRecordModel;
+namespace Ui { class MainWindow; }
+
 /**
  * @brief MainWindow が保持する注入対象参照をまとめて運ぶ値オブジェクト
  *
@@ -79,6 +91,32 @@ struct MainWindowRuntimeRefs {
     KifuBranchTree* branchTree = nullptr;                  ///< 分岐ツリー（非所有）
     KifuNavigationState* navState = nullptr;               ///< ナビゲーション状態（非所有）
     KifuDisplayCoordinator* displayCoordinator = nullptr;  ///< 棋譜表示コーディネータ（非所有）
+
+    // --- コントローラ / Wiring 参照 ---
+    RecordPane* recordPane = nullptr;                          ///< 棋譜欄ウィジェット（非所有）
+    GameRecordPresenter* recordPresenter = nullptr;            ///< 棋譜表示プレゼンタ（非所有）
+    ReplayController* replayController = nullptr;              ///< リプレイコントローラ（非所有）
+    TimeControlController* timeController = nullptr;           ///< 時間制御コントローラ（非所有）
+    BoardInteractionController* boardController = nullptr;     ///< 盤面操作コントローラ（非所有）
+    PositionEditController* positionEditController = nullptr;  ///< 局面編集コントローラ（非所有）
+    DialogCoordinator* dialogCoordinator = nullptr;            ///< ダイアログコーディネータ（非所有）
+    PlayerInfoWiring* playerInfoWiring = nullptr;              ///< 対局者情報配線（非所有）
+
+    // --- モデル参照（追加） ---
+    ShogiEngineThinkingModel* thinking1 = nullptr;             ///< 思考モデル1（非所有）
+    ShogiEngineThinkingModel* thinking2 = nullptr;             ///< 思考モデル2（非所有）
+    ShogiEngineThinkingModel* consideration = nullptr;         ///< 検討モデル（非所有、シングルポインタ）
+    UsiCommLogModel* commLog1 = nullptr;                       ///< 通信ログモデル1（非所有）
+    UsiCommLogModel* commLog2 = nullptr;                       ///< 通信ログモデル2（非所有）
+    GameRecordModel* gameRecordModel = nullptr;                ///< 棋譜記録モデル（非所有）
+
+    // --- UI フォーム ---
+    Ui::MainWindow* uiForm = nullptr;                          ///< UIフォーム（非所有）
+
+    // --- 状態参照（追加） ---
+    QVector<QString>* commentsByRow = nullptr;                 ///< 行別コメント（外部所有）
+    QString* resumeSfenStr = nullptr;                          ///< 再開局面SFEN文字列（外部所有）
+    bool* onMainRowGuard = nullptr;                            ///< 本譜行ガード（外部所有）
 
     // --- その他参照 ---
     GameInfoPaneController* gameInfoController = nullptr;      ///< 対局情報コントローラ（非所有）

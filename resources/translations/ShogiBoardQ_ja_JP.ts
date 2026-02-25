@@ -1770,6 +1770,66 @@ Move %3: %4</source>
     </message>
 </context>
 <context>
+    <name>GameEndHandler</name>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="291"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="292"/>
+        <source>先手</source>
+        <translation type="unfinished">先手</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="291"/>
+        <location filename="../../src/game/gameendhandler.cpp" line="292"/>
+        <source>後手</source>
+        <translation type="unfinished">後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="297"/>
+        <source>%1の投了。%2の勝ちです。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="299"/>
+        <source>%1の時間切れ。%2の勝ちです。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="301"/>
+        <source>最大手数に達しました。持将棋です。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="303"/>
+        <source>%1の入玉宣言。%2の勝ちです。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="305"/>
+        <source>%1の反則負け。%2の勝ちです。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="307"/>
+        <source>千日手が成立しました。</source>
+        <translation type="unfinished">千日手が成立しました。</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="309"/>
+        <source>%1の連続王手の千日手。%2の勝ちです。</source>
+        <translation type="unfinished">%1の連続王手の千日手。%2の勝ちです。</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="312"/>
+        <source>対局が終了しました。</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gameendhandler.cpp" line="315"/>
+        <source>対局終了</source>
+        <translation type="unfinished"></translation>
+    </message>
+</context>
+<context>
     <name>GameInfoPaneController</name>
     <message>
         <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="53"/>
@@ -3751,7 +3811,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="557"/>
+        <location filename="../../src/app/mainwindow.cpp" line="555"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3804,7 +3864,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="3109"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2904"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3816,73 +3876,32 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>MatchCoordinator</name>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="421"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="422"/>
         <source>先手</source>
-        <translation type="unfinished">先手</translation>
+        <translation type="obsolete">先手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="421"/>
-        <location filename="../../src/game/matchcoordinator.cpp" line="422"/>
         <source>後手</source>
-        <translation type="unfinished">後手</translation>
+        <translation type="obsolete">後手</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="429"/>
-        <source>%1の投了。%2の勝ちです。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="433"/>
-        <source>%1の時間切れ。%2の勝ちです。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="437"/>
-        <source>最大手数に達しました。持将棋です。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="441"/>
-        <source>%1の入玉宣言。%2の勝ちです。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="445"/>
-        <source>%1の反則負け。%2の勝ちです。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="448"/>
         <source>千日手が成立しました。</source>
-        <translation>千日手が成立しました。</translation>
+        <translation type="vanished">千日手が成立しました。</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="451"/>
         <source>%1の連続王手の千日手。%2の勝ちです。</source>
-        <translation>%1の連続王手の千日手。%2の勝ちです。</translation>
-    </message>
-    <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="456"/>
-        <source>対局が終了しました。</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="462"/>
-        <source>対局終了</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">%1の連続王手の千日手。%2の勝ちです。</translation>
     </message>
     <message>
         <source>探索が完了しました</source>
         <translation type="vanished">探索が完了しました</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1510"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1052"/>
         <source>エンジンエラー: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1510"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1052"/>
         <source>対局中断</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4429,12 +4448,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1886"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1298"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1886"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="1298"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>

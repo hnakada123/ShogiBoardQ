@@ -115,6 +115,7 @@
 #include "mainwindowcompositionroot.h"
 #include "livegamesessionupdater.h"
 #include "kifunavigationcoordinator.h"
+#include "branchnavigationwiring.h"
 
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
@@ -147,7 +148,7 @@
 // MainWindow を初期化し、主要コンポーネントを構築する。
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , ui(new Ui::MainWindow)
+    , ui(std::make_unique<Ui::MainWindow>())
 {
     m_compositionRoot = new MainWindowCompositionRoot(this);
 
@@ -225,10 +226,7 @@ MainWindow::MainWindow(QWidget *parent)
             this, &MainWindow::performDeferredEvalChartResize);
 }
 
-MainWindow::~MainWindow()
-{
-    delete m_liveGameSessionUpdater;
-}
+MainWindow::~MainWindow() = default;
 
 // `setupCentralWidgetContainer`: Central Widget Container をセットアップする。
 void MainWindow::setupCentralWidgetContainer()
@@ -407,7 +405,7 @@ void MainWindow::connectAllActions()
     // 既存があれば使い回し
     if (!m_actionsWiring) {
         UiActionsWiring::Deps d;
-        d.ui  = ui;
+        d.ui  = ui.get();
         d.ctx = this;
         d.dlw = m_dialogLaunchWiring;
         d.dcw = m_dialogCoordinatorWiring;
@@ -564,9 +562,6 @@ void MainWindow::undoLastTwoMoves()
     if (m_match) {
         // 2手戻しを実行し、成功した場合は分岐ツリーを更新する
         if (m_match->undoTwoPlies()) {
-            // 短くなった棋譜データに基づいて分岐ツリー（長方形と罫線）を再描画・同期する
-            refreshBranchTreeLive();
-
             // 評価値グラフのプロットを1つ削除（2手で1プロット）
             // ※EvEモードでは「待った」は使用しない想定
             if (m_evalGraphController) {
@@ -1318,22 +1313,8 @@ void MainWindow::onRequestSelectKifuRow(int row)
 
 void MainWindow::onBranchTreeResetForNewGame()
 {
-    // performCleanup() が開始したライブゲームセッションを破棄
-    // （新規対局のため、新しいセッションがゲーム開始フローで再作成される）
-    if (m_branchNav.liveGameSession && m_branchNav.liveGameSession->isActive()) {
-        m_branchNav.liveGameSession->discard();
-    }
-    // resetToInitialState() と同じパターンで分岐ツリーを直接リセット
-    if (m_branchNav.branchTree) {
-        if (m_branchNav.navState) {
-            m_branchNav.navState->setCurrentNode(nullptr);
-            m_branchNav.navState->resetPreferredLineIndex();
-        }
-        m_branchNav.branchTree->setRootSfen(m_state.startSfenStr);
-        if (m_branchNav.navState) {
-            m_branchNav.navState->goToRoot();
-        }
-    }
+    ensureBranchNavigationWiring();
+    m_branchNavWiring->onBranchTreeResetForNewGame();
 }
 
 // `syncBoardAndHighlightsAtRow`: KifuNavigationCoordinator へ委譲。
@@ -1357,125 +1338,44 @@ KifuExportController* MainWindow::kifuExportController()
     return m_kifuExportController;
 }
 
-// `initializeBranchNavigationClasses`: Branch Navigation Classes を初期化する。
+// `initializeBranchNavigationClasses`: BranchNavigationWiring に委譲。
 void MainWindow::initializeBranchNavigationClasses()
 {
-    createBranchNavigationModels();
-    wireBranchNavigationSignals();
+    ensureBranchNavigationWiring();
+    m_branchNavWiring->initialize();
 }
 
-void MainWindow::createBranchNavigationModels()
+void MainWindow::ensureBranchNavigationWiring()
 {
-    // ツリーの作成
-    if (m_branchNav.branchTree == nullptr) {
-        m_branchNav.branchTree = new KifuBranchTree(this);
+    if (!m_branchNavWiring) {
+        m_branchNavWiring = new BranchNavigationWiring(this);
+
+        // 転送シグナルを MainWindow スロットに接続
+        connect(m_branchNavWiring, &BranchNavigationWiring::boardWithHighlightsRequired,
+                this, &MainWindow::loadBoardWithHighlights);
+        connect(m_branchNavWiring, &BranchNavigationWiring::boardSfenChanged,
+                this, &MainWindow::loadBoardFromSfen);
+        connect(m_branchNavWiring, &BranchNavigationWiring::branchNodeHandled,
+                this, &MainWindow::onBranchNodeHandled);
     }
 
-    // ナビゲーション状態の作成
-    if (m_branchNav.navState == nullptr) {
-        m_branchNav.navState = new KifuNavigationState(this);
-        m_branchNav.navState->setTree(m_branchNav.branchTree);
-    }
-
-    // ナビゲーションコントローラの作成
-    if (m_branchNav.kifuNavController == nullptr) {
-        m_branchNav.kifuNavController = new KifuNavigationController(this);
-        m_branchNav.kifuNavController->setTreeAndState(m_branchNav.branchTree, m_branchNav.navState);
-
-        // ボタン接続（RecordPaneが存在する場合）
-        if (m_recordPane != nullptr) {
-            KifuNavigationController::Buttons buttons;
-            buttons.first = m_recordPane->firstButton();
-            buttons.back10 = m_recordPane->back10Button();
-            buttons.prev = m_recordPane->prevButton();
-            buttons.next = m_recordPane->nextButton();
-            buttons.fwd10 = m_recordPane->fwd10Button();
-            buttons.last = m_recordPane->lastButton();
-            m_branchNav.kifuNavController->connectButtons(buttons);
-            qCDebug(lcApp).noquote() << "createBranchNavigationModels: KifuNavigationController buttons connected";
-        }
-    }
-
-    // ライブゲームセッションの作成
-    if (m_branchNav.liveGameSession == nullptr) {
-        m_branchNav.liveGameSession = new LiveGameSession(this);
-        m_branchNav.liveGameSession->setTree(m_branchNav.branchTree);
-    }
-}
-
-void MainWindow::wireBranchNavigationSignals()
-{
-    // 表示コーディネーターの作成
-    qCDebug(lcApp).noquote() << "wireBranchNavigationSignals: m_branchNav.displayCoordinator=" << (m_branchNav.displayCoordinator ? "exists" : "null");
-    if (m_branchNav.displayCoordinator != nullptr) {
-        return;
-    }
-
-    qCDebug(lcApp).noquote() << "wireBranchNavigationSignals: creating KifuDisplayCoordinator";
-    m_branchNav.displayCoordinator = new KifuDisplayCoordinator(
-        m_branchNav.branchTree, m_branchNav.navState, m_branchNav.kifuNavController, this);
-
-    configureBranchDisplayCoordinator();
-    connectBranchDisplaySignals();
-}
-
-void MainWindow::configureBranchDisplayCoordinator()
-{
-    m_branchNav.displayCoordinator->setRecordPane(m_recordPane);
-    m_branchNav.displayCoordinator->setRecordModel(m_models.kifuRecord);
-    m_branchNav.displayCoordinator->setBranchModel(m_models.kifuBranch);
-
-    // 分岐ツリーウィジェットを設定（EngineAnalysisTabから取得）
-    if (m_branchNav.branchTreeWidget != nullptr) {
-        m_branchNav.displayCoordinator->setBranchTreeWidget(m_branchNav.branchTreeWidget);
-    }
-
-    // BranchTreeManager を設定（分岐ツリーハイライト用）
-    if (m_analysisTab != nullptr) {
-        m_branchNav.displayCoordinator->setBranchTreeManager(m_analysisTab->branchTreeManager());
-    }
-
-    m_branchNav.displayCoordinator->setBoardSfenProvider([this]() {
-        if (m_gameController == nullptr || m_gameController->board() == nullptr) {
-            return QString();
-        }
-        ShogiBoard* board = m_gameController->board();
-        QString standPart = board->convertStandToSfen();
-        if (standPart.isEmpty()) {
-            standPart = QStringLiteral("-");
-        }
-        const QString turnPart = turnToSfen(board->currentPlayer());
-        return QStringLiteral("%1 %2 %3 1")
-            .arg(board->convertBoardToSfen(), turnPart, standPart);
-    });
-
-    m_branchNav.displayCoordinator->wireSignals();
-
-    if (m_branchNav.liveGameSession != nullptr) {
-        m_branchNav.displayCoordinator->setLiveGameSession(m_branchNav.liveGameSession);
-    }
-}
-
-void MainWindow::connectBranchDisplaySignals()
-{
-    // 盤面とハイライト更新シグナルを接続（新システム用）
-    connect(m_branchNav.displayCoordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired,
-            this, &MainWindow::loadBoardWithHighlights);
-
-    // コメント表示シグナルを接続
-    ensureCommentCoordinator();
-    connect(m_branchNav.displayCoordinator, &KifuDisplayCoordinator::commentUpdateRequired,
-            m_commentCoordinator, &CommentCoordinator::onNavigationCommentUpdate);
-
-    // 盤面のみ更新シグナル（通常は boardWithHighlightsRequired を使用）
-    connect(m_branchNav.displayCoordinator, &KifuDisplayCoordinator::boardSfenChanged,
-            this, &MainWindow::loadBoardFromSfen);
-
-    connect(m_branchNav.kifuNavController, &KifuNavigationController::lineSelectionChanged,
-            this, &MainWindow::onLineSelectionChanged);
-
-    connect(m_branchNav.kifuNavController, &KifuNavigationController::branchNodeHandled,
-            this, &MainWindow::onBranchNodeHandled);
+    BranchNavigationWiring::Deps deps;
+    deps.branchTree = &m_branchNav.branchTree;
+    deps.navState = &m_branchNav.navState;
+    deps.kifuNavController = &m_branchNav.kifuNavController;
+    deps.displayCoordinator = &m_branchNav.displayCoordinator;
+    deps.branchTreeWidget = &m_branchNav.branchTreeWidget;
+    deps.liveGameSession = &m_branchNav.liveGameSession;
+    deps.recordPane = m_recordPane;
+    deps.analysisTab = m_analysisTab;
+    deps.kifuRecordModel = m_models.kifuRecord;
+    deps.kifuBranchModel = m_models.kifuBranch;
+    deps.gameRecordModel = m_models.gameRecord;
+    deps.gameController = m_gameController;
+    deps.commentCoordinator = m_commentCoordinator;
+    deps.startSfenStr = &m_state.startSfenStr;
+    deps.ensureCommentCoordinator = [this]() { ensureCommentCoordinator(); };
+    m_branchNavWiring->updateDeps(deps);
 }
 
 // `setupRecordPane`: Record Pane をセットアップする。
@@ -2060,18 +1960,11 @@ void MainWindow::setReplayMode(bool on)
 
 
 
-// `onBranchNodeActivated`: Branch Node Activated のイベント受信時処理を行う。
+// `onBranchNodeActivated`: BranchNavigationWiring へ転送。
 void MainWindow::onBranchNodeActivated(int row, int ply)
 {
-    qCDebug(lcApp).noquote() << "onBranchNodeActivated ENTER row=" << row << "ply=" << ply;
-    if (m_branchNav.kifuNavController == nullptr) {
-        qCDebug(lcApp).noquote() << "onBranchNodeActivated: kifuNavController is null";
-        return;
-    }
-
-    // KifuNavigationControllerに委譲
-    m_branchNav.kifuNavController->handleBranchNodeActivated(row, ply);
-    qCDebug(lcApp).noquote() << "onBranchNodeActivated LEAVE";
+    ensureBranchNavigationWiring();
+    m_branchNavWiring->onBranchNodeActivated(row, ply);
 }
 
 // `onBranchNodeHandled`: KifuNavigationCoordinator へ委譲。
@@ -2083,31 +1976,11 @@ void MainWindow::onBranchNodeHandled(int ply, const QString& sfen,
     m_kifuNavCoordinator->handleBranchNodeHandled(ply, sfen, previousFileTo, previousRankTo, lastUsiMove);
 }
 
+// `onBranchTreeBuilt`: BranchNavigationWiring へ転送。
 void MainWindow::onBranchTreeBuilt()
 {
-    qCDebug(lcApp) << "onBranchTreeBuilt: updating new navigation system";
-
-    // 新しいナビゲーションシステムを更新
-    if (m_branchNav.navState != nullptr && m_branchNav.branchTree != nullptr) {
-        m_branchNav.navState->setTree(m_branchNav.branchTree);
-    }
-
-    // 分岐ツリーウィジェットを更新
-    if (m_branchNav.branchTreeWidget != nullptr && m_branchNav.branchTree != nullptr) {
-        m_branchNav.branchTreeWidget->setTree(m_branchNav.branchTree);
-    }
-
-    // 表示コーディネーターにツリー変更を通知
-    if (m_branchNav.displayCoordinator != nullptr) {
-        m_branchNav.displayCoordinator->onTreeChanged();
-    }
-
-    if (m_models.gameRecord != nullptr && m_branchNav.branchTree != nullptr) {
-        m_models.gameRecord->setBranchTree(m_branchNav.branchTree);
-        if (m_branchNav.navState != nullptr) {
-            m_models.gameRecord->setNavigationState(m_branchNav.navState);
-        }
-    }
+    ensureBranchNavigationWiring();
+    m_branchNavWiring->onBranchTreeBuilt();
 }
 
 void MainWindow::loadBoardFromSfen(const QString& sfen)
@@ -2136,13 +2009,6 @@ void MainWindow::loadBoardFromSfen(const QString& sfen)
                    << "board=" << (m_gameController ? m_gameController->board() : nullptr)
                    << "view=" << m_shogiView;
     }
-}
-
-// 新システム（KifuNavigationState）が管理
-void MainWindow::onLineSelectionChanged(int newLineIndex)
-{
-    Q_UNUSED(newLineIndex)
-    // KifuNavigationState が currentLineIndex() を管理
 }
 
 // SFENから盤面とハイライトを更新（分岐ナビゲーション用）
@@ -2364,6 +2230,32 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.navState = m_branchNav.navState;
     refs.displayCoordinator = m_branchNav.displayCoordinator;
 
+    // --- コントローラ / Wiring 参照 ---
+    refs.recordPane = m_recordPane;
+    refs.recordPresenter = m_recordPresenter;
+    refs.replayController = m_replayController;
+    refs.timeController = m_timeController;
+    refs.boardController = m_boardController;
+    refs.positionEditController = m_posEdit;
+    refs.dialogCoordinator = m_dialogCoordinator;
+    refs.playerInfoWiring = m_playerInfoWiring;
+
+    // --- モデル参照（追加） ---
+    refs.thinking1 = m_models.thinking1;
+    refs.thinking2 = m_models.thinking2;
+    refs.consideration = m_models.consideration;
+    refs.commLog1 = m_models.commLog1;
+    refs.commLog2 = m_models.commLog2;
+    refs.gameRecordModel = m_models.gameRecord;
+
+    // --- UI フォーム ---
+    refs.uiForm = ui.get();
+
+    // --- 状態参照（追加） ---
+    refs.commentsByRow = &m_kifu.commentsByRow;
+    refs.resumeSfenStr = &m_state.resumeSfenStr;
+    refs.onMainRowGuard = &m_kifu.onMainRowGuard;
+
     // --- その他参照 ---
     refs.gameInfoController = m_gameInfoController;
     refs.evalChart = m_evalChart;
@@ -2474,213 +2366,119 @@ void MainWindow::updateKifuExportDependencies()
     m_kifuExportController->setDependencies(deps);
 }
 
-// `ensureGameStateController`: Game State Controller を必要に応じて生成し、依存関係を更新する。
+// `ensureGameStateController`: CompositionRoot に委譲して生成・コールバック設定を行う。
 void MainWindow::ensureGameStateController()
 {
     if (m_gameStateController) return;
 
-    m_gameStateController = new GameStateController(this);
+    ensureUiStatePolicyManager();
 
-    // 依存オブジェクトの設定
-    m_gameStateController->setMatchCoordinator(m_match);
-    m_gameStateController->setShogiView(m_shogiView);
-    m_gameStateController->setRecordPane(m_recordPane);
-    m_gameStateController->setReplayController(m_replayController);
-    m_gameStateController->setTimeController(m_timeController);
-    m_gameStateController->setKifuLoadCoordinator(m_kifuLoadCoordinator);
-    m_gameStateController->setKifuRecordModel(m_models.kifuRecord);
-    m_gameStateController->setPlayMode(m_state.playMode);
+    MainWindowDepsFactory::GameStateControllerCallbacks cbs;
+    cbs.enableArrowButtons = std::bind(&UiStatePolicyManager::transitionToIdle, m_uiStatePolicy);
+    cbs.setReplayMode = std::bind(&MainWindow::setReplayMode, this, std::placeholders::_1);
+    cbs.refreshBranchTree = [this]() { m_kifu.currentSelectedPly = 0; };
+    cbs.updatePlyState = [this](int ap, int sp, int mi) {
+        m_kifu.activePly = ap;
+        m_kifu.currentSelectedPly = sp;
+        m_state.currentMoveIndex = mi;
+        syncNavStateToPly(sp);
+    };
 
-    bindGameStateControllerCallbacks();
+    m_compositionRoot->ensureGameStateController(buildRuntimeRefs(), cbs, this, m_gameStateController);
 }
 
-// GameStateControllerのコールバックを設定する。
-void MainWindow::bindGameStateControllerCallbacks()
+// 対局終了後、ナビゲーション状態をUIの表示位置と同期する。
+void MainWindow::syncNavStateToPly(int selectedPly)
 {
-    // コールバックの設定: 対局終了時にUI状態を「アイドル」に遷移
-    ensureUiStatePolicyManager();
-    m_gameStateController->setEnableArrowButtonsCallback(
-        std::bind(&UiStatePolicyManager::transitionToIdle, m_uiStatePolicy));
-    m_gameStateController->setSetReplayModeCallback(
-        std::bind(&MainWindow::setReplayMode, this, std::placeholders::_1));
-    m_gameStateController->setRefreshBranchTreeCallback([this]() {
-        m_kifu.currentSelectedPly = 0;  // リセット
-        refreshBranchTreeLive();
-    });
-    m_gameStateController->setUpdatePlyStateCallback([this](int activePly, int selectedPly, int moveIndex) {
-        m_kifu.activePly = activePly;
-        m_kifu.currentSelectedPly = selectedPly;
-        m_state.currentMoveIndex = moveIndex;
+    if (!m_branchNav.navState || !m_branchNav.branchTree) return;
 
-        // 対局終了後、ナビゲーション状態をUIの表示位置と同期する。
-        // 本譜固定で探すと、分岐表示中に「1手戻る」が本譜へ飛ぶため、
-        // 現在ライン上の同一plyノードを優先して同期する。
-        if (m_branchNav.navState && m_branchNav.branchTree) {
-            KifuBranchNode* node = nullptr;
-
-            const int currentLine = m_branchNav.navState->currentLineIndex();
-            const QVector<BranchLine> lines = m_branchNav.branchTree->allLines();
-            if (currentLine >= 0 && currentLine < lines.size()) {
-                const BranchLine& line = lines.at(currentLine);
-                for (KifuBranchNode* candidate : std::as_const(line.nodes)) {
-                    if (candidate != nullptr && candidate->ply() == selectedPly) {
-                        node = candidate;
-                        break;
-                    }
-                }
-            }
-
-            if (node == nullptr) {
-                node = m_branchNav.branchTree->findByPlyOnMainLine(selectedPly);
-            }
-
-            if (node) {
-                m_branchNav.navState->setCurrentNode(node);
+    // 本譜固定で探すと、分岐表示中に「1手戻る」が本譜へ飛ぶため、
+    // 現在ライン上の同一plyノードを優先して同期する。
+    KifuBranchNode* node = nullptr;
+    const int currentLine = m_branchNav.navState->currentLineIndex();
+    const QVector<BranchLine> lines = m_branchNav.branchTree->allLines();
+    if (currentLine >= 0 && currentLine < lines.size()) {
+        const BranchLine& line = lines.at(currentLine);
+        for (KifuBranchNode* candidate : std::as_const(line.nodes)) {
+            if (candidate != nullptr && candidate->ply() == selectedPly) {
+                node = candidate;
+                break;
             }
         }
-    });
+    }
+
+    if (!node) {
+        node = m_branchNav.branchTree->findByPlyOnMainLine(selectedPly);
+    }
+    if (node) {
+        m_branchNav.navState->setCurrentNode(node);
+    }
 }
 
-// `ensurePlayerInfoController`: Player Info Controller を必要に応じて生成し、依存関係を更新する。
+// `ensurePlayerInfoController`: CompositionRoot に委譲して生成・依存設定を行う。
 void MainWindow::ensurePlayerInfoController()
 {
     if (m_playerInfoController) return;
-
-    // PlayerInfoWiring経由でPlayerInfoControllerを取得
     ensurePlayerInfoWiring();
-    if (m_playerInfoWiring) {
-        m_playerInfoController = m_playerInfoWiring->playerInfoController();
-    }
-
-    // PlayerInfoControllerが取得できた場合、追加の依存オブジェクトを設定
-    if (m_playerInfoController) {
-        m_playerInfoController->setEvalGraphController(m_evalGraphController);
-        m_playerInfoController->setLogModels(m_models.commLog1, m_models.commLog2);
-        m_playerInfoController->setAnalysisTab(m_analysisTab);
-    }
+    m_compositionRoot->ensurePlayerInfoController(buildRuntimeRefs(), this, m_playerInfoController);
 }
 
-// `ensureBoardSetupController`: Board Setup Controller を必要に応じて生成し、依存関係を更新する。
+// `ensureBoardSetupController`: CompositionRoot に委譲して生成・コールバック設定を行う。
 void MainWindow::ensureBoardSetupController()
 {
     if (m_boardSetupController) return;
 
-    m_boardSetupController = new BoardSetupController(this);
-
-    // 依存オブジェクトの設定
-    m_boardSetupController->setShogiView(m_shogiView);
-    m_boardSetupController->setGameController(m_gameController);
-    m_boardSetupController->setMatchCoordinator(m_match);
-    m_boardSetupController->setTimeController(m_timeController);
-    m_boardSetupController->setSfenRecord(sfenRecord());
-    m_boardSetupController->setGameMoves(&m_kifu.gameMoves);
-    m_boardSetupController->setCurrentMoveIndex(&m_state.currentMoveIndex);
-
-    bindBoardSetupControllerCallbacks();
-}
-
-// BoardSetupControllerのコールバックを設定する。
-void MainWindow::bindBoardSetupControllerCallbacks()
-{
-    m_boardSetupController->setEnsurePositionEditCallback([this]() {
-        ensurePositionEditController();
-    });
-    m_boardSetupController->setEnsureTimeControllerCallback([this]() {
-        ensureTimeController();
-    });
-    m_boardSetupController->setUpdateGameRecordCallback([this](const QString& moveText, const QString& elapsed) {
+    MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
+    cbs.ensurePositionEdit = [this]() { ensurePositionEditController(); };
+    cbs.ensureTimeController = [this]() { ensureTimeController(); };
+    cbs.updateGameRecord = [this](const QString& moveText, const QString& elapsed) {
         m_state.lastMove = moveText;
         updateGameRecord(elapsed);
-    });
-    m_boardSetupController->setRedrawEngine1GraphCallback([this](int ply) {
+    };
+    cbs.redrawEngine1Graph = [this](int ply) {
         ensureEvaluationGraphController();
         if (m_evalGraphController) m_evalGraphController->redrawEngine1Graph(ply);
-    });
-    m_boardSetupController->setRedrawEngine2GraphCallback([this](int ply) {
+    };
+    cbs.redrawEngine2Graph = [this](int ply) {
         ensureEvaluationGraphController();
         if (m_evalGraphController) m_evalGraphController->redrawEngine2Graph(ply);
-    });
-    m_boardSetupController->setRefreshBranchTreeCallback([this]() {
-        refreshBranchTreeLive();
-    });
+    };
+
+    m_compositionRoot->ensureBoardSetupController(buildRuntimeRefs(), cbs, this, m_boardSetupController);
 }
 
-// `ensurePvClickController`: Pv Click Controller を必要に応じて生成し、依存関係を更新する。
+// `ensurePvClickController`: CompositionRoot に委譲して生成・依存設定を行う。
 void MainWindow::ensurePvClickController()
 {
     if (m_pvClickController) return;
-
-    m_pvClickController = new PvClickController(this);
-
-    // 依存オブジェクトの設定
-    m_pvClickController->setThinkingModels(m_models.thinking1, m_models.thinking2);
-    m_pvClickController->setConsiderationModel(m_models.consideration);
-    m_pvClickController->setLogModels(m_models.commLog1, m_models.commLog2);
-    m_pvClickController->setSfenRecord(sfenRecord());
-    m_pvClickController->setGameMoves(&m_kifu.gameMoves);
-    m_pvClickController->setUsiMoves(&m_kifu.gameUsiMoves);
-    QObject::connect(
-        m_pvClickController, &PvClickController::pvDialogClosed,
-        this,                &MainWindow::onPvDialogClosed,
-        Qt::UniqueConnection);
+    m_compositionRoot->ensurePvClickController(buildRuntimeRefs(), this, m_pvClickController);
+    connect(m_pvClickController, &PvClickController::pvDialogClosed,
+            this, &MainWindow::onPvDialogClosed, Qt::UniqueConnection);
 }
 
 
-// `ensurePositionEditCoordinator`: Position Edit Coordinator を必要に応じて生成し、依存関係を更新する。
+// `ensurePositionEditCoordinator`: CompositionRoot に委譲して生成・コールバック設定を行う。
 void MainWindow::ensurePositionEditCoordinator()
 {
     if (m_posEditCoordinator) return;
 
-    m_posEditCoordinator = new PositionEditCoordinator(this);
-
-    // 依存オブジェクトの設定
-    m_posEditCoordinator->setShogiView(m_shogiView);
-    m_posEditCoordinator->setGameController(m_gameController);
-    m_posEditCoordinator->setBoardController(m_boardController);
-    m_posEditCoordinator->setPositionEditController(m_posEdit);
-    m_posEditCoordinator->setMatchCoordinator(m_match);
-    m_posEditCoordinator->setReplayController(m_replayController);
-    m_posEditCoordinator->setSfenRecord(sfenRecord());
-
-    // 状態参照の設定
-    m_posEditCoordinator->setCurrentSelectedPly(&m_kifu.currentSelectedPly);
-    m_posEditCoordinator->setActivePly(&m_kifu.activePly);
-    m_posEditCoordinator->setStartSfenStr(&m_state.startSfenStr);
-    m_posEditCoordinator->setCurrentSfenStr(&m_state.currentSfenStr);
-    m_posEditCoordinator->setResumeSfenStr(&m_state.resumeSfenStr);
-    m_posEditCoordinator->setOnMainRowGuard(&m_kifu.onMainRowGuard);
-
-    bindPositionEditCoordinatorCallbacks();
-}
-
-// PositionEditCoordinatorのコールバックとアクションを設定する。
-void MainWindow::bindPositionEditCoordinatorCallbacks()
-{
-    // コールバックの設定：局面編集状態の遷移をUiStatePolicyManagerに委譲
     ensureUiStatePolicyManager();
-    m_posEditCoordinator->setApplyEditMenuStateCallback([this](bool editing) {
-        if (editing) {
-            m_uiStatePolicy->transitionToDuringPositionEdit();
-        } else {
-            m_uiStatePolicy->transitionToIdle();
-        }
-    });
-    m_posEditCoordinator->setEnsurePositionEditCallback([this]() {
-        ensurePositionEditController();
-        if (m_posEditCoordinator) {
-            m_posEditCoordinator->setPositionEditController(m_posEdit);
-        }
-    });
 
-    // 編集用アクションの設定
-    if (ui) {
-        PositionEditCoordinator::EditActions actions;
-        actions.actionReturnAllPiecesToStand = ui->actionReturnAllPiecesToStand;
-        actions.actionSetHiratePosition = ui->actionSetHiratePosition;
-        actions.actionSetTsumePosition = ui->actionSetTsumePosition;
-        actions.actionChangeTurn = ui->actionChangeTurn;
-        m_posEditCoordinator->setEditActions(actions);
-    }
+    MainWindowDepsFactory::PositionEditCoordinatorCallbacks cbs;
+    cbs.applyEditMenuState = [this](bool editing) {
+        if (editing) m_uiStatePolicy->transitionToDuringPositionEdit();
+        else m_uiStatePolicy->transitionToIdle();
+    };
+    cbs.ensurePositionEdit = [this]() {
+        ensurePositionEditController();
+        if (m_posEditCoordinator) m_posEditCoordinator->setPositionEditController(m_posEdit);
+    };
+    cbs.actionReturnAllPiecesToStand = ui->actionReturnAllPiecesToStand;
+    cbs.actionSetHiratePosition = ui->actionSetHiratePosition;
+    cbs.actionSetTsumePosition = ui->actionSetTsumePosition;
+    cbs.actionChangeTurn = ui->actionChangeTurn;
+
+    m_compositionRoot->ensurePositionEditCoordinator(buildRuntimeRefs(), cbs, this, m_posEditCoordinator);
 }
 
 // `ensureCsaGameWiring`: Csa Game Wiring を必要に応じて生成し、依存関係を更新する。
@@ -2725,8 +2523,7 @@ void MainWindow::wireCsaGameWiringSignals()
             m_uiStatePolicy, &UiStatePolicyManager::transitionToIdle);
     connect(m_csaGameWiring, &CsaGameWiring::appendKifuLineRequested,
             this, &MainWindow::appendKifuLine);
-    connect(m_csaGameWiring, &CsaGameWiring::refreshBranchTreeRequested,
-            this, &MainWindow::refreshBranchTreeLive);
+    // refreshBranchTreeRequested: LiveGameSession + KifuDisplayCoordinator が自動更新するため接続不要
     connect(m_csaGameWiring, &CsaGameWiring::errorMessageRequested,
             this, &MainWindow::displayErrorMessage);
 }
@@ -3011,7 +2808,7 @@ void MainWindow::ensureLiveGameSessionStarted()
 void MainWindow::ensureLiveGameSessionUpdater()
 {
     if (!m_liveGameSessionUpdater) {
-        m_liveGameSessionUpdater = new LiveGameSessionUpdater();
+        m_liveGameSessionUpdater = std::make_unique<LiveGameSessionUpdater>();
     }
 
     LiveGameSessionUpdater::Deps deps;
@@ -3069,8 +2866,6 @@ void MainWindow::appendKifuLineHook(const QString& text, const QString& elapsed)
 {
     // 既存：棋譜欄へ 1手追記（Presenter がモデルへ反映）
     appendKifuLine(text, elapsed);
-
-    refreshBranchTreeLive();
 }
 
 // `onRecordRowChangedByPresenter`: Record Row Changed By Presenter のイベント受信時処理を行う。
@@ -3209,9 +3004,9 @@ void MainWindow::onBuildPositionRequired(int row)
 // ============================================================
 void MainWindow::createAndWireKifuLoadCoordinator()
 {
-    // 既存があれば即座に破棄（多重生成対策）
+    // 既存があれば遅延破棄（イベントキュー内の保留シグナルによるdangling pointer防止）
     if (m_kifuLoadCoordinator) {
-        delete m_kifuLoadCoordinator;
+        m_kifuLoadCoordinator->deleteLater();
         m_kifuLoadCoordinator = nullptr;
     }
 
@@ -3272,14 +3067,6 @@ void MainWindow::ensureKifuLoadCoordinatorForLive()
     }
 
     createAndWireKifuLoadCoordinator();
-}
-
-// ライブ対局中の分岐ツリー更新エントリポイント（互換用）。
-void MainWindow::refreshBranchTreeLive()
-{
-    // 現行実装では LiveGameSession + KifuDisplayCoordinator が自動更新する。
-    // 旧呼び出し元との互換維持のため no-op として残している。
-    qCDebug(lcApp).noquote() << "refreshBranchTreeLive(): delegating to new system (no-op)";
 }
 
 // ============================================================
@@ -3534,30 +3321,19 @@ void MainWindow::ensureLanguageController()
         ui->actionLanguageEnglish);
 }
 
-// `ensureConsiderationWiring`: Consideration Wiring を必要に応じて生成し、依存関係を更新する。
+// `ensureConsiderationWiring`: CompositionRoot に委譲して生成・依存設定を行う。
 void MainWindow::ensureConsiderationWiring()
 {
     if (m_considerationWiring) return;
 
-    ConsiderationWiring::Deps deps;
-    deps.parentWidget = this;
-    deps.considerationTabManager = m_analysisTab ? m_analysisTab->considerationTabManager() : nullptr;
-    deps.thinkingInfo1 = m_analysisTab ? m_analysisTab->info1() : nullptr;
-    deps.shogiView = m_shogiView;
-    deps.match = m_match;
-    deps.dialogCoordinator = m_dialogCoordinator;
-    deps.considerationModel = m_models.consideration;
-    deps.commLogModel = m_models.commLog1;
-    deps.playMode = &m_state.playMode;
-    deps.currentSfenStr = &m_state.currentSfenStr;
-    deps.ensureDialogCoordinator = [this]() {
+    MainWindowDepsFactory::ConsiderationWiringCallbacks cbs;
+    cbs.ensureDialogCoordinator = [this]() {
         ensureDialogCoordinator();
-        if (m_considerationWiring) {
+        if (m_considerationWiring)
             m_considerationWiring->setDialogCoordinator(m_dialogCoordinator);
-        }
     };
 
-    m_considerationWiring = new ConsiderationWiring(deps, this);
+    m_compositionRoot->ensureConsiderationWiring(buildRuntimeRefs(), cbs, this, m_considerationWiring);
 }
 
 // `ensureDockLayoutManager`: Dock Layout Manager を必要に応じて生成し、依存関係を更新する。
@@ -3593,24 +3369,11 @@ void MainWindow::ensureDockCreationService()
     m_dockCreationService->setDisplayMenu(ui->Display);
 }
 
-// `ensureCommentCoordinator`: Comment Coordinator を必要に応じて生成し、依存関係を更新する。
+// `ensureCommentCoordinator`: CompositionRoot に委譲して生成・依存設定を行う。
 void MainWindow::ensureCommentCoordinator()
 {
     if (m_commentCoordinator) return;
-
-    m_commentCoordinator = new CommentCoordinator(this);
-    if (m_analysisTab) {
-        m_commentCoordinator->setCommentEditor(m_analysisTab->commentEditor());
-    }
-    m_commentCoordinator->setRecordPane(m_recordPane);
-    m_commentCoordinator->setRecordPresenter(m_recordPresenter);
-    m_commentCoordinator->setStatusBar(ui->statusbar);
-    m_commentCoordinator->setCurrentMoveIndex(&m_state.currentMoveIndex);
-    m_commentCoordinator->setCommentsByRow(&m_kifu.commentsByRow);
-    m_commentCoordinator->setGameRecordModel(m_models.gameRecord);
-    m_commentCoordinator->setKifuRecordListModel(m_models.kifuRecord);
-
-    // GameRecordModel初期化要求時のシグナル接続
+    m_compositionRoot->ensureCommentCoordinator(buildRuntimeRefs(), this, m_commentCoordinator);
     connect(m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
             this, &MainWindow::ensureGameRecordModel);
 }
@@ -3632,19 +3395,10 @@ void MainWindow::ensureRecordNavigationHandler()
     m_compositionRoot->ensureRecordNavigationWiring(refs, this, m_recordNavWiring);
 }
 
-// `ensureUiStatePolicyManager`: UI State Policy Manager を必要に応じて生成し、依存関係を更新する。
+// `ensureUiStatePolicyManager`: CompositionRoot に委譲して生成・依存設定を行う。
 void MainWindow::ensureUiStatePolicyManager()
 {
-    if (!m_uiStatePolicy) {
-        m_uiStatePolicy = new UiStatePolicyManager(this);
-    }
-
-    UiStatePolicyManager::Deps deps;
-    deps.ui = ui;
-    deps.recordPane = m_recordPane;
-    deps.analysisTab = m_analysisTab;
-    deps.boardController = m_boardController;
-    m_uiStatePolicy->updateDeps(deps);
+    m_compositionRoot->ensureUiStatePolicyManager(buildRuntimeRefs(), this, m_uiStatePolicy);
 }
 
 // `ensureKifuNavigationCoordinator`: KifuNavigationCoordinator を必要に応じて生成し、依存関係を更新する。

@@ -65,7 +65,9 @@
       "Bash(grep DIAG:*)",
       "Bash(DISPLAY=:1 bash:*)",
       "Bash(pkill:*)",
-      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_kifconverter:*)"
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_kifconverter:*)",
+      "Bash(bash:*)",
+      "Bash(nm:*)"
     ]
   }
 }

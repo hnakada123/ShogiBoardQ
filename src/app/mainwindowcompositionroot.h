@@ -12,6 +12,15 @@ class DialogCoordinator;
 class KifuFileController;
 class RecordNavigationWiring;
 
+class GameStateController;
+class BoardSetupController;
+class PositionEditCoordinator;
+class ConsiderationWiring;
+class CommentCoordinator;
+class PvClickController;
+class UiStatePolicyManager;
+class PlayerInfoController;
+
 /**
  * @brief ensure* の生成ロジックを集約する CompositionRoot
  *
@@ -62,6 +71,42 @@ public:
     void ensureRecordNavigationWiring(const MainWindowRuntimeRefs& refs,
                                       QObject* parent,
                                       RecordNavigationWiring*& wiring);
+
+    void ensureGameStateController(const MainWindowRuntimeRefs& refs,
+                                   const MainWindowDepsFactory::GameStateControllerCallbacks& cbs,
+                                   QObject* parent,
+                                   GameStateController*& controller);
+
+    void ensureBoardSetupController(const MainWindowRuntimeRefs& refs,
+                                    const MainWindowDepsFactory::BoardSetupControllerCallbacks& cbs,
+                                    QObject* parent,
+                                    BoardSetupController*& controller);
+
+    void ensurePositionEditCoordinator(const MainWindowRuntimeRefs& refs,
+                                       const MainWindowDepsFactory::PositionEditCoordinatorCallbacks& cbs,
+                                       QObject* parent,
+                                       PositionEditCoordinator*& coordinator);
+
+    void ensureConsiderationWiring(const MainWindowRuntimeRefs& refs,
+                                   const MainWindowDepsFactory::ConsiderationWiringCallbacks& cbs,
+                                   QObject* parent,
+                                   ConsiderationWiring*& wiring);
+
+    void ensureCommentCoordinator(const MainWindowRuntimeRefs& refs,
+                                  QObject* parent,
+                                  CommentCoordinator*& coordinator);
+
+    void ensurePvClickController(const MainWindowRuntimeRefs& refs,
+                                 QObject* parent,
+                                 PvClickController*& controller);
+
+    void ensureUiStatePolicyManager(const MainWindowRuntimeRefs& refs,
+                                    QObject* parent,
+                                    UiStatePolicyManager*& controller);
+
+    void ensurePlayerInfoController(const MainWindowRuntimeRefs& refs,
+                                    QObject* parent,
+                                    PlayerInfoController*& controller);
 };
 
 #endif // MAINWINDOWCOMPOSITIONROOT_H
