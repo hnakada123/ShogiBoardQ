@@ -19,6 +19,7 @@
 #include "matchcoordinator.h"
 #include "matchcoordinatorwiring.h"
 #include "shogigamecontroller.h"
+#include "mainwindowruntimerefs.h"
 
 // --- 前方宣言（ポインタメンバのみ使用） ---
 class KifuRecordListModel;
@@ -96,6 +97,8 @@ class RecordNavigationHandler;
 class RecordNavigationWiring;
 class DialogCoordinatorWiring;
 class UiStatePolicyManager;
+class MainWindowCompositionRoot;
+class LiveGameSessionUpdater;
 
 /**
  * @brief アプリ全体の UI と対局進行を束ねるファサード
@@ -399,6 +402,9 @@ private:
     };
     GameState m_state;
 
+    // --- CompositionRoot ---
+    MainWindowCompositionRoot* m_compositionRoot = nullptr;  ///< ensure*生成ロジック集約（非所有）
+
     // --- 将棋盤 / コントローラ ---
     ShogiView*                   m_shogiView = nullptr;       ///< 将棋盤ビュー（非所有）
     ShogiGameController*         m_gameController = nullptr;  ///< ゲーム進行コントローラ（非所有）
@@ -515,6 +521,7 @@ private:
     UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
     RecordNavigationWiring* m_recordNavWiring = nullptr;               ///< 棋譜ナビゲーション配線（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
+    LiveGameSessionUpdater* m_liveGameSessionUpdater = nullptr;        ///< LiveGameSession更新ロジック（所有）
 
 
     // --- privateメソッド ---
@@ -642,6 +649,8 @@ private:
     void ensureRecordPresenter();
     /// 遅延初期化: LiveGameSessionが未開始なら開始する
     void ensureLiveGameSessionStarted();
+    /// 遅延初期化: LiveGameSessionUpdaterを生成し依存を設定する
+    void ensureLiveGameSessionUpdater();
     /// 遅延初期化: リアルタイム対局用にKifuLoadCoordinatorを準備する
     void ensureKifuLoadCoordinatorForLive();
     /// 遅延初期化: GameRecordModelを生成する
@@ -735,6 +744,10 @@ private:
     void navigateKifuViewToRow(int ply);
 
 private:
+
+    // --- ファクトリヘルパー ---
+    /// 現在のメンバ変数から MainWindowRuntimeRefs スナップショットを構築する
+    MainWindowRuntimeRefs buildRuntimeRefs();
 
     // --- フック用メンバー関数 ---
     /// 新規対局初期化のフックポイント（GameStartCoordinator用コールバック）

@@ -205,6 +205,10 @@ set(SRC_APP
     src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
+    src/app/livegamesessionupdater.cpp
+    src/app/livegamesessionupdater.h
+    src/app/mainwindowcompositionroot.cpp
+    src/app/mainwindowcompositionroot.h
     src/app/mainwindowdepsfactory.cpp
     src/app/mainwindowdepsfactory.h
     src/app/mainwindowgamestartservice.cpp
