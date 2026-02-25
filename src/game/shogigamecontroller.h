@@ -6,7 +6,7 @@
 
 
 #include <QObject>
-#include "fastmovevalidator.h"
+#include "enginemovevalidator.h"
 #include "playmode.h"
 #include "shogitypes.h"
 
@@ -170,15 +170,15 @@ private:
      * @brief 人間の着手時に成り/不成を判定・決定する
      * @return 合法手として成立する場合 true
      */
-    bool decidePromotion(PlayMode& playMode, FastMoveValidator& validator,
-                         const FastMoveValidator::Turn& turnMove,
+    bool decidePromotion(PlayMode& playMode, EngineMoveValidator& validator,
+                         const EngineMoveValidator::Turn& turnMove,
                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove);
 
     /// 相手の手番をTurnで取得する
     Turn getNextPlayerSfen();
 
     /// MoveValidatorに渡す手番を取得する
-    FastMoveValidator::Turn getCurrentTurnForValidator(FastMoveValidator& validator);
+    EngineMoveValidator::Turn getCurrentTurnForValidator(EngineMoveValidator& validator);
 };
 
 #endif // SHOGIGAMECONTROLLER_H
