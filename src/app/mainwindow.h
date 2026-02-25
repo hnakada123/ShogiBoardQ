@@ -657,12 +657,6 @@ private:
     /// 分岐ツリーを新規状態にリセットする
     void resetBranchTreeForNewState(const QString& hirateStartSfen);
 
-    // --- onBuildPositionRequired ヘルパー ---
-    /// 指定手数の直前の指し手座標を解決する
-    void resolvePreviousMoveCoordinates(int row, int& fileTo, int& rankTo) const;
-    /// 指定手数の最後のUSI指し手文字列を解決する
-    QString resolveLastUsiMoveForPly(int row) const;
-
     // --- ユーティリティ ---
     /// プレイモードに応じて対局者名を設定する
     void setPlayersNamesForMode();
@@ -827,8 +821,6 @@ private:
     qint64 getIncrementMsFor(MatchCoordinator::Player p) const;
 
     // --- 検討用ヘルパー ---
-    /// 指定手数のpositionコマンド文字列を構築する
-    QString buildPositionStringForIndex(int moveIndex) const;
     /// 秒読み時間を取得する（ms）
     qint64 getByoyomiMs() const;
 

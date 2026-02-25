@@ -41,13 +41,13 @@
 #include "usicommlogmodel.h"
 #include "boardinteractioncontroller.h"
 #include "considerationflowcontroller.h"
+#include "considerationpositionresolver.h"
 #include "shogiutils.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "timedisplaypresenter.h"
 #include "tsumesearchflowcontroller.h"
-#include "tsumepositionutil.h"
 #include "ui_mainwindow.h"
 #include "shogiclock.h"
 #include "apptooltipfilter.h"
@@ -3400,10 +3400,6 @@ void MainWindow::ensureLiveGameSessionStarted()
         return;
     }
 
-    // 平手初期局面SFEN
-    static const QString kHirateStartSfen = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
     // 現在の局面が途中局面かどうかを判定
     const QString currentSfen = m_state.currentSfenStr.trimmed();
     bool isFromMidPosition = !currentSfen.isEmpty() &&
@@ -3543,45 +3539,6 @@ qint64 MainWindow::getIncrementMsFor(MatchCoordinator::Player p) const
     return m_timeController->getIncrementMs(player);
 }
 
-// `buildPositionStringForIndex`: Position String For Index を構築する。
-QString MainWindow::buildPositionStringForIndex(int moveIndex) const
-{
-    // 1) m_kifu.positionStrList に該当インデックスがあればそれを使用（棋譜読み込み時）
-    if (moveIndex >= 0 && moveIndex < m_kifu.positionStrList.size()) {
-        return m_kifu.positionStrList.at(moveIndex);
-    }
-
-    // 2) 対局後: m_kifu.gameUsiMoves または m_kifuLoadCoordinator から構築
-    const QStringList* usiMoves = nullptr;
-    if (!m_kifu.gameUsiMoves.isEmpty()) {
-        usiMoves = &m_kifu.gameUsiMoves;
-    } else if (m_kifuLoadCoordinator) {
-        usiMoves = m_kifuLoadCoordinator->kifuUsiMovesPtr();
-    }
-
-    // 開始局面コマンドを決定
-    QString startCmd;
-    const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    if (m_state.startSfenStr.isEmpty() || m_state.startSfenStr == kHirateSfen) {
-        startCmd = QStringLiteral("startpos");
-    } else {
-        startCmd = QStringLiteral("sfen ") + m_state.startSfenStr;
-    }
-
-    if (usiMoves && !usiMoves->isEmpty()) {
-        // USI指し手リストから構築
-        return TsumePositionUtil::buildPositionWithMoves(usiMoves, startCmd, moveIndex);
-    }
-
-    // 3) フォールバック: SFEN形式で構築
-    if (sfenRecord() && moveIndex >= 0 && moveIndex < sfenRecord()->size()) {
-        const QString sfen = sfenRecord()->at(moveIndex);
-        return QStringLiteral("position sfen ") + sfen;
-    }
-
-    return QString();
-}
-
 // `getByoyomiMs`: Byoyomi Ms を取得する。
 qint64 MainWindow::getByoyomiMs() const
 {
@@ -3619,82 +3576,34 @@ void MainWindow::onBuildPositionRequired(int row)
         return;
     }
 
-    const QString newPosition = buildPositionStringForIndex(row);
-    qCDebug(lcApp).noquote() << "onBuildPositionRequired: newPosition=" << newPosition;
-    if (newPosition.isEmpty()) {
+    ConsiderationPositionResolver::Inputs inputs;
+    inputs.positionStrList = &m_kifu.positionStrList;
+    inputs.gameUsiMoves = &m_kifu.gameUsiMoves;
+    inputs.gameMoves = &m_kifu.gameMoves;
+    inputs.startSfenStr = &m_state.startSfenStr;
+    inputs.sfenRecord = sfenRecord();
+    inputs.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    inputs.kifuRecordModel = m_models.kifuRecord;
+    inputs.branchTree = m_branchNav.branchTree;
+    inputs.navState = m_branchNav.navState;
+
+    const ConsiderationPositionResolver resolver(inputs);
+    const ConsiderationPositionResolver::UpdateParams params = resolver.resolveForRow(row);
+    qCDebug(lcApp).noquote() << "onBuildPositionRequired: newPosition=" << params.position;
+    if (params.position.isEmpty()) {
         return;
     }
 
-    int previousFileTo = 0;
-    int previousRankTo = 0;
-    resolvePreviousMoveCoordinates(row, previousFileTo, previousRankTo);
-
-    const QString lastUsiMove = resolveLastUsiMoveForPly(row);
-
-    if (m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo, lastUsiMove)) {
+    if (m_match->updateConsiderationPosition(
+            params.position,
+            params.previousFileTo,
+            params.previousRankTo,
+            params.lastUsiMove)) {
         // ポジションが変更された場合、経過時間タイマーをリセットして再開
         if (m_analysisTab) {
             m_analysisTab->startElapsedTimer();
         }
     }
-}
-
-void MainWindow::resolvePreviousMoveCoordinates(int row, int& fileTo, int& rankTo) const
-{
-    fileTo = 0;
-    rankTo = 0;
-    if (row >= 0 && row < m_kifu.gameMoves.size()) {
-        const QPoint& toSquare = m_kifu.gameMoves.at(row).toSquare;
-        fileTo = toSquare.x();
-        rankTo = toSquare.y();
-    } else if (m_models.kifuRecord && row > 0 && row < m_models.kifuRecord->rowCount()) {
-        // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
-        ShogiUtils::parseMoveCoordinateFromModel(m_models.kifuRecord, row, &fileTo, &rankTo);
-    }
-}
-
-QString MainWindow::resolveLastUsiMoveForPly(int row) const
-{
-    if (row <= 0) {
-        return {};
-    }
-
-    QString lastUsiMove;
-
-    // 分岐ライン上では、現在ラインのノードを優先する。
-    if (m_branchNav.navState && m_branchNav.branchTree) {
-        const int lineIndex = m_branchNav.navState->currentLineIndex();
-        const QVector<BranchLine> lines = m_branchNav.branchTree->allLines();
-        if (lineIndex >= 0 && lineIndex < lines.size()) {
-            const BranchLine& line = lines.at(lineIndex);
-            for (KifuBranchNode* node : line.nodes) {
-                if (!node) continue;
-                if (node->ply() == row && node->isActualMove()) {
-                    const ShogiMove mv = node->move();
-                    if (mv.movingPiece != Piece::None) {
-                        lastUsiMove = ShogiUtils::moveToUsi(mv);
-                    }
-                    break;
-                }
-            }
-        }
-    }
-
-    const int usiIdx = row - 1;
-    if (lastUsiMove.isEmpty() && usiIdx >= 0) {
-        if (!m_kifu.gameUsiMoves.isEmpty() && usiIdx < m_kifu.gameUsiMoves.size()) {
-            lastUsiMove = m_kifu.gameUsiMoves.at(usiIdx);
-        } else if (m_kifuLoadCoordinator) {
-            const QStringList& kifuUsiMoves = m_kifuLoadCoordinator->kifuUsiMoves();
-            if (usiIdx < kifuUsiMoves.size()) {
-                lastUsiMove = kifuUsiMoves.at(usiIdx);
-            }
-        } else if (usiIdx < m_kifu.gameMoves.size()) {
-            lastUsiMove = ShogiUtils::moveToUsi(m_kifu.gameMoves.at(usiIdx));
-        }
-    }
-
-    return lastUsiMove;
 }
 
 // ============================================================
