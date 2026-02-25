@@ -776,10 +776,6 @@ private:
     /// 手番と持ち時間の表示を更新する
     void updateTurnAndTimekeepingDisplay();
 
-    // --- 開始局面解決 ---
-    /// 対局開始時に使用するSFEN文字列を決定する
-    QString resolveCurrentSfenForGameStart() const;
-
     /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（未初期化時はnullptr）
     QStringList* sfenRecord();
     /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（const版）

@@ -205,6 +205,10 @@ set(SRC_APP
     src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
+    src/app/mainwindowgamestartservice.cpp
+    src/app/mainwindowgamestartservice.h
+    src/app/mainwindowmatchwiringdepsservice.cpp
+    src/app/mainwindowmatchwiringdepsservice.h
     src/app/mainwindowresetservice.cpp
     src/app/mainwindowresetservice.h
 )
