@@ -298,6 +298,8 @@ set(SRC_KIFU
     src/kifu/kifubranchnode.h
     src/kifu/kifuclipboardservice.cpp
     src/kifu/kifuclipboardservice.h
+    src/kifu/considerationpositionresolver.cpp
+    src/kifu/considerationpositionresolver.h
     src/kifu/kifucontentbuilder.cpp
     src/kifu/kifucontentbuilder.h
     src/kifu/kifuexportcontroller.cpp
