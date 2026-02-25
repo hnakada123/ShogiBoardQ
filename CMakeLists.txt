@@ -208,8 +208,19 @@ set(SRC_APP
 )
 
 set(SRC_CORE
-    src/core/fastmovevalidator.cpp
-    src/core/fastmovevalidator.h
+    src/core/enginemovevalidator.cpp
+    src/core/enginemovevalidator.h
+    src/core/fmvattacks.cpp
+    src/core/fmvattacks.h
+    src/core/fmvbitboard81.cpp
+    src/core/fmvbitboard81.h
+    src/core/fmvconverter.cpp
+    src/core/fmvconverter.h
+    src/core/fmvlegalcore.cpp
+    src/core/fmvlegalcore.h
+    src/core/fmvposition.cpp
+    src/core/fmvposition.h
+    src/core/fmvtypes.h
     src/core/legalmovestatus.h
     src/core/playmode.h
     src/core/sfenutils.h
@@ -697,7 +708,7 @@ target_link_libraries(ShogiBoardQ PRIVATE
 )
 
 # アプリケーションバージョン (CalVer: YYYY.MM.DD)
-set(APP_VERSION "2026.02.24")
+set(APP_VERSION "2026.02.25")
 
 # リリースビルドではqDebug()出力を無効化
 target_compile_definitions(ShogiBoardQ PRIVATE

@@ -25,7 +25,7 @@ class AnalysisResultsPresenter;
 class ConsiderationWiring;
 class UiStatePolicyManager;
 struct ShogiMove;
-struct KifuDisplay;
+class KifuDisplay;
 
 /**
  * @brief DialogCoordinator の生成・コンテキスト設定・シグナル配線を担当するクラス

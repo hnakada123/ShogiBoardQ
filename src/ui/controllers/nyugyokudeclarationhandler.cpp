@@ -6,7 +6,7 @@
 #include "shogigamecontroller.h"
 #include "matchcoordinator.h"
 #include "jishogicalculator.h"
-#include "fastmovevalidator.h"
+#include "enginemovevalidator.h"
 #include "playmode.h"
 #include "settingsservice.h"
 
@@ -165,14 +165,14 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     auto calcResult = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
 
     // 王手判定
-    FastMoveValidator validator;
+    EngineMoveValidator validator;
     bool declarerInCheck = false;
     const auto& score = isSenteTurn ? calcResult.sente : calcResult.gote;
 
     if (isSenteTurn) {
-        declarerInCheck = validator.checkIfKingInCheck(FastMoveValidator::BLACK, board->boardData()) > 0;
+        declarerInCheck = validator.checkIfKingInCheck(EngineMoveValidator::BLACK, board->boardData()) > 0;
     } else {
-        declarerInCheck = validator.checkIfKingInCheck(FastMoveValidator::WHITE, board->boardData()) > 0;
+        declarerInCheck = validator.checkIfKingInCheck(EngineMoveValidator::WHITE, board->boardData()) > 0;
     }
 
     // 宣言条件の判定

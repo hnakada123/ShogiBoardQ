@@ -3,7 +3,7 @@
 
 #include "sennichitedetector.h"
 #include "shogiboard.h"
-#include "fastmovevalidator.h"
+#include "enginemovevalidator.h"
 
 #include "logcategories.h"
 
@@ -57,7 +57,7 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
     if (fourthIdx - thirdIdx < 2) return Result::Draw;
 
     ShogiBoard board;
-    FastMoveValidator validator;
+    EngineMoveValidator validator;
 
     int p1CheckCount = 0;   // 先手が王手をかけた回数（後手番で後手の玉が王手されている回数）
     int p2CheckCount = 0;   // 後手が王手をかけた回数（先手番で先手の玉が王手されている回数）
@@ -74,9 +74,9 @@ SennichiteDetector::Result SennichiteDetector::checkContinuousCheck(
         if (tokens.size() < 2) continue;
 
         const bool sideToMoveIsBlack = (tokens.at(1) == QLatin1String("b"));
-        const FastMoveValidator::Turn turn = sideToMoveIsBlack
-                                                 ? FastMoveValidator::BLACK
-                                                 : FastMoveValidator::WHITE;
+        const EngineMoveValidator::Turn turn = sideToMoveIsBlack
+                                                   ? EngineMoveValidator::BLACK
+                                                   : EngineMoveValidator::WHITE;
 
         // 手番側の玉が王手されているか
         const int checks = validator.checkIfKingInCheck(turn, board.boardData());

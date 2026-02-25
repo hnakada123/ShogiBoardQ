@@ -2,7 +2,7 @@
 /// @brief ランダム詰将棋候補局面生成クラスの実装
 
 #include "tsumeshogipositiongenerator.h"
-#include "fastmovevalidator.h"
+#include "enginemovevalidator.h"
 
 
 void TsumeshogiPositionGenerator::setSettings(const Settings& s)
@@ -275,9 +275,9 @@ QVector<Piece> TsumeshogiPositionGenerator::buildBoardData() const
 bool TsumeshogiPositionGenerator::isKingInCheck() const
 {
     const QVector<Piece> boardData = buildBoardData();
-    FastMoveValidator validator;
+    EngineMoveValidator validator;
     // 後手(WHITE)の玉に先手(BLACK)の駒から王手がかかっているか
-    return validator.checkIfKingInCheck(FastMoveValidator::WHITE, boardData) > 0;
+    return validator.checkIfKingInCheck(EngineMoveValidator::WHITE, boardData) > 0;
 }
 
 QString TsumeshogiPositionGenerator::buildSfen() const

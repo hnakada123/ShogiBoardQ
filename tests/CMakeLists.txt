@@ -46,6 +46,16 @@ set(TEST_LIBS Qt6::Test Qt6::Widgets Qt6::Charts Qt6::Network)
 # Copy fixtures to build directory
 file(COPY fixtures DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+# 共通ソース: EngineMoveValidator + 依存ファイル
+set(EMV_SOURCES
+    ${SRC}/core/enginemovevalidator.cpp
+    ${SRC}/core/fmvattacks.cpp
+    ${SRC}/core/fmvbitboard81.cpp
+    ${SRC}/core/fmvconverter.cpp
+    ${SRC}/core/fmvlegalcore.cpp
+    ${SRC}/core/fmvposition.cpp
+)
+
 # ---- Helper macro to add a test ----
 macro(add_shogi_test NAME)
     add_executable(${NAME} ${ARGN})
@@ -64,7 +74,7 @@ add_shogi_test(tst_coredatastructures
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/fastmovevalidator.cpp
+    ${EMV_SOURCES}
     ${SRC}/game/turnmanager.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/common/jishogicalculator.cpp
@@ -82,21 +92,12 @@ add_shogi_test(tst_shogiboard
 )
 
 # ============================================================
-# Unit 3: SfenPositionTracer + FastMoveValidator
+# Unit 3: SfenPositionTracer
 # ============================================================
 add_shogi_test(tst_sfentracer
     tst_sfentracer.cpp
     ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
-)
-
-add_shogi_test(tst_fastmovevalidator
-    tst_fastmovevalidator.cpp
-    ${TEST_STUBS}
-    ${SRC}/core/fastmovevalidator.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
 )
 
 # ============================================================
@@ -321,7 +322,7 @@ add_shogi_test(tst_integration
     tst_integration.cpp
     ${TEST_STUBS}
     ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/fastmovevalidator.cpp
+    ${EMV_SOURCES}
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/game/shogigamecontroller.cpp
@@ -408,3 +409,106 @@ add_shogi_test(tst_game_start_flow
 set_tests_properties(tst_game_start_flow PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
+
+# ============================================================
+# EngineMoveValidator テストスイート
+# ============================================================
+
+# Unit: Bitboard81
+add_shogi_test(tst_fmvbitboard81
+    tst_fmvbitboard81.cpp
+    ${SRC}/core/fmvbitboard81.cpp
+)
+
+# Unit: Converter
+add_shogi_test(tst_fmvconverter
+    tst_fmvconverter.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/fmvbitboard81.cpp
+    ${SRC}/core/fmvconverter.cpp
+    ${SRC}/core/fmvposition.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/enginemovevalidator.cpp
+    ${SRC}/core/fmvattacks.cpp
+    ${SRC}/core/fmvlegalcore.cpp
+)
+
+# Unit: Position (do/undo)
+add_shogi_test(tst_fmvposition
+    tst_fmvposition.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/fmvbitboard81.cpp
+    ${SRC}/core/fmvconverter.cpp
+    ${SRC}/core/fmvposition.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/enginemovevalidator.cpp
+    ${SRC}/core/fmvattacks.cpp
+    ${SRC}/core/fmvlegalcore.cpp
+)
+
+# Unit: LegalCore
+add_shogi_test(tst_fmvlegalcore
+    tst_fmvlegalcore.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# Unit: EngineMoveValidator compat (互換ラッパ)
+add_shogi_test(tst_enginemovevalidator_compat
+    tst_enginemovevalidator_compat.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# Unit: EngineMoveValidator context (Context API)
+add_shogi_test(tst_enginemovevalidator_context
+    tst_enginemovevalidator_context.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# Perft tests
+add_shogi_test(tst_fmv_perft
+    tst_fmv_perft.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# Crosscheck: EngineMoveValidator (既知値との比較)
+add_shogi_test(tst_enginemovevalidator_crosscheck
+    tst_enginemovevalidator_crosscheck.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
+add_executable(bench_movevalidator
+    bench_movevalidator.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+)
+target_include_directories(bench_movevalidator PRIVATE ${TEST_INCLUDES})
+target_link_libraries(bench_movevalidator PRIVATE ${TEST_LIBS})
+target_compile_options(bench_movevalidator PRIVATE -O2)

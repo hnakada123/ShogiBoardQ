@@ -43,7 +43,17 @@
       "Bash(./build/tests/tst_csaconverter:*)",
       "Bash(head:*)",
       "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_game_start_flow:*)",
-      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_kifu_comment_sync:*)"
+      "Bash(QT_QPA_PLATFORM=offscreen ./build/tests/tst_kifu_comment_sync:*)",
+      "Bash(./build/tests/tst_fmvbitboard81:*)",
+      "Bash(./build/tests/tst_fmvconverter 2>&1 && ./build/tests/tst_fmvposition 2>&1)",
+      "Bash(./build/tests/tst_fmvlegalcore:*)",
+      "Bash(./build/tests/tst_enginemovevalidator_compat:*)",
+      "Bash(./build/tests/tst_enginemovevalidator_context:*)",
+      "Bash(./build/tests/tst_fmv_perft:*)",
+      "Bash(./build/tests/tst_enginemovevalidator_crosscheck:*)",
+      "Bash(./build/tests/bench_movevalidator:*)",
+      "Bash(for i in 1 2; do echo \"=== Run $i ===\" && ./build/tests/bench_movevalidator 2>&1; done)",
+      "Bash(./build/tests/tst_fmvconverter:*)"
     ]
   }
 }

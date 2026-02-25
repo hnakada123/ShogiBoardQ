@@ -5,7 +5,7 @@
 #include "buttonstyles.h"
 #include "shogiboard.h"
 #include "jishogicalculator.h"
-#include "fastmovevalidator.h"
+#include "enginemovevalidator.h"
 #include "settingsservice.h"
 
 #include <QDialog>
@@ -46,13 +46,13 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     auto result = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
 
     // 王手判定のためのMoveValidatorを作成
-    FastMoveValidator validator;
+    EngineMoveValidator validator;
 
     // 先手の玉が王手されているかどうかを判定
-    bool senteInCheck = validator.checkIfKingInCheck(FastMoveValidator::BLACK, board->boardData()) > 0;
+    bool senteInCheck = validator.checkIfKingInCheck(EngineMoveValidator::BLACK, board->boardData()) > 0;
 
     // 後手の玉が王手されているかどうかを判定
-    bool goteInCheck = validator.checkIfKingInCheck(FastMoveValidator::WHITE, board->boardData()) > 0;
+    bool goteInCheck = validator.checkIfKingInCheck(EngineMoveValidator::WHITE, board->boardData()) > 0;
 
     // 宣言条件の文字列を生成
     QString senteCondition = buildConditionString(

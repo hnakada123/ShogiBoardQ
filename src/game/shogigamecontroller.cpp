@@ -10,7 +10,6 @@
 #include "matchcoordinator.h"
 #include "shogiboard.h"
 #include "shogimove.h"
-#include "fastmovevalidator.h"
 #include "playmode.h"
 #include "shogiutils.h"
 #include "legalmovestatus.h"
@@ -136,7 +135,7 @@ Turn ShogiGameController::getNextPlayerSfen()
     }
 }
 
-FastMoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(FastMoveValidator& validator)
+EngineMoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(EngineMoveValidator& validator)
 {
     if (currentPlayer() == Player1) {
         return validator.BLACK;
@@ -226,8 +225,8 @@ QString ShogiGameController::getPieceKanji(const Piece piece)
 // 成り判定
 // ============================================================
 
-bool ShogiGameController::decidePromotion(PlayMode& playMode, FastMoveValidator& validator,
-                                          const FastMoveValidator::Turn& turnMove,
+bool ShogiGameController::decidePromotion(PlayMode& playMode, EngineMoveValidator& validator,
+                                          const EngineMoveValidator::Turn& turnMove,
                                           int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove)
 {
     // 駒台には指せない
@@ -362,8 +361,8 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     qCDebug(lcGame) << "rankTo = " << rankTo;
     qCDebug(lcGame) << "currentPlayer() = " << currentPlayer();
 
-    FastMoveValidator validator;
-    FastMoveValidator::Turn turn = getCurrentTurnForValidator(validator);
+    EngineMoveValidator validator;
+    EngineMoveValidator::Turn turn = getCurrentTurnForValidator(validator);
 
     QPoint fromPoint(fileFrom - 1, rankFrom - 1);
     QPoint toPoint(fileTo - 1, rankTo - 1);
