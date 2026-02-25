@@ -34,6 +34,8 @@
 #include <QRegularExpression>
 
 #include "mainwindow.h"
+#include "mainwindowgamestartservice.h"
+#include "mainwindowmatchwiringdepsservice.h"
 #include "mainwindowresetservice.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -860,41 +862,6 @@ void MainWindow::setCurrentTurn()
     if (m_gameController) m_gameController->setCurrentPlayer(tm->toGc());
 }
 
-// `resolveCurrentSfenForGameStart`: Current Sfen For Game Start を解決する。
-QString MainWindow::resolveCurrentSfenForGameStart() const
-{
-    qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: m_kifu.currentSelectedPly=" << m_kifu.currentSelectedPly
-                       << " sfenRecord()=" << (sfenRecord() ? "exists" : "null")
-                       << " size=" << (sfenRecord() ? sfenRecord()->size() : -1);
-
-    // 1) 棋譜SFENリストの「選択手」から取得（最優先）
-    if (sfenRecord()) {
-        const qsizetype size = sfenRecord()->size();
-        // m_kifu.currentSelectedPly が [0..size-1] のインデックスである前提（本プロジェクトの慣習）
-        // 1始まりの場合はプロジェクト実装に合わせて +0 / -1 調整してください。
-        int idx = m_kifu.currentSelectedPly;
-        qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: initial idx=" << idx;
-        if (idx < 0) {
-            // 0手目（開始局面）などのとき
-            idx = 0;
-        }
-        // 最後の有効なSFEN（対局終了時点の局面）を使用する
-        if (idx >= size && size > 0) {
-            qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: idx(" << idx << ") >= size(" << size << "), clamping to " << (size - 1);
-            idx = static_cast<int>(size - 1);
-        }
-        if (idx >= 0 && idx < size) {
-            const QString s = sfenRecord()->at(idx).trimmed();
-            qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: at(" << idx << ")=" << s.left(50);
-            if (!s.isEmpty()) return s;
-        }
-    }
-
-    // 2) フォールバックなし（司令塔側が安全に処理）
-    qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart: returning EMPTY";
-    return QString();
-}
-
 QStringList* MainWindow::sfenRecord()
 {
     return m_match ? m_match->sfenRecordPtr() : nullptr;
@@ -910,64 +877,34 @@ void MainWindow::initializeGame()
 {
     ensureGameStartCoordinator();
 
-    // 注意: m_state.startSfenStr は局面編集時にセットされている場合があるため、
-    //       ここではクリアしない。プリセット選択時のSFEN上書きは
-    //       GameStartCoordinator::initializeGame() 側で行う。
+    MainWindowGameStartService::PrepareDeps prep;
+    prep.branchTree = m_branchNav.branchTree;
+    prep.navState = m_branchNav.navState;
+    prep.sfenRecord = sfenRecord();
+    prep.currentSelectedPly = m_kifu.currentSelectedPly;
+    prep.currentSfenStr = &m_state.currentSfenStr;
 
-    // 分岐ツリーから途中局面で再対局する場合、sfenRecord() を
-    // 現在のラインのSFENで再構築する。これにより、前の対局の異なる分岐の
-    // SFENが混在してSFEN差分によるハイライトが誤動作する問題を防ぐ。
-    // 重要: resolveCurrentSfenForGameStart() より前に実行する必要がある。
-    //       sfenRecord が本譜のままだと、分岐局面ではなく本譜の SFEN が
-    //       m_state.currentSfenStr に設定されてしまい、対局開始SFENが誤る。
-    if (m_branchNav.branchTree != nullptr && m_branchNav.navState != nullptr
-        && sfenRecord() != nullptr && m_kifu.currentSelectedPly > 0) {
-        const int lineIndex = m_branchNav.navState->currentLineIndex();
-        const QStringList branchSfens = m_branchNav.branchTree->getSfenListForLine(lineIndex);
-        if (!branchSfens.isEmpty() && m_kifu.currentSelectedPly < branchSfens.size()) {
-            sfenRecord()->clear();
-            for (int i = 0; i <= m_kifu.currentSelectedPly; ++i) {
-                sfenRecord()->append(branchSfens.at(i));
-            }
-            qCDebug(lcApp).noquote()
-                << "initializeGame: rebuilt sfenRecord from branchTree line=" << lineIndex
-                << " entries=" << sfenRecord()->size();
-        }
-    }
-
-    // 現在の局面SFEN（棋譜レコードから最優先で取得）
-    {
-        qCDebug(lcApp).noquote() << "initializeGame: BEFORE resolve, m_state.currentSfenStr=" << m_state.currentSfenStr.left(50);
-        const QString sfen = resolveCurrentSfenForGameStart().trimmed();
-        qCDebug(lcApp).noquote() << "initializeGame: resolved sfen=" << sfen.left(50);
-        if (!sfen.isEmpty()) {
-            m_state.currentSfenStr = sfen;
-            qCDebug(lcApp).noquote() << "initializeGame: SET m_state.currentSfenStr=" << m_state.currentSfenStr.left(50);
-        } else {
-            // 何も取れないケースは珍しいが、空のままでも司令塔側で安全にフォールバックされる。
-            // ここでは何もしない（ログのみ）
-            qCDebug(lcApp).noquote() << "resolveCurrentSfenForGameStart_: empty. delegate to coordinator.";
-        }
-    }
+    const MainWindowGameStartService gameStartService;
+    gameStartService.prepareForInitializeGame(prep);
 
     qCDebug(lcApp).noquote() << "initializeGame: FINAL m_state.currentSfenStr=" << m_state.currentSfenStr.left(50)
                        << " m_state.startSfenStr=" << m_state.startSfenStr.left(50)
                        << " m_kifu.currentSelectedPly=" << m_kifu.currentSelectedPly;
 
-    GameStartCoordinator::Ctx c;
-    c.view            = m_shogiView;
-    c.gc              = m_gameController;
-    c.clock           = m_timeController ? m_timeController->clock() : nullptr;
-    c.sfenRecord      = sfenRecord();          // QStringList*
-    c.kifuModel       = m_models.kifuRecord;     // 棋譜欄モデル（終端行削除に使用）
-    c.kifuLoadCoordinator = m_kifuLoadCoordinator;  // 分岐構造の設定用
-    c.currentSfenStr  = &m_state.currentSfenStr;     // 現局面の SFEN（ここで事前決定済み）
-    c.startSfenStr    = &m_state.startSfenStr;       // 開始SFENは明示的に空（優先度を逆転）
-    c.selectedPly     = m_kifu.currentSelectedPly;  // 1始まり/0始まりはプロジェクト規約に準拠
-    c.isReplayMode    = m_replayController ? m_replayController->isReplayMode() : false;
-    c.bottomIsP1      = m_player.bottomIsP1;
+    MainWindowGameStartService::ContextDeps ctx;
+    ctx.view = m_shogiView;
+    ctx.gc = m_gameController;
+    ctx.clock = m_timeController ? m_timeController->clock() : nullptr;
+    ctx.sfenRecord = sfenRecord();
+    ctx.kifuModel = m_models.kifuRecord;
+    ctx.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    ctx.currentSfenStr = &m_state.currentSfenStr;
+    ctx.startSfenStr = &m_state.startSfenStr;
+    ctx.selectedPly = m_kifu.currentSelectedPly;
+    ctx.isReplayMode = m_replayController ? m_replayController->isReplayMode() : false;
+    ctx.bottomIsP1 = m_player.bottomIsP1;
 
-    m_gameStart->initializeGame(c);
+    m_gameStart->initializeGame(gameStartService.buildContext(ctx));
 }
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
@@ -1925,39 +1862,35 @@ MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps()
     using std::placeholders::_5;
     using std::placeholders::_6;
 
-    MatchCoordinatorWiring::BuilderInputs in;
-
-    // --- HookDeps ---
-    in.hookDeps.evalGraphController = m_evalGraphController;
-    in.hookDeps.onTurnChanged = std::bind(&MainWindow::onTurnManagerChanged, this, _1);
-    in.hookDeps.sendGo = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
+    MainWindowMatchWiringDepsService::Inputs in;
+    in.evalGraphController = m_evalGraphController;
+    in.onTurnChanged = std::bind(&MainWindow::onTurnManagerChanged, this, _1);
+    in.sendGo = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
         if (m_match) m_match->sendGoToEngine(which, t);
     };
-    in.hookDeps.sendStop = [this](Usi* which) {
+    in.sendStop = [this](Usi* which) {
         if (m_match) m_match->sendStopToEngine(which);
     };
-    in.hookDeps.sendRaw = [this](Usi* which, const QString& cmd) {
+    in.sendRaw = [this](Usi* which, const QString& cmd) {
         if (m_match) m_match->sendRawToEngine(which, cmd);
     };
-    in.hookDeps.initializeNewGame = std::bind(&MainWindow::initializeNewGameHook, this, _1);
-    in.hookDeps.renderBoard = std::bind(&MainWindow::renderBoardFromGc, this);
-    in.hookDeps.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights, this, _1, _2);
-    in.hookDeps.appendKifuLine = std::bind(&MainWindow::appendKifuLineHook, this, _1, _2);
-    in.hookDeps.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox, this, _1, _2);
-    in.hookDeps.remainingMsFor = std::bind(&MainWindow::getRemainingMsFor, this, _1);
-    in.hookDeps.incrementMsFor = std::bind(&MainWindow::getIncrementMsFor, this, _1);
-    in.hookDeps.byoyomiMs = std::bind(&MainWindow::getByoyomiMs, this);
-    in.hookDeps.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_playerInfoWiring, _1, _2);
-    in.hookDeps.setEngineNames = std::bind(&PlayerInfoWiring::onSetEngineNames, m_playerInfoWiring, _1, _2);
+    in.initializeNewGame = std::bind(&MainWindow::initializeNewGameHook, this, _1);
+    in.renderBoard = std::bind(&MainWindow::renderBoardFromGc, this);
+    in.showMoveHighlights = std::bind(&MainWindow::showMoveHighlights, this, _1, _2);
+    in.appendKifuLine = std::bind(&MainWindow::appendKifuLineHook, this, _1, _2);
+    in.showGameOverDialog = std::bind(&MainWindow::showGameOverMessageBox, this, _1, _2);
+    in.remainingMsFor = std::bind(&MainWindow::getRemainingMsFor, this, _1);
+    in.incrementMsFor = std::bind(&MainWindow::getIncrementMsFor, this, _1);
+    in.byoyomiMs = std::bind(&MainWindow::getByoyomiMs, this);
+    in.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_playerInfoWiring, _1, _2);
+    in.setEngineNames = std::bind(&PlayerInfoWiring::onSetEngineNames, m_playerInfoWiring, _1, _2);
     ensureKifuFileController();
-    in.hookDeps.autoSaveKifu = std::bind(&KifuFileController::autoSaveKifuToFile, m_kifuFileController, _1, _2, _3, _4, _5, _6);
+    in.autoSaveKifu = std::bind(&KifuFileController::autoSaveKifuToFile, m_kifuFileController, _1, _2, _3, _4, _5, _6);
 
-    // --- UndoDeps ---
-    in.undoDeps.updateHighlightsForPly = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
-    in.undoDeps.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay, this);
-    in.undoDeps.isHumanSide = std::bind(&MainWindow::isHumanSide, this, _1);
+    in.updateHighlightsForPly = std::bind(&MainWindow::syncBoardAndHighlightsAtRow, this, _1);
+    in.updateTurnAndTimekeepingDisplay = std::bind(&MainWindow::updateTurnAndTimekeepingDisplay, this);
+    in.isHumanSide = std::bind(&MainWindow::isHumanSide, this, _1);
 
-    // --- 直接値 ---
     in.gc    = m_gameController;
     in.view  = m_shogiView;
     in.usi1  = m_usi1;
@@ -1975,7 +1908,6 @@ MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps()
     in.positionStrList  = &m_kifu.positionStrList;
     in.currentMoveIndex = &m_state.currentMoveIndex;
 
-    // --- 遅延初期化コールバック ---
     in.ensureTimeController           = std::bind(&MainWindow::ensureTimeController, this);
     in.ensureEvaluationGraphController = std::bind(&MainWindow::ensureEvaluationGraphController, this);
     in.ensurePlayerInfoWiring         = std::bind(&MainWindow::ensurePlayerInfoWiring, this);
@@ -1984,7 +1916,6 @@ MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps()
     in.connectBoardClicks             = std::bind(&MainWindow::connectBoardClicks, this);
     in.connectMoveRequested           = std::bind(&MainWindow::connectMoveRequested, this);
 
-    // --- 遅延初期化オブジェクトのゲッター ---
     in.getClock = [this]() -> ShogiClock* {
         return m_timeController ? m_timeController->clock() : nullptr;
     };
@@ -1998,7 +1929,8 @@ MatchCoordinatorWiring::Deps MainWindow::buildMatchWiringDeps()
         return m_uiStatePolicy;
     };
 
-    return MatchCoordinatorWiring::buildDeps(in);
+    const MainWindowMatchWiringDepsService depsService;
+    return depsService.buildDeps(in);
 }
 
 void MainWindow::wireMatchWiringSignals()
