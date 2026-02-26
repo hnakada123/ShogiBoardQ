@@ -473,8 +473,8 @@ Discard changes and move?</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="106"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="403"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="426"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="409"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="432"/>
         <source>経過: 0:00</source>
         <translation type="unfinished">Elapsed: 0:00</translation>
     </message>
@@ -510,7 +510,7 @@ Discard changes and move?</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="137"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="456"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="462"/>
         <source>検討開始</source>
         <translation type="unfinished">Start Consideration</translation>
     </message>
@@ -520,32 +520,32 @@ Discard changes and move?</translation>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="449"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="455"/>
         <source>検討中止</source>
         <translation type="unfinished">Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="450"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="456"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation type="unfinished">Stop analysis and terminate the engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="457"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="463"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation type="unfinished">Open consideration dialog to start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="590"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="596"/>
         <source>エラー</source>
         <translation type="unfinished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="590"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="596"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="623"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="629"/>
         <source>経過: %1:%2</source>
         <translation type="unfinished">Elapsed: %1:%2</translation>
     </message>
@@ -4291,7 +4291,7 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="467"/>
+        <location filename="../../src/app/mainwindow.cpp" line="424"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
@@ -4711,7 +4711,7 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2727"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2404"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>

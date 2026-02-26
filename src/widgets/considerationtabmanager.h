@@ -47,6 +47,7 @@ public:
 
     // モデル設定
     void setConsiderationThinkingModel(ShogiEngineThinkingModel* m);
+    ShogiEngineThinkingModel* considerationModel() const { return m_considerationModel; }
 
     // 候補手の数
     int considerationMultiPV() const;

@@ -21,7 +21,7 @@ jobs:
         run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
-        run: cmake --build build --parallel
+        run: cmake --build build --parallel 2
 
       - name: Test
         env:
@@ -47,7 +47,7 @@ jobs:
 
       - name: Build and check
         run: |
-          cmake --build build --parallel 2>&1 | tee build.log
+          cmake --build build --parallel 2 2>&1 | tee build.log
           if grep -q "warning:.*\[-clang" build.log; then
             echo "::error::clang-tidy warnings detected"
             grep "warning:.*\[-clang" build.log

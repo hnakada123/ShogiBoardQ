@@ -63,6 +63,7 @@ class ShogiView;
 class EvaluationChartWidget;
 class BoardSyncPresenter;
 class BoardLoadService;
+class ConsiderationPositionService;
 class AnalysisResultsPresenter;
 class GameRecordPresenter;
 class TimeDisplayPresenter;
@@ -102,7 +103,10 @@ class KifuNavigationCoordinator;
 class BranchNavigationWiring;
 class PlayModePolicyService;
 class GameRecordUpdateService;
+class UndoFlowService;
 class TurnStateSyncService;
+class GameRecordLoadService;
+class SessionLifecycleCoordinator;
 
 #ifdef QT_DEBUG
 class DebugScreenshotWiring;
@@ -127,6 +131,10 @@ class MainWindow : public QMainWindow
 
     friend class RecordNavigationWiring;
     friend class MainWindowUiBootstrapper;
+    friend class MainWindowRuntimeRefsFactory;
+    friend class MainWindowWiringAssembler;
+    friend class KifuLoadCoordinatorFactory;
+    friend class KifuExportDepsAssembler;
 
     // --- public ---
 public:
@@ -151,16 +159,10 @@ public slots:
     void displayErrorMessage(const QString& message);
     /// ウィンドウ設定を保存してアプリを終了する
     void saveSettingsAndClose();
-    /// 盤面・棋譜・状態を初期状態にリセットする
+    /// 盤面・棋譜・状態を初期状態にリセットする（SessionLifecycleCoordinatorへ委譲）
     void resetToInitialState();
-    /// エンジン・通信の停止
-    void resetEngineState();
-    /// ゲーム状態変数のリセット
+    /// ゲーム状態変数のリセット（SessionLifecycleCoordinatorへ委譲）
     void resetGameState();
-    /// データモデルのクリア
-    void resetModels(const QString& hirateStartSfen);
-    /// UI要素の状態リセット（盤面描画、UIポリシー）
-    void resetUiState(const QString& hirateStartSfen);
     /// 詰み探索エンジンを終了する
     void stopTsumeSearch();
     /// 現在の局面で定跡ウィンドウを更新する
@@ -469,6 +471,7 @@ private:
     PositionEditController*   m_posEdit = nullptr;             ///< 局面編集コントローラ（非所有）
     BoardSyncPresenter*       m_boardSync = nullptr;           ///< 盤面同期プレゼンタ（非所有）
     BoardLoadService*         m_boardLoadService = nullptr;    ///< 盤面読み込みサービス（非所有）
+    ConsiderationPositionService* m_considerationPositionService = nullptr; ///< 検討局面解決サービス（非所有）
     AnalysisResultsPresenter* m_analysisPresenter = nullptr;   ///< 解析結果プレゼンタ（非所有）
     /// メニュー操作など通常の「対局開始」入口を担当
     GameStartCoordinator*     m_gameStart = nullptr;           ///< 対局開始コーディネータ（非所有）
@@ -530,15 +533,34 @@ private:
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
     std::unique_ptr<LiveGameSessionUpdater> m_liveGameSessionUpdater;  ///< LiveGameSession更新ロジック（所有）
     std::unique_ptr<GameRecordUpdateService> m_gameRecordUpdateService; ///< 棋譜追記・ライブ更新サービス（所有）
+    std::unique_ptr<UndoFlowService> m_undoFlowService;                 ///< 待った巻き戻し後処理サービス（所有）
+    std::unique_ptr<GameRecordLoadService> m_gameRecordLoadService;     ///< 棋譜表示初期化サービス（所有）
     std::unique_ptr<TurnStateSyncService> m_turnStateSync;             ///< 手番同期サービス（所有）
     BranchNavigationWiring* m_branchNavWiring = nullptr;              ///< 分岐ナビゲーション配線（非所有）
     KifuNavigationCoordinator* m_kifuNavCoordinator = nullptr;        ///< 棋譜ナビゲーション同期（非所有）
+    SessionLifecycleCoordinator* m_sessionLifecycle = nullptr;        ///< セッションライフサイクル管理（非所有）
 
 #ifdef QT_DEBUG
     DebugScreenshotWiring* m_debugScreenshotWiring = nullptr;        ///< デバッグ用スクリーンショット配線
 #endif
 
     // --- privateメソッド ---
+
+    // --- リセット処理（SessionLifecycleCoordinator コールバック先） ---
+    /// エンジン・通信の停止
+    void resetEngineState();
+    /// m_state/m_player/m_kifu のフィールドをデフォルト値にクリアする
+    void clearGameStateFields();
+    /// データモデルのクリア
+    void resetModels(const QString& hirateStartSfen);
+    /// UI要素の状態リセット（盤面描画、UIポリシー）
+    void resetUiState(const QString& hirateStartSfen);
+    /// 評価グラフ・スコア・ライブ表示をクリアする
+    void clearEvalState();
+    /// 対局終了時のスタイルロックを解除する
+    void unlockGameOverStyle();
+    /// MatchCoordinator 経由で対局を開始する
+    void invokeStartGame();
 
     // --- UI / 表示更新 ---
     /// セッション依存UIコンポーネント（思考・検討・ログ・解析）をクリアする
@@ -645,6 +667,8 @@ private:
     void ensureBoardSyncPresenter();
     /// 遅延初期化: BoardLoadServiceを生成し依存を設定する
     void ensureBoardLoadService();
+    /// 遅延初期化: ConsiderationPositionServiceを生成し依存を設定する
+    void ensureConsiderationPositionService();
     /// 遅延初期化: AnalysisResultsPresenterを生成し依存を設定する
     void ensureAnalysisPresenter();
     /// 遅延初期化: GameStartCoordinatorを生成し依存を設定する
@@ -657,6 +681,10 @@ private:
     void ensureLiveGameSessionUpdater();
     /// 遅延初期化: GameRecordUpdateServiceを生成し依存を設定する
     void ensureGameRecordUpdateService();
+    /// 遅延初期化: UndoFlowServiceを生成し依存を設定する
+    void ensureUndoFlowService();
+    /// 遅延初期化: GameRecordLoadServiceを生成し依存を設定する
+    void ensureGameRecordLoadService();
     /// 遅延初期化: TurnStateSyncServiceを生成し依存を設定する
     void ensureTurnStateSyncService();
     /// 遅延初期化: リアルタイム対局用にKifuLoadCoordinatorを準備する
@@ -714,6 +742,8 @@ private:
     void ensureUiStatePolicyManager();
     /// 遅延初期化: KifuNavigationCoordinatorを生成し依存を設定する
     void ensureKifuNavigationCoordinator();
+    /// 遅延初期化: SessionLifecycleCoordinatorを生成し依存を設定する
+    void ensureSessionLifecycleCoordinator();
 
     // --- ensure* 分割ヘルパー（bind/wire） ---
     /// CsaGameWiringのシグナル/スロット接続を行う
