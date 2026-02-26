@@ -46,6 +46,19 @@ public:
      */
     void broadcastComment(const QString& text, bool asHtml);
 
+    /**
+     * @brief 棋譜行変更リクエストを処理する
+     *
+     * 未保存コメントがある場合は確認ダイアログを表示し、
+     * キャンセル時は元の行に復元する。
+     * OKの場合はコメントを配信する。
+     *
+     * @param row 遷移先の行番号
+     * @param comment 遷移先行のコメント
+     * @return true: 行変更を続行, false: キャンセルされた
+     */
+    bool handleRecordRowChangeRequest(int row, const QString& comment);
+
 public slots:
     /**
      * @brief コメント更新スロット（UIからの更新）

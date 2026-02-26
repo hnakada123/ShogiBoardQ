@@ -3,8 +3,13 @@
 
 #include "analysistabwiring.h"
 
+#include "branchnavigationwiring.h"
+#include "commentcoordinator.h"
+#include "considerationwiring.h"
 #include "engineanalysistab.h"
+#include "pvclickcontroller.h"
 #include "shogienginethinkingmodel.h"
+#include "usicommandcontroller.h"
 
 #include <QTabWidget>
 #include <QDebug>
@@ -40,4 +45,58 @@ EngineAnalysisTab* AnalysisTabWiring::buildUiAndWire()
         Qt::UniqueConnection);
 
     return m_analysisTab;
+}
+
+void AnalysisTabWiring::wireExternalSignals(const ExternalSignalDeps& deps)
+{
+    if (!m_analysisTab) return;
+
+    // 分岐ツリーのアクティベートを BranchNavigationWiring へ
+    if (deps.branchNavigationWiring) {
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::branchNodeActivated,
+            deps.branchNavigationWiring, &BranchNavigationWiring::onBranchNodeActivated,
+            Qt::UniqueConnection);
+    }
+
+    // コメント更新を CommentCoordinator へ
+    if (deps.commentCoordinator) {
+        deps.commentCoordinator->setCommentEditor(m_analysisTab->commentEditor());
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::commentUpdated,
+            deps.commentCoordinator, &CommentCoordinator::onCommentUpdated,
+            Qt::UniqueConnection);
+    }
+
+    // 読み筋行クリックを PvClickController へ直接接続
+    if (deps.pvClickController) {
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::pvRowClicked,
+            deps.pvClickController, &PvClickController::onPvRowClicked,
+            Qt::UniqueConnection);
+    }
+
+    // USIコマンド送信を UsiCommandController へ
+    if (deps.usiCommandController) {
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::usiCommandRequested,
+            deps.usiCommandController, &UsiCommandController::sendCommand,
+            Qt::UniqueConnection);
+    }
+
+    // 検討開始・エンジン設定・エンジン変更シグナルを ConsiderationWiring に接続
+    if (deps.considerationWiring) {
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::startConsiderationRequested,
+            deps.considerationWiring, &ConsiderationWiring::displayConsiderationDialog,
+            Qt::UniqueConnection);
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::engineSettingsRequested,
+            deps.considerationWiring, &ConsiderationWiring::onEngineSettingsRequested,
+            Qt::UniqueConnection);
+        QObject::connect(
+            m_analysisTab, &EngineAnalysisTab::considerationEngineChanged,
+            deps.considerationWiring, &ConsiderationWiring::onEngineChanged,
+            Qt::UniqueConnection);
+    }
 }

@@ -3,10 +3,16 @@
 
 #include "kifuloadcoordinatorfactory.h"
 #include "mainwindow.h"
+#include "matchruntimequeryservice.h"
 #include "kifuloadcoordinator.h"
 #include "playerinfowiring.h"
 #include "gameinfopanecontroller.h"
 #include "engineanalysistab.h"
+#include "branchnavigationwiring.h"
+#include "kifunavigationcoordinator.h"
+#include "uistatepolicymanager.h"
+#include "mainwindowserviceregistry.h"
+#include "uinotificationservice.h"
 
 void KifuLoadCoordinatorFactory::createAndWire(MainWindow& mw)
 {
@@ -22,7 +28,7 @@ void KifuLoadCoordinatorFactory::createAndWire(MainWindow& mw)
         /* activePly           */ mw.m_kifu.activePly,
         /* currentSelectedPly  */ mw.m_kifu.currentSelectedPly,
         /* currentMoveIndex    */ mw.m_state.currentMoveIndex,
-        /* sfenRecord          */ mw.sfenRecord(),
+        /* sfenRecord          */ mw.m_queryService->sfenRecord(),
         /* gameInfoTable       */ mw.m_gameInfoController ? mw.m_gameInfoController->tableWidget() : nullptr,
         /* gameInfoDock        */ nullptr,  // GameInfoPaneControllerに移行済み
         /* tab                 */ mw.m_tab,
@@ -40,9 +46,10 @@ void KifuLoadCoordinatorFactory::createAndWire(MainWindow& mw)
         mw.m_kifuLoadCoordinator->setNavigationState(mw.m_branchNav.navState);
     }
 
-    // 分岐ツリー構築完了シグナルを接続
+    // 分岐ツリー構築完了シグナルを BranchNavigationWiring へ直接接続
+    mw.ensureBranchNavigationWiring();
     QObject::connect(mw.m_kifuLoadCoordinator, &KifuLoadCoordinator::branchTreeBuilt,
-                     &mw, &MainWindow::onBranchTreeBuilt, Qt::UniqueConnection);
+                     mw.m_branchNavWiring, &BranchNavigationWiring::onBranchTreeBuilt, Qt::UniqueConnection);
 
     // Analysisタブ・ShogiViewとの配線
     if (mw.m_analysisTab) {
@@ -53,15 +60,18 @@ void KifuLoadCoordinatorFactory::createAndWire(MainWindow& mw)
     // UI更新通知
     QObject::connect(mw.m_kifuLoadCoordinator, &KifuLoadCoordinator::displayGameRecord,
                      &mw, &MainWindow::displayGameRecord, Qt::UniqueConnection);
+    mw.ensureKifuNavigationCoordinator();
     QObject::connect(mw.m_kifuLoadCoordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,
-                     &mw, &MainWindow::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
+                     mw.m_kifuNavCoordinator, &KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
+    mw.m_registry->ensureUiStatePolicyManager();
     QObject::connect(mw.m_kifuLoadCoordinator, &KifuLoadCoordinator::enableArrowButtons,
-                     &mw, &MainWindow::enableArrowButtons, Qt::UniqueConnection);
+                     mw.m_uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed, Qt::UniqueConnection);
 
     // 対局情報の元データを保存（PlayerInfoWiring経由）
     mw.ensurePlayerInfoWiring();
     QObject::connect(mw.m_kifuLoadCoordinator, &KifuLoadCoordinator::gameInfoPopulated,
                      mw.m_playerInfoWiring, &PlayerInfoWiring::setOriginalGameInfo, Qt::UniqueConnection);
+    mw.m_registry->ensureUiNotificationService();
     QObject::connect(mw.m_kifuLoadCoordinator, &KifuLoadCoordinator::errorOccurred,
-                     &mw, &MainWindow::displayErrorMessage, Qt::UniqueConnection);
+                     mw.m_notificationService, &UiNotificationService::displayErrorMessage, Qt::UniqueConnection);
 }

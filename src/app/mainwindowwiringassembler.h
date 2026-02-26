@@ -24,9 +24,6 @@ public:
     /// MatchCoordinatorWiring::Deps を構築する
     static MatchCoordinatorWiring::Deps buildMatchWiringDeps(MainWindow& mw);
 
-    /// MatchCoordinatorWiring の転送シグナルを MainWindow スロットに接続する
-    static void wireMatchWiringSignals(MainWindow& mw);
-
     /// DialogLaunchWiring を初期化する（Deps 構築 + 生成 + signal 接続）
     static void initializeDialogLaunchWiring(MainWindow& mw);
 };

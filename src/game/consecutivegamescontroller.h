@@ -56,8 +56,7 @@ public:
 
 signals:
     /// 次の対局開始を要求（→ MainWindow 側で処理）
-    void requestStartNextGame(const MatchCoordinator::StartOptions& opt,
-                               const GameStartCoordinator::TimeControl& tc);
+    void requestStartNextGame(const GameStartCoordinator::StartParams& params);
 
     /// 前準備クリーンアップを要求（→ PrestartCleanupHandler::cleanup）
     void requestPreStartCleanup();

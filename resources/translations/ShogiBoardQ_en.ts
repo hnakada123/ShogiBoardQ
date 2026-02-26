@@ -235,37 +235,38 @@ Author: %1</translation>
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="76"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="104"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="124"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="68"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="152"/>
         <source>コメントなし</source>
         <translation type="unfinished">No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="148"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="176"/>
         <source>手を選択してください</source>
         <translation>Please select a move</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="169"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="197"/>
         <source>しおりを編集</source>
         <translation>Edit Bookmark</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="170"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="198"/>
         <source>しおり名（手数: %1）:</source>
         <translation>Bookmark name (move: %1):</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="186"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="214"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>Bookmark removed (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="188"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="216"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>Bookmark set (move: %1)</translation>
     </message>
@@ -1026,27 +1027,27 @@ Please register an engine from Tools → Engine Settings.</translation>
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="114"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="117"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="115"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="118"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="140"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="143"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA network game started: %1 vs %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="152"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="155"/>
         <source>負け</source>
         <translation>Loss</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="209"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="212"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -1057,77 +1058,77 @@ Result: %1
 Cause: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="210"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="213"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="220"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="223"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="268"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="271"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="268"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="271"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="320"/>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="323"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="324"/>
         <source>投了</source>
         <translation>Resign</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="323"/>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="324"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="326"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="327"/>
         <source>時間切れ</source>
         <translation>Time Up</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="326"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="329"/>
         <source>反則</source>
         <translation>Foul</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="327"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="330"/>
         <source>反則負け</source>
         <translation>Foul Loss</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="329"/>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="330"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="332"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="333"/>
         <source>千日手</source>
         <translation>Sennichite</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="332"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="335"/>
         <source>連続王手の千日手</source>
         <translation>Perpetual Check</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="333"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="336"/>
         <source>反則負け（連続王手）</source>
         <translation>Foul Loss (Perpetual Check)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="335"/>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="336"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="338"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="339"/>
         <source>入玉宣言</source>
         <translation>Entering King Declaration</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="338"/>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="339"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="341"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="342"/>
         <source>中断</source>
         <translation>Abort</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="371"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="374"/>
         <source>通信対局をキャンセルしました</source>
         <translation>Network game cancelled</translation>
     </message>
@@ -4291,9 +4292,8 @@ Please restart the application to apply the changes.</translation>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="424"/>
         <source>Error</source>
-        <translation>Error</translation>
+        <translation type="vanished">Error</translation>
     </message>
     <message>
         <source>投了確認</source>
@@ -4711,9 +4711,8 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2404"/>
         <source>コメントなし</source>
-        <translation>No comment</translation>
+        <translation type="vanished">No comment</translation>
     </message>
     <message>
         <source>言語設定を変更しました。
@@ -5160,85 +5159,85 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PlayerInfoWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="72"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="82"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="75"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="85"/>
         <source>対局情報</source>
         <translation>Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="108"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="284"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="111"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="352"/>
         <source>対局日</source>
         <translation>Game Date</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="109"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="287"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="112"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="355"/>
         <source>開始日時</source>
         <translation>Start Time</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="110"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="221"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="226"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="240"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="290"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="113"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="254"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="259"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="273"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="358"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="111"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="222"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="232"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="241"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="293"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="114"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="255"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="265"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="274"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="361"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="112"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="296"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="115"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="364"/>
         <source>手合割</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="112"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="248"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="296"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="115"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="281"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="364"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="227"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="231"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="260"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="264"/>
         <source>Engine</source>
         <translation type="unfinished">Engine</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="236"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="269"/>
         <source>Engine1</source>
         <translation type="unfinished">Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="237"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="270"/>
         <source>Engine2</source>
         <translation type="unfinished">Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="252"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="285"/>
         <source>その他</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="318"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="387"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="394"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="386"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="455"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="462"/>
         <source>持ち時間</source>
         <translation>Time Control</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="337"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="344"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="405"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="412"/>
         <source>終了日時</source>
         <translation>End Time</translation>
     </message>
@@ -5347,20 +5346,20 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="364"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="369"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="374"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="358"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="363"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="368"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="372"/>
         <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="378"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="384"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="365"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="370"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="375"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="359"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="364"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="369"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="373"/>
         <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="379"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="385"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -6951,6 +6950,14 @@ Do you want to continue?</translation>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="570"/>
         <source>玉方</source>
         <translation>Defender</translation>
+    </message>
+</context>
+<context>
+    <name>UiNotificationService</name>
+    <message>
+        <location filename="../../src/services/uinotificationservice.cpp" line="28"/>
+        <source>Error</source>
+        <translation type="unfinished">Error</translation>
     </message>
 </context>
 <context>

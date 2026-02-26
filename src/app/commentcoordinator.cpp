@@ -41,6 +41,34 @@ void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
     }
 }
 
+bool CommentCoordinator::handleRecordRowChangeRequest(int row, const QString& comment)
+{
+    // 未保存コメントの確認
+    const int editingRow = m_commentEditor ? m_commentEditor->currentMoveIndex() : -1;
+    if (m_commentEditor && m_commentEditor->hasUnsavedComment()) {
+        if (row != editingRow) {
+            if (!m_commentEditor->confirmDiscardUnsavedComment()) {
+                // キャンセル：元の行に戻す
+                if (m_recordPane && m_recordPane->kifuView()) {
+                    QTableView* kifuView = m_recordPane->kifuView();
+                    if (kifuView->model() && editingRow >= 0
+                        && editingRow < kifuView->model()->rowCount()) {
+                        QSignalBlocker blocker(kifuView->selectionModel());
+                        kifuView->setCurrentIndex(
+                            kifuView->model()->index(editingRow, 0));
+                    }
+                }
+                return false;
+            }
+        }
+    }
+
+    // コメント表示
+    const QString cmt = comment.trimmed();
+    broadcastComment(cmt.isEmpty() ? tr("コメントなし") : cmt, true);
+    return true;
+}
+
 void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComment)
 {
     // m_currentMoveIndex を優先して有効なインデックスを決定する

@@ -12,6 +12,7 @@
 #include "settingsservice.h"
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
+#include "timecontrolcontroller.h"
 
 PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -23,6 +24,8 @@ PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     , m_humanName2(deps.humanName2)
     , m_engineName1(deps.engineName1)
     , m_engineName2(deps.engineName2)
+    , m_startSfenStr(deps.startSfenStr)
+    , m_timeControllerRef(deps.timeControllerRef)
 {
 }
 
@@ -112,6 +115,36 @@ void PlayerInfoWiring::populateDefaultGameInfo()
     defaultItems.append({tr("手合割"), tr("平手")});
 
     m_gameInfoController->setGameInfo(defaultItems);
+}
+
+void PlayerInfoWiring::applyPlayersNamesForMode()
+{
+    ensurePlayerInfoController();
+    if (!m_playerInfoController) return;
+    if (m_playMode) m_playerInfoController->setPlayMode(*m_playMode);
+    if (m_humanName1 && m_humanName2)
+        m_playerInfoController->setHumanNames(*m_humanName1, *m_humanName2);
+    if (m_engineName1 && m_engineName2)
+        m_playerInfoController->setEngineNames(*m_engineName1, *m_engineName2);
+    m_playerInfoController->applyPlayersNamesForMode();
+}
+
+void PlayerInfoWiring::applyEngineNamesToLogModels()
+{
+    ensurePlayerInfoController();
+    if (!m_playerInfoController) return;
+    if (m_playMode) m_playerInfoController->setPlayMode(*m_playMode);
+    if (m_engineName1 && m_engineName2)
+        m_playerInfoController->setEngineNames(*m_engineName1, *m_engineName2);
+    m_playerInfoController->applyEngineNamesToLogModels();
+}
+
+void PlayerInfoWiring::applySecondEngineVisibility()
+{
+    ensurePlayerInfoController();
+    if (!m_playerInfoController) return;
+    if (m_playMode) m_playerInfoController->setPlayMode(*m_playMode);
+    m_playerInfoController->updateSecondEngineVisibility();
 }
 
 void PlayerInfoWiring::onSetPlayersNames(const QString& p1, const QString& p2)
@@ -264,6 +297,41 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         timeInfo.byoyomiMs,
         timeInfo.incrementMs
     );
+}
+
+void PlayerInfoWiring::resolveNamesWithTimeController(const QString& human1, const QString& human2,
+                                                       const QString& engine1, const QString& engine2,
+                                                       int playMode,
+                                                       const QString& startSfen,
+                                                       TimeControlController* timeController)
+{
+    if (timeController) {
+        // 終了日時をクリア（新しい対局が始まるため）
+        timeController->clearGameEndTime();
+
+        // TimeControlController から TimeControlInfo を構築
+        TimeControlInfo tcInfo;
+        tcInfo.hasTimeControl = timeController->hasTimeControl();
+        tcInfo.baseTimeMs = timeController->baseTimeMs();
+        tcInfo.byoyomiMs = timeController->byoyomiMs();
+        tcInfo.incrementMs = timeController->incrementMs();
+        tcInfo.gameStartDateTime = timeController->gameStartDateTime();
+
+        resolveNamesAndSetupGameInfo(
+            human1, human2, engine1, engine2, playMode,
+            startSfen, tcInfo);
+    } else {
+        onPlayerNamesResolved(human1, human2, engine1, engine2, playMode);
+    }
+}
+
+void PlayerInfoWiring::onMenuPlayerNamesResolved(const QString& human1, const QString& human2,
+                                                  const QString& engine1, const QString& engine2,
+                                                  int playMode)
+{
+    const QString startSfen = m_startSfenStr ? *m_startSfenStr : QString();
+    TimeControlController* tc = m_timeControllerRef ? *m_timeControllerRef : nullptr;
+    resolveNamesWithTimeController(human1, human2, engine1, engine2, playMode, startSfen, tc);
 }
 
 void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,

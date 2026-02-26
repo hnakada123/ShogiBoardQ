@@ -118,6 +118,10 @@ void ConsecutiveGamesController::startNextGame()
                                            m_lastStartOptions.sfenStart, QString());
         }
 
-        emit requestStartNextGame(m_lastStartOptions, m_lastTimeControl);
+        GameStartCoordinator::StartParams params;
+        params.opt = m_lastStartOptions;
+        params.tc = m_lastTimeControl;
+        params.autoStartEngineMove = true;
+        emit requestStartNextGame(params);
     });
 }

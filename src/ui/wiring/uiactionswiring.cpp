@@ -6,6 +6,7 @@
 #include "gameactionswiring.h"
 #include "editactionswiring.h"
 #include "viewactionswiring.h"
+#include "kifuexportcontroller.h"
 #include "mainwindow.h"
 #include "logcategories.h"
 
@@ -19,10 +20,11 @@ void UiActionsWiring::wire()
     }
 
     if (!m_fileWiring) {
-        m_fileWiring = new FileActionsWiring({m_d.ui, mw, m_d.dlw, m_d.kfc}, this);
-        m_gameWiring = new GameActionsWiring({m_d.ui, mw, m_d.dlw, m_d.dcw}, this);
-        m_editWiring = new EditActionsWiring({m_d.ui, mw, mw->kifuExportController(), m_d.dlw, m_d.kfc}, this);
-        m_viewWiring = new ViewActionsWiring({m_d.ui, mw, m_d.dlw}, this);
+        m_fileWiring = new FileActionsWiring({m_d.ui, mw, m_d.dlw, m_d.kfc, m_d.gso}, this);
+        m_gameWiring = new GameActionsWiring({m_d.ui, mw, m_d.dlw, m_d.dcw, m_d.gso}, this);
+        KifuExportController* kec = m_d.getKifuExportController ? m_d.getKifuExportController() : nullptr;
+        m_editWiring = new EditActionsWiring({m_d.ui, mw, kec, m_d.dlw, m_d.kfc}, this);
+        m_viewWiring = new ViewActionsWiring({m_d.ui, mw, m_d.dlw, m_d.gso, m_d.appearance, m_d.shogiView, m_d.evalChart}, this);
     }
 
     m_fileWiring->wire();

@@ -2,6 +2,9 @@
 /// @brief CSA通信対局配線クラスの実装
 
 #include "csagamewiring.h"
+#include "uistatepolicymanager.h"
+#include "gamerecordupdateservice.h"
+#include "uinotificationservice.h"
 
 #include "logcategories.h"
 #include <QMessageBox>
@@ -477,4 +480,24 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     qCDebug(lcUi) << "startCsaGame: Waiting dialog closed";
 
     return true;
+}
+
+void CsaGameWiring::wireExternalSignals(UiStatePolicyManager* uiPolicy,
+                                          GameRecordUpdateService* recordService,
+                                          UiNotificationService* notifService)
+{
+    if (uiPolicy) {
+        connect(this, &CsaGameWiring::disableNavigationRequested,
+                uiPolicy, &UiStatePolicyManager::transitionToDuringCsaGame);
+        connect(this, &CsaGameWiring::enableNavigationRequested,
+                uiPolicy, &UiStatePolicyManager::transitionToIdle);
+    }
+    if (recordService) {
+        connect(this, &CsaGameWiring::appendKifuLineRequested,
+                recordService, &GameRecordUpdateService::appendKifuLine);
+    }
+    if (notifService) {
+        connect(this, &CsaGameWiring::errorMessageRequested,
+                notifService, &UiNotificationService::displayErrorMessage);
+    }
 }

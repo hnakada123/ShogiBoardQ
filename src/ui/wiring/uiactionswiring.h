@@ -5,11 +5,17 @@
 /// @brief メニュー/ツールバーアクションのシグナル/スロット接続ファサードの定義
 
 #include <QObject>
+#include <functional>
 
 namespace Ui { class MainWindow; }
 class DialogLaunchWiring;
 class DialogCoordinatorWiring;
+class GameSessionOrchestrator;
 class KifuFileController;
+class KifuExportController;
+class MainWindowAppearanceController;
+class ShogiView;
+class EvaluationChartWidget;
 class FileActionsWiring;
 class GameActionsWiring;
 class EditActionsWiring;
@@ -31,6 +37,11 @@ public:
         DialogLaunchWiring* dlw = nullptr;   ///< ダイアログ起動配線
         DialogCoordinatorWiring* dcw = nullptr; ///< DialogCoordinator配線（解析中止用）
         KifuFileController* kfc = nullptr;      ///< 棋譜ファイル操作コントローラ
+        GameSessionOrchestrator* gso = nullptr; ///< 対局ライフサイクルオーケストレータ
+        MainWindowAppearanceController* appearance = nullptr; ///< UI外観コントローラ
+        ShogiView* shogiView = nullptr;         ///< 将棋盤ビュー
+        EvaluationChartWidget* evalChart = nullptr; ///< 評価値グラフウィジェット
+        std::function<KifuExportController*()> getKifuExportController; ///< 棋譜エクスポートコントローラ取得
     };
 
     explicit UiActionsWiring(const Deps& d, QObject* parent=nullptr)

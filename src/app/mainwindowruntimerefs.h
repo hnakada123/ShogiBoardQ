@@ -45,6 +45,10 @@ class DialogCoordinator;
 class PlayerInfoWiring;
 class UsiCommLogModel;
 class GameRecordModel;
+class BoardSyncPresenter;
+class UiStatePolicyManager;
+class GameStateController;
+class ConsecutiveGamesController;
 namespace Ui { class MainWindow; }
 
 /**
@@ -101,6 +105,10 @@ struct MainWindowRuntimeRefs {
     PositionEditController* positionEditController = nullptr;  ///< 局面編集コントローラ（非所有）
     DialogCoordinator* dialogCoordinator = nullptr;            ///< ダイアログコーディネータ（非所有）
     PlayerInfoWiring* playerInfoWiring = nullptr;              ///< 対局者情報配線（非所有）
+    BoardSyncPresenter* boardSync = nullptr;                   ///< 盤面同期プレゼンタ（非所有）
+    UiStatePolicyManager* uiStatePolicy = nullptr;             ///< UI状態ポリシーマネージャ（非所有）
+    GameStateController* gameStateController = nullptr;        ///< ゲーム状態コントローラ（非所有）
+    ConsecutiveGamesController* consecutiveGamesController = nullptr; ///< 連続対局コントローラ（非所有）
 
     // --- モデル参照（追加） ---
     ShogiEngineThinkingModel* thinking1 = nullptr;             ///< 思考モデル1（非所有）

@@ -202,6 +202,8 @@ set(SRC_APP
     src/app/commentcoordinator.h
     src/app/dockcreationservice.cpp
     src/app/dockcreationservice.h
+    src/app/gamesessionorchestrator.cpp
+    src/app/gamesessionorchestrator.h
     src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
@@ -213,6 +215,8 @@ set(SRC_APP
     src/app/kifunavigationcoordinator.h
     src/app/sessionlifecyclecoordinator.cpp
     src/app/sessionlifecyclecoordinator.h
+    src/app/sessionlifecycledepsfactory.cpp
+    src/app/sessionlifecycledepsfactory.h
     src/app/boardloadservice.cpp
     src/app/boardloadservice.h
     src/app/considerationpositionservice.cpp
@@ -227,14 +231,22 @@ set(SRC_APP
     src/app/turnstatesyncservice.h
     src/app/undoflowservice.cpp
     src/app/undoflowservice.h
+    src/app/kifunavigationdepsfactory.cpp
+    src/app/kifunavigationdepsfactory.h
     src/app/livegamesessionupdater.cpp
     src/app/livegamesessionupdater.h
     src/app/mainwindowcompositionroot.cpp
     src/app/mainwindowcompositionroot.h
+    src/app/mainwindowcoreinitcoordinator.cpp
+    src/app/mainwindowcoreinitcoordinator.h
+    src/app/mainwindowserviceregistry.cpp
+    src/app/mainwindowserviceregistry.h
     src/app/mainwindowdepsfactory.cpp
     src/app/mainwindowdepsfactory.h
     src/app/mainwindowgamestartservice.cpp
     src/app/mainwindowgamestartservice.h
+    src/app/mainwindowmatchadapter.cpp
+    src/app/mainwindowmatchadapter.h
     src/app/mainwindowmatchwiringdepsservice.cpp
     src/app/mainwindowmatchwiringdepsservice.h
     src/app/mainwindowresetservice.cpp
@@ -246,8 +258,14 @@ set(SRC_APP
     src/app/mainwindowwiringassembler.h
     src/app/mainwindowuibootstrapper.cpp
     src/app/mainwindowuibootstrapper.h
+    src/app/mainwindowlifecyclepipeline.cpp
+    src/app/mainwindowlifecyclepipeline.h
+    src/app/mainwindowdockbootstrapper.cpp
+    src/app/mainwindowdockbootstrapper.h
     src/app/playmodepolicyservice.cpp
     src/app/playmodepolicyservice.h
+    src/app/matchruntimequeryservice.cpp
+    src/app/matchruntimequeryservice.h
 )
 
 set(SRC_CORE
@@ -457,6 +475,8 @@ set(SRC_UI
     src/ui/controllers/jishogiscoredialogcontroller.h
     src/ui/controllers/languagecontroller.cpp
     src/ui/controllers/languagecontroller.h
+    src/ui/controllers/mainwindowappearancecontroller.cpp
+    src/ui/controllers/mainwindowappearancecontroller.h
     src/ui/controllers/nyugyokudeclarationhandler.cpp
     src/ui/controllers/nyugyokudeclarationhandler.h
     src/ui/controllers/playerinfocontroller.cpp
@@ -519,6 +539,8 @@ set(SRC_UI
     src/ui/wiring/josekiwindowwiring.h
     src/ui/wiring/matchcoordinatorhooksfactory.cpp
     src/ui/wiring/matchcoordinatorhooksfactory.h
+    src/ui/wiring/mainwindowsignalrouter.cpp
+    src/ui/wiring/mainwindowsignalrouter.h
     src/ui/wiring/matchcoordinatorwiring.cpp
     src/ui/wiring/matchcoordinatorwiring.h
     src/ui/wiring/menuwindowwiring.cpp
@@ -653,6 +675,8 @@ set(SRC_SERVICES
     src/services/timecontrolutil.h
     src/services/timekeepingservice.cpp
     src/services/timekeepingservice.h
+    src/services/uinotificationservice.cpp
+    src/services/uinotificationservice.h
 )
 
 set(SRC_COMMON

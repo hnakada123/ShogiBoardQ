@@ -5,6 +5,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "playmodepolicyservice.h"
+#include "matchruntimequeryservice.h"
 
 MainWindowRuntimeRefs MainWindowRuntimeRefsFactory::build(MainWindow& mw)
 {
@@ -34,7 +35,7 @@ MainWindowRuntimeRefs MainWindowRuntimeRefsFactory::build(MainWindow& mw)
     refs.skipBoardSyncForBranchNav = &mw.m_state.skipBoardSyncForBranchNav;
 
     // --- 棋譜参照 ---
-    refs.sfenRecord = mw.sfenRecord();
+    refs.sfenRecord = mw.m_queryService->sfenRecord();
     refs.gameMoves = &mw.m_kifu.gameMoves;
     refs.gameUsiMoves = &mw.m_kifu.gameUsiMoves;
     refs.moveRecords = &mw.m_kifu.moveRecords;
@@ -57,6 +58,10 @@ MainWindowRuntimeRefs MainWindowRuntimeRefsFactory::build(MainWindow& mw)
     refs.positionEditController = mw.m_posEdit;
     refs.dialogCoordinator = mw.m_dialogCoordinator;
     refs.playerInfoWiring = mw.m_playerInfoWiring;
+    refs.boardSync = mw.m_boardSync;
+    refs.uiStatePolicy = mw.m_uiStatePolicy;
+    refs.gameStateController = mw.m_gameStateController;
+    refs.consecutiveGamesController = mw.m_consecutiveGamesController;
 
     // --- モデル参照（追加） ---
     refs.thinking1 = mw.m_models.thinking1;

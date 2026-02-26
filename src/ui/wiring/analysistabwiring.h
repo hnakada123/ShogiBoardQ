@@ -12,6 +12,11 @@ class QTabWidget;
 class EngineAnalysisTab;
 class ShogiEngineThinkingModel;
 class UsiCommLogModel;
+class CommentCoordinator;
+class UsiCommandController;
+class ConsiderationWiring;
+class PvClickController;
+class BranchNavigationWiring;
 
 // EngineAnalysisTab 周辺の生成と配線だけを担当する小さなワイヤリングクラス
 class AnalysisTabWiring : public QObject
@@ -24,10 +29,22 @@ public:
         UsiCommLogModel* log2 = nullptr;          // USIログ(後手)
     };
 
+    /// 外部シグナル接続に必要な依存オブジェクト
+    struct ExternalSignalDeps {
+        BranchNavigationWiring* branchNavigationWiring = nullptr;
+        PvClickController* pvClickController = nullptr;
+        CommentCoordinator* commentCoordinator = nullptr;
+        UsiCommandController* usiCommandController = nullptr;
+        ConsiderationWiring* considerationWiring = nullptr;
+    };
+
     explicit AnalysisTabWiring(const Deps& d, QObject* parent = nullptr);
 
     // 一度だけ UI を構築し、モデルを配線する（再入しても多重生成しない）
     EngineAnalysisTab* buildUiAndWire();
+
+    /// AnalysisTab の外部シグナルを接続する（MainWindow/CommentCoordinator/USI/検討）
+    void wireExternalSignals(const ExternalSignalDeps& deps);
 
     // アクセサ（MainWindow 側へ返す）
     EngineAnalysisTab*           analysisTab() const { return m_analysisTab; }

@@ -6,6 +6,7 @@
 #include "ui_mainwindow.h"
 #include "kifuexportcontroller.h"
 #include "kifunavigationstate.h"
+#include "matchruntimequeryservice.h"
 
 void KifuExportDepsAssembler::assemble(MainWindow& mw)
 {
@@ -22,7 +23,7 @@ void KifuExportDepsAssembler::assemble(MainWindow& mw)
     deps.replayController = mw.m_replayController;
     deps.gameController = mw.m_gameController;
     deps.statusBar = mw.ui ? mw.ui->statusbar : nullptr;
-    deps.sfenRecord = mw.sfenRecord();
+    deps.sfenRecord = mw.m_queryService->sfenRecord();
     deps.usiMoves = &mw.m_kifu.gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
     deps.commentsByRow = &mw.m_kifu.commentsByRow;

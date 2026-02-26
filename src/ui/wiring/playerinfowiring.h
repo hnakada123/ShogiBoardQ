@@ -18,6 +18,7 @@ class GameInfoPaneController;
 class PlayerInfoController;
 class ShogiView;
 class EngineAnalysisTab;
+class TimeControlController;
 
 /**
  * @brief 対局情報・プレイヤー情報関連のUI配線を担当するクラス
@@ -48,6 +49,8 @@ public:
         QString* humanName2 = nullptr;
         QString* engineName1 = nullptr;
         QString* engineName2 = nullptr;
+        QString* startSfenStr = nullptr;
+        TimeControlController** timeControllerRef = nullptr;
     };
 
     /**
@@ -130,6 +133,21 @@ public:
     GameInfoPaneController* gameInfoController() const { return m_gameInfoController; }
 
     /**
+     * @brief PlayModeに応じて将棋盤の対局者名ラベルを更新する
+     */
+    void applyPlayersNamesForMode();
+
+    /**
+     * @brief エンジン名をログモデルに反映する
+     */
+    void applyEngineNamesToLogModels();
+
+    /**
+     * @brief EvE対局時に2番目のエンジン情報の表示を切り替える
+     */
+    void applySecondEngineVisibility();
+
+    /**
      * @brief PlayerInfoControllerを取得
      * @return PlayerInfoControllerへのポインタ
      */
@@ -179,6 +197,26 @@ public:
                                       const QString& startSfen,
                                       const TimeControlInfo& timeInfo);
 
+    /**
+     * @brief 対局者名確定時に TimeControlController から時間制御情報を取得し対局情報を設定する
+     *
+     * TimeControlInfo 構築を内部で完結させ、MainWindow を data pass-through のみにする。
+     * timeController が nullptr の場合は名前確定のみ行う。
+     *
+     * @param human1 人間1名
+     * @param human2 人間2名
+     * @param engine1 エンジン1名
+     * @param engine2 エンジン2名
+     * @param playMode プレイモード
+     * @param startSfen 開始局面SFEN文字列
+     * @param timeController 時間制御コントローラ（nullable）
+     */
+    void resolveNamesWithTimeController(const QString& human1, const QString& human2,
+                                        const QString& engine1, const QString& engine2,
+                                        int playMode,
+                                        const QString& startSfen,
+                                        TimeControlController* timeController);
+
 public slots:
     /**
      * @brief 対局者名設定フック（将棋盤ラベル更新）
@@ -205,6 +243,18 @@ public slots:
     void onPlayerNamesResolved(const QString& human1, const QString& human2,
                                const QString& engine1, const QString& engine2,
                                int playMode);
+
+    /**
+     * @brief メニュー経由の対局者名確定時の処理（TimeController連携付き）
+     * @param human1 人間1名
+     * @param human2 人間2名
+     * @param engine1 エンジン1名
+     * @param engine2 エンジン2名
+     * @param playMode プレイモード
+     */
+    void onMenuPlayerNamesResolved(const QString& human1, const QString& human2,
+                                   const QString& engine1, const QString& engine2,
+                                   int playMode);
 
 signals:
     /**
@@ -233,6 +283,8 @@ private:
     QString* m_humanName2 = nullptr;
     QString* m_engineName1 = nullptr;
     QString* m_engineName2 = nullptr;
+    QString* m_startSfenStr = nullptr;
+    TimeControlController** m_timeControllerRef = nullptr;
 
     // 内部コントローラ
     GameInfoPaneController* m_gameInfoController = nullptr;

@@ -81,6 +81,12 @@ public:
                                  int previousFileTo, int previousRankTo,
                                  const QString& lastUsiMove);
 
+    /// 棋譜欄の指定行を選択し盤面を同期する
+    void selectKifuRow(int row);
+
+    /// ナビゲーション状態を手数に同期する
+    void syncNavStateToPly(int selectedPly);
+
     /// 分岐ナビゲーション中の盤面同期スキップガードを開始する
     void beginBranchNavGuard();
 

@@ -2,7 +2,11 @@
 /// @brief MainWindow の UI ブート手順の実装
 
 #include "mainwindowuibootstrapper.h"
+#include "gamesessionorchestrator.h"
 #include "mainwindow.h"
+#include "mainwindowappearancecontroller.h"
+#include "mainwindowdockbootstrapper.h"
+#include "mainwindowserviceregistry.h"
 #include "ui_mainwindow.h"
 #include "settingsservice.h"
 #include "dockuicoordinator.h"
@@ -19,41 +23,44 @@ MainWindowUiBootstrapper::MainWindowUiBootstrapper(MainWindow& mw)
 // ボタン/ビュー参照を安全に取得できる。
 void MainWindowUiBootstrapper::buildGamePanels()
 {
+    MainWindowDockBootstrapper dockBoot(m_mw);
+
     // 1) 記録ペイン（RecordPane）など UI 部の初期化
-    m_mw.setupRecordPane();
+    dockBoot.setupRecordPane();
 
     // 2) 棋譜欄をQDockWidgetとして作成
-    m_mw.createRecordPaneDock();
+    dockBoot.createRecordPaneDock();
 
     // 3) 将棋盤・駒台の初期化（従来順序を維持）
-    m_mw.startNewShogiGame(m_mw.m_state.startSfenStr);
+    m_mw.m_registry->ensureGameSessionOrchestrator();
+    m_mw.m_gameSessionOrchestrator->startNewShogiGame();
 
-    // 4) 将棋盤をQDockWidgetとして作成
-    m_mw.setupBoardInCenter();
+    // 4) 将棋盤をセントラルウィジェットに配置（外観コントローラへ委譲）
+    m_mw.m_appearanceController->setupBoardInCenter();
 
     // 5) エンジン解析タブの構築
-    m_mw.setupEngineAnalysisTab();
+    dockBoot.setupEngineAnalysisTab();
 
     // 6) 解析用ドックを作成（独立した複数ドック）
-    m_mw.createAnalysisDocks();
+    dockBoot.createAnalysisDocks();
 
     // 7) 分岐ナビゲーションクラスの初期化
-    m_mw.initializeBranchNavigationClasses();
+    dockBoot.initializeBranchNavigationClasses();
 
     // 8) 評価値グラフのQDockWidget作成
-    m_mw.createEvalChartDock();
+    dockBoot.createEvalChartDock();
 
     // 9) ドックを固定アクションの初期状態を設定
     m_mw.ui->actionLockDocks->setChecked(SettingsService::docksLocked());
 
     // 10) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
-    m_mw.createMenuWindowDock();
+    dockBoot.createMenuWindowDock();
 
     // 11) 定跡ウィンドウのQDockWidget作成（デフォルトは非表示）
-    m_mw.createJosekiWindowDock();
+    dockBoot.createJosekiWindowDock();
 
     // 12) 棋譜解析結果のQDockWidget作成（初期状態は非表示）
-    m_mw.createAnalysisResultsDock();
+    dockBoot.createAnalysisResultsDock();
 
     // 13) アクティブタブを設定（全ドック作成後に実行）
     if (m_mw.m_dockCreationService) {
@@ -77,7 +84,7 @@ void MainWindowUiBootstrapper::buildGamePanels()
 
 void MainWindowUiBootstrapper::restoreWindowAndSync()
 {
-    m_mw.loadWindowSettings();
+    SettingsService::loadWindowSize(&m_mw);
 
     // 起動時のカスタムレイアウトがあれば復元
     m_mw.ensureDockLayoutManager();
@@ -88,9 +95,9 @@ void MainWindowUiBootstrapper::restoreWindowAndSync()
 
 void MainWindowUiBootstrapper::finalizeCoordinators()
 {
-    m_mw.initMatchCoordinator();
-    m_mw.setupNameAndClockFonts();
-    m_mw.ensurePositionEditController();
-    m_mw.ensureBoardSyncPresenter();
-    m_mw.ensureAnalysisPresenter();
+    m_mw.m_registry->initMatchCoordinator();
+    m_mw.m_appearanceController->setupNameAndClockFonts();
+    m_mw.m_registry->ensurePositionEditController();
+    m_mw.m_registry->ensureBoardSyncPresenter();
+    m_mw.m_registry->ensureAnalysisPresenter();
 }
