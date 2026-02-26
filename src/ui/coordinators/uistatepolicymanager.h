@@ -127,6 +127,9 @@ public slots:
     void transitionToDuringConsideration();
     void transitionToDuringPositionEdit();
 
+    /// ナビゲーションが許可されている場合のみ矢印ボタンを有効化する
+    void enableNavigationIfAllowed();
+
 signals:
     /// 状態が変更されたときに発火する
     void stateChanged(AppState newState);

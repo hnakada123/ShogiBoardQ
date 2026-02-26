@@ -193,6 +193,54 @@ void KifuNavigationCoordinator::handleBranchNodeHandled(
     qCDebug(lcApp).noquote() << "onBranchNodeHandled LEAVE";
 }
 
+// `selectKifuRow`: 棋譜欄の指定行を選択し盤面を同期する。
+void KifuNavigationCoordinator::selectKifuRow(int row)
+{
+    qCDebug(lcApp).noquote() << "selectKifuRow: row=" << row;
+
+    if (!m_deps.recordPane) return;
+
+    QTableView* view = m_deps.recordPane->kifuView();
+    if (!view) return;
+
+    if (view->model() && row >= 0 && row < view->model()->rowCount()) {
+        const QModelIndex idx = view->model()->index(row, 0);
+        view->setCurrentIndex(idx);
+        qCDebug(lcApp).noquote() << "selectKifuRow: selected row=" << row;
+
+        // 盤面・ハイライトも同期
+        syncBoardAndHighlightsAtRow(row);
+    }
+}
+
+// `syncNavStateToPly`: ナビゲーション状態を手数に同期する。
+void KifuNavigationCoordinator::syncNavStateToPly(int selectedPly)
+{
+    if (!m_deps.navState || !m_deps.branchTree) return;
+
+    // 本譜固定で探すと、分岐表示中に「1手戻る」が本譜へ飛ぶため、
+    // 現在ライン上の同一plyノードを優先して同期する。
+    KifuBranchNode* node = nullptr;
+    const int currentLine = m_deps.navState->currentLineIndex();
+    const QVector<BranchLine> lines = m_deps.branchTree->allLines();
+    if (currentLine >= 0 && currentLine < lines.size()) {
+        const BranchLine& line = lines.at(currentLine);
+        for (KifuBranchNode* candidate : std::as_const(line.nodes)) {
+            if (candidate != nullptr && candidate->ply() == selectedPly) {
+                node = candidate;
+                break;
+            }
+        }
+    }
+
+    if (!node) {
+        node = m_deps.branchTree->findByPlyOnMainLine(selectedPly);
+    }
+    if (node) {
+        m_deps.navState->setCurrentNode(node);
+    }
+}
+
 void KifuNavigationCoordinator::beginBranchNavGuard()
 {
     if (m_deps.skipBoardSyncForBranchNav) {

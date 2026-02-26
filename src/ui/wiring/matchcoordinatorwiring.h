@@ -14,6 +14,8 @@
 #include "gamestartcoordinator.h"
 #include "matchcoordinatorhooksfactory.h"
 
+class GameSessionOrchestrator;
+class MainWindow;
 class ShogiGameController;
 class ShogiView;
 class ShogiClock;
@@ -162,6 +164,14 @@ public:
      * @return 初期化成功なら true
      */
     bool initializeSession(std::function<void()> ensureWiringCallback);
+
+    /**
+     * @brief 転送シグナルを MainWindow のスロットに接続する
+     *
+     * MatchCoordinatorWiring/GameStartCoordinator → MainWindow の12接続を行う。
+     * @param mw 接続先の MainWindow
+     */
+    void wireForwardingSignals(MainWindow* mw, GameSessionOrchestrator* gso);
 
     /// 生成された MatchCoordinator を返す（非所有）
     MatchCoordinator* match() const { return m_match; }

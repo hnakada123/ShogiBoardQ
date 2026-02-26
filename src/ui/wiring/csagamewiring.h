@@ -27,6 +27,9 @@ class BoardSetupController;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class TimeControlController;
+class UiStatePolicyManager;
+class GameRecordUpdateService;
+class UiNotificationService;
 
 /**
  * @brief CSA通信対局とMainWindowの間のUI配線を担当するクラス
@@ -130,6 +133,16 @@ public:
      * @param controller BoardSetupController
      */
     void setBoardSetupController(BoardSetupController* controller);
+
+    /**
+     * @brief 外部シグナルを UiStatePolicyManager / GameRecordUpdateService / UiNotificationService に接続する
+     * @param uiPolicy UI状態ポリシーマネージャ
+     * @param recordService 棋譜追記・ライブ更新サービス
+     * @param notifService エラー通知サービス
+     */
+    void wireExternalSignals(UiStatePolicyManager* uiPolicy,
+                             GameRecordUpdateService* recordService,
+                             UiNotificationService* notifService);
 
 signals:
     /**

@@ -6,6 +6,7 @@
 #include "logcategories.h"
 
 #include "shogienginethinkingmodel.h"
+#include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "shogiinforecord.h"
 #include "shogimove.h"
@@ -84,46 +85,37 @@ void PvClickController::setUsiMoves(const QStringList* usiMoves)
     m_usiMoves = usiMoves;
 }
 
-// --------------------------------------------------------
-// 状態設定
-// --------------------------------------------------------
-
-void PvClickController::setPlayMode(PlayMode mode)
+void PvClickController::setStateRefs(const StateRefs& refs)
 {
-    m_playMode = mode;
+    m_stateRefs = refs;
 }
 
-void PvClickController::setPlayerNames(const QString& human1, const QString& human2,
-                                        const QString& engine1, const QString& engine2)
+void PvClickController::setShogiView(ShogiView* view)
 {
-    m_humanName1 = human1;
-    m_humanName2 = human2;
-    m_engineName1 = engine1;
-    m_engineName2 = engine2;
+    m_shogiView = view;
 }
 
-void PvClickController::setCurrentSfen(const QString& sfen)
+void PvClickController::syncFromRefs()
 {
-    m_currentSfenStr = sfen;
-}
-
-void PvClickController::setStartSfen(const QString& sfen)
-{
-    m_startSfenStr = sfen;
-}
-
-void PvClickController::setCurrentRecordIndex(int index)
-{
-    // Note: This value is no longer used for PV display.
-    // The PV dialog uses record->baseSfen() which contains the position
-    // from when the PV was generated, not the currently selected position in kifu.
-    m_currentRecordIndex = index;
-    qCDebug(lcUi) << "setCurrentRecordIndex:" << index << "(not used for PV display)";
-}
-
-void PvClickController::setBoardFlipped(bool flipped)
-{
-    m_boardFlipped = flipped;
+    if (m_stateRefs.playMode)
+        m_playMode = *m_stateRefs.playMode;
+    if (m_stateRefs.humanName1)
+        m_humanName1 = *m_stateRefs.humanName1;
+    if (m_stateRefs.humanName2)
+        m_humanName2 = *m_stateRefs.humanName2;
+    if (m_stateRefs.engineName1)
+        m_engineName1 = *m_stateRefs.engineName1;
+    if (m_stateRefs.engineName2)
+        m_engineName2 = *m_stateRefs.engineName2;
+    if (m_stateRefs.currentSfenStr)
+        m_currentSfenStr = *m_stateRefs.currentSfenStr;
+    if (m_stateRefs.startSfenStr)
+        m_startSfenStr = *m_stateRefs.startSfenStr;
+    if (m_stateRefs.currentMoveIndex)
+        m_currentRecordIndex = *m_stateRefs.currentMoveIndex;
+    if (m_stateRefs.considerationModel)
+        m_considerationModel = *m_stateRefs.considerationModel;
+    m_boardFlipped = m_shogiView ? m_shogiView->getFlipMode() : false;
 }
 
 // --------------------------------------------------------
@@ -132,6 +124,8 @@ void PvClickController::setBoardFlipped(bool flipped)
 
 void PvClickController::onPvRowClicked(int engineIndex, int row)
 {
+    syncFromRefs();
+
     qCDebug(lcUi) << "onPvRowClicked: engineIndex=" << engineIndex << " row=" << row;
 
     // 対象のモデルを取得

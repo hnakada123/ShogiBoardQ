@@ -7,6 +7,7 @@
 #include <QObject>
 
 namespace Ui { class MainWindow; }
+class GameSessionOrchestrator;
 class MainWindow;
 class DialogLaunchWiring;
 class KifuFileController;
@@ -24,6 +25,7 @@ public:
         MainWindow* mw = nullptr;
         DialogLaunchWiring* dlw = nullptr;
         KifuFileController* kfc = nullptr;  ///< 棋譜ファイル操作コントローラ
+        GameSessionOrchestrator* gso = nullptr; ///< 対局ライフサイクルオーケストレータ
     };
 
     explicit FileActionsWiring(const Deps& d, QObject* parent = nullptr)

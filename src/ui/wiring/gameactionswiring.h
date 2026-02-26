@@ -7,6 +7,7 @@
 #include <QObject>
 
 namespace Ui { class MainWindow; }
+class GameSessionOrchestrator;
 class MainWindow;
 class DialogLaunchWiring;
 class DialogCoordinatorWiring;
@@ -25,6 +26,7 @@ public:
         MainWindow* mw = nullptr;
         DialogLaunchWiring* dlw = nullptr;
         DialogCoordinatorWiring* dcw = nullptr; ///< 解析中止スロット接続先
+        GameSessionOrchestrator* gso = nullptr; ///< 対局ライフサイクルオーケストレータ
     };
 
     explicit GameActionsWiring(const Deps& d, QObject* parent = nullptr)

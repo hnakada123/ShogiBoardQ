@@ -10,10 +10,11 @@
 #include <QStringList>
 #include <QVector>
 
-#include "mainwindow.h"  // PlayMode enum
+#include "playmode.h"
 
 class ShogiEngineThinkingModel;
 class UsiCommLogModel;
+class ShogiView;
 struct ShogiMove;
 
 /**
@@ -30,6 +31,19 @@ class PvClickController : public QObject
     Q_OBJECT
 
 public:
+    /// MainWindow の動的状態へのポインタ群（onPvRowClicked 呼び出し時に自動同期）
+    struct StateRefs {
+        const PlayMode* playMode = nullptr;
+        const QString* humanName1 = nullptr;
+        const QString* humanName2 = nullptr;
+        const QString* engineName1 = nullptr;
+        const QString* engineName2 = nullptr;
+        const QString* currentSfenStr = nullptr;
+        const QString* startSfenStr = nullptr;
+        const int* currentMoveIndex = nullptr;
+        ShogiEngineThinkingModel** considerationModel = nullptr;  ///< ダブルポインタ（外部所有）
+    };
+
     explicit PvClickController(QObject* parent = nullptr);
     ~PvClickController() override;
 
@@ -42,17 +56,8 @@ public:
     void setSfenRecord(QStringList* sfenRecord);
     void setGameMoves(const QVector<ShogiMove>* gameMoves);
     void setUsiMoves(const QStringList* usiMoves);
-
-    // --------------------------------------------------------
-    // 状態設定
-    // --------------------------------------------------------
-    void setPlayMode(PlayMode mode);
-    void setPlayerNames(const QString& human1, const QString& human2,
-                        const QString& engine1, const QString& engine2);
-    void setCurrentSfen(const QString& sfen);
-    void setStartSfen(const QString& sfen);
-    void setCurrentRecordIndex(int index);
-    void setBoardFlipped(bool flipped);
+    void setStateRefs(const StateRefs& refs);
+    void setShogiView(ShogiView* view);
 
 signals:
     void pvDialogClosed(int engineIndex);
@@ -89,6 +94,8 @@ private:
     QString resolveLastUsiMove() const;
 
 private:
+    void syncFromRefs();
+
     ShogiEngineThinkingModel* m_modelThinking1 = nullptr;
     ShogiEngineThinkingModel* m_modelThinking2 = nullptr;
     ShogiEngineThinkingModel* m_considerationModel = nullptr;
@@ -97,6 +104,9 @@ private:
     QStringList* m_sfenHistory = nullptr;
     const QVector<ShogiMove>* m_gameMoves = nullptr;
     const QStringList* m_usiMoves = nullptr;
+    ShogiView* m_shogiView = nullptr;                    ///< 盤面反転状態取得用
+
+    StateRefs m_stateRefs;                               ///< 動的状態へのポインタ群
 
     PlayMode m_playMode = PlayMode::NotStarted;
     QString m_humanName1;

@@ -11,6 +11,11 @@
 #include "shogiutils.h"
 #include "logcategories.h"
 
+GameRecordUpdateService::GameRecordUpdateService(QObject* parent)
+    : QObject(parent)
+{
+}
+
 void GameRecordUpdateService::updateDeps(const Deps& deps)
 {
     m_deps = deps;

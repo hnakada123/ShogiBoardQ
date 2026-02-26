@@ -263,6 +263,12 @@ void UiStatePolicyManager::transitionToDuringPositionEdit()
     applyState(AppState::DuringPositionEdit);
 }
 
+void UiStatePolicyManager::enableNavigationIfAllowed()
+{
+    if (!isEnabled(UiElement::WidgetNavigation)) return;
+    if (m_deps.recordPane) m_deps.recordPane->setArrowButtonsEnabled(true);
+}
+
 // ======================================================================
 // ポリシー適用（個別要素）
 // ======================================================================

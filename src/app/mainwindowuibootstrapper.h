@@ -16,7 +16,7 @@ class MainWindow;
  * 3. finalizeCoordinators() — コーディネーター・プレゼンターの最終初期化
  *
  * 依存順序:
- * - buildGamePanels は initializeComponents() 完了後に呼ぶこと
+ * - buildGamePanels は MainWindowCoreInitCoordinator::initialize() 完了後に呼ぶこと
  * - restoreWindowAndSync は buildGamePanels 完了後に呼ぶこと
  * - finalizeCoordinators は connectCoreSignals 完了後に呼ぶこと
  */
