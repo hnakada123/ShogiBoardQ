@@ -205,14 +205,28 @@ set(SRC_APP
     src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
+    src/app/kifuexportdepsassembler.cpp
+    src/app/kifuexportdepsassembler.h
+    src/app/kifuloadcoordinatorfactory.cpp
+    src/app/kifuloadcoordinatorfactory.h
     src/app/kifunavigationcoordinator.cpp
     src/app/kifunavigationcoordinator.h
+    src/app/sessionlifecyclecoordinator.cpp
+    src/app/sessionlifecyclecoordinator.h
     src/app/boardloadservice.cpp
     src/app/boardloadservice.h
+    src/app/considerationpositionservice.cpp
+    src/app/considerationpositionservice.h
+    src/app/gamerecordloadservice.cpp
+    src/app/gamerecordloadservice.h
+    src/app/gamerecordmodelbuilder.cpp
+    src/app/gamerecordmodelbuilder.h
     src/app/gamerecordupdateservice.cpp
     src/app/gamerecordupdateservice.h
     src/app/turnstatesyncservice.cpp
     src/app/turnstatesyncservice.h
+    src/app/undoflowservice.cpp
+    src/app/undoflowservice.h
     src/app/livegamesessionupdater.cpp
     src/app/livegamesessionupdater.h
     src/app/mainwindowcompositionroot.cpp
@@ -226,6 +240,10 @@ set(SRC_APP
     src/app/mainwindowresetservice.cpp
     src/app/mainwindowresetservice.h
     src/app/mainwindowruntimerefs.h
+    src/app/mainwindowruntimerefsfactory.cpp
+    src/app/mainwindowruntimerefsfactory.h
+    src/app/mainwindowwiringassembler.cpp
+    src/app/mainwindowwiringassembler.h
     src/app/mainwindowuibootstrapper.cpp
     src/app/mainwindowuibootstrapper.h
     src/app/playmodepolicyservice.cpp

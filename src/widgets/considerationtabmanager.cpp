@@ -203,6 +203,12 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
     connect(m_considerationView, &QTableView::clicked,
             this, &ConsiderationTabManager::onConsiderationViewClicked);
 
+    // buildConsiderationUi() より前に setConsiderationThinkingModel() が呼ばれた場合、
+    // 保存済みモデルをビューに適用する
+    if (m_considerationModel) {
+        setConsiderationThinkingModel(m_considerationModel);
+    }
+
     // フォントマネージャーの初期化・適用
     initFontManager();
 

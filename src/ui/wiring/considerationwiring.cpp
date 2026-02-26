@@ -9,6 +9,7 @@
 #include "matchcoordinator.h"
 #include "dialogcoordinator.h"
 #include "considerationmodeuicontroller.h"
+#include "considerationtabmanager.h"
 #include "changeenginesettingsdialog.h"
 
 ConsiderationWiring::ConsiderationWiring(const Deps& deps, QObject* parent)
@@ -139,6 +140,12 @@ void ConsiderationWiring::onEngineChanged(int engineIndex, const QString& engine
 
 void ConsiderationWiring::onModeStarted()
 {
+    // m_considerationModel が初期化時に null だった場合、
+    // ConsiderationTabManager から最新のモデルを取得して補完する
+    if (!m_considerationModel && m_considerationTabManager) {
+        m_considerationModel = m_considerationTabManager->considerationModel();
+    }
+
     ensureUIController();
     if (m_uiController) {
         m_uiController->setConsiderationTabManager(m_considerationTabManager);

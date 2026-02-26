@@ -465,8 +465,8 @@
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="106"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="403"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="426"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="409"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="432"/>
         <source>経過: 0:00</source>
         <translation type="unfinished"></translation>
     </message>
@@ -502,7 +502,7 @@
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="137"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="456"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="462"/>
         <source>検討開始</source>
         <translation type="unfinished"></translation>
     </message>
@@ -512,32 +512,32 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="449"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="455"/>
         <source>検討中止</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="450"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="456"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="457"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="463"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="590"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="596"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="590"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="596"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="623"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="629"/>
         <source>経過: %1:%2</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3811,7 +3811,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="467"/>
+        <location filename="../../src/app/mainwindow.cpp" line="424"/>
         <source>Error</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3864,7 +3864,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.cpp" line="2727"/>
+        <location filename="../../src/app/mainwindow.cpp" line="2404"/>
         <source>コメントなし</source>
         <translation type="unfinished"></translation>
     </message>
