@@ -85,27 +85,10 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
     for (const QString& raw : std::as_const(lines)) {
         QString lineStr = raw.trimmed();
 
-        // 行頭コメント
-        if (KifuParseCommon::isKifCommentLine(lineStr)) {
-            const QString c = lineStr.mid(1).trimmed();
-            if (!c.isEmpty()) {
-                KifuParseCommon::appendLine(firstMoveFound ? commentBuf : openingCommentBuf, c);
-            }
+        if (KifuParseCommon::tryHandleCommentLine(lineStr, firstMoveFound, commentBuf, openingCommentBuf))
             continue;
-        }
-
-        // しおり
-        if (KifuParseCommon::isBookmarkLine(lineStr)) {
-            const QString name = lineStr.mid(1).trimmed();
-            if (!name.isEmpty()) {
-                if (firstMoveFound && out.size() > 1) {
-                    KifuParseCommon::appendLine(out.last().bookmark, name);
-                } else {
-                    KifuParseCommon::appendLine(openingBookmarkBuf, name);
-                }
-            }
+        if (KifuParseCommon::tryHandleBookmarkLine(lineStr, firstMoveFound, out, openingBookmarkBuf))
             continue;
-        }
 
         if (lineStr.isEmpty() || KifuParseCommon::isKifSkippableHeaderLine(lineStr)
             || KifuParseCommon::isBoardHeaderOrFrame(lineStr)) continue;
@@ -148,25 +131,13 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             if (!rest.isEmpty()) {
                 KifuParseCommon::flushCommentToLastItem(commentBuf, out);
                 ++moveIndex;
-                const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-                KifDisplayItem item;
-                item.prettyMove = teban + rest;
-                item.timeText   = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
-                item.ply        = moveIndex;
-                out.push_back(item);
+                const QString prettyMove = KifuParseCommon::tebanMark(moveIndex) + rest;
+                out.push_back(KifuParseCommon::createMoveDisplayItem(moveIndex, prettyMove, timeText));
             }
         }
     }
 
-    // 最後の指し手の後に残っているコメントを付与
-    if (!commentBuf.isEmpty() && !out.isEmpty()) {
-        KifuParseCommon::appendLine(out.last().comment, commentBuf);
-    }
-
-    // 指し手が一つもなかった場合でも開始局面エントリを追加
-    if (out.isEmpty()) {
-        out.push_back(KifuParseCommon::createOpeningDisplayItem(openingCommentBuf, openingBookmarkBuf));
-    }
+    KifuParseCommon::finalizeDisplayItems(commentBuf, out, openingCommentBuf, openingBookmarkBuf);
 
     return out;
 }
@@ -412,12 +383,8 @@ void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
             firstMoveFound = true;
 
             ++moveIndex;
-            const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-            KifDisplayItem item;
-            item.prettyMove = teban + rest;
-            item.timeText   = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
-            item.ply        = moveIndex;
-            line.disp.push_back(item);
+            const QString prettyMove = KifuParseCommon::tebanMark(moveIndex) + rest;
+            line.disp.push_back(KifuParseCommon::createMoveDisplayItem(moveIndex, prettyMove, timeText));
 
             // USI変換
             QString usi;
@@ -439,66 +406,22 @@ void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
 
 QList<KifGameInfoItem> KifToSfenConverter::extractGameInfo(const QString& filePath)
 {
-    QList<KifGameInfoItem> ordered;
-    if (filePath.isEmpty()) return ordered;
+    if (filePath.isEmpty()) return {};
 
     QString usedEnc, warn;
     QStringList lines;
     if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
         qCWarning(lcKifu).noquote() << "read failed:" << filePath << "warn:" << warn;
-        return ordered;
+        return {};
     }
-    qCDebug(lcKifu).noquote()
-        << QStringLiteral("encoding = %1 , lines = %2").arg(usedEnc).arg(lines.size());
 
-    static const QRegularExpression kHeaderLine(
-        QStringLiteral("^\\s*([^：:]+?)\\s*[：:]\\s*(.*?)\\s*$")
-        );
-    static const QRegularExpression kLineIsComment(
-        QStringLiteral("^\\s*[#＃\\*\\＊]")
-        );
-    static const QRegularExpression kMovesHeader(
-        QStringLiteral("^\\s*手数[-－ー]+指手[-－ー]+消費時間")
-        );
     static const QRegularExpression kLineLooksLikeMoveNo(
         QStringLiteral("^\\s*[0-9０-９]+\\s")
-        );
-    static const QRegularExpression kVariationHead(
-        QStringLiteral("^\\s*変化\\s*[：:]\\s*[0-9０-９]+\\s*手")
-        );
+    );
 
-    auto isBodHeld = [](const QString& t) {
-        return t.startsWith(QStringLiteral("先手の持駒")) ||
-               t.startsWith(QStringLiteral("後手の持駒")) ||
-               t.startsWith(QStringLiteral("先手の持ち駒")) ||
-               t.startsWith(QStringLiteral("後手の持ち駒"));
-    };
-
-    for (const QString& rawLine : std::as_const(lines)) {
-        const QString line = rawLine;
-        const QString t = line.trimmed();
-
-        if (t.isEmpty()) continue;
-        if (kLineIsComment.match(t).hasMatch()) continue;
-        if (kMovesHeader.match(t).hasMatch()) continue;
-        if (kLineLooksLikeMoveNo.match(t).hasMatch()) break;
-        if (kVariationHead.match(t).hasMatch()) continue;
-        if (isBodHeld(t)) continue;
-
-        QRegularExpressionMatch m = kHeaderLine.match(line);
-        if (!m.hasMatch()) continue;
-
-        QString key = m.captured(1).trimmed();
-        if (key.endsWith(u'：') || key.endsWith(u':')) key.chop(1);
-        key = key.trimmed();
-
-        QString val = m.captured(2).trimmed();
-        val.replace(QStringLiteral("\\n"), QStringLiteral("\n"));
-
-        ordered.push_back({ key, val });
-    }
-
-    return ordered;
+    return KifuParseCommon::extractHeaderGameInfo(lines, [](const QString& t) {
+        return kLineLooksLikeMoveNo.match(t).hasMatch();
+    });
 }
 
 QMap<QString, QString> KifToSfenConverter::extractGameInfoMap(const QString& filePath)

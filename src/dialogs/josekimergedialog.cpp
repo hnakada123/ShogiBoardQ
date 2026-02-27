@@ -3,6 +3,7 @@
 
 #include "josekimergedialog.h"
 #include "buttonstyles.h"
+#include "dialogutils.h"
 #include "josekisettings.h"
 
 #include <QHeaderView>
@@ -11,6 +12,11 @@
 #include <QFileInfo>
 #include "logcategories.h"
 
+namespace {
+constexpr QSize kDefaultSize{600, 500};
+constexpr QSize kMinimumSize{500, 400};
+} // namespace
+
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)
     , m_fontSize(JosekiSettings::josekiMergeDialogFontSize())
@@ -18,21 +24,18 @@ JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     setupUi();
 
     // ウィンドウサイズを復元
-    QSize savedSize = JosekiSettings::josekiMergeDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, JosekiSettings::josekiMergeDialogSize());
 }
 
 JosekiMergeDialog::~JosekiMergeDialog()
 {
-    JosekiSettings::setJosekiMergeDialogSize(size());
+    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMergeDialogSize);
     JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
 }
 
 void JosekiMergeDialog::closeEvent(QCloseEvent *event)
 {
-    JosekiSettings::setJosekiMergeDialogSize(size());
+    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMergeDialogSize);
     JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
     QDialog::closeEvent(event);
 }
@@ -40,8 +43,8 @@ void JosekiMergeDialog::closeEvent(QCloseEvent *event)
 void JosekiMergeDialog::setupUi()
 {
     setWindowTitle(tr("棋譜から定跡にマージ"));
-    setMinimumSize(500, 400);
-    resize(600, 500);
+    setMinimumSize(kMinimumSize);
+    resize(kDefaultSize);
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     

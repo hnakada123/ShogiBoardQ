@@ -174,12 +174,12 @@ void EngineVsEngineStrategy::startEvEFirstMoveByBlack()
         m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
         m_ctx.clock()->applyByoyomiAndResetConsideration1();
     }
-    if (m_ctx.hooks().appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().appendKifuLine(rec1, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
+    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
+        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
     }
 
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
-    if (m_ctx.hooks().showMoveHighlights) m_ctx.hooks().showMoveHighlights(p1From, p1To);
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
+    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p1From, p1To);
     m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
                                 ? MatchCoordinator::P1 : MatchCoordinator::P2);
 
@@ -228,12 +228,12 @@ void EngineVsEngineStrategy::startEvEFirstMoveByBlack()
         m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
         m_ctx.clock()->applyByoyomiAndResetConsideration2();
     }
-    if (m_ctx.hooks().appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().appendKifuLine(rec2, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
+    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
+        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
     }
 
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
-    if (m_ctx.hooks().showMoveHighlights) m_ctx.hooks().showMoveHighlights(p2From, p2To);
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
+    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p2From, p2To);
     m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
                                 ? MatchCoordinator::P1 : MatchCoordinator::P2);
 
@@ -287,12 +287,12 @@ void EngineVsEngineStrategy::startEvEFirstMoveByWhite()
         m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
         m_ctx.clock()->applyByoyomiAndResetConsideration2();
     }
-    if (m_ctx.hooks().appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().appendKifuLine(rec2, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
+    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
+        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
     }
 
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
-    if (m_ctx.hooks().showMoveHighlights) m_ctx.hooks().showMoveHighlights(p2From, p2To);
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
+    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p2From, p2To);
     m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
                                 ? MatchCoordinator::P1 : MatchCoordinator::P2);
 
@@ -342,12 +342,12 @@ void EngineVsEngineStrategy::startEvEFirstMoveByWhite()
         m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
         m_ctx.clock()->applyByoyomiAndResetConsideration1();
     }
-    if (m_ctx.hooks().appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().appendKifuLine(rec1, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
+    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
+        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
     }
 
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
-    if (m_ctx.hooks().showMoveHighlights) m_ctx.hooks().showMoveHighlights(p1From, p1To);
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
+    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p1From, p1To);
     m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
                                 ? MatchCoordinator::P1 : MatchCoordinator::P2);
 
@@ -407,11 +407,11 @@ void EngineVsEngineStrategy::kickNextEvETurn()
             m_ctx.clock()->applyByoyomiAndResetConsideration2();
         }
     }
-    if (m_ctx.hooks().appendKifuLine && m_ctx.clock()) {
+    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
         const QString elapsed = p1ToMove
                                     ? m_ctx.clock()->getPlayer1ConsiderationAndTotalTime()
                                     : m_ctx.clock()->getPlayer2ConsiderationAndTotalTime();
-        m_ctx.hooks().appendKifuLine(rec, elapsed);
+        m_ctx.hooks().game.appendKifuLine(rec, elapsed);
     }
 
     if (receiver) {
@@ -419,8 +419,8 @@ void EngineVsEngineStrategy::kickNextEvETurn()
         receiver->setPreviousRankTo(to.y());
     }
 
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
-    if (m_ctx.hooks().showMoveHighlights) m_ctx.hooks().showMoveHighlights(from, to);
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
+    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(from, to);
     m_ctx.updateTurnDisplay(
         (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
             ? MatchCoordinator::P1 : MatchCoordinator::P2

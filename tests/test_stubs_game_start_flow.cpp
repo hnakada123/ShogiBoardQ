@@ -221,7 +221,6 @@ bool MatchCoordinator::engineMoveOnce(Usi*, QString&, QString&, bool, int, QPoin
 void MatchCoordinator::ensureUndoHandler() {}
 void MatchCoordinator::ensureEngineManager() {}
 void MatchCoordinator::ensureTimekeeper() {}
-void MatchCoordinator::setGameInProgressActions(bool) {}
 void MatchCoordinator::updateTurnDisplay(Player) {}
 MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const { return {}; }
 void MatchCoordinator::initPositionStringsFromSfen(const QString&) {}
@@ -352,6 +351,7 @@ QString ShogiBoard::convertStandToSfen() const { return {}; }
 // ============================================================
 
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
+ShogiGameController::~ShogiGameController() = default;
 ShogiBoard* ShogiGameController::board() const { return nullptr; }
 void ShogiGameController::setCurrentPlayer(const Player) {}
 void ShogiGameController::setPromote(bool) {}

@@ -93,6 +93,151 @@ private slots:
         QCOMPARE(res.mainline.usiMoves.at(0), QStringLiteral("3a2b"));
         QCOMPARE(res.mainline.usiMoves.at(1), QStringLiteral("7g7f"));
     }
+
+    // ========================================
+    // Error: non-existent file
+    // ========================================
+
+    void convertFile_nonExistentFile()
+    {
+        QString error;
+        QStringList moves = UsenToSfenConverter::convertFile(
+            fixturePath(QStringLiteral("nonexistent.usen")), &error);
+        QVERIFY(moves.isEmpty());
+    }
+
+    void parseWithVariations_nonExistentFile()
+    {
+        KifParseResult result;
+        QString error;
+        bool ok = UsenToSfenConverter::parseWithVariations(
+            fixturePath(QStringLiteral("nonexistent.usen")), result, &error);
+        QVERIFY(!ok);
+    }
+
+    void detectInitialSfen_nonExistentFile()
+    {
+        QString label;
+        QString sfen = UsenToSfenConverter::detectInitialSfenFromFile(
+            fixturePath(QStringLiteral("nonexistent.usen")), &label);
+        // Falls back to hirate
+        QCOMPARE(sfen, kHirateSfen);
+    }
+
+    // ========================================
+    // Error: empty file
+    // ========================================
+
+    void convertFile_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.usen"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsenToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY(moves.isEmpty());
+    }
+
+    // ========================================
+    // Error: decodeUsenMoves with empty string
+    // ========================================
+
+    void decodeUsenMoves_empty()
+    {
+        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QString());
+        QCOMPARE(decoded.size(), 0);
+    }
+
+    // ========================================
+    // Error: decodeUsenMoves with invalid base36
+    // ========================================
+
+    void decodeUsenMoves_invalidChars()
+    {
+        // Characters outside base36 range
+        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QStringLiteral("~0.!!!"));
+        // Should handle gracefully without crashing
+        Q_UNUSED(decoded);
+    }
+
+    // ========================================
+    // Error: decodeUsenMoves with truncated data
+    // ========================================
+
+    void decodeUsenMoves_truncated()
+    {
+        // Only 1 or 2 chars (incomplete 3-char move encoding)
+        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(QStringLiteral("~0.7k"));
+        // Should handle incomplete data gracefully
+        Q_UNUSED(decoded);
+    }
+
+    // ========================================
+    // Normal: terminalCodeToJapanese
+    // ========================================
+
+    void terminalCodeToJapanese_resign()
+    {
+        QCOMPARE(UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("r")),
+                 QStringLiteral("投了"));
+    }
+
+    void terminalCodeToJapanese_timeout()
+    {
+        QCOMPARE(UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("t")),
+                 QStringLiteral("時間切れ"));
+    }
+
+    void terminalCodeToJapanese_unknown()
+    {
+        QString result = UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("xyz"));
+        // Unknown code: implementation may return code itself or empty
+        Q_UNUSED(result);
+    }
+
+    // ========================================
+    // Boundary: extractGameInfo
+    // ========================================
+
+    void extractGameInfo_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.usen"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        auto info = UsenToSfenConverter::extractGameInfo(tmp.fileName());
+        QVERIFY(info.isEmpty());
+    }
+
+    // ========================================
+    // Boundary: extractMovesWithTimes on non-existent file
+    // ========================================
+
+    void extractMovesWithTimes_nonExistentFile()
+    {
+        QString error;
+        QList<KifDisplayItem> items = UsenToSfenConverter::extractMovesWithTimes(
+            fixturePath(QStringLiteral("nonexistent.usen")), &error);
+        QVERIFY(items.isEmpty());
+    }
+
+    // ========================================
+    // Normal: USEN with terminal code
+    // ========================================
+
+    void decodeUsenMoves_withTerminal()
+    {
+        // Test decoding with terminal output parameter
+        QString terminal;
+        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(
+            QStringLiteral("~0.7ku2jm6y236e5t24be9qc.r"), &terminal);
+        QCOMPARE(decoded.size(), 7);
+        // Terminal code should be "r" (resign)
+        QCOMPARE(terminal, QStringLiteral("r"));
+    }
 };
 
 QTEST_MAIN(TestUsenConverter)

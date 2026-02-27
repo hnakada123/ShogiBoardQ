@@ -279,6 +279,151 @@ private slots:
         QCOMPARE(result.mainline.usiMoves.size(), 0);
         QVERIFY(!warn.isEmpty());
     }
+
+    // ========================================
+    // Error: only comments (no position, no moves)
+    // ========================================
+
+    void parse_commentsOnly()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_comment_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("'This is a comment\n'Another comment\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Parser should still handle this (may fail at position parse)
+        // Just verify it doesn't crash
+        Q_UNUSED(ok);
+        Q_UNUSED(warn);
+    }
+
+    // ========================================
+    // Error: out-of-range coordinate
+    // ========================================
+
+    void parse_outOfRangeCoordinate()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_oor_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+0076FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // CSA lexer accepts column 0 as a drop (from=00); verify parse doesn't crash
+        QVERIFY(ok);
+    }
+
+    // ========================================
+    // Normal: result code (TORYO)
+    // ========================================
+
+    void parse_resultCode()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_result_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+7776FU\n-3334FU\n%TORYO\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 2);
+        // Display items should include the opening item + 2 moves + result
+        QVERIFY(result.mainline.disp.size() >= 4);
+    }
+
+    // ========================================
+    // Error: mixed valid and invalid moves
+    // ========================================
+
+    void parse_mixedValidInvalid()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_mixed_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+7776FU\n+XXYYFU\n-3334FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        QVERIFY(ok);
+        // First move should succeed, second fails, third succeeds
+        QVERIFY(result.mainline.usiMoves.size() >= 1);
+    }
+
+    // ========================================
+    // Boundary: extractGameInfo from non-existent file
+    // ========================================
+
+    void extractGameInfo_nonExistentFile()
+    {
+        auto info = CsaToSfenConverter::extractGameInfo(
+            fixturePath(QStringLiteral("nonexistent.csa")));
+        QVERIFY(info.isEmpty());
+    }
+
+    // ========================================
+    // Boundary: extractGameInfo from empty file
+    // ========================================
+
+    void extractGameInfo_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        auto info = CsaToSfenConverter::extractGameInfo(tmp.fileName());
+        QVERIFY(info.isEmpty());
+    }
+
+    // ========================================
+    // Normal: CSA time token with comma-separated line
+    // ========================================
+
+    void parse_withTimeTokens()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_time_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+7776FU,T30\n-3334FU,T15\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 2);
+    }
+
+    // ========================================
+    // Error: drop with out-of-range square
+    // ========================================
+
+    void parse_dropOutOfRange()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_dropoor_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+0000FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // CSA lexer treats from=00 as drop; verify parse doesn't crash
+        QVERIFY(ok);
+    }
 };
 
 QTEST_MAIN(TestCsaConverter)

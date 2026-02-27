@@ -15,23 +15,23 @@
 #include "mainwindowruntimerefs.h"
 
 // --- unique_ptr メンバの完全型（デストラクタ用） ---
+#include "mainwindowcompositionroot.h"       // IWYU pragma: keep
 #include "mainwindowmatchadapter.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "livegamesessionupdater.h"
-#include "mainwindowcompositionroot.h"
 #include "mainwindowsignalrouter.h"
 #include "mainwindowappearancecontroller.h"
-#include "evaluationgraphcontroller.h"
-#include "jishogiscoredialogcontroller.h"
+#include "evaluationgraphcontroller.h"       // IWYU pragma: keep
+#include "jishogiscoredialogcontroller.h"    // IWYU pragma: keep
 #include "nyugyokudeclarationhandler.h"
 #include "languagecontroller.h"
 #include "docklayoutmanager.h"
-#include "dockcreationservice.h"
-#include "usicommandcontroller.h"
+#include "dockcreationservice.h"              // IWYU pragma: keep
+#include "usicommandcontroller.h"             // IWYU pragma: keep
 #include "branchnavigationwiring.h"
-#include "kifunavigationcoordinator.h"
-#include "gamerecordupdateservice.h"
-#include "analysisresultspresenter.h"
+#include "kifunavigationcoordinator.h"       // IWYU pragma: keep
+#include "gamerecordupdateservice.h"         // IWYU pragma: keep
+#include "analysisresultspresenter.h"        // IWYU pragma: keep
 #include "kifuexportcontroller.h"
 #include "csagamewiring.h"
 #include "josekiwindowwiring.h"
@@ -75,8 +75,6 @@ MainWindow::~MainWindow()
 {
     m_pipeline->runShutdown();
 }
-
-
 
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
@@ -142,8 +140,6 @@ void MainWindow::closeEvent(QCloseEvent* e)
     QMainWindow::closeEvent(e);
 }
 
-
-
 void MainWindow::beginPositionEditing()
 {
     m_registry->handleBeginPositionEditing();
@@ -167,8 +163,6 @@ void MainWindow::setReplayMode(bool on)
         m_replayController->setReplayMode(on);
     }
 }
-
-
 
 void MainWindow::loadBoardFromSfen(const QString& sfen)
 {
@@ -298,4 +292,3 @@ void MainWindow::onRecordPaneMainRowChanged(int row)
     m_registry->ensureRecordNavigationHandler();
     m_recordNavWiring->handler()->onMainRowChanged(row);
 }
-

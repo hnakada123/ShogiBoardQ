@@ -109,6 +109,9 @@ private:
 
     EditActions m_editActions;
 
+    // 編集終了ボタンの接続管理
+    QMetaObject::Connection m_exitBtnConnection;
+
     // コールバック
     ApplyEditMenuStateCallback m_applyEditMenuState;
     EnsurePositionEditCallback m_ensurePositionEdit;

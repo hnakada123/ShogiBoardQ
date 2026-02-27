@@ -1,6 +1,8 @@
 #include "parsecommon.h"
+#include "sfenpositiontracer.h"
 
 #include <QRegularExpression>
+#include <QStringView>
 
 namespace KifuParseCommon {
 
@@ -384,6 +386,255 @@ QMap<QString, QString> toGameInfoMap(const QList<KifGameInfoItem>& items)
         m.insert(it.key, it.value);
     }
     return m;
+}
+
+bool isBodHandsLine(const QString& line)
+{
+    return line.startsWith(QStringLiteral("先手の持駒")) ||
+           line.startsWith(QStringLiteral("後手の持駒")) ||
+           line.startsWith(QStringLiteral("先手の持ち駒")) ||
+           line.startsWith(QStringLiteral("後手の持ち駒"));
+}
+
+QList<KifGameInfoItem> extractHeaderGameInfo(
+    const QStringList& lines,
+    const std::function<bool(const QString&)>& isMoveLine)
+{
+    QList<KifGameInfoItem> ordered;
+
+    static const QRegularExpression kHeaderLine(
+        QStringLiteral("^\\s*([^：:]+?)\\s*[：:]\\s*(.*?)\\s*$")
+    );
+    static const QRegularExpression kLineIsComment(
+        QStringLiteral("^\\s*[#＃\\*\\＊]")
+    );
+
+    for (const QString& rawLine : std::as_const(lines)) {
+        const QString t = rawLine.trimmed();
+        if (t.isEmpty()) continue;
+        if (kLineIsComment.match(t).hasMatch()) continue;
+        if (isMoveLine(t)) break;
+        if (isBodHandsLine(t)) continue;
+
+        QRegularExpressionMatch m = kHeaderLine.match(rawLine);
+        if (!m.hasMatch()) continue;
+
+        QString key = m.captured(1).trimmed();
+        if (key.endsWith(u'：') || key.endsWith(u':')) key.chop(1);
+        key = key.trimmed();
+
+        QString val = m.captured(2).trimmed();
+        val.replace(QStringLiteral("\\n"), QStringLiteral("\n"));
+        ordered.push_back({ key, val });
+    }
+
+    return ordered;
+}
+
+bool tryHandleCommentLine(const QString& line, bool firstMoveFound,
+                          QString& commentBuf, QString& openingCommentBuf)
+{
+    if (!isKifCommentLine(line)) return false;
+    const QString c = line.mid(1).trimmed();
+    if (!c.isEmpty()) {
+        appendLine(firstMoveFound ? commentBuf : openingCommentBuf, c);
+    }
+    return true;
+}
+
+bool tryHandleBookmarkLine(const QString& line, bool firstMoveFound,
+                           QList<KifDisplayItem>& items, QString& openingBookmarkBuf)
+{
+    if (!isBookmarkLine(line)) return false;
+    const QString name = line.mid(1).trimmed();
+    if (!name.isEmpty()) {
+        if (firstMoveFound && items.size() > 1) {
+            appendLine(items.last().bookmark, name);
+        } else {
+            appendLine(openingBookmarkBuf, name);
+        }
+    }
+    return true;
+}
+
+KifDisplayItem createTerminalDisplayItem(int ply, const QString& term,
+                                         const QString& timeText)
+{
+    KifDisplayItem item;
+    item.prettyMove = tebanMark(ply) + term;
+    item.timeText = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
+    item.ply = ply;
+    return item;
+}
+
+KifDisplayItem createMoveDisplayItem(int ply, const QString& prettyMove,
+                                     const QString& timeText)
+{
+    KifDisplayItem item;
+    item.prettyMove = prettyMove;
+    item.timeText = timeText.isEmpty() ? QStringLiteral("00:00/00:00:00") : timeText;
+    item.ply = ply;
+    return item;
+}
+
+void finalizeDisplayItems(QString& commentBuf, QList<KifDisplayItem>& items,
+                          const QString& openingCommentBuf, const QString& openingBookmarkBuf)
+{
+    if (!commentBuf.isEmpty() && !items.isEmpty()) {
+        appendLine(items.last().comment, commentBuf);
+        commentBuf.clear();
+    }
+    if (items.isEmpty()) {
+        items.push_back(createOpeningDisplayItem(openingCommentBuf, openingBookmarkBuf));
+    }
+}
+
+// ============================================================
+// USI/USEN共通ユーティリティ
+// ============================================================
+
+namespace {
+
+static constexpr QStringView kUsiZenkakuDigits = u"０１２３４５６７８９";
+static constexpr QStringView kUsiKanjiRanks    = u"〇一二三四五六七八九";
+
+} // namespace
+
+QString usiPieceToKanji(QChar usiPiece)
+{
+    switch (usiPiece.toUpper().toLatin1()) {
+    case 'P': return QStringLiteral("歩");
+    case 'L': return QStringLiteral("香");
+    case 'N': return QStringLiteral("桂");
+    case 'S': return QStringLiteral("銀");
+    case 'G': return QStringLiteral("金");
+    case 'B': return QStringLiteral("角");
+    case 'R': return QStringLiteral("飛");
+    case 'K': return QStringLiteral("玉");
+    default: return QStringLiteral("?");
+    }
+}
+
+QString usiTokenToKanji(const QString& token)
+{
+    if (token.isEmpty()) return QStringLiteral("?");
+
+    const bool promoted = token.startsWith(QChar('+'));
+    const QChar pieceChar = promoted ? token.at(1) : token.at(0);
+
+    switch (pieceChar.toUpper().toLatin1()) {
+    case 'P': return promoted ? QStringLiteral("と") : QStringLiteral("歩");
+    case 'L': return promoted ? QStringLiteral("杏") : QStringLiteral("香");
+    case 'N': return promoted ? QStringLiteral("圭") : QStringLiteral("桂");
+    case 'S': return promoted ? QStringLiteral("全") : QStringLiteral("銀");
+    case 'G': return QStringLiteral("金");
+    case 'B': return promoted ? QStringLiteral("馬") : QStringLiteral("角");
+    case 'R': return promoted ? QStringLiteral("龍") : QStringLiteral("飛");
+    case 'K': return QStringLiteral("玉");
+    default: return QStringLiteral("?");
+    }
+}
+
+QString extractUsiPieceToken(const QString& usi, SfenPositionTracer& tracer)
+{
+    if (usi.size() < 4) return QString();
+
+    if (usi.at(1) == QChar('*')) {
+        return QString(usi.at(0).toUpper());
+    }
+
+    auto fromFile = parseFileChar(usi.at(0));
+    if (!fromFile) return QString();
+    QChar fromRankChar = usi.at(1);
+    return tracer.tokenAtFileRank(*fromFile, fromRankChar);
+}
+
+QString usiMoveToPretty(const QString& usi, int plyNumber,
+                        int& prevToFile, int& prevToRank,
+                        const QString& pieceToken)
+{
+    if (usi.isEmpty()) return QString();
+
+    const QString teban = tebanMark(plyNumber);
+
+    // プレースホルダー指し手のチェック (USEN でデコードできなかった指し手)
+    if (usi.startsWith(QChar('?'))) {
+        return teban + QStringLiteral("?(") + usi.mid(1) + QStringLiteral("手目)");
+    }
+
+    // 駒打ちのパターン: P*7f
+    if (usi.size() >= 4 && usi.at(1) == QChar('*')) {
+        const QChar pieceChar = usi.at(0);
+        auto toFile = parseFileChar(usi.at(2));
+        auto toRank = parseRankChar(usi.at(3));
+        if (!toFile || !toRank) return teban + QStringLiteral("?");
+
+        QString result = teban;
+        result += kUsiZenkakuDigits.at(*toFile);
+        result += kUsiKanjiRanks.at(*toRank);
+        result += usiPieceToKanji(pieceChar) + QStringLiteral("打");
+
+        prevToFile = *toFile;
+        prevToRank = *toRank;
+        return result;
+    }
+
+    // 通常移動のパターン: 7g7f, 7g7f+
+    if (usi.size() >= 4) {
+        auto fromFile = parseFileChar(usi.at(0));
+        auto fromRank = parseRankChar(usi.at(1));
+        auto toFile   = parseFileChar(usi.at(2));
+        auto toRank   = parseRankChar(usi.at(3));
+        if (!fromFile || !fromRank || !toFile || !toRank) return teban + QStringLiteral("?");
+        const bool promotes = (usi.size() >= 5 && usi.at(4) == QChar('+'));
+
+        QString result = teban;
+        if (*toFile == prevToFile && *toRank == prevToRank) {
+            result += QStringLiteral("同　");
+        } else {
+            result += kUsiZenkakuDigits.at(*toFile);
+            result += kUsiKanjiRanks.at(*toRank);
+        }
+
+        result += usiTokenToKanji(pieceToken);
+
+        if (promotes) {
+            result += QStringLiteral("成");
+        }
+
+        result += QStringLiteral("(") + QString::number(*fromFile) + QString::number(*fromRank) + QStringLiteral(")");
+
+        prevToFile = *toFile;
+        prevToRank = *toRank;
+        return result;
+    }
+
+    return teban + QStringLiteral("?");
+}
+
+int buildUsiMoveDisplayItems(const QStringList& usiMoves,
+                             const QString& baseSfen,
+                             int startPly,
+                             QList<KifDisplayItem>& outDisp)
+{
+    SfenPositionTracer tracer;
+    if (!tracer.setFromSfen(baseSfen)) {
+        tracer.resetToStartpos();
+    }
+
+    int prevToFile = 0, prevToRank = 0;
+    int plyNumber = startPly - 1;
+
+    for (const QString& usi : std::as_const(usiMoves)) {
+        ++plyNumber;
+        const QString pieceToken = extractUsiPieceToken(usi, tracer);
+        outDisp.push_back(createMoveDisplayItem(
+            plyNumber,
+            usiMoveToPretty(usi, plyNumber, prevToFile, prevToRank, pieceToken)));
+        tracer.applyUsiMove(usi);
+    }
+
+    return plyNumber;
 }
 
 } // namespace KifuParseCommon

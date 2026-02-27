@@ -248,7 +248,7 @@ void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardIn
 // 編集終了ボタン制御
 // ======================================================================
 
-void PositionEditController::showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot)
+void PositionEditController::showEditExitButtonOnBoard(ShogiView* view)
 {
     if (!view) return;
 
@@ -256,9 +256,6 @@ void PositionEditController::showEditExitButtonOnBoard(ShogiView* view, QObject*
     view->relayoutEditExitButton();
 
     if (QPushButton* exitBtn = view->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
-        // 重複接続防止
-        QObject::disconnect(exitBtn, SIGNAL(clicked()), receiver, finishSlot);
-        QObject::connect(exitBtn, SIGNAL(clicked()), receiver, finishSlot);
         exitBtn->show();
         exitBtn->raise();
     }

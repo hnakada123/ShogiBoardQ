@@ -8,6 +8,8 @@
 #include <QList>
 #include <memory>
 
+#include "fontsizehelper.h"
+
 class QComboBox;
 class QLabel;
 class QPushButton;
@@ -58,7 +60,6 @@ private:
     void readEngineNameAndDir();
     void loadSettings();
     void saveSettings();
-    void updateFontSize(int delta);
     void applyFontSize();
     void applyTableHeaderStyle();
     void setRunningState(bool running);
@@ -110,8 +111,8 @@ private:
     // ジェネレータ
     std::unique_ptr<TsumeshogiGenerator> m_generator;
 
-    // フォントサイズ
-    int m_fontSize = 10;
+    // フォントサイズヘルパー
+    FontSizeHelper m_fontHelper;
 };
 
 #endif // TSUMESHOGIGENERATORDIALOG_H

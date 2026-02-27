@@ -76,28 +76,13 @@ private:
     // 3文字のbase36から指し手番号（0-46655の範囲）を取得
     static int base36ToMoveIndex(const QString& threeChars);
 
-    // 本譜/変化のデータを構築（SfenPositionTracer使用版）
-    static void buildKifLine(const QStringList& usiMoves, 
+    // 本譜/変化のデータを構築（共通パイプライン使用版）
+    static void buildKifLine(const QStringList& usiMoves,
                              const QString& baseSfen,
                              int startPly,
                              const QString& terminalCode,
                              KifLine& outLine,
                              QString* warn);
-
-    // USI形式の指し手から日本語表記を生成
-    // pieceToken: SfenPositionTracerから取得した駒トークン（例: "P", "+B"）
-    static QString usiToPrettyMove(const QString& usi, int plyNumber, 
-                                   int& prevToFile, int& prevToRank,
-                                   const QString& pieceToken);
-
-    // 駒種の日本語名を取得 (P->歩, L->香, etc.)
-    static QString pieceToKanji(QChar usiPiece);
-
-    // 盤面トークンから日本語駒名を取得（成駒対応: +P->と, +B->馬 etc.）
-    static QString tokenToKanji(const QString& token);
-
-    // USI形式の段文字から数値変換 (a-i -> 1-9)
-    static int rankLetterToNum(QChar c);
 };
 
 #endif // USENTOSFENCONVERTER_H

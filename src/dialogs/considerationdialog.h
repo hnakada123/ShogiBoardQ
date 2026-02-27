@@ -9,6 +9,8 @@
 
 #include <memory>
 
+#include "fontsizehelper.h"
+
 namespace Ui {
 class ConsiderationDialog;
 }
@@ -81,8 +83,8 @@ private:
     // 候補手の数（MultiPV）
     int m_multiPV = 1;
 
-    // フォントサイズ
-    int m_fontSize = 0;
+    // フォントサイズヘルパー
+    FontSizeHelper m_fontHelper;
 
     // エンジンの名前とディレクトリを格納するリスト
     QList<Engine> engineList;
@@ -95,9 +97,6 @@ private:
 
     // 設定を保存する
     void saveSettings();
-
-    // フォントサイズを更新する
-    void updateFontSize(int delta);
 
     // ダイアログ全体にフォントサイズを適用する
     void applyFontSize();

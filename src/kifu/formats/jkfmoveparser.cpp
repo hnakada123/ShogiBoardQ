@@ -226,7 +226,7 @@ QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
 QString convertMoveToPretty(const QJsonObject& move, int plyNumber,
                             int& prevToX, int& prevToY)
 {
-    const QString teban = (plyNumber % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+    const QString teban = KifuParseCommon::tebanMark(plyNumber);
 
     if (!move.contains(QStringLiteral("to"))) {
         return teban + QStringLiteral("???");

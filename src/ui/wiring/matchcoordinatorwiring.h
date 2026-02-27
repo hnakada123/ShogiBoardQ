@@ -237,7 +237,7 @@ signals:
     void requestBranchTreeResetForNewGame();
 
 private:
-    void ensureGameStartCoordinator();
+    void createMatchCoordinator(const MatchCoordinator::Deps& deps);
 
     // --- Deps から取り出したメンバ ---
     ShogiGameController* m_gc = nullptr;
@@ -276,7 +276,6 @@ private:
     std::function<UiStatePolicyManager*()> m_getUiStatePolicy;
 
     // --- 内部管理オブジェクト ---
-    GameStartCoordinator* m_gameStartCoordinator = nullptr;
     GameStartCoordinator* m_menuGameStart = nullptr;
     MatchCoordinator* m_match = nullptr;
     QMetaObject::Connection m_timeConn;

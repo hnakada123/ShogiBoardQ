@@ -285,8 +285,6 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
 void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
 {
-    if (m_hooks.setGameInProgressActions) m_hooks.setGameInProgressActions(false);
-
     const bool loserIsP1 = (info.loser == Player::P1);
     const QString loserJP = loserIsP1 ? tr("先手") : tr("後手");
     const QString winnerJP = loserIsP1 ? tr("後手") : tr("先手");
@@ -313,7 +311,7 @@ void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
     }
 
     if (m_hooks.showGameOverDialog) m_hooks.showGameOverDialog(tr("対局終了"), msg);
-    if (m_hooks.log) m_hooks.log(QStringLiteral("Game ended"));
+    qCDebug(lcGame) << "Game ended";
 
     if (m_hooks.autoSaveKifuIfEnabled) {
         m_hooks.autoSaveKifuIfEnabled();

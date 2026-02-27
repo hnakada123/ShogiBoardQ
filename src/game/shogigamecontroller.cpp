@@ -23,20 +23,22 @@ ShogiGameController::ShogiGameController(QObject* parent)
 {
 }
 
+ShogiGameController::~ShogiGameController() = default;
+
 ShogiBoard* ShogiGameController::board() const
 {
-    return m_board;
+    return m_board.get();
 }
 
 void ShogiGameController::newGame(QString& initialSfenString)
 {
     qCDebug(lcGame) << "ShogiGameController::newGame called";
     qCDebug(lcGame) << "  Initial SFEN:" << initialSfenString;
-    qCDebug(lcGame) << "  Current board ptr:" << m_board;
+    qCDebug(lcGame) << "  Current board ptr:" << m_board.get();
 
     setupBoard();
 
-    qCDebug(lcGame) << "  New board ptr after setupBoard:" << m_board;
+    qCDebug(lcGame) << "  New board ptr after setupBoard:" << m_board.get();
 
     board()->setSfen(initialSfenString);
     setResult(NoResult);
@@ -52,21 +54,7 @@ void ShogiGameController::newGame(QString& initialSfenString)
 
 void ShogiGameController::setupBoard()
 {
-    setBoard(new ShogiBoard(9, 9, this));
-}
-
-void ShogiGameController::setBoard(ShogiBoard* board)
-{
-    if (!board) {
-        qCWarning(lcGame) << "setBoard: null board was passed.";
-        return;
-    }
-
-    if (board == m_board) return;
-
-    if (m_board) delete m_board;
-
-    m_board = board;
+    m_board = std::make_unique<ShogiBoard>(9, 9);
 }
 
 // ============================================================

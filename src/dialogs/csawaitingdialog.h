@@ -7,6 +7,7 @@
 
 #include <QDialog>
 #include "csagamecoordinator.h"
+#include "fontsizehelper.h"
 
 QT_BEGIN_NAMESPACE
 class QLabel;
@@ -134,10 +135,9 @@ private:
     void createLogWindow();
 
     /**
-     * @brief ログウィンドウのフォントサイズを更新する
-     * @param delta 変更量（+1または-1）
+     * @brief ログウィンドウのフォントサイズを適用する
      */
-    void updateLogFontSize(int delta);
+    void applyLogFontSize();
 
     /**
      * @brief ダイアログのフォントサイズを適用する
@@ -155,7 +155,7 @@ private:
     // フォントサイズ調整ボタン（ダイアログ本体）
     QToolButton* m_btnFontIncrease = nullptr;    ///< A+ボタン
     QToolButton* m_btnFontDecrease = nullptr;    ///< A-ボタン
-    int m_fontSize = 0;                           ///< ダイアログのフォントサイズ
+    FontSizeHelper m_fontHelper;                   ///< ダイアログのフォントサイズヘルパー
 
     // 通信ログウィンドウ
     QDialog* m_logWindow = nullptr;               ///< 通信ログウィンドウ
@@ -164,7 +164,7 @@ private:
     // フォントサイズ調整ボタン（ログウィンドウ）
     QToolButton* m_btnLogFontIncrease = nullptr;  ///< ログA+ボタン
     QToolButton* m_btnLogFontDecrease = nullptr;  ///< ログA-ボタン
-    int m_logFontSize = 0;                         ///< ログウィンドウのフォントサイズ
+    FontSizeHelper m_logFontHelper;                ///< ログウィンドウのフォントサイズヘルパー
 
     QPushButton* m_logCloseButton = nullptr;        ///< ログウィンドウ閉じるボタン
 

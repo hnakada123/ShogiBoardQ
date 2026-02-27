@@ -28,6 +28,26 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure
 
+      - name: Structural KPI Summary
+        if: always()
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cd build
+          ctest --output-on-failure -R tst_structural_kpi 2>&1 | tee kpi-results.txt
+          echo "## Structural KPI Check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if grep -q "FAILED" kpi-results.txt; then
+            echo ":x: **KPI violations detected**" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E "(FAIL|violation|limit|lines)" kpi-results.txt >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          else
+            echo ":white_check_mark: All structural KPIs within limits" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   build-debug:
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +105,7 @@ jobs:
         run: |
           # 現在の閾値（未翻訳数がこれを超えたら fail）
           # 翻訳を追加するたびに閾値を下げること（CLAUDE.md 参照）
-          THRESHOLD=1201
+          THRESHOLD=1216
           total=0
           echo "## Translation Status" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"

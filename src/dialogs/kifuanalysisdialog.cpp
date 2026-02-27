@@ -7,6 +7,7 @@
 #include "enginesettingsconstants.h"
 #include "settingscommon.h"
 #include "analysissettings.h"
+#include "dialogutils.h"
 #include "shogiutils.h"
 
 #include <QFile>
@@ -20,19 +21,15 @@ using namespace EngineSettingsConstants;
 
 // 棋譜解析ダイアログのUIを設定する。
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
-    : QDialog(parent), ui(new Ui::KifuAnalysisDialog)
+    : QDialog(parent)
+    , ui(new Ui::KifuAnalysisDialog)
+    , m_fontHelper({AnalysisSettings::kifuAnalysisFontSize(), 8, 24, 2,
+                    AnalysisSettings::setKifuAnalysisFontSize})
 {
     // UIをセットアップする。
     ui->setupUi(this);
-    
-    // 設定からフォントサイズを読み込む
-    m_fontSize = AnalysisSettings::kifuAnalysisFontSize();
-    if (m_fontSize <= 0) {
-        m_fontSize = font().pointSize();
-        if (m_fontSize <= 0) {
-            m_fontSize = 10;  // デフォルト
-        }
-    }
+
+    // フォントサイズを適用
     applyFontSize();
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
@@ -91,10 +88,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->spinBoxEndPly->setEnabled(rangeEnabled);
 
     // ウィンドウサイズを復元
-    QSize savedSize = AnalysisSettings::kifuAnalysisDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize());
 }
 
 // 範囲指定ラジオボタンが選択された場合
@@ -203,7 +197,7 @@ void KifuAnalysisDialog::processEngineSettings()
     AnalysisSettings::setKifuAnalysisFullRange(m_initPosition);
     AnalysisSettings::setKifuAnalysisStartPly(ui->spinBoxStartPly->value());
     AnalysisSettings::setKifuAnalysisEndPly(ui->spinBoxEndPly->value());
-    AnalysisSettings::setKifuAnalysisDialogSize(size());
+    DialogUtils::saveDialogSize(this, AnalysisSettings::setKifuAnalysisDialogSize);
 }
 
 // エンジンの名前とディレクトリを格納するリストを取得する。
@@ -280,31 +274,21 @@ void KifuAnalysisDialog::readEngineNameAndDir()
 // フォントサイズ拡大
 void KifuAnalysisDialog::onFontIncrease()
 {
-    if (m_fontSize < 24) {
-        m_fontSize += 2;
-        applyFontSize();
-        AnalysisSettings::setKifuAnalysisFontSize(m_fontSize);
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 // フォントサイズ縮小
 void KifuAnalysisDialog::onFontDecrease()
 {
-    if (m_fontSize > 8) {
-        m_fontSize -= 2;
-        applyFontSize();
-        AnalysisSettings::setKifuAnalysisFontSize(m_fontSize);
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // フォントサイズを適用
 void KifuAnalysisDialog::applyFontSize()
 {
-    // 念のため範囲外値を抑止（設定ファイル汚損時の安全策）
-    m_fontSize = qBound(8, m_fontSize, 24);
-
+    const int size = m_fontHelper.fontSize();
     QFont f = font();
-    f.setPointSize(m_fontSize);
+    f.setPointSize(size);
     setFont(f);
 
     // コンストラクタ中は setFont() による子ウィジェットへのフォント伝播が

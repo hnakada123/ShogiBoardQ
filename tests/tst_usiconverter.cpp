@@ -303,6 +303,132 @@ private slots:
         QCOMPARE(moves.at(0), QStringLiteral("7g7f"));
         QCOMPARE(moves.at(1), QStringLiteral("3c3d"));
     }
+
+    // ========================================
+    // Error: parseWithVariations on non-existent file
+    // ========================================
+
+    void parseWithVariations_nonExistentFile()
+    {
+        KifParseResult result;
+        QString error;
+        bool ok = UsiToSfenConverter::parseWithVariations(
+            fixturePath(QStringLiteral("nonexistent.usi")), result, &error);
+        QVERIFY(!ok);
+    }
+
+    // ========================================
+    // Error: only whitespace content
+    // ========================================
+
+    void convertFile_whitespaceOnly()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_ws_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("   \n  \n  \n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QCOMPARE(moves.size(), 0);
+    }
+
+    // ========================================
+    // Error: position keyword only, no moves
+    // ========================================
+
+    void convertFile_positionOnly()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_posonly_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position startpos\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QCOMPARE(moves.size(), 0);
+    }
+
+    // ========================================
+    // Boundary: detect SFEN from empty file
+    // ========================================
+
+    void detectInitialSfen_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        QString sfen = UsiToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
+        // Should return hirate or empty
+        Q_UNUSED(sfen);
+    }
+
+    // ========================================
+    // Normal: terminal codes
+    // ========================================
+
+    void terminalCodeToJapanese_unknown()
+    {
+        // Unknown code should return the code itself or a fallback
+        QString result = UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("unknown_code"));
+        QVERIFY(!result.isEmpty());
+    }
+
+    void terminalCodeToJapanese_empty()
+    {
+        QString result = UsiToSfenConverter::terminalCodeToJapanese(QString());
+        // Empty input should not crash
+        Q_UNUSED(result);
+    }
+
+    // ========================================
+    // Boundary: multiple moves on one line
+    // ========================================
+
+    void convertFile_manyMoves()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_many_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position startpos moves 7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6i7h 4a3b 2e2d 2c2d 2h2d\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves.size(), 11);
+    }
+
+    // ========================================
+    // Boundary: extractGameInfo
+    // ========================================
+
+    void extractGameInfo_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        auto info = UsiToSfenConverter::extractGameInfo(tmp.fileName());
+        QVERIFY(info.isEmpty());
+    }
+
+    // ========================================
+    // Error: extractMovesWithTimes on non-existent file
+    // ========================================
+
+    void extractMovesWithTimes_nonExistentFile()
+    {
+        QString error;
+        QList<KifDisplayItem> items = UsiToSfenConverter::extractMovesWithTimes(
+            fixturePath(QStringLiteral("nonexistent.usi")), &error);
+        QVERIFY(items.isEmpty());
+    }
 };
 
 QTEST_MAIN(TestUsiConverter)

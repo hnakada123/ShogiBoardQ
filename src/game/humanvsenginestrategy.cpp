@@ -8,6 +8,7 @@
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
+#include "logcategories.h"
 
 HumanVsEngineStrategy::HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
                                                bool engineIsP1,
@@ -26,9 +27,7 @@ HumanVsEngineStrategy::HumanVsEngineStrategy(MatchCoordinator::StrategyContext& 
 
 void HumanVsEngineStrategy::start()
 {
-    if (m_ctx.hooks().log) {
-        m_ctx.hooks().log(QStringLiteral("[Match] Start HvE (engineIsP1=%1)").arg(m_engineIsP1));
-    }
+    qCDebug(lcGame) << "[Match] Start HvE (engineIsP1=" << m_engineIsP1 << ")";
 
     // 以前のエンジンは破棄（安全化）
     m_ctx.destroyEngines();
@@ -75,7 +74,7 @@ void HumanVsEngineStrategy::start()
     m_ctx.setCurrentTurn((side == ShogiGameController::Player2) ? MatchCoordinator::P2 : MatchCoordinator::P1);
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 }
 
@@ -93,8 +92,8 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
         humanIsP1 ? ShogiGameController::Player2 : ShogiGameController::Player1;
 
     // 0) 人間手のハイライト
-    if (m_ctx.hooks().showMoveHighlights) {
-        m_ctx.hooks().showMoveHighlights(humanFrom, humanTo);
+    if (m_ctx.hooks().ui.showMoveHighlights) {
+        m_ctx.hooks().ui.showMoveHighlights(humanFrom, humanTo);
     }
 
     // 1) 人間側の考慮時間を確定 → byoyomi/inc を適用 → KIF 追記
@@ -104,8 +103,8 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
             m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(ms));
             m_ctx.clock()->applyByoyomiAndResetConsideration1();
 
-            if (m_ctx.hooks().appendKifuLine) {
-                m_ctx.hooks().appendKifuLine(prettyMove, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
+            if (m_ctx.hooks().game.appendKifuLine) {
+                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
             }
             // 従来互換：クリア
             m_ctx.clock()->setPlayer1ConsiderationTime(0);
@@ -114,8 +113,8 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
             m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(ms));
             m_ctx.clock()->applyByoyomiAndResetConsideration2();
 
-            if (m_ctx.hooks().appendKifuLine) {
-                m_ctx.hooks().appendKifuLine(prettyMove, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
+            if (m_ctx.hooks().game.appendKifuLine) {
+                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
             }
             // 従来互換：クリア
             m_ctx.clock()->setPlayer2ConsiderationTime(0);
@@ -251,7 +250,7 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
     // 千日手チェック（エンジンの手の後）
     if (m_ctx.checkAndHandleSennichite()) return;
 
-    if (m_ctx.hooks().showMoveHighlights) m_ctx.hooks().showMoveHighlights(eFrom, eTo);
+    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(eFrom, eTo);
 
     // エンジンの考慮時間を確定してから棋譜に追記する
     const qint64 thinkMs = eng->lastBestmoveElapsedMs();
@@ -267,25 +266,25 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
         }
     }
 
-    if (m_ctx.hooks().appendKifuLine && m_ctx.clock()) {
+    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
         const QString elapsed = (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
         ? m_ctx.clock()->getPlayer2ConsiderationAndTotalTime()
         : m_ctx.clock()->getPlayer1ConsiderationAndTotalTime();
-        m_ctx.hooks().appendKifuLine(rec, elapsed);
+        m_ctx.hooks().game.appendKifuLine(rec, elapsed);
     }
 
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
     m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == ShogiGameController::Player2) ? MatchCoordinator::P2 : MatchCoordinator::P1);
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
     // エンジン着手後の評価値追加
     qCDebug(lcGame) << "onHumanMove: about to call appendEval, engineIsP1=" << m_engineIsP1;
     if (m_engineIsP1) {
-        qCDebug(lcGame) << "onHumanMove: calling appendEvalP1, hook set=" << (m_ctx.hooks().appendEvalP1 ? "YES" : "NO");
-        if (m_ctx.hooks().appendEvalP1) m_ctx.hooks().appendEvalP1();
+        qCDebug(lcGame) << "onHumanMove: calling appendEvalP1, hook set=" << (m_ctx.hooks().game.appendEvalP1 ? "YES" : "NO");
+        if (m_ctx.hooks().game.appendEvalP1) m_ctx.hooks().game.appendEvalP1();
     } else {
-        qCDebug(lcGame) << "onHumanMove: calling appendEvalP2, hook set=" << (m_ctx.hooks().appendEvalP2 ? "YES" : "NO");
-        if (m_ctx.hooks().appendEvalP2) m_ctx.hooks().appendEvalP2();
+        qCDebug(lcGame) << "onHumanMove: calling appendEvalP2, hook set=" << (m_ctx.hooks().game.appendEvalP2 ? "YES" : "NO");
+        if (m_ctx.hooks().game.appendEvalP2) m_ctx.hooks().game.appendEvalP2();
     }
 
     // 最大手数チェック
@@ -316,9 +315,7 @@ void HumanVsEngineStrategy::finishTurnTimerAndSetConsideration(int /*moverPlayer
 
 void HumanVsEngineStrategy::finishHumanTimerInternal()
 {
-    // どちらが「人間側」かは Main からのフックで取得（HvE想定）
-    if (!m_ctx.hooks().humanPlayerSide) return;
-    const auto side = m_ctx.hooks().humanPlayerSide();
+    const auto side = m_engineIsP1 ? MatchCoordinator::P2 : MatchCoordinator::P1;
 
     // ShogiClock 内部の考慮msをそのまま反映
     if (m_ctx.clock()) {
@@ -432,14 +429,14 @@ void HumanVsEngineStrategy::startInitialEngineMoveFor(int engineSideInt)
             m_ctx.clock()->applyByoyomiAndResetConsideration2();
         }
     }
-    if (m_ctx.hooks().appendKifuLine && m_ctx.clock()) {
+    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
         const QString elapsed = (engineSide == MatchCoordinator::P1)
         ? m_ctx.clock()->getPlayer1ConsiderationAndTotalTime()
         : m_ctx.clock()->getPlayer2ConsiderationAndTotalTime();
-        m_ctx.hooks().appendKifuLine(rec, elapsed);
+        m_ctx.hooks().game.appendKifuLine(rec, elapsed);
     }
 
-    if (m_ctx.hooks().renderBoardFromGc) m_ctx.hooks().renderBoardFromGc();
+    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
     m_ctx.setCurrentTurn((m_ctx.gc()->currentPlayer() == ShogiGameController::Player2) ? MatchCoordinator::P2 : MatchCoordinator::P1);
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
@@ -447,11 +444,11 @@ void HumanVsEngineStrategy::startInitialEngineMoveFor(int engineSideInt)
 
     qCDebug(lcGame) << "about to call appendEval, engineSide=" << (engineSide == MatchCoordinator::P1 ? "P1" : "P2");
     if (engineSide == MatchCoordinator::P1) {
-        qCDebug(lcGame) << "calling appendEvalP1, hook set=" << (m_ctx.hooks().appendEvalP1 ? "YES" : "NO");
-        if (m_ctx.hooks().appendEvalP1) m_ctx.hooks().appendEvalP1();
+        qCDebug(lcGame) << "calling appendEvalP1, hook set=" << (m_ctx.hooks().game.appendEvalP1 ? "YES" : "NO");
+        if (m_ctx.hooks().game.appendEvalP1) m_ctx.hooks().game.appendEvalP1();
     } else {
-        qCDebug(lcGame) << "calling appendEvalP2, hook set=" << (m_ctx.hooks().appendEvalP2 ? "YES" : "NO");
-        if (m_ctx.hooks().appendEvalP2) m_ctx.hooks().appendEvalP2();
+        qCDebug(lcGame) << "calling appendEvalP2, hook set=" << (m_ctx.hooks().game.appendEvalP2 ? "YES" : "NO");
+        if (m_ctx.hooks().game.appendEvalP2) m_ctx.hooks().game.appendEvalP2();
     }
 
     // 千日手チェック

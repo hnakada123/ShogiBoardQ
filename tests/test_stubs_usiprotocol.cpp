@@ -8,6 +8,7 @@
 #include <QSettings>
 
 #include "engineprocessmanager.h"
+#include "shogiboard.h"
 #include "thinkinginfopresenter.h"
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
@@ -61,6 +62,7 @@ ShogiEngineInfoParser::ShogiEngineInfoParser() {}
 
 // === ShogiGameController スタブ ===
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
+ShogiGameController::~ShogiGameController() = default;
 void ShogiGameController::setPromote(bool) {}
 void ShogiGameController::newGame(QString&) {}
 

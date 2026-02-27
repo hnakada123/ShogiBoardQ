@@ -288,7 +288,6 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
             << opt.engineName1 << "," << opt.engineName2 << ")";
         m_hooks.setEngineNames(opt.engineName1, opt.engineName2);
     }
-    if (m_hooks.setGameActions) m_hooks.setGameActions(true);
     qCDebug(lcGame).noquote() << "configureAndStart: hooks done";
 
     // 開始手番の決定

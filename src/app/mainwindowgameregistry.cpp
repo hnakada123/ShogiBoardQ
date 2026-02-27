@@ -253,7 +253,7 @@ void MainWindowServiceRegistry::ensureTurnSyncBridge()
     auto* tm = m_mw.findChild<TurnManager*>("TurnManager");
     if (!gc || !tm) return;
 
-    TurnSyncBridge::wire(gc, tm, &m_mw);
+    TurnSyncBridge::wire(gc, tm, &m_mw, &MainWindow::onTurnManagerChanged);
 }
 
 // ---------------------------------------------------------------------------

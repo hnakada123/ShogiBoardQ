@@ -4,6 +4,7 @@
 #include "shogienginethinkingmodel.h"
 #include <QColor>
 #include <algorithm>
+#include <memory>
 
 // ============================================================
 // 初期化
@@ -132,11 +133,11 @@ int ShogiEngineThinkingModel::findRowByMultipv(int multipv) const
 
 void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxMultiPV)
 {
-    if (!record) return;
+    std::unique_ptr<ShogiInfoRecord> newRecord(record);
+    if (!newRecord) return;
 
-    const int multipv = record->multipv();
+    const int multipv = newRecord->multipv();
     if (multipv < 1 || multipv > maxMultiPV) {
-        delete record;
         return;
     }
 
@@ -145,9 +146,8 @@ void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxM
 
     if (existingRow >= 0) {
         // 既存の行を更新
-        ShogiInfoRecord* oldRecord = list.at(existingRow);
-        list[existingRow] = record;
-        delete oldRecord;
+        std::unique_ptr<ShogiInfoRecord> oldRecord(list.at(existingRow));
+        list[existingRow] = newRecord.release();
 
         const QModelIndex topLeft = index(existingRow, 0);
         const QModelIndex bottomRight = index(existingRow, columnCount() - 1);
@@ -162,7 +162,7 @@ void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxM
         }
 
         beginInsertRows(QModelIndex(), insertPos, insertPos);
-        list.insert(insertPos, record);
+        list.insert(insertPos, newRecord.release());
         endInsertRows();
     }
 
@@ -170,7 +170,7 @@ void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxM
     while (list.size() > maxMultiPV) {
         const int lastIdx = static_cast<int>(list.size()) - 1;
         beginRemoveRows(QModelIndex(), lastIdx, lastIdx);
-        delete list.takeLast();
+        std::unique_ptr<ShogiInfoRecord> removed(list.takeLast());
         endRemoveRows();
     }
 }
@@ -197,7 +197,7 @@ void ShogiEngineThinkingModel::trimToMaxRows(int maxRows)
     while (list.size() > maxRows) {
         const int lastIdx = static_cast<int>(list.size()) - 1;
         beginRemoveRows(QModelIndex(), lastIdx, lastIdx);
-        delete list.takeLast();
+        std::unique_ptr<ShogiInfoRecord> removed(list.takeLast());
         endRemoveRows();
     }
 }

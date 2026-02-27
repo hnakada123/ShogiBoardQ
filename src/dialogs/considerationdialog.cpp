@@ -18,7 +18,8 @@
 ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::ConsiderationDialog>())
-    , m_fontSize(AnalysisSettings::considerationDialogFontSize())
+    , m_fontHelper({AnalysisSettings::considerationDialogFontSize(), 8, 24, 1,
+                    AnalysisSettings::setConsiderationDialogFontSize})
 {
     // UIをセットアップする。
     ui->setupUi(this);
@@ -175,36 +176,21 @@ const QList<ConsiderationDialog::Engine>& ConsiderationDialog::getEngineList() c
 // フォントサイズを大きくする
 void ConsiderationDialog::onFontIncrease()
 {
-    updateFontSize(1);
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 // フォントサイズを小さくする
 void ConsiderationDialog::onFontDecrease()
 {
-    updateFontSize(-1);
-}
-
-// フォントサイズを更新する
-void ConsiderationDialog::updateFontSize(int delta)
-{
-    m_fontSize += delta;
-    if (m_fontSize < 8) m_fontSize = 8;
-    if (m_fontSize > 24) m_fontSize = 24;
-
-    applyFontSize();
-
-    // SettingsServiceに保存
-    AnalysisSettings::setConsiderationDialogFontSize(m_fontSize);
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // ダイアログ全体にフォントサイズを適用する
 void ConsiderationDialog::applyFontSize()
 {
-    // 念のため範囲外値を抑止（設定ファイル汚損時の安全策）
-    m_fontSize = qBound(8, m_fontSize, 24);
-
+    const int size = m_fontHelper.fontSize();
     QFont f = font();
-    f.setPointSize(m_fontSize);
+    f.setPointSize(size);
     setFont(f);
 
     // コンストラクタ中は setFont() による子ウィジェットへのフォント伝播が

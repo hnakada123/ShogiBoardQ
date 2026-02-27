@@ -103,95 +103,45 @@ public:
      * @see MatchCoordinatorHooksFactory, MainWindowMatchWiringDepsService
      */
     struct Hooks {
-        // --- UI/描画系 ---
+        /// UI更新・描画系コールバック
+        struct UI {
+            std::function<void(Player cur)> updateTurnDisplay;
+            std::function<void(const QString& p1, const QString& p2)> setPlayersNames;
+            std::function<void(const QString& e1, const QString& e2)> setEngineNames;
+            std::function<void()> renderBoardFromGc;
+            std::function<void(const QString& title, const QString& message)> showGameOverDialog;
+            std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
+        };
 
-        /// @brief 手番表示を更新する
-        /// @note 配線元: HooksFactory (lambda) → MainWindow::onTurnManagerChanged
-        std::function<void(Player cur)> updateTurnDisplay;
+        /// 時計読み出し系コールバック
+        struct Time {
+            std::function<qint64(Player)> remainingMsFor;
+            std::function<qint64(Player)> incrementMsFor;
+            std::function<qint64()> byoyomiMs;
+        };
 
-        /// @brief 対局者名をUIに設定する
-        /// @note 配線元: HookDeps → PlayerInfoWiring
-        std::function<void(const QString& p1, const QString& p2)> setPlayersNames;
+        /// USI送受系コールバック
+        struct Engine {
+            std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;
+            std::function<void(Usi* which)> sendStopToEngine;
+            std::function<void(Usi* which, const QString& cmd)> sendRawToEngine;
+        };
 
-        /// @brief エンジン名をUIに設定する
-        /// @note 配線元: HookDeps → PlayerInfoWiring
-        std::function<void(const QString& e1, const QString& e2)> setEngineNames;
+        /// ゲーム初期化・棋譜系コールバック
+        struct Game {
+            std::function<void(const QString& sfenStart)> initializeNewGame;
+            std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
+            std::function<void()> appendEvalP1;
+            std::function<void()> appendEvalP2;
+            std::function<void(const QString& saveDir, PlayMode playMode,
+                               const QString& humanName1, const QString& humanName2,
+                               const QString& engineName1, const QString& engineName2)> autoSaveKifu;
+        };
 
-        /// @brief NewGame/Resign等のメニュー項目のON/OFF
-        /// @note 未配線（UiStatePolicyManager で代替済みの可能性あり）
-        std::function<void(bool inProgress)> setGameActions;
-
-        /// @brief ShogiGameController の盤面状態を ShogiView に反映する
-        /// @note 配線元: HookDeps → MainWindowMatchAdapter::renderBoardFromGc
-        std::function<void()> renderBoardFromGc;
-
-        /// @brief 終局結果ダイアログを表示する
-        /// @note 配線元: HookDeps → MainWindowMatchAdapter::showGameOverMessageBox
-        std::function<void(const QString& title, const QString& message)> showGameOverDialog;
-
-        /// @brief デバッグログを出力する
-        /// @note 未配線。qDebug() への置換を検討
-        std::function<void(const QString& msg)> log;
-
-        /// @brief 着手のハイライト（from: 赤, to: 黄）を表示する
-        /// @note 配線元: HookDeps → MainWindowMatchAdapter::showMoveHighlights
-        std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
-
-        // --- 時計読み出し（ShogiClock API差異吸収） ---
-
-        /// @brief 指定プレイヤーの残り時間（ms）を返す
-        /// @note 配線元: HookDeps → TimekeepingService
-        std::function<qint64(Player)> remainingMsFor;
-
-        /// @brief 指定プレイヤーのフィッシャー加算時間（ms）を返す
-        /// @note 配線元: HookDeps → TimekeepingService
-        std::function<qint64(Player)> incrementMsFor;
-
-        /// @brief 秒読み時間（ms、両プレイヤー共通）を返す
-        /// @note 配線元: HookDeps → TimekeepingService
-        std::function<qint64()> byoyomiMs;
-
-        /// @brief HvE: 人間側の手番（P1/P2）を返す
-        /// @note 未配線。HumanVsEngineStrategy::onHumanMove で null チェック付きで使用
-        std::function<Player()> humanPlayerSide = nullptr;
-
-        // --- USI送受 ---
-
-        /// @brief エンジンに go コマンドを送信する
-        /// @note 配線元: HookDeps → UsiCommandController
-        std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;
-
-        /// @brief エンジンに stop コマンドを送信する
-        /// @note 配線元: HookDeps → UsiCommandController
-        std::function<void(Usi* which)> sendStopToEngine;
-
-        /// @brief エンジンに任意のコマンドを送信する
-        /// @note 配線元: HookDeps → UsiCommandController
-        std::function<void(Usi* which, const QString& cmd)> sendRawToEngine;
-
-        // --- 新規対局の初期化 ---
-
-        /// @brief GUI固有の新規対局初期化処理を実行する
-        /// @note 配線元: HookDeps → MainWindowMatchAdapter::initializeNewGameHook
-        std::function<void(const QString& sfenStart)> initializeNewGame;
-
-        /// @brief 棋譜に1行追記する（例: text="▲７六歩", elapsed="00:03/00:00:06"）
-        /// @note 配線元: HookDeps → GameRecordUpdateService::appendKifuLine
-        std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
-
-        /// @brief P1着手確定時に評価値を1本目のグラフに追記する
-        /// @note 配線元: HooksFactory (lambda) → EvaluationGraphController::redrawEngine1Graph
-        std::function<void()> appendEvalP1;
-
-        /// @brief P2着手確定時に評価値を2本目のグラフに追記する
-        /// @note 配線元: HooksFactory (lambda) → EvaluationGraphController::redrawEngine2Graph
-        std::function<void()> appendEvalP2;
-
-        /// @brief 対局終了時に棋譜を自動保存する
-        /// @note 配線元: HookDeps → KifuFileController::autoSaveKifuToFile
-        std::function<void(const QString& saveDir, PlayMode playMode,
-                           const QString& humanName1, const QString& humanName2,
-                           const QString& engineName1, const QString& engineName2)> autoSaveKifu;
+        UI ui;         ///< UI更新・描画系
+        Time time;     ///< 時計読み出し系
+        Engine engine; ///< USI送受系
+        Game game;     ///< ゲーム初期化・棋譜系
     };
 
     /// 依存オブジェクト
@@ -405,7 +355,6 @@ public:
 
     // --- 時間/手番・終局の処理 ---
 
-    void handleTimeUpdated() {}
     void handlePlayerTimeOut(int player);
 
     /// 開始直後のタイマー起動や初手go判定を1本化する
@@ -520,7 +469,6 @@ signals:
 private:
     // --- 内部ヘルパ ---
 
-    void setGameInProgressActions(bool inProgress);
     void updateTurnDisplay(Player p);
     GoTimes computeGoTimes() const;
     void initPositionStringsFromSfen(const QString& sfenBase);

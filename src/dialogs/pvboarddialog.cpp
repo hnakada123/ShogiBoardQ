@@ -7,6 +7,7 @@
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "analysissettings.h"
+#include "dialogutils.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -17,6 +18,10 @@
 #include <QCloseEvent>
 #include <QWheelEvent>
 #include <QTimer>
+
+namespace {
+constexpr QSize kMinimumSize{400, 500};
+} // namespace
 
 // 前方宣言: SFENからUSI形式の手を盤面に適用する静的ヘルパー
 static void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isBlackToMove);
@@ -35,15 +40,10 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
 {
     setWindowTitle(tr("読み筋表示"));
     // ダイアログのサイズは可変に（将棋盤のサイズ変更に対応）
-    setMinimumSize(400, 500);
+    setMinimumSize(kMinimumSize);
     
     // 前回保存されたウィンドウサイズを読み込む
-    QSize savedSize = AnalysisSettings::pvBoardDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    } else {
-        resize(620, 720);
-    }
+    DialogUtils::restoreDialogSize(this, AnalysisSettings::pvBoardDialogSize());
 
     // 初期盤面を履歴に追加
     m_sfenHistory.clear();
@@ -864,7 +864,7 @@ void PvBoardDialog::parseKanjiMoves()
 
 void PvBoardDialog::saveWindowSize()
 {
-    AnalysisSettings::setPvBoardDialogSize(size());
+    DialogUtils::saveDialogSize(this, AnalysisSettings::setPvBoardDialogSize);
 }
 
 void PvBoardDialog::adjustWindowToContents()
