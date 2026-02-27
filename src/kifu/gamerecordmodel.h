@@ -15,7 +15,6 @@
 
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
-#include "kifutypes.h"
 #include "kifubranchtree.h"
 #include "playmode.h"
 
@@ -315,76 +314,6 @@ private:
     // === 内部ヘルパ ===
     void syncToExternalStores(int ply, const QString& comment);
 
-    // === 分岐出力用ヘルパ ===
-    /**
-     * @brief BranchLineからKIF形式で変化を出力
-     * @param line 分岐ライン
-     * @param out 出力先
-     */
-    void outputVariationFromBranchLine(const BranchLine& line, QStringList& out) const;
-
-    // === KI2形式出力用ヘルパ ===
-    /**
-     * @brief BranchLineからKI2形式で変化を出力
-     * @param line 分岐ライン
-     * @param startSfen 開始局面のSFEN（盤面追跡用）
-     * @param out 出力先
-     */
-    void outputKi2VariationFromBranchLine(const BranchLine& line, const QString& startSfen, QStringList& out) const;
-
-    // === USEN形式出力用ヘルパ ===
-    /**
-     * @brief SFENをUSEN形式に変換
-     * @param sfen SFEN形式の局面文字列
-     * @return USEN形式の局面文字列（平手の場合は空文字列）
-     */
-    static QString sfenToUsenPosition(const QString& sfen);
-
-    /**
-     * @brief USI形式の指し手をUSEN形式にエンコード
-     * @param usiMove USI形式の指し手（例: "7g7f", "P*5e", "2h3g+"）
-     * @return USEN形式（3文字のbase36）
-     */
-    static QString encodeUsiMoveToUsen(const QString& usiMove);
-
-    /**
-     * @brief 指し手番号をbase36（3文字）にエンコード
-     * @param moveCode 指し手コード（0-46655）
-     * @return 3文字のbase36文字列
-     */
-    static QString intToBase36(int moveCode);
-
-    /**
-     * @brief 終局語からUSEN終局コードを取得
-     * @param terminalMove 終局語（例: "▲投了"）
-     * @return USENの終局コード（例: "r"）、該当なしは空文字列
-     */
-    static QString getUsenTerminalCode(const QString& terminalMove);
-
-    /**
-     * @brief 2つのSFEN間の差分からUSI形式の指し手を推測
-     * @param sfenBefore 指し手前のSFEN
-     * @param sfenAfter 指し手後のSFEN
-     * @param isSente 先手番かどうか
-     * @return USI形式の指し手（推測できない場合は空文字列）
-     */
-    static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sfenAfter, bool isSente);
-
-    // === USI（position コマンド）形式出力用ヘルパ ===
-    /**
-     * @brief 終局語からUSI終局コードを取得
-     * @param terminalMove 終局語（例: "▲投了"、"千日手"）
-     * @return USIの終局コード（例: "resign", "rep_draw"）、該当なしは空文字列
-     */
-    static QString getUsiTerminalCode(const QString& terminalMove);
-
-    // === BOD形式出力用ヘルパ ===
-    /**
-     * @brief SFENから開始局面のBOD行リストを生成
-     * @param sfen SFEN形式の局面文字列
-     * @return BOD形式の行リスト（空SFENまたは平手の場合は空リスト）
-     */
-    static QStringList sfenToBodLines(const QString& sfen);
 };
 
 #endif // GAMERECORDMODEL_H

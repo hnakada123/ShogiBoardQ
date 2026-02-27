@@ -23,11 +23,8 @@ if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
     if(CLANG_TIDY_EXE)
         message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-        set(CMAKE_CXX_CLANG_TIDY
-            ${CLANG_TIDY_EXE};
-            -checks=-*,clang-diagnostic-unused-*,misc-unused-*,clang-analyzer-deadcode.*,readability-redundant-*;
-            -header-filter=.*
-        )
+        # チェック内容は .clang-tidy ファイルで管理
+        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE})
     else()
         message(WARNING "clang-tidy not found, static analysis disabled")
     endif()
@@ -240,17 +237,12 @@ set(SRC_APP
     src/app/mainwindowcoreinitcoordinator.cpp
     src/app/mainwindowcoreinitcoordinator.h
     src/app/mainwindowanalysisregistry.cpp
-    src/app/mainwindowanalysisregistry.h
     src/app/mainwindowboardregistry.cpp
-    src/app/mainwindowboardregistry.h
     src/app/mainwindowgameregistry.cpp
-    src/app/mainwindowgameregistry.h
     src/app/mainwindowkifuregistry.cpp
-    src/app/mainwindowkifuregistry.h
     src/app/mainwindowserviceregistry.cpp
     src/app/mainwindowserviceregistry.h
     src/app/mainwindowuiregistry.cpp
-    src/app/mainwindowuiregistry.h
     src/app/mainwindowdepsfactory.cpp
     src/app/mainwindowdepsfactory.h
     src/app/mainwindowgamestartservice.cpp
@@ -262,16 +254,12 @@ set(SRC_APP
     src/app/mainwindowresetservice.cpp
     src/app/mainwindowresetservice.h
     src/app/mainwindowruntimerefs.h
-    src/app/mainwindowruntimerefsfactory.cpp
-    src/app/mainwindowruntimerefsfactory.h
+    src/app/mainwindowstate.h
     src/app/mainwindowwiringassembler.cpp
-    src/app/mainwindowwiringassembler.h
     src/app/mainwindowuibootstrapper.cpp
-    src/app/mainwindowuibootstrapper.h
     src/app/mainwindowlifecyclepipeline.cpp
     src/app/mainwindowlifecyclepipeline.h
     src/app/mainwindowdockbootstrapper.cpp
-    src/app/mainwindowdockbootstrapper.h
     src/app/playmodepolicyservice.cpp
     src/app/playmodepolicyservice.h
     src/app/matchruntimequeryservice.cpp
@@ -313,10 +301,16 @@ set(SRC_GAME
     src/game/consecutivegamescontroller.h
     src/game/enginegameovernotifier.cpp
     src/game/enginegameovernotifier.h
+    src/game/enginelifecyclemanager.cpp
+    src/game/enginelifecyclemanager.h
     src/game/gameendhandler.cpp
     src/game/gameendhandler.h
     src/game/gamestartorchestrator.cpp
     src/game/gamestartorchestrator.h
+    src/game/matchtimekeeper.cpp
+    src/game/matchtimekeeper.h
+    src/game/matchundohandler.cpp
+    src/game/matchundohandler.h
     src/game/enginevsenginestrategy.cpp
     src/game/enginevsenginestrategy.h
     src/game/gamemodestrategy.h
@@ -350,14 +344,26 @@ set(SRC_GAME
 set(SRC_KIFU
     src/kifu/formats/csaexporter.cpp
     src/kifu/formats/csaexporter.h
+    src/kifu/formats/csalexer.cpp
+    src/kifu/formats/csalexer.h
     src/kifu/formats/csatosfenconverter.cpp
     src/kifu/formats/csatosfenconverter.h
     src/kifu/formats/jkfexporter.cpp
     src/kifu/formats/jkfexporter.h
+    src/kifu/formats/jkfmoveparser.cpp
+    src/kifu/formats/jkfmoveparser.h
     src/kifu/formats/jkftosfenconverter.cpp
     src/kifu/formats/jkftosfenconverter.h
+    src/kifu/formats/ki2exporter.cpp
+    src/kifu/formats/ki2exporter.h
+    src/kifu/formats/ki2lexer.cpp
+    src/kifu/formats/ki2lexer.h
     src/kifu/formats/ki2tosfenconverter.cpp
     src/kifu/formats/ki2tosfenconverter.h
+    src/kifu/formats/kifexporter.cpp
+    src/kifu/formats/kifexporter.h
+    src/kifu/formats/kiflexer.cpp
+    src/kifu/formats/kiflexer.h
     src/kifu/formats/kiftosfenconverter.cpp
     src/kifu/formats/kiftosfenconverter.h
     src/kifu/formats/notationutils.cpp
@@ -366,8 +372,12 @@ set(SRC_KIFU
     src/kifu/formats/parsecommon.h
     src/kifu/formats/sfencsapositionconverter.cpp
     src/kifu/formats/sfencsapositionconverter.h
+    src/kifu/formats/usenexporter.cpp
+    src/kifu/formats/usenexporter.h
     src/kifu/formats/usentosfenconverter.cpp
     src/kifu/formats/usentosfenconverter.h
+    src/kifu/formats/usiexporter.cpp
+    src/kifu/formats/usiexporter.h
     src/kifu/formats/usitosfenconverter.cpp
     src/kifu/formats/usitosfenconverter.h
     src/kifu/gamerecordmodel.cpp
@@ -641,8 +651,13 @@ set(SRC_DIALOGS
     src/dialogs/josekimergedialog.h
     src/dialogs/josekimovedialog.cpp
     src/dialogs/josekimovedialog.h
+    src/dialogs/josekipresenter.cpp
+    src/dialogs/josekipresenter.h
+    src/dialogs/josekirepository.cpp
+    src/dialogs/josekirepository.h
     src/dialogs/josekiwindow.cpp
     src/dialogs/josekiwindow.h
+    src/dialogs/josekiwindowui.cpp
     src/dialogs/kifuanalysisdialog.cpp
     src/dialogs/kifuanalysisdialog.h
     src/dialogs/kifupastedialog.cpp

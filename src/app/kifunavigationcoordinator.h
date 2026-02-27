@@ -59,7 +59,8 @@ public:
         UiStatePolicyManager* uiStatePolicy = nullptr;         ///< UI状態ポリシーマネージャ（非所有）
 
         // --- Callbacks ---
-        std::function<void()> setCurrentTurn;                  ///< 手番表示更新
+        /// @note 各コールバックは KifuNavigationDepsFactory / MainWindowServiceRegistry で設定
+        std::function<void()> setCurrentTurn;                  ///< 手番表示更新（TurnStateSyncService 経由）
         std::function<void()> updateJosekiWindow;              ///< 定跡ウィンドウ更新
         std::function<void()> ensureBoardSyncPresenter;        ///< BoardSyncPresenter 遅延初期化
         std::function<bool()> isGameActivelyInProgress;        ///< 対局進行中判定

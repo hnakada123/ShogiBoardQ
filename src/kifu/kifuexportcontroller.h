@@ -14,6 +14,7 @@
 
 #include "mainwindow.h"  // PlayMode enum
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
+#include "kifutypes.h"  // ResolvedRow
 
 class QWidget;
 class QTableWidget;

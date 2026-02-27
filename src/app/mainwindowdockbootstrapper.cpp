@@ -1,9 +1,10 @@
 /// @file mainwindowdockbootstrapper.cpp
 /// @brief ドック生成・パネル構築の実装
+///
+/// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
-#include "mainwindowdockbootstrapper.h"
-#include "mainwindow.h"
 #include "mainwindowserviceregistry.h"
+#include "mainwindow.h"
 
 #include "analysistabwiring.h"
 #include "branchnavigationwiring.h"
@@ -21,12 +22,7 @@
 
 #include "logcategories.h"
 
-MainWindowDockBootstrapper::MainWindowDockBootstrapper(MainWindow& mw)
-    : m_mw(mw)
-{
-}
-
-void MainWindowDockBootstrapper::setupRecordPane()
+void MainWindowServiceRegistry::setupRecordPane()
 {
     // モデルの用意（従来どおり）
     if (!m_mw.m_models.kifuRecord) m_mw.m_models.kifuRecord = new KifuRecordListModel(&m_mw);
@@ -34,7 +30,7 @@ void MainWindowDockBootstrapper::setupRecordPane()
 
     // Wiring の生成
     if (!m_mw.m_recordPaneWiring) {
-        m_mw.ensureCommentCoordinator();
+        ensureCommentCoordinator();
         RecordPaneWiring::Deps d;
         d.parent             = m_mw.m_central;                               // 親ウィジェット
         d.ctx                = &m_mw;                                        // RecordPane::mainRowChanged の受け先
@@ -52,7 +48,7 @@ void MainWindowDockBootstrapper::setupRecordPane()
     m_mw.m_recordPane = m_mw.m_recordPaneWiring->pane();
 }
 
-void MainWindowDockBootstrapper::setupEngineAnalysisTab()
+void MainWindowServiceRegistry::setupEngineAnalysisTab()
 {
     // 既に配線クラスがあれば再利用し、タブ取得だけを行う
     if (!m_mw.m_analysisWiring) {
@@ -81,11 +77,11 @@ void MainWindowDockBootstrapper::setupEngineAnalysisTab()
     }
 
     // 外部シグナル接続を AnalysisTabWiring に委譲
-    m_mw.ensureCommentCoordinator();
-    m_mw.m_registry->ensureUsiCommandController();
-    m_mw.m_registry->ensureConsiderationWiring();
-    m_mw.ensurePvClickController();
-    m_mw.ensureBranchNavigationWiring();
+    ensureCommentCoordinator();
+    ensureUsiCommandController();
+    ensureConsiderationWiring();
+    ensurePvClickController();
+    ensureBranchNavigationWiring();
     AnalysisTabWiring::ExternalSignalDeps extDeps;
     extDeps.branchNavigationWiring = m_mw.m_branchNavWiring.get();
     extDeps.pvClickController = m_mw.m_pvClickController;
@@ -97,7 +93,7 @@ void MainWindowDockBootstrapper::setupEngineAnalysisTab()
     configureAnalysisTabDependencies();
 }
 
-void MainWindowDockBootstrapper::configureAnalysisTabDependencies()
+void MainWindowServiceRegistry::configureAnalysisTabDependencies()
 {
     // PlayerInfoControllerにもm_analysisTabを設定
     if (m_mw.m_playerInfoController) {
@@ -105,7 +101,7 @@ void MainWindowDockBootstrapper::configureAnalysisTabDependencies()
     }
 
     // PlayerInfoWiringにも検討タブを設定
-    m_mw.ensurePlayerInfoWiring();
+    ensurePlayerInfoWiring();
     if (m_mw.m_playerInfoWiring) {
         m_mw.m_playerInfoWiring->setAnalysisTab(m_mw.m_analysisTab);
         // 起動時に対局情報タブを追加
@@ -124,7 +120,7 @@ void MainWindowDockBootstrapper::configureAnalysisTabDependencies()
     }
 }
 
-void MainWindowDockBootstrapper::createEvalChartDock()
+void MainWindowServiceRegistry::createEvalChartDock()
 {
     // 評価値グラフウィジェットを作成
     m_mw.m_evalChart = new EvaluationChartWidget(&m_mw);
@@ -135,12 +131,12 @@ void MainWindowDockBootstrapper::createEvalChartDock()
     }
 
     // DockCreationServiceに委譲
-    m_mw.ensureDockCreationService();
+    ensureDockCreationService();
     m_mw.m_dockCreationService->setEvalChart(m_mw.m_evalChart);
     m_mw.m_docks.evalChart = m_mw.m_dockCreationService->createEvalChartDock();
 }
 
-void MainWindowDockBootstrapper::createRecordPaneDock()
+void MainWindowServiceRegistry::createRecordPaneDock()
 {
     if (!m_mw.m_recordPane) {
         qCWarning(lcApp) << "createRecordPaneDock: m_recordPane is null!";
@@ -148,12 +144,12 @@ void MainWindowDockBootstrapper::createRecordPaneDock()
     }
 
     // DockCreationServiceに委譲
-    m_mw.ensureDockCreationService();
+    ensureDockCreationService();
     m_mw.m_dockCreationService->setRecordPane(m_mw.m_recordPane);
     m_mw.m_docks.recordPane = m_mw.m_dockCreationService->createRecordPaneDock();
 }
 
-void MainWindowDockBootstrapper::createAnalysisDocks()
+void MainWindowServiceRegistry::createAnalysisDocks()
 {
     if (!m_mw.m_analysisTab) {
         qCWarning(lcApp) << "createAnalysisDocks: m_analysisTab is null!";
@@ -161,14 +157,14 @@ void MainWindowDockBootstrapper::createAnalysisDocks()
     }
 
     // 対局情報コントローラを準備し、デフォルト値を設定
-    m_mw.ensurePlayerInfoWiring();
+    ensurePlayerInfoWiring();
     if (m_mw.m_playerInfoWiring) {
         m_mw.m_playerInfoWiring->ensureGameInfoController();
         m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
     }
 
     // DockCreationServiceに委譲
-    m_mw.ensureDockCreationService();
+    ensureDockCreationService();
     m_mw.m_dockCreationService->setAnalysisTab(m_mw.m_analysisTab);
     m_mw.m_dockCreationService->setGameInfoController(m_mw.m_gameInfoController);
     m_mw.m_dockCreationService->setModels(m_mw.m_models.thinking1, m_mw.m_models.thinking2, m_mw.m_models.commLog1, m_mw.m_models.commLog2);
@@ -184,60 +180,64 @@ void MainWindowDockBootstrapper::createAnalysisDocks()
     m_mw.m_docks.branchTree = m_mw.m_dockCreationService->branchTreeDock();
 }
 
-void MainWindowDockBootstrapper::createMenuWindowDock()
+void MainWindowServiceRegistry::createMenuWindowDock()
+{
+    createMenuWindowDockImpl();
+}
+
+void MainWindowServiceRegistry::createMenuWindowDockImpl()
 {
     // MenuWindowWiringを確保
-    m_mw.ensureMenuWiring();
+    ensureMenuWiring();
     if (!m_mw.m_menuWiring) {
         qCWarning(lcApp) << "createMenuWindowDock: MenuWindowWiring is null!";
         return;
     }
 
     // DockCreationServiceに委譲
-    m_mw.ensureDockCreationService();
+    ensureDockCreationService();
     m_mw.m_dockCreationService->setMenuWiring(m_mw.m_menuWiring);
     m_mw.m_docks.menuWindow = m_mw.m_dockCreationService->createMenuWindowDock();
 }
 
-void MainWindowDockBootstrapper::createJosekiWindowDock()
+void MainWindowServiceRegistry::createJosekiWindowDock()
 {
     // JosekiWindowWiringを確保
-    m_mw.m_registry->ensureJosekiWiring();
+    ensureJosekiWiring();
     if (!m_mw.m_josekiWiring) {
         qCWarning(lcApp) << "createJosekiWindowDock: JosekiWindowWiring is null!";
         return;
     }
 
     // DockCreationServiceに委譲
-    m_mw.ensureDockCreationService();
+    ensureDockCreationService();
     m_mw.m_dockCreationService->setJosekiWiring(m_mw.m_josekiWiring.get());
     m_mw.m_docks.josekiWindow = m_mw.m_dockCreationService->createJosekiWindowDock();
 
     // ドックが表示されたときに定跡ウィンドウを更新する
-    // （トグルアクション経由で表示された場合にも対応）
     if (m_mw.m_docks.josekiWindow) {
         QObject::connect(m_mw.m_docks.josekiWindow, &QDockWidget::visibilityChanged,
                          &m_mw, &MainWindow::updateJosekiWindow);
     }
 }
 
-void MainWindowDockBootstrapper::createAnalysisResultsDock()
+void MainWindowServiceRegistry::createAnalysisResultsDock()
 {
     // AnalysisResultsPresenterを確保
-    m_mw.ensureAnalysisPresenter();
+    ensureAnalysisPresenter();
     if (!m_mw.m_analysisPresenter) {
         qCWarning(lcApp) << "createAnalysisResultsDock: AnalysisResultsPresenter is null!";
         return;
     }
 
     // DockCreationServiceに委譲
-    m_mw.ensureDockCreationService();
+    ensureDockCreationService();
     m_mw.m_dockCreationService->setAnalysisPresenter(m_mw.m_analysisPresenter.get());
     m_mw.m_docks.analysisResults = m_mw.m_dockCreationService->createAnalysisResultsDock();
 }
 
-void MainWindowDockBootstrapper::initializeBranchNavigationClasses()
+void MainWindowServiceRegistry::initializeBranchNavigationClasses()
 {
-    m_mw.ensureBranchNavigationWiring();
+    ensureBranchNavigationWiring();
     m_mw.m_branchNavWiring->initialize();
 }

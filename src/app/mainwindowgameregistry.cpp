@@ -1,13 +1,13 @@
 /// @file mainwindowgameregistry.cpp
-/// @brief Game系の ensure* 実装
+/// @brief Game系（対局・ゲーム進行・ターン管理・セッションライフサイクル）の ensure* 実装
+///
+/// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
-#include "mainwindowgameregistry.h"
-#include "mainwindow.h"
 #include "mainwindowserviceregistry.h"
+#include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
 #include "mainwindowmatchadapter.h"
-#include "mainwindowwiringassembler.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "ui_mainwindow.h"
 
@@ -43,20 +43,11 @@
 
 #include <functional>
 
-MainWindowGameRegistry::MainWindowGameRegistry(MainWindow& mw,
-                                                 MainWindowServiceRegistry& registry,
-                                                 QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_registry(registry)
-{
-}
-
 // ---------------------------------------------------------------------------
 // 時間制御
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureTimeController()
+void MainWindowServiceRegistry::ensureTimeController()
 {
     if (m_mw.m_timeController) return;
 
@@ -69,7 +60,7 @@ void MainWindowGameRegistry::ensureTimeController()
 // リプレイ
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureReplayController()
+void MainWindowServiceRegistry::ensureReplayController()
 {
     if (m_mw.m_replayController) return;
 
@@ -85,15 +76,15 @@ void MainWindowGameRegistry::ensureReplayController()
 // MatchCoordinator 配線
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureMatchCoordinatorWiring()
+void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
 {
     const bool firstTime = !m_mw.m_matchWiring;
     if (!m_mw.m_matchWiring) {
         m_mw.m_matchWiring = std::make_unique<MatchCoordinatorWiring>();
     }
 
-    m_registry.ensureEvaluationGraphController();
-    m_registry.ensurePlayerInfoWiring();
+    ensureEvaluationGraphController();
+    ensurePlayerInfoWiring();
 
     // アダプタの生成と Deps 更新（buildMatchWiringDeps より前に必要）
     if (!m_mw.m_matchAdapter) {
@@ -105,33 +96,33 @@ void MainWindowGameRegistry::ensureMatchCoordinatorWiring()
         ad.gameController = m_mw.m_gameController;
         ad.boardController = m_mw.m_boardController;
         ad.playMode = &m_mw.m_state.playMode;
-        m_registry.ensureCoreInitCoordinator();
+        ensureCoreInitCoordinator();
         ad.initializeNewGame = std::bind(&MainWindowCoreInitCoordinator::initializeNewGame,
                                          m_mw.m_coreInit.get(), std::placeholders::_1);
         ad.ensureAndGetPlayerInfoWiring = [this]() -> PlayerInfoWiring* {
-            m_registry.ensurePlayerInfoWiring();
+            ensurePlayerInfoWiring();
             return m_mw.m_playerInfoWiring;
         };
         ad.ensureAndGetDialogCoordinator = [this]() -> DialogCoordinator* {
-            m_registry.ensureDialogCoordinator();
+            ensureDialogCoordinator();
             return m_mw.m_dialogCoordinator;
         };
         ad.ensureAndGetTurnStateSync = [this]() -> TurnStateSyncService* {
-            m_registry.ensureTurnStateSyncService();
+            ensureTurnStateSyncService();
             return m_mw.m_turnStateSync.get();
         };
         m_mw.m_matchAdapter->updateDeps(ad);
     }
 
-    auto deps = MainWindowWiringAssembler::buildMatchWiringDeps(m_mw);
+    auto deps = buildMatchWiringDeps();
     m_mw.m_matchWiring->updateDeps(deps);
 
     // 初回のみ: 転送シグナルを GameSessionOrchestrator / 各コントローラに接続
     if (firstTime) {
         ensureGameSessionOrchestrator();
-        m_mw.ensurePlayerInfoWiring();
-        m_mw.ensureKifuNavigationCoordinator();
-        m_mw.ensureBranchNavigationWiring();
+        ensurePlayerInfoWiring();
+        ensureKifuNavigationCoordinator();
+        ensureBranchNavigationWiring();
 
         MatchCoordinatorWiring::ForwardingTargets targets;
         targets.appearance = m_mw.m_appearanceController.get();
@@ -146,11 +137,11 @@ void MainWindowGameRegistry::ensureMatchCoordinatorWiring()
 // ゲーム状態コントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureGameStateController()
+void MainWindowServiceRegistry::ensureGameStateController()
 {
     if (m_mw.m_gameStateController) return;
 
-    m_registry.ensureUiStatePolicyManager();
+    ensureUiStatePolicyManager();
 
     MainWindowDepsFactory::GameStateControllerCallbacks cbs;
     cbs.enableArrowButtons = std::bind(&UiStatePolicyManager::transitionToIdle, m_mw.m_uiStatePolicy);
@@ -160,7 +151,7 @@ void MainWindowGameRegistry::ensureGameStateController()
         m_mw.m_kifu.activePly = ap;
         m_mw.m_kifu.currentSelectedPly = sp;
         m_mw.m_state.currentMoveIndex = mi;
-        m_registry.ensureKifuNavigationCoordinator();
+        ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->syncNavStateToPly(sp);
     };
 
@@ -171,7 +162,7 @@ void MainWindowGameRegistry::ensureGameStateController()
 // 対局開始コーディネーター
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureGameStartCoordinator()
+void MainWindowServiceRegistry::ensureGameStartCoordinator()
 {
     if (m_mw.m_gameStart) return;
 
@@ -184,7 +175,7 @@ void MainWindowGameRegistry::ensureGameStartCoordinator()
 // CSA通信対局配線
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureCsaGameWiring()
+void MainWindowServiceRegistry::ensureCsaGameWiring()
 {
     if (m_mw.m_csaGameWiring) return;
 
@@ -209,9 +200,9 @@ void MainWindowGameRegistry::ensureCsaGameWiring()
     m_mw.m_csaGameWiring = std::make_unique<CsaGameWiring>(deps);
 
     // 外部シグナル接続を CsaGameWiring に委譲
-    m_registry.ensureUiStatePolicyManager();
-    m_registry.ensureGameRecordUpdateService();
-    m_registry.ensureUiNotificationService();
+    ensureUiStatePolicyManager();
+    ensureGameRecordUpdateService();
+    ensureUiNotificationService();
     m_mw.m_csaGameWiring->wireExternalSignals(m_mw.m_uiStatePolicy,
                                                m_mw.m_gameRecordUpdateService.get(),
                                                m_mw.m_notificationService);
@@ -223,7 +214,7 @@ void MainWindowGameRegistry::ensureCsaGameWiring()
 // 開始前クリーンアップ
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensurePreStartCleanupHandler()
+void MainWindowServiceRegistry::ensurePreStartCleanupHandler()
 {
     if (m_mw.m_preStartCleanupHandler) return;
 
@@ -256,7 +247,7 @@ void MainWindowGameRegistry::ensurePreStartCleanupHandler()
 // ターン同期ブリッジ
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureTurnSyncBridge()
+void MainWindowServiceRegistry::ensureTurnSyncBridge()
 {
     auto* gc = m_mw.m_gameController;
     auto* tm = m_mw.findChild<TurnManager*>("TurnManager");
@@ -269,7 +260,7 @@ void MainWindowGameRegistry::ensureTurnSyncBridge()
 // 手番同期サービス
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureTurnStateSyncService()
+void MainWindowServiceRegistry::ensureTurnStateSyncService()
 {
     if (!m_mw.m_turnStateSync) {
         m_mw.m_turnStateSync = std::make_unique<TurnStateSyncService>();
@@ -282,7 +273,7 @@ void MainWindowGameRegistry::ensureTurnStateSyncService()
     deps.timePresenter = m_mw.m_timePresenter;
     deps.playMode = &m_mw.m_state.playMode;
     deps.turnManagerParent = &m_mw;
-    deps.updateTurnStatus = std::bind(&MainWindowGameRegistry::updateTurnStatus, this, std::placeholders::_1);
+    deps.updateTurnStatus = std::bind(&MainWindowServiceRegistry::updateTurnStatus, this, std::placeholders::_1);
     deps.onTurnManagerCreated = [this](TurnManager* tm) {
         connect(tm, &TurnManager::changed,
                 &m_mw, &MainWindow::onTurnManagerChanged,
@@ -295,7 +286,7 @@ void MainWindowGameRegistry::ensureTurnStateSyncService()
 // ライブセッション開始
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureLiveGameSessionStarted()
+void MainWindowServiceRegistry::ensureLiveGameSessionStarted()
 {
     ensureLiveGameSessionUpdater();
     m_mw.m_liveGameSessionUpdater->ensureSessionStarted();
@@ -305,7 +296,7 @@ void MainWindowGameRegistry::ensureLiveGameSessionStarted()
 // ライブセッション更新
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureLiveGameSessionUpdater()
+void MainWindowServiceRegistry::ensureLiveGameSessionUpdater()
 {
     if (!m_mw.m_liveGameSessionUpdater) {
         m_mw.m_liveGameSessionUpdater = std::make_unique<LiveGameSessionUpdater>();
@@ -324,7 +315,7 @@ void MainWindowGameRegistry::ensureLiveGameSessionUpdater()
 // 手戻しフロー
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureUndoFlowService()
+void MainWindowServiceRegistry::ensureUndoFlowService()
 {
     if (!m_mw.m_undoFlowService) {
         m_mw.m_undoFlowService = std::make_unique<UndoFlowService>();
@@ -342,7 +333,7 @@ void MainWindowGameRegistry::ensureUndoFlowService()
 // 持将棋コントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureJishogiController()
+void MainWindowServiceRegistry::ensureJishogiController()
 {
     if (m_mw.m_jishogiController) return;
     m_mw.m_jishogiController = std::make_unique<JishogiScoreDialogController>();
@@ -352,7 +343,7 @@ void MainWindowGameRegistry::ensureJishogiController()
 // 入玉宣言ハンドラ
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureNyugyokuHandler()
+void MainWindowServiceRegistry::ensureNyugyokuHandler()
 {
     if (m_mw.m_nyugyokuHandler) return;
     m_mw.m_nyugyokuHandler = std::make_unique<NyugyokuDeclarationHandler>();
@@ -362,7 +353,7 @@ void MainWindowGameRegistry::ensureNyugyokuHandler()
 // 連続対局コントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureConsecutiveGamesController()
+void MainWindowServiceRegistry::ensureConsecutiveGamesController()
 {
     if (m_mw.m_consecutiveGamesController) return;
 
@@ -381,7 +372,7 @@ void MainWindowGameRegistry::ensureConsecutiveGamesController()
 // 対局ライフサイクル
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureGameSessionOrchestrator()
+void MainWindowServiceRegistry::ensureGameSessionOrchestrator()
 {
     if (m_mw.m_gameSessionOrchestrator) {
         // Deps を最新に更新して返す
@@ -423,18 +414,18 @@ void MainWindowGameRegistry::ensureGameSessionOrchestrator()
     deps.liveGameSession = &m_mw.m_branchNav.liveGameSession;
 
     // === Lazy-init callbacks ===
-    deps.ensureGameStateController = std::bind(&MainWindowGameRegistry::ensureGameStateController, this);
-    deps.ensureSessionLifecycleCoordinator = std::bind(&MainWindowGameRegistry::ensureSessionLifecycleCoordinator, this);
-    deps.ensureConsecutiveGamesController = std::bind(&MainWindowGameRegistry::ensureConsecutiveGamesController, this);
-    deps.ensureGameStartCoordinator = std::bind(&MainWindowGameRegistry::ensureGameStartCoordinator, this);
-    deps.ensurePreStartCleanupHandler = std::bind(&MainWindowGameRegistry::ensurePreStartCleanupHandler, this);
-    deps.ensureDialogCoordinator = [this]() { m_registry.ensureDialogCoordinator(); };
-    deps.ensureReplayController = std::bind(&MainWindowGameRegistry::ensureReplayController, this);
+    deps.ensureGameStateController = std::bind(&MainWindowServiceRegistry::ensureGameStateController, this);
+    deps.ensureSessionLifecycleCoordinator = std::bind(&MainWindowServiceRegistry::ensureSessionLifecycleCoordinator, this);
+    deps.ensureConsecutiveGamesController = std::bind(&MainWindowServiceRegistry::ensureConsecutiveGamesController, this);
+    deps.ensureGameStartCoordinator = std::bind(&MainWindowServiceRegistry::ensureGameStartCoordinator, this);
+    deps.ensurePreStartCleanupHandler = std::bind(&MainWindowServiceRegistry::ensurePreStartCleanupHandler, this);
+    deps.ensureDialogCoordinator = [this]() { ensureDialogCoordinator(); };
+    deps.ensureReplayController = std::bind(&MainWindowServiceRegistry::ensureReplayController, this);
 
     // === Action callbacks ===
-    deps.initMatchCoordinator = std::bind(&MainWindowGameRegistry::initMatchCoordinator, this);
-    deps.clearSessionDependentUi = [this]() { m_registry.clearSessionDependentUi(); };
-    deps.updateJosekiWindow = [this]() { m_registry.updateJosekiWindow(); };
+    deps.initMatchCoordinator = std::bind(&MainWindowServiceRegistry::initMatchCoordinator, this);
+    deps.clearSessionDependentUi = [this]() { clearSessionDependentUi(); };
+    deps.updateJosekiWindow = [this]() { updateJosekiWindow(); };
     deps.sfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
 
     m_mw.m_gameSessionOrchestrator->updateDeps(deps);
@@ -444,7 +435,7 @@ void MainWindowGameRegistry::ensureGameSessionOrchestrator()
 // コア初期化（MainWindow から移譲）
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureCoreInitCoordinator()
+void MainWindowServiceRegistry::ensureCoreInitCoordinator()
 {
     if (!m_mw.m_coreInit) {
         m_mw.m_coreInit = std::make_unique<MainWindowCoreInitCoordinator>();
@@ -459,11 +450,11 @@ void MainWindowGameRegistry::ensureCoreInitCoordinator()
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.parent = &m_mw;
-    deps.setupBoardInteractionController = [this]() { m_registry.setupBoardInteractionController(); };
+    deps.setupBoardInteractionController = [this]() { setupBoardInteractionController(); };
     deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
-    deps.ensureTurnSyncBridge = std::bind(&MainWindowGameRegistry::ensureTurnSyncBridge, this);
+    deps.ensureTurnSyncBridge = std::bind(&MainWindowServiceRegistry::ensureTurnSyncBridge, this);
     deps.ensurePlayerInfoWiringAndApply = [this]() {
-        m_registry.ensurePlayerInfoWiring();
+        ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->applyPlayersNamesForMode();
             m_mw.m_playerInfoWiring->applyEngineNamesToLogModels();
@@ -477,26 +468,26 @@ void MainWindowGameRegistry::ensureCoreInitCoordinator()
 // セッションライフサイクル
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::ensureSessionLifecycleCoordinator()
+void MainWindowServiceRegistry::ensureSessionLifecycleCoordinator()
 {
     if (!m_mw.m_sessionLifecycle) {
         m_mw.m_sessionLifecycle = new SessionLifecycleCoordinator(&m_mw);
     }
 
     SessionLifecycleDepsFactory::Callbacks callbacks;
-    callbacks.clearGameStateFields = std::bind(&MainWindowGameRegistry::clearGameStateFields, this);
-    callbacks.resetEngineState = std::bind(&MainWindowGameRegistry::resetEngineState, this);
+    callbacks.clearGameStateFields = std::bind(&MainWindowServiceRegistry::clearGameStateFields, this);
+    callbacks.resetEngineState = std::bind(&MainWindowServiceRegistry::resetEngineState, this);
     ensureGameSessionOrchestrator();
     callbacks.onPreStartCleanupRequested = std::bind(&GameSessionOrchestrator::onPreStartCleanupRequested,
                                                      m_mw.m_gameSessionOrchestrator);
-    callbacks.resetModels = [this](const QString& sfen) { m_registry.resetModels(sfen); };
-    callbacks.resetUiState = [this](const QString& sfen) { m_registry.resetUiState(sfen); };
-    callbacks.clearEvalState = [this]() { m_registry.clearEvalState(); };
-    callbacks.unlockGameOverStyle = [this]() { m_registry.unlockGameOverStyle(); };
+    callbacks.resetModels = [this](const QString& sfen) { resetModels(sfen); };
+    callbacks.resetUiState = [this](const QString& sfen) { resetUiState(sfen); };
+    callbacks.clearEvalState = [this]() { clearEvalState(); };
+    callbacks.unlockGameOverStyle = [this]() { unlockGameOverStyle(); };
     callbacks.startGame = std::bind(&GameSessionOrchestrator::invokeStartGame,
                                     m_mw.m_gameSessionOrchestrator);
     callbacks.updateEndTime = [this](const QDateTime& endTime) {
-        m_registry.ensurePlayerInfoWiring();
+        ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(endTime);
         }
@@ -505,7 +496,7 @@ void MainWindowGameRegistry::ensureSessionLifecycleCoordinator()
                                                     m_mw.m_gameSessionOrchestrator);
     callbacks.lastTimeControl = &m_mw.m_lastTimeControl;
     callbacks.updateGameInfoWithTimeControl = [this](bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incMs) {
-        m_registry.ensurePlayerInfoWiring();
+        ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->updateGameInfoWithTimeControl(enabled, baseMs, byoyomiMs, incMs);
         }
@@ -519,7 +510,7 @@ void MainWindowGameRegistry::ensureSessionLifecycleCoordinator()
 // ゲーム状態フィールドクリア
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::clearGameStateFields()
+void MainWindowServiceRegistry::clearGameStateFields()
 {
     m_mw.m_state.resumeSfenStr.clear();
     m_mw.m_state.errorOccurred = false;
@@ -549,7 +540,7 @@ void MainWindowGameRegistry::clearGameStateFields()
 // エンジン状態リセット
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::resetEngineState()
+void MainWindowServiceRegistry::resetEngineState()
 {
     if (m_mw.m_match) {
         m_mw.m_match->stopAnalysisEngine();
@@ -567,7 +558,7 @@ void MainWindowGameRegistry::resetEngineState()
 // 手番表示更新
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::updateTurnStatus(int currentPlayer)
+void MainWindowServiceRegistry::updateTurnStatus(int currentPlayer)
 {
     if (!m_mw.m_shogiView) return;
 
@@ -586,14 +577,14 @@ void MainWindowGameRegistry::updateTurnStatus(int currentPlayer)
 // MatchCoordinator初期化
 // ---------------------------------------------------------------------------
 
-void MainWindowGameRegistry::initMatchCoordinator()
+void MainWindowServiceRegistry::initMatchCoordinator()
 {
     if (!m_mw.m_gameController || !m_mw.m_shogiView) return;
 
     ensureMatchCoordinatorWiring();
 
     if (!m_mw.m_matchWiring->initializeSession(
-            std::bind(&MainWindowGameRegistry::ensureMatchCoordinatorWiring, this))) {
+            std::bind(&MainWindowServiceRegistry::ensureMatchCoordinatorWiring, this))) {
         return;
     }
 

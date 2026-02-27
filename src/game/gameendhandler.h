@@ -37,30 +37,72 @@ public:
     using GameEndInfo = MatchCoordinator::GameEndInfo;
     using GameOverState = MatchCoordinator::GameOverState;
 
-    /// MatchCoordinator の内部状態への参照群
+    /**
+     * @brief MatchCoordinator の内部状態への参照群
+     * @note MC::ensureGameEndHandler() で設定される。動的に変化するポインタは
+     *       プロバイダ関数経由で取得する。
+     */
     struct Refs {
         ShogiGameController* gc = nullptr;
         ShogiClock* clock = nullptr;
-        Usi** usi1 = nullptr;               ///< ポインタのポインタ（エンジンは動的に変わるため）
-        Usi** usi2 = nullptr;
+        std::function<Usi*()> usi1Provider;          ///< エンジン1取得（動的に変わるためプロバイダ）
+        std::function<Usi*()> usi2Provider;           ///< エンジン2取得
         PlayMode* playMode = nullptr;
         GameOverState* gameOver = nullptr;
         std::function<GameModeStrategy*()> strategyProvider; ///< 現在のStrategy取得
         QStringList* sfenHistory = nullptr;
     };
 
-    /// MatchCoordinator メソッドへのコールバック群
+    /**
+     * @brief MatchCoordinator メソッドへのコールバック群
+     *
+     * 終局処理の各フェーズ（投了/時間切れ/千日手 → 結果表示 → 棋譜追記 → 自動保存）で
+     * MC の状態更新や GUI 操作を行うために使用する。
+     *
+     * @note MC::ensureGameEndHandler() で lambda 経由で設定される。
+     *       appendKifuLine, showGameOverDialog, log は MC::Hooks からのパススルー。
+     * @see MatchCoordinator::ensureGameEndHandler
+     */
     struct Hooks {
+        /// @brief HvE 時の人間側タイマーを停止する
+        /// @note 配線元: MC lambda (人間タイマー停止処理)
         std::function<void()> disarmHumanTimerIfNeeded;
+
+        /// @brief メインエンジン（usi1）を返す
+        /// @note 配線元: MC lambda → m_usi1
         std::function<Usi*()> primaryEngine;
+
+        /// @brief 指定プレイヤーの手番開始エポック（ms）を返す
+        /// @note 配線元: MC lambda → ShogiClock::turnEpochFor
         std::function<qint64(Player)> turnEpochFor;
+
+        /// @brief 対局中メニュー（NewGame/Resign等）の有効/無効を切り替える
+        /// @note 配線元: MC lambda → MC::Hooks::setGameActions (パススルー)
         std::function<void(bool)> setGameInProgressActions;
+
+        /// @brief 終局状態を MC に設定し、gameEnded/gameOverStateChanged シグナルを発火する
+        /// @note 配線元: MC lambda → MC::setGameOver
         std::function<void(const GameEndInfo&, bool, bool)> setGameOver;
+
+        /// @brief 棋譜に終局手を追記済みとしてマークする
+        /// @note 配線元: MC lambda → m_gameOver.moveAppended = true
         std::function<void()> markGameOverMoveAppended;
+
+        /// @brief 棋譜に1行追記する（終局行: "▲投了" 等）
+        /// @note 配線元: MC→m_hooks.appendKifuLine (パススルー)
         std::function<void(const QString&, const QString&)> appendKifuLine;
+
+        /// @brief 終局結果ダイアログを表示する
+        /// @note 配線元: MC→m_hooks.showGameOverDialog (パススルー)
         std::function<void(const QString&, const QString&)> showGameOverDialog;
+
+        /// @brief デバッグログを出力する
+        /// @note 配線元: MC→m_hooks.log (パススルー、未配線)
         std::function<void(const QString&)> log;
-        std::function<void()> autoSaveKifuIfEnabled;    ///< 棋譜自動保存（有効時のみ実行）
+
+        /// @brief 棋譜自動保存（autoSaveKifu が有効な場合のみ実行）
+        /// @note 配線元: MC lambda → KifuFileController::autoSaveKifuToFile
+        std::function<void()> autoSaveKifuIfEnabled;
     };
 
     explicit GameEndHandler(QObject* parent = nullptr);

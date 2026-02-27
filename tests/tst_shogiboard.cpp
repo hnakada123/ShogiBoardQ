@@ -216,6 +216,194 @@ private slots:
         board.movePieceToSquare(Piece::BlackPawn, 7, 7, 7, 6, false);
         QVERIFY(spy.count() >= 1);
     }
+
+    // === parseSfen (static) ===
+
+    void parseSfen_valid()
+    {
+        auto result = ShogiBoard::parseSfen(kHirateSfen);
+        QVERIFY(result.has_value());
+        QCOMPARE(result->turn, Turn::Black);
+        QCOMPARE(result->moveNumber, 1);
+        QCOMPARE(result->stand, QStringLiteral("-"));
+    }
+
+    void parseSfen_whiteTurn()
+    {
+        auto result = ShogiBoard::parseSfen(
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 2"));
+        QVERIFY(result.has_value());
+        QCOMPARE(result->turn, Turn::White);
+        QCOMPARE(result->moveNumber, 2);
+    }
+
+    void parseSfen_invalid_tooFewParts()
+    {
+        auto result = ShogiBoard::parseSfen(QStringLiteral("lnsgkgsnl/1r5b1 b"));
+        QVERIFY(!result.has_value());
+    }
+
+    void parseSfen_invalid_turn()
+    {
+        auto result = ShogiBoard::parseSfen(
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL x - 1"));
+        QVERIFY(!result.has_value());
+    }
+
+    void parseSfen_invalid_moveNumber()
+    {
+        auto result = ShogiBoard::parseSfen(
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 0"));
+        QVERIFY(!result.has_value());
+    }
+
+    // === currentPlayer ===
+
+    void currentPlayer_afterSfen()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        QCOMPARE(board.currentPlayer(), Turn::Black);
+
+        board.setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 2"));
+        QCOMPARE(board.currentPlayer(), Turn::White);
+    }
+
+    // === Handicap positions ===
+
+    void sfen_handicapKakuOchi()
+    {
+        // 角落ち: 上手（後手）の角がない
+        QString sfen = QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        QString out = board.convertBoardToSfen();
+        QCOMPARE(out, QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
+    }
+
+    void sfen_handicapNimaiOchi()
+    {
+        // 二枚落ち: 上手（後手）の飛車と角がない
+        QString sfen = QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        const auto& data = board.boardData();
+        // Rank 2 (index 9-17) should all be None
+        for (int i = 9; i <= 17; ++i) {
+            QCOMPARE(data[i], Piece::None);
+        }
+    }
+
+    // === Piece Stand with multiple pieces ===
+
+    void convertStandToSfen_multipleTypes()
+    {
+        // Position with rook and 2 pawns on stand
+        QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b R2P 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        QString stand = board.convertStandToSfen();
+        QVERIFY(stand.contains(QLatin1Char('R')));
+        QVERIFY(stand.contains(QLatin1Char('P')));
+    }
+
+    // === getPieceCharacter ===
+
+    void getPieceCharacter_boardSquare()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        // file=5, rank=1 should be white King (5a in SFEN terms)
+        QCOMPARE(board.getPieceCharacter(5, 1), Piece::WhiteKing);
+        // file=5, rank=9 should be black King
+        QCOMPARE(board.getPieceCharacter(5, 9), Piece::BlackKing);
+    }
+
+    // === isPieceAvailableOnStand ===
+
+    void isPieceAvailableOnStand_boardSquare()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        // For board squares (file 1-9), should always return true
+        QVERIFY(board.isPieceAvailableOnStand(Piece::BlackPawn, 5));
+    }
+
+    void isPieceAvailableOnStand_emptyStand()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        // No pieces on stand initially
+        QVERIFY(!board.isPieceAvailableOnStand(Piece::BlackPawn, 10));
+    }
+
+    void isPieceAvailableOnStand_withPieces()
+    {
+        // 歩が駒台にある
+        QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b P 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        QVERIFY(board.isPieceAvailableOnStand(Piece::BlackPawn, 10));
+    }
+
+    // === addSfenRecord ===
+
+    void addSfenRecord_basic()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        QStringList history;
+        board.addSfenRecord(Turn::White, 0, &history);
+        QCOMPARE(history.size(), 1);
+        QVERIFY(history[0].contains(QStringLiteral("w")));
+        QVERIFY(history[0].endsWith(QStringLiteral("1")));
+    }
+
+    // === Mandatory promotion ===
+
+    void movePiece_mandatoryPromotion_blackPawnRank1()
+    {
+        // 先手歩が1段目に移動 → 自動で成り
+        QString sfen = QStringLiteral("4k4/4P4/9/9/9/9/9/9/4K4 b - 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        board.movePieceToSquare(Piece::BlackPawn, 5, 2, 5, 1, false);
+        QCOMPARE(board.getPieceCharacter(5, 1), Piece::BlackPromotedPawn);
+    }
+
+    void movePiece_mandatoryPromotion_blackKnightRank2()
+    {
+        // 先手桂が2段目に移動 → 自動で成り
+        QString sfen = QStringLiteral("4k4/9/4N4/9/9/9/9/9/4K4 b - 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        board.movePieceToSquare(Piece::BlackKnight, 5, 3, 4, 1, false);
+        QCOMPARE(board.getPieceCharacter(4, 1), Piece::BlackPromotedKnight);
+    }
+
+    void movePiece_mandatoryPromotion_whitePawnRank9()
+    {
+        // 後手歩が9段目に移動 → 自動で成り
+        QString sfen = QStringLiteral("4K4/9/9/9/9/9/9/4p4/4k4 w - 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        board.movePieceToSquare(Piece::WhitePawn, 5, 8, 5, 9, false);
+        QCOMPARE(board.getPieceCharacter(5, 9), Piece::WhitePromotedPawn);
+    }
+
+    // === initStand ===
+
+    void initStand_clearsAll()
+    {
+        ShogiBoard board;
+        // Add some pieces to stand
+        board.incrementPieceOnStand(Piece::BlackPawn);
+        board.incrementPieceOnStand(Piece::BlackPawn);
+        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), 2);
+
+        board.initStand();
+        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), 0);
+    }
 };
 
 QTEST_MAIN(TestShogiBoard)

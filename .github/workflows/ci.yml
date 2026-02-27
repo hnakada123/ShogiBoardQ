@@ -28,6 +28,28 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure
 
+  build-debug:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Configure (Debug)
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: cd build && ctest --output-on-failure
+
   static-analysis:
     runs-on: ubuntu-latest
     steps:
@@ -61,6 +83,9 @@ jobs:
 
       - name: Check unfinished translations
         run: |
+          # 現在の閾値（未翻訳数がこれを超えたら fail）
+          # 翻訳を追加するたびに閾値を下げること（CLAUDE.md 参照）
+          THRESHOLD=1201
           total=0
           echo "## Translation Status" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -72,7 +97,11 @@ jobs:
             echo "| $(basename "$f") | $count |" >> "$GITHUB_STEP_SUMMARY"
           done
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Total unfinished: $total**" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Total unfinished: $total** (threshold: $THRESHOLD)" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$total" -gt "$THRESHOLD" ]; then
+            echo "::error::Translation regression: $total unfinished (threshold: $THRESHOLD)"
+            exit 1
+          fi
           if [ "$total" -gt 0 ]; then
-            echo "::warning::$total unfinished translation(s) found"
+            echo "::warning::$total unfinished translation(s) found (threshold: $THRESHOLD)"
           fi

@@ -74,23 +74,24 @@ public:
         int* currentMoveIndex = nullptr;
 
         // --- Pre-built hooks（MainWindow が構築） ---
-        MatchCoordinator::Hooks hooks;
-        MatchCoordinator::UndoHooks undoHooks;
+        MatchCoordinator::Hooks hooks;             ///< MC 用コールバック群（HooksFactory で生成済み）
+        MatchCoordinator::UndoHooks undoHooks;      ///< UNDO 用コールバック群
 
         // --- 遅延初期化コールバック ---
-        std::function<void()> ensureTimeController;
-        std::function<void()> ensureEvaluationGraphController;
-        std::function<void()> ensurePlayerInfoWiring;
-        std::function<void()> ensureUsiCommandController;
-        std::function<void()> ensureUiStatePolicyManager;
-        std::function<void()> connectBoardClicks;
-        std::function<void()> connectMoveRequested;
+        /// @note 各 ensure* は MainWindowServiceRegistry 内の対応メソッドに束縛される
+        std::function<void()> ensureTimeController;            ///< TimeControlController 遅延初期化
+        std::function<void()> ensureEvaluationGraphController; ///< EvaluationGraphController 遅延初期化
+        std::function<void()> ensurePlayerInfoWiring;          ///< PlayerInfoWiring 遅延初期化
+        std::function<void()> ensureUsiCommandController;      ///< UsiCommandController 遅延初期化
+        std::function<void()> ensureUiStatePolicyManager;      ///< UiStatePolicyManager 遅延初期化
+        std::function<void()> connectBoardClicks;              ///< 盤面クリック接続
+        std::function<void()> connectMoveRequested;            ///< moveRequested シグナル接続
 
         // --- 遅延初期化オブジェクトのゲッター ---
-        std::function<ShogiClock*()> getClock;
-        std::function<TimeControlController*()> getTimeController;
-        std::function<EvaluationGraphController*()> getEvalGraphController;
-        std::function<UiStatePolicyManager*()> getUiStatePolicy;
+        std::function<ShogiClock*()> getClock;                            ///< ShogiClock 取得
+        std::function<TimeControlController*()> getTimeController;        ///< TimeControlController 取得
+        std::function<EvaluationGraphController*()> getEvalGraphController; ///< EvaluationGraphController 取得
+        std::function<UiStatePolicyManager*()> getUiStatePolicy;          ///< UiStatePolicyManager 取得
     };
 
     /// MainWindow から渡されるコールバック・ポインタ群（buildDeps の入力）

@@ -1,9 +1,24 @@
 ---
-# Qt6プロジェクト用 clang-tidy 設定
+# Qt6 / C++17 プロジェクト用 clang-tidy 設定
 #
 # readability-redundant-access-specifiers は Qt の slots マクロを使う際に
 # 誤検出されるため、無効化しています。
 # （例: public: の後に public slots: が続く場合など）
+#
+# 除外理由:
+#   modernize-use-trailing-return-type  : スタイル強制が過剰
+#   modernize-avoid-c-arrays            : Qt/C++ 相互運用で必要
+#   modernize-use-nodiscard             : 既存コードへの変更が大量
+#   modernize-concat-nested-namespaces  : プロジェクトスタイルとの不一致
+#   modernize-use-auto                  : 可読性を損なう場合がある
+#   modernize-return-braced-init-list   : 可読性を損なう場合がある
+#   modernize-use-default-member-init   : Qt パターンと競合する場合がある
+#   modernize-use-equals-default        : unique_ptr + 前方宣言と競合
+#   modernize-deprecated-headers        : Qt が C ヘッダーを使用
+#   modernize-use-using                 : Qt マクロが typedef を生成
+#   bugprone-easily-swappable-parameters: ノイズが多すぎる
+#   bugprone-implicit-widening-of-multiplication-result: Qt API 境界で頻出
+#   performance-enum-size               : enum の ABI 変更リスクがある
 
 Checks: >
   -*,
@@ -11,11 +26,27 @@ Checks: >
   misc-unused-*,
   clang-analyzer-deadcode.*,
   readability-redundant-*,
-  -readability-redundant-access-specifiers
+  -readability-redundant-access-specifiers,
+  modernize-*,
+  -modernize-use-trailing-return-type,
+  -modernize-avoid-c-arrays,
+  -modernize-use-nodiscard,
+  -modernize-concat-nested-namespaces,
+  -modernize-use-auto,
+  -modernize-return-braced-init-list,
+  -modernize-use-default-member-init,
+  -modernize-use-equals-default,
+  -modernize-deprecated-headers,
+  -modernize-use-using,
+  performance-*,
+  -performance-enum-size,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-implicit-widening-of-multiplication-result
 
 WarningsAsErrors: ''
 
-HeaderFilterRegex: '.*'
+HeaderFilterRegex: 'src/.*'
 
 CheckOptions:
   - key: misc-unused-parameters.StrictMode

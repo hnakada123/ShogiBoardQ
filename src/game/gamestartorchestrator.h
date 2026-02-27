@@ -58,21 +58,63 @@ public:
         QVector<QStringList>* allGameHistories = nullptr;
     };
 
-    /// MatchCoordinator メソッドへのコールバック群
+    /**
+     * @brief MatchCoordinator メソッドへのコールバック群
+     *
+     * 対局開始フロー (configureAndStart) で MC の状態更新や GUI 操作を行うために使用。
+     * 前半5つは MC::Hooks からのパススルー、後半6つは MC メソッドへの直接コールバック。
+     *
+     * @note MC::ensureGameStartOrchestrator() で設定される。
+     *       GameStartOrchestrator は非 QObject のため Signal/Slot は使用不可。
+     * @see MatchCoordinator::ensureGameStartOrchestrator
+     */
     struct Hooks {
-        // MC の GUI コールバック passthrough
+        // --- MC::Hooks パススルー ---
+
+        /// @brief GUI固有の新規対局初期化処理を実行する
+        /// @note 配線元: MC→m_hooks.initializeNewGame (パススルー)
         std::function<void(const QString&)> initializeNewGame;
+
+        /// @brief 対局者名をUIに設定する
+        /// @note 配線元: MC→m_hooks.setPlayersNames (パススルー)
         std::function<void(const QString&, const QString&)> setPlayersNames;
+
+        /// @brief エンジン名をUIに設定する
+        /// @note 配線元: MC→m_hooks.setEngineNames (パススルー)
         std::function<void(const QString&, const QString&)> setEngineNames;
+
+        /// @brief 対局中メニュー項目のON/OFF
+        /// @note 配線元: MC→m_hooks.setGameActions (パススルー、未配線)
         std::function<void(bool)> setGameActions;
+
+        /// @brief GC の盤面状態を View に反映する
+        /// @note 配線元: MC→m_hooks.renderBoardFromGc (パススルー)
         std::function<void()> renderBoardFromGc;
 
-        // MC メソッドへのコールバック
+        // --- MC メソッドへの直接コールバック ---
+
+        /// @brief 終局状態をクリアする
+        /// @note 配線元: MC lambda → MC::clearGameOverState
         std::function<void()> clearGameOverState;
+
+        /// @brief 手番表示を更新する
+        /// @note 配線元: MC lambda → MC::updateTurnDisplay (内部で m_hooks.updateTurnDisplay を呼ぶ)
         std::function<void(Player)> updateTurnDisplay;
+
+        /// @brief 開始局面から USI position 文字列を初期化する
+        /// @note 配線元: MC lambda → initPositionStringsFromSfen
         std::function<void(const QString&)> initializePositionStringsForStart;
+
+        /// @brief PlayMode に応じた GameModeStrategy を生成し開始する
+        /// @note 配線元: MC lambda → MC::createAndStartModeStrategy
         std::function<void(const StartOptions&)> createAndStartModeStrategy;
+
+        /// @brief 盤面の上下を反転する（後手が下になるように）
+        /// @note 配線元: MC lambda → MC::flipBoard
         std::function<void()> flipBoard;
+
+        /// @brief エンジンが先手の場合に初手の思考を開始する
+        /// @note 配線元: MC lambda → MC::startInitialEngineMoveIfNeeded
         std::function<void()> startInitialEngineMoveIfNeeded;
     };
 

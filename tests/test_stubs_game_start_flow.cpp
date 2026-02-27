@@ -84,15 +84,8 @@ namespace TestTracker {
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_gc(d.gc)
-    , m_clock(d.clock)
     , m_view(d.view)
-    , m_usi1(d.usi1)
-    , m_usi2(d.usi2)
     , m_hooks(d.hooks)
-    , m_comm1(d.comm1)
-    , m_think1(d.think1)
-    , m_comm2(d.comm2)
-    , m_think2(d.think2)
 {
     m_sfenHistory = d.sfenRecord ? d.sfenRecord : &m_sharedSfenRecord;
     m_externalGameMoves = d.gameMoves;
@@ -120,6 +113,10 @@ void MatchCoordinator::startInitialEngineMoveIfNeeded()
     TestTracker::startInitialEngineMoveIfNeededCalled = true;
 }
 
+namespace {
+static MatchCoordinator::TimeControl s_stubTimeControl;
+}
+
 void MatchCoordinator::setTimeControlConfig(bool useByoyomi,
                                             int byoyomiMs1, int byoyomiMs2,
                                             int incMs1, int incMs2,
@@ -132,17 +129,17 @@ void MatchCoordinator::setTimeControlConfig(bool useByoyomi,
     TestTracker::lastIncMs1 = incMs1;
     TestTracker::lastIncMs2 = incMs2;
     TestTracker::lastLoseOnTimeout = loseOnTimeout;
-    m_tc.useByoyomi = useByoyomi;
-    m_tc.byoyomiMs1 = byoyomiMs1;
-    m_tc.byoyomiMs2 = byoyomiMs2;
-    m_tc.incMs1 = incMs1;
-    m_tc.incMs2 = incMs2;
-    m_tc.loseOnTimeout = loseOnTimeout;
+    s_stubTimeControl.useByoyomi = useByoyomi;
+    s_stubTimeControl.byoyomiMs1 = byoyomiMs1;
+    s_stubTimeControl.byoyomiMs2 = byoyomiMs2;
+    s_stubTimeControl.incMs1 = incMs1;
+    s_stubTimeControl.incMs2 = incMs2;
+    s_stubTimeControl.loseOnTimeout = loseOnTimeout;
 }
 
 const MatchCoordinator::TimeControl& MatchCoordinator::timeControl() const
 {
-    return m_tc;
+    return s_stubTimeControl;
 }
 
 void MatchCoordinator::refreshGoTimes()
@@ -156,10 +153,12 @@ void MatchCoordinator::clearGameOverState()
     m_gameOver = {};
 }
 
-ShogiClock* MatchCoordinator::clock() { return m_clock; }
-const ShogiClock* MatchCoordinator::clock() const { return m_clock; }
-void MatchCoordinator::setClock(ShogiClock* c) { m_clock = c; }
-PlayMode MatchCoordinator::playMode() const { return m_playMode; }
+namespace {
+static ShogiClock* s_stubClock = nullptr;
+}
+ShogiClock* MatchCoordinator::clock() { return s_stubClock; }
+const ShogiClock* MatchCoordinator::clock() const { return s_stubClock; }
+void MatchCoordinator::setClock(ShogiClock* c) { s_stubClock = c; }
 void MatchCoordinator::setPlayMode(PlayMode m) { m_playMode = m; }
 void MatchCoordinator::pokeTimeUpdateNow() {}
 
@@ -174,7 +173,6 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
 }
 
 void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog*, bool) {}
-void MatchCoordinator::initializePositionStringsForStart(const QString&) {}
 void MatchCoordinator::handleResign() {}
 void MatchCoordinator::handleEngineResign(int) {}
 void MatchCoordinator::handleEngineWin(int) {}
@@ -200,9 +198,7 @@ bool MatchCoordinator::updateConsiderationPosition(const QString&, int, int, con
 Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
 void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialog*, bool) {}
-void MatchCoordinator::handleTimeUpdated() {}
 void MatchCoordinator::handlePlayerTimeOut(int) {}
-void MatchCoordinator::handleGameEnded() {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
 void MatchCoordinator::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
@@ -215,36 +211,29 @@ void MatchCoordinator::handleMaxMovesJishogi() {}
 bool MatchCoordinator::checkAndHandleSennichite() { return false; }
 void MatchCoordinator::handleSennichite() {}
 void MatchCoordinator::handleOuteSennichite(bool) {}
-void MatchCoordinator::setUndoBindings(const UndoRefs&, const UndoHooks&) {}
+void MatchCoordinator::setUndoBindings(const MatchUndoHandler::UndoRefs&, const MatchUndoHandler::UndoHooks&) {}
 bool MatchCoordinator::undoTwoPlies() { return false; }
 void MatchCoordinator::initEnginesForEvE(const QString&, const QString&) {}
 bool MatchCoordinator::engineThinkApplyMove(Usi*, QString&, QString&, QPoint*, QPoint*) { return false; }
 bool MatchCoordinator::engineMoveOnce(Usi*, QString&, QString&, bool, int, QPoint*) { return false; }
 
 // private methods
-bool MatchCoordinator::tryRemoveLastItems(QObject*, int) { return false; }
+void MatchCoordinator::ensureUndoHandler() {}
+void MatchCoordinator::ensureEngineManager() {}
+void MatchCoordinator::ensureTimekeeper() {}
 void MatchCoordinator::setGameInProgressActions(bool) {}
 void MatchCoordinator::updateTurnDisplay(Player) {}
 MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const { return {}; }
 void MatchCoordinator::initPositionStringsFromSfen(const QString&) {}
-void MatchCoordinator::wireResignToArbiter(Usi*, bool) {}
-void MatchCoordinator::wireWinToArbiter(Usi*, bool) {}
-void MatchCoordinator::emitTimeUpdateFromClock() {}
 void MatchCoordinator::recomputeClockSnapshot(QString&, QString&, QString&) const {}
-void MatchCoordinator::sendRawTo(Usi*, const QString&) {}
 void MatchCoordinator::createAndStartModeStrategy(const StartOptions&) {}
 void MatchCoordinator::ensureGameStartOrchestrator() {}
-void MatchCoordinator::wireClock() {}
-void MatchCoordinator::unwireClock() {}
 void MatchCoordinator::ensureAnalysisSession() {}
 void MatchCoordinator::ensureGameEndHandler() {}
+EngineLifecycleManager* MatchCoordinator::engineManager() { return nullptr; }
+bool MatchCoordinator::isEngineShutdownInProgress() const { return false; }
 
 // private slots
-void MatchCoordinator::onEngine1Resign() {}
-void MatchCoordinator::onEngine2Resign() {}
-void MatchCoordinator::onEngine1Win() {}
-void MatchCoordinator::onEngine2Win() {}
-void MatchCoordinator::onClockTick() {}
 void MatchCoordinator::onUsiError(const QString&) {}
 
 // ============================================================
@@ -253,6 +242,8 @@ void MatchCoordinator::onUsiError(const QString&) {}
 
 AnalysisSessionHandler::AnalysisSessionHandler(QObject* parent) : QObject(parent) {}
 void AnalysisSessionHandler::setHooks(const Hooks&) {}
+bool AnalysisSessionHandler::startFullAnalysis(const MatchCoordinator::AnalysisOptions&) { return false; }
+void AnalysisSessionHandler::stopFullAnalysis() {}
 void AnalysisSessionHandler::setupModeSpecificWiring(Usi*, const MatchCoordinator::AnalysisOptions&) {}
 void AnalysisSessionHandler::startCommunication(Usi*, const MatchCoordinator::AnalysisOptions&) {}
 void AnalysisSessionHandler::handleStop() {}

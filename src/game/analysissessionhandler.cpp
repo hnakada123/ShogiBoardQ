@@ -7,6 +7,7 @@
 #include "logcategories.h"
 
 #include <QTimer>
+#include <QCoreApplication>
 
 AnalysisSessionHandler::AnalysisSessionHandler(QObject* parent)
     : QObject(parent)
@@ -16,6 +17,62 @@ AnalysisSessionHandler::AnalysisSessionHandler(QObject* parent)
 void AnalysisSessionHandler::setHooks(const Hooks& hooks)
 {
     m_hooks = hooks;
+}
+
+// ============================================================
+// 検討フルライフサイクル
+// ============================================================
+
+bool AnalysisSessionHandler::startFullAnalysis(const MatchCoordinator::AnalysisOptions& opt)
+{
+    qCDebug(lcGame).noquote() << "startFullAnalysis ENTER:"
+                       << "mode=" << static_cast<int>(opt.mode)
+                       << "byoyomiMs=" << opt.byoyomiMs
+                       << "multiPV=" << opt.multiPV
+                       << "inConsideration=" << m_inConsiderationMode;
+
+    if (m_hooks.isShutdownInProgress && m_hooks.isShutdownInProgress()) {
+        qCDebug(lcGame).noquote() << "startFullAnalysis: engine shutdown in progress";
+        return false;
+    }
+
+    if (m_hooks.setPlayMode) m_hooks.setPlayMode(opt.mode);
+
+    qCDebug(lcGame).noquote() << "startFullAnalysis: destroying old engines:" << opt.enginePath;
+    if (m_hooks.destroyEnginesAll) m_hooks.destroyEnginesAll();
+
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+
+    Usi* usi = m_hooks.createAnalysisEngine ? m_hooks.createAnalysisEngine(opt) : nullptr;
+    if (!usi) return false;
+
+    if (m_hooks.initAndStartEngine)
+        m_hooks.initAndStartEngine(1, opt.enginePath, opt.engineName);
+    if (m_hooks.setEngineNames)
+        m_hooks.setEngineNames(opt.engineName, QString());
+
+    if (!opt.lastUsiMove.isEmpty()) {
+        usi->setLastUsiMove(opt.lastUsiMove);
+    }
+
+    setupModeSpecificWiring(usi, opt);
+    startCommunication(usi, opt);
+
+    qCDebug(lcGame).noquote() << "startFullAnalysis EXIT";
+    return true;
+}
+
+void AnalysisSessionHandler::stopFullAnalysis()
+{
+    qCDebug(lcGame).noquote() << "stopFullAnalysis called";
+
+    if (m_hooks.setShutdownInProgress) m_hooks.setShutdownInProgress(true);
+
+    handleStop();
+
+    if (m_hooks.destroyEnginesKeepModels) m_hooks.destroyEnginesKeepModels();
+
+    if (m_hooks.setShutdownInProgress) m_hooks.setShutdownInProgress(false);
 }
 
 // ============================================================

@@ -18,7 +18,7 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject *parent)
 
 void ShogiBoard::initBoard()
 {
-    m_boardData.fill(Piece::None, ranks() * files());
+    m_boardData.fill(Piece::None, static_cast<qsizetype>(ranks()) * files());
 }
 
 void ShogiBoard::initStand()
@@ -534,8 +534,8 @@ void ShogiBoard::addSfenRecord(Turn nextTurn, int moveIndex, QStringList* sfenRe
     if (!sfenRecord->isEmpty()) {
         const QStringList parts = sfenRecord->first().split(QLatin1Char(' '), Qt::KeepEmptyParts);
         if (parts.size() == 4) {
-            const QString turn0 = parts[1];
-            const QString move0 = parts[3];
+            const QString& turn0 = parts[1];
+            const QString& move0 = parts[3];
             if (move0 != QLatin1String("1")) {
                 qCWarning(lcCore, "addSfenRecord head[0] moveCount != 1  head= %s", qUtf8Printable(sfenRecord->first()));
             }
@@ -657,7 +657,7 @@ void ShogiBoard::setInitialPieceStandValues()
 // 先手と後手の駒を同じ枚数にして全ての駒を駒台に載せる。
 void ShogiBoard::resetGameBoard()
 {
-    m_boardData.fill(Piece::None, ranks() * files());
+    m_boardData.fill(Piece::None, static_cast<qsizetype>(ranks()) * files());
     setInitialPieceStandValues();
 }
 

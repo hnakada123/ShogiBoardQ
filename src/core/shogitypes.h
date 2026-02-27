@@ -107,7 +107,6 @@ inline Piece charToPiece(QChar ch)
     case 't': return Piece::WhitePromotedSilver;
     case 'c': return Piece::WhiteHorse;
     case 'u': return Piece::WhiteDragon;
-    case ' ': return Piece::None;
     default:  return Piece::None;
     }
 }

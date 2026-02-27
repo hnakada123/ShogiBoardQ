@@ -12,7 +12,6 @@
 // --- Pipeline / Registry ---
 #include "mainwindowlifecyclepipeline.h"
 #include "mainwindowserviceregistry.h"
-#include "mainwindowruntimerefsfactory.h"
 #include "mainwindowruntimerefs.h"
 
 // --- unique_ptr メンバの完全型（デストラクタ用） ---
@@ -82,7 +81,7 @@ MainWindow::~MainWindow()
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    ensureUndoFlowService();
+    m_registry->ensureUndoFlowService();
     m_undoFlowService->undoLastTwoMoves();
 }
 
@@ -94,14 +93,14 @@ void MainWindow::updateJosekiWindow()
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
-    ensureTurnStateSyncService();
+    m_registry->ensureTurnStateSyncService();
     m_turnStateSync->onTurnManagerChanged(now);
 }
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    ensureTurnStateSyncService();
+    m_registry->ensureTurnStateSyncService();
     m_turnStateSync->setCurrentTurn();
 }
 
@@ -116,23 +115,23 @@ void MainWindow::saveSettingsAndClose()
 // GUIを初期画面表示に戻す（SessionLifecycleCoordinatorへ委譲）。
 void MainWindow::resetToInitialState()
 {
-    ensureSessionLifecycleCoordinator();
+    m_registry->ensureSessionLifecycleCoordinator();
     m_sessionLifecycle->resetToInitialState();
 }
 
 // ゲーム状態変数のリセット（SessionLifecycleCoordinatorへ委譲）。
 void MainWindow::resetGameState()
 {
-    ensureSessionLifecycleCoordinator();
+    m_registry->ensureSessionLifecycleCoordinator();
     m_sessionLifecycle->resetGameState();
 }
 
 // `displayGameRecord`: Game Record を表示する（GameRecordLoadService に委譲）。
-void MainWindow::displayGameRecord(const QList<KifDisplayItem> disp)
+void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
 {
     if (!m_models.kifuRecord) return;
 
-    ensureGameRecordLoadService();
+    m_registry->ensureGameRecordLoadService();
     m_gameRecordLoadService->loadGameRecord(disp);
 }
 
@@ -155,21 +154,6 @@ void MainWindow::finishPositionEditing()
     m_registry->handleFinishPositionEditing();
 }
 
-void MainWindow::ensureBranchNavigationWiring()
-{
-    m_registry->ensureBranchNavigationWiring();
-}
-
-void MainWindow::ensureMatchCoordinatorWiring()
-{
-    m_registry->ensureMatchCoordinatorWiring();
-}
-
-void MainWindow::ensureTimeController()
-{
-    m_registry->ensureTimeController();
-}
-
 void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 {
     m_registry->handleMoveRequested(from, to);
@@ -178,7 +162,7 @@ void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 // 再生モードの切替を ReplayController へ委譲
 void MainWindow::setReplayMode(bool on)
 {
-    ensureReplayController();
+    m_registry->ensureReplayController();
     if (m_replayController) {
         m_replayController->setReplayMode(on);
     }
@@ -188,13 +172,13 @@ void MainWindow::setReplayMode(bool on)
 
 void MainWindow::loadBoardFromSfen(const QString& sfen)
 {
-    ensureBoardLoadService();
+    m_registry->ensureBoardLoadService();
     m_boardLoadService->loadFromSfen(sfen);
 }
 
 void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
-    ensureBoardLoadService();
+    m_registry->ensureBoardLoadService();
     m_boardLoadService->loadWithHighlights(currentSfen, prevSfen);
 }
 
@@ -203,31 +187,103 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
     m_registry->handleMoveCommitted(static_cast<int>(mover), ply);
 }
 
-// `ensureReplayController`: Replay Controller を必要に応じて生成し、依存関係を更新する。
-void MainWindow::ensureReplayController()
-{
-    m_registry->ensureReplayController();
-}
-
 // `buildRuntimeRefs`: 現在のメンバ変数から MainWindowRuntimeRefs スナップショットを構築する。
 MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
 {
-    return MainWindowRuntimeRefsFactory::build(*this);
-}
+    MainWindowRuntimeRefs refs;
 
-void MainWindow::ensureDialogCoordinator()
-{
-    m_registry->ensureDialogCoordinator();
-}
+    // --- UI 参照 ---
+    refs.parentWidget = this;
+    refs.mainWindow = this;
+    refs.statusBar = ui->statusbar;
 
-void MainWindow::ensureKifuFileController()
-{
-    m_registry->ensureKifuFileController();
-}
+    // --- サービス参照 ---
+    refs.match = m_match;
+    refs.gameController = m_gameController;
+    refs.shogiView = m_shogiView;
+    refs.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    refs.csaGameCoordinator = m_csaGameCoordinator;
 
-void MainWindow::ensureKifuExportController()
-{
-    m_registry->ensureKifuExportController();
+    // --- モデル参照 ---
+    refs.kifuRecordModel = m_models.kifuRecord;
+    refs.considerationModel = &m_models.consideration;
+
+    // --- 状態参照（ポインタ） ---
+    refs.playMode = &m_state.playMode;
+    refs.currentMoveIndex = &m_state.currentMoveIndex;
+    refs.currentSfenStr = &m_state.currentSfenStr;
+    refs.startSfenStr = &m_state.startSfenStr;
+    refs.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
+
+    // --- 棋譜参照 ---
+    refs.sfenRecord = m_queryService->sfenRecord();
+    refs.gameMoves = &m_kifu.gameMoves;
+    refs.gameUsiMoves = &m_kifu.gameUsiMoves;
+    refs.moveRecords = &m_kifu.moveRecords;
+    refs.positionStrList = &m_kifu.positionStrList;
+    refs.activePly = &m_kifu.activePly;
+    refs.currentSelectedPly = &m_kifu.currentSelectedPly;
+    refs.saveFileName = &m_kifu.saveFileName;
+
+    // --- 分岐ナビゲーション参照 ---
+    refs.branchTree = m_branchNav.branchTree;
+    refs.navState = m_branchNav.navState;
+    refs.displayCoordinator = m_branchNav.displayCoordinator;
+
+    // --- コントローラ / Wiring 参照 ---
+    refs.recordPane = m_recordPane;
+    refs.recordPresenter = m_recordPresenter;
+    refs.replayController = m_replayController;
+    refs.timeController = m_timeController;
+    refs.boardController = m_boardController;
+    refs.positionEditController = m_posEdit;
+    refs.dialogCoordinator = m_dialogCoordinator;
+    refs.playerInfoWiring = m_playerInfoWiring;
+    refs.boardSync = m_boardSync;
+    refs.uiStatePolicy = m_uiStatePolicy;
+    refs.gameStateController = m_gameStateController;
+    refs.consecutiveGamesController = m_consecutiveGamesController;
+
+    // --- モデル参照（追加） ---
+    refs.thinking1 = m_models.thinking1;
+    refs.thinking2 = m_models.thinking2;
+    refs.consideration = m_models.consideration;
+    refs.commLog1 = m_models.commLog1;
+    refs.commLog2 = m_models.commLog2;
+    refs.gameRecordModel = m_models.gameRecord;
+
+    // --- UI フォーム ---
+    refs.uiForm = ui.get();
+
+    // --- 状態参照（追加） ---
+    refs.commentsByRow = &m_kifu.commentsByRow;
+    refs.resumeSfenStr = &m_state.resumeSfenStr;
+    refs.onMainRowGuard = &m_kifu.onMainRowGuard;
+
+    // --- 対局者名参照 ---
+    refs.humanName1 = &m_player.humanName1;
+    refs.humanName2 = &m_player.humanName2;
+    refs.engineName1 = &m_player.engineName1;
+    refs.engineName2 = &m_player.engineName2;
+
+    // --- その他参照 ---
+    refs.gameInfoController = m_gameInfoController;
+    refs.evalChart = m_evalChart;
+    refs.evalGraphController = m_evalGraphController.get();
+    refs.analysisPresenter = m_analysisPresenter.get();
+    refs.analysisTab = m_analysisTab;
+
+    // PlayModePolicyService の依存を最新状態に更新
+    if (m_playModePolicy) {
+        PlayModePolicyService::Deps policyDeps;
+        policyDeps.playMode = &m_state.playMode;
+        policyDeps.gameController = m_gameController;
+        policyDeps.match = m_match;
+        policyDeps.csaGameCoordinator = m_csaGameCoordinator;
+        m_playModePolicy->updateDeps(policyDeps);
+    }
+
+    return refs;
 }
 
 // KifuExportControllerに依存を設定するヘルパー
@@ -236,168 +292,10 @@ void MainWindow::updateKifuExportDependencies()
     KifuExportDepsAssembler::assemble(m_kifuExportController.get(), buildRuntimeRefs());
 }
 
-void MainWindow::ensureGameStateController()
-{
-    m_registry->ensureGameStateController();
-}
-
-
-
-void MainWindow::ensureBoardSetupController()
-{
-    m_registry->ensureBoardSetupController();
-}
-
-void MainWindow::ensurePvClickController()
-{
-    m_registry->ensurePvClickController();
-}
-
-void MainWindow::ensurePositionEditCoordinator()
-{
-    m_registry->ensurePositionEditCoordinator();
-}
-
-
-void MainWindow::ensureMenuWiring()
-{
-    m_registry->ensureMenuWiring();
-}
-
-void MainWindow::ensurePlayerInfoWiring()
-{
-    m_registry->ensurePlayerInfoWiring();
-}
-
-void MainWindow::ensurePreStartCleanupHandler()
-{
-    m_registry->ensurePreStartCleanupHandler();
-}
-
-void MainWindow::ensureTurnSyncBridge()
-{
-    m_registry->ensureTurnSyncBridge();
-}
-
-void MainWindow::ensurePositionEditController()
-{
-    m_registry->ensurePositionEditController();
-}
-
-void MainWindow::ensureBoardSyncPresenter()
-{
-    m_registry->ensureBoardSyncPresenter();
-}
-
-void MainWindow::ensureBoardLoadService()
-{
-    m_registry->ensureBoardLoadService();
-}
-
-void MainWindow::ensureConsiderationPositionService()
-{
-    m_registry->ensureConsiderationPositionService();
-}
-
-void MainWindow::ensureAnalysisPresenter()
-{
-    m_registry->ensureAnalysisPresenter();
-}
-
-void MainWindow::ensureGameStartCoordinator()
-{
-    m_registry->ensureGameStartCoordinator();
-}
-
-// `ensureRecordPresenter`: Record Presenter を必要に応じて生成し、依存関係を更新する。
-void MainWindow::ensureRecordPresenter()
-{
-    m_registry->ensureRecordPresenter();
-}
-
-void MainWindow::ensureLiveGameSessionStarted()
-{
-    m_registry->ensureLiveGameSessionStarted();
-}
-
-void MainWindow::ensureLiveGameSessionUpdater()
-{
-    m_registry->ensureLiveGameSessionUpdater();
-}
-
-void MainWindow::ensureGameRecordUpdateService()
-{
-    m_registry->ensureGameRecordUpdateService();
-}
-
-void MainWindow::ensureUndoFlowService()
-{
-    m_registry->ensureUndoFlowService();
-}
-
-void MainWindow::ensureGameRecordLoadService()
-{
-    m_registry->ensureGameRecordLoadService();
-}
-
-void MainWindow::ensureTurnStateSyncService()
-{
-    m_registry->ensureTurnStateSyncService();
-}
-
 // `onRecordPaneMainRowChanged`: Record Pane Main Row Changed のイベント受信時処理を行う。
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
-    ensureRecordNavigationHandler();
+    m_registry->ensureRecordNavigationHandler();
     m_recordNavWiring->handler()->onMainRowChanged(row);
 }
 
-void MainWindow::ensureGameRecordModel()
-{
-    m_registry->ensureGameRecordModel();
-}
-
-void MainWindow::ensureConsecutiveGamesController()
-{
-    m_registry->ensureConsecutiveGamesController();
-}
-
-void MainWindow::ensureLanguageController()
-{
-    m_registry->ensureLanguageController();
-}
-
-void MainWindow::ensureDockLayoutManager()
-{
-    m_registry->ensureDockLayoutManager();
-}
-
-void MainWindow::ensureDockCreationService()
-{
-    m_registry->ensureDockCreationService();
-}
-
-void MainWindow::ensureCommentCoordinator()
-{
-    m_registry->ensureCommentCoordinator();
-}
-
-void MainWindow::ensureRecordNavigationHandler()
-{
-    m_registry->ensureRecordNavigationHandler();
-}
-
-void MainWindow::ensureUiStatePolicyManager()
-{
-    m_registry->ensureUiStatePolicyManager();
-}
-
-void MainWindow::ensureKifuNavigationCoordinator()
-{
-    m_registry->ensureKifuNavigationCoordinator();
-}
-
-void MainWindow::ensureSessionLifecycleCoordinator()
-{
-    m_registry->ensureSessionLifecycleCoordinator();
-}

@@ -11,12 +11,13 @@
 #include <QStringList>
 #include <QVector>
 #include <QDateTime>
-#include <QElapsedTimer>
 
 #include "shogigamecontroller.h"
 
 #include "shogimove.h"
 #include "playmode.h"
+#include "matchundohandler.h"
+#include "enginelifecyclemanager.h"
 
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
@@ -26,12 +27,11 @@ class GameModeStrategy;
 class EngineVsEngineStrategy;
 class ShogiView;
 class Usi;
-class KifuRecordListModel;
-class BoardInteractionController;
 class StartGameDialog;
 class AnalysisSessionHandler;
 class GameEndHandler;
 class GameStartOrchestrator;
+class MatchTimekeeper;
 
 /**
  * @brief 対局進行/終局/時計/USI送受のハブとなる司令塔クラス
@@ -91,41 +91,104 @@ public:
         QDateTime   when;                   ///< 終局日時
     };
 
-    /// UI/描画系の委譲コールバック群
+    /**
+     * @brief UI/描画系の委譲コールバック群
+     *
+     * MatchCoordinator から上位層（MainWindow/Wiring層）への逆方向呼び出しに使用。
+     * 子ハンドラ（GameEndHandler, GameStartOrchestrator, EngineLifecycleManager 等）にも
+     * パススルーされる。
+     *
+     * @note MatchCoordinatorHooksFactory::buildHooks() で一括生成される。
+     *       入力は MainWindowMatchWiringDepsService::buildDeps() → HookDeps。
+     * @see MatchCoordinatorHooksFactory, MainWindowMatchWiringDepsService
+     */
     struct Hooks {
         // --- UI/描画系 ---
-        std::function<void(Player cur)> updateTurnDisplay;      ///< 手番表示/ハイライト更新
-        std::function<void(const QString& p1, const QString& p2)> setPlayersNames; ///< 対局者名設定
-        std::function<void(const QString& e1, const QString& e2)> setEngineNames;  ///< エンジン名設定
-        std::function<void(bool inProgress)> setGameActions;    ///< NewGame/Resign等のON/OFF
-        std::function<void()> renderBoardFromGc;                ///< gc→view反映
-        std::function<void(const QString& title, const QString& message)> showGameOverDialog; ///< 終局ダイアログ表示
-        std::function<void(const QString& msg)> log;            ///< ログ出力
-        std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights; ///< 着手ハイライト
+
+        /// @brief 手番表示を更新する
+        /// @note 配線元: HooksFactory (lambda) → MainWindow::onTurnManagerChanged
+        std::function<void(Player cur)> updateTurnDisplay;
+
+        /// @brief 対局者名をUIに設定する
+        /// @note 配線元: HookDeps → PlayerInfoWiring
+        std::function<void(const QString& p1, const QString& p2)> setPlayersNames;
+
+        /// @brief エンジン名をUIに設定する
+        /// @note 配線元: HookDeps → PlayerInfoWiring
+        std::function<void(const QString& e1, const QString& e2)> setEngineNames;
+
+        /// @brief NewGame/Resign等のメニュー項目のON/OFF
+        /// @note 未配線（UiStatePolicyManager で代替済みの可能性あり）
+        std::function<void(bool inProgress)> setGameActions;
+
+        /// @brief ShogiGameController の盤面状態を ShogiView に反映する
+        /// @note 配線元: HookDeps → MainWindowMatchAdapter::renderBoardFromGc
+        std::function<void()> renderBoardFromGc;
+
+        /// @brief 終局結果ダイアログを表示する
+        /// @note 配線元: HookDeps → MainWindowMatchAdapter::showGameOverMessageBox
+        std::function<void(const QString& title, const QString& message)> showGameOverDialog;
+
+        /// @brief デバッグログを出力する
+        /// @note 未配線。qDebug() への置換を検討
+        std::function<void(const QString& msg)> log;
+
+        /// @brief 着手のハイライト（from: 赤, to: 黄）を表示する
+        /// @note 配線元: HookDeps → MainWindowMatchAdapter::showMoveHighlights
+        std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
 
         // --- 時計読み出し（ShogiClock API差異吸収） ---
-        std::function<qint64(Player)> remainingMsFor;           ///< 残り時間（ms）
-        std::function<qint64(Player)> incrementMsFor;           ///< フィッシャー加算（ms）
-        std::function<qint64()> byoyomiMs;                      ///< 秒読み（共通、ms）
 
-        /// HvE: 人間側の手番（P1/P2）を返す
+        /// @brief 指定プレイヤーの残り時間（ms）を返す
+        /// @note 配線元: HookDeps → TimekeepingService
+        std::function<qint64(Player)> remainingMsFor;
+
+        /// @brief 指定プレイヤーのフィッシャー加算時間（ms）を返す
+        /// @note 配線元: HookDeps → TimekeepingService
+        std::function<qint64(Player)> incrementMsFor;
+
+        /// @brief 秒読み時間（ms、両プレイヤー共通）を返す
+        /// @note 配線元: HookDeps → TimekeepingService
+        std::function<qint64()> byoyomiMs;
+
+        /// @brief HvE: 人間側の手番（P1/P2）を返す
+        /// @note 未配線。HumanVsEngineStrategy::onHumanMove で null チェック付きで使用
         std::function<Player()> humanPlayerSide = nullptr;
 
         // --- USI送受 ---
-        std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;    ///< go送信
-        std::function<void(Usi* which)> sendStopToEngine;                    ///< stop送信
-        std::function<void(Usi* which, const QString& cmd)> sendRawToEngine; ///< 任意コマンド送信
+
+        /// @brief エンジンに go コマンドを送信する
+        /// @note 配線元: HookDeps → UsiCommandController
+        std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;
+
+        /// @brief エンジンに stop コマンドを送信する
+        /// @note 配線元: HookDeps → UsiCommandController
+        std::function<void(Usi* which)> sendStopToEngine;
+
+        /// @brief エンジンに任意のコマンドを送信する
+        /// @note 配線元: HookDeps → UsiCommandController
+        std::function<void(Usi* which, const QString& cmd)> sendRawToEngine;
 
         // --- 新規対局の初期化 ---
-        std::function<void(const QString& sfenStart)> initializeNewGame;     ///< GUI固有の初期化処理
 
-        /// 棋譜1行追記（text="▲７六歩", elapsed="00:03/00:00:06"）
+        /// @brief GUI固有の新規対局初期化処理を実行する
+        /// @note 配線元: HookDeps → MainWindowMatchAdapter::initializeNewGameHook
+        std::function<void(const QString& sfenStart)> initializeNewGame;
+
+        /// @brief 棋譜に1行追記する（例: text="▲７六歩", elapsed="00:03/00:00:06"）
+        /// @note 配線元: HookDeps → GameRecordUpdateService::appendKifuLine
         std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
 
-        std::function<void()> appendEvalP1;  ///< P1着手確定→評価値を1本目に追記
-        std::function<void()> appendEvalP2;  ///< P2着手確定→評価値を2本目に追記
+        /// @brief P1着手確定時に評価値を1本目のグラフに追記する
+        /// @note 配線元: HooksFactory (lambda) → EvaluationGraphController::redrawEngine1Graph
+        std::function<void()> appendEvalP1;
 
-        /// 棋譜自動保存（対局終了時に呼び出し）
+        /// @brief P2着手確定時に評価値を2本目のグラフに追記する
+        /// @note 配線元: HooksFactory (lambda) → EvaluationGraphController::redrawEngine2Graph
+        std::function<void()> appendEvalP2;
+
+        /// @brief 対局終了時に棋譜を自動保存する
+        /// @note 配線元: HookDeps → KifuFileController::autoSaveKifuToFile
         std::function<void(const QString& saveDir, PlayMode playMode,
                            const QString& humanName1, const QString& humanName2,
                            const QString& engineName1, const QString& engineName2)> autoSaveKifu;
@@ -242,28 +305,13 @@ public:
 
     // --- 対局開始フロー ---
 
-    /// USI position文字列の初期化
-    void initializePositionStringsForStart(const QString& sfenStart);
-
     /// 初手がエンジン手番なら go を発行する（Strategy委譲）
     void startInitialEngineMoveIfNeeded();
 
-    // --- UNDO ---
+    // --- UNDO（MatchUndoHandler へ委譲） ---
 
-    /// UNDO に必要な外部参照（Deps/既存メンバと重複しない UNDO 固有の参照のみ）
-    struct UndoRefs {
-        KifuRecordListModel*          recordModel      = nullptr;  ///< 棋譜モデル
-        QStringList*                  positionStrList  = nullptr;  ///< position文字列リスト（NULLable）
-        int*                          currentMoveIndex = nullptr;  ///< 現在手数インデックス
-        BoardInteractionController*   boardCtl = nullptr;   ///< 盤面操作コントローラ
-    };
-
-    /// UNDO時のUIコールバック群
-    struct UndoHooks {
-        std::function<void(int /*ply*/)>              updateHighlightsForPly;         ///< ハイライト更新
-        std::function<void()>                         updateTurnAndTimekeepingDisplay; ///< 手番/時計表示更新
-        std::function<bool(ShogiGameController::Player)> isHumanSide;                 ///< 人間側判定（必須）
-    };
+    using UndoRefs  = MatchUndoHandler::UndoRefs;
+    using UndoHooks = MatchUndoHandler::UndoHooks;
 
     void setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks);
 
@@ -357,16 +405,15 @@ public:
 
     // --- 時間/手番・終局の処理 ---
 
-    void handleTimeUpdated();
+    void handleTimeUpdated() {}
     void handlePlayerTimeOut(int player);
-    void handleGameEnded();
 
     /// 開始直後のタイマー起動や初手go判定を1本化する
     void startMatchTimingAndMaybeInitialGo();
 
     // --- PlayMode ---
 
-    PlayMode playMode() const;
+    PlayMode playMode() const { return m_playMode; }
 
     /// 終局1回だけの棋譜追記と重複防止を一括処理する
     void appendGameOverLineAndMark(Cause cause, Player loser);
@@ -409,6 +456,9 @@ public:
     /// 時計を差し替える（後からの配線用）
     void setClock(ShogiClock* clock);
 
+    /// 時計スナップショットを再計算する（手番テキスト・残り時間文字列）
+    void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
+
     void setPlayMode(PlayMode m);
 
     /// EvE用のエンジン生成・配線・初期化
@@ -430,7 +480,10 @@ public:
                         QPoint* outTo);
 
     /// エンジン破棄中かどうかを返す
-    bool isEngineShutdownInProgress() const { return m_engineShutdownInProgress; }
+    bool isEngineShutdownInProgress() const;
+
+    /// エンジンライフサイクルマネージャを取得する
+    EngineLifecycleManager* engineManager();
 
 public slots:
     /// 即時に現在値でtimeUpdated(...)を発火する（UIをすぐ同期させたい時に使う）
@@ -467,47 +520,34 @@ signals:
 private:
     // --- 内部ヘルパ ---
 
-    bool tryRemoveLastItems(QObject* model, int n);
     void setGameInProgressActions(bool inProgress);
     void updateTurnDisplay(Player p);
     GoTimes computeGoTimes() const;
     void initPositionStringsFromSfen(const QString& sfenBase);
-    void wireResignToArbiter(Usi* engine, bool asP1);
-    void wireWinToArbiter(Usi* engine, bool asP1);
-    void emitTimeUpdateFromClock();
-    void recomputeClockSnapshot(QString& turnText, QString& p1, QString& p2) const;
-    void sendRawTo(Usi* which, const QString& cmd);
 
-    /// GUI側からモデルが注入されていない場合にフォールバック生成する（1=エンジン1, 2=エンジン2）
-    struct EngineModelPair {
-        UsiCommLogModel* comm = nullptr;
-        ShogiEngineThinkingModel* think = nullptr;
-    };
-    EngineModelPair ensureEngineModels(int engineIndex);
+    using EngineModelPair = EngineLifecycleManager::EngineModelPair;
 
     /// PlayMode別のStrategy生成と起動
     void createAndStartModeStrategy(const StartOptions& opt);
 
-    void wireClock();
-    void unwireClock();
+    void ensureEngineManager();  ///< エンジンマネージャの遅延生成
+    void ensureTimekeeper();     ///< 時計マネージャの遅延生成
 
 private slots:
-    void onEngine1Resign();
-    void onEngine2Resign();
-    void onEngine1Win();
-    void onEngine2Win();
-    void onClockTick();
     void onUsiError(const QString& msg);
 
 private:
     // --- コアオブジェクト（非所有、寿命はMainWindow側で管理） ---
 
     ShogiGameController* m_gc   = nullptr;   ///< ゲームコントローラ
-    ShogiClock*          m_clock= nullptr;   ///< 将棋時計
     ShogiView*           m_view = nullptr;   ///< 盤面ビュー
-    Usi*                 m_usi1 = nullptr;    ///< エンジン1
-    Usi*                 m_usi2 = nullptr;    ///< エンジン2
     Hooks                m_hooks;             ///< UIコールバック群
+
+    // --- エンジン管理 ---
+    EngineLifecycleManager* m_engineManager = nullptr; ///< エンジンライフサイクルマネージャ
+
+    // --- 時計管理 ---
+    MatchTimekeeper* m_timekeeper = nullptr; ///< 時計マネージャ（Qt parent 管理）
 
     std::unique_ptr<StrategyContext>  m_strategyCtx; ///< Strategy用コンテキスト
     std::unique_ptr<GameModeStrategy> m_strategy;    ///< 対局モード別Strategy
@@ -517,10 +557,6 @@ private:
     // --- モデル ---
 
     PlayMode                 m_playMode = PlayMode::NotStarted; ///< 対局モード
-    UsiCommLogModel*         m_comm1    = nullptr;   ///< エンジン1通信ログ（非所有）
-    ShogiEngineThinkingModel*m_think1   = nullptr;   ///< エンジン1思考情報（非所有）
-    UsiCommLogModel*         m_comm2    = nullptr;   ///< エンジン2通信ログ（非所有）
-    ShogiEngineThinkingModel*m_think2   = nullptr;   ///< エンジン2思考情報（非所有）
 
     // --- USI position文字列 ---
 
@@ -540,13 +576,6 @@ private:
         return m_externalGameMoves ? *m_externalGameMoves : m_gameMoves;
     }
 
-    // --- ターン計測 ---
-
-    qint64 m_turnEpochP1Ms = -1;             ///< P1の手開始エポック（ms）
-    qint64 m_turnEpochP2Ms = -1;             ///< P2の手開始エポック（ms）
-    // --- 時間ルール ---
-
-    TimeControl m_tc;                         ///< 時間制御設定
     int m_maxMoves = 0;                       ///< 最大手数（0=無制限）
 
     // --- 棋譜自動保存 ---
@@ -561,15 +590,10 @@ private:
     QString m_engineNameForSave1;             ///< 先手エンジン名（保存用）
     QString m_engineNameForSave2;             ///< 後手エンジン名（保存用）
 
-    // --- 時計接続管理 ---
-
-    QMetaObject::Connection m_clockConn;      ///< 時計接続ハンドル
-
     // --- 終局状態 ---
 
     GameOverState m_gameOver;                 ///< 終局状態
 
-    bool m_engineShutdownInProgress = false;  ///< エンジン破棄中フラグ（再入防止）
 
     // --- 検討・詰み探索セッション管理 ---
 
@@ -588,9 +612,8 @@ private:
 
     // --- UNDO ---
 
-    bool m_isUndoInProgress = false;          ///< UNDO処理中フラグ
-    UndoRefs  u_;                             ///< UNDO用参照
-    UndoHooks h_;                             ///< UNDO用コールバック
+    std::unique_ptr<MatchUndoHandler> m_undoHandler; ///< UNDO処理ハンドラ
+    void ensureUndoHandler();                        ///< ハンドラの遅延生成
 
     // --- USI position履歴 ---
 

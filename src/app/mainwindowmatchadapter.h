@@ -37,17 +37,25 @@ public:
         ShogiGameController* gameController = nullptr;
 
         // --- showMoveHighlights 用 ---
-        BoardInteractionController* boardController = nullptr;
+        BoardInteractionController* boardController = nullptr;    ///< 盤面操作コントローラ（非所有）
 
         // --- initializeNewGameHook 用 ---
-        PlayMode* playMode = nullptr;
+        PlayMode* playMode = nullptr;                             ///< 現在のプレイモード（ダブルポインタ参照）
+        /// @brief GUI固有の新規対局初期化（棋譜クリア・UI初期化）
+        /// @note 配線元: MainWindowServiceRegistry → GameSessionOrchestrator
         std::function<void(QString&)> initializeNewGame;
+        /// @brief PlayerInfoWiring を遅延初期化し取得する
+        /// @note 配線元: MainWindowServiceRegistry (ensure + getter)
         std::function<PlayerInfoWiring*()> ensureAndGetPlayerInfoWiring;
 
         // --- showGameOverMessageBox 用 ---
+        /// @brief DialogCoordinator を遅延初期化し取得する
+        /// @note 配線元: MainWindowServiceRegistry (ensure + getter)
         std::function<DialogCoordinator*()> ensureAndGetDialogCoordinator;
 
         // --- updateTurnAndTimekeepingDisplay 用 ---
+        /// @brief TurnStateSyncService を遅延初期化し取得する
+        /// @note 配線元: MainWindowServiceRegistry (ensure + getter)
         std::function<TurnStateSyncService*()> ensureAndGetTurnStateSync;
     };
 

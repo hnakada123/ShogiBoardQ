@@ -9,6 +9,8 @@
 #include <QMetaType>
 #include <QList>
 
+#include <utility>
+
 /**
  * @brief 棋譜の1手分の表示情報を保持する構造体
  *
@@ -25,11 +27,11 @@ struct KifDisplayItem
 
     KifDisplayItem() = default;
 
-    explicit KifDisplayItem(const QString& move,
-                            const QString& time = QString(),
-                            const QString& cmt  = QString(),
+    explicit KifDisplayItem(QString move,
+                            QString time = QString(),
+                            QString cmt  = QString(),
                             int plyNumber       = 0)
-        : prettyMove(move), timeText(time), comment(cmt), ply(plyNumber) {}
+        : prettyMove(std::move(move)), timeText(std::move(time)), comment(std::move(cmt)), ply(plyNumber) {}
 
     bool operator==(const KifDisplayItem& o) const noexcept {
         return prettyMove == o.prettyMove && timeText == o.timeText

@@ -52,8 +52,8 @@ void GameEndHandler::handleResign()
     auto rawSender = [this](Usi* which, const QString& cmd) {
         sendRawToEngineHelper(which, cmd);
     };
-    Usi* u1 = m_refs.usi1 ? *m_refs.usi1 : nullptr;
-    Usi* u2 = m_refs.usi2 ? *m_refs.usi2 : nullptr;
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
         *m_refs.playMode, info.loser == Player::P1, u1, u2, rawSender);
 
@@ -74,8 +74,8 @@ void GameEndHandler::handleEngineResign(int idx)
     auto rawSender = [this](Usi* which, const QString& cmd) {
         sendRawToEngineHelper(which, cmd);
     };
-    Usi* u1 = m_refs.usi1 ? *m_refs.usi1 : nullptr;
-    Usi* u2 = m_refs.usi2 ? *m_refs.usi2 : nullptr;
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyResignation(
         *m_refs.playMode, info.loser == Player::P1, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
@@ -121,8 +121,8 @@ void GameEndHandler::handleNyugyokuDeclaration(Player declarer, bool success, bo
     auto rawSender = [this](Usi* which, const QString& cmd) {
         sendRawToEngineHelper(which, cmd);
     };
-    Usi* u1 = m_refs.usi1 ? *m_refs.usi1 : nullptr;
-    Usi* u2 = m_refs.usi2 ? *m_refs.usi2 : nullptr;
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
     EngineGameOverNotifier::notifyNyugyoku(
         *m_refs.playMode, isDraw, info.loser == Player::P1, u1, u2, rawSender);
     if (u1) u1->setSquelchResignLogging(true);
@@ -157,8 +157,8 @@ void GameEndHandler::handleBreakOff()
 
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
 
-    Usi* u1 = m_refs.usi1 ? *m_refs.usi1 : nullptr;
-    Usi* u2 = m_refs.usi2 ? *m_refs.usi2 : nullptr;
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
 
     const bool isEvE =
         (*m_refs.playMode == PlayMode::EvenEngineVsEngine) ||
@@ -332,8 +332,8 @@ void GameEndHandler::handleMaxMovesJishogi()
 
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
 
-    Usi* u1 = m_refs.usi1 ? *m_refs.usi1 : nullptr;
-    Usi* u2 = m_refs.usi2 ? *m_refs.usi2 : nullptr;
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
 
     const bool isEvE =
         (*m_refs.playMode == PlayMode::EvenEngineVsEngine) ||
@@ -403,8 +403,8 @@ void GameEndHandler::handleSennichite()
 
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
 
-    Usi* u1 = m_refs.usi1 ? *m_refs.usi1 : nullptr;
-    Usi* u2 = m_refs.usi2 ? *m_refs.usi2 : nullptr;
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
 
     const bool isEvE =
         (*m_refs.playMode == PlayMode::EvenEngineVsEngine) ||
@@ -447,8 +447,8 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
 
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
 
-    Usi* u1 = m_refs.usi1 ? *m_refs.usi1 : nullptr;
-    Usi* u2 = m_refs.usi2 ? *m_refs.usi2 : nullptr;
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
 
     const bool isEvE =
         (*m_refs.playMode == PlayMode::EvenEngineVsEngine) ||
