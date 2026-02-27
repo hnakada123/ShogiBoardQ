@@ -8,6 +8,7 @@
 /// これにより friend 宣言を使わずに Strategy が必要な内部状態のみを参照できる。
 
 #include "matchcoordinator.h"
+#include "matchtimekeeper.h"
 
 /// @brief Strategy クラスが MatchCoordinator の内部状態にアクセスするためのコンテキスト
 ///
@@ -21,7 +22,7 @@ public:
 
     Hooks& hooks() { return c_.m_hooks; }
     ShogiGameController* gc() { return c_.m_gc; }
-    ShogiClock* clock() { return c_.m_clock; }
+    ShogiClock* clock() { return c_.m_timekeeper ? c_.m_timekeeper->clock() : nullptr; }
 
     Player currentTurn() const { return c_.m_cur; }
     void setCurrentTurn(Player p) { c_.m_cur = p; }
@@ -30,15 +31,21 @@ public:
     PlayMode& playModeRef() { return c_.m_playMode; }
     int maxMoves() const { return c_.m_maxMoves; }
 
-    Usi* usi1() const { return c_.m_usi1; }
-    void setUsi1(Usi* u) { c_.m_usi1 = u; }
-    Usi* usi2() const { return c_.m_usi2; }
-    void setUsi2(Usi* u) { c_.m_usi2 = u; }
+    Usi* usi1() const { return c_.m_engineManager ? c_.m_engineManager->usi1() : nullptr; }
+    void setUsi1(Usi* u) { if (c_.m_engineManager) c_.m_engineManager->setUsi1(u); }
+    Usi* usi2() const { return c_.m_engineManager ? c_.m_engineManager->usi2() : nullptr; }
+    void setUsi2(Usi* u) { if (c_.m_engineManager) c_.m_engineManager->setUsi2(u); }
 
-    UsiCommLogModel* comm1() const { return c_.m_comm1; }
-    void setComm1(UsiCommLogModel* m) { c_.m_comm1 = m; }
-    ShogiEngineThinkingModel* think1() const { return c_.m_think1; }
-    void setThink1(ShogiEngineThinkingModel* m) { c_.m_think1 = m; }
+    UsiCommLogModel* comm1() const {
+        auto pair = c_.m_engineManager ? c_.m_engineManager->ensureEngineModels(1) : EngineLifecycleManager::EngineModelPair{};
+        return pair.comm;
+    }
+    void setComm1(UsiCommLogModel*) { /* managed by EngineLifecycleManager */ }
+    ShogiEngineThinkingModel* think1() const {
+        auto pair = c_.m_engineManager ? c_.m_engineManager->ensureEngineModels(1) : EngineLifecycleManager::EngineModelPair{};
+        return pair.think;
+    }
+    void setThink1(ShogiEngineThinkingModel*) { /* managed by EngineLifecycleManager */ }
 
     int currentMoveIndex() const { return c_.m_currentMoveIndex; }
     void setCurrentMoveIndex(int i) { c_.m_currentMoveIndex = i; }
@@ -56,7 +63,7 @@ public:
     QVector<ShogiMove>& gameMovesRef() { return c_.gameMovesRef(); }
 
     const GameOverState& gameOverState() const { return c_.m_gameOver; }
-    const TimeControl& timeControl() const { return c_.m_tc; }
+    const TimeControl& timeControl() const { return c_.m_timekeeper->timeControl(); }
 
     /// MatchCoordinator を QObject 親として使う場合のアクセサ
     QObject* coordinatorAsParent() { return &c_; }
@@ -66,8 +73,12 @@ public:
     void updateTurnDisplay(Player p) { c_.updateTurnDisplay(p); }
     GoTimes computeGoTimes() const { return c_.computeGoTimes(); }
     void initPositionStringsFromSfen(const QString& s) { c_.initPositionStringsFromSfen(s); }
-    void wireResignToArbiter(Usi* eng, bool asP1) { c_.wireResignToArbiter(eng, asP1); }
-    void wireWinToArbiter(Usi* eng, bool asP1) { c_.wireWinToArbiter(eng, asP1); }
+    void wireResignToArbiter(Usi* eng, bool asP1) {
+        if (c_.m_engineManager) c_.m_engineManager->wireResignToArbiter(eng, asP1);
+    }
+    void wireWinToArbiter(Usi* eng, bool asP1) {
+        if (c_.m_engineManager) c_.m_engineManager->wireWinToArbiter(eng, asP1);
+    }
 
     // ---- public メソッド委譲 ----
 

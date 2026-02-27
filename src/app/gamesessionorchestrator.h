@@ -74,13 +74,14 @@ public:
         LiveGameSession** liveGameSession = nullptr;
 
         // === Lazy-init callbacks ===
-        std::function<void()> ensureGameStateController;
-        std::function<void()> ensureSessionLifecycleCoordinator;
-        std::function<void()> ensureConsecutiveGamesController;
-        std::function<void()> ensureGameStartCoordinator;
-        std::function<void()> ensurePreStartCleanupHandler;
-        std::function<void()> ensureDialogCoordinator;
-        std::function<void()> ensureReplayController;
+        /// @note 各 ensure* は MainWindowServiceRegistry 内の対応メソッドに束縛される
+        std::function<void()> ensureGameStateController;         ///< GameStateController 遅延初期化
+        std::function<void()> ensureSessionLifecycleCoordinator; ///< SessionLifecycleCoordinator 遅延初期化
+        std::function<void()> ensureConsecutiveGamesController;  ///< ConsecutiveGamesController 遅延初期化
+        std::function<void()> ensureGameStartCoordinator;        ///< GameStartCoordinator 遅延初期化
+        std::function<void()> ensurePreStartCleanupHandler;      ///< PreStartCleanupHandler 遅延初期化
+        std::function<void()> ensureDialogCoordinator;           ///< DialogCoordinator 遅延初期化
+        std::function<void()> ensureReplayController;            ///< ReplayController 遅延初期化
 
         // === Action callbacks ===
         std::function<void()> initMatchCoordinator;        ///< MatchCoordinator の遅延初期化

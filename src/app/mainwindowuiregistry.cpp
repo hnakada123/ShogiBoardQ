@@ -1,12 +1,12 @@
 /// @file mainwindowuiregistry.cpp
-/// @brief UI系の ensure* 実装
+/// @brief UI系（ウィジェット・プレゼンター・ビュー・ドック・メニュー・通知）の ensure* 実装
+///
+/// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
-#include "mainwindowuiregistry.h"
-#include "mainwindow.h"
 #include "mainwindowserviceregistry.h"
+#include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
-#include "mainwindowdockbootstrapper.h"
 #include "ui_mainwindow.h"
 
 #include "commentcoordinator.h"
@@ -30,20 +30,11 @@
 #include "uistatepolicymanager.h"
 #include "logcategories.h"
 
-MainWindowUiRegistry::MainWindowUiRegistry(MainWindow& mw,
-                                             MainWindowServiceRegistry& registry,
-                                             QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_registry(registry)
-{
-}
-
 // ---------------------------------------------------------------------------
 // 評価値グラフ
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureEvaluationGraphController()
+void MainWindowServiceRegistry::ensureEvaluationGraphController()
 {
     if (m_mw.m_evalGraphController) return;
 
@@ -64,7 +55,7 @@ void MainWindowUiRegistry::ensureEvaluationGraphController()
 // 棋譜表示プレゼンター
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureRecordPresenter()
+void MainWindowServiceRegistry::ensureRecordPresenter()
 {
     if (m_mw.m_recordPresenter) return;
 
@@ -74,7 +65,7 @@ void MainWindowUiRegistry::ensureRecordPresenter()
 
     m_mw.m_recordPresenter = new GameRecordPresenter(d, &m_mw);
 
-    m_registry.ensureCommentCoordinator();
+    ensureCommentCoordinator();
     QObject::connect(
         m_mw.m_recordPresenter,
         &GameRecordPresenter::currentRowChanged,
@@ -88,10 +79,10 @@ void MainWindowUiRegistry::ensureRecordPresenter()
 // プレイヤー情報コントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensurePlayerInfoController()
+void MainWindowServiceRegistry::ensurePlayerInfoController()
 {
     if (m_mw.m_playerInfoController) return;
-    m_registry.ensurePlayerInfoWiring();
+    ensurePlayerInfoWiring();
     m_mw.m_compositionRoot->ensurePlayerInfoController(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_playerInfoController);
 }
 
@@ -99,7 +90,7 @@ void MainWindowUiRegistry::ensurePlayerInfoController()
 // プレイヤー情報配線
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensurePlayerInfoWiring()
+void MainWindowServiceRegistry::ensurePlayerInfoWiring()
 {
     if (m_mw.m_playerInfoWiring) return;
 
@@ -136,7 +127,7 @@ void MainWindowUiRegistry::ensurePlayerInfoWiring()
 // ダイアログコーディネーター
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureDialogCoordinator()
+void MainWindowServiceRegistry::ensureDialogCoordinator()
 {
     if (m_mw.m_dialogCoordinator) return;
 
@@ -144,9 +135,9 @@ void MainWindowUiRegistry::ensureDialogCoordinator()
 
     MainWindowDepsFactory::DialogCoordinatorCallbacks callbacks;
     callbacks.getBoardFlipped = [this]() { return m_mw.m_shogiView ? m_mw.m_shogiView->getFlipMode() : false; };
-    callbacks.getConsiderationWiring = [this]() { m_registry.ensureConsiderationWiring(); return m_mw.m_considerationWiring; };
+    callbacks.getConsiderationWiring = [this]() { ensureConsiderationWiring(); return m_mw.m_considerationWiring; };
     callbacks.getUiStatePolicyManager = [this]() { ensureUiStatePolicyManager(); return m_mw.m_uiStatePolicy; };
-    m_registry.ensureKifuNavigationCoordinator();
+    ensureKifuNavigationCoordinator();
     callbacks.navigateKifuViewToRow = std::bind(&KifuNavigationCoordinator::navigateToRow, m_mw.m_kifuNavCoordinator.get(), std::placeholders::_1);
 
     m_mw.m_compositionRoot->ensureDialogCoordinator(refs, callbacks, &m_mw,
@@ -157,7 +148,7 @@ void MainWindowUiRegistry::ensureDialogCoordinator()
 // メニューウィンドウ配線
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureMenuWiring()
+void MainWindowServiceRegistry::ensureMenuWiring()
 {
     if (m_mw.m_menuWiring) return;
 
@@ -174,7 +165,7 @@ void MainWindowUiRegistry::ensureMenuWiring()
 // ドック配置管理
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureDockLayoutManager()
+void MainWindowServiceRegistry::ensureDockLayoutManager()
 {
     if (m_mw.m_dockLayoutManager) return;
 
@@ -199,7 +190,7 @@ void MainWindowUiRegistry::ensureDockLayoutManager()
 // ドック生成サービス
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureDockCreationService()
+void MainWindowServiceRegistry::ensureDockCreationService()
 {
     if (m_mw.m_dockCreationService) return;
 
@@ -211,7 +202,7 @@ void MainWindowUiRegistry::ensureDockCreationService()
 // UI状態ポリシー
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureUiStatePolicyManager()
+void MainWindowServiceRegistry::ensureUiStatePolicyManager()
 {
     m_mw.m_compositionRoot->ensureUiStatePolicyManager(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_uiStatePolicy);
 }
@@ -220,7 +211,7 @@ void MainWindowUiRegistry::ensureUiStatePolicyManager()
 // UI通知サービス
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureUiNotificationService()
+void MainWindowServiceRegistry::ensureUiNotificationService()
 {
     if (m_mw.m_notificationService) return;
 
@@ -237,11 +228,11 @@ void MainWindowUiRegistry::ensureUiNotificationService()
 // 棋譜ナビUI配線
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureRecordNavigationHandler()
+void MainWindowServiceRegistry::ensureRecordNavigationHandler()
 {
-    m_mw.ensureKifuNavigationCoordinator();
-    m_registry.ensureUiStatePolicyManager();
-    m_mw.ensureConsiderationPositionService();
+    ensureKifuNavigationCoordinator();
+    ensureUiStatePolicyManager();
+    ensureConsiderationPositionService();
 
     RecordNavigationWiring::WiringTargets targets;
     targets.kifuNav = m_mw.m_kifuNavCoordinator.get();
@@ -256,7 +247,7 @@ void MainWindowUiRegistry::ensureRecordNavigationHandler()
 // 言語コントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::ensureLanguageController()
+void MainWindowServiceRegistry::ensureLanguageController()
 {
     if (m_mw.m_languageController) return;
 
@@ -272,7 +263,7 @@ void MainWindowUiRegistry::ensureLanguageController()
 // 終局スタイル解除
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::unlockGameOverStyle()
+void MainWindowServiceRegistry::unlockGameOverStyle()
 {
     if (m_mw.m_shogiView) {
         m_mw.m_shogiView->setGameOverStyleLock(false);
@@ -280,20 +271,10 @@ void MainWindowUiRegistry::unlockGameOverStyle()
 }
 
 // ---------------------------------------------------------------------------
-// メニューウィンドウドック生成
-// ---------------------------------------------------------------------------
-
-void MainWindowUiRegistry::createMenuWindowDock()
-{
-    MainWindowDockBootstrapper dockBoot(m_mw);
-    dockBoot.createMenuWindowDock();
-}
-
-// ---------------------------------------------------------------------------
 // 評価値状態クリア
 // ---------------------------------------------------------------------------
 
-void MainWindowUiRegistry::clearEvalState()
+void MainWindowServiceRegistry::clearEvalState()
 {
     if (m_mw.m_evalChart) {
         m_mw.m_evalChart->clearAll();

@@ -110,6 +110,42 @@ add_shogi_test(tst_shogiboard
 )
 
 # ============================================================
+# Unit 2b: ShogiMove
+# ============================================================
+add_shogi_test(tst_shogimove
+    tst_shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/core/shogiboard.cpp
+)
+
+# ============================================================
+# Unit 2c: ShogiUtils
+# ============================================================
+add_shogi_test(tst_shogiutils
+    tst_shogiutils.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiboard.cpp
+)
+
+# ============================================================
+# Unit 2d: MoveValidator (comprehensive piece movement tests)
+# ============================================================
+add_shogi_test(tst_movevalidator
+    tst_movevalidator.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${EMV_SOURCES}
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+)
+
+# ============================================================
 # Unit 3: SfenPositionTracer
 # ============================================================
 add_shogi_test(tst_sfentracer
@@ -134,6 +170,7 @@ add_shogi_test(tst_kifconverter
     tst_kifconverter.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
@@ -149,7 +186,9 @@ add_shogi_test(tst_ki2converter
     tst_ki2converter.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/formats/ki2tosfenconverter.cpp
+    ${SRC}/kifu/formats/ki2lexer.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
@@ -164,6 +203,7 @@ add_shogi_test(tst_ki2converter
 add_shogi_test(tst_csaconverter
     tst_csaconverter.cpp
     ${TEST_STUBS}
+    ${SRC}/kifu/formats/csalexer.cpp
     ${SRC}/kifu/formats/csatosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/board/sfenpositiontracer.cpp
@@ -176,6 +216,7 @@ add_shogi_test(tst_csaconverter
 add_shogi_test(tst_jkfconverter
     tst_jkfconverter.cpp
     ${TEST_STUBS}
+    ${SRC}/kifu/formats/jkfmoveparser.cpp
     ${SRC}/kifu/formats/jkftosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/board/sfenpositiontracer.cpp
@@ -249,7 +290,12 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/kifu/gamerecordmodel.cpp
     ${SRC}/kifu/formats/csaexporter.cpp
     ${SRC}/kifu/formats/jkfexporter.cpp
+    ${SRC}/kifu/formats/kifexporter.cpp
+    ${SRC}/kifu/formats/ki2exporter.cpp
+    ${SRC}/kifu/formats/usenexporter.cpp
+    ${SRC}/kifu/formats/usiexporter.cpp
     ${SRC}/kifu/formats/ki2tosfenconverter.cpp
+    ${SRC}/kifu/formats/ki2lexer.cpp
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
@@ -258,6 +304,7 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/kifucontentbuilder.cpp
 )
@@ -271,7 +318,12 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/kifu/gamerecordmodel.cpp
     ${SRC}/kifu/formats/csaexporter.cpp
     ${SRC}/kifu/formats/jkfexporter.cpp
+    ${SRC}/kifu/formats/kifexporter.cpp
+    ${SRC}/kifu/formats/ki2exporter.cpp
+    ${SRC}/kifu/formats/usenexporter.cpp
+    ${SRC}/kifu/formats/usiexporter.cpp
     ${SRC}/kifu/formats/ki2tosfenconverter.cpp
+    ${SRC}/kifu/formats/ki2lexer.cpp
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
@@ -280,6 +332,7 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/kifucontentbuilder.cpp
 )
@@ -291,6 +344,9 @@ add_shogi_test(tst_josekiwindow
     tst_josekiwindow.cpp
     ${TEST_STUBS}
     ${SRC}/dialogs/josekiwindow.cpp
+    ${SRC}/dialogs/josekiwindowui.cpp
+    ${SRC}/dialogs/josekipresenter.cpp
+    ${SRC}/dialogs/josekirepository.cpp
     ${SRC}/dialogs/josekimovedialog.cpp
     ${SRC}/dialogs/josekimergedialog.cpp
     ${SETTINGS_SOURCES}
@@ -299,6 +355,7 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
@@ -354,6 +411,7 @@ add_shogi_test(tst_integration
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/navigation/kifunavigationcontroller.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/board/sfenpositiontracer.cpp
 )
@@ -506,6 +564,35 @@ add_shogi_test(tst_enginemovevalidator_crosscheck
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogimove.cpp
+)
+
+# ============================================================
+# Unit: ParseCommon (棋譜共通ユーティリティ)
+# ============================================================
+add_shogi_test(tst_parsecommon
+    tst_parsecommon.cpp
+    ${TEST_STUBS}
+    ${SRC}/core/shogimove.cpp
+)
+
+# ============================================================
+# Unit 16: Layer Dependency Verification (レイヤ間依存方向の検証)
+# ============================================================
+add_shogi_test(tst_layer_dependencies
+    tst_layer_dependencies.cpp
+)
+target_compile_definitions(tst_layer_dependencies PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 17: Structural KPI (コード品質指標の自動検証)
+# ============================================================
+add_shogi_test(tst_structural_kpi
+    tst_structural_kpi.cpp
+)
+target_compile_definitions(tst_structural_kpi PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)

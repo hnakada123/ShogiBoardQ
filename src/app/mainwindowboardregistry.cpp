@@ -1,9 +1,10 @@
 /// @file mainwindowboardregistry.cpp
-/// @brief 共通/Board系の ensure* 実装
+/// @brief 共通/Board系（盤面操作・リセット・横断的操作）の ensure* 実装
+///
+/// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
-#include "mainwindowboardregistry.h"
-#include "mainwindow.h"
 #include "mainwindowserviceregistry.h"
+#include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
 #include "mainwindowresetservice.h"
@@ -25,38 +26,29 @@
 #include "uistatepolicymanager.h"
 #include "logcategories.h"
 
-MainWindowBoardRegistry::MainWindowBoardRegistry(MainWindow& mw,
-                                                   MainWindowServiceRegistry& registry,
-                                                   QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_registry(registry)
-{
-}
-
 // ---------------------------------------------------------------------------
 // 盤面セットアップ
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::ensureBoardSetupController()
+void MainWindowServiceRegistry::ensureBoardSetupController()
 {
     if (m_mw.m_boardSetupController) return;
 
     MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
     cbs.ensurePositionEdit = [this]() { ensurePositionEditController(); };
-    cbs.ensureTimeController = [this]() { m_registry.ensureTimeController(); };
+    cbs.ensureTimeController = [this]() { ensureTimeController(); };
     cbs.updateGameRecord = [this](const QString& moveText, const QString& elapsed) {
-        m_registry.ensureGameRecordUpdateService();
+        ensureGameRecordUpdateService();
         if (m_mw.m_gameRecordUpdateService) {
             m_mw.m_gameRecordUpdateService->updateGameRecord(moveText, elapsed);
         }
     };
     cbs.redrawEngine1Graph = [this](int ply) {
-        m_registry.ensureEvaluationGraphController();
+        ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine1Graph(ply);
     };
     cbs.redrawEngine2Graph = [this](int ply) {
-        m_registry.ensureEvaluationGraphController();
+        ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine2Graph(ply);
     };
 
@@ -67,11 +59,11 @@ void MainWindowBoardRegistry::ensureBoardSetupController()
 // 局面編集コーディネーター
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::ensurePositionEditCoordinator()
+void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 {
     if (m_mw.m_posEditCoordinator) return;
 
-    m_registry.ensureUiStatePolicyManager();
+    ensureUiStatePolicyManager();
 
     MainWindowDepsFactory::PositionEditCoordinatorCallbacks cbs;
     cbs.applyEditMenuState = [this](bool editing) {
@@ -94,7 +86,7 @@ void MainWindowBoardRegistry::ensurePositionEditCoordinator()
 // 局面編集コントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::ensurePositionEditController()
+void MainWindowServiceRegistry::ensurePositionEditController()
 {
     if (m_mw.m_posEdit) return;
     m_mw.m_posEdit = new PositionEditController(&m_mw);
@@ -104,7 +96,7 @@ void MainWindowBoardRegistry::ensurePositionEditController()
 // 盤面同期プレゼンター
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::ensureBoardSyncPresenter()
+void MainWindowServiceRegistry::ensureBoardSyncPresenter()
 {
     if (m_mw.m_boardSync) {
         // sfenRecord ポインタが変わっている場合は更新する
@@ -133,7 +125,7 @@ void MainWindowBoardRegistry::ensureBoardSyncPresenter()
 // 盤面読込サービス
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::ensureBoardLoadService()
+void MainWindowServiceRegistry::ensureBoardLoadService()
 {
     if (!m_mw.m_boardLoadService) {
         m_mw.m_boardLoadService = new BoardLoadService(&m_mw);
@@ -147,9 +139,9 @@ void MainWindowBoardRegistry::ensureBoardLoadService()
     deps.boardSync = m_mw.m_boardSync;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
-    deps.ensureBoardSyncPresenter = std::bind(&MainWindowBoardRegistry::ensureBoardSyncPresenter, this);
+    deps.ensureBoardSyncPresenter = std::bind(&MainWindowServiceRegistry::ensureBoardSyncPresenter, this);
     deps.beginBranchNavGuard = [this]() {
-        m_registry.ensureKifuNavigationCoordinator();
+        ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->beginBranchNavGuard();
     };
     m_mw.m_boardLoadService->updateDeps(deps);
@@ -159,7 +151,7 @@ void MainWindowBoardRegistry::ensureBoardLoadService()
 // BoardInteractionController構築
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::setupBoardInteractionController()
+void MainWindowServiceRegistry::setupBoardInteractionController()
 {
     ensureBoardSetupController();
     if (m_mw.m_boardSetupController) {
@@ -178,7 +170,7 @@ void MainWindowBoardRegistry::setupBoardInteractionController()
 // 着手リクエスト処理
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::handleMoveRequested(const QPoint& from, const QPoint& to)
+void MainWindowServiceRegistry::handleMoveRequested(const QPoint& from, const QPoint& to)
 {
     qCDebug(lcApp).noquote() << "onMoveRequested_: from=" << from << " to=" << to
                        << " m_state.playMode=" << static_cast<int>(m_mw.m_state.playMode)
@@ -200,7 +192,7 @@ void MainWindowBoardRegistry::handleMoveRequested(const QPoint& from, const QPoi
 // 着手確定処理
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::handleMoveCommitted(int mover, int ply)
+void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
 {
     ensureBoardSetupController();
     if (m_mw.m_boardSetupController) {
@@ -209,17 +201,17 @@ void MainWindowBoardRegistry::handleMoveCommitted(int mover, int ply)
             static_cast<ShogiGameController::Player>(mover), ply);
     }
 
-    m_registry.ensureGameRecordUpdateService();
+    ensureGameRecordUpdateService();
     m_mw.m_gameRecordUpdateService->recordUsiMoveAndUpdateSfen();
 
-    m_registry.updateJosekiWindow();
+    updateJosekiWindow();
 }
 
 // ---------------------------------------------------------------------------
 // 局面編集開始
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::handleBeginPositionEditing()
+void MainWindowServiceRegistry::handleBeginPositionEditing()
 {
     ensurePositionEditCoordinator();
     if (m_mw.m_posEditCoordinator) {
@@ -234,7 +226,7 @@ void MainWindowBoardRegistry::handleBeginPositionEditing()
 // 局面編集終了
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::handleFinishPositionEditing()
+void MainWindowServiceRegistry::handleFinishPositionEditing()
 {
     ensurePositionEditCoordinator();
     if (m_mw.m_posEditCoordinator) {
@@ -248,7 +240,7 @@ void MainWindowBoardRegistry::handleFinishPositionEditing()
 // モデルリセット
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::resetModels(const QString& hirateStartSfen)
+void MainWindowServiceRegistry::resetModels(const QString& hirateStartSfen)
 {
     m_mw.m_kifu.moveRecords.clear();
 
@@ -274,14 +266,14 @@ void MainWindowBoardRegistry::resetModels(const QString& hirateStartSfen)
 // UI状態リセット
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::resetUiState(const QString& hirateStartSfen)
+void MainWindowServiceRegistry::resetUiState(const QString& hirateStartSfen)
 {
     MainWindowResetService::UiResetDeps deps;
     deps.gameController = m_mw.m_gameController;
     deps.shogiView = m_mw.m_shogiView;
     deps.uiStatePolicy = m_mw.m_uiStatePolicy;
     deps.updateJosekiWindow = [this]() {
-        m_registry.updateJosekiWindow();
+        updateJosekiWindow();
     };
 
     const MainWindowResetService resetService;
@@ -292,9 +284,9 @@ void MainWindowBoardRegistry::resetUiState(const QString& hirateStartSfen)
 // セッション依存UIクリア
 // ---------------------------------------------------------------------------
 
-void MainWindowBoardRegistry::clearSessionDependentUi()
+void MainWindowServiceRegistry::clearSessionDependentUi()
 {
-    m_registry.ensureCommentCoordinator();
+    ensureCommentCoordinator();
 
     MainWindowResetService::SessionUiDeps deps;
     deps.commLog1 = m_mw.m_models.commLog1;

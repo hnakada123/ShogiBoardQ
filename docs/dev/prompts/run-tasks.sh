@@ -14,7 +14,7 @@ PROJECT_ROOT="$(cd ../../.. && pwd)"
 if [ $# -gt 0 ]; then
     files=("$@")
 else
-    files=(task-*.md)
+    files=(task*.md)
 fi
 
 echo "=== Claude Code Batch Runner ==="

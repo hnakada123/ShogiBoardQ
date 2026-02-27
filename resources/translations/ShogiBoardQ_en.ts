@@ -90,44 +90,44 @@ Analyzed moves: %1</translation>
 <context>
     <name>AnalysisSessionHandler</name>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="257"/>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="307"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="314"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="364"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="257"/>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="272"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="314"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="329"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="272"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="329"/>
         <source>検討</source>
         <translation>Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="316"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="373"/>
         <source>詰みあり（手順 %1 手）</source>
         <translation>Mate found (%1 moves)</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="321"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="378"/>
         <source>詰みなし</source>
         <translation>No mate</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="326"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="383"/>
         <source>（エンジン側）未実装</source>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="331"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="388"/>
         <source>不明（解析不能）</source>
         <translation>Unknown (unable to analyze)</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="339"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="396"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -188,46 +188,46 @@ Analyzed moves: %1</translation>
         <translation type="unfinished">A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="188"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="331"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="388"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="186"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="329"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="386"/>
         <source>%1（既定値 %2）</source>
         <translation>%1 (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="231"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="229"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="236"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="234"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="261"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="259"/>
         <source>%1</source>
         <translation>%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="274"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="272"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation>Please enter a value of %1 or more. (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="277"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="275"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="480"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="478"/>
         <source>
 作者: %1</source>
         <translation>
 Author: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="549"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="547"/>
         <source>適用</source>
         <translation>Apply</translation>
     </message>
@@ -984,42 +984,42 @@ Discard changes and move?</translation>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="281"/>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="287"/>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="293"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="280"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="286"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="292"/>
         <source>入力エラー</source>
         <translation>Input Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="281"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="280"/>
         <source>接続先ホストを入力してください。</source>
         <translation>Please enter the host address.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="287"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="286"/>
         <source>IDを入力してください。</source>
         <translation>Please enter the ID.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="293"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="292"/>
         <source>パスワードを入力してください。</source>
         <translation>Please enter the password.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="300"/>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="368"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="299"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="367"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="300"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="299"/>
         <source>将棋エンジンが登録されていません。
 ツール→エンジン設定からエンジンを登録してください。</source>
         <translation>No shogi engine is registered.
 Please register an engine from Tools → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="368"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="367"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
@@ -1136,13 +1136,13 @@ Cause: %2</translation>
 <context>
     <name>CsaWaitingDialog</name>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="56"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="55"/>
         <source>通信対局（CSA）</source>
         <translation>Network Game (CSA)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="67"/>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="195"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="66"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="194"/>
         <source>対局相手を待機中...</source>
         <translation>Waiting for opponent...</translation>
     </message>
@@ -1151,92 +1151,92 @@ Cause: %2</translation>
         <translation type="vanished">Communication Log...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="108"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="107"/>
         <source>対局キャンセル</source>
         <translation>Cancel Game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="123"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="122"/>
         <source>文字サイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="129"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="128"/>
         <source>文字サイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="189"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="188"/>
         <source>待機中...</source>
         <translation>Waiting...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="190"/>
         <source>サーバーに接続中...</source>
         <translation>Connecting to server...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="193"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="192"/>
         <source>ログイン中...</source>
         <translation>Logging in...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="197"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="196"/>
         <source>対局条件を確認中...</source>
         <translation>Confirming game conditions...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="199"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="198"/>
         <source>対局開始！</source>
         <translation>Game started!</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="201"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="200"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="202"/>
         <source>エラーが発生しました</source>
         <translation>An error occurred</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="205"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="204"/>
         <source>不明な状態</source>
         <translation>Unknown state</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="217"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="216"/>
         <source>CSA通信ログ</source>
         <translation>CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="281"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="280"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="290"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="289"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="233"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="232"/>
         <source>CSAサーバーへ送信</source>
         <translation>Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="98"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="97"/>
         <source>通信ログ</source>
         <translation>Communication Log</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="242"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="241"/>
         <source>コマンドを入力してEnter</source>
         <translation>Enter command and press Enter</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="299"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="298"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
@@ -1799,7 +1799,7 @@ Discard changes and move?</translation>
         <translation type="vanished">An error occurred in EngineRegistrationDialog::onProcessError. An unknown error occurred.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="226"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="223"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
@@ -1828,78 +1828,78 @@ Discard changes and move?</translation>
         <translation type="vanished">An error occurred in EngineRegistrationDialog::startEngine. Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="129"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="126"/>
         <source>エンジンからエラー出力がありました: %1</source>
         <translation>Engine error output: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="137"/>
         <source>エンジンの起動に失敗しました。</source>
         <translation>Failed to start the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="140"/>
         <source>エンジンがクラッシュしました。</source>
         <translation>The engine crashed.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="146"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="143"/>
         <source>エンジンがタイムアウトしました。</source>
         <translation>The engine timed out.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="149"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="146"/>
         <source>エンジンへのデータ書き込み中にエラーが発生しました。</source>
         <translation>An error occurred while writing data to the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="152"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="149"/>
         <source>エンジンからのデータ読み込み中にエラーが発生しました。</source>
         <translation>An error occurred while reading data from the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="156"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="153"/>
         <source>不明なエラーが発生しました。</source>
         <translation>An unknown error occurred.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="171"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="168"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="260"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="257"/>
         <source>ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。</source>
         <translation>Could not change to directory %1. Failed to add the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="285"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="282"/>
         <source>エンジン %1 は既に追加されています。</source>
         <translation>Engine %1 is already added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="393"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="390"/>
         <source>指定されたエンジンファイルが存在しません: %1</source>
         <translation>The specified engine file does not exist: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="421"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="418"/>
         <source>エンジンの起動に失敗しました: %1</source>
         <translation>Failed to start the engine: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="465"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="462"/>
         <source>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</source>
         <translation>This shogi engine is already registered. Please delete the existing registration first.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="477"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="785"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="474"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="782"/>
         <source>将棋エンジンを1つ選択してください。</source>
         <translation>Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="599"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="596"/>
         <source>USI_Hash option added.</source>
         <translation>USI_Hash option added.</translation>
     </message>
@@ -1912,13 +1912,13 @@ Discard changes and move?</translation>
         <translation type="vanished">New option added:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="694"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="705"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="691"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="702"/>
         <source>オプション行の形式が無効です。</source>
         <translation>Invalid option line format.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="748"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="745"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>Duplicate engine option found.</translation>
     </message>
@@ -2576,145 +2576,145 @@ Positive values favor the side to move, negative values are unfavorable.</transl
 <context>
     <name>JosekiWindow</name>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="47"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1379"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="44"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="527"/>
         <source>定跡ウィンドウ</source>
         <translation>Opening Book Window</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="69"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="59"/>
         <source>ファイル</source>
         <translation>File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="74"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="64"/>
         <source>新規</source>
         <translation>New</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="75"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="65"/>
         <source>新しい空の定跡ファイルを作成</source>
         <translation>Create a new empty opening book file</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="80"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="70"/>
         <source>開く</source>
         <translation>Open</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="81"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="71"/>
         <source>定跡ファイル(.db)を開く</source>
         <translation>Open opening book file (.db)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="86"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1435"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="76"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="566"/>
         <source>保存</source>
         <translation>Save</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="87"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="77"/>
         <source>現在のファイルに上書き保存</source>
         <translation>Save to current file</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="93"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="83"/>
         <source>別名保存</source>
         <translation>Save As</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="94"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="84"/>
         <source>別の名前で保存</source>
         <translation>Save with a different name</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="99"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="89"/>
         <source>履歴</source>
         <translation>History</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="100"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="90"/>
         <source>最近使ったファイルを開く</source>
         <translation>Open recently used files</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="109"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="97"/>
         <source>表示</source>
         <translation>Display</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="120"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="108"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="121"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="109"/>
         <source>フォントサイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="114"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="102"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="115"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="103"/>
         <source>フォントサイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="126"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="114"/>
         <source>自動読込</source>
         <translation>Auto Load</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="127"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="115"/>
         <source>定跡ウィンドウ表示時に前回のファイルを自動で読み込む</source>
         <translation>Auto-load previous file when opening book window opens</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="134"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="120"/>
         <source>操作</source>
         <translation>Actions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="139"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="125"/>
         <source>＋追加</source>
         <translation>+ Add</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="140"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="126"/>
         <source>現在の局面に定跡手を追加</source>
         <translation>Add book move to current position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="146"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="131"/>
         <source>マージ ▼</source>
         <translation>Merge ▼</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="147"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="132"/>
         <source>棋譜から定跡をマージ</source>
         <translation>Merge game record to opening book</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="152"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="137"/>
         <source>現在の棋譜から</source>
         <translation>From current game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="153"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="138"/>
         <source>棋譜ファイルから</source>
         <translation>From game file</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="157"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1056"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="438"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="142"/>
         <source>■ 停止</source>
         <translation>■ Stop</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="158"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="143"/>
         <source>定跡表示を停止/再開</source>
         <translation>Stop/Resume opening book display</translation>
     </message>
@@ -2727,187 +2727,176 @@ Positive values favor the side to move, negative values are unfavorable.</transl
         <translation type="vanished">Close opening book window</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="172"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="151"/>
         <source>ファイル:</source>
         <translation>File:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="175"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1503"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="251"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="152"/>
         <source>未選択</source>
         <translation>Not selected</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="191"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="162"/>
         <source>局面:</source>
         <translation>Position:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="194"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="824"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2196"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="290"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="163"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="497"/>
         <source>(未設定)</source>
         <translation>(Not set)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="199"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="166"/>
         <source>詳細</source>
         <translation>Details</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="200"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="167"/>
         <source>SFENの詳細を表示/非表示</source>
         <translation>Show/Hide SFEN details</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="239"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="194"/>
         <source>No.</source>
         <translation>No.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="239"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="305"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="938"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="194"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="239"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="416"/>
         <source>着手</source>
         <translation>Play</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="239"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="194"/>
         <source>定跡手</source>
         <translation>Book Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="239"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="194"/>
         <source>予想応手</source>
         <translation>Response</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="239"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="963"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="194"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="433"/>
         <source>編集</source>
         <translation>Edit</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="240"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="308"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="971"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="195"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="242"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="435"/>
         <source>削除</source>
         <translation>Delete</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="240"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="195"/>
         <source>評価値</source>
         <translation>Score</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="240"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="195"/>
         <source>深さ</source>
         <translation>Depth</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="240"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="195"/>
         <source>出現頻度</source>
         <translation>Frequency</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="240"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="195"/>
         <source>コメント</source>
         <translation>Comment</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="272"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="217"/>
         <source>&lt;div style=&apos;text-align: center; color: #888;&apos;&gt;&lt;p style=&apos;font-size: 14pt; margin-bottom: 10px;&apos;&gt;定跡が登録されていません&lt;/p&gt;&lt;p&gt;「＋追加」ボタンで手動追加、または&lt;br&gt;「マージ」メニューから棋譜を取り込めます&lt;/p&gt;&lt;/div&gt;</source>
         <translation>&lt;div style=&apos;text-align: center; color: #888;&apos;&gt;&lt;p style=&apos;font-size: 14pt; margin-bottom: 10px;&apos;&gt;No opening book moves registered&lt;/p&gt;&lt;p&gt;Add manually with &quot;+ Add&quot; button, or&lt;br&gt;import from game with &quot;Merge&quot; menu&lt;/p&gt;&lt;/div&gt;</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="297"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="234"/>
         <source>※ 編集・削除後は「保存」ボタンで定跡ファイルに保存してください</source>
         <translation>* After editing/deleting, save to file using the &quot;Save&quot; button</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="307"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="241"/>
         <source>編集...</source>
         <translation>Edit...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="310"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="244"/>
         <source>指し手をコピー</source>
         <translation>Copy Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="400"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="345"/>
         <source> (未読込)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="590"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="163"/>
         <source>定跡ファイルを開く</source>
         <translation>Open Opening Book File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="592"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1281"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1811"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2016"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="130"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="164"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="198"/>
         <source>定跡ファイル (*.db);;すべてのファイル (*)</source>
         <translation>Opening Book Files (*.db);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="618"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1313"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1367"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1529"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1830"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2035"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2067"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="97"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="112"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="266"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="566"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="619"/>
         <source>ファイルを開けませんでした: %1</source>
-        <translation>Could not open file: %1</translation>
+        <translation type="vanished">Could not open file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="755"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="764"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="773"/>
         <source>フォーマットエラー</source>
-        <translation>Format Error</translation>
+        <translation type="vanished">Format Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="756"/>
         <source>このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。
 ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。
 
 ファイル: %1</source>
-        <translation>This file is not in YaneuraOu opening book format (YANEURAOU-DB2016).
+        <translation type="vanished">This file is not in YaneuraOu opening book format (YANEURAOU-DB2016).
 Header line (#YANEURAOU-DB2016 etc.) was not found.
 
 File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="765"/>
         <source>定跡ファイルにSFEN行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。
 
 ファイル: %1</source>
-        <translation>No SFEN line found in the opening book file.
+        <translation type="vanished">No SFEN line found in the opening book file.
 
 YaneuraOu opening book format requires position lines starting with &quot;sfen &quot;.
 
 File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="774"/>
         <source>定跡ファイルに有効な指し手行が見つかりませんでした。
 
 やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド
 （指し手 予想応手 評価値 深さ 出現頻度）が必要です。
 
 ファイル: %1</source>
-        <translation>No valid move lines found in the opening book file.
+        <translation type="vanished">No valid move lines found in the opening book file.
 
 YaneuraOu opening book format requires at least 5 fields per move line
 (move, expected response, evaluation, depth, frequency).
@@ -2915,70 +2904,65 @@ YaneuraOu opening book format requires at least 5 fields per move line
 File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="894"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="387"/>
         <source>定跡: (該当なし)</source>
         <translation>Book: (No match)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="906"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="908"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="397"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="398"/>
         <source>定跡SFEN: %1</source>
         <translation>Book SFEN: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="950"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="422"/>
         <source>ダブルクリックで着手</source>
         <translation>Double-click to play</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="383"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1061"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="442"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="335"/>
         <source>▶ 再開</source>
         <translation>▶ Resume</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1084"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1415"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="461"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="550"/>
         <source>✓読込済</source>
         <translation>✓Loaded</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1087"/>
-        <source></source>
-        <translation></translation>
-    </message>
-    <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1104"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="473"/>
         <source>ファイル: %1</source>
         <translation>File: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1106"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="475"/>
         <source>ファイル: 未選択</source>
         <translation>File: Not selected</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1110"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="476"/>
         <source>局面数: %1</source>
         <translation>Positions: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1114"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="478"/>
         <source>【停止中】</source>
         <translation>[Stopped]</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1116"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="480"/>
         <source>定跡: %1件</source>
         <translation>Book: %1 entries</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1138"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="459"/>
         <source>着手エラー</source>
         <translation>Move Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1139"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="460"/>
         <source>定跡手「%1」を指すことができませんでした。
 
 この定跡手は現在の局面では合法手ではない可能性があります。
@@ -2989,220 +2973,210 @@ This book move may not be legal in the current position.
 There may be an error in the opening book data.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1243"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1833"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2038"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="142"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="178"/>
         <source>新規ファイル（未保存）</source>
         <translation>New File (Unsaved)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1279"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="197"/>
         <source>定跡ファイルを保存</source>
         <translation>Save Opening Book</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1314"/>
         <source>ファイルを保存できませんでした: %1</source>
-        <translation>Could not save file: %1</translation>
+        <translation type="vanished">Could not save file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1368"/>
         <source>ファイル書き込み中にエラーが発生しました: %1</source>
-        <translation>Error occurred while writing file: %1</translation>
+        <translation type="vanished">Error occurred while writing file: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1402"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="541"/>
         <source>定跡</source>
         <translation type="unfinished">Joseki</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1412"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="547"/>
         <source>未保存</source>
         <translation>Unsaved</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1431"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1606"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="398"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="563"/>
         <source>確認</source>
         <translation>Confirm</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1432"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="564"/>
         <source>定跡データに未保存の変更があります。
 変更を破棄しますか？</source>
         <translation>There are unsaved changes in the opening book data.
 Discard changes?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1436"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="567"/>
         <source>破棄</source>
         <translation>Discard</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1437"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="568"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1474"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="230"/>
         <source>（履歴なし）</source>
         <translation>(No history)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1492"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="241"/>
         <source>履歴をクリア</source>
         <translation>Clear History</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1530"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="266"/>
         <source>ファイルが見つかりません: %1</source>
         <translation>File not found: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1559"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="378"/>
         <source>定跡手追加</source>
         <translation>Add Book Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1560"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="379"/>
         <source>局面が設定されていません。
 将棋盤で局面を表示してから定跡手を追加してください。</source>
         <translation>Position is not set.
 Please display a position on the board before adding a book move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1607"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="399"/>
         <source>指し手「%1」は既に登録されています。
 上書きしますか？</source>
         <translation>Move &quot;%1&quot; is already registered.
 Overwrite?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1750"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2362"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="345"/>
         <source>削除確認</source>
         <translation>Confirm Delete</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1751"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2363"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="346"/>
         <source>定跡手「%1」を削除しますか？</source>
         <translation>Delete book move &quot;%1&quot;?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1795"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2000"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="123"/>
         <source>保存先の指定</source>
         <translation>Specify Save Location</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1796"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2001"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="124"/>
         <source>定跡ファイルの保存先が設定されていません。
 OKを選択すると保存先が指定できます。</source>
         <translation>Opening book save location is not set.
 Select OK to specify the save location.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1809"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2014"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="129"/>
         <source>定跡ファイルの保存先を指定</source>
         <translation>Specify Opening Book Save Location</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1831"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2036"/>
         <source>ファイルの保存に失敗しました。</source>
-        <translation>Failed to save file.</translation>
+        <translation type="vanished">Failed to save file.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1858"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1902"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2097"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2161"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2242"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2283"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="474"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="497"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="533"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="538"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="564"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="570"/>
         <source>情報</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1859"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2098"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="533"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="564"/>
         <source>棋譜に指し手がありません。</source>
         <translation>No moves in the game record.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="1903"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2162"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="538"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="570"/>
         <source>登録可能な指し手がありません。</source>
         <translation>No registrable moves.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2050"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="556"/>
         <source>棋譜ファイルを選択</source>
         <translation>Select Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2052"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="557"/>
         <source>KIF形式 (*.kif *.kifu);;すべてのファイル (*)</source>
         <translation>KIF Files (*.kif *.kifu);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2068"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="566"/>
         <source>棋譜ファイルの読み込みに失敗しました。
 %1</source>
         <translation>Failed to load game record file.
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2178"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="578"/>
         <source>棋譜から定跡にマージ - %1</source>
         <translation>Merge Game Record to Book - %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2204"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2207"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="503"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="505"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2207"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="505"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2219"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="514"/>
         <source>初期配置</source>
         <translation>Initial Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2221"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="516"/>
         <source>駒落ち</source>
         <translation>Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2224"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="518"/>
         <source>%1手目</source>
         <translation>Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2227"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="520"/>
         <source>%1 (%2番)</source>
         <translation>%1 (No. %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2231"/>
+        <location filename="../../src/dialogs/josekiwindowui.cpp" line="522"/>
         <source>局面SFEN: %1</source>
         <translation>Position SFEN: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2243"/>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2284"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="474"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="497"/>
         <source>現在はエンジンの手番のため着手できません。</source>
         <translation>Cannot play move because it is the engine&apos;s turn.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindow.cpp" line="2397"/>
+        <location filename="../../src/dialogs/josekiwindow.cpp" line="512"/>
         <source>「%1」をコピーしました</source>
         <translation>Copied &quot;%1&quot;</translation>
     </message>
@@ -4792,7 +4766,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Search completed</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1052"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="615"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -4801,7 +4775,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1052"/>
+        <location filename="../../src/game/matchcoordinator.cpp" line="615"/>
         <source>対局中断</source>
         <translation>Game interrupted</translation>
     </message>
@@ -5395,10 +5369,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="751"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="755"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="771"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="775"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="393"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="397"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="413"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="417"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="204"/>
@@ -5408,10 +5382,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="752"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="760"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="768"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="776"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="394"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="402"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="410"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="418"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="185"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="193"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="201"/>
@@ -5420,10 +5394,10 @@ Are you sure you want to declare?</translation>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="756"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="759"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="767"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="772"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="398"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="401"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="409"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="414"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="189"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -5432,24 +5406,24 @@ Are you sure you want to declare?</translation>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="763"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="405"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
         <source>Engine1</source>
         <translation>Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="764"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="406"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="197"/>
         <source>Engine2</source>
         <translation>Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1298"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="223"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/game/matchcoordinator.cpp" line="1298"/>
+        <location filename="../../src/game/matchtimekeeper.cpp" line="223"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
@@ -5464,12 +5438,12 @@ Are you sure you want to declare?</translation>
         <translation>The file must be a value between 1 and 9. (got %1)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="590"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="588"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="592"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="590"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
@@ -6470,10 +6444,10 @@ Do you want to continue?</translation>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="197"/>
         <location filename="../../src/dialogs/startgamedialog.ui" line="365"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="195"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="215"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="255"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="269"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="194"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="214"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="254"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="268"/>
         <source>You</source>
         <translation>You</translation>
     </message>
@@ -6702,33 +6676,33 @@ Do you want to continue?</translation>
         <translation>Restore Defaults</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="352"/>
         <location filename="../../src/dialogs/startgamedialog.cpp" line="353"/>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="354"/>
         <source>人間</source>
         <translation>Human</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="482"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="481"/>
         <source>情報</source>
         <translation>Information</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="482"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="481"/>
         <source>人間が選択されています。</source>
         <translation>Human is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="491"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="490"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="491"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="490"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/startgamedialog.cpp" line="633"/>
+        <location filename="../../src/dialogs/startgamedialog.cpp" line="632"/>
         <source>棋譜保存先を選択</source>
         <translation>Select Game Record Save Location</translation>
     </message>
@@ -6963,12 +6937,12 @@ Do you want to continue?</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="456"/>
+        <location filename="../../src/engine/usi.cpp" line="455"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="473"/>
+        <location filename="../../src/engine/usi.cpp" line="472"/>
         <source>Failed to change directory to %1</source>
         <translation>Failed to change directory to %1</translation>
     </message>
@@ -6977,7 +6951,7 @@ Do you want to continue?</translation>
         <translation type="vanished">USI engine is not running.</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="959"/>
+        <location filename="../../src/engine/usi.cpp" line="958"/>
         <source>Timeout waiting for bestmove.</source>
         <translation>Timeout waiting for bestmove.</translation>
     </message>

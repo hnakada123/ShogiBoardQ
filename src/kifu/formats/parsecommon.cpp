@@ -301,4 +301,89 @@ bool isKifSkippableHeaderLine(const QString& line)
     return false;
 }
 
+bool isKifCommentLine(const QString& s)
+{
+    if (s.isEmpty()) return false;
+    const QChar ch = s.front();
+    return (ch == QChar(u'*') || ch == QChar(u'＊'));
+}
+
+bool isBookmarkLine(const QString& s)
+{
+    return s.startsWith(QLatin1Char('&'));
+}
+
+QString csaSpecialToJapanese(const QString& code)
+{
+    // %プレフィックスを除去して統一キーで検索
+    QString key = code;
+    if (key.startsWith(QLatin1Char('%'))) key = key.mid(1);
+    // +/-プレフィックスの ILLEGAL_ACTION にも対応
+    if (key.startsWith(QLatin1Char('+')) || key.startsWith(QLatin1Char('-'))) {
+        if (key.mid(1).startsWith(QLatin1String("ILLEGAL_ACTION")))
+            key = key.mid(1);
+    }
+
+    struct Entry { const char* key; const char* label; };
+    static const Entry table[] = {
+        {"TORYO",            "投了"},
+        {"CHUDAN",           "中断"},
+        {"SENNICHITE",       "千日手"},
+        {"OUTE_SENNICHITE",  "王手千日手"},
+        {"JISHOGI",          "持将棋"},
+        {"TIME_UP",          "切れ負け"},
+        {"ILLEGAL_MOVE",     "反則負け"},
+        {"ILLEGAL_ACTION",   "反則負け"},
+        {"KACHI",            "入玉勝ち"},
+        {"HIKIWAKE",         "引き分け"},
+        {"MAX_MOVES",        "最大手数到達"},
+        {"TSUMI",            "詰み"},
+        {"FUZUMI",           "不詰"},
+        {"ERROR",            "エラー"},
+    };
+    for (const auto& e : table) {
+        if (key.startsWith(QLatin1String(e.key)))
+            return QString::fromUtf8(e.label);
+    }
+    return code;
+}
+
+QString formatTimeMS(qint64 ms)
+{
+    if (ms < 0) ms = 0;
+    const qint64 tot = ms / 1000;
+    const qint64 mm = tot / 60;
+    const qint64 ss = tot % 60;
+    return QStringLiteral("%1:%2")
+        .arg(mm, 2, 10, QLatin1Char('0'))
+        .arg(ss, 2, 10, QLatin1Char('0'));
+}
+
+QString formatTimeHMS(qint64 ms)
+{
+    if (ms < 0) ms = 0;
+    const qint64 tot = ms / 1000;
+    const qint64 hh = tot / 3600;
+    const qint64 mm = (tot % 3600) / 60;
+    const qint64 ss = tot % 60;
+    return QStringLiteral("%1:%2:%3")
+        .arg(hh, 2, 10, QLatin1Char('0'))
+        .arg(mm, 2, 10, QLatin1Char('0'))
+        .arg(ss, 2, 10, QLatin1Char('0'));
+}
+
+QString formatTimeText(qint64 moveMs, qint64 cumMs)
+{
+    return formatTimeMS(moveMs) + QStringLiteral("/") + formatTimeHMS(cumMs);
+}
+
+QMap<QString, QString> toGameInfoMap(const QList<KifGameInfoItem>& items)
+{
+    QMap<QString, QString> m;
+    for (const auto& it : items) {
+        m.insert(it.key, it.value);
+    }
+    return m;
+}
+
 } // namespace KifuParseCommon

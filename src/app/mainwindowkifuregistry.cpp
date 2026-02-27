@@ -1,9 +1,10 @@
 /// @file mainwindowkifuregistry.cpp
-/// @brief Kifu系の ensure* 実装
+/// @brief Kifu系（棋譜・ナビゲーション・ファイルI/O・コメント・定跡）の ensure* 実装
+///
+/// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
-#include "mainwindowkifuregistry.h"
-#include "mainwindow.h"
 #include "mainwindowserviceregistry.h"
+#include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
 #include "mainwindowresetservice.h"
@@ -32,20 +33,11 @@
 
 #include <functional>
 
-MainWindowKifuRegistry::MainWindowKifuRegistry(MainWindow& mw,
-                                                 MainWindowServiceRegistry& registry,
-                                                 QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_registry(registry)
-{
-}
-
 // ---------------------------------------------------------------------------
 // 分岐ナビゲーション
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureBranchNavigationWiring()
+void MainWindowServiceRegistry::ensureBranchNavigationWiring()
 {
     if (!m_mw.m_branchNavWiring) {
         m_mw.m_branchNavWiring = std::make_unique<BranchNavigationWiring>();
@@ -83,25 +75,25 @@ void MainWindowKifuRegistry::ensureBranchNavigationWiring()
 // 棋譜ファイルコントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureKifuFileController()
+void MainWindowServiceRegistry::ensureKifuFileController()
 {
     auto refs = m_mw.buildRuntimeRefs();
 
     MainWindowDepsFactory::KifuFileCallbacks callbacks;
-    callbacks.clearUiBeforeKifuLoad = std::bind(&MainWindowKifuRegistry::clearUiBeforeKifuLoad, this);
+    callbacks.clearUiBeforeKifuLoad = std::bind(&MainWindowServiceRegistry::clearUiBeforeKifuLoad, this);
     callbacks.setReplayMode = std::bind(&MainWindow::setReplayMode, &m_mw, std::placeholders::_1);
     callbacks.ensurePlayerInfoAndGameInfo = [this]() {
-        m_registry.ensurePlayerInfoWiring();
+        ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->ensureGameInfoController();
             m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
         }
     };
-    callbacks.ensureGameRecordModel = std::bind(&MainWindowKifuRegistry::ensureGameRecordModel, this);
-    callbacks.ensureKifuExportController = std::bind(&MainWindowKifuRegistry::ensureKifuExportController, this);
+    callbacks.ensureGameRecordModel = std::bind(&MainWindowServiceRegistry::ensureGameRecordModel, this);
+    callbacks.ensureKifuExportController = std::bind(&MainWindowServiceRegistry::ensureKifuExportController, this);
     callbacks.updateKifuExportDependencies = std::bind(&MainWindow::updateKifuExportDependencies, &m_mw);
     callbacks.createAndWireKifuLoadCoordinator = [this]() { createAndWireKifuLoadCoordinator(); };
-    callbacks.ensureKifuLoadCoordinatorForLive = std::bind(&MainWindowKifuRegistry::ensureKifuLoadCoordinatorForLive, this);
+    callbacks.ensureKifuLoadCoordinatorForLive = std::bind(&MainWindowServiceRegistry::ensureKifuLoadCoordinatorForLive, this);
     callbacks.getKifuExportController = [this]() { return m_mw.m_kifuExportController.get(); };
     callbacks.getKifuLoadCoordinator = [this]() { return m_mw.m_kifuLoadCoordinator; };
 
@@ -113,7 +105,7 @@ void MainWindowKifuRegistry::ensureKifuFileController()
 // 棋譜エクスポートコントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureKifuExportController()
+void MainWindowServiceRegistry::ensureKifuExportController()
 {
     if (m_mw.m_kifuExportController) return;
 
@@ -138,7 +130,7 @@ void MainWindowKifuRegistry::ensureKifuExportController()
 // 棋譜追記サービス
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureGameRecordUpdateService()
+void MainWindowServiceRegistry::ensureGameRecordUpdateService()
 {
     if (!m_mw.m_gameRecordUpdateService) {
         m_mw.m_gameRecordUpdateService = std::make_unique<GameRecordUpdateService>();
@@ -146,11 +138,11 @@ void MainWindowKifuRegistry::ensureGameRecordUpdateService()
 
     GameRecordUpdateService::Deps deps;
     deps.ensureRecordPresenter = [this]() -> GameRecordPresenter* {
-        m_registry.ensureRecordPresenter();
+        ensureRecordPresenter();
         return m_mw.m_recordPresenter;
     };
     deps.ensureLiveGameSessionUpdater = [this]() -> LiveGameSessionUpdater* {
-        m_registry.ensureLiveGameSessionUpdater();
+        ensureLiveGameSessionUpdater();
         return m_mw.m_liveGameSessionUpdater.get();
     };
     deps.match = m_mw.m_match;
@@ -166,7 +158,7 @@ void MainWindowKifuRegistry::ensureGameRecordUpdateService()
 // 棋譜データ読み込みサービス
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureGameRecordLoadService()
+void MainWindowServiceRegistry::ensureGameRecordLoadService()
 {
     if (!m_mw.m_gameRecordLoadService) {
         m_mw.m_gameRecordLoadService = std::make_unique<GameRecordLoadService>();
@@ -178,7 +170,7 @@ void MainWindowKifuRegistry::ensureGameRecordLoadService()
     deps.commentsByRow = &m_mw.m_kifu.commentsByRow;
     deps.recordPane = m_mw.m_recordPane;
     deps.ensureRecordPresenter = [this]() -> GameRecordPresenter* {
-        m_registry.ensureRecordPresenter();
+        ensureRecordPresenter();
         return m_mw.m_recordPresenter;
     };
     deps.ensureGameRecordModel = [this]() -> GameRecordModel* {
@@ -195,7 +187,7 @@ void MainWindowKifuRegistry::ensureGameRecordLoadService()
 // ライブ棋譜ロード
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureKifuLoadCoordinatorForLive()
+void MainWindowServiceRegistry::ensureKifuLoadCoordinatorForLive()
 {
     if (m_mw.m_kifuLoadCoordinator) {
         return;
@@ -208,7 +200,7 @@ void MainWindowKifuRegistry::ensureKifuLoadCoordinatorForLive()
 // 棋譜モデル構築
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureGameRecordModel()
+void MainWindowServiceRegistry::ensureGameRecordModel()
 {
     if (m_mw.m_models.gameRecord) return;
 
@@ -229,19 +221,19 @@ void MainWindowKifuRegistry::ensureGameRecordModel()
 // コメントコーディネーター
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureCommentCoordinator()
+void MainWindowServiceRegistry::ensureCommentCoordinator()
 {
     if (m_mw.m_commentCoordinator) return;
     m_mw.m_compositionRoot->ensureCommentCoordinator(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_commentCoordinator);
     connect(m_mw.m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
-            &m_mw, &MainWindow::ensureGameRecordModel);
+            this, &MainWindowServiceRegistry::ensureGameRecordModel);
 }
 
 // ---------------------------------------------------------------------------
 // 棋譜ナビゲーションコーディネーター
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureKifuNavigationCoordinator()
+void MainWindowServiceRegistry::ensureKifuNavigationCoordinator()
 {
     if (!m_mw.m_kifuNavCoordinator) {
         m_mw.m_kifuNavCoordinator = std::make_unique<KifuNavigationCoordinator>();
@@ -249,8 +241,8 @@ void MainWindowKifuRegistry::ensureKifuNavigationCoordinator()
 
     KifuNavigationDepsFactory::Callbacks callbacks;
     callbacks.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
-    callbacks.updateJosekiWindow = std::bind(&MainWindowKifuRegistry::updateJosekiWindow, this);
-    callbacks.ensureBoardSyncPresenter = [this]() { m_registry.ensureBoardSyncPresenter(); };
+    callbacks.updateJosekiWindow = std::bind(&MainWindowServiceRegistry::updateJosekiWindow, this);
+    callbacks.ensureBoardSyncPresenter = [this]() { ensureBoardSyncPresenter(); };
     callbacks.isGameActivelyInProgress = std::bind(&MatchRuntimeQueryService::isGameActivelyInProgress, m_mw.m_queryService.get());
     callbacks.getSfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
 
@@ -262,7 +254,7 @@ void MainWindowKifuRegistry::ensureKifuNavigationCoordinator()
 // 定跡ウィンドウ配線
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::ensureJosekiWiring()
+void MainWindowServiceRegistry::ensureJosekiWiring()
 {
     if (m_mw.m_josekiWiring) return;
 
@@ -294,7 +286,7 @@ void MainWindowKifuRegistry::ensureJosekiWiring()
 // 棋譜読込前UIクリア
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::clearUiBeforeKifuLoad()
+void MainWindowServiceRegistry::clearUiBeforeKifuLoad()
 {
     ensureCommentCoordinator();
 
@@ -320,7 +312,7 @@ void MainWindowKifuRegistry::clearUiBeforeKifuLoad()
 // 定跡ウィンドウ更新
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::updateJosekiWindow()
+void MainWindowServiceRegistry::updateJosekiWindow()
 {
     if (m_mw.m_docks.josekiWindow && !m_mw.m_docks.josekiWindow->isVisible()) {
         return;
@@ -334,7 +326,7 @@ void MainWindowKifuRegistry::updateJosekiWindow()
 // KifuLoadCoordinator 生成ヘルパー
 // ---------------------------------------------------------------------------
 
-void MainWindowKifuRegistry::createAndWireKifuLoadCoordinator()
+void MainWindowServiceRegistry::createAndWireKifuLoadCoordinator()
 {
     // 既存があれば遅延破棄
     if (m_mw.m_kifuLoadCoordinator) {
@@ -345,9 +337,9 @@ void MainWindowKifuRegistry::createAndWireKifuLoadCoordinator()
     // 配線先の遅延初期化
     ensureBranchNavigationWiring();
     ensureKifuNavigationCoordinator();
-    m_registry.ensureUiStatePolicyManager();
-    m_registry.ensurePlayerInfoWiring();
-    m_registry.ensureUiNotificationService();
+    ensureUiStatePolicyManager();
+    ensurePlayerInfoWiring();
+    ensureUiNotificationService();
 
     KifuLoadCoordinatorFactory::Params p;
     p.gameMoves = &m_mw.m_kifu.gameMoves;

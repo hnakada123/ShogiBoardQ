@@ -26,18 +26,68 @@ class AnalysisSessionHandler : public QObject
     Q_OBJECT
 
 public:
-    /// エンジン操作用のコールバック群
+    /**
+     * @brief エンジン操作用のコールバック群
+     *
+     * 検討/詰将棋探索のライフサイクル（開始・停止）で MC のエンジン管理と
+     * UI 操作を行うために使用する。
+     *
+     * @note MC::ensureAnalysisSession() で lambda 経由で設定される。
+     *       showGameOverDialog は MC::Hooks からのパススルー。
+     * @see MatchCoordinator::ensureAnalysisSession
+     */
     struct Hooks {
-        /// 終局/結果ダイアログ表示
+        /// @brief 終局/結果ダイアログを表示する
+        /// @note 配線元: MC→m_hooks.showGameOverDialog (パススルー)
         std::function<void(const QString& title, const QString& message)> showGameOverDialog;
-        /// エンジン破棄（思考内容保持）
+
+        /// @brief エンジンを破棄する（思考モデルは保持）
+        /// @note 配線元: MC lambda → ELM::destroyEnginesKeepModels
         std::function<void()> destroyEnginesKeepModels;
+
+        // --- startFullAnalysis / stopFullAnalysis 用 ---
+
+        /// @brief アプリケーションがシャットダウン中かどうかを返す
+        /// @note 配線元: MC lambda → m_isShutdownInProgress
+        std::function<bool()> isShutdownInProgress;
+
+        /// @brief プレイモードを設定する
+        /// @note 配線元: MC lambda → m_playMode 書き換え
+        std::function<void(PlayMode)> setPlayMode;
+
+        /// @brief 全エンジンを破棄する（モデル含む）
+        /// @note 配線元: MC lambda → ELM::destroyEnginesAll
+        std::function<void()> destroyEnginesAll;
+
+        /// @brief 解析用エンジンを生成する（Usi オブジェクトの作成・モデル設定・シグナル配線を含む）
+        /// @note 配線元: MC lambda (複合ロジック: Usi 生成 → comm/think モデル設定 → エラー/投了/勝ち配線)
+        std::function<Usi*(const MatchCoordinator::AnalysisOptions&)> createAnalysisEngine;
+
+        /// @brief エンジンを初期化して通信を開始する
+        /// @note 配線元: MC lambda → ELM::initializeAndStartEngineFor
+        std::function<void(int, const QString&, const QString&)> initAndStartEngine;
+
+        /// @brief エンジン名をUIに設定する
+        /// @note 配線元: MC lambda → MC::Hooks::setEngineNames 呼び出し
+        std::function<void(const QString&, const QString&)> setEngineNames;
+
+        /// @brief シャットダウン中フラグを設定する
+        /// @note 配線元: MC lambda → m_isShutdownInProgress 書き換え
+        std::function<void(bool)> setShutdownInProgress;
     };
 
     explicit AnalysisSessionHandler(QObject* parent = nullptr);
 
     /// コールバック群を設定する
     void setHooks(const Hooks& hooks);
+
+    // --- 検討フルライフサイクル ---
+
+    /// 検討を開始する（エンジン生成からASH配線まで一括）
+    bool startFullAnalysis(const MatchCoordinator::AnalysisOptions& opt);
+
+    /// 検討エンジンを停止する（フラグ管理含む）
+    void stopFullAnalysis();
 
     // --- モード状態クエリ ---
 

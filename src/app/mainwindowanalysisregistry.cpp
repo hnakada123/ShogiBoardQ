@@ -1,9 +1,10 @@
 /// @file mainwindowanalysisregistry.cpp
-/// @brief Analysis系の ensure* 実装
+/// @brief Analysis系（解析・検討モード・エンジン連携）の ensure* 実装
+///
+/// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
-#include "mainwindowanalysisregistry.h"
-#include "mainwindow.h"
 #include "mainwindowserviceregistry.h"
+#include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
 
@@ -14,20 +15,11 @@
 #include "usicommandcontroller.h"
 #include "engineanalysistab.h"
 
-MainWindowAnalysisRegistry::MainWindowAnalysisRegistry(MainWindow& mw,
-                                                       MainWindowServiceRegistry& registry,
-                                                       QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_registry(registry)
-{
-}
-
 // ---------------------------------------------------------------------------
 // 読み筋クリック
 // ---------------------------------------------------------------------------
 
-void MainWindowAnalysisRegistry::ensurePvClickController()
+void MainWindowServiceRegistry::ensurePvClickController()
 {
     if (m_mw.m_pvClickController) return;
     m_mw.m_compositionRoot->ensurePvClickController(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_pvClickController);
@@ -56,7 +48,7 @@ void MainWindowAnalysisRegistry::ensurePvClickController()
 // 検討局面サービス
 // ---------------------------------------------------------------------------
 
-void MainWindowAnalysisRegistry::ensureConsiderationPositionService()
+void MainWindowServiceRegistry::ensureConsiderationPositionService()
 {
     if (!m_mw.m_considerationPositionService) {
         m_mw.m_considerationPositionService = new ConsiderationPositionService(&m_mw);
@@ -81,7 +73,7 @@ void MainWindowAnalysisRegistry::ensureConsiderationPositionService()
 // 解析結果プレゼンター
 // ---------------------------------------------------------------------------
 
-void MainWindowAnalysisRegistry::ensureAnalysisPresenter()
+void MainWindowServiceRegistry::ensureAnalysisPresenter()
 {
     if (!m_mw.m_analysisPresenter)
         m_mw.m_analysisPresenter = std::make_unique<AnalysisResultsPresenter>();
@@ -91,13 +83,13 @@ void MainWindowAnalysisRegistry::ensureAnalysisPresenter()
 // 検討モード配線
 // ---------------------------------------------------------------------------
 
-void MainWindowAnalysisRegistry::ensureConsiderationWiring()
+void MainWindowServiceRegistry::ensureConsiderationWiring()
 {
     if (m_mw.m_considerationWiring) return;
 
     MainWindowDepsFactory::ConsiderationWiringCallbacks cbs;
     cbs.ensureDialogCoordinator = [this]() {
-        m_registry.ensureDialogCoordinator();
+        ensureDialogCoordinator();
         if (m_mw.m_considerationWiring)
             m_mw.m_considerationWiring->setDialogCoordinator(m_mw.m_dialogCoordinator);
     };
@@ -109,7 +101,7 @@ void MainWindowAnalysisRegistry::ensureConsiderationWiring()
 // USIコマンドコントローラ
 // ---------------------------------------------------------------------------
 
-void MainWindowAnalysisRegistry::ensureUsiCommandController()
+void MainWindowServiceRegistry::ensureUsiCommandController()
 {
     if (!m_mw.m_usiCommandController) {
         m_mw.m_usiCommandController = std::make_unique<UsiCommandController>();

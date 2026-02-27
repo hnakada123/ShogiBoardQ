@@ -24,11 +24,7 @@
 #include "timecontrolcontroller.h"
 #include "shogiclock.h"
 
-// UI boot
-#include "mainwindowuibootstrapper.h"
-
 // Signal wiring
-#include "mainwindowwiringassembler.h"
 #include "kifuexportcontroller.h"
 
 // Finalization
@@ -87,7 +83,7 @@ void MainWindowLifecyclePipeline::runShutdown()
 
     // 設定保存
     AppSettings::saveWindowAndBoard(&m_mw, m_mw.m_shogiView);
-    m_mw.ensureDockLayoutManager();
+    m_mw.m_registry->ensureDockLayoutManager();
     if (m_mw.m_dockLayoutManager) {
         m_mw.m_dockLayoutManager->saveDockStates();
     }
@@ -171,7 +167,7 @@ void MainWindowLifecyclePipeline::initializeEarlyServices()
     }
 
     // TimeControlController を初期化して TimeDisplayPresenter に設定
-    m_mw.ensureTimeController();
+    m_mw.m_registry->ensureTimeController();
 
     // 対局実行時クエリサービスの依存を設定（生成は createFoundationObjects で実施済み）
     {
@@ -189,14 +185,12 @@ void MainWindowLifecyclePipeline::initializeEarlyServices()
 
 void MainWindowLifecyclePipeline::buildGamePanels()
 {
-    MainWindowUiBootstrapper bootstrapper(m_mw);
-    bootstrapper.buildGamePanels();
+    m_mw.m_registry->buildGamePanels();
 }
 
 void MainWindowLifecyclePipeline::restoreWindowAndSync()
 {
-    MainWindowUiBootstrapper bootstrapper(m_mw);
-    bootstrapper.restoreWindowAndSync();
+    m_mw.m_registry->restoreWindowAndSync();
 }
 
 void MainWindowLifecyclePipeline::connectSignals()
@@ -220,16 +214,16 @@ void MainWindowLifecyclePipeline::connectSignals()
         d.boardSetupControllerPtr = &m_mw.m_boardSetupController;
         d.actionsWiringPtr = &m_mw.m_actionsWiring;
         d.initializeDialogLaunchWiring = [this]() {
-            MainWindowWiringAssembler::initializeDialogLaunchWiring(m_mw);
+            m_mw.m_registry->initializeDialogLaunchWiring();
         };
-        d.ensureKifuFileController = std::bind(&MainWindow::ensureKifuFileController, &m_mw);
+        d.ensureKifuFileController = std::bind(&MainWindowServiceRegistry::ensureKifuFileController, m_mw.m_registry.get());
         d.ensureGameSessionOrchestrator = [this]() {
             m_mw.m_registry->ensureGameSessionOrchestrator();
         };
         d.ensureUiNotificationService = [this]() {
             m_mw.m_registry->ensureUiNotificationService();
         };
-        d.ensureBoardSetupController = std::bind(&MainWindow::ensureBoardSetupController, &m_mw);
+        d.ensureBoardSetupController = std::bind(&MainWindowServiceRegistry::ensureBoardSetupController, m_mw.m_registry.get());
         d.getKifuExportController = [this]() -> KifuExportController* {
             m_mw.m_registry->ensureKifuExportController();
             return m_mw.m_kifuExportController.get();
@@ -247,20 +241,17 @@ void MainWindowLifecyclePipeline::connectSignals()
 void MainWindowLifecyclePipeline::finalizeAndConfigureUi()
 {
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
-    {
-        MainWindowUiBootstrapper bootstrapper(m_mw);
-        bootstrapper.finalizeCoordinators();
-    }
+    m_mw.m_registry->finalizeCoordinators();
 
     // UI状態ポリシーマネージャを初期化し、アイドル状態を適用
-    m_mw.ensureUiStatePolicyManager();
+    m_mw.m_registry->ensureUiStatePolicyManager();
     m_mw.m_uiStatePolicy->applyState(UiStatePolicyManager::AppState::Idle);
 
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
-    m_mw.ensureLanguageController();
+    m_mw.m_registry->ensureLanguageController();
 
     // ドックレイアウト関連のメニュー配線を DockLayoutManager へ移譲
-    m_mw.ensureDockLayoutManager();
+    m_mw.m_registry->ensureDockLayoutManager();
 
 #ifdef QT_DEBUG
     // デバッグ用スクリーンショット機能（F12キーで /tmp/shogiboardq-debug/ にPNG保存）

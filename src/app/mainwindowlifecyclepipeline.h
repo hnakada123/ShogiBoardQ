@@ -46,10 +46,10 @@ private:
     /// 早期サービス（PolicyService/TimePresenter/QueryService）を初期化する
     void initializeEarlyServices();
 
-    /// ゲームパネル群を構築する（MainWindowUiBootstrapper に委譲）
+    /// ゲームパネル群を構築する（ServiceRegistry に委譲）
     void buildGamePanels();
 
-    /// ウィンドウ設定を復元しレイアウトを同期する（MainWindowUiBootstrapper に委譲）
+    /// ウィンドウ設定を復元しレイアウトを同期する（ServiceRegistry に委譲）
     void restoreWindowAndSync();
 
     /// シグナル配線とツールチップを設定する

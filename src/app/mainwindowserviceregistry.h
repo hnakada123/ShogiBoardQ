@@ -2,26 +2,34 @@
 #define MAINWINDOWSERVICEREGISTRY_H
 
 /// @file mainwindowserviceregistry.h
-/// @brief 全サブレジストリを束ねるファサード
+/// @brief ensure*/操作メソッドを一括管理するレジストリ
+///
+/// 旧5サブレジストリ（Analysis/Board/Game/Kifu/Ui）を統合し、
+/// MainWindow の friend class を ServiceRegistry 1 つに集約する。
 
 #include <QObject>
 #include <QPoint>
 
+#include "matchcoordinatorwiring.h"
+
 class MainWindow;
-class MainWindowAnalysisRegistry;
-class MainWindowBoardRegistry;
-class MainWindowGameRegistry;
-class MainWindowKifuRegistry;
-class MainWindowUiRegistry;
 class QString;
 
 /**
- * @brief 全サブレジストリを束ねるファサード
+ * @brief ensure* メソッドと主要操作を一括管理するサービスレジストリ
  *
  * 責務:
- * - 5 つのサブレジストリ（UI / Game / Kifu / Analysis / Board）を所有する
- * - 各 ensure* 呼び出しを対応するサブレジストリへ 1 行で転送する
- * - MainWindow 側の呼び出しコードは `m_serviceRegistry->ensureXxx()` のまま変更不要
+ * - UI / Game / Kifu / Analysis / Board の各カテゴリに属する
+ *   遅延初期化メソッドと操作メソッドの実装を集約する
+ * - MainWindow 側の呼び出しコードは `m_registry->ensureXxx()` のまま変更不要
+ *
+ * 実装は複数 .cpp ファイルに分割されている:
+ * - mainwindowserviceregistry.cpp       (コンストラクタ)
+ * - mainwindowanalysisregistry.cpp      (Analysis 系)
+ * - mainwindowboardregistry.cpp         (Board/共通 系)
+ * - mainwindowgameregistry.cpp          (Game 系)
+ * - mainwindowkifuregistry.cpp          (Kifu 系)
+ * - mainwindowuiregistry.cpp            (UI 系)
  */
 class MainWindowServiceRegistry : public QObject
 {
@@ -30,7 +38,7 @@ class MainWindowServiceRegistry : public QObject
 public:
     explicit MainWindowServiceRegistry(MainWindow& mw, QObject* parent = nullptr);
 
-    // ===== UI系（MainWindowUiRegistry へ委譲） =====
+    // ===== UI系 =====
     void ensureEvaluationGraphController();
     void ensureRecordPresenter();
     void ensurePlayerInfoController();
@@ -47,7 +55,7 @@ public:
     void createMenuWindowDock();
     void clearEvalState();
 
-    // ===== Game系（MainWindowGameRegistry へ委譲） =====
+    // ===== Game系 =====
     void ensureTimeController();
     void ensureReplayController();
     void ensureMatchCoordinatorWiring();
@@ -71,7 +79,7 @@ public:
     void updateTurnStatus(int currentPlayer);
     void initMatchCoordinator();
 
-    // ===== Kifu系（MainWindowKifuRegistry へ委譲） =====
+    // ===== Kifu系 =====
     void ensureBranchNavigationWiring();
     void ensureKifuFileController();
     void ensureKifuExportController();
@@ -85,14 +93,14 @@ public:
     void clearUiBeforeKifuLoad();
     void updateJosekiWindow();
 
-    // ===== Analysis系（MainWindowAnalysisRegistry へ委譲） =====
+    // ===== Analysis系 =====
     void ensurePvClickController();
     void ensureConsiderationPositionService();
     void ensureAnalysisPresenter();
     void ensureConsiderationWiring();
     void ensureUsiCommandController();
 
-    // ===== Board/共通系（MainWindowBoardRegistry へ委譲） =====
+    // ===== Board/共通系 =====
     void ensureBoardSetupController();
     void ensurePositionEditCoordinator();
     void ensurePositionEditController();
@@ -107,13 +115,36 @@ public:
     void resetUiState(const QString& hirateStartSfen);
     void clearSessionDependentUi();
 
+    // ===== DockBootstrapper系 =====
+    void setupRecordPane();
+    void setupEngineAnalysisTab();
+    void createEvalChartDock();
+    void createRecordPaneDock();
+    void createAnalysisDocks();
+    void createMenuWindowDockImpl();
+    void createJosekiWindowDock();
+    void createAnalysisResultsDock();
+    void initializeBranchNavigationClasses();
+
+    // ===== UiBootstrapper系 =====
+    void buildGamePanels();
+    void restoreWindowAndSync();
+    void finalizeCoordinators();
+
+    // ===== WiringAssembler系 =====
+    void initializeDialogLaunchWiring();
+
 private:
+    /// MatchCoordinatorWiring::Deps を構築する
+    MatchCoordinatorWiring::Deps buildMatchWiringDeps();
+
+    /// KifuLoadCoordinator を生成・配線し m_kifuLoadCoordinator に設定するヘルパー
+    void createAndWireKifuLoadCoordinator();
+
+    /// エンジン解析タブの依存コンポーネントを設定する
+    void configureAnalysisTabDependencies();
+
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
-    MainWindowAnalysisRegistry* m_analysisRegistry = nullptr;  ///< Analysis系サブレジストリ
-    MainWindowBoardRegistry* m_boardRegistry = nullptr;        ///< Board/共通系サブレジストリ
-    MainWindowGameRegistry* m_gameRegistry = nullptr;          ///< Game系サブレジストリ
-    MainWindowKifuRegistry* m_kifuRegistry = nullptr;          ///< Kifu系サブレジストリ
-    MainWindowUiRegistry* m_uiRegistry = nullptr;              ///< UI系サブレジストリ
 };
 
 #endif // MAINWINDOWSERVICEREGISTRY_H
