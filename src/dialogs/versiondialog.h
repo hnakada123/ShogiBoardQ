@@ -7,6 +7,8 @@
 
 #include <QDialog>
 
+#include <memory>
+
 namespace Ui {
 class VersionDialog;
 }
@@ -24,7 +26,7 @@ public:
     ~VersionDialog() override;
 
 private:
-    Ui::VersionDialog *ui;
+    std::unique_ptr<Ui::VersionDialog> ui;
 };
 
 #endif // VERSIONDIALOG_H

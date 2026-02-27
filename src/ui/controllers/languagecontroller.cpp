@@ -2,7 +2,7 @@
 /// @brief 言語切替コントローラクラスの実装
 
 #include "languagecontroller.h"
-#include "settingsservice.h"
+#include "appsettings.h"
 
 #include <QAction>
 #include <QMessageBox>
@@ -47,7 +47,7 @@ void LanguageController::setParentWidget(QWidget* parent)
 
 void LanguageController::updateMenuState()
 {
-    QString current = SettingsService::language();
+    QString current = AppSettings::language();
 
     if (m_systemAction) {
         m_systemAction->setChecked(current == "system");
@@ -62,10 +62,10 @@ void LanguageController::updateMenuState()
 
 void LanguageController::changeLanguage(const QString& lang)
 {
-    QString current = SettingsService::language();
+    QString current = AppSettings::language();
     if (current == lang) return;
 
-    SettingsService::setLanguage(lang);
+    AppSettings::setLanguage(lang);
 
     if (m_parentWidget) {
         QMessageBox::information(m_parentWidget,

@@ -25,7 +25,6 @@ struct EngineNameMapping {
  * PlayModeから先手/後手の表示名（人間名/エンジン名）と
  * ログ用モデルのエンジン名割り当てを決定する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class PlayerNameService {
 public:

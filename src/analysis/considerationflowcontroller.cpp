@@ -6,7 +6,7 @@
 #include "matchcoordinator.h"
 #include "shogienginethinkingmodel.h"
 #include "enginesettingsconstants.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 
 #include <QObject>
 #include <QSettings>
@@ -30,7 +30,7 @@ void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& p
     }
 
     // 設定ファイルからエンジンパスを取得
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     const int size = settings.beginReadArray(EnginesGroupName);
     QString enginePath;

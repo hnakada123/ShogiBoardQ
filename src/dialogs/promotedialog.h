@@ -7,6 +7,8 @@
 
 #include <QDialog>
 
+#include <memory>
+
 namespace Ui {
 class PromoteDialog;
 }
@@ -24,7 +26,7 @@ public:
     ~PromoteDialog() override;
 
 private:
-    Ui::PromoteDialog* ui;
+    std::unique_ptr<Ui::PromoteDialog> ui;
 };
 
 #endif // PROMOTEDIALOG_H

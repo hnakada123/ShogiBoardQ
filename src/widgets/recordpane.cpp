@@ -5,7 +5,7 @@
 #include "buttonstyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 
 #include "logcategories.h"
 #include <QTextBrowser>
@@ -31,7 +31,7 @@
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
-    , m_fontSize(SettingsService::kifuPaneFontSize())
+    , m_fontSize(GameSettings::kifuPaneFontSize())
 {
     buildUi();
     wireSignals(); // モデルに依存しないシグナルだけ先に配線
@@ -87,7 +87,7 @@ void RecordPane::buildUi()
 
     m_btnToggleTime = new QPushButton(this);
     m_btnToggleTime->setCheckable(true);
-    m_btnToggleTime->setChecked(SettingsService::kifuTimeColumnVisible());
+    m_btnToggleTime->setChecked(GameSettings::kifuTimeColumnVisible());
     m_btnToggleTime->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleTimeColumn.svg")));
     m_btnToggleTime->setIconSize(QSize(20, 20));
     m_btnToggleTime->setToolTip(tr("消費時間列の表示/非表示"));
@@ -97,7 +97,7 @@ void RecordPane::buildUi()
 
     m_btnToggleBookmark = new QPushButton(this);
     m_btnToggleBookmark->setCheckable(true);
-    m_btnToggleBookmark->setChecked(SettingsService::kifuBookmarkColumnVisible());
+    m_btnToggleBookmark->setChecked(GameSettings::kifuBookmarkColumnVisible());
     m_btnToggleBookmark->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleBookmarkColumn.svg")));
     m_btnToggleBookmark->setIconSize(QSize(20, 20));
     m_btnToggleBookmark->setToolTip(tr("しおり列の表示/非表示"));
@@ -107,7 +107,7 @@ void RecordPane::buildUi()
 
     m_btnToggleComment = new QPushButton(this);
     m_btnToggleComment->setCheckable(true);
-    m_btnToggleComment->setChecked(SettingsService::kifuCommentColumnVisible());
+    m_btnToggleComment->setChecked(GameSettings::kifuCommentColumnVisible());
     m_btnToggleComment->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleCommentColumn.svg")));
     m_btnToggleComment->setIconSize(QSize(20, 20));
     m_btnToggleComment->setToolTip(tr("コメント列の表示/非表示"));
@@ -501,7 +501,7 @@ void RecordPane::onFontIncrease(bool /*checked*/)
     if (m_fontSize < 24) {
         m_fontSize += 1;
         applyFontSize(m_fontSize);
-        SettingsService::setKifuPaneFontSize(m_fontSize);
+        GameSettings::setKifuPaneFontSize(m_fontSize);
     }
 }
 
@@ -510,7 +510,7 @@ void RecordPane::onFontDecrease(bool /*checked*/)
     if (m_fontSize > 8) {
         m_fontSize -= 1;
         applyFontSize(m_fontSize);
-        SettingsService::setKifuPaneFontSize(m_fontSize);
+        GameSettings::setKifuPaneFontSize(m_fontSize);
     }
 }
 
@@ -520,7 +520,7 @@ void RecordPane::onToggleTimeColumn(bool checked)
         m_kifu->setColumnHidden(1, !checked);
         updateColumnResizeModes();
     }
-    SettingsService::setKifuTimeColumnVisible(checked);
+    GameSettings::setKifuTimeColumnVisible(checked);
 }
 
 void RecordPane::onToggleBookmarkColumn(bool checked)
@@ -529,7 +529,7 @@ void RecordPane::onToggleBookmarkColumn(bool checked)
         m_kifu->setColumnHidden(2, !checked);
         updateColumnResizeModes();
     }
-    SettingsService::setKifuBookmarkColumnVisible(checked);
+    GameSettings::setKifuBookmarkColumnVisible(checked);
 }
 
 void RecordPane::onToggleCommentColumn(bool checked)
@@ -538,7 +538,7 @@ void RecordPane::onToggleCommentColumn(bool checked)
         m_kifu->setColumnHidden(3, !checked);
         updateColumnResizeModes();
     }
-    SettingsService::setKifuCommentColumnVisible(checked);
+    GameSettings::setKifuCommentColumnVisible(checked);
 }
 
 void RecordPane::updateColumnResizeModes()
@@ -584,9 +584,9 @@ void RecordPane::applyColumnVisibility()
 {
     if (!m_kifu) return;
 
-    const bool timeVisible = SettingsService::kifuTimeColumnVisible();
-    const bool bookmarkVisible = SettingsService::kifuBookmarkColumnVisible();
-    const bool commentVisible = SettingsService::kifuCommentColumnVisible();
+    const bool timeVisible = GameSettings::kifuTimeColumnVisible();
+    const bool bookmarkVisible = GameSettings::kifuBookmarkColumnVisible();
+    const bool commentVisible = GameSettings::kifuCommentColumnVisible();
 
     m_kifu->setColumnHidden(1, !timeVisible);
     m_kifu->setColumnHidden(2, !bookmarkVisible);

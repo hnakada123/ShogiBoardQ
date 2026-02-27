@@ -28,7 +28,6 @@ class KifuNavigationState;
  * SFEN列・表示データ・分岐ツリーなど内部データモデルを構築する。
  * 貼り付けテキストの自動判定読み込みにも対応。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class KifuLoadCoordinator : public QObject
 {

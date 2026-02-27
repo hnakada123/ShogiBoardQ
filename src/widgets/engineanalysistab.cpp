@@ -26,7 +26,8 @@
 #include <QItemSelectionModel>
 #include <QSizePolicy>
 
-#include "settingsservice.h"  // フォントサイズ保存用
+#include "networksettings.h"  // フォントサイズ保存用
+#include "analysissettings.h"
 #include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
 #include "engineinfowidget.h"
@@ -125,11 +126,11 @@ void EngineAnalysisTab::buildUi()
             this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
     
     // 設定ファイルから列幅を読み込んで適用
-    QList<int> widths0 = SettingsService::engineInfoColumnWidths(0);
+    QList<int> widths0 = AnalysisSettings::engineInfoColumnWidths(0);
     if (!widths0.isEmpty() && widths0.size() == m_info1->columnCount()) {
         m_info1->setColumnWidths(widths0);
     }
-    QList<int> widths1 = SettingsService::engineInfoColumnWidths(1);
+    QList<int> widths1 = AnalysisSettings::engineInfoColumnWidths(1);
     if (!widths1.isEmpty() && widths1.size() == m_info2->columnCount()) {
         m_info2->setColumnWidths(widths1);
     }
@@ -270,11 +271,11 @@ QWidget* EngineAnalysisTab::createThinkingPage(QWidget* parent)
     connect(m_info2, &EngineInfoWidget::columnWidthChanged,
             this, &EngineAnalysisTab::onEngineInfoColumnWidthChanged);
 
-    QList<int> widths0 = SettingsService::engineInfoColumnWidths(0);
+    QList<int> widths0 = AnalysisSettings::engineInfoColumnWidths(0);
     if (!widths0.isEmpty() && widths0.size() == m_info1->columnCount()) {
         m_info1->setColumnWidths(widths0);
     }
-    QList<int> widths1 = SettingsService::engineInfoColumnWidths(1);
+    QList<int> widths1 = AnalysisSettings::engineInfoColumnWidths(1);
     if (!widths1.isEmpty() && widths1.size() == m_info2->columnCount()) {
         m_info2->setColumnWidths(widths1);
     }
@@ -666,7 +667,7 @@ void EngineAnalysisTab::applyThinkingViewColumnWidths(QTableView* v, int viewInd
     constexpr int kMaxTotalWidth = 450;  // 読み筋以外の列幅合計の上限
 
     // 設定ファイルから列幅を読み込む
-    QList<int> savedWidths = SettingsService::thinkingViewColumnWidths(viewIndex);
+    QList<int> savedWidths = AnalysisSettings::thinkingViewColumnWidths(viewIndex);
 
     // 保存された列幅の合計をチェック（読み筋列を除く）
     bool useSavedWidths = false;
@@ -785,14 +786,14 @@ void EngineAnalysisTab::buildUsiLogToolbar()
 
 void EngineAnalysisTab::initUsiLogFontManager()
 {
-    m_usiLogFontSize = SettingsService::usiLogFontSize();
+    m_usiLogFontSize = AnalysisSettings::usiLogFontSize();
     m_usiLogFontManager = std::make_unique<LogViewFontManager>(m_usiLogFontSize, m_usiLog);
     m_usiLogFontManager->setPostApplyCallback([this](int size) {
         QFont font;
         font.setPointSize(size);
         if (m_usiTargetCombo) m_usiTargetCombo->setFont(font);
         if (m_usiCommandInput) m_usiCommandInput->setFont(font);
-        SettingsService::setUsiLogFontSize(size);
+        AnalysisSettings::setUsiLogFontSize(size);
     });
     m_usiLogFontManager->apply();
 }
@@ -891,7 +892,7 @@ void EngineAnalysisTab::onEngine2NameChanged()
 
 void EngineAnalysisTab::initThinkingFontManager()
 {
-    m_thinkingFontSize = SettingsService::thinkingFontSize();
+    m_thinkingFontSize = AnalysisSettings::thinkingFontSize();
     m_thinkingFontManager = std::make_unique<LogViewFontManager>(m_thinkingFontSize, nullptr);
     m_thinkingFontManager->setPostApplyCallback([this](int size) {
         QFont font;
@@ -928,7 +929,7 @@ void EngineAnalysisTab::initThinkingFontManager()
             m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
         }
 
-        SettingsService::setThinkingFontSize(size);
+        AnalysisSettings::setThinkingFontSize(size);
     });
     if (m_thinkingFontSize != 10) {
         m_thinkingFontManager->apply();
@@ -1009,7 +1010,7 @@ void EngineAnalysisTab::onEngineInfoColumnWidthChanged()
     QList<int> widths = sender->columnWidths();
     
     // 設定ファイルに保存
-    SettingsService::setEngineInfoColumnWidths(widgetIndex, widths);
+    AnalysisSettings::setEngineInfoColumnWidths(widgetIndex, widths);
 }
 
 // 思考タブ下段（読み筋テーブル）の列幅変更時の保存
@@ -1025,7 +1026,7 @@ void EngineAnalysisTab::onThinkingViewColumnWidthChanged(int viewIndex)
     }
     
     // 設定ファイルに保存
-    SettingsService::setThinkingViewColumnWidths(viewIndex, widths);
+    AnalysisSettings::setThinkingViewColumnWidths(viewIndex, widths);
 }
 
 // view1の列幅変更スロット
@@ -1089,14 +1090,14 @@ void EngineAnalysisTab::buildCsaLogToolbar()
 
 void EngineAnalysisTab::initCsaLogFontManager()
 {
-    m_csaLogFontSize = SettingsService::csaLogFontSize();
+    m_csaLogFontSize = NetworkSettings::csaLogFontSize();
     m_csaLogFontManager = std::make_unique<LogViewFontManager>(m_csaLogFontSize, m_csaLog);
     m_csaLogFontManager->setPostApplyCallback([this](int size) {
         QFont font;
         font.setPointSize(size);
         if (m_btnCsaSendToServer) m_btnCsaSendToServer->setFont(font);
         if (m_csaCommandInput) m_csaCommandInput->setFont(font);
-        SettingsService::setCsaLogFontSize(size);
+        NetworkSettings::setCsaLogFontSize(size);
     });
     m_csaLogFontManager->apply();
 }

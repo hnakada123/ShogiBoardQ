@@ -3,7 +3,6 @@
 
 #include "matchcoordinatorwiring.h"
 #include "gamesessionorchestrator.h"
-#include "mainwindow.h"
 #include "mainwindowappearancecontroller.h"
 #include "playerinfowiring.h"
 
@@ -338,17 +337,19 @@ bool MatchCoordinatorWiring::initializeSession(std::function<void()> ensureWirin
     return m_sessionFacade->initialize();
 }
 
-void MatchCoordinatorWiring::wireForwardingSignals(MainWindow* mw, GameSessionOrchestrator* gso)
+void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targets, GameSessionOrchestrator* gso)
 {
-    if (!mw || !gso) return;
+    if (!gso) return;
 
     // --- MatchCoordinator/Clock 転送シグナル → GameSessionOrchestrator ---
     QObject::connect(this, &MatchCoordinatorWiring::requestAppendGameOverMove,
                      gso,  &GameSessionOrchestrator::onRequestAppendGameOverMove,
                      Qt::UniqueConnection);
-    QObject::connect(this, &MatchCoordinatorWiring::boardFlipped,
-                     mw->m_appearanceController, &MainWindowAppearanceController::onBoardFlipped,
-                     Qt::UniqueConnection);
+    if (targets.appearance) {
+        QObject::connect(this, &MatchCoordinatorWiring::boardFlipped,
+                         targets.appearance, &MainWindowAppearanceController::onBoardFlipped,
+                         Qt::UniqueConnection);
+    }
     QObject::connect(this, &MatchCoordinatorWiring::gameOverStateChanged,
                      gso,  &GameSessionOrchestrator::onGameOverStateChanged,
                      Qt::UniqueConnection);
@@ -366,10 +367,11 @@ void MatchCoordinatorWiring::wireForwardingSignals(MainWindow* mw, GameSessionOr
     QObject::connect(this, &MatchCoordinatorWiring::requestApplyTimeControl,
                      gso,  &GameSessionOrchestrator::onApplyTimeControlRequested,
                      Qt::UniqueConnection);
-    mw->ensurePlayerInfoWiring();
-    QObject::connect(this, &MatchCoordinatorWiring::menuPlayerNamesResolved,
-                     mw->m_playerInfoWiring, &PlayerInfoWiring::onMenuPlayerNamesResolved,
-                     Qt::UniqueConnection);
+    if (targets.playerInfo) {
+        QObject::connect(this, &MatchCoordinatorWiring::menuPlayerNamesResolved,
+                         targets.playerInfo, &PlayerInfoWiring::onMenuPlayerNamesResolved,
+                         Qt::UniqueConnection);
+    }
     QObject::connect(this, &MatchCoordinatorWiring::consecutiveGamesConfigured,
                      gso,  &GameSessionOrchestrator::onConsecutiveGamesConfigured,
                      Qt::UniqueConnection);
@@ -377,13 +379,15 @@ void MatchCoordinatorWiring::wireForwardingSignals(MainWindow* mw, GameSessionOr
                      gso,  &GameSessionOrchestrator::onGameStarted,
                      Qt::UniqueConnection);
 
-    // --- ナビゲーション（MainWindow 経由、GSO 対象外） ---
-    mw->ensureKifuNavigationCoordinator();
-    QObject::connect(this, &MatchCoordinatorWiring::requestSelectKifuRow,
-                     mw->m_kifuNavCoordinator, &KifuNavigationCoordinator::selectKifuRow,
-                     Qt::UniqueConnection);
-    mw->ensureBranchNavigationWiring();
-    QObject::connect(this, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame,
-                     mw->m_branchNavWiring, &BranchNavigationWiring::onBranchTreeResetForNewGame,
-                     Qt::UniqueConnection);
+    // --- ナビゲーション ---
+    if (targets.kifuNav) {
+        QObject::connect(this, &MatchCoordinatorWiring::requestSelectKifuRow,
+                         targets.kifuNav, &KifuNavigationCoordinator::selectKifuRow,
+                         Qt::UniqueConnection);
+    }
+    if (targets.branchNav) {
+        QObject::connect(this, &MatchCoordinatorWiring::requestBranchTreeResetForNewGame,
+                         targets.branchNav, &BranchNavigationWiring::onBranchTreeResetForNewGame,
+                         Qt::UniqueConnection);
+    }
 }

@@ -3,7 +3,7 @@
 
 #include "gameinfopanecontroller.h"
 #include "buttonstyles.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 
 #include <QTableWidget>
 #include <QToolButton>
@@ -23,7 +23,7 @@ GameInfoPaneController::GameInfoPaneController(QObject* parent)
     : QObject(parent)
 {
     // 設定からフォントサイズを読み込む
-    m_fontSize = SettingsService::gameInfoFontSize();
+    m_fontSize = GameSettings::gameInfoFontSize();
     if (m_fontSize < 8)  m_fontSize = 10;
     if (m_fontSize > 24) m_fontSize = 24;
 
@@ -324,7 +324,7 @@ void GameInfoPaneController::setFontSize(int size)
     if (m_fontSize != size) {
         m_fontSize = size;
         applyFontSize();
-        SettingsService::setGameInfoFontSize(m_fontSize);
+        GameSettings::setGameInfoFontSize(m_fontSize);
     }
 }
 

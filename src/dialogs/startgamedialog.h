@@ -7,6 +7,8 @@
 #include <QDialog>
 #include <QComboBox>
 
+#include <memory>
+
 namespace Ui {
 class StartGameDialog;
 }
@@ -17,7 +19,6 @@ class StartGameDialog;
  * 対局者（人間/エンジン）の選択、持ち時間設定、開始局面選択、
  * 連続対局設定などをユーザーから取得し、StartGameDialogのプロパティとして保持する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class StartGameDialog : public QDialog
 {
@@ -85,7 +86,7 @@ public:
     int jishogiRule() const;
 
 private:
-    Ui::StartGameDialog* ui;                ///< UIオブジェクト
+    std::unique_ptr<Ui::StartGameDialog> ui; ///< UIオブジェクト
 
     // --- 対局者フラグ ---
 

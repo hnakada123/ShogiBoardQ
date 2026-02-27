@@ -11,6 +11,8 @@
 - `cmake -B build -S .` configures the project (CMake 3.16+, C++17).
 - `cmake --build build` builds the Qt6 application.
 - `./build/ShogiBoardQ` runs the app after a successful build.
+- `cmake -B build -S . -DBUILD_TESTING=ON` configures with tests enabled.
+- `ctest --test-dir build --output-on-failure` runs the test suite.
 - `cmake -B build -S . -DENABLE_CLANG_TIDY=ON` enables clang-tidy checks.
 - `cmake -B build -S . -DENABLE_CPPCHECK=ON` enables cppcheck for unused code.
 - `lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts` updates translation sources when `tr()` strings change.
@@ -23,7 +25,19 @@
 - Compiler warnings are strict (`-Wall -Wextra -Wpedantic -Wshadow -Wconversion`); keep code warning-clean.
 
 ## Testing Guidelines
-- No automated test suite is currently present. If you add tests, document the framework and invocation in this file and keep tests near related modules (e.g., `src/core/` or a new `tests/` directory).
+- テストは `tests/` ディレクトリに集約されており、Qt Test フレームワークを使用（31 テスト）。
+- ビルド方法:
+  ```bash
+  cmake -B build -S . -DBUILD_TESTING=ON
+  cmake --build build
+  ```
+- 実行方法:
+  ```bash
+  ctest --test-dir build --output-on-failure
+  ```
+- `QT_QPA_PLATFORM=offscreen` は `tests/CMakeLists.txt` の `add_shogi_test` マクロで自動設定されるため、headless 環境（CI / SSH）でも追加設定なしでテストを実行できる。
+- テストカテゴリ: コアデータ構造、盤面、棋譜変換（KIF/KI2/CSA/JKF/USI/USEN）、ナビゲーション、GameRecordModel、UI表示整合性、解析フロー、対局開始フロー、EngineMoveValidator（Perft/Crosscheck 含む）など。
+- `bench_movevalidator` はベンチマーク用で ctest 対象外。
 
 ## Commit & Pull Request Guidelines
 - Commit messages are short, imperative, and typically written in Japanese (e.g., "バグ修正", "UI改善").

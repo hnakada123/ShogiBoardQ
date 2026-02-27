@@ -8,7 +8,8 @@
 #include "flowlayout.h"
 #include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "analysissettings.h"
 #include "shogienginethinkingmodel.h"
 #include "enginesettingsconstants.h"
 
@@ -43,7 +44,7 @@ ConsiderationTabManager::~ConsiderationTabManager()
 void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
 {
     // SettingsServiceからフォントサイズを読み込み
-    m_considerationFontSize = SettingsService::considerationFontSize();
+    m_considerationFontSize = AnalysisSettings::considerationFontSize();
 
     // ツールバー（FlowLayout使用）
     m_considerationToolbar = new QWidget(parentWidget);
@@ -346,7 +347,7 @@ void ConsiderationTabManager::loadEngineList()
 
     m_engineComboBox->clear();
 
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     const int size = settings.beginReadArray(EngineSettingsConstants::EnginesGroupName);
     for (int i = 0; i < size; i++) {
         settings.setArrayIndex(i);
@@ -360,13 +361,13 @@ void ConsiderationTabManager::loadEngineList()
 
 void ConsiderationTabManager::loadConsiderationTabSettings()
 {
-    const int engineIndex = SettingsService::considerationEngineIndex();
+    const int engineIndex = AnalysisSettings::considerationEngineIndex();
     if (m_engineComboBox && engineIndex >= 0 && engineIndex < m_engineComboBox->count()) {
         m_engineComboBox->setCurrentIndex(engineIndex);
     }
 
-    const bool unlimitedTime = SettingsService::considerationUnlimitedTime();
-    const int byoyomiSecVal = SettingsService::considerationByoyomiSec();
+    const bool unlimitedTime = AnalysisSettings::considerationUnlimitedTime();
+    const int byoyomiSecVal = AnalysisSettings::considerationByoyomiSec();
 
     if (m_unlimitedTimeRadioButton && m_considerationTimeRadioButton && m_byoyomiSecSpinBox) {
         if (unlimitedTime) {
@@ -377,7 +378,7 @@ void ConsiderationTabManager::loadConsiderationTabSettings()
         m_byoyomiSecSpinBox->setValue(byoyomiSecVal > 0 ? byoyomiSecVal : 20);
     }
 
-    const int multiPV = SettingsService::considerationMultiPV();
+    const int multiPV = AnalysisSettings::considerationMultiPV();
     if (m_multiPVComboBox && multiPV >= 1 && multiPV <= 10) {
         m_multiPVComboBox->setCurrentIndex(multiPV - 1);
     }
@@ -386,16 +387,16 @@ void ConsiderationTabManager::loadConsiderationTabSettings()
 void ConsiderationTabManager::saveConsiderationTabSettings()
 {
     if (m_engineComboBox) {
-        SettingsService::setConsiderationEngineIndex(m_engineComboBox->currentIndex());
+        AnalysisSettings::setConsiderationEngineIndex(m_engineComboBox->currentIndex());
     }
 
     if (m_unlimitedTimeRadioButton && m_byoyomiSecSpinBox) {
-        SettingsService::setConsiderationUnlimitedTime(m_unlimitedTimeRadioButton->isChecked());
-        SettingsService::setConsiderationByoyomiSec(m_byoyomiSecSpinBox->value());
+        AnalysisSettings::setConsiderationUnlimitedTime(m_unlimitedTimeRadioButton->isChecked());
+        AnalysisSettings::setConsiderationByoyomiSec(m_byoyomiSecSpinBox->value());
     }
 
     if (m_multiPVComboBox) {
-        SettingsService::setConsiderationMultiPV(m_multiPVComboBox->currentData().toInt());
+        AnalysisSettings::setConsiderationMultiPV(m_multiPVComboBox->currentData().toInt());
     }
 }
 
@@ -551,7 +552,7 @@ void ConsiderationTabManager::initFontManager()
             m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
         }
 
-        SettingsService::setConsiderationFontSize(size);
+        AnalysisSettings::setConsiderationFontSize(size);
     });
     m_considerationFontManager->apply();
 }

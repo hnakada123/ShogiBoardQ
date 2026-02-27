@@ -18,7 +18,6 @@ class MatchCoordinator;
  * 探索開始局面を組み立て、ユーザーのダイアログ入力に基づいて
  * MatchCoordinatorへ探索開始を委譲する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class TsumeSearchFlowController : public QObject
 {

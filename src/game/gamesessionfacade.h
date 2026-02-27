@@ -5,7 +5,6 @@
 
 class MatchCoordinator;
 class MatchCoordinatorWiring;
-class GameStartCoordinator;
 
 class GameSessionFacade
 {
@@ -18,7 +17,6 @@ public:
 
     bool initialize();
     MatchCoordinator* match() const;
-    GameStartCoordinator* gameStartCoordinator() const;
 
 private:
     Deps m_deps;

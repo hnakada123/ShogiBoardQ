@@ -6,11 +6,11 @@
 
 #include <QObject>
 #include "mainwindowdepsfactory.h"
+#include "recordnavigationwiring.h"
 
 class DialogCoordinatorWiring;
 class DialogCoordinator;
 class KifuFileController;
-class RecordNavigationWiring;
 
 class GameStateController;
 class BoardSetupController;
@@ -69,6 +69,7 @@ public:
      * @param[in,out] wiring 生成された Wiring（未生成なら生成）
      */
     void ensureRecordNavigationWiring(const MainWindowRuntimeRefs& refs,
+                                      const RecordNavigationWiring::WiringTargets& targets,
                                       QObject* parent,
                                       RecordNavigationWiring*& wiring);
 

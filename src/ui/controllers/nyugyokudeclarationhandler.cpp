@@ -8,7 +8,7 @@
 #include "jishogicalculator.h"
 #include "enginemovevalidator.h"
 #include "playmode.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 
 #include <QSettings>
 #include <QMessageBox>
@@ -130,7 +130,7 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     }
 
     // 持将棋ルールの取得（QSettingsから読み込む）
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     int jishogiRule = settings.value("GameSettings/jishogiRule", 0).toInt();
 
     if (jishogiRule == 0) {

@@ -3,7 +3,7 @@
 
 #include "josekimergedialog.h"
 #include "buttonstyles.h"
-#include "settingsservice.h"
+#include "josekisettings.h"
 
 #include <QHeaderView>
 #include <QHBoxLayout>
@@ -13,12 +13,12 @@
 
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)
-    , m_fontSize(SettingsService::josekiMergeDialogFontSize())
+    , m_fontSize(JosekiSettings::josekiMergeDialogFontSize())
 {
     setupUi();
 
     // ウィンドウサイズを復元
-    QSize savedSize = SettingsService::josekiMergeDialogSize();
+    QSize savedSize = JosekiSettings::josekiMergeDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
@@ -26,14 +26,14 @@ JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
 
 JosekiMergeDialog::~JosekiMergeDialog()
 {
-    SettingsService::setJosekiMergeDialogSize(size());
-    SettingsService::setJosekiMergeDialogFontSize(m_fontSize);
+    JosekiSettings::setJosekiMergeDialogSize(size());
+    JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
 }
 
 void JosekiMergeDialog::closeEvent(QCloseEvent *event)
 {
-    SettingsService::setJosekiMergeDialogSize(size());
-    SettingsService::setJosekiMergeDialogFontSize(m_fontSize);
+    JosekiSettings::setJosekiMergeDialogSize(size());
+    JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
     QDialog::closeEvent(event);
 }
 
@@ -286,7 +286,7 @@ void JosekiMergeDialog::onFontSizeIncrease()
     if (m_fontSize < 20) {
         m_fontSize += 1;
         applyFontSize();
-        SettingsService::setJosekiMergeDialogFontSize(m_fontSize);
+        JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
     }
 }
 
@@ -295,7 +295,7 @@ void JosekiMergeDialog::onFontSizeDecrease()
     if (m_fontSize > 8) {
         m_fontSize -= 1;
         applyFontSize();
-        SettingsService::setJosekiMergeDialogFontSize(m_fontSize);
+        JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
     }
 }
 

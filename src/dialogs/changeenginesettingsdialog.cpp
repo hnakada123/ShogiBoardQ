@@ -4,7 +4,8 @@
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
 #include "engineoptiondescriptions.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "enginedialogsettings.h"
 #include "ui_changeenginesettingsdialog.h"
 #include "buttonstyles.h"
 #include <QApplication>
@@ -20,8 +21,8 @@ using namespace EngineSettingsConstants;
 // 将棋エンジンの設定を変更するダイアログ
 ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
     : QDialog(parent)
-    , ui(new Ui::ChangeEngineSettingsDialog)
-    , m_fontSize(SettingsService::engineSettingsFontSize())
+    , ui(std::make_unique<Ui::ChangeEngineSettingsDialog>())
+    , m_fontSize(EngineDialogSettings::engineSettingsFontSize())
 {
     ui->setupUi(this);
 }
@@ -29,9 +30,7 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
 ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
 {
     // ウィンドウサイズを保存
-    SettingsService::setEngineSettingsDialogSize(this->size());
-
-    delete ui;
+    EngineDialogSettings::setEngineSettingsDialogSize(this->size());
 }
 
 // 将棋エンジン番号のsetter
@@ -58,7 +57,7 @@ void ChangeEngineSettingsDialog::readEngineOptions()
     // オプションリストを初期化する。
     m_optionList.clear();
 
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // エンジンオプションの数を取得する。
     int size = settings.beginReadArray(m_engineName);
@@ -573,7 +572,7 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     this->setMinimumSize(400, 300);
 
     // 保存されているウィンドウサイズを復元
-    QSize savedSize = SettingsService::engineSettingsDialogSize();
+    QSize savedSize = EngineDialogSettings::engineSettingsDialogSize();
     if (savedSize.isValid()) {
         this->resize(savedSize);
     }
@@ -672,7 +671,7 @@ void ChangeEngineSettingsDialog::restoreDefaultOptions() {
 // 設定ファイルにエンジンのオプション設定を保存する。
 void ChangeEngineSettingsDialog::saveOptionsToSettings()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // 設定ファイル内でエンジン名に基づくオプションの配列の書き込みを開始する。
     settings.beginWriteArray(m_engineName);
@@ -758,7 +757,7 @@ void ChangeEngineSettingsDialog::increaseFontSize()
     if (m_fontSize < 20) {  // 最大サイズを20に制限
         m_fontSize++;
         applyFontSize();
-        SettingsService::setEngineSettingsFontSize(m_fontSize);
+        EngineDialogSettings::setEngineSettingsFontSize(m_fontSize);
     }
 }
 
@@ -768,7 +767,7 @@ void ChangeEngineSettingsDialog::decreaseFontSize()
     if (m_fontSize > 8) {  // 最小サイズを8に制限
         m_fontSize--;
         applyFontSize();
-        SettingsService::setEngineSettingsFontSize(m_fontSize);
+        EngineDialogSettings::setEngineSettingsFontSize(m_fontSize);
     }
 }
 

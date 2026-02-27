@@ -13,7 +13,6 @@
  * どこからでも postError() でエラーを発行し、errorOccurred シグナルで
  * 購読者へ一斉配信する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ErrorBus final : public QObject {
     Q_OBJECT

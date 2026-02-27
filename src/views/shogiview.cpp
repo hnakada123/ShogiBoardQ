@@ -1,10 +1,10 @@
 /// @file shogiview.cpp
-/// @brief 将棋盤面描画ビュークラスの実装
+/// @brief 将棋盤面描画ビュークラスの実装（コア：コンストラクタ・イベント・状態管理）
 
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 #include "elidelabel.h"
 #include "globaltooltip.h"
 #include "shogigamecontroller.h"
@@ -24,41 +24,7 @@
 #include <QSizePolicy>
 #include <QLayout>
 #include <QFontDatabase>
-#include <QRegularExpression>
 #include <QPushButton>
-
-// 角丸(border-radius)を 0px に強制するユーティリティ
-static QString ensureNoBorderRadiusStyle(const QString& base)
-{
-    QString s = base;
-    static const QRegularExpression re(R"(border-radius\s*:\s*[^;]+;?)",
-                                       QRegularExpression::CaseInsensitiveOption);
-    if (re.match(s).hasMatch()) {
-        s.replace(re, "border-radius:0px;");
-    } else {
-        if (!s.isEmpty() && !s.trimmed().endsWith(';')) s.append(';');
-        s.append("border-radius:0px;");
-    }
-    return s;
-}
-
-// スタイルシートからフォントサイズを除去するユーティリティ（setFont()でサイズ調整するため）
-static QString removeFontSizeFromStyle(const QString& base)
-{
-    QString s = base;
-    // font-size プロパティを除去
-    static const QRegularExpression re(R"(font-size\s*:\s*[^;]+;?)",
-                                       QRegularExpression::CaseInsensitiveOption);
-    s.remove(re);
-    return s;
-}
-
-static void enforceSquareCorners(QLabel* lab)
-{
-    if (!lab) return;
-    lab->setStyleSheet(ensureNoBorderRadiusStyle(lab->styleSheet()));
-}
-
 
 // Highlight基底クラスのデストラクタ（out-of-line定義でweak-vtables警告を回避）
 ShogiView::Highlight::~Highlight() {}
@@ -66,9 +32,7 @@ ShogiView::Highlight::~Highlight() {}
 // FieldHighlightクラスのデストラクタ
 ShogiView::FieldHighlight::~FieldHighlight() {}
 
-// ・描画/レイアウトに関わる初期値をメンバ初期化子で明示
-// ・設定ファイルからマス（square）サイズを読み込み
-// ・盤・駒台・時計/名前ラベルを生成し、見た目と挙動を初期化する
+// コンストラクタ
 ShogiView::ShogiView(QWidget *parent)
     : QWidget(parent),
     m_board(nullptr),
@@ -76,74 +40,45 @@ ShogiView::ShogiView(QWidget *parent)
 {
     // ハイライト/矢印/手番表示の管理クラスを生成
     m_highlighting = new ShogiViewHighlighting(this, this);
-    // ShogiViewHighlighting の highlightsCleared を ShogiView の同名シグナルへ転送
     connect(m_highlighting, &ShogiViewHighlighting::highlightsCleared,
             this, &ShogiView::highlightsCleared);
 
-    // 【入出力の基準パスを明確化】
-    // 実行中のアプリケーションのディレクトリをカレントディレクトリに設定。
-    // 相対パスでの画像/設定ファイル読み込みを安定させるため。
     QDir::setCurrent(QApplication::applicationDirPath());
 
-    // 【SizePolicyの設定】
-    // Fixed: sizeHint()で返すサイズを厳守し、空白を作らない
-    // 拡大縮小はenlargeBoard/reduceBoardで行い、updateGeometry()で親レイアウトに通知
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
-    // 【UIスケールの取得】
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     int sq = settings.value("SizeRelated/squareSize", 50).toInt();
     if (sq < 20 || sq > 150) sq = 50;
     m_layout.setSquareSize(sq);
 
-    // 【レイアウト算出】
     m_layout.setStandGapCols(0.5);
     recalcLayoutParams();
 
-    // 【マウストラッキング】
-    // ボタン未押下でも mouseMoveEvent を受け取れるようにする。
-    // ホバー中のハイライトやドラッグ中の追従描画に必要。
     setMouseTracking(true);
 
     // ───────────────────────────────── 時計・名前ラベル（先手：黒） ─────────────────────────────────
-
-    // 先手（黒）の時計ラベルを生成し、初期表示を "00:00:00" にする。
     m_blackClockLabel = new QLabel(QStringLiteral("00:00:00"), this);
-    // オブジェクト名。スタイルシートやUIテストで特定しやすくするため。
     m_blackClockLabel->setObjectName(QStringLiteral("blackClockLabel"));
-    // 表示位置は中央揃え（時計としての視認性を優先）
     m_blackClockLabel->setAlignment(Qt::AlignCenter);
-    // マウスイベントをスルー。盤の操作を阻害しないようヒットテスト対象外にする。
     m_blackClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-    // 背景は透過・文字色は黒。盤や背景との干渉を避けつつ読みやすさを確保。
     m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     {
-        // 時計ラベルのフォントを太字にし、マスサイズに比例して可変。
-        // 最低でも 8pt は確保して、小サイズ盤でも可読性を担保。
         QFont f = font();
         f.setBold(true);
         f.setPointSizeF(qMax(8.0, m_layout.squareSize() * 0.45));
         m_blackClockLabel->setFont(f);
     }
 
-    // 先手（黒）の名前ラベル（長い名前を省略表示できる特殊ラベル）を生成。
     m_blackNameLabel = new ElideLabel(this);
-    // 長いテキストは末尾を省略（…）して収める。
     m_blackNameLabel->setElideMode(Qt::ElideRight);
-    // 左寄せ・垂直中央。名前と時計の並びを整える。
     m_blackNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    // ホバー時に自動スクロール（スライド）でフルテキストを見せる。
     m_blackNameLabel->setSlideOnHover(true);
-    // 手動パンも有効。ドラッグ操作でテキストを左右に移動できる。
     m_blackNameLabel->setManualPanEnabled(true);
-    // スクロール速度（大きいほど速い）
     m_blackNameLabel->setSlideSpeed(2);
-    // スクロールの更新間隔（ミリ秒）。16ms ≒ 60fps で滑らかに。
     m_blackNameLabel->setSlideInterval(16);
 
     // ───────────────────────────────── 名前ラベル（後手：白） ─────────────────────────────────
-
-    // 後手（白）の名前ラベルを生成。先手側と同じ見た目/挙動を設定。
     m_whiteNameLabel = new ElideLabel(this);
     m_whiteNameLabel->setElideMode(Qt::ElideRight);
     m_whiteNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
@@ -153,201 +88,156 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteNameLabel->setSlideInterval(16);
 
     // ───────────────────────────────── 時計ラベル（後手：白） ─────────────────────────────────
-
-    // 後手（白）の時計ラベルを生成し、初期表示を "00:00:00" にする。
     m_whiteClockLabel = new QLabel(QStringLiteral("00:00:00"), this);
     m_whiteClockLabel->setObjectName(QStringLiteral("whiteClockLabel"));
     m_whiteClockLabel->setAlignment(Qt::AlignCenter);
     m_whiteClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     {
-        // 先手側と同じ方針でフォントを設定（太字 + マスサイズ連動 + 最小 8pt）
         QFont f = font();
         f.setBold(true);
         f.setPointSizeF(qMax(8.0, m_layout.squareSize() * 0.45));
         m_whiteClockLabel->setFont(f);
     }
 
-    // 【初期配置の反映】
-    // 現在のレイアウトパラメータに基づき、時計ラベルの位置・サイズを更新。
-    // ここで呼んでおくことで、初回描画前に正しいジオメトリにしておく。
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 
-    // 起動直後の見た目を整える（両側とも font-weight:400）
+    // 起動直後の見た目を整える
     m_highlighting->applyStartupTypography();
 
-    // 【イベントフック】
-    // 名前ラベルにイベントフィルタを装着。
-    // ホバー時のスライド/手動パンの管理や、将来的なツールチップ制御拡張に備える。
     m_blackNameLabel->installEventFilter(this);
     m_whiteNameLabel->installEventFilter(this);
 }
 
-// このビューに関連付ける盤データ（ShogiBoard）を設定/差し替えする。
-// 役割：
-//  - 同一ポインタの再設定は無駄な接続増殖を避けて即 return
-//  - 旧ボードがあれば、本ビューへの全シグナル接続を一括解除（重複更新/メモリリーク回避）
-//  - 新ボードを保持し、状態変化（dataChanged/boardReset）で update() を起動して再描画を依頼
-//  - sizeHint 等が変わる可能性に備え、updateGeometry() で親レイアウトに再配置を要求
+// ─────────────────────────────────────────────────────────────────────────────
+// ボード接続
+// ─────────────────────────────────────────────────────────────────────────────
+
 void ShogiView::setBoard(ShogiBoard* board)
 {
-    // デバッグログ：board設定の追跡
     qCDebug(lcView) << "setBoard called, old:" << m_board << "new:" << board;
-    
-    // 【無駄な再設定の回避】
-    // すでに同じ ShogiBoard を保持しているなら処理不要。
+
     if (m_board == board) {
         qCDebug(lcView) << "setBoard: same board, skipping";
         return;
     }
 
-    // 【旧接続のクリーンアップ】
-    // 以前のボードが存在する場合、そのボード -> このビュー への全接続を解除。
-    // QObject::disconnect(m_board, nullptr, this, nullptr) 相当で、安全に差し替え可能にする。
     if (m_board) {
         m_board->disconnect(this);
     }
 
-    // 【差し替え本体】
-    // 新しいボード（nullptr 可）を保持。
     m_board = board;
     invalidateFieldRectCache();
 
-    // 【新接続の確立】
-    // 新しいボードが有効なら、表示に影響するイベントで再描画を依頼する。
     if (board) {
-        // 盤データが変更されたら、次のイベントループで再描画（update は非同期・差分指向）
         connect(board, &ShogiBoard::dataChanged, this, qOverload<>(&ShogiView::update));
-        // 盤がリセットされたら、全体を再描画
         connect(board, &ShogiBoard::boardReset,  this, qOverload<>(&ShogiView::update));
-        // ※ 第3引数に this を渡しているため、このビュー破棄時に自動で接続解除される。
     }
 
-    // 【レイアウト再評価のトリガ】
-    // sizeHint() の結果がボードの状態に依存する場合に備え、ジオメトリ更新を通知。
-    // 親レイアウトに再レイアウトを促し、必要ならば再配置/再サイズを行う。
     updateGeometry();
-    
+
     qCDebug(lcView) << "setBoard complete, m_board now:" << m_board;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // イベントフィルタ
-// 役割：
-//  - 名前ラベル（先手/後手）に対して、標準QToolTipではなくカスタムの GlobalToolTip を用いた
-//    遅延生成＆表示制御を行う
-//  - ツールチップ要求（QEvent::ToolTip）でフルのベース名を表示、ウィジェット離脱（QEvent::Leave）で非表示
-//  - 該当しないオブジェクト/イベントは既定の処理にフォールバック
+// ─────────────────────────────────────────────────────────────────────────────
+
 bool ShogiView::eventFilter(QObject* obj, QEvent* ev)
 {
-    // 【遅延初期化：ツールチップのシングルトン的利用】
-    // パフォーマンスとリソース節約のため、最初の要求時にのみインスタンス化する。
     if (!m_tooltip) {
-        m_tooltip = new GlobalToolTip(this);   // 親を this にして破棄を自動化
-        m_tooltip->setCompact(true);          // 余白を詰めたコンパクト表示
-        m_tooltip->setPointSizeF(12.0);       // ベースとなるフォントサイズ
+        m_tooltip = new GlobalToolTip(this);
+        m_tooltip->setCompact(true);
+        m_tooltip->setPointSizeF(12.0);
     }
 
-    // 【対象オブジェクトの限定】
-    // 先手/後手の「名前ラベル」に対するイベントのみカスタム処理を行う。
     if (obj == m_blackNameLabel || obj == m_whiteNameLabel) {
-        // ツールチップ要求イベント：
-        // マウスオーバー位置（グローバル座標）に、フルのベース名を提示する。
         if (ev->type() == QEvent::ToolTip) {
-            auto* he = static_cast<QHelpEvent*>(ev); // QEvent -> QHelpEvent への安全なダウンキャスト
-            // どちらのラベルかで表示テキスト（ベース名）を切り替える。
+            auto* he = static_cast<QHelpEvent*>(ev);
             const QString text = (obj == m_blackNameLabel) ? m_blackNameBase : m_whiteNameBase;
-            // 画面上のカレントマウス位置（globalPos）付近にカスタムツールチップを表示。
             m_tooltip->showText(he->globalPos(), text);
-            return true; // 【重要】標準の QToolTip を抑止し、二重表示/ちらつきを防止
+            return true;
         }
-        // ラベルからマウスが離れたらツールチップを隠す（確実に消すためLeaveで制御）
         else if (ev->type() == QEvent::Leave) {
             m_tooltip->hideTip();
         }
     }
 
-    // 【フォールバック】
-    // ここで処理しなかったイベントは QWidget 側の既定処理に委譲。
     return QWidget::eventFilter(obj, ev);
 }
 
-// 現在ビューに紐づく盤データ（ShogiBoard）を読み出すゲッター。
-// nullptr の可能性もある点に注意（未セット時など）。
+// ─────────────────────────────────────────────────────────────────────────────
+// ゲッター
+// ─────────────────────────────────────────────────────────────────────────────
+
 ShogiBoard* ShogiView::board() const
 {
     return m_board;
 }
 
-// 1マス（square）の描画サイズ（幅・高さ）を返すゲッター。
-// 盤や駒台のレイアウト計算の基本単位として各所で利用される。
 QSize ShogiView::fieldSize() const
 {
     return m_layout.fieldSize();
 }
 
-// 1マスの描画サイズをセットするセッター。
-// 役割：値の変化検知 → シグナル発行 → レイアウト再計算/再配置 → 付随UI（時計ラベル）のジオメトリ更新
+ElideLabel* ShogiView::blackNameLabel() const { return m_blackNameLabel; }
+QLabel* ShogiView::blackClockLabel() const { return m_blackClockLabel; }
+ElideLabel* ShogiView::whiteNameLabel() const { return m_whiteNameLabel; }
+QLabel* ShogiView::whiteClockLabel() const { return m_whiteClockLabel; }
+
+bool ShogiView::isClockEnabled() const { return m_clockEnabled; }
+bool ShogiView::positionEditMode() const { return m_interaction.positionEditMode(); }
+int  ShogiView::squareSize() const { return m_layout.squareSize(); }
+bool ShogiView::getFlipMode() const { return m_layout.flipMode(); }
+
+ShogiViewHighlighting* ShogiView::highlighting() const { return m_highlighting; }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// サイズ系
+// ─────────────────────────────────────────────────────────────────────────────
+
 void ShogiView::setFieldSize(QSize fieldSize)
 {
-    // 【無駄な再計算回避】 同一サイズなら何もしない。
     if (m_layout.fieldSize() == fieldSize) {
         return;
     }
 
-    // 内部状態を更新。
     m_layout.setFieldSize(fieldSize);
     m_standPiecePixmapCache.clear();
     m_highlighting->clearDropPieceCache();
     invalidateFieldRectCache();
 
-    // この変更を関心のある外部へ通知（例えばスライダー連動のUIなど）。
     emit fieldSizeChanged(fieldSize);
 
-    // sizeHint() の変化を親レイアウトに伝え、必要ならば再レイアウトを促す。
     updateGeometry();
 
-    // 1マスのサイズが変われば時計ラベルの位置・大きさも影響を受けるため、個別に再配置。
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 }
 
-// レイアウト計算に用いられる推奨サイズ（sizeHint）を返す。
-// 親レイアウトがこの値を参考にウィジェットを配置する。
-// 盤未設定の場合は最低限の保険値（100x100）を返す。
-// 駒台、ラベル、余白を含めた全体のサイズを計算する。
 QSize ShogiView::sizeHint() const
 {
     if (!m_board) {
         return QSize(100, 100);
     }
 
-    // 1マスのサイズ（縦横比率を反映）
     const QSize fs = fieldSize().isValid() ? fieldSize()
                                            : QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio));
 
-    // 盤の幅・高さ
     const int boardWidth  = fs.width()  * m_board->files();
     const int boardHeight = fs.height() * m_board->ranks();
 
-    // 駒台の幅（2マス分）
     const int standWidth = fs.width() * 2;
 
-    // 全体の幅 = 左駒台 + ギャップ + 盤 + ギャップ + 右駒台
     const int totalWidth = standWidth + m_layout.standGapPx() + boardWidth + m_layout.standGapPx() + standWidth;
-
-    // 全体の高さ = 上部ラベル + 盤 + 下部余白
-    // 駒台は盤の中に収まるので、盤の高さ + 上下のオフセットで十分
     const int totalHeight = boardHeight + m_layout.offsetY() * 2;
 
     return QSize(totalWidth, totalHeight);
 }
 
-// 最小サイズを返す。
-// QSplitter内での最小サイズを指定するが、自動調整があるため小さめに設定。
 QSize ShogiView::minimumSizeHint() const
 {
-    // 最小サイズ: 20pxのマスで計算
     const int minSquare = 20;
     const int minSquareH = qRound(minSquare * ShogiViewLayout::kSquareAspectRatio);
     const int files = m_board ? m_board->files() : 9;
@@ -364,9 +254,10 @@ QSize ShogiView::minimumSizeHint() const
     return QSize(minWidth, minHeight);
 }
 
-// 盤状態（反転の有無・段筋数）に基づき、指定された(file, rank)のマスの矩形領域を算出。
-// file: 筋（1..m_board->files()）/ rank: 段（1..m_board->ranks()）を前提。
-// 返り値はウィジェット座標系（左上原点）の QRect（幅=fs.width(), 高さ=fs.height()）。
+// ─────────────────────────────────────────────────────────────────────────────
+// 座標・矩形計算
+// ─────────────────────────────────────────────────────────────────────────────
+
 QRect ShogiView::calculateSquareRectangleBasedOnBoardState(const int file, const int rank) const
 {
     if (!m_board) return QRect();
@@ -380,20 +271,15 @@ QRect ShogiView::calculateRectangleForRankOrFileLabel(const int file, const int 
     return m_layout.calculateRectangleForRankOrFileLabel(file, rank, m_board->ranks());
 }
 
-// マス矩形キャッシュを無効化する。
-// レイアウトパラメータ（fieldSize, squareSize, flipMode 等）が変化した際に呼ぶ。
 void ShogiView::invalidateFieldRectCache()
 {
     m_fieldRectCacheValid = false;
 }
 
-// キャッシュ済みのマス矩形を返す。キャッシュが無効な場合は全マス分を再構築する。
-// file: 筋（1..boardFiles）, rank: 段（1..boardRanks）
 QRect ShogiView::cachedFieldRect(const int file, const int rank) const
 {
     if (!m_board) return QRect();
 
-    // キャッシュ未構築 or 無効なら全マス分を一括計算
     if (!m_fieldRectCacheValid) {
         m_fieldRectCache.clear();
         const int files = m_board->files();
@@ -412,842 +298,137 @@ QRect ShogiView::cachedFieldRect(const int file, const int rank) const
     return m_fieldRectCache.value(key);
 }
 
-// 駒タイプと描画用アイコン（QIcon）を関連付けて登録する。
-// 役割：駒文字（例：'P','L','N','B','R','G','S','K','p',...）に対応するアイコンをセットし、再描画を依頼。
-// 備考：update() は非同期に再描画イベントを発行（即座にpaintEventを呼ばない）。
-void ShogiView::setPiece(char type, const QIcon &icon)
-{
-    // 駒タイプ→アイコン のマップに挿入/上書き
-    m_pieces.insert(type, icon);
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
-
-    // 駒画像が更新されたのでビューの再描画を要求
-    update();
-}
-
-// 駒タイプに対応するアイコンを取得するゲッター。
-// 見つからない場合はデフォルト構築の QIcon（空）を返す。
-// 役割：描画時に、盤上/駒台の駒アイコンを取り出すのに使用。
-QIcon ShogiView::piece(QChar type) const
-{
-    return m_pieces.value(type, QIcon());
-}
-
-// 段番号（rank）の描画エントリポイント。
-// 役割：
-//  - 盤が未設定なら何もしない安全弁
-//  - 共通の描画状態（ここでは文字色＝QPalette::WindowText）を一度だけ設定
-//  - 1..ranks() を走査して各段の描画を drawRank() に委譲
-// 前提：drawRank() は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さないこと。
-//       もし一時的に変更する場合は drawRank() 内部で局所 save()/restore() を使う。
-void ShogiView::drawRanks(QPainter* painter)
-{
-    // 【安全弁】盤が無ければ段ラベルは描けない
-    if (!m_board) return;
-
-    // 【共通状態設定】段ラベル用の文字色（パレットに従う）
-    painter->setPen(palette().color(QPalette::WindowText));
-
-    // 【描画ループ】1段目から最終段まで順に描画
-    for (int r = 1; r <= m_board->ranks(); ++r) {
-        drawRank(painter, r);
-    }
-}
-
-// 筋番号（file）の描画エントリポイント。
-// 役割：
-//  - 盤が未設定なら何もしない安全弁
-//  - 共通の描画状態（文字色など）を一度だけ設定
-//  - 1..files() を走査して各筋の描画を drawFile() に委譲
-// 備考：フォントサイズ等を変更する場合は、ここでまとめて setFont しておくと効率的。
-// 前提：drawFile() は QPainter の永続状態を汚さない（必要時のみ局所 save()/restore()）。
-void ShogiView::drawFiles(QPainter* painter)
-{
-    // 【安全弁】盤が無ければ筋ラベルは描けない
-    if (!m_board) return;
-
-    // 【共通状態設定】筋ラベル用の文字色（パレットに従う）
-    painter->setPen(palette().color(QPalette::WindowText));
-
-    // 例：フォントサイズを調整したい場合（必要になったら有効化）
-    // QFont f = painter->font();
-    // f.setPointSize(...)
-    // painter->setFont(f);
-
-    // 【描画ループ】1筋目から最終筋まで順に描画
-    for (int c = 1; c <= m_board->files(); ++c) {
-        drawFile(painter, c);
-    }
-}
-
-// E1: 背景を描画する。
-// 役割：ウィジェット全体に畳をイメージした背景色を描画し、将棋盤や駒台との調和を図る。
-void ShogiView::drawBackground(QPainter* painter)
-{
-    if (!m_board) return;
-
-    painter->save();
-
-    // まずウィジェット全体をデフォルトの背景色でクリア
-    painter->fillRect(rect(), palette().color(QPalette::Window));
-
-    // 畳の基本色（薄い黄緑〜緑がかったベージュ）
-    const QColor tatamiBase(200, 190, 130);
-
-    // 将棋盤と駒台を含む領域のみを畳色で描画
-    const QSize fs = fieldSize();
-    const int boardWidth  = fs.width()  * m_board->files();
-    const int boardHeight = fs.height() * m_board->ranks();
-
-    // 駒台の幅（2マス分）
-    const int standWidth = fs.width() * 2;
-
-    // 筋番号の帯の高さ
-    const int fileLabelHeight = std::max(8, int(m_layout.squareSize() * 0.35));
-
-    // 畳領域の計算（将棋盤 + 駒台 + ギャップ + 余白 + 筋番号領域）
-    // 左端: 後手駒台の左端
-    const int tatamiLeft = m_layout.offsetX() - m_layout.standGapPx() - standWidth - m_layout.boardMarginPx();
-    // 右端: 先手駒台の右端
-    const int tatamiRight = m_layout.offsetX() + boardWidth + m_layout.boardMarginPx() + m_layout.standGapPx() + standWidth;
-    // 上端: 筋番号の領域を含める（盤の上端 - 余白 - 筋番号帯）
-    const int tatamiTop = m_layout.offsetY() - m_layout.boardMarginPx() - fileLabelHeight;
-    // 下端: 盤の下端 + 余白 + 筋番号帯（反転時用）
-    const int tatamiBottom = m_layout.offsetY() + boardHeight + m_layout.boardMarginPx() + fileLabelHeight;
-
-    // 畳領域の矩形
-    const QRect tatamiRect(tatamiLeft, tatamiTop,
-                           tatamiRight - tatamiLeft, tatamiBottom - tatamiTop);
-
-    painter->fillRect(tatamiRect, tatamiBase);
-
-    painter->restore();
-}
-
-// 将棋盤の影を描画する（立体感を出すため）。
-// 役割：将棋盤が畳の上に置かれているような立体感を表現する。
-void ShogiView::drawBoardShadow(QPainter* painter)
-{
-    if (!m_board) return;
-
-    painter->save();
-    painter->setRenderHint(QPainter::Antialiasing, true);
-
-    // 9×9マス部分 + 余白を含めた将棋盤全体の矩形
-    const QSize fs = fieldSize();
-    const int boardWidth  = fs.width()  * m_board->files();
-    const int boardHeight = fs.height() * m_board->ranks();
-    const int boardLeft   = m_layout.offsetX() - m_layout.boardMarginPx();
-    const int boardTop    = m_layout.offsetY() - m_layout.boardMarginPx();
-    const int totalWidth  = boardWidth  + m_layout.boardMarginPx() * 2;
-    const int totalHeight = boardHeight + m_layout.boardMarginPx() * 2;
-
-    // 影のオフセットとぼかし幅
-    const int shadowOffsetX = 3;
-    const int shadowOffsetY = 3;
-    const int shadowBlur = 3;
-
-    // 複数の半透明レイヤーで影のぼかし効果を表現（効果控えめ）
-    for (int i = shadowBlur; i >= 0; --i) {
-        const int alpha = 8 - (i * 2);  // 外側ほど薄く（効果控えめ）
-        if (alpha <= 0) continue;
-
-        QColor shadowColor(0, 0, 0, alpha);
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(shadowColor);
-
-        QRect shadowRect(
-            boardLeft + shadowOffsetX - i,
-            boardTop + shadowOffsetY - i,
-            totalWidth + i * 2,
-            totalHeight + i * 2
-        );
-        painter->drawRect(shadowRect);
-    }
-
-    painter->restore();
-}
-
-// 駒台の影を描画する（立体感を出すため）。
-// 役割：駒台が畳の上に置かれているような立体感を表現する。
-void ShogiView::drawStandShadow(QPainter* painter)
-{
-    if (!m_board) return;
-
-    painter->save();
-    painter->setRenderHint(QPainter::Antialiasing, true);
-
-    // 影のオフセットとぼかし幅
-    const int shadowOffsetX = 2;
-    const int shadowOffsetY = 2;
-    const int shadowBlur = 3;
-
-    // 先手（黒）側駒台の矩形を取得
-    const QRect blackStand = blackStandBoundingRect();
-    // 後手（白）側駒台の矩形を取得
-    const QRect whiteStand = whiteStandBoundingRect();
-
-    // 駒台の影を描画するラムダ（効果控えめ）
-    auto drawShadow = [&](const QRect& standRect) {
-        if (!standRect.isValid()) return;
-
-        for (int i = shadowBlur; i >= 0; --i) {
-            const int alpha = 6 - (i * 2);  // 外側ほど薄く（効果控えめ）
-            if (alpha <= 0) continue;
-
-            QColor shadowColor(0, 0, 0, alpha);
-            painter->setPen(Qt::NoPen);
-            painter->setBrush(shadowColor);
-
-            QRect shadowRect(
-                standRect.left() + shadowOffsetX - i,
-                standRect.top() + shadowOffsetY - i,
-                standRect.width() + i * 2,
-                standRect.height() + i * 2
-            );
-            painter->drawRect(shadowRect);
-        }
-    };
-
-    drawShadow(blackStand);
-    drawShadow(whiteStand);
-
-    painter->restore();
-}
-
-// 将棋盤の余白部分（9×9マスの外側の枠）を描画する。
-// 役割：実際の将棋盤に近い見た目にするため、盤の周囲に余白を追加する。
-// 実際の将棋盤: 縦36.4cm×横33.3cm, 余白各約0.8cm（比率約2.4%）
-void ShogiView::drawBoardMargin(QPainter* painter)
-{
-    if (!m_board) return;
-    if (m_layout.boardMarginPx() <= 0) return;
-
-    painter->save();
-
-    // 将棋盤の木目色（盤のマスと同じ色）
-    const QColor boardColor(228, 203, 115, 255);
-
-    // 9×9マス部分の矩形
-    const QSize fs = fieldSize();
-    const int boardWidth  = fs.width()  * m_board->files();
-    const int boardHeight = fs.height() * m_board->ranks();
-    const int boardLeft   = m_layout.offsetX();
-    const int boardTop    = m_layout.offsetY();
-
-    // 余白を含めた将棋盤全体の矩形
-    const int marginLeft   = boardLeft   - m_layout.boardMarginPx();
-    const int marginTop    = boardTop    - m_layout.boardMarginPx();
-    const int marginWidth  = boardWidth  + m_layout.boardMarginPx() * 2;
-
-    // 余白部分を塗りつぶす（4辺）
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(boardColor);
-
-    // 上辺の余白
-    painter->drawRect(QRect(marginLeft, marginTop, marginWidth, m_layout.boardMarginPx()));
-    // 下辺の余白
-    painter->drawRect(QRect(marginLeft, boardTop + boardHeight, marginWidth, m_layout.boardMarginPx()));
-    // 左辺の余白
-    painter->drawRect(QRect(marginLeft, boardTop, m_layout.boardMarginPx(), boardHeight));
-    // 右辺の余白
-    painter->drawRect(QRect(boardLeft + boardWidth, boardTop, m_layout.boardMarginPx(), boardHeight));
-
-    painter->restore();
-}
-
-// 駒台セル（1マス）の描画矩形を算出するユーティリティ。
-// 役割：盤上の基準マス矩形（fieldRect）から、先手/後手の駒台側に水平オフセットした矩形を返す。
-static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int offsetY, const QRect& fieldRect, bool leftSide)
-{
-    QRect adjustedRect;
-
-    if (flip) {
-        // 【反転時】先手は左、後手は右に配置。
-        adjustedRect.setRect(fieldRect.left() + (leftSide ? -param : +param) + offsetX,
-                             fieldRect.top()  + offsetY,
-                             fieldRect.width(),
-                             fieldRect.height());
-    } else {
-        // 【通常時】先手は右、後手は左に配置。
-        adjustedRect.setRect(fieldRect.left() + (leftSide ? +param : -param) + offsetX,
-                             fieldRect.top()  + offsetY,
-                             fieldRect.width(),
-                             fieldRect.height());
-    }
-
-    return adjustedRect;
-}
-
-// 盤の各マス（field）を描画するエントリポイント。
-// 最適化方針を適用：セルごとの save()/restore() を撤去し、共通状態は外側で一度だけ設定。
-void ShogiView::drawBoardFields(QPainter* painter)
-{
-    // 【安全弁】盤が未設定なら何もしない
-    if (!m_board) return;
-
-    // 【共通状態の一括設定】
-    painter->setPen(palette().color(QPalette::Dark));
-
-    // 【描画ループ】段（r）× 筋（c）で全マスを走査し、個々の描画は drawField() に委譲
-    for (int r = 1; r <= m_board->ranks(); ++r) {
-        for (int c = 1; c <= m_board->files(); ++c) {
-            drawField(painter, c, r);
-        }
-    }
-}
-
-void ShogiView::drawBlackNormalModeStand(QPainter* painter)
-{
-    painter->setPen(palette().color(QPalette::Dark));
-    for (int r = 6; r <= 9; ++r) {
-        for (int c = 1; c <= 2; ++c) {
-            drawBlackStandField(painter, c, r);
-        }
-    }
-}
-
-void ShogiView::drawWhiteNormalModeStand(QPainter* painter)
-{
-    painter->setPen(palette().color(QPalette::Dark));
-    for (int r = 1; r <= 4; ++r) {
-        for (int c = 1; c <= 2; ++c) {
-            drawWhiteStandField(painter, c, r);
-        }
-    }
-}
-
-// 通常対局モードにおける「駒台」描画の統括エントリポイント。
-// 役割：先手（黒）→ 後手（白）の順に、通常モード用の駒台マスを描画する関数へ委譲する。
-void ShogiView::drawNormalModeStand(QPainter* painter)
-{
-    // 先手（黒）側の通常モード駒台を描画
-    drawBlackNormalModeStand(painter);
-
-    // 後手（白）側の通常モード駒台を描画
-    drawWhiteNormalModeStand(painter);
-}
-
-// 盤上の全ての駒を描画するエントリポイント。
-// 最適化方針：セル（マス）ごとの save()/restore() を撤去し、共通状態は外側で必要に応じて一度だけ設定。
-// 前提：drawPiece() は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さないこと。
-//       もし一時的な状態変更（座標変換やクリッピング等）が必要な場合は、drawPiece() 内で
-//       その箇所だけ局所的に save()/restore() を行う契約とする。
-// 備考：段は ranks() から 1 へ向かって降順に走査。
-//       （必要に応じて、重なり順やドロップシャドウなどの視覚効果に合わせて順序を変えられる）
-void ShogiView::drawPieces(QPainter* painter)
-{
-    // 【安全弁】盤が未設定なら何もしない
-    if (!m_board) return;
-
-    // 【共通状態の一括設定（必要なら）】
-    // 駒アイコンをスケーリング描画する際の画質を上げたい場合に有効化。
-    // painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-    // 【描画ループ】段（r）を降順、筋（c）を昇順に走査し、各マスの駒を描画
-    for (int r = m_board->ranks(); r > 0; --r) {
-        for (int c = 1; c <= m_board->files(); ++c) {
-            // セルごとの save/restore は行わない（コスト削減）。
-            // drawPiece() 側は必要箇所のみ局所保護する契約。
-            drawPiece(painter, c, r);
-
-            // 【エラーハンドリング】
-            // 描画中に致命的な条件が発生した場合（フォント/画像読み込み失敗など想定）、
-            // フラグを見て素早く中断。セル単位の save() を使っていないため、
-            // ここでの早期 return でも painter 状態リークの懸念はない。
-            if (m_errorOccurred) return;
-        }
-    }
-}
-
-// 【通常対局モード：先手（左側）駒台のアイコンを 4×2 で描画】
-void ShogiView::drawPiecesBlackStandInNormalMode(QPainter* painter)
-{
-    // 左列：R, G, N, P （= 飛, 金, 桂, 歩）
-    // 右列：K, B, S, L （= 王, 角, 銀, 香）
-    const int ranks [4] = { 6, 7, 8, 9 };
-
-    // 左列は file=2、右列は file=1（このコードの座標系では file=2 の方が左寄り）
-    for (int row = 0; row < 4; ++row) {
-        for (int file = 1; file <= 2; ++file) {
-            drawBlackStandPiece(painter, file, ranks[row]);
-        }
-    }
-}
-
-// 【通常対局モード：後手（右側）駒台のアイコンを 4×2 で描画】
-void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter* painter)
-{
-    // 左列：r, g, n, p（= 飛, 金, 桂, 歩）
-    // 右列：k, b, s, l（= 王, 角, 銀, 香）
-    const int ranks [4] = { 4, 3, 2, 1 };
-
-    // 右側駒台でも相対的な“左列”は file=2、“右列”は file=1 が自然に並ぶ
-    for (int row = 0; row < 4; ++row) {
-        for (int file = 1; file <= 2; ++file) {
-            drawWhiteStandPiece(painter, file, ranks[row]);
-        }
-    }
-}
-
-void ShogiView::drawPiecesStandFeatures(QPainter* painter)
-{
-    // 先手/後手の駒台にある「駒」と「枚数」を描画
-    drawPiecesBlackStandInNormalMode(painter);
-    drawPiecesWhiteStandInNormalMode(painter);
-}
-
-// 画面全体の描画エントリポイント（paintEvent）。
-// 方針：
-//  - 最適化後の契約に基づき、セルごとの save()/restore() は各描画関数の内部で
-//    「必要箇所のみ局所的に」行う（外側での大量反復はしない）。
-//  - ここでは共通のレンダリングヒント等を一度だけ設定し、以降のサブ関数は
-//    QPainter の永続状態（ペン/ブラシ/変換/クリップ）を汚さない前提で呼び出す。
-//  - 描画順序は背面→前面のレイヤ構造を明確にし、重ね合わせを安定化させる。
-void ShogiView::paintEvent(QPaintEvent *)
-{
-    // 【安全弁】盤未設定、またはエラーフラグが立っている場合は描画を行わない。
-    if (!m_board || m_errorOccurred) return;
-
-    // 【ペインタ開始】このスコープでのみ QPainter を有効化。
-    QPainter painter(this);
-
-    // 【共通描画状態の一括設定】
-    // 盤の格子線などはジャギーの少ない直線を優先するためアンチエイリアスは基本OFF。
-    // テキストは可読性重視でON、駒アイコンの拡縮品質を上げるため SmoothPixmapTransform をON。
-    painter.setRenderHint(QPainter::Antialiasing, false);
-    painter.setRenderHint(QPainter::TextAntialiasing, true);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
-
-    // 【描画順序：背面 → 前面】
-    // 0) E1: 背景グラデーション（最背面）
-    drawBackground(&painter);
-
-    // 0.3) 将棋盤と駒台の影（立体感）を描画
-    drawBoardShadow(&painter);
-    drawStandShadow(&painter);
-
-    // 0.5) 将棋盤の余白部分（9×9マスの外側）を描画
-    drawBoardMargin(&painter);
-
-    // 1) 盤面（マスの背景・枠など）
-    drawBoardFields(&painter);
-
-    // 2) 局面編集/通常に応じた周辺（駒台グリッドなどのフィールド）
-    drawNormalModeStand(&painter);
-
-    // 3) 盤の星（目印）
-    drawFourStars(&painter);
-
-    // 4) ハイライト（選択/移動可能マスなど）
-    m_highlighting->drawHighlights(painter, m_layout);
-
-    // 5) 盤上の駒
-    drawPieces(&painter);
-
-    // 5.5) 矢印（検討機能の最善手表示）
-    m_highlighting->drawArrows(painter, m_layout);
-
-    // 描画中に致命的な異常が検知された場合はここで打ち切る。
-    if (m_errorOccurred) return;
-
-    // 6) 先手/後手の駒台にある「駒」と「枚数」を描画
-    drawPiecesStandFeatures(&painter);
-
-    // 7) 段・筋ラベル（最前面に近いレイヤに載せる）
-    drawRanks(&painter);
-    drawFiles(&painter);
-
-    // 8) 最前面：ドラッグ中の駒（マウス追従）。盤やラベルより上に重ねる。
-    //    ※ 重要：drawDraggingPiece() の内部で新たに QPainter を begin しないこと。
-    //            （この paintEvent 中は既に painter がアクティブなため競合する）
-    m_interaction.drawDraggingPiece(painter, m_layout, m_pieces);
-}
-
-// drawDraggingPiece は ShogiViewInteraction に移動済み
-
-// 将棋盤の「四隅の星（3,3）（6,3）（3,6）（6,6）」を描画する。
-// 最適化方針：この関数内でのみブラシ/ペン等の状態を一時変更し、終了時に必ず元へ戻す（局所 save/restore）。
-// 役割：盤面上の 4 箇所に小さな点（塗りつぶし円）を打ち、視覚的な基準点を提供する。
-// 座標系：各星の中心は「マスサイズ×(3 or 6) ＋ オフセット(m_layout.offsetX()/Y)」で求める。
-// 改善点：
-//  - B2: 星（目印）の点を適切なサイズに（実際の将棋盤に近いサイズ）
-void ShogiView::drawFourStars(QPainter* painter)
-{
-    // 【状態の局所保護】このブロックでのみ描画状態を変更し、外へ影響させない
-    painter->save();
-
-    // 【描画スタイル】星は塗りつぶし円で表現（濃い茶色で視認性確保）
-    painter->setBrush(QColor(50, 30, 10));  // 濃い茶色
-    painter->setPen(Qt::NoPen);  // 縁取りなし
-
-    // 【サイズ/基準点】
-    // B2: 星の半径を実際の将棋盤に近いサイズに調整（3px）
-    // 実際の将棋盤では星は直径2〜3mm程度、マス約35mmに対して約6〜8%
-    const int starRadius = 3;
-    const QSize fs = fieldSize();
-    const int basePointX3 = fs.width()  * 3; // 横方向3マス分
-    const int basePointX6 = fs.width()  * 6; // 横方向6マス分
-    const int basePointY3 = fs.height() * 3; // 縦方向3マス分
-    const int basePointY6 = fs.height() * 6; // 縦方向6マス分
-
-    // 【描画】（x, y）はウィジェット座標。盤の原点シフトに m_layout.offsetX()/Y を加味。
-    painter->drawEllipse(QPoint(basePointX3 + m_layout.offsetX(), basePointY3 + m_layout.offsetY()), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePointX6 + m_layout.offsetX(), basePointY3 + m_layout.offsetY()), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePointX3 + m_layout.offsetX(), basePointY6 + m_layout.offsetY()), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePointX6 + m_layout.offsetX(), basePointY6 + m_layout.offsetY()), starRadius, starRadius);
-
-    // 【状態復元】外側の描画に影響を残さない
-    painter->restore();
-}
-
-// 盤の左端（X座標, px）を返すゲッター。
-// 役割：盤の描画/ヒットテスト/ラベル配置の基準となる「左側の外側境界」を返す。
-// 備考：反転（m_layout.flipMode()）の有無に関わらず、盤の左端Xは m_layout.offsetX() で一定。
 int ShogiView::boardLeftPx() const { return m_layout.offsetX(); }
 
-// 盤の右端（X座標, px）を返すゲッター。
-// 役割：盤の横幅（files × 1マス幅）を左端に加算し、右側の外側境界（exclusive）を返す。
-//  - files は盤の筋数。盤未設定時は将棋の標準 9 筋を仮定（安全なフォールバック）。
-//  - 戻り値は「右端の外側境界（exclusive）」：左端 <= x < 右端 の右端に相当。
-//    ヒットテスト等で矩形幅を計算する際に扱いやすい表現。
 int ShogiView::boardRightPx() const {
     const int files = m_board ? m_board->files() : 9;
     return m_layout.boardRightPx(files);
 }
 
-
-// 指定された (file, rank) のマス（1 マス分の矩形）を描画する。
-// 役割：盤の反転状態も考慮したマス矩形を算出し、木目風の塗り色と枠線色で1マスを描画
-void ShogiView::drawField(QPainter* painter, const int file, const int rank) const
+int ShogiView::standInnerEdgePx(bool rightSide) const
 {
-    // 【盤座標 → ウィジェット座標】（キャッシュ済み矩形を使用）
-    const QRect fieldRect = cachedFieldRect(file, rank);
-    QRect adjustedRect(fieldRect.left() + m_layout.offsetX(),
-                       fieldRect.top()  + m_layout.offsetY(),
-                       fieldRect.width(),
-                       fieldRect.height());
-
-    painter->save();
-
-    // マスの塗り（落ち着いた木目色）
-    const QColor fillColor(228, 203, 115, 255);
-    painter->setBrush(fillColor);
-
-    // マスの枠線色（濃い茶色）
-    QPen gridPen(QColor(80, 60, 30));
-    gridPen.setWidth(1);
-    painter->setPen(gridPen);
-
-    painter->drawRect(adjustedRect);
-
-    painter->restore();
+    const int files = m_board ? m_board->files() : 9;
+    return m_layout.standInnerEdgePx(rightSide, files);
 }
 
-// 先手（黒）側の駒台セル（1マス）を描画する。
-void ShogiView::drawBlackStandField(QPainter* painter, const int file, const int rank) const
+QRect ShogiView::blackStandBoundingRect() const
 {
-    const QRect fieldRect = cachedFieldRect(file, rank);
-    QRect adjustedRect = makeStandCellRect(
-        m_layout.flipMode(), m_layout.param1(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, true);
-
-    painter->save();
-    const QColor fillColor(228, 167, 46, 255);  // 駒台の塗り（木目系）
-    painter->setPen(fillColor);
-    painter->setBrush(fillColor);
-    painter->drawRect(adjustedRect);
-    painter->restore();
+    if (!m_board) return {};
+    return m_layout.blackStandBoundingRect(m_board->files(), m_board->ranks());
 }
 
-// 後手（白）側の駒台セル（1マス）を描画する。
-void ShogiView::drawWhiteStandField(QPainter* painter, const int file, const int rank) const
+QRect ShogiView::whiteStandBoundingRect() const
 {
-    const QRect fieldRect = cachedFieldRect(file, rank);
-    QRect adjustedRect = makeStandCellRect(
-        m_layout.flipMode(), m_layout.param2(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, false);
-
-    painter->save();
-    const QColor fillColor(228, 167, 46, 255);  // 駒台の塗り（木目系）
-    painter->setPen(fillColor);
-    painter->setBrush(fillColor);
-    painter->drawRect(adjustedRect);
-    painter->restore();
+    if (!m_board) return {};
+    return m_layout.whiteStandBoundingRect(m_board->files(), m_board->ranks());
 }
 
-// 指定された (file, rank) のマスに存在する「駒」を描画する。
-// 方針：この関数では QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を変更しない。
-//       アイコン描画のみを行うため、save()/restore() は不要（最適化適用）。
-// 前提：呼び出し側（例：drawPieces）が m_board の非 nullptr を保証している。
-void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
+void ShogiView::recalcLayoutParams()
 {
-    // 【ドラッグ中の元マスは描かない】
-    // ドラッグ中の駒は最前面で drawDraggingPiece() により別途描画するため、
-    // 元いたマスの駒は二重描画を避ける目的でスキップする。
-    if (m_interaction.dragging() && file == m_interaction.dragFrom().x() && rank == m_interaction.dragFrom().y()) {
-        return;
-    }
-
-    // 【盤座標 → ウィジェット座標】（キャッシュ済み矩形を使用）
-    // 反転状態を考慮したマス矩形を取得し、盤の原点シフト（m_layout.offsetX()/Y）を加味して実座標へ。
-    const QRect fieldRect = cachedFieldRect(file, rank);
-    QRect adjustedRect(fieldRect.left() + m_layout.offsetX(),
-                       fieldRect.top()  + m_layout.offsetY(),
-                       fieldRect.width(),
-                       fieldRect.height());
-
-    // 【盤から駒種を取得】
-    Piece pieceValue = m_board->getPieceCharacter(file, rank);
-
-    // 【アイコン描画】
-    // 空白でなければ駒に対応する QIcon を取得し、存在する場合のみ中央揃えで描く。
-    if (pieceValue != Piece::None) {
-        const QIcon icon = piece(pieceToChar(pieceValue));
-        if (!icon.isNull()) {
-            // SmoothPixmapTransform は paintEvent 側の共通設定で有効化済みを想定。
-            icon.paint(painter, adjustedRect, Qt::AlignCenter);
-        }
-    }
+    m_layout.recalcLayoutParams(font());
+    invalidateFieldRectCache();
+    relayoutTurnLabels();
 }
 
-/**
- * @brief 駒台セル内に「等倍」の駒アイコンを重ね描きする（最大2段＝最大3枚表示）。
- *
- * @param painter       描画先 QPainter（外側で begin() されている前提）
- * @param adjustedRect  駒台の 1 セル矩形（この矩形で clip してセル外は不可視）
- * @param value         駒種キー（piece(value) から QIcon を取得）
- *
- * @details
- * - アイコンはセル等倍（拡大縮小なし）。重ね全体の“中心”が常にセル中心に来るよう配置します。
- * - 枚数に応じて「後ろ（奥）」の駒ほど左にオフセットして重ねます。
- * - 見せる重なりは最大2段（= 表示するアイコンは最大3枚）。4枚目以降は描画せず、バッジのみ総数表示。
- * - 右下の枚数バッジは自動的にサイズ調整し、必要に応じて基準位置を少し左へ寄せてセル内に収めます。
- *
- * @note 調整パラメータ
- *   - maxOverlapSteps … 重なり段数の上限（既定 2）。表示最大枚数は maxOverlapSteps+1。
- *   - perStep         … 1 段あたりの横オフセット量（アイコン幅に対する比率、既定 0.05）。
- *   - hardMax         … 左方向への総広がりの上限（見栄え用、既定 iconW * 0.85）。
- */
-void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
+// ─────────────────────────────────────────────────────────────────────────────
+// 駒画像管理
+// ─────────────────────────────────────────────────────────────────────────────
+
+void ShogiView::setPiece(char type, const QIcon &icon)
 {
-    const Piece pieceKey = charToPiece(value);
-    const int count = (m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey))
-    ? m_interaction.tempPieceStandCounts()[pieceKey]
-    : m_board->m_pieceStand.value(pieceKey);
-    if (count <= 0 || value == QLatin1Char(' ')) return;
-
-    const QIcon icon = piece(value);
-    if (icon.isNull()) return;
-
-    // === 駒画像は正方形のアスペクト比を維持 ===
-    // セルの幅を基準にして、正方形の駒画像を描画
-    // （将棋盤上と同じ幅で、高さも同じにする）
-    const int cellW = adjustedRect.width();
-    const int iconW = cellW;
-    const int iconH = cellW;  // 幅と同じにして正方形を維持
-
-    // ▼ここで“見せる重なり段数”と“最大表示枚数”をハードキャップ
-    const int maxOverlapSteps = 2;                 // 最大重なり段数（= 左への段差は2段まで）
-    const int maxVisibleIcons = maxOverlapSteps + 1; // 最大表示枚数（前面含め最大3枚）
-    const int visible = qMin(count, maxVisibleIcons);
-    const int stepsEff = qMax(0, visible - 1);     // 0..5
-
-    // 重なり幅（横広がり）。※必要なら係数だけ調整（例: 0.05）
-    const qreal perStep = iconW * 0.05;
-    const qreal hardMax = iconW * 0.85;
-    const qreal totalSpread = qMin(hardMax, perStep * qreal(stepsEff));
-
-    // 最前面ベースを「重ね全体センター=マス中心」に配置
-    QRect base(0, 0, iconW, iconH);
-    base.moveCenter(QPoint(adjustedRect.center().x() + int(totalSpread / 2.0),
-                           adjustedRect.center().y()));
-
-    // バッジ右端のはみ出しを微修正
-    int margin = qMax(2, iconW / 40);
-    int overflowRight = base.right() - (adjustedRect.right() - margin);
-    if (overflowRight > 0) base.translate(-overflowRight, 0);
-
-    painter->save();
-    painter->setClipRect(adjustedRect);
-    painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
-    painter->setRenderHint(QPainter::Antialiasing, true);
-
-    const quint64 cacheKey =
-        (static_cast<quint64>(static_cast<quint16>(value.unicode())) << 32U)
-        | (static_cast<quint64>(static_cast<quint16>(iconW)) << 16U)
-        | static_cast<quint64>(static_cast<quint16>(iconH));
-    QPixmap pm;
-    const auto it = m_standPiecePixmapCache.constFind(cacheKey);
-    if (it != m_standPiecePixmapCache.constEnd()) {
-        pm = it.value();
-    } else {
-        pm = icon.pixmap(QSize(iconW, iconH), QIcon::Normal, QIcon::On);
-        if (!pm.isNull()) {
-            m_standPiecePixmapCache.insert(cacheKey, pm);
-        }
-    }
-    const bool iconOk = !pm.isNull();
-
-    // 奥(左)→手前(右)。表示は最大 visible 枚に限定（4枚目以降は描かない）
-    for (int i = 0; i < visible; ++i) {
-        const qreal t = (stepsEff > 0) ? (qreal(i) / qreal(stepsEff)) : 1.0; // 0..1
-        const qreal shiftX = -totalSpread * (1.0 - t);                        // -spread..0
-        const QRect r = base.translated(int(shiftX), 0);
-
-        if (iconOk) painter->drawPixmap(r, pm);
-        else {
-            QFont f = painter->font();
-            f.setPixelSize(qMax(8, int(iconH * 0.7)));
-            painter->setFont(f);
-            painter->drawText(r, Qt::AlignCenter, QString(value));
-        }
-    }
-
-    // 右下バッジ（総数表示）はそのまま
-    if (count >= 2) {
-        const QRect topRect = base;
-        QFont f = painter->font();
-        int px = qBound(9, int(iconH * 0.34), 48);
-        f.setPixelSize(px);
-        f.setBold(true);
-        painter->setFont(f);
-
-        const QString text = QString::number(count);
-        QFontMetrics fm(f);
-        int padX = qMax(3, iconW / 18);
-        int padY = qMax(2, iconH / 22);
-        QSize tsz = fm.size(Qt::TextSingleLine, text);
-
-        const int maxBadgeW = qMax(8, iconW - 2 * margin);
-        const int maxBadgeH = qMax(8, iconH - 2 * margin);
-        const int needW = tsz.width() + padX * 2;
-        const int needH = tsz.height() + padY * 2;
-        const qreal scale = qMin<qreal>(1.0, qMin(qreal(maxBadgeW)/needW, qreal(maxBadgeH)/needH));
-        if (scale < 1.0) {
-            px   = qMax(8, int(px   * scale));
-            padX = qMax(2, int(padX * scale));
-            padY = qMax(2, int(padY * scale));
-            f.setPixelSize(px);
-            painter->setFont(f);
-            fm  = QFontMetrics(f);
-            tsz = fm.size(Qt::TextSingleLine, text);
-        }
-
-        QRect badge(0, 0, qMin(maxBadgeW, tsz.width() + padX * 2),
-                    qMin(maxBadgeH, tsz.height() + padY * 2));
-        badge.moveBottomRight(QPoint(topRect.right() - margin, topRect.bottom() - margin));
-
-        const qreal radius = qMin(badge.width(), badge.height()) * 0.35;
-        QPen outline(QColor(255, 255, 255, 220), qMax(1, iconW / 60));
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(QColor(0, 0, 0, 170));
-        painter->drawRoundedRect(badge, radius, radius);
-
-        painter->setPen(outline);
-        painter->setBrush(Qt::NoBrush);
-        painter->drawRoundedRect(badge, radius, radius);
-
-        painter->setPen(Qt::white);
-        painter->drawText(badge, Qt::AlignCenter, text);
-    }
-
-    painter->restore();
+    m_pieces.insert(type, icon);
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
+    update();
 }
 
-// 先手（黒）側の名前ラベル（ElideLabel）を返すゲッター。
-// 役割：テキスト設定・ツールチップ・スクロール挙動（スライド）等の制御に利用。
-// 備考：本ビュー（this）を親にもつ子ウィジェットへの生ポインタを返す（所有権は移動しない）。
-ElideLabel* ShogiView::blackNameLabel() const { return m_blackNameLabel; }
-
-// 先手（黒）側の時計ラベル（QLabel）を返すゲッター。
-// 役割：残り時間表示・フォント/スタイル調整・配置制御に利用。
-// 備考：所有権は本ビュー側。呼び出し側で delete 等は不要。
-QLabel* ShogiView::blackClockLabel() const { return m_blackClockLabel; }
-
-// 時計表示の有効/無効を設定する。
-// falseにすると時計ラベルが非表示になり、名前ラベルのみ表示される。
-void ShogiView::setClockEnabled(bool enabled)
+QIcon ShogiView::piece(QChar type) const
 {
-    m_clockEnabled = enabled;
-    if (!enabled) {
-        if (m_blackClockLabel) m_blackClockLabel->hide();
-        if (m_whiteClockLabel) m_whiteClockLabel->hide();
-    }
-    // 有効に戻した場合は次のジオメトリ更新時に表示される
+    return m_pieces.value(type, QIcon());
 }
 
-bool ShogiView::isClockEnabled() const { return m_clockEnabled; }
-
-// 後手（白）側の名前ラベル（ElideLabel）を返すゲッター。
-// 役割：長い名前の省略表示（エリプシス）、ホバー時スライド、手動パン等の制御に利用。
-ElideLabel* ShogiView::whiteNameLabel() const { return m_whiteNameLabel; }
-
-// 後手（白）側の時計ラベル（QLabel）を返すゲッター。
-// 役割：残り時間の描画・スタイル変更・レイアウト調整に利用。
-// 注意：いずれのゲッターもヌルを返さない想定（コンストラクタで生成済み）。
-QLabel* ShogiView::whiteClockLabel() const { return m_whiteClockLabel; }
-
-// 先手（黒）側の駒台セルに対応する「駒アイコン」を描画する。
-// 方針：この関数自身は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を変更しない。
-// 手順：
-//  1) (file, rank) に対応する基準マス矩形を取得（反転状態を考慮）
-//  2) 基準マスから「左側の駒台」方向へ水平シフトして、駒台セルの描画矩形を算出
-//  3) rank を先手用の駒種にマッピング（rankToBlackShogiPiece）
-//  4) 枚数/ドラッグ一時枚数を考慮する描画ヘルパ（drawStandPieceIcon）に委譲
-void ShogiView::drawBlackStandPiece(QPainter* painter, const int file, const int rank) const
+void ShogiView::setPieces()
 {
-    // (1) 盤座標 → 基準マス矩形（キャッシュ済み矩形を使用）
-    const QRect fieldRect = cachedFieldRect(file, rank);
+    // ── 先手（大文字） ──
+    setPiece('P', QIcon(":/pieces/Sente_fu45.svg"));
+    setPiece('L', QIcon(":/pieces/Sente_kyou45.svg"));
+    setPiece('N', QIcon(":/pieces/Sente_kei45.svg"));
+    setPiece('S', QIcon(":/pieces/Sente_gin45.svg"));
+    setPiece('G', QIcon(":/pieces/Sente_kin45.svg"));
+    setPiece('B', QIcon(":/pieces/Sente_kaku45.svg"));
+    setPiece('R', QIcon(":/pieces/Sente_hi45.svg"));
+    setPiece('K', QIcon(":/pieces/Sente_ou45.svg"));
 
-    // (2) 先手は「左側の駒台」へ寄せる想定。m_layout.param1() は水平シフト量（px）。
-    QRect adjustedRect = makeStandCellRect(
-        m_layout.flipMode(),               // 反転有無
-        m_layout.param1(),                 // 先手側の寄せ量
-        m_layout.offsetX(), m_layout.offsetY(),     // 盤全体の原点シフト
-        fieldRect,
-        /*leftSide=*/true         // 左側の駒台へ配置
-        );
+    // 昇格駒（先手）
+    setPiece('Q', QIcon(":/pieces/Sente_to45.svg"));
+    setPiece('M', QIcon(":/pieces/Sente_narikyou45.svg"));
+    setPiece('O', QIcon(":/pieces/Sente_narikei45.svg"));
+    setPiece('T', QIcon(":/pieces/Sente_narigin45.svg"));
+    setPiece('C', QIcon(":/pieces/Sente_uma45.svg"));
+    setPiece('U', QIcon(":/pieces/Sente_ryuu45.svg"));
 
-    // (3) 段番号→先手の駒種（駒文字）へのマッピング
-    //     例：歩・香・桂・銀・金・角・飛・玉…などの並びを rank に応じて返す想定。
-    QChar value = rankToBlackShogiPiece(file, rank);
+    // ── 後手（小文字） ──
+    setPiece('p', QIcon(":/pieces/Gote_fu45.svg"));
+    setPiece('l', QIcon(":/pieces/Gote_kyou45.svg"));
+    setPiece('n', QIcon(":/pieces/Gote_kei45.svg"));
+    setPiece('s', QIcon(":/pieces/Gote_gin45.svg"));
+    setPiece('g', QIcon(":/pieces/Gote_kin45.svg"));
+    setPiece('b', QIcon(":/pieces/Gote_kaku45.svg"));
+    setPiece('r', QIcon(":/pieces/Gote_hi45.svg"));
+    setPiece('k', QIcon(":/pieces/Gote_gyoku45.svg"));
 
-    // (4) 駒台セル内へアイコン描画（枚数 0 なら描かない、ドラッグ中は一時枚数を優先）
-    //     ※ drawStandPieceIcon は painter の状態を汚さない前提。
-    drawStandPieceIcon(painter, adjustedRect, value);
+    // 昇格駒（後手）
+    setPiece('q', QIcon(":/pieces/Gote_to45.svg"));
+    setPiece('m', QIcon(":/pieces/Gote_narikyou45.svg"));
+    setPiece('o', QIcon(":/pieces/Gote_narikei45.svg"));
+    setPiece('t', QIcon(":/pieces/Gote_narigin45.svg"));
+    setPiece('c', QIcon(":/pieces/Gote_uma45.svg"));
+    setPiece('u', QIcon(":/pieces/Gote_ryuu45.svg"));
 }
 
-// 後手（白）側の駒台セルに対応する「駒アイコン」を描画する。
-// 方針：この関数自身は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を変更しない。
-// 手順：
-//  1) (file, rank) に対応する基準マス矩形を取得（反転状態を考慮）
-//  2) 基準マスから「右側の駒台」方向へ水平シフトして、駒台セルの描画矩形を算出
-//  3) rank を後手用の駒種にマッピング（rankToWhiteShogiPiece）
-//  4) 枚数/ドラッグ一時枚数を考慮する描画ヘルパ（drawStandPieceIcon）に委譲
-void ShogiView::drawWhiteStandPiece(QPainter* painter, const int file, const int rank) const
+void ShogiView::setPiecesFlip()
 {
-    // (1) 盤座標 → 基準マス矩形（キャッシュ済み矩形を使用）
-    const QRect fieldRect = cachedFieldRect(file, rank);
+    // ── flip 時：小文字（元・後手）に先手の画像を割り当て ──
+    setPiece('p', QIcon(":/pieces/Sente_fu45.svg"));
+    setPiece('l', QIcon(":/pieces/Sente_kyou45.svg"));
+    setPiece('n', QIcon(":/pieces/Sente_kei45.svg"));
+    setPiece('s', QIcon(":/pieces/Sente_gin45.svg"));
+    setPiece('g', QIcon(":/pieces/Sente_kin45.svg"));
+    setPiece('b', QIcon(":/pieces/Sente_kaku45.svg"));
+    setPiece('r', QIcon(":/pieces/Sente_hi45.svg"));
+    setPiece('k', QIcon(":/pieces/Sente_gyoku45.svg"));
 
-    // (2) 後手は「右側の駒台」へ寄せる想定。m_layout.param2() は後手用の水平シフト量（px）。
-    QRect adjustedRect = makeStandCellRect(
-        m_layout.flipMode(),               // 反転有無
-        m_layout.param2(),                 // 後手側の寄せ量
-        m_layout.offsetX(), m_layout.offsetY(),     // 盤全体の原点シフト
-        fieldRect,
-        /*leftSide=*/false        // 右側の駒台へ配置
-        );
+    // 昇格駒（flip：小文字→先手画像）
+    setPiece('q', QIcon(":/pieces/Sente_to45.svg"));
+    setPiece('m', QIcon(":/pieces/Sente_narikyou45.svg"));
+    setPiece('o', QIcon(":/pieces/Sente_narikei45.svg"));
+    setPiece('t', QIcon(":/pieces/Sente_narigin45.svg"));
+    setPiece('c', QIcon(":/pieces/Sente_uma45.svg"));
+    setPiece('u', QIcon(":/pieces/Sente_ryuu45.svg"));
 
-    // (3) 段番号 → 後手の駒種（駒文字）へのマッピング
-    QChar value = rankToWhiteShogiPiece(file, rank);
+    // ── flip 時：大文字（元・先手）に後手の画像を割り当て ──
+    setPiece('P', QIcon(":/pieces/Gote_fu45.svg"));
+    setPiece('L', QIcon(":/pieces/Gote_kyou45.svg"));
+    setPiece('N', QIcon(":/pieces/Gote_kei45.svg"));
+    setPiece('S', QIcon(":/pieces/Gote_gin45.svg"));
+    setPiece('G', QIcon(":/pieces/Gote_kin45.svg"));
+    setPiece('B', QIcon(":/pieces/Gote_kaku45.svg"));
+    setPiece('R', QIcon(":/pieces/Gote_hi45.svg"));
+    setPiece('K', QIcon(":/pieces/Gote_ou45.svg"));
 
-    // (4) 駒台セル内へアイコン描画（枚数0なら描かない／ドラッグ中は一時枚数を優先）
-    //     ※ drawStandPieceIcon は painter の状態を汚さない前提。
-    drawStandPieceIcon(painter, adjustedRect, value);
+    // 昇格駒（flip：大文字→後手画像）
+    setPiece('Q', QIcon(":/pieces/Gote_to45.svg"));
+    setPiece('M', QIcon(":/pieces/Gote_narikyou45.svg"));
+    setPiece('O', QIcon(":/pieces/Gote_narikei45.svg"));
+    setPiece('T', QIcon(":/pieces/Gote_narigin45.svg"));
+    setPiece('C', QIcon(":/pieces/Gote_uma45.svg"));
+    setPiece('U', QIcon(":/pieces/Gote_ryuu45.svg"));
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// 入力座標変換
+// ─────────────────────────────────────────────────────────────────────────────
 
-// 座標変換は ShogiViewInteraction に委譲
 QPoint ShogiView::getClickedSquare(const QPoint &clickPosition) const
 {
     return m_interaction.getClickedSquare(clickPosition, m_layout, m_board);
@@ -1263,40 +444,74 @@ QPoint ShogiView::getClickedSquareInFlippedState(const QPoint& pos) const
     return m_interaction.getClickedSquareInFlippedState(pos, m_layout, m_board);
 }
 
-// マウスボタン解放時のイベント処理。
-// 役割：
-//  - 右ドラッグ中に右ボタンを離した場合は「ドラッグキャンセル」として処理し、rightClicked を通知
-//  - 左ボタン解放：盤/駒台上のクリック位置を算出して clicked を通知（無効/エラー時は無視）
-//  - 右ボタン解放（非ドラッグ時）：同様に rightClicked を通知（無効なら無視）
-// ポイント：
-//  - getClickedSquare() は盤上(1..9,1..9)に加え、駒台の疑似座標 (file=10/11) も返し得る
-//  - endDrag() はドラッグ中の一時状態（カーソル追従や一時カウント等）を確実に解除するため、シグナル送出前に呼ぶ
+// ─────────────────────────────────────────────────────────────────────────────
+// マウス・キーイベント
+// ─────────────────────────────────────────────────────────────────────────────
+
 void ShogiView::mouseReleaseEvent(QMouseEvent *event)
 {
-    // 【右ボタン解放 × ドラッグ中】→ ドラッグのキャンセル扱い
     if (m_interaction.dragging() && event->button() == Qt::RightButton) {
-        endDrag();                                      // 一時状態を解除（描画も含めて正しい静止状態へ）
-        QPoint pt = getClickedSquare(event->pos());     // 右クリック位置（盤 or 駒台）
-        emit rightClicked(pt);                          // キャンセル/コンテキスト用途として通知
-        return;                                         // 以降の分岐に入らない
+        endDrag();
+        QPoint pt = getClickedSquare(event->pos());
+        emit rightClicked(pt);
+        return;
     }
 
-    // 【左ボタン解放】
     if (event->button() == Qt::LeftButton) {
-        QPoint pt = getClickedSquare(event->pos());     // クリック位置を盤/駒台のマス座標に変換
+        QPoint pt = getClickedSquare(event->pos());
 
-
-        if (pt.isNull()) return;                        // 盤外等は無視
-        if (m_errorOccurred) return;                    // 異常時はシグナル送出を抑止
-        emit clicked(pt);                               // 左クリック通知（選択/移動確定など呼び出し側で処理）
+        if (pt.isNull()) return;
+        if (m_errorOccurred) return;
+        emit clicked(pt);
     }
-    // 【右ボタン解放（非ドラッグ時）】
     else if (event->button() == Qt::RightButton) {
-        QPoint pt = getClickedSquare(event->pos());     // 右クリック位置（盤/駒台）
-        if (pt.isNull()) return;                        // 盤外等は無視
-        emit rightClicked(pt);                          // 右クリック通知（ハイライト解除/メニュー等は呼び出し側）
+        QPoint pt = getClickedSquare(event->pos());
+        if (pt.isNull()) return;
+        emit rightClicked(pt);
     }
 }
+
+void ShogiView::mouseMoveEvent(QMouseEvent* event)
+{
+    if (m_interaction.dragging()) {
+        m_interaction.updateDragPos(event->pos());
+        update();
+    }
+    QWidget::mouseMoveEvent(event);
+}
+
+void ShogiView::resizeEvent(QResizeEvent* e)
+{
+    QWidget::resizeEvent(e);
+    updateBlackClockLabelGeometry();
+    updateWhiteClockLabelGeometry();
+    relayoutTurnLabels();
+}
+
+void ShogiView::fitBoardToWidget()
+{
+    // Fixed SizePolicy方式では使用しない
+}
+
+void ShogiView::wheelEvent(QWheelEvent* e)
+{
+    if (e->modifiers() & Qt::ControlModifier) {
+        const int delta = e->angleDelta().y();
+        if (delta > 0) {
+            enlargeBoard();
+        } else if (delta < 0) {
+            reduceBoard();
+        }
+        e->accept();
+        return;
+    }
+
+    QWidget::wheelEvent(e);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ハイライト管理
+// ─────────────────────────────────────────────────────────────────────────────
 
 void ShogiView::addHighlight(Highlight* hl)    { m_highlighting->addHighlight(hl); }
 void ShogiView::removeHighlight(Highlight* hl) { m_highlighting->removeHighlight(hl); }
@@ -1304,112 +519,13 @@ void ShogiView::removeHighlightAllData()        { m_highlighting->removeHighligh
 ShogiView::Highlight* ShogiView::highlight(int index) const { return m_highlighting->highlight(index); }
 int ShogiView::highlightCount() const           { return m_highlighting->highlightCount(); }
 
-// 駒文字 → アイコン（QIcon）を一括で登録する初期化関数。
-// 役割：Qt リソース（":/pieces/..."）から各駒の SVG を読み込み、
-//       setPiece() で内部マップ（m_pieces）に関連付ける。
-// 規約：大文字＝先手（Sente）、小文字＝後手（Gote）。
-//       昇格駒は以下の対応（慣例的アルファベット）を使用：
-//         Q=と金(と)、M=成香、O=成桂、T=成銀、C=馬（角成）、U=龍（飛成）
-// 備考：setPiece() は update() を呼ぶが、同一イベントループ内では描画要求は合流されるため
-//       パフォーマンス上の影響は通常軽微（必要ならバッチ登録に最適化可）。
-void ShogiView::setPieces()
-{
-    // ── 先手（大文字） ──
-    setPiece('P', QIcon(":/pieces/Sente_fu45.svg"));       // 歩
-    setPiece('L', QIcon(":/pieces/Sente_kyou45.svg"));     // 香
-    setPiece('N', QIcon(":/pieces/Sente_kei45.svg"));      // 桂
-    setPiece('S', QIcon(":/pieces/Sente_gin45.svg"));      // 銀
-    setPiece('G', QIcon(":/pieces/Sente_kin45.svg"));      // 金
-    setPiece('B', QIcon(":/pieces/Sente_kaku45.svg"));     // 角
-    setPiece('R', QIcon(":/pieces/Sente_hi45.svg"));       // 飛
-    setPiece('K', QIcon(":/pieces/Sente_ou45.svg"));       // 王/玉（先手側）
+// ─────────────────────────────────────────────────────────────────────────────
+// 操作/状態切替
+// ─────────────────────────────────────────────────────────────────────────────
 
-    // 昇格駒（先手）
-    setPiece('Q', QIcon(":/pieces/Sente_to45.svg"));       // と金（歩成）
-    setPiece('M', QIcon(":/pieces/Sente_narikyou45.svg")); // 成香
-    setPiece('O', QIcon(":/pieces/Sente_narikei45.svg"));  // 成桂
-    setPiece('T', QIcon(":/pieces/Sente_narigin45.svg"));  // 成銀
-    setPiece('C', QIcon(":/pieces/Sente_uma45.svg"));      // 馬（角成）
-    setPiece('U', QIcon(":/pieces/Sente_ryuu45.svg"));     // 龍（飛成）
-
-    // ── 後手（小文字） ──
-    setPiece('p', QIcon(":/pieces/Gote_fu45.svg"));        // 歩
-    setPiece('l', QIcon(":/pieces/Gote_kyou45.svg"));      // 香
-    setPiece('n', QIcon(":/pieces/Gote_kei45.svg"));       // 桂
-    setPiece('s', QIcon(":/pieces/Gote_gin45.svg"));       // 銀
-    setPiece('g', QIcon(":/pieces/Gote_kin45.svg"));       // 金
-    setPiece('b', QIcon(":/pieces/Gote_kaku45.svg"));      // 角
-    setPiece('r', QIcon(":/pieces/Gote_hi45.svg"));        // 飛
-    setPiece('k', QIcon(":/pieces/Gote_gyoku45.svg"));     // 玉（後手側）
-
-    // 昇格駒（後手）
-    setPiece('q', QIcon(":/pieces/Gote_to45.svg"));        // と金（歩成）
-    setPiece('m', QIcon(":/pieces/Gote_narikyou45.svg"));  // 成香
-    setPiece('o', QIcon(":/pieces/Gote_narikei45.svg"));   // 成桂
-    setPiece('t', QIcon(":/pieces/Gote_narigin45.svg"));   // 成銀
-    setPiece('c', QIcon(":/pieces/Gote_uma45.svg"));       // 馬（角成）
-    setPiece('u', QIcon(":/pieces/Gote_ryuu45.svg"));      // 龍（飛成）
-}
-
-// 反転表示用の「駒文字 → アイコン」マッピングを一括登録する。
-// 役割：盤の向きを反転した際に、先手/後手の見た目（面の向き）を入れ替えるため、
-//       小文字（後手の駒文字）に先手用の画像を、大文字（先手の駒文字）に後手用の画像を割り当てる。
-// 規約：通常は「大文字＝先手」「小文字＝後手」だが、flip 用では見た目の整合を保つために画像を逆転。
-//       昇格駒の対応は setPieces() と同じ（Q=と金, M=成香, O=成桂, T=成銀, C=馬, U=龍）。
-// 注意：setPiece() は内部で update() を呼ぶため多数回呼び出すと再描画要求が重なるが、
-//       イベントループ内で合流されるため通常は問題ない（必要ならバッチ化の最適化を検討）。
-void ShogiView::setPiecesFlip()
-{
-    // ── flip 時：小文字（元・後手）に先手の画像を割り当て ──
-    setPiece('p', QIcon(":/pieces/Sente_fu45.svg"));        // 歩
-    setPiece('l', QIcon(":/pieces/Sente_kyou45.svg"));      // 香
-    setPiece('n', QIcon(":/pieces/Sente_kei45.svg"));       // 桂
-    setPiece('s', QIcon(":/pieces/Sente_gin45.svg"));       // 銀
-    setPiece('g', QIcon(":/pieces/Sente_kin45.svg"));       // 金
-    setPiece('b', QIcon(":/pieces/Sente_kaku45.svg"));      // 角
-    setPiece('r', QIcon(":/pieces/Sente_hi45.svg"));        // 飛
-    setPiece('k', QIcon(":/pieces/Sente_gyoku45.svg"));     // 玉（先手側の意匠）
-
-    // 昇格駒（flip：小文字→先手画像）
-    setPiece('q', QIcon(":/pieces/Sente_to45.svg"));        // と金
-    setPiece('m', QIcon(":/pieces/Sente_narikyou45.svg"));  // 成香
-    setPiece('o', QIcon(":/pieces/Sente_narikei45.svg"));   // 成桂
-    setPiece('t', QIcon(":/pieces/Sente_narigin45.svg"));   // 成銀
-    setPiece('c', QIcon(":/pieces/Sente_uma45.svg"));       // 馬（角成）
-    setPiece('u', QIcon(":/pieces/Sente_ryuu45.svg"));      // 龍（飛成）
-
-    // ── flip 時：大文字（元・先手）に後手の画像を割り当て ──
-    setPiece('P', QIcon(":/pieces/Gote_fu45.svg"));         // 歩
-    setPiece('L', QIcon(":/pieces/Gote_kyou45.svg"));       // 香
-    setPiece('N', QIcon(":/pieces/Gote_kei45.svg"));        // 桂
-    setPiece('S', QIcon(":/pieces/Gote_gin45.svg"));        // 銀
-    setPiece('G', QIcon(":/pieces/Gote_kin45.svg"));        // 金
-    setPiece('B', QIcon(":/pieces/Gote_kaku45.svg"));       // 角
-    setPiece('R', QIcon(":/pieces/Gote_hi45.svg"));         // 飛
-    setPiece('K', QIcon(":/pieces/Gote_ou45.svg"));         // 王（後手側の意匠）
-
-    // 昇格駒（flip：大文字→後手画像）
-    setPiece('Q', QIcon(":/pieces/Gote_to45.svg"));         // と金
-    setPiece('M', QIcon(":/pieces/Gote_narikyou45.svg"));   // 成香
-    setPiece('O', QIcon(":/pieces/Gote_narikei45.svg"));    // 成桂
-    setPiece('T', QIcon(":/pieces/Gote_narigin45.svg"));    // 成銀
-    setPiece('C', QIcon(":/pieces/Gote_uma45.svg"));        // 馬（角成）
-    setPiece('U', QIcon(":/pieces/Gote_ryuu45.svg"));       // 龍（飛成）
-}
-
-// マウス操作の入力モードを設定するセッター（ShogiViewInteraction に委譲）。
 void ShogiView::setMouseClickMode(bool mouseClickMode)
 {
     m_interaction.setMouseClickMode(mouseClickMode);
-}
-
-// 1マスの基準サイズ（px）を返すゲッター。
-// 役割：ドラッグ中の駒の描画サイズなど、単一のスカラー値が欲しい場面で使用。
-// 備考：レイアウト計算には QSize を返す fieldSize() も存在する。
-//       非正方表示等の可能性を考慮する場合は fieldSize() の利用も検討。
-int ShogiView::squareSize() const
-{
-    return m_layout.squareSize();
 }
 
 void ShogiView::setSquareSize(int size)
@@ -1428,28 +544,22 @@ void ShogiView::setSquareSize(int size)
     update();
 }
 
-// 盤の表示スケールを 1px 分だけ拡大する。
-// メニュー、キーボードショートカット、Ctrl+ホイールから呼ばれる。
-// 最大サイズ（150px）を超える拡大は行わない。
-// emitSignal=falseの場合、fieldSizeChangedシグナルを発火しない
 void ShogiView::enlargeBoard(bool emitSignal)
 {
     if (m_layout.squareSize() >= 150) {
         return;
     }
-    
+
     m_layout.setSquareSize(m_layout.squareSize() + 1);
     m_standPiecePixmapCache.clear();
     m_highlighting->clearDropPieceCache();
     invalidateFieldRectCache();
     recalcLayoutParams();
 
-    // 親レイアウト（Splitter等）にサイズ変更を通知
     updateGeometry();
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 
-    // シグナルを発火（recalcLayoutParams()でm_layout.fieldSize()が更新済み）
     if (emitSignal) {
         emit fieldSizeChanged(m_layout.fieldSize());
     }
@@ -1468,24 +578,18 @@ void ShogiView::reduceBoard(bool emitSignal)
     m_highlighting->clearDropPieceCache();
     invalidateFieldRectCache();
     recalcLayoutParams();
-    
-    // 親レイアウト（Splitter等）にサイズ変更を通知
+
     updateGeometry();
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
-    
-    // シグナルを発火（recalcLayoutParams()でm_layout.fieldSize()が更新済み）
+
     if (emitSignal) {
         emit fieldSizeChanged(m_layout.fieldSize());
     }
-    
+
     update();
 }
 
-// エラーフラグのセッター。
-// 役割：内部状態 m_errorOccurred を更新し、描画処理やイベント処理側での早期リターン判定に用いる。
-// 備考：この関数自体は再描画要求やシグナル送出を行わない。
-//       必要に応じて、エラー遷移時にログ出力やユーザー通知を別途行う設計も検討。
 void ShogiView::setErrorOccurred(bool newErrorOccurred)
 {
     m_errorOccurred = newErrorOccurred;
@@ -1493,809 +597,120 @@ void ShogiView::setErrorOccurred(bool newErrorOccurred)
 
 void ShogiView::setPositionEditMode(bool positionEditMode)
 {
-    // 変更なしなら何もしない
     if (m_interaction.positionEditMode() == positionEditMode) return;
 
-    // 手番ラベルの可視状態を退避（再レイアウト後に復元する）
     QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
     QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
     const bool blackTurnShown = (tlBlack && tlBlack->isVisible());
     const bool whiteTurnShown = (tlWhite && tlWhite->isVisible());
 
-    // 内部状態更新
     m_interaction.setPositionEditMode(positionEditMode);
 
-    // ── ここが肝 ──────────────────────────────────────────────
-    // 名前・時計・手番の三者を同一ロジックで一括再配置する
-    // （updateBlack/White... だけだと手番ラベルとズレる）
     relayoutTurnLabels();
-    // ────────────────────────────────────────────────────────
 
-    // 手番ラベルの可視状態を復元して前面へ
     if (tlBlack) { tlBlack->setVisible(blackTurnShown); tlBlack->raise(); }
     if (tlWhite) { tlWhite->setVisible(whiteTurnShown); tlWhite->raise(); }
 
-    // 再描画
     update();
 }
 
-// 駒台（スタンド）と盤の横方向ギャップを「何マスぶん（列数）」で設定するセッター。
-// 役割：
-//  - 入力 cols を [0.0, 2.0] の範囲にクランプ（qBound）して m_layout.standGapCols() に反映
-//  - ギャップ変更に伴い、レイアウト関連パラメータを再計算（駒台の位置や各種オフセットが変化し得る）
-//  - sizeHint などの変更を親レイアウトに通知（updateGeometry）
-//  - 時計ラベルのジオメトリを再配置（ギャップに合わせた見栄えを保つ）
-//  - 最後に再描画要求（update）
-// 備考：範囲上限/下限はUIデザイン上の安全域。必要なら定数化して同一ポリシーで運用すると良い。
 void ShogiView::setStandGapCols(double cols)
 {
-    // 【入力値のクランプ】負値や大きすぎる値を抑止（0.0〜2.0 の間に丸める）
     m_layout.setStandGapCols(cols);
-
-    // 【レイアウト再計算】駒台オフセット等、内部の配置パラメータを最新化
     recalcLayoutParams();
-
-    // 【レイアウト通知】sizeHint の変化を親レイアウトに伝える
     updateGeometry();
-
-    // 【関連UIの再配置】時計ラベル等の位置/サイズを反映
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
-
-    // 【再描画要求】変更内容を画面に反映
     update();
 }
 
 void ShogiView::setFlipMode(bool newFlipMode)
 {
-    // 変化なしなら何もしない（無駄な再配置を避ける）
     if (m_layout.flipMode() == newFlipMode) return;
 
-    // いま表示中の手番ラベルを記録しておく（反転後に可視状態を維持するため）
     QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
     QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
     const bool blackShown = (tlBlack && tlBlack->isVisible());
     const bool whiteShown = (tlWhite && tlWhite->isVisible());
 
-    // 反転状態を更新
     m_layout.setFlipMode(newFlipMode);
     invalidateFieldRectCache();
 
-    // ▲/▼/▽/△ の付け替えなど、名前表示を反転状態に同期
     refreshNameLabels();
 
-    // 先手/後手の時計・名前ラベルのジオメトリを反転後の座標系で確定
     updateBlackClockLabelGeometry();
     updateWhiteClockLabelGeometry();
 
-    // 手番ラベルも「反転後の名前/時計の最終ジオメトリ」に追従させる
-    //    （フォント/スタイルのコピーと角丸無効化も relayout 内で同期されます）
     relayoutTurnLabels();
 
-    // 反転前の可視状態を復元（「次の手番」が見えなくなる問題を防ぐ）
     if (tlBlack) { tlBlack->setVisible(blackShown); tlBlack->raise(); }
     if (tlWhite) { tlWhite->setVisible(whiteShown); tlWhite->raise(); }
 
-    // 再描画
     update();
 }
 
-// 反転モードの現在値を取得するゲッター。
-// true=反転表示、false=通常表示。
-bool ShogiView::getFlipMode() const
-{
-    return m_layout.flipMode();
-}
-
-// 盤面と駒台（スタンド）を初期状態に戻すユーティリティ。
-// 役割：
-//  1) 既存のハイライト（選択・候補表示など）を全消去
-//  2) 盤オブジェクトにゲーム初期化を指示（ShogiBoard::resetGameBoard）
-//     ※ 駒配置や駒台の枚数リセット／均し（equalize）が必要なら、その具体処理は ShogiBoard 側の実装に委譲
-//  3) 再描画要求（update）で UI を最新状態に反映
-// 前提：board() が有効（nullptr でない）であること。
-// 注意：必要に応じてエラーハンドリング（board() の空チェック）を追加してもよい。
 void ShogiView::resetAndEqualizePiecesOnStands()
 {
-    removeHighlightAllData();     // (1) ハイライトを全消去
-
-    board()->resetGameBoard();    // (2) 盤と駒台を初期化（具体的挙動は ShogiBoard 側の責務）
-
-    update();                     // (3) 画面を再描画
+    removeHighlightAllData();
+    board()->resetGameBoard();
+    update();
 }
 
-// 平手初期局面（先手後手の持駒なし）に初期化する。
-// 役割：
-//  1) 既存ハイライトを全消去
-//  2) SFEN 文字列（盤面/手番/持駒/手数）を ShogiBoard に適用
-//  3) 駒台（持駒）を初期化（平手＝空）
-//  4) 再描画要求
-// SFEN 例：
-//   "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"
-//    └ 盤面9段を'/'区切りで上段から：小文字=後手, 大文字=先手, 数字=空マス連続数
-//      " b " = 手番（b=先手, w=後手） / " - " = 持駒なし / " 1 " = 手数
 void ShogiView::initializeToFlatStartingPosition()
 {
-    removeHighlightAllData();  // (1)
+    removeHighlightAllData();
 
     QString flatInitialSFENStr =
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-    board()->setSfen(flatInitialSFENStr);  // (2)
+    board()->setSfen(flatInitialSFENStr);
 
-    board()->initStand();  // (3) 平手なので駒台を空に
-    update();              // (4)
+    board()->initStand();
+    update();
 }
 
-// 詰将棋などの問題用初期局面に初期化する。
-// 役割：
-//  1) 既存ハイライトを全消去
-//  2) 問題用の SFEN を適用（持駒あり）
-//  3) 追加で先手の持駒 'K'（※実装依存：ここでは ShogiBoard の仕様に準拠）を1枚増やす
-//  4) 再描画要求
-// SFEN 例：
-//  "5+r1kl/6p2/6Bpn/9/7P1/9/9/9/9 b RSb4g3s3n3l15p 1"
-//   └ 盤面：'+'付きは成駒、" b " は先手番、持駒は連記（例：R,S,b,... と枚数）
-// 注意：board() が nullptr でない前提。必要なら安全弁の null チェックを追加。
 void ShogiView::shogiProblemInitialPosition()
 {
-    removeHighlightAllData();  // (1)
+    removeHighlightAllData();
 
     QString shogiProblemInitialSFENStr =
         "5+r1kl/6p2/6Bpn/9/7P1/9/9/9/9 b RSb4g3s3n3l15p 1";
-    board()->setSfen(shogiProblemInitialSFENStr);  // (2)
+    board()->setSfen(shogiProblemInitialSFENStr);
 
-    board()->incrementPieceOnStand(Piece::BlackKing);  // (3) 先手持駒に K を1枚追加（仕様は ShogiBoard に依存）
-    update();                              // (4)
+    board()->incrementPieceOnStand(Piece::BlackKing);
+    update();
 }
-// 盤面の先後を入れ替える（左右/上下の反転や先後の立場入替を ShogiBoard 側に依頼）。
-// 役割：
-//  1) 現在のハイライトを一旦すべて消去（反転後の座標と不整合になるのを防ぐ）
-//  2) 盤オブジェクトに対して flipSides() を呼び、内部局面を反転
-//     ※ 具体的な反転内容（駒配置の反転、持駒の入替、手番の扱い等）は ShogiBoard の実装に委譲
-//  3) 再描画要求（update）で UI を最新状態に反映
-// 前提：board() が有効（nullptr でない）であること。
+
 void ShogiView::flipBoardSides()
 {
-    removeHighlightAllData();  // (1) ハイライトをクリア
-
-    board()->flipSides();      // (2) 盤側で先後入替・反転処理を実施
-
-    update();                  // (3) 画面再描画
+    removeHighlightAllData();
+    board()->flipSides();
+    update();
 }
 
-QChar ShogiView::rankToBlackShogiPiece(const int file, const int rank) const
-{
-    // 右列(file=1): K, B, S, L
-    if (file == 1) {
-        switch (rank) {
-        case 6: return 'K';
-        case 7: return 'B';
-        case 8: return 'S';
-        case 9: return 'L';
-        default: return ' '; // 想定外の段は空
-        }
-    }
-    // 左列(file=2): R, G, N, P
-    else if (file == 2) {
-        switch (rank) {
-        case 6: return 'R';
-        case 7: return 'G';
-        case 8: return 'N';
-        case 9: return 'P';
-        default: return ' '; // 想定外の段は空
-        }
-    }
-    else {
-        return ' '; // file が 1/2 以外なら空
-    }
-}
-
-QChar ShogiView::rankToWhiteShogiPiece(const int file, const int rank) const
-{
-    // 左列(file=1): r, g, n, p
-    if (file == 1) {
-        switch (rank) {
-        case 4: return 'r';
-        case 3: return 'g';
-        case 2: return 'n';
-        case 1: return 'p';
-        default: return ' '; // 想定外の段は空
-        }
-    }
-    // 右列(file=2): k, b, s, l
-    else if (file == 2) {
-        switch (rank) {
-        case 4: return 'k';
-        case 3: return 'b';
-        case 2: return 's';
-        case 1: return 'l';
-        default: return ' '; // 想定外の段は空
-        }
-    }
-    else {
-        return ' '; // file が 1/2 以外なら空
-    }
-}
-
-// ドラッグ操作の開始処理（ShogiViewInteraction に委譲）。
 void ShogiView::startDrag(const QPoint &from)
 {
     m_interaction.startDrag(from, m_board, mapFromGlobal(QCursor::pos()));
-    update(); // 再描画（ドラッグ中の駒・駒台枚数の見た目を反映）
+    update();
 }
 
-// ドラッグ操作の終了/キャンセル処理（ShogiViewInteraction に委譲）。
 void ShogiView::endDrag()
 {
     m_interaction.endDrag();
-    update();                          // 再描画
+    update();
 }
 
-// マウス移動時のイベント処理。
-// ドラッグ中であれば、現在位置を記録して再描画を要求（ドラッグ中の駒を追従表示）。
-void ShogiView::mouseMoveEvent(QMouseEvent* event)
+void ShogiView::setClockEnabled(bool enabled)
 {
-    if (m_interaction.dragging()) {
-        m_interaction.updateDragPos(event->pos());
-        update();                  // 再描画（paintEvent→drawDraggingPiece で追従描画）
-    }
-    QWidget::mouseMoveEvent(event); // 既定処理・他のイベントフィルタへ伝搬
-}
-
-// 局面編集モードの現在状態を返すゲッター（ShogiViewInteraction に委譲）。
-bool ShogiView::positionEditMode() const
-{
-    return m_interaction.positionEditMode();
-}
-
-void ShogiView::resizeEvent(QResizeEvent* e)
-{
-    // 既定のレイアウト更新など
-    QWidget::resizeEvent(e);
-
-    // 既存のジオメトリ更新
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
-
-    // 手番ラベルの再配置（名前/時計の確定ジオメトリに追従）
-    relayoutTurnLabels();
-}
-
-// fitBoardToWidget は Splitter連動時に使用していたが、
-// Fixed SizePolicy方式では不要なため、空実装として残す（将来の拡張用）
-void ShogiView::fitBoardToWidget()
-{
-    // Fixed SizePolicy方式では使用しない
-}
-
-// Ctrl+マウスホイールで将棋盤を拡大・縮小する。
-// トラックパッドの2本指スクロールでも動作する。
-void ShogiView::wheelEvent(QWheelEvent* e)
-{
-    // Ctrlキーが押されている場合のみ拡大縮小
-    if (e->modifiers() & Qt::ControlModifier) {
-        const int delta = e->angleDelta().y();
-        if (delta > 0) {
-            // 上方向スクロール → 拡大
-            enlargeBoard();
-        } else if (delta < 0) {
-            // 下方向スクロール → 縮小
-            reduceBoard();
-        }
-        e->accept();
-        return;
-    }
-    
-    // Ctrlキーなしの場合は通常のスクロール処理
-    QWidget::wheelEvent(e);
-}
-
-// 先手（黒）側の駒台全体を覆う境界矩形（バウンディングボックス）を算出して返す。
-// 用途：ヒットテスト、再描画領域の最小化、ドラッグ中の当たり判定など。
-// 仕様：
-//  - 行数(rows)：編集モード=8 行（rank 2..9）、通常=7 行（rank 3..9）
-//  - 基準セル：flip の有無とモードに応じて「左上セル」を (leftCol, topRank) で選ぶ
-//  - X/Y：基準セルの左上に盤オフセット(m_layout.offsetX()/Y)を加算し、さらに横シフト(m_layout.param1())を適用
-//  - 幅/高さ：マス幅×2 列、マス高×rows 行
-QRect ShogiView::blackStandBoundingRect() const
-{
-    if (!m_board) return {};
-    return m_layout.blackStandBoundingRect(m_board->files(), m_board->ranks());
-}
-
-QRect ShogiView::whiteStandBoundingRect() const
-{
-    if (!m_board) return {};
-    return m_layout.whiteStandBoundingRect(m_board->files(), m_board->ranks());
-}
-
-// 先手（黒）側：名前・時計ラベルの位置とサイズを更新する。
-// 役割：
-//  - 編集モード中はラベルを非表示にして早期 return
-//  - 駒台のバウンディング矩形（blackStandBoundingRect）を基準に、
-//    「上に置く → 下に置く → 重なっても駒台内に押し込む」の順で最適配置を決定
-//  - ラベルのフォントサイズを矩形に合わせて調整（時計は fitLabelFontToRect、名前はスケール係数）
-// ポイント：
-//  - nameH/clockH はマス高さ fs.height() に比例（最小でも1マス分を確保）
-//  - マージンは外側 marginOuter と名前・時計間 marginInner を使用
-void ShogiView::updateBlackClockLabelGeometry()
-{
-    // ラベル未生成なら何もしない
-    if (!m_blackClockLabel || !m_blackNameLabel) return;
-
-    // 駒台の基準矩形が無効なら非表示
-    const QRect stand = blackStandBoundingRect();
-    if (!stand.isValid()) {
-        m_blackClockLabel->hide();
-        m_blackNameLabel->hide();
-        return;
-    }
-
-    // マス寸法（無効時はフォールバック）
-    const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio));
-
-    // 配置用パラメータ
-    const int marginOuter = 4;  // 駒台との外側マージン
-    const int marginInner = 2;  // 名前と時計の間のマージン
-    const int nameH  = qMax(int(fs.height() * 0.8), fs.height()); // 名前はやや小さめだが最低1マス分
-    const int clockH = qMax(int(fs.height() * 0.9), fs.height()); // 時計はやや大きめだが最低1マス分
-
-    // 左端は駒台に合わせる。Y は上側 or 下側 or 内側の順で決定。
-    const int x = stand.left();
-    const int yAbove = stand.top() - (nameH + marginInner + clockH) - marginOuter;  // 駒台の上
-    const int yBelow = stand.bottom() + 1 + marginOuter;                            // 駒台の下
-
-    QRect nameRect, clockRect;
-
-    if (yAbove >= 0) {
-        // 1) 盤の上端より上にはみ出さないなら上に配置
-        nameRect  = QRect(x, yAbove, stand.width(), nameH);
-        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
-    } else if (yBelow + nameH + marginInner + clockH <= height()) {
-        // 2) 下側に十分なスペースがあれば下に配置
-        nameRect  = QRect(x, yBelow, stand.width(), nameH);
-        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
-    } else {
-        // 3) どちらも無理なら、駒台の内側に縦に積んで配置し、下端オーバー分だけ上に押し上げる
-        nameRect  = QRect(x, stand.top() + marginOuter, stand.width(), nameH);
-        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
-        int overflow = (clockRect.bottom() + marginOuter) - stand.bottom();
-        if (overflow > 0) {
-            nameRect.translate(0, -overflow);
-            clockRect.translate(0, -overflow);
-        }
-    }
-
-    // ジオメトリ反映
-    m_blackNameLabel->setGeometry(nameRect);
-    m_blackClockLabel->setGeometry(clockRect);
-
-    // フォント調整：時計は矩形にフィット、名前はスケール係数で調整
-    fitLabelFontToRect(m_blackClockLabel, m_blackClockLabel->text(), clockRect, 2);
-    QFont f = m_blackNameLabel->font();
-    f.setPointSizeF(qMax(8.0, fs.height() * m_layout.nameFontScale()));
-    m_blackNameLabel->setFont(f);
-
-    // 前面に出して表示
-    m_blackNameLabel->raise();
-    m_blackNameLabel->show();
-    
-    // 時計は有効な場合のみ表示
-    if (m_clockEnabled) {
-        m_blackClockLabel->raise();
-        m_blackClockLabel->show();
-    } else {
-        m_blackClockLabel->hide();
+    m_clockEnabled = enabled;
+    if (!enabled) {
+        if (m_blackClockLabel) m_blackClockLabel->hide();
+        if (m_whiteClockLabel) m_whiteClockLabel->hide();
     }
 }
 
-// 後手（白）側：名前・時計ラベルの位置とサイズを更新する。
-// 役割・手順は黒側と同一。基準矩形は whiteStandBoundingRect() を用いる。
-// 備考：名前ラベルのフォントベースとして黒側のフォントを流用している（デザイン統一のため）。
-void ShogiView::updateWhiteClockLabelGeometry()
-{
-    // ラベル未生成なら何もしない
-    if (!m_whiteClockLabel || !m_whiteNameLabel) return;
-
-    // 駒台の基準矩形が無効なら非表示
-    const QRect stand = whiteStandBoundingRect();
-    if (!stand.isValid()) {
-        m_whiteClockLabel->hide();
-        m_whiteNameLabel->hide();
-        return;
-    }
-
-    // マス寸法（無効時はフォールバック）
-    const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio));
-
-    // 配置用パラメータ
-    const int marginOuter = 4;
-    const int marginInner = 2;
-    const int nameH  = qMax(int(fs.height() * 0.8), fs.height());
-    const int clockH = qMax(int(fs.height() * 0.9), fs.height());
-
-    const int x      = stand.left();
-    const int yAbove = stand.top() - (nameH + marginInner + clockH) - marginOuter;
-    const int yBelow = stand.bottom() + 1 + marginOuter;
-
-    QRect nameRect, clockRect;
-
-    if (yAbove >= 0) {
-        // 上に配置
-        nameRect  = QRect(x, yAbove, stand.width(), nameH);
-        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
-    } else if (yBelow + nameH + marginInner + clockH <= height()) {
-        // 下に配置
-        nameRect  = QRect(x, yBelow, stand.width(), nameH);
-        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
-    } else {
-        // 駒台内に押し込む（オーバー分だけ上へシフト）
-        nameRect  = QRect(x, stand.top() + marginOuter, stand.width(), nameH);
-        clockRect = QRect(x, nameRect.bottom() + 1 + marginInner, stand.width(), clockH);
-        int overflow = (clockRect.bottom() + marginOuter) - stand.bottom();
-        if (overflow > 0) {
-            nameRect.translate(0, -overflow);
-            clockRect.translate(0, -overflow);
-        }
-    }
-
-    // ジオメトリ反映
-    m_whiteNameLabel->setGeometry(nameRect);
-    m_whiteClockLabel->setGeometry(clockRect);
-
-    // フォント調整：時計はフィット、名前はスケール係数
-    fitLabelFontToRect(m_whiteClockLabel, m_whiteClockLabel->text(), clockRect, 2);
-    QFont f = m_blackNameLabel->font(); // 黒側の設定をベースに統一感を保つ
-    f.setPointSizeF(qMax(8.0, fs.height() * m_layout.nameFontScale()));
-    m_whiteNameLabel->setFont(f);
-
-    // 前面に出して表示
-    m_whiteNameLabel->raise();
-    m_whiteNameLabel->show();
-    
-    // 時計は有効な場合のみ表示
-    if (m_clockEnabled) {
-        m_whiteClockLabel->raise();
-        m_whiteClockLabel->show();
-    } else {
-        m_whiteClockLabel->hide();
-    }
-}
-
-// ラベルの表示矩形（rect）にテキスト（text）が収まるよう、フォントサイズを自動調整する。
-// アルゴリズム：二分探索（lo..hi の範囲で 18 回反復）により、収まる最大ポイントサイズ ≒ lo を求める。
-// 手順：
-//  1) null チェック後、paddingPx 分だけ内側に縮めた評価用矩形 inner を作成
-//  2) lo=6pt, hi=200pt を初期範囲として二分探索
-//     - mid を仮サイズにセット → QFontMetrics で text の幅/高さを測定
-//     - inner に収まれば lo=mid（さらに大きくできる）、収まらなければ hi=mid（小さくする）
-//  3) 最終的に lo を採用して label->setFont()
-// 備考：
-//  - QFontMetrics::horizontalAdvance は文字列の描画幅をピクセルで返す（タブ/改行は想定外）。
-//  - ラベル側の word-wrap や elide が有効な場合は実測と差異が出ることがあるため、必要に応じて調整。
-//  - 18 回の反復で十分な精度（約 2^-18 の範囲）を得られる一方でコストも低い。
-void ShogiView::fitLabelFontToRect(QLabel* label, const QString& text,
-                                   const QRect& rect, int paddingPx)
-{
-    // (0) ラベルが無ければ何もしない
-    if (!label) return;
-
-    // (1) 内側にパディングを設けた評価矩形を作成
-    const QRect inner = rect.adjusted(paddingPx, paddingPx, -paddingPx, -paddingPx);
-
-    // (2) フォントサイズの探索範囲 [lo, hi]
-    double lo = 6.0;
-    double hi = 200.0;
-
-    QFont f = label->font();
-
-    // (3) 二分探索で「収まる最大サイズ」を求める
-    for (int i = 0; i < 18; ++i) {
-        const double mid = (lo + hi) * 0.5;
-        f.setPointSizeF(mid);
-
-        // 現在のフォントでテキスト寸法を取得
-        QFontMetrics fm(f);
-        const int w = fm.horizontalAdvance(text); // テキスト幅
-        const int h = fm.height();                // テキスト高さ（ascent+descent）
-
-        // inner 内に収まっていれば、さらに大きくできる余地がある
-        if (w <= inner.width() && h <= inner.height()) {
-            lo = mid;
-        } else {
-            hi = mid;
-        }
-    }
-
-    // (4) 収まる最大サイズを適用
-    f.setPointSizeF(lo);
-    label->setFont(f);
-}
-
-// 先手（黒）側の時計表示テキストを設定する。
-// 役割：
-//  - ラベルの存在チェック
-//  - テキストをセット
-//  - 現在のラベル矩形（geometry）に収まるようフォントサイズを自動調整
-void ShogiView::setBlackClockText(const QString& text)
-{
-    if (!m_blackClockLabel) return;
-    m_blackClockLabel->setText(text);
-    // ラベルの現在ジオメトリを基準に、内側 2px パディングでフィットさせる
-    fitLabelFontToRect(m_blackClockLabel, text, m_blackClockLabel->geometry(), 2);
-}
-
-// 後手（白）側の時計表示テキストを設定する。
-// 役割は黒側と同様。テキスト反映後に矩形へフォントをフィットさせる。
-void ShogiView::setWhiteClockText(const QString& text)
-{
-    if (!m_whiteClockLabel) return;
-    m_whiteClockLabel->setText(text);
-    fitLabelFontToRect(m_whiteClockLabel, text, m_whiteClockLabel->geometry(), 2);
-}
-
-// 名前ラベル用のフォント倍率（スケール）を設定する。
-// 役割：
-//  - 入力スケールを [0.2, 1.0] にクランプ（極端な小さ過ぎ／大き過ぎを防止）
-//  - 黒側ラベルのジオメトリ再計算をトリガし、フォントサイズ反映まで行う
-// メモ：白側も同様に即時反映したい場合は updateWhiteClockLabelGeometry() の呼び出しを追加検討。
-void ShogiView::setNameFontScale(double scale)
-{
-    m_layout.setNameFontScale(scale);
-    updateBlackClockLabelGeometry();
-}
-
-// 文字列から特定のマーク（▲▼▽△）をすべて除去し、前後の空白をトリムして返す。
-// 役割：名前ラベル等に付加される向き・状態表示用の三角記号を取り除いて、
-//       純粋な表示名/テキストを得るヘルパ。
-// 手順：
-//  1) 入力文字列 s を作業用にコピー（t）
-//  2) 対象マーク配列（U+25B2▲, U+25BC▼, U+25BD▽, U+25B3△）を順に remove（全出現を削除）
-//  3) 最後に trimmed() で前後空白を除去し、返却
-QString ShogiView::stripMarks(const QString& s)
-{
-    QString t = s;
-
-    // 除去対象のマーク（黒/白の上下三角）
-    static const QChar marks[] = {
-        QChar(0x25B2), // ▲ BLACK UP-POINTING TRIANGLE
-        QChar(0x25BC), // ▼ BLACK DOWN-POINTING TRIANGLE
-        QChar(0x25BD), // ▽ WHITE DOWN-POINTING TRIANGLE
-        QChar(0x25B3)  // △ WHITE UP-POINTING TRIANGLE
-    };
-
-    // すべての該当記号を削除
-    for (QChar m : marks)
-        t.remove(m);
-
-    // 仕上げに前後の空白をトリム
-    return t.trimmed();
-}
-
-// 先手（黒）側のプレイヤー名を設定する。
-// 役割：
-//  - 入力名から▲▼▽△などの装飾マークを除去（stripMarks）して基底文字列 m_blackNameBase に保持
-//  - 表示用ラベル（向き/手番/反転などに依存）を refreshNameLabels() で更新
-void ShogiView::setBlackPlayerName(const QString& name)
-{
-    qCDebug(lcView).noquote() << "setBlackPlayerName:" << name;
-    m_blackNameBase = stripMarks(name);  // 装飾を除いた素の名前を保存
-    refreshNameLabels();                 // ラベル表示を更新（向き/手番表示などは内部で決定）
-}
-
-// 後手（白）側のプレイヤー名を設定する。
-// 役割は黒側と同様：装飾マークを除去して m_whiteNameBase に保存し、表示を更新。
-void ShogiView::setWhitePlayerName(const QString& name)
-{
-    qCDebug(lcView).noquote() << "setWhitePlayerName:" << name;
-    m_whiteNameBase = stripMarks(name);
-    refreshNameLabels();
-}
-
-// プレイヤー名ラベル（先手/後手）の表示内容とツールチップを最新状態に更新する。
-// 役割：
-//  - 反転状態（m_layout.flipMode()）に応じて、名前の先頭に付ける向きマークを切り替える
-//      * 非反転：先手=▲ / 後手=▽
-//      * 反転　：先手=▼ / 後手=△
-//  - ElideLabel に対して fullText を設定（省略表示時の元テキスト）
-//  - ツールチップはプレーンな名前（装飾なし）を HTML エスケープし、簡易スタイルを付与して設定
-// 注意：
-//  - 本関数はラベルが生成済み（nullptr でない）場合のみ更新を行う
-//  - stripMarks() 済みの素の名前（m_blackNameBase / m_whiteNameBase）を用いる
-void ShogiView::refreshNameLabels()
-{
-    // ── 先手（黒）側 ──
-    if (m_blackNameLabel) {
-        // 向きマークを反転状態で切り替え
-        const QString markBlack = m_layout.flipMode() ? QStringLiteral("▼") : QStringLiteral("▲");
-
-        // 省略表示用ラベルに完全なテキスト（マーク + 素の名前）を設定
-        m_blackNameLabel->setFullText(markBlack + m_blackNameBase);
-
-        // ツールチップ生成用のローカルラムダ（HTML エスケープ＋簡易スタイル）
-        auto mkTip = [](const QString& plain) {
-            return QStringLiteral(
-                       "<div style='background-color:#FFF9C4; color:#333;"
-                       "border:1px solid #C49B00; padding:6px; white-space:nowrap;'>%1</div>")
-                .arg(plain.toHtmlEscaped());
-        };
-        // 装飾のない素の名前をツールチップとして設定
-        m_blackNameLabel->setToolTip(mkTip(m_blackNameBase));
-    }
-
-    // ── 後手（白）側 ──
-    if (m_whiteNameLabel) {
-        // 向きマークを反転状態で切り替え
-        const QString markWhite = m_layout.flipMode() ? QStringLiteral("△") : QStringLiteral("▽");
-
-        // 省略表示用ラベルに完全なテキスト（マーク + 素の名前）を設定
-        m_whiteNameLabel->setFullText(markWhite + m_whiteNameBase);
-
-        // 同じく簡易スタイルのツールチップ（プレーン名をエスケープして安全に表示）
-        auto mkTip = [](const QString& plain) {
-            return QStringLiteral(
-                       "<div style='background-color:#FFF9C4; color:#333;"
-                       "border:1px solid #C49B00; padding:6px; white-space:nowrap;'>%1</div>")
-                .arg(plain.toHtmlEscaped());
-        };
-        m_whiteNameLabel->setToolTip(mkTip(m_whiteNameBase));
-    }
-}
-
-// 盤・駒台・ラベルの相対配置に用いる内部パラメータを再計算する。
-// 役割：
-//  - マスサイズ（m_layout.squareSize()）とユーザー指定の駒台ギャップ（m_layout.standGapCols()）から、
-//    ラベル帯や駒台の水平オフセット（m_layout.param1()/m_layout.param2()）、盤のXオフセット（m_layout.offsetX()）などを更新。
-//  - 段/筋ラベルの描画に最低限必要な隙間（needGapPx）を満たすように、ユーザー指定よりも広い
-//    実効ギャップ（effGapPx/effCols）を採用する（ラベルの食い込み防止）。
-// 各値の意味：
-//  - m_layout.labelBandPx() : 段・筋ラベル帯の高さ（px）
-//  - m_layout.labelFontPt() : ラベル用フォントサイズ（pt）
-//  - m_layout.labelGapPx()  : 盤とラベルのすき間（px）
-//  - m_layout.param1()      : 先手側（黒）駒台列の水平基準オフセット（px）
-//  - m_layout.param2()      : 後手側（白）駒台列の水平基準オフセット（px）
-//  - m_layout.offsetX()     : 盤の左端X（boardLeftPx）に相当する水平オフセット（px）
-//  - m_layout.offsetY()     : 盤の上端Y（筋番号帯を確保するための縦オフセット）（px）
-//  - m_layout.standGapPx()  : 実効的な駒台ギャップ（px）
-// メモ：tweak は微調整用の定数（将来的に 1px のズレ補正等を行いたい場合に使用）。
-void ShogiView::recalcLayoutParams()
-{
-    m_layout.recalcLayoutParams(font());
-    invalidateFieldRectCache();
-    relayoutTurnLabels();
-}
-
-// 指定段（rank）に対応する「段ラベル（漢数字）」を、盤の外縁と駒台の内縁のあいだに描画する。
-// 方針：
-//  - ペン色などの共通状態は上位（drawRanks）で設定済みを前提に、本関数ではフォントのみ調整。
-//  - フォント設定による状態汚染を避けるため、局所的に save()/restore() を用いる（9回程度の呼び出しでコストは軽微）。
-// 手順：
-//  1) rank 行の基準セル矩形を取得し、y 座標とセル高さ h を決定
-//  2) 反転状態に応じて、段ラベル帯を描く側（右側 or 左側）を選択
-//  3) 盤の外縁（boardEdge）と駒台の内縁（innerEdge）の中点を xCenter とし、そこにラベル帯を配置
-//  4) ラベル帯の幅 w は m_layout.labelBandPx() を基本に、利用可能な隙間（gapPx）内に収まるようクリップ
-//  5) フォントサイズを m_layout.labelFontPt() × m_layout.rankFontScale() を基準に、セル高さの 90% を上限に調整
-//  6) rank（1..9）に対応する漢数字を中央揃えで描画
-// 改善点：
-//  - B5: 段・筋の文字サイズを大きく/太くする
-void ShogiView::drawRank(QPainter* painter, const int rank) const
-{
-    if (!m_board) return;
-
-    // (1) 指定段の基準セル（file=1）を取り、Y と高さを決める（キャッシュ済み矩形を使用）
-    const QRect cell = cachedFieldRect(1, rank);
-    const int h = cell.height();
-    const int y = cell.top() + m_layout.offsetY();
-
-    // (2) 反転していなければ右側に段ラベル、反転時は左側に段ラベル
-    const bool rightSide = !m_layout.flipMode();
-
-    // 盤の外縁（右側 or 左側の外端）と、駒台の内縁（盤寄りの端）を取得
-    const int boardEdge  = rightSide ? boardRightPx() : boardLeftPx();
-    const int innerEdge  = standInnerEdgePx(rightSide);
-
-    // (3) その中点を段ラベル帯の中心 X とする
-    const int xCenter    = (boardEdge + innerEdge) / 2;
-
-    // (4) ラベル帯の幅を決定（隙間が狭い場合はクリップ）
-    int w = m_layout.labelBandPx();
-    const int gapPx = std::abs(innerEdge - boardEdge);
-    if (w > gapPx - 2) w = std::max(12, gapPx - 2);
-
-    // ラベル帯の描画矩形
-    const QRect rankRect(xCenter - w/2, y, w, h);
-
-    // (5) フォントを段ラベル用に調整（局所的に保存/復元）
-    painter->save();
-    QFont f = painter->font();
-    // B5: フォントサイズを1.3倍に拡大
-    double pt = m_layout.labelFontPt() * m_layout.rankFontScale() * 1.3;
-    pt = std::min(pt, h * 0.95);   // セル高さの 95% を上限に（元は90%）
-    f.setPointSizeF(pt);
-    // B5: 太字に設定
-    f.setBold(true);
-    painter->setFont(f);
-    // フォント色を濃い茶色に設定
-    painter->setPen(QColor(40, 30, 20));
-
-    // (6) 1..9 段に対応する漢数字を中央揃えで描画
-    static const QStringList rankTexts = { "一","二","三","四","五","六","七","八","九" };
-    if (rank >= 1 && rank <= rankTexts.size()) {
-        painter->drawText(rankRect, Qt::AlignCenter, rankTexts.at(rank - 1));
-    }
-    painter->restore();
-}
-
-// 指定筋（file）に対応する「筋ラベル（全角数字）」を、盤の上端または下端に描画する。
-// 方針：
-//  - ペン色などの共通状態は上位（drawFiles）で設定済み。本関数ではフォントのみを調整。
-//  - フォント設定による状態汚染を避けるため、局所的に save()/restore() を用いる。
-// 手順：
-//  1) file 列の基準セル（rank=1）から X と幅 w を取得（盤オフセットを加味）
-//  2) 反転状態に応じて、ラベル帯の配置先を決定
-//      * 非反転：盤の「上側」空き領域に配置
-//      * 反転　：盤の「下側」空き領域に配置
-//  3) フォントサイズは段番号と同様に m_layout.labelFontPt() を基準にマス幅の95%を上限
-//  4) file（1..9）に対応する全角数字を中央揃えで描画
-void ShogiView::drawFile(QPainter* painter, const int file) const
-{
-    if (!m_board) return;
-
-    // (1) 指定筋の基準セル（rank=1）から X と幅を算出（キャッシュ済み矩形を使用）
-    const QRect cell = cachedFieldRect(file, 1);
-    const int x = cell.left() + m_layout.offsetX();
-    const int w = cell.width();
-
-    // ラベル帯の高さはマスサイズに比例させる
-    const int h = std::max(8, int(m_layout.squareSize() * 0.35));
-    int y = 0;
-
-    // (2) 配置先の決定（反転時は下側、非反転時は上側）
-    if (m_layout.flipMode()) {
-        const QSize fs = fieldSize();
-        const int boardBottom = m_layout.offsetY() + fs.height() * m_board->ranks(); // 盤の下端Y
-        y = boardBottom + m_layout.labelGapPx();                                      // 盤下からギャップ分だけ離す
-    } else {
-        // 盤の上に配置（盤からギャップ分だけ離す）
-        y = m_layout.offsetY() - m_layout.labelGapPx() - h;
-        if (y < 0) y = 0;
-    }
-
-    const QRect fileRect(x, y, w, h);
-
-    // (3) フォント調整（局所保護）- 段番号と同じ計算方式
-    painter->save();
-    QFont f = painter->font();
-    // 段番号と同様: m_layout.labelFontPt() * m_layout.rankFontScale() * 1.3 を基準に、マス幅の95%を上限
-    double pt = m_layout.labelFontPt() * m_layout.rankFontScale() * 1.3;
-    pt = std::min(pt, w * 0.95);   // マス幅の 95% を上限に
-    f.setPointSizeF(pt);
-    f.setBold(true);
-    painter->setFont(f);
-    // フォント色を濃い茶色に設定
-    painter->setPen(QColor(40, 30, 20));
-
-    // (4) 全角数字 １..９ を中央描画
-    static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };
-    if (file >= 1 && file <= fileTexts.size())
-        painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignVCenter, fileTexts.at(file - 1));
-
-    painter->restore();
-}
-
-int ShogiView::standInnerEdgePx(bool rightSide) const
-{
-    const int files = m_board ? m_board->files() : 9;
-    return m_layout.standInnerEdgePx(rightSide, files);
-}
-
-void ShogiView::setRankFontScale(double scale)
-{
-    m_layout.setRankFontScale(scale);
-    update(); // スケール変更を即時反映
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// 手番・ハイライトスタイル
+// ─────────────────────────────────────────────────────────────────────────────
 
 void ShogiView::setActiveSide(bool blackTurn)     { m_highlighting->setActiveSide(blackTurn); }
 void ShogiView::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff)
@@ -2303,29 +718,27 @@ void ShogiView::setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const 
     m_highlighting->setHighlightStyle(bgOn, fgOn, fgOff);
 }
 
-// 盤（1 マス）のピクセルサイズ変更をレイアウトに反映するユーティリティ。
-// 役割：fieldSize を m_layout.squareSize() の正方に設定し、レイアウトへ通知。
-// 備考：setFieldSize() 側で updateGeometry() と時計ラベルジオメトリ更新を既に行っているため、
-//       ここでの updateGeometry() は冗長だが無害（将来的に削除検討可）。
+void ShogiView::setRankFontScale(double scale)
+{
+    m_layout.setRankFontScale(scale);
+    update();
+}
+
 void ShogiView::updateBoardSize()
 {
-    setFieldSize(QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio))); // 1 マスのサイズを更新（内部で再レイアウトも行う）
-    updateGeometry();                                // 冗長だが安全側の再通知
-
-    // 盤マスサイズ変更に伴い、手番ラベルの位置/フォントも追従
+    setFieldSize(QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio)));
+    updateGeometry();
     relayoutTurnLabels();
 }
 
 void ShogiView::setUrgencyVisuals(Urgency u) { m_highlighting->setUrgencyVisuals(u); }
-
-ShogiViewHighlighting* ShogiView::highlighting() const { return m_highlighting; }
 
 void ShogiView::setBlackTimeMs(qint64 ms) { m_blackTimeMs = ms; }
 void ShogiView::setWhiteTimeMs(qint64 ms) { m_whiteTimeMs = ms; }
 
 QImage ShogiView::toImage(qreal scale)
 {
-    QPixmap pm = this->grab(rect());        // 背景＋子ウィジェット込み
+    QPixmap pm = this->grab(rect());
     QImage img = pm.toImage();
     if (!qFuzzyCompare(scale, 1.0)) {
         img = img.scaled(img.size() * scale,
@@ -2339,17 +752,13 @@ void ShogiView::applyBoardAndRender(ShogiBoard* board)
 {
     if (!board) return;
 
-    // 1) 駒アイコンの用意：現在の反転状態に合わせて読込
     if (m_layout.flipMode()) setPiecesFlip();
     else            setPieces();
 
-    // 2) 盤データの適用
     setBoard(board);
 
-    // 3) マスサイズの再適用（縦横比率を反映）
     setFieldSize(QSize(squareSize(), qRound(squareSize() * ShogiViewLayout::kSquareAspectRatio)));
 
-    // 4) 再描画
     update();
 }
 
@@ -2383,449 +792,6 @@ void ShogiView::setUiMuted(bool on) {
 void ShogiView::setActiveIsBlack(bool activeIsBlack)
 {
     m_highlighting->setActiveIsBlack(activeIsBlack);
-}
-
-// 手番ラベルを（無ければ）生成して初期設定する。
-// ・参照元（黒=名前／白=時計）からフォント/色/背景をコピー
-// ・角丸を無効化（border-radius:0）して四角い枠に統一
-// ・内部マージンやラップを無効化して文字欠けを抑制
-void ShogiView::ensureTurnLabels()
-{
-    // 先手用
-    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
-    if (!tlBlack) {
-        tlBlack = new QLabel(tr("次の手番"), this);
-        tlBlack->setObjectName(QStringLiteral("turnLabelBlack"));
-        tlBlack->setAlignment(Qt::AlignCenter);
-        tlBlack->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-        tlBlack->setContentsMargins(0, 0, 0, 0);
-        tlBlack->setMargin(0);
-        tlBlack->setWordWrap(false);
-        tlBlack->setTextFormat(Qt::PlainText);
-        tlBlack->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-        tlBlack->hide();
-        // 初期見た目をコピー + 角丸を外す + フォントサイズを除去（作成時のみ）
-        if (m_blackNameLabel) {
-            QString style = removeFontSizeFromStyle(m_blackNameLabel->styleSheet());
-            tlBlack->setStyleSheet(ensureNoBorderRadiusStyle(style));
-        }
-    }
-
-    // 後手用
-    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
-    if (!tlWhite) {
-        tlWhite = new QLabel(tr("次の手番"), this);
-        tlWhite->setObjectName(QStringLiteral("turnLabelWhite"));
-        tlWhite->setAlignment(Qt::AlignCenter);
-        tlWhite->setAttribute(Qt::WA_TransparentForMouseEvents, true);
-        tlWhite->setContentsMargins(0, 0, 0, 0);
-        tlWhite->setMargin(0);
-        tlWhite->setWordWrap(false);
-        tlWhite->setTextFormat(Qt::PlainText);
-        tlWhite->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
-        tlWhite->hide();
-        // 初期見た目をコピー + 角丸を外す + フォントサイズを除去（作成時のみ）
-        if (m_whiteClockLabel) {
-            QString style = removeFontSizeFromStyle(m_whiteClockLabel->styleSheet());
-            tlWhite->setStyleSheet(ensureNoBorderRadiusStyle(style));
-        }
-    }
-}
-
-void ShogiView::relayoutTurnLabels()
-{
-    ensureTurnLabels();
-
-    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
-    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
-
-    QLabel* bn = m_blackNameLabel;  // 先手（黒）名前
-    QLabel* bc = m_blackClockLabel; // 先手（黒）時計
-    QLabel* wn = m_whiteNameLabel;  // 後手（白）名前
-    QLabel* wc = m_whiteClockLabel; // 後手（白）時計
-    if (!bn || !bc || !wn || !wc || !tlBlack || !tlWhite) return;
-
-    // 角丸を完全無効化（見た目を統一） ※ 可視/不可視には触らない
-    auto safeSquare = [](QLabel* lab){ if (lab) enforceSquareCorners(lab); };
-    safeSquare(bn); safeSquare(bc); safeSquare(wn); safeSquare(wc);
-    safeSquare(tlBlack); safeSquare(tlWhite);
-
-    // 1マス寸法（fallbackあり）
-    const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio));
-
-    // 名前ラベルのフォントを（双方）同一スケールで調整
-    {
-        QFont f = bn->font();
-        f.setPointSizeF(qMax(8.0, fs.height() * m_layout.nameFontScale()));
-        bn->setFont(f);
-        wn->setFont(f);
-    }
-
-    // ラベル高さの安全取得（フォントメトリクスベースで最小限に）
-    auto hLab = [&](QLabel* lab, int /*fallbackPx*/)->int {
-        if (!lab) return static_cast<int>(fs.height() * 0.5);
-        QFontMetrics fm(lab->font());
-        // フォントの高さ + 上下に2pxずつのパディング
-        return fm.height() + 4;
-    };
-
-    // 外側余白は維持、ラベル間の余白は 0 にする
-    const int marginOuter = 2; // 駒台と最上段/最下段ラベルの外側余白
-    const int marginInner = 1; // ラベル間の余白（1pxで密接に）
-
-    // 駒台外接矩形
-    const QRect standBlack = blackStandBoundingRect();
-    const QRect standWhite = whiteStandBoundingRect();
-    if (!standBlack.isValid() || !standWhite.isValid()) return;
-
-    const int BW = standBlack.width();
-    const int BX = standBlack.left();
-    const int WW = standWhite.width();
-    const int WX = standWhite.left();
-
-    // 各高さ（turn は sizeHint/既存geometry を尊重）
-    // 時計が無効の場合は時計ラベルの高さを0にして間隔を詰める
-    const int HnBlack = hLab(bn, fs.height());
-    const int HcBlack = m_clockEnabled ? hLab(bc, fs.height()) : 0;
-    const int HtBlack = hLab(tlBlack, fs.height());
-
-    const int HnWhite = hLab(wn, fs.height());
-    const int HcWhite = m_clockEnabled ? hLab(wc, fs.height()) : 0;
-    const int HtWhite = hLab(tlWhite, fs.height());
-
-    // 直下に縦積み（駒台の下）: [lab1][lab2][lab3]
-    // 時計が無効の場合はlab2（時計）をスキップして[lab1][lab3]のみ配置
-    auto stackBelowStand = [&](const QRect& stand, int X, int W,
-                               QLabel* lab1, int H1,
-                               QLabel* lab2, int H2,
-                               QLabel* lab3, int H3)
-    {
-        int y = stand.bottom() + 1 + marginOuter;
-        QRect r1(X, y, W, H1);
-        QRect r2, r3;
-        
-        if (H2 > 0) {
-            // 時計が有効: [lab1][lab2][lab3]
-            r2 = QRect(X, r1.bottom() + marginInner, W, H2);
-            r3 = QRect(X, r2.bottom() + marginInner, W, H3);
-        } else {
-            // 時計が無効: lab2をスキップして[lab1][lab3]
-            r2 = QRect(X, r1.bottom(), W, 0); // 高さ0で配置
-            r3 = QRect(X, r1.bottom() + marginInner, W, H3);
-        }
-
-        // 画面下オーバー分は上に押し上げる（順序は保持）
-        int overflow = (r3.bottom() + marginOuter) - height();
-        if (overflow > 0) { r1.translate(0,-overflow); r2.translate(0,-overflow); r3.translate(0,-overflow); }
-
-        lab1->setGeometry(r1);
-        lab2->setGeometry(r2);
-        lab3->setGeometry(r3);
-
-        // 時計は枠にフィット（有効時のみ）
-        if (H2 > 0 && (lab2 == m_blackClockLabel || lab2 == m_whiteClockLabel)) {
-            fitLabelFontToRect(lab2, lab2->text(), r2, 2);
-        }
-        // 次の手番ラベルは枠にフィット（lab3がturnLabel）
-        if (H3 > 0 && (lab3 == tlBlack || lab3 == tlWhite)) {
-            fitLabelFontToRect(lab3, lab3->text(), r3, 2);
-        }
-    };
-
-    // 直上に縦積み（駒台の上）: 上から [lab1][lab2][lab3]
-    // 時計が無効の場合はlab3（時計）をスキップして[lab1][lab2]のみ配置
-    auto stackAboveStand = [&](const QRect& stand, int X, int W,
-                               QLabel* lab1, int H1,
-                               QLabel* lab2, int H2,
-                               QLabel* lab3, int H3)
-    {
-        int totalH;
-        if (H3 > 0) {
-            // 時計が有効
-            totalH = H1 + marginInner + H2 + marginInner + H3;
-        } else {
-            // 時計が無効: lab3をスキップ
-            totalH = H1 + marginInner + H2;
-        }
-        int yTop = stand.top() - 1 - marginOuter - totalH;
-        if (yTop < 0) yTop = 0;
-
-        QRect r1(X, yTop, W, H1);
-        QRect r2(X, r1.bottom() + marginInner, W, H2);
-        QRect r3;
-        
-        if (H3 > 0) {
-            r3 = QRect(X, r2.bottom() + marginInner, W, H3);
-        } else {
-            r3 = QRect(X, r2.bottom(), W, 0); // 高さ0で配置
-        }
-
-        lab1->setGeometry(r1);
-        lab2->setGeometry(r2);
-        lab3->setGeometry(r3);
-
-        // 時計は枠にフィット（有効時のみ）
-        if (H3 > 0 && (lab3 == m_blackClockLabel || lab3 == m_whiteClockLabel)) {
-            fitLabelFontToRect(lab3, lab3->text(), r3, 2);
-        }
-        // 次の手番ラベルは枠にフィット（lab1がturnLabel）
-        if (H1 > 0 && (lab1 == tlBlack || lab1 == tlWhite)) {
-            fitLabelFontToRect(lab1, lab1->text(), r1, 2);
-        }
-    };
-
-    // 並び順は以前の仕様通り（未反転: 左=後手・右=先手 / 反転: 左=先手・右=後手）
-    if (!m_layout.flipMode()) {
-        // 左（後手）：駒台の下に [名前][時計][次の手番]
-        stackBelowStand(standWhite, WX, WW, wn, HnWhite, wc, HcWhite, tlWhite, HtWhite);
-        // 右（先手）：駒台の上に [次の手番][名前][時計]
-        stackAboveStand(standBlack, BX, BW, tlBlack, HtBlack, bn, HnBlack, bc, HcBlack);
-    } else {
-        // 左（先手）：駒台の下に [名前][時計][次の手番]
-        stackBelowStand(standBlack, BX, BW, bn, HnBlack, bc, HcBlack, tlBlack, HtBlack);
-        // 右（後手）：駒台の上に [次の手番][名前][時計]
-        stackAboveStand(standWhite, WX, WW, tlWhite, HtWhite, wn, HnWhite, wc, HcWhite);
-    }
-
-    // Zオーダー（可視/不可視は変更しない）
-    bn->raise(); bc->raise(); wn->raise(); wc->raise();
-    tlBlack->raise(); tlWhite->raise();
-
-    relayoutEditExitButton();
-}
-
-void ShogiView::updateTurnIndicator(ShogiGameController::Player now)
-{
-    if (!m_blackNameLabel || !m_whiteClockLabel) return;
-
-    ensureTurnLabels();
-
-    QLabel* tlBlack = this->findChild<QLabel*>(QStringLiteral("turnLabelBlack"));
-    QLabel* tlWhite = this->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
-    if (!tlBlack || !tlWhite) return;
-
-    // いったん両方隠す
-    tlBlack->hide();
-    tlWhite->hide();
-
-    // 配置更新（黒は駒台直上アンカー／白は従来）。内部で角丸無効化・スタイル同期も実施。
-    relayoutTurnLabels();
-
-    // 起動直後など now==NoPlayer の場合でも先手を既定表示にする
-    const auto side = (now == ShogiGameController::Player1 || now == ShogiGameController::Player2)
-                          ? now : ShogiGameController::Player1;
-
-    if (side == ShogiGameController::Player1) {
-        tlBlack->show();
-        tlBlack->raise();
-    } else {
-        tlWhite->show();
-        tlWhite->raise();
-    }
-}
-
-void ShogiView::ensureAndPlaceEditExitButton()
-{
-    ensureTurnLabels();
-
-    QLabel* bn = m_blackNameLabel;
-    QLabel* wn = m_whiteNameLabel;
-    if (!bn) bn = this->findChild<QLabel*>(QStringLiteral("blackNameLabel"));
-    if (!wn) wn = this->findChild<QLabel*>(QStringLiteral("whiteNameLabel"));
-
-    QPushButton* exitBtn = this->findChild<QPushButton*>(QStringLiteral("editExitButton"));
-    if (!exitBtn) {
-        exitBtn = new QPushButton(tr("編集終了"), this);
-        exitBtn->setObjectName(QStringLiteral("editExitButton"));
-        exitBtn->setVisible(false);
-        exitBtn->setFocusPolicy(Qt::NoFocus);
-        exitBtn->setCursor(Qt::PointingHandCursor);
-        exitBtn->setAutoDefault(false);
-        exitBtn->setDefault(false);
-        exitBtn->setFlat(false);
-        exitBtn->raise();
-    }
-
-    // 背景は全面赤（他はそのまま）
-    const QString solidRedSS = QString::fromLatin1(R"(
-        QPushButton#editExitButton {
-            border: 1px solid #b40000;
-            border-radius: 12px;
-            padding: 4px 12px;
-            color: #ffffff;
-            font-weight: 600;
-            background-color: #e00000;
-        }
-        QPushButton#editExitButton:hover {
-            border: 1px solid #ff4444;
-            background-color: #e00000;
-        }
-        QPushButton#editExitButton:pressed {
-            padding-top: 5px; padding-bottom: 3px;
-            border: 1px solid #8a0000;
-            background-color: #e00000;
-        }
-        QPushButton#editExitButton:disabled {
-            color: rgba(255,255,255,0.75);
-            border-color: #9a0000;
-            background-color: #e00000;
-        }
-    )");
-    exitBtn->setStyleSheet(solidRedSS);
-
-    // ── 右側の“名前ラベル”を基準に配置 ──
-    QLabel* base = nullptr;
-    if (bn && wn) {
-        const int bx = bn->geometry().center().x();
-        const int wx = wn->geometry().center().x();
-        base = (bx > wx) ? bn : wn;
-    } else {
-        base = bn ? bn : wn;
-    }
-
-    QRect baseGeo;
-    if (base) {
-        baseGeo = base->geometry();
-        exitBtn->setFont(base->font());
-    } else {
-        if (m_board) {
-            const QSize fs = fieldSize().isValid() ? fieldSize()
-                                                   : QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio));
-            const QRect boardRect(m_layout.offsetX(), m_layout.offsetY(),
-                                  fs.width() * m_board->files(),
-                                  fs.height() * m_board->ranks());
-            const int sideGap  = 8;
-            const int sideWide = 160;
-            baseGeo = QRect(boardRect.right() + 1 + sideGap,
-                            boardRect.top(), sideWide, 1);
-        } else {
-            baseGeo = QRect(this->width() - 180, 10, 160, 1);
-        }
-    }
-
-    int x = baseGeo.x();
-    int w = baseGeo.width();
-    const int maxW = this->width() - x - 4;
-    if (w > maxW) w = maxW;
-
-    fitEditExitButtonFont(exitBtn, w);
-
-    const int hBtn = qMax(exitBtn->sizeHint().height(), 28);
-    int  y = 0;
-    bool yFixed = false;
-
-    if (m_board) {
-        const QSize fs = fieldSize().isValid() ? fieldSize()
-                                               : QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio));
-        const QRect boardRect(m_layout.offsetX(), m_layout.offsetY(),
-                              fs.width() * m_board->files(),
-                              fs.height() * m_board->ranks());
-        y = boardRect.top();        //1段目のY
-        yFixed = true;
-    }
-
-    if (!yFixed) {
-        const int vGap = 4;
-        y = baseGeo.y() - hBtn - vGap;
-        if (y < 0) y = 0;
-    }
-
-    exitBtn->setGeometry(x, y, w, hBtn);
-}
-
-// ラベル類の再配置後に呼んでください（resizeEvent/盤サイズ変更/回転後など）。
-void ShogiView::relayoutEditExitButton()
-{
-    ensureAndPlaceEditExitButton();
-}
-
-// 「局面編集終了」ボタンの見た目（目立つ色・文字色）を設定
-void ShogiView::styleEditExitButton(QPushButton* btn)
-{
-    if (!btn) return;
-
-    // 角丸は 0（プロジェクトの統一方針に合わせてスクエア）
-    // 目立つ赤系、文字は白、ホバー/押下で濃くする
-    btn->setStyleSheet(
-        "QPushButton#editExitButton {"
-        "  background: #e53935;"
-        "  color: #ffffff;"
-        "  border: 1px solid #8e0000;"
-        "  padding: 6px 10px;"
-        "  font-weight: 600;"
-        "  border-radius: 0px;"
-        "}"
-        "QPushButton#editExitButton:hover {"
-        "  background: #d32f2f;"
-        "}"
-        "QPushButton#editExitButton:pressed {"
-        "  background: #b71c1c;"
-        "}"
-        "QPushButton#editExitButton:disabled {"
-        "  background: #bdbdbd;"
-        "  color: #ffffff;"
-        "  border-color: #9e9e9e;"
-        "}"
-        );
-}
-
-// ボタンの文字列が maxWidth に必ず収まるよう、フォントサイズを自動調整（縮小のみ）
-void ShogiView::fitEditExitButtonFont(QPushButton* btn, int maxWidth)
-{
-    if (!btn || maxWidth <= 20) return;
-
-    // 左右パディングと枠線ぶんを控除（styleSheet に合わせて 10px+10px + α）
-    const int inner = qMax(1, maxWidth - 24);
-
-    QFont f = btn->font();
-    int point = f.pointSize();
-    int pixel = f.pixelSize();
-
-    // pointSize が -1 の場合に備えて pixelSize を優先的に使う
-    if (point <= 0 && pixel <= 0) {
-        // どちらも不明なら適当な既定値
-        point = 12;
-        f.setPointSize(point);
-        btn->setFont(f);
-    }
-
-    auto fits = [&](const QFont& tf)->bool {
-        QFontMetrics fm(tf);
-        const int textW = fm.horizontalAdvance(btn->text());
-        return textW <= inner;
-    };
-
-    // まず現在サイズで試す
-    if (fits(f)) {
-        btn->setFont(f);
-        return;
-    }
-
-    // 縮小ループ（下限 8pt or 12px）
-    const int minPoint = 8;
-    const int minPixel = 12;
-
-    if (pixel > 0) {
-        int sz = pixel;
-        while (sz > minPixel) {
-            QFont tf = f;
-            tf.setPixelSize(--sz);
-            if (fits(tf)) { btn->setFont(tf); return; }
-        }
-        // 収まらない場合でも下限でセット
-        f.setPixelSize(minPixel);
-        btn->setFont(f);
-    } else {
-        int sz = point;
-        while (sz > minPoint) {
-            QFont tf = f;
-            tf.setPointSize(--sz);
-            if (fits(tf)) { btn->setFont(tf); return; }
-        }
-        f.setPointSize(minPoint);
-        btn->setFont(f);
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

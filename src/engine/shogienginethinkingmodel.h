@@ -16,7 +16,6 @@
  * 時間・深さ・ノード数・評価値・盤面・読み筋の6列を提供する。
  * MultiPVモードではmultipv値に基づく行の更新・挿入をサポートする。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ShogiEngineThinkingModel : public AbstractListModel<ShogiInfoRecord>
 {

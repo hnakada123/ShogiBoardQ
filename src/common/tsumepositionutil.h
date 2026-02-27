@@ -13,7 +13,6 @@
  * usiMovesが利用可能な場合は "position startpos moves ..." 形式を使用し、
  * そうでない場合は "position sfen ..." 形式にフォールバックする。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class TsumePositionUtil {
 public:

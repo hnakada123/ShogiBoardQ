@@ -15,7 +15,6 @@
  *
  * 棋譜読み込み後、分岐を含む棋譜データを行単位で平坦化した結果。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 struct ResolvedRow {
     int startPly = 1;               ///< 開始手数
@@ -32,7 +31,6 @@ struct ResolvedRow {
  *
  * 読み込んだ棋譜データとは分離して、進行中の対局データを管理する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 struct LiveGameState {
     int anchorPly = -1;              ///< 分岐起点の手数（-1 = 初期局面から）

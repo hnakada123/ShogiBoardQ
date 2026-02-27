@@ -11,7 +11,7 @@
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 #include "sfencsapositionconverter.h"
 
 #include <QSettings>
@@ -1124,7 +1124,7 @@ void CsaGameCoordinator::initializeEngine()
         m_engine = nullptr;
     }
 
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     settings.beginReadArray("Engines");
     settings.setArrayIndex(m_options.engineNumber);
     QString enginePath = settings.value("path").toString();

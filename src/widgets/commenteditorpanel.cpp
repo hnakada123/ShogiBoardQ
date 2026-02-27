@@ -3,7 +3,7 @@
 
 #include "commenteditorpanel.h"
 #include "buttonstyles.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 #include "logcategories.h"
 
 #include <QTextEdit>
@@ -66,7 +66,7 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
     connect(m_comment, &QTextEdit::textChanged,
             this, &CommentEditorPanel::onCommentTextChanged);
 
-    m_currentFontSize = SettingsService::commentFontSize();
+    m_currentFontSize = GameSettings::commentFontSize();
     if (m_comment) {
         QFont font = m_comment->font();
         font.setPointSize(m_currentFontSize);
@@ -400,7 +400,7 @@ void CommentEditorPanel::updateCommentFontSize(int delta)
         m_comment->setFont(font);
     }
 
-    SettingsService::setCommentFontSize(m_currentFontSize);
+    GameSettings::setCommentFontSize(m_currentFontSize);
 }
 
 void CommentEditorPanel::updateEditingIndicator()

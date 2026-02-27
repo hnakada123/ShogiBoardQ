@@ -126,6 +126,12 @@ struct MainWindowRuntimeRefs {
     QString* resumeSfenStr = nullptr;                          ///< 再開局面SFEN文字列（外部所有）
     bool* onMainRowGuard = nullptr;                            ///< 本譜行ガード（外部所有）
 
+    // --- 対局者名参照 ---
+    QString* humanName1 = nullptr;                             ///< 先手対局者名（外部所有）
+    QString* humanName2 = nullptr;                             ///< 後手対局者名（外部所有）
+    QString* engineName1 = nullptr;                            ///< 先手エンジン名（外部所有）
+    QString* engineName2 = nullptr;                            ///< 後手エンジン名（外部所有）
+
     // --- その他参照 ---
     GameInfoPaneController* gameInfoController = nullptr;      ///< 対局情報コントローラ（非所有）
     EvaluationChartWidget* evalChart = nullptr;                 ///< 評価値グラフ（非所有）

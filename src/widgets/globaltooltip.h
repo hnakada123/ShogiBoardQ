@@ -22,7 +22,6 @@ class QString;
  *
  * シグナル/スロットは持たない。必要に応じて Q_OBJECT 化やアニメーションの拡張を検討。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class GlobalToolTip : public QFrame {
 public:

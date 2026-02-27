@@ -18,7 +18,6 @@
  * 末尾に「本譜へ戻る」行を任意で追加できる。
  * 内部に分岐グラフ（Node）を保持し、アクティブノードの追跡も行う。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class KifuBranchListModel : public AbstractListModel<KifuBranchDisplay>
 {

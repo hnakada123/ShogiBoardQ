@@ -14,7 +14,7 @@
 #include "josekiwindowwiring.h"
 #include "menuwindow.h"
 #include "josekiwindow.h"
-#include "settingsservice.h"
+#include "docksettings.h"
 #include "shogienginethinkingmodel.h"
 #include "usicommlogmodel.h"
 
@@ -90,16 +90,16 @@ QDockWidget* DockCreationService::createEvalChartDock()
 
     // 保存された状態を復元
     restoreDockState(m_evalChartDock,
-                     SettingsService::evalChartDockGeometry(),
-                     SettingsService::evalChartDockFloating(),
-                     SettingsService::evalChartDockVisible());
+                     DockSettings::evalChartDockGeometry(),
+                     DockSettings::evalChartDockFloating(),
+                     DockSettings::evalChartDockVisible());
 
     // ドッキング状態変更時にEvaluationChartWidgetに通知
     connect(m_evalChartDock, &QDockWidget::topLevelChanged,
             m_evalChart, &EvaluationChartWidget::setFloating);
 
     // 初期状態を同期
-    m_evalChart->setFloating(SettingsService::evalChartDockFloating());
+    m_evalChart->setFloating(DockSettings::evalChartDockFloating());
 
     return m_evalChartDock;
 }
@@ -119,9 +119,9 @@ QDockWidget* DockCreationService::createRecordPaneDock()
     addToggleActionToMenu(m_recordPaneDock, tr("棋譜"));
 
     restoreDockState(m_recordPaneDock,
-                     SettingsService::recordPaneDockGeometry(),
-                     SettingsService::recordPaneDockFloating(),
-                     SettingsService::recordPaneDockVisible());
+                     DockSettings::recordPaneDockGeometry(),
+                     DockSettings::recordPaneDockFloating(),
+                     DockSettings::recordPaneDockVisible());
 
     return m_recordPaneDock;
 }
@@ -232,9 +232,9 @@ QDockWidget* DockCreationService::createMenuWindowDock()
     addToggleActionToMenu(m_menuWindowDock, tr("メニュー"));
 
     restoreDockState(m_menuWindowDock,
-                     SettingsService::menuWindowDockGeometry(),
-                     SettingsService::menuWindowDockFloating(),
-                     SettingsService::menuWindowDockVisible());
+                     DockSettings::menuWindowDockGeometry(),
+                     DockSettings::menuWindowDockFloating(),
+                     DockSettings::menuWindowDockVisible());
 
     return m_menuWindowDock;
 }
@@ -268,9 +268,9 @@ QDockWidget* DockCreationService::createJosekiWindowDock()
     addToggleActionToMenu(m_josekiWindowDock, tr("定跡"));
 
     restoreDockState(m_josekiWindowDock,
-                     SettingsService::josekiWindowDockGeometry(),
-                     SettingsService::josekiWindowDockFloating(),
-                     SettingsService::josekiWindowDockVisible());
+                     DockSettings::josekiWindowDockGeometry(),
+                     DockSettings::josekiWindowDockFloating(),
+                     DockSettings::josekiWindowDockVisible());
 
     return m_josekiWindowDock;
 }
@@ -298,9 +298,9 @@ QDockWidget* DockCreationService::createAnalysisResultsDock()
     addToggleActionToMenu(m_analysisResultsDock, tr("棋譜解析"));
 
     restoreDockState(m_analysisResultsDock,
-                     SettingsService::kifuAnalysisResultsDockGeometry(),
-                     SettingsService::kifuAnalysisResultsDockFloating(),
-                     SettingsService::kifuAnalysisResultsDockVisible());
+                     DockSettings::kifuAnalysisResultsDockGeometry(),
+                     DockSettings::kifuAnalysisResultsDockFloating(),
+                     DockSettings::kifuAnalysisResultsDockVisible());
 
     return m_analysisResultsDock;
 }

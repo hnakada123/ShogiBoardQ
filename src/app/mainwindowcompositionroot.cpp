@@ -56,6 +56,7 @@ void MainWindowCompositionRoot::ensureKifuFileController(
 
 void MainWindowCompositionRoot::ensureRecordNavigationWiring(
     const MainWindowRuntimeRefs& refs,
+    const RecordNavigationWiring::WiringTargets& targets,
     QObject* parent,
     RecordNavigationWiring*& wiring)
 {
@@ -64,7 +65,7 @@ void MainWindowCompositionRoot::ensureRecordNavigationWiring(
     }
 
     auto deps = MainWindowDepsFactory::createRecordNavigationDeps(refs);
-    wiring->ensure(deps);
+    wiring->ensure(deps, targets);
 }
 
 void MainWindowCompositionRoot::ensureGameStateController(

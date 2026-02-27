@@ -22,7 +22,6 @@ class KifuAnalysisListModel;
  * 解析結果テーブル、停止ボタン、フォントサイズ操作などの
  * UI制御をまとめて管理する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class AnalysisResultsPresenter : public QObject
 {

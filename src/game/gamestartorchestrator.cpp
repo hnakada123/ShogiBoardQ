@@ -4,7 +4,7 @@
 #include "gamestartorchestrator.h"
 #include "shogigamecontroller.h"
 #include "startgamedialog.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 #include "sfenpositiontracer.h"
 #include "logcategories.h"
 
@@ -441,7 +441,7 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
 
     // --- 対局ダイアログなし：INI から直近選択を復元（StartGameDialog と同じ仕様）
     {
-        QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
         // 1) エンジン一覧（name/path）の読み出し
         struct Eng { QString name; QString path; };

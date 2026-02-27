@@ -15,7 +15,6 @@
  * info行のサブコマンド（depth, score cp, pv等）を解析し、
  * 盤面コピー上で指し手をシミュレートして漢字表記の読み筋文字列を生成する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ShogiEngineInfoParser : public QObject
 {

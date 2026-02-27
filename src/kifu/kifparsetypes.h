@@ -27,7 +27,6 @@ struct KifGameInfoItem {
 /**
  * @brief 1本の手順（分岐ライン）を表す構造体
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 struct KifLine {
     int startPly = 1;             ///< どの手目から開始か（例: 5）
@@ -42,7 +41,6 @@ struct KifLine {
 /**
  * @brief 変化（どの手数から分岐するか）を表す構造体
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 struct KifVariation {
     int startPly = 1;  ///< 変化開始手数（例: 「変化：65手」なら 65）
@@ -52,7 +50,6 @@ struct KifVariation {
 /**
  * @brief KIFパース結果（本譜＋変化）を格納する構造体
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 struct KifParseResult {
     KifLine mainline;                  ///< 本譜

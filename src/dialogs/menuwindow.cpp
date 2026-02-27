@@ -4,7 +4,7 @@
 #include "menuwindow.h"
 #include "buttonstyles.h"
 #include "menubuttonwidget.h"
-#include "settingsservice.h"
+#include "appsettings.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -93,7 +93,7 @@ void MenuWindow::setupUi()
     mainLayout->addWidget(m_tabWidget);
 
     // ウィンドウサイズ設定
-    resize(SettingsService::menuWindowSize());
+    resize(AppSettings::menuWindowSize());
 }
 
 void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
@@ -360,17 +360,17 @@ void MenuWindow::closeEvent(QCloseEvent* event)
 
 void MenuWindow::loadSettings()
 {
-    m_favoriteActionNames = SettingsService::menuWindowFavorites();
-    m_buttonSize = SettingsService::menuWindowButtonSize();
-    m_fontSize = SettingsService::menuWindowFontSize();
+    m_favoriteActionNames = AppSettings::menuWindowFavorites();
+    m_buttonSize = AppSettings::menuWindowButtonSize();
+    m_fontSize = AppSettings::menuWindowFontSize();
     m_iconSize = m_buttonSize / 3;
-    resize(SettingsService::menuWindowSize());
+    resize(AppSettings::menuWindowSize());
 }
 
 void MenuWindow::saveSettings()
 {
-    SettingsService::setMenuWindowFavorites(m_favoriteActionNames);
-    SettingsService::setMenuWindowButtonSize(m_buttonSize);
-    SettingsService::setMenuWindowFontSize(m_fontSize);
-    SettingsService::setMenuWindowSize(size());
+    AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
+    AppSettings::setMenuWindowButtonSize(m_buttonSize);
+    AppSettings::setMenuWindowFontSize(m_fontSize);
+    AppSettings::setMenuWindowSize(size());
 }

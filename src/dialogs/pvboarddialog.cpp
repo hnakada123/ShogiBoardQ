@@ -6,7 +6,7 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
-#include "settingsservice.h"
+#include "analysissettings.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -38,7 +38,7 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
     setMinimumSize(400, 500);
     
     // 前回保存されたウィンドウサイズを読み込む
-    QSize savedSize = SettingsService::pvBoardDialogSize();
+    QSize savedSize = AnalysisSettings::pvBoardDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     } else {
@@ -864,7 +864,7 @@ void PvBoardDialog::parseKanjiMoves()
 
 void PvBoardDialog::saveWindowSize()
 {
-    SettingsService::setPvBoardDialogSize(size());
+    AnalysisSettings::setPvBoardDialogSize(size());
 }
 
 void PvBoardDialog::adjustWindowToContents()

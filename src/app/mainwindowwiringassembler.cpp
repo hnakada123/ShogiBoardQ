@@ -25,7 +25,7 @@ MatchCoordinatorWiring::Deps MainWindowWiringAssembler::buildMatchWiringDeps(Mai
     using std::placeholders::_6;
 
     MainWindowMatchWiringDepsService::Inputs in;
-    in.evalGraphController = mw.m_evalGraphController;
+    in.evalGraphController = mw.m_evalGraphController.get();
     in.onTurnChanged = std::bind(&MainWindow::onTurnManagerChanged, &mw, _1);
     in.sendGo = [&mw](Usi* which, const MatchCoordinator::GoTimes& t) {
         if (mw.m_match) mw.m_match->sendGoToEngine(which, t);
@@ -47,18 +47,18 @@ MatchCoordinatorWiring::Deps MainWindowWiringAssembler::buildMatchWiringDeps(Mai
         }
     };
     in.showGameOverDialog = std::bind(&MainWindowMatchAdapter::showGameOverMessageBox, adapter, _1, _2);
-    in.remainingMsFor = std::bind(&MatchRuntimeQueryService::getRemainingMsFor, mw.m_queryService, _1);
-    in.incrementMsFor = std::bind(&MatchRuntimeQueryService::getIncrementMsFor, mw.m_queryService, _1);
-    in.byoyomiMs = std::bind(&MatchRuntimeQueryService::getByoyomiMs, mw.m_queryService);
+    in.remainingMsFor = std::bind(&MatchRuntimeQueryService::getRemainingMsFor, mw.m_queryService.get(), _1);
+    in.incrementMsFor = std::bind(&MatchRuntimeQueryService::getIncrementMsFor, mw.m_queryService.get(), _1);
+    in.byoyomiMs = std::bind(&MatchRuntimeQueryService::getByoyomiMs, mw.m_queryService.get());
     in.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, mw.m_playerInfoWiring, _1, _2);
     in.setEngineNames = std::bind(&PlayerInfoWiring::onSetEngineNames, mw.m_playerInfoWiring, _1, _2);
     mw.ensureKifuFileController();
     in.autoSaveKifu = std::bind(&KifuFileController::autoSaveKifuToFile, mw.m_kifuFileController, _1, _2, _3, _4, _5, _6);
 
     mw.ensureKifuNavigationCoordinator();
-    in.updateHighlightsForPly = std::bind(&KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, mw.m_kifuNavCoordinator, _1);
+    in.updateHighlightsForPly = std::bind(&KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, mw.m_kifuNavCoordinator.get(), _1);
     in.updateTurnAndTimekeepingDisplay = std::bind(&MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay, adapter);
-    in.isHumanSide = std::bind(&MatchRuntimeQueryService::isHumanSide, mw.m_queryService, _1);
+    in.isHumanSide = std::bind(&MatchRuntimeQueryService::isHumanSide, mw.m_queryService.get(), _1);
 
     in.gc    = mw.m_gameController;
     in.view  = mw.m_shogiView;
@@ -78,12 +78,12 @@ MatchCoordinatorWiring::Deps MainWindowWiringAssembler::buildMatchWiringDeps(Mai
     in.currentMoveIndex = &mw.m_state.currentMoveIndex;
 
     in.ensureTimeController           = std::bind(&MainWindow::ensureTimeController, &mw);
-    in.ensureEvaluationGraphController = std::bind(&MainWindowServiceRegistry::ensureEvaluationGraphController, mw.m_registry);
+    in.ensureEvaluationGraphController = std::bind(&MainWindowServiceRegistry::ensureEvaluationGraphController, mw.m_registry.get());
     in.ensurePlayerInfoWiring         = std::bind(&MainWindow::ensurePlayerInfoWiring, &mw);
-    in.ensureUsiCommandController     = std::bind(&MainWindowServiceRegistry::ensureUsiCommandController, mw.m_registry);
+    in.ensureUsiCommandController     = std::bind(&MainWindowServiceRegistry::ensureUsiCommandController, mw.m_registry.get());
     in.ensureUiStatePolicyManager     = std::bind(&MainWindow::ensureUiStatePolicyManager, &mw);
-    in.connectBoardClicks             = std::bind(&MainWindowSignalRouter::connectBoardClicks, mw.m_signalRouter);
-    in.connectMoveRequested           = std::bind(&MainWindowSignalRouter::connectMoveRequested, mw.m_signalRouter);
+    in.connectBoardClicks             = std::bind(&MainWindowSignalRouter::connectBoardClicks, mw.m_signalRouter.get());
+    in.connectMoveRequested           = std::bind(&MainWindowSignalRouter::connectMoveRequested, mw.m_signalRouter.get());
 
     in.getClock = [&mw]() -> ShogiClock* {
         return mw.m_timeController ? mw.m_timeController->clock() : nullptr;
@@ -92,7 +92,7 @@ MatchCoordinatorWiring::Deps MainWindowWiringAssembler::buildMatchWiringDeps(Mai
         return mw.m_timeController;
     };
     in.getEvalGraphController = [&mw]() -> EvaluationGraphController* {
-        return mw.m_evalGraphController;
+        return mw.m_evalGraphController.get();
     };
     in.getUiStatePolicy = [&mw]() -> UiStatePolicyManager* {
         return mw.m_uiStatePolicy;
@@ -113,12 +113,12 @@ void MainWindowWiringAssembler::initializeDialogLaunchWiring(MainWindow& mw)
     d.getGameController    = [&mw]() { return mw.m_gameController; };
     d.getMatch             = [&mw]() { return mw.m_match; };
     d.getShogiView         = [&mw]() { return mw.m_shogiView; };
-    d.getJishogiController = [&mw]() { mw.m_registry->ensureJishogiController(); return mw.m_jishogiController; };
-    d.getNyugyokuHandler   = [&mw]() { mw.m_registry->ensureNyugyokuHandler(); return mw.m_nyugyokuHandler; };
-    d.getCsaGameWiring     = [&mw]() { mw.m_registry->ensureCsaGameWiring(); return mw.m_csaGameWiring; };
+    d.getJishogiController = [&mw]() { mw.m_registry->ensureJishogiController(); return mw.m_jishogiController.get(); };
+    d.getNyugyokuHandler   = [&mw]() { mw.m_registry->ensureNyugyokuHandler(); return mw.m_nyugyokuHandler.get(); };
+    d.getCsaGameWiring     = [&mw]() { mw.m_registry->ensureCsaGameWiring(); return mw.m_csaGameWiring.get(); };
     d.getBoardSetupController = [&mw]() { mw.ensureBoardSetupController(); return mw.m_boardSetupController; };
     d.getPlayerInfoWiring  = [&mw]() { mw.ensurePlayerInfoWiring(); return mw.m_playerInfoWiring; };
-    d.getAnalysisPresenter = [&mw]() { mw.ensureAnalysisPresenter(); return mw.m_analysisPresenter; };
+    d.getAnalysisPresenter = [&mw]() { mw.ensureAnalysisPresenter(); return mw.m_analysisPresenter.get(); };
     d.getUsi1              = [&mw]() { return mw.m_usi1; };
     d.getAnalysisTab       = [&mw]() { return mw.m_analysisTab; };
     d.getLineEditModel1    = [&mw]() { return mw.m_models.commLog1; };

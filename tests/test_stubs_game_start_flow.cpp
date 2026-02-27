@@ -5,6 +5,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include <QSettings>
 #include <QVector>
 #include <QMap>
 #include <QString>
@@ -35,7 +36,7 @@
 #include "thinkinginfopresenter.h"
 #include "shogiengineinfoparser.h"
 #include "boardinteractioncontroller.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphcontroller.h"
 #include "recordpane.h"
@@ -368,6 +369,8 @@ void ShogiGameController::newGame(QString&) {}
 // ============================================================
 // StartGameDialog スタブ
 // ============================================================
+
+namespace Ui { class StartGameDialog {}; }
 
 StartGameDialog::StartGameDialog(QWidget* parent) : QDialog(parent), ui(nullptr) {}
 StartGameDialog::~StartGameDialog() = default;
@@ -803,8 +806,9 @@ void ElideLabel::onTimerTimeout() {}
 // SettingsService スタブ
 // ============================================================
 
-namespace SettingsService {
+namespace SettingsCommon {
 QString settingsFilePath() { return QStringLiteral("/tmp/tst_game_start_flow_stub.ini"); }
+QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::IniFormat); return s; }
 }
 
 // ============================================================

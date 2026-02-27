@@ -13,7 +13,7 @@
 #include "buttonstyles.h"
 #include "josekimovedialog.h"
 #include "josekimergedialog.h"
-#include "settingsservice.h"
+#include "josekisettings.h"
 #include "sfenpositiontracer.h"
 #include "kiftosfenconverter.h"
 #include "kifdisplayitem.h"
@@ -359,25 +359,25 @@ void JosekiWindow::setupUi()
 void JosekiWindow::loadSettings()
 {
     // フォントサイズを読み込み・適用（列幅もフォントに合わせて再計算される）
-    m_fontSize = SettingsService::josekiWindowFontSize();
+    m_fontSize = JosekiSettings::josekiWindowFontSize();
     applyFontSize();
 
     // ウィンドウサイズを読み込み
-    QSize savedSize = SettingsService::josekiWindowSize();
+    QSize savedSize = JosekiSettings::josekiWindowSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
 
     // 自動読込設定を読み込み
-    m_autoLoadEnabled = SettingsService::josekiWindowAutoLoadEnabled();
+    m_autoLoadEnabled = JosekiSettings::josekiWindowAutoLoadEnabled();
     m_autoLoadCheckBox->setChecked(m_autoLoadEnabled);
 
     // 最近使ったファイルリストを読み込み
-    m_recentFiles = SettingsService::josekiWindowRecentFiles();
+    m_recentFiles = JosekiSettings::josekiWindowRecentFiles();
     updateRecentFilesMenu();
 
     // 表示停止状態を読み込み
-    m_displayEnabled = SettingsService::josekiWindowDisplayEnabled();
+    m_displayEnabled = JosekiSettings::josekiWindowDisplayEnabled();
     if (!m_displayEnabled) {
         m_stopButton->setChecked(true);
         m_stopButton->setText(tr("▶ 再開"));
@@ -385,13 +385,13 @@ void JosekiWindow::loadSettings()
     }
 
     // SFEN詳細表示状態を読み込み
-    bool sfenDetailVisible = SettingsService::josekiWindowSfenDetailVisible();
+    bool sfenDetailVisible = JosekiSettings::josekiWindowSfenDetailVisible();
     m_showSfenDetailBtn->setChecked(sfenDetailVisible);
     m_sfenDetailWidget->setVisible(sfenDetailVisible);
 
     // 最後に開いた定跡ファイルのパスを読み込み（遅延読込のため）
     // 実際の読み込みはshowEvent()で行う
-    QString lastFilePath = SettingsService::josekiWindowLastFilePath();
+    QString lastFilePath = JosekiSettings::josekiWindowLastFilePath();
     if (m_autoLoadEnabled) {
         if (!lastFilePath.isEmpty() && QFileInfo::exists(lastFilePath)) {
             m_pendingAutoLoad = true;
@@ -405,19 +405,19 @@ void JosekiWindow::loadSettings()
 void JosekiWindow::saveSettings()
 {
     // フォントサイズを保存
-    SettingsService::setJosekiWindowFontSize(m_fontSize);
+    JosekiSettings::setJosekiWindowFontSize(m_fontSize);
 
     // ウィンドウサイズを保存
-    SettingsService::setJosekiWindowSize(size());
+    JosekiSettings::setJosekiWindowSize(size());
 
     // 最後に開いた定跡ファイルを保存
-    SettingsService::setJosekiWindowLastFilePath(m_currentFilePath);
+    JosekiSettings::setJosekiWindowLastFilePath(m_currentFilePath);
 
     // 自動読込設定を保存
-    SettingsService::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
+    JosekiSettings::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
 
     // 最近使ったファイルリストを保存
-    SettingsService::setJosekiWindowRecentFiles(m_recentFiles);
+    JosekiSettings::setJosekiWindowRecentFiles(m_recentFiles);
 
     // テーブル列幅を保存
     if (m_tableWidget) {
@@ -425,7 +425,7 @@ void JosekiWindow::saveSettings()
         for (int i = 0; i < m_tableWidget->columnCount(); ++i) {
             widths.append(m_tableWidget->columnWidth(i));
         }
-        SettingsService::setJosekiWindowColumnWidths(widths);
+        JosekiSettings::setJosekiWindowColumnWidths(widths);
     }
 }
 
@@ -557,7 +557,7 @@ void JosekiWindow::onFontSizeIncrease()
     if (m_fontSize < 24) {
         m_fontSize++;
         applyFontSize();
-        SettingsService::setJosekiWindowFontSize(m_fontSize);
+        JosekiSettings::setJosekiWindowFontSize(m_fontSize);
     }
 }
 
@@ -566,7 +566,7 @@ void JosekiWindow::onFontSizeDecrease()
     if (m_fontSize > 6) {
         m_fontSize--;
         applyFontSize();
-        SettingsService::setJosekiWindowFontSize(m_fontSize);
+        JosekiSettings::setJosekiWindowFontSize(m_fontSize);
     }
 }
 
@@ -1044,7 +1044,7 @@ void JosekiWindow::onPlayButtonClicked()
 void JosekiWindow::onAutoLoadCheckBoxChanged(Qt::CheckState state)
 {
     m_autoLoadEnabled = (state == Qt::Checked);
-    SettingsService::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
+    JosekiSettings::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
     qCDebug(lcUi) << "Auto load enabled:" << m_autoLoadEnabled;
 }
 
@@ -1064,7 +1064,7 @@ void JosekiWindow::onStopButtonClicked()
         clearTable();
     }
 
-    SettingsService::setJosekiWindowDisplayEnabled(m_displayEnabled);
+    JosekiSettings::setJosekiWindowDisplayEnabled(m_displayEnabled);
     updateStatusDisplay();
     qCDebug(lcUi) << "Display enabled:" << m_displayEnabled;
 }
@@ -1072,7 +1072,7 @@ void JosekiWindow::onStopButtonClicked()
 void JosekiWindow::onSfenDetailToggled(bool checked)
 {
     m_sfenDetailWidget->setVisible(checked);
-    SettingsService::setJosekiWindowSfenDetailVisible(checked);
+    JosekiSettings::setJosekiWindowSfenDetailVisible(checked);
 }
 
 void JosekiWindow::updateStatusDisplay()

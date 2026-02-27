@@ -9,7 +9,6 @@ class QWidget;
 
 /**
  * @brief 駒の成り・不成をユーザーに問い合わせるフロー
- * @todo remove コメントスタイルガイド適用済み
  */
 class PromotionFlow final {
 public:

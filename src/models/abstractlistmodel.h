@@ -14,7 +14,6 @@
  *
  * @tparam T リスト項目の型
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 template<typename T>
 class AbstractListModel : public QAbstractTableModel

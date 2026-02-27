@@ -43,6 +43,20 @@ set(TEST_INCLUDES
 # Common link libraries
 set(TEST_LIBS Qt6::Test Qt6::Widgets Qt6::Charts Qt6::Network)
 
+# Settings sources (全ドメイン設定ファイル)
+set(SETTINGS_SOURCES
+    ${SRC}/services/settingscommon.cpp
+    ${SRC}/services/settingsservice.cpp
+    ${SRC}/services/analysissettings.cpp
+    ${SRC}/services/appsettings.cpp
+    ${SRC}/services/docksettings.cpp
+    ${SRC}/services/enginedialogsettings.cpp
+    ${SRC}/services/gamesettings.cpp
+    ${SRC}/services/josekisettings.cpp
+    ${SRC}/services/networksettings.cpp
+    ${SRC}/services/tsumeshogisettings.cpp
+)
+
 # Copy fixtures to build directory
 file(COPY fixtures DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
@@ -63,6 +77,10 @@ macro(add_shogi_test NAME)
     target_link_libraries(${NAME} PRIVATE ${TEST_LIBS})
     set_target_properties(${NAME} PROPERTIES AUTOMOC ON)
     add_test(NAME ${NAME} COMMAND ${NAME})
+    # ヘッドレスCI環境でもWidgetsテストを実行できるようにする
+    set_tests_properties(${NAME} PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
+    )
 endmacro()
 
 # ============================================================
@@ -275,7 +293,7 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/dialogs/josekiwindow.cpp
     ${SRC}/dialogs/josekimovedialog.cpp
     ${SRC}/dialogs/josekimergedialog.cpp
-    ${SRC}/services/settingsservice.cpp
+    ${SETTINGS_SOURCES}
     ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
@@ -374,13 +392,8 @@ add_shogi_test(tst_ui_display_consistency
     ${SRC}/widgets/recordpane.cpp
     ${SRC}/widgets/branchtreemanager.cpp
     ${SRC}/widgets/branchtreewidget.cpp
-    ${SRC}/services/settingsservice.cpp
+    ${SETTINGS_SOURCES}
     ${SRC}/board/sfenpositiontracer.cpp
-)
-
-# ヘッドレスCI環境でもWidgetsテストを実行できるようにする
-set_tests_properties(tst_ui_display_consistency PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 
 # ============================================================
@@ -394,10 +407,6 @@ add_shogi_test(tst_analysisflow
     ${SRC}/analysis/analysiscoordinator.cpp
 )
 
-set_tests_properties(tst_analysisflow PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
-)
-
 # ============================================================
 # Unit 15: Game Start Flow (GameStartCoordinator)
 # ============================================================
@@ -407,10 +416,6 @@ add_shogi_test(tst_game_start_flow
     ${SRC}/common/logcategories.cpp
     ${SRC}/game/gamestartcoordinator.cpp
     ${SRC}/services/playernameservice.cpp
-)
-
-set_tests_properties(tst_game_start_flow PROPERTIES
-    ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
 
 # ============================================================

@@ -9,7 +9,6 @@
  *
  * 対局種別・解析種別を区別し、UIや通信の振る舞いを切り替える。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 enum class PlayMode {
     NotStarted,             ///< 起動直後、対局未開始

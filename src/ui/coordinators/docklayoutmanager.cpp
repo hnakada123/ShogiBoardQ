@@ -2,7 +2,7 @@
 /// @brief ドックレイアウト管理クラスの実装
 
 #include "docklayoutmanager.h"
-#include "settingsservice.h"
+#include "docksettings.h"
 
 #include <QMainWindow>
 #include <QMenu>
@@ -150,7 +150,7 @@ void DockLayoutManager::saveLayoutAs()
     name = name.trimmed();
 
     // 既存のレイアウトがあれば上書き確認
-    QStringList existingNames = SettingsService::savedDockLayoutNames();
+    QStringList existingNames = DockSettings::savedDockLayoutNames();
     if (existingNames.contains(name)) {
         QMessageBox::StandardButton reply = QMessageBox::question(m_mainWindow,
             tr("確認"),
@@ -163,7 +163,7 @@ void DockLayoutManager::saveLayoutAs()
 
     // 現在のドック状態を保存
     QByteArray state = m_mainWindow->saveState();
-    SettingsService::saveDockLayout(name, state);
+    DockSettings::saveDockLayout(name, state);
 
     // メニューを更新
     updateSavedLayoutsMenu();
@@ -176,7 +176,7 @@ void DockLayoutManager::restoreLayout(const QString& name)
 {
     if (!m_mainWindow) return;
 
-    QByteArray state = SettingsService::loadDockLayout(name);
+    QByteArray state = DockSettings::loadDockLayout(name);
     if (state.isEmpty()) {
         QMessageBox::warning(m_mainWindow, tr("エラー"),
             tr("レイアウト「%1」が見つかりません。").arg(name));
@@ -200,7 +200,7 @@ void DockLayoutManager::deleteLayout(const QString& name)
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        SettingsService::deleteDockLayout(name);
+        DockSettings::deleteDockLayout(name);
         updateSavedLayoutsMenu();
     }
 }
@@ -209,7 +209,7 @@ void DockLayoutManager::setAsStartupLayout(const QString& name)
 {
     if (!m_mainWindow) return;
 
-    SettingsService::setStartupDockLayoutName(name);
+    DockSettings::setStartupDockLayoutName(name);
     updateSavedLayoutsMenu();
     QMessageBox::information(m_mainWindow, tr("設定完了"),
         tr("レイアウト「%1」を起動時のレイアウトに設定しました。").arg(name));
@@ -219,7 +219,7 @@ void DockLayoutManager::clearStartupLayout()
 {
     if (!m_mainWindow) return;
 
-    SettingsService::setStartupDockLayoutName(QString());
+    DockSettings::setStartupDockLayoutName(QString());
     updateSavedLayoutsMenu();
     QMessageBox::information(m_mainWindow, tr("設定完了"),
         tr("起動時のレイアウト設定をクリアしました。\n次回起動時はデフォルトレイアウトが使用されます。"));
@@ -229,9 +229,9 @@ void DockLayoutManager::restoreStartupLayoutIfSet()
 {
     if (!m_mainWindow) return;
 
-    QString startupLayoutName = SettingsService::startupDockLayoutName();
+    QString startupLayoutName = DockSettings::startupDockLayoutName();
     if (!startupLayoutName.isEmpty()) {
-        QByteArray state = SettingsService::loadDockLayout(startupLayoutName);
+        QByteArray state = DockSettings::loadDockLayout(startupLayoutName);
         if (!state.isEmpty()) {
             // すべてのドックを表示状態にしてから復元
             showAllDocks();
@@ -248,8 +248,8 @@ void DockLayoutManager::updateSavedLayoutsMenu()
 
     m_savedLayoutsMenu->clear();
 
-    QStringList names = SettingsService::savedDockLayoutNames();
-    QString startupLayoutName = SettingsService::startupDockLayoutName();
+    QStringList names = DockSettings::savedDockLayoutNames();
+    QString startupLayoutName = DockSettings::startupDockLayoutName();
 
     if (names.isEmpty()) {
         QAction* emptyAction = m_savedLayoutsMenu->addAction(tr("（保存済みレイアウトなし）"));
@@ -307,7 +307,7 @@ void DockLayoutManager::wireMenuActions(QAction* resetLayout,
         connect(clearStartupLayout, &QAction::triggered, this, &DockLayoutManager::clearStartupLayout);
     }
     if (lockDocks) {
-        lockDocks->setChecked(SettingsService::docksLocked());
+        lockDocks->setChecked(DockSettings::docksLocked());
         connect(lockDocks, &QAction::toggled, this, &DockLayoutManager::setDocksLocked);
         // 起動時適用
         setDocksLocked(lockDocks->isChecked());
@@ -373,27 +373,27 @@ void DockLayoutManager::saveDockStates()
     };
 
     saveIf(dock(DockType::EvalChart),
-           SettingsService::setEvalChartDockFloating,
-           SettingsService::setEvalChartDockVisible,
-           SettingsService::setEvalChartDockGeometry);
+           DockSettings::setEvalChartDockFloating,
+           DockSettings::setEvalChartDockVisible,
+           DockSettings::setEvalChartDockGeometry);
 
     saveIf(dock(DockType::Record),
-           SettingsService::setRecordPaneDockFloating,
-           SettingsService::setRecordPaneDockVisible,
-           SettingsService::setRecordPaneDockGeometry);
+           DockSettings::setRecordPaneDockFloating,
+           DockSettings::setRecordPaneDockVisible,
+           DockSettings::setRecordPaneDockGeometry);
 
     saveIf(dock(DockType::Menu),
-           SettingsService::setMenuWindowDockFloating,
-           SettingsService::setMenuWindowDockVisible,
-           SettingsService::setMenuWindowDockGeometry);
+           DockSettings::setMenuWindowDockFloating,
+           DockSettings::setMenuWindowDockVisible,
+           DockSettings::setMenuWindowDockGeometry);
 
     saveIf(dock(DockType::Joseki),
-           SettingsService::setJosekiWindowDockFloating,
-           SettingsService::setJosekiWindowDockVisible,
-           SettingsService::setJosekiWindowDockGeometry);
+           DockSettings::setJosekiWindowDockFloating,
+           DockSettings::setJosekiWindowDockVisible,
+           DockSettings::setJosekiWindowDockGeometry);
 
     saveIf(dock(DockType::AnalysisResults),
-           SettingsService::setKifuAnalysisResultsDockFloating,
-           SettingsService::setKifuAnalysisResultsDockVisible,
-           SettingsService::setKifuAnalysisResultsDockGeometry);
+           DockSettings::setKifuAnalysisResultsDockFloating,
+           DockSettings::setKifuAnalysisResultsDockVisible,
+           DockSettings::setKifuAnalysisResultsDockGeometry);
 }

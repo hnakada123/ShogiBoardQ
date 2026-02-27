@@ -27,11 +27,15 @@
 // UI boot
 #include "mainwindowuibootstrapper.h"
 
+// Signal wiring
+#include "mainwindowwiringassembler.h"
+#include "kifuexportcontroller.h"
+
 // Finalization
 #include "uistatepolicymanager.h"
 
 // Shutdown
-#include "settingsservice.h"
+#include "appsettings.h"
 #include "docklayoutmanager.h"
 #include "matchcoordinator.h"
 
@@ -82,7 +86,7 @@ void MainWindowLifecyclePipeline::runShutdown()
     m_shutdownDone = true;
 
     // 設定保存
-    SettingsService::saveWindowAndBoard(&m_mw, m_mw.m_shogiView);
+    AppSettings::saveWindowAndBoard(&m_mw, m_mw.m_shogiView);
     m_mw.ensureDockLayoutManager();
     if (m_mw.m_dockLayoutManager) {
         m_mw.m_dockLayoutManager->saveDockStates();
@@ -93,18 +97,16 @@ void MainWindowLifecyclePipeline::runShutdown()
         m_mw.m_match->destroyEngines();
     }
 
-    // リソース解放
-    delete m_mw.m_queryService;
-    m_mw.m_queryService = nullptr;
-    delete m_mw.m_playModePolicy;
-    m_mw.m_playModePolicy = nullptr;
+    // リソース解放（unique_ptr がデストラクタで自動解放するため明示 delete は不要）
+    m_mw.m_queryService.reset();
+    m_mw.m_playModePolicy.reset();
 }
 
 void MainWindowLifecyclePipeline::createFoundationObjects()
 {
-    m_mw.m_compositionRoot = new MainWindowCompositionRoot(&m_mw);
-    m_mw.m_registry = new MainWindowServiceRegistry(m_mw, &m_mw);
-    m_mw.m_signalRouter = new MainWindowSignalRouter(m_mw, &m_mw);
+    m_mw.m_compositionRoot = std::make_unique<MainWindowCompositionRoot>();
+    m_mw.m_registry = std::make_unique<MainWindowServiceRegistry>(m_mw);
+    m_mw.m_signalRouter = std::make_unique<MainWindowSignalRouter>();
 
     m_mw.m_models.commLog1 = new UsiCommLogModel(&m_mw);
     m_mw.m_models.commLog2 = new UsiCommLogModel(&m_mw);
@@ -112,7 +114,7 @@ void MainWindowLifecyclePipeline::createFoundationObjects()
     // 対局実行時クエリサービスを早期に生成（deps は initializeEarlyServices で設定）
     // buildRuntimeRefs() が initializeCoreComponents() 内で参照するため、
     // UI セットアップ前に存在させる必要がある。
-    m_mw.m_queryService = new MatchRuntimeQueryService();
+    m_mw.m_queryService = std::make_unique<MatchRuntimeQueryService>();
 
     m_mw.ui->setupUi(&m_mw);
 }
@@ -124,7 +126,7 @@ void MainWindowLifecyclePipeline::setupUiSkeleton()
     m_mw.setDockNestingEnabled(true);
 
     // UI外観コントローラを生成
-    m_mw.m_appearanceController = new MainWindowAppearanceController(&m_mw);
+    m_mw.m_appearanceController = std::make_unique<MainWindowAppearanceController>();
 
     // セントラルウィジェットとツールバーを設定（外観コントローラへ委譲）
     m_mw.m_appearanceController->setupCentralWidgetContainer(m_mw.ui->centralwidget);
@@ -156,7 +158,7 @@ void MainWindowLifecyclePipeline::initializeCoreComponents()
 void MainWindowLifecyclePipeline::initializeEarlyServices()
 {
     // プレイモード判定サービスを生成し、初期依存を設定
-    m_mw.m_playModePolicy = new PlayModePolicyService();
+    m_mw.m_playModePolicy = std::make_unique<PlayModePolicyService>();
     {
         PlayModePolicyService::Deps policyDeps;
         policyDeps.playMode = &m_mw.m_state.playMode;
@@ -174,7 +176,7 @@ void MainWindowLifecyclePipeline::initializeEarlyServices()
     // 対局実行時クエリサービスの依存を設定（生成は createFoundationObjects で実施済み）
     {
         MatchRuntimeQueryService::Deps qsDeps;
-        qsDeps.playModePolicy = m_mw.m_playModePolicy;
+        qsDeps.playModePolicy = m_mw.m_playModePolicy.get();
         qsDeps.timeController = m_mw.m_timeController;
         qsDeps.match = &m_mw.m_match;
         m_mw.m_queryService->updateDeps(qsDeps);
@@ -199,6 +201,42 @@ void MainWindowLifecyclePipeline::restoreWindowAndSync()
 
 void MainWindowLifecyclePipeline::connectSignals()
 {
+    // SignalRouter の依存を設定（ステップ 1-6 で生成済みのオブジェクトを渡す）
+    {
+        MainWindowSignalRouter::Deps d;
+        d.mainWindow = &m_mw;
+        d.ui = m_mw.ui.get();
+        d.appearanceController = m_mw.m_appearanceController.get();
+        d.shogiView = m_mw.m_shogiView;
+        d.evalChart = m_mw.m_evalChart;
+        d.gameController = m_mw.m_gameController;
+        d.boardController = m_mw.m_boardController;
+        // 遅延生成オブジェクトはダブルポインタで最新値を参照
+        d.dialogCoordinatorWiringPtr = &m_mw.m_dialogCoordinatorWiring;
+        d.dialogLaunchWiringPtr = &m_mw.m_dialogLaunchWiring;
+        d.kifuFileControllerPtr = &m_mw.m_kifuFileController;
+        d.gameSessionOrchestratorPtr = &m_mw.m_gameSessionOrchestrator;
+        d.notificationServicePtr = &m_mw.m_notificationService;
+        d.boardSetupControllerPtr = &m_mw.m_boardSetupController;
+        d.actionsWiringPtr = &m_mw.m_actionsWiring;
+        d.initializeDialogLaunchWiring = [this]() {
+            MainWindowWiringAssembler::initializeDialogLaunchWiring(m_mw);
+        };
+        d.ensureKifuFileController = std::bind(&MainWindow::ensureKifuFileController, &m_mw);
+        d.ensureGameSessionOrchestrator = [this]() {
+            m_mw.m_registry->ensureGameSessionOrchestrator();
+        };
+        d.ensureUiNotificationService = [this]() {
+            m_mw.m_registry->ensureUiNotificationService();
+        };
+        d.ensureBoardSetupController = std::bind(&MainWindow::ensureBoardSetupController, &m_mw);
+        d.getKifuExportController = [this]() -> KifuExportController* {
+            m_mw.m_registry->ensureKifuExportController();
+            return m_mw.m_kifuExportController.get();
+        };
+        m_mw.m_signalRouter->updateDeps(d);
+    }
+
     // シグナル配線を一括実行（ダイアログ起動・メニューアクション・コアシグナル）
     m_mw.m_signalRouter->connectAll();
 
@@ -226,13 +264,13 @@ void MainWindowLifecyclePipeline::finalizeAndConfigureUi()
 
 #ifdef QT_DEBUG
     // デバッグ用スクリーンショット機能（F12キーで /tmp/shogiboardq-debug/ にPNG保存）
-    m_mw.m_debugScreenshotWiring = new DebugScreenshotWiring(&m_mw, &m_mw);
+    m_mw.m_debugScreenshotWiring = std::make_unique<DebugScreenshotWiring>(&m_mw);
 #endif
 
     // 評価値グラフ高さ調整用タイマーを初期化（デバウンス処理用）
-    m_mw.m_evalChartResizeTimer = new QTimer(&m_mw);
+    m_mw.m_evalChartResizeTimer = std::make_unique<QTimer>();
     m_mw.m_evalChartResizeTimer->setSingleShot(true);
-    QObject::connect(m_mw.m_evalChartResizeTimer, &QTimer::timeout,
-                     m_mw.m_appearanceController, &MainWindowAppearanceController::performDeferredEvalChartResize);
+    QObject::connect(m_mw.m_evalChartResizeTimer.get(), &QTimer::timeout,
+                     m_mw.m_appearanceController.get(), &MainWindowAppearanceController::performDeferredEvalChartResize);
 
 }

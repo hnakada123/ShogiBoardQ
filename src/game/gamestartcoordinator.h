@@ -28,7 +28,6 @@ class KifuLoadCoordinator;
  * @note 具体的なShogiClock APIは呼ばない（プロジェクト差異を吸収するため）。
  *       MainWindow側で既存ロジックをスロット接続する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class GameStartCoordinator : public QObject
 {

@@ -6,12 +6,9 @@
 #include "ui_promotedialog.h"
 
 // 成る・不成の選択ダイアログを表示するクラス
-PromoteDialog::PromoteDialog(QWidget *parent) : QDialog(parent), ui(new Ui::PromoteDialog)
+PromoteDialog::PromoteDialog(QWidget *parent) : QDialog(parent), ui(std::make_unique<Ui::PromoteDialog>())
 {
     ui->setupUi(this);
 }
 
-PromoteDialog::~PromoteDialog()
-{
-    delete ui;
-}
+PromoteDialog::~PromoteDialog() = default;

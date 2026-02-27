@@ -239,8 +239,18 @@ set(SRC_APP
     src/app/mainwindowcompositionroot.h
     src/app/mainwindowcoreinitcoordinator.cpp
     src/app/mainwindowcoreinitcoordinator.h
+    src/app/mainwindowanalysisregistry.cpp
+    src/app/mainwindowanalysisregistry.h
+    src/app/mainwindowboardregistry.cpp
+    src/app/mainwindowboardregistry.h
+    src/app/mainwindowgameregistry.cpp
+    src/app/mainwindowgameregistry.h
+    src/app/mainwindowkifuregistry.cpp
+    src/app/mainwindowkifuregistry.h
     src/app/mainwindowserviceregistry.cpp
     src/app/mainwindowserviceregistry.h
+    src/app/mainwindowuiregistry.cpp
+    src/app/mainwindowuiregistry.h
     src/app/mainwindowdepsfactory.cpp
     src/app/mainwindowdepsfactory.h
     src/app/mainwindowgamestartservice.cpp
@@ -560,6 +570,8 @@ set(SRC_UI
 set(SRC_VIEWS
     src/views/shogiview.cpp
     src/views/shogiview.h
+    src/views/shogiview_draw.cpp
+    src/views/shogiview_labels.cpp
     src/views/shogiviewhighlighting.cpp
     src/views/shogiviewhighlighting.h
     src/views/shogiviewinteraction.cpp
@@ -668,9 +680,27 @@ set(SRC_SERVICES
     src/services/debugscreenshotwiring.h
     src/services/playernameservice.cpp
     src/services/playernameservice.h
+    src/services/analysissettings.cpp
+    src/services/analysissettings.h
+    src/services/appsettings.cpp
+    src/services/appsettings.h
+    src/services/docksettings.cpp
+    src/services/docksettings.h
+    src/services/enginedialogsettings.cpp
+    src/services/enginedialogsettings.h
+    src/services/gamesettings.cpp
+    src/services/gamesettings.h
+    src/services/josekisettings.cpp
+    src/services/josekisettings.h
+    src/services/networksettings.cpp
+    src/services/networksettings.h
+    src/services/settingscommon.cpp
+    src/services/settingscommon.h
     src/services/settingskeys.h
     src/services/settingsservice.cpp
     src/services/settingsservice.h
+    src/services/tsumeshogisettings.cpp
+    src/services/tsumeshogisettings.h
     src/services/timecontrolutil.cpp
     src/services/timecontrolutil.h
     src/services/timekeepingservice.cpp
@@ -730,18 +760,23 @@ qt_add_executable(ShogiBoardQ
     ${APP_ICON_MACOS}
 )
 
-# .qm 生成（出力はビルド側に）
-# 注意: CMAKE_SOURCE_DIR 全体を渡すとビルドディレクトリ内の autogen ファイルも
-# スキャンされ、循環依存が発生するため、ソースディレクトリのみを指定する
-# .ui ファイルはソースディレクトリに含まれる
-qt_create_translation(QM_FILES
-    ${CMAKE_SOURCE_DIR}/src
-    ${TS_FILES}
-)
+# .qm 生成（.ts → .qm コンパイルのみ、高速）
+# qt_add_translation は lrelease のみ実行し、lupdate（ソーススキャン）をスキップする
+# lupdate が必要な場合は update_translations ターゲットを使用する
+qt_add_translation(QM_FILES ${TS_FILES})
 
 # .qm ファイルをビルドターゲットとして追加
 add_custom_target(translations ALL DEPENDS ${QM_FILES})
 add_dependencies(ShogiBoardQ translations)
+
+# lupdate（ソースから .ts ファイルを更新）は明示的に実行する
+# 使用方法: cmake --build build --target update_translations
+add_custom_target(update_translations
+    COMMAND Qt6::lupdate ${CMAKE_SOURCE_DIR}/src -ts ${TS_FILES}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Running lupdate to update .ts files from source..."
+    VERBATIM
+)
 
 # .qm ファイルを実行可能ファイルと同じディレクトリにコピー
 foreach(QM_FILE ${QM_FILES})

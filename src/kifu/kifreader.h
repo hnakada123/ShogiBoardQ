@@ -12,7 +12,6 @@
  * BOM判定 → UTF-8 → CP932/Shift_JIS → EUC-JP の順で
  * 文字コードを推定し、テキストを行単位で返す。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 namespace KifReader {
 

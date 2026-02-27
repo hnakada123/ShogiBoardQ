@@ -13,7 +13,6 @@
  * Q_PROPERTYによるバインディングで、EngineInfoWidgetやEngineAnalysisTabと接続される。
  * 各プロパティの変更時にChangedシグナルを発火し、GUIラベルが自動更新される。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class UsiCommLogModel : public QObject
 {

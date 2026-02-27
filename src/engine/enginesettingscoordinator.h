@@ -10,7 +10,6 @@ class QWidget;
 /**
  * @brief エンジン設定ダイアログの表示を担当する名前空間
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 namespace EngineSettingsCoordinator {
 

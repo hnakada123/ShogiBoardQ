@@ -24,7 +24,6 @@ class GlobalToolTip;
  * ToolTip イベントの発生・消滅に合わせて GlobalToolTip を表示／非表示にする。
  * シグナルは持たないため Q_OBJECT は不要。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class AppToolTipFilter : public QObject {
 public:

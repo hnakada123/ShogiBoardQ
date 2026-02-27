@@ -12,7 +12,7 @@
 
 #include "kifuioservice.h"   // writeKifuFile / makeDefaultSaveFileName
 #include "playmode.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 
 namespace KifuSaveCoordinator {
 
@@ -39,7 +39,7 @@ QString saveViaDialogWithUsi(QWidget* parent,
         defaultName = "untitled.kifu";
 
     // 前回保存したディレクトリを復元
-    const QString lastDir = SettingsService::lastKifuSaveDirectory();
+    const QString lastDir = GameSettings::lastKifuSaveDirectory();
     if (!lastDir.isEmpty())
         defaultName = QDir(lastDir).filePath(defaultName);
 
@@ -59,7 +59,7 @@ QString saveViaDialogWithUsi(QWidget* parent,
         parent, QObject::tr("名前を付けて保存"), defaultName, filter);
     if (path.isEmpty()) return QString();
 
-    SettingsService::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
+    GameSettings::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
     QString err;

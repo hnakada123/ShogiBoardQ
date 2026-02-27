@@ -4,7 +4,8 @@
 #include "startgamedialog.h"
 #include "ui_startgamedialog.h"
 #include "changeenginesettingsdialog.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "gamesettings.h"
 #include "enginesettingsconstants.h"
 #include "buttonstyles.h"
 #include <QSettings>
@@ -20,7 +21,7 @@ using namespace EngineSettingsConstants;
 // 初期化
 // ============================================================
 
-StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::StartGameDialog)
+StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(std::make_unique<Ui::StartGameDialog>())
 {
     ui->setupUi(this);
 
@@ -47,7 +48,7 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::
     connectSignalsAndSlots();
 
     // ウィンドウサイズを復元
-    QSize savedSize = SettingsService::startGameDialogSize();
+    QSize savedSize = GameSettings::startGameDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
@@ -55,8 +56,7 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(new Ui::
 
 StartGameDialog::~StartGameDialog()
 {
-    SettingsService::setStartGameDialogSize(size());
-    delete ui;
+    GameSettings::setStartGameDialogSize(size());
 }
 
 // ============================================================
@@ -132,7 +132,7 @@ void StartGameDialog::handleAddEachMoveSecChanged(int value)
 
 void StartGameDialog::saveGameSettings()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     settings.beginGroup("GameSettings");
 
     // 先手／下手の設定を保存
@@ -186,7 +186,7 @@ void StartGameDialog::saveGameSettings()
 
 void StartGameDialog::loadGameSettings()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     settings.beginGroup("GameSettings");
 
     // 先手／下手の設定を読み込む
@@ -327,7 +327,7 @@ void StartGameDialog::swapSides()
 
 void StartGameDialog::loadEngineConfigurations()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     int size = settings.beginReadArray("Engines");
     engineList.clear();
@@ -560,7 +560,7 @@ void StartGameDialog::applyFontSize(int size)
 
 void StartGameDialog::loadFontSizeSettings()
 {
-    m_fontSize = SettingsService::startGameDialogFontSize();
+    m_fontSize = GameSettings::startGameDialogFontSize();
 
     // 範囲内に収める
     if (m_fontSize < MinFontSize) m_fontSize = MinFontSize;
@@ -571,7 +571,7 @@ void StartGameDialog::loadFontSizeSettings()
 
 void StartGameDialog::saveFontSizeSettings()
 {
-    SettingsService::setStartGameDialogFontSize(m_fontSize);
+    GameSettings::setStartGameDialogFontSize(m_fontSize);
 }
 
 // ============================================================

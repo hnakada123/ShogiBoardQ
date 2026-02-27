@@ -5,7 +5,8 @@
 #include "changeenginesettingsdialog.h"
 #include "ui_kifuanalysisdialog.h"
 #include "enginesettingsconstants.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "analysissettings.h"
 #include "shogiutils.h"
 
 #include <QFile>
@@ -25,7 +26,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->setupUi(this);
     
     // 設定からフォントサイズを読み込む
-    m_fontSize = SettingsService::kifuAnalysisFontSize();
+    m_fontSize = AnalysisSettings::kifuAnalysisFontSize();
     if (m_fontSize <= 0) {
         m_fontSize = font().pointSize();
         if (m_fontSize <= 0) {
@@ -38,19 +39,19 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     readEngineNameAndDir();
     
     // 設定から前回選択したエンジンを復元
-    int savedEngineIndex = SettingsService::kifuAnalysisEngineIndex();
+    int savedEngineIndex = AnalysisSettings::kifuAnalysisEngineIndex();
     if (savedEngineIndex >= 0 && savedEngineIndex < ui->comboBoxEngine1->count()) {
         ui->comboBoxEngine1->setCurrentIndex(savedEngineIndex);
     }
     
     // 設定から前回の思考時間を復元
-    int savedByoyomi = SettingsService::kifuAnalysisByoyomiSec();
+    int savedByoyomi = AnalysisSettings::kifuAnalysisByoyomiSec();
     if (savedByoyomi > 0) {
         ui->byoyomiSec->setValue(savedByoyomi);
     }
     
     // 設定から解析範囲を復元
-    bool savedFullRange = SettingsService::kifuAnalysisFullRange();
+    bool savedFullRange = AnalysisSettings::kifuAnalysisFullRange();
     if (savedFullRange) {
         ui->radioButtonInitPosition->setChecked(true);
     } else {
@@ -58,8 +59,8 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     }
     
     // 設定から開始・終了手数を復元（setMaxPlyで上書きされる可能性があるが初期値として設定）
-    m_savedStartPly = SettingsService::kifuAnalysisStartPly();
-    m_savedEndPly = SettingsService::kifuAnalysisEndPly();
+    m_savedStartPly = AnalysisSettings::kifuAnalysisStartPly();
+    m_savedEndPly = AnalysisSettings::kifuAnalysisEndPly();
 
     // エンジン設定ボタンが押されたときの処理
     connect(ui->engineSetting, &QPushButton::clicked, this, &KifuAnalysisDialog::showEngineSettingsDialog);
@@ -90,7 +91,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->spinBoxEndPly->setEnabled(rangeEnabled);
 
     // ウィンドウサイズを復元
-    QSize savedSize = SettingsService::kifuAnalysisDialogSize();
+    QSize savedSize = AnalysisSettings::kifuAnalysisDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
@@ -197,12 +198,12 @@ void KifuAnalysisDialog::processEngineSettings()
     m_byoyomiSec = ui->byoyomiSec->text().toInt();
     
     // 設定を保存
-    SettingsService::setKifuAnalysisEngineIndex(m_engineNumber);
-    SettingsService::setKifuAnalysisByoyomiSec(m_byoyomiSec);
-    SettingsService::setKifuAnalysisFullRange(m_initPosition);
-    SettingsService::setKifuAnalysisStartPly(ui->spinBoxStartPly->value());
-    SettingsService::setKifuAnalysisEndPly(ui->spinBoxEndPly->value());
-    SettingsService::setKifuAnalysisDialogSize(size());
+    AnalysisSettings::setKifuAnalysisEngineIndex(m_engineNumber);
+    AnalysisSettings::setKifuAnalysisByoyomiSec(m_byoyomiSec);
+    AnalysisSettings::setKifuAnalysisFullRange(m_initPosition);
+    AnalysisSettings::setKifuAnalysisStartPly(ui->spinBoxStartPly->value());
+    AnalysisSettings::setKifuAnalysisEndPly(ui->spinBoxEndPly->value());
+    AnalysisSettings::setKifuAnalysisDialogSize(size());
 }
 
 // エンジンの名前とディレクトリを格納するリストを取得する。
@@ -250,7 +251,7 @@ int KifuAnalysisDialog::endPly() const
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
 void KifuAnalysisDialog::readEngineNameAndDir()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // エンジンの数を取得する。
     int size = settings.beginReadArray("Engines");
@@ -282,7 +283,7 @@ void KifuAnalysisDialog::onFontIncrease()
     if (m_fontSize < 24) {
         m_fontSize += 2;
         applyFontSize();
-        SettingsService::setKifuAnalysisFontSize(m_fontSize);
+        AnalysisSettings::setKifuAnalysisFontSize(m_fontSize);
     }
 }
 
@@ -292,7 +293,7 @@ void KifuAnalysisDialog::onFontDecrease()
     if (m_fontSize > 8) {
         m_fontSize -= 2;
         applyFontSize();
-        SettingsService::setKifuAnalysisFontSize(m_fontSize);
+        AnalysisSettings::setKifuAnalysisFontSize(m_fontSize);
     }
 }
 

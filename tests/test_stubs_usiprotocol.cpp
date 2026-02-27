@@ -5,12 +5,13 @@
 /// テストではエンジンプロセスを起動せず、プロトコル解析ロジックのみを検証する。
 
 #include <QProcess>
+#include <QSettings>
 
 #include "engineprocessmanager.h"
 #include "thinkinginfopresenter.h"
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 
 // === EngineProcessManager スタブ ===
 EngineProcessManager::EngineProcessManager(QObject* parent) : QObject(parent) {}
@@ -63,9 +64,10 @@ ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
 void ShogiGameController::setPromote(bool) {}
 void ShogiGameController::newGame(QString&) {}
 
-// === SettingsService スタブ ===
-namespace SettingsService {
+// === SettingsCommon スタブ ===
+namespace SettingsCommon {
 QString settingsFilePath() { return QStringLiteral("/tmp/tst_usiprotocol_stub.ini"); }
+QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::IniFormat); return s; }
 }
 
 // === MOC出力のインクルード ===

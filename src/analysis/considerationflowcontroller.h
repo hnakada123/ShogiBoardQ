@@ -17,7 +17,6 @@ class ShogiEngineThinkingModel;
  * 単一局面の「検討」実行を司る薄いフローコントローラ。
  * MainWindow から UI と司令塔(MatchCoordinator)の橋渡しだけを引き剥がす。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ConsiderationFlowController : public QObject
 {
@@ -38,7 +37,6 @@ public:
     /**
      * @brief 検討パラメータ
      *
-     * @todo remove コメントスタイルガイド適用済み
      */
     struct DirectParams {
         int engineIndex = 0;        ///< エンジンインデックス
@@ -58,7 +56,6 @@ public:
      * @param positionStr 送信する`position ...`文字列
      *
      * ダイアログを表示せず、指定されたパラメータで直接検討を開始します。
-     * @todo remove コメントスタイルガイド適用済み
      */
     void runDirect(const Deps& d, const DirectParams& params, const QString& positionStr);
 

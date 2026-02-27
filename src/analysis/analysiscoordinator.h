@@ -21,7 +21,6 @@ class BranchTreeManager;
  * エンジン送信は `requestSendUsiCommand` シグナルへ委譲し、
  * 実際の送信実装とは疎結合に保つ。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class AnalysisCoordinator : public QObject
 {
@@ -44,7 +43,6 @@ public:
     /**
      * @brief 解析実行モード
      *
-     * @todo remove コメントスタイルガイド適用済み
      */
     enum Mode {
         Idle,            ///< 待機中

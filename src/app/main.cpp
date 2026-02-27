@@ -3,7 +3,7 @@
 
 #include "mainwindow.h"
 #include "logcategories.h"
-#include "settingsservice.h"
+#include "appsettings.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -17,6 +17,8 @@
 #include <QDateTime>
 #include <QStandardPaths>
 
+#include <memory>
+
 // ログメッセージハンドラ（デバッグビルド専用）
 //
 // ビルドごとの動作:
@@ -28,13 +30,13 @@
 //     - qCInfo/qCWarning/qCCritical は空のハンドラで破棄される
 //     - debug.log ファイルは作成されない
 //     - stderr への出力もない
-static QFile *logFile = nullptr;
+static std::unique_ptr<QFile> logFile;
 
 [[maybe_unused]] static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
 {
     if (!logFile) return;
 
-    QTextStream out(logFile);
+    QTextStream out(logFile.get());
     QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
     QString level;
     switch (type) {
@@ -72,7 +74,7 @@ int main(int argc, char *argv[])
 {
     // ログハンドラの設定（上記コメント参照）
 #ifdef QT_DEBUG
-    logFile = new QFile("debug.log");
+    logFile = std::make_unique<QFile>("debug.log");
     if (logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
         qInstallMessageHandler(messageHandler);
     }
@@ -88,7 +90,7 @@ int main(int argc, char *argv[])
 
     // 言語設定を読み込み、適切な翻訳ファイルをロード
     QTranslator translator;
-    QString langSetting = SettingsService::language();
+    QString langSetting = AppSettings::language();
 
     qCInfo(lcApp) << "Language setting:" << langSetting;
     qCInfo(lcApp) << "Application dir:" << QCoreApplication::applicationDirPath();
@@ -166,8 +168,7 @@ int main(int argc, char *argv[])
     if (logFile) {
         qInstallMessageHandler(nullptr);  // デフォルトハンドラに戻す
         logFile->close();
-        delete logFile;
-        logFile = nullptr;
+        logFile.reset();
     }
 
     return result;
