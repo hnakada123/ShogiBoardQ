@@ -124,7 +124,7 @@ void Usi::onThinkingInfoUpdated(const QString&, const QString&, const QString&,
 
 // === KifuAnalysisDialog スタブ ===
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget* parent)
-    : QDialog(parent), ui(nullptr) {}
+    : QDialog(parent), ui(nullptr), m_fontHelper({10, 8, 24, 2, nullptr}) {}
 QList<KifuAnalysisDialog::Engine> KifuAnalysisDialog::engineList() const
 {
     return { { QStringLiteral("TestEngine"), QStringLiteral("/usr/bin/test_engine") } };
@@ -232,6 +232,7 @@ QString ShogiBoard::convertStandToSfen() const { return {}; }
 
 // === ShogiGameController スタブ ===
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
+ShogiGameController::~ShogiGameController() = default;
 ShogiBoard* ShogiGameController::board() const { return nullptr; }
 void ShogiGameController::setCurrentPlayer(const Player) {}
 void ShogiGameController::setPromote(bool) {}

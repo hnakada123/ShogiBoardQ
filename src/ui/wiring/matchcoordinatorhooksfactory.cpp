@@ -6,34 +6,40 @@ MatchCoordinator::Hooks MatchCoordinatorHooksFactory::buildHooks(const HookDeps&
 {
     MatchCoordinator::Hooks hooks;
 
-    hooks.appendEvalP1 = [graph = deps.evalGraphController]() {
-        if (graph) graph->redrawEngine1Graph(-1);
-    };
-    hooks.appendEvalP2 = [graph = deps.evalGraphController]() {
-        if (graph) graph->redrawEngine2Graph(-1);
-    };
-    hooks.updateTurnDisplay = [onTurnChanged = deps.onTurnChanged](MatchCoordinator::Player cur) {
+    // UI hooks
+    hooks.ui.updateTurnDisplay = [onTurnChanged = deps.onTurnChanged](MatchCoordinator::Player cur) {
         if (!onTurnChanged) return;
         const auto now = (cur == MatchCoordinator::P2)
                              ? ShogiGameController::Player2
                              : ShogiGameController::Player1;
         onTurnChanged(now);
     };
+    hooks.ui.setPlayersNames = deps.setPlayersNames;
+    hooks.ui.setEngineNames = deps.setEngineNames;
+    hooks.ui.renderBoardFromGc = deps.renderBoard;
+    hooks.ui.showGameOverDialog = deps.showGameOverDialog;
+    hooks.ui.showMoveHighlights = deps.showMoveHighlights;
 
-    hooks.sendGoToEngine = deps.sendGo;
-    hooks.sendStopToEngine = deps.sendStop;
-    hooks.sendRawToEngine = deps.sendRaw;
-    hooks.initializeNewGame = deps.initializeNewGame;
-    hooks.renderBoardFromGc = deps.renderBoard;
-    hooks.showMoveHighlights = deps.showMoveHighlights;
-    hooks.appendKifuLine = deps.appendKifuLine;
-    hooks.showGameOverDialog = deps.showGameOverDialog;
-    hooks.remainingMsFor = deps.remainingMsFor;
-    hooks.incrementMsFor = deps.incrementMsFor;
-    hooks.byoyomiMs = deps.byoyomiMs;
-    hooks.setPlayersNames = deps.setPlayersNames;
-    hooks.setEngineNames = deps.setEngineNames;
-    hooks.autoSaveKifu = deps.autoSaveKifu;
+    // Time hooks
+    hooks.time.remainingMsFor = deps.remainingMsFor;
+    hooks.time.incrementMsFor = deps.incrementMsFor;
+    hooks.time.byoyomiMs = deps.byoyomiMs;
+
+    // Engine hooks
+    hooks.engine.sendGoToEngine = deps.sendGo;
+    hooks.engine.sendStopToEngine = deps.sendStop;
+    hooks.engine.sendRawToEngine = deps.sendRaw;
+
+    // Game hooks
+    hooks.game.initializeNewGame = deps.initializeNewGame;
+    hooks.game.appendKifuLine = deps.appendKifuLine;
+    hooks.game.appendEvalP1 = [graph = deps.evalGraphController]() {
+        if (graph) graph->redrawEngine1Graph(-1);
+    };
+    hooks.game.appendEvalP2 = [graph = deps.evalGraphController]() {
+        if (graph) graph->redrawEngine2Graph(-1);
+    };
+    hooks.game.autoSaveKifu = deps.autoSaveKifu;
 
     return hooks;
 }

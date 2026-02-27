@@ -5,6 +5,7 @@
 #include <QDebug> // 必要なら
 #include <QColor>
 #include <QBrush>
+#include <memory>
 
 KifuRecordListModel::KifuRecordListModel(QObject *parent)
     : AbstractListModel<KifuDisplay>(parent)
@@ -111,11 +112,8 @@ bool KifuRecordListModel::removeLastItem()
     const int last = static_cast<int>(list.size() - 1);
     beginRemoveRows(QModelIndex(), last, last);
 
-    // 所有モデルで生ポインタ管理の場合
-    auto *ptr = list.takeLast();
+    std::unique_ptr<KifuDisplay> ptr(list.takeLast());
     endRemoveRows();
-
-    delete ptr; // 所有権がモデル側にある前提
 
     return true;
 }
@@ -132,8 +130,7 @@ bool KifuRecordListModel::removeLastItems(int n)
     beginRemoveRows(QModelIndex(), first, last);
 
     for (int i = 0; i < toRemove; ++i) {
-        auto *ptr = list.takeLast();
-        delete ptr; // 所有権がモデル側にある前提
+        std::unique_ptr<KifuDisplay> ptr(list.takeLast());
     }
 
     endRemoveRows();

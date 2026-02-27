@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include <memory>
 #include "enginemovevalidator.h"
 #include "playmode.h"
 #include "shogitypes.h"
@@ -45,6 +46,7 @@ public:
     // --- 生成・取得 ---
 
     explicit ShogiGameController(QObject* parent = nullptr);
+    ~ShogiGameController() override;
 
     ShogiBoard* board() const;
     Result result() const { return m_result; }
@@ -118,7 +120,7 @@ signals:
 private:
     // --- メンバー変数 ---
 
-    ShogiBoard* m_board = nullptr; ///< 将棋盤（所有）
+    std::unique_ptr<ShogiBoard> m_board; ///< 将棋盤（所有）
     Result m_result = NoResult;    ///< 対局結果
     Player m_currentPlayer = NoPlayer; ///< 現在の手番
 
@@ -132,7 +134,6 @@ private:
     // --- 内部処理 ---
 
     void setupBoard();
-    void setBoard(ShogiBoard* board);
 
     /// 指し手を漢字の棋譜文字列に変換する（例: "▲７六歩(77)"）
     QString convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo);

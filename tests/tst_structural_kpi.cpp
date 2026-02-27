@@ -47,47 +47,48 @@ private:
     // 既知の例外リスト: ファイルパス(src/からの相対) → 現在の行数上限
     // リファクタリングでファイルが縮小されたら、この値も下げること。
     // 例外リスト外のファイルが600行を超えたらテスト失敗となる。
+    // 新しい例外を追加する場合は、削減計画の Issue 番号を同時に記載すること。
+    // 2026-02-28 実測値と一致を確認済み。
     static QMap<QString, int> knownLargeFiles()
     {
         return {
-            {"src/kifu/gamerecordmodel.cpp", 1729},
-            {"src/network/csagamecoordinator.cpp", 1569},
-            {"src/kifu/formats/ki2tosfenconverter.cpp", 1549},
-            {"src/game/matchcoordinator.cpp", 1444},
-            {"src/ui/coordinators/kifudisplaycoordinator.cpp", 1412},
-            {"src/widgets/engineanalysistab.cpp", 1378},
-            {"src/kifu/formats/kiftosfenconverter.cpp", 582},
-            {"src/kifu/kifuloadcoordinator.cpp", 1263},
-            {"src/game/gamestartcoordinator.cpp", 1181},
-            {"src/analysis/analysisflowcontroller.cpp", 1133},
-            {"src/engine/usi.cpp", 1084},
-            {"src/widgets/evaluationchartwidget.cpp", 1018},
-            {"src/kifu/kifuexportcontroller.cpp", 933},
-            {"src/core/fmvlegalcore.cpp", 930},
-            {"src/kifu/formats/usentosfenconverter.cpp", 910},
-            {"src/engine/usiprotocolhandler.cpp", 902},
-            {"src/dialogs/pvboarddialog.cpp", 884},
-            {"src/dialogs/engineregistrationdialog.cpp", 844},
-            {"src/dialogs/josekimovedialog.cpp", 840},
-            {"src/core/shogiboard.cpp", 820},
-            {"src/views/shogiview_draw.cpp", 808},
-            {"src/views/shogiview.cpp", 802},
-            {"src/dialogs/changeenginesettingsdialog.cpp", 802},
-            {"src/kifu/formats/csaexporter.cpp", 758},
-            {"src/kifu/formats/jkfexporter.cpp", 735},
-            {"src/views/shogiview_labels.cpp", 704},
-            {"src/network/csaclient.cpp", 693},
-            {"src/engine/shogiengineinfoparser.cpp", 689},
-            {"src/widgets/recordpane.cpp", 677},
-            {"src/kifu/formats/usitosfenconverter.cpp", 675},
-            {"src/dialogs/tsumeshogigeneratordialog.cpp", 669},
-            {"src/game/shogigamecontroller.cpp", 664},
-            {"src/navigation/kifunavigationcontroller.cpp", 642},
-            {"src/dialogs/startgamedialog.cpp", 640},
-            {"src/widgets/considerationtabmanager.cpp", 634},
-            {"src/widgets/branchtreemanager.cpp", 632},
-            {"src/game/matchcoordinator.h", 630},
-            {"src/app/mainwindowgameregistry.cpp", 592},
+            // --- 1000行超 ---
+            {"src/analysis/analysisflowcontroller.cpp", 1133}, // TODO: ISSUE-052 解析フロー分割
+            {"src/engine/usi.cpp", 1084},                      // TODO: ISSUE-053 USIエンジン分割
+            {"src/widgets/evaluationchartwidget.cpp", 1018},   // TODO: ISSUE-054 評価グラフ描画分離
+            // --- 900行超 ---
+            {"src/kifu/kifuexportcontroller.cpp", 933},  // TODO: ISSUE-055 棋譜エクスポート形式分離
+            {"src/core/fmvlegalcore.cpp", 930},          // TODO: ISSUE-056 合法手生成テーブル化
+            {"src/engine/usiprotocolhandler.cpp", 902},   // TODO: ISSUE-053 USIエンジン分割
+            // --- 800行超 ---
+            {"src/dialogs/pvboarddialog.cpp", 884},               // TODO: ISSUE-057 ダイアログ分割
+            {"src/dialogs/engineregistrationdialog.cpp", 842},    // TODO: ISSUE-057 ダイアログ分割
+            {"src/dialogs/josekimovedialog.cpp", 838},            // TODO: ISSUE-057 ダイアログ分割
+            {"src/core/shogiboard.cpp", 820},                     // TODO: ISSUE-056 コアロジック分割
+            {"src/views/shogiview_draw.cpp", 808},                // TODO: ISSUE-058 描画ロジック分離
+            {"src/dialogs/changeenginesettingsdialog.cpp", 804},  // TODO: ISSUE-057 ダイアログ分割
+            {"src/views/shogiview.cpp", 802},                     // TODO: ISSUE-058 描画ロジック分離
+            {"src/network/csagamecoordinator.cpp", 798},          // TODO: ISSUE-059 CSA通信分割
+            {"src/game/matchcoordinator.cpp", 789},               // TODO: ISSUE-060 MC責務移譲継続
+            // --- 700行超 ---
+            {"src/kifu/formats/csaexporter.cpp", 758},                // TODO: ISSUE-055 棋譜エクスポート形式分離
+            {"src/kifu/formats/jkfexporter.cpp", 735},                // TODO: ISSUE-055 棋譜エクスポート形式分離
+            {"src/game/gamestartcoordinator.cpp", 727},               // TODO: ISSUE-060 ゲーム管理分割
+            {"src/ui/coordinators/kifudisplaycoordinator.cpp", 720},  // TODO: ISSUE-061 UIコーディネータ分割
+            {"src/views/shogiview_labels.cpp", 704},                  // TODO: ISSUE-058 描画ロジック分離
+            // --- 600行超 ---
+            {"src/network/csaclient.cpp", 693},                    // TODO: ISSUE-059 CSA通信分割
+            {"src/engine/shogiengineinfoparser.cpp", 689},         // TODO: ISSUE-053 USIエンジン分割
+            {"src/widgets/recordpane.cpp", 677},                   // TODO: ISSUE-062 ウィジェット分割
+            {"src/dialogs/tsumeshogigeneratordialog.cpp", 657},    // TODO: ISSUE-057 ダイアログ分割
+            {"src/game/shogigamecontroller.cpp", 652},             // TODO: ISSUE-060 ゲーム管理分割
+            {"src/navigation/kifunavigationcontroller.cpp", 642},  // TODO: ISSUE-063 ナビゲーション分割
+            {"src/kifu/formats/parsecommon.cpp", 640},             // TODO: ISSUE-055 棋譜フォーマット分割
+            {"src/kifu/kifuapplyservice.cpp", 638},                // TODO: ISSUE-055 棋譜サービス分割
+            {"src/dialogs/startgamedialog.cpp", 638},              // TODO: ISSUE-057 ダイアログ分割
+            {"src/widgets/considerationtabmanager.cpp", 634},      // TODO: ISSUE-062 ウィジェット分割
+            {"src/widgets/branchtreemanager.cpp", 632},            // TODO: ISSUE-062 ウィジェット分割
+            {"src/widgets/engineanalysistab.cpp", 607},            // TODO: ISSUE-062 ウィジェット分割
         };
     }
 
@@ -219,7 +220,232 @@ private slots:
     }
 
     // ================================================================
-    // d) MainWindow public slots メソッド数上限テスト
+    // d) 1000行超ファイル数の上限チェック
+    //    src/ 配下の .cpp/.h で1000行を超えるファイルの総数を監視
+    // ================================================================
+    void largeFileCount()
+    {
+        const int kMaxLargeFiles = 4;        // 現状3 + マージン1
+        const int kLargeFileThreshold = 1000;
+
+        const QString sourceDir = QStringLiteral(SOURCE_DIR);
+        const QString srcPath = sourceDir + QStringLiteral("/src");
+
+        QDirIterator it(srcPath, {"*.cpp", "*.h"}, QDir::Files, QDirIterator::Subdirectories);
+
+        QStringList largeFiles;
+        while (it.hasNext()) {
+            it.next();
+            const int lines = countLines(it.filePath());
+            if (lines > kLargeFileThreshold) {
+                largeFiles.append(
+                    QStringLiteral("%1: %2 lines")
+                        .arg(QDir(sourceDir).relativeFilePath(it.filePath()))
+                        .arg(lines));
+            }
+        }
+
+        qDebug().noquote()
+            << QStringLiteral("Files over %1 lines: %2 (limit: %3)")
+                   .arg(kLargeFileThreshold)
+                   .arg(largeFiles.size())
+                   .arg(kMaxLargeFiles);
+
+        if (!largeFiles.isEmpty()) {
+            qDebug().noquote() << "  Large files:";
+            for (const auto &f : std::as_const(largeFiles))
+                qDebug().noquote() << "    " << f;
+        }
+
+        QVERIFY2(largeFiles.size() <= kMaxLargeFiles,
+                 qPrintable(QStringLiteral("Too many large files (>%1 lines): %2 (limit: %3)")
+                                .arg(kLargeFileThreshold)
+                                .arg(largeFiles.size())
+                                .arg(kMaxLargeFiles)));
+    }
+
+    // ================================================================
+    // e) delete 件数の上限チェック
+    //    src/ 配下の .cpp で delete 文の出現数を監視
+    // ================================================================
+    void deleteCount()
+    {
+        const int kMaxDeleteCount = 7; // 現状5 + マージン2
+
+        const QString sourceDir = QStringLiteral(SOURCE_DIR);
+        const QString srcPath = sourceDir + QStringLiteral("/src");
+
+        // delete 文にマッチ（コメント行・#include行は除外）
+        const QRegularExpression deletePattern(QStringLiteral(R"(\bdelete\b)"));
+        const QRegularExpression commentPattern(QStringLiteral(R"(^\s*//)"));
+        const QRegularExpression includePattern(QStringLiteral(R"(^\s*#include)"));
+
+        QDirIterator it(srcPath, {"*.cpp"}, QDir::Files, QDirIterator::Subdirectories);
+
+        int totalCount = 0;
+        QStringList details;
+
+        while (it.hasNext()) {
+            it.next();
+            QFile file(it.filePath());
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+
+            QTextStream in(&file);
+            int fileCount = 0;
+            while (!in.atEnd()) {
+                const QString line = in.readLine();
+                if (commentPattern.match(line).hasMatch())
+                    continue;
+                if (includePattern.match(line).hasMatch())
+                    continue;
+                if (deletePattern.match(line).hasMatch())
+                    ++fileCount;
+            }
+
+            if (fileCount > 0) {
+                totalCount += fileCount;
+                details.append(
+                    QStringLiteral("%1: %2")
+                        .arg(QDir(sourceDir).relativeFilePath(it.filePath()))
+                        .arg(fileCount));
+            }
+        }
+
+        qDebug().noquote()
+            << QStringLiteral("delete count in src/*.cpp: %1 (limit: %2)")
+                   .arg(totalCount)
+                   .arg(kMaxDeleteCount);
+        for (const auto &d : std::as_const(details))
+            qDebug().noquote() << "    " << d;
+
+        QVERIFY2(totalCount <= kMaxDeleteCount,
+                 qPrintable(QStringLiteral("Too many delete statements: %1 (limit: %2)")
+                                .arg(totalCount)
+                                .arg(kMaxDeleteCount)));
+    }
+
+    // ================================================================
+    // f) lambda connect 件数の上限チェック
+    //    src/ 配下の .cpp で connect() にラムダを使用している箇所を監視
+    // ================================================================
+    void lambdaConnectCount()
+    {
+        const int kMaxLambdaConnects = 1; // 現状0 + マージン1
+
+        const QString sourceDir = QStringLiteral(SOURCE_DIR);
+        const QString srcPath = sourceDir + QStringLiteral("/src");
+
+        // connect( を含む行で [ も含む行（ラムダキャプチャの典型パターン）
+        const QRegularExpression connectPattern(QStringLiteral(R"(connect\s*\()"));
+        const QRegularExpression lambdaPattern(QStringLiteral(R"(\[)"));
+        const QRegularExpression commentPattern(QStringLiteral(R"(^\s*//)"));
+
+        QDirIterator it(srcPath, {"*.cpp"}, QDir::Files, QDirIterator::Subdirectories);
+
+        int totalCount = 0;
+        QStringList details;
+
+        while (it.hasNext()) {
+            it.next();
+            QFile file(it.filePath());
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+
+            QTextStream in(&file);
+            int fileCount = 0;
+            while (!in.atEnd()) {
+                const QString line = in.readLine();
+                if (commentPattern.match(line).hasMatch())
+                    continue;
+                if (connectPattern.match(line).hasMatch()
+                    && lambdaPattern.match(line).hasMatch()) {
+                    ++fileCount;
+                }
+            }
+
+            if (fileCount > 0) {
+                totalCount += fileCount;
+                details.append(
+                    QStringLiteral("%1: %2")
+                        .arg(QDir(sourceDir).relativeFilePath(it.filePath()))
+                        .arg(fileCount));
+            }
+        }
+
+        qDebug().noquote()
+            << QStringLiteral("lambda connect count in src/*.cpp: %1 (limit: %2)")
+                   .arg(totalCount)
+                   .arg(kMaxLambdaConnects);
+        for (const auto &d : std::as_const(details))
+            qDebug().noquote() << "    " << d;
+
+        QVERIFY2(totalCount <= kMaxLambdaConnects,
+                 qPrintable(QStringLiteral("Too many lambda connects: %1 (limit: %2)")
+                                .arg(totalCount)
+                                .arg(kMaxLambdaConnects)));
+    }
+
+    // ================================================================
+    // g) 旧式 SIGNAL/SLOT マクロ件数の上限チェック
+    //    src/ 配下の .cpp で SIGNAL( または SLOT( の出現数を監視
+    // ================================================================
+    void oldStyleConnectionCount()
+    {
+        const int kMaxOldStyleConnections = 0;
+
+        const QString sourceDir = QStringLiteral(SOURCE_DIR);
+        const QString srcPath = sourceDir + QStringLiteral("/src");
+
+        // SIGNAL( または SLOT( にマッチ（コメント行は除外）
+        const QRegularExpression macroPattern(QStringLiteral(R"(\b(SIGNAL|SLOT)\s*\()"));
+        const QRegularExpression commentPattern(QStringLiteral(R"(^\s*//)"));
+
+        QDirIterator it(srcPath, {"*.cpp"}, QDir::Files, QDirIterator::Subdirectories);
+
+        int totalCount = 0;
+        QStringList details;
+
+        while (it.hasNext()) {
+            it.next();
+            QFile file(it.filePath());
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+
+            QTextStream in(&file);
+            int fileCount = 0;
+            while (!in.atEnd()) {
+                const QString line = in.readLine();
+                if (commentPattern.match(line).hasMatch())
+                    continue;
+                if (macroPattern.match(line).hasMatch())
+                    ++fileCount;
+            }
+
+            if (fileCount > 0) {
+                totalCount += fileCount;
+                details.append(
+                    QStringLiteral("%1: %2")
+                        .arg(QDir(sourceDir).relativeFilePath(it.filePath()))
+                        .arg(fileCount));
+            }
+        }
+
+        qDebug().noquote()
+            << QStringLiteral("old-style SIGNAL/SLOT count in src/*.cpp: %1 (limit: %2)")
+                   .arg(totalCount)
+                   .arg(kMaxOldStyleConnections);
+        for (const auto &d : std::as_const(details))
+            qDebug().noquote() << "    " << d;
+
+        QVERIFY2(totalCount <= kMaxOldStyleConnections,
+                 qPrintable(QStringLiteral("Too many old-style SIGNAL/SLOT macros: %1 (limit: %2)")
+                                .arg(totalCount)
+                                .arg(kMaxOldStyleConnections)));
+    }
+
+    // ================================================================
+    // h) MainWindow public slots メソッド数上限テスト
     //    public slots: セクション内のメソッド宣言数をカウント
     // ================================================================
     void mainWindowPublicSlotsLimit()

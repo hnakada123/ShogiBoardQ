@@ -80,7 +80,7 @@ public:
     void setTsumeShogiStartPosition(ShogiView* view, BoardInteractionController* bic);
 
     // --- 編集終了ボタン制御 ---
-    void showEditExitButtonOnBoard(ShogiView* view, QObject* receiver, const char* finishSlot);
+    void showEditExitButtonOnBoard(ShogiView* view);
     void hideEditExitButtonOnBoard(ShogiView* view);
 
     /// 局面編集中の着手要求を適用し、ドラッグ終了とハイライト更新まで行う

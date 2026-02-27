@@ -138,11 +138,8 @@ void MatchCoordinatorWiring::wireConnections()
     d.gameMoves  = m_gameMoves;
     d.hooks = m_hooks;
 
-    // --- GameStartCoordinator の確保（1 回だけ） ---
-    ensureGameStartCoordinator();
-
     // --- MatchCoordinator（司令塔）の生成＆初期配線 ---
-    m_match = m_gameStartCoordinator->createAndWireMatch(d, parent());
+    createMatchCoordinator(d);
 
     // USIコマンドコントローラへ司令塔を反映
     if (m_ensureUsiCommandController) m_ensureUsiCommandController();
@@ -209,49 +206,49 @@ void MatchCoordinatorWiring::wireConnections()
         m_boardController->setMode(BoardInteractionController::Mode::HumanVsHuman);
 }
 
-void MatchCoordinatorWiring::ensureGameStartCoordinator()
+void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps& deps)
 {
-    if (m_gameStartCoordinator) return;
+    // 既存があれば破棄
+    if (m_match) {
+        m_match->disconnect(this);
+        delete m_match;
+        m_match = nullptr;
+    }
 
-    GameStartCoordinator::Deps gd;
-    gd.match = nullptr;
-    gd.clock = m_getClock ? m_getClock() : nullptr;
-    gd.gc    = m_gc;
-    gd.view  = m_view;
+    m_match = new MatchCoordinator(deps, parent());
+    m_match->updateUsiPtrs(deps.usi1, deps.usi2);
 
-    m_gameStartCoordinator = new GameStartCoordinator(gd, this);
+    // --- MC シグナル → MCW シグナルへ直接配線 ---
+    connect(m_match, &MatchCoordinator::requestAppendGameOverMove,
+            this,    &MatchCoordinatorWiring::requestAppendGameOverMove,
+            Qt::UniqueConnection);
 
-    // timeUpdated → TimeDisplayPresenter
+    connect(m_match, &MatchCoordinator::boardFlipped,
+            this,    &MatchCoordinatorWiring::boardFlipped,
+            Qt::UniqueConnection);
+
+    connect(m_match, &MatchCoordinator::gameOverStateChanged,
+            this,    &MatchCoordinatorWiring::gameOverStateChanged,
+            Qt::UniqueConnection);
+
+    connect(m_match, &MatchCoordinator::gameEnded,
+            this,    &MatchCoordinatorWiring::matchGameEnded,
+            Qt::UniqueConnection);
+
+    // timeUpdated → TimeDisplayPresenter（直接配線）
     if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
     if (m_timePresenter) {
         m_timeConn = connect(
-            m_gameStartCoordinator, &GameStartCoordinator::timeUpdated,
+            m_match, &MatchCoordinator::timeUpdated,
             m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
             Qt::UniqueConnection);
     }
-
-    // シグナル転送: GameStartCoordinator → MatchCoordinatorWiring
-    connect(m_gameStartCoordinator, &GameStartCoordinator::requestAppendGameOverMove,
-            this,                   &MatchCoordinatorWiring::requestAppendGameOverMove,
-            Qt::UniqueConnection);
-
-    connect(m_gameStartCoordinator, &GameStartCoordinator::boardFlipped,
-            this,                   &MatchCoordinatorWiring::boardFlipped,
-            Qt::UniqueConnection);
-
-    connect(m_gameStartCoordinator, &GameStartCoordinator::gameOverStateChanged,
-            this,                   &MatchCoordinatorWiring::gameOverStateChanged,
-            Qt::UniqueConnection);
-
-    connect(m_gameStartCoordinator, &GameStartCoordinator::matchGameEnded,
-            this,                   &MatchCoordinatorWiring::matchGameEnded,
-            Qt::UniqueConnection);
 
     // 対局終了時にUI状態を「アイドル」に遷移
     if (m_ensureUiStatePolicyManager) m_ensureUiStatePolicyManager();
     auto* uiPolicy = m_getUiStatePolicy ? m_getUiStatePolicy() : nullptr;
     if (uiPolicy) {
-        connect(m_gameStartCoordinator, &GameStartCoordinator::matchGameEnded,
+        connect(m_match, &MatchCoordinator::gameEnded,
                 uiPolicy, &UiStatePolicyManager::transitionToIdle,
                 Qt::UniqueConnection);
     }

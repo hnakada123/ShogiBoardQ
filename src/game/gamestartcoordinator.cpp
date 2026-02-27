@@ -2,29 +2,22 @@
 /// @brief 対局開始コーディネータクラスの実装
 
 #include "gamestartcoordinator.h"
+#include "gamestartoptionsbuilder.h"
 #include "logcategories.h"
 #include "kifurecordlistmodel.h"
 #include "kifuloadcoordinator.h"
-#include "shogiboard.h"
 #include "shogiview.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
 #include "startgamedialog.h"
 #include "kifudisplay.h"
-#include "playernameservice.h"
 #include "timecontrolutil.h"
 
-#include <QPointer>
 #include <QDebug>
 #include <QLoggingCategory>
 #include <QWidget>
-#include <QObject>
-#include <QVariant>
 #include <QMetaType>
-#include <QtGlobal>
-#include <QGlobalStatic>
-#include <array>
 
 // ============================================================
 // 初期化
@@ -140,7 +133,7 @@ void GameStartCoordinator::prepare(const Request& req)
     }
 
     // --- 1) ダイアログから時間設定を抽出 ---
-    const TimeControl tc = extractTimeControlFromDialog(req.startDialog);
+    const TimeControl tc = GameStartOptionsBuilder::extractTimeControl(req.startDialog);
 
     emit requestApplyTimeControl(tc);
 
@@ -222,7 +215,7 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
             *c.currentSfenStr = QStringLiteral("startpos");
     } else {
         qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: applying baseSfen=" << baseSfen.left(50);
-        GameStartCoordinator::applyResumePositionIfAny(c.gc, c.view, baseSfen);
+        GameStartOptionsBuilder::applyResumePositionIfAny(c.gc, c.view, baseSfen);
 
         if (c.currentSfenStr) *c.currentSfenStr = baseSfen;
         if (c.startSfenStr   && c.startSfenStr->isEmpty())
@@ -258,58 +251,8 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     }
     if (startingPosNumber <= 0) startingPosNumber = 1;
 
-    // 2) 手合割 → SFEN文字列テーブル
-    // exit-time destructor回避のためローカル静的配列はstd::arrayを使用
-    static const auto& kStartingPositionStr = *[]() {
-        static const std::array<QString, 14> arr = {{
-            //  1: 平手
-            QStringLiteral("startpos"),
-            //  2: 香落ち
-            QStringLiteral("sfen lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  3: 右香落ち
-            QStringLiteral("sfen 1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  4: 角落ち
-            QStringLiteral("sfen lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  5: 飛車落ち
-            QStringLiteral("sfen lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  6: 飛香落ち
-            QStringLiteral("sfen lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  7: 二枚落ち
-            QStringLiteral("sfen lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  8: 三枚落ち
-            QStringLiteral("sfen lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            //  9: 四枚落ち
-            QStringLiteral("sfen 1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 10: 五枚落ち
-            QStringLiteral("sfen 2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 11: 左五枚落ち
-            QStringLiteral("sfen 1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 12: 六枚落ち
-            QStringLiteral("sfen 2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 13: 八枚落ち
-            QStringLiteral("sfen 3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-            // 14: 十枚落ち
-            QStringLiteral("sfen 4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
-        }};
-        return &arr;
-    }();
-
-    const int idx = qBound(1, startingPosNumber, 14) - 1;
-    const QString startPositionStr = kStartingPositionStr[static_cast<size_t>(idx)];
-
-    // 3) "startpos" / "sfen ..." → 純SFENへ正規化
-    auto toPureSfen = [](QString s) -> QString {
-        if (s == QLatin1String("startpos")) {
-            return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        }
-        if (s.startsWith(QLatin1String("sfen "))) {
-            s.remove(0, 5);
-            return s;
-        }
-        return s;
-    };
-
-    const QString sfen = toPureSfen(startPositionStr);
+    // 2) 手合割 → 純SFEN（GameStartOptionsBuilder のプリセットテーブルを使用）
+    const QString sfen = GameStartOptionsBuilder::startingPositionSfen(startingPosNumber);
 
     qCDebug(lcGame).noquote()
         << "prepareInitial: startingPosNumber=" << startingPosNumber
@@ -470,215 +413,19 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 }
 
 // ============================================================
-// ダイアログ抽出ヘルパ
+// ユーティリティ（GameStartOptionsBuilder へ委譲）
 // ============================================================
-
-int GameStartCoordinator::readIntProperty(const QObject* root,
-                                          const char* objectName,
-                                          const char* prop,
-                                          int def)
-{
-    if (!root) return def;
-    if (auto obj = root->findChild<const QObject*>(QLatin1String(objectName))) {
-        bool ok = false;
-        const int n = obj->property(prop).toInt(&ok);
-        if (ok) return n;
-    }
-    return def;
-}
-
-bool GameStartCoordinator::readBoolProperty(const QObject* root,
-                                            const char* objectName,
-                                            const char* prop,
-                                            bool def)
-{
-    if (!root) return def;
-    if (auto obj = root->findChild<const QObject*>(QLatin1String(objectName))) {
-        const QVariant v = obj->property(prop);
-        if (v.isValid()) return v.toBool();
-    }
-    return def;
-}
-
-GameStartCoordinator::TimeControl
-GameStartCoordinator::extractTimeControlFromDialog(const QWidget* dlg)
-{
-    TimeControl tc;
-
-    const int p1h  = readIntProperty (dlg, "p1HoursSpin");
-    const int p1m  = readIntProperty (dlg, "p1MinutesSpin");
-    const int p2h  = readIntProperty (dlg, "p2HoursSpin");
-    const int p2m  = readIntProperty (dlg, "p2MinutesSpin");
-    const int byo1 = readIntProperty (dlg, "byoyomiSec1");
-    const int byo2 = readIntProperty (dlg, "byoyomiSec2");
-    const int inc1 = readIntProperty (dlg, "addEachMoveSec1");
-    const int inc2 = readIntProperty (dlg, "addEachMoveSec2");
-    const bool limited = readBoolProperty(dlg, "limitedTimeCheck");
-
-    auto toMs = [](int h, int m){ return (qMax(0,h)*3600 + qMax(0,m)*60) * 1000LL; };
-
-    tc.p1.baseMs = toMs(p1h, p1m);
-    tc.p2.baseMs = toMs(p2h, p2m);
-
-    // byoyomi / increment は排他
-    if (byo1 > 0 || byo2 > 0) {
-        tc.p1.byoyomiMs   = qMax(0, byo1) * 1000LL;
-        tc.p2.byoyomiMs   = qMax(0, byo2) * 1000LL;
-        tc.p1.incrementMs = 0;
-        tc.p2.incrementMs = 0;
-    } else if (inc1 > 0 || inc2 > 0) {
-        tc.p1.byoyomiMs = qMax(0, inc1) * 1000LL;
-        tc.p2.byoyomiMs = qMax(0, inc2) * 1000LL;
-        tc.p1.byoyomiMs = 0;
-        tc.p2.byoyomiMs = 0;
-    } else {
-        tc.p1.byoyomiMs = 0;
-        tc.p2.byoyomiMs = 0;
-        tc.p1.incrementMs = 0;
-        tc.p2.incrementMs = 0;
-    }
-
-    if (dlg) {
-        tc.enabled = limited;
-    } else {
-        tc.enabled = (tc.p1.baseMs > 0 || tc.p2.baseMs > 0);
-    }
-
-    return tc;
-}
-
-// ============================================================
-// PlayMode 判定
-// ============================================================
-
-PlayMode GameStartCoordinator::determinePlayMode(const int initPositionNumber,
-                                                 const bool isPlayer1Human,
-                                                 const bool isPlayer2Human) const
-{
-    // 平手（=1）と駒落ち（!=1）で分岐
-    const bool isEven = (initPositionNumber == 1);
-
-    if (isEven) {
-        if (isPlayer1Human && isPlayer2Human)  return PlayMode::HumanVsHuman;
-        if (isPlayer1Human && !isPlayer2Human) return PlayMode::EvenHumanVsEngine;
-        if (!isPlayer1Human && isPlayer2Human) return PlayMode::EvenEngineVsHuman;
-        if (!isPlayer1Human && !isPlayer2Human) return PlayMode::EvenEngineVsEngine;
-    } else {
-        if (isPlayer1Human && isPlayer2Human)  return PlayMode::HumanVsHuman;
-        if (isPlayer1Human && !isPlayer2Human) return PlayMode::HandicapHumanVsEngine;
-        if (!isPlayer1Human && isPlayer2Human) return PlayMode::HandicapEngineVsHuman;
-        if (!isPlayer1Human && !isPlayer2Human) return PlayMode::HandicapEngineVsEngine;
-    }
-
-    return PlayMode::PlayModeError;
-}
 
 PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
 {
-    int  initPositionNumber = 1;
-    bool isHuman1 = false, isHuman2 = false;
-    bool isEngine1 = false, isEngine2 = false;
-
-    if (c.startDlg) {
-        if (auto dlg = qobject_cast<StartGameDialog*>(c.startDlg)) {
-            initPositionNumber = dlg->startingPositionNumber();
-            isHuman1           = dlg->isHuman1();
-            isHuman2           = dlg->isHuman2();
-            isEngine1          = dlg->isEngine1();
-            isEngine2          = dlg->isEngine2();
-        } else {
-            bool ok=false;
-            const QVariant pn = c.startDlg->property("startingPositionNumber");
-            initPositionNumber = pn.isValid() ? pn.toInt(&ok) : 1;
-            if (!ok) initPositionNumber = 1;
-
-            isHuman1  = c.startDlg->property("isHuman1").toBool();
-            isHuman2  = c.startDlg->property("isHuman2").toBool();
-            isEngine1 = c.startDlg->property("isEngine1").toBool();
-            isEngine2 = c.startDlg->property("isEngine2").toBool();
-        }
-    }
-
-    // 「Human と Engine の排他」を整形
-    const bool p1Human = (isHuman1  && !isEngine1);
-    const bool p2Human = (isHuman2  && !isEngine2);
-
-    const PlayMode mode = determinePlayMode(initPositionNumber, p1Human, p2Human);
-
-    if (mode == PlayMode::PlayModeError) {
-        qCWarning(lcGame).noquote() << "setPlayMode: PlayMode::PlayModeError"
-                             << "initPos=" << initPositionNumber
-                             << " p1Human=" << p1Human << " p2Human=" << p2Human
-                             << " (raw human/engine: "
-                             << isHuman1 << "/" << isEngine1 << ", "
-                             << isHuman2 << "/" << isEngine2 << ")";
-    }
-
-    return mode;
+    return GameStartOptionsBuilder::determinePlayModeFromDialog(c.startDlg);
 }
-
-// ============================================================
-// SFEN手番抽出
-// ============================================================
-
-QChar GameStartCoordinator::turnFromSfen(const QString& sfen)
-{
-    const QString s = sfen.trimmed();
-    if (s.isEmpty()) return QChar();
-
-    // 典型: "<board> b - 1" / "<board> w - 1"
-    const QStringList toks = s.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (toks.size() >= 2) {
-        const QString t = toks.at(1).toLower();
-        if (t == QLatin1String("b")) return QLatin1Char('b');
-        if (t == QLatin1String("w")) return QLatin1Char('w');
-    }
-    if (s.contains(QLatin1String(" b "))) return QLatin1Char('b');
-    if (s.contains(QLatin1String(" w "))) return QLatin1Char('w');
-    return QChar();
-}
-
-// ============================================================
-// PlayMode判定（SFEN手番整合版）
-// ============================================================
 
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
     int initPositionNumber, bool isPlayer1Human, bool isPlayer2Human, const QString& startSfen)
 {
-    const QChar turn = turnFromSfen(startSfen);
-    const bool isEven = (initPositionNumber == 1);
-    const bool hvh = (isPlayer1Human && isPlayer2Human);
-    const bool eve = (!isPlayer1Human && !isPlayer2Human);
-    const bool oneVsEngine = !hvh && !eve;
-
-    if (isEven) {
-        if (hvh) return PlayMode::HumanVsHuman;
-        if (eve) return PlayMode::EvenEngineVsEngine;
-        if (oneVsEngine) {
-            if (turn == QLatin1Char('b')) {
-                return isPlayer1Human ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
-            }
-            if (turn == QLatin1Char('w')) {
-                return isPlayer2Human ? PlayMode::EvenEngineVsHuman : PlayMode::EvenHumanVsEngine;
-            }
-            // turnが取れない場合は座席で決定
-            return (isPlayer1Human && !isPlayer2Human) ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
-        }
-        return PlayMode::NotStarted;
-    } else {
-        if (hvh) return PlayMode::HumanVsHuman;
-        if (eve) return PlayMode::HandicapEngineVsEngine;
-        if (oneVsEngine) {
-            if (turn == QLatin1Char('b')) {
-                return isPlayer1Human ? PlayMode::HandicapHumanVsEngine : PlayMode::HandicapEngineVsHuman;
-            }
-            if (turn == QLatin1Char('w')) {
-                return isPlayer2Human ? PlayMode::HandicapEngineVsHuman : PlayMode::HandicapHumanVsEngine;
-            }
-            return (isPlayer1Human && !isPlayer2Human) ? PlayMode::HandicapHumanVsEngine : PlayMode::HandicapEngineVsHuman;
-        }
-        return PlayMode::NotStarted;
-    }
+    return GameStartOptionsBuilder::determinePlayModeAlignedWithTurn(
+        initPositionNumber, isPlayer1Human, isPlayer2Human, startSfen);
 }
 
 // ============================================================
@@ -817,31 +564,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
             qCDebug(lcGame).noquote() << "initializeGame: FALLBACK to startpos";
         }
     } else {
-        // 平手/駒落ちプリセット（startingPosNumber >= 1 の場合は常にプリセットを適用）
-        static const auto& presets = *[]() {
-            static const std::array<QString, 15> arr = {{
-                QString(),
-                QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
-                QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
-                QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
-            }};
-            return &arr;
-        }();
-        int idx = startingPosNumber;
-        if (idx < 1) idx = 1;
-        if (idx >= static_cast<int>(presets.size())) idx = static_cast<int>(presets.size()) - 1;
-        startSfen = presets[static_cast<size_t>(idx)];
+        // 平手/駒落ちプリセット（GameStartOptionsBuilder のテーブルを使用）
+        startSfen = GameStartOptionsBuilder::startingPositionSfen(startingPosNumber);
 
         // プリセット局面は新規対局なので、全UIコンポーネントをクリアする。
         // shouldStartFromCurrentPosition() が false を返すよう
@@ -863,14 +587,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     }
 
     // --- 3.5) 開始SFENを正規化してsfenRecordにseed ---
-    auto canonicalizeStart = [](const QString& sfen)->QString {
-        const QString t = sfen.trimmed();
-        if (t.isEmpty() || t == QLatin1String("startpos")) {
-            return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        }
-        return t;
-    };
-    const QString seedSfen = canonicalizeStart(startSfen);
+    const QString seedSfen = GameStartOptionsBuilder::canonicalizeSfen(startSfen);
 
     if (c.sfenRecord) {
         // 現在局面から開始（startingPosNumber==0）の場合は
@@ -925,51 +642,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     m_match->ensureHumanAtBottomIfApplicable(&dlg, c.bottomIsP1);
 
-    // --- 6) TimeControl を ms で構築 ---
-    auto hms_to_ms = [](int h, int m)->qint64 {
-        const qint64 hh = qMax(0, h);
-        const qint64 mm = qMax(0, m);
-        return (hh*3600 + mm*60) * 1000;
-    };
-    auto sec_to_ms = [](int s)->qint64 {
-        return qMax(0, s) * 1000ll;
-    };
-
-    const int h1   = dlg.basicTimeHour1();
-    const int m1   = dlg.basicTimeMinutes1();
-    const int h2   = dlg.basicTimeHour2();
-    const int m2   = dlg.basicTimeMinutes2();
-    const int byo1 = dlg.byoyomiSec1();
-    const int byo2 = dlg.byoyomiSec2();
-    const int inc1 = dlg.addEachMoveSec1();
-    const int inc2 = dlg.addEachMoveSec2();
-
-    TimeControl tc;
-    tc.p1.baseMs      = hms_to_ms(h1, m1);
-    tc.p2.baseMs      = hms_to_ms(h2, m2);
-    tc.p1.byoyomiMs   = sec_to_ms(byo1);
-    tc.p2.byoyomiMs   = sec_to_ms(byo2);
-    tc.p1.incrementMs = sec_to_ms(inc1);
-    tc.p2.incrementMs = sec_to_ms(inc2);
-
-    // byoyomi 優先（併用指定なら inc は 0 扱い）
-    const bool useByoyomi = (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0);
-    if (useByoyomi) {
-        tc.p1.incrementMs = 0;
-        tc.p2.incrementMs = 0;
-    }
-
-    const bool hasAny =
-        (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
-        (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
-        (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
-    tc.enabled = hasAny;
-
-    qCDebug(lcGame).noquote()
-        << "initializeGame tc:"
-        << " enabled=" << tc.enabled
-        << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
-        << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
+    // --- 6) TimeControl を構築（GameStartOptionsBuilder に委譲） ---
+    const TimeControl tc = GameStartOptionsBuilder::buildTimeControl(&dlg);
 
     // --- 7) 時計の準備と配線・起動は prepare() に委譲 ---
     Request req;
@@ -1027,70 +701,14 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 }
 
 // ============================================================
-// 司令塔（MatchCoordinator）の生成と初期配線
-// ============================================================
-
-MatchCoordinator* GameStartCoordinator::createAndWireMatch(const MatchCoordinator::Deps& deps,
-                                                           QObject* parentForMatch)
-{
-    // 既存があれば破棄（Qt親子ツリーから自動除去される）
-    if (m_match) {
-        m_match->disconnect(this);
-        delete m_match;
-        m_match = nullptr;
-    }
-
-    m_match = new MatchCoordinator(deps, parentForMatch);
-
-    // 司令塔→Coordinator へ受け、Coordinator から re-emit
-    QObject::connect(
-        m_match, &MatchCoordinator::timeUpdated,
-        this, &GameStartCoordinator::timeUpdated,
-        Qt::UniqueConnection
-        );
-    QObject::connect(
-        m_match, &MatchCoordinator::requestAppendGameOverMove,
-        this,    &GameStartCoordinator::requestAppendGameOverMove,
-        Qt::UniqueConnection
-        );
-    QObject::connect(
-        m_match, &MatchCoordinator::boardFlipped,
-        this,    &GameStartCoordinator::boardFlipped,
-        Qt::UniqueConnection
-        );
-    QObject::connect(
-        m_match, &MatchCoordinator::gameOverStateChanged,
-        this,    &GameStartCoordinator::gameOverStateChanged,
-        Qt::UniqueConnection
-        );
-    QObject::connect(
-        m_match, &MatchCoordinator::gameEnded,
-        this, &GameStartCoordinator::matchGameEnded,
-        Qt::UniqueConnection
-        );
-
-    m_match->updateUsiPtrs(deps.usi1, deps.usi2);
-
-    qCDebug(lcGame) << "signal index:"
-             << m_match->metaObject()->indexOfSignal("timeUpdated(long long,long long,bool,long long)");
-
-    return m_match;
-}
-
-// ============================================================
-// ユーティリティ
+// ユーティリティ（GameStartOptionsBuilder へ委譲）
 // ============================================================
 
 void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
                                                     ShogiView* view,
                                                     const QString& resumeSfen)
 {
-    if (!gc || resumeSfen.isEmpty()) return;
-
-    if (auto* b = gc->board()) {
-        b->setSfen(resumeSfen);
-        if (view) view->applyBoardAndRender(b);
-    }
+    GameStartOptionsBuilder::applyResumePositionIfAny(gc, view, resumeSfen);
 }
 
 void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
@@ -1100,82 +718,10 @@ void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
                                                     const QString& engine1,
                                                     const QString& engine2) const
 {
-    if (!view) return;
-    const PlayerNameMapping names =
-        PlayerNameService::computePlayers(mode, human1, human2, engine1, engine2);
-    view->setBlackPlayerName(names.p1);
-    view->setWhitePlayerName(names.p2);
+    GameStartOptionsBuilder::applyPlayersNamesForMode(view, mode, human1, human2, engine1, engine2);
 }
 
-// ============================================================
-// ダイアログからTimeControlを組み立てる
-// ============================================================
-
-GameStartCoordinator::TimeControl
-GameStartCoordinator::buildTimeControlFromDialog(QDialog* startDlg) const
+void GameStartCoordinator::setMatch(MatchCoordinator* match)
 {
-    TimeControl tc;
-
-    int h1=0, m1=0, h2=0, m2=0;
-    int byo1=0, byo2=0;
-    int inc1=0, inc2=0;
-
-    auto propInt = [&](const char* name)->int {
-        if (!startDlg) return 0;
-        bool ok=false; const int v = startDlg->property(name).toInt(&ok);
-        return ok ? v : 0;
-    };
-
-    // StartGameDialog の型が使えるなら直接 getter を呼ぶ
-    if (auto dlg = qobject_cast<StartGameDialog*>(startDlg)) {
-        h1   = dlg->basicTimeHour1();
-        m1   = dlg->basicTimeMinutes1();
-        h2   = dlg->basicTimeHour2();
-        m2   = dlg->basicTimeMinutes2();
-        byo1 = dlg->byoyomiSec1();
-        byo2 = dlg->byoyomiSec2();
-        inc1 = dlg->addEachMoveSec1();
-        inc2 = dlg->addEachMoveSec2();
-    } else {
-        // フォールバック: プロパティ名で取得
-        h1   = propInt("basicTimeHour1");
-        m1   = propInt("basicTimeMinutes1");
-        h2   = propInt("basicTimeHour2");
-        m2   = propInt("basicTimeMinutes2");
-        byo1 = propInt("byoyomiSec1");
-        byo2 = propInt("byoyomiSec2");
-        inc1 = propInt("addEachMoveSec1");
-        inc2 = propInt("addEachMoveSec2");
-    }
-
-    const qint64 base1Ms = qMax<qint64>(0, (static_cast<qint64>(h1)*3600 + m1*60) * 1000);
-    const qint64 base2Ms = qMax<qint64>(0, (static_cast<qint64>(h2)*3600 + m2*60) * 1000);
-
-    const qint64 byo1Ms  = qMax<qint64>(0, static_cast<qint64>(byo1) * 1000);
-    const qint64 byo2Ms  = qMax<qint64>(0, static_cast<qint64>(byo2) * 1000);
-
-    const qint64 inc1Ms  = qMax<qint64>(0, static_cast<qint64>(inc1) * 1000);
-    const qint64 inc2Ms  = qMax<qint64>(0, static_cast<qint64>(inc2) * 1000);
-
-    // byoyomi と increment は排他運用（byoyomi 優先）
-    const bool useByoyomi = (byo1Ms > 0) || (byo2Ms > 0);
-
-    tc.p1.baseMs      = base1Ms;
-    tc.p2.baseMs      = base2Ms;
-    tc.p1.byoyomiMs   = useByoyomi ? byo1Ms : 0;
-    tc.p2.byoyomiMs   = useByoyomi ? byo2Ms : 0;
-    tc.p1.incrementMs = useByoyomi ? 0      : inc1Ms;
-    tc.p2.incrementMs = useByoyomi ? 0      : inc2Ms;
-
-    tc.enabled = (tc.p1.baseMs > 0) || (tc.p2.baseMs > 0) ||
-                 (tc.p1.byoyomiMs > 0) || (tc.p2.byoyomiMs > 0) ||
-                 (tc.p1.incrementMs > 0) || (tc.p2.incrementMs > 0);
-
-    qCDebug(lcGame).noquote()
-        << "buildTimeControlFromDialog:"
-        << " enabled=" << tc.enabled
-        << " P1{base=" << tc.p1.baseMs << " byo=" << tc.p1.byoyomiMs << " inc=" << tc.p1.incrementMs << "}"
-        << " P2{base=" << tc.p2.baseMs << " byo=" << tc.p2.byoyomiMs << " inc=" << tc.p2.incrementMs << "}";
-
-    return tc;
+    m_match = match;
 }

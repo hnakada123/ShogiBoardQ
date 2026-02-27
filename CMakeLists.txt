@@ -318,6 +318,8 @@ set(SRC_GAME
     src/game/gamesessionfacade.h
     src/game/gamestartcoordinator.cpp
     src/game/gamestartcoordinator.h
+    src/game/gamestartoptionsbuilder.cpp
+    src/game/gamestartoptionsbuilder.h
     src/game/gamestatecontroller.cpp
     src/game/gamestatecontroller.h
     src/game/humanvsenginestrategy.cpp
@@ -402,6 +404,10 @@ set(SRC_KIFU
     src/kifu/kifuexportcontroller.h
     src/kifu/kifufilecontroller.cpp
     src/kifu/kifufilecontroller.h
+    src/kifu/kifuapplyservice.cpp
+    src/kifu/kifuapplyservice.h
+    src/kifu/kifufilereader.cpp
+    src/kifu/kifufilereader.h
     src/kifu/kifuioservice.cpp
     src/kifu/kifuioservice.h
     src/kifu/kifuloadcoordinator.cpp
@@ -464,8 +470,12 @@ set(SRC_ENGINE
 set(SRC_NETWORK
     src/network/csaclient.cpp
     src/network/csaclient.h
+    src/network/csaenginecontroller.cpp
+    src/network/csaenginecontroller.h
     src/network/csagamecoordinator.cpp
     src/network/csagamecoordinator.h
+    src/network/csamoveconverter.cpp
+    src/network/csamoveconverter.h
 )
 
 set(SRC_NAVIGATION
@@ -523,18 +533,24 @@ set(SRC_UI
     src/ui/coordinators/gamelayoutbuilder.h
     src/ui/coordinators/kifudisplaycoordinator.cpp
     src/ui/coordinators/kifudisplaycoordinator.h
+    src/ui/coordinators/kifuselectionsync.cpp
+    src/ui/coordinators/kifuselectionsync.h
     src/ui/coordinators/positioneditcoordinator.cpp
     src/ui/coordinators/positioneditcoordinator.h
     src/ui/coordinators/uistatepolicymanager.cpp
     src/ui/coordinators/uistatepolicymanager.h
     src/ui/presenters/boardsyncpresenter.cpp
     src/ui/presenters/boardsyncpresenter.h
+    src/ui/presenters/engineanalysispresenter.cpp
+    src/ui/presenters/engineanalysispresenter.h
     src/ui/presenters/evalgraphpresenter.cpp
     src/ui/presenters/evalgraphpresenter.h
     src/ui/presenters/gamerecordpresenter.cpp
     src/ui/presenters/gamerecordpresenter.h
     src/ui/presenters/navigationpresenter.cpp
     src/ui/presenters/navigationpresenter.h
+    src/ui/presenters/kifudisplaypresenter.cpp
+    src/ui/presenters/kifudisplaypresenter.h
     src/ui/presenters/timedisplaypresenter.cpp
     src/ui/presenters/timedisplaypresenter.h
     src/ui/wiring/analysistabwiring.cpp
@@ -605,6 +621,8 @@ set(SRC_WIDGETS
     src/widgets/commenteditorpanel.h
     src/widgets/considerationtabmanager.cpp
     src/widgets/considerationtabmanager.h
+    src/widgets/csalogpanel.cpp
+    src/widgets/csalogpanel.h
     src/widgets/elidelabel.cpp
     src/widgets/elidelabel.h
     src/widgets/engineanalysistab.cpp
@@ -634,6 +652,8 @@ set(SRC_WIDGETS
     src/widgets/numericrightaligncommadelegate.h
     src/widgets/recordpane.cpp
     src/widgets/recordpane.h
+    src/widgets/usilogpanel.cpp
+    src/widgets/usilogpanel.h
 )
 
 set(SRC_DIALOGS
@@ -726,6 +746,10 @@ set(SRC_SERVICES
 
 set(SRC_COMMON
     src/common/buttonstyles.h
+    src/common/dialogutils.cpp
+    src/common/dialogutils.h
+    src/common/fontsizehelper.cpp
+    src/common/fontsizehelper.h
     src/common/errorbus.cpp
     src/common/errorbus.h
     src/common/jishogicalculator.cpp

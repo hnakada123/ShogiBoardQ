@@ -7,6 +7,7 @@
 #include "csatosfenconverter.h"
 #include "csalexer.h"
 #include "kifdisplayitem.h"
+#include "parsecommon.h"
 
 #include <QFile>
 #include <QStringDecoder>
@@ -199,10 +200,8 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
     QString label = CsaLexer::csaResultToLabel(token);
     if (label.isEmpty()) label = token;
 
-    KifDisplayItem di;
-    di.prettyMove = sideMark + label;
-    di.ply = st.moveCount;
-    st.out.mainline.disp.append(di);
+    st.out.mainline.disp.append(
+        KifuParseCommon::createMoveDisplayItem(st.moveCount, sideMark + label));
 
     st.lastDispIsResult = true;
     st.lastResultDispIndex = static_cast<int>(st.out.mainline.disp.size() - 1);
@@ -261,9 +260,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                       -1, -1, {0, 0}, -1,
                       false, -1, -1, 0, false,
                       {}, {}};
-    st.openingItem.prettyMove = QString();
-    st.openingItem.timeText   = QStringLiteral("00:00/00:00:00");
-    st.openingItem.ply        = 0;
+    st.openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
 
     for (qsizetype i = idx; i < lines.size(); ++i) {
         QString s = lines.at(i);
@@ -300,10 +297,8 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
 
                 st.out.mainline.usiMoves.append(usi);
                 ++st.moveCount;
-                KifDisplayItem di;
-                di.prettyMove = pretty;
-                di.ply = st.moveCount;
-                st.out.mainline.disp.append(di);
+                st.out.mainline.disp.append(
+                    KifuParseCommon::createMoveDisplayItem(st.moveCount, pretty));
 
                 st.lastMover = (mover == CsaLexer::Black) ? 0 : 1;
                 st.lastDispIsResult = false;

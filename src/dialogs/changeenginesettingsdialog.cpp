@@ -6,6 +6,7 @@
 #include "engineoptiondescriptions.h"
 #include "settingscommon.h"
 #include "enginedialogsettings.h"
+#include "dialogutils.h"
 #include "ui_changeenginesettingsdialog.h"
 #include "buttonstyles.h"
 #include <QApplication>
@@ -15,6 +16,10 @@
 #include <QDir>
 #include <QFileDialog>
 #include <functional>
+
+namespace {
+constexpr QSize kMinimumSize{400, 300};
+} // namespace
 
 using namespace EngineSettingsConstants;
 
@@ -30,7 +35,7 @@ ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
 ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
 {
     // ウィンドウサイズを保存
-    EngineDialogSettings::setEngineSettingsDialogSize(this->size());
+    DialogUtils::saveDialogSize(this, EngineDialogSettings::setEngineSettingsDialogSize);
 }
 
 // 将棋エンジン番号のsetter
@@ -569,13 +574,10 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     applyFontSize();
 
     // ダイアログの最小サイズを設定（リサイズ可能にする）
-    this->setMinimumSize(400, 300);
+    this->setMinimumSize(kMinimumSize);
 
     // 保存されているウィンドウサイズを復元
-    QSize savedSize = EngineDialogSettings::engineSettingsDialogSize();
-    if (savedSize.isValid()) {
-        this->resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineSettingsDialogSize());
 }
 
 // ファイルまたはディレクトリの選択ダイアログを開き、選択されたパスを返す。

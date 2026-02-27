@@ -75,10 +75,9 @@ void MatchCoordinator::ensureEngineManager()
     m_engineManager->setRefs(refs);
 
     EngineLifecycleManager::Hooks hooks;
-    hooks.log               = m_hooks.log;
-    hooks.renderBoardFromGc = m_hooks.renderBoardFromGc;
-    hooks.appendEvalP1      = m_hooks.appendEvalP1;
-    hooks.appendEvalP2      = m_hooks.appendEvalP2;
+    hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
+    hooks.appendEvalP1      = m_hooks.game.appendEvalP1;
+    hooks.appendEvalP2      = m_hooks.game.appendEvalP2;
     hooks.onEngineResign    = [this](int idx) { handleEngineResign(idx); };
     hooks.onEngineWin       = [this](int idx) { handleEngineWin(idx); };
     hooks.computeGoTimes    = [this]() -> EngineLifecycleManager::GoTimes {
@@ -100,13 +99,13 @@ void MatchCoordinator::ensureTimekeeper()
 
     MatchTimekeeper::Hooks hooks;
     hooks.remainingMsFor = [this](int p) -> qint64 {
-        return m_hooks.remainingMsFor ? m_hooks.remainingMsFor(static_cast<Player>(p)) : 0;
+        return m_hooks.time.remainingMsFor ? m_hooks.time.remainingMsFor(static_cast<Player>(p)) : 0;
     };
     hooks.incrementMsFor = [this](int p) -> qint64 {
-        return m_hooks.incrementMsFor ? m_hooks.incrementMsFor(static_cast<Player>(p)) : 0;
+        return m_hooks.time.incrementMsFor ? m_hooks.time.incrementMsFor(static_cast<Player>(p)) : 0;
     };
     hooks.byoyomiMs = [this]() -> qint64 {
-        return m_hooks.byoyomiMs ? m_hooks.byoyomiMs() : 0;
+        return m_hooks.time.byoyomiMs ? m_hooks.time.byoyomiMs() : 0;
     };
     m_timekeeper->setHooks(hooks);
 
@@ -141,7 +140,7 @@ void MatchCoordinator::ensureAnalysisSession()
 
     // ハンドラ用コールバック設定
     AnalysisSessionHandler::Hooks hooks;
-    hooks.showGameOverDialog = m_hooks.showGameOverDialog;
+    hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.destroyEnginesKeepModels = [this]() { destroyEngines(false); };
     hooks.isShutdownInProgress = [this]() -> bool {
         return m_engineManager && m_engineManager->isShutdownInProgress();
@@ -166,7 +165,7 @@ void MatchCoordinator::ensureAnalysisSession()
         initializeAndStartEngineFor(P1, path, name);
     };
     hooks.setEngineNames = [this](const QString& n1, const QString& n2) {
-        if (m_hooks.setEngineNames) m_hooks.setEngineNames(n1, n2);
+        if (m_hooks.ui.setEngineNames) m_hooks.ui.setEngineNames(n1, n2);
     };
     hooks.setShutdownInProgress = [this](bool val) {
         ensureEngineManager();
@@ -201,18 +200,16 @@ void MatchCoordinator::ensureGameEndHandler()
     hooks.disarmHumanTimerIfNeeded = [this]() { disarmHumanTimerIfNeeded(); };
     hooks.primaryEngine     = [this]() -> Usi* { return primaryEngine(); };
     hooks.turnEpochFor      = [this](Player p) -> qint64 { return turnEpochFor(p); };
-    hooks.setGameInProgressActions = [this](bool b) { setGameInProgressActions(b); };
     hooks.setGameOver       = [this](const GameEndInfo& info, bool loserIsP1, bool append) {
         setGameOver(info, loserIsP1, append);
     };
     hooks.markGameOverMoveAppended = [this]() { markGameOverMoveAppended(); };
-    hooks.appendKifuLine    = m_hooks.appendKifuLine;
-    hooks.showGameOverDialog = m_hooks.showGameOverDialog;
-    hooks.log               = m_hooks.log;
+    hooks.appendKifuLine    = m_hooks.game.appendKifuLine;
+    hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.autoSaveKifuIfEnabled = [this]() {
-        if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.autoSaveKifu) {
+        if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.game.autoSaveKifu) {
             qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
-            m_hooks.autoSaveKifu(m_kifuSaveDir, m_playMode,
+            m_hooks.game.autoSaveKifu(m_kifuSaveDir, m_playMode,
                                  m_humanName1, m_humanName2,
                                  m_engineNameForSave1, m_engineNameForSave2);
         }
@@ -246,11 +243,10 @@ void MatchCoordinator::ensureGameStartOrchestrator()
 
     // Hooks 設定
     GameStartOrchestrator::Hooks hooks;
-    hooks.initializeNewGame = m_hooks.initializeNewGame;
-    hooks.setPlayersNames   = m_hooks.setPlayersNames;
-    hooks.setEngineNames    = m_hooks.setEngineNames;
-    hooks.setGameActions    = m_hooks.setGameActions;
-    hooks.renderBoardFromGc = m_hooks.renderBoardFromGc;
+    hooks.initializeNewGame = m_hooks.game.initializeNewGame;
+    hooks.setPlayersNames   = m_hooks.ui.setPlayersNames;
+    hooks.setEngineNames    = m_hooks.ui.setEngineNames;
+    hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
     hooks.clearGameOverState = [this]() { clearGameOverState(); };
     hooks.updateTurnDisplay  = [this](Player p) { updateTurnDisplay(p); };
     hooks.initializePositionStringsForStart = [this](const QString& s) {
@@ -299,17 +295,13 @@ void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, 
 
 void MatchCoordinator::flipBoard() {
     // 実際の反転は GUI 側で実施（レイアウト/ラベル入替等を考慮）
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    if (m_hooks.ui.renderBoardFromGc) m_hooks.ui.renderBoardFromGc();
     emit boardFlipped(true);
-}
-
-void MatchCoordinator::setGameInProgressActions(bool inProgress) {
-    if (m_hooks.setGameActions) m_hooks.setGameActions(inProgress);
 }
 
 void MatchCoordinator::updateTurnDisplay(Player p) {
     m_cur = p;
-    if (m_hooks.updateTurnDisplay) m_hooks.updateTurnDisplay(p);
+    if (m_hooks.ui.updateTurnDisplay) m_hooks.ui.updateTurnDisplay(p);
 }
 
 void MatchCoordinator::initializeAndStartEngineFor(Player side,
@@ -588,7 +580,7 @@ bool MatchCoordinator::updateConsiderationPosition(const QString& newPositionStr
 
 void MatchCoordinator::onUsiError(const QString& msg)
 {
-    if (m_hooks.log) m_hooks.log(QStringLiteral("[USI-ERROR] ") + msg);
+    qCWarning(lcGame).noquote() << "[USI-ERROR]" << msg;
     Usi* u1 = primaryEngine();
     Usi* u2 = secondaryEngine();
     if (u1) u1->cancelCurrentOperation();
@@ -611,8 +603,8 @@ void MatchCoordinator::onUsiError(const QString& msg)
         case PlayMode::HandicapEngineVsHuman:
         case PlayMode::HandicapEngineVsEngine:
             handleBreakOff();
-            if (m_hooks.showGameOverDialog) {
-                m_hooks.showGameOverDialog(tr("対局中断"), tr("エンジンエラー: %1").arg(msg));
+            if (m_hooks.ui.showGameOverDialog) {
+                m_hooks.ui.showGameOverDialog(tr("対局中断"), tr("エンジンエラー: %1").arg(msg));
             }
             return;
         default:
@@ -732,7 +724,7 @@ void MatchCoordinator::onHumanMove(const QPoint& from, const QPoint& to,
 
 void MatchCoordinator::forceImmediateMove()
 {
-    if (!m_gc || !m_hooks.sendStopToEngine) return;
+    if (!m_gc || !m_hooks.engine.sendStopToEngine) return;
 
     const bool isEvE =
         (m_playMode == PlayMode::EvenEngineVsEngine) || (m_playMode == PlayMode::HandicapEngineVsEngine);
@@ -740,9 +732,9 @@ void MatchCoordinator::forceImmediateMove()
         const Player turn =
             (m_gc->currentPlayer() == ShogiGameController::Player1) ? P1 : P2;
         if (Usi* eng = (turn == P1) ? primaryEngine() : secondaryEngine())
-            m_hooks.sendStopToEngine(eng);
+            m_hooks.engine.sendStopToEngine(eng);
     } else if (Usi* eng = primaryEngine()) {
-        m_hooks.sendStopToEngine(eng);
+        m_hooks.engine.sendStopToEngine(eng);
     }
 }
 

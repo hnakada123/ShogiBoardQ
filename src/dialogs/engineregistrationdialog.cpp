@@ -5,6 +5,7 @@
 #include "enginesettingsconstants.h"
 #include "settingscommon.h"
 #include "enginedialogsettings.h"
+#include "dialogutils.h"
 #include "logcategories.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
@@ -48,16 +49,13 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     applyFontSize();
 
     // 保存されているウィンドウサイズを復元
-    QSize savedSize = EngineDialogSettings::engineRegistrationDialogSize();
-    if (savedSize.isValid()) {
-        this->resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineRegistrationDialogSize());
 }
 
 EngineRegistrationDialog::~EngineRegistrationDialog()
 {
     // ウィンドウサイズを保存
-    EngineDialogSettings::setEngineRegistrationDialogSize(this->size());
+    DialogUtils::saveDialogSize(this, EngineDialogSettings::setEngineRegistrationDialogSize);
 
     // エンジンプロセスをクリーンアップする。
     cleanupEngineProcess();

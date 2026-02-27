@@ -207,6 +207,7 @@ void setMyDialogSize(const QSize& size)
 
 ## Code Style
 
+- **所有権ルール**: `docs/dev/ownership-guidelines.md` に従う。QObject は parent ownership、非QObject は `std::unique_ptr` を基本とする。裸の `new/delete` は原則禁止
 - Compiler warnings enabled: `-Wall -Wextra -Wpedantic -Wshadow -Wconversion` and more
 - clang-tidy configured for unused code detection (see `.clang-tidy`)
 - **Do not use lambda expressions in `connect()` statements**. Use the member function pointer syntax:

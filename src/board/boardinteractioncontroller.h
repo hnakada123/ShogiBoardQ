@@ -8,6 +8,7 @@
 #include <QPoint>
 #include <QColor>
 #include <functional>
+#include <memory>
 #include "shogiview.h"
 
 class ShogiGameController;
@@ -78,9 +79,9 @@ signals:
 private:
     // --- ハイライト系ヘルパ ---
     void selectPieceAndHighlight(const QPoint& field);
-    void updateHighlight(ShogiView::FieldHighlight*& hl, const QPoint& field, const QColor& color);
-    void deleteHighlight(ShogiView::FieldHighlight*& hl);
-    void addNewHighlight(ShogiView::FieldHighlight*& hl, const QPoint& pos, const QColor& color);
+    void updateHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl, const QPoint& field, const QColor& color);
+    void deleteHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl);
+    void addNewHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl, const QPoint& pos, const QColor& color);
     void resetSelectionAndHighlight();
     void finalizeDrag();
     void togglePiecePromotionOnClick(const QPoint& field);
@@ -101,10 +102,12 @@ private:
     bool   m_waitingSecondClick = false; ///< 2クリック目待ちフラグ
     QPoint m_firstClick; ///< 1クリック目の座標
 
-    // --- ハイライトポインタ ---
-    ShogiView::FieldHighlight* m_selectedField  = nullptr; ///< 選択中（オレンジ）
-    ShogiView::FieldHighlight* m_selectedField2 = nullptr; ///< 直前の移動元（赤）
-    ShogiView::FieldHighlight* m_movedField     = nullptr; ///< 移動先（黄）
+    // --- ハイライトポインタ（所有） ---
+    // ShogiViewHighlighting::removeHighlightAllData() が qDeleteAll で一括破棄するため、
+    // onHighlightsCleared() では release() で所有権を手放す（二重解放防止）
+    std::unique_ptr<ShogiView::FieldHighlight> m_selectedField;  ///< 選択中（オレンジ）
+    std::unique_ptr<ShogiView::FieldHighlight> m_selectedField2; ///< 直前の移動元（赤）
+    std::unique_ptr<ShogiView::FieldHighlight> m_movedField;     ///< 移動先（黄）
 };
 
 #endif // BOARDINTERACTIONCONTROLLER_H

@@ -122,7 +122,7 @@ public:
     /// 時計を設定し対局を開始する
     void setTimerAndStart(const Ctx& c);
 
-    // --- ユーティリティ ---
+    // --- ユーティリティ（GameStartOptionsBuilder へ委譲） ---
 
     /// ダイアログ状態からPlayModeを決定する
     PlayMode setPlayMode(const Ctx& c) const;
@@ -134,13 +134,6 @@ public:
         bool isPlayer2Human,
         const QString& startSfen
         );
-
-    /// MatchCoordinatorの生成＆初期配線をまとめて実施する
-    /// @param deps 司令塔の依存オブジェクト
-    /// @param parentForMatch 司令塔の親オブジェクト（所有権管理用）
-    /// @return 生成された司令塔のポインタ
-    MatchCoordinator* createAndWireMatch(const MatchCoordinator::Deps& deps,
-                                         QObject* parentForMatch);
 
     /// PlayModeに応じて盤面ビューに対局者名を設定する
     void applyPlayersNamesForMode(ShogiView* view,
@@ -154,6 +147,9 @@ public:
     static void applyResumePositionIfAny(ShogiGameController* gc,
                                          ShogiView* view,
                                          const QString& resumeSfen);
+
+    /// MatchCoordinator ポインタを外部（MCW）からセットする
+    void setMatch(MatchCoordinator* match);
 
 signals:
     // --- 開始前フック ---
@@ -203,31 +199,10 @@ signals:
 private:
     bool validate(const StartParams& params, QString& whyNot) const;
 
-    // --- ダイアログ抽出ヘルパ（型非依存：objectName + property 読み） ---
-
-    static int  readIntProperty (const QObject* root, const char* objectName,
-                               const char* prop = "value",   int  def = 0);
-    static bool readBoolProperty(const QObject* root, const char* objectName,
-                                 const char* prop = "checked", bool def = false);
-    static TimeControl extractTimeControlFromDialog(const QWidget* dlg);
-
-private:
     MatchCoordinator*    m_match = nullptr;  ///< 対局進行の司令塔（非所有）
     ShogiClock*          m_clock = nullptr;  ///< 将棋時計（非所有）
     ShogiGameController* m_gc    = nullptr;  ///< ゲームコントローラ（非所有）
     ShogiView*           m_view  = nullptr;  ///< 盤面ビュー（非所有）
-
-    /// 対局モードを判定する
-    PlayMode determinePlayMode(int initPositionNumber,
-                               bool isPlayer1Human,
-                               bool isPlayer2Human) const;
-
-private:
-    /// SFENから手番（'b' or 'w'）を抽出する
-    static QChar turnFromSfen(const QString& sfen);
-
-    /// ダイアログからTimeControlを組み立てるユーティリティ
-    TimeControl buildTimeControlFromDialog(QDialog* startDlg) const;
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)

@@ -328,7 +328,7 @@ void advanceToNextMove(QString& lineStr, int skipOffset,
 KifDisplayItem buildTerminalItem(int moveIndex, const QString& term,
                                  const QString& timeText, const QRegularExpressionMatch& tm)
 {
-    const QString teban = (moveIndex % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+    const QString teban = KifuParseCommon::tebanMark(moveIndex);
     const QString cum = tm.hasMatch() ? extractCumTimeFromMatch(tm) : QStringLiteral("00:00:00");
 
     KifDisplayItem item;

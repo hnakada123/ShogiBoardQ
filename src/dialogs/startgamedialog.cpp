@@ -8,6 +8,7 @@
 #include "gamesettings.h"
 #include "enginesettingsconstants.h"
 #include "buttonstyles.h"
+#include "dialogutils.h"
 #include <QSettings>
 #include <QMessageBox>
 #include <QDir>
@@ -48,15 +49,12 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(std::mak
     connectSignalsAndSlots();
 
     // ウィンドウサイズを復元
-    QSize savedSize = GameSettings::startGameDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, GameSettings::startGameDialogSize());
 }
 
 StartGameDialog::~StartGameDialog()
 {
-    GameSettings::setStartGameDialogSize(size());
+    DialogUtils::saveDialogSize(this, GameSettings::setStartGameDialogSize);
 }
 
 // ============================================================

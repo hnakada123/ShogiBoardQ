@@ -7,6 +7,7 @@
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "gamesettings.h"
+#include "dialogutils.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -22,19 +23,18 @@
 #include <QMenu>
 #include <QMessageBox>
 
+namespace {
+constexpr QSize kMinimumSize{400, 500};
+} // namespace
+
 SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     : QDialog(parent)
 {
     setWindowTitle(tr("局面集ビューア"));
-    setMinimumSize(400, 500);
+    setMinimumSize(kMinimumSize);
 
     // 前回保存されたウィンドウサイズを読み込む
-    QSize savedSize = GameSettings::sfenCollectionDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    } else {
-        resize(620, 780);
-    }
+    DialogUtils::restoreDialogSize(this, GameSettings::sfenCollectionDialogSize());
 
     // UIを構築
     buildUi();
@@ -423,7 +423,7 @@ void SfenCollectionDialog::hideClockLabels()
 
 void SfenCollectionDialog::saveWindowSize()
 {
-    GameSettings::setSfenCollectionDialogSize(size());
+    DialogUtils::saveDialogSize(this, GameSettings::setSfenCollectionDialogSize);
 }
 
 void SfenCollectionDialog::adjustWindowToContents()

@@ -7,29 +7,20 @@
 
 #include <QWidget>
 #include <QVector>
-#include <QAbstractItemModel>
-#include <QColor>
-#include <memory>
 
 #include "branchtreemanager.h"
 
 class QTabWidget;
 class QTableView;
-class QPlainTextEdit;
-class QHeaderView;
-class QToolButton;
-class QPushButton;
-class QLabel;
-class QLineEdit;
-class QComboBox;
-class QTimer;
 
 class EngineInfoWidget;
-class LogViewFontManager;
 class ShogiEngineThinkingModel;
 class UsiCommLogModel;
 class CommentEditorPanel;
 class ConsiderationTabManager;
+class UsiLogPanel;
+class CsaLogPanel;
+class EngineAnalysisPresenter;
 
 class EngineAnalysisTab : public QWidget
 {
@@ -149,17 +140,25 @@ public:
     // 矢印表示チェックボックスの状態を取得（ConsiderationTabManager へ委譲）
     bool isShowArrowsChecked() const;
 
+    // 未保存の編集があるかチェック（CommentEditorPanel へ委譲）
+    bool hasUnsavedComment() const;
+
+    // 未保存編集の警告ダイアログを表示（CommentEditorPanel へ委譲）
+    bool confirmDiscardUnsavedComment();
+
+    // 編集状態をクリア（CommentEditorPanel へ委譲）
+    void clearCommentDirty();
+
+    // 分岐ツリーのクリック有効/無効を設定（対局中は無効にする）（BranchTreeManager へ委譲）
+    void setBranchTreeClickEnabled(bool enabled);
+    bool isBranchTreeClickEnabled() const;
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
     // 現在の手数インデックスを設定/取得
     void setCurrentMoveIndex(int index);
     int currentMoveIndex() const;
-
-private slots:
-    // 読み筋テーブルのクリック処理
-    void onView1Clicked(const QModelIndex& index);
-    void onView2Clicked(const QModelIndex& index);
 
 signals:
     // ツリー上のノード（行row, 手ply）がクリックされた
@@ -207,120 +206,39 @@ signals:
 
 private:
     // --- UI ---
-    QTabWidget* m_tab=nullptr;
-    EngineInfoWidget *m_info1=nullptr, *m_info2=nullptr;
-    QTableView *m_view1=nullptr, *m_view2=nullptr;
-    QPlainTextEdit* m_usiLog=nullptr;
+    QTabWidget* m_tab = nullptr;
+    EngineInfoWidget* m_info1 = nullptr;
+    EngineInfoWidget* m_info2 = nullptr;
+    QTableView* m_view1 = nullptr;
+    QTableView* m_view2 = nullptr;
 
     // コメント編集パネル（CommentEditorPanel に委譲）
-    CommentEditorPanel* m_commentEditor=nullptr;
+    CommentEditorPanel* m_commentEditor = nullptr;
     void ensureCommentEditor();
 
     // 分岐ツリー管理（BranchTreeManager に委譲）
-    BranchTreeManager* m_branchTreeManager=nullptr;
+    BranchTreeManager* m_branchTreeManager = nullptr;
     void ensureBranchTreeManager();
 
     // 検討タブ管理（ConsiderationTabManager に委譲）
-    ConsiderationTabManager* m_considerationTabManager=nullptr;
-    int m_considerationTabIndex=-1;  // 検討タブのインデックス（タブモード用）
+    ConsiderationTabManager* m_considerationTabManager = nullptr;
+    int m_considerationTabIndex = -1;
     void ensureConsiderationTabManager();
 
-    // USI通信ログ編集用UI
-    QWidget* m_usiLogContainer=nullptr;
-    QWidget* m_usiLogToolbar=nullptr;
-    QLabel* m_usiLogEngine1Label=nullptr;   // エンジン1名ラベル
-    QLabel* m_usiLogEngine2Label=nullptr;   // エンジン2名ラベル
-    QToolButton* m_btnUsiLogFontIncrease=nullptr;
-    QToolButton* m_btnUsiLogFontDecrease=nullptr;
-    int m_usiLogFontSize=10;
-    std::unique_ptr<LogViewFontManager> m_usiLogFontManager;
+    // USI通信ログパネル（UsiLogPanel に委譲）
+    UsiLogPanel* m_usiLogPanel = nullptr;
+    void ensureUsiLogPanel();
 
-    // USI通信ログコマンド入力UI
-    QWidget* m_usiCommandBar=nullptr;
-    QComboBox* m_usiTargetCombo=nullptr;
-    QLineEdit* m_usiCommandInput=nullptr;
+    // CSA通信ログパネル（CsaLogPanel に委譲）
+    CsaLogPanel* m_csaLogPanel = nullptr;
+    void ensureCsaLogPanel();
 
-    // CSA通信ログ用UI
-    QWidget* m_csaLogContainer=nullptr;
-    QWidget* m_csaLogToolbar=nullptr;
-    QPlainTextEdit* m_csaLog=nullptr;
-    QToolButton* m_btnCsaLogFontIncrease=nullptr;
-    QToolButton* m_btnCsaLogFontDecrease=nullptr;
-    int m_csaLogFontSize=10;
-    std::unique_ptr<LogViewFontManager> m_csaLogFontManager;
+    // 思考ビュープレゼンタ（EngineAnalysisPresenter に委譲）
+    EngineAnalysisPresenter* m_presenter = nullptr;
+    void ensurePresenter();
 
-    // CSA通信ログコマンド入力UI
-    QWidget* m_csaCommandBar=nullptr;
-    QPushButton* m_btnCsaSendToServer=nullptr;
-    QLineEdit* m_csaCommandInput=nullptr;
-
-    // 思考タブフォントサイズ
-    int m_thinkingFontSize=10;
-    std::unique_ptr<LogViewFontManager> m_thinkingFontManager;
-
-    void buildUsiLogToolbar();       // USI通信ログツールバー構築
-    void initUsiLogFontManager();    // USI通信ログフォントマネージャー初期化
-    void onUsiLogFontIncrease();
-    void onUsiLogFontDecrease();
-    void appendColoredUsiLog(const QString& logLine, const QColor& lineColor);  // 色付きログ追加
-    void buildUsiCommandBar();       // USIコマンドバー構築
-    void onUsiCommandEntered();      // USIコマンド入力処理
-    void onEngine1NameChanged();     // エンジン1名変更時
-    void onEngine2NameChanged();     // エンジン2名変更時
-    void buildCsaLogToolbar();       // CSA通信ログツールバー構築
-    void initCsaLogFontManager();    // CSA通信ログフォントマネージャー初期化
-    void onCsaLogFontIncrease();
-    void onCsaLogFontDecrease();
-    void buildCsaCommandBar();       // CSAコマンド入力バー構築
-    void onCsaCommandEntered();      // CSAコマンド入力処理
-    void initThinkingFontManager();  // 思考タブフォントマネージャー初期化
-    void onThinkingFontIncrease();
-    void onThinkingFontDecrease();
-    void onEngineInfoColumnWidthChanged();  // 列幅変更時の保存
-    void onThinkingViewColumnWidthChanged(int viewIndex);  // 思考タブ下段の列幅変更時の保存
-
-public:
-    // 未保存の編集があるかチェック（CommentEditorPanel へ委譲）
-    bool hasUnsavedComment() const;
-
-    // 未保存編集の警告ダイアログを表示（CommentEditorPanel へ委譲）
-    bool confirmDiscardUnsavedComment();
-
-    // 編集状態をクリア（CommentEditorPanel へ委譲）
-    void clearCommentDirty();
-
-    // 分岐ツリーのクリック有効/無効を設定（対局中は無効にする）（BranchTreeManager へ委譲）
-    void setBranchTreeClickEnabled(bool enabled);
-    bool isBranchTreeClickEnabled() const;
-
-    // --- モデル参照（所有しない） ---
-    ShogiEngineThinkingModel* m_model1=nullptr;
-    ShogiEngineThinkingModel* m_model2=nullptr;
-    UsiCommLogModel* m_log1=nullptr;
-    UsiCommLogModel* m_log2=nullptr;
-
-    // 思考タブ下段の列幅が設定から読み込まれたか
-    bool m_thinkingView1WidthsLoaded = false;
-    bool m_thinkingView2WidthsLoaded = false;
-
-    // すでに Q_OBJECT が付いている前提
-private slots:
-    void onModel1Reset();
-    void onModel2Reset();
-    void onLog1Changed();
-    void onLog2Changed();
-    void onView1SectionResized(int logicalIndex, int oldSize, int newSize);  // 追加
-    void onView2SectionResized(int logicalIndex, int oldSize, int newSize);  // 追加
-
-private:
-    void reapplyViewTuning(QTableView* v, QAbstractItemModel* m);
-
-    // 既に導入済みのヘルパ（前回案）
-private:
-    void setupThinkingViewHeader(QTableView* v);  // ヘッダ基本設定
-    void applyThinkingViewColumnWidths(QTableView* v, int viewIndex);  // 列幅適用
-    void applyNumericFormattingTo(QTableView* view, QAbstractItemModel* model);
-    static int findColumnByHeader(QAbstractItemModel* model, const QString& title);
+    // 思考ページ構築ヘルパ
+    QWidget* buildThinkingPageContent(QWidget* parent);
 };
 
 #endif // ENGINEANALYSISTAB_H

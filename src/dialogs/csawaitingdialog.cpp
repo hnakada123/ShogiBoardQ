@@ -17,11 +17,17 @@
 
 #include "networksettings.h"  // フォントサイズ保存用
 
+namespace {
+constexpr QSize kLogWindowDefaultSize{550, 450};
+} // namespace
+
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
-    , m_fontSize(NetworkSettings::csaWaitingDialogFontSize())
-    , m_logFontSize(NetworkSettings::csaLogFontSize())  // SettingsServiceから読み込み
+    , m_fontHelper({NetworkSettings::csaWaitingDialogFontSize(), 8, 24, 1,
+                    NetworkSettings::setCsaWaitingDialogFontSize})
+    , m_logFontHelper({NetworkSettings::csaLogFontSize(), 8, 24, 1,
+                       NetworkSettings::setCsaLogFontSize})
 {
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
@@ -220,7 +226,7 @@ void CsaWaitingDialog::createLogWindow()
     if (savedLogSize.isValid() && savedLogSize.width() > 100 && savedLogSize.height() > 100) {
         m_logWindow->resize(savedLogSize);
     } else {
-        m_logWindow->resize(550, 450);
+        m_logWindow->resize(kLogWindowDefaultSize);
     }
 
     QVBoxLayout* layout = new QVBoxLayout(m_logWindow);
@@ -244,7 +250,7 @@ void CsaWaitingDialog::createLogWindow()
     // コマンド入力部分のフォントサイズを設定
     {
         QFont cmdFont;
-        cmdFont.setPointSize(m_logFontSize);
+        cmdFont.setPointSize(m_logFontHelper.fontSize());
         m_btnSendToServer->setFont(cmdFont);
         m_commandInput->setFont(cmdFont);
     }
@@ -262,7 +268,7 @@ void CsaWaitingDialog::createLogWindow()
     QFont font = m_logTextEdit->font();
     font.setFamily(QStringLiteral("monospace"));
     font.setStyleHint(QFont::Monospace);
-    font.setPointSize(m_logFontSize);
+    font.setPointSize(m_logFontHelper.fontSize());
     m_logTextEdit->setFont(font);
 
     layout->addWidget(m_logTextEdit);
@@ -273,7 +279,7 @@ void CsaWaitingDialog::createLogWindow()
 
     // ボタン用フォント
     QFont btnFont;
-    btnFont.setPointSize(m_logFontSize);
+    btnFont.setPointSize(m_logFontHelper.fontSize());
 
     m_btnLogFontDecrease = new QToolButton(m_logWindow);
     m_btnLogFontDecrease->setText(QStringLiteral("A-"));
@@ -314,36 +320,34 @@ void CsaWaitingDialog::createLogWindow()
             this, &CsaWaitingDialog::onCommandEntered);
 }
 
-// ログウィンドウのフォントサイズを更新
-void CsaWaitingDialog::updateLogFontSize(int delta)
+// ログウィンドウのフォントサイズを適用
+void CsaWaitingDialog::applyLogFontSize()
 {
-    m_logFontSize += delta;
-    if (m_logFontSize < 8) m_logFontSize = 8;
-    if (m_logFontSize > 24) m_logFontSize = 24;
+    const int size = m_logFontHelper.fontSize();
 
     // ログ表示エリア
     if (m_logTextEdit) {
         QFont font = m_logTextEdit->font();
-        font.setPointSize(m_logFontSize);
+        font.setPointSize(size);
         m_logTextEdit->setFont(font);
     }
 
     // コマンド入力部分も同じフォントサイズに
     if (m_btnSendToServer) {
         QFont font = m_btnSendToServer->font();
-        font.setPointSize(m_logFontSize);
+        font.setPointSize(size);
         m_btnSendToServer->setFont(font);
     }
 
     if (m_commandInput) {
         QFont font = m_commandInput->font();
-        font.setPointSize(m_logFontSize);
+        font.setPointSize(size);
         m_commandInput->setFont(font);
     }
 
     // 閉じるボタン・フォントサイズ調整ボタンも連動
     QFont btnFont;
-    btnFont.setPointSize(m_logFontSize);
+    btnFont.setPointSize(size);
     if (m_logCloseButton) {
         m_logCloseButton->setFont(btnFont);
     }
@@ -353,9 +357,6 @@ void CsaWaitingDialog::updateLogFontSize(int delta)
     if (m_btnLogFontIncrease) {
         m_btnLogFontIncrease->setFont(btnFont);
     }
-
-    // SettingsServiceに保存
-    NetworkSettings::setCsaLogFontSize(m_logFontSize);
 }
 
 // 対局状態変化時の処理
@@ -464,42 +465,33 @@ void CsaWaitingDialog::onCommandEntered()
 // ログウィンドウのフォントサイズを大きくする
 void CsaWaitingDialog::onLogFontIncrease()
 {
-    updateLogFontSize(1);
+    if (m_logFontHelper.increase()) applyLogFontSize();
 }
 
 // ログウィンドウのフォントサイズを小さくする
 void CsaWaitingDialog::onLogFontDecrease()
 {
-    updateLogFontSize(-1);
+    if (m_logFontHelper.decrease()) applyLogFontSize();
 }
 
 // ダイアログのフォントサイズを大きくする
 void CsaWaitingDialog::onFontIncrease()
 {
-    if (m_fontSize < 24) {
-        m_fontSize += 1;
-        applyFontSize();
-        NetworkSettings::setCsaWaitingDialogFontSize(m_fontSize);
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 // ダイアログのフォントサイズを小さくする
 void CsaWaitingDialog::onFontDecrease()
 {
-    if (m_fontSize > 8) {
-        m_fontSize -= 1;
-        applyFontSize();
-        NetworkSettings::setCsaWaitingDialogFontSize(m_fontSize);
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // ダイアログのフォントサイズを適用する
 void CsaWaitingDialog::applyFontSize()
 {
-    m_fontSize = qBound(8, m_fontSize, 24);
-
+    const int size = m_fontHelper.fontSize();
     QFont f = font();
-    f.setPointSize(m_fontSize);
+    f.setPointSize(size);
     setFont(f);
 
     // KDE Breeze対策：全子ウィジェットに明示的にフォントを設定
@@ -515,7 +507,7 @@ void CsaWaitingDialog::applyFontSize()
         QFont boldFont = f;
         boldFont.setBold(true);
         // フォントサイズに応じてステータスラベルを少し大きく
-        boldFont.setPointSize(m_fontSize + 2);
+        boldFont.setPointSize(size + 2);
         m_statusLabel->setFont(boldFont);
     }
 }

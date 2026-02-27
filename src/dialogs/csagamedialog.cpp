@@ -7,6 +7,7 @@
 #include "enginesettingsconstants.h"
 #include "settingscommon.h"
 #include "networksettings.h"
+#include "dialogutils.h"
 #include <QSettings>
 #include <QMessageBox>
 #include <QDir>
@@ -16,7 +17,8 @@ using namespace EngineSettingsConstants;
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::CsaGameDialog>())
-    , m_fontSize(NetworkSettings::csaGameDialogFontSize())
+    , m_fontHelper({NetworkSettings::csaGameDialogFontSize(), 8, 24, 1,
+                    NetworkSettings::setCsaGameDialogFontSize})
 {
     ui->setupUi(this);
 
@@ -42,15 +44,12 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
     connectSignalsAndSlots();
 
     // ウィンドウサイズを復元
-    QSize savedSize = NetworkSettings::csaGameDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, NetworkSettings::csaGameDialogSize());
 }
 
 CsaGameDialog::~CsaGameDialog()
 {
-    NetworkSettings::setCsaGameDialogSize(size());
+    DialogUtils::saveDialogSize(this, NetworkSettings::setCsaGameDialogSize);
 }
 
 // シグナル・スロットの接続を行う
@@ -433,33 +432,21 @@ const QList<CsaGameDialog::Engine>& CsaGameDialog::engineList() const
 // フォントサイズを大きくする
 void CsaGameDialog::onFontIncrease()
 {
-    updateFontSize(1);
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 // フォントサイズを小さくする
 void CsaGameDialog::onFontDecrease()
 {
-    updateFontSize(-1);
-}
-
-// フォントサイズを更新する
-void CsaGameDialog::updateFontSize(int delta)
-{
-    m_fontSize += delta;
-    if (m_fontSize < 8) m_fontSize = 8;
-    if (m_fontSize > 24) m_fontSize = 24;
-
-    applyFontSize();
-
-    // SettingsServiceに保存
-    NetworkSettings::setCsaGameDialogFontSize(m_fontSize);
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // ダイアログ全体にフォントサイズを適用する
 void CsaGameDialog::applyFontSize()
 {
+    const int size = m_fontHelper.fontSize();
     QFont font = this->font();
-    font.setPointSize(m_fontSize);
+    font.setPointSize(size);
     this->setFont(font);
 
     // KDE BreezeテーマではsetFont()が子ウィジェットに伝播しないため、

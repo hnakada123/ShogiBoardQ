@@ -5,10 +5,13 @@
 /// @brief 棋譜表示コーディネータクラスの定義
 
 
+#include "kifudisplaypresenter.h"
+
 #include <QObject>
 #include <QVector>
 #include <QSet>
 #include <functional>
+#include <memory>
 
 class KifuBranchTree;
 class KifuBranchNode;
@@ -19,6 +22,7 @@ class BranchTreeWidget;
 class BranchTreeManager;
 class KifuRecordListModel;
 class KifuBranchListModel;
+class KifuSelectionSync;
 class LiveGameSession;
 class QModelIndex;
 
@@ -27,34 +31,16 @@ class QModelIndex;
  *
  * KifuNavigationControllerからのシグナルを受けて、
  * 棋譜欄、分岐ツリー、分岐候補欄の更新を行う。
+ *
+ * 表示データ構築は KifuDisplayPresenter に、
+ * 選択状態同期は KifuSelectionSync に委譲する。
  */
 class KifuDisplayCoordinator : public QObject
 {
     Q_OBJECT
 
 public:
-    struct DisplaySnapshot {
-        int stateLineIndex = -1;
-        int statePly = -1;
-        bool stateOnMainLine = true;
-        int trackedLineIndex = -1;
-        int modelLineIndex = -1;
-        int modelRowCount = -1;
-        int modelHighlightRow = -1;
-        int expectedTreeLineIndex = -1;
-        int expectedTreePly = -1;
-        int treeHighlightLineIndex = -1;
-        int treeHighlightPly = -1;
-        int branchCandidateCount = -1;
-        bool hasBackToMainRow = false;
-        QString stateSfen;
-        QString stateSfenNormalized;
-        QString boardSfen;
-        QString boardSfenNormalized;
-        QString displayedMoveAtPly;
-        QString expectedMoveAtPly;
-    };
-
+    using DisplaySnapshot = KifuDisplayPresenter::DisplaySnapshot;
     using BoardSfenProvider = std::function<QString()>;
 
     explicit KifuDisplayCoordinator(
@@ -62,192 +48,60 @@ public:
         KifuNavigationState* state,
         KifuNavigationController* navController,
         QObject* parent = nullptr);
+    ~KifuDisplayCoordinator() override;
 
-    /**
-     * @brief 盤面表示中のSFEN取得コールバックを設定
-     */
     void setBoardSfenProvider(BoardSfenProvider provider);
 
     // === UI要素の設定 ===
 
-    /**
-     * @brief 棋譜ペインを設定
-     */
     void setRecordPane(RecordPane* pane);
-
-    /**
-     * @brief 分岐ツリーウィジェットを設定
-     */
     void setBranchTreeWidget(BranchTreeWidget* widget);
-
-    /**
-     * @brief 棋譜欄モデルを設定
-     */
     void setRecordModel(KifuRecordListModel* model);
-
-    /**
-     * @brief 分岐候補モデルを設定
-     */
     void setBranchModel(KifuBranchListModel* model);
-
-    /**
-     * @brief 分岐ツリーマネージャーを設定（分岐ツリーハイライト用）
-     */
     void setBranchTreeManager(BranchTreeManager* manager);
-
-    /**
-     * @brief ライブ対局セッションを設定
-     */
     void setLiveGameSession(LiveGameSession* session);
 
     // === 初期化 ===
 
-    /**
-     * @brief シグナル接続を行う
-     */
     void wireSignals();
-
-    /**
-     * @brief 現在の表示スナップショットを取得する
-     */
-    DisplaySnapshot captureDisplaySnapshot() const;
-
-    /**
-     * @brief 表示状態の一致性を詳細検証する
-     * @param reason 不一致時の理由（任意）
-     * @return 一致している場合は true
-     */
-    bool verifyDisplayConsistencyDetailed(QString* reason = nullptr) const;
 
     // === 一致性検証 ===
 
-    /**
-     * @brief 表示状態の一致性を検証する
-     * @return 一致している場合は true
-     *
-     * 以下の項目を検証する:
-     * - m_lastLineIndex と m_state->currentLineIndex() の一致
-     * - 棋譜欄の内容が現在のラインと一致しているか
-     * - ツリーハイライトの期待値と実際の状態
-     */
+    DisplaySnapshot captureDisplaySnapshot() const;
+    bool verifyDisplayConsistencyDetailed(QString* reason = nullptr) const;
     bool verifyDisplayConsistency() const;
-
-    /**
-     * @brief 一致性レポートを生成する
-     * @return 診断情報を含む文字列
-     */
     QString getConsistencyReport() const;
 
 public slots:
     // === KifuNavigationControllerからのシグナルを受けるスロット ===
 
-    /**
-     * @brief ナビゲーション完了時
-     */
     void onNavigationCompleted(KifuBranchNode* node);
-
-    /**
-     * @brief 盤面更新要求
-     */
     void onBoardUpdateRequired(const QString& sfen);
-
-    /**
-     * @brief 棋譜欄ハイライト要求
-     */
     void onRecordHighlightRequired(int ply);
-
-    /**
-     * @brief 分岐ツリーハイライト要求
-     */
     void onBranchTreeHighlightRequired(int lineIndex, int ply);
-
-    /**
-     * @brief 分岐候補更新要求
-     */
     // NOLINTNEXTLINE(clazy-fully-qualified-moc-types) -- QList<Ptr> false positive in clazy 1.17
     void onBranchCandidatesUpdateRequired(const QList<KifuBranchNode *>& candidates);
 
     // === ツリー変更時 ===
 
-    /**
-     * @brief ツリー構造変更時
-     */
     void onTreeChanged();
-
-    /**
-     * @brief トラッキング状態を初期値にリセットする（新規時用）
-     */
     void resetTracking();
-
-    /**
-     * @brief 分岐ツリーノードクリック時
-     */
     void onBranchTreeNodeClicked(int lineIndex, int ply);
-
-    /**
-     * @brief 分岐候補クリック時
-     */
     void onBranchCandidateActivated(const QModelIndex& index);
-
-    /**
-     * @brief MainWindowからの位置変更通知（棋譜欄ナビゲーション）
-     * @param lineIndex 分岐ラインインデックス（0=本譜）
-     * @param ply 手数
-     * @param sfen 現在局面のSFEN（ツリーから正しいノードを探すために使用）
-     */
     void onPositionChanged(int lineIndex, int ply, const QString& sfen);
 
     // === ライブ対局セッションからのシグナル ===
 
-    /**
-     * @brief ライブ対局で手が追加された
-     */
     void onLiveGameMoveAdded(int ply, const QString& displayText);
-
-    /**
-     * @brief ライブ対局セッション開始時
-     */
     void onLiveGameSessionStarted(KifuBranchNode* branchPoint);
-
-    /**
-     * @brief ライブ対局の分岐マークが更新された
-     */
     void onLiveGameBranchMarksUpdated(const QSet<int>& branchPlys);
-
-    /**
-     * @brief ライブ対局が確定された
-     */
     void onLiveGameCommitted(KifuBranchNode* newLineEnd);
-
-    /**
-     * @brief ライブ対局が破棄された
-     */
     void onLiveGameDiscarded();
-
-    /**
-     * @brief ライブ対局の棋譜欄更新が必要
-     */
     void onLiveGameRecordModelUpdateRequired();
 
 signals:
-    /**
-     * @brief 盤面更新が必要
-     */
     void boardSfenChanged(const QString& sfen);
-
-    /**
-     * @brief 盤面とハイライト更新が必要（分岐ナビゲーション用）
-     * @param currentSfen 現在局面のSFEN
-     * @param prevSfen 直前局面のSFEN（ハイライト計算用、開始局面の場合は空）
-     */
     void boardWithHighlightsRequired(const QString& currentSfen, const QString& prevSfen);
-
-    /**
-     * @brief コメント表示の更新が必要
-     * @param ply 手数インデックス
-     * @param comment コメントテキスト
-     * @param asHtml HTML形式かどうか
-     */
     void commentUpdateRequired(int ply, const QString& comment, bool asHtml);
 
 private:
@@ -256,9 +110,9 @@ private:
     void updateBranchCandidatesView();
     void highlightCurrentPosition();
     void runPendingNavResultCheck();
-    void populateRecordModel();
-    void populateBranchMarks();
-    void populateRecordModelFromPath(const QVector<KifuBranchNode*>& path, int highlightPly);
+    void syncPresenterRefs();
+    void syncSelectionSyncRefs();
+    KifuDisplayPresenter::TrackingState trackingState() const;
 
     KifuBranchTree* m_tree;
     KifuNavigationState* m_state;
@@ -272,14 +126,10 @@ private:
     LiveGameSession* m_liveSession = nullptr;
     BoardSfenProvider m_boardSfenProvider;
 
-    int m_lastLineIndex = 0;  // ライン変更検出用
-    int m_lastModelLineIndex = -1;  // 棋譜モデルが実際に表示しているライン (-1 = 不明)
+    std::unique_ptr<KifuDisplayPresenter> m_presenter;
+    std::unique_ptr<KifuSelectionSync> m_selectionSync;
 
-    // ツリーハイライトの期待値追跡（一致性検証用）
-    int m_expectedTreeLineIndex = 0;
-    int m_expectedTreePly = 0;
-
-    // onNavigationCompleted → onBranchCandidatesUpdateRequired 間の遅延チェック用
+    int m_lastLineIndex = 0;
     bool m_pendingNavResultCheck = false;
 };
 

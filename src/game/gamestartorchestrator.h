@@ -83,10 +83,6 @@ public:
         /// @note 配線元: MC→m_hooks.setEngineNames (パススルー)
         std::function<void(const QString&, const QString&)> setEngineNames;
 
-        /// @brief 対局中メニュー項目のON/OFF
-        /// @note 配線元: MC→m_hooks.setGameActions (パススルー、未配線)
-        std::function<void(bool)> setGameActions;
-
         /// @brief GC の盤面状態を View に反映する
         /// @note 配線元: MC→m_hooks.renderBoardFromGc (パススルー)
         std::function<void()> renderBoardFromGc;

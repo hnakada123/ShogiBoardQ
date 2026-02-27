@@ -75,10 +75,10 @@ void EngineLifecycleManager::initializeAndStartEngineFor(Player side,
 
     if (!eng) {
         if (m_usi1 && !m_usi2) {
-            if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] fallback to m_usi1 for HvE"));
+            qCDebug(lcGame) << "[Match] fallback to m_usi1 for HvE";
             eng = m_usi1;
         } else {
-            if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] engine ptr is null (side=%1)").arg(side == EngineLifecycleManager::P1 ? "P1" : "P2"));
+            qCWarning(lcGame) << "[Match] engine ptr is null (side=" << (side == EngineLifecycleManager::P1 ? "P1" : "P2") << ")";
             return;
         }
     }
@@ -278,7 +278,7 @@ bool EngineLifecycleManager::engineThinkApplyMove(Usi* engine,
     if (!isValidTo(to)) {
         qCDebug(lcGame) << "engineThinkApplyMove: no legal 'to' returned (resign/abort?). from="
                         << from << "to=" << to;
-        if (m_hooks.log) m_hooks.log(QStringLiteral("[Match] engineThinkApplyMove: no legal move (resign/abort?)"));
+        qCDebug(lcGame) << "[Match] engineThinkApplyMove: no legal move (resign/abort?)";
         return false;
     }
 

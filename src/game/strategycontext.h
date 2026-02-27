@@ -90,7 +90,6 @@ public:
     Usi* primaryEngine() const { return c_.primaryEngine(); }
     void computeGoTimesForUSI(qint64& outB, qint64& outW) const { c_.computeGoTimesForUSI(outB, outW); }
     void handleMaxMovesJishogi() { c_.handleMaxMovesJishogi(); }
-    void handleTimeUpdated() { c_.handleTimeUpdated(); }
     void pokeTimeUpdateNow() { c_.pokeTimeUpdateNow(); }
     bool engineThinkApplyMove(Usi* engine, QString& positionStr, QString& ponderStr,
                               QPoint* outFrom, QPoint* outTo) {

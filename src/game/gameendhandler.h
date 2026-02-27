@@ -60,7 +60,7 @@ public:
      * MC の状態更新や GUI 操作を行うために使用する。
      *
      * @note MC::ensureGameEndHandler() で lambda 経由で設定される。
-     *       appendKifuLine, showGameOverDialog, log は MC::Hooks からのパススルー。
+     *       appendKifuLine, showGameOverDialog は MC::Hooks からのパススルー。
      * @see MatchCoordinator::ensureGameEndHandler
      */
     struct Hooks {
@@ -75,10 +75,6 @@ public:
         /// @brief 指定プレイヤーの手番開始エポック（ms）を返す
         /// @note 配線元: MC lambda → ShogiClock::turnEpochFor
         std::function<qint64(Player)> turnEpochFor;
-
-        /// @brief 対局中メニュー（NewGame/Resign等）の有効/無効を切り替える
-        /// @note 配線元: MC lambda → MC::Hooks::setGameActions (パススルー)
-        std::function<void(bool)> setGameInProgressActions;
 
         /// @brief 終局状態を MC に設定し、gameEnded/gameOverStateChanged シグナルを発火する
         /// @note 配線元: MC lambda → MC::setGameOver
@@ -95,10 +91,6 @@ public:
         /// @brief 終局結果ダイアログを表示する
         /// @note 配線元: MC→m_hooks.showGameOverDialog (パススルー)
         std::function<void(const QString&, const QString&)> showGameOverDialog;
-
-        /// @brief デバッグログを出力する
-        /// @note 配線元: MC→m_hooks.log (パススルー、未配線)
-        std::function<void(const QString&)> log;
 
         /// @brief 棋譜自動保存（autoSaveKifu が有効な場合のみ実行）
         /// @note 配線元: MC lambda → KifuFileController::autoSaveKifuToFile

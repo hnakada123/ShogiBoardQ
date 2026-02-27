@@ -6,11 +6,15 @@
 #include <QMap>
 #include <QRegularExpression>
 #include <QString>
+#include <QStringList>
 #include <array>
+#include <functional>
 #include <optional>
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 #include "shogitypes.h"
+
+class SfenPositionTracer;
 
 namespace KifuParseCommon {
 
@@ -70,6 +74,67 @@ QString formatTimeText(qint64 moveMs, qint64 cumMs);
 
 // KIF/KI2/JKF共通：extractGameInfo結果をQMap変換
 QMap<QString, QString> toGameInfoMap(const QList<KifGameInfoItem>& items);
+
+// 全コンバータ共通：手番マーク生成（奇数手=▲、偶数手=△）
+inline QString tebanMark(int ply) {
+    return (ply % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+}
+
+// KIF/KI2共通：BOD持駒行判定（先手の持駒/後手の持駒/持ち駒）
+bool isBodHandsLine(const QString& line);
+
+// KIF/KI2共通：ヘッダ行から対局情報を抽出
+// isMoveLine: 指し手行を検出したら true を返す（形式により判定方法が異なる）
+QList<KifGameInfoItem> extractHeaderGameInfo(
+    const QStringList& lines,
+    const std::function<bool(const QString&)>& isMoveLine);
+
+// KIF/KI2共通：コメント行の処理（内容をバッファに追加）
+// コメント行であれば true を返す
+bool tryHandleCommentLine(const QString& line, bool firstMoveFound,
+                          QString& commentBuf, QString& openingCommentBuf);
+
+// KIF/KI2共通：しおり行の処理（バッファまたは直前アイテムに追加）
+// しおり行であれば true を返す
+bool tryHandleBookmarkLine(const QString& line, bool firstMoveFound,
+                           QList<KifDisplayItem>& items, QString& openingBookmarkBuf);
+
+// 終局語の表示アイテムを生成（時間情報なしの汎用版）
+KifDisplayItem createTerminalDisplayItem(int ply, const QString& term,
+                                         const QString& timeText = QString());
+
+// 指し手の表示アイテムを生成
+KifDisplayItem createMoveDisplayItem(int ply, const QString& prettyMove,
+                                     const QString& timeText = QString());
+
+// 指し手リストの後処理（残コメントフラッシュ＋開始局面アイテム保証）
+void finalizeDisplayItems(QString& commentBuf, QList<KifDisplayItem>& items,
+                          const QString& openingCommentBuf, const QString& openingBookmarkBuf);
+
+// USI/USEN共通：USI駒文字から漢字駒名を取得 (P→歩, L→香, etc.)
+QString usiPieceToKanji(QChar usiPiece);
+
+// USI/USEN共通：盤面トークンから漢字駒名を取得（成駒対応: +P→と, +B→馬 etc.）
+QString usiTokenToKanji(const QString& token);
+
+// USI/USEN共通：USI指し手から駒トークンを抽出
+// tracer: 現在の盤面状態を追跡するトレーサー（指し手適用前の状態）
+QString extractUsiPieceToken(const QString& usi, SfenPositionTracer& tracer);
+
+// USI/USEN共通：USI指し手から日本語表記を生成
+// pieceToken: SfenPositionTracerから取得した駒トークン（例: "P", "+B"）
+QString usiMoveToPretty(const QString& usi, int plyNumber,
+                        int& prevToFile, int& prevToRank,
+                        const QString& pieceToken);
+
+// USI/USEN共通：USI指し手列から表示アイテムを構築
+// SfenPositionTracerで盤面追跡しながら日本語指し手表記を生成
+// outDisp に指し手アイテムを追加（開始局面・終局アイテムは含まない）
+// 戻り値は最後のply番号
+int buildUsiMoveDisplayItems(const QStringList& usiMoves,
+                             const QString& baseSfen,
+                             int startPly,
+                             QList<KifDisplayItem>& outDisp);
 
 } // namespace KifuParseCommon
 

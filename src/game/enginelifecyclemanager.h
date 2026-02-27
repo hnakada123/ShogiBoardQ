@@ -61,10 +61,6 @@ public:
      * @see MatchCoordinator::ensureEngineManager
      */
     struct Hooks {
-        /// @brief デバッグログを出力する
-        /// @note 配線元: MC→m_hooks.log (パススルー、未配線)
-        std::function<void(const QString&)> log;
-
         /// @brief GC の盤面状態を View に反映する
         /// @note 配線元: MC→m_hooks.renderBoardFromGc (パススルー)
         std::function<void()> renderBoardFromGc;

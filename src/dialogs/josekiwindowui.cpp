@@ -7,6 +7,7 @@
 #include "josekisettings.h"
 #include "sfenpositiontracer.h"
 #include "buttonstyles.h"
+#include "dialogutils.h"
 #include "logcategories.h"
 
 #include <QVBoxLayout>
@@ -19,6 +20,10 @@
 #include <QFileInfo>
 #include <QLocale>
 #include <QDockWidget>
+
+namespace {
+constexpr QSize kDefaultSize{950, 600};
+} // namespace
 
 static QTableWidgetItem *numericItem(const QLocale &locale, int value)
 {
@@ -42,7 +47,7 @@ static void addRowButton(QTableWidget *table, int row, int col,
 void JosekiWindow::setupUi()
 {
     setWindowTitle(tr("定跡ウィンドウ"));
-    resize(950, 600);
+    resize(kDefaultSize);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(6);
@@ -322,9 +327,7 @@ void JosekiWindow::loadSettings()
 {
     m_fontSize = JosekiSettings::josekiWindowFontSize();
     applyFontSize();
-    QSize savedSize = JosekiSettings::josekiWindowSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100)
-        resize(savedSize);
+    DialogUtils::restoreDialogSize(this, JosekiSettings::josekiWindowSize());
     m_autoLoadEnabled = JosekiSettings::josekiWindowAutoLoadEnabled();
     m_autoLoadCheckBox->setChecked(m_autoLoadEnabled);
     m_recentFiles = JosekiSettings::josekiWindowRecentFiles();
@@ -349,7 +352,7 @@ void JosekiWindow::loadSettings()
 void JosekiWindow::saveSettings()
 {
     JosekiSettings::setJosekiWindowFontSize(m_fontSize);
-    JosekiSettings::setJosekiWindowSize(size());
+    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiWindowSize);
     JosekiSettings::setJosekiWindowLastFilePath(m_currentFilePath);
     JosekiSettings::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
     JosekiSettings::setJosekiWindowRecentFiles(m_recentFiles);

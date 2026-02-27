@@ -11,6 +11,7 @@
 #include <QCloseEvent>
 #include <QFrame>
 #include <QDebug>
+#include <memory>
 
 MenuWindow::MenuWindow(QWidget* parent)
     : QWidget(parent, Qt::Window)
@@ -104,9 +105,8 @@ void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
 
     // タブをクリア
     while (m_tabWidget->count() > 0) {
-        QWidget* w = m_tabWidget->widget(0);
+        std::unique_ptr<QWidget> w(m_tabWidget->widget(0));
         m_tabWidget->removeTab(0);
-        delete w;
     }
 
     // アクションマップを構築
@@ -173,17 +173,15 @@ void MenuWindow::updateFavoritesTab()
     if (!m_favoritesLayout) return;
 
     // 既存のウィジェットを削除
-    QLayoutItem* item;
-    while ((item = m_favoritesLayout->takeAt(0)) != nullptr) {
-        if (item->widget()) {
-            // m_allButtonsから削除
-            MenuButtonWidget* btn = qobject_cast<MenuButtonWidget*>(item->widget());
+    while (auto* rawItem = m_favoritesLayout->takeAt(0)) {
+        std::unique_ptr<QLayoutItem> layoutItem(rawItem);
+        if (auto* widget = layoutItem->widget()) {
+            auto* btn = qobject_cast<MenuButtonWidget*>(widget);
             if (btn) {
                 m_allButtons.removeAll(btn);
             }
-            delete item->widget();
+            std::unique_ptr<QWidget> widgetGuard(widget);
         }
-        delete item;
     }
 
     // お気に入りアクションを追加

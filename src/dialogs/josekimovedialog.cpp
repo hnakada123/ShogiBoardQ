@@ -3,6 +3,7 @@
 
 #include "josekimovedialog.h"
 #include "buttonstyles.h"
+#include "dialogutils.h"
 #include "josekisettings.h"
 
 #include <QVBoxLayout>
@@ -42,10 +43,7 @@ JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     setupUi(isEdit);
 
     // ウィンドウサイズを復元
-    QSize savedSize = JosekiSettings::josekiMoveDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, JosekiSettings::josekiMoveDialogSize());
 }
 
 void JosekiMoveDialog::setupUi(bool isEdit)
@@ -603,7 +601,7 @@ void JosekiMoveDialog::validateInput()
         return;
     }
 
-    JosekiSettings::setJosekiMoveDialogSize(size());
+    DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMoveDialogSize);
     accept();
 }
 

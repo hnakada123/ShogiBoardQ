@@ -122,6 +122,137 @@ private slots:
         QVERIFY(hasComment);
     }
 
+    // ========================================
+    // Error: non-existent file
+    // ========================================
+
+    void convertFile_nonExistentFile()
+    {
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(
+            fixturePath(QStringLiteral("nonexistent.kif")), &error);
+        QVERIFY(moves.isEmpty());
+    }
+
+    void parseWithVariations_nonExistentFile()
+    {
+        KifParseResult result;
+        QString error;
+        bool ok = KifToSfenConverter::parseWithVariations(
+            fixturePath(QStringLiteral("nonexistent.kif")), result, &error);
+        QVERIFY(!ok);
+    }
+
+    void detectInitialSfen_nonExistentFile()
+    {
+        QString label;
+        QString sfen = KifToSfenConverter::detectInitialSfenFromFile(
+            fixturePath(QStringLiteral("nonexistent.kif")), &label);
+        // Falls back to hirate
+        QCOMPARE(sfen, kHirateSfen);
+        QCOMPARE(label, QStringLiteral("平手(既定)"));
+    }
+
+    // ========================================
+    // Error: empty file
+    // ========================================
+
+    void convertFile_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        QCOMPARE(moves.size(), 0);
+    }
+
+    void extractMovesWithTimes_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        QString error;
+        QList<KifDisplayItem> items = KifToSfenConverter::extractMovesWithTimes(
+            tmp.fileName(), &error);
+        // Should return at least the opening item
+        QVERIFY(items.size() <= 1);
+    }
+
+    // ========================================
+    // Error: header only (no moves)
+    // ========================================
+
+    void convertFile_headerOnly()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_header_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("# ---- Kifu for Windows V7 V7.70 棋譜ファイル ----\n"
+                  "先手：テスト先手\n"
+                  "後手：テスト後手\n"
+                  "手合割：平手\n"
+                  "手数----指手---------消費時間--\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        QCOMPARE(moves.size(), 0);
+    }
+
+    // ========================================
+    // Normal: terminal keyword (投了)
+    // ========================================
+
+    void convertFile_terminalResign()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_resign_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("手合割：平手\n"
+                  "手数----指手---------消費時間--\n"
+                  "   1 ７六歩(77)   ( 0:01/00:00:01)\n"
+                  "   2 ３四歩(33)   ( 0:01/00:00:01)\n"
+                  "   3 投了\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        // Terminal keywords are not included as moves
+        QCOMPARE(moves.size(), 2);
+    }
+
+    // ========================================
+    // Boundary: extractGameInfo from empty file
+    // ========================================
+
+    void extractGameInfo_emptyFile()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_empty_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.close();
+
+        auto info = KifToSfenConverter::extractGameInfo(tmp.fileName());
+        QVERIFY(info.isEmpty());
+    }
+
+    // ========================================
+    // Boundary: extractGameInfoMap
+    // ========================================
+
+    void extractGameInfoMap_basic()
+    {
+        auto m = KifToSfenConverter::extractGameInfoMap(
+            fixturePath(QStringLiteral("test_basic.kif")));
+        // Should have key-value pairs
+        QVERIFY(!m.isEmpty());
+    }
+
     // KIF → parseWithVariations → KifuBranchTreeBuilder → node comments テスト
     void realKif_commentsTransferToBranchTree()
     {

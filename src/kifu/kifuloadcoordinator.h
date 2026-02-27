@@ -20,6 +20,7 @@
 
 class KifuBranchTree;
 class KifuNavigationState;
+class KifuApplyService;
 
 /**
  * @brief 棋譜ファイルの読み込みと内部データ構築を統括するコーディネータ
@@ -28,6 +29,8 @@ class KifuNavigationState;
  * SFEN列・表示データ・分岐ツリーなど内部データモデルを構築する。
  * 貼り付けテキストの自動判定読み込みにも対応。
  *
+ * I/O層は KifuFileReader、適用層は KifuApplyService に委譲し、
+ * 本クラスは解析→データ構築→UI反映の3段パイプラインの調整役に専念する。
  */
 class KifuLoadCoordinator : public QObject
 {
@@ -139,21 +142,23 @@ signals:
     void branchTreeBuilt();
 
 private:
+    void initApplyService();
+
     // --- 状態フラグ ---
     bool m_loadingKifu = false;               ///< 棋譜読み込み中フラグ（分岐更新を抑止）
 
     // --- UIウィジェット（非所有） ---
     QTableWidget* m_gameInfoTable;            ///< 対局情報テーブル（非所有）
     QDockWidget*  m_gameInfoDock;             ///< 対局情報ドック（非所有）
-    BranchTreeManager* m_branchTreeManager = nullptr; ///< 分岐ツリーマネージャー（setBranchTreeManager()経由で設定、非所有）
+    BranchTreeManager* m_branchTreeManager = nullptr; ///< 分岐ツリーマネージャー
     QTabWidget* m_tab;                        ///< メインタブウィジェット（非所有）
-    ShogiView* m_shogiView = nullptr;         ///< 盤面ビュー（setShogiView()経由で設定、非所有）
+    ShogiView* m_shogiView = nullptr;         ///< 盤面ビュー（非所有）
 
     // --- 棋譜データ ---
-    QStringList m_kifuUsiMoves;               ///< 棋譜から読み込んだUSI形式の指し手リスト
+    QStringList m_kifuUsiMoves;               ///< USI形式の指し手リスト
     QStringList* m_sfenHistory;                ///< 局面SFEN列への参照（非所有）
-    QVector<ShogiMove>& m_gameMoves;          ///< ゲーム指し手列への参照（MainWindowと共有）
-    QStringList& m_positionStrList;           ///< USI positionコマンド列への参照（MainWindowと共有）
+    QVector<ShogiMove>& m_gameMoves;          ///< ゲーム指し手列への参照
+    QStringList& m_positionStrList;           ///< USI positionコマンド列への参照
     QList<KifDisplayItem> m_dispMain;         ///< 本譜の表示データスナップショット
     QList<KifDisplayItem> m_dispCurrent;      ///< 現在表示中の表示データ
     QStringList           m_sfenMain;         ///< 本譜のSFEN列スナップショット
@@ -173,33 +178,17 @@ private:
 
     // --- 分岐管理 ---
     int m_branchPlyContext = -1;              ///< 分岐コンテキストの手数（-1は無効）
-    QSet<int> m_branchablePlySet;             ///< 現在のラインで分岐可能な手数のセット
+    QSet<int> m_branchablePlySet;             ///< 分岐可能な手数のセット
     KifuBranchTree* m_branchTree = nullptr;   ///< 分岐ツリー（非所有）
     KifuNavigationState* m_navState = nullptr; ///< ナビゲーション状態（非所有）
 
+    // --- 適用サービス ---
+    KifuApplyService* m_applyService = nullptr; ///< 適用層サービス（Qt parent所有）
+
     // --- 内部ヘルパ ---
     QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
-    void populateGameInfo(const QList<KifGameInfoItem>& items);
-    void addGameInfoTabIfMissing();
-    void applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items);
-    QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
-    void rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
-    void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
     void updateKifuBranchMarkersForActiveRow();
     void ensureBranchRowDelegateInstalled();
-    void logImportSummary(const QString& filePath,
-                          const QStringList& usiMoves,
-                          const QList<KifDisplayItem>& disp,
-                          const QString& teaiLabel,
-                          const QString& warnParse,
-                          const QString& warnConvert) const;
-
-    /// 現在表示中のラインの分岐手マーカーをモデルへ反映
-    void applyBranchMarksForCurrentLine();
-
-    void applyParsedResultCommon(const QString& filePath, const QString& initialSfen,
-                                  const QString& teaiLabel, const KifParseResult& res,
-                                  const QString& parseWarn, const char* callerTag);
 
     // --- 棋譜読み込み共通ロジック ---
     using KifuParseFunc = std::function<bool(const QString&, KifParseResult&, QString*)>;

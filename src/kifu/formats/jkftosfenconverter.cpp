@@ -85,10 +85,7 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
     qint64 cumSec[2] = {0, 0};
     QString pendingComment;
 
-    KifDisplayItem openingItem;
-    openingItem.prettyMove = QString();
-    openingItem.timeText = QStringLiteral("00:00/00:00:00");
-    openingItem.ply = 0;
+    KifDisplayItem openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
 
     for (qsizetype i = 0; i < moves.size(); ++i) {
         const QJsonObject moveObj = moves[i].toObject();
@@ -109,14 +106,9 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
 
             const QString special = moveObj[QStringLiteral("special")].toString();
             const QString label = JkfMoveParser::specialToJapanese(special);
-            const QString teban = ((plyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
-
-            KifDisplayItem item;
-            item.prettyMove = teban + label;
-            item.timeText = QStringLiteral("00:00/00:00:00");
-            item.comment = comment;
-            item.ply = plyNumber + 1;
-            out.append(item);
+            KifDisplayItem termItem = KifuParseCommon::createTerminalDisplayItem(plyNumber + 1, label);
+            termItem.comment = comment;
+            out.append(termItem);
             break;
         }
 
@@ -138,19 +130,16 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
             const QJsonObject mv = moveObj[QStringLiteral("move")].toObject();
             const QString pretty = JkfMoveParser::convertMoveToPretty(mv, plyNumber, prevToX, prevToY);
 
-            QString timeText = QStringLiteral("00:00/00:00:00");
+            QString timeText;
             if (moveObj.contains(QStringLiteral("time"))) {
                 const QJsonObject timeObj = moveObj[QStringLiteral("time")].toObject();
                 const int color = mv[QStringLiteral("color")].toInt();
                 timeText = JkfMoveParser::formatTimeText(timeObj, cumSec[color]);
             }
 
-            KifDisplayItem item;
-            item.prettyMove = pretty;
-            item.timeText = timeText;
-            item.comment = comment;
-            item.ply = plyNumber;
-            out.append(item);
+            KifDisplayItem moveItem = KifuParseCommon::createMoveDisplayItem(plyNumber, pretty, timeText);
+            moveItem.comment = comment;
+            out.append(moveItem);
         } else {
             if (!comment.isEmpty()) {
                 if (out.isEmpty()) {
@@ -309,10 +298,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
     qint64 cumSec[2] = {0, 0};
     bool openingEntryAdded = false;
 
-    KifDisplayItem openingItem;
-    openingItem.prettyMove = QString();
-    openingItem.timeText = QStringLiteral("00:00/00:00:00");
-    openingItem.ply = 0;
+    KifDisplayItem openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
 
     for (qsizetype i = 0; i < movesArray.size(); ++i) {
         const QJsonObject moveObj = movesArray[i].toObject();
@@ -326,15 +312,11 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
 
             const QString special = moveObj[QStringLiteral("special")].toString();
             const QString label = JkfMoveParser::specialToJapanese(special);
-            const QString teban = ((plyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
             const QString comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
 
-            KifDisplayItem item;
-            item.prettyMove = teban + label;
-            item.timeText = QStringLiteral("00:00/00:00:00");
-            item.comment = comment;
-            item.ply = plyNumber + 1;
-            mainline.disp.append(item);
+            KifDisplayItem termItem = KifuParseCommon::createTerminalDisplayItem(plyNumber + 1, label);
+            termItem.comment = comment;
+            mainline.disp.append(termItem);
             mainline.endsWithTerminal = true;
             break;
         }
@@ -357,7 +339,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
 
             const QString pretty = JkfMoveParser::convertMoveToPretty(mv, plyNumber, prevToX, prevToY);
 
-            QString timeText = QStringLiteral("00:00/00:00:00");
+            QString timeText;
             if (moveObj.contains(QStringLiteral("time"))) {
                 const QJsonObject timeObj = moveObj[QStringLiteral("time")].toObject();
                 const int color = mv[QStringLiteral("color")].toInt();
@@ -366,12 +348,9 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
 
             const QString comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
 
-            KifDisplayItem item;
-            item.prettyMove = pretty;
-            item.timeText = timeText;
-            item.comment = comment;
-            item.ply = plyNumber;
-            mainline.disp.append(item);
+            KifDisplayItem moveItem = KifuParseCommon::createMoveDisplayItem(plyNumber, pretty, timeText);
+            moveItem.comment = comment;
+            mainline.disp.append(moveItem);
         } else if (i == 0) {
             openingItem.comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
         }
@@ -396,15 +375,11 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                     if (forkMoveObj.contains(QStringLiteral("special"))) {
                         const QString special = forkMoveObj[QStringLiteral("special")].toString();
                         const QString label = JkfMoveParser::specialToJapanese(special);
-                        const QString teban = ((forkPlyNumber + 1) % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
                         const QString forkComment = JkfMoveParser::extractCommentsFromMoveObj(forkMoveObj);
 
-                        KifDisplayItem item;
-                        item.prettyMove = teban + label;
-                        item.timeText = QStringLiteral("00:00/00:00:00");
-                        item.comment = forkComment;
-                        item.ply = forkPlyNumber + 1;
-                        var.line.disp.append(item);
+                        KifDisplayItem termItem = KifuParseCommon::createTerminalDisplayItem(forkPlyNumber + 1, label);
+                        termItem.comment = forkComment;
+                        var.line.disp.append(termItem);
                         var.line.endsWithTerminal = true;
                         break;
                     }
@@ -421,7 +396,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
 
                         const QString pretty = JkfMoveParser::convertMoveToPretty(forkMv, forkPlyNumber, forkPrevToX, forkPrevToY);
 
-                        QString forkTimeText = QStringLiteral("00:00/00:00:00");
+                        QString forkTimeText;
                         if (forkMoveObj.contains(QStringLiteral("time"))) {
                             const QJsonObject timeObj = forkMoveObj[QStringLiteral("time")].toObject();
                             const int color = forkMv[QStringLiteral("color")].toInt();
@@ -430,12 +405,9 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
 
                         const QString forkComment = JkfMoveParser::extractCommentsFromMoveObj(forkMoveObj);
 
-                        KifDisplayItem item;
-                        item.prettyMove = pretty;
-                        item.timeText = forkTimeText;
-                        item.comment = forkComment;
-                        item.ply = forkPlyNumber;
-                        var.line.disp.append(item);
+                        KifDisplayItem moveItem = KifuParseCommon::createMoveDisplayItem(forkPlyNumber, pretty, forkTimeText);
+                        moveItem.comment = forkComment;
+                        var.line.disp.append(moveItem);
                     }
                 }
 

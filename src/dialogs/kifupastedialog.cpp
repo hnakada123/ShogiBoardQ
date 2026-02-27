@@ -4,9 +4,15 @@
 #include "kifupastedialog.h"
 #include "buttonstyles.h"
 #include "gamesettings.h"
+#include "dialogutils.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
+
+namespace {
+constexpr QSize kDefaultSize{600, 500};
+constexpr QSize kMinimumSize{500, 400};
+} // namespace
 
 KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     : QDialog(parent)
@@ -15,28 +21,25 @@ KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     loadFontSizeSettings();
 
     // ウィンドウサイズを復元
-    QSize savedSize = GameSettings::kifuPasteDialogSize();
-    if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
-        resize(savedSize);
-    }
+    DialogUtils::restoreDialogSize(this, GameSettings::kifuPasteDialogSize());
 }
 
 KifuPasteDialog::~KifuPasteDialog()
 {
-    GameSettings::setKifuPasteDialogSize(size());
+    DialogUtils::saveDialogSize(this, GameSettings::setKifuPasteDialogSize);
 }
 
 void KifuPasteDialog::closeEvent(QCloseEvent* event)
 {
-    GameSettings::setKifuPasteDialogSize(size());
+    DialogUtils::saveDialogSize(this, GameSettings::setKifuPasteDialogSize);
     QDialog::closeEvent(event);
 }
 
 void KifuPasteDialog::setupUi()
 {
     setWindowTitle(tr("棋譜貼り付け"));
-    setMinimumSize(500, 400);
-    resize(600, 500);
+    setMinimumSize(kMinimumSize);
+    resize(kDefaultSize);
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(10, 10, 10, 10);

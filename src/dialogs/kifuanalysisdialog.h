@@ -7,6 +7,8 @@
 
 #include <QDialog>
 
+#include "fontsizehelper.h"
+
 namespace Ui {
 class KifuAnalysisDialog;
 }
@@ -99,8 +101,8 @@ private:
     // 1手あたりの思考時間（秒数）
     int m_byoyomiSec = 0;
 
-    // 現在のフォントサイズ（ポイント）
-    int m_fontSize = 0;
+    // フォントサイズヘルパー
+    FontSizeHelper m_fontHelper;
 
     // エンジンの名前とディレクトリを格納するリスト
     QList<Engine> m_engineList;

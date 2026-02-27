@@ -7,11 +7,13 @@ set(SRC ${CMAKE_SOURCE_DIR}/src)
 # Stubs for missing symbols (logging categories)
 set(TEST_STUBS
     ${CMAKE_CURRENT_SOURCE_DIR}/test_stubs.cpp
+    ${SRC}/common/dialogutils.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/kifu/formats/parsecommon.cpp
     ${SRC}/kifu/formats/sfencsapositionconverter.cpp
     ${SRC}/kifu/formats/notationutils.cpp
+    ${SRC}/board/sfenpositiontracer.cpp
 )
 
 # Common include directories for all tests
@@ -172,7 +174,6 @@ add_shogi_test(tst_kifconverter
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -190,7 +191,6 @@ add_shogi_test(tst_ki2converter
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -206,7 +206,6 @@ add_shogi_test(tst_csaconverter
     ${SRC}/kifu/formats/csalexer.cpp
     ${SRC}/kifu/formats/csatosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -219,7 +218,6 @@ add_shogi_test(tst_jkfconverter
     ${SRC}/kifu/formats/jkfmoveparser.cpp
     ${SRC}/kifu/formats/jkftosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -231,7 +229,6 @@ add_shogi_test(tst_usiconverter
     ${TEST_STUBS}
     ${SRC}/kifu/formats/usitosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -243,7 +240,6 @@ add_shogi_test(tst_usenconverter
     ${TEST_STUBS}
     ${SRC}/kifu/formats/usentosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -299,7 +295,6 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -327,7 +322,6 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -350,7 +344,6 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/dialogs/josekimovedialog.cpp
     ${SRC}/dialogs/josekimergedialog.cpp
     ${SETTINGS_SOURCES}
-    ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -413,7 +406,6 @@ add_shogi_test(tst_integration
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
-    ${SRC}/board/sfenpositiontracer.cpp
 )
 
 # ============================================================
@@ -434,6 +426,8 @@ add_shogi_test(tst_ui_display_consistency
     test_stubs_ui_display.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/kifudisplaycoordinator.cpp
+    ${SRC}/ui/coordinators/kifuselectionsync.cpp
+    ${SRC}/ui/presenters/kifudisplaypresenter.cpp
     ${SRC}/navigation/kifunavigationcontroller.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/kifubranchtree.cpp
@@ -461,6 +455,7 @@ add_shogi_test(tst_analysisflow
     tst_analysisflow.cpp
     test_stubs_analysisflow.cpp
     ${SRC}/common/logcategories.cpp
+    ${SRC}/common/fontsizehelper.cpp
     ${SRC}/analysis/analysisflowcontroller.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
 )
@@ -473,7 +468,32 @@ add_shogi_test(tst_game_start_flow
     test_stubs_game_start_flow.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/game/gamestartcoordinator.cpp
+    ${SRC}/game/gamestartoptionsbuilder.cpp
     ${SRC}/services/playernameservice.cpp
+)
+
+# ============================================================
+# Unit 18: Game End Handler (GameEndHandler)
+# ============================================================
+add_shogi_test(tst_game_end_handler
+    tst_game_end_handler.cpp
+    test_stubs_game_end_handler.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/game/gameendhandler.cpp
+)
+
+# ============================================================
+# Unit 19: Game Start Orchestrator (GameStartOrchestrator)
+# ============================================================
+add_shogi_test(tst_game_start_orchestrator
+    tst_game_start_orchestrator.cpp
+    test_stubs_game_start_orchestrator.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/game/gamestartorchestrator.cpp
+    ${SRC}/board/sfenpositiontracer.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
 )
 
 # ============================================================
@@ -593,6 +613,33 @@ add_shogi_test(tst_structural_kpi
 )
 target_compile_definitions(tst_structural_kpi PRIVATE
     SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 20: CSA Protocol (CsaClient / CsaMoveConverter / SfenCsaPositionConverter)
+# ============================================================
+add_shogi_test(tst_csaprotocol
+    tst_csaprotocol.cpp
+    ${TEST_STUBS}
+    ${SRC}/network/csaclient.cpp
+    ${SRC}/network/csamoveconverter.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/game/shogigamecontroller.cpp
+    ${SRC}/game/turnmanager.cpp
+    ${SRC}/common/jishogicalculator.cpp
+    ${EMV_SOURCES}
+)
+
+# ============================================================
+# Unit 21: Settings Roundtrip (全ドメイン設定の保存→復元)
+# ============================================================
+add_shogi_test(tst_settings_roundtrip
+    tst_settings_roundtrip.cpp
+    test_stubs_settings.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SETTINGS_SOURCES}
 )
 
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)

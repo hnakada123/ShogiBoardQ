@@ -4,6 +4,7 @@
 #include "positioneditcoordinator.h"
 
 #include <QAction>
+#include <QPushButton>
 
 #include "logcategories.h"
 
@@ -153,7 +154,12 @@ void PositionEditCoordinator::beginPositionEditing()
     // 「編集終了」ボタン表示
     ctx.onShowEditExitButton = [this]() {
         if (m_posEdit && m_shogiView) {
-            m_posEdit->showEditExitButtonOnBoard(m_shogiView, this, SLOT(finishPositionEditing()));
+            m_posEdit->showEditExitButtonOnBoard(m_shogiView);
+            if (auto* exitBtn = m_shogiView->findChild<QPushButton*>(QStringLiteral("editExitButton"))) {
+                QObject::disconnect(m_exitBtnConnection);
+                m_exitBtnConnection = QObject::connect(exitBtn, &QPushButton::clicked,
+                                                       this, &PositionEditCoordinator::finishPositionEditing);
+            }
         }
     };
 

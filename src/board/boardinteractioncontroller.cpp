@@ -148,10 +148,10 @@ void BoardInteractionController::clearAllHighlights()
 void BoardInteractionController::onHighlightsCleared()
 {
     // ShogiView::removeHighlightAllData() が呼ばれた
-    // 実体はすでに qDeleteAll で破棄されているのでポインタだけ null にする
-    m_selectedField  = nullptr;
-    m_selectedField2 = nullptr;
-    m_movedField     = nullptr;
+    // 実体はすでに qDeleteAll で破棄済み。二重解放を防ぐため release() で所有権を手放す
+    (void)m_selectedField.release();
+    (void)m_selectedField2.release();
+    (void)m_movedField.release();
 }
 
 void BoardInteractionController::cancelPendingClick()
@@ -207,11 +207,11 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     m_clickPoint = field;
 
     if (m_selectedField) deleteHighlight(m_selectedField);
-    m_selectedField = new ShogiView::FieldHighlight(file, rank, QColor(255, 128, 0, 70));
-    m_view->addHighlight(m_selectedField);
+    m_selectedField = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 128, 0, 70));
+    m_view->addHighlight(m_selectedField.get());
 }
 
-void BoardInteractionController::updateHighlight(ShogiView::FieldHighlight*& hl,
+void BoardInteractionController::updateHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl,
                                                  const QPoint& field,
                                                  const QColor& color)
 {
@@ -219,20 +219,19 @@ void BoardInteractionController::updateHighlight(ShogiView::FieldHighlight*& hl,
     addNewHighlight(hl, field, color);
 }
 
-void BoardInteractionController::deleteHighlight(ShogiView::FieldHighlight*& hl)
+void BoardInteractionController::deleteHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl)
 {
     if (!hl) return;
-    m_view->removeHighlight(hl);
-    delete hl;
-    hl = nullptr;
+    m_view->removeHighlight(hl.get());
+    hl.reset();
 }
 
-void BoardInteractionController::addNewHighlight(ShogiView::FieldHighlight*& hl,
+void BoardInteractionController::addNewHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl,
                                                  const QPoint& pos,
                                                  const QColor& color)
 {
-    hl = new ShogiView::FieldHighlight(pos.x(), pos.y(), color);
-    m_view->addHighlight(hl);
+    hl = std::make_unique<ShogiView::FieldHighlight>(pos.x(), pos.y(), color);
+    m_view->addHighlight(hl.get());
 }
 
 void BoardInteractionController::resetSelectionAndHighlight()

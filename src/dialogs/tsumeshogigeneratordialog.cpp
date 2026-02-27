@@ -7,6 +7,7 @@
 #include "enginesettingsconstants.h"
 #include "settingscommon.h"
 #include "tsumeshogisettings.h"
+#include "dialogutils.h"
 #include "tsumeshogigenerator.h"
 #include "pvboarddialog.h"
 #include "shogiboard.h"
@@ -170,7 +171,8 @@ static QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
 
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontSize(TsumeshogiSettings::tsumeshogiGeneratorFontSize())
+    , m_fontHelper({TsumeshogiSettings::tsumeshogiGeneratorFontSize(), 8, 24, 1,
+                    TsumeshogiSettings::setTsumeshogiGeneratorFontSize})
 {
     setWindowTitle(tr("詰将棋局面生成"));
     setupUi();
@@ -341,12 +343,7 @@ void TsumeshogiGeneratorDialog::setupUi()
     connect(m_tableResults, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
 
     // ウィンドウサイズ復元
-    const QSize savedSize = TsumeshogiSettings::tsumeshogiGeneratorDialogSize();
-    if (savedSize.isValid()) {
-        resize(savedSize);
-    } else {
-        resize(600, 550);
-    }
+    DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
 }
 
 void TsumeshogiGeneratorDialog::readEngineNameAndDir()
@@ -383,8 +380,8 @@ void TsumeshogiGeneratorDialog::loadSettings()
 
 void TsumeshogiGeneratorDialog::saveSettings()
 {
-    TsumeshogiSettings::setTsumeshogiGeneratorDialogSize(size());
-    TsumeshogiSettings::setTsumeshogiGeneratorFontSize(m_fontSize);
+    DialogUtils::saveDialogSize(this, TsumeshogiSettings::setTsumeshogiGeneratorDialogSize);
+    TsumeshogiSettings::setTsumeshogiGeneratorFontSize(m_fontHelper.fontSize());
     TsumeshogiSettings::setTsumeshogiGeneratorEngineIndex(m_comboEngine->currentIndex());
     TsumeshogiSettings::setTsumeshogiGeneratorTargetMoves(m_spinTargetMoves->value());
     TsumeshogiSettings::setTsumeshogiGeneratorMaxAttackPieces(m_spinMaxAttack->value());
@@ -535,12 +532,12 @@ void TsumeshogiGeneratorDialog::onCopyAll()
 
 void TsumeshogiGeneratorDialog::onFontIncrease()
 {
-    updateFontSize(1);
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 void TsumeshogiGeneratorDialog::onFontDecrease()
 {
-    updateFontSize(-1);
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void TsumeshogiGeneratorDialog::onRestoreDefaults()
@@ -590,20 +587,11 @@ void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
     dialog.exec();
 }
 
-void TsumeshogiGeneratorDialog::updateFontSize(int delta)
-{
-    m_fontSize += delta;
-    m_fontSize = qBound(8, m_fontSize, 24);
-    applyFontSize();
-    TsumeshogiSettings::setTsumeshogiGeneratorFontSize(m_fontSize);
-}
-
 void TsumeshogiGeneratorDialog::applyFontSize()
 {
-    m_fontSize = qBound(8, m_fontSize, 24);
-
+    const int size = m_fontHelper.fontSize();
     QFont f = font();
-    f.setPointSize(m_fontSize);
+    f.setPointSize(size);
     setFont(f);
 
     const QList<QWidget*> widgets = findChildren<QWidget*>();
@@ -639,7 +627,7 @@ void TsumeshogiGeneratorDialog::applyTableHeaderStyle()
             "  padding: 2px 6px;"
             "  border: none;"
             "  border-bottom: 1px solid #209cee;"
-            "}").arg(m_fontSize));
+            "}").arg(m_fontHelper.fontSize()));
 }
 
 void TsumeshogiGeneratorDialog::setRunningState(bool running)

@@ -5,6 +5,7 @@
 #include "strategycontext.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
+#include "logcategories.h"
 
 HumanVsHumanStrategy::HumanVsHumanStrategy(MatchCoordinator::StrategyContext& ctx)
     : m_ctx(ctx)
@@ -13,8 +14,7 @@ HumanVsHumanStrategy::HumanVsHumanStrategy(MatchCoordinator::StrategyContext& ct
 
 void HumanVsHumanStrategy::start()
 {
-    if (m_ctx.hooks().log)
-        m_ctx.hooks().log(QStringLiteral("[Match] Start HvH"));
+    qCDebug(lcGame) << "[Match] Start HvH";
 
     // --- 手番の単一ソースを確立：GC → TurnManager → m_cur → 表示
     ShogiGameController::Player side =
@@ -30,8 +30,8 @@ void HumanVsHumanStrategy::start()
                                                : MatchCoordinator::P1);
 
     // 盤描画は手番反映のあと（ハイライト/時計のズレ防止）
-    if (m_ctx.hooks().renderBoardFromGc)
-        m_ctx.hooks().renderBoardFromGc();
+    if (m_ctx.hooks().ui.renderBoardFromGc)
+        m_ctx.hooks().ui.renderBoardFromGc();
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 }
 
@@ -64,9 +64,8 @@ void HumanVsHumanStrategy::onHumanMove(const QPoint& /*from*/,
     }
 
     // 表示更新（時計ラベル等）
-    if (m_ctx.hooks().log)
-        m_ctx.hooks().log(QStringLiteral("[Match] HvH: finalize previous turn"));
-    if (clock) m_ctx.handleTimeUpdated();
+    qCDebug(lcGame) << "[Match] HvH: finalize previous turn";
+    if (clock) m_ctx.pokeTimeUpdateNow();
 
     // 次手番の計測と UI 準備
     armTurnTimerIfNeeded();
