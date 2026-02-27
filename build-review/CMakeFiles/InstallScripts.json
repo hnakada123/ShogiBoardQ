@@ -1,8 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/nakada/GitHub/ShogiBoardQ/build-review/cmake_install.cmake",
-		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/cmake_install.cmake"
-	],
-	"Parallel" : false
-}
