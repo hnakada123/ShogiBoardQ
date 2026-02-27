@@ -12,7 +12,6 @@ class TurnManager;
 
 /**
  * @brief GC ↔ TurnManager ↔ UI(MainWindow) の手番同期配線を一箇所に集約する
- * @todo remove コメントスタイルガイド適用済み
  */
 class TurnSyncBridge : public QObject
 {

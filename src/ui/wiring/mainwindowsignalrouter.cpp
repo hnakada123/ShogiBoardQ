@@ -4,7 +4,6 @@
 #include "mainwindowsignalrouter.h"
 #include "mainwindow.h"
 #include "mainwindowappearancecontroller.h"
-#include "mainwindowserviceregistry.h"
 
 #include "boardinteractioncontroller.h"
 #include "boardsetupcontroller.h"
@@ -13,7 +12,6 @@
 #include "errorbus.h"
 #include "kifufilecontroller.h"
 #include "uinotificationservice.h"
-#include "mainwindowwiringassembler.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "uiactionswiring.h"
@@ -22,16 +20,28 @@
 
 #include "logcategories.h"
 
-MainWindowSignalRouter::MainWindowSignalRouter(MainWindow& mw, QObject* parent)
+namespace {
+/// ダブルポインタを安全にデリファレンスするヘルパー
+template<typename T>
+T* deref(T** pp) { return pp ? *pp : nullptr; }
+} // namespace
+
+MainWindowSignalRouter::MainWindowSignalRouter(QObject* parent)
     : QObject(parent)
-    , m_mw(mw)
 {
+}
+
+void MainWindowSignalRouter::updateDeps(const Deps& deps)
+{
+    m_deps = deps;
 }
 
 void MainWindowSignalRouter::connectAll()
 {
     // ダイアログ起動配線（connectAllActions より先に初期化）
-    initializeDialogLaunchWiring();
+    if (m_deps.initializeDialogLaunchWiring) {
+        m_deps.initializeDialogLaunchWiring();
+    }
 
     // メニュー/アクションのconnect（関数ポインタで統一）
     connectAllActions();
@@ -40,90 +50,100 @@ void MainWindowSignalRouter::connectAll()
     connectCoreSignals();
 }
 
-void MainWindowSignalRouter::initializeDialogLaunchWiring()
-{
-    MainWindowWiringAssembler::initializeDialogLaunchWiring(m_mw);
-}
-
 void MainWindowSignalRouter::connectAllActions()
 {
     // DialogCoordinatorWiring を先行生成（cancelKifuAnalysis 接続先として必要）
-    if (!m_mw.m_dialogCoordinatorWiring) {
-        m_mw.m_dialogCoordinatorWiring = new DialogCoordinatorWiring(&m_mw);
+    if (m_deps.dialogCoordinatorWiringPtr && !deref(m_deps.dialogCoordinatorWiringPtr)) {
+        *m_deps.dialogCoordinatorWiringPtr = new DialogCoordinatorWiring(m_deps.mainWindow);
     }
 
     // KifuFileController を先行生成（ファイル操作スロット接続先として必要）
-    m_mw.ensureKifuFileController();
+    if (m_deps.ensureKifuFileController) {
+        m_deps.ensureKifuFileController();
+    }
 
     // GameSessionOrchestrator を先行生成（対局ライフサイクル接続先として必要）
-    m_mw.m_registry->ensureGameSessionOrchestrator();
+    if (m_deps.ensureGameSessionOrchestrator) {
+        m_deps.ensureGameSessionOrchestrator();
+    }
 
     // 既存があれば使い回し
-    if (!m_mw.m_actionsWiring) {
+    if (m_deps.actionsWiringPtr && !deref(m_deps.actionsWiringPtr)) {
         UiActionsWiring::Deps d;
-        d.ui  = m_mw.ui.get();
-        d.ctx = &m_mw;
-        d.dlw = m_mw.m_dialogLaunchWiring;
-        d.dcw = m_mw.m_dialogCoordinatorWiring;
-        d.kfc = m_mw.m_kifuFileController;
-        d.gso = m_mw.m_gameSessionOrchestrator;
-        d.appearance = m_mw.m_appearanceController;
-        d.shogiView = m_mw.m_shogiView;
-        d.evalChart = m_mw.m_evalChart;
-        d.getKifuExportController = [this]() -> KifuExportController* {
-            m_mw.m_registry->ensureKifuExportController();
-            return m_mw.m_kifuExportController;
-        };
-        m_mw.m_actionsWiring = new UiActionsWiring(d, &m_mw);
+        d.ui  = m_deps.ui;
+        d.ctx = m_deps.mainWindow;
+        d.dlw = deref(m_deps.dialogLaunchWiringPtr);
+        d.dcw = deref(m_deps.dialogCoordinatorWiringPtr);
+        d.kfc = deref(m_deps.kifuFileControllerPtr);
+        d.gso = deref(m_deps.gameSessionOrchestratorPtr);
+        d.appearance = m_deps.appearanceController;
+        d.shogiView = m_deps.shogiView;
+        d.evalChart = m_deps.evalChart;
+        d.getKifuExportController = m_deps.getKifuExportController;
+        *m_deps.actionsWiringPtr = new UiActionsWiring(d, m_deps.mainWindow);
     }
-    m_mw.m_actionsWiring->wire();
+    auto* actionsWiring = deref(m_deps.actionsWiringPtr);
+    if (actionsWiring) {
+        actionsWiring->wire();
+    }
 }
 
 void MainWindowSignalRouter::connectCoreSignals()
 {
     qCDebug(lcApp) << "connectCoreSignals called";
 
+    auto* dlw = deref(m_deps.dialogLaunchWiringPtr);
+
     // 将棋盤表示・昇格・ドラッグ終了・指し手確定
-    if (m_mw.m_gameController) {
-        connect(m_mw.m_gameController, &ShogiGameController::showPromotionDialog,
-                m_mw.m_dialogLaunchWiring, &DialogLaunchWiring::displayPromotionDialog, Qt::UniqueConnection);
-
-        connect(m_mw.m_gameController, &ShogiGameController::endDragSignal,
-                m_mw.m_shogiView,      &ShogiView::endDrag, Qt::UniqueConnection);
-
-        connect(m_mw.m_gameController, &ShogiGameController::moveCommitted,
-                &m_mw, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
+    if (m_deps.gameController && dlw) {
+        connect(m_deps.gameController, &ShogiGameController::showPromotionDialog,
+                dlw, &DialogLaunchWiring::displayPromotionDialog, Qt::UniqueConnection);
     }
-    if (m_mw.m_shogiView && m_mw.m_appearanceController) {
-        bool connected = connect(m_mw.m_shogiView, &ShogiView::fieldSizeChanged,
-                m_mw.m_appearanceController, &MainWindowAppearanceController::onBoardSizeChanged, Qt::UniqueConnection);
+    if (m_deps.gameController) {
+        connect(m_deps.gameController, &ShogiGameController::endDragSignal,
+                m_deps.shogiView,      &ShogiView::endDrag, Qt::UniqueConnection);
+
+        connect(m_deps.gameController, &ShogiGameController::moveCommitted,
+                m_deps.mainWindow, &MainWindow::onMoveCommitted, Qt::UniqueConnection);
+    }
+    if (m_deps.shogiView && m_deps.appearanceController) {
+        bool connected = connect(m_deps.shogiView, &ShogiView::fieldSizeChanged,
+                m_deps.appearanceController, &MainWindowAppearanceController::onBoardSizeChanged, Qt::UniqueConnection);
         qCDebug(lcApp) << "fieldSizeChanged -> onBoardSizeChanged connected:" << connected
-                 << "m_shogiView=" << m_mw.m_shogiView;
+                 << "m_shogiView=" << m_deps.shogiView;
     } else {
         qCDebug(lcApp) << "m_shogiView is NULL, cannot connect fieldSizeChanged";
     }
 
     // ErrorBus のエラーを UiNotificationService に直接接続
-    m_mw.m_registry->ensureUiNotificationService();
-    connect(&ErrorBus::instance(), &ErrorBus::errorOccurred,
-            m_mw.m_notificationService, &UiNotificationService::displayErrorMessage, Qt::UniqueConnection);
+    if (m_deps.ensureUiNotificationService) {
+        m_deps.ensureUiNotificationService();
+    }
+    auto* ns = deref(m_deps.notificationServicePtr);
+    if (ns) {
+        connect(&ErrorBus::instance(), &ErrorBus::errorOccurred,
+                ns, &UiNotificationService::displayErrorMessage, Qt::UniqueConnection);
+    }
 }
 
 void MainWindowSignalRouter::connectBoardClicks()
 {
-    m_mw.ensureBoardSetupController();
-    if (m_mw.m_boardSetupController) {
-        m_mw.m_boardSetupController->connectBoardClicks();
+    if (m_deps.ensureBoardSetupController) {
+        m_deps.ensureBoardSetupController();
+    }
+    auto* bsc = deref(m_deps.boardSetupControllerPtr);
+    if (bsc) {
+        bsc->connectBoardClicks();
     }
 }
 
 void MainWindowSignalRouter::connectMoveRequested()
 {
     // BoardInteractionControllerからのシグナルをMainWindow経由で処理
-    if (m_mw.m_boardController) {
+    if (m_deps.boardController) {
         QObject::connect(
-            m_mw.m_boardController, &BoardInteractionController::moveRequested,
-            &m_mw,                  &MainWindow::onMoveRequested,
+            m_deps.boardController, &BoardInteractionController::moveRequested,
+            m_deps.mainWindow,      &MainWindow::onMoveRequested,
             Qt::UniqueConnection);
     }
 }

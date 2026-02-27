@@ -19,6 +19,30 @@
 #include "mainwindowmatchadapter.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "livegamesessionupdater.h"
+#include "mainwindowcompositionroot.h"
+#include "mainwindowsignalrouter.h"
+#include "mainwindowappearancecontroller.h"
+#include "evaluationgraphcontroller.h"
+#include "jishogiscoredialogcontroller.h"
+#include "nyugyokudeclarationhandler.h"
+#include "languagecontroller.h"
+#include "docklayoutmanager.h"
+#include "dockcreationservice.h"
+#include "usicommandcontroller.h"
+#include "branchnavigationwiring.h"
+#include "kifunavigationcoordinator.h"
+#include "gamerecordupdateservice.h"
+#include "analysisresultspresenter.h"
+#include "kifuexportcontroller.h"
+#include "csagamewiring.h"
+#include "josekiwindowwiring.h"
+#include "matchcoordinatorwiring.h"
+#include "playmodepolicyservice.h"
+#include "matchruntimequeryservice.h"
+#include <QTimer>
+#ifdef QT_DEBUG
+#include "debugscreenshotwiring.h"
+#endif
 
 // --- Controllers / Services（スロット転送先） ---
 #include "shogigamecontroller.h"
@@ -209,7 +233,7 @@ void MainWindow::ensureKifuExportController()
 // KifuExportControllerに依存を設定するヘルパー
 void MainWindow::updateKifuExportDependencies()
 {
-    KifuExportDepsAssembler::assemble(*this);
+    KifuExportDepsAssembler::assemble(m_kifuExportController.get(), buildRuntimeRefs());
 }
 
 void MainWindow::ensureGameStateController()

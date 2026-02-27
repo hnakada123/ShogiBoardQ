@@ -6,7 +6,7 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -29,7 +29,7 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     setMinimumSize(400, 500);
 
     // 前回保存されたウィンドウサイズを読み込む
-    QSize savedSize = SettingsService::sfenCollectionDialogSize();
+    QSize savedSize = GameSettings::sfenCollectionDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     } else {
@@ -40,11 +40,11 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     buildUi();
 
     // 最近使ったファイルリストを読み込み
-    m_recentFiles = SettingsService::sfenCollectionRecentFiles();
+    m_recentFiles = GameSettings::sfenCollectionRecentFiles();
     updateRecentFilesMenu();
 
     // 前回保存された将棋盤マスサイズを復元
-    int savedSquareSize = SettingsService::sfenCollectionSquareSize();
+    int savedSquareSize = GameSettings::sfenCollectionSquareSize();
     if (savedSquareSize >= 20 && savedSquareSize <= 150) {
         m_shogiView->setSquareSize(savedSquareSize);
     }
@@ -213,7 +213,7 @@ void SfenCollectionDialog::buildUi()
 
 void SfenCollectionDialog::onOpenFileClicked()
 {
-    QString lastDir = SettingsService::sfenCollectionLastDirectory();
+    QString lastDir = GameSettings::sfenCollectionLastDirectory();
     QString filePath = QFileDialog::getOpenFileName(
         this,
         tr("SFEN局面集ファイルを開く"),
@@ -250,7 +250,7 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
     m_fileLabel->setText(tr("ファイル: %1").arg(fi.fileName()));
 
     // 最後に開いたディレクトリを保存
-    SettingsService::setSfenCollectionLastDirectory(fi.absolutePath());
+    GameSettings::setSfenCollectionLastDirectory(fi.absolutePath());
 
     // 最近使ったファイルリストに追加
     addToRecentFiles(filePath);
@@ -423,7 +423,7 @@ void SfenCollectionDialog::hideClockLabels()
 
 void SfenCollectionDialog::saveWindowSize()
 {
-    SettingsService::setSfenCollectionDialogSize(size());
+    GameSettings::setSfenCollectionDialogSize(size());
 }
 
 void SfenCollectionDialog::adjustWindowToContents()
@@ -440,7 +440,7 @@ void SfenCollectionDialog::closeEvent(QCloseEvent* event)
     saveWindowSize();
     saveRecentFiles();
     if (m_shogiView) {
-        SettingsService::setSfenCollectionSquareSize(m_shogiView->squareSize());
+        GameSettings::setSfenCollectionSquareSize(m_shogiView->squareSize());
     }
     QDialog::closeEvent(event);
 }
@@ -490,7 +490,7 @@ void SfenCollectionDialog::updateRecentFilesMenu()
 
 void SfenCollectionDialog::saveRecentFiles()
 {
-    SettingsService::setSfenCollectionRecentFiles(m_recentFiles);
+    GameSettings::setSfenCollectionRecentFiles(m_recentFiles);
 }
 
 void SfenCollectionDialog::onRecentFileClicked()

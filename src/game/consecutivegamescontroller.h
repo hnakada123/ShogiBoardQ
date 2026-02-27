@@ -15,7 +15,6 @@ class TimeControlController;
 
 /**
  * @brief 連続対局の進行管理を行うコントローラ
- * @todo remove コメントスタイルガイド適用済み
  *
  * 連続対局の設定保持、次の対局への自動遷移、手番入れ替えを担当する。
  */

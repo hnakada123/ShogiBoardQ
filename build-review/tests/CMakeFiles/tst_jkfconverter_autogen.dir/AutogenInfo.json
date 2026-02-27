@@ -1,0 +1,321 @@
+{
+	"BUILD_DIR" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_jkfconverter_autogen",
+	"CMAKE_BINARY_DIR" : "/home/nakada/GitHub/ShogiBoardQ/build-review",
+	"CMAKE_CURRENT_BINARY_DIR" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests",
+	"CMAKE_CURRENT_SOURCE_DIR" : "/home/nakada/GitHub/ShogiBoardQ/tests",
+	"CMAKE_EXECUTABLE" : "/usr/bin/cmake",
+	"CMAKE_LIST_FILES" : 
+	[
+		"/home/nakada/GitHub/ShogiBoardQ/tests/CMakeLists.txt",
+		"/usr/lib/cmake/Qt6/Qt6ConfigVersion.cmake",
+		"/usr/lib/cmake/Qt6/Qt6ConfigVersionImpl.cmake",
+		"/usr/lib/cmake/Qt6/Qt6Config.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicCMakeEarlyPolicyHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicCMakeHelpers.cmake",
+		"/usr/lib/cmake/Qt6/Qt6ConfigExtras.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicCMakeVersionHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtInstallPaths.cmake",
+		"/usr/lib/cmake/Qt6/Qt6Targets.cmake",
+		"/usr/lib/cmake/Qt6/Qt6VersionlessAliasTargets.cmake",
+		"/usr/lib/cmake/Qt6/QtFeature.cmake",
+		"/usr/share/cmake/Modules/CheckCXXCompilerFlag.cmake",
+		"/usr/lib/cmake/Qt6/QtFeatureCommon.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicAndroidHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicAppleHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicCMakeHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicCMakeVersionHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicDependencyHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicExternalProjectHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicFinalizerHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicFindPackageHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicGitHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicPluginHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicPluginHelpers_v2.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomAttributionHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomCommonGenerationHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomCpeHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomCycloneDXHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomDocumentNamespaceHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomDepHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomFileHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomGenerationHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomGenerationCycloneDXHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomLicenseHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomOpsHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomPurlHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomPythonHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomQtEntityHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicSbomSystemDepHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicTargetHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicTestHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicToolHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicWalkLibsHelpers.cmake",
+		"/usr/lib/cmake/Qt6/QtPublicWindowsHelpers.cmake",
+		"/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake",
+		"/usr/lib/cmake/Qt6/Qt6Dependencies.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestConfigVersion.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestConfigVersionImpl.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestConfig.cmake",
+		"/usr/share/cmake/Modules/CMakeFindDependencyMacro.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestDependencies.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestTargets.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestTargets-relwithdebinfo.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestAdditionalTargetInfo.cmake",
+		"/usr/lib/cmake/Qt6Test/QtTestProperties.cmake",
+		"/usr/lib/cmake/Qt6Test/Qt6TestVersionlessAliasTargets.cmake"
+	],
+	"CMAKE_SOURCE_DIR" : "/home/nakada/GitHub/ShogiBoardQ",
+	"CROSS_CONFIG" : false,
+	"DEP_FILE" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_jkfconverter_autogen/deps",
+	"DEP_FILE_RULE_NAME" : "tst_jkfconverter_autogen/timestamp",
+	"HEADERS" : 
+	[
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/board/sfenpositiontracer.h",
+			"MU",
+			"XOLATRD43A/moc_sfenpositiontracer.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/common/errorbus.h",
+			"MU",
+			"AAGGKE4ILT/moc_errorbus.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/common/logcategories.h",
+			"MU",
+			"AAGGKE4ILT/moc_logcategories.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/core/shogiboard.h",
+			"MU",
+			"MV7IEL3DTJ/moc_shogiboard.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/core/shogimove.h",
+			"MU",
+			"MV7IEL3DTJ/moc_shogimove.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/core/shogiutils.h",
+			"MU",
+			"MV7IEL3DTJ/moc_shogiutils.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/jkftosfenconverter.h",
+			"MU",
+			"6GHUXIWGM2/moc_jkftosfenconverter.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/notationutils.h",
+			"MU",
+			"6GHUXIWGM2/moc_notationutils.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/parsecommon.h",
+			"MU",
+			"6GHUXIWGM2/moc_parsecommon.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/sfencsapositionconverter.h",
+			"MU",
+			"6GHUXIWGM2/moc_sfencsapositionconverter.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/kifreader.h",
+			"MU",
+			"5ISS6V5EH3/moc_kifreader.cpp",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/kifubranchnode.h",
+			"MU",
+			"5ISS6V5EH3/moc_kifubranchnode.cpp",
+			null
+		]
+	],
+	"HEADER_EXTENSIONS" : [ "h", "hh", "h++", "hm", "hpp", "hxx", "in", "txx" ],
+	"INCLUDE_DIR" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_jkfconverter_autogen/include",
+	"MOC_COMPILATION_FILE" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_jkfconverter_autogen/mocs_compilation.cpp",
+	"MOC_DEFINITIONS" : 
+	[
+		"QT_CHARTS_LIB",
+		"QT_CORE_LIB",
+		"QT_GUI_LIB",
+		"QT_NETWORK_LIB",
+		"QT_NO_DEBUG",
+		"QT_OPENGLWIDGETS_LIB",
+		"QT_OPENGL_LIB",
+		"QT_TESTCASE_BUILDDIR=\"/home/nakada/GitHub/ShogiBoardQ/build-review/tests\"",
+		"QT_TESTCASE_SOURCEDIR=\"/home/nakada/GitHub/ShogiBoardQ/tests\"",
+		"QT_TESTLIB_LIB",
+		"QT_WIDGETS_LIB"
+	],
+	"MOC_DEPEND_FILTERS" : 
+	[
+		[
+			"Q_PLUGIN_METADATA",
+			"[\n][ \t]*Q_PLUGIN_METADATA[ \t]*\\([^\\)]*FILE[ \t]*\"([^\"]+)\""
+		]
+	],
+	"MOC_INCLUDES" : 
+	[
+		"/home/nakada/GitHub/ShogiBoardQ/src",
+		"/home/nakada/GitHub/ShogiBoardQ/src/core",
+		"/home/nakada/GitHub/ShogiBoardQ/src/game",
+		"/home/nakada/GitHub/ShogiBoardQ/src/kifu",
+		"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats",
+		"/home/nakada/GitHub/ShogiBoardQ/src/board",
+		"/home/nakada/GitHub/ShogiBoardQ/src/navigation",
+		"/home/nakada/GitHub/ShogiBoardQ/src/common",
+		"/home/nakada/GitHub/ShogiBoardQ/src/models",
+		"/home/nakada/GitHub/ShogiBoardQ/src/services",
+		"/home/nakada/GitHub/ShogiBoardQ/src/ui",
+		"/home/nakada/GitHub/ShogiBoardQ/src/ui/controllers",
+		"/home/nakada/GitHub/ShogiBoardQ/src/ui/coordinators",
+		"/home/nakada/GitHub/ShogiBoardQ/src/ui/presenters",
+		"/home/nakada/GitHub/ShogiBoardQ/src/ui/wiring",
+		"/home/nakada/GitHub/ShogiBoardQ/src/views",
+		"/home/nakada/GitHub/ShogiBoardQ/src/widgets",
+		"/home/nakada/GitHub/ShogiBoardQ/src/dialogs",
+		"/home/nakada/GitHub/ShogiBoardQ/src/analysis",
+		"/home/nakada/GitHub/ShogiBoardQ/src/engine",
+		"/home/nakada/GitHub/ShogiBoardQ/src/network",
+		"/home/nakada/GitHub/ShogiBoardQ/src/app",
+		"/usr/include/qt6/QtTest",
+		"/usr/include/qt6",
+		"/usr/include/qt6/QtCore",
+		"/usr/lib/qt6/mkspecs/linux-g++",
+		"/usr/include/qt6/QtWidgets",
+		"/usr/include/qt6/QtGui",
+		"/usr/include/qt6/QtCharts",
+		"/usr/include/qt6/QtOpenGL",
+		"/usr/include/qt6/QtOpenGLWidgets",
+		"/usr/include/qt6/QtNetwork",
+		"/usr/include",
+		"/usr/include/c++/15.2.1",
+		"/usr/include/c++/15.2.1/x86_64-pc-linux-gnu",
+		"/usr/include/c++/15.2.1/backward",
+		"/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include",
+		"/usr/local/include",
+		"/usr/lib/gcc/x86_64-pc-linux-gnu/15.2.1/include-fixed"
+	],
+	"MOC_MACRO_NAMES" : 
+	[
+		"Q_OBJECT",
+		"Q_GADGET",
+		"Q_NAMESPACE",
+		"Q_NAMESPACE_EXPORT",
+		"Q_GADGET_EXPORT",
+		"Q_ENUM_NS"
+	],
+	"MOC_OPTIONS" : [],
+	"MOC_PATH_PREFIX" : false,
+	"MOC_PREDEFS_CMD" : 
+	[
+		"/usr/bin/c++",
+		"-std=gnu++17",
+		"-w",
+		"-dM",
+		"-E",
+		"/usr/share/cmake/Modules/CMakeCXXCompilerABI.cpp"
+	],
+	"MOC_PREDEFS_FILE" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_jkfconverter_autogen/moc_predefs.h",
+	"MOC_RELAXED_MODE" : false,
+	"MOC_SKIP" : 
+	[
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_coredatastructures_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_csaconverter_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_ki2converter_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_kifconverter_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_sfentracer_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_shogiboard_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_shogiclock_autogen/mocs_compilation.cpp"
+	],
+	"MULTI_CONFIG" : false,
+	"PARALLEL" : 8,
+	"PARSE_CACHE_FILE" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests/CMakeFiles/tst_jkfconverter_autogen.dir/ParseCache.txt",
+	"QT_MOC_EXECUTABLE" : "/usr/lib/qt6/moc",
+	"QT_UIC_EXECUTABLE" : "/usr/lib/qt6/uic",
+	"QT_VERSION_MAJOR" : 6,
+	"QT_VERSION_MINOR" : 10,
+	"SETTINGS_FILE" : "/home/nakada/GitHub/ShogiBoardQ/build-review/tests/CMakeFiles/tst_jkfconverter_autogen.dir/AutogenUsed.txt",
+	"SOURCES" : 
+	[
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/board/sfenpositiontracer.cpp",
+			"MU",
+			null
+		],
+		[ "/home/nakada/GitHub/ShogiBoardQ/src/common/errorbus.cpp", "MU", null ],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/common/logcategories.cpp",
+			"MU",
+			null
+		],
+		[ "/home/nakada/GitHub/ShogiBoardQ/src/core/shogiboard.cpp", "MU", null ],
+		[ "/home/nakada/GitHub/ShogiBoardQ/src/core/shogimove.cpp", "MU", null ],
+		[ "/home/nakada/GitHub/ShogiBoardQ/src/core/shogiutils.cpp", "MU", null ],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/jkftosfenconverter.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/notationutils.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/parsecommon.cpp",
+			"MU",
+			null
+		],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/formats/sfencsapositionconverter.cpp",
+			"MU",
+			null
+		],
+		[ "/home/nakada/GitHub/ShogiBoardQ/src/kifu/kifreader.cpp", "MU", null ],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/src/kifu/kifubranchnode.cpp",
+			"MU",
+			null
+		],
+		[ "/home/nakada/GitHub/ShogiBoardQ/tests/test_stubs.cpp", "MU", null ],
+		[
+			"/home/nakada/GitHub/ShogiBoardQ/tests/tst_jkfconverter.cpp",
+			"MU",
+			null
+		]
+	],
+	"UIC_OPTIONS" : [],
+	"UIC_SEARCH_PATHS" : 
+	[
+		"/home/nakada/GitHub/ShogiBoardQ/tests/src/app",
+		"/home/nakada/GitHub/ShogiBoardQ/tests/src/dialogs"
+	],
+	"UIC_SKIP" : 
+	[
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_coredatastructures_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_csaconverter_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_ki2converter_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_kifconverter_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_sfentracer_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_shogiboard_autogen/mocs_compilation.cpp",
+		"/home/nakada/GitHub/ShogiBoardQ/build-review/tests/tst_shogiclock_autogen/mocs_compilation.cpp"
+	],
+	"UIC_UI_FILES" : [],
+	"USE_BETTER_GRAPH" : true,
+	"VERBOSITY" : 0
+}

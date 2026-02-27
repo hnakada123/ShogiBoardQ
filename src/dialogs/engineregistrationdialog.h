@@ -66,7 +66,7 @@ private slots:
     void processEngineErrorOutput();
 
 private:
-    Ui::EngineRegistrationDialog *ui;
+    std::unique_ptr<Ui::EngineRegistrationDialog> ui;
 
     // 将棋エンジンのプロセス
     std::unique_ptr<QProcess> m_process;

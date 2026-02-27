@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QProcess>
+#include <QSettings>
 #include <QVector>
 #include <QMap>
 #include <QString>
@@ -28,7 +29,7 @@
 #include "shogiengineinfoparser.h"
 #include "pvboarddialog.h"
 #include "branchtreemanager.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
 #include "shogiinforecord.h"
 
 // === Usi スタブ ===
@@ -405,9 +406,10 @@ BranchTreeManager::~BranchTreeManager() = default;
 void BranchTreeManager::highlightBranchTreeAt(int, int, bool) {}
 bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev) { return QObject::eventFilter(obj, ev); }
 
-// === SettingsService スタブ ===
-namespace SettingsService {
+// === SettingsCommon スタブ ===
+namespace SettingsCommon {
 QString settingsFilePath() { return QStringLiteral("/tmp/tst_analysisflow_stub.ini"); }
+QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::IniFormat); return s; }
 }
 
 // === MOC出力のインクルード ===

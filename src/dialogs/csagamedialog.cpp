@@ -5,7 +5,8 @@
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "networksettings.h"
 #include <QSettings>
 #include <QMessageBox>
 #include <QDir>
@@ -14,8 +15,8 @@ using namespace EngineSettingsConstants;
 
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
-    , ui(new Ui::CsaGameDialog)
-    , m_fontSize(SettingsService::csaGameDialogFontSize())
+    , ui(std::make_unique<Ui::CsaGameDialog>())
+    , m_fontSize(NetworkSettings::csaGameDialogFontSize())
 {
     ui->setupUi(this);
 
@@ -41,7 +42,7 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
     connectSignalsAndSlots();
 
     // ウィンドウサイズを復元
-    QSize savedSize = SettingsService::csaGameDialogSize();
+    QSize savedSize = NetworkSettings::csaGameDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
@@ -49,8 +50,7 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
 
 CsaGameDialog::~CsaGameDialog()
 {
-    SettingsService::setCsaGameDialogSize(size());
-    delete ui;
+    NetworkSettings::setCsaGameDialogSize(size());
 }
 
 // シグナル・スロットの接続を行う
@@ -86,7 +86,7 @@ void CsaGameDialog::connectSignalsAndSlots()
 // 設定ファイルからエンジン情報を読み込む
 void CsaGameDialog::loadEngineConfigurations()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // [Engines]グループ内のエンジン数を取得する
     int size = settings.beginReadArray("Engines");
@@ -121,7 +121,7 @@ void CsaGameDialog::populateUIWithEngines()
 // 設定ファイルからサーバー接続履歴を読み込む
 void CsaGameDialog::loadServerHistory()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // [CsaServerHistory]グループ内の履歴数を取得する
     int size = settings.beginReadArray("CsaServerHistory");
@@ -178,7 +178,7 @@ void CsaGameDialog::saveServerHistory()
     }
 
     // 設定ファイルに保存
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     settings.beginWriteArray("CsaServerHistory");
     for (int i = 0; i < m_serverHistory.size(); ++i) {
@@ -218,7 +218,7 @@ QString CsaGameDialog::formatServerHistoryDisplay(const ServerHistory& history) 
 // 設定ファイルから対局設定を読み込む
 void CsaGameDialog::loadGameSettings()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     settings.beginGroup("CsaGameSettings");
 
@@ -249,7 +249,7 @@ void CsaGameDialog::loadGameSettings()
 // 対局設定を設定ファイルに保存する
 void CsaGameDialog::saveGameSettings()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     settings.beginGroup("CsaGameSettings");
 
@@ -452,7 +452,7 @@ void CsaGameDialog::updateFontSize(int delta)
     applyFontSize();
 
     // SettingsServiceに保存
-    SettingsService::setCsaGameDialogFontSize(m_fontSize);
+    NetworkSettings::setCsaGameDialogFontSize(m_fontSize);
 }
 
 // ダイアログ全体にフォントサイズを適用する

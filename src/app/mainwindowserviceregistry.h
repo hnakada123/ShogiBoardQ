@@ -2,23 +2,26 @@
 #define MAINWINDOWSERVICEREGISTRY_H
 
 /// @file mainwindowserviceregistry.h
-/// @brief ensure* 群の生成責務を集約する ServiceRegistry の定義
+/// @brief 全サブレジストリを束ねるファサード
 
 #include <QObject>
 #include <QPoint>
 
 class MainWindow;
+class MainWindowAnalysisRegistry;
+class MainWindowBoardRegistry;
+class MainWindowGameRegistry;
+class MainWindowKifuRegistry;
+class MainWindowUiRegistry;
 class QString;
 
 /**
- * @brief MainWindow から ensure* の生成ロジックを受け取る ServiceRegistry
+ * @brief 全サブレジストリを束ねるファサード
  *
  * 責務:
- * - 全 ensure* メソッドの実装を一箇所に集約する
- * - MainWindow の private メンバに friend 経由でアクセスし遅延初期化を行う
- * - 所有権は MainWindow 側に残す（生成結果は MainWindow のメンバに代入）
- *
- * MainWindow は 1 行転送プロキシのみ保持し、実ロジックは本クラスに委譲する。
+ * - 5 つのサブレジストリ（UI / Game / Kifu / Analysis / Board）を所有する
+ * - 各 ensure* 呼び出しを対応するサブレジストリへ 1 行で転送する
+ * - MainWindow 側の呼び出しコードは `m_serviceRegistry->ensureXxx()` のまま変更不要
  */
 class MainWindowServiceRegistry : public QObject
 {
@@ -27,111 +30,90 @@ class MainWindowServiceRegistry : public QObject
 public:
     explicit MainWindowServiceRegistry(MainWindow& mw, QObject* parent = nullptr);
 
-    // --- 評価値グラフ / 時間制御 ---
+    // ===== UI系（MainWindowUiRegistry へ委譲） =====
     void ensureEvaluationGraphController();
+    void ensureRecordPresenter();
+    void ensurePlayerInfoController();
+    void ensurePlayerInfoWiring();
+    void ensureDialogCoordinator();
+    void ensureMenuWiring();
+    void ensureDockLayoutManager();
+    void ensureDockCreationService();
+    void ensureUiStatePolicyManager();
+    void ensureUiNotificationService();
+    void ensureRecordNavigationHandler();
+    void ensureLanguageController();
+    void unlockGameOverStyle();
+    void createMenuWindowDock();
+    void clearEvalState();
+
+    // ===== Game系（MainWindowGameRegistry へ委譲） =====
     void ensureTimeController();
     void ensureReplayController();
-
-    // --- 分岐ナビゲーション ---
-    void ensureBranchNavigationWiring();
-
-    // --- MatchCoordinator 配線 ---
     void ensureMatchCoordinatorWiring();
-
-    // --- ダイアログ / 棋譜ファイル ---
-    void ensureDialogCoordinator();
-    void ensureKifuFileController();
-    void ensureKifuExportController();
-
-    // --- ゲーム状態 ---
     void ensureGameStateController();
-    void ensurePlayerInfoController();
-    void ensureBoardSetupController();
-    void ensurePvClickController();
-    void ensurePositionEditCoordinator();
-
-    // --- 通信対局 / ウィンドウ配線 ---
-    void ensureCsaGameWiring();
-    void ensureJosekiWiring();
-    void ensureMenuWiring();
-    void ensurePlayerInfoWiring();
-    void ensurePreStartCleanupHandler();
-
-    // --- 同期 / 盤面 ---
-    void ensureTurnSyncBridge();
-    void ensurePositionEditController();
-    void ensureBoardSyncPresenter();
-    void ensureBoardLoadService();
-    void ensureConsiderationPositionService();
-    void ensureAnalysisPresenter();
-
-    // --- 対局開始 ---
     void ensureGameStartCoordinator();
-
-    // --- 棋譜表示 ---
-    void ensureRecordPresenter();
+    void ensureCsaGameWiring();
+    void ensurePreStartCleanupHandler();
+    void ensureTurnSyncBridge();
+    void ensureTurnStateSyncService();
     void ensureLiveGameSessionStarted();
     void ensureLiveGameSessionUpdater();
-    void ensureGameRecordUpdateService();
     void ensureUndoFlowService();
-    void ensureGameRecordLoadService();
-    void ensureTurnStateSyncService();
-    void ensureKifuLoadCoordinatorForLive();
-    void ensureGameRecordModel();
-
-    // --- 補助コントローラ ---
     void ensureJishogiController();
     void ensureNyugyokuHandler();
     void ensureConsecutiveGamesController();
-    void ensureLanguageController();
-    void ensureConsiderationWiring();
-
-    // --- ドック / UI ---
-    void ensureDockLayoutManager();
-    void ensureDockCreationService();
-    void ensureCommentCoordinator();
-    void ensureUsiCommandController();
-    void ensureRecordNavigationHandler();
-    void ensureUiStatePolicyManager();
-
-    // --- ナビゲーション / セッション ---
-    void ensureKifuNavigationCoordinator();
-    void ensureSessionLifecycleCoordinator();
-
-    // --- 通知サービス ---
-    void ensureUiNotificationService();
-
-    // --- 対局ライフサイクル ---
     void ensureGameSessionOrchestrator();
-
-    // --- コア初期化（MainWindow から移譲） ---
+    void ensureSessionLifecycleCoordinator();
     void ensureCoreInitCoordinator();
-
-    // --- セッションリセット / UI クリア（MainWindow から移譲） ---
     void clearGameStateFields();
     void resetEngineState();
-    void clearEvalState();
-    void unlockGameOverStyle();
     void updateTurnStatus(int currentPlayer);
-    void resetModels(const QString& hirateStartSfen);
-    void resetUiState(const QString& hirateStartSfen);
-    void clearSessionDependentUi();
-    void clearUiBeforeKifuLoad();
-
-    // --- 盤面操作 / 対局初期化（MainWindow から移譲） ---
-    void setupBoardInteractionController();
     void initMatchCoordinator();
-    void createMenuWindowDock();
 
-    // --- スロット転送先（MainWindow から移譲） ---
+    // ===== Kifu系（MainWindowKifuRegistry へ委譲） =====
+    void ensureBranchNavigationWiring();
+    void ensureKifuFileController();
+    void ensureKifuExportController();
+    void ensureGameRecordUpdateService();
+    void ensureGameRecordLoadService();
+    void ensureKifuLoadCoordinatorForLive();
+    void ensureGameRecordModel();
+    void ensureCommentCoordinator();
+    void ensureKifuNavigationCoordinator();
+    void ensureJosekiWiring();
+    void clearUiBeforeKifuLoad();
+    void updateJosekiWindow();
+
+    // ===== Analysis系（MainWindowAnalysisRegistry へ委譲） =====
+    void ensurePvClickController();
+    void ensureConsiderationPositionService();
+    void ensureAnalysisPresenter();
+    void ensureConsiderationWiring();
+    void ensureUsiCommandController();
+
+    // ===== Board/共通系（MainWindowBoardRegistry へ委譲） =====
+    void ensureBoardSetupController();
+    void ensurePositionEditCoordinator();
+    void ensurePositionEditController();
+    void ensureBoardSyncPresenter();
+    void ensureBoardLoadService();
+    void setupBoardInteractionController();
     void handleMoveRequested(const QPoint& from, const QPoint& to);
     void handleMoveCommitted(int mover, int ply);
     void handleBeginPositionEditing();
     void handleFinishPositionEditing();
-    void updateJosekiWindow();
+    void resetModels(const QString& hirateStartSfen);
+    void resetUiState(const QString& hirateStartSfen);
+    void clearSessionDependentUi();
 
 private:
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
+    MainWindowAnalysisRegistry* m_analysisRegistry = nullptr;  ///< Analysis系サブレジストリ
+    MainWindowBoardRegistry* m_boardRegistry = nullptr;        ///< Board/共通系サブレジストリ
+    MainWindowGameRegistry* m_gameRegistry = nullptr;          ///< Game系サブレジストリ
+    MainWindowKifuRegistry* m_kifuRegistry = nullptr;          ///< Kifu系サブレジストリ
+    MainWindowUiRegistry* m_uiRegistry = nullptr;              ///< UI系サブレジストリ
 };
 
 #endif // MAINWINDOWSERVICEREGISTRY_H

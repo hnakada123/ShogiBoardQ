@@ -24,8 +24,9 @@ ninja -C build
 cmake -B build -S . -DENABLE_CLANG_TIDY=ON
 cmake -B build -S . -DENABLE_CPPCHECK=ON
 
-# Update translations (.ui files are in src/)
-lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+# Update translations (.ts files from source, then rebuild .qm)
+cmake --build build --target update_translations
+cmake --build build --target translations
 ```
 
 ## Architecture
@@ -142,7 +143,7 @@ The app supports Japanese and English. Translations are in `.ts` files under `re
 
 1. `tr()` でラップされた文字列を追加・変更した場合:
    ```bash
-   lupdate src -ts resources/translations/ShogiBoardQ_ja_JP.ts resources/translations/ShogiBoardQ_en.ts
+   cmake --build build --target update_translations
    ```
 2. 翻訳ファイル（`.ts`）を開き、`type="unfinished"` となっている新規エントリに翻訳を追加する
 3. 日本語が原文の場合は英語翻訳を、英語が原文の場合は必要に応じて日本語翻訳を追加する

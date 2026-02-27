@@ -1,0 +1,220 @@
+/****************************************************************************
+** Meta object code from reading C++ file 'tst_kifu_comment_sync.cpp'
+**
+** Created by: The Qt Meta Object Compiler version 69 (Qt 6.10.2)
+**
+** WARNING! All changes made in this file will be lost!
+*****************************************************************************/
+
+#include <QtCore/qmetatype.h>
+
+#include <QtCore/qtmochelpers.h>
+
+#include <memory>
+
+
+#include <QtCore/qxptype_traits.h>
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'tst_kifu_comment_sync.cpp' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 69
+#error "This file was generated using the moc from 6.10.2. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+#ifndef Q_CONSTINIT
+#define Q_CONSTINIT
+#endif
+
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
+QT_WARNING_DISABLE_GCC("-Wuseless-cast")
+namespace {
+struct qt_meta_tag_ZN19TestKifuCommentSyncE_t {};
+} // unnamed namespace
+
+template <> constexpr inline auto TestKifuCommentSync::qt_create_metaobjectdata<qt_meta_tag_ZN19TestKifuCommentSyncE_t>()
+{
+    namespace QMC = QtMocConstants;
+    QtMocHelpers::StringRefStorage qt_stringData {
+        "TestKifuCommentSync",
+        "setComment_syncsToLiveDisp",
+        "",
+        "setBookmark_syncsToLiveDisp",
+        "setComment_syncsToBranchTree",
+        "setBookmark_syncsToBranchTree",
+        "setComment_addAndModify",
+        "setComment_deleteByEmptyString",
+        "setComment_emitsSignalOnChange",
+        "setComment_noSignalOnSameValue",
+        "commentUpdateCallback_calledOnChange",
+        "commentUpdateCallback_notCalledOnSameValue",
+        "setComment_multipleMovesIndependent",
+        "setBookmark_addAndModify",
+        "setBookmark_deleteByEmptyString",
+        "bookmarkUpdateCallback_calledOnChange",
+        "bookmarkUpdateCallback_notCalledOnSameValue",
+        "setBookmark_setsDirtyFlag",
+        "bind_setsDataSource",
+        "bind_null_nocrash",
+        "bind_null_nocrash_bookmark",
+        "bind_rebind_toNewDisp",
+        "initializeFromDisplayItems_loadsComments",
+        "initializeFromDisplayItems_loadsBookmarks",
+        "initializeFromDisplayItems_clearsDirtyFlag",
+        "clear_thenSetComment_nocrash",
+        "ensureCommentCapacity_extendsArray",
+        "ensureBookmarkCapacity_extendsArray",
+        "setComment_negativePly_nocrash",
+        "setBookmark_negativePly_nocrash",
+        "commentAndBookmark_independentOnSamePly"
+    };
+
+    QtMocHelpers::UintData qt_methods {
+        // Slot 'setComment_syncsToLiveDisp'
+        QtMocHelpers::SlotData<void()>(1, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setBookmark_syncsToLiveDisp'
+        QtMocHelpers::SlotData<void()>(3, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setComment_syncsToBranchTree'
+        QtMocHelpers::SlotData<void()>(4, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setBookmark_syncsToBranchTree'
+        QtMocHelpers::SlotData<void()>(5, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setComment_addAndModify'
+        QtMocHelpers::SlotData<void()>(6, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setComment_deleteByEmptyString'
+        QtMocHelpers::SlotData<void()>(7, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setComment_emitsSignalOnChange'
+        QtMocHelpers::SlotData<void()>(8, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setComment_noSignalOnSameValue'
+        QtMocHelpers::SlotData<void()>(9, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'commentUpdateCallback_calledOnChange'
+        QtMocHelpers::SlotData<void()>(10, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'commentUpdateCallback_notCalledOnSameValue'
+        QtMocHelpers::SlotData<void()>(11, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setComment_multipleMovesIndependent'
+        QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setBookmark_addAndModify'
+        QtMocHelpers::SlotData<void()>(13, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setBookmark_deleteByEmptyString'
+        QtMocHelpers::SlotData<void()>(14, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'bookmarkUpdateCallback_calledOnChange'
+        QtMocHelpers::SlotData<void()>(15, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'bookmarkUpdateCallback_notCalledOnSameValue'
+        QtMocHelpers::SlotData<void()>(16, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setBookmark_setsDirtyFlag'
+        QtMocHelpers::SlotData<void()>(17, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'bind_setsDataSource'
+        QtMocHelpers::SlotData<void()>(18, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'bind_null_nocrash'
+        QtMocHelpers::SlotData<void()>(19, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'bind_null_nocrash_bookmark'
+        QtMocHelpers::SlotData<void()>(20, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'bind_rebind_toNewDisp'
+        QtMocHelpers::SlotData<void()>(21, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'initializeFromDisplayItems_loadsComments'
+        QtMocHelpers::SlotData<void()>(22, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'initializeFromDisplayItems_loadsBookmarks'
+        QtMocHelpers::SlotData<void()>(23, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'initializeFromDisplayItems_clearsDirtyFlag'
+        QtMocHelpers::SlotData<void()>(24, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'clear_thenSetComment_nocrash'
+        QtMocHelpers::SlotData<void()>(25, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'ensureCommentCapacity_extendsArray'
+        QtMocHelpers::SlotData<void()>(26, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'ensureBookmarkCapacity_extendsArray'
+        QtMocHelpers::SlotData<void()>(27, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setComment_negativePly_nocrash'
+        QtMocHelpers::SlotData<void()>(28, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'setBookmark_negativePly_nocrash'
+        QtMocHelpers::SlotData<void()>(29, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'commentAndBookmark_independentOnSamePly'
+        QtMocHelpers::SlotData<void()>(30, 2, QMC::AccessPrivate, QMetaType::Void),
+    };
+    QtMocHelpers::UintData qt_properties {
+    };
+    QtMocHelpers::UintData qt_enums {
+    };
+    return QtMocHelpers::metaObjectData<TestKifuCommentSync, qt_meta_tag_ZN19TestKifuCommentSyncE_t>(QMC::MetaObjectFlag{}, qt_stringData,
+            qt_methods, qt_properties, qt_enums);
+}
+Q_CONSTINIT const QMetaObject TestKifuCommentSync::staticMetaObject = { {
+    QMetaObject::SuperData::link<QObject::staticMetaObject>(),
+    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN19TestKifuCommentSyncE_t>.stringdata,
+    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN19TestKifuCommentSyncE_t>.data,
+    qt_static_metacall,
+    nullptr,
+    qt_staticMetaObjectRelocatingContent<qt_meta_tag_ZN19TestKifuCommentSyncE_t>.metaTypes,
+    nullptr
+} };
+
+void TestKifuCommentSync::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    auto *_t = static_cast<TestKifuCommentSync *>(_o);
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        switch (_id) {
+        case 0: _t->setComment_syncsToLiveDisp(); break;
+        case 1: _t->setBookmark_syncsToLiveDisp(); break;
+        case 2: _t->setComment_syncsToBranchTree(); break;
+        case 3: _t->setBookmark_syncsToBranchTree(); break;
+        case 4: _t->setComment_addAndModify(); break;
+        case 5: _t->setComment_deleteByEmptyString(); break;
+        case 6: _t->setComment_emitsSignalOnChange(); break;
+        case 7: _t->setComment_noSignalOnSameValue(); break;
+        case 8: _t->commentUpdateCallback_calledOnChange(); break;
+        case 9: _t->commentUpdateCallback_notCalledOnSameValue(); break;
+        case 10: _t->setComment_multipleMovesIndependent(); break;
+        case 11: _t->setBookmark_addAndModify(); break;
+        case 12: _t->setBookmark_deleteByEmptyString(); break;
+        case 13: _t->bookmarkUpdateCallback_calledOnChange(); break;
+        case 14: _t->bookmarkUpdateCallback_notCalledOnSameValue(); break;
+        case 15: _t->setBookmark_setsDirtyFlag(); break;
+        case 16: _t->bind_setsDataSource(); break;
+        case 17: _t->bind_null_nocrash(); break;
+        case 18: _t->bind_null_nocrash_bookmark(); break;
+        case 19: _t->bind_rebind_toNewDisp(); break;
+        case 20: _t->initializeFromDisplayItems_loadsComments(); break;
+        case 21: _t->initializeFromDisplayItems_loadsBookmarks(); break;
+        case 22: _t->initializeFromDisplayItems_clearsDirtyFlag(); break;
+        case 23: _t->clear_thenSetComment_nocrash(); break;
+        case 24: _t->ensureCommentCapacity_extendsArray(); break;
+        case 25: _t->ensureBookmarkCapacity_extendsArray(); break;
+        case 26: _t->setComment_negativePly_nocrash(); break;
+        case 27: _t->setBookmark_negativePly_nocrash(); break;
+        case 28: _t->commentAndBookmark_independentOnSamePly(); break;
+        default: ;
+        }
+    }
+    (void)_a;
+}
+
+const QMetaObject *TestKifuCommentSync::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *TestKifuCommentSync::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_staticMetaObjectStaticContent<qt_meta_tag_ZN19TestKifuCommentSyncE_t>.strings))
+        return static_cast<void*>(this);
+    return QObject::qt_metacast(_clname);
+}
+
+int TestKifuCommentSync::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QObject::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 29)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 29;
+    }
+    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        if (_id < 29)
+            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+        _id -= 29;
+    }
+    return _id;
+}
+QT_WARNING_POP

@@ -13,6 +13,8 @@
 #include <QCheckBox>
 #include <QGroupBox>
 #include <QSettings>
+
+#include <memory>
 #include <QDir>
 #include <QMap>
 #include "longlongspinbox.h"
@@ -58,7 +60,7 @@ public:
 
 private:
     // UIコンポーネントのポインタを保持するためのポインタ変数
-    Ui::ChangeEngineSettingsDialog* ui;
+    std::unique_ptr<Ui::ChangeEngineSettingsDialog> ui;
 
     // エンジン番号
     int m_engineNumber = 0;

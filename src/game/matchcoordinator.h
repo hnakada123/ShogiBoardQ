@@ -39,7 +39,6 @@ class GameStartOrchestrator;
  * 対局全体のライフサイクルを管理し、エンジン通信・時計管理・
  * 棋譜記録・終局判定を統括する。寿命はMainWindow側で管理する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class MatchCoordinator : public QObject {
     Q_OBJECT

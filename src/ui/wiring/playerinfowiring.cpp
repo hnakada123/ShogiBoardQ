@@ -9,7 +9,7 @@
 #include "gameinfopanecontroller.h"
 #include "playerinfocontroller.h"
 #include "shogiview.h"
-#include "settingsservice.h"
+#include "appsettings.h"
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
 #include "timecontrolcontroller.h"
@@ -85,7 +85,7 @@ void PlayerInfoWiring::addGameInfoTabAtStartup()
     m_tabWidget->insertTab(0, m_gameInfoController->containerWidget(), tr("対局情報"));
 
     // 保存されたタブインデックスを復元
-    int savedIndex = SettingsService::lastSelectedTabIndex();
+    int savedIndex = AppSettings::lastSelectedTabIndex();
     if (savedIndex >= 0 && savedIndex < m_tabWidget->count()) {
         m_tabWidget->setCurrentIndex(savedIndex);
     } else {

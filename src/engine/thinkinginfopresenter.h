@@ -29,7 +29,6 @@ class ShogiGameController;
  * - 全ての更新をシグナル経由で行う
  * - 疎結合な設計によりテスタビリティを向上
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ThinkingInfoPresenter : public QObject
 {

@@ -5,7 +5,7 @@
 #include "kifuexportcontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifupastedialog.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 #include "logcategories.h"
 
 #include <QFileDialog>
@@ -27,7 +27,7 @@ void KifuFileController::chooseAndLoadKifuFile()
     qCDebug(lcApp) << "chooseAndLoadKifuFile ENTER";
 
     // 1) ファイル選択
-    const QString lastDir = SettingsService::lastKifuDirectory();
+    const QString lastDir = GameSettings::lastKifuDirectory();
 
     const QString filePath = QFileDialog::getOpenFileName(
         m_deps.parentWidget, tr("棋譜ファイルを開く"), lastDir,
@@ -43,7 +43,7 @@ void KifuFileController::chooseAndLoadKifuFile()
 
     // 選択したファイルのディレクトリを保存
     QFileInfo fileInfo(filePath);
-    SettingsService::setLastKifuDirectory(fileInfo.absolutePath());
+    GameSettings::setLastKifuDirectory(fileInfo.absolutePath());
 
     if (m_deps.setReplayMode) m_deps.setReplayMode(true);
     if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();

@@ -16,7 +16,6 @@ class MatchCoordinator;
  * ShogiClock への秒読み/加算適用、MatchCoordinator の時間エポック記録、
  * UI手番表示の更新を一括で実行する静的メソッド群を提供する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class TimekeepingService {
 public:

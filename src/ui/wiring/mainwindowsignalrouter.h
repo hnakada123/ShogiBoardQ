@@ -5,8 +5,23 @@
 /// @brief MainWindow のシグナル配線を集約するルーター
 
 #include <QObject>
+#include <functional>
 
 class MainWindow;
+class DialogCoordinatorWiring;
+class DialogLaunchWiring;
+class KifuFileController;
+class GameSessionOrchestrator;
+class MainWindowAppearanceController;
+class ShogiView;
+class EvaluationChartWidget;
+class UiActionsWiring;
+class ShogiGameController;
+class UiNotificationService;
+class BoardSetupController;
+class BoardInteractionController;
+class KifuExportController;
+namespace Ui { class MainWindow; }
 
 /**
  * @brief MainWindow のシグナル配線を集約するルーター
@@ -16,14 +31,45 @@ class MainWindow;
  * - ダイアログ起動配線・アクション配線・コアシグナル配線を connectAll() に集約
  * - MatchCoordinator 初期化時の盤面クリック・着手要求配線
  *
- * MainWindow の private メンバへアクセスするため friend 宣言が必要。
+ * Deps 構造体経由でアクセスするため friend 宣言は不要。
  */
 class MainWindowSignalRouter : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit MainWindowSignalRouter(MainWindow& mw, QObject* parent = nullptr);
+    struct Deps {
+        // --- 安定ポインタ (step 7 時点で生成済み) ---
+        MainWindow* mainWindow = nullptr;
+        Ui::MainWindow* ui = nullptr;
+        MainWindowAppearanceController* appearanceController = nullptr;
+        ShogiView* shogiView = nullptr;
+        EvaluationChartWidget* evalChart = nullptr;
+        ShogiGameController* gameController = nullptr;
+        BoardInteractionController* boardController = nullptr;
+
+        // --- 遅延生成オブジェクト (ダブルポインタで最新値を参照) ---
+        DialogCoordinatorWiring** dialogCoordinatorWiringPtr = nullptr;
+        DialogLaunchWiring** dialogLaunchWiringPtr = nullptr;
+        KifuFileController** kifuFileControllerPtr = nullptr;
+        GameSessionOrchestrator** gameSessionOrchestratorPtr = nullptr;
+        UiNotificationService** notificationServicePtr = nullptr;
+        BoardSetupController** boardSetupControllerPtr = nullptr;
+        UiActionsWiring** actionsWiringPtr = nullptr;
+
+        // --- コールバック ---
+        std::function<void()> initializeDialogLaunchWiring;
+        std::function<void()> ensureKifuFileController;
+        std::function<void()> ensureGameSessionOrchestrator;
+        std::function<void()> ensureUiNotificationService;
+        std::function<void()> ensureBoardSetupController;
+        std::function<KifuExportController*()> getKifuExportController;
+    };
+
+    explicit MainWindowSignalRouter(QObject* parent = nullptr);
+
+    /// 依存を更新する
+    void updateDeps(const Deps& deps);
 
     /// 全配線を実行する（コンストラクタから1回だけ呼ぶ）
     void connectAll();
@@ -35,16 +81,13 @@ public:
     void connectMoveRequested();
 
 private:
-    /// ダイアログ起動配線を初期化する
-    void initializeDialogLaunchWiring();
-
     /// 全メニューアクションのシグナル/スロットを接続する
     void connectAllActions();
 
     /// コアシグナル群を接続する
     void connectCoreSignals();
 
-    MainWindow& m_mw;
+    Deps m_deps;
 };
 
 #endif // MAINWINDOWSIGNALROUTER_H

@@ -94,8 +94,7 @@ Usi::~Usi()
     // 停止タイマーをキャンセル
     if (m_analysisStopTimer) {
         m_analysisStopTimer->stop();
-        delete m_analysisStopTimer;
-        m_analysisStopTimer = nullptr;
+        // m_analysisStopTimer は this を parent に持つため、Qt親子モデルにより自動解放される
     }
     // デストラクタ時はモデルクリアをスキップ（モデルが既に破棄されている可能性があるため）
     m_processManager->stopProcess();

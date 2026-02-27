@@ -7,42 +7,44 @@
 #include "kifunavigationcoordinator.h"
 #include "considerationpositionservice.h"
 #include "uistatepolicymanager.h"
-#include "mainwindowserviceregistry.h"
 
 RecordNavigationWiring::RecordNavigationWiring(QObject* parent)
     : QObject(parent)
 {}
 
-void RecordNavigationWiring::ensure(const Deps& deps)
+void RecordNavigationWiring::ensure(const Deps& deps, const WiringTargets& targets)
 {
     m_mainWindow = deps.mainWindow;
 
     const bool firstTime = !m_handler;
     if (firstTime) {
         m_handler = new RecordNavigationHandler(this);
-        wireSignals();
+        wireSignals(targets);
     }
 
     bindDeps(deps);
 }
 
-void RecordNavigationWiring::wireSignals()
+void RecordNavigationWiring::wireSignals(const WiringTargets& targets)
 {
-    m_mainWindow->ensureKifuNavigationCoordinator();
-    connect(m_handler, &RecordNavigationHandler::boardSyncRequired,
-            m_mainWindow->m_kifuNavCoordinator, &KifuNavigationCoordinator::syncBoardAndHighlightsAtRow);
+    if (targets.kifuNav) {
+        connect(m_handler, &RecordNavigationHandler::boardSyncRequired,
+                targets.kifuNav, &KifuNavigationCoordinator::syncBoardAndHighlightsAtRow);
+    }
     connect(m_handler, &RecordNavigationHandler::branchBoardSyncRequired,
             m_mainWindow, &MainWindow::loadBoardWithHighlights);
-    m_mainWindow->m_registry->ensureUiStatePolicyManager();
-    connect(m_handler, &RecordNavigationHandler::enableArrowButtonsRequired,
-            m_mainWindow->m_uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed);
+    if (targets.uiStatePolicy) {
+        connect(m_handler, &RecordNavigationHandler::enableArrowButtonsRequired,
+                targets.uiStatePolicy, &UiStatePolicyManager::enableNavigationIfAllowed);
+    }
     connect(m_handler, &RecordNavigationHandler::turnUpdateRequired,
             m_mainWindow, &MainWindow::setCurrentTurn);
     connect(m_handler, &RecordNavigationHandler::josekiUpdateRequired,
             m_mainWindow, &MainWindow::updateJosekiWindow);
-    m_mainWindow->ensureConsiderationPositionService();
-    connect(m_handler, &RecordNavigationHandler::buildPositionRequired,
-            m_mainWindow->m_considerationPositionService, &ConsiderationPositionService::handleBuildPositionRequired);
+    if (targets.considerationPosition) {
+        connect(m_handler, &RecordNavigationHandler::buildPositionRequired,
+                targets.considerationPosition, &ConsiderationPositionService::handleBuildPositionRequired);
+    }
 }
 
 void RecordNavigationWiring::bindDeps(const Deps& deps)

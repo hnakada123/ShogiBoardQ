@@ -3,7 +3,7 @@
 
 #include "evaluationchartwidget.h"
 #include "buttonstyles.h"
-#include "settingsservice.h"
+#include "analysissettings.h"
 
 #include <QtCharts/QChartView>
 #include <QtCharts/QChart>
@@ -491,19 +491,19 @@ void EvaluationChartWidget::setupControlPanel()
 
 void EvaluationChartWidget::saveSettings()
 {
-    SettingsService::setEvalChartYLimit(m_yLimit);
+    AnalysisSettings::setEvalChartYLimit(m_yLimit);
     // yIntervalは保存しない（上限の半分に固定）
-    SettingsService::setEvalChartXLimit(m_xLimit);
-    SettingsService::setEvalChartXInterval(m_xInterval);
-    SettingsService::setEvalChartLabelFontSize(m_labelFontSize);
+    AnalysisSettings::setEvalChartXLimit(m_xLimit);
+    AnalysisSettings::setEvalChartXInterval(m_xInterval);
+    AnalysisSettings::setEvalChartLabelFontSize(m_labelFontSize);
 }
 
 void EvaluationChartWidget::loadSettings()
 {
-    m_yLimit = SettingsService::evalChartYLimit();
-    m_xLimit = SettingsService::evalChartXLimit();
-    m_xInterval = SettingsService::evalChartXInterval();
-    m_labelFontSize = SettingsService::evalChartLabelFontSize();
+    m_yLimit = AnalysisSettings::evalChartYLimit();
+    m_xLimit = AnalysisSettings::evalChartXLimit();
+    m_xInterval = AnalysisSettings::evalChartXInterval();
+    m_labelFontSize = AnalysisSettings::evalChartLabelFontSize();
 
     // 範囲チェック
     if (!s_availableYLimits.contains(m_yLimit)) m_yLimit = 2000;

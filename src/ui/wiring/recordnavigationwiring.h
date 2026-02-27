@@ -17,6 +17,9 @@ class ShogiView;
 class EvaluationGraphController;
 class CsaGameCoordinator;
 class MatchCoordinator;
+class KifuNavigationCoordinator;
+class UiStatePolicyManager;
+class ConsiderationPositionService;
 enum class PlayMode;
 
 /**
@@ -51,16 +54,23 @@ public:
         MatchCoordinator* match = nullptr;                 ///< 対局調整（非所有）
     };
 
+    /// wireSignals で使用するシグナル接続先（呼び出し元で ensure 済み）
+    struct WiringTargets {
+        KifuNavigationCoordinator* kifuNav = nullptr;               ///< 棋譜ナビゲーション（非所有）
+        UiStatePolicyManager* uiStatePolicy = nullptr;              ///< UI状態ポリシー（非所有）
+        ConsiderationPositionService* considerationPosition = nullptr; ///< 検討局面サービス（非所有）
+    };
+
     explicit RecordNavigationWiring(QObject* parent = nullptr);
 
     /// RecordNavigationHandler を必要に応じて生成し、依存関係を更新する
-    void ensure(const Deps& deps);
+    void ensure(const Deps& deps, const WiringTargets& targets);
 
     /// RecordNavigationHandler を返す（未生成時は nullptr）
     RecordNavigationHandler* handler() const { return m_handler; }
 
 private:
-    void wireSignals();
+    void wireSignals(const WiringTargets& targets);
     void bindDeps(const Deps& deps);
 
     RecordNavigationHandler* m_handler = nullptr;

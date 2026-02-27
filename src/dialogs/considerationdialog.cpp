@@ -5,7 +5,8 @@
 #include "buttonstyles.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_considerationdialog.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "analysissettings.h"
 #include <QAbstractItemView>
 #include <QComboBox>
 #include <QFile>
@@ -16,8 +17,8 @@
 // 検討ダイアログを表示する。
 ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     : QDialog(parent)
-    , ui(new Ui::ConsiderationDialog)
-    , m_fontSize(SettingsService::considerationDialogFontSize())
+    , ui(std::make_unique<Ui::ConsiderationDialog>())
+    , m_fontSize(AnalysisSettings::considerationDialogFontSize())
 {
     // UIをセットアップする。
     ui->setupUi(this);
@@ -52,11 +53,7 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     connect(ui->toolButtonFontDecrease, &QPushButton::clicked, this, &ConsiderationDialog::onFontDecrease);
 }
 
-ConsiderationDialog::~ConsiderationDialog()
-{
-    // UIを削除する。
-    delete ui;
-}
+ConsiderationDialog::~ConsiderationDialog() = default;
 
 // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
 void ConsiderationDialog::showEngineSettingsDialog()
@@ -143,7 +140,7 @@ void ConsiderationDialog::processEngineSettings()
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
 void ConsiderationDialog::readEngineNameAndDir()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // エンジンの数を取得する。
     int size = settings.beginReadArray("Engines");
@@ -197,7 +194,7 @@ void ConsiderationDialog::updateFontSize(int delta)
     applyFontSize();
 
     // SettingsServiceに保存
-    SettingsService::setConsiderationDialogFontSize(m_fontSize);
+    AnalysisSettings::setConsiderationDialogFontSize(m_fontSize);
 }
 
 // ダイアログ全体にフォントサイズを適用する
@@ -232,13 +229,13 @@ void ConsiderationDialog::applyFontSize()
 void ConsiderationDialog::loadSettings()
 {
     // 最後に選択したエンジン番号を復元
-    int engineIndex = SettingsService::considerationEngineIndex();
+    int engineIndex = AnalysisSettings::considerationEngineIndex();
     if (engineIndex >= 0 && engineIndex < ui->comboBoxEngine1->count()) {
         ui->comboBoxEngine1->setCurrentIndex(engineIndex);
     }
 
     // 時間設定を復元
-    bool unlimitedTime = SettingsService::considerationUnlimitedTime();
+    bool unlimitedTime = AnalysisSettings::considerationUnlimitedTime();
     if (unlimitedTime) {
         ui->unlimitedTimeRadioButton->setChecked(true);
     } else {
@@ -246,11 +243,11 @@ void ConsiderationDialog::loadSettings()
     }
 
     // 検討時間（秒）を復元
-    int byoyomiSec = SettingsService::considerationByoyomiSec();
+    int byoyomiSec = AnalysisSettings::considerationByoyomiSec();
     ui->byoyomiSec->setValue(byoyomiSec);
 
     // 候補手の数を復元
-    int multiPV = SettingsService::considerationMultiPV();
+    int multiPV = AnalysisSettings::considerationMultiPV();
     ui->spinBoxMultiPV->setValue(multiPV);
 }
 
@@ -258,14 +255,14 @@ void ConsiderationDialog::loadSettings()
 void ConsiderationDialog::saveSettings()
 {
     // エンジン番号を保存
-    SettingsService::setConsiderationEngineIndex(m_engineNumber);
+    AnalysisSettings::setConsiderationEngineIndex(m_engineNumber);
 
     // 時間無制限フラグを保存
-    SettingsService::setConsiderationUnlimitedTime(m_unlimitedTimeFlag);
+    AnalysisSettings::setConsiderationUnlimitedTime(m_unlimitedTimeFlag);
 
     // 検討時間（秒）を保存
-    SettingsService::setConsiderationByoyomiSec(ui->byoyomiSec->value());
+    AnalysisSettings::setConsiderationByoyomiSec(ui->byoyomiSec->value());
 
     // 候補手の数を保存
-    SettingsService::setConsiderationMultiPV(m_multiPV);
+    AnalysisSettings::setConsiderationMultiPV(m_multiPV);
 }

@@ -135,24 +135,21 @@ class DebugScreenshotWiring;
  * - UI 操作（メニュー/ダイアログ/ドック）と対局進行（MatchCoordinator）を明確に接続する
  * - 棋譜行、盤面、手番、評価値グラフの同期点を MainWindow に集約する
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    friend class RecordNavigationWiring;
     friend class MainWindowUiBootstrapper;
     friend class MainWindowRuntimeRefsFactory;
     friend class MainWindowWiringAssembler;
-    friend class KifuLoadCoordinatorFactory;
-    friend class KifuExportDepsAssembler;
     friend class MainWindowServiceRegistry;
+    friend class MainWindowAnalysisRegistry;
+    friend class MainWindowBoardRegistry;
+    friend class MainWindowGameRegistry;
+    friend class MainWindowKifuRegistry;
+    friend class MainWindowUiRegistry;
     friend class MainWindowDockBootstrapper;
-    friend class MainWindowSignalRouter;
-    friend class AnalysisTabWiring;
-    friend class CsaGameWiring;
-    friend class MatchCoordinatorWiring;
     friend class MainWindowLifecyclePipeline;
 
     // --- public ---
@@ -183,6 +180,16 @@ public slots:
     void finishPositionEditing();
     /// 棋譜欄の行選択変更を処理する（RecordPane::mainRowChanged に接続）
     void onRecordPaneMainRowChanged(int row);
+    /// SFEN文字列から盤面とハイライトを更新する（分岐ナビゲーション用）
+    void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
+    /// 現在の手番を設定する
+    void setCurrentTurn();
+    /// 棋譜表示リストを更新する
+    void displayGameRecord(const QList<KifDisplayItem> disp);
+    /// 盤面上の駒移動要求を処理する（BoardInteractionController::moveRequested に接続）
+    void onMoveRequested(const QPoint& from, const QPoint& to);
+    /// 指し手確定時の棋譜・盤面更新（ShogiGameController::moveCommitted に接続）
+    void onMoveCommitted(ShogiGameController::Player mover, int ply);
 
     // --- protected ---
 protected:
@@ -197,11 +204,6 @@ private slots:
     void onTurnManagerChanged(ShogiGameController::Player now);
 
 
-    // --- 移動要求 ---
-
-    /// 盤面上の駒移動要求を処理する（BoardInteractionController::moveRequested に接続）
-    void onMoveRequested(const QPoint& from, const QPoint& to);
-
     // --- リプレイ ---
 
     /// リプレイモードの開始/終了を切り替える
@@ -209,15 +211,9 @@ private slots:
 
     // --- 棋譜表示 / 同期 ---
 
-    /// 指し手確定時の棋譜・盤面更新（ShogiGameController::moveCommitted に接続）
-    void onMoveCommitted(ShogiGameController::Player mover, int ply);
-    /// 棋譜表示リストを更新する
-    void displayGameRecord(const QList<KifDisplayItem> disp);
     /// SFEN文字列から直接盤面を読み込む（分岐ナビゲーション用）
     void loadBoardFromSfen(const QString& sfen);
 
-    /// SFEN文字列から盤面とハイライトを更新する（分岐ナビゲーション用）
-    void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
 
     // --- private ---
 private:
@@ -307,10 +303,10 @@ private:
     GameState m_state;
 
     // --- CompositionRoot / ServiceRegistry / SignalRouter ---
-    MainWindowCompositionRoot* m_compositionRoot = nullptr;  ///< ensure*生成ロジック集約（非所有）
-    MainWindowServiceRegistry* m_registry = nullptr;         ///< ensure*メソッド実装の集約先（非所有）
-    MainWindowSignalRouter* m_signalRouter = nullptr;        ///< シグナル配線ルーター（非所有）
-    MainWindowAppearanceController* m_appearanceController = nullptr; ///< UI外観コントローラ（非所有）
+    std::unique_ptr<MainWindowCompositionRoot> m_compositionRoot;    ///< ensure*生成ロジック集約（所有）
+    std::unique_ptr<MainWindowServiceRegistry> m_registry;           ///< ensure*メソッド実装の集約先（所有）
+    std::unique_ptr<MainWindowSignalRouter> m_signalRouter;          ///< シグナル配線ルーター（所有）
+    std::unique_ptr<MainWindowAppearanceController> m_appearanceController; ///< UI外観コントローラ（所有）
     std::unique_ptr<MainWindowLifecyclePipeline> m_pipeline;            ///< 起動/終了フローパイプライン（所有）
     std::unique_ptr<MainWindowMatchAdapter> m_matchAdapter;            ///< 対局フック集約アダプタ（所有）
     std::unique_ptr<MainWindowCoreInitCoordinator> m_coreInit;       ///< コア初期化コーディネータ（所有）
@@ -337,7 +333,7 @@ private:
 
 
     // --- 記録 / 評価 ---
-    EvaluationGraphController* m_evalGraphController = nullptr;  ///< 評価値グラフ管理（非所有）
+    std::unique_ptr<EvaluationGraphController> m_evalGraphController; ///< 評価値グラフ管理（所有）
 
     // --- 時計 / 時刻管理 ---
     TimeControlController* m_timeController = nullptr; ///< 時間制御コントローラ（非所有）
@@ -365,7 +361,7 @@ private:
 
 
     // --- 評価値グラフ高さ調整 ---
-    QTimer* m_evalChartResizeTimer = nullptr;  ///< 高さ調整用デバウンスタイマー（非所有）
+    std::unique_ptr<QTimer> m_evalChartResizeTimer;  ///< 高さ調整用デバウンスタイマー（所有）
 
     // --- コーディネータ / プレゼンタ ---
     KifuLoadCoordinator*      m_kifuLoadCoordinator = nullptr; ///< 棋譜読込コーディネータ（非所有）
@@ -373,11 +369,8 @@ private:
     BoardSyncPresenter*       m_boardSync = nullptr;           ///< 盤面同期プレゼンタ（非所有）
     BoardLoadService*         m_boardLoadService = nullptr;    ///< 盤面読み込みサービス（非所有）
     ConsiderationPositionService* m_considerationPositionService = nullptr; ///< 検討局面解決サービス（非所有）
-    AnalysisResultsPresenter* m_analysisPresenter = nullptr;   ///< 解析結果プレゼンタ（非所有）
-    /// メニュー操作など通常の「対局開始」入口を担当
+    std::unique_ptr<AnalysisResultsPresenter> m_analysisPresenter; ///< 解析結果プレゼンタ（所有）
     GameStartCoordinator*     m_gameStart = nullptr;           ///< 対局開始コーディネータ（非所有）
-    /// MatchCoordinator 生成/配線側の起動管理を担当
-    GameStartCoordinator*     m_gameStartCoordinator = nullptr; ///< 対局起動管理コーディネータ（非所有）
     GameRecordPresenter*      m_recordPresenter = nullptr;     ///< 棋譜表示プレゼンタ（非所有）
     TimeDisplayPresenter*     m_timePresenter = nullptr;       ///< 時間表示プレゼンタ（非所有）
     AnalysisTabWiring*        m_analysisWiring = nullptr;      ///< 解析タブ配線（非所有）
@@ -390,12 +383,12 @@ private:
 
     // --- 棋譜ファイル管理 ---
     KifuFileController*       m_kifuFileController = nullptr;   ///< 棋譜ファイル操作コントローラ（所有）
-    KifuExportController*     m_kifuExportController = nullptr; ///< 棋譜エクスポートコントローラ（非所有）
+    std::unique_ptr<KifuExportController> m_kifuExportController; ///< 棋譜エクスポートコントローラ（所有）
 
     // --- ゲーム状態管理 ---
     GameStateController*      m_gameStateController = nullptr;  ///< ゲーム状態コントローラ（非所有）
-    PlayModePolicyService*    m_playModePolicy = nullptr;       ///< プレイモード判定サービス（所有）
-    MatchRuntimeQueryService* m_queryService = nullptr;          ///< 対局実行時クエリサービス（所有）
+    std::unique_ptr<PlayModePolicyService> m_playModePolicy;     ///< プレイモード判定サービス（所有）
+    std::unique_ptr<MatchRuntimeQueryService> m_queryService;    ///< 対局実行時クエリサービス（所有）
 
     // --- 対局者情報管理 ---
     PlayerInfoController*     m_playerInfoController = nullptr; ///< 対局者情報コントローラ（非所有）
@@ -410,42 +403,42 @@ private:
     PositionEditCoordinator*  m_posEditCoordinator = nullptr;   ///< 局面編集コーディネータ（非所有）
 
     // --- 通信対局 / ウィンドウ配線 ---
-    CsaGameWiring*            m_csaGameWiring = nullptr;        ///< CSA通信対局UI配線（非所有）
-    JosekiWindowWiring*       m_josekiWiring = nullptr;         ///< 定跡ウィンドウUI配線（非所有）
+    std::unique_ptr<CsaGameWiring> m_csaGameWiring;              ///< CSA通信対局UI配線（所有）
+    std::unique_ptr<JosekiWindowWiring> m_josekiWiring;         ///< 定跡ウィンドウUI配線（所有）
     MenuWindowWiring*         m_menuWiring = nullptr;           ///< メニューウィンドウUI配線（非所有）
     PlayerInfoWiring*         m_playerInfoWiring = nullptr;     ///< 対局者情報UI配線（非所有）
     DialogLaunchWiring*       m_dialogLaunchWiring = nullptr;   ///< ダイアログ起動配線（非所有）
-    MatchCoordinatorWiring*   m_matchWiring = nullptr;          ///< MatchCoordinator配線（非所有）
+    std::unique_ptr<MatchCoordinatorWiring> m_matchWiring;       ///< MatchCoordinator配線（所有）
 
     // --- 対局開始前クリーンアップ ---
     PreStartCleanupHandler*   m_preStartCleanupHandler = nullptr; ///< 対局開始前クリーンアップハンドラ（非所有）
 
     // --- 言語設定 ---
     // --- 補助コントローラ群 ---
-    JishogiScoreDialogController* m_jishogiController = nullptr;       ///< 持将棋スコアダイアログコントローラ（非所有）
-    NyugyokuDeclarationHandler* m_nyugyokuHandler = nullptr;           ///< 入玉宣言ハンドラ（非所有）
+    std::unique_ptr<JishogiScoreDialogController> m_jishogiController;  ///< 持将棋スコアダイアログコントローラ（所有）
+    std::unique_ptr<NyugyokuDeclarationHandler> m_nyugyokuHandler;    ///< 入玉宣言ハンドラ（所有）
     ConsecutiveGamesController* m_consecutiveGamesController = nullptr; ///< 連続対局コントローラ（非所有）
-    LanguageController* m_languageController = nullptr;                ///< 言語設定コントローラ（非所有）
+    std::unique_ptr<LanguageController> m_languageController;          ///< 言語設定コントローラ（所有）
     ConsiderationWiring* m_considerationWiring = nullptr;              ///< 検討モード配線（非所有）
-    DockLayoutManager* m_dockLayoutManager = nullptr;                  ///< ドックレイアウト管理（非所有）
-    DockCreationService* m_dockCreationService = nullptr;              ///< ドック生成サービス（非所有）
+    std::unique_ptr<DockLayoutManager> m_dockLayoutManager;             ///< ドックレイアウト管理（所有）
+    std::unique_ptr<DockCreationService> m_dockCreationService;        ///< ドック生成サービス（所有）
     CommentCoordinator* m_commentCoordinator = nullptr;                ///< コメントコーディネータ（非所有）
-    UsiCommandController* m_usiCommandController = nullptr;            ///< USIコマンドコントローラ（非所有）
+    std::unique_ptr<UsiCommandController> m_usiCommandController;       ///< USIコマンドコントローラ（所有）
     RecordNavigationWiring* m_recordNavWiring = nullptr;               ///< 棋譜ナビゲーション配線（非所有）
     UiStatePolicyManager* m_uiStatePolicy = nullptr;                   ///< UI状態ポリシーマネージャ（非所有）
     std::unique_ptr<LiveGameSessionUpdater> m_liveGameSessionUpdater;  ///< LiveGameSession更新ロジック（所有）
-    GameRecordUpdateService* m_gameRecordUpdateService = nullptr;       ///< 棋譜追記・ライブ更新サービス（非所有）
+    std::unique_ptr<GameRecordUpdateService> m_gameRecordUpdateService; ///< 棋譜追記・ライブ更新サービス（所有）
     UiNotificationService* m_notificationService = nullptr;            ///< エラー通知サービス（非所有）
     std::unique_ptr<UndoFlowService> m_undoFlowService;                 ///< 待った巻き戻し後処理サービス（所有）
     std::unique_ptr<GameRecordLoadService> m_gameRecordLoadService;     ///< 棋譜表示初期化サービス（所有）
     std::unique_ptr<TurnStateSyncService> m_turnStateSync;             ///< 手番同期サービス（所有）
-    BranchNavigationWiring* m_branchNavWiring = nullptr;              ///< 分岐ナビゲーション配線（非所有）
-    KifuNavigationCoordinator* m_kifuNavCoordinator = nullptr;        ///< 棋譜ナビゲーション同期（非所有）
+    std::unique_ptr<BranchNavigationWiring> m_branchNavWiring;         ///< 分岐ナビゲーション配線（所有）
+    std::unique_ptr<KifuNavigationCoordinator> m_kifuNavCoordinator;  ///< 棋譜ナビゲーション同期（所有）
     SessionLifecycleCoordinator* m_sessionLifecycle = nullptr;        ///< セッションライフサイクル管理（非所有）
     GameSessionOrchestrator* m_gameSessionOrchestrator = nullptr;    ///< 対局ライフサイクルオーケストレータ（非所有）
 
 #ifdef QT_DEBUG
-    DebugScreenshotWiring* m_debugScreenshotWiring = nullptr;        ///< デバッグ用スクリーンショット配線
+    std::unique_ptr<DebugScreenshotWiring> m_debugScreenshotWiring;  ///< デバッグ用スクリーンショット配線（所有）
 #endif
 
     // --- privateメソッド ---
@@ -455,10 +448,6 @@ private:
     void ensureTimeController();
     /// MatchCoordinatorWiringを遅延初期化する
     void ensureMatchCoordinatorWiring();
-
-    // --- ユーティリティ ---
-    /// 現在の手番を設定する
-    void setCurrentTurn();
 
     // --- リプレイ制御 ---
     /// 遅延初期化: ReplayControllerを生成し依存を設定する

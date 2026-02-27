@@ -2,41 +2,39 @@
 /// @brief KifuExportController の依存収集ロジック
 
 #include "kifuexportdepsassembler.h"
-#include "mainwindow.h"
-#include "ui_mainwindow.h"
+#include "mainwindowruntimerefs.h"
 #include "kifuexportcontroller.h"
 #include "kifunavigationstate.h"
-#include "matchruntimequeryservice.h"
 
-void KifuExportDepsAssembler::assemble(MainWindow& mw)
+void KifuExportDepsAssembler::assemble(KifuExportController* controller, const MainWindowRuntimeRefs& refs)
 {
-    if (!mw.m_kifuExportController) return;
+    if (!controller) return;
 
     KifuExportController::Dependencies deps;
-    deps.gameRecord = mw.m_models.gameRecord;
-    deps.kifuRecordModel = mw.m_models.kifuRecord;
-    deps.gameInfoController = mw.m_gameInfoController;
-    deps.timeController = mw.m_timeController;
-    deps.kifuLoadCoordinator = mw.m_kifuLoadCoordinator;
-    deps.recordPresenter = mw.m_recordPresenter;
-    deps.match = mw.m_match;
-    deps.replayController = mw.m_replayController;
-    deps.gameController = mw.m_gameController;
-    deps.statusBar = mw.ui ? mw.ui->statusbar : nullptr;
-    deps.sfenRecord = mw.m_queryService->sfenRecord();
-    deps.usiMoves = &mw.m_kifu.gameUsiMoves;
+    deps.gameRecord = refs.gameRecordModel;
+    deps.kifuRecordModel = refs.kifuRecordModel;
+    deps.gameInfoController = refs.gameInfoController;
+    deps.timeController = refs.timeController;
+    deps.kifuLoadCoordinator = refs.kifuLoadCoordinator;
+    deps.recordPresenter = refs.recordPresenter;
+    deps.match = refs.match;
+    deps.replayController = refs.replayController;
+    deps.gameController = refs.gameController;
+    deps.statusBar = refs.statusBar;
+    deps.sfenRecord = refs.sfenRecord;
+    deps.usiMoves = refs.gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
-    deps.commentsByRow = &mw.m_kifu.commentsByRow;
-    deps.startSfenStr = mw.m_state.startSfenStr;
-    deps.playMode = mw.m_state.playMode;
-    deps.humanName1 = mw.m_player.humanName1;
-    deps.humanName2 = mw.m_player.humanName2;
-    deps.engineName1 = mw.m_player.engineName1;
-    deps.engineName2 = mw.m_player.engineName2;
-    deps.activeResolvedRow = (mw.m_branchNav.navState != nullptr) ? mw.m_branchNav.navState->currentLineIndex() : 0;
-    deps.currentMoveIndex = mw.m_state.currentMoveIndex;
-    deps.activePly = mw.m_kifu.activePly;
-    deps.currentSelectedPly = mw.m_kifu.currentSelectedPly;
+    deps.commentsByRow = refs.commentsByRow;
+    deps.startSfenStr = refs.startSfenStr ? *refs.startSfenStr : QString();
+    deps.playMode = refs.playMode ? *refs.playMode : PlayMode::NotStarted;
+    deps.humanName1 = refs.humanName1 ? *refs.humanName1 : QString();
+    deps.humanName2 = refs.humanName2 ? *refs.humanName2 : QString();
+    deps.engineName1 = refs.engineName1 ? *refs.engineName1 : QString();
+    deps.engineName2 = refs.engineName2 ? *refs.engineName2 : QString();
+    deps.activeResolvedRow = (refs.navState != nullptr) ? refs.navState->currentLineIndex() : 0;
+    deps.currentMoveIndex = refs.currentMoveIndex ? *refs.currentMoveIndex : 0;
+    deps.activePly = refs.activePly ? *refs.activePly : 0;
+    deps.currentSelectedPly = refs.currentSelectedPly ? *refs.currentSelectedPly : 0;
 
-    mw.m_kifuExportController->setDependencies(deps);
+    controller->setDependencies(deps);
 }

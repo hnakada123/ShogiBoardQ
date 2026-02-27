@@ -18,7 +18,6 @@
  *
  * スクロールは QTimer による一定ピクセル移動（m_pxPerTick / m_intervalMs）。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ElideLabel : public QLabel
 {

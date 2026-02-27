@@ -10,7 +10,8 @@
 #include <QPushButton>
 #include <QCheckBox>
 
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "josekisettings.h"
 #include "josekiwindow.h"
 
 class TestJosekiWindow : public QObject
@@ -50,7 +51,7 @@ void TestJosekiWindow::initTestCase()
     // テスト用の一時設定ファイルを使用
     // SettingsServiceは settingsFilePath() でキャッシュするため、
     // テスト前に既存設定をバックアップし、テスト後に復元する
-    m_originalSettingsPath = SettingsService::settingsFilePath();
+    m_originalSettingsPath = SettingsCommon::settingsFilePath();
     // テスト用に初期値をクリア
     QSettings s(m_originalSettingsPath, QSettings::IniFormat);
     s.remove("JosekiWindow");
@@ -66,75 +67,75 @@ void TestJosekiWindow::cleanupTestCase()
 void TestJosekiWindow::testFontSizePersistence()
 {
     // デフォルト値
-    QCOMPARE(SettingsService::josekiWindowFontSize(), 10);
+    QCOMPARE(JosekiSettings::josekiWindowFontSize(), 10);
 
     // 保存して読み出し
-    SettingsService::setJosekiWindowFontSize(16);
-    QCOMPARE(SettingsService::josekiWindowFontSize(), 16);
+    JosekiSettings::setJosekiWindowFontSize(16);
+    QCOMPARE(JosekiSettings::josekiWindowFontSize(), 16);
 
     // 別の値に変更
-    SettingsService::setJosekiWindowFontSize(8);
-    QCOMPARE(SettingsService::josekiWindowFontSize(), 8);
+    JosekiSettings::setJosekiWindowFontSize(8);
+    QCOMPARE(JosekiSettings::josekiWindowFontSize(), 8);
 
     // クリーンアップ
-    SettingsService::setJosekiWindowFontSize(10);
+    JosekiSettings::setJosekiWindowFontSize(10);
 }
 
 void TestJosekiWindow::testAutoLoadPersistence()
 {
     // デフォルト値
-    QCOMPARE(SettingsService::josekiWindowAutoLoadEnabled(), true);
+    QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), true);
 
     // false に変更して読み出し
-    SettingsService::setJosekiWindowAutoLoadEnabled(false);
-    QCOMPARE(SettingsService::josekiWindowAutoLoadEnabled(), false);
+    JosekiSettings::setJosekiWindowAutoLoadEnabled(false);
+    QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), false);
 
     // true に戻す
-    SettingsService::setJosekiWindowAutoLoadEnabled(true);
-    QCOMPARE(SettingsService::josekiWindowAutoLoadEnabled(), true);
+    JosekiSettings::setJosekiWindowAutoLoadEnabled(true);
+    QCOMPARE(JosekiSettings::josekiWindowAutoLoadEnabled(), true);
 }
 
 void TestJosekiWindow::testDisplayEnabledPersistence()
 {
     // デフォルト値
-    QCOMPARE(SettingsService::josekiWindowDisplayEnabled(), true);
+    QCOMPARE(JosekiSettings::josekiWindowDisplayEnabled(), true);
 
     // false に変更して読み出し
-    SettingsService::setJosekiWindowDisplayEnabled(false);
-    QCOMPARE(SettingsService::josekiWindowDisplayEnabled(), false);
+    JosekiSettings::setJosekiWindowDisplayEnabled(false);
+    QCOMPARE(JosekiSettings::josekiWindowDisplayEnabled(), false);
 
     // true に戻す
-    SettingsService::setJosekiWindowDisplayEnabled(true);
+    JosekiSettings::setJosekiWindowDisplayEnabled(true);
 }
 
 void TestJosekiWindow::testSfenDetailVisiblePersistence()
 {
     // デフォルト値
-    QCOMPARE(SettingsService::josekiWindowSfenDetailVisible(), false);
+    QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), false);
 
     // true に変更して読み出し
-    SettingsService::setJosekiWindowSfenDetailVisible(true);
-    QCOMPARE(SettingsService::josekiWindowSfenDetailVisible(), true);
+    JosekiSettings::setJosekiWindowSfenDetailVisible(true);
+    QCOMPARE(JosekiSettings::josekiWindowSfenDetailVisible(), true);
 
     // false に戻す
-    SettingsService::setJosekiWindowSfenDetailVisible(false);
+    JosekiSettings::setJosekiWindowSfenDetailVisible(false);
 }
 
 void TestJosekiWindow::testLastFilePathClearOnHistoryClear()
 {
     // パスを保存
-    SettingsService::setJosekiWindowLastFilePath("/tmp/test.db");
-    QCOMPARE(SettingsService::josekiWindowLastFilePath(), QString("/tmp/test.db"));
+    JosekiSettings::setJosekiWindowLastFilePath("/tmp/test.db");
+    QCOMPARE(JosekiSettings::josekiWindowLastFilePath(), QString("/tmp/test.db"));
 
     // クリア
-    SettingsService::setJosekiWindowLastFilePath(QString());
-    QVERIFY(SettingsService::josekiWindowLastFilePath().isEmpty());
+    JosekiSettings::setJosekiWindowLastFilePath(QString());
+    QVERIFY(JosekiSettings::josekiWindowLastFilePath().isEmpty());
 }
 
 void TestJosekiWindow::testApplyFontSizeToWindow()
 {
     // フォントサイズ 14 を設定しておく
-    SettingsService::setJosekiWindowFontSize(14);
+    JosekiSettings::setJosekiWindowFontSize(14);
 
     JosekiWindow window;
 
@@ -142,13 +143,13 @@ void TestJosekiWindow::testApplyFontSizeToWindow()
     QCOMPARE(window.font().pointSize(), 14);
 
     // クリーンアップ
-    SettingsService::setJosekiWindowFontSize(10);
+    JosekiSettings::setJosekiWindowFontSize(10);
 }
 
 void TestJosekiWindow::testApplyFontSizeToTableHeader()
 {
     // フォントサイズ 16 を設定しておく
-    SettingsService::setJosekiWindowFontSize(16);
+    JosekiSettings::setJosekiWindowFontSize(16);
 
     JosekiWindow window;
 
@@ -162,13 +163,13 @@ void TestJosekiWindow::testApplyFontSizeToTableHeader()
     QCOMPARE(header->font().pointSize(), 16);
 
     // クリーンアップ
-    SettingsService::setJosekiWindowFontSize(10);
+    JosekiSettings::setJosekiWindowFontSize(10);
 }
 
 void TestJosekiWindow::testFontSizePreservedAfterHideShow()
 {
     // フォントサイズ 10（デフォルト）を設定
-    SettingsService::setJosekiWindowFontSize(10);
+    JosekiSettings::setJosekiWindowFontSize(10);
 
     JosekiWindow window;
     window.show();
@@ -184,7 +185,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     QCOMPARE(window.font().pointSize(), 13);
 
     // SettingsService にも保存されているか
-    QCOMPARE(SettingsService::josekiWindowFontSize(), 13);
+    QCOMPARE(JosekiSettings::josekiWindowFontSize(), 13);
 
     // テーブルヘッダーのフォントサイズも 13 か
     QTableWidget *table = window.findChild<QTableWidget *>();
@@ -218,7 +219,7 @@ void TestJosekiWindow::testFontSizePreservedAfterHideShow()
     }
 
     // クリーンアップ
-    SettingsService::setJosekiWindowFontSize(10);
+    JosekiSettings::setJosekiWindowFontSize(10);
 }
 
 // ============================================================

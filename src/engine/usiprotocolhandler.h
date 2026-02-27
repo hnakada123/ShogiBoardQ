@@ -31,7 +31,6 @@ class ShogiGameController;
  *
  * プロセス管理はEngineProcessManagerに、GUI更新はThinkingInfoPresenterに委譲する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class UsiProtocolHandler : public QObject
 {

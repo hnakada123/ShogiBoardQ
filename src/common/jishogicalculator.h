@@ -14,7 +14,6 @@
  *
  * 盤面と持ち駒から24点法・27点法の宣言判定を行う。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class JishogiCalculator
 {

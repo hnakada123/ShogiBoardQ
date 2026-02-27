@@ -7,6 +7,8 @@
 
 #include <QDialog>
 
+#include <memory>
+
 namespace Ui {
 class ConsiderationDialog;
 }
@@ -62,7 +64,7 @@ private slots:
 
 private:
     // UI
-    Ui::ConsiderationDialog* ui;
+    std::unique_ptr<Ui::ConsiderationDialog> ui;
 
     // 選択したエンジン名
     QString m_engineName;

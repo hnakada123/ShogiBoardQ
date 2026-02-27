@@ -3,7 +3,8 @@
 
 #include "engineregistrationdialog.h"
 #include "enginesettingsconstants.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "enginedialogsettings.h"
 #include "logcategories.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
@@ -23,8 +24,8 @@ using namespace EngineSettingsConstants;
 // 将棋エンジン登録ダイアログを表示する。
 EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
-    ui(new Ui::EngineRegistrationDialog),
-    m_fontSize(SettingsService::engineRegistrationFontSize())
+    ui(std::make_unique<Ui::EngineRegistrationDialog>()),
+    m_fontSize(EngineDialogSettings::engineRegistrationFontSize())
 {
     // Qt Designerで作成されたUIをプログラムのウィンドウに読み込み、初期化する。
     ui->setupUi(this);
@@ -47,7 +48,7 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     applyFontSize();
 
     // 保存されているウィンドウサイズを復元
-    QSize savedSize = SettingsService::engineRegistrationDialogSize();
+    QSize savedSize = EngineDialogSettings::engineRegistrationDialogSize();
     if (savedSize.isValid()) {
         this->resize(savedSize);
     }
@@ -56,13 +57,10 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
 EngineRegistrationDialog::~EngineRegistrationDialog()
 {
     // ウィンドウサイズを保存
-    SettingsService::setEngineRegistrationDialogSize(this->size());
+    EngineDialogSettings::setEngineRegistrationDialogSize(this->size());
 
     // エンジンプロセスをクリーンアップする。
     cleanupEngineProcess();
-
-    // エンジン登録ダイアログのUIを削除する。
-    delete ui;
 }
 
 // エンジンプロセスをクリーンアップする。
@@ -173,7 +171,7 @@ void EngineRegistrationDialog::showErrorMessage(const QString &errorMessage)
 // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
 void EngineRegistrationDialog::loadEnginesFromSettings()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // [Engines]セクションからエンジンの数を読み込む。
     int engineCount = settings.beginReadArray(EnginesGroupName);
@@ -506,7 +504,7 @@ void EngineRegistrationDialog::configureEngine()
 // 設定ファイルにエンジン名と絶対パス付きの実行ファイル名を書き込む。
 void EngineRegistrationDialog::saveEnginesToSettingsFile() const
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // 書き込むグループに[Engines]を指定する。
     settings.beginWriteArray(EnginesGroupName);
@@ -548,7 +546,7 @@ void EngineRegistrationDialog::saveEngineOptionsToSettings() const
         return;
     }
 
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // 書き込むグループにエンジン名を指定する。
     settings.beginWriteArray(m_engineIdName);
@@ -753,7 +751,7 @@ void EngineRegistrationDialog::parseOptionLine(const QString& line)
 // 設定ファイルから[Engines]グループを削除する。
 void EngineRegistrationDialog::removeEnginesGroup() const
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // [Engines]グループの削除
     settings.beginGroup(EnginesGroupName);
@@ -764,7 +762,7 @@ void EngineRegistrationDialog::removeEnginesGroup() const
 // 設定ファイルからエンジン名グループを削除する。
 void EngineRegistrationDialog::removeEngineNameGroup(const QString& removeEngineName) const
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // エンジン名グループの削除
     settings.beginGroup(removeEngineName);
@@ -817,7 +815,7 @@ void EngineRegistrationDialog::increaseFontSize()
     if (m_fontSize < 20) {  // 最大サイズを20に制限
         m_fontSize++;
         applyFontSize();
-        SettingsService::setEngineRegistrationFontSize(m_fontSize);
+        EngineDialogSettings::setEngineRegistrationFontSize(m_fontSize);
     }
 }
 
@@ -827,7 +825,7 @@ void EngineRegistrationDialog::decreaseFontSize()
     if (m_fontSize > 8) {  // 最小サイズを8に制限
         m_fontSize--;
         applyFontSize();
-        SettingsService::setEngineRegistrationFontSize(m_fontSize);
+        EngineDialogSettings::setEngineRegistrationFontSize(m_fontSize);
     }
 }
 

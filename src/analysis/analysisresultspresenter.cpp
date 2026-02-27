@@ -16,7 +16,7 @@
 #include <QMessageBox>
 #include <QPainter>
 #include <QStyledItemDelegate>
-#include "settingsservice.h"
+#include "analysissettings.h"
 #include "numericrightaligncommadelegate.h"
 #include "kifuanalysislistmodel.h"
 
@@ -390,7 +390,7 @@ void AnalysisResultsPresenter::increaseFontSize()
     }
 
     // SettingsServiceで設定を保存
-    SettingsService::setKifuAnalysisFontSize(newSize);
+    AnalysisSettings::setKifuAnalysisFontSize(newSize);
 
     m_reflowTimer->start();
 }
@@ -421,7 +421,7 @@ void AnalysisResultsPresenter::decreaseFontSize()
     }
 
     // SettingsServiceで設定を保存
-    SettingsService::setKifuAnalysisFontSize(newSize);
+    AnalysisSettings::setKifuAnalysisFontSize(newSize);
 
     m_reflowTimer->start();
 }
@@ -431,7 +431,7 @@ void AnalysisResultsPresenter::restoreFontSize()
     if (!m_view) return;
 
     // SettingsServiceからフォントサイズを復元
-    int savedSize = SettingsService::kifuAnalysisFontSize();
+    int savedSize = AnalysisSettings::kifuAnalysisFontSize();
 
     // 有効なサイズでない場合はデフォルトのフォントサイズを使用
     if (savedSize < 8 || savedSize > 24) {
@@ -463,7 +463,7 @@ void AnalysisResultsPresenter::saveWindowSize()
 {
     // ドックのサイズを保存
     if (m_dock) {
-        SettingsService::setKifuAnalysisResultsWindowSize(m_dock->size());
+        AnalysisSettings::setKifuAnalysisResultsWindowSize(m_dock->size());
         // 閉じるボタンが押されたらドックを非表示にする
         m_dock->setVisible(false);
     }

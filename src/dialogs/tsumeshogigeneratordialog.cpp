@@ -5,7 +5,8 @@
 #include "buttonstyles.h"
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsconstants.h"
-#include "settingsservice.h"
+#include "settingscommon.h"
+#include "tsumeshogisettings.h"
 #include "tsumeshogigenerator.h"
 #include "pvboarddialog.h"
 #include "shogiboard.h"
@@ -169,7 +170,7 @@ static QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
 
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontSize(SettingsService::tsumeshogiGeneratorFontSize())
+    , m_fontSize(TsumeshogiSettings::tsumeshogiGeneratorFontSize())
 {
     setWindowTitle(tr("詰将棋局面生成"));
     setupUi();
@@ -340,7 +341,7 @@ void TsumeshogiGeneratorDialog::setupUi()
     connect(m_tableResults, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
 
     // ウィンドウサイズ復元
-    const QSize savedSize = SettingsService::tsumeshogiGeneratorDialogSize();
+    const QSize savedSize = TsumeshogiSettings::tsumeshogiGeneratorDialogSize();
     if (savedSize.isValid()) {
         resize(savedSize);
     } else {
@@ -350,7 +351,7 @@ void TsumeshogiGeneratorDialog::setupUi()
 
 void TsumeshogiGeneratorDialog::readEngineNameAndDir()
 {
-    QSettings settings(SettingsService::settingsFilePath(), QSettings::IniFormat);
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     int size = settings.beginReadArray(EnginesGroupName);
     for (int i = 0; i < size; i++) {
@@ -367,30 +368,30 @@ void TsumeshogiGeneratorDialog::readEngineNameAndDir()
 
 void TsumeshogiGeneratorDialog::loadSettings()
 {
-    int engineIndex = SettingsService::tsumeshogiGeneratorEngineIndex();
+    int engineIndex = TsumeshogiSettings::tsumeshogiGeneratorEngineIndex();
     if (engineIndex >= 0 && engineIndex < m_comboEngine->count()) {
         m_comboEngine->setCurrentIndex(engineIndex);
     }
 
-    m_spinTargetMoves->setValue(SettingsService::tsumeshogiGeneratorTargetMoves());
-    m_spinMaxAttack->setValue(SettingsService::tsumeshogiGeneratorMaxAttackPieces());
-    m_spinMaxDefend->setValue(SettingsService::tsumeshogiGeneratorMaxDefendPieces());
-    m_spinAttackRange->setValue(SettingsService::tsumeshogiGeneratorAttackRange());
-    m_spinTimeout->setValue(SettingsService::tsumeshogiGeneratorTimeoutSec());
-    m_spinMaxPositions->setValue(SettingsService::tsumeshogiGeneratorMaxPositions());
+    m_spinTargetMoves->setValue(TsumeshogiSettings::tsumeshogiGeneratorTargetMoves());
+    m_spinMaxAttack->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces());
+    m_spinMaxDefend->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces());
+    m_spinAttackRange->setValue(TsumeshogiSettings::tsumeshogiGeneratorAttackRange());
+    m_spinTimeout->setValue(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec());
+    m_spinMaxPositions->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions());
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
 {
-    SettingsService::setTsumeshogiGeneratorDialogSize(size());
-    SettingsService::setTsumeshogiGeneratorFontSize(m_fontSize);
-    SettingsService::setTsumeshogiGeneratorEngineIndex(m_comboEngine->currentIndex());
-    SettingsService::setTsumeshogiGeneratorTargetMoves(m_spinTargetMoves->value());
-    SettingsService::setTsumeshogiGeneratorMaxAttackPieces(m_spinMaxAttack->value());
-    SettingsService::setTsumeshogiGeneratorMaxDefendPieces(m_spinMaxDefend->value());
-    SettingsService::setTsumeshogiGeneratorAttackRange(m_spinAttackRange->value());
-    SettingsService::setTsumeshogiGeneratorTimeoutSec(m_spinTimeout->value());
-    SettingsService::setTsumeshogiGeneratorMaxPositions(m_spinMaxPositions->value());
+    TsumeshogiSettings::setTsumeshogiGeneratorDialogSize(size());
+    TsumeshogiSettings::setTsumeshogiGeneratorFontSize(m_fontSize);
+    TsumeshogiSettings::setTsumeshogiGeneratorEngineIndex(m_comboEngine->currentIndex());
+    TsumeshogiSettings::setTsumeshogiGeneratorTargetMoves(m_spinTargetMoves->value());
+    TsumeshogiSettings::setTsumeshogiGeneratorMaxAttackPieces(m_spinMaxAttack->value());
+    TsumeshogiSettings::setTsumeshogiGeneratorMaxDefendPieces(m_spinMaxDefend->value());
+    TsumeshogiSettings::setTsumeshogiGeneratorAttackRange(m_spinAttackRange->value());
+    TsumeshogiSettings::setTsumeshogiGeneratorTimeoutSec(m_spinTimeout->value());
+    TsumeshogiSettings::setTsumeshogiGeneratorMaxPositions(m_spinMaxPositions->value());
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()
@@ -484,11 +485,11 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
     const QString filePath = QFileDialog::getSaveFileName(
         this,
         tr("SFENをファイルに保存"),
-        SettingsService::tsumeshogiGeneratorLastSaveDirectory(),
+        TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory(),
         tr("テキストファイル (*.txt);;すべてのファイル (*)"));
     if (filePath.isEmpty()) return;
 
-    SettingsService::setTsumeshogiGeneratorLastSaveDirectory(QFileInfo(filePath).absolutePath());
+    TsumeshogiSettings::setTsumeshogiGeneratorLastSaveDirectory(QFileInfo(filePath).absolutePath());
 
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
@@ -594,7 +595,7 @@ void TsumeshogiGeneratorDialog::updateFontSize(int delta)
     m_fontSize += delta;
     m_fontSize = qBound(8, m_fontSize, 24);
     applyFontSize();
-    SettingsService::setTsumeshogiGeneratorFontSize(m_fontSize);
+    TsumeshogiSettings::setTsumeshogiGeneratorFontSize(m_fontSize);
 }
 
 void TsumeshogiGeneratorDialog::applyFontSize()

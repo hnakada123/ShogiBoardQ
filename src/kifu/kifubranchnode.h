@@ -12,7 +12,6 @@
 /**
  * @brief 終局手の種類
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 enum class TerminalType {
     None,           ///< 通常の指し手（終局手ではない）
@@ -41,7 +40,6 @@ TerminalType detectTerminalType(const QString& displayText);
  * 棋譜の1手（または開始局面）を表すノード。
  * ツリー構造で分岐を表現し、KifuBranchTreeが所有する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class KifuBranchNode
 {

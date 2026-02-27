@@ -1,0 +1,252 @@
+/****************************************************************************
+** Meta object code from reading C++ file 'tst_coredatastructures.cpp'
+**
+** Created by: The Qt Meta Object Compiler version 69 (Qt 6.10.2)
+**
+** WARNING! All changes made in this file will be lost!
+*****************************************************************************/
+
+#include <QtCore/qmetatype.h>
+
+#include <QtCore/qtmochelpers.h>
+
+#include <memory>
+
+
+#include <QtCore/qxptype_traits.h>
+#if !defined(Q_MOC_OUTPUT_REVISION)
+#error "The header file 'tst_coredatastructures.cpp' doesn't include <QObject>."
+#elif Q_MOC_OUTPUT_REVISION != 69
+#error "This file was generated using the moc from 6.10.2. It"
+#error "cannot be used with the include files from this version of Qt."
+#error "(The moc has changed too much.)"
+#endif
+
+#ifndef Q_CONSTINIT
+#define Q_CONSTINIT
+#endif
+
+QT_WARNING_PUSH
+QT_WARNING_DISABLE_DEPRECATED
+QT_WARNING_DISABLE_GCC("-Wuseless-cast")
+namespace {
+struct qt_meta_tag_ZN22TestCoreDataStructuresE_t {};
+} // unnamed namespace
+
+template <> constexpr inline auto TestCoreDataStructures::qt_create_metaobjectdata<qt_meta_tag_ZN22TestCoreDataStructuresE_t>()
+{
+    namespace QMC = QtMocConstants;
+    QtMocHelpers::StringRefStorage qt_stringData {
+        "TestCoreDataStructures",
+        "shogiMove_defaultConstructor",
+        "",
+        "shogiMove_parameterConstructor",
+        "shogiMove_equalityOperator",
+        "shogiMove_dropFromPieceStand",
+        "turnManager_initialState",
+        "turnManager_setPlayer1",
+        "turnManager_setPlayer2",
+        "turnManager_toggle",
+        "turnManager_setFromSfenToken",
+        "turnManager_changedSignal",
+        "shogiUtils_transRankTo",
+        "shogiUtils_transFileTo",
+        "shogiUtils_moveToUsi_boardMove",
+        "shogiUtils_moveToUsi_promotion",
+        "shogiUtils_moveToUsi_drop",
+        "jishogi_calculate",
+        "piece_charToPiece_blackPieces",
+        "piece_charToPiece_whitePieces",
+        "piece_charToPiece_emptyAndInvalid",
+        "piece_pieceToChar_roundTrip",
+        "piece_isBlackPiece",
+        "piece_isWhitePiece",
+        "piece_isPromoted",
+        "piece_promote",
+        "piece_demote",
+        "piece_toBlack",
+        "piece_toWhite",
+        "piece_promoteDemoteRoundTrip",
+        "notationUtils_rankNumToLetter",
+        "notationUtils_rankLetterToNum",
+        "notationUtils_kanjiDigitToInt",
+        "notationUtils_intToZenkakuDigit",
+        "notationUtils_intToKanjiDigit",
+        "notationUtils_formatSfenMove",
+        "notationUtils_formatSfenDrop",
+        "notationUtils_mapHandicapToSfen",
+        "notationUtils_rankRoundTrip"
+    };
+
+    QtMocHelpers::UintData qt_methods {
+        // Slot 'shogiMove_defaultConstructor'
+        QtMocHelpers::SlotData<void()>(1, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiMove_parameterConstructor'
+        QtMocHelpers::SlotData<void()>(3, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiMove_equalityOperator'
+        QtMocHelpers::SlotData<void()>(4, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiMove_dropFromPieceStand'
+        QtMocHelpers::SlotData<void()>(5, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'turnManager_initialState'
+        QtMocHelpers::SlotData<void()>(6, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'turnManager_setPlayer1'
+        QtMocHelpers::SlotData<void()>(7, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'turnManager_setPlayer2'
+        QtMocHelpers::SlotData<void()>(8, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'turnManager_toggle'
+        QtMocHelpers::SlotData<void()>(9, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'turnManager_setFromSfenToken'
+        QtMocHelpers::SlotData<void()>(10, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'turnManager_changedSignal'
+        QtMocHelpers::SlotData<void()>(11, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiUtils_transRankTo'
+        QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiUtils_transFileTo'
+        QtMocHelpers::SlotData<void()>(13, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiUtils_moveToUsi_boardMove'
+        QtMocHelpers::SlotData<void()>(14, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiUtils_moveToUsi_promotion'
+        QtMocHelpers::SlotData<void()>(15, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'shogiUtils_moveToUsi_drop'
+        QtMocHelpers::SlotData<void()>(16, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'jishogi_calculate'
+        QtMocHelpers::SlotData<void()>(17, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_charToPiece_blackPieces'
+        QtMocHelpers::SlotData<void()>(18, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_charToPiece_whitePieces'
+        QtMocHelpers::SlotData<void()>(19, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_charToPiece_emptyAndInvalid'
+        QtMocHelpers::SlotData<void()>(20, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_pieceToChar_roundTrip'
+        QtMocHelpers::SlotData<void()>(21, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_isBlackPiece'
+        QtMocHelpers::SlotData<void()>(22, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_isWhitePiece'
+        QtMocHelpers::SlotData<void()>(23, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_isPromoted'
+        QtMocHelpers::SlotData<void()>(24, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_promote'
+        QtMocHelpers::SlotData<void()>(25, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_demote'
+        QtMocHelpers::SlotData<void()>(26, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_toBlack'
+        QtMocHelpers::SlotData<void()>(27, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_toWhite'
+        QtMocHelpers::SlotData<void()>(28, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'piece_promoteDemoteRoundTrip'
+        QtMocHelpers::SlotData<void()>(29, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_rankNumToLetter'
+        QtMocHelpers::SlotData<void()>(30, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_rankLetterToNum'
+        QtMocHelpers::SlotData<void()>(31, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_kanjiDigitToInt'
+        QtMocHelpers::SlotData<void()>(32, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_intToZenkakuDigit'
+        QtMocHelpers::SlotData<void()>(33, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_intToKanjiDigit'
+        QtMocHelpers::SlotData<void()>(34, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_formatSfenMove'
+        QtMocHelpers::SlotData<void()>(35, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_formatSfenDrop'
+        QtMocHelpers::SlotData<void()>(36, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_mapHandicapToSfen'
+        QtMocHelpers::SlotData<void()>(37, 2, QMC::AccessPrivate, QMetaType::Void),
+        // Slot 'notationUtils_rankRoundTrip'
+        QtMocHelpers::SlotData<void()>(38, 2, QMC::AccessPrivate, QMetaType::Void),
+    };
+    QtMocHelpers::UintData qt_properties {
+    };
+    QtMocHelpers::UintData qt_enums {
+    };
+    return QtMocHelpers::metaObjectData<TestCoreDataStructures, qt_meta_tag_ZN22TestCoreDataStructuresE_t>(QMC::MetaObjectFlag{}, qt_stringData,
+            qt_methods, qt_properties, qt_enums);
+}
+Q_CONSTINIT const QMetaObject TestCoreDataStructures::staticMetaObject = { {
+    QMetaObject::SuperData::link<QObject::staticMetaObject>(),
+    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN22TestCoreDataStructuresE_t>.stringdata,
+    qt_staticMetaObjectStaticContent<qt_meta_tag_ZN22TestCoreDataStructuresE_t>.data,
+    qt_static_metacall,
+    nullptr,
+    qt_staticMetaObjectRelocatingContent<qt_meta_tag_ZN22TestCoreDataStructuresE_t>.metaTypes,
+    nullptr
+} };
+
+void TestCoreDataStructures::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, void **_a)
+{
+    auto *_t = static_cast<TestCoreDataStructures *>(_o);
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        switch (_id) {
+        case 0: _t->shogiMove_defaultConstructor(); break;
+        case 1: _t->shogiMove_parameterConstructor(); break;
+        case 2: _t->shogiMove_equalityOperator(); break;
+        case 3: _t->shogiMove_dropFromPieceStand(); break;
+        case 4: _t->turnManager_initialState(); break;
+        case 5: _t->turnManager_setPlayer1(); break;
+        case 6: _t->turnManager_setPlayer2(); break;
+        case 7: _t->turnManager_toggle(); break;
+        case 8: _t->turnManager_setFromSfenToken(); break;
+        case 9: _t->turnManager_changedSignal(); break;
+        case 10: _t->shogiUtils_transRankTo(); break;
+        case 11: _t->shogiUtils_transFileTo(); break;
+        case 12: _t->shogiUtils_moveToUsi_boardMove(); break;
+        case 13: _t->shogiUtils_moveToUsi_promotion(); break;
+        case 14: _t->shogiUtils_moveToUsi_drop(); break;
+        case 15: _t->jishogi_calculate(); break;
+        case 16: _t->piece_charToPiece_blackPieces(); break;
+        case 17: _t->piece_charToPiece_whitePieces(); break;
+        case 18: _t->piece_charToPiece_emptyAndInvalid(); break;
+        case 19: _t->piece_pieceToChar_roundTrip(); break;
+        case 20: _t->piece_isBlackPiece(); break;
+        case 21: _t->piece_isWhitePiece(); break;
+        case 22: _t->piece_isPromoted(); break;
+        case 23: _t->piece_promote(); break;
+        case 24: _t->piece_demote(); break;
+        case 25: _t->piece_toBlack(); break;
+        case 26: _t->piece_toWhite(); break;
+        case 27: _t->piece_promoteDemoteRoundTrip(); break;
+        case 28: _t->notationUtils_rankNumToLetter(); break;
+        case 29: _t->notationUtils_rankLetterToNum(); break;
+        case 30: _t->notationUtils_kanjiDigitToInt(); break;
+        case 31: _t->notationUtils_intToZenkakuDigit(); break;
+        case 32: _t->notationUtils_intToKanjiDigit(); break;
+        case 33: _t->notationUtils_formatSfenMove(); break;
+        case 34: _t->notationUtils_formatSfenDrop(); break;
+        case 35: _t->notationUtils_mapHandicapToSfen(); break;
+        case 36: _t->notationUtils_rankRoundTrip(); break;
+        default: ;
+        }
+    }
+    (void)_a;
+}
+
+const QMetaObject *TestCoreDataStructures::metaObject() const
+{
+    return QObject::d_ptr->metaObject ? QObject::d_ptr->dynamicMetaObject() : &staticMetaObject;
+}
+
+void *TestCoreDataStructures::qt_metacast(const char *_clname)
+{
+    if (!_clname) return nullptr;
+    if (!strcmp(_clname, qt_staticMetaObjectStaticContent<qt_meta_tag_ZN22TestCoreDataStructuresE_t>.strings))
+        return static_cast<void*>(this);
+    return QObject::qt_metacast(_clname);
+}
+
+int TestCoreDataStructures::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
+{
+    _id = QObject::qt_metacall(_c, _id, _a);
+    if (_id < 0)
+        return _id;
+    if (_c == QMetaObject::InvokeMetaMethod) {
+        if (_id < 37)
+            qt_static_metacall(this, _c, _id, _a);
+        _id -= 37;
+    }
+    if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
+        if (_id < 37)
+            *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
+        _id -= 37;
+    }
+    return _id;
+}
+QT_WARNING_POP

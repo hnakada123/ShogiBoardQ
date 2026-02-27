@@ -8,7 +8,6 @@
 /**
  * @brief エンジン設定の永続化に使用するINIファイルのキー名定数
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 namespace EngineSettingsConstants {
 

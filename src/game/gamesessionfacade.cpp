@@ -26,8 +26,3 @@ MatchCoordinator* GameSessionFacade::match() const
 {
     return m_wiring ? m_wiring->match() : nullptr;
 }
-
-GameStartCoordinator* GameSessionFacade::gameStartCoordinator() const
-{
-    return m_wiring ? m_wiring->gameStartCoordinator() : nullptr;
-}

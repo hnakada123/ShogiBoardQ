@@ -15,7 +15,6 @@ class GameStartCoordinator;
  *
  * GameStartCoordinator::TimeControl の設定値を ShogiClock に変換・適用する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 namespace TimeControlUtil {
 

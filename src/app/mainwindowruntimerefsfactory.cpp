@@ -79,11 +79,17 @@ MainWindowRuntimeRefs MainWindowRuntimeRefsFactory::build(MainWindow& mw)
     refs.resumeSfenStr = &mw.m_state.resumeSfenStr;
     refs.onMainRowGuard = &mw.m_kifu.onMainRowGuard;
 
+    // --- 対局者名参照 ---
+    refs.humanName1 = &mw.m_player.humanName1;
+    refs.humanName2 = &mw.m_player.humanName2;
+    refs.engineName1 = &mw.m_player.engineName1;
+    refs.engineName2 = &mw.m_player.engineName2;
+
     // --- その他参照 ---
     refs.gameInfoController = mw.m_gameInfoController;
     refs.evalChart = mw.m_evalChart;
-    refs.evalGraphController = mw.m_evalGraphController;
-    refs.analysisPresenter = mw.m_analysisPresenter;
+    refs.evalGraphController = mw.m_evalGraphController.get();
+    refs.analysisPresenter = mw.m_analysisPresenter.get();
     refs.analysisTab = mw.m_analysisTab;
 
     // PlayModePolicyService の依存を最新状態に更新

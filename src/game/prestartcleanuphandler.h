@@ -37,7 +37,6 @@ class KifuNavigationState;
  *
  * GameStartCoordinator::requestPreStartCleanupシグナルに接続して使用する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class PreStartCleanupHandler : public QObject
 {
@@ -84,7 +83,6 @@ public:
      * テスト用に公開している。startSfenが残っていても
      * selectedPlyが進んでいれば現在局面開始とみなす。
      *
-     * @todo remove コメントスタイルガイド適用済み
      */
     static bool shouldStartFromCurrentPosition(const QString& startSfen,
                                                const QString& currentSfen,

@@ -3,7 +3,7 @@
 
 #include "josekimovedialog.h"
 #include "buttonstyles.h"
-#include "settingsservice.h"
+#include "josekisettings.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -37,12 +37,12 @@ static constexpr std::array<QStringView, 7> kPieceUsi = {
 
 JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     : QDialog(parent)
-    , m_fontSize(SettingsService::josekiMoveDialogFontSize())
+    , m_fontSize(JosekiSettings::josekiMoveDialogFontSize())
 {
     setupUi(isEdit);
 
     // ウィンドウサイズを復元
-    QSize savedSize = SettingsService::josekiMoveDialogSize();
+    QSize savedSize = JosekiSettings::josekiMoveDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
@@ -603,7 +603,7 @@ void JosekiMoveDialog::validateInput()
         return;
     }
 
-    SettingsService::setJosekiMoveDialogSize(size());
+    JosekiSettings::setJosekiMoveDialogSize(size());
     accept();
 }
 
@@ -789,7 +789,7 @@ void JosekiMoveDialog::onFontSizeIncrease()
     if (m_fontSize < 18) {
         m_fontSize++;
         applyFontSize();
-        SettingsService::setJosekiMoveDialogFontSize(m_fontSize);
+        JosekiSettings::setJosekiMoveDialogFontSize(m_fontSize);
     }
 }
 
@@ -798,7 +798,7 @@ void JosekiMoveDialog::onFontSizeDecrease()
     if (m_fontSize > 8) {
         m_fontSize--;
         applyFontSize();
-        SettingsService::setJosekiMoveDialogFontSize(m_fontSize);
+        JosekiSettings::setJosekiMoveDialogFontSize(m_fontSize);
     }
 }
 

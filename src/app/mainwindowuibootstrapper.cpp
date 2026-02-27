@@ -8,7 +8,8 @@
 #include "mainwindowdockbootstrapper.h"
 #include "mainwindowserviceregistry.h"
 #include "ui_mainwindow.h"
-#include "settingsservice.h"
+#include "docksettings.h"
+#include "appsettings.h"
 #include "dockuicoordinator.h"
 #include "dockcreationservice.h"
 #include "docklayoutmanager.h"
@@ -51,7 +52,7 @@ void MainWindowUiBootstrapper::buildGamePanels()
     dockBoot.createEvalChartDock();
 
     // 9) ドックを固定アクションの初期状態を設定
-    m_mw.ui->actionLockDocks->setChecked(SettingsService::docksLocked());
+    m_mw.ui->actionLockDocks->setChecked(DockSettings::docksLocked());
 
     // 10) メニューウィンドウのQDockWidget作成（デフォルトは非表示）
     dockBoot.createMenuWindowDock();
@@ -74,7 +75,7 @@ void MainWindowUiBootstrapper::buildGamePanels()
     m_mw.ensureDockLayoutManager();
     if (m_mw.m_dockLayoutManager) {
         DockUiCoordinator::wireLayoutMenu(
-            m_mw.m_dockLayoutManager,
+            m_mw.m_dockLayoutManager.get(),
             m_mw.ui->actionResetDockLayout,
             m_mw.ui->actionSaveDockLayout,
             m_mw.ui->actionLockDocks,
@@ -84,7 +85,7 @@ void MainWindowUiBootstrapper::buildGamePanels()
 
 void MainWindowUiBootstrapper::restoreWindowAndSync()
 {
-    SettingsService::loadWindowSize(&m_mw);
+    AppSettings::loadWindowSize(&m_mw);
 
     // 起動時のカスタムレイアウトがあれば復元
     m_mw.ensureDockLayoutManager();

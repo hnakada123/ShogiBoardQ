@@ -3,7 +3,7 @@
 
 #include "kifupastedialog.h"
 #include "buttonstyles.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
@@ -15,7 +15,7 @@ KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     loadFontSizeSettings();
 
     // ウィンドウサイズを復元
-    QSize savedSize = SettingsService::kifuPasteDialogSize();
+    QSize savedSize = GameSettings::kifuPasteDialogSize();
     if (savedSize.isValid() && savedSize.width() > 100 && savedSize.height() > 100) {
         resize(savedSize);
     }
@@ -23,12 +23,12 @@ KifuPasteDialog::KifuPasteDialog(QWidget* parent)
 
 KifuPasteDialog::~KifuPasteDialog()
 {
-    SettingsService::setKifuPasteDialogSize(size());
+    GameSettings::setKifuPasteDialogSize(size());
 }
 
 void KifuPasteDialog::closeEvent(QCloseEvent* event)
 {
-    SettingsService::setKifuPasteDialogSize(size());
+    GameSettings::setKifuPasteDialogSize(size());
     QDialog::closeEvent(event);
 }
 
@@ -197,7 +197,7 @@ void KifuPasteDialog::applyFontSize(int size)
 
 void KifuPasteDialog::loadFontSizeSettings()
 {
-    m_fontSize = SettingsService::kifuPasteDialogFontSize();
+    m_fontSize = GameSettings::kifuPasteDialogFontSize();
     if (m_fontSize < MinFontSize) m_fontSize = MinFontSize;
     if (m_fontSize > MaxFontSize) m_fontSize = MaxFontSize;
     applyFontSize(m_fontSize);
@@ -205,5 +205,5 @@ void KifuPasteDialog::loadFontSizeSettings()
 
 void KifuPasteDialog::saveFontSizeSettings()
 {
-    SettingsService::setKifuPasteDialogFontSize(m_fontSize);
+    GameSettings::setKifuPasteDialogFontSize(m_fontSize);
 }

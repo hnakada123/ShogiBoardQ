@@ -27,7 +27,6 @@ struct ShogiMove;
  * - MultiPV変更の処理
  * - 検討タブとの連携
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ConsiderationModeUIController : public QObject
 {

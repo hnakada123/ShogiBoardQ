@@ -13,7 +13,6 @@
  *
  * USIプロトコルの "option" コマンドで報告されるオプション情報を格納する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 struct EngineOption
 {

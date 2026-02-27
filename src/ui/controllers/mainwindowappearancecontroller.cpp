@@ -11,7 +11,7 @@
 
 #include "apptooltipfilter.h"
 #include "matchcoordinator.h"
-#include "settingsservice.h"
+#include "appsettings.h"
 #include "shogiview.h"
 #include "timedisplaypresenter.h"
 
@@ -48,7 +48,7 @@ void MainWindowAppearanceController::configureToolBarFromUi(QToolBar* toolBar, Q
         );
 
     // 保存された設定からツールバーの表示状態を復元
-    bool visible = SettingsService::toolbarVisible();
+    bool visible = AppSettings::toolbarVisible();
     toolBar->setVisible(visible);
 
     // メニュー内でアイコンを非表示にしてチェックマークを表示
@@ -201,11 +201,11 @@ void MainWindowAppearanceController::onToolBarVisibilityToggled(bool visible)
     if (m_toolBar) {
         m_toolBar->setVisible(visible);
     }
-    SettingsService::setToolbarVisible(visible);
+    AppSettings::setToolbarVisible(visible);
 }
 
 void MainWindowAppearanceController::onTabCurrentChanged(int index)
 {
-    SettingsService::setLastSelectedTabIndex(index);
+    AppSettings::setLastSelectedTabIndex(index);
     qCDebug(lcApp).noquote() << "onTabCurrentChanged: saved tab index =" << index;
 }

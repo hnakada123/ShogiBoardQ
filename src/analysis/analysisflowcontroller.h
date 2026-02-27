@@ -30,7 +30,6 @@ class QWidget;
  * ダイアログ入力を解析オプションへ反映し、AnalysisCoordinator/Usi/表示Presenter
  * 間の接続を構成して解析開始から結果確定までを管理する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class AnalysisFlowController : public QObject
 {
@@ -64,7 +63,6 @@ public:
      * @param d 依存オブジェクト
      * @param dlg 解析条件ダイアログ
      *
-     * @todo remove コメントスタイルガイド適用済み
      */
     void start(const Deps& d, KifuAnalysisDialog* dlg);
 

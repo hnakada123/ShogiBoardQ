@@ -12,7 +12,6 @@
 /**
  * @brief エンジンオプションのカテゴリ分類
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 enum class EngineOptionCategory {
     Basic,          ///< 基本設定
@@ -29,7 +28,6 @@ enum class EngineOptionCategory {
  * エンジン名に基づいて適切な説明を返す。
  * 対応エンジン: YaneuraOu系、Gikou系。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class EngineOptionDescriptions
 {

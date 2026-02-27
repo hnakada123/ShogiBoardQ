@@ -15,7 +15,6 @@ class ShogiBoard;
 /**
  * @brief 将棋の対局全体を管理し、盤面の初期化・指し手処理・合法手検証・対局状態管理を行う
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ShogiGameController : public QObject
 {

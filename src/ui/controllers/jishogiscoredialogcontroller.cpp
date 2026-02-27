@@ -6,7 +6,7 @@
 #include "shogiboard.h"
 #include "jishogicalculator.h"
 #include "enginemovevalidator.h"
-#include "settingsservice.h"
+#include "gamesettings.h"
 
 #include <QDialog>
 #include <QVBoxLayout>
@@ -88,7 +88,7 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     dialog.setWindowTitle(tr("持将棋の点数"));
 
     // 保存されたウィンドウサイズを読み込む
-    QSize savedSize = SettingsService::jishogiScoreDialogSize();
+    QSize savedSize = GameSettings::jishogiScoreDialogSize();
     if (savedSize.isValid() && savedSize.width() > 50 && savedSize.height() > 50) {
         dialog.resize(savedSize);
     }
@@ -100,7 +100,7 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     m_scoreLabel->setAlignment(Qt::AlignLeft);
 
     // 保存されたフォントサイズを読み込む
-    int savedFontSize = SettingsService::jishogiScoreFontSize();
+    int savedFontSize = GameSettings::jishogiScoreFontSize();
     QFont labelFont = m_scoreLabel->font();
     labelFont.setPointSize(savedFontSize);
     m_scoreLabel->setFont(labelFont);
@@ -137,8 +137,8 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
     dialog.exec();
 
     // ダイアログを閉じる際にフォントサイズとウィンドウサイズを保存
-    SettingsService::setJishogiScoreFontSize(m_scoreLabel->font().pointSize());
-    SettingsService::setJishogiScoreDialogSize(dialog.size());
+    GameSettings::setJishogiScoreFontSize(m_scoreLabel->font().pointSize());
+    GameSettings::setJishogiScoreDialogSize(dialog.size());
     m_scoreLabel = nullptr;
 }
 

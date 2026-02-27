@@ -87,10 +87,10 @@ void MainWindowDockBootstrapper::setupEngineAnalysisTab()
     m_mw.ensurePvClickController();
     m_mw.ensureBranchNavigationWiring();
     AnalysisTabWiring::ExternalSignalDeps extDeps;
-    extDeps.branchNavigationWiring = m_mw.m_branchNavWiring;
+    extDeps.branchNavigationWiring = m_mw.m_branchNavWiring.get();
     extDeps.pvClickController = m_mw.m_pvClickController;
     extDeps.commentCoordinator = m_mw.m_commentCoordinator;
-    extDeps.usiCommandController = m_mw.m_usiCommandController;
+    extDeps.usiCommandController = m_mw.m_usiCommandController.get();
     extDeps.considerationWiring = m_mw.m_considerationWiring;
     m_mw.m_analysisWiring->wireExternalSignals(extDeps);
 
@@ -210,7 +210,7 @@ void MainWindowDockBootstrapper::createJosekiWindowDock()
 
     // DockCreationServiceに委譲
     m_mw.ensureDockCreationService();
-    m_mw.m_dockCreationService->setJosekiWiring(m_mw.m_josekiWiring);
+    m_mw.m_dockCreationService->setJosekiWiring(m_mw.m_josekiWiring.get());
     m_mw.m_docks.josekiWindow = m_mw.m_dockCreationService->createJosekiWindowDock();
 
     // ドックが表示されたときに定跡ウィンドウを更新する
@@ -232,7 +232,7 @@ void MainWindowDockBootstrapper::createAnalysisResultsDock()
 
     // DockCreationServiceに委譲
     m_mw.ensureDockCreationService();
-    m_mw.m_dockCreationService->setAnalysisPresenter(m_mw.m_analysisPresenter);
+    m_mw.m_dockCreationService->setAnalysisPresenter(m_mw.m_analysisPresenter.get());
     m_mw.m_docks.analysisResults = m_mw.m_dockCreationService->createAnalysisResultsDock();
 }
 

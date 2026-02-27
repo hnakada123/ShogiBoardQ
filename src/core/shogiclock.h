@@ -16,7 +16,6 @@
  * 秒読み・フィッシャー加算の自動適用、時間切れ判定、
  * 「待った」による状態巻き戻しを提供する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ShogiClock : public QObject
 {

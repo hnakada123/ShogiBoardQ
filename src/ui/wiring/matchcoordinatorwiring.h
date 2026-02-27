@@ -15,7 +15,6 @@
 #include "matchcoordinatorhooksfactory.h"
 
 class GameSessionOrchestrator;
-class MainWindow;
 class ShogiGameController;
 class ShogiView;
 class ShogiClock;
@@ -30,6 +29,9 @@ class UiStatePolicyManager;
 class BoardInteractionController;
 class KifuRecordListModel;
 class GameSessionFacade;
+class MainWindowAppearanceController;
+class KifuNavigationCoordinator;
+class BranchNavigationWiring;
 
 /**
  * @brief MatchCoordinator関連のUI配線を担当するクラス
@@ -165,19 +167,25 @@ public:
      */
     bool initializeSession(std::function<void()> ensureWiringCallback);
 
+    /// wireForwardingSignals に渡す接続先ポインタ群
+    struct ForwardingTargets {
+        MainWindowAppearanceController* appearance = nullptr;
+        PlayerInfoWiring* playerInfo = nullptr;
+        KifuNavigationCoordinator* kifuNav = nullptr;
+        BranchNavigationWiring* branchNav = nullptr;
+    };
+
     /**
-     * @brief 転送シグナルを MainWindow のスロットに接続する
+     * @brief 転送シグナルを各コントローラのスロットに接続する
      *
-     * MatchCoordinatorWiring/GameStartCoordinator → MainWindow の12接続を行う。
-     * @param mw 接続先の MainWindow
+     * MatchCoordinatorWiring/GameStartCoordinator → 各コントローラの12接続を行う。
+     * @param targets 接続先ポインタ群（呼び出し元で ensure 済み）
+     * @param gso GameSessionOrchestrator
      */
-    void wireForwardingSignals(MainWindow* mw, GameSessionOrchestrator* gso);
+    void wireForwardingSignals(const ForwardingTargets& targets, GameSessionOrchestrator* gso);
 
     /// 生成された MatchCoordinator を返す（非所有）
     MatchCoordinator* match() const { return m_match; }
-
-    /// GameStartCoordinator を返す（非所有）
-    GameStartCoordinator* gameStartCoordinator() const { return m_gameStartCoordinator; }
 
     /// メニュー操作用 GameStartCoordinator を返す（非所有）
     GameStartCoordinator* menuGameStartCoordinator() const { return m_menuGameStart; }

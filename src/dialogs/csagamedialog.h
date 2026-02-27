@@ -8,6 +8,8 @@
 #include <QDialog>
 #include <QList>
 
+#include <memory>
+
 QT_BEGIN_NAMESPACE
 namespace Ui { class CsaGameDialog; }
 QT_END_NAMESPACE
@@ -221,7 +223,7 @@ private:
     void applyFontSize();
 
 private:
-    Ui::CsaGameDialog* ui;              ///< UIオブジェクト
+    std::unique_ptr<Ui::CsaGameDialog> ui; ///< UIオブジェクト
     QList<Engine> m_engineList;         ///< エンジンリスト
     QList<ServerHistory> m_serverHistory; ///< サーバー接続履歴
     int m_fontSize = 0;                  ///< フォントサイズ

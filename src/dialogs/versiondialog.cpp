@@ -6,7 +6,7 @@
 #include "ui_versiondialog.h"
 
 // バージョンを表示するダイアログ
-VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(new Ui::VersionDialog)
+VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(std::make_unique<Ui::VersionDialog>())
 {
     ui->setupUi(this);
 
@@ -17,7 +17,4 @@ VersionDialog::VersionDialog(QWidget *parent) : QDialog(parent), ui(new Ui::Vers
     ui->buildDateLabel->setText(tr("ビルド日時: %1 %2").arg(__DATE__, __TIME__));
 }
 
-VersionDialog::~VersionDialog()
-{
-    delete ui;
-}
+VersionDialog::~VersionDialog() = default;

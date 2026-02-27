@@ -15,7 +15,6 @@
  * 81マスの駒配置データと両手番の駒台を保持し、
  * SFEN文字列との相互変換、駒の移動・成り・打ち等の操作を提供する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class ShogiBoard : public QObject
 {

@@ -15,13 +15,13 @@
 #include <QTextCursor>
 #include "logcategories.h"
 
-#include "settingsservice.h"  // フォントサイズ保存用
+#include "networksettings.h"  // フォントサイズ保存用
 
 CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* parent)
     : QDialog(parent)
     , m_coordinator(coordinator)
-    , m_fontSize(SettingsService::csaWaitingDialogFontSize())
-    , m_logFontSize(SettingsService::csaLogFontSize())  // SettingsServiceから読み込み
+    , m_fontSize(NetworkSettings::csaWaitingDialogFontSize())
+    , m_logFontSize(NetworkSettings::csaLogFontSize())  // SettingsServiceから読み込み
 {
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
@@ -43,10 +43,9 @@ CsaWaitingDialog::~CsaWaitingDialog()
 {
     // 通信ログウィンドウのサイズを保存して閉じる
     if (m_logWindow) {
-        SettingsService::setCsaLogWindowSize(m_logWindow->size());
+        NetworkSettings::setCsaLogWindowSize(m_logWindow->size());
         m_logWindow->close();
-        delete m_logWindow;
-        m_logWindow = nullptr;
+        // m_logWindow は this を parent に持つため、Qt親子モデルにより自動解放される
     }
 }
 
@@ -217,7 +216,7 @@ void CsaWaitingDialog::createLogWindow()
     m_logWindow->setWindowTitle(tr("CSA通信ログ"));
     m_logWindow->setWindowFlags(m_logWindow->windowFlags() & ~Qt::WindowContextHelpButtonHint);
     // ログウィンドウサイズを復元
-    QSize savedLogSize = SettingsService::csaLogWindowSize();
+    QSize savedLogSize = NetworkSettings::csaLogWindowSize();
     if (savedLogSize.isValid() && savedLogSize.width() > 100 && savedLogSize.height() > 100) {
         m_logWindow->resize(savedLogSize);
     } else {
@@ -356,7 +355,7 @@ void CsaWaitingDialog::updateLogFontSize(int delta)
     }
 
     // SettingsServiceに保存
-    SettingsService::setCsaLogFontSize(m_logFontSize);
+    NetworkSettings::setCsaLogFontSize(m_logFontSize);
 }
 
 // 対局状態変化時の処理
@@ -480,7 +479,7 @@ void CsaWaitingDialog::onFontIncrease()
     if (m_fontSize < 24) {
         m_fontSize += 1;
         applyFontSize();
-        SettingsService::setCsaWaitingDialogFontSize(m_fontSize);
+        NetworkSettings::setCsaWaitingDialogFontSize(m_fontSize);
     }
 }
 
@@ -490,7 +489,7 @@ void CsaWaitingDialog::onFontDecrease()
     if (m_fontSize > 8) {
         m_fontSize -= 1;
         applyFontSize();
-        SettingsService::setCsaWaitingDialogFontSize(m_fontSize);
+        NetworkSettings::setCsaWaitingDialogFontSize(m_fontSize);
     }
 }
 

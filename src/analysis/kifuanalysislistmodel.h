@@ -15,7 +15,6 @@
  * 解析結果1行を `KifuAnalysisResultsDisplay` として保持し、
  * 解析ダイアログで表示する各列データを提供する。
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class KifuAnalysisListModel : public AbstractListModel<KifuAnalysisResultsDisplay>
 {

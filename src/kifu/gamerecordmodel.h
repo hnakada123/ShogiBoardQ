@@ -34,7 +34,6 @@ class KifuNavigationState;
  * - 既存データへの参照を保持し、必要に応じて同期更新を行う
  * - KIF/CSA/JKF/USEN/USI形式への出力機能を提供
  *
- * @todo remove コメントスタイルガイド適用済み
  */
 class GameRecordModel : public QObject
 {
