@@ -2,6 +2,7 @@
 /build
 /build-debug
 /build-tidy
+/build-review
 CMakeLists.txt.user
 .cache
 /out
