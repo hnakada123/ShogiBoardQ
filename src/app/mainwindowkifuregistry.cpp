@@ -2,11 +2,13 @@
 /// @brief Kifu系（棋譜・ナビゲーション・ファイルI/O・コメント・定跡）の ensure* 実装
 ///
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
+/// 共通基盤メソッドは MainWindowFoundationRegistry に移動済み。
 
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
+#include "mainwindowfoundationregistry.h"
 #include "mainwindowresetservice.h"
 #include "ui_mainwindow.h"
 
@@ -19,12 +21,9 @@
 #include "gamerecordpresenter.h"
 #include "commentcoordinator.h"
 #include "kifunavigationcoordinator.h"
-#include "kifunavigationdepsfactory.h"
 #include "josekiwindowwiring.h"
 #include "kifuloadcoordinatorfactory.h"
 #include "kifuloadcoordinator.h"
-#include "uistatepolicymanager.h"
-#include "uinotificationservice.h"
 #include "livegamesessionupdater.h"
 #include "matchruntimequeryservice.h"
 #include "playerinfowiring.h"
@@ -47,7 +46,7 @@ void MainWindowServiceRegistry::ensureBranchNavigationWiring()
                 &m_mw, &MainWindow::loadBoardWithHighlights);
         connect(m_mw.m_branchNavWiring.get(), &BranchNavigationWiring::boardSfenChanged,
                 &m_mw, &MainWindow::loadBoardFromSfen);
-        ensureKifuNavigationCoordinator();
+        m_foundation->ensureKifuNavigationCoordinator();
         connect(m_mw.m_branchNavWiring.get(), &BranchNavigationWiring::branchNodeHandled,
                 m_mw.m_kifuNavCoordinator.get(), &KifuNavigationCoordinator::handleBranchNodeHandled);
     }
@@ -67,7 +66,7 @@ void MainWindowServiceRegistry::ensureBranchNavigationWiring()
     deps.gameController = m_mw.m_gameController;
     deps.commentCoordinator = m_mw.m_commentCoordinator;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
-    deps.ensureCommentCoordinator = [this]() { ensureCommentCoordinator(); };
+    deps.ensureCommentCoordinator = [this]() { m_foundation->ensureCommentCoordinator(); };
     m_mw.m_branchNavWiring->updateDeps(deps);
 }
 
@@ -83,7 +82,7 @@ void MainWindowServiceRegistry::ensureKifuFileController()
     callbacks.clearUiBeforeKifuLoad = std::bind(&MainWindowServiceRegistry::clearUiBeforeKifuLoad, this);
     callbacks.setReplayMode = std::bind(&MainWindow::setReplayMode, &m_mw, std::placeholders::_1);
     callbacks.ensurePlayerInfoAndGameInfo = [this]() {
-        ensurePlayerInfoWiring();
+        m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->ensureGameInfoController();
             m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
@@ -204,7 +203,7 @@ void MainWindowServiceRegistry::ensureGameRecordModel()
 {
     if (m_mw.m_models.gameRecord) return;
 
-    ensureCommentCoordinator();
+    m_foundation->ensureCommentCoordinator();
 
     GameRecordModelBuilder::Deps deps;
     deps.parent = &m_mw;
@@ -215,39 +214,6 @@ void MainWindowServiceRegistry::ensureGameRecordModel()
     deps.kifuRecordModel = m_mw.m_models.kifuRecord;
 
     m_mw.m_models.gameRecord = GameRecordModelBuilder::build(deps);
-}
-
-// ---------------------------------------------------------------------------
-// コメントコーディネーター
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::ensureCommentCoordinator()
-{
-    if (m_mw.m_commentCoordinator) return;
-    m_mw.m_compositionRoot->ensureCommentCoordinator(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_commentCoordinator);
-    connect(m_mw.m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
-            this, &MainWindowServiceRegistry::ensureGameRecordModel);
-}
-
-// ---------------------------------------------------------------------------
-// 棋譜ナビゲーションコーディネーター
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::ensureKifuNavigationCoordinator()
-{
-    if (!m_mw.m_kifuNavCoordinator) {
-        m_mw.m_kifuNavCoordinator = std::make_unique<KifuNavigationCoordinator>();
-    }
-
-    KifuNavigationDepsFactory::Callbacks callbacks;
-    callbacks.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
-    callbacks.updateJosekiWindow = std::bind(&MainWindowServiceRegistry::updateJosekiWindow, this);
-    callbacks.ensureBoardSyncPresenter = [this]() { ensureBoardSyncPresenter(); };
-    callbacks.isGameActivelyInProgress = std::bind(&MatchRuntimeQueryService::isGameActivelyInProgress, m_mw.m_queryService.get());
-    callbacks.getSfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
-
-    m_mw.m_kifuNavCoordinator->updateDeps(
-        KifuNavigationDepsFactory::createDeps(m_mw.buildRuntimeRefs(), callbacks));
 }
 
 // ---------------------------------------------------------------------------
@@ -288,7 +254,7 @@ void MainWindowServiceRegistry::ensureJosekiWiring()
 
 void MainWindowServiceRegistry::clearUiBeforeKifuLoad()
 {
-    ensureCommentCoordinator();
+    m_foundation->ensureCommentCoordinator();
 
     MainWindowResetService::SessionUiDeps deps;
     deps.commLog1 = m_mw.m_models.commLog1;
@@ -336,10 +302,10 @@ void MainWindowServiceRegistry::createAndWireKifuLoadCoordinator()
 
     // 配線先の遅延初期化
     ensureBranchNavigationWiring();
-    ensureKifuNavigationCoordinator();
-    ensureUiStatePolicyManager();
-    ensurePlayerInfoWiring();
-    ensureUiNotificationService();
+    m_foundation->ensureKifuNavigationCoordinator();
+    m_foundation->ensureUiStatePolicyManager();
+    m_foundation->ensurePlayerInfoWiring();
+    m_foundation->ensureUiNotificationService();
 
     KifuLoadCoordinatorFactory::Params p;
     p.gameMoves = &m_mw.m_kifu.gameMoves;

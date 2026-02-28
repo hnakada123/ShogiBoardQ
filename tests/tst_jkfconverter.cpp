@@ -262,6 +262,43 @@ private slots:
         // Should not crash; may return hirate or empty
         Q_UNUSED(sfen);
     }
+
+    // ========================================
+    // Table-driven: malformed JKF structure
+    // ========================================
+
+    void convertFile_malformedStructure_data()
+    {
+        QTest::addColumn<QByteArray>("jsonContent");
+
+        QTest::newRow("moves_not_array")
+            << QByteArray(R"({"moves": "not_an_array"})");
+        QTest::newRow("move_missing_to_field")
+            << QByteArray(R"({"moves": [{}, {"move": {"from": {"x": 7, "y": 7}, "piece": "FU", "color": 0}}]})");
+        QTest::newRow("move_negative_coords")
+            << QByteArray(R"({"moves": [{}, {"move": {"to": {"x": -1, "y": -1}, "from": {"x": 7, "y": 7}, "piece": "FU", "color": 0}}]})");
+        QTest::newRow("move_coords_out_of_range")
+            << QByteArray(R"({"moves": [{}, {"move": {"to": {"x": 100, "y": 100}, "from": {"x": 7, "y": 7}, "piece": "FU", "color": 0}}]})");
+        QTest::newRow("deeply_nested_empty")
+            << QByteArray(R"({"moves": [{}], "header": {"nested": {"deep": {"deeper": {}}}}})");
+    }
+
+    void convertFile_malformedStructure()
+    {
+        QFETCH(QByteArray, jsonContent);
+
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_malformed_XXXXXX.jkf"));
+        QVERIFY(tmp.open());
+        tmp.write(jsonContent);
+        tmp.close();
+
+        QString error;
+        // Must not crash regardless of JSON structure
+        QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+        Q_UNUSED(moves);
+        QVERIFY(true);
+    }
 };
 
 QTEST_MAIN(TestJkfConverter)

@@ -103,6 +103,7 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
     friend class MainWindowServiceRegistry;
+    friend class MainWindowFoundationRegistry;
     friend class MainWindowLifecyclePipeline;
 
 public:

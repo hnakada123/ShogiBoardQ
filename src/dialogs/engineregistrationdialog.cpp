@@ -10,6 +10,7 @@
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
 #include "buttonstyles.h"
+#include <memory>
 #include <QApplication>
 #include <QDir>
 #include <QFileDialog>
@@ -786,10 +787,8 @@ void EngineRegistrationDialog::removeSelectedEngineFromList(QString& removeEngin
     // ここからは選択されたエンジンが正確に一つであることが保証されている。
     QListWidgetItem* selectedItem = items.first();
     int i = ui->engineListWidget->row(selectedItem);
-    removeEngineName = ui->engineListWidget->takeItem(i)->text();
-
-    // アイテムの削除
-    delete selectedItem;
+    std::unique_ptr<QListWidgetItem> takenItem(ui->engineListWidget->takeItem(i));
+    removeEngineName = takenItem->text();
 
     m_engineList.removeAt(i);
 }

@@ -7,13 +7,12 @@
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
+#include "mainwindowfoundationregistry.h"
 #include "mainwindowresetservice.h"
 #include "ui_mainwindow.h"
 
 #include "boardsetupcontroller.h"
 #include "positioneditcoordinator.h"
-#include "positioneditcontroller.h"
-#include "boardsyncpresenter.h"
 #include "boardloadservice.h"
 #include "boardinteractioncontroller.h"
 #include "commentcoordinator.h"
@@ -35,7 +34,7 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
     if (m_mw.m_boardSetupController) return;
 
     MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
-    cbs.ensurePositionEdit = [this]() { ensurePositionEditController(); };
+    cbs.ensurePositionEdit = [this]() { m_foundation->ensurePositionEditController(); };
     cbs.ensureTimeController = [this]() { ensureTimeController(); };
     cbs.updateGameRecord = [this](const QString& moveText, const QString& elapsed) {
         ensureGameRecordUpdateService();
@@ -44,11 +43,11 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
         }
     };
     cbs.redrawEngine1Graph = [this](int ply) {
-        ensureEvaluationGraphController();
+        m_foundation->ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine1Graph(ply);
     };
     cbs.redrawEngine2Graph = [this](int ply) {
-        ensureEvaluationGraphController();
+        m_foundation->ensureEvaluationGraphController();
         if (m_mw.m_evalGraphController) m_mw.m_evalGraphController->redrawEngine2Graph(ply);
     };
 
@@ -63,7 +62,7 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 {
     if (m_mw.m_posEditCoordinator) return;
 
-    ensureUiStatePolicyManager();
+    m_foundation->ensureUiStatePolicyManager();
 
     MainWindowDepsFactory::PositionEditCoordinatorCallbacks cbs;
     cbs.applyEditMenuState = [this](bool editing) {
@@ -71,7 +70,7 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
         else m_mw.m_uiStatePolicy->transitionToIdle();
     };
     cbs.ensurePositionEdit = [this]() {
-        ensurePositionEditController();
+        m_foundation->ensurePositionEditController();
         if (m_mw.m_posEditCoordinator) m_mw.m_posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
     };
     cbs.actionReturnAllPiecesToStand = m_mw.ui->actionReturnAllPiecesToStand;
@@ -80,45 +79,6 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
     cbs.actionChangeTurn = m_mw.ui->actionChangeTurn;
 
     m_mw.m_compositionRoot->ensurePositionEditCoordinator(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_posEditCoordinator);
-}
-
-// ---------------------------------------------------------------------------
-// 局面編集コントローラ
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::ensurePositionEditController()
-{
-    if (m_mw.m_posEdit) return;
-    m_mw.m_posEdit = new PositionEditController(&m_mw);
-}
-
-// ---------------------------------------------------------------------------
-// 盤面同期プレゼンター
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::ensureBoardSyncPresenter()
-{
-    if (m_mw.m_boardSync) {
-        // sfenRecord ポインタが変わっている場合は更新する
-        const QStringList* current = m_mw.m_queryService->sfenRecord();
-        m_mw.m_boardSync->setSfenRecord(current);
-        return;
-    }
-
-    qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: creating BoardSyncPresenter"
-                       << "sfenRecord()*=" << static_cast<const void*>(m_mw.m_queryService->sfenRecord())
-                       << "sfenRecord().size=" << (m_mw.m_queryService->sfenRecord() ? m_mw.m_queryService->sfenRecord()->size() : -1);
-
-    BoardSyncPresenter::Deps d;
-    d.gc         = m_mw.m_gameController;
-    d.view       = m_mw.m_shogiView;
-    d.bic        = m_mw.m_boardController;
-    d.sfenRecord = m_mw.m_queryService->sfenRecord();
-    d.gameMoves  = &m_mw.m_kifu.gameMoves;
-
-    m_mw.m_boardSync = new BoardSyncPresenter(d, &m_mw);
-
-    qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: created m_boardSync*=" << static_cast<const void*>(m_mw.m_boardSync);
 }
 
 // ---------------------------------------------------------------------------
@@ -131,7 +91,7 @@ void MainWindowServiceRegistry::ensureBoardLoadService()
         m_mw.m_boardLoadService = new BoardLoadService(&m_mw);
     }
 
-    ensureBoardSyncPresenter();
+    m_foundation->ensureBoardSyncPresenter();
 
     BoardLoadService::Deps deps;
     deps.gc = m_mw.m_gameController;
@@ -139,9 +99,9 @@ void MainWindowServiceRegistry::ensureBoardLoadService()
     deps.boardSync = m_mw.m_boardSync;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
     deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
-    deps.ensureBoardSyncPresenter = std::bind(&MainWindowServiceRegistry::ensureBoardSyncPresenter, this);
+    deps.ensureBoardSyncPresenter = std::bind(&MainWindowFoundationRegistry::ensureBoardSyncPresenter, m_foundation);
     deps.beginBranchNavGuard = [this]() {
-        ensureKifuNavigationCoordinator();
+        m_foundation->ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->beginBranchNavGuard();
     };
     m_mw.m_boardLoadService->updateDeps(deps);
@@ -286,7 +246,7 @@ void MainWindowServiceRegistry::resetUiState(const QString& hirateStartSfen)
 
 void MainWindowServiceRegistry::clearSessionDependentUi()
 {
-    ensureCommentCoordinator();
+    m_foundation->ensureCommentCoordinator();
 
     MainWindowResetService::SessionUiDeps deps;
     deps.commLog1 = m_mw.m_models.commLog1;

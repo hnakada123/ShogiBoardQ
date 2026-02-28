@@ -186,7 +186,7 @@ public:
     void wireForwardingSignals(const ForwardingTargets& targets, GameSessionOrchestrator* gso);
 
     /// 生成された MatchCoordinator を返す（非所有）
-    MatchCoordinator* match() const { return m_match; }
+    MatchCoordinator* match() const { return m_match.get(); }
 
     /// メニュー操作用 GameStartCoordinator を返す（非所有）
     GameStartCoordinator* menuGameStartCoordinator() const { return m_menuGameStart; }
@@ -277,7 +277,7 @@ private:
 
     // --- 内部管理オブジェクト ---
     GameStartCoordinator* m_menuGameStart = nullptr;
-    MatchCoordinator* m_match = nullptr;
+    std::unique_ptr<MatchCoordinator> m_match;
     QMetaObject::Connection m_timeConn;
     QMetaObject::Connection m_clockConn;
     std::unique_ptr<GameSessionFacade> m_sessionFacade;

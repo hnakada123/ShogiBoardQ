@@ -127,6 +127,22 @@ private slots:
     // ---- containsAnyTerminal ----
     void containsAnyTerminal_match();
     void containsAnyTerminal_noMatch();
+
+    // ---- table-driven: mapKanjiPiece abnormal ----
+    void mapKanjiPiece_abnormal_data();
+    void mapKanjiPiece_abnormal();
+
+    // ---- table-driven: flexDigitsToIntNoDetach abnormal ----
+    void flexDigitsToIntNoDetach_abnormal_data();
+    void flexDigitsToIntNoDetach_abnormal();
+
+    // ---- table-driven: usiTokenToKanji abnormal ----
+    void usiTokenToKanji_abnormal_data();
+    void usiTokenToKanji_abnormal();
+
+    // ---- table-driven: coordinate parsing boundary ----
+    void parseCoordinate_boundary_data();
+    void parseCoordinate_boundary();
 };
 
 // ==== isKifCommentLine ====
@@ -707,6 +723,104 @@ void TestParseCommon::formatTimeHMS_negative()
 {
     // Negative values are clamped to 0
     QCOMPARE(KifuParseCommon::formatTimeHMS(-5000), QStringLiteral("00:00:00"));
+}
+
+// ==== table-driven: mapKanjiPiece abnormal ====
+
+void TestParseCommon::mapKanjiPiece_abnormal_data()
+{
+    QTest::addColumn<QString>("input");
+    QTest::addColumn<bool>("expectedResult");
+
+    QTest::newRow("empty_string") << QString() << false;
+    QTest::newRow("ascii_letter_P") << QStringLiteral("P") << false;
+    QTest::newRow("number_digit") << QStringLiteral("1") << false;
+    QTest::newRow("multi_char_invalid") << QStringLiteral("XX") << false;
+}
+
+void TestParseCommon::mapKanjiPiece_abnormal()
+{
+    QFETCH(QString, input);
+    QFETCH(bool, expectedResult);
+
+    Piece base;
+    bool promoted = false;
+    QCOMPARE(KifuParseCommon::mapKanjiPiece(input, base, promoted), expectedResult);
+}
+
+// ==== table-driven: flexDigitsToIntNoDetach abnormal ====
+
+void TestParseCommon::flexDigitsToIntNoDetach_abnormal_data()
+{
+    QTest::addColumn<QString>("input");
+    QTest::addColumn<int>("expectedValue");
+
+    QTest::newRow("all_spaces") << QStringLiteral("   ") << 0;
+    QTest::newRow("negative_sign") << QStringLiteral("-123") << 123;
+    QTest::newRow("special_chars") << QStringLiteral("!@#") << 0;
+    QTest::newRow("leading_zeros") << QStringLiteral("007") << 7;
+}
+
+void TestParseCommon::flexDigitsToIntNoDetach_abnormal()
+{
+    QFETCH(QString, input);
+    QFETCH(int, expectedValue);
+
+    QCOMPARE(KifuParseCommon::flexDigitsToIntNoDetach(input), expectedValue);
+}
+
+// ==== table-driven: usiTokenToKanji abnormal ====
+
+void TestParseCommon::usiTokenToKanji_abnormal_data()
+{
+    QTest::addColumn<QString>("token");
+    QTest::addColumn<QString>("expectedKanji");
+
+    QTest::newRow("plus_only") << QStringLiteral("+") << QStringLiteral("?");
+    QTest::newRow("lowercase_p") << QStringLiteral("p") << QStringLiteral("歩");
+    QTest::newRow("plus_invalid") << QStringLiteral("+X") << QStringLiteral("?");
+    QTest::newRow("number") << QStringLiteral("1") << QStringLiteral("?");
+}
+
+void TestParseCommon::usiTokenToKanji_abnormal()
+{
+    QFETCH(QString, token);
+    QFETCH(QString, expectedKanji);
+
+    QCOMPARE(KifuParseCommon::usiTokenToKanji(token), expectedKanji);
+}
+
+// ==== table-driven: coordinate parsing boundary ====
+
+void TestParseCommon::parseCoordinate_boundary_data()
+{
+    QTest::addColumn<QChar>("fileChar");
+    QTest::addColumn<bool>("fileValid");
+    QTest::addColumn<QChar>("rankChar");
+    QTest::addColumn<bool>("rankValid");
+
+    QTest::newRow("file_at_boundary_low")
+        << QChar('0') << false << QChar('a') << true;
+    QTest::newRow("file_at_boundary_high")
+        << QChar(':') << false << QChar('i') << true;
+    QTest::newRow("rank_at_boundary_low")
+        << QChar('1') << true << QChar('`') << false;
+    QTest::newRow("rank_at_boundary_high")
+        << QChar('9') << true << QChar('j') << false;
+}
+
+void TestParseCommon::parseCoordinate_boundary()
+{
+    QFETCH(QChar, fileChar);
+    QFETCH(bool, fileValid);
+    QFETCH(QChar, rankChar);
+    QFETCH(bool, rankValid);
+
+    auto fileResult = KifuParseCommon::parseFileChar(fileChar);
+    QCOMPARE(fileResult.has_value(), fileValid);
+
+    auto rankResult = KifuParseCommon::parseRankChar(rankChar);
+    QCOMPARE(rankResult.has_value(), rankValid);
 }
 
 QTEST_MAIN(TestParseCommon)

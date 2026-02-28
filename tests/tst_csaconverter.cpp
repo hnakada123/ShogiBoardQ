@@ -424,6 +424,45 @@ private slots:
         // CSA lexer treats from=00 as drop; verify parse doesn't crash
         QVERIFY(ok);
     }
+
+    // ========================================
+    // Table-driven: abnormal content patterns
+    // ========================================
+
+    void parse_abnormalContent_data()
+    {
+        QTest::addColumn<QByteArray>("fileContent");
+
+        QTest::newRow("only_newlines")
+            << QByteArray("\n\n\n\n");
+        QTest::newRow("binary_garbage")
+            << QByteArray("\x01\x02\x03\x04\x05\x06\x07\x08");
+        QTest::newRow("very_long_move_line")
+            << QByteArray("PI\n+\n+" + QByteArray(10000, 'A') + "\n");
+        QTest::newRow("move_with_embedded_comment")
+            << QByteArray("PI\n+\n+7776FU'comment in move line\n");
+        QTest::newRow("repeated_position_blocks")
+            << QByteArray("PI\n+\nPI\n+\n+7776FU\n");
+        QTest::newRow("empty_lines_between_moves")
+            << QByteArray("PI\n+\n\n\n\n+7776FU\n\n\n");
+    }
+
+    void parse_abnormalContent()
+    {
+        QFETCH(QByteArray, fileContent);
+
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_abnormal_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write(fileContent);
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        // Must not crash regardless of input
+        CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        QVERIFY(true);
+    }
 };
 
 QTEST_MAIN(TestCsaConverter)

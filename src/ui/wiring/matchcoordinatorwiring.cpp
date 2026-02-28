@@ -153,7 +153,7 @@ void MatchCoordinatorWiring::wireConnections()
     if (m_ensureEvaluationGraphController) m_ensureEvaluationGraphController();
     auto* evalCtl = m_getEvalGraphController ? m_getEvalGraphController() : nullptr;
     if (evalCtl) {
-        evalCtl->setMatchCoordinator(m_match);
+        evalCtl->setMatchCoordinator(m_match.get());
         evalCtl->setSfenRecord(m_sfenRecord);
     }
 
@@ -171,10 +171,10 @@ void MatchCoordinatorWiring::wireConnections()
         if (m_ensureUiStatePolicyManager) m_ensureUiStatePolicyManager();
         auto* uiPolicy = m_getUiStatePolicy ? m_getUiStatePolicy() : nullptr;
         if (uiPolicy) {
-            connect(m_match, &MatchCoordinator::considerationModeEnded,
+            connect(m_match.get(), &MatchCoordinator::considerationModeEnded,
                     uiPolicy, &UiStatePolicyManager::transitionToIdle,
                     Qt::UniqueConnection);
-            connect(m_match, &MatchCoordinator::tsumeSearchModeEnded,
+            connect(m_match.get(), &MatchCoordinator::tsumeSearchModeEnded,
                     uiPolicy, &UiStatePolicyManager::transitionToIdle,
                     Qt::UniqueConnection);
         }
@@ -183,7 +183,7 @@ void MatchCoordinatorWiring::wireConnections()
     // TimeController へ MatchCoordinator を反映
     auto* timeCtl = m_getTimeController ? m_getTimeController() : nullptr;
     if (timeCtl) {
-        timeCtl->setMatchCoordinator(m_match);
+        timeCtl->setMatchCoordinator(m_match.get());
     }
 
     // Clock → 投了シグナルの配線
@@ -211,27 +211,26 @@ void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps
     // 既存があれば破棄
     if (m_match) {
         m_match->disconnect(this);
-        delete m_match;
-        m_match = nullptr;
+        m_match.reset();
     }
 
-    m_match = new MatchCoordinator(deps, parent());
+    m_match = std::make_unique<MatchCoordinator>(deps, nullptr);
     m_match->updateUsiPtrs(deps.usi1, deps.usi2);
 
     // --- MC シグナル → MCW シグナルへ直接配線 ---
-    connect(m_match, &MatchCoordinator::requestAppendGameOverMove,
+    connect(m_match.get(), &MatchCoordinator::requestAppendGameOverMove,
             this,    &MatchCoordinatorWiring::requestAppendGameOverMove,
             Qt::UniqueConnection);
 
-    connect(m_match, &MatchCoordinator::boardFlipped,
+    connect(m_match.get(), &MatchCoordinator::boardFlipped,
             this,    &MatchCoordinatorWiring::boardFlipped,
             Qt::UniqueConnection);
 
-    connect(m_match, &MatchCoordinator::gameOverStateChanged,
+    connect(m_match.get(), &MatchCoordinator::gameOverStateChanged,
             this,    &MatchCoordinatorWiring::gameOverStateChanged,
             Qt::UniqueConnection);
 
-    connect(m_match, &MatchCoordinator::gameEnded,
+    connect(m_match.get(), &MatchCoordinator::gameEnded,
             this,    &MatchCoordinatorWiring::matchGameEnded,
             Qt::UniqueConnection);
 
@@ -239,7 +238,7 @@ void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps
     if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
     if (m_timePresenter) {
         m_timeConn = connect(
-            m_match, &MatchCoordinator::timeUpdated,
+            m_match.get(), &MatchCoordinator::timeUpdated,
             m_timePresenter, &TimeDisplayPresenter::onMatchTimeUpdated,
             Qt::UniqueConnection);
     }
@@ -248,7 +247,7 @@ void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps
     if (m_ensureUiStatePolicyManager) m_ensureUiStatePolicyManager();
     auto* uiPolicy = m_getUiStatePolicy ? m_getUiStatePolicy() : nullptr;
     if (uiPolicy) {
-        connect(m_match, &MatchCoordinator::gameEnded,
+        connect(m_match.get(), &MatchCoordinator::gameEnded,
                 uiPolicy, &UiStatePolicyManager::transitionToIdle,
                 Qt::UniqueConnection);
     }
@@ -259,7 +258,7 @@ void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
     if (m_menuGameStart) return;
 
     GameStartCoordinator::Deps d;
-    d.match = m_match;
+    d.match = m_match.get();
     d.clock = m_getClock ? m_getClock() : nullptr;
     d.gc    = m_gc;
     d.view  = m_view;

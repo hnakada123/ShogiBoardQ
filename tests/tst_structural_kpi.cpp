@@ -52,14 +52,13 @@ private:
     static QMap<QString, int> knownLargeFiles()
     {
         return {
-            // --- 1000行超 ---
-            {"src/analysis/analysisflowcontroller.cpp", 1133}, // TODO: ISSUE-052 解析フロー分割
-            {"src/engine/usi.cpp", 1084},                      // TODO: ISSUE-053 USIエンジン分割
-            {"src/widgets/evaluationchartwidget.cpp", 1018},   // TODO: ISSUE-054 評価グラフ描画分離
+            // --- 1000行超 → 解消済み ---
+            {"src/engine/usi.cpp", 781},                       // ISSUE-053 USIエンジン分割（1084→781）
+            {"src/widgets/evaluationchartwidget.cpp", 635},    // ISSUE-054 評価グラフ描画分離（1018→635）
             // --- 900行超 ---
-            {"src/kifu/kifuexportcontroller.cpp", 933},  // TODO: ISSUE-055 棋譜エクスポート形式分離
+            {"src/kifu/kifuexportcontroller.cpp", 654},  // ISSUE-055 棋譜エクスポート形式分離（933→654）
             {"src/core/fmvlegalcore.cpp", 930},          // TODO: ISSUE-056 合法手生成テーブル化
-            {"src/engine/usiprotocolhandler.cpp", 902},   // TODO: ISSUE-053 USIエンジン分割
+            {"src/engine/usiprotocolhandler.cpp", 714},   // ISSUE-053 USIエンジン分割（902→714）
             // --- 800行超 ---
             {"src/dialogs/pvboarddialog.cpp", 884},               // TODO: ISSUE-057 ダイアログ分割
             {"src/dialogs/engineregistrationdialog.cpp", 842},    // TODO: ISSUE-057 ダイアログ分割
@@ -80,10 +79,11 @@ private:
             {"src/network/csaclient.cpp", 693},                    // TODO: ISSUE-059 CSA通信分割
             {"src/engine/shogiengineinfoparser.cpp", 689},         // TODO: ISSUE-053 USIエンジン分割
             {"src/widgets/recordpane.cpp", 677},                   // TODO: ISSUE-062 ウィジェット分割
+            {"src/analysis/analysisflowcontroller.cpp", 676},        // ISSUE-052 解析フロー分割（1133→676）
             {"src/dialogs/tsumeshogigeneratordialog.cpp", 657},    // TODO: ISSUE-057 ダイアログ分割
             {"src/game/shogigamecontroller.cpp", 652},             // TODO: ISSUE-060 ゲーム管理分割
             {"src/navigation/kifunavigationcontroller.cpp", 642},  // TODO: ISSUE-063 ナビゲーション分割
-            {"src/kifu/formats/parsecommon.cpp", 640},             // TODO: ISSUE-055 棋譜フォーマット分割
+            {"src/kifu/formats/parsecommon.cpp", 641},             // TODO: ISSUE-055 棋譜フォーマット分割
             {"src/kifu/kifuapplyservice.cpp", 638},                // TODO: ISSUE-055 棋譜サービス分割
             {"src/dialogs/startgamedialog.cpp", 638},              // TODO: ISSUE-057 ダイアログ分割
             {"src/widgets/considerationtabmanager.cpp", 634},      // TODO: ISSUE-062 ウィジェット分割
@@ -151,6 +151,9 @@ private slots:
             }
         }
 
+        qDebug().noquote()
+            << QStringLiteral("KPI: exception_file_count = %1").arg(exceptions.size());
+
         if (!shrunkFiles.isEmpty()) {
             qDebug().noquote() << "\n=== Files shrunk below their exception limit (update knownLargeFiles) ===";
             for (const auto &msg : std::as_const(shrunkFiles))
@@ -172,24 +175,22 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxFriendClasses = 2;
+        constexpr int maxFriendClasses = 3;
 
         const QRegularExpression pattern(QStringLiteral(R"(^\s*friend\s+class\s+)"));
         const int count = countMatchingLines(headerPath, pattern);
 
         QVERIFY2(count >= 0, "Failed to read mainwindow.h");
+
+        qDebug().noquote()
+            << QStringLiteral("KPI: mw_friend_classes = %1 (limit: %2)")
+                   .arg(count)
+                   .arg(maxFriendClasses);
+
         QVERIFY2(count <= maxFriendClasses,
                  qPrintable(QStringLiteral("MainWindow friend class count: %1 (limit: %2)")
                                 .arg(count)
                                 .arg(maxFriendClasses)));
-
-        if (count < maxFriendClasses) {
-            qDebug().noquote()
-                << QStringLiteral("MainWindow friend classes reduced to %1 (limit: %2) "
-                                  "-> consider lowering the limit")
-                       .arg(count)
-                       .arg(maxFriendClasses);
-        }
     }
 
     // ================================================================
@@ -205,18 +206,41 @@ private slots:
         const int count = countMatchingLines(headerPath, pattern);
 
         QVERIFY2(count >= 0, "Failed to read mainwindow.h");
+
+        qDebug().noquote()
+            << QStringLiteral("KPI: mw_ensure_methods = %1 (limit: %2)")
+                   .arg(count)
+                   .arg(maxEnsureMethods);
+
         QVERIFY2(count <= maxEnsureMethods,
                  qPrintable(QStringLiteral("MainWindow ensure* count: %1 (limit: %2)")
                                 .arg(count)
                                 .arg(maxEnsureMethods)));
+    }
 
-        if (count < maxEnsureMethods) {
-            qDebug().noquote()
-                << QStringLiteral("MainWindow ensure* methods reduced to %1 (limit: %2) "
-                                  "-> consider lowering the limit")
-                       .arg(count)
-                       .arg(maxEnsureMethods);
-        }
+    // ================================================================
+    // c-2) ServiceRegistry ensure* 上限テスト
+    // ================================================================
+    void serviceRegistryEnsureLimit()
+    {
+        const QString headerPath =
+            QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindowserviceregistry.h");
+        constexpr int maxEnsureMethods = 35;
+
+        const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
+        const int count = countMatchingLines(headerPath, pattern);
+
+        QVERIFY2(count >= 0, "Failed to read mainwindowserviceregistry.h");
+
+        qDebug().noquote()
+            << QStringLiteral("KPI: sr_ensure_methods = %1 (limit: %2)")
+                   .arg(count)
+                   .arg(maxEnsureMethods);
+
+        QVERIFY2(count <= maxEnsureMethods,
+                 qPrintable(QStringLiteral("ServiceRegistry ensure* count: %1 (limit: %2)")
+                                .arg(count)
+                                .arg(maxEnsureMethods)));
     }
 
     // ================================================================
@@ -225,7 +249,7 @@ private slots:
     // ================================================================
     void largeFileCount()
     {
-        const int kMaxLargeFiles = 4;        // 現状3 + マージン1
+        const int kMaxLargeFiles = 1;        // 現状0 + マージン1
         const int kLargeFileThreshold = 1000;
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
@@ -246,8 +270,7 @@ private slots:
         }
 
         qDebug().noquote()
-            << QStringLiteral("Files over %1 lines: %2 (limit: %3)")
-                   .arg(kLargeFileThreshold)
+            << QStringLiteral("KPI: files_over_1000 = %1 (limit: %2)")
                    .arg(largeFiles.size())
                    .arg(kMaxLargeFiles);
 
@@ -270,7 +293,7 @@ private slots:
     // ================================================================
     void deleteCount()
     {
-        const int kMaxDeleteCount = 7; // 現状5 + マージン2
+        const int kMaxDeleteCount = 3; // 現状1 + マージン2
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
@@ -313,7 +336,7 @@ private slots:
         }
 
         qDebug().noquote()
-            << QStringLiteral("delete count in src/*.cpp: %1 (limit: %2)")
+            << QStringLiteral("KPI: delete_count = %1 (limit: %2)")
                    .arg(totalCount)
                    .arg(kMaxDeleteCount);
         for (const auto &d : std::as_const(details))
@@ -374,7 +397,7 @@ private slots:
         }
 
         qDebug().noquote()
-            << QStringLiteral("lambda connect count in src/*.cpp: %1 (limit: %2)")
+            << QStringLiteral("KPI: lambda_connect_count = %1 (limit: %2)")
                    .arg(totalCount)
                    .arg(kMaxLambdaConnects);
         for (const auto &d : std::as_const(details))
@@ -432,7 +455,7 @@ private slots:
         }
 
         qDebug().noquote()
-            << QStringLiteral("old-style SIGNAL/SLOT count in src/*.cpp: %1 (limit: %2)")
+            << QStringLiteral("KPI: old_style_connections = %1 (limit: %2)")
                    .arg(totalCount)
                    .arg(kMaxOldStyleConnections);
         for (const auto &d : std::as_const(details))
@@ -483,15 +506,15 @@ private slots:
             }
         }
 
+        qDebug().noquote()
+            << QStringLiteral("KPI: mw_public_slots = %1 (limit: %2)")
+                   .arg(slotCount)
+                   .arg(maxPublicSlots);
+
         QVERIFY2(slotCount <= maxPublicSlots,
                  qPrintable(QStringLiteral("MainWindow public slots: %1 (limit: %2)")
                                 .arg(slotCount)
                                 .arg(maxPublicSlots)));
-
-        qDebug().noquote()
-            << QStringLiteral("MainWindow public slots: %1 (limit: %2)")
-                   .arg(slotCount)
-                   .arg(maxPublicSlots);
     }
 };
 

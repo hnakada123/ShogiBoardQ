@@ -18,6 +18,8 @@ FlowLayout::FlowLayout(int margin, int hSpacing, int vSpacing)
 
 FlowLayout::~FlowLayout()
 {
+    // NOTE: Manual delete required because QLayoutItem is not a QObject
+    // and cannot use parent ownership or unique_ptr with QLayout's API contract
     QLayoutItem *item;
     while ((item = takeAt(0)))
         delete item;

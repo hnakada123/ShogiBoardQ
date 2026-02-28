@@ -429,6 +429,45 @@ private slots:
             fixturePath(QStringLiteral("nonexistent.usi")), &error);
         QVERIFY(items.isEmpty());
     }
+
+    // ========================================
+    // Table-driven: abnormal USI move tokens
+    // ========================================
+
+    void convertFile_abnormalMoves_data()
+    {
+        QTest::addColumn<QByteArray>("fileContent");
+        QTest::addColumn<int>("expectedMoveCount");
+
+        QTest::newRow("single_char_move")
+            << QByteArray("position startpos moves a\n") << 0;
+        QTest::newRow("three_char_move")
+            << QByteArray("position startpos moves 7g7\n") << 0;
+        QTest::newRow("invalid_rank_char")
+            << QByteArray("position startpos moves 7z7f\n") << 0;
+        QTest::newRow("double_star_drop")
+            << QByteArray("position startpos moves P**5e\n") << 0;
+        QTest::newRow("promotion_on_drop")
+            << QByteArray("position startpos moves P*5e+\n") << 0;
+        QTest::newRow("reversed_coords_format")
+            << QByteArray("position startpos moves g7f7\n") << 0;
+    }
+
+    void convertFile_abnormalMoves()
+    {
+        QFETCH(QByteArray, fileContent);
+        QFETCH(int, expectedMoveCount);
+
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_abnormal_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write(fileContent);
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QCOMPARE(moves.size(), expectedMoveCount);
+    }
 };
 
 QTEST_MAIN(TestUsiConverter)

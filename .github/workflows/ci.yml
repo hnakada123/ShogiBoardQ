@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   build-and-test:
@@ -34,19 +35,52 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: |
           cd build
-          ctest --output-on-failure -R tst_structural_kpi 2>&1 | tee kpi-results.txt
-          echo "## Structural KPI Check" >> "$GITHUB_STEP_SUMMARY"
+          ctest -V -R tst_structural_kpi 2>&1 | tee kpi-output.txt
+
+          # Extract KPI values to JSON
+          bash ../scripts/extract-kpi-json.sh kpi-output.txt kpi-results.json
+          cat kpi-results.json
+
+          # Build Step Summary
+          echo "## Structural KPI Report" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          if grep -q "FAILED" kpi-results.txt; then
+
+          if grep -q "FAILED" kpi-output.txt; then
             echo ":x: **KPI violations detected**" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
-            grep -E "(FAIL|violation|limit|lines)" kpi-results.txt >> "$GITHUB_STEP_SUMMARY" || true
+            grep -E "(FAIL|violation|limit|lines)" kpi-output.txt >> "$GITHUB_STEP_SUMMARY" || true
             echo '```' >> "$GITHUB_STEP_SUMMARY"
-            exit 1
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           else
             echo ":white_check_mark: All structural KPIs within limits" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          # KPI values table
+          echo "### KPI Values" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Metric | Value | Limit |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|--------|------:|------:|" >> "$GITHUB_STEP_SUMMARY"
+          grep -oP 'KPI:\s+\K.*' kpi-output.txt | while IFS= read -r line; do
+            key=$(echo "$line" | sed -E 's/\s+=\s+.*//')
+            value=$(echo "$line" | sed -E 's/.*=\s+([0-9]+).*/\1/')
+            limit=$(echo "$line" | sed -nE 's/.*\(limit:\s+([0-9]+)\).*/\1/p')
+            echo "| $key | $value | ${limit:--} |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if grep -q "FAILED" kpi-output.txt; then
+            exit 1
+          fi
+
+      - name: Upload KPI Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: structural-kpi-${{ github.sha }}
+          path: build/kpi-results.json
+          retention-days: 90
 
   build-debug:
     runs-on: ubuntu-latest
@@ -95,6 +129,38 @@ jobs:
             grep "warning:.*\[-clang" build.log
             exit 1
           fi
+
+  sanitize:
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'sanitize')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Configure with Sanitizers
+        run: |
+          cmake -B build -S . \
+            -DBUILD_TESTING=ON \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer" \
+            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr"
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Test with Sanitizers
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ASAN_OPTIONS: "detect_leaks=0:halt_on_error=1"
+          UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
+        run: cd build && ctest --output-on-failure
 
   translation-check:
     runs-on: ubuntu-latest

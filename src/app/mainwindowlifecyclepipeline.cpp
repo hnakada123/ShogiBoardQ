@@ -7,6 +7,7 @@
 
 // Foundation objects
 #include "mainwindowcompositionroot.h"
+#include "mainwindowfoundationregistry.h"
 #include "mainwindowserviceregistry.h"
 #include "mainwindowsignalrouter.h"
 #include "usicommlogmodel.h"
@@ -221,7 +222,7 @@ void MainWindowLifecyclePipeline::connectSignals()
             m_mw.m_registry->ensureGameSessionOrchestrator();
         };
         d.ensureUiNotificationService = [this]() {
-            m_mw.m_registry->ensureUiNotificationService();
+            m_mw.m_registry->foundation()->ensureUiNotificationService();
         };
         d.ensureBoardSetupController = std::bind(&MainWindowServiceRegistry::ensureBoardSetupController, m_mw.m_registry.get());
         d.getKifuExportController = [this]() -> KifuExportController* {
@@ -244,11 +245,11 @@ void MainWindowLifecyclePipeline::finalizeAndConfigureUi()
     m_mw.m_registry->finalizeCoordinators();
 
     // UI状態ポリシーマネージャを初期化し、アイドル状態を適用
-    m_mw.m_registry->ensureUiStatePolicyManager();
+    m_mw.m_registry->foundation()->ensureUiStatePolicyManager();
     m_mw.m_uiStatePolicy->applyState(UiStatePolicyManager::AppState::Idle);
 
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
-    m_mw.m_registry->ensureLanguageController();
+    m_mw.m_registry->foundation()->ensureLanguageController();
 
     // ドックレイアウト関連のメニュー配線を DockLayoutManager へ移譲
     m_mw.m_registry->ensureDockLayoutManager();

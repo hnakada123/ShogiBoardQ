@@ -495,6 +495,128 @@ private slots:
         QVERIFY(static_cast<int>(CsaClient::GameEndCause::Resign) == 0);
         QVERIFY(static_cast<int>(CsaClient::GameEndCause::Unknown) == 9);
     }
+
+    // ========================================
+    // Table-driven: csaToUsi 異常入力の堅牢性
+    // ========================================
+
+    void csaToUsi_robustness_data()
+    {
+        QTest::addColumn<QString>("csaMove");
+        QTest::addColumn<bool>("expectEmpty");
+
+        QTest::newRow("single_char")
+            << QStringLiteral("X") << true;
+        QTest::newRow("prefix_only")
+            << QStringLiteral("+") << true;
+        QTest::newRow("three_chars")
+            << QStringLiteral("+77") << true;
+        QTest::newRow("six_chars_one_short")
+            << QStringLiteral("+7776F") << true;
+        QTest::newRow("non_digit_coordinates")
+            << QStringLiteral("+ABCDFU") << false;
+        QTest::newRow("whitespace_7chars")
+            << QStringLiteral("       ") << false;
+    }
+
+    void csaToUsi_robustness()
+    {
+        QFETCH(QString, csaMove);
+        QFETCH(bool, expectEmpty);
+
+        QString result = CsaMoveConverter::csaToUsi(csaMove);
+        if (expectEmpty) {
+            QVERIFY(result.isEmpty());
+        }
+        // All cases: must not crash
+    }
+
+    // ========================================
+    // Table-driven: SfenCsaPositionConverter 異常入力
+    // ========================================
+
+    void fromCsaPositionLines_abnormal_data()
+    {
+        QTest::addColumn<QStringList>("csaLines");
+
+        QTest::newRow("invalid_rank_line")
+            << QStringList{QStringLiteral("PX-KY-KE-GI-KI-OU-KI-GI-KE-KY"), QStringLiteral("+")};
+        QTest::newRow("turn_indicator_only")
+            << QStringList{QStringLiteral("+")};
+        QTest::newRow("garbage_lines")
+            << QStringList{QStringLiteral("foo"), QStringLiteral("bar"), QStringLiteral("baz")};
+    }
+
+    void fromCsaPositionLines_abnormal()
+    {
+        QFETCH(QStringList, csaLines);
+
+        QString sfen;
+        QString error;
+        // Must not crash regardless of input
+        SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &sfen, &error);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // Table-driven: csaPieceToUsi 異常入力
+    // ========================================
+
+    void csaPieceToUsi_abnormal_data()
+    {
+        QTest::addColumn<QString>("csaPiece");
+        QTest::addColumn<QString>("expectedUsi");
+
+        // csaPieceToUsi defaults to "P" for unknown pieces
+        QTest::newRow("empty_string")
+            << QString() << QStringLiteral("P");
+        QTest::newRow("single_char")
+            << QStringLiteral("F") << QStringLiteral("P");
+        QTest::newRow("unknown_two_chars")
+            << QStringLiteral("XX") << QStringLiteral("P");
+        QTest::newRow("lowercase")
+            << QStringLiteral("fu") << QStringLiteral("P");
+        QTest::newRow("three_chars")
+            << QStringLiteral("FUX") << QStringLiteral("P");
+    }
+
+    void csaPieceToUsi_abnormal()
+    {
+        QFETCH(QString, csaPiece);
+        QFETCH(QString, expectedUsi);
+
+        QString result = CsaMoveConverter::csaPieceToUsi(csaPiece);
+        QCOMPARE(result, expectedUsi);
+    }
+
+    // ========================================
+    // Table-driven: GameSummary 異常な時間単位
+    // ========================================
+
+    void gameSummary_timeUnitMs_abnormal_data()
+    {
+        QTest::addColumn<QString>("timeUnit");
+        QTest::addColumn<int>("expectedMs");
+
+        QTest::newRow("unknown_unit")
+            << QStringLiteral("1hour") << 1000;
+        QTest::newRow("numeric_only")
+            << QStringLiteral("1000") << 1000;
+        QTest::newRow("garbage")
+            << QStringLiteral("xyz") << 1000;
+        QTest::newRow("whitespace")
+            << QStringLiteral("  ") << 1000;
+    }
+
+    void gameSummary_timeUnitMs_abnormal()
+    {
+        QFETCH(QString, timeUnit);
+        QFETCH(int, expectedMs);
+
+        CsaClient::GameSummary gs;
+        gs.timeUnit = timeUnit;
+        QCOMPARE(gs.timeUnitMs(), expectedMs);
+    }
 };
 
 QTEST_MAIN(Tst_CsaProtocol)

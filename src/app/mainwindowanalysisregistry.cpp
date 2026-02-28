@@ -10,7 +10,6 @@
 
 #include "pvclickcontroller.h"
 #include "considerationpositionservice.h"
-#include "analysisresultspresenter.h"
 #include "considerationwiring.h"
 #include "usicommandcontroller.h"
 #include "engineanalysistab.h"
@@ -67,16 +66,6 @@ void MainWindowServiceRegistry::ensureConsiderationPositionService()
     deps.match = m_mw.m_match;
     deps.analysisTab = m_mw.m_analysisTab;
     m_mw.m_considerationPositionService->updateDeps(deps);
-}
-
-// ---------------------------------------------------------------------------
-// 解析結果プレゼンター
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::ensureAnalysisPresenter()
-{
-    if (!m_mw.m_analysisPresenter)
-        m_mw.m_analysisPresenter = std::make_unique<AnalysisResultsPresenter>();
 }
 
 // ---------------------------------------------------------------------------

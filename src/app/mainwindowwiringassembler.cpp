@@ -5,6 +5,7 @@
 
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
+#include "mainwindowfoundationregistry.h"
 #include "mainwindowmatchadapter.h"
 #include "mainwindowmatchwiringdepsservice.h"
 #include "mainwindowsignalrouter.h"
@@ -56,7 +57,7 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     ensureKifuFileController();
     in.autoSaveKifu = std::bind(&KifuFileController::autoSaveKifuToFile, m_mw.m_kifuFileController, _1, _2, _3, _4, _5, _6);
 
-    ensureKifuNavigationCoordinator();
+    m_foundation->ensureKifuNavigationCoordinator();
     in.updateHighlightsForPly = std::bind(&KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, m_mw.m_kifuNavCoordinator.get(), _1);
     in.updateTurnAndTimekeepingDisplay = std::bind(&MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay, adapter);
     in.isHumanSide = std::bind(&MatchRuntimeQueryService::isHumanSide, m_mw.m_queryService.get(), _1);
@@ -79,10 +80,10 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     in.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
 
     in.ensureTimeController           = std::bind(&MainWindowServiceRegistry::ensureTimeController, this);
-    in.ensureEvaluationGraphController = std::bind(&MainWindowServiceRegistry::ensureEvaluationGraphController, this);
-    in.ensurePlayerInfoWiring         = std::bind(&MainWindowServiceRegistry::ensurePlayerInfoWiring, this);
+    in.ensureEvaluationGraphController = std::bind(&MainWindowFoundationRegistry::ensureEvaluationGraphController, m_foundation);
+    in.ensurePlayerInfoWiring         = std::bind(&MainWindowFoundationRegistry::ensurePlayerInfoWiring, m_foundation);
     in.ensureUsiCommandController     = std::bind(&MainWindowServiceRegistry::ensureUsiCommandController, this);
-    in.ensureUiStatePolicyManager     = std::bind(&MainWindowServiceRegistry::ensureUiStatePolicyManager, this);
+    in.ensureUiStatePolicyManager     = std::bind(&MainWindowFoundationRegistry::ensureUiStatePolicyManager, m_foundation);
     in.connectBoardClicks             = std::bind(&MainWindowSignalRouter::connectBoardClicks, m_mw.m_signalRouter.get());
     in.connectMoveRequested           = std::bind(&MainWindowSignalRouter::connectMoveRequested, m_mw.m_signalRouter.get());
 
@@ -114,12 +115,12 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getGameController    = [this]() { return m_mw.m_gameController; };
     d.getMatch             = [this]() { return m_mw.m_match; };
     d.getShogiView         = [this]() { return m_mw.m_shogiView; };
-    d.getJishogiController = [this]() { ensureJishogiController(); return m_mw.m_jishogiController.get(); };
-    d.getNyugyokuHandler   = [this]() { ensureNyugyokuHandler(); return m_mw.m_nyugyokuHandler.get(); };
+    d.getJishogiController = [this]() { m_foundation->ensureJishogiController(); return m_mw.m_jishogiController.get(); };
+    d.getNyugyokuHandler   = [this]() { m_foundation->ensureNyugyokuHandler(); return m_mw.m_nyugyokuHandler.get(); };
     d.getCsaGameWiring     = [this]() { ensureCsaGameWiring(); return m_mw.m_csaGameWiring.get(); };
     d.getBoardSetupController = [this]() { ensureBoardSetupController(); return m_mw.m_boardSetupController; };
-    d.getPlayerInfoWiring  = [this]() { ensurePlayerInfoWiring(); return m_mw.m_playerInfoWiring; };
-    d.getAnalysisPresenter = [this]() { ensureAnalysisPresenter(); return m_mw.m_analysisPresenter.get(); };
+    d.getPlayerInfoWiring  = [this]() { m_foundation->ensurePlayerInfoWiring(); return m_mw.m_playerInfoWiring; };
+    d.getAnalysisPresenter = [this]() { m_foundation->ensureAnalysisPresenter(); return m_mw.m_analysisPresenter.get(); };
     d.getUsi1              = [this]() { return m_mw.m_usi1; };
     d.getAnalysisTab       = [this]() { return m_mw.m_analysisTab; };
     d.getLineEditModel1    = [this]() { return m_mw.m_models.commLog1; };

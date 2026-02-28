@@ -2,6 +2,7 @@
 /// @brief USIプロトコル送受信管理クラスの実装
 
 #include "usiprotocolhandler.h"
+#include "usimovecoordinateconverter.h"
 #include "logcategories.h"
 #include "engineprocessmanager.h"
 #include "thinkinginfopresenter.h"
@@ -17,54 +18,6 @@
 #include <QThread>
 
 using namespace EngineSettingsConstants;
-
-// ============================================================
-// 静的メンバ変数の定義
-// ============================================================
-
-const QMap<int, QString>& UsiProtocolHandler::firstPlayerPieceMap()
-{
-    static const auto& m = *[]() {
-        static const QMap<int, QString> map = {
-            {1, "P*"}, {2, "L*"}, {3, "N*"}, {4, "S*"}, {5, "G*"}, {6, "B*"}, {7, "R*"}
-        };
-        return &map;
-    }();
-    return m;
-}
-
-const QMap<int, QString>& UsiProtocolHandler::secondPlayerPieceMap()
-{
-    static const auto& m = *[]() {
-        static const QMap<int, QString> map = {
-            {3, "R*"}, {4, "B*"}, {5, "G*"}, {6, "S*"}, {7, "N*"}, {8, "L*"}, {9, "P*"}
-        };
-        return &map;
-    }();
-    return m;
-}
-
-const QMap<QChar, int>& UsiProtocolHandler::pieceRankWhite()
-{
-    static const auto& m = *[]() {
-        static const QMap<QChar, int> map = {
-            {'P', 9}, {'L', 8}, {'N', 7}, {'S', 6}, {'G', 5}, {'B', 4}, {'R', 3}
-        };
-        return &map;
-    }();
-    return m;
-}
-
-const QMap<QChar, int>& UsiProtocolHandler::pieceRankBlack()
-{
-    static const auto& m = *[]() {
-        static const QMap<QChar, int> map = {
-            {'P', 1}, {'L', 2}, {'N', 3}, {'S', 4}, {'G', 5}, {'B', 6}, {'R', 7}
-        };
-        return &map;
-    }();
-    return m;
-}
 
 namespace {
 const QRegularExpression& whitespaceRe()
@@ -234,27 +187,30 @@ void UsiProtocolHandler::sendPosition(const QString& positionStr)
     sendCommand(positionStr);
 }
 
-void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QString& wtime,
-                                int bincMs, int wincMs, bool useByoyomi)
+void UsiProtocolHandler::beginMainSearch()
 {
     if (m_presenter) {
         m_presenter->requestClearThinkingInfo();
     }
+    m_lastGoToBestmoveMs = 0;
+    m_goTimer.start();
+    m_phase = SearchPhase::Main;
+}
+
+void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QString& wtime,
+                                int bincMs, int wincMs, bool useByoyomi)
+{
+    beginMainSearch();
 
     QString command;
     if (useByoyomi) {
-        command = "go btime " + btime + " wtime " + wtime + 
+        command = "go btime " + btime + " wtime " + wtime +
                   " byoyomi " + QString::number(byoyomiMs);
     } else {
         command = "go btime " + btime + " wtime " + wtime +
                   " binc " + QString::number(bincMs) +
                   " winc " + QString::number(wincMs);
     }
-
-    m_lastGoToBestmoveMs = 0;
-    m_goTimer.start();
-    m_phase = SearchPhase::Main;
-
     sendCommand(command);
 }
 
@@ -263,17 +219,14 @@ void UsiProtocolHandler::sendGoPonder()
     if (m_presenter) {
         m_presenter->requestClearThinkingInfo();
     }
-
     m_phase = SearchPhase::Ponder;
     ++m_ponderSession;
-
     sendCommand("go ponder");
 }
 
 void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
 {
     m_modeTsume = true;
-
     if (infinite || timeMs <= 0) {
         sendCommand("go mate infinite");
     } else {
@@ -283,40 +236,19 @@ void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
 
 void UsiProtocolHandler::sendGoDepth(int depth)
 {
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
-
-    m_lastGoToBestmoveMs = 0;
-    m_goTimer.start();
-    m_phase = SearchPhase::Main;
-
+    beginMainSearch();
     sendCommand(QStringLiteral("go depth %1").arg(depth));
 }
 
 void UsiProtocolHandler::sendGoNodes(qint64 nodes)
 {
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
-
-    m_lastGoToBestmoveMs = 0;
-    m_goTimer.start();
-    m_phase = SearchPhase::Main;
-
+    beginMainSearch();
     sendCommand(QStringLiteral("go nodes %1").arg(nodes));
 }
 
 void UsiProtocolHandler::sendGoMovetime(int timeMs)
 {
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
-
-    m_lastGoToBestmoveMs = 0;
-    m_goTimer.start();
-    m_phase = SearchPhase::Main;
-
+    beginMainSearch();
     sendCommand(QStringLiteral("go movetime %1").arg(timeMs));
 }
 
@@ -327,15 +259,7 @@ void UsiProtocolHandler::sendGoSearchmoves(const QStringList& moves, bool infini
         sendCommand(QStringLiteral("go infinite"));
         return;
     }
-
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
-
-    m_lastGoToBestmoveMs = 0;
-    m_goTimer.start();
-    m_phase = SearchPhase::Main;
-
+    beginMainSearch();
     QString command = QStringLiteral("go searchmoves ") + moves.join(QLatin1Char(' '));
     if (infinite) {
         command += QStringLiteral(" infinite");
@@ -350,15 +274,7 @@ void UsiProtocolHandler::sendGoSearchmovesDepth(const QStringList& moves, int de
         sendGoDepth(depth);
         return;
     }
-
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
-
-    m_lastGoToBestmoveMs = 0;
-    m_goTimer.start();
-    m_phase = SearchPhase::Main;
-
+    beginMainSearch();
     QString command = QStringLiteral("go searchmoves ") + moves.join(QLatin1Char(' '));
     command += QStringLiteral(" depth %1").arg(depth);
     sendCommand(command);
@@ -371,15 +287,7 @@ void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int
         sendGoMovetime(timeMs);
         return;
     }
-
-    if (m_presenter) {
-        m_presenter->requestClearThinkingInfo();
-    }
-
-    m_lastGoToBestmoveMs = 0;
-    m_goTimer.start();
-    m_phase = SearchPhase::Main;
-
+    beginMainSearch();
     QString command = QStringLiteral("go searchmoves ") + moves.join(QLatin1Char(' '));
     command += QStringLiteral(" movetime %1").arg(timeMs);
     sendCommand(command);
@@ -440,42 +348,34 @@ void UsiProtocolHandler::sendRaw(const QString& command)
 // 待機メソッド
 // ============================================================
 
-bool UsiProtocolHandler::waitForUsiOk(int timeoutMs)
+bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
+                                             void(UsiProtocolHandler::*signal)(),
+                                             int timeoutMs)
 {
-    if (m_usiOkReceived) return true;
-
-    m_usiOkReceived = false;
+    if (flag) return true;
+    flag = false;
 
     QEventLoop loop;
     QTimer timer;
     timer.setSingleShot(true);
-
     connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    connect(this, &UsiProtocolHandler::usiOkReceived, &loop, &QEventLoop::quit);
-
+    connect(this, signal, &loop, &QEventLoop::quit);
     timer.start(timeoutMs);
     loop.exec();
 
-    return m_usiOkReceived;
+    return flag;
+}
+
+bool UsiProtocolHandler::waitForUsiOk(int timeoutMs)
+{
+    return waitForResponseFlag(m_usiOkReceived,
+                               &UsiProtocolHandler::usiOkReceived, timeoutMs);
 }
 
 bool UsiProtocolHandler::waitForReadyOk(int timeoutMs)
 {
-    if (m_readyOkReceived) return true;
-
-    m_readyOkReceived = false;
-
-    QEventLoop loop;
-    QTimer timer;
-    timer.setSingleShot(true);
-
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    connect(this, &UsiProtocolHandler::readyOkReceived, &loop, &QEventLoop::quit);
-
-    timer.start(timeoutMs);
-    loop.exec();
-
-    return m_readyOkReceived;
+    return waitForResponseFlag(m_readyOkReceived,
+                               &UsiProtocolHandler::readyOkReceived, timeoutMs);
 }
 
 bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
@@ -738,7 +638,6 @@ void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom,
                                               int& fileTo, int& rankTo)
 {
     fileFrom = rankFrom = fileTo = rankTo = -1;
-
     const QString move = m_bestMove.trimmed();
 
     if (m_specialMove != SpecialMove::None) {
@@ -755,127 +654,40 @@ void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom,
     const bool promote = (move.size() >= 5 && move.at(4) == QLatin1Char('+'));
     if (m_gameController) m_gameController->setPromote(promote);
 
-    parseMoveFrom(move, fileFrom, rankFrom);
-    if (fileFrom < 0 || rankFrom < 0) return;
+    const bool isP1 = m_gameController &&
+        m_gameController->currentPlayer() == ShogiGameController::Player1;
 
-    parseMoveTo(move, fileTo, rankTo);
-}
-
-void UsiProtocolHandler::parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom)
-{
-    if (QStringLiteral("123456789").contains(move[0])) {
-        fileFrom = move[0].digitValue();
-        auto optRank = alphabetToRank(move[1]);
-        if (!optRank || fileFrom < 1 || fileFrom > 9) {
-            emit errorOccurred(tr("Invalid move coordinates in moveFrom: file=%1, rank=%2").arg(fileFrom).arg(optRank.value_or(-1)));
-            cancelCurrentOperation();
-            return;
-        }
-        rankFrom = *optRank;
-        return;
-    }
-
-    if (QStringLiteral("PLNSGBR").contains(move[0]) && move[1] == '*') {
-        if (m_gameController && 
-            m_gameController->currentPlayer() == ShogiGameController::Player1) {
-            fileFrom = SENTE_HAND_FILE;
-            rankFrom = pieceToRankBlack(move[0]);
-        } else {
-            fileFrom = GOTE_HAND_FILE;
-            rankFrom = pieceToRankWhite(move[0]);
-        }
-        return;
-    }
-
-    emit errorOccurred(tr("Invalid move format in moveFrom"));
-    cancelCurrentOperation();
-}
-
-void UsiProtocolHandler::parseMoveTo(const QString& move, int& fileTo, int& rankTo)
-{
-    if (!move[2].isDigit() || !move[3].isLetter()) {
-        emit errorOccurred(tr("Invalid move format in moveTo"));
+    QString errorMsg;
+    if (!UsiMoveCoordinateConverter::parseMoveFrom(move, fileFrom, rankFrom, isP1, errorMsg)
+        || !UsiMoveCoordinateConverter::parseMoveTo(move, fileTo, rankTo, errorMsg)) {
+        emit errorOccurred(errorMsg);
         cancelCurrentOperation();
-        return;
     }
-
-    fileTo = move[2].digitValue();
-    auto optRank = alphabetToRank(move[3]);
-    if (!optRank || fileTo < 1 || fileTo > 9) {
-        emit errorOccurred(tr("Invalid move coordinates in moveTo: file=%1, rank=%2").arg(fileTo).arg(optRank.value_or(-1)));
-        cancelCurrentOperation();
-        return;
-    }
-    rankTo = *optRank;
 }
 
 QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoint& to,
                                                   bool promote)
 {
-    const int fileFrom = from.x();
-    const int rankFrom = from.y();
-    const int fileTo = to.x();
-    const int rankTo = to.y();
-
-    QString result;
-
-    if (fileFrom >= 1 && fileFrom <= BOARD_SIZE) {
-        result = QString::number(fileFrom) + rankToAlphabet(rankFrom);
-        result += QString::number(fileTo) + rankToAlphabet(rankTo);
-        if (promote) result += "+";
-    } else if (fileFrom == SENTE_HAND_FILE) {
-        result = convertFirstPlayerPieceSymbol(rankFrom);
-        result += QString::number(fileTo) + rankToAlphabet(rankTo);
-    } else if (fileFrom == GOTE_HAND_FILE) {
-        result = convertSecondPlayerPieceSymbol(rankFrom);
-        result += QString::number(fileTo) + rankToAlphabet(rankTo);
-    } else {
-        emit errorOccurred(tr("Invalid fileFrom value"));
-        return QString();
+    QString errorMsg;
+    QString result = UsiMoveCoordinateConverter::convertHumanMoveToUsi(from, to, promote, errorMsg);
+    if (!errorMsg.isEmpty()) {
+        emit errorOccurred(errorMsg);
     }
-
     return result;
 }
 
 // ============================================================
-// 座標変換ユーティリティ
+// 座標変換ユーティリティ（UsiMoveCoordinateConverterへの委譲）
 // ============================================================
 
 QChar UsiProtocolHandler::rankToAlphabet(int rank)
 {
-    if (rank < 1 || rank > 9) {
-        qCWarning(lcEngine, "rankToAlphabet: rank %d out of range 1-9", rank);
-        return QChar('?');
-    }
-    return QChar('a' + rank - 1);
+    return UsiMoveCoordinateConverter::rankToAlphabet(rank);
 }
 
 std::optional<int> UsiProtocolHandler::alphabetToRank(QChar c)
 {
-    const char ch = c.toLatin1();
-    if (ch < 'a' || ch > 'i')
-        return std::nullopt;
-    return ch - 'a' + 1;
-}
-
-QString UsiProtocolHandler::convertFirstPlayerPieceSymbol(int rankFrom) const
-{
-    return firstPlayerPieceMap().value(rankFrom, QString());
-}
-
-QString UsiProtocolHandler::convertSecondPlayerPieceSymbol(int rankFrom) const
-{
-    return secondPlayerPieceMap().value(rankFrom, QString());
-}
-
-int UsiProtocolHandler::pieceToRankWhite(QChar c)
-{
-    return pieceRankWhite().value(c, 0);
-}
-
-int UsiProtocolHandler::pieceToRankBlack(QChar c)
-{
-    return pieceRankBlack().value(c, 0);
+    return UsiMoveCoordinateConverter::alphabetToRank(c);
 }
 
 // ============================================================
