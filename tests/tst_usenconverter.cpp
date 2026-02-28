@@ -238,6 +238,34 @@ private slots:
         // Terminal code should be "r" (resign)
         QCOMPARE(terminal, QStringLiteral("r"));
     }
+
+    // ========================================
+    // Table-driven: abnormal USEN encodings
+    // ========================================
+
+    void decodeUsenMoves_abnormal_data()
+    {
+        QTest::addColumn<QString>("usenInput");
+
+        QTest::newRow("no_tilde_prefix")
+            << QStringLiteral("0.7ku2jm");
+        QTest::newRow("only_tilde")
+            << QStringLiteral("~");
+        QTest::newRow("tilde_dot_only")
+            << QStringLiteral("~0.");
+        QTest::newRow("special_characters")
+            << QStringLiteral("~0.@#$%^&*()");
+    }
+
+    void decodeUsenMoves_abnormal()
+    {
+        QFETCH(QString, usenInput);
+
+        // Must not crash regardless of input
+        QStringList decoded = UsenToSfenConverter::decodeUsenMoves(usenInput);
+        Q_UNUSED(decoded);
+        QVERIFY(true);
+    }
 };
 
 QTEST_MAIN(TestUsenConverter)

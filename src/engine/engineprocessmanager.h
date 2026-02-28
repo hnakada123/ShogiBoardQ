@@ -10,6 +10,7 @@
 #include <QPointer>
 #include <QString>
 #include <QStringList>
+#include <memory>
 
 /**
  * @brief 将棋エンジンプロセスの管理クラス
@@ -103,7 +104,7 @@ private slots:
     void onProcessFinished(int exitCode, QProcess::ExitStatus status);
 
 private:
-    QProcess* m_process = nullptr;              ///< エンジンプロセス（所有、this親）
+    std::unique_ptr<QProcess> m_process;        ///< エンジンプロセス（unique_ptr所有）
     ShutdownState m_shutdownState = ShutdownState::Running; ///< 現在のシャットダウン状態
     int m_postQuitInfoStringLinesLeft = 0;      ///< quit後に許可するinfo string残行数
 

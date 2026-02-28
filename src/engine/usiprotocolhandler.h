@@ -122,18 +122,23 @@ public:
     void waitForStopOrPonderhit();
 
     // --- 指し手処理 ---
-    
+
     /// bestmoveの座標を解析
     void parseMoveCoordinates(int& fileFrom, int& rankFrom, int& fileTo, int& rankTo);
-    
+
     /// 人間の指し手をUSI形式に変換
     QString convertHumanMoveToUsi(const QPoint& from, const QPoint& to, bool promote);
-    
+
     /// 現在のbestmoveを取得
     QString bestMove() const { return m_bestMove; }
-    
+
     /// 予想手を取得
     QString predictedMove() const { return m_predictedOpponentMove; }
+
+    // --- 座標変換ユーティリティ（UsiMoveCoordinateConverterへの委譲） ---
+
+    static QChar rankToAlphabet(int rank);
+    static std::optional<int> alphabetToRank(QChar c);
 
     // --- 状態管理 ---
     
@@ -153,13 +158,6 @@ public:
     
     /// オペレーションをキャンセル
     void cancelCurrentOperation();
-
-    // --- 座標変換ユーティリティ ---
-    
-    static QChar rankToAlphabet(int rank);
-    static std::optional<int> alphabetToRank(QChar c);
-    QString convertFirstPlayerPieceSymbol(int rankFrom) const;
-    QString convertSecondPlayerPieceSymbol(int rankFrom) const;
 
 signals:
     void usiOkReceived();              ///< usiok受信（Handler → waitForUsiOk）
@@ -194,11 +192,11 @@ private:
     /// 待機中断判定
     bool shouldAbortWait() const;
 
-    /// 指し手解析ヘルパ
-    void parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom);
-    void parseMoveTo(const QString& move, int& fileTo, int& rankTo);
-    int pieceToRankWhite(QChar c);
-    int pieceToRankBlack(QChar c);
+    /// go本探索の共通前処理
+    void beginMainSearch();
+
+    /// 待機メソッドの共通実装
+    bool waitForResponseFlag(bool& flag, void(UsiProtocolHandler::*signal)(), int timeoutMs);
 
     /// オペレーションコンテキスト
     quint64 beginOperationContext();
@@ -243,11 +241,6 @@ private:
     QPointer<QObject> m_opCtx { nullptr }; ///< 現在のオペレーション（所有、キャンセル時にdelete）
     quint64 m_seq { 0 };               ///< オペレーション通番（キャンセル検出用）
 
-    // --- 駒変換マップ（関数でアクセス） ---
-    static const QMap<int, QString>& firstPlayerPieceMap();
-    static const QMap<int, QString>& secondPlayerPieceMap();
-    static const QMap<QChar, int>& pieceRankWhite();
-    static const QMap<QChar, int>& pieceRankBlack();
 };
 
 #endif // USIPROTOCOLHANDLER_H

@@ -520,6 +520,7 @@ QString usiTokenToKanji(const QString& token)
     if (token.isEmpty()) return QStringLiteral("?");
 
     const bool promoted = token.startsWith(QChar('+'));
+    if (promoted && token.size() < 2) return QStringLiteral("?");
     const QChar pieceChar = promoted ? token.at(1) : token.at(0);
 
     switch (pieceChar.toUpper().toLatin1()) {

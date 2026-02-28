@@ -5,6 +5,7 @@
 
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
+#include "mainwindowfoundationregistry.h"
 
 #include "analysistabwiring.h"
 #include "branchnavigationwiring.h"
@@ -30,7 +31,7 @@ void MainWindowServiceRegistry::setupRecordPane()
 
     // Wiring の生成
     if (!m_mw.m_recordPaneWiring) {
-        ensureCommentCoordinator();
+        m_foundation->ensureCommentCoordinator();
         RecordPaneWiring::Deps d;
         d.parent             = m_mw.m_central;                               // 親ウィジェット
         d.ctx                = &m_mw;                                        // RecordPane::mainRowChanged の受け先
@@ -77,7 +78,7 @@ void MainWindowServiceRegistry::setupEngineAnalysisTab()
     }
 
     // 外部シグナル接続を AnalysisTabWiring に委譲
-    ensureCommentCoordinator();
+    m_foundation->ensureCommentCoordinator();
     ensureUsiCommandController();
     ensureConsiderationWiring();
     ensurePvClickController();
@@ -101,7 +102,7 @@ void MainWindowServiceRegistry::configureAnalysisTabDependencies()
     }
 
     // PlayerInfoWiringにも検討タブを設定
-    ensurePlayerInfoWiring();
+    m_foundation->ensurePlayerInfoWiring();
     if (m_mw.m_playerInfoWiring) {
         m_mw.m_playerInfoWiring->setAnalysisTab(m_mw.m_analysisTab);
         // 起動時に対局情報タブを追加
@@ -131,7 +132,7 @@ void MainWindowServiceRegistry::createEvalChartDock()
     }
 
     // DockCreationServiceに委譲
-    ensureDockCreationService();
+    m_foundation->ensureDockCreationService();
     m_mw.m_dockCreationService->setEvalChart(m_mw.m_evalChart);
     m_mw.m_docks.evalChart = m_mw.m_dockCreationService->createEvalChartDock();
 }
@@ -144,7 +145,7 @@ void MainWindowServiceRegistry::createRecordPaneDock()
     }
 
     // DockCreationServiceに委譲
-    ensureDockCreationService();
+    m_foundation->ensureDockCreationService();
     m_mw.m_dockCreationService->setRecordPane(m_mw.m_recordPane);
     m_mw.m_docks.recordPane = m_mw.m_dockCreationService->createRecordPaneDock();
 }
@@ -157,14 +158,14 @@ void MainWindowServiceRegistry::createAnalysisDocks()
     }
 
     // 対局情報コントローラを準備し、デフォルト値を設定
-    ensurePlayerInfoWiring();
+    m_foundation->ensurePlayerInfoWiring();
     if (m_mw.m_playerInfoWiring) {
         m_mw.m_playerInfoWiring->ensureGameInfoController();
         m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
     }
 
     // DockCreationServiceに委譲
-    ensureDockCreationService();
+    m_foundation->ensureDockCreationService();
     m_mw.m_dockCreationService->setAnalysisTab(m_mw.m_analysisTab);
     m_mw.m_dockCreationService->setGameInfoController(m_mw.m_gameInfoController);
     m_mw.m_dockCreationService->setModels(m_mw.m_models.thinking1, m_mw.m_models.thinking2, m_mw.m_models.commLog1, m_mw.m_models.commLog2);
@@ -188,14 +189,14 @@ void MainWindowServiceRegistry::createMenuWindowDock()
 void MainWindowServiceRegistry::createMenuWindowDockImpl()
 {
     // MenuWindowWiringを確保
-    ensureMenuWiring();
+    m_foundation->ensureMenuWiring();
     if (!m_mw.m_menuWiring) {
         qCWarning(lcApp) << "createMenuWindowDock: MenuWindowWiring is null!";
         return;
     }
 
     // DockCreationServiceに委譲
-    ensureDockCreationService();
+    m_foundation->ensureDockCreationService();
     m_mw.m_dockCreationService->setMenuWiring(m_mw.m_menuWiring);
     m_mw.m_docks.menuWindow = m_mw.m_dockCreationService->createMenuWindowDock();
 }
@@ -210,7 +211,7 @@ void MainWindowServiceRegistry::createJosekiWindowDock()
     }
 
     // DockCreationServiceに委譲
-    ensureDockCreationService();
+    m_foundation->ensureDockCreationService();
     m_mw.m_dockCreationService->setJosekiWiring(m_mw.m_josekiWiring.get());
     m_mw.m_docks.josekiWindow = m_mw.m_dockCreationService->createJosekiWindowDock();
 
@@ -224,14 +225,14 @@ void MainWindowServiceRegistry::createJosekiWindowDock()
 void MainWindowServiceRegistry::createAnalysisResultsDock()
 {
     // AnalysisResultsPresenterを確保
-    ensureAnalysisPresenter();
+    m_foundation->ensureAnalysisPresenter();
     if (!m_mw.m_analysisPresenter) {
         qCWarning(lcApp) << "createAnalysisResultsDock: AnalysisResultsPresenter is null!";
         return;
     }
 
     // DockCreationServiceに委譲
-    ensureDockCreationService();
+    m_foundation->ensureDockCreationService();
     m_mw.m_dockCreationService->setAnalysisPresenter(m_mw.m_analysisPresenter.get());
     m_mw.m_docks.analysisResults = m_mw.m_dockCreationService->createAnalysisResultsDock();
 }

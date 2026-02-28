@@ -24,6 +24,8 @@
 #include "shogienginethinkingmodel.h"
 #include "playmode.h"
 
+class UsiMatchHandler;
+
 /**
  * @brief USIプロトコル通信を管理するファサードクラス
  *
@@ -221,6 +223,7 @@ private:
     std::unique_ptr<EngineProcessManager> m_processManager;  ///< エンジンプロセス管理（所有）
     std::unique_ptr<UsiProtocolHandler> m_protocolHandler;    ///< USIプロトコル送受信（所有）
     std::unique_ptr<ThinkingInfoPresenter> m_presenter;       ///< GUI表示更新（所有）
+    std::unique_ptr<UsiMatchHandler> m_matchHandler;          ///< 対局通信・盤面データ管理（所有）
 
     // --- 外部参照（QPointerで生存を追跡）---
 
@@ -233,8 +236,6 @@ private:
 
     int m_previousFileTo = 0;                        ///< 前回の指し手の移動先筋
     int m_previousRankTo = 0;                        ///< 前回の指し手の移動先段
-    QString m_lastUsiMove;                           ///< 開始局面に至った最後の指し手（USI形式、読み筋ハイライト用）
-    QVector<QChar> m_clonedBoardData;                ///< 読み筋変換用にクローンした盤面データ
     bool m_gameoverSent = false;                     ///< gameover送信済みフラグ（重複送信防止）
     QString m_pvKanjiStr;                            ///< 読み筋の漢字表記
     QPointer<ShogiEngineThinkingModel> m_considerationModel; ///< 検討タブ用モデルへの参照（非所有）
@@ -242,37 +243,9 @@ private:
     QTimer* m_analysisStopTimer = nullptr;           ///< 検討停止タイマー（所有、動的生成）
 
     // --- プライベートメソッド ---
-    
+
     void setupConnections();
     bool changeDirectoryToEnginePath(const QString& engineFile);
-    void cloneCurrentBoardData();
-    void applyMovesToBoardFromBestMoveAndPonder();
-    
-    void executeEngineCommunication(QString& positionStr, QString& positionPonderStr,
-                                    QPoint& outFrom, QPoint& outTo, int byoyomiMilliSec,
-                                    const QString& btime, const QString& wtime,
-                                    int addEachMoveMilliSec1, int addEachMoveMilliSec2,
-                                    bool useByoyomi);
-    
-    void processEngineResponse(QString& positionStr, QString& positionPonderStr,
-                               int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                               int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
-    
-    void sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
-                                const QString& btime, const QString& wtime,
-                                QString& positionPonderStr, int addEachMoveMilliSec1,
-                                int addEachMoveMilliSec2, bool useByoyomi);
-    
-    void startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr);
-    void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr);
-
-    QString computeBaseSfenFromBoard() const;
-    void updateBaseSfenForPonder();
-    
-    QString convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote);
-    
-    void waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime,
-                                              const QString& wtime, bool useByoyomi);
 
 private slots:
     /// エンジンプロセスエラー時のクリーンアップ処理

@@ -4,8 +4,11 @@
 /// @file mainwindowserviceregistry.h
 /// @brief ensure*/操作メソッドを一括管理するレジストリ
 ///
-/// 旧5サブレジストリ（Analysis/Board/Game/Kifu/Ui）を統合し、
-/// MainWindow の friend class を ServiceRegistry 1 つに集約する。
+/// ensure* メソッドは2層に分かれる:
+/// - MainWindowFoundationRegistry: ドメイン横断的な共通基盤（Tier 0/1）
+/// - MainWindowServiceRegistry: ドメイン固有のオーケストレーション（Tier 1〜4）
+///
+/// 設計根拠: docs/dev/ensure-graph-analysis.md
 
 #include <QObject>
 #include <QPoint>
@@ -13,15 +16,16 @@
 #include "matchcoordinatorwiring.h"
 
 class MainWindow;
+class MainWindowFoundationRegistry;
 class QString;
 
 /**
- * @brief ensure* メソッドと主要操作を一括管理するサービスレジストリ
+ * @brief ドメイン固有の ensure* メソッドと主要操作を管理するサービスレジストリ
  *
  * 責務:
  * - UI / Game / Kifu / Analysis / Board の各カテゴリに属する
  *   遅延初期化メソッドと操作メソッドの実装を集約する
- * - MainWindow 側の呼び出しコードは `m_registry->ensureXxx()` のまま変更不要
+ * - 共通基盤メソッドは MainWindowFoundationRegistry に委譲する
  *
  * 実装は複数 .cpp ファイルに分割されている:
  * - mainwindowserviceregistry.cpp       (コンストラクタ)
@@ -38,19 +42,14 @@ class MainWindowServiceRegistry : public QObject
 public:
     explicit MainWindowServiceRegistry(MainWindow& mw, QObject* parent = nullptr);
 
+    /// 共通基盤レジストリへのアクセサ
+    MainWindowFoundationRegistry* foundation() const { return m_foundation; }
+
     // ===== UI系 =====
-    void ensureEvaluationGraphController();
     void ensureRecordPresenter();
-    void ensurePlayerInfoController();
-    void ensurePlayerInfoWiring();
     void ensureDialogCoordinator();
-    void ensureMenuWiring();
     void ensureDockLayoutManager();
-    void ensureDockCreationService();
-    void ensureUiStatePolicyManager();
-    void ensureUiNotificationService();
     void ensureRecordNavigationHandler();
-    void ensureLanguageController();
     void unlockGameOverStyle();
     void createMenuWindowDock();
     void clearEvalState();
@@ -68,8 +67,6 @@ public:
     void ensureLiveGameSessionStarted();
     void ensureLiveGameSessionUpdater();
     void ensureUndoFlowService();
-    void ensureJishogiController();
-    void ensureNyugyokuHandler();
     void ensureConsecutiveGamesController();
     void ensureGameSessionOrchestrator();
     void ensureSessionLifecycleCoordinator();
@@ -87,8 +84,6 @@ public:
     void ensureGameRecordLoadService();
     void ensureKifuLoadCoordinatorForLive();
     void ensureGameRecordModel();
-    void ensureCommentCoordinator();
-    void ensureKifuNavigationCoordinator();
     void ensureJosekiWiring();
     void clearUiBeforeKifuLoad();
     void updateJosekiWindow();
@@ -96,15 +91,12 @@ public:
     // ===== Analysis系 =====
     void ensurePvClickController();
     void ensureConsiderationPositionService();
-    void ensureAnalysisPresenter();
     void ensureConsiderationWiring();
     void ensureUsiCommandController();
 
     // ===== Board/共通系 =====
     void ensureBoardSetupController();
     void ensurePositionEditCoordinator();
-    void ensurePositionEditController();
-    void ensureBoardSyncPresenter();
     void ensureBoardLoadService();
     void setupBoardInteractionController();
     void handleMoveRequested(const QPoint& from, const QPoint& to);
@@ -145,6 +137,7 @@ private:
     void configureAnalysisTabDependencies();
 
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
+    MainWindowFoundationRegistry* m_foundation;  ///< 共通基盤レジストリ（子オブジェクト）
 };
 
 #endif // MAINWINDOWSERVICEREGISTRY_H

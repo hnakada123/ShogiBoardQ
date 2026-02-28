@@ -14,6 +14,7 @@
 #include <QWidget>
 
 #include "usi.h"
+#include "usimatchhandler.h"
 #include "kifuanalysisdialog.h"
 #include "analysisresultspresenter.h"
 #include "kifurecordlistmodel.h"
@@ -91,20 +92,7 @@ void Usi::sendPositionAndGoMateCommands(int, QString&) {}
 void Usi::cancelCurrentOperation() {}
 void Usi::setupConnections() {}
 bool Usi::changeDirectoryToEnginePath(const QString&) { return false; }
-void Usi::cloneCurrentBoardData() {}
-void Usi::applyMovesToBoardFromBestMoveAndPonder() {}
-void Usi::executeEngineCommunication(QString&, QString&, QPoint&, QPoint&,
-                                      int, const QString&, const QString&, int, int, bool) {}
-void Usi::processEngineResponse(QString&, QString&, int, const QString&, const QString&,
-                                 int, int, bool) {}
-void Usi::sendCommandsAndProcess(int, QString&, const QString&, const QString&,
-                                  QString&, int, int, bool) {}
-void Usi::startPonderingAfterBestMove(QString&, QString&) {}
-void Usi::appendBestMoveAndStartPondering(QString&, QString&) {}
-QString Usi::computeBaseSfenFromBoard() const { return {}; }
-void Usi::updateBaseSfenForPonder() {}
-QString Usi::convertHumanMoveToUsiFormat(const QPoint&, const QPoint&, bool) { return {}; }
-void Usi::waitAndCheckForBestMoveRemainingTime(int, const QString&, const QString&, bool) {}
+
 void Usi::onProcessError(QProcess::ProcessError, const QString&) {}
 void Usi::onCommandSent(const QString&) {}
 void Usi::onDataReceived(const QString&) {}

@@ -39,19 +39,19 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
         stopProcess();
     }
 
-    m_process = new QProcess(this);
+    m_process = std::make_unique<QProcess>();
 
     // エンジンが相対パスで定跡ファイルや評価関数ファイルを読み込むため
     QFileInfo engineFileInfo(engineFile);
     m_process->setWorkingDirectory(engineFileInfo.absolutePath());
 
-    connect(m_process, &QProcess::readyReadStandardOutput,
+    connect(m_process.get(), &QProcess::readyReadStandardOutput,
             this, &EngineProcessManager::onReadyReadStdout);
-    connect(m_process, &QProcess::readyReadStandardError,
+    connect(m_process.get(), &QProcess::readyReadStandardError,
             this, &EngineProcessManager::onReadyReadStderr);
-    connect(m_process, &QProcess::errorOccurred,
+    connect(m_process.get(), &QProcess::errorOccurred,
             this, &EngineProcessManager::onProcessError);
-    connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+    connect(m_process.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             this, &EngineProcessManager::onProcessFinished);
 
     m_process->start(engineFile, QStringList(), QIODevice::ReadWrite);
@@ -60,8 +60,7 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
         const QString errorMsg = tr("Failed to start engine: %1").arg(engineFile);
         emit processError(QProcess::FailedToStart, errorMsg);
 
-        delete m_process;
-        m_process = nullptr;
+        m_process.reset();
         return false;
     }
 
@@ -75,7 +74,7 @@ void EngineProcessManager::stopProcess()
     if (!m_process) return;
 
     // waitForFinished() 中のシグナル配信を防ぐため、先にシグナルを切断
-    disconnect(m_process, nullptr, this, nullptr);
+    disconnect(m_process.get(), nullptr, this, nullptr);
 
     if (m_process->state() == QProcess::Running) {
         // quitコマンドは上位クラス（USIProtocolHandler）から送信済みと想定
@@ -88,8 +87,7 @@ void EngineProcessManager::stopProcess()
         }
     }
 
-    delete m_process;
-    m_process = nullptr;
+    m_process.reset();
 
     m_shutdownState = ShutdownState::Running;
     m_postQuitInfoStringLinesLeft = 0;
@@ -326,22 +324,28 @@ void EngineProcessManager::onProcessError(QProcess::ProcessError error)
     switch (error) {
     case QProcess::FailedToStart:
         errorMessage = tr("The process failed to start.");
+        qCCritical(lcEngine) << logPrefix() << errorMessage << "path=" << m_currentEnginePath;
         break;
     case QProcess::Crashed:
         errorMessage = tr("The process crashed.");
+        qCCritical(lcEngine) << logPrefix() << errorMessage;
         break;
     case QProcess::Timedout:
         errorMessage = tr("The process timed out.");
+        qCWarning(lcEngine) << logPrefix() << errorMessage;
         break;
     case QProcess::WriteError:
         errorMessage = tr("An error occurred while writing data.");
+        qCWarning(lcEngine) << logPrefix() << errorMessage;
         break;
     case QProcess::ReadError:
         errorMessage = tr("An error occurred while reading data.");
+        qCWarning(lcEngine) << logPrefix() << errorMessage;
         break;
     case QProcess::UnknownError:
     default:
         errorMessage = tr("An unknown error occurred.");
+        qCWarning(lcEngine) << logPrefix() << errorMessage;
         break;
     }
 

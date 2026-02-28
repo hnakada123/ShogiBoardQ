@@ -2,11 +2,13 @@
 /// @brief Game系（対局・ゲーム進行・ターン管理・セッションライフサイクル）の ensure* 実装
 ///
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
+/// 共通基盤メソッドは MainWindowFoundationRegistry に移動済み。
 
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
+#include "mainwindowfoundationregistry.h"
 #include "mainwindowmatchadapter.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "ui_mainwindow.h"
@@ -19,12 +21,10 @@
 #include "gamestatecontroller.h"
 #include "gamestartcoordinator.h"
 #include "gamesessionorchestrator.h"
-#include "jishogiscoredialogcontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "livegamesessionupdater.h"
 #include "matchcoordinatorwiring.h"
 #include "matchruntimequeryservice.h"
-#include "nyugyokudeclarationhandler.h"
 #include "playerinfowiring.h"
 #include "prestartcleanuphandler.h"
 #include "replaycontroller.h"
@@ -36,7 +36,6 @@
 #include "turnmanager.h"
 #include "turnsyncbridge.h"
 #include "turnstatesyncservice.h"
-#include "uinotificationservice.h"
 #include "uistatepolicymanager.h"
 #include "undoflowservice.h"
 #include "logcategories.h"
@@ -83,8 +82,8 @@ void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
         m_mw.m_matchWiring = std::make_unique<MatchCoordinatorWiring>();
     }
 
-    ensureEvaluationGraphController();
-    ensurePlayerInfoWiring();
+    m_foundation->ensureEvaluationGraphController();
+    m_foundation->ensurePlayerInfoWiring();
 
     // アダプタの生成と Deps 更新（buildMatchWiringDeps より前に必要）
     if (!m_mw.m_matchAdapter) {
@@ -100,7 +99,7 @@ void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
         ad.initializeNewGame = std::bind(&MainWindowCoreInitCoordinator::initializeNewGame,
                                          m_mw.m_coreInit.get(), std::placeholders::_1);
         ad.ensureAndGetPlayerInfoWiring = [this]() -> PlayerInfoWiring* {
-            ensurePlayerInfoWiring();
+            m_foundation->ensurePlayerInfoWiring();
             return m_mw.m_playerInfoWiring;
         };
         ad.ensureAndGetDialogCoordinator = [this]() -> DialogCoordinator* {
@@ -120,8 +119,8 @@ void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
     // 初回のみ: 転送シグナルを GameSessionOrchestrator / 各コントローラに接続
     if (firstTime) {
         ensureGameSessionOrchestrator();
-        ensurePlayerInfoWiring();
-        ensureKifuNavigationCoordinator();
+        m_foundation->ensurePlayerInfoWiring();
+        m_foundation->ensureKifuNavigationCoordinator();
         ensureBranchNavigationWiring();
 
         MatchCoordinatorWiring::ForwardingTargets targets;
@@ -141,7 +140,7 @@ void MainWindowServiceRegistry::ensureGameStateController()
 {
     if (m_mw.m_gameStateController) return;
 
-    ensureUiStatePolicyManager();
+    m_foundation->ensureUiStatePolicyManager();
 
     MainWindowDepsFactory::GameStateControllerCallbacks cbs;
     cbs.enableArrowButtons = std::bind(&UiStatePolicyManager::transitionToIdle, m_mw.m_uiStatePolicy);
@@ -151,7 +150,7 @@ void MainWindowServiceRegistry::ensureGameStateController()
         m_mw.m_kifu.activePly = ap;
         m_mw.m_kifu.currentSelectedPly = sp;
         m_mw.m_state.currentMoveIndex = mi;
-        ensureKifuNavigationCoordinator();
+        m_foundation->ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->syncNavStateToPly(sp);
     };
 
@@ -200,9 +199,9 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
     m_mw.m_csaGameWiring = std::make_unique<CsaGameWiring>(deps);
 
     // 外部シグナル接続を CsaGameWiring に委譲
-    ensureUiStatePolicyManager();
+    m_foundation->ensureUiStatePolicyManager();
     ensureGameRecordUpdateService();
-    ensureUiNotificationService();
+    m_foundation->ensureUiNotificationService();
     m_mw.m_csaGameWiring->wireExternalSignals(m_mw.m_uiStatePolicy,
                                                m_mw.m_gameRecordUpdateService.get(),
                                                m_mw.m_notificationService);
@@ -330,26 +329,6 @@ void MainWindowServiceRegistry::ensureUndoFlowService()
 }
 
 // ---------------------------------------------------------------------------
-// 持将棋コントローラ
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::ensureJishogiController()
-{
-    if (m_mw.m_jishogiController) return;
-    m_mw.m_jishogiController = std::make_unique<JishogiScoreDialogController>();
-}
-
-// ---------------------------------------------------------------------------
-// 入玉宣言ハンドラ
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::ensureNyugyokuHandler()
-{
-    if (m_mw.m_nyugyokuHandler) return;
-    m_mw.m_nyugyokuHandler = std::make_unique<NyugyokuDeclarationHandler>();
-}
-
-// ---------------------------------------------------------------------------
 // 連続対局コントローラ
 // ---------------------------------------------------------------------------
 
@@ -454,7 +433,7 @@ void MainWindowServiceRegistry::ensureCoreInitCoordinator()
     deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
     deps.ensureTurnSyncBridge = std::bind(&MainWindowServiceRegistry::ensureTurnSyncBridge, this);
     deps.ensurePlayerInfoWiringAndApply = [this]() {
-        ensurePlayerInfoWiring();
+        m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->applyPlayersNamesForMode();
             m_mw.m_playerInfoWiring->applyEngineNamesToLogModels();
@@ -487,7 +466,7 @@ void MainWindowServiceRegistry::ensureSessionLifecycleCoordinator()
     callbacks.startGame = std::bind(&GameSessionOrchestrator::invokeStartGame,
                                     m_mw.m_gameSessionOrchestrator);
     callbacks.updateEndTime = [this](const QDateTime& endTime) {
-        ensurePlayerInfoWiring();
+        m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(endTime);
         }
@@ -496,7 +475,7 @@ void MainWindowServiceRegistry::ensureSessionLifecycleCoordinator()
                                                     m_mw.m_gameSessionOrchestrator);
     callbacks.lastTimeControl = &m_mw.m_lastTimeControl;
     callbacks.updateGameInfoWithTimeControl = [this](bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incMs) {
-        ensurePlayerInfoWiring();
+        m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->updateGameInfoWithTimeControl(enabled, baseMs, byoyomiMs, incMs);
         }
@@ -582,6 +561,11 @@ void MainWindowServiceRegistry::initMatchCoordinator()
     if (!m_mw.m_gameController || !m_mw.m_shogiView) return;
 
     ensureMatchCoordinatorWiring();
+
+    // 旧 MC が wireConnections() 内で破棄されると m_match がダングリングポインタに
+    // なり、m_queryService->sfenRecord() 経由で解放済みメモリにアクセスするクラッシュの
+    // 原因となる。再初期化前に nullptr にしてガードで安全に弾けるようにする。
+    m_mw.m_match = nullptr;
 
     if (!m_mw.m_matchWiring->initializeSession(
             std::bind(&MainWindowServiceRegistry::ensureMatchCoordinatorWiring, this))) {

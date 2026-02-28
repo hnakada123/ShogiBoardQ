@@ -21,24 +21,11 @@ BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
 
 void BoardSyncPresenter::applySfenAtPly(int ply) const
 {
-    // 文字列プレビュー用
-    auto preview = [](const QString& s) -> QString {
-        return (s.size() > 200) ? (s.left(200) + QStringLiteral(" ...")) : s;
-    };
-
-    qCDebug(lcUi) << "applySfenAtPly enter"
-            << "reqPly=" << ply
-            << "rec*=" << static_cast<const void*>(m_sfenHistory)
-            << "gc=" << m_gc
-            << "board=" << (m_gc ? m_gc->board() : nullptr)
-            << "view=" << m_view;
-
     // ガード＆早期リターン
     if (!m_sfenHistory || m_sfenHistory->isEmpty() || !m_gc || !m_gc->board()) {
         qCWarning(lcUi) << "applySfenAtPly guard failed:"
                    << "rec*=" << static_cast<const void*>(m_sfenHistory)
-                   << "isEmpty?=" << (m_sfenHistory ? m_sfenHistory->isEmpty() : true)
-                   << "gc=" << m_gc << "board?=" << (m_gc ? m_gc->board() : nullptr);
+                   << "gc=" << m_gc;
         return;
     }
 
@@ -51,151 +38,44 @@ void BoardSyncPresenter::applySfenAtPly(int ply) const
     // 実際に適用するインデックスはクランプ（終局行なら常に末尾の SFEN を使う）
     const int idx = qBound(0, ply, maxIdx);
 
-    qCDebug(lcUi).noquote()
-        << QString("applySfenAtPly params reqPly=%1 size=%2 maxIdx=%3 idx=%4 terminalRow=%5")
-               .arg(ply).arg(size).arg(maxIdx).arg(idx).arg(isTerminalRow);
-
-    if (isTerminalRow) {
-        // 例：開始局面 + 4手 + 投了 → size=5, reqPly=5, idx=4
-        qCDebug(lcUi).noquote()
-            << QString("TERMINAL-ROW: non-move row (e.g. resignation). Using last SFEN at idx=%1 (size-1).")
-                   .arg(idx);
-        if (ply == size) {
-            qCDebug(lcUi) << "TERMINAL-ROW detail: reqPly == size (expected for resignation right after last move).";
-        } else if (ply > size) {
-            qCWarning(lcUi).noquote()
-            << QString("TERMINAL-ROW anomaly: reqPly(%1) > size(%2). Upstream should not overshoot too much.")
-                    .arg(ply).arg(size);
-        }
-    }
-
+    // ローカルコピーで安全にアクセス（外部から QStringList が変更されても影響なし）
     const QString sfen = m_sfenHistory->at(idx);
 
-    qCDebug(lcUi).noquote() << QString("applySfenAtPly reqPly=%1 idx=%2 size=%3 rec*=%4")
-                             .arg(ply).arg(idx).arg(size)
-                             .arg(reinterpret_cast<quintptr>(m_sfenHistory), 0, 16);
+    qCDebug(lcUi).noquote()
+        << QString("applySfenAtPly reqPly=%1 idx=%2 size=%3 terminalRow=%4")
+               .arg(ply).arg(idx).arg(size).arg(isTerminalRow);
 
-    if (size > 0) {
-        qCDebug(lcUi).noquote() << "head[0]= "   << preview(m_sfenHistory->first());
-        qCDebug(lcUi).noquote() << "tail[last]= "<< preview(m_sfenHistory->last());
-    }
-    qCDebug(lcUi).noquote() << "pick[" << idx << "]= " << preview(sfen);
-
-    // --- 追加: リスト全体に "position " 混入がないか軽くスキャン（最初の1件だけ報告） ---
-    {
-        int bad = -1;
-        for (int i = 0; i < size; ++i) {
-            if (m_sfenHistory->at(i).startsWith(QLatin1String("position "))) { bad = i; break; }
-        }
-        if (bad >= 0) {
-            qCWarning(lcUi).noquote() << "*** NON-SFEN DETECTED in m_sfenHistory at index "
-                                 << bad << ": " << preview(m_sfenHistory->at(bad));
-        }
+    if (isTerminalRow && ply > size) {
+        qCWarning(lcUi).noquote()
+            << QString("TERMINAL-ROW anomaly: reqPly(%1) > size(%2).")
+                    .arg(ply).arg(size);
     }
 
-    // --- 追加: 周辺ダンプ（idx±3 だけ） ---
-    {
-        const int from = qMax(0, idx - 3);
-        const int to   = qMin(size - 1, idx + 3);
-        for (int i = from; i <= to; ++i) {
-            const QString p = m_sfenHistory->at(i);
-            qCDebug(lcUi).noquote() << QString("win[%1]= %2").arg(i).arg(preview(p));
-        }
-    }
-
-    // --- 追加: pick文字列の基本妥当性チェック ---
     if (sfen.startsWith(QLatin1String("position "))) {
-        qCWarning(lcUi) << "*** NON-SFEN passed to presenter (starts with 'position ') at idx=" << idx;
+        qCWarning(lcUi) << "NON-SFEN passed to presenter at idx=" << idx;
     }
 
-    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts);
-    if (parts.size() == 4) {
-        const QString& boardField = parts[0];
-        const QString& turnField  = parts[1];
-        const QString& standField = parts[2];
-        const QString& moveField  = parts[3];
-
-        qCDebug(lcUi).noquote() << "fields"
-                          << " board=" << boardField
-                          << " turn=" << turnField
-                          << " stand=" << standField
-                          << " move=" << moveField;
-
-        // 9段の盤 → スラッシュは8本のはず
-        const int slashCount = static_cast<int>(boardField.count(QLatin1Char('/')));
-        if (slashCount != 8) {
-            qCWarning(lcUi) << "suspicious board field: slashCount=" << slashCount << "(expected 8)";
-        }
-
-        if (turnField != QLatin1String("b") && turnField != QLatin1String("w")) {
-            qCWarning(lcUi) << "suspicious turn field:" << turnField;
-        }
-
-        bool moveOk = false;
-        const int moveNum = moveField.toInt(&moveOk);
-        if (!moveOk || moveNum <= 0) {
-            qCWarning(lcUi) << "suspicious move field:" << moveField;
-        }
-
-        if (idx == 0) {
-            if (moveField != QLatin1String("1")) {
-                qCWarning(lcUi) << "head move number is not 1:" << moveField;
-            }
-        }
-
-        // 終局行の場合、最後の SFEN の move 番号と reqPly の関係をメモ
-        if (isTerminalRow) {
-            qCDebug(lcUi).noquote()
-            << QString("terminal note: last SFEN's move=%1, reqPly=%2 (no new SFEN for resignation)")
-                    .arg(moveField).arg(ply);
-        }
-
-    } else {
-        qCWarning(lcUi).noquote() << "fields malformed (need 4 parts) size="
-                             << parts.size() << " sfen=" << preview(sfen);
-    }
-
-    // --- 実適用（前後でログ） ---
-    qCDebug(lcUi).noquote() << "setSfen() <= " << preview(sfen);
+    // 盤面適用
     m_gc->board()->setSfen(sfen);
-    qCDebug(lcUi) << "setSfen() applied";
 
     if (m_view) {
         m_view->applyBoardAndRender(m_gc->board());
-        qCDebug(lcUi) << "view->applyBoardAndRender() done";
     }
-
-    // トレーラ：この関数は「盤面適用」担当。
-    // 投了など終局行のハイライト消去は syncBoardAndHighlightsAtRow() 側で行う想定。
-    qCDebug(lcUi).noquote() << "applySfenAtPly leave"
-                      << " reqPly=" << ply
-                      << " idx=" << idx
-                      << " terminalRow=" << isTerminalRow;
 }
 
 // 盤面・ハイライト同期（行 → 盤面）
 void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
 {
-    qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow CALLED"
-                       << "ply=" << ply
-                       << "m_sfenHistory*=" << static_cast<const void*>(m_sfenHistory)
-                       << "m_sfenHistory.size=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
-
     // 依存チェック
     if (!m_sfenHistory || !m_gc || !m_gc->board()) {
-        qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow ABORT:"
-                           << "sfenRecord*=" << static_cast<const void*>(m_sfenHistory)
-                           << "sfenRecord.empty?=" << (m_sfenHistory ? m_sfenHistory->isEmpty() : true)
-                           << "gc*=" << static_cast<const void*>(m_gc)
-                           << "board*=" << (m_gc? static_cast<const void*>(m_gc->board()) : nullptr)
-                           << " ply=" << ply;
+        qCDebug(lcUi) << "syncBoardAndHighlightsAtRow ABORT: ply=" << ply;
         return;
     }
 
     const int size   = static_cast<int>(m_sfenHistory->size());
     const int maxIdx = size - 1;
     if (maxIdx < 0) {
-        qCDebug(lcUi).noquote() << "syncBoardAndHighlightsAtRow: EMPTY sfenRecord! ply=" << ply;
+        qCDebug(lcUi) << "syncBoardAndHighlightsAtRow: EMPTY sfenRecord ply=" << ply;
         return;
     }
 
@@ -203,23 +83,10 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     const int  safePly       = qBound(0, ply, maxIdx);
 
     qCDebug(lcUi).noquote()
-        << "syncBoardAndHighlightsAtRow processing"
-        << " reqPly=" << ply
-        << " safePly=" << safePly
-        << " size=" << size
-        << " maxIdx=" << maxIdx
-        << " isTerminalRow=" << isTerminalRow;
+        << QString("syncBoardAndHighlightsAtRow ply=%1 safePly=%2 size=%3")
+               .arg(ply).arg(safePly).arg(size);
 
-    // デバッグ: sfenRecordの先頭と末尾を表示
-    if (size > 0) {
-        qCDebug(lcUi).noquote() << "sfenRecord[0]=" << m_sfenHistory->at(0).left(60);
-        if (safePly > 0 && safePly < size) {
-            qCDebug(lcUi).noquote() << "sfenRecord[" << safePly << "]=" << m_sfenHistory->at(safePly).left(60);
-        }
-    }
-
-    //重要：先に盤面を適用（元の実装と同じ順序を維持）
-    // applySfenAtPly 内でクランプされる想定のため reqPly のまま渡す
+    // 先に盤面を適用（applySfenAtPly 内でクランプされる）
     applySfenAtPly(ply);
 
     // ハイライト器（BIC）が無ければここで終了（盤面だけは更新済み）

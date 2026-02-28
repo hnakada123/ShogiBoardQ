@@ -416,6 +416,7 @@ add_shogi_test(tst_usiprotocolhandler
     test_stubs_usiprotocol.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/engine/usiprotocolhandler.cpp
+    ${SRC}/engine/usimovecoordinateconverter.cpp
 )
 
 # ============================================================
@@ -457,6 +458,7 @@ add_shogi_test(tst_analysisflow
     ${SRC}/common/logcategories.cpp
     ${SRC}/common/fontsizehelper.cpp
     ${SRC}/analysis/analysisflowcontroller.cpp
+    ${SRC}/analysis/analysisresulthandler.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
 )
 
@@ -640,6 +642,61 @@ add_shogi_test(tst_settings_roundtrip
     test_stubs_settings.cpp
     ${SRC}/common/logcategories.cpp
     ${SETTINGS_SOURCES}
+)
+
+# ============================================================
+# Unit 22: App Lifecycle Pipeline (起動/終了フロー構造契約)
+# ============================================================
+add_shogi_test(tst_app_lifecycle_pipeline
+    tst_app_lifecycle_pipeline.cpp
+)
+target_compile_definitions(tst_app_lifecycle_pipeline PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 23: App Game Session (対局開始フロー構造契約)
+# ============================================================
+add_shogi_test(tst_app_game_session
+    tst_app_game_session.cpp
+)
+target_compile_definitions(tst_app_game_session PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 24: App Kifu Load (棋譜ロードフロー構造契約)
+# ============================================================
+add_shogi_test(tst_app_kifu_load
+    tst_app_kifu_load.cpp
+)
+target_compile_definitions(tst_app_kifu_load PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 25: App UI State Policy (UiStatePolicyManager 状態遷移テスト)
+# ============================================================
+add_shogi_test(tst_app_ui_state_policy
+    tst_app_ui_state_policy.cpp
+    test_stubs_ui_state_policy.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/ui/coordinators/uistatepolicymanager.cpp
+    ${SRC}/app/mainwindow.ui
+)
+set_target_properties(tst_app_ui_state_policy PROPERTIES
+    AUTOUIC ON
+    AUTOUIC_SEARCH_PATHS "${SRC}/app;${SRC}/dialogs"
+)
+
+# ============================================================
+# Unit 26: App Branch Navigation (BranchNavigationWiring 構造契約テスト)
+# ============================================================
+add_shogi_test(tst_app_branch_navigation
+    tst_app_branch_navigation.cpp
+)
+target_compile_definitions(tst_app_branch_navigation PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)

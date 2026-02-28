@@ -437,6 +437,82 @@ private slots:
         QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Idle);
         QVERIFY(!handler.isTimeoutDeclared());
     }
+
+    // ================================================================
+    // 10. テーブル駆動: 異常入力パターン
+    // ================================================================
+
+    void invalidInput_abnormalLines_data()
+    {
+        QTest::addColumn<QString>("line");
+        QTest::addColumn<int>("expectedInfoCount");
+        QTest::addColumn<int>("expectedBestCount");
+        QTest::addColumn<int>("expectedErrorCount");
+
+        QTest::newRow("info_only_keyword")
+            << QStringLiteral("info")
+            << 1 << 0 << 0;
+        QTest::newRow("bestmove_ponder_no_target")
+            << QStringLiteral("bestmove 7g7f ponder")
+            << 0 << 1 << 0;
+        QTest::newRow("very_long_info_line")
+            << (QStringLiteral("info depth 99 score cp 0 pv ") + QString(10000, QChar('x')))
+            << 1 << 0 << 0;
+        QTest::newRow("option_no_name")
+            << QStringLiteral("option")
+            << 0 << 0 << 0;
+        QTest::newRow("multiple_bestmove_keywords")
+            << QStringLiteral("bestmove 7g7f bestmove 3c3d")
+            << 0 << 1 << 0;
+        QTest::newRow("leading_whitespace_bestmove")
+            << QStringLiteral("  bestmove 7g7f")
+            << 0 << 0 << 0;
+    }
+
+    void invalidInput_abnormalLines()
+    {
+        QFETCH(QString, line);
+        QFETCH(int, expectedInfoCount);
+        QFETCH(int, expectedBestCount);
+        QFETCH(int, expectedErrorCount);
+
+        UsiProtocolHandler handler;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy spyError(&handler, &UsiProtocolHandler::errorOccurred);
+
+        handler.onDataReceived(line);
+
+        QCOMPARE(spyInfo.count(), expectedInfoCount);
+        QCOMPARE(spyBest.count(), expectedBestCount);
+        QCOMPARE(spyError.count(), expectedErrorCount);
+    }
+
+    // ================================================================
+    // 11. テーブル駆動: alphabetToRank の境界値
+    // ================================================================
+
+    void alphabetToRank_boundary_data()
+    {
+        QTest::addColumn<QChar>("input");
+        QTest::addColumn<bool>("hasValue");
+
+        QTest::newRow("backtick_below_a") << QChar('`') << false;
+        QTest::newRow("j_above_i") << QChar('j') << false;
+        QTest::newRow("uppercase_A") << QChar('A') << false;
+        QTest::newRow("digit_5") << QChar('5') << false;
+        QTest::newRow("space") << QChar(' ') << false;
+        QTest::newRow("null_char") << QChar('\0') << false;
+    }
+
+    void alphabetToRank_boundary()
+    {
+        QFETCH(QChar, input);
+        QFETCH(bool, hasValue);
+
+        auto result = UsiProtocolHandler::alphabetToRank(input);
+        QCOMPARE(result.has_value(), hasValue);
+    }
 };
 
 QTEST_MAIN(TestUsiProtocolHandler)

@@ -153,7 +153,7 @@ QString CsaMoveConverter::boardToCSA(const QPoint& from, const QPoint& to, bool 
         csaPiece = pieceCharToCsa(piece, promote);
         qCDebug(lcNetwork) << "Converted to CSA piece:" << csaPiece;
     } else {
-        qCDebug(lcNetwork) << "WARNING: board is null!";
+        qCWarning(lcNetwork) << "boardToCSA: board is null";
     }
     if (csaPiece.isEmpty()) {
         qCWarning(lcNetwork) << "boardToCSA: failed to resolve piece at move"

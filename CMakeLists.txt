@@ -240,6 +240,8 @@ set(SRC_APP
     src/app/mainwindowboardregistry.cpp
     src/app/mainwindowgameregistry.cpp
     src/app/mainwindowkifuregistry.cpp
+    src/app/mainwindowfoundationregistry.cpp
+    src/app/mainwindowfoundationregistry.h
     src/app/mainwindowserviceregistry.cpp
     src/app/mainwindowserviceregistry.h
     src/app/mainwindowuiregistry.cpp
@@ -372,6 +374,8 @@ set(SRC_KIFU
     src/kifu/formats/notationutils.h
     src/kifu/formats/parsecommon.cpp
     src/kifu/formats/parsecommon.h
+    src/kifu/formats/bodtextgenerator.cpp
+    src/kifu/formats/bodtextgenerator.h
     src/kifu/formats/sfencsapositionconverter.cpp
     src/kifu/formats/sfencsapositionconverter.h
     src/kifu/formats/usenexporter.cpp
@@ -380,6 +384,8 @@ set(SRC_KIFU
     src/kifu/formats/usentosfenconverter.h
     src/kifu/formats/usiexporter.cpp
     src/kifu/formats/usiexporter.h
+    src/kifu/formats/usimoveconverter.cpp
+    src/kifu/formats/usimoveconverter.h
     src/kifu/formats/usitosfenconverter.cpp
     src/kifu/formats/usitosfenconverter.h
     src/kifu/gamerecordmodel.cpp
@@ -428,6 +434,8 @@ set(SRC_ANALYSIS
     src/analysis/analysiscoordinator.h
     src/analysis/analysisflowcontroller.cpp
     src/analysis/analysisflowcontroller.h
+    src/analysis/analysisresulthandler.cpp
+    src/analysis/analysisresulthandler.h
     src/analysis/analysisresultspresenter.cpp
     src/analysis/analysisresultspresenter.h
     src/analysis/considerationflowcontroller.cpp
@@ -462,7 +470,11 @@ set(SRC_ENGINE
     src/engine/usi.cpp
     src/engine/usi.h
     src/engine/usicommlogmodel.cpp
+    src/engine/usimatchhandler.cpp
+    src/engine/usimatchhandler.h
     src/engine/usicommlogmodel.h
+    src/engine/usimovecoordinateconverter.cpp
+    src/engine/usimovecoordinateconverter.h
     src/engine/usiprotocolhandler.cpp
     src/engine/usiprotocolhandler.h
 )
@@ -629,6 +641,8 @@ set(SRC_WIDGETS
     src/widgets/engineanalysistab.h
     src/widgets/engineinfowidget.cpp
     src/widgets/engineinfowidget.h
+    src/widgets/evaluationchartconfigurator.cpp
+    src/widgets/evaluationchartconfigurator.h
     src/widgets/evaluationchartwidget.cpp
     src/widgets/evaluationchartwidget.h
     src/widgets/flowlayout.cpp

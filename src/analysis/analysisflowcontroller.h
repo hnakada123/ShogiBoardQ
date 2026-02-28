@@ -9,10 +9,12 @@
 #include <QPointer>
 #include <QVector>
 #include <functional>
+#include <memory>
 
 #include "playmode.h"
 #include "analysiscoordinator.h"
 
+class AnalysisResultHandler;
 class KifuAnalysisDialog;
 class KifuAnalysisListModel;
 class KifuRecordListModel;
@@ -130,30 +132,16 @@ private:
     Usi*                   m_usi = nullptr;         ///< USI通信窓口（非所有）
     UsiCommLogModel*       m_logModel = nullptr;    ///< USIログモデル（非所有）
     int                    m_activePly = 0;         ///< 開始時の手数
-    int                    m_prevEvalCp = 0;        ///< 前回評価値（差分計算用）
     QString                m_blackPlayerName;       ///< 先手名
     QString                m_whitePlayerName;       ///< 後手名
     QStringList*           m_usiMoves = nullptr;    ///< USI形式指し手列（非所有）
     bool                   m_boardFlipped = false;  ///< GUI本体の盤面反転状態
     std::function<void(const QString&)> m_err;      ///< エラー表示コールバック
 
-    int m_pendingPly = -1;         ///< 一時結果の対象手数（bestmoveで確定）
-    int m_pendingScoreCp = 0;      ///< 一時結果の評価値
-    int m_pendingMate = 0;         ///< 一時結果の詰み手数（0は未設定）
-    QString m_pendingPv;           ///< 一時結果のUSI PV
-    QString m_pendingPvKanji;      ///< 一時結果の漢字PV
-
-    int m_lastCommittedPly = -1;       ///< 最後に確定した手数（GUI同期用）
-    int m_lastCommittedScoreCp = 0;    ///< 最後に確定した評価値
-
     /// ダイアログの解析条件をAnalysisCoordinatorへ反映する
     void applyDialogOptions(KifuAnalysisDialog* dlg);
 
-    /// 保留中の解析結果をモデルへ確定反映する
-    void commitPendingResult();
-
-    /// 漢字指し手文字列からUSI形式指し手を抽出する
-    QString extractUsiMoveFromKanji(const QString& kanjiMove) const;
+    std::unique_ptr<AnalysisResultHandler> m_resultHandler; ///< 解析結果ハンドラ（所有）
 
     PlayMode m_playModeForAnalysis = PlayMode::AnalysisMode;  ///< 内部生成Usiに渡すPlayMode
 

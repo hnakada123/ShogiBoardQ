@@ -2,15 +2,13 @@
 /// @brief 評価値グラフウィジェットクラスの実装
 
 #include "evaluationchartwidget.h"
-#include "buttonstyles.h"
-#include "analysissettings.h"
+#include "evaluationchartconfigurator.h"
 
 #include <QtCharts/QChartView>
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
 #include <QtCharts/QValueAxis>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QBrush>
 #include <QPen>
 #include <QFont>
@@ -19,63 +17,31 @@
 #include <QtGlobal>
 #include <QThread>
 #include <QLabel>
-#include <QPushButton>
-#include <QComboBox>
-
-// 利用可能な上限値のリスト（Y軸：評価値上限）
-// 100から1000まで100刻み、1000から30000まで1000刻み
-// 31111は詰み評価値（やねうら王系エンジンの優等局面スコア）
-const QList<int> EvaluationChartWidget::s_availableYLimits = {
-    100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
-    2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000,
-    11000, 12000, 13000, 14000, 15000, 16000, 17000, 18000, 19000, 20000,
-    21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000, 29000, 30000,
-    31111, 32000
-};
-
-// 利用可能な間隔値のリスト（Y軸：評価値間隔）
-const QList<int> EvaluationChartWidget::s_availableYIntervals = {
-    100, 200, 500, 1000, 2000, 5000, 10000
-};
-
-// 利用可能な上限値のリスト（X軸：手数上限）
-const QList<int> EvaluationChartWidget::s_availableXLimits = {
-    100, 200, 300, 400, 500, 600, 700, 800, 900, 1000
-};
-
-// 利用可能な間隔値のリスト（X軸：手数間隔）
-const QList<int> EvaluationChartWidget::s_availableXIntervals = {
-    2, 5, 10, 20, 25, 50, 100
-};
-
-// 利用可能なフォントサイズのリスト
-const QList<int> EvaluationChartWidget::s_availableFontSizes = {
-    5, 6, 7, 8, 9, 10, 11, 12
-};
 
 EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     : QWidget(parent)
 {
-    // 設定を読み込み
-    loadSettings();
+    // Configurator を生成して設定を読み込み
+    m_configurator = new EvaluationChartConfigurator(this);
+    m_configurator->loadSettings();
 
     // 軸
     m_axX = new QValueAxis(this);
     m_axY = new QValueAxis(this);
 
-    QFont labelsFont("Noto Sans CJK JP", m_labelFontSize);
+    QFont labelsFont("Noto Sans CJK JP", m_configurator->labelFontSize());
 
     // X軸設定
-    m_axX->setRange(0, m_xLimit);
+    m_axX->setRange(0, m_configurator->xAxisLimit());
     m_axX->setTickType(QValueAxis::TicksDynamic);
-    m_axX->setTickInterval(m_xInterval);
+    m_axX->setTickInterval(m_configurator->xAxisInterval());
     m_axX->setLabelsFont(labelsFont);
     m_axX->setLabelFormat("%i");
 
     // Y軸設定
-    m_axY->setRange(-m_yLimit, m_yLimit);
+    m_axY->setRange(-m_configurator->yAxisLimit(), m_configurator->yAxisLimit());
     m_axY->setTickType(QValueAxis::TicksDynamic);
-    m_axY->setTickInterval(m_yInterval);
+    m_axY->setTickInterval(m_configurator->yAxisInterval());
     m_axY->setLabelsFont(labelsFont);
     m_axY->setLabelFormat("%i");
 
@@ -143,14 +109,22 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     // ツールチップ（付箋）のセットアップ
     setupTooltip();
 
-    // コントロールパネルのセットアップ
-    setupControlPanel();
+    // コントロールパネル（Configurator が生成）
+    QWidget* controlPanel = m_configurator->createControlPanel(this);
+
+    // Configurator の設定変更シグナルを接続
+    connect(m_configurator, &EvaluationChartConfigurator::yAxisSettingsChanged,
+            this, &EvaluationChartWidget::applyYAxisSettings);
+    connect(m_configurator, &EvaluationChartConfigurator::xAxisSettingsChanged,
+            this, &EvaluationChartWidget::applyXAxisSettings);
+    connect(m_configurator, &EvaluationChartConfigurator::fontSizeChanged,
+            this, &EvaluationChartWidget::applyFontSize);
 
     // レイアウト
     auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(2);
-    mainLayout->addWidget(m_controlPanel);
+    mainLayout->addWidget(controlPanel);
     mainLayout->addWidget(m_chartView, 1);
     setLayout(mainLayout);
 
@@ -160,13 +134,94 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
 
 EvaluationChartWidget::~EvaluationChartWidget()
 {
-    saveSettings();
+    m_configurator->saveSettings();
 }
 
 QWidget* EvaluationChartWidget::chartViewWidget() const
 {
     return m_chartView;
 }
+
+// --- Configurator からの設定変更通知 ---
+
+void EvaluationChartWidget::applyYAxisSettings()
+{
+    if (!m_axY) return;
+
+    const int yLimit = m_configurator->yAxisLimit();
+    const int yInterval = m_configurator->yAxisInterval();
+    m_axY->setRange(-yLimit, yLimit);
+    m_axY->setTickInterval(yInterval);
+
+    // カーソルラインもY軸範囲に合わせて更新
+    updateCursorLine();
+
+    if (m_chartView) {
+        m_chartView->update();
+    }
+
+    emit yAxisSettingsChanged(yLimit, yInterval);
+}
+
+void EvaluationChartWidget::applyXAxisSettings()
+{
+    if (!m_axX) return;
+
+    const int xLimit = m_configurator->xAxisLimit();
+    const int xInterval = m_configurator->xAxisInterval();
+    m_axX->setRange(0, xLimit);
+    m_axX->setTickInterval(xInterval);
+
+    // ゼロラインも更新
+    updateZeroLine();
+
+    if (m_chartView) {
+        m_chartView->update();
+    }
+
+    emit xAxisSettingsChanged(xLimit, xInterval);
+}
+
+void EvaluationChartWidget::applyFontSize()
+{
+    updateLabelFonts();
+}
+
+// --- 公開 getter / setter ---
+
+int EvaluationChartWidget::yAxisLimit() const { return m_configurator->yAxisLimit(); }
+int EvaluationChartWidget::yAxisInterval() const { return m_configurator->yAxisInterval(); }
+int EvaluationChartWidget::xAxisLimit() const { return m_configurator->xAxisLimit(); }
+int EvaluationChartWidget::xAxisInterval() const { return m_configurator->xAxisInterval(); }
+int EvaluationChartWidget::labelFontSize() const { return m_configurator->labelFontSize(); }
+
+void EvaluationChartWidget::setYAxisLimit(int limit)
+{
+    m_configurator->setYAxisLimit(limit);
+    // Configurator の signal 経由で applyYAxisSettings が呼ばれる
+}
+
+void EvaluationChartWidget::setYAxisInterval(int interval)
+{
+    m_configurator->setYAxisInterval(interval);
+}
+
+void EvaluationChartWidget::setXAxisLimit(int limit)
+{
+    m_configurator->setXAxisLimit(limit);
+}
+
+void EvaluationChartWidget::setXAxisInterval(int interval)
+{
+    m_configurator->setXAxisInterval(interval);
+}
+
+void EvaluationChartWidget::setLabelFontSize(int size)
+{
+    m_configurator->setLabelFontSize(size);
+}
+
+// --- ゼロライン / カーソルライン ---
 
 void EvaluationChartWidget::setupZeroLine()
 {
@@ -180,7 +235,7 @@ void EvaluationChartWidget::setupZeroLine()
 
     // X軸の範囲全体にわたる水平線
     m_zeroLine->append(0, 0);
-    m_zeroLine->append(m_xLimit, 0);
+    m_zeroLine->append(m_configurator->xAxisLimit(), 0);
 
     m_chart->addSeries(m_zeroLine);
     m_zeroLine->attachAxis(m_axX);
@@ -193,13 +248,14 @@ void EvaluationChartWidget::updateZeroLine()
 
     m_zeroLine->clear();
     m_zeroLine->append(0, 0);
-    m_zeroLine->append(m_xLimit, 0);
+    m_zeroLine->append(m_configurator->xAxisLimit(), 0);
 }
 
 void EvaluationChartWidget::setupCursorLine()
 {
-    qCDebug(lcUi) << "setupCursorLine called: m_currentPly=" << m_currentPly << "m_yLimit=" << m_yLimit;
-    
+    qCDebug(lcUi) << "setupCursorLine called: m_currentPly=" << m_currentPly
+                   << "yLimit=" << m_configurator->yAxisLimit();
+
     m_cursorLine = new QLineSeries(this);
 
     // カーソルラインのスタイル（オレンジ色の縦線）
@@ -209,13 +265,14 @@ void EvaluationChartWidget::setupCursorLine()
     m_cursorLine->setPointsVisible(false);
 
     // 初期状態では手数0の位置に縦線を描画
-    m_cursorLine->append(m_currentPly, -m_yLimit);
-    m_cursorLine->append(m_currentPly, m_yLimit);
+    const int yLimit = m_configurator->yAxisLimit();
+    m_cursorLine->append(m_currentPly, -yLimit);
+    m_cursorLine->append(m_currentPly, yLimit);
 
     m_chart->addSeries(m_cursorLine);
     m_cursorLine->attachAxis(m_axX);
     m_cursorLine->attachAxis(m_axY);
-    
+
     qCDebug(lcUi) << "setupCursorLine done";
 }
 
@@ -223,15 +280,16 @@ void EvaluationChartWidget::updateCursorLine()
 {
     if (!m_cursorLine) return;
 
+    const int yLimit = m_configurator->yAxisLimit();
     m_cursorLine->clear();
-    m_cursorLine->append(m_currentPly, -m_yLimit);
-    m_cursorLine->append(m_currentPly, m_yLimit);
+    m_cursorLine->append(m_currentPly, -yLimit);
+    m_cursorLine->append(m_currentPly, yLimit);
 }
 
 void EvaluationChartWidget::setCurrentPly(int ply)
 {
     qCDebug(lcUi) << "setCurrentPly called: ply=" << ply << "m_currentPly(before)=" << m_currentPly;
-    
+
     if (m_currentPly == ply) {
         qCDebug(lcUi) << "setCurrentPly: same value, skipping";
         return;
@@ -243,9 +301,11 @@ void EvaluationChartWidget::setCurrentPly(int ply)
     if (m_chartView) {
         m_chartView->update();
     }
-    
+
     qCDebug(lcUi) << "setCurrentPly done: m_currentPly(after)=" << m_currentPly;
 }
+
+// --- ツールチップ ---
 
 void EvaluationChartWidget::setupTooltip()
 {
@@ -276,7 +336,7 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
             m_tooltip->hide();
             return;
         }
-        
+
         QString engineName;
         QString sideMarker;  // ▲（先手）または △（後手）
         if (series == m_s1) {
@@ -288,7 +348,7 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
             sideMarker = QStringLiteral("△");
             qCDebug(lcUi) << "onSeriesHovered: series=m_s2, m_engine2Name=" << m_engine2Name;
         }
-        
+
         // 最も近いデータポイントを探す
         int closestIndex = -1;
         qreal minDist = std::numeric_limits<qreal>::max();
@@ -300,7 +360,7 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
                 closestIndex = i;
             }
         }
-        
+
         // プロット点から離れすぎている場合はツールチップを非表示
         // X軸方向で0.3手分（約30%）以上離れていたら表示しない
         const qreal threshold = 0.3;
@@ -308,12 +368,12 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
             m_tooltip->hide();
             return;
         }
-        
+
         // 最も近いデータポイントの値を使用
         const QPointF closestPt = series->at(closestIndex);
         const int ply = qRound(closestPt.x());
         const int cp = qRound(closestPt.y());
-        
+
         // ツールチップのテキストを設定
         // フォーマット: "▲エンジン名\nN手目: 評価値" または "△エンジン名\nN手目: 評価値"
         QString text;
@@ -327,15 +387,15 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
         qCDebug(lcUi) << "onSeriesHovered: tooltip text=" << text;
         m_tooltip->setText(text);
         m_tooltip->adjustSize();
-        
+
         // 最も近いデータポイントの位置にツールチップを表示
         const QPointF chartPos = m_chart->mapToPosition(closestPt);
         const QPoint viewPos = m_chartView->mapFromScene(chartPos);
-        
+
         // ツールチップの位置を調整（プロットの少し上に表示）
         int tooltipX = viewPos.x() - m_tooltip->width() / 2;
         int tooltipY = viewPos.y() - m_tooltip->height() - 10;
-        
+
         // 画面外にはみ出さないように調整
         if (tooltipX < 5) tooltipX = 5;
         if (tooltipX + m_tooltip->width() > m_chartView->width() - 5) {
@@ -345,7 +405,7 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
             // 上にはみ出す場合は下に表示
             tooltipY = viewPos.y() + 15;
         }
-        
+
         m_tooltip->move(tooltipX, tooltipY);
         m_tooltip->show();
         m_tooltip->raise();
@@ -355,206 +415,12 @@ void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
     }
 }
 
-void EvaluationChartWidget::setupControlPanel()
-{
-    m_controlPanel = new QWidget(this);
-    m_controlPanel->setFixedHeight(26);  // コンパクトな高さに変更
-
-    auto* layout = new QHBoxLayout(m_controlPanel);
-    layout->setContentsMargins(4, 0, 4, 0);  // 上下のマージンを削除
-    layout->setSpacing(4);
-
-    // ラベルスタイル（少し大きめのフォント）
-    const QString labelStyle = QStringLiteral("QLabel { color: #333; font-size: 10pt; }");
-
-    // ComboBoxスタイル
-    const QString comboStyle = QStringLiteral(
-        "QComboBox { "
-        "  background-color: #f0f0f0; "
-        "  border: 1px solid #999; "
-        "  border-radius: 2px; "
-        "  padding: 2px 4px; "
-        "  font-size: 10pt; "
-        "  min-width: 65px; "
-        "} "
-        "QComboBox:hover { background-color: #e8e8e8; } "
-        "QComboBox::drop-down { "
-        "  border: none; "
-        "  width: 16px; "
-        "} "
-        "QComboBox::down-arrow { "
-        "  image: none; "
-        "  border-left: 4px solid transparent; "
-        "  border-right: 4px solid transparent; "
-        "  border-top: 5px solid #666; "
-        "}"
-    );
-
-    // ボタンスタイル（フォントサイズ用）
-    const QString btnStyle = ButtonStyles::fontButton();
-
-    // 評価値上限ComboBox
-    auto* lblYLimit = new QLabel(tr("評価値上限:"), m_controlPanel);
-    lblYLimit->setStyleSheet(labelStyle);
-    m_comboYLimit = new QComboBox(m_controlPanel);
-    m_comboYLimit->setStyleSheet(comboStyle);
-    m_comboYLimit->setToolTip(tr("評価値の表示上限を選択"));
-    for (int val : s_availableYLimits) {
-        m_comboYLimit->addItem(QString::number(val), val);
-    }
-
-    // 評価値間隔ComboBox
-    m_lblYInterval = new QLabel(tr("評価値間隔:"), m_controlPanel);
-    m_lblYInterval->setStyleSheet(labelStyle);
-    m_comboYInterval = new QComboBox(m_controlPanel);
-    m_comboYInterval->setStyleSheet(comboStyle);
-    m_comboYInterval->setToolTip(tr("評価値の目盛り間隔を選択"));
-    for (int val : s_availableYIntervals) {
-        m_comboYInterval->addItem(QString::number(val), val);
-    }
-
-    // 手数上限ComboBox
-    auto* lblXLimit = new QLabel(tr("手数上限:"), m_controlPanel);
-    lblXLimit->setStyleSheet(labelStyle);
-    m_comboXLimit = new QComboBox(m_controlPanel);
-    m_comboXLimit->setStyleSheet(comboStyle);
-    m_comboXLimit->setToolTip(tr("手数の表示上限を選択"));
-    for (int val : s_availableXLimits) {
-        m_comboXLimit->addItem(QString::number(val), val);
-    }
-
-    // 手数間隔ComboBox
-    auto* lblXInterval = new QLabel(tr("手数間隔:"), m_controlPanel);
-    lblXInterval->setStyleSheet(labelStyle);
-    m_comboXInterval = new QComboBox(m_controlPanel);
-    m_comboXInterval->setStyleSheet(comboStyle);
-    m_comboXInterval->setToolTip(tr("手数の目盛り間隔を選択"));
-    for (int val : s_availableXIntervals) {
-        m_comboXInterval->addItem(QString::number(val), val);
-    }
-
-    // フォントサイズボタン（USI通信ログと同じサイズ 28x24）
-    m_btnFontDown = new QPushButton(QStringLiteral("A-"), m_controlPanel);
-    m_btnFontUp = new QPushButton(QStringLiteral("A+"), m_controlPanel);
-    m_btnFontDown->setFixedSize(28, 24);
-    m_btnFontUp->setFixedSize(28, 24);
-    m_btnFontDown->setStyleSheet(btnStyle);
-    m_btnFontUp->setStyleSheet(btnStyle);
-    m_btnFontDown->setToolTip(tr("目盛りの文字を小さく"));
-    m_btnFontUp->setToolTip(tr("目盛りの文字を大きく"));
-
-    // レイアウトに追加（左端から配置）
-    layout->addWidget(lblYLimit);
-    layout->addWidget(m_comboYLimit);
-    layout->addSpacing(8);
-
-    layout->addWidget(m_lblYInterval);
-    layout->addWidget(m_comboYInterval);
-    layout->addSpacing(8);
-
-    layout->addWidget(lblXLimit);
-    layout->addWidget(m_comboXLimit);
-    layout->addSpacing(8);
-
-    layout->addWidget(lblXInterval);
-    layout->addWidget(m_comboXInterval);
-    layout->addSpacing(8);
-
-    layout->addWidget(m_btnFontDown);
-    layout->addWidget(m_btnFontUp);
-
-    layout->addStretch();  // 残りのスペースを右側に
-
-    m_controlPanel->setLayout(layout);
-
-    // 現在の値でComboBoxを初期化
-    updateComboBoxSelections();
-
-    // 評価値上限の選択肢を初期化
-    updateYLimitComboItems();
-
-    // シグナル接続（ラムダ不使用）
-    connect(m_comboYLimit, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EvaluationChartWidget::onYLimitChanged);
-    connect(m_comboYInterval, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EvaluationChartWidget::onYIntervalChanged);
-    connect(m_comboXLimit, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EvaluationChartWidget::onXLimitChanged);
-    connect(m_comboXInterval, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &EvaluationChartWidget::onXIntervalChanged);
-
-    connect(m_btnFontUp, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onIncreaseFontSizeClicked);
-    connect(m_btnFontDown, &QPushButton::clicked,
-            this, &EvaluationChartWidget::onDecreaseFontSizeClicked);
-}
-
-void EvaluationChartWidget::saveSettings()
-{
-    AnalysisSettings::setEvalChartYLimit(m_yLimit);
-    // yIntervalは保存しない（上限の半分に固定）
-    AnalysisSettings::setEvalChartXLimit(m_xLimit);
-    AnalysisSettings::setEvalChartXInterval(m_xInterval);
-    AnalysisSettings::setEvalChartLabelFontSize(m_labelFontSize);
-}
-
-void EvaluationChartWidget::loadSettings()
-{
-    m_yLimit = AnalysisSettings::evalChartYLimit();
-    m_xLimit = AnalysisSettings::evalChartXLimit();
-    m_xInterval = AnalysisSettings::evalChartXInterval();
-    m_labelFontSize = AnalysisSettings::evalChartLabelFontSize();
-
-    // 範囲チェック
-    if (!s_availableYLimits.contains(m_yLimit)) m_yLimit = 2000;
-    if (!s_availableXLimits.contains(m_xLimit)) m_xLimit = 500;
-    if (!s_availableXIntervals.contains(m_xInterval)) m_xInterval = 10;
-    if (!s_availableFontSizes.contains(m_labelFontSize)) m_labelFontSize = 7;
-
-    // 評価値間隔は上限の半分に固定（目盛り数5個）
-    m_yInterval = calculateAppropriateYInterval(m_yLimit);
-
-    // 手数間隔が上限を超えないように調整
-    if (m_xInterval > m_xLimit) m_xInterval = m_xLimit;
-}
-
-void EvaluationChartWidget::updateYAxis()
-{
-    if (!m_axY) return;
-
-    m_axY->setRange(-m_yLimit, m_yLimit);
-    m_axY->setTickInterval(m_yInterval);
-
-    // カーソルラインもY軸範囲に合わせて更新
-    updateCursorLine();
-
-    if (m_chartView) {
-        m_chartView->update();
-    }
-
-    emit yAxisSettingsChanged(m_yLimit, m_yInterval);
-}
-
-void EvaluationChartWidget::updateXAxis()
-{
-    if (!m_axX) return;
-
-    m_axX->setRange(0, m_xLimit);
-    m_axX->setTickInterval(m_xInterval);
-
-    // ゼロラインも更新
-    updateZeroLine();
-
-    if (m_chartView) {
-        m_chartView->update();
-    }
-
-    emit xAxisSettingsChanged(m_xLimit, m_xInterval);
-}
+// --- フォントサイズ ---
 
 void EvaluationChartWidget::updateLabelFonts()
 {
-    QFont labelsFont("Noto Sans CJK JP", m_labelFontSize);
+    const int fontSize = m_configurator->labelFontSize();
+    QFont labelsFont("Noto Sans CJK JP", fontSize);
 
     if (m_axX) {
         m_axX->setLabelsFont(labelsFont);
@@ -566,7 +432,7 @@ void EvaluationChartWidget::updateLabelFonts()
     // フォントサイズに応じて左マージンを調整（Y軸ラベルが切れないように）
     if (m_chart) {
         // Y軸の数値幅（最大5桁: -20000）とフォントサイズに基づいてマージンを計算
-        int leftMargin = 10 + (m_labelFontSize - 5) * 4;
+        int leftMargin = 10 + (fontSize - 5) * 4;
         m_chart->setMargins(QMargins(leftMargin, 5, 10, 5));
     }
 
@@ -575,247 +441,7 @@ void EvaluationChartWidget::updateLabelFonts()
     }
 }
 
-void EvaluationChartWidget::setYAxisLimit(int limit)
-{
-    if (limit > 0 && limit != m_yLimit) {
-        m_yLimit = limit;
-
-        updateYAxis();
-        // ComboBoxの選択を更新
-        if (m_comboYLimit) {
-            m_comboYLimit->blockSignals(true);
-            qsizetype idx = s_availableYLimits.indexOf(m_yLimit);
-            if (idx >= 0) m_comboYLimit->setCurrentIndex(static_cast<int>(idx));
-            m_comboYLimit->blockSignals(false);
-        }
-    }
-}
-
-void EvaluationChartWidget::setYAxisInterval(int interval)
-{
-    if (interval > 0 && interval != m_yInterval) {
-        m_yInterval = interval;
-        updateYAxis();
-        // ComboBoxの選択を更新
-        if (m_comboYInterval) {
-            m_comboYInterval->blockSignals(true);
-            qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
-            if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
-            m_comboYInterval->blockSignals(false);
-        }
-    }
-}
-
-// 評価値上限に応じた適切な間隔を計算
-// 目盛り数を常に5個に固定するため、評価値上限の半分を返す
-// 目盛り: -yLimit, -yLimit/2, 0, yLimit/2, yLimit (5個)
-int EvaluationChartWidget::calculateAppropriateYInterval(int yLimit) const
-{
-    // 評価値上限の半分を間隔とする（目盛り数5個固定）
-    return yLimit / 2;
-}
-
-void EvaluationChartWidget::setXAxisLimit(int limit)
-{
-    if (limit > 0 && limit != m_xLimit) {
-        m_xLimit = limit;
-        // 間隔が上限を超えないように調整
-        if (m_xInterval > m_xLimit) {
-            m_xInterval = m_xLimit;
-        }
-        updateXAxis();
-        // ComboBoxの選択を更新
-        if (m_comboXLimit) {
-            m_comboXLimit->blockSignals(true);
-            qsizetype idx = s_availableXLimits.indexOf(m_xLimit);
-            if (idx >= 0) m_comboXLimit->setCurrentIndex(static_cast<int>(idx));
-            m_comboXLimit->blockSignals(false);
-        }
-        if (m_comboXInterval) {
-            m_comboXInterval->blockSignals(true);
-            qsizetype idx = s_availableXIntervals.indexOf(m_xInterval);
-            if (idx >= 0) m_comboXInterval->setCurrentIndex(static_cast<int>(idx));
-            m_comboXInterval->blockSignals(false);
-        }
-    }
-}
-
-void EvaluationChartWidget::setXAxisInterval(int interval)
-{
-    if (interval > 0 && interval <= m_xLimit && interval != m_xInterval) {
-        m_xInterval = interval;
-        updateXAxis();
-        // ComboBoxの選択を更新
-        if (m_comboXInterval) {
-            m_comboXInterval->blockSignals(true);
-            qsizetype idx = s_availableXIntervals.indexOf(m_xInterval);
-            if (idx >= 0) m_comboXInterval->setCurrentIndex(static_cast<int>(idx));
-            m_comboXInterval->blockSignals(false);
-        }
-    }
-}
-
-void EvaluationChartWidget::setLabelFontSize(int size)
-{
-    if (size > 0 && size != m_labelFontSize) {
-        m_labelFontSize = size;
-        updateLabelFonts();
-    }
-}
-
-void EvaluationChartWidget::onYLimitChanged(int index)
-{
-    if (index < 0 || index >= m_comboYLimit->count()) return;
-    int newLimit = m_comboYLimit->itemData(index).toInt();
-    if (newLimit != m_yLimit) {
-        setYAxisLimit(newLimit);
-    }
-}
-
-void EvaluationChartWidget::onYIntervalChanged(int index)
-{
-    if (index < 0 || index >= s_availableYIntervals.size()) return;
-    int newInterval = s_availableYIntervals.at(index);
-    if (newInterval != m_yInterval && newInterval <= m_yLimit) {
-        setYAxisInterval(newInterval);
-    }
-}
-
-void EvaluationChartWidget::onXLimitChanged(int index)
-{
-    if (index < 0 || index >= s_availableXLimits.size()) return;
-    int newLimit = s_availableXLimits.at(index);
-    if (newLimit != m_xLimit) {
-        setXAxisLimit(newLimit);
-    }
-}
-
-void EvaluationChartWidget::onXIntervalChanged(int index)
-{
-    if (index < 0 || index >= s_availableXIntervals.size()) return;
-    int newInterval = s_availableXIntervals.at(index);
-    if (newInterval != m_xInterval && newInterval <= m_xLimit) {
-        setXAxisInterval(newInterval);
-    }
-}
-
-void EvaluationChartWidget::onIncreaseFontSizeClicked()
-{
-    for (int size : s_availableFontSizes) {
-        if (size > m_labelFontSize) {
-            setLabelFontSize(size);
-            return;
-        }
-    }
-}
-
-void EvaluationChartWidget::onDecreaseFontSizeClicked()
-{
-    int newSize = s_availableFontSizes.first();
-    for (int size : s_availableFontSizes) {
-        if (size >= m_labelFontSize) {
-            break;
-        }
-        newSize = size;
-    }
-    if (newSize < m_labelFontSize) {
-        setLabelFontSize(newSize);
-    }
-}
-
-void EvaluationChartWidget::updateComboBoxSelections()
-{
-    // シグナルを一時的にブロックして無限ループを防ぐ
-    if (m_comboYLimit) {
-        m_comboYLimit->blockSignals(true);
-        qsizetype idx = s_availableYLimits.indexOf(m_yLimit);
-        if (idx >= 0) m_comboYLimit->setCurrentIndex(static_cast<int>(idx));
-        m_comboYLimit->blockSignals(false);
-    }
-
-    if (m_comboYInterval) {
-        m_comboYInterval->blockSignals(true);
-        qsizetype idx = s_availableYIntervals.indexOf(m_yInterval);
-        if (idx >= 0) m_comboYInterval->setCurrentIndex(static_cast<int>(idx));
-        m_comboYInterval->blockSignals(false);
-    }
-
-    if (m_comboXLimit) {
-        m_comboXLimit->blockSignals(true);
-        qsizetype idx = s_availableXLimits.indexOf(m_xLimit);
-        if (idx >= 0) m_comboXLimit->setCurrentIndex(static_cast<int>(idx));
-        m_comboXLimit->blockSignals(false);
-    }
-
-    if (m_comboXInterval) {
-        m_comboXInterval->blockSignals(true);
-        qsizetype idx = s_availableXIntervals.indexOf(m_xInterval);
-        if (idx >= 0) m_comboXInterval->setCurrentIndex(static_cast<int>(idx));
-        m_comboXInterval->blockSignals(false);
-    }
-}
-
-void EvaluationChartWidget::updateYLimitComboItems()
-{
-    if (!m_comboYLimit) return;
-
-    m_comboYLimit->blockSignals(true);
-    m_comboYLimit->clear();
-
-    // 全ての上限値を追加（制限なし）
-    // 間隔は上限変更時に自動調整されるため、上限は自由に選択可能
-    for (int limit : s_availableYLimits) {
-        m_comboYLimit->addItem(QString::number(limit), limit);
-    }
-
-    // 現在の値を選択
-    int currentIdx = -1;
-    for (int i = 0; i < m_comboYLimit->count(); ++i) {
-        if (m_comboYLimit->itemData(i).toInt() == m_yLimit) {
-            currentIdx = i;
-            break;
-        }
-    }
-    if (currentIdx >= 0) {
-        m_comboYLimit->setCurrentIndex(currentIdx);
-    } else if (m_comboYLimit->count() > 0) {
-        // 現在の値がリストにない場合は最初の項目を選択
-        m_comboYLimit->setCurrentIndex(0);
-    }
-
-    m_comboYLimit->blockSignals(false);
-}
-
-void EvaluationChartWidget::autoExpandYAxisIfNeeded(int cp)
-{
-    const int absCp = qAbs(cp);
-    if (absCp > m_yLimit) {
-        // 評価値が上限を超えた場合、自動で拡大
-        for (int limit : s_availableYLimits) {
-            if (limit >= absCp) {
-                setYAxisLimit(limit);
-                return;
-            }
-        }
-        // リストにない場合は最大値を設定
-        setYAxisLimit(s_availableYLimits.last());
-    }
-}
-
-void EvaluationChartWidget::autoExpandXAxisIfNeeded(int ply)
-{
-    if (ply > m_xLimit) {
-        // 手数が上限を超えた場合、自動で拡大
-        for (int limit : s_availableXLimits) {
-            if (limit >= ply) {
-                setXAxisLimit(limit);
-                return;
-            }
-        }
-        // リストにない場合は最大値を設定
-        setXAxisLimit(s_availableXLimits.last());
-    }
-}
+// --- データ操作 ---
 
 void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
 {
@@ -837,8 +463,8 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
              << "thread=" << QThread::currentThread();
 
     // 自動拡大チェック
-    autoExpandYAxisIfNeeded(cp);
-    autoExpandXAxisIfNeeded(ply);
+    m_configurator->autoExpandYAxisIfNeeded(cp);
+    m_configurator->autoExpandXAxisIfNeeded(ply);
 
     m_s1->append(ply, y);
 
@@ -846,7 +472,6 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
     m_engine1Ply = ply;
     m_engine1Cp = invert ? -cp : cp;
     qCDebug(lcUi) << "P1 updating engine info: ply=" << m_engine1Ply << "cp=" << m_engine1Cp << "name=" << m_engine1Name;
-    updateEngineInfoLabel();
 
     // 対局中は最新のプロット位置に縦線を更新
     setCurrentPly(ply);
@@ -887,8 +512,8 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
              << "thread=" << QThread::currentThread();
 
     // 自動拡大チェック
-    autoExpandYAxisIfNeeded(cp);
-    autoExpandXAxisIfNeeded(ply);
+    m_configurator->autoExpandYAxisIfNeeded(cp);
+    m_configurator->autoExpandXAxisIfNeeded(ply);
 
     m_s2->append(ply, y);
 
@@ -896,7 +521,6 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
     m_engine2Ply = ply;
     m_engine2Cp = invert ? -cp : cp;
     qCDebug(lcUi) << "P2 updating engine info: ply=" << m_engine2Ply << "cp=" << m_engine2Cp << "name=" << m_engine2Name;
-    updateEngineInfoLabel();
 
     // 対局中は最新のプロット位置に縦線を更新
     setCurrentPly(ply);
@@ -927,8 +551,8 @@ void EvaluationChartWidget::clearAll()
     updateCursorLine();
 
     // 設定はリセットしない（ユーザーの好みを維持）
-    updateXAxis();
-    updateYAxis();
+    applyXAxisSettings();
+    applyYAxisSettings();
 
     if (m_chartView) m_chartView->update();
 }
@@ -974,13 +598,14 @@ void EvaluationChartWidget::trimToPly(int maxPly)
 int EvaluationChartWidget::countP1() const { return m_s1 ? m_s1->count() : 0; }
 int EvaluationChartWidget::countP2() const { return m_s2 ? m_s2->count() : 0; }
 
+// --- エンジン情報 ---
+
 void EvaluationChartWidget::setEngine1Info(const QString& name, int ply, int cp)
 {
     qCDebug(lcUi) << "setEngine1Info called: name=" << name << "ply=" << ply << "cp=" << cp;
     m_engine1Name = name;
     m_engine1Ply = ply;
     m_engine1Cp = cp;
-    updateEngineInfoLabel();
 }
 
 void EvaluationChartWidget::setEngine2Info(const QString& name, int ply, int cp)
@@ -989,26 +614,18 @@ void EvaluationChartWidget::setEngine2Info(const QString& name, int ply, int cp)
     m_engine2Name = name;
     m_engine2Ply = ply;
     m_engine2Cp = cp;
-    updateEngineInfoLabel();
 }
 
 void EvaluationChartWidget::setEngine1Name(const QString& name)
 {
     qCDebug(lcUi) << "setEngine1Name called: name=" << name;
     m_engine1Name = name;
-    updateEngineInfoLabel();
 }
 
 void EvaluationChartWidget::setEngine2Name(const QString& name)
 {
     qCDebug(lcUi) << "setEngine2Name called: name=" << name;
     m_engine2Name = name;
-    updateEngineInfoLabel();
-}
-
-void EvaluationChartWidget::updateEngineInfoLabel()
-{
-    // エンジン情報ラベルは廃止されたため、何もしない
 }
 
 void EvaluationChartWidget::setFloating(bool floating)

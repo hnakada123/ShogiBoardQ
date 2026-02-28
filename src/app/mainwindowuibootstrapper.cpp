@@ -7,6 +7,7 @@
 #include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
 #include "mainwindowappearancecontroller.h"
+#include "mainwindowfoundationregistry.h"
 #include "ui_mainwindow.h"
 #include "docksettings.h"
 #include "dockuicoordinator.h"
@@ -89,7 +90,7 @@ void MainWindowServiceRegistry::finalizeCoordinators()
 {
     initMatchCoordinator();
     m_mw.m_appearanceController->setupNameAndClockFonts();
-    ensurePositionEditController();
-    ensureBoardSyncPresenter();
-    ensureAnalysisPresenter();
+    m_foundation->ensurePositionEditController();
+    m_foundation->ensureBoardSyncPresenter();
+    m_foundation->ensureAnalysisPresenter();
 }
