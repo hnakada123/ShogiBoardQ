@@ -27,11 +27,11 @@ public:
     static QString detectInitialSfenFromFile(const QString& ki2Path, QString* detectedLabel = nullptr);
     static QStringList convertFile(const QString& ki2Path, QString* errorMessage = nullptr);
     static QList<KifDisplayItem> extractMovesWithTimes(const QString& ki2Path, QString* errorMessage = nullptr);
-    static bool parseWithVariations(const QString& ki2Path, KifParseResult& out, QString* errorMessage = nullptr);
+    [[nodiscard]] static bool parseWithVariations(const QString& ki2Path, KifParseResult& out, QString* errorMessage = nullptr);
     static QString mapHandicapToSfen(const QString& label);
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
     static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
-    static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
+    [[nodiscard]] static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
                                         QString* detectedLabel = nullptr, QString* warn = nullptr);
 
     // 盤面操作API（gamerecordmodel等から使用）

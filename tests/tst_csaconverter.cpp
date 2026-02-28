@@ -460,7 +460,7 @@ private slots:
         KifParseResult result;
         QString warn;
         // Must not crash regardless of input
-        CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         QVERIFY(true);
     }
 };

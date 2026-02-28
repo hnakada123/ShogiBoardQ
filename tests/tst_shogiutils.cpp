@@ -90,38 +90,34 @@ private slots:
 
     void parseMoveLabel_sente()
     {
-        int file = 0, rank = 0;
-        bool ok = ShogiUtils::parseMoveLabel(QStringLiteral("▲７六歩(77)"), &file, &rank);
-        QVERIFY(ok);
+        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("▲７六歩(77)"));
+        QVERIFY(result.has_value());
+        auto [file, rank] = *result;
         QCOMPARE(file, 7);
         QCOMPARE(rank, 6);
     }
 
     void parseMoveLabel_gote()
     {
-        int file = 0, rank = 0;
-        bool ok = ShogiUtils::parseMoveLabel(QStringLiteral("△３四歩(33)"), &file, &rank);
-        QVERIFY(ok);
+        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("△３四歩(33)"));
+        QVERIFY(result.has_value());
+        auto [file, rank] = *result;
         QCOMPARE(file, 3);
         QCOMPARE(rank, 4);
     }
 
     void parseMoveLabel_doNotation()
     {
-        // 「同」で始まる場合はfalseを返す
-        int file = 0, rank = 0;
-        bool ok = ShogiUtils::parseMoveLabel(QStringLiteral("▲同　銀(31)"), &file, &rank);
-        QVERIFY(!ok);
-        QCOMPARE(file, 0);
-        QCOMPARE(rank, 0);
+        // 「同」で始まる場合は nullopt を返す
+        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("▲同　銀(31)"));
+        QVERIFY(!result.has_value());
     }
 
     void parseMoveLabel_noMark()
     {
         // ▲も△もない場合
-        int file = 0, rank = 0;
-        bool ok = ShogiUtils::parseMoveLabel(QStringLiteral("７六歩"), &file, &rank);
-        QVERIFY(!ok);
+        auto result = ShogiUtils::parseMoveLabel(QStringLiteral("７六歩"));
+        QVERIFY(!result.has_value());
     }
 
     // === moveToUsi ===

@@ -7,6 +7,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QStringList>
+#include <QStringView>
 #include <array>
 #include <functional>
 #include <optional>
@@ -21,17 +22,17 @@ namespace KifuParseCommon {
 int asciiDigitToInt(QChar c);
 int zenkakuDigitToInt(QChar c);
 int flexDigitToIntNoDetach(QChar c);
-int flexDigitsToIntNoDetach(const QString& text);
+int flexDigitsToIntNoDetach(QStringView text);
 
 const std::array<QString, 16>& terminalWords();
-bool isTerminalWordExact(const QString& text, QString* normalized = nullptr);
-bool isTerminalWordContains(const QString& text, QString* normalized = nullptr);
+bool isTerminalWordExact(QStringView text, QString* normalized = nullptr);
+bool isTerminalWordContains(QStringView text, QString* normalized = nullptr);
 
-bool mapKanjiPiece(const QString& text, Piece& base, bool& promoted);
+bool mapKanjiPiece(QStringView text, Piece& base, bool& promoted);
 
-std::optional<int> parseFileChar(QChar ch);   // '1'〜'9' → 1〜9
-std::optional<int> parseRankChar(QChar ch);   // 'a'〜'i' → 1〜9
-std::optional<int> parseDigit(QChar ch);      // '0'〜'9' → 0〜9
+[[nodiscard]] std::optional<int> parseFileChar(QChar ch);   // '1'〜'9' → 1〜9
+[[nodiscard]] std::optional<int> parseRankChar(QChar ch);   // 'a'〜'i' → 1〜9
+[[nodiscard]] std::optional<int> parseDigit(QChar ch);      // '0'〜'9' → 0〜9
 
 // 改行区切りで追記（buf が空でなければ '\n' を挿入してから text を追加）
 void appendLine(QString& buf, const QString& text);
@@ -44,19 +45,19 @@ void flushCommentToLastItem(QString& buf, QList<KifDisplayItem>& items, int minS
 KifDisplayItem createOpeningDisplayItem(const QString& comment, const QString& bookmark);
 
 // KIF/KI2共通：盤面枠行・ヘッダ行を判定（BODの数字行、罫線行、持駒見出し等）
-bool isBoardHeaderOrFrame(const QString& line);
+bool isBoardHeaderOrFrame(QStringView line);
 
 // KIF/KI2共通：終局語を含むか判定
-bool containsAnyTerminal(const QString& s, QString* matched = nullptr);
+bool containsAnyTerminal(QStringView s, QString* matched = nullptr);
 
 // KIF/KI2共通：スキップ可能なヘッダ行かどうか判定
-bool isKifSkippableHeaderLine(const QString& line);
+bool isKifSkippableHeaderLine(QStringView line);
 
 // KIF/KI2共通：コメント行判定（先頭が '*' or '＊'）
-bool isKifCommentLine(const QString& s);
+bool isKifCommentLine(QStringView s);
 
 // KIF/KI2共通：しおり行判定（先頭が '&'）
-bool isBookmarkLine(const QString& s);
+bool isBookmarkLine(QStringView s);
 
 // CSA/JKF共通：CSA形式終局コード→日本語ラベル
 // %プレフィックスの有無を自動判別（%TORYO / TORYO 両対応）
@@ -81,7 +82,7 @@ inline QString tebanMark(int ply) {
 }
 
 // KIF/KI2共通：BOD持駒行判定（先手の持駒/後手の持駒/持ち駒）
-bool isBodHandsLine(const QString& line);
+bool isBodHandsLine(QStringView line);
 
 // KIF/KI2共通：ヘッダ行から対局情報を抽出
 // isMoveLine: 指し手行を検出したら true を返す（形式により判定方法が異なる）
@@ -115,11 +116,11 @@ void finalizeDisplayItems(QString& commentBuf, QList<KifDisplayItem>& items,
 QString usiPieceToKanji(QChar usiPiece);
 
 // USI/USEN共通：盤面トークンから漢字駒名を取得（成駒対応: +P→と, +B→馬 etc.）
-QString usiTokenToKanji(const QString& token);
+QString usiTokenToKanji(QStringView token);
 
 // USI/USEN共通：USI指し手から駒トークンを抽出
 // tracer: 現在の盤面状態を追跡するトレーサー（指し手適用前の状態）
-QString extractUsiPieceToken(const QString& usi, SfenPositionTracer& tracer);
+QString extractUsiPieceToken(QStringView usi, SfenPositionTracer& tracer);
 
 // USI/USEN共通：USI指し手から日本語表記を生成
 // pieceToken: SfenPositionTracerから取得した駒トークン（例: "P", "+B"）

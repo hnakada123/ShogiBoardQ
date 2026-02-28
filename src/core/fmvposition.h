@@ -47,7 +47,7 @@ public:
     void clear() noexcept;
     void rebuildBitboards() noexcept;
 
-    bool doMove(const Move& move, Color side, UndoState& undo) noexcept;
+    [[nodiscard]] bool doMove(const Move& move, Color side, UndoState& undo) noexcept;
     void undoMove(const UndoState& undo, Color side) noexcept;
 };
 

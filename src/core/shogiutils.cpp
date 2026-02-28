@@ -31,7 +31,7 @@ QString transRankTo(const int rankTo)
         const QString msg = QObject::tr("The rank must be a value between 1 and 9. (got %1)")
         .arg(rankTo);
         qCWarning(lcCore, "%s", qUtf8Printable(msg));
-        ErrorBus::instance().postError(msg);
+        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, msg);
         return QString();
     }
     return rankStrings.at(rankTo);
@@ -50,7 +50,7 @@ QString transFileTo(const int fileTo)
         const QString msg = QObject::tr("The file must be a value between 1 and 9. (got %1)")
         .arg(fileTo);
         qCWarning(lcCore, "%s", qUtf8Printable(msg));
-        ErrorBus::instance().postError(msg);
+        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, msg);
         return QString();
     }
     return fileStrings.at(fileTo);
@@ -119,12 +119,8 @@ int parseKanjiRank(QChar ch)
     return 0;
 }
 
-bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
+std::optional<std::pair<int, int>> parseMoveLabel(QStringView moveLabel)
 {
-    if (!outFile || !outRank) return false;
-    *outFile = 0;
-    *outRank = 0;
-
     static const QString senteMark = QStringLiteral("▲");
     static const QString goteMark = QStringLiteral("△");
 
@@ -132,15 +128,15 @@ bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
     if (markPos < 0) {
         markPos = moveLabel.indexOf(goteMark);
     }
-    if (markPos < 0 || moveLabel.length() <= markPos + 2) {
-        return false;
+    if (markPos < 0 || moveLabel.size() <= markPos + 2) {
+        return std::nullopt;
     }
 
-    const QString afterMark = moveLabel.mid(markPos + 1);
+    const QStringView afterMark = moveLabel.mid(markPos + 1);
 
     // 「同」で始まる場合は前の手を参照する必要がある
     if (afterMark.startsWith(QStringLiteral("同"))) {
-        return false;
+        return std::nullopt;
     }
 
     const QChar fileChar = afterMark.at(0);
@@ -150,30 +146,24 @@ bool parseMoveLabel(const QString& moveLabel, int* outFile, int* outRank)
     const int rank = parseKanjiRank(rankChar);
 
     if (file >= 1 && file <= 9 && rank >= 1 && rank <= 9) {
-        *outFile = file;
-        *outRank = rank;
-        return true;
+        return std::make_pair(file, rank);
     }
 
-    return false;
+    return std::nullopt;
 }
 
-bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
-                                   int* outFile, int* outRank)
+std::optional<std::pair<int, int>> parseMoveCoordinateFromModel(
+    const QAbstractItemModel* model, int row)
 {
-    if (!model || !outFile || !outRank) return false;
-    *outFile = 0;
-    *outRank = 0;
-
-    if (row <= 0 || row >= model->rowCount()) {
-        return false;
+    if (!model || row <= 0 || row >= model->rowCount()) {
+        return std::nullopt;
     }
 
     const QModelIndex idx = model->index(row, 0);
     const QString moveLabel = model->data(idx, Qt::DisplayRole).toString();
 
-    if (parseMoveLabel(moveLabel, outFile, outRank)) {
-        return true;
+    if (auto coord = parseMoveLabel(moveLabel)) {
+        return coord;
     }
 
     // 「同」の場合は前の手を遡って座標を取得
@@ -181,12 +171,12 @@ bool parseMoveCoordinateFromModel(const QAbstractItemModel* model, int row,
         const QModelIndex prevIdx = model->index(i, 0);
         const QString prevLabel = model->data(prevIdx, Qt::DisplayRole).toString();
 
-        if (parseMoveLabel(prevLabel, outFile, outRank)) {
-            return true;
+        if (auto coord = parseMoveLabel(prevLabel)) {
+            return coord;
         }
     }
 
-    return false;
+    return std::nullopt;
 }
 
 } // namespace ShogiUtils

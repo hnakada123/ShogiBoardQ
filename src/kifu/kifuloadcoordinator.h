@@ -88,13 +88,13 @@ public:
     // --- テキスト・局面読み込み ---
 
     /// 文字列から棋譜を読み込む（棋譜貼り付け機能用、形式を自動判定）
-    bool loadKifuFromString(const QString& content);
+    [[nodiscard]] bool loadKifuFromString(const QString& content);
 
     /// SFEN形式の局面を読み込む
-    bool loadPositionFromSfen(const QString& sfenStr);
+    [[nodiscard]] bool loadPositionFromSfen(const QString& sfenStr);
 
     /// BOD形式の局面を読み込む（内部でSFENに変換して処理）
-    bool loadPositionFromBod(const QString& bodStr);
+    [[nodiscard]] bool loadPositionFromBod(const QString& bodStr);
 
     // --- 外部オブジェクト設定 ---
 

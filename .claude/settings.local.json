@@ -69,7 +69,12 @@
       "Bash(bash:*)",
       "Bash(nm:*)",
       "Bash(kill %1:*)",
-      "Bash(do basename:*)"
+      "Bash(do basename:*)",
+      "Bash(sort -k2 -rn)",
+      "Bash(do echo:*)",
+      "Bash(/tmp/analysis_summary.txt:*)",
+      "Bash(cat:*)",
+      "Bash(read f:*)"
     ]
   }
 }

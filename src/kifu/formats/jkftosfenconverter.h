@@ -29,7 +29,7 @@ public:
     static QString detectInitialSfenFromFile(const QString& jkfPath, QString* detectedLabel = nullptr);
     static QStringList convertFile(const QString& jkfPath, QString* errorMessage = nullptr);
     static QList<KifDisplayItem> extractMovesWithTimes(const QString& jkfPath, QString* errorMessage = nullptr);
-    static bool parseWithVariations(const QString& jkfPath, KifParseResult& out, QString* errorMessage = nullptr);
+    [[nodiscard]] static bool parseWithVariations(const QString& jkfPath, KifParseResult& out, QString* errorMessage = nullptr);
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
     static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
     static QString mapPresetToSfen(const QString& preset);

@@ -154,7 +154,10 @@ void MatchCoordinatorWiring::wireConnections()
     auto* evalCtl = m_getEvalGraphController ? m_getEvalGraphController() : nullptr;
     if (evalCtl) {
         evalCtl->setMatchCoordinator(m_match.get());
-        evalCtl->setSfenRecord(m_sfenRecord);
+        // m_sfenRecord は MC 生成前に取得されるため nullptr になり得る。
+        // MC 生成後は MC が保持する sfenRecord を使う。
+        QStringList* sfenPtr = (m_match ? m_match->sfenRecordPtr() : m_sfenRecord);
+        evalCtl->setSfenRecord(sfenPtr);
     }
 
     // UndoBindings の設定

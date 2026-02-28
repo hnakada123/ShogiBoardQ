@@ -7,6 +7,7 @@
 
 #include <QWidget>
 #include <QTextBrowser>
+#include "recordpaneappearancemanager.h"
 
 class QTableView; class QPushButton; class QTextBrowser; class QSplitter;
 class KifuRecordListModel; class KifuBranchListModel;
@@ -73,9 +74,10 @@ private:
     QPushButton *m_btnToggleTime=nullptr;      // 消費時間列トグル
     QPushButton *m_btnToggleBookmark=nullptr;  // しおり列トグル
     QPushButton *m_btnToggleComment=nullptr;   // コメント列トグル
-    int m_fontSize = 10;  // 現在のフォントサイズ
     QSplitter *m_lr=nullptr;
     QMetaObject::Connection m_connKifuCurrentRow;
+
+    RecordPaneAppearanceManager m_appearanceManager{10};
 
 private slots:
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
@@ -107,12 +109,6 @@ public slots:
     void onToggleCommentColumn(bool checked);
 
 private:
-    void applyFontSize(int size);
-    void updateColumnResizeModes();
-    void applyColumnVisibility();
-    static QString kifuTableStyleSheet(int fontSize);
-    static QString branchTableStyleSheet(int fontSize);
-
     // 対局中フラグ（ナビゲーション無効化時にtrue）
     bool m_navigationDisabled = false;
 };

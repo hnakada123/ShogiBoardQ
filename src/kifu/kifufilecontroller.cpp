@@ -86,7 +86,7 @@ void KifuFileController::overwriteKifuFile()
 
     auto* kec = m_deps.getKifuExportController ? m_deps.getKifuExportController() : nullptr;
     if (kec) {
-        kec->overwriteFile(*m_deps.saveFileName);
+        (void)kec->overwriteFile(*m_deps.saveFileName);
     }
 }
 
@@ -178,10 +178,10 @@ void KifuFileController::autoSaveKifuToFile(const QString& saveDir, PlayMode pla
         return;
     }
 
-    QString savedPath;
-    const bool ok = kec->autoSaveToDir(saveDir, &savedPath);
-    if (ok && !savedPath.isEmpty() && m_deps.saveFileName) {
-        *m_deps.saveFileName = savedPath;
+    if (auto savedPath = kec->autoSaveToDir(saveDir)) {
+        if (m_deps.saveFileName) {
+            *m_deps.saveFileName = *savedPath;
+        }
     }
 }
 

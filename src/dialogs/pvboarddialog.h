@@ -7,19 +7,22 @@
 
 #include <QDialog>
 #include <QStringList>
-#include <QVector>
 #include <memory>
 #include "shogiview.h"
 
 class ShogiBoard;
 class QPushButton;
 class QLabel;
+class PvBoardController;
 
 /**
  * @brief 読み筋（PV: Principal Variation）を再生する別ウィンドウダイアログ
  *
  * 思考タブの読み筋をクリックすると、このダイアログが開き、
  * 1手進む/戻るボタンで読み筋の盤面を再現できる。
+ *
+ * ロジック（ナビゲーション状態、SFEN履歴、ハイライト座標計算）は
+ * PvBoardController に委譲し、本クラスはUI表示のみを担当する。
  */
 class PvBoardDialog : public QDialog
 {
@@ -53,8 +56,6 @@ public:
     /**
      * @brief 起動時の局面に至った最後の手を設定（USI形式）
      * @param lastMove USI形式の手（例: "7g7f"）
-     * 
-     * この手が設定されている場合、開始局面（手数0）でもハイライトが表示される。
      */
     void setLastMove(const QString& lastMove);
     void setPrevSfenForHighlight(const QString& prevSfen);
@@ -90,16 +91,10 @@ private:
     void updateBoardDisplay();
     /// 時計ラベルを非表示にする
     void hideClockLabels();
-    /// SFEN形式の手を盤面に適用
-    void applyMove(const QString& usiMove);
-    /// 手番を取得（"b" or "w"）
-    QString currentTurn() const;
     /// 現在の手のハイライトを更新
     void updateMoveHighlights();
     /// ハイライトをクリア
     void clearMoveHighlights();
-    /// 漢字表記の読み筋を個々の手に分割
-    void parseKanjiMoves();
     /// ウィンドウサイズを保存
     void saveWindowSize();
     /// レイアウト確定後にウィンドウサイズを調整
@@ -112,21 +107,13 @@ protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+    std::unique_ptr<PvBoardController> m_controller;
+
     ShogiView* m_shogiView = nullptr;
     ShogiBoard* m_board = nullptr;
 
-    QString m_baseSfen;           ///< 開始局面のSFEN
-    QStringList m_pvMoves;        ///< USI形式の読み筋手
-    QStringList m_kanjiMoves;     ///< 漢字表記の各手のリスト
-    QString m_kanjiPv;            ///< 漢字表記の読み筋
     QString m_blackPlayerName;    ///< 先手の対局者名
     QString m_whitePlayerName;    ///< 後手の対局者名
-    QString m_lastMove;           ///< 起動時の局面に至った最後の手（USI形式）
-    QString m_prevSfen;           ///< 起動時局面の1手前SFEN（差分ハイライト用）
-
-    QVector<QString> m_sfenHistory; ///< 各手数での局面SFEN履歴
-
-    int m_currentPly = 0;         ///< 現在の手数（0=開始局面）
 
     // UI要素
     QPushButton* m_btnFirst = nullptr;

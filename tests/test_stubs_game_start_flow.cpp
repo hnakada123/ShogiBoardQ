@@ -739,6 +739,7 @@ bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev) { return QObject::
 // ============================================================
 // PvBoardDialog スタブ
 // ============================================================
+#include "pvboardcontroller.h"
 
 PvBoardDialog::PvBoardDialog(const QString&, const QStringList&, QWidget* parent)
     : QDialog(parent) {}

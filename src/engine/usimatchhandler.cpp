@@ -299,7 +299,7 @@ void UsiMatchHandler::processEngineResponse(QString& positionStr, QString& posit
         m_protocolHandler->sendPonderHit();
 
         if (byoyomiMilliSec == 0) {
-            m_protocolHandler->keepWaitingForBestMove();
+            (void)m_protocolHandler->keepWaitingForBestMove();
         } else {
             waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
         }
@@ -312,7 +312,7 @@ void UsiMatchHandler::processEngineResponse(QString& positionStr, QString& posit
         m_protocolHandler->sendStop();
 
         if (byoyomiMilliSec == 0) {
-            m_protocolHandler->keepWaitingForBestMove();
+            (void)m_protocolHandler->keepWaitingForBestMove();
         } else {
             waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
         }

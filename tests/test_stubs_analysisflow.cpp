@@ -328,6 +328,7 @@ void ThinkingInfoPresenter::onInfoReceived(const QString&) {}
 ShogiEngineInfoParser::ShogiEngineInfoParser() {}
 
 // === PvBoardDialog スタブ ===
+#include "pvboardcontroller.h"
 PvBoardDialog::PvBoardDialog(const QString&, const QStringList&, QWidget* parent)
     : QDialog(parent) {}
 PvBoardDialog::~PvBoardDialog() = default;

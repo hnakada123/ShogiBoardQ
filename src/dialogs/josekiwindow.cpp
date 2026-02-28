@@ -28,6 +28,8 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
     , m_repository(new JosekiRepository())
     , m_presenter(new JosekiPresenter(m_repository, this))
+    , m_fontHelper({JosekiSettings::josekiWindowFontSize(), 6, 24, 1,
+                    JosekiSettings::setJosekiWindowFontSize})
 {
     setupUi();
     loadSettings();
@@ -78,12 +80,12 @@ void JosekiWindow::showEvent(QShowEvent *event)
 
 void JosekiWindow::onFontSizeIncrease()
 {
-    if (m_fontSize < 24) { m_fontSize++; applyFontSize(); JosekiSettings::setJosekiWindowFontSize(m_fontSize); }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 void JosekiWindow::onFontSizeDecrease()
 {
-    if (m_fontSize > 6) { m_fontSize--; applyFontSize(); JosekiSettings::setJosekiWindowFontSize(m_fontSize); }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // ============================================================
@@ -310,7 +312,7 @@ void JosekiWindow::editMoveAt(int row)
 
     const JosekiMove &currentMove = m_currentMoves.at(row);
     SfenPositionTracer tracer;
-    tracer.setFromSfen(m_currentSfen);
+    (void)tracer.setFromSfen(m_currentSfen);
     QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, currentPlyNumber(), tracer);
 
     JosekiMoveDialog dialog(this, true);
@@ -338,7 +340,7 @@ void JosekiWindow::deleteMoveAt(int row)
 
     // 日本語表記で確認（ボタンからの場合）
     SfenPositionTracer tracer;
-    tracer.setFromSfen(m_currentSfen);
+    (void)tracer.setFromSfen(m_currentSfen);
     QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, currentPlyNumber(), tracer);
 
     QMessageBox::StandardButton result = QMessageBox::question(

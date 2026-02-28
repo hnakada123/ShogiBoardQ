@@ -216,7 +216,7 @@ GameStartOrchestrator::syncAndSearchGameHistory(const QString& targetSfen)
             const qsizetype mIdx = fullCmd.indexOf(QLatin1String(" moves "));
             const QString sfenPart = (mIdx == -1) ? fullCmd.mid(14)
                                                   : fullCmd.mid(14, mIdx - 14);
-            tracer.setFromSfen(sfenPart);
+            (void)tracer.setFromSfen(sfenPart);
             if (mIdx != -1) {
                 moves = fullCmd.mid(mIdx + 7).split(QLatin1Char(' '), Qt::SkipEmptyParts);
             }
@@ -235,7 +235,7 @@ GameStartOrchestrator::syncAndSearchGameHistory(const QString& targetSfen)
 
         // 1手ずつ進めて比較
         for (qsizetype m = 0; m < moves.size(); ++m) {
-            tracer.applyUsiMove(moves[m]);
+            (void)tracer.applyUsiMove(moves[m]);
             if (tracer.toSfenString() == targetSfen) {
                 qCDebug(lcGame).noquote()
                     << QString(" -> MATCH FOUND: [Game %1] Move %2").arg(i + 1).arg(m + 1);

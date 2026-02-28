@@ -2,14 +2,15 @@
 /// @brief CSA通信対局コーディネータクラスの実装
 
 #include "csagamecoordinator.h"
+#include "csamoveprogresshandler.h"
 #include "csamoveconverter.h"
 #include "csaenginecontroller.h"
 #include "kifurecordlistmodel.h"
 #include "shogigamecontroller.h"
+#include "boardinteractioncontroller.h"
 #include "shogiview.h"
 #include "shogiclock.h"
 #include "shogiboard.h"
-#include "boardinteractioncontroller.h"
 #include "sfencsapositionconverter.h"
 #include "logcategories.h"
 
@@ -176,45 +177,6 @@ void CsaGameCoordinator::performResign()
 }
 
 // ============================================================
-// 時間管理ヘルパー
-// ============================================================
-
-void CsaGameCoordinator::updateTimeTracking(bool isBlackMove, int consumedTimeMs)
-{
-    if (isBlackMove) {
-        m_blackTotalTimeMs += consumedTimeMs;
-        m_blackRemainingMs -= consumedTimeMs;
-        if (m_blackRemainingMs < 0) m_blackRemainingMs = 0;
-    } else {
-        m_whiteTotalTimeMs += consumedTimeMs;
-        m_whiteRemainingMs -= consumedTimeMs;
-        if (m_whiteRemainingMs < 0) m_whiteRemainingMs = 0;
-    }
-}
-
-void CsaGameCoordinator::syncClockAfterMove(bool startMyTurnClock)
-{
-    if (!m_clock) return;
-
-    int blackRemainSec = m_blackRemainingMs / 1000;
-    int whiteRemainSec = m_whiteRemainingMs / 1000;
-    int byoyomiSec = m_gameSummary.byoyomi * m_gameSummary.timeUnitMs() / 1000;
-    int incrementSec = m_gameSummary.increment * m_gameSummary.timeUnitMs() / 1000;
-
-    m_clock->setPlayerTimes(blackRemainSec, whiteRemainSec,
-                            byoyomiSec, byoyomiSec,
-                            incrementSec, incrementSec,
-                            true);
-
-    if (startMyTurnClock) {
-        m_clock->setCurrentPlayer(m_isBlackSide ? 1 : 2);
-    } else {
-        m_clock->setCurrentPlayer(m_isBlackSide ? 2 : 1);
-    }
-    m_clock->startClock();
-}
-
-// ============================================================
 // CSAクライアント シグナルハンドラ
 // ============================================================
 
@@ -318,7 +280,8 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     emit turnChanged(m_isMyTurn);
 
     if (m_playerType == PlayerType::Engine && m_isMyTurn) {
-        startEngineThinking();
+        ensureMoveProgressHandler();
+        m_moveProgressHandler->startEngineThinking();
     }
 }
 
@@ -330,160 +293,14 @@ void CsaGameCoordinator::onGameRejected(const QString& gameId, const QString& re
 
 void CsaGameCoordinator::onMoveReceived(const QString& move, int consumedTimeMs)
 {
-    emit logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs));
-
-    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
-
-    updateTimeTracking(isBlackMove, consumedTimeMs);
-    syncClockAfterMove(true);  // 次は自分の手番
-
-    // CSA形式から座標を抽出（ハイライト用）
-    QPoint from, to;
-    int fromFile = 0, fromRank = 0;
-    int toFile = 0, toRank = 0;
-    if (move.length() >= 5) {
-        fromFile = move[1].digitValue();
-        fromRank = move[2].digitValue();
-        toFile = move[3].digitValue();
-        toRank = move[4].digitValue();
-
-        if (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) {
-            qCWarning(lcNetwork) << "Invalid CSA move coordinates: toFile=" << toFile << "toRank=" << toRank << "move=" << move;
-            emit logMessage(tr("不正な座標の指し手を受信しました: %1").arg(move), true);
-            emit errorOccurred(tr("サーバーからの指し手の座標が不正です: %1").arg(move));
-            setGameState(GameState::Error);
-            return;
-        }
-
-        if (fromFile == 0 && fromRank == 0) {
-            from = QPoint(-1, -1);
-        } else {
-            from = QPoint(fromFile, fromRank);
-        }
-        to = QPoint(toFile, toRank);
-    }
-
-    // 成り判定（盤面更新前に行う）
-    bool isPromotion = false;
-    if (move.length() >= 7 && fromFile != 0 && fromRank != 0) {
-        QString destPiece = move.mid(5, 2);
-        static const QStringList promotedPieces = {
-            QStringLiteral("TO"), QStringLiteral("NY"), QStringLiteral("NK"),
-            QStringLiteral("NG"), QStringLiteral("UM"), QStringLiteral("RY")
-        };
-        if (promotedPieces.contains(destPiece)) {
-            if (m_gameController && m_gameController->board()) {
-                Piece srcPiece = m_gameController->board()->getPieceCharacter(fromFile, fromRank);
-                static const QString unpromoted = QStringLiteral("PLNSBRplnsbr");
-                if (unpromoted.contains(pieceToChar(srcPiece))) {
-                    isPromotion = true;
-                }
-            }
-        }
-    }
-
-    if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, m_usiMoves, m_sfenHistory, m_moveCount)) {
-        emit logMessage(tr("指し手の適用に失敗しました: %1").arg(move), true);
-        emit errorOccurred(tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
-        setGameState(GameState::Error);
-        return;
-    }
-
-    if (m_view) m_view->update();
-
-    m_moveCount++;
-    m_isMyTurn = true;
-    emit turnChanged(true);
-
-    emit moveHighlightRequested(from, to);
-
-    QString usiMove = CsaMoveConverter::csaToUsi(move);
-    QString prettyMove = CsaMoveConverter::csaToPretty(move, isPromotion, m_prevToFile, m_prevToRank, m_moveCount - 1);
-
-    m_prevToFile = toFile;
-    m_prevToRank = toRank;
-
-    emit moveMade(move, usiMove, prettyMove, consumedTimeMs);
-
-    if (m_playerType == PlayerType::Engine) {
-        startEngineThinking();
-    }
+    ensureMoveProgressHandler();
+    m_moveProgressHandler->handleMoveReceived(move, consumedTimeMs);
 }
 
 void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs)
 {
-    emit logMessage(tr("指し手確認: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs));
-
-    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
-
-    updateTimeTracking(isBlackMove, consumedTimeMs);
-    syncClockAfterMove(false);  // 次は相手の手番
-
-    // USI指し手リストとSFEN記録は更新する必要がある
-    QString usiMove = CsaMoveConverter::csaToUsi(move);
-    if (!usiMove.isEmpty()) {
-        m_usiMoves.append(usiMove);
-    }
-
-    // エンジンの指し手の場合のみSFEN記録を更新（人間はvalidateAndMoveで追加済み）
-    if (m_playerType == PlayerType::Engine) {
-        if (m_gameController && m_gameController->board() && m_sfenHistory) {
-            QString boardSfen = m_gameController->board()->convertBoardToSfen();
-            QString standSfen = m_gameController->board()->convertStandToSfen();
-            QString currentPlayerStr = (m_gameController->currentPlayer() == ShogiGameController::Player1)
-                                       ? QStringLiteral("b") : QStringLiteral("w");
-            QString fullSfen = QString("%1 %2 %3 %4")
-                                   .arg(boardSfen, currentPlayerStr, standSfen)
-                                   .arg(m_moveCount + 1);
-            m_sfenHistory->append(fullSfen);
-        }
-    }
-
-    // CSA形式から座標を抽出（ハイライト用）
-    QPoint from, to;
-    int toFile = 0, toRank = 0;
-    if (move.length() >= 5) {
-        int fromFile = move[1].digitValue();
-        int fromRank = move[2].digitValue();
-        toFile = move[3].digitValue();
-        toRank = move[4].digitValue();
-
-        const bool invalidTo = (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9);
-        const bool invalidFrom = !((fromFile == 0 && fromRank == 0) ||
-                                   (fromFile >= 1 && fromFile <= 9 &&
-                                    fromRank >= 1 && fromRank <= 9));
-        if (invalidTo || invalidFrom) {
-            qCWarning(lcNetwork) << "Invalid confirmed CSA move coordinates:"
-                                 << "fromFile=" << fromFile << "fromRank=" << fromRank
-                                 << "toFile=" << toFile << "toRank=" << toRank
-                                 << "move=" << move;
-            emit logMessage(tr("不正な座標の指し手確認を受信しました: %1").arg(move), true);
-            emit errorOccurred(tr("サーバーからの指し手確認の座標が不正です: %1").arg(move));
-            setGameState(GameState::Error);
-            return;
-        }
-
-        if (fromFile == 0 && fromRank == 0) {
-            from = QPoint(-1, -1);
-        } else {
-            from = QPoint(fromFile, fromRank);
-        }
-        to = QPoint(toFile, toRank);
-    }
-
-    m_moveCount++;
-    m_isMyTurn = false;
-    emit turnChanged(false);
-
-    emit moveHighlightRequested(from, to);
-
-    bool isPromotion = m_gameController ? m_gameController->promote() : false;
-    QString prettyMove = CsaMoveConverter::csaToPretty(move, isPromotion, m_prevToFile, m_prevToRank, m_moveCount - 1);
-
-    m_prevToFile = toFile;
-    m_prevToRank = toRank;
-
-    emit moveMade(move, usiMove, prettyMove, consumedTimeMs);
+    ensureMoveProgressHandler();
+    m_moveProgressHandler->handleMoveConfirmed(move, consumedTimeMs);
 }
 
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
@@ -604,16 +421,15 @@ void CsaGameCoordinator::setupInitialPosition()
     const QString hiratePosition =
         QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
-    QString startSfen;
     QString parseError;
-    const bool parsed = SfenCsaPositionConverter::fromCsaPositionLines(
-        m_gameSummary.positionLines, &startSfen, &parseError);
-    if (!parsed || startSfen.isEmpty()) {
+    auto startSfen = SfenCsaPositionConverter::fromCsaPositionLines(
+        m_gameSummary.positionLines, &parseError);
+    if (!startSfen || startSfen->isEmpty()) {
         qCWarning(lcNetwork).noquote()
             << "CSA position parse failed. fallback to hirate. error=" << parseError;
         startSfen = hiratePosition;
     }
-    m_gameController->board()->setSfen(startSfen);
+    m_gameController->board()->setSfen(*startSfen);
 
     QString boardSfen = m_gameController->board()->convertBoardToSfen();
     QString standSfen = m_gameController->board()->convertStandToSfen();
@@ -666,117 +482,57 @@ void CsaGameCoordinator::setupClock()
 }
 
 // ============================================================
-// エンジン思考
+// クリーンアップ・ヘルパー
 // ============================================================
 
-void CsaGameCoordinator::startEngineThinking()
+void CsaGameCoordinator::ensureMoveProgressHandler()
 {
-    if (!m_engineController || !m_engineController->isInitialized()
-        || m_playerType != PlayerType::Engine) {
-        return;
-    }
+    if (m_moveProgressHandler) return;
+    m_moveProgressHandler = std::make_unique<CsaMoveProgressHandler>();
 
-    // ポジションコマンドを構築
-    QString positionCmd = m_positionStr;
-    if (!m_usiMoves.isEmpty()) {
-        positionCmd += QStringLiteral(" moves ") + m_usiMoves.join(QLatin1Char(' '));
-    }
+    CsaMoveProgressHandler::Refs refs;
+    refs.gameController = &m_gameController;
+    refs.view = &m_view;
+    refs.clock = &m_clock;
+    refs.engineController = &m_engineController;
+    refs.client = m_client;
+    refs.gameState = &m_gameState;
+    refs.playerType = &m_playerType;
+    refs.isBlackSide = &m_isBlackSide;
+    refs.isMyTurn = &m_isMyTurn;
+    refs.moveCount = &m_moveCount;
+    refs.prevToFile = &m_prevToFile;
+    refs.prevToRank = &m_prevToRank;
+    refs.blackTotalTimeMs = &m_blackTotalTimeMs;
+    refs.whiteTotalTimeMs = &m_whiteTotalTimeMs;
+    refs.blackRemainingMs = &m_blackRemainingMs;
+    refs.whiteRemainingMs = &m_whiteRemainingMs;
+    refs.usiMoves = &m_usiMoves;
+    refs.sfenHistory = &m_sfenHistory;
+    refs.positionStr = &m_positionStr;
+    refs.gameSummary = &m_gameSummary;
+    m_moveProgressHandler->setRefs(refs);
 
-    // 時間パラメータを計算
-    int byoyomiMs = m_gameSummary.byoyomi * m_gameSummary.timeUnitMs();
-    int totalTimeMs = m_gameSummary.totalTime * m_gameSummary.timeUnitMs();
-    int blackRemainMs = totalTimeMs - m_blackTotalTimeMs;
-    int whiteRemainMs = totalTimeMs - m_whiteTotalTimeMs;
-    if (blackRemainMs < 0) blackRemainMs = 0;
-    if (whiteRemainMs < 0) whiteRemainMs = 0;
-    int incMs = m_gameSummary.increment * m_gameSummary.timeUnitMs();
-
-    CsaEngineController::ThinkingParams params;
-    params.positionCmd = positionCmd;
-    params.byoyomiMs = byoyomiMs;
-    params.btimeStr = QString::number(blackRemainMs);
-    params.wtimeStr = QString::number(whiteRemainMs);
-    params.bincMs = incMs;
-    params.wincMs = incMs;
-    params.useByoyomi = (byoyomiMs > 0);
-
-    emit logMessage(tr("エンジンが思考中..."));
-
-    auto result = m_engineController->think(params);
-
-    // 投了チェック
-    if (result.resign) {
-        emit logMessage(tr("エンジンが投了しました"));
-        performResign();
-        return;
-    }
-
-    // 有効な指し手かチェック
-    if (!result.valid) {
-        emit logMessage(tr("エンジンが有効な指し手を返しませんでした"), true);
-        return;
-    }
-
-    // CSA形式の指し手を生成（盤面更新前に駒情報を取得）
-    ShogiBoard* board = m_gameController ? m_gameController->board() : nullptr;
-    if (!board) {
-        emit logMessage(tr("盤面が取得できませんでした"), true);
-        return;
-    }
-
-    int fromFile = result.from.x();
-    int fromRank = result.from.y();
-    int toFile = result.to.x();
-    int toRank = result.to.y();
-
-    QChar turnSign = m_isBlackSide ? QLatin1Char('+') : QLatin1Char('-');
-    QString csaPiece;
-
-    bool isDrop = (fromFile >= 10);
-    if (isDrop) {
-        Piece piece = board->getPieceCharacter(fromFile, fromRank);
-        csaPiece = CsaMoveConverter::pieceCharToCsa(piece, false);
-        fromFile = 0;
-        fromRank = 0;
-    } else {
-        Piece piece = board->getPieceCharacter(fromFile, fromRank);
-        csaPiece = CsaMoveConverter::pieceCharToCsa(piece, result.promote);
-    }
-
-    QString csaMove = QString("%1%2%3%4%5%6")
-        .arg(turnSign).arg(fromFile).arg(fromRank)
-        .arg(toFile).arg(toRank).arg(csaPiece);
-
-    emit logMessage(tr("CSA形式の指し手: %1").arg(csaMove));
-
-    // 盤面を更新
-    if (!isDrop) {
-        Piece movingPiece = board->getPieceCharacter(result.from.x(), result.from.y());
-        Piece capturedPiece = board->getPieceCharacter(toFile, toRank);
-        if (capturedPiece != Piece::None) {
-            board->addPieceToStand(capturedPiece);
-        }
-        board->movePieceToSquare(movingPiece, result.from.x(), result.from.y(), toFile, toRank, result.promote);
-    } else {
-        Piece dropPiece = board->getPieceCharacter(result.from.x(), result.from.y());
-        board->decrementPieceOnStand(dropPiece);
-        board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);
-    }
-
-    m_gameController->changeCurrentPlayer();
-    if (m_view) m_view->update();
-
-    // 評価値更新
-    int ply = m_moveCount + 1;
-    emit engineScoreUpdated(result.scoreCp, ply);
-
-    // サーバーに送信
-    m_client->sendMove(csaMove);
+    CsaMoveProgressHandler::Hooks hooks;
+    hooks.setGameState = [this](GameState s) { setGameState(s); };
+    hooks.logMessage = [this](const QString& msg, bool isError) {
+        emit logMessage(msg, isError);
+    };
+    hooks.errorOccurred = [this](const QString& msg) { emit errorOccurred(msg); };
+    hooks.moveMade = [this](const QString& csa, const QString& usi,
+                            const QString& pretty, int ms) {
+        emit moveMade(csa, usi, pretty, ms);
+    };
+    hooks.turnChanged = [this](bool myTurn) { emit turnChanged(myTurn); };
+    hooks.moveHighlightRequested = [this](const QPoint& f, const QPoint& t) {
+        emit moveHighlightRequested(f, t);
+    };
+    hooks.engineScoreUpdated = [this](int scoreCp, int ply) {
+        emit engineScoreUpdated(scoreCp, ply);
+    };
+    hooks.performResign = [this]() { performResign(); };
+    m_moveProgressHandler->setHooks(hooks);
 }
-
-// ============================================================
-// クリーンアップ
-// ============================================================
 
 void CsaGameCoordinator::cleanup()
 {

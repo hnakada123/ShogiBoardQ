@@ -9,6 +9,7 @@
 #include "mainwindowdepsfactory.h"
 
 #include "pvclickcontroller.h"
+#include "matchruntimequeryservice.h"
 #include "considerationpositionservice.h"
 #include "considerationwiring.h"
 #include "usicommandcontroller.h"
@@ -34,6 +35,7 @@ void MainWindowServiceRegistry::ensurePvClickController()
     stateRefs.startSfenStr = &m_mw.m_state.startSfenStr;
     stateRefs.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
     stateRefs.considerationModel = &m_mw.m_models.consideration;
+    stateRefs.sfenRecordGetter = [this]() { return m_mw.m_queryService->sfenRecord(); };
     m_mw.m_pvClickController->setStateRefs(stateRefs);
     m_mw.m_pvClickController->setShogiView(m_mw.m_shogiView);
 

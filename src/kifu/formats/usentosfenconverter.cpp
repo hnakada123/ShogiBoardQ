@@ -273,7 +273,7 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
             varTracer.resetToStartpos();
         }
         for (const QString& move : std::as_const(prefixMoves)) {
-            varTracer.applyUsiMove(move);
+            (void)varTracer.applyUsiMove(move);
         }
 
         KifVariation kifVar;

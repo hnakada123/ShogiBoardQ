@@ -43,7 +43,7 @@ public:
     // --- プロセス管理 ---
     
     /// エンジンプロセスを起動し、シグナル接続を行う
-    bool startProcess(const QString& engineFile);
+    [[nodiscard]] bool startProcess(const QString& engineFile);
 
     void stopProcess();
     bool isRunning() const;

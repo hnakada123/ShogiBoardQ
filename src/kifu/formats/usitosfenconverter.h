@@ -51,7 +51,7 @@ public:
     static QList<KifDisplayItem> extractMovesWithTimes(const QString& usiPath, QString* errorMessage = nullptr);
 
     // 新API: 本譜＋全変化をまとめて抽出（コメントも格納）
-    static bool parseWithVariations(const QString& usiPath, KifParseResult& out, QString* errorMessage = nullptr);
+    [[nodiscard]] static bool parseWithVariations(const QString& usiPath, KifParseResult& out, QString* errorMessage = nullptr);
 
     // USIファイルから「対局情報」を抽出して順序付きで返す
     // 注意: USIは基本的にメタ情報を含まないため、ファイル名から推測するか空を返す

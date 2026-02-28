@@ -4,6 +4,7 @@
 /// @file uinotificationservice.h
 /// @brief エラー通知ダイアログ表示サービスの定義
 
+#include "errorbus.h"
 #include <QObject>
 
 class ShogiView;
@@ -31,6 +32,7 @@ public:
 
 public slots:
     void displayErrorMessage(const QString& message);
+    void displayMessage(ErrorBus::ErrorLevel level, const QString& message);
 
 private:
     Deps m_deps;

@@ -377,12 +377,11 @@ private slots:
             QStringLiteral("+"),
         };
 
-        QString sfen;
         QString error;
-        bool ok = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &sfen, &error);
-        QVERIFY2(ok, qPrintable(error));
-        QVERIFY(!sfen.isEmpty());
-        QVERIFY(sfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")));
+        auto sfen = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
+        QVERIFY2(sfen.has_value(), qPrintable(error));
+        QVERIFY(!sfen->isEmpty());
+        QVERIFY(sfen->startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL")));
     }
 
     void fromCsaPositionLines_pn_fullPieces()
@@ -396,14 +395,13 @@ private slots:
             QStringLiteral("+"),
         };
 
-        QString sfen;
         QString error;
-        bool ok = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &sfen, &error);
-        QVERIFY2(ok, qPrintable(error));
-        QVERIFY(sfen.contains(QStringLiteral("lnsgkgsnl")));
-        QVERIFY(sfen.contains(QStringLiteral("ppppppppp")));
-        QVERIFY(sfen.contains(QStringLiteral("PPPPPPPPP")));
-        QVERIFY(sfen.contains(QStringLiteral("LNSGKGSNL")));
+        auto sfen = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
+        QVERIFY2(sfen.has_value(), qPrintable(error));
+        QVERIFY(sfen->contains(QStringLiteral("lnsgkgsnl")));
+        QVERIFY(sfen->contains(QStringLiteral("ppppppppp")));
+        QVERIFY(sfen->contains(QStringLiteral("PPPPPPPPP")));
+        QVERIFY(sfen->contains(QStringLiteral("LNSGKGSNL")));
     }
 
     // ========================================
@@ -415,14 +413,13 @@ private slots:
         const QString sfen =
             QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
-        bool ok = false;
         QString error;
-        QStringList csaLines = SfenCsaPositionConverter::toCsaPositionLines(sfen, &ok, &error);
-        QVERIFY2(ok, qPrintable(error));
-        QVERIFY(!csaLines.isEmpty());
+        auto csaLines = SfenCsaPositionConverter::toCsaPositionLines(sfen, &error);
+        QVERIFY2(csaLines.has_value(), qPrintable(error));
+        QVERIFY(!csaLines->isEmpty());
         // P1 行が含まれること
         bool hasP1 = false;
-        for (const QString& line : std::as_const(csaLines)) {
+        for (const QString& line : std::as_const(*csaLines)) {
             if (line.startsWith(QStringLiteral("P1"))) {
                 hasP1 = true;
                 QVERIFY(line.contains(QStringLiteral("-KY")));
@@ -439,15 +436,14 @@ private slots:
     void fromCsaPositionLines_empty()
     {
         QStringList csaLines;
-        QString sfen;
         QString error;
-        bool ok = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &sfen, &error);
+        auto sfen = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
         // 空の入力は失敗するか空のSFENを返す
-        if (ok) {
+        if (sfen) {
             // 成功する場合もある（空局面として処理）
             QVERIFY(true);
         } else {
-            QVERIFY(!error.isEmpty() || sfen.isEmpty());
+            QVERIFY(!error.isEmpty());
         }
     }
 
@@ -551,10 +547,9 @@ private slots:
     {
         QFETCH(QStringList, csaLines);
 
-        QString sfen;
         QString error;
         // Must not crash regardless of input
-        SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &sfen, &error);
+        (void)SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
         QVERIFY(true);
     }
 

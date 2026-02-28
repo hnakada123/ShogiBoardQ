@@ -509,6 +509,7 @@ BranchTreeManager::~BranchTreeManager() = default;
 void BranchTreeManager::highlightBranchTreeAt(int, int, bool) {}
 bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev) { return QObject::eventFilter(obj, ev); }
 
+#include "pvboardcontroller.h"
 PvBoardDialog::PvBoardDialog(const QString&, const QStringList&, QWidget* parent)
     : QDialog(parent) {}
 PvBoardDialog::~PvBoardDialog() = default;

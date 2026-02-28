@@ -21,7 +21,7 @@ QString makeDefaultSaveFileName(PlayMode mode,
                                 const QDateTime& now,
                                 const QString& extension = QStringLiteral("kifu"));
 
-bool writeKifuFile(const QString& filePath,
+[[nodiscard]] bool writeKifuFile(const QString& filePath,
                    const QStringList& kifuLines,
                    QString* errorText,
                    bool useShiftJis = false);

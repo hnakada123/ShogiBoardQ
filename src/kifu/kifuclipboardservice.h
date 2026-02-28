@@ -46,11 +46,11 @@ struct ExportContext {
 
 /// KIF形式で棋譜をクリップボードにコピー
 /// @return 成功した場合true
-bool copyKif(const ExportContext& ctx);
+[[nodiscard]] bool copyKif(const ExportContext& ctx);
 
 /// KI2形式で棋譜をクリップボードにコピー
 /// @return 成功した場合true
-bool copyKi2(const ExportContext& ctx);
+[[nodiscard]] bool copyKi2(const ExportContext& ctx);
 
 /// ShogiMoveリストからUSI形式の指し手リストを生成
 QStringList gameMovesToUsiMoves(const QVector<ShogiMove>& moves);

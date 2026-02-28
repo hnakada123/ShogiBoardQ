@@ -20,7 +20,7 @@ public:
     int countLegalMoves(EnginePosition& pos, Color side) const;
     int countChecksToKing(const EnginePosition& pos, Color side) const;
 
-    bool tryApplyLegalMove(EnginePosition& pos, Color side, const Move& m, UndoState& undo) const;
+    [[nodiscard]] bool tryApplyLegalMove(EnginePosition& pos, Color side, const Move& m, UndoState& undo) const;
     void undoAppliedMove(EnginePosition& pos, Color side, const UndoState& undo) const;
 
     // Perft用: 全合法手生成

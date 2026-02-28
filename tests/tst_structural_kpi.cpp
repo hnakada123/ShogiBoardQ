@@ -60,14 +60,14 @@ private:
             {"src/core/fmvlegalcore.cpp", 930},          // TODO: ISSUE-056 合法手生成テーブル化
             {"src/engine/usiprotocolhandler.cpp", 714},   // ISSUE-053 USIエンジン分割（902→714）
             // --- 800行超 ---
-            {"src/dialogs/pvboarddialog.cpp", 884},               // TODO: ISSUE-057 ダイアログ分割
+            {"src/dialogs/pvboarddialog.cpp", 418},               // ISSUE-057 ダイアログ分割（884→418）
             {"src/dialogs/engineregistrationdialog.cpp", 842},    // TODO: ISSUE-057 ダイアログ分割
             {"src/dialogs/josekimovedialog.cpp", 838},            // TODO: ISSUE-057 ダイアログ分割
-            {"src/core/shogiboard.cpp", 820},                     // TODO: ISSUE-056 コアロジック分割
+            {"src/core/shogiboard.cpp", 822},                     // TODO: ISSUE-056 コアロジック分割
             {"src/views/shogiview_draw.cpp", 808},                // TODO: ISSUE-058 描画ロジック分離
             {"src/dialogs/changeenginesettingsdialog.cpp", 804},  // TODO: ISSUE-057 ダイアログ分割
             {"src/views/shogiview.cpp", 802},                     // TODO: ISSUE-058 描画ロジック分離
-            {"src/network/csagamecoordinator.cpp", 798},          // TODO: ISSUE-059 CSA通信分割
+            {"src/network/csagamecoordinator.cpp", 555},          // ISSUE-059 CSA通信分割（798→555）
             {"src/game/matchcoordinator.cpp", 789},               // TODO: ISSUE-060 MC責務移譲継続
             // --- 700行超 ---
             {"src/kifu/formats/csaexporter.cpp", 758},                // TODO: ISSUE-055 棋譜エクスポート形式分離
@@ -78,7 +78,7 @@ private:
             // --- 600行超 ---
             {"src/network/csaclient.cpp", 693},                    // TODO: ISSUE-059 CSA通信分割
             {"src/engine/shogiengineinfoparser.cpp", 689},         // TODO: ISSUE-053 USIエンジン分割
-            {"src/widgets/recordpane.cpp", 677},                   // TODO: ISSUE-062 ウィジェット分割
+            {"src/widgets/recordpane.cpp", 430},                   // ISSUE-062 ウィジェット分割（677→430）
             {"src/analysis/analysisflowcontroller.cpp", 676},        // ISSUE-052 解析フロー分割（1133→676）
             {"src/dialogs/tsumeshogigeneratordialog.cpp", 657},    // TODO: ISSUE-057 ダイアログ分割
             {"src/game/shogigamecontroller.cpp", 652},             // TODO: ISSUE-060 ゲーム管理分割

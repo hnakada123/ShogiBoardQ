@@ -9,6 +9,7 @@ set(TEST_STUBS
     ${CMAKE_CURRENT_SOURCE_DIR}/test_stubs.cpp
     ${SRC}/common/dialogutils.cpp
     ${SRC}/common/errorbus.cpp
+    ${SRC}/common/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/kifu/formats/parsecommon.cpp
     ${SRC}/kifu/formats/sfencsapositionconverter.cpp
@@ -98,6 +99,14 @@ add_shogi_test(tst_coredatastructures
     ${SRC}/game/turnmanager.cpp
     ${SRC}/game/shogigamecontroller.cpp
     ${SRC}/common/jishogicalculator.cpp
+)
+
+# ============================================================
+# Unit 1b: ErrorBus (severity levels)
+# ============================================================
+add_shogi_test(tst_errorbus
+    tst_errorbus.cpp
+    ${SRC}/common/errorbus.cpp
 )
 
 # ============================================================
@@ -443,6 +452,7 @@ add_shogi_test(tst_ui_display_consistency
     ${SRC}/widgets/kifudisplay.cpp
     ${SRC}/widgets/kifubranchdisplay.cpp
     ${SRC}/widgets/recordpane.cpp
+    ${SRC}/widgets/recordpaneappearancemanager.cpp
     ${SRC}/widgets/branchtreemanager.cpp
     ${SRC}/widgets/branchtreewidget.cpp
     ${SETTINGS_SOURCES}
@@ -682,6 +692,9 @@ add_shogi_test(tst_app_ui_state_policy
     test_stubs_ui_state_policy.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/uistatepolicymanager.cpp
+    ${SRC}/widgets/recordpaneappearancemanager.cpp
+    ${SRC}/services/gamesettings.cpp
+    ${SRC}/services/settingscommon.cpp
     ${SRC}/app/mainwindow.ui
 )
 set_target_properties(tst_app_ui_state_policy PROPERTIES
@@ -697,6 +710,39 @@ add_shogi_test(tst_app_branch_navigation
 )
 target_compile_definitions(tst_app_branch_navigation PRIVATE
     SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 27: Wiring Contracts (MatchCoordinatorWiring シグナル転送契約テスト)
+# ============================================================
+add_shogi_test(tst_wiring_contracts
+    tst_wiring_contracts.cpp
+    test_stubs_wiring_contracts.cpp
+    ${SRC}/ui/wiring/matchcoordinatorwiring.cpp
+    ${SRC}/common/logcategories.cpp
+)
+
+# ============================================================
+# Unit 28: MatchCoordinator (対局進行コーディネータ主要フロー)
+# ============================================================
+add_shogi_test(tst_matchcoordinator
+    tst_matchcoordinator.cpp
+    test_stubs_matchcoordinator.cpp
+    ${SRC}/game/matchcoordinator.cpp
+    ${SRC}/common/logcategories.cpp
+)
+
+# ============================================================
+# Unit 29: GameStrategy (対局モード別Strategy群テスト)
+# ============================================================
+add_shogi_test(tst_gamestrategy
+    tst_gamestrategy.cpp
+    test_stubs_gamestrategy.cpp
+    ${SRC}/game/matchcoordinator.cpp
+    ${SRC}/game/humanvshumanstrategy.cpp
+    ${SRC}/game/humanvsenginestrategy.cpp
+    ${SRC}/game/enginevsenginestrategy.cpp
+    ${SRC}/common/logcategories.cpp
 )
 
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)

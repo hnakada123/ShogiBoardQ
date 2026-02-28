@@ -115,6 +115,8 @@ void PvClickController::syncFromRefs()
         m_currentRecordIndex = *m_stateRefs.currentMoveIndex;
     if (m_stateRefs.considerationModel)
         m_considerationModel = *m_stateRefs.considerationModel;
+    if (m_stateRefs.sfenRecordGetter)
+        m_sfenHistory = m_stateRefs.sfenRecordGetter();
     m_boardFlipped = m_shogiView ? m_shogiView->getFlipMode() : false;
 }
 
