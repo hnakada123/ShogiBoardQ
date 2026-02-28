@@ -21,6 +21,7 @@
 #include "engineoptions.h"
 #include "engineoptiondescriptions.h"
 #include "collapsiblegroupbox.h"
+#include "fontsizehelper.h"
 
 namespace EngineSettings {
 // ファイルまたはディレクトリ選択のためのEnum型の定義
@@ -112,8 +113,8 @@ private:
     // エンジンオプションのためのウィジェットを格納するリスト
     QList<OptionWidgets> m_engineOptionWidgetsList;
 
-    // 現在のフォントサイズ
-    int m_fontSize;
+    // フォントサイズヘルパー
+    FontSizeHelper m_fontHelper;
 
     // 設定ファイルから選択したエンジンのオプションを読み込む。
     void readEngineOptions();

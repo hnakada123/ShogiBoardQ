@@ -272,25 +272,25 @@ bool KifuExportController::overwriteFile(const QString& filePath)
     return ok;
 }
 
-bool KifuExportController::autoSaveToDir(const QString& saveDir, QString* outPath)
+std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDir)
 {
     if (m_prepareCallback) m_prepareCallback();
 
     if (saveDir.isEmpty()) {
         Q_EMIT statusMessage(tr("自動保存先ディレクトリが指定されていません"), 3000);
-        return false;
+        return std::nullopt;
     }
 
     if (!m_deps.gameRecord) {
         Q_EMIT statusMessage(tr("棋譜データがありません（自動保存をスキップ）"), 3000);
-        return false;
+        return std::nullopt;
     }
 
     GameRecordModel::ExportContext ctx = buildExportContext();
     QStringList kifLines = m_deps.gameRecord->toKifLines(ctx);
     if (kifLines.isEmpty()) {
         Q_EMIT statusMessage(tr("棋譜データが空のため自動保存をスキップしました"), 3000);
-        return false;
+        return std::nullopt;
     }
 
     // ファイル名生成
@@ -308,14 +308,14 @@ bool KifuExportController::autoSaveToDir(const QString& saveDir, QString* outPat
         if (m_deps.gameRecord) {
             m_deps.gameRecord->clearDirty();
         }
-        if (outPath) *outPath = filePath;
         Q_EMIT statusMessage(tr("棋譜を自動保存しました: %1").arg(filePath), 5000);
-    } else {
-        qCWarning(lcKifu).noquote() << "autoSaveToDir failed:" << errorText;
-        ErrorBus::instance().postError(
-            tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
+        return filePath;
     }
-    return ok;
+
+    qCWarning(lcKifu).noquote() << "autoSaveToDir failed:" << errorText;
+    ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error,
+        tr("棋譜の自動保存に失敗しました: %1").arg(errorText));
+    return std::nullopt;
 }
 
 // --------------------------------------------------------

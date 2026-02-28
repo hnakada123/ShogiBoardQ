@@ -50,7 +50,7 @@ public:
 
     // --- 公開API ---
 
-    static bool parse(const QString& filePath, KifParseResult& out, QString* warn);
+    [[nodiscard]] static bool parse(const QString& filePath, KifParseResult& out, QString* warn);
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
 
 private:

@@ -547,12 +547,11 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         out << QStringLiteral("PI");
         out << QStringLiteral("+");  // 先手番
     } else {
-        bool converted = false;
         QString convErr;
-        const QStringList csaPos =
-            SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &converted, &convErr);
-        if (converted && !csaPos.isEmpty()) {
-            out << csaPos;
+        const auto csaPos =
+            SfenCsaPositionConverter::toCsaPositionLines(ctx.startSfen, &convErr);
+        if (csaPos && !csaPos->isEmpty()) {
+            out << *csaPos;
             // 非標準局面: 盤面追跡を開始SFENで初期化
             boardTracker.initFromSfen(ctx.startSfen);
         } else {

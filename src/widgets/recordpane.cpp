@@ -13,25 +13,18 @@
 #include <QHeaderView>
 #include <QAbstractItemView>
 #include <QPushButton>
-#include <QTextBrowser>
 #include <QSplitter>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
-#include <QPalette>
 #include <QIcon>
 #include <QSize>
 #include <QModelIndex>
 #include <QItemSelectionModel>
-#include <QItemSelectionModel>
-#include <QHeaderView>
 #include <QTimer>
-#include <QFont>
-
-// KifuRecordListModel / KifuBranchListModel は前方宣言で十分（ここでは include 不要）
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
-    , m_fontSize(GameSettings::kifuPaneFontSize())
+    , m_appearanceManager(GameSettings::kifuPaneFontSize())
 {
     buildUi();
     wireSignals(); // モデルに依存しないシグナルだけ先に配線
@@ -53,9 +46,7 @@ void RecordPane::buildUi()
     m_kifu->setTextElideMode(Qt::ElideRight);
 
     // ヘッダーを青色にスタイル設定
-    // QTableView::item の固定 background-color を削除し、モデルの BackgroundRole を使用
-    // ただし選択行のスタイルは明示的に黄色に設定（Qtデフォルトの青/紫を防ぐ）
-    m_kifu->setStyleSheet(kifuTableStyleSheet(m_fontSize));
+    m_kifu->setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(m_appearanceManager.fontSize()));
 
     // --- 文字サイズ変更ボタン ---
     m_btnFontUp = new QPushButton(this);
@@ -184,7 +175,7 @@ void RecordPane::buildUi()
     m_branch->setWordWrap(false);
 
     // ヘッダーを青色、データ欄を白色にスタイル設定（選択行は黄色を維持）
-    m_branch->setStyleSheet(branchTableStyleSheet(m_fontSize));
+    m_branch->setStyleSheet(RecordPaneAppearanceManager::branchTableStyleSheet(m_appearanceManager.fontSize()));
 
     // 分岐候補欄を縦レイアウトでラップ（「本譜に戻る」ボタン用）
     m_branchContainer = new QWidget(this);
@@ -234,7 +225,7 @@ void RecordPane::wireSignals()
     setupBranchViewSelectionAppearance();
 
     // 初期フォントサイズを適用
-    applyFontSize(m_fontSize);
+    m_appearanceManager.applyFontToViews(m_kifu, m_branch);
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
@@ -275,13 +266,12 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     }
 
     // 注意: 行選択の中継は後続の connectCurrentRow で行うため、ここでは接続しない
-    // （二重接続によるシグナル二重発火を防止）
     if (m_connRowChanged) {
         disconnect(m_connRowChanged);
         m_connRowChanged = {};
     }
 
-    applyColumnVisibility();
+    m_appearanceManager.applyColumnVisibility(m_kifu);
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
 
@@ -291,14 +281,12 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
         m_connKifuCurrentRow = {};
     }
 
-    // ② selectionModel() が確実にできてから接続（即時にあれば即時、なければ次のイベントループで）
-    // ラムダを使用せず、メンバ関数を使用（CLAUDE.md準拠）
+    // ② selectionModel() が確実にできてから接続
     if (auto* sel = m_kifu->selectionModel()) {
         m_connKifuCurrentRow =
             connect(sel, &QItemSelectionModel::currentRowChanged,
                     this, &RecordPane::onKifuCurrentRowChanged);
     } else {
-        // setModel 後すぐは selectionModel がまだ未設定なことがあるため遅延
         QTimer::singleShot(0, this, &RecordPane::connectKifuCurrentRowChanged);
     }
 
@@ -310,7 +298,6 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
 
     // 分岐テーブルの選択変更時にモデルのハイライト行を更新
     if (auto* sel = m_branch->selectionModel()) {
-        // 既存の接続があれば解除
         if (m_connBranchCurrentRow) {
             disconnect(m_connBranchCurrentRow);
         }
@@ -335,49 +322,7 @@ void RecordPane::setArrowButtonsEnabled(bool on)
 
 void RecordPane::setKifuViewEnabled(bool on)
 {
-    // 共通のスタイルシート（ヘッダー青色、選択行黄色）
-    const QString kBaseStyleSheet = kifuTableStyleSheet(m_fontSize);
-
-    if (m_kifu) {
-        qCDebug(lcUi) << "setKifuViewEnabled called, on=" << on;
-
-        m_navigationDisabled = !on;
-
-        // setEnabled(false) を使うとテキストがグレーアウトされるため、
-        // 代わりにビューポートのみマウスイベントを透過させてクリックを無効化する
-        // ビュー自体には設定しないことで、スクロールバーは操作可能にする
-        m_kifu->viewport()->setAttribute(Qt::WA_TransparentForMouseEvents, !on);
-
-        if (!on) {
-            // フォーカスを無効にする
-            m_kifu->setFocusPolicy(Qt::NoFocus);
-            m_kifu->clearFocus();
-
-            // スタイルシートでcurrentIndex（フォーカスセル）のハイライトを無効化
-            // ベーススタイルに無効化用のスタイルを追加
-            m_kifu->setStyleSheet(kBaseStyleSheet + QStringLiteral(
-                "QTableView::item:focus { background-color: transparent; }"
-                "QTableView::item:selected:focus { background-color: transparent; }"
-            ));
-            qCDebug(lcUi) << "setKifuViewEnabled: disabled stylesheet applied";
-
-            // 選択をクリア（シグナルをブロックして盤面同期を防ぐ）
-            if (QItemSelectionModel* sel = m_kifu->selectionModel()) {
-                const bool wasBlocked = sel->blockSignals(true);
-                sel->clearSelection();
-                sel->setCurrentIndex(QModelIndex(), QItemSelectionModel::Clear);
-                sel->blockSignals(wasBlocked);
-            }
-
-            m_kifu->viewport()->update();
-        } else {
-            // 有効化時はフォーカスを受け付けるように戻す
-            m_kifu->setFocusPolicy(Qt::StrongFocus);
-            // ベーススタイルシートを適用
-            m_kifu->setStyleSheet(kBaseStyleSheet);
-            qCDebug(lcUi) << "setKifuViewEnabled: base stylesheet restored (enabled)";
-        }
-    }
+    m_appearanceManager.setKifuViewEnabled(m_kifu, on, m_navigationDisabled);
 }
 
 void RecordPane::setNavigationEnabled(bool on)
@@ -402,7 +347,6 @@ void RecordPane::connectKifuCurrentRowChanged()
 {
     if (!m_kifu) return;
     if (auto* sel = m_kifu->selectionModel()) {
-        // 既存接続を解除してから再接続
         if (m_connKifuCurrentRow) {
             QObject::disconnect(m_connKifuCurrentRow);
         }
@@ -415,39 +359,31 @@ void RecordPane::connectKifuCurrentRowChanged()
 void RecordPane::setBranchCommentText(const QString& text)
 {
     Q_UNUSED(text)
-    // コメントは棋譜欄のコメント列に表示するため、ここでは何もしない
 }
 
 void RecordPane::setBranchCommentHtml(const QString& html)
 {
     Q_UNUSED(html)
-    // コメントは棋譜欄のコメント列に表示するため、ここでは何もしない
 }
 
-// MainWindow から呼ばれる getter 実装
 CommentTextAdapter* RecordPane::commentLabel()
 {
     return &m_commentAdapter;
 }
 
-// RecordPane に「本譜に戻る」ボタンを遅延生成して差し込む。
-// 分岐候補欄コンテナの下部に挿入する。
-// 既に存在する場合はそれを返す。
 QPushButton* RecordPane::backToMainButton()
 {
     if (!m_branchContainer) return nullptr;
 
-    // 既に作ってあればそれを返す
     if (auto* existed = this->findChild<QPushButton*>("backToMainButton"))
         return existed;
 
     auto* btn = new QPushButton(tr("本譜に戻る"), this);
     btn->setObjectName(QStringLiteral("backToMainButton"));
     btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    btn->setVisible(false); // 初期は非表示
+    btn->setVisible(false);
     btn->setToolTip(tr("現在の手数で本譜（メインライン）に戻る"));
 
-    // 分岐候補欄コンテナのレイアウトに追加
     if (auto* lay = qobject_cast<QVBoxLayout*>(m_branchContainer->layout())) {
         lay->addWidget(btn);
     }
@@ -456,222 +392,39 @@ QPushButton* RecordPane::backToMainButton()
 
 void RecordPane::setupKifuSelectionAppearance()
 {
-    if (!m_kifu) return;
-
-    qCDebug(lcUi) << "setupKifuSelectionAppearance called";
-    qCDebug(lcUi) << "m_kifu styleSheet before:" << m_kifu->styleSheet();
-
-    // 行選択（行全体を黄色でハイライトするために必須）
-    m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // 選択ハイライト色を黄色に（フォーカスあり/なし両方に適用）
-    QPalette pal = m_kifu->palette();
-    const QColor kSelYellow(255, 255, 0); // 黄色
-    pal.setColor(QPalette::Active,   QPalette::Highlight,       kSelYellow);
-    pal.setColor(QPalette::Inactive, QPalette::Highlight,       kSelYellow);
-    pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
-    pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
-    m_kifu->setPalette(pal);
-
-    qCDebug(lcUi) << "setupKifuSelectionAppearance: palette Highlight (Active):" << pal.color(QPalette::Active, QPalette::Highlight);
-    qCDebug(lcUi) << "setupKifuSelectionAppearance: palette Highlight (Inactive):" << pal.color(QPalette::Inactive, QPalette::Highlight);
+    RecordPaneAppearanceManager::setupSelectionPalette(m_kifu);
 }
 
 void RecordPane::setupBranchViewSelectionAppearance()
 {
-    if (!m_branch) return;
-
-    // 行単位選択（行全体を黄色でハイライト）
-    m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
-
-    // フォーカスの有無に関係なく黄色でハイライト
-    QPalette pal = m_branch->palette();
-    const QColor kSelYellow(255, 255, 0); // 黄色
-    pal.setColor(QPalette::Active,   QPalette::Highlight,       kSelYellow);
-    pal.setColor(QPalette::Inactive, QPalette::Highlight,       kSelYellow);
-    pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
-    pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
-    m_branch->setPalette(pal);
+    RecordPaneAppearanceManager::setupSelectionPalette(m_branch);
 }
 
 void RecordPane::onFontIncrease(bool /*checked*/)
 {
-    if (m_fontSize < 24) {
-        m_fontSize += 1;
-        applyFontSize(m_fontSize);
-        GameSettings::setKifuPaneFontSize(m_fontSize);
+    if (m_appearanceManager.tryIncreaseFontSize()) {
+        m_appearanceManager.applyFontToViews(m_kifu, m_branch);
     }
 }
 
 void RecordPane::onFontDecrease(bool /*checked*/)
 {
-    if (m_fontSize > 8) {
-        m_fontSize -= 1;
-        applyFontSize(m_fontSize);
-        GameSettings::setKifuPaneFontSize(m_fontSize);
+    if (m_appearanceManager.tryDecreaseFontSize()) {
+        m_appearanceManager.applyFontToViews(m_kifu, m_branch);
     }
 }
 
 void RecordPane::onToggleTimeColumn(bool checked)
 {
-    if (m_kifu) {
-        m_kifu->setColumnHidden(1, !checked);
-        updateColumnResizeModes();
-    }
-    GameSettings::setKifuTimeColumnVisible(checked);
+    m_appearanceManager.toggleTimeColumn(m_kifu, checked);
 }
 
 void RecordPane::onToggleBookmarkColumn(bool checked)
 {
-    if (m_kifu) {
-        m_kifu->setColumnHidden(2, !checked);
-        updateColumnResizeModes();
-    }
-    GameSettings::setKifuBookmarkColumnVisible(checked);
+    m_appearanceManager.toggleBookmarkColumn(m_kifu, checked);
 }
 
 void RecordPane::onToggleCommentColumn(bool checked)
 {
-    if (m_kifu) {
-        m_kifu->setColumnHidden(3, !checked);
-        updateColumnResizeModes();
-    }
-    GameSettings::setKifuCommentColumnVisible(checked);
-}
-
-void RecordPane::updateColumnResizeModes()
-{
-    if (!m_kifu) return;
-    auto* hh = m_kifu->horizontalHeader();
-    if (!hh) return;
-
-    // col 0: 常に ResizeToContents
-    hh->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-
-    const bool col1Visible = !m_kifu->isColumnHidden(1);
-    const bool col2Visible = !m_kifu->isColumnHidden(2);
-    const bool col3Visible = !m_kifu->isColumnHidden(3);
-
-    // 最右の表示列が Stretch を受け持つ
-    if (col3Visible) {
-        // col 3 が表示されていれば col 3 が Stretch
-        if (col1Visible) {
-            hh->setSectionResizeMode(1, QHeaderView::Fixed);
-            hh->resizeSection(1, 130);
-        }
-        if (col2Visible)
-            hh->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-        hh->setSectionResizeMode(3, QHeaderView::Stretch);
-    } else if (col2Visible) {
-        // col 3 非表示 → col 2 が Stretch
-        if (col1Visible) {
-            hh->setSectionResizeMode(1, QHeaderView::Fixed);
-            hh->resizeSection(1, 130);
-        }
-        hh->setSectionResizeMode(2, QHeaderView::Stretch);
-    } else if (col1Visible) {
-        // col 2, 3 非表示 → col 1 が Stretch
-        hh->setSectionResizeMode(1, QHeaderView::Stretch);
-    } else {
-        // col 1, 2, 3 すべて非表示 → col 0 が Stretch
-        hh->setSectionResizeMode(0, QHeaderView::Stretch);
-    }
-}
-
-void RecordPane::applyColumnVisibility()
-{
-    if (!m_kifu) return;
-
-    const bool timeVisible = GameSettings::kifuTimeColumnVisible();
-    const bool bookmarkVisible = GameSettings::kifuBookmarkColumnVisible();
-    const bool commentVisible = GameSettings::kifuCommentColumnVisible();
-
-    m_kifu->setColumnHidden(1, !timeVisible);
-    m_kifu->setColumnHidden(2, !bookmarkVisible);
-    m_kifu->setColumnHidden(3, !commentVisible);
-
-    updateColumnResizeModes();
-}
-
-void RecordPane::applyFontSize(int size)
-{
-    QFont font;
-    font.setPointSize(size);
-
-    // 棋譜欄にフォントサイズを適用
-    if (m_kifu) {
-        m_kifu->setFont(font);
-        m_kifu->setStyleSheet(kifuTableStyleSheet(size));
-        // 行の高さもフォントサイズに合わせて更新
-        const int rowHeight = m_kifu->fontMetrics().height() + 4;
-        m_kifu->verticalHeader()->setDefaultSectionSize(rowHeight);
-    }
-
-    // 分岐候補欄にフォントサイズを適用
-    if (m_branch) {
-        m_branch->setFont(font);
-        m_branch->setStyleSheet(branchTableStyleSheet(size));
-        // 行の高さもフォントサイズに合わせて更新
-        const int rowHeight = m_branch->fontMetrics().height() + 4;
-        m_branch->verticalHeader()->setDefaultSectionSize(rowHeight);
-    }
-}
-
-QString RecordPane::kifuTableStyleSheet(int fontSize)
-{
-    return QStringLiteral(
-        "QTableView {"
-        "  background-color: #ffffff;"
-        "}"
-        "QTableView::item:selected:active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QTableView::item:selected:!active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  font-size: %1pt;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}").arg(fontSize);
-}
-
-QString RecordPane::branchTableStyleSheet(int fontSize)
-{
-    return QStringLiteral(
-        "QTableView {"
-        "  background-color: #ffffff;"
-        "  selection-background-color: #ffff00;"
-        "  selection-color: black;"
-        "}"
-        "QTableView::item {"
-        "  background-color: #ffffff;"
-        "}"
-        "QTableView::item:selected:active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QTableView::item:selected:!active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  font-size: %1pt;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}").arg(fontSize);
+    m_appearanceManager.toggleCommentColumn(m_kifu, checked);
 }

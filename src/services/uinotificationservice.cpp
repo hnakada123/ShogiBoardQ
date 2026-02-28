@@ -17,13 +17,30 @@ void UiNotificationService::updateDeps(const Deps& deps)
 
 void UiNotificationService::displayErrorMessage(const QString& message)
 {
-    if (m_deps.errorOccurred) {
-        *m_deps.errorOccurred = true;
+    displayMessage(ErrorBus::ErrorLevel::Error, message);
+}
+
+void UiNotificationService::displayMessage(ErrorBus::ErrorLevel level, const QString& message)
+{
+    if (level == ErrorBus::ErrorLevel::Error || level == ErrorBus::ErrorLevel::Critical) {
+        if (m_deps.errorOccurred) {
+            *m_deps.errorOccurred = true;
+        }
+        if (m_deps.shogiView) {
+            m_deps.shogiView->setErrorOccurred(true);
+        }
     }
 
-    if (m_deps.shogiView) {
-        m_deps.shogiView->setErrorOccurred(true);
+    switch (level) {
+    case ErrorBus::ErrorLevel::Info:
+        QMessageBox::information(m_deps.parentWidget, tr("Information"), message);
+        break;
+    case ErrorBus::ErrorLevel::Warning:
+        QMessageBox::warning(m_deps.parentWidget, tr("Warning"), message);
+        break;
+    case ErrorBus::ErrorLevel::Error:
+    case ErrorBus::ErrorLevel::Critical:
+        QMessageBox::critical(m_deps.parentWidget, tr("Error"), message);
+        break;
     }
-
-    QMessageBox::critical(m_deps.parentWidget, tr("Error"), message);
 }

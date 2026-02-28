@@ -444,15 +444,7 @@ void CsaGameDialog::onFontDecrease()
 // ダイアログ全体にフォントサイズを適用する
 void CsaGameDialog::applyFontSize()
 {
-    const int size = m_fontHelper.fontSize();
     QFont font = this->font();
-    font.setPointSize(size);
-    this->setFont(font);
-
-    // KDE BreezeテーマではsetFont()が子ウィジェットに伝播しないため、
-    // 明示的に全子ウィジェットにフォントを適用する
-    const auto children = findChildren<QWidget*>();
-    for (QWidget* child : children) {
-        child->setFont(font);
-    }
+    font.setPointSize(m_fontHelper.fontSize());
+    DialogUtils::applyFontToAllChildren(this, font);
 }

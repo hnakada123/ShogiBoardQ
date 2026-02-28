@@ -16,6 +16,8 @@
 #include <QSet>
 #include <QCloseEvent>
 
+#include "fontsizehelper.h"
+
 /**
  * @brief 棋譜からの定跡マージ用エントリ
  */
@@ -145,7 +147,7 @@ private:
     QVector<KifuMergeEntry> m_entries; ///< 棋譜エントリ
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
     int m_currentPly = -1;                  ///< 現在選択中の手数
-    int m_fontSize = 10;                    ///< フォントサイズ
+    FontSizeHelper m_fontHelper;            ///< フォントサイズヘルパー
 };
 
 #endif // JOSEKIMERGEDIALOG_H

@@ -24,7 +24,7 @@ public:
     void resetToStartpos();
 
     /// USI一手（例: "7g7f", "P*5e", "2b3c+"）を適用する
-    bool applyUsiMove(const QString& usi);
+    [[nodiscard]] bool applyUsiMove(const QString& usi);
 
     /// 現在局面のSFEN文字列を返す（例: "lnsgkgsnl/... b - 1"）
     QString toSfenString() const;
@@ -33,7 +33,7 @@ public:
     QStringList generateSfensForMoves(const QStringList& usiMoves);
 
     /// 4フィールド形式のSFENから現在局面をセットする
-    bool setFromSfen(const QString& sfen);
+    [[nodiscard]] bool setFromSfen(const QString& sfen);
 
     bool blackToMove() const { return m_blackToMove; }
 

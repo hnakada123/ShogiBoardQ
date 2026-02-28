@@ -722,7 +722,7 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
     m_protocolHandler->sendRaw("go infinite");
 
     if (byoyomiMilliSec <= 0) {
-        m_protocolHandler->keepWaitingForBestMove();
+        (void)m_protocolHandler->keepWaitingForBestMove();
     } else {
         // タイムアウト後にstop送信（メンバータイマーを使用）
         m_analysisStopTimer = new QTimer(this);
@@ -732,7 +732,7 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
 
         static constexpr int kPostStopGraceMs = 4000;
         const int waitBudget = qMax(byoyomiMilliSec + kPostStopGraceMs, 2500);
-        m_protocolHandler->waitForBestMove(waitBudget);
+        (void)m_protocolHandler->waitForBestMove(waitBudget);
     }
 }
 

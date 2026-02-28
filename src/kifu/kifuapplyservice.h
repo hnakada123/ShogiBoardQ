@@ -107,10 +107,10 @@ public:
                            const QString& parseWarn, const char* callerTag);
 
     /// SFEN形式の局面を読み込んでモデルに適用する
-    bool loadPositionFromSfen(const QString& sfenStr);
+    [[nodiscard]] bool loadPositionFromSfen(const QString& sfenStr);
 
     /// BOD形式の局面を読み込んでモデルに適用する
-    bool loadPositionFromBod(const QString& bodStr);
+    [[nodiscard]] bool loadPositionFromBod(const QString& bodStr);
 
     /// 対局情報をテーブルに反映する
     void populateGameInfo(const QList<KifGameInfoItem>& items);

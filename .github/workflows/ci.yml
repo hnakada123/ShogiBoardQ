@@ -5,9 +5,12 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'  # 毎週月曜 03:00 UTC (日本時間 12:00)
 
 jobs:
   build-and-test:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,6 +86,7 @@ jobs:
           retention-days: 90
 
   build-debug:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -105,6 +109,7 @@ jobs:
         run: cd build && ctest --output-on-failure
 
   static-analysis:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -134,6 +139,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >
       github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'schedule' ||
       contains(github.event.pull_request.labels.*.name, 'sanitize')
     steps:
       - uses: actions/checkout@v4
@@ -162,7 +168,60 @@ jobs:
           UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
         run: cd build && ctest --output-on-failure
 
+  coverage:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Install gcovr
+        run: pip install gcovr
+
+      - name: Configure with Coverage
+        run: |
+          cmake -B build -S . -DBUILD_TESTING=ON \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_FLAGS="--coverage -fprofile-arcs -ftest-coverage"
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: cd build && ctest --output-on-failure
+
+      - name: Generate Coverage Report
+        run: |
+          gcovr --root src --object-directory build \
+            --xml build/coverage.xml \
+            --html-details build/coverage.html \
+            --print-summary | tee build/coverage-summary.txt
+
+      - name: Coverage Summary
+        run: |
+          echo "## Code Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat build/coverage-summary.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Coverage Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: |
+            build/coverage.xml
+            build/coverage.html*
+            build/coverage-summary.txt
+
   translation-check:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -171,7 +230,7 @@ jobs:
         run: |
           # 現在の閾値（未翻訳数がこれを超えたら fail）
           # 翻訳を追加するたびに閾値を下げること（CLAUDE.md 参照）
-          THRESHOLD=1216
+          THRESHOLD=1211
           total=0
           echo "## Translation Status" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"

@@ -361,7 +361,11 @@ bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(
         previousRankTo = toSquare.y();
     } else if (kifuRecordModel && row > 0 && row < kifuRecordModel->rowCount()) {
         // 棋譜読み込み時: ShogiUtilsを使用して座標を解析（「同」の場合は自動的に遡る）
-        ShogiUtils::parseMoveCoordinateFromModel(kifuRecordModel, row, &previousFileTo, &previousRankTo);
+        if (auto coord = ShogiUtils::parseMoveCoordinateFromModel(kifuRecordModel, row)) {
+            auto [file, rank] = *coord;
+            previousFileTo = file;
+            previousRankTo = rank;
+        }
     }
 
     const bool updated = m_match->updateConsiderationPosition(newPosition, previousFileTo, previousRankTo);

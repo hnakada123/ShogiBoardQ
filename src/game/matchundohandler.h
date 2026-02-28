@@ -74,10 +74,10 @@ public:
     void setUndoBindings(const UndoRefs& refs, const UndoHooks& hooks);
 
     /// 2手分のUNDOを実行する
-    bool undoTwoPlies();
+    [[nodiscard]] bool undoTwoPlies();
 
     /// 平手初期SFENの簡易判定
-    static bool isStandardStartposSfen(const QString& sfen);
+    [[nodiscard]] static bool isStandardStartposSfen(const QString& sfen);
 
 private:
     bool tryRemoveLastItems(QObject* model, int n);

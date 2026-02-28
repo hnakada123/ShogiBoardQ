@@ -11,6 +11,7 @@
 #include <QVector>
 #include <QPoint>
 #include <functional>
+#include <optional>
 
 #include "mainwindow.h"  // PlayMode enum
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
@@ -119,46 +120,45 @@ public:
      * @param filePath 保存先ファイルパス
      * @return 成功時true
      */
-    bool overwriteFile(const QString& filePath);
+    [[nodiscard]] bool overwriteFile(const QString& filePath);
 
     // --------------------------------------------------------
     // クリップボードコピー
     // --------------------------------------------------------
 
     /** @brief KIF形式でクリップボードにコピー */
-    bool copyKifToClipboard();
+    [[nodiscard]] bool copyKifToClipboard();
 
     /** @brief KI2形式でクリップボードにコピー */
-    bool copyKi2ToClipboard();
+    [[nodiscard]] bool copyKi2ToClipboard();
 
     /** @brief CSA形式でクリップボードにコピー */
-    bool copyCsaToClipboard();
+    [[nodiscard]] bool copyCsaToClipboard();
 
     /** @brief USI形式（全手）でクリップボードにコピー */
-    bool copyUsiToClipboard();
+    [[nodiscard]] bool copyUsiToClipboard();
 
     /** @brief USI形式（現在の手まで）でクリップボードにコピー */
-    bool copyUsiCurrentToClipboard();
+    [[nodiscard]] bool copyUsiCurrentToClipboard();
 
     /** @brief JKF形式でクリップボードにコピー */
-    bool copyJkfToClipboard();
+    [[nodiscard]] bool copyJkfToClipboard();
 
     /** @brief USEN形式でクリップボードにコピー */
-    bool copyUsenToClipboard();
+    [[nodiscard]] bool copyUsenToClipboard();
 
     /** @brief SFEN形式で現在局面をクリップボードにコピー */
-    bool copySfenToClipboard();
+    [[nodiscard]] bool copySfenToClipboard();
 
     /** @brief BOD形式で現在局面をクリップボードにコピー */
-    bool copyBodToClipboard();
+    [[nodiscard]] bool copyBodToClipboard();
 
     /**
      * @brief 指定ディレクトリへ自動保存（ダイアログなし）
      * @param saveDir 保存先ディレクトリ
-     * @param outPath 保存に成功した場合のファイルパスを書き込むポインタ（null可）
-     * @return 成功時true
+     * @return 成功時は保存されたファイルパス、失敗時は std::nullopt
      */
-    bool autoSaveToDir(const QString& saveDir, QString* outPath = nullptr);
+    [[nodiscard]] std::optional<QString> autoSaveToDir(const QString& saveDir);
 
     // --------------------------------------------------------
     // ユーティリティ

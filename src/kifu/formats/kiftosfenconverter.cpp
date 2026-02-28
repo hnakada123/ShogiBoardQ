@@ -75,7 +75,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
     // --- ヘッダ走査（手番/手合割の確認） ---
     for (const QString& raw : std::as_const(lines)) {
         const QString line = raw.trimmed();
-        if (KifLexer::startsWithMoveNumber(line)) break;
+        if (KifLexer::startsWithMoveNumber(line).has_value()) break;
         if (line.contains(QStringLiteral("後手番"))) { moveIndex = 1; break; }
         if (line.startsWith(QStringLiteral("手合割")) || line.startsWith(QStringLiteral("手合"))) {
             if (!line.contains(QStringLiteral("平手"))) moveIndex = 1;
@@ -96,9 +96,9 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 
         // --- 1行に含まれる指し手をループ処理 ---
         while (!lineStr.isEmpty()) {
-            int digits = 0;
-            if (!KifLexer::startsWithMoveNumber(lineStr, &digits)) break;
-            int i = digits;
+            const auto optDigits = KifLexer::startsWithMoveNumber(lineStr);
+            if (!optDigits) break;
+            int i = *optDigits;
             while (i < lineStr.size() && lineStr.at(i).isSpace()) ++i;
             if (i >= lineStr.size()) break;
 
@@ -165,9 +165,9 @@ QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* err
 
         // --- 1行複数指し手ループ ---
         while (!lineStr.isEmpty()) {
-            int digits = 0;
-            if (!KifLexer::startsWithMoveNumber(lineStr, &digits)) break;
-            int i = digits;
+            const auto optDigits = KifLexer::startsWithMoveNumber(lineStr);
+            if (!optDigits) break;
+            int i = *optDigits;
             while (i < lineStr.size() && lineStr.at(i).isSpace()) ++i;
             if (i >= lineStr.size()) break;
 
@@ -348,9 +348,9 @@ void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
 
         // 1行複数手ループ
         while (!lineStr.isEmpty()) {
-            int digits = 0;
-            if (!KifLexer::startsWithMoveNumber(lineStr, &digits)) break;
-            int j = digits;
+            const auto optDigits = KifLexer::startsWithMoveNumber(lineStr);
+            if (!optDigits) break;
+            int j = *optDigits;
             while (j < lineStr.size() && lineStr.at(j).isSpace()) ++j;
             if (j >= lineStr.size()) break;
 
@@ -485,7 +485,7 @@ QString KifToSfenConverter::extractOpeningComment(const QString& filePath)
         if (KifuParseCommon::isKifSkippableHeaderLine(t)
             || KifuParseCommon::isBoardHeaderOrFrame(t)) continue;
 
-        if (KifLexer::startsWithMoveNumber(t)) break;
+        if (KifLexer::startsWithMoveNumber(t).has_value()) break;
         if (KifLexer::variationHeaderRe().match(t).hasMatch()) break;
 
         if (t.startsWith(QChar(u'*')) || t.startsWith(QChar(u'＊'))) {

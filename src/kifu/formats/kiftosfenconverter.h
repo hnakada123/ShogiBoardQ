@@ -26,7 +26,7 @@ public:
     static QList<KifDisplayItem> extractMovesWithTimes(const QString& kifPath, QString* errorMessage = nullptr);
 
     // 新API：本譜＋全変化をまとめて抽出（コメントも格納）
-    static bool parseWithVariations(const QString& kifPath, KifParseResult& out, QString* errorMessage = nullptr);
+    [[nodiscard]] static bool parseWithVariations(const QString& kifPath, KifParseResult& out, QString* errorMessage = nullptr);
 
     // 手合→初期SFEN（ユーザー提供のマップ）
     static QString mapHandicapToSfen(const QString& label);
@@ -40,7 +40,7 @@ public:
     // 追加（任意）：キー→値 へ高速アクセスしたい場合のマップ版
     static QMap<QString, QString> extractGameInfoMap(const QString& filePath);
 
-    static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
+    [[nodiscard]] static bool buildInitialSfenFromBod(const QStringList& lines, QString& outSfen,
                                         QString* detectedLabel = nullptr, QString* warn = nullptr);
 
 private:

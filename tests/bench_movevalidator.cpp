@@ -62,7 +62,7 @@ BenchResult benchGenerateLegalMoves(const QString& sfen, int iterations,
     {
         EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
-        emv.syncContext(ctx, eTurn, bd, ps);
+        (void)emv.syncContext(ctx, eTurn, bd, ps);
 
         QElapsedTimer timer;
         timer.start();
@@ -109,7 +109,7 @@ BenchResult benchCheckIfKingInCheck(const QString& sfen, int iterations,
         EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
         QMap<Piece, int> emptyStand;
-        emv.syncContext(ctx, eTurn, bd, emptyStand);
+        (void)emv.syncContext(ctx, eTurn, bd, emptyStand);
 
         QElapsedTimer timer;
         timer.start();
@@ -158,7 +158,7 @@ BenchResult benchIsLegalMove(const QString& sfen, int iterations,
     {
         EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
-        emv.syncContext(ctx, eTurn, bd, ps);
+        (void)emv.syncContext(ctx, eTurn, bd, ps);
 
         QElapsedTimer timer;
         timer.start();
@@ -208,7 +208,7 @@ BenchResult benchSyncAndQuery(const QString& sfen, int iterations,
         volatile int count = 0;
         for (int i = 0; i < iterations; ++i) {
             EngineMoveValidator::Context ctx;
-            emv.syncContext(ctx, eTurn, bd, ps);
+            (void)emv.syncContext(ctx, eTurn, bd, ps);
             count = emv.generateLegalMoves(ctx);
         }
         r.engineContextMs = static_cast<double>(timer.nsecsElapsed()) / 1e6;
@@ -252,7 +252,7 @@ BenchResult benchMidgame(int iterations)
     {
         EngineMoveValidator emv;
         EngineMoveValidator::Context ctx;
-        emv.syncContext(ctx, EngineMoveValidator::BLACK, bd, ps);
+        (void)emv.syncContext(ctx, EngineMoveValidator::BLACK, bd, ps);
 
         QElapsedTimer timer;
         timer.start();

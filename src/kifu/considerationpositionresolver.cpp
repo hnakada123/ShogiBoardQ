@@ -103,8 +103,12 @@ void ConsiderationPositionResolver::resolvePreviousMoveCoordinates(
     } else if (m_inputs.kifuRecordModel &&
                row > 0 && row < m_inputs.kifuRecordModel->rowCount()) {
         // 棋譜読み込み時: 「同」表記も含めて表示モデルから座標を解決
-        ShogiUtils::parseMoveCoordinateFromModel(
-            m_inputs.kifuRecordModel, row, &fileTo, &rankTo);
+        if (auto coord = ShogiUtils::parseMoveCoordinateFromModel(
+                m_inputs.kifuRecordModel, row)) {
+            auto [file, rank] = *coord;
+            fileTo = file;
+            rankTo = rank;
+        }
     }
 }
 

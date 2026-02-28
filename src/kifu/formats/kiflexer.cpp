@@ -192,7 +192,7 @@ QString rowTokensToSfen(const QStringList& tokens)
 
 namespace KifLexer {
 
-bool startsWithMoveNumber(const QString& line, int* outDigits)
+std::optional<int> startsWithMoveNumber(const QString& line)
 {
     int i = 0, digits = 0;
     while (i < line.size()) {
@@ -203,13 +203,12 @@ bool startsWithMoveNumber(const QString& line, int* outDigits)
         if (ascii || zenk) { ++i; ++digits; }
         else break;
     }
-    if (digits == 0) return false;
+    if (digits == 0) return std::nullopt;
     if (i < line.size()) {
         QChar next = line.at(i);
-        if (next == QChar(u'手') || next == QChar(u'＝')) return false;
+        if (next == QChar(u'手') || next == QChar(u'＝')) return std::nullopt;
     }
-    if (outDigits) *outDigits = digits;
-    return true;
+    return digits;
 }
 
 const QRegularExpression& kifTimeRe()

@@ -10,6 +10,8 @@
 #include <QStringList>
 #include <QVector>
 
+#include <functional>
+
 #include "playmode.h"
 
 class ShogiEngineThinkingModel;
@@ -42,6 +44,7 @@ public:
         const QString* startSfenStr = nullptr;
         const int* currentMoveIndex = nullptr;
         ShogiEngineThinkingModel** considerationModel = nullptr;  ///< ダブルポインタ（外部所有）
+        std::function<QStringList*()> sfenRecordGetter;           ///< SFEN履歴の動的取得（MC再生成対応）
     };
 
     explicit PvClickController(QObject* parent = nullptr);

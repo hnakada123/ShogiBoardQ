@@ -10,9 +10,12 @@
 #include <QStringList>
 #include <QVector>
 #include <QPointer>
+#include <memory>
 
 #include "csaclient.h"
 #include "shogimove.h"
+
+class CsaMoveProgressHandler;
 
 class KifuRecordListModel;
 class ShogiGameController;
@@ -153,11 +156,9 @@ private:
     void setGameState(GameState state);
     void setupInitialPosition();
     void setupClock();
-    void startEngineThinking();
     void performResign();
-    void updateTimeTracking(bool isBlackMove, int consumedTimeMs);
-    void syncClockAfterMove(bool startMyTurnClock);
     void cleanup();
+    void ensureMoveProgressHandler();
 
     CsaClient* m_client;
     CsaEngineController* m_engineController = nullptr;
@@ -196,6 +197,8 @@ private:
     QString m_startSfen;
     QStringList* m_sfenHistory = nullptr;
     QVector<ShogiMove>* m_gameMoves = nullptr;
+
+    std::unique_ptr<CsaMoveProgressHandler> m_moveProgressHandler;
 
     static constexpr int kDefaultPort = 4081;
 };

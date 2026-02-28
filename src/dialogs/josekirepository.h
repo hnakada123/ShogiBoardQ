@@ -30,7 +30,7 @@ public:
      * @param errorMessage エラーメッセージ（エラー時に設定される）
      * @return 読み込み成功時 true
      */
-    bool loadFromFile(const QString &filePath, QString *errorMessage = nullptr);
+    [[nodiscard]] bool loadFromFile(const QString &filePath, QString *errorMessage = nullptr);
 
     /**
      * @brief 定跡データをファイルに保存する
@@ -38,7 +38,7 @@ public:
      * @param errorMessage エラーメッセージ（エラー時に設定される）
      * @return 保存成功時 true
      */
-    bool saveToFile(const QString &filePath, QString *errorMessage = nullptr) const;
+    [[nodiscard]] bool saveToFile(const QString &filePath, QString *errorMessage = nullptr) const;
 
     // --- データアクセス ---
 

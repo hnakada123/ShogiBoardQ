@@ -16,9 +16,11 @@ constexpr QSize kMinimumSize{500, 400};
 
 KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     : QDialog(parent)
+    , m_fontHelper({GameSettings::kifuPasteDialogFontSize(), 7, 20, 1,
+                    GameSettings::setKifuPasteDialogFontSize})
 {
     setupUi();
-    loadFontSizeSettings();
+    applyFontSize();
 
     // ウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, GameSettings::kifuPasteDialogSize());
@@ -162,24 +164,17 @@ void KifuPasteDialog::onClearClicked()
 
 void KifuPasteDialog::increaseFontSize()
 {
-    if (m_fontSize < MaxFontSize) {
-        m_fontSize++;
-        applyFontSize(m_fontSize);
-        saveFontSizeSettings();
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 void KifuPasteDialog::decreaseFontSize()
 {
-    if (m_fontSize > MinFontSize) {
-        m_fontSize--;
-        applyFontSize(m_fontSize);
-        saveFontSizeSettings();
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
-void KifuPasteDialog::applyFontSize(int size)
+void KifuPasteDialog::applyFontSize()
 {
+    const int size = m_fontHelper.fontSize();
     QFont font = this->font();
     font.setPointSize(size);
     setFont(font);
@@ -190,23 +185,10 @@ void KifuPasteDialog::applyFontSize(int size)
     m_textEdit->setFont(monoFont);
 
     // 全子ウィジェットにフォントを適用
-    const QList<QWidget*> widgets = findChildren<QWidget*>();
-    for (QWidget* widget : std::as_const(widgets)) {
+    const auto widgets = findChildren<QWidget*>();
+    for (QWidget* widget : widgets) {
         if (widget && widget != m_textEdit) {
             widget->setFont(font);
         }
     }
-}
-
-void KifuPasteDialog::loadFontSizeSettings()
-{
-    m_fontSize = GameSettings::kifuPasteDialogFontSize();
-    if (m_fontSize < MinFontSize) m_fontSize = MinFontSize;
-    if (m_fontSize > MaxFontSize) m_fontSize = MaxFontSize;
-    applyFontSize(m_fontSize);
-}
-
-void KifuPasteDialog::saveFontSizeSettings()
-{
-    GameSettings::setKifuPasteDialogFontSize(m_fontSize);
 }

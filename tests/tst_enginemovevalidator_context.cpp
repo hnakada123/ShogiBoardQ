@@ -33,8 +33,8 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        validator.syncContext(ctx, EngineMoveValidator::BLACK,
-                              board.boardData(), board.getPieceStand());
+        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+                                      board.boardData(), board.getPieceStand()));
 
         int count = validator.generateLegalMoves(ctx);
         QCOMPARE(count, 30);
@@ -51,8 +51,8 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        validator.syncContext(ctx, EngineMoveValidator::BLACK,
-                              board.boardData(), board.getPieceStand());
+        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+                                      board.boardData(), board.getPieceStand()));
 
         ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
         auto status = validator.isLegalMove(ctx, move);
@@ -66,8 +66,8 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        validator.syncContext(ctx, EngineMoveValidator::BLACK,
-                              board.boardData(), board.getPieceStand());
+        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+                                      board.boardData(), board.getPieceStand()));
 
         // 7六歩を進める
         ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
@@ -98,8 +98,8 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        validator.syncContext(ctx, EngineMoveValidator::BLACK,
-                              board.boardData(), board.getPieceStand());
+        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+                                      board.boardData(), board.getPieceStand()));
 
         // 7六歩
         ShogiMove m1(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
@@ -128,8 +128,8 @@ private slots:
         EngineMoveValidator validator;
         EngineMoveValidator::Context ctx;
 
-        validator.syncContext(ctx, EngineMoveValidator::BLACK,
-                              board.boardData(), board.getPieceStand());
+        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+                                      board.boardData(), board.getPieceStand()));
 
         // スタック空でundoはfalse
         QVERIFY(!validator.undoLastMove(ctx));

@@ -15,6 +15,8 @@
 #include <QStringList>
 #include <QAction>
 
+#include "fontsizehelper.h"
+
 // 前方宣言
 class QVBoxLayout;
 class QGroupBox;
@@ -175,7 +177,7 @@ private:
     // === View 状態 ===
     QString       m_currentFilePath;
     QString       m_currentSfen;
-    int           m_fontSize = 10;
+    FontSizeHelper m_fontHelper;
     bool          m_humanCanPlay = true;
     bool          m_autoLoadEnabled = true;
     bool          m_displayEnabled = true;

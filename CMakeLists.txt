@@ -488,6 +488,8 @@ set(SRC_NETWORK
     src/network/csagamecoordinator.h
     src/network/csamoveconverter.cpp
     src/network/csamoveconverter.h
+    src/network/csamoveprogresshandler.cpp
+    src/network/csamoveprogresshandler.h
 )
 
 set(SRC_NAVIGATION
@@ -523,6 +525,8 @@ set(SRC_UI
     src/ui/controllers/nyugyokudeclarationhandler.h
     src/ui/controllers/playerinfocontroller.cpp
     src/ui/controllers/playerinfocontroller.h
+    src/ui/controllers/pvboardcontroller.cpp
+    src/ui/controllers/pvboardcontroller.h
     src/ui/controllers/pvclickcontroller.cpp
     src/ui/controllers/pvclickcontroller.h
     src/ui/controllers/replaycontroller.cpp
@@ -666,6 +670,8 @@ set(SRC_WIDGETS
     src/widgets/numericrightaligncommadelegate.h
     src/widgets/recordpane.cpp
     src/widgets/recordpane.h
+    src/widgets/recordpaneappearancemanager.cpp
+    src/widgets/recordpaneappearancemanager.h
     src/widgets/usilogpanel.cpp
     src/widgets/usilogpanel.h
 )

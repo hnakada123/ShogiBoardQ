@@ -2,6 +2,7 @@
 
 #include <QChar>
 #include <QMap>
+#include <optional>
 #include <utility>
 
 namespace SfenCsaPositionConverter {
@@ -152,16 +153,12 @@ bool parsePiLine(const QString& line, QStringList* ranks)
 
 } // namespace
 
-bool fromCsaPositionLines(const QStringList& csaLines, QString* outSfen, QString* outError)
+std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString* outError)
 {
-    if (!outSfen) {
-        if (outError) *outError = QStringLiteral("outSfen is null");
-        return false;
-    }
+    Q_UNUSED(outError)
 
     if (csaLines.isEmpty()) {
-        *outSfen = defaultSfen();
-        return true;
+        return defaultSfen();
     }
 
     QStringList rankSfen(9, QStringLiteral("9"));
@@ -249,36 +246,32 @@ bool fromCsaPositionLines(const QStringList& csaLines, QString* outSfen, QString
     }
 
     if (!hasBoardRows) {
-        *outSfen = defaultSfen();
-        return true;
+        return defaultSfen();
     }
 
     const QString board = rankSfen.join(QLatin1Char('/'));
     const QString hands = buildHandsSfen(blackHands, whiteHands);
-    *outSfen = QStringLiteral("%1 %2 %3 1").arg(board, turn, hands);
-    return true;
+    return QStringLiteral("%1 %2 %3 1").arg(board, turn, hands);
 }
 
-QStringList toCsaPositionLines(const QString& sfen, bool* ok, QString* outError)
+std::optional<QStringList> toCsaPositionLines(const QString& sfen, QString* outError)
 {
-    if (ok) *ok = false;
-
     const QString trimmed = sfen.trimmed();
     if (trimmed.isEmpty()) {
         if (outError) *outError = QStringLiteral("sfen is empty");
-        return {};
+        return std::nullopt;
     }
 
     const QStringList parts = trimmed.split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (parts.size() < 3) {
         if (outError) *outError = QStringLiteral("invalid sfen format");
-        return {};
+        return std::nullopt;
     }
 
     const QStringList ranks = parts[0].split(QLatin1Char('/'));
     if (ranks.size() != 9) {
         if (outError) *outError = QStringLiteral("invalid rank count");
-        return {};
+        return std::nullopt;
     }
 
     QStringList out;
@@ -302,7 +295,7 @@ QStringList toCsaPositionLines(const QString& sfen, bool* ok, QString* outError)
             if (ch == QLatin1Char('+')) {
                 if (i + 1 >= row.size()) {
                     if (outError) *outError = QStringLiteral("invalid promoted piece in sfen board");
-                    return {};
+                    return std::nullopt;
                 }
                 promoted = true;
                 piece = row.at(++i);
@@ -312,7 +305,7 @@ QStringList toCsaPositionLines(const QString& sfen, bool* ok, QString* outError)
             const QString code = csaCodeFromSfenPiece(piece, promoted);
             if (code.isEmpty()) {
                 if (outError) *outError = QStringLiteral("unsupported piece in sfen board");
-                return {};
+                return std::nullopt;
             }
             line += sente ? QLatin1Char('+') : QLatin1Char('-');
             line += code;
@@ -345,7 +338,7 @@ QStringList toCsaPositionLines(const QString& sfen, bool* ok, QString* outError)
             const QString code = csaCodeFromSfenPiece(ch, false);
             if (code.isEmpty()) {
                 if (outError) *outError = QStringLiteral("unsupported hand piece in sfen");
-                return {};
+                return std::nullopt;
             }
             QString& dst = sente ? pPlus : pMinus;
             for (int k = 0; k < n; ++k) {
@@ -357,7 +350,6 @@ QStringList toCsaPositionLines(const QString& sfen, bool* ok, QString* outError)
     }
 
     out << ((parts.at(1) == QStringLiteral("w")) ? QStringLiteral("-") : QStringLiteral("+"));
-    if (ok) *ok = true;
     return out;
 }
 

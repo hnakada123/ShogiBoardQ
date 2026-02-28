@@ -74,7 +74,7 @@ public:
     // --- 初期化 ---
     
     /// エンジン初期化シーケンスを実行
-    bool initializeEngine(const QString& engineName);
+    [[nodiscard]] bool initializeEngine(const QString& engineName);
     
     /// 設定ファイルからオプションを読み込み
     void loadEngineOptions(const QString& engineName);
@@ -114,11 +114,11 @@ public:
 
     // --- 待機メソッド ---
     
-    bool waitForUsiOk(int timeoutMs = 5000);
-    bool waitForReadyOk(int timeoutMs = 5000);
-    bool waitForBestMove(int timeoutMs);
-    bool waitForBestMoveWithGrace(int budgetMs, int graceMs);
-    bool keepWaitingForBestMove();
+    [[nodiscard]] bool waitForUsiOk(int timeoutMs = 5000);
+    [[nodiscard]] bool waitForReadyOk(int timeoutMs = 5000);
+    [[nodiscard]] bool waitForBestMove(int timeoutMs);
+    [[nodiscard]] bool waitForBestMoveWithGrace(int budgetMs, int graceMs);
+    [[nodiscard]] bool keepWaitingForBestMove();
     void waitForStopOrPonderhit();
 
     // --- 指し手処理 ---
@@ -138,7 +138,7 @@ public:
     // --- 座標変換ユーティリティ（UsiMoveCoordinateConverterへの委譲） ---
 
     static QChar rankToAlphabet(int rank);
-    static std::optional<int> alphabetToRank(QChar c);
+    [[nodiscard]] static std::optional<int> alphabetToRank(QChar c);
 
     // --- 状態管理 ---
     

@@ -47,7 +47,7 @@ public:
      * @param sfenStr 盤面＋手番＋駒台＋手数を含むSFEN文字列
      * @return パース成功時は SfenComponents、失敗時は std::nullopt
      */
-    static std::optional<SfenComponents> parseSfen(const QString& sfenStr);
+    [[nodiscard]] static std::optional<SfenComponents> parseSfen(const QString& sfenStr);
 
     /**
      * @brief SFEN文字列で盤面全体を更新する

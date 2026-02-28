@@ -400,11 +400,13 @@ void ShogiBoard::setSfen(const QString& sfenStr)
     m_currentMoveNumber = parsed->moveNumber;
 
     if (!setPiecePlacementFromSfen(parsed->board)) {
-        ErrorBus::instance().postError(tr("SFEN board parse error: %1").arg(sfenStr.left(80)));
+        const auto msg = tr("SFEN board parse error: %1").arg(sfenStr.left(80));
+        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, msg);
         return;
     }
     if (!setPieceStandFromSfen(parsed->stand)) {
-        ErrorBus::instance().postError(tr("SFEN piece stand parse error: %1").arg(sfenStr.left(80)));
+        const auto msg = tr("SFEN piece stand parse error: %1").arg(sfenStr.left(80));
+        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, msg);
         return;
     }
 

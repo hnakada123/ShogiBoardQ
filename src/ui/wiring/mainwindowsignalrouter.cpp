@@ -115,14 +115,14 @@ void MainWindowSignalRouter::connectCoreSignals()
         qCDebug(lcApp) << "m_shogiView is NULL, cannot connect fieldSizeChanged";
     }
 
-    // ErrorBus のエラーを UiNotificationService に直接接続
+    // ErrorBus のメッセージを UiNotificationService に直接接続
     if (m_deps.ensureUiNotificationService) {
         m_deps.ensureUiNotificationService();
     }
     auto* ns = deref(m_deps.notificationServicePtr);
     if (ns) {
-        connect(&ErrorBus::instance(), &ErrorBus::errorOccurred,
-                ns, &UiNotificationService::displayErrorMessage, Qt::UniqueConnection);
+        connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
+                ns, &UiNotificationService::displayMessage, Qt::UniqueConnection);
     }
 }
 

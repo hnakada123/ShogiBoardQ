@@ -36,7 +36,7 @@ public:
     };
 
     // ---- Context主経路 ----
-    bool syncContext(Context& ctx,
+    [[nodiscard]] bool syncContext(Context& ctx,
                      const Turn& turn,
                      const QVector<Piece>& boardData,
                      const QMap<Piece, int>& pieceStand) const;
@@ -45,8 +45,8 @@ public:
     int generateLegalMoves(Context& ctx) const;
     int checkIfKingInCheck(Context& ctx) const;
 
-    bool tryApplyMove(Context& ctx, ShogiMove& move) const;
-    bool undoLastMove(Context& ctx) const;
+    [[nodiscard]] bool tryApplyMove(Context& ctx, ShogiMove& move) const;
+    [[nodiscard]] bool undoLastMove(Context& ctx) const;
 
     // ---- 互換ラッパ ----
     LegalMoveStatus isLegalMove(const Turn& turn,

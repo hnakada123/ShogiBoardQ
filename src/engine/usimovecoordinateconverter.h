@@ -34,7 +34,7 @@ public:
     static QChar rankToAlphabet(int rank);
 
     /// USIアルファベット（'a'〜'i'）を段番号（1〜9）に変換
-    static std::optional<int> alphabetToRank(QChar c);
+    [[nodiscard]] static std::optional<int> alphabetToRank(QChar c);
 
     // --- 駒変換 ---
 
@@ -59,7 +59,7 @@ public:
     /// @param isFirstPlayer 先手番かどうか（駒打ち時の駒台判定に使用）
     /// @param errorMsg [out] エラー時のメッセージ
     /// @return 成功時true、エラー時false
-    static bool parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom,
+    [[nodiscard]] static bool parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom,
                               bool isFirstPlayer, QString& errorMsg);
 
     /// USI指し手文字列の移動先座標をパースする
@@ -68,7 +68,7 @@ public:
     /// @param rankTo [out] 移動先の段
     /// @param errorMsg [out] エラー時のメッセージ
     /// @return 成功時true、エラー時false
-    static bool parseMoveTo(const QString& move, int& fileTo, int& rankTo,
+    [[nodiscard]] static bool parseMoveTo(const QString& move, int& fileTo, int& rankTo,
                             QString& errorMsg);
 
     /// 人間の盤面操作をUSI形式の指し手文字列に変換する

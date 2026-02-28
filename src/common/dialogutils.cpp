@@ -14,4 +14,13 @@ void saveDialogSize(const QWidget* dialog, const std::function<void(const QSize&
     setter(dialog->size());
 }
 
+void applyFontToAllChildren(QWidget* widget, const QFont& font)
+{
+    widget->setFont(font);
+    const auto children = widget->findChildren<QWidget*>();
+    for (QWidget* child : children) {
+        child->setFont(font);
+    }
+}
+
 } // namespace DialogUtils

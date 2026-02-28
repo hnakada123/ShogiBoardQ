@@ -37,7 +37,7 @@ int flexDigitToIntNoDetach(QChar c)
     return v;
 }
 
-int flexDigitsToIntNoDetach(const QString& text)
+int flexDigitsToIntNoDetach(QStringView text)
 {
     int value = 0;
     const int n = static_cast<int>(text.size());
@@ -81,9 +81,9 @@ const std::array<QString, 16>& terminalWords()
     return words;
 }
 
-bool isTerminalWordExact(const QString& text, QString* normalized)
+bool isTerminalWordExact(QStringView text, QString* normalized)
 {
-    const QString t = text.trimmed();
+    const QStringView t = text.trimmed();
     for (const QString& w : terminalWords()) {
         if (t == w) {
             if (normalized) {
@@ -95,9 +95,9 @@ bool isTerminalWordExact(const QString& text, QString* normalized)
     return false;
 }
 
-bool isTerminalWordContains(const QString& text, QString* normalized)
+bool isTerminalWordContains(QStringView text, QString* normalized)
 {
-    const QString t = text.trimmed();
+    const QStringView t = text.trimmed();
     for (const QString& w : terminalWords()) {
         if (t == w || t.contains(w)) {
             if (normalized) {
@@ -109,7 +109,7 @@ bool isTerminalWordContains(const QString& text, QString* normalized)
     return false;
 }
 
-bool mapKanjiPiece(const QString& text, Piece& base, bool& promoted)
+bool mapKanjiPiece(QStringView text, Piece& base, bool& promoted)
 {
     promoted = false;
 
@@ -206,7 +206,7 @@ KifDisplayItem createOpeningDisplayItem(const QString& comment, const QString& b
     return item;
 }
 
-bool isBoardHeaderOrFrame(const QString& line)
+bool isBoardHeaderOrFrame(QStringView line)
 {
     if (line.trimmed().isEmpty()) return false;
 
@@ -232,7 +232,7 @@ bool isBoardHeaderOrFrame(const QString& line)
 
     // 罫線：ASCII（+,-,|）/ Unicode
     {
-        const QString s = line.trimmed();
+        const QStringView s = line.trimmed();
         if ((s.startsWith(QLatin1Char('+')) && s.endsWith(QLatin1Char('+'))) ||
             (s.startsWith(QChar(u'|')) && s.endsWith(QChar(u'|')))) {
             return true;
@@ -249,7 +249,7 @@ bool isBoardHeaderOrFrame(const QString& line)
 
     // 下部見出し（"一二三…九"）だけの行
     {
-        const QString t = line.trimmed();
+        const QStringView t = line.trimmed();
         if (!t.isEmpty()) {
             bool ok = true; int kanjiCount = 0;
             for (qsizetype i = 0; i < t.size(); ++i) {
@@ -264,7 +264,7 @@ bool isBoardHeaderOrFrame(const QString& line)
     return false;
 }
 
-bool containsAnyTerminal(const QString& s, QString* matched)
+bool containsAnyTerminal(QStringView s, QString* matched)
 {
     for (const QString& w : terminalWords()) {
         if (s.contains(w)) { if (matched) *matched = w; return true; }
@@ -272,7 +272,7 @@ bool containsAnyTerminal(const QString& s, QString* matched)
     return false;
 }
 
-bool isKifSkippableHeaderLine(const QString& line)
+bool isKifSkippableHeaderLine(QStringView line)
 {
     if (line.isEmpty()) return true;
     if (line.startsWith(QLatin1Char('#'))) return true;
@@ -298,19 +298,19 @@ bool isKifSkippableHeaderLine(const QString& line)
     if (line.startsWith(QLatin1Char('&'))) return true;
 
     static const QRegularExpression s_made(QStringLiteral("^\\s*まで[0-9０-９]+手"));
-    if (s_made.match(line).hasMatch()) return true;
+    if (s_made.matchView(line).hasMatch()) return true;
 
     return false;
 }
 
-bool isKifCommentLine(const QString& s)
+bool isKifCommentLine(QStringView s)
 {
     if (s.isEmpty()) return false;
     const QChar ch = s.front();
     return (ch == QChar(u'*') || ch == QChar(u'＊'));
 }
 
-bool isBookmarkLine(const QString& s)
+bool isBookmarkLine(QStringView s)
 {
     return s.startsWith(QLatin1Char('&'));
 }
@@ -388,7 +388,7 @@ QMap<QString, QString> toGameInfoMap(const QList<KifGameInfoItem>& items)
     return m;
 }
 
-bool isBodHandsLine(const QString& line)
+bool isBodHandsLine(QStringView line)
 {
     return line.startsWith(QStringLiteral("先手の持駒")) ||
            line.startsWith(QStringLiteral("後手の持駒")) ||
@@ -515,7 +515,7 @@ QString usiPieceToKanji(QChar usiPiece)
     }
 }
 
-QString usiTokenToKanji(const QString& token)
+QString usiTokenToKanji(QStringView token)
 {
     if (token.isEmpty()) return QStringLiteral("?");
 
@@ -536,7 +536,7 @@ QString usiTokenToKanji(const QString& token)
     }
 }
 
-QString extractUsiPieceToken(const QString& usi, SfenPositionTracer& tracer)
+QString extractUsiPieceToken(QStringView usi, SfenPositionTracer& tracer)
 {
     if (usi.size() < 4) return QString();
 
@@ -632,7 +632,7 @@ int buildUsiMoveDisplayItems(const QStringList& usiMoves,
         outDisp.push_back(createMoveDisplayItem(
             plyNumber,
             usiMoveToPretty(usi, plyNumber, prevToFile, prevToRank, pieceToken)));
-        tracer.applyUsiMove(usi);
+        (void)tracer.applyUsiMove(usi);
     }
 
     return plyNumber;

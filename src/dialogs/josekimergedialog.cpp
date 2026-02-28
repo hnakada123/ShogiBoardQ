@@ -19,7 +19,8 @@ constexpr QSize kMinimumSize{500, 400};
 
 JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
     : QDialog(parent)
-    , m_fontSize(JosekiSettings::josekiMergeDialogFontSize())
+    , m_fontHelper({JosekiSettings::josekiMergeDialogFontSize(), 8, 20, 1,
+                    JosekiSettings::setJosekiMergeDialogFontSize})
 {
     setupUi();
 
@@ -30,13 +31,11 @@ JosekiMergeDialog::JosekiMergeDialog(QWidget *parent)
 JosekiMergeDialog::~JosekiMergeDialog()
 {
     DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMergeDialogSize);
-    JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
 }
 
 void JosekiMergeDialog::closeEvent(QCloseEvent *event)
 {
     DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMergeDialogSize);
-    JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
     QDialog::closeEvent(event);
 }
 
@@ -286,31 +285,23 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
 
 void JosekiMergeDialog::onFontSizeIncrease()
 {
-    if (m_fontSize < 20) {
-        m_fontSize += 1;
-        applyFontSize();
-        JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 void JosekiMergeDialog::onFontSizeDecrease()
 {
-    if (m_fontSize > 8) {
-        m_fontSize -= 1;
-        applyFontSize();
-        JosekiSettings::setJosekiMergeDialogFontSize(m_fontSize);
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 void JosekiMergeDialog::applyFontSize()
 {
+    const int size = m_fontHelper.fontSize();
     QFont font = this->font();
-    font.setPointSize(m_fontSize);
-    setFont(font);
-    
-    m_tableWidget->setFont(font);
+    font.setPointSize(size);
+    DialogUtils::applyFontToAllChildren(this, font);
+
     m_tableWidget->horizontalHeader()->setFont(font);
-    m_tableWidget->verticalHeader()->setDefaultSectionSize(m_fontSize + 16);
+    m_tableWidget->verticalHeader()->setDefaultSectionSize(size + 16);
 }
 
 QString JosekiMergeDialog::normalizeSfen(const QString &sfen) const

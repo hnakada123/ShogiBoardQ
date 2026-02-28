@@ -15,7 +15,6 @@
 #include <QPushButton>
 #include <QDir>
 #include <QFileDialog>
-#include <functional>
 
 namespace {
 constexpr QSize kMinimumSize{400, 300};
@@ -27,7 +26,8 @@ using namespace EngineSettingsConstants;
 ChangeEngineSettingsDialog::ChangeEngineSettingsDialog(QWidget *parent)
     : QDialog(parent)
     , ui(std::make_unique<Ui::ChangeEngineSettingsDialog>())
-    , m_fontSize(EngineDialogSettings::engineSettingsFontSize())
+    , m_fontHelper({EngineDialogSettings::engineSettingsFontSize(), 8, 20, 1,
+                    EngineDialogSettings::setEngineSettingsFontSize})
 {
     ui->setupUi(this);
 }
@@ -756,49 +756,19 @@ bool ChangeEngineSettingsDialog::eventFilter(QObject* obj, QEvent* e)
 // フォントサイズを増加する。
 void ChangeEngineSettingsDialog::increaseFontSize()
 {
-    if (m_fontSize < 20) {  // 最大サイズを20に制限
-        m_fontSize++;
-        applyFontSize();
-        EngineDialogSettings::setEngineSettingsFontSize(m_fontSize);
-    }
+    if (m_fontHelper.increase()) applyFontSize();
 }
 
 // フォントサイズを減少する。
 void ChangeEngineSettingsDialog::decreaseFontSize()
 {
-    if (m_fontSize > 8) {  // 最小サイズを8に制限
-        m_fontSize--;
-        applyFontSize();
-        EngineDialogSettings::setEngineSettingsFontSize(m_fontSize);
-    }
+    if (m_fontHelper.decrease()) applyFontSize();
 }
 
 // すべてのウィジェットにフォントサイズを適用する。
 void ChangeEngineSettingsDialog::applyFontSize()
 {
-    // ダイアログ全体のフォントを設定
     QFont font = this->font();
-    font.setPointSize(m_fontSize);
-    this->setFont(font);
-
-    // スクロールエリアのコンテンツにも明示的にフォントを設定
-    ui->scrollAreaWidgetContents->setFont(font);
-
-    // エンジン名・作者ラベルにもフォントを設定
-    ui->label->setFont(font);
-
-    // 全ての子ウィジェットにフォントを再帰的に適用
-    const std::function<void(QWidget*)> applyToChildren = [&font, &applyToChildren](QWidget* widget) {
-        if (!widget) return;
-        widget->setFont(font);
-        const QObjectList& children = widget->children();
-        for (QObject* child : children) {
-            QWidget* childWidget = qobject_cast<QWidget*>(child);
-            if (childWidget) {
-                applyToChildren(childWidget);
-            }
-        }
-    };
-
-    applyToChildren(ui->scrollAreaWidgetContents);
+    font.setPointSize(m_fontHelper.fontSize());
+    DialogUtils::applyFontToAllChildren(this, font);
 }

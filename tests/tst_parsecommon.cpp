@@ -2,6 +2,7 @@
 /// @brief KifuParseCommon ユーティリティのユニットテスト
 
 #include <QTest>
+#include <QStringView>
 #include "parsecommon.h"
 #include "shogitypes.h"
 
@@ -149,39 +150,39 @@ private slots:
 
 void TestParseCommon::isKifCommentLine_ascii()
 {
-    QVERIFY(KifuParseCommon::isKifCommentLine("*コメント"));
+    QVERIFY(KifuParseCommon::isKifCommentLine(QStringLiteral("*コメント")));
 }
 
 void TestParseCommon::isKifCommentLine_fullwidth()
 {
-    QVERIFY(KifuParseCommon::isKifCommentLine(QString::fromUtf8("＊コメント")));
+    QVERIFY(KifuParseCommon::isKifCommentLine(QStringLiteral("＊コメント")));
 }
 
 void TestParseCommon::isKifCommentLine_empty()
 {
-    QVERIFY(!KifuParseCommon::isKifCommentLine(""));
+    QVERIFY(!KifuParseCommon::isKifCommentLine(QStringView()));
 }
 
 void TestParseCommon::isKifCommentLine_normalLine()
 {
-    QVERIFY(!KifuParseCommon::isKifCommentLine("1 ７六歩(77)"));
+    QVERIFY(!KifuParseCommon::isKifCommentLine(QStringLiteral("1 ７六歩(77)")));
 }
 
 // ==== isBookmarkLine ====
 
 void TestParseCommon::isBookmarkLine_valid()
 {
-    QVERIFY(KifuParseCommon::isBookmarkLine("&しおり名"));
+    QVERIFY(KifuParseCommon::isBookmarkLine(QStringLiteral("&しおり名")));
 }
 
 void TestParseCommon::isBookmarkLine_empty()
 {
-    QVERIFY(!KifuParseCommon::isBookmarkLine(""));
+    QVERIFY(!KifuParseCommon::isBookmarkLine(QStringView()));
 }
 
 void TestParseCommon::isBookmarkLine_normalLine()
 {
-    QVERIFY(!KifuParseCommon::isBookmarkLine("1 ７六歩(77)"));
+    QVERIFY(!KifuParseCommon::isBookmarkLine(QStringLiteral("1 ７六歩(77)")));
 }
 
 // ==== csaSpecialToJapanese ====

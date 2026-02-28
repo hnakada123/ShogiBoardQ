@@ -3,11 +3,14 @@
 
 #include <QString>
 #include <QStringList>
+#include <optional>
 
 namespace SfenCsaPositionConverter {
 
-bool fromCsaPositionLines(const QStringList& csaLines, QString* outSfen, QString* outError = nullptr);
-QStringList toCsaPositionLines(const QString& sfen, bool* ok = nullptr, QString* outError = nullptr);
+[[nodiscard]] std::optional<QString> fromCsaPositionLines(const QStringList& csaLines,
+                                                          QString* outError = nullptr);
+[[nodiscard]] std::optional<QStringList> toCsaPositionLines(const QString& sfen,
+                                                             QString* outError = nullptr);
 
 } // namespace SfenCsaPositionConverter
 

@@ -271,12 +271,10 @@ void JosekiWindow::setupUi()
 
 void JosekiWindow::applyFontSize()
 {
+    const int fontSize = m_fontHelper.fontSize();
     QFont font = this->font();
-    font.setPointSize(m_fontSize);
-    setFont(font);
-
-    for (auto *child : findChildren<QWidget *>())
-        child->setFont(font);
+    font.setPointSize(fontSize);
+    DialogUtils::applyFontToAllChildren(this, font);
 
     if (m_tableWidget) {
         QHeaderView *header = m_tableWidget->horizontalHeader();
@@ -295,7 +293,7 @@ void JosekiWindow::applyFontSize()
             "  border-bottom: 1px solid #209cee;"
             "  font-size: %1pt;"
             "}")
-            .arg(m_fontSize));
+            .arg(fontSize));
         for (int col = 0; col < m_tableWidget->columnCount(); ++col) {
             QString headerText = m_tableWidget->horizontalHeaderItem(col)
                                      ? m_tableWidget->horizontalHeaderItem(col)->text()
@@ -309,13 +307,13 @@ void JosekiWindow::applyFontSize()
         m_showSfenDetailBtn->setFixedWidth(fm.horizontalAdvance(m_showSfenDetailBtn->text()) + 20);
     }
     if (m_noticeLabel) {
-        int noticeFontSize = qMax(m_fontSize - 1, 6);
+        int noticeFontSize = qMax(fontSize - 1, 6);
         m_noticeLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-size: %1pt;").arg(noticeFontSize));
     }
     if (m_mergeMenu) m_mergeMenu->setFont(font);
     if (m_recentFilesMenu) m_recentFilesMenu->setFont(font);
     if (m_tableContextMenu) m_tableContextMenu->setFont(font);
-    int sfenFontSize = qMax(m_fontSize - 1, 6);
+    int sfenFontSize = qMax(fontSize - 1, 6);
     if (m_currentSfenLabel)
         m_currentSfenLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-family: monospace; font-size: %1pt;").arg(sfenFontSize));
     if (m_sfenLineLabel)
@@ -325,7 +323,6 @@ void JosekiWindow::applyFontSize()
 
 void JosekiWindow::loadSettings()
 {
-    m_fontSize = JosekiSettings::josekiWindowFontSize();
     applyFontSize();
     DialogUtils::restoreDialogSize(this, JosekiSettings::josekiWindowSize());
     m_autoLoadEnabled = JosekiSettings::josekiWindowAutoLoadEnabled();
@@ -351,7 +348,6 @@ void JosekiWindow::loadSettings()
 
 void JosekiWindow::saveSettings()
 {
-    JosekiSettings::setJosekiWindowFontSize(m_fontSize);
     DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiWindowSize);
     JosekiSettings::setJosekiWindowLastFilePath(m_currentFilePath);
     JosekiSettings::setJosekiWindowAutoLoadEnabled(m_autoLoadEnabled);
@@ -402,7 +398,7 @@ void JosekiWindow::updateJosekiDisplay()
 
     int plyNumber = currentPlyNumber();
     SfenPositionTracer tracer;
-    tracer.setFromSfen(m_currentSfen);
+    (void)tracer.setFromSfen(m_currentSfen);
     m_tableWidget->setRowCount(static_cast<int>(moves.size()));
 
     QLocale locale = QLocale::system();
@@ -426,8 +422,8 @@ void JosekiWindow::updateJosekiDisplay()
         m_tableWidget->setItem(i, 2, moveItem);
 
         SfenPositionTracer nextTracer;
-        nextTracer.setFromSfen(m_currentSfen);
-        nextTracer.applyUsiMove(move.move);
+        (void)nextTracer.setFromSfen(m_currentSfen);
+        (void)nextTracer.applyUsiMove(move.move);
         auto *nextMoveItem = new QTableWidgetItem(
             JosekiPresenter::usiMoveToJapanese(move.nextMove, plyNumber + 1, nextTracer));
         nextMoveItem->setTextAlignment(Qt::AlignCenter);
