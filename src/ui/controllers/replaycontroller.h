@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include <QPointer>
 
 class ShogiClock;
 class ShogiView;
@@ -126,7 +127,7 @@ private:
     ShogiClock* m_clock = nullptr;
     ShogiView* m_view = nullptr;
     ShogiGameController* m_gc = nullptr;
-    MatchCoordinator* m_match = nullptr;
+    QPointer<MatchCoordinator> m_match;       ///< 非所有（再生成追跡）
     RecordPane* m_recordPane = nullptr;
 
     bool m_isReplayMode = false;

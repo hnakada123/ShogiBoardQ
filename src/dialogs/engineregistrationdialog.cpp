@@ -2,31 +2,23 @@
 /// @brief エンジン登録ダイアログクラスの実装
 
 #include "engineregistrationdialog.h"
-#include "enginesettingsconstants.h"
-#include "settingscommon.h"
+#include "engineregistrationhandler.h"
 #include "enginedialogsettings.h"
 #include "dialogutils.h"
-#include "logcategories.h"
 #include "ui_engineregistrationdialog.h"
 #include "changeenginesettingsdialog.h"
 #include "buttonstyles.h"
 #include <memory>
-#include <QApplication>
 #include <QDir>
 #include <QFileDialog>
-#include <QProcess>
-#include <QTime>
-#include <QFile>
+#include <QFileInfo>
 #include <QMessageBox>
-#include <QSettings>
-#include <QThread>
-
-using namespace EngineSettingsConstants;
 
 // 将棋エンジン登録ダイアログを表示する。
 EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     : QDialog(parent),
     ui(std::make_unique<Ui::EngineRegistrationDialog>()),
+    m_handler(std::make_unique<EngineRegistrationHandler>(this)),
     m_fontSize(EngineDialogSettings::engineRegistrationFontSize())
 {
     // Qt Designerで作成されたUIをプログラムのウィンドウに読み込み、初期化する。
@@ -35,8 +27,13 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     // シグナル・スロットの接続を行う。
     initializeSignals();
 
-    // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
-    loadEnginesFromSettings();
+    // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込む。
+    m_handler->loadEnginesFromSettings();
+
+    // GUIのリストウィジェットにエンジン名を追加する。
+    for (const Engine& engine : std::as_const(m_handler->engineList())) {
+        ui->engineListWidget->addItem(engine.name);
+    }
 
     // ボタンスタイルを適用
     ui->addEngineButton->setStyleSheet(ButtonStyles::editOperation());
@@ -57,36 +54,6 @@ EngineRegistrationDialog::~EngineRegistrationDialog()
 {
     // ウィンドウサイズを保存
     DialogUtils::saveDialogSize(this, EngineDialogSettings::setEngineRegistrationDialogSize);
-
-    // エンジンプロセスをクリーンアップする。
-    cleanupEngineProcess();
-}
-
-// エンジンプロセスをクリーンアップする。
-void EngineRegistrationDialog::cleanupEngineProcess()
-{
-    // プロセスが存在しない場合は何もしない。
-    if (!m_process) {
-        return;
-    }
-
-    // プロセスのシグナル・スロットの接続を解除する。
-    disconnect(m_process.get(), nullptr, this, nullptr);
-
-    // プロセスの状態が実行中の場合
-    if (m_process->state() == QProcess::Running) {
-        // プロセスを終了する。
-        m_process->terminate();
-
-        // プロセスの終了を待機する。
-        if (!m_process->waitForFinished(3000)) {
-            // プロセスを強制終了する。
-            m_process->kill();
-        }
-    }
-
-    // プロセスオブジェクトを削除する。
-    m_process.reset();
 }
 
 // シグナル・スロットの接続を行う。
@@ -107,117 +74,16 @@ void EngineRegistrationDialog::initializeSignals() const
     // フォントサイズ変更ボタンの接続
     connect(ui->fontIncreaseButton, &QPushButton::clicked, this, &EngineRegistrationDialog::increaseFontSize);
     connect(ui->fontDecreaseButton, &QPushButton::clicked, this, &EngineRegistrationDialog::decreaseFontSize);
-}
 
-// プロセスの標準エラー出力を処理する。
-void EngineRegistrationDialog::processEngineErrorOutput()
-{
-    // エンジンのプロセスから標準エラー出力を読み込む。
-    QByteArray stderrBytes = m_process->readAllStandardError();
-
-    QString stderrString = QString::fromUtf8(stderrBytes).trimmed();
-
-    if (!stderrString.isEmpty()) {
-        // エラーメッセージと発生時刻をログに記録
-        qCDebug(lcUi) << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << " - Engine Error Output:" << stderrString;
-
-        // エラーメッセージを通知する。
-        showErrorMessage(tr("エンジンからエラー出力がありました: %1").arg(stderrString));
-    }
-}
-
-// QProcessのエラーが発生したときに呼び出されるスロット
-void EngineRegistrationDialog::onProcessError(QProcess::ProcessError error)
-{
-    QString errorMessage;
-
-    switch (error) {
-    case QProcess::FailedToStart:
-        errorMessage = tr("エンジンの起動に失敗しました。");
-        break;
-    case QProcess::Crashed:
-        errorMessage = tr("エンジンがクラッシュしました。");
-        break;
-    case QProcess::Timedout:
-        errorMessage = tr("エンジンがタイムアウトしました。");
-        break;
-    case QProcess::WriteError:
-        errorMessage = tr("エンジンへのデータ書き込み中にエラーが発生しました。");
-        break;
-    case QProcess::ReadError:
-        errorMessage = tr("エンジンからのデータ読み込み中にエラーが発生しました。");
-        break;
-    case QProcess::UnknownError:
-    default:
-        errorMessage = tr("不明なエラーが発生しました。");
-        break;
-    }
-
-    // エラーが発生したことを通知する。
-    showErrorMessage(errorMessage);
-}
-
-// エラーメッセージを表示する。
-void EngineRegistrationDialog::showErrorMessage(const QString &errorMessage)
-{
-    // エラー状態を設定する。
-    m_errorOccurred = true;
-
-    // エラーメッセージを表示する。
-    QMessageBox::critical(this, tr("エラー"), errorMessage);
-}
-
-// 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込み、GUIのリストウィジェットにエンジン名を追加する。
-void EngineRegistrationDialog::loadEnginesFromSettings()
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // [Engines]セクションからエンジンの数を読み込む。
-    int engineCount = settings.beginReadArray(EnginesGroupName);
-
-    // 既存のエンジンリストをクリア
-    m_engineList.clear();
-
-    // GUIのリストもクリア
-    ui->engineListWidget->clear();
-
-    for (int i = 0; i < engineCount; ++i) {
-        settings.setArrayIndex(i);
-
-        // 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込む。
-        Engine engine = readEngineFromSettings(settings);
-
-        // 読み込んだエンジンをリストに追加する。
-        m_engineList.append(engine);
-
-        // GUIのリストウィジェットにエンジン名を追加する。
-        ui->engineListWidget->addItem(engine.name);
-    }
-
-    // [Engines]グループの配列の読み込みを終了する。
-    settings.endArray();
-}
-
-// 設定ファイルからエンジン名と絶対パス付きの実行ファイル名を読み込む。
-Engine EngineRegistrationDialog::readEngineFromSettings(const QSettings& settings) const
-{
-    Engine engine;
-
-    // 将棋エンジンの名前と実行ファイルの絶対パスを設定ファイルから読み込む。
-    engine.name = settings.value(EngineNameKey).toString();
-    engine.path = settings.value(EnginePathKey).toString();
-    engine.author = settings.value(EngineAuthorKey).toString();
-
-    return engine;
+    // ハンドラシグナルの接続
+    connect(m_handler.get(), &EngineRegistrationHandler::engineRegistered, this, &EngineRegistrationDialog::onEngineRegistered);
+    connect(m_handler.get(), &EngineRegistrationHandler::errorOccurred, this, &EngineRegistrationDialog::onHandlerError);
 }
 
 // 追加ボタンが押されたときに呼び出されるスロット
 // エンジン登録ダイアログで選択したエンジンを追加する。
 void EngineRegistrationDialog::addEngineFromFileSelection()
 {
-    // 前回のエラー状態をリセットする
-    m_errorOccurred = false;
-
     // ファイルの選択ダイアログのタイトル
     const QString fileSelectionDialogTitle = tr("ファイルの選択");
 
@@ -228,237 +94,55 @@ void EngineRegistrationDialog::addEngineFromFileSelection()
     QString fileName = QFileDialog::getOpenFileName(this, fileSelectionDialogTitle, homeDir);
 
     // fileNameのパス区切りを、実行環境のネイティブな形式に変換する。
-    m_fileName = QDir::toNativeSeparators(fileName);
+    fileName = QDir::toNativeSeparators(fileName);
 
     // ファイルが選択されなかった場合、処理を中断する。
-    if (m_fileName.isEmpty()) {
-        // ファイルが選択されなかった場合、処理を中断する。
+    if (fileName.isEmpty()) {
         return;
     }
 
-    // 将棋エンジンのディレクトリを取得する。
-    m_engineDir = QFileInfo(m_fileName).absolutePath();
-
     // 既にリストに同じエンジンがあるかどうかをチェック
-    foreach (const Engine& engine, m_engineList) {
-        if (engine.path == m_fileName) {
-            // エンジン登録が重複している場合、重複エラーのメッセージを表示する。
-            showDuplicateEngineByPathError(engine.name);
-
-            // 重複が見つかった場合は、処理を中断する。
-            return;
-        }
+    QString existingName;
+    if (m_handler->isDuplicatePath(fileName, existingName)) {
+        // エンジン登録が重複している場合、重複エラーのメッセージを表示する。
+        QMessageBox::critical(this, tr("エラー"),
+            tr("エンジン %1 は既に追加されています。").arg(existingName));
+        return;
     }
 
     // ファイルのパスが有効でない場合、エラーメッセージを表示し、処理を中断する。
-    if (!validateEnginePath(m_fileName)) {
+    if (!m_handler->validateEnginePath(fileName)) {
         // エラーメッセージを通知する。
-        showErrorMessage(tr("ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。").arg(QFileInfo(m_fileName).path()));
-
-        // ディレクトリの検証に失敗した場合、処理を中断する。
+        QMessageBox::critical(this, tr("エラー"),
+            tr("ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。").arg(QFileInfo(fileName).path()));
         return;
     }
 
-    // 前回のエンジン情報をクリアする
-    m_engineIdName.clear();
-    m_engineIdAuthor.clear();
-    m_optionLines.clear();
-
-    // 将棋エンジンを起動する。
-    startEngine(m_fileName);
-
-    // エラーが発生している場合
-    if (m_errorOccurred) return;
-
-    // usiコマンドを将棋エンジンに送信する。
-    sendUsiCommand();
-}
-
-// エンジン登録が重複している場合、重複エラーのメッセージを表示する。
-void EngineRegistrationDialog::showDuplicateEngineByPathError(const QString& engineName)
-{
-    // 重複エラーのメッセージを通知する。
-    showErrorMessage(tr("エンジン %1 は既に追加されています。").arg(engineName));
-}
-
-// ファイルのパスが有効かどうかを検証する。
-bool EngineRegistrationDialog::validateEnginePath(const QString& filePath) const
-{
-    // ファイルのパスからディレクトリのパスを取得する。
-    QFileInfo fi(filePath);
-
-    // ディレクトリを移動する。
-    return QDir::setCurrent(fi.absolutePath());
-}
-
-// 将棋エンジンの出力を１行ずつ読み取り、エンジン情報やオプション情報を取得する。
-void EngineRegistrationDialog::processEngineOutput()
-{
-    while (m_process->canReadLine()) {
-        QString line = m_process->readLine();
-
-        // 将棋エンジンからの出力を解析する。
-        parseEngineOutput(line.trimmed());
-
-        // エラーが発生している場合
-        if (m_errorOccurred) return;
-    }
-}
-
-// 将棋エンジンからの出力を解析する。
-void EngineRegistrationDialog::parseEngineOutput(const QString& line)
-{
-    // "id name"で始まる行の場合
-    if (line.startsWith(IdNamePrefix)) {
-        // エンジン名と絶対パスでの実行ファイル名を取得する。
-        processIdName(line);
-    }
-    // "id author"で始まる行の場合
-    else if (line.startsWith(IdAuthorPrefix)) {
-        // "id author "の部分を除去してエンジン作者名を取得する。
-        m_engineIdAuthor = line.mid(QString(IdAuthorPrefix).length() + 1);
-    }
-    // "option name"で始まる行の場合
-    else if (line.startsWith(OptionNamePrefix)) {
-        // オプション行をQStringList型の変数に蓄える。
-        m_optionLines.append(line);
-    }
-    // "usiok"で始まる行の場合
-    else if (line.startsWith(UsiOkPrefix)) {
-        // 将棋エンジンにquitコマンドを送信する。
-        sendQuitCommand();
-
-        // 設定ファイルを書き込むディレクトリに移動する。（現時点では実行ファイルと同じディレクトリ）
-        QDir::setCurrent(m_engineDir);
-
-        // エンジンリストにエンジン名、絶対パス付きの実行ファイル名、作者名を追加する。
-        // "id name" と "id author" の両方を受信した後なので、ここで追加する。
-        Engine engine;
-        engine.name = m_engineIdName;
-        engine.path = m_fileName;
-        engine.author = m_engineIdAuthor;
-        m_engineList.append(engine);
-
-        // usiコマンドの出力からエンジンオプションを取り出す。
-        parseEngineOptionsFromUsiOutput();
-
-        // エラーが発生している場合
-        if (m_errorOccurred) return;
-
-        // 設定ファイルにエンジン名と絶対パス付きの実行ファイル名を書き込む。
-        saveEnginesToSettingsFile();
-
-        // comboタイプのオプションの文字列を作成する。
-        concatenateComboOptionValues();
-
-        // 設定ファイルに追加エンジンのオプションを書き込む。
-        saveEngineOptionsToSettings();
-
-        // エンジン名をリストに追加する。
-        ui->engineListWidget->addItem(m_engineIdName);
-    }
-}
-
-// エンジン名と絶対パスでの実行ファイル名を取得する。
-void EngineRegistrationDialog::processIdName(const QString& line)
-{
-    // "id name"を含んだ行
-    m_engineIdName = line;
-
-    // "id name"を含んだ行の先頭の"id name "を削除する。
-    m_engineIdName.remove(QString(IdNamePrefix) + " ");
-
-    // 登録エンジンの重複チェック
-    for (qsizetype j = 0; j < m_engineList.size(); j++) {
-        if (m_engineIdName == m_engineList.at(j).name) {
-            // 登録したいエンジンが既に登録されている場合、重複エラーのメッセージを表示する。
-            showDuplicateEngineByNameError();
-
-            return;
-        }
-    }
-    // 注意: エンジンリストへの追加は "usiok" 受信後に行う（"id author" が後から来るため）
-}
-
-// 将棋エンジンを起動する。
-void EngineRegistrationDialog::startEngine(const QString& engineFile)
-{
-    // エンジンファイルの存在を確認
-    if (engineFile.isEmpty() || !QFile::exists(engineFile)) {
-        // エラーメッセージを通知する。
-        showErrorMessage(tr("指定されたエンジンファイルが存在しません: %1").arg(engineFile));
-
-        return;
-    }
-
-    // 旧プロセスが存在する場合はクリーンアップする。
-    cleanupEngineProcess();
-
-    // 新しいプロセスを作成する。
-    m_process = std::make_unique<QProcess>();
-
-    // 標準出力が読み取り可能になったときにプロセスの出力を処理するスロットを接続
-    connect(m_process.get(), &QProcess::readyReadStandardOutput, this, &EngineRegistrationDialog::processEngineOutput);
-
-    // 標準エラー出力が読み取り可能になったときにプロセスのエラー出力を処理するスロットを接続
-    connect(m_process.get(), &QProcess::readyReadStandardError, this, &EngineRegistrationDialog::processEngineErrorOutput);
-
-    // プロセスのエラーが発生したときに呼び出されるスロットを接続
-    connect(m_process.get(), &QProcess::errorOccurred, this, &EngineRegistrationDialog::onProcessError);
-
-    // 将棋エンジンの起動引数を設定（必要に応じて）
-    QStringList args;
-
-    // 将棋エンジンを起動
-    m_process->start(engineFile, args, QIODevice::ReadWrite);
-
-    if (!m_process->waitForStarted()) {
-        // エラーメッセージを通知する。
-        showErrorMessage(tr("エンジンの起動に失敗しました: %1").arg(engineFile));
-
-        return;
-    }
-}
-
-// usiコマンドを将棋エンジンに送信する。
-void EngineRegistrationDialog::sendUsiCommand() const
-{
-    // 将棋エンジンにusiコマンドを送信する。
-    m_process->write(UsiCommand);
-}
-
-// quitコマンドを将棋エンジンに送信する。
-void EngineRegistrationDialog::sendQuitCommand() const
-{
-    // 将棋エンジンにquitコマンドを送信する。
-    m_process->write(QuitCommand);
+    // エンジン登録処理を開始する。
+    m_handler->startRegistration(fileName);
 }
 
 // 削除ボタンが押されたときに呼び出されるスロット
 // 選択した登録エンジンを削除する。
 void EngineRegistrationDialog::removeEngine()
 {
-    // 削除エンジン名
-    QString removeEngineName;
+    // 選択したエンジン
+    QList<QListWidgetItem *> items = ui->engineListWidget->selectedItems();
 
-    // エンジン登録ダイアログの削除エンジン名を削除する。
-    removeSelectedEngineFromList(removeEngineName);
+    // 選択したエンジンが正確に一つであるかをチェックする。
+    if (items.count() != 1) {
+        // エラーが発生したことを通知する。
+        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンを1つ選択してください。"));
+        return;
+    }
 
-    // [Engines]グループを削除する。
-    removeEnginesGroup();
+    // ここからは選択されたエンジンが正確に一つであることが保証されている。
+    QListWidgetItem* selectedItem = items.first();
+    int index = ui->engineListWidget->row(selectedItem);
+    std::unique_ptr<QListWidgetItem> takenItem(ui->engineListWidget->takeItem(index));
 
-    // [Engines]グループを新たに作り直しする。
-    saveEnginesToSettingsFile();
-
-    // 削除エンジン名グループの削除
-    removeEngineNameGroup(removeEngineName);
-}
-
-// 登録したいエンジンが既に登録されている場合、重複エラーのメッセージを表示する。
-void EngineRegistrationDialog::showDuplicateEngineByNameError()
-{
-    // エラーメッセージを通知する。
-    showErrorMessage(tr("この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。"));
+    // ハンドラにエンジン削除を委譲する。
+    m_handler->removeEngineAt(index);
 }
 
 // 設定ボタンが押されたときに呼び出されるスロット
@@ -470,9 +154,7 @@ void EngineRegistrationDialog::configureEngine()
     // 選択されたアイテムが正確に一つであるかをチェックする。
     if (items.count() != 1) {
         // エラーメッセージを通知する。
-        showErrorMessage(tr("将棋エンジンを1つ選択してください。"));
-
-        // 一つではない場合は、処理を中断して戻る。
+        QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンを1つ選択してください。"));
         return;
     }
 
@@ -487,7 +169,7 @@ void EngineRegistrationDialog::configureEngine()
     QString engineName = selectedItem->text();
 
     // 選択されたエンジンの作者名を取得する。
-    QString engineAuthor = m_engineList.at(engineNumber).author;
+    QString engineAuthor = m_handler->engineAt(engineNumber).author;
 
     // 選択されたエンジンの設定変更ダイアログを表示する。
     ChangeEngineSettingsDialog dialog(this);
@@ -500,310 +182,18 @@ void EngineRegistrationDialog::configureEngine()
     if (dialog.exec() == QDialog::Rejected) return;
 }
 
-// 設定ファイルにエンジン名と絶対パス付きの実行ファイル名を書き込む。
-void EngineRegistrationDialog::saveEnginesToSettingsFile() const
+// エンジン登録完了時のスロット
+void EngineRegistrationDialog::onEngineRegistered(const QString& engineName)
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // 書き込むグループに[Engines]を指定する。
-    settings.beginWriteArray(EnginesGroupName);
-
-    // 登録エンジンの数だけ繰り返す。
-    for (qsizetype i = 0; i < m_engineList.size(); i++) {
-        // 設定ファイルの[Engines]グループの配列のi番目の要素に移動する。
-        settings.setArrayIndex(static_cast<int>(i));
-
-        // 設定ファイルの[Engines]グループの配列のi番目の要素にエンジン名と絶対パス付きの実行ファイル名を書き込む。
-        saveEngineToSettings(settings, m_engineList.at(i));
-    }
-
-    // [Engines]グループの配列の書き込みを終了する。
-    settings.endArray();
+    // エンジン名をリストに追加する。
+    ui->engineListWidget->addItem(engineName);
 }
 
-// 指定されたエンジン情報を設定ファイルに保存する。
-void EngineRegistrationDialog::saveEngineToSettings(QSettings& settings, const Engine& engine) const
+// ハンドラエラー時のスロット
+void EngineRegistrationDialog::onHandlerError(const QString& errorMessage)
 {
-    // 指定されたエンジン情報を設定ファイルに保存する。
-    settings.setValue(EngineNameKey, engine.name);
-
-    // エンジンの実行ファイルパスを設定ファイルに書き込む。
-    settings.setValue(EnginePathKey, engine.path);
-
-    // エンジンの作者名を設定ファイルに書き込む。
-    settings.setValue(EngineAuthorKey, engine.author);
-}
-
-// 設定ファイルに追加エンジンのオプションを書き込む。
-void EngineRegistrationDialog::saveEngineOptionsToSettings() const
-{
-    // 並列配列のサイズ整合性を確認
-    if (m_engineOptions.size() != m_concatenatedOptionValuesList.size()) {
-        qCWarning(lcUi) << "saveEngineOptionsToSettings: リストサイズ不一致 - "
-                   << "m_engineOptions:" << m_engineOptions.size()
-                   << "m_concatenatedOptionValuesList:" << m_concatenatedOptionValuesList.size();
-        return;
-    }
-
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // 書き込むグループにエンジン名を指定する。
-    settings.beginWriteArray(m_engineIdName);
-
-    // エンジンオプションの数だけ繰り返す。
-    for (qsizetype i = 0; i < m_engineOptions.size(); i++) {
-        // 設定ファイルのエンジン名のグループの配列のi番目の要素に移動する。
-        settings.setArrayIndex(static_cast<int>(i));
-
-        // 設定ファイルのエンジン名のグループの配列のi番目の要素にエンジンオプションを書き込む。
-        settings.setValue(EngineOptionNameKey, m_engineOptions.at(i).name);
-        settings.setValue(EngineOptionTypeKey, m_engineOptions.at(i).type);
-        settings.setValue(EngineOptionDefaultKey, m_engineOptions.at(i).defaultValue);
-        settings.setValue(EngineOptionMinKey, m_engineOptions.at(i).min);
-        settings.setValue(EngineOptionMaxKey, m_engineOptions.at(i).max);
-        settings.setValue(EngineOptionValueKey, m_engineOptions.at(i).currentValue);
-        settings.setValue(EngineOptionValueListKey, m_concatenatedOptionValuesList.at(i));
-    }
-
-    // エンジン名のグループの配列の書き込みを終了する。
-    settings.endArray();
-}
-
-// usiコマンドの出力からエンジンオプションを取り出す。
-void EngineRegistrationDialog::parseEngineOptionsFromUsiOutput()
-{
-    // optionリストを初期化する。これをしないと以前読み込んだエンジンのoptionリストが残ってしまう。
-    m_engineOptions.clear();
-
-    // usiコマンドの出力からエンジンオプションを取り出す。
-    for (const QString& line : std::as_const(m_optionLines)) {
-        parseOptionLine(line);
-
-        // エラーが発生している場合
-        if (m_errorOccurred) return;
-    }
-
-    // USI_Hashオプションが存在するかを確認する。
-    auto usiHashIt = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [](const EngineOption& option) {
-        return option.name == "USI_Hash";
-    });
-
-    // USI_Hashオプションが存在しない場合は追加する。
-    if (usiHashIt == m_engineOptions.end()) {
-        addOption("USI_Hash", OptionTypeSpin, "1024", "1", "2000", "1024");
-
-        qCDebug(lcUi) << tr("USI_Hash option added.");
-    }
-
-    // 注: USI_Ponderはエンジンが報告した場合のみ使用する。
-    // 詰み探索専用エンジン等はUSI_Ponderを実装していないため、
-    // 自動追加するとsetoptionでエラーになる。
-}
-
-// エンジンオプション構造体に値を設定する。
-void EngineRegistrationDialog::addOption(const QString& name, const QString& type, const QString& defaultValue, const QString& min, const QString& max, const QString& currentValue)
-{
-    EngineOption option{name, type, defaultValue, min, max, currentValue, QStringList()};
-    m_engineOptions.append(option);
-}
-
-// optionコマンドの文法が正しいかどうかをチェックする。
-EngineRegistrationDialog::ValidationResult EngineRegistrationDialog::checkOptionSyntax(const QString& optionCommand)
-{
-    // optionコマンドは"option"で始まる必要がある。
-    if (!optionCommand.startsWith("option")) {
-        return {false, "Command does not start with 'option'"};
-    }
-
-    // "option"を除いた部分を取得する。
-    QString commandBody = optionCommand.mid(QString("option").length()).trimmed();
-
-    // 静的なQRegularExpressionオブジェクト
-    static const QRegularExpression optionRegex(R"(name\s+(\S+)\s+type\s+(\S+)(.*))");
-    static const QRegularExpression whitespaceRegex(R"(\s+)");
-
-    // name, type は必須フィールド
-    QRegularExpressionMatch match = optionRegex.match(commandBody);
-
-    if (!match.hasMatch()) {
-        return {false, "Invalid syntax. Expected 'option name <name> type <type>'"};
-    }
-
-    QString type = match.captured(2);
-    QString remaining = match.captured(3).trimmed();
-
-    // typeがbuttonの場合、追加オプションがあってはいけない。
-    if (type == OptionTypeButton) {
-        if (!remaining.isEmpty()) {
-            return {false, "No additional options are allowed for type 'button'"};
-        }
-    } else {
-        // 追加オプションをチェックする。
-        // 空文字列をスキップして分割する（remainingが空の場合も考慮）
-        QStringList tokens = remaining.split(whitespaceRegex, Qt::SkipEmptyParts);
-        QStringList allowedKeywords = {"default", "min", "max", "var"};
-
-        for (qsizetype i = 0; i < tokens.size(); ++i) {
-            if (allowedKeywords.contains(tokens[i])) {
-                if (tokens[i] == "default") {
-                    // "type" が "string" であれば、値がなくてもOK。
-                    if (type == OptionTypeString && (i + 1 >= tokens.size() || allowedKeywords.contains(tokens[i + 1]))) {
-                        // 値がなくても続行する。
-                        continue;
-                    } else if (i + 1 < tokens.size() && !allowedKeywords.contains(tokens[i + 1])) {
-                        // 値がある場合は次のトークンに進む。
-                        ++i;
-                    } else {
-                        return {false, QString("Value for '%1' is missing or invalid").arg(tokens[i])};
-                    }
-                } else if (tokens[i] == "min" || tokens[i] == "max") {
-                    if (i + 1 < tokens.size() && !allowedKeywords.contains(tokens[i + 1])) {
-                        // 値をスキップする。
-                        ++i;
-                    } else {
-                        return {false, QString("Value for '%1' is missing or invalid").arg(tokens[i])};
-                    }
-                } else if (tokens[i] == "var") {
-                    while (i + 1 < tokens.size() && !allowedKeywords.contains(tokens[i + 1])) {
-                        ++i;
-                    }
-                }
-            } else {
-                return {false, QString("Unknown keyword or missing value: '%1'").arg(tokens[i])};
-            }
-        }
-    }
-
-    // ここまで来れば文法チェックは成功である。
-    return {true, ""};
-}
-
-// 将棋エンジンから送信されたオプション行を解析し、エンジンオプションリストに追加する。
-void EngineRegistrationDialog::parseOptionLine(const QString& line)
-{
-    // オプションの文法が正しいかどうかをチェックする。
-    ValidationResult result = checkOptionSyntax(line);
-
-    // 文法が正しくない場合
-    if (!result.isValid) {
-        // エラーが発生したことを通知する。
-        showErrorMessage(tr("オプション行の形式が無効です。"));
-
-        return;
-    }
-
-    // 空文字列をスキップして分割する（複数のスペースがあっても正しく処理できるようにする）
-    QStringList parts = line.split(" ", Qt::SkipEmptyParts);
-
-    // インデックスの範囲チェック
-    if (parts.size() < 5) {
-        qCWarning(lcUi) << "parseOptionLine: 不正なオプション行（トークン数不足）:" << line;
-        showErrorMessage(tr("オプション行の形式が無効です。"));
-        return;
-    }
-
-    QString name = parts.at(2);
-    QString type = parts.at(4);
-    QString defaultValue = "";
-    QString min = "";
-    QString max = "";
-    QString currentValue = "";
-    QStringList valueList;
-
-    int defaultIndex = static_cast<int>(parts.indexOf(EngineOptionDefaultKey));
-
-    // `defaultIndex + 1 < parts.size()`を追加して、`"default"`の後に値があるかどうかをチェックする。
-    if (defaultIndex != -1 && defaultIndex + 1 < parts.size()) {
-        defaultValue = parts.at(defaultIndex + 1);
-        currentValue = defaultValue;
-    }
-
-    if (type == OptionTypeSpin) {
-        int minIndex = static_cast<int>(parts.indexOf("min"));
-        int maxIndex = static_cast<int>(parts.indexOf("max"));
-        if (minIndex != -1 && parts.size() > minIndex) min = parts.at(minIndex + 1);
-        if (maxIndex != -1 && parts.size() > maxIndex) max = parts.at(maxIndex + 1);
-    } else if (type == OptionTypeCombo) {
-        int varIndex = 0;
-        while ((varIndex = static_cast<int>(parts.indexOf("var", varIndex + 1))) != -1) {
-            if (parts.size() > varIndex) valueList.append(parts.at(varIndex + 1));
-        }
-    }
-
-    // 新しいオプションを追加する際、既存のオプションと重複しないことを確認
-    auto it = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [&name](const EngineOption& option) {
-        return option.name == name;
-    });
-
-    // オプションが最後まで見つからなかった（重複しなかった）場合
-    if (it == m_engineOptions.end()) {
-        EngineOption option{name, type, defaultValue, min, max, currentValue, valueList};
-        m_engineOptions.append(option);
-    } else {
-        // エラーが発生したことを通知する。
-        showErrorMessage(tr("重複したエンジンオプションが見つかりました。"));
-
-        return;
-    }
-}
-
-// 設定ファイルから[Engines]グループを削除する。
-void EngineRegistrationDialog::removeEnginesGroup() const
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // [Engines]グループの削除
-    settings.beginGroup(EnginesGroupName);
-    settings.remove("");
-    settings.endGroup();
-}
-
-// 設定ファイルからエンジン名グループを削除する。
-void EngineRegistrationDialog::removeEngineNameGroup(const QString& removeEngineName) const
-{
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // エンジン名グループの削除
-    settings.beginGroup(removeEngineName);
-    settings.remove("");
-    settings.endGroup();
-}
-
-// エンジン登録ダイアログから選択したエンジンを削除する。
-void EngineRegistrationDialog::removeSelectedEngineFromList(QString& removeEngineName)
-{
-    // 選択したエンジン
-    QList<QListWidgetItem *> items = ui->engineListWidget->selectedItems();
-
-    // 選択したエンジンが正確に一つであるかをチェックする。
-    if (items.count() != 1) {
-        // エラーが発生したことを通知する。
-        showErrorMessage(tr("将棋エンジンを1つ選択してください。"));
-
-        // 一つではない場合は、処理を中断する。
-        return;
-    }
-
-    // ここからは選択されたエンジンが正確に一つであることが保証されている。
-    QListWidgetItem* selectedItem = items.first();
-    int i = ui->engineListWidget->row(selectedItem);
-    std::unique_ptr<QListWidgetItem> takenItem(ui->engineListWidget->takeItem(i));
-    removeEngineName = takenItem->text();
-
-    m_engineList.removeAt(i);
-}
-
-// comboタイプのオプションの文字列を作成する。
-void EngineRegistrationDialog::concatenateComboOptionValues()
-{
-    // 既存のリストをクリアする。
-    m_concatenatedOptionValuesList.clear();
-
-    // オプションの文字列リスト分、繰り返す。
-    for (const auto& option : std::as_const(m_engineOptions)) {
-        // comboタイプのオプションの値を " " で結合する。
-        m_concatenatedOptionValuesList.append(option.valueList.join(" "));
-    }
+    // エラーメッセージを表示する。
+    QMessageBox::critical(this, tr("エラー"), errorMessage);
 }
 
 // フォントサイズを増加する

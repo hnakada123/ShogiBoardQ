@@ -9,9 +9,11 @@
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowserviceregistry.h"
+#include "kifusubregistry.h"
 #include "ui_mainwindow.h"
 
 #include "analysisresultspresenter.h"
+#include "boardinteractioncontroller.h"
 #include "boardsyncpresenter.h"
 #include "commentcoordinator.h"
 #include "considerationpositionservice.h"
@@ -77,6 +79,8 @@ void MainWindowFoundationRegistry::ensurePlayerInfoWiring()
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.timeControllerRef = &m_mw.m_timeController;
 
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
     m_mw.m_playerInfoWiring = new PlayerInfoWiring(deps, &m_mw);
 
     // 検討タブが既に作成済みなら設定
@@ -140,9 +144,12 @@ void MainWindowFoundationRegistry::ensureKifuNavigationCoordinator()
 void MainWindowFoundationRegistry::ensureCommentCoordinator()
 {
     if (m_mw.m_commentCoordinator) return;
-    m_mw.m_compositionRoot->ensureCommentCoordinator(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_commentCoordinator);
+    // QPointer<T> は T*& に直接バインドできないため、一時変数経由で渡す
+    CommentCoordinator* ptr = nullptr;
+    m_mw.m_compositionRoot->ensureCommentCoordinator(m_mw.buildRuntimeRefs(), &m_mw, ptr);
+    m_mw.m_commentCoordinator = ptr;
     connect(m_mw.m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
-            m_serviceRegistry, &MainWindowServiceRegistry::ensureGameRecordModel);
+            m_serviceRegistry->kifu(), &KifuSubRegistry::ensureGameRecordModel);
 }
 
 // ---------------------------------------------------------------------------
@@ -169,6 +176,8 @@ void MainWindowFoundationRegistry::ensureBoardSyncPresenter()
     d.sfenRecord = m_mw.m_queryService->sfenRecord();
     d.gameMoves  = &m_mw.m_kifu.gameMoves;
 
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
     m_mw.m_boardSync = new BoardSyncPresenter(d, &m_mw);
 
     qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: created m_boardSync*=" << static_cast<const void*>(m_mw.m_boardSync);
@@ -182,6 +191,8 @@ void MainWindowFoundationRegistry::ensureUiNotificationService()
 {
     if (m_mw.m_notificationService) return;
 
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
     m_mw.m_notificationService = new UiNotificationService(&m_mw);
 
     UiNotificationService::Deps deps;
@@ -228,6 +239,8 @@ void MainWindowFoundationRegistry::ensureMenuWiring()
     deps.parentWidget = &m_mw;
     deps.menuBar = m_mw.menuBar();
 
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
     m_mw.m_menuWiring = new MenuWindowWiring(deps, &m_mw);
 
     qCDebug(lcApp).noquote() << "ensureMenuWiring_: created and connected";
@@ -268,6 +281,8 @@ void MainWindowFoundationRegistry::ensureDockCreationService()
 void MainWindowFoundationRegistry::ensurePositionEditController()
 {
     if (m_mw.m_posEdit) return;
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
     m_mw.m_posEdit = new PositionEditController(&m_mw);
 }
 

@@ -8,7 +8,10 @@
 /// これにより friend 宣言を使わずに Strategy が必要な内部状態のみを参照できる。
 
 #include "matchcoordinator.h"
+#include "matchturnhandler.h"
 #include "matchtimekeeper.h"
+#include "gameendhandler.h"
+#include "enginelifecyclemanager.h"
 
 /// @brief Strategy クラスが MatchCoordinator の内部状態にアクセスするためのコンテキスト
 ///
@@ -70,9 +73,9 @@ public:
 
     // ---- private メソッド委譲 ----
 
-    void updateTurnDisplay(Player p) { c_.updateTurnDisplay(p); }
+    void updateTurnDisplay(Player p) { c_.m_turnHandler->updateTurnDisplay(p); }
     GoTimes computeGoTimes() const { return c_.computeGoTimes(); }
-    void initPositionStringsFromSfen(const QString& s) { c_.initPositionStringsFromSfen(s); }
+    void initPositionStringsFromSfen(const QString& s) { c_.m_turnHandler->initPositionStringsFromSfen(s); }
     void wireResignToArbiter(Usi* eng, bool asP1) {
         if (c_.m_engineManager) c_.m_engineManager->wireResignToArbiter(eng, asP1);
     }
@@ -82,18 +85,24 @@ public:
 
     // ---- public メソッド委譲 ----
 
-    bool checkAndHandleSennichite() { return c_.checkAndHandleSennichite(); }
+    bool checkAndHandleSennichite() {
+        c_.ensureGameEndHandler();
+        return c_.m_gameEndHandler->checkAndHandleSennichite();
+    }
     void destroyEngines(bool clearModels = true) { c_.destroyEngines(clearModels); }
     void initializeAndStartEngineFor(Player side, const QString& path, const QString& name) {
         c_.initializeAndStartEngineFor(side, path, name);
     }
     Usi* primaryEngine() const { return c_.primaryEngine(); }
-    void computeGoTimesForUSI(qint64& outB, qint64& outW) const { c_.computeGoTimesForUSI(outB, outW); }
+    void computeGoTimesForUSI(qint64& outB, qint64& outW) const {
+        if (c_.m_timekeeper) { c_.m_timekeeper->computeGoTimesForUSI(outB, outW); return; }
+        outB = outW = 0;
+    }
     void handleMaxMovesJishogi() { c_.handleMaxMovesJishogi(); }
     void pokeTimeUpdateNow() { c_.pokeTimeUpdateNow(); }
     bool engineThinkApplyMove(Usi* engine, QString& positionStr, QString& ponderStr,
                               QPoint* outFrom, QPoint* outTo) {
-        return c_.engineThinkApplyMove(engine, positionStr, ponderStr, outFrom, outTo);
+        return c_.m_engineManager->engineThinkApplyMove(engine, positionStr, ponderStr, outFrom, outTo);
     }
 
 private:

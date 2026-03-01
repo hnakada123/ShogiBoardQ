@@ -16,8 +16,6 @@
 namespace EndTracker {
 
 bool disarmHumanTimerCalled = false;
-bool setGameOverCalled = false;
-bool markGameOverMoveAppendedCalled = false;
 bool showGameOverDialogCalled = false;
 bool autoSaveKifuCalled = false;
 int appendKifuLineCount = 0;
@@ -26,14 +24,9 @@ QString lastAppendedElapsed;
 QString lastDialogTitle;
 QString lastDialogMsg;
 
-MatchCoordinator::GameEndInfo lastGameEndInfo;
-bool lastSetGameOverLoserIsP1 = false;
-
 void reset()
 {
     disarmHumanTimerCalled = false;
-    setGameOverCalled = false;
-    markGameOverMoveAppendedCalled = false;
     showGameOverDialogCalled = false;
     autoSaveKifuCalled = false;
     appendKifuLineCount = 0;
@@ -41,8 +34,6 @@ void reset()
     lastAppendedElapsed.clear();
     lastDialogTitle.clear();
     lastDialogMsg.clear();
-    lastGameEndInfo = {};
-    lastSetGameOverLoserIsP1 = false;
 }
 
 } // namespace EndTracker
@@ -81,15 +72,6 @@ struct EndTestHarness {
         };
         hooks.primaryEngine = []() -> Usi* { return nullptr; };
         hooks.turnEpochFor = [](MatchCoordinator::Player) -> qint64 { return -1; };
-        hooks.setGameOver = [](const MatchCoordinator::GameEndInfo& info,
-                               bool loserIsP1, bool /*hasLast*/) {
-            EndTracker::setGameOverCalled = true;
-            EndTracker::lastGameEndInfo = info;
-            EndTracker::lastSetGameOverLoserIsP1 = loserIsP1;
-        };
-        hooks.markGameOverMoveAppended = []() {
-            EndTracker::markGameOverMoveAppendedCalled = true;
-        };
         hooks.appendKifuLine = [](const QString& line, const QString& elapsed) {
             ++EndTracker::appendKifuLineCount;
             EndTracker::lastAppendedLine = line;
@@ -180,10 +162,10 @@ void Tst_GameEndHandler::handleResign_p1Turn_p1Loses()
     h.gc.setCurrentPlayer(ShogiGameController::Player1);
     h.handler.handleResign();
 
-    QVERIFY(EndTracker::setGameOverCalled);
-    QCOMPARE(EndTracker::lastGameEndInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(EndTracker::lastGameEndInfo.loser, MatchCoordinator::P1);
-    QVERIFY(EndTracker::lastSetGameOverLoserIsP1);
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QVERIFY(h.gameOver.lastLoserIsP1);
     QVERIFY(EndTracker::showGameOverDialogCalled);
     QVERIFY(EndTracker::autoSaveKifuCalled);
 }
@@ -194,18 +176,19 @@ void Tst_GameEndHandler::handleResign_p2Turn_p2Loses()
     h.gc.setCurrentPlayer(ShogiGameController::Player2);
     h.handler.handleResign();
 
-    QCOMPARE(EndTracker::lastGameEndInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(EndTracker::lastGameEndInfo.loser, MatchCoordinator::P2);
-    QVERIFY(!EndTracker::lastSetGameOverLoserIsP1);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
+    QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
 void Tst_GameEndHandler::handleResign_alreadyOver_ignored()
 {
     EndTestHarness h;
     h.gameOver.isOver = true;
+    QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
     h.handler.handleResign();
 
-    QVERIFY(!EndTracker::setGameOverCalled);
+    QCOMPARE(spy.count(), 0);
     QVERIFY(!EndTracker::showGameOverDialogCalled);
 }
 
@@ -219,9 +202,9 @@ void Tst_GameEndHandler::handleEngineResign_engine1_p1Loses()
     h.playMode = PlayMode::EvenHumanVsEngine;
     h.handler.handleEngineResign(1);
 
-    QVERIFY(EndTracker::setGameOverCalled);
-    QCOMPARE(EndTracker::lastGameEndInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(EndTracker::lastGameEndInfo.loser, MatchCoordinator::P1);
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
 }
 
 void Tst_GameEndHandler::handleEngineResign_engine2_p2Loses()
@@ -230,9 +213,9 @@ void Tst_GameEndHandler::handleEngineResign_engine2_p2Loses()
     h.playMode = PlayMode::EvenHumanVsEngine;
     h.handler.handleEngineResign(2);
 
-    QVERIFY(EndTracker::setGameOverCalled);
-    QCOMPARE(EndTracker::lastGameEndInfo.cause, MatchCoordinator::Cause::Resignation);
-    QCOMPARE(EndTracker::lastGameEndInfo.loser, MatchCoordinator::P2);
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
 }
 
 // ============================================================
@@ -284,7 +267,7 @@ void Tst_GameEndHandler::handleBreakOff_appendsKifuLine()
 
     QVERIFY(EndTracker::appendKifuLineCount > 0);
     QVERIFY(EndTracker::lastAppendedLine.contains(QStringLiteral("中断")));
-    QVERIFY(EndTracker::markGameOverMoveAppendedCalled);
+    QVERIFY(h.gameOver.moveAppended);
 }
 
 // ============================================================
@@ -296,11 +279,11 @@ void Tst_GameEndHandler::handleNyugyokuDeclaration_success_opponentLoses()
     EndTestHarness h;
     h.handler.handleNyugyokuDeclaration(MatchCoordinator::P1, true, false);
 
-    QVERIFY(EndTracker::setGameOverCalled);
-    QCOMPARE(EndTracker::lastGameEndInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
     // P1 declares and wins → P2 loses
-    QCOMPARE(EndTracker::lastGameEndInfo.loser, MatchCoordinator::P2);
-    QVERIFY(!EndTracker::lastSetGameOverLoserIsP1);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
+    QVERIFY(!h.gameOver.lastLoserIsP1);
 }
 
 void Tst_GameEndHandler::handleNyugyokuDeclaration_draw_jishogi()
@@ -308,10 +291,10 @@ void Tst_GameEndHandler::handleNyugyokuDeclaration_draw_jishogi()
     EndTestHarness h;
     h.handler.handleNyugyokuDeclaration(MatchCoordinator::P1, true, true);
 
-    QVERIFY(EndTracker::setGameOverCalled);
-    QCOMPARE(EndTracker::lastGameEndInfo.cause, MatchCoordinator::Cause::Jishogi);
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Jishogi);
     // isDraw: declarer is the "loser" in the info struct
-    QCOMPARE(EndTracker::lastGameEndInfo.loser, MatchCoordinator::P1);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
 }
 
 void Tst_GameEndHandler::handleNyugyokuDeclaration_fail_declarerLoses()
@@ -319,18 +302,19 @@ void Tst_GameEndHandler::handleNyugyokuDeclaration_fail_declarerLoses()
     EndTestHarness h;
     h.handler.handleNyugyokuDeclaration(MatchCoordinator::P2, false, false);
 
-    QVERIFY(EndTracker::setGameOverCalled);
-    QCOMPARE(EndTracker::lastGameEndInfo.cause, MatchCoordinator::Cause::IllegalMove);
-    QCOMPARE(EndTracker::lastGameEndInfo.loser, MatchCoordinator::P2);
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::IllegalMove);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P2);
 }
 
 void Tst_GameEndHandler::handleNyugyokuDeclaration_alreadyOver_ignored()
 {
     EndTestHarness h;
     h.gameOver.isOver = true;
+    QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
     h.handler.handleNyugyokuDeclaration(MatchCoordinator::P1, true, false);
 
-    QVERIFY(!EndTracker::setGameOverCalled);
+    QCOMPARE(spy.count(), 0);
 }
 
 // ============================================================
@@ -358,7 +342,7 @@ void Tst_GameEndHandler::handleMaxMovesJishogi_appendsKifuLine()
     // appendGameOverLineAndMark is called from handleMaxMovesJishogi
     QVERIFY(EndTracker::appendKifuLineCount > 0);
     QVERIFY(EndTracker::lastAppendedLine.contains(QStringLiteral("持将棋")));
-    QVERIFY(EndTracker::markGameOverMoveAppendedCalled);
+    QVERIFY(h.gameOver.moveAppended);
 }
 
 void Tst_GameEndHandler::handleMaxMovesJishogi_alreadyOver_ignored()
@@ -422,7 +406,7 @@ void Tst_GameEndHandler::appendGameOverLineAndMark_resignation_p1()
     QVERIFY(EndTracker::appendKifuLineCount > 0);
     QVERIFY(EndTracker::lastAppendedLine.contains(QStringLiteral("投了")));
     QVERIFY(EndTracker::lastAppendedLine.contains(QStringLiteral("▲")));
-    QVERIFY(EndTracker::markGameOverMoveAppendedCalled);
+    QVERIFY(h.gameOver.moveAppended);
 }
 
 void Tst_GameEndHandler::appendGameOverLineAndMark_timeout_p2()
@@ -473,7 +457,7 @@ void Tst_GameEndHandler::appendBreakOffLineAndMark_p1Turn()
 
     QVERIFY(EndTracker::appendKifuLineCount > 0);
     QVERIFY(EndTracker::lastAppendedLine.contains(QStringLiteral("▲中断")));
-    QVERIFY(EndTracker::markGameOverMoveAppendedCalled);
+    QVERIFY(h.gameOver.moveAppended);
 }
 
 // ============================================================
@@ -485,19 +469,14 @@ void Tst_GameEndHandler::doubleEnd_resignThenBreakOff_secondIgnored()
     EndTestHarness h;
     h.gc.setCurrentPlayer(ShogiGameController::Player1);
 
-    // First: resign
+    // First: resign → sets gameOver.isOver = true
     h.handler.handleResign();
-    QVERIFY(EndTracker::setGameOverCalled);
-    // Mark game as over (normally done by hooks.setGameOver inside MC)
-    h.gameOver.isOver = true;
+    QVERIFY(h.gameOver.isOver);
 
-    // Reset tracker
-    EndTracker::setGameOverCalled = false;
     QSignalSpy spy(&h.handler, &GameEndHandler::gameEnded);
 
-    // Second: breakoff (should be ignored)
+    // Second: breakoff (should be ignored because isOver is already true)
     h.handler.handleBreakOff();
-    QVERIFY(!EndTracker::setGameOverCalled);
     QCOMPARE(spy.count(), 0);
 }
 

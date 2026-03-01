@@ -16,6 +16,8 @@
 #include <QSize>
 
 #include "matchcoordinator.h"
+#include "matchturnhandler.h"
+#include "strategycontext.h"
 #include "matchtimekeeper.h"
 #include "matchundohandler.h"
 #include "gameendhandler.h"
@@ -74,6 +76,40 @@ void reset()
 }
 
 } // namespace MCTracker
+
+// ============================================================
+// MatchTurnHandler スタブ
+// ============================================================
+
+MatchTurnHandler::MatchTurnHandler(MatchCoordinator& mc)
+{
+    m_strategyCtx = std::make_unique<MatchCoordinator::StrategyContext>(mc);
+}
+MatchTurnHandler::~MatchTurnHandler() = default;
+void MatchTurnHandler::setRefs(const Refs& r) { m_refs = r; }
+void MatchTurnHandler::setHooks(const Hooks& h) { m_hooks = h; }
+MatchCoordinator::StrategyContext& MatchTurnHandler::strategyCtx()
+{
+    return *m_strategyCtx;
+}
+GameModeStrategy* MatchTurnHandler::strategy() const { return nullptr; }
+void MatchTurnHandler::createAndStartModeStrategy(const StartOptions&) {}
+void MatchTurnHandler::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
+void MatchTurnHandler::startInitialEngineMoveIfNeeded() {}
+void MatchTurnHandler::armTurnTimerIfNeeded() {}
+void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchTurnHandler::disarmHumanTimerIfNeeded() {}
+void MatchTurnHandler::flipBoard()
+{
+    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
+    if (m_hooks.emitBoardFlipped) m_hooks.emitBoardFlipped(true);
+}
+void MatchTurnHandler::updateTurnDisplay(Player) {}
+void MatchTurnHandler::initPositionStringsFromSfen(const QString&) {}
+void MatchTurnHandler::forceImmediateMove() {}
+void MatchTurnHandler::handlePlayerTimeOut(int) {}
+void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
+void MatchTurnHandler::handleUsiError(const QString&) {}
 
 // ============================================================
 // EngineLifecycleManager スタブ
@@ -156,8 +192,8 @@ void MatchTimekeeper::emitTimeUpdateFromClock() {}
 // ============================================================
 
 GameEndHandler::GameEndHandler(QObject* parent) : QObject(parent) {}
-void GameEndHandler::setRefs(const Refs&) {}
-void GameEndHandler::setHooks(const Hooks&) {}
+void GameEndHandler::setRefs(const Refs& r) { m_refs = r; }
+void GameEndHandler::setHooks(const Hooks& h) { m_hooks = h; }
 void GameEndHandler::handleResign() { MCTracker::gameEndHandlerResignCalled = true; }
 void GameEndHandler::handleEngineResign(int idx) { MCTracker::gameEndHandlerEngineResignIdx = idx; }
 void GameEndHandler::handleEngineWin(int idx) { MCTracker::gameEndHandlerEngineWinIdx = idx; }
@@ -172,6 +208,33 @@ void GameEndHandler::handleMaxMovesJishogi() {}
 bool GameEndHandler::checkAndHandleSennichite() { return false; }
 void GameEndHandler::handleSennichite() {}
 void GameEndHandler::handleOuteSennichite(bool) {}
+void GameEndHandler::clearGameOverState()
+{
+    if (!m_refs.gameOver->isOver) return;
+    *m_refs.gameOver = {};
+    emit gameOverStateChanged(*m_refs.gameOver);
+}
+void GameEndHandler::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
+{
+    if (m_refs.gameOver->isOver) return;
+    m_refs.gameOver->isOver = true;
+    m_refs.gameOver->hasLast = true;
+    m_refs.gameOver->lastLoserIsP1 = loserIsP1;
+    m_refs.gameOver->lastInfo = info;
+    m_refs.gameOver->when = QDateTime::currentDateTime();
+    emit gameOverStateChanged(*m_refs.gameOver);
+    emit gameEnded(info);
+    if (appendMoveOnce && !m_refs.gameOver->moveAppended) {
+        emit requestAppendGameOverMove(info);
+    }
+}
+void GameEndHandler::markGameOverMoveAppended()
+{
+    if (!m_refs.gameOver->isOver) return;
+    if (m_refs.gameOver->moveAppended) return;
+    m_refs.gameOver->moveAppended = true;
+    emit gameOverStateChanged(*m_refs.gameOver);
+}
 
 // ============================================================
 // GameStartOrchestrator スタブ

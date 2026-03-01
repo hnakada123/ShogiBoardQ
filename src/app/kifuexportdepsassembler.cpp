@@ -11,8 +11,8 @@ void KifuExportDepsAssembler::assemble(KifuExportController* controller, const M
     if (!controller) return;
 
     KifuExportController::Dependencies deps;
-    deps.gameRecord = refs.gameRecordModel;
-    deps.kifuRecordModel = refs.kifuRecordModel;
+    deps.gameRecord = refs.models.gameRecordModel;
+    deps.kifuRecordModel = refs.models.kifuRecordModel;
     deps.gameInfoController = refs.gameInfoController;
     deps.timeController = refs.timeController;
     deps.kifuLoadCoordinator = refs.kifuLoadCoordinator;
@@ -20,21 +20,21 @@ void KifuExportDepsAssembler::assemble(KifuExportController* controller, const M
     deps.match = refs.match;
     deps.replayController = refs.replayController;
     deps.gameController = refs.gameController;
-    deps.statusBar = refs.statusBar;
-    deps.sfenRecord = refs.sfenRecord;
-    deps.usiMoves = refs.gameUsiMoves;
+    deps.statusBar = refs.ui.statusBar;
+    deps.sfenRecord = refs.kifu.sfenRecord;
+    deps.usiMoves = refs.kifu.gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
-    deps.commentsByRow = refs.commentsByRow;
-    deps.startSfenStr = refs.startSfenStr ? *refs.startSfenStr : QString();
-    deps.playMode = refs.playMode ? *refs.playMode : PlayMode::NotStarted;
-    deps.humanName1 = refs.humanName1 ? *refs.humanName1 : QString();
-    deps.humanName2 = refs.humanName2 ? *refs.humanName2 : QString();
-    deps.engineName1 = refs.engineName1 ? *refs.engineName1 : QString();
-    deps.engineName2 = refs.engineName2 ? *refs.engineName2 : QString();
-    deps.activeResolvedRow = (refs.navState != nullptr) ? refs.navState->currentLineIndex() : 0;
-    deps.currentMoveIndex = refs.currentMoveIndex ? *refs.currentMoveIndex : 0;
-    deps.activePly = refs.activePly ? *refs.activePly : 0;
-    deps.currentSelectedPly = refs.currentSelectedPly ? *refs.currentSelectedPly : 0;
+    deps.commentsByRow = refs.kifu.commentsByRow;
+    deps.startSfenStr = refs.state.startSfenStr ? *refs.state.startSfenStr : QString();
+    deps.playMode = refs.state.playMode ? *refs.state.playMode : PlayMode::NotStarted;
+    deps.humanName1 = refs.player.humanName1 ? *refs.player.humanName1 : QString();
+    deps.humanName2 = refs.player.humanName2 ? *refs.player.humanName2 : QString();
+    deps.engineName1 = refs.player.engineName1 ? *refs.player.engineName1 : QString();
+    deps.engineName2 = refs.player.engineName2 ? *refs.player.engineName2 : QString();
+    deps.activeResolvedRow = (refs.branchNav.navState != nullptr) ? refs.branchNav.navState->currentLineIndex() : 0;
+    deps.currentMoveIndex = refs.state.currentMoveIndex ? *refs.state.currentMoveIndex : 0;
+    deps.activePly = refs.kifu.activePly ? *refs.kifu.activePly : 0;
+    deps.currentSelectedPly = refs.kifu.currentSelectedPly ? *refs.kifu.currentSelectedPly : 0;
 
     controller->setDependencies(deps);
 }

@@ -1,87 +1,96 @@
-# Task 09: RuntimeRefs分割・生ポインタ削減（テーマB: MainWindow依存密度低減）
+# Task 09: MainWindowRuntimeRefs 領域別分割
 
-## 目的
+## 概要
 
-`MainWindowRuntimeRefs` を用途別に分割し、`MainWindow` の生ポインタメンバを47→35に削減する。
+`MainWindowRuntimeRefs`（141フィールド）を `GameRefs / KifuRefs / UiRefs` 等の領域別構造体に分割し、依存密度を低減する。
 
-## 背景
+## 前提条件
 
-- `MainWindowRuntimeRefs` に多数のメンバが集中しており、参照セットが大きい
-- `MainWindow` の生ポインタ47件を削減し、依存の見通しを改善する
-- テーマB（MainWindow周辺の依存密度低減）の後半作業
+- Task 01（ServiceRegistry再分割）完了推奨（サブレジストリとの整合を取る）
 
-## 前提
+## 現状
 
-- Task 08（Registry再分割）が完了していること
+- `src/app/mainwindowruntimerefs.h`: 143行、約45フィールド
+- カテゴリ別内訳:
+  - UI参照: 3フィールド（parentWidget, mainWindow, statusBar）
+  - サービス参照: 5フィールド（match, gameController, shogiView, kifuLoadCoordinator, csaGameCoordinator）
+  - モデル参照: 8フィールド（kifuRecordModel, thinking1/2, consideration, commLog1/2, gameRecordModel, considerationModel）
+  - 状態参照: 8フィールド（playMode, currentMoveIndex, currentSfenStr, startSfenStr, skipBoardSyncForBranchNav, commentsByRow, resumeSfenStr, onMainRowGuard）
+  - 棋譜参照: 8フィールド（sfenRecord, gameMoves, gameUsiMoves, moveRecords, positionStrList, activePly, currentSelectedPly, saveFileName）
+  - 分岐ナビゲーション参照: 3フィールド
+  - コントローラ/Wiring参照: 12フィールド
+  - 対局者名参照: 4フィールド（humanName1/2, engineName1/2）
+  - その他: 5フィールド
 
-## 事前調査
+- `MainWindowDepsFactory` が `buildRuntimeRefs()` で全フィールドを束ねている
 
-### Step 1: MainWindowRuntimeRefsの現状分析
+## 実施内容
 
-```bash
-# 現在のメンバ一覧
-cat src/app/mainwindowruntimerefs.h
+### Step 1: 利用箇所の調査
 
-# 使用箇所
-rg "m_refs\." src/app/ --type cpp -n | head -50
-rg "RuntimeRefs" src/app/ -l
+`MainWindowRuntimeRefs` がどこで使われているか全箇所を調査:
+
+```
+grep -rn "MainWindowRuntimeRefs\|RuntimeRefs\|runtimeRefs\|buildRuntimeRefs" src/
 ```
 
-### Step 2: MainWindowの生ポインタ一覧
+各 Wiring/Controller の Deps が RuntimeRefs のどのフィールドを参照しているかマッピングする。
 
-```bash
-# mainwindow.h の生ポインタメンバ
-rg "^\s+\w+\s*\*\s*m_" src/app/mainwindow.h
-rg "^\s+\w+\s*\*\s*m_" src/app/mainwindow.h | wc -l
+### Step 2: 領域別構造体の設計
+
+RuntimeRefs を以下のサブ構造体に分割:
+
+```cpp
+struct GameRefs {
+    MatchCoordinator* match = nullptr;
+    ShogiGameController* gameController = nullptr;
+    // ... Game系フィールド
+};
+
+struct KifuRefs {
+    QStringList* sfenRecord = nullptr;
+    QVector<ShogiMove>* gameMoves = nullptr;
+    // ... Kifu系フィールド
+};
+
+struct UiRefs {
+    QWidget* parentWidget = nullptr;
+    MainWindow* mainWindow = nullptr;
+    // ... UI系フィールド
+};
+
+struct MainWindowRuntimeRefs {
+    GameRefs game;
+    KifuRefs kifu;
+    UiRefs ui;
+    // 共通フィールド
+};
 ```
 
-## 実装手順
+### Step 3: DepsFactory の更新
 
-### Step 3: RuntimeRefsの用途別分割設計
+1. `buildRuntimeRefs()` をサブ構造体に対応するよう更新
+2. 各 Wiring/Controller の Deps がサブ構造体を受け取るよう変更
+3. 不要なフィールドへの依存を断つ
 
-RuntimeRefsのメンバを以下のカテゴリに分類:
+### Step 4: 段階的移行
 
-1. **GameRuntimeRefs**: 対局関連の参照（GameController, TurnManager等）
-2. **KifuRuntimeRefs**: 棋譜関連の参照（GameRecordModel, NavigationContext等）
-3. **UiRuntimeRefs**: UI関連の参照（View, Widget等）
+全一括変更はリスクが高いため、以下の順で段階的に移行:
 
-### Step 4: 分割実装
-
-1. 新しいRefs構造体を `src/app/` に作成
-2. `MainWindowRuntimeRefs` を子構造体への委譲に置換
-3. 各利用箇所のアクセスパスを更新
-
-### Step 5: 生ポインタの unique_ptr 化
-
-`MainWindow` で直接保持している非UIメンバのうち、以下の条件を満たすものを `std::unique_ptr` に変換:
-
-1. `MainWindow` がライフタイムオーナーである
-2. QObject parent で管理されていない
-3. 他のクラスから借用参照されるだけ
-
-### Step 6: ビルド・テスト
-
-```bash
-cmake -B build -S . -DBUILD_TESTING=ON
-cmake --build build
-ctest --test-dir build --output-on-failure
-QT_QPA_PLATFORM=offscreen build/tests/tst_structural_kpi
-```
+1. サブ構造体を定義（互換性維持のため元フィールドも残す）
+2. 新規参照を段階的にサブ構造体経由に変更
+3. 旧フィールドへの参照がなくなったら削除
 
 ## 完了条件
 
-- [ ] `MainWindowRuntimeRefs` が用途別に分割されている
-- [ ] `MainWindow` の生ポインタ件数が47から減少（目標: 35）
-- [ ] 全テスト通過
-- [ ] 構造KPI例外値が最新化されている
-
-## KPI変化目標
-
-- `MainWindow` 生ポインタメンバ: 47 → 35
-- `MainWindowRuntimeRefs` が3以上の子構造体に分割
+- `MainWindowRuntimeRefs` が領域別に整理されていること
+- `buildRuntimeRefs()` のフィールド数が 30% 以上削減されていること
+- ビルド成功
+- 全テスト通過
 
 ## 注意事項
 
-- Qt Widgetの生ポインタはQt parent ownershipのため、unique_ptr化しない
-- `updateDeps()` で渡すRefs構造体のサイズを小さくすることが目的
-- 破棄順序に注意（特にQObject間の依存）
+- `MainWindowRuntimeRefs` は値オブジェクト（non-QObject）のため、所有権は変わらない
+- フィールドの移動は、参照元が正しくアクセスできることを確認しながら行う
+- 一度に全フィールドを移動せず、カテゴリ単位で段階的に進める
+- 前方宣言の追加が必要になる場合がある

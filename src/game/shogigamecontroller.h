@@ -141,17 +141,6 @@ private:
     /// 投了時などの対局結果を設定する（現手番の相手を勝ちにする）
     void gameResult();
 
-    /// 歩・桂・香の行き所のない駒に対して成りフラグを強制設定する
-    void setMandatoryPromotionFlag(const int fileTo, const int rankTo, const Piece source);
-
-    // --- 禁じ手チェック ---
-
-    bool checkTwoPawn(const Piece source, const int fileFrom, const int fileTo) const;
-    bool checkWhetherAllyPiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const;
-    bool checkNumberStandPiece(const Piece source, const int fileFrom) const;
-    bool checkFromPieceStandToPieceStand(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const;
-    bool checkGetKingOpponentPiece(const Piece source, const Piece dest) const;
-    bool checkMovePiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const;
     void setResult(Result);
 
     /// アルファベットの駒文字を漢字表記に変換する

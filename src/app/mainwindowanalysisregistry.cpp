@@ -8,6 +8,7 @@
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
 
+#include "kifuloadcoordinator.h"            // IWYU pragma: keep (QPointer の完全型)
 #include "pvclickcontroller.h"
 #include "matchruntimequeryservice.h"
 #include "considerationpositionservice.h"
@@ -52,6 +53,8 @@ void MainWindowServiceRegistry::ensurePvClickController()
 void MainWindowServiceRegistry::ensureConsiderationPositionService()
 {
     if (!m_mw.m_considerationPositionService) {
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once on first use, never recreated
         m_mw.m_considerationPositionService = new ConsiderationPositionService(&m_mw);
     }
 

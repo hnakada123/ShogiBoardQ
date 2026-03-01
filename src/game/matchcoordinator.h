@@ -32,6 +32,7 @@ class AnalysisSessionHandler;
 class GameEndHandler;
 class GameStartOrchestrator;
 class MatchTimekeeper;
+class MatchTurnHandler;
 
 /**
  * @brief 対局進行/終局/時計/USI送受のハブとなる司令塔クラス
@@ -250,7 +251,6 @@ public:
 
     // --- USI時間計算 ---
 
-    void computeGoTimesForUSI(qint64& outB, qint64& outW) const;
     void refreshGoTimes();
 
     // --- 対局開始フロー ---
@@ -380,20 +380,8 @@ public:
     void sendStopToEngine(Usi* which);
     void sendRawToEngine(Usi* which, const QString& cmd);
 
-    /// 中断時の棋譜1行追記と二重追記ブロック確定
-    void appendBreakOffLineAndMark();
-
     /// 持将棋（最大手数到達）時の棋譜1行追記と終局処理
     void handleMaxMovesJishogi();
-
-    /// 千日手チェック（trueなら終局済み）
-    bool checkAndHandleSennichite();
-
-    /// 通常千日手の終局処理
-    void handleSennichite();
-
-    /// 連続王手千日手の終局処理
-    void handleOuteSennichite(bool p1Loses);
 
     int maxMoves() const { return m_maxMoves; }
 
@@ -413,20 +401,6 @@ public:
     /// EvE用のエンジン生成・配線・初期化
     void initEnginesForEvE(const QString& engineName1,
                            const QString& engineName2);
-
-    /// エンジン手進行ロジック
-    bool engineThinkApplyMove(Usi* engine,
-                              QString& positionStr,
-                              QString& ponderStr,
-                              QPoint* outFrom,
-                              QPoint* outTo);
-
-    bool engineMoveOnce(Usi* eng,
-                        QString& positionStr,
-                        QString& ponderStr,
-                        bool /*useSelectedField2*/,
-                        int engineIndex,
-                        QPoint* outTo);
 
     /// エンジン破棄中かどうかを返す
     bool isEngineShutdownInProgress() const;
@@ -469,17 +443,13 @@ signals:
 private:
     // --- 内部ヘルパ ---
 
-    void updateTurnDisplay(Player p);
     GoTimes computeGoTimes() const;
-    void initPositionStringsFromSfen(const QString& sfenBase);
 
     using EngineModelPair = EngineLifecycleManager::EngineModelPair;
 
-    /// PlayMode別のStrategy生成と起動
-    void createAndStartModeStrategy(const StartOptions& opt);
-
     void ensureEngineManager();  ///< エンジンマネージャの遅延生成
     void ensureTimekeeper();     ///< 時計マネージャの遅延生成
+    void ensureMatchTurnHandler(); ///< ターン進行ハンドラの遅延生成
 
 private slots:
     void onUsiError(const QString& msg);
@@ -497,8 +467,8 @@ private:
     // --- 時計管理 ---
     MatchTimekeeper* m_timekeeper = nullptr; ///< 時計マネージャ（Qt parent 管理）
 
-    std::unique_ptr<StrategyContext>  m_strategyCtx; ///< Strategy用コンテキスト
-    std::unique_ptr<GameModeStrategy> m_strategy;    ///< 対局モード別Strategy
+    // --- ターン進行ハンドラ ---
+    std::unique_ptr<MatchTurnHandler> m_turnHandler; ///< ターン進行・ストラテジー管理
 
     Player m_cur = P1;                        ///< 現在手番
 

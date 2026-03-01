@@ -11,6 +11,7 @@
 #include "shogiutils.h"
 
 #include <QFile>
+#include <QSettings>
 #include <QComboBox>
 #include <QLabel>
 #include <QAbstractItemView>

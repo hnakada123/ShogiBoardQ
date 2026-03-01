@@ -126,12 +126,6 @@ private:
     void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
     void addGameInfoTabIfMissing();
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
-    void logImportSummary(const QString& filePath,
-                          const QStringList& usiMoves,
-                          const QList<KifDisplayItem>& disp,
-                          const QString& teaiLabel,
-                          const QString& warnParse,
-                          const QString& warnConvert) const;
 
     Refs m_refs;
     Hooks m_hooks;

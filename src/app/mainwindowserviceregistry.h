@@ -4,17 +4,18 @@
 /// @file mainwindowserviceregistry.h
 /// @brief ensure*/操作メソッドを一括管理するレジストリ
 ///
-/// ensure* メソッドは2層に分かれる:
+/// ensure* メソッドは3層に分かれる:
 /// - MainWindowFoundationRegistry: ドメイン横断的な共通基盤（Tier 0/1）
-/// - MainWindowServiceRegistry: ドメイン固有のオーケストレーション（Tier 1〜4）
+/// - GameSubRegistry / KifuSubRegistry: ドメイン固有サブレジストリ
+/// - MainWindowServiceRegistry: UI/Analysis/Board 系 + オーケストレーション
 ///
 /// 設計根拠: docs/dev/ensure-graph-analysis.md
 
 #include <QObject>
 #include <QPoint>
 
-#include "matchcoordinatorwiring.h"
-
+class GameSubRegistry;
+class KifuSubRegistry;
 class MainWindow;
 class MainWindowFoundationRegistry;
 class QString;
@@ -23,17 +24,19 @@ class QString;
  * @brief ドメイン固有の ensure* メソッドと主要操作を管理するサービスレジストリ
  *
  * 責務:
- * - UI / Game / Kifu / Analysis / Board の各カテゴリに属する
+ * - UI / Analysis / Board の各カテゴリに属する
  *   遅延初期化メソッドと操作メソッドの実装を集約する
+ * - Game 系は GameSubRegistry、Kifu 系は KifuSubRegistry に委譲する
  * - 共通基盤メソッドは MainWindowFoundationRegistry に委譲する
  *
  * 実装は複数 .cpp ファイルに分割されている:
  * - mainwindowserviceregistry.cpp       (コンストラクタ)
  * - mainwindowanalysisregistry.cpp      (Analysis 系)
  * - mainwindowboardregistry.cpp         (Board/共通 系)
- * - mainwindowgameregistry.cpp          (Game 系)
- * - mainwindowkifuregistry.cpp          (Kifu 系)
  * - mainwindowuiregistry.cpp            (UI 系)
+ * - mainwindowdockbootstrapper.cpp      (ドック生成)
+ * - mainwindowuibootstrapper.cpp        (UI ブートストラップ)
+ * - mainwindowwiringassembler.cpp       (配線アセンブラ)
  */
 class MainWindowServiceRegistry : public QObject
 {
@@ -45,6 +48,12 @@ public:
     /// 共通基盤レジストリへのアクセサ
     MainWindowFoundationRegistry* foundation() const { return m_foundation; }
 
+    /// Game系サブレジストリへのアクセサ
+    GameSubRegistry* game() const { return m_game; }
+
+    /// Kifu系サブレジストリへのアクセサ
+    KifuSubRegistry* kifu() const { return m_kifu; }
+
     // ===== UI系 =====
     void ensureRecordPresenter();
     void ensureDialogCoordinator();
@@ -53,40 +62,6 @@ public:
     void unlockGameOverStyle();
     void createMenuWindowDock();
     void clearEvalState();
-
-    // ===== Game系 =====
-    void ensureTimeController();
-    void ensureReplayController();
-    void ensureMatchCoordinatorWiring();
-    void ensureGameStateController();
-    void ensureGameStartCoordinator();
-    void ensureCsaGameWiring();
-    void ensurePreStartCleanupHandler();
-    void ensureTurnSyncBridge();
-    void ensureTurnStateSyncService();
-    void ensureLiveGameSessionStarted();
-    void ensureLiveGameSessionUpdater();
-    void ensureUndoFlowService();
-    void ensureConsecutiveGamesController();
-    void ensureGameSessionOrchestrator();
-    void ensureSessionLifecycleCoordinator();
-    void ensureCoreInitCoordinator();
-    void clearGameStateFields();
-    void resetEngineState();
-    void updateTurnStatus(int currentPlayer);
-    void initMatchCoordinator();
-
-    // ===== Kifu系 =====
-    void ensureBranchNavigationWiring();
-    void ensureKifuFileController();
-    void ensureKifuExportController();
-    void ensureGameRecordUpdateService();
-    void ensureGameRecordLoadService();
-    void ensureKifuLoadCoordinatorForLive();
-    void ensureGameRecordModel();
-    void ensureJosekiWiring();
-    void clearUiBeforeKifuLoad();
-    void updateJosekiWindow();
 
     // ===== Analysis系 =====
     void ensurePvClickController();
@@ -127,17 +102,13 @@ public:
     void initializeDialogLaunchWiring();
 
 private:
-    /// MatchCoordinatorWiring::Deps を構築する
-    MatchCoordinatorWiring::Deps buildMatchWiringDeps();
-
-    /// KifuLoadCoordinator を生成・配線し m_kifuLoadCoordinator に設定するヘルパー
-    void createAndWireKifuLoadCoordinator();
-
     /// エンジン解析タブの依存コンポーネントを設定する
     void configureAnalysisTabDependencies();
 
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
     MainWindowFoundationRegistry* m_foundation;  ///< 共通基盤レジストリ（子オブジェクト）
+    GameSubRegistry* m_game;    ///< Game系サブレジストリ（子オブジェクト）
+    KifuSubRegistry* m_kifu;    ///< Kifu系サブレジストリ（子オブジェクト）
 };
 
 #endif // MAINWINDOWSERVICEREGISTRY_H

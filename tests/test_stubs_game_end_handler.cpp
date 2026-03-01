@@ -16,6 +16,7 @@
 #include <QSize>
 
 #include "matchcoordinator.h"
+#include "matchturnhandler.h"
 #include "gamestartorchestrator.h"
 #include "gamemodestrategy.h"
 #include "analysissessionhandler.h"
@@ -60,10 +61,8 @@ MatchCoordinator::~MatchCoordinator() = default;
 
 MatchCoordinator::StrategyContext& MatchCoordinator::strategyCtx()
 {
-    if (!m_strategyCtx) {
-        m_strategyCtx = std::make_unique<StrategyContext>(*this);
-    }
-    return *m_strategyCtx;
+    ensureMatchTurnHandler();
+    return m_turnHandler->strategyCtx();
 }
 
 void MatchCoordinator::configureAndStart(const StartOptions&) {}
@@ -126,7 +125,6 @@ qint64 MatchCoordinator::turnEpochFor(Player) const { return -1; }
 void MatchCoordinator::armTurnTimerIfNeeded() {}
 void MatchCoordinator::finishTurnTimerAndSetConsiderationFor(Player) {}
 void MatchCoordinator::disarmHumanTimerIfNeeded() {}
-void MatchCoordinator::computeGoTimesForUSI(qint64&, qint64&) const {}
 void MatchCoordinator::initializeAndStartEngineFor(Player, const QString&, const QString&) {}
 void MatchCoordinator::destroyEngine(int, bool) {}
 void MatchCoordinator::destroyEngines(bool) {}
@@ -147,26 +145,47 @@ void MatchCoordinator::forceImmediateMove() {}
 void MatchCoordinator::sendGoToEngine(Usi*, const GoTimes&) {}
 void MatchCoordinator::sendStopToEngine(Usi*) {}
 void MatchCoordinator::sendRawToEngine(Usi*, const QString&) {}
-void MatchCoordinator::appendBreakOffLineAndMark() {}
 void MatchCoordinator::handleMaxMovesJishogi() {}
-bool MatchCoordinator::checkAndHandleSennichite() { return false; }
-void MatchCoordinator::handleSennichite() {}
-void MatchCoordinator::handleOuteSennichite(bool) {}
 void MatchCoordinator::setUndoBindings(const MatchUndoHandler::UndoRefs&, const MatchUndoHandler::UndoHooks&) {}
 bool MatchCoordinator::undoTwoPlies() { return false; }
 void MatchCoordinator::initEnginesForEvE(const QString&, const QString&) {}
-bool MatchCoordinator::engineThinkApplyMove(Usi*, QString&, QString&, QPoint*, QPoint*) { return false; }
-bool MatchCoordinator::engineMoveOnce(Usi*, QString&, QString&, bool, int, QPoint*) { return false; }
 
 // private methods
 void MatchCoordinator::ensureUndoHandler() {}
 void MatchCoordinator::ensureEngineManager() {}
 void MatchCoordinator::ensureTimekeeper() {}
-void MatchCoordinator::updateTurnDisplay(Player) {}
+void MatchCoordinator::ensureMatchTurnHandler() {}
+
+// ============================================================
+// MatchTurnHandler スタブ
+// ============================================================
+
+MatchTurnHandler::MatchTurnHandler(MatchCoordinator&) {}
+MatchTurnHandler::~MatchTurnHandler() = default;
+void MatchTurnHandler::setRefs(const Refs&) {}
+void MatchTurnHandler::setHooks(const Hooks&) {}
+MatchCoordinator::StrategyContext& MatchTurnHandler::strategyCtx()
+{
+    static MatchCoordinator::StrategyContext* dummy = nullptr;
+    return *dummy;
+}
+GameModeStrategy* MatchTurnHandler::strategy() const { return nullptr; }
+void MatchTurnHandler::createAndStartModeStrategy(const StartOptions&) {}
+void MatchTurnHandler::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
+void MatchTurnHandler::startInitialEngineMoveIfNeeded() {}
+void MatchTurnHandler::armTurnTimerIfNeeded() {}
+void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchTurnHandler::disarmHumanTimerIfNeeded() {}
+void MatchTurnHandler::flipBoard() {}
+void MatchTurnHandler::updateTurnDisplay(Player) {}
+void MatchTurnHandler::initPositionStringsFromSfen(const QString&) {}
+void MatchTurnHandler::forceImmediateMove() {}
+void MatchTurnHandler::handlePlayerTimeOut(int) {}
+void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
+void MatchTurnHandler::handleUsiError(const QString&) {}
+
 MatchCoordinator::GoTimes MatchCoordinator::computeGoTimes() const { return {}; }
-void MatchCoordinator::initPositionStringsFromSfen(const QString&) {}
 void MatchCoordinator::recomputeClockSnapshot(QString&, QString&, QString&) const {}
-void MatchCoordinator::createAndStartModeStrategy(const StartOptions&) {}
 void MatchCoordinator::ensureGameStartOrchestrator() {}
 void MatchCoordinator::ensureAnalysisSession() {}
 void MatchCoordinator::ensureGameEndHandler() {}

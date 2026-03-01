@@ -9,6 +9,7 @@
 #include "analysissettings.h"
 #include <QAbstractItemView>
 #include <QComboBox>
+#include <QSettings>
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>

@@ -5,6 +5,7 @@
 /// @brief 対局開始コーディネータクラスの定義
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QDialog>
 
@@ -199,7 +200,7 @@ signals:
 private:
     bool validate(const StartParams& params, QString& whyNot) const;
 
-    MatchCoordinator*    m_match = nullptr;  ///< 対局進行の司令塔（非所有）
+    QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、再生成追跡）
     ShogiClock*          m_clock = nullptr;  ///< 将棋時計（非所有）
     ShogiGameController* m_gc    = nullptr;  ///< ゲームコントローラ（非所有）
     ShogiView*           m_view  = nullptr;  ///< 盤面ビュー（非所有）

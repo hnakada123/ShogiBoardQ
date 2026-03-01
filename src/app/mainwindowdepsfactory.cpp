@@ -10,33 +10,33 @@ DialogCoordinatorWiring::Deps MainWindowDepsFactory::createDialogCoordinatorDeps
     DialogCoordinatorWiring::Deps deps;
 
     // 生成に必要な依存
-    deps.parentWidget = refs.parentWidget;
+    deps.parentWidget = refs.ui.parentWidget;
     deps.match = refs.match;
     deps.gameController = refs.gameController;
 
     // 複数コンテキストで共有
-    deps.sfenRecord = refs.sfenRecord;
-    deps.currentMoveIndex = refs.currentMoveIndex;
-    deps.gameUsiMoves = refs.gameUsiMoves;
+    deps.sfenRecord = refs.kifu.sfenRecord;
+    deps.currentMoveIndex = refs.state.currentMoveIndex;
+    deps.gameUsiMoves = refs.kifu.gameUsiMoves;
     deps.kifuLoadCoordinator = refs.kifuLoadCoordinator;
-    deps.startSfenStr = refs.startSfenStr;
+    deps.startSfenStr = refs.state.startSfenStr;
 
     // ConsiderationContext 固有
-    deps.gameMoves = refs.gameMoves;
-    deps.kifuRecordModel = refs.kifuRecordModel;
-    deps.currentSfenStr = refs.currentSfenStr;
-    deps.branchTree = refs.branchTree;
-    deps.navState = refs.navState;
-    deps.considerationModel = refs.considerationModel;
+    deps.gameMoves = refs.kifu.gameMoves;
+    deps.kifuRecordModel = refs.models.kifuRecordModel;
+    deps.currentSfenStr = refs.state.currentSfenStr;
+    deps.branchTree = refs.branchNav.branchTree;
+    deps.navState = refs.branchNav.navState;
+    deps.considerationModel = refs.models.considerationModel;
 
     // TsumeSearchContext 固有
-    deps.positionStrList = refs.positionStrList;
+    deps.positionStrList = refs.kifu.positionStrList;
 
     // KifuAnalysisContext 固有
-    deps.moveRecords = refs.moveRecords;
-    deps.activePly = refs.activePly;
+    deps.moveRecords = refs.kifu.moveRecords;
+    deps.activePly = refs.kifu.activePly;
     deps.gameInfoController = refs.gameInfoController;
-    deps.evalChart = refs.evalChart;
+    deps.evalChart = refs.ui.evalChart;
     deps.presenter = refs.analysisPresenter;
     deps.getBoardFlipped = callbacks.getBoardFlipped;
 
@@ -45,9 +45,9 @@ DialogCoordinatorWiring::Deps MainWindowDepsFactory::createDialogCoordinatorDeps
     deps.getUiStatePolicyManager = callbacks.getUiStatePolicyManager;
 
     // 解析イベントハンドラ用
-    deps.evalChartWidget = refs.evalChart;
-    deps.analysisTab = refs.analysisTab;
-    deps.playMode = refs.playMode;
+    deps.evalChartWidget = refs.ui.evalChart;
+    deps.analysisTab = refs.ui.analysisTab;
+    deps.playMode = refs.state.playMode;
     deps.navigateKifuViewToRow = callbacks.navigateKifuViewToRow;
 
     return deps;
@@ -59,9 +59,9 @@ KifuFileController::Deps MainWindowDepsFactory::createKifuFileControllerDeps(
 {
     KifuFileController::Deps deps;
 
-    deps.parentWidget = refs.parentWidget;
-    deps.statusBar = refs.statusBar;
-    deps.saveFileName = refs.saveFileName;
+    deps.parentWidget = refs.ui.parentWidget;
+    deps.statusBar = refs.ui.statusBar;
+    deps.saveFileName = refs.kifu.saveFileName;
 
     // 準備コールバック
     deps.clearUiBeforeKifuLoad = callbacks.clearUiBeforeKifuLoad;
@@ -85,21 +85,21 @@ RecordNavigationWiring::Deps MainWindowDepsFactory::createRecordNavigationDeps(
 {
     RecordNavigationWiring::Deps deps;
 
-    deps.mainWindow = refs.mainWindow;
-    deps.navState = refs.navState;
-    deps.branchTree = refs.branchTree;
-    deps.displayCoordinator = refs.displayCoordinator;
-    deps.kifuRecordModel = refs.kifuRecordModel;
+    deps.mainWindow = refs.ui.mainWindow;
+    deps.navState = refs.branchNav.navState;
+    deps.branchTree = refs.branchNav.branchTree;
+    deps.displayCoordinator = refs.branchNav.displayCoordinator;
+    deps.kifuRecordModel = refs.models.kifuRecordModel;
     deps.shogiView = refs.shogiView;
     deps.evalGraphController = refs.evalGraphController;
-    deps.sfenRecord = refs.sfenRecord;
-    deps.activePly = refs.activePly;
-    deps.currentSelectedPly = refs.currentSelectedPly;
-    deps.currentMoveIndex = refs.currentMoveIndex;
-    deps.currentSfenStr = refs.currentSfenStr;
-    deps.skipBoardSyncForBranchNav = refs.skipBoardSyncForBranchNav;
+    deps.sfenRecord = refs.kifu.sfenRecord;
+    deps.activePly = refs.kifu.activePly;
+    deps.currentSelectedPly = refs.kifu.currentSelectedPly;
+    deps.currentMoveIndex = refs.state.currentMoveIndex;
+    deps.currentSfenStr = refs.state.currentSfenStr;
+    deps.skipBoardSyncForBranchNav = refs.state.skipBoardSyncForBranchNav;
     deps.csaGameCoordinator = refs.csaGameCoordinator;
-    deps.playMode = refs.playMode;
+    deps.playMode = refs.state.playMode;
     deps.match = refs.match;
 
     return deps;
