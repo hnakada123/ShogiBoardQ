@@ -44,7 +44,7 @@ GameSessionSubRegistry::GameSessionSubRegistry(MainWindow& mw,
 
 void GameSessionSubRegistry::ensurePreStartCleanupHandler()
 {
-    if (m_mw.m_preStartCleanupHandler) return;
+    if (m_mw.m_registryParts.preStartCleanupHandler) return;
 
     PreStartCleanupHandler::Dependencies deps;
     deps.boardController = m_mw.m_boardController;
@@ -68,7 +68,7 @@ void GameSessionSubRegistry::ensurePreStartCleanupHandler()
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
-    m_mw.m_preStartCleanupHandler = new PreStartCleanupHandler(deps, &m_mw);
+    m_mw.m_registryParts.preStartCleanupHandler = new PreStartCleanupHandler(deps, &m_mw);
 
     qCDebug(lcApp).noquote() << "ensurePreStartCleanupHandler_: created and connected";
 }
@@ -143,7 +143,7 @@ void GameSessionSubRegistry::refreshGameSessionOrchestratorDeps()
     deps.sessionLifecycle = &m_mw.m_sessionLifecycle;
     deps.consecutiveGamesController = &m_mw.m_consecutiveGamesController;
     deps.gameStart = &m_mw.m_gameStart;
-    deps.preStartCleanupHandler = &m_mw.m_preStartCleanupHandler;
+    deps.preStartCleanupHandler = &m_mw.m_registryParts.preStartCleanupHandler;
     deps.dialogCoordinator = &m_mw.m_dialogCoordinator;
     deps.replayController = &m_mw.m_replayController;
     deps.timeController = &m_mw.m_timeController;
@@ -335,4 +335,20 @@ void GameSessionSubRegistry::resetEngineState()
     if (m_mw.m_consecutiveGamesController) {
         m_mw.m_consecutiveGamesController->reset();
     }
+}
+
+// ---------------------------------------------------------------------------
+// MainWindow スロットからの転送
+// ---------------------------------------------------------------------------
+
+void GameSessionSubRegistry::resetToInitialState()
+{
+    ensureSessionLifecycleCoordinator();
+    m_mw.m_sessionLifecycle->resetToInitialState();
+}
+
+void GameSessionSubRegistry::resetGameState()
+{
+    ensureSessionLifecycleCoordinator();
+    m_mw.m_sessionLifecycle->resetGameState();
 }

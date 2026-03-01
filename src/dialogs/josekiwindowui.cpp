@@ -369,8 +369,8 @@ void JosekiWindow::updateJosekiDisplay()
         QString pathToLoad = m_pendingAutoLoadPath;
         m_pendingAutoLoadPath.clear();
         qCDebug(lcUi) << "Performing deferred auto-load:" << pathToLoad;
-        if (!loadAndApplyFile(pathToLoad))
-            m_filePathLabel->setText(QString());
+        loadAndApplyFileAsync(pathToLoad);
+        return;
     }
 
     clearTable();
@@ -568,7 +568,12 @@ bool JosekiWindow::confirmDiscardChanges()
     msgBox.setDefaultButton(saveBtn);
     msgBox.exec();
     if (msgBox.clickedButton() == saveBtn) {
-        onSaveButtonClicked();
+        if (m_currentFilePath.isEmpty()) {
+            onSaveAsButtonClicked();
+            return !m_modified;
+        }
+        // 同期保存（ダイアログ応答のフロー上、完了を待つ必要がある）
+        if (saveToFile(m_currentFilePath)) setModified(false);
         return !m_modified;
     }
     if (msgBox.clickedButton() == discardBtn) return true;

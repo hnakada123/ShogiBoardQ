@@ -16,6 +16,7 @@
 #include "engineanalysistab.h"
 #include "evaluationchartwidget.h"
 #include "evaluationgraphcontroller.h"
+#include "kifunavigationcoordinator.h"
 #include "josekiwindowwiring.h"
 #include "kifubranchlistmodel.h"
 #include "kifurecordlistmodel.h"
@@ -35,7 +36,7 @@ void MainWindowServiceRegistry::setupRecordPane()
     if (!m_mw.m_models.kifuBranch) m_mw.m_models.kifuBranch = new KifuBranchListModel(&m_mw);
 
     // Wiring の生成
-    if (!m_mw.m_recordPaneWiring) {
+    if (!m_mw.m_registryParts.recordPaneWiring) {
         m_foundation->ensureCommentCoordinator();
         RecordPaneWiring::Deps d;
         d.parent             = m_mw.m_central;                               // 親ウィジェット
@@ -46,20 +47,20 @@ void MainWindowServiceRegistry::setupRecordPane()
 
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
         // Created: once at startup, never recreated
-        m_mw.m_recordPaneWiring = new RecordPaneWiring(d, &m_mw);
+        m_mw.m_registryParts.recordPaneWiring = new RecordPaneWiring(d, &m_mw);
     }
 
     // RecordPane の構築と配線
-    m_mw.m_recordPaneWiring->buildUiAndWire();
+    m_mw.m_registryParts.recordPaneWiring->buildUiAndWire();
 
     // 生成物の取得
-    m_mw.m_recordPane = m_mw.m_recordPaneWiring->pane();
+    m_mw.m_recordPane = m_mw.m_registryParts.recordPaneWiring->pane();
 }
 
 void MainWindowServiceRegistry::setupEngineAnalysisTab()
 {
     // 既に配線クラスがあれば再利用し、タブ取得だけを行う
-    if (!m_mw.m_analysisWiring) {
+    if (!m_mw.m_registryParts.analysisWiring) {
         AnalysisTabWiring::Deps d;
         d.centralParent = m_mw.m_central;         // 既存の central エリア
         d.log1          = m_mw.m_models.commLog1;  // USIログ(先手)
@@ -67,15 +68,15 @@ void MainWindowServiceRegistry::setupEngineAnalysisTab()
 
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
         // Created: once at startup, never recreated
-        m_mw.m_analysisWiring = new AnalysisTabWiring(d, &m_mw);
-        m_mw.m_analysisWiring->buildUiAndWire();
+        m_mw.m_registryParts.analysisWiring = new AnalysisTabWiring(d, &m_mw);
+        m_mw.m_registryParts.analysisWiring->buildUiAndWire();
     }
 
     // 配線クラスから出来上がった部品を受け取る（MainWindow の既存フィールドへ反映）
-    m_mw.m_analysisTab    = m_mw.m_analysisWiring->analysisTab();
-    m_mw.m_tab            = m_mw.m_analysisWiring->tab();
-    m_mw.m_models.thinking1 = m_mw.m_analysisWiring->thinking1();
-    m_mw.m_models.thinking2 = m_mw.m_analysisWiring->thinking2();
+    m_mw.m_analysisTab    = m_mw.m_registryParts.analysisWiring->analysisTab();
+    m_mw.m_tab            = m_mw.m_registryParts.analysisWiring->tab();
+    m_mw.m_models.thinking1 = m_mw.m_registryParts.analysisWiring->thinking1();
+    m_mw.m_models.thinking2 = m_mw.m_registryParts.analysisWiring->thinking2();
 
     if (Q_UNLIKELY(!m_mw.m_analysisTab) || Q_UNLIKELY(!m_mw.m_models.thinking1) || Q_UNLIKELY(!m_mw.m_models.thinking2)) {
         qCWarning(lcApp, "ensureAnalysisTabWiring: analysis wiring produced null components "
@@ -98,7 +99,7 @@ void MainWindowServiceRegistry::setupEngineAnalysisTab()
     extDeps.commentCoordinator = m_mw.m_commentCoordinator;
     extDeps.usiCommandController = m_mw.m_usiCommandController.get();
     extDeps.considerationWiring = m_mw.m_considerationWiring;
-    m_mw.m_analysisWiring->wireExternalSignals(extDeps);
+    m_mw.m_registryParts.analysisWiring->wireExternalSignals(extDeps);
 
     configureAnalysisTabDependencies();
 }
@@ -143,6 +144,11 @@ void MainWindowServiceRegistry::createEvalChartDock()
     if (m_mw.m_evalGraphController) {
         m_mw.m_evalGraphController->setEvalChart(m_mw.m_evalChart);
     }
+
+    // クリック→棋譜ナビゲーション接続
+    m_foundation->ensureKifuNavigationCoordinator();
+    QObject::connect(m_mw.m_evalChart, &EvaluationChartWidget::plyClicked,
+                     m_mw.m_kifuNavCoordinator.get(), &KifuNavigationCoordinator::navigateToRow);
 
     // DockCreationServiceに委譲
     m_foundation->ensureDockCreationService();
@@ -203,14 +209,14 @@ void MainWindowServiceRegistry::createMenuWindowDockImpl()
 {
     // MenuWindowWiringを確保
     m_foundation->ensureMenuWiring();
-    if (!m_mw.m_menuWiring) {
+    if (!m_mw.m_registryParts.menuWiring) {
         qCWarning(lcApp) << "createMenuWindowDock: MenuWindowWiring is null!";
         return;
     }
 
     // DockCreationServiceに委譲
     m_foundation->ensureDockCreationService();
-    m_mw.m_dockCreationService->setMenuWiring(m_mw.m_menuWiring);
+    m_mw.m_dockCreationService->setMenuWiring(m_mw.m_registryParts.menuWiring);
     m_mw.m_docks.menuWindow = m_mw.m_dockCreationService->createMenuWindowDock();
 }
 

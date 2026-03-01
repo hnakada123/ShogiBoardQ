@@ -15,8 +15,9 @@
 #include <QColor>
 #include "logcategories.h"
 #include <QtGlobal>
-#include <QThread>
+#include <QTimer>
 #include <QLabel>
+#include <QMouseEvent>
 
 EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     : QWidget(parent)
@@ -106,6 +107,9 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     m_chartView = new QChartView(m_chart, this);
     m_chartView->setRenderHint(QPainter::Antialiasing);
 
+    // ビューポートのクリックイベントをフィルタリング
+    m_chartView->viewport()->installEventFilter(this);
+
     // ツールチップ（付箋）のセットアップ
     setupTooltip();
 
@@ -130,10 +134,15 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
 
     setMinimumHeight(150);
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);  // 縦横とも伸縮可能
+
+    initFlushTimer();
 }
 
 EvaluationChartWidget::~EvaluationChartWidget()
 {
+    if (m_flushTimer && m_flushTimer->isActive()) {
+        m_flushTimer->stop();
+    }
     m_configurator->saveSettings();
 }
 
@@ -337,48 +346,19 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
 {
     if (!m_s1) { qCWarning(lcUi) << "P1 series null"; return; }
 
-    const qreal y = invert ? -cp : cp;
-    if (!qIsFinite(y)) qCWarning(lcUi) << "P1 non-finite y" << y << "from cp=" << cp;
+    qCDebug(lcUi) << "P1 append ply=" << ply << "cp=" << cp << "invert=" << invert;
 
-    const int before = m_s1->count();
-    qCDebug(lcUi) << "P1 append"
-             << "ply=" << ply
-             << "cp=" << cp
-             << "invert=" << invert
-             << "y=" << y
-             << "beforeCount=" << before
-             << "xRange=" << (m_axX ? QPointF(m_axX->min(), m_axX->max()) : QPointF(-1, -1))
-             << "yRange=" << (m_axY ? QPointF(m_axY->min(), m_axY->max()) : QPointF(-1, -1))
-             << "chartView=" << static_cast<const void*>(m_chartView)
-             << "thread=" << QThread::currentThread();
-
-    // 自動拡大チェック
-    m_configurator->autoExpandYAxisIfNeeded(cp);
-    m_configurator->autoExpandXAxisIfNeeded(ply);
-
-    m_s1->append(ply, y);
+    appendScoreToSeries(m_s1, ply, cp, invert);
 
     // エンジン情報を更新
     m_engine1Ply = ply;
     m_engine1Cp = invert ? -cp : cp;
-    qCDebug(lcUi) << "P1 updating engine info: ply=" << m_engine1Ply << "cp=" << m_engine1Cp << "name=" << m_engine1Name;
 
     // 対局中は最新のプロット位置に縦線を更新
     setCurrentPly(ply);
 
-    const int after = m_s1->count();
-    QPointF lastPt;
-    if (after > 0) lastPt = m_s1->at(after - 1);
-
-    qCDebug(lcUi) << "P1 appended"
-             << "afterCount=" << after
-             << "lastPoint=" << lastPt;
-
     if (m_chartView) {
         m_chartView->update();
-        qCDebug(lcUi) << "P1 chartView updated";
-    } else {
-        qCWarning(lcUi) << "P1 chartView is null; not updated";
     }
 }
 
@@ -386,53 +366,31 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
 {
     if (!m_s2) { qCWarning(lcUi) << "P2 series null"; return; }
 
-    const qreal y = invert ? -cp : cp;
-    if (!qIsFinite(y)) qCWarning(lcUi) << "P2 non-finite y" << y << "from cp=" << cp;
+    qCDebug(lcUi) << "P2 append ply=" << ply << "cp=" << cp << "invert=" << invert;
 
-    const int before = m_s2->count();
-    qCDebug(lcUi) << "P2 append"
-             << "ply=" << ply
-             << "cp=" << cp
-             << "invert=" << invert
-             << "y=" << y
-             << "beforeCount=" << before
-             << "xRange=" << (m_axX ? QPointF(m_axX->min(), m_axX->max()) : QPointF(-1, -1))
-             << "yRange=" << (m_axY ? QPointF(m_axY->min(), m_axY->max()) : QPointF(-1, -1))
-             << "chartView=" << static_cast<const void*>(m_chartView)
-             << "thread=" << QThread::currentThread();
-
-    // 自動拡大チェック
-    m_configurator->autoExpandYAxisIfNeeded(cp);
-    m_configurator->autoExpandXAxisIfNeeded(ply);
-
-    m_s2->append(ply, y);
+    appendScoreToSeries(m_s2, ply, cp, invert);
 
     // エンジン情報を更新
     m_engine2Ply = ply;
     m_engine2Cp = invert ? -cp : cp;
-    qCDebug(lcUi) << "P2 updating engine info: ply=" << m_engine2Ply << "cp=" << m_engine2Cp << "name=" << m_engine2Name;
 
     // 対局中は最新のプロット位置に縦線を更新
     setCurrentPly(ply);
 
-    const int after = m_s2->count();
-    QPointF lastPt;
-    if (after > 0) lastPt = m_s2->at(after - 1);
-
-    qCDebug(lcUi) << "P2 appended"
-             << "afterCount=" << after
-             << "lastPoint=" << lastPt;
-
     if (m_chartView) {
         m_chartView->update();
-        qCDebug(lcUi) << "P2 chartView updated";
-    } else {
-        qCWarning(lcUi) << "P2 chartView is null; not updated";
     }
 }
 
 void EvaluationChartWidget::clearAll()
 {
+    // ペンディングバッファをクリア
+    m_pendingP1.clear();
+    m_pendingP2.clear();
+    if (m_flushTimer && m_flushTimer->isActive()) {
+        m_flushTimer->stop();
+    }
+
     if (m_s1) m_s1->clear();
     if (m_s2) m_s2->clear();
 
@@ -465,24 +423,23 @@ void EvaluationChartWidget::removeLastP2()
 
 void EvaluationChartWidget::trimToPly(int maxPly)
 {
-    // maxPly以降の手数のデータポイントを削除
+    // maxPly以降の手数のデータポイントを削除（replace()で一括置換）
     auto trimSeries = [maxPly](QLineSeries* series) {
         if (!series) return;
-        QList<QPointF> points = series->points();
+        const QList<QPointF> points = series->points();
         QList<QPointF> kept;
         for (const QPointF& p : std::as_const(points)) {
             if (p.x() <= maxPly) {
                 kept.append(p);
             }
         }
-        series->clear();
-        series->append(kept);
+        series->replace(kept);
     };
 
+    m_chartView->setUpdatesEnabled(false);
     trimSeries(m_s1);
     trimSeries(m_s2);
-
-    if (m_chartView) m_chartView->update();
+    m_chartView->setUpdatesEnabled(true);
 }
 
 int EvaluationChartWidget::countP1() const { return m_s1 ? m_s1->count() : 0; }
@@ -518,8 +475,113 @@ void EvaluationChartWidget::setEngine2Name(const QString& name)
     m_engine2Name = name;
 }
 
+bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* ev)
+{
+    if (obj == m_chartView->viewport() && ev->type() == QEvent::MouseButtonPress) {
+        auto* me = static_cast<QMouseEvent*>(ev);
+        if (me->button() == Qt::LeftButton) {
+            const QPointF scenePos = m_chartView->mapToScene(me->pos());
+            const QPointF dataPos = m_chart->mapToValue(scenePos, m_s1);
+            const int ply = qMax(0, qRound(dataPos.x()));
+            emit plyClicked(ply);
+            return true;
+        }
+    }
+    return QWidget::eventFilter(obj, ev);
+}
+
 void EvaluationChartWidget::setFloating(bool floating)
 {
     Q_UNUSED(floating)
     // 現在は特別な処理なし（将来の拡張用に残す）
+}
+
+// --- バッチ更新 ---
+
+void EvaluationChartWidget::initFlushTimer()
+{
+    m_flushTimer = new QTimer(this);
+    m_flushTimer->setSingleShot(true);
+    connect(m_flushTimer, &QTimer::timeout,
+            this, &EvaluationChartWidget::flushPendingScores);
+}
+
+void EvaluationChartWidget::appendScoreToSeries(QLineSeries* series, int ply, int cp, bool invert)
+{
+    if (!series) return;
+
+    const qreal y = invert ? -cp : cp;
+    m_configurator->autoExpandYAxisIfNeeded(cp);
+    m_configurator->autoExpandXAxisIfNeeded(ply);
+    series->append(ply, y);
+}
+
+void EvaluationChartWidget::appendScoreP1Buffered(int ply, int cp, bool invert)
+{
+    m_pendingP1.append({ply, cp, invert});
+
+    if (!m_flushTimer->isActive()) {
+        m_flushTimer->start(100);
+    }
+}
+
+void EvaluationChartWidget::appendScoreP2Buffered(int ply, int cp, bool invert)
+{
+    m_pendingP2.append({ply, cp, invert});
+
+    if (!m_flushTimer->isActive()) {
+        m_flushTimer->start(100);
+    }
+}
+
+void EvaluationChartWidget::flushPendingScores()
+{
+    if (m_pendingP1.isEmpty() && m_pendingP2.isEmpty())
+        return;
+
+    m_chartView->setUpdatesEnabled(false);
+
+    for (const auto& item : std::as_const(m_pendingP1)) {
+        appendScoreToSeries(m_s1, item.ply, item.cp, item.invert);
+    }
+
+    for (const auto& item : std::as_const(m_pendingP2)) {
+        appendScoreToSeries(m_s2, item.ply, item.cp, item.invert);
+    }
+
+    // カーソルラインを最後の手数に更新
+    int lastPly = m_currentPly;
+    if (!m_pendingP1.isEmpty()) {
+        lastPly = qMax(lastPly, m_pendingP1.last().ply);
+    }
+    if (!m_pendingP2.isEmpty()) {
+        lastPly = qMax(lastPly, m_pendingP2.last().ply);
+    }
+    m_currentPly = lastPly;
+    updateCursorLine();
+
+    m_pendingP1.clear();
+    m_pendingP2.clear();
+
+    m_chartView->setUpdatesEnabled(true);
+}
+
+// --- 一括置換 ---
+
+void EvaluationChartWidget::replaceAllScoresP1(const QList<QPointF>& points)
+{
+    if (!m_s1) return;
+
+    m_chartView->setUpdatesEnabled(false);
+    m_s1->replace(points);
+    m_chartView->setUpdatesEnabled(true);
+}
+
+void EvaluationChartWidget::replaceAllScoresP2(const QList<QPointF>& points)
+{
+    if (!m_s2) return;
+
+    m_chartView->setUpdatesEnabled(false);
+    m_s2->replace(points);
+    m_chartView->setUpdatesEnabled(true);
 }

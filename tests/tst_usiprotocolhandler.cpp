@@ -513,6 +513,193 @@ private slots:
         auto result = UsiProtocolHandler::alphabetToRank(input);
         QCOMPARE(result.has_value(), hasValue);
     }
+    // ================================================================
+    // 12. 異常系: bestmove の不正フォーマット
+    // ================================================================
+
+    void invalidBestmove_extraTokens()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+
+        // bestmove with extra garbage tokens after ponder
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f ponder 3c3d extra garbage tokens"));
+
+        QCOMPARE(spyBest.count(), 1);
+        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
+        // Ponder should still be parsed correctly
+        QCOMPARE(handler.predictedMove(), QStringLiteral("3c3d"));
+    }
+
+    void invalidBestmove_nonUsiMove()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+
+        // bestmove with non-standard move token
+        handler.onDataReceived(QStringLiteral("bestmove INVALID_MOVE_FORMAT"));
+
+        QCOMPARE(spyBest.count(), 1);
+        // Should store whatever was given (validation is elsewhere)
+        QCOMPARE(handler.bestMove(), QStringLiteral("INVALID_MOVE_FORMAT"));
+    }
+
+    void invalidBestmove_emptyPonder()
+    {
+        // bestmove with "ponder" keyword but empty value (already tested above as
+        // "bestmove_ponder_no_target", but confirming no crash with trailing space)
+        UsiProtocolHandler handler;
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+
+        handler.onDataReceived(QStringLiteral("bestmove 2g2f ponder "));
+
+        QCOMPARE(spyBest.count(), 1);
+        QCOMPARE(handler.bestMove(), QStringLiteral("2g2f"));
+    }
+
+    // ================================================================
+    // 13. 異常系: info 行の不正な score
+    // ================================================================
+
+    void invalidInfo_scoreMissingValue()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+
+        // "score cp" with no numeric value
+        handler.onDataReceived(QStringLiteral("info depth 10 score cp"));
+
+        // info line is still forwarded (parsing is in presenter layer)
+        QCOMPARE(spyInfo.count(), 1);
+    }
+
+    void invalidInfo_scoreNonNumeric()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+
+        // "score cp ABC" — non-numeric value
+        handler.onDataReceived(QStringLiteral("info depth 10 score cp ABC pv 7g7f"));
+
+        QCOMPARE(spyInfo.count(), 1);
+    }
+
+    void invalidInfo_scoreMateNegative()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+
+        // "score mate -3" — negative mate (opponent has checkmate)
+        handler.onDataReceived(QStringLiteral("info depth 10 score mate -3 pv 5e5d"));
+
+        QCOMPARE(spyInfo.count(), 1);
+    }
+
+    // ================================================================
+    // 14. 異常系: option 行の不正な型
+    // ================================================================
+
+    void invalidOption_unknownType()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+
+        handler.onDataReceived(
+            QStringLiteral("option name SomeOption type unknown_type default 42"));
+
+        // Should not emit info or bestmove signals
+        QCOMPARE(spyInfo.count(), 0);
+        QCOMPARE(spyBest.count(), 0);
+    }
+
+    void invalidOption_noType()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+
+        handler.onDataReceived(QStringLiteral("option name SomeOption"));
+
+        // Should not crash and should not emit info
+        QCOMPARE(spyInfo.count(), 0);
+    }
+
+    void invalidOption_emptyName()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+
+        handler.onDataReceived(QStringLiteral("option name  type check default false"));
+
+        // Should not crash
+        QCOMPARE(spyInfo.count(), 0);
+    }
+
+    // ================================================================
+    // 15. 異常系: 予期しないコマンドシーケンス
+    // ================================================================
+
+    void unexpectedSequence_bestmoveBeforeGo()
+    {
+        // bestmove without prior go — should still be processed
+        UsiProtocolHandler handler;
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
+
+        QCOMPARE(spyBest.count(), 1);
+        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
+    }
+
+    void unexpectedSequence_multipleUsiok()
+    {
+        // Multiple usiok responses should all emit signals
+        UsiProtocolHandler handler;
+        QSignalSpy spy(&handler, &UsiProtocolHandler::usiOkReceived);
+
+        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("usiok"));
+
+        QCOMPARE(spy.count(), 2);
+    }
+
+    void unexpectedSequence_multipleReadyok()
+    {
+        // Multiple readyok responses
+        UsiProtocolHandler handler;
+        QSignalSpy spy(&handler, &UsiProtocolHandler::readyOkReceived);
+
+        handler.onDataReceived(QStringLiteral("readyok"));
+        handler.onDataReceived(QStringLiteral("readyok"));
+
+        QCOMPARE(spy.count(), 2);
+    }
+
+    // ================================================================
+    // 16. テーブル駆動: チェックメイト異常行
+    // ================================================================
+
+    void checkmate_abnormalLines_data()
+    {
+        QTest::addColumn<QString>("line");
+
+        QTest::newRow("checkmate_whitespace_only")
+            << QStringLiteral("checkmate   ");
+        QTest::newRow("checkmate_with_garbage")
+            << QStringLiteral("checkmate !@#$%^&*");
+        QTest::newRow("checkmate_very_long_pv")
+            << (QStringLiteral("checkmate ") + QString(5000, QChar('x')));
+    }
+
+    void checkmate_abnormalLines()
+    {
+        QFETCH(QString, line);
+
+        UsiProtocolHandler handler;
+        // Must not crash regardless of checkmate line content
+        handler.onDataReceived(line);
+        QVERIFY(true);
+    }
 };
 
 QTEST_MAIN(TestUsiProtocolHandler)

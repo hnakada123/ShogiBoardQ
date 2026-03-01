@@ -1,0 +1,3 @@
+src/app/mainwindow.cpp:40
+src/app/mainwindowcompositionroot.cpp:14
+src/app/mainwindowserviceregistry.cpp:4

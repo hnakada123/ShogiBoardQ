@@ -7,11 +7,14 @@
 #include "tsumeshogipositiongenerator.h"
 
 #include <QElapsedTimer>
+#include <QFutureWatcher>
 #include <QObject>
 #include <QStringList>
 #include <QTimer>
 #include <QVector>
 #include <memory>
+
+#include "threadtypes.h"
 
 class Usi;
 enum class PlayMode;
@@ -57,6 +60,7 @@ private slots:
     void onCheckmateUnknown();
     void onSafetyTimeout();
     void onProgressTimerTimeout();
+    void onBatchReady();
 
 private:
     /// 状態機械
@@ -78,6 +82,9 @@ private:
         int senteHand[7] = {};   ///< P,L,N,S,G,B,R の先手持駒数
         int goteHand[7] = {};    ///< P,L,N,S,G,B,R の後手持駒数
     };
+
+    // バッチ生成
+    void startBatchGeneration();
 
     // 検索フェーズ
     void generateAndSendNext();
@@ -115,6 +122,12 @@ private:
     QElapsedTimer m_elapsedTimer; ///< 全体経過時間
     QTimer m_safetyTimer;         ///< エンジン無応答ガードタイマー
     QTimer m_progressTimer;       ///< プログレス更新タイマー
+
+    // バッチ生成用状態
+    QFutureWatcher<QStringList> m_batchWatcher; ///< バッチ生成の非同期監視
+    QStringList m_positionQueue;                 ///< 生成済み局面のキュー
+    CancelFlag m_cancelFlag;                     ///< バッチ生成のキャンセルフラグ
+    bool m_waitingForPositions = false;          ///< キュー空で生成待ちフラグ
 
     // トリミング用状態
     QString m_trimBaseSfen;                  ///< トリミング元のSFEN

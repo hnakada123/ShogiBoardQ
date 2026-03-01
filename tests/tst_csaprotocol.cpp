@@ -612,6 +612,117 @@ private slots:
         gs.timeUnit = timeUnit;
         QCOMPARE(gs.timeUnitMs(), expectedMs);
     }
+    // ========================================
+    // 異常系: CsaClient 不正なログインレスポンス
+    // ========================================
+
+    void csaClient_invalidLoginResponse()
+    {
+        // CsaClient should handle unexpected server responses gracefully
+        CsaClient client;
+        // Verify initial state is safe (actual server interaction requires TCP)
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+        QVERIFY(!client.isConnected());
+    }
+
+    // ========================================
+    // 異常系: GameSummary 不完全なデータ
+    // ========================================
+
+    void gameSummary_incompleteData()
+    {
+        // A GameSummary with missing fields should still be usable
+        CsaClient::GameSummary gs;
+        // Defaults should be safe
+        QCOMPARE(gs.totalTime, 0);
+        QCOMPARE(gs.byoyomi, 0);
+        QCOMPARE(gs.maxMoves, 0);
+        QVERIFY(gs.blackName.isEmpty());
+        QVERIFY(gs.whiteName.isEmpty());
+        // timeUnitMs should return default even with empty fields
+        QCOMPARE(gs.timeUnitMs(), 1000);
+    }
+
+    // ========================================
+    // 異常系: csaToPretty ロバストネス
+    // ========================================
+
+    void csaToPretty_robustness_data()
+    {
+        QTest::addColumn<QString>("csaMove");
+
+        QTest::newRow("empty_string")
+            << QString();
+        QTest::newRow("single_plus")
+            << QStringLiteral("+");
+        QTest::newRow("only_coordinates")
+            << QStringLiteral("+7776");
+        QTest::newRow("digit_string")
+            << QStringLiteral("1234567");
+    }
+
+    void csaToPretty_robustness()
+    {
+        QFETCH(QString, csaMove);
+
+        // Must not crash regardless of input
+        (void)CsaMoveConverter::csaToPretty(csaMove, false, 0, 0, 0);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常系: CsaMoveConverter usiPieceToCsa 不正入力
+    // ========================================
+
+    void usiPieceToCsa_abnormal_data()
+    {
+        QTest::addColumn<QString>("usiPiece");
+        QTest::addColumn<bool>("promoted");
+
+        QTest::newRow("empty_not_promoted")  << QString()              << false;
+        QTest::newRow("empty_promoted")      << QString()              << true;
+        QTest::newRow("unknown_piece")       << QStringLiteral("X")   << false;
+        QTest::newRow("lowercase_p")         << QStringLiteral("p")   << false;
+        QTest::newRow("multi_char")          << QStringLiteral("PK")  << false;
+    }
+
+    void usiPieceToCsa_abnormal()
+    {
+        QFETCH(QString, usiPiece);
+        QFETCH(bool, promoted);
+
+        // Must not crash; may return default or empty
+        (void)CsaMoveConverter::usiPieceToCsa(usiPiece, promoted);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常系: SfenCsaPositionConverter SFEN 不正入力
+    // ========================================
+
+    void toCsaPositionLines_abnormal_data()
+    {
+        QTest::addColumn<QString>("sfen");
+
+        QTest::newRow("empty_string")
+            << QString();
+        QTest::newRow("garbage_string")
+            << QStringLiteral("not a valid sfen at all");
+        QTest::newRow("incomplete_sfen")
+            << QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp");
+        QTest::newRow("invalid_chars")
+            << QStringLiteral("XXXXXXXXX/XXXXXXXXX/XXXXXXXXX/9/9/9/9/9/9 b - 1");
+    }
+
+    void toCsaPositionLines_abnormal()
+    {
+        QFETCH(QString, sfen);
+
+        QString error;
+        // Must not crash regardless of input
+        (void)SfenCsaPositionConverter::toCsaPositionLines(sfen, &error);
+        QVERIFY(true);
+    }
 };
 
 QTEST_MAIN(Tst_CsaProtocol)

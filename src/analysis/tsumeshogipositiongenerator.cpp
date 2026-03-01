@@ -4,6 +4,8 @@
 #include "tsumeshogipositiongenerator.h"
 #include "enginemovevalidator.h"
 
+#include <QtConcurrent>
+
 
 void TsumeshogiPositionGenerator::setSettings(const Settings& s)
 {
@@ -353,4 +355,28 @@ QString TsumeshogiPositionGenerator::buildSfen() const
     boardStr += QStringLiteral(" 1");
 
     return boardStr;
+}
+
+QStringList TsumeshogiPositionGenerator::generateBatch(
+    const Settings& settings, int count, const CancelFlag& cancelFlag)
+{
+    QList<int> indices;
+    indices.reserve(count);
+    for (int i = 0; i < count; ++i)
+        indices.append(i);
+
+    return QtConcurrent::blockingMappedReduced<QStringList>(
+        indices,
+        [settings, cancelFlag](int /*index*/) -> QString {
+            if (cancelFlag && cancelFlag->load()) return {};
+            TsumeshogiPositionGenerator gen;
+            gen.setSettings(settings);
+            return gen.generate();
+        },
+        [](QStringList& result, const QString& sfen) {
+            if (!sfen.isEmpty()) {
+                result.append(sfen);
+            }
+        },
+        QtConcurrent::UnorderedReduce);
 }

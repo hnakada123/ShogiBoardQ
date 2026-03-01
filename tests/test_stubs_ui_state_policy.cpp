@@ -48,6 +48,7 @@ void RecordPane::onToggleCommentColumn(bool) {}
 // private slots
 void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int) {}
 void RecordPane::onKifuCurrentRowChanged(const QModelIndex&, const QModelIndex&) {}
+void RecordPane::onBranchCurrentRowChanged(const QModelIndex&, const QModelIndex&) {}
 void RecordPane::connectKifuCurrentRowChanged() {}
 
 // ============================================================

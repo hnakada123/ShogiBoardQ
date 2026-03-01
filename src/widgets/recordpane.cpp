@@ -260,9 +260,7 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
         if (m_connRowsInserted)
             disconnect(m_connRowsInserted);
         m_connRowsInserted = connect(model, &QAbstractItemModel::rowsInserted,
-                                     m_kifu, [this](const QModelIndex&, int, int) {
-                                         m_kifu->scrollToBottom();
-                                     });
+                                     this, &RecordPane::onKifuRowsInserted);
     }
 
     // 注意: 行選択の中継は後続の connectCurrentRow で行うため、ここでは接続しない
@@ -302,11 +300,7 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
             disconnect(m_connBranchCurrentRow);
         }
         m_connBranchCurrentRow = connect(sel, &QItemSelectionModel::currentRowChanged,
-                this, [brModel](const QModelIndex& current, const QModelIndex&) {
-                    if (brModel && current.isValid()) {
-                        brModel->setCurrentHighlightRow(current.row());
-                    }
-                });
+                this, &RecordPane::onBranchCurrentRowChanged);
     }
 }
 
@@ -341,6 +335,14 @@ void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
     const int row = cur.isValid() ? cur.row() : 0;
     qCDebug(lcUi).noquote() << "[RecordPane] onKifuCurrentRowChanged: emitting mainRowChanged(" << row << ")";
     emit mainRowChanged(row);
+}
+
+void RecordPane::onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex&)
+{
+    auto* brModel = qobject_cast<KifuBranchListModel*>(m_branch->model());
+    if (brModel && current.isValid()) {
+        brModel->setCurrentHighlightRow(current.row());
+    }
 }
 
 void RecordPane::connectKifuCurrentRowChanged()

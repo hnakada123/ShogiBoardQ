@@ -118,6 +118,12 @@ void MainWindowFoundationRegistry::ensureKifuNavigationCoordinator()
     if (!m_mw.m_kifuNavCoordinator) {
         m_mw.m_kifuNavCoordinator = std::make_unique<KifuNavigationCoordinator>();
     }
+    refreshKifuNavigationCoordinatorDeps();
+}
+
+void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
+{
+    if (!m_mw.m_kifuNavCoordinator) return;
 
     KifuNavigationDepsFactory::Callbacks callbacks;
     callbacks.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
@@ -158,29 +164,33 @@ void MainWindowFoundationRegistry::ensureCommentCoordinator()
 
 void MainWindowFoundationRegistry::ensureBoardSyncPresenter()
 {
-    if (m_mw.m_boardSync) {
-        // sfenRecord ポインタが変わっている場合は更新する
-        const QStringList* current = m_mw.m_queryService->sfenRecord();
-        m_mw.m_boardSync->setSfenRecord(current);
-        return;
+    if (!m_mw.m_boardSync) {
+        qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: creating BoardSyncPresenter"
+                           << "sfenRecord()*=" << static_cast<const void*>(m_mw.m_queryService->sfenRecord())
+                           << "sfenRecord().size=" << (m_mw.m_queryService->sfenRecord() ? m_mw.m_queryService->sfenRecord()->size() : -1);
+
+        BoardSyncPresenter::Deps d;
+        d.gc         = m_mw.m_gameController;
+        d.view       = m_mw.m_shogiView;
+        d.bic        = m_mw.m_boardController;
+        d.sfenRecord = m_mw.m_queryService->sfenRecord();
+        d.gameMoves  = &m_mw.m_kifu.gameMoves;
+
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once on first use, never recreated
+        m_mw.m_boardSync = new BoardSyncPresenter(d, &m_mw);
+
+        qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: created m_boardSync*=" << static_cast<const void*>(m_mw.m_boardSync);
     }
+    refreshBoardSyncPresenterDeps();
+}
 
-    qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: creating BoardSyncPresenter"
-                       << "sfenRecord()*=" << static_cast<const void*>(m_mw.m_queryService->sfenRecord())
-                       << "sfenRecord().size=" << (m_mw.m_queryService->sfenRecord() ? m_mw.m_queryService->sfenRecord()->size() : -1);
-
-    BoardSyncPresenter::Deps d;
-    d.gc         = m_mw.m_gameController;
-    d.view       = m_mw.m_shogiView;
-    d.bic        = m_mw.m_boardController;
-    d.sfenRecord = m_mw.m_queryService->sfenRecord();
-    d.gameMoves  = &m_mw.m_kifu.gameMoves;
-
-    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
-    // Created: once on first use, never recreated
-    m_mw.m_boardSync = new BoardSyncPresenter(d, &m_mw);
-
-    qCDebug(lcApp).noquote() << "ensureBoardSyncPresenter: created m_boardSync*=" << static_cast<const void*>(m_mw.m_boardSync);
+void MainWindowFoundationRegistry::refreshBoardSyncPresenterDeps()
+{
+    if (!m_mw.m_boardSync) return;
+    // sfenRecord ポインタが変わっている場合は更新する
+    const QStringList* current = m_mw.m_queryService->sfenRecord();
+    m_mw.m_boardSync->setSfenRecord(current);
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +243,7 @@ void MainWindowFoundationRegistry::ensureEvaluationGraphController()
 
 void MainWindowFoundationRegistry::ensureMenuWiring()
 {
-    if (m_mw.m_menuWiring) return;
+    if (m_mw.m_registryParts.menuWiring) return;
 
     MenuWindowWiring::Dependencies deps;
     deps.parentWidget = &m_mw;
@@ -241,7 +251,7 @@ void MainWindowFoundationRegistry::ensureMenuWiring()
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
-    m_mw.m_menuWiring = new MenuWindowWiring(deps, &m_mw);
+    m_mw.m_registryParts.menuWiring = new MenuWindowWiring(deps, &m_mw);
 
     qCDebug(lcApp).noquote() << "ensureMenuWiring_: created and connected";
 }

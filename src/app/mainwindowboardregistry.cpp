@@ -65,7 +65,7 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 
 void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 {
-    if (m_mw.m_posEditCoordinator) return;
+    if (m_mw.m_registryParts.posEditCoordinator) return;
 
     m_foundation->ensureUiStatePolicyManager();
 
@@ -76,14 +76,14 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
     };
     cbs.ensurePositionEdit = [this]() {
         m_foundation->ensurePositionEditController();
-        if (m_mw.m_posEditCoordinator) m_mw.m_posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
+        if (m_mw.m_registryParts.posEditCoordinator) m_mw.m_registryParts.posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
     };
     cbs.actionReturnAllPiecesToStand = m_mw.ui->actionReturnAllPiecesToStand;
     cbs.actionSetHiratePosition = m_mw.ui->actionSetHiratePosition;
     cbs.actionSetTsumePosition = m_mw.ui->actionSetTsumePosition;
     cbs.actionChangeTurn = m_mw.ui->actionChangeTurn;
 
-    m_mw.m_compositionRoot->ensurePositionEditCoordinator(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_posEditCoordinator);
+    m_mw.m_compositionRoot->ensurePositionEditCoordinator(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_registryParts.posEditCoordinator);
 }
 
 // ---------------------------------------------------------------------------
@@ -181,11 +181,11 @@ void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
 void MainWindowServiceRegistry::handleBeginPositionEditing()
 {
     ensurePositionEditCoordinator();
-    if (m_mw.m_posEditCoordinator) {
-        m_mw.m_posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
-        m_mw.m_posEditCoordinator->setBoardController(m_mw.m_boardController);
-        m_mw.m_posEditCoordinator->setMatchCoordinator(m_mw.m_match);
-        m_mw.m_posEditCoordinator->beginPositionEditing();
+    if (m_mw.m_registryParts.posEditCoordinator) {
+        m_mw.m_registryParts.posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
+        m_mw.m_registryParts.posEditCoordinator->setBoardController(m_mw.m_boardController);
+        m_mw.m_registryParts.posEditCoordinator->setMatchCoordinator(m_mw.m_match);
+        m_mw.m_registryParts.posEditCoordinator->beginPositionEditing();
     }
 }
 
@@ -196,10 +196,10 @@ void MainWindowServiceRegistry::handleBeginPositionEditing()
 void MainWindowServiceRegistry::handleFinishPositionEditing()
 {
     ensurePositionEditCoordinator();
-    if (m_mw.m_posEditCoordinator) {
-        m_mw.m_posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
-        m_mw.m_posEditCoordinator->setBoardController(m_mw.m_boardController);
-        m_mw.m_posEditCoordinator->finishPositionEditing();
+    if (m_mw.m_registryParts.posEditCoordinator) {
+        m_mw.m_registryParts.posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
+        m_mw.m_registryParts.posEditCoordinator->setBoardController(m_mw.m_boardController);
+        m_mw.m_registryParts.posEditCoordinator->finishPositionEditing();
     }
 }
 
@@ -271,4 +271,20 @@ void MainWindowServiceRegistry::clearSessionDependentUi()
 
     const MainWindowResetService resetService;
     resetService.clearSessionDependentUi(deps);
+}
+
+// ---------------------------------------------------------------------------
+// MainWindow スロットからの転送（Board系）
+// ---------------------------------------------------------------------------
+
+void MainWindowServiceRegistry::loadBoardFromSfen(const QString& sfen)
+{
+    ensureBoardLoadService();
+    m_mw.m_boardLoadService->loadFromSfen(sfen);
+}
+
+void MainWindowServiceRegistry::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
+{
+    ensureBoardLoadService();
+    m_mw.m_boardLoadService->loadWithHighlights(currentSfen, prevSfen);
 }

@@ -91,9 +91,20 @@ Create-only パターンは分離不要。Create + RefreshDeps パターンの�
 4. サブレジストリの上限に達した場合は、さらなるサブレジストリ分割を検討する
 5. 依存更新が必要な場合は Create + RefreshDeps パターンを適用する
 
+## ensure* 追加ルール
+
+1. 新規 ensure* を追加する場合、同時に既存 ensure* の統合・削除を検討する
+2. 統合不可能な場合、PR 説明に「削減セット不提出の理由」を記載する
+3. refresh*Deps() は ensure* とは別カウントとし、自由に追加できる
+4. ensure* の新規追加は KPI テストの上限値更新を伴う（レビュー対象）
+
 ## KPIテスト
 
 `tst_structural_kpi.cpp` の以下のテストで境界を検証する：
 
 - `serviceRegistryEnsureLimit`: ServiceRegistry ≤ 11
 - `subRegistryEnsureLimits`: 各サブレジストリの上限検証
+
+### refresh* の除外
+
+KPI テストの検索パターンは `^\s*void\s+ensure` であり、`refresh*Deps()` メソッドはカウント対象外となる。これにより、依存更新メソッドは ensure* の上限に影響せず自由に追加できる。

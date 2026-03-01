@@ -196,3 +196,15 @@ void GameSubRegistry::updateTurnStatus(int currentPlayer)
     clock->setCurrentPlayer(currentPlayer);
     m_mw.m_shogiView->setActiveSide(currentPlayer == 1);
 }
+
+// ---------------------------------------------------------------------------
+// MainWindow スロットからの転送
+// ---------------------------------------------------------------------------
+
+void GameSubRegistry::setReplayMode(bool on)
+{
+    ensureReplayController();
+    if (m_mw.m_replayController) {
+        m_mw.m_replayController->setReplayMode(on);
+    }
+}

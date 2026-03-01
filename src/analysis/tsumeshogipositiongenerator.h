@@ -6,8 +6,10 @@
 
 #include <QString>
 #include <QRandomGenerator>
+#include <QStringList>
 #include <QVector>
 #include "shogitypes.h"
+#include "threadtypes.h"
 
 /**
  * @brief ランダムな詰将棋候補局面をSFEN文字列として生成する
@@ -28,6 +30,9 @@ public:
 
     void setSettings(const Settings& s);
     QString generate();
+
+    /// スレッドプールで count 個の候補局面を並列生成する
+    static QStringList generateBatch(const Settings& settings, int count, const CancelFlag& cancelFlag);
 
 private:
     Settings m_settings;

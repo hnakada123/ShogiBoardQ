@@ -217,13 +217,13 @@ void MainWindowLifecyclePipeline::connectSignals()
         d.gameController = m_mw.m_gameController;
         d.boardController = m_mw.m_boardController;
         // 遅延生成オブジェクトはダブルポインタで最新値を参照
-        d.dialogCoordinatorWiringPtr = &m_mw.m_dialogCoordinatorWiring;
+        d.dialogCoordinatorWiringPtr = &m_mw.m_registryParts.dialogCoordinatorWiring;
         d.dialogLaunchWiringPtr = &m_mw.m_dialogLaunchWiring;
         d.kifuFileControllerPtr = &m_mw.m_kifuFileController;
         d.gameSessionOrchestratorPtr = &m_mw.m_gameSessionOrchestrator;
         d.notificationServicePtr = &m_mw.m_notificationService;
         d.boardSetupControllerPtr = &m_mw.m_boardSetupController;
-        d.actionsWiringPtr = &m_mw.m_actionsWiring;
+        d.actionsWiringPtr = &m_mw.m_registryParts.actionsWiring;
         d.initializeDialogLaunchWiring = [this]() {
             m_mw.m_registry->initializeDialogLaunchWiring();
         };

@@ -1,16 +1,17 @@
 /// @file engineregistrationhandler.cpp
-/// @brief エンジン登録ハンドラクラスの実装（プロセス管理・USI通信・設定永続化）
+/// @brief エンジン登録ハンドラクラスの実装（ワーカースレッド管理・USI解析・設定永続化）
 
 #include "engineregistrationhandler.h"
 #include "engineregistrationdialog.h"
+#include "engineregistrationworker.h"
 #include "enginesettingsconstants.h"
 #include "settingscommon.h"
 #include "logcategories.h"
-#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
+#include <QThread>
 
 using namespace EngineSettingsConstants;
 
@@ -21,7 +22,12 @@ EngineRegistrationHandler::EngineRegistrationHandler(QObject *parent)
 
 EngineRegistrationHandler::~EngineRegistrationHandler()
 {
-    cleanupEngineProcess();
+    cancelRegistration();
+
+    if (m_workerThread) {
+        m_workerThread->quit();
+        m_workerThread->wait();
+    }
 }
 
 // 設定ファイルからエンジンリストを読み込む。
@@ -68,9 +74,46 @@ bool EngineRegistrationHandler::validateEnginePath(const QString& filePath) cons
     return QDir::setCurrent(fi.absolutePath());
 }
 
-// エンジン登録処理を開始する。
+// --- ワーカースレッド管理 ---
+
+void EngineRegistrationHandler::ensureWorkerThread()
+{
+    if (m_workerThread) return;
+
+    m_workerThread = new QThread(this);
+    m_worker = new EngineRegistrationWorker();
+    m_worker->moveToThread(m_workerThread);
+
+    connect(this, &EngineRegistrationHandler::requestRegistration,
+            m_worker, &EngineRegistrationWorker::registerEngine,
+            Qt::QueuedConnection);
+    connect(m_worker, &EngineRegistrationWorker::engineRegistered,
+            this, &EngineRegistrationHandler::onWorkerRegistered,
+            Qt::QueuedConnection);
+    connect(m_worker, &EngineRegistrationWorker::registrationFailed,
+            this, &EngineRegistrationHandler::onWorkerFailed,
+            Qt::QueuedConnection);
+    connect(m_worker, &EngineRegistrationWorker::progressUpdated,
+            this, &EngineRegistrationHandler::progressUpdated,
+            Qt::QueuedConnection);
+    connect(m_workerThread, &QThread::finished,
+            m_worker, &QObject::deleteLater);
+
+    m_workerThread->start();
+}
+
+void EngineRegistrationHandler::setRegistrationInProgress(bool inProgress)
+{
+    if (m_registrationInProgress == inProgress) return;
+    m_registrationInProgress = inProgress;
+    emit registrationInProgressChanged(inProgress);
+}
+
+// エンジン登録処理を開始する（ワーカースレッドで非同期実行）。
 void EngineRegistrationHandler::startRegistration(const QString& filePath)
 {
+    if (m_registrationInProgress) return;
+
     m_errorOccurred = false;
     m_fileName = filePath;
     m_engineDir = QFileInfo(filePath).absolutePath();
@@ -78,10 +121,75 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
     m_engineIdAuthor.clear();
     m_optionLines.clear();
 
-    startEngine(m_fileName);
-    if (m_errorOccurred) return;
+    ensureWorkerThread();
 
-    sendUsiCommand();
+    m_cancelFlag = makeCancelFlag();
+    m_worker->setCancelFlag(m_cancelFlag);
+
+    setRegistrationInProgress(true);
+    emit requestRegistration(filePath);
+}
+
+// 進行中の登録処理をキャンセルする。
+void EngineRegistrationHandler::cancelRegistration()
+{
+    if (m_cancelFlag) {
+        m_cancelFlag->store(true);
+    }
+}
+
+bool EngineRegistrationHandler::isRegistrationInProgress() const
+{
+    return m_registrationInProgress;
+}
+
+// ワーカーからの登録成功通知を処理する。
+void EngineRegistrationHandler::onWorkerRegistered(const QString& engineName,
+                                                   const QString& engineAuthor,
+                                                   const QStringList& optionLines)
+{
+    m_engineIdName = engineName;
+    m_engineIdAuthor = engineAuthor;
+    m_optionLines = optionLines;
+
+    // 登録エンジンの重複チェック
+    for (const Engine& engine : std::as_const(m_engineList)) {
+        if (m_engineIdName == engine.name) {
+            setRegistrationInProgress(false);
+            setError(tr("この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。"));
+            return;
+        }
+    }
+
+    // 設定ファイルを書き込むディレクトリに移動する
+    QDir::setCurrent(m_engineDir);
+
+    // エンジン情報をリストに追加
+    Engine engine;
+    engine.name = m_engineIdName;
+    engine.path = m_fileName;
+    engine.author = m_engineIdAuthor;
+    m_engineList.append(engine);
+
+    parseEngineOptionsFromUsiOutput();
+    if (m_errorOccurred) {
+        setRegistrationInProgress(false);
+        return;
+    }
+
+    saveEnginesToSettingsFile();
+    concatenateComboOptionValues();
+    saveEngineOptionsToSettings();
+
+    setRegistrationInProgress(false);
+    emit engineRegistered(m_engineIdName);
+}
+
+// ワーカーからの登録失敗通知を処理する。
+void EngineRegistrationHandler::onWorkerFailed(const QString& errorMessage)
+{
+    setRegistrationInProgress(false);
+    setError(errorMessage);
 }
 
 // 指定インデックスのエンジンを削除し設定を更新する。
@@ -96,165 +204,7 @@ void EngineRegistrationHandler::removeEngineAt(int index)
     removeEngineNameGroup(removeEngineName);
 }
 
-// --- プロセスライフサイクル ---
-
-// エンジンプロセスをクリーンアップする。
-void EngineRegistrationHandler::cleanupEngineProcess()
-{
-    if (!m_process) return;
-
-    disconnect(m_process.get(), nullptr, this, nullptr);
-
-    if (m_process->state() == QProcess::Running) {
-        m_process->terminate();
-        if (!m_process->waitForFinished(3000)) {
-            m_process->kill();
-        }
-    }
-
-    m_process.reset();
-}
-
-// 将棋エンジンを起動する。
-void EngineRegistrationHandler::startEngine(const QString& engineFile)
-{
-    if (engineFile.isEmpty() || !QFile::exists(engineFile)) {
-        setError(tr("指定されたエンジンファイルが存在しません: %1").arg(engineFile));
-        return;
-    }
-
-    cleanupEngineProcess();
-    m_process = std::make_unique<QProcess>();
-
-    connect(m_process.get(), &QProcess::readyReadStandardOutput, this, &EngineRegistrationHandler::processEngineOutput);
-    connect(m_process.get(), &QProcess::readyReadStandardError, this, &EngineRegistrationHandler::processEngineErrorOutput);
-    connect(m_process.get(), &QProcess::errorOccurred, this, &EngineRegistrationHandler::onProcessError);
-
-    QStringList args;
-    m_process->start(engineFile, args, QIODevice::ReadWrite);
-
-    if (!m_process->waitForStarted()) {
-        setError(tr("エンジンの起動に失敗しました: %1").arg(engineFile));
-    }
-}
-
-// usiコマンドを将棋エンジンに送信する。
-void EngineRegistrationHandler::sendUsiCommand() const
-{
-    m_process->write(UsiCommand);
-}
-
-// quitコマンドを将棋エンジンに送信する。
-void EngineRegistrationHandler::sendQuitCommand() const
-{
-    m_process->write(QuitCommand);
-}
-
-// 将棋エンジンの出力を１行ずつ読み取り、エンジン情報やオプション情報を取得する。
-void EngineRegistrationHandler::processEngineOutput()
-{
-    while (m_process->canReadLine()) {
-        QString line = m_process->readLine();
-        parseEngineOutput(line.trimmed());
-        if (m_errorOccurred) return;
-    }
-}
-
-// プロセスの標準エラー出力を処理する。
-void EngineRegistrationHandler::processEngineErrorOutput()
-{
-    QByteArray stderrBytes = m_process->readAllStandardError();
-    QString stderrString = QString::fromUtf8(stderrBytes).trimmed();
-
-    if (!stderrString.isEmpty()) {
-        qCDebug(lcUi) << QDateTime::currentDateTime().toString("yyyy-MM-dd HH:mm:ss") << " - Engine Error Output:" << stderrString;
-        setError(tr("エンジンからエラー出力がありました: %1").arg(stderrString));
-    }
-}
-
-// QProcessのエラーが発生したときに呼び出されるスロット
-void EngineRegistrationHandler::onProcessError(QProcess::ProcessError error)
-{
-    QString errorMessage;
-
-    switch (error) {
-    case QProcess::FailedToStart:
-        errorMessage = tr("エンジンの起動に失敗しました。");
-        break;
-    case QProcess::Crashed:
-        errorMessage = tr("エンジンがクラッシュしました。");
-        break;
-    case QProcess::Timedout:
-        errorMessage = tr("エンジンがタイムアウトしました。");
-        break;
-    case QProcess::WriteError:
-        errorMessage = tr("エンジンへのデータ書き込み中にエラーが発生しました。");
-        break;
-    case QProcess::ReadError:
-        errorMessage = tr("エンジンからのデータ読み込み中にエラーが発生しました。");
-        break;
-    case QProcess::UnknownError:
-    default:
-        errorMessage = tr("不明なエラーが発生しました。");
-        break;
-    }
-
-    setError(errorMessage);
-}
-
 // --- USIプロトコル解析 ---
-
-// 将棋エンジンからの出力を解析する。
-void EngineRegistrationHandler::parseEngineOutput(const QString& line)
-{
-    if (line.startsWith(IdNamePrefix)) {
-        processIdName(line);
-    }
-    else if (line.startsWith(IdAuthorPrefix)) {
-        m_engineIdAuthor = line.mid(QString(IdAuthorPrefix).length() + 1);
-    }
-    else if (line.startsWith(OptionNamePrefix)) {
-        m_optionLines.append(line);
-    }
-    else if (line.startsWith(UsiOkPrefix)) {
-        sendQuitCommand();
-
-        // 設定ファイルを書き込むディレクトリに移動する
-        QDir::setCurrent(m_engineDir);
-
-        // "id name" と "id author" の両方を受信した後なので、ここで追加する。
-        Engine engine;
-        engine.name = m_engineIdName;
-        engine.path = m_fileName;
-        engine.author = m_engineIdAuthor;
-        m_engineList.append(engine);
-
-        parseEngineOptionsFromUsiOutput();
-        if (m_errorOccurred) return;
-
-        saveEnginesToSettingsFile();
-        concatenateComboOptionValues();
-        saveEngineOptionsToSettings();
-
-        emit engineRegistered(m_engineIdName);
-    }
-}
-
-// エンジン名を取得し重複チェックする。
-void EngineRegistrationHandler::processIdName(const QString& line)
-{
-    m_engineIdName = line;
-    m_engineIdName.remove(QString(IdNamePrefix) + " ");
-
-    // 登録エンジンの重複チェック
-    for (qsizetype j = 0; j < m_engineList.size(); j++) {
-        if (m_engineIdName == m_engineList.at(j).name) {
-            setError(tr("この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。"));
-            return;
-        }
-    }
-    // 注意: エンジンリストへの追加は "usiok" 受信後に行う（"id author" が後から来るため）
-}
 
 // usiコマンドの出力からエンジンオプションを取り出す。
 void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()

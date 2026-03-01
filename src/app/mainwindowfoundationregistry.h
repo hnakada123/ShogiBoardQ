@@ -45,6 +45,10 @@ public:
     void ensureUiNotificationService();
     void ensureEvaluationGraphController();
 
+    // ===== refresh deps (依存更新のみ、生成済み前提) =====
+    void refreshKifuNavigationCoordinatorDeps();
+    void refreshBoardSyncPresenterDeps();
+
     // ===== 単純リーフ（Tier 0、他の ensure* への依存なし） =====
     void ensureMenuWiring();
     void ensureLanguageController();

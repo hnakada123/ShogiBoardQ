@@ -9,7 +9,6 @@
 #include <memory>
 
 #include "kifdisplayitem.h"
-#include "matchcoordinator.h"
 #include "gamestartcoordinator.h"
 #include "shogigamecontroller.h"
 #include "mainwindowruntimerefs.h"
@@ -17,6 +16,7 @@
 
 // --- 前方宣言 ---
 class QTimer;
+class MatchCoordinator;
 class Usi;
 class RecordPane;
 class EngineAnalysisTab;
@@ -44,9 +44,6 @@ class ConsiderationPositionService;
 class AnalysisResultsPresenter;
 class GameRecordPresenter;
 class TimeDisplayPresenter;
-class AnalysisTabWiring;
-class RecordPaneWiring;
-class UiActionsWiring;
 class SfenCollectionDialog;
 class GameInfoPaneController;
 class EvaluationGraphController;
@@ -59,19 +56,15 @@ class GameStateController;
 class PlayerInfoController;
 class BoardSetupController;
 class PvClickController;
-class PositionEditCoordinator;
 class CsaGameDialog;
 class CsaGameCoordinator;
 class CsaGameWiring;
 class JosekiWindowWiring;
 class PlayerInfoWiring;
-class PreStartCleanupHandler;
-class MenuWindowWiring;
 class DialogLaunchWiring;
 class UsiCommandController;
 class RecordNavigationHandler;
 class RecordNavigationWiring;
-class DialogCoordinatorWiring;
 class UiStatePolicyManager;
 class MainWindowCompositionRoot;
 class LiveGameSessionUpdater;
@@ -202,12 +195,8 @@ private:
     GameStartCoordinator* m_gameStart = nullptr;
     GameRecordPresenter* m_recordPresenter = nullptr;
     TimeDisplayPresenter* m_timePresenter = nullptr;
-    AnalysisTabWiring* m_analysisWiring = nullptr;
-    RecordPaneWiring* m_recordPaneWiring = nullptr;
-    UiActionsWiring* m_actionsWiring = nullptr;
-
-    // --- ダイアログ管理 ---
-    DialogCoordinatorWiring* m_dialogCoordinatorWiring = nullptr;
+    // --- Registry経由でのみアクセスされるポインタ群（定義は mainwindowstate.h） ---
+    RegistryParts m_registryParts;
     DialogCoordinator* m_dialogCoordinator = nullptr;
 
     // --- 棋譜ファイル / ゲーム状態 ---
@@ -221,16 +210,12 @@ private:
     // --- 盤面操作 / 局面編集 ---
     BoardSetupController* m_boardSetupController = nullptr;
     PvClickController* m_pvClickController = nullptr;
-    PositionEditCoordinator* m_posEditCoordinator = nullptr;
-
     // --- 通信対局 / ウィンドウ配線 ---
     std::unique_ptr<CsaGameWiring> m_csaGameWiring;
     std::unique_ptr<JosekiWindowWiring> m_josekiWiring;
-    MenuWindowWiring* m_menuWiring = nullptr;
     PlayerInfoWiring* m_playerInfoWiring = nullptr;
     DialogLaunchWiring* m_dialogLaunchWiring = nullptr;
     std::unique_ptr<MatchCoordinatorWiring> m_matchWiring;
-    PreStartCleanupHandler* m_preStartCleanupHandler = nullptr;
 
     // --- 補助コントローラ群 ---
     std::unique_ptr<JishogiScoreDialogController> m_jishogiController;
@@ -261,7 +246,6 @@ private:
 #endif
 
     // --- private メソッド ---
-    void updateKifuExportDependencies();
     MainWindowRuntimeRefs buildRuntimeRefs();
 };
 

@@ -7,12 +7,14 @@
 
 #pragma once
 #include <QWidget>
+#include <QPointF>
 
 class QChart;
 class QLineSeries;
 class QValueAxis;
 class QChartView;
 class QLabel;
+class QTimer;
 class EvaluationChartConfigurator;
 
 class EvaluationChartWidget : public QWidget
@@ -27,6 +29,18 @@ public:
 
     void appendScoreP1(int ply, int cp, bool invert = false);
     void appendScoreP2(int ply, int cp, bool invert = false);
+
+    /// バッファリング版: 100ms間隔でまとめて描画更新する
+    void appendScoreP1Buffered(int ply, int cp, bool invert = false);
+    void appendScoreP2Buffered(int ply, int cp, bool invert = false);
+
+    /// ペンディングバッファを即座にフラッシュする
+    void flushPendingScores();
+
+    /// 全スコアを一括置換する（QLineSeries::replace()使用）
+    void replaceAllScoresP1(const QList<QPointF>& points);
+    void replaceAllScoresP2(const QList<QPointF>& points);
+
     void clearAll();
 
     void removeLastP1();
@@ -75,6 +89,11 @@ signals:
     void yAxisSettingsChanged(int limit, int interval);
     // X軸設定が変更されたときに発行
     void xAxisSettingsChanged(int limit, int interval);
+    // グラフクリック時に手数を発行
+    void plyClicked(int ply);
+
+protected:
+    bool eventFilter(QObject* obj, QEvent* ev) override;
 
 public slots:
     // ドッキング状態の変更（QDockWidget::topLevelChangedから呼び出す）
@@ -132,6 +151,19 @@ private:
 
     // フローティング状態（ドッキング時はfalse）
     bool m_isFloating = false;
+
+    // バッチ更新用
+    struct PendingScore {
+        int ply;
+        int cp;
+        bool invert;
+    };
+    QList<PendingScore> m_pendingP1;
+    QList<PendingScore> m_pendingP2;
+    QTimer* m_flushTimer = nullptr;
+
+    void initFlushTimer();
+    void appendScoreToSeries(QLineSeries* series, int ply, int cp, bool invert);
 };
 
 #endif // EVALUATIONCHARTWIDGET_H

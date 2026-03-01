@@ -9,6 +9,8 @@
 #include <QString>
 #include <QSet>
 
+#include "josekiioresult.h"
+
 struct JosekiMove;
 
 /**
@@ -39,6 +41,33 @@ public:
      * @return 保存成功時 true
      */
     [[nodiscard]] bool saveToFile(const QString &filePath, QString *errorMessage = nullptr) const;
+
+    // --- スレッドセーフなファイルI/O（static） ---
+
+    /**
+     * @brief ファイルをパースして結果を返す（UIアクセスなし、ワーカースレッドから呼べる）
+     * @param filePath ファイルパス
+     * @return パース結果
+     */
+    [[nodiscard]] static JosekiLoadResult parseFromFile(const QString &filePath);
+
+    /**
+     * @brief データをファイルに書き出す（UIアクセスなし、ワーカースレッドから呼べる）
+     * @param filePath 保存先ファイルパス
+     * @param josekiData 定跡データ
+     * @param sfenWithPlyMap 手数付きSFENマップ
+     * @return 保存結果
+     */
+    [[nodiscard]] static JosekiSaveResult serializeToFile(
+        const QString &filePath,
+        const QMap<QString, QVector<JosekiMove>> &josekiData,
+        const QMap<QString, QString> &sfenWithPlyMap);
+
+    /**
+     * @brief パース結果をリポジトリに適用する（メインスレッドで呼ぶ）
+     * @param result パース結果
+     */
+    void applyLoadResult(JosekiLoadResult &&result);
 
     // --- データアクセス ---
 

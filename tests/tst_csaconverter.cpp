@@ -463,6 +463,159 @@ private slots:
         (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         QVERIFY(true);
     }
+    // ========================================
+    // 異常入力テスト: 不正なバージョン行
+    // ========================================
+
+    void parse_invalidVersion()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badver_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("V999\nPI\n+\n+7776FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        // Must not crash; unexpected version should be handled gracefully
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 不正な手番指定
+    // ========================================
+
+    void parse_invalidTurnSpecifier()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badturn_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        // 手番が "X" (不正) の CSA ファイル
+        tmp.write("PI\nX\n+7776FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Must not crash
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 不正な座標フォーマット
+    // ========================================
+
+    void parse_invalidMoveCoordinates()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badmovecoord_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+9999FU\n-0000FU\n+AABBFU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Must not crash with out-of-range or non-numeric coordinates
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 未知の特殊結果文字列
+    // ========================================
+
+    void parse_unknownSpecialMove()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_unknownspec_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+7776FU\n-3334FU\n%UNKNOWN_RESULT\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Must not crash; unknown special moves should be ignored or handled
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 2);
+    }
+
+    // ========================================
+    // 異常入力テスト: 各種特殊結果の解析
+    // ========================================
+
+    void parse_specialResults_data()
+    {
+        QTest::addColumn<QByteArray>("specialLine");
+
+        QTest::newRow("KACHI")             << QByteArray("%KACHI\n");
+        QTest::newRow("TORYO")             << QByteArray("%TORYO\n");
+        QTest::newRow("CHUDAN")            << QByteArray("%CHUDAN\n");
+        QTest::newRow("SENNICHITE")        << QByteArray("%SENNICHITE\n");
+        QTest::newRow("OUTE_SENNICHITE")   << QByteArray("%OUTE_SENNICHITE\n");
+        QTest::newRow("ILLEGAL_MOVE")      << QByteArray("%ILLEGAL_MOVE\n");
+        QTest::newRow("TIME_UP")           << QByteArray("%TIME_UP\n");
+        QTest::newRow("JISHOGI")           << QByteArray("%JISHOGI\n");
+    }
+
+    void parse_specialResults()
+    {
+        QFETCH(QByteArray, specialLine);
+
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_specresult_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+7776FU\n-3334FU\n");
+        tmp.write(specialLine);
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Must not crash; special results should be handled
+        QVERIFY(ok);
+        QCOMPARE(result.mainline.usiMoves.size(), 2);
+    }
+
+    // ========================================
+    // 異常入力テスト: 途中で切れた入力
+    // ========================================
+
+    void parse_truncatedCsaInput()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_truncated_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        tmp.write("PI\n+\n+77");  // Truncated mid-move
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Must not crash
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 巨大な座標値
+    // ========================================
+
+    void parse_hugeCoordinateValues()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_hugecoord_XXXXXX.csa"));
+        QVERIFY(tmp.open());
+        // Coordinates exceeding expected single-digit range
+        tmp.write("PI\n+\n+99999999FU\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString warn;
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+        // Must not crash
+        QVERIFY(true);
+    }
 };
 
 QTEST_MAIN(TestCsaConverter)

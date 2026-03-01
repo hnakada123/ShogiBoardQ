@@ -54,6 +54,14 @@ if(ENABLE_CPPCHECK)
     endif()
 endif()
 
+# ==== Sanitizer 設定 ====
+option(ENABLE_SANITIZERS "Enable AddressSanitizer and UBSan" OFF)
+
+if(ENABLE_SANITIZERS)
+    add_compile_options(-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address,undefined -fno-sanitize=vptr)
+endif()
+
 # ==== コンパイラ警告オプション ====
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(
@@ -170,7 +178,7 @@ if(NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR AND NOT DEFINED ENV{QTDIR})
 endif()
 
 # ==== Qt6 packages ====
-find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Charts Network)
+find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Concurrent)
 
 # ==== Translations (.ts) ====
 set(TS_FILES
@@ -733,8 +741,11 @@ set(SRC_DIALOGS
     src/dialogs/engineregistrationdialog.h
     src/dialogs/engineregistrationhandler.cpp
     src/dialogs/engineregistrationhandler.h
+    src/dialogs/engineregistrationworker.cpp
+    src/dialogs/engineregistrationworker.h
     src/dialogs/josekimergedialog.cpp
     src/dialogs/josekimergedialog.h
+    src/dialogs/josekiioresult.h
     src/dialogs/josekimovedialog.cpp
     src/dialogs/josekimovedialog.h
     src/dialogs/josekimoveinputwidget.cpp
@@ -745,6 +756,7 @@ set(SRC_DIALOGS
     src/dialogs/josekirepository.h
     src/dialogs/josekiwindow.cpp
     src/dialogs/josekiwindow.h
+    src/dialogs/josekiwindowio.cpp
     src/dialogs/josekiwindowui.cpp
     src/dialogs/kifuanalysisdialog.cpp
     src/dialogs/kifuanalysisdialog.h
@@ -929,6 +941,7 @@ target_link_libraries(ShogiBoardQ PRIVATE
     Qt6::Widgets
     Qt6::Charts
     Qt6::Network
+    Qt6::Concurrent
 )
 
 # アプリケーションバージョン (CalVer: YYYY.MM.DD)

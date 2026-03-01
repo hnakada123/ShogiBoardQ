@@ -19,6 +19,7 @@
 #include "evaluationchartwidget.h"
 #include "gamerecordpresenter.h"
 #include "kifunavigationcoordinator.h"
+#include "recordnavigationhandler.h"
 #include "recordnavigationwiring.h"
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
@@ -68,7 +69,7 @@ void MainWindowServiceRegistry::ensureDialogCoordinator()
     callbacks.navigateKifuViewToRow = std::bind(&KifuNavigationCoordinator::navigateToRow, m_mw.m_kifuNavCoordinator.get(), std::placeholders::_1);
 
     m_mw.m_compositionRoot->ensureDialogCoordinator(refs, callbacks, &m_mw,
-        m_mw.m_dialogCoordinatorWiring, m_mw.m_dialogCoordinator);
+        m_mw.m_registryParts.dialogCoordinatorWiring, m_mw.m_dialogCoordinator);
 }
 
 // ---------------------------------------------------------------------------
@@ -142,4 +143,14 @@ void MainWindowServiceRegistry::clearEvalState()
     if (m_mw.m_recordPresenter) {
         m_mw.m_recordPresenter->clearLiveDisp();
     }
+}
+
+// ---------------------------------------------------------------------------
+// MainWindow スロットからの転送（UI系）
+// ---------------------------------------------------------------------------
+
+void MainWindowServiceRegistry::onRecordPaneMainRowChanged(int row)
+{
+    ensureRecordNavigationHandler();
+    m_mw.m_recordNavWiring->handler()->onMainRowChanged(row);
 }

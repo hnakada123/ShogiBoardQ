@@ -44,6 +44,39 @@ private:
         return count;
     }
 
+    struct FileInfo {
+        QString relPath;
+        int lines;
+    };
+
+    static QList<FileInfo> collectSourceFiles()
+    {
+        const QString sourceDir = QStringLiteral(SOURCE_DIR);
+        const QString srcPath = sourceDir + QStringLiteral("/src");
+
+        QDirIterator it(srcPath, {"*.cpp", "*.h"}, QDir::Files, QDirIterator::Subdirectories);
+
+        QList<FileInfo> result;
+        while (it.hasNext()) {
+            it.next();
+            const int lines = countLines(it.filePath());
+            if (lines >= 0) {
+                result.append({QDir(sourceDir).relativeFilePath(it.filePath()), lines});
+            }
+        }
+        return result;
+    }
+
+    static int countFilesOverLines(const QList<FileInfo> &files, int threshold)
+    {
+        int count = 0;
+        for (const auto &f : files) {
+            if (f.lines > threshold)
+                ++count;
+        }
+        return count;
+    }
+
     // 既知の例外リスト: ファイルパス(src/からの相対) → 現在の行数上限
     // リファクタリングでファイルが縮小されたら、この値も下げること。
     // 例外リスト外のファイルが600行を超えたらテスト失敗となる。
@@ -313,6 +346,7 @@ private slots:
     // ================================================================
     // f) lambda connect 件数の上限チェック
     //    src/ 配下の .cpp で connect() にラムダを使用している箇所を監視
+    //    複数行にまたがる connect(..., [...]) も検出する
     // ================================================================
     void lambdaConnectCount()
     {
@@ -321,8 +355,8 @@ private slots:
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
 
-        // connect( を含む行で [ も含む行（ラムダキャプチャの典型パターン）
-        const QRegularExpression connectPattern(QStringLiteral(R"(connect\s*\()"));
+        // connect( にマッチ（disconnect( は除外）
+        const QRegularExpression connectPattern(QStringLiteral(R"((?<!dis)connect\s*\()"));
         const QRegularExpression lambdaPattern(QStringLiteral(R"(\[)"));
         const QRegularExpression commentPattern(QStringLiteral(R"(^\s*//)"));
 
@@ -339,13 +373,34 @@ private slots:
 
             QTextStream in(&file);
             int fileCount = 0;
+            int parenDepth = 0;
+            QString buffer;
+            bool inConnect = false;
+
             while (!in.atEnd()) {
                 const QString line = in.readLine();
                 if (commentPattern.match(line).hasMatch())
                     continue;
-                if (connectPattern.match(line).hasMatch()
-                    && lambdaPattern.match(line).hasMatch()) {
-                    ++fileCount;
+
+                if (!inConnect && connectPattern.match(line).hasMatch()) {
+                    inConnect = true;
+                    buffer.clear();
+                    parenDepth = 0;
+                }
+
+                if (inConnect) {
+                    buffer += line + QLatin1Char('\n');
+                    for (QChar ch : line) {
+                        if (ch == QLatin1Char('(')) ++parenDepth;
+                        if (ch == QLatin1Char(')')) --parenDepth;
+                    }
+                    if (parenDepth <= 0) {
+                        if (lambdaPattern.match(buffer).hasMatch()) {
+                            ++fileCount;
+                        }
+                        inConnect = false;
+                        parenDepth = 0;
+                    }
                 }
             }
 
@@ -532,6 +587,181 @@ private slots:
                 msg += QStringLiteral("  ") + v + QStringLiteral("\n");
             QFAIL(qPrintable(msg));
         }
+    }
+
+    // ================================================================
+    // j) 550行超ファイル数の上限チェック
+    //    src/ 配下の .cpp/.h で550行を超えるファイルの総数を監視
+    // ================================================================
+    void filesOver550()
+    {
+        constexpr int kMaxFilesOver550 = 13; // 実測値: 13 (2026-03-01, mt-10: tsumeshogigenerator並列化)
+        constexpr int kThreshold = 550;
+
+        const auto files = collectSourceFiles();
+        const int count = countFilesOverLines(files, kThreshold);
+
+        qDebug().noquote()
+            << QStringLiteral("KPI: files_over_550 = %1 (limit: %2)")
+                   .arg(count)
+                   .arg(kMaxFilesOver550);
+
+        if (count > 0) {
+            qDebug().noquote() << "  Files over 550 lines:";
+            for (const auto &f : files) {
+                if (f.lines > kThreshold)
+                    qDebug().noquote() << QStringLiteral("    %1: %2 lines").arg(f.relPath).arg(f.lines);
+            }
+        }
+
+        QVERIFY2(count <= kMaxFilesOver550,
+                 qPrintable(QStringLiteral("Too many files over %1 lines: %2 (limit: %3)")
+                                .arg(kThreshold)
+                                .arg(count)
+                                .arg(kMaxFilesOver550)));
+    }
+
+    // ================================================================
+    // k) 500行超ファイル数の上限チェック
+    //    src/ 配下の .cpp/.h で500行を超えるファイルの総数を監視
+    // ================================================================
+    void filesOver500()
+    {
+        constexpr int kMaxFilesOver500 = 31; // 実測値: 31 (2026-03-01)
+        constexpr int kThreshold = 500;
+
+        const auto files = collectSourceFiles();
+        const int count = countFilesOverLines(files, kThreshold);
+
+        qDebug().noquote()
+            << QStringLiteral("KPI: files_over_500 = %1 (limit: %2)")
+                   .arg(count)
+                   .arg(kMaxFilesOver500);
+
+        QVERIFY2(count <= kMaxFilesOver500,
+                 qPrintable(QStringLiteral("Too many files over %1 lines: %2 (limit: %3)")
+                                .arg(kThreshold)
+                                .arg(count)
+                                .arg(kMaxFilesOver500)));
+    }
+
+    // ================================================================
+    // l) mainwindow.cpp の include 数上限チェック
+    //    依存削減の追跡用
+    // ================================================================
+    void mainWindowIncludeCount()
+    {
+        constexpr int kMaxIncludes = 40; // 実測値: 40 (2026-03-01)
+
+        const QString filePath =
+            QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.cpp");
+
+        // #include 行をカウント（コメント行を除く）
+        const QRegularExpression includePattern(QStringLiteral(R"(^\s*#\s*include\s)"));
+        const int count = countMatchingLines(filePath, includePattern);
+
+        QVERIFY2(count >= 0, "Failed to read mainwindow.cpp");
+
+        qDebug().noquote()
+            << QStringLiteral("KPI: mainwindow_include_count = %1 (limit: %2)")
+                   .arg(count)
+                   .arg(kMaxIncludes);
+
+        QVERIFY2(count <= kMaxIncludes,
+                 qPrintable(QStringLiteral("mainwindow.cpp include count: %1 (limit: %2)")
+                                .arg(count)
+                                .arg(kMaxIncludes)));
+    }
+
+    // ================================================================
+    // m) 長関数の監視（ゲートではなくログ出力のみ）
+    //    メソッド定義開始行から次のメソッド定義開始行までの行数を簡易推定
+    // ================================================================
+    void longFunctionMonitor()
+    {
+        constexpr int kFunctionLengthWarning = 100;
+
+        const QString sourceDir = QStringLiteral(SOURCE_DIR);
+        const QString srcPath = sourceDir + QStringLiteral("/src");
+
+        // ClassName::methodName( パターンでメソッド定義開始を検出
+        const QRegularExpression methodDefPattern(
+            QStringLiteral(R"(^\w[\w:]*::\w+\s*\()"));
+        const QRegularExpression commentPattern(QStringLiteral(R"(^\s*//)"));
+
+        QDirIterator it(srcPath, {"*.cpp"}, QDir::Files, QDirIterator::Subdirectories);
+
+        int longFunctionCount = 0;
+        QStringList longFunctions;
+
+        while (it.hasNext()) {
+            it.next();
+            QFile file(it.filePath());
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+
+            QTextStream in(&file);
+            const QString relPath = QDir(sourceDir).relativeFilePath(it.filePath());
+
+            QString currentMethod;
+            int methodStartLine = 0;
+            int lineNum = 0;
+
+            while (!in.atEnd()) {
+                const QString line = in.readLine();
+                ++lineNum;
+
+                if (commentPattern.match(line).hasMatch())
+                    continue;
+
+                if (methodDefPattern.match(line).hasMatch()) {
+                    // 前のメソッドの行数を確定
+                    if (!currentMethod.isEmpty()) {
+                        const int length = lineNum - methodStartLine;
+                        if (length > kFunctionLengthWarning) {
+                            ++longFunctionCount;
+                            longFunctions.append(
+                                QStringLiteral("  %1:%2 %3 (%4 lines)")
+                                    .arg(relPath)
+                                    .arg(methodStartLine)
+                                    .arg(currentMethod)
+                                    .arg(length));
+                        }
+                    }
+                    // 新しいメソッドの開始を記録
+                    const auto parenPos = line.indexOf(QLatin1Char('('));
+                    currentMethod = (parenPos > 0) ? line.left(parenPos).trimmed() : line.trimmed();
+                    methodStartLine = lineNum;
+                }
+            }
+
+            // 最後のメソッド
+            if (!currentMethod.isEmpty()) {
+                const int length = lineNum - methodStartLine + 1;
+                if (length > kFunctionLengthWarning) {
+                    ++longFunctionCount;
+                    longFunctions.append(
+                        QStringLiteral("  %1:%2 %3 (%4 lines)")
+                            .arg(relPath)
+                            .arg(methodStartLine)
+                            .arg(currentMethod)
+                            .arg(length));
+                }
+            }
+        }
+
+        qDebug().noquote()
+            << QStringLiteral("KPI: long_functions_over_%1 = %2 (monitoring only)")
+                   .arg(kFunctionLengthWarning)
+                   .arg(longFunctionCount);
+
+        if (!longFunctions.isEmpty()) {
+            qDebug().noquote() << "  Long functions (>" << kFunctionLengthWarning << "lines):";
+            for (const auto &f : std::as_const(longFunctions))
+                qDebug().noquote() << f;
+        }
+
+        // 監視のみ - QVERIFY は使わない
     }
 };
 

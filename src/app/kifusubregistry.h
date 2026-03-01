@@ -41,6 +41,7 @@ public:
     // ===== helpers =====
     void clearUiBeforeKifuLoad();
     void updateJosekiWindow();
+    void updateKifuExportDeps();
 
 private:
     void createBranchNavigationWiring();
