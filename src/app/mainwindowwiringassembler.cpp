@@ -4,105 +4,17 @@
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
+#include "gamesubregistry.h"
+#include "gamewiringsubregistry.h"
+#include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
-#include "mainwindowmatchadapter.h"
-#include "mainwindowmatchwiringdepsservice.h"
 #include "mainwindowsignalrouter.h"
 #include "dialoglaunchwiring.h"
+#include "kifuloadcoordinator.h"            // IWYU pragma: keep (QPointer の完全型)
 #include "playerinfowiring.h"
 #include "kifufilecontroller.h"
-#include "timecontrolcontroller.h"
-#include "kifunavigationcoordinator.h"
-#include "gamerecordupdateservice.h"
 #include "matchruntimequeryservice.h"
-
-MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
-{
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    using std::placeholders::_3;
-    using std::placeholders::_4;
-    using std::placeholders::_5;
-    using std::placeholders::_6;
-
-    MainWindowMatchWiringDepsService::Inputs in;
-    in.evalGraphController = m_mw.m_evalGraphController.get();
-    in.onTurnChanged = std::bind(&MainWindow::onTurnManagerChanged, &m_mw, _1);
-    in.sendGo = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
-        if (m_mw.m_match) m_mw.m_match->sendGoToEngine(which, t);
-    };
-    in.sendStop = [this](Usi* which) {
-        if (m_mw.m_match) m_mw.m_match->sendStopToEngine(which);
-    };
-    in.sendRaw = [this](Usi* which, const QString& cmd) {
-        if (m_mw.m_match) m_mw.m_match->sendRawToEngine(which, cmd);
-    };
-    auto* adapter = m_mw.m_matchAdapter.get();
-    in.initializeNewGame = std::bind(&MainWindowMatchAdapter::initializeNewGameHook, adapter, _1);
-    in.renderBoard = std::bind(&MainWindowMatchAdapter::renderBoardFromGc, adapter);
-    in.showMoveHighlights = std::bind(&MainWindowMatchAdapter::showMoveHighlights, adapter, _1, _2);
-    in.appendKifuLine = [this](const QString& text, const QString& elapsed) {
-        ensureGameRecordUpdateService();
-        if (m_mw.m_gameRecordUpdateService) {
-            m_mw.m_gameRecordUpdateService->appendKifuLine(text, elapsed);
-        }
-    };
-    in.showGameOverDialog = std::bind(&MainWindowMatchAdapter::showGameOverMessageBox, adapter, _1, _2);
-    in.remainingMsFor = std::bind(&MatchRuntimeQueryService::getRemainingMsFor, m_mw.m_queryService.get(), _1);
-    in.incrementMsFor = std::bind(&MatchRuntimeQueryService::getIncrementMsFor, m_mw.m_queryService.get(), _1);
-    in.byoyomiMs = std::bind(&MatchRuntimeQueryService::getByoyomiMs, m_mw.m_queryService.get());
-    in.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_mw.m_playerInfoWiring, _1, _2);
-    in.setEngineNames = std::bind(&PlayerInfoWiring::onSetEngineNames, m_mw.m_playerInfoWiring, _1, _2);
-    ensureKifuFileController();
-    in.autoSaveKifu = std::bind(&KifuFileController::autoSaveKifuToFile, m_mw.m_kifuFileController, _1, _2, _3, _4, _5, _6);
-
-    m_foundation->ensureKifuNavigationCoordinator();
-    in.updateHighlightsForPly = std::bind(&KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, m_mw.m_kifuNavCoordinator.get(), _1);
-    in.updateTurnAndTimekeepingDisplay = std::bind(&MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay, adapter);
-    in.isHumanSide = std::bind(&MatchRuntimeQueryService::isHumanSide, m_mw.m_queryService.get(), _1);
-
-    in.gc    = m_mw.m_gameController;
-    in.view  = m_mw.m_shogiView;
-    in.usi1  = m_mw.m_usi1;
-    in.usi2  = m_mw.m_usi2;
-    in.comm1  = m_mw.m_models.commLog1;
-    in.think1 = m_mw.m_models.thinking1;
-    in.comm2  = m_mw.m_models.commLog2;
-    in.think2 = m_mw.m_models.thinking2;
-    in.sfenRecord = m_mw.m_queryService->sfenRecord();
-    in.playMode   = &m_mw.m_state.playMode;
-    in.timePresenter   = m_mw.m_timePresenter;
-    in.boardController = m_mw.m_boardController;
-    in.kifuRecordModel  = m_mw.m_models.kifuRecord;
-    in.gameMoves        = &m_mw.m_kifu.gameMoves;
-    in.positionStrList  = &m_mw.m_kifu.positionStrList;
-    in.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
-
-    in.ensureTimeController           = std::bind(&MainWindowServiceRegistry::ensureTimeController, this);
-    in.ensureEvaluationGraphController = std::bind(&MainWindowFoundationRegistry::ensureEvaluationGraphController, m_foundation);
-    in.ensurePlayerInfoWiring         = std::bind(&MainWindowFoundationRegistry::ensurePlayerInfoWiring, m_foundation);
-    in.ensureUsiCommandController     = std::bind(&MainWindowServiceRegistry::ensureUsiCommandController, this);
-    in.ensureUiStatePolicyManager     = std::bind(&MainWindowFoundationRegistry::ensureUiStatePolicyManager, m_foundation);
-    in.connectBoardClicks             = std::bind(&MainWindowSignalRouter::connectBoardClicks, m_mw.m_signalRouter.get());
-    in.connectMoveRequested           = std::bind(&MainWindowSignalRouter::connectMoveRequested, m_mw.m_signalRouter.get());
-
-    in.getClock = [this]() -> ShogiClock* {
-        return m_mw.m_timeController ? m_mw.m_timeController->clock() : nullptr;
-    };
-    in.getTimeController = [this]() -> TimeControlController* {
-        return m_mw.m_timeController;
-    };
-    in.getEvalGraphController = [this]() -> EvaluationGraphController* {
-        return m_mw.m_evalGraphController.get();
-    };
-    in.getUiStatePolicy = [this]() -> UiStatePolicyManager* {
-        return m_mw.m_uiStatePolicy;
-    };
-
-    const MainWindowMatchWiringDepsService depsService;
-    return depsService.buildDeps(in);
-}
 
 void MainWindowServiceRegistry::initializeDialogLaunchWiring()
 {
@@ -117,7 +29,7 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getShogiView         = [this]() { return m_mw.m_shogiView; };
     d.getJishogiController = [this]() { m_foundation->ensureJishogiController(); return m_mw.m_jishogiController.get(); };
     d.getNyugyokuHandler   = [this]() { m_foundation->ensureNyugyokuHandler(); return m_mw.m_nyugyokuHandler.get(); };
-    d.getCsaGameWiring     = [this]() { ensureCsaGameWiring(); return m_mw.m_csaGameWiring.get(); };
+    d.getCsaGameWiring     = [this]() { m_game->wiring()->ensureCsaGameWiring(); return m_mw.m_csaGameWiring.get(); };
     d.getBoardSetupController = [this]() { ensureBoardSetupController(); return m_mw.m_boardSetupController; };
     d.getPlayerInfoWiring  = [this]() { m_foundation->ensurePlayerInfoWiring(); return m_mw.m_playerInfoWiring; };
     d.getAnalysisPresenter = [this]() { m_foundation->ensureAnalysisPresenter(); return m_mw.m_analysisPresenter.get(); };
@@ -151,10 +63,12 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     // CSA通信対局のエンジン評価値グラフ用
     d.getCsaGameCoordinator = [this]() { return m_mw.m_csaGameCoordinator; };
 
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
     m_mw.m_dialogLaunchWiring = new DialogLaunchWiring(d, &m_mw);
 
     // シグナル中継: SFEN局面集の選択をKifuFileControllerに接続
-    ensureKifuFileController();
+    m_kifu->ensureKifuFileController();
     QObject::connect(m_mw.m_dialogLaunchWiring, &DialogLaunchWiring::sfenCollectionPositionSelected,
                      m_mw.m_kifuFileController, &KifuFileController::onSfenCollectionPositionSelected);
 }

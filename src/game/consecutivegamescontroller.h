@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include <QPointer>
 #include <QTimer>
 #include "matchcoordinator.h"
 #include "gamestartcoordinator.h"
@@ -74,8 +75,8 @@ private:
     MatchCoordinator::StartOptions m_lastStartOptions;     ///< 直前の対局開始オプション
     GameStartCoordinator::TimeControl m_lastTimeControl;   ///< 直前の時間制御設定
 
-    TimeControlController* m_timeController = nullptr; ///< 非所有
-    GameStartCoordinator* m_gameStart = nullptr;       ///< 非所有
+    TimeControlController* m_timeController = nullptr;  ///< 非所有
+    QPointer<GameStartCoordinator> m_gameStart;        ///< 非所有（再生成追跡）
 
     QTimer* m_delayTimer = nullptr; ///< 次局開始遅延用タイマー（所有: this）
 };

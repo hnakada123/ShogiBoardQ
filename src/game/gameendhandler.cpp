@@ -57,9 +57,7 @@ void GameEndHandler::handleResign()
     EngineGameOverNotifier::notifyResignation(
         *m_refs.playMode, info.loser == Player::P1, u1, u2, rawSender);
 
-    if (m_hooks.setGameOver) {
-        m_hooks.setGameOver(info, info.loser == Player::P1, true);
-    }
+    setGameOver(info, info.loser == Player::P1, true);
     displayResultsAndUpdateGui(info);
 }
 
@@ -82,9 +80,7 @@ void GameEndHandler::handleEngineResign(int idx)
     if (u2) u2->setSquelchResignLogging(true);
 
     const bool loserIsP1 = (info.loser == Player::P1);
-    if (m_hooks.setGameOver) {
-        m_hooks.setGameOver(info, loserIsP1, true);
-    }
+    setGameOver(info, loserIsP1, true);
     displayResultsAndUpdateGui(info);
 }
 
@@ -129,9 +125,7 @@ void GameEndHandler::handleNyugyokuDeclaration(Player declarer, bool success, bo
     if (u2) u2->setSquelchResignLogging(true);
 
     const bool loserIsP1 = (info.loser == Player::P1);
-    if (m_hooks.setGameOver) {
-        m_hooks.setGameOver(info, loserIsP1, true);
-    }
+    setGameOver(info, loserIsP1, true);
 }
 
 // --- 中断 ---
@@ -226,7 +220,7 @@ void GameEndHandler::appendBreakOffLineAndMark()
 
     if (m_hooks.appendKifuLine) m_hooks.appendKifuLine(line, elapsed);
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
-    if (m_hooks.markGameOverMoveAppended) m_hooks.markGameOverMoveAppended();
+    markGameOverMoveAppended();
 }
 
 void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
@@ -234,7 +228,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
     if (!m_refs.gameOver->isOver) return;
     if (m_refs.gameOver->moveAppended) return;
     if (!m_refs.clock || !m_hooks.appendKifuLine) {
-        if (m_hooks.markGameOverMoveAppended) m_hooks.markGameOverMoveAppended();
+        markGameOverMoveAppended();
         return;
     }
 
@@ -278,7 +272,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
     m_hooks.appendKifuLine(line, elapsed);
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
-    if (m_hooks.markGameOverMoveAppended) m_hooks.markGameOverMoveAppended();
+    markGameOverMoveAppended();
 }
 
 // --- 結果表示 ---
@@ -316,8 +310,6 @@ void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
     if (m_hooks.autoSaveKifuIfEnabled) {
         m_hooks.autoSaveKifuIfEnabled();
     }
-
-    emit gameEnded(info);
 }
 
 // --- 持将棋 ---
@@ -484,4 +476,54 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
 
     appendGameOverLineAndMark(Cause::OuteSennichite, loser);
     displayResultsAndUpdateGui(info);
+}
+
+// --- 終局状態管理 ---
+
+void GameEndHandler::clearGameOverState()
+{
+    const bool wasOver = m_refs.gameOver->isOver;
+    *m_refs.gameOver = GameOverState{};
+    if (wasOver) {
+        emit gameOverStateChanged(*m_refs.gameOver);
+        qCDebug(lcGame) << "clearGameOverState()";
+    }
+}
+
+void GameEndHandler::setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce)
+{
+    if (m_refs.gameOver->isOver) {
+        qCDebug(lcGame) << "setGameOver() ignored: already over";
+        return;
+    }
+
+    qCDebug(lcGame).nospace()
+        << "setGameOver cause="
+        << ((info.cause==Cause::Timeout)?"Timeout":"Resign")
+        << " loser=" << ((info.loser==Player::P1)?"P1":"P2")
+        << " appendMoveOnce=" << appendMoveOnce;
+
+    m_refs.gameOver->isOver        = true;
+    m_refs.gameOver->hasLast       = true;
+    m_refs.gameOver->lastLoserIsP1 = loserIsP1;
+    m_refs.gameOver->lastInfo      = info;
+    m_refs.gameOver->when          = QDateTime::currentDateTime();
+
+    emit gameOverStateChanged(*m_refs.gameOver);
+    emit gameEnded(info);
+
+    if (appendMoveOnce && !m_refs.gameOver->moveAppended) {
+        qCDebug(lcGame) << "emit requestAppendGameOverMove";
+        emit requestAppendGameOverMove(info);
+    }
+}
+
+void GameEndHandler::markGameOverMoveAppended()
+{
+    if (!m_refs.gameOver->isOver) return;
+    if (m_refs.gameOver->moveAppended) return;
+
+    m_refs.gameOver->moveAppended = true;
+    emit gameOverStateChanged(*m_refs.gameOver);
+    qCDebug(lcGame) << "markGameOverMoveAppended()";
 }

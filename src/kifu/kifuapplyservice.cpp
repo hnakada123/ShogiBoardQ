@@ -2,6 +2,7 @@
 /// @brief 棋譜解析結果のモデル適用サービスの実装
 
 #include "kifuapplyservice.h"
+#include "kifuapplylogger.h"
 #include "sfenpositiontracer.h"
 #include "kiftosfenconverter.h"
 #include "recordpane.h"
@@ -18,7 +19,6 @@
 #include <QDockWidget>
 #include <QTabWidget>
 #include <QAbstractItemView>
-#include <QFileInfo>
 #include <QElapsedTimer>
 
 KifuApplyService::KifuApplyService(QObject* parent)
@@ -183,7 +183,8 @@ void KifuApplyService::applyParsedResult(
 
     // 9) UIの整合
     if (m_hooks.enableArrowButtons) m_hooks.enableArrowButtons();
-    logImportSummary(filePath, *m_refs.kifuUsiMoves, disp, teaiLabel, parseWarn, QString());
+    KifuApplyLogger::logImportSummary(filePath, *m_refs.kifuUsiMoves, disp, teaiLabel, parseWarn, QString(),
+                                      *m_refs.sfenHistory, m_refs.gameMoves);
 
     // 10) KifuBranchTree を構築
     if (branchTree != nullptr) {
@@ -581,58 +582,3 @@ void KifuApplyService::applyBranchMarksForCurrentLine()
     m_refs.kifuRecordModel->setBranchPlyMarks(marks);
 }
 
-// ============================================================
-// ログ出力
-// ============================================================
-
-void KifuApplyService::logImportSummary(const QString& filePath,
-                                         const QStringList& usiMoves,
-                                         const QList<KifDisplayItem>& disp,
-                                         const QString& teaiLabel,
-                                         const QString& warnParse,
-                                         const QString& warnConvert) const
-{
-    if (!warnParse.isEmpty())
-        qCWarning(lcKifu).noquote() << "parse warnings:\n" << warnParse.trimmed();
-    if (!warnConvert.isEmpty())
-        qCWarning(lcKifu).noquote() << "convert warnings:\n" << warnConvert.trimmed();
-
-    qCDebug(lcKifu).noquote() << QStringLiteral("KIF読込: %1手（%2）")
-                                     .arg(usiMoves.size())
-                                     .arg(QFileInfo(filePath).fileName());
-    for (qsizetype i = 0; i < qMin(qsizetype(5), usiMoves.size()); ++i) {
-        qCDebug(lcKifu).noquote() << QStringLiteral("USI[%1]: %2")
-        .arg(i + 1)
-            .arg(usiMoves.at(i));
-    }
-
-    qCDebug(lcKifu).noquote() << QStringLiteral("手合割: %1")
-                                     .arg(teaiLabel.isEmpty()
-                                              ? QStringLiteral("平手(既定)")
-                                              : teaiLabel);
-
-    for (const auto& it : disp) {
-        const QString time = it.timeText.isEmpty()
-        ? QStringLiteral("00:00/00:00:00")
-        : it.timeText;
-        qCDebug(lcKifu).noquote() << QStringLiteral("「%1」「%2」").arg(it.prettyMove, time);
-        if (!it.comment.trimmed().isEmpty()) {
-            qCDebug(lcKifu).noquote() << QStringLiteral("  └ コメント: %1")
-                                             .arg(it.comment.trimmed());
-        }
-    }
-
-    QStringList* sfenHistory = *m_refs.sfenHistory;
-    if (sfenHistory) {
-        for (int i = 0; i < qMin(12, sfenHistory->size()); ++i) {
-            qCDebug(lcKifu).noquote() << QStringLiteral("%1) %2")
-            .arg(i)
-                .arg(sfenHistory->at(i));
-        }
-    }
-
-    qCDebug(lcKifu) << "gameMoves size:" << m_refs.gameMoves->size();
-    for (qsizetype i = 0; i < m_refs.gameMoves->size(); ++i) {
-        qCDebug(lcKifu).noquote() << QString("%1) ").arg(i + 1) << (*m_refs.gameMoves)[i];
-    }
-}

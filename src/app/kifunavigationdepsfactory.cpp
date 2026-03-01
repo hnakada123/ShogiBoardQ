@@ -10,28 +10,28 @@ KifuNavigationCoordinator::Deps KifuNavigationDepsFactory::createDeps(
     KifuNavigationCoordinator::Deps deps;
 
     // UI
-    deps.recordPane = refs.recordPane;
-    deps.kifuRecordModel = refs.kifuRecordModel;
+    deps.recordPane = refs.ui.recordPane;
+    deps.kifuRecordModel = refs.models.kifuRecordModel;
 
     // Board sync
     deps.boardSync = refs.boardSync;
     deps.shogiView = refs.shogiView;
 
     // Navigation state
-    deps.navState = refs.navState;
-    deps.branchTree = refs.branchTree;
+    deps.navState = refs.branchNav.navState;
+    deps.branchTree = refs.branchNav.branchTree;
 
     // External state pointers
-    deps.activePly = refs.activePly;
-    deps.currentSelectedPly = refs.currentSelectedPly;
-    deps.currentMoveIndex = refs.currentMoveIndex;
-    deps.currentSfenStr = refs.currentSfenStr;
-    deps.skipBoardSyncForBranchNav = refs.skipBoardSyncForBranchNav;
-    deps.playMode = refs.playMode;
+    deps.activePly = refs.kifu.activePly;
+    deps.currentSelectedPly = refs.kifu.currentSelectedPly;
+    deps.currentMoveIndex = refs.state.currentMoveIndex;
+    deps.currentSfenStr = refs.state.currentSfenStr;
+    deps.skipBoardSyncForBranchNav = refs.state.skipBoardSyncForBranchNav;
+    deps.playMode = refs.state.playMode;
 
     // Coordinators
     deps.match = refs.match;
-    deps.analysisTab = refs.analysisTab;
+    deps.analysisTab = refs.ui.analysisTab;
     deps.uiStatePolicy = refs.uiStatePolicy;
 
     // Callbacks

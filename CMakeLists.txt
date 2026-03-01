@@ -238,8 +238,14 @@ set(SRC_APP
     src/app/mainwindowcoreinitcoordinator.h
     src/app/mainwindowanalysisregistry.cpp
     src/app/mainwindowboardregistry.cpp
-    src/app/mainwindowgameregistry.cpp
-    src/app/mainwindowkifuregistry.cpp
+    src/app/gamesubregistry.cpp
+    src/app/gamesubregistry.h
+    src/app/gamesessionsubregistry.cpp
+    src/app/gamesessionsubregistry.h
+    src/app/gamewiringsubregistry.cpp
+    src/app/gamewiringsubregistry.h
+    src/app/kifusubregistry.cpp
+    src/app/kifusubregistry.h
     src/app/mainwindowfoundationregistry.cpp
     src/app/mainwindowfoundationregistry.h
     src/app/mainwindowserviceregistry.cpp
@@ -279,6 +285,8 @@ set(SRC_CORE
     src/core/fmvconverter.h
     src/core/fmvlegalcore.cpp
     src/core/fmvlegalcore.h
+    src/core/fmvlegalcore_internal.h
+    src/core/fmvmovegeneration.cpp
     src/core/fmvposition.cpp
     src/core/fmvposition.h
     src/core/fmvtypes.h
@@ -287,6 +295,8 @@ set(SRC_CORE
     src/core/sfenutils.h
     src/core/shogiboard.cpp
     src/core/shogiboard.h
+    src/core/shogiboard_edit.cpp
+    src/core/shogiboard_sfen.cpp
     src/core/shogiclock.cpp
     src/core/shogiclock.h
     src/core/shogimove.cpp
@@ -320,6 +330,7 @@ set(SRC_GAME
     src/game/gamesessionfacade.h
     src/game/gamestartcoordinator.cpp
     src/game/gamestartcoordinator.h
+    src/game/gamestartcoordinator_dialogflow.cpp
     src/game/gamestartoptionsbuilder.cpp
     src/game/gamestartoptionsbuilder.h
     src/game/gamestatecontroller.cpp
@@ -330,6 +341,12 @@ set(SRC_GAME
     src/game/humanvshumanstrategy.h
     src/game/matchcoordinator.cpp
     src/game/matchcoordinator.h
+    src/game/matchcoordinator_engine.cpp
+    src/game/matchcoordinator_time.cpp
+    src/game/matchturnhandler.cpp
+    src/game/matchturnhandler.h
+    src/game/piecemoverules.cpp
+    src/game/piecemoverules.h
     src/game/prestartcleanuphandler.cpp
     src/game/prestartcleanuphandler.h
     src/game/promotionflow.cpp
@@ -348,12 +365,16 @@ set(SRC_GAME
 set(SRC_KIFU
     src/kifu/formats/csaexporter.cpp
     src/kifu/formats/csaexporter.h
+    src/kifu/formats/csaformatter.cpp
+    src/kifu/formats/csaformatter.h
     src/kifu/formats/csalexer.cpp
     src/kifu/formats/csalexer.h
     src/kifu/formats/csatosfenconverter.cpp
     src/kifu/formats/csatosfenconverter.h
     src/kifu/formats/jkfexporter.cpp
     src/kifu/formats/jkfexporter.h
+    src/kifu/formats/jkfformatter.cpp
+    src/kifu/formats/jkfformatter.h
     src/kifu/formats/jkfmoveparser.cpp
     src/kifu/formats/jkfmoveparser.h
     src/kifu/formats/jkftosfenconverter.cpp
@@ -374,6 +395,8 @@ set(SRC_KIFU
     src/kifu/formats/notationutils.h
     src/kifu/formats/parsecommon.cpp
     src/kifu/formats/parsecommon.h
+    src/kifu/formats/parsemoveformat.cpp
+    src/kifu/formats/parsemoveformat.h
     src/kifu/formats/bodtextgenerator.cpp
     src/kifu/formats/bodtextgenerator.h
     src/kifu/formats/sfencsapositionconverter.cpp
@@ -406,10 +429,14 @@ set(SRC_KIFU
     src/kifu/considerationpositionresolver.h
     src/kifu/kifucontentbuilder.cpp
     src/kifu/kifucontentbuilder.h
+    src/kifu/kifuexportclipboard.cpp
+    src/kifu/kifuexportclipboard.h
     src/kifu/kifuexportcontroller.cpp
     src/kifu/kifuexportcontroller.h
     src/kifu/kifufilecontroller.cpp
     src/kifu/kifufilecontroller.h
+    src/kifu/kifuapplylogger.cpp
+    src/kifu/kifuapplylogger.h
     src/kifu/kifuapplyservice.cpp
     src/kifu/kifuapplyservice.h
     src/kifu/kifufilereader.cpp
@@ -434,6 +461,7 @@ set(SRC_ANALYSIS
     src/analysis/analysiscoordinator.h
     src/analysis/analysisflowcontroller.cpp
     src/analysis/analysisflowcontroller.h
+    src/analysis/analysisflowcontroller_position.cpp
     src/analysis/analysisresulthandler.cpp
     src/analysis/analysisresulthandler.h
     src/analysis/analysisresultspresenter.cpp
@@ -463,12 +491,15 @@ set(SRC_ENGINE
     src/engine/enginesettingscoordinator.h
     src/engine/shogiengineinfoparser.cpp
     src/engine/shogiengineinfoparser.h
+    src/engine/shogiengineinfoparser_board.cpp
     src/engine/shogienginethinkingmodel.cpp
     src/engine/shogienginethinkingmodel.h
     src/engine/thinkinginfopresenter.cpp
     src/engine/thinkinginfopresenter.h
     src/engine/usi.cpp
     src/engine/usi.h
+    src/engine/usi_communication.cpp
+    src/engine/usi_slots.cpp
     src/engine/usicommlogmodel.cpp
     src/engine/usimatchhandler.cpp
     src/engine/usimatchhandler.h
@@ -477,11 +508,13 @@ set(SRC_ENGINE
     src/engine/usimovecoordinateconverter.h
     src/engine/usiprotocolhandler.cpp
     src/engine/usiprotocolhandler.h
+    src/engine/usiprotocolhandler_wait.cpp
 )
 
 set(SRC_NETWORK
     src/network/csaclient.cpp
     src/network/csaclient.h
+    src/network/csaclient_parser.cpp
     src/network/csaenginecontroller.cpp
     src/network/csaenginecontroller.h
     src/network/csagamecoordinator.cpp
@@ -495,6 +528,7 @@ set(SRC_NETWORK
 set(SRC_NAVIGATION
     src/navigation/kifunavigationcontroller.cpp
     src/navigation/kifunavigationcontroller.h
+    src/navigation/kifunavigationcontroller_branch.cpp
     src/navigation/recordnavigationhandler.cpp
     src/navigation/recordnavigationhandler.h
 )
@@ -549,6 +583,7 @@ set(SRC_UI
     src/ui/coordinators/gamelayoutbuilder.h
     src/ui/coordinators/kifudisplaycoordinator.cpp
     src/ui/coordinators/kifudisplaycoordinator.h
+    src/ui/coordinators/kifudisplaycoordinator_live.cpp
     src/ui/coordinators/kifuselectionsync.cpp
     src/ui/coordinators/kifuselectionsync.h
     src/ui/coordinators/positioneditcoordinator.cpp
@@ -613,7 +648,10 @@ set(SRC_VIEWS
     src/views/shogiview.cpp
     src/views/shogiview.h
     src/views/shogiview_draw.cpp
+    src/views/shogiview_events.cpp
     src/views/shogiview_labels.cpp
+    src/views/shogiview_stand.cpp
+    src/views/shogiview_turnui.cpp
     src/views/shogiviewhighlighting.cpp
     src/views/shogiviewhighlighting.h
     src/views/shogiviewinteraction.cpp
@@ -629,6 +667,7 @@ set(SRC_WIDGETS
     src/widgets/branchrowdelegate.h
     src/widgets/branchtreemanager.cpp
     src/widgets/branchtreemanager.h
+    src/widgets/branchtreemanager_draw.cpp
     src/widgets/branchtreewidget.cpp
     src/widgets/branchtreewidget.h
     src/widgets/collapsiblegroupbox.cpp
@@ -637,18 +676,21 @@ set(SRC_WIDGETS
     src/widgets/commenteditorpanel.h
     src/widgets/considerationtabmanager.cpp
     src/widgets/considerationtabmanager.h
+    src/widgets/considerationtabmanager_ui.cpp
     src/widgets/csalogpanel.cpp
     src/widgets/csalogpanel.h
     src/widgets/elidelabel.cpp
     src/widgets/elidelabel.h
     src/widgets/engineanalysistab.cpp
     src/widgets/engineanalysistab.h
+    src/widgets/engineanalysistab_consideration.cpp
     src/widgets/engineinfowidget.cpp
     src/widgets/engineinfowidget.h
     src/widgets/evaluationchartconfigurator.cpp
     src/widgets/evaluationchartconfigurator.h
     src/widgets/evaluationchartwidget.cpp
     src/widgets/evaluationchartwidget.h
+    src/widgets/evaluationchartwidget_tooltip.cpp
     src/widgets/flowlayout.cpp
     src/widgets/flowlayout.h
     src/widgets/gameinfopanecontroller.cpp
@@ -679,6 +721,8 @@ set(SRC_WIDGETS
 set(SRC_DIALOGS
     src/dialogs/changeenginesettingsdialog.cpp
     src/dialogs/changeenginesettingsdialog.h
+    src/dialogs/enginesettingsoptionhandler.cpp
+    src/dialogs/enginesettingsoptionhandler.h
     src/dialogs/considerationdialog.cpp
     src/dialogs/considerationdialog.h
     src/dialogs/csagamedialog.cpp
@@ -687,10 +731,14 @@ set(SRC_DIALOGS
     src/dialogs/csawaitingdialog.h
     src/dialogs/engineregistrationdialog.cpp
     src/dialogs/engineregistrationdialog.h
+    src/dialogs/engineregistrationhandler.cpp
+    src/dialogs/engineregistrationhandler.h
     src/dialogs/josekimergedialog.cpp
     src/dialogs/josekimergedialog.h
     src/dialogs/josekimovedialog.cpp
     src/dialogs/josekimovedialog.h
+    src/dialogs/josekimoveinputwidget.cpp
+    src/dialogs/josekimoveinputwidget.h
     src/dialogs/josekipresenter.cpp
     src/dialogs/josekipresenter.h
     src/dialogs/josekirepository.cpp
@@ -712,8 +760,11 @@ set(SRC_DIALOGS
     src/dialogs/sfencollectiondialog.h
     src/dialogs/startgamedialog.cpp
     src/dialogs/startgamedialog.h
+    src/dialogs/startgamedialog_settings.cpp
     src/dialogs/tsumeshogigeneratordialog.cpp
     src/dialogs/tsumeshogigeneratordialog.h
+    src/dialogs/tsumeshogikanjibuilder.cpp
+    src/dialogs/tsumeshogikanjibuilder.h
     src/dialogs/tsumeshogisearchdialog.cpp
     src/dialogs/tsumeshogisearchdialog.h
     src/dialogs/versiondialog.cpp

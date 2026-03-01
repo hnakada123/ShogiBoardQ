@@ -15,10 +15,10 @@ SessionLifecycleCoordinator::Deps SessionLifecycleDepsFactory::createDeps(
     deps.gameStateController = refs.gameStateController;
 
     // 状態ポインタ
-    deps.playMode = refs.playMode;
-    deps.startSfenStr = refs.startSfenStr;
-    deps.currentSfenStr = refs.currentSfenStr;
-    deps.currentSelectedPly = refs.currentSelectedPly;
+    deps.playMode = refs.state.playMode;
+    deps.startSfenStr = refs.state.startSfenStr;
+    deps.currentSfenStr = refs.state.currentSfenStr;
+    deps.currentSelectedPly = refs.kifu.currentSelectedPly;
 
     // コールバック（リセット処理用）
     deps.clearGameStateFields = callbacks.clearGameStateFields;

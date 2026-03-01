@@ -12,6 +12,9 @@
 // --- Pipeline / Registry ---
 #include "mainwindowlifecyclepipeline.h"
 #include "mainwindowserviceregistry.h"
+#include "gamesessionsubregistry.h"
+#include "gamesubregistry.h"
+#include "kifusubregistry.h"
 #include "mainwindowruntimerefs.h"
 
 // --- unique_ptr メンバの完全型（デストラクタ用） ---
@@ -42,6 +45,12 @@
 #ifdef QT_DEBUG
 #include "debugscreenshotwiring.h"
 #endif
+
+// --- QPointer<T> の完全型（buildRuntimeRefs 用） ---
+#include "boardinteractioncontroller.h"    // IWYU pragma: keep
+#include "boardsyncpresenter.h"            // IWYU pragma: keep
+#include "kifuloadcoordinator.h"           // IWYU pragma: keep
+#include "positioneditcontroller.h"        // IWYU pragma: keep
 
 // --- Controllers / Services（スロット転送先） ---
 #include "shogigamecontroller.h"
@@ -79,26 +88,26 @@ MainWindow::~MainWindow()
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    m_registry->ensureUndoFlowService();
+    m_registry->game()->ensureUndoFlowService();
     m_undoFlowService->undoLastTwoMoves();
 }
 
 void MainWindow::updateJosekiWindow()
 {
-    m_registry->updateJosekiWindow();
+    m_registry->kifu()->updateJosekiWindow();
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
-    m_registry->ensureTurnStateSyncService();
+    m_registry->game()->ensureTurnStateSyncService();
     m_turnStateSync->onTurnManagerChanged(now);
 }
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    m_registry->ensureTurnStateSyncService();
+    m_registry->game()->ensureTurnStateSyncService();
     m_turnStateSync->setCurrentTurn();
 }
 
@@ -113,14 +122,14 @@ void MainWindow::saveSettingsAndClose()
 // GUIを初期画面表示に戻す（SessionLifecycleCoordinatorへ委譲）。
 void MainWindow::resetToInitialState()
 {
-    m_registry->ensureSessionLifecycleCoordinator();
+    m_registry->game()->session()->ensureSessionLifecycleCoordinator();
     m_sessionLifecycle->resetToInitialState();
 }
 
 // ゲーム状態変数のリセット（SessionLifecycleCoordinatorへ委譲）。
 void MainWindow::resetGameState()
 {
-    m_registry->ensureSessionLifecycleCoordinator();
+    m_registry->game()->session()->ensureSessionLifecycleCoordinator();
     m_sessionLifecycle->resetGameState();
 }
 
@@ -129,7 +138,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
 {
     if (!m_models.kifuRecord) return;
 
-    m_registry->ensureGameRecordLoadService();
+    m_registry->kifu()->ensureGameRecordLoadService();
     m_gameRecordLoadService->loadGameRecord(disp);
 }
 
@@ -158,7 +167,7 @@ void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 // 再生モードの切替を ReplayController へ委譲
 void MainWindow::setReplayMode(bool on)
 {
-    m_registry->ensureReplayController();
+    m_registry->game()->ensureReplayController();
     if (m_replayController) {
         m_replayController->setReplayMode(on);
     }
@@ -187,9 +196,54 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     MainWindowRuntimeRefs refs;
 
     // --- UI 参照 ---
-    refs.parentWidget = this;
-    refs.mainWindow = this;
-    refs.statusBar = ui->statusbar;
+    refs.ui.parentWidget = this;
+    refs.ui.mainWindow = this;
+    refs.ui.statusBar = ui->statusbar;
+    refs.ui.uiForm = ui.get();
+    refs.ui.recordPane = m_recordPane;
+    refs.ui.evalChart = m_evalChart;
+    refs.ui.analysisTab = m_analysisTab;
+
+    // --- モデル参照 ---
+    refs.models.kifuRecordModel = m_models.kifuRecord;
+    refs.models.considerationModel = &m_models.consideration;
+    refs.models.thinking1 = m_models.thinking1;
+    refs.models.thinking2 = m_models.thinking2;
+    refs.models.consideration = m_models.consideration;
+    refs.models.commLog1 = m_models.commLog1;
+    refs.models.commLog2 = m_models.commLog2;
+    refs.models.gameRecordModel = m_models.gameRecord;
+
+    // --- 棋譜データ参照 ---
+    refs.kifu.sfenRecord = m_queryService->sfenRecord();
+    refs.kifu.gameMoves = &m_kifu.gameMoves;
+    refs.kifu.gameUsiMoves = &m_kifu.gameUsiMoves;
+    refs.kifu.moveRecords = &m_kifu.moveRecords;
+    refs.kifu.positionStrList = &m_kifu.positionStrList;
+    refs.kifu.activePly = &m_kifu.activePly;
+    refs.kifu.currentSelectedPly = &m_kifu.currentSelectedPly;
+    refs.kifu.saveFileName = &m_kifu.saveFileName;
+    refs.kifu.commentsByRow = &m_kifu.commentsByRow;
+    refs.kifu.onMainRowGuard = &m_kifu.onMainRowGuard;
+
+    // --- 可変状態参照 ---
+    refs.state.playMode = &m_state.playMode;
+    refs.state.currentMoveIndex = &m_state.currentMoveIndex;
+    refs.state.currentSfenStr = &m_state.currentSfenStr;
+    refs.state.startSfenStr = &m_state.startSfenStr;
+    refs.state.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
+    refs.state.resumeSfenStr = &m_state.resumeSfenStr;
+
+    // --- 分岐ナビゲーション参照 ---
+    refs.branchNav.branchTree = m_branchNav.branchTree;
+    refs.branchNav.navState = m_branchNav.navState;
+    refs.branchNav.displayCoordinator = m_branchNav.displayCoordinator;
+
+    // --- 対局者名参照 ---
+    refs.player.humanName1 = &m_player.humanName1;
+    refs.player.humanName2 = &m_player.humanName2;
+    refs.player.engineName1 = &m_player.engineName1;
+    refs.player.engineName2 = &m_player.engineName2;
 
     // --- サービス参照 ---
     refs.match = m_match;
@@ -198,34 +252,7 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.kifuLoadCoordinator = m_kifuLoadCoordinator;
     refs.csaGameCoordinator = m_csaGameCoordinator;
 
-    // --- モデル参照 ---
-    refs.kifuRecordModel = m_models.kifuRecord;
-    refs.considerationModel = &m_models.consideration;
-
-    // --- 状態参照（ポインタ） ---
-    refs.playMode = &m_state.playMode;
-    refs.currentMoveIndex = &m_state.currentMoveIndex;
-    refs.currentSfenStr = &m_state.currentSfenStr;
-    refs.startSfenStr = &m_state.startSfenStr;
-    refs.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
-
-    // --- 棋譜参照 ---
-    refs.sfenRecord = m_queryService->sfenRecord();
-    refs.gameMoves = &m_kifu.gameMoves;
-    refs.gameUsiMoves = &m_kifu.gameUsiMoves;
-    refs.moveRecords = &m_kifu.moveRecords;
-    refs.positionStrList = &m_kifu.positionStrList;
-    refs.activePly = &m_kifu.activePly;
-    refs.currentSelectedPly = &m_kifu.currentSelectedPly;
-    refs.saveFileName = &m_kifu.saveFileName;
-
-    // --- 分岐ナビゲーション参照 ---
-    refs.branchTree = m_branchNav.branchTree;
-    refs.navState = m_branchNav.navState;
-    refs.displayCoordinator = m_branchNav.displayCoordinator;
-
     // --- コントローラ / Wiring 参照 ---
-    refs.recordPane = m_recordPane;
     refs.recordPresenter = m_recordPresenter;
     refs.replayController = m_replayController;
     refs.timeController = m_timeController;
@@ -238,34 +265,10 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.gameStateController = m_gameStateController;
     refs.consecutiveGamesController = m_consecutiveGamesController;
 
-    // --- モデル参照（追加） ---
-    refs.thinking1 = m_models.thinking1;
-    refs.thinking2 = m_models.thinking2;
-    refs.consideration = m_models.consideration;
-    refs.commLog1 = m_models.commLog1;
-    refs.commLog2 = m_models.commLog2;
-    refs.gameRecordModel = m_models.gameRecord;
-
-    // --- UI フォーム ---
-    refs.uiForm = ui.get();
-
-    // --- 状態参照（追加） ---
-    refs.commentsByRow = &m_kifu.commentsByRow;
-    refs.resumeSfenStr = &m_state.resumeSfenStr;
-    refs.onMainRowGuard = &m_kifu.onMainRowGuard;
-
-    // --- 対局者名参照 ---
-    refs.humanName1 = &m_player.humanName1;
-    refs.humanName2 = &m_player.humanName2;
-    refs.engineName1 = &m_player.engineName1;
-    refs.engineName2 = &m_player.engineName2;
-
     // --- その他参照 ---
     refs.gameInfoController = m_gameInfoController;
-    refs.evalChart = m_evalChart;
     refs.evalGraphController = m_evalGraphController.get();
     refs.analysisPresenter = m_analysisPresenter.get();
-    refs.analysisTab = m_analysisTab;
 
     // PlayModePolicyService の依存を最新状態に更新
     if (m_playModePolicy) {

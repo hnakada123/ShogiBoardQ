@@ -105,6 +105,10 @@ class MainWindow : public QMainWindow
     friend class MainWindowServiceRegistry;
     friend class MainWindowFoundationRegistry;
     friend class MainWindowLifecyclePipeline;
+    friend class GameSubRegistry;
+    friend class GameSessionSubRegistry;
+    friend class GameWiringSubRegistry;
+    friend class KifuSubRegistry;
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);
@@ -156,7 +160,8 @@ private:
     // --- 将棋盤 / コントローラ ---
     ShogiView* m_shogiView = nullptr;
     ShogiGameController* m_gameController = nullptr;
-    BoardInteractionController* m_boardController = nullptr;
+    // Lifecycle: Created once in ensureBoardSetupController(), destroyed with parent
+    QPointer<BoardInteractionController> m_boardController;
     Usi* m_usi1 = nullptr;
     Usi* m_usi2 = nullptr;
 
@@ -169,10 +174,12 @@ private:
 
     // --- ダイアログ / 補助ウィンドウ ---
     CsaGameDialog* m_csaGameDialog = nullptr;
+    // Lifecycle: Created once on first dialog open, destroyed with parent
     QPointer<SfenCollectionDialog> m_sfenCollectionDialog;
     CsaGameCoordinator* m_csaGameCoordinator = nullptr;
 
     // --- 試合進行 ---
+    // Lifecycle: Recreated per game session via MatchCoordinatorWiring (QPointer不可: ダブルポインタ経由)
     MatchCoordinator* m_match = nullptr;
     GameStartCoordinator::TimeControl m_lastTimeControl;
     ReplayController* m_replayController = nullptr;
@@ -182,12 +189,16 @@ private:
     // --- コーディネータ / プレゼンタ ---
     TimeControlController* m_timeController = nullptr;
     GameInfoPaneController* m_gameInfoController = nullptr;
-    KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr;
-    PositionEditController* m_posEdit = nullptr;
-    BoardSyncPresenter* m_boardSync = nullptr;
+    // Lifecycle: Recreated per kifu load (deleteLater + new)
+    QPointer<KifuLoadCoordinator> m_kifuLoadCoordinator;
+    // Lifecycle: Created once in FoundationRegistry, destroyed with parent
+    QPointer<PositionEditController> m_posEdit;
+    // Lifecycle: Created once in FoundationRegistry, destroyed with parent
+    QPointer<BoardSyncPresenter> m_boardSync;
     BoardLoadService* m_boardLoadService = nullptr;
     ConsiderationPositionService* m_considerationPositionService = nullptr;
     std::unique_ptr<AnalysisResultsPresenter> m_analysisPresenter;
+    // Lifecycle: Recreated per MC recreation via MatchCoordinatorWiring (QPointer不可: ダブルポインタ経由)
     GameStartCoordinator* m_gameStart = nullptr;
     GameRecordPresenter* m_recordPresenter = nullptr;
     TimeDisplayPresenter* m_timePresenter = nullptr;
@@ -229,7 +240,8 @@ private:
     ConsiderationWiring* m_considerationWiring = nullptr;
     std::unique_ptr<DockLayoutManager> m_dockLayoutManager;
     std::unique_ptr<DockCreationService> m_dockCreationService;
-    CommentCoordinator* m_commentCoordinator = nullptr;
+    // Lifecycle: Created once in FoundationRegistry, destroyed with parent
+    QPointer<CommentCoordinator> m_commentCoordinator;
     std::unique_ptr<UsiCommandController> m_usiCommandController;
     RecordNavigationWiring* m_recordNavWiring = nullptr;
     UiStatePolicyManager* m_uiStatePolicy = nullptr;

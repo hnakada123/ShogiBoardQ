@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QPoint>
+#include <QPointer>
 #include <functional>
 
 #include "mainwindow.h"  // PlayMode enum
@@ -120,7 +121,7 @@ private:
     ShogiView* m_shogiView = nullptr;
     ShogiGameController* m_gameController = nullptr;
     BoardInteractionController* m_boardController = nullptr;
-    MatchCoordinator* m_match = nullptr;
+    QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
     TimeControlController* m_timeController = nullptr;
     PositionEditController* m_posEdit = nullptr;
     QObject* m_wheelFilter = nullptr;

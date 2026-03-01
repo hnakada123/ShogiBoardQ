@@ -5,6 +5,9 @@
 /// 旧 MainWindowUiBootstrapper の3メソッドを ServiceRegistry のメソッドとして提供する。
 
 #include "mainwindowserviceregistry.h"
+#include "gamesessionsubregistry.h"
+#include "gamesubregistry.h"
+#include "gamewiringsubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowappearancecontroller.h"
 #include "mainwindowfoundationregistry.h"
@@ -25,7 +28,7 @@ void MainWindowServiceRegistry::buildGamePanels()
     createRecordPaneDock();
 
     // 3) 将棋盤・駒台の初期化（従来順序を維持）
-    ensureGameSessionOrchestrator();
+    m_game->session()->ensureGameSessionOrchestrator();
     m_mw.m_gameSessionOrchestrator->startNewShogiGame();
 
     // 4) 将棋盤をセントラルウィジェットに配置（外観コントローラへ委譲）
@@ -88,7 +91,7 @@ void MainWindowServiceRegistry::restoreWindowAndSync()
 
 void MainWindowServiceRegistry::finalizeCoordinators()
 {
-    initMatchCoordinator();
+    m_game->wiring()->initMatchCoordinator();
     m_mw.m_appearanceController->setupNameAndClockFonts();
     m_foundation->ensurePositionEditController();
     m_foundation->ensureBoardSyncPresenter();

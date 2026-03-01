@@ -6,6 +6,7 @@
 
 
 #include <QObject>
+#include <QPointer>
 #include <functional>
 
 #include "mainwindow.h"  // PlayMode enum
@@ -87,7 +88,7 @@ public Q_SLOTS:
     void onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
 
 private:
-    MatchCoordinator* m_match = nullptr;                ///< 非所有
+    QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
     ShogiView* m_shogiView = nullptr;                   ///< 非所有
     RecordPane* m_recordPane = nullptr;                 ///< 非所有
     ReplayController* m_replayController = nullptr;     ///< 非所有

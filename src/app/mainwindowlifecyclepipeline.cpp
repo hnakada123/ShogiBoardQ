@@ -9,11 +9,17 @@
 #include "mainwindowcompositionroot.h"
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowserviceregistry.h"
+#include "gamesessionsubregistry.h"
+#include "gamesubregistry.h"
+#include "kifusubregistry.h"
 #include "mainwindowsignalrouter.h"
 #include "usicommlogmodel.h"
 
 // UI skeleton
 #include "mainwindowappearancecontroller.h"
+
+// QPointer<T> の完全型
+#include "boardinteractioncontroller.h"    // IWYU pragma: keep
 
 // Core components
 #include "mainwindowcoreinitcoordinator.h"
@@ -105,6 +111,8 @@ void MainWindowLifecyclePipeline::createFoundationObjects()
     m_mw.m_registry = std::make_unique<MainWindowServiceRegistry>(m_mw);
     m_mw.m_signalRouter = std::make_unique<MainWindowSignalRouter>();
 
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once at startup, never recreated
     m_mw.m_models.commLog1 = new UsiCommLogModel(&m_mw);
     m_mw.m_models.commLog2 = new UsiCommLogModel(&m_mw);
 
@@ -148,7 +156,7 @@ void MainWindowLifecyclePipeline::setupUiSkeleton()
 void MainWindowLifecyclePipeline::initializeCoreComponents()
 {
     // コア部品（GC, View, 盤モデル etc.）をコーディネータで初期化
-    m_mw.m_registry->ensureCoreInitCoordinator();
+    m_mw.m_registry->game()->session()->ensureCoreInitCoordinator();
     m_mw.m_coreInit->initialize();
 }
 
@@ -164,11 +172,13 @@ void MainWindowLifecyclePipeline::initializeEarlyServices()
     }
 
     if (!m_mw.m_timePresenter) {
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once at startup, never recreated
         m_mw.m_timePresenter = new TimeDisplayPresenter(m_mw.m_shogiView, &m_mw);
     }
 
     // TimeControlController を初期化して TimeDisplayPresenter に設定
-    m_mw.m_registry->ensureTimeController();
+    m_mw.m_registry->game()->ensureTimeController();
 
     // 対局実行時クエリサービスの依存を設定（生成は createFoundationObjects で実施済み）
     {
@@ -217,16 +227,16 @@ void MainWindowLifecyclePipeline::connectSignals()
         d.initializeDialogLaunchWiring = [this]() {
             m_mw.m_registry->initializeDialogLaunchWiring();
         };
-        d.ensureKifuFileController = std::bind(&MainWindowServiceRegistry::ensureKifuFileController, m_mw.m_registry.get());
+        d.ensureKifuFileController = std::bind(&KifuSubRegistry::ensureKifuFileController, m_mw.m_registry->kifu());
         d.ensureGameSessionOrchestrator = [this]() {
-            m_mw.m_registry->ensureGameSessionOrchestrator();
+            m_mw.m_registry->game()->session()->ensureGameSessionOrchestrator();
         };
         d.ensureUiNotificationService = [this]() {
             m_mw.m_registry->foundation()->ensureUiNotificationService();
         };
         d.ensureBoardSetupController = std::bind(&MainWindowServiceRegistry::ensureBoardSetupController, m_mw.m_registry.get());
         d.getKifuExportController = [this]() -> KifuExportController* {
-            m_mw.m_registry->ensureKifuExportController();
+            m_mw.m_registry->kifu()->ensureKifuExportController();
             return m_mw.m_kifuExportController.get();
         };
         m_mw.m_signalRouter->updateDeps(d);

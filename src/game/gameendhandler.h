@@ -76,14 +76,6 @@ public:
         /// @note 配線元: MC lambda → ShogiClock::turnEpochFor
         std::function<qint64(Player)> turnEpochFor;
 
-        /// @brief 終局状態を MC に設定し、gameEnded/gameOverStateChanged シグナルを発火する
-        /// @note 配線元: MC lambda → MC::setGameOver
-        std::function<void(const GameEndInfo&, bool, bool)> setGameOver;
-
-        /// @brief 棋譜に終局手を追記済みとしてマークする
-        /// @note 配線元: MC lambda → m_gameOver.moveAppended = true
-        std::function<void()> markGameOverMoveAppended;
-
         /// @brief 棋譜に1行追記する（終局行: "▲投了" 等）
         /// @note 配線元: MC→m_hooks.appendKifuLine (パススルー)
         std::function<void(const QString&, const QString&)> appendKifuLine;
@@ -117,7 +109,14 @@ public:
     void appendBreakOffLineAndMark();
     void appendGameOverLineAndMark(Cause cause, Player loser);
 
+    // --- 終局状態管理（MC から移譲） ---
+
+    void clearGameOverState();
+    void setGameOver(const GameEndInfo& info, bool loserIsP1, bool appendMoveOnce = true);
+    void markGameOverMoveAppended();
+
 signals:
+    void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
     void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
 

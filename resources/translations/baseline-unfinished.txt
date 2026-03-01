@@ -1,0 +1,2 @@
+ShogiBoardQ_en.ts:252
+ShogiBoardQ_ja_JP.ts:950

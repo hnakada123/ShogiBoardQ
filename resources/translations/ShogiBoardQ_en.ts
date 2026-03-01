@@ -203,46 +203,38 @@ Analyzed moves: %1</translation>
         <translation type="unfinished">A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="191"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="334"/>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="391"/>
         <source>%1（既定値 %2）</source>
-        <translation>%1 (Default: %2)</translation>
+        <translation type="vanished">%1 (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="234"/>
         <source>フォルダ・ディレクトリの選択</source>
-        <translation>Select Folder</translation>
+        <translation type="vanished">Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="239"/>
         <source>ファイルの選択</source>
-        <translation>Select File</translation>
+        <translation type="vanished">Select File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="264"/>
         <source>%1</source>
-        <translation>%1</translation>
+        <translation type="vanished">%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="277"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
-        <translation>Please enter a value of %1 or more. (Default: %2)</translation>
+        <translation type="vanished">Please enter a value of %1 or more. (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="280"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
-        <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
+        <translation type="vanished">Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="483"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="66"/>
         <source>
 作者: %1</source>
         <translation>
 Author: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="552"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="91"/>
         <source>適用</source>
         <translation>Apply</translation>
     </message>
@@ -1937,7 +1929,7 @@ Discard changes and move?</translation>
         <translation type="vanished">An error occurred in EngineRegistrationDialog::onProcessError. An unknown error occurred.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="222"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="88"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
@@ -1966,80 +1958,73 @@ Discard changes and move?</translation>
         <translation type="vanished">An error occurred in EngineRegistrationDialog::startEngine. Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="125"/>
         <source>エンジンからエラー出力がありました: %1</source>
-        <translation>Engine error output: %1</translation>
+        <translation type="vanished">Engine error output: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="136"/>
         <source>エンジンの起動に失敗しました。</source>
-        <translation>Failed to start the engine.</translation>
+        <translation type="vanished">Failed to start the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="139"/>
         <source>エンジンがクラッシュしました。</source>
-        <translation>The engine crashed.</translation>
+        <translation type="vanished">The engine crashed.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="142"/>
         <source>エンジンがタイムアウトしました。</source>
-        <translation>The engine timed out.</translation>
+        <translation type="vanished">The engine timed out.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="145"/>
         <source>エンジンへのデータ書き込み中にエラーが発生しました。</source>
-        <translation>An error occurred while writing data to the engine.</translation>
+        <translation type="vanished">An error occurred while writing data to the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="148"/>
         <source>エンジンからのデータ読み込み中にエラーが発生しました。</source>
-        <translation>An error occurred while reading data from the engine.</translation>
+        <translation type="vanished">An error occurred while reading data from the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="152"/>
         <source>不明なエラーが発生しました。</source>
-        <translation>An unknown error occurred.</translation>
+        <translation type="vanished">An unknown error occurred.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="167"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="108"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="116"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="157"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="196"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="256"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="117"/>
         <source>ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。</source>
         <translation>Could not change to directory %1. Failed to add the engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="281"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="109"/>
         <source>エンジン %1 は既に追加されています。</source>
         <translation>Engine %1 is already added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="389"/>
         <source>指定されたエンジンファイルが存在しません: %1</source>
-        <translation>The specified engine file does not exist: %1</translation>
+        <translation type="vanished">The specified engine file does not exist: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="417"/>
         <source>エンジンの起動に失敗しました: %1</source>
-        <translation>Failed to start the engine: %1</translation>
+        <translation type="vanished">Failed to start the engine: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="461"/>
         <source>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</source>
-        <translation>This shogi engine is already registered. Please delete the existing registration first.</translation>
+        <translation type="vanished">This shogi engine is already registered. Please delete the existing registration first.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="473"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="781"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="157"/>
         <source>将棋エンジンを1つ選択してください。</source>
         <translation>Please select one shogi engine.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="595"/>
         <source>USI_Hash option added.</source>
-        <translation>USI_Hash option added.</translation>
+        <translation type="vanished">USI_Hash option added.</translation>
     </message>
     <message>
         <source>USI_Ponder option added.</source>
@@ -2050,15 +2035,12 @@ Discard changes and move?</translation>
         <translation type="vanished">New option added:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="690"/>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="701"/>
         <source>オプション行の形式が無効です。</source>
-        <translation>Invalid option line format.</translation>
+        <translation type="vanished">Invalid option line format.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationdialog.cpp" line="744"/>
         <source>重複したエンジンオプションが見つかりました。</source>
-        <translation>Duplicate engine option found.</translation>
+        <translation type="vanished">Duplicate engine option found.</translation>
     </message>
     <message>
         <source>An error occurred in EngineRegistrationDialog::parseOptionLine. Invalid option line format.</source>
@@ -2071,6 +2053,112 @@ Discard changes and move?</translation>
     <message>
         <source>An error occurred in EngineRegistrationDialog::removeSelectedEngineFromList. Please select one shogi engine.</source>
         <translation type="vanished">An error occurred in EngineRegistrationDialog::removeSelectedEngineFromList. Please select one shogi engine.</translation>
+    </message>
+</context>
+<context>
+    <name>EngineRegistrationHandler</name>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="122"/>
+        <source>指定されたエンジンファイルが存在しません: %1</source>
+        <translation>The specified engine file does not exist: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="137"/>
+        <source>エンジンの起動に失敗しました: %1</source>
+        <translation>Failed to start the engine: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="171"/>
+        <source>エンジンからエラー出力がありました: %1</source>
+        <translation>Engine error output: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="182"/>
+        <source>エンジンの起動に失敗しました。</source>
+        <translation>Failed to start the engine.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="185"/>
+        <source>エンジンがクラッシュしました。</source>
+        <translation>The engine crashed.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="188"/>
+        <source>エンジンがタイムアウトしました。</source>
+        <translation>The engine timed out.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="191"/>
+        <source>エンジンへのデータ書き込み中にエラーが発生しました。</source>
+        <translation>An error occurred while writing data to the engine.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="194"/>
+        <source>エンジンからのデータ読み込み中にエラーが発生しました。</source>
+        <translation>An error occurred while reading data from the engine.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="198"/>
+        <source>不明なエラーが発生しました。</source>
+        <translation>An unknown error occurred.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="252"/>
+        <source>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</source>
+        <translation>This shogi engine is already registered. Please delete the existing registration first.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="277"/>
+        <source>USI_Hash option added.</source>
+        <translation>USI_Hash option added.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="349"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="358"/>
+        <source>オプション行の形式が無効です。</source>
+        <translation>Invalid option line format.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="397"/>
+        <source>重複したエンジンオプションが見つかりました。</source>
+        <translation>Duplicate engine option found.</translation>
+    </message>
+</context>
+<context>
+    <name>EngineSettingsOptionHandler</name>
+    <message>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="176"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="275"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="303"/>
+        <source>%1（既定値 %2）</source>
+        <translation>%1 (Default: %2)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="207"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="369"/>
+        <source>フォルダ・ディレクトリの選択</source>
+        <translation>Select Folder</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="210"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="371"/>
+        <source>ファイルの選択</source>
+        <translation>Select File</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="227"/>
+        <source>%1</source>
+        <translation>%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="235"/>
+        <source>%1 以上の値を入力してください。（既定値: %2）</source>
+        <translation>Please enter a value of %1 or more. (Default: %2)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="238"/>
+        <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
+        <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
 </context>
 <context>
@@ -2580,178 +2668,229 @@ White
 <context>
     <name>JosekiMoveDialog</name>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="51"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="31"/>
         <source>定跡手の編集</source>
         <translation>Edit Book Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="51"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="31"/>
         <source>定跡手の追加</source>
         <translation>Add Book Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="155"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="134"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="156"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="135"/>
         <source>フォントサイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="161"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="140"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="162"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="141"/>
         <source>フォントサイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="89"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="69"/>
         <source>評価情報</source>
         <translation>Evaluation Info</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="94"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="74"/>
         <source>評価値:</source>
         <translation>Score:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="98"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="78"/>
         <source>この指し手を指した時の評価値。
 正の値は手番側が有利、負の値は手番側が不利。</source>
         <translation>Evaluation score after this move.
 Positive values favor the side to move, negative values are unfavorable.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="107"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="87"/>
         <source>探索深さ:</source>
         <translation>Search Depth:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="111"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="91"/>
         <source>この評価値を算出した時の探索深さ。</source>
         <translation>Search depth when this evaluation was calculated.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="119"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="99"/>
         <source>出現頻度:</source>
         <translation>Frequency:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="123"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="103"/>
         <source>この指し手が選択された回数。</source>
         <translation>Number of times this move was selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="132"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="112"/>
         <source>コメント（任意）</source>
         <translation>Comment (Optional)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="136"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="116"/>
         <source>コメントを入力（任意）</source>
         <translation>Enter comment (optional)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="172"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="151"/>
         <source>更新</source>
         <translation>Update</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="172"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="151"/>
         <source>追加</source>
         <translation>Add</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="173"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="152"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="194"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="44"/>
         <source>予想応手</source>
         <translation>Expected Response</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="194"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="37"/>
         <source>指し手</source>
         <translation>Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="201"/>
         <source>盤上の駒を動かす</source>
-        <translation>Move piece on board</translation>
+        <translation type="vanished">Move piece on board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="202"/>
         <source>持ち駒を打つ</source>
-        <translation>Drop piece from hand</translation>
+        <translation type="vanished">Drop piece from hand</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="212"/>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="462"/>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="549"/>
         <source>なし</source>
-        <translation>None</translation>
+        <translation type="vanished">None</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="234"/>
         <source>移動元:</source>
-        <translation>From:</translation>
+        <translation type="vanished">From:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="247"/>
         <source>移動先:</source>
-        <translation>To:</translation>
+        <translation type="vanished">To:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="258"/>
         <source>成り:</source>
-        <translation>Promote:</translation>
+        <translation type="vanished">Promote:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="260"/>
         <source>不成</source>
-        <translation>No</translation>
+        <translation type="vanished">No</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="261"/>
         <source>成</source>
-        <translation>Yes</translation>
+        <translation type="vanished">Yes</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="282"/>
         <source>駒種:</source>
-        <translation>Piece:</translation>
+        <translation type="vanished">Piece:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="288"/>
         <source>打ち先:</source>
-        <translation>Drop to:</translation>
+        <translation type="vanished">Drop to:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="314"/>
         <source>プレビュー:</source>
-        <translation>Preview:</translation>
+        <translation type="vanished">Preview:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="318"/>
         <source>USI形式:</source>
-        <translation>USI Format:</translation>
+        <translation type="vanished">USI Format:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="599"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="173"/>
         <source>指し手が正しく設定されていません</source>
         <translation>Move is not set correctly</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="836"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="283"/>
         <source>定跡手: %1</source>
         <translation>Book Move: %1</translation>
+    </message>
+</context>
+<context>
+    <name>JosekiMoveInputWidget</name>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="52"/>
+        <source>盤上の駒を動かす</source>
+        <translation type="unfinished">Move piece on board</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="53"/>
+        <source>持ち駒を打つ</source>
+        <translation type="unfinished">Drop piece from hand</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="63"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="220"/>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="349"/>
+        <source>なし</source>
+        <translation type="unfinished">None</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="84"/>
+        <source>移動元:</source>
+        <translation type="unfinished">From:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="95"/>
+        <source>移動先:</source>
+        <translation type="unfinished">To:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="106"/>
+        <source>成り:</source>
+        <translation type="unfinished">Promote:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="108"/>
+        <source>不成</source>
+        <translation type="unfinished">No</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="109"/>
+        <source>成</source>
+        <translation type="unfinished">Yes</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="130"/>
+        <source>駒種:</source>
+        <translation type="unfinished">Piece:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="136"/>
+        <source>打ち先:</source>
+        <translation type="unfinished">Drop to:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="162"/>
+        <source>プレビュー:</source>
+        <translation type="unfinished">Preview:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/josekimoveinputwidget.cpp" line="166"/>
+        <source>USI形式:</source>
+        <translation type="unfinished">USI Format:</translation>
     </message>
 </context>
 <context>
@@ -3431,12 +3570,12 @@ Select OK to specify the save location.</translation>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="145"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="146"/>
         <source>An error occurred in KifuAnalysisDialog::showEngineSettingsDialog. The Shogi engine has not been selected.</source>
         <translation>An error occurred: No shogi engine has been selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="148"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="149"/>
         <source>Error</source>
         <translation>Error</translation>
     </message>
@@ -5531,20 +5670,20 @@ Are you sure you want to declare?</translation>
 <context>
     <name>PvClickController</name>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="358"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="363"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="368"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="372"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="378"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="360"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="365"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="370"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="374"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="380"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="359"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="364"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="369"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="373"/>
-        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="379"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="361"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="366"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="371"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="375"/>
+        <location filename="../../src/ui/controllers/pvclickcontroller.cpp" line="381"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -5649,14 +5788,12 @@ Are you sure you want to declare?</translation>
         <translation>The file must be a value between 1 and 9. (got %1)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="590"/>
         <source>フォルダ・ディレクトリの選択</source>
-        <translation>Select Folder</translation>
+        <translation type="vanished">Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="592"/>
         <source>ファイルの選択</source>
-        <translation>Select File</translation>
+        <translation type="vanished">Select File</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuioservice.cpp" line="83"/>

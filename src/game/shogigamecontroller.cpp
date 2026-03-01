@@ -8,6 +8,7 @@
 
 #include "logcategories.h"
 #include "matchcoordinator.h"
+#include "piecemoverules.h"
 #include "shogiboard.h"
 #include "shogimove.h"
 #include "playmode.h"
@@ -462,107 +463,15 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
         setCurrentPlayer(Player2);
     }
 
-    if (!checkMovePiece(source, dest, fileFrom, fileTo)) return false;
+    if (!PieceMoveRules::checkMovePiece(board(), source, dest, fileFrom, fileTo)) return false;
 
-    setMandatoryPromotionFlag(fileTo, rankTo, source);
+    m_promote = PieceMoveRules::shouldAutoPromote(fileTo, rankTo, source);
 
     board()->updateBoardAndPieceStand(source, dest, fileFrom, rankFrom, fileTo, rankTo, m_promote);
 
     return true;
 }
 
-// ============================================================
-// 禁じ手チェック
-// ============================================================
-
-bool ShogiGameController::checkMovePiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const
-{
-    if (!checkTwoPawn(source, fileFrom, fileTo)) return false;
-    if (!checkWhetherAllyPiece(source, dest, fileFrom, fileTo)) return false;
-    if (!checkNumberStandPiece(source, fileFrom)) return false;
-    if (!checkFromPieceStandToPieceStand(source, dest, fileFrom, fileTo)) return false;
-    if (!checkGetKingOpponentPiece(source, dest)) return false;
-
-    return true;
-}
-
-bool ShogiGameController::checkNumberStandPiece(const Piece source, const int fileFrom) const
-{
-    return board()->isPieceAvailableOnStand(source, fileFrom);
-}
-
-bool ShogiGameController::checkWhetherAllyPiece(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const
-{
-    if (fileTo < 10) {
-        // 同じ先手/後手同士の場合は味方の駒
-        if (isBlackPiece(source) && isBlackPiece(dest)) {
-            if ((fileFrom < 10) && (fileTo > 9)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-        if (isWhitePiece(source) && isWhitePiece(dest)) {
-            if ((fileFrom < 10) && (fileTo > 9)) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-bool ShogiGameController::checkTwoPawn(const Piece source, const int fileFrom, const int fileTo) const
-{
-    // 同じ筋内の移動は二歩にならない
-    if (fileFrom == fileTo) return true;
-
-    if (source == Piece::BlackPawn) {
-        if (fileTo < 10) {
-            for (int rank = 1; rank <= 9; rank++) {
-                if (board()->getPieceCharacter(fileTo, rank) == Piece::BlackPawn) return false;
-            }
-        }
-    }
-
-    if (source == Piece::WhitePawn) {
-        if (fileTo < 10) {
-            for (int rank = 1; rank <= 9; rank++) {
-                if (board()->getPieceCharacter(fileTo, rank) == Piece::WhitePawn) return false;
-            }
-        }
-    }
-
-    return true;
-}
-
-void ShogiGameController::setMandatoryPromotionFlag(const int fileTo, const int rankTo, const Piece source)
-{
-    m_promote = false;
-
-    // 駒台への移動は成りなし
-    if (fileTo >= 10) {
-        return;
-    }
-
-    // 先手: 歩・香は1段目、桂は1-2段目で必ず成る
-    if ((source == Piece::BlackPawn && rankTo == 1) ||
-        (source == Piece::BlackLance && rankTo == 1) ||
-        (source == Piece::BlackKnight && rankTo <= 2)) {
-        m_promote = true;
-        return;
-    }
-
-    // 後手: 歩・香は9段目、桂は8-9段目で必ず成る
-    if ((source == Piece::WhitePawn && rankTo == 9) ||
-        (source == Piece::WhiteLance && rankTo == 9) ||
-        (source == Piece::WhiteKnight && rankTo >= 8)) {
-        m_promote = true;
-        return;
-    }
-}
 
 // ============================================================
 // 対局結果
@@ -587,40 +496,6 @@ void ShogiGameController::switchPiecePromotionStatusOnRightClick(const int fileF
 }
 
 
-bool ShogiGameController::checkFromPieceStandToPieceStand(const Piece source, const Piece dest, const int fileFrom, const int fileTo) const
-{
-    // 先手駒台→後手駒台: 同種の駒のみ移動可能
-    if ((fileFrom == 10) && (fileTo == 11)) {
-        Piece destAsBlack = toBlack(dest);
-        if (source == destAsBlack) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-    // 後手駒台→先手駒台: 同種の駒のみ移動可能
-    if ((fileFrom == 11) && (fileTo == 10)) {
-        Piece destAsWhite = toWhite(dest);
-        if (source == destAsWhite) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-bool ShogiGameController::checkGetKingOpponentPiece(const Piece source, const Piece dest) const
-{
-    // 後手の駒で先手玉は取れない
-    if ((dest == Piece::BlackKing) && isWhitePiece(source)) return false;
-
-    // 先手の駒で後手玉は取れない
-    if ((dest == Piece::WhiteKing) && isBlackPiece(source)) return false;
-
-    return true;
-}
 
 // ============================================================
 // SFEN更新

@@ -4,6 +4,8 @@
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
+#include "gamesubregistry.h"
+#include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
@@ -12,8 +14,11 @@
 #include "ui_mainwindow.h"
 
 #include "boardsetupcontroller.h"
+#include "boardsyncpresenter.h"             // IWYU pragma: keep (QPointer の完全型)
+#include "positioneditcontroller.h"         // IWYU pragma: keep (QPointer の完全型)
 #include "positioneditcoordinator.h"
 #include "boardloadservice.h"
+#include "kifuloadcoordinator.h"            // IWYU pragma: keep (QPointer の完全型)
 #include "boardinteractioncontroller.h"
 #include "commentcoordinator.h"
 #include "evaluationgraphcontroller.h"
@@ -35,9 +40,9 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 
     MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
     cbs.ensurePositionEdit = [this]() { m_foundation->ensurePositionEditController(); };
-    cbs.ensureTimeController = [this]() { ensureTimeController(); };
+    cbs.ensureTimeController = [this]() { m_game->ensureTimeController(); };
     cbs.updateGameRecord = [this](const QString& moveText, const QString& elapsed) {
-        ensureGameRecordUpdateService();
+        m_kifu->ensureGameRecordUpdateService();
         if (m_mw.m_gameRecordUpdateService) {
             m_mw.m_gameRecordUpdateService->updateGameRecord(moveText, elapsed);
         }
@@ -88,6 +93,8 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 void MainWindowServiceRegistry::ensureBoardLoadService()
 {
     if (!m_mw.m_boardLoadService) {
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once on first use, never recreated
         m_mw.m_boardLoadService = new BoardLoadService(&m_mw);
     }
 
@@ -161,10 +168,10 @@ void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
             static_cast<ShogiGameController::Player>(mover), ply);
     }
 
-    ensureGameRecordUpdateService();
+    m_kifu->ensureGameRecordUpdateService();
     m_mw.m_gameRecordUpdateService->recordUsiMoveAndUpdateSfen();
 
-    updateJosekiWindow();
+    m_kifu->updateJosekiWindow();
 }
 
 // ---------------------------------------------------------------------------
@@ -233,7 +240,7 @@ void MainWindowServiceRegistry::resetUiState(const QString& hirateStartSfen)
     deps.shogiView = m_mw.m_shogiView;
     deps.uiStatePolicy = m_mw.m_uiStatePolicy;
     deps.updateJosekiWindow = [this]() {
-        updateJosekiWindow();
+        m_kifu->updateJosekiWindow();
     };
 
     const MainWindowResetService resetService;

@@ -12,6 +12,7 @@ set(TEST_STUBS
     ${SRC}/common/fontsizehelper.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/kifu/formats/parsecommon.cpp
+    ${SRC}/kifu/formats/parsemoveformat.cpp
     ${SRC}/kifu/formats/sfencsapositionconverter.cpp
     ${SRC}/kifu/formats/notationutils.cpp
     ${SRC}/board/sfenpositiontracer.cpp
@@ -70,6 +71,7 @@ set(EMV_SOURCES
     ${SRC}/core/fmvbitboard81.cpp
     ${SRC}/core/fmvconverter.cpp
     ${SRC}/core/fmvlegalcore.cpp
+    ${SRC}/core/fmvmovegeneration.cpp
     ${SRC}/core/fmvposition.cpp
 )
 
@@ -95,9 +97,12 @@ add_shogi_test(tst_coredatastructures
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${EMV_SOURCES}
     ${SRC}/game/turnmanager.cpp
     ${SRC}/game/shogigamecontroller.cpp
+    ${SRC}/game/piecemoverules.cpp
     ${SRC}/common/jishogicalculator.cpp
 )
 
@@ -117,6 +122,8 @@ add_shogi_test(tst_shogiboard
     ${SRC}/common/errorbus.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -130,6 +137,8 @@ add_shogi_test(tst_shogimove
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -142,6 +151,8 @@ add_shogi_test(tst_shogiutils
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -153,6 +164,8 @@ add_shogi_test(tst_movevalidator
     ${SRC}/common/logcategories.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -186,6 +199,8 @@ add_shogi_test(tst_kifconverter
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchtreebuilder.cpp
@@ -203,6 +218,8 @@ add_shogi_test(tst_ki2converter
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
 
@@ -218,6 +235,8 @@ add_shogi_test(tst_csaconverter
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
 
@@ -230,6 +249,8 @@ add_shogi_test(tst_jkfconverter
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
 
@@ -241,6 +262,8 @@ add_shogi_test(tst_usiconverter
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
 
@@ -252,6 +275,8 @@ add_shogi_test(tst_usenconverter
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
 
@@ -278,12 +303,15 @@ add_shogi_test(tst_navigation
     tst_navigation.cpp
     ${TEST_STUBS}
     ${SRC}/navigation/kifunavigationcontroller.cpp
+    ${SRC}/navigation/kifunavigationcontroller_branch.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
 )
 
 # ============================================================
@@ -294,7 +322,9 @@ add_shogi_test(tst_gamerecordmodel
     ${TEST_STUBS}
     ${SRC}/kifu/gamerecordmodel.cpp
     ${SRC}/kifu/formats/csaexporter.cpp
+    ${SRC}/kifu/formats/csaformatter.cpp
     ${SRC}/kifu/formats/jkfexporter.cpp
+    ${SRC}/kifu/formats/jkfformatter.cpp
     ${SRC}/kifu/formats/kifexporter.cpp
     ${SRC}/kifu/formats/ki2exporter.cpp
     ${SRC}/kifu/formats/usenexporter.cpp
@@ -307,6 +337,8 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
@@ -321,7 +353,9 @@ add_shogi_test(tst_kifu_comment_sync
     ${TEST_STUBS}
     ${SRC}/kifu/gamerecordmodel.cpp
     ${SRC}/kifu/formats/csaexporter.cpp
+    ${SRC}/kifu/formats/csaformatter.cpp
     ${SRC}/kifu/formats/jkfexporter.cpp
+    ${SRC}/kifu/formats/jkfformatter.cpp
     ${SRC}/kifu/formats/kifexporter.cpp
     ${SRC}/kifu/formats/ki2exporter.cpp
     ${SRC}/kifu/formats/usenexporter.cpp
@@ -334,6 +368,8 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
@@ -351,11 +387,14 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/dialogs/josekipresenter.cpp
     ${SRC}/dialogs/josekirepository.cpp
     ${SRC}/dialogs/josekimovedialog.cpp
+    ${SRC}/dialogs/josekimoveinputwidget.cpp
     ${SRC}/dialogs/josekimergedialog.cpp
     ${SETTINGS_SOURCES}
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
@@ -402,16 +441,20 @@ add_shogi_test(tst_integration
     tst_integration.cpp
     ${TEST_STUBS}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/game/shogigamecontroller.cpp
+    ${SRC}/game/piecemoverules.cpp
     ${SRC}/game/turnmanager.cpp
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/livegamesession.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/navigation/kifunavigationcontroller.cpp
+    ${SRC}/navigation/kifunavigationcontroller_branch.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/kifreader.cpp
@@ -425,6 +468,7 @@ add_shogi_test(tst_usiprotocolhandler
     test_stubs_usiprotocol.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/engine/usiprotocolhandler.cpp
+    ${SRC}/engine/usiprotocolhandler_wait.cpp
     ${SRC}/engine/usimovecoordinateconverter.cpp
 )
 
@@ -436,15 +480,19 @@ add_shogi_test(tst_ui_display_consistency
     test_stubs_ui_display.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/kifudisplaycoordinator.cpp
+    ${SRC}/ui/coordinators/kifudisplaycoordinator_live.cpp
     ${SRC}/ui/coordinators/kifuselectionsync.cpp
     ${SRC}/ui/presenters/kifudisplaypresenter.cpp
     ${SRC}/navigation/kifunavigationcontroller.cpp
+    ${SRC}/navigation/kifunavigationcontroller_branch.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/kifubranchtree.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/livegamesession.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/models/kifurecordlistmodel.cpp
@@ -454,6 +502,7 @@ add_shogi_test(tst_ui_display_consistency
     ${SRC}/widgets/recordpane.cpp
     ${SRC}/widgets/recordpaneappearancemanager.cpp
     ${SRC}/widgets/branchtreemanager.cpp
+    ${SRC}/widgets/branchtreemanager_draw.cpp
     ${SRC}/widgets/branchtreewidget.cpp
     ${SETTINGS_SOURCES}
     ${SRC}/board/sfenpositiontracer.cpp
@@ -468,6 +517,7 @@ add_shogi_test(tst_analysisflow
     ${SRC}/common/logcategories.cpp
     ${SRC}/common/fontsizehelper.cpp
     ${SRC}/analysis/analysisflowcontroller.cpp
+    ${SRC}/analysis/analysisflowcontroller_position.cpp
     ${SRC}/analysis/analysisresulthandler.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
 )
@@ -505,6 +555,8 @@ add_shogi_test(tst_game_start_orchestrator
     ${SRC}/game/gamestartorchestrator.cpp
     ${SRC}/board/sfenpositiontracer.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -527,10 +579,13 @@ add_shogi_test(tst_fmvconverter
     ${SRC}/core/fmvconverter.cpp
     ${SRC}/core/fmvposition.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/enginemovevalidator.cpp
     ${SRC}/core/fmvattacks.cpp
     ${SRC}/core/fmvlegalcore.cpp
+    ${SRC}/core/fmvmovegeneration.cpp
 )
 
 # Unit: Position (do/undo)
@@ -542,10 +597,13 @@ add_shogi_test(tst_fmvposition
     ${SRC}/core/fmvconverter.cpp
     ${SRC}/core/fmvposition.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/enginemovevalidator.cpp
     ${SRC}/core/fmvattacks.cpp
     ${SRC}/core/fmvlegalcore.cpp
+    ${SRC}/core/fmvmovegeneration.cpp
 )
 
 # Unit: LegalCore
@@ -555,6 +613,8 @@ add_shogi_test(tst_fmvlegalcore
     ${SRC}/common/logcategories.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -565,6 +625,8 @@ add_shogi_test(tst_enginemovevalidator_compat
     ${SRC}/common/logcategories.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -575,6 +637,8 @@ add_shogi_test(tst_enginemovevalidator_context
     ${SRC}/common/logcategories.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -585,6 +649,8 @@ add_shogi_test(tst_fmv_perft
     ${SRC}/common/logcategories.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -595,6 +661,8 @@ add_shogi_test(tst_enginemovevalidator_crosscheck
     ${SRC}/common/logcategories.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 
@@ -634,11 +702,15 @@ add_shogi_test(tst_csaprotocol
     tst_csaprotocol.cpp
     ${TEST_STUBS}
     ${SRC}/network/csaclient.cpp
+    ${SRC}/network/csaclient_parser.cpp
     ${SRC}/network/csamoveconverter.cpp
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/game/shogigamecontroller.cpp
+    ${SRC}/game/piecemoverules.cpp
     ${SRC}/game/turnmanager.cpp
     ${SRC}/common/jishogicalculator.cpp
     ${EMV_SOURCES}
@@ -729,6 +801,8 @@ add_shogi_test(tst_matchcoordinator
     tst_matchcoordinator.cpp
     test_stubs_matchcoordinator.cpp
     ${SRC}/game/matchcoordinator.cpp
+    ${SRC}/game/matchcoordinator_engine.cpp
+    ${SRC}/game/matchcoordinator_time.cpp
     ${SRC}/common/logcategories.cpp
 )
 
@@ -739,10 +813,78 @@ add_shogi_test(tst_gamestrategy
     tst_gamestrategy.cpp
     test_stubs_gamestrategy.cpp
     ${SRC}/game/matchcoordinator.cpp
+    ${SRC}/game/matchcoordinator_engine.cpp
+    ${SRC}/game/matchcoordinator_time.cpp
     ${SRC}/game/humanvshumanstrategy.cpp
     ${SRC}/game/humanvsenginestrategy.cpp
     ${SRC}/game/enginevsenginestrategy.cpp
     ${SRC}/common/logcategories.cpp
+)
+
+# ============================================================
+# Unit 30: App Error Handling (異常系・防御パターン構造契約テスト)
+# ============================================================
+add_shogi_test(tst_app_error_handling
+    tst_app_error_handling.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+)
+target_compile_definitions(tst_app_error_handling PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 31: CsaGameWiring 配線契約テスト（ソース解析型）
+# ============================================================
+add_shogi_test(tst_wiring_csagame
+    tst_wiring_csagame.cpp
+)
+target_compile_definitions(tst_wiring_csagame PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 32: AnalysisTabWiring 配線契約テスト（ソース解析型）
+# ============================================================
+add_shogi_test(tst_wiring_analysistab
+    tst_wiring_analysistab.cpp
+)
+target_compile_definitions(tst_wiring_analysistab PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 33: ConsiderationWiring 配線契約テスト（ソース解析型）
+# ============================================================
+add_shogi_test(tst_wiring_consideration
+    tst_wiring_consideration.cpp
+)
+target_compile_definitions(tst_wiring_consideration PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 34: PlayerInfoWiring 配線契約テスト（ソース解析型）
+# ============================================================
+add_shogi_test(tst_wiring_playerinfo
+    tst_wiring_playerinfo.cpp
+)
+target_compile_definitions(tst_wiring_playerinfo PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 35: Lifecycle Scenario (全フェーズ構造的シナリオテスト)
+# ============================================================
+add_shogi_test(tst_lifecycle_scenario
+    tst_lifecycle_scenario.cpp
+)
+target_compile_definitions(tst_lifecycle_scenario PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
@@ -752,6 +894,8 @@ add_executable(bench_movevalidator
     ${SRC}/common/logcategories.cpp
     ${EMV_SOURCES}
     ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/core/shogimove.cpp
 )
 target_include_directories(bench_movevalidator PRIVATE ${TEST_INCLUDES})

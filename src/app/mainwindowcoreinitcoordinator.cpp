@@ -54,6 +54,8 @@ void MainWindowCoreInitCoordinator::initializeGameControllerAndKifu()
 {
     auto** gc = m_deps.gameController;
     if (gc && !*gc) {
+        // Lifetime: owned by MainWindow (QObject parent)
+        // Created: once at startup, never recreated
         *gc = new ShogiGameController(m_deps.parent);
     }
 
@@ -74,6 +76,8 @@ void MainWindowCoreInitCoordinator::initializeOrResetShogiView()
     if (!view) return;
 
     if (!*view) {
+        // Lifetime: owned by MainWindow (QObject parent)
+        // Created: once at startup, never recreated
         *view = new ShogiView(m_deps.parent);
         (*view)->setNameFontScale(0.30);
     } else {

@@ -32,6 +32,8 @@ void MainWindowCompositionRoot::ensureDialogCoordinator(
     if (coordinator) return;
 
     if (!wiring) {
+        // Lifetime: owned by parent (QObject parent)
+        // Created: once on first use, never recreated
         wiring = new DialogCoordinatorWiring(parent);
     }
 
@@ -47,6 +49,8 @@ void MainWindowCompositionRoot::ensureKifuFileController(
     KifuFileController*& controller)
 {
     if (!controller) {
+        // Lifetime: owned by parent (QObject parent)
+        // Created: once on first use, never recreated
         controller = new KifuFileController(parent);
     }
 
@@ -61,6 +65,8 @@ void MainWindowCompositionRoot::ensureRecordNavigationWiring(
     RecordNavigationWiring*& wiring)
 {
     if (!wiring) {
+        // Lifetime: owned by parent (QObject parent)
+        // Created: once on first use, never recreated
         wiring = new RecordNavigationWiring(parent);
     }
 
@@ -76,15 +82,17 @@ void MainWindowCompositionRoot::ensureGameStateController(
 {
     if (controller) return;
 
+    // Lifetime: owned by parent (QObject parent)
+    // Created: once on first use, never recreated
     controller = new GameStateController(parent);
     controller->setMatchCoordinator(refs.match);
     controller->setShogiView(refs.shogiView);
-    controller->setRecordPane(refs.recordPane);
+    controller->setRecordPane(refs.ui.recordPane);
     controller->setReplayController(refs.replayController);
     controller->setTimeController(refs.timeController);
     controller->setKifuLoadCoordinator(refs.kifuLoadCoordinator);
-    controller->setKifuRecordModel(refs.kifuRecordModel);
-    controller->setPlayMode(*refs.playMode);
+    controller->setKifuRecordModel(refs.models.kifuRecordModel);
+    controller->setPlayMode(*refs.state.playMode);
 
     controller->setEnableArrowButtonsCallback(cbs.enableArrowButtons);
     controller->setSetReplayModeCallback(cbs.setReplayMode);
@@ -100,14 +108,16 @@ void MainWindowCompositionRoot::ensureBoardSetupController(
 {
     if (controller) return;
 
+    // Lifetime: owned by parent (QObject parent)
+    // Created: once on first use, never recreated
     controller = new BoardSetupController(parent);
     controller->setShogiView(refs.shogiView);
     controller->setGameController(refs.gameController);
     controller->setMatchCoordinator(refs.match);
     controller->setTimeController(refs.timeController);
-    controller->setSfenRecord(refs.sfenRecord);
-    controller->setGameMoves(refs.gameMoves);
-    controller->setCurrentMoveIndex(refs.currentMoveIndex);
+    controller->setSfenRecord(refs.kifu.sfenRecord);
+    controller->setGameMoves(refs.kifu.gameMoves);
+    controller->setCurrentMoveIndex(refs.state.currentMoveIndex);
 
     controller->setEnsurePositionEditCallback(cbs.ensurePositionEdit);
     controller->setEnsureTimeControllerCallback(cbs.ensureTimeController);
@@ -127,6 +137,8 @@ void MainWindowCompositionRoot::ensurePositionEditCoordinator(
 {
     if (coordinator) return;
 
+    // Lifetime: owned by parent (QObject parent)
+    // Created: once on first use, never recreated
     coordinator = new PositionEditCoordinator(parent);
     coordinator->setShogiView(refs.shogiView);
     coordinator->setGameController(refs.gameController);
@@ -134,14 +146,14 @@ void MainWindowCompositionRoot::ensurePositionEditCoordinator(
     coordinator->setPositionEditController(refs.positionEditController);
     coordinator->setMatchCoordinator(refs.match);
     coordinator->setReplayController(refs.replayController);
-    coordinator->setSfenRecord(refs.sfenRecord);
+    coordinator->setSfenRecord(refs.kifu.sfenRecord);
 
-    coordinator->setCurrentSelectedPly(refs.currentSelectedPly);
-    coordinator->setActivePly(refs.activePly);
-    coordinator->setStartSfenStr(refs.startSfenStr);
-    coordinator->setCurrentSfenStr(refs.currentSfenStr);
-    coordinator->setResumeSfenStr(refs.resumeSfenStr);
-    coordinator->setOnMainRowGuard(refs.onMainRowGuard);
+    coordinator->setCurrentSelectedPly(refs.kifu.currentSelectedPly);
+    coordinator->setActivePly(refs.kifu.activePly);
+    coordinator->setStartSfenStr(refs.state.startSfenStr);
+    coordinator->setCurrentSfenStr(refs.state.currentSfenStr);
+    coordinator->setResumeSfenStr(refs.state.resumeSfenStr);
+    coordinator->setOnMainRowGuard(refs.kifu.onMainRowGuard);
 
     coordinator->setApplyEditMenuStateCallback(cbs.applyEditMenuState);
     coordinator->setEnsurePositionEditCallback(cbs.ensurePositionEdit);
@@ -164,17 +176,19 @@ void MainWindowCompositionRoot::ensureConsiderationWiring(
 
     ConsiderationWiring::Deps deps;
     deps.parentWidget = qobject_cast<QWidget*>(parent);
-    deps.considerationTabManager = refs.analysisTab ? refs.analysisTab->considerationTabManager() : nullptr;
-    deps.thinkingInfo1 = refs.analysisTab ? refs.analysisTab->info1() : nullptr;
+    deps.considerationTabManager = refs.ui.analysisTab ? refs.ui.analysisTab->considerationTabManager() : nullptr;
+    deps.thinkingInfo1 = refs.ui.analysisTab ? refs.ui.analysisTab->info1() : nullptr;
     deps.shogiView = refs.shogiView;
     deps.match = refs.match;
     deps.dialogCoordinator = refs.dialogCoordinator;
-    deps.considerationModel = refs.consideration;
-    deps.commLogModel = refs.commLog1;
-    deps.playMode = refs.playMode;
-    deps.currentSfenStr = refs.currentSfenStr;
+    deps.considerationModel = refs.models.consideration;
+    deps.commLogModel = refs.models.commLog1;
+    deps.playMode = refs.state.playMode;
+    deps.currentSfenStr = refs.state.currentSfenStr;
     deps.ensureDialogCoordinator = cbs.ensureDialogCoordinator;
 
+    // Lifetime: owned by parent (QObject parent)
+    // Created: once on first use, never recreated
     wiring = new ConsiderationWiring(deps, parent);
 }
 
@@ -185,17 +199,19 @@ void MainWindowCompositionRoot::ensureCommentCoordinator(
 {
     if (coordinator) return;
 
+    // Lifetime: owned by parent (QObject parent)
+    // Created: once on first use, never recreated
     coordinator = new CommentCoordinator(parent);
-    if (refs.analysisTab) {
-        coordinator->setCommentEditor(refs.analysisTab->commentEditor());
+    if (refs.ui.analysisTab) {
+        coordinator->setCommentEditor(refs.ui.analysisTab->commentEditor());
     }
-    coordinator->setRecordPane(refs.recordPane);
+    coordinator->setRecordPane(refs.ui.recordPane);
     coordinator->setRecordPresenter(refs.recordPresenter);
-    coordinator->setStatusBar(refs.statusBar);
-    coordinator->setCurrentMoveIndex(refs.currentMoveIndex);
-    coordinator->setCommentsByRow(refs.commentsByRow);
-    coordinator->setGameRecordModel(refs.gameRecordModel);
-    coordinator->setKifuRecordListModel(refs.kifuRecordModel);
+    coordinator->setStatusBar(refs.ui.statusBar);
+    coordinator->setCurrentMoveIndex(refs.state.currentMoveIndex);
+    coordinator->setCommentsByRow(refs.kifu.commentsByRow);
+    coordinator->setGameRecordModel(refs.models.gameRecordModel);
+    coordinator->setKifuRecordListModel(refs.models.kifuRecordModel);
 }
 
 void MainWindowCompositionRoot::ensurePvClickController(
@@ -205,13 +221,15 @@ void MainWindowCompositionRoot::ensurePvClickController(
 {
     if (controller) return;
 
+    // Lifetime: owned by parent (QObject parent)
+    // Created: once on first use, never recreated
     controller = new PvClickController(parent);
-    controller->setThinkingModels(refs.thinking1, refs.thinking2);
-    controller->setConsiderationModel(refs.consideration);
-    controller->setLogModels(refs.commLog1, refs.commLog2);
-    controller->setSfenRecord(refs.sfenRecord);
-    controller->setGameMoves(refs.gameMoves);
-    controller->setUsiMoves(refs.gameUsiMoves);
+    controller->setThinkingModels(refs.models.thinking1, refs.models.thinking2);
+    controller->setConsiderationModel(refs.models.consideration);
+    controller->setLogModels(refs.models.commLog1, refs.models.commLog2);
+    controller->setSfenRecord(refs.kifu.sfenRecord);
+    controller->setGameMoves(refs.kifu.gameMoves);
+    controller->setUsiMoves(refs.kifu.gameUsiMoves);
 }
 
 void MainWindowCompositionRoot::ensureUiStatePolicyManager(
@@ -220,13 +238,15 @@ void MainWindowCompositionRoot::ensureUiStatePolicyManager(
     UiStatePolicyManager*& controller)
 {
     if (!controller) {
+        // Lifetime: owned by parent (QObject parent)
+        // Created: once on first use, never recreated
         controller = new UiStatePolicyManager(parent);
     }
 
     UiStatePolicyManager::Deps deps;
-    deps.ui = refs.uiForm;
-    deps.recordPane = refs.recordPane;
-    deps.analysisTab = refs.analysisTab;
+    deps.ui = refs.ui.uiForm;
+    deps.recordPane = refs.ui.recordPane;
+    deps.analysisTab = refs.ui.analysisTab;
     deps.boardController = refs.boardController;
     controller->updateDeps(deps);
 }
@@ -243,7 +263,7 @@ void MainWindowCompositionRoot::ensurePlayerInfoController(
     }
     if (controller) {
         controller->setEvalGraphController(refs.evalGraphController);
-        controller->setLogModels(refs.commLog1, refs.commLog2);
-        controller->setAnalysisTab(refs.analysisTab);
+        controller->setLogModels(refs.models.commLog1, refs.models.commLog2);
+        controller->setAnalysisTab(refs.ui.analysisTab);
     }
 }

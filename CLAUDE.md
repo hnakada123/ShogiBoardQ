@@ -148,14 +148,16 @@ The app supports Japanese and English. Translations are in `.ts` files under `re
 2. 翻訳ファイル（`.ts`）を開き、`type="unfinished"` となっている新規エントリに翻訳を追加する
 3. 日本語が原文の場合は英語翻訳を、英語が原文の場合は必要に応じて日本語翻訳を追加する
 
-### Translation Threshold (CI)
+### Translation Baseline (CI)
 
-CI の `translation-check` ジョブは、未翻訳数が閾値を超えると fail する。
-翻訳を追加したら `.github/workflows/ci.yml` の `THRESHOLD` を新しい未翻訳数に下げること。
+CI の `translation-check` ジョブは、未翻訳数がベースラインから増加すると fail する。
+ベースラインは `resources/translations/baseline-unfinished.txt` に記録されている。
 
+翻訳を追加したらベースラインを更新すること:
 ```bash
-# 現在の未翻訳数を確認
-grep -c 'type="unfinished"' resources/translations/*.ts
+# ベースライン更新
+grep -c 'type="unfinished"' resources/translations/*.ts | \
+  sed 's|resources/translations/||' > resources/translations/baseline-unfinished.txt
 ```
 
 ### SettingsService Update Guidelines

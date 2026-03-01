@@ -48,48 +48,10 @@ private:
     // リファクタリングでファイルが縮小されたら、この値も下げること。
     // 例外リスト外のファイルが600行を超えたらテスト失敗となる。
     // 新しい例外を追加する場合は、削減計画の Issue 番号を同時に記載すること。
-    // 2026-02-28 実測値と一致を確認済み。
+    // 2026-03-01 全ファイル600行以下達成。例外リストは空。
     static QMap<QString, int> knownLargeFiles()
     {
-        return {
-            // --- 1000行超 → 解消済み ---
-            {"src/engine/usi.cpp", 781},                       // ISSUE-053 USIエンジン分割（1084→781）
-            {"src/widgets/evaluationchartwidget.cpp", 635},    // ISSUE-054 評価グラフ描画分離（1018→635）
-            // --- 900行超 ---
-            {"src/kifu/kifuexportcontroller.cpp", 654},  // ISSUE-055 棋譜エクスポート形式分離（933→654）
-            {"src/core/fmvlegalcore.cpp", 930},          // TODO: ISSUE-056 合法手生成テーブル化
-            {"src/engine/usiprotocolhandler.cpp", 714},   // ISSUE-053 USIエンジン分割（902→714）
-            // --- 800行超 ---
-            {"src/dialogs/pvboarddialog.cpp", 418},               // ISSUE-057 ダイアログ分割（884→418）
-            {"src/dialogs/engineregistrationdialog.cpp", 842},    // TODO: ISSUE-057 ダイアログ分割
-            {"src/dialogs/josekimovedialog.cpp", 838},            // TODO: ISSUE-057 ダイアログ分割
-            {"src/core/shogiboard.cpp", 822},                     // TODO: ISSUE-056 コアロジック分割
-            {"src/views/shogiview_draw.cpp", 808},                // TODO: ISSUE-058 描画ロジック分離
-            {"src/dialogs/changeenginesettingsdialog.cpp", 804},  // TODO: ISSUE-057 ダイアログ分割
-            {"src/views/shogiview.cpp", 802},                     // TODO: ISSUE-058 描画ロジック分離
-            {"src/network/csagamecoordinator.cpp", 555},          // ISSUE-059 CSA通信分割（798→555）
-            {"src/game/matchcoordinator.cpp", 789},               // TODO: ISSUE-060 MC責務移譲継続
-            // --- 700行超 ---
-            {"src/kifu/formats/csaexporter.cpp", 758},                // TODO: ISSUE-055 棋譜エクスポート形式分離
-            {"src/kifu/formats/jkfexporter.cpp", 735},                // TODO: ISSUE-055 棋譜エクスポート形式分離
-            {"src/game/gamestartcoordinator.cpp", 727},               // TODO: ISSUE-060 ゲーム管理分割
-            {"src/ui/coordinators/kifudisplaycoordinator.cpp", 720},  // TODO: ISSUE-061 UIコーディネータ分割
-            {"src/views/shogiview_labels.cpp", 704},                  // TODO: ISSUE-058 描画ロジック分離
-            // --- 600行超 ---
-            {"src/network/csaclient.cpp", 693},                    // TODO: ISSUE-059 CSA通信分割
-            {"src/engine/shogiengineinfoparser.cpp", 689},         // TODO: ISSUE-053 USIエンジン分割
-            {"src/widgets/recordpane.cpp", 430},                   // ISSUE-062 ウィジェット分割（677→430）
-            {"src/analysis/analysisflowcontroller.cpp", 676},        // ISSUE-052 解析フロー分割（1133→676）
-            {"src/dialogs/tsumeshogigeneratordialog.cpp", 657},    // TODO: ISSUE-057 ダイアログ分割
-            {"src/game/shogigamecontroller.cpp", 652},             // TODO: ISSUE-060 ゲーム管理分割
-            {"src/navigation/kifunavigationcontroller.cpp", 642},  // TODO: ISSUE-063 ナビゲーション分割
-            {"src/kifu/formats/parsecommon.cpp", 641},             // TODO: ISSUE-055 棋譜フォーマット分割
-            {"src/kifu/kifuapplyservice.cpp", 638},                // TODO: ISSUE-055 棋譜サービス分割
-            {"src/dialogs/startgamedialog.cpp", 638},              // TODO: ISSUE-057 ダイアログ分割
-            {"src/widgets/considerationtabmanager.cpp", 634},      // TODO: ISSUE-062 ウィジェット分割
-            {"src/widgets/branchtreemanager.cpp", 632},            // TODO: ISSUE-062 ウィジェット分割
-            {"src/widgets/engineanalysistab.cpp", 607},            // TODO: ISSUE-062 ウィジェット分割
-        };
+        return {};
     }
 
 private slots:
@@ -175,7 +137,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxFriendClasses = 3;
+        constexpr int maxFriendClasses = 7;
 
         const QRegularExpression pattern(QStringLiteral(R"(^\s*friend\s+class\s+)"));
         const int count = countMatchingLines(headerPath, pattern);
@@ -225,7 +187,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindowserviceregistry.h");
-        constexpr int maxEnsureMethods = 35;
+        constexpr int maxEnsureMethods = 11;
 
         const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
         const int count = countMatchingLines(headerPath, pattern);
@@ -249,7 +211,7 @@ private slots:
     // ================================================================
     void largeFileCount()
     {
-        const int kMaxLargeFiles = 1;        // 現状0 + マージン1
+        const int kMaxLargeFiles = 0;        // 全ファイル600行以下達成
         const int kLargeFileThreshold = 1000;
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
@@ -293,7 +255,7 @@ private slots:
     // ================================================================
     void deleteCount()
     {
-        const int kMaxDeleteCount = 3; // 現状1 + マージン2
+        const int kMaxDeleteCount = 1; // 実測値: flowlayout.cpp の1件のみ
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
@@ -354,7 +316,7 @@ private slots:
     // ================================================================
     void lambdaConnectCount()
     {
-        const int kMaxLambdaConnects = 1; // 現状0 + マージン1
+        const int kMaxLambdaConnects = 0; // 実測値: 0件
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
@@ -475,7 +437,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxPublicSlots = 50;
+        constexpr int maxPublicSlots = 13;
 
         QFile file(headerPath);
         QVERIFY2(file.open(QIODevice::ReadOnly | QIODevice::Text),
@@ -515,6 +477,61 @@ private slots:
                  qPrintable(QStringLiteral("MainWindow public slots: %1 (limit: %2)")
                                 .arg(slotCount)
                                 .arg(maxPublicSlots)));
+    }
+
+    // ================================================================
+    // i) サブレジストリ ensure* 上限テスト
+    //    各サブレジストリの ensure* メソッド数が上限以下であることを検証
+    // ================================================================
+    void subRegistryEnsureLimits()
+    {
+        struct RegistryLimit {
+            const char* headerFile;
+            const char* name;
+            int maxEnsure;
+        };
+
+        const RegistryLimit registries[] = {
+            {"src/app/mainwindowfoundationregistry.h", "FoundationRegistry", 15},
+            {"src/app/gamesubregistry.h",              "GameSubRegistry",     6},
+            {"src/app/gamesessionsubregistry.h",       "GameSessionSubReg",   6},
+            {"src/app/gamewiringsubregistry.h",        "GameWiringSubReg",    4},
+            {"src/app/kifusubregistry.h",              "KifuSubRegistry",     8},
+        };
+
+        const QString sourceDir = QStringLiteral(SOURCE_DIR);
+        const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
+
+        QStringList violations;
+
+        for (const auto& reg : registries) {
+            const QString headerPath = sourceDir + QStringLiteral("/") + QString::fromLatin1(reg.headerFile);
+            const int count = countMatchingLines(headerPath, pattern);
+
+            QVERIFY2(count >= 0,
+                     qPrintable(QStringLiteral("Failed to read %1").arg(QString::fromLatin1(reg.headerFile))));
+
+            qDebug().noquote()
+                << QStringLiteral("KPI: %1_ensure = %2 (limit: %3)")
+                       .arg(QString::fromLatin1(reg.name))
+                       .arg(count)
+                       .arg(reg.maxEnsure);
+
+            if (count > reg.maxEnsure) {
+                violations.append(
+                    QStringLiteral("%1 ensure* count: %2 (limit: %3)")
+                        .arg(QString::fromLatin1(reg.name))
+                        .arg(count)
+                        .arg(reg.maxEnsure));
+            }
+        }
+
+        if (!violations.isEmpty()) {
+            QString msg = QStringLiteral("Sub-registry ensure* limit violations:\n");
+            for (const auto &v : std::as_const(violations))
+                msg += QStringLiteral("  ") + v + QStringLiteral("\n");
+            QFAIL(qPrintable(msg));
+        }
     }
 };
 

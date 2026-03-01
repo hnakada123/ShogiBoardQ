@@ -29,6 +29,7 @@ class GameRecordPresenter;
 class MatchCoordinator;
 class ReplayController;
 class ShogiGameController;
+class KifuExportClipboard;
 struct ShogiMove;
 
 /**
@@ -123,7 +124,7 @@ public:
     [[nodiscard]] bool overwriteFile(const QString& filePath);
 
     // --------------------------------------------------------
-    // クリップボードコピー
+    // クリップボードコピー（KifuExportClipboardへ委譲）
     // --------------------------------------------------------
 
     /** @brief KIF形式でクリップボードにコピー */
@@ -174,16 +175,6 @@ public:
      */
     static QStringList gameMovesToUsiMoves(const QVector<ShogiMove>& moves);
 
-    /**
-     * @brief 現在対局中かどうかを判定
-     */
-    bool isCurrentlyPlaying() const;
-
-    /**
-     * @brief 現在の手数を取得
-     */
-    int currentPly() const;
-
 Q_SIGNALS:
     /**
      * @brief ステータスバーにメッセージを表示
@@ -201,24 +192,10 @@ private:
      */
     GameRecordModel::ExportContext buildExportContext() const;
 
-    /**
-     * @brief SFEN文字列から現在の局面データを取得
-     */
-    struct PositionData {
-        QString sfenStr;
-        int moveIndex = 0;
-        QString lastMoveStr;
-    };
-    PositionData getCurrentPositionData() const;
-
-    /**
-     * @brief BOD形式の文字列を生成
-     */
-    QString generateBodText(const PositionData& pos) const;
-
     QWidget* m_parentWidget = nullptr;
     Dependencies m_deps;
     std::function<void()> m_prepareCallback;
+    KifuExportClipboard* m_clipboard = nullptr;
 
     // キャッシュ用
     QStringList m_kifuDataList;

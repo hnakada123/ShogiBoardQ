@@ -226,27 +226,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check unfinished translations
+      - name: Check translation regression
         run: |
-          # 現在の閾値（未翻訳数がこれを超えたら fail）
-          # 翻訳を追加するたびに閾値を下げること（CLAUDE.md 参照）
-          THRESHOLD=1211
-          total=0
+          baseline_file="resources/translations/baseline-unfinished.txt"
+          failed=false
           echo "## Translation Status" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| File | Unfinished |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|-----------|" >> "$GITHUB_STEP_SUMMARY"
-          for f in resources/translations/*.ts; do
-            count=$(grep -c 'type="unfinished"' "$f" || true)
-            total=$((total + count))
-            echo "| $(basename "$f") | $count |" >> "$GITHUB_STEP_SUMMARY"
-          done
+          echo "| File | Actual | Baseline | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|-------:|---------:|--------|" >> "$GITHUB_STEP_SUMMARY"
+          while IFS=: read -r file expected; do
+            actual=$(grep -c 'type="unfinished"' "resources/translations/$file" || true)
+            if [ "$actual" -gt "$expected" ]; then
+              echo "| $file | $actual | $expected | :x: regression |" >> "$GITHUB_STEP_SUMMARY"
+              echo "::error::Translation regression in $file: $actual > $expected (baseline)"
+              failed=true
+            elif [ "$actual" -lt "$expected" ]; then
+              echo "| $file | $actual | $expected | :warning: improved |" >> "$GITHUB_STEP_SUMMARY"
+              echo "::warning::Translation improved in $file: $actual < $expected. Update baseline!"
+            else
+              echo "| $file | $actual | $expected | :white_check_mark: |" >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done < "$baseline_file"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Total unfinished: $total** (threshold: $THRESHOLD)" >> "$GITHUB_STEP_SUMMARY"
-          if [ "$total" -gt "$THRESHOLD" ]; then
-            echo "::error::Translation regression: $total unfinished (threshold: $THRESHOLD)"
-            exit 1
-          fi
-          if [ "$total" -gt 0 ]; then
-            echo "::warning::$total unfinished translation(s) found (threshold: $THRESHOLD)"
-          fi
+          if [ "$failed" = true ]; then exit 1; fi

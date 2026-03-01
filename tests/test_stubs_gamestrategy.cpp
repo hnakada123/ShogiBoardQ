@@ -18,6 +18,9 @@
 #include <QSize>
 
 #include "matchcoordinator.h"
+#include "matchturnhandler.h"
+#include "strategycontext.h"
+#include "gamemodestrategy.h"
 #include "matchtimekeeper.h"
 #include "matchundohandler.h"
 #include "gameendhandler.h"
@@ -63,6 +66,45 @@ void reset()
 }
 
 } // namespace StrategyTracker
+
+// ============================================================
+// MatchTurnHandler スタブ
+// ============================================================
+
+MatchTurnHandler::MatchTurnHandler(MatchCoordinator& mc)
+{
+    m_strategyCtx = std::make_unique<MatchCoordinator::StrategyContext>(mc);
+}
+MatchTurnHandler::~MatchTurnHandler() = default;
+void MatchTurnHandler::setRefs(const Refs& r) { m_refs = r; }
+void MatchTurnHandler::setHooks(const Hooks& h) { m_hooks = h; }
+MatchCoordinator::StrategyContext& MatchTurnHandler::strategyCtx()
+{
+    return *m_strategyCtx;
+}
+GameModeStrategy* MatchTurnHandler::strategy() const { return nullptr; }
+void MatchTurnHandler::createAndStartModeStrategy(const StartOptions&) {}
+void MatchTurnHandler::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
+void MatchTurnHandler::startInitialEngineMoveIfNeeded() {}
+void MatchTurnHandler::armTurnTimerIfNeeded() {}
+void MatchTurnHandler::finishTurnTimerAndSetConsiderationFor(Player) {}
+void MatchTurnHandler::disarmHumanTimerIfNeeded() {}
+void MatchTurnHandler::flipBoard() {}
+void MatchTurnHandler::updateTurnDisplay(Player p)
+{
+    *m_refs.currentTurn = p;
+    if (m_hooks.updateTurnDisplayCb) m_hooks.updateTurnDisplayCb(p);
+}
+void MatchTurnHandler::initPositionStringsFromSfen(const QString& sfenBase)
+{
+    if (m_refs.positionStr1) *m_refs.positionStr1 = QStringLiteral("position sfen ") + sfenBase;
+    if (m_refs.positionPonder1) m_refs.positionPonder1->clear();
+    if (m_refs.positionStrHistory) m_refs.positionStrHistory->clear();
+}
+void MatchTurnHandler::forceImmediateMove() {}
+void MatchTurnHandler::handlePlayerTimeOut(int) {}
+void MatchTurnHandler::startMatchTimingAndMaybeInitialGo() {}
+void MatchTurnHandler::handleUsiError(const QString&) {}
 
 // ============================================================
 // EngineLifecycleManager スタブ
@@ -157,6 +199,9 @@ void GameEndHandler::handleMaxMovesJishogi() {}
 bool GameEndHandler::checkAndHandleSennichite() { return StrategyTracker::sennichiteDetected; }
 void GameEndHandler::handleSennichite() {}
 void GameEndHandler::handleOuteSennichite(bool) {}
+void GameEndHandler::clearGameOverState() {}
+void GameEndHandler::setGameOver(const GameEndInfo&, bool, bool) {}
+void GameEndHandler::markGameOverMoveAppended() {}
 
 // ============================================================
 // GameStartOrchestrator スタブ

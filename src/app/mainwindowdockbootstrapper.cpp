@@ -4,11 +4,14 @@
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
+#include "gamesubregistry.h"
+#include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
 
 #include "analysistabwiring.h"
 #include "branchnavigationwiring.h"
+#include "commentcoordinator.h"             // IWYU pragma: keep (QPointer の完全型)
 #include "dockcreationservice.h"
 #include "engineanalysistab.h"
 #include "evaluationchartwidget.h"
@@ -26,6 +29,8 @@
 void MainWindowServiceRegistry::setupRecordPane()
 {
     // モデルの用意（従来どおり）
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once at startup, never recreated
     if (!m_mw.m_models.kifuRecord) m_mw.m_models.kifuRecord = new KifuRecordListModel(&m_mw);
     if (!m_mw.m_models.kifuBranch) m_mw.m_models.kifuBranch = new KifuBranchListModel(&m_mw);
 
@@ -39,6 +44,8 @@ void MainWindowServiceRegistry::setupRecordPane()
         d.branchModel        = m_mw.m_models.kifuBranch;
         d.commentCoordinator = m_mw.m_commentCoordinator;
 
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once at startup, never recreated
         m_mw.m_recordPaneWiring = new RecordPaneWiring(d, &m_mw);
     }
 
@@ -58,6 +65,8 @@ void MainWindowServiceRegistry::setupEngineAnalysisTab()
         d.log1          = m_mw.m_models.commLog1;  // USIログ(先手)
         d.log2          = m_mw.m_models.commLog2;  // USIログ(後手)
 
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once at startup, never recreated
         m_mw.m_analysisWiring = new AnalysisTabWiring(d, &m_mw);
         m_mw.m_analysisWiring->buildUiAndWire();
     }
@@ -82,7 +91,7 @@ void MainWindowServiceRegistry::setupEngineAnalysisTab()
     ensureUsiCommandController();
     ensureConsiderationWiring();
     ensurePvClickController();
-    ensureBranchNavigationWiring();
+    m_kifu->ensureBranchNavigationWiring();
     AnalysisTabWiring::ExternalSignalDeps extDeps;
     extDeps.branchNavigationWiring = m_mw.m_branchNavWiring.get();
     extDeps.pvClickController = m_mw.m_pvClickController;
@@ -114,6 +123,8 @@ void MainWindowServiceRegistry::configureAnalysisTabDependencies()
     }
 
     if (!m_mw.m_models.consideration) {
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once at startup, never recreated
         m_mw.m_models.consideration = new ShogiEngineThinkingModel(&m_mw);
     }
     if (m_mw.m_analysisTab) {
@@ -124,6 +135,8 @@ void MainWindowServiceRegistry::configureAnalysisTabDependencies()
 void MainWindowServiceRegistry::createEvalChartDock()
 {
     // 評価値グラフウィジェットを作成
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once at startup, never recreated
     m_mw.m_evalChart = new EvaluationChartWidget(&m_mw);
 
     // 既存のEvaluationGraphControllerがあれば、評価値グラフを設定
@@ -204,7 +217,7 @@ void MainWindowServiceRegistry::createMenuWindowDockImpl()
 void MainWindowServiceRegistry::createJosekiWindowDock()
 {
     // JosekiWindowWiringを確保
-    ensureJosekiWiring();
+    m_kifu->ensureJosekiWiring();
     if (!m_mw.m_josekiWiring) {
         qCWarning(lcApp) << "createJosekiWindowDock: JosekiWindowWiring is null!";
         return;
@@ -239,6 +252,6 @@ void MainWindowServiceRegistry::createAnalysisResultsDock()
 
 void MainWindowServiceRegistry::initializeBranchNavigationClasses()
 {
-    ensureBranchNavigationWiring();
+    m_kifu->ensureBranchNavigationWiring();
     m_mw.m_branchNavWiring->initialize();
 }

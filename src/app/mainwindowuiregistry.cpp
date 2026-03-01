@@ -36,6 +36,8 @@ void MainWindowServiceRegistry::ensureRecordPresenter()
     d.model      = m_mw.m_models.kifuRecord;
     d.recordPane = m_mw.m_recordPane;
 
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
     m_mw.m_recordPresenter = new GameRecordPresenter(d, &m_mw);
 
     m_foundation->ensureCommentCoordinator();
