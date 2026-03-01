@@ -32,6 +32,9 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure
 
+      - name: Include Count Check
+        run: bash scripts/check-include-counts.sh
+
       - name: Structural KPI Summary
         if: always()
         env:
@@ -151,12 +154,7 @@ jobs:
           modules: 'qtcharts'
 
       - name: Configure with Sanitizers
-        run: |
-          cmake -B build -S . \
-            -DBUILD_TESTING=ON \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer" \
-            -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address,undefined -fno-sanitize=vptr"
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo -DENABLE_SANITIZERS=ON
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -225,6 +223,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Translation Sync Check
+        if: github.event_name == 'pull_request'
+        run: bash scripts/check-translation-sync.sh origin/${{ github.base_ref }}
 
       - name: Check translation regression
         run: |

@@ -612,7 +612,7 @@ private slots:
         int policyLine = -1;
 
         for (int i = range.first; i <= range.second; ++i) {
-            if (lines[i].contains(QStringLiteral("m_mw.m_posEditCoordinator")) && lines[i].contains(QStringLiteral("return")) && guardLine < 0)
+            if (lines[i].contains(QStringLiteral("m_mw.m_registryParts.posEditCoordinator")) && lines[i].contains(QStringLiteral("return")) && guardLine < 0)
                 guardLine = i;
             if (lines[i].contains(QStringLiteral("ensureUiStatePolicyManager")) && policyLine < 0)
                 policyLine = i;

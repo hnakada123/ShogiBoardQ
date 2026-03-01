@@ -15,7 +15,6 @@
 #include "gamesessionsubregistry.h"
 #include "gamesubregistry.h"
 #include "kifusubregistry.h"
-#include "mainwindowruntimerefs.h"
 
 // --- unique_ptr メンバの完全型（デストラクタ用） ---
 #include "mainwindowcompositionroot.h"       // IWYU pragma: keep
@@ -53,19 +52,9 @@
 #include "positioneditcontroller.h"        // IWYU pragma: keep
 
 // --- Controllers / Services（スロット転送先） ---
-#include "shogigamecontroller.h"
-#include "boardloadservice.h"
 #include "gamerecordloadservice.h"
 #include "turnstatesyncservice.h"
 #include "undoflowservice.h"
-#include "replaycontroller.h"
-#include "recordnavigationwiring.h"
-#include "recordnavigationhandler.h"
-#include "sessionlifecyclecoordinator.h"
-#include "kifuexportdepsassembler.h"
-
-// --- 型依存（MOC / 値型） ---
-#include "matchcoordinator.h"
 
 #include <QApplication>
 
@@ -119,18 +108,16 @@ void MainWindow::saveSettingsAndClose()
     QCoreApplication::quit();
 }
 
-// GUIを初期画面表示に戻す（SessionLifecycleCoordinatorへ委譲）。
+// GUIを初期画面表示に戻す（GameSessionSubRegistryへ委譲）。
 void MainWindow::resetToInitialState()
 {
-    m_registry->game()->session()->ensureSessionLifecycleCoordinator();
-    m_sessionLifecycle->resetToInitialState();
+    m_registry->game()->session()->resetToInitialState();
 }
 
-// ゲーム状態変数のリセット（SessionLifecycleCoordinatorへ委譲）。
+// ゲーム状態変数のリセット（GameSessionSubRegistryへ委譲）。
 void MainWindow::resetGameState()
 {
-    m_registry->game()->session()->ensureSessionLifecycleCoordinator();
-    m_sessionLifecycle->resetGameState();
+    m_registry->game()->session()->resetGameState();
 }
 
 // `displayGameRecord`: Game Record を表示する（GameRecordLoadService に委譲）。
@@ -164,25 +151,20 @@ void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
     m_registry->handleMoveRequested(from, to);
 }
 
-// 再生モードの切替を ReplayController へ委譲
+// 再生モードの切替を GameSubRegistry へ委譲
 void MainWindow::setReplayMode(bool on)
 {
-    m_registry->game()->ensureReplayController();
-    if (m_replayController) {
-        m_replayController->setReplayMode(on);
-    }
+    m_registry->game()->setReplayMode(on);
 }
 
 void MainWindow::loadBoardFromSfen(const QString& sfen)
 {
-    m_registry->ensureBoardLoadService();
-    m_boardLoadService->loadFromSfen(sfen);
+    m_registry->loadBoardFromSfen(sfen);
 }
 
 void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
-    m_registry->ensureBoardLoadService();
-    m_boardLoadService->loadWithHighlights(currentSfen, prevSfen);
+    m_registry->loadBoardWithHighlights(currentSfen, prevSfen);
 }
 
 void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
@@ -283,15 +265,8 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     return refs;
 }
 
-// KifuExportControllerに依存を設定するヘルパー
-void MainWindow::updateKifuExportDependencies()
-{
-    KifuExportDepsAssembler::assemble(m_kifuExportController.get(), buildRuntimeRefs());
-}
-
 // `onRecordPaneMainRowChanged`: Record Pane Main Row Changed のイベント受信時処理を行う。
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
-    m_registry->ensureRecordNavigationHandler();
-    m_recordNavWiring->handler()->onMainRowChanged(row);
+    m_registry->onRecordPaneMainRowChanged(row);
 }

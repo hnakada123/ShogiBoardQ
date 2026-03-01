@@ -82,6 +82,7 @@ private:
 private slots:
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
+    void onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);
     void connectKifuCurrentRowChanged();  ///< 遅延接続用スロット
 
 private:

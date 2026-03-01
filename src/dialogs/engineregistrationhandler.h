@@ -2,17 +2,21 @@
 #define ENGINEREGISTRATIONHANDLER_H
 
 /// @file engineregistrationhandler.h
-/// @brief エンジン登録ハンドラクラスの定義（プロセス管理・USI通信・設定永続化）
+/// @brief エンジン登録ハンドラクラスの定義（ワーカースレッド管理・USI解析・設定永続化）
 
+#include "threadtypes.h"
 #include <QObject>
-#include <QProcess>
 #include <QSettings>
-#include <memory>
 #include "engineoptions.h"
 
 struct Engine;
+class QThread;
+class EngineRegistrationWorker;
 
 /// エンジン登録の実行処理を担当するハンドラ
+///
+/// ワーカースレッドでエンジンプロセスとの通信を行い、
+/// USIオプション解析と設定永続化はメインスレッドで実行する。
 class EngineRegistrationHandler : public QObject
 {
     Q_OBJECT
@@ -36,11 +40,17 @@ public:
     /// エンジンパスが有効かどうかを検証する
     bool validateEnginePath(const QString& filePath) const;
 
-    /// エンジン登録処理を開始する（プロセス起動→USI送信）
+    /// エンジン登録処理を開始する（ワーカースレッドで非同期実行）
     void startRegistration(const QString& filePath);
+
+    /// 進行中の登録処理をキャンセルする
+    void cancelRegistration();
 
     /// 指定インデックスのエンジンを削除し設定を更新する
     void removeEngineAt(int index);
+
+    /// 登録処理が進行中かどうかを返す
+    bool isRegistrationInProgress() const;
 
 signals:
     /// エンジン登録が完了したとき
@@ -49,10 +59,20 @@ signals:
     /// エラーが発生したとき
     void errorOccurred(const QString& message);
 
+    /// 登録処理の進行状態が変化したとき
+    void registrationInProgressChanged(bool inProgress);
+
+    /// 進捗通知
+    void progressUpdated(const QString& status);
+
+    /// ワーカーへの登録開始シグナル（内部使用）
+    void requestRegistration(const QString& filePath);
+
 private slots:
-    void processEngineOutput();
-    void processEngineErrorOutput();
-    void onProcessError(QProcess::ProcessError error);
+    void onWorkerRegistered(const QString& engineName,
+                            const QString& engineAuthor,
+                            const QStringList& optionLines);
+    void onWorkerFailed(const QString& errorMessage);
 
 private:
     struct ValidationResult {
@@ -60,15 +80,11 @@ private:
         QString errorMessage;
     };
 
-    // プロセスライフサイクル
-    void startEngine(const QString& engineFile);
-    void cleanupEngineProcess();
-    void sendUsiCommand() const;
-    void sendQuitCommand() const;
+    // ワーカースレッド管理
+    void ensureWorkerThread();
+    void setRegistrationInProgress(bool inProgress);
 
     // USIプロトコル解析
-    void parseEngineOutput(const QString& line);
-    void processIdName(const QString& line);
     void parseEngineOptionsFromUsiOutput();
     void parseOptionLine(const QString& line);
     ValidationResult checkOptionSyntax(const QString& optionCommand);
@@ -87,8 +103,13 @@ private:
     // エラー設定＋シグナル送出
     void setError(const QString& message);
 
+    // ワーカースレッド
+    QThread* m_workerThread = nullptr;
+    EngineRegistrationWorker* m_worker = nullptr;
+    CancelFlag m_cancelFlag;
+    bool m_registrationInProgress = false;
+
     // 状態
-    std::unique_ptr<QProcess> m_process;
     bool m_errorOccurred = false;
     QStringList m_optionLines;
     QString m_fileName;
@@ -98,14 +119,6 @@ private:
     QList<Engine> m_engineList;
     QList<EngineOption> m_engineOptions;
     QStringList m_concatenatedOptionValuesList;
-
-    // コマンド文字列の定数
-    static constexpr char UsiCommand[] = "usi\n";
-    static constexpr char QuitCommand[] = "quit\n";
-    static constexpr char IdNamePrefix[] = "id name";
-    static constexpr char IdAuthorPrefix[] = "id author";
-    static constexpr char OptionNamePrefix[] = "option name";
-    static constexpr char UsiOkPrefix[] = "usiok";
 };
 
 #endif // ENGINEREGISTRATIONHANDLER_H

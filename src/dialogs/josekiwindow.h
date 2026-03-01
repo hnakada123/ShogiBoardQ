@@ -14,8 +14,10 @@
 #include <QMenu>
 #include <QStringList>
 #include <QAction>
+#include <QFutureWatcher>
 
 #include "fontsizehelper.h"
+#include "josekiioresult.h"
 
 // 前方宣言
 class QVBoxLayout;
@@ -102,6 +104,8 @@ private slots:
     void onContextMenuCopyMove();
     void onMergeRegisterMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove);
     void onRestoreStatusDisplay();
+    void onAsyncLoadFinished();
+    void onAsyncSaveFinished();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -123,8 +127,12 @@ private:
     void addToRecentFiles(const QString &filePath);
     void updateRecentFilesMenu();
     bool loadAndApplyFile(const QString &filePath);
+    void loadAndApplyFileAsync(const QString &filePath);
     bool saveToFile(const QString &filePath);
+    void saveToFileAsync(const QString &filePath);
     bool ensureFilePath();
+    void setIoBusy(bool busy);
+    bool isIoBusy() const;
     void editMoveAt(int row);
     void deleteMoveAt(int row);
     int currentPlyNumber() const;
@@ -188,6 +196,12 @@ private:
     /// 遅延読込用
     bool          m_pendingAutoLoad = false;
     QString       m_pendingAutoLoadPath;
+
+    /// 非同期I/O
+    QFutureWatcher<JosekiLoadResult> m_loadWatcher;
+    QFutureWatcher<JosekiSaveResult> m_saveWatcher;
+    QString       m_pendingSaveFilePath;
+    bool          m_ioBusy = false;
 
     /// 親ドックウィジェット
     QDockWidget  *m_dockWidget = nullptr;

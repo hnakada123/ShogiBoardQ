@@ -82,6 +82,11 @@ public:
     void resetUiState(const QString& hirateStartSfen);
     void clearSessionDependentUi();
 
+    // ===== delegation (MainWindow スロットからの転送先) =====
+    void loadBoardFromSfen(const QString& sfen);
+    void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
+    void onRecordPaneMainRowChanged(int row);
+
     // ===== DockBootstrapper系 =====
     void setupRecordPane();
     void setupEngineAnalysisTab();

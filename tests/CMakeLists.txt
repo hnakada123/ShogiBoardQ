@@ -45,7 +45,7 @@ set(TEST_INCLUDES
 )
 
 # Common link libraries
-set(TEST_LIBS Qt6::Test Qt6::Widgets Qt6::Charts Qt6::Network)
+set(TEST_LIBS Qt6::Test Qt6::Widgets Qt6::Charts Qt6::Network Qt6::Concurrent)
 
 # Settings sources (全ドメイン設定ファイル)
 set(SETTINGS_SOURCES
@@ -383,6 +383,7 @@ add_shogi_test(tst_josekiwindow
     tst_josekiwindow.cpp
     ${TEST_STUBS}
     ${SRC}/dialogs/josekiwindow.cpp
+    ${SRC}/dialogs/josekiwindowio.cpp
     ${SRC}/dialogs/josekiwindowui.cpp
     ${SRC}/dialogs/josekipresenter.cpp
     ${SRC}/dialogs/josekirepository.cpp
@@ -884,6 +885,16 @@ add_shogi_test(tst_lifecycle_scenario
     tst_lifecycle_scenario.cpp
 )
 target_compile_definitions(tst_lifecycle_scenario PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
+# ============================================================
+# Unit 36: Wiring Slot Coverage (接続漏れ/重複検出テスト、ソース解析型)
+# ============================================================
+add_shogi_test(tst_wiring_slot_coverage
+    tst_wiring_slot_coverage.cpp
+)
+target_compile_definitions(tst_wiring_slot_coverage PRIVATE
     SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 

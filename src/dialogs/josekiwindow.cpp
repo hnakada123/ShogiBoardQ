@@ -1,6 +1,7 @@
 /// @file josekiwindow.cpp
 /// @brief 定跡ウィンドウクラスの実装（薄い View 層）
-/// setupUi() と applyFontSize() は josekiwindowui.cpp に分離
+/// setupUi() / applyFontSize() は josekiwindowui.cpp に分離
+/// ファイルI/O / 非同期処理は josekiwindowio.cpp に分離
 
 #include "josekiwindow.h"
 #include "josekirepository.h"
@@ -33,6 +34,11 @@ JosekiWindow::JosekiWindow(QWidget *parent)
 {
     setupUi();
     loadSettings();
+
+    connect(&m_loadWatcher, &QFutureWatcher<JosekiLoadResult>::finished,
+            this, &JosekiWindow::onAsyncLoadFinished);
+    connect(&m_saveWatcher, &QFutureWatcher<JosekiSaveResult>::finished,
+            this, &JosekiWindow::onAsyncSaveFinished);
 }
 
 int JosekiWindow::currentPlyNumber() const
@@ -89,73 +95,12 @@ void JosekiWindow::onFontSizeDecrease()
 }
 
 // ============================================================
-// ファイル操作ヘルパー
-// ============================================================
-
-bool JosekiWindow::loadAndApplyFile(const QString &filePath)
-{
-    QString errorMessage;
-    if (!m_repository->loadFromFile(filePath, &errorMessage)) {
-        if (!errorMessage.isEmpty()) QMessageBox::warning(this, tr("エラー"), errorMessage);
-        return false;
-    }
-    m_currentFilePath = filePath;
-    m_filePathLabel->setText(filePath);
-    m_filePathLabel->setStyleSheet(QString());
-    setModified(false);
-    updateStatusDisplay();
-    return true;
-}
-
-bool JosekiWindow::saveToFile(const QString &filePath)
-{
-    QString errorMessage;
-    if (!m_repository->saveToFile(filePath, &errorMessage)) {
-        QMessageBox::warning(this, tr("エラー"), errorMessage);
-        return false;
-    }
-    return true;
-}
-
-bool JosekiWindow::ensureFilePath()
-{
-    if (!m_currentFilePath.isEmpty()) return true;
-
-    QMessageBox::StandardButton result = QMessageBox::question(
-        this, tr("保存先の指定"),
-        tr("定跡ファイルの保存先が設定されていません。\nOKを選択すると保存先が指定できます。"),
-        QMessageBox::Ok | QMessageBox::Cancel, QMessageBox::Ok);
-    if (result != QMessageBox::Ok) return false;
-
-    QString filePath = QFileDialog::getSaveFileName(
-        this, tr("定跡ファイルの保存先を指定"), QDir::homePath(),
-        tr("定跡ファイル (*.db);;すべてのファイル (*)"));
-    if (filePath.isEmpty()) return false;
-
-    if (!filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive))
-        filePath += QStringLiteral(".db");
-
-    m_currentFilePath = filePath;
-    m_filePathLabel->setText(filePath);
-    m_filePathLabel->setStyleSheet(QString());
-
-    if (!saveToFile(m_currentFilePath)) {
-        m_currentFilePath.clear();
-        m_filePathLabel->setText(tr("新規ファイル（未保存）"));
-        m_filePathLabel->setStyleSheet(QStringLiteral("color: blue;"));
-        return false;
-    }
-    addToRecentFiles(m_currentFilePath);
-    updateStatusDisplay();
-    return true;
-}
-
-// ============================================================
 // ファイル操作スロット
 // ============================================================
 
 void JosekiWindow::onOpenButtonClicked()
 {
+    if (isIoBusy()) return;
     if (!confirmDiscardChanges()) return;
 
     QString startDir;
@@ -165,10 +110,10 @@ void JosekiWindow::onOpenButtonClicked()
         this, tr("定跡ファイルを開く"), startDir,
         tr("定跡ファイル (*.db);;すべてのファイル (*)"));
 
-    if (!filePath.isEmpty() && loadAndApplyFile(filePath)) {
+    if (!filePath.isEmpty()) {
         addToRecentFiles(filePath);
         saveSettings();
-        updateJosekiDisplay();
+        loadAndApplyFileAsync(filePath);
     }
 }
 
@@ -186,12 +131,15 @@ void JosekiWindow::onNewButtonClicked()
 
 void JosekiWindow::onSaveButtonClicked()
 {
+    if (isIoBusy()) return;
     if (m_currentFilePath.isEmpty()) { onSaveAsButtonClicked(); return; }
-    if (saveToFile(m_currentFilePath)) setModified(false);
+    saveToFileAsync(m_currentFilePath);
 }
 
 void JosekiWindow::onSaveAsButtonClicked()
 {
+    if (isIoBusy()) return;
+
     QString startDir;
     if (!m_currentFilePath.isEmpty()) startDir = QFileInfo(m_currentFilePath).absolutePath();
 
@@ -203,14 +151,7 @@ void JosekiWindow::onSaveAsButtonClicked()
     if (!filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive))
         filePath += QStringLiteral(".db");
 
-    if (saveToFile(filePath)) {
-        m_currentFilePath = filePath;
-        m_filePathLabel->setText(filePath);
-        m_filePathLabel->setStyleSheet(QString());
-        setModified(false);
-        addToRecentFiles(filePath);
-        saveSettings();
-    }
+    saveToFileAsync(filePath);
 }
 
 // ============================================================
@@ -259,6 +200,8 @@ void JosekiWindow::onClearRecentFilesClicked()
 
 void JosekiWindow::onRecentFileClicked()
 {
+    if (isIoBusy()) return;
+
     QAction *action = qobject_cast<QAction*>(sender());
     if (!action) return;
     QString filePath = action->data().toString();
@@ -270,11 +213,9 @@ void JosekiWindow::onRecentFileClicked()
         updateRecentFilesMenu();
         return;
     }
-    if (loadAndApplyFile(filePath)) {
-        addToRecentFiles(filePath);
-        saveSettings();
-        updateJosekiDisplay();
-    }
+    addToRecentFiles(filePath);
+    saveSettings();
+    loadAndApplyFileAsync(filePath);
 }
 
 // ============================================================

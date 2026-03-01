@@ -55,6 +55,9 @@ private slots:
     // ハンドラエラー時のスロット
     void onHandlerError(const QString& errorMessage);
 
+    // 登録処理の進行状態変化時のスロット
+    void onRegistrationInProgressChanged(bool inProgress);
+
     // フォントサイズを増加する
     void increaseFontSize();
 

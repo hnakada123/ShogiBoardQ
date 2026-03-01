@@ -145,26 +145,21 @@ QString JosekiRepository::sfenWithPly(const QString &normalizedSfen) const
     return m_sfenWithPlyMap.value(normalizedSfen);
 }
 
-bool JosekiRepository::loadFromFile(const QString &filePath, QString *errorMessage)
+JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
 {
+    JosekiLoadResult result;
+
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral("ファイルを開けませんでした: %1").arg(filePath);
-        }
-        return false;
+        result.errorMessage = QStringLiteral("ファイルを開けませんでした: %1").arg(filePath);
+        return result;
     }
-
-    m_josekiData.clear();
-    m_sfenWithPlyMap.clear();
-    m_mergeRegisteredMoves.clear();
 
     QTextStream in(&file);
     QString line;
     QString currentSfen;
     QString normalizedSfen;
 
-    // フォーマット検証用フラグ
     bool hasValidHeader = false;
     bool hasSfenLine = false;
     bool hasMoveLine = false;
@@ -175,26 +170,21 @@ bool JosekiRepository::loadFromFile(const QString &filePath, QString *errorMessa
         line = in.readLine().trimmed();
         lineNumber++;
 
-        // Windows改行コード(\r)を除去
         line.remove(QLatin1Char('\r'));
 
-        // 空行をスキップ
         if (line.isEmpty()) {
             continue;
         }
 
-        // コメント行（#で始まる行）の処理
         if (line.startsWith(QLatin1Char('#'))) {
-            // やねうら王定跡フォーマットのヘッダーを確認
             if (line.contains(QStringLiteral("YANEURAOU")) ||
                 line.contains(QStringLiteral("yaneuraou"))) {
                 hasValidHeader = true;
                 continue;
             }
 
-            // ヘッダー以外の#行は直前の指し手のコメントとして扱う
-            if (!normalizedSfen.isEmpty() && m_josekiData.contains(normalizedSfen)) {
-                QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+            if (!normalizedSfen.isEmpty() && result.josekiData.contains(normalizedSfen)) {
+                QVector<JosekiMove> &moves = result.josekiData[normalizedSfen];
                 if (!moves.isEmpty()) {
                     QString commentText = line.mid(1);
                     if (!moves.last().comment.isEmpty()) {
@@ -207,41 +197,34 @@ bool JosekiRepository::loadFromFile(const QString &filePath, QString *errorMessa
             continue;
         }
 
-        // sfen行の処理
         if (line.startsWith(QStringLiteral("sfen "))) {
             currentSfen = line.mid(5).trimmed();
             currentSfen.remove(QLatin1Char('\r'));
-            // SFEN文字列を正規化（手数部分を除去）
             const QStringList sfenParts = currentSfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
             if (sfenParts.size() >= 3) {
                 normalizedSfen = sfenParts[0] + QLatin1Char(' ') + sfenParts[1] + QLatin1Char(' ') + sfenParts[2];
             } else {
                 normalizedSfen = currentSfen;
             }
-            // 元のSFEN（手数付き）を保持
-            if (!m_sfenWithPlyMap.contains(normalizedSfen)) {
-                m_sfenWithPlyMap[normalizedSfen] = currentSfen;
+            if (!result.sfenWithPlyMap.contains(normalizedSfen)) {
+                result.sfenWithPlyMap[normalizedSfen] = currentSfen;
             }
             hasSfenLine = true;
             continue;
         }
 
-        // 指し手行の処理
         if (!normalizedSfen.isEmpty()) {
             const QStringList parts = line.split(QLatin1Char(' '), Qt::SkipEmptyParts);
             if (parts.size() >= 5) {
-                // 指し手の形式を簡易チェック
                 const QString &moveStr = parts[0];
                 bool validMove = false;
 
-                // 駒打ち形式: X*YZ
                 if (moveStr.size() >= 4 && moveStr.at(1) == QLatin1Char('*')) {
                     QChar piece = moveStr.at(0).toUpper();
                     if (QString("PLNSGBR").contains(piece)) {
                         validMove = true;
                     }
                 }
-                // 通常移動形式: XYZW または XYZW+
                 else if (moveStr.size() >= 4) {
                     bool validFormat = true;
                     if (moveStr.at(0) < QLatin1Char('1') || moveStr.at(0) > QLatin1Char('9')) validFormat = false;
@@ -263,7 +246,6 @@ bool JosekiRepository::loadFromFile(const QString &filePath, QString *errorMessa
                 move.depth = parts[3].toInt();
                 move.frequency = parts[4].toInt();
 
-                // コメントがあれば取得
                 if (parts.size() > 5) {
                     QStringList commentParts;
                     for (int i = 5; i < parts.size(); ++i) {
@@ -272,7 +254,7 @@ bool JosekiRepository::loadFromFile(const QString &filePath, QString *errorMessa
                     move.comment = commentParts.join(QLatin1Char(' '));
                 }
 
-                m_josekiData[normalizedSfen].append(move);
+                result.josekiData[normalizedSfen].append(move);
                 hasMoveLine = true;
             } else if (parts.size() > 0) {
                 invalidMoveLineCount++;
@@ -284,95 +266,84 @@ bool JosekiRepository::loadFromFile(const QString &filePath, QString *errorMessa
 
     file.close();
 
-    // フォーマット検証
     if (!hasValidHeader) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral(
-                "このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。\n"
-                "ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。\n\n"
-                "ファイル: %1").arg(filePath);
-        }
-        m_josekiData.clear();
-        return false;
+        result.errorMessage = QStringLiteral(
+            "このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。\n"
+            "ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。\n\n"
+            "ファイル: %1").arg(filePath);
+        return result;
     }
 
     if (!hasSfenLine) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral(
-                "定跡ファイルにSFEN行が見つかりませんでした。\n\n"
-                "やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。\n\n"
-                "ファイル: %1").arg(filePath);
-        }
-        m_josekiData.clear();
-        return false;
+        result.errorMessage = QStringLiteral(
+            "定跡ファイルにSFEN行が見つかりませんでした。\n\n"
+            "やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。\n\n"
+            "ファイル: %1").arg(filePath);
+        return result;
     }
 
     if (!hasMoveLine) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral(
-                "定跡ファイルに有効な指し手行が見つかりませんでした。\n\n"
-                "やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド\n"
-                "（指し手 予想応手 評価値 深さ 出現頻度）が必要です。\n\n"
-                "ファイル: %1").arg(filePath);
-        }
-        m_josekiData.clear();
-        return false;
+        result.errorMessage = QStringLiteral(
+            "定跡ファイルに有効な指し手行が見つかりませんでした。\n\n"
+            "やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド\n"
+            "（指し手 予想応手 評価値 深さ 出現頻度）が必要です。\n\n"
+            "ファイル: %1").arg(filePath);
+        return result;
     }
 
-    qCInfo(lcUi) << "Loaded" << m_josekiData.size() << "positions from" << filePath;
+    result.success = true;
+    result.positionCount = static_cast<int>(result.josekiData.size());
+
+    qCInfo(lcUi) << "Parsed" << result.positionCount << "positions from" << filePath;
     if (invalidMoveLineCount > 0) {
         qCWarning(lcUi) << invalidMoveLineCount << "lines had invalid format";
     }
 
-    // デバッグ：平手初期局面があるか確認
     QString hirate = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
-    if (m_josekiData.contains(hirate)) {
-        qCDebug(lcUi) << "Hirate position has" << m_josekiData[hirate].size() << "moves";
+    if (result.josekiData.contains(hirate)) {
+        qCDebug(lcUi) << "Hirate position has" << result.josekiData[hirate].size() << "moves";
     }
 
-    return true;
+    return result;
 }
 
-bool JosekiRepository::saveToFile(const QString &filePath, QString *errorMessage) const
+JosekiSaveResult JosekiRepository::serializeToFile(
+    const QString &filePath,
+    const QMap<QString, QVector<JosekiMove>> &josekiData,
+    const QMap<QString, QString> &sfenWithPlyMap)
 {
+    JosekiSaveResult result;
+
     QFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral("ファイルを保存できませんでした: %1").arg(filePath);
-        }
-        return false;
+        result.errorMessage = QStringLiteral("ファイルを保存できませんでした: %1").arg(filePath);
+        return result;
     }
 
     QTextStream out(&file);
 
-    // ヘッダーを書き込み
     out << QStringLiteral("#YANEURAOU-DB2016 1.00\n");
 
-    // 各局面と定跡手を書き込み
-    QMapIterator<QString, QVector<JosekiMove>> it(m_josekiData);
+    QMapIterator<QString, QVector<JosekiMove>> it(josekiData);
     while (it.hasNext()) {
         it.next();
         const QString &normalizedSfen = it.key();
         const QVector<JosekiMove> &moves = it.value();
 
-        // 元のSFEN（手数付き）を取得、なければ正規化SFENを使用
         QString sfenToWrite;
-        if (m_sfenWithPlyMap.contains(normalizedSfen)) {
-            sfenToWrite = m_sfenWithPlyMap[normalizedSfen];
+        if (sfenWithPlyMap.contains(normalizedSfen)) {
+            sfenToWrite = sfenWithPlyMap[normalizedSfen];
         } else {
             sfenToWrite = normalizedSfen;
         }
 
-        // 手数が含まれているか確認し、なければデフォルト値1を追加
         const QStringList parts = sfenToWrite.split(QLatin1Char(' '), Qt::SkipEmptyParts);
         if (parts.size() == 3) {
             sfenToWrite += QStringLiteral(" 1");
         }
 
-        // SFEN行を書き込み
         out << QStringLiteral("sfen ") << sfenToWrite << QStringLiteral("\n");
 
-        // 各指し手を書き込み
         for (const JosekiMove &move : moves) {
             out << move.move << QStringLiteral(" ")
                 << move.nextMove << QStringLiteral(" ")
@@ -381,23 +352,53 @@ bool JosekiRepository::saveToFile(const QString &filePath, QString *errorMessage
                 << move.frequency
                 << QStringLiteral("\n");
 
-            // コメントがあれば次の行に#プレフィックス付きで追加
             if (!move.comment.isEmpty()) {
                 out << QStringLiteral("#") << move.comment << QStringLiteral("\n");
             }
         }
     }
 
-    // 書き込みステータスを確認
     out.flush();
     if (out.status() != QTextStream::Ok) {
-        if (errorMessage) {
-            *errorMessage = QStringLiteral("ファイル書き込み中にエラーが発生しました: %1").arg(filePath);
-        }
+        result.errorMessage = QStringLiteral("ファイル書き込み中にエラーが発生しました: %1").arg(filePath);
         file.close();
-        return false;
+        return result;
     }
 
     file.close();
+    result.success = true;
+    result.savedCount = static_cast<int>(josekiData.size());
+    return result;
+}
+
+void JosekiRepository::applyLoadResult(JosekiLoadResult &&result)
+{
+    m_josekiData = std::move(result.josekiData);
+    m_sfenWithPlyMap = std::move(result.sfenWithPlyMap);
+    m_mergeRegisteredMoves.clear();
+}
+
+bool JosekiRepository::loadFromFile(const QString &filePath, QString *errorMessage)
+{
+    JosekiLoadResult result = parseFromFile(filePath);
+    if (!result.success) {
+        if (errorMessage) {
+            *errorMessage = result.errorMessage;
+        }
+        return false;
+    }
+    applyLoadResult(std::move(result));
+    return true;
+}
+
+bool JosekiRepository::saveToFile(const QString &filePath, QString *errorMessage) const
+{
+    JosekiSaveResult result = serializeToFile(filePath, m_josekiData, m_sfenWithPlyMap);
+    if (!result.success) {
+        if (errorMessage) {
+            *errorMessage = result.errorMessage;
+        }
+        return false;
+    }
     return true;
 }

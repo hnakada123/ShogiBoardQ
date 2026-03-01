@@ -52,6 +52,9 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
 
 EngineRegistrationDialog::~EngineRegistrationDialog()
 {
+    // 進行中の登録処理をキャンセルする
+    m_handler->cancelRegistration();
+
     // ウィンドウサイズを保存
     DialogUtils::saveDialogSize(this, EngineDialogSettings::setEngineRegistrationDialogSize);
 }
@@ -78,6 +81,7 @@ void EngineRegistrationDialog::initializeSignals() const
     // ハンドラシグナルの接続
     connect(m_handler.get(), &EngineRegistrationHandler::engineRegistered, this, &EngineRegistrationDialog::onEngineRegistered);
     connect(m_handler.get(), &EngineRegistrationHandler::errorOccurred, this, &EngineRegistrationDialog::onHandlerError);
+    connect(m_handler.get(), &EngineRegistrationHandler::registrationInProgressChanged, this, &EngineRegistrationDialog::onRegistrationInProgressChanged);
 }
 
 // 追加ボタンが押されたときに呼び出されるスロット
@@ -194,6 +198,20 @@ void EngineRegistrationDialog::onHandlerError(const QString& errorMessage)
 {
     // エラーメッセージを表示する。
     QMessageBox::critical(this, tr("エラー"), errorMessage);
+}
+
+// 登録処理の進行状態変化時のスロット
+void EngineRegistrationDialog::onRegistrationInProgressChanged(bool inProgress)
+{
+    ui->addEngineButton->setEnabled(!inProgress);
+    ui->removeEngineButton->setEnabled(!inProgress);
+    ui->configureEngineButton->setEnabled(!inProgress);
+
+    if (inProgress) {
+        ui->addEngineButton->setText(tr("登録中..."));
+    } else {
+        ui->addEngineButton->setText(tr("追加"));
+    }
 }
 
 // フォントサイズを増加する

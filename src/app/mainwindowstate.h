@@ -32,6 +32,15 @@ class LiveGameSession;
 // --- 前方宣言（KifuState用） ---
 class KifuDisplay;
 
+// --- 前方宣言（RegistryParts用） ---
+class AnalysisTabWiring;
+class RecordPaneWiring;
+class UiActionsWiring;
+class DialogCoordinatorWiring;
+class PositionEditCoordinator;
+class PreStartCleanupHandler;
+class MenuWindowWiring;
+
 /// ドックウィジェット群
 struct DockWidgets {
     QDockWidget* evalChart = nullptr;
@@ -94,6 +103,17 @@ struct KifuState {
     QList<KifuDisplay*> moveRecords;
     QVector<ShogiMove> gameMoves;
     QString saveFileName;
+};
+
+/// Registry経由でのみアクセスされるコントローラ/配線のポインタ群
+struct RegistryParts {
+    AnalysisTabWiring* analysisWiring = nullptr;
+    RecordPaneWiring* recordPaneWiring = nullptr;
+    UiActionsWiring* actionsWiring = nullptr;
+    DialogCoordinatorWiring* dialogCoordinatorWiring = nullptr;
+    PositionEditCoordinator* posEditCoordinator = nullptr;
+    PreStartCleanupHandler* preStartCleanupHandler = nullptr;
+    MenuWindowWiring* menuWiring = nullptr;
 };
 
 /// ゲーム状態

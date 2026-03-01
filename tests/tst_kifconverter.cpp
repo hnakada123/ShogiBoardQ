@@ -310,6 +310,186 @@ private slots:
                      "dispCommentCount=%1 but treeCommentCount=0")
                      .arg(dispCommentCount)));
     }
+    // ========================================
+    // 異常入力テスト: 不正な駒名
+    // ========================================
+
+    void convertFile_invalidPieceName()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badpiece_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("手合割：平手\n"
+                  "手数----指手---------消費時間--\n"
+                  "   1 ７六虎(77)   ( 0:01/00:00:01)\n"
+                  "   2 ３四歩(33)   ( 0:01/00:00:01)\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        // Must not crash; invalid piece may be skipped or produce an error
+        Q_UNUSED(moves);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 不正な座標 (0九, 10一 等)
+    // ========================================
+
+    void convertFile_invalidCoordinate()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badcoord_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("手合割：平手\n"
+                  "手数----指手---------消費時間--\n"
+                  "   1 ０九歩(77)   ( 0:01/00:00:01)\n"
+                  "   2 10一歩(33)   ( 0:01/00:00:01)\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        // Must not crash; invalid coordinates should be handled gracefully
+        Q_UNUSED(moves);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 極端に長い行
+    // ========================================
+
+    void convertFile_extremelyLongLine()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_longline_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("手合割：平手\n"
+                  "手数----指手---------消費時間--\n");
+        // Write a line with 100,000 characters
+        QByteArray longLine = "   1 " + QByteArray(100000, 'X') + "\n";
+        tmp.write(longLine);
+        tmp.close();
+
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        // Must not crash (buffer overflow protection)
+        Q_UNUSED(moves);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 不正な分岐記述
+    // ========================================
+
+    void parseWithVariations_malformedBranch()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_badbranch_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("手合割：平手\n"
+                  "手数----指手---------消費時間--\n"
+                  "   1 ７六歩(77)   ( 0:01/00:00:01)\n"
+                  "   2 ３四歩(33)   ( 0:01/00:00:01)\n"
+                  "\n"
+                  "変化：99手\n"
+                  "  99 ５五角打   ( 0:01/00:00:01)\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString error;
+        // Must not crash even with a branch referencing a non-existent ply
+        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: 途中で切れた入力 (EOF)
+    // ========================================
+
+    void convertFile_truncatedInput()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_truncated_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("手合割：平手\n"
+                  "手数----指手---------消費時間--\n"
+                  "   1 ７六歩(77)   ( 0:01/00:00:01)\n"
+                  "   2 ３四歩(33)   ( 0:01/");
+        // Intentionally truncated mid-line
+        tmp.close();
+
+        QString error;
+        QStringList moves = KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        // Must not crash even with truncated input
+        Q_UNUSED(moves);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // テーブル駆動: 異常入力パターン
+    // ========================================
+
+    void convertFile_abnormalContent_data()
+    {
+        QTest::addColumn<QByteArray>("fileContent");
+
+        QTest::newRow("only_newlines")
+            << QByteArray("\n\n\n\n");
+        QTest::newRow("binary_garbage")
+            << QByteArray("\x01\x02\x03\x04\x05\x06\x07\x08");
+        QTest::newRow("null_bytes")
+            << QByteArray("\x00\x00\x00\x00", 4);
+        QTest::newRow("repeated_headers")
+            << QByteArray("手合割：平手\n手合割：六枚落ち\n手合割：二枚落ち\n");
+        QTest::newRow("move_number_overflow")
+            << QByteArray("手合割：平手\n手数----指手---------消費時間--\n"
+                          "9999999 ７六歩(77)   ( 0:01/00:00:01)\n");
+        QTest::newRow("mixed_encoding_attempt")
+            << QByteArray("手合割：平手\n"
+                          "\x82\xe6\x82\xf1\n"  // Shift_JIS fragment
+                          "手数----指手---------消費時間--\n");
+    }
+
+    void convertFile_abnormalContent()
+    {
+        QFETCH(QByteArray, fileContent);
+
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_abnormal_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write(fileContent);
+        tmp.close();
+
+        QString error;
+        // Must not crash regardless of input
+        (void)KifToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常入力テスト: parseWithVariations で空の変化ブロック
+    // ========================================
+
+    void parseWithVariations_emptyVariationBlock()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_emptyvar_XXXXXX.kif"));
+        QVERIFY(tmp.open());
+        tmp.write("手合割：平手\n"
+                  "手数----指手---------消費時間--\n"
+                  "   1 ７六歩(77)   ( 0:01/00:00:01)\n"
+                  "   2 ３四歩(33)   ( 0:01/00:00:01)\n"
+                  "\n"
+                  "変化：2手\n");
+        // Empty variation block (no moves after the header)
+        tmp.close();
+
+        KifParseResult result;
+        QString error;
+        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        // Must not crash
+        QVERIFY(true);
+    }
 };
 
 QTEST_MAIN(TestKifConverter)

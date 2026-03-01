@@ -50,6 +50,9 @@ public:
     // ===== helpers =====
     void updateTurnStatus(int currentPlayer);
 
+    // ===== delegation (MainWindow スロットからの転送先) =====
+    void setReplayMode(bool on);
+
 private:
     void createTurnStateSyncService();
     void createUndoFlowService();

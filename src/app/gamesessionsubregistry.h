@@ -43,6 +43,10 @@ public:
     void clearGameStateFields();
     void resetEngineState();
 
+    // ===== delegation (MainWindow スロットからの転送先) =====
+    void resetToInitialState();
+    void resetGameState();
+
 private:
     void createLiveGameSessionUpdater();
     void createGameSessionOrchestrator();

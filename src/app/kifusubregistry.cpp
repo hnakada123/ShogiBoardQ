@@ -24,6 +24,7 @@
 #include "commentcoordinator.h"
 #include "kifunavigationcoordinator.h"
 #include "josekiwindowwiring.h"
+#include "kifuexportdepsassembler.h"
 #include "kifuloadcoordinatorfactory.h"
 #include "kifuloadcoordinator.h"
 #include "livegamesessionupdater.h"
@@ -32,6 +33,7 @@
 #include "shogigamecontroller.h"
 #include "logcategories.h"
 
+#include <QStatusBar>
 #include <functional>
 
 KifuSubRegistry::KifuSubRegistry(MainWindow& mw,
@@ -114,7 +116,7 @@ void KifuSubRegistry::ensureKifuFileController()
     };
     callbacks.ensureGameRecordModel = std::bind(&KifuSubRegistry::ensureGameRecordModel, this);
     callbacks.ensureKifuExportController = std::bind(&KifuSubRegistry::ensureKifuExportController, this);
-    callbacks.updateKifuExportDependencies = std::bind(&MainWindow::updateKifuExportDependencies, &m_mw);
+    callbacks.updateKifuExportDependencies = std::bind(&KifuSubRegistry::updateKifuExportDeps, this);
     callbacks.createAndWireKifuLoadCoordinator = [this]() { createAndWireKifuLoadCoordinator(); };
     callbacks.ensureKifuLoadCoordinatorForLive = std::bind(&KifuSubRegistry::ensureKifuLoadCoordinatorForLive, this);
     callbacks.getKifuExportController = [this]() { return m_mw.m_kifuExportController.get(); };
@@ -137,16 +139,12 @@ void KifuSubRegistry::ensureKifuExportController()
     // 準備コールバックを設定（クリップボードコピー等の前に呼ばれる）
     m_mw.m_kifuExportController->setPrepareCallback([this]() {
         ensureGameRecordModel();
-        m_mw.updateKifuExportDependencies();
+        updateKifuExportDeps();
     });
 
     // ステータスバーへのメッセージ転送
     connect(m_mw.m_kifuExportController.get(), &KifuExportController::statusMessage,
-            &m_mw, [this](const QString& msg, int timeout) {
-                if (m_mw.ui && m_mw.ui->statusbar) {
-                    m_mw.ui->statusbar->showMessage(msg, timeout);
-                }
-            });
+            m_mw.statusBar(), &QStatusBar::showMessage);
 }
 
 // ---------------------------------------------------------------------------
@@ -378,4 +376,13 @@ void KifuSubRegistry::createAndWireKifuLoadCoordinator()
     p.notificationService = m_mw.m_notificationService;
 
     m_mw.m_kifuLoadCoordinator = KifuLoadCoordinatorFactory::createAndWire(p);
+}
+
+// ---------------------------------------------------------------------------
+// KifuExportController 依存更新
+// ---------------------------------------------------------------------------
+
+void KifuSubRegistry::updateKifuExportDeps()
+{
+    KifuExportDepsAssembler::assemble(m_mw.m_kifuExportController.get(), m_mw.buildRuntimeRefs());
 }

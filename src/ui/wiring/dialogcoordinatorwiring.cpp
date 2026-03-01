@@ -123,10 +123,10 @@ void DialogCoordinatorWiring::onKifuAnalysisProgress(int ply, int scoreCp)
         m_navigateKifuViewToRow(ply);
     }
 
-    // 2) 評価値グラフに評価値をプロット
+    // 2) 評価値グラフに評価値をプロット（バッチ更新で描画負荷を軽減）
     static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
     if (scoreCp != POSITION_ONLY_MARKER && m_evalChartWidget) {
-        m_evalChartWidget->appendScoreP1(ply, scoreCp, false);
+        m_evalChartWidget->appendScoreP1Buffered(ply, scoreCp, false);
     }
 }
 

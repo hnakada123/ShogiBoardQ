@@ -5,6 +5,9 @@
 #include "usi.h"
 #include "playmode.h"
 
+#include <QThread>
+#include <QtConcurrent>
+
 namespace {
 /// エンジン無応答ガードの余裕時間(ms)
 constexpr int kSafetyMarginMs = 5000;
@@ -21,6 +24,8 @@ TsumeshogiGenerator::TsumeshogiGenerator(QObject* parent)
     connect(&m_safetyTimer, &QTimer::timeout, this, &TsumeshogiGenerator::onSafetyTimeout);
 
     connect(&m_progressTimer, &QTimer::timeout, this, &TsumeshogiGenerator::onProgressTimerTimeout);
+    connect(&m_batchWatcher, &QFutureWatcher<QStringList>::finished,
+            this, &TsumeshogiGenerator::onBatchReady);
 }
 
 TsumeshogiGenerator::~TsumeshogiGenerator()
@@ -61,18 +66,29 @@ void TsumeshogiGenerator::start(const Settings& settings)
     // エンジン起動
     m_usi->startAndInitializeEngine(settings.enginePath, settings.engineName);
 
+    // キャンセルフラグを初期化
+    m_cancelFlag = makeCancelFlag();
+    m_positionQueue.clear();
+    m_waitingForPositions = false;
+
     // タイマー開始
     m_elapsedTimer.start();
     m_progressTimer.start(kProgressIntervalMs);
 
-    // 最初の局面を送信
-    generateAndSendNext();
+    // バッチ生成を開始し、完了後に最初の局面を送信する
+    startBatchGeneration();
 }
 
 void TsumeshogiGenerator::stop()
 {
     if (m_phase == Phase::Idle) return;
     m_phase = Phase::Idle;
+
+    // バッチ生成をキャンセル
+    if (m_cancelFlag) m_cancelFlag->store(true);
+    m_batchWatcher.cancel();
+    m_batchWatcher.waitForFinished();
+
     cleanup();
     emit finished();
 }
@@ -180,8 +196,21 @@ void TsumeshogiGenerator::generateAndSendNext()
 {
     if (m_phase != Phase::Searching) return;
 
-    // 局面を生成
-    m_currentSfen = m_positionGenerator.generate();
+    // キューから局面を取得（空ならバッチ生成完了を待つ）
+    if (m_positionQueue.isEmpty()) {
+        m_waitingForPositions = true;
+        if (!m_batchWatcher.isRunning()) {
+            startBatchGeneration();
+        }
+        return;
+    }
+
+    m_currentSfen = m_positionQueue.takeFirst();
+
+    // キューが少なくなったら次のバッチ生成を先行開始
+    if (m_positionQueue.size() < 2 && !m_batchWatcher.isRunning()) {
+        startBatchGeneration();
+    }
 
     // ThinkingInfoPresenter が info 行を処理する際に盤面データが必要
     // ダミーの盤面データ（81マス空欄）を設定してクラッシュを防ぐ
@@ -233,12 +262,49 @@ void TsumeshogiGenerator::cleanup()
     }
     m_playMode.reset();
 
+    // バッチ生成状態をクリア
+    m_positionQueue.clear();
+    m_waitingForPositions = false;
+    m_cancelFlag.reset();
+
     // トリミング状態をクリア
     m_trimBaseSfen.clear();
     m_trimBasePv.clear();
     m_trimCandidates.clear();
     m_trimCandidateIndex = 0;
     m_trimTestSfen.clear();
+}
+
+// ======================================================================
+// バッチ生成
+// ======================================================================
+
+void TsumeshogiGenerator::startBatchGeneration()
+{
+    if (m_batchWatcher.isRunning()) return;
+
+    const auto settings = m_settings.posGenSettings;
+    const auto cancelFlag = m_cancelFlag;
+    const int batchSize = qMax(QThread::idealThreadCount(), 4);
+
+    auto future = QtConcurrent::run(
+        &TsumeshogiPositionGenerator::generateBatch, settings, batchSize, cancelFlag);
+    m_batchWatcher.setFuture(future);
+}
+
+void TsumeshogiGenerator::onBatchReady()
+{
+    if (m_phase == Phase::Idle) return;
+
+    if (!m_batchWatcher.isCanceled()) {
+        m_positionQueue.append(m_batchWatcher.result());
+    }
+
+    // キュー空待ちだった場合は再開
+    if (m_waitingForPositions && m_phase == Phase::Searching) {
+        m_waitingForPositions = false;
+        generateAndSendNext();
+    }
 }
 
 // ======================================================================
