@@ -165,9 +165,9 @@ int KifuNavigationState::maxPlyOnCurrentLine() const
     return node->ply();
 }
 
-QVector<KifuBranchNode*> KifuNavigationState::branchCandidatesAtCurrent() const
+QList<KifuBranchNode*> KifuNavigationState::branchCandidatesAtCurrent() const
 {
-    QVector<KifuBranchNode*> result;
+    QList<KifuBranchNode*> result;
     if (m_currentNode == nullptr) return result;
 
     KifuBranchNode* parent = m_currentNode->parent();

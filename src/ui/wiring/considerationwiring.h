@@ -111,7 +111,7 @@ public slots:
      * @brief 検討モード中に局面が変更されたときの処理
      */
     bool updatePositionIfNeeded(int row, const QString& newPosition,
-                                const QVector<ShogiMove>* gameMoves,
+                                const QList<ShogiMove>* gameMoves,
                                 KifuRecordListModel* kifuRecordModel);
 
 private slots:

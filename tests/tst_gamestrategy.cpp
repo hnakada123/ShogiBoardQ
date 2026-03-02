@@ -33,7 +33,7 @@ struct StrategyTestHarness {
     ShogiGameController gc;
     ShogiClock clock;
     QStringList sfenRecord;
-    QVector<ShogiMove> gameMoves;
+    QList<ShogiMove> gameMoves;
 
     // フック呼び出しトラッカー
     bool updateTurnDisplayCalled = false;

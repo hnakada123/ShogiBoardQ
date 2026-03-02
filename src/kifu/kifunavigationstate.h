@@ -7,7 +7,7 @@
 
 #include <QObject>
 #include <QHash>
-#include <QVector>
+#include <QList>
 
 class KifuBranchTree;
 class KifuBranchNode;
@@ -125,7 +125,7 @@ public:
     /**
      * @brief 現在位置の分岐候補を取得
      */
-    QVector<KifuBranchNode*> branchCandidatesAtCurrent() const;
+    QList<KifuBranchNode*> branchCandidatesAtCurrent() const;
 
     /**
      * @brief 現在位置に分岐があるかどうか

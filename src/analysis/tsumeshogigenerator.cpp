@@ -4,6 +4,7 @@
 #include "tsumeshogigenerator.h"
 #include "usi.h"
 #include "playmode.h"
+#include "boardconstants.h"
 
 #include <QThread>
 #include <QtConcurrent>
@@ -214,7 +215,7 @@ void TsumeshogiGenerator::generateAndSendNext()
 
     // ThinkingInfoPresenter が info 行を処理する際に盤面データが必要
     // ダミーの盤面データ（81マス空欄）を設定してクラッシュを防ぐ
-    QVector<QChar> dummyBoard(Usi::NUM_BOARD_SQUARES, QChar(' '));
+    QList<QChar> dummyBoard(BoardConstants::kNumBoardSquares, QChar(' '));
     m_usi->setClonedBoardData(dummyBoard);
 
     // position コマンド用の文字列を構築
@@ -338,7 +339,7 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
 
 void TsumeshogiGenerator::sendTrimmingCheck(const QString& modifiedSfen)
 {
-    QVector<QChar> dummyBoard(Usi::NUM_BOARD_SQUARES, QChar(' '));
+    QList<QChar> dummyBoard(BoardConstants::kNumBoardSquares, QChar(' '));
     m_usi->setClonedBoardData(dummyBoard);
 
     QString positionStr = QStringLiteral("position sfen ") + modifiedSfen;
@@ -499,10 +500,10 @@ QChar TsumeshogiGenerator::indexToPieceChar(int idx)
 // トリミング操作
 // ======================================================================
 
-QVector<TsumeshogiGenerator::TrimCandidate>
+QList<TsumeshogiGenerator::TrimCandidate>
 TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen) const
 {
-    QVector<TrimCandidate> candidates;
+    QList<TrimCandidate> candidates;
     ParsedSfen parsed = parseSfen(sfen);
 
     // 盤上の駒を列挙（玉以外）

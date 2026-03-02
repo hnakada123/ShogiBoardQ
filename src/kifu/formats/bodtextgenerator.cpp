@@ -6,7 +6,7 @@
 #include <QChar>
 #include <QMap>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const QString& lastMoveStr)
 {
@@ -81,7 +81,7 @@ QString BodTextGenerator::generate(const QString& sfenStr, int moveIndex, const 
     };
 
     // 盤面を9x9配列に展開
-    QVector<QVector<QString>> board(9, QVector<QString>(9));
+    QList<QList<QString>> board(9, QList<QString>(9));
     const QStringList ranks = boardSfen.split(QLatin1Char('/'));
     for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
         const QString& rankStr = ranks[rank];

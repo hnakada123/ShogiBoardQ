@@ -270,7 +270,7 @@ int KifuSelectionSync::syncBranchTreeHighlightForNode(KifuBranchNode* targetNode
     }
 
     int highlightLineIndex = currentLineIndex;
-    QVector<BranchLine> allLines = m_refs.tree->allLines();
+    QList<BranchLine> allLines = m_refs.tree->allLines();
 
     // 現在のラインにノードが存在するか確認
     bool foundInCurrentLine = false;

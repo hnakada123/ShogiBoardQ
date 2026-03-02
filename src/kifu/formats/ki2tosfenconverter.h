@@ -8,7 +8,7 @@
 #include <QMap>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include "ki2lexer.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
@@ -56,7 +56,7 @@ public:
 
 private:
     static QString generateModifier(
-        const QVector<Ki2Lexer::Candidate>& candidates,
+        const QList<Ki2Lexer::Candidate>& candidates,
         int srcFile, int srcRank,
         int dstFile, int dstRank,
         bool blackToMove);

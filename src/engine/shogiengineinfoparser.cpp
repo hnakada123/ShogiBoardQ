@@ -199,7 +199,7 @@ ShogiGameController::Player ShogiEngineInfoParser::thinkingStartPlayer() const
 // info行解析
 // ============================================================
 
-QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
+QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str, const ShogiGameController* algorithm, QList<QChar>& clonedBoardData,
                                                               const bool isPondering)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
@@ -222,7 +222,7 @@ QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str
     return convertMoveToShogiString(kanjiMovePiece, fileFrom, rankFrom, fileTo, rankTo, promote, algorithm, 0, isPondering);
 }
 
-void ShogiEngineInfoParser::parseEngineInfoTokens(const QStringList& tokens, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
+void ShogiEngineInfoParser::parseEngineInfoTokens(const QStringList& tokens, const ShogiGameController* algorithm, QList<QChar>& clonedBoardData,
                                                   const bool isPondering)
 {
     for (int i = 0; i < tokens.count() - 1; i++) {
@@ -291,7 +291,7 @@ void ShogiEngineInfoParser::setEvaluationBound(EvaluationBound newEvaluationBoun
 // ============================================================
 
 void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line, const ShogiGameController* algorithm,
-                                                            QVector<QChar>& clonedBoardData, const bool isPondering)
+                                                            QList<QChar>& clonedBoardData, const bool isPondering)
 {
     clearParsedInfo();
 
@@ -320,7 +320,7 @@ void ShogiEngineInfoParser::parseEngineOutputAndUpdateState(const QString& line,
     }
 
     const QStringList pvTokens = tokens.mid(pvIndex + 1);
-    QVector<QChar> pvBoardCopy = clonedBoardData;
+    QList<QChar> pvBoardCopy = clonedBoardData;
     parsePvAndSimulateMoves(pvTokens, algorithm, pvBoardCopy, isPondering);
 }
 

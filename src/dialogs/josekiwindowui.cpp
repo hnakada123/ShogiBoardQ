@@ -388,7 +388,7 @@ void JosekiWindow::updateJosekiDisplay()
         return;
     }
 
-    const QVector<JosekiMove> &moves = m_repository->movesForPosition(normalizedSfen);
+    const QList<JosekiMove> &moves = m_repository->movesForPosition(normalizedSfen);
     m_currentMoves = moves;
 
     QString sPly = m_repository->sfenWithPly(normalizedSfen);

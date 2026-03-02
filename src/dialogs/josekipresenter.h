@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 class JosekiRepository;
 struct JosekiMove;
@@ -98,7 +98,7 @@ public:
      * @param currentPly 現在選択中の手数
      * @return マージエントリのリスト
      */
-    QVector<KifuMergeEntry> buildMergeEntries(const QStringList &sfenList,
+    QList<KifuMergeEntry> buildMergeEntries(const QStringList &sfenList,
                                                const QStringList &moveList,
                                                const QStringList &japaneseMoveList,
                                                int currentPly) const;
@@ -111,7 +111,7 @@ public:
      * @return 成功時 true
      */
     bool buildMergeEntriesFromKifFile(const QString &kifFilePath,
-                                      QVector<KifuMergeEntry> &entries,
+                                      QList<KifuMergeEntry> &entries,
                                       QString *errorMessage) const;
 
     /**

@@ -16,6 +16,10 @@
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
 
+namespace {
+constexpr int kColumnWidthLoadDelayMs = 500;
+} // namespace
+
 EngineAnalysisPresenter::EngineAnalysisPresenter(QObject* parent)
     : QObject(parent)
 {
@@ -165,7 +169,7 @@ void EngineAnalysisPresenter::applyThinkingViewColumnWidths(QTableView* v, int v
     }
     h->blockSignals(false);
 
-    QTimer::singleShot(500, this, [this, viewIndex]() {
+    QTimer::singleShot(kColumnWidthLoadDelayMs, this, [this, viewIndex]() {
         if (viewIndex == 0) {
             m_thinkingView1WidthsLoaded = true;
         } else {
@@ -240,6 +244,7 @@ void EngineAnalysisPresenter::applyNumericFormattingTo(QTableView* view, QAbstra
 {
     if (!view || !model) return;
 
+    // delegate は view を Qt parent として生成されるため、view 破棄時に自動削除される
     auto* delegate = new NumericRightAlignCommaDelegate(view);
 
     const QStringList targets = {
@@ -252,7 +257,7 @@ void EngineAnalysisPresenter::applyNumericFormattingTo(QTableView* view, QAbstra
             view->setItemDelegateForColumn(col, delegate);
         }
     }
-}
+} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
 void EngineAnalysisPresenter::reapplyViewTuning(QTableView* v, QAbstractItemModel* m)
 {

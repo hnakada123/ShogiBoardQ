@@ -108,7 +108,7 @@ private slots:
         model.setComment(3, QStringLiteral("分岐ノードのコメント"));
 
         // BranchTree のノードにも反映されている
-        QVector<BranchLine> lines = tree.allLines();
+        QList<BranchLine> lines = tree.allLines();
         QVERIFY(!lines.isEmpty());
         const BranchLine& mainLine = lines.at(0);
         QVERIFY(mainLine.nodes.size() > 3);
@@ -127,7 +127,7 @@ private slots:
         model.setBookmark(4, QStringLiteral("ブックマーク"));
 
         // BranchTree のノードにも反映されている
-        QVector<BranchLine> lines = tree.allLines();
+        QList<BranchLine> lines = tree.allLines();
         QVERIFY(!lines.isEmpty());
         const BranchLine& mainLine = lines.at(0);
         QVERIFY(mainLine.nodes.size() > 4);

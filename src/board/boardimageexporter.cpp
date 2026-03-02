@@ -50,7 +50,7 @@ void BoardImageExporter::saveImage(QWidget* parent, QWidget* boardWidget, const 
     }
 
     struct F { QString key; QString filter; QString ext; };
-    const QVector<F> cands = {
+    const QList<F> cands = {
                               {"png","PNG (*.png)","png"},{"tiff","TIFF (*.tiff *.tif)","tiff"},
                               {"jpeg","JPEG (*.jpg *.jpeg)","jpg"},{"webp","WebP (*.webp)","webp"},
                               {"bmp","BMP (*.bmp)","bmp"},{"ppm","PPM (*.ppm)","ppm"},

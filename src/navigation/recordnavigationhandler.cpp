@@ -93,7 +93,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         bool handledByBranchTree = false;
         if (!gameActivelyInProgress && m_deps.navState != nullptr && m_deps.branchTree != nullptr) {
             const int lineIndex = m_deps.navState->currentLineIndex();
-            QVector<BranchLine> lines = m_deps.branchTree->allLines();
+            QList<BranchLine> lines = m_deps.branchTree->allLines();
             if (lineIndex >= 0 && lineIndex < lines.size()) {
                 const BranchLine& line = lines.at(lineIndex);
                 if (row >= 0 && row < line.nodes.size()) {
@@ -167,7 +167,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         // 分岐ツリーが存在する場合は、ツリーからSFENを取得（対局進行中を除く）
         if (!gameActivelyInProgress && m_deps.navState != nullptr && m_deps.branchTree != nullptr) {
             const int lineIdx = m_deps.navState->currentLineIndex();
-            QVector<BranchLine> treeLines = m_deps.branchTree->allLines();
+            QList<BranchLine> treeLines = m_deps.branchTree->allLines();
             if (lineIdx >= 0 && lineIdx < treeLines.size()) {
                 const BranchLine& ln = treeLines.at(lineIdx);
                 if (row < ln.nodes.size() && ln.nodes.at(row) != nullptr) {
@@ -207,7 +207,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         // 分岐ツリーが存在する場合はツリーから正しいSFENを取得
         // 対局進行中は sfenRecord を正とするためスキップする
         if (!gameActivelyInProgress && m_deps.navState != nullptr && m_deps.branchTree != nullptr) {
-            QVector<BranchLine> lines = m_deps.branchTree->allLines();
+            QList<BranchLine> lines = m_deps.branchTree->allLines();
             if (lineIndex >= 0 && lineIndex < lines.size()) {
                 const BranchLine& line = lines.at(lineIndex);
                 if (row >= 0 && row < line.nodes.size()) {
@@ -229,7 +229,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         // 補助フォールバック: SFENが取れなくても、plyベースでノード同期は可能。
         // onPositionChanged() は sfen を直接参照しないため、空でも処理させる。
         if (sfen.isEmpty() && m_deps.branchTree != nullptr && lineIndex >= 0) {
-            QVector<BranchLine> lines = m_deps.branchTree->allLines();
+            QList<BranchLine> lines = m_deps.branchTree->allLines();
             if (lineIndex < lines.size()) {
                 const BranchLine& line = lines.at(lineIndex);
                 if (row >= 0 && row < line.nodes.size() && line.nodes.at(row) != nullptr) {

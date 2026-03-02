@@ -6,7 +6,6 @@
 
 #include <QTest>
 #include "gamestartorchestrator.h"
-#include "startgamedialog.h"
 #include "shogigamecontroller.h"
 #include "settingscommon.h"
 
@@ -74,7 +73,7 @@ struct OrcTestHarness {
     QString positionStr1;
     QString positionPonder1;
     QStringList positionStrHistory;
-    QVector<QStringList> allGameHistories;
+    QList<QStringList> allGameHistories;
 
     OrcTestHarness()
     {

@@ -6,13 +6,13 @@
 
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 #include "matchcoordinator.h"
+#include "startgamedatabridge.h"
 
 class ShogiGameController;
-class StartGameDialog;
 
 /**
  * @brief 対局開始フロー（オプション構築・履歴探索・position文字列構築）を担当する
@@ -55,7 +55,7 @@ public:
         QStringList* positionStrHistory = nullptr;
 
         // 対局履歴
-        QVector<QStringList>* allGameHistories = nullptr;
+        QList<QStringList>* allGameHistories = nullptr;
     };
 
     /**
@@ -124,14 +124,14 @@ public:
     static StartOptions buildStartOptions(PlayMode mode,
                                           const QString& startSfenStr,
                                           const QStringList* sfenRecord,
-                                          const StartGameDialog* dlg);
+                                          const StartGameDialogData* dlg);
 
-    void ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1);
+    void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, bool bottomIsP1);
 
     void prepareAndStartGame(PlayMode mode,
                              const QString& startSfenStr,
                              const QStringList* sfenRecord,
-                             const StartGameDialog* dlg,
+                             const StartGameDialogData* dlg,
                              bool bottomIsP1);
 
 private:

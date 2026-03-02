@@ -77,7 +77,7 @@ public:
     void setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb);
     void setUpdatePlyStateCallback(UpdatePlyStateCallback cb);
 
-public Q_SLOTS:
+public slots:
     /// 対局終了シグナルのハンドラ（→ MatchCoordinator::gameEnded から接続）
     void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
 

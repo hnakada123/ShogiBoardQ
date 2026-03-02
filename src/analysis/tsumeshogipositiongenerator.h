@@ -7,7 +7,7 @@
 #include <QString>
 #include <QRandomGenerator>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include "shogitypes.h"
 #include "threadtypes.h"
 
@@ -70,7 +70,7 @@ private:
     bool needsPromotion(PieceType pt, int rank, bool isAttacker) const;
     bool isInvalidPlacement(PieceType pt, int rank, bool isAttacker) const;
     bool isKingInCheck() const;
-    QVector<Piece> buildBoardData() const;
+    QList<Piece> buildBoardData() const;
     static QChar promotedPieceChar(QChar base);
     QString buildSfen() const;
 };

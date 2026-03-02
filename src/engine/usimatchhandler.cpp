@@ -12,10 +12,10 @@
 
 namespace {
 
-/// QVector<Piece> → QVector<QChar> 変換（ShogiBoard::boardData() → 内部クローン用）
-QVector<QChar> pieceVectorToCharVector(const QVector<Piece>& pieces)
+/// QList<Piece> → QList<QChar> 変換（ShogiBoard::boardData() → 内部クローン用）
+QList<QChar> pieceVectorToCharVector(const QList<Piece>& pieces)
 {
-    QVector<QChar> chars;
+    QList<QChar> chars;
     chars.reserve(pieces.size());
     for (const Piece p : pieces) {
         chars.append(pieceToChar(p));
@@ -122,7 +122,7 @@ void UsiMatchHandler::prepareBoardDataForAnalysis()
     }
 }
 
-void UsiMatchHandler::setClonedBoardData(const QVector<QChar>& boardData)
+void UsiMatchHandler::setClonedBoardData(const QList<QChar>& boardData)
 {
     m_clonedBoardData = boardData;
     if (m_presenter) {

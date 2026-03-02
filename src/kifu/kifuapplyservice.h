@@ -6,7 +6,7 @@
 
 #include <QObject>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QHash>
 #include <QSet>
 #include <QList>
@@ -49,11 +49,11 @@ public:
     struct Refs {
         // 棋譜データ（直接ポインタ: アドレス不変）
         QStringList* kifuUsiMoves = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         QStringList* positionStrList = nullptr;
         QList<KifDisplayItem>* dispMain = nullptr;
         QStringList* sfenMain = nullptr;
-        QVector<ShogiMove>* gmMain = nullptr;
+        QList<ShogiMove>* gmMain = nullptr;
         QHash<int, QList<KifLine>>* variationsByPly = nullptr;
         QList<KifLine>* variationsSeq = nullptr;
 

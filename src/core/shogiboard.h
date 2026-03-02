@@ -5,7 +5,7 @@
 /// @brief 将棋盤の状態管理クラスの定義
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 #include <QMap>
 #include "shogitypes.h"
 
@@ -31,7 +31,7 @@ public:
     Piece getPieceCharacter(const int file, const int rank);
 
     /// 盤面データ（81マスの駒配列）を返す
-    const QVector<Piece>& boardData() const;
+    const QList<Piece>& boardData() const;
 
     /// 駒台データを返す
     const QMap<Piece, int>& getPieceStand() const;
@@ -118,7 +118,7 @@ signals:
 private:
     int m_ranks;                    ///< 盤の段数（9）
     int m_files;                    ///< 盤の筋数（9）
-    QVector<Piece> m_boardData;     ///< 81マスの駒データ
+    QList<Piece> m_boardData;     ///< 81マスの駒データ
     int m_currentMoveNumber;        ///< SFEN文字列の手数
     Turn m_currentPlayer = Turn::Black; ///< 現在の手番
 

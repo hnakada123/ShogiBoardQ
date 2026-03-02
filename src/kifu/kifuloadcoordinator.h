@@ -37,7 +37,7 @@ class KifuLoadCoordinator : public QObject
     Q_OBJECT
 
 public:
-    explicit KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
+    explicit KifuLoadCoordinator(QList<ShogiMove>& gameMoves,
                         QStringList& positionStrList,
                         int& activePly,
                         int& currentSelectedPly,
@@ -157,12 +157,12 @@ private:
     // --- 棋譜データ ---
     QStringList m_kifuUsiMoves;               ///< USI形式の指し手リスト
     QStringList* m_sfenHistory;                ///< 局面SFEN列への参照（非所有）
-    QVector<ShogiMove>& m_gameMoves;          ///< ゲーム指し手列への参照
+    QList<ShogiMove>& m_gameMoves;          ///< ゲーム指し手列への参照
     QStringList& m_positionStrList;           ///< USI positionコマンド列への参照
     QList<KifDisplayItem> m_dispMain;         ///< 本譜の表示データスナップショット
     QList<KifDisplayItem> m_dispCurrent;      ///< 現在表示中の表示データ
     QStringList           m_sfenMain;         ///< 本譜のSFEN列スナップショット
-    QVector<ShogiMove>    m_gmMain;           ///< 本譜のゲーム指し手スナップショット
+    QList<ShogiMove>    m_gmMain;           ///< 本譜のゲーム指し手スナップショット
     QHash<int, QList<KifLine>> m_variationsByPly; ///< ply→変化リストのマップ
     QList<KifLine> m_variationsSeq;           ///< 変化の入力順リスト
     RecordPane* m_recordPane;                 ///< 棋譜ペイン（非所有）

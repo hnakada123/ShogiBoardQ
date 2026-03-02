@@ -59,7 +59,7 @@ private slots:
         bb.set(70);
         bb.set(30);
 
-        QVector<int> popped;
+        QList<int> popped;
         while (bb.any()) {
             popped.append(static_cast<int>(bb.popFirst()));
         }

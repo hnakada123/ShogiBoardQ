@@ -2,6 +2,7 @@
 /// @brief CSA/USI/SFEN形式変換ユーティリティクラスの実装
 
 #include "csamoveconverter.h"
+#include "boardconstants.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "logcategories.h"
@@ -129,7 +130,7 @@ QString CsaMoveConverter::boardToCSA(const QPoint& from, const QPoint& to, bool 
     qCDebug(lcNetwork) << "Calculated: fromFile=" << fromFile << "fromRank=" << fromRank
                        << "toFile=" << toFile << "toRank=" << toRank;
 
-    bool isDrop = (from.x() >= 10);
+    bool isDrop = (from.x() >= BoardConstants::kBlackStandFile);
     if (isDrop) {
         fromFile = 0;
         fromRank = 0;

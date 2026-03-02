@@ -85,7 +85,7 @@ public:
      */
     void beginPositionEditing();
 
-public Q_SLOTS:
+public slots:
     /**
      * @brief 局面編集を終了
      */

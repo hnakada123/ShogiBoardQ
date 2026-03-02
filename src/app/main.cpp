@@ -98,26 +98,16 @@ int main(int argc, char *argv[])
     bool loaded = false;
     if (langSetting == "ja_JP") {
         // 日本語を明示的に指定
-        loaded = translator.load(":/i18n/ShogiBoardQ_ja_JP");
-        qCInfo(lcApp) << "Trying :/i18n/ShogiBoardQ_ja_JP ->" << (loaded ? "SUCCESS" : "FAILED");
-        if (!loaded) {
-            // ビルドディレクトリから読み込みを試行
-            loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_ja_JP.qm");
-            qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_ja_JP.qm ->" << (loaded ? "SUCCESS" : "FAILED");
-        }
+        loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_ja_JP.qm");
+        qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_ja_JP.qm ->" << (loaded ? "SUCCESS" : "FAILED");
         if (loaded) {
             a.installTranslator(&translator);
             qCInfo(lcApp) << "Translator installed for ja_JP";
         }
     } else if (langSetting == "en") {
         // 英語翻訳ファイルをロード
-        loaded = translator.load(":/i18n/ShogiBoardQ_en");
-        qCInfo(lcApp) << "Trying :/i18n/ShogiBoardQ_en ->" << (loaded ? "SUCCESS" : "FAILED");
-        if (!loaded) {
-            // ビルドディレクトリから読み込みを試行
-            loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_en.qm");
-            qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_en.qm ->" << (loaded ? "SUCCESS" : "FAILED");
-        }
+        loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_en.qm");
+        qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_en.qm ->" << (loaded ? "SUCCESS" : "FAILED");
         if (loaded) {
             a.installTranslator(&translator);
             qCInfo(lcApp) << "Translator installed for en";
@@ -131,8 +121,8 @@ int main(int argc, char *argv[])
         qCInfo(lcApp) << "System UI languages:" << uiLanguages;
         for (const QString &locale : uiLanguages) {
             const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
-            loaded = translator.load(":/i18n/" + baseName);
-            qCInfo(lcApp) << "Trying :/i18n/" << baseName << "->" << (loaded ? "SUCCESS" : "FAILED");
+            loaded = translator.load(QCoreApplication::applicationDirPath() + "/" + baseName + ".qm");
+            qCInfo(lcApp) << "Trying applicationDir/" << baseName << ".qm ->" << (loaded ? "SUCCESS" : "FAILED");
             if (loaded) {
                 a.installTranslator(&translator);
                 qCInfo(lcApp) << "Translator installed for" << baseName;

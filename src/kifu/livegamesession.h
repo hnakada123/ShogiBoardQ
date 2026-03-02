@@ -6,7 +6,7 @@
 
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 #include <QStringList>
 #include <QSet>
 
@@ -137,7 +137,7 @@ public:
     /**
      * @brief 追加した手のリストを取得
      */
-    QVector<KifDisplayItem> moves() const { return m_moves; }
+    QList<KifDisplayItem> moves() const { return m_moves; }
 
     /**
      * @brief 最新局面のSFENを取得
@@ -203,8 +203,8 @@ private:
     KifuBranchTree* m_tree = nullptr;
     KifuBranchNode* m_liveParent = nullptr;  // ツリー内の現在位置を追跡（リアルタイム更新用）
 
-    QVector<KifDisplayItem> m_moves;
-    QVector<ShogiMove> m_gameMoves;
+    QList<KifDisplayItem> m_moves;
+    QList<ShogiMove> m_gameMoves;
     QStringList m_sfens;
 };
 

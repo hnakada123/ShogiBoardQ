@@ -21,9 +21,9 @@
 
 GameInfoPaneController::GameInfoPaneController(QObject* parent)
     : QObject(parent)
+    , m_fontSize(GameSettings::gameInfoFontSize())
 {
-    // 設定からフォントサイズを読み込む
-    m_fontSize = GameSettings::gameInfoFontSize();
+    // 設定値の範囲チェック
     if (m_fontSize < 8)  m_fontSize = 10;
     if (m_fontSize > 24) m_fontSize = 24;
 

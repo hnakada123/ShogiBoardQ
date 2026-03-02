@@ -24,8 +24,10 @@ void DialogCoordinatorWiring::ensure(const Deps& deps)
     const bool firstTime = !m_coordinator;
     if (firstTime) {
         m_coordinator = new DialogCoordinator(deps.parentWidget, deps.parentWidget);
-        m_coordinator->setMatchCoordinator(deps.match);
-        m_coordinator->setGameController(deps.gameController);
+        DialogCoordinator::Deps dcDeps;
+        dcDeps.matchCoordinator = deps.match;
+        dcDeps.gameController = deps.gameController;
+        m_coordinator->updateDeps(dcDeps);
         wireSignals(deps);
     }
 

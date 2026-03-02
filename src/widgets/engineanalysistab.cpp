@@ -277,7 +277,7 @@ BranchTreeManager* EngineAnalysisTab::branchTreeManager()
     return m_branchTreeManager;
 }
 
-void EngineAnalysisTab::setBranchTreeRows(const QVector<ResolvedRowLite>& rows)
+void EngineAnalysisTab::setBranchTreeRows(const QList<ResolvedRowLite>& rows)
 {
     ensureBranchTreeManager();
     m_branchTreeManager->setBranchTreeRows(rows);

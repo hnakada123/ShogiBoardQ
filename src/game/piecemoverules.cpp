@@ -3,6 +3,7 @@
 
 #include "piecemoverules.h"
 #include "shogiboard.h"
+#include "boardconstants.h"
 
 // ============================================================
 // 総合チェック
@@ -32,7 +33,7 @@ bool PieceMoveRules::checkTwoPawn(ShogiBoard* board,
     if (fileFrom == fileTo) return true;
 
     if (source == Piece::BlackPawn) {
-        if (fileTo < 10) {
+        if (fileTo < BoardConstants::kBlackStandFile) {
             for (int rank = 1; rank <= 9; rank++) {
                 if (board->getPieceCharacter(fileTo, rank) == Piece::BlackPawn) return false;
             }
@@ -40,7 +41,7 @@ bool PieceMoveRules::checkTwoPawn(ShogiBoard* board,
     }
 
     if (source == Piece::WhitePawn) {
-        if (fileTo < 10) {
+        if (fileTo < BoardConstants::kBlackStandFile) {
             for (int rank = 1; rank <= 9; rank++) {
                 if (board->getPieceCharacter(fileTo, rank) == Piece::WhitePawn) return false;
             }
@@ -57,17 +58,17 @@ bool PieceMoveRules::checkTwoPawn(ShogiBoard* board,
 bool PieceMoveRules::checkWhetherAllyPiece(Piece source, Piece dest,
                                            int fileFrom, int fileTo)
 {
-    if (fileTo < 10) {
+    if (fileTo < BoardConstants::kBlackStandFile) {
         // 同じ先手/後手同士の場合は味方の駒
         if (isBlackPiece(source) && isBlackPiece(dest)) {
-            if ((fileFrom < 10) && (fileTo > 9)) {
+            if ((fileFrom < BoardConstants::kBlackStandFile) && (fileTo >= BoardConstants::kBlackStandFile)) {
                 return true;
             } else {
                 return false;
             }
         }
         if (isWhitePiece(source) && isWhitePiece(dest)) {
-            if ((fileFrom < 10) && (fileTo > 9)) {
+            if ((fileFrom < BoardConstants::kBlackStandFile) && (fileTo >= BoardConstants::kBlackStandFile)) {
                 return true;
             } else {
                 return false;
@@ -96,7 +97,7 @@ bool PieceMoveRules::checkFromPieceStandToPieceStand(Piece source, Piece dest,
                                                      int fileFrom, int fileTo)
 {
     // 先手駒台→後手駒台: 同種の駒のみ移動可能
-    if ((fileFrom == 10) && (fileTo == 11)) {
+    if ((fileFrom == BoardConstants::kBlackStandFile) && (fileTo == BoardConstants::kWhiteStandFile)) {
         Piece destAsBlack = toBlack(dest);
         if (source == destAsBlack) {
             return true;
@@ -105,7 +106,7 @@ bool PieceMoveRules::checkFromPieceStandToPieceStand(Piece source, Piece dest,
         }
     }
     // 後手駒台→先手駒台: 同種の駒のみ移動可能
-    if ((fileFrom == 11) && (fileTo == 10)) {
+    if ((fileFrom == BoardConstants::kWhiteStandFile) && (fileTo == BoardConstants::kBlackStandFile)) {
         Piece destAsWhite = toWhite(dest);
         if (source == destAsWhite) {
             return true;
@@ -139,7 +140,7 @@ bool PieceMoveRules::checkGetKingOpponentPiece(Piece source, Piece dest)
 bool PieceMoveRules::shouldAutoPromote(int fileTo, int rankTo, Piece source)
 {
     // 駒台への移動は成りなし
-    if (fileTo >= 10) {
+    if (fileTo >= BoardConstants::kBlackStandFile) {
         return false;
     }
 

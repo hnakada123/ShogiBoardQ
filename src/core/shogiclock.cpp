@@ -12,8 +12,8 @@
 
 ShogiClock::ShogiClock(QObject *parent)
     : QObject(parent)
+    , m_timer(new QTimer(this))
 {
-    m_timer = new QTimer(this);
     m_timer->setTimerType(Qt::PreciseTimer);
     m_timer->setInterval(kTickMs);
     connect(m_timer, &QTimer::timeout, this, &ShogiClock::updateClock);

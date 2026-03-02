@@ -144,7 +144,7 @@ QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol)
     }
 }
 
-QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, const int file, const int rank)
+QChar ShogiEngineInfoParser::getPieceCharacter(const QList<QChar>& boardData, const int file, const int rank)
 {
     if ((file >= 1) && (file <= 9)) {
         return boardData.at((rank - 1) * BOARD_SIZE + (file - 1));
@@ -171,7 +171,7 @@ QChar ShogiEngineInfoParser::getPieceCharacter(const QVector<QChar>& boardData, 
 // 盤面操作
 // ============================================================
 
-bool ShogiEngineInfoParser::setData(QVector<QChar>& boardData, const int file, const int rank, const QChar piece) const
+bool ShogiEngineInfoParser::setData(QList<QChar>& boardData, const int file, const int rank, const QChar piece) const
 {
     int index = (rank - 1) * BOARD_SIZE + (file - 1);
 
@@ -182,7 +182,7 @@ bool ShogiEngineInfoParser::setData(QVector<QChar>& boardData, const int file, c
     return true;
 }
 
-void ShogiEngineInfoParser::movePieceToSquare(QVector<QChar>& boardData, QChar movingPiece, int fileFrom, int rankFrom,
+void ShogiEngineInfoParser::movePieceToSquare(QList<QChar>& boardData, QChar movingPiece, int fileFrom, int rankFrom,
                                               int fileTo, int rankTo, bool promote) const
 {
     if (promote) {
@@ -209,7 +209,7 @@ void ShogiEngineInfoParser::movePieceToSquare(QVector<QChar>& boardData, QChar m
 // PV解析・盤面シミュレーション
 // ============================================================
 
-int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, const ShogiGameController* algorithm, QVector<QChar>& clonedBoardData,
+int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, const ShogiGameController* algorithm, QList<QChar>& clonedBoardData,
                                                    const bool isPondering)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
@@ -263,7 +263,7 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
     return 0;
 }
 
-void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, QVector<QChar>& clonedBoardData)
+void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, QList<QChar>& clonedBoardData)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
     bool promote = false;
@@ -284,7 +284,7 @@ void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, Q
 // bestmove予想手の変換
 // ============================================================
 
-QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGameController* algorithm, QString& predictedOpponentMove, QVector<QChar>& clonedBoardData)
+QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGameController* algorithm, QString& predictedOpponentMove, QList<QChar>& clonedBoardData)
 {
     int fileFrom = 0, rankFrom = 0, fileTo = 0, rankTo = 0;
     bool promote = false;
@@ -316,7 +316,7 @@ QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGame
 // デバッグ出力
 // ============================================================
 
-void ShogiEngineInfoParser::printShogiBoard(const QVector<QChar>& boardData) const
+void ShogiEngineInfoParser::printShogiBoard(const QList<QChar>& boardData) const
 {
     if (boardData.size() != NUM_BOARD_SQUARES) {
         qCDebug(lcEngine) << "無効な盤面データ";

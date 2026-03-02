@@ -5,7 +5,7 @@
 #define JOSEKIREPOSITORY_H
 
 #include <QMap>
-#include <QVector>
+#include <QList>
 #include <QString>
 #include <QSet>
 
@@ -60,7 +60,7 @@ public:
      */
     [[nodiscard]] static JosekiSaveResult serializeToFile(
         const QString &filePath,
-        const QMap<QString, QVector<JosekiMove>> &josekiData,
+        const QMap<QString, QList<JosekiMove>> &josekiData,
         const QMap<QString, QString> &sfenWithPlyMap);
 
     /**
@@ -72,8 +72,8 @@ public:
     // --- データアクセス ---
 
     /** @brief 定跡データ全体への参照 */
-    const QMap<QString, QVector<JosekiMove>> &josekiData() const { return m_josekiData; }
-    QMap<QString, QVector<JosekiMove>> &josekiData() { return m_josekiData; }
+    const QMap<QString, QList<JosekiMove>> &josekiData() const { return m_josekiData; }
+    QMap<QString, QList<JosekiMove>> &josekiData() { return m_josekiData; }
 
     /** @brief 元のSFEN（手数付き）マップへの参照 */
     const QMap<QString, QString> &sfenWithPlyMap() const { return m_sfenWithPlyMap; }
@@ -96,7 +96,7 @@ public:
     bool containsPosition(const QString &normalizedSfen) const;
 
     /** @brief 指定局面の定跡手を取得する */
-    const QVector<JosekiMove> &movesForPosition(const QString &normalizedSfen) const;
+    const QList<JosekiMove> &movesForPosition(const QString &normalizedSfen) const;
 
     /** @brief 指定局面に定跡手を追加する */
     void addMove(const QString &normalizedSfen, const JosekiMove &move);
@@ -136,7 +136,7 @@ public:
 
 private:
     /// 定跡データ（正規化SFEN → 指し手リスト）
-    QMap<QString, QVector<JosekiMove>> m_josekiData;
+    QMap<QString, QList<JosekiMove>> m_josekiData;
 
     /// 元のSFEN（手数付き）を保持（正規化SFEN → 元のSFEN）
     QMap<QString, QString> m_sfenWithPlyMap;
@@ -145,7 +145,7 @@ private:
     QSet<QString> m_mergeRegisteredMoves;
 
     /// 空の定跡手リスト（参照返却のフォールバック用）
-    static const QVector<JosekiMove> s_emptyMoves;
+    static const QList<JosekiMove> s_emptyMoves;
 };
 
 #endif // JOSEKIREPOSITORY_H

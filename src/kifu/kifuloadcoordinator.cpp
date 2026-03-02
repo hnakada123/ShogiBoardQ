@@ -29,7 +29,11 @@
 #include <QDir>
 #include <QElapsedTimer>
 
-KifuLoadCoordinator::KifuLoadCoordinator(QVector<ShogiMove>& gameMoves,
+namespace {
+const QColor kBranchHighlightColor(255, 220, 160);
+} // namespace
+
+KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves,
                                          QStringList& positionStrList,
                                          int& activePly,
                                          int& currentSelectedPly,
@@ -432,7 +436,7 @@ void KifuLoadCoordinator::updateKifuBranchMarkersForActiveRow()
     QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
 
     if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        QVector<BranchLine> lines = m_branchTree->allLines();
+        QList<BranchLine> lines = m_branchTree->allLines();
         const int nLines = static_cast<int>(lines.size());
         const int currentLineIdx = (m_navState != nullptr) ? m_navState->currentLineIndex() : 0;
         const int active = (nLines == 0) ? 0 : qBound(0, currentLineIdx, nLines - 1);
@@ -480,7 +484,7 @@ void KifuLoadCoordinator::BranchRowDelegate::paint(QPainter* painter, const QSty
 
     if (isBranchable && !(opt.state & QStyle::State_Selected)) {
         painter->save();
-        painter->fillRect(opt.rect, QColor(255, 220, 160));
+        painter->fillRect(opt.rect, kBranchHighlightColor);
         painter->restore();
     }
 
@@ -532,7 +536,7 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
     m_branchablePlySet.clear();
 
     if (m_branchTreeManager) {
-        QVector<BranchTreeManager::ResolvedRowLite> emptyRows;
+        QList<BranchTreeManager::ResolvedRowLite> emptyRows;
         m_branchTreeManager->setBranchTreeRows(emptyRows);
     }
 

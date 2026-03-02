@@ -71,7 +71,7 @@ private:
 
         ShogiMove dummyMove;
         auto* current = tree.root();
-        QVector<KifuBranchNode*> mainNodes;
+        QList<KifuBranchNode*> mainNodes;
         mainNodes.append(current);  // ply 0
         for (int i = 0; i < mainUsiMoves.size(); ++i) {
             current = tree.addMove(current, dummyMove, mainDisplayMoves.at(i), mainSfens.at(i + 1));
@@ -253,7 +253,7 @@ private slots:
     {
         UiHarness h;
         // ply 3 のノードにコメントを設定
-        QVector<BranchLine> lines = h.tree.allLines();
+        QList<BranchLine> lines = h.tree.allLines();
         QVERIFY(!lines.isEmpty());
         QVERIFY(lines.at(0).nodes.size() > 3);
         KifuBranchNode* node3 = lines.at(0).nodes.at(3);
@@ -287,7 +287,7 @@ private slots:
     {
         UiHarness h;
         // ply 2 のノードにコメントを設定
-        QVector<BranchLine> lines = h.tree.allLines();
+        QList<BranchLine> lines = h.tree.allLines();
         QVERIFY(!lines.isEmpty());
         QVERIFY(lines.at(0).nodes.size() > 2);
         KifuBranchNode* node2 = lines.at(0).nodes.at(2);
@@ -321,7 +321,7 @@ private slots:
     {
         UiHarness h;
         // ply 1 のノードはコメントなし
-        QVector<BranchLine> lines = h.tree.allLines();
+        QList<BranchLine> lines = h.tree.allLines();
         QVERIFY(!lines.isEmpty());
         QVERIFY(lines.at(0).nodes.size() > 1);
         KifuBranchNode* node1 = lines.at(0).nodes.at(1);

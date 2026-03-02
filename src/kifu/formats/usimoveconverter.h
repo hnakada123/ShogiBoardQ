@@ -5,7 +5,7 @@
 /// @brief USI指し手変換クラスの定義
 
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 struct ShogiMove;
 
@@ -22,7 +22,7 @@ public:
      * @param moves ShogiMove構造体のリスト
      * @return USI形式の指し手文字列リスト
      */
-    static QStringList fromGameMoves(const QVector<ShogiMove>& moves);
+    static QStringList fromGameMoves(const QList<ShogiMove>& moves);
 
     /**
      * @brief SFENレコード（局面列）からUSI指し手リストを生成

@@ -7,7 +7,7 @@
 
 #include <QObject>
 #include <QHash>
-#include <QVector>
+#include <QList>
 #include <QSet>
 #include <QList>
 
@@ -22,7 +22,7 @@ class KifuBranchTree;
 struct BranchLine {
     int lineIndex = 0;                      // 0=本譜、1以降=分岐
     QString name;                           // "本譜", "分岐1"...
-    QVector<KifuBranchNode*> nodes;         // ノード列（ルートから終端まで）
+    QList<KifuBranchNode*> nodes;         // ノード列（ルートから終端まで）
     int branchPly = 0;                      // 分岐開始手数（本譜は0）
     KifuBranchNode* branchPoint = nullptr;  // 分岐点のノード（本譜はnullptr）
 };
@@ -139,17 +139,17 @@ public:
     /**
      * @brief 本譜のノード列を取得
      */
-    QVector<KifuBranchNode*> mainLine() const;
+    QList<KifuBranchNode*> mainLine() const;
 
     /**
      * @brief ルートから指定ノードまでの経路を取得
      */
-    QVector<KifuBranchNode*> pathToNode(KifuBranchNode* node) const;
+    QList<KifuBranchNode*> pathToNode(KifuBranchNode* node) const;
 
     /**
      * @brief 全てのラインを取得
      */
-    QVector<BranchLine> allLines() const;
+    QList<BranchLine> allLines() const;
 
     /**
      * @brief ライン数を取得
@@ -211,8 +211,8 @@ signals:
 private:
     KifuBranchNode* createNode();
     void collectLinesRecursive(KifuBranchNode* node,
-                               QVector<KifuBranchNode*>& currentPath,
-                               QVector<BranchLine>& lines,
+                               QList<KifuBranchNode*>& currentPath,
+                               QList<BranchLine>& lines,
                                int& lineIndex) const;
     void invalidateLineCache();
 
@@ -220,7 +220,7 @@ private:
     QHash<int, KifuBranchNode*> m_nodeById;
     int m_nextNodeId = 1;
 
-    mutable QVector<BranchLine> m_linesCache;
+    mutable QList<BranchLine> m_linesCache;
     mutable bool m_linesCacheDirty = true;
 };
 

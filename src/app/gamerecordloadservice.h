@@ -3,7 +3,7 @@
 
 #include <QList>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 class GameRecordModel;
@@ -26,8 +26,8 @@ public:
     struct Deps {
         // State pointers（外部所有）
         QStringList* gameUsiMoves = nullptr;          ///< USI形式指し手リスト
-        QVector<ShogiMove>* gameMoves = nullptr;      ///< ShogiMove リスト
-        QVector<QString>* commentsByRow = nullptr;    ///< 行ごとのコメント配列
+        QList<ShogiMove>* gameMoves = nullptr;      ///< ShogiMove リスト
+        QList<QString>* commentsByRow = nullptr;    ///< 行ごとのコメント配列
 
         // Object pointers（非所有）
         GameRecordModel* gameRecord = nullptr;        ///< 棋譜データモデル

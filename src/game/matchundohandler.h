@@ -6,7 +6,7 @@
 
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 #include "shogimove.h"
@@ -36,7 +36,7 @@ public:
         QString* positionStr1 = nullptr;
         QString* positionPonder1 = nullptr;
         QStringList* positionStrHistory = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
     };
 
     /// UNDO に必要な外部参照（棋譜UI固有）

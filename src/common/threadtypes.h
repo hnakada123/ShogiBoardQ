@@ -1,4 +1,5 @@
-#pragma once
+#ifndef THREADTYPES_H
+#define THREADTYPES_H
 
 #include <QString>
 #include <QList>
@@ -17,3 +18,5 @@ inline CancelFlag makeCancelFlag()
 {
     return std::make_shared<std::atomic_bool>(false);
 }
+
+#endif // THREADTYPES_H

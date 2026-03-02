@@ -7,7 +7,7 @@
 
 #include <QObject>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QTimer>
 #include <limits>
 

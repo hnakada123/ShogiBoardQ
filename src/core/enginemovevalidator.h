@@ -5,7 +5,7 @@
 /// @brief Context方式の高速合法手判定クラス
 
 #include <QMap>
-#include <QVector>
+#include <QList>
 
 #include "legalmovestatus.h"
 #include "shogimove.h"
@@ -38,7 +38,7 @@ public:
     // ---- Context主経路 ----
     [[nodiscard]] bool syncContext(Context& ctx,
                      const Turn& turn,
-                     const QVector<Piece>& boardData,
+                     const QList<Piece>& boardData,
                      const QMap<Piece, int>& pieceStand) const;
 
     LegalMoveStatus isLegalMove(Context& ctx, ShogiMove& move) const;
@@ -50,16 +50,16 @@ public:
 
     // ---- 互換ラッパ ----
     LegalMoveStatus isLegalMove(const Turn& turn,
-                                const QVector<Piece>& boardData,
+                                const QList<Piece>& boardData,
                                 const QMap<Piece, int>& pieceStand,
                                 ShogiMove& currentMove) const;
 
     int generateLegalMoves(const Turn& turn,
-                           const QVector<Piece>& boardData,
+                           const QList<Piece>& boardData,
                            const QMap<Piece, int>& pieceStand) const;
 
     int checkIfKingInCheck(const Turn& turn,
-                           const QVector<Piece>& boardData) const;
+                           const QList<Piece>& boardData) const;
 };
 
 #endif // ENGINEMOVEVALIDATOR_H

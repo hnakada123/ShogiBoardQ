@@ -4,8 +4,6 @@
 /// @file globaltooltip.h
 /// @brief グローバルツールチップクラスの定義
 
-#pragma once
-
 #include <QFrame>
 
 class QLabel;

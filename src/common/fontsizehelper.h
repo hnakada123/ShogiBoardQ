@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FONTSIZEHELPER_H
+#define FONTSIZEHELPER_H
 
 #include <functional>
 
@@ -32,3 +33,5 @@ private:
     int m_step;
     std::function<void(int)> m_saveFn;
 };
+
+#endif // FONTSIZEHELPER_H

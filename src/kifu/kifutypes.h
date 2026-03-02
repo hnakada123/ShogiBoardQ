@@ -5,7 +5,7 @@
 /// @brief 棋譜関連の共通データ型定義
 
 #include <QString>
-#include <QVector>
+#include <QList>
 
 #include "kifdisplayitem.h"
 #include "shogimove.h"
@@ -21,7 +21,7 @@ struct ResolvedRow {
     int parent   = -1;              ///< 親行のインデックス（本譜は -1）
     QList<KifDisplayItem> disp;     ///< 表示用アイテムリスト
     QStringList sfen;               ///< 各手数のSFENリスト
-    QVector<ShogiMove> gm;          ///< 指し手リスト
+    QList<ShogiMove> gm;          ///< 指し手リスト
     int varIndex = -1;              ///< 変化インデックス（本譜 = -1）
     QStringList comments;           ///< 各手のコメント
 };
@@ -37,7 +37,7 @@ struct LiveGameState {
     int parentRowIndex = -1;         ///< 親行のインデックス（-1 = 本譜）
     QList<KifDisplayItem> moves;     ///< ライブ対局で追加された手
     QStringList sfens;               ///< SFEN列
-    QVector<ShogiMove> gameMoves;    ///< 指し手
+    QList<ShogiMove> gameMoves;    ///< 指し手
     bool isActive = false;           ///< ライブ対局中かどうか
 
     int totalPly() const { return anchorPly + static_cast<int>(moves.size()); }

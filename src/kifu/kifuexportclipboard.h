@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 #include "mainwindow.h"       // PlayMode enum
@@ -98,7 +98,7 @@ public:
     /** @brief BOD形式で現在局面をクリップボードにコピー */
     [[nodiscard]] bool copyBodToClipboard();
 
-Q_SIGNALS:
+signals:
     void statusMessage(const QString& message, int timeout);
 
 private:

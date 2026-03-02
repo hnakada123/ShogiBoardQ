@@ -97,7 +97,7 @@ void KifuNavigationController::goToLast()
         int lineIdx = m_state->preferredLineIndex();
         if (lineIdx < 0) lineIdx = m_state->currentLineIndex();
         if (lineIdx >= 0) {
-            QVector<BranchLine> lines = m_tree->allLines();
+            QList<BranchLine> lines = m_tree->allLines();
             if (lineIdx < lines.size()) {
                 for (KifuBranchNode* n : std::as_const(lines.at(lineIdx).nodes)) {
                     linePathNodes.insert(n);
@@ -228,7 +228,7 @@ KifuBranchNode* KifuNavigationController::findForwardNode() const
         int lineIdx = m_state->preferredLineIndex();
         if (lineIdx < 0) lineIdx = m_state->currentLineIndex();
         if (lineIdx >= 0) {
-            QVector<BranchLine> lines = m_tree->allLines();
+            QList<BranchLine> lines = m_tree->allLines();
             if (lineIdx < lines.size()) {
                 const BranchLine& line = lines.at(lineIdx);
                 const int nextPly = current->ply() + 1;
@@ -338,7 +338,7 @@ void KifuNavigationController::switchToLine(int lineIndex)
     }
 
     // 全ラインを取得して、指定インデックスのラインの最終ノードに移動
-    QVector<BranchLine> lines = m_tree->allLines();
+    QList<BranchLine> lines = m_tree->allLines();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
         return;
     }
@@ -388,7 +388,7 @@ void KifuNavigationController::selectBranchCandidate(int candidateIndex)
         return;
     }
 
-    QVector<KifuBranchNode*> candidates = m_state->branchCandidatesAtCurrent();
+    QList<KifuBranchNode*> candidates = m_state->branchCandidatesAtCurrent();
     qCDebug(lcNavigation).noquote() << "selectBranchCandidate: candidates.size()=" << candidates.size()
                                     << "currentNode=" << (m_state->currentNode() ? "yes" : "null")
                                     << "currentPly=" << m_state->currentPly();

@@ -75,7 +75,7 @@ void PvClickController::setSfenRecord(QStringList* sfenRecord)
     m_sfenHistory = sfenRecord;
 }
 
-void PvClickController::setGameMoves(const QVector<ShogiMove>* gameMoves)
+void PvClickController::setGameMoves(const QList<ShogiMove>* gameMoves)
 {
     m_gameMoves = gameMoves;
 }

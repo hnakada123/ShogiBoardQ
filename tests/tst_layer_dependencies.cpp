@@ -3,6 +3,9 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
+#include <QFileInfo>
+#include <QHash>
+#include <QSet>
 #include <QTextStream>
 
 // CMAKE_SOURCE_DIR is defined via target_compile_definitions
@@ -40,6 +43,21 @@ private:
         };
     }
 
+    /// 指定ディレクトリ直下の .h ファイル名セットを収集する（フラットinclude検出用）
+    static QSet<QString> collectHeaderNames(const QString &rootDir, const QString &forbiddenDir)
+    {
+        QSet<QString> names;
+        // forbiddenDir は "dialogs/" のような形式。src/ 配下にマップする
+        const QString dirPath = rootDir + QStringLiteral("/src/") + forbiddenDir;
+        const QDir dir(dirPath);
+        if (!dir.exists())
+            return names;
+        const QStringList headers = dir.entryList({QStringLiteral("*.h")}, QDir::Files);
+        for (const auto &h : std::as_const(headers))
+            names.insert(h);
+        return names;
+    }
+
     static QStringList findViolations(const QString &rootDir, const LayerRule &rule)
     {
         QStringList violations;
@@ -50,6 +68,11 @@ private:
             QStringLiteral("^\\s*#\\s*include\\s+\"([^\"]+)\""));
         // コメント行を除外
         const QRegularExpression commentPattern(QStringLiteral("^\\s*//"));
+
+        // フラットinclude検出用: 各禁止ディレクトリのヘッダファイル名セットを収集
+        QHash<QString, QSet<QString>> forbiddenFileNames;
+        for (const auto &forbidden : std::as_const(rule.forbiddenDirs))
+            forbiddenFileNames[forbidden] = collectHeaderNames(rootDir, forbidden);
 
         QDirIterator it(scanDir, {QStringLiteral("*.cpp"), QStringLiteral("*.h")}, QDir::Files,
                         QDirIterator::Subdirectories);
@@ -79,11 +102,24 @@ private:
                     continue;
 
                 const QString includePath = match.captured(1);
+                // フラットinclude（パス区切りなし）の場合はファイル名そのものを使う
+                const QString includeBasename = QFileInfo(includePath).fileName();
 
                 for (const auto &forbidden : std::as_const(rule.forbiddenDirs)) {
+                    // パスベースの検出: "../dialogs/foo.h" のような形式
                     if (includePath.contains(forbidden)) {
                         violations.append(
                             QStringLiteral("  %1:%2 includes \"%3\" (forbidden: %4)")
+                                .arg(relPath)
+                                .arg(lineNum)
+                                .arg(includePath)
+                                .arg(forbidden));
+                        continue;
+                    }
+                    // ファイル名ベースの検出: "foo.h" が禁止ディレクトリに存在する場合
+                    if (forbiddenFileNames.value(forbidden).contains(includeBasename)) {
+                        violations.append(
+                            QStringLiteral("  %1:%2 includes \"%3\" (forbidden flat include from: %4)")
                                 .arg(relPath)
                                 .arg(lineNum)
                                 .arg(includePath)

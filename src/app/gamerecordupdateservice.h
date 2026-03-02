@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 class MatchCoordinator;
@@ -37,7 +37,7 @@ public:
         LiveGameSession* liveGameSession = nullptr;
 
         // State pointers
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         QStringList* gameUsiMoves = nullptr;
         QString* currentSfenStr = nullptr;
         QStringList* sfenRecord = nullptr;

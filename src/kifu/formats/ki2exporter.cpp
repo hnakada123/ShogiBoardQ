@@ -396,7 +396,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
     // 7) 変化（分岐）を出力（KifuBranchTree から）
     KifuBranchTree* branchTree = model.branchTree();
     if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QVector<BranchLine> lines = branchTree->allLines();
+        QList<BranchLine> lines = branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);

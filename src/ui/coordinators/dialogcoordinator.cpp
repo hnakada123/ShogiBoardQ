@@ -116,39 +116,15 @@ DialogCoordinator::~DialogCoordinator() = default;
 // 依存オブジェクトの設定
 // --------------------------------------------------------
 
-void DialogCoordinator::setMatchCoordinator(MatchCoordinator* match)
+void DialogCoordinator::updateDeps(const Deps& deps)
 {
-    m_match = match;
-}
-
-void DialogCoordinator::setGameController(ShogiGameController* gc)
-{
-    m_gc = gc;
-}
-
-void DialogCoordinator::setUsiEngine(Usi* usi)
-{
-    m_usi = usi;
-}
-
-void DialogCoordinator::setLogModel(UsiCommLogModel* logModel)
-{
-    m_logModel = logModel;
-}
-
-void DialogCoordinator::setThinkingModel(ShogiEngineThinkingModel* thinkingModel)
-{
-    m_thinkingModel = thinkingModel;
-}
-
-void DialogCoordinator::setAnalysisModel(KifuAnalysisListModel* model)
-{
-    m_analysisModel = model;
-}
-
-void DialogCoordinator::setConsiderationTabManager(ConsiderationTabManager* manager)
-{
-    m_considerationTabManager = manager;
+    m_match = deps.matchCoordinator;
+    m_gc = deps.gameController;
+    m_usi = deps.usiEngine;
+    m_logModel = deps.logModel;
+    m_thinkingModel = deps.thinkingModel;
+    m_analysisModel = deps.analysisModel;
+    m_considerationTabManager = deps.considerationTabManager;
 }
 
 // --------------------------------------------------------

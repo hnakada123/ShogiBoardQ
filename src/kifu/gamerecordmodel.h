@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QList>
 #include <QDateTime>
 #include <functional>
@@ -111,7 +111,7 @@ public:
     /**
      * @brief コメント配列全体を取得
      */
-    const QVector<QString>& comments() const { return m_comments; }
+    const QList<QString>& comments() const { return m_comments; }
 
     /**
      * @brief コメント配列のサイズ
@@ -296,8 +296,8 @@ signals:
      */
 private:
     // === 内部データ（権威を持つ） ===
-    QVector<QString> m_comments;   ///< 手数インデックス → コメント
-    QVector<QString> m_bookmarks;  ///< 手数インデックス → しおり
+    QList<QString> m_comments;   ///< 手数インデックス → コメント
+    QList<QString> m_bookmarks;  ///< 手数インデックス → しおり
     bool m_isDirty = false;        ///< 変更フラグ
 
     // === 外部データへの参照（同期更新用、所有しない） ===

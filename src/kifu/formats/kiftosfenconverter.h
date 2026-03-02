@@ -9,7 +9,7 @@
 #include <QMap>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 
@@ -48,7 +48,7 @@ private:
 
     // ---------- parseWithVariations ヘルパ ----------
     static void extractMainLine(const QString& kifPath, KifParseResult& out, QString* errorMessage);
-    static QString findBranchBaseSfen(const QVector<KifVariation>& vars,
+    static QString findBranchBaseSfen(const QList<KifVariation>& vars,
                                       const KifLine& mainLine,
                                       int branchPointPly);
     static KifVariation parseVariationBlock(const QStringList& blockLines,

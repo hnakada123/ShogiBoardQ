@@ -6,7 +6,7 @@
 
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 #include <QStringList>
 
 #include "playmode.h"

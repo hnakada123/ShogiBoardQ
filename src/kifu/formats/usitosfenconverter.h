@@ -8,7 +8,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QVector>
+#include <QList>
 #include <QMap>
 
 #include "kifdisplayitem.h"

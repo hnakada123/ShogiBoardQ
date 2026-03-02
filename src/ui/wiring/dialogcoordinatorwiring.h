@@ -6,7 +6,7 @@
 
 #include <QObject>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 #include "playmode.h"
@@ -57,7 +57,7 @@ public:
         QString* startSfenStr = nullptr;               ///< 開始局面SFEN文字列（外部所有）
 
         // --- ConsiderationContext 固有 ---
-        QVector<ShogiMove>* gameMoves = nullptr;       ///< 指し手リスト（外部所有）
+        QList<ShogiMove>* gameMoves = nullptr;       ///< 指し手リスト（外部所有）
         KifuRecordListModel* kifuRecordModel = nullptr; ///< 棋譜リストモデル（非所有）
         QString* currentSfenStr = nullptr;             ///< 現在局面SFEN文字列（外部所有）
         KifuBranchTree* branchTree = nullptr;          ///< 分岐ツリー（非所有）

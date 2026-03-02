@@ -1,4 +1,5 @@
-#pragma once
+#ifndef ENGINEREGISTRATIONWORKER_H
+#define ENGINEREGISTRATIONWORKER_H
 
 /// @file engineregistrationworker.h
 /// @brief エンジン登録ワーカークラスの定義（ワーカースレッドでのQProcess通信）
@@ -46,3 +47,5 @@ private:
     static constexpr int ReadIntervalMs = 200;
     static constexpr int QuitTimeoutMs = 3000;
 };
+
+#endif // ENGINEREGISTRATIONWORKER_H

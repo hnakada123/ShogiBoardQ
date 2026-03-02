@@ -4,8 +4,6 @@
 /// @file evaluationchartwidget.h
 /// @brief 評価値グラフウィジェットクラスの定義
 
-
-#pragma once
 #include <QWidget>
 #include <QPointF>
 

@@ -28,11 +28,9 @@ MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     , m_gc(d.gc)
     , m_view(d.view)
     , m_hooks(d.hooks)
+    , m_externalGameMoves(d.gameMoves)
 {
-    m_cur = P1;
-
     m_sfenHistory = d.sfenRecord ? d.sfenRecord : &m_sharedSfenRecord;
-    m_externalGameMoves = d.gameMoves;
 
     qCDebug(lcGame).noquote()
         << "shared sfenRecord*=" << static_cast<const void*>(m_sfenHistory);
@@ -382,12 +380,12 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     PlayMode mode,
     const QString& startSfenStr,
     const QStringList* sfenRecord,
-    const StartGameDialog* dlg) const
+    const StartGameDialogData* dlg) const
 {
     return GameStartOrchestrator::buildStartOptions(mode, startSfenStr, sfenRecord, dlg);
 }
 
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1)
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, bool bottomIsP1)
 {
     ensureGameStartOrchestrator();
     m_gameStartOrchestrator->ensureHumanAtBottomIfApplicable(dlg, bottomIsP1);
@@ -396,7 +394,7 @@ void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog* dl
 void MatchCoordinator::prepareAndStartGame(PlayMode mode,
                                            const QString& startSfenStr,
                                            const QStringList* sfenRecord,
-                                           const StartGameDialog* dlg,
+                                           const StartGameDialogData* dlg,
                                            bool bottomIsP1)
 {
     ensureGameStartOrchestrator();

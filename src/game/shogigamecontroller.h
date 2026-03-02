@@ -60,7 +60,7 @@ public:
      * @return 合法手で盤面更新できた場合 true
      */
     bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
-                         QStringList* m_sfenHistory, QVector<ShogiMove>& gameMoves);
+                         QStringList* m_sfenHistory, QList<ShogiMove>& gameMoves);
 
     /// 局面編集モードで駒を移動し、盤面を更新する
     bool editPosition(const QPoint& outFrom, const QPoint& outTo);

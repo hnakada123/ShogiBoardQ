@@ -93,7 +93,7 @@ public:
      */
     void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
 
-public Q_SLOTS:
+public slots:
     /**
      * @brief 対局者名設定フック（MatchCoordinatorから呼ばれる）
      */

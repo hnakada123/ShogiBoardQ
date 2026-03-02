@@ -6,7 +6,7 @@
 
 
 #include <QWidget>
-#include <QVector>
+#include <QList>
 
 #include "branchtreemanager.h"
 
@@ -51,7 +51,7 @@ public:
     using ResolvedRowLite = BranchTreeManager::ResolvedRowLite;
 
     // ツリーの全行データをセット（row=0:本譜、row=1..:分岐）（BranchTreeManager へ委譲）
-    void setBranchTreeRows(const QVector<ResolvedRowLite>& rows);
+    void setBranchTreeRows(const QList<ResolvedRowLite>& rows);
 
     // ツリー上で (row, ply) をハイライト（必要なら centerOn）（BranchTreeManager へ委譲）
     void highlightBranchTreeAt(int row, int ply, bool centerOn=false);

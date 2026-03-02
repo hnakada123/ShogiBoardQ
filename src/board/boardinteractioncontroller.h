@@ -10,6 +10,7 @@
 #include <functional>
 #include <memory>
 #include "shogiview.h"
+#include "boardconstants.h"
 
 class ShogiGameController;
 
@@ -86,8 +87,8 @@ private:
     void finalizeDrag();
     void togglePiecePromotionOnClick(const QPoint& field);
 
-    static constexpr int kBlackStandFile = 10; ///< 先手駒台のファイル番号
-    static constexpr int kWhiteStandFile = 11; ///< 後手駒台のファイル番号
+    static constexpr int kBlackStandFile = BoardConstants::kBlackStandFile; ///< 先手駒台のファイル番号
+    static constexpr int kWhiteStandFile = BoardConstants::kWhiteStandFile; ///< 後手駒台のファイル番号
 
     // --- メンバ変数 ---
     ShogiView* m_view = nullptr; ///< 盤面ビュー（非所有）

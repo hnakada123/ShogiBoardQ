@@ -8,7 +8,7 @@
 #include <QPoint>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 class ShogiGameController;
@@ -46,7 +46,7 @@ public:
     void prepareBoardDataForAnalysis();
 
     /// 盤面データを直接設定する
-    void setClonedBoardData(const QVector<QChar>& boardData);
+    void setClonedBoardData(const QList<QChar>& boardData);
 
     /// 現在の盤面からSFEN文字列を計算する
     QString computeBaseSfenFromBoard() const;
@@ -108,7 +108,7 @@ private:
 
     // --- 状態 ---
 
-    QVector<QChar> m_clonedBoardData;
+    QList<QChar> m_clonedBoardData;
     QString m_lastUsiMove;
     Hooks m_hooks;
 };

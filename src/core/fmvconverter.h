@@ -5,7 +5,7 @@
 /// @brief Qt型 ←→ エンジン内部型の境界変換
 
 #include <QMap>
-#include <QVector>
+#include <QList>
 
 #include "enginemovevalidator.h"
 #include "fmvposition.h"
@@ -24,7 +24,7 @@ class Converter
 {
 public:
     static bool toEnginePosition(EnginePosition& out,
-                                 const QVector<Piece>& boardData,
+                                 const QList<Piece>& boardData,
                                  const QMap<Piece, int>& pieceStand);
 
     static bool toEngineMove(ConvertedMove& out,

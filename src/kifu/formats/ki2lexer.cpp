@@ -272,12 +272,12 @@ bool canPieceMoveTo(Piece pieceUpper, bool isPromoted,
     }
 }
 
-QVector<Candidate> collectCandidates(Piece pieceUpper, bool moveIsPromoted,
+QList<Candidate> collectCandidates(Piece pieceUpper, bool moveIsPromoted,
                                      int toFile, int toRank,
                                      bool blackToMove,
                                      const QString boardState[9][9])
 {
-    QVector<Candidate> candidates;
+    QList<Candidate> candidates;
     for (int r = 0; r < 9; ++r) {
         for (int f = 0; f < 9; ++f) {
             const QString& token = boardState[r][f];
@@ -311,14 +311,14 @@ QVector<Candidate> collectCandidates(Piece pieceUpper, bool moveIsPromoted,
     return candidates;
 }
 
-QVector<Candidate> filterByDirection(const QVector<Candidate>& candidates,
+QList<Candidate> filterByDirection(const QList<Candidate>& candidates,
                                      const QString& modifier,
                                      bool blackToMove,
                                      int toFile, int toRank)
 {
     if (modifier.isEmpty()) return candidates;
     const int forward = blackToMove ? -1 : 1;
-    QVector<Candidate> filtered = candidates;
+    QList<Candidate> filtered = candidates;
 
     if (modifier.contains(QChar(u'右'))) {
         int targetFile = blackToMove ? 9 : 0;
@@ -326,7 +326,7 @@ QVector<Candidate> filterByDirection(const QVector<Candidate>& candidates,
             if (blackToMove) { if (targetFile == 9 || c.file < targetFile) targetFile = c.file; }
             else { if (targetFile == 0 || c.file > targetFile) targetFile = c.file; }
         }
-        QVector<Candidate> tmp;
+        QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if (c.file == targetFile) tmp.push_back(c);
         if (!tmp.isEmpty()) filtered = tmp;
@@ -338,32 +338,32 @@ QVector<Candidate> filterByDirection(const QVector<Candidate>& candidates,
             if (blackToMove) { if (targetFile == 0 || c.file > targetFile) targetFile = c.file; }
             else { if (targetFile == 9 || c.file < targetFile) targetFile = c.file; }
         }
-        QVector<Candidate> tmp;
+        QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if (c.file == targetFile) tmp.push_back(c);
         if (!tmp.isEmpty()) filtered = tmp;
     }
 
     if (modifier.contains(QChar(u'上')) || modifier.contains(QChar(u'行'))) {
-        QVector<Candidate> tmp;
+        QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if ((toRank - c.rank) * forward > 0) tmp.push_back(c);
         if (!tmp.isEmpty()) filtered = tmp;
     }
     if (modifier.contains(QChar(u'引'))) {
-        QVector<Candidate> tmp;
+        QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if ((toRank - c.rank) * forward < 0) tmp.push_back(c);
         if (!tmp.isEmpty()) filtered = tmp;
     }
     if (modifier.contains(QChar(u'寄'))) {
-        QVector<Candidate> tmp;
+        QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if (c.rank == toRank) tmp.push_back(c);
         if (!tmp.isEmpty()) filtered = tmp;
     }
     if (modifier.contains(QChar(u'直'))) {
-        QVector<Candidate> tmp;
+        QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if (c.file == toFile) tmp.push_back(c);
         if (!tmp.isEmpty()) filtered = tmp;

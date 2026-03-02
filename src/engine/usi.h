@@ -8,7 +8,7 @@
 #include <QPoint>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QThread>
 #include <QPointer>
 #include <QTimer>
@@ -46,13 +46,6 @@ class Usi : public QObject
     Q_OBJECT
 
 public:
-    // --- 定数定義（後方互換性のため維持）---
-    
-    static constexpr int SENTE_HAND_FILE = 10;
-    static constexpr int GOTE_HAND_FILE = 11;
-    static constexpr int BOARD_SIZE = 9;
-    static constexpr int NUM_BOARD_SQUARES = BOARD_SIZE * BOARD_SIZE;
-
     /// 詰み探索結果
     struct TsumeResult {
         enum Kind {
@@ -169,7 +162,7 @@ public:
      * 
      * 棋譜解析で各局面ごとに盤面データを更新するために使用。
      */
-    void setClonedBoardData(const QVector<QChar>& boardData);
+    void setClonedBoardData(const QList<QChar>& boardData);
 
     /**
      * @brief 基準SFENを設定する（ThinkingInfoPresenterの手番設定用）

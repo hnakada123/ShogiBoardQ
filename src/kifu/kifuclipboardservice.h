@@ -7,7 +7,7 @@
 
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 #include "playmode.h"
 
@@ -53,7 +53,7 @@ struct ExportContext {
 [[nodiscard]] bool copyKi2(const ExportContext& ctx);
 
 /// ShogiMoveリストからUSI形式の指し手リストを生成
-QStringList gameMovesToUsiMoves(const QVector<ShogiMove>& moves);
+QStringList gameMovesToUsiMoves(const QList<ShogiMove>& moves);
 
 /// SFENレコードからUSI形式の指し手リストを生成
 QStringList sfenRecordToUsiMoves(const QStringList& sfenRecord);

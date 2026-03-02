@@ -19,17 +19,26 @@
 #include <QLabel>
 #include <QMouseEvent>
 
+namespace {
+const QColor kAxisLabelColor(192, 192, 192);
+const QColor kGridLineColor(255, 255, 255, 80);
+const QColor kChartBackgroundColor(0, 100, 0);
+} // namespace
+
 EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     : QWidget(parent)
+    , m_chart(new QChart())
+    , m_s1(new QLineSeries(this))
+    , m_s2(new QLineSeries(this))
+    , m_axX(new QValueAxis(this))
+    , m_axY(new QValueAxis(this))
+    , m_chartView(new QChartView(m_chart, this))
+    , m_configurator(new EvaluationChartConfigurator(this))
 {
     // Configurator を生成して設定を読み込み
-    m_configurator = new EvaluationChartConfigurator(this);
     m_configurator->loadSettings();
 
     // 軸
-    m_axX = new QValueAxis(this);
-    m_axY = new QValueAxis(this);
-
     QFont labelsFont("Noto Sans CJK JP", m_configurator->labelFontSize());
 
     // X軸設定
@@ -46,20 +55,18 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     m_axY->setLabelsFont(labelsFont);
     m_axY->setLabelFormat("%i");
 
-    const QColor lightGray(192, 192, 192);
-    m_axX->setLabelsColor(lightGray);
-    m_axY->setLabelsColor(lightGray);
+    m_axX->setLabelsColor(kAxisLabelColor);
+    m_axY->setLabelsColor(kAxisLabelColor);
 
     // グリッド線の色を設定
-    QPen gridPen(QColor(255, 255, 255, 80));
+    QPen gridPen(kGridLineColor);
     gridPen.setWidth(1);
     m_axX->setGridLinePen(gridPen);
     m_axY->setGridLinePen(gridPen);
 
     // チャート
-    m_chart = new QChart();
     m_chart->legend()->hide();
-    m_chart->setBackgroundBrush(QBrush(QColor(0, 100, 0))); // ダークグリーン
+    m_chart->setBackgroundBrush(QBrush(kChartBackgroundColor)); // ダークグリーン
     // 左マージンを広めに設定（Y軸ラベル用）
     m_chart->setMargins(QMargins(10, 5, 10, 5));
 
@@ -73,9 +80,6 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     setupCursorLine();
 
     // シリーズ
-    m_s1 = new QLineSeries(this); // 先手側（黒線）
-    m_s2 = new QLineSeries(this); // 後手側（白線）
-
     {
         QPen p = m_s1->pen();
         p.setWidth(2);
@@ -104,7 +108,6 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     connect(m_s2, &QLineSeries::hovered, this, &EvaluationChartWidget::onSeriesHovered);
 
     // ビュー
-    m_chartView = new QChartView(m_chart, this);
     m_chartView->setRenderHint(QPainter::Antialiasing);
 
     // ビューポートのクリックイベントをフィルタリング

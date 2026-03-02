@@ -210,14 +210,16 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
 
     // 解析に必要な依存オブジェクトを設定
     KifuAnalysisListModel* analysisModel = m_deps.analysisModel ? *m_deps.analysisModel : nullptr;
-    dc->setAnalysisModel(analysisModel);
     auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
-    if (analysisTab) {
-        dc->setConsiderationTabManager(analysisTab->considerationTabManager());
-    }
-    dc->setUsiEngine(m_deps.getUsi1 ? m_deps.getUsi1() : nullptr);
-    dc->setLogModel(m_deps.getLineEditModel1 ? m_deps.getLineEditModel1() : nullptr);
-    dc->setThinkingModel(m_deps.getModelThinking1 ? m_deps.getModelThinking1() : nullptr);
+    DialogCoordinator::Deps dcDeps;
+    dcDeps.matchCoordinator = m_deps.getMatch ? m_deps.getMatch() : nullptr;
+    dcDeps.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;
+    dcDeps.analysisModel = analysisModel;
+    dcDeps.considerationTabManager = analysisTab ? analysisTab->considerationTabManager() : nullptr;
+    dcDeps.usiEngine = m_deps.getUsi1 ? m_deps.getUsi1() : nullptr;
+    dcDeps.logModel = m_deps.getLineEditModel1 ? m_deps.getLineEditModel1() : nullptr;
+    dcDeps.thinkingModel = m_deps.getModelThinking1 ? m_deps.getModelThinking1() : nullptr;
+    dc->updateDeps(dcDeps);
 
     // 棋譜解析コンテキストを更新（遅延初期化されたオブジェクトを反映）
     DialogCoordinator::KifuAnalysisContext kifuCtx;

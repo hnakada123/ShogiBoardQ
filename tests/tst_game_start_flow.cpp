@@ -523,8 +523,7 @@ private slots:
         QStringList sfenRecord;
         KifuRecordListModel kifuModel;
 
-        // 平手の StartGameDialog を模擬（スタブは startingPositionNumber() = 0 を返す）
-        // → prepareInitialPosition は idx を 1（平手）にクランプする
+        // dialogData.startingPositionNumber のデフォルトは 1（平手）
         GameStartCoordinator::Ctx ctx;
         ctx.view = nullptr;    // スタブなので null でも大丈夫（view操作はスキップ）
         ctx.gc = nullptr;
@@ -532,7 +531,6 @@ private slots:
         ctx.currentSfenStr = &currentSfen;
         ctx.sfenRecord = &sfenRecord;
         ctx.kifuModel = &kifuModel;
-        ctx.startDlg = nullptr;  // ダイアログ null → デフォルトで平手(1)
 
         h.gsc->prepareInitialPosition(ctx);
 
@@ -558,7 +556,6 @@ private slots:
         ctx.currentSfenStr = &currentSfen;
         ctx.sfenRecord = &sfenRecord;
         ctx.kifuModel = &kifuModel;
-        ctx.startDlg = nullptr;
 
         h.gsc->prepareInitialPosition(ctx);
 

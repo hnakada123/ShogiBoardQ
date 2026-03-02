@@ -8,7 +8,7 @@
 #include <QLabel>
 #include <QPoint>
 #include <QColor>
-#include <QVector>
+#include <QList>
 #include <QString>
 
 #include "recordpane.h"
@@ -67,7 +67,7 @@ QWidget* EngineAnalysisTab::createBranchTreePage(QWidget*) { return nullptr; }
 void EngineAnalysisTab::setModels(ShogiEngineThinkingModel*, ShogiEngineThinkingModel*,
                                    UsiCommLogModel*, UsiCommLogModel*) {}
 QTabWidget* EngineAnalysisTab::tab() const { return nullptr; }
-void EngineAnalysisTab::setBranchTreeRows(const QVector<ResolvedRowLite>&) {}
+void EngineAnalysisTab::setBranchTreeRows(const QList<ResolvedRowLite>&) {}
 void EngineAnalysisTab::highlightBranchTreeAt(int, int, bool) {}
 void EngineAnalysisTab::setSecondEngineVisible(bool) {}
 void EngineAnalysisTab::setEngine1ThinkingModel(ShogiEngineThinkingModel*) {}
@@ -194,7 +194,7 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
 {
     m_boardData.fill(Piece::None, ranks * files);
 }
-const QVector<Piece>& ShogiBoard::boardData() const { return m_boardData; }
+const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
 
 // ============================================================
 // BranchTreeManager スタブ

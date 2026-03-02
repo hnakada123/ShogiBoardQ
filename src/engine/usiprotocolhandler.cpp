@@ -80,7 +80,7 @@ bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
 
     // エンジンが報告したオプションのみ送信する。
     // 設定ファイルに保存されていてもエンジンが対応していないオプションは送信しない。
-    for (const QString& cmd : m_setOptionCommands) {
+    for (const QString& cmd : std::as_const(m_setOptionCommands)) {
         // "setoption name <name> value ..." または "setoption name <name>" から名前を抽出
         static const QString prefix = QStringLiteral("setoption name ");
         if (cmd.startsWith(prefix)) {

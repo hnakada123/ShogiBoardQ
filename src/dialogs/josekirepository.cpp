@@ -9,7 +9,7 @@
 #include <QTextStream>
 #include <QStringView>
 
-const QVector<JosekiMove> JosekiRepository::s_emptyMoves;
+const QList<JosekiMove> JosekiRepository::s_emptyMoves;
 
 void JosekiRepository::clear()
 {
@@ -23,7 +23,7 @@ bool JosekiRepository::containsPosition(const QString &normalizedSfen) const
     return m_josekiData.contains(normalizedSfen);
 }
 
-const QVector<JosekiMove> &JosekiRepository::movesForPosition(const QString &normalizedSfen) const
+const QList<JosekiMove> &JosekiRepository::movesForPosition(const QString &normalizedSfen) const
 {
     auto it = m_josekiData.constFind(normalizedSfen);
     if (it != m_josekiData.constEnd()) {
@@ -42,7 +42,7 @@ void JosekiRepository::updateMove(const QString &normalizedSfen, const QString &
 {
     if (!m_josekiData.contains(normalizedSfen)) return;
 
-    QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+    QList<JosekiMove> &moves = m_josekiData[normalizedSfen];
     for (int i = 0; i < moves.size(); ++i) {
         if (moves[i].move == usiMove) {
             moves[i].value = value;
@@ -58,7 +58,7 @@ void JosekiRepository::deleteMove(const QString &normalizedSfen, int index)
 {
     if (!m_josekiData.contains(normalizedSfen)) return;
 
-    QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+    QList<JosekiMove> &moves = m_josekiData[normalizedSfen];
     if (index < 0 || index >= moves.size()) return;
 
     moves.removeAt(index);
@@ -74,7 +74,7 @@ void JosekiRepository::removeMoveByUsi(const QString &normalizedSfen, const QStr
 {
     if (!m_josekiData.contains(normalizedSfen)) return;
 
-    QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+    QList<JosekiMove> &moves = m_josekiData[normalizedSfen];
     for (int i = 0; i < moves.size(); ++i) {
         if (moves[i].move == usiMove) {
             moves.removeAt(i);
@@ -92,7 +92,7 @@ void JosekiRepository::registerMergeMove(const QString &normalizedSfen, const QS
 
     // 既存の定跡手があるか確認
     if (m_josekiData.contains(normalizedSfen)) {
-        QVector<JosekiMove> &moves = m_josekiData[normalizedSfen];
+        QList<JosekiMove> &moves = m_josekiData[normalizedSfen];
 
         // 同じ指し手が既にあるか確認
         for (int i = 0; i < moves.size(); ++i) {
@@ -122,7 +122,7 @@ void JosekiRepository::registerMergeMove(const QString &normalizedSfen, const QS
         newMove.depth = 0;
         newMove.frequency = 1;
 
-        QVector<JosekiMove> moves;
+        QList<JosekiMove> moves;
         moves.append(newMove);
         m_josekiData[normalizedSfen] = moves;
 
@@ -184,7 +184,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
             }
 
             if (!normalizedSfen.isEmpty() && result.josekiData.contains(normalizedSfen)) {
-                QVector<JosekiMove> &moves = result.josekiData[normalizedSfen];
+                QList<JosekiMove> &moves = result.josekiData[normalizedSfen];
                 if (!moves.isEmpty()) {
                     QString commentText = line.mid(1);
                     if (!moves.last().comment.isEmpty()) {
@@ -256,7 +256,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
 
                 result.josekiData[normalizedSfen].append(move);
                 hasMoveLine = true;
-            } else if (parts.size() > 0) {
+            } else if (!parts.empty()) {
                 invalidMoveLineCount++;
                 qCWarning(lcUi) << "Invalid line format at line" << lineNumber
                                 << ": expected 5+ fields, got" << parts.size();
@@ -309,7 +309,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
 
 JosekiSaveResult JosekiRepository::serializeToFile(
     const QString &filePath,
-    const QMap<QString, QVector<JosekiMove>> &josekiData,
+    const QMap<QString, QList<JosekiMove>> &josekiData,
     const QMap<QString, QString> &sfenWithPlyMap)
 {
     JosekiSaveResult result;
@@ -324,11 +324,11 @@ JosekiSaveResult JosekiRepository::serializeToFile(
 
     out << QStringLiteral("#YANEURAOU-DB2016 1.00\n");
 
-    QMapIterator<QString, QVector<JosekiMove>> it(josekiData);
+    QMapIterator<QString, QList<JosekiMove>> it(josekiData);
     while (it.hasNext()) {
         it.next();
         const QString &normalizedSfen = it.key();
-        const QVector<JosekiMove> &moves = it.value();
+        const QList<JosekiMove> &moves = it.value();
 
         QString sfenToWrite;
         if (sfenWithPlyMap.contains(normalizedSfen)) {

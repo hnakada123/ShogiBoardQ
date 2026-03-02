@@ -37,24 +37,6 @@ class UsiProtocolHandler : public QObject
     Q_OBJECT
 
 public:
-    // --- 定数定義 ---
-    
-    static constexpr int SENTE_HAND_FILE = 10;
-    static constexpr int GOTE_HAND_FILE = 11;
-    static constexpr int BOARD_SIZE = 9;
-    static constexpr int NUM_BOARD_SQUARES = BOARD_SIZE * BOARD_SIZE;
-
-    /// 詰み探索結果
-    struct TsumeResult {
-        enum Kind {
-            Solved,          ///< 詰みあり
-            NoMate,          ///< 不詰
-            NotImplemented,  ///< エンジン未対応
-            Unknown          ///< 不明・タイムアウト等
-        } kind = Unknown;    ///< 結果種別
-        QStringList pvMoves; ///< 詰み手順（Solved時のみ有効）
-    };
-
     /// 思考フェーズ
     enum class SearchPhase {
         Idle,   ///< 待機中

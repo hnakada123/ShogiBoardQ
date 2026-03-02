@@ -9,7 +9,6 @@
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
-#include "startgamedialog.h"
 #include "kifudisplay.h"
 #include "timecontrolutil.h"
 
@@ -131,8 +130,8 @@ void GameStartCoordinator::prepare(const Request& req)
         emit requestPreStartCleanup();
     }
 
-    // --- 1) ダイアログから時間設定を抽出 ---
-    const TimeControl tc = GameStartOptionsBuilder::extractTimeControl(req.startDialog);
+    // --- 1) dialogDataから時間設定を抽出 ---
+    const TimeControl tc = GameStartOptionsBuilder::buildTimeControl(req.dialogData);
 
     emit requestApplyTimeControl(tc);
 
@@ -238,16 +237,7 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
 void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
 {
     // 1) 開始局面番号を取得（0=現在局面, 1..N=手合割）
-    int startingPosNumber = 1;
-    if (c.startDlg) {
-        if (auto dlg = qobject_cast<StartGameDialog*>(c.startDlg)) {
-            startingPosNumber = dlg->startingPositionNumber();
-        } else {
-            bool ok = false;
-            const int v = c.startDlg->property("startingPositionNumber").toInt(&ok);
-            if (ok) startingPosNumber = v;
-        }
-    }
+    int startingPosNumber = c.dialogData.startingPositionNumber;
     if (startingPosNumber <= 0) startingPosNumber = 1;
 
     // 2) 手合割 → 純SFEN（GameStartOptionsBuilder のプリセットテーブルを使用）
@@ -321,43 +311,16 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
         return;
     }
 
-    // --- 1) ダイアログから各種設定値を取得 ---
-    int basicTimeHour1 = 0, basicTimeMinutes1 = 0;
-    int basicTimeHour2 = 0, basicTimeMinutes2 = 0;
-    int byoyomi1 = 0, byoyomi2 = 0;
-    int binc = 0, winc = 0;
-    bool isLoseOnTimeout = true;
-
-    if (c.startDlg) {
-        if (auto dlg = qobject_cast<StartGameDialog*>(c.startDlg)) {
-            basicTimeHour1    = dlg->basicTimeHour1();
-            basicTimeMinutes1 = dlg->basicTimeMinutes1();
-            basicTimeHour2    = dlg->basicTimeHour2();
-            basicTimeMinutes2 = dlg->basicTimeMinutes2();
-            byoyomi1          = dlg->byoyomiSec1();
-            byoyomi2          = dlg->byoyomiSec2();
-            binc              = dlg->addEachMoveSec1();
-            winc              = dlg->addEachMoveSec2();
-            isLoseOnTimeout   = dlg->isLoseOnTimeout();
-        } else {
-            auto getPropInt = [&](const char* name)->int {
-                bool ok=false; int v = c.startDlg->property(name).toInt(&ok); return ok ? v : 0;
-            };
-            auto getPropBool = [&](const char* name)->bool {
-                if (!c.startDlg->property(name).isValid()) return true;
-                return c.startDlg->property(name).toBool();
-            };
-            basicTimeHour1    = getPropInt("basicTimeHour1");
-            basicTimeMinutes1 = getPropInt("basicTimeMinutes1");
-            basicTimeHour2    = getPropInt("basicTimeHour2");
-            basicTimeMinutes2 = getPropInt("basicTimeMinutes2");
-            byoyomi1          = getPropInt("byoyomiSec1");
-            byoyomi2          = getPropInt("byoyomiSec2");
-            binc              = getPropInt("addEachMoveSec1");
-            winc              = getPropInt("addEachMoveSec2");
-            isLoseOnTimeout   = getPropBool("isLoseOnTimeout");
-        }
-    }
+    // --- 1) dialogDataから各種設定値を取得 ---
+    const int basicTimeHour1    = c.dialogData.basicTimeHour1;
+    const int basicTimeMinutes1 = c.dialogData.basicTimeMinutes1;
+    const int basicTimeHour2    = c.dialogData.basicTimeHour2;
+    const int basicTimeMinutes2 = c.dialogData.basicTimeMinutes2;
+    const int byoyomi1          = c.dialogData.byoyomiSec1;
+    const int byoyomi2          = c.dialogData.byoyomiSec2;
+    const int binc              = c.dialogData.addEachMoveSec1;
+    const int winc              = c.dialogData.addEachMoveSec2;
+    const bool isLoseOnTimeout  = c.dialogData.isLoseOnTimeout;
 
     // --- 2) 秒へ統一 ---
     const int remainingTime1 = basicTimeHour1 * 3600 + basicTimeMinutes1 * 60;
@@ -417,7 +380,7 @@ void GameStartCoordinator::setTimerAndStart(const Ctx& c)
 
 PlayMode GameStartCoordinator::setPlayMode(const Ctx& c) const
 {
-    return GameStartOptionsBuilder::determinePlayModeFromDialog(c.startDlg);
+    return GameStartOptionsBuilder::determinePlayModeFromDialog(c.dialogData);
 }
 
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(

@@ -138,8 +138,8 @@ MatchTimekeeper::GoTimes MatchTimekeeper::computeGoTimes() const
     const bool hasIncHook    = static_cast<bool>(m_hooks.incrementMsFor);
     const bool hasByoHook    = static_cast<bool>(m_hooks.byoyomiMs);
 
-    const qint64 rawB = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(P::P1)) : 0;
-    const qint64 rawW = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(P::P2)) : 0;
+    const qint64 rawB = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(static_cast<int>(P::P1))) : 0;
+    const qint64 rawW = hasRemainHook ? qMax<qint64>(0, m_hooks.remainingMsFor(static_cast<int>(P::P2))) : 0;
 
     qCDebug(lcGame).noquote()
         << "computeGoTimes_: hooks{remain=" << hasRemainHook

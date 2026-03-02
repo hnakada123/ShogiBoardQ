@@ -214,6 +214,7 @@ void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingM
     if (m_considerationView && m) {
         m_considerationView->setModel(m);
         // 数値列の右寄せ＆3桁カンマ
+        // delegate は m_considerationView を Qt parent として生成されるため、自動削除される
         auto* delegate = new NumericRightAlignCommaDelegate(m_considerationView);
         const QStringList targets = {
             "Time", "Depth", "Nodes", "Score",
@@ -228,7 +229,7 @@ void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingM
             }
         }
     }
-}
+} // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
 // ===================== スロット（UI関連） =====================
 

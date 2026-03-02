@@ -2,6 +2,7 @@
 /// @brief 将棋の対局進行・盤面更新・合法手検証を管理するコントローラの実装
 
 #include "shogigamecontroller.h"
+#include "boardconstants.h"
 
 #include <QPoint>
 #include <QDebug>
@@ -174,8 +175,8 @@ QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const in
 
     if (m_promote) moveStr += "成";
 
-    // 駒台から打つ場合（10=先手駒台、11=後手駒台）
-    if ((fileFrom >= 10) && (fileFrom <= 11)) {
+    // 駒台から打つ場合
+    if ((fileFrom >= BoardConstants::kBlackStandFile) && (fileFrom <= BoardConstants::kWhiteStandFile)) {
         moveStr += "打";
     } else {
         moveStr += "(" + QString::number(fileFrom) + QString::number(rankFrom) + ")";
@@ -317,7 +318,7 @@ bool ShogiGameController::isPromotablePiece(Piece piece)
 // ============================================================
 
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
-                                          QStringList* m_sfenHistory, QVector<ShogiMove>& gameMoves)
+                                          QStringList* m_sfenHistory, QList<ShogiMove>& gameMoves)
 {
     // 処理フロー:
     // 1. 入力ガード（盤面・移動元の検証）

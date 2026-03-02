@@ -22,7 +22,7 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
         return;
     }
 
-    QVector<BranchLine> lines = m_tree->allLines();
+    QList<BranchLine> lines = m_tree->allLines();
     if (lines.isEmpty()) {
         qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: no lines available";
         return;

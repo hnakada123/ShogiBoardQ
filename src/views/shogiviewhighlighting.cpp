@@ -65,7 +65,7 @@ void ShogiViewHighlighting::removeHighlightAllData()
 // 矢印管理
 // ─────────────────────────────────────────────────────────────────────────────
 
-void ShogiViewHighlighting::setArrows(const QVector<ShogiView::Arrow>& arrows)
+void ShogiViewHighlighting::setArrows(const QList<ShogiView::Arrow>& arrows)
 {
     m_arrows = arrows;
     m_arrowDropPieceCache.clear();

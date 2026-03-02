@@ -332,7 +332,7 @@ bool KifuExportController::copyBodToClipboard()         { return m_clipboard->co
 // USI指し手変換
 // --------------------------------------------------------
 
-QStringList KifuExportController::gameMovesToUsiMoves(const QVector<ShogiMove>& moves)
+QStringList KifuExportController::gameMovesToUsiMoves(const QList<ShogiMove>& moves)
 {
     return UsiMoveConverter::fromGameMoves(moves);
 }

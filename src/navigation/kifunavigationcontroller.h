@@ -6,7 +6,7 @@
 
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 
 class KifuBranchTree;
 class KifuBranchNode;

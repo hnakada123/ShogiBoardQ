@@ -44,8 +44,9 @@ void HumanVsEngineStrategy::start()
 
     // USI を生成（この時点ではプロセス未起動）
     // HvEでは常に m_usi1 を使用
+    // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks) - Qt parent-child 所有権により管理される
     m_ctx.setUsi1(new Usi(comm, think, m_ctx.gc(), m_ctx.playModeRef(), m_ctx.coordinatorAsParent()));
-    m_ctx.setUsi2(nullptr);
+    m_ctx.setUsi2(nullptr); // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
     // 投了配線
     m_ctx.wireResignToArbiter(m_ctx.usi1(), /*asP1=*/m_engineIsP1);

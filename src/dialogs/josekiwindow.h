@@ -10,7 +10,7 @@
 #include <QCheckBox>
 #include <QLabel>
 #include <QTableWidget>
-#include <QVector>
+#include <QList>
 #include <QMenu>
 #include <QStringList>
 #include <QAction>
@@ -46,7 +46,7 @@ struct JosekiMove {
  */
 struct JosekiEntry {
     QString sfen;                   ///< 局面のSFEN文字列
-    QVector<JosekiMove> moves;      ///< この局面での指し手リスト
+    QList<JosekiMove> moves;      ///< この局面での指し手リスト
 };
 
 /**
@@ -191,7 +191,7 @@ private:
     bool          m_displayEnabled = true;
     bool          m_modified = false;
     QStringList   m_recentFiles;
-    QVector<JosekiMove> m_currentMoves;
+    QList<JosekiMove> m_currentMoves;
 
     /// 遅延読込用
     bool          m_pendingAutoLoad = false;

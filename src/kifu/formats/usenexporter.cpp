@@ -207,8 +207,8 @@ static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sf
 
     // 盤面を9x9配列に展開 (promoted pieces use 0x100 flag)
     // board[rank][file] の順序で格納 (rank: 0-8 = 一段〜九段, file: 0-8 = 1筋〜9筋)
-    auto expandBoard = [](const QString& board) -> QVector<int> {
-        QVector<int> result(81, 0);  // 0 = empty
+    auto expandBoard = [](const QString& board) -> QList<int> {
+        QList<int> result(81, 0);  // 0 = empty
         int sfenIdx = 0;  // SFEN上のインデックス（左上から右へ、上から下へ）
         bool promoted = false;
 
@@ -239,8 +239,8 @@ static QString inferUsiFromSfenDiff(const QString& sfenBefore, const QString& sf
         return result;
     };
 
-    QVector<int> before = expandBoard(boardBefore);
-    QVector<int> after = expandBoard(boardAfter);
+    QList<int> before = expandBoard(boardBefore);
+    QList<int> after = expandBoard(boardAfter);
 
     // 差分を探す
     int fromRank = -1, fromFile = -1;
@@ -389,7 +389,7 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
     // 新システム: KifuBranchTree から出力
     KifuBranchTree* branchTree = model.branchTree();
     if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QVector<BranchLine> lines = branchTree->allLines();
+        QList<BranchLine> lines = branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);

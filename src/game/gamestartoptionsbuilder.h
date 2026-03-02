@@ -8,10 +8,10 @@
 
 #include "gamestartcoordinator.h"
 #include "playmode.h"
+#include "startgamedatabridge.h"
 
 class QObject;
 class QWidget;
-class QDialog;
 class ShogiView;
 class ShogiGameController;
 
@@ -34,8 +34,8 @@ public:
     /// QWidget の子オブジェクトの property から TimeControl を組み立てる
     static TimeControl extractTimeControl(const QWidget* dlg);
 
-    /// StartGameDialog (QDialog*) から TimeControl を組み立てる
-    static TimeControl buildTimeControl(QDialog* startDlg);
+    /// StartGameDialogData から TimeControl を組み立てる
+    static TimeControl buildTimeControl(const StartGameDialogData& data);
 
     // --- PlayMode 判定 ---
 
@@ -44,8 +44,8 @@ public:
                                       bool isPlayer1Human,
                                       bool isPlayer2Human);
 
-    /// ダイアログの状態から PlayMode を決定する
-    static PlayMode determinePlayModeFromDialog(QDialog* startDlg);
+    /// StartGameDialogData の状態から PlayMode を決定する
+    static PlayMode determinePlayModeFromDialog(const StartGameDialogData& data);
 
     /// SFENの手番とダイアログ設定を整合させてPlayModeを決定する
     static PlayMode determinePlayModeAlignedWithTurn(

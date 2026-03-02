@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QLocale>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QPointer>
 #include <memory>
 
@@ -52,7 +52,7 @@ public:
     void setPreviousMove(int fileTo, int rankTo);
     
     /// クローンした盤面データを設定
-    void setClonedBoardData(const QVector<QChar>& boardData);
+    void setClonedBoardData(const QList<QChar>& boardData);
     
     /// ponderモード有効フラグを設定
     void setPonderEnabled(bool enabled);
@@ -170,7 +170,7 @@ private:
 
     bool m_thinkingStartPlayerIsP1 = true; ///< 思考開始時の手番（true=先手, false=後手）
 
-    QVector<QChar> m_clonedBoardData;   ///< クローンした盤面データ
+    QList<QChar> m_clonedBoardData;   ///< クローンした盤面データ
 
     int m_lastScoreCp = 0;              ///< 最後の評価値（センチポーン）
     QString m_scoreStr;                 ///< 評価値文字列

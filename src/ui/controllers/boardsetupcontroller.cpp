@@ -98,7 +98,7 @@ void BoardSetupController::setSfenRecord(QStringList* sfenRecord)
     m_sfenHistory = sfenRecord;
 }
 
-void BoardSetupController::setGameMoves(QVector<ShogiMove>* gameMoves)
+void BoardSetupController::setGameMoves(QList<ShogiMove>* gameMoves)
 {
     m_gameMoves = gameMoves;
 }

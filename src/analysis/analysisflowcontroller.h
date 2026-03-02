@@ -7,7 +7,7 @@
 
 #include <QObject>
 #include <QPointer>
-#include <QVector>
+#include <QList>
 #include <functional>
 #include <memory>
 
@@ -78,7 +78,7 @@ public:
     /// 解析中かどうか
     bool isRunning() const { return m_running; }
 
-Q_SIGNALS:
+signals:
     /// 解析停止を通知する（中止/完了共通、→ DialogCoordinator経由でMainWindowへ）
     void analysisStopped();
     
