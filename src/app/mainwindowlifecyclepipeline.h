@@ -28,6 +28,9 @@ public:
     /// 終了手順を一括実行する（二重実行防止付き）
     void runShutdown();
 
+    /// 終了手順を実行してからアプリケーションを終了する
+    void shutdownAndQuit();
+
 private:
     MainWindow& m_mw;
     bool m_shutdownDone = false;

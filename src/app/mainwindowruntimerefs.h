@@ -123,6 +123,50 @@ struct RuntimePlayerRefs {
     QString* engineName2 = nullptr;                            ///< 後手エンジン名（外部所有）
 };
 
+/// @brief ゲームサービス参照
+/// 全メンバは非所有。対局の中核となるサービス/ビューへの参照。
+struct RuntimeGameServiceRefs {
+    MatchCoordinator* match = nullptr;                     ///< 対局調整（非所有）
+    ShogiGameController* gameController = nullptr;         ///< ゲーム制御（非所有）
+    CsaGameCoordinator* csaGameCoordinator = nullptr;      ///< CSA対局コーディネータ（非所有）
+    ShogiView* shogiView = nullptr;                        ///< 将棋盤ビュー（非所有）
+};
+
+/// @brief 棋譜サービス参照
+/// 全メンバは非所有。棋譜の読み込み・表示・再生に関わるサービスへの参照。
+struct RuntimeKifuServiceRefs {
+    KifuLoadCoordinator* kifuLoadCoordinator = nullptr;    ///< 棋譜読み込みコーディネータ（非所有）
+    GameRecordPresenter* recordPresenter = nullptr;            ///< 棋譜表示プレゼンタ（非所有）
+    ReplayController* replayController = nullptr;              ///< リプレイコントローラ（非所有）
+};
+
+/// @brief UIコントローラ参照
+/// 全メンバは非所有。UI操作・状態管理に関わるコントローラ/Wiring への参照。
+struct RuntimeUiControllerRefs {
+    TimeControlController* timeController = nullptr;           ///< 時間制御コントローラ（非所有）
+    BoardInteractionController* boardController = nullptr;     ///< 盤面操作コントローラ（非所有）
+    PositionEditController* positionEditController = nullptr;  ///< 局面編集コントローラ（非所有）
+    DialogCoordinator* dialogCoordinator = nullptr;            ///< ダイアログコーディネータ（非所有）
+    UiStatePolicyManager* uiStatePolicy = nullptr;             ///< UI状態ポリシーマネージャ（非所有）
+    BoardSyncPresenter* boardSync = nullptr;                   ///< 盤面同期プレゼンタ（非所有）
+    PlayerInfoWiring* playerInfoWiring = nullptr;              ///< 対局者情報配線（非所有）
+};
+
+/// @brief 解析参照
+/// 全メンバは非所有。解析機能に関わるコントローラ/プレゼンタへの参照。
+struct RuntimeAnalysisRefs {
+    GameInfoPaneController* gameInfoController = nullptr;      ///< 対局情報コントローラ（非所有）
+    EvaluationGraphController* evalGraphController = nullptr;  ///< 評価値グラフ制御（非所有）
+    AnalysisResultsPresenter* analysisPresenter = nullptr;     ///< 解析結果プレゼンタ（非所有）
+};
+
+/// @brief ゲームコントローラ参照
+/// 全メンバは非所有。ゲーム状態・連続対局の制御コントローラへの参照。
+struct RuntimeGameControllerRefs {
+    GameStateController* gameStateController = nullptr;        ///< ゲーム状態コントローラ（非所有）
+    ConsecutiveGamesController* consecutiveGamesController = nullptr; ///< 連続対局コントローラ（非所有）
+};
+
 // ==========================================================================
 // メイン構造体
 // ==========================================================================
@@ -135,37 +179,17 @@ struct RuntimePlayerRefs {
  */
 struct MainWindowRuntimeRefs {
     // --- 領域別サブ構造体 ---
-    RuntimeUiRefs ui;                  ///< UI参照
-    RuntimeModelRefs models;           ///< モデル参照
-    RuntimeKifuRefs kifu;              ///< 棋譜データ参照
-    RuntimeStateRefs state;            ///< 可変状態参照
-    RuntimeBranchNavRefs branchNav;    ///< 分岐ナビゲーション参照
-    RuntimePlayerRefs player;          ///< 対局者名参照
-
-    // --- サービス参照 ---
-    MatchCoordinator* match = nullptr;                     ///< 対局調整（非所有）
-    ShogiGameController* gameController = nullptr;         ///< ゲーム制御（非所有）
-    ShogiView* shogiView = nullptr;                        ///< 将棋盤ビュー（非所有）
-    KifuLoadCoordinator* kifuLoadCoordinator = nullptr;    ///< 棋譜読み込みコーディネータ（非所有）
-    CsaGameCoordinator* csaGameCoordinator = nullptr;      ///< CSA対局コーディネータ（非所有）
-
-    // --- コントローラ / Wiring 参照 ---
-    GameRecordPresenter* recordPresenter = nullptr;            ///< 棋譜表示プレゼンタ（非所有）
-    ReplayController* replayController = nullptr;              ///< リプレイコントローラ（非所有）
-    TimeControlController* timeController = nullptr;           ///< 時間制御コントローラ（非所有）
-    BoardInteractionController* boardController = nullptr;     ///< 盤面操作コントローラ（非所有）
-    PositionEditController* positionEditController = nullptr;  ///< 局面編集コントローラ（非所有）
-    DialogCoordinator* dialogCoordinator = nullptr;            ///< ダイアログコーディネータ（非所有）
-    PlayerInfoWiring* playerInfoWiring = nullptr;              ///< 対局者情報配線（非所有）
-    BoardSyncPresenter* boardSync = nullptr;                   ///< 盤面同期プレゼンタ（非所有）
-    UiStatePolicyManager* uiStatePolicy = nullptr;             ///< UI状態ポリシーマネージャ（非所有）
-    GameStateController* gameStateController = nullptr;        ///< ゲーム状態コントローラ（非所有）
-    ConsecutiveGamesController* consecutiveGamesController = nullptr; ///< 連続対局コントローラ（非所有）
-
-    // --- その他参照 ---
-    GameInfoPaneController* gameInfoController = nullptr;      ///< 対局情報コントローラ（非所有）
-    EvaluationGraphController* evalGraphController = nullptr;  ///< 評価値グラフ制御（非所有）
-    AnalysisResultsPresenter* analysisPresenter = nullptr;     ///< 解析結果プレゼンタ（非所有）
+    RuntimeUiRefs ui;                        ///< UI参照
+    RuntimeModelRefs models;                 ///< モデル参照
+    RuntimeKifuRefs kifu;                    ///< 棋譜データ参照
+    RuntimeStateRefs state;                  ///< 可変状態参照
+    RuntimeBranchNavRefs branchNav;          ///< 分岐ナビゲーション参照
+    RuntimePlayerRefs player;                ///< 対局者名参照
+    RuntimeGameServiceRefs gameService;      ///< ゲームサービス参照
+    RuntimeKifuServiceRefs kifuService;      ///< 棋譜サービス参照
+    RuntimeUiControllerRefs uiController;    ///< UIコントローラ参照
+    RuntimeAnalysisRefs analysis;            ///< 解析参照
+    RuntimeGameControllerRefs gameCtrl;      ///< ゲームコントローラ参照
 };
 
 #endif // MAINWINDOWRUNTIMEREFS_H

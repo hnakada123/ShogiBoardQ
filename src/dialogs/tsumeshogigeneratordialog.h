@@ -16,6 +16,7 @@ class QPushButton;
 class QSpinBox;
 class QTableWidget;
 class QToolButton;
+class QVBoxLayout;
 class TsumeshogiGenerator;
 
 /**
@@ -57,6 +58,9 @@ private:
     };
 
     void setupUi();
+    void buildFormSection(QVBoxLayout* mainLayout);
+    void buildResultsSection(QVBoxLayout* mainLayout);
+    void connectDialogSignals();
     void readEngineNameAndDir();
     void loadSettings();
     void saveSettings();

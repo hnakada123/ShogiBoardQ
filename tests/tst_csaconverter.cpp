@@ -4,6 +4,7 @@
 #include "kifdisplayitem.h"
 #include "csatosfenconverter.h"
 #include "kifparsetypes.h"
+#include "kifu_test_helper.h"
 
 static const QStringList kExpectedUsiMoves = {
     QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f"),
@@ -614,6 +615,48 @@ private slots:
         QString warn;
         (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         // Must not crash
+        QVERIFY(true);
+    }
+    // ========================================
+    // 境界値テスト: 全APIに対する異常入力耐性
+    // ========================================
+
+    void boundaryInput_doesNotCrash_data()
+    {
+        QTest::addColumn<QByteArray>("fileContent");
+        KifuTestHelper::addBoundaryInputRows();
+    }
+
+    void boundaryInput_doesNotCrash()
+    {
+        QFETCH(QByteArray, fileContent);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, fileContent, QStringLiteral("csa")));
+
+        KifParseResult result;
+        QString warn;
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+
+        (void)CsaToSfenConverter::extractGameInfo(tmp.fileName());
+
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 境界値テスト: 極端な手数 (1500手)
+    // ========================================
+
+    void longMoveSequence_doesNotCrash()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(
+            tmp, KifuTestHelper::generateLongCsaContent(1500), QStringLiteral("csa")));
+
+        KifParseResult result;
+        QString warn;
+        (void)CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
+
         QVERIFY(true);
     }
 };

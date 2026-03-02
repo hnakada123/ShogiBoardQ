@@ -9,13 +9,10 @@
 #include <QPointer>
 #include <functional>
 
-#include "mainwindow.h"  // PlayMode enum
+#include "playmode.h"
 #include "matchcoordinator.h"  // GameOverState, GameEndInfo, Cause, Player
 #include "shogigamecontroller.h"  // ShogiGameController::Player
 
-class QAbstractItemView;
-class ShogiView;
-class RecordPane;
 class ReplayController;
 class TimeControlController;
 class KifuLoadCoordinator;
@@ -35,14 +32,26 @@ public:
     explicit GameStateController(QObject* parent = nullptr);
     ~GameStateController() override;
 
+    /// UI操作コールバック群
+    struct Hooks {
+        std::function<void()> enableArrowButtons;                             ///< 矢印ボタン有効化
+        std::function<void(bool)> setReplayMode;                              ///< リプレイモード切替
+        std::function<void()> refreshBranchTree;                              ///< 分岐ツリー再構築
+        std::function<void(int, int, int)> updatePlyState;                    ///< 手数状態更新
+        std::function<void()> updateBoardView;                                ///< 盤面ビュー再描画
+        std::function<void(bool)> setGameOverStyleLock;                       ///< 終局スタイルロック
+        std::function<void(bool)> setMouseClickMode;                          ///< マウスクリックモード
+        std::function<void()> removeHighlightAllData;                         ///< ハイライト全消去
+        std::function<void()> setKifuViewSingleSelection;                     ///< 棋譜ビュー単一選択モード
+    };
+
     // --- 依存オブジェクトの設定 ---
     void setMatchCoordinator(MatchCoordinator* match);
-    void setShogiView(ShogiView* view);
-    void setRecordPane(RecordPane* pane);
     void setReplayController(ReplayController* replay);
     void setTimeController(TimeControlController* tc);
     void setKifuLoadCoordinator(KifuLoadCoordinator* kc);
     void setKifuRecordModel(KifuRecordListModel* model);
+    void setHooks(const Hooks& hooks);
 
     // --- 状態設定 ---
     void setPlayMode(PlayMode mode);
@@ -66,17 +75,6 @@ public:
     bool isHumanSide(ShogiGameController::Player p) const;
     bool isGameOver() const;
 
-    // --- コールバック設定（MainWindowへの委譲用） ---
-    using EnableArrowButtonsCallback = std::function<void()>;
-    using SetReplayModeCallback = std::function<void(bool)>;
-    using RefreshBranchTreeCallback = std::function<void()>;
-    using UpdatePlyStateCallback = std::function<void(int activePly, int selectedPly, int moveIndex)>;
-
-    void setEnableArrowButtonsCallback(EnableArrowButtonsCallback cb);
-    void setSetReplayModeCallback(SetReplayModeCallback cb);
-    void setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb);
-    void setUpdatePlyStateCallback(UpdatePlyStateCallback cb);
-
 public slots:
     /// 対局終了シグナルのハンドラ（→ MatchCoordinator::gameEnded から接続）
     void onMatchGameEnded(const MatchCoordinator::GameEndInfo& info);
@@ -89,8 +87,6 @@ public slots:
 
 private:
     QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
-    ShogiView* m_shogiView = nullptr;                   ///< 非所有
-    RecordPane* m_recordPane = nullptr;                 ///< 非所有
     ReplayController* m_replayController = nullptr;     ///< 非所有
     TimeControlController* m_timeController = nullptr;  ///< 非所有
     KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr; ///< 非所有
@@ -98,11 +94,7 @@ private:
 
     PlayMode m_playMode = PlayMode::NotStarted; ///< 現在のプレイモード
 
-    // --- コールバック ---
-    EnableArrowButtonsCallback m_enableArrowButtons;   ///< 矢印ボタン有効化
-    SetReplayModeCallback m_setReplayMode;             ///< リプレイモード切替
-    RefreshBranchTreeCallback m_refreshBranchTree;     ///< 分岐ツリー再構築
-    UpdatePlyStateCallback m_updatePlyState;           ///< 手数状態更新
+    Hooks m_hooks;  ///< UI操作コールバック群
 };
 
 #endif // GAMESTATECONTROLLER_H

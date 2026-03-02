@@ -10,9 +10,9 @@ SessionLifecycleCoordinator::Deps SessionLifecycleDepsFactory::createDeps(
     SessionLifecycleCoordinator::Deps deps;
 
     // コントローラ
-    deps.replayController = refs.replayController;
-    deps.gameController = refs.gameController;
-    deps.gameStateController = refs.gameStateController;
+    deps.replayController = refs.kifuService.replayController;
+    deps.gameController = refs.gameService.gameController;
+    deps.gameStateController = refs.gameCtrl.gameStateController;
 
     // 状態ポインタ
     deps.playMode = refs.state.playMode;
@@ -33,14 +33,14 @@ SessionLifecycleCoordinator::Deps SessionLifecycleDepsFactory::createDeps(
     deps.startGame = callbacks.startGame;
 
     // handleGameEnded 用
-    deps.timeController = refs.timeController;
-    deps.consecutiveGamesController = refs.consecutiveGamesController;
+    deps.timeController = refs.uiController.timeController;
+    deps.consecutiveGamesController = refs.gameCtrl.consecutiveGamesController;
     deps.updateEndTime = callbacks.updateEndTime;
     deps.startNextConsecutiveGame = callbacks.startNextConsecutiveGame;
 
     // applyTimeControl 用
-    deps.match = refs.match;
-    deps.shogiView = refs.shogiView;
+    deps.match = refs.gameService.match;
+    deps.shogiView = refs.gameService.shogiView;
     deps.lastTimeControl = callbacks.lastTimeControl;
     deps.updateGameInfoWithTimeControl = callbacks.updateGameInfoWithTimeControl;
 

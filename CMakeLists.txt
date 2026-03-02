@@ -394,6 +394,7 @@ set(SRC_KIFU
     src/kifu/formats/csaformatter.h
     src/kifu/formats/csalexer.cpp
     src/kifu/formats/csalexer.h
+    src/kifu/formats/csalexer_position.cpp
     src/kifu/formats/csatosfenconverter.cpp
     src/kifu/formats/csatosfenconverter.h
     src/kifu/formats/jkfexporter.cpp
@@ -414,6 +415,7 @@ set(SRC_KIFU
     src/kifu/formats/kifexporter.h
     src/kifu/formats/kiflexer.cpp
     src/kifu/formats/kiflexer.h
+    src/kifu/formats/kiflexer_bod.cpp
     src/kifu/formats/kiftosfenconverter.cpp
     src/kifu/formats/kiftosfenconverter.h
     src/kifu/formats/notationutils.cpp
@@ -512,8 +514,6 @@ set(SRC_ENGINE
     src/engine/engineprocessmanager.cpp
     src/engine/engineprocessmanager.h
     src/engine/enginesettingsconstants.h
-    src/engine/enginesettingscoordinator.cpp
-    src/engine/enginesettingscoordinator.h
     src/engine/shogiengineinfoparser.cpp
     src/engine/shogiengineinfoparser.h
     src/engine/shogiengineinfoparser_board.cpp
@@ -715,6 +715,7 @@ set(SRC_WIDGETS
     src/widgets/evaluationchartconfigurator.h
     src/widgets/evaluationchartwidget.cpp
     src/widgets/evaluationchartwidget.h
+    src/widgets/evaluationchartwidget_data.cpp
     src/widgets/evaluationchartwidget_tooltip.cpp
     src/widgets/flowlayout.cpp
     src/widgets/flowlayout.h

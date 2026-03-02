@@ -87,7 +87,12 @@ private:
     };
     
     void setCellValue(int col, const QString& value);
-    
+
+    // コンストラクタ分割メソッド
+    void setupTable();
+    void initializeCells();
+    void buildLayout();
+
     // エンジン名列の幅を残りスペースに合わせて調整
     void adjustEngineNameColumn();
 

@@ -91,7 +91,6 @@ QString MainWindowGameStartService::resolveCurrentSfenForGameStart(const Prepare
 GameStartCoordinator::Ctx MainWindowGameStartService::buildContext(const ContextDeps& deps) const
 {
     GameStartCoordinator::Ctx c;
-    c.view = deps.view;
     c.gc = deps.gc;
     c.clock = deps.clock;
     c.sfenRecord = deps.sfenRecord;

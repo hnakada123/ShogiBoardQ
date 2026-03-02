@@ -14,7 +14,6 @@
 #include <QSize>
 
 class QWidget;
-class ShogiView;
 
 namespace AppSettings {
 
@@ -58,7 +57,7 @@ void setMenuWindowFontSize(int size);
 void loadWindowSize(QWidget* mainWindow);
 
 /// メインウィンドウのサイズと盤マスサイズをINIに保存
-void saveWindowAndBoard(QWidget* mainWindow, ShogiView* view);
+void saveWindowAndBoard(QWidget* mainWindow, int squareSize);
 
 // --- マイグレーション ---
 

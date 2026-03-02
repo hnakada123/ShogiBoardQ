@@ -371,7 +371,7 @@ private slots:
                       "closeEvent does not call runShutdown()");
         }
 
-        // saveSettingsAndClose 内で runShutdown が呼ばれること
+        // saveSettingsAndClose 内で shutdownAndQuit が呼ばれること
         {
             const auto range = findFunctionBody(
                 lines, QStringLiteral("MainWindow::saveSettingsAndClose"));
@@ -379,8 +379,8 @@ private slots:
             QStringList body;
             for (int i = range.first; i <= range.second && i < int(lines.size()); ++i)
                 body << lines[i];
-            QVERIFY2(body.join(QLatin1Char('\n')).contains(QStringLiteral("runShutdown")),
-                      "saveSettingsAndClose does not call runShutdown()");
+            QVERIFY2(body.join(QLatin1Char('\n')).contains(QStringLiteral("shutdownAndQuit")),
+                      "saveSettingsAndClose does not call shutdownAndQuit()");
         }
     }
 

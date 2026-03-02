@@ -11,7 +11,6 @@
 
 class KifuBranchTree;
 class KifuNavigationState;
-class ShogiView;
 class ShogiGameController;
 class ShogiClock;
 class KifuRecordListModel;
@@ -37,7 +36,6 @@ public:
     };
 
     struct ContextDeps {
-        ShogiView* view = nullptr;
         ShogiGameController* gc = nullptr;
         ShogiClock* clock = nullptr;
         QStringList* sfenRecord = nullptr;

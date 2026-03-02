@@ -41,7 +41,9 @@
 #include "appsettings.h"
 #include "docklayoutmanager.h"
 #include "matchcoordinator.h"
+#include "shogiview.h"
 
+#include <QCoreApplication>
 #include <QTimer>
 
 #ifdef QT_DEBUG
@@ -89,7 +91,7 @@ void MainWindowLifecyclePipeline::runShutdown()
     m_shutdownDone = true;
 
     // 設定保存
-    AppSettings::saveWindowAndBoard(&m_mw, m_mw.m_shogiView);
+    AppSettings::saveWindowAndBoard(&m_mw, m_mw.m_shogiView ? m_mw.m_shogiView->squareSize() : 0);
     m_mw.m_registry->ensureDockLayoutManager();
     if (m_mw.m_dockLayoutManager) {
         m_mw.m_dockLayoutManager->saveDockStates();
@@ -103,6 +105,12 @@ void MainWindowLifecyclePipeline::runShutdown()
     // リソース解放（unique_ptr がデストラクタで自動解放するため明示 delete は不要）
     m_mw.m_queryService.reset();
     m_mw.m_playModePolicy.reset();
+}
+
+void MainWindowLifecyclePipeline::shutdownAndQuit()
+{
+    runShutdown();
+    QCoreApplication::quit();
 }
 
 void MainWindowLifecyclePipeline::createFoundationObjects()

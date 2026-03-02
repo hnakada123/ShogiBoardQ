@@ -287,7 +287,6 @@ void MatchCoordinator::ensureUndoHandler()
 
     MatchUndoHandler::Refs refs;
     refs.gc                = m_gc;
-    refs.view              = m_view;
     refs.sfenHistory       = m_sfenHistory;
     refs.positionStr1      = &m_positionStr1;
     refs.positionPonder1   = &m_positionPonder1;

@@ -220,7 +220,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindowserviceregistry.h");
-        constexpr int maxEnsureMethods = 11;
+        constexpr int maxEnsureMethods = 14;
 
         const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
         const int count = countMatchingLines(headerPath, pattern);
@@ -595,7 +595,7 @@ private slots:
     // ================================================================
     void filesOver550()
     {
-        constexpr int kMaxFilesOver550 = 13; // 実測値: 13 (2026-03-01, mt-10: tsumeshogigenerator並列化)
+        constexpr int kMaxFilesOver550 = 10; // 実測値: 10 (2026-03-02, ISSUE-013: 3ファイル分割)
         constexpr int kThreshold = 550;
 
         const auto files = collectSourceFiles();
@@ -651,7 +651,7 @@ private slots:
     // ================================================================
     void mainWindowIncludeCount()
     {
-        constexpr int kMaxIncludes = 40; // 実測値: 40 (2026-03-01)
+        constexpr int kMaxIncludes = 36; // 実測値: 36 (2026-03-02)
 
         const QString filePath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.cpp");

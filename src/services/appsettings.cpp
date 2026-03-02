@@ -6,7 +6,6 @@
 #include "settingskeys.h"
 #include <QSettings>
 #include <QWidget>
-#include "shogiview.h"
 
 namespace AppSettings {
 
@@ -111,12 +110,12 @@ void loadWindowSize(QWidget* mainWindow)
         mainWindow->resize(sz);
 }
 
-void saveWindowAndBoard(QWidget* mainWindow, ShogiView* view)
+void saveWindowAndBoard(QWidget* mainWindow, int squareSize)
 {
-    if (!mainWindow || !view) return;
+    if (!mainWindow) return;
     QSettings& s = SettingsCommon::openSettings();
     s.setValue(SettingsKeys::kMainWindowSize, mainWindow->size());
-    s.setValue(SettingsKeys::kSquareSize,     view->squareSize());
+    s.setValue(SettingsKeys::kSquareSize,     squareSize);
     if (s.status() != QSettings::NoError) {
         qWarning("AppSettings: Failed to save settings (status=%d)", static_cast<int>(s.status()));
     }

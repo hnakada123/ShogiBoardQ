@@ -5,7 +5,6 @@
 
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
-#include "shogiview.h"
 #include "boardinteractioncontroller.h"
 #include "kifurecordlistmodel.h"
 
@@ -193,7 +192,7 @@ bool MatchUndoHandler::undoTwoPlies()
     // --- 入力許可（人間手番なら盤クリックOK） ---
     const auto stm = m_refs.gc->currentPlayer();
     const bool humanNow = h_.isHumanSide ? h_.isHumanSide(stm) : false;
-    if (m_refs.view) m_refs.view->setMouseClickMode(humanNow);
+    if (h_.setMouseClickMode) h_.setMouseClickMode(humanNow);
 
     return true;
 }

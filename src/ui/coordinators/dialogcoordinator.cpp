@@ -8,7 +8,7 @@
 #include "logcategories.h"
 
 #include "aboutcoordinator.h"
-#include "enginesettingscoordinator.h"
+#include "engineregistrationdialog.h"
 #include "promotionflow.h"
 #include "considerationflowcontroller.h"
 #include "tsumesearchflowcontroller.h"
@@ -143,7 +143,8 @@ void DialogCoordinator::openProjectWebsite()
 
 void DialogCoordinator::showEngineSettingsDialog()
 {
-    EngineSettingsCoordinator::openDialog(m_parentWidget);
+    EngineRegistrationDialog dlg(m_parentWidget);
+    dlg.exec();
 }
 
 // --------------------------------------------------------

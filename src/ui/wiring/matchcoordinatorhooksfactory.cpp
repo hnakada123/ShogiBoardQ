@@ -50,5 +50,6 @@ MatchCoordinator::UndoHooks MatchCoordinatorHooksFactory::buildUndoHooks(const U
     undoHooks.updateHighlightsForPly = deps.updateHighlightsForPly;
     undoHooks.updateTurnAndTimekeepingDisplay = deps.updateTurnAndTimekeepingDisplay;
     undoHooks.isHumanSide = deps.isHumanSide;
+    undoHooks.setMouseClickMode = deps.setMouseClickMode;
     return undoHooks;
 }

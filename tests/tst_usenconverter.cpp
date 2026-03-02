@@ -4,6 +4,7 @@
 #include "usentosfenconverter.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
+#include "kifu_test_helper.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -264,6 +265,54 @@ private slots:
         // Must not crash regardless of input
         QStringList decoded = UsenToSfenConverter::decodeUsenMoves(usenInput);
         Q_UNUSED(decoded);
+        QVERIFY(true);
+    }
+    // ========================================
+    // 境界値テスト: 全APIに対する異常入力耐性
+    // ========================================
+
+    void boundaryInput_doesNotCrash_data()
+    {
+        QTest::addColumn<QByteArray>("fileContent");
+        KifuTestHelper::addBoundaryInputRows();
+    }
+
+    void boundaryInput_doesNotCrash()
+    {
+        QFETCH(QByteArray, fileContent);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, fileContent, QStringLiteral("usen")));
+
+        QString error;
+        (void)UsenToSfenConverter::convertFile(tmp.fileName(), &error);
+
+        KifParseResult result;
+        (void)UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+
+        (void)UsenToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
+        (void)UsenToSfenConverter::extractGameInfo(tmp.fileName());
+        (void)UsenToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
+
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 境界値テスト: 極端なデータ長 (1500トリプレット)
+    // ========================================
+
+    void longMoveSequence_doesNotCrash()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(
+            tmp, KifuTestHelper::generateLongUsenContent(1500), QStringLiteral("usen")));
+
+        QString error;
+        (void)UsenToSfenConverter::convertFile(tmp.fileName(), &error);
+
+        KifParseResult result;
+        (void)UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+
         QVERIFY(true);
     }
 };

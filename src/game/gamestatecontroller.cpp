@@ -7,10 +7,6 @@
 
 #include "logcategories.h"
 #include "matchcoordinator.h"
-#include <QAbstractItemView>
-
-#include "shogiview.h"
-#include "recordpane.h"
 #include "replaycontroller.h"
 #include "timecontrolcontroller.h"
 #include "kifuloadcoordinator.h"
@@ -37,16 +33,6 @@ void GameStateController::setMatchCoordinator(MatchCoordinator* match)
     m_match = match;
 }
 
-void GameStateController::setShogiView(ShogiView* view)
-{
-    m_shogiView = view;
-}
-
-void GameStateController::setRecordPane(RecordPane* pane)
-{
-    m_recordPane = pane;
-}
-
 void GameStateController::setReplayController(ReplayController* replay)
 {
     m_replayController = replay;
@@ -67,33 +53,14 @@ void GameStateController::setKifuRecordModel(KifuRecordListModel* model)
     m_kifuRecordModel = model;
 }
 
+void GameStateController::setHooks(const Hooks& hooks)
+{
+    m_hooks = hooks;
+}
+
 void GameStateController::setPlayMode(PlayMode mode)
 {
     m_playMode = mode;
-}
-
-// ============================================================
-// コールバック設定
-// ============================================================
-
-void GameStateController::setEnableArrowButtonsCallback(EnableArrowButtonsCallback cb)
-{
-    m_enableArrowButtons = std::move(cb);
-}
-
-void GameStateController::setSetReplayModeCallback(SetReplayModeCallback cb)
-{
-    m_setReplayMode = std::move(cb);
-}
-
-void GameStateController::setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb)
-{
-    m_refreshBranchTree = std::move(cb);
-}
-
-void GameStateController::setUpdatePlyStateCallback(UpdatePlyStateCallback cb)
-{
-    m_updatePlyState = std::move(cb);
 }
 
 // ============================================================
@@ -126,16 +93,14 @@ void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, bool lo
         loserIsPlayerOne ? MatchCoordinator::P1 : MatchCoordinator::P2);
 
     // UI 後処理
-    if (m_shogiView) {
-        m_shogiView->update();
+    if (m_hooks.updateBoardView) {
+        m_hooks.updateBoardView();
     }
-    if (m_recordPane) {
-        if (auto* view = m_recordPane->kifuView()) {
-            view->setSelectionMode(QAbstractItemView::SingleSelection);
-        }
+    if (m_hooks.setKifuViewSingleSelection) {
+        m_hooks.setKifuViewSingleSelection();
     }
-    if (m_setReplayMode) {
-        m_setReplayMode(true);
+    if (m_hooks.setReplayMode) {
+        m_hooks.setReplayMode(true);
     }
     if (m_replayController) {
         m_replayController->exitLiveAppendMode();
@@ -193,8 +158,8 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
         << " loser=" << ((info.loser == MatchCoordinator::P1) ? "P1" : "P2");
 
     // 対局終了時のスタイル維持を有効化
-    if (m_shogiView) {
-        m_shogiView->setGameOverStyleLock(true);
+    if (m_hooks.setGameOverStyleLock) {
+        m_hooks.setGameOverStyleLock(true);
     }
 
     // UI 後始末
@@ -204,8 +169,8 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     if (ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr) {
         clk->stopClock();
     }
-    if (m_shogiView) {
-        m_shogiView->setMouseClickMode(false);
+    if (m_hooks.setMouseClickMode) {
+        m_hooks.setMouseClickMode(false);
     }
 
     // 棋譜追記＋時間確定
@@ -213,11 +178,11 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
     setGameOverMove(info.cause, loserIsP1);
 
     // UIの後処理
-    if (m_enableArrowButtons) {
-        m_enableArrowButtons();
+    if (m_hooks.enableArrowButtons) {
+        m_hooks.enableArrowButtons();
     }
-    if (m_recordPane && m_recordPane->kifuView()) {
-        m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
+    if (m_hooks.setKifuViewSingleSelection) {
+        m_hooks.setKifuViewSingleSelection();
     }
 
     qCDebug(lcGame) << "onMatchGameEnded LEAVE";
@@ -249,8 +214,8 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
     }
 
     // 分岐ツリーを再構築
-    if (m_refreshBranchTree) {
-        m_refreshBranchTree();
+    if (m_hooks.refreshBranchTree) {
+        m_hooks.refreshBranchTree();
     }
 
     // 対局終了時に現在の手数を設定
@@ -258,23 +223,23 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
         const int rows = m_kifuRecordModel->rowCount();
         if (rows > 0) {
             const int lastRow = rows - 1;
-            if (m_updatePlyState) {
-                m_updatePlyState(lastRow, lastRow, lastRow);
+            if (m_hooks.updatePlyState) {
+                m_hooks.updatePlyState(lastRow, lastRow, lastRow);
             }
         }
     }
 
     // UI 遷移（閲覧モードへ）
-    if (m_enableArrowButtons) {
-        m_enableArrowButtons();
+    if (m_hooks.enableArrowButtons) {
+        m_hooks.enableArrowButtons();
     }
-    if (m_setReplayMode) {
-        m_setReplayMode(true);
+    if (m_hooks.setReplayMode) {
+        m_hooks.setReplayMode(true);
     }
 
     // ハイライト消去
-    if (m_shogiView) {
-        m_shogiView->removeHighlightAllData();
+    if (m_hooks.removeHighlightAllData) {
+        m_hooks.removeHighlightAllData();
     }
 
 }

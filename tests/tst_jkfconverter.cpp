@@ -4,6 +4,7 @@
 #include "jkftosfenconverter.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
+#include "kifu_test_helper.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -297,6 +298,53 @@ private slots:
         // Must not crash regardless of JSON structure
         QStringList moves = JkfToSfenConverter::convertFile(tmp.fileName(), &error);
         Q_UNUSED(moves);
+        QVERIFY(true);
+    }
+    // ========================================
+    // 境界値テスト: 全APIに対する異常入力耐性
+    // ========================================
+
+    void boundaryInput_doesNotCrash_data()
+    {
+        QTest::addColumn<QByteArray>("fileContent");
+        KifuTestHelper::addBoundaryInputRows();
+    }
+
+    void boundaryInput_doesNotCrash()
+    {
+        QFETCH(QByteArray, fileContent);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, fileContent, QStringLiteral("jkf")));
+
+        QString error;
+        (void)JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+
+        KifParseResult result;
+        (void)JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+
+        (void)JkfToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
+        (void)JkfToSfenConverter::extractGameInfo(tmp.fileName());
+
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 境界値テスト: 極端な手数 (1500手)
+    // ========================================
+
+    void longMoveSequence_doesNotCrash()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(
+            tmp, KifuTestHelper::generateLongJkfContent(1500), QStringLiteral("jkf")));
+
+        QString error;
+        (void)JkfToSfenConverter::convertFile(tmp.fileName(), &error);
+
+        KifParseResult result;
+        (void)JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+
         QVERIFY(true);
     }
 };

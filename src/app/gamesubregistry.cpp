@@ -15,9 +15,12 @@
 #include "gamestatecontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "matchcoordinatorwiring.h"
+#include "recordpane.h"
 #include "replaycontroller.h"
 #include "shogiclock.h"
 #include "shogiview.h"
+
+#include <QTableView>
 #include "timecontrolcontroller.h"
 #include "turnmanager.h"
 #include "turnstatesyncservice.h"
@@ -94,6 +97,22 @@ void GameSubRegistry::ensureGameStateController()
         m_mw.m_state.currentMoveIndex = mi;
         m_foundation->ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->syncNavStateToPly(sp);
+    };
+    cbs.updateBoardView = [this]() {
+        if (m_mw.m_shogiView) m_mw.m_shogiView->update();
+    };
+    cbs.setGameOverStyleLock = [this](bool locked) {
+        if (m_mw.m_shogiView) m_mw.m_shogiView->setGameOverStyleLock(locked);
+    };
+    cbs.setMouseClickMode = [this](bool mode) {
+        if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(mode);
+    };
+    cbs.removeHighlightAllData = [this]() {
+        if (m_mw.m_shogiView) m_mw.m_shogiView->removeHighlightAllData();
+    };
+    cbs.setKifuViewSingleSelection = [this]() {
+        if (m_mw.m_recordPane && m_mw.m_recordPane->kifuView())
+            m_mw.m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
     };
 
     m_mw.m_compositionRoot->ensureGameStateController(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_gameStateController);

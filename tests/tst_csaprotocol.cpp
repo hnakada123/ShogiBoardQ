@@ -723,6 +723,406 @@ private slots:
         (void)SfenCsaPositionConverter::toCsaPositionLines(sfen, &error);
         QVERIFY(true);
     }
+
+    // ========================================
+    // 異常系: CsaClient 状態ガード（不正状態でのメソッド呼び出し）
+    // ========================================
+
+    void csaClient_loginWhenDisconnected()
+    {
+        // Disconnected 状態で login → errorOccurred が発行される
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.login(QStringLiteral("user"), QStringLiteral("pass"));
+
+        QCOMPARE(spyError.count(), 1);
+    }
+
+    void csaClient_agreeWhenDisconnected()
+    {
+        // Disconnected 状態で agree → errorOccurred が発行される
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.agree();
+
+        QCOMPARE(spyError.count(), 1);
+    }
+
+    void csaClient_sendMoveWhenDisconnected()
+    {
+        // Disconnected 状態で sendMove → errorOccurred が発行される
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.sendMove(QStringLiteral("+7776FU"));
+
+        QCOMPARE(spyError.count(), 1);
+    }
+
+    void csaClient_resignWhenDisconnected()
+    {
+        // Disconnected 状態で resign → 何も起きない（静かに無視）
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.resign();
+
+        QCOMPARE(spyError.count(), 0);
+    }
+
+    void csaClient_declareWinWhenDisconnected()
+    {
+        // Disconnected 状態で declareWin → 何も起きない
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.declareWin();
+
+        QCOMPARE(spyError.count(), 0);
+    }
+
+    void csaClient_requestChudanWhenDisconnected()
+    {
+        // Disconnected 状態で requestChudan → 何も起きない
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.requestChudan();
+
+        QCOMPARE(spyError.count(), 0);
+    }
+
+    void csaClient_rejectWhenDisconnected()
+    {
+        // Disconnected 状態で reject → 何も起きない（静かに無視）
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.reject();
+
+        QCOMPARE(spyError.count(), 0);
+    }
+
+    void csaClient_logoutWhenDisconnected()
+    {
+        // Disconnected 状態で logout → 何も起きない（静かに無視）
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+
+        client.logout();
+
+        QCOMPARE(spyError.count(), 0);
+    }
+
+    void csaClient_disconnectFromServerWhenAlreadyDisconnected()
+    {
+        // Disconnected 状態で disconnectFromServer → 安全に無視される
+        CsaClient client;
+        QSignalSpy spyState(&client, &CsaClient::connectionStateChanged);
+
+        client.disconnectFromServer();
+
+        // Disconnected → Disconnected は状態変化なし
+        QCOMPARE(spyState.count(), 0);
+    }
+
+    // ========================================
+    // 異常系: CsaClient setCsaVersion の安全性
+    // ========================================
+
+    void csaClient_setCsaVersion()
+    {
+        CsaClient client;
+
+        // 正常なバージョン
+        client.setCsaVersion(QStringLiteral("1.2.1"));
+        // 空文字列
+        client.setCsaVersion(QString());
+        // 長い文字列
+        client.setCsaVersion(QString(1000, QChar('X')));
+        // クラッシュしなければOK
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 異常系: GameSummary 個別時間設定
+    // ========================================
+
+    void gameSummary_individualTime()
+    {
+        CsaClient::GameSummary gs;
+
+        // 個別時間が設定された場合
+        gs.hasIndividualTime = true;
+        gs.totalTimeBlack = 600;
+        gs.totalTimeWhite = 300;
+        gs.byoyomiBlack = 30;
+        gs.byoyomiWhite = 60;
+
+        QCOMPARE(gs.totalTimeBlack, 600);
+        QCOMPARE(gs.totalTimeWhite, 300);
+        QCOMPARE(gs.byoyomiBlack, 30);
+        QCOMPARE(gs.byoyomiWhite, 60);
+
+        // clear で全てリセットされる
+        gs.clear();
+        QVERIFY(!gs.hasIndividualTime);
+        QCOMPARE(gs.totalTimeBlack, 0);
+        QCOMPARE(gs.totalTimeWhite, 0);
+        QCOMPARE(gs.byoyomiBlack, 0);
+        QCOMPARE(gs.byoyomiWhite, 0);
+    }
+
+    void gameSummary_positionAndMovesClear()
+    {
+        CsaClient::GameSummary gs;
+        gs.positionLines.append(QStringLiteral("PI"));
+        gs.moves.append(QStringLiteral("+7776FU"));
+
+        QCOMPARE(gs.positionLines.size(), 1);
+        QCOMPARE(gs.moves.size(), 1);
+
+        gs.clear();
+        QVERIFY(gs.positionLines.isEmpty());
+        QVERIFY(gs.moves.isEmpty());
+    }
+
+    void gameSummary_maxMovesNonNumeric()
+    {
+        // maxMoves は toInt() で解析される - 0 が返る
+        CsaClient::GameSummary gs;
+        gs.maxMoves = QStringLiteral("ABC").toInt();  // 0
+        QCOMPARE(gs.maxMoves, 0);
+    }
+
+    // ========================================
+    // テーブル駆動: CsaMoveConverter csaToUsi 成駒バリエーション
+    // ========================================
+
+    void csaToUsi_promotedPieces_data()
+    {
+        QTest::addColumn<QString>("csaMove");
+        QTest::addColumn<QString>("expectedUsi");
+
+        // 成駒の移動（成った駒が移動するケース）
+        QTest::newRow("TO_move") << QStringLiteral("+2324TO") << QStringLiteral("2c2d+");
+        QTest::newRow("RY_move") << QStringLiteral("-8228RY") << QStringLiteral("8b2h+");
+        QTest::newRow("UM_move") << QStringLiteral("+8822UM") << QStringLiteral("8h2b+");
+        QTest::newRow("NY_move") << QStringLiteral("+1112NY") << QStringLiteral("1a1b+");
+        QTest::newRow("NK_move") << QStringLiteral("+2133NK") << QStringLiteral("2a3c+");
+        QTest::newRow("NG_move") << QStringLiteral("+3122NG") << QStringLiteral("3a2b+");
+    }
+
+    void csaToUsi_promotedPieces()
+    {
+        QFETCH(QString, csaMove);
+        QFETCH(QString, expectedUsi);
+
+        QCOMPARE(CsaMoveConverter::csaToUsi(csaMove), expectedUsi);
+    }
+
+    // ========================================
+    // CsaMoveConverter: csaPieceToKanji 異常入力
+    // ========================================
+
+    void csaPieceToKanji_abnormal_data()
+    {
+        QTest::addColumn<QString>("csaPiece");
+
+        QTest::newRow("empty_string") << QString();
+        QTest::newRow("single_char") << QStringLiteral("F");
+        QTest::newRow("unknown_piece") << QStringLiteral("XX");
+        QTest::newRow("lowercase") << QStringLiteral("fu");
+        QTest::newRow("three_chars") << QStringLiteral("FUX");
+    }
+
+    void csaPieceToKanji_abnormal()
+    {
+        QFETCH(QString, csaPiece);
+
+        // Must not crash; returns some default value
+        (void)CsaMoveConverter::csaPieceToKanji(csaPiece);
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // CsaMoveConverter: 全結果値が一意であること
+    // ========================================
+
+    void gameResultToString_allDistinct()
+    {
+        QStringList results;
+        results << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Win)
+                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Lose)
+                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Draw)
+                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Censored)
+                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Chudan)
+                << CsaMoveConverter::gameResultToString(CsaClient::GameResult::Unknown);
+
+        // 全て非空
+        for (const QString& r : std::as_const(results)) {
+            QVERIFY(!r.isEmpty());
+        }
+
+        // 全て異なる
+        QSet<QString> unique(results.begin(), results.end());
+        QCOMPARE(unique.size(), results.size());
+    }
+
+    void gameEndCauseToString_allDistinct()
+    {
+        QStringList causes;
+        causes << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Resign)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::TimeUp)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::IllegalMove)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Sennichite)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::OuteSennichite)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Jishogi)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::MaxMoves)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Chudan)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::IllegalAction)
+               << CsaMoveConverter::gameEndCauseToString(CsaClient::GameEndCause::Unknown);
+
+        for (const QString& c : std::as_const(causes)) {
+            QVERIFY(!c.isEmpty());
+        }
+
+        QSet<QString> unique(causes.begin(), causes.end());
+        QCOMPARE(unique.size(), causes.size());
+    }
+
+    // ========================================
+    // 異常系: SfenCsaPositionConverter 双方向変換の整合性
+    // ========================================
+
+    void sfenCsaRoundTrip_hirate()
+    {
+        const QString originalSfen =
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+
+        QString error;
+
+        // SFEN → CSA
+        auto csaLines = SfenCsaPositionConverter::toCsaPositionLines(originalSfen, &error);
+        QVERIFY2(csaLines.has_value(), qPrintable(error));
+        QVERIFY(!csaLines->isEmpty());
+
+        // CSA → SFEN（ラウンドトリップ）
+        auto roundTripSfen = SfenCsaPositionConverter::fromCsaPositionLines(*csaLines, &error);
+        QVERIFY2(roundTripSfen.has_value(), qPrintable(error));
+
+        // ラウンドトリップ結果が有効なSFENで、主要な駒が含まれることを検証
+        // 注意: toCsaPositionLines が生成する " * " 形式の末尾空白が
+        //        fromCsaPositionLines の trimmed() で欠落するため完全一致はしない
+        QVERIFY(roundTripSfen->contains(QStringLiteral("lnsgkgsnl")));
+        QVERIFY(roundTripSfen->contains(QStringLiteral("LNSGKGSNL")));
+        QVERIFY(roundTripSfen->contains(QStringLiteral("ppppppppp")));
+        QVERIFY(roundTripSfen->contains(QStringLiteral("PPPPPPPPP")));
+        QVERIFY(roundTripSfen->contains(QStringLiteral("b")));
+    }
+
+    // ========================================
+    // 異常系: CsaMoveConverter csaToUsi 座標境界値
+    // ========================================
+
+    void csaToUsi_coordinateBoundary_data()
+    {
+        QTest::addColumn<QString>("csaMove");
+        QTest::addColumn<bool>("expectNonEmpty");
+
+        // 有効な座標範囲 (1-9)
+        QTest::newRow("corner_11") << QStringLiteral("+1112FU") << true;
+        QTest::newRow("corner_99") << QStringLiteral("-9998FU") << true;
+        QTest::newRow("corner_19") << QStringLiteral("+1918FU") << true;
+        QTest::newRow("corner_91") << QStringLiteral("-9192FU") << true;
+
+        // 座標0を含む（駒打ちと区別）
+        QTest::newRow("zero_from_drop") << QStringLiteral("+0055FU") << true;
+
+        // 非数字座標 — csaToUsi は座標検証せず文字変換するため非空を返す
+        QTest::newRow("alpha_coordinates") << QStringLiteral("+ABCDFU") << true;
+    }
+
+    void csaToUsi_coordinateBoundary()
+    {
+        QFETCH(QString, csaMove);
+        QFETCH(bool, expectNonEmpty);
+
+        QString result = CsaMoveConverter::csaToUsi(csaMove);
+        QCOMPARE(!result.isEmpty(), expectNonEmpty);
+    }
+
+    // ========================================
+    // 異常系: CsaMoveConverter csaToPretty 大きな moveCount
+    // ========================================
+
+    void csaToPretty_largeMoveCount()
+    {
+        // 非常に大きな手数でもクラッシュしない
+        QString result = CsaMoveConverter::csaToPretty(
+            QStringLiteral("+7776FU"), false, 0, 0, 999999);
+        QVERIFY(!result.isEmpty());
+    }
+
+    void csaToPretty_negativeMoveCount()
+    {
+        // 負の手数でもクラッシュしない
+        QString result = CsaMoveConverter::csaToPretty(
+            QStringLiteral("+7776FU"), false, 0, 0, -1);
+        QVERIFY(!result.isEmpty());
+    }
+
+    // ========================================
+    // 異常系: CsaClient isConnected / isMyTurn の安全性
+    // ========================================
+
+    void csaClient_isConnectedWhenFreshlyCreated()
+    {
+        CsaClient client;
+        QVERIFY(!client.isConnected());
+    }
+
+    void csaClient_gameSummaryDefault()
+    {
+        CsaClient client;
+        const CsaClient::GameSummary& gs = client.gameSummary();
+
+        // デフォルト値が適切であること
+        QVERIFY(gs.gameId.isEmpty());
+        QVERIFY(gs.blackName.isEmpty());
+        QVERIFY(gs.whiteName.isEmpty());
+        QVERIFY(gs.myTurn.isEmpty());
+        QCOMPARE(gs.toMove, QStringLiteral("+"));
+        QCOMPARE(gs.protocolMode, QStringLiteral("Server"));
+        QCOMPARE(gs.timeUnit, QStringLiteral("1sec"));
+        QCOMPARE(gs.totalTime, 0);
+        QCOMPARE(gs.byoyomi, 0);
+    }
+
+    // ========================================
+    // テーブル駆動: CsaMoveConverter pieceTypeFromCsa 境界値
+    // ========================================
+
+    void pieceTypeFromCsa_boundary_data()
+    {
+        QTest::addColumn<QString>("csaPiece");
+        QTest::addColumn<int>("expectedType");
+
+        QTest::newRow("empty")       << QString()              << 0;
+        QTest::newRow("single_char") << QStringLiteral("F")    << 0;
+        QTest::newRow("lowercase")   << QStringLiteral("fu")   << 0;
+        QTest::newRow("null_chars")  << QString(2, QChar('\0')) << 0;
+    }
+
+    void pieceTypeFromCsa_boundary()
+    {
+        QFETCH(QString, csaPiece);
+        QFETCH(int, expectedType);
+
+        QCOMPARE(CsaMoveConverter::pieceTypeFromCsa(csaPiece), expectedType);
+    }
 };
 
 QTEST_MAIN(Tst_CsaProtocol)

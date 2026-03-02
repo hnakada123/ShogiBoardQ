@@ -122,6 +122,9 @@ private slots:
     void onElapsedTimerTick();
 
 private:
+    void buildToolbarControls(QWidget* parentWidget);
+    void layoutToolbar();
+    void buildConsiderationView(QWidget* parentWidget);
     void initFontManager();
 
     // 検討タブ用UI

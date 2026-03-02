@@ -88,6 +88,76 @@ jobs:
           path: build/kpi-results.json
           retention-days: 90
 
+      - name: KPI Diff Report
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE_REF="${{ github.base_ref }}"
+
+          # Find latest successful run on base branch
+          RUN_ID=$(gh run list \
+            --workflow ci.yml \
+            --branch "$BASE_REF" \
+            --status success \
+            --limit 1 \
+            --json databaseId \
+            --jq '.[0].databaseId // empty')
+
+          if [ -z "$RUN_ID" ]; then
+            echo "### KPI Diff (base → PR)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> Skipped: no successful CI run found on \`$BASE_REF\`." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Download KPI artifact from base branch run
+          mkdir -p base-kpi
+          gh run download "$RUN_ID" -p "structural-kpi-*" -D base-kpi/ 2>/dev/null || {
+            echo "### KPI Diff (base → PR)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> Skipped: KPI artifact not found in base branch run." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          }
+
+          # Find the downloaded JSON (artifact unpacks into subdirectory)
+          BASE_KPI=$(find base-kpi -name "kpi-results.json" -type f | head -1)
+
+          if [ -z "$BASE_KPI" ]; then
+            echo "### KPI Diff (base → PR)" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "> Skipped: kpi-results.json not found in downloaded artifact." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          # Generate diff report
+          python3 scripts/kpi-diff.py "$BASE_KPI" build/kpi-results.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Layer Dependency Check
+        if: always()
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cd build
+          ctest -V -R tst_layer_dependencies 2>&1 | tee layer-deps-output.txt
+
+          echo "## Layer Dependency Check" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
+          if grep -q "FAILED" layer-deps-output.txt; then
+            echo ":x: **Layer dependency violations found**" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            grep -E '\[src/.*forbidden includes:|includes ".*\(forbidden' layer-deps-output.txt \
+              | sed 's/^[0-9]*: //' >> "$GITHUB_STEP_SUMMARY" || true
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          else
+            echo ":white_check_mark: No layer dependency violations" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+
   build-debug:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
@@ -196,6 +266,34 @@ jobs:
           ASAN_OPTIONS: "detect_leaks=0:halt_on_error=1"
           UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
         run: cd build && ctest --output-on-failure
+
+  sanitize-pr:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Configure with Sanitizers
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_SANITIZERS=ON
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Run core tests with sanitizers
+        env:
+          QT_QPA_PLATFORM: offscreen
+          ASAN_OPTIONS: "detect_leaks=0:halt_on_error=1"
+          UBSAN_OPTIONS: "halt_on_error=1:print_stacktrace=1"
+        run: |
+          cd build
+          ctest -R "tst_shogiboard|tst_shogimove|tst_shogiutils|tst_movevalidator|tst_coredatastructures|tst_usiprotocolhandler|tst_csaprotocol|tst_kifconverter|tst_ki2converter|tst_csaconverter|tst_jkfconverter|tst_usiconverter|tst_usenconverter|tst_wiring_" \
+            --output-on-failure --timeout 120
 
   coverage:
     if: github.event_name != 'schedule'

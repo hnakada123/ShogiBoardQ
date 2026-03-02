@@ -12,7 +12,6 @@
 #include "shogimove.h"
 #include "shogigamecontroller.h"
 
-class ShogiView;
 class KifuRecordListModel;
 class BoardInteractionController;
 
@@ -31,7 +30,6 @@ public:
     /// MatchCoordinator の内部状態への参照群
     struct Refs {
         ShogiGameController* gc = nullptr;
-        ShogiView* view = nullptr;
         QStringList* sfenHistory = nullptr;
         QString* positionStr1 = nullptr;
         QString* positionPonder1 = nullptr;
@@ -68,6 +66,10 @@ public:
         /// @brief 指定プレイヤーが人間側かどうかを判定する
         /// @note 配線元: UndoDeps → PlayModePolicyService::isHumanSide
         std::function<bool(ShogiGameController::Player)> isHumanSide;
+
+        /// @brief マウスクリックモードを設定する（人間手番時にtrue）
+        /// @note 配線元: UndoDeps → ShogiView::setMouseClickMode
+        std::function<void(bool)> setMouseClickMode;
     };
 
     void setRefs(const Refs& refs);

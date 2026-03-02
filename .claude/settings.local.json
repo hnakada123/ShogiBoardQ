@@ -75,7 +75,9 @@
       "Bash(/tmp/analysis_summary.txt:*)",
       "Bash(cat:*)",
       "Bash(read f:*)",
-      "Bash(echo Total headers: $total:*)"
+      "Bash(echo Total headers: $total:*)",
+      "Bash(awk NR>=25 && NR<=63:*)",
+      "Bash(awk NR>=17 && NR<=55:*)"
     ]
   }
 }

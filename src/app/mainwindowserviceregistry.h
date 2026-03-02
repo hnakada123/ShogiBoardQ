@@ -87,6 +87,15 @@ public:
     void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
     void onRecordPaneMainRowChanged(int row);
 
+    // ===== sub-registry convenience wrappers =====
+    void ensureUndoFlowService();
+    void ensureTurnStateSyncService();
+    void ensureGameRecordLoadService();
+    void updateJosekiWindow();
+    void resetToInitialState();
+    void resetGameState();
+    void setReplayMode(bool on);
+
     // ===== DockBootstrapper系 =====
     void setupRecordPane();
     void setupEngineAnalysisTab();

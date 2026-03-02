@@ -29,6 +29,8 @@
 #include "shogiview.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
+#include "gamestartoptionsbuilder.h"
+#include "kifurecordlistmodel.h"
 #include "enginelifecyclemanager.h"
 #include "matchtimekeeper.h"
 #include "matchundohandler.h"
@@ -198,7 +200,6 @@ GameStartCoordinator::GameStartCoordinator(const Deps& deps, QObject* parent)
     , m_match(deps.match)
     , m_clock(deps.clock)
     , m_gc(deps.gc)
-    , m_view(deps.view)
 {
 }
 
@@ -210,9 +211,8 @@ void GameStartCoordinator::initializeGame(const Ctx&) {}
 void GameStartCoordinator::setTimerAndStart(const Ctx&) {}
 PlayMode GameStartCoordinator::setPlayMode(const Ctx&) const { return PlayMode::NotStarted; }
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(int, bool, bool, const QString&) { return PlayMode::NotStarted; }
-void GameStartCoordinator::applyPlayersNamesForMode(ShogiView*, PlayMode, const QString&, const QString&, const QString&, const QString&) const {}
-void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController*, ShogiView*, const QString&) {}
 void GameStartCoordinator::setMatch(MatchCoordinator*) {}
+void GameStartCoordinator::setViewHooks(const ViewHooks&) {}
 bool GameStartCoordinator::validate(const StartParams&, QString&) const { return true; }
 
 // ============================================================
@@ -497,6 +497,14 @@ void ShogiView::mouseReleaseEvent(QMouseEvent*) {}
 void ShogiView::resizeEvent(QResizeEvent*) {}
 void ShogiView::wheelEvent(QWheelEvent*) {}
 bool ShogiView::eventFilter(QObject*, QEvent*) { return false; }
+void ShogiView::initializeToFlatStartingPosition() {}
+void ShogiView::removeHighlightAllData() {}
+
+// ============================================================
+// GameStartOptionsBuilder スタブ
+// ============================================================
+
+void GameStartOptionsBuilder::applyResumePositionIfAny(ShogiGameController*, ShogiView*, const QString&) {}
 
 // ============================================================
 // ShogiGameController スタブ

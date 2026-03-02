@@ -158,6 +158,9 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
     in.updateHighlightsForPly = std::bind(&KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, m_mw.m_kifuNavCoordinator.get(), _1);
     in.updateTurnAndTimekeepingDisplay = std::bind(&MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay, adapter);
     in.isHumanSide = std::bind(&MatchRuntimeQueryService::isHumanSide, m_mw.m_queryService.get(), _1);
+    in.setMouseClickMode = [this](bool mode) {
+        if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(mode);
+    };
 
     in.gc    = m_mw.m_gameController;
     in.view  = m_mw.m_shogiView;

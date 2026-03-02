@@ -21,36 +21,32 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
     , m_showFontButtons(showFontButtons)
     , m_showPredictedMove(showPredictedMove)
 {
+    setupTable();
+    initializeCells();
+    buildLayout();
+}
+
+void EngineInfoWidget::setupTable()
+{
     // ヘッダー設定
     QStringList headers;
     headers << tr("エンジン") << tr("予想手") << tr("探索手")
             << tr("深さ") << tr("ノード数") << tr("探索局面数") << tr("ハッシュ使用率");
     m_table->setHorizontalHeaderLabels(headers);
-
-    // ヘッダーの背景色と文字色を設定
     applyHeaderStyle();
 
     // 行ヘッダーを非表示
     m_table->verticalHeader()->setVisible(false);
-    
-    // 列幅設定（USIプロトコルのパラメータ内容に基づいた適切な幅）
-    // エンジン名: 可変長（長い名前もある）→ 残りスペースで伸縮
-    // 予想手: 例 "△8六歩(85)" → 100ピクセル程度
-    // 探索手: 例 "△同飛(82)" → 100ピクセル程度
-    // 深さ: 例 "25/35" → 55ピクセル程度
-    // ノード数: 例 "47,864,025" → 85ピクセル程度
-    // 探索局面数(NPS): 例 "8,184,682" → 85ピクセル程度
-    // ハッシュ使用率: ヘッダー文字「ハッシュ使用率」が見えるように120ピクセル
-    
+
     // StretchLastSectionを無効にしてResizeToContentsで自動調整しない
     m_table->horizontalHeader()->setStretchLastSection(false);
-    
+
     // 全ての列をInteractive（ユーザーがリサイズ可能）に設定
     for (int col = 0; col < COL_COUNT; ++col) {
         m_table->horizontalHeader()->setSectionResizeMode(col, QHeaderView::Interactive);
     }
-    
-    // 列幅を設定（setStretchLastSectionの後に設定）
+
+    // 列幅を設定
     m_table->setColumnWidth(COL_ENGINE_NAME, 150);
     m_table->setColumnWidth(COL_PRED, 100);
     m_table->setColumnWidth(COL_SEARCHED, 100);
@@ -63,27 +59,27 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
     if (!m_showPredictedMove) {
         m_table->setColumnHidden(COL_PRED, true);
     }
-    
+
     // 列幅変更時のシグナルを接続
     connect(m_table->horizontalHeader(), &QHeaderView::sectionResized,
             this, &EngineInfoWidget::onSectionResized);
-    
-    // 編集不可
+
+    // 編集不可・選択不可
     m_table->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    
-    // 選択不可
     m_table->setSelectionMode(QAbstractItemView::NoSelection);
     m_table->setFocusPolicy(Qt::NoFocus);
-    
+
     // 行の高さを文字サイズに合わせて固定（棋譜欄と同様の余白）
     QFontMetrics fm(m_table->font());
     m_table->verticalHeader()->setDefaultSectionSize(fm.height() + 4);
-    
+
     // スクロールバー非表示
     m_table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    
-    // 初期セルを作成
+}
+
+void EngineInfoWidget::initializeCells()
+{
     for (int col = 0; col < COL_COUNT; ++col) {
         QTableWidgetItem* item = new QTableWidgetItem();
         if (col == COL_DEPTH || col == COL_NODES || col == COL_NPS || col == COL_HASH) {
@@ -93,14 +89,15 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
         }
         m_table->setItem(0, col, item);
     }
-    
-    // レイアウト（縦配置：ボタン行 → テーブル）
-    QVBoxLayout* mainLayout = new QVBoxLayout(this);
+}
+
+void EngineInfoWidget::buildLayout()
+{
+    auto* mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
     // フォントサイズボタンを追加（showFontButtons=trueの場合のみ）
-    // ヘッダーの上に表示するため、テーブルの上に配置
     m_buttonRowHeight = 0;
     if (m_showFontButtons) {
         QWidget* buttonRow = new QWidget(this);
@@ -126,11 +123,11 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
 
         buttonLayout->addWidget(m_btnFontDecrease);
         buttonLayout->addWidget(m_btnFontIncrease);
-        buttonLayout->addStretch();  // 右側に余白を追加
+        buttonLayout->addStretch();
 
         buttonRow->setLayout(buttonLayout);
         mainLayout->addWidget(buttonRow);
-        m_buttonRowHeight = 22;  // ボタン行の高さ
+        m_buttonRowHeight = 22;
     }
 
     mainLayout->addWidget(m_table);
@@ -138,7 +135,7 @@ EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool s
     // 高さ固定（ボタン行 + ヘッダー + 1行）
     int headerHeight = m_table->horizontalHeader()->height();
     int rowHeight = m_table->verticalHeader()->defaultSectionSize();
-    setFixedHeight(m_buttonRowHeight + headerHeight + rowHeight + 2);  // +2 for border
+    setFixedHeight(m_buttonRowHeight + headerHeight + rowHeight + 2);
 }
 
 void EngineInfoWidget::setCellValue(int col, const QString& value) {

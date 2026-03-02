@@ -8,8 +8,6 @@
 #include "kifuloadcoordinator.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
-#include "shogiview.h"
-#include "kifudisplay.h"
 
 #include <QDebug>
 #include <QLoggingCategory>
@@ -86,45 +84,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     if (startingPosNumber == 0) {
         // 現在局面から開始
-
-        // 分岐設定に必要な情報を事前に取得
-        // prepareDataCurrentPosition が cleanup をトリガーし、分岐モデルがクリアされるため
-        int effectivePly = 0;
-        QString terminalLabel;
-        bool needBranchSetup = false;
-
-        if (c.kifuModel && c.sfenRecord && c.kifuLoadCoordinator) {
-            const int originalRowCount = c.kifuModel->rowCount();
-            const int sfenMaxIdx = static_cast<int>(c.sfenRecord->size()) - 1;
-            effectivePly = qMin(c.selectedPly, sfenMaxIdx);
-
-            qCDebug(lcGame).noquote() << "Pre-cleanup terminal row check: selectedPly=" << c.selectedPly
-                               << " sfenMaxIdx=" << sfenMaxIdx
-                               << " effectivePly=" << effectivePly
-                               << " originalRowCount=" << originalRowCount;
-
-            const int rowsAfter = originalRowCount - effectivePly - 1;
-            if (rowsAfter > 0) {
-                if (KifuDisplay* lastItem = c.kifuModel->item(originalRowCount - 1)) {
-                    terminalLabel = lastItem->currentMove();
-                }
-
-                qCDebug(lcGame).noquote() << "Setting up branch for terminal move:"
-                                   << " effectivePly=" << effectivePly
-                                   << " terminalLabel=" << terminalLabel
-                                   << " rowsAfter=" << rowsAfter;
-
-                needBranchSetup = true;
-            }
-        }
-
         prepareDataCurrentPosition(c);
-
-        // 分岐セットアップは LiveGameSession::startFromNode で行う
-        Q_UNUSED(needBranchSetup)
-        Q_UNUSED(effectivePly)
-        Q_UNUSED(terminalLabel)
-        qCDebug(lcGame).noquote() << "Branch setup is now handled by LiveGameSession";
 
         qCDebug(lcGame).noquote() << "initializeGame: AFTER prepareDataCurrentPosition"
                            << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");

@@ -49,6 +49,7 @@ public:
         std::function<void(int)> updateHighlightsForPly;
         std::function<void()> updateTurnAndTimekeepingDisplay;
         std::function<bool(ShogiGameController::Player)> isHumanSide;
+        std::function<void(bool)> setMouseClickMode;
 
         // --- Deps に直接設定する値 ---
         ShogiGameController* gc = nullptr;

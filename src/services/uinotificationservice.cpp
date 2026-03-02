@@ -2,7 +2,6 @@
 /// @brief エラー通知ダイアログ表示サービスの実装
 
 #include "uinotificationservice.h"
-#include "shogiview.h"
 #include <QMessageBox>
 
 UiNotificationService::UiNotificationService(QObject* parent)
@@ -26,8 +25,8 @@ void UiNotificationService::displayMessage(ErrorBus::ErrorLevel level, const QSt
         if (m_deps.errorOccurred) {
             *m_deps.errorOccurred = true;
         }
-        if (m_deps.shogiView) {
-            m_deps.shogiView->setErrorOccurred(true);
+        if (m_deps.setErrorOccurred) {
+            m_deps.setErrorOccurred(true);
         }
     }
 
