@@ -280,7 +280,8 @@ void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
             if (m_view) m_view->removeHighlightAllData();
         };
         vh.applyResumePosition = [this](ShogiGameController* gc, const QString& sfen) {
-            GameStartOptionsBuilder::applyResumePositionIfAny(gc, m_view, sfen);
+            GameStartOptionsBuilder::applyResumePositionIfAny(
+                gc, sfen, {});
         };
         vh.addKifuHeaderItem = [this](const QString& move, const QString& time, bool prepend) {
             if (m_kifuRecordModel) {

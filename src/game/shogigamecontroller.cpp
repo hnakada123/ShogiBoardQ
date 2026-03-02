@@ -317,7 +317,7 @@ bool ShogiGameController::isPromotablePiece(Piece piece)
 // 指し手検証・盤面更新
 // ============================================================
 
-bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
+bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int moveNumber,
                                           QStringList* m_sfenHistory, QList<ShogiMove>& gameMoves)
 {
     // 処理フロー:

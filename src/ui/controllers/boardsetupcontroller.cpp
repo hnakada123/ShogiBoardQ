@@ -228,6 +228,10 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         qCWarning(lcUi) << "m_gameController is null";
         return;
     }
+    if (!m_gameMoves) {
+        qCWarning(lcUi) << "m_gameMoves is null";
+        return;
+    }
 
     const PlayMode matchMode = (m_match ? m_match->playMode() : PlayMode::NotStarted);
     PlayMode modeNow = (matchMode != PlayMode::NotStarted) ? matchMode : m_playMode;
@@ -243,11 +247,11 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
 
     // 次の着手番号は「記録サイズ」を信頼する
     const int recSizeBefore = (m_sfenHistory ? static_cast<int>(m_sfenHistory->size()) : 0);
-    const int nextIdx       = qMax(1, recSizeBefore);
+    int nextIdx = qMax(1, recSizeBefore);
 
     // 合法判定＆盤面反映
     const bool ok = m_gameController->validateAndMove(
-        hFrom, hTo, m_lastMove, modeNow, const_cast<int&>(nextIdx), m_sfenHistory, *m_gameMoves);
+        hFrom, hTo, m_lastMove, modeNow, nextIdx, m_sfenHistory, *m_gameMoves);
 
     if (m_boardController) m_boardController->onMoveApplied(hFrom, hTo, ok);
     if (!ok) {

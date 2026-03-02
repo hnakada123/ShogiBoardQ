@@ -3,9 +3,7 @@
 
 #include "gamestartoptionsbuilder.h"
 #include "logcategories.h"
-#include "playernameservice.h"
 #include "shogiboard.h"
-#include "shogiview.h"
 #include "shogigamecontroller.h"
 
 #include <QDebug>
@@ -321,28 +319,14 @@ QString GameStartOptionsBuilder::canonicalizeSfen(const QString& sfen)
 // ユーティリティ
 // ============================================================
 
-void GameStartOptionsBuilder::applyPlayersNamesForMode(ShogiView* view,
-                                                       PlayMode mode,
-                                                       const QString& human1,
-                                                       const QString& human2,
-                                                       const QString& engine1,
-                                                       const QString& engine2)
-{
-    if (!view) return;
-    const PlayerNameMapping names =
-        PlayerNameService::computePlayers(mode, human1, human2, engine1, engine2);
-    view->setBlackPlayerName(names.p1);
-    view->setWhitePlayerName(names.p2);
-}
-
 void GameStartOptionsBuilder::applyResumePositionIfAny(ShogiGameController* gc,
-                                                       ShogiView* view,
-                                                       const QString& resumeSfen)
+                                                       const QString& resumeSfen,
+                                                       const std::function<void(ShogiBoard*)>& renderBoard)
 {
     if (!gc || resumeSfen.isEmpty()) return;
 
     if (auto* b = gc->board()) {
         b->setSfen(resumeSfen);
-        if (view) view->applyBoardAndRender(b);
+        if (renderBoard) renderBoard(b);
     }
 }

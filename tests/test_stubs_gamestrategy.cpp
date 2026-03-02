@@ -389,7 +389,7 @@ void ShogiGameController::finalizeGameResult() {}
 void ShogiGameController::resetResult() {}
 
 bool ShogiGameController::validateAndMove(QPoint&, QPoint&, QString& record,
-                                          PlayMode&, int&,
+                                          PlayMode&, int,
                                           QStringList*, QList<ShogiMove>&)
 {
     ++StrategyTracker::validateAndMoveCallCount;

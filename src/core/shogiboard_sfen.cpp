@@ -63,7 +63,7 @@ std::optional<QString> ShogiBoard::validateAndConvertSfenBoardStr(QString initia
 
         if (pieceCount != 9) {
             qCWarning(lcCore, "SFEN rank piece count: %d in %s", pieceCount, qUtf8Printable(initialSfenStr));
-            return QString();
+            return std::nullopt;
         }
     }
 
@@ -200,7 +200,7 @@ std::optional<SfenComponents> ShogiBoard::parseSfen(const QString& sfenStr)
 
     if (parts.size() != 4) {
         qCWarning(lcCore, "SFEN components: %lld in %s",
-                 static_cast<long long>(parts.size()), qUtf8Printable(sfenStr));
+                 parts.size(), qUtf8Printable(sfenStr));
         return std::nullopt;
     }
 
@@ -242,19 +242,33 @@ void ShogiBoard::setSfen(const QString& sfenStr)
     if (!parsed)
         return;
 
-    m_currentPlayer = parsed->turn;
-    m_currentMoveNumber = parsed->moveNumber;
+    const QList<Piece> oldBoardData = m_boardData;
+    const QMap<Piece, int> oldPieceStand = m_pieceStand;
+    const Turn oldTurn = m_currentPlayer;
+    const int oldMoveNumber = m_currentMoveNumber;
 
-    if (!setPiecePlacementFromSfen(parsed->board)) {
+    QString boardPart = parsed->board;
+    if (!setPiecePlacementFromSfen(boardPart)) {
+        m_boardData = oldBoardData;
+        m_pieceStand = oldPieceStand;
+        m_currentPlayer = oldTurn;
+        m_currentMoveNumber = oldMoveNumber;
         const auto msg = tr("SFEN board parse error: %1").arg(sfenStr.left(80));
         ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, msg);
         return;
     }
     if (!setPieceStandFromSfen(parsed->stand)) {
+        m_boardData = oldBoardData;
+        m_pieceStand = oldPieceStand;
+        m_currentPlayer = oldTurn;
+        m_currentMoveNumber = oldMoveNumber;
         const auto msg = tr("SFEN piece stand parse error: %1").arg(sfenStr.left(80));
         ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Error, msg);
         return;
     }
+
+    m_currentPlayer = parsed->turn;
+    m_currentMoveNumber = parsed->moveNumber;
 
     // ShogiView::setBoardのconnectで再描画がトリガされる
     emit boardReset();
@@ -362,7 +376,7 @@ void ShogiBoard::addSfenRecord(Turn nextTurn, int moveIndex, QStringList* sfenRe
 
     const QString nextTurnStr = turnToSfen(nextTurn);
     qCDebug(lcCore, "addSfenRecord BEFORE size= %lld nextTurn= %s moveIndex= %d => field= %d",
-            static_cast<long long>(before), qUtf8Printable(nextTurnStr), moveIndex, moveCountField);
+            before, qUtf8Printable(nextTurnStr), moveIndex, moveCountField);
     qCDebug(lcCore, "addSfenRecord board= %s stand= %s",
             qUtf8Printable(boardSfen), qUtf8Printable(stand));
 
@@ -371,7 +385,7 @@ void ShogiBoard::addSfenRecord(Turn nextTurn, int moveIndex, QStringList* sfenRe
     sfenRecord->append(sfen);
 
     qCDebug(lcCore, "addSfenRecord AFTER size= %lld appended= %s",
-            static_cast<long long>(sfenRecord->size()), qUtf8Printable(sfen));
+            sfenRecord->size(), qUtf8Printable(sfen));
 
     if (!sfenRecord->isEmpty()) {
         qCDebug(lcCore, "addSfenRecord head[0]= %s", qUtf8Printable(sfenRecord->first()));

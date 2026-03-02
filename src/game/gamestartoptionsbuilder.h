@@ -5,6 +5,7 @@
 /// @brief ダイアログ値解釈・PlayMode判定・開始局面プリセットを担うユーティリティ
 
 #include <QString>
+#include <functional>
 
 #include "gamestartcoordinator.h"
 #include "playmode.h"
@@ -12,8 +13,8 @@
 
 class QObject;
 class QWidget;
-class ShogiView;
 class ShogiGameController;
+class ShogiBoard;
 
 /**
  * @brief 対局開始パラメータの構築を担う static ユーティリティクラス
@@ -69,18 +70,10 @@ public:
 
     // --- ユーティリティ ---
 
-    /// PlayModeに応じて盤面ビューに対局者名を設定する
-    static void applyPlayersNamesForMode(ShogiView* view,
-                                         PlayMode mode,
-                                         const QString& human1,
-                                         const QString& human2,
-                                         const QString& engine1,
-                                         const QString& engine2);
-
-    /// 再開SFENが指定されていれば盤へ適用し、即時描画まで行う
+    /// 再開SFENが指定されていれば盤へ適用し、必要なら描画コールバックを呼ぶ
     static void applyResumePositionIfAny(ShogiGameController* gc,
-                                         ShogiView* view,
-                                         const QString& resumeSfen);
+                                         const QString& resumeSfen,
+                                         const std::function<void(ShogiBoard*)>& renderBoard);
 
 private:
     static int  readIntProperty(const QObject* root, const char* objectName,

@@ -45,9 +45,10 @@ void MainWindowCoreInitCoordinator::initializeNewGame(QString& startSfenStr)
         gc->newGame(startSfenStr);
     }
 
-    auto* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
     GameStartOptionsBuilder::applyResumePositionIfAny(
-        gc, view, m_deps.resumeSfenStr ? *m_deps.resumeSfenStr : QString());
+        gc,
+        m_deps.resumeSfenStr ? *m_deps.resumeSfenStr : QString(),
+        {});
 }
 
 void MainWindowCoreInitCoordinator::initializeGameControllerAndKifu()

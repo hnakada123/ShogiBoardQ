@@ -59,7 +59,7 @@ public:
      * @brief 指し手を検証し、合法手であれば盤面を更新する
      * @return 合法手で盤面更新できた場合 true
      */
-    bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int& moveNumber,
+    bool validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int moveNumber,
                          QStringList* m_sfenHistory, QList<ShogiMove>& gameMoves);
 
     /// 局面編集モードで駒を移動し、盤面を更新する
