@@ -2,7 +2,7 @@
 /// @brief EngineMoveValidator パフォーマンスベンチマーク (compat wrapper vs Context API)
 
 #include <QElapsedTimer>
-#include <QVector>
+#include <QList>
 #include <QMap>
 #include <cstdio>
 

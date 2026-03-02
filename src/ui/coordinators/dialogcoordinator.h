@@ -9,7 +9,6 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QVector>
 #include <functional>
 
 #include "kifparsetypes.h"
@@ -60,39 +59,23 @@ public:
     // --------------------------------------------------------
 
     /**
-     * @brief MatchCoordinatorを設定
+     * @brief 依存オブジェクト群
      */
-    void setMatchCoordinator(MatchCoordinator* match);
+    struct Deps {
+        MatchCoordinator* matchCoordinator = nullptr;         ///< 対局調整（非所有）
+        ShogiGameController* gameController = nullptr;        ///< ゲーム制御（非所有）
+        Usi* usiEngine = nullptr;                             ///< USIエンジン（解析用、非所有）
+        UsiCommLogModel* logModel = nullptr;                  ///< ログモデル（解析用、非所有）
+        ShogiEngineThinkingModel* thinkingModel = nullptr;    ///< 思考モデル（解析用、非所有）
+        KifuAnalysisListModel* analysisModel = nullptr;       ///< 解析モデル（非所有）
+        ConsiderationTabManager* considerationTabManager = nullptr; ///< 検討タブマネージャー（非所有）
+    };
 
     /**
-     * @brief ShogiGameControllerを設定（成り判定用）
+     * @brief 依存オブジェクトをまとめて更新する
+     * @param deps 新しい依存オブジェクト群
      */
-    void setGameController(ShogiGameController* gc);
-
-    /**
-     * @brief USIエンジンを設定（解析用）
-     */
-    void setUsiEngine(Usi* usi);
-
-    /**
-     * @brief ログモデルを設定（解析用）
-     */
-    void setLogModel(UsiCommLogModel* logModel);
-
-    /**
-     * @brief 思考モデルを設定（解析用）
-     */
-    void setThinkingModel(ShogiEngineThinkingModel* thinkingModel);
-
-    /**
-     * @brief 解析モデルを設定
-     */
-    void setAnalysisModel(KifuAnalysisListModel* model);
-
-    /**
-     * @brief 検討タブマネージャーを設定（検討パラメータ取得用）
-     */
-    void setConsiderationTabManager(ConsiderationTabManager* manager);
+    void updateDeps(const Deps& deps);
 
     // --------------------------------------------------------
     // 情報ダイアログ
@@ -160,7 +143,7 @@ public:
      */
     struct ConsiderationContext {
         ShogiGameController* gameController = nullptr;
-        const QVector<ShogiMove>* gameMoves = nullptr;
+        const QList<ShogiMove>* gameMoves = nullptr;
         const int* currentMoveIndex = nullptr;
         KifuRecordListModel* kifuRecordModel = nullptr;
         QStringList* sfenRecord = nullptr;
@@ -311,7 +294,7 @@ public:
      */
     void showFlowError(const QString& message);
 
-Q_SIGNALS:
+signals:
     /**
      * @brief 検討モードが開始された
      */

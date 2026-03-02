@@ -339,7 +339,7 @@ void LiveGameSession::computeAndEmitBranchMarks()
     // 分岐起点から親をたどって分岐マークを収集
     if (parentNode != nullptr) {
         // 親ラインを含むラインを探す
-        QVector<BranchLine> lines = m_tree->allLines();
+        QList<BranchLine> lines = m_tree->allLines();
         for (const BranchLine& line : std::as_const(lines)) {
             for (KifuBranchNode* node : std::as_const(line.nodes)) {
                 // 分岐起点以下の手で、親に複数の子がある場合は分岐マーク

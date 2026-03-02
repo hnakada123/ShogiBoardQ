@@ -62,8 +62,8 @@ public:
 
     QStringList& positionStrHistory() { return c_.m_positionStrHistory; }
 
-    QVector<ShogiMove>& gameMovesDirect() { return c_.m_gameMoves; }
-    QVector<ShogiMove>& gameMovesRef() { return c_.gameMovesRef(); }
+    QList<ShogiMove>& gameMovesDirect() { return c_.m_gameMoves; }
+    QList<ShogiMove>& gameMovesRef() { return c_.gameMovesRef(); }
 
     const GameOverState& gameOverState() const { return c_.m_gameOver; }
     const TimeControl& timeControl() const { return c_.m_timekeeper->timeControl(); }

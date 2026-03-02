@@ -7,7 +7,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 #include "shogimove.h"
 
@@ -22,7 +22,7 @@ void logImportSummary(const QString& filePath,
                       const QString& warnParse,
                       const QString& warnConvert,
                       const QStringList* sfenHistory,
-                      const QVector<ShogiMove>* gameMoves);
+                      const QList<ShogiMove>* gameMoves);
 
 } // namespace KifuApplyLogger
 

@@ -181,7 +181,7 @@ bool JosekiPresenter::hasDuplicateMove(const QString &normalizedSfen, const QStr
         return false;
     }
 
-    const QVector<JosekiMove> &moves = m_repository->movesForPosition(normalizedSfen);
+    const QList<JosekiMove> &moves = m_repository->movesForPosition(normalizedSfen);
     for (const JosekiMove &move : moves) {
         if (move.move == usiMove) {
             return true;
@@ -190,12 +190,12 @@ bool JosekiPresenter::hasDuplicateMove(const QString &normalizedSfen, const QStr
     return false;
 }
 
-QVector<KifuMergeEntry> JosekiPresenter::buildMergeEntries(const QStringList &sfenList,
+QList<KifuMergeEntry> JosekiPresenter::buildMergeEntries(const QStringList &sfenList,
                                                             const QStringList &moveList,
                                                             const QStringList &japaneseMoveList,
                                                             int currentPly) const
 {
-    QVector<KifuMergeEntry> entries;
+    QList<KifuMergeEntry> entries;
 
     for (int i = 0; i < moveList.size(); ++i) {
         if (i >= sfenList.size()) break;
@@ -223,7 +223,7 @@ QVector<KifuMergeEntry> JosekiPresenter::buildMergeEntries(const QStringList &sf
 }
 
 bool JosekiPresenter::buildMergeEntriesFromKifFile(const QString &kifFilePath,
-                                                    QVector<KifuMergeEntry> &entries,
+                                                    QList<KifuMergeEntry> &entries,
                                                     QString *errorMessage) const
 {
     // KIFファイルを解析

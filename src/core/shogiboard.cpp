@@ -4,6 +4,7 @@
 /// SFEN変換は shogiboard_sfen.cpp、盤面編集は shogiboard_edit.cpp に分離。
 
 #include "shogiboard.h"
+#include "boardconstants.h"
 #include "logcategories.h"
 
 // ============================================================
@@ -42,7 +43,7 @@ void ShogiBoard::initStand()
 // 盤面アクセス
 // ============================================================
 
-const QVector<Piece>& ShogiBoard::boardData() const
+const QList<Piece>& ShogiBoard::boardData() const
 {
     return m_boardData;
 }
@@ -79,13 +80,13 @@ Piece ShogiBoard::getPieceCharacter(const int file, const int rank)
             return Piece::None;
         }
         return m_boardData.at((rank - 1) * files() + (file - 1));
-    } else if (file == 10) {
+    } else if (file == BoardConstants::kBlackStandFile) {
         const auto it = pieceMapBlack.find(rank);
         if (it != pieceMapBlack.end()) return it.value();
 
         qCWarning(lcCore, "Invalid rank for black stand: %d", rank);
         return Piece::None;
-    } else if (file == 11) {
+    } else if (file == BoardConstants::kWhiteStandFile) {
         const auto it = pieceMapWhite.find(rank);
         if (it != pieceMapWhite.end()) return it.value();
 
@@ -196,7 +197,7 @@ void ShogiBoard::decrementPieceOnStand(Piece source)
 // 駒台から指そうとした場合、駒台の駒数が0以下なら指せない。
 bool ShogiBoard::isPieceAvailableOnStand(const Piece source, const int fileFrom) const
 {
-    if (fileFrom == 10 || fileFrom == 11) {
+    if (fileFrom == BoardConstants::kBlackStandFile || fileFrom == BoardConstants::kWhiteStandFile) {
         if (m_pieceStand.contains(source) && m_pieceStand[source] > 0) {
             return true;
         }

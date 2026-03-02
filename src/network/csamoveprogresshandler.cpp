@@ -2,6 +2,7 @@
 /// @brief CSA対局の指し手進行ハンドラの実装
 
 #include "csamoveprogresshandler.h"
+#include "boardconstants.h"
 #include "csamoveconverter.h"
 #include "csaenginecontroller.h"
 #include "shogigamecontroller.h"
@@ -292,7 +293,7 @@ void CsaMoveProgressHandler::startEngineThinking()
     QChar turnSign = *m_refs.isBlackSide ? QLatin1Char('+') : QLatin1Char('-');
     QString csaPiece;
 
-    bool isDrop = (fromFile >= 10);
+    bool isDrop = (fromFile >= BoardConstants::kBlackStandFile);
     if (isDrop) {
         Piece piece = board->getPieceCharacter(fromFile, fromRank);
         csaPiece = CsaMoveConverter::pieceCharToCsa(piece, false);

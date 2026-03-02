@@ -354,10 +354,10 @@ QStringList SfenPositionTracer::buildSfenRecord(const QString& initialSfen,
     return list;
 }
 
-QVector<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen,
+QList<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen,
                                                       const QStringList& usiMoves)
 {
-    QVector<ShogiMove> out;
+    QList<ShogiMove> out;
     out.reserve(usiMoves.size());
 
     SfenPositionTracer tracer;

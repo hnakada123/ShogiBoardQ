@@ -122,7 +122,7 @@ void KifuNavigationCoordinator::syncBoardAndHighlightsAtRow(int ply)
     bool foundInBranch = false;
     if (!gameActive && m_deps.navState != nullptr && !m_deps.navState->isOnMainLine() && m_deps.branchTree != nullptr) {
         const int lineIndex = m_deps.navState->currentLineIndex();
-        QVector<BranchLine> lines = m_deps.branchTree->allLines();
+        QList<BranchLine> lines = m_deps.branchTree->allLines();
         if (lineIndex >= 0 && lineIndex < lines.size()) {
             const BranchLine& line = lines.at(lineIndex);
             if (ply >= 0 && ply < line.nodes.size()) {
@@ -222,7 +222,7 @@ void KifuNavigationCoordinator::syncNavStateToPly(int selectedPly)
     // 現在ライン上の同一plyノードを優先して同期する。
     KifuBranchNode* node = nullptr;
     const int currentLine = m_deps.navState->currentLineIndex();
-    const QVector<BranchLine> lines = m_deps.branchTree->allLines();
+    const QList<BranchLine> lines = m_deps.branchTree->allLines();
     if (currentLine >= 0 && currentLine < lines.size()) {
         const BranchLine& line = lines.at(currentLine);
         for (KifuBranchNode* candidate : std::as_const(line.nodes)) {

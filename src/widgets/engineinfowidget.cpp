@@ -16,10 +16,11 @@
 #include "usicommlogmodel.h"
 
 EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool showPredictedMove)
-    : QWidget(parent), m_showFontButtons(showFontButtons), m_showPredictedMove(showPredictedMove)
+    : QWidget(parent)
+    , m_table(new QTableWidget(1, COL_COUNT, this))
+    , m_showFontButtons(showFontButtons)
+    , m_showPredictedMove(showPredictedMove)
 {
-    m_table = new QTableWidget(1, COL_COUNT, this);
-
     // ヘッダー設定
     QStringList headers;
     headers << tr("エンジン") << tr("予想手") << tr("探索手")

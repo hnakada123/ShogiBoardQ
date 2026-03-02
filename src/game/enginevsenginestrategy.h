@@ -9,7 +9,7 @@
 
 #include <QObject>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 #include "shogimove.h"
 
@@ -37,7 +37,7 @@ public:
 
     /// EvE用SFEN履歴へのアクセサ（千日手チェック等で使用）
     QStringList* sfenRecordForEvE();
-    QVector<ShogiMove>& gameMovesForEvE();
+    QList<ShogiMove>& gameMovesForEvE();
     int eveMoveIndex() const { return m_eveMoveIndex; }
 
 private slots:
@@ -53,7 +53,7 @@ private:
 
     /// EvE専用の棋譜コンテナ
     QStringList        m_eveSfenRecord;
-    QVector<ShogiMove> m_eveGameMoves;
+    QList<ShogiMove> m_eveGameMoves;
     int                m_eveMoveIndex = 0;
 };
 

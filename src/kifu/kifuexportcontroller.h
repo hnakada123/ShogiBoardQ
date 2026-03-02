@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QPoint>
 #include <functional>
 #include <optional>
@@ -72,8 +72,8 @@ public:
         // データソース（ポインタ）
         QStringList* sfenRecord = nullptr;
         QStringList* usiMoves = nullptr;
-        QVector<ResolvedRow>* resolvedRows = nullptr;
-        QVector<QString>* commentsByRow = nullptr;
+        QList<ResolvedRow>* resolvedRows = nullptr;
+        QList<QString>* commentsByRow = nullptr;
 
         // 状態値
         QString startSfenStr;
@@ -173,9 +173,9 @@ public:
     /**
      * @brief ShogiMoveリストからUSI指し手リストを生成
      */
-    static QStringList gameMovesToUsiMoves(const QVector<ShogiMove>& moves);
+    static QStringList gameMovesToUsiMoves(const QList<ShogiMove>& moves);
 
-Q_SIGNALS:
+signals:
     /**
      * @brief ステータスバーにメッセージを表示
      */

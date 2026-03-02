@@ -8,7 +8,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QVector>
+#include <QList>
 #include <QMap>
 
 #include "kifdisplayitem.h"
@@ -63,7 +63,7 @@ private:
     // USEN文字列を解析して本譜と分岐に分割
     static bool parseUsenString(const QString& usen, 
                                 QString& mainlineUsen,
-                                QVector<QPair<int, QString>>& variations,  // (startPly, usenMoves)
+                                QList<QPair<int, QString>>& variations,  // (startPly, usenMoves)
                                 QString* terminalCode,
                                 QString* warn);
 

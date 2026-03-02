@@ -6,7 +6,7 @@
 
 
 #include <QDialog>
-#include <QVector>
+#include <QList>
 #include <QStringList>
 
 class ShogiView;
@@ -91,7 +91,7 @@ private:
     ShogiView* m_shogiView = nullptr;
     ShogiBoard* m_board = nullptr;
 
-    QVector<QString> m_sfenList;    ///< パース済みSFEN局面リスト
+    QList<QString> m_sfenList;    ///< パース済みSFEN局面リスト
     int m_currentIndex = 0;         ///< 現在表示中の局面インデックス (0-based)
     QString m_currentFilePath;      ///< 読み込んだファイルのパス
 

@@ -290,7 +290,7 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
 void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                                           const QString& /*baseSfen*/,
                                           KifLine& mainline,
-                                          QVector<KifVariation>& variations,
+                                          QList<KifVariation>& variations,
                                           QString* /*warn*/)
 {
     int prevToX = 0, prevToY = 0;

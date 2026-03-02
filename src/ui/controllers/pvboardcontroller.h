@@ -6,7 +6,7 @@
 
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QPoint>
 
 class ShogiBoard;
@@ -81,7 +81,7 @@ private:
     QStringList m_kanjiMoves;
     QString m_lastMove;
     QString m_prevSfen;
-    QVector<QString> m_sfenHistory;
+    QList<QString> m_sfenHistory;
     int m_currentPly = 0;
 };
 

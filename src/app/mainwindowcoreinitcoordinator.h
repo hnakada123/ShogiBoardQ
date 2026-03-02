@@ -6,7 +6,7 @@
 
 #include <QList>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <functional>
 
 class QWidget;
@@ -38,7 +38,7 @@ public:
         QString* startSfenStr = nullptr;
         QString* resumeSfenStr = nullptr;
         QList<KifuDisplay*>* moveRecords = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         QStringList* gameUsiMoves = nullptr;
 
         // --- 親ウィジェット ---

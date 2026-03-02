@@ -95,7 +95,7 @@ public:
      */
     void setCurrentPly(int ply);
 
-public Q_SLOTS:
+public slots:
     // --------------------------------------------------------
     // グラフ更新スロット
     // --------------------------------------------------------
@@ -112,7 +112,7 @@ public Q_SLOTS:
      */
     void redrawEngine2Graph(int ply = -1);
 
-private Q_SLOTS:
+private slots:
     /**
      * @brief エンジン1のグラフ更新の遅延実行
      */

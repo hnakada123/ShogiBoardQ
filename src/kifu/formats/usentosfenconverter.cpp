@@ -218,7 +218,7 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
 
     // 本譜と分岐を分離
     QString mainlineUsen;
-    QVector<QPair<int, QString>> variations;  // (startPly, usenMoves)
+    QList<QPair<int, QString>> variations;  // (startPly, usenMoves)
     QString terminalCode;
     QString warn;
 
@@ -353,7 +353,7 @@ bool UsenToSfenConverter::readUsenFile(const QString& filePath, QString& content
 
 bool UsenToSfenConverter::parseUsenString(const QString& usen,
                                            QString& mainlineUsen,
-                                           QVector<QPair<int, QString>>& variations,
+                                           QList<QPair<int, QString>>& variations,
                                            QString* terminalCode,
                                            QString* warn)
 {

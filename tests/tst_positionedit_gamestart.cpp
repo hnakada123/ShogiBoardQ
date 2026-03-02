@@ -415,7 +415,7 @@ private slots:
 
         if (!navState.isOnMainLine()) {
             const int lineIndex = navState.currentLineIndex();
-            QVector<BranchLine> lines = branchTree.allLines();
+            QList<BranchLine> lines = branchTree.allLines();
             if (lineIndex >= 0 && lineIndex < lines.size()) {
                 const BranchLine& line = lines.at(lineIndex);
                 if (0 < line.nodes.size()) {
@@ -617,7 +617,7 @@ private slots:
 
         if (!navState.isOnMainLine()) {
             const int lineIndex = navState.currentLineIndex();
-            QVector<BranchLine> lines = branchTree.allLines();
+            QList<BranchLine> lines = branchTree.allLines();
             if (lineIndex >= 0 && lineIndex < lines.size()) {
                 const BranchLine& line = lines.at(lineIndex);
                 if (!line.nodes.isEmpty()) {

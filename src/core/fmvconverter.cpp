@@ -171,7 +171,7 @@ bool belongsToTurn(const EngineMoveValidator::Turn turn, char c) noexcept
 } // namespace
 
 bool Converter::toEnginePosition(EnginePosition& out,
-                                 const QVector<Piece>& boardData,
+                                 const QList<Piece>& boardData,
                                  const QMap<Piece, int>& pieceStand)
 {
     out.clear();
@@ -225,13 +225,16 @@ bool Converter::toEngineMove(ConvertedMove& out,
     int fromY = in.fromSquare.y();
 
     // 打ち判定
-    constexpr int kBlackHandFile = 9;
-    constexpr int kWhiteHandFile = 10;
-    bool isDrop = (fromX == kBlackHandFile || fromX == kWhiteHandFile);
+    // EngineMoveValidator::BLACK_HAND_FILE = 9, WHITE_HAND_FILE = 10 は
+    // ShogiMove の 0-indexed 座標系（盤上 0〜8、先手持ち駒 9、後手持ち駒 10）に対応する。
+    // ShogiBoard/UI 座標系の 1-indexed（先手駒台 10、後手駒台 11）とは異なる。
+    bool isDrop = (fromX == EngineMoveValidator::BLACK_HAND_FILE
+                   || fromX == EngineMoveValidator::WHITE_HAND_FILE);
 
     if (isDrop) {
         // 手番と駒台ファイル座標の一致チェック
-        int expectedFile = (turn == EngineMoveValidator::BLACK) ? kBlackHandFile : kWhiteHandFile;
+        int expectedFile = (turn == EngineMoveValidator::BLACK) ? EngineMoveValidator::BLACK_HAND_FILE
+                                                                : EngineMoveValidator::WHITE_HAND_FILE;
         if (fromX != expectedFile) {
             return false;
         }

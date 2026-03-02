@@ -9,14 +9,13 @@
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "shogiview.h"
-#include "startgamedialog.h"
 #include "kifudisplay.h"
 
 #include <QDebug>
 #include <QLoggingCategory>
 
 // ============================================================
-// 対局開始メインフロー（ダイアログ→対局開始）
+// 対局開始メインフロー（ダイアログ対話は app/ 層で完了済み）
 // ============================================================
 
 void GameStartCoordinator::initializeGame(const Ctx& c)
@@ -27,10 +26,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
                        << " c.selectedPly=" << c.selectedPly
                        << " c.sfenRecord size=" << (c.sfenRecord ? c.sfenRecord->size() : -1);
 
-    // --- 1) ダイアログ生成＆受付 ---
-    StartGameDialog dlg;
-
-    // 局面編集後の場合、開始局面を「現在の局面」に強制設定
+    // --- 1) hasEditedStart 判定（ダイアログ表示・承認は呼び出し元 app/ 層で実施済み） ---
     static const QString kHirateSfen = QStringLiteral(
         "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     const auto detectEditedStartSfen = [&]() -> QString {
@@ -56,24 +52,16 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const QString editedStartSfen = detectEditedStartSfen();
     const bool hasEditedStart = !editedStartSfen.isEmpty();
 
-    if (hasEditedStart) {
-        dlg.forceCurrentPositionSelection();
-    }
-
-    if (dlg.exec() != QDialog::Accepted) {
-        return;
-    }
-
-    // --- 2) ダイアログから必要情報を先に取得 ---
-    int  initPosNo = dlg.startingPositionNumber();
-    const bool p1Human   = dlg.isHuman1();
-    const bool p2Human   = dlg.isHuman2();
+    // --- 2) ダイアログ結果（app/ 層で抽出済み）から必要情報を取得 ---
+    int  initPosNo = c.dialogData.startingPositionNumber;
+    const bool p1Human   = c.dialogData.isHuman1;
+    const bool p2Human   = c.dialogData.isHuman2;
 
     qCDebug(lcGame).noquote() << "initializeGame: after dialog, initPosNo=" << initPosNo;
 
     // 局面編集後の場合、ダイアログの選択に関わらず「現在の局面」を強制
-    // （forceCurrentPositionSelection のバックアップ: ダイアログ内部で
-    //   combobox→メンバ変数の反映が不完全な場合への対策）
+    // （app/ 層での設定バックアップ: dialogData.startingPositionNumber が
+    //   正しく 0 に設定されていない場合への対策）
     if (hasEditedStart) {
         if (initPosNo != 0) {
             qCDebug(lcGame).noquote() << "initializeGame: overriding initPosNo from"
@@ -130,9 +118,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
             }
         }
 
-        Ctx c2 = c;
-        c2.startDlg = &dlg;
-        prepareDataCurrentPosition(c2);
+        prepareDataCurrentPosition(c);
 
         // 分岐セットアップは LiveGameSession::startFromNode で行う
         Q_UNUSED(needBranchSetup)
@@ -162,8 +148,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         }
         emit requestPreStartCleanup();
 
-        Ctx c2 = c; c2.startDlg = &dlg;
-        prepareInitialPosition(c2);
+        prepareInitialPosition(c);
 
         // 平手/駒落ちから新規対局を開始する場合、分岐ツリーを完全リセット
         if (c.kifuLoadCoordinator) {
@@ -225,16 +210,16 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         return;
     }
     MatchCoordinator::StartOptions opt =
-        m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, &dlg);
+        m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, &c.dialogData);
 
-    m_match->ensureHumanAtBottomIfApplicable(&dlg, c.bottomIsP1);
+    m_match->ensureHumanAtBottomIfApplicable(&c.dialogData, c.bottomIsP1);
 
     // --- 6) TimeControl を構築（GameStartOptionsBuilder に委譲） ---
-    const TimeControl tc = GameStartOptionsBuilder::buildTimeControl(&dlg);
+    const TimeControl tc = GameStartOptionsBuilder::buildTimeControl(c.dialogData);
 
     // --- 7) 時計の準備と配線・起動は prepare() に委譲 ---
     Request req;
-    req.startDialog = &dlg;
+    req.dialogData  = c.dialogData;
     req.startSfen   = seedSfen;
     req.clock       = c.clock ? c.clock : m_match->clock();
     // 現在局面からの開始時は prepareDataCurrentPosition() で既にクリーンアップ済み
@@ -243,8 +228,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     prepare(req);
 
     // --- 8) 対局者名をMainWindowに通知（startの前に。EvE初手で評価値グラフが動くため） ---
-    const QString human1 = dlg.humanName1();
-    const QString human2 = dlg.humanName2();
+    const QString human1 = c.dialogData.humanName1;
+    const QString human2 = c.dialogData.humanName2;
     const QString engine1 = opt.engineName1;
     const QString engine2 = opt.engineName2;
     qCDebug(lcGame).noquote() << "startGameAfterDialog: BEFORE playerNamesResolved";
@@ -252,8 +237,8 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     emit playerNamesResolved(human1, human2, engine1, engine2, static_cast<int>(mode));
 
     // --- 8.5) 連続対局設定を通知（EvE対局時のみ有効） ---
-    const int consecutiveGames = dlg.consecutiveGames();
-    const bool switchTurn = dlg.isSwitchTurnEachGame();
+    const int consecutiveGames = c.dialogData.consecutiveGames;
+    const bool switchTurn = c.dialogData.isSwitchTurnEachGame;
     emit consecutiveGamesConfigured(consecutiveGames, switchTurn);
     qCDebug(lcGame).noquote() << "consecutiveGames=" << consecutiveGames << " switchTurn=" << switchTurn;
 

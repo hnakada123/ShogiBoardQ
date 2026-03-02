@@ -149,7 +149,7 @@ void JosekiWindow::saveToFileAsync(const QString &filePath)
     }
 
     // スナップショットをコピーしてワーカーに渡す
-    const QMap<QString, QVector<JosekiMove>> dataCopy = m_repository->josekiData();
+    const QMap<QString, QList<JosekiMove>> dataCopy = m_repository->josekiData();
     const QMap<QString, QString> sfenCopy = m_repository->sfenWithPlyMap();
 
     m_saveWatcher.setFuture(

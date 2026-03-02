@@ -187,7 +187,7 @@ QString CommentEditorPanel::convertUrlsToLinks(const QString& text)
     result.replace(QStringLiteral("\n"), QStringLiteral("<br>"));
 
     QRegularExpressionMatchIterator i = urlPattern.globalMatch(result);
-    QVector<QPair<int, int>> matches;
+    QList<QPair<int, int>> matches;
     while (i.hasNext()) {
         QRegularExpressionMatch match = i.next();
         matches.append(qMakePair(match.capturedStart(), match.capturedLength()));

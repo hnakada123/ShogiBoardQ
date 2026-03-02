@@ -11,7 +11,7 @@
 #include <QObject>
 #include <QStringList>
 #include <QTimer>
-#include <QVector>
+#include <QList>
 #include <memory>
 
 #include "threadtypes.h"
@@ -100,7 +100,7 @@ private:
     static QChar indexToPieceChar(int idx);
 
     // トリミング操作
-    QVector<TrimCandidate> enumerateRemovablePieces(const QString& sfen) const;
+    QList<TrimCandidate> enumerateRemovablePieces(const QString& sfen) const;
     QString removePieceFromSfen(const QString& sfen, const TrimCandidate& candidate) const;
 
     // トリミングフェーズ制御
@@ -132,7 +132,7 @@ private:
     // トリミング用状態
     QString m_trimBaseSfen;                  ///< トリミング元のSFEN
     QStringList m_trimBasePv;                ///< トリミング元のPV
-    QVector<TrimCandidate> m_trimCandidates; ///< 除去候補リスト
+    QList<TrimCandidate> m_trimCandidates; ///< 除去候補リスト
     int m_trimCandidateIndex = 0;            ///< 現在試行中の候補インデックス
     QString m_trimTestSfen;                  ///< 現在テスト中の除去済みSFEN
 };

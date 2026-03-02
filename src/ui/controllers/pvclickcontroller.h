@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 #include <functional>
 
@@ -57,7 +57,7 @@ public:
     void setConsiderationModel(ShogiEngineThinkingModel* model);
     void setLogModels(UsiCommLogModel* log1, UsiCommLogModel* log2);
     void setSfenRecord(QStringList* sfenRecord);
-    void setGameMoves(const QVector<ShogiMove>* gameMoves);
+    void setGameMoves(const QList<ShogiMove>* gameMoves);
     void setUsiMoves(const QStringList* usiMoves);
     void setStateRefs(const StateRefs& refs);
     void setShogiView(ShogiView* view);
@@ -65,7 +65,7 @@ public:
 signals:
     void pvDialogClosed(int engineIndex);
 
-public Q_SLOTS:
+public slots:
     /**
      * @brief 読み筋行がクリックされた時の処理
      * @param engineIndex エンジンインデックス（0 or 1）
@@ -105,7 +105,7 @@ private:
     UsiCommLogModel* m_lineEditModel1 = nullptr;
     UsiCommLogModel* m_lineEditModel2 = nullptr;
     QStringList* m_sfenHistory = nullptr;
-    const QVector<ShogiMove>* m_gameMoves = nullptr;
+    const QList<ShogiMove>* m_gameMoves = nullptr;
     const QStringList* m_usiMoves = nullptr;
     ShogiView* m_shogiView = nullptr;                    ///< 盤面反転状態取得用
 

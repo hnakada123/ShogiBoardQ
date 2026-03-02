@@ -6,7 +6,7 @@
 
 
 #include <QString>
-#include <QVector>
+#include <QList>
 
 class KifuBranchTree;
 struct KifParseResult;
@@ -46,7 +46,7 @@ private:
     static void addLineToTree(KifuBranchTree* tree,
                               const QList<KifDisplayItem>& disp,
                               const QStringList& sfens,
-                              const QVector<ShogiMove>& moves,
+                              const QList<ShogiMove>& moves,
                               int startPly,
                               int parentRow);
 

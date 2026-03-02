@@ -274,7 +274,7 @@ void ConsiderationModeUIController::updateArrows()
         return;
     }
 
-    QVector<ShogiView::Arrow> arrows;
+    QList<ShogiView::Arrow> arrows;
 
     // 検討モデルの各行から読み筋の最初の指し手を取得して矢印を作成
     const int rowCount = m_considerationModel->rowCount();
@@ -339,7 +339,7 @@ void ConsiderationModeUIController::updateArrows()
 
 bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(
     int row, const QString& newPosition,
-    const QVector<ShogiMove>* gameMoves,
+    const QList<ShogiMove>* gameMoves,
     KifuRecordListModel* kifuRecordModel)
 {
     // 検討モード中でなければ何もしない

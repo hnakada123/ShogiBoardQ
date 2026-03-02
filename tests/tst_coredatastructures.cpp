@@ -152,7 +152,7 @@ private slots:
     void jishogi_calculate()
     {
         // Set up a position with known pieces
-        QVector<Piece> board(81, Piece::None);
+        QList<Piece> board(81, Piece::None);
         QMap<Piece, int> stand;
 
         // Place black King in enemy territory (rank 1-3 for black)

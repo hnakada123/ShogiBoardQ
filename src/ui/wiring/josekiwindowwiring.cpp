@@ -305,8 +305,8 @@ QStringList JosekiWindowWiring::generateUsiMovesFromSfen() const
     }
 
     // 盤面を展開するラムダ
-    auto expandBoard = [](const QString& boardStr) -> QVector<QVector<QString>> {
-        QVector<QVector<QString>> board(9, QVector<QString>(9));
+    auto expandBoard = [](const QString& boardStr) -> QList<QList<QString>> {
+        QList<QList<QString>> board(9, QList<QString>(9));
         const QStringList ranks = boardStr.split(QLatin1Char('/'));
         for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
             const QString& rankStr = ranks[rank];
@@ -344,16 +344,16 @@ QStringList JosekiWindowWiring::generateUsiMovesFromSfen() const
             continue;
         }
 
-        QVector<QVector<QString>> prevBoardArr = expandBoard(prevParts[0]);
-        QVector<QVector<QString>> currBoardArr = expandBoard(currParts[0]);
+        QList<QList<QString>> prevBoardArr = expandBoard(prevParts[0]);
+        QList<QList<QString>> currBoardArr = expandBoard(currParts[0]);
 
         QPoint fromPos(-1, -1);
         QPoint toPos(-1, -1);
         bool isDrop = false;
         bool isPromotion = false;
 
-        QVector<QPoint> emptyPositions;
-        QVector<QPoint> filledPositions;
+        QList<QPoint> emptyPositions;
+        QList<QPoint> filledPositions;
 
         for (int rank = 0; rank < 9; ++rank) {
             for (int file = 0; file < 9; ++file) {

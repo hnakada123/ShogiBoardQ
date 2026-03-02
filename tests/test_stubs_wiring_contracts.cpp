@@ -5,7 +5,7 @@
 
 #include <QObject>
 #include <QPoint>
-#include <QVector>
+#include <QList>
 #include <QString>
 #include <QStringList>
 #include <QWidget>
@@ -131,9 +131,9 @@ bool MatchCoordinator::updateConsiderationPosition(const QString&, int, int, con
 Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
 void MatchCoordinator::configureAndStart(const StartOptions&) {}
-MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialog*) const { return {}; }
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog*, bool) {}
-void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialog*, bool) {}
+MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialogData*) const { return {}; }
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
+void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
 void MatchCoordinator::handlePlayerTimeOut(int) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
@@ -518,7 +518,7 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
 {
     m_boardData.fill(Piece::None, ranks * files);
 }
-const QVector<Piece>& ShogiBoard::boardData() const { return m_boardData; }
+const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
 
 // ============================================================
 // MatchCoordinatorHooksFactory スタブ
@@ -633,9 +633,9 @@ void AnalysisSessionHandler::finalizeTsumeSearch(const QString&) {}
 void GameStartOrchestrator::setRefs(const Refs&) {}
 void GameStartOrchestrator::setHooks(const Hooks&) {}
 void GameStartOrchestrator::configureAndStart(const StartOptions&) {}
-GameStartOrchestrator::StartOptions GameStartOrchestrator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialog*) { return {}; }
-void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(const StartGameDialog*, bool) {}
-void GameStartOrchestrator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialog*, bool) {}
+GameStartOrchestrator::StartOptions GameStartOrchestrator::buildStartOptions(PlayMode, const QString&, const QStringList*, const StartGameDialogData*) { return {}; }
+void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
+void GameStartOrchestrator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
 GameStartOrchestrator::HistorySearchResult GameStartOrchestrator::syncAndSearchGameHistory(const QString&) { return {}; }
 void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions&) {}
 void GameStartOrchestrator::buildPositionStringsFromHistory(const StartOptions&, const QString&, const HistorySearchResult&) {}

@@ -207,8 +207,8 @@ void KifuApplyService::applyParsedResult(
 
     // 12) 分岐ツリーへ供給
     if (branchTreeManager && branchTree != nullptr && !branchTree->isEmpty()) {
-        QVector<BranchTreeManager::ResolvedRowLite> rows;
-        QVector<BranchLine> lines = branchTree->allLines();
+        QList<BranchTreeManager::ResolvedRowLite> rows;
+        QList<BranchLine> lines = branchTree->allLines();
         rows.reserve(lines.size());
 
         for (int i = 0; i < lines.size(); ++i) {
@@ -567,7 +567,7 @@ void KifuApplyService::applyBranchMarksForCurrentLine()
     qCDebug(lcKifu).noquote() << "applyBranchMarksForCurrentLine: currentLineIndex=" << currentLineIdx;
 
     if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QVector<BranchLine> lines = branchTree->allLines();
+        QList<BranchLine> lines = branchTree->allLines();
         const int nLines = static_cast<int>(lines.size());
         const int active = (nLines == 0) ? 0 : qBound(0, currentLineIdx, nLines - 1);
         if (active >= 0 && active < nLines) {

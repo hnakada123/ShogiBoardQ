@@ -93,7 +93,7 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
         return;
     }
 
-    const QVector<KifuBranchNode*> path = m_tree->pathToNode(branchPoint);
+    const QList<KifuBranchNode*> path = m_tree->pathToNode(branchPoint);
 
     // branchPoint までのパスの分岐選択を記憶
     if (m_state != nullptr && !path.isEmpty()) {

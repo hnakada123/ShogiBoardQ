@@ -290,7 +290,7 @@ void JosekiWindow::deleteMoveAt(int row)
         QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
     if (result != QMessageBox::Yes) return;
 
-    const QVector<JosekiMove> &repoMoves = m_repository->movesForPosition(normalizedSfen);
+    const QList<JosekiMove> &repoMoves = m_repository->movesForPosition(normalizedSfen);
     for (int i = 0; i < repoMoves.size(); ++i) {
         if (repoMoves[i].move == currentMove.move) {
             m_presenter->deleteMove(normalizedSfen, i);
@@ -476,7 +476,7 @@ void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, const QStrin
         QMessageBox::information(this, tr("情報"), tr("棋譜に指し手がありません。"));
         return;
     }
-    QVector<KifuMergeEntry> entries = m_presenter->buildMergeEntries(sfenList, moveList, japaneseMoveList, currentPly);
+    QList<KifuMergeEntry> entries = m_presenter->buildMergeEntries(sfenList, moveList, japaneseMoveList, currentPly);
     if (entries.isEmpty()) {
         QMessageBox::information(this, tr("情報"), tr("登録可能な指し手がありません。"));
         return;
@@ -500,7 +500,7 @@ void JosekiWindow::onMergeFromKifuFile()
         tr("KIF形式 (*.kif *.kifu);;すべてのファイル (*)"));
     if (kifFilePath.isEmpty()) return;
 
-    QVector<KifuMergeEntry> entries;
+    QList<KifuMergeEntry> entries;
     QString errorMessage;
     if (!m_presenter->buildMergeEntriesFromKifFile(kifFilePath, entries, &errorMessage)) {
         if (errorMessage.isEmpty())

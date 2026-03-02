@@ -408,7 +408,7 @@ private slots:
 
         // ツリーは1ライン（ルートのみ）
         QCOMPARE(h.branchTree.lineCount(), 1);
-        const QVector<BranchLine> lines = h.branchTree.allLines();
+        const QList<BranchLine> lines = h.branchTree.allLines();
         QCOMPARE(lines.size(), 1);
         QCOMPARE(lines.at(0).nodes.size(), 1);
         QCOMPARE(lines.at(0).nodes.at(0)->ply(), 0);

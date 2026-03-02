@@ -3,7 +3,6 @@
 
 #include "gamestartorchestrator.h"
 #include "shogigamecontroller.h"
-#include "startgamedialog.h"
 #include "settingscommon.h"
 #include "sfenpositiontracer.h"
 #include "logcategories.h"
@@ -387,7 +386,7 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
     PlayMode mode,
     const QString& startSfenStr,
     const QStringList* sfenRecord,
-    const StartGameDialog* dlg)
+    const StartGameDialogData* dlg)
 {
     MatchCoordinator::StartOptions opt;
     opt.mode = mode;
@@ -410,30 +409,30 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
 
     // --- 対局ダイアログあり：そのまま採用
     if (dlg) {
-        const auto engines = dlg->getEngineList();
+        const auto& engines = dlg->engineList;
 
-        const int idx1 = dlg->engineNumber1();
+        const int idx1 = dlg->engineNumber1;
         if (idx1 >= 0 && idx1 < engines.size()) {
-            opt.engineName1 = dlg->engineName1();
+            opt.engineName1 = dlg->engineName1;
             opt.enginePath1 = engines.at(idx1).path;
         }
 
-        const int idx2 = dlg->engineNumber2();
+        const int idx2 = dlg->engineNumber2;
         if (idx2 >= 0 && idx2 < engines.size()) {
-            opt.engineName2 = dlg->engineName2();
+            opt.engineName2 = dlg->engineName2;
             opt.enginePath2 = engines.at(idx2).path;
         }
 
         // 最大手数を取得
-        opt.maxMoves = dlg->maxMoves();
+        opt.maxMoves = dlg->maxMoves;
 
         // 棋譜自動保存設定を取得
-        opt.autoSaveKifu = dlg->isAutoSaveKifu();
-        opt.kifuSaveDir = dlg->kifuSaveDir();
+        opt.autoSaveKifu = dlg->autoSaveKifu;
+        opt.kifuSaveDir = dlg->kifuSaveDir;
 
         // 対局者名を取得
-        opt.humanName1 = dlg->humanName1();
-        opt.humanName2 = dlg->humanName2();
+        opt.humanName1 = dlg->humanName1;
+        opt.humanName2 = dlg->humanName2;
 
         return opt;
     }
@@ -444,7 +443,7 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
 
         // 1) エンジン一覧（name/path）の読み出し
         struct Eng { QString name; QString path; };
-        QVector<Eng> list;
+        QList<Eng> list;
         int count = settings.beginReadArray("Engines");
         for (int i = 0; i < count; ++i) {
             settings.setArrayIndex(i);
@@ -487,17 +486,17 @@ MatchCoordinator::StartOptions GameStartOrchestrator::buildStartOptions(
 // ============================================================
 
 void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(
-    const StartGameDialog* dlg, bool bottomIsP1)
+    const StartGameDialogData* dlg, bool bottomIsP1)
 {
     if (!dlg) return;
 
     // 「人を手前に表示する」がチェックされていない場合は何もしない
-    if (!dlg->isShowHumanInFront()) {
+    if (!dlg->isShowHumanInFront) {
         return;
     }
 
-    const bool humanP1  = dlg->isHuman1();
-    const bool humanP2  = dlg->isHuman2();
+    const bool humanP1  = dlg->isHuman1;
+    const bool humanP2  = dlg->isHuman2;
     const bool oneHuman = (humanP1 ^ humanP2); // HvE / EvH のときだけ true
 
     if (!oneHuman) {
@@ -519,7 +518,7 @@ void GameStartOrchestrator::ensureHumanAtBottomIfApplicable(
 void GameStartOrchestrator::prepareAndStartGame(PlayMode mode,
                                                  const QString& startSfenStr,
                                                  const QStringList* sfenRecord,
-                                                 const StartGameDialog* dlg,
+                                                 const StartGameDialogData* dlg,
                                                  bool bottomIsP1)
 {
     // 1) オプション構築

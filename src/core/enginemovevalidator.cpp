@@ -16,7 +16,7 @@ fmv::LegalCore& legalCore()
 
 bool EngineMoveValidator::syncContext(Context& ctx,
                                       const Turn& turn,
-                                      const QVector<Piece>& boardData,
+                                      const QList<Piece>& boardData,
                                       const QMap<Piece, int>& pieceStand) const
 {
     ctx.turn = turn;
@@ -103,7 +103,7 @@ bool EngineMoveValidator::undoLastMove(Context& ctx) const
 // ---- 互換ラッパ（毎回Contextを作る） ----
 
 LegalMoveStatus EngineMoveValidator::isLegalMove(const Turn& turn,
-                                                  const QVector<Piece>& boardData,
+                                                  const QList<Piece>& boardData,
                                                   const QMap<Piece, int>& pieceStand,
                                                   ShogiMove& currentMove) const
 {
@@ -115,7 +115,7 @@ LegalMoveStatus EngineMoveValidator::isLegalMove(const Turn& turn,
 }
 
 int EngineMoveValidator::generateLegalMoves(const Turn& turn,
-                                             const QVector<Piece>& boardData,
+                                             const QList<Piece>& boardData,
                                              const QMap<Piece, int>& pieceStand) const
 {
     Context ctx;
@@ -126,7 +126,7 @@ int EngineMoveValidator::generateLegalMoves(const Turn& turn,
 }
 
 int EngineMoveValidator::checkIfKingInCheck(const Turn& turn,
-                                             const QVector<Piece>& boardData) const
+                                             const QList<Piece>& boardData) const
 {
     Context ctx;
     QMap<Piece, int> emptyStand;

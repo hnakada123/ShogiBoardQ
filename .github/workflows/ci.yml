@@ -13,16 +13,16 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: '6.7.*'
           modules: 'qtcharts'
 
       - name: Configure
-        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=ON
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -82,7 +82,7 @@ jobs:
 
       - name: Upload KPI Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: structural-kpi-${{ github.sha }}
           path: build/kpi-results.json
@@ -92,16 +92,16 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: '6.7.*'
           modules: 'qtcharts'
 
       - name: Configure (Debug)
-        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Debug -DENABLE_WERROR=ON
 
       - name: Build
         run: cmake --build build --parallel 2
@@ -115,10 +115,10 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: '6.7.*'
           modules: 'qtcharts'
@@ -127,7 +127,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang-tidy
 
       - name: Configure with clang-tidy
-        run: cmake -B build -S . -DENABLE_CLANG_TIDY=ON
+        run: cmake -B build -S . -DENABLE_CLANG_TIDY=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
 
       - name: Build and check
         run: |
@@ -138,6 +138,37 @@ jobs:
             exit 1
           fi
 
+  clazy:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    env:
+      CLAZY_CHECKS: "level0,level1"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Install clazy
+        run: sudo apt-get update && sudo apt-get install -y clazy
+
+      - name: Configure
+        run: cmake -B build -S . -DCMAKE_CXX_COMPILER=clazy -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build with clazy
+        run: cmake --build build --parallel 2 2>&1 | tee clazy-output.txt
+
+      - name: Check for warnings
+        run: |
+          if grep -q "\-Wclazy-" clazy-output.txt; then
+            echo "::error::clazy warnings found"
+            grep "\-Wclazy-" clazy-output.txt
+            exit 1
+          fi
+
   sanitize:
     runs-on: ubuntu-latest
     if: >
@@ -145,10 +176,10 @@ jobs:
       github.event_name == 'schedule' ||
       contains(github.event.pull_request.labels.*.name, 'sanitize')
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: '6.7.*'
           modules: 'qtcharts'
@@ -170,10 +201,10 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
       - name: Install Qt6
-        uses: jurplel/install-qt-action@v4
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: '6.7.*'
           modules: 'qtcharts'
@@ -209,8 +240,16 @@ jobs:
           cat build/coverage-summary.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238  # v4.6.0
+        with:
+          files: build/coverage.xml
+          fail_ci_if_error: false
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
       - name: Upload Coverage Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with:
           name: coverage-report
           path: |
@@ -218,11 +257,57 @@ jobs:
             build/coverage.html*
             build/coverage-summary.txt
 
+  build-macos:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Configure
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --parallel 3
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build --output-on-failure
+
+  build-windows:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: '6.7.*'
+          modules: 'qtcharts'
+
+      - name: Configure
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 2
+
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build --config Release --output-on-failure
+
   translation-check:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           fetch-depth: 0
 

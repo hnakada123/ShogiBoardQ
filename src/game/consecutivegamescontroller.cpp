@@ -12,6 +12,10 @@
 #include "matchcoordinator.h"
 #include <utility>
 
+namespace {
+constexpr int kNextGameDelayMs = 100;
+} // namespace
+
 // ============================================================
 // 生成・依存設定
 // ============================================================
@@ -111,7 +115,7 @@ void ConsecutiveGamesController::startNextGame()
     emit requestPreStartCleanup();
 
     // UIの更新を待つため少し遅延を入れて次の対局を開始
-    QTimer::singleShot(100, this, [this]() {
+    QTimer::singleShot(kNextGameDelayMs, this, [this]() {
         if (m_timeController) {
             ShogiClock* clk = m_timeController->clock();
             TimeControlUtil::applyToClock(clk, m_lastTimeControl,

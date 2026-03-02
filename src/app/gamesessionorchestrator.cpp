@@ -14,6 +14,8 @@
 #include "prestartcleanuphandler.h"
 #include "replaycontroller.h"
 #include "sessionlifecyclecoordinator.h"
+#include "startgamedatabridge.h"
+#include "startgamedialog.h"
 #include "timecontrolcontroller.h"
 
 namespace {
@@ -21,6 +23,72 @@ namespace {
 /// ダブルポインタを安全にデリファレンスするヘルパー
 template<typename T>
 T* deref(T** pp) { return pp ? *pp : nullptr; }
+
+/// 局面編集後かどうかを判定する（非平手・非startposの場合 true）
+bool detectHasEditedStart(const QString* startSfenStr, const QStringList* sfenRecord)
+{
+    static const QString kHirateSfen = QStringLiteral(
+        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const auto isEditedStart = [](const QString& raw) -> bool {
+        const QString s = raw.trimmed();
+        return !s.isEmpty()
+               && s != kHirateSfen
+               && s != QLatin1String("startpos");
+    };
+
+    if (startSfenStr && isEditedStart(*startSfenStr)) {
+        return true;
+    }
+    if (sfenRecord && !sfenRecord->isEmpty() && isEditedStart(sfenRecord->first())) {
+        return true;
+    }
+    return false;
+}
+
+/// StartGameDialog の入力値を StartGameDialogData に変換する
+StartGameDialogData extractDialogData(const StartGameDialog& dlg)
+{
+    StartGameDialogData data;
+    data.isHuman1  = dlg.isHuman1();
+    data.isHuman2  = dlg.isHuman2();
+    data.isEngine1 = dlg.isEngine1();
+    data.isEngine2 = dlg.isEngine2();
+
+    data.engineName1 = dlg.engineName1();
+    data.engineName2 = dlg.engineName2();
+    data.humanName1  = dlg.humanName1();
+    data.humanName2  = dlg.humanName2();
+    data.engineNumber1 = dlg.engineNumber1();
+    data.engineNumber2 = dlg.engineNumber2();
+
+    for (const auto& e : std::as_const(dlg.getEngineList())) {
+        StartGameDialogData::Engine eng;
+        eng.name = e.name;
+        eng.path = e.path;
+        data.engineList.append(eng);
+    }
+
+    data.basicTimeHour1    = dlg.basicTimeHour1();
+    data.basicTimeMinutes1 = dlg.basicTimeMinutes1();
+    data.byoyomiSec1       = dlg.byoyomiSec1();
+    data.addEachMoveSec1   = dlg.addEachMoveSec1();
+    data.basicTimeHour2    = dlg.basicTimeHour2();
+    data.basicTimeMinutes2 = dlg.basicTimeMinutes2();
+    data.byoyomiSec2       = dlg.byoyomiSec2();
+    data.addEachMoveSec2   = dlg.addEachMoveSec2();
+    data.isLoseOnTimeout   = dlg.isLoseOnTimeout();
+
+    data.startingPositionNumber = dlg.startingPositionNumber();
+    data.maxMoves               = dlg.maxMoves();
+    data.autoSaveKifu           = dlg.isAutoSaveKifu();
+    data.kifuSaveDir            = dlg.kifuSaveDir();
+    data.isShowHumanInFront     = dlg.isShowHumanInFront();
+    data.consecutiveGames       = dlg.consecutiveGames();
+    data.isSwitchTurnEachGame   = dlg.isSwitchTurnEachGame();
+    data.jishogiRule            = dlg.jishogiRule();
+
+    return data;
+}
 
 } // anonymous namespace
 
@@ -59,13 +127,32 @@ void GameSessionOrchestrator::initializeGame()
                              << " startSfenStr=" << (m_deps.startSfenStr ? m_deps.startSfenStr->left(50) : QStringLiteral("null"))
                              << " currentSelectedPly=" << (m_deps.currentSelectedPly ? *m_deps.currentSelectedPly : -1);
 
+    // --- ダイアログ表示（app/ 層の責務） ---
+    QStringList* sfenRecPtr = m_deps.sfenRecord ? m_deps.sfenRecord() : nullptr;
+    const bool hasEditedStart = detectHasEditedStart(m_deps.startSfenStr, sfenRecPtr);
+
+    StartGameDialog dlg;
+    if (hasEditedStart) {
+        dlg.forceCurrentPositionSelection();
+    }
+    if (dlg.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    StartGameDialogData dialogData = extractDialogData(dlg);
+
+    // 局面編集後の場合、開始局面を「現在の局面」(0) に強制
+    if (hasEditedStart && dialogData.startingPositionNumber != 0) {
+        dialogData.startingPositionNumber = 0;
+    }
+
     auto* tc = deref(m_deps.timeController);
 
     MainWindowGameStartService::ContextDeps ctx;
     ctx.view = m_deps.shogiView;
     ctx.gc = m_deps.gameController;
     ctx.clock = tc ? tc->clock() : nullptr;
-    ctx.sfenRecord = m_deps.sfenRecord ? m_deps.sfenRecord() : nullptr;
+    ctx.sfenRecord = sfenRecPtr;
     ctx.kifuModel = m_deps.kifuModel;
     ctx.kifuLoadCoordinator = m_deps.kifuLoadCoordinator;
     ctx.currentSfenStr = m_deps.currentSfenStr;
@@ -75,7 +162,9 @@ void GameSessionOrchestrator::initializeGame()
     ctx.isReplayMode = rc ? rc->isReplayMode() : false;
     ctx.bottomIsP1 = m_deps.bottomIsP1 ? *m_deps.bottomIsP1 : true;
 
-    gameStart->initializeGame(gameStartService.buildContext(ctx));
+    GameStartCoordinator::Ctx c = gameStartService.buildContext(ctx);
+    c.dialogData = dialogData;
+    gameStart->initializeGame(c);
 }
 
 // ============================================================

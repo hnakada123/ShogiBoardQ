@@ -10,6 +10,8 @@
 #include <QString>
 #include <optional>
 
+#include "boardconstants.h"
+
 /**
  * @brief USI形式の座標・指し手変換を行うユーティリティクラス
  *
@@ -24,9 +26,9 @@
 class UsiMoveCoordinateConverter
 {
 public:
-    static constexpr int SENTE_HAND_FILE = 10;
-    static constexpr int GOTE_HAND_FILE = 11;
-    static constexpr int BOARD_SIZE = 9;
+    static constexpr int SENTE_HAND_FILE = BoardConstants::kBlackStandFile;
+    static constexpr int GOTE_HAND_FILE = BoardConstants::kWhiteStandFile;
+    static constexpr int BOARD_SIZE = BoardConstants::kBoardSize;
 
     // --- 座標変換 ---
 

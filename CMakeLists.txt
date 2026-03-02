@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.16...3.28)
 
 project(ShogiBoardQ VERSION 0.1 LANGUAGES CXX)
 
@@ -54,6 +54,9 @@ if(ENABLE_CPPCHECK)
     endif()
 endif()
 
+# ==== -Werror 設定 ====
+option(ENABLE_WERROR "Treat compiler warnings as errors" OFF)
+
 # ==== Sanitizer 設定 ====
 option(ENABLE_SANITIZERS "Enable AddressSanitizer and UBSan" OFF)
 
@@ -86,8 +89,21 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         add_compile_options(-Wno-variadic-macro-arguments-omitted)
     endif()
+    # GCC 固有の追加警告
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        add_compile_options(
+            -Wduplicated-cond
+            -Wduplicated-branches
+            -Wlogical-op
+            -Wuseless-cast
+            -Wold-style-cast
+        )
+    endif()
     # -Wnull-dereference は GCC の最適化（特にインライン展開）により
     # Qt ヘッダやメンバ変数アクセスで誤検知が多発するため無効化
+    if(ENABLE_WERROR)
+        add_compile_options(-Werror)
+    endif()
 endif()
 
 # --- 厳格なコンパイルオプション
@@ -178,7 +194,7 @@ if(NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR AND NOT DEFINED ENV{QTDIR})
 endif()
 
 # ==== Qt6 packages ====
-find_package(Qt6 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Concurrent)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Concurrent)
 
 # ==== Translations (.ts) ====
 set(TS_FILES
@@ -341,6 +357,7 @@ set(SRC_GAME
     src/game/gamestartcoordinator_dialogflow.cpp
     src/game/gamestartoptionsbuilder.cpp
     src/game/gamestartoptionsbuilder.h
+    src/game/startgamedatabridge.h
     src/game/gamestatecontroller.cpp
     src/game/gamestatecontroller.h
     src/game/humanvsenginestrategy.cpp
@@ -828,7 +845,9 @@ set(SRC_SERVICES
 )
 
 set(SRC_COMMON
+    src/common/boardconstants.h
     src/common/buttonstyles.h
+    src/common/threadtypes.h
     src/common/dialogutils.cpp
     src/common/dialogutils.h
     src/common/fontsizehelper.cpp
@@ -955,9 +974,9 @@ target_compile_definitions(ShogiBoardQ PRIVATE
 
 # ==== Bundle properties ====
 set_target_properties(ShogiBoardQ PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.ShogiBoardQ
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE_GUI_IDENTIFIER io.github.hnakada123.ShogiBoardQ
+    MACOSX_BUNDLE_BUNDLE_VERSION ${APP_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${APP_VERSION}
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
 )

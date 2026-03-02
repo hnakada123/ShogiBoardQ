@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QPointer>
 #include <memory>
 
@@ -81,7 +81,7 @@ public:
         BoardInteractionController* boardController = nullptr;
         KifuRecordListModel* recordModel = nullptr;
         QStringList* sfenRecord = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         UsiCommLogModel* usiCommLog = nullptr;
         ShogiEngineThinkingModel* engineThinking = nullptr;
     };
@@ -196,7 +196,7 @@ private:
 
     QString m_startSfen;
     QStringList* m_sfenHistory = nullptr;
-    QVector<ShogiMove>* m_gameMoves = nullptr;
+    QList<ShogiMove>* m_gameMoves = nullptr;
 
     std::unique_ptr<CsaMoveProgressHandler> m_moveProgressHandler;
 

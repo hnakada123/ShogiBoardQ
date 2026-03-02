@@ -16,7 +16,7 @@ void logImportSummary(const QString& filePath,
                       const QString& warnParse,
                       const QString& warnConvert,
                       const QStringList* sfenHistory,
-                      const QVector<ShogiMove>* gameMoves)
+                      const QList<ShogiMove>* gameMoves)
 {
     if (!warnParse.isEmpty())
         qCWarning(lcKifu).noquote() << "parse warnings:\n" << warnParse.trimmed();

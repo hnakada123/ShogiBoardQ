@@ -281,7 +281,7 @@ int KifuBranchListModel::rowMaxPly(int row) const
 
     int maxPly = 0;
     // m_nodes に { row, ply, ... } が入っている前提で、同 row の ply 最大値を求める
-    for (const auto& n : m_nodes) {
+    for (const auto& n : std::as_const(m_nodes)) {
         if (n.row == row && n.ply > maxPly) {
             maxPly = n.ply;
         }

@@ -164,7 +164,7 @@ KifuBranchNode* KifuBranchTree::findByPlyOnLine(KifuBranchNode* lineEnd, int ply
     }
 
     // lineEndからルートまで辿って、指定plyのノードを探す
-    QVector<KifuBranchNode*> path = pathToNode(lineEnd);
+    QList<KifuBranchNode*> path = pathToNode(lineEnd);
     for (KifuBranchNode* node : std::as_const(path)) {
         if (node->ply() == ply) {
             return node;
@@ -239,9 +239,9 @@ KifuBranchNode* KifuBranchTree::findBySfen(const QString& sfen) const
     return nullptr;
 }
 
-QVector<KifuBranchNode*> KifuBranchTree::mainLine() const
+QList<KifuBranchNode*> KifuBranchTree::mainLine() const
 {
-    QVector<KifuBranchNode*> result;
+    QList<KifuBranchNode*> result;
     if (m_root == nullptr) {
         return result;
     }
@@ -258,9 +258,9 @@ QVector<KifuBranchNode*> KifuBranchTree::mainLine() const
     return result;
 }
 
-QVector<KifuBranchNode*> KifuBranchTree::pathToNode(KifuBranchNode* node) const
+QList<KifuBranchNode*> KifuBranchTree::pathToNode(KifuBranchNode* node) const
 {
-    QVector<KifuBranchNode*> path;
+    QList<KifuBranchNode*> path;
     while (node != nullptr) {
         path.append(node);
         node = node->parent();
@@ -269,7 +269,7 @@ QVector<KifuBranchNode*> KifuBranchTree::pathToNode(KifuBranchNode* node) const
     return path;
 }
 
-QVector<BranchLine> KifuBranchTree::allLines() const
+QList<BranchLine> KifuBranchTree::allLines() const
 {
     if (!m_linesCacheDirty) {
         return m_linesCache;
@@ -281,7 +281,7 @@ QVector<BranchLine> KifuBranchTree::allLines() const
         return m_linesCache;
     }
 
-    QVector<KifuBranchNode*> currentPath;
+    QList<KifuBranchNode*> currentPath;
     int lineIndex = 0;
     collectLinesRecursive(m_root, currentPath, m_linesCache, lineIndex);
 
@@ -295,8 +295,8 @@ void KifuBranchTree::invalidateLineCache()
 }
 
 void KifuBranchTree::collectLinesRecursive(KifuBranchNode* node,
-                                           QVector<KifuBranchNode*>& currentPath,
-                                           QVector<BranchLine>& lines,
+                                           QList<KifuBranchNode*>& currentPath,
+                                           QList<BranchLine>& lines,
                                            int& lineIndex) const
 {
     currentPath.append(node);
@@ -375,7 +375,7 @@ int KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) const
         return -1;
     }
 
-    QVector<BranchLine> lines = allLines();
+    QList<BranchLine> lines = allLines();
 
     // まず、このノードが終端であるラインを探す（子がないノード）
     if (node->childCount() == 0) {
@@ -428,7 +428,7 @@ QList<KifDisplayItem> KifuBranchTree::getDisplayItemsForLine(int lineIndex) cons
 {
     QList<KifDisplayItem> result;
 
-    QVector<BranchLine> lines = allLines();
+    QList<BranchLine> lines = allLines();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
         return result;
     }
@@ -451,7 +451,7 @@ QStringList KifuBranchTree::getSfenListForLine(int lineIndex) const
 {
     QStringList result;
 
-    QVector<BranchLine> lines = allLines();
+    QList<BranchLine> lines = allLines();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
         return result;
     }

@@ -123,7 +123,7 @@ QString ConsiderationPositionResolver::resolveLastUsiMoveForPly(int row) const
     // 分岐ライン上では現在ラインの実際の指し手を優先する。
     if (m_inputs.navState && m_inputs.branchTree) {
         const int lineIndex = m_inputs.navState->currentLineIndex();
-        const QVector<BranchLine> lines = m_inputs.branchTree->allLines();
+        const QList<BranchLine> lines = m_inputs.branchTree->allLines();
         if (lineIndex >= 0 && lineIndex < lines.size()) {
             const BranchLine& line = lines.at(lineIndex);
             for (KifuBranchNode* node : line.nodes) {

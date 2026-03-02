@@ -397,7 +397,7 @@ bool Ki2ToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
 }
 
 QString Ki2ToSfenConverter::generateModifier(
-    const QVector<Ki2Lexer::Candidate>& candidates,
+    const QList<Ki2Lexer::Candidate>& candidates,
     int srcFile, int srcRank,
     int dstFile, int dstRank,
     bool blackToMove)

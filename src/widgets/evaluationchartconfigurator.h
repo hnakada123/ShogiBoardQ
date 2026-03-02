@@ -4,7 +4,6 @@
 #ifndef EVALUATIONCHARTCONFIGURATOR_H
 #define EVALUATIONCHARTCONFIGURATOR_H
 
-#pragma once
 #include <QObject>
 #include <QList>
 

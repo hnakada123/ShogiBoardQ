@@ -1,4 +1,5 @@
-#pragma once
+#ifndef KIFREADER_H
+#define KIFREADER_H
 
 /// @file kifreader.h
 /// @brief 棋譜ファイルの文字コード自動判別読み込み機能の定義
@@ -38,3 +39,5 @@ inline bool readLinesAuto(const QString& filePath,
 }
 
 } // namespace KifReader
+
+#endif // KIFREADER_H

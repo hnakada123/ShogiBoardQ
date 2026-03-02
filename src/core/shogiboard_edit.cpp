@@ -2,6 +2,7 @@
 /// @brief 盤面編集・デバッグ出力の実装
 
 #include "shogiboard.h"
+#include "boardconstants.h"
 #include "logcategories.h"
 
 // ============================================================
@@ -11,7 +12,7 @@
 // 局面編集中に使用される。将棋盤と駒台の駒を更新する。
 void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo, const bool promote)
 {
-    if (fileTo < 10) {
+    if (fileTo < BoardConstants::kBlackStandFile) {
         // 指したマスに相手の駒があった場合、自分の駒台に加える
         addPieceToStand(dest);
     } else {
@@ -19,7 +20,7 @@ void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, 
         incrementPieceOnStand(dest);
     }
 
-    if (fileFrom == 10 || fileFrom == 11) {
+    if (fileFrom == BoardConstants::kBlackStandFile || fileFrom == BoardConstants::kWhiteStandFile) {
         decrementPieceOnStand(source);
     }
 
@@ -52,8 +53,8 @@ void ShogiBoard::resetGameBoard()
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
 void ShogiBoard::flipSides()
 {
-    QVector<Piece> originalBoardData = m_boardData;
-    QVector<Piece> newBoardData;
+    QList<Piece> originalBoardData = m_boardData;
+    QList<Piece> newBoardData;
 
     for (int i = 0; i < 81; i++) {
         Piece piece = originalBoardData.at(80 - i);
@@ -88,21 +89,21 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     // 2. 禁置き段・二歩の候補をフィルタ
     // 3. フィルタ済みリストで次の候補に切り替え
 
-    auto nextInCycle = [](const QVector<Piece>& cyc, Piece cur)->Piece {
+    auto nextInCycle = [](const QList<Piece>& cyc, Piece cur)->Piece {
         qsizetype idx = cyc.indexOf(cur);
         if (idx < 0) return cur;
         return cyc[(idx + 1) % cyc.size()];
     };
 
-    const auto lanceCycle  = QVector<Piece>{Piece::BlackLance, Piece::BlackPromotedLance, Piece::WhiteLance, Piece::WhitePromotedLance};
-    const auto knightCycle = QVector<Piece>{Piece::BlackKnight, Piece::BlackPromotedKnight, Piece::WhiteKnight, Piece::WhitePromotedKnight};
-    const auto silverCycle = QVector<Piece>{Piece::BlackSilver, Piece::BlackPromotedSilver, Piece::WhiteSilver, Piece::WhitePromotedSilver};
-    const auto bishopCycle = QVector<Piece>{Piece::BlackBishop, Piece::BlackHorse, Piece::WhiteBishop, Piece::WhiteHorse};
-    const auto rookCycle   = QVector<Piece>{Piece::BlackRook, Piece::BlackDragon, Piece::WhiteRook, Piece::WhiteDragon};
-    const auto pawnCycle   = QVector<Piece>{Piece::BlackPawn, Piece::BlackPromotedPawn, Piece::WhitePawn, Piece::WhitePromotedPawn};
+    const auto lanceCycle  = QList<Piece>{Piece::BlackLance, Piece::BlackPromotedLance, Piece::WhiteLance, Piece::WhitePromotedLance};
+    const auto knightCycle = QList<Piece>{Piece::BlackKnight, Piece::BlackPromotedKnight, Piece::WhiteKnight, Piece::WhitePromotedKnight};
+    const auto silverCycle = QList<Piece>{Piece::BlackSilver, Piece::BlackPromotedSilver, Piece::WhiteSilver, Piece::WhitePromotedSilver};
+    const auto bishopCycle = QList<Piece>{Piece::BlackBishop, Piece::BlackHorse, Piece::WhiteBishop, Piece::WhiteHorse};
+    const auto rookCycle   = QList<Piece>{Piece::BlackRook, Piece::BlackDragon, Piece::WhiteRook, Piece::WhiteDragon};
+    const auto pawnCycle   = QList<Piece>{Piece::BlackPawn, Piece::BlackPromotedPawn, Piece::WhitePawn, Piece::WhitePromotedPawn};
 
     const Piece cur = getPieceCharacter(fileFrom, rankFrom);
-    QVector<Piece> base;
+    QList<Piece> base;
     switch (static_cast<char>(cur)) {
     case 'L': case 'M': case 'l': case 'm': base = lanceCycle;  break;
     case 'N': case 'O': case 'n': case 'o': base = knightCycle; break;
@@ -143,7 +144,7 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
         return isRankDisallowed(piece) || isNiFuDisallowed(piece);
     };
 
-    QVector<Piece> filtered;
+    QList<Piece> filtered;
     filtered.reserve(base.size());
     for (Piece p : std::as_const(base)) {
         if (!isDisallowed(p)) filtered.push_back(p);

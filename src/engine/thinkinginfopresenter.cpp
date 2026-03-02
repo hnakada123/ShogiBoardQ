@@ -42,7 +42,7 @@ void ThinkingInfoPresenter::setPreviousMove(int fileTo, int rankTo)
     m_previousRankTo = rankTo;
 }
 
-void ThinkingInfoPresenter::setClonedBoardData(const QVector<QChar>& boardData)
+void ThinkingInfoPresenter::setClonedBoardData(const QList<QChar>& boardData)
 {
     m_clonedBoardData = boardData;
 }

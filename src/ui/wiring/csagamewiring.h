@@ -8,7 +8,7 @@
 #include <QObject>
 #include <QString>
 #include <QPoint>
-#include <QVector>
+#include <QList>
 
 #include "csagamecoordinator.h"
 #include "shogimove.h"
@@ -65,7 +65,7 @@ public:
         UsiCommLogModel* usiCommLog = nullptr;
         ShogiEngineThinkingModel* engineThinking = nullptr;
         TimeControlController* timeController = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         // PlayMode への直接書き込み用
         PlayMode* playMode = nullptr;
         // 親ウィジェット（ダイアログ表示用）
@@ -276,7 +276,7 @@ private:
     UsiCommLogModel* m_usiCommLog = nullptr;
     ShogiEngineThinkingModel* m_engineThinking = nullptr;
     TimeControlController* m_timeController = nullptr;
-    QVector<ShogiMove>* m_gameMoves = nullptr;
+    QList<ShogiMove>* m_gameMoves = nullptr;
 
     // PlayMode への直接書き込み用
     PlayMode* m_playMode = nullptr;

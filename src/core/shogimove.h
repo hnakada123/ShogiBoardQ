@@ -5,8 +5,7 @@
 /// @brief 将棋の指し手データ構造体の定義
 
 #include <QPoint>
-#include <iostream>
-#include <QVector>
+#include <QList>
 #include <QDebug>
 #include "shogitypes.h"
 
@@ -28,7 +27,6 @@ struct ShogiMove {
     ShogiMove(const QPoint &from, const QPoint &to, Piece moving, Piece captured, bool promotion);
 
     bool operator==(const ShogiMove& other) const;
-    friend std::ostream& operator<<(std::ostream& os, const ShogiMove& move);
 };
 
 QDebug operator<<(QDebug dbg, const ShogiMove& move);

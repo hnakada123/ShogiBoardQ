@@ -9,7 +9,7 @@
 #include <functional>
 #include <memory>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QDateTime>
 
 #include "shogigamecontroller.h"
@@ -18,6 +18,13 @@
 #include "playmode.h"
 #include "matchundohandler.h"
 #include "enginelifecyclemanager.h"
+#include "startgamedatabridge.h"
+
+#include "matchtypes.h"
+#include "timecontrol.h"
+#include "startoptions.h"
+#include "analysisoptions.h"
+#include "matchcoordinatorhooks.h"
 
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
@@ -27,7 +34,6 @@ class GameModeStrategy;
 class EngineVsEngineStrategy;
 class ShogiView;
 class Usi;
-class StartGameDialog;
 class AnalysisSessionHandler;
 class GameEndHandler;
 class GameStartOrchestrator;
@@ -49,101 +55,34 @@ public:
     StrategyContext& strategyCtx();
     // --- 型定義 ---
 
-    /// 対局者を表す列挙値
-    enum Player : int {
-        P1 = 1,  ///< 先手
-        P2 = 2   ///< 後手
-    };
+    /// 対局者を表す列挙値（matchtypes.h の MatchPlayer の using エイリアス）
+    using Player = MatchPlayer;
+    static constexpr Player P1 = Player::P1;  ///< 先手
+    static constexpr Player P2 = Player::P2;  ///< 後手
 
-    /// 終局原因
-    enum class Cause : int {
-        Resignation    = 0,  ///< 投了
-        Timeout        = 1,  ///< 時間切れ
-        BreakOff       = 2,  ///< 中断
-        Jishogi        = 3,  ///< 持将棋／最大手数到達
-        NyugyokuWin    = 4,  ///< 入玉宣言勝ち
-        IllegalMove    = 5,  ///< 反則負け（入玉宣言失敗など）
-        Sennichite     = 6,  ///< 千日手（引き分け）
-        OuteSennichite = 7   ///< 連続王手の千日手（反則負け）
-    };
+    /// 終局原因（matchtypes.h の MatchCause の using エイリアス）
+    using Cause = MatchCause;
 
-    /// USI goコマンドに渡す時間パラメータ（ミリ秒）
-    struct GoTimes {
-        qint64 btime = 0;    ///< 先手残り時間（ms）
-        qint64 wtime = 0;    ///< 後手残り時間（ms）
-        qint64 byoyomi = 0;  ///< 共通秒読み（ms）
-        qint64 binc = 0;     ///< 先手フィッシャー加算（ms）
-        qint64 winc = 0;     ///< 後手フィッシャー加算（ms）
-    };
+    /// USI goコマンドに渡す時間パラメータ（matchtypes.h の MatchGoTimes の using エイリアス）
+    using GoTimes = MatchGoTimes;
 
-    /// 終局情報
-    struct GameEndInfo {
-        Cause  cause = Cause::Resignation;  ///< 終局原因
-        Player loser = P1;                  ///< 敗者
-    };
+    /// 終局情報（matchtypes.h の MatchGameEndInfo の using エイリアス）
+    using GameEndInfo = MatchGameEndInfo;
 
-    /// 直近の終局状態
-    struct GameOverState {
-        bool        isOver       = false;   ///< 終局済みか
-        bool        moveAppended = false;   ///< 棋譜に終局手を追記済みか
-        bool        hasLast      = false;   ///< 直近の終局情報があるか
-        bool        lastLoserIsP1= false;   ///< 直近の敗者が先手か
-        GameEndInfo lastInfo;               ///< 直近の終局情報
-        QDateTime   when;                   ///< 終局日時
-    };
+    /// 直近の終局状態（matchtypes.h の MatchGameOverState の using エイリアス）
+    using GameOverState = MatchGameOverState;
 
-    /**
-     * @brief UI/描画系の委譲コールバック群
-     *
-     * MatchCoordinator から上位層（MainWindow/Wiring層）への逆方向呼び出しに使用。
-     * 子ハンドラ（GameEndHandler, GameStartOrchestrator, EngineLifecycleManager 等）にも
-     * パススルーされる。
-     *
-     * @note MatchCoordinatorHooksFactory::buildHooks() で一括生成される。
-     *       入力は MainWindowMatchWiringDepsService::buildDeps() → HookDeps。
-     * @see MatchCoordinatorHooksFactory, MainWindowMatchWiringDepsService
-     */
-    struct Hooks {
-        /// UI更新・描画系コールバック
-        struct UI {
-            std::function<void(Player cur)> updateTurnDisplay;
-            std::function<void(const QString& p1, const QString& p2)> setPlayersNames;
-            std::function<void(const QString& e1, const QString& e2)> setEngineNames;
-            std::function<void()> renderBoardFromGc;
-            std::function<void(const QString& title, const QString& message)> showGameOverDialog;
-            std::function<void(const QPoint& from, const QPoint& to)> showMoveHighlights;
-        };
+    /// 時間制御の設定（timecontrol.h の MatchTimeControl の using エイリアス）
+    using TimeControl = MatchTimeControl;
 
-        /// 時計読み出し系コールバック
-        struct Time {
-            std::function<qint64(Player)> remainingMsFor;
-            std::function<qint64(Player)> incrementMsFor;
-            std::function<qint64()> byoyomiMs;
-        };
+    /// 対局開始のための設定パラメータ（startoptions.h の MatchStartOptions の using エイリアス）
+    using StartOptions = MatchStartOptions;
 
-        /// USI送受系コールバック
-        struct Engine {
-            std::function<void(Usi* which, const GoTimes& t)> sendGoToEngine;
-            std::function<void(Usi* which)> sendStopToEngine;
-            std::function<void(Usi* which, const QString& cmd)> sendRawToEngine;
-        };
+    /// 検討オプション（analysisoptions.h の MatchAnalysisOptions の using エイリアス）
+    using AnalysisOptions = MatchAnalysisOptions;
 
-        /// ゲーム初期化・棋譜系コールバック
-        struct Game {
-            std::function<void(const QString& sfenStart)> initializeNewGame;
-            std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
-            std::function<void()> appendEvalP1;
-            std::function<void()> appendEvalP2;
-            std::function<void(const QString& saveDir, PlayMode playMode,
-                               const QString& humanName1, const QString& humanName2,
-                               const QString& engineName1, const QString& engineName2)> autoSaveKifu;
-        };
-
-        UI ui;         ///< UI更新・描画系
-        Time time;     ///< 時計読み出し系
-        Engine engine; ///< USI送受系
-        Game game;     ///< ゲーム初期化・棋譜系
-    };
+    /// UI/Engine/Game コールバック群（matchcoordinatorhooks.h の MatchCoordinatorHooks の using エイリアス）
+    using Hooks = MatchCoordinatorHooks;
 
     /// 依存オブジェクト
     struct Deps {
@@ -158,31 +97,7 @@ public:
         ShogiEngineThinkingModel*  think2 = nullptr; ///< エンジン2思考情報（非所有）
         Hooks                hooks;                  ///< UIコールバック群
         QStringList* sfenRecord = nullptr;           ///< SFEN履歴（非所有）
-        QVector<ShogiMove>* gameMoves = nullptr;     ///< 指し手リスト（非所有、外部共有用）
-    };
-
-    // --- 対局開始オプション ---
-
-    /// 対局開始のための設定パラメータ
-    struct StartOptions {
-        PlayMode mode = PlayMode::NotStarted;  ///< 対局モード
-        QString  sfenStart;                    ///< 開始SFEN
-
-        QString engineName1;                   ///< エンジン1表示名
-        QString enginePath1;                   ///< エンジン1実行パス
-        QString engineName2;                   ///< エンジン2表示名
-        QString enginePath2;                   ///< エンジン2実行パス
-
-        bool engineIsP1 = false;               ///< エンジンが先手か（HvE）
-        bool engineIsP2 = false;               ///< エンジンが後手か（HvE）
-
-        int maxMoves = 0;                      ///< 最大手数（0=無制限）
-
-        bool autoSaveKifu = false;             ///< 棋譜自動保存フラグ
-        QString kifuSaveDir;                   ///< 棋譜保存ディレクトリ
-
-        QString humanName1;                    ///< 先手の人間対局者名
-        QString humanName2;                    ///< 後手の人間対局者名
+        QList<ShogiMove>* gameMoves = nullptr;     ///< 指し手リスト（非所有、外部共有用）
     };
 
     explicit MatchCoordinator(const Deps& deps, QObject* parent=nullptr);
@@ -211,23 +126,13 @@ public:
     void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
 
     /// 対局中の指し手リストを取得する（CSA出力等で使用）
-    const QVector<ShogiMove>& gameMoves() const { return m_gameMoves; }
+    const QList<ShogiMove>& gameMoves() const { return m_gameMoves; }
     /// SFEN履歴への参照を取得する（UI共有用）
     QStringList* sfenRecordPtr() { return m_sfenHistory; }
     /// SFEN履歴への参照を取得する（const版）
     const QStringList* sfenRecordPtr() const { return m_sfenHistory; }
 
     // --- 時間管理 ---
-
-    /// 時間制御の設定
-    struct TimeControl {
-        bool useByoyomi    = false;  ///< 秒読み使用フラグ
-        int  byoyomiMs1    = 0;      ///< 先手秒読み（ms）
-        int  byoyomiMs2    = 0;      ///< 後手秒読み（ms）
-        int  incMs1        = 0;      ///< 先手加算（ms）
-        int  incMs2        = 0;      ///< 後手加算（ms）
-        bool loseOnTimeout = false;  ///< 時間切れ負けフラグ
-    };
 
     void setTimeControlConfig(bool useByoyomi,
                               int byoyomiMs1, int byoyomiMs2,
@@ -296,20 +201,6 @@ public:
 
     // --- 検討API ---
 
-    /// 検討オプション
-    struct AnalysisOptions {
-        QString  enginePath;                ///< 検討に使うエンジン実行ファイル
-        QString  engineName;                ///< 表示用エンジン名
-        QString  positionStr;               ///< "position sfen ... [moves ...]" の完全文字列
-        int      byoyomiMs = 0;             ///< 0=無制限、>0=ms
-        int      multiPV   = 1;             ///< MultiPV（候補手の数）
-        PlayMode mode      = PlayMode::ConsiderationMode;  ///< 検討モード
-        ShogiEngineThinkingModel* considerationModel = nullptr; ///< 検討タブ用モデル
-        int      previousFileTo = 0;        ///< 前回の移動先の筋（1-9, 0=未設定）
-        int      previousRankTo = 0;        ///< 前回の移動先の段（1-9, 0=未設定）
-        QString  lastUsiMove;               ///< 開始局面に至った最後の指し手（USI形式）
-    };
-
     /// 検討を開始する
     void startAnalysis(const AnalysisOptions& opt);
 
@@ -341,16 +232,16 @@ public:
     StartOptions buildStartOptions(PlayMode mode,
                                    const QString& startSfenStr,
                                    const QStringList* sfenRecord,
-                                   const StartGameDialog* dlg) const;
+                                   const StartGameDialogData* dlg) const;
 
     /// 人間を手前に配置する
-    void ensureHumanAtBottomIfApplicable(const StartGameDialog* dlg, bool bottomIsP1);
+    void ensureHumanAtBottomIfApplicable(const StartGameDialogData* dlg, bool bottomIsP1);
 
     /// 準備→開始→必要なら初手goまでを一括実行する
     void prepareAndStartGame(PlayMode mode,
                              const QString& startSfenStr,
                              const QStringList* sfenRecord,
-                             const StartGameDialog* dlg,
+                             const StartGameDialogData* dlg,
                              bool bottomIsP1);
 
     // --- 時間/手番・終局の処理 ---
@@ -486,11 +377,11 @@ private:
     int m_currentMoveIndex = 0;              ///< 現在の手数インデックス
     QStringList* m_sfenHistory = nullptr;     ///< SFEN履歴（共有ポインタ、非所有）
     QStringList m_sharedSfenRecord;          ///< 共有ポインタ未指定時の内部SFEN履歴
-    QVector<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
-    QVector<ShogiMove>* m_externalGameMoves = nullptr; ///< 外部共有の指し手リスト（非所有、Deps経由）
+    QList<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト
+    QList<ShogiMove>* m_externalGameMoves = nullptr; ///< 外部共有の指し手リスト（非所有、Deps経由）
 
     // 外部共有ポインタが設定されていればそれを使う（Deps経由で注入）
-    QVector<ShogiMove>& gameMovesRef() {
+    QList<ShogiMove>& gameMovesRef() {
         return m_externalGameMoves ? *m_externalGameMoves : m_gameMoves;
     }
 
@@ -540,7 +431,7 @@ private:
     // --- 対局履歴 ---
 
     static constexpr int kMaxGameHistories = 10;  ///< 最大対局履歴数
-    QVector<QStringList> m_allGameHistories;  ///< 過去の対局履歴
+    QList<QStringList> m_allGameHistories;  ///< 過去の対局履歴
 };
 
 #endif // MATCHCOORDINATOR_H

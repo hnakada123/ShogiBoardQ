@@ -69,7 +69,7 @@ void KifuDisplayPresenter::populateRecordModel()
 
     qCDebug(lcUi).noquote() << "populateRecordModel: currentLineIndex=" << currentLineIndex;
 
-    QVector<BranchLine> lines = m_refs.tree->allLines();
+    QList<BranchLine> lines = m_refs.tree->allLines();
     if (currentLineIndex < 0 || currentLineIndex >= lines.size()) {
         currentLineIndex = 0;  // フォールバック: 本譜
     }
@@ -143,7 +143,7 @@ void KifuDisplayPresenter::populateRecordModel()
     }
 }
 
-int KifuDisplayPresenter::populateRecordModelFromPath(const QVector<KifuBranchNode*>& path, int highlightPly)
+int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode*>& path, int highlightPly)
 {
     if (m_refs.recordModel == nullptr) {
         return 0;
@@ -230,7 +230,7 @@ void KifuDisplayPresenter::populateBranchMarks()
         currentLineIndex = m_refs.state->currentLineIndex();
     }
 
-    QVector<BranchLine> lines = m_refs.tree->allLines();
+    QList<BranchLine> lines = m_refs.tree->allLines();
     if (currentLineIndex >= 0 && currentLineIndex < lines.size()) {
         const BranchLine& line = lines.at(currentLineIndex);
         for (KifuBranchNode* node : std::as_const(line.nodes)) {
@@ -247,14 +247,14 @@ void KifuDisplayPresenter::populateBranchMarks()
 // 分岐ツリー行データ構築
 // ============================================================
 
-QVector<BranchTreeManager::ResolvedRowLite> KifuDisplayPresenter::buildBranchTreeRows(KifuBranchTree* tree)
+QList<BranchTreeManager::ResolvedRowLite> KifuDisplayPresenter::buildBranchTreeRows(KifuBranchTree* tree)
 {
-    QVector<BranchTreeManager::ResolvedRowLite> rows;
+    QList<BranchTreeManager::ResolvedRowLite> rows;
     if (tree == nullptr) {
         return rows;
     }
 
-    const QVector<BranchLine> lines = tree->allLines();
+    const QList<BranchLine> lines = tree->allLines();
 
     for (int lineIdx = 0; lineIdx < lines.size(); ++lineIdx) {
         const BranchLine& line = lines.at(lineIdx);
@@ -323,7 +323,7 @@ KifuDisplayPresenter::DisplaySnapshot KifuDisplayPresenter::captureDisplaySnapsh
     }
 
     if (m_refs.tree != nullptr && snapshot.stateLineIndex >= 0) {
-        const QVector<BranchLine> lines = m_refs.tree->allLines();
+        const QList<BranchLine> lines = m_refs.tree->allLines();
         if (snapshot.stateLineIndex < lines.size()) {
             const BranchLine& line = lines.at(snapshot.stateLineIndex);
             for (KifuBranchNode* node : std::as_const(line.nodes)) {
@@ -392,7 +392,7 @@ bool KifuDisplayPresenter::verifyDisplayConsistencyDetailed(const TrackingState&
                         .arg(snapshot.statePly));
         }
 
-        const QVector<BranchLine> lines = m_refs.tree->allLines();
+        const QList<BranchLine> lines = m_refs.tree->allLines();
         if (snapshot.stateLineIndex >= 0 && snapshot.stateLineIndex < lines.size()) {
             const BranchLine& line = lines.at(snapshot.stateLineIndex);
             const int expectedRowCount = line.nodes.isEmpty() ? 1 : static_cast<int>(line.nodes.size());
@@ -423,7 +423,7 @@ bool KifuDisplayPresenter::verifyDisplayConsistencyDetailed(const TrackingState&
             // ツリーウィジェット上ではライン0（または親ライン）にハイライトされる。
             bool isSharedNode = false;
             if (snapshot.treeHighlightPly == snapshot.statePly && m_refs.tree != nullptr) {
-                const QVector<BranchLine> allLines = m_refs.tree->allLines();
+                const QList<BranchLine> allLines = m_refs.tree->allLines();
                 if (snapshot.treeHighlightLineIndex < allLines.size()
                     && snapshot.stateLineIndex < allLines.size()) {
                     auto findAtPly = [](const BranchLine& ln, int p) -> KifuBranchNode* {

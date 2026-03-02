@@ -253,9 +253,9 @@ QChar TsumeshogiPositionGenerator::promotedPieceChar(QChar base)
     return promotionMap.value(base, base);
 }
 
-QVector<Piece> TsumeshogiPositionGenerator::buildBoardData() const
+QList<Piece> TsumeshogiPositionGenerator::buildBoardData() const
 {
-    QVector<Piece> boardData(81, Piece::None);
+    QList<Piece> boardData(81, Piece::None);
 
     for (int rank = 0; rank < 9; ++rank) {
         for (int file = 0; file < 9; ++file) {
@@ -276,7 +276,7 @@ QVector<Piece> TsumeshogiPositionGenerator::buildBoardData() const
 
 bool TsumeshogiPositionGenerator::isKingInCheck() const
 {
-    const QVector<Piece> boardData = buildBoardData();
+    const QList<Piece> boardData = buildBoardData();
     EngineMoveValidator validator;
     // 後手(WHITE)の玉に先手(BLACK)の駒から王手がかかっているか
     return validator.checkIfKingInCheck(EngineMoveValidator::WHITE, boardData) > 0;

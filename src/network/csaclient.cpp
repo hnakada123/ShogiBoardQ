@@ -4,6 +4,11 @@
 #include "csaclient.h"
 #include "logcategories.h"
 
+namespace {
+constexpr int kMsPerSecond = 1000;
+constexpr int kMsPerMinute = 60000;
+} // namespace
+
 CsaClient::GameSummary::GameSummary()
 {
     clear();
@@ -46,10 +51,10 @@ int CsaClient::GameSummary::timeUnitMs() const
     if (timeUnit == QStringLiteral("1msec") || timeUnit == QStringLiteral("msec")) {
         return 1;
     } else if (timeUnit == QStringLiteral("1min") || timeUnit == QStringLiteral("min")) {
-        return 60000;
+        return kMsPerMinute;
     }
     // デフォルトは秒
-    return 1000;
+    return kMsPerSecond;
 }
 
 // ============================================================

@@ -8,7 +8,7 @@
 #include "branchtreemanager.h"
 
 #include <QString>
-#include <QVector>
+#include <QList>
 #include <QSet>
 #include <functional>
 
@@ -88,7 +88,7 @@ public:
      * @param highlightPly ハイライトする手数
      * @return ハイライトすべき行番号
      */
-    int populateRecordModelFromPath(const QVector<KifuBranchNode*>& path, int highlightPly);
+    int populateRecordModelFromPath(const QList<KifuBranchNode*>& path, int highlightPly);
 
     /**
      * @brief 分岐マークを計算して棋譜欄モデルに設定する
@@ -102,7 +102,7 @@ public:
      * @param tree 分岐ツリー
      * @return ResolvedRowLite のリスト
      */
-    static QVector<BranchTreeManager::ResolvedRowLite> buildBranchTreeRows(KifuBranchTree* tree);
+    static QList<BranchTreeManager::ResolvedRowLite> buildBranchTreeRows(KifuBranchTree* tree);
 
     // === 一致性検証 ===
 

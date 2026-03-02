@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QProcess>
 #include <QSettings>
-#include <QVector>
+#include <QList>
 #include <QMap>
 #include <QString>
 #include <QStringList>
@@ -104,7 +104,7 @@ void MatchCoordinator::pokeTimeUpdateNow() {}
 
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     PlayMode mode, const QString& startSfenStr,
-    const QStringList*, const StartGameDialog*) const
+    const QStringList*, const StartGameDialogData*) const
 {
     StartOptions opt;
     opt.mode = mode;
@@ -112,7 +112,7 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     return opt;
 }
 
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog*, bool) {}
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
 void MatchCoordinator::handleResign() {}
 void MatchCoordinator::handleEngineResign(int) {}
 void MatchCoordinator::handleEngineWin(int) {}
@@ -136,7 +136,7 @@ void MatchCoordinator::updateConsiderationMultiPV(int) {}
 bool MatchCoordinator::updateConsiderationPosition(const QString&, int, int, const QString&) { return false; }
 Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
-void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialog*, bool) {}
+void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
 void MatchCoordinator::handlePlayerTimeOut(int) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
@@ -303,7 +303,7 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
 {
     m_boardData.fill(Piece::None, ranks * files);
 }
-const QVector<Piece>& ShogiBoard::boardData() const { return m_boardData; }
+const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
 std::optional<SfenComponents> ShogiBoard::parseSfen(const QString&) { return std::nullopt; }
 void ShogiBoard::setSfen(const QString&)
 {
@@ -377,7 +377,7 @@ bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
 void Usi::setLogModel(UsiCommLogModel*) {}
 void Usi::prepareBoardDataForAnalysis() {}
-void Usi::setClonedBoardData(const QVector<QChar>&) {}
+void Usi::setClonedBoardData(const QList<QChar>&) {}
 void Usi::setBaseSfen(const QString&) {}
 void Usi::flushThinkingInfoBuffer() {}
 void Usi::requestClearThinkingInfo() {}
@@ -499,7 +499,7 @@ ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 void ThinkingInfoPresenter::setGameController(ShogiGameController*) {}
 void ThinkingInfoPresenter::setAnalysisMode(bool) {}
 void ThinkingInfoPresenter::setPreviousMove(int, int) {}
-void ThinkingInfoPresenter::setClonedBoardData(const QVector<QChar>&) {}
+void ThinkingInfoPresenter::setClonedBoardData(const QList<QChar>&) {}
 void ThinkingInfoPresenter::setPonderEnabled(bool) {}
 void ThinkingInfoPresenter::setBaseSfen(const QString&) {}
 QString ThinkingInfoPresenter::baseSfen() const { return {}; }
@@ -580,7 +580,7 @@ EngineVsEngineStrategy::EngineVsEngineStrategy(
 void EngineVsEngineStrategy::start() {}
 void EngineVsEngineStrategy::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 QStringList* EngineVsEngineStrategy::sfenRecordForEvE() { return &m_eveSfenRecord; }
-QVector<ShogiMove>& EngineVsEngineStrategy::gameMovesForEvE() { return m_eveGameMoves; }
+QList<ShogiMove>& EngineVsEngineStrategy::gameMovesForEvE() { return m_eveGameMoves; }
 void EngineVsEngineStrategy::kickNextEvETurn() {}
 void EngineVsEngineStrategy::initPositionStringsForEvE(const QString&) {}
 void EngineVsEngineStrategy::startEvEFirstMoveByBlack() {}

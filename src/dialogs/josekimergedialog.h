@@ -11,7 +11,7 @@
 #include <QLabel>
 #include <QCheckBox>
 #include <QVBoxLayout>
-#include <QVector>
+#include <QList>
 #include <QString>
 #include <QSet>
 #include <QCloseEvent>
@@ -51,7 +51,7 @@ public:
      * @param entries 棋譜エントリのリスト
      * @param currentPly 現在選択中の手数
      */
-    void setKifuData(const QVector<KifuMergeEntry> &entries, int currentPly);
+    void setKifuData(const QList<KifuMergeEntry> &entries, int currentPly);
     
     /**
      * @brief マージ先の定跡ファイル名を設定する
@@ -78,7 +78,7 @@ signals:
      * @brief 全ての指し手を一括登録するシグナル
      * @param entries 登録する棋譜エントリのリスト
      */
-    void registerAllMoves(const QVector<KifuMergeEntry> &entries);
+    void registerAllMoves(const QList<KifuMergeEntry> &entries);
 
 private slots:
     /**
@@ -144,7 +144,7 @@ private:
     QLabel *m_targetFileLabel = nullptr;         ///< マージ先ファイルラベル
     QLabel *m_autoSaveLabel = nullptr;           ///< 自動保存説明ラベル
 
-    QVector<KifuMergeEntry> m_entries; ///< 棋譜エントリ
+    QList<KifuMergeEntry> m_entries; ///< 棋譜エントリ
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
     int m_currentPly = -1;                  ///< 現在選択中の手数
     FontSizeHelper m_fontHelper;            ///< フォントサイズヘルパー

@@ -74,7 +74,8 @@
       "Bash(do echo:*)",
       "Bash(/tmp/analysis_summary.txt:*)",
       "Bash(cat:*)",
-      "Bash(read f:*)"
+      "Bash(read f:*)",
+      "Bash(echo Total headers: $total:*)"
     ]
   }
 }

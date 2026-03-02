@@ -8,7 +8,7 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 #include "playmode.h"
 #include "shogimove.h"
@@ -96,12 +96,12 @@ struct BranchNavigation {
 struct KifuState {
     QStringList positionStrList;
     QStringList gameUsiMoves;
-    QVector<QString> commentsByRow;
+    QList<QString> commentsByRow;
     int activePly = 0;
     int currentSelectedPly = 0;
     bool onMainRowGuard = false;
     QList<KifuDisplay*> moveRecords;
-    QVector<ShogiMove> gameMoves;
+    QList<ShogiMove> gameMoves;
     QString saveFileName;
 };
 

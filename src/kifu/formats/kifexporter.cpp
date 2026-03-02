@@ -203,7 +203,7 @@ static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove
 static bool hasNextSibling(KifuBranchNode* node)
 {
     if (node == nullptr || node->parent() == nullptr) return false;
-    const QVector<KifuBranchNode*>& siblings = node->parent()->children();
+    const QList<KifuBranchNode*>& siblings = node->parent()->children();
     const auto myIndex = siblings.indexOf(node);
     return myIndex >= 0 && myIndex < siblings.size() - 1;
 }
@@ -344,7 +344,7 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
     KifuBranchTree* branchTree = model.branchTree();
     QHash<int, KifuBranchNode*> mainLineNodesByPly;
     if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QVector<BranchLine> lines = branchTree->allLines();
+        QList<BranchLine> lines = branchTree->allLines();
         if (!lines.isEmpty()) {
             for (KifuBranchNode* node : std::as_const(lines.at(0).nodes)) {
                 mainLineNodesByPly.insert(node->ply(), node);
@@ -408,7 +408,7 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
 
     // 8) 変化（分岐）を出力（KifuBranchTree から）
     if (branchTree != nullptr && !branchTree->isEmpty()) {
-        QVector<BranchLine> lines = branchTree->allLines();
+        QList<BranchLine> lines = branchTree->allLines();
         // lineIndex = 0 は本譜なのでスキップ、1以降が分岐
         for (int lineIdx = 1; lineIdx < lines.size(); ++lineIdx) {
             const BranchLine& line = lines.at(lineIdx);
@@ -508,7 +508,7 @@ QStringList KifExporter::sfenToBodLines(const QString& sfen)
         {QLatin1Char('R'), QStringLiteral("龍")}, {QLatin1Char('K'), QStringLiteral("玉")}
     };
 
-    QVector<QVector<QString>> board(9, QVector<QString>(9, QStringLiteral(" ・")));
+    QList<QList<QString>> board(9, QList<QString>(9, QStringLiteral(" ・")));
     const QStringList ranks = boardSfen.split(QLatin1Char('/'));
     for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
         const QString& rankStr = ranks[rank];

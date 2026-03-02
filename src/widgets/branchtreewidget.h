@@ -8,7 +8,7 @@
 #include <QWidget>
 #include <QHash>
 #include <QPair>
-#include <QVector>
+#include <QList>
 
 class QGraphicsView;
 class QGraphicsScene;
@@ -116,7 +116,7 @@ private:
     QHash<QPair<int, int>, QGraphicsPathItem*> m_nodeIndex;
 
     // ライン情報キャッシュ
-    QVector<BranchLine> m_linesCache;
+    QList<BranchLine> m_linesCache;
 
     // 前回ハイライトしたノード
     QGraphicsPathItem* m_prevHighlighted = nullptr;

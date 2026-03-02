@@ -228,12 +228,13 @@ private slots:
     /// GameStartOrchestrator の Hooks に棋譜追加コールバックがあること
     void phase3_hooksHaveKifuAppend()
     {
-        const QString header = readSourceFile(
-            QStringLiteral("src/game/matchcoordinator.h"));
-        QVERIFY2(!header.isEmpty(), "Failed to read MC header");
+        // Hooks struct は matchcoordinatorhooks.h に分離されている
+        const QString hooksHeader = readSourceFile(
+            QStringLiteral("src/game/matchcoordinatorhooks.h"));
+        QVERIFY2(!hooksHeader.isEmpty(), "Failed to read matchcoordinatorhooks.h");
 
-        QVERIFY2(header.contains(QStringLiteral("appendKifuLine"))
-                     || header.contains(QStringLiteral("appendKifu")),
+        QVERIFY2(hooksHeader.contains(QStringLiteral("appendKifuLine"))
+                     || hooksHeader.contains(QStringLiteral("appendKifu")),
                   "Hooks must have kifu append callback");
     }
 

@@ -81,7 +81,7 @@ QJsonObject parseTimeToJkf(const QString& timeText)
     text = text.trimmed();
 
     const QStringList parts = text.split(QLatin1Char('/'));
-    if (parts.size() >= 1) {
+    if (!parts.empty()) {
         const QStringList nowParts = parts[0].split(QLatin1Char(':'));
         if (nowParts.size() >= 2) {
             QJsonObject now;

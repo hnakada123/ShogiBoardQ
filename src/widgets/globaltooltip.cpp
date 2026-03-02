@@ -16,6 +16,7 @@
 //  - setCompact(true) で余白・角丸・フォントを小さめに一括変更
 GlobalToolTip::GlobalToolTip(QWidget* parent)
     : QFrame(parent, Qt::ToolTip | Qt::FramelessWindowHint)
+    , m_label(new QLabel(this))
 {
     // 役割：表示してもアクティブ化しない（フォーカスを奪わないようにする）
     setAttribute(Qt::WA_ShowWithoutActivating);
@@ -37,7 +38,6 @@ GlobalToolTip::GlobalToolTip(QWidget* parent)
     lay->setContentsMargins(10, 10, 10, 10);
 
     // 役割：テキスト表示用のラベルを準備（HTML は使わない想定）
-    m_label = new QLabel(this);
     m_label->setFrameStyle(QFrame::NoFrame);
     lay->addWidget(m_label);
 

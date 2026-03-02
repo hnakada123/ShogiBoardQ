@@ -31,10 +31,10 @@ ShogiView::FieldHighlight::~FieldHighlight() {}
 ShogiView::ShogiView(QWidget *parent)
     : QWidget(parent),
     m_board(nullptr),
-    m_errorOccurred(false)
+    m_errorOccurred(false),
+    m_highlighting(new ShogiViewHighlighting(this, this))
 {
     // ハイライト/矢印/手番表示の管理クラスを生成
-    m_highlighting = new ShogiViewHighlighting(this, this);
     connect(m_highlighting, &ShogiViewHighlighting::highlightsCleared,
             this, &ShogiView::highlightsCleared);
 
@@ -575,5 +575,5 @@ void ShogiView::setActiveIsBlack(bool activeIsBlack)
 // 矢印表示機能（ShogiViewHighlighting へ委譲）
 // ─────────────────────────────────────────────────────────────────────────────
 
-void ShogiView::setArrows(const QVector<Arrow>& arrows) { m_highlighting->setArrows(arrows); }
+void ShogiView::setArrows(const QList<Arrow>& arrows) { m_highlighting->setArrows(arrows); }
 void ShogiView::clearArrows()                           { m_highlighting->clearArrows(); }

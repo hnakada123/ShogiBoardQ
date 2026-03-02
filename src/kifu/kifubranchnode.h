@@ -5,7 +5,7 @@
 /// @brief 分岐ツリーノードクラスの定義
 
 #include <QString>
-#include <QVector>
+#include <QList>
 
 #include "shogimove.h"
 
@@ -89,7 +89,7 @@ public:
     void setParent(KifuBranchNode* parent) { m_parent = parent; }
 
     /// 子ノード（分岐）を取得
-    const QVector<KifuBranchNode*>& children() const { return m_children; }
+    const QList<KifuBranchNode*>& children() const { return m_children; }
     void addChild(KifuBranchNode* child);
     int childCount() const { return static_cast<int>(m_children.size()); }
     KifuBranchNode* childAt(int index) const;
@@ -115,7 +115,7 @@ public:
     bool hasBranch() const { return m_children.size() > 1; }
 
     /// このノードの兄弟ノードを取得（自分を除く）
-    QVector<KifuBranchNode*> siblings() const;
+    QList<KifuBranchNode*> siblings() const;
 
 private:
     int m_nodeId = -1;                                  ///< ノードID（ツリー内で一意）
@@ -129,7 +129,7 @@ private:
     TerminalType m_terminalType = TerminalType::None;   ///< 終局手の種類
 
     KifuBranchNode* m_parent = nullptr;                 ///< 親ノード（非所有）
-    QVector<KifuBranchNode*> m_children;                ///< 子ノードリスト（非所有、KifuBranchTreeが所有）
+    QList<KifuBranchNode*> m_children;                ///< 子ノードリスト（非所有、KifuBranchTreeが所有）
 };
 
 #endif // KIFUBRANCHNODE_H

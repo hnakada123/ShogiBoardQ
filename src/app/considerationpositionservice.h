@@ -6,7 +6,7 @@
 
 #include <QObject>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 class KifuBranchTree;
 class KifuLoadCoordinator;
@@ -32,7 +32,7 @@ public:
         const PlayMode* playMode = nullptr;                   ///< 現在のプレイモード（外部所有）
         const QStringList* positionStrList = nullptr;         ///< 局面文字列リスト（外部所有）
         const QStringList* gameUsiMoves = nullptr;            ///< USI手順リスト（外部所有）
-        const QVector<ShogiMove>* gameMoves = nullptr;        ///< 指し手リスト（外部所有）
+        const QList<ShogiMove>* gameMoves = nullptr;        ///< 指し手リスト（外部所有）
         const QString* startSfenStr = nullptr;                ///< 開始局面SFEN（外部所有）
         KifuLoadCoordinator* kifuLoadCoordinator = nullptr;   ///< 棋譜ロードコーディネータ（非所有）
         KifuRecordListModel* kifuRecordModel = nullptr;       ///< 棋譜レコードモデル（非所有）

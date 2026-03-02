@@ -156,7 +156,7 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
         }
 
         if (branchPoint != nullptr) {
-            QVector<KifuBranchNode*> path = m_branchTree->pathToNode(branchPoint);
+            QList<KifuBranchNode*> path = m_branchTree->pathToNode(branchPoint);
             m_kifuRecordModel->clearAllItems();
 
             for (KifuBranchNode* node : std::as_const(path)) {

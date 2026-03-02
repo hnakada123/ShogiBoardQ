@@ -8,7 +8,7 @@
 #include "kifudisplaypresenter.h"
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 #include <QSet>
 #include <functional>
 #include <memory>

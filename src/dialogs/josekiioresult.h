@@ -1,10 +1,11 @@
 /// @file josekiioresult.h
 /// @brief 定跡ファイルI/Oの結果型（スレッド間受け渡し用値オブジェクト）
 
-#pragma once
+#ifndef JOSEKIIORESULT_H
+#define JOSEKIIORESULT_H
 
 #include <QMap>
-#include <QVector>
+#include <QList>
 #include <QString>
 
 struct JosekiMove;
@@ -19,7 +20,7 @@ struct JosekiLoadResult {
     QString errorMessage;
 
     /// 読み込んだ定跡データ（正規化SFEN → 指し手リスト）
-    QMap<QString, QVector<JosekiMove>> josekiData;
+    QMap<QString, QList<JosekiMove>> josekiData;
 
     /// 元のSFEN（手数付き）マップ
     QMap<QString, QString> sfenWithPlyMap;
@@ -36,3 +37,5 @@ struct JosekiSaveResult {
     QString errorMessage;
     int savedCount = 0;
 };
+
+#endif // JOSEKIIORESULT_H

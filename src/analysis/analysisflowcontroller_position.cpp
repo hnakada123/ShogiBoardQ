@@ -32,10 +32,10 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
 
         ShogiBoard tempBoard;
         tempBoard.setSfen(pureSfen);
-        const QVector<Piece> pieceBoardData = tempBoard.boardData();
+        const QList<Piece> pieceBoardData = tempBoard.boardData();
         if (pieceBoardData.size() == 81) {
-            // Usi::setClonedBoardData は QVector<QChar> を受け取るため変換
-            QVector<QChar> charBoardData;
+            // Usi::setClonedBoardData は QList<QChar> を受け取るため変換
+            QList<QChar> charBoardData;
             charBoardData.reserve(81);
             for (const Piece p : pieceBoardData) {
                 charBoardData.append(pieceToChar(p));

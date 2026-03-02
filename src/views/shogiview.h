@@ -127,7 +127,7 @@ public:
         QChar dropPiece = ' ';  // 駒打ちの場合の駒種（例: 'P', 'G' など）、通常の移動は空白
         QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
     };
-    void setArrows(const QVector<Arrow>& arrows);  // 矢印をセット（複数可）
+    void setArrows(const QList<Arrow>& arrows);  // 矢印をセット（複数可）
     void clearArrows();                            // 矢印をクリア
 
     // ───────────────────────────── 操作/状態切替 ────────────────────────────

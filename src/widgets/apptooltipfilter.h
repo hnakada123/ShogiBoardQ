@@ -4,8 +4,6 @@
 /// @file apptooltipfilter.h
 /// @brief アプリケーションツールチップフィルタクラスの定義
 
-#pragma once
-
 #include <QObject>
 
 class QWidget;

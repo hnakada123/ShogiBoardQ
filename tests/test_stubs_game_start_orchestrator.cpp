@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QProcess>
 #include <QSettings>
-#include <QVector>
+#include <QList>
 #include <QMap>
 #include <QString>
 #include <QStringList>
@@ -23,7 +23,7 @@
 #include "shogiclock.h"
 #include "shogiview.h"
 #include "shogigamecontroller.h"
-#include "startgamedialog.h"
+#include "startgamedatabridge.h"
 #include "shogiboard.h"
 #include "engineprocessmanager.h"
 #include "usicommlogmodel.h"
@@ -104,7 +104,7 @@ void MatchCoordinator::pokeTimeUpdateNow() {}
 
 MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     PlayMode mode, const QString& startSfenStr,
-    const QStringList*, const StartGameDialog*) const
+    const QStringList*, const StartGameDialogData*) const
 {
     StartOptions opt;
     opt.mode = mode;
@@ -112,7 +112,7 @@ MatchCoordinator::StartOptions MatchCoordinator::buildStartOptions(
     return opt;
 }
 
-void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialog*, bool) {}
+void MatchCoordinator::ensureHumanAtBottomIfApplicable(const StartGameDialogData*, bool) {}
 void MatchCoordinator::handleResign() {}
 void MatchCoordinator::handleEngineResign(int) {}
 void MatchCoordinator::handleEngineWin(int) {}
@@ -136,7 +136,7 @@ void MatchCoordinator::updateConsiderationMultiPV(int) {}
 bool MatchCoordinator::updateConsiderationPosition(const QString&, int, int, const QString&) { return false; }
 Usi* MatchCoordinator::primaryEngine() const { return nullptr; }
 Usi* MatchCoordinator::secondaryEngine() const { return nullptr; }
-void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialog*, bool) {}
+void MatchCoordinator::prepareAndStartGame(PlayMode, const QString&, const QStringList*, const StartGameDialogData*, bool) {}
 void MatchCoordinator::handlePlayerTimeOut(int) {}
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
@@ -299,68 +299,6 @@ void ShogiGameController::setPromote(bool) {}
 void ShogiGameController::newGame(QString&) {}
 
 // ============================================================
-// StartGameDialog スタブ
-// ============================================================
-
-namespace Ui { class StartGameDialog {}; }
-
-StartGameDialog::StartGameDialog(QWidget* parent) : QDialog(parent), ui(nullptr) {}
-StartGameDialog::~StartGameDialog() = default;
-bool StartGameDialog::isHuman1() const { return m_isHuman1; }
-bool StartGameDialog::isHuman2() const { return m_isHuman2; }
-bool StartGameDialog::isEngine1() const { return m_isEngine1; }
-bool StartGameDialog::isEngine2() const { return m_isEngine2; }
-const QString& StartGameDialog::engineName1() const { return m_engineName1; }
-const QString& StartGameDialog::engineName2() const { return m_engineName2; }
-const QString& StartGameDialog::humanName1() const { return m_humanName1; }
-const QString& StartGameDialog::humanName2() const { return m_humanName2; }
-int StartGameDialog::engineNumber1() const { return m_engineNumber1; }
-int StartGameDialog::engineNumber2() const { return m_engineNumber2; }
-int StartGameDialog::basicTimeHour1() const { return m_basicTimeHour1; }
-int StartGameDialog::basicTimeMinutes1() const { return m_basicTimeMinutes1; }
-int StartGameDialog::byoyomiSec1() const { return m_byoyomiSec1; }
-int StartGameDialog::addEachMoveSec1() const { return m_addEachMoveSec1; }
-int StartGameDialog::basicTimeHour2() const { return m_basicTimeHour2; }
-int StartGameDialog::basicTimeMinutes2() const { return m_basicTimeMinutes2; }
-int StartGameDialog::byoyomiSec2() const { return m_byoyomiSec2; }
-int StartGameDialog::addEachMoveSec2() const { return m_addEachMoveSec2; }
-const QString& StartGameDialog::startingPositionName() const { return m_startingPositionName; }
-int StartGameDialog::startingPositionNumber() const { return m_startingPositionNumber; }
-void StartGameDialog::forceCurrentPositionSelection() { m_startingPositionNumber = 0; }
-const QList<StartGameDialog::Engine>& StartGameDialog::getEngineList() const { return engineList; }
-int StartGameDialog::maxMoves() const { return m_maxMoves; }
-int StartGameDialog::consecutiveGames() const { return m_consecutiveGames; }
-bool StartGameDialog::isShowHumanInFront() const { return m_isShowHumanInFront; }
-bool StartGameDialog::isAutoSaveKifu() const { return m_isAutoSaveKifu; }
-const QString& StartGameDialog::kifuSaveDir() const { return m_kifuSaveDir; }
-bool StartGameDialog::isLoseOnTimeout() const { return m_isLoseOnTimeout; }
-bool StartGameDialog::isSwitchTurnEachGame() const { return m_isSwitchTurnEachGame; }
-int StartGameDialog::jishogiRule() const { return m_jishogiRule; }
-void StartGameDialog::loadEngineConfigurations() {}
-void StartGameDialog::populatePlayerComboBoxes() {}
-void StartGameDialog::showEngineSettingsDialog(int) {}
-void StartGameDialog::updatePlayerUI(int, int) {}
-void StartGameDialog::connectSignalsAndSlots() {}
-void StartGameDialog::loadGameSettings() {}
-void StartGameDialog::updateGameSettingsFromDialog() {}
-void StartGameDialog::onFirstPlayerSettingsClicked() {}
-void StartGameDialog::onSecondPlayerSettingsClicked() {}
-void StartGameDialog::swapSides() {}
-void StartGameDialog::saveGameSettings() {}
-void StartGameDialog::resetSettingsToDefault() {}
-void StartGameDialog::handleByoyomiSecChanged(int) {}
-void StartGameDialog::handleAddEachMoveSecChanged(int) {}
-void StartGameDialog::increaseFontSize() {}
-void StartGameDialog::decreaseFontSize() {}
-void StartGameDialog::onPlayer1SelectionChanged(int) {}
-void StartGameDialog::onPlayer2SelectionChanged(int) {}
-void StartGameDialog::onSelectKifuDirClicked() {}
-void StartGameDialog::updateConsecutiveGamesEnabled() {}
-void StartGameDialog::applyFontSize(int) {}
-void StartGameDialog::loadFontSizeSettings() {}
-void StartGameDialog::saveFontSizeSettings() {}
-
-// ============================================================
 // Usi スタブ
 // ============================================================
 
@@ -411,7 +349,7 @@ bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
 void Usi::setLogModel(UsiCommLogModel*) {}
 void Usi::prepareBoardDataForAnalysis() {}
-void Usi::setClonedBoardData(const QVector<QChar>&) {}
+void Usi::setClonedBoardData(const QList<QChar>&) {}
 void Usi::setBaseSfen(const QString&) {}
 void Usi::flushThinkingInfoBuffer() {}
 void Usi::requestClearThinkingInfo() {}
@@ -533,7 +471,7 @@ ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 void ThinkingInfoPresenter::setGameController(ShogiGameController*) {}
 void ThinkingInfoPresenter::setAnalysisMode(bool) {}
 void ThinkingInfoPresenter::setPreviousMove(int, int) {}
-void ThinkingInfoPresenter::setClonedBoardData(const QVector<QChar>&) {}
+void ThinkingInfoPresenter::setClonedBoardData(const QList<QChar>&) {}
 void ThinkingInfoPresenter::setPonderEnabled(bool) {}
 void ThinkingInfoPresenter::setBaseSfen(const QString&) {}
 QString ThinkingInfoPresenter::baseSfen() const { return {}; }
@@ -618,7 +556,6 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_shogiview.cpp"
 #include "moc_shogiboard.cpp"
 #include "moc_shogigamecontroller.cpp"
-#include "moc_startgamedialog.cpp"
 #include "moc_usi.cpp"
 #include "moc_usicommlogmodel.cpp"
 #include "moc_shogienginethinkingmodel.cpp"

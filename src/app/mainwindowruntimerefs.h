@@ -6,7 +6,7 @@
 
 #include <QList>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 // --- 前方宣言 ---
 class QWidget;
@@ -84,14 +84,14 @@ struct RuntimeModelRefs {
 /// 全メンバは非所有（ダブルポインタ経由）。MainWindow の KifuState 構造体が所有するデータへの参照。
 struct RuntimeKifuRefs {
     QStringList* sfenRecord = nullptr;                     ///< SFEN記録（外部所有）
-    QVector<ShogiMove>* gameMoves = nullptr;               ///< 指し手リスト（外部所有）
+    QList<ShogiMove>* gameMoves = nullptr;               ///< 指し手リスト（外部所有）
     QStringList* gameUsiMoves = nullptr;                   ///< USI形式指し手リスト（外部所有）
     QList<KifuDisplay*>* moveRecords = nullptr;            ///< 移動記録（外部所有）
     QStringList* positionStrList = nullptr;                ///< 局面文字列リスト（外部所有）
     int* activePly = nullptr;                              ///< アクティブ手数（外部所有）
     int* currentSelectedPly = nullptr;                     ///< 選択中手数（外部所有）
     QString* saveFileName = nullptr;                       ///< 保存先ファイルパス（外部所有）
-    QVector<QString>* commentsByRow = nullptr;             ///< 行別コメント（外部所有）
+    QList<QString>* commentsByRow = nullptr;             ///< 行別コメント（外部所有）
     bool* onMainRowGuard = nullptr;                        ///< 本譜行ガード（外部所有）
 };
 

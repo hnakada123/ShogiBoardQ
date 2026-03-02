@@ -190,7 +190,7 @@ void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
         return;
     }
 
-    QVector<BranchLine> lines = m_tree->allLines();
+    QList<BranchLine> lines = m_tree->allLines();
     qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: allLines().size()=" << lines.size();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
         qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: lineIndex out of range";
@@ -395,7 +395,7 @@ void KifuDisplayCoordinator::updateBranchCandidatesView()
         return;
     }
 
-    QVector<KifuBranchNode*> candidates = m_state->branchCandidatesAtCurrent();
+    QList<KifuBranchNode*> candidates = m_state->branchCandidatesAtCurrent();
     onBranchCandidatesUpdateRequired(candidates);
 }
 
@@ -459,7 +459,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     }
 
     KifuBranchNode* targetNode = nullptr;
-    QVector<BranchLine> lines = m_tree->allLines();
+    QList<BranchLine> lines = m_tree->allLines();
 
     // ply=0は開始局面（ルートノード）
     if (ply == 0) {

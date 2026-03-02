@@ -1,4 +1,5 @@
-#pragma once
+#ifndef LOGCATEGORIES_H
+#define LOGCATEGORIES_H
 
 /// @file logcategories.h
 /// @brief アプリケーション全体で使用するログカテゴリの宣言
@@ -18,3 +19,5 @@ Q_DECLARE_LOGGING_CATEGORY(lcBoard)
 Q_DECLARE_LOGGING_CATEGORY(lcAnalysis)
 Q_DECLARE_LOGGING_CATEGORY(lcShogiClock)
 Q_DECLARE_LOGGING_CATEGORY(lcNavigation)
+
+#endif // LOGCATEGORIES_H

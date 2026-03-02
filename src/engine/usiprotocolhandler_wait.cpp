@@ -4,10 +4,8 @@
 #include "usiprotocolhandler.h"
 #include "engineprocessmanager.h"
 
-#include <QCoreApplication>
 #include <QEventLoop>
 #include <QTimer>
-#include <QThread>
 
 // ============================================================
 // 待機メソッド
@@ -84,13 +82,23 @@ bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
     m_bestMoveReceived = false;
     const quint64 expectedId = m_seq;
 
+    static constexpr int kSliceMs = 10;
+
     while (t.elapsed() < hard) {
         if (m_seq != expectedId || shouldAbortWait()) return false;
-
-        QCoreApplication::processEvents(QEventLoop::AllEvents, 5);
         if (m_bestMoveReceived) return true;
 
-        QThread::msleep(1);
+        const qint64 remaining = hard - t.elapsed();
+        if (remaining <= 0) break;
+        const int slice = static_cast<int>(qMin<qint64>(kSliceMs, remaining));
+
+        QEventLoop spin;
+        QTimer tick;
+        tick.setSingleShot(true);
+        tick.setInterval(slice);
+        QObject::connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
+        tick.start();
+        spin.exec(QEventLoop::AllEvents);
     }
     return m_bestMoveReceived;
 }

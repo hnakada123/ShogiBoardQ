@@ -4,7 +4,7 @@
 /// @file jishogicalculator.h
 /// @brief 持将棋（入玉宣言法）の点数計算・判定ロジック
 
-#include <QVector>
+#include <QList>
 #include <QMap>
 #include <QString>
 #include "shogitypes.h"
@@ -37,7 +37,7 @@ public:
     // --- 公開API ---
 
     /// 盤面データと駒台データから点数を計算する
-    static JishogiResult calculate(const QVector<Piece>& boardData,
+    static JishogiResult calculate(const QList<Piece>& boardData,
                                    const QMap<Piece, int>& pieceStand);
 
     /// 宣言条件を満たしているか（玉が敵陣、敵陣に10枚以上、王手がかかっていない）

@@ -292,7 +292,7 @@ private slots:
         QVERIFY2(tree.nodeCount() > 0, "Branch tree is empty after build");
 
         // 5. ツリーノードのコメントを確認
-        QVector<BranchLine> lines = tree.allLines();
+        QList<BranchLine> lines = tree.allLines();
         QVERIFY2(!lines.isEmpty(), "No branch lines");
 
         int treeCommentCount = 0;

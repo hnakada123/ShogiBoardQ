@@ -46,7 +46,7 @@ void BranchTreeManager::setView(QGraphicsView* view)
 
 // ===================== 公開API =====================
 
-void BranchTreeManager::setBranchTreeRows(const QVector<ResolvedRowLite>& rows)
+void BranchTreeManager::setBranchTreeRows(const QList<ResolvedRowLite>& rows)
 {
     m_rows = rows;
     rebuildBranchTree();

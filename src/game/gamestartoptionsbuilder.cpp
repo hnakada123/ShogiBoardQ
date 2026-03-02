@@ -7,7 +7,6 @@
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "shogigamecontroller.h"
-#include "startgamedialog.h"
 
 #include <QDebug>
 #include <QLoggingCategory>
@@ -99,41 +98,18 @@ GameStartOptionsBuilder::extractTimeControl(const QWidget* dlg)
 }
 
 GameStartOptionsBuilder::TimeControl
-GameStartOptionsBuilder::buildTimeControl(QDialog* startDlg)
+GameStartOptionsBuilder::buildTimeControl(const StartGameDialogData& data)
 {
     TimeControl tc;
 
-    int h1=0, m1=0, h2=0, m2=0;
-    int byo1=0, byo2=0;
-    int inc1=0, inc2=0;
-
-    auto propInt = [&](const char* name)->int {
-        if (!startDlg) return 0;
-        bool ok=false; const int v = startDlg->property(name).toInt(&ok);
-        return ok ? v : 0;
-    };
-
-    // StartGameDialog の型が使えるなら直接 getter を呼ぶ
-    if (auto dlg = qobject_cast<StartGameDialog*>(startDlg)) {
-        h1   = dlg->basicTimeHour1();
-        m1   = dlg->basicTimeMinutes1();
-        h2   = dlg->basicTimeHour2();
-        m2   = dlg->basicTimeMinutes2();
-        byo1 = dlg->byoyomiSec1();
-        byo2 = dlg->byoyomiSec2();
-        inc1 = dlg->addEachMoveSec1();
-        inc2 = dlg->addEachMoveSec2();
-    } else {
-        // フォールバック: プロパティ名で取得
-        h1   = propInt("basicTimeHour1");
-        m1   = propInt("basicTimeMinutes1");
-        h2   = propInt("basicTimeHour2");
-        m2   = propInt("basicTimeMinutes2");
-        byo1 = propInt("byoyomiSec1");
-        byo2 = propInt("byoyomiSec2");
-        inc1 = propInt("addEachMoveSec1");
-        inc2 = propInt("addEachMoveSec2");
-    }
+    const int h1   = data.basicTimeHour1;
+    const int m1   = data.basicTimeMinutes1;
+    const int h2   = data.basicTimeHour2;
+    const int m2   = data.basicTimeMinutes2;
+    const int byo1 = data.byoyomiSec1;
+    const int byo2 = data.byoyomiSec2;
+    const int inc1 = data.addEachMoveSec1;
+    const int inc2 = data.addEachMoveSec2;
 
     const qint64 base1Ms = qMax<qint64>(0, (static_cast<qint64>(h1)*3600 + m1*60) * 1000);
     const qint64 base2Ms = qMax<qint64>(0, (static_cast<qint64>(h2)*3600 + m2*60) * 1000);
@@ -193,31 +169,13 @@ PlayMode GameStartOptionsBuilder::determinePlayMode(const int initPositionNumber
     return PlayMode::PlayModeError;
 }
 
-PlayMode GameStartOptionsBuilder::determinePlayModeFromDialog(QDialog* startDlg)
+PlayMode GameStartOptionsBuilder::determinePlayModeFromDialog(const StartGameDialogData& data)
 {
-    int  initPositionNumber = 1;
-    bool isHuman1 = false, isHuman2 = false;
-    bool isEngine1 = false, isEngine2 = false;
-
-    if (startDlg) {
-        if (auto dlg = qobject_cast<StartGameDialog*>(startDlg)) {
-            initPositionNumber = dlg->startingPositionNumber();
-            isHuman1           = dlg->isHuman1();
-            isHuman2           = dlg->isHuman2();
-            isEngine1          = dlg->isEngine1();
-            isEngine2          = dlg->isEngine2();
-        } else {
-            bool ok=false;
-            const QVariant pn = startDlg->property("startingPositionNumber");
-            initPositionNumber = pn.isValid() ? pn.toInt(&ok) : 1;
-            if (!ok) initPositionNumber = 1;
-
-            isHuman1  = startDlg->property("isHuman1").toBool();
-            isHuman2  = startDlg->property("isHuman2").toBool();
-            isEngine1 = startDlg->property("isEngine1").toBool();
-            isEngine2 = startDlg->property("isEngine2").toBool();
-        }
-    }
+    const int  initPositionNumber = data.startingPositionNumber;
+    const bool isHuman1  = data.isHuman1;
+    const bool isHuman2  = data.isHuman2;
+    const bool isEngine1 = data.isEngine1;
+    const bool isEngine2 = data.isEngine2;
 
     // 「Human と Engine の排他」を整形
     const bool p1Human = (isHuman1  && !isEngine1);

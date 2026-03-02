@@ -6,7 +6,7 @@
 
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 #include <QString>
 
 class ConsiderationTabManager;
@@ -67,7 +67,7 @@ public:
      * @return 局面が更新された場合true
      */
     bool updatePositionIfInConsiderationMode(int row, const QString& newPosition,
-                                             const QVector<ShogiMove>* gameMoves,
+                                             const QList<ShogiMove>* gameMoves,
                                              KifuRecordListModel* kifuRecordModel);
 
     // --- 表示設定 ---

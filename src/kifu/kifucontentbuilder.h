@@ -8,7 +8,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QVector>
+#include <QList>
 #include "kiftosfenconverter.h"
 #include "playmode.h"
 #include "kifdisplayitem.h"
@@ -22,11 +22,11 @@ struct KifuExportContext {
     // UI/Model参照（読み取り専用）
     const QTableWidget* gameInfoTable = nullptr;
     const KifuRecordListModel* recordModel = nullptr;
-    const QVector<ResolvedRow>* resolvedRows = nullptr;
+    const QList<ResolvedRow>* resolvedRows = nullptr;
     const QList<KifDisplayItem>* liveDisp = nullptr;
 
     // 編集されたコメント配列（MainWindow::m_commentsByRow）
-    const QVector<QString>* commentsByRow = nullptr;
+    const QList<QString>* commentsByRow = nullptr;
 
     // アクティブな行インデックス（分岐選択時に使用）
     int activeResolvedRow = 0;

@@ -151,7 +151,7 @@ static QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& vis
         }
 
         if (current->hasBranch()) {
-            const QVector<KifuBranchNode*>& children = current->children();
+            const QList<KifuBranchNode*>& children = current->children();
             if (children.size() > 1) {
                 QJsonArray childForks;
                 for (int i = 1; i < children.size(); ++i) {
@@ -185,14 +185,14 @@ static void addJkfForksFromTree(QJsonArray& movesArray, const KifuBranchTree* tr
         return;
     }
 
-    QVector<KifuBranchNode*> mainLineNodes = tree->mainLine();
+    QList<KifuBranchNode*> mainLineNodes = tree->mainLine();
 
     for (KifuBranchNode* node : std::as_const(mainLineNodes)) {
         if (!node->hasBranch()) {
             continue;
         }
 
-        const QVector<KifuBranchNode*>& children = node->children();
+        const QList<KifuBranchNode*>& children = node->children();
 
         if (children.size() <= 1) {
             continue;

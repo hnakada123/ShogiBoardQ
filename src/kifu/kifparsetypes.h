@@ -7,7 +7,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QVector>
+#include <QList>
 
 #include "shogimove.h"
 
@@ -34,7 +34,7 @@ struct KifLine {
     QStringList usiMoves;         ///< 分岐のUSI指し手列
     QList<KifDisplayItem> disp;   ///< 表示用（▲△＋時間）: 先頭=分岐の最初の手
     QStringList sfenList;         ///< base含む局面列（0=base, 以降=各手後）
-    QVector<ShogiMove> gameMoves; ///< GUI用指し手列
+    QList<ShogiMove> gameMoves; ///< GUI用指し手列
     bool endsWithTerminal = false; ///< 終局手で終わるか
 };
 
@@ -53,7 +53,7 @@ struct KifVariation {
  */
 struct KifParseResult {
     KifLine mainline;                  ///< 本譜
-    QVector<KifVariation> variations;  ///< 変化リスト
+    QList<KifVariation> variations;  ///< 変化リスト
 };
 
 #endif // KIFPARSETYPES_H

@@ -59,7 +59,7 @@ public:
         UsiCommLogModel* comm2 = nullptr;
         ShogiEngineThinkingModel* think2 = nullptr;
         QStringList* sfenRecord = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         PlayMode* playMode = nullptr;
 
         // --- GameStartCoordinator 配線用 ---
@@ -116,7 +116,7 @@ public:
         BoardInteractionController* boardController = nullptr;
 
         KifuRecordListModel* kifuRecordModel = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         QStringList* positionStrList = nullptr;
         int* currentMoveIndex = nullptr;
 
@@ -255,7 +255,7 @@ private:
     BoardInteractionController* m_boardController = nullptr;
 
     KifuRecordListModel* m_kifuRecordModel = nullptr;
-    QVector<ShogiMove>* m_gameMoves = nullptr;
+    QList<ShogiMove>* m_gameMoves = nullptr;
     QStringList* m_positionStrList = nullptr;
     int* m_currentMoveIndex = nullptr;
 

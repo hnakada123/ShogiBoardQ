@@ -417,7 +417,7 @@ void Usi::prepareBoardDataForAnalysis()
     m_matchHandler->prepareBoardDataForAnalysis();
 }
 
-void Usi::setClonedBoardData(const QVector<QChar>& boardData)
+void Usi::setClonedBoardData(const QList<QChar>& boardData)
 {
     m_matchHandler->setClonedBoardData(boardData);
 }

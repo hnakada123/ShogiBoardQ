@@ -8,7 +8,7 @@
 #include <QStringList>
 #include <array>
 #include <QPoint>
-#include <QVector>
+#include <QList>
 #include "shogimove.h"
 
 /**
@@ -92,7 +92,7 @@ public:
                                        bool hasTerminal);
 
     /// 初期SFENとUSI手列から可視化用のShogiMove列を構築する
-    static QVector<ShogiMove> buildGameMoves(const QString& initialSfen,
+    static QList<ShogiMove> buildGameMoves(const QString& initialSfen,
                                              const QStringList& usiMoves);
 
     // --- USI座標ヘルパ ---

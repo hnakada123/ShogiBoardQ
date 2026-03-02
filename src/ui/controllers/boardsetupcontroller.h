@@ -53,7 +53,7 @@ public:
     PlayMode playMode() const { return m_playMode; }
 
     void setSfenRecord(QStringList* sfenRecord);
-    void setGameMoves(QVector<ShogiMove>* gameMoves);
+    void setGameMoves(QList<ShogiMove>* gameMoves);
     void setCurrentMoveIndex(int* currentMoveIndex);
 
     // --------------------------------------------------------
@@ -97,7 +97,7 @@ public:
     void setRedrawEngine2GraphCallback(RedrawEngine2GraphCallback cb);
     void setRefreshBranchTreeCallback(RefreshBranchTreeCallback cb);
 
-public Q_SLOTS:
+public slots:
     /**
      * @brief 着手要求を処理
      */
@@ -108,7 +108,7 @@ public Q_SLOTS:
      */
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
 
-Q_SIGNALS:
+signals:
     /**
      * @brief CSA通信対局での指し手要求
      * @param from 移動元
@@ -128,7 +128,7 @@ private:
 
     PlayMode m_playMode = PlayMode::NotStarted;
     QStringList* m_sfenHistory = nullptr;
-    QVector<ShogiMove>* m_gameMoves = nullptr;
+    QList<ShogiMove>* m_gameMoves = nullptr;
     int* m_currentMoveIndex = nullptr;
 
     QString m_lastMove;

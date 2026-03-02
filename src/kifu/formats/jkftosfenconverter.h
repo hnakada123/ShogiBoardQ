@@ -7,7 +7,7 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QVector>
+#include <QList>
 #include <QMap>
 #include <QJsonObject>
 #include <QJsonArray>
@@ -40,7 +40,7 @@ private:
     static void parseMovesArray(const QJsonArray& movesArray,
                                 const QString& baseSfen,
                                 KifLine& mainline,
-                                QVector<KifVariation>& variations,
+                                QList<KifVariation>& variations,
                                 QString* warn);
 };
 

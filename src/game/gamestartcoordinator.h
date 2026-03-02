@@ -7,9 +7,9 @@
 #include <QObject>
 #include <QPointer>
 #include <QString>
-#include <QDialog>
 
 #include "matchcoordinator.h"
+#include "startgamedatabridge.h"
 
 class QWidget;
 class ShogiClock;
@@ -67,12 +67,12 @@ public:
 
     /// 開始前の適用（時計/人手前など）を依頼するための軽量入力
     struct Request {
-        int       mode = 0;                    ///< PlayModeをintで受ける（enum依存を避ける）
-        QString   startSfen;                   ///< "startpos ..." or "<sfen> [b|w] ..."
-        bool      bottomIsP1 = true;           ///< 手前が先手か
-        QWidget*  startDialog = nullptr;       ///< 持ち時間UI（型不問、objectName/property参照）
-        ShogiClock* clock = nullptr;           ///< 時計への参照（任意）
-        bool      skipCleanup = false;         ///< trueならクリーンアップをスキップ（呼び出し済みの場合）
+        int              mode = 0;           ///< PlayModeをintで受ける（enum依存を避ける）
+        QString          startSfen;          ///< "startpos ..." or "<sfen> [b|w] ..."
+        bool             bottomIsP1 = true;  ///< 手前が先手か
+        StartGameDialogData dialogData;      ///< ダイアログから抽出した持ち時間等の設定
+        ShogiClock*      clock = nullptr;    ///< 時計への参照（任意）
+        bool             skipCleanup = false;///< trueならクリーンアップをスキップ（呼び出し済みの場合）
     };
 
     /// initializeGame等の段階実行APIに渡すコンテキスト
@@ -80,7 +80,7 @@ public:
         ShogiView*             view = nullptr;               ///< 盤面ビュー
         ShogiGameController*   gc = nullptr;                 ///< ゲームコントローラ
         ShogiClock*            clock = nullptr;              ///< 時計
-        QDialog*               startDlg = nullptr;           ///< 対局開始ダイアログ
+        StartGameDialogData    dialogData;                   ///< 対局開始ダイアログから抽出したデータ
         QString*               startSfenStr = nullptr;       ///< 開始SFEN文字列への参照
         QString*               currentSfenStr = nullptr;     ///< 現在SFEN文字列への参照
 

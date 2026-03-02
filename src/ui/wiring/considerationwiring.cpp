@@ -89,7 +89,10 @@ void ConsiderationWiring::displayConsiderationDialog()
     }
 
     if (m_dialogCoordinator) {
-        m_dialogCoordinator->setConsiderationTabManager(m_considerationTabManager);
+        DialogCoordinator::Deps dcDeps;
+        dcDeps.matchCoordinator = m_match;
+        dcDeps.considerationTabManager = m_considerationTabManager;
+        m_dialogCoordinator->updateDeps(dcDeps);
         // 検討開始前にモードを設定（onSetEngineNamesで検討タブにエンジン名を設定するため）
         const PlayMode previousMode = *m_playMode;
         *m_playMode = PlayMode::ConsiderationMode;
@@ -208,7 +211,7 @@ void ConsiderationWiring::onShowArrowsChanged(bool checked)
 }
 
 bool ConsiderationWiring::updatePositionIfNeeded(int row, const QString& newPosition,
-                                                  const QVector<ShogiMove>* gameMoves,
+                                                  const QList<ShogiMove>* gameMoves,
                                                   KifuRecordListModel* kifuRecordModel)
 {
     ensureUIController();

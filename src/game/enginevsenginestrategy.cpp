@@ -28,7 +28,7 @@ QStringList* EngineVsEngineStrategy::sfenRecordForEvE()
     return m_ctx.sfenHistory() ? m_ctx.sfenHistory() : &m_eveSfenRecord;
 }
 
-QVector<ShogiMove>& EngineVsEngineStrategy::gameMovesForEvE()
+QList<ShogiMove>& EngineVsEngineStrategy::gameMovesForEvE()
 {
     return m_ctx.sfenHistory() ? m_ctx.gameMovesDirect() : m_eveGameMoves;
 }

@@ -4,7 +4,7 @@
 /// @file kifuloadcoordinatorfactory.h
 /// @brief KifuLoadCoordinator の生成・配線ロジックを担うファクトリ
 
-#include <QVector>
+#include <QList>
 #include <QStringList>
 
 struct ShogiMove;
@@ -37,7 +37,7 @@ public:
     /// ファクトリメソッドの入力パラメータ
     struct Params {
         // --- KifuLoadCoordinator コンストラクタ引数（ポインタ経由で参照渡し） ---
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         QStringList* positionStrList = nullptr;
         int* activePly = nullptr;
         int* currentSelectedPly = nullptr;

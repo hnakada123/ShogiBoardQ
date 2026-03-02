@@ -64,7 +64,7 @@ public:
         TimeDisplayPresenter* timePresenter = nullptr;
         BoardInteractionController* boardController = nullptr;
         KifuRecordListModel* kifuRecordModel = nullptr;
-        QVector<ShogiMove>* gameMoves = nullptr;
+        QList<ShogiMove>* gameMoves = nullptr;
         QStringList* positionStrList = nullptr;
         int* currentMoveIndex = nullptr;
 

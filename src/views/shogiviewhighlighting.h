@@ -10,7 +10,7 @@
 #include <QHash>
 #include <QList>
 #include <QPixmap>
-#include <QVector>
+#include <QList>
 
 class QPainter;
 class QLabel;
@@ -34,7 +34,7 @@ public:
     int highlightCount() const { return static_cast<int>(m_highlights.size()); }
 
     // ──────────────── 矢印管理 ────────────────
-    void setArrows(const QVector<ShogiView::Arrow>& arrows);
+    void setArrows(const QList<ShogiView::Arrow>& arrows);
     void clearArrows();
     void clearDropPieceCache();
 
@@ -68,7 +68,7 @@ private:
 
     // ハイライト/矢印データ
     QList<ShogiView::Highlight*> m_highlights;
-    QVector<ShogiView::Arrow> m_arrows;
+    QList<ShogiView::Arrow> m_arrows;
 
     // 駒打ち矢印の駒画像キャッシュ（キー: 駒文字+サイズ）
     mutable QHash<quint64, QPixmap> m_arrowDropPieceCache;

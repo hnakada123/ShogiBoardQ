@@ -7,7 +7,7 @@
 
 #include <QObject>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 #include <QPoint>
 
 class ShogiGameController;
@@ -24,7 +24,7 @@ public:
         ShogiView* view = nullptr;
         BoardInteractionController* bic = nullptr;
         const QStringList* sfenRecord = nullptr;        // 参照（外部所有）
-        const QVector<ShogiMove>* gameMoves = nullptr;  // 参照（外部所有）
+        const QList<ShogiMove>* gameMoves = nullptr;  // 参照（外部所有）
     };
 
     explicit BoardSyncPresenter(const Deps& deps, QObject* parent=nullptr);
@@ -58,7 +58,7 @@ private:
     ShogiView* m_view;
     BoardInteractionController* m_bic;
     const QStringList* m_sfenHistory;
-    const QVector<ShogiMove>* m_gameMoves;
+    const QList<ShogiMove>* m_gameMoves;
 };
 
 #endif // BOARDSYNCPRESENTER_H

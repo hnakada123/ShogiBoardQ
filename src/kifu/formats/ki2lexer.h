@@ -8,7 +8,7 @@
 #include <QRegularExpression>
 #include <QString>
 #include <QStringList>
-#include <QVector>
+#include <QList>
 
 #include "shogitypes.h"
 
@@ -71,13 +71,13 @@ bool canPieceMoveTo(Piece pieceUpper, bool isPromoted,
                     bool blackToMove);
 
 /// 移動先に到達可能な候補駒を盤面から収集
-QVector<Candidate> collectCandidates(Piece pieceUpper, bool moveIsPromoted,
+QList<Candidate> collectCandidates(Piece pieceUpper, bool moveIsPromoted,
                                      int toFile, int toRank,
                                      bool blackToMove,
                                      const QString boardState[9][9]);
 
 /// 右/左/上/引/寄/直 の修飾語で候補を絞り込む
-QVector<Candidate> filterByDirection(const QVector<Candidate>& candidates,
+QList<Candidate> filterByDirection(const QList<Candidate>& candidates,
                                      const QString& modifier,
                                      bool blackToMove,
                                      int toFile, int toRank);

@@ -216,7 +216,7 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
     }
 
     // フェーズ3: 変化ブロックの収集と解析
-    QVector<KifVariation> vars;
+    QList<KifVariation> vars;
     int i = 0;
 
     while (i < lines.size()) {
@@ -266,7 +266,7 @@ void KifToSfenConverter::extractMainLine(const QString& kifPath,
     qCDebug(lcKifu).noquote() << "mainline sfenList built: size=" << out.mainline.sfenList.size();
 }
 
-QString KifToSfenConverter::findBranchBaseSfen(const QVector<KifVariation>& vars,
+QString KifToSfenConverter::findBranchBaseSfen(const QList<KifVariation>& vars,
                                                 const KifLine& mainLine,
                                                 int branchPointPly)
 {

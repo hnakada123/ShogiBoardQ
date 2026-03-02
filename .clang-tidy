@@ -19,14 +19,21 @@
 #   bugprone-easily-swappable-parameters: ノイズが多すぎる
 #   bugprone-implicit-widening-of-multiplication-result: Qt API 境界で頻出
 #   performance-enum-size               : enum の ABI 変更リスクがある
+#   cppcoreguidelines-avoid-magic-numbers: readability-magic-numbers と重複
+#   cppcoreguidelines-non-private-member-variables-in-classes: Qt 構造体パターンと競合
+#   cppcoreguidelines-pro-type-reinterpret-cast: Qt ペイント API で必要
+#   cppcoreguidelines-pro-bounds-pointer-arithmetic: Qt API 境界で頻出
 
 Checks: >
   -*,
   clang-diagnostic-unused-*,
   misc-unused-*,
   clang-analyzer-deadcode.*,
+  clang-analyzer-cplusplus.*,
+  clang-analyzer-security.*,
   readability-redundant-*,
   -readability-redundant-access-specifiers,
+  readability-container-size-empty,
   modernize-*,
   -modernize-use-trailing-return-type,
   -modernize-avoid-c-arrays,
@@ -42,9 +49,22 @@ Checks: >
   -performance-enum-size,
   bugprone-*,
   -bugprone-easily-swappable-parameters,
-  -bugprone-implicit-widening-of-multiplication-result
+  -bugprone-implicit-widening-of-multiplication-result,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-prefer-member-initializer,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-non-private-member-variables-in-classes,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic
 
-WarningsAsErrors: ''
+# 確認済み（0警告）のチェックのみ WarningsAsErrors に設定する。
+# 既存の readability-redundant-member-init (143件) 等はまだ対応中のため除外。
+WarningsAsErrors: >
+  clang-analyzer-cplusplus.*,
+  clang-analyzer-security.*,
+  cppcoreguidelines-slicing,
+  cppcoreguidelines-prefer-member-initializer,
+  readability-container-size-empty
 
 HeaderFilterRegex: 'src/.*'
 

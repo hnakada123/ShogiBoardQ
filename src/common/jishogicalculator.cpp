@@ -9,7 +9,7 @@
 // ============================================================================
 
 JishogiCalculator::JishogiResult JishogiCalculator::calculate(
-    const QVector<Piece>& boardData,
+    const QList<Piece>& boardData,
     const QMap<Piece, int>& pieceStand)
 {
     // 処理フロー:

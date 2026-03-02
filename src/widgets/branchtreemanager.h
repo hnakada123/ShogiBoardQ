@@ -5,7 +5,7 @@
 /// @brief EngineAnalysisTab から分離した分岐ツリー管理クラスの定義
 
 #include <QObject>
-#include <QVector>
+#include <QList>
 #include <QList>
 #include <QStringList>
 #include <QMap>
@@ -66,7 +66,7 @@ public:
     void setView(QGraphicsView* view);
 
     // --- 公開API ---
-    void setBranchTreeRows(const QVector<ResolvedRowLite>& rows);
+    void setBranchTreeRows(const QList<ResolvedRowLite>& rows);
     void highlightBranchTreeAt(int row, int ply, bool centerOn = false);
     int lastHighlightedRow() const { return m_lastHighlightedRow; }
     int lastHighlightedPly() const { return m_lastHighlightedPly; }
@@ -101,7 +101,7 @@ private:
     QWidget*        m_branchTreeViewport = nullptr;
 
     // --- データ ---
-    QVector<ResolvedRowLite> m_rows;
+    QList<ResolvedRowLite> m_rows;
     QMap<QPair<int,int>, QGraphicsPathItem*> m_nodeIndex;
     QGraphicsPathItem* m_prevSelected = nullptr;
     bool m_branchTreeClickEnabled = true;
@@ -109,8 +109,8 @@ private:
     // --- グラフ ---
     QHash<QPair<int,int>, int> m_nodeIdByRowPly;
     QHash<int, BranchGraphNode> m_nodesById;
-    QHash<int, QVector<int>>    m_prevIds;
-    QHash<int, QVector<int>>    m_nextIds;
+    QHash<int, QList<int>>    m_prevIds;
+    QHash<int, QList<int>>    m_nextIds;
     QHash<int, int>             m_rowEntryNode;
     int m_nextNodeId = 1;
     int m_lastHighlightedRow = -1;

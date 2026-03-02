@@ -179,7 +179,7 @@ public:
      */
     qint64 getByoyomiMs() const;
 
-private Q_SLOTS:
+private slots:
     /**
      * @brief ShogiClockからのタイムアウト通知（先手）
      */

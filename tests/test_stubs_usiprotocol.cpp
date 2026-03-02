@@ -45,7 +45,7 @@ ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 void ThinkingInfoPresenter::setGameController(ShogiGameController*) {}
 void ThinkingInfoPresenter::setAnalysisMode(bool) {}
 void ThinkingInfoPresenter::setPreviousMove(int, int) {}
-void ThinkingInfoPresenter::setClonedBoardData(const QVector<QChar>&) {}
+void ThinkingInfoPresenter::setClonedBoardData(const QList<QChar>&) {}
 void ThinkingInfoPresenter::setPonderEnabled(bool) {}
 void ThinkingInfoPresenter::setBaseSfen(const QString&) {}
 QString ThinkingInfoPresenter::baseSfen() const { return {}; }

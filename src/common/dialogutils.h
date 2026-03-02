@@ -1,4 +1,5 @@
-#pragma once
+#ifndef DIALOGUTILS_H
+#define DIALOGUTILS_H
 
 #include <QSize>
 #include <QWidget>
@@ -18,3 +19,5 @@ void saveDialogSize(const QWidget* dialog, const std::function<void(const QSize&
 void applyFontToAllChildren(QWidget* widget, const QFont& font);
 
 } // namespace DialogUtils
+
+#endif // DIALOGUTILS_H

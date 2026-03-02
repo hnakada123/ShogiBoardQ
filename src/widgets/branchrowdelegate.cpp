@@ -7,6 +7,10 @@
 #include <QStyleOptionViewItem>
 #include <QStyle>
 
+namespace {
+const QColor kBranchHighlightColor(255, 220, 160);
+} // namespace
+
 BranchRowDelegate::BranchRowDelegate(QObject* parent)
     : QStyledItemDelegate(parent)
 {
@@ -24,7 +28,7 @@ void BranchRowDelegate::paint(QPainter* painter,
     // 選択時のハイライトと衝突しないように、未選択時のみオレンジ背景
     if (isBranchable && !(opt.state & QStyle::State_Selected)) {
         painter->save();
-        painter->fillRect(opt.rect, QColor(255, 220, 160));
+        painter->fillRect(opt.rect, kBranchHighlightColor);
         painter->restore();
     }
 

@@ -24,7 +24,7 @@ SennichiteDetector::Result SennichiteDetector::check(const QStringList& sfenReco
     if (currentKey.isEmpty()) return Result::None;
 
     // 同一局面キーの出現インデックスを収集
-    QVector<int> occurrences;
+    QList<int> occurrences;
     for (int i = 0; i < sfenRecord.size(); ++i) {
         if (positionKey(sfenRecord.at(i)) == currentKey) {
             occurrences.append(i);

@@ -90,7 +90,7 @@ private slots:
             QStringLiteral("3c3d"),
             QStringLiteral("2g2f")
         };
-        QVector<ShogiMove> gameMoves = SfenPositionTracer::buildGameMoves(kHirateSfen, usiMoves);
+        QList<ShogiMove> gameMoves = SfenPositionTracer::buildGameMoves(kHirateSfen, usiMoves);
         QCOMPARE(gameMoves.size(), 3);
 
         // First move: 7g7f → from(6,6) to(6,5) in 0-indexed

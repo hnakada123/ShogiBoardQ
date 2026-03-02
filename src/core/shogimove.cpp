@@ -16,15 +16,6 @@ bool ShogiMove::operator==(const ShogiMove& other) const {
             && isPromotion == other.isPromotion;
 }
 
-std::ostream& operator<<(std::ostream& os, const ShogiMove& move) {
-    os << "From: (" << move.fromSquare.x() + 1 << ", " << move.fromSquare.y() + 1 << ')';
-    os << " To: (" << move.toSquare.x() + 1 << ", " << move.toSquare.y() + 1 << ')';
-    os << " Moving Piece: " << static_cast<char>(move.movingPiece);
-    os << " Captured Piece: " << static_cast<char>(move.capturedPiece);
-    os << " Promotion: " << (move.isPromotion ? "true" : "false");
-    return os;
-}
-
 QDebug operator<<(QDebug dbg, const ShogiMove& move) {
     QDebugStateSaver saver(dbg);
     auto disp = [](int v) -> int {

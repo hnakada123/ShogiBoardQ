@@ -160,7 +160,7 @@ void GameRecordModel::setBookmark(int ply, const QString& bookmark)
         if (m_navState != nullptr) {
             lineIndex = m_navState->currentLineIndex();
         }
-        QVector<BranchLine> lines = m_branchTree->allLines();
+        QList<BranchLine> lines = m_branchTree->allLines();
         if (lineIndex >= 0 && lineIndex < lines.size()) {
             const BranchLine& line = lines.at(lineIndex);
             if (ply >= 0 && ply < line.nodes.size()) {
@@ -228,7 +228,7 @@ void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
         if (m_navState != nullptr) {
             lineIndex = m_navState->currentLineIndex();
         }
-        QVector<BranchLine> lines = m_branchTree->allLines();
+        QList<BranchLine> lines = m_branchTree->allLines();
         if (lineIndex >= 0 && lineIndex < lines.size()) {
             const BranchLine& line = lines.at(lineIndex);
             if (ply >= 0 && ply < line.nodes.size()) {

@@ -82,7 +82,7 @@ int KifuBranchNode::lineIndex() const
     // ルートから辿って、最初の分岐点での子インデックスを返す
     // 本譜（常に最初の子）を辿っていれば0、分岐があれば1以降
 
-    QVector<const KifuBranchNode*> path;
+    QList<const KifuBranchNode*> path;
     const KifuBranchNode* node = this;
     while (node != nullptr) {
         path.prepend(node);
@@ -106,9 +106,9 @@ int KifuBranchNode::lineIndex() const
     return 0;
 }
 
-QVector<KifuBranchNode*> KifuBranchNode::siblings() const
+QList<KifuBranchNode*> KifuBranchNode::siblings() const
 {
-    QVector<KifuBranchNode*> result;
+    QList<KifuBranchNode*> result;
     if (m_parent == nullptr) {
         return result;
     }

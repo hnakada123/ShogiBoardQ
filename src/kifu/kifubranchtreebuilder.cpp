@@ -146,7 +146,7 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
 void KifuBranchTreeBuilder::addLineToTree(KifuBranchTree* tree,
                                           const QList<KifDisplayItem>& disp,
                                           const QStringList& sfens,
-                                          const QVector<ShogiMove>& moves,
+                                          const QList<ShogiMove>& moves,
                                           int startPly,
                                           int parentRow)
 {

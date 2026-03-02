@@ -5,7 +5,7 @@
 /// @brief 分岐候補欄のリストモデルクラスの定義
 
 #include <QVariant>
-#include <QVector>
+#include <QList>
 #include <QRectF>
 #include "abstractlistmodel.h"
 #include "kifubranchdisplay.h"
@@ -104,7 +104,7 @@ private:
         QString label;                      ///< 表示ラベル
         bool isBackToMain = false;          ///< 「本譜へ戻る」行フラグ
     };
-    QVector<RowItem> m_rows;                ///< 表示行データ
+    QList<RowItem> m_rows;                ///< 表示行データ
     bool m_hasBackToMainRow = false;        ///< 末尾に「本譜へ戻る」を表示するか
     int m_currentHighlightRow = 0;          ///< 現在ハイライトする行
 
@@ -125,13 +125,13 @@ private:
         int row = 0;                        ///< 表示行
         QRectF rect;                        ///< 画面上の矩形
         int prevId = -1;                    ///< 直前ノードID
-        QVector<int> nextIds;               ///< 直後ノードIDリスト（分岐なら複数）
+        QList<int> nextIds;               ///< 直後ノードIDリスト（分岐なら複数）
     };
 
     int m_activeNodeId = -1;                ///< 現在アクティブなノードID
     int m_mainVid = 0;                      ///< 本譜の変化番号
 
-    QVector<Node> m_nodes;                  ///< ノード配列（nodeId = index）
+    QList<Node> m_nodes;                  ///< ノード配列（nodeId = index）
     QHash<quint64, int> m_key2node;         ///< (vid<<32)|ply → nodeId の検索マップ
 
 private:

@@ -7,7 +7,7 @@
 #include <QObject>
 #include <QProcess>
 #include <QSettings>
-#include <QVector>
+#include <QList>
 #include <QMap>
 #include <QString>
 #include <QStringList>
@@ -81,7 +81,7 @@ bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
 void Usi::setLogModel(UsiCommLogModel*) {}
 void Usi::prepareBoardDataForAnalysis() {}
-void Usi::setClonedBoardData(const QVector<QChar>&) {}
+void Usi::setClonedBoardData(const QList<QChar>&) {}
 void Usi::setBaseSfen(const QString&) {}
 void Usi::flushThinkingInfoBuffer() {}
 void Usi::requestClearThinkingInfo() {}
@@ -205,7 +205,7 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
 {
     m_boardData.fill(Piece::None, ranks * files);
 }
-const QVector<Piece>& ShogiBoard::boardData() const { return m_boardData; }
+const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
 std::optional<SfenComponents> ShogiBoard::parseSfen(const QString&) { return std::nullopt; }
 void ShogiBoard::setSfen(const QString&)
 {
@@ -312,7 +312,7 @@ ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
 void ThinkingInfoPresenter::setGameController(ShogiGameController*) {}
 void ThinkingInfoPresenter::setAnalysisMode(bool) {}
 void ThinkingInfoPresenter::setPreviousMove(int, int) {}
-void ThinkingInfoPresenter::setClonedBoardData(const QVector<QChar>&) {}
+void ThinkingInfoPresenter::setClonedBoardData(const QList<QChar>&) {}
 void ThinkingInfoPresenter::setPonderEnabled(bool) {}
 void ThinkingInfoPresenter::setBaseSfen(const QString&) {}
 QString ThinkingInfoPresenter::baseSfen() const { return {}; }
