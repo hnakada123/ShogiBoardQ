@@ -14,7 +14,6 @@
 class QWidget;
 class ShogiClock;
 class ShogiGameController;
-class ShogiView;
 class KifuLoadCoordinator;
 
 /**
@@ -41,7 +40,14 @@ public:
         MatchCoordinator*     match  = nullptr;  ///< 対局進行の司令塔（必須）
         ShogiClock*           clock  = nullptr;  ///< 時計（任意、時間適用リクエストを出すだけ）
         ShogiGameController*  gc     = nullptr;  ///< ゲームコントローラ（任意、開始前の状態同期用）
-        ShogiView*            view   = nullptr;  ///< 盤面ビュー（任意、開始前の表示更新用）
+    };
+
+    /// 盤面ビュー操作コールバック群
+    struct ViewHooks {
+        std::function<void()> initializeToFlatStartingPosition;               ///< 平手初期局面を設定
+        std::function<void()> removeHighlightAllData;                         ///< ハイライト全消去
+        std::function<void(ShogiGameController*, const QString&)> applyResumePosition; ///< 再開SFEN適用
+        std::function<void(const QString&, const QString&, bool)> addKifuHeaderItem;   ///< 棋譜ヘッダ行追加（move, time, prepend）
     };
 
     /// 片方の対局者の時間設定（ミリ秒単位）
@@ -77,7 +83,6 @@ public:
 
     /// initializeGame等の段階実行APIに渡すコンテキスト
     struct Ctx {
-        ShogiView*             view = nullptr;               ///< 盤面ビュー
         ShogiGameController*   gc = nullptr;                 ///< ゲームコントローラ
         ShogiClock*            clock = nullptr;              ///< 時計
         StartGameDialogData    dialogData;                   ///< 対局開始ダイアログから抽出したデータ
@@ -136,21 +141,11 @@ public:
         const QString& startSfen
         );
 
-    /// PlayModeに応じて盤面ビューに対局者名を設定する
-    void applyPlayersNamesForMode(ShogiView* view,
-                                  PlayMode mode,
-                                  const QString& human1,
-                                  const QString& human2,
-                                  const QString& engine1,
-                                  const QString& engine2) const;
-
-    /// 再開SFENが指定されていれば盤へ適用し、即時描画まで行う
-    static void applyResumePositionIfAny(ShogiGameController* gc,
-                                         ShogiView* view,
-                                         const QString& resumeSfen);
-
     /// MatchCoordinator ポインタを外部（MCW）からセットする
     void setMatch(MatchCoordinator* match);
+
+    /// 盤面ビュー操作コールバックを設定する
+    void setViewHooks(const ViewHooks& hooks);
 
 signals:
     // --- 開始前フック ---
@@ -203,7 +198,7 @@ private:
     QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、再生成追跡）
     ShogiClock*          m_clock = nullptr;  ///< 将棋時計（非所有）
     ShogiGameController* m_gc    = nullptr;  ///< ゲームコントローラ（非所有）
-    ShogiView*           m_view  = nullptr;  ///< 盤面ビュー（非所有）
+    ViewHooks            m_viewHooks;        ///< 盤面ビュー操作コールバック群
 };
 
 Q_DECLARE_METATYPE(GameStartCoordinator::TimeControl)

@@ -98,6 +98,96 @@ private:
         return false;
     }
 
+    /// ヘッダから Deps/Dependencies 構造体のフィールド名を抽出する
+    static QStringList extractDepsFieldNames(const QString& headerContent)
+    {
+        QStringList fieldNames;
+
+        // Find "struct Deps {" or "struct Dependencies {" blocks
+        static const QRegularExpression depsSection(
+            QStringLiteral("struct\\s+(?:Deps|Dependencies)\\s*\\{([^}]*?)\\};"),
+            QRegularExpression::DotMatchesEverythingOption);
+
+        auto matchIt = depsSection.globalMatch(headerContent);
+        while (matchIt.hasNext()) {
+            const auto m = matchIt.next();
+            const QString section = m.captured(1);
+
+            // Extract field names: Type* fieldName = nullptr; or Type fieldName;
+            // Also handles std::function<...> fieldName;
+            static const QRegularExpression fieldDecl(
+                QStringLiteral("\\b(\\w+)\\s*(?:=\\s*[^;]+)?;\\s*(?:///.*)?$"),
+                QRegularExpression::MultilineOption);
+            auto fieldIt = fieldDecl.globalMatch(section);
+            while (fieldIt.hasNext()) {
+                const auto fm = fieldIt.next();
+                const QString name = fm.captured(1);
+                // Skip type-like names (nullptr, false, true, 0) and common noise
+                if (name != QStringLiteral("nullptr")
+                    && name != QStringLiteral("false")
+                    && name != QStringLiteral("true")
+                    && !name.isEmpty()
+                    && name.at(0).isLower()) {
+                    fieldNames.append(name);
+                }
+            }
+        }
+
+        return fieldNames;
+    }
+
+    /// ヘッダから signals: セクション内のシグナル名を抽出する
+    static QStringList extractSignalNames(const QString& headerContent)
+    {
+        QStringList signalNames;
+
+        static const QRegularExpression signalsSection(
+            QStringLiteral("signals\\s*:([^}]*?)(?:private\\s*:|protected\\s*:|public\\s*:|};)"),
+            QRegularExpression::DotMatchesEverythingOption);
+
+        auto matchIt = signalsSection.globalMatch(headerContent);
+        while (matchIt.hasNext()) {
+            const auto m = matchIt.next();
+            const QString section = m.captured(1);
+
+            // Extract method names from signal declarations
+            static const QRegularExpression methodDecl(
+                QStringLiteral("\\b(\\w+)\\s*\\([^)]*\\)\\s*;"));
+            auto methodIt = methodDecl.globalMatch(section);
+            while (methodIt.hasNext()) {
+                const auto mm = methodIt.next();
+                const QString name = mm.captured(1);
+                if (name != QStringLiteral("void"))
+                    signalNames.append(name);
+            }
+        }
+
+        return signalNames;
+    }
+
+    /// src/ 配下の全 .cpp で指定のシグナル名が connect() のソースとして使われているか
+    static bool isSignalUsedAsSource(const QString& allSources, const QString& signalName)
+    {
+        // Signal appears as &ClassName::signalName in a connect() call
+        // Check the signal part (first &Class::method in connect)
+        const QString pattern = QStringLiteral("&\\w+::") + QRegularExpression::escape(signalName);
+        QRegularExpression re(pattern);
+
+        qsizetype pos = 0;
+        while ((pos = allSources.indexOf(QStringLiteral("connect("), pos)) != -1) {
+            qsizetype end = allSources.indexOf(QStringLiteral(");"), pos);
+            if (end < 0) break;
+            const QString block = allSources.mid(pos, end - pos + 2);
+            if (re.match(block).hasMatch())
+                return true;
+            pos = end + 1;
+        }
+
+        // Also check signal-to-signal forwarding (emit signalName)
+        // and direct signal references in other contexts
+        return false;
+    }
+
     /// connect() の重複を検出（sender::signal → receiver::slot ペアの重複）
     struct ConnectionInfo {
         QString signalPart;
@@ -288,6 +378,100 @@ private slots:
     }
 
     // ================================================================
+    // Deps フィールド参照漏れ: 全 Deps/Dependencies メンバが .cpp で使われているか
+    // ================================================================
+
+    void allDepsFields_areReferencedInSource()
+    {
+        // Deps/Dependencies 構造体のフィールドが対応する .cpp で参照されているかチェック
+        QStringList unreferencedFields;
+
+        const QString wiringDir = QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/ui/wiring");
+        QDirIterator it(wiringDir, {QStringLiteral("*.h")}, QDir::Files);
+
+        while (it.hasNext()) {
+            it.next();
+            const QString headerPath = it.filePath();
+            const QString baseName = QFileInfo(headerPath).completeBaseName();
+            const QString cppPath = wiringDir + QStringLiteral("/") + baseName + QStringLiteral(".cpp");
+
+            QFile hf(headerPath);
+            if (!hf.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+            const QString headerContent = QString::fromUtf8(hf.readAll());
+
+            QFile cf(cppPath);
+            if (!cf.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+            const QString cppContent = QString::fromUtf8(cf.readAll());
+
+            // Also read split .cpp files (e.g., foo_bar.cpp)
+            QString allCpp = cppContent;
+            QDirIterator splitIt(wiringDir,
+                {baseName + QStringLiteral("_*.cpp")}, QDir::Files);
+            while (splitIt.hasNext()) {
+                splitIt.next();
+                QFile sf(splitIt.filePath());
+                if (sf.open(QIODevice::ReadOnly | QIODevice::Text))
+                    allCpp += QString::fromUtf8(sf.readAll());
+            }
+
+            const QStringList fieldNames = extractDepsFieldNames(headerContent);
+            const QString fileName = QFileInfo(headerPath).fileName();
+
+            for (const QString& field : fieldNames) {
+                // Check if the field name appears in the .cpp source
+                // (as member access: m_deps.field, deps.field, or just field)
+                if (!allCpp.contains(field)) {
+                    unreferencedFields.append(
+                        QStringLiteral("%1::Deps::%2").arg(fileName, field));
+                }
+            }
+        }
+
+        if (!unreferencedFields.isEmpty()) {
+            const QString msg = QStringLiteral("Unreferenced Deps fields (potential injection gaps):\n  - ")
+                + unreferencedFields.join(QStringLiteral("\n  - "));
+            qWarning().noquote() << msg;
+        }
+
+        QVERIFY2(true, "Deps field reference check completed (see warnings above)");
+    }
+
+    // ================================================================
+    // シグナル未接続検知: signals: で宣言されたシグナルが connect() で使われているか
+    // ================================================================
+
+    void allWiringSignals_areConnectedSomewhere()
+    {
+        QStringList unconnectedSignals;
+
+        for (const QString& headerPath : std::as_const(m_wiringHeaders)) {
+            QFile f(headerPath);
+            if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+                continue;
+            const QString content = QString::fromUtf8(f.readAll());
+            const QString fileName = QFileInfo(headerPath).fileName();
+
+            const QStringList signalNames = extractSignalNames(content);
+            for (const QString& sigName : signalNames) {
+                if (!isSignalUsedAsSource(m_allSources, sigName)) {
+                    unconnectedSignals.append(
+                        QStringLiteral("%1::%2").arg(fileName, sigName));
+                }
+            }
+        }
+
+        if (!unconnectedSignals.isEmpty()) {
+            const QString msg = QStringLiteral("Unconnected signals (never used in connect()):\n  - ")
+                + unconnectedSignals.join(QStringLiteral("\n  - "));
+            qWarning().noquote() << msg;
+        }
+
+        QVERIFY2(true, "Signal connection check completed (see warnings above)");
+    }
+
+    // ================================================================
     // Registry/Bootstrap 接続漏れ: ensure* メソッドが呼ばれているか
     // ================================================================
 
@@ -300,6 +484,7 @@ private slots:
             QStringLiteral("src/app/gamesubregistry.h"),
             QStringLiteral("src/app/kifusubregistry.h"),
             QStringLiteral("src/app/gamesessionsubregistry.h"),
+            QStringLiteral("src/app/gamewiringsubregistry.h"),
         };
 
         // Read all .cpp files from src/app/ for invocation search

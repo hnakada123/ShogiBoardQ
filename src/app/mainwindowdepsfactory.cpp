@@ -11,14 +11,14 @@ DialogCoordinatorWiring::Deps MainWindowDepsFactory::createDialogCoordinatorDeps
 
     // 生成に必要な依存
     deps.parentWidget = refs.ui.parentWidget;
-    deps.match = refs.match;
-    deps.gameController = refs.gameController;
+    deps.match = refs.gameService.match;
+    deps.gameController = refs.gameService.gameController;
 
     // 複数コンテキストで共有
     deps.sfenRecord = refs.kifu.sfenRecord;
     deps.currentMoveIndex = refs.state.currentMoveIndex;
     deps.gameUsiMoves = refs.kifu.gameUsiMoves;
-    deps.kifuLoadCoordinator = refs.kifuLoadCoordinator;
+    deps.kifuLoadCoordinator = refs.kifuService.kifuLoadCoordinator;
     deps.startSfenStr = refs.state.startSfenStr;
 
     // ConsiderationContext 固有
@@ -35,9 +35,9 @@ DialogCoordinatorWiring::Deps MainWindowDepsFactory::createDialogCoordinatorDeps
     // KifuAnalysisContext 固有
     deps.moveRecords = refs.kifu.moveRecords;
     deps.activePly = refs.kifu.activePly;
-    deps.gameInfoController = refs.gameInfoController;
+    deps.gameInfoController = refs.analysis.gameInfoController;
     deps.evalChart = refs.ui.evalChart;
-    deps.presenter = refs.analysisPresenter;
+    deps.presenter = refs.analysis.analysisPresenter;
     deps.getBoardFlipped = callbacks.getBoardFlipped;
 
     // 遅延初期化コールバック
@@ -90,17 +90,17 @@ RecordNavigationWiring::Deps MainWindowDepsFactory::createRecordNavigationDeps(
     deps.branchTree = refs.branchNav.branchTree;
     deps.displayCoordinator = refs.branchNav.displayCoordinator;
     deps.kifuRecordModel = refs.models.kifuRecordModel;
-    deps.shogiView = refs.shogiView;
-    deps.evalGraphController = refs.evalGraphController;
+    deps.shogiView = refs.gameService.shogiView;
+    deps.evalGraphController = refs.analysis.evalGraphController;
     deps.sfenRecord = refs.kifu.sfenRecord;
     deps.activePly = refs.kifu.activePly;
     deps.currentSelectedPly = refs.kifu.currentSelectedPly;
     deps.currentMoveIndex = refs.state.currentMoveIndex;
     deps.currentSfenStr = refs.state.currentSfenStr;
     deps.skipBoardSyncForBranchNav = refs.state.skipBoardSyncForBranchNav;
-    deps.csaGameCoordinator = refs.csaGameCoordinator;
+    deps.csaGameCoordinator = refs.gameService.csaGameCoordinator;
     deps.playMode = refs.state.playMode;
-    deps.match = refs.match;
+    deps.match = refs.gameService.match;
 
     return deps;
 }

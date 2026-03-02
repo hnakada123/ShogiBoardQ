@@ -87,7 +87,13 @@ TsumeshogiGeneratorDialog::~TsumeshogiGeneratorDialog()
 void TsumeshogiGeneratorDialog::setupUi()
 {
     auto* mainLayout = new QVBoxLayout(this);
+    buildFormSection(mainLayout);
+    buildResultsSection(mainLayout);
+    connectDialogSignals();
+}
 
+void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
+{
     // --- エンジン設定セクション ---
     auto* engineLabel = new QLabel(tr("エンジン設定"), this);
     engineLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
@@ -115,37 +121,31 @@ void TsumeshogiGeneratorDialog::setupUi()
     m_spinTargetMoves->setValue(3);
     m_spinTargetMoves->setSuffix(tr(" 手詰"));
     formLayout->addRow(tr("目標手数:"), m_spinTargetMoves);
-
     m_spinMaxAttack = new QSpinBox(this);
     m_spinMaxAttack->setRange(1, 10);
     m_spinMaxAttack->setValue(4);
     m_spinMaxAttack->setSuffix(tr(" 枚"));
     formLayout->addRow(tr("攻め駒上限:"), m_spinMaxAttack);
-
     m_spinMaxDefend = new QSpinBox(this);
     m_spinMaxDefend->setRange(0, 5);
     m_spinMaxDefend->setValue(1);
     m_spinMaxDefend->setSuffix(tr(" 枚"));
     formLayout->addRow(tr("守り駒上限:"), m_spinMaxDefend);
-
     m_spinAttackRange = new QSpinBox(this);
     m_spinAttackRange->setRange(1, 8);
     m_spinAttackRange->setValue(3);
     m_spinAttackRange->setSuffix(tr(" マス（玉中心）"));
     formLayout->addRow(tr("配置範囲:"), m_spinAttackRange);
-
     m_spinTimeout = new QSpinBox(this);
     m_spinTimeout->setRange(1, 300);
     m_spinTimeout->setValue(5);
     m_spinTimeout->setSuffix(tr(" 秒"));
     formLayout->addRow(tr("探索時間/局面:"), m_spinTimeout);
-
     m_spinMaxPositions = new QSpinBox(this);
     m_spinMaxPositions->setRange(0, 10000);
     m_spinMaxPositions->setValue(10);
     m_spinMaxPositions->setSpecialValueText(tr("無制限"));
     formLayout->addRow(tr("生成上限:"), m_spinMaxPositions);
-
     mainLayout->addLayout(formLayout);
 
     // --- 制御ボタン ---
@@ -164,7 +164,10 @@ void TsumeshogiGeneratorDialog::setupUi()
     mainLayout->addWidget(m_labelProgress);
     m_labelElapsed = new QLabel(tr("経過時間: 00:00:00"), this);
     mainLayout->addWidget(m_labelElapsed);
+}
 
+void TsumeshogiGeneratorDialog::buildResultsSection(QVBoxLayout* mainLayout)
+{
     // --- 結果テーブル ---
     auto* resultLabel = new QLabel(tr("結果一覧"), this);
     resultLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
@@ -191,37 +194,32 @@ void TsumeshogiGeneratorDialog::setupUi()
     m_btnFontDecrease->setText(QStringLiteral("A-"));
     m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
     bottomLayout->addWidget(m_btnFontDecrease);
-
     m_btnFontIncrease = new QToolButton(this);
     m_btnFontIncrease->setText(QStringLiteral("A+"));
     m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
     bottomLayout->addWidget(m_btnFontIncrease);
-
     m_btnRestoreDefaults = new QPushButton(tr("既定値に戻す"), this);
     m_btnRestoreDefaults->setStyleSheet(ButtonStyles::undoRedo());
     bottomLayout->addWidget(m_btnRestoreDefaults);
-
     bottomLayout->addStretch();
-
     m_btnSaveToFile = new QPushButton(tr("ファイル保存"), this);
     m_btnSaveToFile->setStyleSheet(ButtonStyles::fileOperation());
     bottomLayout->addWidget(m_btnSaveToFile);
-
     m_btnCopySelected = new QPushButton(tr("選択コピー"), this);
     m_btnCopySelected->setStyleSheet(ButtonStyles::editOperation());
     bottomLayout->addWidget(m_btnCopySelected);
-
     m_btnCopyAll = new QPushButton(tr("全コピー"), this);
     m_btnCopyAll->setStyleSheet(ButtonStyles::editOperation());
     bottomLayout->addWidget(m_btnCopyAll);
-
     m_btnClose = new QPushButton(tr("閉じる"), this);
     m_btnClose->setStyleSheet(ButtonStyles::secondaryNeutral());
     bottomLayout->addWidget(m_btnClose);
 
     mainLayout->addLayout(bottomLayout);
+}
 
-    // --- シグナル接続 ---
+void TsumeshogiGeneratorDialog::connectDialogSignals()
+{
     connect(m_btnStart, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStartClicked);
     connect(m_btnStop, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onStopClicked);
     connect(m_btnSaveToFile, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onSaveToFile);

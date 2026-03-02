@@ -60,6 +60,7 @@ public:
         std::function<void(int)> updateHighlightsForPly;                       ///< → UndoHooks::updateHighlightsForPly
         std::function<void()> updateTurnAndTimekeepingDisplay;                 ///< → UndoHooks::updateTurnAndTimekeepingDisplay
         std::function<bool(ShogiGameController::Player)> isHumanSide;          ///< → UndoHooks::isHumanSide
+        std::function<void(bool)> setMouseClickMode;                           ///< → UndoHooks::setMouseClickMode
     };
 
     /// @brief HookDeps から MC::Hooks を生成する（appendEvalP1/P2 と updateTurnDisplay は lambda ラップ）

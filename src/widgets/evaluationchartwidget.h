@@ -109,6 +109,12 @@ private slots:
 private:
     void updateLabelFonts();
 
+    // コンストラクタ分割メソッド
+    void setupAxes();
+    void setupChart();
+    void setupSeries();
+    void setupChartViewAndLayout();
+
     // ゼロライン
     void setupZeroLine();
     void updateZeroLine();

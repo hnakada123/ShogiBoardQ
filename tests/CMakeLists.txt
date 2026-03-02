@@ -20,6 +20,7 @@ set(TEST_STUBS
 
 # Common include directories for all tests
 set(TEST_INCLUDES
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${SRC}
     ${SRC}/core
     ${SRC}/game
@@ -195,6 +196,7 @@ add_shogi_test(tst_kifconverter
     ${TEST_STUBS}
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
+    ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
@@ -214,6 +216,7 @@ add_shogi_test(tst_ki2converter
     ${SRC}/kifu/formats/ki2lexer.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
+    ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
@@ -230,6 +233,7 @@ add_shogi_test(tst_csaconverter
     tst_csaconverter.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/formats/csalexer.cpp
+    ${SRC}/kifu/formats/csalexer_position.cpp
     ${SRC}/kifu/formats/csatosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/core/shogimove.cpp
@@ -341,6 +345,7 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
+    ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/kifucontentbuilder.cpp
 )
@@ -372,6 +377,7 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
+    ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/kifucontentbuilder.cpp
 )
@@ -398,6 +404,7 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
+    ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
@@ -458,6 +465,7 @@ add_shogi_test(tst_integration
     ${SRC}/navigation/kifunavigationcontroller_branch.cpp
     ${SRC}/kifu/formats/kiftosfenconverter.cpp
     ${SRC}/kifu/formats/kiflexer.cpp
+    ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
 )
 
@@ -722,7 +730,6 @@ add_shogi_test(tst_csaprotocol
 # ============================================================
 add_shogi_test(tst_settings_roundtrip
     tst_settings_roundtrip.cpp
-    test_stubs_settings.cpp
     ${SRC}/common/logcategories.cpp
     ${SETTINGS_SOURCES}
 )
@@ -792,6 +799,8 @@ add_shogi_test(tst_wiring_contracts
     tst_wiring_contracts.cpp
     test_stubs_wiring_contracts.cpp
     ${SRC}/ui/wiring/matchcoordinatorwiring.cpp
+    ${SRC}/widgets/kifudisplay.cpp
+    ${SRC}/models/kifurecordlistmodel.cpp
     ${SRC}/common/logcategories.cpp
 )
 

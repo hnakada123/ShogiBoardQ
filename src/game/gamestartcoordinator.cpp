@@ -5,11 +5,9 @@
 #include "gamestartoptionsbuilder.h"
 #include "logcategories.h"
 #include "kifurecordlistmodel.h"
-#include "shogiview.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
-#include "kifudisplay.h"
 #include "timecontrolutil.h"
 
 #include <QDebug>
@@ -26,7 +24,6 @@ GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     , m_match(d.match)
     , m_clock(d.clock)
     , m_gc(d.gc)
-    , m_view(d.view)
 {
     // MainWindow との queued 接続でも安全に受け渡せるように登録
     qRegisterMetaType<GameStartCoordinator::TimeControl>("GameStartCoordinator::TimeControl");
@@ -175,9 +172,9 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
                        << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
                        << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null");
 
-    if (!c.view || !m_match) {
+    if (!m_match) {
         qCWarning(lcGame).noquote() << "prepareDataCurrentPosition: missing deps:"
-                             << "view=" << (c.view != nullptr) << " match=" << (m_match != nullptr);
+                             << " match=" << (m_match != nullptr);
         return;
     }
 
@@ -206,14 +203,16 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     // --- 2) ベースSFENの適用 ---
     if (baseSfen == QLatin1String("startpos")) {
         qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: applying startpos";
-        c.view->initializeToFlatStartingPosition();
+        if (m_viewHooks.initializeToFlatStartingPosition)
+            m_viewHooks.initializeToFlatStartingPosition();
         if (c.startSfenStr && c.startSfenStr->isEmpty())
             *c.startSfenStr = QStringLiteral("startpos");
         if (c.currentSfenStr)
             *c.currentSfenStr = QStringLiteral("startpos");
     } else {
         qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: applying baseSfen=" << baseSfen.left(50);
-        GameStartOptionsBuilder::applyResumePositionIfAny(c.gc, c.view, baseSfen);
+        if (m_viewHooks.applyResumePosition)
+            m_viewHooks.applyResumePosition(c.gc, baseSfen);
 
         if (c.currentSfenStr) *c.currentSfenStr = baseSfen;
         if (c.startSfenStr   && c.startSfenStr->isEmpty())
@@ -224,7 +223,8 @@ void GameStartCoordinator::prepareDataCurrentPosition(const Ctx& c)
     m_match->clearGameOverState();
 
     // --- 4) ハイライトを確実に空へ ---
-    c.view->removeHighlightAllData();
+    if (m_viewHooks.removeHighlightAllData)
+        m_viewHooks.removeHighlightAllData();
 
     qCDebug(lcGame).noquote() << "prepareDataCurrentPosition: done."
                        << " FINAL c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
@@ -253,7 +253,7 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     if (c.currentSfenStr) *c.currentSfenStr = sfen;
 
     // 5) 棋譜欄に「=== 開始局面 ===」ヘッダを追加（重複防止）
-    if (c.kifuModel) {
+    if (c.kifuModel && m_viewHooks.addKifuHeaderItem) {
         const int rows = c.kifuModel->rowCount();
         bool need = true;
         if (rows > 0) {
@@ -263,15 +263,9 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
                 need = false;
         }
         if (need) {
-            if (rows == 0) {
-                c.kifuModel->appendItem(
-                    new KifuDisplay(tr("=== 開始局面 ==="),
-                                    tr("（１手 / 合計）")));
-            } else {
-                c.kifuModel->prependItem(
-                    new KifuDisplay(tr("=== 開始局面 ==="),
-                                    tr("（１手 / 合計）")));
-            }
+            const bool prepend = (rows != 0);
+            m_viewHooks.addKifuHeaderItem(
+                tr("=== 開始局面 ==="), tr("（１手 / 合計）"), prepend);
         }
     }
 
@@ -292,8 +286,8 @@ void GameStartCoordinator::prepareInitialPosition(const Ctx& c)
     }
 
     // 7) 開幕時のハイライトはクリア
-    if (c.view) {
-        c.view->removeHighlightAllData();
+    if (m_viewHooks.removeHighlightAllData) {
+        m_viewHooks.removeHighlightAllData();
     }
 
     qCDebug(lcGame).noquote() << "prepareInitialPosition: sfen=" << sfen
@@ -390,28 +384,12 @@ PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(
         initPositionNumber, isPlayer1Human, isPlayer2Human, startSfen);
 }
 
-// ============================================================
-// ユーティリティ（GameStartOptionsBuilder へ委譲）
-// ============================================================
-
-void GameStartCoordinator::applyResumePositionIfAny(ShogiGameController* gc,
-                                                    ShogiView* view,
-                                                    const QString& resumeSfen)
-{
-    GameStartOptionsBuilder::applyResumePositionIfAny(gc, view, resumeSfen);
-}
-
-void GameStartCoordinator::applyPlayersNamesForMode(ShogiView* view,
-                                                    PlayMode mode,
-                                                    const QString& human1,
-                                                    const QString& human2,
-                                                    const QString& engine1,
-                                                    const QString& engine2) const
-{
-    GameStartOptionsBuilder::applyPlayersNamesForMode(view, mode, human1, human2, engine1, engine2);
-}
-
 void GameStartCoordinator::setMatch(MatchCoordinator* match)
 {
     m_match = match;
+}
+
+void GameStartCoordinator::setViewHooks(const ViewHooks& hooks)
+{
+    m_viewHooks = hooks;
 }

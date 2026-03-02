@@ -108,6 +108,66 @@ public:
     void ensurePlayerInfoController(const MainWindowRuntimeRefs& refs,
                                     QObject* parent,
                                     PlayerInfoController*& controller);
+
+    // --- Creation (生成のみ) ---
+
+    DialogCoordinatorWiring* createDialogCoordinatorWiring(QObject* parent);
+    KifuFileController* createKifuFileController(QObject* parent);
+    RecordNavigationWiring* createRecordNavigationWiring(QObject* parent);
+    GameStateController* createGameStateController(QObject* parent);
+    BoardSetupController* createBoardSetupController(QObject* parent);
+    PositionEditCoordinator* createPositionEditCoordinator(QObject* parent);
+    ConsiderationWiring* createConsiderationWiring(
+        const MainWindowRuntimeRefs& refs,
+        const MainWindowDepsFactory::ConsiderationWiringCallbacks& cbs,
+        QObject* parent);
+    CommentCoordinator* createCommentCoordinator(QObject* parent);
+    PvClickController* createPvClickController(QObject* parent);
+    UiStatePolicyManager* createUiStatePolicyManager(QObject* parent);
+
+    // --- Dependency refresh (依存更新のみ) ---
+
+    void refreshDialogCoordinatorDeps(
+        DialogCoordinatorWiring* wiring,
+        const MainWindowRuntimeRefs& refs,
+        const MainWindowDepsFactory::DialogCoordinatorCallbacks& callbacks);
+    void refreshKifuFileControllerDeps(
+        KifuFileController* controller,
+        const MainWindowRuntimeRefs& refs,
+        const MainWindowDepsFactory::KifuFileCallbacks& callbacks);
+    void refreshRecordNavigationWiringDeps(
+        RecordNavigationWiring* wiring,
+        const MainWindowRuntimeRefs& refs,
+        const RecordNavigationWiring::WiringTargets& targets);
+    void refreshGameStateControllerDeps(
+        GameStateController* controller,
+        const MainWindowRuntimeRefs& refs,
+        const MainWindowDepsFactory::GameStateControllerCallbacks& cbs);
+    void refreshBoardSetupControllerDeps(
+        BoardSetupController* controller,
+        const MainWindowRuntimeRefs& refs,
+        const MainWindowDepsFactory::BoardSetupControllerCallbacks& cbs);
+    void refreshPositionEditCoordinatorDeps(
+        PositionEditCoordinator* coordinator,
+        const MainWindowRuntimeRefs& refs,
+        const MainWindowDepsFactory::PositionEditCoordinatorCallbacks& cbs);
+    void refreshConsiderationWiringDeps(
+        ConsiderationWiring* wiring,
+        const MainWindowRuntimeRefs& refs,
+        const MainWindowDepsFactory::ConsiderationWiringCallbacks& cbs,
+        QWidget* parentWidget);
+    void refreshCommentCoordinatorDeps(
+        CommentCoordinator* coordinator,
+        const MainWindowRuntimeRefs& refs);
+    void refreshPvClickControllerDeps(
+        PvClickController* controller,
+        const MainWindowRuntimeRefs& refs);
+    void refreshUiStatePolicyManagerDeps(
+        UiStatePolicyManager* controller,
+        const MainWindowRuntimeRefs& refs);
+    void refreshPlayerInfoControllerDeps(
+        PlayerInfoController* controller,
+        const MainWindowRuntimeRefs& refs);
 };
 
 #endif // MAINWINDOWCOMPOSITIONROOT_H

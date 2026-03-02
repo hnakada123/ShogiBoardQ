@@ -32,22 +32,29 @@ RecordPane::RecordPane(QWidget* parent)
 
 void RecordPane::buildUi()
 {
-    // --- 棋譜テーブル（左側） ---
+    buildKifuTable();
+    buildToolButtons();
+    buildNavigationPanel();
+    buildBranchPanel();
+    buildMainLayout();
+}
+
+void RecordPane::buildKifuTable()
+{
     m_kifu = new QTableView(this);
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->verticalHeader()->setVisible(false);
-    // 行の高さを1行分のテキストに固定（コメント欄が複数行でも1行表示に制限）
-    const int rowHeight = m_kifu->fontMetrics().height() + 4;  // フォント高さ + 最小限のパディング
+    const int rowHeight = m_kifu->fontMetrics().height() + 4;
     m_kifu->verticalHeader()->setDefaultSectionSize(rowHeight);
     m_kifu->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    // テキストが溢れる場合は省略記号（...）で表示
     m_kifu->setWordWrap(false);
     m_kifu->setTextElideMode(Qt::ElideRight);
-
-    // ヘッダーを青色にスタイル設定
     m_kifu->setStyleSheet(RecordPaneAppearanceManager::kifuTableStyleSheet(m_appearanceManager.fontSize()));
+}
 
+void RecordPane::buildToolButtons()
+{
     // --- 文字サイズ変更ボタン ---
     m_btnFontUp = new QPushButton(this);
     m_btnFontDown = new QPushButton(this);
@@ -56,7 +63,6 @@ void RecordPane::buildUi()
     m_btnFontUp->setToolTip(tr("文字を大きくする"));
     m_btnFontDown->setToolTip(tr("文字を小さくする"));
 
-    // 文字サイズボタンのスタイル設定（トグルボタンと同じ幅に揃える）
     m_btnFontUp->setStyleSheet(ButtonStyles::fontButton());
     m_btnFontDown->setStyleSheet(ButtonStyles::fontButton());
     m_btnFontUp->setFixedSize(36, 24);
@@ -105,8 +111,10 @@ void RecordPane::buildUi()
     m_btnToggleComment->setStyleSheet(toggleBtnStyle);
     m_btnToggleComment->setFixedSize(36, 24);
     m_btnToggleComment->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
+}
 
-    // --- ナビゲーションボタン群（中央に縦配置） ---
+void RecordPane::buildNavigationPanel()
+{
     m_btn1 = new QPushButton(this);
     m_btn2 = new QPushButton(this);
     m_btn3 = new QPushButton(this);
@@ -114,7 +122,6 @@ void RecordPane::buildUi()
     m_btn5 = new QPushButton(this);
     m_btn6 = new QPushButton(this);
 
-    // 簡易なテキストボタンに変更（画像アイコン不使用）
     m_btn1->setText(tr("▲|"));
     m_btn2->setText(tr("▲▲"));
     m_btn3->setText(tr("▲"));
@@ -122,7 +129,6 @@ void RecordPane::buildUi()
     m_btn5->setText(tr("▼▼"));
     m_btn6->setText(tr("▼|"));
 
-    // ツールチップを設定
     m_btn1->setToolTip(tr("最初に戻る"));
     m_btn2->setToolTip(tr("10手戻る"));
     m_btn3->setToolTip(tr("1手戻る"));
@@ -130,9 +136,7 @@ void RecordPane::buildUi()
     m_btn5->setToolTip(tr("10手進む"));
     m_btn6->setToolTip(tr("最後に進む"));
 
-    // ボタンのスタイル設定（緑系の背景色、幅を狭く）
     const QString btnStyle = ButtonStyles::navigationButton();
-
     const QList<QPushButton*> allBtns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
     for (QPushButton* const b : allBtns) {
         b->setStyleSheet(btnStyle);
@@ -140,7 +144,7 @@ void RecordPane::buildUi()
         b->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     }
 
-    // ナビゲーションボタンを縦に配置（文字サイズボタンも縦並びで上に追加）
+    // ナビゲーションボタンを縦に配置（ツール・トグルボタンも含む）
     auto* navLay = new QVBoxLayout;
     navLay->setContentsMargins(2, 4, 2, 4);
     navLay->setSpacing(3);
@@ -162,30 +166,30 @@ void RecordPane::buildUi()
     m_navButtons->setLayout(navLay);
     m_navButtons->setFixedWidth(50);
     m_navButtons->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
+}
 
-    // --- 右側：分岐候補欄 ---
+void RecordPane::buildBranchPanel()
+{
     m_branch = new QTableView(this);
     m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
     m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_branch->verticalHeader()->setVisible(false);
-    // 行の高さを1行分のテキストに固定
     const int branchRowHeight = m_branch->fontMetrics().height() + 4;
     m_branch->verticalHeader()->setDefaultSectionSize(branchRowHeight);
     m_branch->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     m_branch->setWordWrap(false);
-
-    // ヘッダーを青色、データ欄を白色にスタイル設定（選択行は黄色を維持）
     m_branch->setStyleSheet(RecordPaneAppearanceManager::branchTableStyleSheet(m_appearanceManager.fontSize()));
 
-    // 分岐候補欄を縦レイアウトでラップ（「本譜に戻る」ボタン用）
     m_branchContainer = new QWidget(this);
     auto* branchLay = new QVBoxLayout(m_branchContainer);
     branchLay->setContentsMargins(0, 0, 0, 0);
     branchLay->setSpacing(2);
     branchLay->addWidget(m_branch);
-    m_branchContainer->setFixedWidth(120);  // 指し手が表示できる程度の幅
+    m_branchContainer->setFixedWidth(120);
+}
 
-    // --- 左右分割（棋譜 | ナビボタン | 分岐候補） ---
+void RecordPane::buildMainLayout()
+{
     m_lr = new QSplitter(Qt::Horizontal, this);
     m_lr->addWidget(m_kifu);
     m_lr->addWidget(m_navButtons);

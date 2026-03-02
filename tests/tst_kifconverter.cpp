@@ -7,6 +7,7 @@
 #include "kifubranchtree.h"
 #include "kifubranchtreebuilder.h"
 #include "kifubranchnode.h"
+#include "kifu_test_helper.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -488,6 +489,54 @@ private slots:
         QString error;
         (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
         // Must not crash
+        QVERIFY(true);
+    }
+    // ========================================
+    // 境界値テスト: 全APIに対する異常入力耐性
+    // ========================================
+
+    void boundaryInput_doesNotCrash_data()
+    {
+        QTest::addColumn<QByteArray>("fileContent");
+        KifuTestHelper::addBoundaryInputRows();
+    }
+
+    void boundaryInput_doesNotCrash()
+    {
+        QFETCH(QByteArray, fileContent);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, fileContent, QStringLiteral("kif")));
+
+        QString error;
+        (void)KifToSfenConverter::convertFile(tmp.fileName(), &error);
+
+        KifParseResult result;
+        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+
+        (void)KifToSfenConverter::detectInitialSfenFromFile(tmp.fileName());
+        (void)KifToSfenConverter::extractGameInfo(tmp.fileName());
+        (void)KifToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
+
+        QVERIFY(true);
+    }
+
+    // ========================================
+    // 境界値テスト: 極端な手数 (1500手)
+    // ========================================
+
+    void longMoveSequence_doesNotCrash()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(
+            tmp, KifuTestHelper::generateLongKifContent(1500), QStringLiteral("kif")));
+
+        QString error;
+        (void)KifToSfenConverter::convertFile(tmp.fileName(), &error);
+
+        KifParseResult result;
+        (void)KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+
         QVERIFY(true);
     }
 };

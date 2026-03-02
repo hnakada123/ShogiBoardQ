@@ -5,7 +5,7 @@
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "sfenutils.h"
-#include "gamestartcoordinator.h"
+#include "gamestartoptionsbuilder.h"
 
 void MainWindowCoreInitCoordinator::updateDeps(const Deps& deps)
 {
@@ -46,7 +46,7 @@ void MainWindowCoreInitCoordinator::initializeNewGame(QString& startSfenStr)
     }
 
     auto* view = m_deps.shogiView ? *m_deps.shogiView : nullptr;
-    GameStartCoordinator::applyResumePositionIfAny(
+    GameStartOptionsBuilder::applyResumePositionIfAny(
         gc, view, m_deps.resumeSfenStr ? *m_deps.resumeSfenStr : QString());
 }
 

@@ -14,8 +14,8 @@ KifuNavigationCoordinator::Deps KifuNavigationDepsFactory::createDeps(
     deps.kifuRecordModel = refs.models.kifuRecordModel;
 
     // Board sync
-    deps.boardSync = refs.boardSync;
-    deps.shogiView = refs.shogiView;
+    deps.boardSync = refs.uiController.boardSync;
+    deps.shogiView = refs.gameService.shogiView;
 
     // Navigation state
     deps.navState = refs.branchNav.navState;
@@ -30,9 +30,9 @@ KifuNavigationCoordinator::Deps KifuNavigationDepsFactory::createDeps(
     deps.playMode = refs.state.playMode;
 
     // Coordinators
-    deps.match = refs.match;
+    deps.match = refs.gameService.match;
     deps.analysisTab = refs.ui.analysisTab;
-    deps.uiStatePolicy = refs.uiStatePolicy;
+    deps.uiStatePolicy = refs.uiController.uiStatePolicy;
 
     // Callbacks
     deps.setCurrentTurn = callbacks.setCurrentTurn;

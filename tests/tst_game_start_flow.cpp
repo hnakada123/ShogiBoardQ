@@ -12,7 +12,6 @@
 #include "shogiclock.h"
 #include "playmode.h"
 #include "kifurecordlistmodel.h"
-#include "shogiview.h"
 
 // test_stubs_game_start_flow.cpp で定義されたテスト追跡用変数
 namespace TestTracker {
@@ -525,7 +524,6 @@ private slots:
 
         // dialogData.startingPositionNumber のデフォルトは 1（平手）
         GameStartCoordinator::Ctx ctx;
-        ctx.view = nullptr;    // スタブなので null でも大丈夫（view操作はスキップ）
         ctx.gc = nullptr;
         ctx.startSfenStr = &startSfen;
         ctx.currentSfenStr = &currentSfen;
@@ -551,6 +549,18 @@ private slots:
         QStringList sfenRecord;
         KifuRecordListModel kifuModel;
 
+        // ViewHooks を設定してモデルへの追加を可能にする
+        GameStartCoordinator::ViewHooks vh;
+        vh.addKifuHeaderItem = [&kifuModel](const QString& move, const QString& time, bool prepend) {
+            auto* item = new KifuDisplay(move, time);
+            if (prepend) {
+                kifuModel.prependItem(item);
+            } else {
+                kifuModel.appendItem(item);
+            }
+        };
+        h.gsc->setViewHooks(vh);
+
         GameStartCoordinator::Ctx ctx;
         ctx.startSfenStr = &startSfen;
         ctx.currentSfenStr = &currentSfen;
@@ -574,11 +584,7 @@ private slots:
         QString startSfen = kHirateSfen;
         QString currentSfen = midGameSfen;
 
-        // ShogiView は removeHighlightAllData() を呼ばれるので、スタブが必要
-        ShogiView view;
-
         GameStartCoordinator::Ctx ctx;
-        ctx.view = &view;
         ctx.gc = nullptr;
         ctx.startSfenStr = &startSfen;
         ctx.currentSfenStr = &currentSfen;

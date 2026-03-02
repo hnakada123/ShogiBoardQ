@@ -12,9 +12,6 @@
 // --- Pipeline / Registry ---
 #include "mainwindowlifecyclepipeline.h"
 #include "mainwindowserviceregistry.h"
-#include "gamesessionsubregistry.h"
-#include "gamesubregistry.h"
-#include "kifusubregistry.h"
 
 // --- unique_ptr メンバの完全型（デストラクタ用） ---
 #include "mainwindowcompositionroot.h"       // IWYU pragma: keep
@@ -56,8 +53,6 @@
 #include "turnstatesyncservice.h"
 #include "undoflowservice.h"
 
-#include <QApplication>
-
 // MainWindow を初期化し、主要コンポーネントを構築する。
 // 起動フローの詳細は MainWindowLifecyclePipeline::runStartup() を参照。
 MainWindow::MainWindow(QWidget *parent)
@@ -77,26 +72,26 @@ MainWindow::~MainWindow()
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    m_registry->game()->ensureUndoFlowService();
+    m_registry->ensureUndoFlowService();
     m_undoFlowService->undoLastTwoMoves();
 }
 
 void MainWindow::updateJosekiWindow()
 {
-    m_registry->kifu()->updateJosekiWindow();
+    m_registry->updateJosekiWindow();
 }
 
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
-    m_registry->game()->ensureTurnStateSyncService();
+    m_registry->ensureTurnStateSyncService();
     m_turnStateSync->onTurnManagerChanged(now);
 }
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    m_registry->game()->ensureTurnStateSyncService();
+    m_registry->ensureTurnStateSyncService();
     m_turnStateSync->setCurrentTurn();
 }
 
@@ -104,20 +99,19 @@ void MainWindow::setCurrentTurn()
 // また、将棋盤のマスサイズも書き込む。その後、GUIを終了する。
 void MainWindow::saveSettingsAndClose()
 {
-    m_pipeline->runShutdown();
-    QCoreApplication::quit();
+    m_pipeline->shutdownAndQuit();
 }
 
-// GUIを初期画面表示に戻す（GameSessionSubRegistryへ委譲）。
+// GUIを初期画面表示に戻す（ServiceRegistryへ委譲）。
 void MainWindow::resetToInitialState()
 {
-    m_registry->game()->session()->resetToInitialState();
+    m_registry->resetToInitialState();
 }
 
-// ゲーム状態変数のリセット（GameSessionSubRegistryへ委譲）。
+// ゲーム状態変数のリセット（ServiceRegistryへ委譲）。
 void MainWindow::resetGameState()
 {
-    m_registry->game()->session()->resetGameState();
+    m_registry->resetGameState();
 }
 
 // `displayGameRecord`: Game Record を表示する（GameRecordLoadService に委譲）。
@@ -125,7 +119,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
 {
     if (!m_models.kifuRecord) return;
 
-    m_registry->kifu()->ensureGameRecordLoadService();
+    m_registry->ensureGameRecordLoadService();
     m_gameRecordLoadService->loadGameRecord(disp);
 }
 
@@ -151,10 +145,10 @@ void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
     m_registry->handleMoveRequested(from, to);
 }
 
-// 再生モードの切替を GameSubRegistry へ委譲
+// 再生モードの切替を ServiceRegistry へ委譲
 void MainWindow::setReplayMode(bool on)
 {
-    m_registry->game()->setReplayMode(on);
+    m_registry->setReplayMode(on);
 }
 
 void MainWindow::loadBoardFromSfen(const QString& sfen)
@@ -227,30 +221,34 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.player.engineName1 = &m_player.engineName1;
     refs.player.engineName2 = &m_player.engineName2;
 
-    // --- サービス参照 ---
-    refs.match = m_match;
-    refs.gameController = m_gameController;
-    refs.shogiView = m_shogiView;
-    refs.kifuLoadCoordinator = m_kifuLoadCoordinator;
-    refs.csaGameCoordinator = m_csaGameCoordinator;
+    // --- ゲームサービス参照 ---
+    refs.gameService.match = m_match;
+    refs.gameService.gameController = m_gameController;
+    refs.gameService.csaGameCoordinator = m_csaGameCoordinator;
+    refs.gameService.shogiView = m_shogiView;
 
-    // --- コントローラ / Wiring 参照 ---
-    refs.recordPresenter = m_recordPresenter;
-    refs.replayController = m_replayController;
-    refs.timeController = m_timeController;
-    refs.boardController = m_boardController;
-    refs.positionEditController = m_posEdit;
-    refs.dialogCoordinator = m_dialogCoordinator;
-    refs.playerInfoWiring = m_playerInfoWiring;
-    refs.boardSync = m_boardSync;
-    refs.uiStatePolicy = m_uiStatePolicy;
-    refs.gameStateController = m_gameStateController;
-    refs.consecutiveGamesController = m_consecutiveGamesController;
+    // --- 棋譜サービス参照 ---
+    refs.kifuService.kifuLoadCoordinator = m_kifuLoadCoordinator;
+    refs.kifuService.recordPresenter = m_recordPresenter;
+    refs.kifuService.replayController = m_replayController;
 
-    // --- その他参照 ---
-    refs.gameInfoController = m_gameInfoController;
-    refs.evalGraphController = m_evalGraphController.get();
-    refs.analysisPresenter = m_analysisPresenter.get();
+    // --- UIコントローラ参照 ---
+    refs.uiController.timeController = m_timeController;
+    refs.uiController.boardController = m_boardController;
+    refs.uiController.positionEditController = m_posEdit;
+    refs.uiController.dialogCoordinator = m_dialogCoordinator;
+    refs.uiController.uiStatePolicy = m_uiStatePolicy;
+    refs.uiController.boardSync = m_boardSync;
+    refs.uiController.playerInfoWiring = m_playerInfoWiring;
+
+    // --- 解析参照 ---
+    refs.analysis.gameInfoController = m_gameInfoController;
+    refs.analysis.evalGraphController = m_evalGraphController.get();
+    refs.analysis.analysisPresenter = m_analysisPresenter.get();
+
+    // --- ゲームコントローラ参照 ---
+    refs.gameCtrl.gameStateController = m_gameStateController;
+    refs.gameCtrl.consecutiveGamesController = m_consecutiveGamesController;
 
     // PlayModePolicyService の依存を最新状態に更新
     if (m_playModePolicy) {

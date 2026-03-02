@@ -149,7 +149,6 @@ void GameSessionOrchestrator::initializeGame()
     auto* tc = deref(m_deps.timeController);
 
     MainWindowGameStartService::ContextDeps ctx;
-    ctx.view = m_deps.shogiView;
     ctx.gc = m_deps.gameController;
     ctx.clock = tc ? tc->clock() : nullptr;
     ctx.sfenRecord = sfenRecPtr;

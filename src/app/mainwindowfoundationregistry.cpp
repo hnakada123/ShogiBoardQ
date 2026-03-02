@@ -207,7 +207,9 @@ void MainWindowFoundationRegistry::ensureUiNotificationService()
 
     UiNotificationService::Deps deps;
     deps.errorOccurred = &m_mw.m_state.errorOccurred;
-    deps.shogiView = m_mw.m_shogiView;
+    deps.setErrorOccurred = [view = m_mw.m_shogiView](bool v) {
+        if (view) view->setErrorOccurred(v);
+    };
     deps.parentWidget = &m_mw;
     m_mw.m_notificationService->updateDeps(deps);
 }

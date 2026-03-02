@@ -63,6 +63,11 @@ signals:
 
 private:
     void buildUi();
+    void buildKifuTable();
+    void buildToolButtons();
+    void buildNavigationPanel();
+    void buildBranchPanel();
+    void buildMainLayout();
     void wireSignals();
 
     QTableView *m_kifu=nullptr, *m_branch=nullptr;

@@ -30,9 +30,26 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
     // SettingsServiceからフォントサイズを読み込み
     m_considerationFontSize = AnalysisSettings::considerationFontSize();
 
+    buildToolbarControls(parentWidget);
+    layoutToolbar();
+    buildConsiderationView(parentWidget);
+
+    // フォントマネージャーの初期化・適用
+    initFontManager();
+
+    // parentWidget のレイアウトに追加
+    auto* layout = qobject_cast<QVBoxLayout*>(parentWidget->layout());
+    if (layout) {
+        layout->addWidget(m_considerationToolbar);
+        layout->addWidget(m_considerationInfo);
+        layout->addWidget(m_considerationView, 1);
+    }
+}
+
+void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
+{
     // ツールバー（FlowLayout使用）
     m_considerationToolbar = new QWidget(parentWidget);
-    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);
 
     // フォントサイズ減少ボタン（A-）
     m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
@@ -124,8 +141,11 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
     m_btnStopConsideration->setStyleSheet(ButtonStyles::primaryAction());
     connect(m_btnStopConsideration, &QToolButton::clicked,
             this, &ConsiderationTabManager::startConsiderationRequested);
+}
 
-    // ツールバーにウィジェットを追加（FlowLayoutで自動折り返し）
+void ConsiderationTabManager::layoutToolbar()
+{
+    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);
     toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
     toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
     toolbarLayout->addWidget(m_engineComboBox);
@@ -147,7 +167,10 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
     // エンジンリストを読み込み、設定を復元
     loadEngineList();
     loadConsiderationTabSettings();
+}
 
+void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
+{
     // EngineInfoWidget（検討タブ用）
     m_considerationInfo = new EngineInfoWidget(parentWidget, false, false);
     m_considerationInfo->setWidgetIndex(2);
@@ -192,17 +215,6 @@ void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
     // 保存済みモデルをビューに適用する
     if (m_considerationModel) {
         setConsiderationThinkingModel(m_considerationModel);
-    }
-
-    // フォントマネージャーの初期化・適用
-    initFontManager();
-
-    // parentWidget のレイアウトに追加
-    auto* layout = qobject_cast<QVBoxLayout*>(parentWidget->layout());
-    if (layout) {
-        layout->addWidget(m_considerationToolbar);
-        layout->addWidget(m_considerationInfo);
-        layout->addWidget(m_considerationView, 1);
     }
 }
 

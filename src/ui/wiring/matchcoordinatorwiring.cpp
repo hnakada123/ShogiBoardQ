@@ -7,12 +7,15 @@
 #include "playerinfowiring.h"
 
 #include "gamestartcoordinator.h"
+#include "gamestartoptionsbuilder.h"
 #include "gamesessionfacade.h"
 #include "evaluationgraphcontroller.h"
 #include "timecontrolcontroller.h"
 #include "timedisplaypresenter.h"
 #include "uistatepolicymanager.h"
 #include "boardinteractioncontroller.h"
+#include "shogiview.h"
+#include "kifurecordlistmodel.h"
 #include "shogiclock.h"
 #include "matchcoordinatorhooksfactory.h"
 #include "kifunavigationcoordinator.h"
@@ -264,9 +267,33 @@ void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
     d.match = m_match.get();
     d.clock = m_getClock ? m_getClock() : nullptr;
     d.gc    = m_gc;
-    d.view  = m_view;
 
     m_menuGameStart = new GameStartCoordinator(d, this);
+
+    // ViewHooks: ShogiView 操作をコールバックで注入
+    {
+        GameStartCoordinator::ViewHooks vh;
+        vh.initializeToFlatStartingPosition = [this]() {
+            if (m_view) m_view->initializeToFlatStartingPosition();
+        };
+        vh.removeHighlightAllData = [this]() {
+            if (m_view) m_view->removeHighlightAllData();
+        };
+        vh.applyResumePosition = [this](ShogiGameController* gc, const QString& sfen) {
+            GameStartOptionsBuilder::applyResumePositionIfAny(gc, m_view, sfen);
+        };
+        vh.addKifuHeaderItem = [this](const QString& move, const QString& time, bool prepend) {
+            if (m_kifuRecordModel) {
+                auto* item = new KifuDisplay(move, time);
+                if (prepend) {
+                    m_kifuRecordModel->prependItem(item);
+                } else {
+                    m_kifuRecordModel->appendItem(item);
+                }
+            }
+        };
+        m_menuGameStart->setViewHooks(vh);
+    }
 
     // --- 11 connect: GameStartCoordinator → 転送シグナル / 内部配線 ---
 

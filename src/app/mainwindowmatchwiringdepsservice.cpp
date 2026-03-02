@@ -27,6 +27,7 @@ MatchCoordinatorWiring::Deps MainWindowMatchWiringDepsService::buildDeps(const I
     builder.undoDeps.updateHighlightsForPly = in.updateHighlightsForPly;
     builder.undoDeps.updateTurnAndTimekeepingDisplay = in.updateTurnAndTimekeepingDisplay;
     builder.undoDeps.isHumanSide = in.isHumanSide;
+    builder.undoDeps.setMouseClickMode = in.setMouseClickMode;
 
     builder.gc = in.gc;
     builder.view = in.view;
