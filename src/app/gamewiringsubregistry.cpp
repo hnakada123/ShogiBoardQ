@@ -16,6 +16,7 @@
 
 #include "boardinteractioncontroller.h"
 #include "consecutivegamescontroller.h"
+#include "considerationwiring.h"
 #include "csagamewiring.h"
 #include "gamerecordupdateservice.h"
 #include "gamesessionorchestrator.h"
@@ -298,4 +299,9 @@ void GameWiringSubRegistry::initMatchCoordinator()
     }
 
     m_mw.m_match = m_mw.m_matchWiring->match();
+
+    // ConsiderationWiring が保持する旧 MatchCoordinator ポインタを更新
+    if (m_mw.m_considerationWiring) {
+        m_mw.m_considerationWiring->setMatchCoordinator(m_mw.m_match);
+    }
 }

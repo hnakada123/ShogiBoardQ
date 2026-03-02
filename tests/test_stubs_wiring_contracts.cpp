@@ -504,7 +504,8 @@ void ShogiView::removeHighlightAllData() {}
 // GameStartOptionsBuilder スタブ
 // ============================================================
 
-void GameStartOptionsBuilder::applyResumePositionIfAny(ShogiGameController*, ShogiView*, const QString&) {}
+void GameStartOptionsBuilder::applyResumePositionIfAny(
+    ShogiGameController*, const QString&, const std::function<void(ShogiBoard*)>&) {}
 
 // ============================================================
 // ShogiGameController スタブ

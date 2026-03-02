@@ -50,6 +50,11 @@ void ConsiderationWiring::setDialogCoordinator(DialogCoordinator* dc)
     m_dialogCoordinator = dc;
 }
 
+void ConsiderationWiring::setMatchCoordinator(MatchCoordinator* mc)
+{
+    m_match = mc;
+}
+
 void ConsiderationWiring::ensureUIController()
 {
     if (m_uiController) return;

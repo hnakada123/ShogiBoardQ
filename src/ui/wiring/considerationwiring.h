@@ -59,6 +59,9 @@ public:
     /// DialogCoordinator の遅延初期化完了後にポインタだけを更新する
     void setDialogCoordinator(DialogCoordinator* dc);
 
+    /// MatchCoordinator 再生成後にポインタだけを更新する
+    void setMatchCoordinator(MatchCoordinator* mc);
+
     ConsiderationModeUIController* uiController() const { return m_uiController; }
 
 public slots:

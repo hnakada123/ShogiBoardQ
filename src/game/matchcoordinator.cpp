@@ -10,7 +10,6 @@
 #include "analysissessionhandler.h"
 #include "shogiclock.h"
 #include "usi.h"
-#include "shogiview.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
