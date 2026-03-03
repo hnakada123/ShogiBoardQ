@@ -93,6 +93,9 @@ public:
 
         // CSA通信対局のエンジン評価値グラフ用
         std::function<CsaGameCoordinator*()> getCsaGameCoordinator;
+
+        // CsaGameCoordinator 生成後の依存更新コールバック
+        std::function<void()> onCsaGameCoordinatorUpdated;
     };
 
     explicit DialogLaunchWiring(const Deps& deps, QObject* parent = nullptr);

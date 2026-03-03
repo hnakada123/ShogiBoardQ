@@ -275,6 +275,7 @@ add_shogi_test(tst_usenconverter
     tst_usenconverter.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/formats/usentosfenconverter.cpp
+    ${SRC}/kifu/formats/usentosfenconverter_decode.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
@@ -491,6 +492,7 @@ add_shogi_test(tst_ui_display_consistency
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/kifudisplaycoordinator.cpp
     ${SRC}/ui/coordinators/kifudisplaycoordinator_live.cpp
+    ${SRC}/ui/coordinators/kifudisplaycoordinator_nav.cpp
     ${SRC}/ui/coordinators/kifuselectionsync.cpp
     ${SRC}/ui/presenters/kifudisplaypresenter.cpp
     ${SRC}/navigation/kifunavigationcontroller.cpp

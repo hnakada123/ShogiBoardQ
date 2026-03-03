@@ -59,6 +59,7 @@ public:
 
         // --- コールバック ---
         std::function<void()> initializeDialogLaunchWiring;
+        std::function<void()> ensureDialogCoordinator;
         std::function<void()> ensureKifuFileController;
         std::function<void()> ensureGameSessionOrchestrator;
         std::function<void()> ensureUiNotificationService;

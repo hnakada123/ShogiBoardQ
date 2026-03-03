@@ -10,6 +10,7 @@
 #include "boardimageexporter.h"
 #include "shogiview.h"
 #include "evaluationchartwidget.h"
+#include "logcategories.h"
 
 void ViewActionsWiring::copyBoardToClipboard()
 {
@@ -41,6 +42,17 @@ void ViewActionsWiring::wire()
     auto* dlw = m_d.dlw;
     auto* gso = m_d.gso;
     auto* app = m_d.appearance;
+
+    if (Q_UNLIKELY(!ui || !mw)) {
+        qCWarning(lcUi, "ViewActionsWiring::wire(): ui or mw is null");
+        return;
+    }
+    if (Q_UNLIKELY(!dlw || !gso || !app)) {
+        qCWarning(lcUi, "ViewActionsWiring::wire(): required wiring dependency is null "
+                  "(dlw=%p, gso=%p, appearance=%p)",
+                  static_cast<void*>(dlw), static_cast<void*>(gso), static_cast<void*>(app));
+        return;
+    }
 
     // 盤操作・表示（外観コントローラへ委譲）
     QObject::connect(ui->actionFlipBoard,                  &QAction::triggered, app, &MainWindowAppearanceController::onActionFlipBoardTriggered,    Qt::UniqueConnection);

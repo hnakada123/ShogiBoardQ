@@ -19,6 +19,14 @@ void UiActionsWiring::wire()
         return;
     }
 
+    if (Q_UNLIKELY(!m_d.dlw || !m_d.dcw || !m_d.gso)) {
+        qCWarning(lcUi, "UiActionsWiring::wire(): critical dependency is null "
+                  "(dlw=%p, dcw=%p, gso=%p)",
+                  static_cast<void*>(m_d.dlw), static_cast<void*>(m_d.dcw),
+                  static_cast<void*>(m_d.gso));
+        return;
+    }
+
     if (!m_fileWiring) {
         m_fileWiring = new FileActionsWiring({m_d.ui, mw, m_d.dlw, m_d.kfc, m_d.gso}, this);
         m_gameWiring = new GameActionsWiring({m_d.ui, mw, m_d.dlw, m_d.dcw, m_d.gso}, this);

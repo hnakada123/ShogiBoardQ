@@ -172,6 +172,9 @@ void DialogLaunchWiring::displayCsaGameDialog()
         if (m_deps.csaGameCoordinator) {
             *m_deps.csaGameCoordinator = csaWiring->coordinator();
         }
+        if (m_deps.onCsaGameCoordinatorUpdated) {
+            m_deps.onCsaGameCoordinatorUpdated();
+        }
 
         // CSA対局でエンジンを使用する場合、評価値グラフ更新用のシグナル接続
         CsaGameCoordinator* coord = csaWiring->coordinator();

@@ -897,7 +897,121 @@ private slots:
     }
 
     // ================================================================
-    // 10. LifecyclePipeline 二重初期化防止テスト（拡充）
+    // 10. ActionsWiring の fail-fast null チェック（構造検証）
+    // ================================================================
+
+    /// 各 ActionsWiring::wire() が Q_UNLIKELY + qCWarning + return の
+    /// fail-fast パターンを持つこと
+    void actionsWiringHaveFailFastNullChecks()
+    {
+        struct WiringFile {
+            QString path;
+            QString signature;
+            QStringList requiredDeps;
+        };
+
+        const QList<WiringFile> wirings = {
+            {QStringLiteral("src/ui/wiring/gameactionswiring.cpp"),
+             QStringLiteral("GameActionsWiring::wire()"),
+             {QStringLiteral("dlw"), QStringLiteral("dcw"), QStringLiteral("gso")}},
+            {QStringLiteral("src/ui/wiring/fileactionswiring.cpp"),
+             QStringLiteral("FileActionsWiring::wire()"),
+             {QStringLiteral("dlw"), QStringLiteral("kfc"), QStringLiteral("gso")}},
+            {QStringLiteral("src/ui/wiring/editactionswiring.cpp"),
+             QStringLiteral("EditActionsWiring::wire()"),
+             {QStringLiteral("kec"), QStringLiteral("dlw"), QStringLiteral("kfc")}},
+            {QStringLiteral("src/ui/wiring/viewactionswiring.cpp"),
+             QStringLiteral("ViewActionsWiring::wire()"),
+             {QStringLiteral("dlw"), QStringLiteral("gso"), QStringLiteral("app")}},
+        };
+
+        for (const auto& w : std::as_const(wirings)) {
+            const QStringList lines = readSourceLines(w.path);
+            QVERIFY2(!lines.isEmpty(),
+                      qPrintable(QStringLiteral("Failed to read %1").arg(w.path)));
+
+            const auto range = findFunctionBody(lines, w.signature);
+            QVERIFY2(range.first >= 0,
+                      qPrintable(QStringLiteral("Method '%1' not found in %2")
+                                     .arg(w.signature, w.path)));
+
+            const QString body = bodyText(lines, range.first, range.second);
+
+            // Q_UNLIKELY パターンの存在
+            QVERIFY2(body.contains(QStringLiteral("Q_UNLIKELY(")),
+                      qPrintable(QStringLiteral("%1 lacks Q_UNLIKELY guard").arg(w.signature)));
+
+            // qCWarning(lcUi) ログの存在
+            QVERIFY2(body.contains(QStringLiteral("qCWarning(lcUi")),
+                      qPrintable(QStringLiteral("%1 lacks qCWarning(lcUi) log").arg(w.signature)));
+
+            // 早期 return の存在（connect() の前に return がある）
+            int firstReturn = -1;
+            int firstConnect = -1;
+            for (int i = range.first; i <= range.second; ++i) {
+                if (lines[i].trimmed() == QStringLiteral("return;") && firstReturn < 0)
+                    firstReturn = i;
+                if (lines[i].contains(QStringLiteral("::connect(")) && firstConnect < 0)
+                    firstConnect = i;
+            }
+            QVERIFY2(firstReturn >= 0 && firstConnect >= 0 && firstReturn < firstConnect,
+                      qPrintable(QStringLiteral("%1: early return should precede first connect()")
+                                     .arg(w.signature)));
+
+            // 必須依存名がチェックに含まれていること
+            for (const QString& dep : std::as_const(w.requiredDeps)) {
+                QVERIFY2(body.contains(QStringLiteral("!") + dep),
+                          qPrintable(QStringLiteral("%1: null check for '%2' not found")
+                                         .arg(w.signature, dep)));
+            }
+        }
+    }
+
+    /// UiActionsWiring::wire() が子 Wiring 生成前に critical dependency チェックを持つこと
+    void uiActionsWiringHasCriticalDependencyCheck()
+    {
+        const QStringList lines = readSourceLines(
+            QStringLiteral("src/ui/wiring/uiactionswiring.cpp"));
+        QVERIFY2(!lines.isEmpty(), "Failed to read uiactionswiring source");
+
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("UiActionsWiring::wire()"));
+        QVERIFY2(range.first >= 0, "UiActionsWiring::wire() not found");
+
+        const QString body = bodyText(lines, range.first, range.second);
+
+        // dlw, dcw, gso の null チェック
+        QVERIFY2(body.contains(QStringLiteral("!m_d.dlw"))
+                     && body.contains(QStringLiteral("!m_d.dcw"))
+                     && body.contains(QStringLiteral("!m_d.gso")),
+                  "UiActionsWiring::wire() should check dlw, dcw, gso before child wiring creation");
+
+        // qCWarning が Q_UNLIKELY の後にあること
+        QVERIFY2(body.contains(QStringLiteral("Q_UNLIKELY(!m_d.dlw")),
+                  "UiActionsWiring should use Q_UNLIKELY for critical dependency check");
+
+        // 子 Wiring 生成より前に return があること
+        int criticalReturn = -1;
+        int childCreation = -1;
+        for (int i = range.first; i <= range.second; ++i) {
+            if (lines[i].contains(QStringLiteral("m_d.dlw")) && lines[i].contains(QStringLiteral("Q_UNLIKELY")) && criticalReturn < 0) {
+                // Q_UNLIKELY チェックブロック内の return を探す
+                for (int j = i; j <= qMin(i + 5, range.second); ++j) {
+                    if (lines[j].trimmed() == QStringLiteral("return;")) {
+                        criticalReturn = j;
+                        break;
+                    }
+                }
+            }
+            if (lines[i].contains(QStringLiteral("new FileActionsWiring")) && childCreation < 0)
+                childCreation = i;
+        }
+        QVERIFY2(criticalReturn >= 0 && childCreation >= 0 && criticalReturn < childCreation,
+                  "Critical dependency return should precede child wiring creation");
+    }
+
+    // ================================================================
+    // 11. LifecyclePipeline 二重初期化防止テスト（拡充）
     // ================================================================
 
     /// LifecyclePipeline の runStartup がオブジェクト生成を含み、

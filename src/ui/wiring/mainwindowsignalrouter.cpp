@@ -7,7 +7,6 @@
 
 #include "boardinteractioncontroller.h"
 #include "boardsetupcontroller.h"
-#include "dialogcoordinatorwiring.h"
 #include "dialoglaunchwiring.h"
 #include "errorbus.h"
 #include "kifufilecontroller.h"
@@ -52,9 +51,9 @@ void MainWindowSignalRouter::connectAll()
 
 void MainWindowSignalRouter::connectAllActions()
 {
-    // DialogCoordinatorWiring を先行生成（cancelKifuAnalysis 接続先として必要）
-    if (m_deps.dialogCoordinatorWiringPtr && !deref(m_deps.dialogCoordinatorWiringPtr)) {
-        *m_deps.dialogCoordinatorWiringPtr = new DialogCoordinatorWiring(m_deps.mainWindow);
+    // DialogCoordinatorWiring を CompositionRoot/Registry 経由で確保
+    if (m_deps.ensureDialogCoordinator) {
+        m_deps.ensureDialogCoordinator();
     }
 
     // KifuFileController を先行生成（ファイル操作スロット接続先として必要）
@@ -74,6 +73,9 @@ void MainWindowSignalRouter::connectAllActions()
         d.ctx = m_deps.mainWindow;
         d.dlw = deref(m_deps.dialogLaunchWiringPtr);
         d.dcw = deref(m_deps.dialogCoordinatorWiringPtr);
+        if (Q_UNLIKELY(!d.dcw)) {
+            qCWarning(lcApp, "connectAllActions: DialogCoordinatorWiring is null after ensure");
+        }
         d.kfc = deref(m_deps.kifuFileControllerPtr);
         d.gso = deref(m_deps.gameSessionOrchestratorPtr);
         d.appearance = m_deps.appearanceController;

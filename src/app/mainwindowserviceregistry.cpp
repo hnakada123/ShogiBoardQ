@@ -2,6 +2,7 @@
 /// @brief サービスレジストリのコンストラクタ
 
 #include "mainwindowserviceregistry.h"
+#include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
 #include "gamesubregistry.h"
 #include "gamesessionsubregistry.h"
@@ -22,16 +23,19 @@ MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* pa
 
 void MainWindowServiceRegistry::ensureUndoFlowService()
 {
+    if (m_mw.m_isShuttingDown) return;
     m_game->ensureUndoFlowService();
 }
 
 void MainWindowServiceRegistry::ensureTurnStateSyncService()
 {
+    if (m_mw.m_isShuttingDown) return;
     m_game->ensureTurnStateSyncService();
 }
 
 void MainWindowServiceRegistry::ensureGameRecordLoadService()
 {
+    if (m_mw.m_isShuttingDown) return;
     m_kifu->ensureGameRecordLoadService();
 }
 

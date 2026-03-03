@@ -299,6 +299,7 @@ void GameWiringSubRegistry::initMatchCoordinator()
     }
 
     m_mw.m_match = m_mw.m_matchWiring->match();
+    m_mw.refreshPlayModePolicyDeps();
 
     // ConsiderationWiring が保持する旧 MatchCoordinator ポインタを更新
     if (m_mw.m_considerationWiring) {

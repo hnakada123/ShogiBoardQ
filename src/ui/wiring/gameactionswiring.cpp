@@ -7,6 +7,7 @@
 #include "mainwindow.h"
 #include "dialoglaunchwiring.h"
 #include "dialogcoordinatorwiring.h"
+#include "logcategories.h"
 
 void GameActionsWiring::wire()
 {
@@ -15,6 +16,17 @@ void GameActionsWiring::wire()
     auto* dlw = m_d.dlw;
     auto* dcw = m_d.dcw;
     auto* gso = m_d.gso;
+
+    if (Q_UNLIKELY(!ui || !mw)) {
+        qCWarning(lcUi, "GameActionsWiring::wire(): ui or mw is null");
+        return;
+    }
+    if (Q_UNLIKELY(!dlw || !dcw || !gso)) {
+        qCWarning(lcUi, "GameActionsWiring::wire(): required wiring dependency is null "
+                  "(dlw=%p, dcw=%p, gso=%p)",
+                  static_cast<void*>(dlw), static_cast<void*>(dcw), static_cast<void*>(gso));
+        return;
+    }
 
     // 対局
     QObject::connect(ui->actionNewGame,      &QAction::triggered, mw,  &MainWindow::resetToInitialState,  Qt::UniqueConnection);

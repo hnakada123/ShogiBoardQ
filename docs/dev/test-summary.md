@@ -2,7 +2,7 @@
 
 ## 概要
 
-Qt Test フレームワークによるユニットテスト・統合テストスイート。18 のテスト実行ファイルを収録し、コアロジックから棋譜フォーマット変換、統合ストレステストまでをカバーする。
+Qt Test フレームワークによるユニットテスト・統合テストスイート。57 テスト実行ファイルを収録し、コアロジックから棋譜フォーマット変換、合法手検証、配線契約、構造的KPI、統合ストレステストまでをカバーする。
 
 ## ビルドと実行
 
@@ -23,60 +23,165 @@ ctest --output-on-failure -R tst_shogiboard
 
 ## テスト結果
 
-```
- 1/18 tst_coredatastructures ... Passed
- 2/18 tst_shogiboard .......... Passed
- 3/18 tst_sfentracer .......... Passed
- 4/18 tst_fastmovevalidator ... Passed
- 5/18 tst_shogiclock .......... Passed
- 6/18 tst_kifconverter ........ Passed
- 7/18 tst_ki2converter ........ Passed
- 8/18 tst_csaconverter ........ Passed
- 9/18 tst_jkfconverter ........ Passed
-10/18 tst_usiconverter ........ Passed
-11/18 tst_usenconverter ....... Passed
-12/18 tst_kifubranchtree ...... Passed
-13/18 tst_livegamesession ..... Passed
-14/18 tst_navigation .......... Passed
-15/18 tst_gamerecordmodel ..... Passed
-16/18 tst_josekiwindow ........ Passed
-17/18 tst_positionedit_gamestart ... Passed
-18/18 tst_integration ......... Passed
+57 テスト実行ファイル、57 CTest ケース（各実行ファイルに複数のテスト関数を含む）。
 
-100% tests passed, 0 tests failed out of 18
+```
+ 1/57 tst_coredatastructures ............... Passed
+ 2/57 tst_errorbus ......................... Passed
+ 3/57 tst_shogiboard ....................... Passed
+ 4/57 tst_shogimove ........................ Passed
+ 5/57 tst_shogiutils ....................... Passed
+ 6/57 tst_movevalidator .................... Passed
+ 7/57 tst_sfentracer ....................... Passed
+ 8/57 tst_shogiclock ....................... Passed
+ 9/57 tst_kifconverter ..................... Passed
+10/57 tst_ki2converter ..................... Passed
+11/57 tst_csaconverter ..................... Passed
+12/57 tst_jkfconverter ..................... Passed
+13/57 tst_usiconverter ..................... Passed
+14/57 tst_usenconverter .................... Passed
+15/57 tst_kifubranchtree ................... Passed
+16/57 tst_livegamesession .................. Passed
+17/57 tst_navigation ....................... Passed
+18/57 tst_gamerecordmodel .................. Passed
+19/57 tst_kifu_comment_sync ................ Passed
+20/57 tst_josekiwindow ..................... Passed
+21/57 tst_positionedit_gamestart ........... Passed
+22/57 tst_preset_gamestart_cleanup ......... Passed
+23/57 tst_integration ...................... Passed
+24/57 tst_usiprotocolhandler ............... Passed
+25/57 tst_ui_display_consistency ........... Passed
+26/57 tst_analysisflow ..................... Passed
+27/57 tst_game_start_flow .................. Passed
+28/57 tst_game_end_handler ................. Passed
+29/57 tst_game_start_orchestrator .......... Passed
+30/57 tst_fmvbitboard81 .................... Passed
+31/57 tst_fmvconverter ..................... Passed
+32/57 tst_fmvposition ...................... Passed
+33/57 tst_fmvlegalcore ..................... Passed
+34/57 tst_enginemovevalidator_compat ....... Passed
+35/57 tst_enginemovevalidator_context ...... Passed
+36/57 tst_fmv_perft ........................ Passed
+37/57 tst_enginemovevalidator_crosscheck ... Passed
+38/57 tst_parsecommon ...................... Passed
+39/57 tst_layer_dependencies ............... Passed
+40/57 tst_structural_kpi ................... Passed
+41/57 tst_csaprotocol ...................... Passed
+42/57 tst_settings_roundtrip ............... Passed
+43/57 tst_app_lifecycle_pipeline ........... Passed
+44/57 tst_app_game_session ................. Passed
+45/57 tst_app_kifu_load .................... Passed
+46/57 tst_app_ui_state_policy .............. Passed
+47/57 tst_app_branch_navigation ............ Passed
+48/57 tst_wiring_contracts ................. Passed
+49/57 tst_matchcoordinator ................. Passed
+50/57 tst_gamestrategy ..................... Passed
+51/57 tst_app_error_handling ............... Passed
+52/57 tst_wiring_csagame ................... Passed
+53/57 tst_wiring_analysistab ............... Passed
+54/57 tst_wiring_consideration ............. Passed
+55/57 tst_wiring_playerinfo ................ Passed
+56/57 tst_lifecycle_scenario ............... Passed
+57/57 tst_wiring_slot_coverage ............. Passed
+
+100% tests passed, 0 tests failed out of 57
 ```
 
 ## テストファイル構成
 
 ```
 tests/
-├── CMakeLists.txt            # テストビルド定義
-├── test_stubs.cpp            # ロギングカテゴリスタブ
-├── fixtures/                 # テスト用棋譜フィクスチャ
-│   ├── test_basic.kif        # KIF形式（7手平手対局）
-│   ├── test_branch.kif       # KIF形式（分岐付き）
-│   ├── test_comments.kif     # KIF形式（コメント付き）
-│   ├── test_basic.ki2        # KI2形式
-│   ├── test_basic.csa        # CSA形式
-│   ├── test_basic.jkf        # JKF形式（JSON）
-│   ├── test_basic.usi        # USI形式
-│   └── test_basic.usen       # USEN形式
-├── tst_coredatastructures.cpp
-├── tst_shogiboard.cpp
-├── tst_sfentracer.cpp
-├── tst_fastmovevalidator.cpp
-├── tst_shogiclock.cpp
-├── tst_kifconverter.cpp
-├── tst_ki2converter.cpp
-├── tst_csaconverter.cpp
-├── tst_jkfconverter.cpp
-├── tst_usiconverter.cpp
-├── tst_usenconverter.cpp
-├── tst_kifubranchtree.cpp
-├── tst_livegamesession.cpp
-├── tst_navigation.cpp
-├── tst_gamerecordmodel.cpp
-└── tst_integration.cpp
+├── CMakeLists.txt                        # テストビルド定義
+├── test_stubs.cpp                        # ロギングカテゴリスタブ
+├── test_stubs_*.cpp                      # テスト固有スタブ群
+├── fixtures/                             # テスト用棋譜フィクスチャ
+│   ├── test_basic.kif                    # KIF形式（7手平手対局）
+│   ├── test_branch.kif                   # KIF形式（分岐付き）
+│   ├── test_comments.kif                 # KIF形式（コメント付き）
+│   ├── test_basic.ki2                    # KI2形式
+│   ├── test_basic.csa                    # CSA形式
+│   ├── test_basic.jkf                    # JKF形式（JSON）
+│   ├── test_basic.usi                    # USI形式
+│   └── test_basic.usen                   # USEN形式
+│
+│   ── コアロジック ──
+├── tst_coredatastructures.cpp            # 基本データ構造
+├── tst_errorbus.cpp                      # ErrorBus
+├── tst_shogiboard.cpp                    # 盤面状態管理
+├── tst_shogimove.cpp                     # 指し手表現
+├── tst_shogiutils.cpp                    # ユーティリティ
+├── tst_movevalidator.cpp                 # 駒移動ルール
+├── tst_sfentracer.cpp                    # SFEN局面追跡
+├── tst_shogiclock.cpp                    # 対局時計
+│
+│   ── 合法手検証 (EngineMoveValidator) ──
+├── tst_fmvbitboard81.cpp                 # Bitboard81
+├── tst_fmvconverter.cpp                  # SFEN↔内部変換
+├── tst_fmvposition.cpp                   # Position do/undo
+├── tst_fmvlegalcore.cpp                  # 合法手生成コア
+├── tst_enginemovevalidator_compat.cpp    # 互換ラッパ
+├── tst_enginemovevalidator_context.cpp   # Context API
+├── tst_enginemovevalidator_crosscheck.cpp # 既知値クロスチェック
+├── tst_fmv_perft.cpp                     # Perft テスト
+│
+│   ── 棋譜形式変換 ──
+├── tst_kifconverter.cpp                  # KIF形式
+├── tst_ki2converter.cpp                  # KI2形式
+├── tst_csaconverter.cpp                  # CSA形式
+├── tst_jkfconverter.cpp                  # JKF形式
+├── tst_usiconverter.cpp                  # USI形式
+├── tst_usenconverter.cpp                 # USEN形式
+├── tst_parsecommon.cpp                   # 棋譜共通ユーティリティ
+│
+│   ── 棋譜・ナビゲーション ──
+├── tst_kifubranchtree.cpp                # 分岐木
+├── tst_livegamesession.cpp               # 対局セッション
+├── tst_navigation.cpp                    # ナビゲーション
+├── tst_gamerecordmodel.cpp               # 棋譜データモデル
+├── tst_kifu_comment_sync.cpp             # コメント同期
+│
+│   ── 対局・ゲーム進行 ──
+├── tst_game_start_flow.cpp               # 対局開始フロー
+├── tst_game_start_orchestrator.cpp       # 対局開始オーケストレータ
+├── tst_game_end_handler.cpp              # 終局処理
+├── tst_matchcoordinator.cpp              # 対局進行コーディネータ
+├── tst_gamestrategy.cpp                  # 対局モード別Strategy
+│
+│   ── エンジン・プロトコル ──
+├── tst_usiprotocolhandler.cpp            # USIプロトコル
+├── tst_csaprotocol.cpp                   # CSAプロトコル
+│
+│   ── UI・解析 ──
+├── tst_josekiwindow.cpp                  # 定跡ウィンドウ
+├── tst_positionedit_gamestart.cpp        # 局面編集→対局開始
+├── tst_preset_gamestart_cleanup.cpp      # プリセット対局開始→クリーンアップ
+├── tst_ui_display_consistency.cpp        # UI表示整合性
+├── tst_analysisflow.cpp                  # 解析フロー
+├── tst_app_ui_state_policy.cpp           # UI状態ポリシー
+│
+│   ── 配線契約・構造検証 ──
+├── tst_wiring_contracts.cpp              # MatchCoordinatorWiring契約
+├── tst_wiring_csagame.cpp                # CsaGameWiring契約
+├── tst_wiring_analysistab.cpp            # AnalysisTabWiring契約
+├── tst_wiring_consideration.cpp          # ConsiderationWiring契約
+├── tst_wiring_playerinfo.cpp             # PlayerInfoWiring契約
+├── tst_wiring_slot_coverage.cpp          # 接続漏れ/重複検出
+│
+│   ── アプリ構造・ライフサイクル ──
+├── tst_app_lifecycle_pipeline.cpp        # 起動/終了フロー構造契約
+├── tst_app_game_session.cpp              # 対局セッション構造契約
+├── tst_app_kifu_load.cpp                 # 棋譜ロード構造契約
+├── tst_app_branch_navigation.cpp         # 分岐ナビゲーション構造契約
+├── tst_app_error_handling.cpp            # 異常系・防御パターン構造契約
+├── tst_lifecycle_scenario.cpp            # 全フェーズシナリオ
+├── tst_layer_dependencies.cpp            # レイヤ間依存方向検証
+├── tst_structural_kpi.cpp                # コード品質指標
+│
+│   ── 設定 ──
+├── tst_settings_roundtrip.cpp            # 設定の保存→復元
+│
+│   ── 統合テスト ──
+└── tst_integration.cpp                   # 複数コンポーネント連携
 ```
 
 ## テスト詳細
@@ -141,19 +246,11 @@ SFEN局面追跡のユニットテスト。
 | `buildGameMoves` | USI手列 → ShogiMove列変換 |
 | `buildSfenRecord` | 初期局面+USI手列 → SFEN列構築 |
 
-### 4. tst_fastmovevalidator（9テスト）
+### 4. tst_movevalidator（駒移動ルール）
 
-合法手判定のユニットテスト。
+駒種別の移動ルール検証。
 
-| テスト名 | 検証内容 |
-|----------|---------|
-| `legalMoves_hirate` | 平手初期局面の先手合法手数 == 30 |
-| `isLegalMove_pawnAdvance` | 7g7f（歩前進）が合法 |
-| `isLegalMove_pawnBackward_illegal` | 歩の後退が非合法 |
-| `twoPawn_illegal` | 二歩判定: 同筋に歩がある場合の打ち歩が非合法 |
-| `kingInCheck` | 王手判定: checkIfKingInCheck() >= 1 |
-| `promotionInEnemyTerritory` | 敵陣での成り: promotingMoveExists == true |
-| `mandatoryPromotion_pawnOnFirstRank` | 強制成り: 1段目歩で不成非合法、成のみ合法 |
+※ 旧 `tst_fastmovevalidator` は `tst_movevalidator` + `tst_fmv*` + `tst_enginemovevalidator_*` に分割された。
 
 ### 5. tst_shogiclock（9テスト）
 
@@ -306,7 +403,7 @@ USEN形式コンバータのユニットテスト。
 
 | テスト名 | 検証内容 |
 |----------|---------|
-| `testRepeatedRandomGames` | ShogiBoard + FastMoveValidator でランダム合法手対局×100回。不変条件: 盤上+駒台の駒数合計==40 |
+| `testRepeatedRandomGames` | ShogiBoard + EngineMoveValidator でランダム合法手対局×100回。不変条件: 盤上+駒台の駒数合計==40 |
 | `testKifuLoadAndNavigate` | KIF読込 → ツリー構築 → ランダムナビゲーション1000回。不変条件: currentNode()!=nullptr |
 | `testRepeatedLiveGameSessions` | start→addMove×10→commit を20サイクル。不変条件: lineCount 単調増加 |
 | `testSfenConsistencyInvariant` | 複数SFENで setSfen→convertBoardToSfen ラウンドトリップ×100回 |
@@ -334,20 +431,20 @@ static const std::array<QString, 16> a = {{ ... /* 16要素 */ }};
 
 ## テストカバレッジの範囲
 
-| カテゴリ | 対象クラス | テスト数 |
-|---------|-----------|---------|
-| 基本データ構造 | ShogiMove, TurnManager, ShogiUtils, JishogiCalculator | 16 |
-| 盤面管理 | ShogiBoard | 15 |
-| 局面追跡 | SfenPositionTracer | 8 |
-| 合法手判定 | FastMoveValidator | 9 |
-| 対局時計 | ShogiClock | 9 |
-| 棋譜形式変換 | KIF, KI2, CSA, JKF, USI, USEN コンバータ | 21 |
-| 棋譜分岐木 | KifuBranchTree | 13 |
-| 対局セッション | LiveGameSession | 7 |
-| ナビゲーション | KifuNavigationController, KifuNavigationState | 9 |
-| 棋譜データモデル | GameRecordModel | 9 |
-| 統合テスト | 複数コンポーネント連携 | 5 |
-| **合計** | | **更新中（テスト追加に追随）** |
+| カテゴリ | テスト実行ファイル | CTest数 |
+|---------|-------------------|--------|
+| コアロジック | tst_coredatastructures, tst_errorbus, tst_shogiboard, tst_shogimove, tst_shogiutils, tst_movevalidator, tst_sfentracer, tst_shogiclock | 8 |
+| 合法手検証 (EMV) | tst_fmvbitboard81, tst_fmvconverter, tst_fmvposition, tst_fmvlegalcore, tst_enginemovevalidator_compat, tst_enginemovevalidator_context, tst_enginemovevalidator_crosscheck, tst_fmv_perft | 8 |
+| 棋譜形式変換 | tst_kifconverter, tst_ki2converter, tst_csaconverter, tst_jkfconverter, tst_usiconverter, tst_usenconverter, tst_parsecommon | 7 |
+| 棋譜・ナビゲーション | tst_kifubranchtree, tst_livegamesession, tst_navigation, tst_gamerecordmodel, tst_kifu_comment_sync | 5 |
+| 対局・ゲーム進行 | tst_game_start_flow, tst_game_start_orchestrator, tst_game_end_handler, tst_matchcoordinator, tst_gamestrategy | 5 |
+| エンジン・プロトコル | tst_usiprotocolhandler, tst_csaprotocol | 2 |
+| UI・解析 | tst_josekiwindow, tst_positionedit_gamestart, tst_preset_gamestart_cleanup, tst_ui_display_consistency, tst_analysisflow, tst_app_ui_state_policy | 6 |
+| 配線契約・構造検証 | tst_wiring_contracts, tst_wiring_csagame, tst_wiring_analysistab, tst_wiring_consideration, tst_wiring_playerinfo, tst_wiring_slot_coverage | 6 |
+| アプリ構造・ライフサイクル | tst_app_lifecycle_pipeline, tst_app_game_session, tst_app_kifu_load, tst_app_branch_navigation, tst_app_error_handling, tst_lifecycle_scenario, tst_layer_dependencies, tst_structural_kpi | 8 |
+| 設定 | tst_settings_roundtrip | 1 |
+| 統合テスト | tst_integration | 1 |
+| **合計** | | **57** |
 
 ## テストフィクスチャ
 
