@@ -328,8 +328,8 @@ private slots:
 
         handler.onDataReceived(QStringLiteral("bestmove"));
 
-        // bestMoveReceived は handleBestMoveLine の前に flag 設定されるので emit される
-        QCOMPARE(spyBest.count(), 1);
+        // 不正フォーマットは bestMoveReceived を発行しない
+        QCOMPARE(spyBest.count(), 0);
         // handleBestMoveLine でエラーシグナルが発行される
         QCOMPARE(spyError.count(), 1);
     }
@@ -1165,6 +1165,38 @@ private slots:
 
         QVERIFY2(timer.elapsed() < 250,
                  "waitForStopOrPonderhit should return immediately when stop already sent");
+    }
+
+    void waitForBestMove_abortsOnCancelCurrentOperation()
+    {
+        UsiProtocolHandler handler;
+
+        QTimer cancelTimer;
+        cancelTimer.setSingleShot(true);
+        connect(&cancelTimer, &QTimer::timeout,
+                &handler, &UsiProtocolHandler::cancelCurrentOperation);
+        cancelTimer.start(30);
+
+        QElapsedTimer timer;
+        timer.start();
+        const bool ok = handler.waitForBestMove(1000);
+
+        QVERIFY(!ok);
+        QVERIFY2(timer.elapsed() < 300,
+                 "waitForBestMove should abort quickly when operation is canceled");
+    }
+
+    void keepWaitingForBestMove_hardTimeout()
+    {
+        UsiProtocolHandler handler;
+
+        QElapsedTimer timer;
+        timer.start();
+        const bool ok = handler.keepWaitingForBestMove(50);
+
+        QVERIFY(!ok);
+        QVERIFY2(timer.elapsed() < 300,
+                 "keepWaitingForBestMove should return false on hard-timeout");
     }
 };
 

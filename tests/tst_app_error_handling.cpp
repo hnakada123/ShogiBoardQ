@@ -1046,6 +1046,24 @@ private slots:
                       "m_shutdownDone should be initialized to false in header");
         }
     }
+
+    // ================================================================
+    // 12. CSA ダイアログの機密情報保存ポリシー
+    // ================================================================
+
+    /// CsaGameDialog がパスワードを設定ファイルへ保存しないこと
+    void csaGameDialogDoesNotPersistPassword()
+    {
+        const QString body = readSourceFile(QStringLiteral("src/dialogs/csagamedialog.cpp"));
+        QVERIFY2(!body.isEmpty(), "Failed to read csagamedialog source");
+
+        QVERIFY2(!body.contains(QStringLiteral("setValue(\"password\"")),
+                 "CsaGameDialog must not persist password in QSettings");
+        QVERIFY2(!body.contains(QStringLiteral("value(\"password\"")),
+                 "CsaGameDialog must not read password from QSettings");
+        QVERIFY2(body.contains(QStringLiteral("lineEditPassword->clear()")),
+                 "CsaGameDialog should clear password field on restore/history apply");
+    }
 };
 
 QTEST_MAIN(TestAppErrorHandling)

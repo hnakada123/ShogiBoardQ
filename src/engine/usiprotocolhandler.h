@@ -100,7 +100,8 @@ public:
     [[nodiscard]] bool waitForReadyOk(int timeoutMs = 5000);
     [[nodiscard]] bool waitForBestMove(int timeoutMs);
     [[nodiscard]] bool waitForBestMoveWithGrace(int budgetMs, int graceMs);
-    [[nodiscard]] bool keepWaitingForBestMove();
+    static constexpr int kKeepWaitingHardTimeoutMs = 30 * 60 * 1000; ///< 無制限待機の安全上限(30分)
+    [[nodiscard]] bool keepWaitingForBestMove(int timeoutMs = kKeepWaitingHardTimeoutMs);
     /// sendStop()/sendPonderHit() 済みフラグを待機する（中断条件到達時は復帰）
     void waitForStopOrPonderhit();
 
@@ -166,8 +167,8 @@ private:
     /// コマンド送信（内部）
     void sendCommand(const QString& command);
 
-    /// bestmove行の処理
-    void handleBestMoveLine(const QString& line);
+    /// bestmove行の処理（有効な行を処理した場合true）
+    [[nodiscard]] bool handleBestMoveLine(const QString& line);
     
     /// checkmate行の処理
     void handleCheckmateLine(const QString& line);
@@ -224,6 +225,7 @@ private:
     // --- オペレーションコンテキスト ---
     QPointer<QObject> m_opCtx { nullptr }; ///< 現在のオペレーション（所有、キャンセル時にdelete）
     quint64 m_seq { 0 };               ///< オペレーション通番（キャンセル検出用）
+    quint64 m_activeSearchSeq { 0 };   ///< 直近の go 系探索に対応する通番
 
 };
 
