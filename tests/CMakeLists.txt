@@ -921,6 +921,158 @@ add_shogi_test(tst_lifecycle_runtime
     ${SRC}/app/playmodepolicyservice.cpp
 )
 
+# ============================================================
+# Unit: JosekiRepository + JosekiPresenter テスト
+# ============================================================
+add_shogi_test(tst_joseki_repository
+    tst_joseki_repository.cpp
+    ${TEST_STUBS}
+    ${SRC}/dialogs/josekirepository.cpp
+    ${SRC}/dialogs/josekipresenter.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/kifu/formats/kiftosfenconverter.cpp
+    ${SRC}/kifu/formats/kiflexer.cpp
+    ${SRC}/kifu/formats/kiflexer_bod.cpp
+    ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/kifubranchnode.cpp
+)
+
+# ============================================================
+# Unit: TsumeshogiPositionGenerator + TsumePositionUtil テスト
+# ============================================================
+add_shogi_test(tst_tsumeshogi_generator
+    tst_tsumeshogi_generator.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/analysis/tsumeshogipositiongenerator.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/common/errorbus.cpp
+    ${EMV_SOURCES}
+)
+
+# ============================================================
+# Unit: AnalysisCoordinator + AnalysisResultHandler テスト
+# ============================================================
+add_shogi_test(tst_analysis_coordinator
+    tst_analysis_coordinator.cpp
+    test_stubs_analysis_coordinator.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/analysis/analysiscoordinator.cpp
+    ${SRC}/analysis/analysisresulthandler.cpp
+)
+
+# ============================================================
+# Unit: ConsiderationPositionResolver テスト
+# ============================================================
+add_shogi_test(tst_consideration_resolver
+    tst_consideration_resolver.cpp
+    ${TEST_STUBS}
+    ${SRC}/kifu/considerationpositionresolver.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/kifu/kifubranchnode.cpp
+    ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifunavigationstate.cpp
+)
+
+# ============================================================
+# Unit: 詰み探索フロー統合テスト
+# ============================================================
+add_shogi_test(tst_tsume_search
+    tst_tsume_search.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/common/tsumepositionutil.cpp
+)
+
+# ============================================================
+# Unit: BoardImageExporter テスト
+# ============================================================
+add_shogi_test(tst_image_export
+    tst_image_export.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/board/boardimageexporter.cpp
+)
+
+# ============================================================
+# Unit: SfenCollectionDialog テスト
+# ============================================================
+add_shogi_test(tst_sfen_collection
+    tst_sfen_collection.cpp
+    test_stubs_sfen_collection.cpp
+    ${SRC}/views/shogiview.h
+    ${SRC}/widgets/elidelabel.h
+    ${SRC}/dialogs/sfencollectiondialog.cpp
+    ${SRC}/common/dialogutils.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/fontsizehelper.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SETTINGS_SOURCES}
+)
+
+# ============================================================
+# Unit: DockLayoutManager テスト
+# ============================================================
+add_shogi_test(tst_dock_layout
+    tst_dock_layout.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/ui/coordinators/docklayoutmanager.cpp
+    ${SETTINGS_SOURCES}
+)
+
+# ============================================================
+# Unit: MenuWindow テスト
+# ============================================================
+add_shogi_test(tst_menu_window
+    tst_menu_window.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/dialogs/menuwindow.cpp
+    ${SRC}/widgets/menubuttonwidget.cpp
+    ${SETTINGS_SOURCES}
+)
+
+# ============================================================
+# Unit: LanguageController テスト
+# ============================================================
+add_shogi_test(tst_language_controller
+    tst_language_controller.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/ui/controllers/languagecontroller.cpp
+    ${SETTINGS_SOURCES}
+)
+
+# ============================================================
+# Unit: JishogiCalculator テスト
+# ============================================================
+add_shogi_test(tst_jishogi_calculator
+    tst_jishogi_calculator.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/jishogicalculator.cpp
+)
+
+# ============================================================
+# Unit: 翻訳ファイル品質テスト
+# ============================================================
+add_shogi_test(tst_translation_files
+    tst_translation_files.cpp
+)
+target_compile_definitions(tst_translation_files PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+)
+
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
 add_executable(bench_movevalidator
     bench_movevalidator.cpp
