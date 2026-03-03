@@ -15,6 +15,7 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QAbstractItemView>
+#include <utility>
 
 using namespace EngineSettingsConstants;
 
@@ -384,7 +385,7 @@ void StartGameDialog::applyFontSize(int size)
     ui->scrollAreaWidgetContents->setFont(font);
 
     const QList<QWidget*> widgets = findChildren<QWidget*>();
-    for (QWidget* widget : widgets) {
+    for (QWidget* widget : std::as_const(widgets)) {
         if (widget) {
             widget->setFont(font);
         }
@@ -392,7 +393,7 @@ void StartGameDialog::applyFontSize(int size)
 
     // コンボボックスのドロップダウンリストにも反映
     const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
-    for (QComboBox* comboBox : comboBoxes) {
+    for (QComboBox* comboBox : std::as_const(comboBoxes)) {
         if (comboBox && comboBox->view()) {
             comboBox->view()->setFont(font);
         }

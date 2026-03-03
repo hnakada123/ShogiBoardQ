@@ -8,6 +8,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
+#include <utility>
 
 namespace {
 constexpr QSize kDefaultSize{600, 500};
@@ -186,7 +187,7 @@ void KifuPasteDialog::applyFontSize()
 
     // 全子ウィジェットにフォントを適用
     const auto widgets = findChildren<QWidget*>();
-    for (QWidget* widget : widgets) {
+    for (QWidget* widget : std::as_const(widgets)) {
         if (widget && widget != m_textEdit) {
             widget->setFont(font);
         }

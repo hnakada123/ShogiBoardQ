@@ -8,7 +8,6 @@
 #include <QMap>
 #include <QString>
 #include <QStringList>
-#include <QList>
 #include "ki2lexer.h"
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"

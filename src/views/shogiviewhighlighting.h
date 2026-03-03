@@ -10,7 +10,6 @@
 #include <QHash>
 #include <QList>
 #include <QPixmap>
-#include <QList>
 
 class QPainter;
 class QLabel;

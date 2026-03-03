@@ -24,11 +24,12 @@
 #include <QClipboard>
 #include <QApplication>
 #include <QTimer>
+#include <memory>
 
 JosekiWindow::JosekiWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
-    , m_repository(new JosekiRepository())
-    , m_presenter(new JosekiPresenter(m_repository, this))
+    , m_repository(std::make_unique<JosekiRepository>())
+    , m_presenter(new JosekiPresenter(m_repository.get(), this))
     , m_fontHelper({JosekiSettings::josekiWindowFontSize(), 6, 24, 1,
                     JosekiSettings::setJosekiWindowFontSize})
 {
@@ -40,6 +41,8 @@ JosekiWindow::JosekiWindow(QWidget *parent)
     connect(&m_saveWatcher, &QFutureWatcher<JosekiSaveResult>::finished,
             this, &JosekiWindow::onAsyncSaveFinished);
 }
+
+JosekiWindow::~JosekiWindow() = default;
 
 int JosekiWindow::currentPlyNumber() const
 {

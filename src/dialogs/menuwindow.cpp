@@ -12,6 +12,7 @@
 #include <QFrame>
 #include <QDebug>
 #include <memory>
+#include <utility>
 
 MenuWindow::MenuWindow(QWidget* parent)
     : QWidget(parent, Qt::Window)
@@ -111,7 +112,7 @@ void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
 
     // アクションマップを構築
     for (const auto& category : categories) {
-        for (QAction* action : category.actions) {
+        for (QAction* action : std::as_const(category.actions)) {
             if (action && !action->objectName().isEmpty()) {
                 m_actionMap[action->objectName()] = action;
             }
@@ -222,7 +223,7 @@ void MenuWindow::populateGrid(QGridLayout* layout, const QList<QAction*>& action
     int row = 0;
     int col = 0;
 
-    for (QAction* action : actions) {
+    for (QAction* action : std::as_const(actions)) {
         if (!action || action->objectName().isEmpty()) continue;
         if (action->isSeparator()) continue;
 

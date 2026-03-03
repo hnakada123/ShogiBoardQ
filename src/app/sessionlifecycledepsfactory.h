@@ -6,6 +6,7 @@
 
 #include "sessionlifecyclecoordinator.h"
 #include "mainwindowruntimerefs.h"
+#include <functional>
 
 /**
  * @brief SessionLifecycleCoordinator::Deps を RuntimeRefs + コールバックから生成する純粋ファクトリ

@@ -8,7 +8,6 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QList>
 #include "kiftosfenconverter.h"
 #include "playmode.h"
 #include "kifdisplayitem.h"

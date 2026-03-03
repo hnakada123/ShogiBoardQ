@@ -7,6 +7,7 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
+#include <utility>
 #include "logcategories.h"
 
 MenuWindowWiring::MenuWindowWiring(const Dependencies& deps, QObject* parent)
@@ -52,7 +53,7 @@ void MenuWindowWiring::collectCategoriesFromMenuBar()
 
     // メニューバーの各メニューを走査
     const auto menuBarActions = m_menuBar->actions();
-    for (QAction* menuAction : menuBarActions) {
+    for (QAction* menuAction : std::as_const(menuBarActions)) {
         QMenu* menu = menuAction->menu();
         if (!menu) continue;
 
@@ -82,7 +83,7 @@ static void collectActionsFromMenuHelper(QMenu* menu, QList<QAction*>& actions)
     if (!menu) return;
 
     const auto menuActions = menu->actions();
-    for (QAction* action : menuActions) {
+    for (QAction* action : std::as_const(menuActions)) {
         if (action->isSeparator()) continue;
 
         // サブメニューがある場合は再帰的に処理

@@ -9,7 +9,6 @@
 #include <QList>
 #include <QHash>
 #include <QSet>
-#include <QList>
 #include <functional>
 
 #include "kifparsetypes.h"
@@ -122,6 +121,13 @@ public:
     void applyBranchMarksForCurrentLine();
 
 private:
+    bool validateParsedResult(const QString& filePath, const QList<KifDisplayItem>& disp,
+                              bool hasTerminal, const char* callerTag);
+    void rebuildMainlineState(const QString& initialSfen, bool hasTerminal);
+    void rebuildPositionCommands(const QString& initialSfen);
+    void applyToRecordView(const KifParseResult& res, const QString& filePath,
+                           const QString& teaiLabel, const QString& parseWarn);
+    void applyBranchTree(const KifParseResult& res, const QString& initialSfen);
     void rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
     void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
     void addGameInfoTabIfMissing();

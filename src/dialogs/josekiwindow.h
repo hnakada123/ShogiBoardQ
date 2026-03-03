@@ -15,6 +15,7 @@
 #include <QStringList>
 #include <QAction>
 #include <QFutureWatcher>
+#include <memory>
 
 #include "fontsizehelper.h"
 #include "josekiioresult.h"
@@ -61,7 +62,7 @@ class JosekiWindow : public QWidget
 
 public:
     explicit JosekiWindow(QWidget *parent = nullptr);
-    ~JosekiWindow() override = default;
+    ~JosekiWindow() override;
 
     void setCurrentSfen(const QString &sfen);
     void setHumanCanPlay(bool canPlay);
@@ -138,7 +139,7 @@ private:
     int currentPlyNumber() const;
 
     // --- Repository / Presenter ---
-    JosekiRepository *m_repository = nullptr;
+    std::unique_ptr<JosekiRepository> m_repository;
     JosekiPresenter  *m_presenter = nullptr;
 
     // === ファイルグループ ===

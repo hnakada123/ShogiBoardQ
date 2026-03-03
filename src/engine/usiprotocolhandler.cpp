@@ -46,11 +46,21 @@ UsiProtocolHandler::~UsiProtocolHandler()
 
 void UsiProtocolHandler::setProcessManager(EngineProcessManager* manager)
 {
+    if (m_processManager == manager) {
+        return;
+    }
+
+    if (m_processManager) {
+        disconnect(m_processManager, &EngineProcessManager::dataReceived,
+                   this, &UsiProtocolHandler::onDataReceived);
+    }
+
     m_processManager = manager;
-    
+
     if (m_processManager) {
         connect(m_processManager, &EngineProcessManager::dataReceived,
-                this, &UsiProtocolHandler::onDataReceived);
+                this, &UsiProtocolHandler::onDataReceived,
+                Qt::UniqueConnection);
     }
 }
 

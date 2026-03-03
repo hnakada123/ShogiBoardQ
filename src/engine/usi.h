@@ -9,7 +9,6 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QThread>
 #include <QPointer>
 #include <QTimer>
 #include <memory>

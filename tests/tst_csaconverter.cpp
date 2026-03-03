@@ -439,7 +439,7 @@ private slots:
         QTest::newRow("binary_garbage")
             << QByteArray("\x01\x02\x03\x04\x05\x06\x07\x08");
         QTest::newRow("very_long_move_line")
-            << QByteArray("PI\n+\n+" + QByteArray(10000, 'A') + "\n");
+            << (QByteArray("PI\n+\n+") + QByteArray(10000, 'A') + QByteArray("\n"));
         QTest::newRow("move_with_embedded_comment")
             << QByteArray("PI\n+\n+7776FU'comment in move line\n");
         QTest::newRow("repeated_position_blocks")

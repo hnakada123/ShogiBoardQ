@@ -25,7 +25,7 @@
 - Compiler warnings are strict (`-Wall -Wextra -Wpedantic -Wshadow -Wconversion`); keep code warning-clean.
 
 ## Testing Guidelines
-- テストは `tests/` ディレクトリに集約されており、Qt Test フレームワークを使用（31 テスト）。
+- テストは `tests/` ディレクトリに集約されており、Qt Test フレームワークを使用（件数は `docs/dev/test-summary.md` を参照）。
 - ビルド方法:
   ```bash
   cmake -B build -S . -DBUILD_TESTING=ON

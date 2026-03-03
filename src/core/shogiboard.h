@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QList>
 #include <QMap>
+#include <optional>
 #include "shogitypes.h"
 
 /**

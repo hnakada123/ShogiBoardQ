@@ -6,6 +6,7 @@
 
 #include "kifunavigationcoordinator.h"
 #include "mainwindowruntimerefs.h"
+#include <functional>
 
 /**
  * @brief KifuNavigationCoordinator::Deps を RuntimeRefs + コールバックから生成する純粋ファクトリ

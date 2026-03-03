@@ -8,6 +8,7 @@
 #include "ui/wiring/dialogcoordinatorwiring.h"
 #include "kifu/kifufilecontroller.h"
 #include "ui/wiring/recordnavigationwiring.h"
+#include <functional>
 
 class QAction;
 

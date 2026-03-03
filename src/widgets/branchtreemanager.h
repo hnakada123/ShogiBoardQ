@@ -6,7 +6,6 @@
 
 #include <QObject>
 #include <QList>
-#include <QList>
 #include <QStringList>
 #include <QMap>
 #include <QPair>

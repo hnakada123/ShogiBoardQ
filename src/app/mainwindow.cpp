@@ -43,7 +43,7 @@
 #include "debugscreenshotwiring.h"
 #endif
 
-// --- QPointer<T> の完全型（buildRuntimeRefs 用） ---
+// --- QPointer<T> の完全型（QPointer<T> -> T* 変換に必要） ---
 #include "boardinteractioncontroller.h"    // IWYU pragma: keep
 #include "boardsyncpresenter.h"            // IWYU pragma: keep
 #include "kifuloadcoordinator.h"           // IWYU pragma: keep
@@ -172,9 +172,26 @@ void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 // `buildRuntimeRefs`: 現在のメンバ変数から MainWindowRuntimeRefs スナップショットを構築する。
 MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
 {
+    // 契約:
+    // - 本関数は参照スナップショットの構築のみ行い、副作用を持たない。
+    // - QueryService 等の遅延生成依存が null でも安全に呼び出せる。
     MainWindowRuntimeRefs refs;
+    buildUiRefs(refs);
+    buildModelRefs(refs);
+    buildKifuRefs(refs);
+    buildStateRefs(refs);
+    buildBranchNavRefs(refs);
+    buildPlayerRefs(refs);
+    buildGameServiceRefs(refs);
+    buildKifuServiceRefs(refs);
+    buildUiControllerRefs(refs);
+    buildAnalysisRefs(refs);
+    buildGameControllerRefs(refs);
+    return refs;
+}
 
-    // --- UI 参照 ---
+void MainWindow::buildUiRefs(MainWindowRuntimeRefs& refs)
+{
     refs.ui.parentWidget = this;
     refs.ui.mainWindow = this;
     refs.ui.statusBar = ui->statusbar;
@@ -182,8 +199,10 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.ui.recordPane = m_recordPane;
     refs.ui.evalChart = m_evalChart;
     refs.ui.analysisTab = m_analysisTab;
+}
 
-    // --- モデル参照 ---
+void MainWindow::buildModelRefs(MainWindowRuntimeRefs& refs)
+{
     refs.models.kifuRecordModel = m_models.kifuRecord;
     refs.models.considerationModel = &m_models.consideration;
     refs.models.thinking1 = m_models.thinking1;
@@ -192,8 +211,13 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.models.commLog1 = m_models.commLog1;
     refs.models.commLog2 = m_models.commLog2;
     refs.models.gameRecordModel = m_models.gameRecord;
+}
 
-    // --- 棋譜データ参照 ---
+void MainWindow::buildKifuRefs(MainWindowRuntimeRefs& refs)
+{
+    // null 許容ポリシー:
+    // - m_queryService は shutdown 中に null / 無効化される可能性がある。
+    // - 呼び出し側は sfenRecord が null の場合を許容して処理する。
     refs.kifu.sfenRecord = m_queryService ? m_queryService->sfenRecord() : nullptr;
     refs.kifu.gameMoves = &m_kifu.gameMoves;
     refs.kifu.gameUsiMoves = &m_kifu.gameUsiMoves;
@@ -204,38 +228,50 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.kifu.saveFileName = &m_kifu.saveFileName;
     refs.kifu.commentsByRow = &m_kifu.commentsByRow;
     refs.kifu.onMainRowGuard = &m_kifu.onMainRowGuard;
+}
 
-    // --- 可変状態参照 ---
+void MainWindow::buildStateRefs(MainWindowRuntimeRefs& refs)
+{
     refs.state.playMode = &m_state.playMode;
     refs.state.currentMoveIndex = &m_state.currentMoveIndex;
     refs.state.currentSfenStr = &m_state.currentSfenStr;
     refs.state.startSfenStr = &m_state.startSfenStr;
     refs.state.skipBoardSyncForBranchNav = &m_state.skipBoardSyncForBranchNav;
     refs.state.resumeSfenStr = &m_state.resumeSfenStr;
+}
 
-    // --- 分岐ナビゲーション参照 ---
+void MainWindow::buildBranchNavRefs(MainWindowRuntimeRefs& refs)
+{
     refs.branchNav.branchTree = m_branchNav.branchTree;
     refs.branchNav.navState = m_branchNav.navState;
     refs.branchNav.displayCoordinator = m_branchNav.displayCoordinator;
+}
 
-    // --- 対局者名参照 ---
+void MainWindow::buildPlayerRefs(MainWindowRuntimeRefs& refs)
+{
     refs.player.humanName1 = &m_player.humanName1;
     refs.player.humanName2 = &m_player.humanName2;
     refs.player.engineName1 = &m_player.engineName1;
     refs.player.engineName2 = &m_player.engineName2;
+}
 
-    // --- ゲームサービス参照 ---
+void MainWindow::buildGameServiceRefs(MainWindowRuntimeRefs& refs)
+{
     refs.gameService.match = m_match;
     refs.gameService.gameController = m_gameController;
     refs.gameService.csaGameCoordinator = m_csaGameCoordinator;
     refs.gameService.shogiView = m_shogiView;
+}
 
-    // --- 棋譜サービス参照 ---
+void MainWindow::buildKifuServiceRefs(MainWindowRuntimeRefs& refs)
+{
     refs.kifuService.kifuLoadCoordinator = m_kifuLoadCoordinator;
     refs.kifuService.recordPresenter = m_recordPresenter;
     refs.kifuService.replayController = m_replayController;
+}
 
-    // --- UIコントローラ参照 ---
+void MainWindow::buildUiControllerRefs(MainWindowRuntimeRefs& refs)
+{
     refs.uiController.timeController = m_timeController;
     refs.uiController.boardController = m_boardController;
     refs.uiController.positionEditController = m_posEdit;
@@ -243,17 +279,19 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.uiController.uiStatePolicy = m_uiStatePolicy;
     refs.uiController.boardSync = m_boardSync;
     refs.uiController.playerInfoWiring = m_playerInfoWiring;
+}
 
-    // --- 解析参照 ---
+void MainWindow::buildAnalysisRefs(MainWindowRuntimeRefs& refs)
+{
     refs.analysis.gameInfoController = m_gameInfoController;
     refs.analysis.evalGraphController = m_evalGraphController.get();
     refs.analysis.analysisPresenter = m_analysisPresenter.get();
+}
 
-    // --- ゲームコントローラ参照 ---
+void MainWindow::buildGameControllerRefs(MainWindowRuntimeRefs& refs)
+{
     refs.gameCtrl.gameStateController = m_gameStateController;
     refs.gameCtrl.consecutiveGamesController = m_consecutiveGamesController;
-
-    return refs;
 }
 
 // `refreshPlayModePolicyDeps`: PlayModePolicyService の依存を最新に更新する。

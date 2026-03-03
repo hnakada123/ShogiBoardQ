@@ -8,6 +8,7 @@
 /// @brief F12キーでスクリーンショットを撮るためのショートカット配線
 
 #include <QObject>
+#include <memory>
 
 class QMainWindow;
 class DebugScreenshotService;
@@ -22,13 +23,14 @@ class DebugScreenshotWiring final : public QObject {
     Q_OBJECT
 public:
     explicit DebugScreenshotWiring(QMainWindow* mainWindow, QObject* parent = nullptr);
+    ~DebugScreenshotWiring() override;
     DebugScreenshotService* service() const;
 
 public slots:
     void onShortcutActivated();
 
 private:
-    DebugScreenshotService* m_service = nullptr;
+    std::unique_ptr<DebugScreenshotService> m_service;
 };
 
 #endif // QT_DEBUG

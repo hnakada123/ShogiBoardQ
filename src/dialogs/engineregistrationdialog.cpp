@@ -13,6 +13,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <utility>
 
 // 将棋エンジン登録ダイアログを表示する。
 EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
@@ -243,7 +244,7 @@ void EngineRegistrationDialog::applyFontSize()
 
     // すべての子ウィジェットにフォントを明示的に設定する（KDE Breezeでは親の設定が伝搬しないため）
     const auto widgets = findChildren<QWidget*>();
-    for (QWidget* widget : widgets) {
+    for (QWidget* widget : std::as_const(widgets)) {
         widget->setFont(font);
     }
 }
