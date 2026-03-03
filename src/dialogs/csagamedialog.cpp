@@ -135,7 +135,6 @@ void CsaGameDialog::loadServerHistory()
         history.host = settings.value("host").toString();
         history.port = settings.value("port", 4081).toInt();
         history.id = settings.value("id").toString();
-        history.password = settings.value("password").toString();
         history.version = settings.value("version", "CSAプロトコル1.2.1 読み筋コメント出力あり").toString();
         m_serverHistory.append(history);
     }
@@ -151,7 +150,6 @@ void CsaGameDialog::saveServerHistory()
     current.host = ui->lineEditHost->text().trimmed();
     current.port = ui->spinBoxPort->value();
     current.id = ui->lineEditId->text().trimmed();
-    current.password = ui->lineEditPassword->text();
     current.version = ui->comboBoxVersion->currentText();
 
     // 空の場合は保存しない
@@ -186,7 +184,6 @@ void CsaGameDialog::saveServerHistory()
         settings.setValue("host", h.host);
         settings.setValue("port", h.port);
         settings.setValue("id", h.id);
-        settings.setValue("password", h.password);
         settings.setValue("version", h.version);
     }
     settings.endArray();
@@ -235,7 +232,8 @@ void CsaGameDialog::loadGameSettings()
     ui->lineEditHost->setText(settings.value("host", "").toString());
     ui->spinBoxPort->setValue(settings.value("port", 4081).toInt());
     ui->lineEditId->setText(settings.value("id", "").toString());
-    ui->lineEditPassword->setText(settings.value("password", "").toString());
+    ui->lineEditPassword->clear();
+    settings.remove("password");
 
     int versionIndex = settings.value("versionIndex", 0).toInt();
     if (versionIndex >= 0 && versionIndex < ui->comboBoxVersion->count()) {
@@ -261,7 +259,7 @@ void CsaGameDialog::saveGameSettings()
     settings.setValue("host", ui->lineEditHost->text().trimmed());
     settings.setValue("port", ui->spinBoxPort->value());
     settings.setValue("id", ui->lineEditId->text().trimmed());
-    settings.setValue("password", ui->lineEditPassword->text());
+    settings.remove("password");
     settings.setValue("versionIndex", ui->comboBoxVersion->currentIndex());
 
     settings.endGroup();
@@ -337,7 +335,7 @@ void CsaGameDialog::onServerHistoryChanged(int index)
     ui->lineEditHost->setText(history.host);
     ui->spinBoxPort->setValue(history.port);
     ui->lineEditId->setText(history.id);
-    ui->lineEditPassword->setText(history.password);
+    ui->lineEditPassword->clear();
 
     // バージョンを設定
     int versionIndex = ui->comboBoxVersion->findText(history.version);

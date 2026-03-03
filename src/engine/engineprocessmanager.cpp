@@ -82,7 +82,10 @@ void EngineProcessManager::stopProcess()
             m_process->terminate();
             if (!m_process->waitForFinished(1000)) {
                 m_process->kill();
-                m_process->waitForFinished(-1);
+                if (!m_process->waitForFinished(2000)) {
+                    qCWarning(lcEngine) << logPrefix()
+                                        << "プロセス終了待機がタイムアウトしたため、強制的に解放します";
+                }
             }
         }
     }

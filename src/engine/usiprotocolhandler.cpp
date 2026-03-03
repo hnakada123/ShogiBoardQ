@@ -124,13 +124,6 @@ bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
 
 void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
 {
-    // 処理フロー:
-    // 1. 設定ファイルからエンジンオプション配列を読み込み
-    // 2. 各オプションをsetoptionコマンド文字列に変換
-    //    - buttonタイプ: "on"時のみvalueなしで送信
-    //    - その他: name + valueで送信
-    // 3. USI_Ponderオプションがあればponder有効フラグを更新
-
     m_setOptionCommands.clear();
     m_isPonderEnabled = false;
 
@@ -175,11 +168,13 @@ void UsiProtocolHandler::sendCommand(const QString& command)
 
 void UsiProtocolHandler::sendUsi()
 {
+    (void)beginOperationContext();
     sendCommand("usi");
 }
 
 void UsiProtocolHandler::sendIsReady()
 {
+    (void)beginOperationContext();
     sendCommand("isready");
 }
 
@@ -195,6 +190,11 @@ void UsiProtocolHandler::sendPosition(const QString& positionStr)
 
 void UsiProtocolHandler::beginMainSearch()
 {
+    m_activeSearchSeq = beginOperationContext();
+    m_bestMoveReceived = false;
+    m_specialMove = SpecialMove::None;
+    m_predictedOpponentMove.clear();
+
     if (m_presenter) {
         m_presenter->requestClearThinkingInfo();
     }
@@ -222,6 +222,11 @@ void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QStri
 
 void UsiProtocolHandler::sendGoPonder()
 {
+    m_activeSearchSeq = beginOperationContext();
+    m_bestMoveReceived = false;
+    m_specialMove = SpecialMove::None;
+    m_predictedOpponentMove.clear();
+
     if (m_presenter) {
         m_presenter->requestClearThinkingInfo();
     }
@@ -232,6 +237,11 @@ void UsiProtocolHandler::sendGoPonder()
 
 void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
 {
+    m_activeSearchSeq = beginOperationContext();
+    m_bestMoveReceived = false;
+    m_specialMove = SpecialMove::None;
+    m_predictedOpponentMove.clear();
+
     m_modeTsume = true;
     if (infinite || timeMs <= 0) {
         sendCommand("go mate infinite");
@@ -326,7 +336,7 @@ void UsiProtocolHandler::sendGameOver(GameOverResult result)
 void UsiProtocolHandler::sendQuit()
 {
     cancelCurrentOperation();
-    
+    m_activeSearchSeq = 0;
     if (m_processManager) {
         m_processManager->setShutdownState(
             EngineProcessManager::ShutdownState::IgnoreAllExceptInfoString);
@@ -358,14 +368,6 @@ void UsiProtocolHandler::sendRaw(const QString& command)
 
 void UsiProtocolHandler::onDataReceived(const QString& line)
 {
-    // 処理フロー:
-    // 1. タイムアウト宣言済みなら全行を破棄
-    // 2. checkmate行 → handleCheckmateLine（詰将棋結果）
-    // 3. bestmove行 → handleBestMoveLine（最善手解析）
-    // 4. info行 → シグナル発行 + Presenterへ転送
-    // 5. readyok → フラグ＋シグナル
-    // 6. usiok → フラグ＋シグナル
-
     if (m_timeoutDeclared) {
         qCDebug(lcEngine) << "[drop-after-timeout]" << line;
         return;
@@ -377,9 +379,10 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     }
 
     if (line.startsWith(QStringLiteral("bestmove"))) {
-        m_bestMoveReceived = true;
-        handleBestMoveLine(line);
-        emit bestMoveReceived();
+        if (handleBestMoveLine(line)) {
+            m_bestMoveReceived = true;
+            emit bestMoveReceived();
+        }
         return;
     }
 
@@ -418,16 +421,15 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     }
 }
 
-void UsiProtocolHandler::handleBestMoveLine(const QString& line)
+bool UsiProtocolHandler::handleBestMoveLine(const QString& line)
 {
-    // 処理フロー:
-    // 1. トークン分割してbestmoveキーワードの位置を特定
-    // 2. オペレーションIDの一致確認（キャンセル済みなら破棄）
-    // 3. 経過時間を記録
-    // 4. resign/win判定 → 重複防止付きでシグナル発行
-    // 5. 通常手 → ponder手があれば取得
-
     const quint64 observedId = m_seq;
+
+    // stop/cancel で世代が進んだ後に届いた遅延 bestmove は破棄する
+    if (m_activeSearchSeq != 0 && observedId != m_activeSearchSeq) {
+        qCDebug(lcEngine) << "[drop-bestmove] (inactive-search-seq)" << line;
+        return false;
+    }
 
     const QStringList tokens = line.split(whitespaceRe(), Qt::SkipEmptyParts);
     const int bestMoveIndex = static_cast<int>(tokens.indexOf(QStringLiteral("bestmove")));
@@ -435,43 +437,41 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     if (bestMoveIndex == -1 || bestMoveIndex + 1 >= tokens.size()) {
         emit errorOccurred(tr("Invalid bestmove format: %1").arg(line));
         cancelCurrentOperation();
-        return;
+        return false;
     }
 
     // キャンセル済みオペレーションからのbestmoveは破棄
     if (observedId != m_seq) {
         qCDebug(lcEngine) << "[drop-bestmove] (op-id-mismatch)" << line;
-        return;
+        return false;
     }
 
     m_bestMove = tokens.at(bestMoveIndex + 1);
 
     qint64 elapsed = m_goTimer.isValid() ? m_goTimer.elapsed() : -1;
     m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
-    m_bestMoveReceived = true;
-
     m_specialMove = parseSpecialMove(m_bestMove);
 
     if (m_specialMove == SpecialMove::Resign) {
         // 重複シグナル防止
         if (m_resignNotified) {
             qCDebug(lcEngine) << "[dup-resign-ignored]";
-            return;
+            return true;
         }
         m_resignNotified = true;
         emit bestMoveResignReceived();
-        return;
+        return true;
     }
 
     if (m_specialMove == SpecialMove::Win) {
         // 重複シグナル防止
         if (m_winNotified) {
             qCDebug(lcEngine) << "[dup-win-ignored]";
-            return;
+            return true;
         }
         m_winNotified = true;
         emit bestMoveWinReceived();
-        return;
+        return true;
     }
 
     const int ponderIdx = static_cast<int>(tokens.indexOf(QStringLiteral("ponder")));
@@ -480,6 +480,8 @@ void UsiProtocolHandler::handleBestMoveLine(const QString& line)
     } else {
         m_predictedOpponentMove.clear();
     }
+
+    return true;
 }
 
 void UsiProtocolHandler::handleCheckmateLine(const QString& line)
@@ -589,5 +591,7 @@ void UsiProtocolHandler::cancelCurrentOperation()
         m_opCtx = nullptr;
     }
     m_stopOrPonderhitPending = false;
+    m_bestMoveReceived = false;
+    m_modeTsume = false;
     ++m_seq;
 }

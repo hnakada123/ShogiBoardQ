@@ -3,6 +3,7 @@
 
 #include "usiprotocolhandler.h"
 #include "engineprocessmanager.h"
+#include "logcategories.h"
 
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -65,6 +66,7 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
     if (timeoutMs <= 0) return false;
 
     m_bestMoveReceived = false;
+    const quint64 expectedId = m_seq;
 
     QElapsedTimer timer;
     timer.start();
@@ -75,7 +77,7 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
         if (timer.elapsed() >= timeoutMs) {
             return false;
         }
-        if (shouldAbortWait()) {
+        if (m_seq != expectedId || shouldAbortWait()) {
             return false;
         }
 
@@ -121,11 +123,24 @@ bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
     return m_bestMoveReceived;
 }
 
-bool UsiProtocolHandler::keepWaitingForBestMove()
+bool UsiProtocolHandler::keepWaitingForBestMove(int timeoutMs)
 {
+    if (timeoutMs <= 0) return false;
+
     m_bestMoveReceived = false;
+    const quint64 expectedId = m_seq;
+    QElapsedTimer timer;
+    timer.start();
 
     while (!m_bestMoveReceived) {
+        if (timer.elapsed() >= timeoutMs) {
+            qCWarning(lcEngine) << "keepWaitingForBestMove: hard-timeout" << timeoutMs << "ms";
+            return false;
+        }
+        if (m_seq != expectedId || shouldAbortWait()) {
+            return false;
+        }
+
         QEventLoop spin;
         QTimer tick;
         tick.setSingleShot(true);

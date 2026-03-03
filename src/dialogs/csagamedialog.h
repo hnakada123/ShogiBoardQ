@@ -47,7 +47,6 @@ public:
         QString host;       ///< 接続先ホスト
         int port;           ///< ポート番号
         QString id;         ///< ログインID
-        QString password;   ///< パスワード
         QString version;    ///< CSAプロトコルバージョン
     };
 
