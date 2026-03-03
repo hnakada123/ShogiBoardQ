@@ -102,6 +102,21 @@ controller = new GameStateController(parent);
 auto* obj = new SomeQObject();  // 誰が破棄するのか不明
 ```
 
+### 5. Wiring クラスの生成ルール
+
+Wiring クラス（`*Wiring`）の `new` は `MainWindowCompositionRoot` または `MainWindowServiceRegistry` の `ensure*` メソッド経由のみで行う。`SignalRouter` やその他のクラスで直接 `new` してはならない。
+
+```cpp
+// Good — CompositionRoot 経由で生成
+wiring = createDialogCoordinatorWiring(parent);  // MainWindowCompositionRoot 内
+
+// Good — Registry の ensure* から CompositionRoot を呼ぶ
+m_mw.m_compositionRoot->ensureDialogCoordinator(refs, callbacks, &m_mw, ...);
+
+// NG — SignalRouter 等で直接 new
+*m_deps.dialogCoordinatorWiringPtr = new DialogCoordinatorWiring(m_deps.mainWindow);
+```
+
 ## 再生成オブジェクトの寿命管理
 
 ### 再生成パターン

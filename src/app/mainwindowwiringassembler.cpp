@@ -63,6 +63,9 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     // CSA通信対局のエンジン評価値グラフ用
     d.getCsaGameCoordinator = [this]() { return m_mw.m_csaGameCoordinator; };
 
+    // CsaGameCoordinator 生成後に PlayModePolicyService の依存を更新
+    d.onCsaGameCoordinatorUpdated = [this]() { m_mw.refreshPlayModePolicyDeps(); };
+
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
     m_mw.m_dialogLaunchWiring = new DialogLaunchWiring(d, &m_mw);

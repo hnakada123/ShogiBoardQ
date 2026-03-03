@@ -595,7 +595,7 @@ private slots:
     // ================================================================
     void filesOver550()
     {
-        constexpr int kMaxFilesOver550 = 10; // 実測値: 10 (2026-03-02, ISSUE-013: 3ファイル分割)
+        constexpr int kMaxFilesOver550 = 8; // 実測値: 8 (2026-03-03, 2ファイル分割: kifudisplaycoordinator, usentosfenconverter)
         constexpr int kThreshold = 550;
 
         const auto files = collectSourceFiles();
@@ -627,7 +627,7 @@ private slots:
     // ================================================================
     void filesOver500()
     {
-        constexpr int kMaxFilesOver500 = 31; // 実測値: 31 (2026-03-01)
+        constexpr int kMaxFilesOver500 = 24; // 実測値: 24 (2026-03-03, 2ファイル分割)
         constexpr int kThreshold = 500;
 
         const auto files = collectSourceFiles();

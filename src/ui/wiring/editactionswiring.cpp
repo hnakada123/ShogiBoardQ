@@ -7,6 +7,7 @@
 #include "kifuexportcontroller.h"
 #include "kifufilecontroller.h"
 #include "dialoglaunchwiring.h"
+#include "logcategories.h"
 
 void EditActionsWiring::wire()
 {
@@ -14,6 +15,17 @@ void EditActionsWiring::wire()
     auto* kec = m_d.kec;
     auto* dlw = m_d.dlw;
     auto* kfc = m_d.kfc;
+
+    if (Q_UNLIKELY(!ui)) {
+        qCWarning(lcUi, "EditActionsWiring::wire(): ui is null");
+        return;
+    }
+    if (Q_UNLIKELY(!kec || !dlw || !kfc)) {
+        qCWarning(lcUi, "EditActionsWiring::wire(): required wiring dependency is null "
+                  "(kec=%p, dlw=%p, kfc=%p)",
+                  static_cast<void*>(kec), static_cast<void*>(dlw), static_cast<void*>(kfc));
+        return;
+    }
 
     // 棋譜コピー
     QObject::connect(ui->actionCopyKIF,        &QAction::triggered, kec, &KifuExportController::copyKifToClipboard,        Qt::UniqueConnection);

@@ -31,6 +31,7 @@
 
 void MainWindowServiceRegistry::ensureRecordPresenter()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (m_mw.m_recordPresenter) return;
 
     GameRecordPresenter::Deps d;
@@ -57,6 +58,7 @@ void MainWindowServiceRegistry::ensureRecordPresenter()
 
 void MainWindowServiceRegistry::ensureDialogCoordinator()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (m_mw.m_dialogCoordinator) return;
 
     auto refs = m_mw.buildRuntimeRefs();
@@ -103,6 +105,7 @@ void MainWindowServiceRegistry::ensureDockLayoutManager()
 
 void MainWindowServiceRegistry::ensureRecordNavigationHandler()
 {
+    if (m_mw.m_isShuttingDown) return;
     m_foundation->ensureKifuNavigationCoordinator();
     m_foundation->ensureUiStatePolicyManager();
     ensureConsiderationPositionService();

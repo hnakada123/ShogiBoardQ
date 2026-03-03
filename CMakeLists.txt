@@ -431,6 +431,7 @@ set(SRC_KIFU
     src/kifu/formats/usenexporter.h
     src/kifu/formats/usentosfenconverter.cpp
     src/kifu/formats/usentosfenconverter.h
+    src/kifu/formats/usentosfenconverter_decode.cpp
     src/kifu/formats/usiexporter.cpp
     src/kifu/formats/usiexporter.h
     src/kifu/formats/usimoveconverter.cpp
@@ -608,6 +609,7 @@ set(SRC_UI
     src/ui/coordinators/kifudisplaycoordinator.cpp
     src/ui/coordinators/kifudisplaycoordinator.h
     src/ui/coordinators/kifudisplaycoordinator_live.cpp
+    src/ui/coordinators/kifudisplaycoordinator_nav.cpp
     src/ui/coordinators/kifuselectionsync.cpp
     src/ui/coordinators/kifuselectionsync.h
     src/ui/coordinators/positioneditcoordinator.cpp

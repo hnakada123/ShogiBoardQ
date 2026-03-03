@@ -36,6 +36,7 @@
 
 void MainWindowServiceRegistry::ensureBoardSetupController()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (m_mw.m_boardSetupController) return;
 
     MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
@@ -65,6 +66,7 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 
 void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (m_mw.m_registryParts.posEditCoordinator) return;
 
     m_foundation->ensureUiStatePolicyManager();
@@ -92,6 +94,7 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 
 void MainWindowServiceRegistry::ensureBoardLoadService()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (!m_mw.m_boardLoadService) {
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
         // Created: once on first use, never recreated
@@ -127,7 +130,7 @@ void MainWindowServiceRegistry::setupBoardInteractionController()
 
         if (m_mw.m_boardController) {
             m_mw.m_boardController->setIsHumanTurnCallback([this]() -> bool {
-                return m_mw.m_queryService->isHumanTurnNow();
+                return m_mw.m_queryService ? m_mw.m_queryService->isHumanTurnNow() : false;
             });
         }
     }
@@ -148,7 +151,7 @@ void MainWindowServiceRegistry::handleMoveRequested(const QPoint& from, const QP
     if (m_mw.m_boardSetupController) {
         m_mw.m_boardSetupController->setPlayMode(m_mw.m_state.playMode);
         m_mw.m_boardSetupController->setMatchCoordinator(m_mw.m_match);
-        m_mw.m_boardSetupController->setSfenRecord(m_mw.m_queryService->sfenRecord());
+        m_mw.m_boardSetupController->setSfenRecord(m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr);
         m_mw.m_boardSetupController->setPositionEditController(m_mw.m_posEdit);
         m_mw.m_boardSetupController->setTimeController(m_mw.m_timeController);
         m_mw.m_boardSetupController->onMoveRequested(from, to);
@@ -219,7 +222,7 @@ void MainWindowServiceRegistry::resetModels(const QString& hirateStartSfen)
     deps.gameRecord = m_mw.m_models.gameRecord;
     deps.evalGraphController = m_mw.m_evalGraphController.get();
     deps.timeController = m_mw.m_timeController;
-    deps.sfenRecord = m_mw.m_queryService->sfenRecord();
+    deps.sfenRecord = m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
     deps.gameInfoController = m_mw.m_gameInfoController;
     deps.kifuLoadCoordinator = m_mw.m_kifuLoadCoordinator;
     deps.branchTree = m_mw.m_branchNav.branchTree;

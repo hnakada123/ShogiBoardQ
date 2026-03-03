@@ -7,6 +7,7 @@
 #include "mainwindow.h"
 #include "dialoglaunchwiring.h"
 #include "kifufilecontroller.h"
+#include "logcategories.h"
 #include <QApplication>
 
 void FileActionsWiring::wire()
@@ -16,6 +17,17 @@ void FileActionsWiring::wire()
     auto* dlw = m_d.dlw;
     auto* kfc = m_d.kfc;
     auto* gso = m_d.gso;
+
+    if (Q_UNLIKELY(!ui || !mw)) {
+        qCWarning(lcUi, "FileActionsWiring::wire(): ui or mw is null");
+        return;
+    }
+    if (Q_UNLIKELY(!dlw || !kfc || !gso)) {
+        qCWarning(lcUi, "FileActionsWiring::wire(): required wiring dependency is null "
+                  "(dlw=%p, kfc=%p, gso=%p)",
+                  static_cast<void*>(dlw), static_cast<void*>(kfc), static_cast<void*>(gso));
+        return;
+    }
 
     // ファイル/アプリ
     QObject::connect(ui->actionQuit,         &QAction::triggered, mw,  &MainWindow::saveSettingsAndClose,              Qt::UniqueConnection);

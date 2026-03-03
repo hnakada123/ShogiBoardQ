@@ -191,7 +191,7 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.models.gameRecordModel = m_models.gameRecord;
 
     // --- 棋譜データ参照 ---
-    refs.kifu.sfenRecord = m_queryService->sfenRecord();
+    refs.kifu.sfenRecord = m_queryService ? m_queryService->sfenRecord() : nullptr;
     refs.kifu.gameMoves = &m_kifu.gameMoves;
     refs.kifu.gameUsiMoves = &m_kifu.gameUsiMoves;
     refs.kifu.moveRecords = &m_kifu.moveRecords;
@@ -250,17 +250,23 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.gameCtrl.gameStateController = m_gameStateController;
     refs.gameCtrl.consecutiveGamesController = m_consecutiveGamesController;
 
-    // PlayModePolicyService の依存を最新状態に更新
-    if (m_playModePolicy) {
-        PlayModePolicyService::Deps policyDeps;
-        policyDeps.playMode = &m_state.playMode;
-        policyDeps.gameController = m_gameController;
-        policyDeps.match = m_match;
-        policyDeps.csaGameCoordinator = m_csaGameCoordinator;
-        m_playModePolicy->updateDeps(policyDeps);
-    }
-
     return refs;
+}
+
+// `refreshPlayModePolicyDeps`: PlayModePolicyService の依存を最新に更新する。
+// 以下のタイミングで呼び出すこと:
+//   - 起動完了直後（initializeEarlyServices）
+//   - Match 再生成直後（GameWiringSubRegistry::initMatchCoordinator）
+//   - CsaGameCoordinator 生成時（DialogLaunchWiring::displayCsaGameDialog）
+void MainWindow::refreshPlayModePolicyDeps()
+{
+    if (!m_playModePolicy) return;
+    PlayModePolicyService::Deps policyDeps;
+    policyDeps.playMode = &m_state.playMode;
+    policyDeps.gameController = m_gameController;
+    policyDeps.match = m_match;
+    policyDeps.csaGameCoordinator = m_csaGameCoordinator;
+    m_playModePolicy->updateDeps(policyDeps);
 }
 
 // `onRecordPaneMainRowChanged`: Record Pane Main Row Changed のイベント受信時処理を行う。

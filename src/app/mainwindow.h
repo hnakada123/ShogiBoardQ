@@ -245,8 +245,12 @@ private:
     std::unique_ptr<DebugScreenshotWiring> m_debugScreenshotWiring;
 #endif
 
+    // --- 終了フラグ ---
+    bool m_isShuttingDown = false;
+
     // --- private メソッド ---
     MainWindowRuntimeRefs buildRuntimeRefs();
+    void refreshPlayModePolicyDeps();
 };
 
 #endif // MAINWINDOW_H

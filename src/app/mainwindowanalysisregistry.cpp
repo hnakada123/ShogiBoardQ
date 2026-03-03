@@ -22,6 +22,7 @@
 
 void MainWindowServiceRegistry::ensurePvClickController()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (m_mw.m_pvClickController) return;
     m_mw.m_compositionRoot->ensurePvClickController(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_pvClickController);
 
@@ -36,7 +37,7 @@ void MainWindowServiceRegistry::ensurePvClickController()
     stateRefs.startSfenStr = &m_mw.m_state.startSfenStr;
     stateRefs.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
     stateRefs.considerationModel = &m_mw.m_models.consideration;
-    stateRefs.sfenRecordGetter = [this]() { return m_mw.m_queryService->sfenRecord(); };
+    stateRefs.sfenRecordGetter = [this]() { return m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr; };
     m_mw.m_pvClickController->setStateRefs(stateRefs);
     m_mw.m_pvClickController->setShogiView(m_mw.m_shogiView);
 
@@ -52,6 +53,7 @@ void MainWindowServiceRegistry::ensurePvClickController()
 
 void MainWindowServiceRegistry::ensureConsiderationPositionService()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (!m_mw.m_considerationPositionService) {
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
         // Created: once on first use, never recreated
@@ -79,6 +81,7 @@ void MainWindowServiceRegistry::ensureConsiderationPositionService()
 
 void MainWindowServiceRegistry::ensureConsiderationWiring()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (m_mw.m_considerationWiring) return;
 
     MainWindowDepsFactory::ConsiderationWiringCallbacks cbs;
@@ -97,6 +100,7 @@ void MainWindowServiceRegistry::ensureConsiderationWiring()
 
 void MainWindowServiceRegistry::ensureUsiCommandController()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (!m_mw.m_usiCommandController) {
         m_mw.m_usiCommandController = std::make_unique<UsiCommandController>();
     }

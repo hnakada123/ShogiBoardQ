@@ -89,6 +89,7 @@ void MainWindowLifecyclePipeline::runShutdown()
 {
     if (m_shutdownDone) return;
     m_shutdownDone = true;
+    m_mw.m_isShuttingDown = true;
 
     // 設定保存
     AppSettings::saveWindowAndBoard(&m_mw, m_mw.m_shogiView ? m_mw.m_shogiView->squareSize() : 0);
@@ -172,12 +173,7 @@ void MainWindowLifecyclePipeline::initializeEarlyServices()
 {
     // プレイモード判定サービスを生成し、初期依存を設定
     m_mw.m_playModePolicy = std::make_unique<PlayModePolicyService>();
-    {
-        PlayModePolicyService::Deps policyDeps;
-        policyDeps.playMode = &m_mw.m_state.playMode;
-        policyDeps.gameController = m_mw.m_gameController;
-        m_mw.m_playModePolicy->updateDeps(policyDeps);
-    }
+    m_mw.refreshPlayModePolicyDeps();
 
     if (!m_mw.m_timePresenter) {
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
@@ -235,6 +231,7 @@ void MainWindowLifecyclePipeline::connectSignals()
         d.initializeDialogLaunchWiring = [this]() {
             m_mw.m_registry->initializeDialogLaunchWiring();
         };
+        d.ensureDialogCoordinator = std::bind(&MainWindowServiceRegistry::ensureDialogCoordinator, m_mw.m_registry.get());
         d.ensureKifuFileController = std::bind(&KifuSubRegistry::ensureKifuFileController, m_mw.m_registry->kifu());
         d.ensureGameSessionOrchestrator = [this]() {
             m_mw.m_registry->game()->session()->ensureGameSessionOrchestrator();
