@@ -250,6 +250,17 @@ private:
 
     // --- private メソッド ---
     MainWindowRuntimeRefs buildRuntimeRefs();
+    void buildUiRefs(MainWindowRuntimeRefs& refs);
+    void buildModelRefs(MainWindowRuntimeRefs& refs);
+    void buildKifuRefs(MainWindowRuntimeRefs& refs);
+    void buildStateRefs(MainWindowRuntimeRefs& refs);
+    void buildBranchNavRefs(MainWindowRuntimeRefs& refs);
+    void buildPlayerRefs(MainWindowRuntimeRefs& refs);
+    void buildGameServiceRefs(MainWindowRuntimeRefs& refs);
+    void buildKifuServiceRefs(MainWindowRuntimeRefs& refs);
+    void buildUiControllerRefs(MainWindowRuntimeRefs& refs);
+    void buildAnalysisRefs(MainWindowRuntimeRefs& refs);
+    void buildGameControllerRefs(MainWindowRuntimeRefs& refs);
     void refreshPlayModePolicyDeps();
 };
 

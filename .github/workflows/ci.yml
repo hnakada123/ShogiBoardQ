@@ -32,6 +32,11 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure
 
+      - name: Test Summary Drift Check
+        if: always()
+        continue-on-error: true
+        run: bash scripts/update-test-summary.sh --build-dir build --check
+
       - name: Include Count Check
         run: bash scripts/check-include-counts.sh
 

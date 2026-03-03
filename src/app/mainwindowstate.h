@@ -8,7 +8,6 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
-#include <QList>
 
 #include "playmode.h"
 #include "shogimove.h"

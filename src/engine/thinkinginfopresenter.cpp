@@ -8,6 +8,7 @@
 
 #include <QTimer>
 #include <memory>
+#include <utility>
 
 ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent)
     : QObject(parent)
@@ -96,7 +97,7 @@ void ThinkingInfoPresenter::flushInfoBuffer()
     QStringList batch;
     batch.swap(m_infoBuffer);
 
-    for (const QString& line : batch) {
+    for (const QString& line : std::as_const(batch)) {
         if (!line.isEmpty()) {
             processInfoLineInternal(line);
         }

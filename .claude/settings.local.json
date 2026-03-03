@@ -77,7 +77,8 @@
       "Bash(read f:*)",
       "Bash(echo Total headers: $total:*)",
       "Bash(awk NR>=25 && NR<=63:*)",
-      "Bash(awk NR>=17 && NR<=55:*)"
+      "Bash(awk NR>=17 && NR<=55:*)",
+      "Bash(do:*)"
     ]
   }
 }

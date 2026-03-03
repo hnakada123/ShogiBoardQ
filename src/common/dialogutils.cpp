@@ -1,4 +1,5 @@
 #include "dialogutils.h"
+#include <utility>
 
 namespace DialogUtils {
 
@@ -18,7 +19,7 @@ void applyFontToAllChildren(QWidget* widget, const QFont& font)
 {
     widget->setFont(font);
     const auto children = widget->findChildren<QWidget*>();
-    for (QWidget* child : children) {
+    for (QWidget* child : std::as_const(children)) {
         child->setFont(font);
     }
 }

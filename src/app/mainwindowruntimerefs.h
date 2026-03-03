@@ -6,7 +6,6 @@
 
 #include <QList>
 #include <QStringList>
-#include <QList>
 
 // --- 前方宣言 ---
 class QWidget;

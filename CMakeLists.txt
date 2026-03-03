@@ -465,6 +465,7 @@ set(SRC_KIFU
     src/kifu/kifuapplylogger.cpp
     src/kifu/kifuapplylogger.h
     src/kifu/kifuapplyservice.cpp
+    src/kifu/kifuapplyservice_apply.cpp
     src/kifu/kifuapplyservice.h
     src/kifu/kifufilereader.cpp
     src/kifu/kifufilereader.h

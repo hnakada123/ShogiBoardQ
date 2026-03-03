@@ -9,7 +9,6 @@
 #include <QHash>
 #include <QList>
 #include <QSet>
-#include <QList>
 
 #include "kifubranchnode.h"
 #include "kifdisplayitem.h"

@@ -3,7 +3,6 @@
 
 #include <QList>
 #include <QStringList>
-#include <QList>
 #include <functional>
 
 class GameRecordModel;

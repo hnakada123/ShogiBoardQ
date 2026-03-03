@@ -6,9 +6,11 @@
 
 #include <QtTest>
 #include <QSignalSpy>
+#include <QMetaObject>
 #include <optional>
 
 #include "usiprotocolhandler.h"
+#include "engineprocessmanager.h"
 
 class TestUsiProtocolHandler : public QObject
 {
@@ -396,7 +398,51 @@ private slots:
     }
 
     // ================================================================
-    // 8. 座標変換ユーティリティ
+    // 8. ProcessManager 再設定安全性
+    // ================================================================
+
+    void setProcessManager_samePointerDoesNotDuplicateConnection()
+    {
+        UsiProtocolHandler handler;
+        EngineProcessManager processManager;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+
+        handler.setProcessManager(&processManager);
+        handler.setProcessManager(&processManager);
+
+        const bool invoked = QMetaObject::invokeMethod(
+            &processManager, "dataReceived", Qt::DirectConnection,
+            Q_ARG(QString, QStringLiteral("info depth 1 score cp 0")));
+        QVERIFY(invoked);
+
+        QCOMPARE(spyInfo.count(), 1);
+    }
+
+    void setProcessManager_switchDisconnectsOldManager()
+    {
+        UsiProtocolHandler handler;
+        EngineProcessManager oldManager;
+        EngineProcessManager newManager;
+        QSignalSpy spyInfo(&handler, &UsiProtocolHandler::infoLineReceived);
+
+        handler.setProcessManager(&oldManager);
+        handler.setProcessManager(&newManager);
+
+        const bool oldInvoked = QMetaObject::invokeMethod(
+            &oldManager, "dataReceived", Qt::DirectConnection,
+            Q_ARG(QString, QStringLiteral("info depth 3")));
+        const bool newInvoked = QMetaObject::invokeMethod(
+            &newManager, "dataReceived", Qt::DirectConnection,
+            Q_ARG(QString, QStringLiteral("info depth 4")));
+        QVERIFY(oldInvoked);
+        QVERIFY(newInvoked);
+
+        QCOMPARE(spyInfo.count(), 1);
+        QCOMPARE(spyInfo.at(0).at(0).toString(), QStringLiteral("info depth 4"));
+    }
+
+    // ================================================================
+    // 9. 座標変換ユーティリティ
     // ================================================================
 
     void rankToAlphabet_basic()

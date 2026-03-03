@@ -57,23 +57,32 @@ void MatchCoordinator::ensureEngineManager()
     if (m_engineManager) return;
     m_engineManager = new EngineLifecycleManager(this);
 
-    EngineLifecycleManager::Refs refs;
-    refs.gc       = m_gc;
-    refs.playMode = &m_playMode;
-    m_engineManager->setRefs(refs);
+    m_engineManager->setRefs(buildEngineLifecycleRefs());
+    m_engineManager->setHooks(buildEngineLifecycleHooks());
+}
 
+EngineLifecycleManager::Refs MatchCoordinator::buildEngineLifecycleRefs()
+{
+    EngineLifecycleManager::Refs refs;
+    refs.gc = m_gc;
+    refs.playMode = &m_playMode;
+    return refs;
+}
+
+EngineLifecycleManager::Hooks MatchCoordinator::buildEngineLifecycleHooks()
+{
     EngineLifecycleManager::Hooks hooks;
     hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
-    hooks.appendEvalP1      = m_hooks.game.appendEvalP1;
-    hooks.appendEvalP2      = m_hooks.game.appendEvalP2;
-    hooks.onEngineResign    = [this](int idx) { handleEngineResign(idx); };
-    hooks.onEngineWin       = [this](int idx) { handleEngineWin(idx); };
-    hooks.computeGoTimes    = [this]() -> EngineLifecycleManager::GoTimes {
+    hooks.appendEvalP1 = m_hooks.game.appendEvalP1;
+    hooks.appendEvalP2 = m_hooks.game.appendEvalP2;
+    hooks.onEngineResign = [this](int idx) { handleEngineResign(idx); };
+    hooks.onEngineWin = [this](int idx) { handleEngineWin(idx); };
+    hooks.computeGoTimes = [this]() -> EngineLifecycleManager::GoTimes {
         ensureTimekeeper();
         const auto t = m_timekeeper->computeGoTimes();
-        return { t.btime, t.wtime, t.byoyomi, t.binc, t.winc };
+        return {t.btime, t.wtime, t.byoyomi, t.binc, t.winc};
     };
-    m_engineManager->setHooks(hooks);
+    return hooks;
 }
 
 void MatchCoordinator::ensureTimekeeper()
@@ -105,34 +114,46 @@ void MatchCoordinator::ensureMatchTurnHandler()
 {
     if (m_turnHandler) return;
     m_turnHandler = std::make_unique<MatchTurnHandler>(*this);
+    configureMatchTurnHandler();
+}
 
+void MatchCoordinator::ensureAnalysisSession()
+{
+    if (m_analysisSession) return;
+    m_analysisSession = std::make_unique<AnalysisSessionHandler>(this);
+    connectAnalysisSessionSignals();
+    configureAnalysisSession();
+}
+
+void MatchCoordinator::configureMatchTurnHandler()
+{
     MatchTurnHandler::Refs refs;
-    refs.gc              = m_gc;
-    refs.currentTurn     = &m_cur;
-    refs.playMode        = &m_playMode;
-    refs.positionStr1    = &m_positionStr1;
+    refs.gc = m_gc;
+    refs.currentTurn = &m_cur;
+    refs.playMode = &m_playMode;
+    refs.positionStr1 = &m_positionStr1;
     refs.positionPonder1 = &m_positionPonder1;
     refs.positionStrHistory = &m_positionStrHistory;
-    refs.gameOver        = &m_gameOver;
-    refs.mcAsParent      = this;
+    refs.gameOver = &m_gameOver;
+    refs.mcAsParent = this;
     m_turnHandler->setRefs(refs);
 
     MatchTurnHandler::Hooks hooks;
-    hooks.renderBoardFromGc  = m_hooks.ui.renderBoardFromGc;
+    hooks.renderBoardFromGc = m_hooks.ui.renderBoardFromGc;
     hooks.updateTurnDisplayCb = m_hooks.ui.updateTurnDisplay;
-    hooks.primaryEngine      = [this]() -> Usi* { return primaryEngine(); };
-    hooks.secondaryEngine    = [this]() -> Usi* { return secondaryEngine(); };
-    hooks.sendStopToEngine   = m_hooks.engine.sendStopToEngine;
-    hooks.clockProvider      = [this]() -> ShogiClock* { return clock(); };
+    hooks.primaryEngine = [this]() -> Usi* { return primaryEngine(); };
+    hooks.secondaryEngine = [this]() -> Usi* { return secondaryEngine(); };
+    hooks.sendStopToEngine = m_hooks.engine.sendStopToEngine;
+    hooks.clockProvider = [this]() -> ShogiClock* { return clock(); };
     hooks.initAndStartEngine = [this](Player p, const QString& path, const QString& name) {
         initializeAndStartEngineFor(p, path, name);
     };
-    hooks.initEnginesForEvE  = [this](const QString& n1, const QString& n2) {
+    hooks.initEnginesForEvE = [this](const QString& n1, const QString& n2) {
         initEnginesForEvE(n1, n2);
     };
-    hooks.emitBoardFlipped   = [this](bool f) { emit boardFlipped(f); };
-    hooks.handleBreakOff     = [this]() { handleBreakOff(); };
-    hooks.handleEngineError  = [this](const QString& msg) -> bool {
+    hooks.emitBoardFlipped = [this](bool f) { emit boardFlipped(f); };
+    hooks.handleBreakOff = [this]() { handleBreakOff(); };
+    hooks.handleEngineError = [this](const QString& msg) -> bool {
         ensureAnalysisSession();
         return m_analysisSession->handleEngineError(msg);
     };
@@ -140,18 +161,18 @@ void MatchCoordinator::ensureMatchTurnHandler()
     m_turnHandler->setHooks(hooks);
 }
 
-void MatchCoordinator::ensureAnalysisSession()
+void MatchCoordinator::connectAnalysisSessionSignals()
 {
-    if (m_analysisSession) return;
-    m_analysisSession = std::make_unique<AnalysisSessionHandler>(this);
-
     connect(m_analysisSession.get(), &AnalysisSessionHandler::considerationModeEnded,
-            this,                    &MatchCoordinator::considerationModeEnded);
+            this, &MatchCoordinator::considerationModeEnded);
     connect(m_analysisSession.get(), &AnalysisSessionHandler::tsumeSearchModeEnded,
-            this,                    &MatchCoordinator::tsumeSearchModeEnded);
+            this, &MatchCoordinator::tsumeSearchModeEnded);
     connect(m_analysisSession.get(), &AnalysisSessionHandler::considerationWaitingStarted,
-            this,                    &MatchCoordinator::considerationWaitingStarted);
+            this, &MatchCoordinator::considerationWaitingStarted);
+}
 
+void MatchCoordinator::configureAnalysisSession()
+{
     AnalysisSessionHandler::Hooks hooks;
     hooks.showGameOverDialog = m_hooks.ui.showGameOverDialog;
     hooks.destroyEnginesKeepModels = [this]() { destroyEngines(false); };

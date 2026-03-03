@@ -5,6 +5,7 @@
 /// @brief 時間管理サービスクラスの定義
 
 #include <QString>
+#include <functional>
 
 class ShogiClock;
 class ShogiGameController;

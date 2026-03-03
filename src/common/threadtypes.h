@@ -4,6 +4,7 @@
 #include <QString>
 #include <QList>
 #include <atomic>
+#include <memory>
 
 // スレッド間受け渡し用の共通型
 

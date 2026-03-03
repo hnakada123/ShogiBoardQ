@@ -7,7 +7,6 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
-#include <QList>
 #include <QMap>
 #include <QJsonObject>
 #include <QJsonArray>

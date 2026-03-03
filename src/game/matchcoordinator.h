@@ -341,6 +341,11 @@ private:
     void ensureEngineManager();  ///< エンジンマネージャの遅延生成
     void ensureTimekeeper();     ///< 時計マネージャの遅延生成
     void ensureMatchTurnHandler(); ///< ターン進行ハンドラの遅延生成
+    EngineLifecycleManager::Refs buildEngineLifecycleRefs();
+    EngineLifecycleManager::Hooks buildEngineLifecycleHooks();
+    void configureMatchTurnHandler();
+    void connectAnalysisSessionSignals();
+    void configureAnalysisSession();
 
 private slots:
     void onUsiError(const QString& msg);

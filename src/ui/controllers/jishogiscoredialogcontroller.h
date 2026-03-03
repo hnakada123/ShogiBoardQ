@@ -6,10 +6,10 @@
 
 
 #include <QObject>
-#include <QWidget>
 
 class QLabel;
 class ShogiBoard;
+class QWidget;
 
 /**
  * @brief 持将棋点数ダイアログの表示を管理するコントローラ

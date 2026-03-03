@@ -8,6 +8,7 @@
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <utility>
 
 #include "apptooltipfilter.h"
 #include "matchcoordinator.h"
@@ -67,9 +68,9 @@ void MainWindowAppearanceController::installAppToolTips(QMainWindow* mainWindow)
     tipFilter->setCompact(true);
 
     const auto toolbars = mainWindow->findChildren<QToolBar*>();
-    for (QToolBar* tb : toolbars) {
+    for (QToolBar* tb : std::as_const(toolbars)) {
         const auto buttons = tb->findChildren<QToolButton*>();
-        for (QToolButton* b : buttons) {
+        for (QToolButton* b : std::as_const(buttons)) {
             b->installEventFilter(tipFilter);
         }
     }

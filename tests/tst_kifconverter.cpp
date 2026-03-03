@@ -277,7 +277,7 @@ private slots:
             }
         }
         qWarning("[TEST] KifDisplayItem comment count: %d / %lld total items",
-                 dispCommentCount, static_cast<long long>(result.mainline.disp.size()));
+                 dispCommentCount, result.mainline.disp.size());
         QVERIFY2(dispCommentCount > 0,
                  "No comments found in KifDisplayItem list");
 
@@ -304,7 +304,7 @@ private slots:
             }
         }
         qWarning("[TEST] KifuBranchNode comment count: %d / %lld main line nodes",
-                 treeCommentCount, static_cast<long long>(mainLine.nodes.size()));
+                 treeCommentCount, mainLine.nodes.size());
         QVERIFY2(treeCommentCount > 0,
                  qPrintable(QStringLiteral(
                      "No comments found in KifuBranchNode tree! "

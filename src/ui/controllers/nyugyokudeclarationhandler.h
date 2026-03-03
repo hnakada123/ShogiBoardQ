@@ -6,11 +6,11 @@
 
 
 #include <QObject>
-#include <QWidget>
 
 class ShogiBoard;
 class ShogiGameController;
 class MatchCoordinator;
+class QWidget;
 
 /**
  * @brief 入玉宣言の処理を管理するハンドラ

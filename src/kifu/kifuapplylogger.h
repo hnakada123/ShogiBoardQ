@@ -7,7 +7,6 @@
 #include <QList>
 #include <QString>
 #include <QStringList>
-#include <QList>
 
 #include "shogimove.h"
 

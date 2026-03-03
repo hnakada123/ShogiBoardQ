@@ -10,6 +10,7 @@
 #include <QPushButton>
 #include <QDir>
 #include <QFileDialog>
+#include <utility>
 
 using namespace EngineSettingsConstants;
 
@@ -91,7 +92,7 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
     // 定義された順序でカテゴリを処理
     QList<EngineOptionCategory> categoryOrder = EngineOptionDescriptions::getAllCategories();
 
-    for (EngineOptionCategory category : categoryOrder) {
+    for (EngineOptionCategory category : std::as_const(categoryOrder)) {
         if (!categoryOptionsMap.contains(category) || categoryOptionsMap[category].isEmpty()) {
             continue;
         }
