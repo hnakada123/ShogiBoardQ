@@ -249,13 +249,24 @@ void ConsiderationTabManager::setConsiderationRunning(bool running)
                 this, &ConsiderationTabManager::startConsiderationRequested);
         QTimer::singleShot(0, this, [this]() {
             if (m_btnStopConsideration) {
-                m_btnStopConsideration->setEnabled(true);
-                qCDebug(lcUi).noquote() << "[ConsiderationTabManager] button re-enabled after deferred timer";
+                m_btnStopConsideration->setEnabled(m_startConsiderationEnabled);
+                qCDebug(lcUi).noquote() << "[ConsiderationTabManager] button re-enabled after deferred timer"
+                                        << "enabled=" << m_startConsiderationEnabled;
             }
         });
     }
 
     qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] EXIT";
+}
+
+void ConsiderationTabManager::setStartConsiderationEnabled(bool enabled)
+{
+    m_startConsiderationEnabled = enabled;
+
+    // 検討中は「検討中止」操作を優先して無効化しない
+    if (!m_considerationRunning && m_btnStopConsideration) {
+        m_btnStopConsideration->setEnabled(enabled);
+    }
 }
 
 // ===================== スロット =====================

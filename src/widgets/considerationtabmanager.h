@@ -83,6 +83,9 @@ public:
     // 検討実行状態の設定（ボタン表示切替用）
     void setConsiderationRunning(bool running);
 
+    // 検討開始ボタンの有効/無効（検討中は中止操作を優先して無効化しない）
+    void setStartConsiderationEnabled(bool enabled);
+
     // フォントサイズ（外部からの取得用）
     int considerationFontSize() const { return m_considerationFontSize; }
 
@@ -151,6 +154,7 @@ private:
     int m_considerationFontSize = 10;
     std::unique_ptr<LogViewFontManager> m_considerationFontManager;
     bool m_considerationRunning = false;
+    bool m_startConsiderationEnabled = true;
 };
 
 #endif // CONSIDERATIONTABMANAGER_H

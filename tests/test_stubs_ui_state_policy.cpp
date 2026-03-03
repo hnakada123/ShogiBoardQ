@@ -94,6 +94,7 @@ void EngineAnalysisTab::startElapsedTimer() {}
 void EngineAnalysisTab::stopElapsedTimer() {}
 void EngineAnalysisTab::resetElapsedTimer() {}
 void EngineAnalysisTab::setConsiderationRunning(bool) {}
+void EngineAnalysisTab::setConsiderationStartEnabled(bool) {}
 void EngineAnalysisTab::loadEngineList() {}
 int EngineAnalysisTab::selectedEngineIndex() const { return 0; }
 QString EngineAnalysisTab::selectedEngineName() const { return {}; }

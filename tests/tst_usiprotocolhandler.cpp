@@ -5,6 +5,7 @@
 /// エンジンプロセスの起動は不要。
 
 #include <QtTest>
+#include <QElapsedTimer>
 #include <QSignalSpy>
 #include <QMetaObject>
 #include <optional>
@@ -1134,6 +1135,36 @@ private slots:
         handler.resetWinNotified();
         handler.onDataReceived(QStringLiteral("bestmove win"));
         QCOMPARE(spyWin.count(), 2);
+    }
+
+    // ================================================================
+    // 27. 待機系の早期復帰
+    // ================================================================
+
+    void waitForUsiOk_abortsOnHardTimeout()
+    {
+        UsiProtocolHandler handler;
+        handler.markHardTimeout();
+
+        QElapsedTimer timer;
+        timer.start();
+        const bool ok = handler.waitForUsiOk(1000);
+
+        QVERIFY(!ok);
+        QVERIFY2(timer.elapsed() < 250, "waitForUsiOk should abort quickly on hard-timeout");
+    }
+
+    void waitForStopOrPonderhit_handlesPreSentSignal()
+    {
+        UsiProtocolHandler handler;
+        handler.sendStop(); // wait開始前に通知が送信されるケース
+
+        QElapsedTimer timer;
+        timer.start();
+        handler.waitForStopOrPonderhit();
+
+        QVERIFY2(timer.elapsed() < 250,
+                 "waitForStopOrPonderhit should return immediately when stop already sent");
     }
 };
 

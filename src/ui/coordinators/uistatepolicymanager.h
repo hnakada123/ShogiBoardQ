@@ -91,6 +91,7 @@ public:
         WidgetNavigation,      ///< ナビゲーションボタン + 棋譜欄クリック
         WidgetBranchTree,      ///< 分岐ツリークリック
         WidgetBoardClick,      ///< 盤面クリック（指し手入力）
+        WidgetConsiderationStart, ///< 検討ドック「検討開始」ボタン
 
         Count  ///< 要素数（番兵）
     };

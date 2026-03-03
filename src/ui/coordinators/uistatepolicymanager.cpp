@@ -192,6 +192,11 @@ void UiStatePolicyManager::buildPolicyTable()
     set(S::Idle,          E::WidgetBoardClick, P::Enabled);
     set(S::DuringGame,    E::WidgetBoardClick, P::Enabled);
     set(S::DuringCsaGame, E::WidgetBoardClick, P::Enabled);
+
+    // 検討開始ボタン: 対局中/CSA中は検討開始を禁止
+    setAll(E::WidgetConsiderationStart, P::Enabled);
+    set(S::DuringGame, E::WidgetConsiderationStart, P::Disabled);
+    set(S::DuringCsaGame, E::WidgetConsiderationStart, P::Disabled);
 }
 
 // ======================================================================
@@ -435,6 +440,12 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
     case UiElement::WidgetBoardClick:
         if (m_deps.boardController) {
             m_deps.boardController->setMoveInputEnabled(policy == Policy::Enabled);
+        }
+        break;
+    case UiElement::WidgetConsiderationStart:
+        if (m_deps.analysisTab) {
+            const bool enabled = (policy == Policy::Enabled || policy == Policy::Shown);
+            m_deps.analysisTab->setConsiderationStartEnabled(enabled);
         }
         break;
 

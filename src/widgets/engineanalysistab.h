@@ -122,6 +122,9 @@ public:
     // 検討実行状態の設定（ボタン表示切替用）（ConsiderationTabManager へ委譲）
     void setConsiderationRunning(bool running);
 
+    // 検討開始ボタンの有効/無効（対局状態ポリシーから使用）
+    void setConsiderationStartEnabled(bool enabled);
+
     // エンジンリストを読み込み（ConsiderationTabManager へ委譲）
     void loadEngineList();
 

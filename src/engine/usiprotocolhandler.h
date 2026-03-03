@@ -101,6 +101,7 @@ public:
     [[nodiscard]] bool waitForBestMove(int timeoutMs);
     [[nodiscard]] bool waitForBestMoveWithGrace(int budgetMs, int graceMs);
     [[nodiscard]] bool keepWaitingForBestMove();
+    /// sendStop()/sendPonderHit() 済みフラグを待機する（中断条件到達時は復帰）
     void waitForStopOrPonderhit();
 
     // --- 指し手処理 ---
@@ -218,6 +219,7 @@ private:
     bool m_winNotified = false;        ///< 入玉宣言勝ちシグナル発行済み（重複防止）
     bool m_timeoutDeclared = false;    ///< ハードタイムアウト宣言済み
     bool m_modeTsume = false;          ///< 詰将棋探索モード
+    bool m_stopOrPonderhitPending = false; ///< stop/ponderhit送信通知のラッチ
 
     // --- オペレーションコンテキスト ---
     QPointer<QObject> m_opCtx { nullptr }; ///< 現在のオペレーション（所有、キャンセル時にdelete）

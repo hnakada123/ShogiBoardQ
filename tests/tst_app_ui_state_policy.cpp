@@ -480,6 +480,19 @@ private slots:
         verifyDisabled(mgr, S::DuringPositionEdit, E::WidgetBoardClick, "WidgetBoardClick");
     }
 
+    /// WidgetConsiderationStart: 対局中/CSA中のみ無効
+    void widgetConsiderationStart_disabledDuringGames()
+    {
+        UiStatePolicyManager mgr;
+        verifyEnabled(mgr, S::Idle, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(mgr, S::DuringGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyDisabled(mgr, S::DuringCsaGame, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(mgr, S::DuringAnalysis, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(mgr, S::DuringTsumeSearch, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(mgr, S::DuringConsideration, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+        verifyEnabled(mgr, S::DuringPositionEdit, E::WidgetConsiderationStart, "WidgetConsiderationStart");
+    }
+
     // ================================================================
     // ポリシーテーブル網羅性テスト
     // ================================================================

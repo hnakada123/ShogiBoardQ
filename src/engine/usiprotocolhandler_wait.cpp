@@ -4,6 +4,7 @@
 #include "usiprotocolhandler.h"
 #include "engineprocessmanager.h"
 
+#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QTimer>
 
@@ -16,15 +17,32 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
                                              int timeoutMs)
 {
     if (flag) return true;
+    if (timeoutMs <= 0) return false;
     flag = false;
 
-    QEventLoop loop;
-    QTimer timer;
-    timer.setSingleShot(true);
-    connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    connect(this, signal, &loop, &QEventLoop::quit);
-    timer.start(timeoutMs);
-    loop.exec();
+    const quint64 expectedId = m_seq;
+    QElapsedTimer timer;
+    timer.start();
+
+    static constexpr int kSliceMs = 10;
+
+    while (!flag) {
+        if (timer.elapsed() >= timeoutMs) {
+            return false;
+        }
+        if (m_seq != expectedId || shouldAbortWait()) {
+            return false;
+        }
+
+        QEventLoop spin;
+        QTimer tick;
+        tick.setSingleShot(true);
+        tick.setInterval(kSliceMs);
+        connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
+        connect(this, signal, &spin, &QEventLoop::quit);
+        tick.start();
+        spin.exec(QEventLoop::AllEvents);
+    }
 
     return flag;
 }
@@ -126,9 +144,37 @@ bool UsiProtocolHandler::keepWaitingForBestMove()
 
 void UsiProtocolHandler::waitForStopOrPonderhit()
 {
-    QEventLoop loop;
-    connect(this, &UsiProtocolHandler::stopOrPonderhitSent, &loop, &QEventLoop::quit);
-    loop.exec();
+    if (m_stopOrPonderhitPending) {
+        m_stopOrPonderhitPending = false;
+        return;
+    }
+
+    const quint64 expectedId = m_seq;
+    QElapsedTimer timer;
+    timer.start();
+
+    static constexpr int kSliceMs = 10;
+    static constexpr int kStopWaitTimeoutMs = 2000;
+
+    while (!m_stopOrPonderhitPending) {
+        if (timer.elapsed() >= kStopWaitTimeoutMs) {
+            return;
+        }
+        if (m_seq != expectedId || shouldAbortWait()) {
+            return;
+        }
+
+        QEventLoop spin;
+        QTimer tick;
+        tick.setSingleShot(true);
+        tick.setInterval(kSliceMs);
+        connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
+        connect(this, &UsiProtocolHandler::stopOrPonderhitSent, &spin, &QEventLoop::quit);
+        tick.start();
+        spin.exec(QEventLoop::AllEvents);
+    }
+
+    m_stopOrPonderhitPending = false;
 }
 
 bool UsiProtocolHandler::shouldAbortWait() const

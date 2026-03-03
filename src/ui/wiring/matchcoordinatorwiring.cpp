@@ -279,7 +279,7 @@ void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
         vh.removeHighlightAllData = [this]() {
             if (m_view) m_view->removeHighlightAllData();
         };
-        vh.applyResumePosition = [this](ShogiGameController* gc, const QString& sfen) {
+        vh.applyResumePosition = [](ShogiGameController* gc, const QString& sfen) {
             GameStartOptionsBuilder::applyResumePositionIfAny(
                 gc, sfen, {});
         };

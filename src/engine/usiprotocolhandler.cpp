@@ -302,6 +302,7 @@ void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int
 void UsiProtocolHandler::sendStop()
 {
     sendCommand("stop");
+    m_stopOrPonderhitPending = true;
     emit stopOrPonderhitSent();
 }
 
@@ -311,6 +312,7 @@ void UsiProtocolHandler::sendPonderHit()
     m_goTimer.start();
 
     sendCommand("ponderhit");
+    m_stopOrPonderhitPending = true;
     emit stopOrPonderhitSent();
 
     m_phase = SearchPhase::Main;
@@ -576,6 +578,7 @@ quint64 UsiProtocolHandler::beginOperationContext()
         m_opCtx = nullptr;
     }
     m_opCtx = new QObject(this);
+    m_stopOrPonderhitPending = false;
     return ++m_seq;
 }
 
@@ -585,5 +588,6 @@ void UsiProtocolHandler::cancelCurrentOperation()
         m_opCtx->deleteLater();
         m_opCtx = nullptr;
     }
+    m_stopOrPonderhitPending = false;
     ++m_seq;
 }
