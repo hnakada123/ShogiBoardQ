@@ -9,6 +9,7 @@
 #include "buttonstyles.h"
 #include "dialogutils.h"
 #include "logcategories.h"
+#include "sfenutils.h"
 
 #include <QVBoxLayout>
 #include <QGroupBox>
@@ -509,7 +510,7 @@ void JosekiWindow::updatePositionSummary()
     }
     QString positionDesc;
     if (plyNumber == 1 && !parts.isEmpty()) {
-        if (parts[0] == QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"))
+        if (SfenUtils::isHirateBoardSfen(parts[0]))
             positionDesc = tr("初期配置");
         else
             positionDesc = tr("駒落ち");
@@ -557,6 +558,10 @@ void JosekiWindow::setModified(bool modified)
 
 bool JosekiWindow::confirmDiscardChanges()
 {
+    if (isIoBusy()) {
+        QMessageBox::information(this, tr("処理中"), tr("ファイルの読み込み/保存が完了するまでお待ちください。"));
+        return false;
+    }
     if (!m_modified) return true;
     QMessageBox msgBox(this);
     msgBox.setWindowTitle(tr("確認"));

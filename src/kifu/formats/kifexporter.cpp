@@ -3,7 +3,9 @@
 
 #include "kifexporter.h"
 #include "kifubranchtree.h"
+#include "bodtextgenerator.h"
 #include "logcategories.h"
+#include "sfenutils.h"
 
 #include <QRegularExpression>
 #include <QStringView>
@@ -430,132 +432,36 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
 
 QStringList KifExporter::sfenToBodLines(const QString& sfen)
 {
-    if (sfen.trimmed().isEmpty()) return {};
-
-    const QStringList parts = sfen.trimmed().split(QLatin1Char(' '));
-    if (parts.size() < 3) return {};
-
-    const QString& boardSfen = parts[0];
-    const QString& turnSfen = parts[1];
-    const QString& handSfen = parts[2];
-
-    // 平手かどうかチェック（平手ならBOD不要）
-    static const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    if (boardSfen == initPP && handSfen == QStringLiteral("-") && turnSfen == QStringLiteral("b"))
+    const QString trimmed = sfen.trimmed();
+    if (trimmed.isEmpty()) {
         return {};
-
-    // 持ち駒を解析
-    QMap<QChar, int> senteHand, goteHand;
-    if (handSfen != QStringLiteral("-")) {
-        int count = 0;
-        for (const QChar c : handSfen) {
-            if (c.isDigit()) {
-                count = count * 10 + c.digitValue();
-            } else {
-                if (count == 0) count = 1;
-                if (c.isUpper()) {
-                    senteHand[c] += count;
-                } else {
-                    goteHand[c.toUpper()] += count;
-                }
-                count = 0;
-            }
-        }
     }
 
-    // 持ち駒を日本語文字列に変換
-    auto handToString = [](const QMap<QChar, int>& hand) -> QString {
-        if (hand.isEmpty()) return QStringLiteral("なし");
-        const char order[] = {'R','B','G','S','N','L','P'};
-        const QMap<QChar, QString> pieceNames = {
-            {QLatin1Char('R'), QStringLiteral("飛")}, {QLatin1Char('B'), QStringLiteral("角")},
-            {QLatin1Char('G'), QStringLiteral("金")}, {QLatin1Char('S'), QStringLiteral("銀")},
-            {QLatin1Char('N'), QStringLiteral("桂")}, {QLatin1Char('L'), QStringLiteral("香")},
-            {QLatin1Char('P'), QStringLiteral("歩")}
-        };
-        const QMap<int, QString> kanjiNum = {
-            {2, QStringLiteral("二")}, {3, QStringLiteral("三")}, {4, QStringLiteral("四")},
-            {5, QStringLiteral("五")}, {6, QStringLiteral("六")}, {7, QStringLiteral("七")},
-            {8, QStringLiteral("八")}, {9, QStringLiteral("九")}, {10, QStringLiteral("十")},
-            {11, QStringLiteral("十一")}, {12, QStringLiteral("十二")}, {13, QStringLiteral("十三")},
-            {14, QStringLiteral("十四")}, {15, QStringLiteral("十五")}, {16, QStringLiteral("十六")},
-            {17, QStringLiteral("十七")}, {18, QStringLiteral("十八")}
-        };
-        QString result;
-        for (char c : order) {
-            const QChar piece = QLatin1Char(c);
-            if (hand.contains(piece) && hand[piece] > 0) {
-                result += pieceNames[piece];
-                if (hand[piece] > 1)
-                    result += kanjiNum.value(hand[piece], QString::number(hand[piece]));
-                result += QStringLiteral("　");
-            }
-        }
-        return result.isEmpty() ? QStringLiteral("なし") : result.trimmed();
-    };
-
-    // 盤面を9x9配列に展開
-    const QMap<QChar, QString> unpromoted = {
-        {QLatin1Char('P'), QStringLiteral("歩")}, {QLatin1Char('L'), QStringLiteral("香")},
-        {QLatin1Char('N'), QStringLiteral("桂")}, {QLatin1Char('S'), QStringLiteral("銀")},
-        {QLatin1Char('G'), QStringLiteral("金")}, {QLatin1Char('B'), QStringLiteral("角")},
-        {QLatin1Char('R'), QStringLiteral("飛")}, {QLatin1Char('K'), QStringLiteral("玉")}
-    };
-    const QMap<QChar, QString> promoted = {
-        {QLatin1Char('P'), QStringLiteral("と")}, {QLatin1Char('L'), QStringLiteral("杏")},
-        {QLatin1Char('N'), QStringLiteral("圭")}, {QLatin1Char('S'), QStringLiteral("全")},
-        {QLatin1Char('G'), QStringLiteral("金")}, {QLatin1Char('B'), QStringLiteral("馬")},
-        {QLatin1Char('R'), QStringLiteral("龍")}, {QLatin1Char('K'), QStringLiteral("玉")}
-    };
-
-    QList<QList<QString>> board(9, QList<QString>(9, QStringLiteral(" ・")));
-    const QStringList ranks = boardSfen.split(QLatin1Char('/'));
-    for (qsizetype rank = 0; rank < qMin(ranks.size(), qsizetype(9)); ++rank) {
-        const QString& rankStr = ranks[rank];
-        int file = 0;
-        bool isPromoted = false;
-        for (qsizetype k = 0; k < rankStr.size() && file < 9; ++k) {
-            const QChar c = rankStr.at(k);
-            if (c == QLatin1Char('+')) {
-                isPromoted = true;
-            } else if (c.isDigit()) {
-                file += c.toLatin1() - '0';
-                isPromoted = false;
-            } else {
-                const QString prefix = c.isUpper() ? QStringLiteral(" ") : QStringLiteral("v");
-                const QChar upper = c.toUpper();
-                const auto& map = isPromoted ? promoted : unpromoted;
-                board[rank][file] = prefix + map.value(upper, QStringLiteral("？"));
-                ++file;
-                isPromoted = false;
-            }
-        }
+    const QStringList parts = trimmed.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (parts.size() < 3) {
+        return {};
     }
 
-    // BOD行を生成
-    static const QStringList rankNames = {
-        QStringLiteral("一"), QStringLiteral("二"), QStringLiteral("三"),
-        QStringLiteral("四"), QStringLiteral("五"), QStringLiteral("六"),
-        QStringLiteral("七"), QStringLiteral("八"), QStringLiteral("九")
-    };
+    const QString& boardSfen = parts.at(0);
+    const QString& turnSfen = parts.at(1);
+    const QString& handSfen = parts.at(2);
 
-    QStringList bodLines;
-    bodLines << QStringLiteral("後手の持駒：%1").arg(handToString(goteHand));
-    bodLines << QStringLiteral("  ９ ８ ７ ６ ５ ４ ３ ２ １");
-    bodLines << QStringLiteral("+---------------------------+");
-    for (int rank = 0; rank < 9; ++rank) {
-        QString line = QStringLiteral("|");
-        for (int file = 0; file < 9; ++file)
-            line += board[rank][file];
-        line += QStringLiteral("|") + rankNames[rank];
-        bodLines << line;
+    // 平手ならBODは不要
+    if (SfenUtils::isHirateBoardSfen(boardSfen)
+        && handSfen == QStringLiteral("-")
+        && turnSfen == QStringLiteral("b")) {
+        return {};
     }
-    bodLines << QStringLiteral("+---------------------------+");
-    bodLines << QStringLiteral("先手の持駒：%1").arg(handToString(senteHand));
-    if (turnSfen == QStringLiteral("w"))
-        bodLines << QStringLiteral("後手番");
-    else
-        bodLines << QStringLiteral("先手番");
 
-    return bodLines;
+    // BodTextGenerator は手数フィールドを期待するため、3要素SFENは " ... 1" を補う。
+    QString normalizedSfen = trimmed;
+    if (parts.size() == 3) {
+        normalizedSfen += QStringLiteral(" 1");
+    }
+
+    const QString bodText = BodTextGenerator::generate(normalizedSfen, 0, QString());
+    if (bodText.isEmpty()) {
+        return {};
+    }
+    return bodText.split(QLatin1Char('\n'));
 }

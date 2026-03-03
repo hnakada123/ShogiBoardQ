@@ -42,7 +42,13 @@ JosekiWindow::JosekiWindow(QWidget *parent)
             this, &JosekiWindow::onAsyncSaveFinished);
 }
 
-JosekiWindow::~JosekiWindow() = default;
+JosekiWindow::~JosekiWindow()
+{
+    if (m_ioBusy) {
+        QApplication::restoreOverrideCursor();
+        m_ioBusy = false;
+    }
+}
 
 int JosekiWindow::currentPlyNumber() const
 {

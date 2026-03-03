@@ -331,6 +331,7 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/kifu/formats/jkfexporter.cpp
     ${SRC}/kifu/formats/jkfformatter.cpp
     ${SRC}/kifu/formats/kifexporter.cpp
+    ${SRC}/kifu/formats/bodtextgenerator.cpp
     ${SRC}/kifu/formats/ki2exporter.cpp
     ${SRC}/kifu/formats/usenexporter.cpp
     ${SRC}/kifu/formats/usiexporter.cpp
@@ -363,6 +364,7 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/kifu/formats/jkfexporter.cpp
     ${SRC}/kifu/formats/jkfformatter.cpp
     ${SRC}/kifu/formats/kifexporter.cpp
+    ${SRC}/kifu/formats/bodtextgenerator.cpp
     ${SRC}/kifu/formats/ki2exporter.cpp
     ${SRC}/kifu/formats/usenexporter.cpp
     ${SRC}/kifu/formats/usiexporter.cpp

@@ -387,7 +387,6 @@ void Usi::executeTsumeCommunication(QString&, int) {}
 void Usi::sendPositionAndGoMateCommands(int, QString&) {}
 void Usi::cancelCurrentOperation() {}
 void Usi::setupConnections() {}
-bool Usi::changeDirectoryToEnginePath(const QString&) { return false; }
 
 void Usi::onProcessError(QProcess::ProcessError, const QString&) {}
 void Usi::onCommandSent(const QString&) {}

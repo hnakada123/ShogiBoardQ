@@ -6,8 +6,17 @@
 #include "logcategories.h"
 
 #include <QElapsedTimer>
+#include <QCoreApplication>
 #include <QEventLoop>
-#include <QTimer>
+
+namespace {
+constexpr int kSliceMs = 10;
+
+inline void pumpEventsSlice()
+{
+    QCoreApplication::processEvents(QEventLoop::AllEvents, kSliceMs);
+}
+} // namespace
 
 // ============================================================
 // 待機メソッド
@@ -17,6 +26,7 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
                                              void(UsiProtocolHandler::*signal)(),
                                              int timeoutMs)
 {
+    (void)signal;
     if (flag) return true;
     if (timeoutMs <= 0) return false;
     flag = false;
@@ -25,8 +35,6 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
     QElapsedTimer timer;
     timer.start();
 
-    static constexpr int kSliceMs = 10;
-
     while (!flag) {
         if (timer.elapsed() >= timeoutMs) {
             return false;
@@ -34,15 +42,7 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
         if (m_seq != expectedId || shouldAbortWait()) {
             return false;
         }
-
-        QEventLoop spin;
-        QTimer tick;
-        tick.setSingleShot(true);
-        tick.setInterval(kSliceMs);
-        connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
-        connect(this, signal, &spin, &QEventLoop::quit);
-        tick.start();
-        spin.exec(QEventLoop::AllEvents);
+        pumpEventsSlice();
     }
 
     return flag;
@@ -71,8 +71,6 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
     QElapsedTimer timer;
     timer.start();
 
-    static constexpr int kSliceMs = 10;
-
     while (!m_bestMoveReceived) {
         if (timer.elapsed() >= timeoutMs) {
             return false;
@@ -80,14 +78,7 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
         if (m_seq != expectedId || shouldAbortWait()) {
             return false;
         }
-
-        QEventLoop spin;
-        QTimer tick;
-        tick.setSingleShot(true);
-        tick.setInterval(kSliceMs);
-        QObject::connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
-        tick.start();
-        spin.exec(QEventLoop::AllEvents);
+        pumpEventsSlice();
     }
 
     return true;
@@ -102,23 +93,14 @@ bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
     m_bestMoveReceived = false;
     const quint64 expectedId = m_seq;
 
-    static constexpr int kSliceMs = 10;
-
     while (t.elapsed() < hard) {
         if (m_seq != expectedId || shouldAbortWait()) return false;
         if (m_bestMoveReceived) return true;
 
         const qint64 remaining = hard - t.elapsed();
         if (remaining <= 0) break;
-        const int slice = static_cast<int>(qMin<qint64>(kSliceMs, remaining));
-
-        QEventLoop spin;
-        QTimer tick;
-        tick.setSingleShot(true);
-        tick.setInterval(slice);
-        QObject::connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
-        tick.start();
-        spin.exec(QEventLoop::AllEvents);
+        QCoreApplication::processEvents(QEventLoop::AllEvents,
+                                        static_cast<int>(qMin<qint64>(kSliceMs, remaining)));
     }
     return m_bestMoveReceived;
 }
@@ -140,14 +122,7 @@ bool UsiProtocolHandler::keepWaitingForBestMove(int timeoutMs)
         if (m_seq != expectedId || shouldAbortWait()) {
             return false;
         }
-
-        QEventLoop spin;
-        QTimer tick;
-        tick.setSingleShot(true);
-        tick.setInterval(10);
-        QObject::connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
-        tick.start();
-        spin.exec(QEventLoop::AllEvents);
+        pumpEventsSlice();
 
         if (shouldAbortWait()) {
             return false;
@@ -167,8 +142,6 @@ void UsiProtocolHandler::waitForStopOrPonderhit()
     const quint64 expectedId = m_seq;
     QElapsedTimer timer;
     timer.start();
-
-    static constexpr int kSliceMs = 10;
     static constexpr int kStopWaitTimeoutMs = 2000;
 
     while (!m_stopOrPonderhitPending) {
@@ -178,15 +151,7 @@ void UsiProtocolHandler::waitForStopOrPonderhit()
         if (m_seq != expectedId || shouldAbortWait()) {
             return;
         }
-
-        QEventLoop spin;
-        QTimer tick;
-        tick.setSingleShot(true);
-        tick.setInterval(kSliceMs);
-        connect(&tick, &QTimer::timeout, &spin, &QEventLoop::quit);
-        connect(this, &UsiProtocolHandler::stopOrPonderhitSent, &spin, &QEventLoop::quit);
-        tick.start();
-        spin.exec(QEventLoop::AllEvents);
+        pumpEventsSlice();
     }
 
     m_stopOrPonderhitPending = false;

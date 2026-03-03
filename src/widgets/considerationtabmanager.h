@@ -5,6 +5,7 @@
 /// @brief EngineAnalysisTab から分離した検討タブ管理クラスの定義
 
 #include <QObject>
+#include <QMetaObject>
 #include <QString>
 #include <memory>
 
@@ -155,6 +156,7 @@ private:
     std::unique_ptr<LogViewFontManager> m_considerationFontManager;
     bool m_considerationRunning = false;
     bool m_startConsiderationEnabled = true;
+    QMetaObject::Connection m_stopButtonConnection;
 };
 
 #endif // CONSIDERATIONTABMANAGER_H

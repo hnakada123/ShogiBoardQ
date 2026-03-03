@@ -237,7 +237,8 @@ private:
     // --- プライベートメソッド ---
 
     void setupConnections();
-    bool changeDirectoryToEnginePath(const QString& engineFile);
+    void resetAnalysisStopTimer();
+    void prepareAnalysisSession(const QString& positionStr, int multiPV);
 
 private slots:
     /// エンジンプロセスエラー時のクリーンアップ処理

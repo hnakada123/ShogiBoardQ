@@ -113,7 +113,6 @@ private:
     bool m_errorOccurred = false;
     QStringList m_optionLines;
     QString m_fileName;
-    QString m_engineDir;
     QString m_engineIdName;
     QString m_engineIdAuthor;
     QList<Engine> m_engineList;

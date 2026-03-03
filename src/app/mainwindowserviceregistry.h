@@ -88,9 +88,9 @@ public:
     void onRecordPaneMainRowChanged(int row);
 
     // ===== sub-registry convenience wrappers =====
-    void ensureUndoFlowService();
-    void ensureTurnStateSyncService();
-    void ensureGameRecordLoadService();
+    void prepareUndoFlowService();
+    void prepareTurnStateSyncService();
+    void prepareGameRecordLoadService();
     void updateJosekiWindow();
     void resetToInitialState();
     void resetGameState();

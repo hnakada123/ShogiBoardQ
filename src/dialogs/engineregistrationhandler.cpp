@@ -7,7 +7,6 @@
 #include "enginesettingsconstants.h"
 #include "settingscommon.h"
 #include "logcategories.h"
-#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QRegularExpression>
@@ -71,7 +70,7 @@ bool EngineRegistrationHandler::isDuplicatePath(const QString& path, QString& ex
 bool EngineRegistrationHandler::validateEnginePath(const QString& filePath) const
 {
     QFileInfo fi(filePath);
-    return QDir::setCurrent(fi.absolutePath());
+    return fi.exists() && fi.isFile() && fi.isExecutable();
 }
 
 // --- ワーカースレッド管理 ---
@@ -116,7 +115,6 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
 
     m_errorOccurred = false;
     m_fileName = filePath;
-    m_engineDir = QFileInfo(filePath).absolutePath();
     m_engineIdName.clear();
     m_engineIdAuthor.clear();
     m_optionLines.clear();
@@ -160,9 +158,6 @@ void EngineRegistrationHandler::onWorkerRegistered(const QString& engineName,
             return;
         }
     }
-
-    // 設定ファイルを書き込むディレクトリに移動する
-    QDir::setCurrent(m_engineDir);
 
     // エンジン情報をリストに追加
     Engine engine;

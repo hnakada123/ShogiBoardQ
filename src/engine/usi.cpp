@@ -4,9 +4,6 @@
 #include "usi.h"
 #include "usimatchhandler.h"
 
-#include <QFileInfo>
-#include <QDir>
-#include <QApplication>
 #include <QTimer>
 
 // ============================================================
@@ -287,24 +284,7 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
         return;
     }
 
-    if (!changeDirectoryToEnginePath(engineFile)) {
-        return;
-    }
     startAndInitializeEngine(engineFile, enginename);
-}
-
-bool Usi::changeDirectoryToEnginePath(const QString& engineFile)
-{
-    const QFileInfo fileInfo(engineFile);
-
-    if (!QDir::setCurrent(fileInfo.path())) {
-        cleanupEngineProcessAndThread();
-        emit errorOccurred(tr("Failed to change directory to %1").arg(fileInfo.path()));
-        cancelCurrentOperation();
-        return false;
-    }
-
-    return true;
 }
 
 void Usi::startAndInitializeEngine(const QString& engineFile, const QString& enginename)

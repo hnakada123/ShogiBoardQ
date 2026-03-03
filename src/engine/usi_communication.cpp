@@ -63,29 +63,24 @@ void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
 // 棋譜解析
 // ============================================================
 
-void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV)
+void Usi::resetAnalysisStopTimer()
 {
-    // 処理フロー:
-    // 1. 既存の停止タイマーをキャンセル
-    // 2. 局面SFENを保存（読み筋表示用）
-    // 3. 盤面クローン + position送信
-    // 4. MultiPV設定送信
-    // 5. go infinite送信
-    // 6. タイムアウト設定（秒読みありの場合）またはbestmove待機
-
-    // 既存の停止タイマーをキャンセル
-    if (m_analysisStopTimer) {
-        m_analysisStopTimer->stop();
-        m_analysisStopTimer->deleteLater();
-        m_analysisStopTimer = nullptr;
+    if (!m_analysisStopTimer) {
+        return;
     }
+    m_analysisStopTimer->stop();
+    m_analysisStopTimer->deleteLater();
+    m_analysisStopTimer = nullptr;
+}
+
+void Usi::prepareAnalysisSession(const QString& positionStr, int multiPV)
+{
+    resetAnalysisStopTimer();
 
     // 思考開始時の局面SFENを保存（読み筋表示用）
-    {
-        QString baseSfen = m_matchHandler->computeBaseSfenFromBoard();
-        if (!baseSfen.isEmpty()) {
-            m_presenter->setBaseSfen(baseSfen);
-        }
+    const QString baseSfen = m_matchHandler->computeBaseSfenFromBoard();
+    if (!baseSfen.isEmpty()) {
+        m_presenter->setBaseSfen(baseSfen);
     }
 
     m_matchHandler->cloneCurrentBoardData();
@@ -96,6 +91,19 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
 
     m_presenter->requestClearThinkingInfo();
     m_protocolHandler->sendRaw("go infinite");
+}
+
+void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV)
+{
+    // 処理フロー:
+    // 1. 既存の停止タイマーをキャンセル
+    // 2. 局面SFENを保存（読み筋表示用）
+    // 3. 盤面クローン + position送信
+    // 4. MultiPV設定送信
+    // 5. go infinite送信
+    // 6. タイムアウト設定（秒読みありの場合）またはbestmove待機
+
+    prepareAnalysisSession(positionStr, multiPV);
 
     if (byoyomiMilliSec <= 0) {
         (void)m_protocolHandler->keepWaitingForBestMove();
@@ -119,29 +127,7 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
                       << "byoyomiMilliSec=" << byoyomiMilliSec
                       << "multiPV=" << multiPV;
 
-    // 既存の停止タイマーをキャンセル（前回の検討のタイマーが残っている可能性がある）
-    if (m_analysisStopTimer) {
-        m_analysisStopTimer->stop();
-        m_analysisStopTimer->deleteLater();
-        m_analysisStopTimer = nullptr;
-    }
-
-    // 思考開始時の局面SFENを保存（読み筋表示用）
-    {
-        QString baseSfen = m_matchHandler->computeBaseSfenFromBoard();
-        if (!baseSfen.isEmpty()) {
-            m_presenter->setBaseSfen(baseSfen);
-        }
-    }
-
-    m_matchHandler->cloneCurrentBoardData();
-    m_protocolHandler->sendPosition(positionStr);
-
-    // MultiPV を設定（常に送信して、前回の設定をリセット）
-    m_protocolHandler->sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(multiPV));
-
-    m_presenter->requestClearThinkingInfo();
-    m_protocolHandler->sendRaw("go infinite");
+    prepareAnalysisSession(positionStr, multiPV);
 
     // タイムアウト後にstop送信（byoyomiMilliSec > 0 の場合のみ）
     // メンバータイマーを使用して、次回の sendAnalysisCommands でキャンセル可能にする

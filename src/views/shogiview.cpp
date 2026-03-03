@@ -8,12 +8,11 @@
 #include "elidelabel.h"
 #include "shogigamecontroller.h"
 #include "logcategories.h"
+#include "sfenutils.h"
 
 #include <QColor>
 #include <QPainter>
 #include <QSettings>
-#include <QDir>
-#include <QApplication>
 #include <QFont>
 #include <QFontMetrics>
 #include <QDebug>
@@ -37,8 +36,6 @@ ShogiView::ShogiView(QWidget *parent)
     // ハイライト/矢印/手番表示の管理クラスを生成
     connect(m_highlighting, &ShogiViewHighlighting::highlightsCleared,
             this, &ShogiView::highlightsCleared);
-
-    QDir::setCurrent(QApplication::applicationDirPath());
 
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
@@ -298,6 +295,22 @@ void ShogiView::recalcLayoutParams()
     relayoutTurnLabels();
 }
 
+void ShogiView::applyBoardScaleChange(bool emitSignal)
+{
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
+    invalidateFieldRectCache();
+    recalcLayoutParams();
+    updateGeometry();
+    updateBlackClockLabelGeometry();
+    updateWhiteClockLabelGeometry();
+
+    if (emitSignal) {
+        emit fieldSizeChanged(m_layout.fieldSize());
+    }
+    update();
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ハイライト管理
 // ─────────────────────────────────────────────────────────────────────────────
@@ -323,14 +336,7 @@ void ShogiView::setSquareSize(int size)
         return;
     }
     m_layout.setSquareSize(size);
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
-    invalidateFieldRectCache();
-    recalcLayoutParams();
-    updateGeometry();
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
-    update();
+    applyBoardScaleChange(false);
 }
 
 void ShogiView::enlargeBoard(bool emitSignal)
@@ -340,20 +346,7 @@ void ShogiView::enlargeBoard(bool emitSignal)
     }
 
     m_layout.setSquareSize(m_layout.squareSize() + 1);
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
-    invalidateFieldRectCache();
-    recalcLayoutParams();
-
-    updateGeometry();
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
-
-    if (emitSignal) {
-        emit fieldSizeChanged(m_layout.fieldSize());
-    }
-
-    update();
+    applyBoardScaleChange(emitSignal);
 }
 
 void ShogiView::reduceBoard(bool emitSignal)
@@ -363,20 +356,7 @@ void ShogiView::reduceBoard(bool emitSignal)
     }
 
     m_layout.setSquareSize(m_layout.squareSize() - 1);
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
-    invalidateFieldRectCache();
-    recalcLayoutParams();
-
-    updateGeometry();
-    updateBlackClockLabelGeometry();
-    updateWhiteClockLabelGeometry();
-
-    if (emitSignal) {
-        emit fieldSizeChanged(m_layout.fieldSize());
-    }
-
-    update();
+    applyBoardScaleChange(emitSignal);
 }
 
 void ShogiView::setErrorOccurred(bool newErrorOccurred)
@@ -448,10 +428,7 @@ void ShogiView::resetAndEqualizePiecesOnStands()
 void ShogiView::initializeToFlatStartingPosition()
 {
     removeHighlightAllData();
-
-    QString flatInitialSFENStr =
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-    board()->setSfen(flatInitialSFENStr);
+    board()->setSfen(SfenUtils::hirateSfen());
 
     board()->initStand();
     update();

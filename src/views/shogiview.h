@@ -307,6 +307,7 @@ private:
     int   boardRightPx() const;
     int   standInnerEdgePx(bool rightSide) const;
     void  recalcLayoutParams();
+    void  applyBoardScaleChange(bool emitSignal);
 
     // 名前ラベル/ツールチップ
     void    refreshNameLabels();                 // 向きマーク付与の表示更新
