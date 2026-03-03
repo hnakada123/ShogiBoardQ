@@ -103,8 +103,14 @@ void MainWindowLifecyclePipeline::runShutdown()
         m_mw.m_match->destroyEngines();
     }
 
+    // m_queryService は各所の std::bind 経由で参照されるため、
+    // ここで破棄せず依存だけ無効化して終了時アクセスを安全化する。
+    if (m_mw.m_queryService) {
+        MatchRuntimeQueryService::Deps nullDeps;
+        m_mw.m_queryService->updateDeps(nullDeps);
+    }
+
     // リソース解放（unique_ptr がデストラクタで自動解放するため明示 delete は不要）
-    m_mw.m_queryService.reset();
     m_mw.m_playModePolicy.reset();
 }
 

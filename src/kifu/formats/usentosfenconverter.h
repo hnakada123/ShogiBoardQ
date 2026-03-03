@@ -14,6 +14,13 @@
 #include "kifdisplayitem.h"
 #include "kifparsetypes.h"
 
+/// @brief USEN デコード結果（エラー情報付き）
+struct UsenDecodeResult {
+    QStringList moves;       ///< デコードされた USI 手順
+    int invalidCount = 0;    ///< デコード失敗した手数
+    QString firstError;      ///< 最初のエラー内容（失敗がなければ空）
+};
+
 /**
  * @brief USEN (Url Safe sfen-Extended Notation) ファイルを解析し、GUIに必要なデータを取得するクラス
  *
@@ -50,6 +57,9 @@ public:
 
     // USEN文字列から指し手列をデコード
     static QStringList decodeUsenMoves(const QString& usenStr, QString* terminalOut = nullptr);
+
+    // USEN文字列から指し手列をデコード（エラー情報付き厳密版）
+    static UsenDecodeResult decodeUsenMovesStrict(const QString& usenStr, QString* terminalOut = nullptr);
 
     // 終局理由コードから日本語表記に変換
     static QString terminalCodeToJapanese(const QString& code);

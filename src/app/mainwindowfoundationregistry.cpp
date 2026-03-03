@@ -136,7 +136,7 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
         }
     };
     callbacks.ensureBoardSyncPresenter = [this]() { ensureBoardSyncPresenter(); };
-    callbacks.isGameActivelyInProgress = std::bind(&MatchRuntimeQueryService::isGameActivelyInProgress, m_mw.m_queryService.get());
+    callbacks.isGameActivelyInProgress = std::bind(&MainWindowFoundationRegistry::queryIsGameActivelyInProgress, this);
     callbacks.getSfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
 
     m_mw.m_kifuNavCoordinator->updateDeps(
@@ -233,6 +233,17 @@ void MainWindowFoundationRegistry::ensureEvaluationGraphController()
     if (m_mw.m_playerInfoController) {
         m_mw.m_playerInfoController->setEvalGraphController(m_mw.m_evalGraphController.get());
     }
+}
+
+// ---------------------------------------------------------------------------
+// MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
+// ---------------------------------------------------------------------------
+
+bool MainWindowFoundationRegistry::queryIsGameActivelyInProgress()
+{
+    if (m_mw.m_queryService)
+        return m_mw.m_queryService->isGameActivelyInProgress();
+    return false;
 }
 
 // ===========================================================================

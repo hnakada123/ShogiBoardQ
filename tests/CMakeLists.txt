@@ -910,6 +910,17 @@ target_compile_definitions(tst_wiring_slot_coverage PRIVATE
     SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
+# ============================================================
+# Unit 37: Lifecycle Runtime (MatchRuntimeQueryService 寿命安全性テスト)
+# ============================================================
+add_shogi_test(tst_lifecycle_runtime
+    tst_lifecycle_runtime.cpp
+    test_stubs_lifecycle_runtime.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/app/matchruntimequeryservice.cpp
+    ${SRC}/app/playmodepolicyservice.cpp
+)
+
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
 add_executable(bench_movevalidator
     bench_movevalidator.cpp

@@ -131,6 +131,7 @@ private:
 
     int m_lastLineIndex = 0;
     bool m_pendingNavResultCheck = false;
+    bool m_signalsWired = false;
 };
 
 #endif // KIFUDISPLAYCOORDINATOR_H

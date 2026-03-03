@@ -147,9 +147,9 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
         }
     };
     in.showGameOverDialog = std::bind(&MainWindowMatchAdapter::showGameOverMessageBox, adapter, _1, _2);
-    in.remainingMsFor = std::bind(&MatchRuntimeQueryService::getRemainingMsFor, m_mw.m_queryService.get(), _1);
-    in.incrementMsFor = std::bind(&MatchRuntimeQueryService::getIncrementMsFor, m_mw.m_queryService.get(), _1);
-    in.byoyomiMs = std::bind(&MatchRuntimeQueryService::getByoyomiMs, m_mw.m_queryService.get());
+    in.remainingMsFor = std::bind(&GameWiringSubRegistry::queryRemainingMsFor, this, _1);
+    in.incrementMsFor = std::bind(&GameWiringSubRegistry::queryIncrementMsFor, this, _1);
+    in.byoyomiMs = std::bind(&GameWiringSubRegistry::queryByoyomiMs, this);
     in.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_mw.m_playerInfoWiring, _1, _2);
     in.setEngineNames = std::bind(&PlayerInfoWiring::onSetEngineNames, m_mw.m_playerInfoWiring, _1, _2);
     m_registry->kifu()->ensureKifuFileController();
@@ -158,7 +158,7 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
     m_foundation->ensureKifuNavigationCoordinator();
     in.updateHighlightsForPly = std::bind(&KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, m_mw.m_kifuNavCoordinator.get(), _1);
     in.updateTurnAndTimekeepingDisplay = std::bind(&MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay, adapter);
-    in.isHumanSide = std::bind(&MatchRuntimeQueryService::isHumanSide, m_mw.m_queryService.get(), _1);
+    in.isHumanSide = std::bind(&GameWiringSubRegistry::queryIsHumanSide, this, _1);
     in.setMouseClickMode = [this](bool mode) {
         if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(mode);
     };
@@ -276,6 +276,38 @@ void GameWiringSubRegistry::ensureTurnSyncBridge()
     if (!gc || !tm) return;
 
     TurnSyncBridge::wire(gc, tm, &m_mw, &MainWindow::onTurnManagerChanged);
+}
+
+// ---------------------------------------------------------------------------
+// MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
+// ---------------------------------------------------------------------------
+
+qint64 GameWiringSubRegistry::queryRemainingMsFor(MatchCoordinator::Player player)
+{
+    if (m_mw.m_queryService)
+        return m_mw.m_queryService->getRemainingMsFor(player);
+    return 0;
+}
+
+qint64 GameWiringSubRegistry::queryIncrementMsFor(MatchCoordinator::Player player)
+{
+    if (m_mw.m_queryService)
+        return m_mw.m_queryService->getIncrementMsFor(player);
+    return 0;
+}
+
+qint64 GameWiringSubRegistry::queryByoyomiMs()
+{
+    if (m_mw.m_queryService)
+        return m_mw.m_queryService->getByoyomiMs();
+    return 0;
+}
+
+bool GameWiringSubRegistry::queryIsHumanSide(ShogiGameController::Player player)
+{
+    if (m_mw.m_queryService)
+        return m_mw.m_queryService->isHumanSide(player);
+    return false;
 }
 
 // ---------------------------------------------------------------------------
