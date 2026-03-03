@@ -21,19 +21,19 @@ MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* pa
 
 // --- Sub-registry convenience wrappers ---
 
-void MainWindowServiceRegistry::ensureUndoFlowService()
+void MainWindowServiceRegistry::prepareUndoFlowService()
 {
     if (m_mw.m_isShuttingDown) return;
     m_game->ensureUndoFlowService();
 }
 
-void MainWindowServiceRegistry::ensureTurnStateSyncService()
+void MainWindowServiceRegistry::prepareTurnStateSyncService()
 {
     if (m_mw.m_isShuttingDown) return;
     m_game->ensureTurnStateSyncService();
 }
 
-void MainWindowServiceRegistry::ensureGameRecordLoadService()
+void MainWindowServiceRegistry::prepareGameRecordLoadService()
 {
     if (m_mw.m_isShuttingDown) return;
     m_kifu->ensureGameRecordLoadService();

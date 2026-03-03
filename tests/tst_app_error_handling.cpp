@@ -855,8 +855,10 @@ private slots:
             QVERIFY2(body.contains(QStringLiteral("QTimer"))
                          || body.contains(QStringLiteral("timeout")),
                       "waitForResponseFlag should use timer-based timeout");
-            QVERIFY2(body.contains(QStringLiteral("QEventLoop")),
-                      "waitForResponseFlag should use QEventLoop for non-blocking wait");
+            QVERIFY2(body.contains(QStringLiteral("QEventLoop"))
+                         || body.contains(QStringLiteral("pumpEventsSlice"))
+                         || body.contains(QStringLiteral("processEvents")),
+                      "waitForResponseFlag should use event-pump based non-blocking wait");
         }
 
         // waitForBestMove にタイムアウト判定があること

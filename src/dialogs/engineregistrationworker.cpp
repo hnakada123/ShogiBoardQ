@@ -3,6 +3,7 @@
 
 #include "engineregistrationworker.h"
 #include <QDeadlineTimer>
+#include <QFileInfo>
 #include <QProcess>
 
 EngineRegistrationWorker::EngineRegistrationWorker(QObject* parent)
@@ -17,8 +18,15 @@ void EngineRegistrationWorker::setCancelFlag(CancelFlag flag)
 
 void EngineRegistrationWorker::registerEngine(const QString& enginePath)
 {
+    const QFileInfo engineInfo(enginePath);
+    if (!engineInfo.exists() || !engineInfo.isFile()) {
+        emit registrationFailed(tr("エンジンファイルが見つかりません: %1").arg(enginePath));
+        return;
+    }
+
     QProcess process;
-    process.start(enginePath, QStringList(), QIODevice::ReadWrite);
+    process.setWorkingDirectory(engineInfo.absolutePath());
+    process.start(engineInfo.absoluteFilePath(), QStringList(), QIODevice::ReadWrite);
 
     emit progressUpdated(tr("エンジンを起動中..."));
 

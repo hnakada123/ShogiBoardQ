@@ -117,9 +117,9 @@ void EngineRegistrationDialog::addEngineFromFileSelection()
 
     // ファイルのパスが有効でない場合、エラーメッセージを表示し、処理を中断する。
     if (!m_handler->validateEnginePath(fileName)) {
-        // エラーメッセージを通知する。
-        QMessageBox::critical(this, tr("エラー"),
-            tr("ディレクトリ %1 に移動できませんでした。エンジンの追加に失敗しました。").arg(QFileInfo(fileName).path()));
+        QMessageBox::critical(
+            this, tr("エラー"),
+            tr("指定したファイルは実行可能なエンジンではありません: %1").arg(fileName));
         return;
     }
 

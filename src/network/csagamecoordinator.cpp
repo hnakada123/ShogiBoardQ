@@ -16,10 +16,6 @@
 
 #include <QRegularExpression>
 
-// ============================================================
-// 初期化・破棄
-// ============================================================
-
 CsaGameCoordinator::CsaGameCoordinator(QObject* parent)
     : QObject(parent)
     , m_client(new CsaClient(this))
@@ -71,10 +67,6 @@ void CsaGameCoordinator::setDependencies(const Dependencies& deps)
     m_usiCommLog = deps.usiCommLog;
     m_engineThinking = deps.engineThinking;
 }
-
-// ============================================================
-// 対局制御
-// ============================================================
 
 void CsaGameCoordinator::startGame(const StartOptions& options)
 {
@@ -175,10 +167,6 @@ void CsaGameCoordinator::performResign()
     }
     m_client->resign();
 }
-
-// ============================================================
-// CSAクライアント シグナルハンドラ
-// ============================================================
 
 void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState state)
 {
@@ -408,10 +396,6 @@ void CsaGameCoordinator::setGameState(GameState state)
     }
 }
 
-// ============================================================
-// 局面・時計セットアップ
-// ============================================================
-
 void CsaGameCoordinator::setupInitialPosition()
 {
     if (!m_gameController || !m_gameController->board()) {
@@ -480,10 +464,6 @@ void CsaGameCoordinator::setupClock()
     m_clock->setCurrentPlayer(blackToMove ? 1 : 2);
     m_clock->startClock();
 }
-
-// ============================================================
-// クリーンアップ・ヘルパー
-// ============================================================
 
 void CsaGameCoordinator::ensureMoveProgressHandler()
 {

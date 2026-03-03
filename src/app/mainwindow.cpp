@@ -14,29 +14,7 @@
 #include "mainwindowserviceregistry.h"
 
 // --- unique_ptr メンバの完全型（デストラクタ用） ---
-#include "mainwindowcompositionroot.h"       // IWYU pragma: keep
-#include "mainwindowmatchadapter.h"
-#include "mainwindowcoreinitcoordinator.h"
-#include "livegamesessionupdater.h"
-#include "mainwindowsignalrouter.h"
-#include "mainwindowappearancecontroller.h"
-#include "evaluationgraphcontroller.h"       // IWYU pragma: keep
-#include "jishogiscoredialogcontroller.h"    // IWYU pragma: keep
-#include "nyugyokudeclarationhandler.h"
-#include "languagecontroller.h"
-#include "docklayoutmanager.h"
-#include "dockcreationservice.h"              // IWYU pragma: keep
-#include "usicommandcontroller.h"             // IWYU pragma: keep
-#include "branchnavigationwiring.h"
-#include "kifunavigationcoordinator.h"       // IWYU pragma: keep
-#include "gamerecordupdateservice.h"         // IWYU pragma: keep
-#include "analysisresultspresenter.h"        // IWYU pragma: keep
-#include "kifuexportcontroller.h"
-#include "csagamewiring.h"
-#include "josekiwindowwiring.h"
-#include "matchcoordinatorwiring.h"
-#include "playmodepolicyservice.h"
-#include "matchruntimequeryservice.h"
+#include "mainwindowownedtypes.h"
 #include <QCloseEvent>
 #include <QTimer>
 #ifdef QT_DEBUG
@@ -50,9 +28,6 @@
 #include "positioneditcontroller.h"        // IWYU pragma: keep
 
 // --- Controllers / Services（スロット転送先） ---
-#include "gamerecordloadservice.h"
-#include "turnstatesyncservice.h"
-#include "undoflowservice.h"
 
 // MainWindow を初期化し、主要コンポーネントを構築する。
 // 起動フローの詳細は MainWindowLifecyclePipeline::runStartup() を参照。
@@ -73,7 +48,7 @@ MainWindow::~MainWindow()
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    m_registry->ensureUndoFlowService();
+    m_registry->prepareUndoFlowService();
     m_undoFlowService->undoLastTwoMoves();
 }
 
@@ -85,14 +60,14 @@ void MainWindow::updateJosekiWindow()
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
-    m_registry->ensureTurnStateSyncService();
+    m_registry->prepareTurnStateSyncService();
     m_turnStateSync->onTurnManagerChanged(now);
 }
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    m_registry->ensureTurnStateSyncService();
+    m_registry->prepareTurnStateSyncService();
     m_turnStateSync->setCurrentTurn();
 }
 
@@ -120,7 +95,7 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
 {
     if (!m_models.kifuRecord) return;
 
-    m_registry->ensureGameRecordLoadService();
+    m_registry->prepareGameRecordLoadService();
     m_gameRecordLoadService->loadGameRecord(disp);
 }
 

@@ -228,6 +228,7 @@ set(SRC_APP
     src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
+    src/app/mainwindowownedtypes.h
     src/app/kifuexportdepsassembler.cpp
     src/app/kifuexportdepsassembler.h
     src/app/kifuloadcoordinatorfactory.cpp

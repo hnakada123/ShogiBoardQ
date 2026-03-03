@@ -231,22 +231,27 @@ void ConsiderationTabManager::setConsiderationRunning(bool running)
     }
 
     m_btnStopConsideration->setEnabled(false);
-    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] disconnecting button signals";
-    m_btnStopConsideration->disconnect();
+    qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] reconnecting button handler";
+    if (m_stopButtonConnection) {
+        QObject::disconnect(m_stopButtonConnection);
+        m_stopButtonConnection = {};
+    }
 
     if (running) {
         qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] setting button to '検討中止'";
         m_btnStopConsideration->setText(tr("検討中止"));
         m_btnStopConsideration->setToolTip(tr("検討を中止してエンジンを停止します"));
-        connect(m_btnStopConsideration, &QToolButton::clicked,
-                this, &ConsiderationTabManager::stopConsiderationRequested);
+        m_stopButtonConnection = connect(
+            m_btnStopConsideration, &QToolButton::clicked,
+            this, &ConsiderationTabManager::stopConsiderationRequested);
         m_btnStopConsideration->setEnabled(true);
     } else {
         qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] setting button to '検討開始'";
         m_btnStopConsideration->setText(tr("検討開始"));
         m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
-        connect(m_btnStopConsideration, &QToolButton::clicked,
-                this, &ConsiderationTabManager::startConsiderationRequested);
+        m_stopButtonConnection = connect(
+            m_btnStopConsideration, &QToolButton::clicked,
+            this, &ConsiderationTabManager::startConsiderationRequested);
         QTimer::singleShot(0, this, [this]() {
             if (m_btnStopConsideration) {
                 m_btnStopConsideration->setEnabled(m_startConsiderationEnabled);

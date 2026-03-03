@@ -112,10 +112,6 @@ DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
 
 DialogCoordinator::~DialogCoordinator() = default;
 
-// --------------------------------------------------------
-// 依存オブジェクトの設定
-// --------------------------------------------------------
-
 void DialogCoordinator::updateDeps(const Deps& deps)
 {
     m_match = deps.matchCoordinator;
@@ -126,10 +122,6 @@ void DialogCoordinator::updateDeps(const Deps& deps)
     m_analysisModel = deps.analysisModel;
     m_considerationTabManager = deps.considerationTabManager;
 }
-
-// --------------------------------------------------------
-// 情報ダイアログ
-// --------------------------------------------------------
 
 void DialogCoordinator::showVersionInformation()
 {
@@ -147,10 +139,6 @@ void DialogCoordinator::showEngineSettingsDialog()
     dlg.exec();
 }
 
-// --------------------------------------------------------
-// ゲームプレイ関連ダイアログ
-// --------------------------------------------------------
-
 bool DialogCoordinator::showPromotionDialog()
 {
     return PromotionFlow::askPromote(m_parentWidget);
@@ -160,10 +148,6 @@ void DialogCoordinator::showGameOverMessage(const QString& title, const QString&
 {
     QMessageBox::information(m_parentWidget, title, message);
 }
-
-// --------------------------------------------------------
-// 解析関連ダイアログ
-// --------------------------------------------------------
 
 void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams& params)
 {
@@ -370,10 +354,6 @@ bool DialogCoordinator::isKifuAnalysisRunning() const
     return m_analysisFlow && m_analysisFlow->isRunning();
 }
 
-// --------------------------------------------------------
-// 検討コンテキスト
-// --------------------------------------------------------
-
 void DialogCoordinator::setConsiderationContext(const ConsiderationContext& ctx)
 {
     m_considerationCtx = ctx;
@@ -469,10 +449,6 @@ bool DialogCoordinator::startConsiderationFromContext()
     return true;
 }
 
-// --------------------------------------------------------
-// 詰み探索コンテキスト
-// --------------------------------------------------------
-
 void DialogCoordinator::setTsumeSearchContext(const TsumeSearchContext& ctx)
 {
     m_tsumeSearchCtx = ctx;
@@ -536,10 +512,6 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
 
     showTsumeSearchDialog(params);
 }
-
-// --------------------------------------------------------
-// エラー表示
-// --------------------------------------------------------
 
 void DialogCoordinator::showErrorMessage(const QString& message)
 {
