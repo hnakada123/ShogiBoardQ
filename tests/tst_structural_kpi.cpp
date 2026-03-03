@@ -651,7 +651,7 @@ private slots:
     // ================================================================
     void mainWindowIncludeCount()
     {
-        constexpr int kMaxIncludes = 36; // 実測値: 36 (2026-03-02)
+        constexpr int kMaxIncludes = 37; // 実測値: 37 (2026-03-03)
 
         const QString filePath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.cpp");

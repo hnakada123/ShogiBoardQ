@@ -206,9 +206,9 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
     return true;
 }
 
-QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString* terminalOut)
+UsenDecodeResult UsenToSfenConverter::decodeUsenMovesStrict(const QString& usenStr, QString* terminalOut)
 {
-    QStringList usiMoves;
+    UsenDecodeResult result;
 
     QString movesStr = usenStr;
 
@@ -243,21 +243,33 @@ QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString
 
         const QString usi = decodeBase36Move(threeChars);
         if (!usi.isEmpty()) {
-            usiMoves.append(usi);
+            result.moves.append(usi);
         } else {
-            // デコードできなかった場合はプレースホルダーを追加
+            // デコードできなかった場合はエラー情報を記録しプレースホルダを追加
             const QString placeholder = QStringLiteral("?%1").arg(moveCount + 1);
             qCDebug(lcKifu) << "Move" << (moveCount + 1) << "'" << threeChars
                      << "' could not be decoded, using placeholder";
-            usiMoves.append(placeholder);
+            result.moves.append(placeholder);
+            ++result.invalidCount;
+            if (result.firstError.isEmpty()) {
+                result.firstError = QStringLiteral("Move %1 '%2' could not be decoded")
+                    .arg(moveCount + 1).arg(threeChars);
+            }
         }
 
         ++moveCount;
         i += 3;
     }
 
-    qCDebug(lcKifu) << "Decoded" << usiMoves.size() << "moves from USEN string";
-    return usiMoves;
+    qCDebug(lcKifu) << "Decoded" << result.moves.size() << "moves from USEN string"
+             << "(invalid:" << result.invalidCount << ")";
+    return result;
+}
+
+QStringList UsenToSfenConverter::decodeUsenMoves(const QString& usenStr, QString* terminalOut)
+{
+    UsenDecodeResult result = decodeUsenMovesStrict(usenStr, terminalOut);
+    return result.moves;
 }
 
 int UsenToSfenConverter::base36CharToInt(QChar c)

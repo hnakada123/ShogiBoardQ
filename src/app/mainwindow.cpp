@@ -37,6 +37,7 @@
 #include "matchcoordinatorwiring.h"
 #include "playmodepolicyservice.h"
 #include "matchruntimequeryservice.h"
+#include <QCloseEvent>
 #include <QTimer>
 #ifdef QT_DEBUG
 #include "debugscreenshotwiring.h"
@@ -123,11 +124,13 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
     m_gameRecordLoadService->loadGameRecord(disp);
 }
 
-// `closeEvent`: 終了時に設定保存とエンジン停止を行ってから親クラス処理へ委譲する。
+// `closeEvent`: 親クラスでイベント受理を確認してから shutdown を実行する。
 void MainWindow::closeEvent(QCloseEvent* e)
 {
-    m_pipeline->runShutdown();
     QMainWindow::closeEvent(e);
+    if (!e->isAccepted())
+        return;
+    m_pipeline->runShutdown();
 }
 
 void MainWindow::beginPositionEditing()

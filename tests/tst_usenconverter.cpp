@@ -268,6 +268,69 @@ private slots:
         QVERIFY(true);
     }
     // ========================================
+    // Strict API: 正常入力
+    // ========================================
+
+    void decodeUsenMovesStrict_validInput()
+    {
+        const QString usen = QStringLiteral("~0.7ku2jm6y236e5t24be9qc");
+        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(usen);
+        QCOMPARE(result.invalidCount, 0);
+        QVERIFY(result.firstError.isEmpty());
+        QCOMPARE(result.moves.size(), 7);
+        QCOMPARE(result.moves, kExpectedUsiMoves);
+    }
+
+    // ========================================
+    // Strict API: 不正入力でエラー情報が取れる
+    // ========================================
+
+    void decodeUsenMovesStrict_invalidInput()
+    {
+        // 最初の3文字 "!!!" は不正なbase36 → プレースホルダ "?1" になる
+        // 続く "7ku" は正常 (7g7f)
+        const QString usen = QStringLiteral("~0.!!!7ku");
+        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(usen);
+        QCOMPARE(result.invalidCount, 1);
+        QVERIFY(!result.firstError.isEmpty());
+        QCOMPARE(result.moves.size(), 2);
+        QCOMPARE(result.moves.at(0), QStringLiteral("?1"));
+        QCOMPARE(result.moves.at(1), QStringLiteral("7g7f"));
+    }
+
+    // ========================================
+    // Strict API: 全て不正な入力
+    // ========================================
+
+    void decodeUsenMovesStrict_allInvalid()
+    {
+        const QString usen = QStringLiteral("~0.!!!@@@");
+        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(usen);
+        QCOMPARE(result.invalidCount, 2);
+        QVERIFY(!result.firstError.isEmpty());
+        // firstError は最初のエラーのみ
+        QVERIFY(result.firstError.contains(QStringLiteral("1")));
+        QCOMPARE(result.moves.size(), 2);
+        QCOMPARE(result.moves.at(0), QStringLiteral("?1"));
+        QCOMPARE(result.moves.at(1), QStringLiteral("?2"));
+    }
+
+    // ========================================
+    // Strict API: 終局コード付き
+    // ========================================
+
+    void decodeUsenMovesStrict_withTerminal()
+    {
+        QString terminal;
+        UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(
+            QStringLiteral("~0.7ku2jm.r"), &terminal);
+        QCOMPARE(result.invalidCount, 0);
+        QVERIFY(result.firstError.isEmpty());
+        QCOMPARE(result.moves.size(), 2);
+        QCOMPARE(terminal, QStringLiteral("r"));
+    }
+
+    // ========================================
     // 境界値テスト: 全APIに対する異常入力耐性
     // ========================================
 

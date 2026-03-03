@@ -144,6 +144,10 @@ KifuDisplayPresenter::TrackingState KifuDisplayCoordinator::trackingState() cons
 
 void KifuDisplayCoordinator::wireSignals()
 {
+    if (m_signalsWired)
+        return;
+    m_signalsWired = true;
+
     if (m_navController != nullptr) {
         connect(m_navController, &KifuNavigationController::navigationCompleted,
                 this, &KifuDisplayCoordinator::onNavigationCompleted);
@@ -181,19 +185,19 @@ void KifuDisplayCoordinator::wireSignals()
 
 void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
 {
-    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply
+    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply
                             << "preferredLineIndex(before)=" << (m_state ? m_state->preferredLineIndex() : -99)
                             << "m_lastModelLineIndex=" << m_presenter->lastModelLineIndex();
 
     if (m_tree == nullptr || m_navController == nullptr) {
-        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: tree or navController is null";
+        qCWarning(lcUi).noquote() << "onBranchTreeNodeClicked: tree or navController is null";
         return;
     }
 
     QList<BranchLine> lines = m_tree->allLines();
-    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: allLines().size()=" << lines.size();
+    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: allLines().size()=" << lines.size();
     if (lineIndex < 0 || lineIndex >= lines.size()) {
-        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: lineIndex out of range";
+        qCWarning(lcUi).noquote() << "onBranchTreeNodeClicked: lineIndex out of range";
         return;
     }
 
@@ -204,20 +208,20 @@ void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
         } else {
             m_state->resetPreferredLineIndex();
         }
-        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: preferredLineIndex(after)=" << m_state->preferredLineIndex();
+        qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: preferredLineIndex(after)=" << m_state->preferredLineIndex();
     }
 
     const BranchLine& line = lines.at(lineIndex);
-    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: line.nodes.size()=" << line.nodes.size()
+    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: line.nodes.size()=" << line.nodes.size()
                             << "line.branchPly=" << line.branchPly
                             << "line.name=" << line.name;
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
         if (node->ply() == ply) {
-            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: found node nodeId=" << node->nodeId()
+            qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: found node nodeId=" << node->nodeId()
                                     << "displayText=" << node->displayText()
                                     << "sfen=" << node->sfen();
             m_navController->goToNode(node);
-            qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE (goToNode done)"
+            qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked LEAVE (goToNode done)"
                                     << "currentLineIndex(after)=" << (m_state ? m_state->currentLineIndex() : -99)
                                     << "m_lastModelLineIndex(after)=" << m_presenter->lastModelLineIndex();
             return;
@@ -226,33 +230,33 @@ void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
 
     // plyが見つからない場合（開始局面）
     if (ply == 0 && m_tree->root() != nullptr) {
-        qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked: using root node";
+        qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: using root node";
         m_navController->goToNode(m_tree->root());
     }
-    qCDebug(lcUi).noquote() << "onBranchTreeNodeClicked LEAVE (node not found for ply=" << ply << ")";
+    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked LEAVE (node not found for ply=" << ply << ")";
 }
 
 void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index)
 {
-    qCDebug(lcUi).noquote() << "onBranchCandidateActivated ENTER"
+    qCDebug(lcNavTrace).noquote() << "onBranchCandidateActivated ENTER"
                        << "index.valid=" << index.isValid()
                        << "row=" << index.row()
                        << "navController=" << (m_navController ? "yes" : "null")
                        << "branchModel=" << (m_branchModel ? "yes" : "null");
 
     if (!index.isValid() || m_navController == nullptr || m_branchModel == nullptr) {
-        qCDebug(lcUi).noquote() << "onBranchCandidateActivated: guard failed, returning";
+        qCDebug(lcNavTrace).noquote() << "onBranchCandidateActivated: guard failed, returning";
         return;
     }
 
     const int row = index.row();
     if (m_branchModel->isBackToMainRow(row)) {
-        qCDebug(lcUi).noquote() << "onBranchCandidateActivated: back to main row, calling goToMainLineAtCurrentPly";
+        qCDebug(lcNavTrace).noquote() << "onBranchCandidateActivated: back to main row, calling goToMainLineAtCurrentPly";
         m_navController->goToMainLineAtCurrentPly();
         return;
     }
 
-    qCDebug(lcUi).noquote() << "onBranchCandidateActivated: calling selectBranchCandidate(" << row << ")";
+    qCDebug(lcNavTrace).noquote() << "onBranchCandidateActivated: calling selectBranchCandidate(" << row << ")";
     m_navController->selectBranchCandidate(row);
 }
 
@@ -272,7 +276,7 @@ void KifuDisplayCoordinator::onTreeChanged()
 
 void KifuDisplayCoordinator::updateRecordView()
 {
-    qCDebug(lcUi).noquote() << "updateRecordView: CALLED";
+    qCDebug(lcNavTrace).noquote() << "updateRecordView: CALLED";
     m_presenter->populateRecordModel();
     m_presenter->populateBranchMarks();
 
@@ -280,7 +284,7 @@ void KifuDisplayCoordinator::updateRecordView()
     if (m_recordPane != nullptr && m_recordPane->kifuView() != nullptr) {
         QTableView* view = m_recordPane->kifuView();
         view->viewport()->update();
-        qCDebug(lcUi).noquote() << "updateRecordView: forced view update, model rowCount=" << m_recordModel->rowCount();
+        qCDebug(lcNavTrace).noquote() << "updateRecordView: forced view update, model rowCount=" << m_recordModel->rowCount();
     }
 }
 

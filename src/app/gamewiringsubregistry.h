@@ -45,6 +45,12 @@ private:
     /// MatchCoordinatorWiring::Deps を構築する
     MatchCoordinatorWiring::Deps buildMatchWiringDeps();
 
+    // MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
+    qint64 queryRemainingMsFor(MatchCoordinator::Player player);
+    qint64 queryIncrementMsFor(MatchCoordinator::Player player);
+    qint64 queryByoyomiMs();
+    bool queryIsHumanSide(ShogiGameController::Player player);
+
     MainWindow& m_mw;
     GameSubRegistry* m_gameReg;
     MainWindowServiceRegistry* m_registry;
