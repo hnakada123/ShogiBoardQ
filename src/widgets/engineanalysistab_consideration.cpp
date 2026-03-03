@@ -120,6 +120,12 @@ void EngineAnalysisTab::setConsiderationRunning(bool running)
     m_considerationTabManager->setConsiderationRunning(running);
 }
 
+void EngineAnalysisTab::setConsiderationStartEnabled(bool enabled)
+{
+    ensureConsiderationTabManager();
+    m_considerationTabManager->setStartConsiderationEnabled(enabled);
+}
+
 void EngineAnalysisTab::loadEngineList()
 {
     ensureConsiderationTabManager();

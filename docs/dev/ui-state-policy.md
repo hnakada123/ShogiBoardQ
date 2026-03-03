@@ -132,11 +132,13 @@
 | 棋譜欄クリック | E | D | D | D | E | E | D |
 | 分岐ツリークリック | E | D | D | D | E | E | D |
 | 盤面クリック（指し手入力） | E | E | D | E | D | D | D |
+| 検討ドック「検討開始」ボタン | E | D | E | D | E | E | E |
 
 **補足**:
 - 「ナビゲーションボタン」と「棋譜欄クリック」は `RecordPane::setNavigationEnabled()` で一括制御
 - 「分岐ツリークリック」は `EngineAnalysisTab::setBranchTreeClickEnabled()` で制御
 - 「盤面クリック」は `BoardInteractionController::setMoveInputEnabled()` で制御（対局中の手番チェックは `isHumanTurnCallback` で別途実施）
+- 「検討開始」ボタンは `EngineAnalysisTab::setConsiderationStartEnabled()` で制御（検討中は同ボタンが「検討中止」として動作するため有効のまま）
 - 「表示メニュー」は全状態で常に有効のため省略
 
 ## シグナル配線
