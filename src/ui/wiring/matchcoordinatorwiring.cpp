@@ -216,7 +216,6 @@ void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps
 {
     // 既存があれば破棄
     if (m_match) {
-        m_match->disconnect(this);
         m_match.reset();
     }
 

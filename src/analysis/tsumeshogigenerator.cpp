@@ -90,8 +90,10 @@ void TsumeshogiGenerator::stop()
 
     // バッチ生成をキャンセル
     if (m_cancelFlag) m_cancelFlag->store(true);
-    m_batchWatcher.cancel();
-    m_batchWatcher.waitForFinished();
+    if (m_batchWatcher.isRunning()) {
+        // UIブロックを避けるため同期待機せず、完了通知は onBatchReady 側で無視する。
+        m_batchWatcher.cancel();
+    }
 
     cleanup();
     emit finished();

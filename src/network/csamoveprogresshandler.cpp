@@ -42,13 +42,21 @@ void CsaMoveProgressHandler::syncClockAfterMove(bool startMyTurnClock)
 {
     if (!*m_refs.clock) return;
 
-    int blackRemainSec = *m_refs.blackRemainingMs / 1000;
-    int whiteRemainSec = *m_refs.whiteRemainingMs / 1000;
-    int byoyomiSec = m_refs.gameSummary->byoyomi * m_refs.gameSummary->timeUnitMs() / 1000;
-    int incrementSec = m_refs.gameSummary->increment * m_refs.gameSummary->timeUnitMs() / 1000;
+    const int blackRemainSec = *m_refs.blackRemainingMs / 1000;
+    const int whiteRemainSec = *m_refs.whiteRemainingMs / 1000;
+    const int timeUnitMs = m_refs.gameSummary->timeUnitMs();
+    const int byoyomiBlackUnits = m_refs.gameSummary->hasIndividualTime
+        ? m_refs.gameSummary->byoyomiBlack
+        : m_refs.gameSummary->byoyomi;
+    const int byoyomiWhiteUnits = m_refs.gameSummary->hasIndividualTime
+        ? m_refs.gameSummary->byoyomiWhite
+        : m_refs.gameSummary->byoyomi;
+    const int byoyomiBlackSec = byoyomiBlackUnits * timeUnitMs / 1000;
+    const int byoyomiWhiteSec = byoyomiWhiteUnits * timeUnitMs / 1000;
+    const int incrementSec = m_refs.gameSummary->increment * timeUnitMs / 1000;
 
     (*m_refs.clock)->setPlayerTimes(blackRemainSec, whiteRemainSec,
-                                    byoyomiSec, byoyomiSec,
+                                    byoyomiBlackSec, byoyomiWhiteSec,
                                     incrementSec, incrementSec,
                                     true);
 
@@ -68,10 +76,15 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
 {
     m_hooks.logMessage(tr("相手の指し手: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
 
-    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
+    if (move.length() < 7) {
+        qCWarning(lcNetwork) << "Invalid CSA move length:" << move;
+        m_hooks.logMessage(tr("不正な形式の指し手を受信しました: %1").arg(move), true);
+        m_hooks.errorOccurred(tr("サーバーからの指し手形式が不正です: %1").arg(move));
+        m_hooks.setGameState(GameState::Error);
+        return;
+    }
 
-    updateTimeTracking(isBlackMove, consumedTimeMs);
-    syncClockAfterMove(true);  // 次は自分の手番
+    bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
 
     // CSA形式から座標を抽出（ハイライト用）
     QPoint from, to;
@@ -83,8 +96,17 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
         toFile = move[3].digitValue();
         toRank = move[4].digitValue();
 
-        if (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) {
-            qCWarning(lcNetwork) << "Invalid CSA move coordinates: toFile=" << toFile << "toRank=" << toRank << "move=" << move;
+        const bool invalidTo = (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9);
+        const bool invalidFrom = !((fromFile == 0 && fromRank == 0) ||
+                                   (fromFile >= 1 && fromFile <= 9 &&
+                                    fromRank >= 1 && fromRank <= 9));
+        if (invalidTo || invalidFrom) {
+            qCWarning(lcNetwork) << "Invalid CSA move coordinates:"
+                                 << "fromFile=" << fromFile
+                                 << "fromRank=" << fromRank
+                                 << "toFile=" << toFile
+                                 << "toRank=" << toRank
+                                 << "move=" << move;
             m_hooks.logMessage(tr("不正な座標の指し手を受信しました: %1").arg(move), true);
             m_hooks.errorOccurred(tr("サーバーからの指し手の座標が不正です: %1").arg(move));
             m_hooks.setGameState(GameState::Error);
@@ -125,6 +147,9 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
         return;
     }
 
+    updateTimeTracking(isBlackMove, consumedTimeMs);
+    syncClockAfterMove(true);  // 次は自分の手番
+
     if (*m_refs.view) (*m_refs.view)->update();
 
     (*m_refs.moveCount)++;
@@ -154,30 +179,15 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
 {
     m_hooks.logMessage(tr("指し手確認: %1 (消費時間: %2ms)").arg(move).arg(consumedTimeMs), false);
 
+    if (move.length() < 7) {
+        qCWarning(lcNetwork) << "Invalid confirmed CSA move length:" << move;
+        m_hooks.logMessage(tr("不正な形式の指し手確認を受信しました: %1").arg(move), true);
+        m_hooks.errorOccurred(tr("サーバーからの指し手確認形式が不正です: %1").arg(move));
+        m_hooks.setGameState(GameState::Error);
+        return;
+    }
+
     bool isBlackMove = (move.length() > 0 && move[0] == QLatin1Char('+'));
-
-    updateTimeTracking(isBlackMove, consumedTimeMs);
-    syncClockAfterMove(false);  // 次は相手の手番
-
-    // USI指し手リストとSFEN記録は更新する必要がある
-    QString usiMove = CsaMoveConverter::csaToUsi(move);
-    if (!usiMove.isEmpty()) {
-        m_refs.usiMoves->append(usiMove);
-    }
-
-    // エンジンの指し手の場合のみSFEN記録を更新（人間はvalidateAndMoveで追加済み）
-    if (*m_refs.playerType == PlayerType::Engine) {
-        if (*m_refs.gameController && (*m_refs.gameController)->board() && *m_refs.sfenHistory) {
-            QString boardSfen = (*m_refs.gameController)->board()->convertBoardToSfen();
-            QString standSfen = (*m_refs.gameController)->board()->convertStandToSfen();
-            QString currentPlayerStr = ((*m_refs.gameController)->currentPlayer() == ShogiGameController::Player1)
-                                       ? QStringLiteral("b") : QStringLiteral("w");
-            QString fullSfen = QString("%1 %2 %3 %4")
-                                   .arg(boardSfen, currentPlayerStr, standSfen)
-                                   .arg(*m_refs.moveCount + 1);
-            (*m_refs.sfenHistory)->append(fullSfen);
-        }
-    }
 
     // CSA形式から座標を抽出（ハイライト用）
     QPoint from, to;
@@ -210,6 +220,34 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
         }
         to = QPoint(toFile, toRank);
     }
+
+    // USI指し手リストとSFEN記録は更新する必要がある
+    QString usiMove = CsaMoveConverter::csaToUsi(move);
+    if (usiMove.isEmpty()) {
+        qCWarning(lcNetwork) << "Invalid confirmed CSA move payload:" << move;
+        m_hooks.logMessage(tr("指し手確認の変換に失敗しました: %1").arg(move), true);
+        m_hooks.errorOccurred(tr("サーバーからの指し手確認を変換できません: %1").arg(move));
+        m_hooks.setGameState(GameState::Error);
+        return;
+    }
+    m_refs.usiMoves->append(usiMove);
+
+    // エンジンの指し手の場合のみSFEN記録を更新（人間はvalidateAndMoveで追加済み）
+    if (*m_refs.playerType == PlayerType::Engine) {
+        if (*m_refs.gameController && (*m_refs.gameController)->board() && *m_refs.sfenHistory) {
+            QString boardSfen = (*m_refs.gameController)->board()->convertBoardToSfen();
+            QString standSfen = (*m_refs.gameController)->board()->convertStandToSfen();
+            QString currentPlayerStr = ((*m_refs.gameController)->currentPlayer() == ShogiGameController::Player1)
+                                       ? QStringLiteral("b") : QStringLiteral("w");
+            QString fullSfen = QString("%1 %2 %3 %4")
+                                   .arg(boardSfen, currentPlayerStr, standSfen)
+                                   .arg(*m_refs.moveCount + 1);
+            (*m_refs.sfenHistory)->append(fullSfen);
+        }
+    }
+
+    updateTimeTracking(isBlackMove, consumedTimeMs);
+    syncClockAfterMove(false);  // 次は相手の手番
 
     (*m_refs.moveCount)++;
     *m_refs.isMyTurn = false;
@@ -244,22 +282,38 @@ void CsaMoveProgressHandler::startEngineThinking()
     }
 
     // 時間パラメータを計算
-    int byoyomiMs = m_refs.gameSummary->byoyomi * m_refs.gameSummary->timeUnitMs();
-    int totalTimeMs = m_refs.gameSummary->totalTime * m_refs.gameSummary->timeUnitMs();
-    int blackRemainMs = totalTimeMs - *m_refs.blackTotalTimeMs;
-    int whiteRemainMs = totalTimeMs - *m_refs.whiteTotalTimeMs;
+    const int timeUnitMs = m_refs.gameSummary->timeUnitMs();
+    const int totalTimeBlackMs =
+        (m_refs.gameSummary->hasIndividualTime
+             ? m_refs.gameSummary->totalTimeBlack
+             : m_refs.gameSummary->totalTime)
+        * timeUnitMs;
+    const int totalTimeWhiteMs =
+        (m_refs.gameSummary->hasIndividualTime
+             ? m_refs.gameSummary->totalTimeWhite
+             : m_refs.gameSummary->totalTime)
+        * timeUnitMs;
+    const bool mySideIsBlack = *m_refs.isBlackSide;
+    const int byoyomiMyMs =
+        (m_refs.gameSummary->hasIndividualTime
+             ? (mySideIsBlack ? m_refs.gameSummary->byoyomiBlack
+                              : m_refs.gameSummary->byoyomiWhite)
+             : m_refs.gameSummary->byoyomi)
+        * timeUnitMs;
+    int blackRemainMs = totalTimeBlackMs - *m_refs.blackTotalTimeMs;
+    int whiteRemainMs = totalTimeWhiteMs - *m_refs.whiteTotalTimeMs;
     if (blackRemainMs < 0) blackRemainMs = 0;
     if (whiteRemainMs < 0) whiteRemainMs = 0;
-    int incMs = m_refs.gameSummary->increment * m_refs.gameSummary->timeUnitMs();
+    const int incMs = m_refs.gameSummary->increment * timeUnitMs;
 
     CsaEngineController::ThinkingParams params;
     params.positionCmd = positionCmd;
-    params.byoyomiMs = byoyomiMs;
+    params.byoyomiMs = byoyomiMyMs;
     params.btimeStr = QString::number(blackRemainMs);
     params.wtimeStr = QString::number(whiteRemainMs);
     params.bincMs = incMs;
     params.wincMs = incMs;
-    params.useByoyomi = (byoyomiMs > 0);
+    params.useByoyomi = (byoyomiMyMs > 0);
 
     m_hooks.logMessage(tr("エンジンが思考中..."), false);
 
@@ -297,11 +351,19 @@ void CsaMoveProgressHandler::startEngineThinking()
     if (isDrop) {
         Piece piece = board->getPieceCharacter(fromFile, fromRank);
         csaPiece = CsaMoveConverter::pieceCharToCsa(piece, false);
+        if (csaPiece.isEmpty()) {
+            m_hooks.logMessage(tr("駒打ちの駒種変換に失敗しました"), true);
+            return;
+        }
         fromFile = 0;
         fromRank = 0;
     } else {
         Piece piece = board->getPieceCharacter(fromFile, fromRank);
         csaPiece = CsaMoveConverter::pieceCharToCsa(piece, result.promote);
+        if (csaPiece.isEmpty()) {
+            m_hooks.logMessage(tr("指し手の駒種変換に失敗しました"), true);
+            return;
+        }
     }
 
     QString csaMove = QString("%1%2%3%4%5%6")

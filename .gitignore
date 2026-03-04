@@ -1,8 +1,8 @@
-
 /build
 /build-debug
 /build-tidy
 /build-review
+/build-cppcheck
 CMakeLists.txt.user
 .cache
 /out

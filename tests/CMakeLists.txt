@@ -407,6 +407,7 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/dialogs/josekiwindow.cpp
     ${SRC}/dialogs/josekiwindowio.cpp
     ${SRC}/dialogs/josekiwindowui.cpp
+    ${SRC}/dialogs/josekiwindowui_status.cpp
     ${SRC}/dialogs/josekipresenter.cpp
     ${SRC}/dialogs/josekirepository.cpp
     ${SRC}/dialogs/josekimovedialog.cpp

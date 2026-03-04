@@ -116,7 +116,7 @@ void ShogiView::setBoard(ShogiBoard* board)
     }
 
     if (m_board) {
-        m_board->disconnect(this);
+        QObject::disconnect(m_board, nullptr, this, nullptr);
     }
 
     m_board = board;

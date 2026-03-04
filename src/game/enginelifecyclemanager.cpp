@@ -146,6 +146,19 @@ void EngineLifecycleManager::onEngine2Win()
     if (m_hooks.onEngineWin) m_hooks.onEngineWin(2);
 }
 
+void EngineLifecycleManager::disconnectArbiterSignals()
+{
+    disconnectArbiterSignals(m_usi1);
+    disconnectArbiterSignals(m_usi2);
+}
+
+void EngineLifecycleManager::disconnectArbiterSignals(Usi* engine)
+{
+    if (!engine) return;
+    QObject::disconnect(engine, &Usi::bestMoveResignReceived, this, nullptr);
+    QObject::disconnect(engine, &Usi::bestMoveWinReceived, this, nullptr);
+}
+
 // ============================================================
 // エンジン破棄
 // ============================================================
@@ -154,7 +167,7 @@ void EngineLifecycleManager::destroyEngine(int idx, bool clearThinking)
 {
     Usi*& ref = (idx == 1 ? m_usi1 : m_usi2);
     if (ref) {
-        ref->disconnect();
+        disconnectArbiterSignals(ref);
         ref->cleanupEngineProcessAndThread(clearThinking);
         ref->deleteLater();
         ref = nullptr;

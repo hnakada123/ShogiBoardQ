@@ -84,6 +84,8 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_prevToFile = 0;
     m_prevToRank = 0;
     m_resignConsumedTimeMs = 0;
+    m_initialBlackTimeMs = 0;
+    m_initialWhiteTimeMs = 0;
     m_usiMoves.clear();
     if (m_sfenHistory) m_sfenHistory->clear();
     if (m_gameMoves) m_gameMoves->clear();
@@ -259,6 +261,9 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
     setGameState(GameState::InGame);
 
     setupInitialPosition();
+    if (m_gameState == GameState::Error) {
+        return;
+    }
 
     // setupClock()はm_isMyTurnを参照するため、先に設定する
     m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
@@ -316,11 +321,17 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
             qint64 opponentClockRemainingMs = m_isBlackSide
                 ? m_clock->getPlayer2TimeIntMs()
                 : m_clock->getPlayer1TimeIntMs();
+            const int opponentInitialTimeMs = m_isBlackSide
+                ? m_initialWhiteTimeMs
+                : m_initialBlackTimeMs;
             int opponentPreviousConsumedMs = m_isBlackSide
                 ? m_whiteTotalTimeMs
                 : m_blackTotalTimeMs;
 
-            actualConsumedTimeMs = static_cast<int>(m_initialTimeMs - opponentClockRemainingMs - opponentPreviousConsumedMs);
+            actualConsumedTimeMs = static_cast<int>(
+                static_cast<qint64>(opponentInitialTimeMs)
+                - opponentClockRemainingMs
+                - opponentPreviousConsumedMs);
             if (actualConsumedTimeMs < 0) actualConsumedTimeMs = 0;
 
             qCDebug(lcNetwork).noquote() << "Calculated opponent resign consumed time:" << actualConsumedTimeMs << "ms";
@@ -432,9 +443,20 @@ void CsaGameCoordinator::setupInitialPosition()
         : QStringLiteral("position sfen %1").arg(m_startSfen);
     m_usiMoves.clear();
 
+    int replayMoveCount = 0;
     for (const QString& move : std::as_const(m_gameSummary.moves)) {
-        CsaMoveConverter::applyMoveToBoard(move, m_gameController, m_usiMoves, m_sfenHistory, m_moveCount);
+        if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, m_usiMoves, m_sfenHistory,
+                                                replayMoveCount)) {
+            qCWarning(lcNetwork).noquote()
+                << "Failed to replay CSA move from Game_Summary:" << move;
+            emit logMessage(tr("初期局面の指し手再生に失敗しました: %1").arg(move), true);
+            emit errorOccurred(tr("サーバーから受信した初期局面データが不正です: %1").arg(move));
+            setGameState(GameState::Error);
+            return;
+        }
+        ++replayMoveCount;
     }
+    m_moveCount = replayMoveCount;
 
     if (m_view) {
         m_view->update();
@@ -447,19 +469,35 @@ void CsaGameCoordinator::setupClock()
         return;
     }
 
-    int timeUnitMs = m_gameSummary.timeUnitMs();
-    int totalTimeSec = m_gameSummary.totalTime * timeUnitMs / 1000;
-    int byoyomiSec = m_gameSummary.byoyomi * timeUnitMs / 1000;
-    int incrementSec = m_gameSummary.increment * timeUnitMs / 1000;
+    const int timeUnitMs = m_gameSummary.timeUnitMs();
+    const int totalTimeBlackUnits = m_gameSummary.hasIndividualTime
+        ? m_gameSummary.totalTimeBlack
+        : m_gameSummary.totalTime;
+    const int totalTimeWhiteUnits = m_gameSummary.hasIndividualTime
+        ? m_gameSummary.totalTimeWhite
+        : m_gameSummary.totalTime;
+    const int byoyomiBlackUnits = m_gameSummary.hasIndividualTime
+        ? m_gameSummary.byoyomiBlack
+        : m_gameSummary.byoyomi;
+    const int byoyomiWhiteUnits = m_gameSummary.hasIndividualTime
+        ? m_gameSummary.byoyomiWhite
+        : m_gameSummary.byoyomi;
 
-    m_clock->setPlayerTimes(totalTimeSec, totalTimeSec,
-                            byoyomiSec, byoyomiSec,
+    const int totalTimeBlackSec = totalTimeBlackUnits * timeUnitMs / 1000;
+    const int totalTimeWhiteSec = totalTimeWhiteUnits * timeUnitMs / 1000;
+    const int byoyomiBlackSec = byoyomiBlackUnits * timeUnitMs / 1000;
+    const int byoyomiWhiteSec = byoyomiWhiteUnits * timeUnitMs / 1000;
+    const int incrementSec = m_gameSummary.increment * timeUnitMs / 1000;
+
+    m_clock->setPlayerTimes(totalTimeBlackSec, totalTimeWhiteSec,
+                            byoyomiBlackSec, byoyomiWhiteSec,
                             incrementSec, incrementSec,
                             true);
 
-    m_initialTimeMs = totalTimeSec * 1000;
-    m_blackRemainingMs = m_initialTimeMs;
-    m_whiteRemainingMs = m_initialTimeMs;
+    m_initialBlackTimeMs = totalTimeBlackSec * 1000;
+    m_initialWhiteTimeMs = totalTimeWhiteSec * 1000;
+    m_blackRemainingMs = m_initialBlackTimeMs;
+    m_whiteRemainingMs = m_initialWhiteTimeMs;
 
     bool blackToMove = (m_gameSummary.toMove == QStringLiteral("+"));
     m_clock->setCurrentPlayer(blackToMove ? 1 : 2);

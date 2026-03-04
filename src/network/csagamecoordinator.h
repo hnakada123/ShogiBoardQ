@@ -186,7 +186,8 @@ private:
     int m_prevToFile = 0;
     int m_prevToRank = 0;
 
-    int m_initialTimeMs = 0;
+    int m_initialBlackTimeMs = 0;
+    int m_initialWhiteTimeMs = 0;
     int m_blackRemainingMs = 0;
     int m_whiteRemainingMs = 0;
     int m_resignConsumedTimeMs = 0;
