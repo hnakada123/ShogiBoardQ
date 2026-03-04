@@ -10,6 +10,7 @@
 
 namespace {
 constexpr int kStartTimeoutMs = 5000;
+const QEventLoop::ProcessEventsFlags kResponsiveWaitFlags = QEventLoop::AllEvents;
 
 bool waitForStartedResponsive(QProcess& process, int timeoutMs)
 {
@@ -25,7 +26,8 @@ bool waitForStartedResponsive(QProcess& process, int timeoutMs)
 
     timeoutTimer.start(timeoutMs);
     while (timeoutTimer.isActive() && process.state() == QProcess::Starting) {
-        loop.exec(QEventLoop::ExcludeUserInputEvents);
+        // UIイベントも処理して、起動待機中の操作不能を抑える
+        loop.exec(kResponsiveWaitFlags);
     }
 
     return process.state() == QProcess::Running;
@@ -45,7 +47,8 @@ bool waitForFinishedResponsive(QProcess& process, int timeoutMs)
 
     timeoutTimer.start(timeoutMs);
     while (timeoutTimer.isActive() && process.state() != QProcess::NotRunning) {
-        loop.exec(QEventLoop::ExcludeUserInputEvents);
+        // UIイベントも処理して、終了待機中の操作不能を抑える
+        loop.exec(kResponsiveWaitFlags);
     }
 
     return process.state() == QProcess::NotRunning;

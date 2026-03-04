@@ -11,6 +11,7 @@
 
 namespace {
 constexpr int kWakeCheckIntervalMs = 50;
+const QEventLoop::ProcessEventsFlags kResponsiveWaitFlags = QEventLoop::AllEvents;
 
 using ConditionFn = std::function<bool()>;
 
@@ -62,7 +63,8 @@ bool waitUntil(const ConditionFn& isDone,
                                ? qMax(1, qMin(kWakeCheckIntervalMs, remainingMs))
                                : kWakeCheckIntervalMs;
         wakeTimer.start(wakeMs);
-        loop.exec(QEventLoop::ExcludeUserInputEvents);
+        // UIイベントも処理して、待機中の操作不能を抑える
+        loop.exec(kResponsiveWaitFlags);
         wakeTimer.stop();
     }
 

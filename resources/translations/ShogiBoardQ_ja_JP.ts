@@ -47,18 +47,18 @@
 <context>
     <name>AnalysisResultHandler</name>
     <message>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="86"/>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="198"/>
+        <location filename="../../src/analysis/analysisresulthandler.cpp" line="148"/>
+        <location filename="../../src/analysis/analysisresulthandler.cpp" line="244"/>
         <source>（定跡）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="376"/>
+        <location filename="../../src/analysis/analysisresulthandler_dialog.cpp" line="64"/>
         <source>先手</source>
         <translation type="unfinished">先手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="377"/>
+        <location filename="../../src/analysis/analysisresulthandler_dialog.cpp" line="65"/>
         <source>後手</source>
         <translation type="unfinished">後手</translation>
     </message>
@@ -540,37 +540,42 @@
 <context>
     <name>CsaClient</name>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="93"/>
+        <location filename="../../src/network/csaclient.cpp" line="95"/>
         <source>既に接続中です</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="129"/>
+        <location filename="../../src/network/csaclient.cpp" line="100"/>
+        <source>ポート番号が不正です: %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csaclient.cpp" line="136"/>
         <source>サーバーに接続されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="151"/>
+        <location filename="../../src/network/csaclient.cpp" line="158"/>
         <source>対局条件を受信していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="183"/>
+        <location filename="../../src/network/csaclient.cpp" line="190"/>
         <source>対局中ではありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="189"/>
+        <location filename="../../src/network/csaclient.cpp" line="196"/>
         <source>自分の手番ではありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="293"/>
+        <location filename="../../src/network/csaclient.cpp" line="303"/>
         <source>接続がタイムアウトしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="306"/>
+        <location filename="../../src/network/csaclient.cpp" line="317"/>
         <source>メッセージの送信に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -588,17 +593,17 @@
 <context>
     <name>CsaEngineController</name>
     <message>
-        <location filename="../../src/network/csaenginecontroller.cpp" line="46"/>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="45"/>
         <source>エンジンパスが指定されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaenginecontroller.cpp" line="88"/>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="85"/>
         <source>エンジン %1 の初期化に失敗しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaenginecontroller.cpp" line="94"/>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="91"/>
         <source>エンジン %1 を起動しました</source>
         <translation type="unfinished"></translation>
     </message>
@@ -997,74 +1002,74 @@
 <context>
     <name>CsaMoveConverter</name>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="492"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="114"/>
         <source>勝ち</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="493"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="115"/>
         <source>負け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="494"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="116"/>
         <source>引き分け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="495"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="117"/>
         <source>打ち切り</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="496"/>
-        <location filename="../../src/network/csamoveconverter.cpp" line="511"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="118"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="133"/>
         <source>中断</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="497"/>
-        <location filename="../../src/network/csamoveconverter.cpp" line="513"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="119"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="135"/>
         <source>不明</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="504"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="126"/>
         <source>投了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="505"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="127"/>
         <source>時間切れ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="506"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="128"/>
         <source>反則</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="507"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="129"/>
         <source>千日手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="508"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="130"/>
         <source>連続王手の千日手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="509"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="131"/>
         <source>入玉宣言</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="510"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="132"/>
         <source>手数制限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveconverter.cpp" line="512"/>
+        <location filename="../../src/network/csamoveconverter_game.cpp" line="134"/>
         <source>不正行為</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1098,11 +1103,13 @@
     </message>
     <message>
         <location filename="../../src/network/csamoveprogresshandler.cpp" line="144"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="386"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/network/csamoveprogresshandler.cpp" line="145"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="387"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1550,42 +1557,42 @@
 <context>
     <name>EngineProcessManager</name>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="133"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="82"/>
         <source>Engine file does not exist: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="161"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="110"/>
         <source>Failed to start engine: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="434"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="408"/>
         <source>The process failed to start.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="438"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="412"/>
         <source>The process crashed.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="442"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="416"/>
         <source>The process timed out.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="446"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="420"/>
         <source>An error occurred while writing data.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="450"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="424"/>
         <source>An error occurred while reading data.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineprocessmanager.cpp" line="455"/>
+        <location filename="../../src/engine/engineprocessmanager.cpp" line="429"/>
         <source>An unknown error occurred.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1703,23 +1710,22 @@
         <translation type="vanished">不明なエラーが発生しました。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="157"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="268"/>
         <source>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</source>
         <translation>この将棋エンジンは既に登録されています。先に登録済みのエンジンを削除してください。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="222"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="343"/>
         <source>USI_Hash option added.</source>
         <translation>USI_Hash オプションを追加しました。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="294"/>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="303"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="358"/>
         <source>オプション行の形式が無効です。</source>
         <translation>オプション行の形式が無効です。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="342"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="377"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>重複したエンジンオプションが見つかりました。</translation>
     </message>
@@ -1747,7 +1753,12 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="79"/>
+        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="72"/>
+        <source>エンジン名(id name)を取得できませんでした</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/engineregistrationworker.cpp" line="84"/>
         <source>エンジンからの応答がタイムアウトしました</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1755,36 +1766,36 @@
 <context>
     <name>EngineSettingsOptionHandler</name>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="177"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="276"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="304"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="191"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="290"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="318"/>
         <source>%1（既定値 %2）</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="208"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="370"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="222"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="384"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="211"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="372"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="225"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="386"/>
         <source>ファイルの選択</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="228"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="242"/>
         <source>%1</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="236"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="250"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="239"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="253"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation></translation>
     </message>
@@ -3130,7 +3141,7 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/kifu/kifuapplyservice.cpp" line="222"/>
         <location filename="../../src/kifu/kifuapplyservice.cpp" line="224"/>
-        <location filename="../../src/kifu/kifuapplyservice.cpp" line="250"/>
+        <location filename="../../src/kifu/kifuapplyservice.cpp" line="251"/>
         <source>対局情報</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3148,12 +3159,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuBranchListModel</name>
     <message>
-        <location filename="../../src/models/kifubranchlistmodel.cpp" line="45"/>
+        <location filename="../../src/models/kifubranchlistmodel.cpp" line="75"/>
         <source>本譜へ戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/models/kifubranchlistmodel.cpp" line="92"/>
+        <location filename="../../src/models/kifubranchlistmodel.cpp" line="122"/>
         <source>分岐候補</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4250,68 +4261,74 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/dialogs/pvboarddialog.cpp" line="78"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="165"/>
         <source>先手</source>
         <translation type="unfinished">先手</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/pvboarddialog.cpp" line="79"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="164"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="166"/>
         <source>後手</source>
         <translation type="unfinished">後手</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/pvboarddialog.cpp" line="129"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="130"/>
         <source>将棋盤を縮小する</source>
         <translation type="unfinished">将棋盤を縮小する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="135"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="136"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="137"/>
         <source>将棋盤を拡大する</source>
         <translation type="unfinished">将棋盤を拡大する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="142"/>
         <source>盤面の回転</source>
         <translation type="unfinished">盤面の回転</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="141"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="143"/>
         <source>盤面を回転する</source>
         <translation type="unfinished">盤面を回転する</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="184"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="185"/>
         <source>最初の局面に戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="189"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="192"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="193"/>
         <source>1手戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="196"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="200"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="201"/>
         <source>1手進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="208"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="209"/>
         <source>最後の局面まで進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="217"/>
         <source>閉じる</source>
         <translation type="unfinished">閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="251"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="257"/>
         <source>手数: %1 / %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="253"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="259"/>
         <source> (開始局面)</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5603,7 +5620,7 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="160"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="156"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5832,12 +5849,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="282"/>
+        <location filename="../../src/engine/usi.cpp" line="281"/>
         <source>Engine file path is empty.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="39"/>
+        <location filename="../../src/engine/usi.cpp" line="38"/>
         <source>Timeout waiting for bestmove.</source>
         <translation type="unfinished"></translation>
     </message>

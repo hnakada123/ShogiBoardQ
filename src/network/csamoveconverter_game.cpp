@@ -196,7 +196,9 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
         if (dropPiece == Piece::None) {
             return false;
         }
-        board->decrementPieceOnStand(dropPiece);
+        if (!board->decrementPieceOnStand(dropPiece)) {
+            return false;
+        }
         board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);
     }
 

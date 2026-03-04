@@ -309,6 +309,9 @@ private:
      */
     void setConnectionState(ConnectionState state);
 
+    /// 接続セッションに紐づく受信/解析状態を初期化する
+    void resetSessionState();
+
     /**
      * @brief 時間文字列を解析する（例: "T12"から12を取得）
      * @param timeStr 時間文字列

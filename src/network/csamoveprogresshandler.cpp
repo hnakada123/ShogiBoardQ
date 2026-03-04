@@ -382,7 +382,12 @@ void CsaMoveProgressHandler::startEngineThinking()
         board->movePieceToSquare(movingPiece, result.from.x(), result.from.y(), toFile, toRank, result.promote);
     } else {
         Piece dropPiece = board->getPieceCharacter(result.from.x(), result.from.y());
-        board->decrementPieceOnStand(dropPiece);
+        if (!board->decrementPieceOnStand(dropPiece)) {
+            m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(csaMove), true);
+            m_hooks.errorOccurred(tr("サーバーからの指し手を盤面に適用できません: %1").arg(csaMove));
+            m_hooks.setGameState(GameState::Error);
+            return;
+        }
         board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);
     }
 
