@@ -9,10 +9,115 @@
 #include "logcategories.h"
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QRegularExpression>
+#include <QSet>
 #include <QThread>
 
 using namespace EngineSettingsConstants;
+
+namespace {
+struct ParsedOptionLine {
+    QString name;
+    QString type;
+    QString defaultValue;
+    QString minValue;
+    QString maxValue;
+    QStringList comboValues;
+};
+
+bool parseUsiOptionLine(const QString& rawLine, ParsedOptionLine& parsed, QString* errorMessage)
+{
+    static const QRegularExpression whitespaceRe(QStringLiteral("\\s+"));
+    static const QSet<QString> attributeKeywords{
+        QStringLiteral("default"),
+        QStringLiteral("min"),
+        QStringLiteral("max"),
+        QStringLiteral("var")
+    };
+
+    const QString line = rawLine.trimmed();
+    const QStringList tokens = line.split(whitespaceRe, Qt::SkipEmptyParts);
+
+    if (tokens.size() < 4) {
+        if (errorMessage) *errorMessage = QStringLiteral("Too few tokens");
+        return false;
+    }
+    if (tokens.at(0) != QStringLiteral("option") ||
+        tokens.at(1) != QStringLiteral("name")) {
+        if (errorMessage) *errorMessage = QStringLiteral("Command must start with 'option name'");
+        return false;
+    }
+
+    const qsizetype typeIndex = tokens.indexOf(QStringLiteral("type"), 2);
+    if (typeIndex <= 2 || typeIndex + 1 >= tokens.size()) {
+        if (errorMessage) *errorMessage = QStringLiteral("Missing 'type' section");
+        return false;
+    }
+
+    parsed.name = tokens.mid(2, typeIndex - 2).join(QStringLiteral(" "));
+    parsed.type = tokens.at(typeIndex + 1);
+
+    if (parsed.name.isEmpty() || parsed.type.isEmpty()) {
+        if (errorMessage) *errorMessage = QStringLiteral("Option name/type is empty");
+        return false;
+    }
+
+    if (parsed.type == QLatin1String(OptionTypeButton)) {
+        if (typeIndex + 2 < tokens.size()) {
+            qCWarning(lcUi) << "parseUsiOptionLine: button option has extra attributes, ignore tail:"
+                            << line;
+        }
+        return true;
+    }
+
+    for (qsizetype i = typeIndex + 2; i < tokens.size();) {
+        const QString key = tokens.at(i);
+        if (!attributeKeywords.contains(key)) {
+            qCWarning(lcUi) << "parseUsiOptionLine: unknown option attribute, ignore tail:"
+                            << key << line;
+            break;
+        }
+
+        qsizetype j = i + 1;
+        while (j < tokens.size() && !attributeKeywords.contains(tokens.at(j))) {
+            ++j;
+        }
+        const QString value = tokens.mid(i + 1, j - (i + 1)).join(QStringLiteral(" "));
+
+        if (key == QStringLiteral("default")) {
+            if (value.isEmpty() && parsed.type != QLatin1String(OptionTypeString)) {
+                if (errorMessage) *errorMessage = QStringLiteral("default value is missing");
+                return false;
+            }
+            parsed.defaultValue = value;
+        } else if (key == QStringLiteral("min")) {
+            if (value.isEmpty()) {
+                if (errorMessage) *errorMessage = QStringLiteral("min value is missing");
+                return false;
+            }
+            parsed.minValue = value;
+        } else if (key == QStringLiteral("max")) {
+            if (value.isEmpty()) {
+                if (errorMessage) *errorMessage = QStringLiteral("max value is missing");
+                return false;
+            }
+            parsed.maxValue = value;
+        } else if (key == QStringLiteral("var")) {
+            if (value.isEmpty()) {
+                if (errorMessage) *errorMessage = QStringLiteral("var value is missing");
+                return false;
+            }
+            parsed.comboValues.append(value);
+        }
+
+        i = j;
+    }
+
+    return true;
+}
+} // namespace
 
 EngineRegistrationHandler::EngineRegistrationHandler(QObject *parent)
     : QObject(parent)
@@ -92,6 +197,9 @@ void EngineRegistrationHandler::ensureWorkerThread()
     connect(m_worker, &EngineRegistrationWorker::registrationFailed,
             this, &EngineRegistrationHandler::onWorkerFailed,
             Qt::QueuedConnection);
+    connect(m_worker, &EngineRegistrationWorker::registrationCanceled,
+            this, &EngineRegistrationHandler::onWorkerCanceled,
+            Qt::QueuedConnection);
     connect(m_worker, &EngineRegistrationWorker::progressUpdated,
             this, &EngineRegistrationHandler::progressUpdated,
             Qt::QueuedConnection);
@@ -105,6 +213,9 @@ void EngineRegistrationHandler::setRegistrationInProgress(bool inProgress)
 {
     if (m_registrationInProgress == inProgress) return;
     m_registrationInProgress = inProgress;
+    if (!inProgress) {
+        m_cancelFlag.reset();
+    }
     emit registrationInProgressChanged(inProgress);
 }
 
@@ -187,9 +298,19 @@ void EngineRegistrationHandler::onWorkerFailed(const QString& errorMessage)
     setError(errorMessage);
 }
 
+void EngineRegistrationHandler::onWorkerCanceled()
+{
+    setRegistrationInProgress(false);
+}
+
 // 指定インデックスのエンジンを削除し設定を更新する。
 void EngineRegistrationHandler::removeEngineAt(int index)
 {
+    if (index < 0 || index >= m_engineList.size()) {
+        qCWarning(lcUi) << "removeEngineAt: invalid index" << index;
+        return;
+    }
+
     QString removeEngineName = m_engineList.at(index).name;
     m_engineList.removeAt(index);
 
@@ -227,116 +348,30 @@ void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()
     // 自動追加するとsetoptionでエラーになる。
 }
 
-// optionコマンドの文法が正しいかどうかをチェックする。
-EngineRegistrationHandler::ValidationResult EngineRegistrationHandler::checkOptionSyntax(const QString& optionCommand)
-{
-    if (!optionCommand.startsWith("option")) {
-        return {false, "Command does not start with 'option'"};
-    }
-
-    QString commandBody = optionCommand.mid(QString("option").length()).trimmed();
-
-    static const QRegularExpression optionRegex(R"(name\s+(\S+)\s+type\s+(\S+)(.*))");
-    static const QRegularExpression whitespaceRegex(R"(\s+)");
-
-    QRegularExpressionMatch match = optionRegex.match(commandBody);
-    if (!match.hasMatch()) {
-        return {false, "Invalid syntax. Expected 'option name <name> type <type>'"};
-    }
-
-    QString type = match.captured(2);
-    QString remaining = match.captured(3).trimmed();
-
-    if (type == OptionTypeButton) {
-        if (!remaining.isEmpty()) {
-            return {false, "No additional options are allowed for type 'button'"};
-        }
-    } else {
-        QStringList tokens = remaining.split(whitespaceRegex, Qt::SkipEmptyParts);
-        QStringList allowedKeywords = {"default", "min", "max", "var"};
-
-        for (qsizetype i = 0; i < tokens.size(); ++i) {
-            if (allowedKeywords.contains(tokens[i])) {
-                if (tokens[i] == "default") {
-                    // "type" が "string" であれば、値がなくてもOK。
-                    if (type == OptionTypeString && (i + 1 >= tokens.size() || allowedKeywords.contains(tokens[i + 1]))) {
-                        continue;
-                    } else if (i + 1 < tokens.size() && !allowedKeywords.contains(tokens[i + 1])) {
-                        ++i;
-                    } else {
-                        return {false, QString("Value for '%1' is missing or invalid").arg(tokens[i])};
-                    }
-                } else if (tokens[i] == "min" || tokens[i] == "max") {
-                    if (i + 1 < tokens.size() && !allowedKeywords.contains(tokens[i + 1])) {
-                        ++i;
-                    } else {
-                        return {false, QString("Value for '%1' is missing or invalid").arg(tokens[i])};
-                    }
-                } else if (tokens[i] == "var") {
-                    while (i + 1 < tokens.size() && !allowedKeywords.contains(tokens[i + 1])) {
-                        ++i;
-                    }
-                }
-            } else {
-                return {false, QString("Unknown keyword or missing value: '%1'").arg(tokens[i])};
-            }
-        }
-    }
-
-    return {true, ""};
-}
-
 // 将棋エンジンから送信されたオプション行を解析し、エンジンオプションリストに追加する。
 void EngineRegistrationHandler::parseOptionLine(const QString& line)
 {
-    ValidationResult result = checkOptionSyntax(line);
-    if (!result.isValid) {
+    ParsedOptionLine parsed;
+    QString parseError;
+    if (!parseUsiOptionLine(line, parsed, &parseError)) {
+        qCWarning(lcUi) << "parseOptionLine: invalid option line:" << parseError << line;
         setError(tr("オプション行の形式が無効です。"));
         return;
-    }
-
-    // 空文字列をスキップして分割する（複数のスペースがあっても正しく処理できるようにする）
-    QStringList parts = line.split(" ", Qt::SkipEmptyParts);
-
-    if (parts.size() < 5) {
-        qCWarning(lcUi) << "parseOptionLine: 不正なオプション行（トークン数不足）:" << line;
-        setError(tr("オプション行の形式が無効です。"));
-        return;
-    }
-
-    QString name = parts.at(2);
-    QString type = parts.at(4);
-    QString defaultValue;
-    QString min;
-    QString max;
-    QString currentValue;
-    QStringList valueList;
-
-    int defaultIndex = static_cast<int>(parts.indexOf(EngineOptionDefaultKey));
-    if (defaultIndex != -1 && defaultIndex + 1 < parts.size()) {
-        defaultValue = parts.at(defaultIndex + 1);
-        currentValue = defaultValue;
-    }
-
-    if (type == OptionTypeSpin) {
-        int minIndex = static_cast<int>(parts.indexOf("min"));
-        int maxIndex = static_cast<int>(parts.indexOf("max"));
-        if (minIndex != -1 && parts.size() > minIndex) min = parts.at(minIndex + 1);
-        if (maxIndex != -1 && parts.size() > maxIndex) max = parts.at(maxIndex + 1);
-    } else if (type == OptionTypeCombo) {
-        int varIndex = 0;
-        while ((varIndex = static_cast<int>(parts.indexOf("var", varIndex + 1))) != -1) {
-            if (parts.size() > varIndex) valueList.append(parts.at(varIndex + 1));
-        }
     }
 
     // 既存のオプションと重複しないことを確認
-    auto it = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [&name](const EngineOption& option) {
-        return option.name == name;
+    auto it = std::find_if(m_engineOptions.begin(), m_engineOptions.end(), [&parsed](const EngineOption& option) {
+        return option.name == parsed.name;
     });
 
     if (it == m_engineOptions.end()) {
-        EngineOption option{name, type, defaultValue, min, max, currentValue, valueList};
+        EngineOption option{parsed.name,
+                            parsed.type,
+                            parsed.defaultValue,
+                            parsed.minValue,
+                            parsed.maxValue,
+                            parsed.defaultValue,
+                            parsed.comboValues};
         m_engineOptions.append(option);
     } else {
         setError(tr("重複したエンジンオプションが見つかりました。"));
@@ -356,7 +391,13 @@ void EngineRegistrationHandler::concatenateComboOptionValues()
     m_concatenatedOptionValuesList.clear();
 
     for (const auto& option : std::as_const(m_engineOptions)) {
-        m_concatenatedOptionValuesList.append(option.valueList.join(" "));
+        QJsonArray values;
+        for (const QString& value : option.valueList) {
+            values.append(value);
+        }
+        const QString serialized = QString::fromUtf8(
+            QJsonDocument(values).toJson(QJsonDocument::Compact));
+        m_concatenatedOptionValuesList.append(serialized);
     }
 }
 

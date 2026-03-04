@@ -1099,6 +1099,17 @@ add_shogi_test(tst_jishogi_calculator
 )
 
 # ============================================================
+# Unit: EngineRegistrationHandler テスト
+# ============================================================
+add_shogi_test(tst_engineregistrationhandler
+    tst_engineregistrationhandler.cpp
+    ${SRC}/dialogs/engineregistrationhandler.cpp
+    ${SRC}/dialogs/engineregistrationworker.cpp
+    ${SRC}/services/settingscommon.cpp
+    ${SRC}/common/logcategories.cpp
+)
+
+# ============================================================
 # Unit: 翻訳ファイル品質テスト
 # ============================================================
 add_shogi_test(tst_translation_files

@@ -5,23 +5,14 @@
 #include "engineprocessmanager.h"
 #include "logcategories.h"
 
-#include <QCoreApplication>
-#include <QElapsedTimer>
 #include <QEventLoop>
-#include <QThread>
+#include <QTimer>
 #include <functional>
 
 namespace {
 constexpr int kPollIntervalMs = 10;
 
 using ConditionFn = std::function<bool()>;
-
-void pumpEventsSlice(int sliceMs)
-{
-    const int ms = qMax(0, sliceMs);
-    // ユーザー入力は遮断しつつ、タイマー由来のキャンセル通知を取り込む。
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, ms);
-}
 
 bool waitUntil(const ConditionFn& isDone,
                const ConditionFn& shouldAbort,
@@ -35,33 +26,46 @@ bool waitUntil(const ConditionFn& isDone,
         return false;
     }
 
-    QElapsedTimer elapsed;
-    elapsed.start();
+    QEventLoop loop;
+    QTimer timeoutTimer;
+    QTimer pollTimer;
 
-    while (!isDone()) {
-        if (shouldAbort()) {
-            return false;
-        }
+    timeoutTimer.setSingleShot(true);
+    QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    pollTimer.setInterval(kPollIntervalMs);
+    QObject::connect(&pollTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
-        if (remaining <= 0) {
-            return false;
-        }
-
-        const int sliceMs = static_cast<int>(qMin<qint64>(kPollIntervalMs, remaining));
-        if (processManager != nullptr) {
-            if (!processManager->waitForReadyReadAndPump(sliceMs)) {
-                // タイムアウト時でも stderr / 端数出力を取りこぼさない
-                processManager->pumpPendingOutput();
-            }
-        } else {
-            QThread::msleep(static_cast<unsigned long>(sliceMs));
-        }
-
-        pumpEventsSlice(sliceMs);
+    if (processManager != nullptr) {
+        QObject::connect(processManager, &EngineProcessManager::dataReceived,
+                         &loop, &QEventLoop::quit);
+        QObject::connect(processManager, &EngineProcessManager::stderrReceived,
+                         &loop, &QEventLoop::quit);
+        QObject::connect(processManager, &EngineProcessManager::processError,
+                         &loop, &QEventLoop::quit);
+        processManager->pumpPendingOutput();
     }
 
-    return true;
+    if (isDone() || shouldAbort()) {
+        return isDone() && !shouldAbort();
+    }
+
+    timeoutTimer.start(timeoutMs);
+    pollTimer.start();
+
+    while (timeoutTimer.isActive() && !isDone() && !shouldAbort()) {
+        if (processManager != nullptr) {
+            processManager->pumpPendingOutput();
+        }
+        loop.exec(QEventLoop::ExcludeUserInputEvents);
+    }
+
+    pollTimer.stop();
+    if (processManager != nullptr) {
+        // タイムアウト時でも stderr / 端数出力を取りこぼさない
+        processManager->pumpPendingOutput();
+    }
+
+    return timeoutTimer.isActive() && !shouldAbort() && isDone();
 }
 } // namespace
 
@@ -77,7 +81,7 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
     if (timeoutMs <= 0) return false;
     Q_UNUSED(signal)
 
-    // waitUntil() がプロセス出力をポーリングしながらフラグ更新を待機する。
+    // waitUntil() が QTimer + QEventLoop でイベント駆動待機し、フラグ更新を待機する。
     flag = false;
     const quint64 expectedId = m_seq;
     const auto isDone = [&flag] { return flag; };
@@ -85,8 +89,9 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
         return m_seq != expectedId || shouldAbortWait();
     };
 
-    // 保留中のキャンセル通知などを先に反映する
-    pumpEventsSlice(0);
+    if (m_processManager != nullptr) {
+        m_processManager->pumpPendingOutput();
+    }
 
     return waitUntil(isDone,
                      shouldAbort,

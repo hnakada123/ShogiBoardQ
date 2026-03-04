@@ -16,7 +16,6 @@
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
-#include "playmode.h"
 
 extern bool g_analysisFlowStubStartAndInitSuccess;
 
@@ -30,7 +29,6 @@ public:
     UsiCommLogModel logModel;
     ShogiEngineThinkingModel thinkingModel;
     ShogiGameController gameController;
-    PlayMode playMode = PlayMode::AnalysisMode;
     Usi* usi = nullptr;
     QString lastError;
 
@@ -42,7 +40,7 @@ public:
                    << QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 3");
         usiMoves << QStringLiteral("7g7f") << QStringLiteral("3c3d");
 
-        usi = new Usi(&logModel, &thinkingModel, &gameController, playMode, nullptr);
+        usi = new Usi(&logModel, &thinkingModel, &gameController, nullptr);
     }
 
     ~TestHelper()

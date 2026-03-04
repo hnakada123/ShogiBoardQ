@@ -12,7 +12,6 @@
 #include <functional>
 #include <memory>
 
-#include "playmode.h"
 #include "analysiscoordinator.h"
 
 class AnalysisResultHandler;
@@ -145,8 +144,6 @@ private:
     void applyDialogOptions(KifuAnalysisDialog* dlg);
 
     std::unique_ptr<AnalysisResultHandler> m_resultHandler; ///< 解析結果ハンドラ（所有）
-
-    PlayMode m_playModeForAnalysis = PlayMode::AnalysisMode;  ///< 内部生成Usiに渡すPlayMode
 
     bool m_ownsUsi = false;                               ///< Usiを内部生成したか
     bool m_running = false;                               ///< 解析実行中フラグ

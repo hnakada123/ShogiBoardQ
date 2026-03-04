@@ -11,7 +11,7 @@
 // ============================================================
 
 Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
-         ShogiGameController* gameController, PlayMode& playMode, QObject* parent)
+         ShogiGameController* gameController, QObject* parent)
     : QObject(parent)
     , m_processManager(std::make_unique<EngineProcessManager>())
     , m_protocolHandler(std::make_unique<UsiProtocolHandler>())
@@ -22,7 +22,6 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
     , m_commLogModel(model)
     , m_thinkingModel(modelThinking)
     , m_gameController(gameController)
-    , m_playMode(playMode)
 {
     setupConnections();
 

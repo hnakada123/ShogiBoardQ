@@ -36,6 +36,9 @@ signals:
     /// エンジン登録が失敗したとき
     void registrationFailed(const QString& errorMessage);
 
+    /// エンジン登録がキャンセルされたとき
+    void registrationCanceled();
+
     /// 進捗通知
     void progressUpdated(const QString& status);
 

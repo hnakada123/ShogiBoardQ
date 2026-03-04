@@ -241,13 +241,14 @@ void KifuApplyService::addGameInfoTabIfMissing()
         for (int i = 0; i < m_refs.tab->count(); ++i) {
             const QString t = m_refs.tab->tabText(i);
             if (t.contains(tr("コメント")) || t.contains("Comments", Qt::CaseInsensitive)) {
-                anchorIdx = i;  // NOLINT(clang-analyzer-deadcode.DeadStores)
+                anchorIdx = i;
                 break;
             }
         }
     }
 
-    m_refs.tab->insertTab(0, widgetToAdd, tr("対局情報"));
+    const int insertIndex = (anchorIdx >= 0) ? anchorIdx : 0;
+    m_refs.tab->insertTab(insertIndex, widgetToAdd, tr("対局情報"));
 }
 
 QString KifuApplyService::findGameInfoValue(const QList<KifGameInfoItem>& items,

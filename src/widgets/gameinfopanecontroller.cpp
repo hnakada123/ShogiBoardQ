@@ -349,10 +349,14 @@ void GameInfoPaneController::redo()
 {
     if (!m_table) return;
 
-    // 編集中セルのエディタを取得してredo
-    QWidget* editor = m_table->cellWidget(m_table->currentRow(),
-                                           m_table->currentColumn());
-    if (QLineEdit* lineEdit = qobject_cast<QLineEdit*>(editor)) {
+    // QTableWidget の通常編集は setCellWidget() ではなく delegate editor を使う。
+    // そのため、フォーカス中のエディタが本テーブル配下ならそこへ redo を委譲する。
+    QWidget* focused = QApplication::focusWidget();
+    if (!focused || !m_table->isAncestorOf(focused)) {
+        return;
+    }
+
+    if (QLineEdit* lineEdit = qobject_cast<QLineEdit*>(focused)) {
         lineEdit->redo();
     }
 }

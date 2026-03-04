@@ -73,13 +73,9 @@ private slots:
                             const QString& engineAuthor,
                             const QStringList& optionLines);
     void onWorkerFailed(const QString& errorMessage);
+    void onWorkerCanceled();
 
 private:
-    struct ValidationResult {
-        bool isValid;
-        QString errorMessage;
-    };
-
     // ワーカースレッド管理
     void ensureWorkerThread();
     void setRegistrationInProgress(bool inProgress);
@@ -87,7 +83,6 @@ private:
     // USIプロトコル解析
     void parseEngineOptionsFromUsiOutput();
     void parseOptionLine(const QString& line);
-    ValidationResult checkOptionSyntax(const QString& optionCommand);
     void addOption(const QString& name, const QString& type, const QString& defaultValue,
                    const QString& min, const QString& max, const QString& currentValue);
     void concatenateComboOptionValues();

@@ -7,7 +7,6 @@
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
 #include "settingscommon.h"
-#include "playmode.h"
 #include "logcategories.h"
 
 #include <QSettings>
@@ -73,10 +72,8 @@ void CsaEngineController::initialize(const InitParams& params)
         m_engineThinking->clearAllItems();
     }
 
-    static PlayMode dummyPlayMode = PlayMode::CsaNetworkMode;
-
     m_engine = new Usi(m_engineCommLog, m_engineThinking,
-                       m_gameController.data(), dummyPlayMode, this);
+                       m_gameController.data(), this);
 
     connect(m_engine, &Usi::bestMoveReceived,
             this, &CsaEngineController::onBestMoveReceived);

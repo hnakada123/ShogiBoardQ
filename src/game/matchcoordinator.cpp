@@ -185,7 +185,7 @@ void MatchCoordinator::configureAnalysisSession()
         ensureEngineManager();
         auto [comm, think] = m_engineManager->ensureEngineModels(1);
         comm->setEngineName(opt.engineName);
-        Usi* usi = new Usi(comm, think, m_gc, m_playMode, this);
+        Usi* usi = new Usi(comm, think, m_gc, this);
         m_engineManager->setUsi1(usi);
         connect(usi, &Usi::errorOccurred,
                 this, &MatchCoordinator::onUsiError, Qt::UniqueConnection);

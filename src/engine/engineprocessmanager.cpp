@@ -3,8 +3,6 @@
 
 #include "engineprocessmanager.h"
 #include "usi.h"
-#include <QCoreApplication>
-#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
@@ -12,37 +10,22 @@
 
 namespace {
 constexpr int kStartTimeoutMs = 5000;
-constexpr int kWaitSliceMs = 50;
-
-void pumpWaitEvents(int sliceMs)
-{
-    if (sliceMs <= 0) {
-        return;
-    }
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, sliceMs);
-}
 
 bool waitForStartedResponsive(QProcess& process, int timeoutMs)
 {
     if (process.state() == QProcess::Running) return true;
     if (timeoutMs <= 0) return process.state() == QProcess::Running;
 
-    QElapsedTimer elapsed;
-    elapsed.start();
+    QEventLoop loop;
+    QTimer timeoutTimer;
 
-    while (process.state() != QProcess::Running) {
-        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
-        if (remaining <= 0) {
-            break;
-        }
-        const int sliceMs = static_cast<int>(qMin<qint64>(kWaitSliceMs, remaining));
-        (void)process.waitForStarted(sliceMs);
-        pumpWaitEvents(sliceMs);
+    timeoutTimer.setSingleShot(true);
+    QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    QObject::connect(&process, &QProcess::stateChanged, &loop, &QEventLoop::quit);
 
-        if (process.state() == QProcess::NotRunning &&
-            process.error() == QProcess::FailedToStart) {
-            break;
-        }
+    timeoutTimer.start(timeoutMs);
+    while (timeoutTimer.isActive() && process.state() == QProcess::Starting) {
+        loop.exec(QEventLoop::ExcludeUserInputEvents);
     }
 
     return process.state() == QProcess::Running;
@@ -53,17 +36,16 @@ bool waitForFinishedResponsive(QProcess& process, int timeoutMs)
     if (process.state() == QProcess::NotRunning) return true;
     if (timeoutMs <= 0) return process.state() == QProcess::NotRunning;
 
-    QElapsedTimer elapsed;
-    elapsed.start();
+    QEventLoop loop;
+    QTimer timeoutTimer;
 
-    while (process.state() != QProcess::NotRunning) {
-        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
-        if (remaining <= 0) {
-            break;
-        }
-        const int sliceMs = static_cast<int>(qMin<qint64>(kWaitSliceMs, remaining));
-        (void)process.waitForFinished(sliceMs);
-        pumpWaitEvents(sliceMs);
+    timeoutTimer.setSingleShot(true);
+    QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    QObject::connect(&process, &QProcess::stateChanged, &loop, &QEventLoop::quit);
+
+    timeoutTimer.start(timeoutMs);
+    while (timeoutTimer.isActive() && process.state() != QProcess::NotRunning) {
+        loop.exec(QEventLoop::ExcludeUserInputEvents);
     }
 
     return process.state() == QProcess::NotRunning;
