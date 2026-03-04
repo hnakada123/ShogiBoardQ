@@ -3,18 +3,48 @@
 
 #include "engineprocessmanager.h"
 #include "usi.h"
+#include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
 #include <QTimer>
 
 namespace {
 constexpr int kStartTimeoutMs = 5000;
+constexpr int kWaitSliceMs = 50;
+
+void pumpWaitEvents(int sliceMs)
+{
+    if (sliceMs <= 0) {
+        return;
+    }
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, sliceMs);
+}
 
 bool waitForStartedResponsive(QProcess& process, int timeoutMs)
 {
     if (process.state() == QProcess::Running) return true;
     if (timeoutMs <= 0) return process.state() == QProcess::Running;
-    (void)process.waitForStarted(timeoutMs);
+
+    QElapsedTimer elapsed;
+    elapsed.start();
+
+    while (process.state() != QProcess::Running) {
+        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
+        if (remaining <= 0) {
+            break;
+        }
+        const int sliceMs = static_cast<int>(qMin<qint64>(kWaitSliceMs, remaining));
+        (void)process.waitForStarted(sliceMs);
+        pumpWaitEvents(sliceMs);
+
+        if (process.state() == QProcess::NotRunning &&
+            process.error() == QProcess::FailedToStart) {
+            break;
+        }
+    }
+
     return process.state() == QProcess::Running;
 }
 
@@ -22,7 +52,20 @@ bool waitForFinishedResponsive(QProcess& process, int timeoutMs)
 {
     if (process.state() == QProcess::NotRunning) return true;
     if (timeoutMs <= 0) return process.state() == QProcess::NotRunning;
-    (void)process.waitForFinished(timeoutMs);
+
+    QElapsedTimer elapsed;
+    elapsed.start();
+
+    while (process.state() != QProcess::NotRunning) {
+        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
+        if (remaining <= 0) {
+            break;
+        }
+        const int sliceMs = static_cast<int>(qMin<qint64>(kWaitSliceMs, remaining));
+        (void)process.waitForFinished(sliceMs);
+        pumpWaitEvents(sliceMs);
+    }
+
     return process.state() == QProcess::NotRunning;
 }
 } // namespace
