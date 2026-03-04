@@ -4,6 +4,7 @@
 #include "gameinfopanecontroller.h"
 #include "buttonstyles.h"
 #include "gamesettings.h"
+#include "gameinfokeys.h"
 
 #include <QTableWidget>
 #include <QToolButton>
@@ -251,7 +252,7 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
     // 先手の行を検索して更新
     for (int row = 0; row < m_table->rowCount(); ++row) {
         QTableWidgetItem* keyItem = m_table->item(row, 0);
-        if (keyItem && keyItem->text() == tr("先手")) {
+        if (keyItem && keyItem->text() == GameInfoKeys::kBlackPlayer) {
             QTableWidgetItem* valItem = m_table->item(row, 1);
             if (valItem) {
                 valItem->setText(blackName);
@@ -263,7 +264,7 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
     // 後手の行を検索して更新
     for (int row = 0; row < m_table->rowCount(); ++row) {
         QTableWidgetItem* keyItem = m_table->item(row, 0);
-        if (keyItem && keyItem->text() == tr("後手")) {
+        if (keyItem && keyItem->text() == GameInfoKeys::kWhitePlayer) {
             QTableWidgetItem* valItem = m_table->item(row, 1);
             if (valItem) {
                 valItem->setText(whiteName);
@@ -276,9 +277,9 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
 
     // 元データも更新
     for (qsizetype i = 0; i < m_originalItems.size(); ++i) {
-        if (m_originalItems[i].key == tr("先手")) {
+        if (m_originalItems[i].key == GameInfoKeys::kBlackPlayer) {
             m_originalItems[i].value = blackName;
-        } else if (m_originalItems[i].key == tr("後手")) {
+        } else if (m_originalItems[i].key == GameInfoKeys::kWhitePlayer) {
             m_originalItems[i].value = whiteName;
         }
     }

@@ -333,6 +333,23 @@ add_shogi_test(tst_navigation
 )
 
 # ============================================================
+# Unit 7b: Generic List Model Ownership
+# ============================================================
+add_shogi_test(tst_abstractlistmodel
+    tst_abstractlistmodel.cpp
+)
+
+# ============================================================
+# Unit 7c: KifuBranchListModel
+# ============================================================
+add_shogi_test(tst_kifubranchlistmodel
+    tst_kifubranchlistmodel.cpp
+    ${SRC}/models/kifubranchlistmodel.cpp
+    ${SRC}/widgets/kifubranchdisplay.cpp
+    ${SRC}/common/logcategories.cpp
+)
+
+# ============================================================
 # Unit 8: GameRecordModel
 # ============================================================
 add_shogi_test(tst_gamerecordmodel

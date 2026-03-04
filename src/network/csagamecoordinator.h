@@ -122,7 +122,7 @@ signals:
     void gameStateChanged(CsaGameCoordinator::GameState state);
     void errorOccurred(const QString& message);
     void gameStarted(const QString& blackName, const QString& whiteName);
-    void gameEnded(const QString& result, const QString& cause, int consumedTimeMs);
+    void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void moveMade(const QString& csaMove, const QString& usiMove,
                   const QString& prettyMove, int consumedTimeMs);
     void turnChanged(bool isMyTurn);

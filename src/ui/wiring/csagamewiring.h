@@ -212,7 +212,7 @@ private slots:
      * @param cause 終了原因
      * @param consumedTimeMs 消費時間（ミリ秒）
      */
-    void onGameEnded(const QString& result, const QString& cause, int consumedTimeMs);
+    void onGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
 
     /**
      * @brief 指し手確定時の処理
@@ -259,7 +259,7 @@ private:
      * @param loserIsBlack 敗者が先手かどうか
      * @return 終局行テキスト
      */
-    QString buildEndLineText(const QString& cause, bool loserIsBlack) const;
+    QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack) const;
 
     // 依存オブジェクト
     CsaGameCoordinator* m_coordinator = nullptr;

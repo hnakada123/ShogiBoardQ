@@ -15,6 +15,7 @@
 
 #include "playmode.h"
 #include "csagamecoordinator.h"
+#include "csamoveconverter.h"
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
 #include "shogigamecontroller.h"
@@ -145,15 +146,20 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
     }
 }
 
-void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int consumedTimeMs)
+void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
+                                CsaClient::GameEndCause cause,
+                                int consumedTimeMs)
 {
-    qCDebug(lcUi) << "onGameEnded:" << result << "(" << cause << ")"
+    const QString resultText = CsaMoveConverter::gameResultToString(result);
+    const QString causeText = CsaMoveConverter::gameEndCauseToString(cause);
+
+    qCDebug(lcUi) << "onGameEnded:" << resultText << "(" << causeText << ")"
                   << "consumedTimeMs=" << consumedTimeMs;
 
     if (!m_coordinator) return;
 
     // 敗者の判定
-    const bool iAmLoser = (result == tr("負け"));
+    const bool iAmLoser = (result == CsaClient::GameResult::Lose);
     const bool isBlackSide = m_coordinator->isBlackSide();
     const bool loserIsBlack = (iAmLoser == isBlackSide);
 
@@ -210,7 +216,8 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
     }
 
     // 対局終了ダイアログを表示
-    const QString message = tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(result, cause);
+    const QString message =
+        tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText);
     Q_EMIT showGameEndDialogRequested(tr("対局終了"), message);
 
     // プレイモードをリセット
@@ -221,7 +228,7 @@ void CsaGameWiring::onGameEnded(const QString& result, const QString& cause, int
 
     // ステータスバーに表示
     if (m_statusBar) {
-        m_statusBar->showMessage(tr("対局終了: %1 (%2)").arg(result, cause), 5000);
+        m_statusBar->showMessage(tr("対局終了: %1 (%2)").arg(resultText, causeText), 5000);
     }
 }
 
@@ -317,32 +324,33 @@ QString CsaGameWiring::formatElapsedTime(int consumedTimeMs, int totalTimeMs) co
         .arg(totalSecRem, 2, 10, QLatin1Char('0'));
 }
 
-QString CsaGameWiring::buildEndLineText(const QString& cause, bool loserIsBlack) const
+QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack) const
 {
     const QString mark = loserIsBlack ? QStringLiteral("▲") : QStringLiteral("△");
 
-    if (cause == tr("投了")) {
+    if (cause == CsaClient::GameEndCause::Resign) {
         return mark + tr("投了");
     }
-    if (cause == tr("時間切れ")) {
+    if (cause == CsaClient::GameEndCause::TimeUp) {
         return mark + tr("時間切れ");
     }
-    if (cause == tr("反則")) {
+    if (cause == CsaClient::GameEndCause::IllegalMove
+        || cause == CsaClient::GameEndCause::IllegalAction) {
         return mark + tr("反則負け");
     }
-    if (cause == tr("千日手")) {
+    if (cause == CsaClient::GameEndCause::Sennichite) {
         return tr("千日手");
     }
-    if (cause == tr("連続王手の千日手")) {
+    if (cause == CsaClient::GameEndCause::OuteSennichite) {
         return mark + tr("反則負け（連続王手）");
     }
-    if (cause == tr("入玉宣言")) {
+    if (cause == CsaClient::GameEndCause::Jishogi) {
         return tr("入玉宣言");
     }
-    if (cause == tr("中断")) {
+    if (cause == CsaClient::GameEndCause::Chudan) {
         return tr("中断");
     }
-    return cause;
+    return CsaMoveConverter::gameEndCauseToString(cause);
 }
 
 void CsaGameWiring::onPlayModeChangedInternal(int mode)

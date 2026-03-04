@@ -72,12 +72,14 @@ public:
     /// リストから特定の項目を削除する
     void removeItem(T *item)
     {
-        const int idx = list.indexOf(item);
+        const qsizetype idx = list.indexOf(item);
 
-        if (idx != -1) {
-            beginRemoveRows(QModelIndex(), idx, idx);
-            list.removeAll(item);
+        if (idx >= 0) {
+            const int row = static_cast<int>(idx);
+            beginRemoveRows(QModelIndex(), row, row);
+            T* removed = list.takeAt(row);
             endRemoveRows();
+            delete removed;
         }
     }
 
@@ -85,10 +87,12 @@ public:
     void removeLastItem()
     {
         if (!list.isEmpty()) {
-            const int lastIdx = list.count() - 1;
-            beginRemoveRows(QModelIndex(), lastIdx, lastIdx);
-            list.removeLast();
+            const qsizetype lastIdx = list.size() - 1;
+            const int row = static_cast<int>(lastIdx);
+            beginRemoveRows(QModelIndex(), row, row);
+            T* removed = list.takeLast();
             endRemoveRows();
+            delete removed;
         }
     }
 

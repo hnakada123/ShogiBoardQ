@@ -52,8 +52,8 @@ public:
 
     /// 表示行のラベルを返す
     QString labelAt(int row) const {
-        if (row < 0 || row >= m_rows.size()) return {};
-        return m_rows.at(row).label;
+        if (row < 0 || row >= rowCount()) return {};
+        return data(index(row, 0), Qt::DisplayRole).toString();
     }
 
     /// 「本譜へ戻る」を除いた実質の候補数
@@ -64,8 +64,7 @@ public:
 
     /// 「本譜へ戻る」を除いた最初の候補の行インデックス（なければ -1）
     int firstBranchRowIndex() const {
-        if (rowCount() == 0) return -1;
-        return m_hasBackToMainRow ? (rowCount() >= 2 ? 1 : -1) : 0;
+        return branchCandidateCount() > 0 ? 0 : -1;
     }
 
     // --- ハイライト ---
@@ -100,11 +99,6 @@ public:
 
 private:
     bool m_locked = false;                  ///< ロック状態
-    struct RowItem {
-        QString label;                      ///< 表示ラベル
-        bool isBackToMain = false;          ///< 「本譜へ戻る」行フラグ
-    };
-    QList<RowItem> m_rows;                ///< 表示行データ
     bool m_hasBackToMainRow = false;        ///< 末尾に「本譜へ戻る」を表示するか
     int m_currentHighlightRow = 0;          ///< 現在ハイライトする行
 
