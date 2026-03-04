@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16...3.28)
 
-project(ShogiBoardQ VERSION 0.1 LANGUAGES CXX)
+# アプリケーションバージョン (CalVer: YYYY.MM.DD)
+# CMake の project VERSION / バンドル埋め込み / APP_VERSION マクロで共通利用する。
+set(APP_VERSION "2026.02.25")
+
+project(ShogiBoardQ VERSION ${APP_VERSION} LANGUAGES CXX)
 
 # ==== Qt auto features ====
 set(CMAKE_AUTOUIC ON)
@@ -500,6 +504,7 @@ set(SRC_ANALYSIS
     src/analysis/analysisflowcontroller.h
     src/analysis/analysisflowcontroller_position.cpp
     src/analysis/analysisresulthandler.cpp
+    src/analysis/analysisresulthandler_dialog.cpp
     src/analysis/analysisresulthandler.h
     src/analysis/analysisresultspresenter.cpp
     src/analysis/analysisresultspresenter.h
@@ -981,9 +986,6 @@ target_link_libraries(ShogiBoardQ PRIVATE
     Qt6::Network
     Qt6::Concurrent
 )
-
-# アプリケーションバージョン (CalVer: YYYY.MM.DD)
-set(APP_VERSION "2026.02.25")
 
 # リリースビルドではqDebug()出力を無効化
 target_compile_definitions(ShogiBoardQ PRIVATE

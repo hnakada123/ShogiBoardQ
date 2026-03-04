@@ -15,6 +15,7 @@
 #include "matchcoordinator.h"
 #include "evaluationgraphcontroller.h"
 #include "csagamecoordinator.h"
+#include <QScopedValueRollback>
 
 RecordNavigationHandler::RecordNavigationHandler(QObject* parent)
     : QObject(parent)
@@ -33,13 +34,13 @@ void RecordNavigationHandler::onMainRowChanged(int row)
                                     << "isOnMainLine=" << (m_deps.navState ? m_deps.navState->isOnMainLine() : true)
                                     << "m_sfenHistory.size=" << (m_deps.sfenRecord ? m_deps.sfenRecord->size() : -1);
 
-    // 再入防止
-    static bool s_inProgress = false;
-    if (s_inProgress) {
+    // 再入防止（インスタンス単位）
+    if (m_mainRowChangeInProgress) {
         qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (re-entry guard)";
         return;
     }
-    s_inProgress = true;
+    m_mainRowChangeInProgress = true;
+    const QScopedValueRollback<bool> rollback(m_mainRowChangeInProgress, false);
 
     // 分岐ナビゲーション中は二重更新を防ぐ。
     // ただし、ユーザーが別手を明示的に選んだ場合は処理を継続する。
@@ -47,7 +48,6 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         const int statePly = (m_deps.navState != nullptr) ? m_deps.navState->currentPly() : -1;
         if (row == statePly) {
             qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (branch navigation in progress, same ply)";
-            s_inProgress = false;
             return;
         }
         qCDebug(lcNavigation) << "onMainRowChanged: branch navigation guard active but proceeding"
@@ -59,7 +59,6 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     if (m_deps.csaGameCoordinator) {
         if (m_deps.csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame) {
             qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (CSA game in progress)";
-            s_inProgress = false;
             return;
         }
     }
@@ -246,5 +245,4 @@ void RecordNavigationHandler::onMainRowChanged(int row)
     }
 
     qCDebug(lcNavigation).noquote() << "onMainRowChanged LEAVE row=" << row;
-    s_inProgress = false;
 }

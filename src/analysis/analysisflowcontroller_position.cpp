@@ -9,6 +9,7 @@
 #include "kifurecordlistmodel.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
+#include "sfenutils.h"
 #include "usi.h"
 
 #include <limits>
@@ -23,12 +24,7 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
     // Usiにも設定（ThinkingInfoPresenter経由での変換用）
     if (m_usi) {
         // SFENから盤面データを生成
-        QString pureSfen = sfen;
-        if (pureSfen.startsWith(QStringLiteral("position sfen "))) {
-            pureSfen = pureSfen.mid(14);
-        } else if (pureSfen.startsWith(QStringLiteral("position "))) {
-            pureSfen = pureSfen.mid(9);
-        }
+        const QString pureSfen = SfenUtils::normalizePositionLikeSfen(sfen);
 
         ShogiBoard tempBoard;
         tempBoard.setSfen(pureSfen);

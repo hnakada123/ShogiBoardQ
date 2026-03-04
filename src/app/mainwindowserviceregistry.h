@@ -9,7 +9,7 @@
 /// - GameSubRegistry / KifuSubRegistry: ドメイン固有サブレジストリ
 /// - MainWindowServiceRegistry: UI/Analysis/Board 系 + オーケストレーション
 ///
-/// 設計根拠: docs/dev/ensure-graph-analysis.md
+/// 設計根拠: docs/dev/done/ensure-graph-analysis.md
 
 #include <QObject>
 #include <QPoint>

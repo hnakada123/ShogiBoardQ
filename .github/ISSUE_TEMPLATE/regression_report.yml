@@ -1,0 +1,73 @@
+name: 回帰報告
+description: 以前は動いていた挙動が壊れた場合に使用
+title: "[Regression] "
+labels: ["bug", "regression"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 回帰内容
+      description: どの機能がどのように退行したかを記載してください
+    validations:
+      required: true
+
+  - type: input
+    id: good_version
+    attributes:
+      label: 正常だったバージョン
+      placeholder: 例) v2026.02.25
+    validations:
+      required: true
+
+  - type: input
+    id: bad_version
+    attributes:
+      label: 問題が出るバージョン
+      placeholder: 例) v2026.03.04
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 再現手順
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: scenario_id
+    attributes:
+      label: 関連手動テストシナリオID
+      description: docs/dev/manual-test-scenarios.md のシナリオ番号
+      placeholder: 例) シナリオ 3
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: 影響範囲
+      description: 対局・棋譜・解析・UI のどこに影響するか
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 重大度
+      options:
+        - S0
+        - S1
+        - S2
+        - S3
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 補足情報（ログ/スクリーンショット）

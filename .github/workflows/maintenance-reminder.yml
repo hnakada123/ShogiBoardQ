@@ -1,0 +1,27 @@
+name: Maintenance Reminder
+
+on:
+  schedule:
+    - cron: "0 1 1 * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+jobs:
+  create-maintenance-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create monthly maintenance issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TITLE="[Maintenance] $(date -u +%Y-%m) 定期チェック"
+          if gh issue list --state open --search "${TITLE} in:title" --json number --jq 'length > 0' | grep -q true; then
+            echo "Issue already exists: ${TITLE}"
+            exit 0
+          fi
+
+          BODY=$'定期メンテナンスチェックを実施してください。\n\n参照: docs/dev/maintenance-checklist.md\n\n実施記録:\n- 担当者:\n- 実施日:\n- 結果:\n'
+          gh issue create --title "${TITLE}" --body "${BODY}"

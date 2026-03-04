@@ -50,6 +50,7 @@ private slots:
     // --- AnalysisResultHandler ---
     void updatePending_storesData();
     void commitPendingResult_updatesLastCommitted();
+    void commitPendingResult_bookMove_clearsUsiPv();
     void reset_clearsAllPending();
     void extractUsiMoveFromKanji_basicMove();
     void extractUsiMoveFromKanji_promotion();
@@ -365,6 +366,43 @@ void TestAnalysisCoordinator::commitPendingResult_updatesLastCommitted()
 
     // モデルに1行追加されている
     QCOMPARE(model.rowCount(), 1);
+}
+
+void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()
+{
+    QStringList sfenRecord = makeSampleSfenRecord();
+    AnalysisCoordinator::Deps deps;
+    deps.sfenRecord = &sfenRecord;
+    AnalysisCoordinator coord(deps);
+    AnalysisCoordinator::Options opt;
+    opt.movetimeMs = 1000;
+    coord.setOptions(opt);
+    coord.startAnalyzeSingle(1); // currentPly=1 をセット
+
+    AnalysisResultHandler handler;
+    KifuAnalysisListModel model;
+
+    AnalysisResultHandler::Refs refs;
+    refs.analysisModel = &model;
+    refs.coord = &coord;
+    handler.setRefs(refs);
+
+    handler.updatePending(1, 120, 0, QStringLiteral("7g7f 3c3d (100.00%)"));
+    handler.commitPendingResult();
+    QCOMPARE(model.rowCount(), 1);
+
+    KifuAnalysisResultsDisplay* first = model.item(0);
+    QVERIFY(first != nullptr);
+    QCOMPARE(first->usiPv(), QStringLiteral("7g7f 3c3d"));
+
+    // info 行なしで bestmove が来た想定（定跡）
+    handler.commitPendingResult();
+    QCOMPARE(model.rowCount(), 2);
+
+    KifuAnalysisResultsDisplay* second = model.item(1);
+    QVERIFY(second != nullptr);
+    QCOMPARE(second->principalVariation(), QStringLiteral("（定跡）"));
+    QCOMPARE(second->usiPv(), QString());
 }
 
 void TestAnalysisCoordinator::reset_clearsAllPending()

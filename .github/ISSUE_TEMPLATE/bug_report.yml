@@ -1,0 +1,76 @@
+name: バグ報告
+description: 不具合を報告します
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何が起きたかを簡潔に記載してください
+      placeholder: 例) 棋譜読み込み後に終局行を選ぶとクラッシュする
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 再現手順
+      description: 再現できる手順を番号付きで記載してください
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待される動作
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: 実際の動作
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: バージョン
+      placeholder: 例) v2026.03.04
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Linux
+        - macOS
+        - Windows
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 重大度
+      options:
+        - S0
+        - S1
+        - S2
+        - S3
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 補足情報（ログ/スクリーンショット）
+      description: 取得できるログやスクリーンショットがあれば添付してください

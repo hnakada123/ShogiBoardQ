@@ -10,7 +10,7 @@
 #include <functional>
 
 namespace {
-constexpr int kPollIntervalMs = 10;
+constexpr int kWakeCheckIntervalMs = 50;
 
 using ConditionFn = std::function<bool()>;
 
@@ -28,12 +28,12 @@ bool waitUntil(const ConditionFn& isDone,
 
     QEventLoop loop;
     QTimer timeoutTimer;
-    QTimer pollTimer;
+    QTimer wakeTimer;
 
     timeoutTimer.setSingleShot(true);
     QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    pollTimer.setInterval(kPollIntervalMs);
-    QObject::connect(&pollTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    wakeTimer.setSingleShot(true);
+    QObject::connect(&wakeTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
 
     if (processManager != nullptr) {
         QObject::connect(processManager, &EngineProcessManager::dataReceived,
@@ -50,16 +50,22 @@ bool waitUntil(const ConditionFn& isDone,
     }
 
     timeoutTimer.start(timeoutMs);
-    pollTimer.start();
-
     while (timeoutTimer.isActive() && !isDone() && !shouldAbort()) {
         if (processManager != nullptr) {
             processManager->pumpPendingOutput();
         }
+        if (isDone() || shouldAbort()) {
+            break;
+        }
+        const int remainingMs = timeoutTimer.remainingTime();
+        const int wakeMs = (remainingMs > 0)
+                               ? qMax(1, qMin(kWakeCheckIntervalMs, remainingMs))
+                               : kWakeCheckIntervalMs;
+        wakeTimer.start(wakeMs);
         loop.exec(QEventLoop::ExcludeUserInputEvents);
+        wakeTimer.stop();
     }
 
-    pollTimer.stop();
     if (processManager != nullptr) {
         // タイムアウト時でも stderr / 端数出力を取りこぼさない
         processManager->pumpPendingOutput();
