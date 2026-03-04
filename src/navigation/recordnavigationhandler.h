@@ -95,6 +95,7 @@ signals:
 
 private:
     Deps m_deps;
+    bool m_mainRowChangeInProgress = false;
 };
 
 #endif // RECORDNAVIGATIONHANDLER_H

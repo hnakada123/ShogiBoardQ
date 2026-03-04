@@ -1,0 +1,48 @@
+name: セキュリティ報告
+description: セキュリティ問題の報告
+title: "[Security] "
+labels: ["security"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        重大な脆弱性は公開Issueではなく Security Advisories での報告を推奨します。
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 問題の要約
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected
+    attributes:
+      label: 影響範囲
+      description: 影響する機能、バージョン、OS
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 再現方法
+      description: 再現可能な範囲で記載
+    validations:
+      required: true
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: 暫定回避策
+      description: 分かる場合のみ
+
+  - type: textarea
+    id: disclosure
+    attributes:
+      label: 公開可否
+      description: 公開Issueでの継続可否を記載
+      placeholder: 非公開での対応を希望 / 公開でも可
+    validations:
+      required: true

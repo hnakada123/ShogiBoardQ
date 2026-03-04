@@ -34,7 +34,6 @@ jobs:
 
       - name: Test Summary Drift Check
         if: always()
-        continue-on-error: true
         run: bash scripts/update-test-summary.sh --build-dir build --check
 
       - name: Include Count Check
@@ -163,6 +162,20 @@ jobs:
           fi
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Upload Build/Test Diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: build-and-test-diagnostics-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: ignore
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/kpi-output.txt
+            build/layer-deps-output.txt
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
+
   build-debug:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
@@ -185,6 +198,18 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure
+
+      - name: Upload Debug Test Log
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: build-debug-diagnostics-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: ignore
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
 
   static-analysis:
     if: github.event_name != 'schedule'
@@ -212,6 +237,18 @@ jobs:
             grep "warning:.*\[-clang" build.log
             exit 1
           fi
+
+      - name: Upload clang-tidy Diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: clang-tidy-diagnostics-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: ignore
+          path: |
+            build.log
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
 
   clazy:
     if: github.event_name != 'schedule'
@@ -243,6 +280,18 @@ jobs:
             grep "\-Wclazy-" clazy-output.txt
             exit 1
           fi
+
+      - name: Upload clazy Diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: clazy-diagnostics-${{ github.sha }}
+          retention-days: 30
+          if-no-files-found: ignore
+          path: |
+            clazy-output.txt
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
 
   sanitize:
     runs-on: ubuntu-latest
@@ -303,6 +352,8 @@ jobs:
   coverage:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    env:
+      COVERAGE_MIN_LINE: "25"
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 
@@ -334,11 +385,15 @@ jobs:
           gcovr --root src --object-directory build \
             --xml build/coverage.xml \
             --html-details build/coverage.html \
-            --print-summary | tee build/coverage-summary.txt
+            --print-summary \
+            --fail-under-line "$COVERAGE_MIN_LINE" | tee build/coverage-summary.txt
 
       - name: Coverage Summary
         run: |
           echo "## Code Coverage" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Line coverage gate: **${COVERAGE_MIN_LINE}%**" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           cat build/coverage-summary.txt >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"

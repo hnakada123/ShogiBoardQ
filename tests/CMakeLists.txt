@@ -565,6 +565,7 @@ add_shogi_test(tst_analysisflow
     ${SRC}/analysis/analysisflowcontroller.cpp
     ${SRC}/analysis/analysisflowcontroller_position.cpp
     ${SRC}/analysis/analysisresulthandler.cpp
+    ${SRC}/analysis/analysisresulthandler_dialog.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
 )
 
@@ -1000,6 +1001,7 @@ add_shogi_test(tst_analysis_coordinator
     ${SRC}/common/logcategories.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
     ${SRC}/analysis/analysisresulthandler.cpp
+    ${SRC}/analysis/analysisresulthandler_dialog.cpp
 )
 
 # ============================================================

@@ -1,0 +1,291 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v2026.03.04)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  QT_VERSION: "6.7.*"
+
+jobs:
+  compatibility-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: "qtcharts"
+
+      - name: Configure
+        run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=ON
+
+      - name: Build
+        run: cmake --build build --parallel 2
+
+      - name: Compatibility Regression Tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          cd build
+          ctest -R "tst_settings_roundtrip|tst_kifconverter|tst_ki2converter|tst_csaconverter|tst_jkfconverter|tst_usiconverter|tst_usenconverter|tst_translation_files" \
+            --output-on-failure --timeout 180
+
+      - name: Upload Compatibility Logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: release-compatibility-logs
+          if-no-files-found: ignore
+          retention-days: 30
+          path: |
+            build/Testing/Temporary/LastTest.log
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
+
+  build-linux:
+    needs: compatibility-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 imagemagick
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: "qtcharts"
+
+      - name: Build AppImage
+        run: |
+          chmod +x scripts/build-linux.sh
+          ./scripts/build-linux.sh
+
+      - name: Prepare Linux artifact
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          fi
+          VERSION="${TAG#v}"
+          mkdir -p dist
+          mv ShogiBoardQ-linux-x86_64.AppImage "dist/ShogiBoardQ-${VERSION}-linux-x86_64.AppImage"
+
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: release-linux
+          path: dist/*
+          retention-days: 90
+
+  build-macos:
+    needs: compatibility-check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install dependencies
+        run: brew install create-dmg
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: "qtcharts"
+
+      - name: Build DMG
+        run: |
+          chmod +x scripts/build-macos.sh
+          ./scripts/build-macos.sh
+
+      - name: Optional macOS signing/notarization
+        env:
+          MACOS_CERT_P12_BASE64: ${{ secrets.MACOS_CERT_P12_BASE64 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${MACOS_CERT_P12_BASE64}" || -z "${MACOS_CERT_PASSWORD}" || -z "${MACOS_SIGN_IDENTITY}" ]]; then
+            echo "macOS signing secrets are not configured. Skipping signing."
+            exit 0
+          fi
+
+          echo "${MACOS_CERT_P12_BASE64}" | base64 --decode > cert.p12
+          security create-keychain -p "" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security import cert.p12 -k build.keychain -P "${MACOS_CERT_PASSWORD}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+          codesign --force --deep --options runtime --sign "${MACOS_SIGN_IDENTITY}" build/ShogiBoardQ.app
+          codesign --verify --deep --strict build/ShogiBoardQ.app
+
+          if [[ -n "${APPLE_ID}" && -n "${APPLE_TEAM_ID}" && -n "${APPLE_APP_PASSWORD}" ]]; then
+            xcrun notarytool submit ShogiBoardQ.dmg \
+              --apple-id "${APPLE_ID}" \
+              --team-id "${APPLE_TEAM_ID}" \
+              --password "${APPLE_APP_PASSWORD}" \
+              --wait
+            xcrun stapler staple ShogiBoardQ.dmg
+          else
+            echo "Notarization secrets are not fully configured. Skipping notarization."
+          fi
+
+      - name: Prepare macOS artifact
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          fi
+          VERSION="${TAG#v}"
+          mkdir -p dist
+          mv ShogiBoardQ.dmg "dist/ShogiBoardQ-${VERSION}-macos.dmg"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: release-macos
+          path: dist/*
+          retention-days: 90
+
+  build-windows:
+    needs: compatibility-check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Install Qt6
+        uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
+        with:
+          version: ${{ env.QT_VERSION }}
+          modules: "qtcharts"
+
+      - name: Build deploy directory
+        shell: pwsh
+        run: .\scripts\build-windows.ps1 -SkipZip
+
+      - name: Optional Windows signing
+        shell: pwsh
+        env:
+          WINDOWS_CERT_PFX_BASE64: ${{ secrets.WINDOWS_CERT_PFX_BASE64 }}
+          WINDOWS_CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+          WINDOWS_SIGN_TIMESTAMP_URL: ${{ secrets.WINDOWS_SIGN_TIMESTAMP_URL }}
+        run: |
+          if (-not $env:WINDOWS_CERT_PFX_BASE64 -or -not $env:WINDOWS_CERT_PASSWORD) {
+            Write-Host "Windows signing secrets are not configured. Skipping signing."
+            exit 0
+          }
+
+          $certPath = Join-Path $PWD "codesign.pfx"
+          [IO.File]::WriteAllBytes($certPath, [Convert]::FromBase64String($env:WINDOWS_CERT_PFX_BASE64))
+          $timestamp = if ($env:WINDOWS_SIGN_TIMESTAMP_URL) { $env:WINDOWS_SIGN_TIMESTAMP_URL } else { "http://timestamp.digicert.com" }
+
+          Get-ChildItem -Path deploy -Filter *.exe -Recurse | ForEach-Object {
+            signtool sign /fd SHA256 /tr $timestamp /td SHA256 /f $certPath /p $env:WINDOWS_CERT_PASSWORD $_.FullName
+          }
+
+      - name: Package Windows artifact
+        shell: pwsh
+        run: |
+          $tag = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.tag }}" } else { "${{ github.ref_name }}" }
+          $version = $tag.TrimStart("v")
+          $zipName = "ShogiBoardQ-$version-windows-x86_64.zip"
+          if (Test-Path $zipName) { Remove-Item $zipName -Force }
+          Compress-Archive -Path "deploy\*" -DestinationPath $zipName
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Move-Item $zipName dist\
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: release-windows
+          path: dist/*
+          retention-days: 90
+
+  checksums-and-sbom:
+    needs: [build-linux, build-macos, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b ./
+          ./syft version
+
+      - name: Generate SHA256 and SBOM
+        run: |
+          find release-assets -type f -print0 | sort -z | xargs -0 sha256sum > release-assets/SHA256SUMS.txt
+          ./syft dir:release-assets -o spdx-json > release-assets/SBOM.spdx.json
+
+      - name: Upload release metadata
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: release-metadata
+          path: |
+            release-assets/SHA256SUMS.txt
+            release-assets/SBOM.spdx.json
+          retention-days: 90
+
+  publish-release:
+    needs: [build-linux, build-macos, build-windows, checksums-and-sbom]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all release files
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          fi
+          VERSION="${TAG#v}"
+
+          mapfile -t ASSETS < <(find release-assets -type f | sort)
+          if [ "${#ASSETS[@]}" -eq 0 ]; then
+            echo "No release assets found."
+            exit 1
+          fi
+
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${ASSETS[@]}" --clobber
+          else
+            gh release create "$TAG" "${ASSETS[@]}" \
+              --title "ShogiBoardQ ${VERSION}" \
+              --generate-notes
+          fi
+
+          echo "Published release assets:"
+          printf ' - %s\n' "${ASSETS[@]}"

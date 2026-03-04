@@ -75,6 +75,13 @@ cmake --build build
 ./build/ShogiBoardQ
 ```
 
+## 開発・運用ドキュメント
+
+- [サポートポリシー](docs/dev/support-policy.md)
+- [障害対応フロー](docs/dev/incident-response.md)
+- [定期メンテナンスチェックリスト](docs/dev/maintenance-checklist.md)
+- [翻訳品質ポリシー](docs/dev/translation-quality-policy.md)
+
 ## ライセンス
 
 本ソフトウェアは [GNU General Public License v3.0 (GPL-3.0)](LICENSE) のもとで公開されています。

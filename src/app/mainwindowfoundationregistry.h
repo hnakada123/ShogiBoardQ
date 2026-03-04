@@ -7,7 +7,7 @@
 /// MainWindowServiceRegistry から抽出された、複数ドメインで共有される
 /// Tier 0/1 の ensure* メソッドと、依存のない単純リーフ ensure* メソッドを集約する。
 ///
-/// 設計根拠: docs/dev/ensure-graph-analysis.md Section 8.1 (案A: 共通基盤層抽出)
+/// 設計根拠: docs/dev/done/ensure-graph-analysis.md Section 8.1 (案A: 共通基盤層抽出)
 
 #include <QObject>
 
