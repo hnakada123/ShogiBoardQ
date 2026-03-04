@@ -21,7 +21,6 @@
 #include "shogigamecontroller.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
-#include "playmode.h"
 
 class UsiMatchHandler;
 
@@ -59,7 +58,7 @@ public:
     // --- 構築・破棄 ---
     
     explicit Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
-                 ShogiGameController* algorithm, PlayMode& playMode, 
+                 ShogiGameController* algorithm,
                  QObject* parent = nullptr);
     ~Usi() override;
 
@@ -222,7 +221,6 @@ private:
     QPointer<UsiCommLogModel> m_commLogModel;        ///< USI通信ログモデルへの参照（非所有）
     QPointer<ShogiEngineThinkingModel> m_thinkingModel; ///< 思考情報モデルへの参照（非所有）
     ShogiGameController* m_gameController = nullptr;  ///< ゲームコントローラへの参照（非所有）
-    PlayMode& m_playMode;                             ///< 現在の対局モード
 
     // --- 状態 ---
 

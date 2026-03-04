@@ -229,8 +229,8 @@ void EngineLifecycleManager::initEnginesForEvE(const QString& engineName1,
     comm1->setEngineName(dispName1);
     comm2->setEngineName(dispName2);
 
-    m_usi1 = new Usi(comm1, think1, m_refs.gc, *(m_refs.playMode), this);
-    m_usi2 = new Usi(comm2, think2, m_refs.gc, *(m_refs.playMode), this);
+    m_usi1 = new Usi(comm1, think1, m_refs.gc, this);
+    m_usi2 = new Usi(comm2, think2, m_refs.gc, this);
 
     m_usi1->resetResignNotified(); m_usi1->clearHardTimeout(); m_usi1->resetWinNotified();
     m_usi2->resetResignNotified(); m_usi2->clearHardTimeout(); m_usi2->resetWinNotified();

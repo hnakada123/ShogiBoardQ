@@ -48,6 +48,7 @@ void EngineRegistrationWorker::registerEngine(const QString& enginePath)
         if (m_cancelFlag && m_cancelFlag->load()) {
             process.kill();
             process.waitForFinished(QuitTimeoutMs);
+            emit registrationCanceled();
             return;
         }
 
@@ -67,6 +68,10 @@ void EngineRegistrationWorker::registerEngine(const QString& enginePath)
             } else if (line.startsWith("usiok")) {
                 process.write("quit\n");
                 process.waitForFinished(QuitTimeoutMs);
+                if (engineName.trimmed().isEmpty()) {
+                    emit registrationFailed(tr("エンジン名(id name)を取得できませんでした"));
+                    return;
+                }
                 emit engineRegistered(engineName, engineAuthor, optionLines);
                 return;
             }

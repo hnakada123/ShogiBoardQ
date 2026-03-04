@@ -6,6 +6,8 @@
 #include "engineoptiondescriptions.h"
 #include "settingscommon.h"
 #include <QApplication>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QSettings>
 #include <QPushButton>
 #include <QDir>
@@ -65,7 +67,19 @@ void EngineSettingsOptionHandler::readEngineOptions()
         option.max = settings.value(EngineOptionMaxKey).toString();
         option.currentValue = settings.value(EngineOptionValueKey).toString();
         QString valueListStr = settings.value(EngineOptionValueListKey).toString();
-        option.valueList = valueListStr.split(" ", Qt::SkipEmptyParts);
+
+        // valueList は JSON 配列を優先し、旧フォーマット（空白区切り）も後方互換で受ける。
+        option.valueList.clear();
+        const QJsonDocument json = QJsonDocument::fromJson(valueListStr.toUtf8());
+        if (json.isArray()) {
+            const QJsonArray arr = json.array();
+            option.valueList.reserve(arr.size());
+            for (const QJsonValue& v : arr) {
+                option.valueList.append(v.toString());
+            }
+        } else {
+            option.valueList = valueListStr.split(QStringLiteral(" "), Qt::SkipEmptyParts);
+        }
 
         m_optionList.append(option);
     }

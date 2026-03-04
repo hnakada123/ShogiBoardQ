@@ -17,7 +17,6 @@
 #include "threadtypes.h"
 
 class Usi;
-enum class PlayMode;
 
 /**
  * @brief 詰将棋局面自動生成のオーケストレーション
@@ -110,7 +109,6 @@ private:
     void finishTrimmingPhase();
 
     std::unique_ptr<Usi> m_usi;
-    std::unique_ptr<PlayMode> m_playMode;
     TsumeshogiPositionGenerator m_positionGenerator;
     Settings m_settings;
 

@@ -406,8 +406,8 @@ bool ShogiGameController::validateAndMove(QPoint&, QPoint&, QString& record,
 // ============================================================
 
 Usi::Usi(UsiCommLogModel*, ShogiEngineThinkingModel*,
-         ShogiGameController*, PlayMode& playMode, QObject* parent)
-    : QObject(parent), m_playMode(playMode) {}
+         ShogiGameController*, QObject* parent)
+    : QObject(parent) {}
 Usi::~Usi() = default;
 QString Usi::scoreStr() const { return {}; }
 bool Usi::isResignMove() const { return false; }

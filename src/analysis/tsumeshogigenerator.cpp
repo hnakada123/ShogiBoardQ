@@ -3,7 +3,6 @@
 
 #include "tsumeshogigenerator.h"
 #include "usi.h"
-#include "playmode.h"
 #include "boardconstants.h"
 
 #include <QThread>
@@ -44,11 +43,8 @@ void TsumeshogiGenerator::start(const Settings& settings)
 
     m_positionGenerator.setSettings(settings.posGenSettings);
 
-    // PlayMode を作成（Usiコンストラクタが参照を要求するため）
-    m_playMode = std::make_unique<PlayMode>(PlayMode::TsumiSearchMode);
-
     // Usi インスタンスを作成（モデル不要、ゲームコントローラ不要）
-    m_usi = std::make_unique<Usi>(nullptr, nullptr, nullptr, *m_playMode, this);
+    m_usi = std::make_unique<Usi>(nullptr, nullptr, nullptr, this);
 
     // checkmate シグナルを接続
     connect(m_usi.get(), &Usi::checkmateSolved,
@@ -266,7 +262,6 @@ void TsumeshogiGenerator::cleanup()
         m_usi->cleanupEngineProcessAndThread();
         m_usi.reset();
     }
-    m_playMode.reset();
 
     // バッチ生成状態をクリア
     m_positionQueue.clear();

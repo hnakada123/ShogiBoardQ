@@ -505,7 +505,7 @@ bool AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
         }
 
         // Usiインスタンスを生成（GameControllerを渡して盤面情報を取得可能にする）
-        m_usi = new Usi(logModelToUse, thinkingModelToUse, m_gameController, m_playModeForAnalysis, this);
+        m_usi = new Usi(logModelToUse, thinkingModelToUse, m_gameController, this);
         m_ownsUsi = true;
 
         actualDeps.usi = m_usi;
