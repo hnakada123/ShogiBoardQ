@@ -11,34 +11,17 @@
 #include "shogiinforecord.h"
 #include "shogimove.h"
 #include "pvboarddialog.h"
+#include "sfenutils.h"
 
 namespace {
 static QString normalizedSfen(QString sfen)
 {
-    sfen = sfen.trimmed();
-    if (sfen.startsWith(QStringLiteral("position sfen "))) {
-        sfen = sfen.mid(14).trimmed();
-    } else if (sfen.startsWith(QStringLiteral("position "))) {
-        sfen = sfen.mid(9).trimmed();
-    }
-
-    if (sfen == QLatin1String("startpos")) {
-        sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    }
-
-    const QStringList parts = sfen.split(' ', Qt::SkipEmptyParts);
-    if (parts.size() >= 3) {
-        return parts.mid(0, 3).join(' ');
-    }
-
-    return sfen;
+    return SfenUtils::normalizeSfenKey(sfen);
 }
 
 static bool isStartposSfen(const QString& sfen)
 {
-    static const QString startposSfen =
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    return normalizedSfen(sfen).startsWith(startposSfen.left(60));
+    return SfenUtils::isHirateStart(sfen);
 }
 }  // namespace
 
@@ -347,7 +330,7 @@ QString PvClickController::resolveCurrentSfen(const QString& baseSfen) const
         currentSfen = m_startSfenStr;
     }
     if (currentSfen.isEmpty()) {
-        currentSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        currentSfen = SfenUtils::hirateSfen();
     }
     return currentSfen;
 }

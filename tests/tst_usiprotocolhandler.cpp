@@ -281,6 +281,28 @@ private slots:
         QCOMPARE(spy.count(), 1);
     }
 
+    void waitForUsiOk_afterSendUsi_doesNotReusePreviousFlag()
+    {
+        UsiProtocolHandler handler;
+        handler.onDataReceived(QStringLiteral("usiok"));
+
+        handler.sendUsi();
+        const bool ok = handler.waitForUsiOk(30);
+
+        QVERIFY(!ok);
+    }
+
+    void waitForReadyOk_afterSendIsReady_doesNotReusePreviousFlag()
+    {
+        UsiProtocolHandler handler;
+        handler.onDataReceived(QStringLiteral("readyok"));
+
+        handler.sendIsReady();
+        const bool ok = handler.waitForReadyOk(30);
+
+        QVERIFY(!ok);
+    }
+
     // ================================================================
     // 5. option name 行
     // ================================================================
@@ -1197,6 +1219,42 @@ private slots:
         QVERIFY(!ok);
         QVERIFY2(timer.elapsed() < 300,
                  "keepWaitingForBestMove should return false on hard-timeout");
+    }
+
+    // ================================================================
+    // 28. API整合性・探索コンテキスト
+    // ================================================================
+
+    void sendGoSearchmoves_emptyMoves_startsNewSearchContext()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+
+        // 1) 既存探索を開始
+        handler.sendGoDepth(1);
+        // 2) キャンセルで世代を進める（activeSearchSeq は旧世代のまま）
+        handler.cancelCurrentOperation();
+        // 3) 空 searchmoves フォールバックで新探索を開始
+        handler.sendGoSearchmoves({}, true);
+
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
+
+        QCOMPARE(spyBest.count(), 1);
+        QCOMPARE(handler.bestMove(), QStringLiteral("7g7f"));
+    }
+
+    void sendSetOption_typedOverload_callable()
+    {
+        UsiProtocolHandler handler;
+
+        // リンク欠落防止: 型付きオーバーロードが実装されていることを確認
+        handler.sendSetOption(QStringLiteral("USI_Ponder"),
+                              QStringLiteral("true"),
+                              QStringLiteral("check"));
+        handler.sendSetOption(QStringLiteral("Clear Hash"),
+                              QString(),
+                              QStringLiteral("button"));
+        QVERIFY(true);
     }
 };
 

@@ -12,6 +12,7 @@
 #include "shogiclock.h"
 #include "shogiboard.h"
 #include "sfencsapositionconverter.h"
+#include "sfenutils.h"
 #include "logcategories.h"
 
 #include <QRegularExpression>
@@ -403,7 +404,7 @@ void CsaGameCoordinator::setupInitialPosition()
     }
 
     const QString hiratePosition =
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        SfenUtils::hirateSfen();
 
     QString parseError;
     auto startSfen = SfenCsaPositionConverter::fromCsaPositionLines(

@@ -186,7 +186,7 @@ public:
 
     void cleanupEngineProcessAndThread(bool clearThinking = true);
 
-    void startAndInitializeEngine(const QString& engineFile, const QString& enginename);
+    [[nodiscard]] bool startAndInitializeEngine(const QString& engineFile, const QString& enginename);
 
     void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
     void sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr);

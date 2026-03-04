@@ -4,6 +4,7 @@
 #include "pvboardcontroller.h"
 #include "shogiboard.h"
 #include "logcategories.h"
+#include "sfenutils.h"
 
 #include <QRegularExpression>
 
@@ -235,7 +236,7 @@ PvHighlightCoords PvBoardController::computeHighlightFromUsiMove(const QString& 
 
         bool isBlackMove = true;
         if (isBasePosition) {
-            isBlackMove = m_baseSfen.contains(QStringLiteral(" w "));
+            isBlackMove = !m_baseSfen.contains(QStringLiteral(" w "));
         } else if (m_currentPly >= 1 && m_currentPly <= m_sfenHistory.size()) {
             const QString& prevSfen = m_sfenHistory.at(m_currentPly - 1);
             isBlackMove = !prevSfen.contains(QStringLiteral(" w "));
@@ -296,10 +297,7 @@ void PvBoardController::applyUsiMoveToBoard(ShogiBoard* board, const QString& us
 
         board->movePieceToSquare(piece, 0, 0, toFile, toRank, false);
 
-        QMap<Piece, int>& stand = board->m_pieceStand;
-        if (stand.contains(piece) && stand[piece] > 0) {
-            stand[piece]--;
-        }
+        board->consumeStandPiece(piece);
         return;
     }
 
@@ -321,7 +319,7 @@ void PvBoardController::applyUsiMoveToBoard(ShogiBoard* board, const QString& us
     if (captured != Piece::None) {
         Piece standPiece = demote(captured);
         standPiece = isBlackPiece(standPiece) ? toWhite(standPiece) : toBlack(standPiece);
-        board->m_pieceStand[standPiece]++;
+        board->addStandPiece(standPiece);
     }
 
     board->movePieceToSquare(piece, fromFile, fromRank, toFile, toRank, promote);
@@ -329,20 +327,7 @@ void PvBoardController::applyUsiMoveToBoard(ShogiBoard* board, const QString& us
 
 bool PvBoardController::isStartposSfen(QString sfen)
 {
-    sfen = sfen.trimmed();
-    if (sfen.startsWith(QStringLiteral("position sfen "))) {
-        sfen = sfen.mid(14).trimmed();
-    } else if (sfen.startsWith(QStringLiteral("position "))) {
-        sfen = sfen.mid(9).trimmed();
-    }
-
-    if (sfen == QLatin1String("startpos")) {
-        return true;
-    }
-
-    static const QString startposSfen =
-        QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    return sfen.startsWith(startposSfen.left(60));
+    return SfenUtils::isHirateStart(sfen);
 }
 
 bool PvBoardController::diffSfenForHighlight(const QString& prevSfen, const QString& currSfen,

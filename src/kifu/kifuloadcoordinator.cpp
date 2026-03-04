@@ -16,6 +16,7 @@
 #include "usitosfenconverter.h"
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
+#include "sfenutils.h"
 
 #include "logcategories.h"
 
@@ -180,7 +181,7 @@ void KifuLoadCoordinator::loadKifuCommon(
     if (detectSfenFunc) {
         initialSfen = detectSfenFunc(filePath, &teaiLabel);
         if (initialSfen.isEmpty()) {
-            initialSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+            initialSfen = SfenUtils::hirateSfen();
             teaiLabel = QStringLiteral("平手(既定)");
         }
     } else {
@@ -421,7 +422,7 @@ QString KifuLoadCoordinator::prepareInitialSfen(const QString& filePath, QString
 {
     const QString sfen = KifToSfenConverter::detectInitialSfenFromFile(filePath, &teaiLabel);
     return sfen.isEmpty()
-               ? QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1")
+               ? SfenUtils::hirateSfen()
                : sfen;
 }
 
@@ -525,9 +526,7 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
     } else {
         m_branchTree->clear();
     }
-    static const QString kHirateStartSfen = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    m_branchTree->setRootSfen(kHirateStartSfen);
+    m_branchTree->setRootSfen(SfenUtils::hirateSfen());
 
     if (m_navState != nullptr) {
         m_navState->goToRoot();

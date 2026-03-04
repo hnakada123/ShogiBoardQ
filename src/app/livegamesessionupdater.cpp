@@ -9,6 +9,7 @@
 #include "shogiboard.h"
 #include "shogimove.h"
 #include "logcategories.h"
+#include "sfenutils.h"
 
 void LiveGameSessionUpdater::updateDeps(const Deps& deps)
 {
@@ -35,7 +36,7 @@ void LiveGameSessionUpdater::ensureSessionStarted()
     const QString currentSfen = m_deps.currentSfenStr ? m_deps.currentSfenStr->trimmed() : QString();
     bool isFromMidPosition = !currentSfen.isEmpty() &&
                               currentSfen != QStringLiteral("startpos") &&
-                              !currentSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
+                              !SfenUtils::isHirateStart(currentSfen);
 
     if (isFromMidPosition) {
         // 途中局面から開始: SFENからノードを探す

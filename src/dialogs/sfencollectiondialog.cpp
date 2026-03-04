@@ -8,6 +8,7 @@
 #include "shogigamecontroller.h"
 #include "gamesettings.h"
 #include "dialogutils.h"
+#include "sfenutils.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -50,7 +51,7 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     }
 
     // 初期盤面（平手初期局面）を設定
-    m_board->setSfen(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+    m_board->setSfen(SfenUtils::hirateSfen());
     m_shogiView->updateBoardSize();
     hideClockLabels();
 

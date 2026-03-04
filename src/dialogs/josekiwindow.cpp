@@ -15,6 +15,7 @@
 #include "josekimergedialog.h"
 #include "josekisettings.h"
 #include "sfenpositiontracer.h"
+#include "sfenutils.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -196,15 +197,19 @@ void JosekiWindow::updateRecentFilesMenu()
 
 void JosekiWindow::onClearRecentFilesClicked()
 {
+    if (isIoBusy()) return;
+
     m_recentFiles.clear();
-    m_currentFilePath.clear();
-    m_repository->clear();
-    m_currentMoves.clear();
-    m_filePathLabel->setText(tr("未選択"));
-    clearTable();
-    updateStatusDisplay();
+    // 「履歴をクリア」は最近使ったファイルのみを対象とし、
+    // 現在の編集中データ（未保存変更を含む）は保持する。
     updateRecentFilesMenu();
     saveSettings();
+    JosekiSettings::setJosekiWindowLastFilePath(QString());
+
+    if (m_statusLabel) {
+        m_statusLabel->setText(tr("最近使ったファイル履歴をクリアしました"));
+        QTimer::singleShot(2000, this, &JosekiWindow::onRestoreStatusDisplay);
+    }
 }
 
 void JosekiWindow::onRecentFileClicked()
@@ -236,7 +241,7 @@ void JosekiWindow::setCurrentSfen(const QString &sfen)
     m_currentSfen = sfen;
     m_currentSfen.remove(QLatin1Char('\r'));
     if (m_currentSfen == QStringLiteral("startpos"))
-        m_currentSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        m_currentSfen = SfenUtils::hirateSfen();
 
     if (m_currentSfenLabel)
         m_currentSfenLabel->setText(m_currentSfen.isEmpty() ? tr("(未設定)") : m_currentSfen);

@@ -18,6 +18,8 @@
 #include "shogigamecontroller.h"
 #include "playmode.h"
 
+extern bool g_analysisFlowStubStartAndInitSuccess;
+
 /// テスト用ヘルパ: start() に渡す最小限の Deps を構築する
 class TestHelper
 {
@@ -133,6 +135,9 @@ private slots:
     /// dialog が null の場合は開始されず即座に戻る
     void startWithNullDialog();
 
+    /// エンジン初期化失敗時は解析を開始しない
+    void startWithEngineInitFailure();
+
     /// エンジンエラー発生時に解析が停止する
     void engineErrorStopsAnalysis();
 
@@ -207,10 +212,8 @@ void TestAnalysisFlow::stopEmitsAnalysisStopped()
     QSignalSpy spy(&ctrl, &AnalysisFlowController::analysisStopped);
     ctrl.stop();
 
-    // stop() → m_coord->stop() → analysisFinished → onAnalysisFinished → analysisStopped (1回目)
-    //        → 続いて stop() 自体が analysisStopped を emit (2回目)
-    // 合計2回の発火が期待される
-    QCOMPARE(spy.count(), 2);
+    // stop() → m_coord->stop() → analysisFinished → onAnalysisFinished の経路で1回だけ発火
+    QCOMPARE(spy.count(), 1);
 }
 
 void TestAnalysisFlow::stopEmitsAnalysisStoppedOnce()
@@ -331,6 +334,19 @@ void TestAnalysisFlow::startWithNullDialog()
     QVERIFY(h.lastError.isEmpty());
 }
 
+void TestAnalysisFlow::startWithEngineInitFailure()
+{
+    AnalysisFlowController ctrl;
+    TestHelper h;
+
+    g_analysisFlowStubStartAndInitSuccess = false;
+    h.startAnalysis(ctrl);
+    g_analysisFlowStubStartAndInitSuccess = true;
+
+    QVERIFY(!ctrl.isRunning());
+    QVERIFY(h.lastError.contains(QStringLiteral("エンジン初期化に失敗")));
+}
+
 void TestAnalysisFlow::engineErrorStopsAnalysis()
 {
     AnalysisFlowController ctrl;
@@ -344,9 +360,9 @@ void TestAnalysisFlow::engineErrorStopsAnalysis()
     Q_EMIT h.usi->errorOccurred(QStringLiteral("Engine crashed"));
 
     QVERIFY(!ctrl.isRunning());
-    // onEngineError → stop() → m_coord->stop() → analysisFinished → onAnalysisFinished → analysisStopped (1回目)
-    //                        → 続いて stop() 自体が analysisStopped を emit (2回目)
-    QCOMPARE(spy.count(), 2);
+    // onEngineError → stop() → m_coord->stop() → analysisFinished → onAnalysisFinished
+    // の経路で1回だけ発火
+    QCOMPARE(spy.count(), 1);
 }
 
 void TestAnalysisFlow::engineErrorCallsDisplayError()

@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QList>
+#include <QMetaObject>
 #include <functional>
 #include <memory>
 
@@ -122,6 +123,8 @@ private slots:
     void onEngineError(const QString& msg);
 
 private:
+    void emitAnalysisStoppedOnce();
+
     QPointer<AnalysisCoordinator>      m_coord;      ///< 解析司令塔（非所有）
     QPointer<AnalysisResultsPresenter> m_presenter;  ///< 結果表示Presenter（非所有）
 
@@ -148,9 +151,20 @@ private:
     bool m_ownsUsi = false;                               ///< Usiを内部生成したか
     bool m_running = false;                               ///< 解析実行中フラグ
     bool m_stoppedByUser = false;                        ///< ユーザー中止フラグ
+    bool m_lastStartSucceeded = false;                   ///< 直近startの成否
+    bool m_analysisStoppedEmitted = false;               ///< analysisStopped重複送出防止
     UsiCommLogModel* m_ownedLogModel = nullptr;          ///< 内部生成ログモデル（所有）
     ShogiEngineThinkingModel* m_ownedThinkingModel = nullptr; ///< 内部生成思考モデル（所有）
     ShogiGameController* m_gameController = nullptr;     ///< 盤面同期用GC（非所有、Deps経由）
+
+    QMetaObject::Connection m_connCoordAnalysisProgress;
+    QMetaObject::Connection m_connCoordPositionPrepared;
+    QMetaObject::Connection m_connCoordAnalysisFinished;
+    QMetaObject::Connection m_connCoordRequestSendUsi;
+    QMetaObject::Connection m_connUsiBestMove;
+    QMetaObject::Connection m_connUsiInfoLine;
+    QMetaObject::Connection m_connUsiThinkingInfo;
+    QMetaObject::Connection m_connUsiError;
 };
 
 #endif // ANALYSISFLOWCONTROLLER_H

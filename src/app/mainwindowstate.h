@@ -11,6 +11,7 @@
 
 #include "playmode.h"
 #include "shogimove.h"
+#include "sfenutils.h"
 
 // --- 前方宣言（DataModels用） ---
 class KifuRecordListModel;
@@ -117,7 +118,7 @@ struct RegistryParts {
 
 /// ゲーム状態
 struct GameState {
-    QString startSfenStr = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    QString startSfenStr = SfenUtils::hirateSfen();
     QString currentSfenStr = QStringLiteral("startpos");
     QString resumeSfenStr;
     bool errorOccurred = false;

@@ -14,6 +14,7 @@
 #include "prestartcleanuphandler.h"
 #include "replaycontroller.h"
 #include "sessionlifecyclecoordinator.h"
+#include "sfenutils.h"
 #include "startgamedatabridge.h"
 #include "startgamedialog.h"
 #include "timecontrolcontroller.h"
@@ -27,12 +28,10 @@ T* deref(T** pp) { return pp ? *pp : nullptr; }
 /// 局面編集後かどうかを判定する（非平手・非startposの場合 true）
 bool detectHasEditedStart(const QString* startSfenStr, const QStringList* sfenRecord)
 {
-    static const QString kHirateSfen = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     const auto isEditedStart = [](const QString& raw) -> bool {
         const QString s = raw.trimmed();
         return !s.isEmpty()
-               && s != kHirateSfen
+               && !SfenUtils::isHirateStart(s)
                && s != QLatin1String("startpos");
     };
 

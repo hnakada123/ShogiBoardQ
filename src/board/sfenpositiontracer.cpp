@@ -3,6 +3,7 @@
 
 #include "sfenpositiontracer.h"
 #include "shogitypes.h"
+#include "sfenutils.h"
 #include <QtGlobal>
 #include <QHash>
 #include <QPoint>
@@ -336,8 +337,7 @@ QStringList SfenPositionTracer::buildSfenRecord(const QString& initialSfen,
     SfenPositionTracer tracer;
     // 初期SFENのセットに失敗したら平手初期局面でフォールバック
     if (!tracer.setFromSfen(initialSfen)) {
-        (void)tracer.setFromSfen(QStringLiteral(
-            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"));
+        (void)tracer.setFromSfen(SfenUtils::hirateSfen());
     }
 
     QStringList list;

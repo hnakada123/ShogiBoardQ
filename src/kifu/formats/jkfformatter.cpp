@@ -3,6 +3,7 @@
 
 #include "jkfformatter.h"
 #include "kifdisplayitem.h"
+#include "sfenutils.h"
 
 #include <QJsonArray>
 #include <QRegularExpression>
@@ -106,7 +107,7 @@ QJsonObject parseTimeToJkf(const QString& timeText)
 
 QString sfenToJkfPreset(const QString& sfen)
 {
-    const QString defaultSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const QString defaultSfen = SfenUtils::hirateSfen();
     const QString hiratePos = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
 
     if (sfen.isEmpty() || sfen == defaultSfen || sfen.startsWith(hiratePos)) {

@@ -69,8 +69,8 @@ void ConsiderationDialog::showEngineSettingsDialog()
     // エンジン名が空の場合
     if (m_engineName.isEmpty()) {
         // エラーメッセージを表示する。
-        QString errorText = "将棋エンジンが選択されていません。";
-        QMessageBox::critical(this, "エラー", errorText);
+        const QString errorText = tr("将棋エンジンが選択されていません。");
+        QMessageBox::critical(this, tr("エラー"), errorText);
     }
     // エンジン名が空でない場合
     else {

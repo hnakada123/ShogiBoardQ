@@ -66,8 +66,8 @@ QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
             // 盤面に反映
             const Piece boardPiece = charToPiece(blackToMove ? pieceChar.toUpper() : pieceChar.toLower());
             board.movePieceToSquare(boardPiece, 0, 0, toFile, toRank, false);
-            if (board.m_pieceStand.contains(boardPiece) && board.m_pieceStand[boardPiece] > 0) {
-                board.m_pieceStand[boardPiece]--;
+            if (board.pieceStandCount(boardPiece) > 0) {
+                board.consumeStandPiece(boardPiece);
             }
         } else {
             // 通常移動: "7g7f" or "7g7f+"
@@ -99,7 +99,7 @@ QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
             if (captured != Piece::None) {
                 Piece standPiece = demote(captured);
                 standPiece = isBlackPiece(standPiece) ? toWhite(standPiece) : toBlack(standPiece);
-                board.m_pieceStand[standPiece]++;
+                board.addStandPiece(standPiece);
             }
 
             // 移動を盤面に反映

@@ -502,6 +502,7 @@ set(SRC_ANALYSIS
     src/analysis/kifuanalysislistmodel.cpp
     src/analysis/kifuanalysislistmodel.h
     src/analysis/tsumeshogigenerator.cpp
+    src/analysis/tsumeshogigenerator_sfen.cpp
     src/analysis/tsumeshogigenerator.h
     src/analysis/tsumeshogipositiongenerator.cpp
     src/analysis/tsumeshogipositiongenerator.h
@@ -535,6 +536,7 @@ set(SRC_ENGINE
     src/engine/usimovecoordinateconverter.h
     src/engine/usiprotocolhandler.cpp
     src/engine/usiprotocolhandler.h
+    src/engine/usiprotocolhandler_ops.cpp
     src/engine/usiprotocolhandler_wait.cpp
 )
 

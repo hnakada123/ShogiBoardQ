@@ -53,6 +53,28 @@ const QMap<Piece, int>& ShogiBoard::getPieceStand() const
     return m_pieceStand;
 }
 
+int ShogiBoard::pieceStandCount(Piece piece) const
+{
+    return m_pieceStand.value(piece, 0);
+}
+
+void ShogiBoard::addStandPiece(Piece piece, int delta)
+{
+    if (delta <= 0 || !m_pieceStand.contains(piece)) {
+        return;
+    }
+    m_pieceStand[piece] += delta;
+}
+
+bool ShogiBoard::consumeStandPiece(Piece piece)
+{
+    if (!m_pieceStand.contains(piece) || m_pieceStand[piece] <= 0) {
+        return false;
+    }
+    m_pieceStand[piece]--;
+    return true;
+}
+
 Turn ShogiBoard::currentPlayer() const
 {
     return m_currentPlayer;
@@ -181,16 +203,14 @@ Piece ShogiBoard::convertPieceChar(const Piece c) const
 void ShogiBoard::addPieceToStand(Piece dest)
 {
     Piece pieceChar = convertPieceChar(dest);
-
-    if (m_pieceStand.contains(pieceChar)) {
-            m_pieceStand[pieceChar]++;
-    }
+    addStandPiece(pieceChar);
 }
 
 void ShogiBoard::decrementPieceOnStand(Piece source)
 {
-    if (m_pieceStand.contains(source)) {
-        m_pieceStand[source]--;
+    if (!consumeStandPiece(source)) {
+        qCWarning(lcCore, "decrementPieceOnStand: no piece on stand (%c)",
+                  static_cast<char>(source));
     }
 }
 
@@ -198,7 +218,7 @@ void ShogiBoard::decrementPieceOnStand(Piece source)
 bool ShogiBoard::isPieceAvailableOnStand(const Piece source, const int fileFrom) const
 {
     if (fileFrom == BoardConstants::kBlackStandFile || fileFrom == BoardConstants::kWhiteStandFile) {
-        if (m_pieceStand.contains(source) && m_pieceStand[source] > 0) {
+        if (pieceStandCount(source) > 0) {
             return true;
         }
         else {
@@ -223,8 +243,5 @@ Piece ShogiBoard::convertPromotedPieceToOriginal(const Piece dest) const
 void ShogiBoard::incrementPieceOnStand(const Piece dest)
 {
     Piece originalPiece = convertPromotedPieceToOriginal(dest);
-
-    if (m_pieceStand.contains(originalPiece)) {
-        m_pieceStand[originalPiece]++;
-    }
+    addStandPiece(originalPiece);
 }

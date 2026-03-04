@@ -7,6 +7,7 @@
 #include "shogiboard.h"
 #include "boardinteractioncontroller.h"
 #include "kifurecordlistmodel.h"
+#include "sfenutils.h"
 
 #include <QMetaObject>
 #include <QMetaMethod>
@@ -17,7 +18,7 @@
 
 bool MatchUndoHandler::isStandardStartposSfen(const QString& sfen)
 {
-    const QString canon = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const QString canon = SfenUtils::hirateSfen();
     return (!sfen.isEmpty() && sfen.trimmed() == canon);
 }
 

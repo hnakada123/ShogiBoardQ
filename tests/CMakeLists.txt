@@ -180,6 +180,19 @@ add_shogi_test(tst_sfentracer
 )
 
 # ============================================================
+# Unit 3b: PvBoardController
+# ============================================================
+add_shogi_test(tst_pvboardcontroller
+    tst_pvboardcontroller.cpp
+    ${SRC}/ui/controllers/pvboardcontroller.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+)
+
+# ============================================================
 # Unit 4: ShogiClock
 # ============================================================
 add_shogi_test(tst_shogiclock
@@ -481,6 +494,7 @@ add_shogi_test(tst_usiprotocolhandler
     test_stubs_usiprotocol.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/engine/usiprotocolhandler.cpp
+    ${SRC}/engine/usiprotocolhandler_ops.cpp
     ${SRC}/engine/usiprotocolhandler_wait.cpp
     ${SRC}/engine/usimovecoordinateconverter.cpp
 )

@@ -130,7 +130,7 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     const Piece pieceKey = charToPiece(value);
     const int count = (m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey))
     ? m_interaction.tempPieceStandCounts()[pieceKey]
-    : m_board->m_pieceStand.value(pieceKey);
+    : m_board->pieceStandCount(pieceKey);
     if (count <= 0 || value == QLatin1Char(' ')) return;
 
     const QIcon icon = piece(value);

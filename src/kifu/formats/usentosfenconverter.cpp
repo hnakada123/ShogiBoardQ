@@ -4,15 +4,9 @@
 #include "usentosfenconverter.h"
 #include "parsecommon.h"
 #include "sfenpositiontracer.h"
+#include "sfenutils.h"
 
 #include <utility>
-
-namespace {
-
-// 平手初期局面のSFEN
-static const char* kHirateSfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-
-} // namespace
 
 // ============================================================================
 // 公開メソッド
@@ -24,14 +18,14 @@ QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, 
     QString warn;
     if (!readUsenFile(usenPath, content, &warn)) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return QString::fromLatin1(kHirateSfen);
+        return SfenUtils::hirateSfen();
     }
 
     // ~ の位置を探す
     const qsizetype tildePos = content.indexOf(QChar('~'));
     if (tildePos < 0) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return QString::fromLatin1(kHirateSfen);
+        return SfenUtils::hirateSfen();
     }
 
     // ~ の前の部分が初期局面（空なら平手）
@@ -40,7 +34,7 @@ QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, 
     if (positionPart.isEmpty()) {
         // 平手（~ から始まる場合）
         if (detectedLabel) *detectedLabel = QStringLiteral("平手");
-        return QString::fromLatin1(kHirateSfen);
+        return SfenUtils::hirateSfen();
     }
 
     // カスタム初期局面の場合: USEN形式からSFENに逆変換

@@ -5,6 +5,7 @@
 #include "shogigamecontroller.h"
 #include "settingscommon.h"
 #include "sfenpositiontracer.h"
+#include "sfenutils.h"
 #include "logcategories.h"
 
 #include <QDebug>
@@ -19,7 +20,7 @@ static QString normalizeTargetSfen(const QString& sfenStart)
 {
     QString target = sfenStart.trimmed();
     if (target == QLatin1String("startpos")) {
-        return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        return SfenUtils::hirateSfen();
     }
     if (target.startsWith(QLatin1String("position sfen "))) {
         return target.mid(14).trimmed();

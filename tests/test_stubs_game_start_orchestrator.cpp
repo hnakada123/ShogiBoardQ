@@ -354,7 +354,7 @@ void Usi::setBaseSfen(const QString&) {}
 void Usi::flushThinkingInfoBuffer() {}
 void Usi::requestClearThinkingInfo() {}
 void Usi::cleanupEngineProcessAndThread(bool) {}
-void Usi::startAndInitializeEngine(const QString&, const QString&) {}
+bool Usi::startAndInitializeEngine(const QString&, const QString&) { return true; }
 void Usi::executeTsumeCommunication(QString&, int) {}
 void Usi::sendPositionAndGoMateCommands(int, QString&) {}
 void Usi::cancelCurrentOperation() {}
