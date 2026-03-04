@@ -97,8 +97,8 @@ public:
     /// 駒台の駒を1枚増やす
     void incrementPieceOnStand(const Piece dest);
 
-    /// 駒台の駒を1枚減らす（駒打ち時）
-    void decrementPieceOnStand(Piece source);
+    /// 駒台の駒を1枚減らす（駒打ち時）。不足時は false。
+    bool decrementPieceOnStand(Piece source);
 
     // --- 盤面リセット ---
 

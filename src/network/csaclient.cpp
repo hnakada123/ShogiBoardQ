@@ -103,8 +103,8 @@ void CsaClient::connectToServer(const QString& host, int port)
 
     qCInfo(lcNetwork) << "Connecting to" << host << ":" << port;
 
+    resetSessionState();
     setConnectionState(ConnectionState::Connecting);
-    m_receiveBuffer.clear();
 
     m_connectionTimer->start(kConnectionTimeoutMs);
     m_socket->connectToHost(host, static_cast<quint16>(port));
@@ -243,6 +243,7 @@ void CsaClient::onSocketConnected()
 void CsaClient::onSocketDisconnected()
 {
     m_connectionTimer->stop();
+    resetSessionState();
     qCInfo(lcNetwork) << "Disconnected from server";
     setConnectionState(ConnectionState::Disconnected);
 }
@@ -257,6 +258,7 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
     if (m_connectionState == ConnectionState::GameOver &&
         error == QAbstractSocket::RemoteHostClosedError) {
         qCInfo(lcNetwork) << "Connection closed by server after game end (normal)";
+        resetSessionState();
         setConnectionState(ConnectionState::Disconnected);
         return;
     }
@@ -264,6 +266,7 @@ void CsaClient::onSocketError(QAbstractSocket::SocketError error)
     qCWarning(lcNetwork) << "Socket error:" << errorMessage;
 
     emit errorOccurred(errorMessage);
+    resetSessionState();
     setConnectionState(ConnectionState::Disconnected);
 }
 
@@ -298,6 +301,7 @@ void CsaClient::onConnectionTimeout()
     qCWarning(lcNetwork) << "Connection timeout";
     m_socket->abort();
     emit errorOccurred(tr("接続がタイムアウトしました"));
+    resetSessionState();
     setConnectionState(ConnectionState::Disconnected);
 }
 
@@ -327,4 +331,18 @@ void CsaClient::setConnectionState(ConnectionState state)
         m_connectionState = state;
         emit connectionStateChanged(state);
     }
+}
+
+void CsaClient::resetSessionState()
+{
+    m_receiveBuffer.clear();
+    m_gameSummary.clear();
+    m_isMyTurn = false;
+    m_inGameSummary = false;
+    m_inTimeSection = false;
+    m_inPositionSection = false;
+    m_currentTimeSection.clear();
+    m_pendingFirstResultLine.clear();
+    m_moveCount = 0;
+    m_endMoveConsumedTimeMs = 0;
 }

@@ -9,9 +9,13 @@
 #include <QtTest>
 #include <QCoreApplication>
 
+#define private public
 #include "csaclient.h"
+#undef private
 #include "csamoveconverter.h"
 #include "sfencsapositionconverter.h"
+#include "shogiboard.h"
+#include "shogigamecontroller.h"
 
 class Tst_CsaProtocol : public QObject
 {
@@ -861,6 +865,38 @@ private slots:
         QCOMPARE(spyState.count(), 0);
     }
 
+    void csaClient_resetSessionState_clearsParserState()
+    {
+        CsaClient client;
+
+        client.m_receiveBuffer = QStringLiteral("partial");
+        client.m_gameSummary.gameId = QStringLiteral("game-id");
+        client.m_isMyTurn = true;
+        client.m_inGameSummary = true;
+        client.m_inTimeSection = true;
+        client.m_inPositionSection = true;
+        client.m_currentTimeSection = QStringLiteral("Time+");
+        client.m_pendingFirstResultLine = QStringLiteral("#RESIGN");
+        client.m_moveCount = 42;
+        client.m_endMoveConsumedTimeMs = 1234;
+        client.m_connectionState = CsaClient::ConnectionState::InGame;
+
+        client.resetSessionState();
+
+        QVERIFY(client.m_receiveBuffer.isEmpty());
+        QVERIFY(client.m_gameSummary.gameId.isEmpty());
+        QVERIFY(!client.m_isMyTurn);
+        QVERIFY(!client.m_inGameSummary);
+        QVERIFY(!client.m_inTimeSection);
+        QVERIFY(!client.m_inPositionSection);
+        QVERIFY(client.m_currentTimeSection.isEmpty());
+        QVERIFY(client.m_pendingFirstResultLine.isEmpty());
+        QCOMPARE(client.m_moveCount, 0);
+        QCOMPARE(client.m_endMoveConsumedTimeMs, 0);
+        // 接続状態は resetSessionState() では変更しない
+        QCOMPARE(client.m_connectionState, CsaClient::ConnectionState::InGame);
+    }
+
     // ========================================
     // 異常系: CsaClient setCsaVersion の安全性
     // ========================================
@@ -1105,6 +1141,29 @@ private slots:
         QString result = CsaMoveConverter::csaToPretty(
             QStringLiteral("+7776FU"), false, 0, 0, -1);
         QVERIFY(!result.isEmpty());
+    }
+
+    void csaMoveConverter_applyMoveToBoard_dropWithoutStandPieceFails()
+    {
+        ShogiGameController gc;
+        QString startSfen = QStringLiteral(
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        gc.newGame(startSfen);
+
+        QVERIFY(gc.board() != nullptr);
+        QStringList usiMoves;
+        QStringList sfenHistory;
+
+        const Piece before = gc.board()->getPieceCharacter(5, 5);
+        QVERIFY(before == Piece::None);
+
+        const bool ok = CsaMoveConverter::applyMoveToBoard(
+            QStringLiteral("+0055FU"), &gc, usiMoves, &sfenHistory, 0);
+
+        QVERIFY(!ok);
+        QVERIFY(usiMoves.isEmpty());
+        QVERIFY(sfenHistory.isEmpty());
+        QCOMPARE(gc.board()->getPieceCharacter(5, 5), Piece::None);
     }
 
     // ========================================

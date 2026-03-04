@@ -206,12 +206,14 @@ void ShogiBoard::addPieceToStand(Piece dest)
     addStandPiece(pieceChar);
 }
 
-void ShogiBoard::decrementPieceOnStand(Piece source)
+bool ShogiBoard::decrementPieceOnStand(Piece source)
 {
     if (!consumeStandPiece(source)) {
         qCWarning(lcCore, "decrementPieceOnStand: no piece on stand (%c)",
                   static_cast<char>(source));
+        return false;
     }
+    return true;
 }
 
 // 駒台から指そうとした場合、駒台の駒数が0以下なら指せない。
