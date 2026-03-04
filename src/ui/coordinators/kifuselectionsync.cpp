@@ -252,7 +252,6 @@ void KifuSelectionSync::syncBranchCandidatesForNode(KifuBranchNode* targetNode)
                            << "branch candidates (siblings at ply" << targetNode->ply() << ")";
     } else {
         m_refs.branchModel->setHasBackToMainRow(false);
-        m_refs.branchModel->setLocked(true);
 
         if (m_refs.recordPane != nullptr && m_refs.recordPane->branchView() != nullptr) {
             m_refs.recordPane->branchView()->setEnabled(true);

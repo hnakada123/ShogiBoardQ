@@ -1,8 +1,7 @@
 /// @file tst_wiring_playerinfo.cpp
-/// @brief PlayerInfoWiring の配線契約テスト（ソース解析型）
+/// @brief PlayerInfoWiring の配線契約テスト（軽量ソース検証）
 ///
-/// addGameInfoTabAtStartup() の connect() と
-/// Dependencies 構造体の全フィールド参照を検証する。
+/// 実行依存を増やさない範囲で、配線契約とキー利用契約を検証する。
 
 #include <QtTest>
 #include <QFile>
@@ -43,17 +42,6 @@ private:
         return false;
     }
 
-    static int countConnects(const QString& src)
-    {
-        int count = 0;
-        qsizetype pos = 0;
-        while ((pos = src.indexOf(QStringLiteral("connect("), pos)) != -1) {
-            ++count;
-            ++pos;
-        }
-        return count;
-    }
-
 private slots:
     void initTestCase()
     {
@@ -63,26 +51,16 @@ private slots:
         QVERIFY2(!m_wiringHeader.isEmpty(), "playerinfowiring.h not found");
     }
 
-    // ================================================================
-    // addGameInfoTabAtStartup() 契約テスト
-    // ================================================================
-
     void addGameInfoTab_connectsTabCurrentChanged()
     {
-        // QTabWidget::currentChanged → PlayerInfoWiring::tabCurrentChanged
         QVERIFY2(hasConnection(m_wiringSrc,
                                QStringLiteral("QTabWidget::currentChanged"),
                                QStringLiteral("PlayerInfoWiring::tabCurrentChanged")),
                  "tabWidget currentChanged → tabCurrentChanged connection missing");
     }
 
-    // ================================================================
-    // Dependencies 構造体テスト
-    // ================================================================
-
     void depsFields_allReferencedInConstructor()
     {
-        // Dependencies の全フィールドがコンストラクタで参照されていること
         const QStringList fields = {
             QStringLiteral("parentWidget"),
             QStringLiteral("tabWidget"),
@@ -101,31 +79,38 @@ private slots:
         }
     }
 
-    // ================================================================
-    // 内部コントローラ生成テスト
-    // ================================================================
-
-    void ensureGameInfoController_createsController()
+    void ensureMethods_assignOwnedPointers()
     {
-        // ensureGameInfoController() が GameInfoPaneController を new すること
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("new GameInfoPaneController")),
-                 "ensureGameInfoController should create GameInfoPaneController");
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("void PlayerInfoWiring::ensureGameInfoController()")),
+                 "ensureGameInfoController definition missing");
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("m_gameInfoController =")),
+                 "ensureGameInfoController should assign m_gameInfoController");
+
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("void PlayerInfoWiring::ensurePlayerInfoController()")),
+                 "ensurePlayerInfoController definition missing");
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("m_playerInfoController =")),
+                 "ensurePlayerInfoController should assign m_playerInfoController");
     }
 
-    void ensurePlayerInfoController_createsController()
+    void canonicalGameInfoKeys_areUsed()
     {
-        // ensurePlayerInfoController() が PlayerInfoController を new すること
-        QVERIFY2(m_wiringSrc.contains(QStringLiteral("new PlayerInfoController")),
-                 "ensurePlayerInfoController should create PlayerInfoController");
+        const QStringList keys = {
+            QStringLiteral("GameInfoKeys::kGameDate"),
+            QStringLiteral("GameInfoKeys::kStartDateTime"),
+            QStringLiteral("GameInfoKeys::kEndDateTime"),
+            QStringLiteral("GameInfoKeys::kBlackPlayer"),
+            QStringLiteral("GameInfoKeys::kWhitePlayer"),
+            QStringLiteral("GameInfoKeys::kHandicap"),
+            QStringLiteral("GameInfoKeys::kTimeControl"),
+        };
+        for (const auto& key : std::as_const(keys)) {
+            QVERIFY2(m_wiringSrc.contains(key),
+                     qPrintable(QStringLiteral("Canonical key '%1' not used").arg(key)));
+        }
     }
-
-    // ================================================================
-    // メソッド存在テスト
-    // ================================================================
 
     void publicSlots_allDeclaredInHeader()
     {
-        // ヘッダーに宣言された public slots がすべて .cpp に実装されていること
         const QStringList slotNames = {
             QStringLiteral("PlayerInfoWiring::onSetPlayersNames"),
             QStringLiteral("PlayerInfoWiring::onSetEngineNames"),

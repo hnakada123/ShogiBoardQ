@@ -13,6 +13,7 @@
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
 #include "timecontrolcontroller.h"
+#include "gameinfokeys.h"
 
 PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -108,11 +109,11 @@ void PlayerInfoWiring::populateDefaultGameInfo()
     const QDateTime now = QDateTime::currentDateTime();
 
     QList<KifGameInfoItem> defaultItems;
-    defaultItems.append({tr("対局日"), now.toString(QStringLiteral("yyyy/MM/dd"))});
-    defaultItems.append({tr("開始日時"), now.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
-    defaultItems.append({tr("先手"), tr("先手")});
-    defaultItems.append({tr("後手"), tr("後手")});
-    defaultItems.append({tr("手合割"), tr("平手")});
+    defaultItems.append({GameInfoKeys::kGameDate, now.toString(QStringLiteral("yyyy/MM/dd"))});
+    defaultItems.append({GameInfoKeys::kStartDateTime, now.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
+    defaultItems.append({GameInfoKeys::kBlackPlayer, tr("先手")});
+    defaultItems.append({GameInfoKeys::kWhitePlayer, tr("後手")});
+    defaultItems.append({GameInfoKeys::kHandicap, tr("平手")});
 
     m_gameInfoController->setGameInfo(defaultItems);
 }
@@ -349,19 +350,19 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
     QList<KifGameInfoItem> items;
 
     // 対局日
-    items.append({tr("対局日"), startDateTime.toString(QStringLiteral("yyyy/MM/dd"))});
+    items.append({GameInfoKeys::kGameDate, startDateTime.toString(QStringLiteral("yyyy/MM/dd"))});
 
     // 開始日時
-    items.append({tr("開始日時"), startDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
+    items.append({GameInfoKeys::kStartDateTime, startDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
 
     // 先手
-    items.append({tr("先手"), blackName.isEmpty() ? tr("先手") : blackName});
+    items.append({GameInfoKeys::kBlackPlayer, blackName.isEmpty() ? tr("先手") : blackName});
 
     // 後手
-    items.append({tr("後手"), whiteName.isEmpty() ? tr("後手") : whiteName});
+    items.append({GameInfoKeys::kWhitePlayer, whiteName.isEmpty() ? tr("後手") : whiteName});
 
     // 手合割
-    items.append({tr("手合割"), handicap.isEmpty() ? tr("平手") : handicap});
+    items.append({GameInfoKeys::kHandicap, handicap.isEmpty() ? tr("平手") : handicap});
 
     // 持ち時間（時間制御が有効な場合のみ）
     if (hasTimeControl) {
@@ -383,7 +384,7 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
         } else if (incrementSec > 0) {
             timeStr += QStringLiteral("+%1").arg(incrementSec);
         }
-        items.append({tr("持ち時間"), timeStr});
+        items.append({GameInfoKeys::kTimeControl, timeStr});
     }
 
     m_gameInfoController->setGameInfo(items);
@@ -402,14 +403,14 @@ void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
     // 終了日時が既にあれば更新、なければ追加
     bool found = false;
     for (int i = 0; i < items.size(); ++i) {
-        if (items[i].key == tr("終了日時")) {
+        if (items[i].key == GameInfoKeys::kEndDateTime) {
             items[i].value = endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
             found = true;
             break;
         }
     }
     if (!found) {
-        items.append({tr("終了日時"), endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
+        items.append({GameInfoKeys::kEndDateTime, endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
     }
 
     m_gameInfoController->setGameInfo(items);
@@ -452,14 +453,14 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
     // 持ち時間が既にあれば更新、なければ追加
     bool found = false;
     for (int i = 0; i < items.size(); ++i) {
-        if (items[i].key == tr("持ち時間")) {
+        if (items[i].key == GameInfoKeys::kTimeControl) {
             items[i].value = timeStr;
             found = true;
             break;
         }
     }
     if (!found) {
-        items.append({tr("持ち時間"), timeStr});
+        items.append({GameInfoKeys::kTimeControl, timeStr});
     }
 
     m_gameInfoController->setGameInfo(items);

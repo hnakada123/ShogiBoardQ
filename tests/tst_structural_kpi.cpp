@@ -615,7 +615,7 @@ private slots:
     // ================================================================
     void filesOver550()
     {
-        constexpr int kMaxFilesOver550 = 6; // 実測値: 2 (2026-03-04, USI/TSUME 分割後)
+        constexpr int kMaxFilesOver550 = 4; // 実測値: 2 (2026-03-04, CSA分割後)
         constexpr int kThreshold = 550;
 
         const auto files = collectSourceFiles();
@@ -647,7 +647,7 @@ private slots:
     // ================================================================
     void filesOver500()
     {
-        constexpr int kMaxFilesOver500 = 22; // 実測値: 21 (2026-03-04, USI/TSUME 分割後)
+        constexpr int kMaxFilesOver500 = 21; // 実測値: 20 (2026-03-04, CSA分割後)
         constexpr int kThreshold = 500;
 
         const auto files = collectSourceFiles();
@@ -700,14 +700,14 @@ private slots:
     void longFunctionMonitor()
     {
         constexpr int kFunctionLengthWarning = 100;
-        constexpr int kMaxLongFunctionsOver100 = 136; // 実測値: 136 (2026-03-04)
+        constexpr int kMaxLongFunctionsOver100 = 80; // 実測値: 62 (2026-03-04, 検出精度改善後)
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
 
-        // ClassName::methodName( パターンでメソッド定義開始を検出
+        // 戻り値付き/コンストラクタ/デストラクタを含む ClassName::methodName( を簡易検出
         const QRegularExpression methodDefPattern(
-            QStringLiteral(R"(^\w[\w:]*::\w+\s*\()"));
+            QStringLiteral(R"(^\s*(?:[\w:<>,~*&]+\s+)?\w[\w:]*::[~\w]+\s*\()"));
         const QRegularExpression commentPattern(QStringLiteral(R"(^\s*//)"));
 
         QDirIterator it(srcPath, {"*.cpp"}, QDir::Files, QDirIterator::Subdirectories);

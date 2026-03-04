@@ -101,15 +101,11 @@ void KifuBranchListModel::clearBranchCandidates()
 {
     qCDebug(lcUi).noquote() << "clearBranchCandidates called, list.size was:" << list.size()
                             << "locked=" << m_locked;
-    // ロック中は外部からのクリアを無視
-    if (m_locked) {
-        qCDebug(lcUi).noquote() << "clearBranchCandidates: IGNORED (locked)";
-        return;
-    }
     beginResetModel();
     qDeleteAll(list);
     list.clear();
     m_hasBackToMainRow = false;
+    m_locked = false;
     endResetModel();
 }
 
@@ -120,6 +116,7 @@ void KifuBranchListModel::resetBranchCandidates()
     qDeleteAll(list);
     list.clear();
     m_hasBackToMainRow = false;
+    m_locked = false;
     endResetModel();
 }
 
@@ -190,9 +187,6 @@ void KifuBranchListModel::updateBranchCandidates(const QList<KifDisplayItem>& ro
         list.push_back(b);
     }
     endResetModel();
-
-    // ロックを有効にして、外部からの変更を防ぐ
-    m_locked = true;
 }
 
 void KifuBranchListModel::setHasBackToMainRow(bool enabled)
@@ -300,6 +294,7 @@ void KifuBranchListModel::clear()
 
     // 「本譜へ戻る」行フラグも初期化
     m_hasBackToMainRow = false;
+    m_locked = false;
 
     // 分岐グラフの状態を初期化
     m_nodes.clear();

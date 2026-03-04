@@ -441,6 +441,7 @@ set(SRC_KIFU
     src/kifu/formats/usitosfenconverter.h
     src/kifu/gamerecordmodel.cpp
     src/kifu/gamerecordmodel.h
+    src/kifu/gameinfokeys.h
     src/kifu/kifdisplayitem.h
     src/kifu/kifparsetypes.h
     src/kifu/kifreader.cpp
@@ -547,6 +548,7 @@ set(SRC_NETWORK
     src/network/csaenginecontroller.cpp
     src/network/csaenginecontroller.h
     src/network/csagamecoordinator.cpp
+    src/network/csagamecoordinator_setup.cpp
     src/network/csagamecoordinator.h
     src/network/csamoveconverter.cpp
     src/network/csamoveconverter.h

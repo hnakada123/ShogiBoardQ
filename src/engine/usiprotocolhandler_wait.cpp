@@ -5,22 +5,21 @@
 #include "engineprocessmanager.h"
 #include "logcategories.h"
 
+#include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEventLoop>
-#include <QTimer>
+#include <QThread>
 #include <functional>
 
 namespace {
 constexpr int kPollIntervalMs = 10;
-constexpr auto kWaitEventFlags = QEventLoop::ExcludeUserInputEvents;
 
 using ConditionFn = std::function<bool()>;
-using WakeConnectorFn = std::function<QMetaObject::Connection(QEventLoop&)>;
 
 bool waitUntil(const ConditionFn& isDone,
                const ConditionFn& shouldAbort,
                int timeoutMs,
-               const WakeConnectorFn& connectWake = {})
+               EngineProcessManager* processManager)
 {
     if (isDone()) {
         return true;
@@ -42,38 +41,21 @@ bool waitUntil(const ConditionFn& isDone,
             return false;
         }
 
-        QEventLoop loop;
-        QTimer sliceTimer;
-        sliceTimer.setSingleShot(true);
-
-        QMetaObject::Connection wakeConn;
-        const bool hasWakeConnector = static_cast<bool>(connectWake);
-        if (hasWakeConnector) {
-            wakeConn = connectWake(loop);
-        }
-        const QMetaObject::Connection sliceConn = QObject::connect(
-            &sliceTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
-
         const int sliceMs = static_cast<int>(qMin<qint64>(kPollIntervalMs, remaining));
-        sliceTimer.start(sliceMs);
-        loop.exec(kWaitEventFlags);
-
-        if (hasWakeConnector) {
-            QObject::disconnect(wakeConn);
+        if (processManager != nullptr) {
+            if (!processManager->waitForReadyReadAndPump(sliceMs)) {
+                // タイムアウト時でも stderr / 端数出力を取りこぼさない
+                processManager->pumpPendingOutput();
+            }
+        } else {
+            QThread::msleep(static_cast<unsigned long>(sliceMs));
         }
-        QObject::disconnect(sliceConn);
+
+        // 取消しタイマーや queued シグナルを処理して待機を早期中断できるようにする
+        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, sliceMs);
     }
 
     return true;
-}
-
-WakeConnectorFn makeWakeConnector(UsiProtocolHandler* self,
-                                  void (UsiProtocolHandler::*signal)())
-{
-    return [self, signal](QEventLoop& loop) {
-        return QObject::connect(self, signal, &loop, &QEventLoop::quit,
-                                Qt::QueuedConnection);
-    };
 }
 } // namespace
 
@@ -87,8 +69,9 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
 {
     if (flag) return true;
     if (timeoutMs <= 0) return false;
+    Q_UNUSED(signal)
 
-    // QEventLoop は waitUntil() 側で駆動する。
+    // waitUntil() がプロセス出力をポーリングしながらフラグ更新を待機する。
     flag = false;
     const quint64 expectedId = m_seq;
     const auto isDone = [&flag] { return flag; };
@@ -96,10 +79,13 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
         return m_seq != expectedId || shouldAbortWait();
     };
 
+    // 既に保留中の queued イベントを先に捌いて、即時到着済みレスポンスを反映する
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+
     return waitUntil(isDone,
                      shouldAbort,
                      timeoutMs,
-                     makeWakeConnector(this, signal)) && flag;
+                     m_processManager) && flag;
 }
 
 bool UsiProtocolHandler::waitForUsiOk(int timeoutMs)
@@ -130,7 +116,7 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
     const bool ok = waitUntil(isDone,
                               shouldAbort,
                               timeoutMs,
-                              makeWakeConnector(this, &UsiProtocolHandler::bestMoveReceived));
+                              m_processManager);
     if (!ok) {
         return false;
     }
@@ -152,7 +138,7 @@ bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
     return waitUntil(isDone,
                      shouldAbort,
                      hard,
-                     makeWakeConnector(this, &UsiProtocolHandler::bestMoveReceived));
+                     m_processManager);
 }
 
 bool UsiProtocolHandler::keepWaitingForBestMove(int timeoutMs)
@@ -169,7 +155,7 @@ bool UsiProtocolHandler::keepWaitingForBestMove(int timeoutMs)
     const bool ok = waitUntil(isDone,
                               shouldAbort,
                               timeoutMs,
-                              makeWakeConnector(this, &UsiProtocolHandler::bestMoveReceived));
+                              m_processManager);
     if (!ok && !shouldAbort()) {
         qCWarning(lcEngine) << "keepWaitingForBestMove: hard-timeout" << timeoutMs << "ms";
     }
@@ -193,7 +179,7 @@ void UsiProtocolHandler::waitForStopOrPonderhit()
     (void)waitUntil(isDone,
                     shouldAbort,
                     kStopWaitTimeoutMs,
-                    makeWakeConnector(this, &UsiProtocolHandler::stopOrPonderhitSent));
+                    m_processManager);
 
     if (m_stopOrPonderhitPending) {
         m_stopOrPonderhitPending = false;

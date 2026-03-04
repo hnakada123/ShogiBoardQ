@@ -57,6 +57,14 @@ public:
 
     void closeWriteChannel();
 
+    // --- 同期待機サポート ---
+
+    /// 標準出力/標準エラーを即時処理する（dataReceived/stderrReceivedを同期発行）
+    void pumpPendingOutput();
+
+    /// 標準出力の到着を待機し、到着時は自動で出力を処理する
+    [[nodiscard]] bool waitForReadyReadAndPump(int timeoutMs);
+
     // --- 状態管理 ---
     
     void setShutdownState(ShutdownState state);

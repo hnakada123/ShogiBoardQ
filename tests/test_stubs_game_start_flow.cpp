@@ -624,6 +624,8 @@ bool EngineProcessManager::isRunning() const { return false; }
 QProcess::ProcessState EngineProcessManager::state() const { return QProcess::NotRunning; }
 void EngineProcessManager::sendCommand(const QString&) {}
 void EngineProcessManager::closeWriteChannel() {}
+void EngineProcessManager::pumpPendingOutput() {}
+bool EngineProcessManager::waitForReadyReadAndPump(int) { return false; }
 void EngineProcessManager::setShutdownState(ShutdownState) {}
 void EngineProcessManager::setPostQuitInfoStringLinesLeft(int) {}
 void EngineProcessManager::decrementPostQuitLines() {}
