@@ -459,7 +459,24 @@ bool AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
         // 既存の内部Usiを破棄（メモリリーク防止）
         if (m_ownsUsi && m_usi) {
-            m_usi->disconnect();
+            if (m_connUsiBestMove) {
+                QObject::disconnect(m_connUsiBestMove);
+                m_connUsiBestMove = {};
+            }
+            if (m_connUsiInfoLine) {
+                QObject::disconnect(m_connUsiInfoLine);
+                m_connUsiInfoLine = {};
+            }
+            if (m_connUsiThinkingInfo) {
+                QObject::disconnect(m_connUsiThinkingInfo);
+                m_connUsiThinkingInfo = {};
+            }
+            if (m_connUsiError) {
+                QObject::disconnect(m_connUsiError);
+                m_connUsiError = {};
+            }
+            m_usi->sendQuitCommand();
+            m_usi->blockSignals(true);
             m_usi->deleteLater();
             m_usi = nullptr;
             m_ownsUsi = false;

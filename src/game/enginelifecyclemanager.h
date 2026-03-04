@@ -143,6 +143,7 @@ public:
 
     void wireResignToArbiter(Usi* engine, bool asP1);
     void wireWinToArbiter(Usi* engine, bool asP1);
+    void disconnectArbiterSignals();
 
 private slots:
     void onEngine1Resign();
@@ -151,6 +152,7 @@ private slots:
     void onEngine2Win();
 
 private:
+    void disconnectArbiterSignals(Usi* engine);
     void sendRawTo(Usi* which, const QString& cmd);
 
     Refs m_refs;

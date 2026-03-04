@@ -7,6 +7,33 @@
 #include "shogigamecontroller.h"
 #include "logcategories.h"
 
+namespace {
+constexpr QChar kRankMin = QLatin1Char('a');
+constexpr QChar kRankMax = QLatin1Char('i');
+bool isValidBoardCoordinate(int file, int rank)
+{
+    return file >= 1 && file <= 9 && rank >= 1 && rank <= 9;
+}
+bool isValidDropSource(int file, int rank)
+{
+    return file == 0 && rank == 0;
+}
+bool isPromotedCsaPiece(const QString& piece)
+{
+    return piece == QStringLiteral("TO") || piece == QStringLiteral("NY")
+        || piece == QStringLiteral("NK") || piece == QStringLiteral("NG")
+        || piece == QStringLiteral("UM") || piece == QStringLiteral("RY");
+}
+bool isKnownCsaPiece(const QString& piece)
+{
+    return CsaMoveConverter::pieceTypeFromCsa(piece) > 0;
+}
+bool isValidUsiRank(QChar rank)
+{
+    return rank >= kRankMin && rank <= kRankMax;
+}
+} // namespace
+
 // ============================================================
 // CSA <-> USI 形式変換
 // ============================================================
@@ -16,23 +43,44 @@ QString CsaMoveConverter::csaToUsi(const QString& csaMove)
     if (csaMove.length() < 7) {
         return QString();
     }
+    if (csaMove[0] != QLatin1Char('+') && csaMove[0] != QLatin1Char('-')) {
+        qCWarning(lcNetwork) << "csaToUsi: invalid turn prefix:" << csaMove;
+        return QString();
+    }
 
-    int fromFile = csaMove[1].digitValue();
-    int fromRank = csaMove[2].digitValue();
-    int toFile = csaMove[3].digitValue();
-    int toRank = csaMove[4].digitValue();
-    QString piece = csaMove.mid(5, 2);
+    const int fromFile = csaMove[1].digitValue();
+    const int fromRank = csaMove[2].digitValue();
+    const int toFile = csaMove[3].digitValue();
+    const int toRank = csaMove[4].digitValue();
+    const QString piece = csaMove.mid(5, 2);
+
+    if (!isValidBoardCoordinate(toFile, toRank)) {
+        qCWarning(lcNetwork) << "csaToUsi: invalid destination coordinate:" << csaMove;
+        return QString();
+    }
+    if (!isKnownCsaPiece(piece)) {
+        qCWarning(lcNetwork) << "csaToUsi: unknown piece code:" << piece;
+        return QString();
+    }
 
     QString usiMove;
 
-    if (fromFile == 0 && fromRank == 0) {
+    if (isValidDropSource(fromFile, fromRank)) {
         // 駒打ち
-        QString usiPiece = csaPieceToUsi(piece);
+        const QString usiPiece = csaPieceToUsi(piece);
+        if (usiPiece.isEmpty() || usiPiece.startsWith(QLatin1Char('+'))) {
+            qCWarning(lcNetwork) << "csaToUsi: invalid drop piece:" << piece;
+            return QString();
+        }
         usiMove = QString("%1*%2%3")
                       .arg(usiPiece)
                       .arg(toFile)
                       .arg(QChar('a' + toRank - 1));
     } else {
+        if (!isValidBoardCoordinate(fromFile, fromRank)) {
+            qCWarning(lcNetwork) << "csaToUsi: invalid source coordinate:" << csaMove;
+            return QString();
+        }
         // 通常の移動
         usiMove = QString("%1%2%3%4")
                       .arg(fromFile)
@@ -41,11 +89,7 @@ QString CsaMoveConverter::csaToUsi(const QString& csaMove)
                       .arg(QChar('a' + toRank - 1));
 
         // 成り判定
-        static const QStringList promotedPieces = {
-            QStringLiteral("TO"), QStringLiteral("NY"), QStringLiteral("NK"),
-            QStringLiteral("NG"), QStringLiteral("UM"), QStringLiteral("RY")
-        };
-        if (promotedPieces.contains(piece)) {
+        if (isPromotedCsaPiece(piece)) {
             usiMove += QStringLiteral("+");
         }
     }
@@ -63,13 +107,25 @@ QString CsaMoveConverter::usiToCsa(const QString& usiMove, bool isBlack, ShogiBo
     QString csaMove;
 
     if (usiMove.contains(QLatin1Char('*'))) {
+        if (usiMove.size() != 4 || usiMove[1] != QLatin1Char('*')) {
+            qCWarning(lcNetwork) << "usiToCsa: invalid drop format:" << usiMove;
+            return QString();
+        }
         // 駒打ち: P*7f
-        QChar usiPiece = usiMove[0];
-        int toFile = usiMove[2].digitValue();
-        QChar toRankChar = usiMove[3];
-        int toRank = toRankChar.toLatin1() - 'a' + 1;
+        const QChar usiPiece = usiMove[0];
+        const int toFile = usiMove[2].digitValue();
+        const QChar toRankChar = usiMove[3];
+        const int toRank = toRankChar.toLatin1() - 'a' + 1;
+        if (!isValidBoardCoordinate(toFile, toRank) || !isValidUsiRank(toRankChar)) {
+            qCWarning(lcNetwork) << "usiToCsa: invalid drop destination:" << usiMove;
+            return QString();
+        }
 
-        QString csaPiece = usiPieceToCsa(QString(usiPiece), false);
+        const QString csaPiece = usiPieceToCsa(QString(usiPiece), false);
+        if (csaPiece.isEmpty()) {
+            qCWarning(lcNetwork) << "usiToCsa: unknown drop piece:" << usiPiece;
+            return QString();
+        }
         csaMove = QString("%1%2%3%4%5%6")
                       .arg(turnSign)
                       .arg(0)
@@ -78,21 +134,32 @@ QString CsaMoveConverter::usiToCsa(const QString& usiMove, bool isBlack, ShogiBo
                       .arg(toRank)
                       .arg(csaPiece);
     } else {
+        if (usiMove.size() < 4) {
+            qCWarning(lcNetwork) << "usiToCsa: invalid move format:" << usiMove;
+            return QString();
+        }
         // 通常の移動
-        int fromFile = usiMove[0].digitValue();
-        QChar fromRankChar = usiMove[1];
-        int fromRank = fromRankChar.toLatin1() - 'a' + 1;
-        int toFile = usiMove[2].digitValue();
-        QChar toRankChar = usiMove[3];
-        int toRank = toRankChar.toLatin1() - 'a' + 1;
-        bool promote = usiMove.endsWith(QLatin1Char('+'));
-
-        QString csaPiece;
-        if (board) {
-            Piece piece = board->getPieceCharacter(fromFile, fromRank);
-            csaPiece = pieceCharToCsa(piece, promote);
+        const int fromFile = usiMove[0].digitValue();
+        const QChar fromRankChar = usiMove[1];
+        const int fromRank = fromRankChar.toLatin1() - 'a' + 1;
+        const int toFile = usiMove[2].digitValue();
+        const QChar toRankChar = usiMove[3];
+        const int toRank = toRankChar.toLatin1() - 'a' + 1;
+        const bool promote = usiMove.endsWith(QLatin1Char('+'));
+        if (!isValidBoardCoordinate(fromFile, fromRank)
+            || !isValidBoardCoordinate(toFile, toRank)
+            || !isValidUsiRank(fromRankChar) || !isValidUsiRank(toRankChar)) {
+            qCWarning(lcNetwork) << "usiToCsa: invalid coordinates:" << usiMove;
+            return QString();
         }
 
+        QString csaPiece;
+        if (!board) {
+            qCWarning(lcNetwork) << "usiToCsa: board is null:" << usiMove;
+            return QString();
+        }
+        const Piece piece = board->getPieceCharacter(fromFile, fromRank);
+        csaPiece = pieceCharToCsa(piece, promote);
         if (csaPiece.isEmpty()) {
             qCWarning(lcNetwork) << "usiToCsa: failed to resolve source piece, usiMove=" << usiMove;
             return QString();
@@ -221,7 +288,7 @@ QString CsaMoveConverter::pieceCharToCsa(Piece piece, bool promote)
 
     default:
         qCWarning(lcNetwork) << "Unknown piece character:" << pieceToChar(piece);
-        return QStringLiteral("FU");
+        return QString();
     }
 }
 
@@ -243,7 +310,11 @@ QString CsaMoveConverter::csaPieceToUsi(const QString& csaPiece)
         {QStringLiteral("UM"), QStringLiteral("+B")},
         {QStringLiteral("RY"), QStringLiteral("+R")}
     };
-    return map.value(csaPiece, QStringLiteral("P"));
+    const QString usi = map.value(csaPiece);
+    if (usi.isEmpty()) {
+        qCWarning(lcNetwork) << "csaPieceToUsi: unknown piece code:" << csaPiece;
+    }
+    return usi;
 }
 
 QString CsaMoveConverter::usiPieceToCsa(const QString& usiPiece, bool promoted)
@@ -268,9 +339,17 @@ QString CsaMoveConverter::usiPieceToCsa(const QString& usiPiece, bool promoted)
     };
 
     if (promoted) {
-        return promotedMap.value(usiPiece, QStringLiteral("TO"));
+        const QString csa = promotedMap.value(usiPiece);
+        if (csa.isEmpty()) {
+            qCWarning(lcNetwork) << "usiPieceToCsa: unknown promoted piece:" << usiPiece;
+        }
+        return csa;
     }
-    return map.value(usiPiece, QStringLiteral("FU"));
+    const QString csa = map.value(usiPiece);
+    if (csa.isEmpty()) {
+        qCWarning(lcNetwork) << "usiPieceToCsa: unknown piece:" << usiPiece;
+    }
+    return csa;
 }
 
 QString CsaMoveConverter::csaPieceToKanji(const QString& csaPiece)
@@ -318,7 +397,10 @@ Piece CsaMoveConverter::csaPieceToSfenPiece(const QString& csaPiece, bool isBlac
     else if (csaPiece == QStringLiteral("KA")) blackPiece = Piece::BlackBishop;
     else if (csaPiece == QStringLiteral("HI")) blackPiece = Piece::BlackRook;
     else if (csaPiece == QStringLiteral("OU")) blackPiece = Piece::BlackKing;
-    else blackPiece = Piece::BlackPawn;
+    else {
+        qCWarning(lcNetwork) << "csaPieceToSfenPiece: unknown piece code:" << csaPiece;
+        return Piece::None;
+    }
 
     return isBlack ? blackPiece : toWhite(blackPiece);
 }
@@ -342,6 +424,12 @@ QString CsaMoveConverter::csaToPretty(const QString& csaMove, bool isPromotion,
     int toFile = csaMove[3].digitValue();
     int toRank = csaMove[4].digitValue();
     QString piece = csaMove.mid(5, 2);
+    const bool validTo = isValidBoardCoordinate(toFile, toRank);
+    const bool validFrom = isValidDropSource(fromFile, fromRank)
+        || isValidBoardCoordinate(fromFile, fromRank);
+    if (!validTo || !validFrom) {
+        return csaMove;
+    }
 
     static const QString zenFile[] = {
         QString(), QStringLiteral("１"), QStringLiteral("２"), QStringLiteral("３"),
@@ -442,23 +530,38 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
         return false;
     }
 
-    QChar turnSign = csaMove[0];
-    int fromFile = csaMove[1].digitValue();
-    int fromRank = csaMove[2].digitValue();
-    int toFile = csaMove[3].digitValue();
-    int toRank = csaMove[4].digitValue();
-    QString piece = csaMove.mid(5, 2);
+    const QString usiMove = csaToUsi(csaMove);
+    if (usiMove.isEmpty()) {
+        return false;
+    }
 
-    bool isPromoted = (piece == QStringLiteral("TO") || piece == QStringLiteral("NY") ||
-                       piece == QStringLiteral("NK") || piece == QStringLiteral("NG") ||
-                       piece == QStringLiteral("UM") || piece == QStringLiteral("RY"));
+    const QChar turnSign = csaMove[0];
+    const int fromFile = csaMove[1].digitValue();
+    const int fromRank = csaMove[2].digitValue();
+    const int toFile = csaMove[3].digitValue();
+    const int toRank = csaMove[4].digitValue();
+    const QString piece = csaMove.mid(5, 2);
+    if (turnSign != QLatin1Char('+') && turnSign != QLatin1Char('-')) {
+        return false;
+    }
+    if (!isValidBoardCoordinate(toFile, toRank)) {
+        return false;
+    }
+
+    const bool isPromoted = isPromotedCsaPiece(piece);
 
     ShogiBoard* board = gc->board();
 
-    if (fromFile != 0 || fromRank != 0) {
+    if (!isValidDropSource(fromFile, fromRank)) {
+        if (!isValidBoardCoordinate(fromFile, fromRank)) {
+            return false;
+        }
         // 通常移動
-        Piece selectedPiece = board->getPieceCharacter(fromFile, fromRank);
-        Piece capturedPiece = board->getPieceCharacter(toFile, toRank);
+        const Piece selectedPiece = board->getPieceCharacter(fromFile, fromRank);
+        if (selectedPiece == Piece::None) {
+            return false;
+        }
+        const Piece capturedPiece = board->getPieceCharacter(toFile, toRank);
 
         if (capturedPiece != Piece::None) {
             board->addPieceToStand(capturedPiece);
@@ -467,7 +570,10 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
         board->movePieceToSquare(selectedPiece, fromFile, fromRank, toFile, toRank, isPromoted);
     } else {
         // 駒打ち
-        Piece dropPiece = csaPieceToSfenPiece(piece, turnSign == QLatin1Char('+'));
+        const Piece dropPiece = csaPieceToSfenPiece(piece, turnSign == QLatin1Char('+'));
+        if (dropPiece == Piece::None) {
+            return false;
+        }
         board->decrementPieceOnStand(dropPiece);
         board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);
     }
@@ -475,10 +581,7 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
     gc->changeCurrentPlayer();
 
     // USI形式の指し手をリストに追加
-    QString usiMove = csaToUsi(csaMove);
-    if (!usiMove.isEmpty()) {
-        usiMoves.append(usiMove);
-    }
+    usiMoves.append(usiMove);
 
     // SFEN記録を更新
     QString boardSfen = board->convertBoardToSfen();

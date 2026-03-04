@@ -348,10 +348,8 @@ void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, 
 
 void MatchCoordinator::handleBreakOff()
 {
-    Usi* u1 = primaryEngine();
-    Usi* u2 = secondaryEngine();
-    if (u1) QObject::disconnect(u1, &Usi::bestMoveResignReceived, nullptr, nullptr);
-    if (u2) QObject::disconnect(u2, &Usi::bestMoveResignReceived, nullptr, nullptr);
+    ensureEngineManager();
+    m_engineManager->disconnectArbiterSignals();
 
     ensureGameEndHandler();
     m_gameEndHandler->handleBreakOff();

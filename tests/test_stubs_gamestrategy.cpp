@@ -134,6 +134,7 @@ void EngineLifecycleManager::sendStopToEngine(Usi*) {}
 void EngineLifecycleManager::sendRawToEngine(Usi*, const QString&) {}
 void EngineLifecycleManager::wireResignToArbiter(Usi*, bool) {}
 void EngineLifecycleManager::wireWinToArbiter(Usi*, bool) {}
+void EngineLifecycleManager::disconnectArbiterSignals() {}
 void EngineLifecycleManager::onEngine1Resign() {}
 void EngineLifecycleManager::onEngine2Resign() {}
 void EngineLifecycleManager::onEngine1Win() {}

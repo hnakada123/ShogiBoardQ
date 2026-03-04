@@ -269,6 +269,12 @@ private slots:
         QCOMPARE(CsaMoveConverter::pieceTypeFromCsa(csaPiece), expectedType);
     }
 
+    void csaPieceToSfenPiece_unknownReturnsNone()
+    {
+        QCOMPARE(CsaMoveConverter::csaPieceToSfenPiece(QStringLiteral("XX"), true), Piece::None);
+        QCOMPARE(CsaMoveConverter::csaPieceToSfenPiece(QString(), false), Piece::None);
+    }
+
     // ========================================
     // CsaMoveConverter: 対局結果文字列
     // ========================================
@@ -510,9 +516,9 @@ private slots:
         QTest::newRow("six_chars_one_short")
             << QStringLiteral("+7776F") << true;
         QTest::newRow("non_digit_coordinates")
-            << QStringLiteral("+ABCDFU") << false;
+            << QStringLiteral("+ABCDFU") << true;
         QTest::newRow("whitespace_7chars")
-            << QStringLiteral("       ") << false;
+            << QStringLiteral("       ") << true;
     }
 
     void csaToUsi_robustness()
@@ -562,17 +568,17 @@ private slots:
         QTest::addColumn<QString>("csaPiece");
         QTest::addColumn<QString>("expectedUsi");
 
-        // csaPieceToUsi defaults to "P" for unknown pieces
+        // 未知駒種は空文字列を返して異常を呼び出し側に通知する
         QTest::newRow("empty_string")
-            << QString() << QStringLiteral("P");
+            << QString() << QString();
         QTest::newRow("single_char")
-            << QStringLiteral("F") << QStringLiteral("P");
+            << QStringLiteral("F") << QString();
         QTest::newRow("unknown_two_chars")
-            << QStringLiteral("XX") << QStringLiteral("P");
+            << QStringLiteral("XX") << QString();
         QTest::newRow("lowercase")
-            << QStringLiteral("fu") << QStringLiteral("P");
+            << QStringLiteral("fu") << QString();
         QTest::newRow("three_chars")
-            << QStringLiteral("FUX") << QStringLiteral("P");
+            << QStringLiteral("FUX") << QString();
     }
 
     void csaPieceToUsi_abnormal()
@@ -678,22 +684,23 @@ private slots:
     {
         QTest::addColumn<QString>("usiPiece");
         QTest::addColumn<bool>("promoted");
+        QTest::addColumn<bool>("expectedEmpty");
 
-        QTest::newRow("empty_not_promoted")  << QString()              << false;
-        QTest::newRow("empty_promoted")      << QString()              << true;
-        QTest::newRow("unknown_piece")       << QStringLiteral("X")   << false;
-        QTest::newRow("lowercase_p")         << QStringLiteral("p")   << false;
-        QTest::newRow("multi_char")          << QStringLiteral("PK")  << false;
+        QTest::newRow("empty_not_promoted")  << QString()             << false << true;
+        QTest::newRow("empty_promoted")      << QString()             << true  << true;
+        QTest::newRow("unknown_piece")       << QStringLiteral("X")   << false << true;
+        QTest::newRow("lowercase_p")         << QStringLiteral("p")   << false << true;
+        QTest::newRow("multi_char")          << QStringLiteral("PK")  << false << true;
     }
 
     void usiPieceToCsa_abnormal()
     {
         QFETCH(QString, usiPiece);
         QFETCH(bool, promoted);
+        QFETCH(bool, expectedEmpty);
 
-        // Must not crash; may return default or empty
-        (void)CsaMoveConverter::usiPieceToCsa(usiPiece, promoted);
-        QVERIFY(true);
+        const QString result = CsaMoveConverter::usiPieceToCsa(usiPiece, promoted);
+        QCOMPARE(result.isEmpty(), expectedEmpty);
     }
 
     // ========================================
@@ -1041,8 +1048,8 @@ private slots:
         // 座標0を含む（駒打ちと区別）
         QTest::newRow("zero_from_drop") << QStringLiteral("+0055FU") << true;
 
-        // 非数字座標 — csaToUsi は座標検証せず文字変換するため非空を返す
-        QTest::newRow("alpha_coordinates") << QStringLiteral("+ABCDFU") << true;
+        // 非数字座標は不正扱い（空文字列）
+        QTest::newRow("alpha_coordinates") << QStringLiteral("+ABCDFU") << false;
     }
 
     void csaToUsi_coordinateBoundary()
