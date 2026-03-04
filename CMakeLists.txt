@@ -551,6 +551,7 @@ set(SRC_NETWORK
     src/network/csagamecoordinator_setup.cpp
     src/network/csagamecoordinator.h
     src/network/csamoveconverter.cpp
+    src/network/csamoveconverter_game.cpp
     src/network/csamoveconverter.h
     src/network/csamoveprogresshandler.cpp
     src/network/csamoveprogresshandler.h

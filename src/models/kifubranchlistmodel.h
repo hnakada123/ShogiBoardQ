@@ -103,14 +103,6 @@ private:
     int m_currentHighlightRow = 0;          ///< 現在ハイライトする行
 
 private:
-    int m_activeVid = -1;                   ///< アクティブな変化番号
-    int m_activePly = -1;                   ///< アクティブなグローバル手数
-
-signals:
-    /// アクティブな変化番号/手数が変更された
-    void activeVidPlyChanged(int vid, int ply);
-
-private:
     /// 分岐グラフのノード
     struct Node {
         int id = -1;                        ///< ノードID

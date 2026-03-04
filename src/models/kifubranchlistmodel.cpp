@@ -8,6 +8,36 @@
 #include <QFont>
 #include <QRegularExpression>
 
+namespace {
+const QRegularExpression& dropHeadNumberRe()
+{
+    static const auto& re = *[]() {
+        static const QRegularExpression r(QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
+        return &r;
+    }();
+    return re;
+}
+
+void clearOwnedRows(QList<KifuBranchDisplay*>& rows)
+{
+    qDeleteAll(rows);
+    rows.clear();
+}
+
+void rebuildRows(QList<KifuBranchDisplay*>& rows, const QList<KifDisplayItem>& src)
+{
+    const QRegularExpression& dropHeadNumber = dropHeadNumberRe();
+    rows.reserve(src.size());
+    for (const auto& item : src) {
+        auto* row = new KifuBranchDisplay();
+        QString label = item.prettyMove; // 例: "3 ▲２六歩(27)" or "▲２六歩(27)"
+        label.replace(dropHeadNumber, QString());
+        row->setCurrentMove(label.trimmed());
+        rows.push_back(row);
+    }
+}
+} // namespace
+
 KifuBranchListModel::KifuBranchListModel(QObject *parent)
     : AbstractListModel<KifuBranchDisplay>(parent)
 {
@@ -102,8 +132,7 @@ void KifuBranchListModel::clearBranchCandidates()
     qCDebug(lcUi).noquote() << "clearBranchCandidates called, list.size was:" << list.size()
                             << "locked=" << m_locked;
     beginResetModel();
-    qDeleteAll(list);
-    list.clear();
+    clearOwnedRows(list);
     m_hasBackToMainRow = false;
     m_locked = false;
     endResetModel();
@@ -113,8 +142,7 @@ void KifuBranchListModel::resetBranchCandidates()
 {
     qCDebug(lcUi).noquote() << "resetBranchCandidates called";
     beginResetModel();
-    qDeleteAll(list);
-    list.clear();
+    clearOwnedRows(list);
     m_hasBackToMainRow = false;
     m_locked = false;
     endResetModel();
@@ -122,8 +150,9 @@ void KifuBranchListModel::resetBranchCandidates()
 
 void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows)
 {
-    QStringList s; s.reserve(rows.size());
-    for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
+    QStringList s;
+    s.reserve(rows.size());
+    for (qsizetype i = 0; i < rows.size(); ++i) s << rows[i].prettyMove;
     qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ")
                             << "locked=" << m_locked;
 
@@ -134,58 +163,21 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
     }
 
     beginResetModel();
-    qDeleteAll(list);
-    list.clear();
-
-    // 先頭に「手数（半角/全角）+空白」が付いていたら落とす
-    static const auto& kDropHeadNumber = *[]() {
-        static const QRegularExpression r(
-            QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
-        return &r;
-    }();
-
-    list.reserve(rows.size());
-    for (const auto& k : rows) {
-        auto* b = new KifuBranchDisplay();
-
-        QString label = k.prettyMove;       // 例: "3 ▲２六歩(27)" or "▲２六歩(27)"
-        label.replace(kDropHeadNumber, QString());
-        label = label.trimmed();            // 念のため前後の空白を除去
-
-        b->setCurrentMove(label);
-        list.push_back(b);
-    }
+    clearOwnedRows(list);
+    rebuildRows(list, rows);
     endResetModel();
 }
 
 void KifuBranchListModel::updateBranchCandidates(const QList<KifDisplayItem>& rows)
 {
-    QStringList s; s.reserve(rows.size());
-    for (qsizetype i=0;i<rows.size();++i) s << rows[i].prettyMove;
+    QStringList s;
+    s.reserve(rows.size());
+    for (qsizetype i = 0; i < rows.size(); ++i) s << rows[i].prettyMove;
     qCDebug(lcUi).noquote() << "updateBranchCandidates:" << rows.size() << "items:" << s.join(", ");
 
     beginResetModel();
-    qDeleteAll(list);
-    list.clear();
-
-    // 先頭に「手数（半角/全角）+空白」が付いていたら落とす
-    static const auto& kDropHeadNumber = *[]() {
-        static const QRegularExpression r(
-            QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
-        return &r;
-    }();
-
-    list.reserve(rows.size());
-    for (const auto& k : rows) {
-        auto* b = new KifuBranchDisplay();
-
-        QString label = k.prettyMove;       // 例: "3 ▲２六歩(27)" or "▲２六歩(27)"
-        label.replace(kDropHeadNumber, QString());
-        label = label.trimmed();            // 念のため前後の空白を除去
-
-        b->setCurrentMove(label);
-        list.push_back(b);
-    }
+    clearOwnedRows(list);
+    rebuildRows(list, rows);
     endResetModel();
 }
 
@@ -219,9 +211,11 @@ void KifuBranchListModel::setActiveNode(int nodeId)
 
     m_activeNodeId = nodeId;
 
-    // ここでビュー再描画（全体 or 必要範囲）を促す
-    // ※あなたの実装に合わせて適切な index 範囲を渡してください。
-    emit dataChanged(index(0,0), index(rowCount()-1, columnCount()-1));
+    const int rows = rowCount();
+    const int cols = columnCount();
+    if (rows > 0 && cols > 0) {
+        emit dataChanged(index(0, 0), index(rows - 1, cols - 1));
+    }
 
     const auto& n = m_nodes[nodeId];
     qCDebug(lcUi).nospace()
