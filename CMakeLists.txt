@@ -23,8 +23,15 @@ if(ENABLE_CLANG_TIDY)
     find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
     if(CLANG_TIDY_EXE)
         message(STATUS "clang-tidy found: ${CLANG_TIDY_EXE}")
-        # チェック内容は .clang-tidy ファイルで管理
-        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE})
+        # チェック内容は .clang-tidy ファイルで管理。
+        # 一部環境で GCC 由来の -mno-direct-extern-access が clang-tidy 実行時に
+        # 未対応フラグとして失敗するため、ラッパー経由で除去する。
+        set(CLANG_TIDY_WRAPPER "${CMAKE_SOURCE_DIR}/scripts/clang_tidy_wrapper.sh")
+        if(EXISTS "${CLANG_TIDY_WRAPPER}")
+            set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_WRAPPER};${CLANG_TIDY_EXE}")
+        else()
+            set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE})
+        endif()
     else()
         message(WARNING "clang-tidy not found, static analysis disabled")
     endif()
@@ -681,6 +688,7 @@ set(SRC_UI
 set(SRC_VIEWS
     src/views/shogiview.cpp
     src/views/shogiview.h
+    src/views/shogiview_state.cpp
     src/views/shogiview_draw.cpp
     src/views/shogiview_events.cpp
     src/views/shogiview_labels.cpp

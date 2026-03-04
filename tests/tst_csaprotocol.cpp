@@ -735,6 +735,32 @@ private slots:
     // 異常系: CsaClient 状態ガード（不正状態でのメソッド呼び出し）
     // ========================================
 
+    void csaClient_connectToServer_invalidPortNegative()
+    {
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+        QSignalSpy spyState(&client, &CsaClient::connectionStateChanged);
+
+        client.connectToServer(QStringLiteral("127.0.0.1"), -1);
+
+        QCOMPARE(spyError.count(), 1);
+        QCOMPARE(spyState.count(), 0);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+    }
+
+    void csaClient_connectToServer_invalidPortTooLarge()
+    {
+        CsaClient client;
+        QSignalSpy spyError(&client, &CsaClient::errorOccurred);
+        QSignalSpy spyState(&client, &CsaClient::connectionStateChanged);
+
+        client.connectToServer(QStringLiteral("127.0.0.1"), 70000);
+
+        QCOMPARE(spyError.count(), 1);
+        QCOMPARE(spyState.count(), 0);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::Disconnected);
+    }
+
     void csaClient_loginWhenDisconnected()
     {
         // Disconnected 状態で login → errorOccurred が発行される

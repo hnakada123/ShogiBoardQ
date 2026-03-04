@@ -7,6 +7,8 @@
 namespace {
 constexpr int kMsPerSecond = 1000;
 constexpr int kMsPerMinute = 60000;
+constexpr int kMinPort = 1;
+constexpr int kMaxPort = 65535;
 } // namespace
 
 CsaClient::GameSummary::GameSummary()
@@ -91,6 +93,11 @@ void CsaClient::connectToServer(const QString& host, int port)
 {
     if (m_connectionState != ConnectionState::Disconnected) {
         emit errorOccurred(tr("既に接続中です"));
+        return;
+    }
+
+    if (port < kMinPort || port > kMaxPort) {
+        emit errorOccurred(tr("ポート番号が不正です: %1").arg(port));
         return;
     }
 

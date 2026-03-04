@@ -300,6 +300,50 @@ private slots:
         Q_UNUSED(moves);
         QVERIFY(true);
     }
+
+    void extractMovesWithTimes_invalidColorFallsBackSafely()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(
+            tmp,
+            QByteArray(R"({
+                "moves": [
+                    {},
+                    {"move": {"to": {"x": 7, "y": 6}, "from": {"x": 7, "y": 7}, "piece": "FU", "color": 2},
+                     "time": {"now": {"m": 0, "s": 1}}},
+                    {"special": "TORYO"}
+                ]
+            })"),
+            QStringLiteral("jkf")));
+
+        QString error;
+        const QList<KifDisplayItem> disp = JkfToSfenConverter::extractMovesWithTimes(tmp.fileName(), &error);
+        QVERIFY(disp.size() >= 2); // 開始局面 + 1手以上
+        QVERIFY(error.contains(QStringLiteral("out-of-range color")));
+    }
+
+    void parseWithVariations_invalidColorFallsBackSafely()
+    {
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(
+            tmp,
+            QByteArray(R"({
+                "moves": [
+                    {},
+                    {"move": {"to": {"x": 7, "y": 6}, "from": {"x": 7, "y": 7}, "piece": "FU", "color": 99},
+                     "time": {"now": {"m": 0, "s": 1}}},
+                    {"special": "TORYO"}
+                ]
+            })"),
+            QStringLiteral("jkf")));
+
+        KifParseResult result;
+        QString error;
+        const bool ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY(ok);
+        QVERIFY(!result.mainline.disp.isEmpty());
+        QVERIFY(error.contains(QStringLiteral("out-of-range color")));
+    }
     // ========================================
     // 境界値テスト: 全APIに対する異常入力耐性
     // ========================================

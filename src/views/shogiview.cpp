@@ -533,24 +533,3 @@ void ShogiView::clearTurnHighlight()
 {
     m_highlighting->clearTurnHighlight();
 }
-
-void ShogiView::setGameOverStyleLock(bool locked)
-{
-    m_gameOverStyleLock = locked;
-}
-
-void ShogiView::setUiMuted(bool on) {
-    m_uiMuted = on;
-}
-
-void ShogiView::setActiveIsBlack(bool activeIsBlack)
-{
-    m_highlighting->setActiveIsBlack(activeIsBlack);
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 矢印表示機能（ShogiViewHighlighting へ委譲）
-// ─────────────────────────────────────────────────────────────────────────────
-
-void ShogiView::setArrows(const QList<Arrow>& arrows) { m_highlighting->setArrows(arrows); }
-void ShogiView::clearArrows()                           { m_highlighting->clearArrows(); }

@@ -11,6 +11,40 @@
 #include <QFile>
 #include <QJsonDocument>
 
+namespace {
+void appendWarning(QString* warn, const QString& message)
+{
+    if (!warn) {
+        return;
+    }
+    if (!warn->isEmpty()) {
+        *warn += QLatin1Char('\n');
+    }
+    *warn += message;
+}
+
+int normalizedColorIndex(const QJsonObject& moveObject, int plyNumber, QString* warn)
+{
+    const QJsonValue colorValue = moveObject.value(QStringLiteral("color"));
+    if (!colorValue.isDouble()) {
+        appendWarning(warn,
+                      QStringLiteral("JKF: move %1 has invalid color type; fallback to 0")
+                          .arg(plyNumber));
+        return 0;
+    }
+
+    const int color = colorValue.toInt(-1);
+    if (color != 0 && color != 1) {
+        appendWarning(warn,
+                      QStringLiteral("JKF: move %1 has out-of-range color %2; fallback to 0")
+                          .arg(plyNumber)
+                          .arg(color));
+        return 0;
+    }
+    return color;
+}
+} // namespace
+
 // ========== public API ==========
 
 QString JkfToSfenConverter::mapPresetToSfen(const QString& preset)
@@ -133,7 +167,7 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
             QString timeText;
             if (moveObj.contains(QStringLiteral("time"))) {
                 const QJsonObject timeObj = moveObj[QStringLiteral("time")].toObject();
-                const int color = mv[QStringLiteral("color")].toInt();
+                const int color = normalizedColorIndex(mv, plyNumber, errorMessage);
                 timeText = JkfMoveParser::formatTimeText(timeObj, cumSec[color]);
             }
 
@@ -291,7 +325,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                                           const QString& /*baseSfen*/,
                                           KifLine& mainline,
                                           QList<KifVariation>& variations,
-                                          QString* /*warn*/)
+                                          QString* warn)
 {
     int prevToX = 0, prevToY = 0;
     int plyNumber = 0;
@@ -342,7 +376,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
             QString timeText;
             if (moveObj.contains(QStringLiteral("time"))) {
                 const QJsonObject timeObj = moveObj[QStringLiteral("time")].toObject();
-                const int color = mv[QStringLiteral("color")].toInt();
+                const int color = normalizedColorIndex(mv, plyNumber, warn);
                 timeText = JkfMoveParser::formatTimeText(timeObj, cumSec[color]);
             }
 
@@ -399,7 +433,7 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                         QString forkTimeText;
                         if (forkMoveObj.contains(QStringLiteral("time"))) {
                             const QJsonObject timeObj = forkMoveObj[QStringLiteral("time")].toObject();
-                            const int color = forkMv[QStringLiteral("color")].toInt();
+                            const int color = normalizedColorIndex(forkMv, forkPlyNumber, warn);
                             forkTimeText = JkfMoveParser::formatTimeText(timeObj, forkCumSec[color]);
                         }
 
