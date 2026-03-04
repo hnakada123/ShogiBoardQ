@@ -750,6 +750,7 @@ add_shogi_test(tst_csaprotocol
     ${SRC}/network/csaclient.cpp
     ${SRC}/network/csaclient_parser.cpp
     ${SRC}/network/csamoveconverter.cpp
+    ${SRC}/network/csamoveconverter_game.cpp
     ${SRC}/core/shogiboard.cpp
     ${SRC}/core/shogiboard_edit.cpp
     ${SRC}/core/shogiboard_sfen.cpp

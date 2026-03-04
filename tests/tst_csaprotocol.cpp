@@ -554,9 +554,9 @@ private slots:
         QFETCH(QStringList, csaLines);
 
         QString error;
-        // Must not crash regardless of input
-        (void)SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
-        QVERIFY(true);
+        const auto sfen = SfenCsaPositionConverter::fromCsaPositionLines(csaLines, &error);
+        QVERIFY(!sfen.has_value());
+        QVERIFY(!error.isEmpty());
     }
 
     // ========================================

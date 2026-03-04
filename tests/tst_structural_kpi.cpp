@@ -615,7 +615,7 @@ private slots:
     // ================================================================
     void filesOver550()
     {
-        constexpr int kMaxFilesOver550 = 4; // 実測値: 2 (2026-03-04, CSA分割後)
+        constexpr int kMaxFilesOver550 = 3; // 実測値: 1 (2026-03-04, csamoveconverter分割後)
         constexpr int kThreshold = 550;
 
         const auto files = collectSourceFiles();
@@ -647,7 +647,7 @@ private slots:
     // ================================================================
     void filesOver500()
     {
-        constexpr int kMaxFilesOver500 = 21; // 実測値: 20 (2026-03-04, CSA分割後)
+        constexpr int kMaxFilesOver500 = 20; // 実測値: 19 (2026-03-04, csamoveconverter分割後)
         constexpr int kThreshold = 500;
 
         const auto files = collectSourceFiles();

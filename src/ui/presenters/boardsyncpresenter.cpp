@@ -8,6 +8,7 @@
 #include "shogiboard.h"
 #include "shogimove.h"
 #include "logcategories.h"
+#include "sfendiffutils.h"
 
 BoardSyncPresenter::BoardSyncPresenter(const Deps& d, QObject* parent)
     : QObject(parent)
@@ -111,40 +112,6 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     const QString prev = sfenAt(safePly - 1);
     const QString curr = sfenAt(safePly);
 
-    // 1局面分の SFEN（盤面部）を 9x9 のトークングリッドへ展開
-    //FIX：段(y)は「後手側=上」を原点(0)にする → y = r
-    auto parseOneBoard = [](const QString& sfen, QString grid[9][9])->bool {
-        for (int y=0; y<9; ++y) for (int x=0; x<9; ++x) grid[y][x].clear();
-
-        if (sfen.isEmpty()) return false;
-        const QString boardField = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts).value(0);
-        const QStringList rows   = boardField.split(QLatin1Char('/'), Qt::KeepEmptyParts);
-        if (rows.size() != 9) return false;
-
-        for (int r = 0; r < 9; ++r) {
-            const QString& row = rows.at(r);
-            const int y = r;    // 上(後手側)=0, 下(先手側)=8
-            int x = 8;          // 筋は右(9筋)=8 → 左(1筋)=0 へ詰める
-
-            for (qsizetype i = 0; i < row.size(); ++i) {
-                const QChar ch = row.at(i);
-                if (ch.isDigit()) {
-                    x -= (ch.toLatin1() - '0'); // 連続空白
-                } else if (ch == QLatin1Char('+')) {
-                    if (i + 1 >= row.size() || x < 0) return false;
-                    grid[y][x] = QStringLiteral("+") + row.at(++i); // 成り駒
-                    --x;
-                } else {
-                    if (x < 0) return false;
-                    grid[y][x] = QString(ch); // 通常駒
-                    --x;
-                }
-            }
-            if (x != -1) return false; // 9マス分ちょうどで終わっていない
-        }
-        return true;
-    };
-
     // 駒種から駒台の疑似座標を取得（先手: file=10, 後手: file=11）
     // 駒種（大文字=先手, 小文字=後手）→ 疑似座標を返す
     auto pieceToStandCoord = [](Piece piece) -> QPoint {
@@ -194,37 +161,11 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         return QPoint(file, rank);
     };
 
-    // prev/curr のグリッド差分から from/to を推定
-    // 駒打ちの場合は droppedPiece に打った駒種を設定
-    auto deduceByDiff = [&](const QString& a, const QString& b,
-                            QPoint& from, QPoint& to, QChar& droppedPiece)->bool {
-        QString ga[9][9], gb[9][9];
-        if (!parseOneBoard(a, ga) || !parseOneBoard(b, gb)) return false;
-
-        bool foundTo = false;
-        droppedPiece = QChar();
-
-        for (int y = 0; y < 9; ++y) {
-            for (int x = 0; x < 9; ++x) {
-                if (ga[y][x] == gb[y][x]) continue;
-                if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
-                    from = QPoint(x, y);   // 元が空いた
-                } else if (ga[y][x].isEmpty() && !gb[y][x].isEmpty()) {
-                    to = QPoint(x, y); foundTo = true;       // 駒打ち：空→駒
-                    // 打った駒種を記録（成駒は打てないので先頭文字）
-                    droppedPiece = gb[y][x].at(0);
-                } else {
-                    to = QPoint(x, y); foundTo = true;       // 駒移動または駒取り
-                }
-            }
-        }
-        // 駒打ちは from 不在でも OK（to があればハイライト可能）
-        return foundTo;
-    };
-
-    QPoint from(-1,-1), to(-1,-1);
-    QChar droppedPiece;
-    bool ok = deduceByDiff(prev, curr, from, to, droppedPiece);
+    SfenDiffUtils::DiffResult diff;
+    const bool ok = SfenDiffUtils::diffBoards(prev, curr, diff) && diff.isSingleMovePattern();
+    const QPoint from = diff.from;
+    const QPoint to = diff.to;
+    const QChar droppedPiece = diff.droppedPiece;
 
     if (!ok) {
         // フォールバック：対局中に積んだ m_gameMoves（HvH等）を参照
@@ -263,8 +204,8 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
         return;
     }
 
-    const QPoint to1   = toOne(to);
-    const bool   hasFrom = (from.x() >= 0 && from.y() >= 0);
+    const QPoint to1 = toOne(to);
+    const bool hasFrom = (from.x() >= 0 && from.y() >= 0);
     qCDebug(lcUi).noquote() << "highlight(by sfen-diff)"
                        << " ply=" << safePly
                        << " from=(" << from.x() << "," << from.y() << ")"
@@ -323,67 +264,9 @@ void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, con
     }
 
     // SFEN差分からfrom/toを計算
-    auto parseOneBoard = [](const QString& sfen, QString grid[9][9]) -> bool {
-        for (int y = 0; y < 9; ++y)
-            for (int x = 0; x < 9; ++x)
-                grid[y][x].clear();
-
-        if (sfen.isEmpty()) return false;
-        const QString boardField = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts).value(0);
-        const QStringList rows = boardField.split(QLatin1Char('/'), Qt::KeepEmptyParts);
-        if (rows.size() != 9) return false;
-
-        for (int r = 0; r < 9; ++r) {
-            const QString& row = rows.at(r);
-            const int y = r;
-            int x = 8;
-
-            for (qsizetype i = 0; i < row.size(); ++i) {
-                const QChar ch = row.at(i);
-                if (ch.isDigit()) {
-                    x -= (ch.toLatin1() - '0');
-                } else if (ch == QLatin1Char('+')) {
-                    if (i + 1 >= row.size() || x < 0) return false;
-                    grid[y][x] = QStringLiteral("+") + row.at(++i);
-                    --x;
-                } else {
-                    if (x < 0) return false;
-                    grid[y][x] = QString(ch);
-                    --x;
-                }
-            }
-            if (x != -1) return false;
-        }
-        return true;
-    };
-
-    auto deduceByDiff = [&](const QString& a, const QString& b,
-                            QPoint& from, QPoint& to, QChar& droppedPiece) -> bool {
-        QString ga[9][9], gb[9][9];
-        if (!parseOneBoard(a, ga) || !parseOneBoard(b, gb)) return false;
-
-        bool foundTo = false;
-        droppedPiece = QChar();
-
-        for (int y = 0; y < 9; ++y) {
-            for (int x = 0; x < 9; ++x) {
-                if (ga[y][x] == gb[y][x]) continue;
-                if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
-                    from = QPoint(x, y);
-                } else if (ga[y][x].isEmpty() && !gb[y][x].isEmpty()) {
-                    to = QPoint(x, y); foundTo = true;
-                    droppedPiece = gb[y][x].at(0);
-                } else {
-                    to = QPoint(x, y); foundTo = true;
-                }
-            }
-        }
-        return foundTo;
-    };
-
-    QPoint from(-1, -1), to(-1, -1);
-    QChar droppedPiece;
-    bool ok = deduceByDiff(prevSfen, currentSfen, from, to, droppedPiece);
+    SfenDiffUtils::DiffResult diff;
+    const bool ok = SfenDiffUtils::diffBoards(prevSfen, currentSfen, diff)
+                    && diff.isSingleMovePattern();
 
     if (!ok) {
         qCDebug(lcUi) << "loadBoardWithHighlights: SFEN diff failed, clearing highlights";
@@ -391,6 +274,8 @@ void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, con
         return;
     }
 
+    const QPoint from = diff.from;
+    const QPoint to = diff.to;
     const QPoint to1 = toOne(to);
     const bool hasFrom = (from.x() >= 0 && from.y() >= 0);
 

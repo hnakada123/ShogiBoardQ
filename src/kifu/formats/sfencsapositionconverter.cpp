@@ -156,9 +156,14 @@ bool parsePiLine(const QString& line, QStringList* ranks)
 
 std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString* outError)
 {
-    Q_UNUSED(outError)
+    if (outError) {
+        outError->clear();
+    }
 
     if (csaLines.isEmpty()) {
+        if (outError) {
+            *outError = QStringLiteral("empty csa lines; using default start position");
+        }
         return defaultSfen();
     }
 
@@ -247,7 +252,10 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
     }
 
     if (!hasBoardRows) {
-        return defaultSfen();
+        if (outError) {
+            *outError = QStringLiteral("no board rows found in csa position lines");
+        }
+        return std::nullopt;
     }
 
     const QString board = rankSfen.join(QLatin1Char('/'));

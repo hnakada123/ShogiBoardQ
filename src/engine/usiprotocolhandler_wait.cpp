@@ -16,6 +16,13 @@ constexpr int kPollIntervalMs = 10;
 
 using ConditionFn = std::function<bool()>;
 
+void pumpEventsSlice(int sliceMs)
+{
+    const int ms = qMax(0, sliceMs);
+    // ユーザー入力は遮断しつつ、タイマー由来のキャンセル通知を取り込む。
+    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, ms);
+}
+
 bool waitUntil(const ConditionFn& isDone,
                const ConditionFn& shouldAbort,
                int timeoutMs,
@@ -51,8 +58,7 @@ bool waitUntil(const ConditionFn& isDone,
             QThread::msleep(static_cast<unsigned long>(sliceMs));
         }
 
-        // 取消しタイマーや queued シグナルを処理して待機を早期中断できるようにする
-        QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, sliceMs);
+        pumpEventsSlice(sliceMs);
     }
 
     return true;
@@ -79,8 +85,8 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
         return m_seq != expectedId || shouldAbortWait();
     };
 
-    // 既に保留中の queued イベントを先に捌いて、即時到着済みレスポンスを反映する
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+    // 保留中のキャンセル通知などを先に反映する
+    pumpEventsSlice(0);
 
     return waitUntil(isDone,
                      shouldAbort,

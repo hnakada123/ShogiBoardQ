@@ -5,6 +5,7 @@
 #include "shogiboard.h"
 #include "logcategories.h"
 #include "sfenutils.h"
+#include "sfendiffutils.h"
 
 #include <QRegularExpression>
 
@@ -341,96 +342,30 @@ bool PvBoardController::diffSfenForHighlight(const QString& prevSfen, const QStr
     toRank = 0;
     droppedPiece = QChar();
 
-    auto parseOneBoard = [](const QString& sfen, QString grid[9][9])->bool {
-        for (int y = 0; y < 9; ++y) {
-            for (int x = 0; x < 9; ++x) grid[y][x].clear();
-        }
-
-        if (sfen.isEmpty()) return false;
-        const QString boardField = sfen.split(QLatin1Char(' '), Qt::KeepEmptyParts).value(0);
-        const QStringList rows = boardField.split(QLatin1Char('/'), Qt::KeepEmptyParts);
-        if (rows.size() != 9) return false;
-
-        for (int r = 0; r < 9; ++r) {
-            const QString& row = rows.at(r);
-            const int y = r;
-            int x = 8;
-            for (qsizetype i = 0; i < row.size(); ++i) {
-                const QChar ch = row.at(i);
-                if (ch.isDigit()) {
-                    x -= (ch.toLatin1() - '0');
-                } else if (ch == QLatin1Char('+')) {
-                    if (i + 1 >= row.size() || x < 0) return false;
-                    grid[y][x] = QStringLiteral("+") + row.at(++i);
-                    --x;
-                } else {
-                    if (x < 0) return false;
-                    grid[y][x] = QString(ch);
-                    --x;
-                }
-            }
-            if (x != -1) return false;
-        }
-        return true;
-    };
-
-    QString ga[9][9], gb[9][9];
-    if (!parseOneBoard(prevSfen, ga) || !parseOneBoard(currSfen, gb)) return false;
-
-    int fromX = -1;
-    int fromY = -1;
-    int toX = -1;
-    int toY = -1;
-    int emptyCount = 0;
-    int filledCount = 0;
-    int changedCount = 0;
-
-    for (int y = 0; y < 9; ++y) {
-        for (int x = 0; x < 9; ++x) {
-            if (ga[y][x] == gb[y][x]) continue;
-            if (!ga[y][x].isEmpty() && gb[y][x].isEmpty()) {
-                ++emptyCount;
-                fromX = x;
-                fromY = y;
-            } else if (ga[y][x].isEmpty() && !gb[y][x].isEmpty()) {
-                ++filledCount;
-                toX = x;
-                toY = y;
-                droppedPiece = gb[y][x].at(0);
-                if (droppedPiece == QLatin1Char('+') && gb[y][x].size() >= 2) {
-                    droppedPiece = gb[y][x].at(1);
-                }
-            } else {
-                ++changedCount;
-                toX = x;
-                toY = y;
-            }
-        }
-    }
-
-    bool validMove = (emptyCount == 1 && changedCount == 0 && filledCount == 1) ||
-                     (emptyCount == 1 && changedCount == 1 && filledCount == 0) ||
-                     (emptyCount == 0 && changedCount == 0 && filledCount == 1);
+    SfenDiffUtils::DiffResult diff;
+    if (!SfenDiffUtils::diffBoards(prevSfen, currSfen, diff)) return false;
+    const bool validMove = diff.isSingleMovePattern();
 
     if (!validMove) {
         qCDebug(lcUi) << "Invalid diff pattern:"
-                 << " emptyCount=" << emptyCount
-                 << " filledCount=" << filledCount
-                 << " changedCount=" << changedCount;
+                      << " emptyCount=" << diff.emptyCount
+                      << " filledCount=" << diff.filledCount
+                      << " changedCount=" << diff.changedCount;
         return false;
     }
 
-    if (toX < 0 || toY < 0) return false;
+    if (!diff.hasTo()) return false;
 
     auto toFileRank = [](int x, int y, int& file, int& rank) {
         file = x + 1;
         rank = y + 1;
     };
 
-    if (fromX >= 0 && fromY >= 0) {
-        toFileRank(fromX, fromY, fromFile, fromRank);
+    droppedPiece = diff.droppedPiece;
+    if (diff.hasFrom()) {
+        toFileRank(diff.from.x(), diff.from.y(), fromFile, fromRank);
     }
-    toFileRank(toX, toY, toFile, toRank);
+    toFileRank(diff.to.x(), diff.to.y(), toFile, toRank);
     return true;
 }
 
