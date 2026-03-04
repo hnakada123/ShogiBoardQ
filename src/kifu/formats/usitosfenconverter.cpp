@@ -4,6 +4,7 @@
 #include "usitosfenconverter.h"
 #include "parsecommon.h"
 #include "kifreader.h"
+#include "sfenutils.h"
 
 #include <QFile>
 #include <QRegularExpression>
@@ -47,9 +48,6 @@
 // ============================================================================
 
 namespace {
-
-// 平手初期局面のSFEN
-static const char* kHirateSfen = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
 
 // 終局理由コードのマッピング
 struct TerminalInfo {
@@ -133,7 +131,7 @@ QString UsiToSfenConverter::detectInitialSfenFromFile(const QString& usiPath, QS
     QString warn;
     if (!readUsiFile(usiPath, content, &warn)) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return QString::fromLatin1(kHirateSfen);
+        return SfenUtils::hirateSfen();
     }
 
     QString baseSfen;
@@ -142,11 +140,11 @@ QString UsiToSfenConverter::detectInitialSfenFromFile(const QString& usiPath, QS
 
     if (!parseUsiPositionString(content, baseSfen, usiMoves, &terminalCode, &warn)) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return QString::fromLatin1(kHirateSfen);
+        return SfenUtils::hirateSfen();
     }
 
     // 平手初期局面かどうかを判定
-    if (baseSfen == QString::fromLatin1(kHirateSfen)) {
+    if (baseSfen == SfenUtils::hirateSfen()) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手");
     } else {
         if (detectedLabel) *detectedLabel = QStringLiteral("局面指定");
@@ -323,7 +321,7 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
     int sfenEndIndex = 0;
 
     if (str.startsWith(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
-        baseSfen = QString::fromLatin1(kHirateSfen);
+        baseSfen = SfenUtils::hirateSfen();
         sfenEndIndex = 8;  // "startpos" の長さ
     } else if (str.startsWith(QStringLiteral("sfen"), Qt::CaseInsensitive)) {
         // SFEN形式: "sfen <board> <stm> <hands> <ply> [moves ...]"
@@ -345,7 +343,7 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
     } else {
         // 不明な形式 → デフォルトで平手初期局面
         if (warn) *warn += QStringLiteral("Unknown USI position format, defaulting to startpos\n");
-        baseSfen = QString::fromLatin1(kHirateSfen);
+        baseSfen = SfenUtils::hirateSfen();
 
         // "moves" があるか確認
         const qsizetype movesIdx = str.indexOf(QStringLiteral("moves"), Qt::CaseInsensitive);

@@ -27,6 +27,7 @@
 #include "kifurecordlistmodel.h"
 #include "considerationpositionresolver.h"
 #include "shogiutils.h"
+#include "sfenutils.h"
 
 namespace {
 QString extractUsiMoveFromKanjiLabel(const QString& moveLabel, int fallbackFileTo, int fallbackRankTo)
@@ -497,7 +498,7 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
     }
 
     // 開始局面コマンドを決定（平手初期局面の場合は "startpos"、それ以外は "sfen ..."）
-    static const QString kHirateSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    static const QString kHirateSfen = SfenUtils::hirateSfen();
     if (params.startSfenStr.isEmpty() || params.startSfenStr == kHirateSfen) {
         params.startPositionCmd = QStringLiteral("startpos");
     } else {
@@ -515,7 +516,7 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
 
 void DialogCoordinator::showErrorMessage(const QString& message)
 {
-    QMessageBox::critical(m_parentWidget, tr("Error"), message);
+    QMessageBox::critical(m_parentWidget, tr("エラー"), message);
 }
 
 void DialogCoordinator::showFlowError(const QString& message)

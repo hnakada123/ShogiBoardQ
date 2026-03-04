@@ -7,7 +7,6 @@
 #include "logcategories.h"
 
 #include <QTimer>
-#include <QCoreApplication>
 
 AnalysisSessionHandler::AnalysisSessionHandler(QObject* parent)
     : QObject(parent)
@@ -40,8 +39,6 @@ bool AnalysisSessionHandler::startFullAnalysis(const MatchCoordinator::AnalysisO
 
     qCDebug(lcGame).noquote() << "startFullAnalysis: destroying old engines:" << opt.enginePath;
     if (m_hooks.destroyEnginesAll) m_hooks.destroyEnginesAll();
-
-    QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
 
     Usi* usi = m_hooks.createAnalysisEngine ? m_hooks.createAnalysisEngine(opt) : nullptr;
     if (!usi) return false;
@@ -165,8 +162,9 @@ void AnalysisSessionHandler::startCommunication(Usi* engine,
         return;
     }
 
-    engine->executeAnalysisCommunication(pos, opt.byoyomiMs, opt.multiPV);
-    qCDebug(lcGame).noquote() << "startCommunication EXIT (executeAnalysisCommunication)";
+    // 解析モードも非ブロッキングで開始する（bestmove待機はシグナルで処理）。
+    engine->sendAnalysisCommands(pos, opt.byoyomiMs, opt.multiPV);
+    qCDebug(lcGame).noquote() << "startCommunication EXIT (sendAnalysisCommands)";
 }
 
 // ============================================================

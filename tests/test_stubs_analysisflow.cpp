@@ -33,6 +33,8 @@
 #include "settingscommon.h"
 #include "shogiinforecord.h"
 
+bool g_analysisFlowStubStartAndInitSuccess = true;
+
 // === Usi スタブ ===
 Usi::Usi(UsiCommLogModel*, ShogiEngineThinkingModel*,
          ShogiGameController*, PlayMode& playMode, QObject* parent)
@@ -86,7 +88,7 @@ void Usi::setBaseSfen(const QString&) {}
 void Usi::flushThinkingInfoBuffer() {}
 void Usi::requestClearThinkingInfo() {}
 void Usi::cleanupEngineProcessAndThread(bool) {}
-void Usi::startAndInitializeEngine(const QString&, const QString&) {}
+bool Usi::startAndInitializeEngine(const QString&, const QString&) { return g_analysisFlowStubStartAndInitSuccess; }
 void Usi::executeTsumeCommunication(QString&, int) {}
 void Usi::sendPositionAndGoMateCommands(int, QString&) {}
 void Usi::cancelCurrentOperation() {}
@@ -213,6 +215,9 @@ void ShogiBoard::setSfen(const QString&)
 }
 Piece ShogiBoard::getPieceCharacter(int, int) { return Piece::None; }
 const QMap<Piece, int>& ShogiBoard::getPieceStand() const { return m_pieceStand; }
+int ShogiBoard::pieceStandCount(Piece piece) const { return m_pieceStand.value(piece, 0); }
+void ShogiBoard::addStandPiece(Piece piece, int delta) { if (delta > 0) m_pieceStand[piece] += delta; }
+bool ShogiBoard::consumeStandPiece(Piece piece) { if (m_pieceStand.value(piece, 0) <= 0) return false; --m_pieceStand[piece]; return true; }
 Turn ShogiBoard::currentPlayer() const { return Turn::Black; }
 QString ShogiBoard::convertBoardToSfen() { return {}; }
 QString ShogiBoard::convertStandToSfen() const { return {}; }

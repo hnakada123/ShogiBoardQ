@@ -24,8 +24,6 @@ class ShogiBoard : public QObject
 public:
     explicit ShogiBoard(int ranks = 9, int files = 9, QObject *parent = nullptr);
 
-    QMap<Piece, int> m_pieceStand;  ///< 駒台データ（駒 → 枚数）
-
     // --- 盤面アクセス ---
 
     /// 指定マスの駒を返す（盤上・駒台共通）
@@ -36,6 +34,15 @@ public:
 
     /// 駒台データを返す
     const QMap<Piece, int>& getPieceStand() const;
+
+    /// 指定駒の駒台枚数を返す（存在しない場合は0）
+    int pieceStandCount(Piece piece) const;
+
+    /// 指定駒を駒台に加算する（delta>0 のときのみ）
+    void addStandPiece(Piece piece, int delta = 1);
+
+    /// 指定駒を駒台から1枚消費する（存在しない/0枚時は false）
+    bool consumeStandPiece(Piece piece);
 
     int ranks() const { return m_ranks; }
     int files() const { return m_files; }
@@ -120,6 +127,7 @@ private:
     int m_ranks;                    ///< 盤の段数（9）
     int m_files;                    ///< 盤の筋数（9）
     QList<Piece> m_boardData;     ///< 81マスの駒データ
+    QMap<Piece, int> m_pieceStand;  ///< 駒台データ（駒 → 枚数）
     int m_currentMoveNumber;        ///< SFEN文字列の手数
     Turn m_currentPlayer = Turn::Black; ///< 現在の手番
 

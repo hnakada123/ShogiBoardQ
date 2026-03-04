@@ -6,15 +6,74 @@
 #include "logcategories.h"
 
 #include <QElapsedTimer>
-#include <QCoreApplication>
 #include <QEventLoop>
+#include <QTimer>
+#include <functional>
 
 namespace {
-constexpr int kSliceMs = 10;
+constexpr int kPollIntervalMs = 10;
+constexpr auto kWaitEventFlags = QEventLoop::ExcludeUserInputEvents;
 
-inline void pumpEventsSlice()
+using ConditionFn = std::function<bool()>;
+using WakeConnectorFn = std::function<QMetaObject::Connection(QEventLoop&)>;
+
+bool waitUntil(const ConditionFn& isDone,
+               const ConditionFn& shouldAbort,
+               int timeoutMs,
+               const WakeConnectorFn& connectWake = {})
 {
-    QCoreApplication::processEvents(QEventLoop::AllEvents, kSliceMs);
+    if (isDone()) {
+        return true;
+    }
+    if (timeoutMs <= 0) {
+        return false;
+    }
+
+    QElapsedTimer elapsed;
+    elapsed.start();
+
+    while (!isDone()) {
+        if (shouldAbort()) {
+            return false;
+        }
+
+        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
+        if (remaining <= 0) {
+            return false;
+        }
+
+        QEventLoop loop;
+        QTimer sliceTimer;
+        sliceTimer.setSingleShot(true);
+
+        QMetaObject::Connection wakeConn;
+        const bool hasWakeConnector = static_cast<bool>(connectWake);
+        if (hasWakeConnector) {
+            wakeConn = connectWake(loop);
+        }
+        const QMetaObject::Connection sliceConn = QObject::connect(
+            &sliceTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+
+        const int sliceMs = static_cast<int>(qMin<qint64>(kPollIntervalMs, remaining));
+        sliceTimer.start(sliceMs);
+        loop.exec(kWaitEventFlags);
+
+        if (hasWakeConnector) {
+            QObject::disconnect(wakeConn);
+        }
+        QObject::disconnect(sliceConn);
+    }
+
+    return true;
+}
+
+WakeConnectorFn makeWakeConnector(UsiProtocolHandler* self,
+                                  void (UsiProtocolHandler::*signal)())
+{
+    return [self, signal](QEventLoop& loop) {
+        return QObject::connect(self, signal, &loop, &QEventLoop::quit,
+                                Qt::QueuedConnection);
+    };
 }
 } // namespace
 
@@ -26,26 +85,21 @@ bool UsiProtocolHandler::waitForResponseFlag(bool& flag,
                                              void(UsiProtocolHandler::*signal)(),
                                              int timeoutMs)
 {
-    (void)signal;
     if (flag) return true;
     if (timeoutMs <= 0) return false;
+
+    // QEventLoop は waitUntil() 側で駆動する。
     flag = false;
-
     const quint64 expectedId = m_seq;
-    QElapsedTimer timer;
-    timer.start();
+    const auto isDone = [&flag] { return flag; };
+    const auto shouldAbort = [this, expectedId] {
+        return m_seq != expectedId || shouldAbortWait();
+    };
 
-    while (!flag) {
-        if (timer.elapsed() >= timeoutMs) {
-            return false;
-        }
-        if (m_seq != expectedId || shouldAbortWait()) {
-            return false;
-        }
-        pumpEventsSlice();
-    }
-
-    return flag;
+    return waitUntil(isDone,
+                     shouldAbort,
+                     timeoutMs,
+                     makeWakeConnector(this, signal)) && flag;
 }
 
 bool UsiProtocolHandler::waitForUsiOk(int timeoutMs)
@@ -67,42 +121,38 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
 
     m_bestMoveReceived = false;
     const quint64 expectedId = m_seq;
+    const auto isDone = [this] { return m_bestMoveReceived; };
+    const auto shouldAbort = [this, expectedId] {
+        return m_seq != expectedId || shouldAbortWait();
+    };
 
-    QElapsedTimer timer;
-    timer.start();
-
-    while (!m_bestMoveReceived) {
-        if (timer.elapsed() >= timeoutMs) {
-            return false;
-        }
-        if (m_seq != expectedId || shouldAbortWait()) {
-            return false;
-        }
-        pumpEventsSlice();
+    // waitUntil() は elapsed 時間を timeoutMs と比較して false を返す。
+    const bool ok = waitUntil(isDone,
+                              shouldAbort,
+                              timeoutMs,
+                              makeWakeConnector(this, &UsiProtocolHandler::bestMoveReceived));
+    if (!ok) {
+        return false;
     }
-
     return true;
 }
 
 bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
 {
-    QElapsedTimer t;
-    t.start();
-    const qint64 hard = budgetMs + qMax(0, graceMs);
+    const int hard = budgetMs + qMax(0, graceMs);
+    if (hard <= 0) return false;
 
     m_bestMoveReceived = false;
     const quint64 expectedId = m_seq;
+    const auto isDone = [this] { return m_bestMoveReceived; };
+    const auto shouldAbort = [this, expectedId] {
+        return m_seq != expectedId || shouldAbortWait();
+    };
 
-    while (t.elapsed() < hard) {
-        if (m_seq != expectedId || shouldAbortWait()) return false;
-        if (m_bestMoveReceived) return true;
-
-        const qint64 remaining = hard - t.elapsed();
-        if (remaining <= 0) break;
-        QCoreApplication::processEvents(QEventLoop::AllEvents,
-                                        static_cast<int>(qMin<qint64>(kSliceMs, remaining)));
-    }
-    return m_bestMoveReceived;
+    return waitUntil(isDone,
+                     shouldAbort,
+                     hard,
+                     makeWakeConnector(this, &UsiProtocolHandler::bestMoveReceived));
 }
 
 bool UsiProtocolHandler::keepWaitingForBestMove(int timeoutMs)
@@ -111,25 +161,19 @@ bool UsiProtocolHandler::keepWaitingForBestMove(int timeoutMs)
 
     m_bestMoveReceived = false;
     const quint64 expectedId = m_seq;
-    QElapsedTimer timer;
-    timer.start();
+    const auto isDone = [this] { return m_bestMoveReceived; };
+    const auto shouldAbort = [this, expectedId] {
+        return m_seq != expectedId || shouldAbortWait();
+    };
 
-    while (!m_bestMoveReceived) {
-        if (timer.elapsed() >= timeoutMs) {
-            qCWarning(lcEngine) << "keepWaitingForBestMove: hard-timeout" << timeoutMs << "ms";
-            return false;
-        }
-        if (m_seq != expectedId || shouldAbortWait()) {
-            return false;
-        }
-        pumpEventsSlice();
-
-        if (shouldAbortWait()) {
-            return false;
-        }
+    const bool ok = waitUntil(isDone,
+                              shouldAbort,
+                              timeoutMs,
+                              makeWakeConnector(this, &UsiProtocolHandler::bestMoveReceived));
+    if (!ok && !shouldAbort()) {
+        qCWarning(lcEngine) << "keepWaitingForBestMove: hard-timeout" << timeoutMs << "ms";
     }
-
-    return true;
+    return ok;
 }
 
 void UsiProtocolHandler::waitForStopOrPonderhit()
@@ -140,21 +184,20 @@ void UsiProtocolHandler::waitForStopOrPonderhit()
     }
 
     const quint64 expectedId = m_seq;
-    QElapsedTimer timer;
-    timer.start();
     static constexpr int kStopWaitTimeoutMs = 2000;
+    const auto isDone = [this] { return m_stopOrPonderhitPending; };
+    const auto shouldAbort = [this, expectedId] {
+        return m_seq != expectedId || shouldAbortWait();
+    };
 
-    while (!m_stopOrPonderhitPending) {
-        if (timer.elapsed() >= kStopWaitTimeoutMs) {
-            return;
-        }
-        if (m_seq != expectedId || shouldAbortWait()) {
-            return;
-        }
-        pumpEventsSlice();
+    (void)waitUntil(isDone,
+                    shouldAbort,
+                    kStopWaitTimeoutMs,
+                    makeWakeConnector(this, &UsiProtocolHandler::stopOrPonderhitSent));
+
+    if (m_stopOrPonderhitPending) {
+        m_stopOrPonderhitPending = false;
     }
-
-    m_stopOrPonderhitPending = false;
 }
 
 bool UsiProtocolHandler::shouldAbortWait() const

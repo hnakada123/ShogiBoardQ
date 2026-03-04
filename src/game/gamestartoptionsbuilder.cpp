@@ -5,6 +5,7 @@
 #include "logcategories.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
+#include "sfenutils.h"
 
 #include <QDebug>
 #include <QLoggingCategory>
@@ -267,7 +268,7 @@ const QString& GameStartOptionsBuilder::startingPositionSfen(int index)
     static const auto& kPresets = *[]() {
         static const std::array<QString, 14> arr = {{
             //  1: 平手
-            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+            SfenUtils::hirateSfen(),
             //  2: 香落ち
             QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"),
             //  3: 右香落ち
@@ -310,7 +311,7 @@ QString GameStartOptionsBuilder::canonicalizeSfen(const QString& sfen)
 {
     QString t = sfen.trimmed();
     if (t.isEmpty() || t == QLatin1String("startpos")) {
-        return QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        return SfenUtils::hirateSfen();
     }
     return t;
 }

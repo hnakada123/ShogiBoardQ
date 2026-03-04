@@ -284,15 +284,15 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
         return;
     }
 
-    startAndInitializeEngine(engineFile, enginename);
+    (void)startAndInitializeEngine(engineFile, enginename);
 }
 
-void Usi::startAndInitializeEngine(const QString& engineFile, const QString& enginename)
+bool Usi::startAndInitializeEngine(const QString& engineFile, const QString& enginename)
 {
     // プロセス起動
     if (!m_processManager->startProcess(engineFile)) {
         cleanupEngineProcessAndThread();
-        return;
+        return false;
     }
 
     // オプション読み込み
@@ -301,8 +301,10 @@ void Usi::startAndInitializeEngine(const QString& engineFile, const QString& eng
     // 初期化シーケンス実行
     if (!m_protocolHandler->initializeEngine(enginename)) {
         cleanupEngineProcessAndThread();
-        return;
+        return false;
     }
+
+    return true;
 }
 
 void Usi::cleanupEngineProcessAndThread(bool clearThinking)

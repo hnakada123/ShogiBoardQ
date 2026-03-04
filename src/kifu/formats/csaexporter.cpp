@@ -8,6 +8,7 @@
 #include "kifparsetypes.h"
 #include "logcategories.h"
 #include "sfencsapositionconverter.h"
+#include "sfenutils.h"
 
 #include <QDateTime>
 #include <QRegularExpression>
@@ -144,9 +145,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
     }
 
     // 6) 開始局面
-    const QString defaultSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-    const bool isHirate = ctx.startSfen.isEmpty() || ctx.startSfen == defaultSfen
-                          || ctx.startSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
+    const bool isHirate = ctx.startSfen.isEmpty() || SfenUtils::isHirateStart(ctx.startSfen);
 
     if (isHirate) {
         out << QStringLiteral("PI");

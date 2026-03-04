@@ -8,11 +8,12 @@
 #include "kifuloadcoordinator.h"
 #include "kifurecordlistmodel.h"
 #include "shogiutils.h"
+#include "sfenutils.h"
 #include "tsumepositionutil.h"
 
 namespace {
 const QString kHirateSfen =
-    QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    SfenUtils::hirateSfen();
 }
 
 ConsiderationPositionResolver::ConsiderationPositionResolver(const Inputs& inputs)

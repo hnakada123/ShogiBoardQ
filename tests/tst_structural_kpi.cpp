@@ -44,6 +44,24 @@ private:
         return count;
     }
 
+    static int countPatternOccurrences(const QString &filePath, const QRegularExpression &pattern)
+    {
+        QFile file(filePath);
+        if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+            return -1;
+        QTextStream in(&file);
+        int count = 0;
+        while (!in.atEnd()) {
+            const QString line = in.readLine();
+            auto it = pattern.globalMatch(line);
+            while (it.hasNext()) {
+                (void)it.next();
+                ++count;
+            }
+        }
+        return count;
+    }
+
     struct FileInfo {
         QString relPath;
         int lines;
@@ -172,8 +190,10 @@ private slots:
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
         constexpr int maxFriendClasses = 7;
 
-        const QRegularExpression pattern(QStringLiteral(R"(^\s*friend\s+class\s+)"));
-        const int count = countMatchingLines(headerPath, pattern);
+        // 同一行に複数 friend class が並ぶケースも正しくカウントする
+        const QRegularExpression pattern(
+            QStringLiteral(R"(\bfriend\s+class\s+[A-Za-z_][A-Za-z0-9_:]*)"));
+        const int count = countPatternOccurrences(headerPath, pattern);
 
         QVERIFY2(count >= 0, "Failed to read mainwindow.h");
 
@@ -595,7 +615,7 @@ private slots:
     // ================================================================
     void filesOver550()
     {
-        constexpr int kMaxFilesOver550 = 7; // 実測値: 7 (2026-03-03, kifuapplyservice 分割後)
+        constexpr int kMaxFilesOver550 = 6; // 実測値: 2 (2026-03-04, USI/TSUME 分割後)
         constexpr int kThreshold = 550;
 
         const auto files = collectSourceFiles();
@@ -627,7 +647,7 @@ private slots:
     // ================================================================
     void filesOver500()
     {
-        constexpr int kMaxFilesOver500 = 23; // 実測値: 23 (2026-03-03, kifuapplyservice 分割後)
+        constexpr int kMaxFilesOver500 = 22; // 実測値: 21 (2026-03-04, USI/TSUME 分割後)
         constexpr int kThreshold = 500;
 
         const auto files = collectSourceFiles();
@@ -674,12 +694,13 @@ private slots:
     }
 
     // ================================================================
-    // m) 長関数の監視（ゲートではなくログ出力のみ）
+    // m) 長関数の上限チェック
     //    メソッド定義開始行から次のメソッド定義開始行までの行数を簡易推定
     // ================================================================
     void longFunctionMonitor()
     {
         constexpr int kFunctionLengthWarning = 100;
+        constexpr int kMaxLongFunctionsOver100 = 136; // 実測値: 136 (2026-03-04)
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");
@@ -751,9 +772,10 @@ private slots:
         }
 
         qDebug().noquote()
-            << QStringLiteral("KPI: long_functions_over_%1 = %2 (monitoring only)")
+            << QStringLiteral("KPI: long_functions_over_%1 = %2 (limit: %3)")
                    .arg(kFunctionLengthWarning)
-                   .arg(longFunctionCount);
+                   .arg(longFunctionCount)
+                   .arg(kMaxLongFunctionsOver100);
 
         if (!longFunctions.isEmpty()) {
             qDebug().noquote() << "  Long functions (>" << kFunctionLengthWarning << "lines):";
@@ -761,7 +783,11 @@ private slots:
                 qDebug().noquote() << f;
         }
 
-        // 監視のみ - QVERIFY は使わない
+        QVERIFY2(longFunctionCount <= kMaxLongFunctionsOver100,
+                 qPrintable(QStringLiteral("Too many long functions (>%1 lines): %2 (limit: %3)")
+                                .arg(kFunctionLengthWarning)
+                                .arg(longFunctionCount)
+                                .arg(kMaxLongFunctionsOver100)));
     }
 };
 

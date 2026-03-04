@@ -27,6 +27,7 @@
 #include "engineanalysistab.h"
 #include "boardsetupcontroller.h"
 #include "timecontrolcontroller.h"
+#include "sfenutils.h"
 
 CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -119,7 +120,7 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
     }
 
     // m_sfenHistoryをクリアし、開始局面を追加
-    const QString hiratePosition = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const QString hiratePosition = SfenUtils::hirateSfen();
     if (m_sfenHistory) {
         m_sfenHistory->clear();
         m_sfenHistory->append(hiratePosition);

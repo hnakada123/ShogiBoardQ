@@ -24,6 +24,7 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
+#include "sfenutils.h"
 
 // ============================================================
 // 初期化
@@ -278,9 +279,6 @@ void PreStartCleanupHandler::startLiveGameSession()
         m_liveGameSession->discard();
     }
 
-    static const QString kHirateStartSfen = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
     // 保存した値を使用（selectStartRow() で変更される前の値）
     const QString savedSfen = m_savedCurrentSfen.trimmed();
     const int savedPly = m_savedSelectedPly;
@@ -293,7 +291,7 @@ void PreStartCleanupHandler::startLiveGameSession()
     // "startpos" または初期局面SFENの場合は新規対局として扱う
     bool isNewGame = savedSfen.isEmpty() ||
                      savedSfen == QStringLiteral("startpos") ||
-                     savedSfen.startsWith(QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
+                     SfenUtils::isHirateStart(savedSfen);
 
     qCDebug(lcGame).noquote() << "startLiveGameSession:"
                        << "isNewGame=" << isNewGame
@@ -348,7 +346,7 @@ void PreStartCleanupHandler::startLiveGameSession()
     // 新規対局または途中局面が見つからない場合
     {
         if (m_branchTree->root() == nullptr) {
-            QString rootSfen = kHirateStartSfen;
+            QString rootSfen = SfenUtils::hirateSfen();
             if (m_startSfenStr != nullptr && !m_startSfenStr->trimmed().isEmpty()) {
                 rootSfen = *m_startSfenStr;
             }
@@ -367,10 +365,7 @@ void PreStartCleanupHandler::ensureBranchTreeRoot()
         return;
     }
 
-    static const QString kHirateStartSfen = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-
-    QString rootSfen = kHirateStartSfen;
+    QString rootSfen = SfenUtils::hirateSfen();
     if (m_startSfenStr != nullptr && !m_startSfenStr->trimmed().isEmpty()) {
         rootSfen = *m_startSfenStr;
     }

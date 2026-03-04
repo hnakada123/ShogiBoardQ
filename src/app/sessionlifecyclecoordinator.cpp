@@ -8,6 +8,7 @@
 #include "logcategories.h"
 #include "replaycontroller.h"
 #include "shogigamecontroller.h"
+#include "sfenutils.h"
 #include "timecontrolcontroller.h"
 
 SessionLifecycleCoordinator::SessionLifecycleCoordinator(QObject* parent)
@@ -22,15 +23,14 @@ void SessionLifecycleCoordinator::updateDeps(const Deps& deps)
 
 void SessionLifecycleCoordinator::resetToInitialState()
 {
-    static const QString kHirateStartSfen = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+    const QString hirateStartSfen = SfenUtils::hirateSfen();
 
     // 「新規」のため局面情報を初期化してから完全クリーンアップを実行する。
     // performCleanup() は currentSelectedPly > 0 かつ currentSfenStr が
     // 非初期局面の場合、棋譜を保持しようとする（途中局面開始の対局用）。
     // ここで事前にリセットすることで、完全クリアを保証する。
     if (m_deps.startSfenStr) {
-        *m_deps.startSfenStr = kHirateStartSfen;
+        *m_deps.startSfenStr = hirateStartSfen;
     }
     if (m_deps.currentSfenStr) {
         *m_deps.currentSfenStr = QStringLiteral("startpos");
@@ -49,10 +49,10 @@ void SessionLifecycleCoordinator::resetToInitialState()
     resetGameState();
 
     if (m_deps.resetModels) {
-        m_deps.resetModels(kHirateStartSfen);
+        m_deps.resetModels(hirateStartSfen);
     }
     if (m_deps.resetUiState) {
-        m_deps.resetUiState(kHirateStartSfen);
+        m_deps.resetUiState(hirateStartSfen);
     }
 }
 

@@ -4,6 +4,7 @@
 #include "usenexporter.h"
 #include "kifubranchtree.h"
 #include "logcategories.h"
+#include "sfenutils.h"
 
 #include <QStringView>
 
@@ -143,16 +144,13 @@ static QString encodeUsiMoveToUsen(const QString& usiMove)
 
 static QString sfenToUsenPosition(const QString& sfen)
 {
-    // 平手初期局面のチェック
-    static const QString kHirateSfenPrefix = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-
     const QString trimmed = sfen.trimmed();
     if (trimmed.isEmpty()) {
         return QString();  // 平手: 空文字列（~の前に何も置かない）
     }
 
     // 平手初期局面の場合は空文字列を返す
-    if (trimmed.startsWith(kHirateSfenPrefix)) {
+    if (SfenUtils::isHirateStart(trimmed)) {
         return QString();
     }
 

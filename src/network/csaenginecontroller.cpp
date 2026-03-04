@@ -84,7 +84,12 @@ void CsaEngineController::initialize(const InitParams& params)
             this, &CsaEngineController::onEngineResign);
 
     m_engine->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("CSA"), params.engineName);
-    m_engine->startAndInitializeEngine(enginePath, params.engineName);
+    if (!m_engine->startAndInitializeEngine(enginePath, params.engineName)) {
+        emit logMessage(tr("エンジン %1 の初期化に失敗しました").arg(params.engineName), true);
+        m_engine->deleteLater();
+        m_engine = nullptr;
+        return;
+    }
 
     emit logMessage(tr("エンジン %1 を起動しました").arg(params.engineName));
 }

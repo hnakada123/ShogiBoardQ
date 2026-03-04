@@ -4,6 +4,7 @@
 #include "jkfmoveparser.h"
 #include "notationutils.h"
 #include "parsecommon.h"
+#include "sfenutils.h"
 
 namespace JkfMoveParser {
 
@@ -11,11 +12,9 @@ namespace JkfMoveParser {
 
 QString presetToSfen(const QString& preset)
 {
-    static const char* kHirate = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
-
     struct Pair { const char* key; const char* sfen; };
     static const Pair tbl[] = {
-        {"HIRATE",  kHirate},
+        {"HIRATE",  SfenUtils::kHirateSfen},
         {"KY",      "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
         {"KY_R",    "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
         {"KA",      "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
@@ -38,7 +37,7 @@ QString presetToSfen(const QString& preset)
             return QString::fromUtf8(p.sfen);
         }
     }
-    return QString::fromUtf8(kHirate);
+    return SfenUtils::hirateSfen();
 }
 
 QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)

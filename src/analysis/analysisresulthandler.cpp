@@ -10,6 +10,7 @@
 #include "kifudisplay.h"
 #include "kifuanalysisresultsdisplay.h"
 #include "pvboarddialog.h"
+#include "sfenutils.h"
 
 #include <limits>
 #include <QString>
@@ -350,7 +351,7 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
         }
     }
     if (baseSfen.isEmpty()) {
-        baseSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        baseSfen = SfenUtils::hirateSfen();
     }
     qCDebug(lcAnalysis).noquote() << "baseSfen=" << baseSfen.left(50);
 

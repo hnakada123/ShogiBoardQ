@@ -88,7 +88,7 @@ void Usi::onAnalysisStopTimeout()
 {
     qCDebug(lcEngine) << "解析停止タイマー発火";
     m_protocolHandler->sendStop();
-    m_analysisStopTimer = nullptr;
+    resetAnalysisStopTimer();
 }
 
 void Usi::onConsiderationStopTimeout()
@@ -97,7 +97,7 @@ void Usi::onConsiderationStopTimeout()
         qCDebug(lcEngine) << "検討停止タイマー発火";
         m_protocolHandler->sendStop();
     }
-    m_analysisStopTimer = nullptr;
+    resetAnalysisStopTimer();
 }
 
 void Usi::onClearThinkingInfoRequested()

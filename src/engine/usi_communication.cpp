@@ -95,29 +95,8 @@ void Usi::prepareAnalysisSession(const QString& positionStr, int multiPV)
 
 void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec, int multiPV)
 {
-    // 処理フロー:
-    // 1. 既存の停止タイマーをキャンセル
-    // 2. 局面SFENを保存（読み筋表示用）
-    // 3. 盤面クローン + position送信
-    // 4. MultiPV設定送信
-    // 5. go infinite送信
-    // 6. タイムアウト設定（秒読みありの場合）またはbestmove待機
-
-    prepareAnalysisSession(positionStr, multiPV);
-
-    if (byoyomiMilliSec <= 0) {
-        (void)m_protocolHandler->keepWaitingForBestMove();
-    } else {
-        // タイムアウト後にstop送信（メンバータイマーを使用）
-        m_analysisStopTimer = new QTimer(this);
-        m_analysisStopTimer->setSingleShot(true);
-        connect(m_analysisStopTimer, &QTimer::timeout, this, &Usi::onAnalysisStopTimeout);
-        m_analysisStopTimer->start(byoyomiMilliSec);
-
-        static constexpr int kPostStopGraceMs = 4000;
-        const int waitBudget = qMax(byoyomiMilliSec + kPostStopGraceMs, 2500);
-        (void)m_protocolHandler->waitForBestMove(waitBudget);
-    }
+    // 後方互換API。現在はUIブロック回避のため非ブロッキングで処理する。
+    sendAnalysisCommands(positionStr, byoyomiMilliSec, multiPV);
 }
 
 void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV)

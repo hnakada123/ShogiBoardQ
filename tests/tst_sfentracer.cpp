@@ -42,10 +42,10 @@ private slots:
         SfenPositionTracer tracer;
         // Set up position where B can capture at 2b
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        tracer.setFromSfen(sfen);
+        QVERIFY(tracer.setFromSfen(sfen));
         // First make some setup moves
-        tracer.applyUsiMove(QStringLiteral("7g7f"));
-        tracer.applyUsiMove(QStringLiteral("3c3d"));
+        QVERIFY(tracer.applyUsiMove(QStringLiteral("7g7f")));
+        QVERIFY(tracer.applyUsiMove(QStringLiteral("3c3d")));
         // Now bishop can go to 2b with promotion
         QVERIFY(tracer.applyUsiMove(QStringLiteral("8h2b+")));
 
@@ -58,7 +58,7 @@ private slots:
         SfenPositionTracer tracer;
         // Position with a pawn in hand
         QString sfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b P 1");
-        tracer.setFromSfen(sfen);
+        QVERIFY(tracer.setFromSfen(sfen));
         QVERIFY(tracer.applyUsiMove(QStringLiteral("P*5e")));
 
         QCOMPARE(tracer.tokenAtFileRank(5, QLatin1Char('e')), QStringLiteral("P"));

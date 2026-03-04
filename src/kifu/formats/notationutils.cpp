@@ -2,6 +2,7 @@
 /// @brief 棋譜変換器間で共有される座標変換・数字変換・手合マップユーティリティの実装
 
 #include "notationutils.h"
+#include "sfenutils.h"
 
 #include <QLatin1Char>
 #include <QStringLiteral>
@@ -71,10 +72,9 @@ QString formatSfenDrop(QChar piece, int toFile, int toRank)
 
 QString mapHandicapToSfen(const QString& label)
 {
-    static const char* kEven = "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1";
     struct Pair { const char* key; const char* sfen; };
     static const Pair tbl[] = {
-        {"平手",       kEven},
+        {"平手",       SfenUtils::kHirateSfen},
         {"香落ち",     "lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
         {"右香落ち",   "1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
         {"角落ち",     "lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
@@ -94,7 +94,7 @@ QString mapHandicapToSfen(const QString& label)
     for (const auto& p : tbl) {
         if (label.contains(QString::fromUtf8(p.key))) return QString::fromUtf8(p.sfen);
     }
-    return QString::fromUtf8(kEven);
+    return SfenUtils::hirateSfen();
 }
 
 } // namespace NotationUtils

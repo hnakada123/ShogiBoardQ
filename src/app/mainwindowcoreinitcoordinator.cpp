@@ -96,7 +96,7 @@ void MainWindowCoreInitCoordinator::initializeBoardModel()
     // m_state.startSfenStr が "startpos ..." の場合は完全 SFEN に正規化
     QString start = m_deps.startSfenStr ? *m_deps.startSfenStr : QString();
     if (start.isEmpty()) {
-        start = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        start = SfenUtils::hirateSfen();
     } else if (start.startsWith(QLatin1String("startpos"))) {
         start = SfenUtils::normalizeStart(start);
     }

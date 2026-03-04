@@ -116,6 +116,7 @@ private:
     int m_processedLines = 0;                   ///< 今回チャンクで処理済みの行数
 
     QString m_currentEnginePath;                ///< 現在のエンジンファイルパス
+    bool m_startupErrorReported = false;        ///< 起動中のprocessError重複送出防止フラグ
 
     /// 未読データが残っている場合にイベントループ経由で再読み取りを予約
     void scheduleMoreReading();

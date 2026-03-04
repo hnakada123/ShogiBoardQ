@@ -143,10 +143,10 @@ void KifuAnalysisDialog::showEngineSettingsDialog()
     // エンジン名が空の場合
     if (m_engineName.isEmpty()) {
         // エラーメッセージを表示する。
-        const QString errorMessage = tr("An error occurred in KifuAnalysisDialog::showEngineSettingsDialog. The Shogi engine has not been selected.");
+        const QString errorMessage = tr("将棋エンジンが選択されていません。");
 
         // エラーメッセージを表示する。
-        QMessageBox::critical(this, tr("Error"), errorMessage);
+        QMessageBox::critical(this, tr("エラー"), errorMessage);
 
         return;
     }

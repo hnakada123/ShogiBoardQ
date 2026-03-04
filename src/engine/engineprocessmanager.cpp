@@ -3,9 +3,108 @@
 
 #include "engineprocessmanager.h"
 #include "usi.h"
+#include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
+#include <QEventLoop>
 #include <QTimer>
+
+namespace {
+constexpr int kStartTimeoutMs = 5000;
+constexpr int kWaitSliceMs = 20;
+constexpr auto kWaitEventFlags = QEventLoop::ExcludeUserInputEvents;
+
+bool waitForStartedResponsive(QProcess& process, int timeoutMs)
+{
+    if (process.state() == QProcess::Running) {
+        return true;
+    }
+    if (timeoutMs <= 0) {
+        return process.state() == QProcess::Running;
+    }
+
+    QElapsedTimer elapsed;
+    elapsed.start();
+
+    while (elapsed.elapsed() < timeoutMs) {
+        if (process.state() == QProcess::Running) {
+            return true;
+        }
+        if (process.error() == QProcess::FailedToStart) {
+            return false;
+        }
+
+        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
+        if (remaining <= 0) {
+            break;
+        }
+
+        QEventLoop loop;
+        QTimer waitTimer;
+        waitTimer.setSingleShot(true);
+
+        const QMetaObject::Connection startedConn = QObject::connect(
+            &process, &QProcess::started, &loop, &QEventLoop::quit);
+        const QMetaObject::Connection errorConn = QObject::connect(
+            &process, &QProcess::errorOccurred, &loop, &QEventLoop::quit);
+        const QMetaObject::Connection timeoutConn = QObject::connect(
+            &waitTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+
+        const int sliceMs = static_cast<int>(qMin<qint64>(kWaitSliceMs, remaining));
+        waitTimer.start(sliceMs);
+        loop.exec(kWaitEventFlags);
+
+        QObject::disconnect(startedConn);
+        QObject::disconnect(errorConn);
+        QObject::disconnect(timeoutConn);
+    }
+
+    return process.state() == QProcess::Running;
+}
+
+bool waitForFinishedResponsive(QProcess& process, int timeoutMs)
+{
+    if (process.state() == QProcess::NotRunning) {
+        return true;
+    }
+    if (timeoutMs <= 0) {
+        return process.state() == QProcess::NotRunning;
+    }
+
+    QElapsedTimer elapsed;
+    elapsed.start();
+
+    while (elapsed.elapsed() < timeoutMs) {
+        if (process.state() == QProcess::NotRunning) {
+            return true;
+        }
+
+        const qint64 remaining = static_cast<qint64>(timeoutMs) - elapsed.elapsed();
+        if (remaining <= 0) {
+            break;
+        }
+
+        QEventLoop loop;
+        QTimer waitTimer;
+        waitTimer.setSingleShot(true);
+
+        const QMetaObject::Connection finishedConn = QObject::connect(
+            &process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            &loop, &QEventLoop::quit);
+        const QMetaObject::Connection timeoutConn = QObject::connect(
+            &waitTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
+
+        const int sliceMs = static_cast<int>(qMin<qint64>(kWaitSliceMs, remaining));
+        waitTimer.start(sliceMs);
+        loop.exec(kWaitEventFlags);
+
+        QObject::disconnect(finishedConn);
+        QObject::disconnect(timeoutConn);
+    }
+
+    return process.state() == QProcess::NotRunning;
+}
+} // namespace
 
 EngineProcessManager::EngineProcessManager(QObject* parent)
     : QObject(parent)
@@ -39,6 +138,7 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
         stopProcess();
     }
 
+    m_startupErrorReported = false;
     m_process = std::make_unique<QProcess>();
 
     // エンジンが相対パスで定跡ファイルや評価関数ファイルを読み込むため
@@ -56,9 +156,11 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
 
     m_process->start(engineFile, QStringList(), QIODevice::ReadWrite);
 
-    if (!m_process->waitForStarted()) {
-        const QString errorMsg = tr("Failed to start engine: %1").arg(engineFile);
-        emit processError(QProcess::FailedToStart, errorMsg);
+    if (!waitForStartedResponsive(*m_process, kStartTimeoutMs)) {
+        if (!m_startupErrorReported) {
+            const QString errorMsg = tr("Failed to start engine: %1").arg(engineFile);
+            emit processError(QProcess::FailedToStart, errorMsg);
+        }
 
         m_process.reset();
         return false;
@@ -78,11 +180,11 @@ void EngineProcessManager::stopProcess()
 
     if (m_process->state() == QProcess::Running) {
         // quitコマンドは上位クラス（USIProtocolHandler）から送信済みと想定
-        if (!m_process->waitForFinished(3000)) {
+        if (!waitForFinishedResponsive(*m_process, 3000)) {
             m_process->terminate();
-            if (!m_process->waitForFinished(1000)) {
+            if (!waitForFinishedResponsive(*m_process, 1000)) {
                 m_process->kill();
-                if (!m_process->waitForFinished(2000)) {
+                if (!waitForFinishedResponsive(*m_process, 2000)) {
                     qCWarning(lcEngine) << logPrefix()
                                         << "プロセス終了待機がタイムアウトしたため、強制的に解放します";
                 }
@@ -95,6 +197,7 @@ void EngineProcessManager::stopProcess()
     m_shutdownState = ShutdownState::Running;
     m_postQuitInfoStringLinesLeft = 0;
     m_currentEnginePath.clear();
+    m_startupErrorReported = false;
 }
 
 bool EngineProcessManager::isRunning() const
@@ -322,6 +425,8 @@ void EngineProcessManager::onReadyReadStderr()
 
 void EngineProcessManager::onProcessError(QProcess::ProcessError error)
 {
+    m_startupErrorReported = true;
+
     QString errorMessage;
 
     switch (error) {

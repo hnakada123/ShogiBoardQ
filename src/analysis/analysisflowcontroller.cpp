@@ -36,8 +36,20 @@ AnalysisFlowController::~AnalysisFlowController()
     //       すべて this を親として作成されているため、Qtの親子関係により自動破棄される
 }
 
+void AnalysisFlowController::emitAnalysisStoppedOnce()
+{
+    if (m_analysisStoppedEmitted) {
+        return;
+    }
+    m_analysisStoppedEmitted = true;
+    Q_EMIT analysisStopped();
+}
+
 void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 {
+    m_lastStartSucceeded = false;
+    m_analysisStoppedEmitted = false;
+
     if (!d.sfenRecord || d.sfenRecord->isEmpty()) {
         if (d.displayError) d.displayError(tr("内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。"));
         return;
@@ -97,67 +109,68 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     }
 
     // (C) 進捗を結果モデルへ投入（毎回再接続）
-    QObject::disconnect(m_coord, &AnalysisCoordinator::analysisProgress, nullptr, nullptr);
-    QObject::connect(
+    if (m_connCoordAnalysisProgress) {
+        QObject::disconnect(m_connCoordAnalysisProgress);
+    }
+    m_connCoordAnalysisProgress = QObject::connect(
         m_coord, &AnalysisCoordinator::analysisProgress,
-        this,    &AnalysisFlowController::onAnalysisProgress,
-        Qt::UniqueConnection
-        );
+        this,    &AnalysisFlowController::onAnalysisProgress);
 
     // (C-2) position準備時に盤面データを更新
-    QObject::disconnect(m_coord, &AnalysisCoordinator::positionPrepared, nullptr, nullptr);
-    QObject::connect(
+    if (m_connCoordPositionPrepared) {
+        QObject::disconnect(m_connCoordPositionPrepared);
+    }
+    m_connCoordPositionPrepared = QObject::connect(
         m_coord, &AnalysisCoordinator::positionPrepared,
-        this,    &AnalysisFlowController::onPositionPrepared,
-        Qt::UniqueConnection
-        );
+        this,    &AnalysisFlowController::onPositionPrepared);
 
     // (C-3) 解析完了時に最後の結果を発行
-    QObject::disconnect(m_coord, &AnalysisCoordinator::analysisFinished, nullptr, nullptr);
-    QObject::connect(
+    if (m_connCoordAnalysisFinished) {
+        QObject::disconnect(m_connCoordAnalysisFinished);
+    }
+    m_connCoordAnalysisFinished = QObject::connect(
         m_coord, &AnalysisCoordinator::analysisFinished,
-        this,    &AnalysisFlowController::onAnalysisFinished,
-        Qt::UniqueConnection
-        );
+        this,    &AnalysisFlowController::onAnalysisFinished);
 
     // (A) AC → エンジンへ USI 文字列を橋渡し（毎回再接続）
-    QObject::disconnect(m_coord, &AnalysisCoordinator::requestSendUsiCommand, nullptr, nullptr);
-    QObject::connect(
+    if (m_connCoordRequestSendUsi) {
+        QObject::disconnect(m_connCoordRequestSendUsi);
+    }
+    m_connCoordRequestSendUsi = QObject::connect(
         m_coord, &AnalysisCoordinator::requestSendUsiCommand,
-        m_usi,   &Usi::sendRaw,
-        Qt::UniqueConnection
-        );
+        m_usi,   &Usi::sendRaw);
 
     // (B-1) Usi::bestMoveReceived → AC へ直接通知
-    QObject::disconnect(m_usi, &Usi::bestMoveReceived, nullptr, nullptr);
-    QObject::connect(
+    if (m_connUsiBestMove) {
+        QObject::disconnect(m_connUsiBestMove);
+    }
+    m_connUsiBestMove = QObject::connect(
         m_usi, &Usi::bestMoveReceived,
-        this,  &AnalysisFlowController::onBestMoveReceived,
-        Qt::UniqueConnection
-        );
+        this,  &AnalysisFlowController::onBestMoveReceived);
 
     // (B-2) Usi::infoLineReceived → AC へ直接通知
-    QObject::disconnect(m_usi, &Usi::infoLineReceived, nullptr, nullptr);
-    QObject::connect(
+    if (m_connUsiInfoLine) {
+        QObject::disconnect(m_connUsiInfoLine);
+    }
+    m_connUsiInfoLine = QObject::connect(
         m_usi, &Usi::infoLineReceived,
-        this,  &AnalysisFlowController::onInfoLineReceived,
-        Qt::UniqueConnection
-        );
+        this,  &AnalysisFlowController::onInfoLineReceived);
 
     // (B-3) Usi::thinkingInfoUpdated → 漢字PV取得用
-    QObject::disconnect(m_usi, &Usi::thinkingInfoUpdated, nullptr, nullptr);
-    QObject::connect(
+    if (m_connUsiThinkingInfo) {
+        QObject::disconnect(m_connUsiThinkingInfo);
+    }
+    m_connUsiThinkingInfo = QObject::connect(
         m_usi, &Usi::thinkingInfoUpdated,
-        this,  &AnalysisFlowController::onThinkingInfoUpdated,
-        Qt::UniqueConnection
-        );
+        this,  &AnalysisFlowController::onThinkingInfoUpdated);
 
     // (B-4) Usi::errorOccurred → エンジンクラッシュ時に解析を停止
-    QObject::connect(
+    if (m_connUsiError) {
+        QObject::disconnect(m_connUsiError);
+    }
+    m_connUsiError = QObject::connect(
         m_usi, &Usi::errorOccurred,
-        this,  &AnalysisFlowController::onEngineError,
-        Qt::UniqueConnection
-        );
+        this,  &AnalysisFlowController::onEngineError);
 
     // 結果ビュー（Presenter）— 外部から渡された場合はそれを使用
     if (!m_presenter) {
@@ -209,7 +222,15 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     // USI通信ログのエンジン識別子を設定（"E?" ではなく "E1" と表示されるようにする）
     m_usi->setLogIdentity(QStringLiteral("[E1]"), QString(), engineName);
 
-    m_usi->startAndInitializeEngine(enginePath, engineName); // usi→usiok/setoption/isready→readyok
+    if (!m_usi->startAndInitializeEngine(enginePath, engineName)) { // usi→usiok/setoption/isready→readyok
+        if (m_presenter) {
+            m_presenter->setStopButtonEnabled(false);
+        }
+        if (m_err) {
+            m_err(tr("エンジン初期化に失敗しました。エンジン設定を確認してください。"));
+        }
+        return;
+    }
 
     // 解析用の盤面データを初期化（info行のPV解析に必要）
     m_usi->prepareBoardDataForAnalysis();
@@ -230,6 +251,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     }
 
     // 解析開始
+    m_lastStartSucceeded = true;
     m_running = true;
     m_coord->startAnalyzeRange();
 }
@@ -242,13 +264,18 @@ void AnalysisFlowController::stop()
         return;
     }
 
-    m_running = false;
     m_stoppedByUser = true;  // ユーザーによる中止を記録
 
     if (m_coord) {
         m_coord->stop();
+        if (!m_running) {
+            qCDebug(lcAnalysis).noquote() << "analysis stopped";
+            return;
+        }
     }
 
+    // フォールバック: AnalysisCoordinator::analysisFinished が返らない場合
+    m_running = false;
     if (m_usi) {
         m_usi->sendQuitCommand();
     }
@@ -257,7 +284,7 @@ void AnalysisFlowController::stop()
         m_presenter->setStopButtonEnabled(false);
     }
 
-    Q_EMIT analysisStopped();
+    emitAnalysisStoppedOnce();
 
     qCDebug(lcAnalysis).noquote() << "analysis stopped";
 }
@@ -387,7 +414,7 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
         m_presenter->showAnalysisComplete(totalMoves);
     }
 
-    Q_EMIT analysisStopped();
+    emitAnalysisStoppedOnce();
 }
 
 bool AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
@@ -474,7 +501,7 @@ bool AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
     // 以降は既存の start(...) に委譲（Presenter への表示や接続も start 側で実施）
     start(actualDeps, &dlg);
-    return true;
+    return m_lastStartSucceeded;
 }
 
 void AnalysisFlowController::onResultRowDoubleClicked(int row)
@@ -494,6 +521,6 @@ void AnalysisFlowController::onEngineError(const QString& msg)
         m_err(tr("エンジンエラー: %1").arg(msg));
     }
 
-    // 解析を停止（stop()内でanalysisStopped()が発行される）
+    // 解析を停止（analysisStopped は一度だけ通知される）
     stop();
 }

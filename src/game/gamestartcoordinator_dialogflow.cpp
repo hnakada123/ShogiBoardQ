@@ -8,6 +8,7 @@
 #include "kifuloadcoordinator.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
+#include "sfenutils.h"
 
 #include <QDebug>
 #include <QLoggingCategory>
@@ -25,13 +26,11 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
                        << " c.sfenRecord size=" << (c.sfenRecord ? c.sfenRecord->size() : -1);
 
     // --- 1) hasEditedStart 判定（ダイアログ表示・承認は呼び出し元 app/ 層で実施済み） ---
-    static const QString kHirateSfen = QStringLiteral(
-        "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
     const auto detectEditedStartSfen = [&]() -> QString {
         const auto isEditedStart = [&](const QString& raw) -> bool {
             const QString s = raw.trimmed();
             return !s.isEmpty()
-                   && s != kHirateSfen
+                   && !SfenUtils::isHirateStart(s)
                    && s != QLatin1String("startpos");
         };
 
