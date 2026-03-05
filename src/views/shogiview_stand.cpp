@@ -97,9 +97,9 @@ void ShogiView::drawWhiteStandField(QPainter* painter, const int file, const int
 void ShogiView::drawPiecesBlackStandInNormalMode(QPainter* painter)
 {
     const int ranks [4] = { 6, 7, 8, 9 };
-    for (int row = 0; row < 4; ++row) {
+    for (const int rank : ranks) {
         for (int file = 1; file <= 2; ++file) {
-            drawBlackStandPiece(painter, file, ranks[row]);
+            drawBlackStandPiece(painter, file, rank);
         }
     }
 }
@@ -108,9 +108,9 @@ void ShogiView::drawPiecesBlackStandInNormalMode(QPainter* painter)
 void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter* painter)
 {
     const int ranks [4] = { 4, 3, 2, 1 };
-    for (int row = 0; row < 4; ++row) {
+    for (const int rank : ranks) {
         for (int file = 1; file <= 2; ++file) {
-            drawWhiteStandPiece(painter, file, ranks[row]);
+            drawWhiteStandPiece(painter, file, rank);
         }
     }
 }

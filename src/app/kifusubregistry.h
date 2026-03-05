@@ -29,7 +29,7 @@ public:
     void ensureKifuExportController();
     void ensureGameRecordUpdateService();
     void ensureGameRecordLoadService();
-    void ensureKifuLoadCoordinatorForLive();
+    void prepareKifuLoadCoordinatorForLive();
     void ensureGameRecordModel();
     void ensureJosekiWiring();
 

@@ -337,7 +337,7 @@ void MainWindowFoundationRegistry::ensureJishogiController()
 // 入玉宣言ハンドラ
 // ---------------------------------------------------------------------------
 
-void MainWindowFoundationRegistry::ensureNyugyokuHandler()
+void MainWindowFoundationRegistry::prepareNyugyokuHandler()
 {
     if (m_mw.m_nyugyokuHandler) return;
     m_mw.m_nyugyokuHandler = std::make_unique<NyugyokuDeclarationHandler>();

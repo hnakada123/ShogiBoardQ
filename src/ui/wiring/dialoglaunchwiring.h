@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QPointer>
 #include <functional>
+#include <utility>
 
 #include "playmode.h"
 
@@ -98,10 +99,10 @@ public:
         std::function<void()> onCsaGameCoordinatorUpdated;
     };
 
-    explicit DialogLaunchWiring(const Deps& deps, QObject* parent = nullptr);
+    explicit DialogLaunchWiring(Deps deps, QObject* parent = nullptr);
     ~DialogLaunchWiring() override = default;
 
-    void updateDeps(const Deps& deps);
+    void updateDeps(Deps deps);
 
 public slots:
     void displayVersionInformation();

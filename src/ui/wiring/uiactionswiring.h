@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <functional>
+#include <utility>
 
 namespace Ui { class MainWindow; }
 class DialogLaunchWiring;
@@ -44,8 +45,8 @@ public:
         std::function<KifuExportController*()> getKifuExportController; ///< 棋譜エクスポートコントローラ取得
     };
 
-    explicit UiActionsWiring(const Deps& d, QObject* parent=nullptr)
-        : QObject(parent), m_d(d) {}
+    explicit UiActionsWiring(Deps d, QObject* parent=nullptr)
+        : QObject(parent), m_d(std::move(d)) {}
 
     /// 全アクションのシグナル/スロット接続を実行する（多重接続を避けるため1回だけ呼ぶ）
     void wire();

@@ -43,7 +43,7 @@ public:
         std::function<void()> ensureKifuExportController;      ///< KifuExportController 確保
         std::function<void()> updateKifuExportDependencies;    ///< KifuExportController 依存更新
         std::function<void()> createAndWireKifuLoadCoordinator; ///< KifuLoadCoordinator 生成・配線
-        std::function<void()> ensureKifuLoadCoordinatorForLive; ///< ライブ用 KifuLoadCoordinator 確保
+        std::function<void()> prepareKifuLoadCoordinatorForLive; ///< ライブ用 KifuLoadCoordinator 確保
 
         // --- ゲッター ---
         std::function<KifuExportController*()> getKifuExportController; ///< KifuExportController 取得

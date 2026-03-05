@@ -56,7 +56,7 @@ public:
     void ensurePositionEditController();
     void ensureAnalysisPresenter();
     void ensureJishogiController();
-    void ensureNyugyokuHandler();
+    void prepareNyugyokuHandler();
 
 private:
     // MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）

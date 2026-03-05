@@ -71,7 +71,7 @@ KifuFileController::Deps MainWindowDepsFactory::createKifuFileControllerDeps(
     deps.ensureKifuExportController = callbacks.ensureKifuExportController;
     deps.updateKifuExportDependencies = callbacks.updateKifuExportDependencies;
     deps.createAndWireKifuLoadCoordinator = callbacks.createAndWireKifuLoadCoordinator;
-    deps.ensureKifuLoadCoordinatorForLive = callbacks.ensureKifuLoadCoordinatorForLive;
+    deps.prepareKifuLoadCoordinatorForLive = callbacks.prepareKifuLoadCoordinatorForLive;
 
     // ゲッター
     deps.getKifuExportController = callbacks.getKifuExportController;

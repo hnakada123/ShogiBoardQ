@@ -17,6 +17,9 @@
 using namespace EngineSettingsConstants;
 
 namespace {
+constexpr int kWorkerQuitTimeoutMs = 3000;
+constexpr int kWorkerTerminateTimeoutMs = 1000;
+
 QString normalizeEnginePath(const QString& filePath)
 {
     const QFileInfo info(filePath);
@@ -38,8 +41,16 @@ EngineRegistrationHandler::~EngineRegistrationHandler()
     cancelRegistration();
 
     if (m_workerThread) {
-        m_workerThread->quit();
-        m_workerThread->wait();
+        if (m_workerThread->isRunning()) {
+            m_workerThread->quit();
+            if (!m_workerThread->wait(kWorkerQuitTimeoutMs)) {
+                qCWarning(lcUi) << "Engine registration worker thread quit timed out. Forcing terminate.";
+                m_workerThread->terminate();
+                if (!m_workerThread->wait(kWorkerTerminateTimeoutMs)) {
+                    qCWarning(lcUi) << "Engine registration worker thread is still running after terminate.";
+                }
+            }
+        }
     }
 }
 

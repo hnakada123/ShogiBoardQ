@@ -296,7 +296,7 @@ std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDi
         m_deps.engineName1, m_deps.engineName2,
         QDateTime::currentDateTime());
 
-    const QString filePath = QDir(saveDir).filePath(fileName);
+    QString filePath = QDir(saveDir).filePath(fileName);
 
     QString errorText;
     const bool ok = KifuIoService::writeKifuFile(filePath, kifLines, &errorText);

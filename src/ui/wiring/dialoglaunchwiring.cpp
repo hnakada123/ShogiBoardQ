@@ -5,6 +5,7 @@
 
 #include <QCoreApplication>
 #include <QMessageBox>
+#include <utility>
 
 #include "dialogcoordinator.h"
 #include "shogigamecontroller.h"
@@ -25,15 +26,15 @@
 #include "evaluationchartwidget.h"
 #include "logcategories.h"
 
-DialogLaunchWiring::DialogLaunchWiring(const Deps& deps, QObject* parent)
+DialogLaunchWiring::DialogLaunchWiring(Deps deps, QObject* parent)
     : QObject(parent)
-    , m_deps(deps)
+    , m_deps(std::move(deps))
 {
 }
 
-void DialogLaunchWiring::updateDeps(const Deps& deps)
+void DialogLaunchWiring::updateDeps(Deps deps)
 {
-    m_deps = deps;
+    m_deps = std::move(deps);
 }
 
 void DialogLaunchWiring::displayVersionInformation()

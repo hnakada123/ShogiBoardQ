@@ -64,6 +64,7 @@ int EngineMoveValidator::checkIfKingInCheck(Context& ctx) const
     return legalCore().countChecksToKing(ctx.pos, fmv::Converter::toColor(ctx.turn));
 }
 
+#ifdef SHOGIBOARDQ_TESTING
 bool EngineMoveValidator::tryApplyMove(Context& ctx, ShogiMove& move) const
 {
     if (!ctx.synced || ctx.undoSize >= Context::kUndoMax) {
@@ -99,6 +100,7 @@ bool EngineMoveValidator::undoLastMove(Context& ctx) const
     legalCore().undoAppliedMove(ctx.pos, side, undo);
     return true;
 }
+#endif
 
 // ---- 互換ラッパ（毎回Contextを作る） ----
 

@@ -128,8 +128,8 @@ void KifuSubRegistry::ensureKifuFileController()
         updateKifuExportDeps();
     };
     callbacks.createAndWireKifuLoadCoordinator = [this]() { createAndWireKifuLoadCoordinator(); };
-    callbacks.ensureKifuLoadCoordinatorForLive = [this]() {
-        ensureKifuLoadCoordinatorForLive();
+    callbacks.prepareKifuLoadCoordinatorForLive = [this]() {
+        prepareKifuLoadCoordinatorForLive();
     };
     callbacks.getKifuExportController = [this]() { return m_mw.m_kifuExportController.get(); };
     callbacks.getKifuLoadCoordinator = [this]() { return m_mw.m_kifuLoadCoordinator; };
@@ -242,7 +242,7 @@ void KifuSubRegistry::refreshGameRecordLoadDeps()
 // ライブ棋譜ロード
 // ---------------------------------------------------------------------------
 
-void KifuSubRegistry::ensureKifuLoadCoordinatorForLive()
+void KifuSubRegistry::prepareKifuLoadCoordinatorForLive()
 {
     if (m_mw.m_kifuLoadCoordinator) {
         return;

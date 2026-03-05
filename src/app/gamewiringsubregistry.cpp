@@ -311,7 +311,7 @@ void GameWiringSubRegistry::ensureConsecutiveGamesController()
 // ターン同期ブリッジ
 // ---------------------------------------------------------------------------
 
-void GameWiringSubRegistry::ensureTurnSyncBridge()
+void GameWiringSubRegistry::prepareTurnSyncBridge()
 {
     auto* gc = m_mw.m_gameController;
     auto* tm = m_mw.findChild<TurnManager*>("TurnManager");

@@ -27,6 +27,7 @@ void SfenPositionTracer::resetToStartpos() {
 // 手の適用・SFEN生成
 // ======================================================================
 
+#ifdef SHOGIBOARDQ_TESTING
 QStringList SfenPositionTracer::generateSfensForMoves(const QStringList& usiMoves) {
     resetToStartpos();
     QStringList out;
@@ -37,6 +38,7 @@ QStringList SfenPositionTracer::generateSfensForMoves(const QStringList& usiMove
     }
     return out;
 }
+#endif
 
 bool SfenPositionTracer::applyUsiMove(const QString& usiIn) {
     QString usi = usiIn.trimmed();

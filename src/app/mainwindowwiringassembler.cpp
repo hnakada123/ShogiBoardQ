@@ -28,7 +28,7 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getMatch             = [this]() { return m_mw.m_match; };
     d.getShogiView         = [this]() { return m_mw.m_shogiView; };
     d.getJishogiController = [this]() { m_foundation->ensureJishogiController(); return m_mw.m_jishogiController.get(); };
-    d.getNyugyokuHandler   = [this]() { m_foundation->ensureNyugyokuHandler(); return m_mw.m_nyugyokuHandler.get(); };
+    d.getNyugyokuHandler   = [this]() { m_foundation->prepareNyugyokuHandler(); return m_mw.m_nyugyokuHandler.get(); };
     d.getCsaGameWiring     = [this]() { m_game->wiring()->ensureCsaGameWiring(); return m_mw.m_csaGameWiring.get(); };
     d.getBoardSetupController = [this]() { ensureBoardSetupController(); return m_mw.m_boardSetupController; };
     d.getPlayerInfoWiring  = [this]() { m_foundation->ensurePlayerInfoWiring(); return m_mw.m_playerInfoWiring; };

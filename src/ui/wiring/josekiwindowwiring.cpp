@@ -251,8 +251,8 @@ void JosekiWindowWiring::onRequestKifuDataForMerge()
 
     // SFENレコードから局面リストを取得
     if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
-        for (int i = 0; i < m_sfenHistory->size(); ++i) {
-            sfenList.append(m_sfenHistory->at(i));
+        for (const QString& sfen : std::as_const(*m_sfenHistory)) {
+            sfenList.append(sfen);
         }
         qCDebug(lcUi) << "sfenList from m_sfenHistory, size=" << sfenList.size();
     }

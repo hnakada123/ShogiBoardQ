@@ -114,7 +114,7 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
     qCDebug(lcApp) << "onKifuPasteImportRequested: content length =" << content.size();
 
     if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
-    if (m_deps.ensureKifuLoadCoordinatorForLive) m_deps.ensureKifuLoadCoordinatorForLive();
+    if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
 
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
     if (klc) {
@@ -137,7 +137,7 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
 void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
 {
     if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
-    if (m_deps.ensureKifuLoadCoordinatorForLive) m_deps.ensureKifuLoadCoordinatorForLive();
+    if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
 
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
     if (klc) {

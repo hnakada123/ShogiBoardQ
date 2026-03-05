@@ -77,7 +77,7 @@ void GameSessionSubRegistry::ensurePreStartCleanupHandler()
 // ライブセッション開始
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::ensureLiveGameSessionStarted()
+void GameSessionSubRegistry::startLiveGameSessionIfNeeded()
 {
     ensureLiveGameSessionUpdater();
     m_mw.m_liveGameSessionUpdater->ensureSessionStarted();
@@ -235,8 +235,8 @@ void GameSessionSubRegistry::refreshCoreInitDeps()
     deps.setCurrentTurn = [this]() {
         m_mw.setCurrentTurn();
     };
-    deps.ensureTurnSyncBridge = [this]() {
-        m_gameReg->wiring()->ensureTurnSyncBridge();
+    deps.prepareTurnSyncBridge = [this]() {
+        m_gameReg->wiring()->prepareTurnSyncBridge();
     };
     deps.ensurePlayerInfoWiringAndApply = [this]() {
         m_foundation->ensurePlayerInfoWiring();

@@ -6,7 +6,6 @@
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
 #include "gamesubregistry.h"
-#include "gamesessionsubregistry.h"
 #include "kifusubregistry.h"
 
 MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* parent)
@@ -30,7 +29,7 @@ MainWindowServiceRegistry::~MainWindowServiceRegistry() = default;
 void MainWindowServiceRegistry::prepareUndoFlowService()
 {
     if (m_mw.m_isShuttingDown) return;
-    m_game->ensureUndoFlowService();
+    m_game->prepareUndoFlowService();
 }
 
 void MainWindowServiceRegistry::prepareTurnStateSyncService()
@@ -52,12 +51,12 @@ void MainWindowServiceRegistry::updateJosekiWindow()
 
 void MainWindowServiceRegistry::resetToInitialState()
 {
-    m_game->session()->resetToInitialState();
+    m_game->resetToInitialState();
 }
 
 void MainWindowServiceRegistry::resetGameState()
 {
-    m_game->session()->resetGameState();
+    m_game->resetGameState();
 }
 
 void MainWindowServiceRegistry::setReplayMode(bool on)

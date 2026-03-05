@@ -234,49 +234,49 @@ void MainWindow::connectSignalsForLifecycle()
         d.evalChart = m_mw.m_evalChart;
         d.gameController = m_mw.m_gameController;
         d.boardController = m_mw.m_boardController;
-        d.getDialogCoordinatorWiring = [this, &m_mw]() {
+        d.getDialogCoordinatorWiring = [&m_mw]() {
             return m_mw.m_registryParts.dialogCoordinatorWiring;
         };
-        d.getDialogLaunchWiring = [this, &m_mw]() {
+        d.getDialogLaunchWiring = [&m_mw]() {
             return m_mw.m_dialogLaunchWiring;
         };
-        d.getKifuFileController = [this, &m_mw]() {
+        d.getKifuFileController = [&m_mw]() {
             return m_mw.m_kifuFileController;
         };
-        d.getGameSessionOrchestrator = [this, &m_mw]() {
+        d.getGameSessionOrchestrator = [&m_mw]() {
             return m_mw.m_gameSessionOrchestrator;
         };
-        d.getNotificationService = [this, &m_mw]() {
+        d.getNotificationService = [&m_mw]() {
             return m_mw.m_notificationService;
         };
-        d.getBoardSetupController = [this, &m_mw]() {
+        d.getBoardSetupController = [&m_mw]() {
             return m_mw.m_boardSetupController;
         };
-        d.getActionsWiring = [this, &m_mw]() {
+        d.getActionsWiring = [&m_mw]() {
             return m_mw.m_registryParts.actionsWiring;
         };
-        d.setActionsWiring = [this, &m_mw](UiActionsWiring* wiring) {
+        d.setActionsWiring = [&m_mw](UiActionsWiring* wiring) {
             m_mw.m_registryParts.actionsWiring = wiring;
         };
-        d.initializeDialogLaunchWiring = [this, &m_mw]() {
+        d.initializeDialogLaunchWiring = [&m_mw]() {
             m_mw.m_registry->ui()->initializeDialogLaunchWiring();
         };
-        d.ensureDialogCoordinator = [this, &m_mw]() {
+        d.ensureDialogCoordinator = [&m_mw]() {
             m_mw.m_registry->ui()->ensureDialogCoordinator();
         };
-        d.ensureKifuFileController = [this, &m_mw]() {
+        d.ensureKifuFileController = [&m_mw]() {
             m_mw.m_registry->kifu()->ensureKifuFileController();
         };
-        d.ensureGameSessionOrchestrator = [this, &m_mw]() {
+        d.ensureGameSessionOrchestrator = [&m_mw]() {
             m_mw.m_registry->game()->session()->ensureGameSessionOrchestrator();
         };
-        d.ensureUiNotificationService = [this, &m_mw]() {
+        d.ensureUiNotificationService = [&m_mw]() {
             m_mw.m_registry->foundation()->ensureUiNotificationService();
         };
-        d.ensureBoardSetupController = [this, &m_mw]() {
+        d.ensureBoardSetupController = [&m_mw]() {
             m_mw.m_registry->board()->ensureBoardSetupController();
         };
-        d.getKifuExportController = [this, &m_mw]() -> KifuExportController* {
+        d.getKifuExportController = [&m_mw]() -> KifuExportController* {
             m_mw.m_registry->kifu()->ensureKifuExportController();
             return m_mw.m_kifuExportController.get();
         };

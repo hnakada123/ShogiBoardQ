@@ -13,7 +13,6 @@
 #include <QMap>
 
 // ===== public =====
-
 QString KifToSfenConverter::mapHandicapToSfen(const QString& label) {
     return NotationUtils::mapHandicapToSfen(label);
 }
@@ -59,12 +58,9 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
                                                                 QString* errorMessage)
 {
     QList<KifDisplayItem> out;
-
     QString usedEnc;
     QStringList lines;
-    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) {
-        return out;
-    }
+    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) return out;
 
     QString openingCommentBuf;
     QString openingBookmarkBuf;
@@ -145,12 +141,9 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
 QStringList KifToSfenConverter::convertFile(const QString& kifPath, QString* errorMessage)
 {
     QStringList out;
-
     QString usedEnc;
     QStringList lines;
-    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) {
-        return out;
-    }
+    if (!KifReader::readLinesAuto(kifPath, lines, &usedEnc, errorMessage)) return out;
 
     int prevToFile = 0, prevToRank = 0;
 
@@ -249,8 +242,6 @@ bool KifToSfenConverter::parseWithVariations(const QString& kifPath,
     out.variations = vars;
     return true;
 }
-
-// ---------- parseWithVariations ヘルパ ----------
 
 void KifToSfenConverter::extractMainLine(const QString& kifPath,
                                           KifParseResult& out,
@@ -428,9 +419,6 @@ QMap<QString, QString> KifToSfenConverter::extractGameInfoMap(const QString& fil
 {
     return KifuParseCommon::toGameInfoMap(extractGameInfo(filePath));
 }
-
-// ===== BOD =====
-
 bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
                                                  QString& outSfen,
                                                  QString* detectedLabel,
@@ -497,9 +485,7 @@ QString KifToSfenConverter::extractOpeningComment(const QString& filePath)
             continue;
         }
 
-        if (t.startsWith(QLatin1Char('&'))) {
-            continue;
-        }
+        if (t.startsWith(QLatin1Char('&'))) continue;
     }
     return buf;
 }
