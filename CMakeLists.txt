@@ -781,6 +781,8 @@ set(SRC_DIALOGS
     src/dialogs/engineregistrationdialog.h
     src/dialogs/engineregistrationhandler.cpp
     src/dialogs/engineregistrationhandler.h
+    src/dialogs/usioptionlineparser.cpp
+    src/dialogs/usioptionlineparser.h
     src/dialogs/engineregistrationworker.cpp
     src/dialogs/engineregistrationworker.h
     src/dialogs/josekimergedialog.cpp

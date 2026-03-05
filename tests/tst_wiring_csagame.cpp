@@ -46,6 +46,26 @@ private:
         return false;
     }
 
+    /// 指定のシグナル・スロット接続に Qt::UniqueConnection が付与されているか
+    static bool hasUniqueConnection(const QString& src,
+                                    const QString& signalPattern,
+                                    const QString& slotPattern)
+    {
+        qsizetype pos = 0;
+        while ((pos = src.indexOf(QStringLiteral("connect("), pos)) != -1) {
+            qsizetype end = src.indexOf(QStringLiteral(");"), pos);
+            if (end < 0) break;
+            const QString block = src.mid(pos, end - pos + 2);
+            if (block.contains(signalPattern)
+                && block.contains(slotPattern)
+                && block.contains(QStringLiteral("Qt::UniqueConnection"))) {
+                return true;
+            }
+            pos = end + 1;
+        }
+        return false;
+    }
+
     /// connect() 呼び出しの総数を数える
     static int countConnects(const QString& src)
     {
@@ -124,6 +144,18 @@ private slots:
                  "showGameEndDialogRequested → showGameEndDialogInternal connection missing");
     }
 
+    void wire_usesUniqueConnection()
+    {
+        QVERIFY2(hasUniqueConnection(m_wiringSrc,
+                                     QStringLiteral("CsaGameCoordinator::gameStarted"),
+                                     QStringLiteral("CsaGameWiring::onGameStarted")),
+                 "gameStarted connection must use Qt::UniqueConnection");
+        QVERIFY2(hasUniqueConnection(m_wiringSrc,
+                                     QStringLiteral("CsaGameWiring::playModeChanged"),
+                                     QStringLiteral("CsaGameWiring::onPlayModeChangedInternal")),
+                 "playModeChanged connection must use Qt::UniqueConnection");
+    }
+
     // ================================================================
     // wireExternalSignals() 契約テスト
     // ================================================================
@@ -155,6 +187,18 @@ private slots:
                                QStringLiteral("CsaGameWiring::errorMessageRequested"),
                                QStringLiteral("UiNotificationService::displayErrorMessage")),
                  "errorMessageRequested → displayErrorMessage connection missing");
+    }
+
+    void wireExternalSignals_usesUniqueConnection()
+    {
+        QVERIFY2(hasUniqueConnection(m_wiringSrc,
+                                     QStringLiteral("CsaGameWiring::disableNavigationRequested"),
+                                     QStringLiteral("UiStatePolicyManager::transitionToDuringCsaGame")),
+                 "disableNavigationRequested external connection must use Qt::UniqueConnection");
+        QVERIFY2(hasUniqueConnection(m_wiringSrc,
+                                     QStringLiteral("CsaGameWiring::appendKifuLineRequested"),
+                                     QStringLiteral("GameRecordUpdateService::appendKifuLine")),
+                 "appendKifuLineRequested external connection must use Qt::UniqueConnection");
     }
 
     // ================================================================
@@ -192,6 +236,12 @@ private slots:
         // wire():9 + startCsaGame():4 + wireExternalSignals():4 = 17以上
         QVERIFY2(total >= 17,
                  qPrintable(QStringLiteral("Expected >= 17 connect() calls, got %1").arg(total)));
+    }
+
+    void setCoordinator_hasSelfAssignmentGuard()
+    {
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("if (m_coordinator == coordinator)")),
+                 "setCoordinator should early-return for same coordinator pointer");
     }
 };
 

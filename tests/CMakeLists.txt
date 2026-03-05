@@ -1106,6 +1106,7 @@ add_shogi_test(tst_jishogi_calculator
 add_shogi_test(tst_engineregistrationhandler
     tst_engineregistrationhandler.cpp
     ${SRC}/dialogs/engineregistrationhandler.cpp
+    ${SRC}/dialogs/usioptionlineparser.cpp
     ${SRC}/dialogs/engineregistrationworker.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/common/logcategories.cpp

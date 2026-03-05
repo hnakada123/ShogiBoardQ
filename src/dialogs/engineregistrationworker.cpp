@@ -6,6 +6,13 @@
 #include <QFileInfo>
 #include <QProcess>
 
+namespace {
+void drainStderr(QProcess& process)
+{
+    (void)process.readAllStandardError();
+}
+} // namespace
+
 EngineRegistrationWorker::EngineRegistrationWorker(QObject* parent)
     : QObject(parent)
 {
@@ -27,10 +34,12 @@ void EngineRegistrationWorker::registerEngine(const QString& enginePath)
     QProcess process;
     process.setWorkingDirectory(engineInfo.absolutePath());
     process.start(engineInfo.absoluteFilePath(), QStringList(), QIODevice::ReadWrite);
+    drainStderr(process);
 
     emit progressUpdated(tr("エンジンを起動中..."));
 
     if (!process.waitForStarted(StartTimeoutMs)) {
+        drainStderr(process);
         emit registrationFailed(tr("エンジンの起動に失敗しました: %1").arg(enginePath));
         return;
     }
@@ -45,14 +54,18 @@ void EngineRegistrationWorker::registerEngine(const QString& enginePath)
     QDeadlineTimer deadline(UsiOkTimeoutMs);
 
     while (!deadline.hasExpired()) {
+        drainStderr(process);
+
         if (m_cancelFlag && m_cancelFlag->load()) {
             process.kill();
             process.waitForFinished(QuitTimeoutMs);
+            drainStderr(process);
             emit registrationCanceled();
             return;
         }
 
         if (!process.waitForReadyRead(ReadIntervalMs)) {
+            drainStderr(process);
             continue;
         }
 
@@ -68,6 +81,7 @@ void EngineRegistrationWorker::registerEngine(const QString& enginePath)
             } else if (line.startsWith("usiok")) {
                 process.write("quit\n");
                 process.waitForFinished(QuitTimeoutMs);
+                drainStderr(process);
                 if (engineName.trimmed().isEmpty()) {
                     emit registrationFailed(tr("エンジン名(id name)を取得できませんでした"));
                     return;
@@ -76,10 +90,13 @@ void EngineRegistrationWorker::registerEngine(const QString& enginePath)
                 return;
             }
         }
+
+        drainStderr(process);
     }
 
     // タイムアウト
     process.kill();
     process.waitForFinished(QuitTimeoutMs);
+    drainStderr(process);
     emit registrationFailed(tr("エンジンからの応答がタイムアウトしました"));
 }

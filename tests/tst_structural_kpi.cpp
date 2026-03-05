@@ -647,7 +647,7 @@ private slots:
     // ================================================================
     void filesOver500()
     {
-        constexpr int kMaxFilesOver500 = 19; // 実測値: 18 (2026-03-04, analysisresulthandler分割後)
+        constexpr int kMaxFilesOver500 = 18; // 実測値: 17 (2026-03-05, csagamewiring整理後)
         constexpr int kThreshold = 500;
 
         const auto files = collectSourceFiles();
