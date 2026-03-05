@@ -88,8 +88,12 @@ void GameSubRegistry::ensureGameStateController()
     m_foundation->ensureUiStatePolicyManager();
 
     MainWindowDepsFactory::GameStateControllerCallbacks cbs;
-    cbs.enableArrowButtons = std::bind(&UiStatePolicyManager::transitionToIdle, m_mw.m_uiStatePolicy);
-    cbs.setReplayMode = std::bind(&MainWindow::setReplayMode, &m_mw, std::placeholders::_1);
+    cbs.enableArrowButtons = [this]() {
+        m_mw.m_uiStatePolicy->transitionToIdle();
+    };
+    cbs.setReplayMode = [this](bool replayMode) {
+        m_mw.setReplayMode(replayMode);
+    };
     cbs.refreshBranchTree = [this]() { m_mw.m_kifu.currentSelectedPly = 0; };
     cbs.updatePlyState = [this](int ap, int sp, int mi) {
         m_mw.m_kifu.activePly = ap;
@@ -159,7 +163,9 @@ void GameSubRegistry::refreshTurnStateSyncDeps()
     deps.timePresenter = m_mw.m_timePresenter;
     deps.playMode = &m_mw.m_state.playMode;
     deps.turnManagerParent = &m_mw;
-    deps.updateTurnStatus = std::bind(&GameSubRegistry::updateTurnStatus, this, std::placeholders::_1);
+    deps.updateTurnStatus = [this](int currentPlayer) {
+        updateTurnStatus(currentPlayer);
+    };
     deps.onTurnManagerCreated = [this](TurnManager* tm) {
         connect(tm, &TurnManager::changed,
                 &m_mw, &MainWindow::onTurnManagerChanged,

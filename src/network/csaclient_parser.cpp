@@ -4,6 +4,20 @@
 #include "csaclient.h"
 #include "logcategories.h"
 
+namespace {
+bool parseNonNegativeIntField(const QString& key, const QString& value, int& out)
+{
+    bool ok = false;
+    const int parsed = value.toInt(&ok);
+    if (!ok || parsed < 0) {
+        qCWarning(lcNetwork) << "Invalid numeric value for" << key << ":" << value;
+        return false;
+    }
+    out = parsed;
+    return true;
+}
+} // namespace
+
 // ============================================================
 // 受信行解析
 // ============================================================
@@ -83,149 +97,165 @@ void CsaClient::processLoginResponse(const QString& line)
 
 void CsaClient::processGameSummary(const QString& line)
 {
-    // セクション終了チェック
+    if (handleGameSummarySectionBoundary(line)) return;
+    if (handleGameSummaryTimeSectionLine(line)) return;
+    if (handleGameSummaryPositionSectionLine(line)) return;
+    processGameSummaryGeneralInfoLine(line);
+}
+
+bool CsaClient::handleGameSummarySectionBoundary(const QString& line)
+{
     if (line == QStringLiteral("END Game_Summary")) {
         m_inGameSummary = false;
         m_inTimeSection = false;
         m_inPositionSection = false;
         setConnectionState(ConnectionState::GameReady);
         emit gameSummaryReceived(m_gameSummary);
-        return;
+        return true;
     }
 
     if (line == QStringLiteral("END Time") ||
         line == QStringLiteral("END Time+") ||
         line == QStringLiteral("END Time-")) {
         m_inTimeSection = false;
-        return;
+        return true;
     }
 
     if (line == QStringLiteral("END Position")) {
         m_inPositionSection = false;
-        return;
+        return true;
     }
 
-    // セクション開始チェック
     if (line == QStringLiteral("BEGIN Time")) {
         m_inTimeSection = true;
         m_currentTimeSection = QStringLiteral("Time");
-        return;
+        return true;
     }
     if (line == QStringLiteral("BEGIN Time+")) {
         m_inTimeSection = true;
         m_currentTimeSection = QStringLiteral("Time+");
         m_gameSummary.hasIndividualTime = true;
-        return;
+        return true;
     }
     if (line == QStringLiteral("BEGIN Time-")) {
         m_inTimeSection = true;
         m_currentTimeSection = QStringLiteral("Time-");
         m_gameSummary.hasIndividualTime = true;
-        return;
+        return true;
     }
     if (line == QStringLiteral("BEGIN Position")) {
         m_inPositionSection = true;
-        return;
+        return true;
     }
 
-    // 時間セクション内の処理
-    if (m_inTimeSection) {
-        qsizetype colonPos = line.indexOf(QLatin1Char(':'));
-        if (colonPos > 0) {
-            QString key = line.left(static_cast<int>(colonPos));
-            QString value = line.mid(static_cast<int>(colonPos) + 1);
+    return false;
+}
 
-            if (key == QStringLiteral("Time_Unit")) {
-                m_gameSummary.timeUnit = value;
-            } else if (key == QStringLiteral("Total_Time")) {
-                bool ok;
-                int time = value.toInt(&ok);
-                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
-                if (m_currentTimeSection == QStringLiteral("Time+")) {
-                    m_gameSummary.totalTimeBlack = time;
-                } else if (m_currentTimeSection == QStringLiteral("Time-")) {
-                    m_gameSummary.totalTimeWhite = time;
-                } else {
-                    m_gameSummary.totalTime = time;
-                }
-            } else if (key == QStringLiteral("Byoyomi")) {
-                bool ok;
-                int time = value.toInt(&ok);
-                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
-                if (m_currentTimeSection == QStringLiteral("Time+")) {
-                    m_gameSummary.byoyomiBlack = time;
-                } else if (m_currentTimeSection == QStringLiteral("Time-")) {
-                    m_gameSummary.byoyomiWhite = time;
-                } else {
-                    m_gameSummary.byoyomi = time;
-                }
-            } else if (key == QStringLiteral("Least_Time_Per_Move")) {
-                bool ok;
-                m_gameSummary.leastTimePerMove = value.toInt(&ok);
-                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
-            } else if (key == QStringLiteral("Increment")) {
-                bool ok;
-                m_gameSummary.increment = value.toInt(&ok);
-                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
-            } else if (key == QStringLiteral("Delay")) {
-                bool ok;
-                m_gameSummary.delay = value.toInt(&ok);
-                if (!ok) qCWarning(lcNetwork) << "Invalid time value for" << key << ":" << value;
-            } else if (key == QStringLiteral("Time_Roundup")) {
-                m_gameSummary.timeRoundup = (value == QStringLiteral("YES"));
-            }
-        }
-        return;
+bool CsaClient::handleGameSummaryTimeSectionLine(const QString& line)
+{
+    if (!m_inTimeSection) return false;
+
+    const qsizetype colonPos = line.indexOf(QLatin1Char(':'));
+    if (colonPos <= 0) return true;
+
+    const QString key = line.left(static_cast<int>(colonPos));
+    const QString value = line.mid(static_cast<int>(colonPos) + 1);
+
+    if (key == QStringLiteral("Time_Unit")) {
+        m_gameSummary.timeUnit = value;
+        return true;
     }
 
-    // 局面セクション内の処理
-    if (m_inPositionSection) {
-        // P1-P9, P+, P-, +, - で始まる行は局面情報
-        if (line.startsWith(QLatin1Char('P')) ||
-            line == QStringLiteral("+") ||
-            line == QStringLiteral("-")) {
-            m_gameSummary.positionLines.append(line);
+    if (key == QStringLiteral("Total_Time")) {
+        int time = 0;
+        if (!parseNonNegativeIntField(key, value, time)) return true;
+        if (m_currentTimeSection == QStringLiteral("Time+")) {
+            m_gameSummary.totalTimeBlack = time;
+        } else if (m_currentTimeSection == QStringLiteral("Time-")) {
+            m_gameSummary.totalTimeWhite = time;
+        } else {
+            m_gameSummary.totalTime = time;
         }
-        // 指し手行（+7776FU,T12 形式）
-        else if ((line.startsWith(QLatin1Char('+')) || line.startsWith(QLatin1Char('-'))) &&
-                 line.length() > 1) {
-            // 消費時間を除去して指し手のみ保存
-            qsizetype commaPos = line.indexOf(QLatin1Char(','));
-            QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
-            m_gameSummary.moves.append(move);
-        }
-        return;
+        return true;
     }
 
-    // 一般情報の処理
-    qsizetype colonPos = line.indexOf(QLatin1Char(':'));
-    if (colonPos > 0) {
-        QString key = line.left(static_cast<int>(colonPos));
-        QString value = line.mid(static_cast<int>(colonPos) + 1);
-
-        if (key == QStringLiteral("Protocol_Version")) {
-            m_gameSummary.protocolVersion = value;
-        } else if (key == QStringLiteral("Protocol_Mode")) {
-            m_gameSummary.protocolMode = value;
-        } else if (key == QStringLiteral("Format")) {
-            m_gameSummary.format = value;
-        } else if (key == QStringLiteral("Declaration")) {
-            m_gameSummary.declaration = value;
-        } else if (key == QStringLiteral("Game_ID")) {
-            m_gameSummary.gameId = value;
-        } else if (key == QStringLiteral("Name+")) {
-            m_gameSummary.blackName = value;
-        } else if (key == QStringLiteral("Name-")) {
-            m_gameSummary.whiteName = value;
-        } else if (key == QStringLiteral("Your_Turn")) {
-            m_gameSummary.myTurn = value;
-        } else if (key == QStringLiteral("To_Move")) {
-            m_gameSummary.toMove = value;
-        } else if (key == QStringLiteral("Rematch_On_Draw")) {
-            m_gameSummary.rematchOnDraw = (value == QStringLiteral("YES"));
-        } else if (key == QStringLiteral("Max_Moves")) {
-            m_gameSummary.maxMoves = value.toInt();
+    if (key == QStringLiteral("Byoyomi")) {
+        int time = 0;
+        if (!parseNonNegativeIntField(key, value, time)) return true;
+        if (m_currentTimeSection == QStringLiteral("Time+")) {
+            m_gameSummary.byoyomiBlack = time;
+        } else if (m_currentTimeSection == QStringLiteral("Time-")) {
+            m_gameSummary.byoyomiWhite = time;
+        } else {
+            m_gameSummary.byoyomi = time;
         }
+        return true;
+    }
+
+    if (key == QStringLiteral("Least_Time_Per_Move")) {
+        (void)parseNonNegativeIntField(key, value, m_gameSummary.leastTimePerMove);
+    } else if (key == QStringLiteral("Increment")) {
+        (void)parseNonNegativeIntField(key, value, m_gameSummary.increment);
+    } else if (key == QStringLiteral("Delay")) {
+        (void)parseNonNegativeIntField(key, value, m_gameSummary.delay);
+    } else if (key == QStringLiteral("Time_Roundup")) {
+        m_gameSummary.timeRoundup = (value == QStringLiteral("YES"));
+    }
+    return true;
+}
+
+bool CsaClient::handleGameSummaryPositionSectionLine(const QString& line)
+{
+    if (!m_inPositionSection) return false;
+
+    // P1-P9, P+, P-, +, - で始まる行は局面情報
+    if (line.startsWith(QLatin1Char('P')) ||
+        line == QStringLiteral("+") ||
+        line == QStringLiteral("-")) {
+        m_gameSummary.positionLines.append(line);
+        return true;
+    }
+
+    // 指し手行（+7776FU,T12 形式）
+    if ((line.startsWith(QLatin1Char('+')) || line.startsWith(QLatin1Char('-'))) &&
+        line.length() > 1) {
+        const qsizetype commaPos = line.indexOf(QLatin1Char(','));
+        const QString move = (commaPos > 0) ? line.left(static_cast<int>(commaPos)) : line;
+        m_gameSummary.moves.append(move);
+    }
+    return true;
+}
+
+void CsaClient::processGameSummaryGeneralInfoLine(const QString& line)
+{
+    const qsizetype colonPos = line.indexOf(QLatin1Char(':'));
+    if (colonPos <= 0) return;
+
+    const QString key = line.left(static_cast<int>(colonPos));
+    const QString value = line.mid(static_cast<int>(colonPos) + 1);
+
+    if (key == QStringLiteral("Protocol_Version")) {
+        m_gameSummary.protocolVersion = value;
+    } else if (key == QStringLiteral("Protocol_Mode")) {
+        m_gameSummary.protocolMode = value;
+    } else if (key == QStringLiteral("Format")) {
+        m_gameSummary.format = value;
+    } else if (key == QStringLiteral("Declaration")) {
+        m_gameSummary.declaration = value;
+    } else if (key == QStringLiteral("Game_ID")) {
+        m_gameSummary.gameId = value;
+    } else if (key == QStringLiteral("Name+")) {
+        m_gameSummary.blackName = value;
+    } else if (key == QStringLiteral("Name-")) {
+        m_gameSummary.whiteName = value;
+    } else if (key == QStringLiteral("Your_Turn")) {
+        m_gameSummary.myTurn = value;
+    } else if (key == QStringLiteral("To_Move")) {
+        m_gameSummary.toMove = value;
+    } else if (key == QStringLiteral("Rematch_On_Draw")) {
+        m_gameSummary.rematchOnDraw = (value == QStringLiteral("YES"));
+    } else if (key == QStringLiteral("Max_Moves")) {
+        (void)parseNonNegativeIntField(key, value, m_gameSummary.maxMoves);
     }
 }
 

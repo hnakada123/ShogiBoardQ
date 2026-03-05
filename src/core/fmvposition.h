@@ -27,7 +27,7 @@ public:
     std::array<char, kSquareNb> board{};
 
     /// 全駒の占有ビットボード
-    Bitboard81 occupied{};
+    Bitboard81 occupied;
 
     /// 色別占有ビットボード
     Bitboard81 colorOcc[2]{};

@@ -33,7 +33,7 @@ inline QString hirateSfen()
 /// "startpos" を標準初期配置のSFEN文字列に展開する（既にSFENならそのまま返す）
 inline QString normalizeStart(const QString& startPositionStr)
 {
-    const QString trimmed = startPositionStr.trimmed();
+    QString trimmed = startPositionStr.trimmed();
     if (trimmed == QStringLiteral("startpos")) {
         return hirateSfen();
     }
@@ -55,7 +55,7 @@ inline QString normalizePositionLikeSfen(const QString& positionLike)
 /// 比較用キー（`board turn stand`）へ正規化する
 inline QString normalizeSfenKey(const QString& sfenLike)
 {
-    const QString normalized = normalizePositionLikeSfen(sfenLike);
+    QString normalized = normalizePositionLikeSfen(sfenLike);
     const QStringList parts = normalized.split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (parts.size() >= 3) {
         return parts.mid(0, 3).join(QLatin1Char(' '));

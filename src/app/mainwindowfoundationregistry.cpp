@@ -126,7 +126,9 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
     if (!m_mw.m_kifuNavCoordinator) return;
 
     KifuNavigationDepsFactory::Callbacks callbacks;
-    callbacks.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
+    callbacks.setCurrentTurn = [this]() {
+        m_mw.setCurrentTurn();
+    };
     callbacks.updateJosekiWindow = [this]() {
         if (m_mw.m_docks.josekiWindow && !m_mw.m_docks.josekiWindow->isVisible()) {
             return;
@@ -136,7 +138,9 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
         }
     };
     callbacks.ensureBoardSyncPresenter = [this]() { ensureBoardSyncPresenter(); };
-    callbacks.isGameActivelyInProgress = std::bind(&MainWindowFoundationRegistry::queryIsGameActivelyInProgress, this);
+    callbacks.isGameActivelyInProgress = [this]() {
+        return queryIsGameActivelyInProgress();
+    };
     callbacks.getSfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
 
     m_mw.m_kifuNavCoordinator->updateDeps(

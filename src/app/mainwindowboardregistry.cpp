@@ -108,8 +108,12 @@ void MainWindowServiceRegistry::ensureBoardLoadService()
     deps.view = m_mw.m_shogiView;
     deps.boardSync = m_mw.m_boardSync;
     deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
-    deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
-    deps.ensureBoardSyncPresenter = std::bind(&MainWindowFoundationRegistry::ensureBoardSyncPresenter, m_foundation);
+    deps.setCurrentTurn = [this]() {
+        m_mw.setCurrentTurn();
+    };
+    deps.ensureBoardSyncPresenter = [this]() {
+        m_foundation->ensureBoardSyncPresenter();
+    };
     deps.beginBranchNavGuard = [this]() {
         m_foundation->ensureKifuNavigationCoordinator();
         m_mw.m_kifuNavCoordinator->beginBranchNavGuard();
@@ -268,9 +272,9 @@ void MainWindowServiceRegistry::clearSessionDependentUi()
     deps.analysisModel = m_mw.m_models.analysis;
     deps.evalChart = m_mw.m_evalChart;
     deps.evalGraphController = m_mw.m_evalGraphController.get();
-    deps.broadcastComment = std::bind(&CommentCoordinator::broadcastComment,
-                                       m_mw.m_commentCoordinator,
-                                       std::placeholders::_1, std::placeholders::_2);
+    deps.broadcastComment = [this](const QString& comment, int row) {
+        m_mw.m_commentCoordinator->broadcastComment(comment, row);
+    };
 
     const MainWindowResetService resetService;
     resetService.clearSessionDependentUi(deps);

@@ -284,6 +284,10 @@ private:
      * @param line 受信行
      */
     void processGameSummary(const QString& line);
+    bool handleGameSummarySectionBoundary(const QString& line);
+    bool handleGameSummaryTimeSectionLine(const QString& line);
+    bool handleGameSummaryPositionSectionLine(const QString& line);
+    void processGameSummaryGeneralInfoLine(const QString& line);
 
     /**
      * @brief 対局中のメッセージを処理する
