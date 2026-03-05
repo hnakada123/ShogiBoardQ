@@ -199,6 +199,7 @@ add_shogi_test(tst_shogiclock
     tst_shogiclock.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiclock.cpp
+    ${SRC}/core/shogiclock_format.cpp
 )
 
 # ============================================================

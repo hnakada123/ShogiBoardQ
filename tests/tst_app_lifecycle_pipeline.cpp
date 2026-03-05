@@ -104,6 +104,14 @@ private:
         return calls;
     }
 
+    static QString bodyText(const QStringList& lines, int startLine, int endLine)
+    {
+        QStringList bodyLines;
+        for (int i = startLine; i <= endLine && i < int(lines.size()); ++i)
+            bodyLines << lines[i];
+        return bodyLines.join(QLatin1Char('\n'));
+    }
+
 private slots:
     // ================================================================
     // Startup Tests
@@ -120,10 +128,35 @@ private slots:
             lines, QStringLiteral("MainWindowLifecyclePipeline::runStartup()"));
         QVERIFY2(range.first >= 0, "runStartup() function not found");
 
-        // 関数本体から呼び出しを順序付きで抽出
-        const QStringList calls = extractCallOrder(lines, range.first, range.second);
+        const QString runStartupBody = bodyText(lines, range.first, range.second);
+        if (runStartupBody.contains(QStringLiteral("runLifecycleStartupInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleStartupInternal()"));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleStartupInternal() not found");
+            const QString internalBody = bodyText(lines, internalRange.first, internalRange.second);
+            const QStringList expectedTokens = {
+                QStringLiteral("createFoundationObjectsForLifecycle"),
+                QStringLiteral("setupUiSkeletonForLifecycle"),
+                QStringLiteral("initializeCoreComponentsForLifecycle"),
+                QStringLiteral("initializeEarlyServicesForLifecycle"),
+                QStringLiteral("buildGamePanels"),
+                QStringLiteral("restoreWindowAndSync"),
+                QStringLiteral("connectSignalsForLifecycle"),
+                QStringLiteral("finalizeAndConfigureUiForLifecycle"),
+            };
+            qsizetype lastPos = -1;
+            for (const QString& token : expectedTokens) {
+                const qsizetype pos = internalBody.indexOf(token);
+                QVERIFY2(pos >= 0,
+                          qPrintable(QStringLiteral("Token '%1' not found in runLifecycleStartupInternal()").arg(token)));
+                QVERIFY2(pos > lastPos,
+                          qPrintable(QStringLiteral("Token '%1' is out of order").arg(token)));
+                lastPos = pos;
+            }
+            return;
+        }
 
-        // 8段階の呼び出しが期待順序で存在すること
+        const QStringList calls = extractCallOrder(lines, range.first, range.second);
         const QStringList expectedSteps = {
             QStringLiteral("createFoundationObjects"),
             QStringLiteral("setupUiSkeleton"),
@@ -161,20 +194,41 @@ private slots:
             QStringLiteral("src/app/mainwindowlifecyclepipeline.h"));
         QVERIFY2(!header.isEmpty(), "Failed to read pipeline header");
 
-        const QStringList expectedMethods = {
-            QStringLiteral("createFoundationObjects"),
-            QStringLiteral("setupUiSkeleton"),
-            QStringLiteral("initializeCoreComponents"),
-            QStringLiteral("initializeEarlyServices"),
-            QStringLiteral("buildGamePanels"),
-            QStringLiteral("restoreWindowAndSync"),
-            QStringLiteral("connectSignals"),
-            QStringLiteral("finalizeAndConfigureUi"),
-        };
+        const bool oldStyle = header.contains(QStringLiteral("createFoundationObjects"));
+        if (oldStyle) {
+            const QStringList expectedMethods = {
+                QStringLiteral("createFoundationObjects"),
+                QStringLiteral("setupUiSkeleton"),
+                QStringLiteral("initializeCoreComponents"),
+                QStringLiteral("initializeEarlyServices"),
+                QStringLiteral("buildGamePanels"),
+                QStringLiteral("restoreWindowAndSync"),
+                QStringLiteral("connectSignals"),
+                QStringLiteral("finalizeAndConfigureUi"),
+            };
 
+            for (const QString& method : expectedMethods) {
+                QVERIFY2(header.contains(method),
+                          qPrintable(QStringLiteral("Method '%1' not declared in header").arg(method)));
+            }
+            return;
+        }
+
+        const QString mwHeader = readSourceFile(
+            QStringLiteral("src/app/mainwindow.h"));
+        QVERIFY2(!mwHeader.isEmpty(), "Failed to read mainwindow header");
+        const QStringList expectedMethods = {
+            QStringLiteral("runLifecycleStartupInternal"),
+            QStringLiteral("createFoundationObjectsForLifecycle"),
+            QStringLiteral("setupUiSkeletonForLifecycle"),
+            QStringLiteral("initializeCoreComponentsForLifecycle"),
+            QStringLiteral("initializeEarlyServicesForLifecycle"),
+            QStringLiteral("connectSignalsForLifecycle"),
+            QStringLiteral("finalizeAndConfigureUiForLifecycle"),
+        };
         for (const QString& method : expectedMethods) {
-            QVERIFY2(header.contains(method),
-                      qPrintable(QStringLiteral("Method '%1' not declared in header").arg(method)));
+            QVERIFY2(mwHeader.contains(method),
+                      qPrintable(QStringLiteral("Method '%1' not declared in mainwindow.h").arg(method)));
         }
     }
 
@@ -185,18 +239,28 @@ private slots:
             QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
         QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
 
-        const QStringList expectedImpls = {
-            QStringLiteral("MainWindowLifecyclePipeline::createFoundationObjects()"),
-            QStringLiteral("MainWindowLifecyclePipeline::setupUiSkeleton()"),
-            QStringLiteral("MainWindowLifecyclePipeline::initializeCoreComponents()"),
-            QStringLiteral("MainWindowLifecyclePipeline::initializeEarlyServices()"),
-            QStringLiteral("MainWindowLifecyclePipeline::buildGamePanels()"),
-            QStringLiteral("MainWindowLifecyclePipeline::restoreWindowAndSync()"),
-            QStringLiteral("MainWindowLifecyclePipeline::connectSignals()"),
-            QStringLiteral("MainWindowLifecyclePipeline::finalizeAndConfigureUi()"),
-        };
-
         const QString source = lines.join(QLatin1Char('\n'));
+        const bool oldStyle = source.contains(
+            QStringLiteral("MainWindowLifecyclePipeline::createFoundationObjects()"));
+        const QStringList expectedImpls = oldStyle
+            ? QStringList{
+                  QStringLiteral("MainWindowLifecyclePipeline::createFoundationObjects()"),
+                  QStringLiteral("MainWindowLifecyclePipeline::setupUiSkeleton()"),
+                  QStringLiteral("MainWindowLifecyclePipeline::initializeCoreComponents()"),
+                  QStringLiteral("MainWindowLifecyclePipeline::initializeEarlyServices()"),
+                  QStringLiteral("MainWindowLifecyclePipeline::buildGamePanels()"),
+                  QStringLiteral("MainWindowLifecyclePipeline::restoreWindowAndSync()"),
+                  QStringLiteral("MainWindowLifecyclePipeline::connectSignals()"),
+                  QStringLiteral("MainWindowLifecyclePipeline::finalizeAndConfigureUi()"),
+              }
+            : QStringList{
+                  QStringLiteral("MainWindow::createFoundationObjectsForLifecycle()"),
+                  QStringLiteral("MainWindow::setupUiSkeletonForLifecycle()"),
+                  QStringLiteral("MainWindow::initializeCoreComponentsForLifecycle()"),
+                  QStringLiteral("MainWindow::initializeEarlyServicesForLifecycle()"),
+                  QStringLiteral("MainWindow::connectSignalsForLifecycle()"),
+                  QStringLiteral("MainWindow::finalizeAndConfigureUiForLifecycle()"),
+              };
         for (const QString& impl : expectedImpls) {
             QVERIFY2(source.contains(impl),
                       qPrintable(
@@ -223,16 +287,24 @@ private slots:
         QStringList bodyLines;
         for (int i = range.first; i <= range.second && i < int(lines.size()); ++i)
             bodyLines << lines[i];
-        const QString body = bodyLines.join(QLatin1Char('\n'));
+        QString body = bodyLines.join(QLatin1Char('\n'));
+        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal() not found");
+            body = bodyText(lines, internalRange.first, internalRange.second);
+        }
 
         // ガードパターン: "if (m_shutdownDone) return;" が存在すること
-        QVERIFY2(body.contains(QStringLiteral("m_shutdownDone")),
+        QVERIFY2(body.contains(QStringLiteral("m_shutdownDone"))
+                     || body.contains(QStringLiteral("shutdownDone")),
                   "runShutdown() does not reference m_shutdownDone guard");
         QVERIFY2(body.contains(QStringLiteral("return")),
                   "runShutdown() does not have early return for guard");
 
         // フラグ設定: "m_shutdownDone = true;" が存在すること
-        QVERIFY2(body.contains(QStringLiteral("m_shutdownDone = true")),
+        QVERIFY2(body.contains(QStringLiteral("m_shutdownDone = true"))
+                     || body.contains(QStringLiteral("shutdownDone = true")),
                   "runShutdown() does not set m_shutdownDone = true");
     }
 
@@ -261,7 +333,13 @@ private slots:
         QStringList bodyLines;
         for (int i = range.first; i <= range.second && i < int(lines.size()); ++i)
             bodyLines << lines[i];
-        const QString body = bodyLines.join(QLatin1Char('\n'));
+        QString body = bodyLines.join(QLatin1Char('\n'));
+        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal() not found");
+            body = bodyText(lines, internalRange.first, internalRange.second);
+        }
 
         // エンジン終了: destroyEngines 呼び出しが存在すること
         QVERIFY2(body.contains(QStringLiteral("destroyEngines")),
@@ -284,16 +362,29 @@ private slots:
             lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
         QVERIFY2(range.first >= 0, "runShutdown() function not found");
 
+        QPair<int, int> actualRange = range;
+        {
+            const QString runShutdownBody = bodyText(lines, range.first, range.second);
+            if (runShutdownBody.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
+                const auto internalRange = findFunctionBody(
+                    lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
+                QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal() not found");
+                actualRange = internalRange;
+            }
+        }
+
         // ガードチェック行、フラグ設定行、クリーンアップ行の順序を確認
         int guardCheckLine = -1;
         int flagSetLine = -1;
         int cleanupLine = -1;
 
-        for (int i = range.first; i <= range.second && i < int(lines.size()); ++i) {
+        for (int i = actualRange.first; i <= actualRange.second && i < int(lines.size()); ++i) {
             const QString& line = lines[i];
-            if (line.contains(QStringLiteral("if (m_shutdownDone)")) && guardCheckLine < 0)
+            if ((line.contains(QStringLiteral("if (m_shutdownDone)"))
+                 || line.contains(QStringLiteral("if (shutdownDone)"))) && guardCheckLine < 0)
                 guardCheckLine = i;
-            if (line.contains(QStringLiteral("m_shutdownDone = true")) && flagSetLine < 0)
+            if ((line.contains(QStringLiteral("m_shutdownDone = true"))
+                 || line.contains(QStringLiteral("shutdownDone = true"))) && flagSetLine < 0)
                 flagSetLine = i;
             if (line.contains(QStringLiteral("destroyEngines")) && cleanupLine < 0)
                 cleanupLine = i;
@@ -405,11 +496,14 @@ private slots:
         QVERIFY2(header.contains(QStringLiteral("MainWindow& m_mw")),
                   "Missing MainWindow& member");
 
-        // friend 宣言による MainWindow アクセスが前提
-        // （パイプラインは MainWindow の private メンバにアクセスする）
+        // friend 方式（旧）または MainWindow 側内部API方式（新）
         const QString mwHeader = readSourceFile(QStringLiteral("src/app/mainwindow.h"));
-        QVERIFY2(mwHeader.contains(QStringLiteral("friend class MainWindowLifecyclePipeline")),
-                  "MainWindow does not declare LifecyclePipeline as friend");
+        const bool hasFriend = mwHeader.contains(
+            QStringLiteral("friend class MainWindowLifecyclePipeline"));
+        const bool hasInternalApi = mwHeader.contains(
+            QStringLiteral("runLifecycleStartupInternal"));
+        QVERIFY2(hasFriend || hasInternalApi,
+                  "MainWindow should expose either friend access or lifecycle internal API");
     }
 
     /// 設定保存がシャットダウンに含まれること
@@ -426,7 +520,13 @@ private slots:
         QStringList bodyLines;
         for (int i = range.first; i <= range.second && i < int(lines.size()); ++i)
             bodyLines << lines[i];
-        const QString body = bodyLines.join(QLatin1Char('\n'));
+        QString body = bodyLines.join(QLatin1Char('\n'));
+        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal() not found");
+            body = bodyText(lines, internalRange.first, internalRange.second);
+        }
 
         // 設定保存呼び出しが存在すること
         QVERIFY2(body.contains(QStringLiteral("saveWindowAndBoard"))

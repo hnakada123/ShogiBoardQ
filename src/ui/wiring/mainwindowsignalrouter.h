@@ -48,16 +48,17 @@ public:
         ShogiGameController* gameController = nullptr;
         BoardInteractionController* boardController = nullptr;
 
-        // --- 遅延生成オブジェクト (ダブルポインタで最新値を参照) ---
-        DialogCoordinatorWiring** dialogCoordinatorWiringPtr = nullptr;
-        DialogLaunchWiring** dialogLaunchWiringPtr = nullptr;
-        KifuFileController** kifuFileControllerPtr = nullptr;
-        GameSessionOrchestrator** gameSessionOrchestratorPtr = nullptr;
-        UiNotificationService** notificationServicePtr = nullptr;
-        BoardSetupController** boardSetupControllerPtr = nullptr;
-        UiActionsWiring** actionsWiringPtr = nullptr;
+        // --- 遅延生成オブジェクト取得/設定（寿命管理は呼び出し側） ---
+        std::function<DialogCoordinatorWiring*()> getDialogCoordinatorWiring;
+        std::function<DialogLaunchWiring*()> getDialogLaunchWiring;
+        std::function<KifuFileController*()> getKifuFileController;
+        std::function<GameSessionOrchestrator*()> getGameSessionOrchestrator;
+        std::function<UiNotificationService*()> getNotificationService;
+        std::function<BoardSetupController*()> getBoardSetupController;
+        std::function<UiActionsWiring*()> getActionsWiring;
+        std::function<void(UiActionsWiring*)> setActionsWiring;
 
-        // --- コールバック ---
+        // --- ensure/生成コールバック ---
         std::function<void()> initializeDialogLaunchWiring;
         std::function<void()> ensureDialogCoordinator;
         std::function<void()> ensureKifuFileController;

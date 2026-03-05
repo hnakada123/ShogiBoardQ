@@ -188,7 +188,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxFriendClasses = 7;
+        constexpr int maxFriendClasses = 6;
 
         // 同一行に複数 friend class が並ぶケースも正しくカウントする
         const QRegularExpression pattern(
@@ -647,7 +647,7 @@ private slots:
     // ================================================================
     void filesOver500()
     {
-        constexpr int kMaxFilesOver500 = 18; // 実測値: 17 (2026-03-05, csagamewiring整理後)
+        constexpr int kMaxFilesOver500 = 17; // 実測値: 16 (2026-03-05, shogiclock分割後)
         constexpr int kThreshold = 500;
 
         const auto files = collectSourceFiles();
