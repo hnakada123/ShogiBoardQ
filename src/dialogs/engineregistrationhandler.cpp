@@ -5,119 +5,16 @@
 #include "engineregistrationdialog.h"
 #include "engineregistrationworker.h"
 #include "enginesettingsconstants.h"
+#include "usioptionlineparser.h"
 #include "settingscommon.h"
 #include "logcategories.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QRegularExpression>
-#include <QSet>
 #include <QThread>
 
 using namespace EngineSettingsConstants;
-
-namespace {
-struct ParsedOptionLine {
-    QString name;
-    QString type;
-    QString defaultValue;
-    QString minValue;
-    QString maxValue;
-    QStringList comboValues;
-};
-
-bool parseUsiOptionLine(const QString& rawLine, ParsedOptionLine& parsed, QString* errorMessage)
-{
-    static const QRegularExpression whitespaceRe(QStringLiteral("\\s+"));
-    static const QSet<QString> attributeKeywords{
-        QStringLiteral("default"),
-        QStringLiteral("min"),
-        QStringLiteral("max"),
-        QStringLiteral("var")
-    };
-
-    const QString line = rawLine.trimmed();
-    const QStringList tokens = line.split(whitespaceRe, Qt::SkipEmptyParts);
-
-    if (tokens.size() < 4) {
-        if (errorMessage) *errorMessage = QStringLiteral("Too few tokens");
-        return false;
-    }
-    if (tokens.at(0) != QStringLiteral("option") ||
-        tokens.at(1) != QStringLiteral("name")) {
-        if (errorMessage) *errorMessage = QStringLiteral("Command must start with 'option name'");
-        return false;
-    }
-
-    const qsizetype typeIndex = tokens.indexOf(QStringLiteral("type"), 2);
-    if (typeIndex <= 2 || typeIndex + 1 >= tokens.size()) {
-        if (errorMessage) *errorMessage = QStringLiteral("Missing 'type' section");
-        return false;
-    }
-
-    parsed.name = tokens.mid(2, typeIndex - 2).join(QStringLiteral(" "));
-    parsed.type = tokens.at(typeIndex + 1);
-
-    if (parsed.name.isEmpty() || parsed.type.isEmpty()) {
-        if (errorMessage) *errorMessage = QStringLiteral("Option name/type is empty");
-        return false;
-    }
-
-    if (parsed.type == QLatin1String(OptionTypeButton)) {
-        if (typeIndex + 2 < tokens.size()) {
-            qCWarning(lcUi) << "parseUsiOptionLine: button option has extra attributes, ignore tail:"
-                            << line;
-        }
-        return true;
-    }
-
-    for (qsizetype i = typeIndex + 2; i < tokens.size();) {
-        const QString key = tokens.at(i);
-        if (!attributeKeywords.contains(key)) {
-            qCWarning(lcUi) << "parseUsiOptionLine: unknown option attribute, ignore tail:"
-                            << key << line;
-            break;
-        }
-
-        qsizetype j = i + 1;
-        while (j < tokens.size() && !attributeKeywords.contains(tokens.at(j))) {
-            ++j;
-        }
-        const QString value = tokens.mid(i + 1, j - (i + 1)).join(QStringLiteral(" "));
-
-        if (key == QStringLiteral("default")) {
-            if (value.isEmpty() && parsed.type != QLatin1String(OptionTypeString)) {
-                if (errorMessage) *errorMessage = QStringLiteral("default value is missing");
-                return false;
-            }
-            parsed.defaultValue = value;
-        } else if (key == QStringLiteral("min")) {
-            if (value.isEmpty()) {
-                if (errorMessage) *errorMessage = QStringLiteral("min value is missing");
-                return false;
-            }
-            parsed.minValue = value;
-        } else if (key == QStringLiteral("max")) {
-            if (value.isEmpty()) {
-                if (errorMessage) *errorMessage = QStringLiteral("max value is missing");
-                return false;
-            }
-            parsed.maxValue = value;
-        } else if (key == QStringLiteral("var")) {
-            if (value.isEmpty()) {
-                if (errorMessage) *errorMessage = QStringLiteral("var value is missing");
-                return false;
-            }
-            parsed.comboValues.append(value);
-        }
-
-        i = j;
-    }
-
-    return true;
-}
-} // namespace
 
 EngineRegistrationHandler::EngineRegistrationHandler(QObject *parent)
     : QObject(parent)

@@ -53,9 +53,14 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
 
 void CsaGameWiring::setCoordinator(CsaGameCoordinator* coordinator)
 {
-    if (m_coordinator) {
-        unwire();
+    if (m_coordinator == coordinator) {
+        return;
     }
+
+    if (m_coordinator) {
+        disconnect(m_coordinator, nullptr, this, nullptr);
+    }
+
     m_coordinator = coordinator;
 }
 
@@ -67,25 +72,25 @@ void CsaGameWiring::wire()
     }
 
     connect(m_coordinator, &CsaGameCoordinator::gameStarted,
-            this, &CsaGameWiring::onGameStarted);
+            this, &CsaGameWiring::onGameStarted, Qt::UniqueConnection);
     connect(m_coordinator, &CsaGameCoordinator::gameEnded,
-            this, &CsaGameWiring::onGameEnded);
+            this, &CsaGameWiring::onGameEnded, Qt::UniqueConnection);
     connect(m_coordinator, &CsaGameCoordinator::moveMade,
-            this, &CsaGameWiring::onMoveMade);
+            this, &CsaGameWiring::onMoveMade, Qt::UniqueConnection);
     connect(m_coordinator, &CsaGameCoordinator::turnChanged,
-            this, &CsaGameWiring::onTurnChanged);
+            this, &CsaGameWiring::onTurnChanged, Qt::UniqueConnection);
     connect(m_coordinator, &CsaGameCoordinator::logMessage,
-            this, &CsaGameWiring::onLogMessage);
+            this, &CsaGameWiring::onLogMessage, Qt::UniqueConnection);
     connect(m_coordinator, &CsaGameCoordinator::moveHighlightRequested,
-            this, &CsaGameWiring::onMoveHighlightRequested);
+            this, &CsaGameWiring::onMoveHighlightRequested, Qt::UniqueConnection);
     connect(m_coordinator, &CsaGameCoordinator::errorOccurred,
-            this, &CsaGameWiring::errorMessageRequested);
+            this, &CsaGameWiring::errorMessageRequested, Qt::UniqueConnection);
 
     // PlayMode変更・対局終了ダイアログを内部で処理
     connect(this, &CsaGameWiring::playModeChanged,
-            this, &CsaGameWiring::onPlayModeChangedInternal);
+            this, &CsaGameWiring::onPlayModeChangedInternal, Qt::UniqueConnection);
     connect(this, &CsaGameWiring::showGameEndDialogRequested,
-            this, &CsaGameWiring::showGameEndDialogInternal);
+            this, &CsaGameWiring::showGameEndDialogInternal, Qt::UniqueConnection);
 
     qCDebug(lcUi) << "wire: connected all signals";
 }
@@ -163,31 +168,14 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     const bool isBlackSide = m_coordinator->isBlackSide();
     const bool loserIsBlack = (iAmLoser == isBlackSide);
 
-    // デバッグ: 敗者判定の詳細を出力
-    qCDebug(lcUi) << "onGameEnded judgment:"
-                   << "iAmLoser=" << iAmLoser
-                   << "isBlackSide=" << isBlackSide
-                   << "loserIsBlack=" << loserIsBlack;
-
     // 終局行テキストを生成
     const QString endLine = buildEndLineText(cause, loserIsBlack);
-
-    qCDebug(lcUi) << "onGameEnded endLine=" << endLine;
 
     // 消費時間をフォーマット
     const int totalMs = loserIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
 
-    // デバッグ: 消費時間の計算詳細を出力
-    qCDebug(lcUi) << "Time calculation:"
-                   << "blackTotalTimeMs=" << m_coordinator->blackTotalTimeMs()
-                   << "whiteTotalTimeMs=" << m_coordinator->whiteTotalTimeMs()
-                   << "totalMs(for loser)=" << totalMs
-                   << "consumedTimeMs=" << consumedTimeMs
-                   << "totalMs+consumedTimeMs=" << (totalMs + consumedTimeMs);
-
     const QString elapsedStr = formatElapsedTime(consumedTimeMs, totalMs + consumedTimeMs);
-    qCDebug(lcUi) << "elapsedStr=" << elapsedStr;
 
     // 棋譜欄に追加
     Q_EMIT appendKifuLineRequested(endLine, elapsedStr);
@@ -401,8 +389,6 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         return false;
     }
 
-    qCDebug(lcUi) << "startCsaGame: starting CSA game setup";
-
     // CSA通信対局コーディネータが未作成の場合は作成する
     if (!m_coordinator) {
         m_coordinator = new CsaGameCoordinator(this);
@@ -427,16 +413,19 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         // CSA通信ログをEngineAnalysisTabに転送
         if (m_analysisTab) {
             connect(m_coordinator, &CsaGameCoordinator::csaCommLogAppended,
-                    m_analysisTab, &EngineAnalysisTab::appendCsaLog);
+                    m_analysisTab, &EngineAnalysisTab::appendCsaLog,
+                    Qt::UniqueConnection);
             // EngineAnalysisTabからのCSAコマンド送信シグナルを接続
             connect(m_analysisTab, &EngineAnalysisTab::csaRawCommandRequested,
-                    m_coordinator, &CsaGameCoordinator::sendRawCommand);
+                    m_coordinator, &CsaGameCoordinator::sendRawCommand,
+                    Qt::UniqueConnection);
         }
 
         // BoardSetupControllerからの指し手をCsaGameCoordinatorに転送
         if (m_boardSetupController) {
             connect(m_boardSetupController, &BoardSetupController::csaMoveRequested,
-                    m_coordinator, &CsaGameCoordinator::onHumanMove);
+                    m_coordinator, &CsaGameCoordinator::onHumanMove,
+                    Qt::UniqueConnection);
         }
     }
 
@@ -467,8 +456,6 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     // プレイモード変更を通知
     Q_EMIT playModeChanged(static_cast<int>(PlayMode::CsaNetworkMode));
 
-    qCDebug(lcUi) << "startCsaGame: About to start game and create waiting dialog";
-
     // 待機ダイアログを作成
     CsaWaitingDialog waitingDialog(m_coordinator, parent);
 
@@ -476,17 +463,11 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     connect(&waitingDialog, &CsaWaitingDialog::cancelRequested,
             this, &CsaGameWiring::onWaitingCancelled);
 
-    qCDebug(lcUi) << "startCsaGame: CsaWaitingDialog created, now starting game...";
-
     // 対局を開始（シグナルがCsaWaitingDialogに届くようになった後に開始）
     m_coordinator->startGame(options);
 
-    qCDebug(lcUi) << "startCsaGame: Game started, showing waiting dialog...";
-
     // 待機ダイアログを表示（対局開始またはエラーまでブロック）
     waitingDialog.exec();
-
-    qCDebug(lcUi) << "startCsaGame: Waiting dialog closed";
 
     return true;
 }
@@ -497,16 +478,20 @@ void CsaGameWiring::wireExternalSignals(UiStatePolicyManager* uiPolicy,
 {
     if (uiPolicy) {
         connect(this, &CsaGameWiring::disableNavigationRequested,
-                uiPolicy, &UiStatePolicyManager::transitionToDuringCsaGame);
+                uiPolicy, &UiStatePolicyManager::transitionToDuringCsaGame,
+                Qt::UniqueConnection);
         connect(this, &CsaGameWiring::enableNavigationRequested,
-                uiPolicy, &UiStatePolicyManager::transitionToIdle);
+                uiPolicy, &UiStatePolicyManager::transitionToIdle,
+                Qt::UniqueConnection);
     }
     if (recordService) {
         connect(this, &CsaGameWiring::appendKifuLineRequested,
-                recordService, &GameRecordUpdateService::appendKifuLine);
+                recordService, &GameRecordUpdateService::appendKifuLine,
+                Qt::UniqueConnection);
     }
     if (notifService) {
         connect(this, &CsaGameWiring::errorMessageRequested,
-                notifService, &UiNotificationService::displayErrorMessage);
+                notifService, &UiNotificationService::displayErrorMessage,
+                Qt::UniqueConnection);
     }
 }

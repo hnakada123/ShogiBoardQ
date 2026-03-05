@@ -62,6 +62,38 @@ private slots:
         QCOMPARE(opt.type, QStringLiteral("spin"));
     }
 
+    void parseOptionLine_stringDefaultContainingKeywords_preservesTail()
+    {
+        EngineRegistrationHandler handler;
+
+        handler.parseOptionLine(
+            QStringLiteral("option name BookPath type string default max depth default"));
+
+        QVERIFY(!handler.m_errorOccurred);
+        QCOMPARE(handler.m_engineOptions.size(), 1);
+        const EngineOption opt = handler.m_engineOptions.first();
+        QCOMPARE(opt.name, QStringLiteral("BookPath"));
+        QCOMPARE(opt.type, QStringLiteral("string"));
+        QCOMPARE(opt.defaultValue, QStringLiteral("max depth default"));
+        QCOMPARE(opt.currentValue, QStringLiteral("max depth default"));
+    }
+
+    void parseOptionLine_filenameDefaultWithSpaces_preservesTail()
+    {
+        EngineRegistrationHandler handler;
+
+        handler.parseOptionLine(
+            QStringLiteral("option name EvalDir type filename default /tmp/max depth folder"));
+
+        QVERIFY(!handler.m_errorOccurred);
+        QCOMPARE(handler.m_engineOptions.size(), 1);
+        const EngineOption opt = handler.m_engineOptions.first();
+        QCOMPARE(opt.name, QStringLiteral("EvalDir"));
+        QCOMPARE(opt.type, QStringLiteral("filename"));
+        QCOMPARE(opt.defaultValue, QStringLiteral("/tmp/max depth folder"));
+        QCOMPARE(opt.currentValue, QStringLiteral("/tmp/max depth folder"));
+    }
+
     void concatenateComboOptionValues_jsonSerialization()
     {
         EngineRegistrationHandler handler;
