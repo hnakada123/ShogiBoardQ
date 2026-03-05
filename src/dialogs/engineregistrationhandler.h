@@ -88,7 +88,6 @@ private:
     void concatenateComboOptionValues();
 
     // 設定I/O
-    Engine readEngineFromSettings(const QSettings& settings) const;
     void saveEnginesToSettingsFile() const;
     void saveEngineToSettings(QSettings& settings, const Engine& engine) const;
     void saveEngineOptionsToSettings() const;

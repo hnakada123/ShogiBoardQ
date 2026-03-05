@@ -160,6 +160,8 @@ void PvBoardDialog::buildUi()
 
     // ShogiViewのCtrl+ホイールイベントを横取りして、ダイアログ側で処理する
     m_shogiView->installEventFilter(this);
+    connect(m_shogiView, &ShogiView::highlightsCleared,
+            this, &PvBoardDialog::onHighlightsCleared);
 
     // 対局者名をShogiViewのメソッドを使用（マーク付き表示）
     m_shogiView->setBlackPlayerName(m_blackPlayerName.isEmpty() ? tr("先手") : m_blackPlayerName);
@@ -378,6 +380,12 @@ void PvBoardDialog::clearMoveHighlights()
         m_shogiView->removeHighlight(m_toHighlight.get());
         m_toHighlight.reset();
     }
+}
+
+void PvBoardDialog::onHighlightsCleared()
+{
+    m_fromHighlight.reset();
+    m_toHighlight.reset();
 }
 
 void PvBoardDialog::updateMoveHighlights()

@@ -27,8 +27,8 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
         return;
     }
 
-    // ShogiView::removeHighlightAllData() が呼ばれたときに
-    // 本クラスが保持するハイライトポインタをnullにする（ダングリングポインタ防止）
+    // ShogiView 側でハイライト参照配列がクリアされた場合、
+    // 本クラスの所有ポインタも同期してリセットする。
     connect(m_view, &ShogiView::highlightsCleared, this, &BoardInteractionController::onHighlightsCleared);
 }
 
@@ -147,11 +147,10 @@ void BoardInteractionController::clearAllHighlights()
 
 void BoardInteractionController::onHighlightsCleared()
 {
-    // ShogiView::removeHighlightAllData() が呼ばれた
-    // 実体はすでに qDeleteAll で破棄済み。二重解放を防ぐため release() で所有権を手放す
-    (void)m_selectedField.release();
-    (void)m_selectedField2.release();
-    (void)m_movedField.release();
+    // ShogiView 側の参照配列がクリアされたので、所有ポインタも同期して破棄する。
+    m_selectedField.reset();
+    m_selectedField2.reset();
+    m_movedField.reset();
 }
 
 void BoardInteractionController::cancelPendingClick()

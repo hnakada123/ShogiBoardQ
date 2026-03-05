@@ -55,7 +55,7 @@ void ShogiViewHighlighting::removeHighlight(ShogiView::Highlight* hl)
 
 void ShogiViewHighlighting::removeHighlightAllData()
 {
-    qDeleteAll(m_highlights);
+    // ハイライトの寿命は呼び出し側が管理するため、ここでは参照だけ破棄する。
     m_highlights.clear();
     emit highlightsCleared();
     m_view->update();

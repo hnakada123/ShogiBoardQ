@@ -110,7 +110,7 @@ public:
     QPoint getClickedSquareInFlippedState(const QPoint& clickPosition) const; // 反転
 
     // ───────────────────────────── ハイライト管理 ───────────────────────────
-    void addHighlight(Highlight *hl);            // 追加（所有権ポリシーは呼び出し側設計に依存）
+    void addHighlight(Highlight *hl);            // 追加（非所有。寿命は呼び出し側が管理）
     void removeHighlight(Highlight *hl);         // 1件削除
     void removeHighlightAllData();               // 全削除
     Highlight *highlight(int index) const;

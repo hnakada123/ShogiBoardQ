@@ -5,11 +5,10 @@
 #include "buttonstyles.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_considerationdialog.h"
-#include "settingscommon.h"
 #include "analysissettings.h"
+#include "enginelistsettings.h"
 #include <QAbstractItemView>
 #include <QComboBox>
-#include <QSettings>
 #include <QFile>
 #include <QTextStream>
 #include <QMessageBox>
@@ -142,20 +141,11 @@ void ConsiderationDialog::processEngineSettings()
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
 void ConsiderationDialog::readEngineNameAndDir()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // エンジンの数を取得する。
-    int size = settings.beginReadArray("Engines");
-
-    // エンジンの数だけループする。
-    for (int i = 0; i < size; i++) {
-        // 現在のインデックスで配列の要素を設定する。
-        settings.setArrayIndex(i);
-
-        // エンジン名とディレクトリを取得する。
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    for (const auto& entry : engines) {
         Engine engine;
-        engine.name = settings.value("name").toString();
-        engine.path = settings.value("path").toString();
+        engine.name = entry.name;
+        engine.path = entry.path;
 
         // 棋譜解析ダイアログのエンジン選択リストにエンジン名を追加する。
         ui->comboBoxEngine1->addItem(engine.name);
@@ -163,9 +153,6 @@ void ConsiderationDialog::readEngineNameAndDir()
         // エンジンリストにエンジンを追加する。
         engineList.append(engine);
     }
-
-    // エンジン名のグループの配列の読み込みを終了する。
-    settings.endArray();
 }
 
 // エンジンの名前とディレクトリを格納するリストを取得する。

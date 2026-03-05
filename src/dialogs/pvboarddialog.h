@@ -81,6 +81,8 @@ private slots:
     void onReduceBoard();
     /// 盤面を回転
     void onFlipBoard();
+    /// ShogiView のハイライト配列がクリアされたときに所有ポインタを同期する
+    void onHighlightsCleared();
 
 private:
     /// UIを構築
