@@ -19,12 +19,6 @@
 
 #include "logcategories.h"
 
-namespace {
-/// ダブルポインタを安全にデリファレンスするヘルパー
-template<typename T>
-T* deref(T** pp) { return pp ? *pp : nullptr; }
-} // namespace
-
 MainWindowSignalRouter::MainWindowSignalRouter(QObject* parent)
     : QObject(parent)
 {
@@ -67,24 +61,27 @@ void MainWindowSignalRouter::connectAllActions()
     }
 
     // 既存があれば使い回し
-    if (m_deps.actionsWiringPtr && !deref(m_deps.actionsWiringPtr)) {
+    UiActionsWiring* actionsWiring = m_deps.getActionsWiring ? m_deps.getActionsWiring() : nullptr;
+    if (!actionsWiring) {
         UiActionsWiring::Deps d;
         d.ui  = m_deps.ui;
         d.ctx = m_deps.mainWindow;
-        d.dlw = deref(m_deps.dialogLaunchWiringPtr);
-        d.dcw = deref(m_deps.dialogCoordinatorWiringPtr);
+        d.dlw = m_deps.getDialogLaunchWiring ? m_deps.getDialogLaunchWiring() : nullptr;
+        d.dcw = m_deps.getDialogCoordinatorWiring ? m_deps.getDialogCoordinatorWiring() : nullptr;
         if (Q_UNLIKELY(!d.dcw)) {
             qCWarning(lcApp, "connectAllActions: DialogCoordinatorWiring is null after ensure");
         }
-        d.kfc = deref(m_deps.kifuFileControllerPtr);
-        d.gso = deref(m_deps.gameSessionOrchestratorPtr);
+        d.kfc = m_deps.getKifuFileController ? m_deps.getKifuFileController() : nullptr;
+        d.gso = m_deps.getGameSessionOrchestrator ? m_deps.getGameSessionOrchestrator() : nullptr;
         d.appearance = m_deps.appearanceController;
         d.shogiView = m_deps.shogiView;
         d.evalChart = m_deps.evalChart;
         d.getKifuExportController = m_deps.getKifuExportController;
-        *m_deps.actionsWiringPtr = new UiActionsWiring(d, m_deps.mainWindow);
+        actionsWiring = new UiActionsWiring(d, m_deps.mainWindow);
+        if (m_deps.setActionsWiring) {
+            m_deps.setActionsWiring(actionsWiring);
+        }
     }
-    auto* actionsWiring = deref(m_deps.actionsWiringPtr);
     if (actionsWiring) {
         actionsWiring->wire();
     }
@@ -94,7 +91,7 @@ void MainWindowSignalRouter::connectCoreSignals()
 {
     qCDebug(lcApp) << "connectCoreSignals called";
 
-    auto* dlw = deref(m_deps.dialogLaunchWiringPtr);
+    auto* dlw = m_deps.getDialogLaunchWiring ? m_deps.getDialogLaunchWiring() : nullptr;
 
     // 将棋盤表示・昇格・ドラッグ終了・指し手確定
     if (m_deps.gameController && dlw) {
@@ -121,7 +118,7 @@ void MainWindowSignalRouter::connectCoreSignals()
     if (m_deps.ensureUiNotificationService) {
         m_deps.ensureUiNotificationService();
     }
-    auto* ns = deref(m_deps.notificationServicePtr);
+    auto* ns = m_deps.getNotificationService ? m_deps.getNotificationService() : nullptr;
     if (ns) {
         connect(&ErrorBus::instance(), &ErrorBus::messagePosted,
                 ns, &UiNotificationService::displayMessage, Qt::UniqueConnection);
@@ -133,7 +130,7 @@ void MainWindowSignalRouter::connectBoardClicks()
     if (m_deps.ensureBoardSetupController) {
         m_deps.ensureBoardSetupController();
     }
-    auto* bsc = deref(m_deps.boardSetupControllerPtr);
+    auto* bsc = m_deps.getBoardSetupController ? m_deps.getBoardSetupController() : nullptr;
     if (bsc) {
         bsc->connectBoardClicks();
     }

@@ -34,32 +34,6 @@ public:
 private:
     MainWindow& m_mw;
     bool m_shutdownDone = false;
-
-    // --- Startup sub-steps ---
-
-    /// 基盤オブジェクト（CompositionRoot/Registry/SignalRouter/CommLogModel）を生成する
-    void createFoundationObjects();
-
-    /// UI骨格（ドックネスティング/セントラル/ツールバー）をセットアップする
-    void setupUiSkeleton();
-
-    /// コア部品（GC/View/盤モデル）を初期化する
-    void initializeCoreComponents();
-
-    /// 早期サービス（PolicyService/TimePresenter/QueryService）を初期化する
-    void initializeEarlyServices();
-
-    /// ゲームパネル群を構築する（ServiceRegistry に委譲）
-    void buildGamePanels();
-
-    /// ウィンドウ設定を復元しレイアウトを同期する（ServiceRegistry に委譲）
-    void restoreWindowAndSync();
-
-    /// シグナル配線とツールチップを設定する
-    void connectSignals();
-
-    /// コーディネータの最終初期化と追加機能設定を行う
-    void finalizeAndConfigureUi();
 };
 
 #endif // MAINWINDOWLIFECYCLEPIPELINE_H

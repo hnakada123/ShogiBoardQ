@@ -513,7 +513,13 @@ private slots:
             lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
         QVERIFY2(range.first >= 0, "runShutdown() function not found");
 
-        const QString body = bodyText(lines, range.first, range.second);
+        QString body = bodyText(lines, range.first, range.second);
+        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal() not found");
+            body = bodyText(lines, internalRange.first, internalRange.second);
+        }
 
         // パターン: ガードチェック → フラグ設定 → 処理本体
         // 最初の非コメント文がガードであること
@@ -530,7 +536,8 @@ private slots:
                   "First non-comment statement in runShutdown() should be the guard check");
 
         // エンジン終了前に null チェックがあること（m_match が nullptr の場合の防御）
-        QVERIFY2(body.contains(QStringLiteral("if (m_mw.m_match)")),
+        QVERIFY2(body.contains(QStringLiteral("if (m_mw.m_match)"))
+                     || body.contains(QStringLiteral("if (m_match)")),
                   "runShutdown() should check m_match before destroyEngines()");
     }
 
@@ -1032,6 +1039,7 @@ private slots:
 
             const QString body = bodyText(lines, range.first, range.second);
             QVERIFY2(body.contains(QStringLiteral("createFoundation"))
+                         || body.contains(QStringLiteral("runLifecycleStartupInternal"))
                          || body.contains(QStringLiteral("make_unique"))
                          || body.contains(QStringLiteral("setupUi")),
                       "runStartup should create foundation objects");

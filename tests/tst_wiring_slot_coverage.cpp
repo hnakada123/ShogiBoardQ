@@ -20,6 +20,125 @@ class TestWiringSlotCoverage : public QObject
     Q_OBJECT
 
 private:
+    struct ConnectCall {
+        QString text;
+        qsizetype start = 0;
+        int line = 1;
+    };
+
+    /// connect(...) 呼び出しブロックを括弧対応で抽出する
+    static QList<ConnectCall> extractConnectCalls(const QString& source)
+    {
+        QList<ConnectCall> calls;
+        static const QRegularExpression startRe(
+            QStringLiteral(R"((?<![A-Za-z0-9_])connect\s*\()"));
+
+        qsizetype lineScanPos = 0;
+        int currentLine = 1;
+        auto it = startRe.globalMatch(source);
+        while (it.hasNext()) {
+            const auto m = it.next();
+            const qsizetype start = m.capturedStart();
+            while (lineScanPos < start && lineScanPos < source.size()) {
+                if (source.at(lineScanPos) == QChar('\n'))
+                    ++currentLine;
+                ++lineScanPos;
+            }
+            const qsizetype openParen = source.indexOf(QChar('('), start);
+            if (openParen < 0)
+                continue;
+            // disconnect(...) は除外
+            if (openParen >= 3 && source.mid(openParen - 3, 3) == QStringLiteral("dis"))
+                continue;
+
+            bool inSingleQuote = false;
+            bool inDoubleQuote = false;
+            bool inLineComment = false;
+            bool inBlockComment = false;
+            bool escaped = false;
+            int depth = 1;
+            qsizetype i = openParen + 1;
+            qsizetype closeParen = -1;
+
+            for (; i < source.size(); ++i) {
+                const QChar ch = source.at(i);
+                const QChar next = (i + 1 < source.size()) ? source.at(i + 1) : QChar();
+
+                if (inLineComment) {
+                    if (ch == QChar('\n'))
+                        inLineComment = false;
+                    continue;
+                }
+                if (inBlockComment) {
+                    if (ch == QChar('*') && next == QChar('/')) {
+                        inBlockComment = false;
+                        ++i;
+                    }
+                    continue;
+                }
+                if (inSingleQuote) {
+                    if (!escaped && ch == QChar('\\')) {
+                        escaped = true;
+                        continue;
+                    }
+                    if (!escaped && ch == QChar('\'')) {
+                        inSingleQuote = false;
+                    }
+                    escaped = false;
+                    continue;
+                }
+                if (inDoubleQuote) {
+                    if (!escaped && ch == QChar('\\')) {
+                        escaped = true;
+                        continue;
+                    }
+                    if (!escaped && ch == QChar('\"')) {
+                        inDoubleQuote = false;
+                    }
+                    escaped = false;
+                    continue;
+                }
+
+                if (ch == QChar('/') && next == QChar('/')) {
+                    inLineComment = true;
+                    ++i;
+                    continue;
+                }
+                if (ch == QChar('/') && next == QChar('*')) {
+                    inBlockComment = true;
+                    ++i;
+                    continue;
+                }
+                if (ch == QChar('\'')) {
+                    inSingleQuote = true;
+                    escaped = false;
+                    continue;
+                }
+                if (ch == QChar('\"')) {
+                    inDoubleQuote = true;
+                    escaped = false;
+                    continue;
+                }
+
+                if (ch == QChar('(')) {
+                    ++depth;
+                } else if (ch == QChar(')')) {
+                    --depth;
+                    if (depth == 0) {
+                        closeParen = i;
+                        break;
+                    }
+                }
+            }
+
+            if (closeParen < 0)
+                continue;
+
+            calls.append({source.mid(start, closeParen - start + 1), start, currentLine});
+        }
+        return calls;
+    }
+
     /// ソースファイルを読み込む
     static QString readSource(const QString& relativePath)
     {
@@ -78,22 +197,16 @@ private:
     }
 
     /// src/ 配下の全 .cpp で指定のスロット名が connect() 内に出現するか
-    static bool isSlotConnected(const QString& allSources, const QString& slotName)
+    static bool isSlotConnected(const QList<ConnectCall>& calls, const QString& slotName)
     {
         // Check if the slot name appears as a target in any connect() call
         // Pattern: &ClassName::slotName or "slotName" in connect context
         const QString pattern = QStringLiteral("&\\w+::") + QRegularExpression::escape(slotName);
         QRegularExpression re(pattern);
 
-        // Search for connect() blocks containing this slot
-        qsizetype pos = 0;
-        while ((pos = allSources.indexOf(QStringLiteral("connect("), pos)) != -1) {
-            qsizetype end = allSources.indexOf(QStringLiteral(");"), pos);
-            if (end < 0) break;
-            const QString block = allSources.mid(pos, end - pos + 2);
-            if (re.match(block).hasMatch())
+        for (const auto& call : calls) {
+            if (re.match(call.text).hasMatch())
                 return true;
-            pos = end + 1;
         }
         return false;
     }
@@ -166,21 +279,16 @@ private:
     }
 
     /// src/ 配下の全 .cpp で指定のシグナル名が connect() のソースとして使われているか
-    static bool isSignalUsedAsSource(const QString& allSources, const QString& signalName)
+    static bool isSignalUsedAsSource(const QList<ConnectCall>& calls, const QString& signalName)
     {
         // Signal appears as &ClassName::signalName in a connect() call
         // Check the signal part (first &Class::method in connect)
         const QString pattern = QStringLiteral("&\\w+::") + QRegularExpression::escape(signalName);
         QRegularExpression re(pattern);
 
-        qsizetype pos = 0;
-        while ((pos = allSources.indexOf(QStringLiteral("connect("), pos)) != -1) {
-            qsizetype end = allSources.indexOf(QStringLiteral(");"), pos);
-            if (end < 0) break;
-            const QString block = allSources.mid(pos, end - pos + 2);
-            if (re.match(block).hasMatch())
+        for (const auto& call : calls) {
+            if (re.match(call.text).hasMatch())
                 return true;
-            pos = end + 1;
         }
 
         // Also check signal-to-signal forwarding (emit signalName)
@@ -199,23 +307,14 @@ private:
     static QList<ConnectionInfo> findAllConnections(const QString& source, const QString& fileName)
     {
         QList<ConnectionInfo> connections;
-        static const QRegularExpression connectRe(
-            QStringLiteral("connect\\(([^;]+?)\\);"));
+        const QList<ConnectCall> calls = extractConnectCalls(source);
+        for (const auto& call : calls) {
+            const qsizetype openPos = call.text.indexOf(QChar('('));
+            const qsizetype closePos = call.text.lastIndexOf(QChar(')'));
+            if (openPos < 0 || closePos <= openPos)
+                continue;
 
-        int lineNum = 1;
-        qsizetype searchPos = 0;
-        auto matchIt = connectRe.globalMatch(source);
-        while (matchIt.hasNext()) {
-            const auto m = matchIt.next();
-            // Count lines up to this position
-            const qsizetype matchPos = m.capturedStart();
-            while (searchPos < matchPos) {
-                if (source.at(searchPos) == QChar('\n'))
-                    ++lineNum;
-                ++searchPos;
-            }
-
-            const QString body = m.captured(1);
+            const QString body = call.text.mid(openPos + 1, closePos - openPos - 1);
             // Extract signal and slot patterns
             static const QRegularExpression sigSlotRe(
                 QStringLiteral("&(\\w+::\\w+).*&(\\w+::\\w+)"));
@@ -225,7 +324,7 @@ private:
                     sigSlotMatch.captured(1),
                     sigSlotMatch.captured(2),
                     fileName,
-                    lineNum
+                    call.line
                 });
             }
         }
@@ -234,6 +333,7 @@ private:
 
     // Cached combined source for all .cpp files
     QString m_allSources;
+    QList<ConnectCall> m_allConnectCalls;
     QStringList m_wiringHeaders;
 
 private slots:
@@ -242,6 +342,8 @@ private slots:
         // Combine all .cpp sources from src/ for connection search
         m_allSources = readAllCppInDir(QStringLiteral("src"));
         QVERIFY2(!m_allSources.isEmpty(), "No .cpp sources found under src/");
+        m_allConnectCalls = extractConnectCalls(m_allSources);
+        QVERIFY2(!m_allConnectCalls.isEmpty(), "No connect() calls found under src/");
 
         // Collect all wiring header files
         const QString wiringDir = QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/ui/wiring");
@@ -270,7 +372,7 @@ private slots:
 
             const QStringList slotNames = extractPublicSlotNames(content);
             for (const QString& slotName : slotNames) {
-                if (!isSlotConnected(m_allSources, slotName)) {
+                if (!isSlotConnected(m_allConnectCalls, slotName)) {
                     unconnectedSlots.append(
                         QStringLiteral("%1::%2").arg(fileName, slotName));
                 }
@@ -455,7 +557,7 @@ private slots:
 
             const QStringList signalNames = extractSignalNames(content);
             for (const QString& sigName : signalNames) {
-                if (!isSignalUsedAsSource(m_allSources, sigName)) {
+                if (!isSignalUsedAsSource(m_allConnectCalls, sigName)) {
                     unconnectedSignals.append(
                         QStringLiteral("%1::%2").arg(fileName, sigName));
                 }

@@ -114,13 +114,23 @@ private slots:
             lines, QStringLiteral("MainWindowLifecyclePipeline::runStartup()"));
         QVERIFY2(range.first >= 0, "runStartup() not found");
 
-        const QString body = bodyText(lines, range);
+        QString body = bodyText(lines, range);
+        QString firstToken = QStringLiteral("createFoundationObjects");
+        QString lastToken = QStringLiteral("finalizeAndConfigureUi");
+        if (body.contains(QStringLiteral("runLifecycleStartupInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleStartupInternal()"));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleStartupInternal not found");
+            body = bodyText(lines, internalRange);
+            firstToken = QStringLiteral("createFoundationObjectsForLifecycle");
+            lastToken = QStringLiteral("finalizeAndConfigureUiForLifecycle");
+        }
 
         // 最初と最後のステップの順序を検証
-        const auto firstStep = body.indexOf(QStringLiteral("createFoundationObjects"));
-        const auto lastStep = body.indexOf(QStringLiteral("finalizeAndConfigureUi"));
-        QVERIFY2(firstStep >= 0, "createFoundationObjects not found in runStartup");
-        QVERIFY2(lastStep >= 0, "finalizeAndConfigureUi not found in runStartup");
+        const auto firstStep = body.indexOf(firstToken);
+        const auto lastStep = body.indexOf(lastToken);
+        QVERIFY2(firstStep >= 0, "startup first step not found");
+        QVERIFY2(lastStep >= 0, "startup last step not found");
         QVERIFY2(firstStep < lastStep,
                   "createFoundationObjects must precede finalizeAndConfigureUi");
     }
@@ -132,9 +142,13 @@ private slots:
             QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
         QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
 
-        const auto range = findFunctionBody(
+        auto range = findFunctionBody(
             lines, QStringLiteral("MainWindowLifecyclePipeline::connectSignals()"));
-        QVERIFY2(range.first >= 0, "connectSignals() not found");
+        if (range.first < 0) {
+            range = findFunctionBody(
+                lines, QStringLiteral("MainWindow::connectSignalsForLifecycle()"));
+        }
+        QVERIFY2(range.first >= 0, "connectSignals implementation not found");
 
         const QString body = bodyText(lines, range);
         QVERIFY2(body.contains(QStringLiteral("SignalRouter")),
@@ -388,8 +402,15 @@ private slots:
             lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
         QVERIFY2(range.first >= 0, "runShutdown not found");
 
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("m_shutdownDone")),
+        QString body = bodyText(lines, range);
+        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal not found");
+            body = bodyText(lines, internalRange);
+        }
+        QVERIFY2(body.contains(QStringLiteral("m_shutdownDone"))
+                     || body.contains(QStringLiteral("shutdownDone")),
                   "runShutdown must have double-execution guard");
     }
 
@@ -404,7 +425,13 @@ private slots:
             lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
         QVERIFY2(range.first >= 0, "runShutdown not found");
 
-        const QString body = bodyText(lines, range);
+        QString body = bodyText(lines, range);
+        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
+            const auto internalRange = findFunctionBody(
+                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
+            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal not found");
+            body = bodyText(lines, internalRange);
+        }
 
         // 設定保存
         QVERIFY2(body.contains(QStringLiteral("saveWindowAndBoard"))
@@ -456,9 +483,13 @@ private slots:
             QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
         QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
 
-        const auto range = findFunctionBody(
+        auto range = findFunctionBody(
             lines, QStringLiteral("MainWindowLifecyclePipeline::finalizeAndConfigureUi()"));
-        QVERIFY2(range.first >= 0, "finalizeAndConfigureUi not found");
+        if (range.first < 0) {
+            range = findFunctionBody(
+                lines, QStringLiteral("MainWindow::finalizeAndConfigureUiForLifecycle()"));
+        }
+        QVERIFY2(range.first >= 0, "finalizeAndConfigureUi implementation not found");
 
         const QString body = bodyText(lines, range);
         QVERIFY2(body.contains(QStringLiteral("UiStatePolicyManager"))

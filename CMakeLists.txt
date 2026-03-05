@@ -286,6 +286,8 @@ set(SRC_APP
     src/app/mainwindowfoundationregistry.h
     src/app/mainwindowserviceregistry.cpp
     src/app/mainwindowserviceregistry.h
+    src/app/mainwindowserviceregistryfacades.cpp
+    src/app/mainwindowserviceregistryfacades.h
     src/app/mainwindowuiregistry.cpp
     src/app/mainwindowdepsfactory.cpp
     src/app/mainwindowdepsfactory.h
@@ -335,6 +337,7 @@ set(SRC_CORE
     src/core/shogiboard_edit.cpp
     src/core/shogiboard_sfen.cpp
     src/core/shogiclock.cpp
+    src/core/shogiclock_format.cpp
     src/core/shogiclock.h
     src/core/shogimove.cpp
     src/core/shogimove.h

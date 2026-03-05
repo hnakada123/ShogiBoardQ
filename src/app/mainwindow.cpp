@@ -12,6 +12,7 @@
 // --- Pipeline / Registry ---
 #include "mainwindowlifecyclepipeline.h"
 #include "mainwindowserviceregistry.h"
+#include "mainwindowserviceregistryfacades.h"
 
 // --- unique_ptr メンバの完全型（デストラクタ用） ---
 #include "mainwindowownedtypes.h"
@@ -110,17 +111,17 @@ void MainWindow::closeEvent(QCloseEvent* e)
 
 void MainWindow::beginPositionEditing()
 {
-    m_registry->handleBeginPositionEditing();
+    m_registry->board()->handleBeginPositionEditing();
 }
 
 void MainWindow::finishPositionEditing()
 {
-    m_registry->handleFinishPositionEditing();
+    m_registry->board()->handleFinishPositionEditing();
 }
 
 void MainWindow::onMoveRequested(const QPoint& from, const QPoint& to)
 {
-    m_registry->handleMoveRequested(from, to);
+    m_registry->board()->handleMoveRequested(from, to);
 }
 
 // 再生モードの切替を ServiceRegistry へ委譲
@@ -131,17 +132,17 @@ void MainWindow::setReplayMode(bool on)
 
 void MainWindow::loadBoardFromSfen(const QString& sfen)
 {
-    m_registry->loadBoardFromSfen(sfen);
+    m_registry->board()->loadBoardFromSfen(sfen);
 }
 
 void MainWindow::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen)
 {
-    m_registry->loadBoardWithHighlights(currentSfen, prevSfen);
+    m_registry->board()->loadBoardWithHighlights(currentSfen, prevSfen);
 }
 
 void MainWindow::onMoveCommitted(ShogiGameController::Player mover, int ply)
 {
-    m_registry->handleMoveCommitted(static_cast<int>(mover), ply);
+    m_registry->board()->handleMoveCommitted(static_cast<int>(mover), ply);
 }
 
 // `buildRuntimeRefs`: 現在のメンバ変数から MainWindowRuntimeRefs スナップショットを構築する。
@@ -288,5 +289,5 @@ void MainWindow::refreshPlayModePolicyDeps()
 // `onRecordPaneMainRowChanged`: Record Pane Main Row Changed のイベント受信時処理を行う。
 void MainWindow::onRecordPaneMainRowChanged(int row)
 {
-    m_registry->onRecordPaneMainRowChanged(row);
+    m_registry->ui()->onRecordPaneMainRowChanged(row);
 }
