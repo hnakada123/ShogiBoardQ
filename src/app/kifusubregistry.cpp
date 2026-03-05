@@ -105,8 +105,12 @@ void KifuSubRegistry::ensureKifuFileController()
     auto refs = m_mw.buildRuntimeRefs();
 
     MainWindowDepsFactory::KifuFileCallbacks callbacks;
-    callbacks.clearUiBeforeKifuLoad = std::bind(&KifuSubRegistry::clearUiBeforeKifuLoad, this);
-    callbacks.setReplayMode = std::bind(&MainWindow::setReplayMode, &m_mw, std::placeholders::_1);
+    callbacks.clearUiBeforeKifuLoad = [this]() {
+        clearUiBeforeKifuLoad();
+    };
+    callbacks.setReplayMode = [this](bool replayMode) {
+        m_mw.setReplayMode(replayMode);
+    };
     callbacks.ensurePlayerInfoAndGameInfo = [this]() {
         m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
@@ -114,11 +118,19 @@ void KifuSubRegistry::ensureKifuFileController()
             m_mw.m_gameInfoController = m_mw.m_playerInfoWiring->gameInfoController();
         }
     };
-    callbacks.ensureGameRecordModel = std::bind(&KifuSubRegistry::ensureGameRecordModel, this);
-    callbacks.ensureKifuExportController = std::bind(&KifuSubRegistry::ensureKifuExportController, this);
-    callbacks.updateKifuExportDependencies = std::bind(&KifuSubRegistry::updateKifuExportDeps, this);
+    callbacks.ensureGameRecordModel = [this]() {
+        ensureGameRecordModel();
+    };
+    callbacks.ensureKifuExportController = [this]() {
+        ensureKifuExportController();
+    };
+    callbacks.updateKifuExportDependencies = [this]() {
+        updateKifuExportDeps();
+    };
     callbacks.createAndWireKifuLoadCoordinator = [this]() { createAndWireKifuLoadCoordinator(); };
-    callbacks.ensureKifuLoadCoordinatorForLive = std::bind(&KifuSubRegistry::ensureKifuLoadCoordinatorForLive, this);
+    callbacks.ensureKifuLoadCoordinatorForLive = [this]() {
+        ensureKifuLoadCoordinatorForLive();
+    };
     callbacks.getKifuExportController = [this]() { return m_mw.m_kifuExportController.get(); };
     callbacks.getKifuLoadCoordinator = [this]() { return m_mw.m_kifuLoadCoordinator; };
 
@@ -310,9 +322,9 @@ void KifuSubRegistry::clearUiBeforeKifuLoad()
     deps.analysisModel = m_mw.m_models.analysis;
     deps.evalChart = m_mw.m_evalChart;
     deps.evalGraphController = m_mw.m_evalGraphController.get();
-    deps.broadcastComment = std::bind(&CommentCoordinator::broadcastComment,
-                                       m_mw.m_commentCoordinator,
-                                       std::placeholders::_1, std::placeholders::_2);
+    deps.broadcastComment = [this](const QString& comment, int row) {
+        m_mw.m_commentCoordinator->broadcastComment(comment, row);
+    };
 
     const MainWindowResetService resetService;
     resetService.clearUiBeforeKifuLoad(deps);

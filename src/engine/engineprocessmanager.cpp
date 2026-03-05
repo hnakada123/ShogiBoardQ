@@ -77,6 +77,8 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
     // 3. QProcess作成・作業ディレクトリ設定・シグナル接続
     // 4. プロセス起動・起動確認
 
+    m_currentEnginePath = engineFile;
+
     if (engineFile.isEmpty() || !QFile::exists(engineFile)) {
         emit processError(QProcess::FailedToStart,
                           tr("Engine file does not exist: %1").arg(engineFile));
@@ -116,7 +118,6 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
     }
 
     m_shutdownState = ShutdownState::Running;
-    m_currentEnginePath = engineFile;
     return true;
 }
 

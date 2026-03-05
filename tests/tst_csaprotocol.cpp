@@ -897,6 +897,29 @@ private slots:
         QCOMPARE(client.m_connectionState, CsaClient::ConnectionState::InGame);
     }
 
+    void csaClient_processGameSummary_invalidNumeric_keepsCurrentValues()
+    {
+        CsaClient client;
+        client.m_inTimeSection = true;
+        client.m_currentTimeSection = QStringLiteral("Time");
+        client.m_gameSummary.totalTime = 600;
+        client.m_gameSummary.byoyomi = 30;
+        client.m_gameSummary.delay = 5;
+
+        client.processGameSummary(QStringLiteral("Total_Time:abc"));
+        client.processGameSummary(QStringLiteral("Byoyomi:-1"));
+        client.processGameSummary(QStringLiteral("Delay:xyz"));
+
+        QCOMPARE(client.m_gameSummary.totalTime, 600);
+        QCOMPARE(client.m_gameSummary.byoyomi, 30);
+        QCOMPARE(client.m_gameSummary.delay, 5);
+
+        client.m_inTimeSection = false;
+        client.m_gameSummary.maxMoves = 256;
+        client.processGameSummary(QStringLiteral("Max_Moves:not-a-number"));
+        QCOMPARE(client.m_gameSummary.maxMoves, 256);
+    }
+
     // ========================================
     // 異常系: CsaClient setCsaVersion の安全性
     // ========================================

@@ -40,13 +40,15 @@ GameRecordModel* GameRecordModelBuilder::build(const Deps& deps)
         deps.commentCoordinator->setRecordPresenter(deps.recordPresenter);
         deps.commentCoordinator->setKifuRecordListModel(deps.kifuRecordModel);
         model->setCommentUpdateCallback(
-            std::bind(&CommentCoordinator::onCommentUpdateCallback, deps.commentCoordinator,
-                      std::placeholders::_1, std::placeholders::_2));
+            [coordinator = deps.commentCoordinator](int row, const QString& text) {
+                coordinator->onCommentUpdateCallback(row, text);
+            });
 
         // しおり更新時のコールバックを設定
         model->setBookmarkUpdateCallback(
-            std::bind(&CommentCoordinator::onBookmarkUpdateCallback, deps.commentCoordinator,
-                      std::placeholders::_1, std::placeholders::_2));
+            [coordinator = deps.commentCoordinator](int row, const QString& bookmark) {
+                coordinator->onBookmarkUpdateCallback(row, bookmark);
+            });
     }
 
     qCDebug(lcApp).noquote() << "GameRecordModelBuilder::build: created and bound";

@@ -237,15 +237,21 @@ void MainWindowLifecyclePipeline::connectSignals()
         d.initializeDialogLaunchWiring = [this]() {
             m_mw.m_registry->initializeDialogLaunchWiring();
         };
-        d.ensureDialogCoordinator = std::bind(&MainWindowServiceRegistry::ensureDialogCoordinator, m_mw.m_registry.get());
-        d.ensureKifuFileController = std::bind(&KifuSubRegistry::ensureKifuFileController, m_mw.m_registry->kifu());
+        d.ensureDialogCoordinator = [this]() {
+            m_mw.m_registry->ensureDialogCoordinator();
+        };
+        d.ensureKifuFileController = [this]() {
+            m_mw.m_registry->kifu()->ensureKifuFileController();
+        };
         d.ensureGameSessionOrchestrator = [this]() {
             m_mw.m_registry->game()->session()->ensureGameSessionOrchestrator();
         };
         d.ensureUiNotificationService = [this]() {
             m_mw.m_registry->foundation()->ensureUiNotificationService();
         };
-        d.ensureBoardSetupController = std::bind(&MainWindowServiceRegistry::ensureBoardSetupController, m_mw.m_registry.get());
+        d.ensureBoardSetupController = [this]() {
+            m_mw.m_registry->ensureBoardSetupController();
+        };
         d.getKifuExportController = [this]() -> KifuExportController* {
             m_mw.m_registry->kifu()->ensureKifuExportController();
             return m_mw.m_kifuExportController.get();

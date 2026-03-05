@@ -16,6 +16,18 @@
 
 using namespace EngineSettingsConstants;
 
+namespace {
+QString normalizeEnginePath(const QString& filePath)
+{
+    const QFileInfo info(filePath);
+    const QString canonicalPath = info.canonicalFilePath();
+    if (!canonicalPath.isEmpty()) {
+        return canonicalPath;
+    }
+    return info.absoluteFilePath();
+}
+} // namespace
+
 EngineRegistrationHandler::EngineRegistrationHandler(QObject *parent)
     : QObject(parent)
 {
@@ -59,8 +71,9 @@ const Engine& EngineRegistrationHandler::engineAt(int index) const
 // パスの重複を検査する。
 bool EngineRegistrationHandler::isDuplicatePath(const QString& path, QString& existingName) const
 {
+    const QString normalizedInput = normalizeEnginePath(path);
     for (const Engine& engine : std::as_const(m_engineList)) {
-        if (engine.path == path) {
+        if (normalizeEnginePath(engine.path) == normalizedInput) {
             existingName = engine.name;
             return true;
         }
@@ -122,7 +135,7 @@ void EngineRegistrationHandler::startRegistration(const QString& filePath)
     if (m_registrationInProgress) return;
 
     m_errorOccurred = false;
-    m_fileName = filePath;
+    m_fileName = normalizeEnginePath(filePath);
     m_engineIdName.clear();
     m_engineIdAuthor.clear();
     m_optionLines.clear();

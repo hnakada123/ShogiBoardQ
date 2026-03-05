@@ -170,18 +170,30 @@ void GameSessionSubRegistry::refreshGameSessionOrchestratorDeps()
     deps.liveGameSession = &m_mw.m_branchNav.liveGameSession;
 
     // === Lazy-init callbacks ===
-    deps.ensureGameStateController = std::bind(&GameSubRegistry::ensureGameStateController, m_gameReg);
-    deps.ensureSessionLifecycleCoordinator = std::bind(&GameSessionSubRegistry::ensureSessionLifecycleCoordinator, this);
-    deps.ensureConsecutiveGamesController = std::bind(&GameWiringSubRegistry::ensureConsecutiveGamesController,
-                                                      m_gameReg->wiring());
-    deps.ensureGameStartCoordinator = std::bind(&GameSubRegistry::ensureGameStartCoordinator, m_gameReg);
-    deps.ensurePreStartCleanupHandler = std::bind(&GameSessionSubRegistry::ensurePreStartCleanupHandler, this);
+    deps.ensureGameStateController = [this]() {
+        m_gameReg->ensureGameStateController();
+    };
+    deps.ensureSessionLifecycleCoordinator = [this]() {
+        ensureSessionLifecycleCoordinator();
+    };
+    deps.ensureConsecutiveGamesController = [this]() {
+        m_gameReg->wiring()->ensureConsecutiveGamesController();
+    };
+    deps.ensureGameStartCoordinator = [this]() {
+        m_gameReg->ensureGameStartCoordinator();
+    };
+    deps.ensurePreStartCleanupHandler = [this]() {
+        ensurePreStartCleanupHandler();
+    };
     deps.ensureDialogCoordinator = [this]() { m_registry->ensureDialogCoordinator(); };
-    deps.ensureReplayController = std::bind(&GameSubRegistry::ensureReplayController, m_gameReg);
+    deps.ensureReplayController = [this]() {
+        m_gameReg->ensureReplayController();
+    };
 
     // === Action callbacks ===
-    deps.initMatchCoordinator = std::bind(&GameWiringSubRegistry::initMatchCoordinator,
-                                          m_gameReg->wiring());
+    deps.initMatchCoordinator = [this]() {
+        m_gameReg->wiring()->initMatchCoordinator();
+    };
     deps.clearSessionDependentUi = [this]() { m_registry->clearSessionDependentUi(); };
     deps.updateJosekiWindow = [this]() { m_registry->kifu()->updateJosekiWindow(); };
     deps.sfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
@@ -220,9 +232,12 @@ void GameSessionSubRegistry::refreshCoreInitDeps()
     deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.parent = &m_mw;
     deps.setupBoardInteractionController = [this]() { m_registry->setupBoardInteractionController(); };
-    deps.setCurrentTurn = std::bind(&MainWindow::setCurrentTurn, &m_mw);
-    deps.ensureTurnSyncBridge = std::bind(&GameWiringSubRegistry::ensureTurnSyncBridge,
-                                         m_gameReg->wiring());
+    deps.setCurrentTurn = [this]() {
+        m_mw.setCurrentTurn();
+    };
+    deps.ensureTurnSyncBridge = [this]() {
+        m_gameReg->wiring()->ensureTurnSyncBridge();
+    };
     deps.ensurePlayerInfoWiringAndApply = [this]() {
         m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
@@ -258,25 +273,32 @@ void GameSessionSubRegistry::refreshSessionLifecycleDeps()
     if (!m_mw.m_sessionLifecycle) return;
 
     SessionLifecycleDepsFactory::Callbacks callbacks;
-    callbacks.clearGameStateFields = std::bind(&GameSessionSubRegistry::clearGameStateFields, this);
-    callbacks.resetEngineState = std::bind(&GameSessionSubRegistry::resetEngineState, this);
+    callbacks.clearGameStateFields = [this]() {
+        clearGameStateFields();
+    };
+    callbacks.resetEngineState = [this]() {
+        resetEngineState();
+    };
     ensureGameSessionOrchestrator();
-    callbacks.onPreStartCleanupRequested = std::bind(&GameSessionOrchestrator::onPreStartCleanupRequested,
-                                                     m_mw.m_gameSessionOrchestrator);
+    callbacks.onPreStartCleanupRequested = [this]() {
+        m_mw.m_gameSessionOrchestrator->onPreStartCleanupRequested();
+    };
     callbacks.resetModels = [this](const QString& sfen) { m_registry->resetModels(sfen); };
     callbacks.resetUiState = [this](const QString& sfen) { m_registry->resetUiState(sfen); };
     callbacks.clearEvalState = [this]() { m_registry->clearEvalState(); };
     callbacks.unlockGameOverStyle = [this]() { m_registry->unlockGameOverStyle(); };
-    callbacks.startGame = std::bind(&GameSessionOrchestrator::invokeStartGame,
-                                    m_mw.m_gameSessionOrchestrator);
+    callbacks.startGame = [this]() {
+        m_mw.m_gameSessionOrchestrator->invokeStartGame();
+    };
     callbacks.updateEndTime = [this](const QDateTime& endTime) {
         m_foundation->ensurePlayerInfoWiring();
         if (m_mw.m_playerInfoWiring) {
             m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(endTime);
         }
     };
-    callbacks.startNextConsecutiveGame = std::bind(&GameSessionOrchestrator::startNextConsecutiveGame,
-                                                    m_mw.m_gameSessionOrchestrator);
+    callbacks.startNextConsecutiveGame = [this]() {
+        m_mw.m_gameSessionOrchestrator->startNextConsecutiveGame();
+    };
     callbacks.lastTimeControl = &m_mw.m_lastTimeControl;
     callbacks.updateGameInfoWithTimeControl = [this](bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incMs) {
         m_foundation->ensurePlayerInfoWiring();

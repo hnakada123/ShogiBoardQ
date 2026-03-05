@@ -90,8 +90,9 @@ void GameWiringSubRegistry::refreshMatchWiringDeps()
         ad.boardController = m_mw.m_boardController;
         ad.playMode = &m_mw.m_state.playMode;
         m_gameReg->session()->ensureCoreInitCoordinator();
-        ad.initializeNewGame = std::bind(&MainWindowCoreInitCoordinator::initializeNewGame,
-                                         m_mw.m_coreInit.get(), std::placeholders::_1);
+        ad.initializeNewGame = [this](QString& startSfenStr) {
+            m_mw.m_coreInit->initializeNewGame(startSfenStr);
+        };
         ad.ensureAndGetPlayerInfoWiring = [this]() -> PlayerInfoWiring* {
             m_foundation->ensurePlayerInfoWiring();
             return m_mw.m_playerInfoWiring;
@@ -117,16 +118,11 @@ void GameWiringSubRegistry::refreshMatchWiringDeps()
 
 MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
 {
-    using std::placeholders::_1;
-    using std::placeholders::_2;
-    using std::placeholders::_3;
-    using std::placeholders::_4;
-    using std::placeholders::_5;
-    using std::placeholders::_6;
-
     MainWindowMatchWiringDepsService::Inputs in;
     in.evalGraphController = m_mw.m_evalGraphController.get();
-    in.onTurnChanged = std::bind(&MainWindow::onTurnManagerChanged, &m_mw, _1);
+    in.onTurnChanged = [this](ShogiGameController::Player player) {
+        m_mw.onTurnManagerChanged(player);
+    };
     in.sendGo = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
         if (m_mw.m_match) m_mw.m_match->sendGoToEngine(which, t);
     };
@@ -137,28 +133,60 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
         if (m_mw.m_match) m_mw.m_match->sendRawToEngine(which, cmd);
     };
     auto* adapter = m_mw.m_matchAdapter.get();
-    in.initializeNewGame = std::bind(&MainWindowMatchAdapter::initializeNewGameHook, adapter, _1);
-    in.renderBoard = std::bind(&MainWindowMatchAdapter::renderBoardFromGc, adapter);
-    in.showMoveHighlights = std::bind(&MainWindowMatchAdapter::showMoveHighlights, adapter, _1, _2);
+    in.initializeNewGame = [adapter](const QString& sfen) {
+        adapter->initializeNewGameHook(sfen);
+    };
+    in.renderBoard = [adapter]() {
+        adapter->renderBoardFromGc();
+    };
+    in.showMoveHighlights = [adapter](const QPoint& from, const QPoint& to) {
+        adapter->showMoveHighlights(from, to);
+    };
     in.appendKifuLine = [this](const QString& text, const QString& elapsed) {
         m_registry->kifu()->ensureGameRecordUpdateService();
         if (m_mw.m_gameRecordUpdateService) {
             m_mw.m_gameRecordUpdateService->appendKifuLine(text, elapsed);
         }
     };
-    in.showGameOverDialog = std::bind(&MainWindowMatchAdapter::showGameOverMessageBox, adapter, _1, _2);
-    in.remainingMsFor = std::bind(&GameWiringSubRegistry::queryRemainingMsFor, this, _1);
-    in.incrementMsFor = std::bind(&GameWiringSubRegistry::queryIncrementMsFor, this, _1);
-    in.byoyomiMs = std::bind(&GameWiringSubRegistry::queryByoyomiMs, this);
-    in.setPlayersNames = std::bind(&PlayerInfoWiring::onSetPlayersNames, m_mw.m_playerInfoWiring, _1, _2);
-    in.setEngineNames = std::bind(&PlayerInfoWiring::onSetEngineNames, m_mw.m_playerInfoWiring, _1, _2);
+    in.showGameOverDialog = [adapter](const QString& title, const QString& message) {
+        adapter->showGameOverMessageBox(title, message);
+    };
+    in.remainingMsFor = [this](MatchCoordinator::Player player) -> qint64 {
+        return queryRemainingMsFor(player);
+    };
+    in.incrementMsFor = [this](MatchCoordinator::Player player) -> qint64 {
+        return queryIncrementMsFor(player);
+    };
+    in.byoyomiMs = [this]() -> qint64 {
+        return queryByoyomiMs();
+    };
+    in.setPlayersNames = [this](const QString& p1, const QString& p2) {
+        m_mw.m_playerInfoWiring->onSetPlayersNames(p1, p2);
+    };
+    in.setEngineNames = [this](const QString& e1, const QString& e2) {
+        m_mw.m_playerInfoWiring->onSetEngineNames(e1, e2);
+    };
     m_registry->kifu()->ensureKifuFileController();
-    in.autoSaveKifu = std::bind(&KifuFileController::autoSaveKifuToFile, m_mw.m_kifuFileController, _1, _2, _3, _4, _5, _6);
+    in.autoSaveKifu = [this](const QString& gameResultText,
+                             PlayMode mode,
+                             const QString& gameModeText,
+                             const QString& dateTimeText,
+                             const QString& blackText,
+                             const QString& whiteText) {
+        m_mw.m_kifuFileController->autoSaveKifuToFile(gameResultText, mode, gameModeText,
+                                                      dateTimeText, blackText, whiteText);
+    };
 
     m_foundation->ensureKifuNavigationCoordinator();
-    in.updateHighlightsForPly = std::bind(&KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, m_mw.m_kifuNavCoordinator.get(), _1);
-    in.updateTurnAndTimekeepingDisplay = std::bind(&MainWindowMatchAdapter::updateTurnAndTimekeepingDisplay, adapter);
-    in.isHumanSide = std::bind(&GameWiringSubRegistry::queryIsHumanSide, this, _1);
+    in.updateHighlightsForPly = [this](int ply) {
+        m_mw.m_kifuNavCoordinator->syncBoardAndHighlightsAtRow(ply);
+    };
+    in.updateTurnAndTimekeepingDisplay = [adapter]() {
+        adapter->updateTurnAndTimekeepingDisplay();
+    };
+    in.isHumanSide = [this](ShogiGameController::Player player) {
+        return queryIsHumanSide(player);
+    };
     in.setMouseClickMode = [this](bool mode) {
         if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(mode);
     };
@@ -180,13 +208,27 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
     in.positionStrList  = &m_mw.m_kifu.positionStrList;
     in.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
 
-    in.ensureTimeController           = std::bind(&GameSubRegistry::ensureTimeController, m_gameReg);
-    in.ensureEvaluationGraphController = std::bind(&MainWindowFoundationRegistry::ensureEvaluationGraphController, m_foundation);
-    in.ensurePlayerInfoWiring         = std::bind(&MainWindowFoundationRegistry::ensurePlayerInfoWiring, m_foundation);
-    in.ensureUsiCommandController     = std::bind(&MainWindowServiceRegistry::ensureUsiCommandController, m_registry);
-    in.ensureUiStatePolicyManager     = std::bind(&MainWindowFoundationRegistry::ensureUiStatePolicyManager, m_foundation);
-    in.connectBoardClicks             = std::bind(&MainWindowSignalRouter::connectBoardClicks, m_mw.m_signalRouter.get());
-    in.connectMoveRequested           = std::bind(&MainWindowSignalRouter::connectMoveRequested, m_mw.m_signalRouter.get());
+    in.ensureTimeController = [this]() {
+        m_gameReg->ensureTimeController();
+    };
+    in.ensureEvaluationGraphController = [this]() {
+        m_foundation->ensureEvaluationGraphController();
+    };
+    in.ensurePlayerInfoWiring = [this]() {
+        m_foundation->ensurePlayerInfoWiring();
+    };
+    in.ensureUsiCommandController = [this]() {
+        m_registry->ensureUsiCommandController();
+    };
+    in.ensureUiStatePolicyManager = [this]() {
+        m_foundation->ensureUiStatePolicyManager();
+    };
+    in.connectBoardClicks = [this]() {
+        m_mw.m_signalRouter->connectBoardClicks();
+    };
+    in.connectMoveRequested = [this]() {
+        m_mw.m_signalRouter->connectMoveRequested();
+    };
 
     in.getClock = [this]() -> ShogiClock* {
         return m_mw.m_timeController ? m_mw.m_timeController->clock() : nullptr;
@@ -325,8 +367,9 @@ void GameWiringSubRegistry::initMatchCoordinator()
     // 原因となる。再初期化前に nullptr にしてガードで安全に弾けるようにする。
     m_mw.m_match = nullptr;
 
-    if (!m_mw.m_matchWiring->initializeSession(
-            std::bind(&GameWiringSubRegistry::ensureMatchCoordinatorWiring, this))) {
+    if (!m_mw.m_matchWiring->initializeSession([this]() {
+            ensureMatchCoordinatorWiring();
+        })) {
         return;
     }
 

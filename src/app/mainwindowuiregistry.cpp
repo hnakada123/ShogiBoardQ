@@ -68,7 +68,9 @@ void MainWindowServiceRegistry::ensureDialogCoordinator()
     callbacks.getConsiderationWiring = [this]() { ensureConsiderationWiring(); return m_mw.m_considerationWiring; };
     callbacks.getUiStatePolicyManager = [this]() { m_foundation->ensureUiStatePolicyManager(); return m_mw.m_uiStatePolicy; };
     m_foundation->ensureKifuNavigationCoordinator();
-    callbacks.navigateKifuViewToRow = std::bind(&KifuNavigationCoordinator::navigateToRow, m_mw.m_kifuNavCoordinator.get(), std::placeholders::_1);
+    callbacks.navigateKifuViewToRow = [this](int row) {
+        m_mw.m_kifuNavCoordinator->navigateToRow(row);
+    };
 
     m_mw.m_compositionRoot->ensureDialogCoordinator(refs, callbacks, &m_mw,
         m_mw.m_registryParts.dialogCoordinatorWiring, m_mw.m_dialogCoordinator);

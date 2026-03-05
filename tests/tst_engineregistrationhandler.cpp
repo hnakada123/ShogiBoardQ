@@ -4,10 +4,13 @@
 #define private public
 #include "engineregistrationhandler.h"
 #undef private
+#include "engineregistrationdialog.h"
 
 #include <QtTest>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QTemporaryDir>
 
 class TestEngineRegistrationHandler : public QObject
 {
@@ -116,6 +119,30 @@ private slots:
         QCOMPARE(arr.size(), 2);
         QCOMPARE(arr.at(0).toString(), QStringLiteral("Ultra Aggressive"));
         QCOMPARE(arr.at(1).toString(), QStringLiteral("Solid"));
+    }
+
+    void isDuplicatePath_canonicalizedPath_detectsDuplicate()
+    {
+        EngineRegistrationHandler handler;
+
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+
+        const QString basePath = tmp.filePath(QStringLiteral("engine"));
+        QFile file(basePath);
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));
+        file.write("#!/bin/sh\nexit 0\n");
+        file.close();
+
+        Engine engine;
+        engine.name = QStringLiteral("test-engine");
+        engine.path = basePath;
+        handler.m_engineList.append(engine);
+
+        QString existingName;
+        const QString alternativePath = tmp.filePath(QStringLiteral("./engine"));
+        QVERIFY(handler.isDuplicatePath(alternativePath, existingName));
+        QCOMPARE(existingName, QStringLiteral("test-engine"));
     }
 };
 
