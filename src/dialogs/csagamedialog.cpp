@@ -4,7 +4,7 @@
 #include "csagamedialog.h"
 #include "ui_csagamedialog.h"
 #include "changeenginesettingsdialog.h"
-#include "enginesettingsconstants.h"
+#include "enginelistsettings.h"
 #include "settingscommon.h"
 #include "networksettings.h"
 #include "dialogutils.h"
@@ -12,7 +12,19 @@
 #include <QMessageBox>
 #include <QDir>
 
-using namespace EngineSettingsConstants;
+namespace {
+constexpr auto kCsaServerHistoryArray = "CsaServerHistory";
+constexpr auto kCsaGameSettingsGroup = "CsaGameSettings";
+constexpr auto kKeyHost = "host";
+constexpr auto kKeyPort = "port";
+constexpr auto kKeyId = "id";
+constexpr auto kKeyVersion = "version";
+constexpr auto kKeyVersionIndex = "versionIndex";
+constexpr auto kKeyIsHuman = "isHuman";
+constexpr auto kKeyEngineNumber = "engineNumber";
+constexpr auto kKeyEngineName = "engineName";
+constexpr auto kKeyPassword = "password";
+} // namespace
 
 CsaGameDialog::CsaGameDialog(QWidget *parent)
     : QDialog(parent)
@@ -85,24 +97,14 @@ void CsaGameDialog::connectSignalsAndSlots()
 // 設定ファイルからエンジン情報を読み込む
 void CsaGameDialog::loadEngineConfigurations()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // [Engines]グループ内のエンジン数を取得する
-    int size = settings.beginReadArray("Engines");
-
-    // エンジンリストをクリアする
     m_engineList.clear();
-
-    // エンジンリストに追加する
-    for (int i = 0; i < size; ++i) {
-        settings.setArrayIndex(i);
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    for (const auto& entry : engines) {
         Engine engine;
-        engine.name = settings.value("name").toString();
-        engine.path = settings.value("path").toString();
+        engine.name = entry.name;
+        engine.path = entry.path;
         m_engineList.append(engine);
     }
-
-    settings.endArray();
 }
 
 // UIにエンジン設定を反映する
@@ -123,7 +125,7 @@ void CsaGameDialog::loadServerHistory()
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
     // [CsaServerHistory]グループ内の履歴数を取得する
-    int size = settings.beginReadArray("CsaServerHistory");
+    int size = settings.beginReadArray(kCsaServerHistoryArray);
 
     // 履歴リストをクリアする
     m_serverHistory.clear();
@@ -132,10 +134,10 @@ void CsaGameDialog::loadServerHistory()
     for (int i = 0; i < size; ++i) {
         settings.setArrayIndex(i);
         ServerHistory history;
-        history.host = settings.value("host").toString();
-        history.port = settings.value("port", 4081).toInt();
-        history.id = settings.value("id").toString();
-        history.version = settings.value("version", "CSAプロトコル1.2.1 読み筋コメント出力あり").toString();
+        history.host = settings.value(kKeyHost).toString();
+        history.port = settings.value(kKeyPort, 4081).toInt();
+        history.id = settings.value(kKeyId).toString();
+        history.version = settings.value(kKeyVersion, "CSAプロトコル1.2.1 読み筋コメント出力あり").toString();
         m_serverHistory.append(history);
     }
 
@@ -177,14 +179,14 @@ void CsaGameDialog::saveServerHistory()
     // 設定ファイルに保存
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
-    settings.beginWriteArray("CsaServerHistory");
+    settings.beginWriteArray(kCsaServerHistoryArray);
     for (int i = 0; i < m_serverHistory.size(); ++i) {
         settings.setArrayIndex(i);
         const ServerHistory& h = m_serverHistory.at(i);
-        settings.setValue("host", h.host);
-        settings.setValue("port", h.port);
-        settings.setValue("id", h.id);
-        settings.setValue("version", h.version);
+        settings.setValue(kKeyHost, h.host);
+        settings.setValue(kKeyPort, h.port);
+        settings.setValue(kKeyId, h.id);
+        settings.setValue(kKeyVersion, h.version);
     }
     settings.endArray();
 }
@@ -216,26 +218,26 @@ void CsaGameDialog::loadGameSettings()
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
-    settings.beginGroup("CsaGameSettings");
+    settings.beginGroup(kCsaGameSettingsGroup);
 
     // 対局者設定
-    bool isHuman = settings.value("isHuman", true).toBool();
+    bool isHuman = settings.value(kKeyIsHuman, true).toBool();
     ui->radioButtonHuman->setChecked(isHuman);
     ui->radioButtonEngine->setChecked(!isHuman);
 
-    int engineIndex = settings.value("engineNumber", 0).toInt();
+    int engineIndex = settings.value(kKeyEngineNumber, 0).toInt();
     if (engineIndex >= 0 && engineIndex < ui->comboBoxEngine->count()) {
         ui->comboBoxEngine->setCurrentIndex(engineIndex);
     }
 
     // サーバー設定
-    ui->lineEditHost->setText(settings.value("host", "").toString());
-    ui->spinBoxPort->setValue(settings.value("port", 4081).toInt());
-    ui->lineEditId->setText(settings.value("id", "").toString());
+    ui->lineEditHost->setText(settings.value(kKeyHost, "").toString());
+    ui->spinBoxPort->setValue(settings.value(kKeyPort, 4081).toInt());
+    ui->lineEditId->setText(settings.value(kKeyId, "").toString());
     ui->lineEditPassword->clear();
-    settings.remove("password");
+    settings.remove(kKeyPassword);
 
-    int versionIndex = settings.value("versionIndex", 0).toInt();
+    int versionIndex = settings.value(kKeyVersionIndex, 0).toInt();
     if (versionIndex >= 0 && versionIndex < ui->comboBoxVersion->count()) {
         ui->comboBoxVersion->setCurrentIndex(versionIndex);
     }
@@ -248,19 +250,19 @@ void CsaGameDialog::saveGameSettings()
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
-    settings.beginGroup("CsaGameSettings");
+    settings.beginGroup(kCsaGameSettingsGroup);
 
     // 対局者設定
-    settings.setValue("isHuman", ui->radioButtonHuman->isChecked());
-    settings.setValue("engineName", ui->comboBoxEngine->currentText());
-    settings.setValue("engineNumber", ui->comboBoxEngine->currentIndex());
+    settings.setValue(kKeyIsHuman, ui->radioButtonHuman->isChecked());
+    settings.setValue(kKeyEngineName, ui->comboBoxEngine->currentText());
+    settings.setValue(kKeyEngineNumber, ui->comboBoxEngine->currentIndex());
 
     // サーバー設定
-    settings.setValue("host", ui->lineEditHost->text().trimmed());
-    settings.setValue("port", ui->spinBoxPort->value());
-    settings.setValue("id", ui->lineEditId->text().trimmed());
-    settings.remove("password");
-    settings.setValue("versionIndex", ui->comboBoxVersion->currentIndex());
+    settings.setValue(kKeyHost, ui->lineEditHost->text().trimmed());
+    settings.setValue(kKeyPort, ui->spinBoxPort->value());
+    settings.setValue(kKeyId, ui->lineEditId->text().trimmed());
+    settings.remove(kKeyPassword);
+    settings.setValue(kKeyVersionIndex, ui->comboBoxVersion->currentIndex());
 
     settings.endGroup();
 }

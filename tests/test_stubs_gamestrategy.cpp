@@ -620,6 +620,7 @@ void PvBoardDialog::onGoLast() {}
 void PvBoardDialog::onEnlargeBoard() {}
 void PvBoardDialog::onReduceBoard() {}
 void PvBoardDialog::onFlipBoard() {}
+void PvBoardDialog::onHighlightsCleared() {}
 void PvBoardDialog::closeEvent(QCloseEvent*) {}
 bool PvBoardDialog::eventFilter(QObject*, QEvent*) { return false; }
 

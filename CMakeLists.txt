@@ -41,16 +41,21 @@ if(ENABLE_CLANG_TIDY)
     endif()
 endif()
 
-# ==== cppcheck 設定（未使用関数検出用） ====
+# ==== cppcheck 設定 ====
 option(ENABLE_CPPCHECK "Enable cppcheck static analysis" OFF)
+option(ENABLE_CPPCHECK_UNUSED_FUNCTION "Enable noisy cppcheck unusedFunction checks" OFF)
 
 if(ENABLE_CPPCHECK)
     find_program(CPPCHECK_EXE NAMES "cppcheck")
     if(CPPCHECK_EXE)
         message(STATUS "cppcheck found: ${CPPCHECK_EXE}")
+        set(_cppcheck_enable "warning,style,performance,portability")
+        if(ENABLE_CPPCHECK_UNUSED_FUNCTION)
+            set(_cppcheck_enable "${_cppcheck_enable},unusedFunction")
+        endif()
         set(CMAKE_CXX_CPPCHECK
             ${CPPCHECK_EXE};
-            --enable=warning,unusedFunction;
+            --enable=${_cppcheck_enable};
             --inconclusive;
             --inline-suppr;
             --suppress=missingIncludeSystem;
@@ -60,6 +65,7 @@ if(ENABLE_CPPCHECK)
             --suppress=syntaxError:*_autogen/*;
             --quiet
         )
+        unset(_cppcheck_enable)
     else()
         message(WARNING "cppcheck not found, static analysis disabled")
     endif()
@@ -820,6 +826,7 @@ set(SRC_DIALOGS
     src/dialogs/startgamedialog.h
     src/dialogs/startgamedialog_settings.cpp
     src/dialogs/tsumeshogigeneratordialog.cpp
+    src/dialogs/tsumeshogigeneratordialog_actions.cpp
     src/dialogs/tsumeshogigeneratordialog.h
     src/dialogs/tsumeshogikanjibuilder.cpp
     src/dialogs/tsumeshogikanjibuilder.h
@@ -852,6 +859,8 @@ set(SRC_SERVICES
     src/services/docksettings.h
     src/services/enginedialogsettings.cpp
     src/services/enginedialogsettings.h
+    src/services/enginelistsettings.cpp
+    src/services/enginelistsettings.h
     src/services/gamesettings.cpp
     src/services/gamesettings.h
     src/services/josekisettings.cpp

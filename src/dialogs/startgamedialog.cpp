@@ -4,20 +4,16 @@
 #include "startgamedialog.h"
 #include "ui_startgamedialog.h"
 #include "changeenginesettingsdialog.h"
-#include "settingscommon.h"
 #include "gamesettings.h"
-#include "enginesettingsconstants.h"
+#include "enginelistsettings.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
-#include <QSettings>
 #include <QMessageBox>
 #include <QDir>
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QAbstractItemView>
 #include <utility>
-
-using namespace EngineSettingsConstants;
 
 // ============================================================
 // 初期化
@@ -169,20 +165,14 @@ void StartGameDialog::swapSides()
 
 void StartGameDialog::loadEngineConfigurations()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    int size = settings.beginReadArray("Engines");
     engineList.clear();
-
-    for (int i = 0; i < size; ++i) {
-        settings.setArrayIndex(i);
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    for (const auto& entry : engines) {
         Engine engine;
-        engine.name = settings.value("name").toString();
-        engine.path = settings.value("path").toString();
+        engine.name = entry.name;
+        engine.path = entry.path;
         engineList.append(engine);
     }
-
-    settings.endArray();
 }
 
 void StartGameDialog::populatePlayerComboBoxes()

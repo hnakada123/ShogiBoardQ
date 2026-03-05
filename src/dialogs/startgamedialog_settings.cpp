@@ -8,6 +8,12 @@
 #include <QSettings>
 #include <QStandardPaths>
 
+namespace {
+constexpr auto kGameSettingsGroup = "GameSettings";
+constexpr auto kKeyStartingPositionName = "startingPositionName";
+constexpr auto kKeyStartingPositionNumber = "startingPositionNumber";
+} // namespace
+
 // ============================================================
 // 設定保存・読込
 // ============================================================
@@ -15,7 +21,7 @@
 void StartGameDialog::saveGameSettings()
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginGroup("GameSettings");
+    settings.beginGroup(kGameSettingsGroup);
 
     // 先手／下手の設定を保存
     // インデックス0は「人間」、1以上はエンジン
@@ -52,8 +58,8 @@ void StartGameDialog::saveGameSettings()
     settings.setValue("byoyomiSec2", ui->byoyomiSec2->value());
     settings.setValue("addEachMoveSec2", ui->addEachMoveSec2->value());
 
-    settings.setValue("startingPositionName", ui->comboBoxStartingPosition->currentText());
-    settings.setValue("startingPositionNumber", ui->comboBoxStartingPosition->currentIndex());
+    settings.setValue(kKeyStartingPositionName, ui->comboBoxStartingPosition->currentText());
+    settings.setValue(kKeyStartingPositionNumber, ui->comboBoxStartingPosition->currentIndex());
     settings.setValue("maxMoves", ui->spinBoxMaxMoves->value());
     settings.setValue("consecutiveGames", ui->spinBoxConsecutiveGames->value());
     settings.setValue("isShowHumanInFront", ui->checkBoxShowHumanInFront->isChecked());
@@ -69,7 +75,7 @@ void StartGameDialog::saveGameSettings()
 void StartGameDialog::loadGameSettings()
 {
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginGroup("GameSettings");
+    settings.beginGroup(kGameSettingsGroup);
 
     // 先手／下手の設定を読み込む
     bool isHuman1 = settings.value("isHuman1", true).toBool();
@@ -108,8 +114,13 @@ void StartGameDialog::loadGameSettings()
     ui->byoyomiSec2->setValue(settings.value("byoyomiSec2", 0).toInt());
     ui->addEachMoveSec2->setValue(settings.value("addEachMoveSec2", 0).toInt());
 
-    ui->comboBoxStartingPosition->setCurrentText(settings.value("startingPositionName", "平手").toString());
-    ui->comboBoxStartingPosition->setCurrentIndex(settings.value("startingPositionNumber", 1).toInt());
+    const int savedStartingIndex = settings.value(kKeyStartingPositionNumber, 1).toInt();
+    if (savedStartingIndex >= 0 && savedStartingIndex < ui->comboBoxStartingPosition->count()) {
+        ui->comboBoxStartingPosition->setCurrentIndex(savedStartingIndex);
+    } else {
+        ui->comboBoxStartingPosition->setCurrentText(
+            settings.value(kKeyStartingPositionName, QStringLiteral("平手")).toString());
+    }
     ui->spinBoxMaxMoves->setValue(settings.value("maxMoves", 1000).toInt());
     ui->spinBoxConsecutiveGames->setValue(settings.value("consecutiveGames", 1).toInt());
     ui->checkBoxShowHumanInFront->setChecked(settings.value("isShowHumanInFront", true).toBool());

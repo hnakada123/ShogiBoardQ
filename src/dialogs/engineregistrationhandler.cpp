@@ -6,6 +6,7 @@
 #include "engineregistrationworker.h"
 #include "enginesettingsconstants.h"
 #include "usioptionlineparser.h"
+#include "enginelistsettings.h"
 #include "settingscommon.h"
 #include "logcategories.h"
 #include <QFile>
@@ -18,7 +19,6 @@ using namespace EngineSettingsConstants;
 
 namespace {
 constexpr int kWorkerQuitTimeoutMs = 3000;
-constexpr int kWorkerTerminateTimeoutMs = 1000;
 
 QString normalizeEnginePath(const QString& filePath)
 {
@@ -44,11 +44,8 @@ EngineRegistrationHandler::~EngineRegistrationHandler()
         if (m_workerThread->isRunning()) {
             m_workerThread->quit();
             if (!m_workerThread->wait(kWorkerQuitTimeoutMs)) {
-                qCWarning(lcUi) << "Engine registration worker thread quit timed out. Forcing terminate.";
-                m_workerThread->terminate();
-                if (!m_workerThread->wait(kWorkerTerminateTimeoutMs)) {
-                    qCWarning(lcUi) << "Engine registration worker thread is still running after terminate.";
-                }
+                qCWarning(lcUi) << "Engine registration worker thread quit timed out. Waiting until exit.";
+                m_workerThread->wait();
             }
         }
     }
@@ -57,16 +54,15 @@ EngineRegistrationHandler::~EngineRegistrationHandler()
 // 設定ファイルからエンジンリストを読み込む。
 void EngineRegistrationHandler::loadEnginesFromSettings()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    int engineCount = settings.beginReadArray(EnginesGroupName);
     m_engineList.clear();
-
-    for (int i = 0; i < engineCount; ++i) {
-        settings.setArrayIndex(i);
-        m_engineList.append(readEngineFromSettings(settings));
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    for (const auto& entry : engines) {
+        Engine engine;
+        engine.name = entry.name;
+        engine.path = entry.path;
+        engine.author = entry.author;
+        m_engineList.append(engine);
     }
-
-    settings.endArray();
 }
 
 const QList<Engine>& EngineRegistrationHandler::engineList() const
@@ -323,16 +319,6 @@ void EngineRegistrationHandler::concatenateComboOptionValues()
 }
 
 // --- 設定I/O ---
-
-// 設定ファイルからエンジン情報を読み込む。
-Engine EngineRegistrationHandler::readEngineFromSettings(const QSettings& settings) const
-{
-    Engine engine;
-    engine.name = settings.value(EngineNameKey).toString();
-    engine.path = settings.value(EnginePathKey).toString();
-    engine.author = settings.value(EngineAuthorKey).toString();
-    return engine;
-}
 
 // 設定ファイルにエンジン名と実行ファイルパスを書き込む。
 void EngineRegistrationHandler::saveEnginesToSettingsFile() const

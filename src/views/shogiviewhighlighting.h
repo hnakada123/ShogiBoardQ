@@ -26,6 +26,7 @@ public:
     using Urgency = ShogiView::Urgency;
 
     // ──────────────── ハイライト管理 ────────────────
+    // ハイライト配列は非所有。寿命は呼び出し側（Controller/Dialog）が管理する。
     void addHighlight(ShogiView::Highlight* hl);
     void removeHighlight(ShogiView::Highlight* hl);
     void removeHighlightAllData();

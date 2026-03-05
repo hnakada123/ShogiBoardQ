@@ -113,16 +113,8 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
 
     qCDebug(lcUi) << "onPvRowClicked: engineIndex=" << engineIndex << " row=" << row;
 
-    // 対象のモデルを取得
-    // engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ
-    ShogiEngineThinkingModel* model = nullptr;
-    if (engineIndex == 0) {
-        model = m_modelThinking1;
-    } else if (engineIndex == 1) {
-        model = m_modelThinking2;
-    } else if (engineIndex == 2) {
-        model = m_considerationModel;
-    }
+    // 対象のモデルを取得（engineIndex: 0=エンジン1, 1=エンジン2, 2=検討タブ）
+    ShogiEngineThinkingModel* model = modelForEngineIndex(engineIndex);
     if (!model) {
         qCDebug(lcUi) << "onPvRowClicked: model is null";
         return;
@@ -174,42 +166,11 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
     qCDebug(lcUi) << "onPvRowClicked: record->lastUsiMove()=" << record->lastUsiMove();
     qCDebug(lcUi) << "onPvRowClicked: sfenRecord size=" << (m_sfenHistory ? m_sfenHistory->size() : -1);
 
-    // 起動時の局面に至った最後の手を設定
-    // ShogiInfoRecordから取得（読み筋生成時に保存された情報）
+    // 起動時の局面に至った最後の手を設定（読み筋生成時に保存された情報）
     QString lastUsiMove = record->lastUsiMove();
     QString prevSfenForHighlight;
     qCDebug(lcUi) << "onPvRowClicked: lastUsiMove from record=" << lastUsiMove;
-
-    //重要: 読み筋生成時の局面に基づいてprevSfenを検索する
-    // m_currentRecordIndex（棋譜欄で選択中の位置）ではなく、
-    // currentSfen（読み筋生成時の局面）に一致する位置を検索
-    int matchedIndexInRecord = -1;
-    if (m_sfenHistory && !currentSfen.isEmpty()) {
-        const QString curNorm = normalizedSfen(currentSfen);
-        for (int i = 0; i < m_sfenHistory->size(); ++i) {
-            if (normalizedSfen(m_sfenHistory->at(i)) == curNorm) {
-                matchedIndexInRecord = i;
-                break;
-            }
-        }
-        qCDebug(lcUi) << "onPvRowClicked: found matchedIndexInRecord by baseSfen comparison=" << matchedIndexInRecord;
-    }
-
-    // lastUsiMoveが空の場合、m_sfenHistoryから前の局面を取得してハイライト計算用に使用
-    if (matchedIndexInRecord > 0 && m_sfenHistory
-        && matchedIndexInRecord - 1 < m_sfenHistory->size()) {
-        prevSfenForHighlight = m_sfenHistory->at(matchedIndexInRecord - 1);
-        qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight from m_sfenHistory["
-                      << (matchedIndexInRecord - 1) << "]";
-
-        // lastUsiMoveが空の場合、m_usiMovesから取得を試みる
-        if (lastUsiMove.isEmpty() && m_usiMoves
-            && !m_usiMoves->isEmpty() && matchedIndexInRecord - 1 < m_usiMoves->size()) {
-            lastUsiMove = m_usiMoves->at(matchedIndexInRecord - 1);
-            qCDebug(lcUi) << "onPvRowClicked: lastUsiMove from m_usiMoves["
-                         << (matchedIndexInRecord - 1) << "]=" << lastUsiMove;
-        }
-    }
+    resolveHighlightContext(currentSfen, lastUsiMove, prevSfenForHighlight);
     qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight="
                   << (prevSfenForHighlight.isEmpty() ? QStringLiteral("<empty>") : prevSfenForHighlight.left(60));
 
@@ -270,6 +231,54 @@ void PvClickController::onPvDialogFinished(int result)
 // --------------------------------------------------------
 // Private メソッド
 // --------------------------------------------------------
+
+ShogiEngineThinkingModel* PvClickController::modelForEngineIndex(int engineIndex) const
+{
+    switch (engineIndex) {
+    case 0:
+        return m_modelThinking1;
+    case 1:
+        return m_modelThinking2;
+    case 2:
+        return m_considerationModel;
+    default:
+        return nullptr;
+    }
+}
+
+void PvClickController::resolveHighlightContext(const QString& currentSfen,
+                                                QString& lastUsiMove,
+                                                QString& prevSfenForHighlight) const
+{
+    int matchedIndexInRecord = -1;
+    if (m_sfenHistory && !currentSfen.isEmpty()) {
+        const QString curNorm = normalizedSfen(currentSfen);
+        for (int i = 0; i < m_sfenHistory->size(); ++i) {
+            if (normalizedSfen(m_sfenHistory->at(i)) == curNorm) {
+                matchedIndexInRecord = i;
+                break;
+            }
+        }
+        qCDebug(lcUi) << "onPvRowClicked: found matchedIndexInRecord by baseSfen comparison="
+                      << matchedIndexInRecord;
+    }
+
+    if (matchedIndexInRecord <= 0 || !m_sfenHistory
+        || matchedIndexInRecord - 1 >= m_sfenHistory->size()) {
+        return;
+    }
+
+    prevSfenForHighlight = m_sfenHistory->at(matchedIndexInRecord - 1);
+    qCDebug(lcUi) << "onPvRowClicked: prevSfenForHighlight from m_sfenHistory["
+                  << (matchedIndexInRecord - 1) << "]";
+
+    if (lastUsiMove.isEmpty() && m_usiMoves
+        && !m_usiMoves->isEmpty() && matchedIndexInRecord - 1 < m_usiMoves->size()) {
+        lastUsiMove = m_usiMoves->at(matchedIndexInRecord - 1);
+        qCDebug(lcUi) << "onPvRowClicked: lastUsiMove from m_usiMoves["
+                      << (matchedIndexInRecord - 1) << "]=" << lastUsiMove;
+    }
+}
 
 QStringList PvClickController::searchUsiMovesFromLog(UsiCommLogModel* logModel) const
 {

@@ -104,8 +104,7 @@ private:
     QPoint m_firstClick; ///< 1クリック目の座標
 
     // --- ハイライトポインタ（所有） ---
-    // ShogiViewHighlighting::removeHighlightAllData() が qDeleteAll で一括破棄するため、
-    // onHighlightsCleared() では release() で所有権を手放す（二重解放防止）
+    // ShogiView 側は非所有参照のみ保持するため、寿命管理は本クラスが行う。
     std::unique_ptr<ShogiView::FieldHighlight> m_selectedField;  ///< 選択中（オレンジ）
     std::unique_ptr<ShogiView::FieldHighlight> m_selectedField2; ///< 直前の移動元（赤）
     std::unique_ptr<ShogiView::FieldHighlight> m_movedField;     ///< 移動先（黄）

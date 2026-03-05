@@ -96,6 +96,14 @@ private:
      */
     QString resolveLastUsiMove() const;
 
+    /// engineIndex(0/1/2) に対応する思考モデルを返す
+    ShogiEngineThinkingModel* modelForEngineIndex(int engineIndex) const;
+
+    /// PVダイアログのハイライト情報（前局面/最終USI手）を解決する
+    void resolveHighlightContext(const QString& currentSfen,
+                                 QString& lastUsiMove,
+                                 QString& prevSfenForHighlight) const;
+
 private:
     void syncFromRefs();
 

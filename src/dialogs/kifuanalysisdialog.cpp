@@ -4,21 +4,17 @@
 #include "kifuanalysisdialog.h"
 #include "changeenginesettingsdialog.h"
 #include "ui_kifuanalysisdialog.h"
-#include "enginesettingsconstants.h"
-#include "settingscommon.h"
 #include "analysissettings.h"
 #include "dialogutils.h"
+#include "enginelistsettings.h"
 #include "shogiutils.h"
 
 #include <QFile>
-#include <QSettings>
 #include <QComboBox>
 #include <QLabel>
 #include <QAbstractItemView>
 #include <QTextStream>
 #include <qmessagebox.h>
-
-using namespace EngineSettingsConstants;
 
 // 棋譜解析ダイアログのUIを設定する。
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
@@ -246,20 +242,11 @@ int KifuAnalysisDialog::endPly() const
 // 設定ファイルからエンジンの名前とディレクトリを読み込む。
 void KifuAnalysisDialog::readEngineNameAndDir()
 {
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-
-    // エンジンの数を取得する。
-    int size = settings.beginReadArray("Engines");
-
-    // エンジンの数だけループする。
-    for (int i = 0; i < size; i++) {
-        // 現在のインデックスで配列の要素を設定する。
-        settings.setArrayIndex(i);
-
-        // エンジン名とディレクトリを取得する。
+    const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
+    for (const auto& entry : engines) {
         Engine engine;
-        engine.name = settings.value("name").toString();
-        engine.path = settings.value("path").toString();
+        engine.name = entry.name;
+        engine.path = entry.path;
 
         // 棋譜解析ダイアログのエンジン選択リストにエンジン名を追加する。
         ui->comboBoxEngine1->addItem(engine.name);
@@ -267,9 +254,6 @@ void KifuAnalysisDialog::readEngineNameAndDir()
         // エンジンリストにエンジンを追加する。
         m_engineList.append(engine);
     }
-
-    // エンジン名のグループの配列の読み込みを終了する。
-    settings.endArray();
 }
 
 // フォントサイズ拡大
