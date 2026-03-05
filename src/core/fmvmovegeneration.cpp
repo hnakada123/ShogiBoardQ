@@ -2,7 +2,6 @@
 /// @brief 合法手生成の実装
 
 #include "fmvlegalcore.h"
-
 #include "fmvattacks.h"
 #include "fmvlegalcore_internal.h"
 
@@ -16,13 +15,10 @@ using detail::isPromotable;
 using detail::isPromotionZone;
 
 namespace {
-
 bool inBoard(int file, int rank) noexcept
 {
     return file >= 0 && file < kBoardSize && rank >= 0 && rank < kBoardSize;
 }
-
-/// HandType → 打ち駒のPieceType
 PieceType handTypeToPieceType(HandType ht) noexcept
 {
     switch (ht) {
@@ -37,7 +33,6 @@ PieceType handTypeToPieceType(HandType ht) noexcept
     }
 }
 
-/// 駒の移動先候補をMoveListに追加（成り/不成の両方）
 void addBoardMoves(const EnginePosition& pos, Color side,
                    Square from, PieceType pt,
                    int df, int dr, bool isRay,
@@ -99,7 +94,6 @@ void addBoardMoves(const EnginePosition& pos, Color side,
     }
 }
 
-/// 駒種ごとの移動先生成
 void generatePieceMoves(const EnginePosition& pos, Color side,
                         Square from, PieceType pt,
                         MoveList& out) noexcept
@@ -189,8 +183,6 @@ void generatePieceMoves(const EnginePosition& pos, Color side,
 
 } // namespace
 
-// ---- LegalCore 合法手生成 ----
-
 void LegalCore::generateLegalMoves(EnginePosition& pos, Color side, MoveList& out) const
 {
     MoveList pseudo;
@@ -206,7 +198,6 @@ void LegalCore::generateLegalMoves(EnginePosition& pos, Color side, MoveList& ou
     for (int i = 0; i < pseudo.size; ++i) {
         const Move& m = pseudo.moves[static_cast<std::size_t>(i)];
 
-        // 打ち歩詰め判定
         if (m.kind == MoveKind::Drop && m.piece == PieceType::Pawn) {
             UndoState undo;
             if (!pos.doMove(m, side, undo)) {
@@ -248,7 +239,6 @@ int LegalCore::countLegalMoves(EnginePosition& pos, Color side) const
     for (int i = 0; i < pseudo.size; ++i) {
         const Move& m = pseudo.moves[static_cast<std::size_t>(i)];
 
-        // 打ち歩詰め判定
         if (m.kind == MoveKind::Drop && m.piece == PieceType::Pawn) {
             UndoState undo;
             if (!pos.doMove(m, side, undo)) {
@@ -283,10 +273,7 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
         return;
     }
 
-    // 1. 玉の移動
     generatePieceMoves(pos, side, king, PieceType::King, out);
-
-    // 2. 王手している駒が1つなら、取る・合駒もあり得る
     Bitboard81 checkers = attackersTo(pos, king, opposite(side));
     if (checkers.count() != 1) {
         return; // 両王手は玉逃げのみ
@@ -294,7 +281,6 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
 
     Square checkerSq = checkers.popFirst();
 
-    // 2a. 王手駒を取る手（玉以外で）
     Bitboard81 myPieces = pos.colorOcc[ci];
     Bitboard81 tmp = myPieces;
     while (tmp.any()) {
@@ -314,7 +300,6 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
                           && (isPromotionZone(side, fromRank) || isPromotionZone(side, toRank));
         bool mandatory = isMandatoryPromotion(side, pt, toRank);
 
-        // 手動で利きチェック（isPseudoLegalの一部）
         Move capMove;
         capMove.kind = MoveKind::Board;
         capMove.from = from;
@@ -331,7 +316,6 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
         }
     }
 
-    // 2b. 走り駒の王手なら合駒（間に打つ/移動する）
     PieceType checkerType = charToPieceType(pos.board[checkerSq]);
     bool isSlider = (checkerType == PieceType::Lance || checkerType == PieceType::Bishop
                      || checkerType == PieceType::Rook || checkerType == PieceType::Horse
@@ -340,7 +324,6 @@ void LegalCore::generateEvasionMoves(const EnginePosition& pos, Color side, Move
         return;
     }
 
-    // checkerSq → king の間のマスを列挙
     int kf = squareFile(king);
     int kr = squareRank(king);
     int cf = squareFile(checkerSq);

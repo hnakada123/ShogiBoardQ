@@ -28,8 +28,8 @@ void MainWindowCoreInitCoordinator::initialize()
     if (m_deps.setCurrentTurn) {
         m_deps.setCurrentTurn();
     }
-    if (m_deps.ensureTurnSyncBridge) {
-        m_deps.ensureTurnSyncBridge();
+    if (m_deps.prepareTurnSyncBridge) {
+        m_deps.prepareTurnSyncBridge();
     }
 
     // 表示名・ログモデル名の初期反映

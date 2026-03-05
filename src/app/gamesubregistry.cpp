@@ -178,7 +178,7 @@ void GameSubRegistry::refreshTurnStateSyncDeps()
 // 手戻しフロー
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::ensureUndoFlowService()
+void GameSubRegistry::prepareUndoFlowService()
 {
     if (!m_mw.m_undoFlowService) {
         createUndoFlowService();
@@ -225,6 +225,16 @@ void GameSubRegistry::updateTurnStatus(int currentPlayer)
 // ---------------------------------------------------------------------------
 // MainWindow スロットからの転送
 // ---------------------------------------------------------------------------
+
+void GameSubRegistry::resetToInitialState()
+{
+    m_session->resetToInitialState();
+}
+
+void GameSubRegistry::resetGameState()
+{
+    m_session->resetGameState();
+}
 
 void GameSubRegistry::setReplayMode(bool on)
 {

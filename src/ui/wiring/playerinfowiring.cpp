@@ -402,9 +402,9 @@ void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
 
     // 終了日時が既にあれば更新、なければ追加
     bool found = false;
-    for (int i = 0; i < items.size(); ++i) {
-        if (items[i].key == GameInfoKeys::kEndDateTime) {
-            items[i].value = endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+    for (KifGameInfoItem& item : items) {
+        if (item.key == GameInfoKeys::kEndDateTime) {
+            item.value = endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
             found = true;
             break;
         }
@@ -452,9 +452,9 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
 
     // 持ち時間が既にあれば更新、なければ追加
     bool found = false;
-    for (int i = 0; i < items.size(); ++i) {
-        if (items[i].key == GameInfoKeys::kTimeControl) {
-            items[i].value = timeStr;
+    for (KifGameInfoItem& item : items) {
+        if (item.key == GameInfoKeys::kTimeControl) {
+            item.value = timeStr;
             found = true;
             break;
         }

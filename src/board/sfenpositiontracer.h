@@ -29,8 +29,10 @@ public:
     /// 現在局面のSFEN文字列を返す（例: "lnsgkgsnl/... b - 1"）
     QString toSfenString() const;
 
-    /// 手列を順に適用し、各手の直後局面のSFENを配列で返す
+#ifdef SHOGIBOARDQ_TESTING
+    /// テスト用: 手列を順に適用し、各手の直後局面のSFENを配列で返す
     QStringList generateSfensForMoves(const QStringList& usiMoves);
+#endif
 
     /// 4フィールド形式のSFENから現在局面をセットする
     [[nodiscard]] bool setFromSfen(const QString& sfen);

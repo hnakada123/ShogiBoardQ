@@ -80,6 +80,7 @@ set(EMV_SOURCES
 macro(add_shogi_test NAME)
     add_executable(${NAME} ${ARGN})
     target_include_directories(${NAME} PRIVATE ${TEST_INCLUDES})
+    target_compile_definitions(${NAME} PRIVATE SHOGIBOARDQ_TESTING=1)
     target_link_libraries(${NAME} PRIVATE ${TEST_LIBS})
     set_target_properties(${NAME} PROPERTIES AUTOMOC ON)
     add_test(NAME ${NAME} COMMAND ${NAME})

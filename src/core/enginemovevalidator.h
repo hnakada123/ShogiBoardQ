@@ -45,8 +45,10 @@ public:
     int generateLegalMoves(Context& ctx) const;
     int checkIfKingInCheck(Context& ctx) const;
 
+#ifdef SHOGIBOARDQ_TESTING
     [[nodiscard]] bool tryApplyMove(Context& ctx, ShogiMove& move) const;
     [[nodiscard]] bool undoLastMove(Context& ctx) const;
+#endif
 
     // ---- 互換ラッパ ----
     LegalMoveStatus isLegalMove(const Turn& turn,

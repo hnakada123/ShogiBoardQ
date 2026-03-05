@@ -27,7 +27,7 @@ public:
 
     // ===== ensure* =====
     void ensurePreStartCleanupHandler();
-    void ensureLiveGameSessionStarted();
+    void startLiveGameSessionIfNeeded();
     void ensureLiveGameSessionUpdater();
     void ensureGameSessionOrchestrator();
     void ensureCoreInitCoordinator();

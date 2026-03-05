@@ -126,6 +126,9 @@ private:
     QString m_currentEnginePath;                ///< 現在のエンジンファイルパス
     bool m_startupErrorReported = false;        ///< 起動中のprocessError重複送出防止フラグ
 
+    bool m_transitionInProgress = false;        ///< 起動/停止遷移中フラグ（再入抑止）
+    bool m_stopRequestedDuringTransition = false; ///< 遷移中に受信した停止要求
+
     /// 未読データが残っている場合にイベントループ経由で再読み取りを予約
     void scheduleMoreReading();
 };

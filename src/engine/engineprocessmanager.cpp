@@ -12,6 +12,24 @@ namespace {
 constexpr int kStartTimeoutMs = 5000;
 const QEventLoop::ProcessEventsFlags kResponsiveWaitFlags = QEventLoop::AllEvents;
 
+class TransitionScopeGuard
+{
+public:
+    explicit TransitionScopeGuard(bool& flag)
+        : m_flag(flag)
+    {
+        m_flag = true;
+    }
+
+    ~TransitionScopeGuard()
+    {
+        m_flag = false;
+    }
+
+private:
+    bool& m_flag;
+};
+
 bool waitForStartedResponsive(QProcess& process, int timeoutMs)
 {
     if (process.state() == QProcess::Running) return true;
@@ -64,18 +82,14 @@ EngineProcessManager::~EngineProcessManager()
 {
     stopProcess();
 }
-
-// ============================================================
-// プロセス管理
-// ============================================================
-
 bool EngineProcessManager::startProcess(const QString& engineFile)
 {
-    // 処理フロー:
-    // 1. ファイル存在チェック
-    // 2. 既存プロセスの終了
-    // 3. QProcess作成・作業ディレクトリ設定・シグナル接続
-    // 4. プロセス起動・起動確認
+    if (m_transitionInProgress) {
+        const QString msg = tr("Engine transition is already in progress.");
+        qCWarning(lcEngine) << logPrefix() << msg;
+        emit processError(QProcess::UnknownError, msg);
+        return false;
+    }
 
     m_currentEnginePath = engineFile;
 
@@ -89,31 +103,43 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
         stopProcess();
     }
 
-    m_startupErrorReported = false;
-    m_process = std::make_unique<QProcess>();
+    m_stopRequestedDuringTransition = false;
+    {
+        TransitionScopeGuard transitionGuard(m_transitionInProgress);
 
-    // エンジンが相対パスで定跡ファイルや評価関数ファイルを読み込むため
-    QFileInfo engineFileInfo(engineFile);
-    m_process->setWorkingDirectory(engineFileInfo.absolutePath());
+        m_startupErrorReported = false;
+        m_process = std::make_unique<QProcess>();
 
-    connect(m_process.get(), &QProcess::readyReadStandardOutput,
-            this, &EngineProcessManager::onReadyReadStdout);
-    connect(m_process.get(), &QProcess::readyReadStandardError,
-            this, &EngineProcessManager::onReadyReadStderr);
-    connect(m_process.get(), &QProcess::errorOccurred,
-            this, &EngineProcessManager::onProcessError);
-    connect(m_process.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            this, &EngineProcessManager::onProcessFinished);
+        QFileInfo engineFileInfo(engineFile);
+        m_process->setWorkingDirectory(engineFileInfo.absolutePath());
 
-    m_process->start(engineFile, QStringList(), QIODevice::ReadWrite);
+        connect(m_process.get(), &QProcess::readyReadStandardOutput,
+                this, &EngineProcessManager::onReadyReadStdout);
+        connect(m_process.get(), &QProcess::readyReadStandardError,
+                this, &EngineProcessManager::onReadyReadStderr);
+        connect(m_process.get(), &QProcess::errorOccurred,
+                this, &EngineProcessManager::onProcessError);
+        connect(m_process.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+                this, &EngineProcessManager::onProcessFinished);
 
-    if (!waitForStartedResponsive(*m_process, kStartTimeoutMs)) {
-        if (!m_startupErrorReported) {
-            const QString errorMsg = tr("Failed to start engine: %1").arg(engineFile);
-            emit processError(QProcess::FailedToStart, errorMsg);
+        m_process->start(engineFile, QStringList(), QIODevice::ReadWrite);
+
+        if (!waitForStartedResponsive(*m_process, kStartTimeoutMs)) {
+            if (!m_startupErrorReported) {
+                const QString errorMsg = tr("Failed to start engine: %1").arg(engineFile);
+                emit processError(QProcess::FailedToStart, errorMsg);
+            }
+
+            m_process.reset();
+            return false;
         }
+    }
 
-        m_process.reset();
+    if (m_stopRequestedDuringTransition) {
+        qCWarning(lcEngine) << logPrefix()
+                            << "起動待機中に停止要求を受信したため、起動直後に停止します";
+        m_stopRequestedDuringTransition = false;
+        stopProcess();
         return false;
     }
 
@@ -123,13 +149,18 @@ bool EngineProcessManager::startProcess(const QString& engineFile)
 
 void EngineProcessManager::stopProcess()
 {
+    if (m_transitionInProgress) {
+        m_stopRequestedDuringTransition = true;
+        qCDebug(lcEngine) << logPrefix() << "遷移中のため stopProcess を遅延します";
+        return;
+    }
     if (!m_process) return;
 
-    // waitForFinished() 中のシグナル配信を防ぐため、先にシグナルを切断
+    TransitionScopeGuard transitionGuard(m_transitionInProgress);
+
     disconnect(m_process.get(), nullptr, this, nullptr);
 
     if (m_process->state() == QProcess::Running) {
-        // quitコマンドは上位クラス（USIProtocolHandler）から送信済みと想定
         if (!waitForFinishedResponsive(*m_process, 3000)) {
             m_process->terminate();
             if (!waitForFinishedResponsive(*m_process, 1000)) {
@@ -148,6 +179,7 @@ void EngineProcessManager::stopProcess()
     m_postQuitInfoStringLinesLeft = 0;
     m_currentEnginePath.clear();
     m_startupErrorReported = false;
+    m_stopRequestedDuringTransition = false;
 }
 
 bool EngineProcessManager::isRunning() const
@@ -159,10 +191,6 @@ QProcess::ProcessState EngineProcessManager::state() const
 {
     return m_process ? m_process->state() : QProcess::NotRunning;
 }
-
-// ============================================================
-// コマンド送信
-// ============================================================
 
 void EngineProcessManager::sendCommand(const QString& command)
 {
@@ -214,10 +242,6 @@ bool EngineProcessManager::waitForReadyReadAndPump(int timeoutMs)
     return ready;
 }
 
-// ============================================================
-// 状態管理
-// ============================================================
-
 void EngineProcessManager::setShutdownState(ShutdownState state)
 {
     m_shutdownState = state;
@@ -237,10 +261,6 @@ void EngineProcessManager::decrementPostQuitLines()
         }
     }
 }
-
-// ============================================================
-// バッファ管理
-// ============================================================
 
 void EngineProcessManager::discardStdout()
 {
@@ -271,10 +291,6 @@ QByteArray EngineProcessManager::readAllStderr()
     return m_process ? m_process->readAllStandardError() : QByteArray();
 }
 
-// ============================================================
-// ログ識別
-// ============================================================
-
 void EngineProcessManager::setLogIdentity(const QString& engineTag,
                                           const QString& sideTag,
                                           const QString& engineName)
@@ -299,23 +315,9 @@ QString EngineProcessManager::logPrefix() const
     return head;
 }
 
-// ============================================================
-// プライベートスロット
-// ============================================================
-
 void EngineProcessManager::onReadyReadStdout()
 {
-    // 処理フロー:
-    // 1. チャンク上限まで行単位で読み取り
-    // 2. "id name"応答からエンジン名を検出
-    // 3. シャットダウン状態に応じてフィルタリング
-    // 4. 読み残しがあればイベントループ経由で再スケジュール
-
     if (!m_process) return;
-
-    // シグナル受信側が所有者チェーンを破壊する場合に備えたガード。
-    // 例: dataReceived → Usi::checkmateSolved → TsumeshogiGenerator::cleanup()
-    //     → m_usi.reset() で EngineProcessManager が削除されるケース。
     QPointer<EngineProcessManager> guard(this);
 
     m_processedLines = 0;
@@ -439,7 +441,6 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
 {
     Q_UNUSED(exitCode)
     Q_UNUSED(status)
-    // プロセス終了時にバッファに残ったデータを最後に処理する
     if (m_process) {
         QPointer<EngineProcessManager> guard(this);
         const QByteArray outTail = m_process->readAllStandardOutput();

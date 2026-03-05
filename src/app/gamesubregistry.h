@@ -41,7 +41,7 @@ public:
     void ensureGameStateController();
     void ensureGameStartCoordinator();
     void ensureTurnStateSyncService();
-    void ensureUndoFlowService();
+    void prepareUndoFlowService();
 
     // ===== refresh deps (依存更新のみ、生成済み前提) =====
     void refreshTurnStateSyncDeps();
@@ -51,6 +51,8 @@ public:
     void updateTurnStatus(int currentPlayer);
 
     // ===== delegation (MainWindow スロットからの転送先) =====
+    void resetToInitialState();
+    void resetGameState();
     void setReplayMode(bool on);
 
 private:

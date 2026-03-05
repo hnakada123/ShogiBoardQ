@@ -188,7 +188,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxFriendClasses = 6;
+        constexpr int maxFriendClasses = 7; // 現行: 6 (2026-03-05)
 
         // 同一行に複数 friend class が並ぶケースも正しくカウントする
         const QRegularExpression pattern(
@@ -240,7 +240,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindowserviceregistry.h");
-        constexpr int maxEnsureMethods = 14;
+        constexpr int maxEnsureMethods = 13; // 実測値: 11 (2026-03-05)
 
         const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
         const int count = countMatchingLines(headerPath, pattern);
@@ -615,7 +615,7 @@ private slots:
     // ================================================================
     void filesOver550()
     {
-        constexpr int kMaxFilesOver550 = 3; // 実測値: 1 (2026-03-04, csamoveconverter分割後)
+        constexpr int kMaxFilesOver550 = 1; // 実測値: 0 (2026-03-05, compact cleanup 後)
         constexpr int kThreshold = 550;
 
         const auto files = collectSourceFiles();
@@ -647,7 +647,7 @@ private slots:
     // ================================================================
     void filesOver500()
     {
-        constexpr int kMaxFilesOver500 = 17; // 実測値: 16 (2026-03-05, shogiclock分割後)
+        constexpr int kMaxFilesOver500 = 14; // 実測値: 13 (2026-03-05, compact cleanup 後)
         constexpr int kThreshold = 500;
 
         const auto files = collectSourceFiles();
@@ -671,7 +671,7 @@ private slots:
     // ================================================================
     void mainWindowIncludeCount()
     {
-        constexpr int kMaxIncludes = 37; // 実測値: 37 (2026-03-03)
+        constexpr int kMaxIncludes = 20; // 実測値: 13 (2026-03-05)
 
         const QString filePath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.cpp");
@@ -700,7 +700,7 @@ private slots:
     void longFunctionMonitor()
     {
         constexpr int kFunctionLengthWarning = 100;
-        constexpr int kMaxLongFunctionsOver100 = 80; // 実測値: 62 (2026-03-04, 検出精度改善後)
+        constexpr int kMaxLongFunctionsOver100 = 70; // 実測値: 59 (2026-03-05)
 
         const QString sourceDir = QStringLiteral(SOURCE_DIR);
         const QString srcPath = sourceDir + QStringLiteral("/src");

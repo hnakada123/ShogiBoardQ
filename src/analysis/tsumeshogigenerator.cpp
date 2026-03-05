@@ -13,6 +13,32 @@ namespace {
 constexpr int kSafetyMarginMs = 5000;
 /// プログレス更新間隔(ms)
 constexpr int kProgressIntervalMs = 500;
+
+QStringList generatePositionBatch(const TsumeshogiPositionGenerator::Settings& settings,
+                                  int count,
+                                  const CancelFlag& cancelFlag)
+{
+    QList<int> indices;
+    indices.reserve(count);
+    for (int i = 0; i < count; ++i) {
+        indices.append(i);
+    }
+
+    return QtConcurrent::blockingMappedReduced<QStringList>(
+        indices,
+        [settings, cancelFlag](int /*index*/) -> QString {
+            if (cancelFlag && cancelFlag->load()) return {};
+            TsumeshogiPositionGenerator generator;
+            generator.setSettings(settings);
+            return generator.generate();
+        },
+        [](QStringList& result, const QString& sfen) {
+            if (!sfen.isEmpty()) {
+                result.append(sfen);
+            }
+        },
+        QtConcurrent::UnorderedReduce);
+}
 }
 
 TsumeshogiGenerator::TsumeshogiGenerator(QObject* parent)
@@ -288,8 +314,9 @@ void TsumeshogiGenerator::startBatchGeneration()
     const auto cancelFlag = m_cancelFlag;
     const int batchSize = qMax(QThread::idealThreadCount(), 4);
 
-    auto future = QtConcurrent::run(
-        &TsumeshogiPositionGenerator::generateBatch, settings, batchSize, cancelFlag);
+    auto future = QtConcurrent::run([settings, batchSize, cancelFlag]() {
+        return generatePositionBatch(settings, batchSize, cancelFlag);
+    });
     m_batchWatcher.setFuture(future);
 }
 

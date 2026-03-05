@@ -31,7 +31,7 @@ public:
     void ensureMatchCoordinatorWiring();
     void ensureCsaGameWiring();
     void ensureConsecutiveGamesController();
-    void ensureTurnSyncBridge();
+    void prepareTurnSyncBridge();
 
     // ===== refresh deps (依存更新のみ、生成済み前提) =====
     void refreshMatchWiringDeps();

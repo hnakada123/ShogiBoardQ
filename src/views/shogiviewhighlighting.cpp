@@ -367,7 +367,8 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
                 painter.setFont(font);
 
                 const int circleRadius = static_cast<int>(fontSize * 0.8);
-                QPointF numPos(to.x() + toRect.width() / 3, to.y() + toRect.height() / 3);
+                QPointF numPos(to.x() + static_cast<qreal>(toRect.width()) / 3.0,
+                               to.y() + static_cast<qreal>(toRect.height()) / 3.0);
 
                 painter.setPen(Qt::NoPen);
                 painter.setBrush(QColor(255, 255, 255, 230));

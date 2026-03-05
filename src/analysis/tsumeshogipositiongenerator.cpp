@@ -357,6 +357,7 @@ QString TsumeshogiPositionGenerator::buildSfen() const
     return boardStr;
 }
 
+#ifdef SHOGIBOARDQ_TESTING
 QStringList TsumeshogiPositionGenerator::generateBatch(
     const Settings& settings, int count, const CancelFlag& cancelFlag)
 {
@@ -380,3 +381,4 @@ QStringList TsumeshogiPositionGenerator::generateBatch(
         },
         QtConcurrent::UnorderedReduce);
 }
+#endif

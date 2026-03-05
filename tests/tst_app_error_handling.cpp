@@ -120,7 +120,7 @@ private slots:
             QStringLiteral("MainWindowFoundationRegistry::ensurePositionEditController()"),
             QStringLiteral("MainWindowFoundationRegistry::ensureAnalysisPresenter()"),
             QStringLiteral("MainWindowFoundationRegistry::ensureJishogiController()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureNyugyokuHandler()"),
+            QStringLiteral("MainWindowFoundationRegistry::prepareNyugyokuHandler()"),
         };
 
         for (const QString& method : std::as_const(ensureMethods)) {
@@ -202,7 +202,7 @@ private slots:
             QVERIFY2(!lines.isEmpty(), "Failed to read gamewiringsubregistry source");
 
             // ensureMatchCoordinatorWiring は二回目以降も Deps 更新が走るため除外
-            // ensureTurnSyncBridge は null チェック後に条件付きで処理するため除外
+            // prepareTurnSyncBridge は null チェック後に条件付きで処理するため除外
             const QStringList ensureMethods = {
                 QStringLiteral("GameWiringSubRegistry::ensureCsaGameWiring()"),
                 QStringLiteral("GameWiringSubRegistry::ensureConsecutiveGamesController()"),
@@ -232,7 +232,7 @@ private slots:
 
         const QStringList ensureMethods = {
             QStringLiteral("KifuSubRegistry::ensureKifuExportController()"),
-            QStringLiteral("KifuSubRegistry::ensureKifuLoadCoordinatorForLive()"),
+            QStringLiteral("KifuSubRegistry::prepareKifuLoadCoordinatorForLive()"),
             QStringLiteral("KifuSubRegistry::ensureGameRecordModel()"),
             QStringLiteral("KifuSubRegistry::ensureJosekiWiring()"),
         };

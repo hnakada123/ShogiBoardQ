@@ -31,8 +31,10 @@ public:
     void setSettings(const Settings& s);
     QString generate();
 
+#ifdef SHOGIBOARDQ_TESTING
     /// スレッドプールで count 個の候補局面を並列生成する
     static QStringList generateBatch(const Settings& settings, int count, const CancelFlag& cancelFlag);
+#endif
 
 private:
     Settings m_settings;

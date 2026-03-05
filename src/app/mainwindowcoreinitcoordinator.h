@@ -46,7 +46,7 @@ public:
         // --- コールバック ---
         std::function<void()> setupBoardInteractionController;
         std::function<void()> setCurrentTurn;
-        std::function<void()> ensureTurnSyncBridge;
+        std::function<void()> prepareTurnSyncBridge;
         std::function<void()> ensurePlayerInfoWiringAndApply;
     };
 

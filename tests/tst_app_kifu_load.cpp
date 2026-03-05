@@ -144,7 +144,7 @@ private slots:
             QStringLiteral("ensureGameRecordModel"),
             QStringLiteral("ensureKifuExportController"),
             QStringLiteral("createAndWireKifuLoadCoordinator"),
-            QStringLiteral("ensureKifuLoadCoordinatorForLive"),
+            QStringLiteral("prepareKifuLoadCoordinatorForLive"),
             QStringLiteral("getKifuExportController"),
             QStringLiteral("getKifuLoadCoordinator"),
         };
@@ -482,8 +482,8 @@ private slots:
         QVERIFY2(clearIdx >= 0, "Must call clearUiBeforeKifuLoad");
 
         // 2) KLC 確保
-        const auto ensureIdx = body.indexOf(QStringLiteral("ensureKifuLoadCoordinatorForLive"));
-        QVERIFY2(ensureIdx >= 0, "Must call ensureKifuLoadCoordinatorForLive");
+        const auto ensureIdx = body.indexOf(QStringLiteral("prepareKifuLoadCoordinatorForLive"));
+        QVERIFY2(ensureIdx >= 0, "Must call prepareKifuLoadCoordinatorForLive");
         QVERIFY2(ensureIdx > clearIdx, "ensure must come after clearUi");
 
         // 3) ロード実行
@@ -526,11 +526,11 @@ private slots:
         const QString body = bodyText(lines, range);
 
         const auto clearIdx = body.indexOf(QStringLiteral("clearUiBeforeKifuLoad"));
-        const auto ensureIdx = body.indexOf(QStringLiteral("ensureKifuLoadCoordinatorForLive"));
+        const auto ensureIdx = body.indexOf(QStringLiteral("prepareKifuLoadCoordinatorForLive"));
         const auto loadIdx = body.indexOf(QStringLiteral("loadPositionFromSfen"));
 
         QVERIFY2(clearIdx >= 0, "Must call clearUiBeforeKifuLoad");
-        QVERIFY2(ensureIdx >= 0, "Must call ensureKifuLoadCoordinatorForLive");
+        QVERIFY2(ensureIdx >= 0, "Must call prepareKifuLoadCoordinatorForLive");
         QVERIFY2(loadIdx >= 0, "Must call loadPositionFromSfen");
 
         QVERIFY2(clearIdx < ensureIdx, "clearUi must come before ensure");
