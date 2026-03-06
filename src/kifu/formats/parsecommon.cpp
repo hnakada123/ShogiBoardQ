@@ -306,7 +306,7 @@ QString csaSpecialToJapanese(const QString& code)
     if (key.startsWith(QLatin1Char('%'))) key = key.mid(1);
     // +/-プレフィックスの ILLEGAL_ACTION にも対応
     if (key.startsWith(QLatin1Char('+')) || key.startsWith(QLatin1Char('-'))) {
-        if (key.mid(1).startsWith(QLatin1String("ILLEGAL_ACTION")))
+        if (QStringView{key}.mid(1).startsWith(QLatin1String("ILLEGAL_ACTION")))
             key = key.mid(1);
     }
 

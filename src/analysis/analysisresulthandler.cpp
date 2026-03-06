@@ -17,10 +17,10 @@
 #include "logcategories.h"
 
 namespace {
-const QString kSenteMark = QStringLiteral("▲");
-const QString kGoteMark = QStringLiteral("△");
-const QString kDoWithSpace = QStringLiteral("同　");
-const QString kDoWithoutSpace = QStringLiteral("同");
+const QString kSenteMark = QStringLiteral("▲"); // clazy:exclude=non-pod-global-static
+const QString kGoteMark = QStringLiteral("△"); // clazy:exclude=non-pod-global-static
+const QString kDoWithSpace = QStringLiteral("同　"); // clazy:exclude=non-pod-global-static
+const QString kDoWithoutSpace = QStringLiteral("同"); // clazy:exclude=non-pod-global-static
 
 QString sanitizeUsiPv(const QString& rawPv, bool isBook)
 {
