@@ -191,7 +191,7 @@ GameStartOrchestrator::syncAndSearchGameHistory(const QString& targetSfen)
     for (qsizetype i = 0; i < m_refs.allGameHistories->size(); ++i) {
         qCDebug(lcGame) << " [Game" << (i + 1) << "]";
         const QStringList& rec = m_refs.allGameHistories->at(i);
-        for (const QString& pos : rec) {
+        for (const QString& pos : std::as_const(rec)) {
             qCDebug(lcGame).noquote() << "  " << pos;
         }
     }

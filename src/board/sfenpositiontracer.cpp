@@ -32,7 +32,7 @@ QStringList SfenPositionTracer::generateSfensForMoves(const QStringList& usiMove
     resetToStartpos();
     QStringList out;
     out.reserve(usiMoves.size());
-    for (const QString& mv : usiMoves) {
+    for (const QString& mv : std::as_const(usiMoves)) {
         if (!applyUsiMove(mv)) break;
         out << toSfenString();
     }
@@ -345,7 +345,7 @@ QStringList SfenPositionTracer::buildSfenRecord(const QString& initialSfen,
     QStringList list;
     list << tracer.toSfenString(); // 開始局面
 
-    for (const QString& mv : usiMoves) {
+    for (const QString& mv : std::as_const(usiMoves)) {
         (void)tracer.applyUsiMove(mv);
         list << tracer.toSfenString(); // 各手後の局面
     }
@@ -365,7 +365,7 @@ QList<ShogiMove> SfenPositionTracer::buildGameMoves(const QString& initialSfen,
     SfenPositionTracer tracer;
     (void)tracer.setFromSfen(initialSfen);
 
-    for (const QString& usi : usiMoves) {
+    for (const QString& usi : std::as_const(usiMoves)) {
         // 駒打ち: "P*5e"
         if (usi.size() >= 4 && usi.at(1) == QLatin1Char('*')) {
             const bool black     = tracer.blackToMove();

@@ -8,161 +8,158 @@
 
 namespace ButtonStyles {
 
+namespace detail {
+
+/// 共通スタイルシート生成（QPushButton + QToolButton 両対応）
+inline QString buildDualStyle(const char* bg, const char* fg, const char* border,
+                              const char* hoverBg, const char* pressedBg,
+                              const char* disabledBg, const char* disabledFg,
+                              const char* disabledBorder,
+                              const char* extra = "",
+                              const char* additionalRules = "")
+{
+    return QStringLiteral("QPushButton, QToolButton {"
+                          "  background-color: %1; color: %2;"
+                          "  border: 1px solid %3; border-radius: 3px;"
+                          "  %4"
+                          "}"
+                          "%5"
+                          "QPushButton:hover, QToolButton:hover { background-color: %6; }"
+                          "QPushButton:pressed, QToolButton:pressed { background-color: %7; }"
+                          "QPushButton:disabled, QToolButton:disabled {"
+                          "  background-color: %8; color: %9; border: 1px solid %10;"
+                          "}")
+        .arg(QLatin1String(bg), QLatin1String(fg), QLatin1String(border),
+             QLatin1String(extra), QLatin1String(additionalRules),
+             QLatin1String(hoverBg), QLatin1String(pressedBg),
+             QLatin1String(disabledBg), QLatin1String(disabledFg))
+        .arg(QLatin1String(disabledBorder));
+}
+
+/// QPushButton 専用スタイルシート生成
+inline QString buildPushStyle(const char* bg, const char* fg,
+                              const char* hoverBg, const char* pressedBg,
+                              const char* disabledBg, const char* disabledFg,
+                              const char* extra = "")
+{
+    return QStringLiteral("QPushButton {"
+                          "  background-color: %1; color: %2;"
+                          "  border: none; border-radius: 3px;"
+                          "  %3"
+                          "}"
+                          "QPushButton:hover { background-color: %4; }"
+                          "QPushButton:pressed { background-color: %5; }"
+                          "QPushButton:disabled {"
+                          "  background-color: %6; color: %7;"
+                          "}")
+        .arg(QLatin1String(bg), QLatin1String(fg), QLatin1String(extra),
+             QLatin1String(hoverBg), QLatin1String(pressedBg),
+             QLatin1String(disabledBg), QLatin1String(disabledFg));
+}
+
+} // namespace detail
+
 /// A+/A- フォントサイズボタン（ライトブルー）
 inline QString fontButton()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #bbdefb; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #90caf9; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0;"
-        "}");
+    return detail::buildDualStyle(
+        "#e3f2fd", "", "#90caf9",
+        "#bbdefb", "#90caf9",
+        "#f5f5f5", "#9e9e9e", "#e0e0e0");
 }
 
 /// ▲▼ 棋譜ナビゲーションボタン（緑）
 inline QString navigationButton()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #4F9272; color: white;"
-        "  border: 1px solid #3d7259; border-radius: 3px;"
-        "  padding: 3px 4px; font-weight: bold;"
-        "  min-width: 28px; max-width: 36px;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #5ba583; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #3d7259; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #b0c4b8; color: #e0e0e0; border: 1px solid #9eb3a5;"
-        "}");
+    return detail::buildDualStyle(
+        "#4F9272", "white", "#3d7259",
+        "#5ba583", "#3d7259",
+        "#b0c4b8", "#e0e0e0", "#9eb3a5",
+        "padding: 3px 4px; font-weight: bold; min-width: 28px; max-width: 36px;");
 }
 
 /// 横長ナビゲーションボタン（テキスト付きダイアログ用）
 inline QString wideNavigationButton()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #4F9272; color: white;"
-        "  border: 1px solid #3d7259; border-radius: 3px;"
-        "  padding: 4px 8px; font-weight: bold;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #5ba583; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #3d7259; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #b0c4b8; color: #e0e0e0; border: 1px solid #9eb3a5;"
-        "}");
+    return detail::buildDualStyle(
+        "#4F9272", "white", "#3d7259",
+        "#5ba583", "#3d7259",
+        "#b0c4b8", "#e0e0e0", "#9eb3a5",
+        "padding: 4px 8px; font-weight: bold;");
 }
 
 /// 開始/適用/取り込み/選択ボタン（青）
 inline QString primaryAction()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #1976d2; color: white;"
-        "  border: 1px solid #1565c0; border-radius: 3px; padding: 2px 8px;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #1e88e5; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #1565c0; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #b0bec5; color: #eceff1; border: 1px solid #90a4ae;"
-        "}");
+    return detail::buildDualStyle(
+        "#1976d2", "white", "#1565c0",
+        "#1e88e5", "#1565c0",
+        "#b0bec5", "#eceff1", "#90a4ae",
+        "padding: 2px 8px;");
 }
 
 /// キャンセル/閉じる/回転/拡縮ボタン（グレー）
 inline QString secondaryNeutral()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #e0e0e0; border: 1px solid #bdbdbd; border-radius: 3px;"
-        "  padding: 4px 8px;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #d0d0d0; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #bdbdbd; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0;"
-        "}");
+    return detail::buildDualStyle(
+        "#e0e0e0", "", "#bdbdbd",
+        "#d0d0d0", "#bdbdbd",
+        "#f5f5f5", "#9e9e9e", "#e0e0e0",
+        "padding: 4px 8px;");
 }
 
 /// 中止/キャンセル(対局)ボタン（オレンジ）
 inline QString dangerStop()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px;"
-        "  padding: 4px 12px;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #ffe0b2; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #ffcc80; }"
-        "QPushButton:checked, QToolButton:checked { background-color: #ffcc80; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0;"
-        "}");
+    return detail::buildDualStyle(
+        "#fff3e0", "", "#ffcc80",
+        "#ffe0b2", "#ffcc80",
+        "#f5f5f5", "#9e9e9e", "#e0e0e0",
+        "padding: 4px 12px;",
+        "QPushButton:checked, QToolButton:checked { background-color: #ffcc80; }");
 }
 
 /// 切取/コピー/貼付/追加/マージボタン（緑）
 inline QString editOperation()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #e8f5e9; border: 1px solid #a5d6a7; border-radius: 3px;"
-        "  padding: 4px 8px;"
-        "}"
-        "QToolButton::menu-indicator { image: none; }"
-        "QPushButton:hover, QToolButton:hover { background-color: #c8e6c9; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #a5d6a7; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0;"
-        "}");
+    return detail::buildDualStyle(
+        "#e8f5e9", "", "#a5d6a7",
+        "#c8e6c9", "#a5d6a7",
+        "#f5f5f5", "#9e9e9e", "#e0e0e0",
+        "padding: 4px 8px;",
+        "QToolButton::menu-indicator { image: none; }");
 }
 
 /// 元に戻す/やり直しボタン（オレンジ）
 inline QString undoRedo()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #fff3e0; border: 1px solid #ffcc80; border-radius: 3px;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #ffe0b2; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #ffcc80; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0;"
-        "}");
+    return detail::buildDualStyle(
+        "#fff3e0", "", "#ffcc80",
+        "#ffe0b2", "#ffcc80",
+        "#f5f5f5", "#9e9e9e", "#e0e0e0");
 }
 
 /// 列表示トグルボタン（ブルーグレー、checked: 濃い青）
 inline QString toggleButton()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #8a9bb5; color: white;"
-        "  border: 1px solid #6b7d99; border-radius: 3px;"
-        "  padding: 2px 4px; min-width: 28px; max-width: 36px;"
-        "}"
+    return detail::buildDualStyle(
+        "#8a9bb5", "white", "#6b7d99",
+        "#5a82b8", "#3d5a80",
+        "#c0c8d4", "#e0e0e0", "#a8b4c4",
+        "padding: 2px 4px; min-width: 28px; max-width: 36px;",
         "QPushButton:checked, QToolButton:checked {"
         "  background-color: #4A6FA5; border: 1px solid #3d5a80;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #5a82b8; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #3d5a80; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #c0c8d4; color: #e0e0e0; border: 1px solid #a8b4c4;"
         "}");
 }
 
 /// ファイル開く/保存/履歴ボタン（ライトブルー）
 inline QString fileOperation()
 {
-    return QStringLiteral(
-        "QPushButton, QToolButton {"
-        "  background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 3px;"
-        "  padding: 4px 8px;"
-        "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #bbdefb; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #90caf9; }"
-        "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #f5f5f5; color: #9e9e9e; border: 1px solid #e0e0e0;"
-        "}");
+    return detail::buildDualStyle(
+        "#e3f2fd", "", "#90caf9",
+        "#bbdefb", "#90caf9",
+        "#f5f5f5", "#9e9e9e", "#e0e0e0",
+        "padding: 4px 8px;");
 }
 
 /// カスタマイズ/歯車ボタン（オレンジ）
@@ -233,61 +230,41 @@ inline QString menuRemoveButton()
 /// テーブル内「着手」ボタン（青、パディング小）
 inline QString tablePlayButton()
 {
-    return QStringLiteral(
-        "QPushButton {"
-        "  background-color: #1976d2; color: white;"
-        "  border: none; border-radius: 3px; padding: 2px 8px;"
-        "}"
-        "QPushButton:hover { background-color: #1e88e5; }"
-        "QPushButton:pressed { background-color: #1565c0; }"
-        "QPushButton:disabled {"
-        "  background-color: #b0bec5; color: #eceff1;"
-        "}");
+    return detail::buildPushStyle(
+        "#1976d2", "white",
+        "#1e88e5", "#1565c0",
+        "#b0bec5", "#eceff1",
+        "padding: 2px 8px;");
 }
 
 /// テーブル内「編集」ボタン（緑、白文字）
 inline QString tableEditButton()
 {
-    return QStringLiteral(
-        "QPushButton {"
-        "  background-color: #e8f5e9; color: #2e7d32;"
-        "  border: none; border-radius: 3px; padding: 2px 8px;"
-        "}"
-        "QPushButton:hover { background-color: #c8e6c9; }"
-        "QPushButton:pressed { background-color: #a5d6a7; }"
-        "QPushButton:disabled {"
-        "  background-color: #f5f5f5; color: #9e9e9e;"
-        "}");
+    return detail::buildPushStyle(
+        "#e8f5e9", "#2e7d32",
+        "#c8e6c9", "#a5d6a7",
+        "#f5f5f5", "#9e9e9e",
+        "padding: 2px 8px;");
 }
 
 /// テーブル内「削除」ボタン（赤）
 inline QString tableDeleteButton()
 {
-    return QStringLiteral(
-        "QPushButton {"
-        "  background-color: #f44336; color: white;"
-        "  border: none; border-radius: 3px; padding: 2px 8px;"
-        "}"
-        "QPushButton:hover { background-color: #E53935; }"
-        "QPushButton:pressed { background-color: #c62828; }"
-        "QPushButton:disabled {"
-        "  background-color: #ffcdd2; color: #ef9a9a;"
-        "}");
+    return detail::buildPushStyle(
+        "#f44336", "white",
+        "#E53935", "#c62828",
+        "#ffcdd2", "#ef9a9a",
+        "padding: 2px 8px;");
 }
 
 /// テーブル内「登録」ボタン（青）
 inline QString tableRegisterButton()
 {
-    return QStringLiteral(
-        "QPushButton {"
-        "  background-color: #1976d2; color: white;"
-        "  border: none; border-radius: 3px; padding: 4px 12px;"
-        "}"
-        "QPushButton:hover { background-color: #1e88e5; }"
-        "QPushButton:pressed { background-color: #1565c0; }"
-        "QPushButton:disabled {"
-        "  background-color: #aaa; color: #666;"
-        "}");
+    return detail::buildPushStyle(
+        "#1976d2", "white",
+        "#1e88e5", "#1565c0",
+        "#aaa", "#666",
+        "padding: 4px 12px;");
 }
 
 } // namespace ButtonStyles

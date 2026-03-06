@@ -76,7 +76,7 @@ void DebugScreenshotService::clearOutputDirectory()
     if (!dir.exists()) return;
 
     const QStringList pngFiles = dir.entryList({QStringLiteral("*.png")}, QDir::Files);
-    for (const QString& file : pngFiles) {
+    for (const QString& file : std::as_const(pngFiles)) {
         dir.remove(file);
     }
     qDebug() << "DebugScreenshotService: cleared" << pngFiles.size() << "files from" << m_outputDir;

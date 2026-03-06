@@ -206,7 +206,7 @@ bool parseMoveLine(const QString& line, Color mover, Board& b,
         if (tx == prevTx && ty == prevTy) dest = QStringLiteral("同　");
         else dest = NotationUtils::intToZenkakuDigit(tx) + NotationUtils::intToKanjiDigit(ty);
 
-        const QString origin = QStringLiteral("(") + QString::number(fx) + QString::number(fy) + QStringLiteral(")");
+        const QString origin = QStringLiteral("(%1%2)").arg(fx).arg(fy);
         prettyOut = sideMark + dest + pj + origin;
     }
 

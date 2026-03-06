@@ -344,7 +344,7 @@ JosekiSaveResult JosekiRepository::serializeToFile(
 
         out << QStringLiteral("sfen ") << sfenToWrite << QStringLiteral("\n");
 
-        for (const JosekiMove &move : moves) {
+        for (const JosekiMove &move : std::as_const(moves)) {
             out << move.move << QStringLiteral(" ")
                 << move.nextMove << QStringLiteral(" ")
                 << move.value << QStringLiteral(" ")
