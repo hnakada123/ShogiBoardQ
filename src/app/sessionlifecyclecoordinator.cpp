@@ -11,6 +11,8 @@
 #include "sfenutils.h"
 #include "timecontrolcontroller.h"
 
+#include <QStringList>
+
 SessionLifecycleCoordinator::SessionLifecycleCoordinator(QObject* parent)
     : QObject(parent)
 {
@@ -42,9 +44,7 @@ void SessionLifecycleCoordinator::resetToInitialState()
     if (m_deps.resetEngineState) {
         m_deps.resetEngineState();
     }
-    if (m_deps.onPreStartCleanupRequested) {
-        m_deps.onPreStartCleanupRequested();
-    }
+    performPreStartCleanup();
 
     resetGameState();
 
@@ -83,6 +83,16 @@ void SessionLifecycleCoordinator::resetGameState()
     // ゲーム状態コントローラへの反映
     if (m_deps.gameStateController) {
         m_deps.gameStateController->setPlayMode(PlayMode::NotStarted);
+    }
+}
+
+void SessionLifecycleCoordinator::performPreStartCleanup()
+{
+    if (m_deps.performPreStartCleanup) {
+        m_deps.performPreStartCleanup();
+    }
+    if (m_deps.clearSessionDependentUi) {
+        m_deps.clearSessionDependentUi();
     }
 }
 
@@ -131,6 +141,36 @@ void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::T
     if (tc.enabled && m_deps.updateGameInfoWithTimeControl) {
         m_deps.updateGameInfoWithTimeControl(
             tc.enabled, tc.p1.baseMs, tc.p1.byoyomiMs, tc.p1.incrementMs);
+    }
+}
+
+void SessionLifecycleCoordinator::handleGameStarted(const MatchCoordinator::StartOptions& info)
+{
+    if (m_deps.playMode) {
+        *m_deps.playMode = info.mode;
+    }
+
+    if (m_deps.currentSfenStr) {
+        if (!info.sfenStart.isEmpty()) {
+            *m_deps.currentSfenStr = info.sfenStart;
+        } else if (m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
+            *m_deps.currentSfenStr = m_deps.sfenRecord->first();
+        }
+    }
+
+    if (m_deps.updateJosekiWindow) {
+        m_deps.updateJosekiWindow();
+    }
+
+    if (m_deps.consecutiveGamesController && m_deps.lastTimeControl) {
+        m_deps.consecutiveGamesController->onGameStarted(info, *m_deps.lastTimeControl);
+    }
+}
+
+void SessionLifecycleCoordinator::commitLiveGameSessionIfActive()
+{
+    if (m_deps.commitLiveGameSessionIfActive) {
+        m_deps.commitLiveGameSessionIfActive();
     }
 }
 

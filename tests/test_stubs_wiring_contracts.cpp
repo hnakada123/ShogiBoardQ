@@ -15,6 +15,9 @@
 #include "gamestartcoordinator.h"
 #include "gamesessionfacade.h"
 #include "gamesessionorchestrator.h"
+#include "sessionlifecyclecoordinator.h"
+#include "gamestatecontroller.h"
+#include "consecutivegamescontroller.h"
 #include "mainwindowappearancecontroller.h"
 #include "playerinfowiring.h"
 #include "kifunavigationcoordinator.h"
@@ -49,6 +52,7 @@
 namespace TestTracker {
     // wireForwardingSignals 経由の呼び出し追跡
     bool onRequestAppendGameOverMoveCalled = false;
+    bool commitLiveGameSessionIfActiveCalled = false;
     bool onBoardFlippedCalled = false;
     bool onGameOverStateChangedCalled = false;
     bool onMatchGameEndedCalled = false;
@@ -66,6 +70,7 @@ namespace TestTracker {
     void reset()
     {
         onRequestAppendGameOverMoveCalled = false;
+        commitLiveGameSessionIfActiveCalled = false;
         onBoardFlippedCalled = false;
         onGameOverStateChangedCalled = false;
         onMatchGameEndedCalled = false;
@@ -80,6 +85,75 @@ namespace TestTracker {
         selectKifuRowValue = -1;
     }
 }
+
+// ============================================================
+// SessionLifecycleCoordinator / GameStateController / ConsecutiveGamesController スタブ
+// ============================================================
+
+SessionLifecycleCoordinator::SessionLifecycleCoordinator(QObject* parent) : QObject(parent) {}
+void SessionLifecycleCoordinator::updateDeps(const Deps&) {}
+void SessionLifecycleCoordinator::resetToInitialState() {}
+void SessionLifecycleCoordinator::resetGameState() {}
+void SessionLifecycleCoordinator::performPreStartCleanup()
+{
+    TestTracker::onPreStartCleanupRequestedCalled = true;
+}
+void SessionLifecycleCoordinator::startNewGame() {}
+void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeControl&)
+{
+    TestTracker::onApplyTimeControlRequestedCalled = true;
+}
+void SessionLifecycleCoordinator::handleGameStarted(const MatchCoordinator::StartOptions&)
+{
+    TestTracker::onGameStartedCalled = true;
+}
+void SessionLifecycleCoordinator::commitLiveGameSessionIfActive()
+{
+    TestTracker::commitLiveGameSessionIfActiveCalled = true;
+}
+void SessionLifecycleCoordinator::handleGameEnded(const MatchCoordinator::GameEndInfo&)
+{
+    TestTracker::onMatchGameEndedCalled = true;
+}
+
+GameStateController::GameStateController(QObject* parent) : QObject(parent) {}
+GameStateController::~GameStateController() = default;
+void GameStateController::setMatchCoordinator(MatchCoordinator*) {}
+void GameStateController::setReplayController(ReplayController*) {}
+void GameStateController::setTimeController(TimeControlController*) {}
+void GameStateController::setKifuLoadCoordinator(KifuLoadCoordinator*) {}
+void GameStateController::setKifuRecordModel(KifuRecordListModel*) {}
+void GameStateController::setHooks(const Hooks&) {}
+void GameStateController::setPlayMode(PlayMode) {}
+void GameStateController::handleResignation() {}
+void GameStateController::handleBreakOffGame() {}
+void GameStateController::setGameOverMove(MatchCoordinator::Cause, bool) {}
+bool GameStateController::isHvH() const { return false; }
+bool GameStateController::isHumanSide(ShogiGameController::Player) const { return true; }
+bool GameStateController::isGameOver() const { return false; }
+void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo&) {}
+void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOverState&)
+{
+    TestTracker::onGameOverStateChangedCalled = true;
+}
+void GameStateController::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo&)
+{
+    TestTracker::onRequestAppendGameOverMoveCalled = true;
+}
+
+ConsecutiveGamesController::ConsecutiveGamesController(QObject* parent) : QObject(parent) {}
+void ConsecutiveGamesController::setTimeController(TimeControlController*) {}
+void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator*) {}
+void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void()>) {}
+void ConsecutiveGamesController::configure(int, bool)
+{
+    TestTracker::onConsecutiveGamesConfiguredCalled = true;
+}
+void ConsecutiveGamesController::onGameStarted(const MatchCoordinator::StartOptions&,
+                                               const GameStartCoordinator::TimeControl&) {}
+bool ConsecutiveGamesController::shouldStartNextGame() const { return false; }
+void ConsecutiveGamesController::reset() {}
+void ConsecutiveGamesController::startNextGame() {}
 
 // ============================================================
 // MatchCoordinator スタブ
@@ -236,51 +310,10 @@ void GameSessionOrchestrator::movePieceImmediately() {}
 void GameSessionOrchestrator::stopTsumeSearch() {}
 void GameSessionOrchestrator::openWebsiteInExternalBrowser() {}
 
-void GameSessionOrchestrator::onRequestAppendGameOverMove(const MatchCoordinator::GameEndInfo&)
-{
-    TestTracker::onRequestAppendGameOverMoveCalled = true;
-}
-
-void GameSessionOrchestrator::onGameOverStateChanged(const MatchCoordinator::GameOverState&)
-{
-    TestTracker::onGameOverStateChangedCalled = true;
-}
-
-void GameSessionOrchestrator::onMatchGameEnded(const MatchCoordinator::GameEndInfo&)
-{
-    TestTracker::onMatchGameEndedCalled = true;
-}
-
 void GameSessionOrchestrator::onResignationTriggered()
 {
     TestTracker::onResignationTriggeredCalled = true;
 }
-
-void GameSessionOrchestrator::onPreStartCleanupRequested()
-{
-    TestTracker::onPreStartCleanupRequestedCalled = true;
-}
-
-void GameSessionOrchestrator::onApplyTimeControlRequested(const GameStartCoordinator::TimeControl&)
-{
-    TestTracker::onApplyTimeControlRequestedCalled = true;
-}
-
-void GameSessionOrchestrator::onGameStarted(const MatchCoordinator::StartOptions&)
-{
-    TestTracker::onGameStartedCalled = true;
-}
-
-void GameSessionOrchestrator::onConsecutiveStartRequested(const GameStartCoordinator::StartParams&) {}
-
-void GameSessionOrchestrator::onConsecutiveGamesConfigured(int, bool)
-{
-    TestTracker::onConsecutiveGamesConfiguredCalled = true;
-}
-
-void GameSessionOrchestrator::startNextConsecutiveGame() {}
-void GameSessionOrchestrator::startNewShogiGame() {}
-void GameSessionOrchestrator::invokeStartGame() {}
 
 // ============================================================
 // MainWindowAppearanceController スタブ（TestTracker 連動）

@@ -188,7 +188,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxFriendClasses = 7; // 現行: 6 (2026-03-05)
+        constexpr int maxFriendClasses = 4; // 現行: 3 (2026-03-06)
 
         // 同一行に複数 friend class が並ぶケースも正しくカウントする
         const QRegularExpression pattern(
@@ -240,7 +240,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindowserviceregistry.h");
-        constexpr int maxEnsureMethods = 13; // 実測値: 11 (2026-03-05)
+        constexpr int maxEnsureMethods = 25; // 実測値: 23 (2026-03-06)
 
         const QRegularExpression pattern(QStringLiteral(R"(^\s*void\s+ensure)"));
         const int count = countMatchingLines(headerPath, pattern);
@@ -568,9 +568,6 @@ private slots:
 
         const RegistryLimit registries[] = {
             {"src/app/mainwindowfoundationregistry.h", "FoundationRegistry", 15},
-            {"src/app/gamesubregistry.h",              "GameSubRegistry",     6},
-            {"src/app/gamesessionsubregistry.h",       "GameSessionSubReg",   6},
-            {"src/app/gamewiringsubregistry.h",        "GameWiringSubReg",    4},
             {"src/app/kifusubregistry.h",              "KifuSubRegistry",     8},
         };
 

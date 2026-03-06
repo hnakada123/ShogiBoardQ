@@ -11,6 +11,9 @@
 #include "matchcoordinator.h"
 #include "gamestartcoordinator.h"
 #include "gamesessionorchestrator.h"
+#include "sessionlifecyclecoordinator.h"
+#include "gamestatecontroller.h"
+#include "consecutivegamescontroller.h"
 #include "mainwindowappearancecontroller.h"
 #include "playerinfowiring.h"
 #include "kifunavigationcoordinator.h"
@@ -21,6 +24,7 @@
 // TestTracker は test_stubs_wiring_contracts.cpp で定義
 namespace TestTracker {
     extern bool onRequestAppendGameOverMoveCalled;
+    extern bool commitLiveGameSessionIfActiveCalled;
     extern bool onBoardFlippedCalled;
     extern bool onGameOverStateChangedCalled;
     extern bool onMatchGameEndedCalled;
@@ -45,6 +49,9 @@ private:
     struct ForwardingFixture {
         MatchCoordinatorWiring mcw;
         GameSessionOrchestrator gso;
+        SessionLifecycleCoordinator slc;
+        GameStateController gsc;
+        ConsecutiveGamesController cgc;
         MainWindowAppearanceController appearance;
         KifuNavigationCoordinator kifuNav;
         BranchNavigationWiring branchNav;
@@ -54,12 +61,16 @@ private:
             TestTracker::reset();
 
             MatchCoordinatorWiring::ForwardingTargets targets;
+            targets.gameSession = &gso;
+            targets.sessionLifecycle = &slc;
+            targets.gameStateController = &gsc;
+            targets.consecutiveGamesController = &cgc;
             targets.appearance = &appearance;
             targets.kifuNav    = &kifuNav;
             targets.branchNav  = &branchNav;
             // targets.playerInfo は別途テスト
 
-            mcw.wireForwardingSignals(targets, &gso);
+            mcw.wireForwardingSignals(targets);
         }
     };
 
@@ -77,7 +88,7 @@ private:
             MatchCoordinatorWiring::ForwardingTargets targets;
             targets.playerInfo = &piw;
 
-            mcw.wireForwardingSignals(targets, &gso);
+            mcw.wireForwardingSignals(targets);
         }
     };
 
@@ -86,13 +97,14 @@ private slots:
     // wireForwardingSignals テスト群
     // ================================================================
 
-    void wireForwarding_requestAppendGameOverMove_reachesGso()
+    void wireForwarding_requestAppendGameOverMove_reachesGscAndSlc()
     {
         ForwardingFixture f;
 
         emit f.mcw.requestAppendGameOverMove(MatchCoordinator::GameEndInfo{});
 
         QVERIFY(TestTracker::onRequestAppendGameOverMoveCalled);
+        QVERIFY(TestTracker::commitLiveGameSessionIfActiveCalled);
     }
 
     void wireForwarding_boardFlipped_reachesAppearance()
@@ -104,7 +116,7 @@ private slots:
         QVERIFY(TestTracker::onBoardFlippedCalled);
     }
 
-    void wireForwarding_gameOverStateChanged_reachesGso()
+    void wireForwarding_gameOverStateChanged_reachesGsc()
     {
         ForwardingFixture f;
 
@@ -113,7 +125,7 @@ private slots:
         QVERIFY(TestTracker::onGameOverStateChangedCalled);
     }
 
-    void wireForwarding_matchGameEnded_reachesGso()
+    void wireForwarding_matchGameEnded_reachesSlc()
     {
         ForwardingFixture f;
 
@@ -131,7 +143,7 @@ private slots:
         QVERIFY(TestTracker::onResignationTriggeredCalled);
     }
 
-    void wireForwarding_requestPreStartCleanup_reachesGso()
+    void wireForwarding_requestPreStartCleanup_reachesSlc()
     {
         ForwardingFixture f;
 
@@ -140,7 +152,7 @@ private slots:
         QVERIFY(TestTracker::onPreStartCleanupRequestedCalled);
     }
 
-    void wireForwarding_requestApplyTimeControl_reachesGso()
+    void wireForwarding_requestApplyTimeControl_reachesSlc()
     {
         ForwardingFixture f;
 
@@ -160,7 +172,7 @@ private slots:
         QVERIFY(TestTracker::onMenuPlayerNamesResolvedCalled);
     }
 
-    void wireForwarding_consecutiveGamesConfigured_reachesGso()
+    void wireForwarding_consecutiveGamesConfigured_reachesCgc()
     {
         ForwardingFixture f;
 
@@ -169,7 +181,7 @@ private slots:
         QVERIFY(TestTracker::onConsecutiveGamesConfiguredCalled);
     }
 
-    void wireForwarding_gameStarted_reachesGso()
+    void wireForwarding_gameStarted_reachesSlc()
     {
         ForwardingFixture f;
 
@@ -201,12 +213,11 @@ private slots:
     // wireForwardingSignals 防御テスト
     // ================================================================
 
-    void wireForwarding_nullGso_doesNotCrash()
+    void wireForwarding_nullTargets_doesNotCrash()
     {
         MatchCoordinatorWiring mcw;
         MatchCoordinatorWiring::ForwardingTargets targets;
-        // gso=nullptr → 何もしない（クラッシュしない）
-        mcw.wireForwardingSignals(targets, nullptr);
+        mcw.wireForwardingSignals(targets);
     }
 
     // ================================================================

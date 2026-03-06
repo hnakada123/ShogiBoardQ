@@ -3,6 +3,9 @@
 
 #include "matchcoordinatorwiring.h"
 #include "gamesessionorchestrator.h"
+#include "sessionlifecyclecoordinator.h"
+#include "gamestatecontroller.h"
+#include "consecutivegamescontroller.h"
 #include "mainwindowappearancecontroller.h"
 #include "playerinfowiring.h"
 
@@ -363,47 +366,58 @@ bool MatchCoordinatorWiring::initializeSession(std::function<void()> ensureWirin
     return m_sessionFacade->initialize();
 }
 
-void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targets, GameSessionOrchestrator* gso)
+void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targets)
 {
-    if (!gso) return;
-
-    // --- MatchCoordinator/Clock 転送シグナル → GameSessionOrchestrator ---
-    QObject::connect(this, &MatchCoordinatorWiring::requestAppendGameOverMove,
-                     gso,  &GameSessionOrchestrator::onRequestAppendGameOverMove,
-                     Qt::UniqueConnection);
+    // --- MatchCoordinator/Clock 転送シグナル ---
+    // 終局手追記後にライブセッションを commit する必要があるため、
+    // GameStateController → SessionLifecycleCoordinator の順で接続する。
+    if (targets.gameStateController) {
+        QObject::connect(this, &MatchCoordinatorWiring::requestAppendGameOverMove,
+                         targets.gameStateController, &GameStateController::onRequestAppendGameOverMove,
+                         Qt::UniqueConnection);
+        QObject::connect(this, &MatchCoordinatorWiring::gameOverStateChanged,
+                         targets.gameStateController, &GameStateController::onGameOverStateChanged,
+                         Qt::UniqueConnection);
+    }
+    if (targets.sessionLifecycle) {
+        QObject::connect(this, &MatchCoordinatorWiring::requestAppendGameOverMove,
+                         targets.sessionLifecycle, &SessionLifecycleCoordinator::commitLiveGameSessionIfActive,
+                         Qt::UniqueConnection);
+        QObject::connect(this, &MatchCoordinatorWiring::matchGameEnded,
+                         targets.sessionLifecycle, &SessionLifecycleCoordinator::handleGameEnded,
+                         Qt::UniqueConnection);
+        QObject::connect(this, &MatchCoordinatorWiring::requestPreStartCleanup,
+                         targets.sessionLifecycle, &SessionLifecycleCoordinator::performPreStartCleanup,
+                         Qt::UniqueConnection);
+        QObject::connect(this, &MatchCoordinatorWiring::requestApplyTimeControl,
+                         targets.sessionLifecycle, &SessionLifecycleCoordinator::applyTimeControl,
+                         Qt::UniqueConnection);
+        QObject::connect(this, &MatchCoordinatorWiring::gameStarted,
+                         targets.sessionLifecycle, &SessionLifecycleCoordinator::handleGameStarted,
+                         Qt::UniqueConnection);
+    }
     if (targets.appearance) {
         QObject::connect(this, &MatchCoordinatorWiring::boardFlipped,
                          targets.appearance, &MainWindowAppearanceController::onBoardFlipped,
                          Qt::UniqueConnection);
     }
-    QObject::connect(this, &MatchCoordinatorWiring::gameOverStateChanged,
-                     gso,  &GameSessionOrchestrator::onGameOverStateChanged,
-                     Qt::UniqueConnection);
-    QObject::connect(this, &MatchCoordinatorWiring::matchGameEnded,
-                     gso,  &GameSessionOrchestrator::onMatchGameEnded,
-                     Qt::UniqueConnection);
-    QObject::connect(this, &MatchCoordinatorWiring::resignationTriggered,
-                     gso,  &GameSessionOrchestrator::onResignationTriggered,
-                     Qt::UniqueConnection);
+    if (targets.gameSession) {
+        QObject::connect(this, &MatchCoordinatorWiring::resignationTriggered,
+                         targets.gameSession, &GameSessionOrchestrator::onResignationTriggered,
+                         Qt::UniqueConnection);
+    }
 
-    // --- メニュー GameStartCoordinator 転送シグナル → GameSessionOrchestrator ---
-    QObject::connect(this, &MatchCoordinatorWiring::requestPreStartCleanup,
-                     gso,  &GameSessionOrchestrator::onPreStartCleanupRequested,
-                     Qt::UniqueConnection);
-    QObject::connect(this, &MatchCoordinatorWiring::requestApplyTimeControl,
-                     gso,  &GameSessionOrchestrator::onApplyTimeControlRequested,
-                     Qt::UniqueConnection);
+    // --- メニュー GameStartCoordinator 転送シグナル ---
     if (targets.playerInfo) {
         QObject::connect(this, &MatchCoordinatorWiring::menuPlayerNamesResolved,
                          targets.playerInfo, &PlayerInfoWiring::onMenuPlayerNamesResolved,
                          Qt::UniqueConnection);
     }
-    QObject::connect(this, &MatchCoordinatorWiring::consecutiveGamesConfigured,
-                     gso,  &GameSessionOrchestrator::onConsecutiveGamesConfigured,
-                     Qt::UniqueConnection);
-    QObject::connect(this, &MatchCoordinatorWiring::gameStarted,
-                     gso,  &GameSessionOrchestrator::onGameStarted,
-                     Qt::UniqueConnection);
+    if (targets.consecutiveGamesController) {
+        QObject::connect(this, &MatchCoordinatorWiring::consecutiveGamesConfigured,
+                         targets.consecutiveGamesController, &ConsecutiveGamesController::configure,
+                         Qt::UniqueConnection);
+    }
 
     // --- ナビゲーション ---
     if (targets.kifuNav) {

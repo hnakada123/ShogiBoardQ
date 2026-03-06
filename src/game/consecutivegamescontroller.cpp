@@ -25,7 +25,7 @@ ConsecutiveGamesController::ConsecutiveGamesController(QObject* parent)
     , m_delayTimer(new QTimer(this))
 {
     m_delayTimer->setSingleShot(true);
-    connect(m_delayTimer, &QTimer::timeout, this, &ConsecutiveGamesController::startNextGame);
+    connect(m_delayTimer, &QTimer::timeout, this, &ConsecutiveGamesController::launchPreparedNextGame);
 }
 
 void ConsecutiveGamesController::setTimeController(TimeControlController* tc)
@@ -36,6 +36,11 @@ void ConsecutiveGamesController::setTimeController(TimeControlController* tc)
 void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator* gsc)
 {
     m_gameStart = gsc;
+}
+
+void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void()> cleanup)
+{
+    m_performPreStartCleanup = std::move(cleanup);
 }
 
 // ============================================================
@@ -112,20 +117,33 @@ void ConsecutiveGamesController::startNextGame()
 
     prepareNextGameOptions();
 
-    emit requestPreStartCleanup();
+    if (m_performPreStartCleanup) {
+        m_performPreStartCleanup();
+    }
 
     // UIの更新を待つため少し遅延を入れて次の対局を開始
-    QTimer::singleShot(kNextGameDelayMs, this, [this]() {
-        if (m_timeController) {
-            ShogiClock* clk = m_timeController->clock();
-            TimeControlUtil::applyToClock(clk, m_lastTimeControl,
-                                           m_lastStartOptions.sfenStart, QString());
-        }
+    if (m_delayTimer->isActive()) {
+        m_delayTimer->stop();
+    }
+    m_delayTimer->start(kNextGameDelayMs);
+}
 
-        GameStartCoordinator::StartParams params;
-        params.opt = m_lastStartOptions;
-        params.tc = m_lastTimeControl;
-        params.autoStartEngineMove = true;
-        emit requestStartNextGame(params);
-    });
+void ConsecutiveGamesController::launchPreparedNextGame()
+{
+    if (!m_gameStart) {
+        qCWarning(lcGame) << "launchPreparedNextGame: GameStartCoordinator is not ready";
+        return;
+    }
+
+    if (m_timeController) {
+        ShogiClock* clk = m_timeController->clock();
+        TimeControlUtil::applyToClock(clk, m_lastTimeControl,
+                                      m_lastStartOptions.sfenStart, QString());
+    }
+
+    GameStartCoordinator::StartParams params;
+    params.opt = m_lastStartOptions;
+    params.tc = m_lastTimeControl;
+    params.autoStartEngineMove = true;
+    m_gameStart->start(params);
 }

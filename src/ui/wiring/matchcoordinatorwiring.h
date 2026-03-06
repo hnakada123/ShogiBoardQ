@@ -15,6 +15,9 @@
 #include "matchcoordinatorhooksfactory.h"
 
 class GameSessionOrchestrator;
+class SessionLifecycleCoordinator;
+class GameStateController;
+class ConsecutiveGamesController;
 class ShogiGameController;
 class ShogiView;
 class ShogiClock;
@@ -170,6 +173,10 @@ public:
 
     /// wireForwardingSignals に渡す接続先ポインタ群
     struct ForwardingTargets {
+        GameSessionOrchestrator* gameSession = nullptr;
+        SessionLifecycleCoordinator* sessionLifecycle = nullptr;
+        GameStateController* gameStateController = nullptr;
+        ConsecutiveGamesController* consecutiveGamesController = nullptr;
         MainWindowAppearanceController* appearance = nullptr;
         PlayerInfoWiring* playerInfo = nullptr;
         KifuNavigationCoordinator* kifuNav = nullptr;
@@ -179,11 +186,10 @@ public:
     /**
      * @brief 転送シグナルを各コントローラのスロットに接続する
      *
-     * MatchCoordinatorWiring/GameStartCoordinator → 各コントローラの12接続を行う。
+     * MatchCoordinatorWiring/GameStartCoordinator → 各責務クラスへ直接接続する。
      * @param targets 接続先ポインタ群（呼び出し元で ensure 済み）
-     * @param gso GameSessionOrchestrator
      */
-    void wireForwardingSignals(const ForwardingTargets& targets, GameSessionOrchestrator* gso);
+    void wireForwardingSignals(const ForwardingTargets& targets);
 
     /// 生成された MatchCoordinator を返す（非所有）
     MatchCoordinator* match() const { return m_match.get(); }

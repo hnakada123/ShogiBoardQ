@@ -848,6 +848,9 @@ target_compile_definitions(tst_app_branch_navigation PRIVATE
 add_shogi_test(tst_wiring_contracts
     tst_wiring_contracts.cpp
     test_stubs_wiring_contracts.cpp
+    ${SRC}/app/sessionlifecyclecoordinator.h
+    ${SRC}/game/gamestatecontroller.h
+    ${SRC}/game/consecutivegamescontroller.h
     ${SRC}/ui/wiring/matchcoordinatorwiring.cpp
     ${SRC}/widgets/kifudisplay.cpp
     ${SRC}/models/kifurecordlistmodel.cpp

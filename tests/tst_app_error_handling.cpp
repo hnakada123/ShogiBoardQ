@@ -141,20 +141,20 @@ private slots:
         }
     }
 
-    /// GameSubRegistry 系の ensure* メソッドが冪等性ガードを持つこと
-    void gameSubRegistryEnsureMethodsHaveIdempotentGuards()
+    /// ServiceRegistry の Game系 ensure* メソッドが冪等性ガードを持つこと
+    void serviceRegistryGameEnsureMethodsHaveIdempotentGuards()
     {
-        // GameSubRegistry 本体（状態・コントローラ管理）
+        // ServiceRegistry Game本体（状態・コントローラ管理）
         {
             const QStringList lines = readSourceLines(
                 QStringLiteral("src/app/gamesubregistry.cpp"));
             QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry source");
 
             const QStringList ensureMethods = {
-                QStringLiteral("GameSubRegistry::ensureTimeController()"),
-                QStringLiteral("GameSubRegistry::ensureReplayController()"),
-                QStringLiteral("GameSubRegistry::ensureGameStateController()"),
-                QStringLiteral("GameSubRegistry::ensureGameStartCoordinator()"),
+                QStringLiteral("MainWindowServiceRegistry::ensureTimeController()"),
+                QStringLiteral("MainWindowServiceRegistry::ensureReplayController()"),
+                QStringLiteral("MainWindowServiceRegistry::ensureGameStateController()"),
+                QStringLiteral("MainWindowServiceRegistry::ensureGameStartCoordinator()"),
             };
 
             for (const QString& method : std::as_const(ensureMethods)) {
@@ -171,14 +171,14 @@ private slots:
             }
         }
 
-        // GameSessionSubRegistry（セッション管理）
+        // ServiceRegistry Game セッション実装
         {
             const QStringList lines = readSourceLines(
-                QStringLiteral("src/app/gamesessionsubregistry.cpp"));
-            QVERIFY2(!lines.isEmpty(), "Failed to read gamesessionsubregistry source");
+                QStringLiteral("src/app/gamesubregistry_session.cpp"));
+            QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry_session source");
 
             const QStringList ensureMethods = {
-                QStringLiteral("GameSessionSubRegistry::ensurePreStartCleanupHandler()"),
+                QStringLiteral("MainWindowServiceRegistry::ensurePreStartCleanupHandler()"),
             };
 
             for (const QString& method : std::as_const(ensureMethods)) {
@@ -195,17 +195,17 @@ private slots:
             }
         }
 
-        // GameWiringSubRegistry（配線管理）
+        // ServiceRegistry Game 配線実装
         {
             const QStringList lines = readSourceLines(
-                QStringLiteral("src/app/gamewiringsubregistry.cpp"));
-            QVERIFY2(!lines.isEmpty(), "Failed to read gamewiringsubregistry source");
+                QStringLiteral("src/app/gamesubregistry_wiring.cpp"));
+            QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry_wiring source");
 
             // ensureMatchCoordinatorWiring は二回目以降も Deps 更新が走るため除外
             // prepareTurnSyncBridge は null チェック後に条件付きで処理するため除外
             const QStringList ensureMethods = {
-                QStringLiteral("GameWiringSubRegistry::ensureCsaGameWiring()"),
-                QStringLiteral("GameWiringSubRegistry::ensureConsecutiveGamesController()"),
+                QStringLiteral("MainWindowServiceRegistry::ensureCsaGameWiring()"),
+                QStringLiteral("MainWindowServiceRegistry::ensureConsecutiveGamesController()"),
             };
 
             for (const QString& method : std::as_const(ensureMethods)) {
@@ -286,17 +286,7 @@ private slots:
             QStringLiteral("GameSessionOrchestrator::movePieceImmediately()"),
             QStringLiteral("GameSessionOrchestrator::stopTsumeSearch()"),
             QStringLiteral("GameSessionOrchestrator::openWebsiteInExternalBrowser()"),
-            QStringLiteral("GameSessionOrchestrator::onMatchGameEnded("),
-            QStringLiteral("GameSessionOrchestrator::onGameOverStateChanged("),
-            QStringLiteral("GameSessionOrchestrator::onRequestAppendGameOverMove("),
-            QStringLiteral("GameSessionOrchestrator::onPreStartCleanupRequested()"),
-            QStringLiteral("GameSessionOrchestrator::onApplyTimeControlRequested("),
-            QStringLiteral("GameSessionOrchestrator::onGameStarted("),
-            QStringLiteral("GameSessionOrchestrator::onConsecutiveStartRequested("),
-            QStringLiteral("GameSessionOrchestrator::onConsecutiveGamesConfigured("),
-            QStringLiteral("GameSessionOrchestrator::startNextConsecutiveGame()"),
-            QStringLiteral("GameSessionOrchestrator::startNewShogiGame()"),
-            QStringLiteral("GameSessionOrchestrator::invokeStartGame()"),
+            QStringLiteral("GameSessionOrchestrator::onResignationTriggered()"),
         };
 
         // null チェックパターン: "if (!varname)" or "if (varname)"
@@ -545,11 +535,11 @@ private slots:
     void initMatchCoordinatorPreventsDoubleInit()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamewiringsubregistry.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read gamewiringsubregistry source");
+            QStringLiteral("src/app/gamesubregistry_wiring.cpp"));
+        QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry_wiring source");
 
         const auto range = findFunctionBody(
-            lines, QStringLiteral("GameWiringSubRegistry::initMatchCoordinator()"));
+            lines, QStringLiteral("MainWindowServiceRegistry::initMatchCoordinator()"));
         QVERIFY2(range.first >= 0, "initMatchCoordinator() not found");
 
         const QString body = bodyText(lines, range.first, range.second);
@@ -568,8 +558,8 @@ private slots:
     // 5. レジストリのクロスコール順序
     // ================================================================
 
-    /// GameSubRegistry::ensureGameStateController が UiStatePolicyManager を
-    /// 先に初期化すること（依存順序の契約）
+    /// MainWindowServiceRegistry::ensureGameStateController が UiStatePolicyManager を
+    /// 先に初期化してから生成/更新すること（依存順序の契約）
     void ensureGameStateControllerDependencyOrder()
     {
         const QStringList lines = readSourceLines(
@@ -577,30 +567,40 @@ private slots:
         QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry source");
 
         const auto range = findFunctionBody(
-            lines, QStringLiteral("GameSubRegistry::ensureGameStateController()"));
+            lines, QStringLiteral("MainWindowServiceRegistry::ensureGameStateController()"));
         QVERIFY2(range.first >= 0, "ensureGameStateController not found");
 
-        // ガード（early return）の位置
-        int guardLine = -1;
         // UiStatePolicyManager 初期化の位置
         int policyLine = -1;
+        // 生成/更新呼び出しの位置
+        int ensureLine = -1;
+        int refreshLine = -1;
 
         for (int i = range.first; i <= range.second; ++i) {
-            if (lines[i].contains(QStringLiteral("m_mw.m_gameStateController")) && lines[i].contains(QStringLiteral("return")) && guardLine < 0)
-                guardLine = i;
             if (lines[i].contains(QStringLiteral("ensureUiStatePolicyManager")) && policyLine < 0)
                 policyLine = i;
+            if (lines[i].contains(QStringLiteral("ensureGameStateController(refs")) && ensureLine < 0)
+                ensureLine = i;
+            if (lines[i].contains(QStringLiteral("refreshGameStateControllerDeps")) && refreshLine < 0)
+                refreshLine = i;
         }
 
-        QVERIFY2(guardLine >= 0, "Idempotent guard not found in ensureGameStateController");
         QVERIFY2(policyLine >= 0, "ensureUiStatePolicyManager call not found in ensureGameStateController");
+        QVERIFY2(ensureLine >= 0 || refreshLine >= 0,
+                  "Neither create nor refresh path found in ensureGameStateController");
 
-        // ガードの後に UiStatePolicyManager 初期化があること
-        // （ガードがパスしたときのみ初期化するのが正しい）
-        QVERIFY2(guardLine < policyLine,
-                  qPrintable(QStringLiteral("Guard (line %1) should come before ensureUiStatePolicyManager (line %2)")
-                                 .arg(guardLine + 1)
-                                 .arg(policyLine + 1)));
+        if (ensureLine >= 0) {
+            QVERIFY2(policyLine < ensureLine,
+                      qPrintable(QStringLiteral("ensureUiStatePolicyManager (line %1) should come before create path (line %2)")
+                                     .arg(policyLine + 1)
+                                     .arg(ensureLine + 1)));
+        }
+        if (refreshLine >= 0) {
+            QVERIFY2(policyLine < refreshLine,
+                      qPrintable(QStringLiteral("ensureUiStatePolicyManager (line %1) should come before refresh path (line %2)")
+                                     .arg(policyLine + 1)
+                                     .arg(refreshLine + 1)));
+        }
     }
 
     /// ServiceRegistry::ensurePositionEditCoordinator が

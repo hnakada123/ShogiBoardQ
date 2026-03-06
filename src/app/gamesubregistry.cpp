@@ -1,22 +1,21 @@
 /// @file gamesubregistry.cpp
 /// @brief Game系 状態・コントローラ管理の ensure* 実装
 ///
-/// セッション管理は GameSessionSubRegistry、配線管理は GameWiringSubRegistry に委譲。
+/// MainWindowServiceRegistry の Game 系メソッドを実装する分割ファイル。
 
-#include "gamesubregistry.h"
-#include "gamesessionsubregistry.h"
-#include "gamewiringsubregistry.h"
+#include "mainwindowserviceregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
 #include "mainwindowfoundationregistry.h"
-#include "mainwindowserviceregistry.h"
 
+#include "consecutivegamescontroller.h"
 #include "gamestatecontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "matchcoordinatorwiring.h"
 #include "recordpane.h"
 #include "replaycontroller.h"
+#include "sessionlifecyclecoordinator.h"
 #include "shogiclock.h"
 #include "shogiview.h"
 
@@ -31,24 +30,11 @@
 
 #include <functional>
 
-GameSubRegistry::GameSubRegistry(MainWindow& mw,
-                                 MainWindowServiceRegistry* registry,
-                                 MainWindowFoundationRegistry* foundation,
-                                 QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_registry(registry)
-    , m_foundation(foundation)
-    , m_session(new GameSessionSubRegistry(mw, this, registry, foundation, this))
-    , m_wiring(new GameWiringSubRegistry(mw, this, registry, foundation, this))
-{
-}
-
 // ---------------------------------------------------------------------------
 // 時間制御
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::ensureTimeController()
+void MainWindowServiceRegistry::ensureTimeController()
 {
     if (m_mw.m_timeController) return;
 
@@ -63,7 +49,7 @@ void GameSubRegistry::ensureTimeController()
 // リプレイ
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::ensureReplayController()
+void MainWindowServiceRegistry::ensureReplayController()
 {
     if (m_mw.m_replayController) return;
 
@@ -81,10 +67,8 @@ void GameSubRegistry::ensureReplayController()
 // ゲーム状態コントローラ
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::ensureGameStateController()
+void MainWindowServiceRegistry::ensureGameStateController()
 {
-    if (m_mw.m_gameStateController) return;
-
     m_foundation->ensureUiStatePolicyManager();
 
     MainWindowDepsFactory::GameStateControllerCallbacks cbs;
@@ -119,27 +103,36 @@ void GameSubRegistry::ensureGameStateController()
             m_mw.m_recordPane->kifuView()->setSelectionMode(QAbstractItemView::SingleSelection);
     };
 
-    m_mw.m_compositionRoot->ensureGameStateController(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_gameStateController);
+    const MainWindowRuntimeRefs refs = m_mw.buildRuntimeRefs();
+    if (!m_mw.m_gameStateController) {
+        m_mw.m_compositionRoot->ensureGameStateController(refs, cbs, &m_mw, m_mw.m_gameStateController);
+        return;
+    }
+
+    m_mw.m_compositionRoot->refreshGameStateControllerDeps(m_mw.m_gameStateController, refs, cbs);
 }
 
 // ---------------------------------------------------------------------------
 // 対局開始コーディネーター
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::ensureGameStartCoordinator()
+void MainWindowServiceRegistry::ensureGameStartCoordinator()
 {
     if (m_mw.m_gameStart) return;
 
-    m_wiring->ensureMatchCoordinatorWiring();
+    ensureMatchCoordinatorWiring();
     m_mw.m_matchWiring->ensureMenuGameStartCoordinator();
     m_mw.m_gameStart = m_mw.m_matchWiring->menuGameStartCoordinator();
+    if (m_mw.m_consecutiveGamesController) {
+        m_mw.m_consecutiveGamesController->setGameStartCoordinator(m_mw.m_gameStart);
+    }
 }
 
 // ---------------------------------------------------------------------------
 // 手番同期サービス
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::ensureTurnStateSyncService()
+void MainWindowServiceRegistry::prepareTurnStateSyncService()
 {
     if (!m_mw.m_turnStateSync) {
         createTurnStateSyncService();
@@ -147,12 +140,12 @@ void GameSubRegistry::ensureTurnStateSyncService()
     refreshTurnStateSyncDeps();
 }
 
-void GameSubRegistry::createTurnStateSyncService()
+void MainWindowServiceRegistry::createTurnStateSyncService()
 {
     m_mw.m_turnStateSync = std::make_unique<TurnStateSyncService>();
 }
 
-void GameSubRegistry::refreshTurnStateSyncDeps()
+void MainWindowServiceRegistry::refreshTurnStateSyncDeps()
 {
     if (!m_mw.m_turnStateSync) return;
 
@@ -178,20 +171,21 @@ void GameSubRegistry::refreshTurnStateSyncDeps()
 // 手戻しフロー
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::prepareUndoFlowService()
+void MainWindowServiceRegistry::prepareUndoFlowService()
 {
+    if (m_mw.m_isShuttingDown) return;
     if (!m_mw.m_undoFlowService) {
         createUndoFlowService();
     }
     refreshUndoFlowDeps();
 }
 
-void GameSubRegistry::createUndoFlowService()
+void MainWindowServiceRegistry::createUndoFlowService()
 {
     m_mw.m_undoFlowService = std::make_unique<UndoFlowService>();
 }
 
-void GameSubRegistry::refreshUndoFlowDeps()
+void MainWindowServiceRegistry::refreshUndoFlowDeps()
 {
     if (!m_mw.m_undoFlowService) return;
 
@@ -207,7 +201,7 @@ void GameSubRegistry::refreshUndoFlowDeps()
 // 手番表示更新
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::updateTurnStatus(int currentPlayer)
+void MainWindowServiceRegistry::updateTurnStatus(int currentPlayer)
 {
     if (!m_mw.m_shogiView) return;
 
@@ -226,17 +220,19 @@ void GameSubRegistry::updateTurnStatus(int currentPlayer)
 // MainWindow スロットからの転送
 // ---------------------------------------------------------------------------
 
-void GameSubRegistry::resetToInitialState()
+void MainWindowServiceRegistry::resetToInitialState()
 {
-    m_session->resetToInitialState();
+    ensureSessionLifecycleCoordinator();
+    m_mw.m_sessionLifecycle->resetToInitialState();
 }
 
-void GameSubRegistry::resetGameState()
+void MainWindowServiceRegistry::resetGameState()
 {
-    m_session->resetGameState();
+    ensureSessionLifecycleCoordinator();
+    m_mw.m_sessionLifecycle->resetGameState();
 }
 
-void GameSubRegistry::setReplayMode(bool on)
+void MainWindowServiceRegistry::setReplayMode(bool on)
 {
     ensureReplayController();
     if (m_mw.m_replayController) {

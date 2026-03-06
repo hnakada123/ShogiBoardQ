@@ -5,8 +5,9 @@
 #include "mainwindowserviceregistryfacades.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
-#include "gamesubregistry.h"
 #include "kifusubregistry.h"
+#include "matchcoordinator.h"
+#include "matchruntimequeryservice.h"
 
 MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* parent)
     : QObject(parent)
@@ -14,7 +15,6 @@ MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* pa
     // Lifetime: owned by MainWindowServiceRegistry (QObject parent=this)
     // Created: once at MainWindow startup, never recreated
     , m_foundation(new MainWindowFoundationRegistry(mw, this, this))
-    , m_game(new GameSubRegistry(mw, this, m_foundation, this))
     , m_kifu(new KifuSubRegistry(mw, this, m_foundation, this))
     , m_uiFacade(std::make_unique<MainWindowUiRegistryFacade>(*this))
     , m_analysisFacade(std::make_unique<MainWindowAnalysisRegistryFacade>(*this))
@@ -24,19 +24,7 @@ MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* pa
 
 MainWindowServiceRegistry::~MainWindowServiceRegistry() = default;
 
-// --- Sub-registry convenience wrappers ---
-
-void MainWindowServiceRegistry::prepareUndoFlowService()
-{
-    if (m_mw.m_isShuttingDown) return;
-    m_game->prepareUndoFlowService();
-}
-
-void MainWindowServiceRegistry::prepareTurnStateSyncService()
-{
-    if (m_mw.m_isShuttingDown) return;
-    m_game->ensureTurnStateSyncService();
-}
+// --- Kifu convenience wrappers ---
 
 void MainWindowServiceRegistry::prepareGameRecordLoadService()
 {
@@ -49,17 +37,20 @@ void MainWindowServiceRegistry::updateJosekiWindow()
     m_kifu->updateJosekiWindow();
 }
 
-void MainWindowServiceRegistry::resetToInitialState()
+void MainWindowServiceRegistry::startGameSession()
 {
-    m_game->resetToInitialState();
-}
+    auto* match = m_mw.m_match;
+    if (!match) {
+        initMatchCoordinator();
+        match = m_mw.m_match;
+    }
+    if (!match) return;
 
-void MainWindowServiceRegistry::resetGameState()
-{
-    m_game->resetGameState();
-}
-
-void MainWindowServiceRegistry::setReplayMode(bool on)
-{
-    m_game->setReplayMode(on);
+    QStringList* sfenRecord = m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
+    match->prepareAndStartGame(
+        m_mw.m_state.playMode,
+        m_mw.m_state.startSfenStr,
+        sfenRecord,
+        nullptr,
+        m_mw.m_player.bottomIsP1);
 }

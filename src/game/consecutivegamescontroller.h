@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QTimer>
+#include <functional>
 #include "matchcoordinator.h"
 #include "gamestartcoordinator.h"
 
@@ -29,6 +30,7 @@ public:
     // --- 依存オブジェクトの設定 ---
     void setTimeController(TimeControlController* tc);
     void setGameStartCoordinator(GameStartCoordinator* gsc);
+    void setPerformPreStartCleanup(std::function<void()> cleanup);
 
     /**
      * @brief 連続対局の設定を受け取る
@@ -54,18 +56,12 @@ public:
 
     void reset();
 
-signals:
-    /// 次の対局開始を要求（→ MainWindow 側で処理）
-    void requestStartNextGame(const GameStartCoordinator::StartParams& params);
-
-    /// 前準備クリーンアップを要求（→ PrestartCleanupHandler::cleanup）
-    void requestPreStartCleanup();
-
 public slots:
     void startNextGame();
 
 private:
     void prepareNextGameOptions();
+    void launchPreparedNextGame();
 
     int m_remainingGames = 0;        ///< 残り対局数
     int m_totalGames = 1;            ///< 合計対局数
@@ -77,6 +73,7 @@ private:
 
     TimeControlController* m_timeController = nullptr;  ///< 非所有
     QPointer<GameStartCoordinator> m_gameStart;        ///< 非所有（再生成追跡）
+    std::function<void()> m_performPreStartCleanup;    ///< 次局開始前のクリーンアップ
 
     QTimer* m_delayTimer = nullptr; ///< 次局開始遅延用タイマー（所有: this）
 };
