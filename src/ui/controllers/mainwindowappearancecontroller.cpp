@@ -153,7 +153,7 @@ void MainWindowAppearanceController::flipBoardAndUpdatePlayerInfo()
     if (!view) return;
 
     // 盤の表示向きをトグル
-    const bool flipped = !view->getFlipMode();
+    const bool flipped = !view->flipMode();
     view->setFlipMode(flipped);
     if (flipped) view->setPiecesFlip();
     else         view->setPieces();

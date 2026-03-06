@@ -430,9 +430,9 @@ bool TimeControlController::hasTimeControl() const { return false; }
 qint64 TimeControlController::baseTimeMs() const { return 0; }
 qint64 TimeControlController::byoyomiMs() const { return 0; }
 qint64 TimeControlController::incrementMs() const { return 0; }
-qint64 TimeControlController::getRemainingMs(int) const { return 0; }
-qint64 TimeControlController::getIncrementMs(int) const { return 0; }
-qint64 TimeControlController::getByoyomiMs() const { return 0; }
+qint64 TimeControlController::remainingMs(int) const { return 0; }
+qint64 TimeControlController::incrementMs(int) const { return 0; }
+qint64 TimeControlController::clockByoyomiMs() const { return 0; }
 void TimeControlController::recordGameStartTime() {}
 void TimeControlController::recordGameEndTime() {}
 QDateTime TimeControlController::gameStartDateTime() const { return {}; }

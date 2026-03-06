@@ -162,7 +162,7 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     }
 
     // 盤面データと点数を計算
-    auto calcResult = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
+    auto calcResult = JishogiCalculator::calculate(board->boardData(), board->pieceStand());
 
     // 王手判定
     EngineMoveValidator validator;

@@ -27,13 +27,13 @@ public:
     // --- 盤面アクセス ---
 
     /// 指定マスの駒を返す（盤上・駒台共通）
-    Piece getPieceCharacter(const int file, const int rank);
+    Piece pieceCharacter(const int file, const int rank);
 
     /// 盤面データ（81マスの駒配列）を返す
     const QList<Piece>& boardData() const;
 
     /// 駒台データを返す
-    const QMap<Piece, int>& getPieceStand() const;
+    const QMap<Piece, int>& pieceStand() const;
 
     /// 指定駒の駒台枚数を返す（存在しない場合は0）
     int pieceStandCount(Piece piece) const;

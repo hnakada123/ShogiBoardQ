@@ -39,7 +39,7 @@ BenchResult benchGenerateLegalMoves(const QString& sfen, int iterations,
     ShogiBoard board;
     board.setSfen(sfen);
     const auto& bd = board.boardData();
-    const auto& ps = board.getPieceStand();
+    const auto& ps = board.pieceStand();
 
     BenchResult r;
     r.iterations = iterations;
@@ -133,7 +133,7 @@ BenchResult benchIsLegalMove(const QString& sfen, int iterations,
     ShogiBoard board;
     board.setSfen(sfen);
     const auto& bd = board.boardData();
-    const auto& ps = board.getPieceStand();
+    const auto& ps = board.pieceStand();
 
     // 7六歩
     ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
@@ -181,7 +181,7 @@ BenchResult benchSyncAndQuery(const QString& sfen, int iterations,
     ShogiBoard board;
     board.setSfen(sfen);
     const auto& bd = board.boardData();
-    const auto& ps = board.getPieceStand();
+    const auto& ps = board.pieceStand();
 
     BenchResult r;
     r.iterations = iterations;
@@ -229,7 +229,7 @@ BenchResult benchMidgame(int iterations)
     ShogiBoard board;
     board.setSfen(sfen);
     const auto& bd = board.boardData();
-    const auto& ps = board.getPieceStand();
+    const auto& ps = board.pieceStand();
 
     BenchResult r;
     r.iterations = iterations;

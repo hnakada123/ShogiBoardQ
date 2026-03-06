@@ -173,7 +173,7 @@ PvHighlightCoords PvBoardController::computeHighlightCoords() const
                     result.fromRank = fromRank;
                 } else if (!droppedPiece.isNull()) {
                     const bool isBlack = droppedPiece.isUpper();
-                    QPoint standCoord = getStandPseudoCoord(droppedPiece, isBlack);
+                    QPoint standCoord = standPseudoCoord(droppedPiece, isBlack);
                     if (!standCoord.isNull()) {
                         result.hasFrom = true;
                         result.fromFile = standCoord.x();
@@ -243,7 +243,7 @@ PvHighlightCoords PvBoardController::computeHighlightFromUsiMove(const QString& 
             isBlackMove = !prevSfen.contains(QStringLiteral(" w "));
         }
 
-        QPoint standCoord = getStandPseudoCoord(pieceChar, isBlackMove);
+        QPoint standCoord = standPseudoCoord(pieceChar, isBlackMove);
         if (!standCoord.isNull()) {
             result.hasFrom = true;
             result.fromFile = standCoord.x();
@@ -314,9 +314,9 @@ void PvBoardController::applyUsiMoveToBoard(ShogiBoard* board, const QString& us
     int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
     bool promote = (usiMove.length() >= 5 && usiMove.at(4) == '+');
 
-    Piece piece = board->getPieceCharacter(fromFile, fromRank);
+    Piece piece = board->pieceCharacter(fromFile, fromRank);
 
-    Piece captured = board->getPieceCharacter(toFile, toRank);
+    Piece captured = board->pieceCharacter(toFile, toRank);
     if (captured != Piece::None) {
         Piece standPiece = demote(captured);
         standPiece = isBlackPiece(standPiece) ? toWhite(standPiece) : toBlack(standPiece);
@@ -369,7 +369,7 @@ bool PvBoardController::diffSfenForHighlight(const QString& prevSfen, const QStr
     return true;
 }
 
-QPoint PvBoardController::getStandPseudoCoord(QChar pieceChar, bool isBlack)
+QPoint PvBoardController::standPseudoCoord(QChar pieceChar, bool isBlack)
 {
     QChar upperPiece = pieceChar.toUpper();
 

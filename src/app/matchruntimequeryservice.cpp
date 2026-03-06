@@ -47,33 +47,33 @@ bool MatchRuntimeQueryService::isHumanSide(ShogiGameController::Player p) const
 
 // --- 時間取得（TimeControlController に委譲）---
 
-qint64 MatchRuntimeQueryService::getRemainingMsFor(MatchCoordinator::Player p) const
+qint64 MatchRuntimeQueryService::remainingMsFor(MatchCoordinator::Player p) const
 {
     if (!m_deps.timeController) {
-        qCDebug(lcApp) << "getRemainingMsFor: timeController=null";
+        qCDebug(lcApp) << "remainingMsFor: timeController=null";
         return 0;
     }
     const int player = (p == MatchCoordinator::P1) ? 1 : 2;
-    return m_deps.timeController->getRemainingMs(player);
+    return m_deps.timeController->remainingMs(player);
 }
 
-qint64 MatchRuntimeQueryService::getIncrementMsFor(MatchCoordinator::Player p) const
+qint64 MatchRuntimeQueryService::incrementMsFor(MatchCoordinator::Player p) const
 {
     if (!m_deps.timeController) {
-        qCDebug(lcApp) << "getIncrementMsFor: timeController=null";
+        qCDebug(lcApp) << "incrementMsFor: timeController=null";
         return 0;
     }
     const int player = (p == MatchCoordinator::P1) ? 1 : 2;
-    return m_deps.timeController->getIncrementMs(player);
+    return m_deps.timeController->incrementMs(player);
 }
 
-qint64 MatchRuntimeQueryService::getByoyomiMs() const
+qint64 MatchRuntimeQueryService::byoyomiMs() const
 {
     if (!m_deps.timeController) {
-        qCDebug(lcApp) << "getByoyomiMs: timeController=null";
+        qCDebug(lcApp) << "byoyomiMs: timeController=null";
         return 0;
     }
-    return m_deps.timeController->getByoyomiMs();
+    return m_deps.timeController->clockByoyomiMs();
 }
 
 // --- SFEN アクセサ（MatchCoordinator に委譲）---

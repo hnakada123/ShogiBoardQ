@@ -369,10 +369,10 @@ QSet<int> KifuBranchTree::branchablePlysOnLine(const BranchLine& line) const
     return result;
 }
 
-int KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) const
+std::optional<int> KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) const
 {
     if (node == nullptr) {
-        return -1;
+        return std::nullopt;
     }
 
     QList<BranchLine> lines = allLines();
@@ -411,7 +411,7 @@ int KifuBranchTree::findLineIndexForNode(KifuBranchNode* node) const
         }
     }
 
-    return -1;
+    return std::nullopt;
 }
 
 void KifuBranchTree::setComment(int nodeId, const QString& comment)
@@ -424,7 +424,7 @@ void KifuBranchTree::setComment(int nodeId, const QString& comment)
 
 // === データ抽出（ResolvedRow互換）===
 
-QList<KifDisplayItem> KifuBranchTree::getDisplayItemsForLine(int lineIndex) const
+QList<KifDisplayItem> KifuBranchTree::displayItemsForLine(int lineIndex) const
 {
     QList<KifDisplayItem> result;
 
@@ -447,7 +447,7 @@ QList<KifDisplayItem> KifuBranchTree::getDisplayItemsForLine(int lineIndex) cons
     return result;
 }
 
-QStringList KifuBranchTree::getSfenListForLine(int lineIndex) const
+QStringList KifuBranchTree::sfenListForLine(int lineIndex) const
 {
     QStringList result;
 

@@ -58,8 +58,8 @@ void applyUsiMoveToBoard(ShogiBoard* board, const QString& usiMove, bool isSente
 
         if (!fileFrom || !rankFrom || !fileTo || !rankTo) return;
 
-        Piece movingPiece = board->getPieceCharacter(*fileFrom, *rankFrom);
-        Piece capturedPiece = board->getPieceCharacter(*fileTo, *rankTo);
+        Piece movingPiece = board->pieceCharacter(*fileFrom, *rankFrom);
+        Piece capturedPiece = board->pieceCharacter(*fileTo, *rankTo);
 
         if (capturedPiece != Piece::None) {
             board->addPieceToStand(capturedPiece);
@@ -212,10 +212,8 @@ QString UsiMatchHandler::convertHumanMoveToUsiFormat(const QPoint& outFrom, cons
 
 void UsiMatchHandler::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                                        QPoint& outFrom, QPoint& outTo,
-                                                       int byoyomiMilliSec, const QString& btime,
-                                                       const QString& wtime, QStringList& positionStrList,
-                                                       int addEachMoveMilliSec1, int addEachMoveMilliSec2,
-                                                       bool useByoyomi)
+                                                       const UsiTimingParams& timing,
+                                                       QStringList& positionStrList)
 {
     // 人間の指し手をUSI形式に変換
     QString bestMove = convertHumanMoveToUsiFormat(outFrom, outTo, m_gameController->promote());
@@ -224,32 +222,22 @@ void UsiMatchHandler::handleHumanVsEngineCommunication(QString& positionStr, QSt
     positionStr += " " + bestMove;
     positionStrList.append(positionStr);
 
-    executeEngineCommunication(positionStr, positionPonderStr, outFrom, outTo,
-                               byoyomiMilliSec, btime, wtime,
-                               addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+    executeEngineCommunication(positionStr, positionPonderStr, outFrom, outTo, timing);
 }
 
 void UsiMatchHandler::handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
                                                                     QString& positionPonderStr,
                                                                     QPoint& outFrom, QPoint& outTo,
-                                                                    int byoyomiMilliSec, const QString& btime,
-                                                                    const QString& wtime,
-                                                                    int addEachMoveMilliSec1,
-                                                                    int addEachMoveMilliSec2, bool useByoyomi)
+                                                                    const UsiTimingParams& timing)
 {
-    executeEngineCommunication(positionStr, positionPonderStr, outFrom, outTo,
-                               byoyomiMilliSec, btime, wtime,
-                               addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+    executeEngineCommunication(positionStr, positionPonderStr, outFrom, outTo, timing);
 }
 
 void UsiMatchHandler::executeEngineCommunication(QString& positionStr, QString& positionPonderStr,
-                                                 QPoint& outFrom, QPoint& outTo, int byoyomiMilliSec,
-                                                 const QString& btime, const QString& wtime,
-                                                 int addEachMoveMilliSec1, int addEachMoveMilliSec2,
-                                                 bool useByoyomi)
+                                                 QPoint& outFrom, QPoint& outTo,
+                                                 const UsiTimingParams& timing)
 {
-    processEngineResponse(positionStr, positionPonderStr, byoyomiMilliSec, btime, wtime,
-                          addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+    processEngineResponse(positionStr, positionPonderStr, timing);
 
     if (m_protocolHandler->isResignMove()) return;
 
@@ -261,8 +249,7 @@ void UsiMatchHandler::executeEngineCommunication(QString& positionStr, QString& 
 }
 
 void UsiMatchHandler::processEngineResponse(QString& positionStr, QString& positionPonderStr,
-                                            int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                                            int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
+                                            const UsiTimingParams& timing)
 {
     // 処理フロー:
     // 1. ポンダー予測手がない場合 → 通常のコマンド送信
@@ -272,8 +259,7 @@ void UsiMatchHandler::processEngineResponse(QString& positionStr, QString& posit
     const QString& predictedMove = m_protocolHandler->predictedMove();
 
     if (predictedMove.isEmpty() || !m_protocolHandler->isPonderEnabled()) {
-        sendCommandsAndProcess(byoyomiMilliSec, positionStr, btime, wtime,
-                               positionPonderStr, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+        sendCommandsAndProcess(positionStr, positionPonderStr, timing);
         return;
     }
 
@@ -298,10 +284,10 @@ void UsiMatchHandler::processEngineResponse(QString& positionStr, QString& posit
 
         m_protocolHandler->sendPonderHit();
 
-        if (byoyomiMilliSec == 0) {
+        if (timing.byoyomiMilliSec == 0) {
             (void)m_protocolHandler->keepWaitingForBestMove();
         } else {
-            waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
+            waitAndCheckForBestMoveRemainingTime(timing);
         }
 
         if (m_protocolHandler->isResignMove()) return;
@@ -311,23 +297,20 @@ void UsiMatchHandler::processEngineResponse(QString& positionStr, QString& posit
         // ポンダーミス
         m_protocolHandler->sendStop();
 
-        if (byoyomiMilliSec == 0) {
+        if (timing.byoyomiMilliSec == 0) {
             (void)m_protocolHandler->keepWaitingForBestMove();
         } else {
-            waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
+            waitAndCheckForBestMoveRemainingTime(timing);
         }
 
         if (m_protocolHandler->isResignMove()) return;
 
-        sendCommandsAndProcess(byoyomiMilliSec, positionStr, btime, wtime,
-                               positionPonderStr, addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+        sendCommandsAndProcess(positionStr, positionPonderStr, timing);
     }
 }
 
-void UsiMatchHandler::sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
-                                             const QString& btime, const QString& wtime,
-                                             QString& positionPonderStr, int addEachMoveMilliSec1,
-                                             int addEachMoveMilliSec2, bool useByoyomi)
+void UsiMatchHandler::sendCommandsAndProcess(QString& positionStr, QString& positionPonderStr,
+                                             const UsiTimingParams& timing)
 {
     // 処理フロー:
     // 1. 局面SFENを保存（読み筋表示用）
@@ -352,22 +335,22 @@ void UsiMatchHandler::sendCommandsAndProcess(int byoyomiMilliSec, QString& posit
 
     m_protocolHandler->sendPosition(positionStr);
     cloneCurrentBoardData();
-    m_protocolHandler->sendGo(byoyomiMilliSec, btime, wtime,
-                              addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+    m_protocolHandler->sendGo(timing.byoyomiMilliSec, timing.btime, timing.wtime,
+                              timing.addEachMoveMilliSec1, timing.addEachMoveMilliSec2,
+                              timing.useByoyomi);
 
-    waitAndCheckForBestMoveRemainingTime(byoyomiMilliSec, btime, wtime, useByoyomi);
+    waitAndCheckForBestMoveRemainingTime(timing);
 
     if (m_protocolHandler->isResignMove()) return;
 
     appendBestMoveAndStartPondering(positionStr, positionPonderStr);
 }
 
-void UsiMatchHandler::waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime,
-                                                           const QString& wtime, bool useByoyomi)
+void UsiMatchHandler::waitAndCheckForBestMoveRemainingTime(const UsiTimingParams& timing)
 {
     const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    const int mainMs = p1turn ? btime.toInt() : wtime.toInt();
-    int capMs = useByoyomi ? (mainMs + byoyomiMilliSec) : mainMs;
+    const int mainMs = p1turn ? timing.btime.toInt() : timing.wtime.toInt();
+    int capMs = timing.useByoyomi ? (mainMs + timing.byoyomiMilliSec) : mainMs;
     if (capMs >= 200) capMs -= 100;
 
     static constexpr int kBestmoveGraceMs = 250;

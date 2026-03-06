@@ -154,7 +154,7 @@ QLabel* ShogiView::whiteClockLabel() const { return m_whiteClockLabel; }
 bool ShogiView::isClockEnabled() const { return m_clockEnabled; }
 bool ShogiView::positionEditMode() const { return m_interaction.positionEditMode(); }
 int  ShogiView::squareSize() const { return m_layout.squareSize(); }
-bool ShogiView::getFlipMode() const { return m_layout.flipMode(); }
+bool ShogiView::flipMode() const { return m_layout.flipMode(); }
 
 ShogiViewHighlighting* ShogiView::highlighting() const { return m_highlighting; }
 

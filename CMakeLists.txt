@@ -553,6 +553,7 @@ set(SRC_ENGINE
     src/engine/usicommlogmodel.cpp
     src/engine/usimatchhandler.cpp
     src/engine/usimatchhandler.h
+    src/engine/usitimingparams.h
     src/engine/usicommlogmodel.h
     src/engine/usimovecoordinateconverter.cpp
     src/engine/usimovecoordinateconverter.h

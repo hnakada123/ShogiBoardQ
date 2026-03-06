@@ -11,6 +11,8 @@
 #include <QList>
 #include <functional>
 
+#include "usitimingparams.h"
+
 class ShogiGameController;
 class ThinkingInfoPresenter;
 class UsiProtocolHandler;
@@ -60,42 +62,31 @@ public:
 
     void handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                           QPoint& outFrom, QPoint& outTo,
-                                          int byoyomiMilliSec, const QString& btime,
-                                          const QString& wtime, QStringList& positionStrList,
-                                          int addEachMoveMilliSec1, int addEachMoveMilliSec2,
-                                          bool useByoyomi);
+                                          const UsiTimingParams& timing,
+                                          QStringList& positionStrList);
 
     void handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
                                                        QString& positionPonderStr,
                                                        QPoint& outFrom, QPoint& outTo,
-                                                       int byoyomiMilliSec, const QString& btime,
-                                                       const QString& wtime,
-                                                       int addEachMoveMilliSec1,
-                                                       int addEachMoveMilliSec2, bool useByoyomi);
+                                                       const UsiTimingParams& timing);
 
     QString convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote);
 
 private:
     void executeEngineCommunication(QString& positionStr, QString& positionPonderStr,
-                                    QPoint& outFrom, QPoint& outTo, int byoyomiMilliSec,
-                                    const QString& btime, const QString& wtime,
-                                    int addEachMoveMilliSec1, int addEachMoveMilliSec2,
-                                    bool useByoyomi);
+                                    QPoint& outFrom, QPoint& outTo,
+                                    const UsiTimingParams& timing);
 
     void processEngineResponse(QString& positionStr, QString& positionPonderStr,
-                               int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                               int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
+                               const UsiTimingParams& timing);
 
-    void sendCommandsAndProcess(int byoyomiMilliSec, QString& positionStr,
-                                const QString& btime, const QString& wtime,
-                                QString& positionPonderStr, int addEachMoveMilliSec1,
-                                int addEachMoveMilliSec2, bool useByoyomi);
+    void sendCommandsAndProcess(QString& positionStr, QString& positionPonderStr,
+                                const UsiTimingParams& timing);
 
     void startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr);
     void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr);
 
-    void waitAndCheckForBestMoveRemainingTime(int byoyomiMilliSec, const QString& btime,
-                                              const QString& wtime, bool useByoyomi);
+    void waitAndCheckForBestMoveRemainingTime(const UsiTimingParams& timing);
 
     void applyMovesToBoardFromBestMoveAndPonder();
     void updateBaseSfenForPonder();

@@ -127,7 +127,7 @@ private:
      * @param state 対局状態
      * @return 状態メッセージ
      */
-    QString getStateMessage(CsaGameCoordinator::GameState state) const;
+    QString stateMessage(CsaGameCoordinator::GameState state) const;
 
     /**
      * @brief 通信ログウィンドウを作成する

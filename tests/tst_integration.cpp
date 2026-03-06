@@ -37,7 +37,7 @@ private:
                 ++count;
             }
         }
-        const auto& stand = board.getPieceStand();
+        const auto& stand = board.pieceStand();
         for (auto it = stand.constBegin(); it != stand.constEnd(); ++it) {
             count += it.value();
         }
@@ -58,7 +58,7 @@ private slots:
 
             for (int moveNum = 0; moveNum < 300; ++moveNum) {
                 int legalCount = validator.generateLegalMoves(
-                    turn, board.boardData(), board.getPieceStand());
+                    turn, board.boardData(), board.pieceStand());
 
                 if (legalCount == 0) break; // Checkmate or stalemate
 
@@ -80,7 +80,7 @@ private slots:
                                            QPoint(file - 1, rank - 2),
                                            Piece::BlackPawn, Piece::None, false);
                                 auto status = validator.isLegalMove(
-                                    turn, board.boardData(), board.getPieceStand(), m);
+                                    turn, board.boardData(), board.pieceStand(), m);
                                 if (status.nonPromotingMoveExists) {
                                     board.movePieceToSquare(Piece::BlackPawn,
                                                           file, rank, file, rank - 1, false);

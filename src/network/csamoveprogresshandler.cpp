@@ -131,7 +131,7 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
         };
         if (promotedPieces.contains(destPiece)) {
             if (*m_refs.gameController && (*m_refs.gameController)->board()) {
-                Piece srcPiece = (*m_refs.gameController)->board()->getPieceCharacter(fromFile, fromRank);
+                Piece srcPiece = (*m_refs.gameController)->board()->pieceCharacter(fromFile, fromRank);
                 static const QString unpromoted = QStringLiteral("PLNSBRplnsbr");
                 if (unpromoted.contains(pieceToChar(srcPiece))) {
                     isPromotion = true;
@@ -349,7 +349,7 @@ void CsaMoveProgressHandler::startEngineThinking()
 
     bool isDrop = (fromFile >= BoardConstants::kBlackStandFile);
     if (isDrop) {
-        Piece piece = board->getPieceCharacter(fromFile, fromRank);
+        Piece piece = board->pieceCharacter(fromFile, fromRank);
         csaPiece = CsaMoveConverter::pieceCharToCsa(piece, false);
         if (csaPiece.isEmpty()) {
             m_hooks.logMessage(tr("駒打ちの駒種変換に失敗しました"), true);
@@ -358,7 +358,7 @@ void CsaMoveProgressHandler::startEngineThinking()
         fromFile = 0;
         fromRank = 0;
     } else {
-        Piece piece = board->getPieceCharacter(fromFile, fromRank);
+        Piece piece = board->pieceCharacter(fromFile, fromRank);
         csaPiece = CsaMoveConverter::pieceCharToCsa(piece, result.promote);
         if (csaPiece.isEmpty()) {
             m_hooks.logMessage(tr("指し手の駒種変換に失敗しました"), true);
@@ -374,14 +374,14 @@ void CsaMoveProgressHandler::startEngineThinking()
 
     // 盤面を更新
     if (!isDrop) {
-        Piece movingPiece = board->getPieceCharacter(result.from.x(), result.from.y());
-        Piece capturedPiece = board->getPieceCharacter(toFile, toRank);
+        Piece movingPiece = board->pieceCharacter(result.from.x(), result.from.y());
+        Piece capturedPiece = board->pieceCharacter(toFile, toRank);
         if (capturedPiece != Piece::None) {
             board->addPieceToStand(capturedPiece);
         }
         board->movePieceToSquare(movingPiece, result.from.x(), result.from.y(), toFile, toRank, result.promote);
     } else {
-        Piece dropPiece = board->getPieceCharacter(result.from.x(), result.from.y());
+        Piece dropPiece = board->pieceCharacter(result.from.x(), result.from.y());
         if (!board->decrementPieceOnStand(dropPiece)) {
             m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(csaMove), true);
             m_hooks.errorOccurred(tr("サーバーからの指し手を盤面に適用できません: %1").arg(csaMove));

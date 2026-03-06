@@ -174,14 +174,10 @@ KifDisplayItem buildTerminalItem(int moveIndex, const QString& term,
 
 // === 指し手解析 ===
 
-bool findDestination(const QString& line, int& toFile, int& toRank, bool& isSameAsPrev)
+std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& line)
 {
-    isSameAsPrev = false;
-
     if (line.contains(QStringLiteral("同"))) {
-        toFile = toRank = 0;
-        isSameAsPrev = true;
-        return true;
+        return KifuParseCommon::MoveDestination{0, 0, true};
     }
 
     static const auto& s_paren = *[]() {
@@ -202,24 +198,27 @@ bool findDestination(const QString& line, int& toFile, int& toRank, bool& isSame
 
     QRegularExpressionMatch m = s_digitKanji.match(head);
     if (!m.hasMatch()) m = s_digitDigit.match(head);
-    if (!m.hasMatch()) return false;
+    if (!m.hasMatch()) return std::nullopt;
 
     const QChar fch = m.capturedView(1).at(0);
     const QChar rch = m.capturedView(2).at(0);
 
-    toFile = KifuParseCommon::flexDigitToIntNoDetach(fch);
-    int r  = NotationUtils::kanjiDigitToInt(rch);
+    const int toFile = KifuParseCommon::flexDigitToIntNoDetach(fch);
+    int r = NotationUtils::kanjiDigitToInt(rch);
     if (r == 0) r = KifuParseCommon::flexDigitToIntNoDetach(rch);
-    toRank = r;
+    const int toRank = r;
 
-    return (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9);
+    if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9)
+        return KifuParseCommon::MoveDestination{toFile, toRank, false};
+
+    return std::nullopt;
 }
 
 QChar pieceKanjiToUsiUpper(const QString& s)
 {
-    Piece base = Piece::None; bool promoted = false;
-    if (!KifuParseCommon::mapKanjiPiece(s, base, promoted)) return QChar();
-    return pieceToChar(base);
+    const auto result = KifuParseCommon::mapKanjiPiece(s);
+    if (!result) return QChar();
+    return pieceToChar(result->base);
 }
 
 bool isPromotionMoveText(const QString& line)
@@ -268,9 +267,10 @@ bool convertMoveLine(const QString& moveText, QString& usi,
     line.remove(kMods);
     line = line.trimmed();
 
-    int toF = 0, toR = 0; bool same = false;
-    if (!findDestination(line, toF, toR, same)) return false;
-    if (same) { toF = prevToFile; toR = prevToRank; }
+    const auto dest = findDestination(line);
+    if (!dest) return false;
+    int toF = dest->toFile, toR = dest->toRank;
+    if (dest->isSameAsPrev) { toF = prevToFile; toR = prevToRank; }
     if (!(toF >= 1 && toF <= 9 && toR >= 1 && toR <= 9)) return false;
 
     const bool isDrop = line.contains(QStringLiteral("打"));

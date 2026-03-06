@@ -37,7 +37,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
         fmv::EnginePosition original = pos;
 
         // 7六歩: from=(6,6), to=(6,5)
@@ -71,7 +71,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
         fmv::EnginePosition original = pos;
 
         // 5五歩が5四の相手歩を取る: (4,4)→(4,3)
@@ -107,7 +107,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
         fmv::EnginePosition original = pos;
 
         // (4,3)→(4,2) 成り
@@ -139,7 +139,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
         fmv::EnginePosition original = pos;
 
         // 銀打ち: (4,4)
@@ -171,7 +171,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
         fmv::EnginePosition original = pos;
 
         // 数手進める

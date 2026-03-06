@@ -12,6 +12,13 @@
 
 #include "boardconstants.h"
 
+/// @brief USI指し手パースで返す座標情報
+struct MoveCoord
+{
+    int file;
+    int rank;
+};
+
 /**
  * @brief USI形式の座標・指し手変換を行うユーティリティクラス
  *
@@ -56,22 +63,15 @@ public:
 
     /// USI指し手文字列の移動元座標をパースする
     /// @param move USI形式の指し手（例: "7g7f", "P*5e"）
-    /// @param fileFrom [out] 移動元の筋
-    /// @param rankFrom [out] 移動元の段
     /// @param isFirstPlayer 先手番かどうか（駒打ち時の駒台判定に使用）
-    /// @param errorMsg [out] エラー時のメッセージ
-    /// @return 成功時true、エラー時false
-    [[nodiscard]] static bool parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom,
-                              bool isFirstPlayer, QString& errorMsg);
+    /// @return 成功時はMoveCoord（筋・段）、エラー時はnullopt
+    [[nodiscard]] static std::optional<MoveCoord> parseMoveFrom(const QString& move,
+                                                                 bool isFirstPlayer);
 
     /// USI指し手文字列の移動先座標をパースする
     /// @param move USI形式の指し手（4文字以上）
-    /// @param fileTo [out] 移動先の筋
-    /// @param rankTo [out] 移動先の段
-    /// @param errorMsg [out] エラー時のメッセージ
-    /// @return 成功時true、エラー時false
-    [[nodiscard]] static bool parseMoveTo(const QString& move, int& fileTo, int& rankTo,
-                            QString& errorMsg);
+    /// @return 成功時はMoveCoord（筋・段）、エラー時はnullopt
+    [[nodiscard]] static std::optional<MoveCoord> parseMoveTo(const QString& move);
 
     /// 人間の盤面操作をUSI形式の指し手文字列に変換する
     /// @param from 移動元の座標（x:筋、y:段）

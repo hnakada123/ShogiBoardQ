@@ -9,6 +9,7 @@
 #include <QHash>
 #include <QList>
 #include <QSet>
+#include <optional>
 
 #include "kifubranchnode.h"
 #include "kifdisplayitem.h"
@@ -170,13 +171,13 @@ public:
     /**
      * @brief 指定ノードが属するラインインデックスを取得
      * @param node 対象ノード
-     * @return ラインインデックス（見つからない場合は-1）
+     * @return ラインインデックス（見つからない場合はstd::nullopt）
      *
      * ノードが複数のラインに属する場合（分岐点より前）は、
      * そのノードを終端として含むラインを優先して返す。
      * 見つからない場合は、そのノードを含む最初のラインを返す。
      */
-    int findLineIndexForNode(KifuBranchNode* node) const;
+    std::optional<int> findLineIndexForNode(KifuBranchNode* node) const;
 
     // === コメント ===
 
@@ -192,14 +193,14 @@ public:
      * @param lineIndex ラインインデックス（0=本譜）
      * @return KifDisplayItemのリスト（インデックス0=開始局面、1以降=指し手）
      */
-    QList<KifDisplayItem> getDisplayItemsForLine(int lineIndex) const;
+    QList<KifDisplayItem> displayItemsForLine(int lineIndex) const;
 
     /**
      * @brief 指定ラインのSFENリストを取得
      * @param lineIndex ラインインデックス（0=本譜）
      * @return SFENのリスト（インデックス0=開始局面、1以降=各手後の局面）
      */
-    QStringList getSfenListForLine(int lineIndex) const;
+    QStringList sfenListForLine(int lineIndex) const;
 
 signals:
     /**

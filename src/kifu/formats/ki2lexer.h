@@ -9,7 +9,9 @@
 #include <QString>
 #include <QStringList>
 #include <QList>
+#include <optional>
 
+#include "parsecommon.h"
 #include "shogitypes.h"
 
 namespace Ki2Lexer {
@@ -48,7 +50,7 @@ bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount)
 // === 指し手テキスト解析 ===
 
 /// 目的地（「同」対応）を読む（KI2版：▲△除去付き）
-bool findDestination(const QString& moveText, int& toFile, int& toRank, bool& isSameAsPrev);
+[[nodiscard]] std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& moveText);
 
 /// 駒種（漢字）→ Piece enum（基底駒の大文字）
 Piece pieceKanjiToUsiUpper(const QString& s);

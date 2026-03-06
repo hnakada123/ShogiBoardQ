@@ -67,8 +67,8 @@ public:
     // --- GUI表示API ---
 
     /// 残り時間文字列（HH:MM:SS、残りmsを秒に切り上げ）
-    QString getPlayer1TimeString() const;
-    QString getPlayer2TimeString() const;
+    QString player1TimeString() const;
+    QString player2TimeString() const;
 
     /// 直近考慮時間文字列（MM:SS）
     QString getPlayer1ConsiderationTime() const;
@@ -79,8 +79,8 @@ public:
     QString getPlayer2TotalConsiderationTime() const;
 
     /// 棋譜欄用の考慮/総考慮文字列（"MM:SS/HH:MM:SS"）
-    QString getPlayer1ConsiderationAndTotalTime() const;
-    QString getPlayer2ConsiderationAndTotalTime() const;
+    QString player1ConsiderationAndTotalTime() const;
+    QString player2ConsiderationAndTotalTime() const;
 
     // --- 状態取得 ---
 
@@ -103,16 +103,16 @@ public:
 
     qint64 player1ConsiderationMs() const { return m_player1ConsiderationTimeMs; } ///< 先手の直近考慮(ms)
     qint64 player2ConsiderationMs() const { return m_player2ConsiderationTimeMs; } ///< 後手の直近考慮(ms)
-    int getPlayer1ConsiderationTimeMs() const;
-    int getPlayer2ConsiderationTimeMs() const;
+    int player1ConsiderationTimeMs() const;
+    int player2ConsiderationTimeMs() const;
 
     // --- USIパラメータ用 ---
 
-    qint64 getBincMs() const { return m_bincMs; }   ///< 先手のインクリメント(ms)
-    qint64 getWincMs() const { return m_wincMs; }   ///< 後手のインクリメント(ms)
+    qint64 bincMs() const { return m_bincMs; }   ///< 先手のインクリメント(ms)
+    qint64 wincMs() const { return m_wincMs; }   ///< 後手のインクリメント(ms)
 
     /// 両者共通の秒読み値を返す（不一致なら0: USIのbyoyomiパラメータに使えない）
-    qint64 getCommonByoyomiMs() const {
+    qint64 commonByoyomiMs() const {
         return (m_byoyomi1TimeMs > 0 && m_byoyomi2TimeMs > 0 && m_byoyomi1TimeMs == m_byoyomi2TimeMs)
         ? m_byoyomi1TimeMs : 0;
     }

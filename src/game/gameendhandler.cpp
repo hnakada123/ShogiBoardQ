@@ -214,8 +214,8 @@ void GameEndHandler::appendBreakOffLineAndMark()
     QString elapsed;
     if (m_refs.clock) {
         elapsed = (curP == Player::P1)
-            ? m_refs.clock->getPlayer1ConsiderationAndTotalTime()
-            : m_refs.clock->getPlayer2ConsiderationAndTotalTime();
+            ? m_refs.clock->player1ConsiderationAndTotalTime()
+            : m_refs.clock->player2ConsiderationAndTotalTime();
     }
 
     if (m_hooks.appendKifuLine) m_hooks.appendKifuLine(line, elapsed);
@@ -267,8 +267,8 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
     else                     m_refs.clock->applyByoyomiAndResetConsideration2();
 
     const QString elapsed = (loser == Player::P1)
-                                ? m_refs.clock->getPlayer1ConsiderationAndTotalTime()
-                                : m_refs.clock->getPlayer2ConsiderationAndTotalTime();
+                                ? m_refs.clock->player1ConsiderationAndTotalTime()
+                                : m_refs.clock->player2ConsiderationAndTotalTime();
 
     m_hooks.appendKifuLine(line, elapsed);
     if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();

@@ -20,7 +20,7 @@ private:
         board.setSfen(sfen);
         EngineMoveValidator validator;
         ShogiMove m = move;
-        return validator.isLegalMove(turn, board.boardData(), board.getPieceStand(), m);
+        return validator.isLegalMove(turn, board.boardData(), board.pieceStand(), m);
     }
 
     int countLegalMoves(const QString& sfen, EngineMoveValidator::Turn turn)
@@ -28,7 +28,7 @@ private:
         ShogiBoard board;
         board.setSfen(sfen);
         EngineMoveValidator validator;
-        return validator.generateLegalMoves(turn, board.boardData(), board.getPieceStand());
+        return validator.generateLegalMoves(turn, board.boardData(), board.pieceStand());
     }
 
 private slots:
@@ -219,7 +219,7 @@ private slots:
         EngineMoveValidator validator;
 
         int whiteCount = validator.generateLegalMoves(
-            EngineMoveValidator::WHITE, board.boardData(), board.getPieceStand());
+            EngineMoveValidator::WHITE, board.boardData(), board.pieceStand());
         // 後手は玉を逃がすか合駒する手がある可能性があるが、
         // この配置では金が効いている方向に逃げられない
         // (ただし横や斜め後ろには逃げられるかもしれない)

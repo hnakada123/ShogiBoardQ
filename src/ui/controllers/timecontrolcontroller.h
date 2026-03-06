@@ -166,18 +166,18 @@ public:
      * @brief 指定プレイヤーの残り時間を取得（ミリ秒）
      * @param player 1=先手, 2=後手
      */
-    qint64 getRemainingMs(int player) const;
+    qint64 remainingMs(int player) const;
 
     /**
      * @brief 指定プレイヤーの加算時間を取得（ミリ秒）
      * @param player 1=先手, 2=後手
      */
-    qint64 getIncrementMs(int player) const;
+    qint64 incrementMs(int player) const;
 
     /**
-     * @brief 秒読み時間を取得（ミリ秒）
+     * @brief 秒読み時間を取得（ミリ秒、時計から取得）
      */
-    qint64 getByoyomiMs() const;
+    qint64 clockByoyomiMs() const;
 
 private slots:
     /**

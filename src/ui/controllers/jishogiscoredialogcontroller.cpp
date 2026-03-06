@@ -43,7 +43,7 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
         return;
     }
 
-    auto result = JishogiCalculator::calculate(board->boardData(), board->getPieceStand());
+    auto result = JishogiCalculator::calculate(board->boardData(), board->pieceStand());
 
     // 王手判定のためのMoveValidatorを作成
     EngineMoveValidator validator;
@@ -77,11 +77,11 @@ void JishogiScoreDialogController::showDialog(QWidget* parentWidget, ShogiBoard*
                          "24点法 : %5\n"
                          "27点法 : %6")
         .arg(senteCondition,
-             JishogiCalculator::getResult24(result.sente, senteInCheck),
-             JishogiCalculator::getResult27(result.sente, true, senteInCheck),
+             JishogiCalculator::result24(result.sente, senteInCheck),
+             JishogiCalculator::result27(result.sente, true, senteInCheck),
              goteCondition,
-             JishogiCalculator::getResult24(result.gote, goteInCheck),
-             JishogiCalculator::getResult27(result.gote, false, goteInCheck));
+             JishogiCalculator::result24(result.gote, goteInCheck),
+             JishogiCalculator::result27(result.gote, false, goteInCheck));
 
     // カスタムダイアログを作成
     QDialog dialog(parentWidget);

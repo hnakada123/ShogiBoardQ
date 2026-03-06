@@ -6,6 +6,7 @@
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
 #include "usi.h"
+#include "usitimingparams.h"
 #include "playmode.h"
 
 #include <QTimer>
@@ -144,14 +145,14 @@ void EngineVsEngineStrategy::startEvEFirstMoveByBlack()
     QPoint p1From(-1, -1), p1To(-1, -1);
     m_ctx.gc()->setPromote(false);
 
-    m_ctx.usi1()->handleEngineVsHumanOrEngineMatchCommunication(
-        m_ctx.positionStr1(), m_ctx.positionPonder1(),
-        p1From, p1To,
-        static_cast<int>(t1.byoyomi),
-        btimeStr1, wtimeStr1,
-        static_cast<int>(t1.binc), static_cast<int>(t1.winc),
-        (t1.byoyomi > 0)
-        );
+    {
+        const UsiTimingParams timing{static_cast<int>(t1.byoyomi), btimeStr1, wtimeStr1,
+                                     static_cast<int>(t1.binc), static_cast<int>(t1.winc),
+                                     (t1.byoyomi > 0)};
+        m_ctx.usi1()->handleEngineVsHumanOrEngineMatchCommunication(
+            m_ctx.positionStr1(), m_ctx.positionPonder1(),
+            p1From, p1To, timing);
+    }
 
     QString rec1;
 
@@ -175,7 +176,7 @@ void EngineVsEngineStrategy::startEvEFirstMoveByBlack()
         m_ctx.clock()->applyByoyomiAndResetConsideration1();
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
+        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->player1ConsiderationAndTotalTime());
     }
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -198,14 +199,14 @@ void EngineVsEngineStrategy::startEvEFirstMoveByBlack()
     QPoint p2From(-1, -1), p2To(-1, -1);
     m_ctx.gc()->setPromote(false);
 
-    m_ctx.usi2()->handleEngineVsHumanOrEngineMatchCommunication(
-        m_ctx.positionStr2(), m_ctx.positionPonder2(),
-        p2From, p2To,
-        static_cast<int>(t2.byoyomi),
-        btimeStr2, wtimeStr2,
-        static_cast<int>(t2.binc), static_cast<int>(t2.winc),
-        (t2.byoyomi > 0)
-        );
+    {
+        const UsiTimingParams timing{static_cast<int>(t2.byoyomi), btimeStr2, wtimeStr2,
+                                     static_cast<int>(t2.binc), static_cast<int>(t2.winc),
+                                     (t2.byoyomi > 0)};
+        m_ctx.usi2()->handleEngineVsHumanOrEngineMatchCommunication(
+            m_ctx.positionStr2(), m_ctx.positionPonder2(),
+            p2From, p2To, timing);
+    }
 
     QString rec2;
 
@@ -229,7 +230,7 @@ void EngineVsEngineStrategy::startEvEFirstMoveByBlack()
         m_ctx.clock()->applyByoyomiAndResetConsideration2();
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
+        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->player2ConsiderationAndTotalTime());
     }
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -257,14 +258,14 @@ void EngineVsEngineStrategy::startEvEFirstMoveByWhite()
     QPoint p2From(-1, -1), p2To(-1, -1);
     m_ctx.gc()->setPromote(false);
 
-    m_ctx.usi2()->handleEngineVsHumanOrEngineMatchCommunication(
-        m_ctx.positionStr2(), m_ctx.positionPonder2(),
-        p2From, p2To,
-        static_cast<int>(t2.byoyomi),
-        btimeStr2, wtimeStr2,
-        static_cast<int>(t2.binc), static_cast<int>(t2.winc),
-        (t2.byoyomi > 0)
-        );
+    {
+        const UsiTimingParams timing{static_cast<int>(t2.byoyomi), btimeStr2, wtimeStr2,
+                                     static_cast<int>(t2.binc), static_cast<int>(t2.winc),
+                                     (t2.byoyomi > 0)};
+        m_ctx.usi2()->handleEngineVsHumanOrEngineMatchCommunication(
+            m_ctx.positionStr2(), m_ctx.positionPonder2(),
+            p2From, p2To, timing);
+    }
 
     QString rec2;
 
@@ -288,7 +289,7 @@ void EngineVsEngineStrategy::startEvEFirstMoveByWhite()
         m_ctx.clock()->applyByoyomiAndResetConsideration2();
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
+        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->player2ConsiderationAndTotalTime());
     }
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -312,14 +313,14 @@ void EngineVsEngineStrategy::startEvEFirstMoveByWhite()
     QPoint p1From(-1, -1), p1To(-1, -1);
     m_ctx.gc()->setPromote(false);
 
-    m_ctx.usi1()->handleEngineVsHumanOrEngineMatchCommunication(
-        m_ctx.positionStr1(), m_ctx.positionPonder1(),
-        p1From, p1To,
-        static_cast<int>(t1.byoyomi),
-        btimeStr1, wtimeStr1,
-        static_cast<int>(t1.binc), static_cast<int>(t1.winc),
-        (t1.byoyomi > 0)
-        );
+    {
+        const UsiTimingParams timing{static_cast<int>(t1.byoyomi), btimeStr1, wtimeStr1,
+                                     static_cast<int>(t1.binc), static_cast<int>(t1.winc),
+                                     (t1.byoyomi > 0)};
+        m_ctx.usi1()->handleEngineVsHumanOrEngineMatchCommunication(
+            m_ctx.positionStr1(), m_ctx.positionPonder1(),
+            p1From, p1To, timing);
+    }
 
     QString rec1;
 
@@ -343,7 +344,7 @@ void EngineVsEngineStrategy::startEvEFirstMoveByWhite()
         m_ctx.clock()->applyByoyomiAndResetConsideration1();
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
+        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->player1ConsiderationAndTotalTime());
     }
 
     if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
@@ -409,8 +410,8 @@ void EngineVsEngineStrategy::kickNextEvETurn()
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
         const QString elapsed = p1ToMove
-                                    ? m_ctx.clock()->getPlayer1ConsiderationAndTotalTime()
-                                    : m_ctx.clock()->getPlayer2ConsiderationAndTotalTime();
+                                    ? m_ctx.clock()->player1ConsiderationAndTotalTime()
+                                    : m_ctx.clock()->player2ConsiderationAndTotalTime();
         m_ctx.hooks().game.appendKifuLine(rec, elapsed);
     }
 

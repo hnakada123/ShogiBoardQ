@@ -34,11 +34,11 @@ void TestLifecycleRuntime::testQueryServiceWithNullDeps()
     QCOMPARE(service.isHumanSide(ShogiGameController::Player1), true);
     QCOMPARE(service.isHumanSide(ShogiGameController::Player2), true);
 
-    QCOMPARE(service.getByoyomiMs(), static_cast<qint64>(0));
-    QCOMPARE(service.getRemainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
-    QCOMPARE(service.getRemainingMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
-    QCOMPARE(service.getIncrementMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
-    QCOMPARE(service.getIncrementMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
+    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
+    QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
+    QCOMPARE(service.remainingMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
+    QCOMPARE(service.incrementMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
+    QCOMPARE(service.incrementMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
 
     QCOMPARE(service.sfenRecord(), nullptr);
 }
@@ -66,9 +66,9 @@ void TestLifecycleRuntime::testQueryServiceAfterDepsInvalidation()
     QCOMPARE(service.isHumanTurnNow(), true);
     QCOMPARE(service.isHumanSide(ShogiGameController::Player1), true);
 
-    QCOMPARE(service.getByoyomiMs(), static_cast<qint64>(0));
-    QCOMPARE(service.getRemainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
-    QCOMPARE(service.getIncrementMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
+    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
+    QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
+    QCOMPARE(service.incrementMsFor(MatchCoordinator::P2), static_cast<qint64>(0));
 
     QCOMPARE(service.sfenRecord(), nullptr);
 }
@@ -90,8 +90,8 @@ void TestLifecycleRuntime::testQueryServiceWithLiveDeps()
     QCOMPARE(service.isHvH(), false);
 
     // TimeController は初期状態なので 0
-    QCOMPARE(service.getByoyomiMs(), static_cast<qint64>(0));
-    QCOMPARE(service.getRemainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
+    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
+    QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
 }
 
 /// sfenRecord() が match ダブルポインタ null 時に安全に nullptr を返すことを確認
@@ -146,7 +146,7 @@ void TestLifecycleRuntime::testDoubleShutdownPattern()
 
     // 二重無効化後もクラッシュしない
     QCOMPARE(service.isGameActivelyInProgress(), false);
-    QCOMPARE(service.getByoyomiMs(), static_cast<qint64>(0));
+    QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
     QCOMPARE(service.sfenRecord(), nullptr);
 }
 

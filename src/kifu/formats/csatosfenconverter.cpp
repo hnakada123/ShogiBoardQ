@@ -210,11 +210,12 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
 
 static void handleCsaTimeToken(const QString& token, CsaParseState& st)
 {
-    qint64 moveMs = 0;
-    if (!CsaLexer::parseTimeTokenMs(token, moveMs)) {
+    const auto moveMsOpt = CsaLexer::parseTimeTokenMs(token);
+    if (!moveMsOpt) {
         if (st.warn) *st.warn += QStringLiteral("Failed to parse time token: %1\n").arg(token);
         return;
     }
+    const qint64 moveMs = *moveMsOpt;
 
     if (st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
         st.lastResultDispIndex < st.out.mainline.disp.size()) {

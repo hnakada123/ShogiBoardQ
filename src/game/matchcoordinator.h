@@ -358,7 +358,7 @@ private:
     Hooks                m_hooks;             ///< UIコールバック群
 
     // --- エンジン管理 ---
-    EngineLifecycleManager* m_engineManager = nullptr; ///< エンジンライフサイクルマネージャ
+    EngineLifecycleManager* m_engineManager = nullptr; ///< エンジンライフサイクルマネージャ（Qt parent 管理）
 
     // --- 時計管理 ---
     MatchTimekeeper* m_timekeeper = nullptr; ///< 時計マネージャ（Qt parent 管理）

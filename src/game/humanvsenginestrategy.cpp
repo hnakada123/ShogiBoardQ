@@ -6,6 +6,7 @@
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
 #include "usi.h"
+#include "usitimingparams.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "logcategories.h"
@@ -105,7 +106,7 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
             m_ctx.clock()->applyByoyomiAndResetConsideration1();
 
             if (m_ctx.hooks().game.appendKifuLine) {
-                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->getPlayer1ConsiderationAndTotalTime());
+                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->player1ConsiderationAndTotalTime());
             }
             // 従来互換：クリア
             m_ctx.clock()->setPlayer1ConsiderationTime(0);
@@ -115,7 +116,7 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
             m_ctx.clock()->applyByoyomiAndResetConsideration2();
 
             if (m_ctx.hooks().game.appendKifuLine) {
-                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->getPlayer2ConsiderationAndTotalTime());
+                m_ctx.hooks().game.appendKifuLine(prettyMove, m_ctx.clock()->player2ConsiderationAndTotalTime());
             }
             // 従来互換：クリア
             m_ctx.clock()->setPlayer2ConsiderationTime(0);
@@ -216,14 +217,12 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
     QPoint eFrom = humanFrom, eTo = humanTo;
     m_ctx.gc()->setPromote(false);
 
+    const UsiTimingParams timing{byoyomiMs, bTime, wTime, tc.incMs1, tc.incMs2, tc.useByoyomi};
     eng->handleHumanVsEngineCommunication(
         m_ctx.positionStr1(), m_ctx.positionPonder1(),
         eFrom, eTo,
-        byoyomiMs,
-        bTime, wTime,
-        m_ctx.positionStrHistory(),
-        tc.incMs1, tc.incMs2,
-        tc.useByoyomi
+        timing,
+        m_ctx.positionStrHistory()
         );
 
     QString rec;
@@ -269,8 +268,8 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
 
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
         const QString elapsed = (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
-        ? m_ctx.clock()->getPlayer2ConsiderationAndTotalTime()
-        : m_ctx.clock()->getPlayer1ConsiderationAndTotalTime();
+        ? m_ctx.clock()->player2ConsiderationAndTotalTime()
+        : m_ctx.clock()->player1ConsiderationAndTotalTime();
         m_ctx.hooks().game.appendKifuLine(rec, elapsed);
     }
 
@@ -392,14 +391,12 @@ void HumanVsEngineStrategy::startInitialEngineMoveFor(int engineSideInt)
     QPoint eFrom(-1, -1), eTo(-1, -1);
     m_ctx.gc()->setPromote(false);
 
+    const UsiTimingParams timing{byoyomiMs, bTime, wTime, tc.incMs1, tc.incMs2, tc.useByoyomi};
     eng->handleEngineVsHumanOrEngineMatchCommunication(
         m_ctx.positionStr1(),
         m_ctx.positionPonder1(),
         eFrom, eTo,
-        byoyomiMs,
-        bTime, wTime,
-        tc.incMs1, tc.incMs2,
-        tc.useByoyomi
+        timing
         );
 
     QString rec;
@@ -432,8 +429,8 @@ void HumanVsEngineStrategy::startInitialEngineMoveFor(int engineSideInt)
     }
     if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
         const QString elapsed = (engineSide == MatchCoordinator::P1)
-        ? m_ctx.clock()->getPlayer1ConsiderationAndTotalTime()
-        : m_ctx.clock()->getPlayer2ConsiderationAndTotalTime();
+        ? m_ctx.clock()->player1ConsiderationAndTotalTime()
+        : m_ctx.clock()->player2ConsiderationAndTotalTime();
         m_ctx.hooks().game.appendKifuLine(rec, elapsed);
     }
 

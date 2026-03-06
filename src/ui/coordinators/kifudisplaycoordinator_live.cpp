@@ -64,10 +64,7 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
 
     int branchLineIndex = 0;
     if (branchPoint != nullptr && m_tree != nullptr) {
-        branchLineIndex = m_tree->findLineIndexForNode(branchPoint);
-        if (branchLineIndex < 0) {
-            branchLineIndex = 0;
-        }
+        branchLineIndex = m_tree->findLineIndexForNode(branchPoint).value_or(0);
     }
 
     if (m_state != nullptr) {

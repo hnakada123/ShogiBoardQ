@@ -113,7 +113,7 @@ void ShogiGameController::changeCurrentPlayer()
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
 }
 
-Turn ShogiGameController::getNextPlayerSfen()
+Turn ShogiGameController::nextPlayerSfen()
 {
     if (currentPlayer() == Player1) {
         return Turn::White;
@@ -125,7 +125,7 @@ Turn ShogiGameController::getNextPlayerSfen()
     }
 }
 
-EngineMoveValidator::Turn ShogiGameController::getCurrentTurnForValidator(EngineMoveValidator& validator)
+EngineMoveValidator::Turn ShogiGameController::currentTurnForValidator(EngineMoveValidator& validator)
 {
     if (currentPlayer() == Player1) {
         return validator.BLACK;
@@ -188,7 +188,7 @@ QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const in
     return moveStr;
 }
 
-QString ShogiGameController::getPieceKanji(const Piece piece)
+QString ShogiGameController::pieceKanji(const Piece piece)
 {
     static const QMap<QChar, QString> pieceKanjiNames = {
         {' ', "　"},
@@ -225,7 +225,7 @@ bool ShogiGameController::decidePromotion(PlayMode& playMode, EngineMoveValidato
     if (isCurrentPlayerHumanControlled(playMode)) {
         currentMove.isPromotion = false;
 
-        LegalMoveStatus legalMoveStatus = validator.isLegalMove(turnMove, board()->boardData(), board()->getPieceStand(), currentMove);
+        LegalMoveStatus legalMoveStatus = validator.isLegalMove(turnMove, board()->boardData(), board()->pieceStand(), currentMove);
 
         bool canMoveWithoutPromotion = legalMoveStatus.nonPromotingMoveExists;
         bool canMoveWithPromotion = legalMoveStatus.promotingMoveExists;
@@ -352,13 +352,13 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     qCDebug(lcGame) << "currentPlayer() = " << currentPlayer();
 
     EngineMoveValidator validator;
-    EngineMoveValidator::Turn turn = getCurrentTurnForValidator(validator);
+    EngineMoveValidator::Turn turn = currentTurnForValidator(validator);
 
     QPoint fromPoint(fileFrom - 1, rankFrom - 1);
     QPoint toPoint(fileTo - 1, rankTo - 1);
 
-    Piece movingPiece   = board()->getPieceCharacter(fileFrom, rankFrom);
-    Piece capturedPiece = board()->getPieceCharacter(fileTo,   rankTo);
+    Piece movingPiece   = board()->pieceCharacter(fileFrom, rankFrom);
+    Piece capturedPiece = board()->pieceCharacter(fileTo,   rankTo);
 
     // 盤上移動のとき、移動元が空白なら不正
     if ((fileFrom >= 1 && fileFrom <= 9) && movingPiece == Piece::None) {
@@ -377,7 +377,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     }
 
     // 手番SFENの取得を先に行い、異常時は盤面更新前に打ち切る
-    const Turn nextPlayerTurn = getNextPlayerSfen();
+    const Turn nextPlayerTurn = nextPlayerSfen();
 
     gameMoves.append(currentMove);
 
@@ -409,7 +409,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
         qCWarning(lcGame) << "validateAndMove: sfen history is null";
     }
 
-    QString kanjiPiece = getPieceKanji(movingPiece);
+    QString kanjiPiece = pieceKanji(movingPiece);
 
     record = convertMoveToKanjiStr(kanjiPiece, fileFrom, rankFrom, fileTo, rankTo);
     if (record.isEmpty()) {
@@ -454,8 +454,8 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
     int fileTo = outTo.x();
     int rankTo = outTo.y();
 
-    Piece source = board()->getPieceCharacter(fileFrom, rankFrom);
-    Piece dest = board()->getPieceCharacter(fileTo, rankTo);
+    Piece source = board()->pieceCharacter(fileFrom, rankFrom);
+    Piece dest = board()->pieceCharacter(fileTo, rankTo);
 
     // 移動元の駒の先手/後手から手番を推定
     if (isBlackPiece(source)) {

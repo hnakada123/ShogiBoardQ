@@ -53,8 +53,8 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
 
     // 駒台クリック時：枚数0を弾く（1stクリックのときのみ）
     if (!m_waitingSecondClick && (pt.x() == kBlackStandFile || pt.x() == kWhiteStandFile)) {
-        const Piece piece = m_view->board()->getPieceCharacter(pt.x(), pt.y());
-        if (m_view->board()->getPieceStand().value(piece) <= 0) {
+        const Piece piece = m_view->board()->pieceCharacter(pt.x(), pt.y());
+        if (m_view->board()->pieceStand().value(piece) <= 0) {
             return; // 持ち駒がないマスはドラッグさせない
         }
     }
@@ -175,7 +175,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     auto* board = m_view->board();
     const int file = field.x();
     const int rank = field.y();
-    const Piece value = board->getPieceCharacter(file, rank);
+    const Piece value = board->pieceCharacter(file, rank);
 
     // 盤編集モードでないとき、相手の駒台は触らせない
     if (!m_view->positionEditMode()) {
@@ -191,7 +191,7 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
 
     // 駒台：枚数0は無視
     const bool isStand = (file == kBlackStandFile || file == kWhiteStandFile);
-    if (isStand && board->getPieceStand().value(value) <= 0) {
+    if (isStand && board->pieceStand().value(value) <= 0) {
         m_clickPoint = QPoint();
         return;
     }
@@ -255,7 +255,7 @@ void BoardInteractionController::togglePiecePromotionOnClick(const QPoint& field
 
     // 盤外（駒台）や空白は何もしない
     if (file >= kBlackStandFile) return;
-    if (board->getPieceCharacter(file, rank) == Piece::None) return;
+    if (board->pieceCharacter(file, rank) == Piece::None) return;
 
     m_gc->switchPiecePromotionStatusOnRightClick(file, rank);
 

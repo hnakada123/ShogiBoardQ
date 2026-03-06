@@ -39,7 +39,7 @@ void MainWindowGameStartService::rebuildSfenRecordForSelectedBranch(const Prepar
     }
 
     const int lineIndex = deps.navState->currentLineIndex();
-    const QStringList branchSfens = deps.branchTree->getSfenListForLine(lineIndex);
+    const QStringList branchSfens = deps.branchTree->sfenListForLine(lineIndex);
     if (branchSfens.isEmpty() || deps.currentSelectedPly >= branchSfens.size()) {
         return;
     }

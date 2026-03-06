@@ -11,7 +11,7 @@
 // 座標解析ユーティリティ
 // ============================================================
 
-int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar)
+std::optional<int> ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar)
 {
     if (rankChar.isLetter() && rankChar.toLatin1() <= 'i') {
         return rankChar.toLatin1() - 'a' + 1;
@@ -19,16 +19,16 @@ int ShogiEngineInfoParser::convertRankCharToInt(const QChar rankChar)
     else {
         QString errorMessage = tr("An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.").arg(rankChar);
         qCWarning(lcEngine).noquote() << errorMessage;
-        return -1;
+        return std::nullopt;
     }
 }
 
-int ShogiEngineInfoParser::convertPieceToStandRank(const QChar pieceChar)
+std::optional<int> ShogiEngineInfoParser::convertPieceToStandRank(const QChar pieceChar)
 {
     if (m_pieceCharToIntMap.contains(pieceChar)) {
         return m_pieceCharToIntMap.value(pieceChar);
     } else {
-        return -1;
+        return std::nullopt;
     }
 }
 
@@ -56,8 +56,8 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
         fileFrom = moveChars[0].digitValue();
     } else {
         // 駒台の駒（例: "G*5b"）
-        const int standPieceNumber = convertPieceToStandRank(moveChars[0]);
-        if (standPieceNumber >= 1 && standPieceNumber <= 7) {
+        const auto standPieceNumber = convertPieceToStandRank(moveChars[0]);
+        if (standPieceNumber.has_value() && *standPieceNumber >= 1 && *standPieceNumber <= 7) {
             fileFrom = STAND_FILE;
         } else {
             // 指し手以外（例: "(57.54%)"）
@@ -69,18 +69,19 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
 
     // rankFrom を取得
     if (isBoardRankChar(moveChars[1])) {
-        rankFrom = convertRankCharToInt(moveChars[1]);
-        if (rankFrom <= 0) {
+        const auto rankResult = convertRankCharToInt(moveChars[1]);
+        if (!rankResult.has_value()) {
             const QString errorMessage =
                 tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.");
             qCWarning(lcEngine).noquote() << errorMessage;
             return -1;
         }
+        rankFrom = *rankResult;
     } else if (moveChars[1] == QLatin1Char('*')) {
         // 駒打ち："G*5b" のようなケース
-        const int standPieceNumber = convertPieceToStandRank(moveChars[0]);
-        if (standPieceNumber >= 1 && standPieceNumber <= 7) {
-            rankFrom = standPieceNumber;
+        const auto standPieceNumber = convertPieceToStandRank(moveChars[0]);
+        if (standPieceNumber.has_value() && *standPieceNumber >= 1 && *standPieceNumber <= 7) {
+            rankFrom = *standPieceNumber;
         } else {
             const QString errorMessage =
                 tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.");
@@ -106,13 +107,14 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
 
     // rankTo を取得
     if (isBoardRankChar(moveChars[3])) {
-        rankTo = convertRankCharToInt(moveChars[3]);
-        if (rankTo <= 0) {
+        const auto rankResult = convertRankCharToInt(moveChars[3]);
+        if (!rankResult.has_value()) {
             const QString errorMessage =
                 tr("An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.");
             qCWarning(lcEngine).noquote() << errorMessage;
             return -1;
         }
+        rankTo = *rankResult;
     } else {
         const QString errorMessage =
             tr("An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.");
@@ -130,7 +132,7 @@ int ShogiEngineInfoParser::parseMoveString(const QString& moveStr, int& fileFrom
 // 駒文字変換
 // ============================================================
 
-QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol)
+QString ShogiEngineInfoParser::pieceKanjiName(QChar symbol)
 {
     symbol = symbol.toUpper();
 
@@ -144,7 +146,7 @@ QString ShogiEngineInfoParser::getPieceKanjiName(QChar symbol)
     }
 }
 
-QChar ShogiEngineInfoParser::getPieceCharacter(const QList<QChar>& boardData, const int file, const int rank)
+QChar ShogiEngineInfoParser::pieceCharacter(const QList<QChar>& boardData, const int file, const int rank)
 {
     if ((file >= 1) && (file <= 9)) {
         return boardData.at((rank - 1) * BOARD_SIZE + (file - 1));
@@ -240,8 +242,8 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
         }
         validUsiMoves.append(token);
 
-        const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
-        const QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+        const QChar movingPiece = pieceCharacter(clonedBoardData, fileFrom, rankFrom);
+        const QString kanjiMovePiece = pieceKanjiName(movingPiece);
         if (kanjiMovePiece.isEmpty()) {
             return -1;
         }
@@ -276,7 +278,7 @@ void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString& str, Q
         return;
     }
 
-    const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    const QChar movingPiece = pieceCharacter(clonedBoardData, fileFrom, rankFrom);
     movePieceToSquare(clonedBoardData, movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
 }
 
@@ -294,8 +296,8 @@ QString ShogiEngineInfoParser::convertPredictedMoveToKanjiString(const ShogiGame
         return QString();
     }
 
-    const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
-    const QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+    const QChar movingPiece = pieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    const QString kanjiMovePiece = pieceKanjiName(movingPiece);
     if (kanjiMovePiece.isEmpty()) {
         return QString();
     }

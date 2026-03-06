@@ -57,12 +57,17 @@ void UsiProtocolHandler::parseMoveCoordinates(int& fileFrom, int& rankFrom,
     const bool isP1 = m_gameController
         && m_gameController->currentPlayer() == ShogiGameController::Player1;
 
-    QString errorMsg;
-    if (!UsiMoveCoordinateConverter::parseMoveFrom(move, fileFrom, rankFrom, isP1, errorMsg)
-        || !UsiMoveCoordinateConverter::parseMoveTo(move, fileTo, rankTo, errorMsg)) {
-        emit errorOccurred(errorMsg);
+    auto fromCoord = UsiMoveCoordinateConverter::parseMoveFrom(move, isP1);
+    auto toCoord = UsiMoveCoordinateConverter::parseMoveTo(move);
+    if (!fromCoord || !toCoord) {
+        emit errorOccurred(tr("Invalid bestmove coordinates: \"%1\"").arg(move));
         cancelCurrentOperation();
+        return;
     }
+    fileFrom = fromCoord->file;
+    rankFrom = fromCoord->rank;
+    fileTo = toCoord->file;
+    rankTo = toCoord->rank;
 }
 
 QString UsiProtocolHandler::convertHumanMoveToUsi(const QPoint& from, const QPoint& to,

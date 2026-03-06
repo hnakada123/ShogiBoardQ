@@ -49,20 +49,20 @@ public:
     /// - 24〜30点: 引き分け（持将棋成立）
     /// - 24点未満または条件未達: 宣言失敗
     /// @param kingInCheck 玉が王手されているかどうか
-    static QString getResult24(const PlayerScore& score, bool kingInCheck);
+    static QString result24(const PlayerScore& score, bool kingInCheck);
 
     /// 27点法での判定文字列を取得する
     /// - 先手: 28点以上で勝ち
     /// - 後手: 27点以上で勝ち
     /// @param isSente true=先手, false=後手
     /// @param kingInCheck 玉が王手されているかどうか
-    static QString getResult27(const PlayerScore& score, bool isSente, bool kingInCheck);
+    static QString result27(const PlayerScore& score, bool isSente, bool kingInCheck);
 
 private:
     // --- 内部ヘルパー ---
 
     /// 駒の点数を取得する（大駒: 5点、小駒: 1点、玉: 0点）
-    static int getPiecePoints(Piece piece);
+    static int piecePoints(Piece piece);
 
     /// 駒が大駒（飛車・角・龍・馬）かどうかを判定する
     static bool isMajorPiece(Piece piece);

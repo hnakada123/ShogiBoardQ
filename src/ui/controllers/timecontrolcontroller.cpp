@@ -197,36 +197,36 @@ void TimeControlController::clearGameEndTime()
 // 時間取得ヘルパー
 // --------------------------------------------------------
 
-qint64 TimeControlController::getRemainingMs(int player) const
+qint64 TimeControlController::remainingMs(int player) const
 {
     if (!m_clock) {
-        qCDebug(lcUi) << "getRemainingMs: clock=null";
+        qCDebug(lcUi) << "remainingMs: clock=null";
         return 0;
     }
     const qint64 p1 = m_clock->getPlayer1TimeIntMs();
     const qint64 p2 = m_clock->getPlayer2TimeIntMs();
-    qCDebug(lcUi) << "getRemainingMs: P1=" << p1 << " P2=" << p2
+    qCDebug(lcUi) << "remainingMs: P1=" << p1 << " P2=" << p2
                   << " req=" << (player == 1 ? "P1" : "P2");
     return (player == 1) ? p1 : p2;
 }
 
-qint64 TimeControlController::getIncrementMs(int player) const
+qint64 TimeControlController::incrementMs(int player) const
 {
     if (!m_clock) {
-        qCDebug(lcUi) << "getIncrementMs: clock=null";
+        qCDebug(lcUi) << "incrementMs: clock=null";
         return 0;
     }
-    const qint64 inc1 = m_clock->getBincMs();
-    const qint64 inc2 = m_clock->getWincMs();
-    qCDebug(lcUi) << "getIncrementMs: binc=" << inc1 << " winc=" << inc2
+    const qint64 inc1 = m_clock->bincMs();
+    const qint64 inc2 = m_clock->wincMs();
+    qCDebug(lcUi) << "incrementMs: binc=" << inc1 << " winc=" << inc2
                   << " req=" << (player == 1 ? "P1" : "P2");
     return (player == 1) ? inc1 : inc2;
 }
 
-qint64 TimeControlController::getByoyomiMs() const
+qint64 TimeControlController::clockByoyomiMs() const
 {
-    const qint64 byo = m_clock ? m_clock->getCommonByoyomiMs() : 0;
-    qCDebug(lcUi) << "getByoyomiMs: ms=" << byo;
+    const qint64 byo = m_clock ? m_clock->commonByoyomiMs() : 0;
+    qCDebug(lcUi) << "clockByoyomiMs: ms=" << byo;
     return byo;
 }
 

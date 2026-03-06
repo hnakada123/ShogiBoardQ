@@ -162,8 +162,8 @@ void CsaGameCoordinator::performResign()
     if (m_clock) {
         m_clock->stopClock();
         m_resignConsumedTimeMs = m_isBlackSide
-            ? m_clock->getPlayer1ConsiderationTimeMs()
-            : m_clock->getPlayer2ConsiderationTimeMs();
+            ? m_clock->player1ConsiderationTimeMs()
+            : m_clock->player2ConsiderationTimeMs();
         qCDebug(lcNetwork) << "Resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
     }
     m_client->resign();

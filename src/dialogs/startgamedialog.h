@@ -69,7 +69,7 @@ public:
         QString path;  ///< エンジン実行ファイルのパス
     };
 
-    const QList<StartGameDialog::Engine>& getEngineList() const;
+    const QList<StartGameDialog::Engine>& engineList() const;
 
     // --- 対局オプション ---
 
@@ -119,7 +119,7 @@ private:
 
     QString m_startingPositionName;         ///< 開始局面名（平手、二枚落ち等）
     int m_startingPositionNumber = 0;        ///< 開始局面番号
-    QList<Engine> engineList;               ///< 登録エンジンのリスト
+    QList<Engine> m_engineList;              ///< 登録エンジンのリスト
     int m_maxMoves = 0;                      ///< 最大手数（0=無制限）
     int m_consecutiveGames = 1;              ///< 連続対局数
     bool m_isShowHumanInFront = false;       ///< 人間を手前に表示するか

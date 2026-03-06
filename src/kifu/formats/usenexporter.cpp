@@ -400,8 +400,8 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
             QString branchTerminal;
 
             // 分岐のSFENリストとディスプレイアイテムを取得
-            QStringList sfenList = branchTree->getSfenListForLine(lineIdx);
-            QList<KifDisplayItem> branchDisp = branchTree->getDisplayItemsForLine(lineIdx);
+            QStringList sfenList = branchTree->sfenListForLine(lineIdx);
+            QList<KifDisplayItem> branchDisp = branchTree->displayItemsForLine(lineIdx);
 
             // SFENの差分からUSI指し手を推測
             for (qsizetype i = line.branchPly; i < branchDisp.size(); ++i) {

@@ -14,6 +14,7 @@
 #include <memory>
 
 #include "logcategories.h"
+#include "usitimingparams.h"
 
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
@@ -77,18 +78,13 @@ public:
 
     void handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                           QPoint& outFrom, QPoint& outTo,
-                                          int byoyomiMilliSec, const QString& btime,
-                                          const QString& wtime, QStringList& positionStrList,
-                                          int addEachMoveMiliSec1, int addEachMoveMiliSec2,
-                                          bool useByoyomi);
+                                          const UsiTimingParams& timing,
+                                          QStringList& positionStrList);
 
     void handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
                                                        QString& positionPonderStr,
                                                        QPoint& outFrom, QPoint& outTo,
-                                                       int byoyomiMilliSec, const QString& btime,
-                                                       const QString& wtime,
-                                                       int addEachMoveMiliSec1,
-                                                       int addEachMoveMiliSec2, bool useByoyomi);
+                                                       const UsiTimingParams& timing);
 
     void sendGameOverCommand(GameOverResult result);
     void sendQuitCommand();
@@ -135,8 +131,7 @@ public:
     /// 現在実行中のエンジンファイルパスを取得
     QString currentEnginePath() const;
 
-    void sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                       int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi);
+    void sendGoCommand(const UsiTimingParams& timing);
 
     void sendRaw(const QString& command) const;
 

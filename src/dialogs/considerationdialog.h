@@ -28,16 +28,16 @@ public:
     ~ConsiderationDialog() override;
 
     // 1手あたりの思考時間（秒数）を取得する。
-    int getByoyomiSec() const;
+    int byoyomiSec() const;
 
     // 候補手の数（MultiPV）を取得する。
-    int getMultiPV() const;
+    int multiPV() const;
 
     // エンジン番号を取得する。
-    int getEngineNumber() const;
+    int engineNumber() const;
 
     // エンジン名を取得する。
-    const QString& getEngineName() const;
+    const QString& engineName() const;
 
     // エンジンの名前とディレクトリを格納する構造体
     struct Engine
@@ -47,7 +47,7 @@ public:
     };
 
     // エンジンの名前とディレクトリを格納するリストを取得する。
-    const QList<ConsiderationDialog::Engine>& getEngineList() const;
+    const QList<ConsiderationDialog::Engine>& engineList() const;
 
     bool unlimitedTimeFlag() const;
 
@@ -87,7 +87,7 @@ private:
     FontSizeHelper m_fontHelper;
 
     // エンジンの名前とディレクトリを格納するリスト
-    QList<Engine> engineList;
+    QList<Engine> m_engineList;
 
     // 設定ファイルからエンジンの名前とディレクトリを読み込む。
     void readEngineNameAndDir();

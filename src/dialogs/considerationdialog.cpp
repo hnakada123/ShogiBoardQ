@@ -89,25 +89,25 @@ void ConsiderationDialog::showEngineSettingsDialog()
 }
 
 // エンジン名を取得する。
-const QString& ConsiderationDialog::getEngineName() const
+const QString& ConsiderationDialog::engineName() const
 {
     return m_engineName;
 }
 
 // エンジン番号を取得する。
-int ConsiderationDialog::getEngineNumber() const
+int ConsiderationDialog::engineNumber() const
 {
     return m_engineNumber;
 }
 
 // 1手あたりの思考時間（秒数）を取得する。
-int ConsiderationDialog::getByoyomiSec() const
+int ConsiderationDialog::byoyomiSec() const
 {
     return m_byoyomiSec;
 }
 
 // 候補手の数（MultiPV）を取得する。
-int ConsiderationDialog::getMultiPV() const
+int ConsiderationDialog::multiPV() const
 {
     return m_multiPV;
 }
@@ -151,14 +151,14 @@ void ConsiderationDialog::readEngineNameAndDir()
         ui->comboBoxEngine1->addItem(engine.name);
 
         // エンジンリストにエンジンを追加する。
-        engineList.append(engine);
+        m_engineList.append(engine);
     }
 }
 
 // エンジンの名前とディレクトリを格納するリストを取得する。
-const QList<ConsiderationDialog::Engine>& ConsiderationDialog::getEngineList() const
+const QList<ConsiderationDialog::Engine>& ConsiderationDialog::engineList() const
 {
-    return engineList;
+    return m_engineList;
 }
 
 // フォントサイズを大きくする

@@ -381,7 +381,7 @@ void SfenCollectionDialog::onFlipBoard()
 {
     if (!m_shogiView) return;
 
-    const bool flipped = !m_shogiView->getFlipMode();
+    const bool flipped = !m_shogiView->flipMode();
     m_shogiView->setFlipMode(flipped);
     if (flipped) {
         m_shogiView->setPiecesFlip();

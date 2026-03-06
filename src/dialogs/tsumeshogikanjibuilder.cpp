@@ -77,7 +77,7 @@ QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
             const int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
             const bool promote = (usiMove.length() >= 5 && usiMove.at(4) == QLatin1Char('+'));
 
-            const Piece piece = board.getPieceCharacter(fromFile, fromRank);
+            const Piece piece = board.pieceCharacter(fromFile, fromRank);
 
             if (fromFile >= 1 && fromFile <= 9 && fromRank >= 1 && fromRank <= 9 &&
                 toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9) {
@@ -95,7 +95,7 @@ QString buildKanjiPv(const QString& baseSfen, const QStringList& pvMoves)
             }
 
             // 駒取りの処理
-            const Piece captured = board.getPieceCharacter(toFile, toRank);
+            const Piece captured = board.pieceCharacter(toFile, toRank);
             if (captured != Piece::None) {
                 Piece standPiece = demote(captured);
                 standPiece = isBlackPiece(standPiece) ? toWhite(standPiece) : toBlack(standPiece);

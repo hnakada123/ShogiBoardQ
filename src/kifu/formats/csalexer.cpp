@@ -103,41 +103,27 @@ bool inside(int v)
 
 // --- 指し手解析 ---
 
-bool parseCsaMoveToken(const QString& token,
-                       int& fx, int& fy, int& tx, int& ty, Piece& afterPiece)
+std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token)
 {
-    if (token.size() < 7) return false;
+    if (token.size() < 7) return std::nullopt;
 
     const QChar sign = token.at(0);
-    if (sign != QLatin1Char('+') && sign != QLatin1Char('-')) return false;
+    if (sign != QLatin1Char('+') && sign != QLatin1Char('-')) return std::nullopt;
 
     auto d = [](QChar ch)->int { const int v = ch.digitValue(); return (v >= 0 && v <= 9) ? v : -1; };
 
-    fx = d(token.at(1));
-    fy = d(token.at(2));
-    tx = d(token.at(3));
-    ty = d(token.at(4));
+    const int fx = d(token.at(1));
+    const int fy = d(token.at(2));
+    const int tx = d(token.at(3));
+    const int ty = d(token.at(4));
 
-    if (fx < 0 || fy < 0 || tx < 0 || ty < 0) return false;
+    if (fx < 0 || fy < 0 || tx < 0 || ty < 0) return std::nullopt;
 
     const QString p = token.mid(5, 2);
-    if      (p == u"FU") afterPiece = FU;
-    else if (p == u"KY") afterPiece = KY;
-    else if (p == u"KE") afterPiece = KE;
-    else if (p == u"GI") afterPiece = GI;
-    else if (p == u"KI") afterPiece = KI;
-    else if (p == u"KA") afterPiece = KA;
-    else if (p == u"HI") afterPiece = HI;
-    else if (p == u"OU") afterPiece = OU;
-    else if (p == u"TO") afterPiece = TO;
-    else if (p == u"NY") afterPiece = NY;
-    else if (p == u"NK") afterPiece = NK;
-    else if (p == u"NG") afterPiece = NG;
-    else if (p == u"UM") afterPiece = UM;
-    else if (p == u"RY") afterPiece = RY;
-    else return false;
+    const Piece afterPiece = pieceFromCsa2(p);
+    if (afterPiece == NO_P) return std::nullopt;
 
-    return true;
+    return CsaMoveToken{fx, fy, tx, ty, afterPiece};
 }
 
 bool parseMoveLine(const QString& line, Color mover, Board& b,
@@ -147,12 +133,16 @@ bool parseMoveLine(const QString& line, Color mover, Board& b,
     const qsizetype comma = line.indexOf(QLatin1Char(','));
     const QString token = (comma >= 0) ? line.left(comma) : line;
 
-    int fx=0, fy=0, tx=0, ty=0;
-    Piece after = NO_P;
-    if (!parseCsaMoveToken(token, fx, fy, tx, ty, after)) {
+    const auto moveOpt = parseCsaMoveToken(token);
+    if (!moveOpt) {
         if (warn) *warn += QStringLiteral("Malformed move token: %1\n").arg(token);
         return false;
     }
+    const int fx = moveOpt->fx;
+    const int fy = moveOpt->fy;
+    const int tx = moveOpt->tx;
+    const int ty = moveOpt->ty;
+    const Piece after = moveOpt->afterPiece;
 
     const bool isDrop = (fx == 0 && fy == 0);
 
@@ -260,25 +250,24 @@ QString csaResultToLabel(const QString& token)
     return (result == token) ? QString() : result;
 }
 
-bool parseTimeTokenMs(const QString& token, qint64& msOut)
+std::optional<qint64> parseTimeTokenMs(const QString& token)
 {
-    msOut = 0;
-    if (!token.startsWith(QLatin1Char('T'))) return false;
+    if (!token.startsWith(QLatin1Char('T'))) return std::nullopt;
     const QString t = token.mid(1).trimmed();
-    if (t.isEmpty()) return false;
+    if (t.isEmpty()) return std::nullopt;
 
     const qsizetype dot = t.indexOf(QLatin1Char('.'));
     if (dot < 0) {
-        bool ok = false; const qint64 sec = t.toLongLong(&ok); if (!ok) return false;
-        msOut = sec * 1000; return true;
+        bool ok = false; const qint64 sec = t.toLongLong(&ok); if (!ok) return std::nullopt;
+        return sec * 1000;
     }
     const QString secPart = t.left(dot);
     const QString msPart  = t.mid(dot + 1);
     bool okS = false, okM = false;
-    const qint64 sec = secPart.toLongLong(&okS); if (!okS) return false;
+    const qint64 sec = secPart.toLongLong(&okS); if (!okS) return std::nullopt;
     QString ms3 = msPart.left(3); while (ms3.size() < 3) ms3.append(QLatin1Char('0'));
-    const qint64 milli = ms3.toLongLong(&okM); if (!okM) return false;
-    msOut = sec * 1000 + milli; return true;
+    const qint64 milli = ms3.toLongLong(&okM); if (!okM) return std::nullopt;
+    return sec * 1000 + milli;
 }
 
 QString composeTimeText(qint64 moveMs, qint64 cumMs)

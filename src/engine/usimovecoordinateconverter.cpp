@@ -104,59 +104,50 @@ int UsiMoveCoordinateConverter::pieceToRankBlack(QChar c)
 // 指し手パース
 // ============================================================
 
-bool UsiMoveCoordinateConverter::parseMoveFrom(const QString& move, int& fileFrom, int& rankFrom,
-                                               bool isFirstPlayer, QString& errorMsg)
+std::optional<MoveCoord> UsiMoveCoordinateConverter::parseMoveFrom(const QString& move,
+                                                                    bool isFirstPlayer)
 {
     if (QStringLiteral("123456789").contains(move[0])) {
-        fileFrom = move[0].digitValue();
+        const int fileFrom = move[0].digitValue();
         auto optRank = alphabetToRank(move[1]);
         if (!optRank || fileFrom < 1 || fileFrom > 9) {
-            errorMsg = QCoreApplication::translate(
-                "UsiProtocolHandler",
-                "Invalid move coordinates in moveFrom: file=%1, rank=%2")
-                .arg(fileFrom).arg(optRank.value_or(-1));
-            return false;
+            qCWarning(lcEngine,
+                       "Invalid move coordinates in moveFrom: file=%d, rank=%d",
+                       fileFrom, optRank.value_or(-1));
+            return std::nullopt;
         }
-        rankFrom = *optRank;
-        return true;
+        return MoveCoord{fileFrom, *optRank};
     }
 
     if (QStringLiteral("PLNSGBR").contains(move[0]) && move[1] == '*') {
         if (isFirstPlayer) {
-            fileFrom = SENTE_HAND_FILE;
-            rankFrom = pieceToRankBlack(move[0]);
-        } else {
-            fileFrom = GOTE_HAND_FILE;
-            rankFrom = pieceToRankWhite(move[0]);
+            return MoveCoord{SENTE_HAND_FILE, pieceToRankBlack(move[0])};
         }
-        return true;
+        return MoveCoord{GOTE_HAND_FILE, pieceToRankWhite(move[0])};
     }
 
-    errorMsg = QCoreApplication::translate(
-        "UsiProtocolHandler", "Invalid move format in moveFrom");
-    return false;
+    qCWarning(lcEngine, "Invalid move format in moveFrom: \"%s\"",
+              qPrintable(move));
+    return std::nullopt;
 }
 
-bool UsiMoveCoordinateConverter::parseMoveTo(const QString& move, int& fileTo, int& rankTo,
-                                             QString& errorMsg)
+std::optional<MoveCoord> UsiMoveCoordinateConverter::parseMoveTo(const QString& move)
 {
     if (!move[2].isDigit() || !move[3].isLetter()) {
-        errorMsg = QCoreApplication::translate(
-            "UsiProtocolHandler", "Invalid move format in moveTo");
-        return false;
+        qCWarning(lcEngine, "Invalid move format in moveTo: \"%s\"",
+                  qPrintable(move));
+        return std::nullopt;
     }
 
-    fileTo = move[2].digitValue();
+    const int fileTo = move[2].digitValue();
     auto optRank = alphabetToRank(move[3]);
     if (!optRank || fileTo < 1 || fileTo > 9) {
-        errorMsg = QCoreApplication::translate(
-            "UsiProtocolHandler",
-            "Invalid move coordinates in moveTo: file=%1, rank=%2")
-            .arg(fileTo).arg(optRank.value_or(-1));
-        return false;
+        qCWarning(lcEngine,
+                   "Invalid move coordinates in moveTo: file=%d, rank=%d",
+                   fileTo, optRank.value_or(-1));
+        return std::nullopt;
     }
-    rankTo = *optRank;
-    return true;
+    return MoveCoord{fileTo, *optRank};
 }
 
 // ============================================================

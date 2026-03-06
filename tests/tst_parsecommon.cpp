@@ -506,72 +506,63 @@ void TestParseCommon::isTerminalWordContains_noMatch()
 
 void TestParseCommon::mapKanjiPiece_pawn()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(KifuParseCommon::mapKanjiPiece(QStringLiteral("歩"), base, promoted));
-    QCOMPARE(base, Piece::BlackPawn);
-    QVERIFY(!promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("歩"));
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, Piece::BlackPawn);
+    QVERIFY(!result->promoted);
 }
 
 void TestParseCommon::mapKanjiPiece_promotedPawn()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(KifuParseCommon::mapKanjiPiece(QStringLiteral("と"), base, promoted));
-    QCOMPARE(base, Piece::BlackPawn);
-    QVERIFY(promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("と"));
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, Piece::BlackPawn);
+    QVERIFY(result->promoted);
 }
 
 void TestParseCommon::mapKanjiPiece_bishop()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(KifuParseCommon::mapKanjiPiece(QStringLiteral("角"), base, promoted));
-    QCOMPARE(base, Piece::BlackBishop);
-    QVERIFY(!promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("角"));
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, Piece::BlackBishop);
+    QVERIFY(!result->promoted);
 }
 
 void TestParseCommon::mapKanjiPiece_promotedBishop()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(KifuParseCommon::mapKanjiPiece(QStringLiteral("馬"), base, promoted));
-    QCOMPARE(base, Piece::BlackBishop);
-    QVERIFY(promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("馬"));
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, Piece::BlackBishop);
+    QVERIFY(result->promoted);
 }
 
 void TestParseCommon::mapKanjiPiece_rook()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(KifuParseCommon::mapKanjiPiece(QStringLiteral("飛"), base, promoted));
-    QCOMPARE(base, Piece::BlackRook);
-    QVERIFY(!promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("飛"));
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, Piece::BlackRook);
+    QVERIFY(!result->promoted);
 }
 
 void TestParseCommon::mapKanjiPiece_promotedRook()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(KifuParseCommon::mapKanjiPiece(QStringLiteral("龍"), base, promoted));
-    QCOMPARE(base, Piece::BlackRook);
-    QVERIFY(promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("龍"));
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, Piece::BlackRook);
+    QVERIFY(result->promoted);
 }
 
 void TestParseCommon::mapKanjiPiece_king()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(KifuParseCommon::mapKanjiPiece(QStringLiteral("玉"), base, promoted));
-    QCOMPARE(base, Piece::BlackKing);
-    QVERIFY(!promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(QStringLiteral("玉"));
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, Piece::BlackKing);
+    QVERIFY(!result->promoted);
 }
 
 void TestParseCommon::mapKanjiPiece_unknown()
 {
-    Piece base;
-    bool promoted = false;
-    QVERIFY(!KifuParseCommon::mapKanjiPiece(QStringLiteral("X"), base, promoted));
+    QVERIFY(!KifuParseCommon::mapKanjiPiece(QStringLiteral("X")).has_value());
 }
 
 // ==== helper functions ====
@@ -744,9 +735,7 @@ void TestParseCommon::mapKanjiPiece_abnormal()
     QFETCH(QString, input);
     QFETCH(bool, expectedResult);
 
-    Piece base;
-    bool promoted = false;
-    QCOMPARE(KifuParseCommon::mapKanjiPiece(input, base, promoted), expectedResult);
+    QCOMPARE(KifuParseCommon::mapKanjiPiece(input).has_value(), expectedResult);
 }
 
 // ==== table-driven: flexDigitsToIntNoDetach abnormal ====

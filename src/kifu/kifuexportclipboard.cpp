@@ -120,7 +120,7 @@ int KifuExportClipboard::currentPly() const
     return 0;
 }
 
-KifuExportClipboard::PositionData KifuExportClipboard::getCurrentPositionData() const
+KifuExportClipboard::PositionData KifuExportClipboard::currentPositionData() const
 {
     PositionData data;
 
@@ -325,7 +325,7 @@ bool KifuExportClipboard::copySfenToClipboard()
 {
     if (m_prepareCallback) m_prepareCallback();
 
-    PositionData pos = getCurrentPositionData();
+    PositionData pos = currentPositionData();
     if (pos.sfenStr.isEmpty()) {
         Q_EMIT statusMessage(tr("SFEN形式の局面データがありません"), 3000);
         return false;
@@ -339,7 +339,7 @@ bool KifuExportClipboard::copyBodToClipboard()
 {
     if (m_prepareCallback) m_prepareCallback();
 
-    PositionData pos = getCurrentPositionData();
+    PositionData pos = currentPositionData();
     if (pos.sfenStr.isEmpty()) {
         Q_EMIT statusMessage(tr("BOD形式の局面データがありません"), 3000);
         return false;

@@ -99,7 +99,7 @@ void KifuDisplayCoordinator::onBranchTreeHighlightRequired(int lineIndex, int pl
 {
     const bool inconsistent = m_selectionSync->applyBranchTreeHighlight(lineIndex, ply);
     if (inconsistent) {
-        qCDebug(lcUi).noquote() << getConsistencyReport();
+        qCDebug(lcUi).noquote() << consistencyReport();
     }
 }
 
@@ -119,7 +119,7 @@ void KifuDisplayCoordinator::runPendingNavResultCheck()
     const bool consistent = verifyDisplayConsistency();
     if (!consistent) {
         qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
-        qCDebug(lcUi).noquote() << getConsistencyReport();
+        qCDebug(lcUi).noquote() << consistencyReport();
     }
 
     const DisplaySnapshot snap = captureDisplaySnapshot();
@@ -238,7 +238,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     const bool consistent = verifyDisplayConsistency();
     if (!consistent) {
         qCWarning(lcUi).noquote() << "POST-NAVIGATION INCONSISTENCY:";
-        qCDebug(lcUi).noquote() << getConsistencyReport();
+        qCDebug(lcUi).noquote() << consistencyReport();
     }
 
     // NAV-RESULT サマリー
@@ -274,7 +274,7 @@ bool KifuDisplayCoordinator::verifyDisplayConsistency() const
     return m_presenter->verifyDisplayConsistency(trackingState());
 }
 
-QString KifuDisplayCoordinator::getConsistencyReport() const
+QString KifuDisplayCoordinator::consistencyReport() const
 {
-    return m_presenter->getConsistencyReport(trackingState());
+    return m_presenter->consistencyReport(trackingState());
 }

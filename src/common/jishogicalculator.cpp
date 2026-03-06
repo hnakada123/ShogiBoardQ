@@ -35,7 +35,7 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
             Piece piece = boardData[index];
             if (piece == Piece::None) continue;
 
-            int points = getPiecePoints(piece);
+            int points = piecePoints(piece);
 
             if (isSentePiece(piece)) {
                 result.sente.totalPoints += points;
@@ -75,7 +75,7 @@ JishogiCalculator::JishogiResult JishogiCalculator::calculate(
     for (auto it = pieceStand.constBegin(); it != pieceStand.constEnd(); ++it) {
         Piece piece = it.key();
         int count = it.value();
-        int points = getPiecePoints(piece) * count;
+        int points = piecePoints(piece) * count;
 
         if (isSentePiece(piece)) {
             result.sente.totalPoints += points;
@@ -107,7 +107,7 @@ bool JishogiCalculator::meetsDeclarationConditions(const PlayerScore& score, boo
 // ============================================================================
 
 /// 24点法: 31点以上→勝ち、24〜30点→引き分け、24点未満→負け
-QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInCheck)
+QString JishogiCalculator::result24(const PlayerScore& score, bool kingInCheck)
 {
     if (!meetsDeclarationConditions(score, kingInCheck)) {
         return QObject::tr("負け");
@@ -123,7 +123,7 @@ QString JishogiCalculator::getResult24(const PlayerScore& score, bool kingInChec
 }
 
 /// 27点法: 先手28点以上、後手27点以上で勝ち
-QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, bool kingInCheck)
+QString JishogiCalculator::result27(const PlayerScore& score, bool isSente, bool kingInCheck)
 {
     if (!meetsDeclarationConditions(score, kingInCheck)) {
         return QObject::tr("負け");
@@ -143,7 +143,7 @@ QString JishogiCalculator::getResult27(const PlayerScore& score, bool isSente, b
 // ============================================================================
 
 /// 成駒は成る前の駒と同じ点数
-int JishogiCalculator::getPiecePoints(Piece piece)
+int JishogiCalculator::piecePoints(Piece piece)
 {
     // 大駒（飛車・角・龍・馬）: 5点
     // 小駒（金・銀・桂・香・歩・と金・成香・成桂・成銀）: 1点

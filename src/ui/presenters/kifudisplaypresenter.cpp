@@ -200,13 +200,13 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
     // 重要: 棋譜モデルが実際に表示しているラインインデックスを記録
     if (!path.isEmpty() && path.last() != nullptr && m_refs.tree != nullptr) {
         const int nodeLineIndex = path.last()->lineIndex();
-        const int treeLineIndex = m_refs.tree->findLineIndexForNode(path.last());
+        const auto treeLineIndex = m_refs.tree->findLineIndexForNode(path.last());
         qCDebug(lcUi).noquote() << "populateRecordModelFromPath: DEBUG"
                            << "nodeLineIndex=" << nodeLineIndex
-                           << "treeLineIndex=" << treeLineIndex
+                           << "treeLineIndex=" << treeLineIndex.value_or(-1)
                            << "pathSize=" << path.size()
                            << "lastNodePly=" << path.last()->ply();
-        m_lastModelLineIndex = (treeLineIndex >= 0) ? treeLineIndex : 0;
+        m_lastModelLineIndex = treeLineIndex.value_or(0);
     } else {
         m_lastModelLineIndex = 0;
     }
@@ -491,7 +491,7 @@ bool KifuDisplayPresenter::verifyDisplayConsistency(const TrackingState& trackin
     return verifyDisplayConsistencyDetailed(tracking, nullptr);
 }
 
-QString KifuDisplayPresenter::getConsistencyReport(const TrackingState& tracking) const
+QString KifuDisplayPresenter::consistencyReport(const TrackingState& tracking) const
 {
     QString report;
     QTextStream out(&report);

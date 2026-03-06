@@ -42,9 +42,9 @@ bool ShogiView::eventFilter(QObject* obj, QEvent* ev)
 // 入力座標変換
 // ─────────────────────────────────────────────────────────────────────────────
 
-QPoint ShogiView::getClickedSquare(const QPoint &clickPosition) const
+QPoint ShogiView::clickedSquare(const QPoint &clickPosition) const
 {
-    return m_interaction.getClickedSquare(clickPosition, m_layout, m_board);
+    return m_interaction.clickedSquare(clickPosition, m_layout, m_board);
 }
 
 QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const
@@ -65,20 +65,20 @@ void ShogiView::mouseReleaseEvent(QMouseEvent *event)
 {
     if (m_interaction.dragging() && event->button() == Qt::RightButton) {
         endDrag();
-        QPoint pt = getClickedSquare(event->pos());
+        QPoint pt = clickedSquare(event->pos());
         emit rightClicked(pt);
         return;
     }
 
     if (event->button() == Qt::LeftButton) {
-        QPoint pt = getClickedSquare(event->pos());
+        QPoint pt = clickedSquare(event->pos());
 
         if (pt.isNull()) return;
         if (m_errorOccurred) return;
         emit clicked(pt);
     }
     else if (event->button() == Qt::RightButton) {
-        QPoint pt = getClickedSquare(event->pos());
+        QPoint pt = clickedSquare(event->pos());
         if (pt.isNull()) return;
         emit rightClicked(pt);
     }

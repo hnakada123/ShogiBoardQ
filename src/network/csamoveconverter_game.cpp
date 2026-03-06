@@ -179,11 +179,11 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
             return false;
         }
         // 通常移動
-        const Piece selectedPiece = board->getPieceCharacter(fromFile, fromRank);
+        const Piece selectedPiece = board->pieceCharacter(fromFile, fromRank);
         if (selectedPiece == Piece::None) {
             return false;
         }
-        const Piece capturedPiece = board->getPieceCharacter(toFile, toRank);
+        const Piece capturedPiece = board->pieceCharacter(toFile, toRank);
 
         if (capturedPiece != Piece::None) {
             board->addPieceToStand(capturedPiece);

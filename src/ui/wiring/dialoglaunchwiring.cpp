@@ -238,7 +238,7 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
     kifuCtx.gameUsiMoves = m_deps.gameUsiMoves;
     kifuCtx.presenter = ap;
     auto* sv = m_deps.getShogiView ? m_deps.getShogiView() : nullptr;
-    kifuCtx.getBoardFlipped = [sv]() { return sv ? sv->getFlipMode() : false; };
+    kifuCtx.getBoardFlipped = [sv]() { return sv ? sv->flipMode() : false; };
     dc->setKifuAnalysisContext(kifuCtx);
 
     // コンテキストから自動パラメータ構築してダイアログを表示

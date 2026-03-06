@@ -162,15 +162,15 @@ QString rowTokensToSfen(const QStringList& tokens)
         const bool gote = tok.startsWith(QLatin1Char('v'));
         const QString body = gote ? tok.mid(1) : tok;
 
-        Piece base; bool promoted = false;
-        if (!KifuParseCommon::mapKanjiPiece(body, base, promoted)) {
+        const auto pieceResult = KifuParseCommon::mapKanjiPiece(body);
+        if (!pieceResult) {
             ++empty; ++used;
             continue;
         }
 
         flushEmpty();
-        if (promoted) row += QLatin1Char('+');
-        row += pieceToChar(gote ? toWhite(base) : base);
+        if (pieceResult->promoted) row += QLatin1Char('+');
+        row += pieceToChar(gote ? toWhite(pieceResult->base) : pieceResult->base);
         ++used;
     }
     while (used < 9) { ++empty; ++used; }
@@ -210,12 +210,12 @@ void parseBodHandsLine(const QString& line, QMap<Piece, int>& outCounts, bool is
         if (tok.isEmpty()) continue;
 
         QChar head = tok.at(0);
-        Piece base; bool promoted = false;
-        if (!KifuParseCommon::mapKanjiPiece(QString(head), base, promoted)) continue;
-        if (base == Piece::BlackKing) continue;
+        const auto pieceResult = KifuParseCommon::mapKanjiPiece(QString(head));
+        if (!pieceResult) continue;
+        if (pieceResult->base == Piece::BlackKing) continue;
 
         int cnt = parseCountSuffixFlexible(tok);
-        outCounts[base] += cnt;
+        outCounts[pieceResult->base] += cnt;
     }
 }
 

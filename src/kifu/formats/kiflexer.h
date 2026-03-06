@@ -12,6 +12,7 @@
 #include <optional>
 
 #include "kifdisplayitem.h"
+#include "parsecommon.h"
 #include "shogitypes.h"
 
 namespace KifLexer {
@@ -63,7 +64,7 @@ KifDisplayItem buildTerminalItem(int moveIndex, const QString& term,
 // === 指し手解析 ===
 
 /// 目的地（「同」対応）を読む
-bool findDestination(const QString& line, int& toFile, int& toRank, bool& isSameAsPrev);
+[[nodiscard]] std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& line);
 
 /// 駒種（漢字）→ USIドロップ文字（'P','L',...）
 QChar pieceKanjiToUsiUpper(const QString& s);

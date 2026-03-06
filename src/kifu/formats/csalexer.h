@@ -7,6 +7,8 @@
 #include <QString>
 #include <QStringList>
 
+#include <optional>
+
 namespace CsaLexer {
 
 // === 手番・駒種の型定義 ===
@@ -98,9 +100,17 @@ bool parseStartPos(const QStringList& lines, int& idx,
 
 // === 指し手解析 ===
 
+/// CSAトークン解析結果
+struct CsaMoveToken {
+    int fx;
+    int fy;
+    int tx;
+    int ty;
+    Piece afterPiece;
+};
+
 /// CSAトークン（+7776FU形式）から座標と駒種を抽出
-bool parseCsaMoveToken(const QString& token,
-                       int& fx, int& fy, int& tx, int& ty, Piece& afterPiece);
+std::optional<CsaMoveToken> parseCsaMoveToken(const QString& token);
 
 /// CSA指し手行をUSI/日本語表記に変換し盤面を更新
 bool parseMoveLine(const QString& line, Color mover, Board& b,
@@ -116,7 +126,7 @@ QString normalizeCsaCommentLine(const QString& line);
 QString csaResultToLabel(const QString& token);
 
 /// T行から消費時間（ミリ秒）を解析
-bool parseTimeTokenMs(const QString& token, qint64& msOut);
+std::optional<qint64> parseTimeTokenMs(const QString& token);
 
 /// 消費時間テキスト（mm:ss/HH:MM:SS形式）を生成
 QString composeTimeText(qint64 moveMs, qint64 cumMs);

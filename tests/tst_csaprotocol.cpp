@@ -1177,7 +1177,7 @@ private slots:
         QStringList usiMoves;
         QStringList sfenHistory;
 
-        const Piece before = gc.board()->getPieceCharacter(5, 5);
+        const Piece before = gc.board()->pieceCharacter(5, 5);
         QVERIFY(before == Piece::None);
 
         const bool ok = CsaMoveConverter::applyMoveToBoard(
@@ -1186,7 +1186,7 @@ private slots:
         QVERIFY(!ok);
         QVERIFY(usiMoves.isEmpty());
         QVERIFY(sfenHistory.isEmpty());
-        QCOMPARE(gc.board()->getPieceCharacter(5, 5), Piece::None);
+        QCOMPARE(gc.board()->pieceCharacter(5, 5), Piece::None);
     }
 
     // ========================================

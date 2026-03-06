@@ -7,6 +7,7 @@
 
 #include <QString>
 #include <QObject>
+#include <optional>
 #include "shogigamecontroller.h"
 #include "boardconstants.h"
 
@@ -127,10 +128,10 @@ private:
     ShogiGameController::Player m_thinkingStartPlayer = ShogiGameController::Player1;
 
     /// 手番に応じた先手/後手マーク（▲/△）を返す
-    QString getMoveSymbol(const int moveIndex, const ShogiGameController* algorithm, const bool isPondering) const;
+    QString moveSymbol(const int moveIndex, const ShogiGameController* algorithm, const bool isPondering) const;
 
     /// 直前と同じマスへの指し手なら「同」を付ける
-    QString getFormattedMove(int fileTo, int rankTo, const QString& kanji) const;
+    QString formattedMove(int fileTo, int rankTo, const QString& kanji) const;
 
     /**
      * @brief USI形式の指し手を漢字表記に変換する
@@ -140,11 +141,11 @@ private:
     QString convertMoveToShogiString(const QString& kanji, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo,
                                      const bool promote, const ShogiGameController* algorithm, const int moveIndex, const bool isPondering);
 
-    /// 段文字（'a'〜'i'）を整数（1〜9）に変換する
-    int convertRankCharToInt(const QChar rankChar);
+    /// 段文字（'a'〜'i'）を整数（1〜9）に変換する（無効な文字の場合はstd::nullopt）
+    std::optional<int> convertRankCharToInt(const QChar rankChar);
 
-    /// 駒文字を駒台の段番号に変換する
-    int convertPieceToStandRank(const QChar pieceChar);
+    /// 駒文字を駒台の段番号に変換する（未知の駒文字の場合はstd::nullopt）
+    std::optional<int> convertPieceToStandRank(const QChar pieceChar);
 
     /// 文字が盤面のランク（'a'〜'i'）かを判定する
     bool isBoardRankChar(const QChar rankChar) const;
@@ -156,10 +157,10 @@ private:
     int parseMoveString(const QString& moveStr, int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, bool& promote);
 
     /// 駒文字（英字）から漢字の駒名を返す
-    QString getPieceKanjiName(QChar symbol);
+    QString pieceKanjiName(QChar symbol);
 
     /// 指定マスの駒文字を返す（file=STAND_FILEなら駒台から取得）
-    QChar getPieceCharacter(const QList<QChar>& boardData, const int file, const int rank);
+    QChar pieceCharacter(const QList<QChar>& boardData, const int file, const int rank);
 
     /// 盤面データの指定マスに駒を配置する
     bool setData(QList<QChar>& boardData, const int file, const int rank, const QChar piece) const;

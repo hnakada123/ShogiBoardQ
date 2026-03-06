@@ -102,7 +102,7 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     const auto rookCycle   = QList<Piece>{Piece::BlackRook, Piece::BlackDragon, Piece::WhiteRook, Piece::WhiteDragon};
     const auto pawnCycle   = QList<Piece>{Piece::BlackPawn, Piece::BlackPromotedPawn, Piece::WhitePawn, Piece::WhitePromotedPawn};
 
-    const Piece cur = getPieceCharacter(fileFrom, rankFrom);
+    const Piece cur = pieceCharacter(fileFrom, rankFrom);
     QList<Piece> base;
     switch (static_cast<char>(cur)) {
     case 'L': case 'M': case 'l': case 'm': base = lanceCycle;  break;
@@ -133,7 +133,7 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
         if (candidate != Piece::BlackPawn && candidate != Piece::WhitePawn) return false;
         for (int r = 1; r <= 9; ++r) {
             if (r == rankFrom) continue;
-            const Piece pc = getPieceCharacter(fileFrom, r);
+            const Piece pc = pieceCharacter(fileFrom, r);
             if (candidate == Piece::BlackPawn && pc == Piece::BlackPawn) return true;
             if (candidate == Piece::WhitePawn && pc == Piece::WhitePawn) return true;
         }

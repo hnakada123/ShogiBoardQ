@@ -271,9 +271,9 @@ int LiveGameSession::currentLineIndex() const
         return 0;
     }
 
-    const int lineIndex = m_tree->findLineIndexForNode(node);
-    if (lineIndex >= 0) {
-        return lineIndex;
+    const auto lineIndex = m_tree->findLineIndexForNode(node);
+    if (lineIndex.has_value()) {
+        return *lineIndex;
     }
 
     return node->lineIndex();

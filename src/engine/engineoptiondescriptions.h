@@ -36,7 +36,7 @@ public:
      * @brief 指定エンジン・オプションに対する説明を取得する
      * @return 対応するエンジンが未登録またはオプション名が未登録の場合は空文字列
      */
-    static QString getDescription(const QString& engineName, const QString& optionName);
+    static QString description(const QString& engineName, const QString& optionName);
 
     /// エンジン・オプションに対する説明が存在するかを確認する
     static bool hasDescription(const QString& engineName, const QString& optionName);
@@ -45,13 +45,13 @@ public:
      * @brief 指定エンジン・オプションに対するカテゴリを取得する
      * @return 未対応エンジンの場合は Other
      */
-    static EngineOptionCategory getCategory(const QString& engineName, const QString& optionName);
+    static EngineOptionCategory category(const QString& engineName, const QString& optionName);
 
     /// カテゴリの表示名を取得する
-    static QString getCategoryDisplayName(EngineOptionCategory category);
+    static QString categoryDisplayName(EngineOptionCategory category);
 
     /// 定義されている全カテゴリのリストを表示順で取得する
-    static QList<EngineOptionCategory> getAllCategories();
+    static QList<EngineOptionCategory> allCategories();
 
     /// エンジンが説明文データベースに対応しているかを確認する
     static bool isEngineSupported(const QString& engineName);

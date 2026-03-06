@@ -144,7 +144,7 @@ private:
     void setResult(Result);
 
     /// アルファベットの駒文字を漢字表記に変換する
-    QString getPieceKanji(const Piece piece);
+    QString pieceKanji(const Piece piece);
 
     /// 指定された駒が成り可能な駒かを判定する
     bool isPromotablePiece(Piece piece);
@@ -164,10 +164,10 @@ private:
                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove);
 
     /// 相手の手番をTurnで取得する
-    Turn getNextPlayerSfen();
+    Turn nextPlayerSfen();
 
     /// MoveValidatorに渡す手番を取得する
-    EngineMoveValidator::Turn getCurrentTurnForValidator(EngineMoveValidator& validator);
+    EngineMoveValidator::Turn currentTurnForValidator(EngineMoveValidator& validator);
 };
 
 #endif // SHOGIGAMECONTROLLER_H

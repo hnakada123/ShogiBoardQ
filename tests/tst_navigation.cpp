@@ -248,13 +248,13 @@ private slots:
         KifuNavigationController controller;
         controller.setTreeAndState(&tree, &state);
 
-        const int nestedLineIndex = tree.findLineIndexForNode(branch5Nested);
-        QVERIFY(nestedLineIndex > 0);
+        const auto nestedLineIndex = tree.findLineIndexForNode(branch5Nested);
+        QVERIFY(nestedLineIndex.has_value() && *nestedLineIndex > 0);
 
         // まず入れ子分岐（5手目）を選択
-        controller.handleBranchNodeActivated(nestedLineIndex, 5);
+        controller.handleBranchNodeActivated(*nestedLineIndex, 5);
         QCOMPARE(state.currentNode(), branch5Nested);
-        QCOMPARE(state.currentLineIndex(), nestedLineIndex);
+        QCOMPARE(state.currentLineIndex(), *nestedLineIndex);
 
         // 次に本譜3手目をクリックしたとき、分岐3手目に吸われず本譜3手目へ遷移すること
         controller.handleBranchNodeActivated(/*row=*/0, /*ply=*/3);

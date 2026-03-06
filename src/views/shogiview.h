@@ -105,7 +105,7 @@ public:
     void  setPiecesFlip();                        // 反転向きの画像一括登録
 
     // ───────────────────────────── 入力座標変換 ──────────────────────────────
-    QPoint getClickedSquare(const QPoint& clickPosition) const;            // エントリ
+    QPoint clickedSquare(const QPoint& clickPosition) const;            // エントリ
     QPoint getClickedSquareInDefaultState(const QPoint& clickPosition) const; // 非反転
     QPoint getClickedSquareInFlippedState(const QPoint& clickPosition) const; // 反転
 
@@ -142,7 +142,7 @@ public:
     void shogiProblemInitialPosition();          // 問題用初期局面を適用
     void flipBoardSides();                       // 先後入替（モデル側で処理）
 
-    bool getFlipMode() const;                    // 反転表示か
+    bool flipMode() const;                    // 反転表示か
     void setFlipMode(bool newFlipMode);          // 反転表示の切替
 
     void setErrorOccurred(bool newErrorOccurred);// エラーフラグ
