@@ -59,6 +59,12 @@ private slots:
                  "tabWidget currentChanged → tabCurrentChanged connection missing");
     }
 
+    void addGameInfoTab_doesNotReparentDockContentIntoMainTab()
+    {
+        QVERIFY2(!m_wiringSrc.contains(QStringLiteral("insertTab(0, m_gameInfoController->containerWidget()")),
+                 "GameInfoPaneController should stay in the dock, not be reparented into the main tab");
+    }
+
     void depsFields_allReferencedInConstructor()
     {
         const QStringList fields = {

@@ -17,6 +17,14 @@ class TestEngineRegistrationHandler : public QObject
     Q_OBJECT
 
 private slots:
+    static QString readSource(const QString& relativePath)
+    {
+        QFile f(QStringLiteral(SOURCE_DIR) + QStringLiteral("/") + relativePath);
+        if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+            return {};
+        return QString::fromUtf8(f.readAll());
+    }
+
     void parseOptionLine_multiWordName_parsesSpinOption()
     {
         EngineRegistrationHandler handler;
@@ -143,6 +151,26 @@ private slots:
         const QString alternativePath = tmp.filePath(QStringLiteral("./engine"));
         QVERIFY(handler.isDuplicatePath(alternativePath, existingName));
         QCOMPARE(existingName, QStringLiteral("test-engine"));
+    }
+
+    void destructor_usesBoundedThreadShutdown()
+    {
+        const QString src = readSource(QStringLiteral("src/dialogs/engineregistrationhandler.cpp"));
+        QVERIFY2(!src.isEmpty(), "engineregistrationhandler.cpp not found");
+        QVERIFY2(src.contains(QStringLiteral("requestInterruption()")),
+                 "Destructor should request thread interruption before waiting");
+        QVERIFY2(!src.contains(QStringLiteral("Waiting until exit.")),
+                 "Destructor should not fall back to unbounded wait");
+    }
+
+    void worker_checksInterruptionDuringProcessWaits()
+    {
+        const QString src = readSource(QStringLiteral("src/dialogs/engineregistrationworker.cpp"));
+        QVERIFY2(!src.isEmpty(), "engineregistrationworker.cpp not found");
+        QVERIFY2(src.contains(QStringLiteral("isInterruptionRequested()")),
+                 "Worker should observe QThread interruption requests");
+        QVERIFY2(src.contains(QStringLiteral("waitForStartedInterruptibly")),
+                 "Worker should use interruptible process-start waits");
     }
 };
 

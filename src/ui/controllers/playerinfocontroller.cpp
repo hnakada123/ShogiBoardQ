@@ -192,7 +192,7 @@ void PlayerInfoController::updateGameInfoForCurrentMatch()
 void PlayerInfoController::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
 {
     if (m_gameInfoController) {
-        m_gameInfoController->setGameInfo(items);
+        m_gameInfoController->setOriginalGameInfo(items);
     }
 }
 

@@ -50,6 +50,9 @@ public:
     /// 元の対局情報（編集前）を取得
     QList<KifGameInfoItem> originalGameInfo() const;
 
+    /// 現在表示は維持したまま、編集前スナップショットだけを更新する
+    void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
+
     /// 対局者名を更新
     void updatePlayerNames(const QString& blackName, const QString& whiteName);
 

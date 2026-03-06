@@ -3,14 +3,11 @@
 
 #include "engineprocessmanager.h"
 #include "usi.h"
-#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
-#include <QTimer>
 
 namespace {
 constexpr int kStartTimeoutMs = 5000;
-const QEventLoop::ProcessEventsFlags kResponsiveWaitFlags = QEventLoop::AllEvents;
 
 class TransitionScopeGuard
 {
@@ -34,42 +31,14 @@ bool waitForStartedResponsive(QProcess& process, int timeoutMs)
 {
     if (process.state() == QProcess::Running) return true;
     if (timeoutMs <= 0) return process.state() == QProcess::Running;
-
-    QEventLoop loop;
-    QTimer timeoutTimer;
-
-    timeoutTimer.setSingleShot(true);
-    QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    QObject::connect(&process, &QProcess::stateChanged, &loop, &QEventLoop::quit);
-
-    timeoutTimer.start(timeoutMs);
-    while (timeoutTimer.isActive() && process.state() == QProcess::Starting) {
-        // UIイベントも処理して、起動待機中の操作不能を抑える
-        loop.exec(kResponsiveWaitFlags);
-    }
-
-    return process.state() == QProcess::Running;
+    return process.waitForStarted(timeoutMs);
 }
 
 bool waitForFinishedResponsive(QProcess& process, int timeoutMs)
 {
     if (process.state() == QProcess::NotRunning) return true;
     if (timeoutMs <= 0) return process.state() == QProcess::NotRunning;
-
-    QEventLoop loop;
-    QTimer timeoutTimer;
-
-    timeoutTimer.setSingleShot(true);
-    QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    QObject::connect(&process, &QProcess::stateChanged, &loop, &QEventLoop::quit);
-
-    timeoutTimer.start(timeoutMs);
-    while (timeoutTimer.isActive() && process.state() != QProcess::NotRunning) {
-        // UIイベントも処理して、終了待機中の操作不能を抑える
-        loop.exec(kResponsiveWaitFlags);
-    }
-
-    return process.state() == QProcess::NotRunning;
+    return process.waitForFinished(timeoutMs);
 }
 } // namespace
 

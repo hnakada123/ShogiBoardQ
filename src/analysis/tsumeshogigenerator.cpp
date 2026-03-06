@@ -18,26 +18,24 @@ QStringList generatePositionBatch(const TsumeshogiPositionGenerator::Settings& s
                                   int count,
                                   const CancelFlag& cancelFlag)
 {
-    QList<int> indices;
-    indices.reserve(count);
-    for (int i = 0; i < count; ++i) {
-        indices.append(i);
+    QStringList result;
+    result.reserve(count);
+
+    for (int index = 0; index < count; ++index) {
+        Q_UNUSED(index)
+        if (cancelFlag && cancelFlag->load()) {
+            break;
+        }
+
+        TsumeshogiPositionGenerator generator;
+        generator.setSettings(settings);
+        const QString sfen = generator.generate();
+        if (!sfen.isEmpty()) {
+            result.append(sfen);
+        }
     }
 
-    return QtConcurrent::blockingMappedReduced<QStringList>(
-        indices,
-        [settings, cancelFlag](int /*index*/) -> QString {
-            if (cancelFlag && cancelFlag->load()) return {};
-            TsumeshogiPositionGenerator generator;
-            generator.setSettings(settings);
-            return generator.generate();
-        },
-        [](QStringList& result, const QString& sfen) {
-            if (!sfen.isEmpty()) {
-                result.append(sfen);
-            }
-        },
-        QtConcurrent::UnorderedReduce);
+    return result;
 }
 }
 
