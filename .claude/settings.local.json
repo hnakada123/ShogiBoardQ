@@ -79,7 +79,8 @@
       "Bash(awk NR>=25 && NR<=63:*)",
       "Bash(awk NR>=17 && NR<=55:*)",
       "Bash(do:*)",
-      "Bash(echo === Checking all Phase 4 targets ===:*)"
+      "Bash(echo === Checking all Phase 4 targets ===:*)",
+      "Bash(gh run:*)"
     ]
   }
 }

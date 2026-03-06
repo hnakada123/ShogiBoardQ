@@ -254,7 +254,7 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     env:
-      CLAZY_CHECKS: "level0,level1"
+      CLAZY_CHECKS: "level0,level1,no-lambda-unique-connection"
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
 

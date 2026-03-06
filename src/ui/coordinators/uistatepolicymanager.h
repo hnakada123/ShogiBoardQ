@@ -133,7 +133,7 @@ public slots:
 
 signals:
     /// 状態が変更されたときに発火する
-    void stateChanged(AppState newState);
+    void stateChanged(UiStatePolicyManager::AppState newState);
 
 private:
     /// ポリシーテーブルを構築する

@@ -156,12 +156,14 @@ public:
     void setBranchTreeClickEnabled(bool enabled);
     bool isBranchTreeClickEnabled() const;
 
+    // 現在の手数インデックスを取得
+    int currentMoveIndex() const;
+
 public slots:
     void setAnalysisVisible(bool on);
     void setCommentHtml(const QString& html);
-    // 現在の手数インデックスを設定/取得
+    // 現在の手数インデックスを設定
     void setCurrentMoveIndex(int index);
-    int currentMoveIndex() const;
 
 signals:
     // ツリー上のノード（行row, 手ply）がクリックされた

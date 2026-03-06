@@ -182,7 +182,7 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
             line.startsWith(QStringLiteral("P5")) || line.startsWith(QStringLiteral("P6")) ||
             line.startsWith(QStringLiteral("P7")) || line.startsWith(QStringLiteral("P8")) ||
             line.startsWith(QStringLiteral("P9"))) {
-            const int rank = line.mid(1, 1).toInt();
+            const int rank = QStringView{line}.mid(1, 1).toInt();
             if (rank < 1 || rank > 9) continue;
 
             QString row;
