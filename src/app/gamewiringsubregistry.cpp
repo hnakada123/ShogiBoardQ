@@ -327,21 +327,21 @@ void GameWiringSubRegistry::prepareTurnSyncBridge()
 qint64 GameWiringSubRegistry::queryRemainingMsFor(MatchCoordinator::Player player)
 {
     if (m_mw.m_queryService)
-        return m_mw.m_queryService->getRemainingMsFor(player);
+        return m_mw.m_queryService->remainingMsFor(player);
     return 0;
 }
 
 qint64 GameWiringSubRegistry::queryIncrementMsFor(MatchCoordinator::Player player)
 {
     if (m_mw.m_queryService)
-        return m_mw.m_queryService->getIncrementMsFor(player);
+        return m_mw.m_queryService->incrementMsFor(player);
     return 0;
 }
 
 qint64 GameWiringSubRegistry::queryByoyomiMs()
 {
     if (m_mw.m_queryService)
-        return m_mw.m_queryService->getByoyomiMs();
+        return m_mw.m_queryService->byoyomiMs();
     return 0;
 }
 

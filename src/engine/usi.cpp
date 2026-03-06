@@ -375,12 +375,12 @@ void Usi::updateConsiderationMultiPV(int multiPV)
     }
 }
 
-void Usi::sendGoCommand(int byoyomiMilliSec, const QString& btime, const QString& wtime,
-                        int addEachMoveMilliSec1, int addEachMoveMilliSec2, bool useByoyomi)
+void Usi::sendGoCommand(const UsiTimingParams& timing)
 {
     m_matchHandler->cloneCurrentBoardData();
-    m_protocolHandler->sendGo(byoyomiMilliSec, btime, wtime,
-                              addEachMoveMilliSec1, addEachMoveMilliSec2, useByoyomi);
+    m_protocolHandler->sendGo(timing.byoyomiMilliSec, timing.btime, timing.wtime,
+                              timing.addEachMoveMilliSec1, timing.addEachMoveMilliSec2,
+                              timing.useByoyomi);
 }
 
 void Usi::sendRaw(const QString& command) const

@@ -70,7 +70,7 @@ public:
     DisplaySnapshot captureDisplaySnapshot() const;
     bool verifyDisplayConsistencyDetailed(QString* reason = nullptr) const;
     bool verifyDisplayConsistency() const;
-    QString getConsistencyReport() const;
+    QString consistencyReport() const;
 
 public slots:
     // === KifuNavigationControllerからのシグナルを受けるスロット ===

@@ -35,7 +35,7 @@ bool PieceMoveRules::checkTwoPawn(ShogiBoard* board,
     if (source == Piece::BlackPawn) {
         if (fileTo < BoardConstants::kBlackStandFile) {
             for (int rank = 1; rank <= 9; rank++) {
-                if (board->getPieceCharacter(fileTo, rank) == Piece::BlackPawn) return false;
+                if (board->pieceCharacter(fileTo, rank) == Piece::BlackPawn) return false;
             }
         }
     }
@@ -43,7 +43,7 @@ bool PieceMoveRules::checkTwoPawn(ShogiBoard* board,
     if (source == Piece::WhitePawn) {
         if (fileTo < BoardConstants::kBlackStandFile) {
             for (int rank = 1; rank <= 9; rank++) {
-                if (board->getPieceCharacter(fileTo, rank) == Piece::WhitePawn) return false;
+                if (board->pieceCharacter(fileTo, rank) == Piece::WhitePawn) return false;
             }
         }
     }

@@ -5,7 +5,7 @@
 
 #include <QtGlobal>
 
-QString ShogiClock::getPlayer1TimeString() const
+QString ShogiClock::player1TimeString() const
 {
     const int rs = remainingDisplaySecP1();
     const int h = rs / 3600;
@@ -14,7 +14,7 @@ QString ShogiClock::getPlayer1TimeString() const
     return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
 
-QString ShogiClock::getPlayer2TimeString() const
+QString ShogiClock::player2TimeString() const
 {
     const int rs = remainingDisplaySecP2();
     const int h = rs / 3600;
@@ -59,12 +59,12 @@ QString ShogiClock::getPlayer2TotalConsiderationTime() const
     return QString::asprintf("%02d:%02d:%02d", h, m, s);
 }
 
-QString ShogiClock::getPlayer1ConsiderationAndTotalTime() const
+QString ShogiClock::player1ConsiderationAndTotalTime() const
 {
     return getPlayer1ConsiderationTime() + "/" + getPlayer1TotalConsiderationTime();
 }
 
-QString ShogiClock::getPlayer2ConsiderationAndTotalTime() const
+QString ShogiClock::player2ConsiderationAndTotalTime() const
 {
     return getPlayer2ConsiderationTime() + "/" + getPlayer2TotalConsiderationTime();
 }

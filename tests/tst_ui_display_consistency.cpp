@@ -120,7 +120,7 @@ private:
         }
 
         scenario.branchLeafNode = current;  // ply 5
-        scenario.branchLineIndex = tree.findLineIndexForNode(current);
+        scenario.branchLineIndex = tree.findLineIndexForNode(current).value_or(-1);
         return scenario;
     }
 
@@ -180,7 +180,7 @@ private slots:
         QString reason;
         QVERIFY2(
             h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-            qPrintable(reason + QStringLiteral("\n") + h.coordinator.getConsistencyReport()));
+            qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
 
         const auto snapshot = h.coordinator.captureDisplaySnapshot();
         QCOMPARE(snapshot.stateLineIndex, h.scenario.branchLineIndex);
@@ -204,7 +204,7 @@ private slots:
         QString reason;
         QVERIFY2(
             h.coordinator.verifyDisplayConsistencyDetailed(&reason),
-            qPrintable(reason + QStringLiteral("\n") + h.coordinator.getConsistencyReport()));
+            qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
 
         const auto snapshot = h.coordinator.captureDisplaySnapshot();
         QCOMPARE(snapshot.stateLineIndex, h.scenario.branchLineIndex);
@@ -236,10 +236,10 @@ private slots:
 
         // onPositionChanged は状態・分岐候補・分岐ツリーハイライトを更新するが、
         // 棋譜欄モデルは再構築しない（本譜のまま）ため、意図的に不一致を作る。
-        const int branchLine = h.tree.findLineIndexForNode(h.scenario.branchFirstNode);
-        QVERIFY(branchLine > 0);
+        const auto branchLine = h.tree.findLineIndexForNode(h.scenario.branchFirstNode);
+        QVERIFY(branchLine.has_value() && *branchLine > 0);
         h.coordinator.onPositionChanged(
-            branchLine,
+            *branchLine,
             h.scenario.branchFirstNode->ply(),
             h.scenario.branchFirstNode->sfen());
 

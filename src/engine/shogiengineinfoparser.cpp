@@ -104,7 +104,7 @@ QString ShogiEngineInfoParser::depth() const
 // 指し手の漢字変換
 // ============================================================
 
-QString ShogiEngineInfoParser::getMoveSymbol(const int moveIndex, const ShogiGameController* algorithm, const bool isPondering) const
+QString ShogiEngineInfoParser::moveSymbol(const int moveIndex, const ShogiGameController* algorithm, const bool isPondering) const
 {
     Q_UNUSED(algorithm)  // 局面更新の影響を避けるため、currentPlayer()は使用しない
 
@@ -125,15 +125,15 @@ QString ShogiEngineInfoParser::getMoveSymbol(const int moveIndex, const ShogiGam
     return symbol;
 }
 
-QString ShogiEngineInfoParser::getFormattedMove(int fileTo, int rankTo, const QString& kanji) const
+QString ShogiEngineInfoParser::formattedMove(int fileTo, int rankTo, const QString& kanji) const
 {
-    qCDebug(lcEngine) << "getFormattedMove: fileTo=" << fileTo
+    qCDebug(lcEngine) << "formattedMove: fileTo=" << fileTo
                       << "rankTo=" << rankTo
                       << "prevFile=" << previousFileTo()
                       << "prevRank=" << previousRankTo()
                       << "kanji=" << kanji;
     if ((fileTo == previousFileTo()) && (rankTo == previousRankTo())) {
-        qCDebug(lcEngine) << "getFormattedMove: 同" << kanji;
+        qCDebug(lcEngine) << "formattedMove: 同" << kanji;
         return "同" + kanji;
     }
 
@@ -145,8 +145,8 @@ QString ShogiEngineInfoParser::convertMoveToShogiString(const QString& kanji, co
 {
     QString moveStr;
 
-    moveStr += getMoveSymbol(moveIndex, algorithm, isPondering);
-    moveStr += getFormattedMove(fileTo, rankTo, kanji);
+    moveStr += moveSymbol(moveIndex, algorithm, isPondering);
+    moveStr += formattedMove(fileTo, rankTo, kanji);
 
     if (promote) moveStr += "成";
 
@@ -213,8 +213,8 @@ QString ShogiEngineInfoParser::convertCurrMoveToKanjiNotation(const QString& str
         return QString();
     }
 
-    const QChar movingPiece = getPieceCharacter(clonedBoardData, fileFrom, rankFrom);
-    const QString kanjiMovePiece = getPieceKanjiName(movingPiece);
+    const QChar movingPiece = pieceCharacter(clonedBoardData, fileFrom, rankFrom);
+    const QString kanjiMovePiece = pieceKanjiName(movingPiece);
     if (kanjiMovePiece.isEmpty()) {
         return QString();
     }

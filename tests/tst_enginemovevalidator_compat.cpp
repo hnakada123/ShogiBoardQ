@@ -20,7 +20,7 @@ private slots:
         EngineMoveValidator validator;
 
         int count = validator.generateLegalMoves(
-            EngineMoveValidator::BLACK, board.boardData(), board.getPieceStand());
+            EngineMoveValidator::BLACK, board.boardData(), board.pieceStand());
         QCOMPARE(count, 30);
     }
 
@@ -32,7 +32,7 @@ private slots:
 
         ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
         auto status = validator.isLegalMove(
-            EngineMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
+            EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), move);
 
         QVERIFY(status.nonPromotingMoveExists);
         QVERIFY(!status.promotingMoveExists);
@@ -48,7 +48,7 @@ private slots:
         // 9 = BLACK_HAND_FILE (EngineMoveValidator::BLACK_HAND_FILE)
         ShogiMove move(QPoint(9, 0), QPoint(4, 4), Piece::BlackPawn, Piece::None, false);
         auto status = validator.isLegalMove(
-            EngineMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
+            EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), move);
 
         QVERIFY(!status.nonPromotingMoveExists);
         QVERIFY(!status.promotingMoveExists);
@@ -62,7 +62,7 @@ private slots:
 
         ShogiMove move(QPoint(6, 6), QPoint(6, 7), Piece::BlackPawn, Piece::None, false);
         auto status = validator.isLegalMove(
-            EngineMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
+            EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), move);
 
         QVERIFY(!status.nonPromotingMoveExists);
         QVERIFY(!status.promotingMoveExists);
@@ -89,7 +89,7 @@ private slots:
 
         ShogiMove move(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false);
         auto status = validator.isLegalMove(
-            EngineMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
+            EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), move);
 
         QVERIFY(status.promotingMoveExists);
     }
@@ -103,7 +103,7 @@ private slots:
 
         ShogiMove move(QPoint(8, 1), QPoint(8, 0), Piece::BlackPawn, Piece::None, false);
         auto status = validator.isLegalMove(
-            EngineMoveValidator::BLACK, board.boardData(), board.getPieceStand(), move);
+            EngineMoveValidator::BLACK, board.boardData(), board.pieceStand(), move);
 
         QVERIFY(!status.nonPromotingMoveExists);
         QVERIFY(status.promotingMoveExists);

@@ -126,9 +126,9 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        int before = board.getPieceStand().value(Piece::BlackPawn, 0);
+        int before = board.pieceStand().value(Piece::BlackPawn, 0);
         board.addPieceToStand(Piece::WhitePawn); // Capture opponent's pawn
-        int after = board.getPieceStand().value(Piece::BlackPawn, 0);
+        int after = board.pieceStand().value(Piece::BlackPawn, 0);
         QCOMPARE(after, before + 1);
     }
 
@@ -136,10 +136,10 @@ private slots:
     {
         ShogiBoard board;
         board.setSfen(kHirateSfen);
-        int before = board.getPieceStand().value(Piece::BlackPawn, 0);
+        int before = board.pieceStand().value(Piece::BlackPawn, 0);
         // Capture promoted pawn (opponent's +P) -> should convert to P
         board.addPieceToStand(Piece::WhitePromotedPawn);
-        int after = board.getPieceStand().value(Piece::BlackPawn, 0);
+        int after = board.pieceStand().value(Piece::BlackPawn, 0);
         QCOMPARE(after, before + 1);
     }
 
@@ -148,12 +148,12 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
 
-        int before = board.getPieceStand().value(Piece::BlackPawn, 0);
+        int before = board.pieceStand().value(Piece::BlackPawn, 0);
         board.incrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), before + 1);
+        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), before + 1);
 
         board.decrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), before);
+        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), before);
     }
 
     // === Board Operations ===
@@ -314,9 +314,9 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
         // file=5, rank=1 should be white King (5a in SFEN terms)
-        QCOMPARE(board.getPieceCharacter(5, 1), Piece::WhiteKing);
+        QCOMPARE(board.pieceCharacter(5, 1), Piece::WhiteKing);
         // file=5, rank=9 should be black King
-        QCOMPARE(board.getPieceCharacter(5, 9), Piece::BlackKing);
+        QCOMPARE(board.pieceCharacter(5, 9), Piece::BlackKing);
     }
 
     // === isPieceAvailableOnStand ===
@@ -368,7 +368,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
         board.movePieceToSquare(Piece::BlackPawn, 5, 2, 5, 1, false);
-        QCOMPARE(board.getPieceCharacter(5, 1), Piece::BlackPromotedPawn);
+        QCOMPARE(board.pieceCharacter(5, 1), Piece::BlackPromotedPawn);
     }
 
     void movePiece_mandatoryPromotion_blackKnightRank2()
@@ -378,7 +378,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
         board.movePieceToSquare(Piece::BlackKnight, 5, 3, 4, 1, false);
-        QCOMPARE(board.getPieceCharacter(4, 1), Piece::BlackPromotedKnight);
+        QCOMPARE(board.pieceCharacter(4, 1), Piece::BlackPromotedKnight);
     }
 
     void movePiece_mandatoryPromotion_whitePawnRank9()
@@ -388,7 +388,7 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
         board.movePieceToSquare(Piece::WhitePawn, 5, 8, 5, 9, false);
-        QCOMPARE(board.getPieceCharacter(5, 9), Piece::WhitePromotedPawn);
+        QCOMPARE(board.pieceCharacter(5, 9), Piece::WhitePromotedPawn);
     }
 
     // === initStand ===
@@ -399,10 +399,10 @@ private slots:
         // Add some pieces to stand
         board.incrementPieceOnStand(Piece::BlackPawn);
         board.incrementPieceOnStand(Piece::BlackPawn);
-        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), 2);
+        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), 2);
 
         board.initStand();
-        QCOMPARE(board.getPieceStand().value(Piece::BlackPawn, 0), 0);
+        QCOMPARE(board.pieceStand().value(Piece::BlackPawn, 0), 0);
     }
 };
 

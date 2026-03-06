@@ -233,18 +233,18 @@ void ShogiClock::updateClock() {}
 void ShogiClock::applyByoyomiAndResetConsideration1() {}
 void ShogiClock::applyByoyomiAndResetConsideration2() {}
 void ShogiClock::undo() {}
-QString ShogiClock::getPlayer1TimeString() const { return {}; }
-QString ShogiClock::getPlayer2TimeString() const { return {}; }
+QString ShogiClock::player1TimeString() const { return {}; }
+QString ShogiClock::player2TimeString() const { return {}; }
 QString ShogiClock::getPlayer1ConsiderationTime() const { return {}; }
 QString ShogiClock::getPlayer2ConsiderationTime() const { return {}; }
 QString ShogiClock::getPlayer1TotalConsiderationTime() const { return {}; }
 QString ShogiClock::getPlayer2TotalConsiderationTime() const { return {}; }
-QString ShogiClock::getPlayer1ConsiderationAndTotalTime() const { return {}; }
-QString ShogiClock::getPlayer2ConsiderationAndTotalTime() const { return {}; }
+QString ShogiClock::player1ConsiderationAndTotalTime() const { return {}; }
+QString ShogiClock::player2ConsiderationAndTotalTime() const { return {}; }
 void ShogiClock::setPlayer1ConsiderationTime(int) {}
 void ShogiClock::setPlayer2ConsiderationTime(int) {}
-int ShogiClock::getPlayer1ConsiderationTimeMs() const { return 0; }
-int ShogiClock::getPlayer2ConsiderationTimeMs() const { return 0; }
+int ShogiClock::player1ConsiderationTimeMs() const { return 0; }
+int ShogiClock::player2ConsiderationTimeMs() const { return 0; }
 void ShogiClock::saveState() {}
 void ShogiClock::debugCheckInvariants() const {}
 int ShogiClock::remainingDisplaySecP1() const { return 0; }
@@ -315,12 +315,10 @@ void Usi::setPvKanjiStr(const QString&) {}
 void Usi::parseMoveCoordinates(int&, int&, int&, int&) {}
 void Usi::initializeAndStartEngineCommunication(QString&, QString&) {}
 void Usi::handleHumanVsEngineCommunication(QString&, QString&, QPoint&, QPoint&,
-                                            int, const QString&, const QString&,
-                                            QStringList&, int, int, bool) {}
+                                            const UsiTimingParams&, QStringList&) {}
 void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString&, QString&,
                                                          QPoint&, QPoint&,
-                                                         int, const QString&, const QString&,
-                                                         int, int, bool) {}
+                                                         const UsiTimingParams&) {}
 void Usi::sendGameOverCommand(GameOverResult) {}
 void Usi::sendQuitCommand() {}
 QChar Usi::rankToAlphabet(int) const { return QChar(); }
@@ -343,7 +341,7 @@ void Usi::markHardTimeout() {}
 void Usi::clearHardTimeout() {}
 bool Usi::isIgnoring() const { return false; }
 QString Usi::currentEnginePath() const { return {}; }
-void Usi::sendGoCommand(int, const QString&, const QString&, int, int, bool) {}
+void Usi::sendGoCommand(const UsiTimingParams&) {}
 void Usi::sendRaw(const QString&) const {}
 bool Usi::isEngineRunning() const { return false; }
 void Usi::setThinkingModel(ShogiEngineThinkingModel*) {}
@@ -406,7 +404,7 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex&, int) const { return 
 QVariant ShogiEngineThinkingModel::headerData(int, Qt::Orientation, int) const { return {}; }
 QString ShogiEngineThinkingModel::usiPvAt(int) const { return {}; }
 const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int) const { return nullptr; }
-int ShogiEngineThinkingModel::findRowByMultipv(int) const { return -1; }
+std::optional<int> ShogiEngineThinkingModel::findRowByMultipv(int) const { return std::nullopt; }
 void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord*, int) {}
 
 ShogiInfoRecord::ShogiInfoRecord(QObject* parent) : QObject(parent) {}

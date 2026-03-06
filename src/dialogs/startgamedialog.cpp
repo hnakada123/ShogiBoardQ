@@ -165,13 +165,13 @@ void StartGameDialog::swapSides()
 
 void StartGameDialog::loadEngineConfigurations()
 {
-    engineList.clear();
+    m_engineList.clear();
     const QList<EngineListSettings::EngineEntry> engines = EngineListSettings::loadEngines();
     for (const auto& entry : engines) {
         Engine engine;
         engine.name = entry.name;
         engine.path = entry.path;
-        engineList.append(engine);
+        m_engineList.append(engine);
     }
 }
 
@@ -185,7 +185,7 @@ void StartGameDialog::populatePlayerComboBoxes()
     ui->comboBoxPlayer2->addItem(tr("人間"));
 
     // インデックス1以降にエンジンを追加
-    foreach (const Engine& engine, engineList) {
+    foreach (const Engine& engine, m_engineList) {
         ui->comboBoxPlayer1->addItem(engine.name);
         ui->comboBoxPlayer2->addItem(engine.name);
     }
@@ -220,7 +220,7 @@ void StartGameDialog::forceCurrentPositionSelection()
 {
     ui->comboBoxStartingPosition->setCurrentIndex(0);
 }
-const QList<StartGameDialog::Engine> &StartGameDialog::getEngineList() const { return engineList; }
+const QList<StartGameDialog::Engine> &StartGameDialog::engineList() const { return m_engineList; }
 int StartGameDialog::maxMoves() const { return m_maxMoves; }
 int StartGameDialog::consecutiveGames() const { return m_consecutiveGames; }
 bool StartGameDialog::isShowHumanInFront() const { return m_isShowHumanInFront; }

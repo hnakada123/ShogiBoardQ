@@ -300,7 +300,7 @@ QString ShogiBoard::convertBoardToSfen()
     for (int rank = 1; rank <= ranks(); ++rank) {
         int spacecount = 0;
         for (int file = files(); file > 0; --file) {
-            Piece piece = getPieceCharacter(file, rank);
+            Piece piece = pieceCharacter(file, rank);
 
             if (piece == Piece::None) {
                 spacecount++;

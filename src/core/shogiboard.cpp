@@ -48,7 +48,7 @@ const QList<Piece>& ShogiBoard::boardData() const
     return m_boardData;
 }
 
-const QMap<Piece, int>& ShogiBoard::getPieceStand() const
+const QMap<Piece, int>& ShogiBoard::pieceStand() const
 {
     return m_pieceStand;
 }
@@ -83,7 +83,7 @@ Turn ShogiBoard::currentPlayer() const
 // 指定した位置の駒を返す。
 // file: 筋（1〜9は盤上、10と11は先手と後手の駒台）
 // rank: 段（先手は1〜7「歩、香車、桂馬、銀、金、角、飛車」、後手は3〜9「飛車、角、金、銀、桂馬、香車、歩」を使用）
-Piece ShogiBoard::getPieceCharacter(const int file, const int rank)
+Piece ShogiBoard::pieceCharacter(const int file, const int rank)
 {
     static const QMap<int, Piece> pieceMapBlack = {
         {1, Piece::BlackPawn}, {2, Piece::BlackLance}, {3, Piece::BlackKnight},
@@ -162,7 +162,7 @@ void ShogiBoard::movePieceToSquare(Piece selectedPiece, const int fileFrom, cons
         setData(fileTo, rankTo, selectedPiece);
 
         // 4) 置いた結果に対して「必成」補正（歩/桂/香）
-        Piece placed = getPieceCharacter(fileTo, rankTo);
+        Piece placed = pieceCharacter(fileTo, rankTo);
 
         // 先手の必成
         if (placed == Piece::BlackPawn && rankTo == 1) {
@@ -220,17 +220,9 @@ bool ShogiBoard::decrementPieceOnStand(Piece source)
 bool ShogiBoard::isPieceAvailableOnStand(const Piece source, const int fileFrom) const
 {
     if (fileFrom == BoardConstants::kBlackStandFile || fileFrom == BoardConstants::kWhiteStandFile) {
-        if (pieceStandCount(source) > 0) {
-            return true;
-        }
-        else {
-            return false;
-        }
+        return pieceStandCount(source) > 0;
     }
-    // 盤内から指そうとした場合、チェック範囲外のため常にtrue
-    else {
-        return true;
-    }
+    return true;
 }
 
 Piece ShogiBoard::convertPromotedPieceToOriginal(const Piece dest) const

@@ -243,7 +243,7 @@ void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString&
             BranchTreeManager::ResolvedRowLite resolved;
             resolved.startPly = line.branchPly;
             resolved.parent = (line.branchPoint != nullptr)
-                                  ? branchTree->findLineIndexForNode(line.branchPoint)
+                                  ? branchTree->findLineIndexForNode(line.branchPoint).value_or(-1)
                                   : -1;
 
             for (KifuBranchNode* node : std::as_const(line.nodes)) {

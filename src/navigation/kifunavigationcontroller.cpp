@@ -405,7 +405,8 @@ void KifuNavigationController::selectBranchCandidate(int candidateIndex)
 
     // node->lineIndex()は最初の分岐点のインデックスしか返さないため、
     // ツリーから実際のラインインデックスを取得して優先ラインとして記憶する
-    const int lineIndex = m_tree ? m_tree->findLineIndexForNode(candidate) : candidate->lineIndex();
+    const int lineIndex = m_tree ? m_tree->findLineIndexForNode(candidate).value_or(candidate->lineIndex())
+                                : candidate->lineIndex();
     if (lineIndex > 0) {
         m_state->setPreferredLineIndex(lineIndex);
         qCDebug(lcNavigation).noquote() << "selectBranchCandidate: setPreferredLineIndex=" << lineIndex;

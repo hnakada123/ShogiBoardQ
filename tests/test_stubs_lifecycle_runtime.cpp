@@ -35,9 +35,9 @@ void TimeControlController::recordGameEndTime() {}
 QDateTime TimeControlController::gameEndDateTime() const { return {}; }
 void TimeControlController::clearGameEndTime() {}
 
-qint64 TimeControlController::getRemainingMs(int) const { return 0; }
-qint64 TimeControlController::getIncrementMs(int) const { return 0; }
-qint64 TimeControlController::getByoyomiMs() const { return 0; }
+qint64 TimeControlController::remainingMs(int) const { return 0; }
+qint64 TimeControlController::incrementMs(int) const { return 0; }
+qint64 TimeControlController::clockByoyomiMs() const { return 0; }
 
 void TimeControlController::onClockPlayer1TimeOut() {}
 void TimeControlController::onClockPlayer2TimeOut() {}

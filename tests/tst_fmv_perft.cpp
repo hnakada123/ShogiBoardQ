@@ -46,7 +46,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         std::int64_t nodes = perft(pos, fmv::Color::Black, core, 1);
@@ -59,7 +59,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         std::int64_t nodes = perft(pos, fmv::Color::Black, core, 2);
@@ -72,7 +72,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         std::int64_t nodes = perft(pos, fmv::Color::Black, core, 3);

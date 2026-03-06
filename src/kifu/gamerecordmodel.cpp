@@ -256,7 +256,7 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         // 本譜は常にlineIndex=0（ナビゲーション状態に依存しない）
         constexpr int lineIndex = 0;
 
-        result = m_branchTree->getDisplayItemsForLine(lineIndex);
+        result = m_branchTree->displayItemsForLine(lineIndex);
         qCDebug(lcKifu).noquote() << "collectMainlineForExport: from BranchTree"
                                   << "lineIndex=" << lineIndex << "items=" << result.size();
 

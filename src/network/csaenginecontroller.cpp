@@ -3,6 +3,7 @@
 
 #include "csaenginecontroller.h"
 #include "usi.h"
+#include "usitimingparams.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
@@ -103,17 +104,10 @@ CsaEngineController::ThinkingResult CsaEngineController::think(const ThinkingPar
     QString positionCmd = params.positionCmd;
     QString ponderStr;
 
+    const UsiTimingParams timing{params.byoyomiMs, params.btimeStr, params.wtimeStr,
+                                 params.bincMs, params.wincMs, params.useByoyomi};
     m_engine->handleEngineVsHumanOrEngineMatchCommunication(
-        positionCmd,
-        ponderStr,
-        result.from, result.to,
-        params.byoyomiMs,
-        params.btimeStr,
-        params.wtimeStr,
-        params.bincMs,
-        params.wincMs,
-        params.useByoyomi
-    );
+        positionCmd, ponderStr, result.from, result.to, timing);
 
     result.resign = m_engine->isResignMove();
     result.promote = m_gameController->promote();

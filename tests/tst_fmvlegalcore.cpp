@@ -19,7 +19,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         int count = core.countLegalMoves(pos, fmv::Color::Black);
@@ -34,7 +34,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         int checks = core.countChecksToKing(pos, fmv::Color::Black);
@@ -47,7 +47,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         int checks = core.countChecksToKing(pos, fmv::Color::Black);
@@ -62,7 +62,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         fmv::Move drop;
@@ -87,7 +87,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
         // 歩を(0,1)に打つ → 相手玉(0,0)に王手
@@ -110,7 +110,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         fmv::LegalCore core;
 

@@ -64,7 +64,7 @@ void MainWindowServiceRegistry::ensureDialogCoordinator()
     auto refs = m_mw.buildRuntimeRefs();
 
     MainWindowDepsFactory::DialogCoordinatorCallbacks callbacks;
-    callbacks.getBoardFlipped = [this]() { return m_mw.m_shogiView ? m_mw.m_shogiView->getFlipMode() : false; };
+    callbacks.getBoardFlipped = [this]() { return m_mw.m_shogiView ? m_mw.m_shogiView->flipMode() : false; };
     callbacks.getConsiderationWiring = [this]() { ensureConsiderationWiring(); return m_mw.m_considerationWiring; };
     callbacks.getUiStatePolicyManager = [this]() { m_foundation->ensureUiStatePolicyManager(); return m_mw.m_uiStatePolicy; };
     m_foundation->ensureKifuNavigationCoordinator();

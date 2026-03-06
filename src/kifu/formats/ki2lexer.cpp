@@ -14,9 +14,10 @@ bool getPieceTypeAndPromoted(const QString& moveText, Piece& pieceUpper, bool& i
 {
     isPromoted = false;
     pieceUpper = Piece::None;
-    Piece base = Piece::None;
-    if (!KifuParseCommon::mapKanjiPiece(moveText, base, isPromoted)) return false;
-    pieceUpper = base;
+    const auto result = KifuParseCommon::mapKanjiPiece(moveText);
+    if (!result) return false;
+    pieceUpper = result->base;
+    isPromoted = result->promoted;
     return true;
 }
 
@@ -130,14 +131,10 @@ bool parseResultLine(const QString& line, QString& terminalWord, int& moveCount)
 
 // === 指し手テキスト解析 ===
 
-bool findDestination(const QString& moveText, int& toFile, int& toRank, bool& isSameAsPrev)
+std::optional<KifuParseCommon::MoveDestination> findDestination(const QString& moveText)
 {
-    isSameAsPrev = false;
-
     if (moveText.contains(QStringLiteral("同"))) {
-        toFile = toRank = 0;
-        isSameAsPrev = true;
-        return true;
+        return KifuParseCommon::MoveDestination{0, 0, true};
     }
 
     QString line = moveText;
@@ -152,24 +149,27 @@ bool findDestination(const QString& moveText, int& toFile, int& toRank, bool& is
 
     QRegularExpressionMatch m = s_digitKanji.match(line);
     if (!m.hasMatch()) m = s_digitDigit.match(line);
-    if (!m.hasMatch()) return false;
+    if (!m.hasMatch()) return std::nullopt;
 
     const QChar fch = m.capturedView(1).at(0);
     const QChar rch = m.capturedView(2).at(0);
 
-    toFile = KifuParseCommon::flexDigitToIntNoDetach(fch);
-    int r  = NotationUtils::kanjiDigitToInt(rch);
+    const int toFile = KifuParseCommon::flexDigitToIntNoDetach(fch);
+    int r = NotationUtils::kanjiDigitToInt(rch);
     if (r == 0) r = KifuParseCommon::flexDigitToIntNoDetach(rch);
-    toRank = r;
+    const int toRank = r;
 
-    return (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9);
+    if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9)
+        return KifuParseCommon::MoveDestination{toFile, toRank, false};
+
+    return std::nullopt;
 }
 
 Piece pieceKanjiToUsiUpper(const QString& s)
 {
-    Piece base = Piece::None; bool promoted = false;
-    if (!KifuParseCommon::mapKanjiPiece(s, base, promoted)) return Piece::None;
-    return base;
+    const auto result = KifuParseCommon::mapKanjiPiece(s);
+    if (!result) return Piece::None;
+    return result->base;
 }
 
 bool isPromotionMoveText(const QString& moveText)
@@ -407,10 +407,10 @@ QString convertKi2MoveToUsi(const QString& moveText,
     QString term;
     if (KifuParseCommon::isTerminalWordContains(moveText, &term)) return {};
 
-    int toFile = 0, toRank = 0;
-    bool isSame = false;
-    if (!findDestination(moveText, toFile, toRank, isSame)) return {};
-    if (isSame) { toFile = prevToFile; toRank = prevToRank; }
+    const auto dest = findDestination(moveText);
+    if (!dest) return {};
+    int toFile = dest->toFile, toRank = dest->toRank;
+    if (dest->isSameAsPrev) { toFile = prevToFile; toRank = prevToRank; }
     if (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9) return {};
 
     Piece pieceUpper = Piece::None;

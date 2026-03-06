@@ -117,14 +117,14 @@ const ShogiInfoRecord* ShogiEngineThinkingModel::recordAt(int row) const
     return list.at(row);
 }
 
-int ShogiEngineThinkingModel::findRowByMultipv(int multipv) const
+std::optional<int> ShogiEngineThinkingModel::findRowByMultipv(int multipv) const
 {
     for (int i = 0; i < list.size(); ++i) {
         if (list.at(i)->multipv() == multipv) {
             return i;
         }
     }
-    return -1;
+    return std::nullopt;
 }
 
 // ============================================================
@@ -142,15 +142,15 @@ void ShogiEngineThinkingModel::updateByMultipv(ShogiInfoRecord* record, int maxM
     }
 
     // 同じmultipv値を持つ既存の行を探す
-    const int existingRow = findRowByMultipv(multipv);
+    const auto existingRow = findRowByMultipv(multipv);
 
-    if (existingRow >= 0) {
+    if (existingRow.has_value()) {
         // 既存の行を更新
-        std::unique_ptr<ShogiInfoRecord> oldRecord(list.at(existingRow));
-        list[existingRow] = newRecord.release();
+        std::unique_ptr<ShogiInfoRecord> oldRecord(list.at(*existingRow));
+        list[*existingRow] = newRecord.release();
 
-        const QModelIndex topLeft = index(existingRow, 0);
-        const QModelIndex bottomRight = index(existingRow, columnCount() - 1);
+        const QModelIndex topLeft = index(*existingRow, 0);
+        const QModelIndex bottomRight = index(*existingRow, columnCount() - 1);
         emit dataChanged(topLeft, bottomRight);
     } else {
         // multipv順に新しい行を挿入

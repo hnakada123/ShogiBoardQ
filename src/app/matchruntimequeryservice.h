@@ -46,13 +46,13 @@ public:
     // --- 時間取得 ---
 
     /// 指定プレイヤーの残り時間を取得する（ms）
-    qint64 getRemainingMsFor(MatchCoordinator::Player p) const;
+    qint64 remainingMsFor(MatchCoordinator::Player p) const;
 
     /// 指定プレイヤーの加算時間を取得する（ms）
-    qint64 getIncrementMsFor(MatchCoordinator::Player p) const;
+    qint64 incrementMsFor(MatchCoordinator::Player p) const;
 
     /// 秒読み時間を取得する（ms）
-    qint64 getByoyomiMs() const;
+    qint64 byoyomiMs() const;
 
     // --- SFEN アクセサ ---
 

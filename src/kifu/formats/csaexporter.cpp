@@ -225,7 +225,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         if (CsaFormatter::isTerminalMove(moveText)) {
             qCDebug(lcKifu).noquote() << "toCsaLines: 終局語検出: moveText =" << moveText;
             terminalMove = moveText;
-            const QString resultCode = CsaFormatter::getCsaResultCode(moveText);
+            const QString resultCode = CsaFormatter::csaResultCode(moveText);
             if (!resultCode.isEmpty()) {
                 out << resultCode;
                 const int timeSec = CsaFormatter::extractCsaTimeSeconds(it.timeText);

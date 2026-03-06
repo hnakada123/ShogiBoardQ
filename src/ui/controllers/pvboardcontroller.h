@@ -73,7 +73,7 @@ private:
                                      int& fromFile, int& fromRank,
                                      int& toFile, int& toRank,
                                      QChar& droppedPiece);
-    static QPoint getStandPseudoCoord(QChar pieceChar, bool isBlack);
+    static QPoint standPseudoCoord(QChar pieceChar, bool isBlack);
 
     QString m_baseSfen;
     QStringList m_pvMoves;

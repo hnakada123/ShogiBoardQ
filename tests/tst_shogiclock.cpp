@@ -24,8 +24,8 @@ private slots:
         clock.setPlayerTimes(300, 300, 0, 0, 0, 0, true);
 
         // 300 seconds = 5 minutes = "00:05:00"
-        QCOMPARE(clock.getPlayer1TimeString(), QStringLiteral("00:05:00"));
-        QCOMPARE(clock.getPlayer2TimeString(), QStringLiteral("00:05:00"));
+        QCOMPARE(clock.player1TimeString(), QStringLiteral("00:05:00"));
+        QCOMPARE(clock.player2TimeString(), QStringLiteral("00:05:00"));
     }
 
     void byoyomi_setup()
@@ -56,8 +56,8 @@ private slots:
         ShogiClock clock;
         clock.setPlayerTimes(300, 300, 0, 0, 10, 10, true);
 
-        QCOMPARE(clock.getBincMs(), 10000LL);
-        QCOMPARE(clock.getWincMs(), 10000LL);
+        QCOMPARE(clock.bincMs(), 10000LL);
+        QCOMPARE(clock.wincMs(), 10000LL);
 
         clock.setCurrentPlayer(1);
         clock.applyByoyomiAndResetConsideration1();
@@ -143,9 +143,9 @@ private slots:
         clock.setPlayerTimes(300, 300, 30, 30, 10, 10, true);
 
         // One of them should be 0
-        bool exclusive = (clock.hasByoyomi1() && clock.getBincMs() == 0) ||
-                         (!clock.hasByoyomi1() && clock.getBincMs() > 0) ||
-                         (clock.hasByoyomi1() && clock.getBincMs() > 0); // implementation may allow both
+        bool exclusive = (clock.hasByoyomi1() && clock.bincMs() == 0) ||
+                         (!clock.hasByoyomi1() && clock.bincMs() > 0) ||
+                         (clock.hasByoyomi1() && clock.bincMs() > 0); // implementation may allow both
         QVERIFY(exclusive || true); // Just verify no crash
     }
 };

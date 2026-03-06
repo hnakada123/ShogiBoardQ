@@ -60,7 +60,7 @@ StartGameDialogData extractDialogData(const StartGameDialog& dlg)
     data.engineNumber1 = dlg.engineNumber1();
     data.engineNumber2 = dlg.engineNumber2();
 
-    for (const auto& e : std::as_const(dlg.getEngineList())) {
+    for (const auto& e : std::as_const(dlg.engineList())) {
         StartGameDialogData::Engine eng;
         eng.name = e.name;
         eng.path = e.path;

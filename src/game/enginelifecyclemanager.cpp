@@ -4,6 +4,7 @@
 #include "enginelifecyclemanager.h"
 
 #include "usi.h"
+#include "usitimingparams.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
@@ -270,17 +271,10 @@ bool EngineLifecycleManager::engineThinkApplyMove(Usi* engine,
     QPoint from(-1, -1), to(-1, -1);
     m_refs.gc->setPromote(false);
 
+    const UsiTimingParams timing{clampMsToInt(t.byoyomi), btimeStr, wtimeStr,
+                                 clampMsToInt(t.binc), clampMsToInt(t.winc), useByoyomi};
     engine->handleEngineVsHumanOrEngineMatchCommunication(
-        positionStr,
-        ponderStr,
-        from, to,
-        clampMsToInt(t.byoyomi),
-        btimeStr,
-        wtimeStr,
-        clampMsToInt(t.binc),
-        clampMsToInt(t.winc),
-        useByoyomi
-        );
+        positionStr, ponderStr, from, to, timing);
 
     if (outFrom) *outFrom = from;
     if (outTo)   *outTo   = to;
@@ -352,14 +346,10 @@ void EngineLifecycleManager::sendGoToEngine(Usi* which, const GoTimes& t)
 
     const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
 
-    which->sendGoCommand(
-        clampMsToInt(t.byoyomi),
-        QString::number(t.btime),
-        QString::number(t.wtime),
-        clampMsToInt(t.binc),
-        clampMsToInt(t.winc),
-        useByoyomi
-        );
+    const UsiTimingParams timing{clampMsToInt(t.byoyomi),
+                                 QString::number(t.btime), QString::number(t.wtime),
+                                 clampMsToInt(t.binc), clampMsToInt(t.winc), useByoyomi};
+    which->sendGoCommand(timing);
 }
 
 void EngineLifecycleManager::sendStopToEngine(Usi* which)

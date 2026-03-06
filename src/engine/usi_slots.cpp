@@ -144,9 +144,9 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
 
     // 検討タブへ追記（MultiPVモード: multipv値に基づいて行を更新/挿入）
     if (m_considerationModel) {
-        const int existingRow = m_considerationModel->findRowByMultipv(multipv);
-        const ShogiInfoRecord* existingMultipvRecord = (existingRow >= 0)
-            ? m_considerationModel->recordAt(existingRow) : nullptr;
+        const auto existingRow = m_considerationModel->findRowByMultipv(multipv);
+        const ShogiInfoRecord* existingMultipvRecord = existingRow.has_value()
+            ? m_considerationModel->recordAt(*existingRow) : nullptr;
 
         if (!isSameThinkingPayload(existingMultipvRecord, time, depth, nodes, score, pvKanjiStr, usiPv,
                                    baseSfen, lastUsiMove, multipv, scoreCp)) {

@@ -166,8 +166,8 @@ ShogiBoard::ShogiBoard(int ranks, int files, QObject* parent)
 const QList<Piece>& ShogiBoard::boardData() const { return m_boardData; }
 std::optional<SfenComponents> ShogiBoard::parseSfen(const QString&) { return std::nullopt; }
 void ShogiBoard::setSfen(const QString&) { m_boardData.fill(Piece::None, m_ranks * m_files); }
-Piece ShogiBoard::getPieceCharacter(int, int) { return Piece::None; }
-const QMap<Piece, int>& ShogiBoard::getPieceStand() const { return m_pieceStand; }
+Piece ShogiBoard::pieceCharacter(int, int) { return Piece::None; }
+const QMap<Piece, int>& ShogiBoard::pieceStand() const { return m_pieceStand; }
 int ShogiBoard::pieceStandCount(Piece piece) const { return m_pieceStand.value(piece, 0); }
 void ShogiBoard::addStandPiece(Piece piece, int delta) { if (delta > 0) m_pieceStand[piece] += delta; }
 bool ShogiBoard::consumeStandPiece(Piece piece) { if (m_pieceStand.value(piece, 0) <= 0) return false; --m_pieceStand[piece]; return true; }

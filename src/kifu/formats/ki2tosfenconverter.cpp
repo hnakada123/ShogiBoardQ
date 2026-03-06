@@ -466,22 +466,23 @@ QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
         hasSource = true;
     }
 
-    int dstFile = 0, dstRank = 0;
-    bool isSame = false;
-    if (!Ki2Lexer::findDestination(prettyMove, dstFile, dstRank, isSame)) {
+    const auto dest = Ki2Lexer::findDestination(prettyMove);
+    if (!dest) {
         QString result = prettyMove;
         result.remove(fromPosRe);
         return result;
     }
-    if (isSame) { dstFile = prevToFile; dstRank = prevToRank; }
+    int dstFile = dest->toFile, dstRank = dest->toRank;
+    if (dest->isSameAsPrev) { dstFile = prevToFile; dstRank = prevToRank; }
 
-    Piece pieceUpper = Piece::None;
-    bool isPromoted = false;
-    if (!KifuParseCommon::mapKanjiPiece(prettyMove, pieceUpper, isPromoted)) {
+    const auto kanjiResult = KifuParseCommon::mapKanjiPiece(prettyMove);
+    if (!kanjiResult) {
         QString result = prettyMove;
         result.remove(fromPosRe);
         return result;
     }
+    Piece pieceUpper = kanjiResult->base;
+    bool isPromoted = kanjiResult->promoted;
 
     QString ki2Move = prettyMove;
     ki2Move.remove(fromPosRe);

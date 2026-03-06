@@ -33,8 +33,8 @@ bool TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
     TsumeShogiSearchDialog dlg(parent);
     if (dlg.exec() != QDialog::Accepted) return false;
 
-    const QList<ConsiderationDialog::Engine>& engines = dlg.getEngineList();
-    const int idx = dlg.getEngineNumber();
+    const QList<ConsiderationDialog::Engine>& engines = dlg.engineList();
+    const int idx = dlg.engineNumber();
 
     if (engines.isEmpty() || idx < 0 || idx >= engines.size()) {
         if (d.onError) d.onError(QStringLiteral("詰み探索エンジンの選択が不正です。"));
@@ -45,7 +45,7 @@ bool TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
 
     int byoyomiMs = 0;  // 0 は無制限
     if (!dlg.unlimitedTimeFlag()) {
-        byoyomiMs = dlg.getByoyomiSec() * 1000;  // 秒 → ms
+        byoyomiMs = dlg.byoyomiSec() * 1000;  // 秒 → ms
     }
 
     startAnalysis(d.match, engine.path, engine.name, pos, byoyomiMs);

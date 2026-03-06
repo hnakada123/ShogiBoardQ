@@ -277,8 +277,8 @@ void BoardSetupController::onMoveRequested(const QPoint& from, const QPoint& to)
         ShogiClock* clk = m_timeController ? m_timeController->clock() : nullptr;
         if (clk) {
             elapsed = (moverBefore == ShogiGameController::Player1)
-                ? clk->getPlayer1ConsiderationAndTotalTime()
-                : clk->getPlayer2ConsiderationAndTotalTime();
+                ? clk->player1ConsiderationAndTotalTime()
+                : clk->player2ConsiderationAndTotalTime();
         } else {
             if (m_ensureTimeController) {
                 m_ensureTimeController();

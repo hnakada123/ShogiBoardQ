@@ -17,12 +17,12 @@ QString TimekeepingService::applyByoyomiAndCollectElapsed(ShogiClock* clock, boo
     // 直前に指した側へ秒読みを適用し、消費/累計文字列を取得
     if (nextIsP1) {
         clock->applyByoyomiAndResetConsideration2();
-        const QString elapsed = clock->getPlayer2ConsiderationAndTotalTime();
+        const QString elapsed = clock->player2ConsiderationAndTotalTime();
         clock->setPlayer2ConsiderationTime(0);
         return elapsed;
     } else {
         clock->applyByoyomiAndResetConsideration1();
-        const QString elapsed = clock->getPlayer1ConsiderationAndTotalTime();
+        const QString elapsed = clock->player1ConsiderationAndTotalTime();
         clock->setPlayer1ConsiderationTime(0);
         return elapsed;
     }

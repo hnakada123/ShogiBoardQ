@@ -40,7 +40,7 @@ bool EngineOptionDescriptions::isEngineSupported(const QString& engineName)
 // 説明・カテゴリ取得
 // ============================================================
 
-QString EngineOptionDescriptions::getDescription(const QString& engineName, const QString& optionName)
+QString EngineOptionDescriptions::description(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
         initializeDescriptions();
@@ -76,7 +76,7 @@ bool EngineOptionDescriptions::hasDescription(const QString& engineName, const Q
     return false;
 }
 
-EngineOptionCategory EngineOptionDescriptions::getCategory(const QString& engineName, const QString& optionName)
+EngineOptionCategory EngineOptionDescriptions::category(const QString& engineName, const QString& optionName)
 {
     if (!s_initialized) {
         initializeDescriptions();
@@ -94,7 +94,7 @@ EngineOptionCategory EngineOptionDescriptions::getCategory(const QString& engine
     return EngineOptionCategory::Other;
 }
 
-QString EngineOptionDescriptions::getCategoryDisplayName(EngineOptionCategory category)
+QString EngineOptionDescriptions::categoryDisplayName(EngineOptionCategory category)
 {
     switch (category) {
     case EngineOptionCategory::Basic:
@@ -113,7 +113,7 @@ QString EngineOptionDescriptions::getCategoryDisplayName(EngineOptionCategory ca
     }
 }
 
-QList<EngineOptionCategory> EngineOptionDescriptions::getAllCategories()
+QList<EngineOptionCategory> EngineOptionDescriptions::allCategories()
 {
     return {
         EngineOptionCategory::Basic,

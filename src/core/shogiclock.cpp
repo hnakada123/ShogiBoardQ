@@ -440,6 +440,6 @@ void ShogiClock::setPlayer2ConsiderationTime(int ms)
     m_player2ConsiderationTimeMs = static_cast<qint64>(qMax(0, ms));
 }
 
-int ShogiClock::getPlayer1ConsiderationTimeMs() const { return static_cast<int>(m_player1ConsiderationTimeMs); }
+int ShogiClock::player1ConsiderationTimeMs() const { return static_cast<int>(m_player1ConsiderationTimeMs); }
 
-int ShogiClock::getPlayer2ConsiderationTimeMs() const { return static_cast<int>(m_player2ConsiderationTimeMs); }
+int ShogiClock::player2ConsiderationTimeMs() const { return static_cast<int>(m_player2ConsiderationTimeMs); }

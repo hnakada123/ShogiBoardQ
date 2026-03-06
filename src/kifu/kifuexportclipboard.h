@@ -114,7 +114,7 @@ private:
         int moveIndex = 0;
         QString lastMoveStr;
     };
-    PositionData getCurrentPositionData() const;
+    PositionData currentPositionData() const;
     QString generateBodText(const PositionData& pos) const;
 
     QWidget* m_parentWidget = nullptr;

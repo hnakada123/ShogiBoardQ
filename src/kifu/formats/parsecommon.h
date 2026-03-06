@@ -26,7 +26,18 @@ const std::array<QString, 16>& terminalWords();
 bool isTerminalWordExact(QStringView text, QString* normalized = nullptr);
 bool isTerminalWordContains(QStringView text, QString* normalized = nullptr);
 
-bool mapKanjiPiece(QStringView text, Piece& base, bool& promoted);
+struct KanjiPieceResult {
+    Piece base;
+    bool promoted;
+};
+
+struct MoveDestination {
+    int toFile;
+    int toRank;
+    bool isSameAsPrev;
+};
+
+[[nodiscard]] std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text);
 
 [[nodiscard]] std::optional<int> parseFileChar(QChar ch);   // '1'〜'9' → 1〜9
 [[nodiscard]] std::optional<int> parseRankChar(QChar ch);   // 'a'〜'i' → 1〜9

@@ -96,7 +96,7 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
     // オプションをカテゴリ別に分類
     for (qsizetype i = 0; i < m_optionList.size(); ++i) {
         const auto& option = m_optionList.at(i);
-        EngineOptionCategory category = EngineOptionDescriptions::getCategory(m_engineName, option.name);
+        EngineOptionCategory category = EngineOptionDescriptions::category(m_engineName, option.name);
         categoryOptionsMap[category].append(qMakePair(static_cast<int>(i), option));
     }
 
@@ -104,7 +104,7 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
     m_engineOptionWidgetsList.resize(m_optionList.size());
 
     // 定義された順序でカテゴリを処理
-    QList<EngineOptionCategory> categoryOrder = EngineOptionDescriptions::getAllCategories();
+    QList<EngineOptionCategory> categoryOrder = EngineOptionDescriptions::allCategories();
 
     for (EngineOptionCategory category : std::as_const(categoryOrder)) {
         if (!categoryOptionsMap.contains(category) || categoryOptionsMap[category].isEmpty()) {
@@ -171,7 +171,7 @@ void EngineSettingsOptionHandler::changeColorTypeButton()
 // オプションの説明ラベルを作成してレイアウトに追加する。
 void EngineSettingsOptionHandler::createHelpDescriptionLabel(const QString& optionName, QVBoxLayout* layout)
 {
-    QString description = EngineOptionDescriptions::getDescription(m_engineName, optionName);
+    QString description = EngineOptionDescriptions::description(m_engineName, optionName);
 
     if (!description.isEmpty()) {
         m_optionWidgets.helpDescriptionLabel = new QLabel(description, m_parentWidget);
@@ -368,7 +368,7 @@ void EngineSettingsOptionHandler::createWidgetForOption(const EngineOption& opti
 // カテゴリ別の折りたたみ可能なグループボックスを作成する。
 CollapsibleGroupBox* EngineSettingsOptionHandler::createCategoryGroupBox(EngineOptionCategory category)
 {
-    QString categoryName = EngineOptionDescriptions::getCategoryDisplayName(category);
+    QString categoryName = EngineOptionDescriptions::categoryDisplayName(category);
     return new CollapsibleGroupBox(categoryName, m_parentWidget);
 }
 

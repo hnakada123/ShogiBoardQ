@@ -108,50 +108,35 @@ bool isTerminalWordContains(QStringView text, QString* normalized)
     return false;
 }
 
-bool mapKanjiPiece(QStringView text, Piece& base, bool& promoted)
+std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text)
 {
-    promoted = false;
-
     if (text.contains(QChar(u'歩')) || text.contains(QChar(u'と'))) {
-        base = Piece::BlackPawn;
-        promoted = text.contains(QChar(u'と'));
-        return true;
+        return KanjiPieceResult{Piece::BlackPawn, text.contains(QChar(u'と'))};
     }
     if (text.contains(QChar(u'香')) || text.contains(QChar(u'杏'))) {
-        base = Piece::BlackLance;
-        promoted = text.contains(QChar(u'杏'));
-        return true;
+        return KanjiPieceResult{Piece::BlackLance, text.contains(QChar(u'杏'))};
     }
     if (text.contains(QChar(u'桂')) || text.contains(QChar(u'圭'))) {
-        base = Piece::BlackKnight;
-        promoted = text.contains(QChar(u'圭'));
-        return true;
+        return KanjiPieceResult{Piece::BlackKnight, text.contains(QChar(u'圭'))};
     }
     if (text.contains(QChar(u'銀')) || text.contains(QChar(u'全'))) {
-        base = Piece::BlackSilver;
-        promoted = text.contains(QChar(u'全'));
-        return true;
+        return KanjiPieceResult{Piece::BlackSilver, text.contains(QChar(u'全'))};
     }
     if (text.contains(QChar(u'金'))) {
-        base = Piece::BlackGold;
-        return true;
+        return KanjiPieceResult{Piece::BlackGold, false};
     }
     if (text.contains(QChar(u'角')) || text.contains(QChar(u'馬'))) {
-        base = Piece::BlackBishop;
-        promoted = text.contains(QChar(u'馬'));
-        return true;
+        return KanjiPieceResult{Piece::BlackBishop, text.contains(QChar(u'馬'))};
     }
     if (text.contains(QChar(u'飛')) || text.contains(QChar(u'龍')) || text.contains(QChar(u'竜'))) {
-        base = Piece::BlackRook;
-        promoted = (text.contains(QChar(u'龍')) || text.contains(QChar(u'竜')));
-        return true;
+        return KanjiPieceResult{Piece::BlackRook,
+                                text.contains(QChar(u'龍')) || text.contains(QChar(u'竜'))};
     }
     if (text.contains(QChar(u'玉')) || text.contains(QChar(u'王'))) {
-        base = Piece::BlackKing;
-        return true;
+        return KanjiPieceResult{Piece::BlackKing, false};
     }
 
-    return false;
+    return std::nullopt;
 }
 
 std::optional<int> parseFileChar(QChar ch)

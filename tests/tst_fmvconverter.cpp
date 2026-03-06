@@ -20,7 +20,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        bool ok = fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        bool ok = fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
         QVERIFY(ok);
 
         // 先手玉の位置（8段目の4筋: rank=8, file=4 → sq=76）
@@ -51,7 +51,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         // 先手の持ち歩
         QCOMPARE(pos.hand[0][static_cast<std::size_t>(fmv::HandType::Pawn)], 1);
@@ -65,7 +65,7 @@ private slots:
         board.setSfen(kHirateSfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         // 7六歩: (6,6) → (6,5)
         ShogiMove sm(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
@@ -88,7 +88,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         // 先手銀打ち: 駒台(9,3) → (4,4)
         ShogiMove sm(QPoint(9, 3), QPoint(4, 4), Piece::BlackSilver, Piece::None, false);
@@ -109,7 +109,7 @@ private slots:
         board.setSfen(sfen);
 
         fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.getPieceStand());
+        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
 
         // 5四歩→5三: (4,3)→(4,2) 3段目は敵陣なので成り可
         ShogiMove sm(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false);

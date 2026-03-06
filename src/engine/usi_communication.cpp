@@ -28,35 +28,26 @@ void Usi::sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& position
 
 void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                            QPoint& outFrom, QPoint& outTo,
-                                           int byoyomiMilliSec, const QString& btime,
-                                           const QString& wtime, QStringList& positionStrList,
-                                           int addEachMoveMilliSec1, int addEachMoveMilliSec2,
-                                           bool useByoyomi)
+                                           const UsiTimingParams& timing,
+                                           QStringList& positionStrList)
 {
     // 対局時は検討タブ用モデルをクリア
     m_considerationModel = nullptr;
 
     m_matchHandler->handleHumanVsEngineCommunication(positionStr, positionPonderStr, outFrom, outTo,
-                                                     byoyomiMilliSec, btime, wtime, positionStrList,
-                                                     addEachMoveMilliSec1, addEachMoveMilliSec2,
-                                                     useByoyomi);
+                                                     timing, positionStrList);
 }
 
 void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
                                                         QString& positionPonderStr,
                                                         QPoint& outFrom, QPoint& outTo,
-                                                        int byoyomiMilliSec, const QString& btime,
-                                                        const QString& wtime,
-                                                        int addEachMoveMilliSec1,
-                                                        int addEachMoveMilliSec2, bool useByoyomi)
+                                                        const UsiTimingParams& timing)
 {
     // 対局時は検討タブ用モデルをクリア
     m_considerationModel = nullptr;
 
     m_matchHandler->handleEngineVsHumanOrEngineMatchCommunication(positionStr, positionPonderStr,
-                                                                  outFrom, outTo, byoyomiMilliSec,
-                                                                  btime, wtime, addEachMoveMilliSec1,
-                                                                  addEachMoveMilliSec2, useByoyomi);
+                                                                  outFrom, outTo, timing);
 }
 
 // ============================================================

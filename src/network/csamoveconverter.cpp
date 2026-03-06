@@ -158,7 +158,7 @@ QString CsaMoveConverter::usiToCsa(const QString& usiMove, bool isBlack, ShogiBo
             qCWarning(lcNetwork) << "usiToCsa: board is null:" << usiMove;
             return QString();
         }
-        const Piece piece = board->getPieceCharacter(fromFile, fromRank);
+        const Piece piece = board->pieceCharacter(fromFile, fromRank);
         csaPiece = pieceCharToCsa(piece, promote);
         if (csaPiece.isEmpty()) {
             qCWarning(lcNetwork) << "usiToCsa: failed to resolve source piece, usiMove=" << usiMove;
@@ -208,13 +208,13 @@ QString CsaMoveConverter::boardToCSA(const QPoint& from, const QPoint& to, bool 
     if (board) {
         Piece piece;
         if (isDrop) {
-            piece = board->getPieceCharacter(from.x(), from.y());
+            piece = board->pieceCharacter(from.x(), from.y());
             qCDebug(lcNetwork) << "Got piece from stand:" << pieceToChar(piece)
                                << "at file=" << from.x() << "rank=" << from.y();
         } else {
             // 通常の移動: validateAndMoveで既に盤面が更新されているので、
             // 移動先(to)から駒を取得する
-            piece = board->getPieceCharacter(toFile, toRank);
+            piece = board->pieceCharacter(toFile, toRank);
             qCDebug(lcNetwork) << "Got piece from board (at destination):" << pieceToChar(piece)
                                << "at file=" << toFile << "rank=" << toRank;
         }

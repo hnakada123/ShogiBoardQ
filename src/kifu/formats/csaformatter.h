@@ -52,7 +52,7 @@ namespace CsaFormatter {
 QString removeTurnMarker(const QString& move);
 bool isTerminalMove(const QString& move);
 int extractCsaTimeSeconds(const QString& timeText);
-QString getCsaResultCode(const QString& terminalMove);
+QString csaResultCode(const QString& terminalMove);
 QString convertToCsaDateTime(const QString& dateTimeStr);
 QString convertToCsaTime(const QString& timeStr);
 

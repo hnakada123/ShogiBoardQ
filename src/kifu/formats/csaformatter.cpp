@@ -223,7 +223,7 @@ int extractCsaTimeSeconds(const QString& timeText)
     return minutes * 60 + seconds;
 }
 
-QString getCsaResultCode(const QString& terminalMove)
+QString csaResultCode(const QString& terminalMove)
 {
     const QString move = removeTurnMarker(terminalMove);
 

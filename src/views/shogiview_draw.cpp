@@ -388,7 +388,7 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
                        fieldRect.height());
 
     // 【盤から駒種を取得】
-    Piece pieceValue = m_board->getPieceCharacter(file, rank);
+    Piece pieceValue = m_board->pieceCharacter(file, rank);
 
     // 【アイコン描画】
     if (pieceValue != Piece::None) {

@@ -109,7 +109,7 @@ public:
     DisplaySnapshot captureDisplaySnapshot(const TrackingState& tracking) const;
     bool verifyDisplayConsistencyDetailed(const TrackingState& tracking, QString* reason = nullptr) const;
     bool verifyDisplayConsistency(const TrackingState& tracking) const;
-    QString getConsistencyReport(const TrackingState& tracking) const;
+    QString consistencyReport(const TrackingState& tracking) const;
 
     // === アクセサ ===
 

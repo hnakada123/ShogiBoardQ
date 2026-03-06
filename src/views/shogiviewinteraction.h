@@ -23,7 +23,7 @@ public:
     ShogiViewInteraction();
 
     // ───────────────────────── 入力座標変換 ─────────────────────────
-    QPoint getClickedSquare(const QPoint& clickPosition,
+    QPoint clickedSquare(const QPoint& clickPosition,
                             const ShogiViewLayout& layout, ShogiBoard* board) const;
     QPoint getClickedSquareInDefaultState(const QPoint& clickPosition,
                                           const ShogiViewLayout& layout, ShogiBoard* board) const;

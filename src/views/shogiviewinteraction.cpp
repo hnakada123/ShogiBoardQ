@@ -15,7 +15,7 @@ ShogiViewInteraction::ShogiViewInteraction() {}
 // 反転/非反転に応じて適切な座標変換を呼び出すエントリポイント。
 // 備考：反転判定以外のロジック（駒台判定、成→未成の正規化など）は
 //       getClickedSquareIn*State() 側で行う。
-QPoint ShogiViewInteraction::getClickedSquare(const QPoint &clickPosition,
+QPoint ShogiViewInteraction::clickedSquare(const QPoint &clickPosition,
                                                const ShogiViewLayout& layout,
                                                ShogiBoard* board) const
 {
@@ -296,19 +296,19 @@ void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
     // 【駒台からのドラッグ可否チェック】
     // file=10/11 は駒台。対象駒の在庫が 0 以下ならドラッグ開始しない。
     if ((from.x() == 10 || from.x() == 11)) {
-        Piece piece = board->getPieceCharacter(from.x(), from.y());
+        Piece piece = board->pieceCharacter(from.x(), from.y());
         if (board->pieceStandCount(piece) <= 0) return;
     }
 
     // 【ドラッグ状態の確立】
     m_dragging  = true;                               // ドラッグ中フラグ
     m_dragFrom  = from;                               // つまみ上げ元（盤/駒台の座標）
-    m_dragPiece = board->getPieceCharacter(from.x(), from.y()); // 対象駒
+    m_dragPiece = board->pieceCharacter(from.x(), from.y()); // 対象駒
     m_dragPos   = cursorWidgetPos;                    // 現在のポインタ位置（ウィジェット座標）
 
     // 【駒台の一時枚数マップを作成】
     // 画面上はドラッグで 1 枚減った見え方にするため、つまみ上げた分をデクリメント。
-    m_tempPieceStandCounts = board->getPieceStand();
+    m_tempPieceStandCounts = board->pieceStand();
     if (from.x() == 10 || from.x() == 11) {
         m_dragFromStand = true;                       // 駒台からのドラッグ
         m_tempPieceStandCounts[m_dragPiece]--;        // 一時的に在庫を減らす

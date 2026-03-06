@@ -6,6 +6,7 @@
 
 
 #include <QVariant>
+#include <optional>
 #include "abstractlistmodel.h"
 #include "shogiinforecord.h"
 
@@ -34,8 +35,8 @@ public:
     /// 指定行のShogiInfoRecordを取得する（読み取り専用）
     const ShogiInfoRecord* recordAt(int row) const;
 
-    /// 指定multipv値を持つ行のインデックスを返す（見つからなければ -1）
-    int findRowByMultipv(int multipv) const;
+    /// 指定multipv値を持つ行のインデックスを返す（見つからなければstd::nullopt）
+    std::optional<int> findRowByMultipv(int multipv) const;
 
     /**
      * @brief MultiPVモードで行を更新または挿入する

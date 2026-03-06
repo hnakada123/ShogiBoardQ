@@ -36,7 +36,7 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     createLogWindow();
     connectSignalsAndSlots();
     if (m_coordinator) {
-        m_statusLabel->setText(getStateMessage(m_coordinator->gameState()));
+        m_statusLabel->setText(stateMessage(m_coordinator->gameState()));
         qCDebug(lcUi) << "Initial state:" << static_cast<int>(m_coordinator->gameState());
     }
 }
@@ -158,7 +158,7 @@ void CsaWaitingDialog::connectSignalsAndSlots()
     }
 }
 
-QString CsaWaitingDialog::getStateMessage(CsaGameCoordinator::GameState state) const
+QString CsaWaitingDialog::stateMessage(CsaGameCoordinator::GameState state) const
 {
     switch (state) {
     case CsaGameCoordinator::GameState::Idle:
@@ -308,7 +308,7 @@ void CsaWaitingDialog::applyLogFontSize()
 
 void CsaWaitingDialog::onGameStateChanged(CsaGameCoordinator::GameState state)
 {
-    m_statusLabel->setText(getStateMessage(state));
+    m_statusLabel->setText(stateMessage(state));
 
     if (state == CsaGameCoordinator::GameState::InGame) {
         if (m_logWindow) m_logWindow->close();
