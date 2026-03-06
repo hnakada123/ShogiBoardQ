@@ -13,7 +13,7 @@
 namespace {
 constexpr int kWakeCheckIntervalMs = 50;
 const QEventLoop::ProcessEventsFlags kPumpFlags =
-    QEventLoop::ExcludeUserInputEvents | QEventLoop::ExcludeSocketNotifiers;
+    QEventLoop::ExcludeSocketNotifiers;
 
 using ConditionFn = std::function<bool()>;
 
