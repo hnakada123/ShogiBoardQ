@@ -138,7 +138,7 @@ void RecordPane::buildNavigationPanel()
 
     const QString btnStyle = ButtonStyles::navigationButton();
     const QList<QPushButton*> allBtns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
-    for (QPushButton* const b : allBtns) {
+    for (QPushButton* const b : std::as_const(allBtns)) {
         b->setStyleSheet(btnStyle);
         b->setFixedSize(36, 24);
         b->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -314,7 +314,7 @@ QTableView* RecordPane::branchView() const { return m_branch; }
 void RecordPane::setArrowButtonsEnabled(bool on)
 {
     const QList<QPushButton*> btns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
-    for (QPushButton* const b : btns)
+    for (QPushButton* const b : std::as_const(btns))
         if (b) b->setEnabled(on);
 }
 

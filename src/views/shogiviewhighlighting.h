@@ -86,17 +86,17 @@ private:
     QColor m_urgencyFgWarn5  = QColor(255, 255, 255);
 
     // 色定数
-    const QColor kTurnBg   = QColor(255, 255, 0);
-    const QColor kTurnFg   = QColor(0, 64, 255);
+    static constexpr QColor kTurnBg{255, 255, 0};
+    static constexpr QColor kTurnFg{0, 64, 255};
 
-    const QColor kWarn10Bg = QColor(255, 255, 0);
-    const QColor kWarn10Fg = QColor(0, 0, 255);
+    static constexpr QColor kWarn10Bg{255, 255, 0};
+    static constexpr QColor kWarn10Fg{0, 0, 255};
 
-    const QColor kWarn5Bg  = QColor(255, 255, 0);
-    const QColor kWarn5Fg  = QColor(255, 0, 0);
+    static constexpr QColor kWarn5Bg{255, 255, 0};
+    static constexpr QColor kWarn5Fg{255, 0, 0};
 
-    const QColor kWarn10Border = QColor(0, 0, 255);
-    const QColor kWarn5Border  = QColor(255, 0, 0);
+    static constexpr QColor kWarn10Border{0, 0, 255};
+    static constexpr QColor kWarn5Border{255, 0, 0};
 
     Urgency m_urgency = Urgency::Normal;
 

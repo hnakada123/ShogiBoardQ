@@ -182,7 +182,7 @@ bool JosekiPresenter::hasDuplicateMove(const QString &normalizedSfen, const QStr
     }
 
     const QList<JosekiMove> &moves = m_repository->movesForPosition(normalizedSfen);
-    for (const JosekiMove &move : moves) {
+    for (const JosekiMove &move : std::as_const(moves)) {
         if (move.move == usiMove) {
             return true;
         }

@@ -328,7 +328,7 @@ void BranchTreeManager::rebuildBranchTree()
     int maxAbsPly = 0;
     {
         const auto keys = m_nodeIndex.keys();
-        for (const auto& k : keys) {
+        for (const auto& k : std::as_const(keys)) {
             const int ply = k.second;
             if (ply > maxAbsPly) maxAbsPly = ply;
         }

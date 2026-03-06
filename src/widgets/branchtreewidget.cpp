@@ -163,7 +163,7 @@ void BranchTreeWidget::rebuild()
     // 最大手数を計算
     int maxPly = 0;
     const auto keys = m_nodeIndex.keys();
-    for (const auto& k : keys) {
+    for (const auto& k : std::as_const(keys)) {
         if (k.second > maxPly) {
             maxPly = k.second;
         }
