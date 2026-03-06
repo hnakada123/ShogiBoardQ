@@ -4,7 +4,6 @@
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
-#include "gamesubregistry.h"
 #include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
@@ -41,7 +40,7 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 
     MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
     cbs.ensurePositionEdit = [this]() { m_foundation->ensurePositionEditController(); };
-    cbs.ensureTimeController = [this]() { m_game->ensureTimeController(); };
+    cbs.ensureTimeController = [this]() { ensureTimeController(); };
     cbs.updateGameRecord = [this](const QString& moveText, const QString& elapsed) {
         m_kifu->ensureGameRecordUpdateService();
         if (m_mw.m_gameRecordUpdateService) {

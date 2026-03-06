@@ -273,7 +273,7 @@ void MainWindow::buildGameControllerRefs(MainWindowRuntimeRefs& refs)
 // `refreshPlayModePolicyDeps`: PlayModePolicyService の依存を最新に更新する。
 // 以下のタイミングで呼び出すこと:
 //   - 起動完了直後（initializeEarlyServices）
-//   - Match 再生成直後（GameWiringSubRegistry::initMatchCoordinator）
+//   - Match 再生成直後（MainWindowServiceRegistry::initMatchCoordinator）
 //   - CsaGameCoordinator 生成時（DialogLaunchWiring::displayCsaGameDialog）
 void MainWindow::refreshPlayModePolicyDeps()
 {

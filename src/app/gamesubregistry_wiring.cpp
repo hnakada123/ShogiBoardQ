@@ -1,15 +1,15 @@
-/// @file gamewiringsubregistry.cpp
+/// @file gamesubregistry_wiring.cpp
 /// @brief Game系配線管理（MC配線・CSA配線・連続対局・ターン同期ブリッジ・MC初期化）の ensure* 実装
 
-#include "gamewiringsubregistry.h"
-#include "gamesessionsubregistry.h"
-#include "gamesubregistry.h"
+/// MainWindowServiceRegistry の Game 配線系メソッドを実装する分割ファイル。
+
+#include "mainwindowserviceregistry.h"
+
 #include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowmatchadapter.h"
 #include "mainwindowmatchwiringdepsservice.h"
-#include "mainwindowserviceregistry.h"
 #include "mainwindowsignalrouter.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "ui_mainwindow.h"
@@ -24,29 +24,17 @@
 #include "kifunavigationcoordinator.h"
 #include "matchruntimequeryservice.h"
 #include "playerinfowiring.h"
+#include "sessionlifecyclecoordinator.h"
 #include "timecontrolcontroller.h"
 #include "turnmanager.h"
 #include "turnsyncbridge.h"
 #include "logcategories.h"
 
-GameWiringSubRegistry::GameWiringSubRegistry(MainWindow& mw,
-                                             GameSubRegistry* gameReg,
-                                             MainWindowServiceRegistry* registry,
-                                             MainWindowFoundationRegistry* foundation,
-                                             QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_gameReg(gameReg)
-    , m_registry(registry)
-    , m_foundation(foundation)
-{
-}
-
 // ---------------------------------------------------------------------------
 // MatchCoordinator 配線
 // ---------------------------------------------------------------------------
 
-void GameWiringSubRegistry::ensureMatchCoordinatorWiring()
+void MainWindowServiceRegistry::ensureMatchCoordinatorWiring()
 {
     if (!m_mw.m_matchWiring) {
         createMatchCoordinatorWiring();
@@ -54,25 +42,32 @@ void GameWiringSubRegistry::ensureMatchCoordinatorWiring()
     refreshMatchWiringDeps();
 }
 
-void GameWiringSubRegistry::createMatchCoordinatorWiring()
+void MainWindowServiceRegistry::createMatchCoordinatorWiring()
 {
     m_mw.m_matchWiring = std::make_unique<MatchCoordinatorWiring>();
 
-    // 初回のみ: 転送シグナルを GameSessionOrchestrator / 各コントローラに接続
-    m_gameReg->session()->ensureGameSessionOrchestrator();
+    // 初回のみ: 転送シグナルを各責務クラスに接続
+    ensureGameSessionOrchestrator();
+    ensureGameStateController();
+    ensureConsecutiveGamesController();
+    ensureSessionLifecycleCoordinator();
     m_foundation->ensurePlayerInfoWiring();
     m_foundation->ensureKifuNavigationCoordinator();
-    m_registry->kifu()->ensureBranchNavigationWiring();
+    m_kifu->ensureBranchNavigationWiring();
 
     MatchCoordinatorWiring::ForwardingTargets targets;
+    targets.gameSession = m_mw.m_gameSessionOrchestrator;
+    targets.sessionLifecycle = m_mw.m_sessionLifecycle;
+    targets.gameStateController = m_mw.m_gameStateController;
+    targets.consecutiveGamesController = m_mw.m_consecutiveGamesController;
     targets.appearance = m_mw.m_appearanceController.get();
     targets.playerInfo = m_mw.m_playerInfoWiring;
     targets.kifuNav = m_mw.m_kifuNavCoordinator.get();
     targets.branchNav = m_mw.m_branchNavWiring.get();
-    m_mw.m_matchWiring->wireForwardingSignals(targets, m_mw.m_gameSessionOrchestrator);
+    m_mw.m_matchWiring->wireForwardingSignals(targets);
 }
 
-void GameWiringSubRegistry::refreshMatchWiringDeps()
+void MainWindowServiceRegistry::refreshMatchWiringDeps()
 {
     if (!m_mw.m_matchWiring) return;
 
@@ -89,7 +84,7 @@ void GameWiringSubRegistry::refreshMatchWiringDeps()
         ad.gameController = m_mw.m_gameController;
         ad.boardController = m_mw.m_boardController;
         ad.playMode = &m_mw.m_state.playMode;
-        m_gameReg->session()->ensureCoreInitCoordinator();
+        ensureCoreInitCoordinator();
         ad.initializeNewGame = [this](QString& startSfenStr) {
             m_mw.m_coreInit->initializeNewGame(startSfenStr);
         };
@@ -98,11 +93,11 @@ void GameWiringSubRegistry::refreshMatchWiringDeps()
             return m_mw.m_playerInfoWiring;
         };
         ad.ensureAndGetDialogCoordinator = [this]() -> DialogCoordinator* {
-            m_registry->ensureDialogCoordinator();
+            ensureDialogCoordinator();
             return m_mw.m_dialogCoordinator;
         };
         ad.ensureAndGetTurnStateSync = [this]() -> TurnStateSyncService* {
-            m_gameReg->ensureTurnStateSyncService();
+            prepareTurnStateSyncService();
             return m_mw.m_turnStateSync.get();
         };
         m_mw.m_matchAdapter->updateDeps(ad);
@@ -116,7 +111,7 @@ void GameWiringSubRegistry::refreshMatchWiringDeps()
 // MatchCoordinatorWiring::Deps 構築
 // ---------------------------------------------------------------------------
 
-MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
+MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
 {
     MainWindowMatchWiringDepsService::Inputs in;
     in.evalGraphController = m_mw.m_evalGraphController.get();
@@ -143,7 +138,7 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
         adapter->showMoveHighlights(from, to);
     };
     in.appendKifuLine = [this](const QString& text, const QString& elapsed) {
-        m_registry->kifu()->ensureGameRecordUpdateService();
+        m_kifu->ensureGameRecordUpdateService();
         if (m_mw.m_gameRecordUpdateService) {
             m_mw.m_gameRecordUpdateService->appendKifuLine(text, elapsed);
         }
@@ -166,7 +161,7 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
     in.setEngineNames = [this](const QString& e1, const QString& e2) {
         m_mw.m_playerInfoWiring->onSetEngineNames(e1, e2);
     };
-    m_registry->kifu()->ensureKifuFileController();
+    m_kifu->ensureKifuFileController();
     in.autoSaveKifu = [this](const QString& gameResultText,
                              PlayMode mode,
                              const QString& gameModeText,
@@ -209,7 +204,7 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
     in.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
 
     in.ensureTimeController = [this]() {
-        m_gameReg->ensureTimeController();
+        ensureTimeController();
     };
     in.ensureEvaluationGraphController = [this]() {
         m_foundation->ensureEvaluationGraphController();
@@ -218,7 +213,7 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
         m_foundation->ensurePlayerInfoWiring();
     };
     in.ensureUsiCommandController = [this]() {
-        m_registry->ensureUsiCommandController();
+        ensureUsiCommandController();
     };
     in.ensureUiStatePolicyManager = [this]() {
         m_foundation->ensureUiStatePolicyManager();
@@ -251,7 +246,7 @@ MatchCoordinatorWiring::Deps GameWiringSubRegistry::buildMatchWiringDeps()
 // CSA通信対局配線
 // ---------------------------------------------------------------------------
 
-void GameWiringSubRegistry::ensureCsaGameWiring()
+void MainWindowServiceRegistry::ensureCsaGameWiring()
 {
     if (m_mw.m_csaGameWiring) return;
 
@@ -277,11 +272,11 @@ void GameWiringSubRegistry::ensureCsaGameWiring()
 
     // 外部シグナル接続を CsaGameWiring に委譲
     m_foundation->ensureUiStatePolicyManager();
-    m_registry->kifu()->ensureGameRecordUpdateService();
+    m_kifu->ensureGameRecordUpdateService();
     m_foundation->ensureUiNotificationService();
     m_mw.m_csaGameWiring->wireExternalSignals(m_mw.m_uiStatePolicy,
-                                               m_mw.m_gameRecordUpdateService.get(),
-                                               m_mw.m_notificationService);
+                                              m_mw.m_gameRecordUpdateService.get(),
+                                              m_mw.m_notificationService);
 
     qCDebug(lcApp).noquote() << "ensureCsaGameWiring_: created and connected";
 }
@@ -290,28 +285,29 @@ void GameWiringSubRegistry::ensureCsaGameWiring()
 // 連続対局コントローラ
 // ---------------------------------------------------------------------------
 
-void GameWiringSubRegistry::ensureConsecutiveGamesController()
+void MainWindowServiceRegistry::ensureConsecutiveGamesController()
 {
-    if (m_mw.m_consecutiveGamesController) return;
+    if (!m_mw.m_consecutiveGamesController) {
+        // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+        // Created: once on first use, never recreated
+        m_mw.m_consecutiveGamesController = new ConsecutiveGamesController(&m_mw);
+    }
 
-    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
-    // Created: once on first use, never recreated
-    m_mw.m_consecutiveGamesController = new ConsecutiveGamesController(&m_mw);
     m_mw.m_consecutiveGamesController->setTimeController(m_mw.m_timeController);
     m_mw.m_consecutiveGamesController->setGameStartCoordinator(m_mw.m_gameStart);
-
-    m_gameReg->session()->ensureGameSessionOrchestrator();
-    connect(m_mw.m_consecutiveGamesController, &ConsecutiveGamesController::requestPreStartCleanup,
-            m_mw.m_gameSessionOrchestrator, &GameSessionOrchestrator::onPreStartCleanupRequested);
-    connect(m_mw.m_consecutiveGamesController, &ConsecutiveGamesController::requestStartNextGame,
-            m_mw.m_gameSessionOrchestrator, &GameSessionOrchestrator::onConsecutiveStartRequested);
+    m_mw.m_consecutiveGamesController->setPerformPreStartCleanup([this]() {
+        ensureSessionLifecycleCoordinator();
+        if (m_mw.m_sessionLifecycle) {
+            m_mw.m_sessionLifecycle->performPreStartCleanup();
+        }
+    });
 }
 
 // ---------------------------------------------------------------------------
 // ターン同期ブリッジ
 // ---------------------------------------------------------------------------
 
-void GameWiringSubRegistry::prepareTurnSyncBridge()
+void MainWindowServiceRegistry::prepareTurnSyncBridge()
 {
     auto* gc = m_mw.m_gameController;
     auto* tm = m_mw.findChild<TurnManager*>("TurnManager");
@@ -324,28 +320,28 @@ void GameWiringSubRegistry::prepareTurnSyncBridge()
 // MatchRuntimeQueryService 中継メソッド（shutdown 安全性確保）
 // ---------------------------------------------------------------------------
 
-qint64 GameWiringSubRegistry::queryRemainingMsFor(MatchCoordinator::Player player)
+qint64 MainWindowServiceRegistry::queryRemainingMsFor(MatchCoordinator::Player player)
 {
     if (m_mw.m_queryService)
         return m_mw.m_queryService->remainingMsFor(player);
     return 0;
 }
 
-qint64 GameWiringSubRegistry::queryIncrementMsFor(MatchCoordinator::Player player)
+qint64 MainWindowServiceRegistry::queryIncrementMsFor(MatchCoordinator::Player player)
 {
     if (m_mw.m_queryService)
         return m_mw.m_queryService->incrementMsFor(player);
     return 0;
 }
 
-qint64 GameWiringSubRegistry::queryByoyomiMs()
+qint64 MainWindowServiceRegistry::queryByoyomiMs()
 {
     if (m_mw.m_queryService)
         return m_mw.m_queryService->byoyomiMs();
     return 0;
 }
 
-bool GameWiringSubRegistry::queryIsHumanSide(ShogiGameController::Player player)
+bool MainWindowServiceRegistry::queryIsHumanSide(ShogiGameController::Player player)
 {
     if (m_mw.m_queryService)
         return m_mw.m_queryService->isHumanSide(player);
@@ -356,7 +352,7 @@ bool GameWiringSubRegistry::queryIsHumanSide(ShogiGameController::Player player)
 // MatchCoordinator初期化
 // ---------------------------------------------------------------------------
 
-void GameWiringSubRegistry::initMatchCoordinator()
+void MainWindowServiceRegistry::initMatchCoordinator()
 {
     if (!m_mw.m_gameController || !m_mw.m_shogiView) return;
 
@@ -375,6 +371,9 @@ void GameWiringSubRegistry::initMatchCoordinator()
 
     m_mw.m_match = m_mw.m_matchWiring->match();
     m_mw.refreshPlayModePolicyDeps();
+    ensureReplayController();
+    ensureGameStateController();
+    ensureSessionLifecycleCoordinator();
 
     // ConsiderationWiring が保持する旧 MatchCoordinator ポインタを更新
     if (m_mw.m_considerationWiring) {

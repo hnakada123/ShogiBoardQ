@@ -583,10 +583,7 @@ private slots:
         const QStringList registryFiles = {
             QStringLiteral("src/app/mainwindowserviceregistry.h"),
             QStringLiteral("src/app/mainwindowfoundationregistry.h"),
-            QStringLiteral("src/app/gamesubregistry.h"),
             QStringLiteral("src/app/kifusubregistry.h"),
-            QStringLiteral("src/app/gamesessionsubregistry.h"),
-            QStringLiteral("src/app/gamewiringsubregistry.h"),
         };
 
         // Read all .cpp files from src/app/ for invocation search

@@ -157,7 +157,7 @@ private slots:
 
     // ================================================================
     // Phase 2: 対局開始フロー
-    //   GSO::initializeGame() → GSC → invokeStartGame() → MC::prepareAndStartGame()
+    //   GSO::initializeGame() → GSC → ServiceRegistry::startGameSession() → MC::prepareAndStartGame()
     // ================================================================
 
     /// initializeGame が GameStartCoordinator に委譲すること
@@ -178,16 +178,16 @@ private slots:
                   "Must delegate to GameStartCoordinator::initializeGame");
     }
 
-    /// invokeStartGame が MatchCoordinator::prepareAndStartGame に委譲すること
-    void phase2_invokeStartGameDelegatesToMC()
+    /// ServiceRegistry の開始ヘルパーが MatchCoordinator::prepareAndStartGame に委譲すること
+    void phase2_serviceRegistryStartGameSessionDelegatesToMC()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read GSO source");
+            QStringLiteral("src/app/mainwindowserviceregistry.cpp"));
+        QVERIFY2(!lines.isEmpty(), "Failed to read ServiceRegistry source");
 
         const auto range = findFunctionBody(
-            lines, QStringLiteral("GameSessionOrchestrator::invokeStartGame()"));
-        QVERIFY2(range.first >= 0, "invokeStartGame not found");
+            lines, QStringLiteral("MainWindowServiceRegistry::startGameSession()"));
+        QVERIFY2(range.first >= 0, "startGameSession not found");
 
         const QString body = bodyText(lines, range);
         QVERIFY2(body.contains(QStringLiteral("prepareAndStartGame")),
@@ -353,7 +353,7 @@ private slots:
 
     // ================================================================
     // Phase 6: 再対局フロー
-    //   SLC::startNewGame() → GSO::invokeStartGame() → MC::prepareAndStartGame()
+    //   SLC::startNewGame() → ServiceRegistry::startGameSession() → MC::prepareAndStartGame()
     // ================================================================
 
     /// SessionLifecycleCoordinator::startNewGame が対局開始コールバックを呼ぶこと
@@ -372,11 +372,11 @@ private slots:
                   "startNewGame must call startGame callback");
     }
 
-    /// 再対局が同一の invokeStartGame → prepareAndStartGame チェーンを使うこと
+    /// 再対局が同一の startGameSession → prepareAndStartGame チェーンを使うこと
     void phase6_restartUsesExistingChain()
     {
-        // GSO::invokeStartGame が最終的に MC::prepareAndStartGame を呼ぶことは
-        // phase2_invokeStartGameDelegatesToMC で検証済み。
+        // ServiceRegistry::startGameSession が最終的に MC::prepareAndStartGame を呼ぶことは
+        // phase2_serviceRegistryStartGameSessionDelegatesToMC で検証済み。
         // ここでは startNewGame の Deps に startGame コールバックがあることを確認。
         const QString header = readSourceFile(
             QStringLiteral("src/app/sessionlifecyclecoordinator.h"));
@@ -460,20 +460,22 @@ private slots:
                   "GameEndHandler must emit gameEnded signal with GameEndInfo");
     }
 
-    /// GSO::onMatchGameEnded が SLC と連携すること
+    /// MatchCoordinatorWiring が gameEnded を SLC に直接接続すること
     void crossCut_gameEndReachesSLC()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/gamesessionorchestrator.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read GSO source");
+            QStringLiteral("src/ui/wiring/matchcoordinatorwiring.cpp"));
+        QVERIFY2(!lines.isEmpty(), "Failed to read MCW source");
 
         const auto range = findFunctionBody(
-            lines, QStringLiteral("GameSessionOrchestrator::onMatchGameEnded"));
-        QVERIFY2(range.first >= 0, "onMatchGameEnded not found");
+            lines, QStringLiteral("MatchCoordinatorWiring::wireForwardingSignals"));
+        QVERIFY2(range.first >= 0, "wireForwardingSignals not found");
 
         const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("ensureSessionLifecycleCoordinator")),
-                  "Game end must reach SessionLifecycleCoordinator");
+        QVERIFY2(body.contains(QStringLiteral("matchGameEnded")),
+                  "matchGameEnded signal must be wired");
+        QVERIFY2(body.contains(QStringLiteral("SessionLifecycleCoordinator::handleGameEnded")),
+                  "Game end must reach SessionLifecycleCoordinator directly");
     }
 
     /// UiStatePolicyManager が初期状態 Idle で開始すること

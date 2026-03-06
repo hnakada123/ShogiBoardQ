@@ -1,20 +1,21 @@
-/// @file gamesessionsubregistry.cpp
+/// @file gamesubregistry_session.cpp
 /// @brief Game系セッション管理（クリーンアップ・ライブセッション・ライフサイクル・コア初期化）の ensure* 実装
 
-#include "gamesessionsubregistry.h"
-#include "gamesubregistry.h"
-#include "gamewiringsubregistry.h"
+/// MainWindowServiceRegistry の Game セッション系メソッドを実装する分割ファイル。
+
+#include "mainwindowserviceregistry.h"
+
 #include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "mainwindowfoundationregistry.h"
-#include "mainwindowserviceregistry.h"
 
 #include "boardinteractioncontroller.h"
 #include "consecutivegamescontroller.h"
 #include "csagamecoordinator.h"
 #include "gamesessionorchestrator.h"
 #include "kifuloadcoordinator.h"
+#include "livegamesession.h"
 #include "livegamesessionupdater.h"
 #include "matchruntimequeryservice.h"
 #include "playerinfowiring.h"
@@ -25,24 +26,11 @@
 
 #include <functional>
 
-GameSessionSubRegistry::GameSessionSubRegistry(MainWindow& mw,
-                                               GameSubRegistry* gameReg,
-                                               MainWindowServiceRegistry* registry,
-                                               MainWindowFoundationRegistry* foundation,
-                                               QObject* parent)
-    : QObject(parent)
-    , m_mw(mw)
-    , m_gameReg(gameReg)
-    , m_registry(registry)
-    , m_foundation(foundation)
-{
-}
-
 // ---------------------------------------------------------------------------
 // 開始前クリーンアップ
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::ensurePreStartCleanupHandler()
+void MainWindowServiceRegistry::ensurePreStartCleanupHandler()
 {
     if (m_mw.m_registryParts.preStartCleanupHandler) return;
 
@@ -77,7 +65,7 @@ void GameSessionSubRegistry::ensurePreStartCleanupHandler()
 // ライブセッション開始
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::startLiveGameSessionIfNeeded()
+void MainWindowServiceRegistry::startLiveGameSessionIfNeeded()
 {
     ensureLiveGameSessionUpdater();
     m_mw.m_liveGameSessionUpdater->ensureSessionStarted();
@@ -87,7 +75,7 @@ void GameSessionSubRegistry::startLiveGameSessionIfNeeded()
 // ライブセッション更新
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::ensureLiveGameSessionUpdater()
+void MainWindowServiceRegistry::ensureLiveGameSessionUpdater()
 {
     if (!m_mw.m_liveGameSessionUpdater) {
         createLiveGameSessionUpdater();
@@ -95,12 +83,12 @@ void GameSessionSubRegistry::ensureLiveGameSessionUpdater()
     refreshLiveGameSessionUpdaterDeps();
 }
 
-void GameSessionSubRegistry::createLiveGameSessionUpdater()
+void MainWindowServiceRegistry::createLiveGameSessionUpdater()
 {
     m_mw.m_liveGameSessionUpdater = std::make_unique<LiveGameSessionUpdater>();
 }
 
-void GameSessionSubRegistry::refreshLiveGameSessionUpdaterDeps()
+void MainWindowServiceRegistry::refreshLiveGameSessionUpdaterDeps()
 {
     if (!m_mw.m_liveGameSessionUpdater) return;
 
@@ -117,7 +105,7 @@ void GameSessionSubRegistry::refreshLiveGameSessionUpdaterDeps()
 // 対局ライフサイクル
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::ensureGameSessionOrchestrator()
+void MainWindowServiceRegistry::ensureGameSessionOrchestrator()
 {
     if (!m_mw.m_gameSessionOrchestrator) {
         createGameSessionOrchestrator();
@@ -125,14 +113,14 @@ void GameSessionSubRegistry::ensureGameSessionOrchestrator()
     refreshGameSessionOrchestratorDeps();
 }
 
-void GameSessionSubRegistry::createGameSessionOrchestrator()
+void MainWindowServiceRegistry::createGameSessionOrchestrator()
 {
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
     m_mw.m_gameSessionOrchestrator = new GameSessionOrchestrator(&m_mw);
 }
 
-void GameSessionSubRegistry::refreshGameSessionOrchestratorDeps()
+void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
 {
     if (!m_mw.m_gameSessionOrchestrator) return;
 
@@ -140,18 +128,13 @@ void GameSessionSubRegistry::refreshGameSessionOrchestratorDeps()
 
     // === Controllers（ダブルポインタ） ===
     deps.gameStateController = &m_mw.m_gameStateController;
-    deps.sessionLifecycle = &m_mw.m_sessionLifecycle;
-    deps.consecutiveGamesController = &m_mw.m_consecutiveGamesController;
     deps.gameStart = &m_mw.m_gameStart;
-    deps.preStartCleanupHandler = &m_mw.m_registryParts.preStartCleanupHandler;
     deps.dialogCoordinator = &m_mw.m_dialogCoordinator;
-    deps.replayController = &m_mw.m_replayController;
-    deps.timeController = &m_mw.m_timeController;
     deps.csaGameCoordinator = &m_mw.m_csaGameCoordinator;
     deps.match = &m_mw.m_match;
 
     // === Core objects ===
-    deps.shogiView = m_mw.m_shogiView;
+    deps.replayController = m_mw.m_replayController;
     deps.gameController = m_mw.m_gameController;
     deps.kifuLoadCoordinator = m_mw.m_kifuLoadCoordinator;
     deps.kifuModel = m_mw.m_models.kifuRecord;
@@ -162,41 +145,19 @@ void GameSessionSubRegistry::refreshGameSessionOrchestratorDeps()
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
     deps.bottomIsP1 = &m_mw.m_player.bottomIsP1;
-    deps.lastTimeControl = &m_mw.m_lastTimeControl;
 
     // === Branch navigation ===
     deps.branchTree = m_mw.m_branchNav.branchTree;
     deps.navState = m_mw.m_branchNav.navState;
-    deps.liveGameSession = &m_mw.m_branchNav.liveGameSession;
 
     // === Lazy-init callbacks ===
     deps.ensureGameStateController = [this]() {
-        m_gameReg->ensureGameStateController();
-    };
-    deps.ensureSessionLifecycleCoordinator = [this]() {
-        ensureSessionLifecycleCoordinator();
-    };
-    deps.ensureConsecutiveGamesController = [this]() {
-        m_gameReg->wiring()->ensureConsecutiveGamesController();
+        ensureGameStateController();
     };
     deps.ensureGameStartCoordinator = [this]() {
-        m_gameReg->ensureGameStartCoordinator();
+        ensureGameStartCoordinator();
     };
-    deps.ensurePreStartCleanupHandler = [this]() {
-        ensurePreStartCleanupHandler();
-    };
-    deps.ensureDialogCoordinator = [this]() { m_registry->ensureDialogCoordinator(); };
-    deps.ensureReplayController = [this]() {
-        m_gameReg->ensureReplayController();
-    };
-
-    // === Action callbacks ===
-    deps.initMatchCoordinator = [this]() {
-        m_gameReg->wiring()->initMatchCoordinator();
-    };
-    deps.clearSessionDependentUi = [this]() { m_registry->clearSessionDependentUi(); };
-    deps.updateJosekiWindow = [this]() { m_registry->kifu()->updateJosekiWindow(); };
-    deps.sfenRecord = [this]() -> QStringList* { return m_mw.m_queryService->sfenRecord(); };
+    deps.ensureDialogCoordinator = [this]() { ensureDialogCoordinator(); };
 
     m_mw.m_gameSessionOrchestrator->updateDeps(deps);
 }
@@ -205,7 +166,7 @@ void GameSessionSubRegistry::refreshGameSessionOrchestratorDeps()
 // コア初期化（MainWindow から移譲）
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::ensureCoreInitCoordinator()
+void MainWindowServiceRegistry::ensureCoreInitCoordinator()
 {
     if (!m_mw.m_coreInit) {
         createCoreInitCoordinator();
@@ -213,12 +174,12 @@ void GameSessionSubRegistry::ensureCoreInitCoordinator()
     refreshCoreInitDeps();
 }
 
-void GameSessionSubRegistry::createCoreInitCoordinator()
+void MainWindowServiceRegistry::createCoreInitCoordinator()
 {
     m_mw.m_coreInit = std::make_unique<MainWindowCoreInitCoordinator>();
 }
 
-void GameSessionSubRegistry::refreshCoreInitDeps()
+void MainWindowServiceRegistry::refreshCoreInitDeps()
 {
     if (!m_mw.m_coreInit) return;
 
@@ -231,12 +192,12 @@ void GameSessionSubRegistry::refreshCoreInitDeps()
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.parent = &m_mw;
-    deps.setupBoardInteractionController = [this]() { m_registry->setupBoardInteractionController(); };
+    deps.setupBoardInteractionController = [this]() { setupBoardInteractionController(); };
     deps.setCurrentTurn = [this]() {
         m_mw.setCurrentTurn();
     };
     deps.prepareTurnSyncBridge = [this]() {
-        m_gameReg->wiring()->prepareTurnSyncBridge();
+        prepareTurnSyncBridge();
     };
     deps.ensurePlayerInfoWiringAndApply = [this]() {
         m_foundation->ensurePlayerInfoWiring();
@@ -253,7 +214,7 @@ void GameSessionSubRegistry::refreshCoreInitDeps()
 // セッションライフサイクル
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::ensureSessionLifecycleCoordinator()
+void MainWindowServiceRegistry::ensureSessionLifecycleCoordinator()
 {
     if (!m_mw.m_sessionLifecycle) {
         createSessionLifecycleCoordinator();
@@ -261,14 +222,14 @@ void GameSessionSubRegistry::ensureSessionLifecycleCoordinator()
     refreshSessionLifecycleDeps();
 }
 
-void GameSessionSubRegistry::createSessionLifecycleCoordinator()
+void MainWindowServiceRegistry::createSessionLifecycleCoordinator()
 {
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
     m_mw.m_sessionLifecycle = new SessionLifecycleCoordinator(&m_mw);
 }
 
-void GameSessionSubRegistry::refreshSessionLifecycleDeps()
+void MainWindowServiceRegistry::refreshSessionLifecycleDeps()
 {
     if (!m_mw.m_sessionLifecycle) return;
 
@@ -279,16 +240,27 @@ void GameSessionSubRegistry::refreshSessionLifecycleDeps()
     callbacks.resetEngineState = [this]() {
         resetEngineState();
     };
-    ensureGameSessionOrchestrator();
-    callbacks.onPreStartCleanupRequested = [this]() {
-        m_mw.m_gameSessionOrchestrator->onPreStartCleanupRequested();
+    callbacks.performPreStartCleanup = [this]() {
+        ensurePreStartCleanupHandler();
+        if (m_mw.m_registryParts.preStartCleanupHandler) {
+            m_mw.m_registryParts.preStartCleanupHandler->performCleanup();
+        }
     };
-    callbacks.resetModels = [this](const QString& sfen) { m_registry->resetModels(sfen); };
-    callbacks.resetUiState = [this](const QString& sfen) { m_registry->resetUiState(sfen); };
-    callbacks.clearEvalState = [this]() { m_registry->clearEvalState(); };
-    callbacks.unlockGameOverStyle = [this]() { m_registry->unlockGameOverStyle(); };
+    callbacks.clearSessionDependentUi = [this]() { clearSessionDependentUi(); };
+    callbacks.resetModels = [this](const QString& sfen) { resetModels(sfen); };
+    callbacks.resetUiState = [this](const QString& sfen) { resetUiState(sfen); };
+    callbacks.clearEvalState = [this]() { clearEvalState(); };
+    callbacks.unlockGameOverStyle = [this]() { unlockGameOverStyle(); };
     callbacks.startGame = [this]() {
-        m_mw.m_gameSessionOrchestrator->invokeStartGame();
+        startGameSession();
+    };
+    callbacks.updateJosekiWindow = [this]() { m_kifu->updateJosekiWindow(); };
+    callbacks.commitLiveGameSessionIfActive = [this]() {
+        auto* session = m_mw.m_branchNav.liveGameSession;
+        if (session != nullptr && session->isActive()) {
+            qCDebug(lcApp) << "commitLiveGameSessionIfActive: committing live game session";
+            session->commit();
+        }
     };
     callbacks.updateEndTime = [this](const QDateTime& endTime) {
         m_foundation->ensurePlayerInfoWiring();
@@ -297,7 +269,10 @@ void GameSessionSubRegistry::refreshSessionLifecycleDeps()
         }
     };
     callbacks.startNextConsecutiveGame = [this]() {
-        m_mw.m_gameSessionOrchestrator->startNextConsecutiveGame();
+        ensureConsecutiveGamesController();
+        if (m_mw.m_consecutiveGamesController) {
+            m_mw.m_consecutiveGamesController->startNextGame();
+        }
     };
     callbacks.lastTimeControl = &m_mw.m_lastTimeControl;
     callbacks.updateGameInfoWithTimeControl = [this](bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incMs) {
@@ -315,7 +290,7 @@ void GameSessionSubRegistry::refreshSessionLifecycleDeps()
 // ゲーム状態フィールドクリア
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::clearGameStateFields()
+void MainWindowServiceRegistry::clearGameStateFields()
 {
     m_mw.m_state.resumeSfenStr.clear();
     m_mw.m_state.errorOccurred = false;
@@ -345,7 +320,7 @@ void GameSessionSubRegistry::clearGameStateFields()
 // エンジン状態リセット
 // ---------------------------------------------------------------------------
 
-void GameSessionSubRegistry::resetEngineState()
+void MainWindowServiceRegistry::resetEngineState()
 {
     if (m_mw.m_match) {
         m_mw.m_match->stopAnalysisEngine();
@@ -357,20 +332,4 @@ void GameSessionSubRegistry::resetEngineState()
     if (m_mw.m_consecutiveGamesController) {
         m_mw.m_consecutiveGamesController->reset();
     }
-}
-
-// ---------------------------------------------------------------------------
-// MainWindow スロットからの転送
-// ---------------------------------------------------------------------------
-
-void GameSessionSubRegistry::resetToInitialState()
-{
-    ensureSessionLifecycleCoordinator();
-    m_mw.m_sessionLifecycle->resetToInitialState();
-}
-
-void GameSessionSubRegistry::resetGameState()
-{
-    ensureSessionLifecycleCoordinator();
-    m_mw.m_sessionLifecycle->resetGameState();
 }

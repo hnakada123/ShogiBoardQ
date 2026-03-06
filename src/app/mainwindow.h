@@ -96,8 +96,7 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
     friend class MainWindowServiceRegistry; friend class MainWindowFoundationRegistry;
-    friend class GameSubRegistry; friend class GameSessionSubRegistry;
-    friend class GameWiringSubRegistry; friend class KifuSubRegistry;
+    friend class KifuSubRegistry;
 
 public:
     explicit MainWindow(QWidget* parent = nullptr);

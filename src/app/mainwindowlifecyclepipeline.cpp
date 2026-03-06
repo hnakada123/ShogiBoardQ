@@ -10,8 +10,6 @@
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowserviceregistry.h"
 #include "mainwindowserviceregistryfacades.h"
-#include "gamesessionsubregistry.h"
-#include "gamesubregistry.h"
 #include "kifusubregistry.h"
 #include "mainwindowsignalrouter.h"
 #include "usicommlogmodel.h"
@@ -187,7 +185,7 @@ void MainWindow::initializeCoreComponentsForLifecycle()
 {
     MainWindow& m_mw = *this;
     // コア部品（GC, View, 盤モデル etc.）をコーディネータで初期化
-    m_mw.m_registry->game()->session()->ensureCoreInitCoordinator();
+    m_mw.m_registry->ensureCoreInitCoordinator();
     m_mw.m_coreInit->initialize();
 }
 
@@ -205,7 +203,7 @@ void MainWindow::initializeEarlyServicesForLifecycle()
     }
 
     // TimeControlController を初期化して TimeDisplayPresenter に設定
-    m_mw.m_registry->game()->ensureTimeController();
+    m_mw.m_registry->ensureTimeController();
 
     // 対局実行時クエリサービスの依存を設定（生成は createFoundationObjects で実施済み）
     {
@@ -268,7 +266,7 @@ void MainWindow::connectSignalsForLifecycle()
             m_mw.m_registry->kifu()->ensureKifuFileController();
         };
         d.ensureGameSessionOrchestrator = [&m_mw]() {
-            m_mw.m_registry->game()->session()->ensureGameSessionOrchestrator();
+            m_mw.m_registry->ensureGameSessionOrchestrator();
         };
         d.ensureUiNotificationService = [&m_mw]() {
             m_mw.m_registry->foundation()->ensureUiNotificationService();

@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <functional>
 
 #include "gamestartcoordinator.h"
@@ -41,6 +42,7 @@ public:
         ReplayController* replayController = nullptr;       ///< リプレイコントローラ（非所有）
         ShogiGameController* gameController = nullptr;      ///< ゲームコントローラ（非所有）
         GameStateController* gameStateController = nullptr; ///< ゲーム状態コントローラ（非所有）
+        QStringList* sfenRecord = nullptr;                  ///< SFEN履歴（非所有）
 
         // --- 状態ポインタ（resetToInitialState で直接操作） ---
         PlayMode* playMode = nullptr;           ///< プレイモード（外部所有）
@@ -51,7 +53,8 @@ public:
         // --- MainWindow に残る処理のコールバック ---
         std::function<void()> clearGameStateFields;       ///< m_state/m_player/m_kifu のフィールドクリア
         std::function<void()> resetEngineState;           ///< エンジン・通信の停止
-        std::function<void()> onPreStartCleanupRequested; ///< 対局開始前クリーンアップ
+        std::function<void()> performPreStartCleanup;     ///< 対局開始前クリーンアップ本体
+        std::function<void()> clearSessionDependentUi;    ///< セッション依存UIのクリア
         std::function<void(const QString&)> resetModels;  ///< データモデルのクリア
         std::function<void(const QString&)> resetUiState; ///< UI要素の状態リセット
 
@@ -59,6 +62,8 @@ public:
         std::function<void()> clearEvalState;             ///< 評価グラフ・スコア・ライブ表示のクリア
         std::function<void()> unlockGameOverStyle;        ///< 対局終了スタイルロック解除
         std::function<void()> startGame;                  ///< 対局開始（MatchCoordinator初期化含む）
+        std::function<void()> updateJosekiWindow;         ///< 定跡ウィンドウ更新
+        std::function<void()> commitLiveGameSessionIfActive; ///< アクティブなライブセッションの確定
 
         // --- handleGameEnded 用 ---
         TimeControlController* timeController = nullptr;              ///< 時間制御コントローラ（非所有）
@@ -83,11 +88,20 @@ public:
     /// ゲーム状態をリセットする（状態変数クリア＋コントローラリセット）
     void resetGameState();
 
+    /// 対局開始前のクリーンアップとセッション依存UIのクリアを行う
+    void performPreStartCleanup();
+
     /// 新規対局を開始する（再開判定・評価グラフ初期化・開始呼び出し）
     void startNewGame();
 
     /// 時間設定を適用する（保存・時計設定・UI反映）
     void applyTimeControl(const GameStartCoordinator::TimeControl& tc);
+
+    /// 対局開始後の UI/状態同期を行う
+    void handleGameStarted(const MatchCoordinator::StartOptions& opt);
+
+    /// ライブ対局セッションが有効ならコミットする
+    void commitLiveGameSessionIfActive();
 
     /// 終局処理（終局時刻反映・連続対局判定）
     void handleGameEnded(const MatchCoordinator::GameEndInfo& info);

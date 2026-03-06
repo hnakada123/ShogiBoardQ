@@ -13,6 +13,7 @@ SessionLifecycleCoordinator::Deps SessionLifecycleDepsFactory::createDeps(
     deps.replayController = refs.kifuService.replayController;
     deps.gameController = refs.gameService.gameController;
     deps.gameStateController = refs.gameCtrl.gameStateController;
+    deps.sfenRecord = refs.kifu.sfenRecord;
 
     // 状態ポインタ
     deps.playMode = refs.state.playMode;
@@ -23,7 +24,8 @@ SessionLifecycleCoordinator::Deps SessionLifecycleDepsFactory::createDeps(
     // コールバック（リセット処理用）
     deps.clearGameStateFields = callbacks.clearGameStateFields;
     deps.resetEngineState = callbacks.resetEngineState;
-    deps.onPreStartCleanupRequested = callbacks.onPreStartCleanupRequested;
+    deps.performPreStartCleanup = callbacks.performPreStartCleanup;
+    deps.clearSessionDependentUi = callbacks.clearSessionDependentUi;
     deps.resetModels = callbacks.resetModels;
     deps.resetUiState = callbacks.resetUiState;
 
@@ -31,6 +33,8 @@ SessionLifecycleCoordinator::Deps SessionLifecycleDepsFactory::createDeps(
     deps.clearEvalState = callbacks.clearEvalState;
     deps.unlockGameOverStyle = callbacks.unlockGameOverStyle;
     deps.startGame = callbacks.startGame;
+    deps.updateJosekiWindow = callbacks.updateJosekiWindow;
+    deps.commitLiveGameSessionIfActive = callbacks.commitLiveGameSessionIfActive;
 
     // handleGameEnded 用
     deps.timeController = refs.uiController.timeController;

@@ -4,7 +4,6 @@
 /// MainWindowServiceRegistry のメソッドを実装する分割ファイル。
 
 #include "mainwindowserviceregistry.h"
-#include "gamesubregistry.h"
 #include "kifusubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"

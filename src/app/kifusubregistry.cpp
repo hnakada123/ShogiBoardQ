@@ -5,8 +5,6 @@
 
 #include "kifusubregistry.h"
 #include "mainwindowserviceregistry.h"
-#include "gamesessionsubregistry.h"
-#include "gamesubregistry.h"
 #include "mainwindow.h"
 #include "mainwindowcompositionroot.h"
 #include "mainwindowdepsfactory.h"
@@ -186,7 +184,7 @@ void KifuSubRegistry::refreshGameRecordUpdateDeps()
         return m_mw.m_recordPresenter;
     };
     deps.ensureLiveGameSessionUpdater = [this]() -> LiveGameSessionUpdater* {
-        m_registry->game()->session()->ensureLiveGameSessionUpdater();
+        m_registry->ensureLiveGameSessionUpdater();
         return m_mw.m_liveGameSessionUpdater.get();
     };
     deps.match = m_mw.m_match;

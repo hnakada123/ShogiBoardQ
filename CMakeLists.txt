@@ -281,11 +281,8 @@ set(SRC_APP
     src/app/mainwindowanalysisregistry.cpp
     src/app/mainwindowboardregistry.cpp
     src/app/gamesubregistry.cpp
-    src/app/gamesubregistry.h
-    src/app/gamesessionsubregistry.cpp
-    src/app/gamesessionsubregistry.h
-    src/app/gamewiringsubregistry.cpp
-    src/app/gamewiringsubregistry.h
+    src/app/gamesubregistry_session.cpp
+    src/app/gamesubregistry_wiring.cpp
     src/app/kifusubregistry.cpp
     src/app/kifusubregistry.h
     src/app/mainwindowfoundationregistry.cpp
