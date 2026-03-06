@@ -64,26 +64,13 @@ void PlayerInfoWiring::ensurePlayerInfoController()
 
 void PlayerInfoWiring::addGameInfoTabAtStartup()
 {
-    if (!m_tabWidget) return;
-
-    // GameInfoPaneControllerを確保
     ensureGameInfoController();
-
     if (!m_gameInfoController) return;
 
-    // 既に「対局情報」タブがあるか確認
-    for (int i = 0; i < m_tabWidget->count(); ++i) {
-        if (m_tabWidget->tabText(i) == tr("対局情報")) {
-            m_tabWidget->removeTab(i);
-            break;
-        }
-    }
-
-    // 初期データを設定
+    // 対局情報は分析ドックとして表示するため、起動時は初期データのみ準備する。
     populateDefaultGameInfo();
 
-    // タブを最初（インデックス0）に挿入
-    m_tabWidget->insertTab(0, m_gameInfoController->containerWidget(), tr("対局情報"));
+    if (!m_tabWidget) return;
 
     // 保存されたタブインデックスを復元
     int savedIndex = AppSettings::lastSelectedTabIndex();
@@ -98,7 +85,7 @@ void PlayerInfoWiring::addGameInfoTabAtStartup()
             this, &PlayerInfoWiring::tabCurrentChanged,
             Qt::UniqueConnection);
 
-    qCDebug(lcUi) << "addGameInfoTabAtStartup completed";
+    qCDebug(lcUi) << "addGameInfoTabAtStartup: current tab restored without game-info tab insertion";
 }
 
 void PlayerInfoWiring::populateDefaultGameInfo()

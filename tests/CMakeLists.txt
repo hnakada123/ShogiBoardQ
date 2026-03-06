@@ -204,6 +204,15 @@ add_shogi_test(tst_shogiclock
 )
 
 # ============================================================
+# Unit 4b: KifReader
+# ============================================================
+add_shogi_test(tst_kifreader
+    tst_kifreader.cpp
+    ${SRC}/kifu/kifreader.cpp
+    ${SRC}/common/logcategories.cpp
+)
+
+# ============================================================
 # Unit 5: KIF / KI2 Converters
 # ============================================================
 add_shogi_test(tst_kifconverter
@@ -1113,6 +1122,9 @@ add_shogi_test(tst_engineregistrationhandler
     ${SRC}/services/enginelistsettings.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/common/logcategories.cpp
+)
+target_compile_definitions(tst_engineregistrationhandler PRIVATE
+    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
 # ============================================================

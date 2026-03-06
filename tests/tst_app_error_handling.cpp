@@ -862,7 +862,8 @@ private slots:
             QVERIFY2(body.contains(QStringLiteral("QTimer"))
                          || body.contains(QStringLiteral("timeout")),
                       "waitForResponseFlag should use timer-based timeout");
-            QVERIFY2(body.contains(QStringLiteral("QEventLoop"))
+            QVERIFY2(body.contains(QStringLiteral("waitUntil"))
+                         || body.contains(QStringLiteral("QEventLoop"))
                          || body.contains(QStringLiteral("pumpEventsSlice"))
                          || body.contains(QStringLiteral("processEvents")),
                       "waitForResponseFlag should use event-pump based non-blocking wait");
@@ -875,9 +876,10 @@ private slots:
             QVERIFY2(range.first >= 0, "waitForBestMove() not found");
 
             const QString body = bodyText(lines, range.first, range.second);
-            QVERIFY2(body.contains(QStringLiteral("elapsed"))
-                         && body.contains(QStringLiteral("timeoutMs")),
-                      "waitForBestMove should check elapsed time against timeout");
+            QVERIFY2((body.contains(QStringLiteral("elapsed"))
+                          && body.contains(QStringLiteral("timeoutMs")))
+                         || body.contains(QStringLiteral("waitUntil")),
+                      "waitForBestMove should enforce timeout directly or delegate to waitUntil");
             QVERIFY2(body.contains(QStringLiteral("return false")),
                       "waitForBestMove should return false on timeout");
         }

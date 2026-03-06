@@ -5,15 +5,22 @@
 #include "engineprocessmanager.h"
 #include "logcategories.h"
 
+#include <QCoreApplication>
+#include <QDeadlineTimer>
 #include <QEventLoop>
-#include <QTimer>
 #include <functional>
 
 namespace {
 constexpr int kWakeCheckIntervalMs = 50;
-const QEventLoop::ProcessEventsFlags kResponsiveWaitFlags = QEventLoop::AllEvents;
+const QEventLoop::ProcessEventsFlags kPumpFlags =
+    QEventLoop::ExcludeUserInputEvents | QEventLoop::ExcludeSocketNotifiers;
 
 using ConditionFn = std::function<bool()>;
+
+void pumpEventsSlice(int maxMs)
+{
+    QCoreApplication::processEvents(kPumpFlags, maxMs);
+}
 
 bool waitUntil(const ConditionFn& isDone,
                const ConditionFn& shouldAbort,
@@ -27,22 +34,7 @@ bool waitUntil(const ConditionFn& isDone,
         return false;
     }
 
-    QEventLoop loop;
-    QTimer timeoutTimer;
-    QTimer wakeTimer;
-
-    timeoutTimer.setSingleShot(true);
-    QObject::connect(&timeoutTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
-    wakeTimer.setSingleShot(true);
-    QObject::connect(&wakeTimer, &QTimer::timeout, &loop, &QEventLoop::quit);
-
     if (processManager != nullptr) {
-        QObject::connect(processManager, &EngineProcessManager::dataReceived,
-                         &loop, &QEventLoop::quit);
-        QObject::connect(processManager, &EngineProcessManager::stderrReceived,
-                         &loop, &QEventLoop::quit);
-        QObject::connect(processManager, &EngineProcessManager::processError,
-                         &loop, &QEventLoop::quit);
         processManager->pumpPendingOutput();
     }
 
@@ -50,30 +42,34 @@ bool waitUntil(const ConditionFn& isDone,
         return isDone() && !shouldAbort();
     }
 
-    timeoutTimer.start(timeoutMs);
-    while (timeoutTimer.isActive() && !isDone() && !shouldAbort()) {
+    QDeadlineTimer deadline(timeoutMs);
+    while (!deadline.hasExpired() && !isDone() && !shouldAbort()) {
         if (processManager != nullptr) {
             processManager->pumpPendingOutput();
         }
+        pumpEventsSlice(1);
         if (isDone() || shouldAbort()) {
             break;
         }
-        const int remainingMs = timeoutTimer.remainingTime();
-        const int wakeMs = (remainingMs > 0)
-                               ? qMax(1, qMin(kWakeCheckIntervalMs, remainingMs))
-                               : kWakeCheckIntervalMs;
-        wakeTimer.start(wakeMs);
-        // UIイベントも処理して、待機中の操作不能を抑える
-        loop.exec(kResponsiveWaitFlags);
-        wakeTimer.stop();
+
+        const qint64 remainingMs = deadline.remainingTime();
+        const int waitMs = (remainingMs > 0)
+                               ? qMax(1, qMin(kWakeCheckIntervalMs, static_cast<int>(remainingMs)))
+                               : 1;
+        if (processManager != nullptr) {
+            (void)processManager->waitForReadyReadAndPump(waitMs);
+        } else {
+            pumpEventsSlice(waitMs);
+        }
     }
 
     if (processManager != nullptr) {
         // タイムアウト時でも stderr / 端数出力を取りこぼさない
         processManager->pumpPendingOutput();
     }
+    pumpEventsSlice(1);
 
-    return timeoutTimer.isActive() && !shouldAbort() && isDone();
+    return !deadline.hasExpired() && !shouldAbort() && isDone();
 }
 } // namespace
 

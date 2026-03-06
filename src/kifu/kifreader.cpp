@@ -56,31 +56,13 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
         if (usedEncoding) *usedEncoding = QStringLiteral("utf-8(bom)");
         return true;
     }
-    if (sz >= 2 &&
-        data[0] == 0xFF &&
-        data[1] == 0xFE) {
-        // UTF-16LE
-        QStringDecoder dec("UTF-16LE");
-        out = dec.decode(bytes.mid(2));
-        if (usedEncoding) *usedEncoding = QStringLiteral("utf-16le(bom)");
-        return true;
-    }
-    if (sz >= 2 &&
-        data[0] == 0xFE &&
-        data[1] == 0xFF) {
-        // UTF-16BE
-        QStringDecoder dec("UTF-16BE");
-        out = dec.decode(bytes.mid(2));
-        if (usedEncoding) *usedEncoding = QStringLiteral("utf-16be(bom)");
-        return true;
-    }
     if (sz >= 4 &&
         data[0] == 0xFF &&
         data[1] == 0xFE &&
         data[2] == 0x00 &&
         data[3] == 0x00) {
         // UTF-32LE
-        QStringDecoder dec("UTF-32LE");
+        QStringDecoder dec(QStringConverter::Utf32LE);
         out = dec.decode(bytes.mid(4));
         if (usedEncoding) *usedEncoding = QStringLiteral("utf-32le(bom)");
         return true;
@@ -91,9 +73,27 @@ static bool decodeByBom(const QByteArray& bytes, QString& out, QString* usedEnco
         data[2] == 0xFE &&
         data[3] == 0xFF) {
         // UTF-32BE
-        QStringDecoder dec("UTF-32BE");
+        QStringDecoder dec(QStringConverter::Utf32BE);
         out = dec.decode(bytes.mid(4));
         if (usedEncoding) *usedEncoding = QStringLiteral("utf-32be(bom)");
+        return true;
+    }
+    if (sz >= 2 &&
+        data[0] == 0xFF &&
+        data[1] == 0xFE) {
+        // UTF-16LE
+        QStringDecoder dec(QStringConverter::Utf16LE);
+        out = dec.decode(bytes.mid(2));
+        if (usedEncoding) *usedEncoding = QStringLiteral("utf-16le(bom)");
+        return true;
+    }
+    if (sz >= 2 &&
+        data[0] == 0xFE &&
+        data[1] == 0xFF) {
+        // UTF-16BE
+        QStringDecoder dec(QStringConverter::Utf16BE);
+        out = dec.decode(bytes.mid(2));
+        if (usedEncoding) *usedEncoding = QStringLiteral("utf-16be(bom)");
         return true;
     }
     return false;

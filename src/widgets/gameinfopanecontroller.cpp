@@ -243,6 +243,13 @@ QList<KifGameInfoItem> GameInfoPaneController::originalGameInfo() const
     return m_originalItems;
 }
 
+void GameInfoPaneController::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
+{
+    m_originalItems = items;
+    m_dirty = false;
+    updateEditingIndicator();
+}
+
 void GameInfoPaneController::updatePlayerNames(const QString& blackName, const QString& whiteName)
 {
     if (!m_table) return;

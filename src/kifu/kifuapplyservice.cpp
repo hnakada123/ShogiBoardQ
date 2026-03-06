@@ -188,67 +188,12 @@ void KifuApplyService::populateGameInfo(const QList<KifGameInfoItem>& items)
 
 void KifuApplyService::addGameInfoTabIfMissing()
 {
-    if (!m_refs.tab) return;
-    if (!m_refs.gameInfoTable) {
+    // 対局情報は GameInfoPaneController を介したドック表示に一本化した。
+    // 棋譜読み込み時のデータ反映はテーブル更新のみ行い、タブへの再親子付けは行わない。
+    if (m_refs.gameInfoTable == nullptr) {
         qCDebug(lcKifu).noquote() << "addGameInfoTabIfMissing: gameInfoTable is null, skipping";
         return;
     }
-
-    QDockWidget* gameInfoDock = *m_refs.gameInfoDock;
-
-    // Dock で表示していたら解除
-    if (gameInfoDock && gameInfoDock->widget() == m_refs.gameInfoTable) {
-        gameInfoDock->setWidget(nullptr);
-        gameInfoDock->deleteLater();
-        *m_refs.gameInfoDock = nullptr;
-    }
-
-    // テーブルの親ウィジェット（コンテナ）を取得
-    QWidget* widgetToAdd = m_refs.gameInfoTable;
-    if (m_refs.gameInfoTable && m_refs.gameInfoTable->parentWidget()) {
-        QWidget* parent = m_refs.gameInfoTable->parentWidget();
-        if (!qobject_cast<QTabWidget*>(parent)) {
-            widgetToAdd = parent;
-        }
-    }
-
-    // 既にタブに含まれているか確認
-    if (m_refs.tab->indexOf(widgetToAdd) != -1) {
-        return;
-    }
-
-    // タブタイトルで検索
-    for (int i = 0; i < m_refs.tab->count(); ++i) {
-        if (m_refs.tab->tabText(i) == tr("対局情報")) {
-            m_refs.tab->removeTab(i);
-            m_refs.tab->insertTab(i, widgetToAdd, tr("対局情報"));
-            return;
-        }
-    }
-
-    // タブがない場合のみ追加
-    int anchorIdx = -1;
-
-    for (int i = 0; i < m_refs.tab->count(); ++i) {
-        const QString t = m_refs.tab->tabText(i);
-        if (t.contains(tr("思考")) || t.contains("Thinking", Qt::CaseInsensitive)) {
-            anchorIdx = i;
-            break;
-        }
-    }
-
-    if (anchorIdx < 0) {
-        for (int i = 0; i < m_refs.tab->count(); ++i) {
-            const QString t = m_refs.tab->tabText(i);
-            if (t.contains(tr("コメント")) || t.contains("Comments", Qt::CaseInsensitive)) {
-                anchorIdx = i;
-                break;
-            }
-        }
-    }
-
-    const int insertIndex = (anchorIdx >= 0) ? anchorIdx : 0;
-    m_refs.tab->insertTab(insertIndex, widgetToAdd, tr("対局情報"));
 }
 
 QString KifuApplyService::findGameInfoValue(const QList<KifGameInfoItem>& items,
