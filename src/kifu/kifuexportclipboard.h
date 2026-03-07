@@ -10,7 +10,7 @@
 #include <QList>
 #include <functional>
 
-#include "mainwindow.h"       // PlayMode enum
+#include "playmode.h"
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
 #include "kifuclipboardservice.h"  // KifuClipboardService::ExportContext
 

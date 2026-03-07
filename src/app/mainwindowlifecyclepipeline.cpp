@@ -2,6 +2,7 @@
 /// @brief MainWindow の起動/終了フローの実装
 
 #include "mainwindowlifecyclepipeline.h"
+#include "mainwindowlifecyclesequence.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -76,59 +77,62 @@ void MainWindowLifecyclePipeline::shutdownAndQuit()
 // 起動手順を依存順に実行する（MainWindow 側の内部実装）。
 void MainWindow::runLifecycleStartupInternal()
 {
+    MainWindowStartupSequence::Steps steps;
     // 1. 基盤オブジェクト生成（UI セットアップ含む）
-    createFoundationObjectsForLifecycle();
-
+    steps.createFoundationObjects = [this]() { createFoundationObjectsForLifecycle(); };
     // 2. UI 骨格（central/toolbar）
-    setupUiSkeletonForLifecycle();
-
+    steps.setupUiSkeleton = [this]() { setupUiSkeletonForLifecycle(); };
     // 3. コア部品（GameController/View/Clock）
-    initializeCoreComponentsForLifecycle();
-
+    steps.initializeCoreComponents = [this]() { initializeCoreComponentsForLifecycle(); };
     // 4. 早期サービス（PolicyService/TimePresenter/QueryService）
-    initializeEarlyServicesForLifecycle();
-
+    steps.initializeEarlyServices = [this]() { initializeEarlyServicesForLifecycle(); };
     // 5. 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
-    m_registry->ui()->buildGamePanels();
-
+    steps.buildGamePanels = [this]() { m_registry->ui()->buildGamePanels(); };
     // 6. ウィンドウ設定の復元（位置/サイズなど）
-    m_registry->ui()->restoreWindowAndSync();
-
+    steps.restoreWindowAndSync = [this]() { m_registry->ui()->restoreWindowAndSync(); };
     // 7. シグナル配線
-    connectSignalsForLifecycle();
-
+    steps.connectSignals = [this]() { connectSignalsForLifecycle(); };
     // 8. コーディネータの最終初期化と追加機能設定
-    finalizeAndConfigureUiForLifecycle();
+    steps.finalizeAndConfigureUi = [this]() { finalizeAndConfigureUiForLifecycle(); };
+
+    MainWindowStartupSequence(std::move(steps)).run();
 }
 
 // 終了手順を一括実行する。二重実行防止フラグは呼び出し側が保持する。
 void MainWindow::runLifecycleShutdownInternal(bool& shutdownDone)
 {
-    if (shutdownDone) return;
-    shutdownDone = true;
-    m_isShuttingDown = true;
-
+    MainWindowShutdownSequence::Steps steps;
+    steps.beginShutdown = [this]() {
+        m_isShuttingDown = true;
+    };
     // 設定保存
-    AppSettings::saveWindowAndBoard(this, m_shogiView ? m_shogiView->squareSize() : 0);
-    m_registry->ensureDockLayoutManager();
-    if (m_dockLayoutManager) {
-        m_dockLayoutManager->saveDockStates();
-    }
-
+    steps.saveSettings = [this]() {
+        AppSettings::saveWindowAndBoard(this, m_shogiView ? m_shogiView->squareSize() : 0);
+        m_registry->ensureDockLayoutManager();
+        if (m_dockLayoutManager) {
+            m_dockLayoutManager->saveDockStates();
+        }
+    };
     // エンジンが起動していれば終了する（quit コマンドを送信してプロセスを停止）
-    if (m_match) {
-        m_match->destroyEngines();
-    }
-
+    steps.destroyEngines = [this]() {
+        if (m_match) {
+            m_match->destroyEngines();
+        }
+    };
     // m_queryService は各所の std::bind 経由で参照されるため、
     // ここで破棄せず依存だけ無効化して終了時アクセスを安全化する。
-    if (m_queryService) {
-        MatchRuntimeQueryService::Deps nullDeps;
-        m_queryService->updateDeps(nullDeps);
-    }
-
+    steps.invalidateRuntimeDeps = [this]() {
+        if (m_queryService) {
+            MatchRuntimeQueryService::Deps nullDeps;
+            m_queryService->updateDeps(nullDeps);
+        }
+    };
     // リソース解放（unique_ptr がデストラクタで自動解放するため明示 delete は不要）
-    m_playModePolicy.reset();
+    steps.releaseOwnedResources = [this]() {
+        m_playModePolicy.reset();
+    };
+
+    (void)MainWindowShutdownSequence(std::move(steps)).runOnce(shutdownDone);
 }
 
 void MainWindow::createFoundationObjectsForLifecycle()

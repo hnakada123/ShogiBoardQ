@@ -4,6 +4,7 @@
 #include "dialoglaunchwiring.h"
 
 #include <QCoreApplication>
+#include <QDockWidget>
 #include <QMessageBox>
 #include <utility>
 

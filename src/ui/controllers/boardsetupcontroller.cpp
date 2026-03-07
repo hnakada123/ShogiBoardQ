@@ -55,6 +55,23 @@ BoardSetupController::BoardSetupController(QObject* parent)
 
 BoardSetupController::~BoardSetupController() = default;
 
+BoardInteractionController* BoardSetupController::boardController() const
+{
+    return m_boardController.data();
+}
+
+void BoardSetupController::disconnectBoardInteractionController(BoardInteractionController* controller)
+{
+    if (!controller) {
+        return;
+    }
+
+    if (m_shogiView) {
+        QObject::disconnect(m_shogiView, nullptr, controller, nullptr);
+    }
+    QObject::disconnect(controller, nullptr, nullptr, nullptr);
+}
+
 // --------------------------------------------------------
 // 依存オブジェクトの設定
 // --------------------------------------------------------
@@ -150,6 +167,7 @@ void BoardSetupController::setupBoardInteractionController()
 {
     // 既存があれば入れ替え
     if (m_boardController) {
+        disconnectBoardInteractionController(m_boardController);
         m_boardController->deleteLater();
         m_boardController = nullptr;
     }

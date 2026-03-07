@@ -1,5 +1,5 @@
 /// @file tst_engineregistrationhandler.cpp
-/// @brief EngineRegistrationHandler のオプション解析テスト
+/// @brief EngineRegistrationHandler のオプション解析と実行時キャンセルテスト
 
 #define private public
 #include "engineregistrationhandler.h"
@@ -7,24 +7,93 @@
 #include "engineregistrationdialog.h"
 
 #include <QtTest>
+
+#include <QElapsedTimer>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QSignalSpy>
 #include <QTemporaryDir>
+#include <signal.h>
+#include <unistd.h>
+
+namespace {
+constexpr auto kPidEnvName = "SBQ_TEST_ENGINE_PID_FILE";
+
+class ScopedEnvVar
+{
+public:
+    ScopedEnvVar(const char* name, const QByteArray& value)
+        : m_name(name)
+    {
+        const QByteArray existing = qgetenv(name);
+        if (!existing.isNull()) {
+            m_hadOriginal = true;
+            m_originalValue = existing;
+        }
+        qputenv(m_name.constData(), value);
+    }
+
+    ~ScopedEnvVar()
+    {
+        if (m_hadOriginal) {
+            qputenv(m_name.constData(), m_originalValue);
+        } else {
+            qunsetenv(m_name.constData());
+        }
+    }
+
+private:
+    QByteArray m_name;
+    QByteArray m_originalValue;
+    bool m_hadOriginal = false;
+};
+
+QString createExecutableScript(const QTemporaryDir& dir, const QString& fileName,
+                               const QString& body)
+{
+    const QString path = dir.filePath(fileName);
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return {};
+    }
+    file.write(body.toUtf8());
+    file.close();
+    QFile::Permissions perms = file.permissions();
+    perms |= QFileDevice::ExeOwner | QFileDevice::ReadOwner | QFileDevice::WriteOwner;
+    perms |= QFileDevice::ExeGroup | QFileDevice::ReadGroup;
+    perms |= QFileDevice::ExeOther | QFileDevice::ReadOther;
+    file.setPermissions(perms);
+    return path;
+}
+
+qint64 readPidFile(const QString& path)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return -1;
+    }
+
+    bool ok = false;
+    const qint64 pid = QString::fromUtf8(file.readAll()).trimmed().toLongLong(&ok);
+    return ok ? pid : -1;
+}
+
+bool processExists(qint64 pid)
+{
+    if (pid <= 0) {
+        return false;
+    }
+    return ::kill(static_cast<pid_t>(pid), 0) == 0;
+}
+} // namespace
 
 class TestEngineRegistrationHandler : public QObject
 {
     Q_OBJECT
 
 private slots:
-    static QString readSource(const QString& relativePath)
-    {
-        QFile f(QStringLiteral(SOURCE_DIR) + QStringLiteral("/") + relativePath);
-        if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-            return {};
-        return QString::fromUtf8(f.readAll());
-    }
-
     void parseOptionLine_multiWordName_parsesSpinOption()
     {
         EngineRegistrationHandler handler;
@@ -153,24 +222,98 @@ private slots:
         QCOMPARE(existingName, QStringLiteral("test-engine"));
     }
 
-    void destructor_usesBoundedThreadShutdown()
+    void cancelRegistration_whileWaitingForUsiResponse_stopsProcess()
     {
-        const QString src = readSource(QStringLiteral("src/dialogs/engineregistrationhandler.cpp"));
-        QVERIFY2(!src.isEmpty(), "engineregistrationhandler.cpp not found");
-        QVERIFY2(src.contains(QStringLiteral("requestInterruption()")),
-                 "Destructor should request thread interruption before waiting");
-        QVERIFY2(!src.contains(QStringLiteral("Waiting until exit.")),
-                 "Destructor should not fall back to unbounded wait");
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+
+        const QString pidFile = tmp.filePath(QStringLiteral("cancel-wait.pid"));
+        const ScopedEnvVar pidEnv(kPidEnvName, pidFile.toUtf8());
+        const QString enginePath = createExecutableScript(
+            tmp,
+            QStringLiteral("slow_usi_engine.sh"),
+            QStringLiteral(
+                "#!/usr/bin/env bash\n"
+                "set -eu\n"
+                "echo $$ > \"${%1}\"\n"
+                "while IFS= read -r line; do\n"
+                "  if [[ \"$line\" == \"usi\" ]]; then\n"
+                "    sleep 10\n"
+                "  fi\n"
+                "done\n")
+                .arg(QString::fromLatin1(kPidEnvName)));
+        QVERIFY(!enginePath.isEmpty());
+
+        EngineRegistrationHandler handler;
+        QSignalSpy progressSpy(&handler, &EngineRegistrationHandler::registrationInProgressChanged);
+        QSignalSpy registeredSpy(&handler, &EngineRegistrationHandler::engineRegistered);
+        QSignalSpy errorSpy(&handler, &EngineRegistrationHandler::errorOccurred);
+
+        handler.startRegistration(enginePath);
+        QTRY_VERIFY_WITH_TIMEOUT(handler.isRegistrationInProgress(), 2000);
+        QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(pidFile), 2000);
+
+        const qint64 pid = readPidFile(pidFile);
+        QVERIFY(pid > 0);
+        QVERIFY(processExists(pid));
+
+        handler.cancelRegistration();
+
+        QTRY_VERIFY_WITH_TIMEOUT(!handler.isRegistrationInProgress(), 4000);
+        QCOMPARE(registeredSpy.count(), 0);
+        QCOMPARE(errorSpy.count(), 0);
+        QVERIFY(progressSpy.count() >= 2);
+        QCOMPARE(progressSpy.at(0).at(0).toBool(), true);
+        QCOMPARE(progressSpy.last().at(0).toBool(), false);
+        QTRY_VERIFY_WITH_TIMEOUT(!processExists(pid), 2000);
     }
 
-    void worker_checksInterruptionDuringProcessWaits()
+    void destructor_returnsPromptly_duringQuitWait()
     {
-        const QString src = readSource(QStringLiteral("src/dialogs/engineregistrationworker.cpp"));
-        QVERIFY2(!src.isEmpty(), "engineregistrationworker.cpp not found");
-        QVERIFY2(src.contains(QStringLiteral("isInterruptionRequested()")),
-                 "Worker should observe QThread interruption requests");
-        QVERIFY2(src.contains(QStringLiteral("waitForStartedInterruptibly")),
-                 "Worker should use interruptible process-start waits");
+        QTemporaryDir tmp;
+        QVERIFY(tmp.isValid());
+
+        const QString pidFile = tmp.filePath(QStringLiteral("quit-wait.pid"));
+        const ScopedEnvVar pidEnv(kPidEnvName, pidFile.toUtf8());
+        const QString enginePath = createExecutableScript(
+            tmp,
+            QStringLiteral("slow_quit_engine.sh"),
+            QStringLiteral(
+                "#!/usr/bin/env bash\n"
+                "set -eu\n"
+                "echo $$ > \"${%1}\"\n"
+                "while IFS= read -r line; do\n"
+                "  if [[ \"$line\" == \"usi\" ]]; then\n"
+                "    echo \"id name SlowQuitEngine\"\n"
+                "    echo \"id author Test\"\n"
+                "    echo \"usiok\"\n"
+                "  elif [[ \"$line\" == \"quit\" ]]; then\n"
+                "    sleep 10\n"
+                "    exit 0\n"
+                "  fi\n"
+                "done\n")
+                .arg(QString::fromLatin1(kPidEnvName)));
+        QVERIFY(!enginePath.isEmpty());
+
+        auto* handler = new EngineRegistrationHandler;
+        handler->startRegistration(enginePath);
+
+        QTRY_VERIFY_WITH_TIMEOUT(handler->isRegistrationInProgress(), 2000);
+        QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(pidFile), 2000);
+
+        const qint64 pid = readPidFile(pidFile);
+        QVERIFY(pid > 0);
+        QVERIFY(processExists(pid));
+
+        QTest::qWait(200);
+
+        QElapsedTimer timer;
+        timer.start();
+        delete handler;
+
+        QVERIFY2(timer.elapsed() < 4500,
+                 qPrintable(QStringLiteral("Destructor took too long: %1 ms").arg(timer.elapsed())));
+        QTRY_VERIFY_WITH_TIMEOUT(!processExists(pid), 2000);
     }
 };
 

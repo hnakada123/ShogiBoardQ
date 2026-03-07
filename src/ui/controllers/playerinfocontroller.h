@@ -9,7 +9,7 @@
 #include <QString>
 #include <QList>
 
-#include "mainwindow.h"  // PlayMode enum
+#include "playmode.h"
 
 class ShogiView;
 class GameInfoPaneController;
@@ -112,6 +112,8 @@ public slots:
                                int playMode);
 
 private:
+    void resolveDisplayNames(QString& blackName, QString& whiteName) const;
+
     ShogiView* m_shogiView = nullptr;
     GameInfoPaneController* m_gameInfoController = nullptr;
     EvaluationGraphController* m_evalGraphController = nullptr;

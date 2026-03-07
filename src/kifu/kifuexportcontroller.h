@@ -13,7 +13,7 @@
 #include <functional>
 #include <optional>
 
-#include "mainwindow.h"  // PlayMode enum
+#include "playmode.h"
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
 #include "kifutypes.h"  // ResolvedRow
 

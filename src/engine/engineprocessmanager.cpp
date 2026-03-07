@@ -3,11 +3,17 @@
 
 #include "engineprocessmanager.h"
 #include "usi.h"
+#include <QCoreApplication>
+#include <QDeadlineTimer>
+#include <QEventLoop>
 #include <QFile>
 #include <QFileInfo>
 
 namespace {
 constexpr int kStartTimeoutMs = 5000;
+constexpr int kWaitSliceMs = 50;
+const QEventLoop::ProcessEventsFlags kWaitPumpFlags =
+    QEventLoop::ExcludeUserInputEvents | QEventLoop::ExcludeSocketNotifiers;
 
 class TransitionScopeGuard
 {
@@ -27,18 +33,49 @@ private:
     bool& m_flag;
 };
 
+void pumpResponsiveEvents(int maxMs)
+{
+    QCoreApplication::processEvents(kWaitPumpFlags, maxMs);
+}
+
+template<typename DoneFn, typename WaitFn>
+bool waitForProcessResponsive(const DoneFn& isDone, const WaitFn& waitSlice, int timeoutMs)
+{
+    if (isDone()) return true;
+    if (timeoutMs <= 0) return isDone();
+
+    QDeadlineTimer deadline(timeoutMs);
+    while (!deadline.hasExpired() && !isDone()) {
+        pumpResponsiveEvents(1);
+        if (isDone()) {
+            return true;
+        }
+
+        const qint64 remainingMs = deadline.remainingTime();
+        const int sliceMs = (remainingMs > 0)
+                                ? qMax(1, qMin(kWaitSliceMs, static_cast<int>(remainingMs)))
+                                : 1;
+        waitSlice(sliceMs);
+        pumpResponsiveEvents(1);
+    }
+
+    return isDone();
+}
+
 bool waitForStartedResponsive(QProcess& process, int timeoutMs)
 {
-    if (process.state() == QProcess::Running) return true;
-    if (timeoutMs <= 0) return process.state() == QProcess::Running;
-    return process.waitForStarted(timeoutMs);
+    return waitForProcessResponsive(
+        [&process]() { return process.state() == QProcess::Running; },
+        [&process](int sliceMs) { (void)process.waitForStarted(sliceMs); },
+        timeoutMs);
 }
 
 bool waitForFinishedResponsive(QProcess& process, int timeoutMs)
 {
-    if (process.state() == QProcess::NotRunning) return true;
-    if (timeoutMs <= 0) return process.state() == QProcess::NotRunning;
-    return process.waitForFinished(timeoutMs);
+    return waitForProcessResponsive(
+        [&process]() { return process.state() == QProcess::NotRunning; },
+        [&process](int sliceMs) { (void)process.waitForFinished(sliceMs); },
+        timeoutMs);
 }
 } // namespace
 

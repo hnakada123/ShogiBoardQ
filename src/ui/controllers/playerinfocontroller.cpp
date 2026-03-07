@@ -71,18 +71,8 @@ void PlayerInfoController::setEngineNames(const QString& name1, const QString& n
     m_engineName2 = name2;
 }
 
-// --------------------------------------------------------
-// 対局者名更新処理
-// --------------------------------------------------------
-
-void PlayerInfoController::applyPlayersNamesForMode()
+void PlayerInfoController::resolveDisplayNames(QString& blackName, QString& whiteName) const
 {
-    if (!m_shogiView) return;
-
-    // PlayModeに応じて対局者名を決定
-    QString blackName;
-    QString whiteName;
-
     switch (m_playMode) {
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
@@ -108,6 +98,19 @@ void PlayerInfoController::applyPlayersNamesForMode()
         whiteName = tr("後手");
         break;
     }
+}
+
+// --------------------------------------------------------
+// 対局者名更新処理
+// --------------------------------------------------------
+
+void PlayerInfoController::applyPlayersNamesForMode()
+{
+    if (!m_shogiView) return;
+
+    QString blackName;
+    QString whiteName;
+    resolveDisplayNames(blackName, whiteName);
 
     m_shogiView->setBlackPlayerName(blackName);
     m_shogiView->setWhitePlayerName(whiteName);
@@ -159,32 +162,7 @@ void PlayerInfoController::updateGameInfoForCurrentMatch()
 
     QString blackName;
     QString whiteName;
-
-    switch (m_playMode) {
-    case PlayMode::EvenHumanVsEngine:
-    case PlayMode::HandicapHumanVsEngine:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case PlayMode::EvenEngineVsHuman:
-    case PlayMode::HandicapEngineVsHuman:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    case PlayMode::EvenEngineVsEngine:
-    case PlayMode::HandicapEngineVsEngine:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
-        break;
-    case PlayMode::HumanVsHuman:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
-        break;
-    default:
-        blackName = tr("先手");
-        whiteName = tr("後手");
-        break;
-    }
+    resolveDisplayNames(blackName, whiteName);
 
     updateGameInfoPlayerNames(blackName, whiteName);
 }
