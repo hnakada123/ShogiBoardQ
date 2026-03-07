@@ -134,6 +134,8 @@ public:
     qint64 lastBestmoveElapsedMs() const { return m_lastGoToBestmoveMs; }
 
     void setSpecialMove(SpecialMove sm) { m_specialMove = sm; }
+    void setSquelchResignLogging(bool on) { m_squelchResignLogging = on; }
+    bool isResignLoggingSquelched() const { return m_squelchResignLogging; }
     void resetResignNotified() { m_resignNotified = false; }
     void resetWinNotified() { m_winNotified = false; }
     void markHardTimeout() { m_timeoutDeclared = true; }
@@ -218,6 +220,7 @@ private:
     // --- 状態管理 ---
     bool m_resignNotified = false;     ///< 投了シグナル発行済み（重複防止）
     bool m_winNotified = false;        ///< 入玉宣言勝ちシグナル発行済み（重複防止）
+    bool m_squelchResignLogging = false; ///< resign 通知/ログ抑止
     bool m_timeoutDeclared = false;    ///< ハードタイムアウト宣言済み
     bool m_modeTsume = false;          ///< 詰将棋探索モード
     bool m_stopOrPonderhitPending = false; ///< stop/ponderhit送信通知のラッチ

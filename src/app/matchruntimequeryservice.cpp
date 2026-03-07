@@ -18,7 +18,8 @@ bool MatchRuntimeQueryService::isHumanTurnNow() const
     if (m_deps.playModePolicy) {
         return m_deps.playModePolicy->isHumanTurnNow();
     }
-    return true;
+    qCDebug(lcApp) << "isHumanTurnNow: playModePolicy=null";
+    return false;
 }
 
 bool MatchRuntimeQueryService::isGameActivelyInProgress() const
@@ -42,7 +43,8 @@ bool MatchRuntimeQueryService::isHumanSide(ShogiGameController::Player p) const
     if (m_deps.playModePolicy) {
         return m_deps.playModePolicy->isHumanSide(p);
     }
-    return true;
+    qCDebug(lcApp) << "isHumanSide: playModePolicy=null, player=" << static_cast<int>(p);
+    return false;
 }
 
 // --- 時間取得（TimeControlController に委譲）---
@@ -81,11 +83,17 @@ qint64 MatchRuntimeQueryService::byoyomiMs() const
 QStringList* MatchRuntimeQueryService::sfenRecord()
 {
     MatchCoordinator* match = m_deps.match ? *m_deps.match : nullptr;
+    if (!match) {
+        qCDebug(lcApp) << "sfenRecord: match=null";
+    }
     return match ? match->sfenRecordPtr() : nullptr;
 }
 
 const QStringList* MatchRuntimeQueryService::sfenRecord() const
 {
     MatchCoordinator* match = m_deps.match ? *m_deps.match : nullptr;
+    if (!match) {
+        qCDebug(lcApp) << "sfenRecord const: match=null";
+    }
     return match ? match->sfenRecordPtr() : nullptr;
 }

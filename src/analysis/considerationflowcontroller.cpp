@@ -16,17 +16,17 @@ ConsiderationFlowController::ConsiderationFlowController(QObject* parent)
 {
 }
 
-void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& params, const QString& positionStr)
+bool ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& params, const QString& positionStr)
 {
     using namespace EngineSettingsConstants;
 
     if (!d.match) {
         if (d.onError) d.onError(QStringLiteral("内部エラー: MatchCoordinator が未初期化です。"));
-        return;
+        return false;
     }
     if (positionStr.isEmpty()) {
         if (d.onError) d.onError(QStringLiteral("検討対象の局面（position）が空です。"));
-        return;
+        return false;
     }
 
     // 設定ファイルからエンジンパスを取得
@@ -47,12 +47,16 @@ void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& p
 
     if (enginePath.isEmpty()) {
         if (d.onError) d.onError(QStringLiteral("検討エンジンの選択が不正です。"));
-        return;
+        return false;
     }
 
     int byoyomiMs = 0;  // 0 は無制限
     if (!params.unlimitedTime) {
         byoyomiMs = params.byoyomiSec * 1000;  // 秒 → ms
+    }
+
+    if (d.onStarted) {
+        d.onStarted();
     }
 
     // 時間設定コールバックを呼び出し
@@ -67,6 +71,7 @@ void ConsiderationFlowController::runDirect(const Deps& d, const DirectParams& p
 
     startAnalysis(d.match, enginePath, engineName, positionStr, byoyomiMs, params.multiPV, d.considerationModel,
                   params.previousFileTo, params.previousRankTo, params.lastUsiMove);
+    return true;
 }
 
 void ConsiderationFlowController::startAnalysis(MatchCoordinator* match,

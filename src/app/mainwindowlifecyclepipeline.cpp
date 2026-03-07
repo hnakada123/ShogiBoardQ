@@ -10,7 +10,6 @@
 #include "mainwindowcompositionroot.h"
 #include "mainwindowfoundationregistry.h"
 #include "mainwindowserviceregistry.h"
-#include "mainwindowserviceregistryfacades.h"
 #include "kifusubregistry.h"
 #include "mainwindowsignalrouter.h"
 #include "usicommlogmodel.h"
@@ -87,9 +86,9 @@ void MainWindow::runLifecycleStartupInternal()
     // 4. 早期サービス（PolicyService/TimePresenter/QueryService）
     steps.initializeEarlyServices = [this]() { initializeEarlyServicesForLifecycle(); };
     // 5. 画面骨格（棋譜/分岐/レイアウト/タブ/中央表示）
-    steps.buildGamePanels = [this]() { m_registry->ui()->buildGamePanels(); };
+    steps.buildGamePanels = [this]() { m_registry->buildGamePanels(); };
     // 6. ウィンドウ設定の復元（位置/サイズなど）
-    steps.restoreWindowAndSync = [this]() { m_registry->ui()->restoreWindowAndSync(); };
+    steps.restoreWindowAndSync = [this]() { m_registry->restoreWindowAndSync(); };
     // 7. シグナル配線
     steps.connectSignals = [this]() { connectSignalsForLifecycle(); };
     // 8. コーディネータの最終初期化と追加機能設定
@@ -261,10 +260,10 @@ void MainWindow::connectSignalsForLifecycle()
             m_mw.m_registryParts.actionsWiring = wiring;
         };
         d.initializeDialogLaunchWiring = [&m_mw]() {
-            m_mw.m_registry->ui()->initializeDialogLaunchWiring();
+            m_mw.m_registry->initializeDialogLaunchWiring();
         };
         d.ensureDialogCoordinator = [&m_mw]() {
-            m_mw.m_registry->ui()->ensureDialogCoordinator();
+            m_mw.m_registry->ensureDialogCoordinator();
         };
         d.ensureKifuFileController = [&m_mw]() {
             m_mw.m_registry->kifu()->ensureKifuFileController();
@@ -276,7 +275,7 @@ void MainWindow::connectSignalsForLifecycle()
             m_mw.m_registry->foundation()->ensureUiNotificationService();
         };
         d.ensureBoardSetupController = [&m_mw]() {
-            m_mw.m_registry->board()->ensureBoardSetupController();
+            m_mw.m_registry->ensureBoardSetupController();
         };
         d.getKifuExportController = [&m_mw]() -> KifuExportController* {
             m_mw.m_registry->kifu()->ensureKifuExportController();
@@ -296,7 +295,7 @@ void MainWindow::finalizeAndConfigureUiForLifecycle()
 {
     MainWindow& m_mw = *this;
     // 司令塔やUIフォント/位置編集コントローラの最終初期化
-    m_mw.m_registry->ui()->finalizeCoordinators();
+    m_mw.m_registry->finalizeCoordinators();
 
     // UI状態ポリシーマネージャを初期化し、アイドル状態を適用
     m_mw.m_registry->foundation()->ensureUiStatePolicyManager();
@@ -306,7 +305,7 @@ void MainWindow::finalizeAndConfigureUiForLifecycle()
     m_mw.m_registry->foundation()->ensureLanguageController();
 
     // ドックレイアウト関連のメニュー配線を DockLayoutManager へ移譲
-    m_mw.m_registry->ui()->ensureDockLayoutManager();
+    m_mw.m_registry->ensureDockLayoutManager();
 
 #ifdef QT_DEBUG
     // デバッグ用スクリーンショット機能（F12キーで /tmp/shogiboardq-debug/ にPNG保存）

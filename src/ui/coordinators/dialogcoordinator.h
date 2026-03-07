@@ -134,7 +134,7 @@ public:
     /**
      * @brief ダイアログを表示せずに直接検討を開始
      */
-    void startConsiderationDirect(const ConsiderationDirectParams& params);
+    bool startConsiderationDirect(const ConsiderationDirectParams& params);
 
     /**
      * @brief 検討ダイアログの依存コンテキスト

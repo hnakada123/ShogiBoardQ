@@ -121,7 +121,8 @@ public:
 signals:
     void gameStateChanged(CsaGameCoordinator::GameState state);
     void errorOccurred(const QString& message);
-    void gameStarted(const QString& blackName, const QString& whiteName);
+    void gameStarted(const QString& blackName, const QString& whiteName,
+                     const QStringList& initialPrettyMoves);
     void gameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs);
     void moveMade(const QString& csaMove, const QString& usiMove,
                   const QString& prettyMove, int consumedTimeMs);
@@ -194,6 +195,7 @@ private:
 
     QString m_positionStr;
     QStringList m_usiMoves;
+    QStringList m_initialPrettyMoves;
 
     QString m_startSfen;
     QStringList* m_sfenHistory = nullptr;

@@ -738,7 +738,49 @@ private slots:
     }
 
     // ================================================================
-    // 7. 設定 getter のデフォルト値契約テスト（ソースコード構造検証）
+    // 7. Kifu / MainWindow の防御契約
+    // ================================================================
+
+    /// KifuApplyService が欠落した SFEN 履歴を new で補完せず、エラーとして扱うこと
+    void kifuApplyServiceRejectsMissingSfenHistoryStorage()
+    {
+        const QString source = readSourceFile(QStringLiteral("src/kifu/kifuapplyservice.cpp"));
+        const QString applySource = readSourceFile(QStringLiteral("src/kifu/kifuapplyservice_apply.cpp"));
+        QVERIFY2(!source.isEmpty(), "Failed to read kifuapplyservice.cpp");
+        QVERIFY2(!applySource.isEmpty(), "Failed to read kifuapplyservice_apply.cpp");
+
+        QVERIFY2(source.contains(QStringLiteral("ensureSfenHistoryStorage")),
+                  "KifuApplyService must validate SFEN history storage before use");
+        QVERIFY2(source.contains(QStringLiteral("内部エラー: SFEN履歴の格納先が初期化されていません。")),
+                  "KifuApplyService must surface a concrete internal error for missing SFEN history");
+        QVERIFY2(!source.contains(QStringLiteral("new QStringList")),
+                  "KifuApplyService must not allocate fallback QStringList for missing SFEN history");
+        QVERIFY2(applySource.contains(QStringLiteral("OUT (missing sfen history)")),
+                  "applyParsedResult must stop when SFEN history storage is unavailable");
+    }
+
+    /// MainWindow が RuntimeRefs を自前で組み立て、const_cast に依存しないこと
+    void mainWindowRuntimeRefsStayInsideMainWindow()
+    {
+        const QString header = readSourceFile(QStringLiteral("src/app/mainwindow.h"));
+        const QString source = readSourceFile(QStringLiteral("src/app/mainwindow.cpp"));
+        QVERIFY2(!header.isEmpty(), "Failed to read mainwindow.h");
+        QVERIFY2(!source.isEmpty(), "Failed to read mainwindow.cpp");
+
+        QVERIFY2(source.contains(QStringLiteral("MainWindowRuntimeRefs refs;")),
+                  "MainWindow::buildRuntimeRefs should build refs locally");
+        QVERIFY2(source.contains(QStringLiteral("refs.ui.statusBar = ui ? ui->statusbar : nullptr;")),
+                  "MainWindow::buildRuntimeRefs should populate UI refs directly");
+        QVERIFY2(source.contains(QStringLiteral("refs.kifu.sfenRecord = m_queryService ? m_queryService->sfenRecord() : nullptr;")),
+                  "MainWindow::buildRuntimeRefs should populate kifu SFEN refs from QueryService");
+        QVERIFY2(!source.contains(QStringLiteral("const_cast<")),
+                  "MainWindow::buildRuntimeRefs must not rely on const_cast");
+        QVERIFY2(!header.contains(QStringLiteral("friend class MainWindowRuntimeRefsBuilder")),
+                  "MainWindow should not expose internals to a RuntimeRefsBuilder friend");
+    }
+
+    // ================================================================
+    // 8. 設定 getter のデフォルト値契約テスト（ソースコード構造検証）
     // ================================================================
 
     /// Settings の各 getter が QSettings::value() のデフォルト引数を持つこと
@@ -1075,6 +1117,72 @@ private slots:
                  "CsaGameDialog must not read password from QSettings");
         QVERIFY2(body.contains(QStringLiteral("lineEditPassword->clear()")),
                  "CsaGameDialog should clear password field on restore/history apply");
+    }
+
+    // ================================================================
+    // 13. DialogCoordinator の失敗パス/一時オブジェクト管理
+    // ================================================================
+
+    /// 直接検討開始は成功時だけ開始通知し、Flow を積み上げないこと
+    void dialogCoordinatorDirectConsiderationUsesStackFlow()
+    {
+        const QStringList lines = readSourceLines(
+            QStringLiteral("src/ui/coordinators/dialogcoordinator.cpp"));
+        QVERIFY2(!lines.isEmpty(), "Failed to read dialogcoordinator source");
+
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("DialogCoordinator::startConsiderationDirect("));
+        QVERIFY2(range.first >= 0, "startConsiderationDirect not found");
+
+        const QString body = bodyText(lines, range.first, range.second);
+        QVERIFY2(body.contains(QStringLiteral("ConsiderationFlowController flow(")),
+                 "startConsiderationDirect should use a stack flow controller");
+        QVERIFY2(body.contains(QStringLiteral("d.onStarted = [this]()")),
+                 "startConsiderationDirect should defer considerationModeStarted until flow start");
+        QVERIFY2(body.contains(QStringLiteral("return flow.runDirect(")),
+                 "startConsiderationDirect should propagate flow start failure");
+        QVERIFY2(!body.contains(QStringLiteral("new ConsiderationFlowController")),
+                 "startConsiderationDirect must not heap-allocate transient flow controllers");
+    }
+
+    /// 詰み探索ダイアログも一時 Flow を積み上げないこと
+    void dialogCoordinatorTsumeSearchUsesStackFlow()
+    {
+        const QStringList lines = readSourceLines(
+            QStringLiteral("src/ui/coordinators/dialogcoordinator.cpp"));
+        QVERIFY2(!lines.isEmpty(), "Failed to read dialogcoordinator source");
+
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("DialogCoordinator::showTsumeSearchDialog("));
+        QVERIFY2(range.first >= 0, "showTsumeSearchDialog not found");
+
+        const QString body = bodyText(lines, range.first, range.second);
+        QVERIFY2(body.contains(QStringLiteral("TsumeSearchFlowController flow(")),
+                 "showTsumeSearchDialog should use a stack flow controller");
+        QVERIFY2(!body.contains(QStringLiteral("new TsumeSearchFlowController")),
+                 "showTsumeSearchDialog must not heap-allocate transient flow controllers");
+    }
+
+    // ================================================================
+    // 14. エンジン遷移待機中のUI応答性
+    // ================================================================
+
+    /// EngineProcessManager の待機実装がブロッキング waitFor* ではなくイベント駆動であること
+    void engineProcessManagerWaitsUseEventLoopInsteadOfWaitForCalls()
+    {
+        const QString body = readSourceFile(QStringLiteral("src/engine/engineprocessmanager_wait.cpp"));
+        QVERIFY2(!body.isEmpty(), "Failed to read engineprocessmanager_wait source");
+
+        QVERIFY2(body.contains(QStringLiteral("QEventLoop loop")),
+                 "EngineProcessManager should use a local QEventLoop for transition waits");
+        QVERIFY2(body.contains(QStringLiteral("loop.exec(QEventLoop::AllEvents)")),
+                 "EngineProcessManager event-loop waits should keep the UI fully responsive");
+        QVERIFY2(!body.contains(QStringLiteral("waitForStarted(")),
+                 "EngineProcessManager should not block with QProcess::waitForStarted()");
+        QVERIFY2(!body.contains(QStringLiteral("waitForFinished(")),
+                 "EngineProcessManager should not block with QProcess::waitForFinished()");
+        QVERIFY2(!body.contains(QStringLiteral("waitForReadyRead(")),
+                 "EngineProcessManager should not block with QProcess::waitForReadyRead()");
     }
 };
 

@@ -20,7 +20,6 @@
 #include <QSize>
 #include <QModelIndex>
 #include <QItemSelectionModel>
-#include <QTimer>
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
@@ -245,20 +244,6 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     // --- 棋譜テーブル ---
     m_kifu->setModel(recModel);
 
-    // モデルに行がある場合、最初の行を選択する
-    if (recModel && recModel->rowCount() > 0) {
-        qCDebug(lcUi) << "[RecordPane] setModels: model has rows, selecting first row";
-        QTimer::singleShot(0, this, [this]() {
-            if (m_kifu && m_kifu->model() && m_kifu->model()->rowCount() > 0) {
-                if (auto* sel = m_kifu->selectionModel()) {
-                    const QModelIndex top = m_kifu->model()->index(0, 0);
-                    sel->setCurrentIndex(top, QItemSelectionModel::ClearAndSelect | QItemSelectionModel::Rows);
-                    qCDebug(lcUi) << "[RecordPane] initial row selected";
-                }
-            }
-        });
-    }
-
     // 行追加→自動スクロール（多重接続防止）
     if (auto* model = m_kifu->model()) {
         if (m_connRowsInserted)
@@ -289,7 +274,19 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
             connect(sel, &QItemSelectionModel::currentRowChanged,
                     this, &RecordPane::onKifuCurrentRowChanged);
     } else {
-        QTimer::singleShot(0, this, &RecordPane::connectKifuCurrentRowChanged);
+        connectKifuCurrentRowChanged();
+    }
+
+    // モデルに行がある場合、最初の行を選択する
+    if (recModel && recModel->rowCount() > 0) {
+        qCDebug(lcUi) << "[RecordPane] setModels: model has rows, selecting first row";
+        if (auto* sel = m_kifu->selectionModel()) {
+            const QModelIndex top = m_kifu->model()->index(0, 0);
+            sel->setCurrentIndex(top,
+                                 QItemSelectionModel::ClearAndSelect
+                                     | QItemSelectionModel::Rows);
+            qCDebug(lcUi) << "[RecordPane] initial row selected";
+        }
     }
 
     // --- 分岐テーブル ---

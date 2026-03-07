@@ -23,7 +23,6 @@ class EditActionsWiring : public QObject {
 public:
     struct Deps {
         Ui::MainWindow* ui = nullptr;
-        MainWindow* mw = nullptr;
         KifuExportController* kec = nullptr;
         DialogLaunchWiring* dlw = nullptr;
         KifuFileController* kfc = nullptr;   ///< 棋譜ファイル操作コントローラ

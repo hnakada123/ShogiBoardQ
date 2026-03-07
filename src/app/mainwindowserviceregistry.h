@@ -13,16 +13,12 @@
 
 #include <QObject>
 #include <QPoint>
-#include <memory>
 
 #include "matchcoordinatorwiring.h"
 
 class KifuSubRegistry;
 class MainWindow;
 class MainWindowFoundationRegistry;
-class MainWindowUiRegistryFacade;
-class MainWindowAnalysisRegistryFacade;
-class MainWindowBoardRegistryFacade;
 class QString;
 
 /**
@@ -53,15 +49,6 @@ class MainWindowServiceRegistry : public QObject
 public:
     explicit MainWindowServiceRegistry(MainWindow& mw, QObject* parent = nullptr);
     ~MainWindowServiceRegistry() override;
-
-    /// UI責務に限定したファサード
-    MainWindowUiRegistryFacade* ui() const { return m_uiFacade.get(); }
-
-    /// Analysis責務に限定したファサード
-    MainWindowAnalysisRegistryFacade* analysis() const { return m_analysisFacade.get(); }
-
-    /// Board責務に限定したファサード
-    MainWindowBoardRegistryFacade* board() const { return m_boardFacade.get(); }
 
     /// 共通基盤レジストリへのアクセサ
     MainWindowFoundationRegistry* foundation() const { return m_foundation; }
@@ -177,9 +164,6 @@ private:
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
     MainWindowFoundationRegistry* m_foundation;  ///< 共通基盤レジストリ（子オブジェクト）
     KifuSubRegistry* m_kifu;    ///< Kifu系サブレジストリ（子オブジェクト）
-    std::unique_ptr<MainWindowUiRegistryFacade> m_uiFacade;
-    std::unique_ptr<MainWindowAnalysisRegistryFacade> m_analysisFacade;
-    std::unique_ptr<MainWindowBoardRegistryFacade> m_boardFacade;
 };
 
 #endif // MAINWINDOWSERVICEREGISTRY_H

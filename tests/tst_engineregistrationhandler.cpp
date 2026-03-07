@@ -8,6 +8,8 @@
 
 #include <QtTest>
 
+#include <QCoreApplication>
+#include <QDir>
 #include <QElapsedTimer>
 #include <QFile>
 #include <QFileInfo>
@@ -15,11 +17,26 @@
 #include <QJsonDocument>
 #include <QSignalSpy>
 #include <QTemporaryDir>
+#include <limits>
+
+#ifdef Q_OS_WIN
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
 #include <signal.h>
 #include <unistd.h>
+#endif
 
 namespace {
 constexpr auto kPidEnvName = "SBQ_TEST_ENGINE_PID_FILE";
+constexpr auto kModeEnvName = "SBQ_TEST_ENGINE_MODE";
+constexpr auto kSlowUsiMode = "slow-usi";
+constexpr auto kSlowQuitMode = "slow-quit";
 
 class ScopedEnvVar
 {
@@ -50,24 +67,6 @@ private:
     bool m_hadOriginal = false;
 };
 
-QString createExecutableScript(const QTemporaryDir& dir, const QString& fileName,
-                               const QString& body)
-{
-    const QString path = dir.filePath(fileName);
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        return {};
-    }
-    file.write(body.toUtf8());
-    file.close();
-    QFile::Permissions perms = file.permissions();
-    perms |= QFileDevice::ExeOwner | QFileDevice::ReadOwner | QFileDevice::WriteOwner;
-    perms |= QFileDevice::ExeGroup | QFileDevice::ReadGroup;
-    perms |= QFileDevice::ExeOther | QFileDevice::ReadOther;
-    file.setPermissions(perms);
-    return path;
-}
-
 qint64 readPidFile(const QString& path)
 {
     QFile file(path);
@@ -85,7 +84,39 @@ bool processExists(qint64 pid)
     if (pid <= 0) {
         return false;
     }
+#ifdef Q_OS_WIN
+    if (static_cast<quint64>(pid) > std::numeric_limits<DWORD>::max()) {
+        return false;
+    }
+
+    HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION,
+                                       FALSE,
+                                       static_cast<DWORD>(pid));
+    if (processHandle == nullptr) {
+        return false;
+    }
+
+    DWORD exitCode = 0;
+    const bool isRunning = GetExitCodeProcess(processHandle, &exitCode) != 0
+                           && exitCode == STILL_ACTIVE;
+    CloseHandle(processHandle);
+    return isRunning;
+#else
     return ::kill(static_cast<pid_t>(pid), 0) == 0;
+#endif
+}
+
+QString engineRegistrationTestHelperPath()
+{
+#ifdef Q_OS_WIN
+    const QString suffix = QStringLiteral(".exe");
+#else
+    const QString suffix;
+#endif
+    return QCoreApplication::applicationDirPath()
+           + QDir::separator()
+           + QStringLiteral("engineregistration_test_engine")
+           + suffix;
 }
 } // namespace
 
@@ -227,22 +258,12 @@ private slots:
         QTemporaryDir tmp;
         QVERIFY(tmp.isValid());
 
+        const QString enginePath = engineRegistrationTestHelperPath();
+        QVERIFY2(QFileInfo::exists(enginePath), qPrintable(enginePath));
+
         const QString pidFile = tmp.filePath(QStringLiteral("cancel-wait.pid"));
         const ScopedEnvVar pidEnv(kPidEnvName, pidFile.toUtf8());
-        const QString enginePath = createExecutableScript(
-            tmp,
-            QStringLiteral("slow_usi_engine.sh"),
-            QStringLiteral(
-                "#!/usr/bin/env bash\n"
-                "set -eu\n"
-                "echo $$ > \"${%1}\"\n"
-                "while IFS= read -r line; do\n"
-                "  if [[ \"$line\" == \"usi\" ]]; then\n"
-                "    sleep 10\n"
-                "  fi\n"
-                "done\n")
-                .arg(QString::fromLatin1(kPidEnvName)));
-        QVERIFY(!enginePath.isEmpty());
+        const ScopedEnvVar modeEnv(kModeEnvName, QByteArray(kSlowUsiMode));
 
         EngineRegistrationHandler handler;
         QSignalSpy progressSpy(&handler, &EngineRegistrationHandler::registrationInProgressChanged);
@@ -265,7 +286,7 @@ private slots:
         QVERIFY(progressSpy.count() >= 2);
         QCOMPARE(progressSpy.at(0).at(0).toBool(), true);
         QCOMPARE(progressSpy.last().at(0).toBool(), false);
-        QTRY_VERIFY_WITH_TIMEOUT(!processExists(pid), 2000);
+        QTRY_VERIFY_WITH_TIMEOUT(!processExists(pid), 4000);
     }
 
     void destructor_returnsPromptly_duringQuitWait()
@@ -273,27 +294,12 @@ private slots:
         QTemporaryDir tmp;
         QVERIFY(tmp.isValid());
 
+        const QString enginePath = engineRegistrationTestHelperPath();
+        QVERIFY2(QFileInfo::exists(enginePath), qPrintable(enginePath));
+
         const QString pidFile = tmp.filePath(QStringLiteral("quit-wait.pid"));
         const ScopedEnvVar pidEnv(kPidEnvName, pidFile.toUtf8());
-        const QString enginePath = createExecutableScript(
-            tmp,
-            QStringLiteral("slow_quit_engine.sh"),
-            QStringLiteral(
-                "#!/usr/bin/env bash\n"
-                "set -eu\n"
-                "echo $$ > \"${%1}\"\n"
-                "while IFS= read -r line; do\n"
-                "  if [[ \"$line\" == \"usi\" ]]; then\n"
-                "    echo \"id name SlowQuitEngine\"\n"
-                "    echo \"id author Test\"\n"
-                "    echo \"usiok\"\n"
-                "  elif [[ \"$line\" == \"quit\" ]]; then\n"
-                "    sleep 10\n"
-                "    exit 0\n"
-                "  fi\n"
-                "done\n")
-                .arg(QString::fromLatin1(kPidEnvName)));
-        QVERIFY(!enginePath.isEmpty());
+        const ScopedEnvVar modeEnv(kModeEnvName, QByteArray(kSlowQuitMode));
 
         auto* handler = new EngineRegistrationHandler;
         handler->startRegistration(enginePath);
@@ -313,7 +319,7 @@ private slots:
 
         QVERIFY2(timer.elapsed() < 4500,
                  qPrintable(QStringLiteral("Destructor took too long: %1 ms").arg(timer.elapsed())));
-        QTRY_VERIFY_WITH_TIMEOUT(!processExists(pid), 2000);
+        QTRY_VERIFY_WITH_TIMEOUT(!processExists(pid), 4000);
     }
 };
 

@@ -47,28 +47,30 @@ void CsaEngineController::initialize(const InitParams& params)
         return;
     }
 
-    // USI通信ログモデル：外部から渡されていなければ内部で作成
-    if (!m_engineCommLog) {
-        if (params.commLog) {
-            m_engineCommLog = params.commLog;
-            m_ownsCommLog = false;
-        } else {
-            m_engineCommLog = new UsiCommLogModel(this);
-            m_ownsCommLog = true;
+    // USI通信ログモデル：外部注入を優先し、内部生成時は親子所有に統一する
+    if (params.commLog) {
+        if (m_engineCommLog && m_engineCommLog != params.commLog
+            && m_engineCommLog->parent() == this) {
+            m_engineCommLog->deleteLater();
         }
+        m_engineCommLog = params.commLog;
+        m_engineCommLog->clear();
+    } else if (!m_engineCommLog || m_engineCommLog->parent() != this) {
+        m_engineCommLog = new UsiCommLogModel(this);
     } else {
         m_engineCommLog->clear();
     }
 
-    // エンジン思考モデル：外部から渡されていなければ内部で作成
-    if (!m_engineThinking) {
-        if (params.thinkingModel) {
-            m_engineThinking = params.thinkingModel;
-            m_ownsThinking = false;
-        } else {
-            m_engineThinking = new ShogiEngineThinkingModel(this);
-            m_ownsThinking = true;
+    // 思考モデルも同様に、外部注入または QObject 親子所有に寄せる
+    if (params.thinkingModel) {
+        if (m_engineThinking && m_engineThinking != params.thinkingModel
+            && m_engineThinking->parent() == this) {
+            m_engineThinking->deleteLater();
         }
+        m_engineThinking = params.thinkingModel;
+        m_engineThinking->clearAllItems();
+    } else if (!m_engineThinking || m_engineThinking->parent() != this) {
+        m_engineThinking = new ShogiEngineThinkingModel(this);
     } else {
         m_engineThinking->clearAllItems();
     }
@@ -141,16 +143,6 @@ void CsaEngineController::cleanup()
         m_engine->sendQuitCommand();
         m_engine->deleteLater();
         m_engine = nullptr;
-    }
-
-    if (m_engineCommLog && m_ownsCommLog) {
-        m_engineCommLog->deleteLater();
-        m_engineCommLog = nullptr;
-    }
-
-    if (m_engineThinking && m_ownsThinking) {
-        m_engineThinking->deleteLater();
-        m_engineThinking = nullptr;
     }
 }
 

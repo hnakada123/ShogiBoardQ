@@ -35,6 +35,19 @@ void KifuApplyService::setHooks(const Hooks& hooks)
     m_hooks = hooks;
 }
 
+bool KifuApplyService::ensureSfenHistoryStorage(const char* callerTag) const
+{
+    if (m_refs.sfenHistory && *m_refs.sfenHistory) {
+        return true;
+    }
+
+    qCCritical(lcKifu).noquote() << callerTag << ": sfenHistory storage is not initialized";
+    if (m_hooks.errorOccurred) {
+        m_hooks.errorOccurred(tr("内部エラー: SFEN履歴の格納先が初期化されていません。"));
+    }
+    return false;
+}
+
 // ============================================================
 // SFEN/BOD局面読み込み
 // ============================================================
@@ -54,6 +67,10 @@ bool KifuApplyService::loadPositionFromSfen(const QString& sfenStr)
     const QStringList parts = sfen.split(QLatin1Char(' '));
     if (parts.size() < 4) {
         if (m_hooks.errorOccurred) m_hooks.errorOccurred(tr("無効なSFEN形式です。"));
+        return false;
+    }
+
+    if (!ensureSfenHistoryStorage("loadPositionFromSfen")) {
         return false;
     }
 
@@ -238,10 +255,14 @@ void KifuApplyService::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& it
 // データ再構築
 // ============================================================
 
-void KifuApplyService::rebuildSfenRecord(const QString& initialSfen,
-                                          const QStringList& usiMoves,
-                                          bool hasTerminal)
+bool KifuApplyService::rebuildSfenRecord(const QString& initialSfen,
+                                         const QStringList& usiMoves,
+                                         bool hasTerminal)
 {
+    if (!ensureSfenHistoryStorage("rebuildSfenRecord")) {
+        return false;
+    }
+
     QStringList*& sfenHistory = *m_refs.sfenHistory;
 
     qCDebug(lcKifu).noquote() << "rebuildSfenRecord ENTER"
@@ -260,15 +281,12 @@ void KifuApplyService::rebuildSfenRecord(const QString& initialSfen,
         }
     }
 
-    if (!sfenHistory) {
-        qCWarning(lcKifu) << "rebuildSfenRecord: sfenHistory was NULL! Creating new QStringList.";
-        sfenHistory = new QStringList;
-    }
     *sfenHistory = list;
 
     qCDebug(lcKifu).noquote() << "rebuildSfenRecord LEAVE"
                              << "sfenHistory*=" << static_cast<const void*>(sfenHistory)
                              << "sfenHistory->size=" << sfenHistory->size();
+    return true;
 }
 
 void KifuApplyService::rebuildGameMoves(const QString& initialSfen,

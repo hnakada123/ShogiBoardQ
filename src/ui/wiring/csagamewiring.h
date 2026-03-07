@@ -163,11 +163,6 @@ signals:
     void appendKifuLineRequested(const QString& text, const QString& elapsedTime);
 
     /**
-     * @brief 分岐ツリー更新を要求
-     */
-    void refreshBranchTreeRequested();
-
-    /**
      * @brief プレイモード変更を要求
      * @param mode 新しいプレイモード
      */
@@ -203,8 +198,10 @@ private slots:
      * @brief 対局開始時の処理
      * @param blackName 先手名
      * @param whiteName 後手名
+     * @param initialPrettyMoves Game_Summary に含まれる既存手順
      */
-    void onGameStarted(const QString& blackName, const QString& whiteName);
+    void onGameStarted(const QString& blackName, const QString& whiteName,
+                       const QStringList& initialPrettyMoves);
 
     /**
      * @brief 対局終了時の処理
@@ -261,6 +258,9 @@ private:
      */
     QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack) const;
 
+    void appendInitialKifuLine(const QString& prettyMove);
+    QString buildNumberedKifuLine(const QString& prettyMove) const;
+
     // 依存オブジェクト
     CsaGameCoordinator* m_coordinator = nullptr;
     ShogiGameController* m_gameController = nullptr;
@@ -282,11 +282,11 @@ private:
     PlayMode* m_playMode = nullptr;
     // 親ウィジェット（ダイアログ表示用）
     QWidget* m_parentWidget = nullptr;
+    GameRecordUpdateService* m_recordService = nullptr;
 
     // 内部状態
     int m_activePly = 0;
     int m_currentSelectedPly = 0;
-    bool m_coordinatorOwnedByThis = false;  // コーディネータの所有権フラグ
 };
 
 #endif // CSAGAMEWIRING_H

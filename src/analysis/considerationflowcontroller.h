@@ -25,6 +25,7 @@ public:
     /// 依存オブジェクト
     struct Deps {
         MatchCoordinator* match = nullptr;  ///< 司令塔（必須、非所有）
+        std::function<void()> onStarted;  ///< 開始確定通知（任意）
         std::function<void(const QString&)> onError;  ///< エラー表示コールバック（任意）
         int multiPV = 1;  ///< 候補手本数
         ShogiEngineThinkingModel* considerationModel = nullptr;  ///< 検討用思考モデル（非所有）
@@ -56,8 +57,9 @@ public:
      * @param positionStr 送信する`position ...`文字列
      *
      * ダイアログを表示せず、指定されたパラメータで直接検討を開始します。
+     * @return 検討開始まで到達した場合 true
      */
-    void runDirect(const Deps& d, const DirectParams& params, const QString& positionStr);
+    bool runDirect(const Deps& d, const DirectParams& params, const QString& positionStr);
 
 private:
     /// MatchCoordinatorへ検討開始を委譲する

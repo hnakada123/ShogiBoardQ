@@ -76,10 +76,8 @@ private slots:
 private:
     Usi* m_engine = nullptr;
     QPointer<ShogiGameController> m_gameController;
-    UsiCommLogModel* m_engineCommLog = nullptr;
-    ShogiEngineThinkingModel* m_engineThinking = nullptr;
-    bool m_ownsCommLog = false;
-    bool m_ownsThinking = false;
+    QPointer<UsiCommLogModel> m_engineCommLog;
+    QPointer<ShogiEngineThinkingModel> m_engineThinking;
 };
 
 #endif // CSAENGINECONTROLLER_H

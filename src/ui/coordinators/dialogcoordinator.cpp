@@ -150,7 +150,7 @@ void DialogCoordinator::showGameOverMessage(const QString& title, const QString&
     QMessageBox::information(m_parentWidget, title, message);
 }
 
-void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams& params)
+bool DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams& params)
 {
     qCDebug(lcUi).noquote() << "startConsiderationDirect: position=" << params.position
                        << "engineIndex=" << params.engineIndex
@@ -158,12 +158,13 @@ void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
                        << "byoyomiSec=" << params.byoyomiSec
                        << "multiPV=" << params.multiPV;
 
-    Q_EMIT considerationModeStarted();
-
     // Flow に一任
-    ConsiderationFlowController* flow = new ConsiderationFlowController(this);
+    ConsiderationFlowController flow(this);
     ConsiderationFlowController::Deps d;
     d.match = m_match;
+    d.onStarted = [this]() {
+        Q_EMIT considerationModeStarted();
+    };
     d.onError = [this](const QString& msg) { showFlowError(msg); };
     d.multiPV = params.multiPV;
     d.considerationModel = params.considerationModel;
@@ -184,7 +185,7 @@ void DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
     directParams.previousRankTo = params.previousRankTo;
     directParams.lastUsiMove = params.lastUsiMove;
 
-    flow->runDirect(d, directParams, params.position);
+    return flow.runDirect(d, directParams, params.position);
 }
 
 void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
@@ -194,7 +195,7 @@ void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
     Q_EMIT tsumeSearchModeStarted();
 
     // Flow に一任
-    TsumeSearchFlowController* flow = new TsumeSearchFlowController(this);
+    TsumeSearchFlowController flow(this);
 
     TsumeSearchFlowController::Deps d;
     d.match = m_match;
@@ -206,7 +207,7 @@ void DialogCoordinator::showTsumeSearchDialog(const TsumeSearchParams& params)
     d.startPositionCmd = params.startPositionCmd;
     d.onError = [this](const QString& msg) { showFlowError(msg); };
 
-    const bool started = flow->runWithDialog(d, m_parentWidget);
+    const bool started = flow.runWithDialog(d, m_parentWidget);
     if (!started) {
         Q_EMIT tsumeSearchModeEnded();
     }
@@ -445,9 +446,9 @@ bool DialogCoordinator::startConsiderationFromContext()
                       << "unlimitedTime=" << params.unlimitedTime
                       << "byoyomiSec=" << params.byoyomiSec
                       << "multiPV=" << params.multiPV;
-    startConsiderationDirect(params);
+    const bool started = startConsiderationDirect(params);
     qCDebug(lcUi).noquote() << "startConsiderationFromContext EXIT";
-    return true;
+    return started;
 }
 
 void DialogCoordinator::setTsumeSearchContext(const TsumeSearchContext& ctx)

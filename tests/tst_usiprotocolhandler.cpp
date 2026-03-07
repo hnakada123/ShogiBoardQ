@@ -183,6 +183,37 @@ private slots:
         QCOMPARE(spyWin.count(), 1);
     }
 
+    void bestmove_resign_squelched()
+    {
+        UsiProtocolHandler handler;
+        handler.setSquelchResignLogging(true);
+
+        QSignalSpy spyBest(&handler, &UsiProtocolHandler::bestMoveReceived);
+        QSignalSpy spyResign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
+
+        handler.onDataReceived(QStringLiteral("bestmove resign"));
+
+        QCOMPARE(spyBest.count(), 1);
+        QCOMPARE(spyResign.count(), 0);
+        QVERIFY(handler.isResignMove());
+        QVERIFY(handler.isResignLoggingSquelched());
+    }
+
+    void bestmove_resign_squelchCleared_emitsAgain()
+    {
+        UsiProtocolHandler handler;
+        handler.setSquelchResignLogging(true);
+        handler.onDataReceived(QStringLiteral("bestmove resign"));
+
+        handler.setSquelchResignLogging(false);
+        handler.resetResignNotified();
+
+        QSignalSpy spyResign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
+        handler.onDataReceived(QStringLiteral("bestmove resign"));
+
+        QCOMPARE(spyResign.count(), 1);
+    }
+
     void bestmove_clearsPreviousPonder()
     {
         UsiProtocolHandler handler;

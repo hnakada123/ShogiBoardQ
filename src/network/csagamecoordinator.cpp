@@ -85,6 +85,7 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_initialBlackTimeMs = 0;
     m_initialWhiteTimeMs = 0;
     m_usiMoves.clear();
+    m_initialPrettyMoves.clear();
     if (m_sfenHistory) m_sfenHistory->clear();
     if (m_gameMoves) m_gameMoves->clear();
 
@@ -268,7 +269,7 @@ void CsaGameCoordinator::onGameStarted(const QString& gameId)
 
     setupClock();
 
-    emit gameStarted(m_gameSummary.blackName, m_gameSummary.whiteName);
+    emit gameStarted(m_gameSummary.blackName, m_gameSummary.whiteName, m_initialPrettyMoves);
     emit turnChanged(m_isMyTurn);
 
     if (m_playerType == PlayerType::Engine && m_isMyTurn) {

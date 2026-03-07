@@ -217,7 +217,7 @@ public:
                                         const QString& startSfen,
                                         TimeControlController* timeController);
 
-public slots:
+public:
     /**
      * @brief 対局者名設定フック（将棋盤ラベル更新）
      * @param p1 先手名

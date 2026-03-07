@@ -29,6 +29,8 @@ private:
             {QStringLiteral("src/core"),
              {QStringLiteral("app/"), QStringLiteral("ui/"), QStringLiteral("dialogs/"),
               QStringLiteral("widgets/"), QStringLiteral("views/")}},
+            {QStringLiteral("src/analysis"),
+             {QStringLiteral("app/")}},
             {QStringLiteral("src/kifu/formats"),
              {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/"),
               QStringLiteral("views/")}},
@@ -37,9 +39,8 @@ private:
               QStringLiteral("views/")}},
             {QStringLiteral("src/game"),
              {QStringLiteral("dialogs/"), QStringLiteral("widgets/"), QStringLiteral("views/")}},
-            {QStringLiteral("src/services"),
-             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/"),
-              QStringLiteral("views/")}},
+            {QStringLiteral("src/network"),
+             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/")}},
         };
     }
 

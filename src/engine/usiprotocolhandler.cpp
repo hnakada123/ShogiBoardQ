@@ -467,6 +467,10 @@ bool UsiProtocolHandler::handleBestMoveLine(const QString& line)
     m_specialMove = parseSpecialMove(m_bestMove);
 
     if (m_specialMove == SpecialMove::Resign) {
+        if (m_squelchResignLogging) {
+            qCDebug(lcEngine) << "[resign-squelched]";
+            return true;
+        }
         // 重複シグナル防止
         if (m_resignNotified) {
             qCDebug(lcEngine) << "[dup-resign-ignored]";

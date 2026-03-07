@@ -188,7 +188,7 @@ private slots:
     {
         const QString headerPath =
             QStringLiteral(SOURCE_DIR) + QStringLiteral("/src/app/mainwindow.h");
-        constexpr int maxFriendClasses = 4; // 現行: 3 (2026-03-06)
+        constexpr int maxFriendClasses = 3; // 現行: 3 (2026-03-07)
 
         // 同一行に複数 friend class が並ぶケースも正しくカウントする
         const QRegularExpression pattern(
