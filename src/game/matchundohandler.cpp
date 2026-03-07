@@ -48,7 +48,7 @@ QString MatchUndoHandler::buildBasePositionUpToHands(const QString& prevFull,
         if (idxMoves2 >= 0) {
             const QString after = trimmed.mid(idxMoves2 + 7); // 7 = strlen(" moves ")
             const QStringList toks = after.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-            for (const QString& t : toks) {
+            for (const QString& t : std::as_const(toks)) {
                 if (!t.isEmpty()) moves.append(t);
             }
         }

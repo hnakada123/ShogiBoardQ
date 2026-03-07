@@ -237,7 +237,7 @@ QList<KifGameInfoItem> JkfToSfenConverter::extractGameInfo(const QString& filePa
     const QJsonObject header = root[QStringLiteral("header")].toObject();
     const QStringList keys = header.keys();
 
-    for (const QString& key : keys) {
+    for (const QString& key : std::as_const(keys)) {
         const QString value = header[key].toString();
         ordered.append({key, value});
     }

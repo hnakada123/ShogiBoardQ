@@ -136,7 +136,7 @@ static void appendKifBookmarks(const QString& bookmark, QStringList& out)
     if (bookmark.trimmed().isEmpty()) return;
 
     const QStringList lines = bookmark.split(QLatin1Char('\n'), Qt::SkipEmptyParts);
-    for (const QString& name : lines) {
+    for (const QString& name : std::as_const(lines)) {
         const QString t = name.trimmed();
         if (!t.isEmpty()) {
             out << (QStringLiteral("&") + t);
@@ -151,7 +151,7 @@ static void appendKifComments(const QString& comment, QStringList& out)
 
     static const QRegularExpression newlineRe(QStringLiteral("\r?\n"));
     const QStringList lines = comment.split(newlineRe, Qt::KeepEmptyParts);
-    for (const QString& raw : lines) {
+    for (const QString& raw : std::as_const(lines)) {
         const QString t = raw.trimmed();
         if (t.isEmpty()) continue;
         if (t.startsWith(QStringLiteral("【しおり】"))) {
@@ -278,7 +278,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
     // 1) ヘッダ
     const QList<KifGameInfoItem> header = GameRecordModel::collectGameInfo(ctx);
     bool isNonStandard = false;
-    for (const auto& it : header) {
+    for (const auto& it : std::as_const(header)) {
         if (!it.key.trimmed().isEmpty()) {
             // 消費時間は KI2 では省略
             if (it.key.trimmed() == QStringLiteral("消費時間")) continue;

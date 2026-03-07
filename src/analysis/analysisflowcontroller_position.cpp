@@ -33,7 +33,7 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
             // Usi::setClonedBoardData は QList<QChar> を受け取るため変換
             QList<QChar> charBoardData;
             charBoardData.reserve(81);
-            for (const Piece p : pieceBoardData) {
+            for (const Piece p : std::as_const(pieceBoardData)) {
                 charBoardData.append(pieceToChar(p));
             }
             m_usi->setClonedBoardData(charBoardData);

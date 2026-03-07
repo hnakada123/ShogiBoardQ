@@ -203,7 +203,7 @@ void EngineProcessManager::onReadyReadStderr()
 
     const QStringList lines = QString::fromUtf8(data).split('\n', Qt::SkipEmptyParts);
 
-    for (const QString& l : lines) {
+    for (const QString& l : std::as_const(lines)) {
         const QString line = l.trimmed();
         if (line.isEmpty()) continue;
 
@@ -269,7 +269,7 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
 
         if (!outTail.isEmpty()) {
             const QStringList lines = QString::fromUtf8(outTail).split('\n', Qt::SkipEmptyParts);
-            for (const QString& line : lines) {
+            for (const QString& line : std::as_const(lines)) {
                 const QString trimmed = line.trimmed();
                 if (!trimmed.isEmpty() &&
                     m_shutdownState != ShutdownState::IgnoreAll) {

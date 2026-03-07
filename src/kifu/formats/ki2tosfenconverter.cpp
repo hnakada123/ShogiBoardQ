@@ -252,7 +252,7 @@ QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* err
         if (KifuParseCommon::containsAnyTerminal(lineStr)) break;
 
         const QStringList moves = Ki2Lexer::extractMovesFromLine(lineStr);
-        for (const QString& move : moves) {
+        for (const QString& move : std::as_const(moves)) {
             QString term;
             if (KifuParseCommon::isTerminalWordContains(move, &term)) {
                 gameEnded = true;
@@ -323,7 +323,7 @@ QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& k
         if (!Ki2Lexer::isKi2MoveLine(lineStr)) continue;
 
         const QStringList moves = Ki2Lexer::extractMovesFromLine(lineStr);
-        for (const QString& move : moves) {
+        for (const QString& move : std::as_const(moves)) {
             QString term;
             if (KifuParseCommon::isTerminalWordContains(move, &term)) {
                 handleKi2TerminalWord(term, moveIndex, commentBuf, out,
