@@ -177,9 +177,9 @@ QJsonObject sfenToJkfData(const QString& sfen)
     const QStringList parts = sfen.split(QLatin1Char(' '));
     if (parts.size() < 3) return data;
 
-    const QString boardStr = parts[0];
-    const QString turnStr = parts[1];
-    const QString handsStr = parts[2];
+    const QString& boardStr = parts[0];
+    const QString& turnStr = parts[1];
+    const QString& handsStr = parts[2];
 
     data[QStringLiteral("color")] = (turnStr == QStringLiteral("b")) ? 0 : 1;
 
@@ -230,8 +230,7 @@ QJsonObject sfenToJkfData(const QString& sfen)
 
     if (handsStr != QStringLiteral("-")) {
         int count = 0;
-        for (qsizetype i = 0; i < handsStr.size(); ++i) {
-            QChar c = handsStr.at(i);
+        for (const QChar c : handsStr) {
             if (c.isDigit()) {
                 count = count * 10 + c.digitValue();
             } else {

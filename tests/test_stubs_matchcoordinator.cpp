@@ -319,9 +319,9 @@ void HumanVsHumanStrategy::finishTurnTimerAndSetConsideration(int) {}
 
 HumanVsEngineStrategy::HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
                                               bool engineIsP1,
-                                              const QString& enginePath,
-                                              const QString& engineName)
-    : m_ctx(ctx), m_engineIsP1(engineIsP1), m_enginePath(enginePath), m_engineName(engineName) {}
+                                              QString enginePath,
+                                              QString engineName)
+    : m_ctx(ctx), m_engineIsP1(engineIsP1), m_enginePath(std::move(enginePath)), m_engineName(std::move(engineName)) {}
 void HumanVsEngineStrategy::start() {}
 void HumanVsEngineStrategy::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void HumanVsEngineStrategy::armTurnTimerIfNeeded() {}
@@ -331,7 +331,7 @@ void HumanVsEngineStrategy::startInitialMoveIfNeeded() {}
 
 EngineVsEngineStrategy::EngineVsEngineStrategy(
     MatchCoordinator::StrategyContext& ctx,
-    const MatchCoordinator::StartOptions&,
+    MatchCoordinator::StartOptions,
     QObject* parent)
     : QObject(parent), m_ctx(ctx) {}
 void EngineVsEngineStrategy::start() {}

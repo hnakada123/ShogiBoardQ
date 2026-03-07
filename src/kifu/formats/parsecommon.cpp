@@ -202,8 +202,7 @@ bool isBoardHeaderOrFrame(QStringView line)
     {
         int digitCount = 0;
         bool onlyDigitsAndSpace = true;
-        for (qsizetype i = 0; i < line.size(); ++i) {
-            const QChar ch = line.at(i);
+        for (const QChar ch : line) {
             if (ch.isSpace()) continue;
             const ushort u = ch.unicode();
             const bool ascii19 = (u >= QChar(u'1').unicode() && u <= QChar(u'9').unicode());
@@ -222,7 +221,7 @@ bool isBoardHeaderOrFrame(QStringView line)
             return true;
         }
         int boxCount = 0;
-        for (qsizetype i = 0; i < s.size(); ++i) if (kBoxChars.contains(s.at(i))) ++boxCount;
+        for (const QChar ch : s) if (kBoxChars.contains(ch)) ++boxCount;
         if (boxCount >= qMax(3, static_cast<int>(s.size()) / 2)) return true;
     }
 
@@ -236,8 +235,7 @@ bool isBoardHeaderOrFrame(QStringView line)
         const QStringView t = line.trimmed();
         if (!t.isEmpty()) {
             bool ok = true; int kanjiCount = 0;
-            for (qsizetype i = 0; i < t.size(); ++i) {
-                const QChar ch = t.at(i);
+            for (const QChar ch : t) {
                 if (kKanjiRow.contains(ch)) { ++kanjiCount; continue; }
                 if (ch.isSpace()) continue;
                 ok = false; break;

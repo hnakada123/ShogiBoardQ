@@ -93,7 +93,7 @@ bool applyPRowLine(const QString& raw, Board& b)
     if (toks.size() != 9) return false;
 
     for (int i = 0; i < 9; ++i) {
-        const QString t = toks.at(i);
+        const QString& t = toks.at(i);
         const int x = 9 - i;
         if (t == QLatin1String("*")) {
             b.sq[x][row].p = NO_P;

@@ -577,7 +577,7 @@ void ElideLabel::onTimerTimeout() {}
 
 EngineVsEngineStrategy::EngineVsEngineStrategy(
     MatchCoordinator::StrategyContext& ctx,
-    const MatchCoordinator::StartOptions&,
+    MatchCoordinator::StartOptions,
     QObject* parent)
     : QObject(parent), m_ctx(ctx) {}
 void EngineVsEngineStrategy::start() {}

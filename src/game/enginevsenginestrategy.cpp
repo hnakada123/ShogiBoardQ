@@ -12,11 +12,11 @@
 #include <QTimer>
 
 EngineVsEngineStrategy::EngineVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                                                 const MatchCoordinator::StartOptions& opt,
+                                                 MatchCoordinator::StartOptions opt,
                                                  QObject* parent)
     : QObject(parent)
     , m_ctx(ctx)
-    , m_opt(opt)
+    , m_opt(std::move(opt))
 {
 }
 

@@ -80,8 +80,8 @@ QStringList JkfToSfenConverter::convertFile(const QString& jkfPath, QString* err
     const QJsonArray moves = root[QStringLiteral("moves")].toArray();
     int prevToX = 0, prevToY = 0;
 
-    for (qsizetype i = 0; i < moves.size(); ++i) {
-        const QJsonObject moveObj = moves[i].toObject();
+    for (const QJsonValueConstRef moveVal : moves) {
+        const QJsonObject moveObj = moveVal.toObject();
 
         if (moveObj.contains(QStringLiteral("special"))) {
             break;
@@ -121,8 +121,8 @@ QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& j
 
     KifDisplayItem openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
 
-    for (qsizetype i = 0; i < moves.size(); ++i) {
-        const QJsonObject moveObj = moves[i].toObject();
+    for (const QJsonValueConstRef moveVal : moves) {
+        const QJsonObject moveObj = moveVal.toObject();
 
         const QString comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
 
@@ -393,8 +393,8 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
         if (moveObj.contains(QStringLiteral("forks"))) {
             const QJsonArray forks = moveObj[QStringLiteral("forks")].toArray();
 
-            for (qsizetype f = 0; f < forks.size(); ++f) {
-                const QJsonArray forkMoves = forks[f].toArray();
+            for (const QJsonValueConstRef forkVal : forks) {
+                const QJsonArray forkMoves = forkVal.toArray();
 
                 KifVariation var;
                 var.startPly = plyNumber;
@@ -403,8 +403,8 @@ void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                 int forkPlyNumber = plyNumber - 1;
                 qint64 forkCumSec[2] = {cumSec[0], cumSec[1]};
 
-                for (qsizetype j = 0; j < forkMoves.size(); ++j) {
-                    const QJsonObject forkMoveObj = forkMoves[j].toObject();
+                for (const QJsonValueConstRef forkMoveVal : forkMoves) {
+                    const QJsonObject forkMoveObj = forkMoveVal.toObject();
 
                     if (forkMoveObj.contains(QStringLiteral("special"))) {
                         const QString special = forkMoveObj[QStringLiteral("special")].toString();

@@ -279,7 +279,7 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
     if (m_hooks.initializeNewGame) m_hooks.initializeNewGame(opt.sfenStart);
     if (m_hooks.setPlayersNames) {
         qCDebug(lcGame).noquote()
-            << "configureAndStart: calling setPlayersNames(\"\", \"\")";
+            << R"(configureAndStart: calling setPlayersNames("", ""))";
         m_hooks.setPlayersNames(QString(), QString());
     }
     if (m_hooks.setEngineNames) {

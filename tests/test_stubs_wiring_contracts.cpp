@@ -293,7 +293,7 @@ bool GameStartCoordinator::validate(const StartParams&, QString&) const { return
 // GameSessionFacade スタブ
 // ============================================================
 
-GameSessionFacade::GameSessionFacade(const Deps&) {}
+GameSessionFacade::GameSessionFacade(Deps) {}
 bool GameSessionFacade::initialize() { return true; }
 MatchCoordinator* GameSessionFacade::match() const { return nullptr; }
 

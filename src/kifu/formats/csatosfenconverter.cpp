@@ -80,8 +80,8 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
 
     if (!readAllLinesDetectEncoding(filePath, lines, &warn)) return items;
 
-    for (qsizetype i = 0; i < lines.size(); ++i) {
-        const QString line = lines.at(i).trimmed();
+    for (const QString& rawLine : std::as_const(lines)) {
+        const QString line = rawLine.trimmed();
         if (line.isEmpty()) continue;
 
         if (CsaLexer::isMoveLine(line)) break;
