@@ -19,7 +19,6 @@ using namespace EngineSettingsConstants;
 
 namespace {
 constexpr int kWorkerQuitTimeoutMs = 3000;
-constexpr int kWorkerTerminateTimeoutMs = 1000;
 
 QString normalizeEnginePath(const QString& filePath)
 {
@@ -46,11 +45,15 @@ EngineRegistrationHandler::~EngineRegistrationHandler()
             m_workerThread->requestInterruption();
             m_workerThread->quit();
             if (!m_workerThread->wait(kWorkerQuitTimeoutMs)) {
-                qCWarning(lcUi) << "Engine registration worker thread quit timed out. Terminating worker thread.";
-                m_workerThread->terminate();
-                if (!m_workerThread->wait(kWorkerTerminateTimeoutMs)) {
-                    qCCritical(lcUi) << "Engine registration worker thread did not terminate cleanly.";
-                }
+                qCCritical(lcUi)
+                    << "Engine registration worker thread did not stop within timeout."
+                    << "Detaching thread object instead of forcing termination.";
+                m_workerThread->setParent(nullptr);
+                connect(m_workerThread, &QThread::finished,
+                        m_workerThread, &QObject::deleteLater,
+                        Qt::UniqueConnection);
+                m_workerThread = nullptr;
+                m_worker = nullptr;
             }
         }
     }

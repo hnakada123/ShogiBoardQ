@@ -43,6 +43,29 @@ bool waitForStartedInterruptibly(QProcess& process, int timeoutMs, const CancelF
     return process.state() == QProcess::Running;
 }
 
+bool waitForFinishedInterruptibly(QProcess& process, int timeoutMs, const CancelFlag& cancelFlag)
+{
+    QDeadlineTimer deadline(timeoutMs);
+    while (!deadline.hasExpired()) {
+        if (process.state() == QProcess::NotRunning) {
+            return true;
+        }
+        if (isCancellationRequested(cancelFlag)) {
+            return false;
+        }
+
+        const qint64 remainingMs = deadline.remainingTime();
+        const int sliceMs = (remainingMs > 0)
+                                ? qMax(1, qMin(kWaitSliceMs, static_cast<int>(remainingMs)))
+                                : 1;
+        if (process.waitForFinished(sliceMs)) {
+            return true;
+        }
+    }
+
+    return process.state() == QProcess::NotRunning;
+}
+
 void stopProcessQuickly(QProcess& process)
 {
     process.kill();
@@ -125,7 +148,13 @@ void EngineRegistrationWorker::registerEngine(const QString& enginePath)
                 optionLines.append(line);
             } else if (line.startsWith("usiok")) {
                 process.write("quit\n");
-                (void)process.waitForFinished(QuitTimeoutMs);
+                if (!waitForFinishedInterruptibly(process, QuitTimeoutMs, m_cancelFlag)) {
+                    stopProcessQuickly(process);
+                    if (isCancellationRequested(m_cancelFlag)) {
+                        emit registrationCanceled();
+                        return;
+                    }
+                }
                 drainStderr(process);
                 if (engineName.trimmed().isEmpty()) {
                     emit registrationFailed(tr("エンジン名(id name)を取得できませんでした"));

@@ -10,7 +10,7 @@
 #include <QPointer>
 #include <functional>
 
-#include "mainwindow.h"  // PlayMode enum
+#include "playmode.h"
 #include "shogigamecontroller.h"  // ShogiGameController::Player
 
 class ShogiView;
@@ -59,7 +59,7 @@ public:
     // --------------------------------------------------------
     // BoardInteractionControllerアクセス
     // --------------------------------------------------------
-    BoardInteractionController* boardController() const { return m_boardController; }
+    BoardInteractionController* boardController() const;
 
     // --------------------------------------------------------
     // セットアップ・配線
@@ -118,9 +118,11 @@ signals:
     void csaMoveRequested(const QPoint& from, const QPoint& to, bool promote);
 
 private:
+    void disconnectBoardInteractionController(BoardInteractionController* controller);
+
     ShogiView* m_shogiView = nullptr;
     ShogiGameController* m_gameController = nullptr;
-    BoardInteractionController* m_boardController = nullptr;
+    QPointer<BoardInteractionController> m_boardController;
     QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
     TimeControlController* m_timeController = nullptr;
     PositionEditController* m_posEdit = nullptr;

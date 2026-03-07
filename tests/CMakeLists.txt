@@ -789,9 +789,7 @@ add_shogi_test(tst_settings_roundtrip
 # ============================================================
 add_shogi_test(tst_app_lifecycle_pipeline
     tst_app_lifecycle_pipeline.cpp
-)
-target_compile_definitions(tst_app_lifecycle_pipeline PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+    ${SRC}/app/mainwindowlifecyclesequence.cpp
 )
 
 # ============================================================
@@ -915,9 +913,9 @@ target_compile_definitions(tst_wiring_csagame PRIVATE
 # ============================================================
 add_shogi_test(tst_wiring_analysistab
     tst_wiring_analysistab.cpp
-)
-target_compile_definitions(tst_wiring_analysistab PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
+    test_stubs_ui_state_policy.cpp
+    test_stubs_analysistabwiring.cpp
+    ${SRC}/ui/wiring/analysistabwiring.cpp
 )
 
 # ============================================================

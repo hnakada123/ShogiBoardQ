@@ -309,6 +309,8 @@ set(SRC_APP
     src/app/mainwindowuibootstrapper.cpp
     src/app/mainwindowlifecyclepipeline.cpp
     src/app/mainwindowlifecyclepipeline.h
+    src/app/mainwindowlifecyclesequence.cpp
+    src/app/mainwindowlifecyclesequence.h
     src/app/mainwindowdockbootstrapper.cpp
     src/app/playmodepolicyservice.cpp
     src/app/playmodepolicyservice.h
