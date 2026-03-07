@@ -2,7 +2,7 @@
 /// @brief ライフサイクル runtime テスト
 ///
 /// shutdown パスでのオブジェクト寿命安全性を実行時に検証する。
-/// MatchRuntimeQueryService の Deps 無効化後もクラッシュせずデフォルト値を返すことを確認。
+/// MatchRuntimeQueryService の Deps 無効化後もクラッシュせず、安全側の既定値と nullptr を返すことを確認。
 
 #include <QtTest>
 
@@ -30,9 +30,9 @@ void TestLifecycleRuntime::testQueryServiceWithNullDeps()
 
     QCOMPARE(service.isGameActivelyInProgress(), false);
     QCOMPARE(service.isHvH(), false);
-    QCOMPARE(service.isHumanTurnNow(), true);
-    QCOMPARE(service.isHumanSide(ShogiGameController::Player1), true);
-    QCOMPARE(service.isHumanSide(ShogiGameController::Player2), true);
+    QCOMPARE(service.isHumanTurnNow(), false);
+    QCOMPARE(service.isHumanSide(ShogiGameController::Player1), false);
+    QCOMPARE(service.isHumanSide(ShogiGameController::Player2), false);
 
     QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
     QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
@@ -63,8 +63,8 @@ void TestLifecycleRuntime::testQueryServiceAfterDepsInvalidation()
     // 無効化後の呼び出しでクラッシュしないことを確認
     QCOMPARE(service.isGameActivelyInProgress(), false);
     QCOMPARE(service.isHvH(), false);
-    QCOMPARE(service.isHumanTurnNow(), true);
-    QCOMPARE(service.isHumanSide(ShogiGameController::Player1), true);
+    QCOMPARE(service.isHumanTurnNow(), false);
+    QCOMPARE(service.isHumanSide(ShogiGameController::Player1), false);
 
     QCOMPARE(service.byoyomiMs(), static_cast<qint64>(0));
     QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
@@ -94,7 +94,7 @@ void TestLifecycleRuntime::testQueryServiceWithLiveDeps()
     QCOMPARE(service.remainingMsFor(MatchCoordinator::P1), static_cast<qint64>(0));
 }
 
-/// sfenRecord() が match ダブルポインタ null 時に安全に nullptr を返すことを確認
+/// sfenRecord() が match ダブルポインタ null 時に nullptr を返すことを確認
 void TestLifecycleRuntime::testQueryServiceSfenRecordWithNullMatch()
 {
     MatchRuntimeQueryService service;
@@ -118,8 +118,8 @@ void TestLifecycleRuntime::testPlayModePolicyServiceWithNullDeps()
 {
     PlayModePolicyService policy;
 
-    QCOMPARE(policy.isHumanTurnNow(), true);
-    QCOMPARE(policy.isHumanSide(ShogiGameController::Player1), true);
+    QCOMPARE(policy.isHumanTurnNow(), false);
+    QCOMPARE(policy.isHumanSide(ShogiGameController::Player1), false);
     QCOMPARE(policy.isHvH(), false);
     QCOMPARE(policy.isGameActivelyInProgress(), false);
 }

@@ -218,8 +218,7 @@ void Usi::setLogIdentity(const QString& engineTag, const QString& sideTag,
 
 void Usi::setSquelchResignLogging(bool on)
 {
-    Q_UNUSED(on)
-    // 必要に応じて実装
+    m_protocolHandler->setSquelchResignLogging(on);
 }
 
 void Usi::resetResignNotified()

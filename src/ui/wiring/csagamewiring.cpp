@@ -28,7 +28,6 @@
 #include "engineanalysistab.h"
 #include "boardsetupcontroller.h"
 #include "timecontrolcontroller.h"
-#include "sfenutils.h"
 
 CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
@@ -103,7 +102,8 @@ void CsaGameWiring::unwire()
     qCDebug(lcUi) << "unwire: disconnected all signals";
 }
 
-void CsaGameWiring::onGameStarted(const QString& blackName, const QString& whiteName)
+void CsaGameWiring::onGameStarted(const QString& blackName, const QString& whiteName,
+                                  const QStringList& initialPrettyMoves)
 {
     qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
 
@@ -125,21 +125,28 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
                             tr("（１手 / 合計）")));
     }
 
-    // m_sfenHistoryをクリアし、開始局面を追加
-    const QString hiratePosition = SfenUtils::hirateSfen();
-    if (m_sfenHistory) {
-        m_sfenHistory->clear();
-        m_sfenHistory->append(hiratePosition);
+    for (const QString& prettyMove : initialPrettyMoves) {
+        appendInitialKifuLine(prettyMove);
     }
 
-    // 手数カウンタをリセット
-    m_activePly = 0;
-    m_currentSelectedPly = 0;
+    // 手数カウンタを、Game_Summary に含まれていた既存手順の末尾へ合わせる
+    const int initialMoveCount = static_cast<int>(initialPrettyMoves.size());
+    m_activePly = initialMoveCount;
+    m_currentSelectedPly = initialMoveCount;
 
-    // 盤面を初期化
-    if (m_gameController && m_gameController->board()) {
-        m_gameController->board()->setSfen(hiratePosition);
+    if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
+        const int currentRow = m_kifuRecordModel->rowCount() - 1;
+        m_activePly = currentRow;
+        m_currentSelectedPly = currentRow;
+        m_kifuRecordModel->setCurrentHighlightRow(currentRow);
+
+        if (m_recordPane && m_recordPane->kifuView()) {
+            const QModelIndex idx = m_kifuRecordModel->index(currentRow, 0);
+            m_recordPane->kifuView()->setCurrentIndex(idx);
+            m_recordPane->kifuView()->scrollTo(idx);
+        }
     }
+
     if (m_shogiView) {
         m_shogiView->update();
     }
@@ -185,9 +192,6 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
         qCDebug(lcUi) << "onGameEnded: appending last SFEN to sfenRecord";
         m_sfenHistory->append(m_sfenHistory->last());
     }
-
-    // 分岐ツリー更新を要求
-    Q_EMIT refreshBranchTreeRequested();
 
     // 手数を更新
     if (m_kifuRecordModel) {
@@ -239,9 +243,6 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
 
     // 棋譜欄に追記
     Q_EMIT appendKifuLineRequested(prettyMove, elapsedStr);
-
-    // 分岐ツリー更新を要求
-    Q_EMIT refreshBranchTreeRequested();
 
     // 手数を更新
     if (m_kifuRecordModel) {
@@ -354,6 +355,49 @@ void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QStrin
     QMessageBox::information(m_parentWidget, title, message);
 }
 
+void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove)
+{
+    const QString trimmed = prettyMove.trimmed();
+    if (trimmed.isEmpty()) {
+        return;
+    }
+
+    const int beforeRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1;
+    if (m_recordService) {
+        m_recordService->appendKifuLine(trimmed, QString());
+    }
+
+    const bool appendedByService = m_kifuRecordModel && m_kifuRecordModel->rowCount() > beforeRows;
+    if (!appendedByService && m_kifuRecordModel) {
+        m_kifuRecordModel->appendItem(new KifuDisplay(buildNumberedKifuLine(trimmed), QString()));
+    }
+}
+
+QString CsaGameWiring::buildNumberedKifuLine(const QString& prettyMove) const
+{
+    int moveRows = 0;
+    if (m_kifuRecordModel) {
+        moveRows = m_kifuRecordModel->rowCount();
+        if (moveRows > 0) {
+            const QModelIndex headIdx = m_kifuRecordModel->index(0, 0);
+            const QString headText = m_kifuRecordModel->data(headIdx, Qt::DisplayRole).toString();
+            if (headText.contains(tr("開始局面"))
+                || headText.contains(QStringLiteral("平手"))
+                || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
+                --moveRows;
+                if (moveRows < 0) {
+                    moveRows = 0;
+                }
+            }
+        }
+    }
+
+    const int nextMoveNumber = moveRows + 1;
+    const QString moveNumberStr = QString::number(nextMoveNumber);
+    const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
+    return spaces + moveNumberStr + QLatin1Char(' ') + prettyMove;
+}
+
 void CsaGameWiring::onWaitingCancelled()
 {
     qCDebug(lcUi) << "onWaitingCancelled: cancelled by user";
@@ -392,7 +436,6 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     // CSA通信対局コーディネータが未作成の場合は作成する
     if (!m_coordinator) {
         m_coordinator = new CsaGameCoordinator(this);
-        m_coordinatorOwnedByThis = true;
 
         // 依存オブジェクトを設定
         CsaGameCoordinator::Dependencies deps;
@@ -467,15 +510,28 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     m_coordinator->startGame(options);
 
     // 待機ダイアログを表示（対局開始またはエラーまでブロック）
-    waitingDialog.exec();
+    const int result = waitingDialog.exec();
+    const bool started =
+        (result == QDialog::Accepted
+         && m_coordinator
+         && m_coordinator->gameState() == CsaGameCoordinator::GameState::InGame);
+    if (!started) {
+        Q_EMIT playModeChanged(static_cast<int>(PlayMode::NotStarted));
+        if (m_coordinator
+            && m_coordinator->gameState() != CsaGameCoordinator::GameState::Idle) {
+            m_coordinator->stopGame();
+        }
+    }
 
-    return true;
+    return started;
 }
 
 void CsaGameWiring::wireExternalSignals(UiStatePolicyManager* uiPolicy,
                                           GameRecordUpdateService* recordService,
                                           UiNotificationService* notifService)
 {
+    m_recordService = recordService;
+
     if (uiPolicy) {
         connect(this, &CsaGameWiring::disableNavigationRequested,
                 uiPolicy, &UiStatePolicyManager::transitionToDuringCsaGame,

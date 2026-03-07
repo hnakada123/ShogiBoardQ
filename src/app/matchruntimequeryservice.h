@@ -56,7 +56,7 @@ public:
 
     // --- SFEN アクセサ ---
 
-    /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（未初期化時はnullptr）
+    /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（未初期化時は nullptr）
     QStringList* sfenRecord();
 
     /// MatchCoordinatorが保持するSFEN履歴への参照を取得する（const版）

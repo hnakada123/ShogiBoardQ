@@ -88,7 +88,7 @@ private slots:
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
     void onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);
-    void connectKifuCurrentRowChanged();  ///< 遅延接続用スロット
+    void connectKifuCurrentRowChanged();  ///< currentRowChanged 接続を再構築
 
 private:
     QMetaObject::Connection m_connRowChanged;

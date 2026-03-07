@@ -2,7 +2,6 @@
 /// @brief サービスレジストリのコンストラクタ
 
 #include "mainwindowserviceregistry.h"
-#include "mainwindowserviceregistryfacades.h"
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
 #include "kifusubregistry.h"
@@ -16,9 +15,6 @@ MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* pa
     // Created: once at MainWindow startup, never recreated
     , m_foundation(new MainWindowFoundationRegistry(mw, this, this))
     , m_kifu(new KifuSubRegistry(mw, this, m_foundation, this))
-    , m_uiFacade(std::make_unique<MainWindowUiRegistryFacade>(*this))
-    , m_analysisFacade(std::make_unique<MainWindowAnalysisRegistryFacade>(*this))
-    , m_boardFacade(std::make_unique<MainWindowBoardRegistryFacade>(*this))
 {
 }
 

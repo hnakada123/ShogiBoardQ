@@ -578,6 +578,7 @@ add_shogi_test(tst_analysisflow
     ${SRC}/analysis/analysisresulthandler.cpp
     ${SRC}/analysis/analysisresulthandler_dialog.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
+    ${SRC}/analysis/considerationflowcontroller.cpp
 )
 
 # ============================================================
@@ -1115,6 +1116,11 @@ add_shogi_test(tst_jishogi_calculator
 # ============================================================
 # Unit: EngineRegistrationHandler テスト
 # ============================================================
+add_executable(engineregistration_test_engine
+    engineregistration_test_engine.cpp
+)
+target_link_libraries(engineregistration_test_engine PRIVATE Qt6::Core)
+
 add_shogi_test(tst_engineregistrationhandler
     tst_engineregistrationhandler.cpp
     ${SRC}/dialogs/engineregistrationhandler.cpp

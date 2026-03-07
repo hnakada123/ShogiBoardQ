@@ -2,82 +2,9 @@
 /// @brief 将棋エンジンプロセス管理クラスの実装
 
 #include "engineprocessmanager.h"
-#include "usi.h"
-#include <QCoreApplication>
-#include <QDeadlineTimer>
-#include <QEventLoop>
-#include <QFile>
-#include <QFileInfo>
+#include "logcategories.h"
 
-namespace {
-constexpr int kStartTimeoutMs = 5000;
-constexpr int kWaitSliceMs = 50;
-const QEventLoop::ProcessEventsFlags kWaitPumpFlags =
-    QEventLoop::ExcludeUserInputEvents | QEventLoop::ExcludeSocketNotifiers;
-
-class TransitionScopeGuard
-{
-public:
-    explicit TransitionScopeGuard(bool& flag)
-        : m_flag(flag)
-    {
-        m_flag = true;
-    }
-
-    ~TransitionScopeGuard()
-    {
-        m_flag = false;
-    }
-
-private:
-    bool& m_flag;
-};
-
-void pumpResponsiveEvents(int maxMs)
-{
-    QCoreApplication::processEvents(kWaitPumpFlags, maxMs);
-}
-
-template<typename DoneFn, typename WaitFn>
-bool waitForProcessResponsive(const DoneFn& isDone, const WaitFn& waitSlice, int timeoutMs)
-{
-    if (isDone()) return true;
-    if (timeoutMs <= 0) return isDone();
-
-    QDeadlineTimer deadline(timeoutMs);
-    while (!deadline.hasExpired() && !isDone()) {
-        pumpResponsiveEvents(1);
-        if (isDone()) {
-            return true;
-        }
-
-        const qint64 remainingMs = deadline.remainingTime();
-        const int sliceMs = (remainingMs > 0)
-                                ? qMax(1, qMin(kWaitSliceMs, static_cast<int>(remainingMs)))
-                                : 1;
-        waitSlice(sliceMs);
-        pumpResponsiveEvents(1);
-    }
-
-    return isDone();
-}
-
-bool waitForStartedResponsive(QProcess& process, int timeoutMs)
-{
-    return waitForProcessResponsive(
-        [&process]() { return process.state() == QProcess::Running; },
-        [&process](int sliceMs) { (void)process.waitForStarted(sliceMs); },
-        timeoutMs);
-}
-
-bool waitForFinishedResponsive(QProcess& process, int timeoutMs)
-{
-    return waitForProcessResponsive(
-        [&process]() { return process.state() == QProcess::NotRunning; },
-        [&process](int sliceMs) { (void)process.waitForFinished(sliceMs); },
-        timeoutMs);
-}
-} // namespace
+#include <QTimer>
 
 EngineProcessManager::EngineProcessManager(QObject* parent)
     : QObject(parent)
@@ -87,105 +14,6 @@ EngineProcessManager::EngineProcessManager(QObject* parent)
 EngineProcessManager::~EngineProcessManager()
 {
     stopProcess();
-}
-bool EngineProcessManager::startProcess(const QString& engineFile)
-{
-    if (m_transitionInProgress) {
-        const QString msg = tr("Engine transition is already in progress.");
-        qCWarning(lcEngine) << logPrefix() << msg;
-        emit processError(QProcess::UnknownError, msg);
-        return false;
-    }
-
-    m_currentEnginePath = engineFile;
-
-    if (engineFile.isEmpty() || !QFile::exists(engineFile)) {
-        emit processError(QProcess::FailedToStart,
-                          tr("Engine file does not exist: %1").arg(engineFile));
-        return false;
-    }
-
-    if (m_process) {
-        stopProcess();
-    }
-
-    m_stopRequestedDuringTransition = false;
-    {
-        TransitionScopeGuard transitionGuard(m_transitionInProgress);
-
-        m_startupErrorReported = false;
-        m_process = std::make_unique<QProcess>();
-
-        QFileInfo engineFileInfo(engineFile);
-        m_process->setWorkingDirectory(engineFileInfo.absolutePath());
-
-        connect(m_process.get(), &QProcess::readyReadStandardOutput,
-                this, &EngineProcessManager::onReadyReadStdout);
-        connect(m_process.get(), &QProcess::readyReadStandardError,
-                this, &EngineProcessManager::onReadyReadStderr);
-        connect(m_process.get(), &QProcess::errorOccurred,
-                this, &EngineProcessManager::onProcessError);
-        connect(m_process.get(), QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-                this, &EngineProcessManager::onProcessFinished);
-
-        m_process->start(engineFile, QStringList(), QIODevice::ReadWrite);
-
-        if (!waitForStartedResponsive(*m_process, kStartTimeoutMs)) {
-            if (!m_startupErrorReported) {
-                const QString errorMsg = tr("Failed to start engine: %1").arg(engineFile);
-                emit processError(QProcess::FailedToStart, errorMsg);
-            }
-
-            m_process.reset();
-            return false;
-        }
-    }
-
-    if (m_stopRequestedDuringTransition) {
-        qCWarning(lcEngine) << logPrefix()
-                            << "起動待機中に停止要求を受信したため、起動直後に停止します";
-        m_stopRequestedDuringTransition = false;
-        stopProcess();
-        return false;
-    }
-
-    m_shutdownState = ShutdownState::Running;
-    return true;
-}
-
-void EngineProcessManager::stopProcess()
-{
-    if (m_transitionInProgress) {
-        m_stopRequestedDuringTransition = true;
-        qCDebug(lcEngine) << logPrefix() << "遷移中のため stopProcess を遅延します";
-        return;
-    }
-    if (!m_process) return;
-
-    TransitionScopeGuard transitionGuard(m_transitionInProgress);
-
-    disconnect(m_process.get(), nullptr, this, nullptr);
-
-    if (m_process->state() == QProcess::Running) {
-        if (!waitForFinishedResponsive(*m_process, 3000)) {
-            m_process->terminate();
-            if (!waitForFinishedResponsive(*m_process, 1000)) {
-                m_process->kill();
-                if (!waitForFinishedResponsive(*m_process, 2000)) {
-                    qCWarning(lcEngine) << logPrefix()
-                                        << "プロセス終了待機がタイムアウトしたため、強制的に解放します";
-                }
-            }
-        }
-    }
-
-    m_process.reset();
-
-    m_shutdownState = ShutdownState::Running;
-    m_postQuitInfoStringLinesLeft = 0;
-    m_currentEnginePath.clear();
-    m_startupErrorReported = false;
-    m_stopRequestedDuringTransition = false;
 }
 
 bool EngineProcessManager::isRunning() const
@@ -233,19 +61,6 @@ void EngineProcessManager::pumpPendingOutput()
         ++loops;
     }
     onReadyReadStderr();
-}
-
-bool EngineProcessManager::waitForReadyReadAndPump(int timeoutMs)
-{
-    if (!m_process) return false;
-    if (m_process->state() != QProcess::Running && m_process->state() != QProcess::Starting) {
-        pumpPendingOutput();
-        return false;
-    }
-
-    const bool ready = m_process->waitForReadyRead(timeoutMs);
-    pumpPendingOutput();
-    return ready;
 }
 
 void EngineProcessManager::setShutdownState(ShutdownState state)

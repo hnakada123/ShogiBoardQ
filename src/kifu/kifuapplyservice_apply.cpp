@@ -69,7 +69,11 @@ void KifuApplyService::applyParsedResult(
         return;
     }
 
-    rebuildMainlineState(initialSfen, hasTerminal);
+    if (!rebuildMainlineState(initialSfen, hasTerminal)) {
+        *m_refs.loadingKifu = false;
+        qCDebug(lcKifu).noquote() << callerTag << "OUT (missing sfen history)";
+        return;
+    }
     logStep("rebuildMainlineState");
 
     rebuildPositionCommands(initialSfen);
@@ -104,14 +108,16 @@ bool KifuApplyService::validateParsedResult(const QString& filePath, const QList
     return true;
 }
 
-void KifuApplyService::rebuildMainlineState(const QString& initialSfen, bool hasTerminal)
+bool KifuApplyService::rebuildMainlineState(const QString& initialSfen, bool hasTerminal)
 {
     qCDebug(lcKifu).noquote() << "applyParsedResult: calling rebuildSfenRecord"
                               << "initialSfen=" << initialSfen.left(60)
                               << "usiMoves.size=" << m_refs.kifuUsiMoves->size()
                               << "hasTerminal=" << hasTerminal;
 
-    rebuildSfenRecord(initialSfen, *m_refs.kifuUsiMoves, hasTerminal);
+    if (!rebuildSfenRecord(initialSfen, *m_refs.kifuUsiMoves, hasTerminal)) {
+        return false;
+    }
     rebuildGameMoves(initialSfen, *m_refs.kifuUsiMoves);
 
     QStringList* sfenHistory = *m_refs.sfenHistory;
@@ -127,6 +133,7 @@ void KifuApplyService::rebuildMainlineState(const QString& initialSfen, bool has
             qCDebug(lcKifu).noquote() << "sfenHistory[last]=" << sfenHistory->last().left(60);
         }
     }
+    return true;
 }
 
 void KifuApplyService::rebuildPositionCommands(const QString& initialSfen)

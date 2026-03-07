@@ -20,6 +20,15 @@ class TestWiringSlotCoverage : public QObject
     Q_OBJECT
 
 private:
+    static bool allowsZeroDirectConnections(const QString& fileName)
+    {
+        static const QSet<QString> exemptFiles = {
+            QStringLiteral("uiactionswiring.cpp"),
+            QStringLiteral("matchcoordinatorhooksfactory.cpp"),
+        };
+        return exemptFiles.contains(fileName);
+    }
+
     struct ConnectCall {
         QString text;
         qsizetype start = 0;
@@ -385,9 +394,8 @@ private slots:
             qWarning().noquote() << msg;
         }
 
-        // Currently report-only: warn but do not fail
-        // When all slots are properly connected, change this to QVERIFY
-        QVERIFY2(true, "Slot coverage check completed (see warnings above)");
+        QVERIFY2(unconnectedSlots.isEmpty(), qPrintable(QStringLiteral("Unconnected public slots found:\n  - ")
+                                                        + unconnectedSlots.join(QStringLiteral("\n  - "))));
     }
 
     // ================================================================
@@ -434,8 +442,8 @@ private slots:
             qWarning().noquote() << msg;
         }
 
-        // Report-only for now (some duplicates may be intentional for different contexts)
-        QVERIFY2(true, "Duplicate connection check completed (see warnings above)");
+        QVERIFY2(duplicates.isEmpty(), qPrintable(QStringLiteral("Duplicate connections found:\n")
+                                                  + duplicates.join(QChar('\n'))));
     }
 
     // ================================================================
@@ -463,20 +471,14 @@ private slots:
                 ++pos;
             }
 
-            if (count == 0) {
+            if (count == 0 && !allowsZeroDirectConnections(fileName)) {
                 noConnections.append(fileName);
             }
         }
 
-        if (!noConnections.isEmpty()) {
-            const QString msg = QStringLiteral("Wiring files with 0 connect() calls:\n  - ")
-                + noConnections.join(QStringLiteral("\n  - "));
-            QWARN(qPrintable(msg));
-        }
-
-        // Most wiring files should have at least one connection
-        // (some may be pure structural with no signals)
-        QVERIFY(true);
+        QVERIFY2(noConnections.isEmpty(),
+                 qPrintable(QStringLiteral("Wiring files with 0 connect() calls:\n  - ")
+                                + noConnections.join(QStringLiteral("\n  - "))));
     }
 
     // ================================================================
@@ -537,7 +539,9 @@ private slots:
             qWarning().noquote() << msg;
         }
 
-        QVERIFY2(true, "Deps field reference check completed (see warnings above)");
+        QVERIFY2(unreferencedFields.isEmpty(),
+                 qPrintable(QStringLiteral("Unreferenced Deps fields (potential injection gaps):\n  - ")
+                                + unreferencedFields.join(QStringLiteral("\n  - "))));
     }
 
     // ================================================================
@@ -570,7 +574,9 @@ private slots:
             qWarning().noquote() << msg;
         }
 
-        QVERIFY2(true, "Signal connection check completed (see warnings above)");
+        QVERIFY2(unconnectedSignals.isEmpty(),
+                 qPrintable(QStringLiteral("Unconnected signals (never used in connect()):\n  - ")
+                                + unconnectedSignals.join(QStringLiteral("\n  - "))));
     }
 
     // ================================================================
@@ -620,7 +626,9 @@ private slots:
             qWarning().noquote() << msg;
         }
 
-        QVERIFY2(true, "Registry ensure* invocation check completed");
+        QVERIFY2(uninvokedMethods.isEmpty(),
+                 qPrintable(QStringLiteral("Uninvoked ensure* methods:\n  - ")
+                                + uninvokedMethods.join(QStringLiteral("\n  - "))));
     }
 };
 

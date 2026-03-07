@@ -14,7 +14,7 @@ void PlayModePolicyService::updateDeps(const Deps& deps)
 bool PlayModePolicyService::isHumanTurnNow() const
 {
     if (!m_deps.playMode)
-        return true;
+        return false;
 
     switch (*m_deps.playMode) {
     case PlayMode::HumanVsHuman:
@@ -41,14 +41,14 @@ bool PlayModePolicyService::isHumanTurnNow() const
         return false;
 
     default:
-        return true;
+        return false;
     }
 }
 
 bool PlayModePolicyService::isHumanSide(ShogiGameController::Player p) const
 {
     if (!m_deps.playMode)
-        return true;
+        return false;
 
     switch (*m_deps.playMode) {
     case PlayMode::HumanVsHuman:
@@ -63,7 +63,7 @@ bool PlayModePolicyService::isHumanSide(ShogiGameController::Player p) const
     case PlayMode::HandicapEngineVsEngine:
         return false;
     default:
-        return true;
+        return false;
     }
 }
 

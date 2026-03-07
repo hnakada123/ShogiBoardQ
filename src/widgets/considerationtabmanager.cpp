@@ -252,13 +252,9 @@ void ConsiderationTabManager::setConsiderationRunning(bool running)
         m_stopButtonConnection = connect(
             m_btnStopConsideration, &QToolButton::clicked,
             this, &ConsiderationTabManager::startConsiderationRequested);
-        QTimer::singleShot(0, this, [this]() {
-            if (m_btnStopConsideration) {
-                m_btnStopConsideration->setEnabled(m_startConsiderationEnabled);
-                qCDebug(lcUi).noquote() << "[ConsiderationTabManager] button re-enabled after deferred timer"
-                                        << "enabled=" << m_startConsiderationEnabled;
-            }
-        });
+        m_btnStopConsideration->setEnabled(m_startConsiderationEnabled);
+        qCDebug(lcUi).noquote() << "[ConsiderationTabManager] button state updated immediately"
+                                << "enabled=" << m_startConsiderationEnabled;
     }
 
     qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] EXIT";

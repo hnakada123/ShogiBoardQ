@@ -14,6 +14,34 @@
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 
+namespace {
+bool isInitialPromotionMove(const QString& csaMove, ShogiGameController* gameController)
+{
+    if (!gameController || !gameController->board() || csaMove.length() < 7) {
+        return false;
+    }
+
+    const int fromFile = csaMove[1].digitValue();
+    const int fromRank = csaMove[2].digitValue();
+    if (fromFile == 0 && fromRank == 0) {
+        return false;
+    }
+
+    const QString destPiece = csaMove.mid(5, 2);
+    static const QStringList promotedPieces = {
+        QStringLiteral("TO"), QStringLiteral("NY"), QStringLiteral("NK"),
+        QStringLiteral("NG"), QStringLiteral("UM"), QStringLiteral("RY")
+    };
+    if (!promotedPieces.contains(destPiece)) {
+        return false;
+    }
+
+    const Piece srcPiece = gameController->board()->pieceCharacter(fromFile, fromRank);
+    static const QString unpromoted = QStringLiteral("PLNSBRplnsbr");
+    return unpromoted.contains(pieceToChar(srcPiece));
+}
+} // namespace
+
 void CsaGameCoordinator::setGameState(GameState state)
 {
     if (m_gameState != state) {
@@ -55,9 +83,16 @@ void CsaGameCoordinator::setupInitialPosition()
         ? QStringLiteral("position startpos")
         : QStringLiteral("position sfen %1").arg(m_startSfen);
     m_usiMoves.clear();
+    m_initialPrettyMoves.clear();
+    m_prevToFile = 0;
+    m_prevToRank = 0;
 
     int replayMoveCount = 0;
     for (const QString& move : std::as_const(m_gameSummary.moves)) {
+        const bool isPromotion = isInitialPromotionMove(move, m_gameController);
+        const QString prettyMove = CsaMoveConverter::csaToPretty(
+            move, isPromotion, m_prevToFile, m_prevToRank, replayMoveCount);
+
         if (!CsaMoveConverter::applyMoveToBoard(move, m_gameController, m_usiMoves, m_sfenHistory,
                                                 replayMoveCount)) {
             qCWarning(lcNetwork).noquote()
@@ -67,6 +102,12 @@ void CsaGameCoordinator::setupInitialPosition()
             setGameState(GameState::Error);
             return;
         }
+
+        if (move.length() >= 5) {
+            m_prevToFile = move[3].digitValue();
+            m_prevToRank = move[4].digitValue();
+        }
+        m_initialPrettyMoves.append(prettyMove);
         ++replayMoveCount;
     }
     m_moveCount = replayMoveCount;

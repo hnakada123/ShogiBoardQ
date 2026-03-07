@@ -123,15 +123,17 @@ public:
 private:
     bool validateParsedResult(const QString& filePath, const QList<KifDisplayItem>& disp,
                               bool hasTerminal, const char* callerTag);
-    void rebuildMainlineState(const QString& initialSfen, bool hasTerminal);
+    [[nodiscard]] bool rebuildMainlineState(const QString& initialSfen, bool hasTerminal);
     void rebuildPositionCommands(const QString& initialSfen);
     void applyToRecordView(const KifParseResult& res, const QString& filePath,
                            const QString& teaiLabel, const QString& parseWarn);
     void applyBranchTree(const KifParseResult& res, const QString& initialSfen);
-    void rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves, bool hasTerminal);
+    [[nodiscard]] bool rebuildSfenRecord(const QString& initialSfen, const QStringList& usiMoves,
+                                         bool hasTerminal);
     void rebuildGameMoves(const QString& initialSfen, const QStringList& usiMoves);
     void addGameInfoTabIfMissing();
     QString findGameInfoValue(const QList<KifGameInfoItem>& items, const QStringList& keys) const;
+    [[nodiscard]] bool ensureSfenHistoryStorage(const char* callerTag) const;
 
     Refs m_refs;
     Hooks m_hooks;

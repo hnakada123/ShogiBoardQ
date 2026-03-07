@@ -289,8 +289,6 @@ set(SRC_APP
     src/app/mainwindowfoundationregistry.h
     src/app/mainwindowserviceregistry.cpp
     src/app/mainwindowserviceregistry.h
-    src/app/mainwindowserviceregistryfacades.cpp
-    src/app/mainwindowserviceregistryfacades.h
     src/app/mainwindowuiregistry.cpp
     src/app/mainwindowdepsfactory.cpp
     src/app/mainwindowdepsfactory.h
@@ -536,6 +534,7 @@ set(SRC_ENGINE
     src/engine/engineoptiondescriptions.h
     src/engine/engineoptions.h
     src/engine/engineprocessmanager.cpp
+    src/engine/engineprocessmanager_wait.cpp
     src/engine/engineprocessmanager.h
     src/engine/enginesettingsconstants.h
     src/engine/shogiengineinfoparser.cpp

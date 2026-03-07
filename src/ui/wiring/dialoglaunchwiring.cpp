@@ -164,11 +164,18 @@ void DialogLaunchWiring::displayCsaGameDialog()
         auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
         csaWiring->setAnalysisTab(analysisTab);
 
-        // プレイモードをCSA通信対局に設定
-        *m_deps.playMode = PlayMode::CsaNetworkMode;
-
         // CSA対局を開始（ロジックはCsaGameWiringに委譲）
-        csaWiring->startCsaGame(dlg, m_deps.parentWidget);
+        const bool started = csaWiring->startCsaGame(dlg, m_deps.parentWidget);
+
+        if (!started) {
+            if (m_deps.csaGameCoordinator) {
+                *m_deps.csaGameCoordinator = nullptr;
+            }
+            if (m_deps.onCsaGameCoordinatorUpdated) {
+                m_deps.onCsaGameCoordinatorUpdated();
+            }
+            return;
+        }
 
         // CsaGameCoordinatorの参照を保持（他のコードとの互換性のため）
         if (m_deps.csaGameCoordinator) {

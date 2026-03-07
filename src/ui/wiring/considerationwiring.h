@@ -110,6 +110,7 @@ public slots:
      */
     void onShowArrowsChanged(bool checked);
 
+public:
     /**
      * @brief 検討モード中に局面が変更されたときの処理
      */

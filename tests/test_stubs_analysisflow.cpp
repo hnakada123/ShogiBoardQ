@@ -28,12 +28,15 @@
 #include "engineprocessmanager.h"
 #include "thinkinginfopresenter.h"
 #include "shogiengineinfoparser.h"
+#include "matchcoordinator.h"
 #include "pvboarddialog.h"
 #include "branchtreemanager.h"
 #include "settingscommon.h"
 #include "shogiinforecord.h"
 
 bool g_analysisFlowStubStartAndInitSuccess = true;
+bool g_matchStartAnalysisCalled = false;
+MatchCoordinator::AnalysisOptions g_lastMatchAnalysisOptions;
 
 // === Usi スタブ ===
 Usi::Usi(UsiCommLogModel*, ShogiEngineThinkingModel*,
@@ -310,6 +313,24 @@ void EngineProcessManager::onProcessError(QProcess::ProcessError) {}
 void EngineProcessManager::onProcessFinished(int, QProcess::ExitStatus) {}
 void EngineProcessManager::scheduleMoreReading() {}
 
+// === MatchCoordinator スタブ ===
+class MatchTurnHandler {};
+class AnalysisSessionHandler {};
+class GameStartOrchestrator {};
+
+MatchCoordinator::MatchCoordinator(const Deps&, QObject* parent)
+    : QObject(parent)
+{
+}
+MatchCoordinator::~MatchCoordinator() = default;
+void MatchCoordinator::startAnalysis(const AnalysisOptions& opt)
+{
+    g_matchStartAnalysisCalled = true;
+    g_lastMatchAnalysisOptions = opt;
+}
+void MatchCoordinator::pokeTimeUpdateNow() {}
+void MatchCoordinator::onUsiError(const QString&) {}
+
 // === ThinkingInfoPresenter スタブ ===
 ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent) : QObject(parent) {}
 ThinkingInfoPresenter::~ThinkingInfoPresenter() = default;
@@ -425,6 +446,7 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_shogiengineinfoparser.cpp"
 #include "moc_shogiinforecord.cpp"
 #include "moc_branchtreemanager.cpp"
+#include "moc_matchcoordinator.cpp"
 // usi.h / pvboarddialog.h 経由で間接参照されるクラス
 #include "moc_usiprotocolhandler.cpp"
 #include "moc_pvboarddialog.cpp"

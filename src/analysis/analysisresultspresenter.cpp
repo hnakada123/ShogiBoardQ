@@ -353,15 +353,18 @@ void AnalysisResultsPresenter::showAnalysisComplete(int totalMoves)
 
     // 完了メッセージを表示（イベント処理完了後に遅延実行）
     // シグナル処理中にモーダルダイアログを表示するとクラッシュするため
-    QTimer::singleShot(0, this, [this, totalMoves]() {
-        QWidget* parentWidget = m_dock ? qobject_cast<QWidget*>(m_dock.data()) : m_container.data();
-        QMessageBox::information(
-            parentWidget,
-            tr("棋譜解析完了"),
-            tr("棋譜解析が完了しました。\n\n解析手数: %1 手").arg(totalMoves),
-            QMessageBox::Ok
-        );
-    });
+    QMetaObject::invokeMethod(
+        this,
+        [this, totalMoves]() {
+            QWidget* parentWidget =
+                m_dock ? qobject_cast<QWidget*>(m_dock.data()) : m_container.data();
+            QMessageBox::information(
+                parentWidget,
+                tr("棋譜解析完了"),
+                tr("棋譜解析が完了しました。\n\n解析手数: %1 手").arg(totalMoves),
+                QMessageBox::Ok);
+        },
+        Qt::QueuedConnection);
 }
 
 void AnalysisResultsPresenter::increaseFontSize()

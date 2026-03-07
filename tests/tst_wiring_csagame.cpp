@@ -243,6 +243,34 @@ private slots:
         QVERIFY2(m_wiringSrc.contains(QStringLiteral("if (m_coordinator == coordinator)")),
                  "setCoordinator should early-return for same coordinator pointer");
     }
+
+    void onGameStarted_doesNotResetBoardOrSfenToHirate()
+    {
+        QVERIFY2(!m_wiringSrc.contains(QStringLiteral("SfenUtils::hirateSfen()")),
+                 "onGameStarted must not reset CSA start position to hirate");
+        QVERIFY2(!m_wiringSrc.contains(QStringLiteral("m_sfenHistory->clear();")),
+                 "onGameStarted must not clear coordinator-populated sfenHistory");
+        QVERIFY2(!m_wiringSrc.contains(QStringLiteral("board()->setSfen(")),
+                 "onGameStarted must not overwrite coordinator-populated board state");
+    }
+
+    void onGameStarted_replaysInitialPrettyMoves()
+    {
+        QVERIFY2(m_wiringHeader.contains(QStringLiteral("const QStringList& initialPrettyMoves")),
+                 "onGameStarted should accept initialPrettyMoves");
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("appendInitialKifuLine(prettyMove)")),
+                 "onGameStarted should append Game_Summary moves to the record");
+    }
+
+    void startCsaGame_checksDialogResultAndRestoresPlayModeOnFailure()
+    {
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("const int result = waitingDialog.exec();")),
+                 "startCsaGame should inspect waiting dialog result");
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("PlayMode::NotStarted")),
+                 "startCsaGame should restore PlayMode on CSA startup failure");
+        QVERIFY2(m_wiringSrc.contains(QStringLiteral("return started;")),
+                 "startCsaGame should return whether CSA game actually started");
+    }
 };
 
 QTEST_MAIN(TestWiringCsaGame)

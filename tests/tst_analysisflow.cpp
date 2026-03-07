@@ -5,19 +5,56 @@
 
 #include <QTest>
 #include <QSignalSpy>
+#include <QSettings>
 #include <QStringList>
 
 #include "analysisflowcontroller.h"
 #include "analysiscoordinator.h"
+#include "considerationflowcontroller.h"
+#include "enginesettingsconstants.h"
 #include "usi.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
 #include "kifurecordlistmodel.h"
+#include "matchcoordinator.h"
+#include "settingscommon.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
 
 extern bool g_analysisFlowStubStartAndInitSuccess;
+extern bool g_matchStartAnalysisCalled;
+extern MatchCoordinator::AnalysisOptions g_lastMatchAnalysisOptions;
+
+namespace {
+void clearConsiderationEngineSettings()
+{
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+    settings.clear();
+    settings.sync();
+}
+
+void writeConsiderationEngineSettings(const QString& path, const QString& name)
+{
+    using namespace EngineSettingsConstants;
+
+    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+    settings.clear();
+    settings.beginWriteArray(EnginesGroupName);
+    settings.setArrayIndex(0);
+    settings.setValue(QString::fromLatin1(EnginePathKey), path);
+    settings.setValue(QString::fromLatin1(EngineNameKey), name);
+    settings.endArray();
+    settings.sync();
+}
+
+void resetConsiderationFlowStubs()
+{
+    clearConsiderationEngineSettings();
+    g_matchStartAnalysisCalled = false;
+    g_lastMatchAnalysisOptions = MatchCoordinator::AnalysisOptions{};
+}
+} // namespace
 
 /// テスト用ヘルパ: start() に渡す最小限の Deps を構築する
 class TestHelper
@@ -141,6 +178,17 @@ private slots:
 
     /// エンジンエラー発生時にエラーコールバックが呼ばれる
     void engineErrorCallsDisplayError();
+
+    // --- 4. ConsiderationFlowController ---
+
+    /// MatchCoordinator 未設定時は開始せずエラーを返す
+    void considerationDirect_withoutMatch_returnsFalse();
+
+    /// 無効なエンジン設定では開始通知を出さず false を返す
+    void considerationDirect_invalidEngineSelection_returnsFalse();
+
+    /// 正常系では開始通知・設定通知・startAnalysis が揃って動く
+    void considerationDirect_validEngine_startsAnalysis();
 };
 
 // === 1. 状態遷移テスト ===
@@ -375,6 +423,124 @@ void TestAnalysisFlow::engineErrorCallsDisplayError()
 
     QVERIFY(!ctrl.isRunning());
     QVERIFY(h.lastError.contains(QStringLiteral("Engine crashed")));
+}
+
+void TestAnalysisFlow::considerationDirect_withoutMatch_returnsFalse()
+{
+    resetConsiderationFlowStubs();
+
+    ConsiderationFlowController flow;
+    ConsiderationFlowController::Deps deps;
+    QString lastError;
+    bool startedNotified = false;
+    deps.onStarted = [&startedNotified]() { startedNotified = true; };
+    deps.onError = [&lastError](const QString& msg) { lastError = msg; };
+
+    const bool started = flow.runDirect(deps, {}, QStringLiteral("position startpos"));
+
+    QVERIFY(!started);
+    QVERIFY(lastError.contains(QStringLiteral("MatchCoordinator")));
+    QVERIFY(!startedNotified);
+    QVERIFY(!g_matchStartAnalysisCalled);
+}
+
+void TestAnalysisFlow::considerationDirect_invalidEngineSelection_returnsFalse()
+{
+    resetConsiderationFlowStubs();
+
+    MatchCoordinator::Deps matchDeps;
+    MatchCoordinator match(matchDeps);
+
+    ConsiderationFlowController flow;
+    ConsiderationFlowController::Deps deps;
+    QString lastError;
+    bool startedNotified = false;
+    bool timeReadyCalled = false;
+    bool multiPVReadyCalled = false;
+    deps.match = &match;
+    deps.onStarted = [&startedNotified]() { startedNotified = true; };
+    deps.onError = [&lastError](const QString& msg) { lastError = msg; };
+    deps.onTimeSettingsReady = [&timeReadyCalled](bool, int) { timeReadyCalled = true; };
+    deps.onMultiPVReady = [&multiPVReadyCalled](int) { multiPVReadyCalled = true; };
+
+    ConsiderationFlowController::DirectParams params;
+    params.engineIndex = 0;
+    params.engineName = QStringLiteral("MissingEngine");
+
+    const bool started = flow.runDirect(deps, params, QStringLiteral("position startpos"));
+
+    QVERIFY(!started);
+    QVERIFY(lastError.contains(QStringLiteral("検討エンジン")));
+    QVERIFY(!startedNotified);
+    QVERIFY(!timeReadyCalled);
+    QVERIFY(!multiPVReadyCalled);
+    QVERIFY(!g_matchStartAnalysisCalled);
+}
+
+void TestAnalysisFlow::considerationDirect_validEngine_startsAnalysis()
+{
+    resetConsiderationFlowStubs();
+    writeConsiderationEngineSettings(QStringLiteral("/usr/bin/test-engine"),
+                                     QStringLiteral("StoredEngine"));
+
+    MatchCoordinator::Deps matchDeps;
+    MatchCoordinator match(matchDeps);
+
+    ShogiEngineThinkingModel considerationModel;
+    ConsiderationFlowController flow;
+    ConsiderationFlowController::Deps deps;
+    bool startedNotified = false;
+    bool timeReadyCalled = false;
+    bool multiPVReadyCalled = false;
+    bool unlimitedReceived = true;
+    int byoyomiReceived = 0;
+    int multiPVReceived = 0;
+    QString lastError;
+    deps.match = &match;
+    deps.considerationModel = &considerationModel;
+    deps.onStarted = [&startedNotified]() { startedNotified = true; };
+    deps.onError = [&lastError](const QString& msg) { lastError = msg; };
+    deps.onTimeSettingsReady = [&timeReadyCalled, &unlimitedReceived, &byoyomiReceived](bool unlimited, int byoyomiSec) {
+        timeReadyCalled = true;
+        unlimitedReceived = unlimited;
+        byoyomiReceived = byoyomiSec;
+    };
+    deps.onMultiPVReady = [&multiPVReadyCalled, &multiPVReceived](int multiPV) {
+        multiPVReadyCalled = true;
+        multiPVReceived = multiPV;
+    };
+
+    ConsiderationFlowController::DirectParams params;
+    params.engineIndex = 0;
+    params.unlimitedTime = false;
+    params.byoyomiSec = 15;
+    params.multiPV = 4;
+    params.previousFileTo = 7;
+    params.previousRankTo = 6;
+    params.lastUsiMove = QStringLiteral("7g7f");
+
+    const QString position = QStringLiteral("position startpos moves 7g7f");
+    const bool started = flow.runDirect(deps, params, position);
+
+    QVERIFY(started);
+    QVERIFY(lastError.isEmpty());
+    QVERIFY(startedNotified);
+    QVERIFY(timeReadyCalled);
+    QVERIFY(multiPVReadyCalled);
+    QCOMPARE(unlimitedReceived, false);
+    QCOMPARE(byoyomiReceived, 15);
+    QCOMPARE(multiPVReceived, 4);
+    QVERIFY(g_matchStartAnalysisCalled);
+    QCOMPARE(g_lastMatchAnalysisOptions.enginePath, QStringLiteral("/usr/bin/test-engine"));
+    QCOMPARE(g_lastMatchAnalysisOptions.engineName, QStringLiteral("StoredEngine"));
+    QCOMPARE(g_lastMatchAnalysisOptions.positionStr, position);
+    QCOMPARE(g_lastMatchAnalysisOptions.byoyomiMs, 15000);
+    QCOMPARE(g_lastMatchAnalysisOptions.multiPV, 4);
+    QCOMPARE(g_lastMatchAnalysisOptions.mode, PlayMode::ConsiderationMode);
+    QCOMPARE(g_lastMatchAnalysisOptions.considerationModel, &considerationModel);
+    QCOMPARE(g_lastMatchAnalysisOptions.previousFileTo, 7);
+    QCOMPARE(g_lastMatchAnalysisOptions.previousRankTo, 6);
+    QCOMPARE(g_lastMatchAnalysisOptions.lastUsiMove, QStringLiteral("7g7f"));
 }
 
 QTEST_MAIN(TestAnalysisFlow)
