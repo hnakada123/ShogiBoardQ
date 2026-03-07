@@ -52,7 +52,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
 
     // 4) 対局者名
     QString blackPlayer, whitePlayer;
-    for (const auto& it : header) {
+    for (const auto& it : std::as_const(header)) {
         const QString key = it.key.trimmed();
         const QString val = it.value.trimmed();
         if (key == QStringLiteral("先手") && !val.isEmpty()) {
@@ -82,7 +82,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
     bool hasTime = false;
     Q_UNUSED(hasTime);
 
-    for (const auto& it : header) {
+    for (const auto& it : std::as_const(header)) {
         const QString key = it.key.trimmed();
         const QString val = it.value.trimmed();
         if (key.isEmpty() || val.isEmpty()) continue;
@@ -180,7 +180,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         const QString cmt = disp[0].comment.trimmed();
         if (!cmt.isEmpty()) {
             const QStringList lines = cmt.split(newlineRe(), Qt::KeepEmptyParts);
-            for (const QString& raw : lines) {
+            for (const QString& raw : std::as_const(lines)) {
                 QString t = raw.trimmed();
                 if (t.isEmpty()) continue;
 
@@ -301,7 +301,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         const QString cmt = it.comment.trimmed();
         if (!cmt.isEmpty()) {
             const QStringList lines = cmt.split(newlineRe(), Qt::KeepEmptyParts);
-            for (const QString& raw : lines) {
+            for (const QString& raw : std::as_const(lines)) {
                 QString t = raw.trimmed();
                 if (t.isEmpty()) continue;
 

@@ -275,7 +275,7 @@ bool isKifSkippableHeaderLine(QStringView line)
         QStringLiteral("手合割"), QStringLiteral("手合"),
         QStringLiteral("手数＝")
     };
-    for (const auto& k : keys) {
+    for (const auto& k : std::as_const(keys)) {
         if (line.contains(k)) return true;
     }
 

@@ -117,7 +117,7 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
 
         // このカテゴリのオプションを処理
         const auto& optionsInCategory = categoryOptionsMap[category];
-        for (const auto& pair : optionsInCategory) {
+        for (const auto& pair : std::as_const(optionsInCategory)) {
             int optionIndex = pair.first;
             const EngineOption& option = pair.second;
 

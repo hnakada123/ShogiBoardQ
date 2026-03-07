@@ -232,7 +232,7 @@ void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingM
             "Time", "Depth", "Nodes", "Score",
             "時間", "深さ", "ノード数", "評価値"
         };
-        for (const QString& t : targets) {
+        for (const QString& t : std::as_const(targets)) {
             for (int c = 0; c < m->columnCount(); ++c) {
                 const QString h = m->headerData(c, Qt::Horizontal, Qt::DisplayRole).toString().trimmed();
                 if (QString::compare(h, t, Qt::CaseInsensitive) == 0) {

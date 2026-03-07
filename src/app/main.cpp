@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
         qCInfo(lcApp) << "Using system locale";
         const QStringList uiLanguages = QLocale::system().uiLanguages();
         qCInfo(lcApp) << "System UI languages:" << uiLanguages;
-        for (const QString &locale : uiLanguages) {
+        for (const QString &locale : std::as_const(uiLanguages)) {
             const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
             loaded = translator.load(QCoreApplication::applicationDirPath() + "/" + baseName + ".qm");
             qCInfo(lcApp) << "Trying applicationDir/" << baseName << ".qm ->" << (loaded ? "SUCCESS" : "FAILED");

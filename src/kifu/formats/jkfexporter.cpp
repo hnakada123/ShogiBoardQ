@@ -31,7 +31,7 @@ static QJsonObject buildJkfHeader(const GameRecordModel::ExportContext& ctx)
     QJsonObject header;
 
     const QList<KifGameInfoItem> items = GameRecordModel::collectGameInfo(ctx);
-    for (const auto& item : items) {
+    for (const auto& item : std::as_const(items)) {
         const QString key = item.key.trimmed();
         const QString val = item.value.trimmed();
         if (!key.isEmpty()) {
@@ -78,7 +78,7 @@ static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
             if (!item.comment.isEmpty()) {
                 QJsonArray comments;
                 const QStringList lines = item.comment.split(newlineRe());
-                for (const QString& line : lines) {
+                for (const QString& line : std::as_const(lines)) {
                     const QString trimmed = line.trimmed();
                     if (trimmed.startsWith(QLatin1Char('*'))) {
                         comments.append(trimmed.mid(1));

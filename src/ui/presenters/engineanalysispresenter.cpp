@@ -251,7 +251,7 @@ void EngineAnalysisPresenter::applyNumericFormattingTo(QTableView* view, QAbstra
         "Time", "Depth", "Nodes", "Score",
         "時間", "深さ", "ノード数", "評価値"
     };
-    for (const QString& t : targets) {
+    for (const QString& t : std::as_const(targets)) {
         const int col = findColumnByHeader(model, t);
         if (col >= 0) {
             view->setItemDelegateForColumn(col, delegate);

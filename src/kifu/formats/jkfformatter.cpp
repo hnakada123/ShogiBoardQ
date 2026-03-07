@@ -410,7 +410,7 @@ QJsonObject convertMoveToJkf(const KifDisplayItem& disp, int& prevToX, int& prev
     if (!disp.comment.isEmpty()) {
         QJsonArray comments;
         const QStringList lines = disp.comment.split(newlineRe());
-        for (const QString& line : lines) {
+        for (const QString& line : std::as_const(lines)) {
             const QString trimmed = line.trimmed();
             if (trimmed.startsWith(QLatin1Char('*'))) {
                 comments.append(trimmed.mid(1));

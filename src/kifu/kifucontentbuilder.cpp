@@ -18,7 +18,7 @@ QStringList KifuContentBuilder::buildKifuDataList(const KifuExportContext& ctx)
 
     // 1) ヘッダ
     const QList<KifGameInfoItem> header = collectGameInfo(ctx);
-    for (const auto& it : header) {
+    for (const auto& it : std::as_const(header)) {
         if (!it.key.trimmed().isEmpty())
             out << fwColonLine(it.key.trimmed(), it.value.trimmed());
     }
@@ -31,12 +31,12 @@ QStringList KifuContentBuilder::buildKifuDataList(const KifuExportContext& ctx)
     const QList<KifDisplayItem> disp = collectMainline(ctx);
 
     int moveNo = 1;
-    for (const auto& it : disp) {
+    for (const auto& it : std::as_const(disp)) {
         const QString cmt = it.comment.trimmed();
         if (!cmt.isEmpty()) {
             static const QRegularExpression newlineRe(QStringLiteral("\r?\n"));
             const QStringList lines = cmt.split(newlineRe, Qt::KeepEmptyParts);
-            for (const QString& raw : lines) {
+            for (const QString& raw : std::as_const(lines)) {
                 const QString t = raw.trimmed();
                 if (t.isEmpty()) continue;
                 if (t.startsWith(QLatin1Char('*'))) out << t;
