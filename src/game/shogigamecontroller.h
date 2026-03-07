@@ -136,7 +136,7 @@ private:
     void setupBoard();
 
     /// 指し手を漢字の棋譜文字列に変換する（例: "▲７六歩(77)"）
-    QString convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo);
+    QString convertMoveToKanjiStr(const QString& piece, int fileFrom, int rankFrom, int fileTo, int rankTo);
 
     /// 投了時などの対局結果を設定する（現手番の相手を勝ちにする）
     void gameResult();

@@ -41,8 +41,7 @@ void parseSfenHandsField(const QString& handsStr,
 {
     if (handsStr == QStringLiteral("-")) return;
     int num = 0;
-    for (qsizetype i = 0; i < handsStr.size(); ++i) {
-        const QChar ch = handsStr.at(i);
+    for (const QChar ch : handsStr) {
         if (ch.isDigit()) {
             num = num * 10 + ch.digitValue();
         } else {

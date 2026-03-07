@@ -13,7 +13,7 @@ public:
         std::function<MatchCoordinatorWiring*()> ensureAndGetWiring;
     };
 
-    explicit GameSessionFacade(const Deps& deps);
+    explicit GameSessionFacade(Deps deps);
 
     bool initialize();
     MatchCoordinator* match() const;

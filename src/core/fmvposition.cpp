@@ -141,9 +141,9 @@ void EnginePosition::rebuildBitboards() noexcept
     occupied = {};
     colorOcc[0] = {};
     colorOcc[1] = {};
-    for (int c = 0; c < 2; ++c) {
-        for (int pt = 0; pt < static_cast<int>(PieceType::PieceTypeNb); ++pt) {
-            pieceOcc[c][pt] = {};
+    for (auto& colorPieces : pieceOcc) {
+        for (auto& bb : colorPieces) {
+            bb = {};
         }
     }
     kingSq[0] = kInvalidSquare;

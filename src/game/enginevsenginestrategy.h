@@ -27,7 +27,7 @@ class EngineVsEngineStrategy : public QObject, public GameModeStrategy {
 
 public:
     EngineVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
-                           const MatchCoordinator::StartOptions& opt,
+                           MatchCoordinator::StartOptions opt,
                            QObject* parent = nullptr);
 
     void start() override;

@@ -139,7 +139,7 @@ EngineMoveValidator::Turn ShogiGameController::currentTurnForValidator(EngineMov
 // 棋譜文字列変換
 // ============================================================
 
-QString ShogiGameController::convertMoveToKanjiStr(const QString piece, const int fileFrom, const int rankFrom, const int fileTo, const int rankTo)
+QString ShogiGameController::convertMoveToKanjiStr(const QString& piece, int fileFrom, int rankFrom, int fileTo, int rankTo)
 {
     if (currentPlayer() != Player1 && currentPlayer() != Player2) {
         qCWarning(lcGame) << "convertMoveToKanjiStr: current player is invalid.";
@@ -425,7 +425,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     setCurrentPlayer(currentPlayer() == Player1 ? Player2 : Player1);
 
     if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
-        const QString tail = m_sfenHistory->last();
+        const QString& tail = m_sfenHistory->last();
         qCDebug(lcGame).noquote() << "validateAndMove exit argMove=" << moveNumber
                           << " recSize(after)=" << m_sfenHistory->size()
                           << " tail='" << tail << "'";

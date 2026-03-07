@@ -14,9 +14,9 @@ CsaBoardTracker::CsaBoardTracker() {
 }
 
 void CsaBoardTracker::initHirate() {
-    for (int f = 0; f < 9; ++f) {
-        for (int r = 0; r < 9; ++r) {
-            board[f][r] = {EMPTY, true};
+    for (auto& file : board) {
+        for (auto& sq : file) {
+            sq = {EMPTY, true};
         }
     }
     // 後手の駒（1段目）
@@ -26,9 +26,9 @@ void CsaBoardTracker::initHirate() {
     // 後手の飛車・角（2段目）: 飛車は8筋(file=8)、角は2筋(file=2)
     board[7][1] = {HI, false}; board[1][1] = {KA, false};
     // 後手の歩（3段目）
-    for (int f = 0; f < 9; ++f) board[f][2] = {FU, false};
+    for (auto& file : board) file[2] = {FU, false};
     // 先手の歩（7段目）
-    for (int f = 0; f < 9; ++f) board[f][6] = {FU, true};
+    for (auto& file : board) file[6] = {FU, true};
     // 先手の飛車・角（8段目）: 飛車は2筋(file=2)、角は8筋(file=8)
     board[1][7] = {HI, true}; board[7][7] = {KA, true};
     // 先手の駒（9段目）
@@ -38,9 +38,9 @@ void CsaBoardTracker::initHirate() {
 }
 
 void CsaBoardTracker::initFromSfen(const QString& sfen) {
-    for (int f = 0; f < 9; ++f)
-        for (int r = 0; r < 9; ++r)
-            board[f][r] = {EMPTY, true};
+    for (auto& file : board)
+        for (auto& sq : file)
+            sq = {EMPTY, true};
 
     const QStringList parts = sfen.trimmed().split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (parts.isEmpty()) { initHirate(); return; }

@@ -21,8 +21,8 @@ class HumanVsEngineStrategy : public GameModeStrategy {
 public:
     HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
                           bool engineIsP1,
-                          const QString& enginePath,
-                          const QString& engineName);
+                          QString enginePath,
+                          QString engineName);
 
     void start() override;
     void onHumanMove(const QPoint& from, const QPoint& to,

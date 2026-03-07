@@ -199,7 +199,6 @@ bool parseMoveLine(const QString& line, Color mover, Board& b,
     } else {
         QString pj;
         if (promote)           pj = pieceKanji(after);
-        else if (beforeProm)   pj = pieceKanji(beforePiece);
         else                   pj = pieceKanji(beforePiece);
 
         QString dest;

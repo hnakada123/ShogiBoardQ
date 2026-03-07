@@ -38,8 +38,6 @@ bool PlayModePolicyService::isHumanTurnNow() const
 
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:
-        return false;
-
     default:
         return false;
     }
@@ -61,7 +59,6 @@ bool PlayModePolicyService::isHumanSide(ShogiGameController::Player p) const
         return (p == ShogiGameController::Player2);
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:
-        return false;
     default:
         return false;
     }

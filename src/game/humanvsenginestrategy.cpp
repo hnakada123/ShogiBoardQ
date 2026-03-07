@@ -13,12 +13,12 @@
 
 HumanVsEngineStrategy::HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
                                                bool engineIsP1,
-                                               const QString& enginePath,
-                                               const QString& engineName)
+                                               QString enginePath,
+                                               QString engineName)
     : m_ctx(ctx)
     , m_engineIsP1(engineIsP1)
-    , m_enginePath(enginePath)
-    , m_engineName(engineName)
+    , m_enginePath(std::move(enginePath))
+    , m_engineName(std::move(engineName))
 {
 }
 

@@ -2,8 +2,8 @@
 
 #include "matchcoordinatorwiring.h"
 
-GameSessionFacade::GameSessionFacade(const Deps& deps)
-    : m_deps(deps)
+GameSessionFacade::GameSessionFacade(Deps deps)
+    : m_deps(std::move(deps))
 {
 }
 
