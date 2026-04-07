@@ -82,7 +82,16 @@
       "Bash(echo === Checking all Phase 4 targets ===:*)",
       "Bash(gh run:*)",
       "Bash(kill 17654)",
-      "Read(//home/nakada/GitHub/ShogiBoardQ/**)"
+      "Read(//home/nakada/GitHub/ShogiBoardQ/**)",
+      "Bash(gh pr:*)",
+      "Bash(timeout 3 ./build-release/ShogiBoardQ)",
+      "Bash(QT_LOGGING_RULES=\"*=true\" timeout 2 ./build-release/ShogiBoardQ)",
+      "Bash(./build-release/ShogiBoardQ:*)",
+      "Bash(gdb -batch -ex run -ex bt ./build-release/ShogiBoardQ)",
+      "Read(//tmp/**)",
+      "Bash(gdb -batch -x /tmp/gdb-script.txt ./build-relwithdebinfo/ShogiBoardQ)",
+      "Bash(rm -f /tmp/gdb-output.txt)",
+      "Bash(gdb -batch -ex 'set pagination off' -ex 'set logging file /tmp/gdb-output.txt' -ex 'set logging overwrite on' -ex 'set logging redirect on' -ex 'set logging enabled on' -ex run -ex 'thread apply all bt full' -ex 'info registers' -ex 'set logging enabled off' ./build-relwithdebinfo/ShogiBoardQ)"
     ]
   }
 }

@@ -461,7 +461,14 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
     qCDebug(lcUi).noquote() << "showTsumeSearchDialogFromContext";
 
     TsumeSearchParams params;
-    params.sfenRecord = m_tsumeSearchCtx.sfenRecord;
+    // m_tsumeSearchCtx.sfenRecord は起動時に bindContexts() で1度だけ
+    // キャプチャされるため、その時点の MatchCoordinator が指していた
+    // m_sharedSfenRecord のアドレスで固定される。MC が後から再生成されると
+    // この固定ポインタはダングリングとなり、参照すると解放済みメモリへの
+    // アクセスでクラッシュする（リリースビルドで観測）。
+    // displayTsumeShogiSearchDialog() で m_match を最新に差し替えた後に
+    // 呼ばれる前提で、現在の MC から sfenRecord を取得する。
+    params.sfenRecord = m_match ? m_match->sfenRecordPtr() : m_tsumeSearchCtx.sfenRecord;
     params.startSfenStr = m_tsumeSearchCtx.startSfenStr ? *m_tsumeSearchCtx.startSfenStr : QString();
     params.positionStrList = m_tsumeSearchCtx.positionStrList ? *m_tsumeSearchCtx.positionStrList : QStringList();
     params.currentMoveIndex = m_tsumeSearchCtx.currentMoveIndex ? qMax(0, *m_tsumeSearchCtx.currentMoveIndex) : 0;

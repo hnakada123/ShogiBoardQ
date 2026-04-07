@@ -44,13 +44,6 @@ public:
 private:
     /// 詰み探索用の`position ...`文字列を組み立てる
     QString buildPositionForMate(const Deps& d) const;
-
-    /// MatchCoordinatorへ詰み探索開始を委譲する
-    void startAnalysis(MatchCoordinator* match,
-                        const QString& enginePath,
-                        const QString& engineName,
-                        const QString& positionStr,
-                        int byoyomiMs);
 };
 
 #endif // TSUMESEARCHFLOWCONTROLLER_H
