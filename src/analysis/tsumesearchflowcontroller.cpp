@@ -11,6 +11,7 @@
 
 #include <QObject>
 #include <QDialog>
+#include <QTimer>
 #include <QtGlobal>
 
 TsumeSearchFlowController::TsumeSearchFlowController(QObject* parent)
@@ -30,25 +31,54 @@ bool TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
         return false;
     }
 
-    TsumeShogiSearchDialog dlg(parent);
-    if (dlg.exec() != QDialog::Accepted) return false;
-
-    const QList<ConsiderationDialog::Engine>& engines = dlg.engineList();
-    const int idx = dlg.engineNumber();
-
-    if (engines.isEmpty() || idx < 0 || idx >= engines.size()) {
-        if (d.onError) d.onError(QStringLiteral("詰み探索エンジンの選択が不正です。"));
-        return false;
-    }
-
-    const auto& engine = engines.at(idx);
-
+    // ダイアログの寿命を内側スコープへ閉じ込め、startAnalysis を呼ぶ前に
+    // 確実に破棄させる。初期化シーケンス（waitForUsiOk/waitForReadyOk）は
+    // 内部で QCoreApplication::processEvents() を呼ぶため、ダイアログがまだ
+    // スタック上に残っていると、ダイアログ閉鎖に伴う mouseRelease や
+    // deferred delete などが再入的に処理され、リリースビルドではタイミング
+    // 上 GUI がハングアップしてしまう。
+    QString enginePath;
+    QString engineName;
     int byoyomiMs = 0;  // 0 は無制限
-    if (!dlg.unlimitedTimeFlag()) {
-        byoyomiMs = dlg.byoyomiSec() * 1000;  // 秒 → ms
-    }
 
-    startAnalysis(d.match, engine.path, engine.name, pos, byoyomiMs);
+    {
+        TsumeShogiSearchDialog dlg(parent);
+        if (dlg.exec() != QDialog::Accepted) return false;
+
+        const QList<ConsiderationDialog::Engine>& engines = dlg.engineList();
+        const int idx = dlg.engineNumber();
+
+        if (engines.isEmpty() || idx < 0 || idx >= engines.size()) {
+            if (d.onError) d.onError(QStringLiteral("詰み探索エンジンの選択が不正です。"));
+            return false;
+        }
+
+        const auto& engine = engines.at(idx);
+        enginePath = engine.path;
+        engineName = engine.name;
+
+        if (!dlg.unlimitedTimeFlag()) {
+            byoyomiMs = dlg.byoyomiSec() * 1000;  // 秒 → ms
+        }
+    }
+    // ここで dlg は完全に破棄されている。
+
+    // startAnalysis は内部で waitForUsiOk/waitForReadyOk を呼び出し、その間
+    // QCoreApplication::processEvents() で入力イベントを含む全イベントを
+    // 処理する（参照: usiprotocolhandler_wait.cpp）。
+    // ダイアログ閉鎖に伴うイベントが残ったまま入ると再入が発生してハング
+    // するため、QTimer::singleShot(0,...) で次のイベントループ周回まで
+    // 開始を遅延し、ダイアログ閉鎖イベントを完全に流し切ってから開始する。
+    MatchCoordinator* match = d.match;
+    QTimer::singleShot(0, match, [match, enginePath, engineName, pos, byoyomiMs]() {
+        MatchCoordinator::AnalysisOptions opt;
+        opt.enginePath  = enginePath;
+        opt.engineName  = engineName;
+        opt.positionStr = pos;
+        opt.byoyomiMs   = byoyomiMs;
+        opt.mode        = PlayMode::TsumiSearchMode;
+        match->startAnalysis(opt);
+    });
     return true;
 }
 
@@ -72,18 +102,3 @@ QString TsumeSearchFlowController::buildPositionForMate(const Deps& d) const
         d.sfenRecord, d.startSfenStr, d.positionStrList, qMax(0, d.currentMoveIndex));
 }
 
-void TsumeSearchFlowController::startAnalysis(MatchCoordinator* match,
-                                               const QString& enginePath,
-                                               const QString& engineName,
-                                               const QString& positionStr,
-                                               int byoyomiMs)
-{
-    MatchCoordinator::AnalysisOptions opt;
-    opt.enginePath  = enginePath;
-    opt.engineName  = engineName;
-    opt.positionStr = positionStr;
-    opt.byoyomiMs   = byoyomiMs;
-    opt.mode        = PlayMode::TsumiSearchMode;
-
-    match->startAnalysis(opt);
-}
