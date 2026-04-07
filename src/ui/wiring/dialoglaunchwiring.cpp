@@ -107,9 +107,25 @@ void DialogLaunchWiring::displayTsumeShogiSearchDialog()
     *m_deps.playMode = PlayMode::TsumiSearchMode;
 
     auto* dc = m_deps.getDialogCoordinator ? m_deps.getDialogCoordinator() : nullptr;
-    if (dc) {
-        dc->showTsumeSearchDialogFromContext();
-    }
+    if (!dc) return;
+
+    // 詰み探索開始直前に DialogCoordinator の依存（特に MatchCoordinator）を
+    // 最新化する。MatchCoordinator は対局開始時に再生成されるため、
+    // DialogCoordinator が保持している m_match がダングリングポインタになって
+    // いる可能性がある。リフレッシュしないと、詰み探索開始時に
+    // m_analysisSession->startFullAnalysis() で std::function が解放済み
+    // メモリ上の不正な値となり、setPlayMode 呼び出しでクラッシュする。
+    auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
+    DialogCoordinator::Deps dcDeps;
+    dcDeps.matchCoordinator = m_deps.getMatch ? m_deps.getMatch() : nullptr;
+    dcDeps.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;
+    dcDeps.considerationTabManager = analysisTab ? analysisTab->considerationTabManager() : nullptr;
+    dcDeps.usiEngine = m_deps.getUsi1 ? m_deps.getUsi1() : nullptr;
+    dcDeps.logModel = m_deps.getLineEditModel1 ? m_deps.getLineEditModel1() : nullptr;
+    dcDeps.thinkingModel = m_deps.getModelThinking1 ? m_deps.getModelThinking1() : nullptr;
+    dc->updateDeps(dcDeps);
+
+    dc->showTsumeSearchDialogFromContext();
 }
 
 void DialogLaunchWiring::displayTsumeshogiGeneratorDialog()

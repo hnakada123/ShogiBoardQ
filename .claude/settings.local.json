@@ -80,7 +80,9 @@
       "Bash(awk NR>=17 && NR<=55:*)",
       "Bash(do:*)",
       "Bash(echo === Checking all Phase 4 targets ===:*)",
-      "Bash(gh run:*)"
+      "Bash(gh run:*)",
+      "Bash(kill 17654)",
+      "Read(//home/nakada/GitHub/ShogiBoardQ/**)"
     ]
   }
 }
