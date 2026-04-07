@@ -85,12 +85,12 @@ public:
         QString baseSfen;
 
         if (sfenRecord && !sfenRecord->isEmpty()) {
-            const int safe = static_cast<int>(qBound(qsizetype(0), qsizetype(sel), sfenRecord->size() - 1));
+            const int safe = static_cast<int>(qBound(static_cast<qsizetype>(0), static_cast<qsizetype>(sel), sfenRecord->size() - 1));
             baseSfen = sfenRecord->at(safe);
         } else if (!startSfenStr.isEmpty()) {
             baseSfen = startSfenStr;
         } else if (!positionStrList.isEmpty()) {
-            const int safe = static_cast<int>(qBound(qsizetype(0), qsizetype(sel), positionStrList.size() - 1));
+            const int safe = static_cast<int>(qBound(static_cast<qsizetype>(0), static_cast<qsizetype>(sel), positionStrList.size() - 1));
             const QString pos = positionStrList.at(safe).trimmed();
             if (pos.startsWith(QStringLiteral("position sfen"))) {
                 QString t = pos.mid(14).trimmed(); // "position sfen" を剥がす
