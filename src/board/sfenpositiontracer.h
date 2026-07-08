@@ -29,6 +29,9 @@ public:
     /// 現在局面のSFEN文字列を返す（例: "lnsgkgsnl/... b - 1"）
     QString toSfenString() const;
 
+    /// USIのpositionコマンドから、moves適用後の4フィールドSFENを生成する
+    static QString sfenFromPositionCommand(const QString& positionCommand);
+
 #ifdef SHOGIBOARDQ_TESTING
     /// テスト用: 手列を順に適用し、各手の直後局面のSFENを配列で返す
     QStringList generateSfensForMoves(const QStringList& usiMoves);

@@ -25,6 +25,42 @@ private slots:
         QCOMPARE(tracer.toSfenString(), kHirateSfen);
     }
 
+    void sfenFromPositionCommand_startposMoves()
+    {
+        const QString sfen = SfenPositionTracer::sfenFromPositionCommand(
+            QStringLiteral("position startpos moves 7g7f"));
+
+        QVERIFY(!sfen.isEmpty());
+        QVERIFY(sfen.contains(QStringLiteral(" w ")));
+
+        SfenPositionTracer tracer;
+        QVERIFY(tracer.setFromSfen(sfen));
+        QCOMPARE(tracer.tokenAtFileRank(7, QLatin1Char('f')), QStringLiteral("P"));
+    }
+
+    void sfenFromPositionCommand_sfenKeepsTurn()
+    {
+        const QString base = QStringLiteral("4k4/9/9/9/9/9/9/9/9 b P 1");
+        const QString sfen = SfenPositionTracer::sfenFromPositionCommand(
+            QStringLiteral("position sfen %1").arg(base));
+
+        QCOMPARE(sfen, base);
+    }
+
+    void sfenFromPositionCommand_sfenMovesKeepMoverSide()
+    {
+        const QString base = QStringLiteral("4k4/9/9/9/9/9/9/9/9 b P 1");
+        const QString sfen = SfenPositionTracer::sfenFromPositionCommand(
+            QStringLiteral("position sfen %1 moves P*5e").arg(base));
+
+        QVERIFY(!sfen.isEmpty());
+        QVERIFY(sfen.contains(QStringLiteral(" w ")));
+
+        SfenPositionTracer tracer;
+        QVERIFY(tracer.setFromSfen(sfen));
+        QCOMPARE(tracer.tokenAtFileRank(5, QLatin1Char('e')), QStringLiteral("P"));
+    }
+
     void applyUsiMove_pawnAdvance()
     {
         SfenPositionTracer tracer;
