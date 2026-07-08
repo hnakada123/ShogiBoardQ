@@ -102,6 +102,43 @@ QString SfenPositionTracer::toSfenString() const {
     return QStringLiteral("%1 %2 %3 %4").arg(board, stm, hands, ply);
 }
 
+QString SfenPositionTracer::sfenFromPositionCommand(const QString& positionCommand)
+{
+    const QStringList tokens = positionCommand.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (tokens.size() < 2 || tokens.at(0) != QStringLiteral("position")) {
+        return {};
+    }
+
+    SfenPositionTracer tracer;
+    int movesIndex = -1;
+
+    if (tokens.at(1) == QStringLiteral("startpos")) {
+        tracer.resetToStartpos();
+        movesIndex = static_cast<int>(tokens.indexOf(QStringLiteral("moves"), 2));
+    } else if (tokens.at(1) == QStringLiteral("sfen")) {
+        if (tokens.size() < 6) {
+            return {};
+        }
+        const QString sfen = tokens.mid(2, 4).join(QLatin1Char(' '));
+        if (!tracer.setFromSfen(sfen)) {
+            return {};
+        }
+        movesIndex = static_cast<int>(tokens.indexOf(QStringLiteral("moves"), 6));
+    } else {
+        return {};
+    }
+
+    if (movesIndex >= 0) {
+        for (qsizetype i = movesIndex + 1; i < tokens.size(); ++i) {
+            if (!tracer.applyUsiMove(tokens.at(i))) {
+                return {};
+            }
+        }
+    }
+
+    return tracer.toSfenString();
+}
+
 // ======================================================================
 // 座標変換・トークン操作ユーティリティ
 // ======================================================================
