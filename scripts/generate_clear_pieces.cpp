@@ -1,5 +1,5 @@
-// 見やすい駒セットをフォント非依存のSVGとして生成する開発用ツール。
-// ビルド・実行方法は resources/images/pieces/clear/README.md を参照。
+// 駒セットをフォント非依存のSVGとして生成する開発用ツール。
+// ビルド・実行方法は resources/images/pieces/README.md を参照。
 #include <QGuiApplication>
 #include <QRawFont>
 #include <QPainterPath>
@@ -14,6 +14,36 @@ struct PieceShape {
     QString strokeWidth;
     QStringList transforms;
 };
+
+struct PiecePalette {
+    QString fill = QStringLiteral("#fff3cf");
+    QString stroke = QStringLiteral("#493522");
+    QString normal = QStringLiteral("#171717");
+    QString promoted = QStringLiteral("#a51d26");
+    QString gradientTop;
+    QString gradientBottom;
+    bool woodGrain = false;
+};
+
+static bool selectPalette(const QString& style, PiecePalette& palette)
+{
+    if (style == QLatin1String("clear")) return true;
+    if (style == QLatin1String("wood")) {
+        palette = {QStringLiteral("url(#surface)"), QStringLiteral("#765023"),
+                   QStringLiteral("#211810"), QStringLiteral("#aa1e21"),
+                   QStringLiteral("#ffe8a2"), QStringLiteral("#d99b44"), true};
+    } else if (style == QLatin1String("ivory")) {
+        palette = {QStringLiteral("#f9fbfc"), QStringLiteral("#4d6172"),
+                   QStringLiteral("#162d43"), QStringLiteral("#ad2034"), {}, {}, false};
+    } else if (style == QLatin1String("dark")) {
+        palette = {QStringLiteral("url(#surface)"), QStringLiteral("#aa844a"),
+                   QStringLiteral("#f5d790"), QStringLiteral("#ff9586"),
+                   QStringLiteral("#44413b"), QStringLiteral("#171c22"), false};
+    } else {
+        return false;
+    }
+    return true;
+}
 
 // 標準SVGの輪郭と先後それぞれの変換をそのまま使い、駒ごとの寸法を保つ。
 static bool readPieceShape(const QString& path, PieceShape& shape)
@@ -82,8 +112,13 @@ static QString glyphPath(const QRawFont& font, const QString& text, const QRectF
 int main(int argc, char* argv[])
 {
     QGuiApplication app(argc, argv);
-    if (app.arguments().size() != 4) {
-        qCritical("Usage: generate_clear_pieces FONT_FILE STANDARD_DIRECTORY OUTPUT_DIRECTORY");
+    if (app.arguments().size() < 4 || app.arguments().size() > 5) {
+        qCritical("Usage: generate_clear_pieces FONT_FILE STANDARD_DIRECTORY OUTPUT_DIRECTORY [clear|wood|ivory|dark]");
+        return 1;
+    }
+    PiecePalette palette;
+    if (!selectPalette(app.arguments().value(4, QStringLiteral("clear")), palette)) {
+        qCritical("Unknown piece style");
         return 1;
     }
     const QRawFont font(app.arguments().at(1), 1000, QFont::PreferNoHinting);
@@ -127,12 +162,23 @@ int main(int argc, char* argv[])
             out << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
                 << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"45\" height=\"45\" viewBox=\"0 0 45 45\">\n"
                 << "  <title>" << (gote ? "後手 " : "先手 ") << label << "</title>\n";
+            if (!palette.gradientTop.isEmpty()) {
+                out << "  <defs><linearGradient id=\"surface\" x1=\"0%\" y1=\"0%\" x2=\"0%\" y2=\"100%\">\n"
+                    << "    <stop offset=\"0%\" stop-color=\"" << palette.gradientTop << "\"/>\n"
+                    << "    <stop offset=\"100%\" stop-color=\"" << palette.gradientBottom << "\"/>\n"
+                    << "  </linearGradient></defs>\n";
+            }
             for (const auto& transform : shape.transforms) {
                 out << "  <g transform=\"" << transform << "\">\n";
             }
             out << "    <polygon points=\"" << shape.points
-                << "\" fill=\"#fff3cf\" stroke=\"#493522\" stroke-width=\"" << shape.strokeWidth << "\"/>\n"
-                << "    <path fill=\"" << (piece.promoted ? "#a51d26" : "#171717")
+                << "\" fill=\"" << palette.fill << "\" stroke=\"" << palette.stroke
+                << "\" stroke-width=\"" << shape.strokeWidth << "\"/>\n";
+            if (palette.woodGrain) {
+                out << "    <path d=\"M13 10C11 19 16 29 12 41M21 8C18 18 24 30 20 41M29 8C26 18 32 31 28 41\""
+                    << " fill=\"none\" stroke=\"#996126\" stroke-opacity=\"0.14\" stroke-width=\"0.22\"/>\n";
+            }
+            out << "    <path fill=\"" << (piece.promoted ? palette.promoted : palette.normal)
                 << "\" fill-rule=\"nonzero\" d=\"" << lettering << "\"/>\n";
             for (qsizetype i = 0; i < shape.transforms.size(); ++i) out << "  </g>\n";
             out << "</svg>\n";

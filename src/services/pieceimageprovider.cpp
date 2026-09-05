@@ -14,7 +14,7 @@ QString PieceImageProvider::style() const
 
 void PieceImageProvider::setStyle(const QString& newStyle)
 {
-    if (newStyle != QStringLiteral("standard") && newStyle != QStringLiteral("clear")) return;
+    if (!AppSettings::availablePieceStyles().contains(newStyle)) return;
     if (newStyle == style()) return;
     AppSettings::setPieceStyle(newStyle);
     emit styleChanged();
@@ -41,8 +41,9 @@ QIcon PieceImageProvider::icon(QChar piece, bool flipped) const
     default: return {};
     }
 
-    const QString prefix = style() == QStringLiteral("clear")
-        ? QStringLiteral(":/pieces/clear/") : QStringLiteral(":/pieces/");
+    const QString currentStyle = style();
+    const QString prefix = currentStyle == QStringLiteral("standard")
+        ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(currentStyle);
     const QString side = piece.isUpper() != flipped
         ? QStringLiteral("Sente_") : QStringLiteral("Gote_");
     return QIcon(prefix + side + QLatin1String(name) + QStringLiteral("45.svg"));

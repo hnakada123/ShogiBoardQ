@@ -5263,6 +5263,21 @@ Please restart the application to apply the changes.</translation>
         <source>見やすい駒（太字）</source>
         <translation>Clear Pieces (Bold)</translation>
     </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="761"/>
+        <source>木目の駒（明朝）</source>
+        <translation>Wood Pieces (Serif)</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="773"/>
+        <source>白い駒（ゴシック）</source>
+        <translation>White Pieces (Sans Serif)</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="785"/>
+        <source>黒い駒（金文字）</source>
+        <translation>Black Pieces (Gold Lettering)</translation>
+    </message>
 </context>
 <context>
     <name>MatchCoordinator</name>

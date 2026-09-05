@@ -4,13 +4,14 @@
 #include <QAction>
 #include <QActionGroup>
 
-PieceStyleController::PieceStyleController(QAction* standard, QAction* clear, QObject* parent)
+PieceStyleController::PieceStyleController(const QList<StyleAction>& actions, QObject* parent)
     : QObject(parent), m_group(new QActionGroup(this))
 {
     m_group->setExclusive(true);
-    standard->setData(QStringLiteral("standard"));
-    clear->setData(QStringLiteral("clear"));
-    for (QAction* action : {standard, clear}) {
+    for (const auto& entry : actions) {
+        QAction* action = entry.action;
+        if (!action) continue;
+        action->setData(entry.id);
         action->setCheckable(true);
         action->setIconVisibleInMenu(false);
         m_group->addAction(action);
