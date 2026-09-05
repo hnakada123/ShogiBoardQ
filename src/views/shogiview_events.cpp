@@ -5,6 +5,7 @@
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
 #include "globaltooltip.h"
+#include "pieceimageprovider.h"
 
 #include <QMouseEvent>
 #include <QWheelEvent>
@@ -157,78 +158,27 @@ QIcon ShogiView::piece(QChar type) const
 
 void ShogiView::setPieces()
 {
-    // ── 先手（大文字） ──
-    setPiece('P', QIcon(":/pieces/Sente_fu45.svg"));
-    setPiece('L', QIcon(":/pieces/Sente_kyou45.svg"));
-    setPiece('N', QIcon(":/pieces/Sente_kei45.svg"));
-    setPiece('S', QIcon(":/pieces/Sente_gin45.svg"));
-    setPiece('G', QIcon(":/pieces/Sente_kin45.svg"));
-    setPiece('B', QIcon(":/pieces/Sente_kaku45.svg"));
-    setPiece('R', QIcon(":/pieces/Sente_hi45.svg"));
-    setPiece('K', QIcon(":/pieces/Sente_ou45.svg"));
-
-    // 昇格駒（先手）
-    setPiece('Q', QIcon(":/pieces/Sente_to45.svg"));
-    setPiece('M', QIcon(":/pieces/Sente_narikyou45.svg"));
-    setPiece('O', QIcon(":/pieces/Sente_narikei45.svg"));
-    setPiece('T', QIcon(":/pieces/Sente_narigin45.svg"));
-    setPiece('C', QIcon(":/pieces/Sente_uma45.svg"));
-    setPiece('U', QIcon(":/pieces/Sente_ryuu45.svg"));
-
-    // ── 後手（小文字） ──
-    setPiece('p', QIcon(":/pieces/Gote_fu45.svg"));
-    setPiece('l', QIcon(":/pieces/Gote_kyou45.svg"));
-    setPiece('n', QIcon(":/pieces/Gote_kei45.svg"));
-    setPiece('s', QIcon(":/pieces/Gote_gin45.svg"));
-    setPiece('g', QIcon(":/pieces/Gote_kin45.svg"));
-    setPiece('b', QIcon(":/pieces/Gote_kaku45.svg"));
-    setPiece('r', QIcon(":/pieces/Gote_hi45.svg"));
-    setPiece('k', QIcon(":/pieces/Gote_gyoku45.svg"));
-
-    // 昇格駒（後手）
-    setPiece('q', QIcon(":/pieces/Gote_to45.svg"));
-    setPiece('m', QIcon(":/pieces/Gote_narikyou45.svg"));
-    setPiece('o', QIcon(":/pieces/Gote_narikei45.svg"));
-    setPiece('t', QIcon(":/pieces/Gote_narigin45.svg"));
-    setPiece('c', QIcon(":/pieces/Gote_uma45.svg"));
-    setPiece('u', QIcon(":/pieces/Gote_ryuu45.svg"));
+    loadPieceImages(false);
 }
 
 void ShogiView::setPiecesFlip()
 {
-    // ── flip 時：小文字（元・後手）に先手の画像を割り当て ──
-    setPiece('p', QIcon(":/pieces/Sente_fu45.svg"));
-    setPiece('l', QIcon(":/pieces/Sente_kyou45.svg"));
-    setPiece('n', QIcon(":/pieces/Sente_kei45.svg"));
-    setPiece('s', QIcon(":/pieces/Sente_gin45.svg"));
-    setPiece('g', QIcon(":/pieces/Sente_kin45.svg"));
-    setPiece('b', QIcon(":/pieces/Sente_kaku45.svg"));
-    setPiece('r', QIcon(":/pieces/Sente_hi45.svg"));
-    setPiece('k', QIcon(":/pieces/Sente_gyoku45.svg"));
+    loadPieceImages(true);
+}
 
-    // 昇格駒（flip：小文字→先手画像）
-    setPiece('q', QIcon(":/pieces/Sente_to45.svg"));
-    setPiece('m', QIcon(":/pieces/Sente_narikyou45.svg"));
-    setPiece('o', QIcon(":/pieces/Sente_narikei45.svg"));
-    setPiece('t', QIcon(":/pieces/Sente_narigin45.svg"));
-    setPiece('c', QIcon(":/pieces/Sente_uma45.svg"));
-    setPiece('u', QIcon(":/pieces/Sente_ryuu45.svg"));
+void ShogiView::refreshPieceImages()
+{
+    loadPieceImages(flipMode());
+}
 
-    // ── flip 時：大文字（元・先手）に後手の画像を割り当て ──
-    setPiece('P', QIcon(":/pieces/Gote_fu45.svg"));
-    setPiece('L', QIcon(":/pieces/Gote_kyou45.svg"));
-    setPiece('N', QIcon(":/pieces/Gote_kei45.svg"));
-    setPiece('S', QIcon(":/pieces/Gote_gin45.svg"));
-    setPiece('G', QIcon(":/pieces/Gote_kin45.svg"));
-    setPiece('B', QIcon(":/pieces/Gote_kaku45.svg"));
-    setPiece('R', QIcon(":/pieces/Gote_hi45.svg"));
-    setPiece('K', QIcon(":/pieces/Gote_ou45.svg"));
-
-    // 昇格駒（flip：大文字→後手画像）
-    setPiece('Q', QIcon(":/pieces/Gote_to45.svg"));
-    setPiece('M', QIcon(":/pieces/Gote_narikyou45.svg"));
-    setPiece('O', QIcon(":/pieces/Gote_narikei45.svg"));
-    setPiece('T', QIcon(":/pieces/Gote_narigin45.svg"));
-    setPiece('C', QIcon(":/pieces/Gote_uma45.svg"));
-    setPiece('U', QIcon(":/pieces/Gote_ryuu45.svg"));
+void ShogiView::loadPieceImages(bool flipped)
+{
+    auto& provider = PieceImageProvider::instance();
+    const QString types = QStringLiteral("PLNSGBRKQMOTCUplnsgbrkqmotcu");
+    for (const QChar type : types) {
+        m_pieces.insert(type, provider.icon(type, flipped));
+    }
+    m_standPiecePixmapCache.clear();
+    m_highlighting->clearDropPieceCache();
+    update();
 }

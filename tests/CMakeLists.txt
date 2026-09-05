@@ -1090,6 +1090,18 @@ add_shogi_test(tst_dock_layout
 )
 
 # ============================================================
+# Unit: 駒画像・駒種類メニューのテスト
+# ============================================================
+add_shogi_test(tst_piece_images
+    tst_piece_images.cpp
+    ${SRC}/services/pieceimageprovider.cpp
+    ${SRC}/services/appsettings.cpp
+    ${SRC}/services/settingscommon.cpp
+    ${SRC}/ui/controllers/piecestylecontroller.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../resources/shogiboardq.qrc
+)
+
+# ============================================================
 # Unit: MenuWindow テスト
 # ============================================================
 add_shogi_test(tst_menu_window

@@ -3903,6 +3903,21 @@ OKを選択すると保存先が指定できます。</source>
         <source>定跡</source>
         <translation type="vanished">定跡</translation>
     </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="85"/>
+        <source>駒の種類</source>
+        <translation>駒の種類</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="217"/>
+        <source>標準の駒</source>
+        <translation>標準の駒</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="229"/>
+        <source>見やすい駒（太字）</source>
+        <translation>見やすい駒（太字）</translation>
+    </message>
 </context>
 <context>
     <name>MatchCoordinator</name>

@@ -11,6 +11,7 @@
 #include "shogiview.h"
 #include "evaluationchartwidget.h"
 #include "logcategories.h"
+#include "piecestylecontroller.h"
 
 void ViewActionsWiring::copyBoardToClipboard()
 {
@@ -55,6 +56,11 @@ void ViewActionsWiring::wire()
     }
 
     // 盤操作・表示（外観コントローラへ委譲）
+    if (!m_pieceStyleController) {
+        m_pieceStyleController = new PieceStyleController(
+            ui->actionPieceStyleStandard, ui->actionPieceStyleClear, this);
+    }
+
     QObject::connect(ui->actionFlipBoard,                  &QAction::triggered, app, &MainWindowAppearanceController::onActionFlipBoardTriggered,    Qt::UniqueConnection);
     QObject::connect(ui->actionCopyBoardToClipboard,       &QAction::triggered, this, &ViewActionsWiring::copyBoardToClipboard,          Qt::UniqueConnection);
     QObject::connect(ui->actionCopyEvalGraphToClipboard,   &QAction::triggered, this, &ViewActionsWiring::copyEvalGraphToClipboard,      Qt::UniqueConnection);

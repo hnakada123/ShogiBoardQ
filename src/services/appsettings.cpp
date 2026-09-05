@@ -49,6 +49,19 @@ void setToolbarVisible(bool visible)
     s.setValue(SettingsKeys::kToolbarVisible, visible);
 }
 
+QString pieceStyle()
+{
+    const QString style = SettingsCommon::openSettings()
+        .value(SettingsKeys::kPieceStyle, QStringLiteral("standard")).toString();
+    return style == QStringLiteral("clear") ? style : QStringLiteral("standard");
+}
+
+void setPieceStyle(const QString& style)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle,
+        style == QStringLiteral("clear") ? style : QStringLiteral("standard"));
+}
+
 // --- メニューウィンドウ ---
 
 QStringList menuWindowFavorites()

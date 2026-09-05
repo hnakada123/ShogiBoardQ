@@ -80,6 +80,13 @@
     <property name="title">
      <string>表示(I)</string>
     </property>
+    <widget class="QMenu" name="menuPieceStyle">
+     <property name="title">
+      <string>駒の種類</string>
+     </property>
+     <addaction name="actionPieceStyleStandard"/>
+     <addaction name="actionPieceStyleClear"/>
+    </widget>
     <widget class="QMenu" name="menuSavedLayouts">
      <property name="title">
       <string>保存済みレイアウト</string>
@@ -89,6 +96,7 @@
     <addaction name="actionFlipBoard"/>
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
+    <addaction name="menuPieceStyle"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
     <addaction name="separator"/>
@@ -199,6 +207,30 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+A</string>
+   </property>
+  </action>
+  <action name="actionPieceStyleStandard">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>標準の駒</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/pieces/Sente_ou45.svg</normaloff>:/pieces/Sente_ou45.svg</iconset>
+   </property>
+  </action>
+  <action name="actionPieceStyleClear">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>見やすい駒（太字）</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/pieces/clear/Sente_ou45.svg</normaloff>:/pieces/clear/Sente_ou45.svg</iconset>
    </property>
   </action>
   <action name="actionSaveBoardImage">

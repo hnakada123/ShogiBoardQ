@@ -33,6 +33,10 @@ void setLastSelectedTabIndex(int index);
 bool toolbarVisible();
 void setToolbarVisible(bool visible);
 
+/// 駒画像の種類（standard / clear、未設定・不正値は standard）
+QString pieceStyle();
+void setPieceStyle(const QString& style);
+
 // --- メニューウィンドウ ---
 
 /// メニューウィンドウのお気に入りアクションリスト

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 100 100">
+  <title>後手 王</title>
+  <g transform="rotate(180 50 50)">
+    <path d="M50 5L79 18L94 92H6L21 18Z" fill="#fff3cf" stroke="#493522" stroke-width="2.8" stroke-linejoin="round"/>
+    <path fill="#171717" fill-rule="nonzero" d="M22.000 72.911L22.000 80.164L78.000 80.164L78.000 72.911L53.719 72.911L53.719 57.174L72.468 57.174L72.468 49.920L53.719 49.920L53.719 36.089L74.804 36.089L74.804 28.836L25.012 28.836L25.012 36.089L45.974 36.089L45.974 49.920L27.901 49.920L27.901 57.174L45.974 57.174L45.974 72.911L22.000 72.911"/>
+  </g>
+</svg>

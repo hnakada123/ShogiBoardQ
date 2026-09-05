@@ -48,6 +48,7 @@ inline constexpr char kFontSizeTsumeshogiGenerator[]     = "FontSize/tsumeshogiG
 // --- UI ---
 inline constexpr char kLastSelectedTabIndex[]            = "UI/lastSelectedTabIndex";
 inline constexpr char kToolbarVisible[]                  = "UI/toolbarVisible";
+inline constexpr char kPieceStyle[]                      = "UI/pieceStyle";
 
 // --- SfenCollection ---
 inline constexpr char kSfenCollectionRecentFiles[]       = "SfenCollection/recentFiles";

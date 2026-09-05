@@ -315,6 +315,9 @@ private:
 
 private:
     // ───────────────────────────── 内部状態（モデル/描画/入力） ────────────────
+    void loadPieceImages(bool flipped);
+    void refreshPieceImages();
+
     // モデル
     QPointer<ShogiBoard> m_board;       // 局面。寿命は外部管理（QPointerで安全）
 

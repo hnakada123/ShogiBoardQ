@@ -20,6 +20,9 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
   consideration dockVisibilityAndLock usageLink branchNavigation
 ```
 
+駒の種類の切り替え、反転表示、別の盤面への反映、設定復元は `pieceStyles` で検証します。
+標準・太字・反転時のスクリーンショットも保存します。
+
 各シナリオは独立したプロセスで実行し、35秒でタイムアウトする。通常のアプリ設定は使用せず、テスト用一時ディレクトリに隔離する。結果は`build/gui-audit/`に保存される。
 
 - `run-results.json`: シナリオ別結果。失敗・タイムアウト時は実行スクリプトも非0で終了する。

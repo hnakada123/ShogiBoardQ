@@ -308,6 +308,64 @@ private slots:
         f.write(QJsonDocument(menus).toJson());
         snapshot("startup");
     }
+    void pieceStyles()
+    {
+        const auto standardPawn = board()->piece('P').pixmap(90).toImage();
+        ShogiView secondary;
+        secondary.setPieces();
+        QVERIFY(action("actionPieceStyleStandard")->isChecked());
+        snapshot("pieces-standard");
+
+        click("actionPieceStyleClear");
+        QVERIFY(action("actionPieceStyleClear")->isChecked());
+        QVERIFY(!action("actionPieceStyleStandard")->isChecked());
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
+        const auto clearPawn = board()->piece('P').pixmap(90).toImage();
+        QVERIFY(clearPawn != standardPawn);
+        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), clearPawn);
+        QCOMPARE(boardSfen(), initial);
+        snapshot("pieces-clear");
+
+        click("actionFlipBoard");
+        QVERIFY(board()->flipMode());
+        QCOMPARE(board()->piece('K').pixmap(90).toImage(),
+                 QIcon(":/pieces/clear/Gote_ou45.svg").pixmap(90).toImage());
+        click("actionPieceStyleStandard");
+        QVERIFY(board()->flipMode());
+        QCOMPARE(board()->piece('K').pixmap(90).toImage(),
+                 QIcon(":/pieces/Gote_ou45.svg").pixmap(90).toImage());
+        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), standardPawn);
+        click("actionPieceStyleClear");
+        snapshot("pieces-clear-flipped");
+        click("actionFlipBoard");
+        QCOMPARE(board()->piece('P').pixmap(90).toImage(), clearPawn);
+
+        ShogiView createdAfterChange;
+        QCOMPARE(createdAfterChange.piece('P').pixmap(90).toImage(), clearPawn);
+        window->close();
+        window.reset();
+        window = std::make_unique<MainWindow>();
+        window->show();
+        QVERIFY(action("actionPieceStyleClear")->isChecked());
+        QCOMPARE(board()->piece('P').pixmap(90).toImage(), clearPawn);
+
+        // 成駒・持ち駒・駒打ち矢印を表示してキャッシュを作り、切替後の描画を比較する。
+        board()->board()->setSfen(QStringLiteral(
+            "4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
+        ShogiView::Arrow drop;
+        drop.toFile = 5;
+        drop.toRank = 5;
+        drop.dropPiece = 'P';
+        board()->setArrows({drop});
+        click("actionPieceStyleStandard");
+        const auto standardPosition = board()->toImage();
+        click("actionPieceStyleClear");
+        const auto clearPosition = board()->toImage();
+        QVERIFY(clearPosition != standardPosition);
+        board()->setPieces();
+        QCOMPARE(board()->toImage(), clearPosition);
+        snapshot("pieces-clear-promoted-and-hand");
+    }
     void dialogs_data()
     {
         QTest::addColumn<QString>("name"); QTest::addColumn<QString>("expected");

@@ -5248,6 +5248,21 @@ The default layout will be used on next startup.</translation>
         <translation type="vanished">Language setting has been changed.
 Please restart the application to apply the changes.</translation>
     </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="85"/>
+        <source>駒の種類</source>
+        <translation>Piece Style</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="217"/>
+        <source>標準の駒</source>
+        <translation>Standard Pieces</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="229"/>
+        <source>見やすい駒（太字）</source>
+        <translation>Clear Pieces (Bold)</translation>
+    </message>
 </context>
 <context>
     <name>MatchCoordinator</name>
