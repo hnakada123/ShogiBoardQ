@@ -13,6 +13,7 @@ class DialogLaunchWiring;
 class MainWindowAppearanceController;
 class ShogiView;
 class EvaluationChartWidget;
+class PieceStyleController;
 
 /**
  * @brief 盤操作・表示関連のQActionをMainWindowスロットに接続するクラス
@@ -47,6 +48,7 @@ private slots:
 
 private:
     Deps m_d;
+    PieceStyleController* m_pieceStyleController = nullptr;
 };
 
 #endif // VIEWACTIONSWIRING_H

@@ -9,6 +9,7 @@
 #include "shogigamecontroller.h"
 #include "logcategories.h"
 #include "sfenutils.h"
+#include "pieceimageprovider.h"
 
 #include <QColor>
 #include <QPainter>
@@ -100,6 +101,10 @@ ShogiView::ShogiView(QWidget *parent)
 
     m_blackNameLabel->installEventFilter(this);
     m_whiteNameLabel->installEventFilter(this);
+
+    connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged,
+            this, &ShogiView::refreshPieceImages);
+    refreshPieceImages();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
