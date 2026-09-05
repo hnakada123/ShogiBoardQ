@@ -2,6 +2,7 @@
 #define PIECESTYLECONTROLLER_H
 
 #include <QObject>
+#include <QList>
 
 class QAction;
 class QActionGroup;
@@ -11,7 +12,11 @@ class PieceStyleController : public QObject
 {
     Q_OBJECT
 public:
-    PieceStyleController(QAction* standard, QAction* clear, QObject* parent = nullptr);
+    struct StyleAction {
+        QAction* action;
+        QString id;
+    };
+    PieceStyleController(const QList<StyleAction>& actions, QObject* parent = nullptr);
 
 private slots:
     void selectStyle(QAction* action);

@@ -49,17 +49,23 @@ void setToolbarVisible(bool visible)
     s.setValue(SettingsKeys::kToolbarVisible, visible);
 }
 
+QStringList availablePieceStyles()
+{
+    return {QStringLiteral("standard"), QStringLiteral("clear"), QStringLiteral("wood"),
+            QStringLiteral("ivory"), QStringLiteral("dark")};
+}
+
 QString pieceStyle()
 {
     const QString style = SettingsCommon::openSettings()
         .value(SettingsKeys::kPieceStyle, QStringLiteral("standard")).toString();
-    return style == QStringLiteral("clear") ? style : QStringLiteral("standard");
+    return availablePieceStyles().contains(style) ? style : QStringLiteral("standard");
 }
 
 void setPieceStyle(const QString& style)
 {
     SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle,
-        style == QStringLiteral("clear") ? style : QStringLiteral("standard"));
+        availablePieceStyles().contains(style) ? style : QStringLiteral("standard"));
 }
 
 // --- メニューウィンドウ ---

@@ -86,6 +86,9 @@
      </property>
      <addaction name="actionPieceStyleStandard"/>
      <addaction name="actionPieceStyleClear"/>
+     <addaction name="actionPieceStyleWood"/>
+     <addaction name="actionPieceStyleIvory"/>
+     <addaction name="actionPieceStyleDark"/>
     </widget>
     <widget class="QMenu" name="menuSavedLayouts">
      <property name="title">
@@ -748,6 +751,42 @@
    </property>
    <property name="text">
     <string>詰将棋局面生成</string>
+   </property>
+  </action>
+  <action name="actionPieceStyleWood">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>木目の駒（明朝）</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/pieces/wood/Sente_ou45.svg</normaloff>:/pieces/wood/Sente_ou45.svg</iconset>
+   </property>
+  </action>
+  <action name="actionPieceStyleIvory">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>白い駒（ゴシック）</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/pieces/ivory/Sente_ou45.svg</normaloff>:/pieces/ivory/Sente_ou45.svg</iconset>
+   </property>
+  </action>
+  <action name="actionPieceStyleDark">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>黒い駒（金文字）</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/pieces/dark/Sente_ou45.svg</normaloff>:/pieces/dark/Sente_ou45.svg</iconset>
    </property>
   </action>
  </widget>

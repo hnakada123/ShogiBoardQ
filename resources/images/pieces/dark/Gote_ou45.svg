@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="45" height="45" viewBox="0 0 45 45">
+  <title>後手 王</title>
+  <defs><linearGradient id="surface" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#44413b"/>
+    <stop offset="100%" stop-color="#171c22"/>
+  </linearGradient></defs>
+  <g transform="rotate(180,22.5,22.5)">
+    <polygon points="10.47,6.65 4.48,42.79 40.52,43.00 34.84,6.75 22.76,2.00" fill="url(#surface)" stroke="#aa844a" stroke-width="1.2"/>
+    <path fill="#f5d790" fill-rule="nonzero" d="M9.900 32.810L9.900 36.074L35.100 36.074L35.100 32.810L24.174 32.810L24.174 25.728L32.610 25.728L32.610 22.464L24.174 22.464L24.174 16.240L33.662 16.240L33.662 12.976L11.255 12.976L11.255 16.240L20.688 16.240L20.688 22.464L12.556 22.464L12.556 25.728L20.688 25.728L20.688 32.810L9.900 32.810"/>
+  </g>
+</svg>

@@ -376,6 +376,51 @@ private slots:
         QCOMPARE(board()->toImage(), clearPosition);
         snapshot("pieces-clear-promoted-and-hand");
     }
+    void pieceVariants_data()
+    {
+        QTest::addColumn<QString>("style");
+        QTest::addColumn<QString>("actionName");
+        QTest::newRow("wood") << QStringLiteral("wood") << QStringLiteral("actionPieceStyleWood");
+        QTest::newRow("ivory") << QStringLiteral("ivory") << QStringLiteral("actionPieceStyleIvory");
+        QTest::newRow("dark") << QStringLiteral("dark") << QStringLiteral("actionPieceStyleDark");
+    }
+    void pieceVariants()
+    {
+        QFETCH(QString, style);
+        QFETCH(QString, actionName);
+        ShogiView secondary;
+        const auto standardPawn = board()->piece('P').pixmap(90).toImage();
+        click(actionName);
+        QCOMPARE(AppSettings::pieceStyle(), style);
+        QVERIFY(action(actionName)->isChecked());
+        QVERIFY(!action("actionPieceStyleStandard")->isChecked());
+        QVERIFY(!hasKifuPasteDialog());
+        const QString prefix = QStringLiteral(":/pieces/%1/").arg(style);
+        const auto pawn = QIcon(prefix + "Sente_fu45.svg").pixmap(90).toImage();
+        QVERIFY(pawn != standardPawn);
+        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(boardSfen(), initial);
+        snapshot("pieces-" + style);
+
+        click("actionFlipBoard");
+        QCOMPARE(board()->piece('K').pixmap(90).toImage(),
+                 QIcon(prefix + "Gote_ou45.svg").pixmap(90).toImage());
+        click("actionPieceStyleClear");
+        QVERIFY(!action(actionName)->isChecked());
+        click(actionName);
+        QVERIFY(!action("actionPieceStyleClear")->isChecked());
+        QCOMPARE(board()->piece('k').pixmap(90).toImage(),
+                 QIcon(prefix + "Sente_gyoku45.svg").pixmap(90).toImage());
+
+        window->close();
+        window.reset();
+        window = std::make_unique<MainWindow>();
+        window->show();
+        QVERIFY(action(actionName)->isChecked());
+        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
+        QVERIFY(!hasKifuPasteDialog());
+    }
     void dialogs_data()
     {
         QTest::addColumn<QString>("name"); QTest::addColumn<QString>("expected");

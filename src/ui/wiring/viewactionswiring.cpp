@@ -57,8 +57,12 @@ void ViewActionsWiring::wire()
 
     // 盤操作・表示（外観コントローラへ委譲）
     if (!m_pieceStyleController) {
-        m_pieceStyleController = new PieceStyleController(
-            ui->actionPieceStyleStandard, ui->actionPieceStyleClear, this);
+        m_pieceStyleController = new PieceStyleController({
+            {ui->actionPieceStyleStandard, QStringLiteral("standard")},
+            {ui->actionPieceStyleClear, QStringLiteral("clear")},
+            {ui->actionPieceStyleWood, QStringLiteral("wood")},
+            {ui->actionPieceStyleIvory, QStringLiteral("ivory")},
+            {ui->actionPieceStyleDark, QStringLiteral("dark")}}, this);
     }
 
     QObject::connect(ui->actionFlipBoard,                  &QAction::triggered, app, &MainWindowAppearanceController::onActionFlipBoardTriggered,    Qt::UniqueConnection);

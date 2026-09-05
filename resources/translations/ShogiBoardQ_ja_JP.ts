@@ -3918,6 +3918,21 @@ OKを選択すると保存先が指定できます。</source>
         <source>見やすい駒（太字）</source>
         <translation>見やすい駒（太字）</translation>
     </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="761"/>
+        <source>木目の駒（明朝）</source>
+        <translation>木目の駒（明朝）</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="773"/>
+        <source>白い駒（ゴシック）</source>
+        <translation>白い駒（ゴシック）</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="785"/>
+        <source>黒い駒（金文字）</source>
+        <translation>黒い駒（金文字）</translation>
+    </message>
 </context>
 <context>
     <name>MatchCoordinator</name>

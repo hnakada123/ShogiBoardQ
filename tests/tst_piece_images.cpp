@@ -27,36 +27,47 @@ private slots:
         SettingsCommon::openSettings().clear();
     }
 
+    void menuSelectionAndPersistence_data()
+    {
+        QTest::addColumn<QString>("selectedStyle");
+        for (const auto& style : AppSettings::availablePieceStyles()) {
+            if (style != QStringLiteral("standard")) QTest::newRow(qPrintable(style)) << style;
+        }
+    }
+
     void menuSelectionAndPersistence()
     {
-        QAction standard, clear;
-        PieceStyleController controller(&standard, &clear);
+        QFETCH(QString, selectedStyle);
+        QAction standard, selected;
+        PieceStyleController controller({{&standard, QStringLiteral("standard")},
+                                         {&selected, selectedStyle}});
         auto& provider = PieceImageProvider::instance();
         QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
         QVERIFY(standard.isChecked());
-        QVERIFY(!clear.isChecked());
+        QVERIFY(!selected.isChecked());
 
-        clear.trigger();
-        QVERIFY(clear.isChecked());
+        selected.trigger();
+        QVERIFY(selected.isChecked());
         QVERIFY(!standard.isChecked());
         QCOMPARE(changed.count(), 1);
-        QCOMPARE(provider.style(), QStringLiteral("clear"));
+        QCOMPARE(provider.style(), selectedStyle);
         SettingsCommon::openSettings().sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), QStringLiteral("clear"));
+        QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), selectedStyle);
 
-        QAction restoredStandard, restoredClear;
-        PieceStyleController restoredController(&restoredStandard, &restoredClear);
-        QVERIFY(restoredClear.isChecked());
-        clear.trigger();
+        QAction restoredStandard, restoredSelected;
+        PieceStyleController restoredController({{&restoredStandard, QStringLiteral("standard")},
+                                                 {&restoredSelected, selectedStyle}});
+        QVERIFY(restoredSelected.isChecked());
+        selected.trigger();
         QCOMPARE(changed.count(), 1);
-        QVERIFY(clear.isChecked());
+        QVERIFY(selected.isChecked());
 
         standard.trigger();
         QCOMPARE(changed.count(), 2);
         QVERIFY(standard.isChecked());
         QVERIFY(restoredStandard.isChecked());
-        QVERIFY(!restoredClear.isChecked());
+        QVERIFY(!restoredSelected.isChecked());
         QCOMPARE(provider.style(), QStringLiteral("standard"));
     }
 
@@ -73,7 +84,9 @@ private slots:
     {
         const QStringList names = {"fu", "kyou", "kei", "gin", "kin", "kaku", "hi", "ou",
                                    "gyoku", "to", "narikyou", "narikei", "narigin", "uma", "ryuu"};
-        for (const QString& prefix : {QStringLiteral(":/pieces/"), QStringLiteral(":/pieces/clear/")}) {
+        for (const auto& style : AppSettings::availablePieceStyles()) {
+            const QString prefix = style == QStringLiteral("standard")
+                ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(style);
             for (const QString& side : {QStringLiteral("Sente_"), QStringLiteral("Gote_")}) {
                 for (const auto& name : names) {
                     const QString path = prefix + side + name + QStringLiteral("45.svg");
@@ -93,10 +106,10 @@ private slots:
     {
         auto& provider = PieceImageProvider::instance();
         const QString types = QStringLiteral("PLNSGBRKQMOTCUplnsgbrkqmotcu");
-        for (const QString& style : {QStringLiteral("standard"), QStringLiteral("clear")}) {
+        for (const auto& style : AppSettings::availablePieceStyles()) {
             provider.setStyle(style);
-            const QString prefix = style == QStringLiteral("clear")
-                ? QStringLiteral(":/pieces/clear/") : QStringLiteral(":/pieces/");
+            const QString prefix = style == QStringLiteral("standard")
+                ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(style);
             for (const QChar type : types) {
                 QVERIFY(!provider.icon(type).pixmap(45).isNull());
                 QVERIFY(!provider.icon(type, true).pixmap(45).isNull());
