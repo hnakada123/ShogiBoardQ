@@ -12,6 +12,8 @@
 #include <QFile>
 
 #include "settingsservice.h"
+#include "settingskeys.h"
+#include <QSettings>
 
 class Tst_SettingsRoundtrip : public QObject
 {
@@ -64,6 +66,41 @@ private slots:
 
         AppSettings::setLanguage(QStringLiteral("ja_JP"));
         QCOMPARE(AppSettings::language(), QStringLiteral("ja_JP"));
+    }
+
+    void appSettings_boardColors()
+    {
+        auto& settings = SettingsCommon::openSettings();
+        settings.remove(QStringLiteral("BoardColors"));
+        const BoardColors defaults;
+        QVERIFY(AppSettings::boardColors() == defaults);
+        const BoardColors custom{QColor("#182838"), QColor("#c0d8d0"),
+                                 QColor("#6a8494"), QColor("#193b45")};
+        AppSettings::setBoardColors(custom);
+        QVERIFY(AppSettings::boardColors() == custom);
+        settings.sync();
+        QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QCOMPARE(restored.value(SettingsKeys::kBoardBackgroundColor).toString(), custom.background.name());
+        QCOMPARE(restored.value(SettingsKeys::kBoardSurfaceColor).toString(), custom.board.name());
+        QCOMPARE(restored.value(SettingsKeys::kBoardStandColor).toString(), custom.stand.name());
+        QCOMPARE(restored.value(SettingsKeys::kBoardGridColor).toString(), custom.grid.name());
+
+        settings.setValue(SettingsKeys::kBoardGridColor, QStringLiteral("invalid-color"));
+        auto expected = custom;
+        expected.grid = defaults.grid;
+        QVERIFY(AppSettings::boardColors() == expected);
+        expected.board = QColor();
+        expected.stand.setAlpha(32);
+        AppSettings::setBoardColors(expected);
+        expected.board = defaults.board;
+        expected.stand.setAlpha(255);
+        QVERIFY(AppSettings::boardColors() == expected);
+        AppSettings::setBoardColors(defaults);
+
+        AppSettings::setBoardColorDialogSize(QSize(600, 380));
+        QCOMPARE(AppSettings::boardColorDialogSize(), QSize(600, 380));
+        AppSettings::setBoardColorPickerSize(QSize(700, 450));
+        QCOMPARE(AppSettings::boardColorPickerSize(), QSize(700, 450));
     }
 
     void appSettings_menuWindow()

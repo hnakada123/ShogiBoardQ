@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>盤面の配色</title>
+    <rect x="8" y="8" width="80" height="80" fill="#D4A574" stroke="#8B4513" stroke-width="4"/>
+    <path d="M8 35H88 M8 61H88 M35 8V88 M61 8V88" fill="none" stroke="#8B4513" stroke-width="2.5"/>
+    <path d="M91 44C110 44 122 59 122 79C122 101 105 120 83 120C72 120 65 114 65 105C65 98 72 95 77 91C79 88 76 83 70 83H65C53 83 50 75 54 65C61 52 75 44 91 44Z" fill="#FFF3CF" stroke="#8B4513" stroke-width="4" stroke-linejoin="round"/>
+    <circle cx="73" cy="63" r="7" fill="#2196F3"/>
+    <circle cx="96" cy="59" r="7" fill="#E65151"/>
+    <circle cx="110" cy="79" r="7" fill="#4CAF50"/>
+    <circle cx="101" cy="101" r="7" fill="#E4A72E"/>
+</svg>

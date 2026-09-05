@@ -3,6 +3,14 @@
 
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
+#include "boardappearance.h"
+
+void ShogiView::refreshBoardColors()
+{
+    m_boardColors = BoardAppearance::instance().colors();
+    m_highlighting->refreshBackgroundColors();
+    update();
+}
 
 void ShogiView::setGameOverStyleLock(bool locked)
 {

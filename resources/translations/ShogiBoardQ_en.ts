@@ -5278,6 +5278,11 @@ Please restart the application to apply the changes.</translation>
         <source>黒い駒（金文字）</source>
         <translation>Black Pieces (Gold Lettering)</translation>
     </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="783"/>
+        <source>盤面の配色…</source>
+        <translation>Board Colors…</translation>
+    </message>
 </context>
 <context>
     <name>MatchCoordinator</name>
@@ -7667,6 +7672,187 @@ Do you want to continue?</translation>
         <location filename="../../src/dialogs/versiondialog.cpp" line="17"/>
         <source>ビルド日時: %1 %2</source>
         <translation>Build: %1 %2</translation>
+    </message>
+</context>
+<context>
+    <name>BoardColorDialog</name>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="20"/>
+        <source>盤面の配色</source>
+        <translation>Board Colors</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="23"/>
+        <source>色を選択すると、すべての将棋盤に反映・保存されます。</source>
+        <translation>Selected colors are applied to all boards and saved automatically.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="31"/>
+        <source>カスタム（個別に指定）</source>
+        <translation>Custom (individual colors)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="42"/>
+        <source>将棋盤の背景</source>
+        <translation>Background</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="43"/>
+        <source>将棋盤</source>
+        <translation>Board</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="44"/>
+        <source>駒台</source>
+        <translation>Piece stands</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="45"/>
+        <source>マス罫線</source>
+        <translation>Grid lines</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="60"/>
+        <source>標準色に戻す</source>
+        <translation>Restore Default Colors</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="88"/>
+        <source>%1の色</source>
+        <translation>%1 Color</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="134"/>
+        <source>%1に合うおすすめ配色</source>
+        <translation>Recommended colors for %1</translation>
+    </message>
+</context>
+<context>
+    <name>BoardColorPresets</name>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="14"/>
+        <source>若葉</source>
+        <translation>Fresh Leaves</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="15"/>
+        <source>青灰</source>
+        <translation>Blue Gray</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="16"/>
+        <source>蜂蜜</source>
+        <translation>Honey</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="17"/>
+        <source>藤色</source>
+        <translation>Wisteria</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="18"/>
+        <source>夕暮れ</source>
+        <translation>Dusk</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="22"/>
+        <source>苔庭</source>
+        <translation>Moss Garden</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="23"/>
+        <source>胡桃</source>
+        <translation>Walnut</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="24"/>
+        <source>生成り</source>
+        <translation>Linen</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="25"/>
+        <source>深い森</source>
+        <translation>Deep Forest</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="26"/>
+        <source>石庭</source>
+        <translation>Stone Garden</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="30"/>
+        <source>藍夜</source>
+        <translation>Indigo Night</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="31"/>
+        <source>青磁の海</source>
+        <translation>Celadon Sea</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="32"/>
+        <source>セージ</source>
+        <translation>Sage</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="33"/>
+        <source>ラベンダー</source>
+        <translation>Lavender</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="34"/>
+        <source>墨色</source>
+        <translation>Charcoal</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="38"/>
+        <source>金屏風</source>
+        <translation>Golden Screen</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="39"/>
+        <source>銀鼠</source>
+        <translation>Silver Gray</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="40"/>
+        <source>青磁</source>
+        <translation>Celadon</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="41"/>
+        <source>桜霞</source>
+        <translation>Cherry Blossom</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="42"/>
+        <source>砂紋</source>
+        <translation>Sand Ripples</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="45"/>
+        <source>畳と榧</source>
+        <translation>Tatami and Kaya</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="46"/>
+        <source>薄茶</source>
+        <translation>Light Brown</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="47"/>
+        <source>若竹</source>
+        <translation>Young Bamboo</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="48"/>
+        <source>暖かな灰色</source>
+        <translation>Warm Gray</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="49"/>
+        <source>藍染</source>
+        <translation>Indigo</translation>
     </message>
 </context>
 </TS>

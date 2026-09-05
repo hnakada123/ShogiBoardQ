@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QColorDialog>
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -33,6 +34,9 @@
 #include "recordpane.h"
 #include "settingscommon.h"
 #include "appsettings.h"
+#include "boardappearance.h"
+#include "boardcolorpresets.h"
+#include "boardcolordialog.h"
 #include "engineanalysistab.h"
 #include "sfencollectiondialog.h"
 #include "kifupastedialog.h"
@@ -420,6 +424,192 @@ private slots:
         QVERIFY(action(actionName)->isChecked());
         QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
         QVERIFY(!hasKifuPasteDialog());
+    }
+    void boardColors()
+    {
+        const BoardColors defaults;
+        const BoardColors custom{QColor("#182838"), QColor("#c0d8d0"),
+                                 QColor("#6a8494"), QColor("#193b45")};
+        ShogiView secondary;
+        QSignalSpy changed(&BoardAppearance::instance(), &BoardAppearance::colorsChanged);
+        click("actionPieceStyleDark");
+        click("actionBoardColors");
+        auto* dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog && dialog->isVisible());
+        auto* picker = dialog->findChild<QColorDialog*>("boardColorPicker");
+        QVERIFY(picker);
+        const QStringList names = {"backgroundColorButton", "boardColorButton", "standColorButton", "gridColorButton"};
+        const QList<QColor> values = {custom.background, custom.board, custom.stand, custom.grid};
+        board()->setUrgencyVisuals(ShogiView::Urgency::Warn5);
+        const QString activeStyle = board()->blackClockLabel()->styleSheet();
+        for (qsizetype i = 0; i < names.size(); ++i) {
+            auto* button = dialog->findChild<QPushButton*>(names.at(i));
+            QVERIFY(button);
+            QTest::mouseClick(button, Qt::LeftButton);
+            QTRY_VERIFY(picker->isVisible());
+            picker->setCurrentColor(values.at(i));
+            auto* pickerButtons = picker->findChild<QDialogButtonBox*>();
+            QVERIFY(pickerButtons);
+            QTest::mouseClick(pickerButtons->button(QDialogButtonBox::Ok), Qt::LeftButton);
+            QTRY_VERIFY(!picker->isVisible());
+            QCOMPARE(button->text(), values.at(i).name().toUpper());
+        }
+        QCOMPARE(changed.count(), 4);
+        QVERIFY(board()->boardColors() == custom);
+        QVERIFY(secondary.boardColors() == custom);
+        QVERIFY(AppSettings::boardColors() == custom);
+        QCOMPARE(board()->blackClockLabel()->styleSheet(), activeStyle);
+        QVERIFY(board()->whiteClockLabel()->styleSheet().contains("rgb(255,255,255)"));
+        QCOMPARE(boardSfen(), initial);
+        dialog->resize(580, 360);
+        dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-colors-dialog.png"));
+
+        // 色選択のキャンセルは設定・表示を変更しない。
+        QTest::mouseClick(dialog->findChild<QPushButton*>(names.first()), Qt::LeftButton);
+        QTRY_VERIFY(picker->isVisible());
+        picker->setCurrentColor(Qt::magenta);
+        picker->resize(700, 460);
+        const QSize pickerSize = picker->size();
+        picker->reject();
+        QCOMPARE(changed.count(), 4);
+        QVERIFY(board()->boardColors() == custom);
+        QCOMPARE(AppSettings::boardColorPickerSize(), pickerSize);
+        const QSize dialogSize = dialog->size();
+        QPointer<BoardColorDialog> guard(dialog);
+        dialog->close();
+        QTRY_VERIFY(guard.isNull());
+        QCOMPARE(AppSettings::boardColorDialogSize(), dialogSize);
+        const auto image = board()->grab().toImage();
+        for (const auto& color : values) {
+            int count = 0;
+            for (int y = 0; y < image.height(); ++y)
+                for (int x = 0; x < image.width(); ++x)
+                    if (image.pixelColor(x, y) == color) ++count;
+            QVERIFY2(count > 100, qPrintable(color.name()));
+        }
+        QCOMPARE(image.pixelColor(squarePoint(5, 5)), custom.board);
+        click("actionCopyBoardToClipboard");
+        QCOMPARE(QApplication::clipboard()->image(), board()->grab().toImage());
+        snapshot("board-colors-custom");
+        click("actionFlipBoard");
+        QVERIFY(board()->boardColors() == custom);
+        QCOMPARE(board()->grab().toImage().pixelColor(squarePoint(5, 5)), custom.board);
+
+        // 再作成した盤面・ダイアログにも設定が復元される。
+        window->close();
+        window.reset();
+        window = std::make_unique<MainWindow>();
+        window->show();
+        QVERIFY(board()->boardColors() == custom);
+        click("actionBoardColors");
+        dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        QCOMPARE(dialog->size(), dialogSize);
+        QCOMPARE(dialog->findChild<QPushButton*>(names.first())->text(), custom.background.name().toUpper());
+        auto* reset = dialog->findChild<QPushButton*>("resetBoardColorsButton");
+        QVERIFY(reset);
+        QTest::mouseClick(reset, Qt::LeftButton);
+        QVERIFY(AppSettings::boardColors() == defaults);
+        QVERIFY(board()->boardColors() == defaults);
+        QVERIFY(secondary.boardColors() == defaults);
+        QCOMPARE(changed.count(), 5);
+        QTest::mouseClick(reset, Qt::LeftButton);
+        QCOMPARE(changed.count(), 5);
+        QCOMPARE(boardSfen(), initial);
+    }
+    void boardColorPresets_data()
+    {
+        QTest::addColumn<QString>("style");
+        QTest::addColumn<QString>("styleAction");
+        QTest::newRow("standard") << QStringLiteral("standard") << QStringLiteral("actionPieceStyleStandard");
+        QTest::newRow("clear") << QStringLiteral("clear") << QStringLiteral("actionPieceStyleClear");
+        QTest::newRow("wood") << QStringLiteral("wood") << QStringLiteral("actionPieceStyleWood");
+        QTest::newRow("ivory") << QStringLiteral("ivory") << QStringLiteral("actionPieceStyleIvory");
+        QTest::newRow("dark") << QStringLiteral("dark") << QStringLiteral("actionPieceStyleDark");
+    }
+    void boardColorPresets()
+    {
+        QFETCH(QString, style);
+        QFETCH(QString, styleAction);
+        click(styleAction);
+        click("actionBoardColors");
+        auto* dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        auto* combo = dialog->findChild<QComboBox*>("boardColorPresetCombo");
+        QVERIFY(combo);
+        auto* label = dialog->findChild<QLabel*>("boardColorPresetLabel");
+        QVERIFY(label);
+        QVERIFY(label->text().contains(BoardColorPresets::pieceStyleName(style)));
+        const auto presets = BoardColorPresets::forPieceStyle(style);
+        QCOMPARE(presets.size(), 5);
+        QCOMPARE(combo->count(), 5);
+        QCOMPARE(combo->currentIndex(), -1);
+        ShogiView secondary;
+        QSignalSpy changed(&BoardAppearance::instance(), &BoardAppearance::colorsChanged);
+        for (int i = 0; i < 5; ++i) {
+            QCOMPARE(combo->itemText(i), presets.at(i).name);
+            QVERIFY(!combo->itemIcon(i).pixmap(120, 72).isNull());
+            combo->showPopup();
+            QTest::qWait(20);
+            auto* view = combo->view();
+            if (i == 0) view->window()->grab().save(
+                QStringLiteral(AUDIT_DIR "/screenshots/presets-options-%1.png").arg(style));
+            const auto index = view->model()->index(i, 0);
+            view->scrollTo(index);
+            QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->visualRect(index).center());
+            QTRY_COMPARE(combo->currentIndex(), i);
+            QVERIFY(board()->boardColors() == presets.at(i).colors);
+            QVERIFY(secondary.boardColors() == presets.at(i).colors);
+            QVERIFY(AppSettings::boardColors() == presets.at(i).colors);
+            QCOMPARE(changed.count(), i + 1);
+            QCOMPARE(boardSfen(), initial);
+            QCOMPARE(board()->grab().toImage().pixelColor(squarePoint(5, 5)), presets.at(i).colors.board);
+            const QString imagePath = QStringLiteral(AUDIT_DIR "/screenshots/preset-%1-%2.png").arg(style).arg(i);
+            QVERIFY(board()->grab().save(imagePath));
+        }
+        dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/presets-dialog-%1.png").arg(style));
+        const auto selectedColors = presets.last().colors;
+        QPointer<BoardColorDialog> guard(dialog);
+        dialog->close();
+        QTRY_VERIFY(guard.isNull());
+        window->close();
+        window.reset();
+        window = std::make_unique<MainWindow>();
+        window->show();
+        click("actionBoardColors");
+        dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        combo = dialog->findChild<QComboBox*>("boardColorPresetCombo");
+        QVERIFY(combo);
+        QCOMPARE(combo->currentIndex(), 4);
+        QVERIFY(board()->boardColors() == selectedColors);
+
+        // 駒の変更で候補だけが更新され、既存の配色は保持される。
+        const QString other = style == "dark" ? QStringLiteral("standard") : QStringLiteral("dark");
+        click(other == "dark" ? "actionPieceStyleDark" : "actionPieceStyleStandard");
+        QCOMPARE(combo->count(), 5);
+        QCOMPARE(combo->currentIndex(), -1);
+        QCOMPARE(combo->itemText(0), BoardColorPresets::forPieceStyle(other).first().name);
+        QVERIFY(board()->boardColors() == selectedColors);
+        QCOMPARE(changed.count(), 5);
+        click(styleAction);
+        QCOMPARE(combo->currentIndex(), 4);
+
+        // 個別調整でカスタム表示に変わり、候補の配色に戻すと選択も同期する。
+        auto* colorButton = dialog->findChild<QPushButton*>("gridColorButton");
+        QVERIFY(colorButton);
+        QTest::mouseClick(colorButton, Qt::LeftButton);
+        auto* picker = dialog->findChild<QColorDialog*>("boardColorPicker");
+        QVERIFY(picker && picker->isVisible());
+        picker->setCurrentColor(Qt::magenta);
+        picker->accept();
+        QCOMPARE(combo->currentIndex(), -1);
+        QCOMPARE(AppSettings::boardColors().grid, QColor(Qt::magenta));
+        BoardAppearance::instance().setColors(selectedColors);
+        QCOMPARE(combo->currentIndex(), 4);
+        QTest::mouseClick(dialog->findChild<QPushButton*>("resetBoardColorsButton"), Qt::LeftButton);
+        QCOMPARE(combo->currentIndex(), -1);
+        QVERIFY(AppSettings::boardColors() == BoardColors{});
     }
     void dialogs_data()
     {

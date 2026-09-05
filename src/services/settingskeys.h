@@ -49,6 +49,12 @@ inline constexpr char kFontSizeTsumeshogiGenerator[]     = "FontSize/tsumeshogiG
 inline constexpr char kLastSelectedTabIndex[]            = "UI/lastSelectedTabIndex";
 inline constexpr char kToolbarVisible[]                  = "UI/toolbarVisible";
 inline constexpr char kPieceStyle[]                      = "UI/pieceStyle";
+inline constexpr char kBoardBackgroundColor[]            = "BoardColors/background";
+inline constexpr char kBoardSurfaceColor[]               = "BoardColors/board";
+inline constexpr char kBoardStandColor[]                 = "BoardColors/stand";
+inline constexpr char kBoardGridColor[]                  = "BoardColors/grid";
+inline constexpr char kBoardColorDialogSize[]            = "SizeRelated/boardColorDialogSize";
+inline constexpr char kBoardColorPickerSize[]            = "SizeRelated/boardColorPickerSize";
 
 // --- SfenCollection ---
 inline constexpr char kSfenCollectionRecentFiles[]       = "SfenCollection/recentFiles";

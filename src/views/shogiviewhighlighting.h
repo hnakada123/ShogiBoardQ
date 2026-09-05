@@ -59,6 +59,7 @@ public:
 
     // ──────────────── 起動時スタイル ────────────────
     void applyStartupTypography();
+    void refreshBackgroundColors();
 
 signals:
     void highlightsCleared();
@@ -78,6 +79,7 @@ private:
     QColor m_highlightFgOn  = QColor(0, 0, 255);
     QColor m_highlightFgOff = QColor(51, 51, 51);
     bool   m_blackActive    = true;
+    bool   m_turnHighlightActive = false;
 
     // 緊急度配色
     QColor m_urgencyBgWarn10 = QColor(255, 193, 7);
