@@ -3933,6 +3933,11 @@ OKを選択すると保存先が指定できます。</source>
         <source>黒い駒（金文字）</source>
         <translation>黒い駒（金文字）</translation>
     </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="783"/>
+        <source>盤面の配色…</source>
+        <translation>盤面の配色…</translation>
+    </message>
 </context>
 <context>
     <name>MatchCoordinator</name>
@@ -5994,6 +5999,187 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/dialogs/versiondialog.cpp" line="17"/>
         <source>ビルド日時: %1 %2</source>
         <translation></translation>
+    </message>
+</context>
+<context>
+    <name>BoardColorDialog</name>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="20"/>
+        <source>盤面の配色</source>
+        <translation>盤面の配色</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="23"/>
+        <source>色を選択すると、すべての将棋盤に反映・保存されます。</source>
+        <translation>色を選択すると、すべての将棋盤に反映・保存されます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="31"/>
+        <source>カスタム（個別に指定）</source>
+        <translation>カスタム（個別に指定）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="42"/>
+        <source>将棋盤の背景</source>
+        <translation>将棋盤の背景</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="43"/>
+        <source>将棋盤</source>
+        <translation>将棋盤</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="44"/>
+        <source>駒台</source>
+        <translation>駒台</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="45"/>
+        <source>マス罫線</source>
+        <translation>マス罫線</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="60"/>
+        <source>標準色に戻す</source>
+        <translation>標準色に戻す</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="88"/>
+        <source>%1の色</source>
+        <translation>%1の色</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="134"/>
+        <source>%1に合うおすすめ配色</source>
+        <translation>%1に合うおすすめ配色</translation>
+    </message>
+</context>
+<context>
+    <name>BoardColorPresets</name>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="14"/>
+        <source>若葉</source>
+        <translation>若葉</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="15"/>
+        <source>青灰</source>
+        <translation>青灰</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="16"/>
+        <source>蜂蜜</source>
+        <translation>蜂蜜</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="17"/>
+        <source>藤色</source>
+        <translation>藤色</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="18"/>
+        <source>夕暮れ</source>
+        <translation>夕暮れ</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="22"/>
+        <source>苔庭</source>
+        <translation>苔庭</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="23"/>
+        <source>胡桃</source>
+        <translation>胡桃</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="24"/>
+        <source>生成り</source>
+        <translation>生成り</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="25"/>
+        <source>深い森</source>
+        <translation>深い森</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="26"/>
+        <source>石庭</source>
+        <translation>石庭</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="30"/>
+        <source>藍夜</source>
+        <translation>藍夜</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="31"/>
+        <source>青磁の海</source>
+        <translation>青磁の海</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="32"/>
+        <source>セージ</source>
+        <translation>セージ</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="33"/>
+        <source>ラベンダー</source>
+        <translation>ラベンダー</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="34"/>
+        <source>墨色</source>
+        <translation>墨色</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="38"/>
+        <source>金屏風</source>
+        <translation>金屏風</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="39"/>
+        <source>銀鼠</source>
+        <translation>銀鼠</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="40"/>
+        <source>青磁</source>
+        <translation>青磁</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="41"/>
+        <source>桜霞</source>
+        <translation>桜霞</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="42"/>
+        <source>砂紋</source>
+        <translation>砂紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="45"/>
+        <source>畳と榧</source>
+        <translation>畳と榧</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="46"/>
+        <source>薄茶</source>
+        <translation>薄茶</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="47"/>
+        <source>若竹</source>
+        <translation>若竹</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="48"/>
+        <source>暖かな灰色</source>
+        <translation>暖かな灰色</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="49"/>
+        <source>藍染</source>
+        <translation>藍染</translation>
     </message>
 </context>
 </TS>

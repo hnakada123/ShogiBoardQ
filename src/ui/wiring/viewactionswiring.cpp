@@ -12,6 +12,7 @@
 #include "evaluationchartwidget.h"
 #include "logcategories.h"
 #include "piecestylecontroller.h"
+#include "boardcolordialog.h"
 
 void ViewActionsWiring::copyBoardToClipboard()
 {
@@ -36,6 +37,17 @@ void ViewActionsWiring::saveEvaluationGraphImage()
                                   QStringLiteral("EvalGraph"));
 }
 
+void ViewActionsWiring::showBoardColors()
+{
+    if (!m_boardColorDialog) {
+        m_boardColorDialog = new BoardColorDialog(m_d.mw);
+        m_boardColorDialog->setAttribute(Qt::WA_DeleteOnClose);
+    }
+    m_boardColorDialog->show();
+    m_boardColorDialog->raise();
+    m_boardColorDialog->activateWindow();
+}
+
 void ViewActionsWiring::wire()
 {
     auto* ui  = m_d.ui;
@@ -56,6 +68,8 @@ void ViewActionsWiring::wire()
     }
 
     // 盤操作・表示（外観コントローラへ委譲）
+    QObject::connect(ui->actionBoardColors, &QAction::triggered,
+                     this, &ViewActionsWiring::showBoardColors, Qt::UniqueConnection);
     if (!m_pieceStyleController) {
         m_pieceStyleController = new PieceStyleController({
             {ui->actionPieceStyleStandard, QStringLiteral("standard")},

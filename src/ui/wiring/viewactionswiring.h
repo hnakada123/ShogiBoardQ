@@ -5,6 +5,7 @@
 /// @brief 盤操作・表示関連アクションの配線クラスの定義
 
 #include <QObject>
+#include <QPointer>
 
 namespace Ui { class MainWindow; }
 class GameSessionOrchestrator;
@@ -14,6 +15,7 @@ class MainWindowAppearanceController;
 class ShogiView;
 class EvaluationChartWidget;
 class PieceStyleController;
+class BoardColorDialog;
 
 /**
  * @brief 盤操作・表示関連のQActionをMainWindowスロットに接続するクラス
@@ -45,10 +47,12 @@ private slots:
     void copyEvalGraphToClipboard();
     void saveShogiBoardImage();
     void saveEvaluationGraphImage();
+    void showBoardColors();
 
 private:
     Deps m_d;
     PieceStyleController* m_pieceStyleController = nullptr;
+    QPointer<BoardColorDialog> m_boardColorDialog;
 };
 
 #endif // VIEWACTIONSWIRING_H

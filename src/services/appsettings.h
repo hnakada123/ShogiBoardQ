@@ -12,6 +12,7 @@
 #include <QString>
 #include <QStringList>
 #include <QSize>
+#include "boardcolors.h"
 
 class QWidget;
 
@@ -38,6 +39,14 @@ QStringList availablePieceStyles();
 /// 駒画像の種類（未設定・不正値は standard）
 QString pieceStyle();
 void setPieceStyle(const QString& style);
+
+/// 盤面の配色（不正な色は標準色に戻す）
+BoardColors boardColors();
+void setBoardColors(const BoardColors& colors);
+QSize boardColorDialogSize();
+void setBoardColorDialogSize(const QSize& size);
+QSize boardColorPickerSize();
+void setBoardColorPickerSize(const QSize& size);
 
 // --- メニューウィンドウ ---
 

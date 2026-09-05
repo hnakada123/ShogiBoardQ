@@ -20,6 +20,7 @@
 #include "shogigamecontroller.h"
 #include "shogiviewinteraction.h"
 #include "shogiviewlayout.h"
+#include "boardcolors.h"
 
 #include <QIcon>
 #include <QHash>
@@ -79,6 +80,7 @@ public:
 
     // ───────────────────────────── コンストラクタ ─────────────────────────────
     explicit ShogiView(QWidget *parent = nullptr);
+    const BoardColors& boardColors() const { return m_boardColors; }
 
     // ───────────────────────────── ボード接続 ────────────────────────────────
     void setBoard(ShogiBoard* board);   // モデル（局面）を差し替え
@@ -317,6 +319,8 @@ private:
     // ───────────────────────────── 内部状態（モデル/描画/入力） ────────────────
     void loadPieceImages(bool flipped);
     void refreshPieceImages();
+    void refreshBoardColors();
+    BoardColors m_boardColors;
 
     // モデル
     QPointer<ShogiBoard> m_board;       // 局面。寿命は外部管理（QPointerで安全）

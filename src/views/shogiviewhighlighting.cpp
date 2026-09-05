@@ -116,9 +116,9 @@ void ShogiViewHighlighting::setHighlightStyle(const QColor& bgOn, const QColor& 
 void ShogiViewHighlighting::clearTurnHighlight()
 {
     if (m_view->gameOverStyleLock()) return;
-
-    const QColor fg(51, 51, 51);
-    const QColor bg(200, 190, 130);
+    m_turnHighlightActive = false;
+    const QColor fg = m_view->boardColors().backgroundText(QColor(51, 51, 51));
+    const QColor bg = m_view->boardColors().background;
     setLabelStyle(m_view->blackNameLabel(),  fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
     setLabelStyle(m_view->blackClockLabel(), fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
     setLabelStyle(m_view->whiteNameLabel(),  fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
@@ -138,6 +138,8 @@ void ShogiViewHighlighting::setActiveIsBlack(bool activeIsBlack)
 
 void ShogiViewHighlighting::setUrgencyVisuals(Urgency u)
 {
+    m_turnHighlightActive = true;
+    m_urgency = u;
     qCDebug(lcView) << "setUrgencyVisuals: urgency=" << static_cast<int>(u)
                      << "m_blackActive=" << m_blackActive;
 
@@ -150,10 +152,10 @@ void ShogiViewHighlighting::setUrgencyVisuals(Urgency u)
                              ? m_view->findChild<QLabel*>(QStringLiteral("turnLabelBlack"))
                              : m_view->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
 
-    // 非手番は font-weight=400 固定、背景は畳色
+    // 非手番は font-weight=400 固定、背景はユーザー指定色
     auto setInactive = [&](QLabel* name, QLabel* clock){
-        const QColor inactiveFg(51, 51, 51);
-        const QColor inactiveBg(200, 190, 130);
+        const QColor inactiveFg = m_view->boardColors().backgroundText(QColor(51, 51, 51));
+        const QColor inactiveBg = m_view->boardColors().background;
         setLabelStyle(name,  inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
         setLabelStyle(clock, inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
     };
@@ -209,9 +211,9 @@ void ShogiViewHighlighting::applyClockUrgency(qint64 activeRemainMs)
 void ShogiViewHighlighting::applyStartupTypography()
 {
     m_urgency = Urgency::Normal;
-
-    const QColor inactiveFg(51, 51, 51);
-    const QColor inactiveBg(200, 190, 130);
+    m_turnHighlightActive = false;
+    const QColor inactiveFg = m_view->boardColors().backgroundText(QColor(51, 51, 51));
+    const QColor inactiveBg = m_view->boardColors().background;
     auto setInactive = [&](QLabel* name, QLabel* clock){
         setLabelStyle(name,  inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false);
         setLabelStyle(clock, inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false);
@@ -221,9 +223,11 @@ void ShogiViewHighlighting::applyStartupTypography()
     setInactive(m_view->whiteNameLabel(),  m_view->whiteClockLabel());
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// 描画
-// ─────────────────────────────────────────────────────────────────────────────
+void ShogiViewHighlighting::refreshBackgroundColors()
+{
+    if (m_turnHighlightActive) setUrgencyVisuals(m_urgency);
+    else applyStartupTypography();
+}
 
 void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLayout& layout)
 {

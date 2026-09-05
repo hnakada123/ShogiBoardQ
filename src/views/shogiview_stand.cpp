@@ -71,7 +71,7 @@ void ShogiView::drawBlackStandField(QPainter* painter, const int file, const int
         m_layout.flipMode(), m_layout.param1(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, true);
 
     painter->save();
-    const QColor fillColor(228, 167, 46, 255);  // 駒台の塗り（木目系）
+    const QColor fillColor = m_boardColors.stand;
     painter->setPen(fillColor);
     painter->setBrush(fillColor);
     painter->drawRect(adjustedRect);
@@ -86,7 +86,7 @@ void ShogiView::drawWhiteStandField(QPainter* painter, const int file, const int
         m_layout.flipMode(), m_layout.param2(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, false);
 
     painter->save();
-    const QColor fillColor(228, 167, 46, 255);  // 駒台の塗り（木目系）
+    const QColor fillColor = m_boardColors.stand;
     painter->setPen(fillColor);
     painter->setBrush(fillColor);
     painter->drawRect(adjustedRect);

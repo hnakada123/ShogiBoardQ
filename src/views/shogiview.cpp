@@ -10,6 +10,7 @@
 #include "logcategories.h"
 #include "sfenutils.h"
 #include "pieceimageprovider.h"
+#include "boardappearance.h"
 
 #include <QColor>
 #include <QPainter>
@@ -35,6 +36,9 @@ ShogiView::ShogiView(QWidget *parent)
     m_highlighting(new ShogiViewHighlighting(this, this))
 {
     // ハイライト/矢印/手番表示の管理クラスを生成
+    m_boardColors = BoardAppearance::instance().colors();
+    connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged,
+            this, &ShogiView::refreshBoardColors);
     connect(m_highlighting, &ShogiViewHighlighting::highlightsCleared,
             this, &ShogiView::highlightsCleared);
 

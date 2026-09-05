@@ -777,6 +777,8 @@ set(SRC_WIDGETS
 )
 
 set(SRC_DIALOGS
+    src/dialogs/boardcolordialog.cpp
+    src/dialogs/boardcolordialog.h
     src/dialogs/changeenginesettingsdialog.cpp
     src/dialogs/changeenginesettingsdialog.h
     src/dialogs/enginesettingsoptionhandler.cpp
@@ -846,6 +848,11 @@ set(SRC_MODELS
 )
 
 set(SRC_SERVICES
+    src/services/boardappearance.cpp
+    src/services/boardappearance.h
+    src/services/boardcolorpresets.cpp
+    src/services/boardcolorpresets.h
+    src/common/boardcolors.h
     src/services/debugscreenshotservice.cpp
     src/services/debugscreenshotservice.h
     src/services/debugscreenshotwiring.cpp

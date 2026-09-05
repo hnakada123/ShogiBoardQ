@@ -52,48 +52,10 @@ void ShogiView::drawFiles(QPainter* painter)
     }
 }
 
-// E1: 背景を描画する。
-// 役割：ウィジェット全体に畳をイメージした背景色を描画し、将棋盤や駒台との調和を図る。
+// 将棋盤と駒台の周囲をユーザー指定の背景色で描画する。
 void ShogiView::drawBackground(QPainter* painter)
 {
-    if (!m_board) return;
-
-    painter->save();
-
-    // まずウィジェット全体をデフォルトの背景色でクリア
-    painter->fillRect(rect(), palette().color(QPalette::Window));
-
-    // 畳の基本色（薄い黄緑〜緑がかったベージュ）
-    const QColor tatamiBase(200, 190, 130);
-
-    // 将棋盤と駒台を含む領域のみを畳色で描画
-    const QSize fs = fieldSize();
-    const int boardWidth  = fs.width()  * m_board->files();
-    const int boardHeight = fs.height() * m_board->ranks();
-
-    // 駒台の幅（2マス分）
-    const int standWidth = fs.width() * 2;
-
-    // 筋番号の帯の高さ
-    const int fileLabelHeight = std::max(8, int(m_layout.squareSize() * 0.35));
-
-    // 畳領域の計算（将棋盤 + 駒台 + ギャップ + 余白 + 筋番号領域）
-    // 左端: 後手駒台の左端
-    const int tatamiLeft = m_layout.offsetX() - m_layout.standGapPx() - standWidth - m_layout.boardMarginPx();
-    // 右端: 先手駒台の右端
-    const int tatamiRight = m_layout.offsetX() + boardWidth + m_layout.boardMarginPx() + m_layout.standGapPx() + standWidth;
-    // 上端: 筋番号の領域を含める（盤の上端 - 余白 - 筋番号帯）
-    const int tatamiTop = m_layout.offsetY() - m_layout.boardMarginPx() - fileLabelHeight;
-    // 下端: 盤の下端 + 余白 + 筋番号帯（反転時用）
-    const int tatamiBottom = m_layout.offsetY() + boardHeight + m_layout.boardMarginPx() + fileLabelHeight;
-
-    // 畳領域の矩形
-    const QRect tatamiRect(tatamiLeft, tatamiTop,
-                           tatamiRight - tatamiLeft, tatamiBottom - tatamiTop);
-
-    painter->fillRect(tatamiRect, tatamiBase);
-
-    painter->restore();
+    painter->fillRect(rect(), m_boardColors.background);
 }
 
 // 将棋盤の影を描画する（立体感を出すため）。
@@ -197,8 +159,8 @@ void ShogiView::drawBoardMargin(QPainter* painter)
 
     painter->save();
 
-    // 将棋盤の木目色（盤のマスと同じ色）
-    const QColor boardColor(228, 203, 115, 255);
+    // 余白も盤のマスと同じ色にする。
+    const QColor boardColor = m_boardColors.board;
 
     // 9×9マス部分の矩形
     const QSize fs = fieldSize();
@@ -324,8 +286,8 @@ void ShogiView::drawFourStars(QPainter* painter)
     // 【状態の局所保護】このブロックでのみ描画状態を変更し、外へ影響させない
     painter->save();
 
-    // 【描画スタイル】星は塗りつぶし円で表現（濃い茶色で視認性確保）
-    painter->setBrush(QColor(50, 30, 10));  // 濃い茶色
+    // 星も罫線と同じ色で描画する。
+    painter->setBrush(m_boardColors.grid);
     painter->setPen(Qt::NoPen);  // 縁取りなし
 
     // 【サイズ/基準点】
@@ -358,12 +320,9 @@ void ShogiView::drawField(QPainter* painter, const int file, const int rank) con
 
     painter->save();
 
-    // マスの塗り（落ち着いた木目色）
-    const QColor fillColor(228, 203, 115, 255);
-    painter->setBrush(fillColor);
+    painter->setBrush(m_boardColors.board);
 
-    // マスの枠線色（濃い茶色）
-    QPen gridPen(QColor(80, 60, 30));
+    QPen gridPen(m_boardColors.grid);
     gridPen.setWidth(1);
     painter->setPen(gridPen);
 
@@ -433,7 +392,7 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
     f.setPointSizeF(pt);
     f.setBold(true);
     painter->setFont(f);
-    painter->setPen(QColor(40, 30, 20));
+    painter->setPen(m_boardColors.backgroundText());
 
     // (6) 1..9 段に対応する漢数字を中央揃えで描画
     static const QStringList rankTexts = { "一","二","三","四","五","六","七","八","九" };
@@ -476,7 +435,7 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
     f.setPointSizeF(pt);
     f.setBold(true);
     painter->setFont(f);
-    painter->setPen(QColor(40, 30, 20));
+    painter->setPen(m_boardColors.backgroundText());
 
     // (4) 全角数字 １..９ を中央描画
     static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };

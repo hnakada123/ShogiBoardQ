@@ -84,6 +84,10 @@
      <property name="title">
       <string>駒の種類</string>
      </property>
+     <property name="icon">
+      <iconset resource="../../resources/shogiboardq.qrc">
+       <normaloff>:/images/actions/actionPieceStyle.svg</normaloff>:/images/actions/actionPieceStyle.svg</iconset>
+     </property>
      <addaction name="actionPieceStyleStandard"/>
      <addaction name="actionPieceStyleClear"/>
      <addaction name="actionPieceStyleWood"/>
@@ -100,6 +104,7 @@
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
     <addaction name="menuPieceStyle"/>
+    <addaction name="actionBoardColors"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
     <addaction name="separator"/>
@@ -775,6 +780,15 @@
    <property name="icon">
     <iconset resource="../../resources/shogiboardq.qrc">
      <normaloff>:/pieces/ivory/Sente_ou45.svg</normaloff>:/pieces/ivory/Sente_ou45.svg</iconset>
+   </property>
+  </action>
+  <action name="actionBoardColors">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionBoardColors.svg</normaloff>:/images/actions/actionBoardColors.svg</iconset>
+   </property>
+   <property name="text">
+    <string>盤面の配色…</string>
    </property>
   </action>
   <action name="actionPieceStyleDark">

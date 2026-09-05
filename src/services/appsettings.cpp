@@ -68,6 +68,50 @@ void setPieceStyle(const QString& style)
         availablePieceStyles().contains(style) ? style : QStringLiteral("standard"));
 }
 
+// --- 盤面の配色 ---
+
+BoardColors boardColors()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    const BoardColors defaults;
+    const BoardColors colors{
+        QColor(s.value(SettingsKeys::kBoardBackgroundColor, defaults.background.name()).toString()),
+        QColor(s.value(SettingsKeys::kBoardSurfaceColor, defaults.board.name()).toString()),
+        QColor(s.value(SettingsKeys::kBoardStandColor, defaults.stand.name()).toString()),
+        QColor(s.value(SettingsKeys::kBoardGridColor, defaults.grid.name()).toString())};
+    return colors.normalized();
+}
+
+void setBoardColors(const BoardColors& colors)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    const BoardColors normalized = colors.normalized();
+    s.setValue(SettingsKeys::kBoardBackgroundColor, normalized.background.name());
+    s.setValue(SettingsKeys::kBoardSurfaceColor, normalized.board.name());
+    s.setValue(SettingsKeys::kBoardStandColor, normalized.stand.name());
+    s.setValue(SettingsKeys::kBoardGridColor, normalized.grid.name());
+}
+
+QSize boardColorDialogSize()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogSize, QSize(460, 300)).toSize();
+}
+
+void setBoardColorDialogSize(const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kBoardColorDialogSize, size);
+}
+
+QSize boardColorPickerSize()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorPickerSize, QSize()).toSize();
+}
+
+void setBoardColorPickerSize(const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kBoardColorPickerSize, size);
+}
+
 // --- メニューウィンドウ ---
 
 QStringList menuWindowFavorites()
