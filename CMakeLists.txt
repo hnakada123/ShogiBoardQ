@@ -104,7 +104,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     # Qt6のqCDebug/qCInfo/qCWarningマクロはstream構文（<< "..."）で
     # variadic引数が空になるため、C++17では警告が出る。Qt側のマクロ設計の問題。
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        add_compile_options(-Wno-variadic-macro-arguments-omitted)
+        add_compile_options(-Wno-gnu-zero-variadic-macro-arguments)
     endif()
     # GCC 固有の追加警告
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")

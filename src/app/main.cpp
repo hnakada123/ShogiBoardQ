@@ -12,6 +12,8 @@
 #include <QGuiApplication>
 #include <QToolTip>
 #include <QIcon>
+#include <QImage>
+#include <QPixmap>
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
@@ -70,6 +72,26 @@ static std::unique_ptr<QFile> logFile;
     out.flush();
 }
 
+static QIcon applicationIcon()
+{
+    const QImage image(":/icons/shogiboardq.png");
+#ifdef Q_OS_WIN
+    // 元画像の透明な余白を除き、タスクバーのアイコン枠を絵柄に使う。
+    QRect contentRect;
+    for (int y = 0; y < image.height(); ++y) {
+        for (int x = 0; x < image.width(); ++x) {
+            if (image.pixelColor(x, y).alpha() != 0) {
+                contentRect |= QRect(x, y, 1, 1);
+            }
+        }
+    }
+    if (!contentRect.isEmpty()) {
+        return QIcon(QPixmap::fromImage(image.copy(contentRect)));
+    }
+#endif
+    return QIcon(QPixmap::fromImage(image));
+}
+
 int main(int argc, char *argv[])
 {
     // ログハンドラの設定（上記コメント参照）
@@ -86,7 +108,7 @@ int main(int argc, char *argv[])
     a.setApplicationName("ShogiBoardQ");
 
     // アプリケーションアイコンを設定
-    a.setWindowIcon(QIcon(":/icons/shogiboardq.png"));
+    a.setWindowIcon(applicationIcon());
 
     // 言語設定を読み込み、適切な翻訳ファイルをロード
     QTranslator translator;
