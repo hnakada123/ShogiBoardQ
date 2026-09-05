@@ -212,6 +212,13 @@ add_shogi_test(tst_kifreader
     ${SRC}/common/logcategories.cpp
 )
 
+add_shogi_test(tst_kifu_file_reader
+    tst_kifu_file_reader.cpp
+    ${SRC}/kifu/kifufilereader.cpp
+    ${SRC}/kifu/formats/bodtextgenerator.cpp
+    ${SRC}/common/logcategories.cpp
+)
+
 # ============================================================
 # Unit 5: KIF / KI2 Converters
 # ============================================================

@@ -32,6 +32,7 @@ GameRecordModel* GameRecordModelBuilder::build(const Deps& deps)
 
     // CommentCoordinator との接続
     if (deps.commentCoordinator) {
+        deps.commentCoordinator->setGameRecordModel(model);
         QObject::connect(model, &GameRecordModel::commentChanged,
                          deps.commentCoordinator, &CommentCoordinator::onGameRecordCommentChanged);
 

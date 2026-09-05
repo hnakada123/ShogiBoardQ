@@ -294,11 +294,17 @@ void PositionEditController::onShogiProblemInitialPositionTriggered()
 void PositionEditController::onToggleSideToMoveTriggered()
 {
     if (!m_gc) return;
-    auto cur = m_gc->currentPlayer();
-    m_gc->setCurrentPlayer(
-        (cur == ShogiGameController::Player1)
-            ? ShogiGameController::Player2
-            : ShogiGameController::Player1);
+    const auto next = (m_gc->currentPlayer() == ShogiGameController::Player1)
+                          ? ShogiGameController::Player2 : ShogiGameController::Player1;
+    // コピーなどが参照する盤面の手番も、編集中から表示と一致させる。
+    if (m_view && m_view->board()) {
+        auto* board = m_view->board();
+        const QString turn = (next == ShogiGameController::Player2)
+                                 ? QStringLiteral("w") : QStringLiteral("b");
+        board->setSfen(QStringLiteral("%1 %2 %3 1")
+                           .arg(board->convertBoardToSfen(), turn, board->convertStandToSfen()));
+    }
+    m_gc->setCurrentPlayer(next);
     if (m_view) m_view->update();
 }
 

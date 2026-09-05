@@ -116,10 +116,8 @@ void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoy
                 this, &ConsiderationModeUIController::stopRequested,
                 Qt::UniqueConnection);
 
-        // 検討開始ボタンを接続
-        connect(m_considerationTabManager, &ConsiderationTabManager::startConsiderationRequested,
-                this, &ConsiderationModeUIController::startRequested,
-                Qt::UniqueConnection);
+        // 開始要求はAnalysisTabWiringから接続済み。ここで再接続すると、
+        // 2回目以降の開始操作でエンジンが二重に起動する。
     }
 
     // 検討終了時にタイマーを停止するための接続

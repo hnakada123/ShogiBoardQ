@@ -70,8 +70,6 @@ void ConsiderationWiring::ensureUIController()
     // コントローラからのシグナルを接続
     connect(m_uiController, &ConsiderationModeUIController::stopRequested,
             this, &ConsiderationWiring::handleStopRequest);
-    connect(m_uiController, &ConsiderationModeUIController::startRequested,
-            this, &ConsiderationWiring::displayConsiderationDialog);
     connect(m_uiController, &ConsiderationModeUIController::multiPVChangeRequested,
             this, &ConsiderationWiring::onMultiPVChangeRequested);
 }

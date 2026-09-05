@@ -97,6 +97,7 @@ void MainWindowServiceRegistry::ensureDockLayoutManager()
     m_mw.m_dockLayoutManager->registerDock(DockLayoutManager::DockType::Comment, m_mw.m_docks.comment);
     m_mw.m_dockLayoutManager->registerDock(DockLayoutManager::DockType::BranchTree, m_mw.m_docks.branchTree);
     m_mw.m_dockLayoutManager->registerDock(DockLayoutManager::DockType::EvalChart, m_mw.m_docks.evalChart);
+    m_mw.m_dockLayoutManager->registerDock(DockLayoutManager::DockType::AnalysisResults, m_mw.m_docks.analysisResults);
 
     m_mw.m_dockLayoutManager->setSavedLayoutsMenu(m_mw.ui->menuSavedLayouts);
 }

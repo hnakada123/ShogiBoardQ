@@ -73,6 +73,8 @@ private slots:
     // === 基本解決テスト ===
 
     void resolveForRow_initialPosition();
+    void resolveForRow_startpos_data();
+    void resolveForRow_startpos();
     void resolveForRow_midGame();
     void resolveForRow_negativeRow_clamped();
 
@@ -118,6 +120,39 @@ void TestConsiderationResolver::resolveForRow_initialPosition()
     auto result = resolver.resolveForRow(0);
 
     QCOMPARE(result.position, QStringLiteral("position startpos"));
+}
+
+void TestConsiderationResolver::resolveForRow_startpos_data()
+{
+    QTest::addColumn<QString>("source");
+    QTest::addColumn<int>("ply");
+    QTest::addColumn<QString>("expected");
+    QTest::newRow("displayed-startpos") << QStringLiteral("current") << 0
+        << QStringLiteral("position startpos");
+    QTest::newRow("startpos-with-moves") << QStringLiteral("moves") << 2
+        << QStringLiteral("position startpos moves 7g7f 3c3d");
+    QTest::newRow("startpos-fallback") << QStringLiteral("start") << 0
+        << QStringLiteral("position startpos");
+    QTest::newRow("history-startpos") << QStringLiteral("history") << 0
+        << QStringLiteral("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+}
+
+void TestConsiderationResolver::resolveForRow_startpos()
+{
+    QFETCH(QString, source);
+    QFETCH(int, ply);
+    QFETCH(QString, expected);
+    TestData d;
+    d.startSfenStr = QStringLiteral("startpos");
+    if (source == QStringLiteral("current")) {
+        d.currentSfenStr = QStringLiteral("startpos");
+    } else if (source == QStringLiteral("moves")) {
+        d.gameUsiMoves = {QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")};
+    } else if (source == QStringLiteral("history")) {
+        d.sfenRecord = {QStringLiteral("startpos")};
+    }
+    ConsiderationPositionResolver resolver(makeInputs(d));
+    QCOMPARE(resolver.resolveForRow(ply).position, expected);
 }
 
 void TestConsiderationResolver::resolveForRow_midGame()

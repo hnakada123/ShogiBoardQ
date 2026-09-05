@@ -75,12 +75,13 @@ private slots:
                  "stopRequested → handleStopRequest connection missing");
     }
 
-    void ensureUIController_connectsStartRequested()
+    void startRequested_usesAnalysisTabWiring()
     {
-        QVERIFY2(hasConnection(m_wiringSrc,
-                               QStringLiteral("ConsiderationModeUIController::startRequested"),
+        const QString tabWiring = readSource(QStringLiteral("src/ui/wiring/analysistabwiring.cpp"));
+        QVERIFY2(hasConnection(tabWiring,
+                               QStringLiteral("EngineAnalysisTab::startConsiderationRequested"),
                                QStringLiteral("ConsiderationWiring::displayConsiderationDialog")),
-                 "startRequested → displayConsiderationDialog connection missing");
+                 "startConsiderationRequested → displayConsiderationDialog connection missing");
     }
 
     void ensureUIController_connectsMultiPVChangeRequested()
@@ -124,9 +125,9 @@ private slots:
     void totalConnectCount_matchesExpected()
     {
         const int total = countConnects(m_wiringSrc);
-        // ensureUIController():3
-        QVERIFY2(total >= 3,
-                 qPrintable(QStringLiteral("Expected >= 3 connect() calls, got %1").arg(total)));
+        // ensureUIController(): 中止要求とMultiPV変更の2経路。開始はAnalysisTabWiringが担当。
+        QVERIFY2(total >= 2,
+                 qPrintable(QStringLiteral("Expected >= 2 connect() calls, got %1").arg(total)));
     }
 };
 

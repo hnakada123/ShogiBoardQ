@@ -7,6 +7,7 @@
 #include "mainwindow.h"
 #include "dialoglaunchwiring.h"
 #include "kifufilecontroller.h"
+#include "aboutcoordinator.h"
 #include "logcategories.h"
 #include <QApplication>
 
@@ -36,5 +37,11 @@ void FileActionsWiring::wire()
     QObject::connect(ui->actionOpenKifuFile, &QAction::triggered, kfc, &KifuFileController::chooseAndLoadKifuFile,     Qt::UniqueConnection);
     QObject::connect(ui->actionVersionInfo,  &QAction::triggered, dlw, &DialogLaunchWiring::displayVersionInformation, Qt::UniqueConnection);
     QObject::connect(ui->actionOpenWebsite,  &QAction::triggered, gso, &GameSessionOrchestrator::openWebsiteInExternalBrowser, Qt::UniqueConnection);
+    QObject::connect(ui->actionUsage,        &QAction::triggered, this, &FileActionsWiring::openUsageGuide, Qt::UniqueConnection);
     QObject::connect(ui->actionAboutQt,      &QAction::triggered, qApp, &QApplication::aboutQt);
+}
+
+void FileActionsWiring::openUsageGuide()
+{
+    AboutCoordinator::openUsageGuide();
 }

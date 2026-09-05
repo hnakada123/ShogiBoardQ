@@ -13,7 +13,6 @@
 #include "timecontrolcontroller.h"
 #include "kifuloadcoordinator.h"
 #include "matchcoordinator.h"
-#include "replaycontroller.h"
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "kifuclipboardservice.h"
@@ -108,13 +107,13 @@ bool KifuExportClipboard::isCurrentlyPlaying() const
 
 int KifuExportClipboard::currentPly() const
 {
-    // ライブ追記モード中はUI側のトラッキング値を優先
-    const bool liveAppend = m_deps.replayController ? m_deps.replayController->isLiveAppendMode() : false;
-    if (liveAppend) {
-        if (m_deps.currentSelectedPly >= 0) return m_deps.currentSelectedPly;
+    if (isCurrentlyPlaying() && m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
+        return static_cast<int>(m_deps.sfenRecord->size() - 1);
     }
 
-    // 通常時はactivePlyを優先
+    // USIの「現在の指し手まで」と同じ、閲覧中の行を参照する。
+    if (m_deps.currentMoveIndex >= 0) return m_deps.currentMoveIndex;
+    if (m_deps.currentSelectedPly >= 0) return m_deps.currentSelectedPly;
     if (m_deps.activePly >= 0) return m_deps.activePly;
 
     return 0;
@@ -123,38 +122,28 @@ int KifuExportClipboard::currentPly() const
 KifuExportClipboard::PositionData KifuExportClipboard::currentPositionData() const
 {
     PositionData data;
+    data.moveIndex = currentPly();
 
-    if (m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
-        int idx = -1;
-
-        if (isCurrentlyPlaying()) {
-            idx = static_cast<int>(m_deps.sfenRecord->size() - 1);
-        } else {
-            idx = currentPly();
-        }
-
-        if (idx < 0) idx = 0;
-        else if (idx >= m_deps.sfenRecord->size()) {
-            idx = static_cast<int>(m_deps.sfenRecord->size() - 1);
-        }
-
-        data.sfenStr = m_deps.sfenRecord->at(idx);
-        data.moveIndex = idx;
-
-        // 最終手の情報を取得
-        if (idx > 0 && m_deps.kifuRecordModel && idx < m_deps.kifuRecordModel->rowCount()) {
-            QModelIndex modelIdx = m_deps.kifuRecordModel->index(idx, 0);
-            data.lastMoveStr = m_deps.kifuRecordModel->data(modelIdx, Qt::DisplayRole).toString();
-        }
-    } else if (m_deps.gameController && m_deps.gameController->board()) {
+    // SFEN履歴は対局用で、読み込んだ棋譜や分岐の表示局面と一致するとは限らない。
+    // 局面編集による変更も含め、実際に表示している盤面・手番・持ち駒をコピーする。
+    if (m_deps.gameController && m_deps.gameController->board()) {
         ShogiBoard* board = m_deps.gameController->board();
         const QString boardSfen = board->convertBoardToSfen();
         QString standSfen = board->convertStandToSfen();
         if (standSfen.isEmpty()) standSfen = QStringLiteral("-");
         const QString turn = turnToSfen(board->currentPlayer());
-        const int moveNum = qMax(1, currentPly() + 1);
+        const int moveNum = data.moveIndex + 1;
         data.sfenStr = QStringLiteral("%1 %2 %3 %4").arg(boardSfen, turn, standSfen, QString::number(moveNum));
-        data.moveIndex = currentPly();
+    } else if (m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
+        data.moveIndex = qBound(0, data.moveIndex, static_cast<int>(m_deps.sfenRecord->size() - 1));
+        data.sfenStr = m_deps.sfenRecord->at(data.moveIndex);
+    }
+
+    // BODの最終手表示にも閲覧中の行を使用する。
+    if (data.moveIndex > 0 && m_deps.kifuRecordModel
+        && data.moveIndex < m_deps.kifuRecordModel->rowCount()) {
+        const QModelIndex modelIdx = m_deps.kifuRecordModel->index(data.moveIndex, 0);
+        data.lastMoveStr = m_deps.kifuRecordModel->data(modelIdx, Qt::DisplayRole).toString();
     }
 
     return data;
