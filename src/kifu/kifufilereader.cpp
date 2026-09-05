@@ -22,8 +22,11 @@ KifuFormat detectFormat(const QString& content)
     );
     static const QRegularExpression csaLineStartRe(QStringLiteral("^[+-][0-9]"));
     static const QRegularExpression csaNewlineRe(QStringLiteral("\\n[+-][0-9]"));
-    static const QRegularExpression kifMoveRe(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]"));
-    static const QRegularExpression ki2MoveRe(QStringLiteral("[▲△][０-９一二三四五六七八九同]"));
+    static const QRegularExpression kifMoveRe(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]"),
+                                              QRegularExpression::MultilineOption);
+    // BODの「手数＝4 △８四歩 まで」やコメント中の指し手をKI2と誤認しない。
+    static const QRegularExpression ki2MoveRe(QStringLiteral("^\\s*[▲△][０-９一二三四五六七八九同]"),
+                                              QRegularExpression::MultilineOption);
     static const QRegularExpression bodBorderRe(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption);
 
     // SFEN判定

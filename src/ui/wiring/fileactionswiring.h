@@ -15,7 +15,7 @@ class KifuFileController;
 /**
  * @brief ファイル/アプリ関連のQActionをMainWindowスロットに接続するクラス
  *
- * Quit, Save, Open, VersionInfo, Website, AboutQt の接続を担当する。
+ * Quit, Save, Open, VersionInfo, Website, Usage, AboutQt の接続を担当する。
  */
 class FileActionsWiring : public QObject {
     Q_OBJECT
@@ -32,6 +32,9 @@ public:
         : QObject(parent), m_d(d) {}
 
     void wire();
+
+private slots:
+    void openUsageGuide();
 
 private:
     Deps m_d;

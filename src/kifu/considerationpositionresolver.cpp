@@ -44,7 +44,9 @@ QString ConsiderationPositionResolver::buildPositionStringForIndex(int moveIndex
             if (currentSfen.startsWith(QStringLiteral("position "))) {
                 return currentSfen;
             }
-            if (currentSfen.startsWith(QStringLiteral("sfen "))) {
+            if (currentSfen == QStringLiteral("startpos")
+                || currentSfen.startsWith(QStringLiteral("startpos moves "))
+                || currentSfen.startsWith(QStringLiteral("sfen "))) {
                 return QStringLiteral("position ") + currentSfen;
             }
             return QStringLiteral("position sfen ") + currentSfen;
@@ -66,7 +68,8 @@ QString ConsiderationPositionResolver::buildPositionStringForIndex(int moveIndex
     }
 
     QString startCmd;
-    const QString startSfen = m_inputs.startSfenStr ? *m_inputs.startSfenStr : QString();
+    const QString startSfen = m_inputs.startSfenStr
+                                 ? SfenUtils::normalizeStart(*m_inputs.startSfenStr) : QString();
     if (startSfen.isEmpty() || startSfen == kHirateSfen) {
         startCmd = QStringLiteral("startpos");
     } else {
@@ -80,7 +83,7 @@ QString ConsiderationPositionResolver::buildPositionStringForIndex(int moveIndex
     // 3) フォールバック: SFEN履歴から構築
     if (m_inputs.sfenRecord &&
         moveIndex >= 0 && moveIndex < m_inputs.sfenRecord->size()) {
-        const QString sfen = m_inputs.sfenRecord->at(moveIndex);
+        const QString sfen = SfenUtils::normalizeStart(m_inputs.sfenRecord->at(moveIndex));
         return QStringLiteral("position sfen ") + sfen;
     }
 

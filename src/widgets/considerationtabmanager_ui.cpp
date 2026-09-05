@@ -139,8 +139,8 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnStopConsideration->setText(tr("検討開始"));
     m_btnStopConsideration->setToolTip(tr("検討を開始します"));
     m_btnStopConsideration->setStyleSheet(ButtonStyles::primaryAction());
-    connect(m_btnStopConsideration, &QToolButton::clicked,
-            this, &ConsiderationTabManager::startConsiderationRequested);
+    m_stopButtonConnection = connect(m_btnStopConsideration, &QToolButton::clicked,
+                                    this, &ConsiderationTabManager::startConsiderationRequested);
 }
 
 void ConsiderationTabManager::layoutToolbar()

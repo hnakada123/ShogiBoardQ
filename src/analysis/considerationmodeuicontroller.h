@@ -134,11 +134,6 @@ signals:
     void stopRequested();
 
     /**
-     * @brief 検討開始が要求されたとき（→ ConsiderationWiring経由でMainWindowへ）
-     */
-    void startRequested();
-
-    /**
      * @brief 検討中にMultiPV変更が要求されたとき（→ ConsiderationWiring経由でMatchCoordinatorへ）
      * @param value 新しいMultiPV値
      */
