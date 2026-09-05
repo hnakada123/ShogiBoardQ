@@ -99,8 +99,9 @@ void TsumeshogiGenerator::start(const Settings& settings)
     m_elapsedTimer.start();
     m_progressTimer.start(kProgressIntervalMs);
 
-    // バッチ生成を開始し、完了後に最初の局面を送信する
-    startBatchGeneration();
+    // 空のキューを生成待ちにしてから、最初のバッチ生成を開始する。
+    // 完了通知で generateAndSendNext() が再開され、最初の局面を送信する。
+    generateAndSendNext();
 }
 
 void TsumeshogiGenerator::stop()
