@@ -35,6 +35,7 @@
 #include "appsettings.h"
 #include "engineanalysistab.h"
 #include "sfencollectiondialog.h"
+#include "kifupastedialog.h"
 #include "josekiwindow.h"
 #include "menuwindow.h"
 #include "menubuttonwidget.h"
@@ -58,6 +59,13 @@ class GuiAudit : public QObject
     ShogiView* board() const { return window->findChild<ShogiView*>(); }
     RecordPane* record() const { return window->findChild<RecordPane*>(); }
     QString boardSfen() const { return board()->board()->convertBoardToSfen(); }
+    bool hasKifuPasteDialog() const
+    {
+        for (auto* widget : QApplication::topLevelWidgets()) {
+            if (qobject_cast<KifuPasteDialog*>(widget)) return true;
+        }
+        return false;
+    }
     QPoint squarePoint(int file, int rank) const
     {
         const QPoint wanted(file, rank);
@@ -319,6 +327,8 @@ private slots:
         click("actionPieceStyleClear");
         QVERIFY(action("actionPieceStyleClear")->isChecked());
         QVERIFY(!action("actionPieceStyleStandard")->isChecked());
+        QVERIFY2(!hasKifuPasteDialog(),
+                 "Changing piece style must not open the kifu paste dialog");
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
         const auto clearPawn = board()->piece('P').pixmap(90).toImage();
         QVERIFY(clearPawn != standardPawn);
@@ -815,6 +825,48 @@ private slots:
         const auto before = board()->flipMode();
         QTest::mouseClick(button, Qt::LeftButton); QCOMPARE(board()->flipMode(), !before);
         snapshot("menu-dock");
+    }
+    void pieceStyleMenuDock()
+    {
+        auto* menu = window->findChild<MenuWindow*>();
+        QVERIFY(menu);
+        auto* dock = qobject_cast<QDockWidget*>(menu->parentWidget());
+        QVERIFY(dock);
+        if (!dock->toggleViewAction()->isChecked()) clickAction(dock->toggleViewAction());
+        dock->raise();
+        auto* tabs = menu->findChild<QTabWidget*>();
+        QVERIFY(tabs);
+        for (int i = 0; i < tabs->count(); ++i) {
+            if (tabs->tabText(i).contains(QStringLiteral("表示"))) tabs->setCurrentIndex(i);
+        }
+        MenuButtonWidget* clear = nullptr;
+        for (auto* button : menu->findChildren<MenuButtonWidget*>()) {
+            if (button->actionName() == "actionPieceStyleClear") clear = button;
+        }
+        QVERIFY(clear);
+        auto* button = clear->findChild<QPushButton*>();
+        QVERIFY(button);
+        QTest::mouseClick(button, Qt::LeftButton);
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
+        QVERIFY2(!hasKifuPasteDialog(),
+                 "The piece style button must not open the kifu paste dialog");
+    }
+    void pieceStyleMenuBar()
+    {
+        auto* display = window->findChild<QMenu*>("Display");
+        auto* styles = window->findChild<QMenu*>("menuPieceStyle");
+        QVERIFY(display);
+        QVERIFY(styles);
+        QTest::mouseClick(window->menuBar(), Qt::LeftButton, Qt::NoModifier,
+                          window->menuBar()->actionGeometry(display->menuAction()).center());
+        QTRY_VERIFY(display->isVisible());
+        QTest::mouseMove(display, display->actionGeometry(styles->menuAction()).center());
+        QTRY_VERIFY(styles->isVisible());
+        QTest::mouseClick(styles, Qt::LeftButton, Qt::NoModifier,
+                          styles->actionGeometry(action("actionPieceStyleClear")).center());
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
+        QVERIFY2(!hasKifuPasteDialog(),
+                 "The piece style submenu must not open the kifu paste dialog");
     }
     void humanResignAndDeclaration()
     {
