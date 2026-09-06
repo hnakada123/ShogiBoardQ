@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盤面の配色 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの盤面の配色機能を紹介します。駒に合うおすすめ配色の選択、将棋盤の背景・将棋盤・駒台・マス罫線の個別調整をスクリーンショット付きで解説。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
+    <meta property="og:title" content="盤面の配色 - ShogiBoardQ">
+    <meta property="og:description" content="駒に合うおすすめ配色と4項目の個別調整で、盤面を好みの色にカスタマイズ。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/preset-ivory.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="盤面の配色 - ShogiBoardQ">
+    <meta name="twitter:description" content="駒に合うおすすめ配色と4項目の個別調整で、盤面を好みの色にカスタマイズ。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/preset-ivory.png">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="#presets">おすすめ配色</a></li>
+            <li><a href="#custom-colors">個別調整</a></li>
+            <li><a href="piece-style.html">駒の種類</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="appearance-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>盤面の配色</h1>
+        <p class="hero-subtitle">駒に合う配色を選んで、自分好みの将棋盤に</p>
+        <div class="hero-badges">
+            <span class="badge">駒ごとのおすすめ配色</span>
+            <span class="badge">4項目を個別調整</span>
+            <span class="badge">設定を保存</span>
+        </div>
+    </div>
+</section>
+
+<section id="open-dialog" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">配色の設定を開く</h2>
+        <p class="section-desc">メニューの「表示」→「盤面の配色…」を選択します</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <p class="guide-step-text">「盤面の配色」ダイアログには、おすすめ配色の一覧と、4項目の色設定が表示されます。各ボタンには現在の色見本とカラーコードが表示され、変更する場所を確認できます。画像をクリックすると元のサイズで表示できます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/board-colors/board-colors-dialog.png">
+                        <img src="../images/board-colors/board-colors-dialog.png" alt="おすすめ配色と、将棋盤の背景・将棋盤・駒台・マス罫線の4項目を表示した盤面の配色ダイアログ" loading="lazy" width="460" height="380">
+                    </a>
+                    <p class="screenshot-caption">配色の設定画面：おすすめ配色の選択と4項目の個別調整</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="presets" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">おすすめ配色から選ぶ</h2>
+        <p class="section-desc">現在の駒に合わせた5種類の候補を、プレビュー付きで選べます</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <p class="guide-step-text">ダイアログ上部の一覧を開き、好みの配色を選びます。将棋盤の背景・将棋盤・駒台・マス罫線の4色がまとめて反映されます。まず<a href="piece-style.html">「駒の種類」</a>を選んでから配色を設定すると、駒と盤面の組み合わせを決めやすくなります。</p>
+                <div class="screenshot-item">
+                    <a href="../images/board-colors/board-colors-presets.png">
+                        <img src="../images/board-colors/board-colors-presets.png" alt="見やすい駒（太字）向けに若葉・青灰・蜂蜜・藤色・夕暮れの配色プレビューを表示した画面" loading="lazy" width="1200" height="865">
+                    </a>
+                    <p class="screenshot-caption">おすすめ配色の一覧：小さな盤面のプレビューで色の組み合わせを確認</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <h3 class="guide-step-title">駒ごとのおすすめ配色</h3>
+                <p class="guide-step-text">駒の種類を変更すると、おすすめの候補も切り替わります。新しい配色を選択するまでは、現在の盤面の色が維持されます。</p>
+                <table class="judgment-table">
+                    <thead><tr><th scope="col">駒の種類</th><th scope="col">おすすめ配色</th></tr></thead>
+                    <tbody>
+                        <tr><th scope="row">標準の駒</th><td>畳と榧・薄茶・若竹・暖かな灰色・藍染</td></tr>
+                        <tr><th scope="row">見やすい駒（太字）</th><td>若葉・青灰・蜂蜜・藤色・夕暮れ</td></tr>
+                        <tr><th scope="row">木目の駒（明朝）</th><td>苔庭・胡桃・生成り・深い森・石庭</td></tr>
+                        <tr><th scope="row">白い駒（ゴシック）</th><td>藍夜・青磁の海・セージ・ラベンダー・墨色</td></tr>
+                        <tr><th scope="row">黒い駒（金文字）</th><td>金屏風・銀鼠・青磁・桜霞・砂紋</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="screenshot-gallery screenshot-gallery--comparison">
+            <div class="screenshot-item">
+                <a href="../images/board-colors/preset-clear.png">
+                    <img src="../images/board-colors/preset-clear.png" alt="見やすい駒（太字）と緑系のおすすめ配色「若葉」を組み合わせた盤面" loading="lazy" width="708" height="551">
+                </a>
+                <p class="screenshot-caption"><strong>見やすい駒（太字）× 若葉</strong></p>
+            </div>
+            <div class="screenshot-item">
+                <a href="../images/board-colors/preset-ivory.png">
+                    <img src="../images/board-colors/preset-ivory.png" alt="白い駒（ゴシック）と青系のおすすめ配色「藍夜」を組み合わせた盤面" loading="lazy" width="708" height="551">
+                </a>
+                <p class="screenshot-caption"><strong>白い駒（ゴシック）× 藍夜</strong></p>
+            </div>
+            <div class="screenshot-item">
+                <a href="../images/board-colors/preset-dark.png">
+                    <img src="../images/board-colors/preset-dark.png" alt="黒い駒（金文字）と金色系のおすすめ配色「金屏風」を組み合わせた盤面" loading="lazy" width="708" height="551">
+                </a>
+                <p class="screenshot-caption"><strong>黒い駒（金文字）× 金屏風</strong></p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="custom-colors" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">色を個別に調整する</h2>
+        <p class="section-desc">おすすめ配色をもとに、一部分だけ好みの色へ変えることもできます</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">変更したい項目の色ボタンを押す</h3>
+                </div>
+                <table class="judgment-table">
+                    <thead><tr><th scope="col">項目</th><th scope="col">変更する場所</th></tr></thead>
+                    <tbody>
+                        <tr><th scope="row">将棋盤の背景</th><td>盤や駒台の周囲にある背景</td></tr>
+                        <tr><th scope="row">将棋盤</th><td>駒を配置する盤の面</td></tr>
+                        <tr><th scope="row">駒台</th><td>先手・後手の持ち駒を置く台</td></tr>
+                        <tr><th scope="row">マス罫線</th><td>盤のマスを区切る線</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">色を選んで確定する</h3>
+                </div>
+                <p class="guide-step-text">色選択ダイアログで好みの色を選び、「OK」を押すと反映されます。「Cancel」で閉じた場合、その色の変更は反映されません。おすすめの組み合わせと異なる色にすると、一覧は「カスタム（個別に指定）」の表示になります。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <a href="../images/board-colors/board-colors-picker.png">
+                        <img src="../images/board-colors/board-colors-picker.png" alt="将棋盤の色を選ぶダイアログ。色見本・色相と明度の選択・RGB値・HTMLカラーコードを表示" loading="lazy" width="528" height="423">
+                    </a>
+                    <p class="screenshot-caption">色選択ダイアログ：色見本やカラーコードから指定できます</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">設定の保存と標準色への復帰</h3>
+                </div>
+                <p class="guide-step-text">選択した配色はすべての将棋盤に反映され、自動で保存されます。配色の設定画面を閉じても変更は維持され、次回起動時にも引き継がれます。</p>
+                <p class="guide-step-text">初期設定の配色に戻すには「標準色に戻す」を押します。駒の種類はそのままで、4項目の色を標準色に戻せます。好みの駒と配色にした盤面は、<a href="image-export.html">画像エクスポート</a>で保存することもできます。</p>
+            </div>
+        </div>
+    </div>
+</section>
+</main>
+
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
