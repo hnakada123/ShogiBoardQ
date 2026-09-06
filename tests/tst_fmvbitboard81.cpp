@@ -71,6 +71,27 @@ private slots:
         QCOMPARE(popped[2], 70);
     }
 
+    void popFirst_allSquares()
+    {
+        fmv::Bitboard81 bb;
+        QCOMPARE(bb.count(), 0);
+        QCOMPARE(bb.popFirst(), fmv::kInvalidSquare);
+
+        // 全マスを立て、lo の最上位ビットから hi への境界も確認する。
+        for (int sq = 0; sq < 81; ++sq) {
+            bb.set(static_cast<fmv::Square>(sq));
+        }
+        QCOMPARE(bb.count(), 81);
+        for (int sq = 0; sq < 81; ++sq) {
+            QCOMPARE(bb.popFirst(), static_cast<fmv::Square>(sq));
+            QVERIFY(!bb.test(static_cast<fmv::Square>(sq)));
+            QCOMPARE(bb.count(), 80 - sq);
+        }
+        QVERIFY(bb.none());
+        QCOMPARE(bb.popFirst(), fmv::kInvalidSquare);
+        QCOMPARE(bb.count(), 0);
+    }
+
     void operators_and_or_not()
     {
         fmv::Bitboard81 a;
