@@ -3,6 +3,8 @@
 
 #include "fmvbitboard81.h"
 
+#include <QtCore/qalgorithms.h>
+
 namespace fmv {
 
 void Bitboard81::set(Square sq) noexcept
@@ -33,18 +35,19 @@ bool Bitboard81::test(Square sq) const noexcept
 
 int Bitboard81::count() const noexcept
 {
-    return __builtin_popcountll(lo) + __builtin_popcountll(hi);
+    return static_cast<int>(qPopulationCount(static_cast<quint64>(lo))
+                            + qPopulationCount(static_cast<quint64>(hi)));
 }
 
 Square Bitboard81::popFirst() noexcept
 {
     if (lo != 0ULL) {
-        int bit = __builtin_ctzll(lo);
+        const int bit = static_cast<int>(qCountTrailingZeroBits(static_cast<quint64>(lo)));
         lo &= lo - 1;
         return static_cast<Square>(bit);
     }
     if (hi != 0ULL) {
-        int bit = __builtin_ctzll(hi);
+        const int bit = static_cast<int>(qCountTrailingZeroBits(static_cast<quint64>(hi)));
         hi &= hi - 1;
         return static_cast<Square>(bit + 64);
     }
