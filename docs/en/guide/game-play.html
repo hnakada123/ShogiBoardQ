@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Playing Games - ShogiBoardQ</title>
+<meta content="A screenshot guide to playing games in ShogiBoardQ, from registering a USI engine to setting up, playing, and reviewing a game." name="description"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html" rel="canonical"/>
+<!-- Open Graph -->
+<meta content="article" property="og:type"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html" property="og:url"/>
+<meta content="Playing Games - ShogiBoardQ" property="og:title"/>
+<meta content="Learn to register engines, play games, and review them in ShogiBoardQ, with step-by-step screenshots." property="og:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/game-play/game-02-playing-engine-log.png" property="og:image"/>
+<meta content="en_US" property="og:locale"/>
+<meta content="ShogiBoardQ" property="og:site_name"/>
+<!-- Twitter Card -->
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="Playing Games - ShogiBoardQ" name="twitter:title"/>
+<meta content="Learn to register engines, play games, and review them in ShogiBoardQ." name="twitter:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/game-play/game-02-playing-engine-log.png" name="twitter:image"/>
+<link href="../../css/style.css" rel="stylesheet"/>
+ <link href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" hreflang="ja" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html" hreflang="en" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" hreflang="x-default" rel="alternate"/>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="site-nav">
+<div class="nav-inner">
+<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
+<a aria-label="日本語" class="language-switch" href="../../guide/game-play.html" hreflang="ja" lang="ja">日本語</a>
+<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<span></span><span></span><span></span>
+</button>
+<ul class="nav-links">
+<li><a href="../index.html">Home</a></li>
+<li><a href="index.html">User Guide</a></li>
+<li><a href="#engine-registration">Engine Registration</a></li>
+<li><a href="#game-start">Start a Game</a></li>
+<li><a href="#playing">During a Game</a></li>
+<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+</ul>
+</div>
+</nav>
+<!-- Hero -->
+<section class="hero hero--sub">
+<div class="hero-content">
+<h1>Playing Games</h1>
+<p class="hero-subtitle">From registering an engine to playing and reviewing a game</p>
+<div class="hero-badges">
+<span class="badge">Human vs. Engine</span>
+<span class="badge">Engine vs. Engine</span>
+<span class="badge">Human vs. Human</span>
+</div>
+<p class="screenshot-note">Screenshots show the Japanese interface unless otherwise noted.</p>
+</div>
+</section>
+<!-- Section 1: Engine Registration -->
+<section class="section section--alt" id="engine-registration">
+<div class="section-inner">
+<h2 class="section-title">Engine Registration</h2>
+<p class="section-desc">Register USI engines for playing games and analysis</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Open the Engine Registration Dialog</span>
+</div>
+<p class="guide-step-text">Choose Settings → Engine Settings to open the engine registration dialog. The list is empty until you register your first engine.</p>
+<div class="screenshot-item">
+<img alt="ShogiBoardQ main window" src="../../images/game-play/engine-00-main-screen.png"/>
+<p class="screenshot-caption">Main window: choose Settings → Engine Settings</p>
+</div>
+<div class="screenshot-item">
+<img alt="Empty engine registration dialog" src="../../images/game-play/engine-01-registration-empty.png"/>
+<p class="screenshot-caption">Engine registration dialog: initial state</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Select the Engine Executable</span>
+</div>
+<p class="guide-step-text">Click Add and select the executable file for a USI engine.</p>
+<div class="screenshot-item">
+<img alt="Engine executable selection dialog" src="../../images/game-play/engine-02-file-selection.png"/>
+<p class="screenshot-caption">File selection dialog: choose a USI engine executable</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">3</span>
+<span class="guide-step-title">Complete Engine Registration</span>
+</div>
+<p class="guide-step-text">Once the engine is recognized successfully, it is added to the list.</p>
+<div class="screenshot-item">
+<img alt="An engine registered in the list" src="../../images/game-play/engine-03-registration-added.png"/>
+<p class="screenshot-caption">Engine registered: the engine now appears in the list</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">4</span>
+<span class="guide-step-title">Engine Options</span>
+</div>
+<p class="guide-step-text">Click Settings to adjust engine options such as hash size and thread count.</p>
+<div class="screenshot-item">
+<img alt="Engine settings dialog" src="../../images/game-play/engine-04-settings.png"/>
+<p class="screenshot-caption">Engine settings: adjust hash size, thread count, and other options</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">5</span>
+<span class="guide-step-title">Register Multiple Engines</span>
+</div>
+<p class="guide-step-text">You can register multiple engines and choose between them for games, including engine vs. engine matches.</p>
+<div class="screenshot-item">
+<img alt="Multiple registered engines" src="../../images/game-play/engine-05-registration-multiple.png"/>
+<p class="screenshot-caption">Multiple registered engines: choose the right one for each task</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Game Setup -->
+<section class="section" id="game-start">
+<div class="section-inner">
+<h2 class="section-title">Game Setup</h2>
+<p class="section-desc">Configure game options in the game dialog</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Game Dialog</span>
+</div>
+<p class="guide-step-text">Choose Game → Game to open the game dialog. You can configure the following options.</p>
+<p class="guide-step-text">
+</p>
+<ul class="guide-step-text">
+<li>Players: human or a registered engine</li>
+<li>Main time, byoyomi, and Fischer increment</li>
+<li>Starting position: even game, handicap, or current position</li>
+<li>Automatic game record saving</li>
+</ul>
+<div class="screenshot-item">
+<img alt="Game setup dialog" src="../../images/game-play/game-01-setup-dialog.png"/>
+<p class="screenshot-caption">Game dialog: set players, time controls, and the starting position</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: During Game -->
+<section class="section section--alt" id="playing">
+<div class="section-inner">
+<h2 class="section-title">During a Game</h2>
+<p class="section-desc">View the game record and engine thinking information in real time</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Game Screen</span>
+</div>
+<p class="guide-step-text">Once the game starts, the Thinking tab shows the engine's thinking information in real time.</p>
+<div class="screenshot-item">
+<img alt="Game screen with the game record tab" src="../../images/game-play/game-03-playing-thinking-tab.png"/>
+<p class="screenshot-caption">Thinking tab: live engine thinking information</p>
+</div>
+<p class="guide-step-text">The USI Communication Log tab shows messages exchanged between the GUI and engine using the USI protocol.</p>
+<div class="screenshot-item">
+<img alt="Game screen with the engine log" src="../../images/game-play/game-02-playing-engine-log.png"/>
+<p class="screenshot-caption">USI communication log: live protocol messages between the GUI and engine</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Principal Variations</span>
+</div>
+<p class="guide-step-text">The principal variation window lets you replay the engine's line on a shogi board.</p>
+<div class="screenshot-item">
+<img alt="Principal variation window" src="../../images/game-play/game-04-reading-lines.png"/>
+<p class="screenshot-caption">Principal variation display: visualize the engine's line on a board</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">3</span>
+<span class="guide-step-title">Evaluation Graph</span>
+</div>
+<p class="guide-step-text">The evaluation graph shows how the position changes over the game and updates in real time during play.</p>
+<div class="screenshot-item">
+<img alt="Evaluation graph" src="../../images/game-play/game-05-eval-graph.png"/>
+<p class="screenshot-caption">Evaluation graph: track the position in real time</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">4</span>
+<span class="guide-step-title">Game Information</span>
+</div>
+<p class="guide-step-text">The Game Info tab displays the game date, start time, Black and White players, handicap, time control, end time, and other details.</p>
+<div class="screenshot-item">
+<img alt="Game information after the game" src="../../images/game-play/game-06-game-info.png"/>
+<p class="screenshot-caption">Game Info: details about the game</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">5</span>
+<span class="guide-step-title">Branch Tree</span>
+</div>
+<p class="guide-step-text">The Branch Tree tab shows moves in variations as well as the main line.</p>
+<div class="screenshot-item">
+<img alt="Branch Tree display" src="../../images/game-play/game-07-branch-tree.png"/>
+<p class="screenshot-caption">Branch Tree: view the main line and alternative continuations</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Back Link -->
+<div class="back-link-section">
+<a class="back-link" href="index.html">← Back to User Guide</a>
+</div>
+<!-- Footer -->
+<footer class="site-footer">
+<p>© 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

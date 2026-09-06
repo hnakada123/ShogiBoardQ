@@ -53,6 +53,11 @@ html {
     font-size: 16px;
 }
 
+html:lang(en) {
+    --font-main: Arial, "Helvetica Neue", sans-serif;
+    --font-heading: Georgia, "Times New Roman", serif;
+}
+
 body {
     font-family: var(--font-main);
     color: var(--color-text);
@@ -102,11 +107,43 @@ img {
 }
 
 .nav-logo {
+    flex-shrink: 0;
     font-family: var(--font-heading);
     font-size: 1.2rem;
     color: var(--color-hero-text);
     font-weight: 700;
     letter-spacing: 0.02em;
+}
+
+.language-switch {
+    flex-shrink: 0;
+    margin: 0 auto 0 1rem;
+    padding: 0.15rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.language-switch:hover,
+.language-switch:focus-visible {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.15);
+}
+
+html:lang(en) .nav-links {
+    gap: 1rem;
+}
+
+html:lang(en) .nav-links a {
+    letter-spacing: 0;
+}
+
+.screenshot-note {
+    margin-top: 1rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.85);
 }
 
 .nav-logo:hover {
@@ -534,12 +571,8 @@ img {
     }
 }
 
-/* Mobile */
-@media (max-width: 768px) {
-    :root {
-        --section-padding: 3rem 1rem;
-    }
-
+/* Collapse navigation before translated labels become crowded. */
+@media (max-width: 1100px) {
     .nav-links {
         display: none;
         position: absolute;
@@ -558,6 +591,13 @@ img {
 
     .nav-toggle {
         display: block;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    :root {
+        --section-padding: 3rem 1rem;
     }
 
     .hero {

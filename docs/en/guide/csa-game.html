@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>CSA Network Play - ShogiBoardQ</title>
+<meta content="A screenshot guide to CSA network play in ShogiBoardQ, from server connection settings to playing games. Supports floodgate and shogi-server." name="description"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" rel="canonical"/>
+<!-- Open Graph -->
+<meta content="article" property="og:type"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" property="og:url"/>
+<meta content="CSA Network Play - ShogiBoardQ" property="og:title"/>
+<meta content="Learn to connect to CSA-compatible servers and play network games in ShogiBoardQ." property="og:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/csa-game/csa-03-playing.png" property="og:image"/>
+<meta content="en_US" property="og:locale"/>
+<meta content="ShogiBoardQ" property="og:site_name"/>
+<!-- Twitter Card -->
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="CSA Network Play - ShogiBoardQ" name="twitter:title"/>
+<meta content="Learn to connect to CSA-compatible servers and play network games in ShogiBoardQ." name="twitter:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/csa-game/csa-03-playing.png" name="twitter:image"/>
+<link href="../../css/style.css" rel="stylesheet"/>
+ <link href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" hreflang="ja" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" hreflang="en" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" hreflang="x-default" rel="alternate"/>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="site-nav">
+<div class="nav-inner">
+<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
+<a aria-label="日本語" class="language-switch" href="../../guide/csa-game.html" hreflang="ja" lang="ja">日本語</a>
+<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<span></span><span></span><span></span>
+</button>
+<ul class="nav-links">
+<li><a href="../index.html">Home</a></li>
+<li><a href="index.html">User Guide</a></li>
+<li><a href="#connection-setup">Connection Settings</a></li>
+<li><a href="#waiting">Connect &amp; Wait</a></li>
+<li><a href="#playing">During a Game</a></li>
+<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+</ul>
+</div>
+</nav>
+<!-- Hero -->
+<section class="hero hero--sub">
+<div class="hero-content">
+<h1>CSA Network Play</h1>
+<p class="hero-subtitle">Network games on CSA-compatible servers</p>
+<div class="hero-badges">
+<span class="badge">CSA Protocol</span>
+<span class="badge">shogi-server Support</span>
+<span class="badge">floodgate Support</span>
+</div>
+<p class="screenshot-note">Screenshots show the Japanese interface unless otherwise noted.</p>
+</div>
+</section>
+<!-- Section 1: Connection Setup -->
+<section class="section section--alt" id="connection-setup">
+<div class="section-inner">
+<h2 class="section-title">Connection Settings</h2>
+<p class="section-desc">Enter server connection details in the network game dialog</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Open the Network Game Dialog</span>
+</div>
+<p class="guide-step-text">Choose Game → Network Game (CSA) to open the network game dialog.</p>
+<div class="screenshot-item">
+<img alt="ShogiBoardQ main window" src="../../images/csa-game/csa-04-game-start.png"/>
+<p class="screenshot-caption">Main window: choose Game → Network Game (CSA)</p>
+</div>
+<p class="guide-step-text">Configure the following settings.</p>
+<ul class="guide-step-text">
+<li><strong>Local Player</strong>: Choose a human player or USI engine.</li>
+<li><strong>Version</strong>: Select the CSA protocol version.</li>
+<li><strong>Host</strong>: The server hostname or IP address.</li>
+<li><strong>Port</strong>: The server port number.</li>
+<li><strong>ID and Password</strong>: Your server login credentials.</li>
+</ul>
+<p class="guide-step-text">You can also select a previous connection from the history to restore its server settings.</p>
+<div class="screenshot-item">
+<img alt="Network Game (CSA) dialog" src="../../images/csa-game/csa-01-dialog.png"/>
+<p class="screenshot-caption">Network game dialog: configure the player and server connection</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Waiting -->
+<section class="section" id="waiting">
+<div class="section-inner">
+<h2 class="section-title">Connect &amp; Wait</h2>
+<p class="section-desc">Connect to the server and wait for an opponent</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Connect and Wait</span>
+</div>
+<p class="guide-step-text">Click Start Game to connect to the server. Once login succeeds, a waiting screen appears while the server finds an opponent.</p>
+<p class="guide-step-text">Click Communication Log to view messages exchanged with the server. Click Cancel Game to stop waiting.</p>
+<div class="screenshot-item">
+<img alt="Waiting for an opponent" src="../../images/csa-game/csa-02-waiting.png"/>
+<p class="screenshot-caption">Waiting screen: looking for an opponent after a successful login</p>
+</div>
+<p class="guide-step-text">Click Communication Log to open a window showing CSA server communication in real time. You can also send commands directly to the server through the command input field.</p>
+<div class="screenshot-item">
+<img alt="CSA communication log window" src="../../images/csa-game/csa-02-commlog.png"/>
+<p class="screenshot-caption">Communication log: view server messages and send commands</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Playing -->
+<section class="section section--alt" id="playing">
+<div class="section-inner">
+<h2 class="section-title">During a Game</h2>
+<p class="section-desc">Once the game starts, play moves as you would in a local game</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">3</span>
+<span class="guide-step-title">During a Game</span>
+</div>
+<p class="guide-step-text">The CSA Communication Log tab shows server communication in real time. The game record tab lists the moves, and the game clocks show the remaining time.</p>
+<div class="screenshot-item">
+<img alt="Network game in progress" src="../../images/csa-game/csa-03-playing.png"/>
+<p class="screenshot-caption">During a game: monitor server communication in the CSA log</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: About CSA Protocol -->
+<section class="section" id="about-csa">
+<div class="section-inner">
+<h2 class="section-title">Supported Servers</h2>
+<p class="section-desc">Play network games on servers that support the CSA protocol</p>
+<div class="judgment-note">
+<ul>
+<li><strong>shogi-server</strong>: An open-source shogi server supporting the CSA protocol. You can also host your own server.</li>
+<li><strong>floodgate</strong>: An online venue for computer shogi based on shogi-server, running around the clock with many participating engines.</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Back Link -->
+<div class="back-link-section">
+<a class="back-link" href="index.html">← Back to User Guide</a>
+</div>
+<!-- Footer -->
+<footer class="site-footer">
+<p>© 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

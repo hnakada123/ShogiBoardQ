@@ -1,107 +1,338 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<?xml version='1.0' encoding='UTF-8'?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/" />
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/guide/</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/dock.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/guide/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-management.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kyokumenshu-viewer.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/menu.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumi-search.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/" />
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-edit.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-edit.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/image-export.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/image-export.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-display.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-display.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-management.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-management.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/kyokumenshu-viewer.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kyokumenshu-viewer.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/menu.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/menu.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multi-os.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multi-os.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumi-search.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumi-search.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
