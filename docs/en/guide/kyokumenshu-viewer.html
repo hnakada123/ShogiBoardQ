@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Position Collection Viewer - ShogiBoardQ</title>
+<meta content="Learn to load SFEN collections in ShogiBoardQ, browse positions on a board, and import a selected position into the main window." name="description"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kyokumenshu-viewer.html" rel="canonical"/>
+<!-- Open Graph -->
+<meta content="article" property="og:type"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/kyokumenshu-viewer.html" property="og:url"/>
+<meta content="Position Collection Viewer - ShogiBoardQ" property="og:title"/>
+<meta content="Browse SFEN position collections in ShogiBoardQ and import selected positions into the main window." property="og:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/kyokumenshu-viewer/局面集読込後.png" property="og:image"/>
+<meta content="en_US" property="og:locale"/>
+<meta content="ShogiBoardQ" property="og:site_name"/>
+<!-- Twitter Card -->
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="Position Collection Viewer - ShogiBoardQ" name="twitter:title"/>
+<meta content="Load SFEN collections in ShogiBoardQ to browse and select positions on a board." name="twitter:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/kyokumenshu-viewer/局面集読込後.png" name="twitter:image"/>
+<link href="../../css/style.css" rel="stylesheet"/>
+ <link href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html" hreflang="ja" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kyokumenshu-viewer.html" hreflang="en" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html" hreflang="x-default" rel="alternate"/>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="site-nav">
+<div class="nav-inner">
+<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
+<a aria-label="日本語" class="language-switch" href="../../guide/kyokumenshu-viewer.html" hreflang="ja" lang="ja">日本語</a>
+<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<span></span><span></span><span></span>
+</button>
+<ul class="nav-links">
+<li><a href="../index.html">Home</a></li>
+<li><a href="index.html">User Guide</a></li>
+<li><a href="#preparation">Prepare a Collection</a></li>
+<li><a href="#viewer">Browse Positions</a></li>
+<li><a href="#import">Import a Position</a></li>
+<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+</ul>
+</div>
+</nav>
+<!-- Hero -->
+<section class="hero hero--sub">
+<div class="hero-content">
+<h1>Position Collection Viewer</h1>
+<p class="hero-subtitle">Browse, select, and import SFEN positions</p>
+<div class="hero-badges">
+<span class="badge">SFEN Format</span>
+<span class="badge">Position Navigation</span>
+<span class="badge">Rotate the Board</span>
+</div>
+<p class="screenshot-note">Screenshots show the Japanese interface unless otherwise noted.</p>
+</div>
+</section>
+<!-- Section 1: Preparation -->
+<section class="section section--alt" id="preparation">
+<div class="section-inner">
+<h2 class="section-title">Prepare a Collection</h2>
+<p class="section-desc">Prepare a text file in SFEN format</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">SFEN Position Collection Files</span>
+</div>
+<p class="guide-step-text">The position collection viewer reads text files containing one SFEN position string per line.</p>
+<div class="screenshot-item">
+<img alt="SFEN Position Collection Files" src="../../images/kyokumenshu-viewer/SFEN形式の局面集.png"/>
+<p class="screenshot-caption">SFEN collection file: one position string per line</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Viewer -->
+<section class="section" id="viewer">
+<div class="section-inner">
+<h2 class="section-title">Browse Positions</h2>
+<p class="section-desc">Navigate through positions in the collection viewer</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Open the Position Collection Viewer</span>
+</div>
+<p class="guide-step-text">Choose Edit → SFEN Collection Viewer. The viewer initially shows the standard starting position.</p>
+<div class="screenshot-item">
+<img alt="Position collection viewer immediately after opening" src="../../images/kyokumenshu-viewer/局面集ビューア起動直後.png"/>
+<p class="screenshot-caption">Position collection viewer: initial state</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Open a Position Collection File</span>
+</div>
+<p class="guide-step-text">Click Open File to select and load an SFEN position collection.</p>
+<div class="screenshot-item">
+<img alt="Position collection file selection dialog" src="../../images/kyokumenshu-viewer/局面集の選択.png"/>
+<p class="screenshot-caption">File selection dialog: choose an SFEN position collection</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">3</span>
+<span class="guide-step-title">View a Position</span>
+</div>
+<p class="guide-step-text">After loading, the first position appears on the board, including pieces in hand and the side to move. The current position number and total number of positions appear at the bottom.</p>
+<div class="screenshot-item">
+<img alt="Position displayed after loading a collection" src="../../images/kyokumenshu-viewer/局面集読込後.png"/>
+<p class="screenshot-caption">Collection loaded: the first position on the board (position 1 / 2)</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">4</span>
+<span class="guide-step-title">Navigate Positions</span>
+</div>
+<p class="guide-step-text">Use First, Previous, Next, and Last to move through the collection. Click Next to advance to the next position.</p>
+<div class="screenshot-item">
+<img alt="The next position in the collection" src="../../images/kyokumenshu-viewer/局面集読込後次へを押した画面.png"/>
+<p class="screenshot-caption">Next position: navigate through the collection (position 2 / 2)</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">5</span>
+<span class="guide-step-title">Rotate the Board</span>
+</div>
+<p class="guide-step-text">Click Rotate Board to turn the board 180 degrees and view the position from White's side.</p>
+<div class="screenshot-item">
+<img alt="The board rotated" src="../../images/kyokumenshu-viewer/盤面の回転も可能.png"/>
+<p class="screenshot-caption">Rotated board: view the position from White's perspective</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Import -->
+<section class="section section--alt" id="import">
+<div class="section-inner">
+<h2 class="section-title">Import a Position</h2>
+<p class="section-desc">Import the selected position into the main window</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Select and Import a Position</span>
+</div>
+<p class="guide-step-text">Display the position you want and click Select to import it into the main window. You can then begin study or analysis from that position.</p>
+<div class="screenshot-item">
+<img alt="Main window after importing a position" src="../../images/kyokumenshu-viewer/選択ボタンをクリックして局面を取り込んだ画面.png"/>
+<p class="screenshot-caption">Imported into the main window: ready for study and analysis</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Back Link -->
+<div class="back-link-section">
+<a class="back-link" href="index.html">← Back to User Guide</a>
+</div>
+<!-- Footer -->
+<footer class="site-footer">
+<p>© 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

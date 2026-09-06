@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Game Record Management - ShogiBoardQ</title>
+<meta content="Learn to load and save KIF, KI2, CSA, JKF, USI, and USEN records, and copy and paste them in ShogiBoardQ." name="description"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-management.html" rel="canonical"/>
+<!-- Open Graph -->
+<meta content="article" property="og:type"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-management.html" property="og:url"/>
+<meta content="Game Record Management - ShogiBoardQ" property="og:title"/>
+<meta content="Manage KIF, KI2, CSA, JKF, USI, and USEN game records in ShogiBoardQ, with file and clipboard operations." property="og:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-management/kifu-03-loaded.png" property="og:image"/>
+<meta content="en_US" property="og:locale"/>
+<meta content="ShogiBoardQ" property="og:site_name"/>
+<!-- Twitter Card -->
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="Game Record Management - ShogiBoardQ" name="twitter:title"/>
+<meta content="Manage KIF, KI2, CSA, JKF, USI, and USEN game records in ShogiBoardQ, with file and clipboard operations." name="twitter:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-management/kifu-03-loaded.png" name="twitter:image"/>
+<link href="../../css/style.css" rel="stylesheet"/>
+ <link href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html" hreflang="ja" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-management.html" hreflang="en" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html" hreflang="x-default" rel="alternate"/>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="site-nav">
+<div class="nav-inner">
+<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
+<a aria-label="日本語" class="language-switch" href="../../guide/kifu-management.html" hreflang="ja" lang="ja">日本語</a>
+<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<span></span><span></span><span></span>
+</button>
+<ul class="nav-links">
+<li><a href="../index.html">Home</a></li>
+<li><a href="index.html">User Guide</a></li>
+<li><a href="#file-load">Loading</a></li>
+<li><a href="#file-save">Saving</a></li>
+<li><a href="#clipboard">Clipboard</a></li>
+<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+</ul>
+</div>
+</nav>
+<!-- Hero -->
+<section class="hero hero--sub">
+<div class="hero-content">
+<h1>Game Record Management</h1>
+<p class="hero-subtitle">Load, save, and copy game records in multiple formats</p>
+<div class="hero-badges">
+<span class="badge">KIF / KI2</span>
+<span class="badge">CSA</span>
+<span class="badge">JKF</span>
+<span class="badge">USI / SFEN</span>
+<span class="badge">USEN</span>
+</div>
+<p class="screenshot-note">Screenshots show the Japanese interface unless otherwise noted.</p>
+</div>
+</section>
+<!-- Section 1: File Loading -->
+<section class="section section--alt" id="file-load">
+<div class="section-inner">
+<h2 class="section-title">Load Game Record Files</h2>
+<p class="section-desc">Load major game record formats, including records with variations</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Supported Formats</span>
+</div>
+<p class="guide-step-text">The following game record formats can be loaded.</p>
+<table class="info-table">
+<thead>
+<tr><th>Format</th><th>Extension</th><th>Description</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>KIF</strong></td><td>.kif .kifu</td><td>The standard Kifu for Windows format, recording move numbers, moves, and time spent</td></tr>
+<tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>A compact KIF format that records moves horizontally</td></tr>
+<tr><td><strong>CSA</strong></td><td>.csa</td><td>The Computer Shogi Association's standard format, using coordinate notation</td></tr>
+<tr><td><strong>JKF</strong></td><td>.jkf</td><td>A JSON game record format that represents variations in a JSON structure</td></tr>
+<tr><td><strong>USI</strong></td><td>.usi .sfen</td><td>USI protocol notation, as used in engine communication</td></tr>
+<tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN compression for compact game record encoding</td></tr>
+</tbody>
+</table>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Open a Game Record File</span>
+</div>
+<p class="guide-step-text">Choose File → Open Game Record File to open the file selection dialog. Use its filter to narrow the formats shown.</p>
+<div class="screenshot-item">
+<img alt="Open game record dialog" src="../../images/kifu-management/kifu-02-file-dialog.png"/>
+<p class="screenshot-caption">File selection dialog: choose KIF, CSA, JKF, USI, or USEN files</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">3</span>
+<span class="guide-step-title">View the Loaded Record</span>
+</div>
+<p class="guide-step-text">After loading, the game record area shows moves and time spent, and the board moves to the final position. Game information such as player names, date, and handicap is read automatically.</p>
+<div class="screenshot-item">
+<img alt="Screen after loading a game record" src="../../images/kifu-management/kifu-03-loaded.png"/>
+<p class="screenshot-caption">Loaded game record: moves and time spent in the move list</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">4</span>
+<span class="guide-step-title">Format Examples</span>
+</div>
+<p class="guide-step-text">The same game can be represented in different formats. The examples below show one game in each format. Japanese notation and field names are preserved where they are part of the file format.</p>
+<div class="format-examples">
+<div class="format-example">
+<h4>KIF Format (.kif)</h4>
+<pre><code>手合割：平手
+先手：鈴木
+後手：山田
+手数----指手---------消費時間--
+   1 ７六歩(77)   ( 0:02/00:00:02)
+   2 ３四歩(33)   ( 0:02/00:00:02)
+   3 ２六歩(27)   ( 0:02/00:00:04)
+   ...</code></pre>
+</div>
+<div class="format-example">
+<h4>KI2 Format (.ki2)</h4>
+<pre><code>先手：鈴木
+後手：山田
+
+▲７六歩    △３四歩    ▲２六歩    △８四歩    ▲２五歩    △３二金
+▲７八金    △７二銀    ▲３八銀    △５二金    ▲５八金    △４一王
+まで12手で後手の勝ち</code></pre>
+</div>
+<div class="format-example">
+<h4>CSA Format (.csa)</h4>
+<pre><code>V2.2
+N+鈴木
+N-山田
+P1-KY-KE-GI-KI-OU-KI-GI-KE-KY
+P2 * -HI *  *  *  *  * -KA *
+P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
+...
++7776FU,T2
+-3334FU,T2
++2726FU,T2</code></pre>
+</div>
+<div class="format-example">
+<h4>JKF Format (.jkf)</h4>
+<pre><code>{
+  "header": {
+    "先手": "鈴木",
+    "後手": "山田"
+  },
+  "moves": [
+    {},
+    {"move":{"from":{"x":7,"y":7},
+             "to":{"x":7,"y":6},
+             "color":0,"piece":"FU"}},
+    ...
+  ]
+}</code></pre>
+</div>
+<div class="format-example">
+<h4>USI Format (.usi)</h4>
+<pre><code>position startpos moves 7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6g6f 8e8f 8g8f</code></pre>
+</div>
+<div class="format-example">
+<h4>USEN Format (.usen)</h4>
+<pre><code>1nsgkgsn1_9_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGKGSNL.w.-~0.09k7ku0e46y22jm5t21a49co0n89h80rw.r</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: File Save -->
+<section class="section" id="file-save">
+<div class="section-inner">
+<h2 class="section-title">Save Game Record Files</h2>
+<p class="section-desc">Save game records in six formats</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Save As</span>
+</div>
+<p class="guide-step-text">Choose File → Save As to save the record in your preferred format. Select the output format using the filter in the save dialog.</p>
+<table class="info-table">
+<thead>
+<tr><th>Format</th><th>Extension</th></tr>
+</thead>
+<tbody>
+<tr><td>KIF Format</td><td>.kif .kifu</td></tr>
+<tr><td>KI2 Format</td><td>.ki2 .ki2u</td></tr>
+<tr><td>CSA Format</td><td>.csa</td></tr>
+<tr><td>JKF Format</td><td>.jkf</td></tr>
+<tr><td>USEN Format</td><td>.usen</td></tr>
+<tr><td>USI Format</td><td>.usi</td></tr>
+</tbody>
+</table>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Save</span>
+</div>
+<p class="guide-step-text">Choose File → Save to overwrite the loaded file. Automatic saving after a game is also supported; select a destination directory in the game dialog.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Clipboard -->
+<section class="section section--alt" id="clipboard">
+<div class="section-inner">
+<h2 class="section-title">Clipboard Operations</h2>
+<p class="section-desc">Copy records, positions, and board images, or paste game records</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Copy a Game Record</span>
+</div>
+<p class="guide-step-text">Choose Edit → Copy Game Record to copy the current record to the clipboard in various formats for use in other applications.</p>
+<table class="info-table">
+<thead>
+<tr><th>Menu Item</th><th>Content</th></tr>
+</thead>
+<tbody>
+<tr><td>Copy as KIF</td><td>Copy the entire game record in KIF format</td></tr>
+<tr><td>Copy as KI2</td><td>Copy the entire game record in KI2 format</td></tr>
+<tr><td>Copy as CSA</td><td>Copy the entire game record in CSA format</td></tr>
+<tr><td>Copy as USI (to Current Move)</td><td>Copy moves up to the displayed position in USI format</td></tr>
+<tr><td>Copy as USI (All Moves)</td><td>Copy the entire game record in USI format</td></tr>
+<tr><td>Copy as JKF</td><td>Copy the entire game record in JKF (JSON) format</td></tr>
+<tr><td>Copy as USEN</td><td>Copy the entire game record in compressed USEN format</td></tr>
+</tbody>
+</table>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Copy a Position</span>
+</div>
+<p class="guide-step-text">Choose Edit → Copy Position to copy the current position to the clipboard.</p>
+<table class="info-table">
+<thead>
+<tr><th>Menu Item</th><th>Content</th></tr>
+</thead>
+<tbody>
+<tr><td>Copy as SFEN</td><td>Copy the current position as an SFEN string</td></tr>
+<tr><td>Copy as BOD</td><td>Copy the current position as a text board diagram (BOD)</td></tr>
+</tbody>
+</table>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">3</span>
+<span class="guide-step-title">Copy the Board Image</span>
+</div>
+<p class="guide-step-text">Choose Edit → Copy Board Image to copy the current board as an image to the clipboard, ready to paste into a blog or commentary article.</p>
+<div class="screenshot-item">
+<img alt="Copying a board image to the clipboard" src="../../images/kifu-management/kifu-04-board-copy.png"/>
+<p class="screenshot-caption">Copy board image: put an image of the board on the clipboard</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">4</span>
+<span class="guide-step-title">Paste a Game Record</span>
+</div>
+<p class="guide-step-text">Choose Edit → Paste Game Record to open the paste dialog. Paste a record into the text area and click Import; its format is detected automatically.</p>
+<div class="screenshot-item">
+<img alt="Paste game record dialog" src="../../images/kifu-management/kifu-05-paste-dialog.png"/>
+<p class="screenshot-caption">Paste dialog: automatic detection of KIF, KI2, CSA, USI, JKF, USEN, SFEN, and BOD</p>
+</div>
+<table class="info-table">
+<thead>
+<tr><th>Format</th><th>Detection Criteria</th></tr>
+</thead>
+<tbody>
+<tr><td>KIF</td><td>Contains Japanese KIF keywords such as 手数 (move number) or 指し手 (move)</td></tr>
+<tr><td>KI2</td><td>A sequence of moves beginning with ▲ or △</td></tr>
+<tr><td>CSA</td><td>Starts with a CSA header such as V2, N+, N-, or P1</td></tr>
+<tr><td>USI</td><td>USI command notation containing the moves keyword</td></tr>
+<tr><td>JKF</td><td>JSON starting with { or [</td></tr>
+<tr><td>USEN</td><td>A Base64-like encoded string</td></tr>
+<tr><td>SFEN</td><td>Position notation starting with position sfen, sfen, or startpos</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<!-- Back Link -->
+<div class="back-link-section">
+<a class="back-link" href="index.html">← Back to User Guide</a>
+</div>
+<!-- Footer -->
+<footer class="site-footer">
+<p>© 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

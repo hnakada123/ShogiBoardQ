@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tsume Shogi Generator - ShogiBoardQ</title>
+<meta content="Learn to generate random tsume shogi candidates in ShogiBoardQ and use a USI engine to find mates of a specified length automatically." name="description"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" rel="canonical"/>
+<!-- Open Graph -->
+<meta content="article" property="og:type"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" property="og:url"/>
+<meta content="Tsume Shogi Generator - ShogiBoardQ" property="og:title"/>
+<meta content="Automatically discover tsume shogi puzzles of a specified length with random position generation and USI engine verification in ShogiBoardQ." property="og:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/generator-02-results.png" property="og:image"/>
+<meta content="en_US" property="og:locale"/>
+<meta content="ShogiBoardQ" property="og:site_name"/>
+<!-- Twitter Card -->
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="Tsume Shogi Generator - ShogiBoardQ" name="twitter:title"/>
+<meta content="Automatically discover tsume shogi puzzles of a specified length with random position generation and USI engine verification in ShogiBoardQ." name="twitter:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/tsumeshogi-generator/generator-02-results.png" name="twitter:image"/>
+<link href="../../css/style.css" rel="stylesheet"/>
+ <link href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" hreflang="ja" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" hreflang="en" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" hreflang="x-default" rel="alternate"/>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="site-nav">
+<div class="nav-inner">
+<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
+<a aria-label="日本語" class="language-switch" href="../../guide/tsumeshogi-generator.html" hreflang="ja" lang="ja">日本語</a>
+<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<span></span><span></span><span></span>
+</button>
+<ul class="nav-links">
+<li><a href="../index.html">Home</a></li>
+<li><a href="index.html">User Guide</a></li>
+<li><a href="#overview">Overview</a></li>
+<li><a href="#generation">Generate Positions</a></li>
+<li><a href="#results">Results</a></li>
+<li><a href="#replay">Replay Solutions</a></li>
+<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+</ul>
+</div>
+</nav>
+<!-- Hero -->
+<section class="hero hero--sub">
+<div class="hero-content">
+<h1>Tsume Shogi Generator</h1>
+<p class="hero-subtitle">Generate tsume shogi puzzles from random positions verified by a USI engine</p>
+<div class="hero-badges">
+<span class="badge">Automatic Generation</span>
+<span class="badge">Remove Unnecessary Pieces</span>
+<span class="badge">SFEN Output</span>
+</div>
+<p class="screenshot-note">Screenshots show the Japanese interface unless otherwise noted.</p>
+</div>
+</section>
+<!-- Section 1: Overview -->
+<section class="section section--alt" id="overview">
+<div class="section-inner">
+<h2 class="section-title">Overview</h2>
+<p class="section-desc">Generate random tsume shogi candidates and verify mates with a USI engine</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Features</span>
+</div>
+<p class="guide-step-text">The tsume shogi generator automatically performs the following steps.</p>
+<ul class="guide-step-text">
+<li>Generate random candidate tsume shogi positions.</li>
+<li>Search for mate with a USI engine using go mate, finding positions with the requested solution length.</li>
+<li>Trim unnecessary pieces from successful positions to produce simplified puzzles.</li>
+<li>List results in SFEN format for saving to a file or copying to the clipboard.</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Generation -->
+<section class="section" id="generation">
+<div class="section-inner">
+<h2 class="section-title">Generation Settings</h2>
+<p class="section-desc">Set the parameters in the generator dialog, then start generation</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Tsume Shogi Generator Dialog</span>
+</div>
+<p class="guide-step-text">Choose Tools → Tsume Position Generator to open the dialog. You can configure the following settings.</p>
+<ul class="guide-step-text">
+<li><strong>Engine Settings</strong>: Select and configure the USI engine for mate search.</li>
+<li><strong>Target Moves</strong>: The puzzle's solution length, such as 3 or 5 plies (each player's move counts as one ply).</li>
+<li><strong>Max Attacking Pieces</strong>: Maximum number of attacking pieces on the board and in hand combined.</li>
+<li><strong>Max Defending Pieces</strong>: Maximum number of defending pieces, excluding the king.</li>
+<li><strong>Placement Range</strong>: The range around the king in which attacking pieces are placed, in squares.</li>
+<li><strong>Search Time per Position</strong>: Engine search time for each position.</li>
+<li><strong>Generation Limit</strong>: Maximum number of positions to find.</li>
+</ul>
+<div class="screenshot-item">
+<img alt="Tsume Shogi Generator Dialog" src="../../images/tsumeshogi-generator/generator-01-dialog.png"/>
+<p class="screenshot-caption">Generator dialog: set the engine and generation parameters, then click Start</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">How Random Positions Are Generated</span>
+</div>
+<p class="guide-step-text">Positions are generated automatically as follows.</p>
+<ul class="guide-step-text">
+<li>Place White's king on a random square of the 9×9 board.</li>
+<li>Place attacking pieces around the king, randomly assigning them to the board or the attacker's hand.</li>
+<li>Place defending pieces around the king.</li>
+<li>Add all unused pieces to the defender's (White's) hand, preserving all 40 pieces.</li>
+<li>Verify that the king is not in check in the initial position.</li>
+</ul>
+<p class="guide-step-text">Candidate positions are sent to the USI engine. Only positions with mate in exactly the requested number of plies are accepted.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Results -->
+<section class="section section--alt" id="results">
+<div class="section-inner">
+<h2 class="section-title">Results</h2>
+<p class="section-desc">Discovered tsume shogi positions appear in the results list</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Results List</span>
+</div>
+<p class="guide-step-text">When a mate of the requested length is found, unnecessary pieces are trimmed before the position is added to the results. Pieces that can be removed without changing the mating length are automatically eliminated to simplify the puzzle.</p>
+<p class="guide-step-text">The results list offers these actions.</p>
+<ul class="guide-step-text">
+<li><strong>Board Button</strong>: Open the principal variation window to inspect the mating line.</li>
+<li><strong>Save to File</strong>: Save the results as an SFEN text file.</li>
+<li><strong>Copy Selected</strong>: Copy the selected position's SFEN to the clipboard.</li>
+<li><strong>Copy All</strong>: Copy all positions as SFEN to the clipboard.</li>
+</ul>
+<div class="screenshot-item">
+<img alt="Tsume shogi generation results" src="../../images/tsumeshogi-generator/generator-02-results.png"/>
+<p class="screenshot-caption">Generation results: ten 3-ply mates found after searching 1,400 positions in 00:01:32</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Remove Unnecessary Pieces</span>
+</div>
+<p class="guide-step-text">Trimming automatically removes decorative pieces from randomly generated positions: pieces that do not affect the mating solution.</p>
+<ul class="guide-step-text">
+<li>Try removing attacking and defending pieces on the board, and pieces in the attacker's hand, one at a time.</li>
+<li>Keep a removal if the position still has mate in the same number of plies.</li>
+<li>Move removed pieces to White's hand to preserve all 40 pieces.</li>
+<li>Recheck after each removal to find any pieces that have become unnecessary.</li>
+</ul>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Replay -->
+<section class="section" id="replay">
+<div class="section-inner">
+<h2 class="section-title">Inspect the Mating Line</h2>
+<p class="section-desc">Review generated solutions in the principal variation window</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Principal variation window</span>
+</div>
+<p class="guide-step-text">Click Board in the results list to open the principal variation window. Replay the mating line one move at a time with the Go Forward 1 Move and Go Back 1 Move buttons.</p>
+<div class="screenshot-item">
+<img alt="Inspecting a mating line in the principal variation window" src="../../images/tsumeshogi-generator/generator-03-replay.png"/>
+<p class="screenshot-caption">Principal variation display: a generated 3-ply mate at its starting position (0/3)</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Back Link -->
+<div class="back-link-section">
+<a class="back-link" href="index.html">← Back to User Guide</a>
+</div>
+<!-- Footer -->
+<footer class="site-footer">
+<p>© 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

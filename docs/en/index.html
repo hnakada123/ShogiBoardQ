@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ShogiBoardQ - Shogi Playing and Analysis Software Built with Qt6</title>
+<meta content="ShogiBoardQ is a shogi playing and game analysis application built with Qt6 and C++17, featuring USI engine support, multiple game record formats, and CSA network play." name="description"/>
+<meta content="6uVKShyfeRaK8nx6ROgoIuBXb2qdMtwgX8NJfiBrwVM" name="google-site-verification"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/" rel="canonical"/>
+<!-- Open Graph -->
+<meta content="website" property="og:type"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/en/" property="og:url"/>
+<meta content="ShogiBoardQ - Shogi Playing and Analysis Software Built with Qt6" property="og:title"/>
+<meta content="ShogiBoardQ is a shogi playing and game analysis application built with Qt6 and C++17, featuring USI engine support, multiple game record formats, and CSA network play." property="og:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png" property="og:image"/>
+<meta content="en_US" property="og:locale"/>
+<meta content="ShogiBoardQ" property="og:site_name"/>
+<!-- Twitter Card -->
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="ShogiBoardQ - Shogi Playing and Analysis Software Built with Qt6" name="twitter:title"/>
+<meta content="A shogi playing and analysis application built with Qt6 and C++17. USI engines, multiple game record formats, and CSA network play." name="twitter:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png" name="twitter:image"/>
+<link href="../css/style.css" rel="stylesheet"/>
+ <link href="https://hnakada123.github.io/ShogiBoardQ/" hreflang="ja" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/" hreflang="en" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/" hreflang="x-default" rel="alternate"/>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="site-nav">
+<div class="nav-inner">
+<a class="nav-logo" href="#">ShogiBoardQ</a>
+<a aria-label="日本語" class="language-switch" href="../index.html" hreflang="ja" lang="ja">日本語</a>
+<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<span></span><span></span><span></span>
+</button>
+<ul class="nav-links">
+<li><a href="#features">Features</a></li>
+<li><a href="guide/index.html">User Guide</a></li>
+<li><a href="#screenshot">Screenshots</a></li>
+<li><a href="#build">Build</a></li>
+<li><a href="#license">License</a></li>
+<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+<li>
+<a class="share-btn-x" href="https://x.com/intent/post?url=https%3A%2F%2Fhnakada123.github.io%2FShogiBoardQ%2Fen%2F&amp;text=ShogiBoardQ+-+Shogi+Playing+and+Analysis+Software+Built+with+Qt6" rel="noopener noreferrer" target="_blank">
+<svg fill="currentColor" height="14" viewBox="0 0 24 24" width="14"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+                    Share
+                </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Hero -->
+<section class="hero">
+<div class="hero-content">
+<div class="hero-piece-decoration">
+<img alt="" height="40" src="../images/pieces/Sente_kyou45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_kei45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_gin45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_kin45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_ou45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_kin45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_gin45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_kei45.svg" width="40"/>
+<img alt="" height="40" src="../images/pieces/Sente_kyou45.svg" width="40"/>
+</div>
+<img alt="ShogiBoardQ icon" class="hero-icon" height="128" src="../images/shogiboardq-icon.png" width="128"/>
+<h1>ShogiBoardQ</h1>
+<p class="hero-subtitle">Shogi Playing and Analysis Software Built with Qt6</p>
+<div class="hero-badges">
+<span class="badge">Qt 6</span>
+<span class="badge">C++17</span>
+<span class="badge">USI Support</span>
+<span class="badge">CSA Network Play</span>
+<span class="badge">Japanese / English</span>
+</div>
+<p class="screenshot-note">Screenshots show the Japanese interface unless otherwise noted.</p>
+</div>
+</section>
+<!-- Screenshot -->
+<section class="section" id="screenshot">
+<div class="section-inner">
+<h2 class="section-title">Screenshots</h2>
+<p class="section-desc">The board, game record, and analysis in one window</p>
+<div class="screenshot-gallery">
+<div class="screenshot-item">
+<img alt="ShogiBoardQ main window with board, game record, and engine analysis panels" height="1462" src="../images/screenshot-main.png" width="1769"/>
+<p class="screenshot-caption">Main window: the board, move list, and engine analysis in Consideration mode</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Features -->
+<section class="section section--alt" id="features">
+<div class="section-inner">
+<h2 class="section-title">Key Features</h2>
+<p class="section-desc">A wide range of tools for playing and studying shogi</p>
+<div class="features-grid">
+<a class="feature-card-link" href="guide/game-play.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_ou45.svg"/>
+<h3>Playing Games</h3>
+<p>Play human vs. engine, engine vs. engine, or human vs. human games with engines that support the USI protocol.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/csa-game.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_hi45.svg"/>
+<h3>CSA Network Play</h3>
+<p>Play over a network through CSA-compatible servers, including floodgate.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/kifu-display.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kaku45.svg"/>
+<h3>Game Record Display</h3>
+<p>View moves, time spent, bookmarks, and comments in the game record dock. Explore variations and browse games with navigation buttons.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/kifu-management.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kin45.svg"/>
+<h3>Game Record Management</h3>
+<p>Import and export major game record formats, including KIF, KI2, CSA, USI, SFEN, and JKF. Records with variations are also supported.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/kifu-analysis.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_gin45.svg"/>
+<h3>Game Analysis</h3>
+<p>Analyze game records with a USI engine. An evaluation graph shows how the position changes with each move.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/consideration.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kei45.svg"/>
+<h3>Consideration Mode</h3>
+<p>Ask an engine to analyze candidate moves from any position, with multiple lines displayed at once.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/tsumi-search.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kyou45.svg"/>
+<h3>Mate Search</h3>
+<p>Search for checkmate with an engine and display the mating line when one is found.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/tsumeshogi-generator.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_fu45.svg"/>
+<h3>Tsume Shogi Generator</h3>
+<p>Generate random candidate positions and use a USI engine to find mates of a specified length. Trim unnecessary pieces to simplify each puzzle.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/board-edit.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_ryuu45.svg"/>
+<h3>Position Editing</h3>
+<p>Arrange pieces freely to create a position, then start a game or analysis from it.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/kyokumenshu-viewer.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_uma45.svg"/>
+<h3>Position Collection Viewer</h3>
+<p>Load an SFEN position collection and browse it on a board. Import a selected position into the main window for study and analysis.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/joseki.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_narigin45.svg"/>
+<h3>Opening Books</h3>
+<p>Load opening books, view moves for the current position, and play, edit, add, or delete book moves.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/nyugyoku.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_narikei45.svg"/>
+<h3>Entering-King Declaration</h3>
+<p>Calculate impasse points and check the conditions for an entering-king declaration. Declare a win under the 24-point or 27-point rule from the Game menu.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/image-export.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_narikyou45.svg"/>
+<h3>Image Export</h3>
+<p>Export the current board or evaluation graph as an image for a blog or commentary article.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/dock.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_to45.svg"/>
+<h3>Dock Panels</h3>
+<p>Dock, float, or tab panels such as game records, engine information, and evaluation graphs to customize your layout.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/menu.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_ou45.svg"/>
+<h3>Menu Panel</h3>
+<p>Access commands quickly with icon buttons in the menu dock. Customize favorites and button sizes to suit your workflow.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/piece-style.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kin45.svg"/>
+<h3>Piece Styles</h3>
+<p>Choose from five piece styles in the View menu: standard, bold, wood grain, white, and black.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/board-colors.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_gin45.svg"/>
+<h3>Board Colors</h3>
+<p>Customize the board with recommended palettes that match the pieces, or adjust the background, board, piece stands, and grid lines individually.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/multilanguage.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_hi45.svg"/>
+<h3>Language Support</h3>
+<p>Switch between Japanese and English through the application's language settings.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+<a class="feature-card-link" href="guide/multi-os.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kaku45.svg"/>
+<h3>Cross-Platform Support</h3>
+<p>Runs on Linux, macOS, and Windows. Qt6 lets you build a native application for each OS from the same source code.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
+</div>
+</div>
+</section>
+<!-- Build -->
+<section class="section" id="build">
+<div class="section-inner">
+<h2 class="section-title">Requirements and Building</h2>
+<p class="section-desc">Build the application from source</p>
+<div class="build-content">
+<div class="build-requirements">
+<div class="req-item">
+<strong>Qt 6</strong>
+<span>Widgets, Charts, Network, LinguistTools</span>
+</div>
+<div class="req-item">
+<strong>C++17</strong>
+<span>Compatible compiler</span>
+</div>
+<div class="req-item">
+<strong>CMake 3.16+</strong>
+<span>Build system</span>
+</div>
+</div>
+<div class="build-steps">
+<h3>Build Steps</h3>
+<pre><code># Get the source
+git clone https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ
+
+# Build
+cmake -B build -S .
+cmake --build build
+
+# Run
+./build/ShogiBoardQ</code></pre>
+</div>
+</div>
+</div>
+</section>
+<!-- Download -->
+<section class="section section--alt download-section">
+<div class="section-inner">
+<h2 class="section-title">Source Code</h2>
+<p class="section-desc">Get the source code from the GitHub repository</p>
+<a class="download-btn" href="https://github.com/hnakada123/ShogiBoardQ">
+<svg fill="currentColor" height="20" viewBox="0 0 16 16" width="20"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+            View on GitHub
+        </a>
+</div>
+</section>
+<!-- License -->
+<section class="section" id="license">
+<div class="section-inner">
+<h2 class="section-title">License</h2>
+<div class="license-content">
+<p>ShogiBoardQ is free software released under the <a href="https://www.gnu.org/licenses/gpl-3.0.html"><strong>GNU General Public License v3.0 (GPL-3.0)</strong></a> license.</p>
+<ul class="license-points">
+<li>You may use, modify, and redistribute this software freely. You do not need to contact the author to use or modify it.</li>
+<li>If you distribute a modified version, you must make its source code available under the same GPL-3.0 license.</li>
+<li>This software is provided with <strong>NO WARRANTY</strong>. The author accepts no liability for any damages arising from the use of this software.</li>
+</ul>
+<p class="license-link">For the full license text, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/LICENSE">LICENSE</a> file.</p>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="site-footer">
+<p>© 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

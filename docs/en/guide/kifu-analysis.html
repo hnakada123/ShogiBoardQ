@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Game Analysis - ShogiBoardQ</title>
+<meta content="A screenshot guide to game analysis in ShogiBoardQ: configure a USI engine, review analysis results, and display the evaluation graph." name="description"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html" rel="canonical"/>
+<!-- Open Graph -->
+<meta content="article" property="og:type"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html" property="og:url"/>
+<meta content="Game Analysis - ShogiBoardQ" property="og:title"/>
+<meta content="Learn to configure USI engine analysis and view evaluation graphs in ShogiBoardQ." property="og:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-analysis/analysis-04-eval-graph.png" property="og:image"/>
+<meta content="en_US" property="og:locale"/>
+<meta content="ShogiBoardQ" property="og:site_name"/>
+<!-- Twitter Card -->
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="Game Analysis - ShogiBoardQ" name="twitter:title"/>
+<meta content="Learn to configure USI engine analysis and view evaluation graphs in ShogiBoardQ." name="twitter:description"/>
+<meta content="https://hnakada123.github.io/ShogiBoardQ/images/kifu-analysis/analysis-04-eval-graph.png" name="twitter:image"/>
+<link href="../../css/style.css" rel="stylesheet"/>
+ <link href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" hreflang="ja" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html" hreflang="en" rel="alternate"/>
+<link href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" hreflang="x-default" rel="alternate"/>
+</head>
+<body>
+<!-- Navigation -->
+<nav class="site-nav">
+<div class="nav-inner">
+<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
+<a aria-label="日本語" class="language-switch" href="../../guide/kifu-analysis.html" hreflang="ja" lang="ja">日本語</a>
+<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+<span></span><span></span><span></span>
+</button>
+<ul class="nav-links">
+<li><a href="../index.html">Home</a></li>
+<li><a href="index.html">User Guide</a></li>
+<li><a href="#analysis-setup">Analysis Settings</a></li>
+<li><a href="#analysis-results">Analysis Results</a></li>
+<li><a href="#eval-graph">Evaluation Graph</a></li>
+<li><a href="#judgment">Position Assessment</a></li>
+<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+</ul>
+</div>
+</nav>
+<!-- Hero -->
+<section class="hero hero--sub">
+<div class="hero-content">
+<h1>Game Analysis</h1>
+<p class="hero-subtitle">Track changes in the position with USI engine analysis</p>
+<div class="hero-badges">
+<span class="badge">Evaluation Graph</span>
+<span class="badge">Candidate Moves</span>
+<span class="badge">Analysis Range</span>
+</div>
+<p class="screenshot-note">Screenshots show the Japanese interface unless otherwise noted.</p>
+</div>
+</section>
+<!-- Section 1: Analysis Setup -->
+<section class="section section--alt" id="analysis-setup">
+<div class="section-inner">
+<h2 class="section-title">Set Up Analysis</h2>
+<p class="section-desc">Configure analysis options in the game analysis dialog</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">Prepare a Game Record</span>
+</div>
+<p class="guide-step-text">Prepare the game record you want to analyze. You can analyze a game immediately after playing it, or load a record from the File menu.</p>
+<div class="screenshot-item">
+<img alt="ShogiBoardQ main window showing a game record" src="../../images/kifu-analysis/analysis-01-main-with-results.png"/>
+<p class="screenshot-caption">Main window: the game record to be analyzed</p>
+</div>
+</div>
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">2</span>
+<span class="guide-step-title">Open the Game Analysis Dialog</span>
+</div>
+<p class="guide-step-text">Choose Game → Analyze Game Record to open the dialog. You can configure the following options.</p>
+<ul class="guide-step-text">
+<li>The USI engine to use for analysis</li>
+<li>The analysis range: all moves or a specified range</li>
+<li>Thinking time per move</li>
+</ul>
+<div class="screenshot-item">
+<img alt="Game analysis dialog" src="../../images/kifu-analysis/analysis-02-dialog.png"/>
+<p class="screenshot-caption">Game analysis dialog: choose an engine, move range, and thinking time</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 2: Analysis Results -->
+<section class="section" id="analysis-results">
+<div class="section-inner">
+<h2 class="section-title">Analysis Results</h2>
+<p class="section-desc">Review evaluation scores and candidate moves for each move</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">View Analysis Results</span>
+</div>
+<p class="guide-step-text">When analysis finishes, the lower panel shows evaluation scores, candidate moves, and principal variations for each move. Click a move in the game record to see the results for that position.</p>
+<div class="screenshot-item">
+<img alt="Game analysis results" src="../../images/kifu-analysis/analysis-03-in-progress.png"/>
+<p class="screenshot-caption">Analysis results: evaluation scores, candidate moves, and principal variations</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 3: Eval Graph -->
+<section class="section section--alt" id="eval-graph">
+<div class="section-inner">
+<h2 class="section-title">Evaluation Graph</h2>
+<p class="section-desc">Visualize changes in the position with a graph</p>
+<div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header">
+<span class="guide-step-number">1</span>
+<span class="guide-step-title">View the Evaluation Graph</span>
+</div>
+<p class="guide-step-text">The Evaluation Graph tab plots the evaluation history based on the analysis results.</p>
+<div class="screenshot-item">
+<img alt="Evaluation graph" src="../../images/kifu-analysis/analysis-04-eval-graph.png"/>
+<p class="screenshot-caption">Evaluation graph: a visual overview of the game's progress</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Section 4: Judgment Criteria -->
+<section class="section" id="judgment">
+<div class="section-inner">
+<h2 class="section-title">Position Assessment Criteria</h2>
+<p class="section-desc">Positions are assessed on five levels based on evaluation scores</p>
+<table class="judgment-table">
+<thead>
+<tr>
+<th>Evaluation Score</th>
+<th>Position Assessment</th>
+<th>Example Display</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0 ~ 100</td>
+<td class="judgment-label">Even</td>
+<td>Even</td>
+</tr>
+<tr>
+<td>101 ~ 300</td>
+<td class="judgment-label">Slight Advantage</td>
+<td>BlackSlight / WhiteSlight</td>
+</tr>
+<tr>
+<td>301 ~ 600</td>
+<td class="judgment-label">Advantage</td>
+<td>BlackBetter / WhiteBetter</td>
+</tr>
+<tr>
+<td>601 ~ 1000</td>
+<td class="judgment-label">Superior</td>
+<td>BlackSuperior / WhiteSuperior</td>
+</tr>
+<tr>
+<td>1001 or more</td>
+<td class="judgment-label">Winning</td>
+<td>BlackWinning / WhiteWinning</td>
+</tr>
+<tr>
+<td>Mate</td>
+<td class="judgment-label">Win</td>
+<td>Black wins / White wins</td>
+</tr>
+</tbody>
+</table>
+<div class="judgment-note">
+<ul>
+<li>Scores are from Black's perspective: positive values favor Black, and negative values favor White.</li>
+<li>The assessment is based on the absolute value of the score.</li>
+<li>When a mate is detected, the assessment shows Black wins or White wins regardless of the score thresholds.</li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Back Link -->
+<div class="back-link-section">
+<a class="back-link" href="index.html">← Back to User Guide</a>
+</div>
+<!-- Footer -->
+<footer class="site-footer">
+<p>© 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>
