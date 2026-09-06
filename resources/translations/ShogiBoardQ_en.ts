@@ -4386,7 +4386,7 @@ Please restart the application to apply the changes.</translation>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="543"/>
         <source>持将棋点数</source>
-        <translation type="unfinished"></translation>
+        <translation>Jishogi Points</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="606"/>
