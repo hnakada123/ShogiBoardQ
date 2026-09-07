@@ -128,6 +128,10 @@ private slots:
                                QStringLiteral("CsaGameCoordinator::errorOccurred"),
                                QStringLiteral("CsaGameWiring::errorMessageRequested")),
                  "errorOccurred → errorMessageRequested connection missing");
+        QVERIFY2(hasConnection(m_wiringSrc,
+                               QStringLiteral("&CsaGameCoordinator::moveAppliedToBoard"),
+                               QStringLiteral("&CsaGameWiring::moveAppliedToBoard")),
+                 "moveAppliedToBoard → moveAppliedToBoard forward connection missing");
     }
 
     void wire_connectsInternalSignals()

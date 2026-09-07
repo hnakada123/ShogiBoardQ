@@ -304,6 +304,9 @@ void MainWindow::finalizeAndConfigureUiForLifecycle()
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
     m_mw.m_registry->foundation()->ensureLanguageController();
 
+    // 駒音プレイヤーを生成し、メニュー「駒音」のチェック状態を設定と同期
+    m_mw.m_registry->foundation()->ensurePieceSoundPlayer();
+
     // ドックレイアウト関連のメニュー配線を DockLayoutManager へ移譲
     m_mw.m_registry->ensureDockLayoutManager();
 

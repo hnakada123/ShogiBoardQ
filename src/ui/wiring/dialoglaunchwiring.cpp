@@ -2,6 +2,8 @@
 /// @brief ダイアログ起動配線クラスの実装
 
 #include "dialoglaunchwiring.h"
+#include "piecesoundplayer.h"
+#include "piecesoundsettingsdialog.h"
 
 #include <QCoreApplication>
 #include <QDockWidget>
@@ -306,4 +308,13 @@ void DialogLaunchWiring::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply)
             evalChart->appendScoreP2(ply, -scoreCp, false);
         }
     }
+}
+
+void DialogLaunchWiring::displayPieceSoundSettingsDialog()
+{
+    auto* player = m_deps.getPieceSoundPlayer ? m_deps.getPieceSoundPlayer() : nullptr;
+    if (!player) return;
+
+    PieceSoundSettingsDialog dialog(player, m_deps.parentWidget);
+    dialog.exec();
 }

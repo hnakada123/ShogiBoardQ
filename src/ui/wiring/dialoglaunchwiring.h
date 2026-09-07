@@ -36,6 +36,7 @@ class KifuAnalysisListModel;
 class GameInfoPaneController;
 class SfenCollectionDialog;
 class KifuDisplay;
+class PieceSoundPlayer;
 
 /**
  * @brief ダイアログ起動関連のUI配線を担当するクラス
@@ -43,7 +44,7 @@ class KifuDisplay;
  * 責務:
  * - バージョン情報、エンジン設定、成り確認、持将棋判定、入玉宣言、
  *   詰将棋探索/生成、メニューウィンドウ、CSA通信対局、
- *   棋譜解析、局面集ビューアの各ダイアログ起動
+ *   棋譜解析、局面集ビューア、駒音の設定の各ダイアログ起動
  */
 class DialogLaunchWiring : public QObject
 {
@@ -73,6 +74,7 @@ public:
         std::function<KifuLoadCoordinator*()> getKifuLoadCoordinator;
         std::function<EvaluationChartWidget*()> getEvalChart;
         std::function<QStringList*()> getSfenRecord;
+        std::function<PieceSoundPlayer*()> getPieceSoundPlayer;
 
         // 値型メンバーへのポインタ
         QList<KifuDisplay*>* moveRecords = nullptr;
@@ -116,6 +118,7 @@ public slots:
     void displayCsaGameDialog();
     void displayKifuAnalysisDialog();
     void displaySfenCollectionViewer();
+    void displayPieceSoundSettingsDialog();
 
 signals:
     void sfenCollectionPositionSelected(const QString& sfen);

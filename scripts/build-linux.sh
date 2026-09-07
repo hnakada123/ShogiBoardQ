@@ -15,7 +15,7 @@
 #
 # Prerequisites:
 #   - GCC / Clang（C++17 対応）
-#   - Qt 6.x (Widgets, Charts, Network, LinguistTools)
+#   - Qt 6.x (Widgets, Charts, Network, Multimedia, LinguistTools)
 #   - CMake 3.16+
 #   - Ninja（推奨）
 
@@ -279,6 +279,10 @@ link_plugins platformthemes libqxdgdesktopportal.so
 
 # tls: ネットワーク通信用
 link_plugins tls libqopensslbackend.so libqcertonlybackend.so
+
+# multimedia: 駒音は QSoundEffect（libQt6Multimedia 本体）だけで再生できるため、
+# ffmpeg/gstreamer バックエンドプラグインは同梱しない（数十MBの依存を回避）。
+# libQt6Multimedia.so.6 は実行ファイルの依存として linuxdeploy が自動で同梱する。
 
 # qmake ラッパーを作成（QT_INSTALL_PLUGINS をフィルタ済みパスに差し替え）
 # linuxdeploy-plugin-qt が確実に見つけられるよう絶対パスを使用

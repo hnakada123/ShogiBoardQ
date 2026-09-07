@@ -4,7 +4,7 @@
 /// @file appsettings.h
 /// @brief アプリケーション全般設定の永続化
 ///
-/// 言語・UI状態・メニューウィンドウ・メインウィンドウに関する設定を提供します。
+/// 言語・UI状態・駒音・メニューウィンドウ・メインウィンドウに関する設定を提供します。
 /// 呼び出し元: main.cpp, mainwindowuibootstrapper.cpp, mainwindowlifecyclepipeline.cpp,
 ///             mainwindowappearancecontroller.cpp, languagecontroller.cpp, menuwindow.cpp,
 ///             playerinfowiring.cpp
@@ -13,6 +13,7 @@
 #include <QStringList>
 #include <QSize>
 #include "boardcolors.h"
+#include "piecesoundtone.h"
 
 class QWidget;
 
@@ -39,6 +40,18 @@ QStringList availablePieceStyles();
 /// 駒画像の種類（未設定・不正値は standard）
 QString pieceStyle();
 void setPieceStyle(const QString& style);
+
+/// 駒音（駒を指したときの効果音）の有効/無効（デフォルト: true）
+bool pieceSoundEnabled();
+void setPieceSoundEnabled(bool enabled);
+
+/// 駒音の音量 0〜100 %（デフォルト: 100。範囲外の値は丸める）
+int pieceSoundVolume();
+void setPieceSoundVolume(int percent);
+
+/// 駒音の音質（音の高さ・3バンドEQ。デフォルト: すべて 0。範囲外の値は丸める）
+PieceSoundTone pieceSoundTone();
+void setPieceSoundTone(const PieceSoundTone& tone);
 
 /// 盤面の配色（不正な色は標準色に戻す）
 BoardColors boardColors();

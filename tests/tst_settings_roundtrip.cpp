@@ -59,6 +59,51 @@ private slots:
         QCOMPARE(AppSettings::toolbarVisible(), true);
     }
 
+    void appSettings_pieceSoundEnabled()
+    {
+        AppSettings::setPieceSoundEnabled(false);
+        QCOMPARE(AppSettings::pieceSoundEnabled(), false);
+
+        AppSettings::setPieceSoundEnabled(true);
+        QCOMPARE(AppSettings::pieceSoundEnabled(), true);
+    }
+
+    void appSettings_pieceSoundVolume()
+    {
+        AppSettings::setPieceSoundVolume(35);
+        QCOMPARE(AppSettings::pieceSoundVolume(), 35);
+
+        // 範囲外は 0〜100 に丸める
+        AppSettings::setPieceSoundVolume(150);
+        QCOMPARE(AppSettings::pieceSoundVolume(), 100);
+        AppSettings::setPieceSoundVolume(-5);
+        QCOMPARE(AppSettings::pieceSoundVolume(), 0);
+
+        AppSettings::setPieceSoundVolume(100);
+        QCOMPARE(AppSettings::pieceSoundVolume(), 100);
+    }
+
+    void appSettings_pieceSoundTone()
+    {
+        PieceSoundTone tone;
+        tone.pitchSemitones = -4;
+        tone.lowDb = 3;
+        tone.midDb = -6;
+        tone.highDb = 9;
+        AppSettings::setPieceSoundTone(tone);
+        QVERIFY(AppSettings::pieceSoundTone() == tone);
+
+        // 範囲外は ±12 に丸める
+        tone.pitchSemitones = 30;
+        tone.highDb = -40;
+        AppSettings::setPieceSoundTone(tone);
+        QCOMPARE(AppSettings::pieceSoundTone().pitchSemitones, PieceSoundTone::kMaxSemitones);
+        QCOMPARE(AppSettings::pieceSoundTone().highDb, -PieceSoundTone::kMaxGainDb);
+
+        AppSettings::setPieceSoundTone(PieceSoundTone{});
+        QVERIFY(AppSettings::pieceSoundTone().isDefault());
+    }
+
     void appSettings_language()
     {
         AppSettings::setLanguage(QStringLiteral("en"));

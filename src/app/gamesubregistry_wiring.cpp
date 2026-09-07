@@ -23,6 +23,7 @@
 #include "kifufilecontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "matchruntimequeryservice.h"
+#include "piecesoundplayer.h"
 #include "playerinfowiring.h"
 #include "sessionlifecyclecoordinator.h"
 #include "timecontrolcontroller.h"
@@ -277,6 +278,12 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
     m_mw.m_csaGameWiring->wireExternalSignals(m_mw.m_uiStatePolicy,
                                               m_mw.m_gameRecordUpdateService.get(),
                                               m_mw.m_notificationService);
+
+    // 通信対局の相手・自エンジンの着手で駒音を鳴らす
+    m_foundation->ensurePieceSoundPlayer();
+    connect(m_mw.m_csaGameWiring.get(), &CsaGameWiring::moveAppliedToBoard,
+            m_mw.m_registryParts.pieceSoundPlayer, &PieceSoundPlayer::playMoveSound,
+            Qt::UniqueConnection);
 
     qCDebug(lcApp).noquote() << "ensureCsaGameWiring_: created and connected";
 }

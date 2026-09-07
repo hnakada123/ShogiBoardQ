@@ -149,6 +149,8 @@
      <addaction name="actionLanguageEnglish"/>
     </widget>
     <addaction name="actionEngineSettings"/>
+    <addaction name="actionPieceSound"/>
+    <addaction name="actionPieceSoundSettings"/>
     <addaction name="menuLanguage"/>
    </widget>
    <widget class="QMenu" name="Help">
@@ -730,6 +732,36 @@
    </property>
    <property name="text">
     <string>ドックを固定</string>
+   </property>
+  </action>
+  <action name="actionPieceSound">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionPieceSound.svg</normaloff>:/images/actions/actionPieceSound.svg</iconset>
+   </property>
+   <property name="text">
+    <string>駒音</string>
+   </property>
+   <property name="toolTip">
+    <string>駒を指したときに駒音を鳴らす</string>
+   </property>
+  </action>
+  <action name="actionPieceSoundSettings">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionPieceSound.svg</normaloff>:/images/actions/actionPieceSound.svg</iconset>
+   </property>
+   <property name="text">
+    <string>駒音の設定</string>
+   </property>
+   <property name="toolTip">
+    <string>駒音の音量・音の高さ・音質を調整する</string>
    </property>
   </action>
   <action name="actionSavedLayoutsPlaceholder">

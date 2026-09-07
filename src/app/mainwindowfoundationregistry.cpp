@@ -29,13 +29,17 @@
 #include "matchruntimequeryservice.h"
 #include "menuwindowwiring.h"
 #include "nyugyokudeclarationhandler.h"
+#include "piecesoundplayer.h"
 #include "playerinfocontroller.h"
 #include "playerinfowiring.h"
 #include "positioneditcontroller.h"
+#include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "uinotificationservice.h"
 #include "uistatepolicymanager.h"
 #include "logcategories.h"
+
+#include <QAction>
 
 MainWindowFoundationRegistry::MainWindowFoundationRegistry(MainWindow& mw,
                                                            MainWindowServiceRegistry* serviceRegistry,
@@ -287,6 +291,38 @@ void MainWindowFoundationRegistry::ensureLanguageController()
         m_mw.ui->actionLanguageSystem,
         m_mw.ui->actionLanguageJapanese,
         m_mw.ui->actionLanguageEnglish);
+}
+
+// ---------------------------------------------------------------------------
+// 駒音プレイヤー
+// ---------------------------------------------------------------------------
+
+void MainWindowFoundationRegistry::ensurePieceSoundPlayer()
+{
+    if (m_mw.m_registryParts.pieceSoundPlayer) return;
+
+    // Lifetime: owned by MainWindow (QObject parent=&m_mw)
+    // Created: once on first use, never recreated
+    auto* player = new PieceSoundPlayer(&m_mw);
+    m_mw.m_registryParts.pieceSoundPlayer = player;
+
+    // 着手確定（人間・ローカルエンジンの指し手）で駒音を鳴らす
+    // 通信対局の相手・自エンジンの指し手は ensureCsaGameWiring() で接続する
+    if (m_mw.m_gameController) {
+        connect(m_mw.m_gameController, &ShogiGameController::moveCommitted,
+                player, &PieceSoundPlayer::playMoveSound, Qt::UniqueConnection);
+    }
+
+    // メニュー「駒音」のチェック状態を設定と同期する
+    QAction* action = m_mw.ui ? m_mw.ui->actionPieceSound : nullptr;
+    if (action) {
+        action->setIconVisibleInMenu(false);  // チェックマークを見せるためアイコンは非表示
+        action->setChecked(player->isEnabled());
+        connect(action, &QAction::toggled,
+                player, &PieceSoundPlayer::setEnabled, Qt::UniqueConnection);
+    }
+
+    qCDebug(lcApp).noquote() << "ensurePieceSoundPlayer: created and connected";
 }
 
 // ---------------------------------------------------------------------------

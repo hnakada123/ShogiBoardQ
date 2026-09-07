@@ -200,6 +200,7 @@ void CsaGameCoordinator::ensureMoveProgressHandler()
     hooks.moveHighlightRequested = [this](const QPoint& f, const QPoint& t) {
         emit moveHighlightRequested(f, t);
     };
+    hooks.moveAppliedToBoard = [this]() { emit moveAppliedToBoard(); };
     hooks.engineScoreUpdated = [this](int scoreCp, int ply) {
         emit engineScoreUpdated(scoreCp, ply);
     };

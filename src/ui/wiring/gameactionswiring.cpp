@@ -37,6 +37,7 @@ void GameActionsWiring::wire()
 
     // 解析/検討/詰み・エンジン設定
     QObject::connect(ui->actionEngineSettings,       &QAction::triggered, dlw, &DialogLaunchWiring::displayEngineSettingsDialog,       Qt::UniqueConnection);
+    QObject::connect(ui->actionPieceSoundSettings,   &QAction::triggered, dlw, &DialogLaunchWiring::displayPieceSoundSettingsDialog,   Qt::UniqueConnection);
     QObject::connect(ui->actionAnalyzeKifu,          &QAction::triggered, dlw, &DialogLaunchWiring::displayKifuAnalysisDialog,         Qt::UniqueConnection);
     QObject::connect(ui->actionCancelAnalyzeKifu,    &QAction::triggered, dcw, &DialogCoordinatorWiring::cancelKifuAnalysis,           Qt::UniqueConnection);
     QObject::connect(ui->actionStartEditPosition,    &QAction::triggered, mw,  &MainWindow::beginPositionEditing,                     Qt::UniqueConnection);

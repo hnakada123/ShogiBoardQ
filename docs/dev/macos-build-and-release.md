@@ -24,7 +24,7 @@ ShogiBoardQ を macOS でビルドし、DMG ファイルとしてリリースす
 | macOS | 12 (Monterey) 以降推奨 |
 | Xcode | 14 以降（Command Line Tools 含む） |
 | CMake | 3.16 以上 |
-| Qt | 6.x（Widgets, Charts, Network, LinguistTools） |
+| Qt | 6.x（Widgets, Charts, Network, Multimedia, LinguistTools） |
 | C++ | C++17 対応コンパイラ |
 
 ---
@@ -51,6 +51,7 @@ brew install cmake ninja
 
 - Qt 6.x > macOS
 - Qt 6.x > Qt Charts
+- Qt 6.x > Qt Multimedia
 - Developer and Designer Tools > CMake
 
 インストール後、Qt のパスを環境変数に設定：
@@ -180,7 +181,7 @@ macdeployqt build/ShogiBoardQ.app -verbose=2
 
 `macdeployqt` が自動で行う処理：
 
-1. 依存する Qt フレームワーク（QtWidgets, QtCharts, QtNetwork, QtGui, QtCore 等）を `Contents/Frameworks/` にコピー
+1. 依存する Qt フレームワーク（QtWidgets, QtCharts, QtNetwork, QtMultimedia, QtGui, QtCore 等）を `Contents/Frameworks/` にコピー
 2. Qt プラグイン（platforms/cocoa, imageformats/svg 等）を `Contents/PlugIns/` にコピー
 3. ライブラリの `@rpath` を書き換え（`install_name_tool`）
 4. `qt.conf` を `Contents/Resources/` に生成

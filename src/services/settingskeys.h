@@ -56,6 +56,14 @@ inline constexpr char kBoardGridColor[]                  = "BoardColors/grid";
 inline constexpr char kBoardColorDialogSize[]            = "SizeRelated/boardColorDialogSize";
 inline constexpr char kBoardColorPickerSize[]            = "SizeRelated/boardColorPickerSize";
 
+// --- Sound ---
+inline constexpr char kPieceSoundEnabled[]               = "Sound/pieceSoundEnabled";
+inline constexpr char kPieceSoundVolume[]                = "Sound/pieceSoundVolume";
+inline constexpr char kPieceSoundPitch[]                 = "Sound/pieceSoundPitch";
+inline constexpr char kPieceSoundEqLow[]                 = "Sound/pieceSoundEqLow";
+inline constexpr char kPieceSoundEqMid[]                 = "Sound/pieceSoundEqMid";
+inline constexpr char kPieceSoundEqHigh[]                = "Sound/pieceSoundEqHigh";
+
 // --- SfenCollection ---
 inline constexpr char kSfenCollectionRecentFiles[]       = "SfenCollection/recentFiles";
 inline constexpr char kSfenCollectionSquareSize[]        = "SfenCollection/squareSize";

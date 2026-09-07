@@ -14,7 +14,7 @@
 #
 # Prerequisites:
 #   - Visual Studio 2019/2022（C++ デスクトップ開発）
-#   - Qt 6.x (Widgets, Charts, Network, LinguistTools)
+#   - Qt 6.x (Widgets, Charts, Network, Multimedia, LinguistTools)
 #   - CMake 3.16+
 #   - Ninja（推奨）
 #
@@ -277,7 +277,7 @@ $qmCount  = ($deployedFiles | Where-Object { $_.Extension -eq ".qm" }).Count
 Write-Info "ファイル数: exe=$exeCount, dll=$dllCount, qm=$qmCount"
 
 # 必須 DLL の確認
-$requiredDlls = @("Qt6Core.dll", "Qt6Gui.dll", "Qt6Widgets.dll", "Qt6Charts.dll", "Qt6Network.dll")
+$requiredDlls = @("Qt6Core.dll", "Qt6Gui.dll", "Qt6Widgets.dll", "Qt6Charts.dll", "Qt6Network.dll", "Qt6Multimedia.dll")
 $missingDlls = @()
 foreach ($dll in $requiredDlls) {
     if (-not (Test-Path (Join-Path $DEPLOY_DIR $dll))) {

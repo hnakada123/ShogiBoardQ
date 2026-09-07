@@ -40,6 +40,7 @@ class DialogCoordinatorWiring;
 class PositionEditCoordinator;
 class PreStartCleanupHandler;
 class MenuWindowWiring;
+class PieceSoundPlayer;
 
 /// ドックウィジェット群
 struct DockWidgets {
@@ -114,6 +115,7 @@ struct RegistryParts {
     PositionEditCoordinator* posEditCoordinator = nullptr;
     PreStartCleanupHandler* preStartCleanupHandler = nullptr;
     MenuWindowWiring* menuWiring = nullptr;
+    PieceSoundPlayer* pieceSoundPlayer = nullptr;  ///< 駒音再生（FoundationRegistry が生成）
 };
 
 /// ゲーム状態

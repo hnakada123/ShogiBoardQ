@@ -27,7 +27,7 @@ jobs:
         uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: ${{ env.QT_VERSION }}
-          modules: "qtcharts"
+          modules: "qtcharts qtmultimedia"
 
       - name: Configure
         run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=ON
@@ -70,7 +70,7 @@ jobs:
         uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: ${{ env.QT_VERSION }}
-          modules: "qtcharts"
+          modules: "qtcharts qtmultimedia"
 
       - name: Build AppImage
         run: |
@@ -107,7 +107,7 @@ jobs:
         uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: ${{ env.QT_VERSION }}
-          modules: "qtcharts"
+          modules: "qtcharts qtmultimedia"
 
       - name: Build DMG
         run: |
@@ -177,7 +177,7 @@ jobs:
         uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
         with:
           version: ${{ env.QT_VERSION }}
-          modules: "qtcharts"
+          modules: "qtcharts qtmultimedia"
 
       - name: Build deploy directory
         shell: pwsh

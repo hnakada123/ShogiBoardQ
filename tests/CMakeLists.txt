@@ -1163,6 +1163,14 @@ target_compile_definitions(tst_translation_files PRIVATE
     SOURCE_DIR="${CMAKE_SOURCE_DIR}"
 )
 
+# ============================================================
+# Unit: PieceSoundProcessor（駒音の音質加工）テスト
+# ============================================================
+add_shogi_test(tst_piece_sound_processor
+    tst_piece_sound_processor.cpp
+    ${SRC}/services/piecesoundprocessor.cpp
+)
+
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
 add_executable(bench_movevalidator
     bench_movevalidator.cpp

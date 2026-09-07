@@ -22,7 +22,7 @@ ShogiBoardQ を Linux でビルドし、AppImage として GitHub で公開す�
 | Linux | Ubuntu 22.04 / Fedora 38 / Arch Linux 等（x86_64） |
 | GCC | 9 以降、または Clang 10 以降（C++17 対応） |
 | CMake | 3.16 以上 |
-| Qt | 6.x（Widgets, Charts, Network, LinguistTools） |
+| Qt | 6.x（Widgets, Charts, Network, Multimedia, LinguistTools） |
 | FUSE | AppImage 実行に必要 |
 
 > **AppImage のビルド環境について:**
@@ -63,6 +63,7 @@ sudo pacman -S base-devel cmake ninja git curl fuse2 file
 
 - Qt 6.x > Desktop gcc 64-bit
 - Qt 6.x > Qt Charts
+- Qt 6.x > Qt Multimedia
 - Developer and Designer Tools > CMake
 - Developer and Designer Tools > Ninja
 
@@ -267,6 +268,7 @@ ShogiBoardQ-x86_64.AppImage（単一実行ファイル）
           │   ├── libQt6Widgets.so.6      ← Qt Widgets
           │   ├── libQt6Charts.so.6       ← Qt Charts
           │   ├── libQt6Network.so.6      ← Qt Network
+          │   ├── libQt6Multimedia.so.6   ← Qt Multimedia（駒音）
           │   └── ...
           └── plugins/
               ├── platforms/
