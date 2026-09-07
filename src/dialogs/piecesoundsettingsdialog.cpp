@@ -26,7 +26,7 @@ QString signedNumber(int value)
 PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWidget* parent)
     : QDialog(parent)
     , m_player(player)
-    , m_initialVolume(player ? player->volume() : PieceSoundPlayer::kMaxVolume)
+    , m_initialVolume(player ? player->volume() : PieceSoundPlayer::kDefaultVolume)
     , m_initialTone(player ? player->tone() : PieceSoundTone{})
     , m_volumeSlider(new QSlider(Qt::Horizontal, this))
     , m_pitchSlider(new QSlider(Qt::Horizontal, this))
@@ -182,9 +182,9 @@ void PieceSoundSettingsDialog::previewSound()
 
 void PieceSoundSettingsDialog::restoreDefaults()
 {
-    applySliders(PieceSoundPlayer::kMaxVolume, PieceSoundTone{});
+    applySliders(PieceSoundPlayer::kDefaultVolume, PieceSoundTone{});
     if (m_player) {
-        m_player->setVolume(PieceSoundPlayer::kMaxVolume);
+        m_player->setVolume(PieceSoundPlayer::kDefaultVolume);
         m_player->setTone(PieceSoundTone{});
         m_player->preview();
     }

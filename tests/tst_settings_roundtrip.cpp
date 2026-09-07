@@ -70,6 +70,9 @@ private slots:
 
     void appSettings_pieceSoundVolume()
     {
+        // 既定値は 30 %（標準の駒音はこの音量を前提に調整されている）
+        QCOMPARE(AppSettings::pieceSoundVolume(), 30);
+
         AppSettings::setPieceSoundVolume(35);
         QCOMPARE(AppSettings::pieceSoundVolume(), 35);
 

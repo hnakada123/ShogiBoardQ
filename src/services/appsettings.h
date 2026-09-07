@@ -45,7 +45,7 @@ void setPieceStyle(const QString& style);
 bool pieceSoundEnabled();
 void setPieceSoundEnabled(bool enabled);
 
-/// 駒音の音量 0〜100 %（デフォルト: 100。範囲外の値は丸める）
+/// 駒音の音量 0〜100 %（デフォルト: 30。範囲外の値は丸める）
 int pieceSoundVolume();
 void setPieceSoundVolume(int percent);
 
