@@ -181,6 +181,14 @@ signals:
      */
     void errorMessageRequested(const QString& message);
 
+    /**
+     * @brief 盤面に着手が反映された（相手の指し手・自エンジンの指し手）
+     *
+     * CsaGameCoordinator::moveAppliedToBoard の転送シグナル。
+     * 駒音再生（PieceSoundPlayer）などコーディネータの寿命に依存しない受け手向け。
+     */
+    void moveAppliedToBoard();
+
 public slots:
     /**
      * @brief 待機キャンセル時の処理

@@ -151,6 +151,7 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
     syncClockAfterMove(true);  // 次は自分の手番
 
     if (*m_refs.view) (*m_refs.view)->update();
+    if (m_hooks.moveAppliedToBoard) m_hooks.moveAppliedToBoard();
 
     (*m_refs.moveCount)++;
     *m_refs.isMyTurn = true;
@@ -393,6 +394,7 @@ void CsaMoveProgressHandler::startEngineThinking()
 
     (*m_refs.gameController)->changeCurrentPlayer();
     if (*m_refs.view) (*m_refs.view)->update();
+    if (m_hooks.moveAppliedToBoard) m_hooks.moveAppliedToBoard();
 
     // 評価値更新
     int ply = *m_refs.moveCount + 1;

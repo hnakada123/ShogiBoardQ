@@ -68,6 +68,53 @@ void setPieceStyle(const QString& style)
         availablePieceStyles().contains(style) ? style : QStringLiteral("standard"));
 }
 
+// --- 駒音 ---
+
+bool pieceSoundEnabled()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    return s.value(SettingsKeys::kPieceSoundEnabled, true).toBool();
+}
+
+void setPieceSoundEnabled(bool enabled)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kPieceSoundEnabled, enabled);
+}
+
+int pieceSoundVolume()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    return qBound(0, s.value(SettingsKeys::kPieceSoundVolume, 100).toInt(), 100);
+}
+
+void setPieceSoundVolume(int percent)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kPieceSoundVolume, qBound(0, percent, 100));
+}
+
+PieceSoundTone pieceSoundTone()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    PieceSoundTone tone;
+    tone.pitchSemitones = s.value(SettingsKeys::kPieceSoundPitch, 0).toInt();
+    tone.lowDb = s.value(SettingsKeys::kPieceSoundEqLow, 0).toInt();
+    tone.midDb = s.value(SettingsKeys::kPieceSoundEqMid, 0).toInt();
+    tone.highDb = s.value(SettingsKeys::kPieceSoundEqHigh, 0).toInt();
+    return tone.clamped();
+}
+
+void setPieceSoundTone(const PieceSoundTone& tone)
+{
+    const PieceSoundTone t = tone.clamped();
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kPieceSoundPitch, t.pitchSemitones);
+    s.setValue(SettingsKeys::kPieceSoundEqLow, t.lowDb);
+    s.setValue(SettingsKeys::kPieceSoundEqMid, t.midDb);
+    s.setValue(SettingsKeys::kPieceSoundEqHigh, t.highDb);
+}
+
 // --- 盤面の配色 ---
 
 BoardColors boardColors()

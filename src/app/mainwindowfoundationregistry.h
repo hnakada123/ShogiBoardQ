@@ -52,6 +52,7 @@ public:
     // ===== 単純リーフ（Tier 0、他の ensure* への依存なし） =====
     void ensureMenuWiring();
     void ensureLanguageController();
+    void ensurePieceSoundPlayer();
     void ensureDockCreationService();
     void ensurePositionEditController();
     void ensureAnalysisPresenter();

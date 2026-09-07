@@ -23,7 +23,7 @@ ShogiBoardQ を Windows でビルドし、ZIP ファイルとして GitHub で�
 | Windows | 10 / 11（64-bit） |
 | Visual Studio | 2019 または 2022（C++ デスクトップ開発ワークロード） |
 | CMake | 3.16 以上 |
-| Qt | 6.x（Widgets, Charts, Network, LinguistTools） |
+| Qt | 6.x（Widgets, Charts, Network, Multimedia, LinguistTools） |
 | C++ | C++17 対応コンパイラ（MSVC 2019 以降） |
 
 ---
@@ -48,6 +48,7 @@ ShogiBoardQ を Windows でビルドし、ZIP ファイルとして GitHub で�
 
 - Qt 6.x > MSVC 2019/2022 64-bit
 - Qt 6.x > Qt Charts
+- Qt 6.x > Qt Multimedia
 - Developer and Designer Tools > CMake
 - Developer and Designer Tools > Ninja
 
@@ -195,7 +196,7 @@ windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw 
 
 `windeployqt` が自動で行う処理：
 
-1. 依存する Qt DLL（Qt6Core, Qt6Gui, Qt6Widgets, Qt6Charts, Qt6Network 等）をコピー
+1. 依存する Qt DLL（Qt6Core, Qt6Gui, Qt6Widgets, Qt6Charts, Qt6Network, Qt6Multimedia 等）をコピー
 2. Qt プラグイン（platforms/qwindows.dll, imageformats/ 等）をコピー
 3. MSVC ランタイム DLL（vcruntime140.dll 等）をコピー
 
@@ -235,6 +236,7 @@ deploy/
 ├── Qt6Widgets.dll                 ← Qt Widgets
 ├── Qt6Charts.dll                  ← Qt Charts
 ├── Qt6Network.dll                 ← Qt Network
+├── Qt6Multimedia.dll              ← Qt Multimedia（駒音）
 ├── Qt6OpenGL.dll                  ← Qt OpenGL (Charts 依存)
 ├── Qt6OpenGLWidgets.dll           ← Qt OpenGL Widgets
 ├── Qt6Svg.dll                     ← Qt SVG (アイコン用)

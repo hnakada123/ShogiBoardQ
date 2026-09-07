@@ -100,6 +100,10 @@ public:
         /// @brief 指し手ハイライトを要求する
         std::function<void(const QPoint&, const QPoint&)> moveHighlightRequested;
 
+        /// @brief 盤面に着手が反映されたことを通知する（相手の指し手・自エンジンの指し手）
+        /// @note 人間の指し手は ShogiGameController::moveCommitted で通知されるため対象外
+        std::function<void()> moveAppliedToBoard;
+
         /// @brief エンジン評価値を通知する
         std::function<void(int, int)> engineScoreUpdated;
 

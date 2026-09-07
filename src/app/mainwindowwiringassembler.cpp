@@ -39,6 +39,7 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getKifuLoadCoordinator = [this]() { return m_mw.m_kifuLoadCoordinator; };
     d.getEvalChart         = [this]() { return m_mw.m_evalChart; };
     d.getSfenRecord        = [this]() { return m_mw.m_queryService->sfenRecord(); };
+    d.getPieceSoundPlayer  = [this]() { m_foundation->ensurePieceSoundPlayer(); return m_mw.m_registryParts.pieceSoundPlayer; };
 
     // 値型メンバーへのポインタ
     d.moveRecords   = &m_mw.m_kifu.moveRecords;

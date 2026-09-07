@@ -84,6 +84,8 @@ void CsaGameWiring::wire()
             this, &CsaGameWiring::onMoveHighlightRequested, Qt::UniqueConnection);
     connect(m_coordinator, &CsaGameCoordinator::errorOccurred,
             this, &CsaGameWiring::errorMessageRequested, Qt::UniqueConnection);
+    connect(m_coordinator, &CsaGameCoordinator::moveAppliedToBoard,
+            this, &CsaGameWiring::moveAppliedToBoard, Qt::UniqueConnection);
 
     // PlayMode変更・対局終了ダイアログを内部で処理
     connect(this, &CsaGameWiring::playModeChanged,

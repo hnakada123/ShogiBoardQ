@@ -128,6 +128,9 @@ signals:
                   const QString& prettyMove, int consumedTimeMs);
     void turnChanged(bool isMyTurn);
     void moveHighlightRequested(const QPoint& from, const QPoint& to);
+    /// 盤面に着手が反映された（相手の指し手・自エンジンの指し手。人間の指し手は
+    /// ShogiGameController::moveCommitted で通知される）
+    void moveAppliedToBoard();
     void logMessage(const QString& message, bool isError = false);
     void csaCommLogAppended(const QString& line);
     void engineScoreUpdated(int scoreCp, int ply);

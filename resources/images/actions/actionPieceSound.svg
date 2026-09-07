@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>駒音</title>
+
+    <!-- 背景 -->
+    <rect x="0" y="0" width="128" height="128" rx="12" fill="#6D4C41"/>
+
+    <!-- 将棋盤（右下） -->
+    <rect x="52" y="60" width="64" height="56" rx="4" fill="#E0B96B"/>
+    <g stroke="#8D6E3F" stroke-width="2">
+        <line x1="52" y1="79" x2="116" y2="79"/>
+        <line x1="52" y1="98" x2="116" y2="98"/>
+        <line x1="73" y1="60" x2="73" y2="116"/>
+        <line x1="95" y1="60" x2="95" y2="116"/>
+    </g>
+
+    <!-- 駒（五角形）: 盤に打ち付けられた瞬間 -->
+    <path d="M84 62 L98 71 L95 97 L73 97 L70 71 Z" fill="#F5DEB3" stroke="#5D4037" stroke-width="3" stroke-linejoin="round"/>
+    <text x="84" y="90" font-family="serif" font-size="20" font-weight="bold" text-anchor="middle" fill="#3E2723">歩</text>
+
+    <!-- 衝撃線（駒の下） -->
+    <g stroke="#FFF3E0" stroke-width="3" stroke-linecap="round">
+        <line x1="66" y1="104" x2="60" y2="112"/>
+        <line x1="102" y1="104" x2="108" y2="112"/>
+    </g>
+
+    <!-- スピーカー（左上） -->
+    <path d="M14 44 L30 44 L48 28 L48 84 L30 68 L14 68 Z" fill="#FFF8E1" stroke="#4E342E" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="14" y="44" width="14" height="24" fill="#FFE0B2"/>
+
+    <!-- 音波 -->
+    <g fill="none" stroke="#FFCC80" stroke-width="5" stroke-linecap="round">
+        <path d="M58 44 Q66 56 58 68"/>
+        <path d="M68 34 Q82 56 68 78"/>
+    </g>
+</svg>

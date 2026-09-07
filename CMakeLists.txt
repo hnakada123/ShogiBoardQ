@@ -211,7 +211,7 @@ if(NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR AND NOT DEFINED ENV{QTDIR})
 endif()
 
 # ==== Qt6 packages ====
-find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Concurrent)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Concurrent Multimedia)
 
 # ==== Translations (.ts) ====
 set(TS_FILES
@@ -779,6 +779,8 @@ set(SRC_WIDGETS
 set(SRC_DIALOGS
     src/dialogs/boardcolordialog.cpp
     src/dialogs/boardcolordialog.h
+    src/dialogs/piecesoundsettingsdialog.cpp
+    src/dialogs/piecesoundsettingsdialog.h
     src/dialogs/changeenginesettingsdialog.cpp
     src/dialogs/changeenginesettingsdialog.h
     src/dialogs/enginesettingsoptionhandler.cpp
@@ -861,6 +863,11 @@ set(SRC_SERVICES
     src/services/playernameservice.h
     src/services/pieceimageprovider.cpp
     src/services/pieceimageprovider.h
+    src/services/piecesoundplayer.cpp
+    src/services/piecesoundplayer.h
+    src/services/piecesoundprocessor.cpp
+    src/services/piecesoundprocessor.h
+    src/services/piecesoundtone.h
     src/services/analysissettings.cpp
     src/services/analysissettings.h
     src/services/appsettings.cpp
@@ -1009,6 +1016,7 @@ target_link_libraries(ShogiBoardQ PRIVATE
     Qt6::Charts
     Qt6::Network
     Qt6::Concurrent
+    Qt6::Multimedia
 )
 
 # リリースビルドではqDebug()出力を無効化

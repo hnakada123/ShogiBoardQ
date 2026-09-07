@@ -16,7 +16,7 @@ class DialogCoordinatorWiring;
  * @brief 対局・解析・検討・詰み関連のQActionをMainWindowスロットに接続するクラス
  *
  * NewGame, StartGame, CSA, Resign, BreakOff,
- * EngineSettings, Analyze, Tsume 等の接続を担当する。
+ * EngineSettings, PieceSoundSettings, Analyze, Tsume 等の接続を担当する。
  */
 class GameActionsWiring : public QObject {
     Q_OBJECT
