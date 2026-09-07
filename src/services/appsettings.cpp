@@ -85,7 +85,7 @@ void setPieceSoundEnabled(bool enabled)
 int pieceSoundVolume()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return qBound(0, s.value(SettingsKeys::kPieceSoundVolume, 100).toInt(), 100);
+    return qBound(0, s.value(SettingsKeys::kPieceSoundVolume, 30).toInt(), 100);
 }
 
 void setPieceSoundVolume(int percent)

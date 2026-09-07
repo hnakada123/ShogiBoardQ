@@ -32,6 +32,13 @@ numpy が必要。生成結果は決定的（乱数シード固定）。
     StrikeParams の各ノブで「穏やかに指した音」へ寄せている。
     高域の傾き・立ち上がりの鋭さ・尾の長さ・音量を独立に調整でき、
     段階別のプリセットを PRESETS にまとめている。
+
+マスタリングEQ:
+    合成後に MASTER_EQ の 3 バンド EQ を掛け、ピークを MASTER_PEAK に揃える。
+    フィルタはアプリ内の PieceSoundProcessor（ローシェルフ 2.5 kHz /
+    ピーキング 5 kHz Q=1 / ハイシェルフ 9 kHz、RBJ 双二次）と同一なので、
+    「アプリの駒音の設定で EQ を調整して気に入った値」をそのまま標準の音に
+    焼き込める。2026-09-07 に採用した値: 低音 +1 / 中音 +10 / 高音 +7 dB。
 """
 
 from __future__ import annotations
@@ -81,6 +88,16 @@ PRESETS: dict[str, StrikeParams] = {
 # 本番の駒音（resources/sounds/piece_move.wav）に使うプリセット
 DEFAULT_PRESET = "soft2"
 
+# マスタリングEQ（dB）。アプリ内 EQ で決めた値を焼き込む。すべて 0 なら無効
+MASTER_EQ = {"low_db": 1.0, "mid_db": 10.0, "high_db": 7.0}
+# マスタリングEQ 適用後のピーク上限（PieceSoundProcessor::kPeakLimit と同じ）
+MASTER_PEAK = 0.89
+# PieceSoundProcessor と同じフィルタ定数
+EQ_LOW_SHELF_HZ = 2500.0
+EQ_MID_PEAK_HZ = 5000.0
+EQ_MID_PEAK_Q = 1.0
+EQ_HIGH_SHELF_HZ = 9000.0
+
 # --samples で聴き比べ用に書き出すプリセット（sample1 が最も強く、番号が進むほど穏やか）
 SAMPLE_PRESETS = ["soft2", "soft3", "soft4", "soft5", "soft6"]
 
@@ -126,20 +143,84 @@ def _click(t: np.ndarray, onset: float, width: float) -> np.ndarray:
     return click
 
 
-def _highpass(x: np.ndarray, cutoff_hz: float) -> np.ndarray:
-    """2 次バターワース・ハイパス（双二次）。"""
-    w0 = 2.0 * np.pi * cutoff_hz / SAMPLE_RATE
-    alpha = np.sin(w0) / (2.0 * np.sqrt(0.5))
-    c = np.cos(w0)
-    a0 = 1.0 + alpha
-    b0, b1, b2 = (1.0 + c) / 2.0 / a0, -(1.0 + c) / a0, (1.0 + c) / 2.0 / a0
-    a1, a2 = -2.0 * c / a0, (1.0 - alpha) / a0
+def _biquad(x: np.ndarray, b0: float, b1: float, b2: float, a1: float, a2: float) -> np.ndarray:
+    """双二次フィルタ（直接型 I、係数は a0 で正規化済み）。"""
     y = np.zeros_like(x)
     x1 = x2 = y1 = y2 = 0.0
     for i, v in enumerate(x):
         out = b0 * v + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2
         y[i] = out
         x2, x1, y2, y1 = x1, v, y1, out
+    return y
+
+
+def _highpass(x: np.ndarray, cutoff_hz: float) -> np.ndarray:
+    """2 次バターワース・ハイパス。"""
+    w0 = 2.0 * np.pi * cutoff_hz / SAMPLE_RATE
+    alpha = np.sin(w0) / (2.0 * np.sqrt(0.5))
+    c = np.cos(w0)
+    a0 = 1.0 + alpha
+    return _biquad(x, (1.0 + c) / 2.0 / a0, -(1.0 + c) / a0, (1.0 + c) / 2.0 / a0,
+                   -2.0 * c / a0, (1.0 - alpha) / a0)
+
+
+# --- RBJ Audio EQ Cookbook（PieceSoundProcessor と同じ式） ---
+
+def _low_shelf(x: np.ndarray, hz: float, gain_db: float) -> np.ndarray:
+    A = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * np.pi * hz / SAMPLE_RATE
+    c = np.cos(w0)
+    alpha = np.sin(w0) / 2.0 * np.sqrt(2.0)  # S = 1
+    sq = 2.0 * np.sqrt(A) * alpha
+    a0 = (A + 1.0) + (A - 1.0) * c + sq
+    return _biquad(x,
+                   A * ((A + 1.0) - (A - 1.0) * c + sq) / a0,
+                   2.0 * A * ((A - 1.0) - (A + 1.0) * c) / a0,
+                   A * ((A + 1.0) - (A - 1.0) * c - sq) / a0,
+                   -2.0 * ((A - 1.0) + (A + 1.0) * c) / a0,
+                   ((A + 1.0) + (A - 1.0) * c - sq) / a0)
+
+
+def _high_shelf(x: np.ndarray, hz: float, gain_db: float) -> np.ndarray:
+    A = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * np.pi * hz / SAMPLE_RATE
+    c = np.cos(w0)
+    alpha = np.sin(w0) / 2.0 * np.sqrt(2.0)  # S = 1
+    sq = 2.0 * np.sqrt(A) * alpha
+    a0 = (A + 1.0) - (A - 1.0) * c + sq
+    return _biquad(x,
+                   A * ((A + 1.0) + (A - 1.0) * c + sq) / a0,
+                   -2.0 * A * ((A - 1.0) + (A + 1.0) * c) / a0,
+                   A * ((A + 1.0) + (A - 1.0) * c - sq) / a0,
+                   2.0 * ((A - 1.0) - (A + 1.0) * c) / a0,
+                   ((A + 1.0) - (A - 1.0) * c - sq) / a0)
+
+
+def _peaking(x: np.ndarray, hz: float, q: float, gain_db: float) -> np.ndarray:
+    A = 10.0 ** (gain_db / 40.0)
+    w0 = 2.0 * np.pi * hz / SAMPLE_RATE
+    c = np.cos(w0)
+    alpha = np.sin(w0) / (2.0 * q)
+    a0 = 1.0 + alpha / A
+    return _biquad(x, (1.0 + alpha * A) / a0, -2.0 * c / a0, (1.0 - alpha * A) / a0,
+                   -2.0 * c / a0, (1.0 - alpha / A) / a0)
+
+
+def _master_eq(x: np.ndarray) -> np.ndarray:
+    """MASTER_EQ を PieceSoundProcessor::apply と同じ順序・同じクリップ防止で適用する。"""
+    low, mid, high = MASTER_EQ["low_db"], MASTER_EQ["mid_db"], MASTER_EQ["high_db"]
+    if low == 0.0 and mid == 0.0 and high == 0.0:
+        return x
+    y = x.copy()
+    if low != 0.0:
+        y = _low_shelf(y, EQ_LOW_SHELF_HZ, low)
+    if mid != 0.0:
+        y = _peaking(y, EQ_MID_PEAK_HZ, EQ_MID_PEAK_Q, mid)
+    if high != 0.0:
+        y = _high_shelf(y, EQ_HIGH_SHELF_HZ, high)
+    peak = np.max(np.abs(y))
+    if peak > MASTER_PEAK:
+        y *= MASTER_PEAK / peak
     return y
 
 
@@ -218,6 +299,9 @@ def synthesize(prm: StrikeParams) -> np.ndarray:
     # DC 除去と正規化
     signal -= np.mean(signal)
     signal *= prm.peak / (np.max(np.abs(signal)) + 1e-12)
+
+    # マスタリングEQ（アプリ内 EQ で決めた値を焼き込む）
+    signal = _master_eq(signal)
     return signal
 
 
