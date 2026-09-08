@@ -35,6 +35,8 @@ void MatchCoordinator::initializeAndStartEngineFor(Player side,
     ensureEngineManager();
     m_engineManager->initializeAndStartEngineFor(
         static_cast<EngineLifecycleManager::Player>(side), enginePathIn, engineNameIn);
+    if (primaryEngine()) primaryEngine()->setMatchClock(clock());
+    if (secondaryEngine()) secondaryEngine()->setMatchClock(clock());
 }
 
 void MatchCoordinator::destroyEngine(int idx, bool clearThinking)

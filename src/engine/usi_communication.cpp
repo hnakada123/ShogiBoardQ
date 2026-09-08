@@ -64,6 +64,7 @@ void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positi
     // 対局時は検討タブ用モデルをクリア
     m_considerationModel = nullptr;
 
+    m_matchHandler->setClock(m_matchClock);
     m_matchHandler->handleHumanVsEngineCommunication(positionStr, positionPonderStr, outFrom, outTo,
                                                      timing, positionStrList);
 }
@@ -76,6 +77,7 @@ void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
     // 対局時は検討タブ用モデルをクリア
     m_considerationModel = nullptr;
 
+    m_matchHandler->setClock(m_matchClock);
     m_matchHandler->handleEngineVsHumanOrEngineMatchCommunication(positionStr, positionPonderStr,
                                                                   outFrom, outTo, timing);
 }

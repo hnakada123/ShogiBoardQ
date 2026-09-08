@@ -9,6 +9,8 @@
 #include "shogigamecontroller.h"
 #include "thinkinginfopresenter.h"
 #include "usiprotocolhandler.h"
+#include "shogiclock.h"
+#include <limits>
 
 namespace {
 
@@ -237,156 +239,162 @@ void UsiMatchHandler::executeEngineCommunication(QString& positionStr, QString& 
                                                  QPoint& outFrom, QPoint& outTo,
                                                  const UsiTimingParams& timing)
 {
-    processEngineResponse(positionStr, positionPonderStr, timing);
-
-    if (m_protocolHandler->isResignMove()) return;
+    outFrom = outTo = QPoint(-1, -1);
+    m_acceptBestMove = false;
+    if (m_clock) m_clock->updateClock();
+    if (m_clock && m_clock->isGameOver()) return;
+    if (!processEngineResponse(positionStr, positionPonderStr, timing)) return;
+    if (m_protocolHandler->specialMove() != SpecialMove::None) return;
 
     int fileFrom, rankFrom, fileTo, rankTo;
     m_protocolHandler->parseMoveCoordinates(fileFrom, rankFrom, fileTo, rankTo);
-
     outFrom = QPoint(fileFrom, rankFrom);
     outTo = QPoint(fileTo, rankTo);
 }
 
-void UsiMatchHandler::processEngineResponse(QString& positionStr, QString& positionPonderStr,
+void UsiMatchHandler::onBestMoveReceived()
+{
+    if (m_acceptBestMove && m_clock) m_clock->finishTurn();
+    m_acceptBestMove = false;
+}
+
+bool UsiMatchHandler::processEngineResponse(QString& positionStr, QString& positionPonderStr,
                                             const UsiTimingParams& timing)
 {
-    // 処理フロー:
-    // 1. ポンダー予測手がない場合 → 通常のコマンド送信
-    // 2. ポンダーヒット（bestmove == predictedMove）→ ponderhit送信して応答待ち
-    // 3. ポンダーミス → stop送信後に通常のコマンド送信
-
-    const QString& predictedMove = m_protocolHandler->predictedMove();
-
-    if (predictedMove.isEmpty() || !m_protocolHandler->isPonderEnabled()) {
-        sendCommandsAndProcess(positionStr, positionPonderStr, timing);
-        return;
+    if (m_protocolHandler->currentPhase() != UsiProtocolHandler::SearchPhase::Ponder) {
+        return sendCommandsAndProcess(positionStr, positionPonderStr, timing);
     }
 
-    const QString& bestMove = m_protocolHandler->bestMove();
-
-    if (bestMove == predictedMove) {
-        // ポンダーヒット
-        cloneCurrentBoardData();
-
-        // ポンダーヒット時のbaseSfenと最終指し手を更新（現在の盤面から）
-        QString baseSfen = computeBaseSfenFromBoard();
-        if (!baseSfen.isEmpty()) {
-            m_presenter->setBaseSfen(baseSfen);
-        }
-        // positionStrの最後のトークンがヒットした指し手
-        if (positionStr.contains(QStringLiteral(" moves "))) {
-            const QStringList tokens = positionStr.split(QLatin1Char(' '));
-            if (!tokens.isEmpty()) {
-                m_lastUsiMove = tokens.last();
-            }
-        }
-
-        m_protocolHandler->sendPonderHit();
-
-        if (timing.byoyomiMilliSec == 0) {
-            (void)m_protocolHandler->keepWaitingForBestMove();
-        } else {
-            waitAndCheckForBestMoveRemainingTime(timing);
-        }
-
-        if (m_protocolHandler->isResignMove()) return;
-
-        appendBestMoveAndStartPondering(positionStr, positionPonderStr);
-    } else {
-        // ポンダーミス
+    // 直近の実着手を含む局面と、先読み開始時の局面を比較する。
+    // 前回のエンジン着手(bestMove)との比較ではヒットを判定できない。
+    const bool hit = m_protocolHandler->isPonderEnabled()
+        && !m_protocolHandler->predictedMove().isEmpty()
+        && positionStr.simplified() == positionPonderStr.simplified();
+    if (!hit) {
         m_protocolHandler->sendStop();
-
-        if (timing.byoyomiMilliSec == 0) {
-            (void)m_protocolHandler->keepWaitingForBestMove();
-        } else {
-            waitAndCheckForBestMoveRemainingTime(timing);
+        // 旧探索の応答を必ず回収してから新しい探索を開始する。
+        // 回収したresign/winも予測局面の結果なので採用しない。
+        if (!m_protocolHandler->waitForBestMove(2000)) {
+            if (m_hooks.onBestmoveTimeout) m_hooks.onBestmoveTimeout();
+            return false;
         }
-
-        if (m_protocolHandler->isResignMove()) return;
-
-        sendCommandsAndProcess(positionStr, positionPonderStr, timing);
+        return sendCommandsAndProcess(positionStr, positionPonderStr, timing);
     }
+
+    cloneCurrentBoardData();
+    const QString baseSfen = computeBaseSfenFromBoard();
+    if (!baseSfen.isEmpty()) m_presenter->setBaseSfen(baseSfen);
+    m_lastUsiMove = positionStr.section(QLatin1Char(' '), -1);
+    m_acceptBestMove = true;
+    m_protocolHandler->sendPonderHit();
+    if (!waitAndCheckForBestMoveRemainingTime(timing)) return false;
+    if (m_protocolHandler->specialMove() == SpecialMove::None) {
+        appendBestMoveAndStartPondering(positionStr, positionPonderStr, timing);
+    }
+    return true;
 }
 
-void UsiMatchHandler::sendCommandsAndProcess(QString& positionStr, QString& positionPonderStr,
+UsiTimingParams UsiMatchHandler::timingForSearch(const UsiTimingParams& timing, bool pondering) const
+{
+    UsiTimingParams result = timing;
+    const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
+    qint64 main = side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong();
+    qint64 byo = timing.useByoyomi ? qMax(0, timing.byoyomiMilliSec) : 0;
+    if (m_clock) {
+        result.btime = QString::number(m_clock->remainingMainTimeMs(1));
+        result.wtime = QString::number(m_clock->remainingMainTimeMs(2));
+        main = m_clock->remainingMainTimeMs(side);
+        if (pondering) {
+            // 現在の着手確定による加算は、Strategyで適用される前。
+            if (!timing.useByoyomi) {
+                main += side == 1 ? timing.addEachMoveMilliSec1 : timing.addEachMoveMilliSec2;
+            }
+        } else {
+            // stop待ち、局面準備、最後のtick以降も含めた残予算。
+            byo = qMax<qint64>(0, m_clock->remainingTurnTimeMs(side) - main);
+        }
+    }
+    // GUIの期限より先に返せるよう、通信・探索停止の余裕を確保する。
+    // 短い設定でも最低1msの思考予算を残す。
+    const qint64 total = qMax<qint64>(0, main) + byo;
+    const qint64 reserve = qMin<qint64>(250, total / 2);
+    const qint64 byoReserve = qMin(byo, reserve);
+    byo -= byoReserve;
+    main = qMax<qint64>(0, main - (reserve - byoReserve));
+    if (side == 1) result.btime = QString::number(main);
+    else result.wtime = QString::number(main);
+    result.byoyomiMilliSec = static_cast<int>(qMin<qint64>(byo, std::numeric_limits<int>::max()));
+    return result;
+}
+
+bool UsiMatchHandler::sendCommandsAndProcess(QString& positionStr, QString& positionPonderStr,
                                              const UsiTimingParams& timing)
 {
-    // 処理フロー:
-    // 1. 局面SFENを保存（読み筋表示用）
-    // 2. position + goコマンド送信
-    // 3. bestmove応答待ち
-    // 4. bestmoveを反映してポンダー開始
-
-    // 思考開始時の局面SFENを保存（読み筋表示用）
-    QString baseSfen = computeBaseSfenFromBoard();
-    if (!baseSfen.isEmpty()) {
-        m_presenter->setBaseSfen(baseSfen);
-    }
-
-    // 思考開始局面に至った最後の指し手を更新（読み筋表示ウィンドウのハイライト用）
-    // positionStrの最後のトークンが最終指し手（"position startpos moves 7g7f 8c8d" → "8c8d"）
+    if (m_clock && m_clock->isGameOver()) return false;
+    const QString baseSfen = computeBaseSfenFromBoard();
+    if (!baseSfen.isEmpty()) m_presenter->setBaseSfen(baseSfen);
     if (positionStr.contains(QStringLiteral(" moves "))) {
-        const QStringList tokens = positionStr.split(QLatin1Char(' '));
-        if (!tokens.isEmpty()) {
-            m_lastUsiMove = tokens.last();
-        }
+        m_lastUsiMove = positionStr.section(QLatin1Char(' '), -1);
     }
-
     m_protocolHandler->sendPosition(positionStr);
     cloneCurrentBoardData();
-    m_protocolHandler->sendGo(timing.byoyomiMilliSec, timing.btime, timing.wtime,
-                              timing.addEachMoveMilliSec1, timing.addEachMoveMilliSec2,
-                              timing.useByoyomi);
-
-    waitAndCheckForBestMoveRemainingTime(timing);
-
-    if (m_protocolHandler->isResignMove()) return;
-
-    appendBestMoveAndStartPondering(positionStr, positionPonderStr);
+    const UsiTimingParams adjusted = timingForSearch(timing, false);
+    m_acceptBestMove = true;
+    m_protocolHandler->sendGo(adjusted.byoyomiMilliSec, adjusted.btime, adjusted.wtime,
+                              adjusted.addEachMoveMilliSec1, adjusted.addEachMoveMilliSec2,
+                              adjusted.useByoyomi);
+    if (!waitAndCheckForBestMoveRemainingTime(timing)) return false;
+    if (m_protocolHandler->specialMove() == SpecialMove::None) {
+        appendBestMoveAndStartPondering(positionStr, positionPonderStr, timing);
+    }
+    return true;
 }
 
-void UsiMatchHandler::waitAndCheckForBestMoveRemainingTime(const UsiTimingParams& timing)
+bool UsiMatchHandler::waitAndCheckForBestMoveRemainingTime(const UsiTimingParams& timing)
 {
-    const bool p1turn = (m_gameController->currentPlayer() == ShogiGameController::Player1);
-    const int mainMs = p1turn ? timing.btime.toInt() : timing.wtime.toInt();
-    int capMs = timing.useByoyomi ? (mainMs + timing.byoyomiMilliSec) : mainMs;
-    if (capMs >= 200) capMs -= 100;
-
-    static constexpr int kBestmoveGraceMs = 250;
-
-    if (!m_protocolHandler->waitForBestMoveWithGrace(capMs, kBestmoveGraceMs)) {
-        if (m_protocolHandler->isTimeoutDeclared()) {
-            return;
-        }
-        if (m_hooks.onBestmoveTimeout) {
+    const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
+    qint64 budget = side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong();
+    if (timing.useByoyomi) budget += timing.byoyomiMilliSec;
+    if (m_clock) {
+        budget = m_clock->enforcesTimeout() ? m_clock->remainingTurnTimeMs(side)
+                                           : UsiProtocolHandler::kKeepWaitingHardTimeoutMs;
+    }
+    const int cap = static_cast<int>(qBound(qint64(1), budget, qint64(std::numeric_limits<int>::max())));
+    // GUI時計と同じ残予算。独立した+150msの猶予は設けない。
+    const bool received = m_protocolHandler->waitForBestMove(cap);
+    if (received) onBestMoveReceived(); // ファサードなしの利用でも精算する
+    m_acceptBestMove = false;
+    if (m_clock && !received) m_clock->updateClock();
+    if (m_clock && m_clock->isGameOver()) return false;
+    if (!received) {
+        if (!m_protocolHandler->isTimeoutDeclared() && m_hooks.onBestmoveTimeout) {
             m_hooks.onBestmoveTimeout();
         }
+        return false;
     }
+    return true;
 }
 
-void UsiMatchHandler::startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr)
+void UsiMatchHandler::startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr,
+                                                const UsiTimingParams& timing)
 {
-    const QString& predictedMove = m_protocolHandler->predictedMove();
-
+    const QString predictedMove = m_protocolHandler->predictedMove();
     if (!predictedMove.isEmpty() && m_protocolHandler->isPonderEnabled()) {
         applyMovesToBoardFromBestMoveAndPonder();
-
         ensureMovesKeyword(positionStr);
         positionPonderStr = positionStr + " " + predictedMove;
-
-        // ポンダー先読み開始時の局面SFENと最終指し手を更新（読み筋表示用）
         updateBaseSfenForPonder();
         m_lastUsiMove = predictedMove;
-
+        const UsiTimingParams nextTiming = timingForSearch(timing, true);
         m_protocolHandler->sendPosition(positionPonderStr);
-        m_protocolHandler->sendGoPonder();
+        m_protocolHandler->sendGoPonder(nextTiming);
     }
 }
 
-void UsiMatchHandler::appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr)
+void UsiMatchHandler::appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr,
+                                                     const UsiTimingParams& timing)
 {
     ensureMovesKeyword(positionStr);
     positionStr += " " + m_protocolHandler->bestMove();
-    startPonderingAfterBestMove(positionStr, positionPonderStr);
+    startPonderingAfterBestMove(positionStr, positionPonderStr, timing);
 }

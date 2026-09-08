@@ -69,7 +69,7 @@ bool waitUntil(const ConditionFn& isDone,
     }
     pumpEventsSlice(1);
 
-    return !deadline.hasExpired() && !shouldAbort() && isDone();
+    return !shouldAbort() && isDone();
 }
 } // namespace
 
@@ -140,10 +140,10 @@ bool UsiProtocolHandler::waitForBestMove(int timeoutMs)
 
 bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
 {
+    if (m_bestMoveReceived) return !shouldAbortWait();
     const int hard = budgetMs + qMax(0, graceMs);
     if (hard <= 0) return false;
 
-    m_bestMoveReceived = false;
     const quint64 expectedId = m_seq;
     const auto isDone = [this] { return m_bestMoveReceived; };
     const auto shouldAbort = [this, expectedId] {
@@ -158,9 +158,9 @@ bool UsiProtocolHandler::waitForBestMoveWithGrace(int budgetMs, int graceMs)
 
 bool UsiProtocolHandler::keepWaitingForBestMove(int timeoutMs)
 {
+    if (m_bestMoveReceived) return !shouldAbortWait();
     if (timeoutMs <= 0) return false;
 
-    m_bestMoveReceived = false;
     const quint64 expectedId = m_seq;
     const auto isDone = [this] { return m_bestMoveReceived; };
     const auto shouldAbort = [this, expectedId] {

@@ -76,6 +76,8 @@ void Usi::setupConnections()
     connect(m_protocolHandler.get(), &UsiProtocolHandler::readyOkReceived,
             this, &Usi::readyOkReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveReceived,
+            this, &Usi::onMatchBestMoveReceived);
+    connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveReceived,
             this, &Usi::bestMoveReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveResignReceived,
             this, &Usi::bestMoveResignReceived);
@@ -133,6 +135,11 @@ void Usi::onCommandSent(const QString& command)
 void Usi::onDataReceived(const QString& line)
 {
     m_presenter->logReceivedData(m_processManager->logPrefix(), line);
+}
+
+void Usi::onMatchBestMoveReceived()
+{
+    m_matchHandler->onBestMoveReceived();
 }
 
 void Usi::onStderrReceived(const QString& line)

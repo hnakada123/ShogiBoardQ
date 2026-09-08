@@ -55,6 +55,7 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
     m_byoyomi1Applied = false;
     m_byoyomi2Applied = false;
     m_clockRunning = false;
+    m_turnFinished = false;
     m_gameOver = false;
 
     m_player1ConsiderationTimeMs = 0;
@@ -72,7 +73,34 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
 
 void ShogiClock::setCurrentPlayer(int player)
 {
-    m_currentPlayer = (player == 2 ? 2 : 1);
+    const int next = (player == 2 ? 2 : 1);
+    if (next == m_currentPlayer) return;
+    updateClock(); // tick間の経過時間は旧手番へ精算する
+    m_currentPlayer = next;
+    m_turnFinished = false;
+    if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
+}
+
+void ShogiClock::finishTurn()
+{
+    updateClock();
+    m_turnFinished = true;
+}
+
+qint64 ShogiClock::remainingTurnTimeMs(int player) const
+{
+    const qint64 rem = player == 1 ? m_player1TimeMs : m_player2TimeMs;
+    const bool applied = player == 1 ? m_byoyomi1Applied : m_byoyomi2Applied;
+    const qint64 byo = player == 1 ? m_byoyomi1TimeMs : m_byoyomi2TimeMs;
+    const qint64 pending = m_clockRunning && !m_turnFinished && player == m_currentPlayer
+        ? qMax<qint64>(0, m_elapsedTimer.elapsed() - m_lastTickMs) : 0;
+    return qMax<qint64>(0, rem + (applied ? 0 : byo) - pending);
+}
+
+qint64 ShogiClock::remainingMainTimeMs(int player) const
+{
+    const qint64 byo = player == 1 ? m_byoyomi1TimeMs : m_byoyomi2TimeMs;
+    return qMax<qint64>(0, remainingTurnTimeMs(player) - byo);
 }
 
 // ============================================================
@@ -86,6 +114,7 @@ void ShogiClock::startClock()
     saveState();
 
     m_elapsedTimer.restart();
+    m_turnFinished = false;
     m_lastTickMs = m_elapsedTimer.elapsed();
 
     m_prevShownSecP1 = remainingDisplaySecP1();
@@ -106,25 +135,7 @@ void ShogiClock::stopClock()
 {
     if (!m_clockRunning) return;
 
-    // 停止前に経過分を手番側の残時間・考慮時間に反映
-    const qint64 now = m_elapsedTimer.elapsed();
-    const qint64 elapsed = now - m_lastTickMs;
-    if (elapsed > 0) {
-        m_lastTickMs = now;
-        if (m_timeLimitSet) {
-            if (m_currentPlayer == 1) {
-                m_player1TimeMs = qMax<qint64>(0, m_player1TimeMs - elapsed);
-                m_player1ConsiderationTimeMs += elapsed;
-            } else {
-                m_player2TimeMs = qMax<qint64>(0, m_player2TimeMs - elapsed);
-                m_player2ConsiderationTimeMs += elapsed;
-            }
-        } else {
-            if (m_currentPlayer == 1) m_player1ConsiderationTimeMs += elapsed;
-            else                      m_player2ConsiderationTimeMs += elapsed;
-        }
-    }
-
+    updateClock();
     m_timer->stop();
     m_clockRunning = false;
     emit timeUpdated();
@@ -233,6 +244,8 @@ void ShogiClock::updateClock()
     const qint64 elapsed = now - m_lastTickMs;
     if (elapsed <= 0) return;
     m_lastTickMs = now;
+
+    if (m_turnFinished) return;
 
     if (elapsed > 60) {
         qCDebug(lcShogiClock, "updateClock elapsed=%lldms (expected ~50ms) - Timer delayed!", elapsed);

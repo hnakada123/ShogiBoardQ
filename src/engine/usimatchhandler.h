@@ -16,6 +16,7 @@
 class ShogiGameController;
 class ThinkingInfoPresenter;
 class UsiProtocolHandler;
+class ShogiClock;
 
 /**
  * @brief 対局通信フロー・盤面データ管理を担当するハンドラクラス
@@ -38,6 +39,8 @@ public:
                     ShogiGameController* gameController);
 
     void setHooks(const Hooks& hooks);
+    void setClock(ShogiClock* clock) { m_clock = clock; }
+    void onBestMoveReceived();
 
     // --- 盤面データ管理 ---
 
@@ -77,16 +80,19 @@ private:
                                     QPoint& outFrom, QPoint& outTo,
                                     const UsiTimingParams& timing);
 
-    void processEngineResponse(QString& positionStr, QString& positionPonderStr,
+    bool processEngineResponse(QString& positionStr, QString& positionPonderStr,
                                const UsiTimingParams& timing);
 
-    void sendCommandsAndProcess(QString& positionStr, QString& positionPonderStr,
+    bool sendCommandsAndProcess(QString& positionStr, QString& positionPonderStr,
                                 const UsiTimingParams& timing);
 
-    void startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr);
-    void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr);
+    void startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr,
+                                   const UsiTimingParams& timing);
+    void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr,
+                                        const UsiTimingParams& timing);
 
-    void waitAndCheckForBestMoveRemainingTime(const UsiTimingParams& timing);
+    bool waitAndCheckForBestMoveRemainingTime(const UsiTimingParams& timing);
+    UsiTimingParams timingForSearch(const UsiTimingParams& timing, bool pondering) const;
 
     void applyMovesToBoardFromBestMoveAndPonder();
     void updateBaseSfenForPonder();
@@ -102,6 +108,8 @@ private:
     QList<QChar> m_clonedBoardData;
     QString m_lastUsiMove;
     Hooks m_hooks;
+    ShogiClock* m_clock = nullptr;
+    bool m_acceptBestMove = false;
 };
 
 #endif // USIMATCHHANDLER_H

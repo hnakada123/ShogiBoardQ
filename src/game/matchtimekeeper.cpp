@@ -154,7 +154,9 @@ MatchTimekeeper::GoTimes MatchTimekeeper::computeGoTimes() const
 
         t.btime = bApplied ? 0 : rawB;
         t.wtime = wApplied ? 0 : rawW;
-        t.byoyomi = (hasByoHook ? m_hooks.byoyomiMs() : 0);
+        const bool whiteToMove = m_refs.gc
+            && m_refs.gc->currentPlayer() == ShogiGameController::Player2;
+        t.byoyomi = whiteToMove ? m_tc.byoyomiMs2 : m_tc.byoyomiMs1;
         t.binc = t.winc = 0;
 
         qCDebug(lcGame).noquote()

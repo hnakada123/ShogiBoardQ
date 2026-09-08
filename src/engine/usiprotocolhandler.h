@@ -15,6 +15,7 @@
 #include <optional>
 
 #include "shogitypes.h"
+#include "usitimingparams.h"
 
 class EngineProcessManager;
 class ThinkingInfoPresenter;
@@ -69,7 +70,7 @@ public:
     void sendPosition(const QString& positionStr);
     void sendGo(int byoyomiMs, const QString& btime, const QString& wtime,
                 int bincMs, int wincMs, bool useByoyomi);
-    void sendGoPonder();
+    void sendGoPonder(const UsiTimingParams& timing);
     void sendGoMate(int timeMs, bool infinite = false);
     void sendGoDepth(int depth);              ///< go depth <x> - 指定深さまで探索
     void sendGoNodes(qint64 nodes);           ///< go nodes <x> - 指定ノード数まで探索

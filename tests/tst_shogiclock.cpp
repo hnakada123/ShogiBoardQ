@@ -8,6 +8,64 @@ class TestShogiClock : public QObject
     Q_OBJECT
 
 private slots:
+    void switchAccountsElapsedToOldPlayer()
+    {
+        ShogiClock clock;
+        clock.setPlayerTimes(10, 10, 0, 0, 0, 0, true);
+        clock.startClock();
+        QTest::qSleep(35); // イベント処理なし: 未精算のtick端数を作る
+        clock.setCurrentPlayer(2);
+        QVERIFY(clock.getPlayer1TimeIntMs() <= 9965);
+        QCOMPARE(clock.getPlayer2TimeIntMs(), 10000LL);
+        clock.stopClock();
+    }
+
+    void receivedMoveStopsChargingUntilNextTurn()
+    {
+        ShogiClock clock;
+        clock.setPlayerTimes(0, 0, 1, 1, 0, 0, true);
+        clock.startClock();
+        QTest::qSleep(30);
+        clock.finishTurn();
+        const qint64 remaining = clock.getPlayer1TimeIntMs();
+        QTest::qSleep(1050); // 受理後のUI処理が期限を越えても敗着にしない
+        clock.updateClock();
+        QCOMPARE(clock.getPlayer1TimeIntMs(), remaining);
+        QVERIFY(!clock.isGameOver());
+        clock.setCurrentPlayer(2);
+        QTest::qSleep(30);
+        clock.updateClock();
+        QVERIFY(clock.remainingTurnTimeMs(2) <= 970);
+        clock.stopClock();
+    }
+
+    void lateResponseStillLoses()
+    {
+        ShogiClock clock;
+        clock.setPlayerTimes(0, 0, 1, 1, 0, 0, true);
+        QSignalSpy timeout(&clock, &ShogiClock::player1TimeOut);
+        clock.startClock();
+        QTest::qSleep(1020);
+        clock.finishTurn();
+        QVERIFY(clock.isGameOver());
+        QCOMPARE(timeout.count(), 1);
+    }
+
+    void liveBudgetIncludesUntickedByoyomiTransition()
+    {
+        ShogiClock clock;
+        clock.setPlayerTimes(1, 0, 1, 5, 0, 0, true);
+        clock.startClock();
+        QTest::qSleep(1020);
+        QCOMPARE(clock.remainingMainTimeMs(1), 0LL);
+        QVERIFY(clock.remainingTurnTimeMs(1) <= 980);
+        QCOMPARE(clock.remainingTurnTimeMs(2), 5000LL);
+        clock.stopClock();
+        QVERIFY(!clock.isGameOver());
+        QVERIFY(clock.byoyomi1Applied());
+        QVERIFY(clock.getPlayer1TimeIntMs() > 0);
+    }
+
     void setPlayerTimes_basic()
     {
         ShogiClock clock;

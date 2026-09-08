@@ -535,6 +535,31 @@ add_shogi_test(tst_usiprotocolhandler
     ${SRC}/engine/usimovecoordinateconverter.cpp
 )
 
+add_executable(mock_usi_match mock_usi_match.cpp)
+target_link_libraries(mock_usi_match PRIVATE Qt6::Core)
+add_shogi_test(tst_usimatchhandler
+    tst_usimatchhandler.cpp
+    test_stubs_usiprotocol.cpp
+    ${SRC}/engine/usimatchhandler.cpp
+    ${SRC}/engine/usiprotocolhandler.cpp
+    ${SRC}/engine/usiprotocolhandler_ops.cpp
+    ${SRC}/engine/usiprotocolhandler_wait.cpp
+    ${SRC}/engine/usimovecoordinateconverter.cpp
+    ${SRC}/engine/engineprocessmanager.cpp
+    ${SRC}/engine/engineprocessmanager_wait.cpp
+    ${SRC}/core/shogiclock.cpp
+    ${SRC}/core/shogiclock_format.cpp
+    ${SRC}/game/matchtimekeeper.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/kifu/formats/parsecommon.cpp
+)
+target_compile_definitions(tst_usimatchhandler PRIVATE USI_MATCH_REAL_PROCESS)
+add_dependencies(tst_usimatchhandler mock_usi_match)
+
 # ============================================================
 # Unit 12: UI Display Consistency (Board / Record / Branch Tree)
 # ============================================================
