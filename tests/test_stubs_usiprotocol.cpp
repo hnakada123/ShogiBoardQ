@@ -6,6 +6,8 @@
 
 #include <QProcess>
 #include <QSettings>
+#include <QDir>
+#include <QCoreApplication>
 
 #include "engineprocessmanager.h"
 #include "shogiboard.h"
@@ -15,13 +17,14 @@
 #include "settingscommon.h"
 
 // === EngineProcessManager スタブ ===
+#ifndef USI_MATCH_REAL_PROCESS
 EngineProcessManager::EngineProcessManager(QObject* parent) : QObject(parent) {}
 EngineProcessManager::~EngineProcessManager() = default;
 bool EngineProcessManager::startProcess(const QString&) { return false; }
 void EngineProcessManager::stopProcess() {}
 bool EngineProcessManager::isRunning() const { return false; }
 QProcess::ProcessState EngineProcessManager::state() const { return QProcess::NotRunning; }
-void EngineProcessManager::sendCommand(const QString&) {}
+void EngineProcessManager::sendCommand(const QString& command) { emit commandSent(command); }
 void EngineProcessManager::closeWriteChannel() {}
 void EngineProcessManager::pumpPendingOutput() {}
 bool EngineProcessManager::waitForReadyReadAndPump(int) { return false; }
@@ -40,6 +43,7 @@ void EngineProcessManager::onReadyReadStderr() {}
 void EngineProcessManager::onProcessError(QProcess::ProcessError) {}
 void EngineProcessManager::onProcessFinished(int, QProcess::ExitStatus) {}
 void EngineProcessManager::scheduleMoreReading() {}
+#endif
 
 // === ThinkingInfoPresenter スタブ ===
 ThinkingInfoPresenter::ThinkingInfoPresenter(QObject* parent) : QObject(parent) {}
@@ -61,16 +65,22 @@ void ThinkingInfoPresenter::onInfoReceived(const QString&) {}
 
 // === ShogiEngineInfoParser スタブ ===
 ShogiEngineInfoParser::ShogiEngineInfoParser() {}
+void ShogiEngineInfoParser::parseAndApplyMoveToClonedBoard(const QString&, QList<QChar>&) {}
 
 // === ShogiGameController スタブ ===
 ShogiGameController::ShogiGameController(QObject* parent) : QObject(parent) {}
 ShogiGameController::~ShogiGameController() = default;
 void ShogiGameController::setPromote(bool) {}
 void ShogiGameController::newGame(QString&) {}
+ShogiBoard* ShogiGameController::board() const { return nullptr; }
+void ShogiGameController::setCurrentPlayer(const Player player) { m_currentPlayer = player; }
+bool ShogiGameController::promote() const { return false; }
 
 // === SettingsCommon スタブ ===
 namespace SettingsCommon {
-QString settingsFilePath() { return QStringLiteral("/tmp/tst_usiprotocol_stub.ini"); }
+QString settingsFilePath() {
+    return QDir::tempPath() + QStringLiteral("/tst_usiprotocol_%1.ini").arg(QCoreApplication::applicationPid());
+}
 QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::IniFormat); return s; }
 }
 

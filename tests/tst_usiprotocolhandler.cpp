@@ -18,6 +18,63 @@ class TestUsiProtocolHandler : public QObject
     Q_OBJECT
 
 private slots:
+    void ponderPreservesPredictionAndSendsTime()
+    {
+        EngineProcessManager process;
+        UsiProtocolHandler handler;
+        handler.setProcessManager(&process);
+        QSignalSpy commands(&process, &EngineProcessManager::commandSent);
+        handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
+        handler.sendGoPonder({4750, QStringLiteral("290000"), QStringLiteral("0"), 0, 0, true});
+        QCOMPARE(handler.predictedMove(), QStringLiteral("2g2f"));
+        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Ponder);
+        QCOMPARE(commands.last().at(0).toString(),
+                 QStringLiteral("go ponder btime 290000 wtime 0 byoyomi 4750"));
+        handler.sendPonderHit();
+        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Main);
+        QCOMPARE(commands.last().at(0).toString(), QStringLiteral("ponderhit"));
+    }
+
+    void ponderSendsIncrements()
+    {
+        EngineProcessManager process;
+        UsiProtocolHandler handler;
+        handler.setProcessManager(&process);
+        QSignalSpy commands(&process, &EngineProcessManager::commandSent);
+        handler.sendGoPonder({0, QStringLiteral("1000"), QStringLiteral("2000"), 300, 400, false});
+        QCOMPARE(commands.last().at(0).toString(),
+                 QStringLiteral("go ponder btime 1000 wtime 2000 binc 300 winc 400"));
+    }
+
+    void discardedPonderResultDoesNotEndGame()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy resign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
+        QSignalSpy win(&handler, &UsiProtocolHandler::bestMoveWinReceived);
+        handler.sendGoPonder({});
+        handler.sendStop();
+        handler.onDataReceived(QStringLiteral("bestmove resign"));
+        QVERIFY(handler.waitForBestMove(10));
+        QCOMPARE(resign.count(), 0);
+        handler.sendGoPonder({});
+        handler.sendStop();
+        handler.onDataReceived(QStringLiteral("bestmove win"));
+        QCOMPARE(win.count(), 0);
+        handler.sendGoPonder({});
+        handler.sendPonderHit();
+        handler.onDataReceived(QStringLiteral("bestmove resign"));
+        QCOMPARE(resign.count(), 1);
+    }
+
+    void waitingDoesNotEraseAlreadyReceivedBestmove()
+    {
+        UsiProtocolHandler handler;
+        handler.sendGoDepth(1);
+        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
+        QVERIFY(handler.waitForBestMoveWithGrace(1, 0));
+        QVERIFY(handler.keepWaitingForBestMove(1));
+    }
+
     // ================================================================
     // 1. info 行の解析
     // ================================================================

@@ -223,19 +223,25 @@ void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QStri
     sendCommand(command);
 }
 
-void UsiProtocolHandler::sendGoPonder()
+void UsiProtocolHandler::sendGoPonder(const UsiTimingParams& timing)
 {
     m_activeSearchSeq = beginOperationContext();
     m_bestMoveReceived = false;
     m_specialMove = SpecialMove::None;
-    m_predictedOpponentMove.clear();
-
     if (m_presenter) {
         m_presenter->requestClearThinkingInfo();
     }
     m_phase = SearchPhase::Ponder;
     ++m_ponderSession;
-    sendCommand("go ponder");
+    QString command = QStringLiteral("go ponder btime %1 wtime %2")
+                          .arg(timing.btime, timing.wtime);
+    if (timing.useByoyomi) {
+        command += QStringLiteral(" byoyomi %1").arg(timing.byoyomiMilliSec);
+    } else {
+        command += QStringLiteral(" binc %1 winc %2")
+                       .arg(timing.addEachMoveMilliSec1).arg(timing.addEachMoveMilliSec2);
+    }
+    sendCommand(command);
 }
 
 void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
@@ -324,12 +330,12 @@ void UsiProtocolHandler::sendPonderHit()
 {
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
+    m_phase = SearchPhase::Main;
 
     sendCommand("ponderhit");
     m_stopOrPonderhitPending = true;
     emit stopOrPonderhitSent();
 
-    m_phase = SearchPhase::Main;
 }
 
 void UsiProtocolHandler::sendGameOver(GameOverResult result)
@@ -465,6 +471,9 @@ bool UsiProtocolHandler::handleBestMoveLine(const QString& line)
     qint64 elapsed = m_goTimer.isValid() ? m_goTimer.elapsed() : -1;
     m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
     m_specialMove = parseSpecialMove(m_bestMove);
+
+    // stopで回収する予測局面の投了・宣言勝ちは、実対局の結果ではない。
+    if (m_phase == SearchPhase::Ponder) return true;
 
     if (m_specialMove == SpecialMove::Resign) {
         if (m_squelchResignLogging) {

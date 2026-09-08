@@ -24,6 +24,7 @@
 #include "shogienginethinkingmodel.h"
 
 class UsiMatchHandler;
+class ShogiClock;
 
 /**
  * @brief USIプロトコル通信を管理するファサードクラス
@@ -45,6 +46,7 @@ class Usi : public QObject
     Q_OBJECT
 
 public:
+    void setMatchClock(ShogiClock* clock) { m_matchClock = clock; }
     /// 詰み探索結果
     struct TsumeResult {
         enum Kind {
@@ -216,6 +218,7 @@ private:
     QPointer<UsiCommLogModel> m_commLogModel;        ///< USI通信ログモデルへの参照（非所有）
     QPointer<ShogiEngineThinkingModel> m_thinkingModel; ///< 思考情報モデルへの参照（非所有）
     ShogiGameController* m_gameController = nullptr;  ///< ゲームコントローラへの参照（非所有）
+    ShogiClock* m_matchClock = nullptr; ///< ローカル対局の時間判定元（非所有）
 
     // --- 状態 ---
 
@@ -230,6 +233,7 @@ private:
     // --- プライベートメソッド ---
 
     void setupConnections();
+    void onMatchBestMoveReceived();
     void resetAnalysisStopTimer();
     void prepareAnalysisSession(const QString& positionStr, int multiPV);
 

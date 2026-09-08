@@ -52,6 +52,11 @@ public:
     void startClock();
     void stopClock();
     void updateClock();
+    /// 応答受理時に精算し、次の手番への切替まで課金を止める。
+    void finishTurn();
+    qint64 remainingMainTimeMs(int player) const;
+    qint64 remainingTurnTimeMs(int player) const;
+    bool enforcesTimeout() const { return m_timeLimitSet && m_loseOnTimeout; }
 
     // --- 着手確定時処理 ---
 
@@ -142,6 +147,7 @@ private:
     QTimer*       m_timer = nullptr;           ///< 定期更新タイマー（所有、this親）
     QElapsedTimer m_elapsedTimer;              ///< 経過時間計測用（モノトニック）
     bool          m_clockRunning = false;      ///< タイマー動作中フラグ
+    bool          m_turnFinished = false;
     qint64        m_lastTickMs   = 0;          ///< 前回tickの時刻(ms)
 
     // --- 設定・状態 ---
