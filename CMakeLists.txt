@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16...3.28)
 
 # アプリケーションバージョン (CalVer: YYYY.MM.DD)
 # CMake の project VERSION / バンドル埋め込み / APP_VERSION マクロで共通利用する。
-set(APP_VERSION "2026.09.08")
+set(APP_VERSION "2026.09.09")
 
 project(ShogiBoardQ VERSION ${APP_VERSION} LANGUAGES CXX)
 
