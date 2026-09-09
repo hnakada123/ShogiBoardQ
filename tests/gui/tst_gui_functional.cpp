@@ -32,6 +32,8 @@
 #include "shogiview.h"
 #include "shogiboard.h"
 #include "recordpane.h"
+#include "kifurecordlistmodel.h"
+#include "sfenpositiontracer.h"
 #include "settingscommon.h"
 #include "appsettings.h"
 #include "boardappearance.h"
@@ -179,6 +181,7 @@ public slots:
                 auto* p2 = d->findChild<QComboBox*>("comboBoxPlayer2");
                 if (!p1 || !p2) { d->reject(); return; }
                 p1->setCurrentIndex(0); p2->setCurrentIndex(0);
+                if (dialogMode == "gameEngineBlack") p1->setCurrentIndex(1);
                 if (dialogMode == "gameEngineWhite") p2->setCurrentIndex(1);
                 if (dialogMode == "gameEngines") { p1->setCurrentIndex(1); p2->setCurrentIndex(1); }
                 d->findChild<QLineEdit*>("lineEditHumanName1")->setText("Audit Black");
@@ -901,6 +904,74 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!record()->isNavigationDisabled(), 3000);
         QVERIFY(copy("actionCopyKIF").contains(QStringLiteral("投了")));
         snapshot("engine-game");
+    }
+    void engineHumanResignNavigation_data()
+    {
+        QTest::addColumn<bool>("humanIsBlack");
+        QTest::newRow("human-black") << true;
+        QTest::newRow("human-white") << false;
+    }
+    void engineHumanResignNavigation()
+    {
+        QFETCH(bool, humanIsBlack);
+        armDialog(humanIsBlack ? "gameEngineWhite" : "gameEngineBlack");
+        click("actionStartGame");
+        QVERIFY(dialogHandled);
+        QVERIFY(record()->isNavigationDisabled());
+
+        auto* view = record()->kifuView();
+        auto* model = qobject_cast<KifuRecordListModel*>(view->model());
+        QVERIFY(model);
+        if (!humanIsBlack) {
+            QTRY_COMPARE_WITH_TIMEOUT(model->rowCount(), 2, 5000);
+        }
+        const int file = humanIsBlack ? 7 : 3;
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
+                          squarePoint(file, humanIsBlack ? 7 : 3));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
+                          squarePoint(file, humanIsBlack ? 6 : 4));
+        const int lastMoveRow = humanIsBlack ? 2 : 3;
+        QTRY_COMPARE_WITH_TIMEOUT(model->rowCount(), lastMoveRow + 1, 5000);
+
+        armDialog("auto");
+        click("actionResign");
+        QTRY_VERIFY_WITH_TIMEOUT(!record()->isNavigationDisabled(), 1500);
+        const int terminalRow = lastMoveRow + 1;
+        QCOMPARE(model->rowCount(), terminalRow + 1);
+        QVERIFY(model->index(terminalRow, 0).data().toString().contains(QStringLiteral("投了")));
+
+        QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+        if (!humanIsBlack) moves.append(QStringLiteral("2g2f"));
+        const QStringList sfens = SfenPositionTracer::buildSfenRecord(
+            initial + QStringLiteral(" b - 1"), moves, /*hasTerminal=*/true);
+        QCOMPARE(sfens.size(), model->rowCount());
+
+        // 指し手列・消費時間列の両方から、終局行を含む任意の行を繰り返し選ぶ。
+        view->setColumnHidden(1, false);
+        const QList<int> rows = {1, 0, terminalRow, lastMoveRow, 1, terminalRow, 0};
+        for (int column = 0; column < 2; ++column) {
+            for (int row : rows) {
+                const QModelIndex index = model->index(row, column);
+                view->scrollTo(index);
+                QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier,
+                                  view->visualRect(index).center());
+                QTRY_COMPARE(view->currentIndex().row(), row);
+                QTRY_COMPARE(boardSfen(), sfens.at(row).section(QLatin1Char(' '), 0, 0));
+                QCOMPARE(turnToSfen(board()->board()->currentPlayer()),
+                         sfens.at(row).section(QLatin1Char(' '), 1, 1));
+                QCOMPARE(model->currentHighlightRow(), row);
+                const QModelIndexList selected = view->selectionModel()->selectedRows();
+                QCOMPARE(selected.size(), 1);
+                QCOMPARE(selected.first().row(), row);
+                for (int other = 0; other < model->rowCount(); ++other) {
+                    const QColor background = model->index(other, column)
+                        .data(Qt::BackgroundRole).value<QBrush>().color();
+                    QCOMPARE(background == QColor(Qt::yellow), other == row);
+                }
+            }
+        }
+        snapshot(QStringLiteral("resign-navigation-")
+                 + QString::fromLatin1(QTest::currentDataTag()));
     }
     void consideration()
     {

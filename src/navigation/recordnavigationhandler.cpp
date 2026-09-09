@@ -39,8 +39,7 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         qCDebug(lcNavigation) << "onMainRowChanged: SKIPPED (re-entry guard)";
         return;
     }
-    m_mainRowChangeInProgress = true;
-    const QScopedValueRollback<bool> rollback(m_mainRowChangeInProgress, false);
+    const QScopedValueRollback<bool> rollback(m_mainRowChangeInProgress, true);
 
     // 分岐ナビゲーション中は二重更新を防ぐ。
     // ただし、ユーザーが別手を明示的に選んだ場合は処理を継続する。
