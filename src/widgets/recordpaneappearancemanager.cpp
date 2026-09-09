@@ -7,6 +7,7 @@
 
 #include <QTableView>
 #include <QHeaderView>
+#include <QScrollBar>
 #include <QPalette>
 #include <QFont>
 #include <QAbstractItemView>
@@ -113,14 +114,14 @@ void RecordPaneAppearanceManager::updateColumnResizeModes(QTableView* kifu)
     auto* hh = kifu->horizontalHeader();
     if (!hh) return;
 
-    // col 0: 常に ResizeToContents
+    // col 0: 常に ResizeToContents（表示列が指し手のみの場合は Stretch）
     hh->setSectionResizeMode(0, QHeaderView::ResizeToContents);
 
     const bool col1Visible = !kifu->isColumnHidden(1);
     const bool col2Visible = !kifu->isColumnHidden(2);
     const bool col3Visible = !kifu->isColumnHidden(3);
 
-    // 最右の表示列が Stretch を受け持つ
+    // 最右の表示列が Stretch を受け持つ（消費時間列が最右の場合は Stretch しない）
     if (col3Visible) {
         if (col1Visible) {
             hh->setSectionResizeMode(1, QHeaderView::Fixed);
@@ -136,9 +137,23 @@ void RecordPaneAppearanceManager::updateColumnResizeModes(QTableView* kifu)
         }
         hh->setSectionResizeMode(2, QHeaderView::Stretch);
     } else if (col1Visible) {
-        hh->setSectionResizeMode(1, QHeaderView::Stretch);
+        // 指し手列は内容に合わせ、消費時間列は固定幅（どちらも Stretch しない）
+        hh->setSectionResizeMode(1, QHeaderView::Fixed);
+        hh->resizeSection(1, 130);
     } else {
         hh->setSectionResizeMode(0, QHeaderView::Stretch);
+    }
+
+    // Stretch 列がない構成では、両列が横スクロールなしで収まる最小幅を確保する
+    const bool hasStretchColumn = col3Visible || col2Visible || !col1Visible;
+    if (hasStretchColumn) {
+        kifu->setMinimumWidth(0);
+    } else {
+        const QFontMetrics fm(kifu->font());
+        const int moveColWidth = fm.horizontalAdvance(QStringLiteral("000 △同　銀不成(00)")) + 12;
+        const int scrollBarWidth = kifu->verticalScrollBar()
+            ? kifu->verticalScrollBar()->sizeHint().width() : 0;
+        kifu->setMinimumWidth(moveColWidth + 130 + scrollBarWidth + 2 * kifu->frameWidth());
     }
 }
 
