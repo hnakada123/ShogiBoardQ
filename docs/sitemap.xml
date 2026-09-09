@@ -145,6 +145,14 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-style.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-style.html" />
@@ -309,6 +317,14 @@
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/piece-sound.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/piece-sound.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
