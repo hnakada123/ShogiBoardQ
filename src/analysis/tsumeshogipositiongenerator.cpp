@@ -4,9 +4,6 @@
 #include "tsumeshogipositiongenerator.h"
 #include "enginemovevalidator.h"
 
-#include <QtConcurrent>
-
-
 void TsumeshogiPositionGenerator::setSettings(const Settings& s)
 {
     m_settings = s;
@@ -71,7 +68,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
 
                 // 段制約チェック → 成駒に変換 or 再配置
                 bool promote = false;
-                if (isInvalidPlacement(pt, r, true)) {
+                if (needsPromotion(pt, r, true)) {
                     if (kCanPromote[pt]) {
                         promote = true;
                     } else {
@@ -89,7 +86,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
                     continue;
                 }
 
-                const QString sfenPiece = promote ? promotedSfen(pt, true) : unpromatedSfen(pt, true);
+                const QString sfenPiece = promote ? promotedSfen(pt, true) : unpromotedSfen(pt, true);
                 placeOnBoard(f, r, sfenPiece);
                 usePiece(pt);
                 placed = true;
@@ -133,7 +130,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
             if (isOccupied(f, r)) continue;
 
             bool promote = false;
-            if (isInvalidPlacement(pt, r, false)) {
+            if (needsPromotion(pt, r, false)) {
                 if (kCanPromote[pt]) {
                     promote = true;
                 } else {
@@ -146,7 +143,7 @@ QString TsumeshogiPositionGenerator::generateOnce()
                 continue;
             }
 
-            const QString sfenPiece = promote ? promotedSfen(pt, false) : unpromatedSfen(pt, false);
+            const QString sfenPiece = promote ? promotedSfen(pt, false) : unpromotedSfen(pt, false);
             placeOnBoard(f, r, sfenPiece);
             usePiece(pt);
             break;
@@ -189,25 +186,21 @@ bool TsumeshogiPositionGenerator::hasUnpromotedPawnInFile(int file, bool isAttac
     return false;
 }
 
-bool TsumeshogiPositionGenerator::placeOnBoard(int file, int rank, const QString& sfenPiece)
+void TsumeshogiPositionGenerator::placeOnBoard(int file, int rank, const QString& sfenPiece)
 {
-    if (file < 0 || file > 8 || rank < 0 || rank > 8) return false;
-    if (isOccupied(file, rank)) return false;
+    // 呼び出し側で盤内かつ空きマスであることを確認済み
+    Q_ASSERT(file >= 0 && file <= 8 && rank >= 0 && rank <= 8);
+    Q_ASSERT(!isOccupied(file, rank));
 
-    // sfenPiece を1文字のマーカーとして格納（後でbuildSfenで展開）
-    // 特殊エンコーディング: 成駒は '+' + 英字なので2文字
-    // board配列には先頭文字を格納し、成駒フラグは上位ビットで表現
-    // → 簡易実装: boardをQString[9][9]に変更する代わりに、別途マップを使う
-    // ここでは QChar の unicode を利用して成駒をエンコード:
+    // 盤面配列は1マス1文字。成駒（"+P" 等の2文字）は Private Use Area にエンコードする:
     //   生駒: そのままの文字 P,L,N,S,G,B,R,p,l,n,s,g,b,r,k
-    //   成駒: 0xE000 + 元文字コード (Private Use Area)
-    if (sfenPiece.startsWith('+')) {
+    //   成駒: 0xE000 + 元文字コード
+    if (sfenPiece.startsWith(QLatin1Char('+'))) {
         const QChar base = sfenPiece.at(1);
         m_board[rank][file] = QChar(0xE000 + base.unicode());
     } else {
         m_board[rank][file] = sfenPiece.at(0);
     }
-    return true;
 }
 
 TsumeshogiPositionGenerator::PieceType TsumeshogiPositionGenerator::randomPieceType()
@@ -231,7 +224,7 @@ QString TsumeshogiPositionGenerator::promotedSfen(PieceType pt, bool isAttacker)
     return QStringLiteral("+") + c;
 }
 
-QString TsumeshogiPositionGenerator::unpromatedSfen(PieceType pt, bool isAttacker) const
+QString TsumeshogiPositionGenerator::unpromotedSfen(PieceType pt, bool isAttacker) const
 {
     const QChar c = isAttacker ? QChar(kSfenChars[pt]).toUpper() : QChar(kSfenChars[pt]).toLower();
     return QString(c);
@@ -255,11 +248,6 @@ bool TsumeshogiPositionGenerator::needsPromotion(PieceType pt, int rank, bool is
         if (pt == Knight) return rank >= 7;
     }
     return false;
-}
-
-bool TsumeshogiPositionGenerator::isInvalidPlacement(PieceType pt, int rank, bool isAttacker) const
-{
-    return needsPromotion(pt, rank, isAttacker);
 }
 
 QChar TsumeshogiPositionGenerator::promotedPieceChar(QChar base)
@@ -410,28 +398,22 @@ QString TsumeshogiPositionGenerator::buildSfen() const
     return boardStr;
 }
 
-#ifdef SHOGIBOARDQ_TESTING
 QStringList TsumeshogiPositionGenerator::generateBatch(
     const Settings& settings, int count, const CancelFlag& cancelFlag)
 {
-    QList<int> indices;
-    indices.reserve(count);
-    for (int i = 0; i < count; ++i)
-        indices.append(i);
+    QStringList result;
+    result.reserve(count);
 
-    return QtConcurrent::blockingMappedReduced<QStringList>(
-        indices,
-        [settings, cancelFlag](int /*index*/) -> QString {
-            if (cancelFlag && cancelFlag->load()) return {};
-            TsumeshogiPositionGenerator gen;
-            gen.setSettings(settings);
-            return gen.generate();
-        },
-        [](QStringList& result, const QString& sfen) {
-            if (!sfen.isEmpty()) {
-                result.append(sfen);
-            }
-        },
-        QtConcurrent::UnorderedReduce);
+    TsumeshogiPositionGenerator generator;
+    generator.setSettings(settings);
+
+    for (int i = 0; i < count; ++i) {
+        if (cancelFlag && cancelFlag->load()) break;
+
+        const QString sfen = generator.generate();
+        if (!sfen.isEmpty()) {
+            result.append(sfen);
+        }
+    }
+    return result;
 }
-#endif

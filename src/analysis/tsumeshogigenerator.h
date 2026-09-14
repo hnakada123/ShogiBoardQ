@@ -13,7 +13,6 @@
 #include <QStringList>
 #include <QTimer>
 #include <QList>
-#include <memory>
 
 #include "threadtypes.h"
 
@@ -50,6 +49,8 @@ public:
 signals:
     void positionFound(const QString& sfen, const QStringList& pv);
     void progressUpdated(int tried, int found, qint64 elapsedMs);
+    void searchPhaseStarted();                       ///< 探索フェーズに入った（開始時・トリミング完了時）
+    void trimmingProgress(int candidate, int total); ///< トリミング中の候補進捗（candidate は 1 始まり）
     void finished();
     void errorOccurred(const QString& message);
 
@@ -114,8 +115,7 @@ private:
     void sendTrimmingCheck(const QString& modifiedSfen);
     void finishTrimmingPhase();
 
-    std::unique_ptr<Usi> m_usi;
-    TsumeshogiPositionGenerator m_positionGenerator;
+    Usi* m_usi = nullptr; ///< 詰み探索エンジン（parent ownership。破棄は cleanup() の deleteLater）
     Settings m_settings;
 
     QString m_currentSfen;       ///< 現在探索中のSFEN文字列

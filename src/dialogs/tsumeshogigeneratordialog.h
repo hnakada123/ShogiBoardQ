@@ -6,10 +6,10 @@
 
 #include <QDialog>
 #include <QList>
-#include <memory>
 
 #include "fontsizehelper.h"
 
+class QCheckBox;
 class QComboBox;
 class QLabel;
 class QPushButton;
@@ -40,6 +40,8 @@ private slots:
     void onProgressUpdated(int tried, int found, qint64 elapsedMs);
     void onGeneratorFinished();
     void onGeneratorError(const QString& message);
+    void onSearchPhaseStarted();
+    void onTrimmingProgress(int candidate, int total);
     void onSaveToFile();
     void onCopySelected();
     void onCopyAll();
@@ -67,7 +69,9 @@ private:
     void applyFontSize();
     void applyTableHeaderStyle();
     void setRunningState(bool running);
+    void setStatusText(const QString& status);
     QString formatElapsedTime(qint64 ms) const;
+    QString exportLine(int row) const;
 
     // エンジン設定
     QComboBox* m_comboEngine = nullptr;
@@ -88,6 +92,7 @@ private:
     // プログレス表示
     QLabel* m_labelProgress = nullptr;
     QLabel* m_labelElapsed = nullptr;
+    QLabel* m_labelStatus = nullptr;
 
     // 結果テーブル
     QTableWidget* m_tableResults = nullptr;
@@ -98,6 +103,9 @@ private:
 
     // 既定値に戻すボタン
     QPushButton* m_btnRestoreDefaults = nullptr;
+
+    // 出力オプション（SFEN に詰み手順を付加するか）
+    QCheckBox* m_checkIncludePv = nullptr;
 
     // ファイル保存ボタン
     QPushButton* m_btnSaveToFile = nullptr;
@@ -112,8 +120,8 @@ private:
     // エンジンリスト
     QList<Engine> m_engineList;
 
-    // ジェネレータ
-    std::unique_ptr<TsumeshogiGenerator> m_generator;
+    // ジェネレータ（parent ownership。ダイアログと同寿命で、開始のたびに再利用する）
+    TsumeshogiGenerator* m_generator = nullptr;
 
     // フォントサイズヘルパー
     FontSizeHelper m_fontHelper;

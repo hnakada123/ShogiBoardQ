@@ -52,6 +52,10 @@ void setTsumeshogiGeneratorTimeoutSec(int sec);
 int tsumeshogiGeneratorMaxPositions();
 void setTsumeshogiGeneratorMaxPositions(int count);
 
+/// ファイル保存・コピー時に詰み手順も出力するか（デフォルト: false）
+bool tsumeshogiGeneratorIncludePv();
+void setTsumeshogiGeneratorIncludePv(bool include);
+
 } // namespace TsumeshogiSettings
 
 #endif // TSUMESHOGISETTINGS_H

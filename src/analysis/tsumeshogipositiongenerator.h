@@ -34,10 +34,9 @@ public:
     /// SFEN局面で守方（後手）玉に王手がかかっているか（攻方玉がなくても判定できる）
     static bool isDefenderKingInCheck(const QString& sfen);
 
-#ifdef SHOGIBOARDQ_TESTING
-    /// スレッドプールで count 個の候補局面を並列生成する
+    /// count 個の候補局面を生成する（cancelFlag が立てられた時点で中断し、生成済み分だけ返す）
+    /// 局面生成はエンジン探索に比べ十分軽いため逐次で行う。呼び出し側がワーカースレッドで実行する想定
     static QStringList generateBatch(const Settings& settings, int count, const CancelFlag& cancelFlag);
-#endif
 
 private:
     Settings m_settings;
@@ -67,14 +66,13 @@ private:
     void clearState();
     bool isOccupied(int file, int rank) const;
     bool hasUnpromotedPawnInFile(int file, bool isAttacker) const;
-    bool placeOnBoard(int file, int rank, const QString& sfenPiece);
+    void placeOnBoard(int file, int rank, const QString& sfenPiece);
     PieceType randomPieceType();
     bool hasRemainingPiece(PieceType pt) const;
     void usePiece(PieceType pt);
     QString promotedSfen(PieceType pt, bool isAttacker) const;
-    QString unpromatedSfen(PieceType pt, bool isAttacker) const;
+    QString unpromotedSfen(PieceType pt, bool isAttacker) const;
     bool needsPromotion(PieceType pt, int rank, bool isAttacker) const;
-    bool isInvalidPlacement(PieceType pt, int rank, bool isAttacker) const;
     bool isKingInCheck() const;
     QList<Piece> buildBoardData() const;
     static QChar promotedPieceChar(QChar base);
