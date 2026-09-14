@@ -190,6 +190,7 @@ inline constexpr char kTsumeshogiGeneratorMaxDefendPieces[]   = "TsumeshogiGener
 inline constexpr char kTsumeshogiGeneratorAttackRange[]       = "TsumeshogiGenerator/attackRange";
 inline constexpr char kTsumeshogiGeneratorTimeoutSec[]        = "TsumeshogiGenerator/timeoutSec";
 inline constexpr char kTsumeshogiGeneratorMaxPositions[]      = "TsumeshogiGenerator/maxPositions";
+inline constexpr char kTsumeshogiGeneratorIncludePv[]         = "TsumeshogiGenerator/includePv";
 
 // --- Settings version ---
 inline constexpr int kCurrentSettingsVersion = 1;

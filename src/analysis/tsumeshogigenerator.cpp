@@ -5,7 +5,6 @@
 #include "usi.h"
 #include "boardconstants.h"
 
-#include <QThread>
 #include <QtConcurrent>
 
 namespace {
@@ -15,30 +14,8 @@ constexpr int kSafetyMarginMs = 5000;
 constexpr int kProgressIntervalMs = 500;
 /// 安全タイマー発火後に送る stop への応答待ち時間(ms)
 constexpr int kStopResponseTimeoutMs = 3000;
-
-QStringList generatePositionBatch(const TsumeshogiPositionGenerator::Settings& settings,
-                                  int count,
-                                  const CancelFlag& cancelFlag)
-{
-    QStringList result;
-    result.reserve(count);
-
-    for (int index = 0; index < count; ++index) {
-        Q_UNUSED(index)
-        if (cancelFlag && cancelFlag->load()) {
-            break;
-        }
-
-        TsumeshogiPositionGenerator generator;
-        generator.setSettings(settings);
-        const QString sfen = generator.generate();
-        if (!sfen.isEmpty()) {
-            result.append(sfen);
-        }
-    }
-
-    return result;
-}
+/// 1回のバッチで生成する候補局面数（生成はエンジン探索に比べ十分軽いので少量でよい）
+constexpr int kBatchSize = 8;
 }
 
 TsumeshogiGenerator::TsumeshogiGenerator(QObject* parent)
@@ -68,21 +45,19 @@ void TsumeshogiGenerator::start(const Settings& settings)
     m_currentSfen.clear();
     m_foundSfens.clear();
 
-    m_positionGenerator.setSettings(settings.posGenSettings);
-
-    // Usi インスタンスを作成（モデル不要、ゲームコントローラ不要）
-    m_usi = std::make_unique<Usi>(nullptr, nullptr, nullptr, this);
+    // Usi インスタンスを作成（モデル不要、ゲームコントローラ不要）。所有は parent（this）
+    m_usi = new Usi(nullptr, nullptr, nullptr, this);
 
     // checkmate シグナルを接続
-    connect(m_usi.get(), &Usi::checkmateSolved,
+    connect(m_usi, &Usi::checkmateSolved,
             this, &TsumeshogiGenerator::onCheckmateSolved);
-    connect(m_usi.get(), &Usi::checkmateNoMate,
+    connect(m_usi, &Usi::checkmateNoMate,
             this, &TsumeshogiGenerator::onCheckmateNoMate);
-    connect(m_usi.get(), &Usi::checkmateNotImplemented,
+    connect(m_usi, &Usi::checkmateNotImplemented,
             this, &TsumeshogiGenerator::onCheckmateNotImplemented);
-    connect(m_usi.get(), &Usi::checkmateUnknown,
+    connect(m_usi, &Usi::checkmateUnknown,
             this, &TsumeshogiGenerator::onCheckmateUnknown);
-    connect(m_usi.get(), &Usi::errorOccurred,
+    connect(m_usi, &Usi::errorOccurred,
             this, &TsumeshogiGenerator::onEngineError);
 
     // エンジン起動。usiok/readyok 待ちでイベントループが回るため、
@@ -100,6 +75,10 @@ void TsumeshogiGenerator::start(const Settings& settings)
         return;
     }
 
+    // ThinkingInfoPresenter が info 行を処理する際に盤面データが必要。
+    // 局面は position コマンドで直接指定するため、ダミーの盤面（81マス空欄）を一度だけ設定する
+    m_usi->setClonedBoardData(QList<QChar>(BoardConstants::kNumBoardSquares, QChar(' ')));
+
     // キャンセルフラグを初期化
     m_cancelFlag = makeCancelFlag();
     m_positionQueue.clear();
@@ -108,6 +87,7 @@ void TsumeshogiGenerator::start(const Settings& settings)
     // タイマー開始
     m_elapsedTimer.start();
     m_progressTimer.start(kProgressIntervalMs);
+    emit searchPhaseStarted();
 
     // 空のキューを生成待ちにしてから、最初のバッチ生成を開始する。
     // 完了通知で generateAndSendNext() が再開され、最初の局面を送信する。
@@ -294,11 +274,6 @@ void TsumeshogiGenerator::generateAndSendNext()
         startBatchGeneration();
     }
 
-    // ThinkingInfoPresenter が info 行を処理する際に盤面データが必要
-    // ダミーの盤面データ（81マス空欄）を設定してクラッシュを防ぐ
-    QList<QChar> dummyBoard(BoardConstants::kNumBoardSquares, QChar(' '));
-    m_usi->setClonedBoardData(dummyBoard);
-
     // position コマンド用の文字列を構築
     QString positionStr = QStringLiteral("position sfen ") + m_currentSfen;
 
@@ -357,10 +332,10 @@ void TsumeshogiGenerator::cleanup()
     if (m_usi) {
         m_usi->cleanupEngineProcessAndThread();
         // Usi のシグナル処理中（エンジン応答・エラー通知）に呼ばれることがあるため
-        // 同期削除は行わず、切断してから遅延削除する（parent が this なので取りこぼしはない）
-        Usi* usi = m_usi.release();
-        disconnect(usi, nullptr, this, nullptr);
-        usi->deleteLater();
+        // 同期削除は行わず、切断してから遅延削除する（this が親なので取りこぼしはない）
+        disconnect(m_usi, nullptr, this, nullptr);
+        m_usi->deleteLater();
+        m_usi = nullptr;
     }
 
     // バッチ生成状態をクリア
@@ -387,10 +362,10 @@ void TsumeshogiGenerator::startBatchGeneration()
 
     const auto settings = m_settings.posGenSettings;
     const auto cancelFlag = m_cancelFlag;
-    const int batchSize = qMax(QThread::idealThreadCount(), 4);
 
-    auto future = QtConcurrent::run([settings, batchSize, cancelFlag]() {
-        return generatePositionBatch(settings, batchSize, cancelFlag);
+    // UI をブロックしないようワーカースレッドで生成する
+    auto future = QtConcurrent::run([settings, cancelFlag]() {
+        return TsumeshogiPositionGenerator::generateBatch(settings, kBatchSize, cancelFlag);
     });
     m_batchWatcher.setFuture(future);
 }
@@ -440,6 +415,7 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
         }
 
         m_trimTestSfen = testSfen;
+        emit trimmingProgress(m_trimCandidateIndex + 1, static_cast<int>(m_trimCandidates.size()));
         sendTrimmingCheck(m_trimTestSfen);
         return;
     }
@@ -450,9 +426,6 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
 
 void TsumeshogiGenerator::sendTrimmingCheck(const QString& modifiedSfen)
 {
-    QList<QChar> dummyBoard(BoardConstants::kNumBoardSquares, QChar(' '));
-    m_usi->setClonedBoardData(dummyBoard);
-
     QString positionStr = QStringLiteral("position sfen ") + modifiedSfen;
     m_usi->sendPositionAndGoMateCommands(m_settings.timeoutMs, positionStr);
 
@@ -464,5 +437,6 @@ void TsumeshogiGenerator::finishTrimmingPhase()
     // トリミング結果を出力
     m_currentSfen = m_trimBaseSfen;
     m_phase = Phase::Searching;
+    emit searchPhaseStarted();
     processResult(true, m_trimBasePv);
 }

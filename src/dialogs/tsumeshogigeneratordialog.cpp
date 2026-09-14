@@ -13,6 +13,7 @@
 
 #include <QAbstractItemView>
 #include <QApplication>
+#include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
 #include <QFile>
@@ -76,6 +77,7 @@ protected:
 
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     : QDialog(parent)
+    , m_generator(new TsumeshogiGenerator(this))
     , m_fontHelper({TsumeshogiSettings::tsumeshogiGeneratorFontSize(), 8, 24, 1,
                     TsumeshogiSettings::setTsumeshogiGeneratorFontSize})
 {
@@ -91,9 +93,8 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
 
 TsumeshogiGeneratorDialog::~TsumeshogiGeneratorDialog()
 {
-    if (m_generator && m_generator->isRunning()) {
-        m_generator->stop();
-    }
+    // ウィジェット破棄前に停止する（トリミング中の結果もここで確定する）。Idle なら何もしない
+    m_generator->stop();
     saveSettings();
 }
 
@@ -184,6 +185,8 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     mainLayout->addWidget(m_labelProgress);
     m_labelElapsed = new QLabel(tr("経過時間: 00:00:00"), this);
     mainLayout->addWidget(m_labelElapsed);
+    m_labelStatus = new QLabel(this);
+    mainLayout->addWidget(m_labelStatus);
 }
 
 void TsumeshogiGeneratorDialog::buildResultsSection(QVBoxLayout* mainLayout)
@@ -222,6 +225,10 @@ void TsumeshogiGeneratorDialog::buildResultsSection(QVBoxLayout* mainLayout)
     m_btnRestoreDefaults->setStyleSheet(ButtonStyles::undoRedo());
     bottomLayout->addWidget(m_btnRestoreDefaults);
     bottomLayout->addStretch();
+    m_checkIncludePv = new QCheckBox(tr("手順も出力"), this);
+    m_checkIncludePv->setToolTip(
+        tr("ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します"));
+    bottomLayout->addWidget(m_checkIncludePv);
     m_btnSaveToFile = new QPushButton(tr("ファイル保存"), this);
     m_btnSaveToFile->setStyleSheet(ButtonStyles::fileOperation());
     bottomLayout->addWidget(m_btnSaveToFile);
@@ -251,6 +258,19 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
     connect(m_btnRestoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
     connect(m_btnEngineSetting, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     connect(m_tableResults, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
+
+    connect(m_generator, &TsumeshogiGenerator::positionFound,
+            this, &TsumeshogiGeneratorDialog::onPositionFound);
+    connect(m_generator, &TsumeshogiGenerator::progressUpdated,
+            this, &TsumeshogiGeneratorDialog::onProgressUpdated);
+    connect(m_generator, &TsumeshogiGenerator::finished,
+            this, &TsumeshogiGeneratorDialog::onGeneratorFinished);
+    connect(m_generator, &TsumeshogiGenerator::errorOccurred,
+            this, &TsumeshogiGeneratorDialog::onGeneratorError);
+    connect(m_generator, &TsumeshogiGenerator::searchPhaseStarted,
+            this, &TsumeshogiGeneratorDialog::onSearchPhaseStarted);
+    connect(m_generator, &TsumeshogiGenerator::trimmingProgress,
+            this, &TsumeshogiGeneratorDialog::onTrimmingProgress);
 
     // ウィンドウサイズ復元
     DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
@@ -287,6 +307,7 @@ void TsumeshogiGeneratorDialog::loadSettings()
     m_spinAttackRange->setValue(TsumeshogiSettings::tsumeshogiGeneratorAttackRange());
     m_spinTimeout->setValue(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec());
     m_spinMaxPositions->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions());
+    m_checkIncludePv->setChecked(TsumeshogiSettings::tsumeshogiGeneratorIncludePv());
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
@@ -300,6 +321,7 @@ void TsumeshogiGeneratorDialog::saveSettings()
     TsumeshogiSettings::setTsumeshogiGeneratorAttackRange(m_spinAttackRange->value());
     TsumeshogiSettings::setTsumeshogiGeneratorTimeoutSec(m_spinTimeout->value());
     TsumeshogiSettings::setTsumeshogiGeneratorMaxPositions(m_spinMaxPositions->value());
+    TsumeshogiSettings::setTsumeshogiGeneratorIncludePv(m_checkIncludePv->isChecked());
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()
@@ -309,17 +331,6 @@ void TsumeshogiGeneratorDialog::onStartClicked()
         QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
         return;
     }
-
-    // ジェネレータを作成
-    m_generator = std::make_unique<TsumeshogiGenerator>(this);
-    connect(m_generator.get(), &TsumeshogiGenerator::positionFound,
-            this, &TsumeshogiGeneratorDialog::onPositionFound);
-    connect(m_generator.get(), &TsumeshogiGenerator::progressUpdated,
-            this, &TsumeshogiGeneratorDialog::onProgressUpdated);
-    connect(m_generator.get(), &TsumeshogiGenerator::finished,
-            this, &TsumeshogiGeneratorDialog::onGeneratorFinished);
-    connect(m_generator.get(), &TsumeshogiGenerator::errorOccurred,
-            this, &TsumeshogiGeneratorDialog::onGeneratorError);
 
     // 設定を構築
     TsumeshogiGenerator::Settings settings;
@@ -341,7 +352,5 @@ void TsumeshogiGeneratorDialog::onStartClicked()
 
 void TsumeshogiGeneratorDialog::onStopClicked()
 {
-    if (m_generator) {
-        m_generator->stop();
-    }
+    m_generator->stop();
 }

@@ -128,4 +128,16 @@ void setTsumeshogiGeneratorMaxPositions(int count)
     s.setValue(SettingsKeys::kTsumeshogiGeneratorMaxPositions, count);
 }
 
+bool tsumeshogiGeneratorIncludePv()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    return s.value(SettingsKeys::kTsumeshogiGeneratorIncludePv, false).toBool();
+}
+
+void setTsumeshogiGeneratorIncludePv(bool include)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kTsumeshogiGeneratorIncludePv, include);
+}
+
 } // namespace TsumeshogiSettings

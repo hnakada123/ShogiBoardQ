@@ -9,11 +9,13 @@
 #include "tsumeshogisettings.h"
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QLabel>
 #include <QMessageBox>
 #include <QSpinBox>
 #include <QTableWidget>
@@ -82,9 +84,9 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
 
     QTextStream out(&file);
     for (int row = 0; row < m_tableResults->rowCount(); ++row) {
-        const auto* item = m_tableResults->item(row, 1);
-        if (item) {
-            out << item->text() << '\n';
+        const QString line = exportLine(row);
+        if (!line.isEmpty()) {
+            out << line << '\n';
         }
     }
 }
@@ -94,25 +96,25 @@ void TsumeshogiGeneratorDialog::onCopySelected()
     const auto selectedRows = m_tableResults->selectionModel()->selectedRows(1);
     if (selectedRows.isEmpty()) return;
 
-    QStringList sfenList;
+    QStringList lines;
     for (const auto& index : std::as_const(selectedRows)) {
-        sfenList.append(index.data().toString());
+        lines.append(exportLine(index.row()));
     }
-    QApplication::clipboard()->setText(sfenList.join('\n'));
+    QApplication::clipboard()->setText(lines.join('\n'));
 }
 
 void TsumeshogiGeneratorDialog::onCopyAll()
 {
     if (m_tableResults->rowCount() == 0) return;
 
-    QStringList sfenList;
+    QStringList lines;
     for (int row = 0; row < m_tableResults->rowCount(); ++row) {
-        const auto* item = m_tableResults->item(row, 1);
-        if (item) {
-            sfenList.append(item->text());
+        const QString line = exportLine(row);
+        if (!line.isEmpty()) {
+            lines.append(line);
         }
     }
-    QApplication::clipboard()->setText(sfenList.join('\n'));
+    QApplication::clipboard()->setText(lines.join('\n'));
 }
 
 void TsumeshogiGeneratorDialog::onFontIncrease()
@@ -223,6 +225,41 @@ void TsumeshogiGeneratorDialog::setRunningState(bool running)
     m_spinAttackRange->setEnabled(!running);
     m_spinTimeout->setEnabled(!running);
     m_spinMaxPositions->setEnabled(!running);
+
+    if (!running) {
+        setStatusText(tr("待機中"));
+    }
+}
+
+void TsumeshogiGeneratorDialog::onSearchPhaseStarted()
+{
+    setStatusText(tr("探索中"));
+}
+
+void TsumeshogiGeneratorDialog::onTrimmingProgress(int candidate, int total)
+{
+    setStatusText(tr("トリミング中（候補 %1/%2）").arg(candidate).arg(total));
+}
+
+void TsumeshogiGeneratorDialog::setStatusText(const QString& status)
+{
+    m_labelStatus->setText(tr("状態: %1").arg(status));
+}
+
+QString TsumeshogiGeneratorDialog::exportLine(int row) const
+{
+    const auto* item = m_tableResults->item(row, 1);
+    if (!item) return QString();
+
+    QString line = item->text();
+    if (m_checkIncludePv->isChecked()) {
+        // USI の position 構文に合わせて "moves" に続けて手順を付加する
+        const QStringList pv = item->data(Qt::UserRole).toStringList();
+        if (!pv.isEmpty()) {
+            line += QStringLiteral(" moves ") + pv.join(QLatin1Char(' '));
+        }
+    }
+    return line;
 }
 
 QString TsumeshogiGeneratorDialog::formatElapsedTime(qint64 ms) const
