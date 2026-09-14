@@ -31,6 +31,38 @@ private:
         return count;
     }
 
+    /// SFEN盤面部分に二歩（同じ筋に同じ側の不成歩が2枚以上）があるか
+    static bool hasNifu(const QString& boardPart)
+    {
+        int sentePawns[9] = {};
+        int gotePawns[9] = {};
+        const QStringList rows = boardPart.split(QLatin1Char('/'));
+        for (const QString& row : rows) {
+            int col = 0;
+            bool promoted = false;
+            for (const QChar ch : row) {
+                if (ch.isDigit()) {
+                    col += ch.digitValue();
+                    continue;
+                }
+                if (ch == QLatin1Char('+')) {
+                    promoted = true;
+                    continue;
+                }
+                if (!promoted && col < 9) {
+                    if (ch == QLatin1Char('P')) ++sentePawns[col];
+                    if (ch == QLatin1Char('p')) ++gotePawns[col];
+                }
+                promoted = false;
+                ++col;
+            }
+        }
+        for (int i = 0; i < 9; ++i) {
+            if (sentePawns[i] >= 2 || gotePawns[i] >= 2) return true;
+        }
+        return false;
+    }
+
     /// SFEN盤面+持駒から攻方（先手=大文字）の駒数をカウント（玉除く）
     static int countAttackPieces(const QString& sfen)
     {
@@ -122,6 +154,11 @@ private slots:
     void generate_hasDefenderKing();
     void generate_respectsMaxAttackPieces();
     void generate_respectsMaxDefendPieces();
+    void generate_noNifu();
+    void isDefenderKingInCheck_rookOnFile();
+    void isDefenderKingInCheck_blockedByPawn();
+    void isDefenderKingInCheck_promotedPawn();
+    void isDefenderKingInCheck_noAttacker();
     void generateBatch_returnsRequestedCount();
     void generateBatch_cancellation();
     void generate_multipleCalls_produceDifferentResults();
@@ -343,6 +380,57 @@ void TestTsumeshogiGenerator::generate_respectsMaxDefendPieces()
                  qPrintable(QStringLiteral("Defend pieces %1 > max %2 in: %3")
                             .arg(defendCount).arg(settings.maxDefendPieces).arg(sfen)));
     }
+}
+
+void TestTsumeshogiGenerator::generate_noNifu()
+{
+    TsumeshogiPositionGenerator gen;
+    TsumeshogiPositionGenerator::Settings settings;
+    settings.maxAttackPieces = 5;
+    settings.maxDefendPieces = 4;
+    settings.attackRange = 3;
+    gen.setSettings(settings);
+
+    // 二歩回避なしでは同条件で約1%の局面に二歩が発生するため、
+    // 2000回で検出されない確率は無視できる
+    for (int i = 0; i < 2000; ++i) {
+        const QString sfen = gen.generate();
+        QVERIFY(!sfen.isEmpty());
+        const QString board = sfen.section(QLatin1Char(' '), 0, 0);
+        QVERIFY2(!hasNifu(board), qPrintable(QStringLiteral("Nifu in: %1").arg(sfen)));
+    }
+}
+
+void TestTsumeshogiGenerator::isDefenderKingInCheck_rookOnFile()
+{
+    // 5一玉、5九飛（攻方玉なし）→ 王手
+    QVERIFY(TsumeshogiPositionGenerator::isDefenderKingInCheck(
+        QStringLiteral("4k4/9/9/9/9/9/9/9/4R4 b - 1")));
+}
+
+void TestTsumeshogiGenerator::isDefenderKingInCheck_blockedByPawn()
+{
+    // 5五に守方の歩が挟まる → 王手ではない（この歩を除去すると王手になる）
+    QVERIFY(!TsumeshogiPositionGenerator::isDefenderKingInCheck(
+        QStringLiteral("4k4/9/9/9/4p4/9/9/9/4R4 b - 1")));
+}
+
+void TestTsumeshogiGenerator::isDefenderKingInCheck_promotedPawn()
+{
+    // 5二と（成駒）→ 5一玉に王手
+    QVERIFY(TsumeshogiPositionGenerator::isDefenderKingInCheck(
+        QStringLiteral("4k4/4+P4/9/9/9/9/9/9/9 b - 1")));
+    // 5三歩（不成）→ 王手ではない
+    QVERIFY(!TsumeshogiPositionGenerator::isDefenderKingInCheck(
+        QStringLiteral("4k4/9/4P4/9/9/9/9/9/9 b - 1")));
+}
+
+void TestTsumeshogiGenerator::isDefenderKingInCheck_noAttacker()
+{
+    QVERIFY(!TsumeshogiPositionGenerator::isDefenderKingInCheck(
+        QStringLiteral("4k4/9/9/9/9/9/9/9/9 b - 1")));
+    // 不正なSFEN（段数不足）は王手なし扱い
+    QVERIFY(!TsumeshogiPositionGenerator::isDefenderKingInCheck(QStringLiteral("4k4/9 b - 1")));
 }
 
 void TestTsumeshogiGenerator::generateBatch_returnsRequestedCount()

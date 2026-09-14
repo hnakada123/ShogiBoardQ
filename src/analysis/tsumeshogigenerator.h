@@ -9,6 +9,7 @@
 #include <QElapsedTimer>
 #include <QFutureWatcher>
 #include <QObject>
+#include <QSet>
 #include <QStringList>
 #include <QTimer>
 #include <QList>
@@ -60,6 +61,7 @@ private slots:
     void onSafetyTimeout();
     void onProgressTimerTimeout();
     void onBatchReady();
+    void onEngineError(const QString& message);
 
 private:
     /// 状態機械
@@ -88,6 +90,10 @@ private:
     // 検索フェーズ
     void generateAndSendNext();
     void processResult(bool found, const QStringList& pv = {});
+    bool registerFoundPosition(const QString& sfen, const QStringList& pv);
+    void flushTrimmingResult();
+    bool consumeStaleResponse();
+    void advanceAfterFailure();
     void cleanup();
 
     // SFEN解析・再構築
@@ -115,7 +121,11 @@ private:
     QString m_currentSfen;       ///< 現在探索中のSFEN文字列
     int m_triedCount = 0;        ///< 探索済み局面数
     int m_foundCount = 0;        ///< 発見局面数
+    QSet<QString> m_foundSfens;  ///< 発見済みSFEN（重複排除用）
     Phase m_phase = Phase::Idle; ///< 現在のフェーズ
+    bool m_starting = false;                 ///< start() のエンジン初期化中（イベントループが回る）
+    bool m_stopRequestedDuringStart = false; ///< エンジン初期化中に stop() が要求された
+    bool m_awaitingStopResponse = false;     ///< 安全タイマー発火後、stop への応答待ち
 
     QElapsedTimer m_elapsedTimer; ///< 全体経過時間
     QTimer m_safetyTimer;         ///< エンジン無応答ガードタイマー

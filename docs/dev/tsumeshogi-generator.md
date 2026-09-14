@@ -53,8 +53,11 @@ Dialog ──start()──▶ Generator ──generateAndSendNext()──▶ Usi
   │   ├─ N == 目標手数 → トリミングフェーズへ
   │   └─ N != 目標手数 → 次の局面へ
   ├─ checkmate nomate → 次の局面へ
-  ├─ checkmate timeout → 次の局面へ
-  └─ エンジン無応答（安全タイマー） → 次の局面へ
+  ├─ checkmate timeout → 次の局面へ（`checkmateUnknown` として通知される）
+  ├─ エンジン無応答（安全タイマー） → stop を送信して応答を待つ
+  │   ├─ 応答あり → 結果として扱わず破棄し、次の局面へ（遅延応答の誤採択防止）
+  │   └─ 3秒応答なし → エンジン固着とみなし生成終了（errorOccurred + finished）
+  └─ エンジンエラー（プロセス異常終了など） → 生成終了（errorOccurred + finished）
 ```
 
 ### 状態機械 (Phase)
@@ -64,6 +67,9 @@ Dialog ──start()──▶ Generator ──generateAndSendNext()──▶ Usi
 | Phase | 説明 | 遷移先 |
 |---|---|---|
 | `Idle` | 停止中。`start()` で Searching へ | → Searching |
+
+`start()` のエンジン初期化中（usiok/readyok 待ち）はイベントループが回るため、この間の `stop()` は
+`m_stopRequestedDuringStart` に記録し、初期化の待機を中断させて `start()` 復帰後に後始末する。
 | `Searching` | ランダム生成→エンジン検証ループ中 | → Trimming（詰み発見時）/ → Idle（停止・上限到達） |
 | `Trimming` | 不要駒除去検証中 | → Searching（トリミング完了後）/ → Idle（停止時） |
 
@@ -94,7 +100,8 @@ Idle ──────▶ Searching ──────▶ Trimming
    - 70%の確率で盤上（玉周辺attackRangeマス以内）、30%の確率で持駒
    - 30%の確率で成駒として配置
    - 段制約に違反する場合は自動で成駒に変換（金は不可なので再試行）
-3. **守り駒を配置** — 0〜maxDefendPieces枚（玉以外の後手駒、玉周辺2マス以内）
+   - 同じ筋に同じ側の不成歩がある場合は二歩になるため別のマスを再試行
+3. **守り駒を配置** — 0〜maxDefendPieces枚（玉以外の後手駒、玉周辺2マス以内、二歩回避は攻め駒と同様）
 4. **王手検証** — 初期局面で後手玉に王手がかかっていないことを `FastMoveValidator` で検証
 5. **リトライ** — 王手がかかっている場合は最大100回再生成
 
@@ -129,11 +136,17 @@ Idle ──────▶ Searching ──────▶ Trimming
 
 エンジンが返すPV（Principal Variation）の手数が「ちょうどN手」のみを採択する。N手以下の短手数やN手超の長手数は棄却される。
 
+この判定はエンジンが**最短手順**を返すことを前提にしている。最短性が保証されない設定では、実際にはより短手数で詰む局面が「N手詰」として採択されうる。
+KomoringHeights の場合は `PostSearchLevel` を `MinLength`（最短性を保証）にする必要がある（`None` / `UpperBound` は不可）。ダイアログにもこの旨の注意書きを表示している。
+
+発見局面は SFEN 単位で重複排除する（トリミングにより異なる候補が同じ最小局面に収束することがあるため）。重複した局面は発見数に数えない。
+
 ### タイマー
 
 | タイマー | 用途 | 間隔 |
 |---|---|---|
 | `m_safetyTimer` | エンジン無応答ガード | `timeoutMs + 5000ms`（シングルショット） |
+| `m_safetyTimer`（stop 応答待ち） | 安全タイマー発火後に送った stop への応答待ち | 3000ms（シングルショット） |
 | `m_progressTimer` | UI進捗更新 | 500ms（リピート） |
 
 ## 不要駒トリミング
@@ -196,6 +209,14 @@ startTrimmingPhase(sfen, pv)
 駒を1つ除去するたびに候補リストを再構築し、先頭から再試行する。これは、ある駒の除去によって別の駒も不要になるケースに対応するためである。
 
 例: 攻方の銀を除去 → 銀で合駒する変化が消滅 → 攻方の桂（銀合の変化でのみ必要だった）も不要になる
+
+### 除去候補の事前検証
+
+除去後の局面で開始時に守方玉へ王手がかかる場合（例: 飛車と玉の間にあった守り駒を除去）、詰将棋として不正なのでエンジンに送らず候補から外す。判定には `TsumeshogiPositionGenerator::isDefenderKingInCheck()` を使う。
+
+### 中断時の扱い
+
+トリミング中に `stop()`・エンジンエラー・エンジン固着で終了する場合、その時点のベース局面（`m_trimBaseSfen`）は検証済みのN手詰なので、`positionFound` として出力してから終了する。
 
 ## SFEN解析・再構築
 

@@ -314,6 +314,19 @@ private slots:
         QCOMPARE(spy.count(), 1);
     }
 
+    void checkmate_timeout_emitsUnknown()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy spySolved(&handler, &UsiProtocolHandler::checkmateSolved);
+        QSignalSpy spyUnknown(&handler, &UsiProtocolHandler::checkmateUnknown);
+
+        // 時間切れは "timeout" を指し手とみなさず、結果不明として通知する
+        handler.onDataReceived(QStringLiteral("checkmate timeout"));
+
+        QCOMPARE(spySolved.count(), 0);
+        QCOMPARE(spyUnknown.count(), 1);
+    }
+
     void checkmate_notimplemented()
     {
         UsiProtocolHandler handler;

@@ -31,6 +31,9 @@ public:
     void setSettings(const Settings& s);
     QString generate();
 
+    /// SFEN局面で守方（後手）玉に王手がかかっているか（攻方玉がなくても判定できる）
+    static bool isDefenderKingInCheck(const QString& sfen);
+
 #ifdef SHOGIBOARDQ_TESTING
     /// スレッドプールで count 個の候補局面を並列生成する
     static QStringList generateBatch(const Settings& settings, int count, const CancelFlag& cancelFlag);
@@ -63,6 +66,7 @@ private:
     QString generateOnce();
     void clearState();
     bool isOccupied(int file, int rank) const;
+    bool hasUnpromotedPawnInFile(int file, bool isAttacker) const;
     bool placeOnBoard(int file, int rank, const QString& sfenPiece);
     PieceType randomPieceType();
     bool hasRemainingPiece(PieceType pt) const;

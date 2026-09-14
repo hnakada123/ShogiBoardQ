@@ -17,7 +17,10 @@ void UsiProtocolHandler::handleCheckmateLine(const QString& line)
         emit checkmateNotImplemented();
         return;
     }
-    if (rest.isEmpty() || rest.compare(QStringLiteral("unknown"), Qt::CaseInsensitive) == 0) {
+    // "checkmate timeout"（時間切れ）は指し手列ではないので結果不明として扱う
+    if (rest.isEmpty()
+        || rest.compare(QStringLiteral("unknown"), Qt::CaseInsensitive) == 0
+        || rest.compare(QStringLiteral("timeout"), Qt::CaseInsensitive) == 0) {
         emit checkmateUnknown();
         return;
     }
