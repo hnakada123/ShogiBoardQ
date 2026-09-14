@@ -194,7 +194,7 @@ signals:
     void checkmateSolved(const QStringList& pvMoves); ///< 詰みあり（ProtocolHandler → TsumeSearchFlowController）
     void checkmateNoMate();                           ///< 詰みなし（ProtocolHandler → TsumeSearchFlowController）
     void checkmateNotImplemented();                   ///< 詰探索未対応（ProtocolHandler → TsumeSearchFlowController）
-    void checkmateUnknown();                          ///< 詰探索結果不明（ProtocolHandler → TsumeSearchFlowController）
+    void checkmateUnknown();                          ///< 詰探索結果不明・時間切れ（ProtocolHandler → TsumeSearchFlowController）
     void errorOccurred(const QString& message);       ///< エンジンエラー発生（ProcessManager → 外部）
     void usiOkReceived();                             ///< usiok受信完了（ProtocolHandler → 外部）
     void readyOkReceived();                           ///< readyok受信完了（ProtocolHandler → 外部）

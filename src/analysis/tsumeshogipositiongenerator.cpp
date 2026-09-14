@@ -84,6 +84,11 @@ QString TsumeshogiPositionGenerator::generateOnce()
                     }
                 }
 
+                // 二歩回避: 同じ筋に不成の歩があれば別のマスを試す
+                if (pt == Pawn && !promote && hasUnpromotedPawnInFile(f, true)) {
+                    continue;
+                }
+
                 const QString sfenPiece = promote ? promotedSfen(pt, true) : unpromatedSfen(pt, true);
                 placeOnBoard(f, r, sfenPiece);
                 usePiece(pt);
@@ -136,6 +141,11 @@ QString TsumeshogiPositionGenerator::generateOnce()
                 }
             }
 
+            // 二歩回避: 同じ筋に不成の歩があれば別のマスを試す
+            if (pt == Pawn && !promote && hasUnpromotedPawnInFile(f, false)) {
+                continue;
+            }
+
             const QString sfenPiece = promote ? promotedSfen(pt, false) : unpromatedSfen(pt, false);
             placeOnBoard(f, r, sfenPiece);
             usePiece(pt);
@@ -167,6 +177,16 @@ void TsumeshogiPositionGenerator::clearState()
 bool TsumeshogiPositionGenerator::isOccupied(int file, int rank) const
 {
     return !m_board[rank][file].isNull();
+}
+
+bool TsumeshogiPositionGenerator::hasUnpromotedPawnInFile(int file, bool isAttacker) const
+{
+    // 成駒は Private Use Area にエンコードされるため、素の 'P'/'p' との比較で不成の歩だけが一致する
+    const QChar pawn = isAttacker ? QChar(QLatin1Char('P')) : QChar(QLatin1Char('p'));
+    for (int rank = 0; rank < 9; ++rank) {
+        if (m_board[rank][file] == pawn) return true;
+    }
+    return false;
 }
 
 bool TsumeshogiPositionGenerator::placeOnBoard(int file, int rank, const QString& sfenPiece)
@@ -279,6 +299,39 @@ bool TsumeshogiPositionGenerator::isKingInCheck() const
     const QList<Piece> boardData = buildBoardData();
     EngineMoveValidator validator;
     // 後手(WHITE)の玉に先手(BLACK)の駒から王手がかかっているか
+    return validator.checkIfKingInCheck(EngineMoveValidator::WHITE, boardData) > 0;
+}
+
+bool TsumeshogiPositionGenerator::isDefenderKingInCheck(const QString& sfen)
+{
+    const QString boardPart = sfen.section(QLatin1Char(' '), 0, 0);
+    const QStringList rows = boardPart.split(QLatin1Char('/'));
+    if (rows.size() != 9) return false;
+
+    // buildBoardData() と同じ配列規約（[rank*9 + file], file 0 = 1筋）で盤面を構築する
+    QList<Piece> boardData(81, Piece::None);
+    for (int rank = 0; rank < 9; ++rank) {
+        int col = 0; // SFENの列（0 = 9筋）
+        bool promoted = false;
+        for (const QChar ch : rows.at(rank)) {
+            if (ch.isDigit()) {
+                col += ch.digitValue();
+                continue;
+            }
+            if (ch == QLatin1Char('+')) {
+                promoted = true;
+                continue;
+            }
+            if (col < 9) {
+                const int file = 8 - col;
+                boardData[rank * 9 + file] = charToPiece(promoted ? promotedPieceChar(ch) : ch);
+            }
+            promoted = false;
+            ++col;
+        }
+    }
+
+    EngineMoveValidator validator;
     return validator.checkIfKingInCheck(EngineMoveValidator::WHITE, boardData) > 0;
 }
 

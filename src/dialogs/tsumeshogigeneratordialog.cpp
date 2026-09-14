@@ -31,6 +31,7 @@
 #include <QTableWidget>
 #include <QTextStream>
 #include <QToolButton>
+#include <QValidator>
 #include <QVBoxLayout>
 
 /// 「表示」ボタン列用のデリゲート
@@ -54,6 +55,22 @@ public:
         painter->drawText(option.rect, Qt::AlignCenter, QObject::tr("表示"));
 
         painter->restore();
+    }
+};
+
+/// 奇数のみを受け付けるスピンボックス
+/// 詰将棋の手数は必ず奇数なので、偶数の直接入力は確定させない（前の値に戻る）
+class OddSpinBox : public QSpinBox
+{
+public:
+    explicit OddSpinBox(QWidget* parent = nullptr) : QSpinBox(parent) {}
+
+protected:
+    QValidator::State validate(QString& input, int& pos) const override
+    {
+        const QValidator::State state = QSpinBox::validate(input, pos);
+        if (state != QValidator::Acceptable) return state;
+        return (valueFromText(input) % 2 != 0) ? QValidator::Acceptable : QValidator::Intermediate;
     }
 };
 
@@ -104,6 +121,13 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     engineLayout->addWidget(m_btnEngineSetting);
     mainLayout->addLayout(engineLayout);
 
+    // 「ちょうどN手」の判定はエンジンが最短手順を返すことを前提にしている
+    auto* engineNote = new QLabel(
+        tr("※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）"),
+        this);
+    engineNote->setWordWrap(true);
+    mainLayout->addWidget(engineNote);
+
     // --- 生成設定セクション ---
     auto* settingsLabel = new QLabel(tr("生成設定"), this);
     settingsLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
@@ -111,7 +135,7 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
 
     auto* formLayout = new QFormLayout;
 
-    m_spinTargetMoves = new QSpinBox(this);
+    m_spinTargetMoves = new OddSpinBox(this);
     m_spinTargetMoves->setRange(1, 99);
     m_spinTargetMoves->setSingleStep(2);
     m_spinTargetMoves->setValue(3);
@@ -252,7 +276,12 @@ void TsumeshogiGeneratorDialog::loadSettings()
         m_comboEngine->setCurrentIndex(engineIndex);
     }
 
-    m_spinTargetMoves->setValue(TsumeshogiSettings::tsumeshogiGeneratorTargetMoves());
+    // 旧バージョンで偶数が保存されていた場合に備えて奇数に補正する
+    int targetMoves = TsumeshogiSettings::tsumeshogiGeneratorTargetMoves();
+    if (targetMoves % 2 == 0) {
+        targetMoves = qMax(1, targetMoves - 1);
+    }
+    m_spinTargetMoves->setValue(targetMoves);
     m_spinMaxAttack->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxAttackPieces());
     m_spinMaxDefend->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxDefendPieces());
     m_spinAttackRange->setValue(TsumeshogiSettings::tsumeshogiGeneratorAttackRange());

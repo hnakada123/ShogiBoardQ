@@ -160,7 +160,7 @@ signals:
     void checkmateSolved(const QStringList& pvMoves); ///< 詰みあり（Handler → TsumeSearchFlowController）
     void checkmateNoMate();            ///< 不詰（Handler → TsumeSearchFlowController）
     void checkmateNotImplemented();    ///< 未対応（Handler → TsumeSearchFlowController）
-    void checkmateUnknown();           ///< 不明（Handler → TsumeSearchFlowController）
+    void checkmateUnknown();           ///< 不明・時間切れ（Handler → TsumeSearchFlowController）
 
 public slots:
     /// データ受信ハンドラ
