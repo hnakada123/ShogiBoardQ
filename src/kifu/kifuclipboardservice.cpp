@@ -14,21 +14,6 @@ namespace KifuClipboardService {
 
 namespace {
 
-/// GameRecordModel用のExportContextを構築
-GameRecordModel::ExportContext buildModelContext(const ExportContext& ctx)
-{
-    GameRecordModel::ExportContext modelCtx;
-    modelCtx.gameInfoTable = ctx.gameInfoTable;
-    modelCtx.recordModel   = ctx.recordModel;
-    modelCtx.startSfen     = ctx.startSfen;
-    modelCtx.playMode      = ctx.playMode;
-    modelCtx.human1        = ctx.human1;
-    modelCtx.human2        = ctx.human2;
-    modelCtx.engine1       = ctx.engine1;
-    modelCtx.engine2       = ctx.engine2;
-    return modelCtx;
-}
-
 /// クリップボードにテキストを設定
 bool setClipboardText(const QString& text)
 {
@@ -42,15 +27,9 @@ bool setClipboardText(const QString& text)
 
 } // anonymous namespace
 
-bool copyKif(const ExportContext& ctx)
+bool copyKif(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx)
 {
-    if (!ctx.gameRecord) {
-        qCWarning(lcKifu) << "copyKif: gameRecord is null";
-        return false;
-    }
-
-    GameRecordModel::ExportContext modelCtx = buildModelContext(ctx);
-    QStringList kifLines = ctx.gameRecord->toKifLines(modelCtx);
+    const QStringList kifLines = model.toKifLines(ctx);
 
     if (kifLines.isEmpty()) {
         qCDebug(lcKifu).noquote() << "copyKif: no KIF data";
@@ -65,15 +44,9 @@ bool copyKif(const ExportContext& ctx)
     return false;
 }
 
-bool copyKi2(const ExportContext& ctx)
+bool copyKi2(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx)
 {
-    if (!ctx.gameRecord) {
-        qCWarning(lcKifu) << "copyKi2: gameRecord is null";
-        return false;
-    }
-
-    GameRecordModel::ExportContext modelCtx = buildModelContext(ctx);
-    QStringList ki2Lines = ctx.gameRecord->toKi2Lines(modelCtx);
+    const QStringList ki2Lines = model.toKi2Lines(ctx);
 
     if (ki2Lines.isEmpty()) {
         qCDebug(lcKifu).noquote() << "copyKi2: no KI2 data";

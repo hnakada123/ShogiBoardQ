@@ -304,15 +304,15 @@ QString convertToCsaDateTime(const QString& dateTimeStr)
 
 QString convertToCsaTime(const QString& timeStr)
 {
-    // V2.2形式: "HH:MM+SS" → V3.0形式: "$TIME:秒+秒読み+0"
+    // 対局情報の持ち時間: "mm:ss+秒読み" → "$TIME:秒+秒読み+0"
     static const QRegularExpression reV22(
         QStringLiteral("(\\d+):(\\d{2})\\+(\\d+)"));
     QRegularExpressionMatch m = reV22.match(timeStr);
     if (m.hasMatch()) {
-        int hours = m.captured(1).toInt();
-        int minutes = m.captured(2).toInt();
+        int minutes = m.captured(1).toInt();
+        int seconds = m.captured(2).toInt();
         int byoyomi = m.captured(3).toInt();
-        int totalSeconds = hours * 3600 + minutes * 60;
+        int totalSeconds = minutes * 60 + seconds;
         return QStringLiteral("$TIME:%1+%2+0").arg(totalSeconds).arg(byoyomi);
     }
 

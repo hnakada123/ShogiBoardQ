@@ -3,6 +3,7 @@
 
 #include "kifuloadcoordinator.h"
 #include "kifuapplyservice.h"
+#include "kifuapplylogger.h"
 #include "kifufilereader.h"
 #include "kiftosfenconverter.h"
 #include "sfenpositiontracer.h"
@@ -106,51 +107,6 @@ void KifuLoadCoordinator::initApplyService()
 }
 
 // ============================================================
-// デバッグ出力ヘルパー関数（ファイルスコープ内でのみ使用）
-// ============================================================
-
-static void dumpMainline(const KifParseResult& res, const QString& parseWarn)
-{
-    qCDebug(lcKifu).noquote() << "KifParseResult dump:";
-    if (!parseWarn.isEmpty()) {
-        qCDebug(lcKifu).noquote() << "  [parseWarn]" << parseWarn;
-    }
-
-    qCDebug(lcKifu).noquote() << "  Mainline:";
-    qCDebug(lcKifu).noquote() << "    baseSfen: " << res.mainline.baseSfen;
-    qCDebug(lcKifu).noquote() << "    usiMoves: " << res.mainline.usiMoves;
-    qCDebug(lcKifu).noquote() << "    disp:";
-    int mainIdx = 0;
-    for (const auto& d : std::as_const(res.mainline.disp)) {
-        qCDebug(lcKifu).noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
-        qCDebug(lcKifu).noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
-        qCDebug(lcKifu).noquote() << "           timeText: " << d.timeText;
-        ++mainIdx;
-    }
-}
-
-static void dumpVariationsDebug(const KifParseResult& res)
-{
-    qCDebug(lcKifu).noquote() << "  Variations:";
-    int varNo = 0;
-    for (const KifVariation& var : std::as_const(res.variations)) {
-        qCDebug(lcKifu).noquote() << "  [Var " << varNo << "]";
-        qCDebug(lcKifu).noquote() << "    startPly: " << var.startPly;
-        qCDebug(lcKifu).noquote() << "    baseSfen: " << var.line.baseSfen;
-        qCDebug(lcKifu).noquote() << "    usiMoves: " << var.line.usiMoves;
-        qCDebug(lcKifu).noquote() << "    disp:";
-        int dispIdx = 0;
-        for (const auto& d : std::as_const(var.line.disp)) {
-            qCDebug(lcKifu).noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
-            qCDebug(lcKifu).noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
-            qCDebug(lcKifu).noquote() << "           timeText: " << d.timeText;
-            ++dispIdx;
-        }
-        ++varNo;
-    }
-}
-
-// ============================================================
 // 棋譜読み込み共通処理
 // ============================================================
 
@@ -228,9 +184,9 @@ bool KifuLoadCoordinator::loadKifuCommon(
     }
 
     // 3) デバッグ出力
-    dumpMainline(res, parseWarn);
+    KifuApplyLogger::dumpMainline(res, parseWarn);
     if (dumpVariations) {
-        dumpVariationsDebug(res);
+        KifuApplyLogger::dumpVariationsDebug(res);
     }
     logStep("dumpMainline/Variations");
 
@@ -392,11 +348,12 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     }
 
     // 一時ファイルを作成して読み込み
-    const QString tempFilePath = KifuFileReader::tempFilePath(fmt);
-    if (!KifuFileReader::writeTempFile(tempFilePath, content)) {
+    const auto tempFile = KifuFileReader::createTempFile(fmt, content);
+    if (!tempFile) {
         emit errorOccurred(tr("一時ファイルの作成に失敗しました。"));
         return false;
     }
+    const QString tempFilePath = tempFile->fileName();
     qCDebug(lcKifu).noquote() << "created temp file:" << tempFilePath;
 
     // 形式に応じた読み込み関数を呼び出し
@@ -410,9 +367,6 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     case KifuFileReader::KifuFormat::USEN: ok = loadUsenFromFile(tempFilePath); break;
     default:                               ok = loadKifuFromFile(tempFilePath); break;
     }
-
-    QFile::remove(tempFilePath);
-    qCDebug(lcKifu).noquote() << "removed temp file:" << tempFilePath;
 
     return ok;
 }

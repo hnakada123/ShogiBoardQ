@@ -3,8 +3,7 @@
 
 #include "kifuioservice.h"
 
-#include <QFile>
-#include <QTextStream>
+#include <QSaveFile>
 #include <QStringEncoder>
 #include <QDateTime>
 #include <QDir>
@@ -79,9 +78,29 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
                                   QString* errorText,
                                   bool useShiftJis)
 {
+    if (errorText) errorText->clear();
     if (filePath.isEmpty()) {
         if (errorText) *errorText = QObject::tr("File path is empty.");
         return false;
+    }
+
+    // 変換を完了してから保存を開始し、表現不能文字によるデータ損失を防ぐ。
+    QByteArray encoded;
+    const QString text = kifuLines.isEmpty() ? QString()
+        : kifuLines.join(QLatin1Char('\n')) + QLatin1Char('\n');
+    if (useShiftJis) {
+        QStringEncoder encoder("Shift-JIS");
+        if (!encoder.isValid()) {
+            if (errorText) *errorText = QObject::tr("Shift_JIS encoder is not available on this system.");
+            return false;
+        }
+        encoded = encoder.encode(text);
+        if (encoder.hasError()) {
+            if (errorText) *errorText = QObject::tr("Some characters cannot be saved in Shift_JIS. Please save as UTF-8.");
+            return false;
+        }
+    } else {
+        encoded = text.toUtf8();
     }
 
     const QFileInfo fi(filePath);
@@ -95,39 +114,20 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
         }
     }
 
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+    QSaveFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         if (errorText) {
             *errorText = QObject::tr("Could not open the file for writing: %1").arg(file.errorString());
         }
         return false;
     }
 
-    if (useShiftJis) {
-        QStringEncoder encoder("Shift-JIS");
-        if (!encoder.isValid()) {
-            if (errorText) *errorText = QObject::tr("Shift_JIS encoder is not available on this system.");
-            return false;
-        }
-        for (const QString& line : kifuLines) {
-            file.write(encoder.encode(line));
-            file.write(encoder.encode(QStringLiteral("\n")));
-        }
-    } else {
-        QTextStream out(&file);
-        // Qt6 の QTextStream は既定で UTF-8。特に設定不要。
-        for (const QString& line : kifuLines) {
-            out << line << QLatin1Char('\n');
-        }
-        out.flush();
-        if (out.status() != QTextStream::Ok) {
-            if (errorText) *errorText = QObject::tr("Failed to write data to file.");
-            return false;
-        }
+    if (file.write(encoded) != encoded.size()) {
+        if (errorText) *errorText = QObject::tr("Failed to write data to file.");
+        return false;
     }
 
-    file.close();
-    if (file.error() != QFile::NoError) {
+    if (!file.commit()) {
         if (errorText) *errorText = QObject::tr("Failed to close file: %1").arg(file.errorString());
         return false;
     }

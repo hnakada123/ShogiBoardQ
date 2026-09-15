@@ -27,6 +27,44 @@ private:
     }
 
 private slots:
+    void variationsAreSeparateAndNested()
+    {
+        QTemporaryFile file;
+        QVERIFY(KifuTestHelper::writeToTempFile(file, QStringLiteral(
+            "手合割：平手\n▲７六歩 △３四歩 ▲２六歩\n"
+            "変化：2手\n*分岐コメント\n△８四歩\n&分岐しおり\n▲１六歩\n"
+            "変化：3手\n▲９六歩\n").toUtf8(), QStringLiteral("ki2")));
+        KifParseResult result;
+        QString error;
+        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.mainline.usiMoves, QStringList({"7g7f", "3c3d", "2g2f"}));
+        QCOMPARE(result.variations.size(), 2);
+        QCOMPARE(result.variations[0].startPly, 2);
+        QCOMPARE(result.variations[0].line.usiMoves, QStringList({"8c8d", "1g1f"}));
+        QCOMPARE(result.variations[0].line.disp[0].comment, QStringLiteral("分岐コメント"));
+        QCOMPARE(result.variations[0].line.disp[0].bookmark, QStringLiteral("分岐しおり"));
+        QCOMPARE(result.variations[1].startPly, 3);
+        QCOMPARE(result.variations[1].line.usiMoves, QStringList({"9g9f"}));
+        QCOMPARE(result.variations[1].line.baseSfen, result.variations[0].line.sfenList[1]);
+        QCOMPARE(Ki2ToSfenConverter::convertFile(file.fileName()), result.mainline.usiMoves);
+        QCOMPARE(Ki2ToSfenConverter::extractMovesWithTimes(file.fileName()).size(), 4);
+    }
+
+    void failedMoveRejectsWholeRecord()
+    {
+        QTemporaryFile file;
+        QVERIFY(KifuTestHelper::writeToTempFile(file, QStringLiteral(
+            "手合割：平手\n▲７六歩 △５五銀 ▲２六歩\n").toUtf8(), QStringLiteral("ki2")));
+        KifParseResult result;
+        QString error;
+        QVERIFY(!Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error));
+        QVERIFY(!error.isEmpty());
+        QVERIFY(result.mainline.disp.isEmpty());
+        QVERIFY(result.mainline.usiMoves.isEmpty());
+        QVERIFY(Ki2ToSfenConverter::convertFile(file.fileName()).isEmpty());
+        QVERIFY(Ki2ToSfenConverter::extractMovesWithTimes(file.fileName()).isEmpty());
+    }
+
     void promotedMinorPiece_data()
     {
         QTest::addColumn<QString>("name");

@@ -26,6 +26,51 @@ private:
     }
 
 private slots:
+    void selectedFilterAddsExtension_data()
+    {
+        QTest::addColumn<QString>("path");
+        QTest::addColumn<QString>("filter");
+        QTest::addColumn<QString>("expected");
+        QTest::newRow("csa") << QStringLiteral("game") << QStringLiteral("CSA形式 (*.csa)") << QStringLiteral("game.csa");
+        QTest::newRow("sjis") << QStringLiteral("game") << QStringLiteral("KIF形式 Shift_JIS (*.kif)") << QStringLiteral("game.kif");
+        QTest::newRow("ki2") << QStringLiteral("game") << QStringLiteral("KI2 (*.ki2u)") << QStringLiteral("game.ki2u");
+        QTest::newRow("explicit") << QStringLiteral("game.jkf") << QStringLiteral("CSA (*.csa)") << QStringLiteral("game.jkf");
+        QTest::newRow("all") << QStringLiteral("game") << QStringLiteral("All files (*)") << QStringLiteral("game.kifu");
+        QTest::newRow("cancel") << QString() << QStringLiteral("CSA (*.csa)") << QString();
+    }
+
+    void selectedFilterAddsExtension()
+    {
+        QFETCH(QString, path);
+        QFETCH(QString, filter);
+        QFETCH(QString, expected);
+        QCOMPARE(KifuSaveCoordinator::pathForSelectedFilter(path, filter), expected);
+    }
+
+    void shiftJisFailurePreservesExistingFile()
+    {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("game.kif"));
+        const QByteArray original("original record\n");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QCOMPARE(file.write(original), original.size());
+        file.close();
+        QString error;
+        QVERIFY(!KifuSaveCoordinator::overwriteExisting(path, {QString::fromUtf8("棋譜😀")}, &error));
+        QVERIFY(!error.isEmpty());
+        QCOMPARE(readAllBytes(path), original);
+    }
+
+    void writeFailureHasError()
+    {
+        QTemporaryDir dir;
+        QString error;
+        QVERIFY(!KifuSaveCoordinator::overwriteExisting(dir.path(), {QStringLiteral("record")}, &error));
+        QVERIFY(!error.isEmpty());
+    }
+
     // === 拡張子 → 保存形式 ===
 
     void saveFormatForPath_data()

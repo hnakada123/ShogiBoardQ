@@ -7,6 +7,9 @@
 #include "jkftosfenconverter.h"
 #include "jkfmoveparser.h"
 #include "parsecommon.h"
+#include "sfenpositiontracer.h"
+
+#include <array>
 
 #include <QFile>
 #include <QJsonDocument>
@@ -321,136 +324,72 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
     return JkfMoveParser::presetToSfen(preset);
 }
 
-void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
-                                          const QString& /*baseSfen*/,
-                                          KifLine& mainline,
-                                          QList<KifVariation>& variations,
-                                          QString* warn)
+namespace {
+// 分岐にはその手を指す前の局面・移動先・累計時間を引き継ぐ。
+void parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly,
+                  int prevToX, int prevToY, std::array<qint64, 2> cumSec,
+                  bool isMainline, KifLine& line, QList<KifVariation>& variations, QString* warn)
 {
-    int prevToX = 0, prevToY = 0;
-    int plyNumber = 0;
-    qint64 cumSec[2] = {0, 0};
-    bool openingEntryAdded = false;
+    line.baseSfen = baseSfen;
+    line.startPly = firstPly;
+    line.sfenList = {baseSfen};
+    SfenPositionTracer tracer;
+    (void)tracer.setFromSfen(baseSfen);
+    int ply = firstPly;
+    if (isMainline) line.disp.append(KifuParseCommon::createOpeningDisplayItem({}, {}));
 
-    KifDisplayItem openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
+    for (const auto& value : moves) {
+        const QJsonObject obj = value.toObject();
+        for (const auto& fork : obj[QStringLiteral("forks")].toArray()) {
+            KifVariation variation;
+            variation.startPly = ply;
+            QList<KifVariation> nested;
+            parseJkfLine(fork.toArray(), tracer.toSfenString(), ply, prevToX, prevToY,
+                         cumSec, false, variation.line, nested, warn);
+            variations.append(variation);
+            variations.append(nested);
+        }
 
-    for (qsizetype i = 0; i < movesArray.size(); ++i) {
-        const QJsonObject moveObj = movesArray[i].toObject();
-
-        // 終局語
-        if (moveObj.contains(QStringLiteral("special"))) {
-            if (!openingEntryAdded) {
-                mainline.disp.append(openingItem);
-                openingEntryAdded = true;
-            }
-
-            const QString special = moveObj[QStringLiteral("special")].toString();
-            const QString label = JkfMoveParser::specialToJapanese(special);
-            const QString comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
-
-            KifDisplayItem termItem = KifuParseCommon::createTerminalDisplayItem(plyNumber + 1, label);
-            termItem.comment = comment;
-            mainline.disp.append(termItem);
-            mainline.endsWithTerminal = true;
+        const QString comment = JkfMoveParser::extractCommentsFromMoveObj(obj);
+        if (obj.contains(QStringLiteral("special"))) {
+            const QString label = JkfMoveParser::specialToJapanese(obj[QStringLiteral("special")].toString());
+            auto item = KifuParseCommon::createTerminalDisplayItem(ply, label);
+            const bool blackToMove = tracer.toSfenString().contains(QStringLiteral(" b "));
+            item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + label;
+            item.comment = comment;
+            line.disp.append(item);
+            line.endsWithTerminal = true;
             break;
         }
-
-        // move フィールド
-        if (moveObj.contains(QStringLiteral("move"))) {
-            if (!openingEntryAdded) {
-                mainline.disp.append(openingItem);
-                openingEntryAdded = true;
-            }
-
-            ++plyNumber;
-
-            const QJsonObject mv = moveObj[QStringLiteral("move")].toObject();
-
-            const QString usi = JkfMoveParser::convertMoveToUsi(mv, prevToX, prevToY);
-            if (!usi.isEmpty()) {
-                mainline.usiMoves.append(usi);
-            }
-
-            const QString pretty = JkfMoveParser::convertMoveToPretty(mv, plyNumber, prevToX, prevToY);
-
-            QString timeText;
-            if (moveObj.contains(QStringLiteral("time"))) {
-                const QJsonObject timeObj = moveObj[QStringLiteral("time")].toObject();
-                const int color = normalizedColorIndex(mv, plyNumber, warn);
-                timeText = JkfMoveParser::formatTimeText(timeObj, cumSec[color]);
-            }
-
-            const QString comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
-
-            KifDisplayItem moveItem = KifuParseCommon::createMoveDisplayItem(plyNumber, pretty, timeText);
-            moveItem.comment = comment;
-            mainline.disp.append(moveItem);
-        } else if (i == 0) {
-            openingItem.comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
+        if (!obj.contains(QStringLiteral("move"))) {
+            if (isMainline && ply == firstPly) line.disp[0].comment = comment;
+            continue;
         }
 
-        // 分岐 (forks)
-        if (moveObj.contains(QStringLiteral("forks"))) {
-            const QJsonArray forks = moveObj[QStringLiteral("forks")].toArray();
-
-            for (const QJsonValueConstRef forkVal : forks) {
-                const QJsonArray forkMoves = forkVal.toArray();
-
-                KifVariation var;
-                var.startPly = plyNumber;
-
-                int forkPrevToX = 0, forkPrevToY = 0;
-                int forkPlyNumber = plyNumber - 1;
-                qint64 forkCumSec[2] = {cumSec[0], cumSec[1]};
-
-                for (const QJsonValueConstRef forkMoveVal : forkMoves) {
-                    const QJsonObject forkMoveObj = forkMoveVal.toObject();
-
-                    if (forkMoveObj.contains(QStringLiteral("special"))) {
-                        const QString special = forkMoveObj[QStringLiteral("special")].toString();
-                        const QString label = JkfMoveParser::specialToJapanese(special);
-                        const QString forkComment = JkfMoveParser::extractCommentsFromMoveObj(forkMoveObj);
-
-                        KifDisplayItem termItem = KifuParseCommon::createTerminalDisplayItem(forkPlyNumber + 1, label);
-                        termItem.comment = forkComment;
-                        var.line.disp.append(termItem);
-                        var.line.endsWithTerminal = true;
-                        break;
-                    }
-
-                    if (forkMoveObj.contains(QStringLiteral("move"))) {
-                        ++forkPlyNumber;
-
-                        const QJsonObject forkMv = forkMoveObj[QStringLiteral("move")].toObject();
-
-                        const QString usi = JkfMoveParser::convertMoveToUsi(forkMv, forkPrevToX, forkPrevToY);
-                        if (!usi.isEmpty()) {
-                            var.line.usiMoves.append(usi);
-                        }
-
-                        const QString pretty = JkfMoveParser::convertMoveToPretty(forkMv, forkPlyNumber, forkPrevToX, forkPrevToY);
-
-                        QString forkTimeText;
-                        if (forkMoveObj.contains(QStringLiteral("time"))) {
-                            const QJsonObject timeObj = forkMoveObj[QStringLiteral("time")].toObject();
-                            const int color = normalizedColorIndex(forkMv, forkPlyNumber, warn);
-                            forkTimeText = JkfMoveParser::formatTimeText(timeObj, forkCumSec[color]);
-                        }
-
-                        const QString forkComment = JkfMoveParser::extractCommentsFromMoveObj(forkMoveObj);
-
-                        KifDisplayItem moveItem = KifuParseCommon::createMoveDisplayItem(forkPlyNumber, pretty, forkTimeText);
-                        moveItem.comment = forkComment;
-                        var.line.disp.append(moveItem);
-                    }
-                }
-
-                variations.append(var);
-            }
+        const QJsonObject move = obj[QStringLiteral("move")].toObject();
+        const QString usi = JkfMoveParser::convertMoveToUsi(move, prevToX, prevToY);
+        const QString pretty = JkfMoveParser::convertMoveToPretty(move, ply, prevToX, prevToY);
+        QString time;
+        if (obj.contains(QStringLiteral("time"))) {
+            const int color = normalizedColorIndex(move, ply, warn);
+            time = JkfMoveParser::formatTimeText(obj[QStringLiteral("time")].toObject(), cumSec[static_cast<size_t>(color)]);
         }
+        auto item = KifuParseCommon::createMoveDisplayItem(ply, pretty, time);
+        item.comment = comment;
+        line.disp.append(item);
+        if (!usi.isEmpty()) {
+            line.usiMoves.append(usi);
+            (void)tracer.applyUsiMove(usi);
+            line.sfenList.append(tracer.toSfenString());
+        }
+        ++ply;
     }
+}
+} // namespace
 
-    if (!openingEntryAdded) {
-        mainline.disp.prepend(openingItem);
-    }
+void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
+                                        const QString& baseSfen, KifLine& mainline,
+                                        QList<KifVariation>& variations, QString* warn)
+{
+    parseJkfLine(movesArray, baseSfen, 1, 0, 0, {0, 0}, true, mainline, variations, warn);
 }

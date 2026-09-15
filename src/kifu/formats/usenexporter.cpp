@@ -417,7 +417,7 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
                 // SFENリストを使ってUSI指し手を推測
                 // i-1番目のSFENからi番目のSFENへの差分を計算
                 if (i < sfenList.size() && (i - 1) >= 0 && (i - 1) < sfenList.size()) {
-                    QString usi = inferUsiFromSfenDiff(sfenList[i - 1], sfenList[i], (i % 2 != 0));
+                    QString usi = inferUsiFromSfenDiff(sfenList[i - 1], sfenList[i], sfenList[i - 1].contains(QStringLiteral(" b ")));
                     if (!usi.isEmpty()) {
                         QString encoded = encodeUsiMoveToUsen(usi);
                         if (!encoded.isEmpty()) {

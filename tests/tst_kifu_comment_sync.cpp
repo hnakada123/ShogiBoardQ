@@ -57,6 +57,40 @@ private:
     }
 
 private slots:
+    void branchCommentsAndBookmarksStayOnTheirNodes()
+    {
+        GameRecordModel model;
+        KifuBranchTree tree;
+        KifuNavigationState nav;
+        QList<KifDisplayItem> disp;
+        setupBasicModel(model, tree, nav, disp);
+        auto* main = tree.mainLine()[2];
+        auto* branch = tree.addMove(tree.mainLine()[1], ShogiMove(), QStringLiteral("△８四歩"), QStringLiteral("branch"));
+        model.setComment(2, QStringLiteral("本譜コメント"));
+        model.setBookmark(2, QStringLiteral("本譜しおり"));
+        nav.setCurrentNode(branch);
+        QCOMPARE(nav.currentLineIndex(), 1);
+        QVERIFY(model.comment(2).isEmpty());
+        QVERIFY(model.bookmark(2).isEmpty());
+        model.setComment(2, QStringLiteral("分岐コメント"));
+        model.setBookmark(2, QStringLiteral("分岐しおり"));
+        QCOMPARE(branch->comment(), QStringLiteral("分岐コメント"));
+        const auto exported = model.collectMainlineForExport();
+        QCOMPARE(exported[2].comment, QStringLiteral("本譜コメント"));
+        QCOMPARE(exported[2].bookmark, QStringLiteral("本譜しおり"));
+        nav.setCurrentNode(main);
+        QCOMPARE(model.comment(2), QStringLiteral("本譜コメント"));
+        QCOMPARE(model.bookmark(2), QStringLiteral("本譜しおり"));
+        model.setComment(2, {});
+        model.setBookmark(2, {});
+        nav.setCurrentNode(branch);
+        QCOMPARE(model.comment(2), QStringLiteral("分岐コメント"));
+        QVERIFY(model.collectMainlineForExport()[2].comment.isEmpty());
+        QVERIFY(model.collectMainlineForExport()[2].bookmark.isEmpty());
+        model.setComment(1, QStringLiteral("共通の親"));
+        QCOMPARE(model.collectMainlineForExport()[1].comment, QStringLiteral("共通の親"));
+    }
+
 
     // ================================================================
     // Scenario 1: Model と liveDisp の同期整合

@@ -26,6 +26,30 @@ private:
     }
 
 private slots:
+    void invalidMovesRejectWholeRecord_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::newRow("invalid-main") << QStringLiteral("~0.7kuzzz.r");
+        QTest::newRow("truncated-main") << QStringLiteral("~0.7ku2j.r");
+        QTest::newRow("invalid-fork") << QStringLiteral("~0.7ku2jm.r~1.zzz.r");
+        QTest::newRow("truncated-fork") << QStringLiteral("~0.7ku2jm.r~1.2j.r");
+    }
+
+    void invalidMovesRejectWholeRecord()
+    {
+        QFETCH(QString, text);
+        QTemporaryFile file;
+        QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("usen")));
+        KifParseResult result;
+        QString error;
+        QVERIFY(!UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error));
+        QVERIFY(!error.isEmpty());
+        QVERIFY(result.mainline.usiMoves.isEmpty());
+        QVERIFY(result.variations.isEmpty());
+        QVERIFY(UsenToSfenConverter::convertFile(file.fileName()).isEmpty());
+        QVERIFY(UsenToSfenConverter::extractMovesWithTimes(file.fileName()).isEmpty());
+    }
+
     void detectInitialSfen()
     {
         QString sfen = UsenToSfenConverter::detectInitialSfenFromFile(
@@ -287,15 +311,13 @@ private slots:
 
     void decodeUsenMovesStrict_invalidInput()
     {
-        // 最初の3文字 "!!!" は不正なbase36 → プレースホルダ "?1" になる
+        // 不正なbase36があれば、部分的な指し手列も下流へ渡さない。
         // 続く "7ku" は正常 (7g7f)
         const QString usen = QStringLiteral("~0.!!!7ku");
         UsenDecodeResult result = UsenToSfenConverter::decodeUsenMovesStrict(usen);
         QCOMPARE(result.invalidCount, 1);
         QVERIFY(!result.firstError.isEmpty());
-        QCOMPARE(result.moves.size(), 2);
-        QCOMPARE(result.moves.at(0), QStringLiteral("?1"));
-        QCOMPARE(result.moves.at(1), QStringLiteral("7g7f"));
+        QVERIFY(result.moves.isEmpty());
     }
 
     // ========================================
@@ -310,9 +332,7 @@ private slots:
         QVERIFY(!result.firstError.isEmpty());
         // firstError は最初のエラーのみ
         QVERIFY(result.firstError.contains(QStringLiteral("1")));
-        QCOMPARE(result.moves.size(), 2);
-        QCOMPARE(result.moves.at(0), QStringLiteral("?1"));
-        QCOMPARE(result.moves.at(1), QStringLiteral("?2"));
+        QVERIFY(result.moves.isEmpty());
     }
 
     // ========================================

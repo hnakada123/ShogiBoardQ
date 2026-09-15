@@ -9,12 +9,8 @@
 #include <QStringList>
 #include <QList>
 
-#include "playmode.h"
+#include "gamerecordmodel.h"
 
-class QWidget;
-class QTableWidget;
-class KifuRecordListModel;
-class GameRecordModel;
 struct ShogiMove;
 
 /**
@@ -27,30 +23,13 @@ struct ShogiMove;
  */
 namespace KifuClipboardService {
 
-/// エクスポートに必要なコンテキスト情報
-struct ExportContext {
-    QTableWidget*       gameInfoTable = nullptr;
-    KifuRecordListModel* recordModel   = nullptr;
-    GameRecordModel*    gameRecord    = nullptr;
-    QString             startSfen;
-    PlayMode            playMode      = PlayMode::NotStarted;
-    QString             human1;
-    QString             human2;
-    QString             engine1;
-    QString             engine2;
-    QStringList         usiMoves;
-    QStringList*        sfenRecord    = nullptr;
-    int                 currentPly    = 0;
-    bool                isPlaying     = false;
-};
-
 /// KIF形式で棋譜をクリップボードにコピー
 /// @return 成功した場合true
-[[nodiscard]] bool copyKif(const ExportContext& ctx);
+[[nodiscard]] bool copyKif(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx);
 
 /// KI2形式で棋譜をクリップボードにコピー
 /// @return 成功した場合true
-[[nodiscard]] bool copyKi2(const ExportContext& ctx);
+[[nodiscard]] bool copyKi2(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx);
 
 /// ShogiMoveリストからUSI形式の指し手リストを生成
 QStringList gameMovesToUsiMoves(const QList<ShogiMove>& moves);

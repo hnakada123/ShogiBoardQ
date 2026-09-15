@@ -11,8 +11,13 @@
 #include "shogimove.h"
 
 struct KifDisplayItem;
+struct KifParseResult;
 
 namespace KifuApplyLogger {
+
+/// 解析した本譜・分岐の詳細をデバッグログへ出力する。
+void dumpMainline(const KifParseResult& res, const QString& parseWarn);
+void dumpVariationsDebug(const KifParseResult& res);
 
 void logImportSummary(const QString& filePath,
                       const QStringList& usiMoves,

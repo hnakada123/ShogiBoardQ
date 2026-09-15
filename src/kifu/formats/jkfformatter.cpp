@@ -19,6 +19,9 @@ namespace JkfFormatter {
 
 QString kanjiToCsaPiece(const QString& kanji)
 {
+    if (kanji.contains(QStringLiteral("成香"))) return QStringLiteral("NY");
+    if (kanji.contains(QStringLiteral("成桂"))) return QStringLiteral("NK");
+    if (kanji.contains(QStringLiteral("成銀"))) return QStringLiteral("NG");
     if (kanji.contains(QStringLiteral("歩"))) return QStringLiteral("FU");
     if (kanji.contains(QStringLiteral("香"))) return QStringLiteral("KY");
     if (kanji.contains(QStringLiteral("桂"))) return QStringLiteral("KE");
@@ -28,9 +31,6 @@ QString kanjiToCsaPiece(const QString& kanji)
     if (kanji.contains(QStringLiteral("飛"))) return QStringLiteral("HI");
     if (kanji.contains(QStringLiteral("玉")) || kanji.contains(QStringLiteral("王"))) return QStringLiteral("OU");
     if (kanji.contains(QStringLiteral("と"))) return QStringLiteral("TO");
-    if (kanji.contains(QStringLiteral("成香"))) return QStringLiteral("NY");
-    if (kanji.contains(QStringLiteral("成桂"))) return QStringLiteral("NK");
-    if (kanji.contains(QStringLiteral("成銀"))) return QStringLiteral("NG");
     if (kanji.contains(QStringLiteral("馬"))) return QStringLiteral("UM");
     if (kanji.contains(QStringLiteral("龍")) || kanji.contains(QStringLiteral("竜"))) return QStringLiteral("RY");
     return QString();

@@ -56,43 +56,14 @@ QString UsenToSfenConverter::detectInitialSfenFromFile(const QString& usenPath, 
 
 QStringList UsenToSfenConverter::convertFile(const QString& usenPath, QString* errorMessage)
 {
-    QString content;
-    if (!readUsenFile(usenPath, content, errorMessage)) {
-        return QStringList();
-    }
-
-    QString terminalCode;
-    return decodeUsenMoves(content, &terminalCode);
+    KifParseResult result;
+    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.usiMoves : QStringList();
 }
 
 QList<KifDisplayItem> UsenToSfenConverter::extractMovesWithTimes(const QString& usenPath, QString* errorMessage)
 {
-    QList<KifDisplayItem> out;
-
-    QString content;
-    if (!readUsenFile(usenPath, content, errorMessage)) {
-        return out;
-    }
-
-    // 初期局面を取得
-    const QString initialSfen = detectInitialSfenFromFile(usenPath, nullptr);
-
-    QString terminalCode;
-    const QStringList usiMoves = decodeUsenMoves(content, &terminalCode);
-
-    // 開始局面エントリ
-    out.push_back(KifuParseCommon::createOpeningDisplayItem(QString(), QString()));
-
-    // 共通パイプラインで指し手アイテムを構築
-    int plyNumber = KifuParseCommon::buildUsiMoveDisplayItems(usiMoves, initialSfen, 1, out);
-
-    // 終局理由があれば追加
-    if (!terminalCode.isEmpty()) {
-        out.push_back(KifuParseCommon::createTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode)));
-    }
-
-    return out;
+    KifParseResult result;
+    return parseWithVariations(usenPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
 }
 
 bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
@@ -122,7 +93,12 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
 
     // 本譜のデコード
     QString mainTerminal;
-    const QStringList mainUsiMoves = decodeUsenMoves(mainlineUsen, &mainTerminal);
+    const auto decodedMain = decodeUsenMovesStrict(mainlineUsen, &mainTerminal);
+    if (decodedMain.invalidCount > 0) {
+        if (errorMessage) *errorMessage = decodedMain.firstError;
+        return false;
+    }
+    const QStringList mainUsiMoves = decodedMain.moves;
 
     // 本譜のKifLineを構築
     out.mainline.baseSfen = initialSfen;
@@ -151,7 +127,13 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
         const QString& varUsen = var.second;
 
         QString varTerminal;
-        const QStringList varUsiMoves = decodeUsenMoves(varUsen, &varTerminal);
+        const auto decodedVariation = decodeUsenMovesStrict(varUsen, &varTerminal);
+        if (decodedVariation.invalidCount > 0) {
+            if (errorMessage) *errorMessage = decodedVariation.firstError;
+            out = KifParseResult{};
+            return false;
+        }
+        const QStringList varUsiMoves = decodedVariation.moves;
 
         // 直前の手順から分岐点までの指し手を取得
         const int offset = startPly - 1;  // 0-indexed

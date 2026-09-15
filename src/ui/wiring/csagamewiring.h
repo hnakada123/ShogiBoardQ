@@ -251,14 +251,6 @@ private slots:
 
 private:
     /**
-     * @brief 経過時間フォーマットを生成
-     * @param consumedTimeMs 消費時間（ミリ秒）
-     * @param totalTimeMs 累計消費時間（ミリ秒）
-     * @return フォーマットされた時間文字列
-     */
-    QString formatElapsedTime(int consumedTimeMs, int totalTimeMs) const;
-
-    /**
      * @brief 終局行のテキストを生成
      * @param cause 終局原因
      * @param loserIsBlack 敗者が先手かどうか

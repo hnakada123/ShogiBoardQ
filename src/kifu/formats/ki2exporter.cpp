@@ -53,11 +53,11 @@ static bool isTerminalMove(const QString& move)
 }
 
 // ヘルパ関数: 終局結果文字列を生成
-static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove)
+static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove, bool initialBlackToMove)
 {
     const QString stripped = removeTurnMarker(terminalMove);
 
-    const bool lastMoveBySente = (lastActualMoveNo % 2 != 0);
+    const bool lastMoveBySente = ((lastActualMoveNo % 2 != 0) == initialBlackToMove);
     const QString senteStr = QStringLiteral("先手");
     const QString goteStr = QStringLiteral("後手");
 
@@ -389,7 +389,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
     }
 
     // 6) 終了行
-    out << buildEndingLine(lastActualMoveNo, terminalMove);
+    out << buildEndingLine(lastActualMoveNo, terminalMove, !ctx.startSfen.contains(QStringLiteral(" w ")));
 
     // 7) 変化（分岐）を出力（KifuBranchTree から）
     KifuBranchTree* branchTree = model.branchTree();

@@ -41,17 +41,25 @@ QString KifToSfenConverter::detectInitialSfenFromFile(const QString& kifPath, QS
             found = line; break;
         }
     }
-    if (found.isEmpty()) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return NotationUtils::mapHandicapToSfen(QStringLiteral("平手"));
-    }
-
     static const QRegularExpression s_afterColon(QStringLiteral("^.*[:：]"));
     QString label = found;
     label.remove(s_afterColon);
     label = label.trimmed();
-    if (detectedLabel) *detectedLabel = label;
-    return NotationUtils::mapHandicapToSfen(label);
+    if (label.isEmpty()) label = QStringLiteral("平手");
+    if (detectedLabel) *detectedLabel = found.isEmpty() ? QStringLiteral("平手(既定)") : label;
+    QString initial = NotationUtils::mapHandicapToSfen(label);
+    // 局面図がなくても、明示された手番を優先する。
+    for (const QString& raw : std::as_const(lines)) {
+        if (raw.trimmed() == QStringLiteral("後手番")) {
+            initial.replace(QStringLiteral(" b "), QStringLiteral(" w "));
+            break;
+        }
+        if (raw.trimmed() == QStringLiteral("先手番")) {
+            initial.replace(QStringLiteral(" w "), QStringLiteral(" b "));
+            break;
+        }
+    }
+    return initial;
 }
 
 QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& kifPath,
@@ -68,15 +76,7 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
     int moveIndex = 0;
     bool firstMoveFound = false;
 
-    // --- ヘッダ走査（手番/手合割の確認） ---
-    for (const QString& raw : std::as_const(lines)) {
-        const QString line = raw.trimmed();
-        if (KifLexer::startsWithMoveNumber(line).has_value()) break;
-        if (line.contains(QStringLiteral("後手番"))) { moveIndex = 1; break; }
-        if (line.startsWith(QStringLiteral("手合割")) || line.startsWith(QStringLiteral("手合"))) {
-            if (!line.contains(QStringLiteral("平手"))) moveIndex = 1;
-        }
-    }
+    bool blackToMove = !detectInitialSfenFromFile(kifPath).contains(QStringLiteral(" w "));
 
     for (const QString& raw : std::as_const(lines)) {
         QString lineStr = raw.trimmed();
@@ -118,7 +118,9 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             if (KifuParseCommon::isTerminalWordExact(rest, &term)) {
                 KifuParseCommon::flushCommentToLastItem(commentBuf, out);
                 ++moveIndex;
-                out.push_back(KifLexer::buildTerminalItem(moveIndex, term, timeText, tm));
+                auto item = KifLexer::buildTerminalItem(moveIndex, term, timeText, tm);
+                item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + term;
+                out.push_back(item);
                 lineStr.clear();
                 break;
             }
@@ -127,8 +129,9 @@ QList<KifDisplayItem> KifToSfenConverter::extractMovesWithTimes(const QString& k
             if (!rest.isEmpty()) {
                 KifuParseCommon::flushCommentToLastItem(commentBuf, out);
                 ++moveIndex;
-                const QString prettyMove = KifuParseCommon::tebanMark(moveIndex) + rest;
+                const QString prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + rest;
                 out.push_back(KifuParseCommon::createMoveDisplayItem(moveIndex, prettyMove, timeText));
+                blackToMove = !blackToMove;
             }
         }
     }
@@ -314,6 +317,7 @@ void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
 {
     int prevToFile = 0, prevToRank = 0;
     int moveIndex = startPly - 1;
+    bool blackToMove = !line.baseSfen.contains(QStringLiteral(" w "));
     QString commentBuf;
     bool firstMoveFound = false;
 
@@ -358,7 +362,9 @@ void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
             if (KifuParseCommon::isTerminalWordExact(rest, &term)) {
                 KifuParseCommon::flushCommentToLastItem(commentBuf, line.disp, 0);
                 ++moveIndex;
-                line.disp.push_back(KifLexer::buildTerminalItem(moveIndex, term, timeText, tm));
+                auto item = KifLexer::buildTerminalItem(moveIndex, term, timeText, tm);
+                item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + term;
+                line.disp.push_back(item);
                 lineStr.clear();
                 break;
             }
@@ -374,8 +380,9 @@ void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
             firstMoveFound = true;
 
             ++moveIndex;
-            const QString prettyMove = KifuParseCommon::tebanMark(moveIndex) + rest;
+            const QString prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + rest;
             line.disp.push_back(KifuParseCommon::createMoveDisplayItem(moveIndex, prettyMove, timeText));
+            blackToMove = !blackToMove;
 
             // USI変換
             QString usi;
