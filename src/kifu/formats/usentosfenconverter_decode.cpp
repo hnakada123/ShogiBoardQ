@@ -245,11 +245,9 @@ UsenDecodeResult UsenToSfenConverter::decodeUsenMovesStrict(const QString& usenS
         if (!usi.isEmpty()) {
             result.moves.append(usi);
         } else {
-            // デコードできなかった場合はエラー情報を記録しプレースホルダを追加
-            const QString placeholder = QStringLiteral("?%1").arg(moveCount + 1);
+            // 無効な指し手を下流へ渡さず、棋譜全体を失敗として扱う。
             qCDebug(lcKifu) << "Move" << (moveCount + 1) << "'" << threeChars
-                     << "' could not be decoded, using placeholder";
-            result.moves.append(placeholder);
+                     << "' could not be decoded";
             ++result.invalidCount;
             if (result.firstError.isEmpty()) {
                 result.firstError = QStringLiteral("Move %1 '%2' could not be decoded")
@@ -260,6 +258,12 @@ UsenDecodeResult UsenToSfenConverter::decodeUsenMovesStrict(const QString& usenS
         ++moveCount;
         i += 3;
     }
+
+    if (i != movesStr.size()) {
+        ++result.invalidCount;
+        if (result.firstError.isEmpty()) result.firstError = QStringLiteral("Incomplete USEN move at %1").arg(moveCount + 1);
+    }
+    if (result.invalidCount > 0) result.moves.clear();
 
     qCDebug(lcKifu) << "Decoded" << result.moves.size() << "moves from USEN string"
              << "(invalid:" << result.invalidCount << ")";

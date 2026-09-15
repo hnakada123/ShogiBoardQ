@@ -56,10 +56,15 @@ void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& di
     m_bookmarks.clear();
     m_bookmarks.resize(qMax(0, rowCount));
 
-    // disp からコメント・しおりを抽出
+    // 読み込んだ本譜のコメント・しおりをツリーとフォールバック配列へ反映する。
+    const auto mainline = m_branchTree ? m_branchTree->mainLine() : QList<KifuBranchNode*>();
     for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
         m_comments[i] = disp[i].comment;
         m_bookmarks[i] = disp[i].bookmark;
+        if (i < mainline.size()) {
+            mainline[i]->setComment(disp[i].comment);
+            mainline[i]->setBookmark(disp[i].bookmark);
+        }
     }
 
     m_isDirty = false;
@@ -92,7 +97,7 @@ void GameRecordModel::setComment(int ply, const QString& comment)
 
     // 1) 内部配列を拡張・更新
     ensureCommentCapacity(ply);
-    const QString oldComment = m_comments[ply];
+    const QString oldComment = this->comment(ply);
     m_comments[ply] = comment;
 
     // 2) 外部データストアへ同期
@@ -122,6 +127,7 @@ void GameRecordModel::setCommentUpdateCallback(const CommentUpdateCallback& call
 
 QString GameRecordModel::comment(int ply) const
 {
+    if (const auto* node = nodeForCurrentLine(ply)) return node->comment();
     if (ply >= 0 && ply < m_comments.size()) {
         return m_comments[ply];
     }
@@ -147,7 +153,7 @@ void GameRecordModel::setBookmark(int ply, const QString& bookmark)
     }
 
     ensureBookmarkCapacity(ply);
-    const QString oldBookmark = m_bookmarks[ply];
+    const QString oldBookmark = this->bookmark(ply);
     m_bookmarks[ply] = bookmark;
 
     // 外部データストアへ同期
@@ -155,20 +161,7 @@ void GameRecordModel::setBookmark(int ply, const QString& bookmark)
         (*m_liveDisp)[ply].bookmark = bookmark;
     }
 
-    // KifuBranchTree のノードにも同期
-    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        int lineIndex = 0;
-        if (m_navState != nullptr) {
-            lineIndex = m_navState->currentLineIndex();
-        }
-        QList<BranchLine> lines = m_branchTree->allLines();
-        if (lineIndex >= 0 && lineIndex < lines.size()) {
-            const BranchLine& line = lines.at(lineIndex);
-            if (ply >= 0 && ply < line.nodes.size()) {
-                line.nodes[ply]->setBookmark(bookmark);
-            }
-        }
-    }
+    if (auto* node = nodeForCurrentLine(ply)) node->setBookmark(bookmark);
 
     if (oldBookmark != bookmark) {
         m_isDirty = true;
@@ -181,6 +174,7 @@ void GameRecordModel::setBookmark(int ply, const QString& bookmark)
 
 QString GameRecordModel::bookmark(int ply) const
 {
+    if (const auto* node = nodeForCurrentLine(ply)) return node->bookmark();
     if (ply >= 0 && ply < m_bookmarks.size()) {
         return m_bookmarks[ply];
     }
@@ -212,6 +206,16 @@ int GameRecordModel::activeRow() const
 // 内部ヘルパ：外部データストアへの同期
 // ========================================
 
+KifuBranchNode* GameRecordModel::nodeForCurrentLine(int ply) const
+{
+    if (!m_branchTree || m_branchTree->isEmpty() || ply < 0) return nullptr;
+    const auto lines = m_branchTree->allLines();
+    const int lineIndex = activeRow();
+    if (lineIndex < 0 || lineIndex >= lines.size()) return nullptr;
+    const auto& nodes = lines[lineIndex].nodes;
+    return ply < nodes.size() ? nodes[ply] : nullptr;
+}
+
 void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
 {
     // liveDisp への同期
@@ -223,20 +227,7 @@ void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
         }
     }
 
-    // KifuBranchTree のノードにも同期
-    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        int lineIndex = 0;
-        if (m_navState != nullptr) {
-            lineIndex = m_navState->currentLineIndex();
-        }
-        QList<BranchLine> lines = m_branchTree->allLines();
-        if (lineIndex >= 0 && lineIndex < lines.size()) {
-            const BranchLine& line = lines.at(lineIndex);
-            if (ply >= 0 && ply < line.nodes.size()) {
-                line.nodes[ply]->setComment(comment);
-            }
-        }
-    }
+    if (auto* node = nodeForCurrentLine(ply)) node->setComment(comment);
 }
 
 // ========================================
@@ -260,18 +251,6 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         result = m_branchTree->displayItemsForLine(lineIndex);
         qCDebug(lcKifu).noquote() << "collectMainlineForExport: from BranchTree"
                                   << "lineIndex=" << lineIndex << "items=" << result.size();
-
-        // m_comments / m_bookmarks をマージ
-        // getDisplayItemsForLine() がツリーのコメント・しおりを設定済みなので、
-        // ここでは m_comments / m_bookmarks による上書き（Single Source of Truth）のみ行う
-        for (qsizetype i = 0; i < result.size(); ++i) {
-            if (i < m_comments.size() && !m_comments[i].isEmpty()) {
-                result[i].comment = m_comments[i];
-            }
-            if (i < m_bookmarks.size() && !m_bookmarks[i].isEmpty()) {
-                result[i].bookmark = m_bookmarks[i];
-            }
-        }
 
         // 空でない結果が得られた場合は返す
         if (!result.isEmpty()) {

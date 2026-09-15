@@ -3,11 +3,53 @@
 
 #include "kifuapplylogger.h"
 #include "kifdisplayitem.h"
+#include "kifparsetypes.h"
 #include "logcategories.h"
 
 #include <QFileInfo>
 
 namespace KifuApplyLogger {
+
+void dumpMainline(const KifParseResult& res, const QString& parseWarn)
+{
+    qCDebug(lcKifu).noquote() << "KifParseResult dump:";
+    if (!parseWarn.isEmpty()) {
+        qCDebug(lcKifu).noquote() << "  [parseWarn]" << parseWarn;
+    }
+
+    qCDebug(lcKifu).noquote() << "  Mainline:";
+    qCDebug(lcKifu).noquote() << "    baseSfen: " << res.mainline.baseSfen;
+    qCDebug(lcKifu).noquote() << "    usiMoves: " << res.mainline.usiMoves;
+    qCDebug(lcKifu).noquote() << "    disp:";
+    int mainIdx = 0;
+    for (const auto& d : std::as_const(res.mainline.disp)) {
+        qCDebug(lcKifu).noquote() << "      [" << mainIdx << "] prettyMove: " << d.prettyMove;
+        qCDebug(lcKifu).noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
+        qCDebug(lcKifu).noquote() << "           timeText: " << d.timeText;
+        ++mainIdx;
+    }
+}
+
+void dumpVariationsDebug(const KifParseResult& res)
+{
+    qCDebug(lcKifu).noquote() << "  Variations:";
+    int varNo = 0;
+    for (const KifVariation& var : std::as_const(res.variations)) {
+        qCDebug(lcKifu).noquote() << "  [Var " << varNo << "]";
+        qCDebug(lcKifu).noquote() << "    startPly: " << var.startPly;
+        qCDebug(lcKifu).noquote() << "    baseSfen: " << var.line.baseSfen;
+        qCDebug(lcKifu).noquote() << "    usiMoves: " << var.line.usiMoves;
+        qCDebug(lcKifu).noquote() << "    disp:";
+        int dispIdx = 0;
+        for (const auto& d : std::as_const(var.line.disp)) {
+            qCDebug(lcKifu).noquote() << "      [" << dispIdx << "] prettyMove: " << d.prettyMove;
+            qCDebug(lcKifu).noquote() << "           comment: " << (d.comment.isEmpty() ? "<none>" : d.comment);
+            qCDebug(lcKifu).noquote() << "           timeText: " << d.timeText;
+            ++dispIdx;
+        }
+        ++varNo;
+    }
+}
 
 void logImportSummary(const QString& filePath,
                       const QStringList& usiMoves,

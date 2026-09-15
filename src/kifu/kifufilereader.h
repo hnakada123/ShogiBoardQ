@@ -5,6 +5,8 @@
 /// @brief 棋譜ファイル読み込みI/O層（フォーマット判定・一時ファイル管理）
 
 #include <QString>
+#include <QTemporaryFile>
+#include <memory>
 
 namespace KifuFileReader {
 
@@ -24,11 +26,8 @@ enum class KifuFormat {
 /// テキスト内容から棋譜フォーマットを自動判定する
 KifuFormat detectFormat(const QString& content);
 
-/// フォーマットに応じた一時ファイルパスを返す
-QString tempFilePath(KifuFormat fmt);
-
-/// 一時ファイルにUTF-8で書き込む
-bool writeTempFile(const QString& path, const QString& content);
+/// UTF-8の一時ファイルを作成する。返されたオブジェクトの破棄時に削除される。
+std::unique_ptr<QTemporaryFile> createTempFile(KifuFormat fmt, const QString& content);
 
 } // namespace KifuFileReader
 

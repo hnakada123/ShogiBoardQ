@@ -97,12 +97,12 @@ static bool isTerminalMove(const QString& move)
 
 // ヘルパ関数: 終局結果文字列を生成
 // KIF形式仕様: 「まで○手で○手の勝ち」または「まで○手で○○」
-static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove)
+static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove, bool initialBlackToMove)
 {
     const QString stripped = removeTurnMarker(terminalMove);
 
     // 勝者判定: lastActualMoveNo が奇数なら先手の手、偶数なら後手の手が最後
-    const bool lastMoveBySente = (lastActualMoveNo % 2 != 0);
+    const bool lastMoveBySente = ((lastActualMoveNo % 2 != 0) == initialBlackToMove);
     const QString senteStr = QStringLiteral("先手");
     const QString goteStr = QStringLiteral("後手");
 
@@ -404,7 +404,7 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
     }
 
     // 7) 終了行（本譜のみ）
-    out << buildEndingLine(lastActualMoveNo, terminalMove);
+    out << buildEndingLine(lastActualMoveNo, terminalMove, !ctx.startSfen.contains(QStringLiteral(" w ")));
 
     // 8) 変化（分岐）を出力（KifuBranchTree から）
     if (branchTree != nullptr && !branchTree->isEmpty()) {

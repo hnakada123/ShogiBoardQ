@@ -5,10 +5,7 @@
 #include "logcategories.h"
 
 #include <QDir>
-#include <QFile>
-#include <QTextStream>
 #include <QRegularExpression>
-#include <QStringConverter>
 
 namespace KifuFileReader {
 
@@ -18,8 +15,13 @@ KifuFormat detectFormat(const QString& content)
 
     // フォーマット判定用の正規表現（static で一度だけ構築）
     static const QRegularExpression sfenPattern(
-        QStringLiteral("^(sfen\\s+)?[lnsgkrpbLNSGKRPB1-9+]+(/[lnsgkrpbLNSGKRPB1-9+]+){8}\\s+[bw]\\s+[-\\w]+\\s+\\d+")
+        QStringLiteral("^[lnsgkrpbLNSGKRPB1-9+]+(/[lnsgkrpbLNSGKRPB1-9+]+){8}\\s+[bw]\\s+[-\\w]+\\s+\\d+$")
     );
+    static const QRegularExpression usiLineRe(
+        QStringLiteral("^\\s*(?:position\\b|startpos\\b|sfen\\s|[lnsgkrpb1-9+]+(?:/[lnsgkrpb1-9+]+){8}\\s+[bw]\\s)"),
+        QRegularExpression::MultilineOption | QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression usenRe(
+        QStringLiteral("^[a-zA-Z0-9_.-]*(?:~[0-9]*\\.[a-zA-Z0-9]*(?:\\.[a-zA-Z])?)+$"));
     static const QRegularExpression csaLineStartRe(QStringLiteral("^[+-][0-9]"));
     static const QRegularExpression csaNewlineRe(QStringLiteral("\\n[+-][0-9]"));
     static const QRegularExpression kifMoveRe(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]"),
@@ -35,17 +37,17 @@ KifuFormat detectFormat(const QString& content)
         return KifuFormat::SFEN;
     }
     // JSON判定（JKF）
-    if (trimmed.startsWith(QLatin1Char('{'))) {
+    if (trimmed.startsWith(QLatin1Char('{')) || trimmed.startsWith(QLatin1Char('['))) {
         qCDebug(lcKifu).noquote() << "detected format: JKF (JSON)";
         return KifuFormat::JKF;
     }
     // USI判定
-    if (trimmed.startsWith(QLatin1String("position"))) {
+    if (usiLineRe.match(trimmed).hasMatch()) {
         qCDebug(lcKifu).noquote() << "detected format: USI";
         return KifuFormat::USI;
     }
-    // USEN判定（チルダを含む）
-    if (trimmed.contains(QLatin1Char('~'))) {
+    // USEN全体の構造を確認し、コメントやURL内のチルダを除外する。
+    if (usenRe.match(trimmed).hasMatch()) {
         qCDebug(lcKifu).noquote() << "detected format: USEN";
         return KifuFormat::USEN;
     }
@@ -83,9 +85,9 @@ KifuFormat detectFormat(const QString& content)
     return KifuFormat::KIF;
 }
 
-QString tempFilePath(KifuFormat fmt)
+static QString tempFileTemplate(KifuFormat fmt)
 {
-    QString path = QDir::tempPath() + QStringLiteral("/shogi_paste_temp");
+    QString path = QDir::tempPath() + QStringLiteral("/shogi_paste_XXXXXX");
     switch (fmt) {
     case KifuFormat::KIF:  return path + QStringLiteral(".kif");
     case KifuFormat::KI2:  return path + QStringLiteral(".ki2");
@@ -97,23 +99,14 @@ QString tempFilePath(KifuFormat fmt)
     }
 }
 
-bool writeTempFile(const QString& path, const QString& content)
+std::unique_ptr<QTemporaryFile> createTempFile(KifuFormat fmt, const QString& content)
 {
-    QFile file(path);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        return false;
-
-    QTextStream out(&file);
-    out.setEncoding(QStringConverter::Utf8);
-    out << content;
-    out.flush();
-
-    if (out.status() != QTextStream::Ok) {
-        file.close();
-        return false;
-    }
-    file.close();
-    return true;
+    auto file = std::make_unique<QTemporaryFile>(tempFileTemplate(fmt));
+    if (!file->open()) return nullptr;
+    const QByteArray data = content.toUtf8();
+    if (file->write(data) != data.size() || !file->flush()) return nullptr;
+    file->close();
+    return file;
 }
 
 } // namespace KifuFileReader

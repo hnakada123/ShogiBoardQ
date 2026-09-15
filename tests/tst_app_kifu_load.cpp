@@ -854,10 +854,8 @@ private slots:
 
         QVERIFY2(body.contains(QStringLiteral("tempFilePath")),
                   "Must create temp file path");
-        QVERIFY2(body.contains(QStringLiteral("writeTempFile")),
-                  "Must write temp file");
-        QVERIFY2(body.contains(QStringLiteral("QFile::remove")),
-                  "Must remove temp file after loading");
+        QVERIFY2(body.contains(QStringLiteral("createTempFile")),
+                  "Must own a temporary file for the duration of loading");
     }
 
     /// loadKifuFromString が全フォーマットに対応した switch を持つこと

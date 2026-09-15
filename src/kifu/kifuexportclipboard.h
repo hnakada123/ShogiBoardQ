@@ -104,7 +104,6 @@ signals:
 private:
     QStringList resolveUsiMoves() const;
     GameRecordModel::ExportContext buildExportContext() const;
-    KifuClipboardService::ExportContext buildClipboardContext() const;
     bool setClipboardText(const QString& text, const QString& successMsg);
     bool isCurrentlyPlaying() const;
     int currentPly() const;

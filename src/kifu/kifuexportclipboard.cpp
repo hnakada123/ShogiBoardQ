@@ -165,22 +165,6 @@ QString KifuExportClipboard::generateBodText(const PositionData& pos) const
 // クリップボードコピー
 // --------------------------------------------------------
 
-KifuClipboardService::ExportContext KifuExportClipboard::buildClipboardContext() const
-{
-    KifuClipboardService::ExportContext ctx;
-    ctx.gameInfoTable = m_deps.gameInfoController ? m_deps.gameInfoController->tableWidget() : nullptr;
-    ctx.recordModel = m_deps.kifuRecordModel;
-    ctx.gameRecord = m_deps.gameRecord;
-    ctx.startSfen = m_deps.gameRecord
-        ? m_deps.gameRecord->initialSfenForExport(m_deps.startSfenStr) : m_deps.startSfenStr;
-    ctx.playMode = m_deps.playMode;
-    ctx.human1 = m_deps.humanName1;
-    ctx.human2 = m_deps.humanName2;
-    ctx.engine1 = m_deps.engineName1;
-    ctx.engine2 = m_deps.engineName2;
-    return ctx;
-}
-
 bool KifuExportClipboard::setClipboardText(const QString& text, const QString& successMsg)
 {
     QClipboard* clipboard = QApplication::clipboard();
@@ -202,7 +186,7 @@ bool KifuExportClipboard::copyKifToClipboard()
         return false;
     }
 
-    if (KifuClipboardService::copyKif(buildClipboardContext())) {
+    if (KifuClipboardService::copyKif(*m_deps.gameRecord, buildExportContext())) {
         Q_EMIT statusMessage(tr("KIF形式の棋譜をクリップボードにコピーしました"), 3000);
         return true;
     }
@@ -219,7 +203,7 @@ bool KifuExportClipboard::copyKi2ToClipboard()
         return false;
     }
 
-    if (KifuClipboardService::copyKi2(buildClipboardContext())) {
+    if (KifuClipboardService::copyKi2(*m_deps.gameRecord, buildExportContext())) {
         Q_EMIT statusMessage(tr("KI2形式の棋譜をクリップボードにコピーしました"), 3000);
         return true;
     }

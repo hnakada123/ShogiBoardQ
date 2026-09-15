@@ -202,6 +202,7 @@ QString KifuExportController::saveToFile()
         }
     }
 
+    QString error;
     const QString path = KifuSaveCoordinator::saveViaDialogWithUsi(
         m_parentWidget,
         kifLines, ki2Lines, csaLines,
@@ -209,7 +210,11 @@ QString KifuExportController::saveToFile()
         m_deps.playMode,
         m_deps.humanName1, m_deps.humanName2,
         m_deps.engineName1, m_deps.engineName2,
-        hasBranches, hasTimeInfo);
+        hasBranches, hasTimeInfo, &error);
+
+    if (!error.isEmpty()) {
+        QMessageBox::warning(m_parentWidget, tr("KIF Save Error"), error);
+    }
     
     if (!path.isEmpty()) {
         if (m_deps.gameRecord) {

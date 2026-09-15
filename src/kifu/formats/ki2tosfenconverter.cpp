@@ -7,6 +7,7 @@
 #include "kifreader.h"
 #include "parsecommon.h"
 #include "notationutils.h"
+#include "sfenpositiontracer.h"
 
 #include <QRegularExpression>
 #include "logcategories.h"
@@ -216,153 +217,123 @@ void Ki2ToSfenConverter::applyMoveToBoard(const QString& usi,
     }
 }
 
-QStringList Ki2ToSfenConverter::convertFile(const QString& ki2Path, QString* errorMessage)
+namespace {
+bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startPly,
+                    int prevFile, int prevRank, KifLine& line, QString* error)
 {
-    QStringList out;
-    QString usedEnc;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(ki2Path, lines, &usedEnc, errorMessage)) return out;
-
-    qCDebug(lcKifu).noquote() << QStringLiteral("convertFile: encoding = %1 , lines = %2")
-                                    .arg(usedEnc).arg(lines.size());
-
-    const QString initialSfen = detectInitialSfenFromFile(ki2Path);
-    QString boardState[9][9];
+    QString board[9][9];
     QMap<Piece, int> blackHands, whiteHands;
-    initBoardFromSfen(initialSfen, boardState, blackHands, whiteHands);
-
-    bool blackToMove = true;
-    {
-        const QStringList parts = initialSfen.split(QLatin1Char(' '));
-        if (parts.size() >= 2) blackToMove = (parts[1] == QStringLiteral("b"));
-    }
-
-    int prevToFile = 0, prevToRank = 0;
-    bool gameEnded = false;
-
-    for (const QString& raw : std::as_const(lines)) {
-        const QString lineStr = raw.trimmed();
-        if (gameEnded) break;
-        if (KifuParseCommon::isKifCommentLine(lineStr) || KifuParseCommon::isBookmarkLine(lineStr)) continue;
-        if (Ki2Lexer::isResultLine(lineStr)) break;
-        if (lineStr.isEmpty() || KifuParseCommon::isKifSkippableHeaderLine(lineStr)
-            || KifuParseCommon::isBoardHeaderOrFrame(lineStr)) continue;
-        if (!Ki2Lexer::isKi2MoveLine(lineStr)) continue;
-        if (KifuParseCommon::containsAnyTerminal(lineStr)) break;
-
-        const QStringList moves = Ki2Lexer::extractMovesFromLine(lineStr);
-        for (const QString& move : std::as_const(moves)) {
+    Ki2ToSfenConverter::initBoardFromSfen(baseSfen, board, blackHands, whiteHands);
+    bool blackToMove = !baseSfen.contains(QStringLiteral(" w "));
+    int ply = startPly - 1;
+    bool firstMoveFound = false, gameEnded = false;
+    QString openingComment, openingBookmark, comment;
+    line.baseSfen = baseSfen;
+    line.startPly = startPly;
+    for (const QString& raw : lines) {
+        const QString text = raw.trimmed();
+        if (KifuParseCommon::tryHandleCommentLine(text, firstMoveFound, comment, openingComment)) continue;
+        if (KifuParseCommon::tryHandleBookmarkLine(text, firstMoveFound, line.disp, openingBookmark)) continue;
+        if (gameEnded) continue;
+        QString resultTerm;
+        int resultCount = 0;
+        QStringList moves;
+        if (Ki2Lexer::parseResultLine(text, resultTerm, resultCount)) moves.append(resultTerm);
+        else if (Ki2Lexer::isKi2MoveLine(text)) moves = Ki2Lexer::extractMovesFromLine(text);
+        for (const QString& move : moves) {
+            const QString mark = blackToMove ? QStringLiteral("▲") : QStringLiteral("△");
             QString term;
             if (KifuParseCommon::isTerminalWordContains(move, &term)) {
-                gameEnded = true;
+                handleKi2TerminalWord(term, ply, comment, line.disp, firstMoveFound,
+                                      gameEnded, openingComment, openingBookmark);
+                line.disp.last().prettyMove = mark + term;
+                line.endsWithTerminal = true;
                 break;
             }
-            const QString usi = Ki2Lexer::convertKi2MoveToUsi(move, boardState, blackHands, whiteHands,
-                                                               blackToMove, prevToFile, prevToRank);
-            if (!usi.isEmpty()) {
-                out << usi;
-                qCDebug(lcKifu).noquote() << QStringLiteral("USI [%1] %2").arg(out.size()).arg(usi);
-                applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
-                blackToMove = !blackToMove;
-            } else {
-                if (errorMessage) *errorMessage += QStringLiteral("[skip ?] %1\n").arg(move);
+            const QString usi = Ki2Lexer::convertKi2MoveToUsi(move, board, blackHands, whiteHands,
+                                                              blackToMove, prevFile, prevRank);
+            if (usi.isEmpty()) {
+                if (error) *error = QStringLiteral("KI2: cannot parse move %1: %2").arg(ply + 1).arg(move);
+                return false;
             }
-        }
-    }
-
-    qCDebug(lcKifu).noquote() << QStringLiteral("convertFile: moves = %1").arg(out.size());
-    return out;
-}
-
-QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& ki2Path,
-                                                                 QString* errorMessage)
-{
-    QList<KifDisplayItem> out;
-    QString usedEnc;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(ki2Path, lines, &usedEnc, errorMessage)) return out;
-
-    const QString initialSfen = detectInitialSfenFromFile(ki2Path);
-    QString boardState[9][9];
-    QMap<Piece, int> blackHands, whiteHands;
-    initBoardFromSfen(initialSfen, boardState, blackHands, whiteHands);
-
-    bool blackToMove = true;
-    {
-        const QStringList parts = initialSfen.split(QLatin1Char(' '));
-        if (parts.size() >= 2) blackToMove = (parts[1] == QStringLiteral("b"));
-    }
-
-    QString openingCommentBuf, openingBookmarkBuf, commentBuf;
-    int moveIndex = blackToMove ? 0 : 1;
-    int prevToFile = 0, prevToRank = 0;
-    bool gameEnded = false, firstMoveFound = false;
-
-    for (const QString& raw : std::as_const(lines)) {
-        const QString lineStr = raw.trimmed();
-        if (gameEnded) break;
-
-        if (KifuParseCommon::tryHandleCommentLine(lineStr, firstMoveFound, commentBuf, openingCommentBuf))
-            continue;
-        if (KifuParseCommon::tryHandleBookmarkLine(lineStr, firstMoveFound, out, openingBookmarkBuf))
-            continue;
-
-        if (Ki2Lexer::isResultLine(lineStr)) {
-            QString terminalWord;
-            int resultMoveCount = 0;
-            if (Ki2Lexer::parseResultLine(lineStr, terminalWord, resultMoveCount)) {
-                handleKi2TerminalWord(terminalWord, moveIndex, commentBuf, out,
-                                       firstMoveFound, gameEnded, openingCommentBuf, openingBookmarkBuf);
-            }
-            continue;
-        }
-
-        if (lineStr.isEmpty() || KifuParseCommon::isKifSkippableHeaderLine(lineStr)
-            || KifuParseCommon::isBoardHeaderOrFrame(lineStr)) continue;
-        if (!Ki2Lexer::isKi2MoveLine(lineStr)) continue;
-
-        const QStringList moves = Ki2Lexer::extractMovesFromLine(lineStr);
-        for (const QString& move : std::as_const(moves)) {
-            QString term;
-            if (KifuParseCommon::isTerminalWordContains(move, &term)) {
-                handleKi2TerminalWord(term, moveIndex, commentBuf, out,
-                                       firstMoveFound, gameEnded, openingCommentBuf, openingBookmarkBuf);
-                break;
-            }
-
             if (!firstMoveFound) {
                 firstMoveFound = true;
-                out.push_back(KifuParseCommon::createOpeningDisplayItem(openingCommentBuf, openingBookmarkBuf));
+                line.disp.append(KifuParseCommon::createOpeningDisplayItem(openingComment, openingBookmark));
             }
-            KifuParseCommon::flushCommentToLastItem(commentBuf, out);
-
-            const QString usi = Ki2Lexer::convertKi2MoveToUsi(move, boardState, blackHands, whiteHands,
-                                                               blackToMove, prevToFile, prevToRank);
-            ++moveIndex;
-            const QString teban = KifuParseCommon::tebanMark(moveIndex);
-            const QString prettyMove = buildKi2PrettyMove(move, usi, teban);
-            out.push_back(KifuParseCommon::createMoveDisplayItem(moveIndex, prettyMove));
-
-            if (!usi.isEmpty())
-                applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
+            KifuParseCommon::flushCommentToLastItem(comment, line.disp);
+            line.usiMoves.append(usi);
+            line.disp.append(KifuParseCommon::createMoveDisplayItem(++ply, buildKi2PrettyMove(move, usi, mark)));
+            Ki2ToSfenConverter::applyMoveToBoard(usi, board, blackHands, whiteHands, blackToMove);
             blackToMove = !blackToMove;
         }
     }
+    KifuParseCommon::finalizeDisplayItems(comment, line.disp, openingComment, openingBookmark);
+    line.sfenList = SfenPositionTracer::buildSfenRecord(baseSfen, line.usiMoves, false);
+    line.gameMoves = SfenPositionTracer::buildGameMoves(baseSfen, line.usiMoves);
+    return true;
+}
+} // namespace
 
-    KifuParseCommon::finalizeDisplayItems(commentBuf, out, openingCommentBuf, openingBookmarkBuf);
-
-    return out;
+QStringList Ki2ToSfenConverter::convertFile(const QString& path, QString* errorMessage)
+{
+    KifParseResult result;
+    return parseWithVariations(path, result, errorMessage) ? result.mainline.usiMoves : QStringList();
 }
 
-bool Ki2ToSfenConverter::parseWithVariations(const QString& ki2Path,
-                                              KifParseResult& out,
-                                              QString* errorMessage)
+QList<KifDisplayItem> Ki2ToSfenConverter::extractMovesWithTimes(const QString& path, QString* errorMessage)
+{
+    KifParseResult result;
+    return parseWithVariations(path, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
+}
+
+bool Ki2ToSfenConverter::parseWithVariations(const QString& path, KifParseResult& out, QString* errorMessage)
 {
     out = KifParseResult{};
-    QString teai;
-    out.mainline.baseSfen = detectInitialSfenFromFile(ki2Path, &teai);
-    out.mainline.disp = extractMovesWithTimes(ki2Path, errorMessage);
-    out.mainline.usiMoves = convertFile(ki2Path, errorMessage);
+    QStringList lines;
+    QString encoding;
+    if (!KifReader::readLinesAuto(path, lines, &encoding, errorMessage)) return false;
+    const QString initial = detectInitialSfenFromFile(path);
+    static const QRegularExpression variationRe(QStringLiteral("^変化[:：]\\s*([0-9０-９]+)手"));
+    QList<qsizetype> boundaries;
+    for (qsizetype i = 0; i < lines.size(); ++i) {
+        if (variationRe.match(lines[i].trimmed()).hasMatch()) boundaries.append(i);
+    }
+    boundaries.append(lines.size());
+    KifParseResult parsed;
+    if (!parseKi2Block(lines.mid(0, boundaries[0]), initial, 1, 0, 0, parsed.mainline, errorMessage)) return false;
+    QStringList previousPositions = parsed.mainline.sfenList;
+    QStringList previousMoves = parsed.mainline.usiMoves;
+    for (qsizetype block = 0; block + 1 < boundaries.size(); ++block) {
+        const auto match = variationRe.match(lines[boundaries[block]].trimmed());
+        const int start = KifuParseCommon::flexDigitsToIntNoDetach(match.captured(1));
+        if (start < 1 || start > previousPositions.size()) {
+            if (errorMessage) *errorMessage = QStringLiteral("KI2: invalid variation start: %1").arg(start);
+            return false;
+        }
+        int prevFile = 0, prevRank = 0;
+        if (start > 1) {
+            const QString previous = previousMoves[start - 2];
+            prevFile = previous[2].digitValue();
+            prevRank = previous[3].toLatin1() - 'a' + 1;
+        }
+        KifVariation variation;
+        variation.startPly = start;
+        const auto blockLines = lines.mid(boundaries[block] + 1, boundaries[block + 1] - boundaries[block] - 1);
+        if (!parseKi2Block(blockLines, previousPositions[start - 1], start, prevFile, prevRank,
+                           variation.line, errorMessage)) return false;
+        auto opening = variation.line.disp.takeFirst();
+        if (!variation.line.disp.isEmpty()) {
+            auto& first = variation.line.disp[0];
+            if (!first.comment.isEmpty()) KifuParseCommon::appendLine(opening.comment, first.comment);
+            if (!first.bookmark.isEmpty()) KifuParseCommon::appendLine(opening.bookmark, first.bookmark);
+            first.comment = opening.comment;
+            first.bookmark = opening.bookmark;
+        }
+        previousPositions = previousPositions.mid(0, start - 1) + variation.line.sfenList;
+        previousMoves = previousMoves.mid(0, start - 1) + variation.line.usiMoves;
+        parsed.variations.append(variation);
+    }
+    out = std::move(parsed);
     return true;
 }
 

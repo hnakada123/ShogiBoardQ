@@ -9,6 +9,7 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QRegularExpression>
 #include <optional>
 
 #include "kifuioservice.h"   // writeKifuFile / makeDefaultSaveFileName
@@ -72,6 +73,15 @@ SaveFormat saveFormatForPath(const QString& path)
     return formatForExtension(path).value_or(SaveFormat::Kif);
 }
 
+QString pathForSelectedFilter(const QString& path, const QString& selectedFilter)
+{
+    if (path.isEmpty() || !QFileInfo(path).suffix().isEmpty()) return path;
+    static const QRegularExpression extensionRe(QStringLiteral("\\(\\*\\.([a-z0-9]+)\\)"));
+    const auto match = extensionRe.match(selectedFilter);
+    const QString extension = match.hasMatch() ? match.captured(1) : QStringLiteral("kifu");
+    return path + QLatin1Char('.') + extension;
+}
+
 bool hasKnownSaveExtension(const QString& path)
 {
     return formatForExtension(path).has_value();
@@ -100,6 +110,7 @@ QString saveViaDialogWithUsi(QWidget* parent,
                               QString* outError)
 {
     // 既定ファイル名を生成
+    if (outError) outError->clear();
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
     if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
@@ -122,8 +133,10 @@ QString saveViaDialogWithUsi(QWidget* parent,
         "USI形式 (*.usi);;"
         "すべてのファイル (*)");
 
-    const QString path = QFileDialog::getSaveFileName(
-        parent, QObject::tr("名前を付けて保存"), defaultName, filter);
+    QString selectedFilter;
+    const QString chosenPath = QFileDialog::getSaveFileName(
+        parent, QObject::tr("名前を付けて保存"), defaultName, filter, &selectedFilter);
+    const QString path = pathForSelectedFilter(chosenPath, selectedFilter);
     if (path.isEmpty()) return QString();
 
     GameSettings::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());

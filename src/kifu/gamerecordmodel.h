@@ -20,6 +20,7 @@
 class QTableWidget;
 class KifuRecordListModel;
 class KifuNavigationState;
+class KifuBranchNode;
 
 /**
  * @brief 棋譜データの中央管理クラス
@@ -28,7 +29,7 @@ class KifuNavigationState;
  * データの整合性を保証する。
  *
  * 設計方針:
- * - Single Source of Truth: コメントデータはこのクラスが権威を持つ
+ * - コメント・しおりは分岐ツリーの各ノードを参照し、このクラス経由で同期更新する
  * - 既存データへの参照を保持し、必要に応じて同期更新を行う
  * - KIF/CSA/JKF/USEN/USI形式への出力機能を提供
  *
@@ -300,7 +301,7 @@ signals:
      * @brief データが変更された（保存が必要）
      */
 private:
-    // === 内部データ（権威を持つ） ===
+    // === ツリーがない場合のフォールバックデータ ===
     QList<QString> m_comments;   ///< 手数インデックス → コメント
     QList<QString> m_bookmarks;  ///< 手数インデックス → しおり
     bool m_isDirty = false;        ///< 変更フラグ
@@ -317,6 +318,7 @@ private:
     BookmarkUpdateCallback m_bookmarkUpdateCallback;  ///< しおり更新時の通知コールバック
 
     // === 内部ヘルパ ===
+    KifuBranchNode* nodeForCurrentLine(int ply) const;
     void syncToExternalStores(int ply, const QString& comment);
 
 };

@@ -16,6 +16,7 @@
 #include "playmode.h"
 #include "csagamecoordinator.h"
 #include "csamoveconverter.h"
+#include "parsecommon.h"
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
 #include "shogigamecontroller.h"
@@ -184,7 +185,7 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     const int totalMs = loserIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
 
-    const QString elapsedStr = formatElapsedTime(consumedTimeMs, totalMs + consumedTimeMs);
+    const QString elapsedStr = KifuParseCommon::formatTimeText(consumedTimeMs, totalMs + consumedTimeMs);
 
     // 棋譜欄に追加
     Q_EMIT appendKifuLineRequested(endLine, elapsedStr);
@@ -241,7 +242,7 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
     // 累計消費時間を取得
     const int totalMs = isBlackMove ? m_coordinator->blackTotalTimeMs()
                                     : m_coordinator->whiteTotalTimeMs();
-    const QString elapsedStr = formatElapsedTime(consumedTimeMs, totalMs);
+    const QString elapsedStr = KifuParseCommon::formatTimeText(consumedTimeMs, totalMs);
 
     // 棋譜欄に追記
     Q_EMIT appendKifuLineRequested(prettyMove, elapsedStr);
@@ -294,25 +295,6 @@ void CsaGameWiring::onMoveHighlightRequested(const QPoint& from, const QPoint& t
     if (m_boardController) {
         m_boardController->showMoveHighlights(from, to);
     }
-}
-
-QString CsaGameWiring::formatElapsedTime(int consumedTimeMs, int totalTimeMs) const
-{
-    const int consumedSec = consumedTimeMs / 1000;
-    const int consumedMin = consumedSec / 60;
-    const int consumedSecRem = consumedSec % 60;
-
-    const int totalSec = totalTimeMs / 1000;
-    const int totalHour = totalSec / 3600;
-    const int totalMin = (totalSec % 3600) / 60;
-    const int totalSecRem = totalSec % 60;
-
-    return QString("%1:%2/%3:%4:%5")
-        .arg(consumedMin, 2, 10, QLatin1Char('0'))
-        .arg(consumedSecRem, 2, 10, QLatin1Char('0'))
-        .arg(totalHour, 2, 10, QLatin1Char('0'))
-        .arg(totalMin, 2, 10, QLatin1Char('0'))
-        .arg(totalSecRem, 2, 10, QLatin1Char('0'));
 }
 
 QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack) const
