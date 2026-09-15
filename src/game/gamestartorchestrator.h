@@ -43,12 +43,6 @@ public:
         bool* autoSaveKifu = nullptr;
         QString* kifuSaveDir = nullptr;
 
-        // 対局者名
-        QString* humanName1 = nullptr;
-        QString* humanName2 = nullptr;
-        QString* engineNameForSave1 = nullptr;
-        QString* engineNameForSave2 = nullptr;
-
         // USI position 文字列
         QString* positionStr1 = nullptr;
         QString* positionPonder1 = nullptr;

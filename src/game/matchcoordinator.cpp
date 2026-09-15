@@ -246,9 +246,7 @@ void MatchCoordinator::ensureGameEndHandler()
     hooks.autoSaveKifuIfEnabled = [this]() {
         if (m_autoSaveKifu && !m_kifuSaveDir.isEmpty() && m_hooks.game.autoSaveKifu) {
             qCInfo(lcGame) << "Calling autoSaveKifu hook: dir=" << m_kifuSaveDir;
-            m_hooks.game.autoSaveKifu(m_kifuSaveDir, m_playMode,
-                                 m_humanName1, m_humanName2,
-                                 m_engineNameForSave1, m_engineNameForSave2);
+            m_hooks.game.autoSaveKifu(m_kifuSaveDir);
         }
     };
     m_gameEndHandler->setHooks(hooks);
@@ -267,10 +265,6 @@ void MatchCoordinator::ensureGameStartOrchestrator()
     refs.currentMoveIndex   = &m_currentMoveIndex;
     refs.autoSaveKifu       = &m_autoSaveKifu;
     refs.kifuSaveDir        = &m_kifuSaveDir;
-    refs.humanName1         = &m_humanName1;
-    refs.humanName2         = &m_humanName2;
-    refs.engineNameForSave1 = &m_engineNameForSave1;
-    refs.engineNameForSave2 = &m_engineNameForSave2;
     refs.positionStr1       = &m_positionStr1;
     refs.positionPonder1    = &m_positionPonder1;
     refs.positionStrHistory = &m_positionStrHistory;

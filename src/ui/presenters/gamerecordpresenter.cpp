@@ -20,7 +20,6 @@ void GameRecordPresenter::updateDeps(const Deps& d) {
 }
 
 void GameRecordPresenter::clear() {
-    m_kifuDataList.clear();
     m_currentMoveIndex = 0;
     if (m_d.model) {
         m_d.model->clearAllItems();
@@ -69,12 +68,6 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
         const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + prettyMove;
 
         items.append(new KifuDisplay(recordLine, it.timeText, it.comment, it.bookmark));
-
-        // m_kifuDataList にも追加（互換性のため）
-        QString kifuLine = recordLine + QStringLiteral(" ( ") + it.timeText + QLatin1String(" )");
-        kifuLine.remove(QStringLiteral("▲"));
-        kifuLine.remove(QStringLiteral("△"));
-        m_kifuDataList.append(kifuLine);
     }
 
     // 一括追加（beginInsertRows/endInsertRows は1回だけ）
@@ -139,12 +132,6 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
     const QString moveNumberStr = QString::number(m_currentMoveIndex);
     const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
     const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + last;
-
-    // KIF 出力用（先後記号は除去）
-    QString kifuLine = recordLine + QStringLiteral(" ( ") + elapsedTime + QLatin1String(" )");
-    kifuLine.remove(QStringLiteral("▲"));
-    kifuLine.remove(QStringLiteral("△"));
-    m_kifuDataList.append(kifuLine); // 必要なければそのままでOK
 
     if (m_d.model) {
         m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime));

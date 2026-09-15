@@ -77,6 +77,52 @@ private:
     }
 
 private slots:
+    void allFormatsRoundTripCustomPosition_data()
+    {
+        QTest::addColumn<QString>("format");
+        for (const auto& format : {"kif", "ki2", "csa", "jkf", "usi", "usen"})
+            QTest::newRow(format) << QString::fromLatin1(format);
+    }
+
+    void allFormatsRoundTripCustomPosition()
+    {
+        QFETCH(QString, format);
+        const QString initial = QStringLiteral("4k4/9/9/9/4p4/4+S4/9/9/4K4 w Pp 1");
+        const QStringList usi = {"P*3d", "5f5e", "5a4a", "P*7f"};
+        const QStringList pretty = {QStringLiteral("△３四歩打"), QStringLiteral("▲５五成銀(56)"),
+                                    QStringLiteral("△４一玉(51)"), QStringLiteral("▲７六歩打")};
+        KifuBranchTree tree;
+        tree.setRootSfen(initial);
+        auto* tip = tree.root();
+        for (int i = 0; i < usi.size(); ++i) tip = addTestMove(tree, tip, usi[i], pretty[i]);
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext context;
+        context.startSfen = initial;
+        QStringList output;
+        if (format == "kif") output = model.toKifLines(context);
+        else if (format == "ki2") output = model.toKi2Lines(context);
+        else if (format == "csa") output = model.toCsaLines(context, usi);
+        else if (format == "jkf") output = model.toJkfLines(context);
+        else if (format == "usi") output = model.toUsiLines(context, usi);
+        else output = model.toUsenLines(context, usi);
+        QTemporaryFile file;
+        QVERIFY(KifuTestHelper::writeToTempFile(file, output.join(QLatin1Char('\n')).toUtf8(), format));
+        KifParseResult result;
+        QString error;
+        bool parsed = false;
+        if (format == "kif") parsed = KifToSfenConverter::parseWithVariations(file.fileName(), result, &error);
+        else if (format == "ki2") parsed = Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error);
+        else if (format == "csa") parsed = CsaToSfenConverter::parse(file.fileName(), result, &error);
+        else if (format == "jkf") parsed = JkfToSfenConverter::parseWithVariations(file.fileName(), result, &error);
+        else if (format == "usi") parsed = UsiToSfenConverter::parseWithVariations(file.fileName(), result, &error);
+        else parsed = UsenToSfenConverter::parseWithVariations(file.fileName(), result, &error);
+        QVERIFY2(parsed, qPrintable(error));
+        QCOMPARE(result.mainline.baseSfen, initial);
+        QCOMPARE(result.mainline.usiMoves, usi);
+        QCOMPARE(SfenPositionTracer::buildSfenRecord(result.mainline.baseSfen, result.mainline.usiMoves, false).last(), tip->sfen());
+    }
+
     void kifBodUsesDeclaredTurn_data()
     {
         QTest::addColumn<bool>("withBod");

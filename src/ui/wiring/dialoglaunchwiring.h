@@ -53,6 +53,7 @@ class DialogLaunchWiring : public QObject
 public:
     struct Deps {
         QWidget* parentWidget = nullptr;
+        std::function<bool()> confirmDiscardUnsavedKifu;
         PlayMode* playMode = nullptr;
 
         // 遅延初期化ゲッター (ensure + return)

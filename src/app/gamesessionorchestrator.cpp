@@ -104,6 +104,24 @@ void GameSessionOrchestrator::initializeGame()
     auto* match = deref(m_deps.match);
     QStringList* sfenRecord = match ? match->sfenRecordPtr() : nullptr;
 
+    const bool hasEditedStart = detectHasEditedStart(m_deps.startSfenStr, sfenRecord);
+
+    StartGameDialog dlg;
+    if (hasEditedStart) {
+        dlg.forceCurrentPositionSelection();
+    }
+    if (dlg.exec() != QDialog::Accepted) {
+        return;
+    }
+
+    StartGameDialogData dialogData = extractDialogData(dlg);
+    if (hasEditedStart && dialogData.startingPositionNumber != 0) {
+        dialogData.startingPositionNumber = 0;
+    }
+
+    if (dialogData.startingPositionNumber != 0 && m_deps.confirmDiscardUnsavedKifu
+        && !m_deps.confirmDiscardUnsavedKifu()) return;
+
     MainWindowGameStartService::PrepareDeps prep;
     prep.branchTree = m_deps.branchTree;
     prep.navState = m_deps.navState;
@@ -120,21 +138,6 @@ void GameSessionOrchestrator::initializeGame()
                              << (m_deps.startSfenStr ? m_deps.startSfenStr->left(50) : QStringLiteral("null"))
                              << " currentSelectedPly="
                              << (m_deps.currentSelectedPly ? *m_deps.currentSelectedPly : -1);
-
-    const bool hasEditedStart = detectHasEditedStart(m_deps.startSfenStr, sfenRecord);
-
-    StartGameDialog dlg;
-    if (hasEditedStart) {
-        dlg.forceCurrentPositionSelection();
-    }
-    if (dlg.exec() != QDialog::Accepted) {
-        return;
-    }
-
-    StartGameDialogData dialogData = extractDialogData(dlg);
-    if (hasEditedStart && dialogData.startingPositionNumber != 0) {
-        dialogData.startingPositionNumber = 0;
-    }
 
     MainWindowGameStartService::ContextDeps ctx;
     ctx.gc = m_deps.gameController;

@@ -75,7 +75,7 @@ void MainWindow::setCurrentTurn()
 // また、将棋盤のマスサイズも書き込む。その後、GUIを終了する。
 void MainWindow::saveSettingsAndClose()
 {
-    m_pipeline->shutdownAndQuit();
+    if (close()) m_pipeline->shutdownAndQuit();
 }
 
 // GUIを初期画面表示に戻す（ServiceRegistryへ委譲）。
@@ -102,6 +102,10 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
 // `closeEvent`: 親クラスでイベント受理を確認してから shutdown を実行する。
 void MainWindow::closeEvent(QCloseEvent* e)
 {
+    if (!m_isShuttingDown && !m_registry->confirmDiscardUnsavedKifu()) {
+        e->ignore();
+        return;
+    }
     QMainWindow::closeEvent(e);
     if (!e->isAccepted())
         return;

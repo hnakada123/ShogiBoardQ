@@ -57,8 +57,6 @@ static KifuExportClipboard::Deps toClipboardDeps(const KifuExportController::Dep
     cd.engineName1 = d.engineName1;
     cd.engineName2 = d.engineName2;
     cd.currentMoveIndex = d.currentMoveIndex;
-    cd.activePly = d.activePly;
-    cd.currentSelectedPly = d.currentSelectedPly;
     return cd;
 }
 
@@ -72,24 +70,6 @@ void KifuExportController::setPrepareCallback(std::function<void()> callback)
 {
     m_prepareCallback = std::move(callback);
     m_clipboard->setPrepareCallback(m_prepareCallback);
-}
-
-void KifuExportController::updateState(const QString& startSfen, PlayMode mode,
-                                        const QString& human1, const QString& human2,
-                                        const QString& engine1, const QString& engine2,
-                                        int activeRow, int moveIndex, int aPly, int selPly)
-{
-    m_deps.startSfenStr = startSfen;
-    m_deps.playMode = mode;
-    m_deps.humanName1 = human1;
-    m_deps.humanName2 = human2;
-    m_deps.engineName1 = engine1;
-    m_deps.engineName2 = engine2;
-    m_deps.activeResolvedRow = activeRow;
-    m_deps.currentMoveIndex = moveIndex;
-    m_deps.activePly = aPly;
-    m_deps.currentSelectedPly = selPly;
-    m_clipboard->setDependencies(toClipboardDeps(m_deps));
 }
 
 // --------------------------------------------------------
@@ -167,25 +147,6 @@ QString KifuExportController::saveToFile()
         return QString();
     }
     
-    QStringList usiMovesForExport = resolveUsiMoves();
-    GameRecordModel::ExportContext ctx = buildExportContext();
-    
-    // 各形式の行リストを生成
-    QStringList kifLines = m_deps.gameRecord->toKifLines(ctx);
-    QStringList ki2Lines = m_deps.gameRecord->toKi2Lines(ctx);
-    QStringList csaLines = m_deps.gameRecord->toCsaLines(ctx, usiMovesForExport);
-    QStringList jkfLines = m_deps.gameRecord->toJkfLines(ctx);
-    QStringList usenLines = m_deps.gameRecord->toUsenLines(ctx, usiMovesForExport);
-    QStringList usiLines = m_deps.gameRecord->toUsiLines(ctx, usiMovesForExport);
-    
-    qCDebug(lcKifu).noquote() << "saveToFile: generated"
-                              << kifLines.size() << "KIF,"
-                              << ki2Lines.size() << "KI2,"
-                              << csaLines.size() << "CSA,"
-                              << jkfLines.size() << "JKF,"
-                              << usenLines.size() << "USEN,"
-                              << usiLines.size() << "USI lines";
-    
     // 分岐の有無を判定
     const bool hasBranches = m_deps.gameRecord->branchTree()
                              && m_deps.gameRecord->branchTree()->lineCount() > 1;
@@ -203,10 +164,9 @@ QString KifuExportController::saveToFile()
     }
 
     QString error;
-    const QString path = KifuSaveCoordinator::saveViaDialogWithUsi(
+    const QString path = KifuSaveCoordinator::saveViaDialog(
         m_parentWidget,
-        kifLines, ki2Lines, csaLines,
-        jkfLines, usenLines, usiLines,
+        [this](KifuSaveCoordinator::SaveFormat format) { return linesForFormat(format); },
         m_deps.playMode,
         m_deps.humanName1, m_deps.humanName2,
         m_deps.engineName1, m_deps.engineName2,
@@ -367,11 +327,6 @@ bool KifuExportController::copyBodToClipboard()         { return m_clipboard->co
 // --------------------------------------------------------
 // USI指し手変換
 // --------------------------------------------------------
-
-QStringList KifuExportController::gameMovesToUsiMoves(const QList<ShogiMove>& moves)
-{
-    return UsiMoveConverter::fromGameMoves(moves);
-}
 
 QStringList KifuExportController::sfenRecordToUsiMoves() const
 {

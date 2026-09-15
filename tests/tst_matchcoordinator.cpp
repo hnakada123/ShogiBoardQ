@@ -96,9 +96,7 @@ struct MCTestHarness {
         };
         deps.hooks.game.appendEvalP1 = []() {};
         deps.hooks.game.appendEvalP2 = []() {};
-        deps.hooks.game.autoSaveKifu = [](const QString&, PlayMode,
-                                          const QString&, const QString&,
-                                          const QString&, const QString&) {};
+        deps.hooks.game.autoSaveKifu = [](const QString&) {};
 
         mc = std::make_unique<MatchCoordinator>(deps);
     }

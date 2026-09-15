@@ -74,6 +74,7 @@ KifuFileController::Deps MainWindowDepsFactory::createKifuFileControllerDeps(
     deps.prepareKifuLoadCoordinatorForLive = callbacks.prepareKifuLoadCoordinatorForLive;
 
     // ゲッター
+    deps.getGameRecordModel = callbacks.getGameRecordModel;
     deps.getKifuExportController = callbacks.getKifuExportController;
     deps.getKifuLoadCoordinator = callbacks.getKifuLoadCoordinator;
 

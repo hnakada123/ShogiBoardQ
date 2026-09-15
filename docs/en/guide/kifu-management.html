@@ -80,7 +80,7 @@
 <tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>A compact KIF format that records moves horizontally</td></tr>
 <tr><td><strong>CSA</strong></td><td>.csa</td><td>The Computer Shogi Association's standard format, using coordinate notation</td></tr>
 <tr><td><strong>JKF</strong></td><td>.jkf</td><td>A JSON game record format that represents variations in a JSON structure</td></tr>
-<tr><td><strong>USI</strong></td><td>.usi .sfen</td><td>USI protocol notation, as used in engine communication</td></tr>
+<tr><td><strong>USI / SFEN</strong></td><td>.usi .sfen</td><td>A USI move sequence or an SFEN position without moves</td></tr>
 <tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN compression for compact game record encoding</td></tr>
 </tbody>
 </table>
@@ -187,18 +187,18 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
 <span class="guide-step-number">1</span>
 <span class="guide-step-title">Save As</span>
 </div>
-<p class="guide-step-text">Choose File → Save As to save the record in your preferred format. Select the output format using the filter in the save dialog.</p>
+<p class="guide-step-text">Choose File → Save As to save the record in your preferred format. If you omit the extension, the selected filter supplies it. If you enter an extension, that extension determines the output format.</p>
 <table class="info-table">
 <thead>
-<tr><th>Format</th><th>Extension</th></tr>
+<tr><th>Format</th><th>Extension</th><th>Encoding</th></tr>
 </thead>
 <tbody>
-<tr><td>KIF Format</td><td>.kif .kifu</td></tr>
-<tr><td>KI2 Format</td><td>.ki2 .ki2u</td></tr>
-<tr><td>CSA Format</td><td>.csa</td></tr>
-<tr><td>JKF Format</td><td>.jkf</td></tr>
-<tr><td>USEN Format</td><td>.usen</td></tr>
-<tr><td>USI Format</td><td>.usi</td></tr>
+<tr><td>KIF Format</td><td>.kif / .kifu</td><td>Shift_JIS / UTF-8</td></tr>
+<tr><td>KI2 Format</td><td>.ki2 / .ki2u</td><td>Shift_JIS / UTF-8</td></tr>
+<tr><td>CSA Format</td><td>.csa</td><td>UTF-8</td></tr>
+<tr><td>JKF Format</td><td>.jkf</td><td>UTF-8</td></tr>
+<tr><td>USEN Format</td><td>.usen</td><td>UTF-8</td></tr>
+<tr><td>USI Format</td><td>.usi</td><td>UTF-8</td></tr>
 </tbody>
 </table>
 </div>
@@ -207,7 +207,8 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
 <span class="guide-step-number">2</span>
 <span class="guide-step-title">Save</span>
 </div>
-<p class="guide-step-text">Choose File → Save to overwrite the loaded file. Automatic saving after a game is also supported; select a destination directory in the game dialog.</p>
+<p class="guide-step-text">Choose File → Save to overwrite the most recently loaded or saved file in the format determined by its extension. Save As opens when no destination is set, after importing from the clipboard or position collection, or after loading a .sfen file. Select the destination for automatic saving after a game in the game dialog.</p>
+<p class="guide-step-text">If the game record has unsaved changes, you are asked to save before loading another record, starting a game with a new record, resetting the board, or exiting the application. Choosing Cancel, canceling the save dialog, or a failed save stops the operation.</p>
 </div>
 </div>
 </div>
@@ -281,15 +282,17 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
 <tr><th>Format</th><th>Detection Criteria</th></tr>
 </thead>
 <tbody>
-<tr><td>KIF</td><td>Contains Japanese KIF keywords such as 手数 (move number) or 指し手 (move)</td></tr>
-<tr><td>KI2</td><td>A sequence of moves beginning with ▲ or △</td></tr>
-<tr><td>CSA</td><td>Starts with a CSA header such as V2, N+, N-, or P1</td></tr>
-<tr><td>USI</td><td>USI command notation containing the moves keyword</td></tr>
-<tr><td>JKF</td><td>JSON starting with { or [</td></tr>
-<tr><td>USEN</td><td>A Base64-like encoded string</td></tr>
-<tr><td>SFEN</td><td>Position notation starting with position sfen, sfen, or startpos</td></tr>
+<tr><td>KIF</td><td>Contains 手数---- or a line beginning with a move number and destination. The words 手数 or 指し手 alone do not establish the format</td></tr>
+<tr><td>KI2</td><td>A move line beginning with ▲ or △ followed by a destination</td></tr>
+<tr><td>CSA</td><td>Starts with V2 or ', or contains a move line beginning with + or - followed by digits</td></tr>
+<tr><td>USI</td><td>A line beginning with position, startpos, or sfen, or an SFEN position followed by moves. Also accepts startpos moves ...</td></tr>
+<tr><td>JKF</td><td>JSON beginning with { or [ is checked as JKF. Import requires a JKF object; a JSON array alone is rejected</td></tr>
+<tr><td>USEN</td><td>Matches the USEN structure of move numbers and encoded sequences separated by ~. A ~ inside a comment or URL is insufficient</td></tr>
+<tr><td>SFEN</td><td>A position string with four fields: board, turn, pieces in hand, and move number. Prefixes such as sfen are detected as USI</td></tr>
+<tr><td>BOD</td><td>A position diagram with hand headings, borders, or square notation, without a move list</td></tr>
 </tbody>
 </table>
+<p class="guide-step-text">Unrecognized text is tried as KIF. The content is validated after format detection, and an error is shown if it cannot be imported.</p>
 </div>
 </div>
 </div>

@@ -270,8 +270,8 @@ private slots:
                   "Must have overwriteFile method");
     }
 
-    /// saveToFile が ExportContext を構築して形式変換すること
-    void phase4_saveToFileBuildContext()
+    /// saveToFile が選択された形式の生成を保存コーディネータへ委譲すること
+    void phase4_saveToFileDefersConversion()
     {
         const QStringList lines = readSourceLines(
             QStringLiteral("src/kifu/kifuexportcontroller.cpp"));
@@ -282,10 +282,9 @@ private slots:
         QVERIFY2(range.first >= 0, "saveToFile not found");
 
         const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("buildExportContext"))
-                     || body.contains(QStringLiteral("ExportContext"))
-                     || body.contains(QStringLiteral("resolveUsiMoves")),
-                  "saveToFile must build export context or resolve moves");
+        QVERIFY(body.contains(QStringLiteral("saveViaDialog")));
+        QVERIFY(body.contains(QStringLiteral("return linesForFormat(format)")));
+        QVERIFY(!body.contains(QStringLiteral("resolveUsiMoves()")));
     }
 
     /// KifuExportClipboard にクリップボード出力メソッドがあること

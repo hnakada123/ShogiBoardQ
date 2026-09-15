@@ -397,13 +397,6 @@ private:
     bool m_autoSaveKifu = false;              ///< 自動保存フラグ
     QString m_kifuSaveDir;                    ///< 保存ディレクトリ
 
-    // --- 対局者名 ---
-
-    QString m_humanName1;                     ///< 先手人間名
-    QString m_humanName2;                     ///< 後手人間名
-    QString m_engineNameForSave1;             ///< 先手エンジン名（保存用）
-    QString m_engineNameForSave2;             ///< 後手エンジン名（保存用）
-
     // --- 終局状態 ---
 
     GameOverState m_gameOver;                 ///< 終局状態

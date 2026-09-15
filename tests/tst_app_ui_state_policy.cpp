@@ -6,6 +6,8 @@
 
 #include <QtTest>
 #include <QSignalSpy>
+#include <QMainWindow>
+#include "ui_mainwindow.h"
 
 #include "uistatepolicymanager.h"
 
@@ -40,6 +42,26 @@ private:
     }
 
 private slots:
+    void allRecordFormatsShareMenuPolicy()
+    {
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
+        UiStatePolicyManager manager;
+        UiStatePolicyManager::Deps deps;
+        deps.ui = &ui;
+        manager.updateDeps(deps);
+        for (const auto state : {S::Idle, S::DuringGame, S::DuringCsaGame, S::DuringAnalysis}) {
+            manager.applyState(state);
+            const bool canCopyRecord = manager.isEnabled(E::EditCopyKifu);
+            for (auto* action : {ui.actionCopyKIF, ui.actionCopyKI2, ui.actionCopyCSA,
+                                  ui.actionCopyJKF, ui.actionCopyUSIAll, ui.actionCopyUSEN})
+                QCOMPARE(action->isEnabled(), canCopyRecord);
+            for (auto* action : {ui.actionCopySFEN, ui.actionCopyBOD, ui.actionCopyUSICurrent})
+                QCOMPARE(action->isEnabled(), manager.isEnabled(E::EditCopyPosition));
+        }
+    }
+
     // ================================================================
     // 初期状態テスト
     // ================================================================

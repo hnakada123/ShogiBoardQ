@@ -119,11 +119,7 @@ int KifuExportClipboard::currentPly() const
     }
 
     // USIの「現在の指し手まで」と同じ、閲覧中の行を参照する。
-    if (m_deps.currentMoveIndex >= 0) return m_deps.currentMoveIndex;
-    if (m_deps.currentSelectedPly >= 0) return m_deps.currentSelectedPly;
-    if (m_deps.activePly >= 0) return m_deps.activePly;
-
-    return 0;
+    return qMax(0, m_deps.currentMoveIndex);
 }
 
 KifuExportClipboard::PositionData KifuExportClipboard::currentPositionData() const

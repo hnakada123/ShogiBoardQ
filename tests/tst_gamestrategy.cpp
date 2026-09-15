@@ -100,9 +100,7 @@ struct StrategyTestHarness {
         };
         deps.hooks.game.appendEvalP1 = [this]() { appendEvalP1Called = true; };
         deps.hooks.game.appendEvalP2 = [this]() { appendEvalP2Called = true; };
-        deps.hooks.game.autoSaveKifu = [](const QString&, PlayMode,
-                                          const QString&, const QString&,
-                                          const QString&, const QString&) {};
+        deps.hooks.game.autoSaveKifu = [](const QString&) {};
 
         mc = std::make_unique<MatchCoordinator>(deps);
     }

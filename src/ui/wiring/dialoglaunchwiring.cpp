@@ -169,6 +169,7 @@ void DialogLaunchWiring::displayCsaGameDialog()
 
     // ダイアログを表示する
     if (dlg->exec() == QDialog::Accepted) {
+        if (m_deps.confirmDiscardUnsavedKifu && !m_deps.confirmDiscardUnsavedKifu()) return;
         // CsaGameWiringを確保
         auto* csaWiring = m_deps.getCsaGameWiring ? m_deps.getCsaGameWiring() : nullptr;
         if (!csaWiring) {

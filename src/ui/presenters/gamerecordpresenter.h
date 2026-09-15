@@ -39,7 +39,6 @@ public:
 private:
     Deps        m_d;
     int         m_currentMoveIndex {0};
-    QStringList m_kifuDataList; // KIF文字列出力用の蓄積（必要なければ未使用でOK）
 
 public:
     // 追加：コメントを Presenter 側で管理

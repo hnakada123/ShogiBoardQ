@@ -163,14 +163,8 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
         m_mw.m_playerInfoWiring->onSetEngineNames(e1, e2);
     };
     m_kifu->ensureKifuFileController();
-    in.autoSaveKifu = [this](const QString& gameResultText,
-                             PlayMode mode,
-                             const QString& gameModeText,
-                             const QString& dateTimeText,
-                             const QString& blackText,
-                             const QString& whiteText) {
-        m_mw.m_kifuFileController->autoSaveKifuToFile(gameResultText, mode, gameModeText,
-                                                      dateTimeText, blackText, whiteText);
+    in.autoSaveKifu = [this](const QString& saveDir) {
+        m_mw.m_kifuFileController->autoSaveKifuToFile(saveDir);
     };
 
     m_foundation->ensureKifuNavigationCoordinator();

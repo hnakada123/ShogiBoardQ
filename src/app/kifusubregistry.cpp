@@ -128,6 +128,7 @@ void KifuSubRegistry::ensureKifuFileController()
     callbacks.prepareKifuLoadCoordinatorForLive = [this]() {
         prepareKifuLoadCoordinatorForLive();
     };
+    callbacks.getGameRecordModel = [this]() { return m_mw.m_models.gameRecord; };
     callbacks.getKifuExportController = [this]() { return m_mw.m_kifuExportController.get(); };
     callbacks.getKifuLoadCoordinator = [this]() { return m_mw.m_kifuLoadCoordinator; };
 
@@ -185,6 +186,10 @@ void KifuSubRegistry::refreshGameRecordUpdateDeps()
     deps.ensureLiveGameSessionUpdater = [this]() -> LiveGameSessionUpdater* {
         m_registry->ensureLiveGameSessionUpdater();
         return m_mw.m_liveGameSessionUpdater.get();
+    };
+    deps.markGameRecordDirty = [this]() {
+        ensureGameRecordModel();
+        m_mw.m_models.gameRecord->markDirty();
     };
     deps.match = m_mw.m_match;
     deps.liveGameSession = m_mw.m_branchNav.liveGameSession;

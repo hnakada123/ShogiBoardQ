@@ -33,8 +33,6 @@ void KifuExportDepsAssembler::assemble(KifuExportController* controller, const M
     deps.engineName2 = refs.player.engineName2 ? *refs.player.engineName2 : QString();
     deps.activeResolvedRow = (refs.branchNav.navState != nullptr) ? refs.branchNav.navState->currentLineIndex() : 0;
     deps.currentMoveIndex = refs.state.currentMoveIndex ? *refs.state.currentMoveIndex : 0;
-    deps.activePly = refs.kifu.activePly ? *refs.kifu.activePly : 0;
-    deps.currentSelectedPly = refs.kifu.currentSelectedPly ? *refs.kifu.currentSelectedPly : 0;
 
     controller->setDependencies(deps);
 }

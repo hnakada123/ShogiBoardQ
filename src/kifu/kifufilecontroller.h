@@ -15,6 +15,7 @@ class QStatusBar;
 class KifuExportController;
 class KifuLoadCoordinator;
 class KifuPasteDialog;
+class GameRecordModel;
 
 /**
  * @brief 棋譜ファイルI/O操作を担当するコントローラ
@@ -46,6 +47,7 @@ public:
         std::function<void()> prepareKifuLoadCoordinatorForLive; ///< ライブ用 KifuLoadCoordinator 確保
 
         // --- ゲッター ---
+        std::function<GameRecordModel*()> getGameRecordModel;          ///< 未保存変更を確認する棋譜モデル
         std::function<KifuExportController*()> getKifuExportController; ///< KifuExportController 取得
         std::function<KifuLoadCoordinator*()> getKifuLoadCoordinator;   ///< KifuLoadCoordinator 取得
     };
@@ -53,6 +55,9 @@ public:
     explicit KifuFileController(QObject* parent = nullptr);
 
     void updateDeps(const Deps& deps);
+
+    /// 未保存変更の確認。保存失敗・キャンセル時は呼び出し元の操作を中止する。
+    [[nodiscard]] bool confirmDiscardUnsaved();
 
 public slots:
     /// 棋譜ファイルを選択して開く
@@ -70,11 +75,11 @@ public slots:
 
 public:
     /// 棋譜自動保存（MatchCoordinator フック用）
-    void autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
-                            const QString& humanName1, const QString& humanName2,
-                            const QString& engineName1, const QString& engineName2);
+    void autoSaveKifuToFile(const QString& saveDir);
 
 private:
+    void prepareForKifuLoad();
+
     /// 拡張子に応じた読み込み関数へ振り分ける
     /// @return 読み込みに成功した場合 true
     [[nodiscard]] bool dispatchKifuLoad(const QString& filePath);

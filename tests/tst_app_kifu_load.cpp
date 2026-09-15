@@ -338,17 +338,11 @@ private slots:
         const auto fileDialogIdx = body.indexOf(QStringLiteral("getOpenFileName"));
         QVERIFY2(fileDialogIdx >= 0, "Must use QFileDialog::getOpenFileName");
 
-        // 2) リプレイモード設定
-        const auto replayIdx = body.indexOf(QStringLiteral("setReplayMode"));
-        QVERIFY2(replayIdx >= 0, "Must call setReplayMode");
-        QVERIFY2(replayIdx > fileDialogIdx,
-                  "setReplayMode must come after file dialog");
-
-        // 3) UI クリア
-        const auto clearIdx = body.indexOf(QStringLiteral("clearUiBeforeKifuLoad"));
-        QVERIFY2(clearIdx >= 0, "Must call clearUiBeforeKifuLoad");
-        QVERIFY2(clearIdx > fileDialogIdx,
-                  "clearUi must come after file dialog");
+        // 2) 未保存の棋譜を保護してから、共通の読み込み準備
+        const auto guardIdx = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
+        const auto clearIdx = body.indexOf(QStringLiteral("prepareForKifuLoad"));
+        QVERIFY2(guardIdx > fileDialogIdx, "Unsaved guard must follow file selection");
+        QVERIFY2(clearIdx > guardIdx, "Load preparation must follow the unsaved guard");
 
         // 4) KifuLoadCoordinator 作成
         const auto createIdx = body.indexOf(QStringLiteral("createAndWireKifuLoadCoordinator"));
@@ -361,6 +355,22 @@ private slots:
         QVERIFY2(dispatchIdx >= 0, "Must call dispatchKifuLoad");
         QVERIFY2(dispatchIdx > createIdx,
                   "dispatchKifuLoad must come after createAndWire");
+    }
+
+    /// ファイル・貼り付け・局面集の共通準備で、リプレイと対局情報を初期化すること
+    void prepareForKifuLoad_initializesReplayAndGameInfo()
+    {
+        const QStringList& lines = kfcLines();
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("KifuFileController::prepareForKifuLoad()"));
+        QVERIFY(range.first >= 0);
+        const QString body = bodyText(lines, range);
+        const auto replayIdx = body.indexOf(QStringLiteral("setReplayMode(true)"));
+        const auto clearIdx = body.indexOf(QStringLiteral("clearUiBeforeKifuLoad"));
+        const auto infoIdx = body.indexOf(QStringLiteral("ensurePlayerInfoAndGameInfo"));
+        QVERIFY(replayIdx >= 0);
+        QVERIFY(clearIdx > replayIdx);
+        QVERIFY(infoIdx > clearIdx);
     }
 
     /// chooseAndLoadKifuFile が読み込み成功時に上書き保存先を記録すること
@@ -548,9 +558,11 @@ private slots:
 
         const QString body = bodyText(lines, range);
 
-        // 1) UI クリア
-        const auto clearIdx = body.indexOf(QStringLiteral("clearUiBeforeKifuLoad"));
-        QVERIFY2(clearIdx >= 0, "Must call clearUiBeforeKifuLoad");
+        // 1) 未保存の棋譜を保護してから、共通の読み込み準備
+        const auto guardIdx = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
+        const auto clearIdx = body.indexOf(QStringLiteral("prepareForKifuLoad"));
+        QVERIFY2(guardIdx >= 0, "Must guard unsaved changes");
+        QVERIFY2(clearIdx > guardIdx, "Load preparation must follow the unsaved guard");
 
         // 2) KLC 確保
         const auto ensureIdx = body.indexOf(QStringLiteral("prepareKifuLoadCoordinatorForLive"));
@@ -612,11 +624,13 @@ private slots:
 
         const QString body = bodyText(lines, range);
 
-        const auto clearIdx = body.indexOf(QStringLiteral("clearUiBeforeKifuLoad"));
+        const auto guardIdx = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
+        const auto clearIdx = body.indexOf(QStringLiteral("prepareForKifuLoad"));
         const auto ensureIdx = body.indexOf(QStringLiteral("prepareKifuLoadCoordinatorForLive"));
         const auto loadIdx = body.indexOf(QStringLiteral("loadPositionFromSfen"));
 
-        QVERIFY2(clearIdx >= 0, "Must call clearUiBeforeKifuLoad");
+        QVERIFY2(guardIdx >= 0, "Must guard unsaved changes");
+        QVERIFY2(clearIdx > guardIdx, "Load preparation must follow the unsaved guard");
         QVERIFY2(ensureIdx >= 0, "Must call prepareKifuLoadCoordinatorForLive");
         QVERIFY2(loadIdx >= 0, "Must call loadPositionFromSfen");
 

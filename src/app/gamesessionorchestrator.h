@@ -58,6 +58,8 @@ public:
         KifuBranchTree* branchTree = nullptr;
         KifuNavigationState* navState = nullptr;
 
+        std::function<bool()> confirmDiscardUnsavedKifu;
+
         // === Lazy-init callbacks ===
         std::function<void()> ensureGameStateController;
         std::function<void()> ensureGameStartCoordinator;

@@ -125,6 +125,7 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
     if (!m_mw.m_gameSessionOrchestrator) return;
 
     GameSessionOrchestrator::Deps deps;
+    deps.confirmDiscardUnsavedKifu = [this]() { return confirmDiscardUnsavedKifu(); };
 
     // === Controllers（ダブルポインタ） ===
     deps.gameStateController = &m_mw.m_gameStateController;

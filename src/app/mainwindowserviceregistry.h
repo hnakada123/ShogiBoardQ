@@ -105,6 +105,7 @@ public:
     void prepareUndoFlowService();
     void prepareTurnStateSyncService();
     void prepareTurnSyncBridge();
+    [[nodiscard]] bool confirmDiscardUnsavedKifu();
     void resetToInitialState();
     void resetGameState();
     void setReplayMode(bool on);
