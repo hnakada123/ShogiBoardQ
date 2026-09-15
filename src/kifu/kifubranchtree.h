@@ -119,10 +119,14 @@ public:
 
     /**
      * @brief SFENで一致するノードを探す
-     * @param sfen 検索するSFEN（手数部分は除いて比較）
+     * @param sfen 検索するSFEN（手数部分は無視し、持ち駒の並び順の差も吸収して比較）
+     * @param ply 手数で絞り込む場合に指定する（-1 なら全手数が対象）
      * @return 見つかったノード、見つからない場合はnullptr
+     *
+     * ルートから本譜を優先する深さ優先順で走査し、最初に一致したノードを返す。
+     * 終局手ノードは親と同じ局面を持つため対象外とする。
      */
-    KifuBranchNode* findBySfen(const QString& sfen) const;
+    KifuBranchNode* findBySfen(const QString& sfen, int ply = -1) const;
 
     /**
      * @brief 親ノードの子から、同じ指し手を表す既存ノードを探す

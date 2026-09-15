@@ -169,6 +169,70 @@ private slots:
         QCOMPARE(node->ply(), 3);
     }
 
+    void findBySfen_skipsTerminalNode()
+    {
+        // 終局手ノードは親と同じ局面を持つが、findBySfen は親（局面を表すノード）を返す
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove dummyMove;
+        auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n2 = tree.addMove(n1, dummyMove, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
+        auto* resign = tree.addMove(n2, dummyMove, QStringLiteral("▲投了"), QStringLiteral("board2 b - 4"));
+        QVERIFY(resign->isTerminal());
+
+        for (int i = 0; i < 20; ++i) {
+            QCOMPARE(tree.findBySfen(QStringLiteral("board2 b - 3")), n2);
+            QCOMPARE(tree.findBySfen(QStringLiteral("board2 b - 4")), n2);
+        }
+        // 終局手しか持たない局面は見つからない（親が持つ局面として扱う）
+        QVERIFY(tree.findBySfen(QStringLiteral("board9 b - 1")) == nullptr);
+    }
+
+    void findBySfen_prefersMainLineOnTransposition()
+    {
+        // 同じ局面が本譜と分岐の両方にある（手順前後）場合は本譜側を返す
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove dummyMove;
+        auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("▲７六歩"), QStringLiteral("boardA w - 2"));
+        auto* n2 = tree.addMove(n1, dummyMove, QStringLiteral("△３四歩"), QStringLiteral("boardX b - 3"));
+        auto* b1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("▲２六歩"), QStringLiteral("boardB w - 2"));
+        auto* b2 = tree.addMove(b1, dummyMove, QStringLiteral("△３四歩"), QStringLiteral("boardX b - 3"));
+        QVERIFY(b2 != nullptr);
+
+        QCOMPARE(tree.findBySfen(QStringLiteral("boardX b - 3")), n2);
+        QCOMPARE(tree.findBySfen(QStringLiteral("boardB w - 2")), b1);
+    }
+
+    void findBySfen_withPlyFilter()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove dummyMove;
+        auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("m1"), QStringLiteral("same b - 2"));
+        auto* n2 = tree.addMove(n1, dummyMove, QStringLiteral("m2"), QStringLiteral("other w - 3"));
+        auto* n3 = tree.addMove(n2, dummyMove, QStringLiteral("m3"), QStringLiteral("same b - 4"));
+
+        QCOMPARE(tree.findBySfen(QStringLiteral("same b - 4")), n1);      // 手数指定なしは最初の一致
+        QCOMPARE(tree.findBySfen(QStringLiteral("same b - 4"), 3), n3);
+        QCOMPARE(tree.findBySfen(QStringLiteral("same b - 4"), 1), n1);
+        QVERIFY(tree.findBySfen(QStringLiteral("same b - 4"), 2) == nullptr);
+        QCOMPARE(tree.findBySfen(kHirateSfen, 0), tree.root());
+    }
+
+    void findBySfen_ignoresHandOrderAndMoveNumber()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove dummyMove;
+        auto* n1 = tree.addMove(tree.root(), dummyMove, QStringLiteral("m1"), QStringLiteral("board w RPb 2"));
+
+        QCOMPARE(tree.findBySfen(QStringLiteral("board w RbP 99")), n1);
+        QCOMPARE(tree.findBySfen(QStringLiteral("board w RPb")), n1);
+        QVERIFY(tree.findBySfen(QStringLiteral("board w")) == nullptr);   // 不完全な SFEN
+        QVERIFY(tree.findBySfen(QString()) == nullptr);
+    }
+
     void findMatchingChild_bySfenIgnoringMoveNumber()
     {
         KifuBranchTree tree;

@@ -34,17 +34,22 @@ QString normalizeHands(const QString& hands)
     return out.isEmpty() ? QStringLiteral("-") : out;
 }
 
+/// 手数を除いた局面（盤面・手番・正規化した持ち駒）を比較用キーにする。
+/// 盤面・手番・持ち駒が揃っていない不完全な SFEN は空文字を返す。
+QString positionKey(const QString& sfen)
+{
+    const QStringList parts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    if (parts.size() < 3) {
+        return QString();
+    }
+    return parts.at(0) + QLatin1Char(' ') + parts.at(1) + QLatin1Char(' ') + normalizeHands(parts.at(2));
+}
+
 /// 手数を除いた局面（盤面・手番・持ち駒）が一致するか。どちらかが不完全なら false
 bool isSamePosition(const QString& sfenA, const QString& sfenB)
 {
-    const QStringList a = sfenA.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    const QStringList b = sfenB.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    if (a.size() < 3 || b.size() < 3) {
-        return false;
-    }
-    return a.at(0) == b.at(0)
-        && a.at(1) == b.at(1)
-        && normalizeHands(a.at(2)) == normalizeHands(b.at(2));
+    const QString keyA = positionKey(sfenA);
+    return !keyA.isEmpty() && keyA == positionKey(sfenB);
 }
 
 /// デフォルト構築された（駒種未設定の）ShogiMove でないか
@@ -245,45 +250,34 @@ KifuBranchNode* KifuBranchTree::findByPlyOnMainLine(int ply) const
     return nullptr;
 }
 
-KifuBranchNode* KifuBranchTree::findBySfen(const QString& sfen) const
+KifuBranchNode* KifuBranchTree::findBySfen(const QString& sfen, int ply) const
 {
-    if (sfen.isEmpty()) {
+    if (m_root == nullptr) {
         return nullptr;
     }
 
-    // 入力SFENから手数部分を除去
-    QString targetSfen = sfen;
-    qsizetype lastSpace = targetSfen.lastIndexOf(QLatin1Char(' '));
-    if (lastSpace > 0) {
-        // 最後のスペース以降が数字のみなら手数部分として除去
-        QString suffix = targetSfen.mid(lastSpace + 1);
-        bool isNumber = false;
-        suffix.toInt(&isNumber);
-        if (isNumber) {
-            targetSfen = targetSfen.left(lastSpace);
-        }
+    const QString targetKey = positionKey(sfen);
+    if (targetKey.isEmpty()) {
+        return nullptr;
     }
 
-    // 全ノードを検索
-    for (KifuBranchNode* node : std::as_const(m_nodeById)) {
-        QString nodeSfen = node->sfen();
-        if (nodeSfen.isEmpty()) {
-            continue;
-        }
+    // QHash の走査順に依存しないよう、ルートから深さ優先（先頭の子＝本譜を優先）で探す。
+    // 同じ局面が複数のラインにある場合は本譜、次に分岐順で先のラインが選ばれる。
+    QList<KifuBranchNode*> stack;
+    stack.append(m_root);
+    while (!stack.isEmpty()) {
+        KifuBranchNode* node = stack.takeLast();
 
-        // ノードのSFENからも手数部分を除去して比較
-        qsizetype nodeLastSpace = nodeSfen.lastIndexOf(QLatin1Char(' '));
-        if (nodeLastSpace > 0) {
-            QString nodeSuffix = nodeSfen.mid(nodeLastSpace + 1);
-            bool isNumber = false;
-            nodeSuffix.toInt(&isNumber);
-            if (isNumber) {
-                nodeSfen = nodeSfen.left(nodeLastSpace);
-            }
-        }
-
-        if (nodeSfen == targetSfen) {
+        // 終局手ノードは親と同じ局面を持つため対象外（局面を表すのは親ノード）
+        if (!node->isTerminal()
+            && (ply < 0 || node->ply() == ply)
+            && positionKey(node->sfen()) == targetKey) {
             return node;
+        }
+
+        const QList<KifuBranchNode*>& children = node->children();
+        for (qsizetype i = children.size() - 1; i >= 0; --i) {
+            stack.append(children.at(i));
         }
     }
 

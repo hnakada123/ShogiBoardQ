@@ -311,6 +311,57 @@ private slots:
                      "dispCommentCount=%1 but treeCommentCount=0")
                      .arg(dispCommentCount)));
     }
+    // 変化が「別の変化の投了直前の局面」から分岐するケース。
+    // 投了ノードは親と同じ局面を持つため、以前は findBySfen が投了ノードを返して
+    // 変化が丸ごと失われることがあった（QHash の走査順に依存）。
+    void buildFromKifParseResult_branchFromPositionBeforeTerminal()
+    {
+        auto item = [](const QString& move, int ply) {
+            KifDisplayItem d;
+            d.prettyMove = move;
+            d.ply = ply;
+            return d;
+        };
+
+        KifParseResult res;
+        res.mainline.disp = { item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
+                              item(QStringLiteral("▲６六歩"), 3) };
+        res.mainline.sfenList = { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"),
+                                  QStringLiteral("b2 b - 3"), QStringLiteral("b3 w - 4") };
+
+        // 変化A: 本譜3手目の代わりに▲２六歩を指し、投了で終わる
+        //（sfenList は終局手分として最終局面が重複する）
+        KifVariation varA;
+        varA.startPly = 3;
+        varA.line.startPly = 3;
+        varA.line.disp = { item(QStringLiteral("▲２六歩"), 3), item(QStringLiteral("△投了"), 4) };
+        varA.line.sfenList = { QStringLiteral("b2 b - 3"), QStringLiteral("a3 w - 4"), QStringLiteral("a3 w - 4") };
+        varA.line.endsWithTerminal = true;
+
+        // 変化B: 変化A の3手目の局面（投了の直前）から4手目で分岐
+        KifVariation varB;
+        varB.startPly = 4;
+        varB.line.startPly = 4;
+        varB.line.disp = { item(QStringLiteral("△８四歩"), 4) };
+        varB.line.sfenList = { QStringLiteral("a3 w - 4"), QStringLiteral("b4 b - 5") };
+
+        res.variations = { varA, varB };
+
+        for (int i = 0; i < 20; ++i) {
+            KifuBranchTree tree;
+            KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
+
+            QCOMPARE(tree.lineCount(), 3);
+            KifuBranchNode* a3 = tree.findBySfen(QStringLiteral("a3 w - 4"), 3);
+            QVERIFY(a3 != nullptr);
+            QCOMPARE(a3->displayText(), QStringLiteral("▲２六歩"));
+            QCOMPARE(a3->childCount(), 2);
+            QVERIFY(a3->childAt(0)->isTerminal());
+            QCOMPARE(a3->childAt(1)->displayText(), QStringLiteral("△８四歩"));
+            QCOMPARE(a3->childAt(1)->ply(), 4);
+        }
+    }
+
     // ========================================
     // 異常入力テスト: 不正な駒名
     // ========================================
