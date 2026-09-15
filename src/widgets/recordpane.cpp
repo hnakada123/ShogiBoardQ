@@ -11,6 +11,7 @@
 #include <QTextBrowser>
 #include <QTableView>
 #include <QHeaderView>
+#include <QScrollBar>
 #include <QAbstractItemView>
 #include <QPushButton>
 #include <QSplitter>
@@ -206,6 +207,15 @@ void RecordPane::buildMainLayout()
 
 void RecordPane::wireSignals()
 {
+    // 列の表示・内容・フォントとスクロールバーの変化に追従して余白を詰める。
+    // ヘッダーの列幅計算が完了してから表とペインの幅を更新する。
+    connect(m_kifu->horizontalHeader(), &QHeaderView::sectionResized,
+            this, &RecordPane::updateKifuTableWidth, Qt::QueuedConnection);
+    connect(m_kifu->horizontalHeader(), &QHeaderView::geometriesChanged,
+            this, &RecordPane::updateKifuTableWidth, Qt::QueuedConnection);
+    connect(m_kifu->verticalScrollBar(), &QScrollBar::rangeChanged,
+            this, &RecordPane::updateKifuTableWidth, Qt::QueuedConnection);
+
     // 分岐候補欄: マウスクリックと活性化（Enter キー等）の両方でナビゲーションする。
     // シングルクリックで activated も発火する環境では同じ行が二重処理されるため、
     // スロット側で clicked 直後の activated を1周回だけ無視する。
@@ -232,6 +242,30 @@ void RecordPane::wireSignals()
 
     // 初期フォントサイズを適用
     m_appearanceManager.applyFontToViews(m_kifu, m_branch);
+}
+
+void RecordPane::updateKifuTableWidth()
+{
+    if (!m_kifu->model()) return;
+
+    if (!m_kifu->isColumnHidden(2) || !m_kifu->isColumnHidden(3)) {
+        // しおり・コメントを表示するときは、その列をペインの幅まで広げる。
+        m_kifu->setMinimumWidth(0);
+        m_kifu->setMaximumWidth(QWIDGETSIZE_MAX);
+        setMaximumWidth(QWIDGETSIZE_MAX);
+        return;
+    }
+
+    const auto* scrollBar = m_kifu->verticalScrollBar();
+    const int scrollBarWidth = scrollBar->maximum() > scrollBar->minimum()
+        ? scrollBar->sizeHint().width() : 0;
+    const int tableWidth = m_kifu->horizontalHeader()->length()
+        + scrollBarWidth + 2 * m_kifu->frameWidth();
+    m_kifu->setFixedWidth(tableWidth);
+
+    // ドックにも幅の上限を伝え、操作ボタンと分岐候補欄を表のすぐ右に寄せる。
+    setMaximumWidth(tableWidth + m_navButtons->width() + m_branchContainer->width()
+                    + m_lr->handleWidth() * (m_lr->count() - 1));
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
@@ -331,7 +365,11 @@ void RecordPane::setNavigationEnabled(bool on)
 
 void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int)
 {
-    if (m_kifu) m_kifu->scrollToBottom();
+    if (!m_kifu) return;
+
+    m_kifu->scrollToBottom();
+    // 長い指し手が追加された場合も、内容に合わせて列とペインを広げる。
+    m_kifu->resizeColumnToContents(0);
 }
 
 void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex&)

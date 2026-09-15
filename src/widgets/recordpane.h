@@ -70,6 +70,7 @@ private:
     void buildBranchPanel();
     void buildMainLayout();
     void wireSignals();
+    void updateKifuTableWidth();
 
     QTableView *m_kifu=nullptr, *m_branch=nullptr;
     QWidget *m_navButtons=nullptr;  // ナビゲーションボタン群（棋譜と分岐の間に縦配置）
