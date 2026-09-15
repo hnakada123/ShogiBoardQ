@@ -24,10 +24,13 @@
 #include "gamerecordupdateservice.h"
 #include "kifunavigationcoordinator.h"
 #include "matchruntimequeryservice.h"
+#include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
 #include "logcategories.h"
+
+#include <QScopedValueRollback>
 
 // ---------------------------------------------------------------------------
 // 盤面セットアップ
@@ -85,6 +88,10 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
     cbs.actionChangeTurn = m_mw.ui->actionChangeTurn;
 
     m_mw.m_compositionRoot->ensurePositionEditCoordinator(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_registryParts.posEditCoordinator);
+    connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
+            this, &MainWindowServiceRegistry::resetRecordForEditedPosition);
+    connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingFinished,
+            this, &MainWindowServiceRegistry::resetRecordForEditedPosition);
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +213,45 @@ void MainWindowServiceRegistry::handleFinishPositionEditing()
         m_mw.m_registryParts.posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
         m_mw.m_registryParts.posEditCoordinator->setBoardController(m_mw.m_boardController);
         m_mw.m_registryParts.posEditCoordinator->finishPositionEditing();
+    }
+}
+
+void MainWindowServiceRegistry::resetRecordForEditedPosition()
+{
+    if (!m_mw.m_shogiView || !m_mw.m_shogiView->board()) return;
+
+    // 行選択の通知で編集局面が以前の棋譜に巻き戻されるのを防ぐ。
+    const QScopedValueRollback<bool> guard(m_mw.m_kifu.onMainRowGuard, true);
+    ShogiBoard* board = m_mw.m_shogiView->board();
+    const QString sfen = QStringLiteral("%1 %2 %3 1")
+                             .arg(board->convertBoardToSfen(),
+                                  turnToSfen(board->currentPlayer()),
+                                  board->convertStandToSfen());
+    m_mw.m_state.startSfenStr = sfen;
+    m_mw.m_state.currentSfenStr = sfen;
+    m_mw.m_state.resumeSfenStr.clear();
+    m_mw.m_state.currentMoveIndex = 0;
+    m_mw.m_kifu.activePly = 0;
+    m_mw.m_kifu.currentSelectedPly = 0;
+    m_mw.m_kifu.gameUsiMoves.clear();
+    m_mw.m_kifu.gameMoves.clear();
+    m_mw.m_kifu.moveRecords.clear();
+    m_mw.m_kifu.commentsByRow.clear();
+    m_mw.m_kifu.positionStrList = QStringList{QStringLiteral("position sfen ") + sfen};
+
+    MainWindowResetService::ModelResetDeps deps;
+    deps.navState = m_mw.m_branchNav.navState;
+    deps.recordPresenter = m_mw.m_recordPresenter;
+    deps.displayCoordinator = m_mw.m_branchNav.displayCoordinator;
+    deps.gameRecord = m_mw.m_models.gameRecord;
+    deps.sfenRecord = m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr;
+    deps.branchTree = m_mw.m_branchNav.branchTree;
+    deps.liveGameSession = m_mw.m_branchNav.liveGameSession;
+    const MainWindowResetService resetService;
+    resetService.resetModels(deps, sfen);
+
+    if (m_mw.m_commentCoordinator) {
+        m_mw.m_commentCoordinator->broadcastComment(QString(), false);
     }
 }
 

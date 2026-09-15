@@ -36,6 +36,8 @@
 #include "shogiboard.h"
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
+#include "kifubranchtree.h"
+#include "gamerecordmodel.h"
 #include "sfenpositiontracer.h"
 #include "settingscommon.h"
 #include "appsettings.h"
@@ -727,6 +729,103 @@ private slots:
         QVERIFY(gc->currentPlayer() != before);
         click("actionChangeTurn"); QCOMPARE(gc->currentPlayer(), before);
         click("actionEndEditPosition"); QVERIFY(!board()->positionEditMode());
+    }
+    void boardEditingClearsRecord_data()
+    {
+        QTest::addColumn<int>("selectedRow");
+        QTest::addColumn<bool>("finishedGame");
+        QTest::addColumn<bool>("useExitButton");
+        QTest::newRow("loaded-start") << 0 << false << false;
+        QTest::newRow("loaded-middle") << 2 << false << true;
+        QTest::newRow("loaded-last") << 4 << false << false;
+        QTest::newRow("finished-game") << 3 << true << true;
+    }
+    void boardEditingClearsRecord()
+    {
+        QFETCH(int, selectedRow);
+        QFETCH(bool, finishedGame);
+        QFETCH(bool, useExitButton);
+        auto* view = record()->kifuView();
+        auto* model = qobject_cast<KifuRecordListModel*>(view->model());
+        QVERIFY(model);
+        QStringList initialCells;
+        for (int column = 0; column < model->columnCount(); ++column) {
+            initialCells.append(model->index(0, column).data().toString());
+        }
+
+        if (finishedGame) {
+            armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 3));
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 4));
+            QTRY_COMPARE(model->rowCount(), 3);
+            armDialog("auto"); click("actionResign");
+            QTRY_VERIFY(!record()->isNavigationDisabled());
+            QTRY_COMPARE(model->rowCount(), 4);
+        } else {
+            sampleGame();
+        }
+        const QModelIndex selected = model->index(selectedRow, 0);
+        QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier,
+                          view->visualRect(selected).center());
+        QTRY_COMPARE(view->currentIndex().row(), selectedRow);
+
+        auto* gameRecord = window->findChild<GameRecordModel*>(); QVERIFY(gameRecord);
+        gameRecord->setComment(0, QStringLiteral("Previous opening comment"));
+        gameRecord->setBookmark(0, QStringLiteral("Previous opening bookmark"));
+        const QString beforeBoard = boardSfen();
+        const QString beforeHand = board()->board()->convertStandToSfen();
+        const Turn beforeTurn = board()->board()->currentPlayer();
+
+        click("actionStartEditPosition");
+        QVERIFY(board()->positionEditMode());
+        QCOMPARE(model->rowCount(), 1);
+        QCOMPARE(view->currentIndex().row(), 0);
+        QCOMPARE(model->currentHighlightRow(), 0);
+        for (int column = 0; column < model->columnCount(); ++column) {
+            QCOMPARE(model->index(0, column).data().toString(), initialCells.at(column));
+        }
+        QCOMPARE(boardSfen(), beforeBoard);
+        QCOMPARE(board()->board()->convertStandToSfen(), beforeHand);
+        QCOMPARE(board()->board()->currentPlayer(), beforeTurn);
+
+        click("actionSetTsumePosition");
+        click("actionChangeTurn");
+        const QString editedBoard = boardSfen();
+        const QString editedHand = board()->board()->convertStandToSfen();
+        const Turn editedTurn = board()->board()->currentPlayer();
+        const QString editedSfen = QStringLiteral("%1 %2 %3 1")
+                                      .arg(editedBoard, turnToSfen(editedTurn), editedHand);
+        if (useExitButton) {
+            auto* exitButton = board()->findChild<QPushButton*>("editExitButton");
+            QVERIFY(exitButton);
+            QTest::mouseClick(exitButton, Qt::LeftButton);
+        } else {
+            click("actionEndEditPosition");
+        }
+        QVERIFY(!board()->positionEditMode());
+        QCOMPARE(model->rowCount(), 1);
+        QCOMPARE(model->currentHighlightRow(), 0);
+        auto* tree = gameRecord->branchTree(); QVERIFY(tree); QVERIFY(tree->root());
+        QCOMPARE(tree->root()->sfen(), editedSfen);
+        QCOMPARE(tree->root()->childCount(), 0);
+        const QString exported = copy("actionCopyUSIAll");
+        QVERIFY(exported.contains(editedSfen));
+        QVERIFY(!exported.contains(QStringLiteral("7g7f")));
+
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QCOMPARE(boardSfen(), editedBoard);
+        QCOMPARE(board()->board()->convertStandToSfen(), editedHand);
+        QCOMPARE(board()->board()->currentPlayer(), editedTurn);
+        QCOMPARE(view->currentIndex().row(), 0);
+        snapshot(QStringLiteral("board-edit-reset-") + QString::fromLatin1(QTest::currentDataTag()));
+
+        click("actionStartEditPosition");
+        QCOMPARE(boardSfen(), editedBoard);
+        QCOMPARE(model->rowCount(), 1);
+        click("actionEndEditPosition");
     }
     void pasteNavigation()
     {

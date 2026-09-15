@@ -166,6 +166,11 @@ void PositionEditCoordinator::beginPositionEditing()
     // 実行
     m_posEdit->beginPositionEditing(ctx);
 
+    // 編集元の局面が確定した後に、棋譜の初期化を通知する。
+    if (m_shogiView->positionEditMode()) {
+        emit positionEditingStarted();
+    }
+
     // 編集用アクション配線
     if (m_editActions.actionReturnAllPiecesToStand) {
         QObject::connect(m_editActions.actionReturnAllPiecesToStand, &QAction::triggered,
@@ -240,7 +245,11 @@ void PositionEditCoordinator::finishPositionEditing()
     };
 
     // 実行
+    const bool wasEditing = m_shogiView->positionEditMode();
     m_posEdit->finishPositionEditing(ctx);
+    if (wasEditing && !m_shogiView->positionEditMode()) {
+        emit positionEditingFinished();
+    }
 
     // 自動同期を再開
     if (m_onMainRowGuard) {
