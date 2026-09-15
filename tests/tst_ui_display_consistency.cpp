@@ -448,6 +448,53 @@ private slots:
                  qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
     }
 
+    // 途中局面からの対局中に既存の続きと同じ手を指し直すと、現在ノードは既存ライン上に
+    // 留まる（ノード再利用）。棋譜欄は現在の手までしか表示しないので、ラインの長さとの
+    // 行数比較では誤って不一致になる。対局中は現在手数+1 を期待値とすること。
+    void liveGameReplayOnExistingLine_consistencyUsesCurrentPlyAsRowCount()
+    {
+        UiHarness h;
+        LiveGameSession session;
+        session.setTree(&h.tree);
+        h.coordinator.setLiveGameSession(&session);
+
+        // 本譜2手目（△３四歩）から対局開始。本譜はこの先3手続く（3,4,5手目）
+        KifuBranchNode* start = h.tree.findByPlyOnMainLine(2);
+        KifuBranchNode* main3 = h.tree.findByPlyOnMainLine(3);
+        QVERIFY(start != nullptr && main3 != nullptr);
+        QCOMPARE(h.tree.allLines().at(0).nodes.size(), 6);
+        h.nav.goToNode(start);
+        QCoreApplication::processEvents();
+        session.startFromNode(start);
+        QCOMPARE(h.recordModel.rowCount(), 3);   // 開始局面〜2手目
+
+        // 本譜3手目と同じ▲２六歩を指し直す → 既存ノードを再利用し、ライン0のまま
+        h.board.setSfen(main3->sfen());
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   3 ▲２六歩(27)"), QStringLiteral("0:01"),
+                                                 QString(), QString(), &h.recordModel));
+        ShogiMove dummyMove;
+        session.addMove(dummyMove, QStringLiteral("▲２六歩(27)"), main3->sfen(), QStringLiteral("0:01"));
+        QCoreApplication::processEvents();
+
+        QCOMPARE(session.liveNode(), main3);
+        QCOMPARE(h.state.currentLineIndex(), 0);
+        QCOMPARE(h.recordModel.rowCount(), 4);   // 既存の続き（4,5手目）は表示しない
+        QCOMPARE(h.recordModel.currentHighlightRow(), 3);
+
+        QString reason;
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+        QVERIFY(h.coordinator.captureDisplaySnapshot().liveSessionActive);
+
+        // 対局終了後は通常の検証（ラインの長さ基準）に戻る
+        QVERIFY(session.commit() != nullptr);
+        QCoreApplication::processEvents();
+        QVERIFY(!h.coordinator.captureDisplaySnapshot().liveSessionActive);
+        QCOMPARE(h.recordModel.rowCount(), 6);   // 続きを含む本譜全体が再表示される
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+    }
+
     void detectsTreeHighlightMismatch()
     {
         UiHarness h;

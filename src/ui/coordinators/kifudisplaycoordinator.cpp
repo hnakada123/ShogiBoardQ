@@ -126,7 +126,10 @@ void KifuDisplayCoordinator::syncSelectionSyncRefs()
 
 KifuDisplayPresenter::TrackingState KifuDisplayCoordinator::trackingState() const
 {
-    return {m_lastLineIndex, m_selectionSync->expectedTreeLineIndex(), m_selectionSync->expectedTreePly()};
+    return {m_lastLineIndex,
+            m_selectionSync->expectedTreeLineIndex(),
+            m_selectionSync->expectedTreePly(),
+            (m_liveSession != nullptr && m_liveSession->isActive())};
 }
 
 void KifuDisplayCoordinator::wireSignals()

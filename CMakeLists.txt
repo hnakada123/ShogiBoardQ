@@ -658,6 +658,7 @@ set(SRC_UI
     src/ui/presenters/navigationpresenter.cpp
     src/ui/presenters/navigationpresenter.h
     src/ui/presenters/kifudisplaypresenter.cpp
+    src/ui/presenters/kifudisplaypresenter_verify.cpp
     src/ui/presenters/kifudisplaypresenter.h
     src/ui/presenters/timedisplaypresenter.cpp
     src/ui/presenters/timedisplaypresenter.h

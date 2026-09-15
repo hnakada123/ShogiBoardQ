@@ -45,12 +45,16 @@ public:
         int lastLineIndex = 0;
         int expectedTreeLineIndex = 0;
         int expectedTreePly = 0;
+        /// ライブ対局セッション中か。対局中の棋譜欄は現在の手までしか表示しない
+        /// （既存ラインの続きは隠す）ため、行数の期待値が変わる
+        bool liveSessionActive = false;
     };
 
     struct DisplaySnapshot {
         int stateLineIndex = -1;
         int statePly = -1;
         bool stateOnMainLine = true;
+        bool liveSessionActive = false;
         int trackedLineIndex = -1;
         int modelLineIndex = -1;
         int modelRowCount = -1;
