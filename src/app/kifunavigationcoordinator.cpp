@@ -126,11 +126,15 @@ void KifuNavigationCoordinator::syncBoardAndHighlightsAtRow(int ply)
         if (lineIndex >= 0 && lineIndex < lines.size()) {
             const BranchLine& line = lines.at(lineIndex);
             if (ply >= 0 && ply < line.nodes.size()) {
-                if (m_deps.currentSfenStr) {
-                    *m_deps.currentSfenStr = line.nodes.at(ply)->sfen();
+                const QString treeSfen = line.nodes.at(ply)->sfen();
+                // SFEN を持たないノードでは空文字を書き込まず sfenRecord にフォールバックする
+                if (!treeSfen.isEmpty()) {
+                    if (m_deps.currentSfenStr) {
+                        *m_deps.currentSfenStr = treeSfen;
+                    }
+                    foundInBranch = true;
+                    qCDebug(lcNavTrace) << "syncBoardAndHighlightsAtRow: updated currentSfenStr from branchTree";
                 }
-                foundInBranch = true;
-                qCDebug(lcNavTrace) << "syncBoardAndHighlightsAtRow: updated currentSfenStr from branchTree";
             }
         }
     }

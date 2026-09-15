@@ -311,6 +311,50 @@ private slots:
                      "dispCommentCount=%1 but treeCommentCount=0")
                      .arg(dispCommentCount)));
     }
+    // 本譜（sfenList に終局手分が無い）と変化（終局手分として最終局面が重複）の
+    // どちらの終局手ノードも、親と同じ局面SFENを持つこと
+    void buildFromKifParseResult_terminalNodeCarriesParentSfen()
+    {
+        auto item = [](const QString& move, int ply) {
+            KifDisplayItem d;
+            d.prettyMove = move;
+            d.ply = ply;
+            return d;
+        };
+
+        KifParseResult res;
+        res.mainline.disp = { item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
+                              item(QStringLiteral("▲投了"), 3) };
+        res.mainline.sfenList = { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"), QStringLiteral("b2 b - 3") };
+        KifVariation var;
+        var.startPly = 2;
+        var.line.startPly = 2;
+        var.line.disp = { item(QStringLiteral("△８四歩"), 2), item(QStringLiteral("▲中断"), 3) };
+        var.line.sfenList = { QStringLiteral("b1 w - 2"), QStringLiteral("v2 b - 3"), QStringLiteral("v2 b - 3") };
+        var.line.endsWithTerminal = true;
+        res.variations = { var };
+
+        KifuBranchTree tree;
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
+
+        const QList<BranchLine> lines = tree.allLines();
+        QCOMPARE(lines.size(), 2);
+
+        KifuBranchNode* mainTerminal = lines.at(0).nodes.last();
+        QVERIFY(mainTerminal->isTerminal());
+        QCOMPARE(mainTerminal->sfen(), QStringLiteral("b2 b - 3"));
+        QCOMPARE(mainTerminal->sfen(), mainTerminal->parent()->sfen());
+
+        KifuBranchNode* varTerminal = lines.at(1).nodes.last();
+        QVERIFY(varTerminal->isTerminal());
+        QCOMPARE(varTerminal->sfen(), QStringLiteral("v2 b - 3"));
+        QCOMPARE(varTerminal->sfen(), varTerminal->parent()->sfen());
+
+        // 終局手ノードの SFEN が埋まるので、行→局面の取り出しに空が混ざらない
+        QVERIFY(!tree.sfenListForLine(0).contains(QString()));
+        QVERIFY(!tree.sfenListForLine(1).contains(QString()));
+    }
+
     // ツリー構築中は treeChanged を発火せず、構築完了時に1回だけ発火すること
     //（以前はノード追加ごとに発火し、表示側がそのたびに全再構築していた）
     void buildFromKifParseResult_emitsTreeChangedOnce()

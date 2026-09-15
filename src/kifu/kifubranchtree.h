@@ -62,6 +62,11 @@ public:
      * @param sfen この手を指した後の局面SFEN
      * @param timeText 消費時間テキスト
      * @return 作成されたノード
+     *
+     * displayText が終局手（投了・中断など）の場合、盤面は変化しないため
+     * move と sfen は無視され、ノードは親と同じ局面SFENと無効な ShogiMove を持つ。
+     * これにより終局手ノードの SFEN は追加経路（KIF 読み込み・ライブ対局）に
+     * よらず一定になる。
      */
     KifuBranchNode* addMove(KifuBranchNode* parent,
                            const ShogiMove& move,

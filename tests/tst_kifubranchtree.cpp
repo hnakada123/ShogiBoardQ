@@ -135,6 +135,34 @@ private slots:
         QVERIFY(spy.count() >= 1);
     }
 
+    void addMove_terminalInheritsParentSfenAndHasNoMove()
+    {
+        // 終局手ノードは追加経路（KIF: 空 or 親の複製、ライブ: 盤面から生成）によらず
+        // 親と同じ局面SFENを持ち、無関係な ShogiMove を保持しない
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        const ShogiMove realMove(QPoint(2, 6), QPoint(2, 5), Piece::BlackPawn, Piece::None, false);
+        auto* n1 = tree.addMove(tree.root(), realMove, QStringLiteral("▲２六歩(27)"), QStringLiteral("board1 w - 2"));
+
+        // KIF 本譜由来: SFEN が空
+        auto* t1 = tree.addMove(n1, realMove, QStringLiteral("△投了"), QString());
+        QVERIFY(t1->isTerminal());
+        QCOMPARE(t1->sfen(), n1->sfen());
+        QCOMPARE(t1->move().movingPiece, Piece::None);
+        QVERIFY(!t1->isActualMove());
+
+        // ライブ対局由来: 手数が進んだ SFEN が渡されても親の局面になる
+        auto* t2 = tree.addMoveQuiet(n1, realMove, QStringLiteral("△中断"), QStringLiteral("board1 w - 3"));
+        QVERIFY(t2->isTerminal());
+        QCOMPARE(t2->sfen(), n1->sfen());
+        QCOMPARE(t2->move().movingPiece, Piece::None);
+
+        // 通常の手は従来どおり渡された値を保持する
+        auto* n2 = tree.addMoveQuiet(n1, realMove, QStringLiteral("△３四歩(33)"), QStringLiteral("board2 b - 3"));
+        QCOMPARE(n2->sfen(), QStringLiteral("board2 b - 3"));
+        QVERIFY(n2->move() == realMove);
+    }
+
     void batchUpdate_emitsTreeChangedOnce()
     {
         KifuBranchTree tree;
