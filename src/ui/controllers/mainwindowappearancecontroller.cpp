@@ -4,7 +4,9 @@
 #include "mainwindowappearancecontroller.h"
 
 #include <QFontDatabase>
+#include <QEvent>
 #include <QMainWindow>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -34,6 +36,42 @@ void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centra
     m_centralLayout = new QVBoxLayout(centralWidget);
     m_centralLayout->setContentsMargins(0, 0, 0, 0);
     m_centralLayout->setSpacing(0);
+
+    m_mainWindow = qobject_cast<QMainWindow*>(centralWidget->parentWidget());
+    if (m_mainWindow) {
+        m_mainWindow->installEventFilter(this);
+    }
+}
+
+bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event)
+{
+    if (watched == m_mainWindow
+        && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
+        scheduleWindowWidthUpdate();
+    }
+    return QObject::eventFilter(watched, event);
+}
+
+void MainWindowAppearanceController::scheduleWindowWidthUpdate()
+{
+    if (m_windowWidthUpdatePending) return;
+    m_windowWidthUpdatePending = true;
+    QTimer::singleShot(0, this, &MainWindowAppearanceController::updateWindowWidth);
+}
+
+void MainWindowAppearanceController::updateWindowWidth()
+{
+    m_windowWidthUpdatePending = false;
+    if (!m_mainWindow || !m_mainWindow->isVisible() || !m_mainWindow->layout()) return;
+
+    // 棋譜の列幅・ドック配置の再計算後、内容に必要な横幅に固定する。
+    // 高さは従来どおり変更でき、盤の拡縮やフォント変更時には横幅も追従する。
+    m_mainWindow->layout()->activate();
+    const int width = m_mainWindow->layout()->minimumSize().width();
+    if (width > 0
+        && (m_mainWindow->minimumWidth() != width || m_mainWindow->maximumWidth() != width)) {
+        m_mainWindow->setFixedWidth(width);
+    }
 }
 
 void MainWindowAppearanceController::configureToolBarFromUi(QToolBar* toolBar, QAction* actionToolBar)
