@@ -48,6 +48,11 @@ public:
     int files() const { return m_files; }
     Turn currentPlayer() const;
 
+    /// 手番のみを更新する（盤面・持ち駒は変更しない）。
+    /// 盤面の手番は setSfen() 以外では変わらないため、対局中に盤面を SFEN から
+    /// 再設定しない場合は ShogiGameController が手番更新時にこれで同期する。
+    void setCurrentPlayer(Turn turn);
+
     // --- SFEN変換 ---
 
     /**

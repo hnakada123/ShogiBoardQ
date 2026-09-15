@@ -77,7 +77,7 @@ void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& mo
         ShogiBoard* board = m_deps.gameController->board();
         // 完全な SFEN を構築: <盤面> <手番> <持ち駒> <手数>
         const QString boardPart = board->convertBoardToSfen();
-        // 手番は GC を正とする（board->currentPlayer() は setSfen() 以外で更新されない）
+        // 手番は GC を正とする（盤面モデルの手番は GC から同期されるが、単一ソースは GC）
         const QString turnPart =
             (m_deps.gameController->currentPlayer() == ShogiGameController::Player2)
                 ? QStringLiteral("w")

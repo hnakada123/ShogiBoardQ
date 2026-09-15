@@ -42,8 +42,8 @@ void TurnStateSyncService::setCurrentTurn()
         (mode == PlayMode::CsaNetworkMode);
 
     // ライブ対局中は GC を手番の単一ソースとする。
-    // ShogiBoard::currentPlayer() は setSfen() 経由でのみ更新されるため、
-    // 指し手適用直後に board 側を参照すると古い手番へ巻き戻ることがある。
+    // 盤面モデルの手番は GC の手番更新から同期されるが、同期前に board 側を
+    // 参照すると古い手番へ巻き戻ることがあるため、ここでは GC だけを見る。
     if (isLivePlayMode && m_deps.gameController) {
         const auto gcTurn = m_deps.gameController->currentPlayer();
         if (gcTurn == ShogiGameController::Player1 || gcTurn == ShogiGameController::Player2) {

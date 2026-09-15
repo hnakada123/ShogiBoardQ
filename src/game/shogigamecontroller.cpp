@@ -105,6 +105,14 @@ void ShogiGameController::setCurrentPlayer(const Player player)
     if (currentPlayer() == player) return;
 
     m_currentPlayer = player;
+
+    // 盤面モデルの手番は setSfen() でしか更新されないため、GC の手番に追従させる。
+    // 対局中は盤面を SFEN から再設定しないので、これが無いと盤面から生成する SFEN
+    // （読み筋表示の基準局面・局面コピー・表示一致性検証）の手番が古いままになる。
+    if (board() != nullptr && (player == Player1 || player == Player2)) {
+        board()->setCurrentPlayer(player == Player1 ? Turn::Black : Turn::White);
+    }
+
     emit currentPlayerChanged(m_currentPlayer);
 }
 

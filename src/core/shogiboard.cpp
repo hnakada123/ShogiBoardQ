@@ -80,6 +80,11 @@ Turn ShogiBoard::currentPlayer() const
     return m_currentPlayer;
 }
 
+void ShogiBoard::setCurrentPlayer(Turn turn)
+{
+    m_currentPlayer = turn;
+}
+
 // 指定した位置の駒を返す。
 // file: 筋（1〜9は盤上、10と11は先手と後手の駒台）
 // rank: 段（先手は1〜7「歩、香車、桂馬、銀、金、角、飛車」、後手は3〜9「飛車、角、金、銀、桂馬、香車、歩」を使用）

@@ -121,8 +121,10 @@ void RecordNavigationHandler::onMainRowChanged(int row)
             }
         }
 
-        // 本譜の場合は従来の方法を使用
-        if (!handledByBranchTree) {
+        // 本譜の場合は従来の方法を使用。
+        // ただし対局中は盤面を対局ロジックが更新済みなので、棋譜欄の行追加に伴う
+        // 行変更で sfenRecord から盤面を再設定しない（無駄な再設定と再入の原因になる）。
+        if (!handledByBranchTree && !gameActivelyInProgress) {
             emit boardSyncRequired(row);
         }
 
@@ -139,8 +141,10 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         // 手番表示を更新
         emit turnUpdateRequired();
 
-        // 盤面の手番ラベルを更新
-        if (m_deps.shogiView && m_deps.shogiView->board()) {
+        // 盤面の手番ラベルを更新。
+        // 盤面モデルの手番は setSfen() でしか更新されないため、盤面を再設定しない対局中は
+        // 参照せず、TurnManager 経由（GC が正）の更新に任せる。
+        if (!gameActivelyInProgress && m_deps.shogiView && m_deps.shogiView->board()) {
             const Turn boardTurn = m_deps.shogiView->board()->currentPlayer();
             const bool isBlackTurn = (boardTurn == Turn::Black);
             m_deps.shogiView->setActiveSide(isBlackTurn);
@@ -196,8 +200,11 @@ void RecordNavigationHandler::onMainRowChanged(int row)
         emit buildPositionRequired(row);
     }
 
-    // KifuDisplayCoordinator に位置変更を通知
-    if (m_deps.displayCoordinator != nullptr) {
+    // KifuDisplayCoordinator に位置変更を通知。
+    // 対局中は棋譜欄の行追加がツリーへのノード追加より先に走るため、ここで通知すると
+    // 旧ラインの同手数ノードへ一時的に同期されてしまう。対局中の状態・ハイライト同期は
+    // KifuDisplayCoordinator::onLiveGameMoveAdded が行うので、ここでは通知しない。
+    if (m_deps.displayCoordinator != nullptr && !gameActivelyInProgress) {
         QString sfen;
         bool foundInBranch = false;
         const int lineIndex = (m_deps.navState != nullptr) ? m_deps.navState->currentLineIndex() : 0;
