@@ -33,7 +33,7 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;           ///< 親ウィジェット（ダイアログ表示用）
         QStatusBar* statusBar = nullptr;           ///< ステータスバー
-        QString* saveFileName = nullptr;           ///< 保存先ファイルパス（外部所有）
+        QString* saveFileName = nullptr;           ///< 上書き保存先パス（外部所有）。読み込み成功時に更新、貼り付け・局面反映時にクリア
 
         // --- 準備コールバック ---
         std::function<void()> clearUiBeforeKifuLoad;           ///< UI状態クリア
@@ -75,7 +75,15 @@ public:
                             const QString& engineName1, const QString& engineName2);
 
 private:
-    void dispatchKifuLoad(const QString& filePath);
+    /// 拡張子に応じた読み込み関数へ振り分ける
+    /// @return 読み込みに成功した場合 true
+    [[nodiscard]] bool dispatchKifuLoad(const QString& filePath);
+
+    /// 上書き保存先パスを設定する（読み込み成功時に呼ぶ）
+    void setOverwriteTarget(const QString& filePath);
+
+    /// 上書き保存先パスをクリアする（ファイル由来でない棋譜・局面を反映した時に呼ぶ）
+    void clearOverwriteTarget();
 
     Deps m_deps;
     QPointer<KifuPasteDialog> m_kifuPasteDialog;

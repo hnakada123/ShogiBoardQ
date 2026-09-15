@@ -43,7 +43,7 @@ bool isTerminalPretty(const QString& text)
 }
 } // namespace
 
-void KifuApplyService::applyParsedResult(
+bool KifuApplyService::applyParsedResult(
     const QString& filePath,
     const QString& initialSfen,
     const QString& teaiLabel,
@@ -66,13 +66,13 @@ void KifuApplyService::applyParsedResult(
     const bool hasTerminal = !disp.isEmpty() && isTerminalPretty(disp.back().prettyMove);
 
     if (!validateParsedResult(filePath, disp, hasTerminal, callerTag)) {
-        return;
+        return false;
     }
 
     if (!rebuildMainlineState(initialSfen, hasTerminal)) {
         *m_refs.loadingKifu = false;
         qCDebug(lcKifu).noquote() << callerTag << "OUT (missing sfen history)";
-        return;
+        return false;
     }
     logStep("rebuildMainlineState");
 
@@ -90,6 +90,7 @@ void KifuApplyService::applyParsedResult(
     qCDebug(lcKifu).noquote()
         << QStringLiteral("applyParsedResult TOTAL: %1 ms").arg(totalTimer.elapsed());
     qCDebug(lcKifu).noquote() << callerTag << "OUT";
+    return true;
 }
 
 bool KifuApplyService::validateParsedResult(const QString& filePath, const QList<KifDisplayItem>& disp,

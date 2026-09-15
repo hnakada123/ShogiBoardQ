@@ -26,6 +26,9 @@ enum class SaveFormat {
 /// 保存先パスの拡張子から保存形式を判定する（大文字小文字は区別しない）
 SaveFormat saveFormatForPath(const QString& path);
 
+/// 保存先パスの拡張子が保存形式として認識できるか（.kif/.kifu/.ki2/.ki2u/.csa/.jkf/.usen/.usi）
+bool hasKnownSaveExtension(const QString& path);
+
 /// 保存先パスの拡張子が Shift_JIS 出力を要求するか（.kif / .ki2）
 bool usesShiftJisForPath(const QString& path);
 

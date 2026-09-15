@@ -9,6 +9,7 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <optional>
 
 #include "kifuioservice.h"   // writeKifuFile / makeDefaultSaveFileName
 #include "playmode.h"
@@ -17,6 +18,19 @@
 namespace KifuSaveCoordinator {
 
 namespace {
+
+/// 拡張子に対応する保存形式。認識できない拡張子は nullopt
+std::optional<SaveFormat> formatForExtension(const QString& path)
+{
+    const QString ext = QFileInfo(path).suffix().toLower();
+    if (ext == QStringLiteral("kif") || ext == QStringLiteral("kifu")) return SaveFormat::Kif;
+    if (ext == QStringLiteral("ki2") || ext == QStringLiteral("ki2u")) return SaveFormat::Ki2;
+    if (ext == QStringLiteral("csa"))  return SaveFormat::Csa;
+    if (ext == QStringLiteral("jkf"))  return SaveFormat::Jkf;
+    if (ext == QStringLiteral("usen")) return SaveFormat::Usen;
+    if (ext == QStringLiteral("usi"))  return SaveFormat::Usi;
+    return std::nullopt;
+}
 
 /// Shift_JIS で書き出す場合、先頭行の encoding 宣言を差し替えた行リストを返す
 QStringList withShiftJisHeader(const QStringList& lines)
@@ -55,13 +69,12 @@ bool confirmLossySave(QWidget* parent, const QString& title, const QString& mess
 
 SaveFormat saveFormatForPath(const QString& path)
 {
-    const QString ext = QFileInfo(path).suffix().toLower();
-    if (ext == QStringLiteral("ki2") || ext == QStringLiteral("ki2u")) return SaveFormat::Ki2;
-    if (ext == QStringLiteral("csa"))  return SaveFormat::Csa;
-    if (ext == QStringLiteral("jkf"))  return SaveFormat::Jkf;
-    if (ext == QStringLiteral("usen")) return SaveFormat::Usen;
-    if (ext == QStringLiteral("usi"))  return SaveFormat::Usi;
-    return SaveFormat::Kif;
+    return formatForExtension(path).value_or(SaveFormat::Kif);
+}
+
+bool hasKnownSaveExtension(const QString& path)
+{
+    return formatForExtension(path).has_value();
 }
 
 bool usesShiftJisForPath(const QString& path)

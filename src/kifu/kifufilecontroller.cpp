@@ -5,6 +5,7 @@
 #include "kifuexportcontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifupastedialog.h"
+#include "kifusavecoordinator.h"
 #include "gamesettings.h"
 #include "logcategories.h"
 
@@ -53,7 +54,13 @@ void KifuFileController::chooseAndLoadKifuFile()
     if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
 
     qCDebug(lcApp) << "chooseAndLoadKifuFile: loading file=" << filePath;
-    dispatchKifuLoad(filePath);
+    const bool loaded = dispatchKifuLoad(filePath);
+
+    // 読み込んだファイルを「上書き保存」の対象にする。
+    // 失敗時は表示中の棋譜が変わらないので、保存先も変更しない。
+    if (loaded) {
+        setOverwriteTarget(filePath);
+    }
 
     qCDebug(lcApp) << "chooseAndLoadKifuFile LEAVE";
 }
@@ -119,6 +126,10 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
     if (klc) {
         const bool success = klc->loadKifuFromString(content);
+        // 貼り付けた棋譜はファイル由来ではないので、以前のファイルへ上書きさせない
+        if (success) {
+            clearOverwriteTarget();
+        }
         if (m_deps.statusBar) {
             if (success) {
                 m_deps.statusBar->showMessage(tr("棋譜を取り込みました"), 3000);
@@ -142,6 +153,10 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
     if (klc) {
         const bool success = klc->loadPositionFromSfen(sfen);
+        // 局面集から反映した局面はファイル由来ではないので、以前のファイルへ上書きさせない
+        if (success) {
+            clearOverwriteTarget();
+        }
         if (m_deps.statusBar) {
             if (success) {
                 m_deps.statusBar->showMessage(tr("局面を反映しました"), 3000);
@@ -185,23 +200,46 @@ void KifuFileController::autoSaveKifuToFile(const QString& saveDir, PlayMode pla
     }
 }
 
-void KifuFileController::dispatchKifuLoad(const QString& filePath)
+bool KifuFileController::dispatchKifuLoad(const QString& filePath)
 {
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
-    if (!klc) return;
+    if (!klc) return false;
 
     if (filePath.endsWith(QLatin1String(".csa"), Qt::CaseInsensitive)) {
-        klc->loadCsaFromFile(filePath);
-    } else if (filePath.endsWith(QLatin1String(".ki2"), Qt::CaseInsensitive)
-               || filePath.endsWith(QLatin1String(".ki2u"), Qt::CaseInsensitive)) {
-        klc->loadKi2FromFile(filePath);
-    } else if (filePath.endsWith(QLatin1String(".jkf"), Qt::CaseInsensitive)) {
-        klc->loadJkfFromFile(filePath);
-    } else if (filePath.endsWith(QLatin1String(".usen"), Qt::CaseInsensitive)) {
-        klc->loadUsenFromFile(filePath);
-    } else if (filePath.endsWith(QLatin1String(".usi"), Qt::CaseInsensitive)) {
-        klc->loadUsiFromFile(filePath);
+        return klc->loadCsaFromFile(filePath);
+    }
+    if (filePath.endsWith(QLatin1String(".ki2"), Qt::CaseInsensitive)
+        || filePath.endsWith(QLatin1String(".ki2u"), Qt::CaseInsensitive)) {
+        return klc->loadKi2FromFile(filePath);
+    }
+    if (filePath.endsWith(QLatin1String(".jkf"), Qt::CaseInsensitive)) {
+        return klc->loadJkfFromFile(filePath);
+    }
+    if (filePath.endsWith(QLatin1String(".usen"), Qt::CaseInsensitive)) {
+        return klc->loadUsenFromFile(filePath);
+    }
+    if (filePath.endsWith(QLatin1String(".usi"), Qt::CaseInsensitive)) {
+        return klc->loadUsiFromFile(filePath);
+    }
+    return klc->loadKifuFromFile(filePath);
+}
+
+void KifuFileController::setOverwriteTarget(const QString& filePath)
+{
+    if (!m_deps.saveFileName) return;
+
+    // 保存形式を拡張子で決められるファイルだけを上書き対象にする。
+    // それ以外（.sfen や不明な拡張子）は「上書き保存」で名前を付けて保存へ誘導する。
+    if (KifuSaveCoordinator::hasKnownSaveExtension(filePath)) {
+        *m_deps.saveFileName = filePath;
     } else {
-        klc->loadKifuFromFile(filePath);
+        m_deps.saveFileName->clear();
+    }
+}
+
+void KifuFileController::clearOverwriteTarget()
+{
+    if (m_deps.saveFileName) {
+        m_deps.saveFileName->clear();
     }
 }

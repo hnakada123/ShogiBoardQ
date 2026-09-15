@@ -53,6 +53,27 @@ private slots:
         QCOMPARE(KifuSaveCoordinator::saveFormatForPath(path), expected);
     }
 
+    void hasKnownSaveExtension()
+    {
+        const QStringList known = {
+            QStringLiteral("a.kif"), QStringLiteral("a.kifu"),
+            QStringLiteral("a.ki2"), QStringLiteral("a.ki2u"),
+            QStringLiteral("a.csa"), QStringLiteral("a.jkf"),
+            QStringLiteral("a.usen"), QStringLiteral("a.usi"),
+            QStringLiteral("A.KIF"),
+        };
+        for (const QString& name : known) {
+            QVERIFY2(KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/") + name),
+                     qPrintable(name));
+        }
+
+        // 保存形式を決められない拡張子は上書き対象にしない
+        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/a.sfen")));
+        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/a.txt")));
+        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QStringLiteral("/tmp/a")));
+        QVERIFY(!KifuSaveCoordinator::hasKnownSaveExtension(QString()));
+    }
+
     void usesShiftJisForPath()
     {
         QVERIFY(KifuSaveCoordinator::usesShiftJisForPath(QStringLiteral("/tmp/a.kif")));
