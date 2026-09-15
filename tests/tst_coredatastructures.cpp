@@ -453,16 +453,42 @@ private slots:
         QCOMPARE(NotationUtils::formatSfenDrop(QChar('G'), 9, 9), QStringLiteral("G*9i"));
     }
 
+    void notationUtils_mapHandicapToSfen_data()
+    {
+        QTest::addColumn<QString>("label");
+        QTest::addColumn<QString>("expectedSfen");
+
+        const QString kEven = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        QTest::newRow("hirate") << QStringLiteral("平手") << kEven;
+        QTest::newRow("two-piece") << QStringLiteral("二枚落ち")
+            << QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("bishop") << QStringLiteral("角落ち")
+            << QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("lance") << QStringLiteral("香落ち")
+            << QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("right-lance") << QStringLiteral("右香落ち")
+            << QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("rook-lance") << QStringLiteral("飛香落ち")
+            << QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("five-piece") << QStringLiteral("五枚落ち")
+            << QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("left-five-piece") << QStringLiteral("左五枚落ち")
+            << QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("surrounding-whitespace") << QStringLiteral(" \t　右香落ち　\n")
+            << QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        // 未知のラベルは平手にフォールバック
+        QTest::newRow("unknown") << QStringLiteral("unknown") << kEven;
+        QTest::newRow("empty") << QString() << kEven;
+        QTest::newRow("unknown-prefix") << QStringLiteral("不明な香落ち") << kEven;
+        QTest::newRow("unknown-suffix") << QStringLiteral("五枚落ち不明") << kEven;
+    }
+
     void notationUtils_mapHandicapToSfen()
     {
-        const QString kEven = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
-        QCOMPARE(NotationUtils::mapHandicapToSfen(QStringLiteral("平手")), kEven);
-        QCOMPARE(NotationUtils::mapHandicapToSfen(QStringLiteral("二枚落ち")),
-                 QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
-        QCOMPARE(NotationUtils::mapHandicapToSfen(QStringLiteral("角落ち")),
-                 QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
-        // 未知のラベルは平手にフォールバック
-        QCOMPARE(NotationUtils::mapHandicapToSfen(QStringLiteral("unknown")), kEven);
+        QFETCH(QString, label);
+        QFETCH(QString, expectedSfen);
+
+        QCOMPARE(NotationUtils::mapHandicapToSfen(label), expectedSfen);
     }
 
     // GC の手番更新が盤面モデルの手番にも反映されること

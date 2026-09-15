@@ -392,19 +392,33 @@ private slots:
     // Normal: CSA time token with comma-separated line
     // ========================================
 
+    void parse_withTimeTokens_data()
+    {
+        QTest::addColumn<QByteArray>("separator");
+        QTest::newRow("comma") << QByteArray(",");
+        QTest::newRow("newline") << QByteArray("\n");
+    }
+
     void parse_withTimeTokens()
     {
+        QFETCH(QByteArray, separator);
         QTemporaryFile tmp;
         tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_time_XXXXXX.csa"));
         QVERIFY(tmp.open());
-        tmp.write("PI\n+\n+7776FU,T30\n-3334FU,T15\n");
+        tmp.write("PI\n+\n+7776FU" + separator + "T30\n-3334FU" + separator
+                  + "T15\n+2726FU" + separator + "T45\n%TORYO" + separator + "T5\n");
         tmp.close();
 
         KifParseResult result;
         QString warn;
         bool ok = CsaToSfenConverter::parse(tmp.fileName(), result, &warn);
         QVERIFY(ok);
-        QCOMPARE(result.mainline.usiMoves.size(), 2);
+        QCOMPARE(result.mainline.usiMoves.size(), 3);
+        QCOMPARE(result.mainline.disp.size(), 5);
+        QCOMPARE(result.mainline.disp[1].timeText, QStringLiteral("00:30/00:00:30"));
+        QCOMPARE(result.mainline.disp[2].timeText, QStringLiteral("00:15/00:00:15"));
+        QCOMPARE(result.mainline.disp[3].timeText, QStringLiteral("00:45/00:01:15"));
+        QCOMPARE(result.mainline.disp[4].timeText, QStringLiteral("00:05/00:00:20"));
     }
 
     // ========================================

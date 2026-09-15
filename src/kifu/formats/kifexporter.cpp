@@ -354,11 +354,9 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
         }
     }
 
-    // 5) 開始局面の処理（prettyMoveが空 or "開始局面" テキストのエントリ）
+    // 5) 開始局面の処理（表示言語に依存しない手数で判定）
     int startIdx = 0;
-    if (!disp.isEmpty()
-        && (disp[0].prettyMove.trimmed().isEmpty()
-            || disp[0].prettyMove.contains(QStringLiteral("開始局面")))) {
+    if (!disp.isEmpty() && disp[0].ply == 0) {
         // 開始局面のしおり・コメントを先に出力
         appendKifBookmarks(disp[0].bookmark, out);
         appendKifComments(disp[0].comment, out);

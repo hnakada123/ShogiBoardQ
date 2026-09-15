@@ -281,7 +281,7 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
                 handleCsaTurnMarker(token, st);
             } else if (token.startsWith(QLatin1Char('%'))) {
                 handleCsaResultCode(token, st);
-            } else if (isCommaLine && token.startsWith(QLatin1Char('T'))) {
+            } else if (token.startsWith(QLatin1Char('T'))) {
                 handleCsaTimeToken(token, st);
             } else if (CsaLexer::isMoveLine(token)) {
                 const QChar head  = token.at(0);

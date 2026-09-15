@@ -10,6 +10,7 @@
 #include "kifexporter.h"
 #include "usenexporter.h"
 #include "usiexporter.h"
+#include "usimoveconverter.h"
 
 #include <QTableWidget>
 #include <QDateTime>
@@ -294,6 +295,23 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
     }
 
     return result;
+}
+
+QStringList GameRecordModel::collectMainlineUsiForExport() const
+{
+    if (!m_branchTree || m_branchTree->isEmpty()) return {};
+    QStringList positions;
+    const auto nodes = m_branchTree->mainLine();
+    for (const KifuBranchNode* node : nodes) {
+        if (node->isTerminal()) break;
+        positions.append(node->sfen());
+    }
+    return UsiMoveConverter::fromSfenRecord(positions);
+}
+
+QString GameRecordModel::initialSfenForExport(const QString& fallback) const
+{
+    return m_branchTree && m_branchTree->root() ? m_branchTree->root()->sfen() : fallback;
 }
 
 QList<KifGameInfoItem> GameRecordModel::collectGameInfo(const ExportContext& ctx)

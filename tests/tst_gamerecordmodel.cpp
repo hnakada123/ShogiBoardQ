@@ -1,7 +1,10 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include <QJsonDocument>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QTemporaryFile>
+#include <QClipboard>
 
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
@@ -9,6 +12,15 @@
 #include "kifunavigationstate.h"
 #include "kifdisplayitem.h"
 #include "kiftosfenconverter.h"
+#include "ki2tosfenconverter.h"
+#include "csatosfenconverter.h"
+#include "jkftosfenconverter.h"
+#include "usitosfenconverter.h"
+#include "usentosfenconverter.h"
+#include "sfenpositiontracer.h"
+#include "livegamesession.h"
+#include "kifuexportclipboard.h"
+#include "kifu_test_helper.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -18,6 +30,14 @@ class TestGameRecordModel : public QObject
     Q_OBJECT
 
 private:
+    static KifuBranchNode* addTestMove(KifuBranchTree& tree, KifuBranchNode* parent,
+                                       const QString& usi, const QString& pretty,
+                                       const QString& time = {})
+    {
+        const QStringList positions = SfenPositionTracer::buildSfenRecord(parent->sfen(), {usi}, false);
+        return tree.addMove(parent, ShogiMove(), pretty, positions.last(), time);
+    }
+
     void setupBasicModel(GameRecordModel& model, KifuBranchTree& tree,
                          KifuNavigationState& navState, QList<KifDisplayItem>& disp)
     {
@@ -53,6 +73,232 @@ private:
     }
 
 private slots:
+    void clipboardExportAfterResume_data()
+    {
+        QTest::addColumn<QString>("format");
+        QTest::addColumn<bool>("branch");
+        for (const QString& format : {QStringLiteral("csa"), QStringLiteral("usi"), QStringLiteral("usen")}) {
+            QTest::newRow(qPrintable(format + QStringLiteral("-tip"))) << format << false;
+            QTest::newRow(qPrintable(format + QStringLiteral("-branch"))) << format << true;
+        }
+    }
+
+    void clipboardExportAfterResume()
+    {
+        QFETCH(QString, format);
+        QFETCH(bool, branch);
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        auto* second = addTestMove(tree, first, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
+        auto* anchor = branch ? first : second;
+        const QString newUsi = branch ? QStringLiteral("8c8d") : QStringLiteral("2g2f");
+        const QString newPretty = branch ? QStringLiteral("△８四歩(83)") : QStringLiteral("▲２六歩(27)");
+        QStringList sessionUsi = {newUsi};
+        QStringList sessionSfens = SfenPositionTracer::buildSfenRecord(anchor->sfen(), sessionUsi, false);
+
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(anchor);
+        session.addMove(ShogiMove(), newPretty, sessionSfens.last(), QStringLiteral("00:05/00:00:05"));
+        QVERIFY(session.commit());
+
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        KifuExportClipboard exporter(nullptr);
+        KifuExportClipboard::Deps deps;
+        deps.gameRecord = &model;
+        deps.usiMoves = &sessionUsi;
+        deps.sfenRecord = &sessionSfens;
+        deps.startSfenStr = anchor->sfen();
+        exporter.setDependencies(deps);
+        if (format == QStringLiteral("csa")) QVERIFY(exporter.copyCsaToClipboard());
+        else if (format == QStringLiteral("usi")) QVERIFY(exporter.copyUsiToClipboard());
+        else QVERIFY(exporter.copyUsenToClipboard());
+
+        QTemporaryFile tmp;
+        const QByteArray text = QApplication::clipboard()->text().toUtf8();
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, text, format));
+        KifParseResult result;
+        QString error;
+        bool ok;
+        if (format == QStringLiteral("csa")) ok = CsaToSfenConverter::parse(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("usi")) ok = UsiToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        else ok = UsenToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY2(ok, qPrintable(error));
+        QStringList expected = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+        if (!branch) expected.append(newUsi);
+        QCOMPARE(result.mainline.baseSfen, kHirateSfen);
+        QCOMPARE(result.mainline.usiMoves, expected);
+        QCOMPARE(model.collectMainlineUsiForExport(), expected);
+
+        // 現在手までのUSIコピーでは、本譜の先頭から指定手数に制限する。
+        deps.currentMoveIndex = 1;
+        exporter.setDependencies(deps);
+        QVERIFY(exporter.copyUsiCurrentToClipboard());
+        QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos moves 7g7f"));
+    }
+
+    void exportUsiSource_ignoresTerminalAndSessionFallback()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        tree.addMove(first, ShogiMove(), QStringLiteral("△投了"), first->sfen());
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        QCOMPARE(model.collectMainlineUsiForExport(), QStringList({QStringLiteral("7g7f")}));
+
+        // 開始局面だけの本譜に、別セッションの指し手を混ぜない。
+        tree.setRootSfen(kHirateSfen);
+        QStringList staleUsi = {QStringLiteral("2g2f")};
+        KifuExportClipboard exporter(nullptr);
+        KifuExportClipboard::Deps deps;
+        deps.gameRecord = &model;
+        deps.usiMoves = &staleUsi;
+        deps.startSfenStr = kHirateSfen;
+        exporter.setDependencies(deps);
+        QVERIFY(exporter.copyUsiToClipboard());
+        QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos"));
+
+        // ツリーがなければ従来どおり対局用データを出力する。
+        model.setBranchTree(nullptr);
+        QVERIFY(exporter.copyUsiToClipboard());
+        QCOMPARE(QApplication::clipboard()->text(), QStringLiteral("position startpos moves 2g2f"));
+    }
+
+    void exportOpeningRow_data()
+    {
+        QTest::addColumn<QString>("format");
+        QTest::addColumn<QString>("openingText");
+        for (const QString& format : {QStringLiteral("kif"), QStringLiteral("ki2"),
+                                      QStringLiteral("csa"), QStringLiteral("jkf")}) {
+            QTest::newRow(qPrintable(format + QStringLiteral("-ja")))
+                << format << QStringLiteral("開始局面");
+            QTest::newRow(qPrintable(format + QStringLiteral("-en")))
+                << format << QStringLiteral("Starting Position");
+            QTest::newRow(qPrintable(format + QStringLiteral("-empty"))) << format << QString();
+        }
+    }
+
+    void exportOpeningRow()
+    {
+        QFETCH(QString, format);
+        QFETCH(QString, openingText);
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        tree.root()->setDisplayText(openingText);
+        tree.root()->setComment(QStringLiteral("opening comment"));
+        auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"),
+                                 QStringLiteral("▲７六歩(77)"), QStringLiteral("00:12/00:00:12"));
+        first->setComment(QStringLiteral("first comment"));
+        auto* last = addTestMove(tree, first, QStringLiteral("3c3d"),
+                                QStringLiteral("△３四歩(33)"), QStringLiteral("00:34/00:00:34"));
+        last->setComment(QStringLiteral("last comment"));
+
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.startSfen = kHirateSfen;
+        const QStringList expectedMoves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+        QStringList output;
+        if (format == QStringLiteral("kif")) output = model.toKifLines(ctx);
+        else if (format == QStringLiteral("ki2")) output = model.toKi2Lines(ctx);
+        else if (format == QStringLiteral("csa")) output = model.toCsaLines(ctx, expectedMoves);
+        else output = model.toJkfLines(ctx);
+
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, output.join(QLatin1Char('\n')).toUtf8(), format));
+        KifParseResult result;
+        QString error;
+        bool ok;
+        if (format == QStringLiteral("kif")) ok = KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("ki2")) ok = Ki2ToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        else if (format == QStringLiteral("csa")) ok = CsaToSfenConverter::parse(tmp.fileName(), result, &error);
+        else ok = JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error);
+        QVERIFY2(ok, qPrintable(error));
+        QCOMPARE(result.mainline.usiMoves, expectedMoves);
+        QVERIFY(result.mainline.disp.size() >= 3);
+        QCOMPARE(result.mainline.disp[0].comment.trimmed(), QStringLiteral("opening comment"));
+        QCOMPARE(result.mainline.disp[1].comment.trimmed(), QStringLiteral("first comment"));
+        QCOMPARE(result.mainline.disp[2].comment.trimmed(), QStringLiteral("last comment"));
+        if (format != QStringLiteral("ki2")) {
+            QVERIFY(result.mainline.disp[1].timeText.contains(QStringLiteral("00:12")));
+            QVERIFY(result.mainline.disp[2].timeText.contains(QStringLiteral("00:34")));
+        }
+    }
+
+    void jkfForks_replaceMoveAtSamePly()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        auto* second = addTestMove(tree, first, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
+        addTestMove(tree, second, QStringLiteral("2g2f"), QStringLiteral("▲２六歩(27)"));
+        addTestMove(tree, tree.root(), QStringLiteral("2g2f"), QStringLiteral("▲２六歩(27)"));
+        auto* alternateSecond = addTestMove(tree, first, QStringLiteral("8c8d"), QStringLiteral("△８四歩(83)"));
+        addTestMove(tree, alternateSecond, QStringLiteral("1g1f"), QStringLiteral("▲１六歩(17)"));
+        addTestMove(tree, second, QStringLiteral("1g1f"), QStringLiteral("▲１六歩(17)"));
+
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.startSfen = kHirateSfen;
+        const QByteArray json = model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8();
+        const auto moves = QJsonDocument::fromJson(json).object()[QStringLiteral("moves")].toArray();
+        QCOMPARE(moves.size(), 4);
+        QVERIFY(!moves[0].toObject().contains(QStringLiteral("forks")));
+        for (int ply = 1; ply <= 3; ++ply) {
+            QCOMPARE(moves[ply].toObject()[QStringLiteral("forks")].toArray().size(), 1);
+        }
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, json, QStringLiteral("jkf")));
+        KifParseResult result;
+        QString error;
+        QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.mainline.usiMoves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d"), QStringLiteral("2g2f")}));
+        QCOMPARE(result.variations.size(), 3);
+        QCOMPARE(result.variations[0].startPly, 1);
+        QCOMPARE(result.variations[0].line.usiMoves, QStringList({QStringLiteral("2g2f")}));
+        QCOMPARE(result.variations[1].startPly, 2);
+        QCOMPARE(result.variations[1].line.usiMoves, QStringList({QStringLiteral("8c8d"), QStringLiteral("1g1f")}));
+        QCOMPARE(result.variations[2].startPly, 3);
+        QCOMPARE(result.variations[2].line.usiMoves, QStringList({QStringLiteral("1g1f")}));
+
+        // 分岐内の分岐も、代替される子の手に forks を付ける。
+        addTestMove(tree, alternateSecond, QStringLiteral("9g9f"), QStringLiteral("▲９六歩(97)"));
+        const auto nestedMoves = QJsonDocument::fromJson(model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8())
+            .object()[QStringLiteral("moves")].toArray();
+        const auto secondFork = nestedMoves[2].toObject()[QStringLiteral("forks")].toArray()[0].toArray();
+        QCOMPARE(secondFork.size(), 2);
+        QVERIFY(!secondFork[0].toObject().contains(QStringLiteral("forks")));
+        QCOMPARE(secondFork[1].toObject()[QStringLiteral("forks")].toArray().size(), 1);
+    }
+
+    void jkfForks_sameDestinationUsesParentMove()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* first = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        auto* second = addTestMove(tree, first, QStringLiteral("3c3d"), QStringLiteral("△３四歩(33)"));
+        auto* capture = addTestMove(tree, second, QStringLiteral("8h2b+"), QStringLiteral("▲２二角成(88)"));
+        addTestMove(tree, capture, QStringLiteral("8b2b"), QStringLiteral("△同　飛(82)"));
+        addTestMove(tree, capture, QStringLiteral("3a2b"), QStringLiteral("△同　銀(31)"));
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.startSfen = kHirateSfen;
+        QTemporaryFile tmp;
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, model.toJkfLines(ctx).join(QLatin1Char('\n')).toUtf8(),
+                                               QStringLiteral("jkf")));
+        KifParseResult result;
+        QString error;
+        QVERIFY2(JkfToSfenConverter::parseWithVariations(tmp.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.variations.size(), 1);
+        QCOMPARE(result.variations[0].startPly, 4);
+        QCOMPARE(result.variations[0].line.usiMoves, QStringList({QStringLiteral("3a2b")}));
+    }
+
     // === Comment Management ===
 
     void setComment_roundTrip()

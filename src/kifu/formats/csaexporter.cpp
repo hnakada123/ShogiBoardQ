@@ -176,7 +176,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
 
     // 開始局面のコメントを出力
     int startIdx = 0;
-    if (!disp.isEmpty() && disp[0].prettyMove.trimmed().isEmpty()) {
+    if (!disp.isEmpty() && disp[0].ply == 0) {
         const QString cmt = disp[0].comment.trimmed();
         if (!cmt.isEmpty()) {
             const QStringList lines = cmt.split(newlineRe(), Qt::KeepEmptyParts);

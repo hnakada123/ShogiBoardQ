@@ -98,6 +98,8 @@ private slots:
     void mapKanjiPiece_promotedRook();
     void mapKanjiPiece_king();
     void mapKanjiPiece_unknown();
+    void mapKanjiPiece_minorPieces_data();
+    void mapKanjiPiece_minorPieces();
 
     // ---- helper functions ----
     void appendLine_empty();
@@ -563,6 +565,38 @@ void TestParseCommon::mapKanjiPiece_king()
 void TestParseCommon::mapKanjiPiece_unknown()
 {
     QVERIFY(!KifuParseCommon::mapKanjiPiece(QStringLiteral("X")).has_value());
+}
+
+void TestParseCommon::mapKanjiPiece_minorPieces_data()
+{
+    QTest::addColumn<QString>("text");
+    QTest::addColumn<Piece>("base");
+    QTest::addColumn<bool>("promoted");
+    const QStringList names = {QStringLiteral("銀"), QStringLiteral("桂"), QStringLiteral("香")};
+    const QStringList aliases = {QStringLiteral("全"), QStringLiteral("圭"), QStringLiteral("杏")};
+    const Piece pieces[] = {Piece::BlackSilver, Piece::BlackKnight, Piece::BlackLance};
+    for (int i = 0; i < 3; ++i) {
+        const QString& name = names[i];
+        QTest::newRow(qPrintable(name)) << name << pieces[i] << false;
+        QTest::newRow(qPrintable(name + QStringLiteral("成")))
+            << name + QStringLiteral("成") << pieces[i] << false;
+        QTest::newRow(qPrintable(name + QStringLiteral("不成")))
+            << name + QStringLiteral("不成") << pieces[i] << false;
+        QTest::newRow(qPrintable(QStringLiteral("成") + name))
+            << QStringLiteral("成") + name << pieces[i] << true;
+        QTest::newRow(qPrintable(aliases[i])) << aliases[i] << pieces[i] << true;
+    }
+}
+
+void TestParseCommon::mapKanjiPiece_minorPieces()
+{
+    QFETCH(QString, text);
+    QFETCH(Piece, base);
+    QFETCH(bool, promoted);
+    const auto result = KifuParseCommon::mapKanjiPiece(text);
+    QVERIFY(result.has_value());
+    QCOMPARE(result->base, base);
+    QCOMPARE(result->promoted, promoted);
 }
 
 // ==== helper functions ====

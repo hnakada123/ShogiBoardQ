@@ -65,15 +65,14 @@ static QJsonObject buildJkfInitial(const GameRecordModel::ExportContext& ctx)
 // JKF形式の moves 配列を構築（本譜）
 static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
 {
-    QJsonArray moves;
+    QJsonArray moves{QJsonObject{}};
 
     int prevToX = 0, prevToY = 0;
 
     for (qsizetype i = 0; i < disp.size(); ++i) {
         const auto& item = disp[i];
 
-        if (i == 0 && (item.prettyMove.trimmed().isEmpty()
-                       || item.prettyMove.contains(QStringLiteral("開始局面")))) {
+        if (i == 0 && item.ply == 0) {
             QJsonObject openingMove;
             if (!item.comment.isEmpty()) {
                 QJsonArray comments;
@@ -90,7 +89,7 @@ static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
                     openingMove[QStringLiteral("comments")] = comments;
                 }
             }
-            moves.append(openingMove);
+            moves[0] = openingMove;
         } else {
             const QJsonObject moveObj = JkfFormatter::convertMoveToJkf(item, prevToX, prevToY, static_cast<int>(i));
             if (!moveObj.isEmpty()) {
@@ -103,7 +102,8 @@ static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
 }
 
 // KifuBranchNode から JKF形式の分岐指し手配列を構築
-static QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& visitedNodes)
+static QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& visitedNodes,
+                                            int forkPrevToX, int forkPrevToY)
 {
     QJsonArray forkMoves;
 
@@ -115,8 +115,6 @@ static QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& vis
         return forkMoves;
     }
     visitedNodes.insert(node->nodeId());
-
-    int forkPrevToX = 0, forkPrevToY = 0;
 
     KifuBranchNode* current = node;
     while (current != nullptr) {
@@ -141,6 +139,8 @@ static QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& vis
         item.comment = current->comment();
         item.timeText = current->timeText();
 
+        const int previousToX = forkPrevToX;
+        const int previousToY = forkPrevToY;
         QJsonObject forkMoveObj = JkfFormatter::convertMoveToJkf(item, forkPrevToX, forkPrevToY, current->ply());
         if (forkMoveObj.isEmpty()) {
             if (current->childCount() > 0) {
@@ -150,12 +150,15 @@ static QJsonArray buildJkfForkMovesFromNode(KifuBranchNode* node, QSet<int>& vis
             break;
         }
 
-        if (current->hasBranch()) {
-            const QList<KifuBranchNode*>& children = current->children();
+        // forks はこの手の代替なので、親を共有する兄弟を先頭の子に付ける。
+        KifuBranchNode* parent = current->parent();
+        if (parent && parent->childAt(0) == current && parent->hasBranch()) {
+            const QList<KifuBranchNode*>& children = parent->children();
             if (children.size() > 1) {
                 QJsonArray childForks;
                 for (int i = 1; i < children.size(); ++i) {
-                    QJsonArray childForkMoves = buildJkfForkMovesFromNode(children.at(i), visitedNodes);
+                    QJsonArray childForkMoves = buildJkfForkMovesFromNode(
+                        children.at(i), visitedNodes, previousToX, previousToY);
                     if (!childForkMoves.isEmpty()) {
                         childForks.append(childForkMoves);
                     }
@@ -198,12 +201,14 @@ static void addJkfForksFromTree(QJsonArray& movesArray, const KifuBranchTree* tr
             continue;
         }
 
-        int ply = node->ply();
+        const int ply = node->ply() + 1;
         if (ply >= movesArray.size()) {
             continue;
         }
 
         QJsonObject moveObj = movesArray[ply].toObject();
+        const QJsonObject previousTo = movesArray[ply - 1].toObject()
+            [QStringLiteral("move")].toObject()[QStringLiteral("to")].toObject();
 
         QJsonArray forks;
         if (moveObj.contains(QStringLiteral("forks"))) {
@@ -215,7 +220,9 @@ static void addJkfForksFromTree(QJsonArray& movesArray, const KifuBranchTree* tr
             QSet<int> visitedNodes;
             visitedNodes.insert(node->nodeId());
 
-            QJsonArray forkMovesArr = buildJkfForkMovesFromNode(branchChild, visitedNodes);
+            QJsonArray forkMovesArr = buildJkfForkMovesFromNode(
+                branchChild, visitedNodes, previousTo[QStringLiteral("x")].toInt(),
+                previousTo[QStringLiteral("y")].toInt());
             if (!forkMovesArr.isEmpty()) {
                 forks.append(forkMovesArr);
             }
