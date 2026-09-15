@@ -29,26 +29,29 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     const int liveLineIndex = (m_liveSession != nullptr) ? m_liveSession->currentLineIndex() : 0;
     KifuBranchNode* liveNode = (m_liveSession != nullptr) ? m_liveSession->liveNode() : nullptr;
 
-    // BranchTreeManager の分岐ツリーを更新
-    if (m_branchTreeManager != nullptr && m_tree != nullptr) {
-        m_branchTreeManager->setBranchTreeRows(KifuDisplayPresenter::buildBranchTreeRows(m_tree));
+    // 分岐ツリーを最新のツリー内容で再構築
+    updateBranchTreeView();
 
-        // ハイライト更新
-        if (m_liveSession != nullptr) {
-            const int totalPly = m_liveSession->totalPly();
-            m_branchTreeManager->highlightBranchTreeAt(liveLineIndex, totalPly, false);
-        }
+    if (liveNode == nullptr || m_state == nullptr) {
+        return;
     }
 
-    // ライブ対局中は最新ノードへナビゲートし、分岐ラインを同期
-    if (liveNode != nullptr && m_navController != nullptr && m_state != nullptr) {
-        if (liveLineIndex > 0) {
-            m_state->setPreferredLineIndex(liveLineIndex);
-        } else {
-            m_state->resetPreferredLineIndex();
-        }
-        m_navController->goToNode(liveNode);
+    // 対局中は盤面が対局ロジックによって既に更新されているため、
+    // KifuNavigationController::goToNode() は使わない。goToNode() は棋譜閲覧用の経路で、
+    // 盤面を SFEN から再設定し、手番同期と分岐ナビガードまで走らせてしまう。
+    // ここではナビゲーション状態と各表示のハイライトだけを最新手に同期する。
+    if (liveLineIndex > 0) {
+        m_state->setPreferredLineIndex(liveLineIndex);
+    } else {
+        m_state->resetPreferredLineIndex();
     }
+    m_state->rememberPathSelections(liveNode);   // 対局後の「戻る→進む」で最新手の経路を辿れるように
+    m_state->setCurrentNode(liveNode);
+
+    syncRecordViewToCurrentLine();
+    highlightCurrentPosition();
+    m_pendingNavResultCheck = true;
+    updateBranchCandidatesView();
 }
 
 void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoint)
@@ -87,21 +90,8 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
     const QList<KifuBranchNode*> path = m_tree->pathToNode(branchPoint);
 
     // branchPoint までのパスの分岐選択を記憶
-    if (m_state != nullptr && !path.isEmpty()) {
-        for (int i = 0; i < path.size(); ++i) {
-            KifuBranchNode* node = path.at(i);
-            KifuBranchNode* parent = node->parent();
-            if (parent != nullptr && parent->childCount() > 1) {
-                for (int j = 0; j < parent->childCount(); ++j) {
-                    if (parent->childAt(j) == node) {
-                        m_state->rememberChildSelection(parent, j);
-                        qCDebug(lcUi).noquote() << "onLiveGameSessionStarted: remembered line selection"
-                                           << "parentPly=" << parent->ply() << "childIndex=" << j;
-                        break;
-                    }
-                }
-            }
-        }
+    if (m_state != nullptr) {
+        m_state->rememberPathSelections(branchPoint);
     }
 
     const int highlightRow = m_presenter->populateRecordModelFromPath(path, branchPoint->ply());

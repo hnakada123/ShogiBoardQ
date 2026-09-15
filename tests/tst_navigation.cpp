@@ -363,6 +363,37 @@ private slots:
         QCOMPARE(state.currentLineIndex(), 0);
     }
 
+    void rememberPathSelections_recordsChildIndexAtEveryBranchPoint()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* main1 = tree.addMove(tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        QVERIFY(main3 != nullptr);
+        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        QVERIFY(tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f")) != nullptr);
+        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+
+        KifuNavigationState state;
+        state.setTree(&tree);
+        QCOMPARE(state.lastSelectedChildAt(main2), 0);
+        QCOMPARE(state.lastSelectedChildAt(branch4), 0);
+
+        state.rememberPathSelections(branch5Nested);
+        QCOMPARE(state.lastSelectedChildAt(main2), 1);     // branch3 は main2 の2番目の子
+        QCOMPARE(state.lastSelectedChildAt(branch4), 1);   // branch5_nested は branch4 の2番目の子
+
+        state.rememberPathSelections(main3);
+        QCOMPARE(state.lastSelectedChildAt(main2), 0);
+        QCOMPARE(state.lastSelectedChildAt(branch4), 1);   // 経路外の分岐点は変わらない
+
+        state.rememberPathSelections(nullptr);            // 何も起きない
+        QCOMPARE(state.lastSelectedChildAt(main2), 0);
+    }
+
     void goToMainLineAtCurrentPly_whenMainLineIsShorter()
     {
         // 本譜3手、分岐が5手まで続く。分岐の5手目で「本譜へ戻る」と本譜の最終手（3手目）へ移動すること

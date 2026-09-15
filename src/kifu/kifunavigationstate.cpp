@@ -68,6 +68,22 @@ void KifuNavigationState::resetPreferredLineIndex()
     m_preferredLineIndex = -1;
 }
 
+void KifuNavigationState::rememberPathSelections(KifuBranchNode* node)
+{
+    for (KifuBranchNode* current = node; current != nullptr; current = current->parent()) {
+        KifuBranchNode* parent = current->parent();
+        if (parent == nullptr || parent->childCount() <= 1) {
+            continue;
+        }
+        for (int i = 0; i < parent->childCount(); ++i) {
+            if (parent->childAt(i) == current) {
+                rememberChildSelection(parent, i);
+                break;
+            }
+        }
+    }
+}
+
 void KifuNavigationState::clearLineSelectionMemory()
 {
     m_lastSelectedChildAtBranch.clear();
