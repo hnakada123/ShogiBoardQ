@@ -29,6 +29,7 @@ class GameRecordUpdateService : public QObject
 public:
     struct Deps {
         // Lazy-init callbacks（呼び出し時に ensure + ポインタ返却）
+        std::function<void()> markGameRecordDirty;
         std::function<GameRecordPresenter*()> ensureRecordPresenter;
         std::function<LiveGameSessionUpdater*()> ensureLiveGameSessionUpdater;
 

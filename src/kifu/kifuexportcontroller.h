@@ -85,8 +85,6 @@ public:
         QString engineName2;
         int activeResolvedRow = 0;
         int currentMoveIndex = 0;
-        int activePly = 0;
-        int currentSelectedPly = 0;
     };
 
     void setDependencies(const Dependencies& deps);
@@ -98,14 +96,6 @@ public:
      * 依存関係の更新などを行う。
      */
     void setPrepareCallback(std::function<void()> callback);
-
-    /**
-     * @brief 状態値を更新（呼び出し時点の値を反映）
-     */
-    void updateState(const QString& startSfen, PlayMode mode,
-                     const QString& human1, const QString& human2,
-                     const QString& engine1, const QString& engine2,
-                     int activeRow, int moveIndex, int aPly, int selPly);
 
     // --------------------------------------------------------
     // ファイル保存
@@ -170,11 +160,6 @@ public:
      * @brief SFENレコードからUSI指し手リストを生成
      */
     QStringList sfenRecordToUsiMoves() const;
-
-    /**
-     * @brief ShogiMoveリストからUSI指し手リストを生成
-     */
-    static QStringList gameMovesToUsiMoves(const QList<ShogiMove>& moves);
 
 signals:
     /**

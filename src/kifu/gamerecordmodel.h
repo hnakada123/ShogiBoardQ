@@ -256,6 +256,9 @@ public:
      */
     void clearDirty() { m_isDirty = false; }
 
+    /// 棋譜の追記や取り込みを未保存として記録する。
+    void markDirty() { m_isDirty = true; }
+
     /**
      * @brief アクティブ行のインデックス
      */

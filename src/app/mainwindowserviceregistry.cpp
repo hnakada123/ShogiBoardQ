@@ -5,6 +5,7 @@
 #include "mainwindow.h"
 #include "mainwindowfoundationregistry.h"
 #include "kifusubregistry.h"
+#include "kifufilecontroller.h"
 #include "matchcoordinator.h"
 #include "matchruntimequeryservice.h"
 
@@ -21,6 +22,12 @@ MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* pa
 MainWindowServiceRegistry::~MainWindowServiceRegistry() = default;
 
 // --- Kifu convenience wrappers ---
+
+bool MainWindowServiceRegistry::confirmDiscardUnsavedKifu()
+{
+    m_kifu->ensureKifuFileController();
+    return m_mw.m_kifuFileController->confirmDiscardUnsaved();
+}
 
 void MainWindowServiceRegistry::prepareGameRecordLoadService()
 {

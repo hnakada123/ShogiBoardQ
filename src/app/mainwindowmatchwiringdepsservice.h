@@ -41,9 +41,7 @@ public:
         std::function<qint64()> byoyomiMs;
         std::function<void(const QString&, const QString&)> setPlayersNames;
         std::function<void(const QString&, const QString&)> setEngineNames;
-        std::function<void(const QString&, PlayMode,
-                           const QString&, const QString&,
-                           const QString&, const QString&)> autoSaveKifu;
+        std::function<void(const QString& saveDir)> autoSaveKifu;
 
         // --- Undo Hook 構築に使う依存 ---
         std::function<void(int)> updateHighlightsForPly;

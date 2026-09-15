@@ -93,28 +93,21 @@ bool usesShiftJisForPath(const QString& path)
     return ext == QStringLiteral("kif") || ext == QStringLiteral("ki2");
 }
 
-QString saveViaDialogWithUsi(QWidget* parent,
-                              const QStringList& kifLines,
-                              const QStringList& ki2Lines,
-                              const QStringList& csaLines,
-                              const QStringList& jkfLines,
-                              const QStringList& usenLines,
-                              const QStringList& usiLines,
-                              PlayMode mode,
-                              const QString& human1,
-                              const QString& human2,
-                              const QString& engine1,
-                              const QString& engine2,
-                              bool hasBranches,
-                              bool hasTimeInfo,
-                              QString* outError)
+QString saveViaDialog(QWidget* parent,
+                      const LineGenerator& generateLines,
+                      PlayMode mode,
+                      const QString& human1,
+                      const QString& human2,
+                      const QString& engine1,
+                      const QString& engine2,
+                      bool hasBranches,
+                      bool hasTimeInfo,
+                      QString* outError)
 {
     // 既定ファイル名を生成
     if (outError) outError->clear();
     QString defaultName = KifuIoService::makeDefaultSaveFileName(
         mode, human1, human2, engine1, engine2, QDateTime::currentDateTime());
-    if (defaultName.isEmpty() || defaultName.startsWith(QStringLiteral("_")))
-        defaultName = "untitled.kifu";
 
     // 前回保存したディレクトリを復元
     const QString lastDir = GameSettings::lastKifuSaveDirectory();
@@ -142,8 +135,8 @@ QString saveViaDialogWithUsi(QWidget* parent,
     GameSettings::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
-    const QStringList* lines = &kifLines;
-    switch (saveFormatForPath(path)) {
+    const SaveFormat format = saveFormatForPath(path);
+    switch (format) {
     case SaveFormat::Ki2:
         if (hasTimeInfo && !confirmLossySave(
                 parent,
@@ -151,7 +144,6 @@ QString saveViaDialogWithUsi(QWidget* parent,
                 QObject::tr("KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
-        lines = &ki2Lines;
         break;
     case SaveFormat::Csa:
         if (hasBranches && !confirmLossySave(
@@ -160,13 +152,10 @@ QString saveViaDialogWithUsi(QWidget* parent,
                 QObject::tr("CSA形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
-        lines = &csaLines;
         break;
     case SaveFormat::Jkf:
-        lines = &jkfLines;
         break;
     case SaveFormat::Usen:
-        lines = &usenLines;
         break;
     case SaveFormat::Usi:
         if (hasBranches && !confirmLossySave(
@@ -181,15 +170,26 @@ QString saveViaDialogWithUsi(QWidget* parent,
                 QObject::tr("USI形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
-        lines = &usiLines;
         break;
     case SaveFormat::Kif:
-        lines = &kifLines;
         break;
     }
 
-    if (!writeLinesForPath(path, *lines, outError)) return QString();
+    const QStringList lines = generateLines(format);
+    if (!writeLinesForPath(path, lines, outError)) return QString();
     return path;
+}
+
+bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save)
+{
+    if (!isDirty) return true;
+    const auto choice = QMessageBox::warning(
+        parent, QObject::tr("未保存の棋譜"),
+        QObject::tr("棋譜に未保存の変更があります。保存しますか？"),
+        QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
+        QMessageBox::Save);
+    if (choice == QMessageBox::Save) return save();
+    return choice == QMessageBox::Discard;
 }
 
 bool overwriteExisting(const QString& path,

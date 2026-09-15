@@ -41,6 +41,7 @@ public:
         std::function<void()> updateKifuExportDependencies;                ///< KifuExportController 依存更新
         std::function<void()> createAndWireKifuLoadCoordinator;            ///< KifuLoadCoordinator 生成・配線
         std::function<void()> prepareKifuLoadCoordinatorForLive;            ///< ライブ用 KifuLoadCoordinator 確保
+        std::function<GameRecordModel*()> getGameRecordModel;            ///< 棋譜モデル取得
         std::function<KifuExportController*()> getKifuExportController;    ///< KifuExportController 取得
         std::function<KifuLoadCoordinator*()> getKifuLoadCoordinator;      ///< KifuLoadCoordinator 取得
     };

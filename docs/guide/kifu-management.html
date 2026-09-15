@@ -83,7 +83,7 @@
                         <tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>KIF簡易形式。指し手のみを横並びで記録</td></tr>
                         <tr><td><strong>CSA</strong></td><td>.csa</td><td>コンピュータ将棋協会の標準形式。座標表記で記録</td></tr>
                         <tr><td><strong>JKF</strong></td><td>.jkf</td><td>JSON棋譜フォーマット。分岐棋譜をJSON構造で表現</td></tr>
-                        <tr><td><strong>USI</strong></td><td>.usi .sfen</td><td>USIプロトコル形式。エンジン通信と同じ表記で記録</td></tr>
+                        <tr><td><strong>USI / SFEN</strong></td><td>.usi .sfen</td><td>USIの指し手列、またはSFENの局面のみを読み込み</td></tr>
                         <tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN圧縮形式。棋譜をコンパクトにエンコード</td></tr>
                     </tbody>
                 </table>
@@ -198,18 +198,18 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">名前を付けて保存</span>
                 </div>
-                <p class="guide-step-text">メニューの「ファイル」→「名前を付けて保存」から、棋譜を任意の形式でファイルに保存できます。保存ダイアログのフィルタで出力形式を選択します。</p>
+                <p class="guide-step-text">メニューの「ファイル」→「名前を付けて保存」から、棋譜を任意の形式でファイルに保存できます。拡張子を省略すると、保存ダイアログで選んだフィルタの拡張子が付きます。拡張子を入力した場合は、その拡張子で保存形式が決まります。</p>
                 <table class="info-table">
                     <thead>
-                        <tr><th>フォーマット</th><th>拡張子</th></tr>
+                        <tr><th>フォーマット</th><th>拡張子</th><th>文字コード</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>KIF形式</td><td>.kif .kifu</td></tr>
-                        <tr><td>KI2形式</td><td>.ki2 .ki2u</td></tr>
-                        <tr><td>CSA形式</td><td>.csa</td></tr>
-                        <tr><td>JKF形式</td><td>.jkf</td></tr>
-                        <tr><td>USEN形式</td><td>.usen</td></tr>
-                        <tr><td>USI形式</td><td>.usi</td></tr>
+                        <tr><td>KIF形式</td><td>.kif / .kifu</td><td>Shift_JIS / UTF-8</td></tr>
+                        <tr><td>KI2形式</td><td>.ki2 / .ki2u</td><td>Shift_JIS / UTF-8</td></tr>
+                        <tr><td>CSA形式</td><td>.csa</td><td>UTF-8</td></tr>
+                        <tr><td>JKF形式</td><td>.jkf</td><td>UTF-8</td></tr>
+                        <tr><td>USEN形式</td><td>.usen</td><td>UTF-8</td></tr>
+                        <tr><td>USI形式</td><td>.usi</td><td>UTF-8</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -219,7 +219,8 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">上書き保存</span>
                 </div>
-                <p class="guide-step-text">メニューの「ファイル」→「上書き保存」で、読み込んだファイルに上書き保存します。対局後の棋譜自動保存にも対応しており、対局ダイアログで保存先ディレクトリを指定できます。</p>
+                <p class="guide-step-text">メニューの「ファイル」→「上書き保存」で、最後に読み込み・保存したファイルへ、その拡張子の形式で保存します。保存先が未設定の場合や、貼り付け・局面集から取り込んだ場合、.sfenファイルを読み込んだ場合は「名前を付けて保存」が開きます。対局後の自動保存先は対局ダイアログで指定できます。</p>
+                <p class="guide-step-text">棋譜に未保存の変更がある場合、別の棋譜の読み込み、新しい棋譜での対局開始、初期画面へのリセット、アプリの終了時に保存を確認します。「キャンセル」を選ぶか、保存を中止・失敗した場合は操作を中止します。</p>
             </div>
 
         </div>
@@ -300,15 +301,17 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
                         <tr><th>フォーマット</th><th>自動判定の基準</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>KIF</td><td>「手数」「指し手」などのキーワードを含む</td></tr>
-                        <tr><td>KI2</td><td>▲ または △ で始まる指し手の並び</td></tr>
-                        <tr><td>CSA</td><td>V2、N+、N-、P1 などのCSAヘッダで始まる</td></tr>
-                        <tr><td>USI</td><td>moves キーワードを含むUSIコマンド形式</td></tr>
-                        <tr><td>JKF</td><td>{ または [ で始まるJSON形式</td></tr>
-                        <tr><td>USEN</td><td>Base64風のエンコード文字列</td></tr>
-                        <tr><td>SFEN</td><td>position sfen、sfen、startpos で始まる局面表記</td></tr>
+                        <tr><td>KIF</td><td>「手数----」を含むか、行頭に手数と移動先がある。「手数」「指し手」という語だけでは判定しない</td></tr>
+                        <tr><td>KI2</td><td>行頭の▲・△に移動先が続く指し手の並び</td></tr>
+                        <tr><td>CSA</td><td>V2または ' で始まるか、+・-に数字が続く指し手行がある</td></tr>
+                        <tr><td>USI</td><td>position、startpos、sfenで始まる行、またはSFENに指し手列を付けた記述。startpos moves ... も対応</td></tr>
+                        <tr><td>JKF</td><td>{ または [ で始まるJSONをJKFとして検査。取り込みにはJKFのオブジェクト構造が必要で、配列だけのJSONはエラー</td></tr>
+                        <tr><td>USEN</td><td>~で区切った手数・符号列などがUSENの構造に一致。コメントやURL内の~だけでは判定しない</td></tr>
+                        <tr><td>SFEN</td><td>盤面・手番・持駒・手数の4項目からなる局面文字列。sfenなどの接頭辞付きはUSIとして判定</td></tr>
+                        <tr><td>BOD</td><td>指し手列を含まず、持駒の見出しや盤面図の罫線・マス表記がある</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">判定できないテキストはKIFとして取り込みを試みます。形式判定後も内容を検査し、読み込めない場合はエラーを表示します。</p>
             </div>
 
         </div>

@@ -266,10 +266,6 @@ void GameStartOrchestrator::applyStartOptionsAndHooks(const StartOptions& opt)
     // 棋譜自動保存設定を保存
     *m_refs.autoSaveKifu = opt.autoSaveKifu;
     *m_refs.kifuSaveDir = opt.kifuSaveDir;
-    *m_refs.humanName1 = opt.humanName1;
-    *m_refs.humanName2 = opt.humanName2;
-    *m_refs.engineNameForSave1 = opt.engineName1;
-    *m_refs.engineNameForSave2 = opt.engineName2;
 
     // 盤・名前などの初期化（GUI側へ委譲）
     qCDebug(lcGame).noquote() << "configureAndStart: calling hooks";

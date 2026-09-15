@@ -66,10 +66,6 @@ struct OrcTestHarness {
     int currentMoveIndex = 0;
     bool autoSaveKifu = false;
     QString kifuSaveDir;
-    QString humanName1;
-    QString humanName2;
-    QString engineNameForSave1;
-    QString engineNameForSave2;
     QString positionStr1;
     QString positionPonder1;
     QStringList positionStrHistory;
@@ -87,10 +83,6 @@ struct OrcTestHarness {
         refs.currentMoveIndex = &currentMoveIndex;
         refs.autoSaveKifu = &autoSaveKifu;
         refs.kifuSaveDir = &kifuSaveDir;
-        refs.humanName1 = &humanName1;
-        refs.humanName2 = &humanName2;
-        refs.engineNameForSave1 = &engineNameForSave1;
-        refs.engineNameForSave2 = &engineNameForSave2;
         refs.positionStr1 = &positionStr1;
         refs.positionPonder1 = &positionPonder1;
         refs.positionStrHistory = &positionStrHistory;
@@ -247,10 +239,10 @@ void Tst_GameStartOrchestrator::configureAndStart_setsPlayerNames()
 
     h.orc.configureAndStart(opt);
 
-    QCOMPARE(h.humanName1, QStringLiteral("Player1"));
-    QCOMPARE(h.humanName2, QStringLiteral("Player2"));
-    QCOMPARE(h.engineNameForSave1, QStringLiteral("Engine1"));
-    QCOMPARE(h.engineNameForSave2, QStringLiteral("Engine2"));
+    QCOMPARE(OrcTracker::lastStrategyOptions.humanName1, QStringLiteral("Player1"));
+    QCOMPARE(OrcTracker::lastStrategyOptions.humanName2, QStringLiteral("Player2"));
+    QCOMPARE(OrcTracker::lastEngineName1, QStringLiteral("Engine1"));
+    QCOMPARE(OrcTracker::lastEngineName2, QStringLiteral("Engine2"));
 }
 
 void Tst_GameStartOrchestrator::configureAndStart_callsAllHooks()

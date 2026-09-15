@@ -61,6 +61,7 @@ void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QS
             updater->appendMove(move, moveText, elapsedTime);
         }
     }
+    if (!moveText.isEmpty() && m_deps.markGameRecordDirty) m_deps.markGameRecordDirty();
 }
 
 void GameRecordUpdateService::recordUsiMoveAndUpdateSfen()

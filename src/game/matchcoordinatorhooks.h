@@ -59,9 +59,7 @@ struct MatchCoordinatorHooks {
         std::function<void(const QString& text, const QString& elapsed)> appendKifuLine;
         std::function<void()> appendEvalP1;
         std::function<void()> appendEvalP2;
-        std::function<void(const QString& saveDir, PlayMode playMode,
-                           const QString& humanName1, const QString& humanName2,
-                           const QString& engineName1, const QString& engineName2)> autoSaveKifu;
+        std::function<void(const QString& saveDir)> autoSaveKifu;
     };
 
     UI ui;         ///< UI更新・描画系

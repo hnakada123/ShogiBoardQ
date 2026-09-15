@@ -6,6 +6,10 @@
 #include <QStringDecoder>
 #include <QStringEncoder>
 #include <QTemporaryDir>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QAbstractButton>
+#include <QTimer>
 
 #include "kifusavecoordinator.h"
 
@@ -13,11 +17,35 @@ using KifuSaveCoordinator::SaveFormat;
 
 Q_DECLARE_METATYPE(KifuSaveCoordinator::SaveFormat)
 
+class SaveDialogResponder : public QObject
+{
+    Q_OBJECT
+public:
+    bool cancelFile = false;
+    QString filePath;
+    QMessageBox::StandardButton answer = QMessageBox::Cancel;
+public slots:
+    void respond()
+    {
+        if (auto* file = qobject_cast<QFileDialog*>(QApplication::activeModalWidget())) {
+            if (cancelFile) file->reject();
+            else {
+                file->selectFile(filePath);
+                QMetaObject::invokeMethod(file, "accept");
+            }
+        } else if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+            box->button(answer)->click();
+        }
+    }
+};
+
 class TestKifuSaveCoordinator : public QObject
 {
     Q_OBJECT
 
 private:
+    QTemporaryDir m_config;
+
     static QByteArray readAllBytes(const QString& path)
     {
         QFile f(path);
@@ -26,6 +54,106 @@ private:
     }
 
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        QApplication::setAttribute(Qt::AA_DontUseNativeDialogs);
+    }
+
+    void saveDialogGeneratesOnlySelectedFormat_data()
+    {
+        QTest::addColumn<QString>("suffix");
+        QTest::addColumn<SaveFormat>("expectedFormat");
+        QTest::newRow("cancel") << QString() << SaveFormat::Kif;
+        QTest::newRow("kif") << QStringLiteral("kifu") << SaveFormat::Kif;
+        QTest::newRow("ki2") << QStringLiteral("ki2u") << SaveFormat::Ki2;
+        QTest::newRow("csa") << QStringLiteral("csa") << SaveFormat::Csa;
+        QTest::newRow("jkf") << QStringLiteral("jkf") << SaveFormat::Jkf;
+        QTest::newRow("usen") << QStringLiteral("usen") << SaveFormat::Usen;
+        QTest::newRow("usi") << QStringLiteral("usi") << SaveFormat::Usi;
+    }
+
+    void saveDialogGeneratesOnlySelectedFormat()
+    {
+        QFETCH(QString, suffix);
+        QFETCH(SaveFormat, expectedFormat);
+        QTemporaryDir dir;
+        SaveDialogResponder responder;
+        responder.cancelFile = suffix.isEmpty();
+        responder.filePath = dir.filePath(QStringLiteral("record.") + suffix);
+        int generated = 0;
+        SaveFormat actual = SaveFormat::Kif;
+        QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
+        QString error;
+        const auto path = KifuSaveCoordinator::saveViaDialog(nullptr,
+            [&](SaveFormat format) {
+                ++generated;
+                actual = format;
+                return QStringList{QStringLiteral("selected format only")};
+            }, PlayMode::NotStarted, {}, {}, {}, {}, false, false, &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(generated, responder.cancelFile ? 0 : 1);
+        if (responder.cancelFile) QVERIFY(path.isEmpty());
+        else {
+            QCOMPARE(actual, expectedFormat);
+            QCOMPARE(path, responder.filePath);
+            QCOMPARE(readAllBytes(path), QByteArray("selected format only\n"));
+        }
+    }
+
+    void unsavedChangesGuard_data()
+    {
+        QTest::addColumn<bool>("dirty");
+        QTest::addColumn<int>("answer");
+        QTest::addColumn<bool>("writeFails");
+        QTest::addColumn<bool>("proceed");
+        QTest::newRow("clean") << false << int(QMessageBox::Cancel) << false << true;
+        QTest::newRow("cancel") << true << int(QMessageBox::Cancel) << false << false;
+        QTest::newRow("discard") << true << int(QMessageBox::Discard) << false << true;
+        QTest::newRow("save") << true << int(QMessageBox::Save) << false << true;
+        QTest::newRow("save-fails") << true << int(QMessageBox::Save) << true << false;
+    }
+
+    void unsavedChangesGuard()
+    {
+        QFETCH(bool, dirty);
+        QFETCH(int, answer);
+        QFETCH(bool, writeFails);
+        QFETCH(bool, proceed);
+        QTemporaryDir dir;
+        SaveDialogResponder responder;
+        responder.answer = static_cast<QMessageBox::StandardButton>(answer);
+        int saves = 0;
+        const QString path = writeFails ? dir.path() : dir.filePath(QStringLiteral("record.kifu"));
+        if (dirty) QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
+        const bool accepted = KifuSaveCoordinator::confirmDiscardUnsaved(nullptr, dirty, [&]() {
+            ++saves;
+            return KifuSaveCoordinator::overwriteExisting(path, {QStringLiteral("unsaved record")});
+        });
+        QCOMPARE(accepted, proceed);
+        QCOMPARE(saves, dirty && answer == int(QMessageBox::Save) ? 1 : 0);
+        if (saves && !writeFails) QCOMPARE(readAllBytes(path), QByteArray("unsaved record\n"));
+    }
+
+    void unsavedChangesGuard_saveAsCanceled()
+    {
+        SaveDialogResponder responder;
+        responder.answer = QMessageBox::Save;
+        responder.cancelFile = true;
+        int generated = 0;
+        QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
+        const bool accepted = KifuSaveCoordinator::confirmDiscardUnsaved(nullptr, true, [&]() {
+            QTimer::singleShot(0, &responder, &SaveDialogResponder::respond);
+            return !KifuSaveCoordinator::saveViaDialog(nullptr, [&](SaveFormat) {
+                ++generated;
+                return QStringList{QStringLiteral("unsaved record")};
+            }, PlayMode::NotStarted, {}, {}, {}, {}).isEmpty();
+        });
+        QVERIFY(!accepted);
+        QCOMPARE(generated, 0);
+    }
+
     void selectedFilterAddsExtension_data()
     {
         QTest::addColumn<QString>("path");
@@ -219,5 +347,5 @@ private slots:
     }
 };
 
-QTEST_GUILESS_MAIN(TestKifuSaveCoordinator)
+QTEST_MAIN(TestKifuSaveCoordinator)
 #include "tst_kifusavecoordinator.moc"

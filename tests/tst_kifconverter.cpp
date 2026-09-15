@@ -36,11 +36,37 @@ private slots:
         QCOMPARE(sfen, kHirateSfen);
     }
 
-    void detectInitialSfen_overlappingHandicapNames_data()
+    void detectInitialSfen_handicapNames_data()
     {
         QTest::addColumn<QString>("handicap");
         QTest::addColumn<QString>("expectedSfen");
 
+        QTest::newRow("even") << QStringLiteral("平手")
+            << QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        QTest::newRow("lance") << QStringLiteral("香落ち")
+            << QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("bishop") << QStringLiteral("角落ち")
+            << QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("rook") << QStringLiteral("飛車落ち")
+            << QStringLiteral("lnsgkgsnl/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("two") << QStringLiteral("二枚落ち")
+            << QStringLiteral("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("three") << QStringLiteral("三枚落ち")
+            << QStringLiteral("lnsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("four") << QStringLiteral("四枚落ち")
+            << QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("five") << QStringLiteral("五枚落ち")
+            << QStringLiteral("2sgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("six") << QStringLiteral("六枚落ち")
+            << QStringLiteral("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("left-seven") << QStringLiteral("左七枚落ち")
+            << QStringLiteral("2sgkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("right-seven") << QStringLiteral("右七枚落ち")
+            << QStringLiteral("3gkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("eight") << QStringLiteral("八枚落ち")
+            << QStringLiteral("3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("ten") << QStringLiteral("十枚落ち")
+            << QStringLiteral("4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         QTest::newRow("rook-lance") << QStringLiteral("飛香落ち")
             << QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
         QTest::newRow("right-lance") << QStringLiteral("右香落ち")
@@ -49,7 +75,7 @@ private slots:
             << QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
     }
 
-    void detectInitialSfen_overlappingHandicapNames()
+    void detectInitialSfen_handicapNames()
     {
         QFETCH(QString, handicap);
         QFETCH(QString, expectedSfen);

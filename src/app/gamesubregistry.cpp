@@ -222,6 +222,7 @@ void MainWindowServiceRegistry::updateTurnStatus(int currentPlayer)
 
 void MainWindowServiceRegistry::resetToInitialState()
 {
+    if (!confirmDiscardUnsavedKifu()) return;
     ensureSessionLifecycleCoordinator();
     m_mw.m_sessionLifecycle->resetToInitialState();
 }

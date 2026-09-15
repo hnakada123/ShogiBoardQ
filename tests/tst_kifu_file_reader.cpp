@@ -33,6 +33,11 @@ private slots:
         QTest::newRow("sfen-no-ply") << sfen.left(sfen.lastIndexOf(QLatin1Char(' '))) << Format::USI;
         QTest::newRow("usi-comment") << QStringLiteral("# comment\nstartpos moves 7g7f") << Format::USI;
         QTest::newRow("json-array") << QStringLiteral("[{\"move\":{}}]") << Format::JKF;
+        QTest::newRow("usi-position") << QStringLiteral("position startpos moves 7g7f 3c3d") << Format::USI;
+        QTest::newRow("jkf-object") << QStringLiteral("{\"header\":{},\"moves\":[{}]}") << Format::JKF;
+        QTest::newRow("csa-header") << QStringLiteral("V2.2\nPI\n+\n+7776FU\nT1") << Format::CSA;
+        QTest::newRow("csa-moves") << QStringLiteral("+7776FU\n-3334FU") << Format::CSA;
+        QTest::newRow("usen-custom-position") << QStringLiteral("1nsgkgsn1_9_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGKGSNL.w.-~0.09k7ku.r") << Format::USEN;
         QTest::newRow("usen") << QStringLiteral("~0.7ku.r~1.0e4.r") << Format::USEN;
         QTest::newRow("kif-tilde") << QStringLiteral("*https://example.org/~user\n手数----指手---------\n1 ７六歩(77)") << Format::KIF;
         QTest::newRow("csa-tilde") << QStringLiteral("'comment ~\nPI\n+\n+7776FU") << Format::CSA;

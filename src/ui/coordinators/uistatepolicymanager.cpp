@@ -336,13 +336,13 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
             applyActionPolicy(ui->actionCopyKI2, policy);
             applyActionPolicy(ui->actionCopyCSA, policy);
             applyActionPolicy(ui->actionCopyJKF, policy);
+            applyActionPolicy(ui->actionCopyUSIAll, policy);
+            applyActionPolicy(ui->actionCopyUSEN, policy);
         }
         break;
     case UiElement::EditCopyPosition:
         if (ui) {
             applyActionPolicy(ui->actionCopyUSICurrent, policy);
-            applyActionPolicy(ui->actionCopyUSIAll, policy);
-            applyActionPolicy(ui->actionCopyUSEN, policy);
             applyActionPolicy(ui->actionCopySFEN, policy);
             applyActionPolicy(ui->actionCopyBOD, policy);
         }

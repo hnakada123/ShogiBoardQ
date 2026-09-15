@@ -60,8 +60,6 @@ public:
         QString engineName1;
         QString engineName2;
         int currentMoveIndex = 0;
-        int activePly = 0;
-        int currentSelectedPly = 0;
     };
 
     void setDependencies(const Deps& deps);

@@ -1089,6 +1089,28 @@ private slots:
     // 異常系: SfenCsaPositionConverter 双方向変換の整合性
     // ========================================
 
+    void sfenCsaRoundTrip_handicap_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::newRow("right-edge-empty") << QStringLiteral("lnsgkgsn1/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("four-piece") << QStringLiteral("1nsgkgsn1/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("sparse-with-hands") << QStringLiteral("4k4/9/9/9/4+P4/9/9/9/4K4 b 2R2b 1");
+    }
+
+    void sfenCsaRoundTrip_handicap()
+    {
+        QFETCH(QString, sfen);
+        QString error;
+        const auto csa = SfenCsaPositionConverter::toCsaPositionLines(sfen, &error);
+        QVERIFY2(csa.has_value(), qPrintable(error));
+        const auto decoded = SfenCsaPositionConverter::fromCsaPositionLines(*csa, &error);
+        QVERIFY2(decoded.has_value(), qPrintable(error));
+        QCOMPARE(*decoded, sfen);
+        QStringList crlf;
+        for (const auto& line : *csa) crlf.append(line + QStringLiteral("\r\n"));
+        QCOMPARE(SfenCsaPositionConverter::fromCsaPositionLines(crlf), decoded);
+    }
+
     void sfenCsaRoundTrip_hirate()
     {
         const QString originalSfen =
@@ -1105,14 +1127,7 @@ private slots:
         auto roundTripSfen = SfenCsaPositionConverter::fromCsaPositionLines(*csaLines, &error);
         QVERIFY2(roundTripSfen.has_value(), qPrintable(error));
 
-        // ラウンドトリップ結果が有効なSFENで、主要な駒が含まれることを検証
-        // 注意: toCsaPositionLines が生成する " * " 形式の末尾空白が
-        //        fromCsaPositionLines の trimmed() で欠落するため完全一致はしない
-        QVERIFY(roundTripSfen->contains(QStringLiteral("lnsgkgsnl")));
-        QVERIFY(roundTripSfen->contains(QStringLiteral("LNSGKGSNL")));
-        QVERIFY(roundTripSfen->contains(QStringLiteral("ppppppppp")));
-        QVERIFY(roundTripSfen->contains(QStringLiteral("PPPPPPPPP")));
-        QVERIFY(roundTripSfen->contains(QStringLiteral("b")));
+        QCOMPARE(*roundTripSfen, originalSfen);
     }
 
     // ========================================

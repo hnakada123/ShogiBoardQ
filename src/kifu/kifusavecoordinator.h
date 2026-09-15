@@ -7,6 +7,7 @@
 
 #include <QString>
 #include <QStringList>
+#include <functional>
 #include "playmode.h"   // 前方宣言をやめ、実体定義を取り込む
 
 class QWidget;
@@ -35,22 +36,24 @@ bool hasKnownSaveExtension(const QString& path);
 /// 保存先パスの拡張子が Shift_JIS 出力を要求するか（.kif / .ki2）
 bool usesShiftJisForPath(const QString& path);
 
+/// 保存形式が確定してから、その形式の出力だけを生成する。
+using LineGenerator = std::function<QStringList(SaveFormat)>;
+
+/// 未保存変更がある場合に保存・破棄・キャンセルを確認する。
+/// 保存失敗・キャンセルは false。破棄しても呼び出し元の dirty 状態は変更しない。
+bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save);
+
 // ダイアログを出してKIF/KI2/CSA/JKF/USEN/USI形式で保存。成功時は保存パス、失敗/キャンセルは空文字。
-QString saveViaDialogWithUsi(QWidget* parent,
-                              const QStringList& kifLines,
-                              const QStringList& ki2Lines,
-                              const QStringList& csaLines,
-                              const QStringList& jkfLines,
-                              const QStringList& usenLines,
-                              const QStringList& usiLines,
-                              PlayMode mode,
-                              const QString& human1,
-                              const QString& human2,
-                              const QString& engine1,
-                              const QString& engine2,
-                              bool hasBranches = false,
-                              bool hasTimeInfo = false,
-                              QString* outError = nullptr);
+QString saveViaDialog(QWidget* parent,
+                      const LineGenerator& generateLines,
+                      PlayMode mode,
+                      const QString& human1,
+                      const QString& human2,
+                      const QString& engine1,
+                      const QString& engine2,
+                      bool hasBranches = false,
+                      bool hasTimeInfo = false,
+                      QString* outError = nullptr);
 
 // 既存ファイルへ上書き保存。
 // lines には saveFormatForPath(path) が返す形式の行を渡すこと（エンコーディングは拡張子で決まる）。

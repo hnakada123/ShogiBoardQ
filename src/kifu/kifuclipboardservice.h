@@ -5,22 +5,9 @@
 /// @brief 棋譜クリップボードサービスの定義
 
 
-#include <QString>
-#include <QStringList>
-#include <QList>
-
 #include "gamerecordmodel.h"
 
-struct ShogiMove;
-
-/**
- * @brief 棋譜のクリップボード操作を担当するサービスクラス
- *
- * MainWindowから分離された責務:
- * - KIF/KI2/CSA/USI/JKF/USEN/SFEN/BOD形式での棋譜コピー
- * - クリップボードからの棋譜貼り付け
- * - USI指し手リストの生成
- */
+/// KIF/KI2形式の棋譜をクリップボードに書き込む。
 namespace KifuClipboardService {
 
 /// KIF形式で棋譜をクリップボードにコピー
@@ -30,12 +17,6 @@ namespace KifuClipboardService {
 /// KI2形式で棋譜をクリップボードにコピー
 /// @return 成功した場合true
 [[nodiscard]] bool copyKi2(const GameRecordModel& model, const GameRecordModel::ExportContext& ctx);
-
-/// ShogiMoveリストからUSI形式の指し手リストを生成
-QStringList gameMovesToUsiMoves(const QList<ShogiMove>& moves);
-
-/// SFENレコードからUSI形式の指し手リストを生成
-QStringList sfenRecordToUsiMoves(const QStringList& sfenRecord);
 
 } // namespace KifuClipboardService
 

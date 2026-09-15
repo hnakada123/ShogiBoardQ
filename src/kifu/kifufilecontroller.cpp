@@ -6,6 +6,7 @@
 #include "kifuloadcoordinator.h"
 #include "kifupastedialog.h"
 #include "kifusavecoordinator.h"
+#include "gamerecordmodel.h"
 #include "gamesettings.h"
 #include "logcategories.h"
 
@@ -21,6 +22,23 @@ KifuFileController::KifuFileController(QObject* parent)
 void KifuFileController::updateDeps(const Deps& deps)
 {
     m_deps = deps;
+}
+
+bool KifuFileController::confirmDiscardUnsaved()
+{
+    auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr;
+    return KifuSaveCoordinator::confirmDiscardUnsaved(
+        m_deps.parentWidget, record && record->isDirty(), [this, record]() {
+            overwriteKifuFile();
+            return record && !record->isDirty();
+        });
+}
+
+void KifuFileController::prepareForKifuLoad()
+{
+    if (m_deps.setReplayMode) m_deps.setReplayMode(true);
+    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
+    if (m_deps.ensurePlayerInfoAndGameInfo) m_deps.ensurePlayerInfoAndGameInfo();
 }
 
 void KifuFileController::chooseAndLoadKifuFile()
@@ -40,15 +58,13 @@ void KifuFileController::chooseAndLoadKifuFile()
            "USEN Files (*.usen)")
         );
 
-    if (filePath.isEmpty()) return;
+    if (filePath.isEmpty() || !confirmDiscardUnsaved()) return;
 
     // 選択したファイルのディレクトリを保存
     QFileInfo fileInfo(filePath);
     GameSettings::setLastKifuDirectory(fileInfo.absolutePath());
 
-    if (m_deps.setReplayMode) m_deps.setReplayMode(true);
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
-    if (m_deps.ensurePlayerInfoAndGameInfo) m_deps.ensurePlayerInfoAndGameInfo();
+    prepareForKifuLoad();
 
     // 2) KifuLoadCoordinator の作成・配線・読み込み実行
     if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
@@ -120,7 +136,8 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
 {
     qCDebug(lcApp) << "onKifuPasteImportRequested: content length =" << content.size();
 
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
+    if (!confirmDiscardUnsaved()) return;
+    prepareForKifuLoad();
     if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
 
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
@@ -129,6 +146,9 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
         // 貼り付けた棋譜はファイル由来ではないので、以前のファイルへ上書きさせない
         if (success) {
             clearOverwriteTarget();
+            if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
+                record->markDirty();
+            }
         }
         if (m_deps.statusBar) {
             if (success) {
@@ -147,7 +167,8 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
 
 void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
 {
-    if (m_deps.clearUiBeforeKifuLoad) m_deps.clearUiBeforeKifuLoad();
+    if (!confirmDiscardUnsaved()) return;
+    prepareForKifuLoad();
     if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
 
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
@@ -156,6 +177,9 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
         // 局面集から反映した局面はファイル由来ではないので、以前のファイルへ上書きさせない
         if (success) {
             clearOverwriteTarget();
+            if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
+                record->markDirty();
+            }
         }
         if (m_deps.statusBar) {
             if (success) {
@@ -171,17 +195,9 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
     }
 }
 
-void KifuFileController::autoSaveKifuToFile(const QString& saveDir, PlayMode playMode,
-                                            const QString& humanName1, const QString& humanName2,
-                                            const QString& engineName1, const QString& engineName2)
+void KifuFileController::autoSaveKifuToFile(const QString& saveDir)
 {
-    Q_UNUSED(playMode);
-    Q_UNUSED(humanName1);
-    Q_UNUSED(humanName2);
-    Q_UNUSED(engineName1);
-    Q_UNUSED(engineName2);
-    qCDebug(lcApp) << "autoSaveKifuToFile called: dir=" << saveDir
-                   << "mode=" << static_cast<int>(playMode);
+    qCDebug(lcApp) << "autoSaveKifuToFile called: dir=" << saveDir;
 
     if (m_deps.ensureGameRecordModel) m_deps.ensureGameRecordModel();
     if (m_deps.ensureKifuExportController) m_deps.ensureKifuExportController();

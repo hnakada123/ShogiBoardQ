@@ -17,6 +17,7 @@
 void MainWindowServiceRegistry::initializeDialogLaunchWiring()
 {
     DialogLaunchWiring::Deps d;
+    d.confirmDiscardUnsavedKifu = [this]() { return confirmDiscardUnsavedKifu(); };
     d.parentWidget = &m_mw;
     d.playMode = &m_mw.m_state.playMode;
 

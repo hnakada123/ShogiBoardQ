@@ -174,7 +174,9 @@ std::optional<QString> fromCsaPositionLines(const QStringList& csaLines, QString
     bool hasBoardRows = false;
 
     for (const QString& raw : csaLines) {
-        const QString line = raw.trimmed();
+        // 盤面行は3文字固定幅。末尾の空マス " * " を保持する。
+        QString line = raw;
+        while (line.endsWith(QLatin1Char('\r')) || line.endsWith(QLatin1Char('\n'))) line.chop(1);
         if (line.isEmpty()) continue;
 
         if (line.startsWith(QStringLiteral("P1")) || line.startsWith(QStringLiteral("P2")) ||

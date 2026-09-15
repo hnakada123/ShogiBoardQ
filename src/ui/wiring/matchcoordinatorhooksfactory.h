@@ -46,9 +46,7 @@ public:
 
         std::function<void(const QString&, const QString&)> setPlayersNames;   ///< → MC::Hooks::setPlayersNames
         std::function<void(const QString&, const QString&)> setEngineNames;    ///< → MC::Hooks::setEngineNames
-        std::function<void(const QString&, PlayMode,
-                           const QString&, const QString&,
-                           const QString&, const QString&)> autoSaveKifu;      ///< → MC::Hooks::autoSaveKifu
+        std::function<void(const QString& saveDir)> autoSaveKifu;      ///< → MC::Hooks::autoSaveKifu
     };
 
     /**
