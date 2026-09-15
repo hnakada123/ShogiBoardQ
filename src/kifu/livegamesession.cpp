@@ -223,7 +223,8 @@ KifuBranchNode* LiveGameSession::commit()
 
     KifuBranchNode* lastNode = parent;
 
-    // 各指し手をツリーに追加
+    // 各指し手をツリーに追加（treeChanged は最後に1回だけ発火させる）
+    m_tree->beginBatchUpdate();
     for (int i = 0; i < m_moves.size(); ++i) {
         const KifDisplayItem& item = m_moves.at(i);
         const ShogiMove& move = m_gameMoves.at(i);
@@ -240,6 +241,7 @@ KifuBranchNode* LiveGameSession::commit()
             lastNode = m_tree->addMove(lastNode, move, item.prettyMove, sfen, item.timeText);
         }
     }
+    m_tree->endBatchUpdate();
 
     KifuBranchNode* result = lastNode;
     reset();

@@ -135,6 +135,46 @@ private slots:
         QVERIFY(spy.count() >= 1);
     }
 
+    void batchUpdate_emitsTreeChangedOnce()
+    {
+        KifuBranchTree tree;
+        QSignalSpy spy(&tree, &KifuBranchTree::treeChanged);
+        ShogiMove move;
+
+        tree.beginBatchUpdate();
+        tree.setRootSfen(kHirateSfen);
+        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("m1"), QStringLiteral("s1"));
+        auto* n2 = tree.addMove(n1, move, QStringLiteral("m2"), QStringLiteral("s2"));
+        tree.addTerminalMove(n2, TerminalType::Resign, QStringLiteral("▲投了"));
+        QCOMPARE(spy.count(), 0);           // 一括更新中は発火しない
+        tree.endBatchUpdate();
+        QCOMPARE(spy.count(), 1);           // 終了時に1回だけ
+
+        // 変更が無ければ発火しない
+        tree.beginBatchUpdate();
+        tree.endBatchUpdate();
+        QCOMPARE(spy.count(), 1);
+
+        // 入れ子: 最も外側の end で1回だけ
+        tree.beginBatchUpdate();
+        tree.beginBatchUpdate();
+        tree.addMove(n1, move, QStringLiteral("m2b"), QStringLiteral("s2b"));
+        tree.endBatchUpdate();
+        QCOMPARE(spy.count(), 1);
+        tree.addMove(n2, move, QStringLiteral("m3"), QStringLiteral("s3"));
+        tree.endBatchUpdate();
+        QCOMPARE(spy.count(), 2);
+
+        // 一括更新の外では従来どおり毎回発火
+        tree.addMove(n2, move, QStringLiteral("m3b"), QStringLiteral("s3b"));
+        QCOMPARE(spy.count(), 3);
+
+        // 対応しない end は無視され、その後も通常動作
+        tree.endBatchUpdate();
+        tree.addMove(n1, move, QStringLiteral("m2c"), QStringLiteral("s2c"));
+        QCOMPARE(spy.count(), 4);
+    }
+
     void stressTest_200Moves()
     {
         KifuBranchTree tree;

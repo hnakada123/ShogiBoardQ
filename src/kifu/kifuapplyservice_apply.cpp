@@ -227,10 +227,13 @@ void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString&
         if (navState != nullptr) {
             navState->setCurrentNode(nullptr);
         }
+        // 構築中の treeChanged を抑止し、ナビ状態をルートへ戻してから1回だけ発火させる
+        branchTree->beginBatchUpdate();
         KifuBranchTreeBuilder::buildFromKifParseResult(branchTree, res, initialSfen);
         if (navState != nullptr) {
             navState->goToRoot();
         }
+        branchTree->endBatchUpdate();
         qCDebug(lcKifu).noquote() << "KifuBranchTree built: nodeCount=" << branchTree->nodeCount()
                                   << "lineCount=" << branchTree->lineCount();
         if (m_hooks.branchTreeBuilt) {
@@ -241,32 +244,9 @@ void KifuApplyService::applyBranchTree(const KifParseResult& res, const QString&
     applyBranchMarksForCurrentLine();
 
     if (branchTreeManager && branchTree != nullptr && !branchTree->isEmpty()) {
-        QList<BranchTreeManager::ResolvedRowLite> rows;
-        const QList<BranchLine> lines = branchTree->allLines();
-        rows.reserve(lines.size());
-
-        for (int i = 0; i < lines.size(); ++i) {
-            const BranchLine& line = lines.at(i);
-            BranchTreeManager::ResolvedRowLite resolved;
-            resolved.startPly = line.branchPly;
-            resolved.parent = (line.branchPoint != nullptr)
-                                  ? branchTree->findLineIndexForNode(line.branchPoint).value_or(-1)
-                                  : -1;
-
-            for (KifuBranchNode* node : std::as_const(line.nodes)) {
-                KifDisplayItem item;
-                item.prettyMove = node->displayText();
-                item.comment = node->comment();
-                item.timeText = node->timeText();
-                item.ply = node->ply();
-                resolved.disp.append(item);
-                resolved.sfen.append(node->sfen());
-            }
-
-            rows.push_back(std::move(resolved));
-        }
-
-        branchTreeManager->setBranchTreeRows(rows);
+        // 分岐ツリーの行データは treeChanged を受けた KifuDisplayCoordinator が
+        // KifuDisplayPresenter::buildBranchTreeRows() で構築済み。ここでは開始局面の
+        // ハイライトと中央表示のみ行う。
         branchTreeManager->highlightBranchTreeAt(/*row=*/0, /*ply=*/0, /*centerOn=*/true);
     }
 

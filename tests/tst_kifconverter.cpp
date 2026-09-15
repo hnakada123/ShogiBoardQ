@@ -311,6 +311,37 @@ private slots:
                      "dispCommentCount=%1 but treeCommentCount=0")
                      .arg(dispCommentCount)));
     }
+    // ツリー構築中は treeChanged を発火せず、構築完了時に1回だけ発火すること
+    //（以前はノード追加ごとに発火し、表示側がそのたびに全再構築していた）
+    void buildFromKifParseResult_emitsTreeChangedOnce()
+    {
+        auto item = [](const QString& move, int ply) {
+            KifDisplayItem d;
+            d.prettyMove = move;
+            d.ply = ply;
+            return d;
+        };
+
+        KifParseResult res;
+        res.mainline.disp = { item(QStringLiteral("▲７六歩"), 1), item(QStringLiteral("△３四歩"), 2),
+                              item(QStringLiteral("▲２六歩"), 3) };
+        res.mainline.sfenList = { QStringLiteral("b0 b - 1"), QStringLiteral("b1 w - 2"),
+                                  QStringLiteral("b2 b - 3"), QStringLiteral("b3 w - 4") };
+        KifVariation var;
+        var.startPly = 3;
+        var.line.startPly = 3;
+        var.line.disp = { item(QStringLiteral("▲６六歩"), 3), item(QStringLiteral("△８四歩"), 4) };
+        var.line.sfenList = { QStringLiteral("b2 b - 3"), QStringLiteral("v3 w - 4"), QStringLiteral("v4 b - 5") };
+        res.variations = { var };
+
+        KifuBranchTree tree;
+        QSignalSpy spy(&tree, &KifuBranchTree::treeChanged);
+        KifuBranchTreeBuilder::buildFromKifParseResult(&tree, res, QStringLiteral("b0 b - 1"));
+
+        QCOMPARE(tree.nodeCount(), 6);   // root + 本譜3 + 変化2
+        QCOMPARE(spy.count(), 1);
+    }
+
     // 変化が「別の変化の投了直前の局面」から分岐するケース。
     // 投了ノードは親と同じ局面を持つため、以前は findBySfen が投了ノードを返して
     // 変化が丸ごと失われることがあった（QHash の走査順に依存）。

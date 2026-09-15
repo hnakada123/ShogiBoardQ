@@ -24,6 +24,10 @@ void KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
         return;
     }
 
+    // ノード追加ごとに treeChanged が発火すると受信側（表示コーディネータ）が
+    // そのたびに全再構築を行うため、構築完了時に1回だけ発火させる
+    tree->beginBatchUpdate();
+
     // ツリーをクリアして再構築
     tree->clear();
     tree->setRootSfen(startSfen);
@@ -35,6 +39,8 @@ void KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
     for (const KifVariation& var : std::as_const(result.variations)) {
         addKifLineToTree(tree, var.line, var.startPly);
     }
+
+    tree->endBatchUpdate();
 }
 
 void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
