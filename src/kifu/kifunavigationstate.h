@@ -64,9 +64,9 @@ public:
     void resetPreferredLineIndex();
 
     /**
-     * @brief ライン選択記憶をクリア（本譜に戻る時に呼び出す）
+     * @brief 分岐点での子選択の記憶をクリア（本譜に戻る時に呼び出す）
      *
-     * 分岐点での選択記憶（m_lastSelectedLineAtBranch）をクリアします。
+     * 分岐点での選択記憶（m_lastSelectedChildAtBranch）をクリアします。
      * これにより、本譜に戻った後のナビゲーションで正しく本譜を辿ります。
      */
     void clearLineSelectionMemory();
@@ -137,33 +137,31 @@ public:
      */
     bool hasBranchAtCurrent() const;
 
-    // === ライン選択の記憶 ===
+    // === 分岐点での子選択の記憶 ===
+    // 「戻る→進む」で直前に通った分岐を辿れるよう、分岐点ごとに
+    // どの子（childAt のインデックス）を選んだかを記憶する。
+    // allLines() のラインインデックスとは別物なので注意。
 
     /**
-     * @brief 分岐点での選択を記憶
+     * @brief 分岐点で選んだ子を記憶
      * @param branchPoint 分岐点のノード
-     * @param lineIndex 選択したラインのインデックス
+     * @param childIndex 選んだ子のインデックス（branchPoint->childAt() の添字）
      */
-    void rememberLineSelection(KifuBranchNode* branchPoint, int lineIndex);
+    void rememberChildSelection(KifuBranchNode* branchPoint, int childIndex);
 
     /**
-     * @brief 分岐点での最後の選択を取得
+     * @brief 分岐点で最後に選んだ子のインデックスを取得
      * @param branchPoint 分岐点のノード
-     * @return 選択されていたラインインデックス（未選択の場合は0=本譜）
+     * @return 子のインデックス（未選択の場合は0=最初の子）
      */
-    int lastSelectedLineAt(KifuBranchNode* branchPoint) const;
-
-    /**
-     * @brief ライン選択の記憶をクリア
-     */
-    void clearLineSelections();
+    int lastSelectedChildAt(KifuBranchNode* branchPoint) const;
 
 private:
     KifuBranchTree* m_tree = nullptr;
     KifuBranchNode* m_currentNode = nullptr;
 
-    // 分岐点のnodeId -> 選択したラインのインデックス
-    QHash<int, int> m_lastSelectedLineAtBranch;
+    // 分岐点のnodeId -> 選んだ子のインデックス
+    QHash<int, int> m_lastSelectedChildAtBranch;
 
     // 優先ラインインデックス（分岐選択時に設定、分岐点より前に戻っても維持）
     // -1 = 未設定（ノードのlineIndexを使用）

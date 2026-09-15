@@ -351,7 +351,6 @@ src/
 │   ├── evaluationchartwidget.cpp/.h #  評価値グラフウィジェット
 │   ├── kifudisplay.cpp/.h          #   棋譜表示ウィジェット
 │   ├── kifubranchdisplay.cpp/.h    #   分岐表示ウィジェット
-│   ├── branchtreewidget.cpp/.h     #   分岐ツリーウィジェット
 │   ├── gameinfopanecontroller.cpp/.h # 対局情報ペイン制御
 │   ├── engineinfowidget.cpp/.h     #   エンジン情報ウィジェット
 │   ├── kifuanalysisresultsdisplay.cpp/.h # 棋譜解析結果表示
@@ -5472,7 +5471,7 @@ KifuNavigationController からのシグナル
 KifuDisplayCoordinator
   ├── onNavigationCompleted(node)
   │     ├── RecordPane: 棋譜リストの選択行を更新
-  │     ├── BranchTreeWidget: ツリー上の強調表示を更新
+  │     ├── BranchTreeManager: ツリー上の強調表示を更新
   │     ├── KifuBranchListModel: 分岐候補を更新
   │     └── boardWithHighlightsRequired シグナル → 盤面更新
   │
@@ -5718,7 +5717,6 @@ Urgency::Warn5  → 黄色背景 + 赤文字 + 赤枠（残5秒）
 | RecordPane | QWidget | MainWindow 左ペイン | 棋譜一覧（QTableView）＋分岐候補一覧＋ナビゲーションボタン＋コメント欄 |
 | EngineAnalysisTab | QWidget | MainWindow 右ペイン（QTabWidget） | 思考情報・検討・USI/CSAログ・コメント・分岐ツリーの各タブ |
 | EvaluationChartWidget | QWidget | MainWindow 下部（QDockWidget） | Qt Charts による評価値グラフ（2エンジン対応、ゼロライン、カーソル線） |
-| BranchTreeWidget | QWidget | EngineAnalysisTab 内（分岐ツリータブ） | QGraphicsView/Scene による分岐ツリーの描画、ノードクリック検出 |
 | EngineInfoWidget | QWidget | EngineAnalysisTab 内（各エンジン情報エリア） | エンジン情報表示（予想手列、探索深さ、ノード数、NPS、ハッシュ使用率） |
 | GameInfoPaneController | QObject | MainWindow タブ（対局情報タブ） | 対局情報テーブルの管理（QTableWidget）、編集・Undo/Redo・フォント変更 |
 | KifuDisplay | QObject | モデルデータ | 棋譜1手分のデータ保持（指し手・消費時間・コメント） |
@@ -6715,7 +6713,7 @@ handleBranchNodeActivated(row, ply):
 | `navigationCompleted(node)` | MainWindow | ナビゲーション完了通知 |
 | `boardUpdateRequired(sfen)` | BoardSyncPresenter | 盤面SFEN更新 |
 | `recordHighlightRequired(ply)` | RecordPresenter | 棋譜欄ハイライト |
-| `branchTreeHighlightRequired(lineIdx, ply)` | BranchTreeWidget | 分岐ツリーハイライト |
+| `branchTreeHighlightRequired(lineIdx, ply)` | BranchTreeManager | 分岐ツリーハイライト |
 | `branchCandidatesUpdateRequired(candidates)` | KifuBranchDisplay | 分岐候補欄更新 |
 
 ### 13.2 KifuNavigationState — ナビゲーション状態管理
@@ -6831,7 +6829,7 @@ flowchart TD
     subgraph "UI更新"
         D1["BoardSyncPresenter<br/>盤面SFEN更新"]
         D2["RecordPresenter<br/>棋譜欄ハイライト"]
-        D3["BranchTreeWidget<br/>分岐ツリーハイライト"]
+        D3["BranchTreeManager<br/>分岐ツリーハイライト"]
         D4["KifuBranchDisplay<br/>分岐候補欄更新"]
         D5["EvaluationGraphController<br/>カーソルライン更新"]
     end
@@ -7505,7 +7503,7 @@ MainWindow のスロットは以下のカテゴリに分類される。
 | 対局終了 | `onMatchGameEnded()`, `onGameOverStateChanged()` | MatchCoordinator |
 | ナビゲーション | `disableArrowButtons()`, `enableArrowButtons()` | GameStartCoordinator / GameStateController 等 |
 | 棋譜同期 | `onMoveCommitted()`, `displayGameRecord()` | ShogiGameController / RecordPresenter |
-| 分岐ナビゲーション | `onBranchNodeActivated()`, `onLineSelectionChanged()` | BranchTreeWidget |
+| 分岐ナビゲーション | `onBranchNodeActivated()`, `onLineSelectionChanged()` | BranchTreeManager |
 | CSA 通信 | `onCsaPlayModeChanged()`, `onCsaShowGameEndDialog()` | CsaGameWiring |
 | テスト自動化 | `startTestGame()`, `makeTestMove()` | 外部テストスクリプト |
 | ダイアログ | `displayEngineSettingsDialog()`, `displayCsaGameDialog()` | メニューアクション |
@@ -8003,7 +8001,7 @@ ShogiBoardQは日本語と英語の2言語をサポートしている。本章�
     ...
   </context>
   <context>
-    <name>BranchTreeWidget</name>
+    <name>BranchTreeManager</name>
     ...
   </context>
 </TS>
@@ -9046,7 +9044,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | BoardSetupController | C | ui/controllers | 盤面初期配置のセットアップ | 第10章 |
 | BoardSyncPresenter | C | ui/presenters | 盤面状態の同期プレゼンター | 第10章 |
 | BranchRowDelegate | C | widgets | 分岐行の描画デリゲート | 第11章 |
-| BranchTreeWidget | C | widgets | 分岐ツリーのグラフ描画ウィジェット | 第11章 |
 | ChangeEngineSettingsDialog | C | dialogs | エンジン設定変更ダイアログ | 第11章 |
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | CommentCoordinator | C | app | コメント編集の統合調整 | 第14章 |
@@ -9353,7 +9350,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | evaluationchartwidget | 第11章 | 評価値チャート |
 | kifudisplay | 第11章 | 棋譜表示 |
 | kifubranchdisplay | 第11章 | 分岐候補表示 |
-| branchtreewidget | 第11章 | 分岐ツリーグラフ |
 | gameinfopanecontroller | 第11章 | 対局情報ペイン |
 | engineinfowidget | 第11章 | エンジン情報 |
 | kifuanalysisresultsdisplay | 第9章, 第11章 | 解析結果表示 |

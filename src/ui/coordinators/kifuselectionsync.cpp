@@ -10,7 +10,6 @@
 #include "kifudisplay.h"
 #include "kifdisplayitem.h"
 #include "branchtreemanager.h"
-#include "branchtreewidget.h"
 #include "recordpane.h"
 
 #include "logcategories.h"
@@ -98,11 +97,6 @@ bool KifuSelectionSync::applyBranchTreeHighlight(int lineIndex, int ply)
         inconsistencyDetected = true;
     }
 
-    // BranchTreeWidget がある場合はそちらを使用
-    if (m_refs.branchTreeWidget != nullptr) {
-        m_refs.branchTreeWidget->highlightNode(lineIndex, ply);
-    }
-    // BranchTreeManager がある場合はそちらを使用（通常はこちら）
     if (m_refs.branchTreeManager != nullptr) {
         m_refs.branchTreeManager->highlightBranchTreeAt(lineIndex, ply, /*centerOn=*/false);
     }
@@ -297,9 +291,6 @@ int KifuSelectionSync::syncBranchTreeHighlightForNode(KifuBranchNode* targetNode
     qCDebug(lcUi).noquote() << "syncBranchTreeHighlightForNode: highlighting at line="
                        << highlightLineIndex << "ply=" << ply;
 
-    if (m_refs.branchTreeWidget != nullptr) {
-        m_refs.branchTreeWidget->highlightNode(highlightLineIndex, ply);
-    }
     if (m_refs.branchTreeManager != nullptr) {
         m_refs.branchTreeManager->highlightBranchTreeAt(highlightLineIndex, ply, /*centerOn=*/false);
     }

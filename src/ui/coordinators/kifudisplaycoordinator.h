@@ -18,7 +18,6 @@ class KifuBranchNode;
 class KifuNavigationState;
 class KifuNavigationController;
 class RecordPane;
-class BranchTreeWidget;
 class BranchTreeManager;
 class KifuRecordListModel;
 class KifuBranchListModel;
@@ -55,7 +54,6 @@ public:
     // === UI要素の設定 ===
 
     void setRecordPane(RecordPane* pane);
-    void setBranchTreeWidget(BranchTreeWidget* widget);
     void setRecordModel(KifuRecordListModel* model);
     void setBranchModel(KifuBranchListModel* model);
     void setBranchTreeManager(BranchTreeManager* manager);
@@ -86,7 +84,6 @@ public slots:
 
     void onTreeChanged();
     void resetTracking();
-    void onBranchTreeNodeClicked(int lineIndex, int ply);
     void onBranchCandidateActivated(const QModelIndex& index);
     void onPositionChanged(int lineIndex, int ply, const QString& sfen);
 
@@ -119,7 +116,6 @@ private:
     KifuNavigationController* m_navController;
 
     RecordPane* m_recordPane = nullptr;
-    BranchTreeWidget* m_branchTreeWidget = nullptr;
     BranchTreeManager* m_branchTreeManager = nullptr;
     KifuRecordListModel* m_recordModel = nullptr;
     KifuBranchListModel* m_branchModel = nullptr;

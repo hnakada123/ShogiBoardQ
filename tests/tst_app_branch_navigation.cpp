@@ -123,7 +123,6 @@ private slots:
             QStringLiteral("KifuNavigationState**"),
             QStringLiteral("KifuNavigationController**"),
             QStringLiteral("KifuDisplayCoordinator**"),
-            QStringLiteral("BranchTreeWidget**"),
             QStringLiteral("LiveGameSession**"),
         };
 

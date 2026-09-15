@@ -14,7 +14,6 @@ class KifuNavigationState;
 class KifuRecordListModel;
 class KifuBranchListModel;
 class BranchTreeManager;
-class BranchTreeWidget;
 class RecordPane;
 
 /**
@@ -35,7 +34,6 @@ public:
         KifuRecordListModel* recordModel = nullptr;
         KifuBranchListModel* branchModel = nullptr;
         BranchTreeManager* branchTreeManager = nullptr;
-        BranchTreeWidget* branchTreeWidget = nullptr;
         RecordPane* recordPane = nullptr;
     };
 

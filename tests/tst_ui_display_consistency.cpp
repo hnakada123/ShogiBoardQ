@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QCoreApplication>
 #include <QGraphicsView>
+#include <QTableView>
 
 #include "kifubranchtree.h"
 #include "kifunavigationstate.h"
@@ -267,6 +268,37 @@ private slots:
         QCoreApplication::processEvents();
         QVERIFY(h.state.isOnMainLine());
         QVERIFY(!h.branchModel.hasBackToMainRow());
+    }
+
+    // 分岐候補欄: シングルクリックで clicked と activated の両方が発火する環境でも
+    // branchActivated は1回だけ発火し、キーボード起因の activated 単独は従来どおり発火すること
+    void branchView_clickThenActivateEmitsBranchActivatedOnce()
+    {
+        UiHarness h;
+        QList<KifDisplayItem> items;
+        items.append(KifDisplayItem(QStringLiteral("▲２六歩(27)")));
+        items.append(KifDisplayItem(QStringLiteral("▲６六歩(67)")));
+        h.branchModel.updateBranchCandidates(items);
+        QTableView* view = h.recordPane.branchView();
+        QVERIFY(view != nullptr);
+        const QModelIndex idx0 = h.branchModel.index(0, 0);
+        const QModelIndex idx1 = h.branchModel.index(1, 0);
+
+        QSignalSpy spy(&h.recordPane, &RecordPane::branchActivated);
+
+        // マウスクリック: clicked → activated が同一イベント内で連続発火
+        emit view->clicked(idx0);
+        emit view->activated(idx0);
+        QCOMPARE(spy.count(), 1);
+
+        // 別の行の activated はガード対象外
+        emit view->activated(idx1);
+        QCOMPARE(spy.count(), 2);
+
+        // イベントループが回ればガードは解除され、Enter キーなど activated 単独でも発火する
+        QTest::qWait(1);
+        emit view->activated(idx0);
+        QCOMPARE(spy.count(), 3);
     }
 
     void detectsTreeHighlightMismatch()

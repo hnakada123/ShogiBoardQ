@@ -19,32 +19,39 @@ private slots:
         QCOMPARE(model.labelAt(0), QStringLiteral("▲２六歩(27)"));
     }
 
-    void clearBranchCandidates_unlocksAndClearsEvenWhenLocked()
+    void clearBranchCandidates_clearsRowsAndBackToMainRow()
     {
         KifuBranchListModel model;
 
         QList<KifDisplayItem> items;
         items.append(KifDisplayItem(QStringLiteral("▲７六歩(77)")));
         model.updateBranchCandidates(items);
-        model.setLocked(true);
+        model.setHasBackToMainRow(true);
+        QCOMPARE(model.rowCount(), 2);
 
         model.clearBranchCandidates();
 
         QCOMPARE(model.rowCount(), 0);
         QCOMPARE(model.hasBackToMainRow(), false);
-        QCOMPARE(model.isLocked(), false);
     }
 
-    void updateBranchCandidates_doesNotAutoLock()
+    void updateBranchCandidates_replacesRows()
     {
         KifuBranchListModel model;
-        model.setLocked(false);
 
         QList<KifDisplayItem> items;
         items.append(KifDisplayItem(QStringLiteral("▲２六歩(27)")));
         model.updateBranchCandidates(items);
+        QCOMPARE(model.rowCount(), 1);
 
-        QCOMPARE(model.isLocked(), false);
+        QList<KifDisplayItem> items2;
+        items2.append(KifDisplayItem(QStringLiteral("▲７六歩(77)")));
+        items2.append(KifDisplayItem(QStringLiteral("▲６六歩(67)")));
+        model.updateBranchCandidates(items2);
+
+        QCOMPARE(model.rowCount(), 2);
+        QCOMPARE(model.labelAt(0), QStringLiteral("▲７六歩(77)"));
+        QCOMPARE(model.labelAt(1), QStringLiteral("▲６六歩(67)"));
     }
 
     void firstBranchRowIndex_treatsBackToMainAsSuffixRow()

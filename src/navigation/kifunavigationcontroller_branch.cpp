@@ -48,13 +48,13 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
     }
 
     // 分岐前の共有ノードをクリックした場合は現在のライン上にとどまる。
-    // ただし、入れ子分岐では branchPly が「最後の分岐点」になるため、
-    // 手数比較だけでは共有ノード判定を誤る。実際に main/current が同一ノードかを比較する。
+    // 分岐ツリーでは共有ノードは親ライン（本譜または親分岐）の行に描かれるため、
+    // クリックされた行と現在ラインが異なっても、同じ手数のノードが同一なら
+    // ラインを切り替えない。入れ子分岐では branchPly が「最後の分岐点」になるため
+    // 手数比較ではなく実際にノードが同一かを比較する。
     int effectiveRow = row;
     const int currentLine = m_state->currentLineIndex();
-    if (row == 0 && currentLine > 0 && currentLine < lines.size()) {
-        const BranchLine& mainLine = lines.at(0);
-        const BranchLine& currentBranchLine = lines.at(currentLine);
+    if (row != currentLine && currentLine >= 0 && currentLine < lines.size()) {
         auto findNodeAtPly = [](const BranchLine& targetLine, int targetPly) -> KifuBranchNode* {
             for (KifuBranchNode* node : std::as_const(targetLine.nodes)) {
                 if (node != nullptr && node->ply() == targetPly) {
@@ -64,11 +64,12 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
             return nullptr;
         };
 
-        const KifuBranchNode* mainNodeAtPly = findNodeAtPly(mainLine, ply);
-        const KifuBranchNode* currentNodeAtPly = findNodeAtPly(currentBranchLine, ply);
-        if (mainNodeAtPly != nullptr && mainNodeAtPly == currentNodeAtPly) {
+        const KifuBranchNode* clickedNodeAtPly = findNodeAtPly(lines.at(row), ply);
+        const KifuBranchNode* currentNodeAtPly = findNodeAtPly(lines.at(currentLine), ply);
+        if (clickedNodeAtPly != nullptr && clickedNodeAtPly == currentNodeAtPly) {
             effectiveRow = currentLine;
-            qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: shared node clicked on main line, keeping current line=" << currentLine;
+            qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: shared node clicked on row=" << row
+                                            << ", keeping current line=" << currentLine;
         }
     }
 

@@ -129,23 +129,16 @@ QVariant KifuBranchListModel::headerData(int section, Qt::Orientation orientatio
 
 void KifuBranchListModel::clearBranchCandidates()
 {
-    qCDebug(lcUi).noquote() << "clearBranchCandidates called, list.size was:" << list.size()
-                            << "locked=" << m_locked;
+    qCDebug(lcUi).noquote() << "clearBranchCandidates called, list.size was:" << list.size();
     beginResetModel();
     clearOwnedRows(list);
     m_hasBackToMainRow = false;
-    m_locked = false;
     endResetModel();
 }
 
 void KifuBranchListModel::resetBranchCandidates()
 {
-    qCDebug(lcUi).noquote() << "resetBranchCandidates called";
-    beginResetModel();
-    clearOwnedRows(list);
-    m_hasBackToMainRow = false;
-    m_locked = false;
-    endResetModel();
+    clearBranchCandidates();
 }
 
 void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows)
@@ -153,14 +146,7 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
     QStringList s;
     s.reserve(rows.size());
     for (qsizetype i = 0; i < rows.size(); ++i) s << rows[i].prettyMove;
-    qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ")
-                            << "locked=" << m_locked;
-
-    // ロック中は外部からの設定を無視
-    if (m_locked) {
-        qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif: IGNORED (locked)";
-        return;
-    }
+    qCDebug(lcUi).noquote() << "setBranchCandidatesFromKif:" << rows.size() << "items:" << s.join(", ");
 
     beginResetModel();
     clearOwnedRows(list);
@@ -170,15 +156,7 @@ void KifuBranchListModel::setBranchCandidatesFromKif(const QList<KifDisplayItem>
 
 void KifuBranchListModel::updateBranchCandidates(const QList<KifDisplayItem>& rows)
 {
-    QStringList s;
-    s.reserve(rows.size());
-    for (qsizetype i = 0; i < rows.size(); ++i) s << rows[i].prettyMove;
-    qCDebug(lcUi).noquote() << "updateBranchCandidates:" << rows.size() << "items:" << s.join(", ");
-
-    beginResetModel();
-    clearOwnedRows(list);
-    rebuildRows(list, rows);
-    endResetModel();
+    setBranchCandidatesFromKif(rows);
 }
 
 void KifuBranchListModel::setHasBackToMainRow(bool enabled)
@@ -288,7 +266,6 @@ void KifuBranchListModel::clear()
 
     // 「本譜へ戻る」行フラグも初期化
     m_hasBackToMainRow = false;
-    m_locked = false;
 
     // 分岐グラフの状態を初期化
     m_nodes.clear();

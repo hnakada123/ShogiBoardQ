@@ -26,7 +26,6 @@ class KifuBranchTree;
 class KifuNavigationState;
 class KifuNavigationController;
 class KifuDisplayCoordinator;
-class BranchTreeWidget;
 class LiveGameSession;
 
 // --- 前方宣言（KifuState用） ---
@@ -89,7 +88,6 @@ struct BranchNavigation {
     KifuNavigationState* navState = nullptr;
     KifuNavigationController* kifuNavController = nullptr;
     KifuDisplayCoordinator* displayCoordinator = nullptr;
-    BranchTreeWidget* branchTreeWidget = nullptr;
     LiveGameSession* liveGameSession = nullptr;
 };
 

@@ -143,6 +143,11 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
     m_gameMoves.append(move);
     m_sfens.append(sfen);
 
+    // 終局手を追加したらセッションは終了状態（これ以上の追加は canAddMove() で拒否）
+    if (detectTerminalType(displayText) != TerminalType::None) {
+        m_hasTerminal = true;
+    }
+
     emit moveAdded(ply, displayText);
 
     // 分岐マークを計算して通知
@@ -152,34 +157,6 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
     emit recordModelUpdateRequired();
 
     qCDebug(lcKifu).noquote() << "addMove LEAVE";
-}
-
-void LiveGameSession::addTerminalMove(TerminalType type, const QString& displayText,
-                                       const QString& elapsed)
-{
-    Q_UNUSED(type)
-    if (!canAddMove()) {
-        qCWarning(lcKifu) << "Cannot add terminal - session not active or already terminated";
-        return;
-    }
-
-    const int ply = anchorPly() + static_cast<int>(m_moves.size()) + 1;
-
-    KifDisplayItem item;
-    item.prettyMove = displayText;
-    item.timeText = elapsed;
-    item.ply = ply;
-    m_moves.append(item);
-
-    // 終局手にはShogiMoveは無効
-    m_gameMoves.append(ShogiMove());
-
-    // SFENは前回と同じ（盤面は変化しない）
-    if (!m_sfens.isEmpty()) {
-        m_sfens.append(m_sfens.last());
-    }
-
-    m_hasTerminal = true;
 }
 
 KifuBranchNode* LiveGameSession::commit()

@@ -229,6 +229,35 @@ private slots:
         QCOMPARE(session.currentSfen(), QStringLiteral("board1 w - 3"));
     }
 
+    void addMove_terminalStopsFurtherMoves()
+    {
+        // 終局手を追加するとセッションは終了状態になり、以降の追加は無視される
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(n1);
+        QVERIFY(session.canAddMove());
+
+        session.addMove(move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"), QString());
+        QVERIFY(!session.canAddMove());
+        KifuBranchNode* terminal = session.liveNode();
+        QVERIFY(terminal != nullptr && terminal->isTerminal());
+        QCOMPARE(session.moveCount(), 1);
+
+        session.addMove(move, QStringLiteral("▲２六歩"), QStringLiteral("board2 b - 4"), QString());
+        QCOMPARE(session.moveCount(), 1);             // 追加されない
+        QCOMPARE(session.liveNode(), terminal);       // 位置も動かない
+        QCOMPARE(terminal->childCount(), 0);
+
+        // commit はリアルタイム追加済みの終局手ノードを返す
+        QCOMPARE(session.commit(), terminal);
+        QVERIFY(!session.isActive());
+    }
+
     void addMove_reusesTerminalOfSameType()
     {
         KifuBranchTree tree;

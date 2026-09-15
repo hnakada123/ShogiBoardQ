@@ -106,14 +106,14 @@ signals:
     /// 棋譜欄ハイライト更新を要求する（Controller → RecordPresenter）
     void recordHighlightRequired(int ply);
 
-    /// 分岐ツリーハイライト更新を要求する（Controller → BranchTreeWidget）
+    /// 分岐ツリーハイライト更新を要求する（Controller → BranchTreeManager）
     void branchTreeHighlightRequired(int lineIndex, int ply);
 
     /// 分岐候補欄の更新を要求する（Controller → KifuBranchDisplay）
     // NOLINTNEXTLINE(clazy-fully-qualified-moc-types) -- QList<Ptr> false positive in clazy 1.17
     void branchCandidatesUpdateRequired(const QList<KifuBranchNode *>& candidates);
 
-    /// 分岐ライン選択変更を通知する（Controller → BranchTreeWidget）
+    /// 分岐ライン選択変更を通知する（Controller → BranchTreeManager）
     void lineSelectionChanged(int newLineIndex);
 
     /**

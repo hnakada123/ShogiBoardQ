@@ -8,7 +8,6 @@
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
 #include "recordpane.h"
-#include "branchtreewidget.h"
 #include "branchtreemanager.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -53,15 +52,6 @@ void KifuDisplayCoordinator::resetTracking()
 void KifuDisplayCoordinator::setRecordPane(RecordPane* pane)
 {
     m_recordPane = pane;
-    syncSelectionSyncRefs();
-}
-
-void KifuDisplayCoordinator::setBranchTreeWidget(BranchTreeWidget* widget)
-{
-    m_branchTreeWidget = widget;
-    if (m_branchTreeWidget != nullptr && m_tree != nullptr) {
-        m_branchTreeWidget->setTree(m_tree);
-    }
     syncSelectionSyncRefs();
 }
 
@@ -132,7 +122,6 @@ void KifuDisplayCoordinator::syncSelectionSyncRefs()
     refs.recordModel = m_recordModel;
     refs.branchModel = m_branchModel;
     refs.branchTreeManager = m_branchTreeManager;
-    refs.branchTreeWidget = m_branchTreeWidget;
     refs.recordPane = m_recordPane;
     m_selectionSync->updateRefs(refs);
 }
@@ -166,11 +155,8 @@ void KifuDisplayCoordinator::wireSignals()
                 this, &KifuDisplayCoordinator::onTreeChanged);
     }
 
-    // 分岐ツリーのクリックをナビゲーションに接続
-    if (m_branchTreeWidget != nullptr && m_navController != nullptr) {
-        connect(m_branchTreeWidget, &BranchTreeWidget::nodeClicked,
-                this, &KifuDisplayCoordinator::onBranchTreeNodeClicked);
-    }
+    // 分岐ツリー（BranchTreeManager）のクリックは BranchNavigationWiring::onBranchNodeActivated 経由で
+    // KifuNavigationController::handleBranchNodeActivated に届く
 
     // 分岐候補のクリックをナビゲーションに接続
     if (m_recordPane != nullptr && m_navController != nullptr) {
@@ -182,59 +168,6 @@ void KifuDisplayCoordinator::wireSignals()
 // ============================================================
 // イベントハンドラ
 // ============================================================
-
-void KifuDisplayCoordinator::onBranchTreeNodeClicked(int lineIndex, int ply)
-{
-    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked ENTER lineIndex=" << lineIndex << "ply=" << ply
-                            << "preferredLineIndex(before)=" << (m_state ? m_state->preferredLineIndex() : -99)
-                            << "m_lastModelLineIndex=" << m_presenter->lastModelLineIndex();
-
-    if (m_tree == nullptr || m_navController == nullptr) {
-        qCWarning(lcUi).noquote() << "onBranchTreeNodeClicked: tree or navController is null";
-        return;
-    }
-
-    QList<BranchLine> lines = m_tree->allLines();
-    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: allLines().size()=" << lines.size();
-    if (lineIndex < 0 || lineIndex >= lines.size()) {
-        qCWarning(lcUi).noquote() << "onBranchTreeNodeClicked: lineIndex out of range";
-        return;
-    }
-
-    // 分岐ツリーでクリックしたラインを優先ラインとして設定
-    if (m_state != nullptr) {
-        if (lineIndex > 0) {
-            m_state->setPreferredLineIndex(lineIndex);
-        } else {
-            m_state->resetPreferredLineIndex();
-        }
-        qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: preferredLineIndex(after)=" << m_state->preferredLineIndex();
-    }
-
-    const BranchLine& line = lines.at(lineIndex);
-    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: line.nodes.size()=" << line.nodes.size()
-                            << "line.branchPly=" << line.branchPly
-                            << "line.name=" << line.name;
-    for (KifuBranchNode* node : std::as_const(line.nodes)) {
-        if (node->ply() == ply) {
-            qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: found node nodeId=" << node->nodeId()
-                                    << "displayText=" << node->displayText()
-                                    << "sfen=" << node->sfen();
-            m_navController->goToNode(node);
-            qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked LEAVE (goToNode done)"
-                                    << "currentLineIndex(after)=" << (m_state ? m_state->currentLineIndex() : -99)
-                                    << "m_lastModelLineIndex(after)=" << m_presenter->lastModelLineIndex();
-            return;
-        }
-    }
-
-    // plyが見つからない場合（開始局面）
-    if (ply == 0 && m_tree->root() != nullptr) {
-        qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked: using root node";
-        m_navController->goToNode(m_tree->root());
-    }
-    qCDebug(lcNavTrace).noquote() << "onBranchTreeNodeClicked LEAVE (node not found for ply=" << ply << ")";
-}
 
 void KifuDisplayCoordinator::onBranchCandidateActivated(const QModelIndex& index)
 {
@@ -290,10 +223,6 @@ void KifuDisplayCoordinator::updateRecordView()
 
 void KifuDisplayCoordinator::updateBranchTreeView()
 {
-    if (m_branchTreeWidget != nullptr) {
-        m_branchTreeWidget->setTree(m_tree);
-    }
-
     if (m_branchTreeManager != nullptr && m_tree != nullptr) {
         m_branchTreeManager->setBranchTreeRows(KifuDisplayPresenter::buildBranchTreeRows(m_tree));
     } else if (m_branchTreeManager != nullptr) {

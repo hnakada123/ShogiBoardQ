@@ -86,28 +86,21 @@ public:
     // === 指し手追加 ===
 
     /**
-     * @brief さらに指し手を追加できるかどうか
+     * @brief さらに指し手を追加できるかどうか（セッション中で、まだ終局手を追加していない）
      */
     bool canAddMove() const { return m_active && !m_hasTerminal; }
 
     /**
      * @brief 指し手を追加
      * @param move 指し手
-     * @param displayText 表示テキスト
+     * @param displayText 表示テキスト（投了・中断などの終局手もこの経路で追加する）
      * @param sfen この手を指した後のSFEN
      * @param elapsed 消費時間
+     *
+     * 終局手を追加すると canAddMove() が false になり、以降の追加は無視される。
      */
     void addMove(const ShogiMove& move, const QString& displayText,
                  const QString& sfen, const QString& elapsed);
-
-    /**
-     * @brief 終局手を追加（対局終了時）
-     * @param type 終局手の種類
-     * @param displayText 表示テキスト
-     * @param elapsed 消費時間
-     */
-    void addTerminalMove(TerminalType type, const QString& displayText,
-                         const QString& elapsed);
 
     // === 確定・破棄 ===
 

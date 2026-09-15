@@ -464,6 +464,7 @@ set(SRC_KIFU
     src/kifu/kifreader.cpp
     src/kifu/kifreader.h
     src/kifu/kifubranchtree.cpp
+    src/kifu/kifubranchtree_search.cpp
     src/kifu/kifubranchtree.h
     src/kifu/kifubranchtreebuilder.cpp
     src/kifu/kifubranchtreebuilder.h
@@ -725,8 +726,6 @@ set(SRC_WIDGETS
     src/widgets/branchtreemanager.cpp
     src/widgets/branchtreemanager.h
     src/widgets/branchtreemanager_draw.cpp
-    src/widgets/branchtreewidget.cpp
-    src/widgets/branchtreewidget.h
     src/widgets/collapsiblegroupbox.cpp
     src/widgets/collapsiblegroupbox.h
     src/widgets/commenteditorpanel.cpp
