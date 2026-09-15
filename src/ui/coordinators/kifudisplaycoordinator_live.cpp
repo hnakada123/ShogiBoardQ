@@ -29,8 +29,10 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     const int liveLineIndex = (m_liveSession != nullptr) ? m_liveSession->currentLineIndex() : 0;
     KifuBranchNode* liveNode = (m_liveSession != nullptr) ? m_liveSession->liveNode() : nullptr;
 
-    // 分岐ツリーを最新のツリー内容で再構築
-    updateBranchTreeView();
+    // 分岐ツリーは毎手の全再構築を避け、可能なら末尾ノードの差分追加だけ行う
+    if (!appendLiveNodeToBranchTree(liveNode)) {
+        updateBranchTreeView();
+    }
 
     if (liveNode == nullptr || m_state == nullptr) {
         return;
@@ -52,6 +54,43 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     highlightCurrentPosition();
     m_pendingNavResultCheck = true;
     updateBranchCandidatesView();
+}
+
+bool KifuDisplayCoordinator::appendLiveNodeToBranchTree(KifuBranchNode* liveNode)
+{
+    if (m_branchTreeManager == nullptr || m_tree == nullptr || liveNode == nullptr) {
+        return false;
+    }
+
+    const int nodeCount = m_tree->nodeCount();
+    if (m_branchTreeNodeCount < 0) {
+        return false;   // まだ一度も反映していない
+    }
+    if (nodeCount == m_branchTreeNodeCount) {
+        return true;    // 既存ノードの再利用（指し直し）: 描画済みなので何もしない
+    }
+    if (nodeCount != m_branchTreeNodeCount + 1 || liveNode->childCount() != 0) {
+        return false;   // 想定外の変化
+    }
+
+    // 新しいラインができた場合は行の並びが変わり得るため全再構築に任せる
+    if (m_tree->lineCount() != m_branchTreeManager->rowCount()) {
+        return false;
+    }
+    const auto lineIndex = m_tree->findLineIndexForNode(liveNode);
+    if (!lineIndex.has_value()) {
+        return false;
+    }
+
+    KifDisplayItem item;
+    item.prettyMove = liveNode->displayText();
+    item.timeText = liveNode->timeText();
+    item.comment = liveNode->comment();
+    if (!m_branchTreeManager->appendNodeToRow(*lineIndex, liveNode->ply(), item, liveNode->sfen())) {
+        return false;
+    }
+    m_branchTreeNodeCount = nodeCount;
+    return true;
 }
 
 void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoint)

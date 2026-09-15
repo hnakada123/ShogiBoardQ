@@ -226,8 +226,10 @@ void KifuDisplayCoordinator::updateBranchTreeView()
 {
     if (m_branchTreeManager != nullptr && m_tree != nullptr) {
         m_branchTreeManager->setBranchTreeRows(KifuDisplayPresenter::buildBranchTreeRows(m_tree));
+        m_branchTreeNodeCount = m_tree->nodeCount();
     } else if (m_branchTreeManager != nullptr) {
         m_branchTreeManager->setBranchTreeRows({});
+        m_branchTreeNodeCount = -1;
     }
 }
 

@@ -14,7 +14,19 @@
 #include <QFontInfo>
 #include <QRegularExpression>
 
+#include <memory>
+
 // ===================== ヘルパー関数 =====================
+
+namespace {
+// レイアウト定数（ノード配置・シーン範囲・ラベル位置で共有）
+constexpr qreal kStepX  = 110.0;
+constexpr qreal kBaseX  = 40.0;
+constexpr qreal kShiftX = 40.0;
+constexpr qreal kBaseY  = 40.0;
+constexpr qreal kStepY  = 56.0;
+constexpr qreal kRadius = 8.0;
+} // namespace
 
 static QString getJapaneseFontFamily()
 {
@@ -66,12 +78,6 @@ static void debugFontInfo(const QFont &font, const QString &context)
 
 QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& rawText)
 {
-    static constexpr qreal STEP_X   = 110.0;
-    static constexpr qreal BASE_X   = 40.0;
-    static constexpr qreal SHIFT_X  = 40.0;
-    static constexpr qreal BASE_Y   = 40.0;
-    static constexpr qreal STEP_Y   = 56.0;
-    static constexpr qreal RADIUS   = 8.0;
     static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
     static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
 
@@ -82,8 +88,8 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& r
         fontDebugDone = true;
     }
 
-    const qreal x = BASE_X + SHIFT_X + ply * STEP_X;
-    const qreal y = BASE_Y + row * STEP_Y;
+    const qreal x = kBaseX + kShiftX + ply * kStepX;
+    const qreal y = kBaseY + row * kStepY;
 
     static const QRegularExpression kDropHeadNumber(QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
     QString labelText = rawText;
@@ -110,7 +116,7 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& r
 
     QPainterPath path;
     const QRectF rect(x - rectW / 2.0, y - rectH / 2.0, rectW, rectH);
-    path.addRoundedRect(rect, RADIUS, RADIUS);
+    path.addRoundedRect(rect, kRadius, kRadius);
 
     auto* item = m_scene->addPath(path, QPen(Qt::black, 1.2));
     item->setBrush(fill);
@@ -171,18 +177,14 @@ void BranchTreeManager::addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to)
 void BranchTreeManager::rebuildBranchTree()
 {
     if (!m_scene) return;
+    ++m_rebuildCount;
     m_scene->clear();
     m_nodeIndex.clear();
+    m_plyLabels.clear();   // scene->clear() で削除済み
 
     clearBranchGraph();
     m_prevSelected = nullptr;
 
-    static constexpr qreal STEP_X   = 110.0;
-    static constexpr qreal BASE_X   = 40.0;
-    static constexpr qreal SHIFT_X  = 40.0;
-    static constexpr qreal BASE_Y   = 40.0;
-    static constexpr qreal STEP_Y   = 56.0;
-    static constexpr qreal RADIUS   = 8.0;
     static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
     static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
 
@@ -196,8 +198,8 @@ void BranchTreeManager::rebuildBranchTree()
     // ===== 「開始局面」ノード =====
     QGraphicsPathItem* startNode = nullptr;
     {
-        const qreal x = BASE_X + SHIFT_X;
-        const qreal y = BASE_Y + 0 * STEP_Y;
+        const qreal x = kBaseX + kShiftX;
+        const qreal y = kBaseY + 0 * kStepY;
         const QString label = tr("\u958b\u59cb\u5c40\u9762");
 
         const QFontMetrics fm(LABEL_FONT);
@@ -209,7 +211,7 @@ void BranchTreeManager::rebuildBranchTree()
 
         QPainterPath path;
         const QRectF rect(x - rectW / 2.0, y - rectH / 2.0, rectW, rectH);
-        path.addRoundedRect(rect, RADIUS, RADIUS);
+        path.addRoundedRect(rect, kRadius, kRadius);
 
         startNode = m_scene->addPath(path, QPen(Qt::black, 1.4));
         startNode->setBrush(QColor(235, 235, 235));
@@ -325,45 +327,106 @@ void BranchTreeManager::rebuildBranchTree()
     }
 
     // ===== 手数ラベル補完 =====
-    int maxAbsPly = 0;
-    {
-        const auto keys = m_nodeIndex.keys();
-        for (const auto& k : std::as_const(keys)) {
-            const int ply = k.second;
-            if (ply > maxAbsPly) maxAbsPly = ply;
-        }
-    }
-
-    if (maxAbsPly > 0) {
-        const QFontMetrics fmLabel(LABEL_FONT);
-        const QFontMetrics fmMoveNo(MOVE_NO_FONT);
-        Q_UNUSED(fmMoveNo);
-        const int hText = fmLabel.height();
-        const qreal padY = 6.0;
-        const qreal rectH = qMax<qreal>(24.0, hText + padY * 2);
-        const qreal gap   = 4.0;
-        const qreal baselineY = BASE_Y + 0 * STEP_Y;
-        const qreal topY = (baselineY - rectH / 2.0) - gap;
-
-        for (int ply = 1; ply <= maxAbsPly; ++ply) {
-            if (m_nodeIndex.contains(qMakePair(0, ply))) continue;
-
-            const QString moveNo = tr("%1\u624b\u76ee").arg(ply);
-            auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
-            const QRectF nbr = noItem->boundingRect();
-
-            const qreal x = BASE_X + SHIFT_X + ply * STEP_X;
-            noItem->setZValue(15);
-            noItem->setPos(x - nbr.width() / 2.0, topY - nbr.height());
-        }
+    const int maxAbsPly = maxDrawnPly();
+    for (int ply = 1; ply <= maxAbsPly; ++ply) {
+        addMoveNumberLabel(ply);
     }
 
     // ===== シーン境界 =====
-    const int mainLen = m_rows.isEmpty() ? 0 : static_cast<int>(qMax(qsizetype(0), m_rows.at(0).disp.size() - 1));
-    const int spanLen = qMax(mainLen, maxAbsPly);
-    const qreal width  = (BASE_X + SHIFT_X) + STEP_X * qMax(40, spanLen + 6) + 40.0;
-    const qreal height = 30 + STEP_Y * static_cast<qreal>(qMax(qsizetype(2), m_rows.size() + 1));
-    m_scene->setSceneRect(QRectF(0, 0, width, height));
+    updateSceneRect();
 
     highlightBranchTreeAt(0, 0, /*centerOn=*/false);
+}
+
+// ===================== 差分更新（ライブ対局用） =====================
+
+int BranchTreeManager::rowDispCount(int row) const
+{
+    if (row < 0 || row >= m_rows.size()) return 0;
+    return static_cast<int>(m_rows.at(row).disp.size());
+}
+
+bool BranchTreeManager::appendNodeToRow(int row, int ply, const KifDisplayItem& item, const QString& sfen)
+{
+    if (!m_scene || row < 0 || row >= m_rows.size()) return false;
+
+    ResolvedRowLite& rv = m_rows[row];
+    // disp の添字は手数と一致する（disp[0] = 開始局面）。末尾に連続して追加する場合のみ扱う
+    if (ply < 1 || static_cast<int>(rv.disp.size()) != ply) return false;
+
+    // 直前ノードが同じ行に描画済みであること。分岐行の先頭ノード（新規ライン）は
+    // 親行との接続や行の並び替えが必要なため、全再構築に任せる
+    QGraphicsPathItem* prev = m_nodeIndex.value(qMakePair(row, ply - 1), nullptr);
+    if (!prev) return false;
+
+    QGraphicsPathItem* node = addNode(row, ply, item.prettyMove);
+    if (row == 0) {
+        // 本譜ノードは自身に「n手目」ラベルを持つので、補完ラベルがあれば取り除く
+        removeMoveNumberLabel(ply);
+    } else {
+        node->setData(BR_ROLE_STARTPLY, qMax(1, rv.startPly));
+        node->setData(BR_ROLE_BUCKET,   row - 1);
+        addMoveNumberLabel(ply);
+    }
+    addEdge(prev, node);
+
+    rv.disp.append(item);
+    rv.sfen.append(sfen);
+
+    updateSceneRect();
+    return true;
+}
+
+int BranchTreeManager::maxDrawnPly() const
+{
+    int maxAbsPly = 0;
+    for (auto it = m_nodeIndex.cbegin(); it != m_nodeIndex.cend(); ++it) {
+        maxAbsPly = qMax(maxAbsPly, it.key().second);
+    }
+    return maxAbsPly;
+}
+
+void BranchTreeManager::addMoveNumberLabel(int ply)
+{
+    static const QFont LABEL_FONT(getJapaneseFontFamily(), 10);
+    static const QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
+
+    if (!m_scene || ply < 1) return;
+    // 本譜ノードがあればそのノードがラベルを持つ。既に補完済みなら何もしない
+    if (m_nodeIndex.contains(qMakePair(0, ply)) || m_plyLabels.contains(ply)) return;
+
+    const QFontMetrics fmLabel(LABEL_FONT);
+    const int hText = fmLabel.height();
+    const qreal padY = 6.0;
+    const qreal rectH = qMax<qreal>(24.0, hText + padY * 2);
+    const qreal gap   = 4.0;
+    const qreal topY = (kBaseY - rectH / 2.0) - gap;
+
+    const QString moveNo = tr("%1\u624b\u76ee").arg(ply);
+    auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
+    const QRectF nbr = noItem->boundingRect();
+    const qreal x = kBaseX + kShiftX + ply * kStepX;
+    noItem->setZValue(15);
+    noItem->setPos(x - nbr.width() / 2.0, topY - nbr.height());
+    m_plyLabels.insert(ply, noItem);
+}
+
+void BranchTreeManager::removeMoveNumberLabel(int ply)
+{
+    QGraphicsSimpleTextItem* item = m_plyLabels.take(ply);
+    if (item && m_scene) {
+        // シーンから外した時点で所有権はこちらに移るので unique_ptr で解放する
+        m_scene->removeItem(item);
+        const std::unique_ptr<QGraphicsSimpleTextItem> owner(item);
+    }
+}
+
+void BranchTreeManager::updateSceneRect()
+{
+    if (!m_scene) return;
+    const int mainLen = m_rows.isEmpty() ? 0 : static_cast<int>(qMax(qsizetype(0), m_rows.at(0).disp.size() - 1));
+    const int spanLen = qMax(mainLen, maxDrawnPly());
+    const qreal width  = (kBaseX + kShiftX) + kStepX * qMax(40, spanLen + 6) + 40.0;
+    const qreal height = 30 + kStepY * static_cast<qreal>(qMax(qsizetype(2), m_rows.size() + 1));
+    m_scene->setSceneRect(QRectF(0, 0, width, height));
 }

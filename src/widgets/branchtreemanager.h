@@ -17,6 +17,7 @@
 class QGraphicsView;
 class QGraphicsScene;
 class QGraphicsPathItem;
+class QGraphicsSimpleTextItem;
 
 /**
  * @brief 分岐ツリーのグラフ構築・ハイライト・クリック検出を担うマネージャ
@@ -67,6 +68,27 @@ public:
     // --- 公開API ---
     void setBranchTreeRows(const QList<ResolvedRowLite>& rows);
     void highlightBranchTreeAt(int row, int ply, bool centerOn = false);
+
+    /// 描画済みの行（ライン）数
+    int rowCount() const { return static_cast<int>(m_rows.size()); }
+
+    /// 指定行が保持する表示項目数（開始局面エントリを含むので「描画済み最終手数 + 1」）
+    int rowDispCount(int row) const;
+
+    /**
+     * @brief 指定行の末尾に1ノードを追加して差分描画する（ライブ対局用）
+     * @param row 行（ラインインデックス）
+     * @param ply 追加するノードの手数（行の表示項目数と一致していること）
+     * @param item 表示項目
+     * @param sfen ノードの局面SFEN
+     * @return 追加できた場合 true。行が無い・手数が連続しない・直前ノードが未描画
+     *         （新規ラインの先頭など）の場合は false を返し、呼び出し側は
+     *         setBranchTreeRows() による全再構築にフォールバックする。
+     */
+    bool appendNodeToRow(int row, int ply, const KifDisplayItem& item, const QString& sfen);
+
+    /// 全再構築（rebuildBranchTree）を実行した回数（テスト・計測用）
+    int rebuildCount() const { return m_rebuildCount; }
     int lastHighlightedRow() const { return m_lastHighlightedRow; }
     int lastHighlightedPly() const { return m_lastHighlightedPly; }
     bool hasHighlightedNode() const { return m_lastHighlightedRow >= 0 && m_lastHighlightedPly >= 0; }
@@ -93,6 +115,10 @@ private:
     int  resolveParentRowForVariation(int row) const;
     int  graphFallbackToPly(int row, int targetPly) const;
     void highlightNodeId(int nodeId, bool centerOn);
+    int  maxDrawnPly() const;
+    void addMoveNumberLabel(int ply);      ///< 本譜にノードが無い手数の「n手目」ラベルを補完する
+    void removeMoveNumberLabel(int ply);   ///< 補完ラベルを削除する（本譜ノードが追加されたとき）
+    void updateSceneRect();
 
     // --- UI ---
     QGraphicsView*  m_branchTree = nullptr;
@@ -102,8 +128,10 @@ private:
     // --- データ ---
     QList<ResolvedRowLite> m_rows;
     QMap<QPair<int,int>, QGraphicsPathItem*> m_nodeIndex;
+    QHash<int, QGraphicsSimpleTextItem*> m_plyLabels;   ///< 補完した「n手目」ラベル（ply → item）
     QGraphicsPathItem* m_prevSelected = nullptr;
     bool m_branchTreeClickEnabled = true;
+    int m_rebuildCount = 0;
 
     // --- グラフ ---
     QHash<QPair<int,int>, int> m_nodeIdByRowPly;
