@@ -29,6 +29,11 @@
  *   startpos moves 2g2f 3c3d 7g7f ...
  *   sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 2g2f 3c3d ...
  *
+ * - 局面のみ（.sfen ファイルなど）。sfen 接頭辞と手数は省略可:
+ *   lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1
+ *
+ * ファイルは最初の position/SFEN らしき行を対象にし、コメント行などは読み飛ばす。
+ *
  * 終局理由コード (ShogiGUIなどで使用):
  * - resign    : 投了
  * - break     : 中断
@@ -52,6 +57,14 @@ public:
     // 新API: 本譜＋全変化をまとめて抽出（コメントも格納）
     [[nodiscard]] static bool parseWithVariations(const QString& usiPath, KifParseResult& out, QString* errorMessage = nullptr);
 
+    // ファイルを読み、開始局面SFEN・指し手列・終局コードに分解する。
+    // 指し手のない局面だけのファイル（.sfen 等）でも true を返し usiMoves は空になる。
+    [[nodiscard]] static bool parseUsiFile(const QString& usiPath,
+                                           QString& baseSfen,
+                                           QStringList& usiMoves,
+                                           QString* terminalCode,
+                                           QString* warn);
+
     // USIファイルから「対局情報」を抽出して順序付きで返す
     // 注意: USIは基本的にメタ情報を含まないため、ファイル名から推測するか空を返す
     static QList<KifGameInfoItem> extractGameInfo(const QString& filePath);
@@ -65,7 +78,7 @@ public:
 private:
     // ---- USI ファイル読み込み ----
 
-    // USIファイルを読み込み文字列を返す
+    // USIファイルを読み込み、解析対象の行を返す
     static bool readUsiFile(const QString& filePath, QString& content, QString* warn);
 
     // ---- USI 文字列解析 ----
@@ -74,6 +87,8 @@ private:
     // 入力例: "position startpos moves 2g2f 3c3d"
     // 入力例: "position sfen lnsgkgsnl/... b - 1 moves 2g2f 3c3d"
     // 入力例: "startpos moves 2g2f 3c3d" (position省略)
+    // 入力例: "lnsgkgsnl/... b - 1" (局面のみ、sfen省略)
+    // 開始局面を解釈できない場合は false を返す
     static bool parseUsiPositionString(const QString& usiStr,
                                        QString& baseSfen,
                                        QStringList& usiMoves,

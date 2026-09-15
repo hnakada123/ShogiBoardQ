@@ -3563,12 +3563,12 @@ OKを選択すると保存先が指定できます。</source>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="363"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="377"/>
         <source>貼り付けるテキストが空です。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="383"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="397"/>
         <source>一時ファイルの作成に失敗しました。</source>
         <translation type="unfinished"></translation>
     </message>

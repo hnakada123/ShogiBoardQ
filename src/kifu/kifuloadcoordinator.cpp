@@ -339,6 +339,20 @@ bool KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
 
 bool KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
 {
+    // 指し手を含まないファイル（.sfen の局面のみ等）は棋譜ではなく局面として反映する。
+    // 棋譜パイプラインは指し手 0 手を読み込み失敗として扱うため。
+    {
+        QString baseSfen;
+        QStringList usiMoves;
+        QString terminalCode;
+        QString warn;
+        if (UsiToSfenConverter::parseUsiFile(filePath, baseSfen, usiMoves, &terminalCode, &warn)
+            && usiMoves.isEmpty() && terminalCode.isEmpty()) {
+            qCDebug(lcKifu).noquote() << "loadUsiFromFile: position only, applying as SFEN:" << baseSfen;
+            return m_applyService->loadPositionFromSfen(baseSfen);
+        }
+    }
+
     return loadKifuCommon(
         filePath,
         "loadUsiFromFile",
