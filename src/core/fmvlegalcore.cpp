@@ -6,8 +6,6 @@
 #include "fmvattacks.h"
 #include "fmvlegalcore_internal.h"
 
-#include <cstdlib>
-
 namespace fmv {
 
 using detail::charToPieceType;
@@ -29,6 +27,28 @@ LegalMoveStatus LegalCore::checkMove(EnginePosition& pos, Color side, const Move
 {
     bool ok = isLegalAfterDoUndo(pos, side, candidate);
     return LegalMoveStatus(ok, false);
+}
+
+LegalMoveStatus LegalCore::checkMoveVariants(EnginePosition& pos, Color side, const Move& candidate) const
+{
+    if (candidate.to >= kSquareNb) {
+        return {};
+    }
+
+    Move probe = candidate;
+    const int toRank = squareRank(probe.to);
+    // 強制成りでは成った手を、それ以外では不成の手を代表として検証する。
+    probe.promote = probe.kind == MoveKind::Board && isMandatoryPromotion(side, probe.piece, toRank);
+    if (!isLegalAfterDoUndo(pos, side, probe)) {
+        return {};
+    }
+
+    // 成り・不成で占有マス、敵駒、自玉の位置は同じなので、自玉の安全確認は共有できる。
+    // 駒打ちは成れず、打ち歩詰めも上の通常の合法性判定で確認済み。
+    const bool canPromote = probe.kind == MoveKind::Board && isPromotable(probe.piece)
+                            && (isPromotionZone(side, squareRank(probe.from))
+                                || isPromotionZone(side, toRank));
+    return LegalMoveStatus(!probe.promote, canPromote);
 }
 
 int LegalCore::countChecksToKing(const EnginePosition& pos, Color side) const
@@ -136,146 +156,11 @@ bool LegalCore::isPseudoLegal(const EnginePosition& pos, Color side, const Move&
         return false;
     }
 
-    // 実際に利きがあるかチェック（attacksSquare相当）
-    // 簡易版: from→toの利きチェック
-    int fromFile = squareFile(m.from);
-    int fromRank = squareRank(m.from);
-    int df = toFile - fromFile;
-    int dr = toRank - fromRank;
-    int forward = (side == Color::Black) ? -1 : 1;
-
-    bool reachable = false;
-
-    switch (m.piece) {
-    case PieceType::Pawn:
-        reachable = (df == 0 && dr == forward);
-        break;
-    case PieceType::Lance: {
-        if (df != 0) break;
-        if ((side == Color::Black && dr >= 0) || (side == Color::White && dr <= 0)) break;
-        // パスチェック
-        reachable = true;
-        int step = (dr > 0) ? 1 : -1;
-        for (int r = fromRank + step; r != toRank; r += step) {
-            if (pos.board[static_cast<std::size_t>(toSquare(fromFile, r))] != kEmpty) {
-                reachable = false;
-                break;
-            }
-        }
-        break;
-    }
-    case PieceType::Knight:
-        reachable = (dr == 2 * forward && (df == -1 || df == 1));
-        break;
-    case PieceType::Silver:
-        reachable = (dr == forward && df >= -1 && df <= 1)
-                    || (dr == -forward && (df == -1 || df == 1));
-        break;
-    case PieceType::Gold:
-    case PieceType::ProPawn:
-    case PieceType::ProLance:
-    case PieceType::ProKnight:
-    case PieceType::ProSilver:
-        reachable = (dr == forward && df >= -1 && df <= 1)
-                    || (dr == 0 && (df == -1 || df == 1))
-                    || (dr == -forward && df == 0);
-        break;
-    case PieceType::King:
-        reachable = (df >= -1 && df <= 1 && dr >= -1 && dr <= 1 && !(df == 0 && dr == 0));
-        break;
-    case PieceType::Bishop: {
-        if (std::abs(df) != std::abs(dr) || df == 0) break;
-        reachable = true;
-        int stepF = (df > 0) ? 1 : -1;
-        int stepR = (dr > 0) ? 1 : -1;
-        int f = fromFile + stepF;
-        int r = fromRank + stepR;
-        while (f != toFile || r != toRank) {
-            if (pos.board[static_cast<std::size_t>(toSquare(f, r))] != kEmpty) {
-                reachable = false;
-                break;
-            }
-            f += stepF;
-            r += stepR;
-        }
-        break;
-    }
-    case PieceType::Rook: {
-        if (df == 0 && dr != 0) {
-            reachable = true;
-            int step = (dr > 0) ? 1 : -1;
-            for (int r = fromRank + step; r != toRank; r += step) {
-                if (pos.board[static_cast<std::size_t>(toSquare(fromFile, r))] != kEmpty) {
-                    reachable = false;
-                    break;
-                }
-            }
-        } else if (dr == 0 && df != 0) {
-            reachable = true;
-            int step = (df > 0) ? 1 : -1;
-            for (int f = fromFile + step; f != toFile; f += step) {
-                if (pos.board[static_cast<std::size_t>(toSquare(f, fromRank))] != kEmpty) {
-                    reachable = false;
-                    break;
-                }
-            }
-        }
-        break;
-    }
-    case PieceType::Horse: {
-        // 斜め走り + 十字ステップ
-        if (std::abs(df) == std::abs(dr) && df != 0) {
-            reachable = true;
-            int stepF = (df > 0) ? 1 : -1;
-            int stepR = (dr > 0) ? 1 : -1;
-            int f = fromFile + stepF;
-            int r = fromRank + stepR;
-            while (f != toFile || r != toRank) {
-                if (pos.board[static_cast<std::size_t>(toSquare(f, r))] != kEmpty) {
-                    reachable = false;
-                    break;
-                }
-                f += stepF;
-                r += stepR;
-            }
-        } else {
-            reachable = (std::abs(df) + std::abs(dr) == 1);
-        }
-        break;
-    }
-    case PieceType::Dragon: {
-        // 縦横走り + 斜めステップ
-        if (df == 0 && dr != 0) {
-            reachable = true;
-            int step = (dr > 0) ? 1 : -1;
-            for (int r = fromRank + step; r != toRank; r += step) {
-                if (pos.board[static_cast<std::size_t>(toSquare(fromFile, r))] != kEmpty) {
-                    reachable = false;
-                    break;
-                }
-            }
-        } else if (dr == 0 && df != 0) {
-            reachable = true;
-            int step = (df > 0) ? 1 : -1;
-            for (int f = fromFile + step; f != toFile; f += step) {
-                if (pos.board[static_cast<std::size_t>(toSquare(f, fromRank))] != kEmpty) {
-                    reachable = false;
-                    break;
-                }
-            }
-        } else {
-            reachable = (std::abs(df) == 1 && std::abs(dr) == 1);
-        }
-        break;
-    }
-    default:
-        break;
-    }
-
-    if (!reachable) {
+    if (!pieceAttacksSquare(pos, side, m.piece, m.from, m.to)) {
         return false;
     }
 
+    const int fromRank = squareRank(m.from);
     // 成り可否チェック
     if (m.promote) {
         return isPromotable(m.piece)
@@ -296,7 +181,7 @@ bool LegalCore::ownKingInCheck(const EnginePosition& pos, Color side) const
     if (king == kInvalidSquare) {
         return false;
     }
-    return attackersTo(pos, king, opposite(side)).any();
+    return isSquareAttacked(pos, king, opposite(side));
 }
 
 bool LegalCore::isLegalAfterDoUndo(EnginePosition& pos, Color side, const Move& m) const

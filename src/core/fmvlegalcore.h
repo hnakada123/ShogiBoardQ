@@ -17,6 +17,8 @@ public:
 
     // Context主経路
     LegalMoveStatus checkMove(EnginePosition& pos, Color side, const Move& candidate) const;
+    /// candidate.promote によらず成り・不成の可否をまとめて判定し、局面を元に戻す。
+    LegalMoveStatus checkMoveVariants(EnginePosition& pos, Color side, const Move& candidate) const;
     int countLegalMoves(EnginePosition& pos, Color side) const;
     int countChecksToKing(const EnginePosition& pos, Color side) const;
 

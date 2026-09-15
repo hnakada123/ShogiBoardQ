@@ -53,22 +53,22 @@ struct MoveList {
     }
 };
 
-inline Color opposite(Color c) noexcept
+constexpr Color opposite(Color c) noexcept
 {
     return (c == Color::Black) ? Color::White : Color::Black;
 }
 
-inline int squareFile(Square sq) noexcept
+constexpr int squareFile(Square sq) noexcept
 {
     return static_cast<int>(sq) % kBoardSize;
 }
 
-inline int squareRank(Square sq) noexcept
+constexpr int squareRank(Square sq) noexcept
 {
     return static_cast<int>(sq) / kBoardSize;
 }
 
-inline Square toSquare(int file, int rank) noexcept
+constexpr Square toSquare(int file, int rank) noexcept
 {
     return static_cast<Square>(rank * kBoardSize + file);
 }
