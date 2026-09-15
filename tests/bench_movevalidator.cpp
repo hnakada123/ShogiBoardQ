@@ -277,6 +277,8 @@ int main()
     constexpr int N = 10000;
 
     std::printf("=== EngineMoveValidator Benchmark (compat vs Context) ===\n");
+    std::printf("  Context: %zu bytes (position: %zu bytes)\n",
+                sizeof(EngineMoveValidator::Context), sizeof(fmv::EnginePosition));
     std::printf("  Iterations: %d\n\n", N);
 
     printResult(benchGenerateLegalMoves(hirate, N, EngineMoveValidator::BLACK));

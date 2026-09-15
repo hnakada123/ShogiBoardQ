@@ -145,10 +145,11 @@ private slots:
         ShogiBoard board;
         board.setSfen(sfen);
         EngineMoveValidator validator;
-        EngineMoveValidator::Context ctx;
+        EngineMoveValidator::SimulationContext simulation;
+        auto& ctx = simulation.context;
         const auto turn = white ? EngineMoveValidator::WHITE : EngineMoveValidator::BLACK;
         const auto side = white ? fmv::Color::White : fmv::Color::Black;
-        QVERIFY(validator.syncContext(ctx, turn, board.boardData(), board.pieceStand()));
+        QVERIFY(validator.syncContext(simulation, turn, board.boardData(), board.pieceStand()));
         const fmv::EnginePosition original = ctx.pos;
 
         const QPoint to = white ? QPoint(8, 7) : QPoint(0, 1);
@@ -189,14 +190,14 @@ private slots:
         QCOMPARE(coreStatus.nonPromotingMoveExists, legal);
         verifyPositionUnchanged(ctx.pos, original);
 
-        const bool applied = validator.tryApplyMove(ctx, move);
+        const bool applied = validator.tryApplyMove(simulation, move);
         QCOMPARE(applied, legal);
         if (applied) {
-            QCOMPARE(ctx.undoSize, 1);
-            QVERIFY(validator.undoLastMove(ctx));
+            QCOMPARE(simulation.undoSize, 1);
+            QVERIFY(validator.undoLastMove(simulation));
         }
         QCOMPARE(ctx.turn, turn);
-        QCOMPARE(ctx.undoSize, 0);
+        QCOMPARE(simulation.undoSize, 0);
         verifyPositionUnchanged(ctx.pos, original);
     }
 
@@ -206,17 +207,18 @@ private slots:
         ShogiBoard board;
         board.setSfen(QStringLiteral("8k/9/6NGP/9/9/9/9/9/K8 b - 1"));
         EngineMoveValidator validator;
-        EngineMoveValidator::Context ctx;
-        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK, board.boardData(), board.pieceStand()));
+        EngineMoveValidator::SimulationContext simulation;
+        auto& ctx = simulation.context;
+        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK, board.boardData(), board.pieceStand()));
         const fmv::EnginePosition original = ctx.pos;
         ShogiMove move(QPoint(0, 2), QPoint(0, 1), Piece::BlackPawn, Piece::None, false);
         const auto status = validator.isLegalMove(ctx, move);
         QVERIFY(status.nonPromotingMoveExists);
         QVERIFY(status.promotingMoveExists);
-        QVERIFY(validator.tryApplyMove(ctx, move));
+        QVERIFY(validator.tryApplyMove(simulation, move));
         QCOMPARE(validator.checkIfKingInCheck(ctx), 1);
         QCOMPARE(validator.generateLegalMoves(ctx), 0);
-        QVERIFY(validator.undoLastMove(ctx));
+        QVERIFY(validator.undoLastMove(simulation));
         verifyPositionUnchanged(ctx.pos, original);
     }
 
