@@ -8,6 +8,9 @@
 - Debug ビルドであること（Release ビルドでは `QT_NO_DEBUG_OUTPUT` により qCDebug が無効化される）
 - カスタムメッセージハンドラが `debug.log` にログを書き出す設定（`src/app/main.cpp` 参照）
 
+対局中の挙動を GUI 操作なしで再現・集計したい場合は、仮想ディスプレイ上で自動操作する
+[live-game-verification.md](live-game-verification.md) を参照。
+
 ## ロギングカテゴリ一覧
 
 | カテゴリ名 | 定義ファイル | 対象 |
