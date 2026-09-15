@@ -128,19 +128,17 @@ BenchResult benchCheckIfKingInCheck(const QString& sfen, int iterations,
 // Benchmark 3: isLegalMove (1手判定を繰り返す)
 // ============================================================
 BenchResult benchIsLegalMove(const QString& sfen, int iterations,
-                              EngineMoveValidator::Turn eTurn)
+                              EngineMoveValidator::Turn eTurn,
+                              ShogiMove move, const char* label)
 {
     ShogiBoard board;
     board.setSfen(sfen);
     const auto& bd = board.boardData();
     const auto& ps = board.pieceStand();
 
-    // 7六歩
-    ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
-
     BenchResult r;
     r.iterations = iterations;
-    r.label = "isLegalMove (single move)";
+    r.label = label;
 
     // --- EngineMoveValidator (compat) ---
     {
@@ -287,11 +285,35 @@ int main()
 
     printResult(benchCheckIfKingInCheck(checkSfen, N * 10, EngineMoveValidator::BLACK));
 
-    printResult(benchIsLegalMove(hirate, N * 10, EngineMoveValidator::BLACK));
+    printResult(benchIsLegalMove(hirate, N * 10, EngineMoveValidator::BLACK,
+        ShogiMove(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false),
+        "isLegalMove (single move)"));
 
     printResult(benchSyncAndQuery(hirate, N, EngineMoveValidator::BLACK));
 
     printResult(benchMidgame(N));
+
+    // 成り・不成の両方を調べるGUI経路。各ケースとも同じ指し手を繰り返す。
+    printResult(benchIsLegalMove(
+        QStringLiteral("lnsgkgsnl/1r5b1/pppp1pppp/4P4/9/9/PPPP1PPPP/1B5R1/LNSGKGSNL b - 1"),
+        N * 10, EngineMoveValidator::BLACK,
+        ShogiMove(QPoint(4, 3), QPoint(4, 2), Piece::BlackPawn, Piece::None, false),
+        "isLegalMove (optional promotion)"));
+    printResult(benchIsLegalMove(
+        QStringLiteral("1nsgkgsnl/Pr5b1/1pppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+        N * 10, EngineMoveValidator::BLACK,
+        ShogiMove(QPoint(8, 1), QPoint(8, 0), Piece::BlackPawn, Piece::None, false),
+        "isLegalMove (mandatory promotion)"));
+    printResult(benchIsLegalMove(
+        QStringLiteral("k8/9/4s4/4S4/9/9/9/9/4K4 b - 1"),
+        N * 10, EngineMoveValidator::BLACK,
+        ShogiMove(QPoint(4, 3), QPoint(4, 2), Piece::BlackSilver, Piece::WhiteSilver, false),
+        "isLegalMove (promotion with capture)"));
+    printResult(benchIsLegalMove(
+        QStringLiteral("k3r4/9/9/4S4/9/9/9/9/4K4 b - 1"),
+        N * 10, EngineMoveValidator::BLACK,
+        ShogiMove(QPoint(4, 3), QPoint(3, 2), Piece::BlackSilver, Piece::None, false),
+        "isLegalMove (pinned promotion)"));
 
     return 0;
 }

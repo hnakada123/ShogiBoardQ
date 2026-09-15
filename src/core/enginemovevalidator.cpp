@@ -38,12 +38,10 @@ LegalMoveStatus EngineMoveValidator::isLegalMove(Context& ctx, ShogiMove& move) 
     fmv::EnginePosition work = ctx.pos;
     const fmv::Color side = fmv::Converter::toColor(ctx.turn);
 
-    bool nonPromoting = legalCore().checkMove(work, side, cm.nonPromote).nonPromotingMoveExists;
-    bool promoting = false;
     if (cm.hasPromoteVariant) {
-        promoting = legalCore().checkMove(work, side, cm.promote).nonPromotingMoveExists;
+        return legalCore().checkMoveVariants(work, side, cm.nonPromote);
     }
-    return LegalMoveStatus(nonPromoting, promoting);
+    return legalCore().checkMove(work, side, cm.nonPromote);
 }
 
 int EngineMoveValidator::generateLegalMoves(Context& ctx) const

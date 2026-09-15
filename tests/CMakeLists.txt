@@ -661,6 +661,14 @@ add_shogi_test(tst_fmvbitboard81
     ${SRC}/core/fmvbitboard81.cpp
 )
 
+# Unit: Attacks (独立した盤面走査との照合)
+add_shogi_test(tst_fmvattacks
+    tst_fmvattacks.cpp
+    ${SRC}/core/fmvattacks.cpp
+    ${SRC}/core/fmvbitboard81.cpp
+    ${SRC}/core/fmvposition.cpp
+)
+
 # Unit: Converter
 add_shogi_test(tst_fmvconverter
     tst_fmvconverter.cpp

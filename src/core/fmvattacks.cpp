@@ -1,5 +1,5 @@
 /// @file fmvattacks.cpp
-/// @brief 利き計算の実装
+/// @brief 事前計算した利き・間のマスと占有ビットボードによる利き判定
 
 #include "fmvattacks.h"
 
@@ -7,139 +7,203 @@ namespace fmv {
 
 namespace {
 
-/// マスが盤内か判定
-bool inBoard(int file, int rank) noexcept
+enum StepPattern {
+    PawnStep, KnightStep, SilverStep, GoldStep, KingStep, HorseStep, DragonStep,
+    StepPatternNb
+};
+
+struct AttackTables {
+    Bitboard81 step[2][kSquareNb][StepPatternNb]{};
+    Bitboard81 rook[kSquareNb]{};
+    Bitboard81 bishop[kSquareNb]{};
+    Bitboard81 lance[2][kSquareNb]{};
+    Bitboard81 between[kSquareNb][kSquareNb]{};
+};
+
+constexpr bool inBoard(int file, int rank) noexcept
 {
     return file >= 0 && file < kBoardSize && rank >= 0 && rank < kBoardSize;
 }
 
-/// ステップ駒の利き判定: sqからdelta方向にattackerの該当駒があるかチェック
-void checkStep(const EnginePosition& pos, Square sq, Color attacker,
-               int df, int dr, PieceType pt, Bitboard81& result) noexcept
+constexpr AttackTables makeAttackTables() noexcept
 {
-    int file = squareFile(sq) + df;
-    int rank = squareRank(sq) + dr;
-    if (!inBoard(file, rank)) {
-        return;
+    AttackTables tables;
+    for (int from = 0; from < kSquareNb; ++from) {
+        const int file = squareFile(static_cast<Square>(from));
+        const int rank = squareRank(static_cast<Square>(from));
+        for (int ci = 0; ci < 2; ++ci) {
+            const int forward = ci == 0 ? -1 : 1;
+            for (int df = -1; df <= 1; ++df) {
+                for (int dr = -1; dr <= 1; ++dr) {
+                    if ((df == 0 && dr == 0) || !inBoard(file + df, rank + dr)) {
+                        continue;
+                    }
+                    const Square to = toSquare(file + df, rank + dr);
+                    tables.step[ci][from][KingStep].set(to);
+                    if (df == 0 && dr == forward) {
+                        tables.step[ci][from][PawnStep].set(to);
+                    }
+                    if (dr == forward || (df != 0 && dr == -forward)) {
+                        tables.step[ci][from][SilverStep].set(to);
+                    }
+                    if (dr == forward || dr == 0 || (df == 0 && dr == -forward)) {
+                        tables.step[ci][from][GoldStep].set(to);
+                    }
+                    if (df == 0 || dr == 0) {
+                        tables.step[ci][from][HorseStep].set(to);
+                    } else {
+                        tables.step[ci][from][DragonStep].set(to);
+                    }
+                }
+            }
+            for (int df = -1; df <= 1; df += 2) {
+                if (inBoard(file + df, rank + 2 * forward)) {
+                    tables.step[ci][from][KnightStep].set(toSquare(file + df, rank + 2 * forward));
+                }
+            }
+        }
+
+        for (int df = -1; df <= 1; ++df) {
+            for (int dr = -1; dr <= 1; ++dr) {
+                if (df == 0 && dr == 0) {
+                    continue;
+                }
+                Bitboard81 between;
+                for (int f = file + df, r = rank + dr; inBoard(f, r); f += df, r += dr) {
+                    const Square to = toSquare(f, r);
+                    // 両端は含めない。移動先の駒は障害物ではなく捕獲対象になり得る。
+                    tables.between[from][to] = between;
+                    between.set(to);
+                    if (df == 0 || dr == 0) {
+                        tables.rook[from].set(to);
+                    } else {
+                        tables.bishop[from].set(to);
+                    }
+                    if (df == 0) {
+                        tables.lance[dr < 0 ? 0 : 1][from].set(to);
+                    }
+                }
+            }
+        }
     }
-    Square from = toSquare(file, rank);
-    int ci = static_cast<int>(attacker);
-    if (pos.pieceOcc[ci][static_cast<int>(pt)].test(from)) {
-        result.set(from);
-    }
+    return tables;
 }
 
-/// 走り駒の利き判定: sqからdf,dr方向にレイスキャンし、最初に見つかった駒がattackerの該当駒か
-void checkRay(const EnginePosition& pos, Square sq, Color attacker,
-              int df, int dr,
-              PieceType slidePt1, PieceType slidePt2,
-              Bitboard81& result) noexcept
-{
-    int file = squareFile(sq) + df;
-    int rank = squareRank(sq) + dr;
-    int ci = static_cast<int>(attacker);
+// コンパイル時に構築し、初回のGUI操作でもテーブル生成を行わない。
+constexpr AttackTables kAttackTables = makeAttackTables();
 
-    while (inBoard(file, rank)) {
-        Square from = toSquare(file, rank);
-        if (pos.occupied.test(from)) {
-            // 最初に見つかった駒をチェック
-            if (pos.pieceOcc[ci][static_cast<int>(slidePt1)].test(from)
-                || pos.pieceOcc[ci][static_cast<int>(slidePt2)].test(from)) {
-                result.set(from);
-            }
-            return; // 途中に駒があればそこで止まる
-        }
-        file += df;
-        rank += dr;
+Bitboard81 stepAttackersTo(const EnginePosition& pos, Square sq, Color attacker) noexcept
+{
+    const auto& pieces = pos.pieceOcc[static_cast<int>(attacker)];
+    // 移動先から移動元を探すため、反対色の移動方向を使う。
+    const auto& steps = kAttackTables.step[static_cast<int>(opposite(attacker))][sq];
+    const Bitboard81 golds = pieces[static_cast<int>(PieceType::Gold)]
+                            | pieces[static_cast<int>(PieceType::ProPawn)]
+                            | pieces[static_cast<int>(PieceType::ProLance)]
+                            | pieces[static_cast<int>(PieceType::ProKnight)]
+                            | pieces[static_cast<int>(PieceType::ProSilver)];
+    return (steps[PawnStep] & pieces[static_cast<int>(PieceType::Pawn)])
+           | (steps[KnightStep] & pieces[static_cast<int>(PieceType::Knight)])
+           | (steps[SilverStep] & pieces[static_cast<int>(PieceType::Silver)])
+           | (steps[GoldStep] & golds)
+           | (steps[KingStep] & pieces[static_cast<int>(PieceType::King)])
+           | (steps[HorseStep] & pieces[static_cast<int>(PieceType::Horse)])
+           | (steps[DragonStep] & pieces[static_cast<int>(PieceType::Dragon)]);
+}
+
+template<bool StopAfterFirst>
+Bitboard81 collectAttackers(const EnginePosition& pos, Square sq, Color attacker) noexcept
+{
+    if (sq >= kSquareNb || attacker >= Color::ColorNb) {
+        return {};
     }
+
+    Bitboard81 result = stepAttackersTo(pos, sq, attacker);
+    if constexpr (StopAfterFirst) {
+        if (result.any()) {
+            return result;
+        }
+    }
+
+    const auto& pieces = pos.pieceOcc[static_cast<int>(attacker)];
+    Bitboard81 sliders = (kAttackTables.rook[sq]
+                          & (pieces[static_cast<int>(PieceType::Rook)]
+                             | pieces[static_cast<int>(PieceType::Dragon)]))
+                         | (kAttackTables.bishop[sq]
+                            & (pieces[static_cast<int>(PieceType::Bishop)]
+                               | pieces[static_cast<int>(PieceType::Horse)]))
+                         | (kAttackTables.lance[static_cast<int>(opposite(attacker))][sq]
+                            & pieces[static_cast<int>(PieceType::Lance)]);
+    while (sliders.any()) {
+        const Square from = sliders.popFirst();
+        if ((kAttackTables.between[sq][from] & pos.occupied).none()) {
+            result.set(from);
+            if constexpr (StopAfterFirst) {
+                return result;
+            }
+        }
+    }
+    return result;
 }
 
 } // namespace
 
-Bitboard81 attackersTo(const EnginePosition& pos, Square sq, Color attacker)
+Bitboard81 attackersTo(const EnginePosition& pos, Square sq, Color attacker) noexcept
 {
-    Bitboard81 result;
+    return collectAttackers<false>(pos, sq, attacker);
+}
 
-    // attacker から見た「前方」方向
-    // Black(先手)は上方向(-rank方向)、White(後手)は下方向(+rank方向)に攻撃する
-    // したがって、sqから見て「逆方向」を探す:
-    //   Black の歩は sq の rank+1 にいる → dr = +1
-    //   White の歩は sq の rank-1 にいる → dr = -1
-    int forward = (attacker == Color::Black) ? 1 : -1;
+bool isSquareAttacked(const EnginePosition& pos, Square sq, Color attacker) noexcept
+{
+    return collectAttackers<true>(pos, sq, attacker).any();
+}
 
-    // --- 歩 ---
-    checkStep(pos, sq, attacker, 0, forward, PieceType::Pawn, result);
-
-    // --- 桂 ---
-    checkStep(pos, sq, attacker, -1, 2 * forward, PieceType::Knight, result);
-    checkStep(pos, sq, attacker,  1, 2 * forward, PieceType::Knight, result);
-
-    // --- 銀 ---
-    checkStep(pos, sq, attacker, -1, forward,  PieceType::Silver, result);
-    checkStep(pos, sq, attacker,  0, forward,  PieceType::Silver, result);
-    checkStep(pos, sq, attacker,  1, forward,  PieceType::Silver, result);
-    checkStep(pos, sq, attacker, -1, -forward, PieceType::Silver, result);
-    checkStep(pos, sq, attacker,  1, -forward, PieceType::Silver, result);
-
-    // --- 金/と/成香/成桂/成銀 ---
-    // 金の動き: 前3マス + 横2マス + 後ろ1マス
-    auto checkGoldStep = [&](PieceType pt) {
-        checkStep(pos, sq, attacker, -1, forward,  pt, result);
-        checkStep(pos, sq, attacker,  0, forward,  pt, result);
-        checkStep(pos, sq, attacker,  1, forward,  pt, result);
-        checkStep(pos, sq, attacker, -1, 0,        pt, result);
-        checkStep(pos, sq, attacker,  1, 0,        pt, result);
-        checkStep(pos, sq, attacker,  0, -forward, pt, result);
-    };
-    checkGoldStep(PieceType::Gold);
-    checkGoldStep(PieceType::ProPawn);
-    checkGoldStep(PieceType::ProLance);
-    checkGoldStep(PieceType::ProKnight);
-    checkGoldStep(PieceType::ProSilver);
-
-    // --- 玉 ---
-    for (int dr = -1; dr <= 1; ++dr) {
-        for (int df = -1; df <= 1; ++df) {
-            if (df == 0 && dr == 0) {
-                continue;
-            }
-            checkStep(pos, sq, attacker, df, dr, PieceType::King, result);
-        }
+bool pieceAttacksSquare(const EnginePosition& pos, Color side, PieceType piece,
+                        Square from, Square to) noexcept
+{
+    if (from >= kSquareNb || to >= kSquareNb || side >= Color::ColorNb) {
+        return false;
     }
-
-    // --- 香 ---
-    // 先手の香は上方向に走る → sqから下方向に探す
-    checkRay(pos, sq, attacker, 0, forward, PieceType::Lance, PieceType::Lance, result);
-
-    // --- 角・馬（斜め走り） ---
-    checkRay(pos, sq, attacker, -1, -1, PieceType::Bishop, PieceType::Horse, result);
-    checkRay(pos, sq, attacker,  1, -1, PieceType::Bishop, PieceType::Horse, result);
-    checkRay(pos, sq, attacker, -1,  1, PieceType::Bishop, PieceType::Horse, result);
-    checkRay(pos, sq, attacker,  1,  1, PieceType::Bishop, PieceType::Horse, result);
-
-    // --- 飛・龍（縦横走り） ---
-    checkRay(pos, sq, attacker, 0, -1, PieceType::Rook, PieceType::Dragon, result);
-    checkRay(pos, sq, attacker, 0,  1, PieceType::Rook, PieceType::Dragon, result);
-    checkRay(pos, sq, attacker, -1, 0, PieceType::Rook, PieceType::Dragon, result);
-    checkRay(pos, sq, attacker,  1, 0, PieceType::Rook, PieceType::Dragon, result);
-
-    // --- 馬のステップ部分（十字隣接） ---
-    checkStep(pos, sq, attacker,  0, -1, PieceType::Horse, result);
-    checkStep(pos, sq, attacker,  0,  1, PieceType::Horse, result);
-    checkStep(pos, sq, attacker, -1,  0, PieceType::Horse, result);
-    checkStep(pos, sq, attacker,  1,  0, PieceType::Horse, result);
-
-    // --- 龍のステップ部分（斜め隣接） ---
-    checkStep(pos, sq, attacker, -1, -1, PieceType::Dragon, result);
-    checkStep(pos, sq, attacker,  1, -1, PieceType::Dragon, result);
-    checkStep(pos, sq, attacker, -1,  1, PieceType::Dragon, result);
-    checkStep(pos, sq, attacker,  1,  1, PieceType::Dragon, result);
-
-    // 香のレイ判定では、先手の香 vs 後手の香は forward 方向が異なるため
-    // 上の checkRay で正しく処理されている。ただし、checkRay は1方向のみ探すため
-    // 香については forward 方向のみスキャンすれば十分。
-
-    return result;
+    const auto& steps = kAttackTables.step[static_cast<int>(side)][from];
+    Bitboard81 rays;
+    switch (piece) {
+    case PieceType::Pawn:
+        return steps[PawnStep].test(to);
+    case PieceType::Knight:
+        return steps[KnightStep].test(to);
+    case PieceType::Silver:
+        return steps[SilverStep].test(to);
+    case PieceType::Gold:
+    case PieceType::ProPawn:
+    case PieceType::ProLance:
+    case PieceType::ProKnight:
+    case PieceType::ProSilver:
+        return steps[GoldStep].test(to);
+    case PieceType::King:
+        return steps[KingStep].test(to);
+    case PieceType::Lance:
+        rays = kAttackTables.lance[static_cast<int>(side)][from];
+        break;
+    case PieceType::Horse:
+        if (steps[HorseStep].test(to)) {
+            return true;
+        }
+        [[fallthrough]];
+    case PieceType::Bishop:
+        rays = kAttackTables.bishop[from];
+        break;
+    case PieceType::Dragon:
+        if (steps[DragonStep].test(to)) {
+            return true;
+        }
+        [[fallthrough]];
+    case PieceType::Rook:
+        rays = kAttackTables.rook[from];
+        break;
+    default:
+        return false;
+    }
+    return rays.test(to) && (kAttackTables.between[from][to] & pos.occupied).none();
 }
 
 } // namespace fmv
