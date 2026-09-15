@@ -406,6 +406,17 @@ add_shogi_test(tst_gamerecordmodel
 )
 
 # ============================================================
+# Unit 8a-2: KifuSaveCoordinator (拡張子による保存形式の判定・上書き保存)
+# ============================================================
+add_shogi_test(tst_kifusavecoordinator
+    tst_kifusavecoordinator.cpp
+    ${SRC}/kifu/kifusavecoordinator.cpp
+    ${SRC}/kifu/kifuioservice.cpp
+    ${SRC}/services/settingscommon.cpp
+    ${SRC}/services/gamesettings.cpp
+)
+
+# ============================================================
 # Unit 8b: Kifu Comment Sync (GameRecordModel ↔ liveDisp / BranchTree)
 # ============================================================
 add_shogi_test(tst_kifu_comment_sync

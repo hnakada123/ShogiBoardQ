@@ -13,6 +13,22 @@ class QWidget;
 
 namespace KifuSaveCoordinator {
 
+/// 保存形式（保存先パスの拡張子から決定する）
+enum class SaveFormat {
+    Kif,   ///< .kif / .kifu（既定。未知の拡張子もこれ）
+    Ki2,   ///< .ki2 / .ki2u
+    Csa,   ///< .csa
+    Jkf,   ///< .jkf
+    Usen,  ///< .usen
+    Usi,   ///< .usi
+};
+
+/// 保存先パスの拡張子から保存形式を判定する（大文字小文字は区別しない）
+SaveFormat saveFormatForPath(const QString& path);
+
+/// 保存先パスの拡張子が Shift_JIS 出力を要求するか（.kif / .ki2）
+bool usesShiftJisForPath(const QString& path);
+
 // ダイアログを出してKIF/KI2/CSA/JKF/USEN/USI形式で保存。成功時は保存パス、失敗/キャンセルは空文字。
 QString saveViaDialogWithUsi(QWidget* parent,
                               const QStringList& kifLines,
@@ -30,9 +46,10 @@ QString saveViaDialogWithUsi(QWidget* parent,
                               bool hasTimeInfo = false,
                               QString* outError = nullptr);
 
-// 既存ファイルへ上書き保存
+// 既存ファイルへ上書き保存。
+// lines には saveFormatForPath(path) が返す形式の行を渡すこと（エンコーディングは拡張子で決まる）。
 bool overwriteExisting(const QString& path,
-                       const QStringList& kifuLines,
+                       const QStringList& lines,
                        QString* outError = nullptr);
 
 } // namespace KifuSaveCoordinator

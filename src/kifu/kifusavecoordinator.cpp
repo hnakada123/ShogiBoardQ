@@ -16,6 +16,60 @@
 
 namespace KifuSaveCoordinator {
 
+namespace {
+
+/// Shift_JIS で書き出す場合、先頭行の encoding 宣言を差し替えた行リストを返す
+QStringList withShiftJisHeader(const QStringList& lines)
+{
+    QStringList result = lines;
+    if (!result.isEmpty()
+        && result.first().contains(QStringLiteral("encoding=UTF-8"))) {
+        result[0].replace(QStringLiteral("encoding=UTF-8"),
+                          QStringLiteral("encoding=Shift_JIS"));
+    }
+    return result;
+}
+
+/// 拡張子に応じたエンコーディングで行リストを書き込む
+bool writeLinesForPath(const QString& path, const QStringList& lines, QString* outError)
+{
+    const bool shiftJis = usesShiftJisForPath(path);
+    QString err;
+    const bool ok = KifuIoService::writeKifuFile(
+        path, shiftJis ? withShiftJisHeader(lines) : lines, &err, shiftJis);
+    if (!ok && outError) *outError = err;
+    return ok;
+}
+
+/// 情報が失われる形式への保存を確認する。続行なら true
+bool confirmLossySave(QWidget* parent, const QString& title, const QString& message)
+{
+    const auto result = QMessageBox::warning(
+        parent, title, message,
+        QMessageBox::Ok | QMessageBox::Cancel,
+        QMessageBox::Ok);
+    return result != QMessageBox::Cancel;
+}
+
+} // namespace
+
+SaveFormat saveFormatForPath(const QString& path)
+{
+    const QString ext = QFileInfo(path).suffix().toLower();
+    if (ext == QStringLiteral("ki2") || ext == QStringLiteral("ki2u")) return SaveFormat::Ki2;
+    if (ext == QStringLiteral("csa"))  return SaveFormat::Csa;
+    if (ext == QStringLiteral("jkf"))  return SaveFormat::Jkf;
+    if (ext == QStringLiteral("usen")) return SaveFormat::Usen;
+    if (ext == QStringLiteral("usi"))  return SaveFormat::Usi;
+    return SaveFormat::Kif;
+}
+
+bool usesShiftJisForPath(const QString& path)
+{
+    const QString ext = QFileInfo(path).suffix().toLower();
+    return ext == QStringLiteral("kif") || ext == QStringLiteral("ki2");
+}
+
 QString saveViaDialogWithUsi(QWidget* parent,
                               const QStringList& kifLines,
                               const QStringList& ki2Lines,
@@ -62,132 +116,61 @@ QString saveViaDialogWithUsi(QWidget* parent,
     GameSettings::setLastKifuSaveDirectory(QFileInfo(path).absolutePath());
 
     // 選択されたファイルの拡張子で保存形式を判断
-    QString err;
-    const QFileInfo fi(path);
-    const QString ext = fi.suffix().toLower();
-
-    // Shift_JIS で書き出す拡張子かどうか
-    const bool shiftJis = (ext == QStringLiteral("kif") || ext == QStringLiteral("ki2"));
-
-    if (ext == QStringLiteral("ki2") || ext == QStringLiteral("ki2u")) {
-        // 消費時間がある場合は警告を表示
-        if (hasTimeInfo) {
-            const auto result = QMessageBox::warning(
+    const QStringList* lines = &kifLines;
+    switch (saveFormatForPath(path)) {
+    case SaveFormat::Ki2:
+        if (hasTimeInfo && !confirmLossySave(
                 parent,
                 QObject::tr("KI2形式で保存"),
-                QObject::tr("KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"),
-                QMessageBox::Ok | QMessageBox::Cancel,
-                QMessageBox::Ok);
-            if (result == QMessageBox::Cancel) {
-                return QString();
-            }
-        }
-        // KI2形式で保存（Shift_JIS の場合はヘッダを差し替え）
-        QStringList lines = ki2Lines;
-        if (shiftJis && !lines.isEmpty()
-            && lines.first().contains(QStringLiteral("encoding=UTF-8"))) {
-            lines[0].replace(QStringLiteral("encoding=UTF-8"),
-                             QStringLiteral("encoding=Shift_JIS"));
-        }
-        if (!KifuIoService::writeKifuFile(path, lines, &err, shiftJis)) {
-            if (outError) *outError = err;
+                QObject::tr("KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
-    } else if (ext == QStringLiteral("csa")) {
-        // 分岐がある場合は警告を表示
-        if (hasBranches) {
-            const auto result = QMessageBox::warning(
+        lines = &ki2Lines;
+        break;
+    case SaveFormat::Csa:
+        if (hasBranches && !confirmLossySave(
                 parent,
                 QObject::tr("CSA形式で保存"),
-                QObject::tr("CSA形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"),
-                QMessageBox::Ok | QMessageBox::Cancel,
-                QMessageBox::Ok);
-            if (result == QMessageBox::Cancel) {
-                return QString();
-            }
-        }
-        // CSA形式で保存
-        if (!KifuIoService::writeKifuFile(path, csaLines, &err)) {
-            if (outError) *outError = err;
+                QObject::tr("CSA形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
-    } else if (ext == QStringLiteral("jkf")) {
-        // JKF形式で保存
-        if (!KifuIoService::writeKifuFile(path, jkfLines, &err)) {
-            if (outError) *outError = err;
-            return QString();
-        }
-    } else if (ext == QStringLiteral("usen")) {
-        // USEN形式で保存
-        if (!KifuIoService::writeKifuFile(path, usenLines, &err)) {
-            if (outError) *outError = err;
-            return QString();
-        }
-    } else if (ext == QStringLiteral("usi")) {
-        // 分岐がある場合は警告を表示
-        if (hasBranches) {
-            const auto result = QMessageBox::warning(
+        lines = &csaLines;
+        break;
+    case SaveFormat::Jkf:
+        lines = &jkfLines;
+        break;
+    case SaveFormat::Usen:
+        lines = &usenLines;
+        break;
+    case SaveFormat::Usi:
+        if (hasBranches && !confirmLossySave(
                 parent,
                 QObject::tr("USI形式で保存"),
-                QObject::tr("USI形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"),
-                QMessageBox::Ok | QMessageBox::Cancel,
-                QMessageBox::Ok);
-            if (result == QMessageBox::Cancel) {
-                return QString();
-            }
+                QObject::tr("USI形式は分岐に対応していないため、分岐の情報は保存されません。\n保存を続けますか？"))) {
+            return QString();
         }
-        // 消費時間がある場合は警告を表示
-        if (hasTimeInfo) {
-            const auto result = QMessageBox::warning(
+        if (hasTimeInfo && !confirmLossySave(
                 parent,
                 QObject::tr("USI形式で保存"),
-                QObject::tr("USI形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"),
-                QMessageBox::Ok | QMessageBox::Cancel,
-                QMessageBox::Ok);
-            if (result == QMessageBox::Cancel) {
-                return QString();
-            }
-        }
-        // USI形式で保存
-        if (!KifuIoService::writeKifuFile(path, usiLines, &err)) {
-            if (outError) *outError = err;
+                QObject::tr("USI形式は消費時間に対応していないため、消費時間の情報は保存されません。\n保存を続けますか？"))) {
             return QString();
         }
-    } else {
-        // KIF形式で保存（デフォルト / Shift_JIS の場合はヘッダを差し替え）
-        QStringList lines = kifLines;
-        if (shiftJis && !lines.isEmpty()
-            && lines.first().contains(QStringLiteral("encoding=UTF-8"))) {
-            lines[0].replace(QStringLiteral("encoding=UTF-8"),
-                             QStringLiteral("encoding=Shift_JIS"));
-        }
-        if (!KifuIoService::writeKifuFile(path, lines, &err, shiftJis)) {
-            if (outError) *outError = err;
-            return QString();
-        }
+        lines = &usiLines;
+        break;
+    case SaveFormat::Kif:
+        lines = &kifLines;
+        break;
     }
+
+    if (!writeLinesForPath(path, *lines, outError)) return QString();
     return path;
 }
 
 bool overwriteExisting(const QString& path,
-                       const QStringList& kifuLines,
+                       const QStringList& lines,
                        QString* outError)
 {
-    // 拡張子から Shift_JIS かどうかを判断
-    const QString ext = QFileInfo(path).suffix().toLower();
-    const bool shiftJis = (ext == QStringLiteral("kif") || ext == QStringLiteral("ki2"));
-
-    QStringList lines = kifuLines;
-    if (shiftJis && !lines.isEmpty()
-        && lines.first().contains(QStringLiteral("encoding=UTF-8"))) {
-        lines[0].replace(QStringLiteral("encoding=UTF-8"),
-                         QStringLiteral("encoding=Shift_JIS"));
-    }
-
-    QString err;
-    const bool ok = KifuIoService::writeKifuFile(path, lines, &err, shiftJis);
-    if (!ok && outError) *outError = err;
-    return ok;
+    return writeLinesForPath(path, lines, outError);
 }
 
 } // namespace KifuSaveCoordinator
