@@ -67,21 +67,18 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
             baseSfen = line.baseSfen;
         }
 
-        // SFEN から手数部分を除去（比較用）
-        if (!baseSfen.isEmpty()) {
-            qsizetype lastSpace = baseSfen.lastIndexOf(QLatin1Char(' '));
-            if (lastSpace > 0) {
-                baseSfen = baseSfen.left(lastSpace);
-            }
-        }
-
         qCDebug(lcKifu).noquote() << "baseSfen=" << baseSfen
                                   << "(sfenList.size=" << line.sfenList.size()
                                   << "line.baseSfen=" << line.baseSfen << ")";
 
-        // まず SFEN で分岐点を探す
+        // まず SFEN で分岐点を探す（手数部分は findBySfen 側で無視される）。
+        // 分岐点は startPly-1 手目のはずなので手数で絞り込み、
+        // 手数が合わない場合のみ全手数を対象にする。
         if (!baseSfen.isEmpty()) {
-            branchPoint = tree->findBySfen(baseSfen);
+            branchPoint = tree->findBySfen(baseSfen, startPly - 1);
+            if (branchPoint == nullptr) {
+                branchPoint = tree->findBySfen(baseSfen);
+            }
             qCDebug(lcKifu).noquote() << "findBySfen() = "
                                       << (branchPoint ? branchPoint->displayText() : "null");
         }
