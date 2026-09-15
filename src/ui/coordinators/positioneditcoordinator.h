@@ -91,6 +91,10 @@ public slots:
      */
     void finishPositionEditing();
 
+signals:
+    void positionEditingStarted();
+    void positionEditingFinished();
+
 private:
     ShogiView* m_shogiView = nullptr;
     ShogiGameController* m_gameController = nullptr;

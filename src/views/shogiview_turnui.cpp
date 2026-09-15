@@ -319,7 +319,6 @@ void ShogiView::ensureAndPlaceEditExitButton()
     QRect baseGeo;
     if (base) {
         baseGeo = base->geometry();
-        exitBtn->setFont(base->font());
     } else {
         if (m_board) {
             const QSize fs = fieldSize().isValid() ? fieldSize()
@@ -335,6 +334,18 @@ void ShogiView::ensureAndPlaceEditExitButton()
             baseGeo = QRect(this->width() - 180, 10, 160, 1);
         }
     }
+
+    // サイズは名前ラベルに合わせ、漢字の字形は日本語用フォントを優先する。
+    QFont buttonFont = base ? base->font() : font();
+    QStringList families = {
+        QStringLiteral("Noto Sans CJK JP"), QStringLiteral("Noto Sans JP"),
+        QStringLiteral("Yu Gothic UI"), QStringLiteral("Meiryo"),
+        QStringLiteral("Hiragino Sans"), QStringLiteral("Hiragino Kaku Gothic ProN"),
+        QStringLiteral("IPAGothic")
+    };
+    families.append(buttonFont.families());
+    buttonFont.setFamilies(families);
+    exitBtn->setFont(buttonFont);
 
     int x = baseGeo.x();
     int w = baseGeo.width();
