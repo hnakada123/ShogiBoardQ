@@ -91,8 +91,6 @@ void KifuDisplayCoordinator::setLiveGameSession(LiveGameSession* session)
                 this, &KifuDisplayCoordinator::onLiveGameMoveAdded);
         connect(m_liveSession, &LiveGameSession::sessionStarted,
                 this, &KifuDisplayCoordinator::onLiveGameSessionStarted);
-        connect(m_liveSession, &LiveGameSession::branchMarksUpdated,
-                this, &KifuDisplayCoordinator::onLiveGameBranchMarksUpdated);
         connect(m_liveSession, &LiveGameSession::sessionCommitted,
                 this, &KifuDisplayCoordinator::onLiveGameCommitted);
         connect(m_liveSession, &LiveGameSession::sessionDiscarded,

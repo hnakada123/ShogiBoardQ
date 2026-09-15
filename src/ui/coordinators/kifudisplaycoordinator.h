@@ -91,7 +91,6 @@ public slots:
 
     void onLiveGameMoveAdded(int ply, const QString& displayText);
     void onLiveGameSessionStarted(KifuBranchNode* branchPoint);
-    void onLiveGameBranchMarksUpdated(const QSet<int>& branchPlys);
     void onLiveGameCommitted(KifuBranchNode* newLineEnd);
     void onLiveGameDiscarded();
     void onLiveGameRecordModelUpdateRequired();
