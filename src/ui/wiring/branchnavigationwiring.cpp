@@ -6,7 +6,6 @@
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
 #include "kifudisplaycoordinator.h"
-#include "branchtreewidget.h"
 #include "livegamesession.h"
 #include "gamerecordmodel.h"
 #include "recordpane.h"
@@ -39,7 +38,6 @@ static KifuBranchTree* tree(const BranchNavigationWiring::Deps& d) { return d.br
 static KifuNavigationState* navSt(const BranchNavigationWiring::Deps& d) { return d.navState ? *d.navState : nullptr; }
 static KifuNavigationController* navCtl(const BranchNavigationWiring::Deps& d) { return d.kifuNavController ? *d.kifuNavController : nullptr; }
 static KifuDisplayCoordinator* dispCo(const BranchNavigationWiring::Deps& d) { return d.displayCoordinator ? *d.displayCoordinator : nullptr; }
-static BranchTreeWidget* treeW(const BranchNavigationWiring::Deps& d) { return d.branchTreeWidget ? *d.branchTreeWidget : nullptr; }
 static LiveGameSession* liveSess(const BranchNavigationWiring::Deps& d) { return d.liveGameSession ? *d.liveGameSession : nullptr; }
 
 void BranchNavigationWiring::createModels()
@@ -110,11 +108,6 @@ void BranchNavigationWiring::configureDisplayCoordinator()
     dc->setRecordModel(m_deps.kifuRecordModel);
     dc->setBranchModel(m_deps.kifuBranchModel);
 
-    // 分岐ツリーウィジェットを設定（EngineAnalysisTabから取得）
-    if (treeW(m_deps) != nullptr) {
-        dc->setBranchTreeWidget(treeW(m_deps));
-    }
-
     // BranchTreeManager を設定（分岐ツリーハイライト用）
     if (m_deps.analysisTab != nullptr) {
         dc->setBranchTreeManager(m_deps.analysisTab->branchTreeManager());
@@ -178,11 +171,6 @@ void BranchNavigationWiring::onBranchTreeBuilt()
     // 新しいナビゲーションシステムを更新
     if (navSt(m_deps) != nullptr && tree(m_deps) != nullptr) {
         navSt(m_deps)->setTree(tree(m_deps));
-    }
-
-    // 分岐ツリーウィジェットを更新
-    if (treeW(m_deps) != nullptr && tree(m_deps) != nullptr) {
-        treeW(m_deps)->setTree(tree(m_deps));
     }
 
     // 表示コーディネーターにツリー変更を通知

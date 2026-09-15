@@ -20,6 +20,7 @@
 #include <QSize>
 #include <QModelIndex>
 #include <QItemSelectionModel>
+#include <QTimer>
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
@@ -205,9 +206,11 @@ void RecordPane::buildMainLayout()
 
 void RecordPane::wireSignals()
 {
-    // 既存：
-    connect(m_branch, &QTableView::activated, this, &RecordPane::branchActivated, Qt::UniqueConnection);
-    connect(m_branch, &QTableView::clicked, this, &RecordPane::branchActivated, Qt::UniqueConnection);
+    // 分岐候補欄: マウスクリックと活性化（Enter キー等）の両方でナビゲーションする。
+    // シングルクリックで activated も発火する環境では同じ行が二重処理されるため、
+    // スロット側で clicked 直後の activated を1周回だけ無視する。
+    connect(m_branch, &QTableView::clicked, this, &RecordPane::onBranchClicked, Qt::UniqueConnection);
+    connect(m_branch, &QTableView::activated, this, &RecordPane::onBranchActivated, Qt::UniqueConnection);
 
     // 文字サイズ変更ボタンの接続
     connect(m_btnFontUp, &QPushButton::clicked, this, &RecordPane::onFontIncrease);
@@ -344,6 +347,29 @@ void RecordPane::onBranchCurrentRowChanged(const QModelIndex& current, const QMo
     if (brModel && current.isValid()) {
         brModel->setCurrentHighlightRow(current.row());
     }
+}
+
+void RecordPane::onBranchClicked(const QModelIndex& index)
+{
+    m_lastClickedBranchIndex = index;
+    m_branchClickGuard = true;
+    QTimer::singleShot(0, this, &RecordPane::clearBranchClickGuard);
+    emit branchActivated(index);
+}
+
+void RecordPane::onBranchActivated(const QModelIndex& index)
+{
+    if (m_branchClickGuard && index.isValid() && index == m_lastClickedBranchIndex) {
+        qCDebug(lcUi).noquote() << "[RecordPane] onBranchActivated: skipped (already handled by clicked) row=" << index.row();
+        return;
+    }
+    emit branchActivated(index);
+}
+
+void RecordPane::clearBranchClickGuard()
+{
+    m_branchClickGuard = false;
+    m_lastClickedBranchIndex = QPersistentModelIndex();
 }
 
 void RecordPane::connectKifuCurrentRowChanged()

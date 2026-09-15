@@ -308,6 +308,61 @@ private slots:
         QVERIFY(state.isOnMainLine());
     }
 
+    void handleBranchNodeActivated_sharedNodeOnParentBranchRowKeepsCurrentLine()
+    {
+        // 入れ子分岐（ライン2）を表示中に、親分岐（ライン1）の行に描かれた共有ノードを
+        // クリックしても現在ラインに留まること（本譜行の共有ノードと同じ扱い）。
+        // 共有でないノードをクリックしたときはそのラインへ切り替わること。
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* main1 = tree.addMove(tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main4 = tree.addMove(main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
+        QVERIFY(tree.addMove(main4, move, QStringLiteral("main5"), QStringLiteral("sfen5")) != nullptr);
+
+        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        auto* branch5First = tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
+        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+
+        KifuNavigationState state;
+        state.setTree(&tree);
+        KifuNavigationController controller;
+        controller.setTreeAndState(&tree, &state);
+
+        const int line1 = tree.findLineIndexForNode(branch5First).value_or(-1);
+        const int line2 = tree.findLineIndexForNode(branch5Nested).value_or(-1);
+        QCOMPARE(line1, 1);
+        QCOMPARE(line2, 2);
+
+        // 入れ子分岐（ライン2）の5手目を表示中
+        controller.handleBranchNodeActivated(line2, 5);
+        QCOMPARE(state.currentNode(), branch5Nested);
+        QCOMPARE(state.currentLineIndex(), line2);
+
+        // ライン1の行に描かれる共有ノード（3手目 branch3）をクリック → ライン2に留まる
+        controller.handleBranchNodeActivated(line1, 3);
+        QCOMPARE(state.currentNode(), branch3);
+        QCOMPARE(state.currentLineIndex(), line2);
+
+        // 本譜行の共有ノード（2手目 main2）をクリック → ライン2に留まる
+        controller.handleBranchNodeActivated(0, 2);
+        QCOMPARE(state.currentNode(), main2);
+        QCOMPARE(state.currentLineIndex(), line2);
+
+        // ライン1だけにあるノード（5手目 branch5_first）をクリック → ライン1へ切り替わる
+        controller.handleBranchNodeActivated(line1, 5);
+        QCOMPARE(state.currentNode(), branch5First);
+        QCOMPARE(state.currentLineIndex(), line1);
+
+        // 本譜だけにあるノード（3手目 main3）をクリック → 本譜へ切り替わる
+        controller.handleBranchNodeActivated(0, 3);
+        QCOMPARE(state.currentNode(), main3);
+        QCOMPARE(state.currentLineIndex(), 0);
+    }
+
     void goToMainLineAtCurrentPly_whenMainLineIsShorter()
     {
         // 本譜3手、分岐が5手まで続く。分岐の5手目で「本譜へ戻る」と本譜の最終手（3手目）へ移動すること

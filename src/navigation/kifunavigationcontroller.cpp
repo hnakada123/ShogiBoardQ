@@ -122,9 +122,9 @@ void KifuNavigationController::goToLast()
             }
         }
 
-        // フォールバック: lastSelectedLineAt または先頭の子
+        // フォールバック: lastSelectedChildAt または先頭の子
         if (nextNode == nullptr) {
-            int selectedLine = m_state->lastSelectedLineAt(node);
+            int selectedLine = m_state->lastSelectedChildAt(node);
             qCDebug(lcNavigation).noquote() << "goToLast: at ply=" << node->ply()
                                             << "childCount=" << node->childCount()
                                             << "selectedLine=" << selectedLine;
@@ -222,7 +222,7 @@ KifuBranchNode* KifuNavigationController::findForwardNode() const
                                     << "childCount=" << current->childCount();
 
     // 優先ラインが設定されている場合、allLines() のパスに合致する子を優先する。
-    // lastSelectedLineAt は child index であり allLines() のライン path と一致しない
+    // lastSelectedChildAt は child index であり allLines() のライン path と一致しない
     // ケースがあるため、分岐がある場合はライン path を正とする。
     if (current->childCount() > 1 && m_tree != nullptr) {
         int lineIdx = m_state->preferredLineIndex();
@@ -247,8 +247,8 @@ KifuBranchNode* KifuNavigationController::findForwardNode() const
     }
 
     // 分岐がある場合、最後に選択したラインを優先
-    int selectedLine = m_state->lastSelectedLineAt(current);
-    qCDebug(lcNavigation).noquote() << "findForwardNode: lastSelectedLineAt=" << selectedLine;
+    int selectedLine = m_state->lastSelectedChildAt(current);
+    qCDebug(lcNavigation).noquote() << "findForwardNode: lastSelectedChildAt=" << selectedLine;
 
     if (selectedLine < current->childCount()) {
         KifuBranchNode* child = current->childAt(selectedLine);
@@ -284,7 +284,7 @@ void KifuNavigationController::goToNode(KifuBranchNode* node)
             // 何番目の子かを探す
             for (int i = 0; i < parent->childCount(); ++i) {
                 if (parent->childAt(i) == current) {
-                    m_state->rememberLineSelection(parent, i);
+                    m_state->rememberChildSelection(parent, i);
                     qCDebug(lcNavigation).noquote() << "goToNode: remembered branch at parentPly="
                                                     << parent->ply() << "childIndex=" << i;
                     break;

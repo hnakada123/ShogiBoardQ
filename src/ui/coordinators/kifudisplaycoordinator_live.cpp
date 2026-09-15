@@ -8,7 +8,6 @@
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
 #include "kifunavigationcontroller.h"
-#include "branchtreewidget.h"
 #include "branchtreemanager.h"
 #include "kifurecordlistmodel.h"
 #include "livegamesession.h"
@@ -39,11 +38,6 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
             const int totalPly = m_liveSession->totalPly();
             m_branchTreeManager->highlightBranchTreeAt(liveLineIndex, totalPly, false);
         }
-    }
-
-    // BranchTreeWidget も更新
-    if (m_branchTreeWidget != nullptr && m_tree != nullptr) {
-        m_branchTreeWidget->setTree(m_tree);
     }
 
     // ライブ対局中は最新ノードへナビゲートし、分岐ラインを同期
@@ -100,7 +94,7 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
             if (parent != nullptr && parent->childCount() > 1) {
                 for (int j = 0; j < parent->childCount(); ++j) {
                     if (parent->childAt(j) == node) {
-                        m_state->rememberLineSelection(parent, j);
+                        m_state->rememberChildSelection(parent, j);
                         qCDebug(lcUi).noquote() << "onLiveGameSessionStarted: remembered line selection"
                                            << "parentPly=" << parent->ply() << "childIndex=" << j;
                         break;

@@ -7,6 +7,7 @@
 
 #include <QWidget>
 #include <QTextBrowser>
+#include <QPersistentModelIndex>
 #include "recordpaneappearancemanager.h"
 
 class QTableView; class QPushButton; class QTextBrowser; class QSplitter;
@@ -90,10 +91,22 @@ private slots:
     void onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);
     void connectKifuCurrentRowChanged();  ///< currentRowChanged 接続を再構築
 
+    /// 分岐候補欄のマウスクリック（QAbstractItemView::clicked）
+    void onBranchClicked(const QModelIndex& index);
+    /// 分岐候補欄の活性化（QAbstractItemView::activated: Enter キー、または環境によってはシングルクリック）
+    void onBranchActivated(const QModelIndex& index);
+    /// clicked 直後の activated 二重発火ガードを解除する
+    void clearBranchClickGuard();
+
 private:
     QMetaObject::Connection m_connRowChanged;
     QMetaObject::Connection m_connRowsInserted;
     QMetaObject::Connection m_connBranchCurrentRow;
+
+    // シングルクリックで activated も発火する環境で、同じ行に対する
+    // clicked → activated の二重処理を防ぐ（同一イベントループ周回内のみ有効）
+    QPersistentModelIndex m_lastClickedBranchIndex;
+    bool m_branchClickGuard = false;
 
     // コメント用アダプタの実体
     CommentTextAdapter m_commentAdapter{nullptr};

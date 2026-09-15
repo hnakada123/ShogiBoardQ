@@ -236,6 +236,7 @@ add_shogi_test(tst_kifconverter
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchtreebuilder.cpp
     ${SRC}/common/errorbus.cpp
 )
@@ -322,6 +323,7 @@ add_shogi_test(tst_usenconverter
 add_shogi_test(tst_kifubranchtree
     tst_kifubranchtree.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/core/shogimove.cpp
 )
@@ -331,6 +333,7 @@ add_shogi_test(tst_livegamesession
     ${TEST_STUBS}
     ${SRC}/kifu/livegamesession.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/core/shogimove.cpp
 )
@@ -342,6 +345,7 @@ add_shogi_test(tst_navigation
     ${SRC}/navigation/kifunavigationcontroller_branch.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
@@ -386,6 +390,7 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/kifu/formats/ki2tosfenconverter.cpp
     ${SRC}/kifu/formats/ki2lexer.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/core/shogimove.cpp
@@ -419,6 +424,7 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/kifu/formats/ki2tosfenconverter.cpp
     ${SRC}/kifu/formats/ki2lexer.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/core/shogimove.cpp
@@ -468,6 +474,7 @@ add_shogi_test(tst_positionedit_gamestart
     tst_positionedit_gamestart.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/livegamesession.cpp
@@ -489,6 +496,7 @@ add_shogi_test(tst_preset_gamestart_cleanup
     ${SRC}/widgets/kifudisplay.cpp
     ${SRC}/widgets/kifubranchdisplay.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/livegamesession.cpp
@@ -511,6 +519,7 @@ add_shogi_test(tst_integration
     ${SRC}/game/piecemoverules.cpp
     ${SRC}/game/turnmanager.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/livegamesession.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
@@ -576,6 +585,7 @@ add_shogi_test(tst_ui_display_consistency
     ${SRC}/navigation/kifunavigationcontroller_branch.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/livegamesession.cpp
     ${SRC}/core/shogimove.cpp
@@ -592,7 +602,6 @@ add_shogi_test(tst_ui_display_consistency
     ${SRC}/widgets/recordpaneappearancemanager.cpp
     ${SRC}/widgets/branchtreemanager.cpp
     ${SRC}/widgets/branchtreemanager_draw.cpp
-    ${SRC}/widgets/branchtreewidget.cpp
     ${SETTINGS_SOURCES}
     ${SRC}/board/sfenpositiontracer.cpp
 )
@@ -1071,6 +1080,7 @@ add_shogi_test(tst_consideration_resolver
     ${SRC}/core/shogiboard_sfen.cpp
     ${SRC}/kifu/kifubranchnode.cpp
     ${SRC}/kifu/kifubranchtree.cpp
+    ${SRC}/kifu/kifubranchtree_search.cpp
     ${SRC}/kifu/kifunavigationstate.cpp
 )
 

@@ -204,7 +204,7 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
     if (nodeParent != nullptr && nodeParent->childCount() > 1) {
         for (int i = 0; i < nodeParent->childCount(); ++i) {
             if (nodeParent->childAt(i) == targetNode) {
-                m_state->rememberLineSelection(nodeParent, i);
+                m_state->rememberChildSelection(nodeParent, i);
                 qCDebug(lcUi).noquote() << "onPositionChanged: remembered line selection at parent ply="
                                    << nodeParent->ply() << "index=" << i;
                 break;

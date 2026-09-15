@@ -50,6 +50,9 @@ void RecordPane::onKifuRowsInserted(const QModelIndex&, int, int) {}
 void RecordPane::onKifuCurrentRowChanged(const QModelIndex&, const QModelIndex&) {}
 void RecordPane::onBranchCurrentRowChanged(const QModelIndex&, const QModelIndex&) {}
 void RecordPane::connectKifuCurrentRowChanged() {}
+void RecordPane::onBranchClicked(const QModelIndex&) {}
+void RecordPane::onBranchActivated(const QModelIndex&) {}
+void RecordPane::clearBranchClickGuard() {}
 
 // ============================================================
 // EngineAnalysisTab スタブ

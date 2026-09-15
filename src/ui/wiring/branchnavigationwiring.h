@@ -12,7 +12,6 @@ class KifuBranchTree;
 class KifuNavigationState;
 class KifuNavigationController;
 class KifuDisplayCoordinator;
-class BranchTreeWidget;
 class LiveGameSession;
 class KifuRecordListModel;
 class KifuBranchListModel;
@@ -41,7 +40,6 @@ public:
         KifuNavigationState** navState = nullptr;             ///< ナビゲーション状態
         KifuNavigationController** kifuNavController = nullptr; ///< ナビゲーションコントローラ
         KifuDisplayCoordinator** displayCoordinator = nullptr; ///< 表示コーディネータ
-        BranchTreeWidget** branchTreeWidget = nullptr;        ///< 分岐ツリーウィジェット
         LiveGameSession** liveGameSession = nullptr;          ///< ライブゲームセッション
         RecordPane* recordPane = nullptr;               ///< 棋譜欄ウィジェット
         EngineAnalysisTab* analysisTab = nullptr;       ///< エンジン解析タブ
@@ -66,7 +64,7 @@ public slots:
     /// 分岐ツリーの構築完了を処理する（KifuBranchTreeBuilder::treeBuilt に接続）
     void onBranchTreeBuilt();
 
-    /// 分岐ツリーのノード活性化を処理する（BranchTreeWidget::nodeActivated に接続）
+    /// 分岐ツリーのノード活性化を処理する（BranchTreeManager::branchNodeActivated に接続）
     void onBranchNodeActivated(int row, int ply);
 
     /// 新規対局開始時の分岐ツリーリセット

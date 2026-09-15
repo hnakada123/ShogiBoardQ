@@ -80,7 +80,6 @@ void KifuSubRegistry::refreshBranchNavWiringDeps()
     deps.navState = &m_mw.m_branchNav.navState;
     deps.kifuNavController = &m_mw.m_branchNav.kifuNavController;
     deps.displayCoordinator = &m_mw.m_branchNav.displayCoordinator;
-    deps.branchTreeWidget = &m_mw.m_branchNav.branchTreeWidget;
     deps.liveGameSession = &m_mw.m_branchNav.liveGameSession;
     deps.recordPane = m_mw.m_recordPane;
     deps.analysisTab = m_mw.m_analysisTab;

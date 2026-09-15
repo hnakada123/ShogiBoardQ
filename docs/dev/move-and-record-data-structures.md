@@ -413,7 +413,7 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 |---|---|---|---|
 | **棋譜欄** | `RecordPane` 内の `QTableView` | `KifuRecordListModel` | 手順リスト。クリックで手に移動 |
 | **分岐候補欄** | `RecordPane` 内の `QTableView` | `KifuBranchListModel` | 現在位置の分岐候補 |
-| **分岐ツリー欄** | `BranchTreeWidget` | — (直接描画) | ツリーのグラフィカル表示 |
+| **分岐ツリー欄** | `BranchTreeManager`（`EngineAnalysisTab` 内の `QGraphicsView`） | — (直接描画) | ツリーのグラフィカル表示 |
 | **将棋盤** | `ShogiView` | `ShogiBoard` | 盤面表示 |
 
 ### 6.2 Signal/Slot 接続図
@@ -446,7 +446,7 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 │    └─→ 棋譜欄ハイライト行変更                                     │
 │                                                                    │
 │  onBranchTreeHighlightRequired(lineIndex, ply)                     │
-│    └─→ BranchTreeWidget::highlightNode()                           │
+│    └─→ BranchTreeManager::highlightBranchTreeAt()                  │
 │                                                                    │
 │  onBranchCandidatesUpdateRequired(candidates)                      │
 │    └─→ KifuBranchListModel 更新                                   │
@@ -454,8 +454,8 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
         ▲                  ▲                    ▲
         │                  │                    │
    棋譜欄クリック    分岐候補クリック    分岐ツリークリック
-   RecordPane::       RecordPane::        BranchTreeWidget::
-   mainRowChanged     branchActivated     nodeClicked
+   RecordPane::       RecordPane::        BranchTreeManager::
+   mainRowChanged     branchActivated     branchNodeActivated
 ```
 
 ### 6.3 ナビゲーション操作の流れ
@@ -510,34 +510,11 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 
 #### 6.3.3 分岐ツリー欄のノードをクリック
 
-分岐ツリーは **2つの独立したウィジェット** で描画され、それぞれ別のクリック処理経路を持つ。
+分岐ツリーは `EngineAnalysisTab` 内の `QGraphicsView` を `BranchTreeManager` が描画し、クリックは次の経路で処理される。
 
 | ウィジェット | シグナル | ハンドラ |
 |---|---|---|
-| BranchTreeWidget（独立ウィジェット） | `nodeClicked(lineIndex, ply)` | `KifuDisplayCoordinator::onBranchTreeNodeClicked` |
-| EngineAnalysisTab 内の分岐ツリー | `branchNodeActivated(row, ply)` | `MainWindow::onBranchNodeActivated` → `KifuNavigationController::handleBranchNodeActivated` |
-
-**経路A: BranchTreeWidget（独立ウィジェット）**
-
-```
-1. ユーザーが分岐ツリーのノード（長方形）をクリック
-2. BranchTreeWidget::eventFilter が MouseButtonPress を検出
-   a. クリック位置の QGraphicsPathItem を特定
-   b. ノードに埋め込まれた ROLE_LINE_INDEX, ROLE_PLY を取得
-   c. emit BranchTreeWidget::nodeClicked(lineIndex, ply)
-3. KifuDisplayCoordinator::onBranchTreeNodeClicked(lineIndex, ply)
-   a. preferredLineIndex を lineIndex に設定
-   b. KifuBranchTree::allLines() からラインを取得
-   c. ライン内のノード列から ply が一致するノードを検索
-   d. KifuNavigationController::goToNode(node) を呼び出し
-4. KifuNavigationController::goToNode(node)
-   a. ルートからノードまでの全分岐点で選択を記憶
-      （while ループで親を辿り、rememberLineSelection）
-   b. state->setCurrentNode(node)
-   c. emitUpdateSignals() で5つのシグナルを一括発行
-5. KifuDisplayCoordinator が各シグナルを受信（6.3.1 の手順4と同じ）
-   - 棋譜欄・将棋盤・分岐ツリー・分岐候補欄を更新
-```
+| EngineAnalysisTab 内の分岐ツリー | `branchNodeActivated(row, ply)` | `BranchNavigationWiring::onBranchNodeActivated` → `KifuNavigationController::handleBranchNodeActivated` |
 
 **経路B: EngineAnalysisTab 内の分岐ツリー**
 
@@ -607,7 +584,6 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
 | 設定メソッド | 対象 |
 |---|---|
 | `setRecordPane()` | 棋譜ペイン |
-| `setBranchTreeWidget()` | 分岐ツリーウィジェット |
 | `setRecordModel()` | 棋譜欄モデル |
 | `setBranchModel()` | 分岐候補モデル |
 | `setAnalysisTab()` | エンジン解析タブ |
@@ -645,9 +621,9 @@ GameRecordModel は以下の形式へのエクスポートメソッドを提供�
                   │      現在ノードの兄弟ノード（parent->children()）から
                   │      候補テキストを抽出して設定する。
                   │
-                  ├──→ 分岐ツリー欄 (BranchTreeWidget)
-                  │      treeChanged シグナルで allLines() を再取得し、
-                  │      ノード情報からグラフィカルなツリーを再描画する。
+                  ├──→ 分岐ツリー欄 (BranchTreeManager)
+                  │      treeChanged シグナルで KifuDisplayPresenter::buildBranchTreeRows() が
+                  │      allLines() から行データを構築し、グラフィカルなツリーを再描画する。
                   │
                   └──→ 将棋盤 (ShogiBoard)
                          ナビゲーション時に KifuNavigationController が

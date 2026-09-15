@@ -34,10 +34,10 @@ public:
 
     // --- 候補操作 API ---
 
-    /// 候補をクリアする（ロック中は無視される）
+    /// 候補をクリアする（「本譜へ戻る」行も非表示にする）
     void clearBranchCandidates();
 
-    /// KIF表示用データから候補を一括設定する（ロック中は無視される）
+    /// KIF表示用データから候補を一括設定する
     void setBranchCandidatesFromKif(const QList<KifDisplayItem>& rows);
 
     /// 末尾の「本譜へ戻る」行の表示/非表示を設定する
@@ -85,20 +85,13 @@ public:
     /// 候補リストと分岐グラフを全消去する
     void clear();
 
-    // --- ロック機能 ---
-
-    /// ロック状態を設定する（ロック中は外部からの候補変更を防ぐ）
-    void setLocked(bool locked) { m_locked = locked; }
-    bool isLocked() const { return m_locked; }
-
-    /// KifuDisplayCoordinator専用: ロックを無視して候補をリセットする
+    /// clearBranchCandidates() の別名（KifuDisplayCoordinator 経路で使用）
     void resetBranchCandidates();
 
-    /// KifuDisplayCoordinator専用: ロックを無視して候補を更新する
+    /// setBranchCandidatesFromKif() の別名（KifuDisplayCoordinator 経路で使用）
     void updateBranchCandidates(const QList<KifDisplayItem>& rows);
 
 private:
-    bool m_locked = false;                  ///< ロック状態
     bool m_hasBackToMainRow = false;        ///< 末尾に「本譜へ戻る」を表示するか
     int m_currentHighlightRow = 0;          ///< 現在ハイライトする行
 
