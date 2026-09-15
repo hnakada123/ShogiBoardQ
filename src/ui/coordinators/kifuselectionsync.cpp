@@ -114,6 +114,12 @@ bool KifuSelectionSync::applyBranchTreeHighlight(int lineIndex, int ply)
 // 分岐候補更新
 // ============================================================
 
+bool KifuSelectionSync::isCurrentLineMainLine() const
+{
+    // 「本譜」は棋譜欄に表示中のライン（allLines() の 0 番）を指す
+    return (m_refs.state == nullptr) || m_refs.state->isOnMainLine();
+}
+
 void KifuSelectionSync::applyBranchCandidates(const QList<KifuBranchNode*>& candidates)
 {
     if (m_refs.branchModel == nullptr) {
@@ -150,9 +156,8 @@ void KifuSelectionSync::applyBranchCandidates(const QList<KifuBranchNode*>& cand
     }
     m_refs.branchModel->updateBranchCandidates(items);
 
-    // 本譜にいない場合は「本譜に戻る」を表示
-    bool isOnMainLine = (m_refs.state != nullptr) ? (m_refs.state->currentLineIndex() == 0) : true;
-    m_refs.branchModel->setHasBackToMainRow(!isOnMainLine);
+    // 表示中ラインが本譜でない場合は「本譜へ戻る」を表示
+    m_refs.branchModel->setHasBackToMainRow(!isCurrentLineMainLine());
 
     // 現在選択されている分岐をハイライト
     if (m_refs.state != nullptr && m_refs.state->currentNode() != nullptr) {
@@ -241,8 +246,10 @@ void KifuSelectionSync::syncBranchCandidatesForNode(KifuBranchNode* targetNode)
         }
         m_refs.branchModel->updateBranchCandidates(items);
 
-        bool isOnMainLine = targetNode->isMainLine();
-        m_refs.branchModel->setHasBackToMainRow(!isOnMainLine);
+        // applyBranchCandidates() と同じ判定を使う。
+        // targetNode->isMainLine() は親の最初の子かしか見ないため、
+        // 入れ子分岐の先頭子ノードで「本譜へ戻る」が消えてしまう。
+        m_refs.branchModel->setHasBackToMainRow(!isCurrentLineMainLine());
 
         if (m_refs.recordPane != nullptr && m_refs.recordPane->branchView() != nullptr) {
             m_refs.recordPane->branchView()->setEnabled(true);

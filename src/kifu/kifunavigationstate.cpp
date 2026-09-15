@@ -117,10 +117,8 @@ void KifuNavigationState::goToRoot()
 
 bool KifuNavigationState::isOnMainLine() const
 {
-    if (m_currentNode == nullptr) {
-        return true;
-    }
-    return m_currentNode->isMainLine();
+    // ノード単位の isMainLine()（親の最初の子か）ではなく、表示中ラインで判定する
+    return currentLineIndex() == 0;
 }
 
 bool KifuNavigationState::canGoForward() const

@@ -263,6 +263,51 @@ private slots:
         QVERIFY(state.isOnMainLine());
     }
 
+    void isOnMainLine_nestedBranchFirstChildIsNotMainLine()
+    {
+        // 入れ子分岐の先頭子ノードは KifuBranchNode::isMainLine()（親の最初の子か）では true になるが、
+        // 表示中ラインは本譜ではないので KifuNavigationState::isOnMainLine() は false であること
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* main1 = tree.addMove(tree.root(), move, QStringLiteral("main1"), QStringLiteral("sfen1"));
+        auto* main2 = tree.addMove(main1, move, QStringLiteral("main2"), QStringLiteral("sfen2"));
+        auto* main3 = tree.addMove(main2, move, QStringLiteral("main3"), QStringLiteral("sfen3"));
+        auto* main4 = tree.addMove(main3, move, QStringLiteral("main4"), QStringLiteral("sfen4"));
+        auto* main5 = tree.addMove(main4, move, QStringLiteral("main5"), QStringLiteral("sfen5"));
+
+        auto* branch3 = tree.addMove(main2, move, QStringLiteral("branch3"), QStringLiteral("bsfen3"));
+        auto* branch4 = tree.addMove(branch3, move, QStringLiteral("branch4"), QStringLiteral("bsfen4"));
+        auto* branch5First = tree.addMove(branch4, move, QStringLiteral("branch5_first"), QStringLiteral("bsfen5f"));
+        auto* branch5Nested = tree.addMove(branch4, move, QStringLiteral("branch5_nested"), QStringLiteral("bsfen5n"));
+        QVERIFY(branch5Nested != nullptr);
+
+        KifuNavigationState state;
+        state.setTree(&tree);
+        KifuNavigationController controller;
+        controller.setTreeAndState(&tree, &state);
+
+        const auto firstLineIndex = tree.findLineIndexForNode(branch5First);
+        QVERIFY(firstLineIndex.has_value() && *firstLineIndex > 0);
+
+        controller.handleBranchNodeActivated(*firstLineIndex, 5);
+        QCOMPARE(state.currentNode(), branch5First);
+        QVERIFY(branch5First->isMainLine());     // ノード単位では親の最初の子
+        QVERIFY(!state.isOnMainLine());          // 表示中ラインは分岐
+
+        // 分岐点の子（2番目の子）でも当然 false
+        controller.handleBranchNodeActivated(*firstLineIndex, 3);
+        QCOMPARE(state.currentNode(), branch3);
+        QVERIFY(!state.isOnMainLine());
+
+        // 本譜へ戻れば true
+        controller.goToMainLineAtCurrentPly();
+        QCOMPARE(state.currentNode(), main3);
+        QVERIFY(state.isOnMainLine());
+        controller.goToNode(main5);
+        QVERIFY(state.isOnMainLine());
+    }
+
     void stressTest_randomNavigation()
     {
         KifuBranchTree tree;

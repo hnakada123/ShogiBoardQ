@@ -93,7 +93,7 @@ public:
 
     /**
      * @brief onPositionChanged用: ノードに基づく分岐候補同期
-     * @param targetNode 対象ノード
+     * @param targetNode 対象ノード（呼び出し前に state の現在ノードへ設定済みであること）
      */
     void syncBranchCandidatesForNode(KifuBranchNode* targetNode);
 
@@ -112,6 +112,9 @@ public:
     int expectedTreePly() const { return m_expectedTreePly; }
 
 private:
+    /// 表示中ライン（棋譜欄のライン）が本譜かどうか。「本譜へ戻る」表示の唯一の判定
+    bool isCurrentLineMainLine() const;
+
     Refs m_refs;
     int m_expectedTreeLineIndex = 0;
     int m_expectedTreePly = 0;
