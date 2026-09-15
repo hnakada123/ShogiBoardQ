@@ -131,13 +131,21 @@ KifuBranchNode* KifuBranchTree::addMove(KifuBranchNode* parent,
     auto* node = createNode();
     node->setPly(parent->ply() + 1);
     node->setDisplayText(displayText);
-    node->setSfen(sfen);
-    node->setMove(move);
     node->setTimeText(timeText);
 
     // 終局手かどうかを判定
-    TerminalType termType = detectTerminalType(displayText);
+    const TerminalType termType = detectTerminalType(displayText);
     node->setTerminalType(termType);
+
+    if (termType != TerminalType::None) {
+        // 終局手は盤面を変化させないため、追加経路によらず親と同じ局面を持たせる。
+        // 渡された move は直前の手など無関係な値のことがあるので保持しない。
+        node->setSfen(parent->sfen());
+        node->setMove(ShogiMove());
+    } else {
+        node->setSfen(sfen);
+        node->setMove(move);
+    }
 
     parent->addChild(node);
     invalidateLineCache();
@@ -194,13 +202,21 @@ KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
     auto* node = createNode();
     node->setPly(parent->ply() + 1);
     node->setDisplayText(displayText);
-    node->setSfen(sfen);
-    node->setMove(move);
     node->setTimeText(timeText);
 
     // 終局手かどうかを判定
-    TerminalType termType = detectTerminalType(displayText);
+    const TerminalType termType = detectTerminalType(displayText);
     node->setTerminalType(termType);
+
+    if (termType != TerminalType::None) {
+        // 終局手は盤面を変化させないため、追加経路によらず親と同じ局面を持たせる。
+        // 渡された move は直前の手など無関係な値のことがあるので保持しない。
+        node->setSfen(parent->sfen());
+        node->setMove(ShogiMove());
+    } else {
+        node->setSfen(sfen);
+        node->setMove(move);
+    }
 
     parent->addChild(node);
     invalidateLineCache();

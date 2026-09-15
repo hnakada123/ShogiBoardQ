@@ -206,6 +206,29 @@ private slots:
         QVERIFY(!session.isActive());
     }
 
+    void addMove_terminalCarriesParentSfen()
+    {
+        // ライブ対局の終局手は盤面から組んだ次手番号付き SFEN で渡されるが、
+        // ツリー上のノードは親と同じ局面を持つこと
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(n1);
+        session.addMove(move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"), QStringLiteral("0:05"));
+
+        KifuBranchNode* terminal = session.liveNode();
+        QVERIFY(terminal != nullptr);
+        QVERIFY(terminal->isTerminal());
+        QCOMPARE(terminal->sfen(), n1->sfen());
+        QCOMPARE(terminal->timeText(), QStringLiteral("0:05"));
+        // セッション側の局面履歴は渡された値のまま
+        QCOMPARE(session.currentSfen(), QStringLiteral("board1 w - 3"));
+    }
+
     void addMove_reusesTerminalOfSameType()
     {
         KifuBranchTree tree;
