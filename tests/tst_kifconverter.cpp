@@ -36,6 +36,40 @@ private slots:
         QCOMPARE(sfen, kHirateSfen);
     }
 
+    void detectInitialSfen_overlappingHandicapNames_data()
+    {
+        QTest::addColumn<QString>("handicap");
+        QTest::addColumn<QString>("expectedSfen");
+
+        QTest::newRow("rook-lance") << QStringLiteral("飛香落ち")
+            << QStringLiteral("lnsgkgsn1/7b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("right-lance") << QStringLiteral("右香落ち")
+            << QStringLiteral("1nsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTest::newRow("left-five-piece") << QStringLiteral("左五枚落ち")
+            << QStringLiteral("1nsgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+    }
+
+    void detectInitialSfen_overlappingHandicapNames()
+    {
+        QFETCH(QString, handicap);
+        QFETCH(QString, expectedSfen);
+
+        QTemporaryFile tmp;
+        const QByteArray content = QStringLiteral("手合割：　%1　\n").arg(handicap).toUtf8();
+        QVERIFY(KifuTestHelper::writeToTempFile(tmp, content, QStringLiteral("kif")));
+
+        QString detectedLabel;
+        QCOMPARE(KifToSfenConverter::detectInitialSfenFromFile(tmp.fileName(), &detectedLabel),
+                 expectedSfen);
+        QCOMPARE(detectedLabel, handicap);
+
+        KifParseResult result;
+        QString error;
+        QVERIFY2(KifToSfenConverter::parseWithVariations(tmp.fileName(), result, &error),
+                 qPrintable(error));
+        QCOMPARE(result.mainline.baseSfen, expectedSfen);
+    }
+
     void convertFile_sevenMoves()
     {
         QString error;

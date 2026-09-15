@@ -376,8 +376,21 @@ add_shogi_test(tst_kifubranchlistmodel
 # ============================================================
 add_shogi_test(tst_gamerecordmodel
     tst_gamerecordmodel.cpp
+    test_stubs_kifu_export.cpp
+    ${SRC}/kifu/kifuexportclipboard.cpp
+    ${SRC}/kifu/kifuclipboardservice.cpp
+    ${SRC}/kifu/formats/csatosfenconverter.cpp
+    ${SRC}/kifu/formats/csalexer.cpp
+    ${SRC}/kifu/formats/csalexer_position.cpp
+    ${SRC}/kifu/formats/jkftosfenconverter.cpp
+    ${SRC}/kifu/formats/jkfmoveparser.cpp
+    ${SRC}/kifu/formats/usitosfenconverter.cpp
+    ${SRC}/kifu/formats/usentosfenconverter.cpp
+    ${SRC}/kifu/formats/usentosfenconverter_decode.cpp
+    ${SRC}/kifu/livegamesession.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/gamerecordmodel.cpp
+    ${SRC}/kifu/formats/usimoveconverter.cpp
     ${SRC}/kifu/formats/csaexporter.cpp
     ${SRC}/kifu/formats/csaformatter.cpp
     ${SRC}/kifu/formats/jkfexporter.cpp
@@ -423,6 +436,7 @@ add_shogi_test(tst_kifu_comment_sync
     tst_kifu_comment_sync.cpp
     ${TEST_STUBS}
     ${SRC}/kifu/gamerecordmodel.cpp
+    ${SRC}/kifu/formats/usimoveconverter.cpp
     ${SRC}/kifu/formats/csaexporter.cpp
     ${SRC}/kifu/formats/csaformatter.cpp
     ${SRC}/kifu/formats/jkfexporter.cpp

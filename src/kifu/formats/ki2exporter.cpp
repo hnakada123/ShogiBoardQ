@@ -300,9 +300,7 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
 
     // 3) 開始局面のしおり・コメントを先に出力
     int startIdx = 0;
-    if (!disp.isEmpty()
-        && (disp[0].prettyMove.trimmed().isEmpty()
-            || disp[0].prettyMove.contains(QStringLiteral("開始局面")))) {
+    if (!disp.isEmpty() && disp[0].ply == 0) {
         appendKifBookmarks(disp[0].bookmark, out);
         appendKifComments(disp[0].comment, out);
         startIdx = 1; // 実際の指し手は次から

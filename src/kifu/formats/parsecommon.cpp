@@ -114,13 +114,16 @@ std::optional<KanjiPieceResult> mapKanjiPiece(QStringView text)
         return KanjiPieceResult{Piece::BlackPawn, text.contains(QChar(u'と'))};
     }
     if (text.contains(QChar(u'香')) || text.contains(QChar(u'杏'))) {
-        return KanjiPieceResult{Piece::BlackLance, text.contains(QChar(u'杏'))};
+        return KanjiPieceResult{Piece::BlackLance,
+                                text.contains(QChar(u'杏')) || text.contains(QStringLiteral("成香"))};
     }
     if (text.contains(QChar(u'桂')) || text.contains(QChar(u'圭'))) {
-        return KanjiPieceResult{Piece::BlackKnight, text.contains(QChar(u'圭'))};
+        return KanjiPieceResult{Piece::BlackKnight,
+                                text.contains(QChar(u'圭')) || text.contains(QStringLiteral("成桂"))};
     }
     if (text.contains(QChar(u'銀')) || text.contains(QChar(u'全'))) {
-        return KanjiPieceResult{Piece::BlackSilver, text.contains(QChar(u'全'))};
+        return KanjiPieceResult{Piece::BlackSilver,
+                                text.contains(QChar(u'全')) || text.contains(QStringLiteral("成銀"))};
     }
     if (text.contains(QChar(u'金'))) {
         return KanjiPieceResult{Piece::BlackGold, false};

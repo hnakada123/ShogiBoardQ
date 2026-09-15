@@ -91,8 +91,9 @@ QString mapHandicapToSfen(const QString& label)
         {"八枚落ち",   "3gkg3/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
         {"十枚落ち",   "4k4/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"},
     };
+    const QString normalizedLabel = label.trimmed();
     for (const auto& p : tbl) {
-        if (label.contains(QString::fromUtf8(p.key))) return QString::fromUtf8(p.sfen);
+        if (normalizedLabel == QString::fromUtf8(p.key)) return QString::fromUtf8(p.sfen);
     }
     return SfenUtils::hirateSfen();
 }

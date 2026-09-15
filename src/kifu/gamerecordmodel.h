@@ -272,6 +272,12 @@ public:
      */
     QList<KifDisplayItem> collectMainlineForExport() const;
 
+    /// 本譜ツリーの局面列からUSI指し手を収集する（終局手は含めない）。
+    QStringList collectMainlineUsiForExport() const;
+
+    /// 本譜の開始SFEN。ツリーがない場合は指定されたSFENを使用する。
+    QString initialSfenForExport(const QString& fallback) const;
+
     /**
      * @brief 出力コンテキストからヘッダ情報を収集
      */

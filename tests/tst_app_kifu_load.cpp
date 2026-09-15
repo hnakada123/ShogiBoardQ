@@ -925,6 +925,15 @@ private slots:
     // I) 各フォーマットのロードメソッド実装
     // ================================================================
 
+    void klc_ki2UsesKi2GameInfo()
+    {
+        const auto range = findFunctionBody(
+            klcLines(), QStringLiteral("KifuLoadCoordinator::loadKi2FromFile"));
+        QVERIFY(range.first >= 0);
+        const QString body = bodyText(klcLines(), range);
+        QVERIFY(body.contains(QStringLiteral("Ki2ToSfenConverter::extractGameInfo")));
+    }
+
     /// 各フォーマットのロードメソッドが loadKifuCommon に委譲すること
     void klc_formatMethods_delegateToCommon()
     {

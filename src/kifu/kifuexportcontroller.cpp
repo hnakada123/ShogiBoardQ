@@ -98,7 +98,13 @@ void KifuExportController::updateState(const QString& startSfen, PlayMode mode,
 
 QStringList KifuExportController::resolveUsiMoves() const
 {
-    // 1. m_usiMovesを優先
+    // 表示テキストと同じ本譜を使う。対局用USI列は途中再開後の新規手だけの場合がある。
+    if (m_deps.gameRecord && m_deps.gameRecord->branchTree()
+        && !m_deps.gameRecord->branchTree()->isEmpty()) {
+        return m_deps.gameRecord->collectMainlineUsiForExport();
+    }
+
+    // ツリーがない場合は対局用データにフォールバックする。
     if (m_deps.usiMoves && !m_deps.usiMoves->isEmpty()) {
         return *m_deps.usiMoves;
     }
@@ -127,7 +133,8 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
     GameRecordModel::ExportContext ctx;
     ctx.gameInfoTable = m_deps.gameInfoController ? m_deps.gameInfoController->tableWidget() : nullptr;
     ctx.recordModel = m_deps.kifuRecordModel;
-    ctx.startSfen = m_deps.startSfenStr;
+    ctx.startSfen = m_deps.gameRecord
+        ? m_deps.gameRecord->initialSfenForExport(m_deps.startSfenStr) : m_deps.startSfenStr;
     ctx.playMode = m_deps.playMode;
     ctx.human1 = m_deps.humanName1;
     ctx.human2 = m_deps.humanName2;

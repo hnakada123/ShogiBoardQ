@@ -263,7 +263,7 @@ bool KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
         },
         KifuDetectSfenFunc(),
         [](const QString& path) {
-            return CsaToSfenConverter::extractGameInfo(path);
+            return Ki2ToSfenConverter::extractGameInfo(path);
         },
         false
     );
