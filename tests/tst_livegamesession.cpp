@@ -151,6 +151,77 @@ private slots:
 
         QCOMPARE(session.totalPly(), 3); // anchorPly(1) + moveCount(2)
     }
+
+    void addMove_reusesExistingChild()
+    {
+        // 対局後に途中局面へ戻り、既存の手と同じ手を指し直しても重複ノードを作らない
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n2 = tree.addMove(n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
+        tree.addMove(n2, move, QStringLiteral("▲投了"), QStringLiteral("board2 b - 4"));
+        const int nodesBefore = tree.nodeCount();
+
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(n1);
+        session.addMove(move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"), QStringLiteral("0:15"));
+
+        QCOMPARE(tree.nodeCount(), nodesBefore);   // ノードは増えない
+        QCOMPARE(session.liveNode(), n2);           // 既存ノードを再利用
+        QCOMPARE(n1->childCount(), 1);
+        QCOMPARE(tree.lineCount(), 1);
+        QCOMPARE(session.moveCount(), 1);
+        QCOMPARE(session.currentLineIndex(), 0);
+    }
+
+    void addMove_branchesAtDivergence()
+    {
+        // 同じ手を1手指し直した後に別の手を指すと、分岐は実際に手が分かれた地点にできる
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* n2 = tree.addMove(n1, move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"));
+        auto* n3 = tree.addMove(n2, move, QStringLiteral("▲投了"), QStringLiteral("board2 b - 4"));
+
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(n1);
+        session.addMove(move, QStringLiteral("△３四歩"), QStringLiteral("board2 b - 3"), QString());
+        session.addMove(move, QStringLiteral("▲２六歩"), QStringLiteral("board3 w - 4"), QString());
+
+        QCOMPARE(n1->childCount(), 1);              // ３四歩は重複しない
+        QCOMPARE(n2->childCount(), 2);              // 投了 と ２六歩 の分岐
+        QVERIFY(n2->hasBranch());
+        QCOMPARE(n2->childAt(0), n3);
+        QCOMPARE(session.liveNode(), n2->childAt(1));
+        QCOMPARE(session.liveNode()->ply(), 3);
+        QCOMPARE(tree.lineCount(), 2);
+        QCOMPARE(tree.allLines().at(1).branchPly, 3);
+
+        auto* end = session.commit();
+        QCOMPARE(end, n2->childAt(1));
+        QVERIFY(!session.isActive());
+    }
+
+    void addMove_reusesTerminalOfSameType()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        ShogiMove move;
+        auto* n1 = tree.addMove(tree.root(), move, QStringLiteral("▲７六歩"), QStringLiteral("board1 w - 2"));
+        auto* resign = tree.addMove(n1, move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"));
+
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(n1);
+        session.addMove(move, QStringLiteral("△投了"), QStringLiteral("board1 w - 3"), QString());
+
+        QCOMPARE(n1->childCount(), 1);
+        QCOMPARE(session.liveNode(), resign);
+    }
 };
 
 QTEST_MAIN(TestLiveGameSession)

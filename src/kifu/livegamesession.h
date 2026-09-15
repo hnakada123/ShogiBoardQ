@@ -60,7 +60,7 @@ public:
     KifuBranchNode* branchPoint() const { return m_branchPoint; }
 
     /**
-     * @brief ライブ対局で最後に追加されたノードを取得
+     * @brief ライブ対局で最後に追加（または既存手の指し直しで再利用）されたノードを取得
      */
     KifuBranchNode* liveNode() const { return m_liveParent; }
 

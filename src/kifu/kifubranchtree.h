@@ -125,6 +125,24 @@ public:
     KifuBranchNode* findBySfen(const QString& sfen) const;
 
     /**
+     * @brief 親ノードの子から、同じ指し手を表す既存ノードを探す
+     * @param parent 親ノード
+     * @param move 指し手（終局手や KIF 本譜由来のノードでは無効な値のことがある）
+     * @param displayText 表示テキスト（終局手の種類判定に使用）
+     * @param sfen この手を指した後の局面SFEN
+     * @return 一致する子ノード。見つからない場合は nullptr
+     *
+     * 通常の指し手は、手数を除いた局面SFENが一致するか、
+     * 有効な ShogiMove 同士が一致すれば同じ手とみなす。
+     * 終局手は終局手の種類が一致すれば同じ手とみなす。
+     * 同じ手を指し直したときに重複ノードを作らないために使う。
+     */
+    KifuBranchNode* findMatchingChild(KifuBranchNode* parent,
+                                      const ShogiMove& move,
+                                      const QString& displayText,
+                                      const QString& sfen) const;
+
+    /**
      * @brief ツリーが空かどうか
      */
     bool isEmpty() const { return m_root == nullptr; }
