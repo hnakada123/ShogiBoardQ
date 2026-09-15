@@ -179,8 +179,6 @@ QString KifuExportController::saveToFile()
                               << usenLines.size() << "USEN,"
                               << usiLines.size() << "USI lines";
     
-    m_kifuDataList = kifLines;
-
     // 分岐の有無を判定
     const bool hasBranches = m_deps.gameRecord->branchTree()
                              && m_deps.gameRecord->branchTree()->lineCount() > 1;
@@ -223,15 +221,18 @@ bool KifuExportController::overwriteFile(const QString& filePath)
     if (filePath.isEmpty()) {
         return false;
     }
-    
-    QStringList kifLines;
-    
+
+    // 名前を付けて保存と同じ基準（拡張子）で保存形式を決める。
+    // KIF 固定で書くと .csa などに保存したファイルが KIF 内容で上書きされてしまう。
+    const KifuSaveCoordinator::SaveFormat format = KifuSaveCoordinator::saveFormatForPath(filePath);
+
+    QStringList lines;
     if (m_deps.gameRecord) {
-        GameRecordModel::ExportContext ctx = buildExportContext();
-        kifLines = m_deps.gameRecord->toKifLines(ctx);
-        qCDebug(lcKifu).noquote() << "overwriteFile: generated" << kifLines.size() << "lines";
-    } else {
-        // フォールバック
+        lines = linesForFormat(format);
+        qCDebug(lcKifu).noquote() << "overwriteFile: generated" << lines.size()
+                                  << "lines for" << filePath;
+    } else if (format == KifuSaveCoordinator::SaveFormat::Kif) {
+        // フォールバック（KIF のみ）
         KifuExportContext ctx;
         ctx.gameInfoTable = m_deps.gameInfoController ? m_deps.gameInfoController->tableWidget() : nullptr;
         ctx.recordModel = m_deps.kifuRecordModel;
@@ -247,15 +248,16 @@ bool KifuExportController::overwriteFile(const QString& filePath)
         ctx.human2 = m_deps.humanName2;
         ctx.engine1 = m_deps.engineName1;
         ctx.engine2 = m_deps.engineName2;
-        
-        kifLines = KifuContentBuilder::buildKifuDataList(ctx);
+
+        lines = KifuContentBuilder::buildKifuDataList(ctx);
+    } else {
+        Q_EMIT statusMessage(tr("棋譜データがありません"), 3000);
+        return false;
     }
-    
-    m_kifuDataList = kifLines;
-    
+
     QString error;
-    const bool ok = KifuSaveCoordinator::overwriteExisting(filePath, kifLines, &error);
-    
+    const bool ok = KifuSaveCoordinator::overwriteExisting(filePath, lines, &error);
+
     if (ok) {
         if (m_deps.gameRecord) {
             m_deps.gameRecord->clearDirty();
@@ -266,6 +268,28 @@ bool KifuExportController::overwriteFile(const QString& filePath)
     }
 
     return ok;
+}
+
+QStringList KifuExportController::linesForFormat(KifuSaveCoordinator::SaveFormat format) const
+{
+    if (!m_deps.gameRecord) return QStringList();
+
+    const GameRecordModel::ExportContext ctx = buildExportContext();
+    switch (format) {
+    case KifuSaveCoordinator::SaveFormat::Ki2:
+        return m_deps.gameRecord->toKi2Lines(ctx);
+    case KifuSaveCoordinator::SaveFormat::Csa:
+        return m_deps.gameRecord->toCsaLines(ctx, resolveUsiMoves());
+    case KifuSaveCoordinator::SaveFormat::Jkf:
+        return m_deps.gameRecord->toJkfLines(ctx);
+    case KifuSaveCoordinator::SaveFormat::Usen:
+        return m_deps.gameRecord->toUsenLines(ctx, resolveUsiMoves());
+    case KifuSaveCoordinator::SaveFormat::Usi:
+        return m_deps.gameRecord->toUsiLines(ctx, resolveUsiMoves());
+    case KifuSaveCoordinator::SaveFormat::Kif:
+        break;
+    }
+    return m_deps.gameRecord->toKifLines(ctx);
 }
 
 std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDir)

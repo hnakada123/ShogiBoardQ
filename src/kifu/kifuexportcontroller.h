@@ -31,6 +31,7 @@ class ReplayController;
 class ShogiGameController;
 class KifuExportClipboard;
 struct ShogiMove;
+namespace KifuSaveCoordinator { enum class SaveFormat; }
 
 /**
  * @brief KifuExportController - 棋譜エクスポートの管理クラス
@@ -192,13 +193,15 @@ private:
      */
     GameRecordModel::ExportContext buildExportContext() const;
 
+    /**
+     * @brief 保存形式に応じた出力行を生成（m_deps.gameRecord が必要）
+     */
+    QStringList linesForFormat(KifuSaveCoordinator::SaveFormat format) const;
+
     QWidget* m_parentWidget = nullptr;
     Dependencies m_deps;
     std::function<void()> m_prepareCallback;
     KifuExportClipboard* m_clipboard = nullptr;
-
-    // キャッシュ用
-    QStringList m_kifuDataList;
 };
 
 #endif // KIFUEXPORTCONTROLLER_H
