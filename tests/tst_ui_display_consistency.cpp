@@ -377,6 +377,77 @@ private slots:
         QCOMPARE(h.state.currentNode(), end);
     }
 
+    // ライブ対局中の「+」マークは表示中ラインの経路だけから決まり、
+    // 別ラインにある同じ手数の分岐を拾わないこと。新たな分岐点ができれば付くこと。
+    void liveGameBranchMarks_followDisplayedPathOnly()
+    {
+        UiHarness h;
+        // 分岐ライン（▲６六歩）の3手目ノードに4手目の別手を足して入れ子分岐を作る。
+        // これで「4手目に分岐点があるが、本譜の4手目ノードは分岐ではない」状態になる。
+        KifuBranchNode* a3 = h.scenario.branchFirstNode;   // ply 3 ▲６六歩
+        QVERIFY(a3 != nullptr);
+        const QString nestedSfen =
+            SfenPositionTracer::buildSfenRecord(a3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+        ShogiMove dummyMove;
+        QVERIFY(h.tree.addMove(a3, dummyMove, QStringLiteral("△３二金(41)"), nestedSfen) != nullptr);
+        QCOMPARE(a3->childCount(), 2);
+
+        LiveGameSession session;
+        session.setTree(&h.tree);
+        h.coordinator.setLiveGameSession(&session);
+
+        // 本譜5手目（▲２五歩、本譜の末尾）から対局開始
+        KifuBranchNode* start = h.tree.findByPlyOnMainLine(5);
+        QVERIFY(start != nullptr);
+        QCOMPARE(start->childCount(), 0);
+        h.nav.goToNode(start);
+        QCoreApplication::processEvents();
+        session.startFromNode(start);
+
+        // 開始時点: 経路上の分岐点は3手目（本譜▲２六歩 vs 分岐▲６六歩）だけ
+        QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
+
+        const QString sfen6 =
+            SfenPositionTracer::buildSfenRecord(start->sfen(), { QStringLiteral("8d8e") }, false).at(1);
+        h.board.setSfen(sfen6);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   6 △８五歩(84)"), QStringLiteral("0:01"),
+                                                 QString(), QString(), &h.recordModel));
+        session.addMove(dummyMove, QStringLiteral("△８五歩(84)"), sfen6, QStringLiteral("0:01"));
+        QCoreApplication::processEvents();
+
+        // 4手目の分岐は分岐ライン側のものなので、表示中の本譜4手目には「+」を付けない
+        QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
+        QCOMPARE(h.recordModel.currentHighlightRow(), 6);
+
+        // 本譜4手目（△８四歩）の局面から別の手を指すと、5手目に新しい分岐点ができる
+        QVERIFY(session.commit() != nullptr);
+        QCoreApplication::processEvents();
+        KifuBranchNode* main4 = h.tree.findByPlyOnMainLine(4);
+        QVERIFY(main4 != nullptr);
+        h.nav.goToNode(main4);
+        QCoreApplication::processEvents();
+
+        LiveGameSession session2;
+        session2.setTree(&h.tree);
+        h.coordinator.setLiveGameSession(&session2);
+        session2.startFromNode(main4);
+        QVERIFY(h.recordModel.branchPlyMarks() == QSet<int>{3});
+
+        const QString sfen5b =
+            SfenPositionTracer::buildSfenRecord(main4->sfen(), { QStringLiteral("6g6f") }, false).at(1);
+        h.board.setSfen(sfen5b);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲６六歩(67)"), QStringLiteral("0:01"),
+                                                 QString(), QString(), &h.recordModel));
+        session2.addMove(dummyMove, QStringLiteral("▲６六歩(67)"), sfen5b, QStringLiteral("0:01"));
+        QCoreApplication::processEvents();
+
+        QVERIFY(h.recordModel.branchPlyMarks() == (QSet<int>{3, 5}));
+        QCOMPARE(h.recordModel.currentHighlightRow(), 5);
+        QString reason;
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+    }
+
     void detectsTreeHighlightMismatch()
     {
         UiHarness h;

@@ -98,13 +98,6 @@ void KifuDisplayCoordinator::onLiveGameSessionStarted(KifuBranchNode* branchPoin
     onRecordHighlightRequired(highlightRow);
 }
 
-void KifuDisplayCoordinator::onLiveGameBranchMarksUpdated(const QSet<int>& branchPlys)
-{
-    if (m_recordModel != nullptr) {
-        m_recordModel->setBranchPlyMarks(branchPlys);
-    }
-}
-
 void KifuDisplayCoordinator::onLiveGameCommitted(KifuBranchNode* newLineEnd)
 {
     updateRecordView();
