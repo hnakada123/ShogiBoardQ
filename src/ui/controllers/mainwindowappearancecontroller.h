@@ -24,6 +24,7 @@ class QMainWindow;
  * - ツールバー設定・表示切替
  * - ツールチップ設定
  * - 盤面中央配置・サイズ追従
+ * - 盤面・棋譜・ドック配置に合わせたウィンドウ横幅の固定
  * - 名前/時計フォント設定
  * - 盤反転+プレイヤー情報更新
  * - 盤拡大/縮小
@@ -99,10 +100,16 @@ public slots:
     void onTabCurrentChanged(int index);
 
 private:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+    void scheduleWindowWidthUpdate();
+    void updateWindowWidth();
+
     Deps m_deps;
+    QMainWindow* m_mainWindow = nullptr;
     QWidget* m_central = nullptr;
     QVBoxLayout* m_centralLayout = nullptr;
     QToolBar* m_toolBar = nullptr;
+    bool m_windowWidthUpdatePending = false;
 };
 
 #endif // MAINWINDOWAPPEARANCECONTROLLER_H

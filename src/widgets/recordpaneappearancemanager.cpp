@@ -115,30 +115,18 @@ void RecordPaneAppearanceManager::updateColumnResizeModes(QTableView* kifu)
 
     // 指し手列は内容に合わせ、表全体の幅は RecordPane 側で調整する
     hh->setSectionResizeMode(0, QHeaderView::ResizeToContents);
+    hh->setSectionResizeMode(1, QHeaderView::ResizeToContents);
 
-    const bool col1Visible = !kifu->isColumnHidden(1);
     const bool col2Visible = !kifu->isColumnHidden(2);
     const bool col3Visible = !kifu->isColumnHidden(3);
 
     // しおり・コメントの最右の表示列だけを Stretch にする
     if (col3Visible) {
-        if (col1Visible) {
-            hh->setSectionResizeMode(1, QHeaderView::Fixed);
-            hh->resizeSection(1, 130);
-        }
         if (col2Visible)
             hh->setSectionResizeMode(2, QHeaderView::ResizeToContents);
         hh->setSectionResizeMode(3, QHeaderView::Stretch);
     } else if (col2Visible) {
-        if (col1Visible) {
-            hh->setSectionResizeMode(1, QHeaderView::Fixed);
-            hh->resizeSection(1, 130);
-        }
         hh->setSectionResizeMode(2, QHeaderView::Stretch);
-    } else if (col1Visible) {
-        // 指し手列は内容に合わせ、消費時間列は固定幅（どちらも Stretch しない）
-        hh->setSectionResizeMode(1, QHeaderView::Fixed);
-        hh->resizeSection(1, 130);
     }
 }
 

@@ -320,6 +320,10 @@ void GameSessionOrchestrator::onResignationTriggered()
 // ============================================================
 
 MainWindowAppearanceController::MainWindowAppearanceController(QObject* parent) : QObject(parent) {}
+bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event)
+{
+    return QObject::eventFilter(watched, event);
+}
 void MainWindowAppearanceController::updateDeps(const Deps&) {}
 void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget*) {}
 void MainWindowAppearanceController::configureToolBarFromUi(QToolBar*, QAction*) {}

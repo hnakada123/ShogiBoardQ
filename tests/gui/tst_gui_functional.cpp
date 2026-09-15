@@ -8,11 +8,13 @@
 #include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QFileDialog>
+#include <QHeaderView>
 #include <QInputDialog>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QLineEdit>
+#include <QLayout>
 #include <QMenuBar>
 #include <QMenu>
 #include <QMessageBox>
@@ -20,6 +22,7 @@
 #include <QTextEdit>
 #include <QSpinBox>
 #include <QSettings>
+#include <QScrollBar>
 #include <QStatusBar>
 #include <QTableView>
 #include <QTimer>
@@ -322,6 +325,63 @@ private slots:
         QVERIFY(f.open(QIODevice::WriteOnly));
         f.write(QJsonDocument(menus).toJson());
         snapshot("startup");
+    }
+    void windowWidthFollowsContent()
+    {
+        armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_basic.kif"));
+        click("actionOpenKifuFile");
+        QVERIFY(dialogHandled);
+        QVERIFY(record()->kifuView()->model()->rowCount() > 1);
+        record()->onToggleBookmarkColumn(false);
+        record()->onToggleCommentColumn(false);
+        record()->onToggleTimeColumn(true);
+        auto* table = record()->kifuView();
+        auto* dock = window->findChild<QDockWidget*>("RecordPaneDock");
+        QVERIFY(dock);
+
+        QTRY_COMPARE(table->viewport()->width(), table->horizontalHeader()->length());
+        QTRY_COMPARE(dock->width(), record()->maximumWidth());
+        QTRY_COMPARE(window->width(), window->layout()->minimumSize().width());
+        QTRY_COMPARE(board()->mapTo(window.get(), QPoint()).x(), window->contentsRect().left());
+        QTRY_COMPARE(window->minimumWidth(), window->maximumWidth());
+        const int initialWidth = window->width();
+        const int initialHeight = window->height();
+        window->resize(initialWidth + 200, initialHeight + 100);
+        QCOMPARE(window->width(), initialWidth);
+        QCOMPARE(window->height(), initialHeight + 100);
+        QCOMPARE(board()->mapTo(window.get(), QPoint()).x(), window->contentsRect().left());
+        const int boardRight = board()->mapTo(window.get(), QPoint(board()->width(), 0)).x();
+        QVERIFY(dock->x() - boardRight < 10);
+        snapshot("fixed-window-width");
+
+        for (int i = 0; i < 6; ++i) QTest::mouseClick(record()->fontIncreaseButton(), Qt::LeftButton);
+        QTRY_VERIFY(window->width() > initialWidth);
+        QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
+        const QString time = table->model()->index(1, 1).data().toString();
+        QVERIFY(!time.isEmpty());
+        QVERIFY(table->columnWidth(1) >= table->fontMetrics().horizontalAdvance(time) + 6);
+        QVERIFY(table->visualRect(table->model()->index(1, 1)).right() < table->viewport()->width());
+        QCOMPARE(window->minimumWidth(), window->maximumWidth());
+        snapshot("fixed-window-large-kifu-font");
+
+        const int largeFontWidth = window->width();
+        board()->enlargeBoard();
+        QTRY_VERIFY(window->width() > largeFontWidth);
+        board()->reduceBoard();
+        QTRY_COMPARE(window->width(), largeFontWidth);
+
+        record()->onToggleTimeColumn(false);
+        QTRY_VERIFY(window->width() < largeFontWidth);
+        record()->onToggleTimeColumn(true);
+        QTRY_COMPARE(window->width(), largeFontWidth);
+        for (int i = 0; i < 6; ++i) QTest::mouseClick(record()->fontDecreaseButton(), Qt::LeftButton);
+        QTRY_COMPARE(window->width(), initialWidth);
+
+        // しおり・コメントを併用しても指し手と消費時間は全体を表示する。
+        record()->onToggleBookmarkColumn(true);
+        record()->onToggleCommentColumn(true);
+        QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
+        QVERIFY(table->visualRect(table->model()->index(1, 1)).right() < table->viewport()->width());
     }
     void pieceStyles()
     {

@@ -248,24 +248,35 @@ void RecordPane::updateKifuTableWidth()
 {
     if (!m_kifu->model()) return;
 
-    if (!m_kifu->isColumnHidden(2) || !m_kifu->isColumnHidden(3)) {
-        // しおり・コメントを表示するときは、その列をペインの幅まで広げる。
-        m_kifu->setMinimumWidth(0);
-        m_kifu->setMaximumWidth(QWIDGETSIZE_MAX);
-        setMaximumWidth(QWIDGETSIZE_MAX);
-        return;
-    }
-
     const auto* scrollBar = m_kifu->verticalScrollBar();
     const int scrollBarWidth = scrollBar->maximum() > scrollBar->minimum()
         ? scrollBar->sizeHint().width() : 0;
-    const int tableWidth = m_kifu->horizontalHeader()->length()
-        + scrollBarWidth + 2 * m_kifu->frameWidth();
-    m_kifu->setFixedWidth(tableWidth);
+    const auto* header = m_kifu->horizontalHeader();
+    int tableWidth = scrollBarWidth + 2 * m_kifu->frameWidth();
+    bool hasStretchColumn = false;
+    for (int column = 0; column < header->count(); ++column) {
+        if (m_kifu->isColumnHidden(column)) continue;
+        if (header->sectionResizeMode(column) == QHeaderView::Stretch) {
+            // 長いコメントでウィンドウを広げすぎず、見出しと閲覧用の幅を確保する。
+            tableWidth += qMax(120, header->sectionSizeHint(column));
+            hasStretchColumn = true;
+        } else {
+            tableWidth += header->sectionSize(column);
+        }
+    }
 
-    // ドックにも幅の上限を伝え、操作ボタンと分岐候補欄を表のすぐ右に寄せる。
-    setMaximumWidth(tableWidth + m_navButtons->width() + m_branchContainer->width()
-                    + m_lr->handleWidth() * (m_lr->count() - 1));
+    const int paneWidth = tableWidth + m_navButtons->width() + m_branchContainer->width()
+        + m_lr->handleWidth() * (m_lr->count() - 1);
+    if (hasStretchColumn) {
+        // しおり・コメントを広げる場合も指し手・消費時間の幅は確保する。
+        m_kifu->setMaximumWidth(QWIDGETSIZE_MAX);
+        m_kifu->setMinimumWidth(tableWidth);
+        setMaximumWidth(QWIDGETSIZE_MAX);
+        setMinimumWidth(paneWidth);
+    } else {
+        m_kifu->setFixedWidth(tableWidth);
+        setFixedWidth(paneWidth);
+    }
 }
 
 void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* brModel)
