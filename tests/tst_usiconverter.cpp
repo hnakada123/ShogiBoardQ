@@ -353,6 +353,140 @@ private slots:
     }
 
     // ========================================
+    // .sfen / position-only files (bare SFEN)
+    // ========================================
+
+    void parseUsiFile_bareSfenPositionOnly()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_bare_XXXXXX.sfen"));
+        QVERIFY(tmp.open());
+        tmp.write("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2\n");
+        tmp.close();
+
+        QString baseSfen;
+        QStringList moves;
+        QString terminal;
+        QString warn;
+        QVERIFY2(UsiToSfenConverter::parseUsiFile(tmp.fileName(), baseSfen, moves, &terminal, &warn),
+                 qPrintable(warn));
+        QCOMPARE(baseSfen, QStringLiteral(
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2"));
+        QVERIFY(moves.isEmpty());
+        QVERIFY(terminal.isEmpty());
+        QVERIFY2(warn.isEmpty(), qPrintable(warn));
+
+        QString label;
+        QCOMPARE(UsiToSfenConverter::detectInitialSfenFromFile(tmp.fileName(), &label), baseSfen);
+        QCOMPARE(label, QStringLiteral("局面指定"));
+    }
+
+    void parseUsiFile_bareSfenWithoutMoveNumber()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_noply_XXXXXX.sfen"));
+        QVERIFY(tmp.open());
+        tmp.write("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -\n");
+        tmp.close();
+
+        QString baseSfen;
+        QStringList moves;
+        QString terminal;
+        QString warn;
+        QVERIFY2(UsiToSfenConverter::parseUsiFile(tmp.fileName(), baseSfen, moves, &terminal, &warn),
+                 qPrintable(warn));
+        // 手数は 1 で補完される
+        QCOMPARE(baseSfen, kHirateSfen);
+        QVERIFY(moves.isEmpty());
+    }
+
+    void convertFile_sfenPrefixWithoutPosition()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_sfenonly_XXXXXX.sfen"));
+        QVERIFY(tmp.open());
+        tmp.write("sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f 3c3d\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+        QCOMPARE(UsiToSfenConverter::detectInitialSfenFromFile(tmp.fileName()), kHirateSfen);
+    }
+
+    void convertFile_sfenWithoutMoveNumberAndMoves()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_noplymoves_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - moves 7g7f\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves, QStringList({QStringLiteral("7g7f")}));
+        QCOMPARE(UsiToSfenConverter::detectInitialSfenFromFile(tmp.fileName()), kHirateSfen);
+    }
+
+    void convertFile_extraWhitespace()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_ws2_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("position  sfen   lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL  b  -  1   moves  7g7f   3c3d \n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+    }
+
+    void readUsiFile_skipsNonPositionLines()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_comment_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("# exported by some tool\n\nposition startpos moves 7g7f 3c3d\n");
+        tmp.close();
+
+        QString error;
+        QStringList moves = UsiToSfenConverter::convertFile(tmp.fileName(), &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QCOMPARE(moves, QStringList({QStringLiteral("7g7f"), QStringLiteral("3c3d")}));
+    }
+
+    void parseWithVariations_unknownFormat()
+    {
+        QTemporaryFile tmp;
+        tmp.setFileTemplate(QDir::tempPath() + QStringLiteral("/test_unknown_XXXXXX.usi"));
+        QVERIFY(tmp.open());
+        tmp.write("hello world\n");
+        tmp.close();
+
+        KifParseResult result;
+        QString error;
+        QVERIFY(!UsiToSfenConverter::parseWithVariations(tmp.fileName(), result, &error));
+        QVERIFY2(error.contains(QStringLiteral("Unknown USI position format")), qPrintable(error));
+    }
+
+    void parseUsiFile_collectionFixtureUsesFirstLine()
+    {
+        QString baseSfen;
+        QStringList moves;
+        QString terminal;
+        QString warn;
+        QVERIFY2(UsiToSfenConverter::parseUsiFile(
+                     fixturePath(QStringLiteral("test_collection.sfen")),
+                     baseSfen, moves, &terminal, &warn),
+                 qPrintable(warn));
+        QCOMPARE(baseSfen, kHirateSfen);
+        QVERIFY(moves.isEmpty());
+    }
+
+    // ========================================
     // Boundary: detect SFEN from empty file
     // ========================================
 

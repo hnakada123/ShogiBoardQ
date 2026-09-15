@@ -264,6 +264,23 @@ private slots:
                   "Must route .usi to loadUsiFromFile");
     }
 
+    /// dispatchKifuLoad が .sfen を .usi と同じ USI/SFEN ローダーにルーティングすること
+    void dispatchKifuLoad_routesSfen()
+    {
+        const QStringList& lines = kfcLines();
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("KifuFileController::dispatchKifuLoad"));
+        QVERIFY2(range.first >= 0, "dispatchKifuLoad not found");
+
+        const QString body = bodyText(lines, range);
+        const auto sfenIdx = body.indexOf(QStringLiteral(".sfen"));
+        const auto kifIdx = body.indexOf(QStringLiteral("loadKifuFromFile"));
+        QVERIFY2(sfenIdx >= 0, "Must check for .sfen extension");
+        QVERIFY2(sfenIdx < kifIdx, ".sfen must be routed before the KIF default");
+        QVERIFY2(body.mid(sfenIdx).contains(QStringLiteral("loadUsiFromFile")),
+                  "Must route .sfen to loadUsiFromFile");
+    }
+
     /// dispatchKifuLoad がデフォルトで loadKifuFromFile を呼ぶこと
     void dispatchKifuLoad_defaultToKif()
     {
@@ -733,6 +750,23 @@ private slots:
         // パース失敗時に m_loadingKifu = false が設定されること
         QVERIFY2(body.contains(QStringLiteral("m_loadingKifu = false")),
                   "Must reset m_loadingKifu on parse failure");
+    }
+
+    /// loadUsiFromFile が指し手のないファイルを局面として反映すること
+    void klc_loadUsi_handlesPositionOnlyFile()
+    {
+        const QStringList& lines = klcLines();
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("KifuLoadCoordinator::loadUsiFromFile"));
+        QVERIFY2(range.first >= 0, "loadUsiFromFile not found");
+
+        const QString body = bodyText(lines, range);
+        QVERIFY2(body.contains(QStringLiteral("parseUsiFile")),
+                  "Must inspect the file for moves before choosing the pipeline");
+        QVERIFY2(body.contains(QStringLiteral("loadPositionFromSfen")),
+                  "Position-only files must be applied as a position");
+        QVERIFY2(body.contains(QStringLiteral("loadKifuCommon")),
+                  "Files with moves must go through the kifu pipeline");
     }
 
     /// 各フォーマットのロードメソッドが成否を返すこと

@@ -218,7 +218,8 @@ bool KifuFileController::dispatchKifuLoad(const QString& filePath)
     if (filePath.endsWith(QLatin1String(".usen"), Qt::CaseInsensitive)) {
         return klc->loadUsenFromFile(filePath);
     }
-    if (filePath.endsWith(QLatin1String(".usi"), Qt::CaseInsensitive)) {
+    if (filePath.endsWith(QLatin1String(".usi"), Qt::CaseInsensitive)
+        || filePath.endsWith(QLatin1String(".sfen"), Qt::CaseInsensitive)) {
         return klc->loadUsiFromFile(filePath);
     }
     return klc->loadKifuFromFile(filePath);

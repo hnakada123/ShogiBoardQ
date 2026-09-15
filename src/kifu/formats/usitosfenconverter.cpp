@@ -29,6 +29,9 @@
 //    startpos moves 2g2f 3c3d ...
 //    sfen lnsgkgsnl/... b - 1 moves 2g2f 3c3d ...
 //
+// 4. 局面のみ（.sfen ファイルなど）。sfen 接頭辞と手数は省略可:
+//    lnsgkgsnl/... b - 1
+//
 // 指し手の形式:
 // - 通常移動: <from><to>     例: 7g7f (７七から７六へ)
 // - 成る場合: <from><to>+    例: 8h2b+ (８八から２二へ成る)
@@ -119,6 +122,67 @@ static bool isValidUsiMove(const QString& str)
     return false;
 }
 
+// ---- SFEN / position 行のトークン判定 ----
+
+static bool equalsKeyword(const QString& token, const char* keyword)
+{
+    return token.compare(QLatin1String(keyword), Qt::CaseInsensitive) == 0;
+}
+
+// 盤面トークン: '/' 区切りの 9 段で、駒文字・数字・'+' のみ
+static bool looksLikeSfenBoard(const QString& token)
+{
+    if (token.count(QLatin1Char('/')) != 8) return false;
+    static const QString kAllowed = QStringLiteral("lnsgkrpbLNSGKRPB123456789+/");
+    for (const QChar c : token) {
+        if (!kAllowed.contains(c)) return false;
+    }
+    return true;
+}
+
+static bool isTurnToken(const QString& token)
+{
+    return equalsKeyword(token, "b") || equalsKeyword(token, "w");
+}
+
+// 持ち駒トークン: "-" または枚数付き駒文字の並び（例: "2P3p", "S"）
+static bool isHandsToken(const QString& token)
+{
+    if (token == QStringLiteral("-")) return true;
+    if (token.isEmpty()) return false;
+    static const QString kAllowed = QStringLiteral("PLNSGBRplnsgbr0123456789");
+    for (const QChar c : token) {
+        if (!kAllowed.contains(c)) return false;
+    }
+    return true;
+}
+
+static bool isPlyToken(const QString& token)
+{
+    if (token.isEmpty()) return false;
+    for (const QChar c : token) {
+        if (c < QLatin1Char('0') || c > QLatin1Char('9')) return false;
+    }
+    return true;
+}
+
+static QStringList splitTokens(const QString& text)
+{
+    static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
+    return text.trimmed().split(kWhitespaceRe, Qt::SkipEmptyParts);
+}
+
+// 行が USI position / SFEN として解釈できそうか（ファイル内の対象行の選択に使う）
+static bool looksLikePositionLine(const QString& line)
+{
+    const QStringList tokens = splitTokens(line);
+    qsizetype i = 0;
+    if (i < tokens.size() && equalsKeyword(tokens.at(i), "position")) ++i;
+    if (i >= tokens.size()) return false;
+    if (equalsKeyword(tokens.at(i), "startpos") || equalsKeyword(tokens.at(i), "sfen")) return true;
+    return looksLikeSfenBoard(tokens.at(i));
+}
+
 } // namespace
 
 // ============================================================================
@@ -127,18 +191,12 @@ static bool isValidUsiMove(const QString& str)
 
 QString UsiToSfenConverter::detectInitialSfenFromFile(const QString& usiPath, QString* detectedLabel)
 {
-    QString content;
-    QString warn;
-    if (!readUsiFile(usiPath, content, &warn)) {
-        if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
-        return SfenUtils::hirateSfen();
-    }
-
     QString baseSfen;
     QStringList usiMoves;
     QString terminalCode;
+    QString warn;
 
-    if (!parseUsiPositionString(content, baseSfen, usiMoves, &terminalCode, &warn)) {
+    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, &warn)) {
         if (detectedLabel) *detectedLabel = QStringLiteral("平手(既定)");
         return SfenUtils::hirateSfen();
     }
@@ -155,16 +213,11 @@ QString UsiToSfenConverter::detectInitialSfenFromFile(const QString& usiPath, QS
 
 QStringList UsiToSfenConverter::convertFile(const QString& usiPath, QString* errorMessage)
 {
-    QString content;
-    if (!readUsiFile(usiPath, content, errorMessage)) {
-        return QStringList();
-    }
-
     QString baseSfen;
     QStringList usiMoves;
     QString terminalCode;
 
-    if (!parseUsiPositionString(content, baseSfen, usiMoves, &terminalCode, errorMessage)) {
+    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) {
         return QStringList();
     }
 
@@ -175,16 +228,11 @@ QList<KifDisplayItem> UsiToSfenConverter::extractMovesWithTimes(const QString& u
 {
     QList<KifDisplayItem> out;
 
-    QString content;
-    if (!readUsiFile(usiPath, content, errorMessage)) {
-        return out;
-    }
-
     QString baseSfen;
     QStringList usiMoves;
     QString terminalCode;
 
-    if (!parseUsiPositionString(content, baseSfen, usiMoves, &terminalCode, errorMessage)) {
+    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) {
         return out;
     }
 
@@ -209,16 +257,11 @@ bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
 {
     out = KifParseResult{};
 
-    QString content;
-    if (!readUsiFile(usiPath, content, errorMessage)) {
-        return false;
-    }
-
     QString baseSfen;
     QStringList usiMoves;
     QString terminalCode;
 
-    if (!parseUsiPositionString(content, baseSfen, usiMoves, &terminalCode, errorMessage)) {
+    if (!parseUsiFile(usiPath, baseSfen, usiMoves, &terminalCode, errorMessage)) {
         return false;
     }
 
@@ -275,6 +318,19 @@ QString UsiToSfenConverter::terminalCodeToJapanese(const QString& code)
 // 非公開メソッド
 // ============================================================================
 
+bool UsiToSfenConverter::parseUsiFile(const QString& usiPath,
+                                      QString& baseSfen,
+                                      QStringList& usiMoves,
+                                      QString* terminalCode,
+                                      QString* warn)
+{
+    QString content;
+    if (!readUsiFile(usiPath, content, warn)) {
+        return false;
+    }
+    return parseUsiPositionString(content, baseSfen, usiMoves, terminalCode, warn);
+}
+
 bool UsiToSfenConverter::readUsiFile(const QString& filePath, QString& content, QString* warn)
 {
     QStringList lines;
@@ -283,22 +339,25 @@ bool UsiToSfenConverter::readUsiFile(const QString& filePath, QString& content, 
         return false;
     }
 
-    // 複数行を連結（空行や空白のみの行は無視）
-    QStringList nonEmptyLines;
+    // 最初の position/SFEN らしき行を対象にする（コメント行などは読み飛ばす）。
+    // 見つからなければ最初の非空行を返し、形式エラーは解析側で報告する。
+    QString firstNonEmpty;
     for (const QString& line : std::as_const(lines)) {
         const QString trimmed = line.trimmed();
-        if (!trimmed.isEmpty()) {
-            nonEmptyLines.append(trimmed);
+        if (trimmed.isEmpty()) continue;
+        if (looksLikePositionLine(trimmed)) {
+            content = trimmed;
+            return true;
         }
+        if (firstNonEmpty.isEmpty()) firstNonEmpty = trimmed;
     }
 
-    // 最初の非空行を使用
-    if (nonEmptyLines.isEmpty()) {
+    if (firstNonEmpty.isEmpty()) {
         if (warn) *warn += QStringLiteral("Empty USI file\n");
         return false;
     }
 
-    content = nonEmptyLines.first();
+    content = firstNonEmpty;
     return true;
 }
 
@@ -308,79 +367,63 @@ bool UsiToSfenConverter::parseUsiPositionString(const QString& usiStr,
                                                  QString* terminalCode,
                                                  QString* warn)
 {
-    Q_UNUSED(warn)
-
-    QString str = usiStr.trimmed();
-
-    // "position" キーワードがあれば除去
-    if (str.startsWith(QStringLiteral("position"), Qt::CaseInsensitive)) {
-        str = str.mid(8).trimmed();
-    }
-
-    // startpos または sfen で始まるか判定
-    int sfenEndIndex = 0;
-
-    if (str.startsWith(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
-        baseSfen = SfenUtils::hirateSfen();
-        sfenEndIndex = 8;  // "startpos" の長さ
-    } else if (str.startsWith(QStringLiteral("sfen"), Qt::CaseInsensitive)) {
-        // SFEN形式: "sfen <board> <stm> <hands> <ply> [moves ...]"
-        // "sfen " を除去
-        const QString rest = str.mid(5).trimmed();
-
-        // "moves" キーワードの位置を探す
-        const qsizetype movesIdx = rest.indexOf(QStringLiteral(" moves "), Qt::CaseInsensitive);
-
-        if (movesIdx >= 0) {
-            // "moves" より前がSFEN
-            baseSfen = rest.left(movesIdx).trimmed();
-            sfenEndIndex = static_cast<int>(5 + movesIdx);  // "sfen " + SFEN部分
-        } else {
-            // "moves" がない場合、全体がSFEN（指し手なし）
-            baseSfen = rest;
-            sfenEndIndex = static_cast<int>(str.size());
-        }
-    } else {
-        // 不明な形式 → デフォルトで平手初期局面
-        if (warn) *warn += QStringLiteral("Unknown USI position format, defaulting to startpos\n");
-        baseSfen = SfenUtils::hirateSfen();
-
-        // "moves" があるか確認
-        const qsizetype movesIdx = str.indexOf(QStringLiteral("moves"), Qt::CaseInsensitive);
-        if (movesIdx >= 0) {
-            sfenEndIndex = static_cast<int>(movesIdx);
-        } else {
-            sfenEndIndex = 0;
-        }
-    }
-
-    // "moves" 以降を解析
-    QString movesStr = str.mid(sfenEndIndex).trimmed();
-    if (movesStr.startsWith(QStringLiteral("moves"), Qt::CaseInsensitive)) {
-        movesStr = movesStr.mid(5).trimmed();  // "moves" を除去
-    }
-
-    // 指し手をスペースで分割
+    baseSfen.clear();
     usiMoves.clear();
     if (terminalCode) terminalCode->clear();
 
-    if (!movesStr.isEmpty()) {
-        static const QRegularExpression kWhitespaceRe(QStringLiteral("\\s+"));
-        const QStringList tokens = movesStr.split(kWhitespaceRe, Qt::SkipEmptyParts);
+    const QStringList tokens = splitTokens(usiStr);
+    qsizetype i = 0;
 
-        for (const QString& token : std::as_const(tokens)) {
-            if (isTerminalCode(token)) {
-                // 終局理由コード
-                if (terminalCode) *terminalCode = token.toLower();
-                break;  // 終局理由以降は無視
-            } else if (isValidUsiMove(token)) {
-                usiMoves.append(token);
-            } else {
-                // 不明なトークンは無視（または警告）
-                if (warn) {
-                    *warn += QStringLiteral("Skipping unknown token: %1\n").arg(token);
-                }
+    // "position" は省略可
+    if (i < tokens.size() && equalsKeyword(tokens.at(i), "position")) ++i;
+
+    // 開始局面: startpos | [sfen] <board> <turn> <hands> [<ply>]
+    if (i < tokens.size() && equalsKeyword(tokens.at(i), "startpos")) {
+        baseSfen = SfenUtils::hirateSfen();
+        ++i;
+    } else {
+        if (i < tokens.size() && equalsKeyword(tokens.at(i), "sfen")) ++i;
+
+        const bool hasSfenFields = (i + 3 <= tokens.size())
+                                   && looksLikeSfenBoard(tokens.at(i))
+                                   && isTurnToken(tokens.at(i + 1))
+                                   && isHandsToken(tokens.at(i + 2));
+        if (!hasSfenFields) {
+            if (warn) {
+                *warn += QStringLiteral("Unknown USI position format: %1\n")
+                             .arg(usiStr.trimmed().left(80));
             }
+            return false;
+        }
+
+        const QString board = tokens.at(i);
+        const QString turn = tokens.at(i + 1).toLower();
+        const QString hands = tokens.at(i + 2);
+        i += 3;
+
+        // 手数は省略可（既定 1）
+        QString ply = QStringLiteral("1");
+        if (i < tokens.size() && isPlyToken(tokens.at(i))) {
+            ply = tokens.at(i);
+            ++i;
+        }
+        baseSfen = QStringLiteral("%1 %2 %3 %4").arg(board, turn, hands, ply);
+    }
+
+    // 指し手列（"moves" キーワードは省略可）
+    if (i < tokens.size() && equalsKeyword(tokens.at(i), "moves")) ++i;
+
+    for (; i < tokens.size(); ++i) {
+        const QString& token = tokens.at(i);
+        if (isTerminalCode(token)) {
+            // 終局理由コード。以降は無視
+            if (terminalCode) *terminalCode = token.toLower();
+            break;
+        }
+        if (isValidUsiMove(token)) {
+            usiMoves.append(token);
+        } else if (warn) {
+            *warn += QStringLiteral("Skipping unknown token: %1\n").arg(token);
         }
     }
 

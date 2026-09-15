@@ -4318,12 +4318,12 @@ Select OK to specify the save location.</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="363"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="377"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="383"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="397"/>
         <source>一時ファイルの作成に失敗しました。</source>
         <translation>Failed to create temporary file.</translation>
     </message>
