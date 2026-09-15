@@ -24,26 +24,7 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
                        << "preferredLineIndex=" << (m_state ? m_state->preferredLineIndex() : -999);
 
     // ラインが変更された場合は棋譜欄の内容を更新
-    if (m_state != nullptr) {
-        const int newLineIndex = m_state->currentLineIndex();
-        qCDebug(lcUi).noquote() << "onNavigationCompleted: newLineIndex=" << newLineIndex
-                           << "m_lastLineIndex=" << m_lastLineIndex
-                           << "m_lastModelLineIndex=" << m_presenter->lastModelLineIndex();
-
-        const bool lineIndexChanged = (newLineIndex != m_lastLineIndex);
-        const bool modelNeedsUpdate = (m_presenter->lastModelLineIndex() >= 0
-                                       && m_presenter->lastModelLineIndex() != newLineIndex);
-
-        if (lineIndexChanged || modelNeedsUpdate) {
-            qCDebug(lcUi).noquote() << "onNavigationCompleted: updating record view"
-                               << "lineIndexChanged=" << lineIndexChanged
-                               << "modelNeedsUpdate=" << modelNeedsUpdate;
-            m_lastLineIndex = newLineIndex;
-            updateRecordView();
-        } else {
-            qCDebug(lcUi).noquote() << "onNavigationCompleted: line NOT changed, skipping updateRecordView";
-        }
-    }
+    syncRecordViewToCurrentLine();
 
     // 盤面とハイライトを更新
     if (node != nullptr) {
@@ -67,6 +48,29 @@ void KifuDisplayCoordinator::onNavigationCompleted(KifuBranchNode* node)
 
     // 一致性チェックは onBranchCandidatesUpdateRequired 完了後に遅延実行する
     m_pendingNavResultCheck = true;
+}
+
+bool KifuDisplayCoordinator::syncRecordViewToCurrentLine()
+{
+    if (m_state == nullptr) {
+        return false;
+    }
+
+    const int newLineIndex = m_state->currentLineIndex();
+    const bool lineIndexChanged = (newLineIndex != m_lastLineIndex);
+    const bool modelNeedsUpdate = (m_presenter->lastModelLineIndex() >= 0
+                                   && m_presenter->lastModelLineIndex() != newLineIndex);
+    qCDebug(lcUi).noquote() << "syncRecordViewToCurrentLine: newLineIndex=" << newLineIndex
+                       << "m_lastLineIndex=" << m_lastLineIndex
+                       << "m_lastModelLineIndex=" << m_presenter->lastModelLineIndex();
+
+    if (!lineIndexChanged && !modelNeedsUpdate) {
+        return false;
+    }
+
+    m_lastLineIndex = newLineIndex;
+    updateRecordView();
+    return true;
 }
 
 void KifuDisplayCoordinator::onBoardUpdateRequired(const QString& sfen)

@@ -102,6 +102,9 @@ signals:
     void commentUpdateRequired(int ply, const QString& comment, bool asHtml);
 
 private:
+    /// 状態の現在ラインと棋譜欄モデルのラインがずれていれば棋譜欄を再構築する
+    /// @return 再構築した場合 true
+    bool syncRecordViewToCurrentLine();
     void updateRecordView();
     void updateBranchTreeView();
     void updateBranchCandidatesView();

@@ -156,6 +156,14 @@ public:
      */
     int lastSelectedChildAt(KifuBranchNode* branchPoint) const;
 
+    /**
+     * @brief ルートから指定ノードまでの経路上にある全分岐点で、経路が通る子を記憶する
+     * @param node 経路の終端ノード
+     *
+     * 「戻る→進む」でこのノードまでの経路を再び辿れるようにする。
+     */
+    void rememberPathSelections(KifuBranchNode* node);
+
 private:
     KifuBranchTree* m_tree = nullptr;
     KifuBranchNode* m_currentNode = nullptr;

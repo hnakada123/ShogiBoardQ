@@ -277,22 +277,7 @@ void KifuNavigationController::goToNode(KifuBranchNode* node)
     }
 
     // 戻る→進むナビゲーション時に正しいパスを辿れるよう、全分岐点で選択を記憶する
-    KifuBranchNode* current = node;
-    while (current != nullptr) {
-        KifuBranchNode* parent = current->parent();
-        if (parent != nullptr && parent->childCount() > 1) {
-            // 何番目の子かを探す
-            for (int i = 0; i < parent->childCount(); ++i) {
-                if (parent->childAt(i) == current) {
-                    m_state->rememberChildSelection(parent, i);
-                    qCDebug(lcNavigation).noquote() << "goToNode: remembered branch at parentPly="
-                                                    << parent->ply() << "childIndex=" << i;
-                    break;
-                }
-            }
-        }
-        current = parent;
-    }
+    m_state->rememberPathSelections(node);
 
     m_state->setCurrentNode(node);
     qCDebug(lcNavigation).noquote() << "goToNode LEAVE ply=" << node->ply()

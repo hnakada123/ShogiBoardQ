@@ -9,11 +9,13 @@
 #include "kifudisplaycoordinator.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
+#include "kifudisplay.h"
 #include "recordpane.h"
 #include "branchtreemanager.h"
 #include "sfenpositiontracer.h"
 #include "shogiboard.h"
 #include "shogimove.h"
+#include "livegamesession.h"
 
 static const QString kHirateSfen =
     QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
@@ -299,6 +301,80 @@ private slots:
         QTest::qWait(1);
         emit view->activated(idx0);
         QCOMPARE(spy.count(), 3);
+    }
+
+    // ライブ対局中の1手追加では盤面更新要求を出さず（盤面は対局ロジックが更新済み）、
+    // ナビゲーション状態・棋譜欄・分岐ツリー・分岐候補のハイライトだけを最新手に同期すること。
+    // 対局終了後の「戻る→進む」で最新手の経路を辿れること。
+    void liveGameMove_doesNotReloadBoardButSyncsHighlights()
+    {
+        UiHarness h;
+        LiveGameSession session;
+        session.setTree(&h.tree);
+        h.coordinator.setLiveGameSession(&session);
+
+        // 本譜3手目（▲２六歩）から対局開始。本譜の4手目は△８四歩なので別の手で分岐を作る
+        KifuBranchNode* start = h.tree.findByPlyOnMainLine(3);
+        QVERIFY(start != nullptr);
+        h.nav.goToNode(start);
+        QCoreApplication::processEvents();
+        session.startFromNode(start);
+        QVERIFY(session.isActive());
+
+        QSignalSpy boardSpy(&h.coordinator, &KifuDisplayCoordinator::boardWithHighlightsRequired);
+        QSignalSpy sfenSpy(&h.coordinator, &KifuDisplayCoordinator::boardSfenChanged);
+
+        const QString sfen4 =
+            SfenPositionTracer::buildSfenRecord(start->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+        // 実アプリでは対局ロジックが盤面を更新し、GameRecordPresenter が棋譜欄に行を追加してから
+        // LiveGameSession に手が入る。ここではその2つを模倣する。
+        h.board.setSfen(sfen4);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   4 △３二金(41)"), QStringLiteral("0:01"),
+                                                 QString(), QString(), &h.recordModel));
+        ShogiMove dummyMove;
+        session.addMove(dummyMove, QStringLiteral("△３二金(41)"), sfen4, QStringLiteral("0:01"));
+        QCoreApplication::processEvents();
+
+        QCOMPARE(boardSpy.count(), 0);   // 盤面の再設定要求は出ない
+        QCOMPARE(sfenSpy.count(), 0);
+
+        KifuBranchNode* live = session.liveNode();
+        QVERIFY(live != nullptr);
+        QCOMPARE(live->ply(), 4);
+        QCOMPARE(h.state.currentNode(), live);
+        QVERIFY(!h.state.isOnMainLine());
+        QCOMPARE(h.recordModel.currentHighlightRow(), 4);
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 4);
+        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), h.state.currentLineIndex());
+        QCOMPARE(h.branchModel.branchCandidateCount(), 2);   // △８四歩 / △３二金
+        QVERIFY(h.branchModel.hasBackToMainRow());
+
+        QString reason;
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+
+        // 2手目以降も同様
+        const QString sfen5 =
+            SfenPositionTracer::buildSfenRecord(sfen4, { QStringLiteral("2f2e") }, false).at(1);
+        h.board.setSfen(sfen5);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲２五歩(26)"), QStringLiteral("0:02"),
+                                                 QString(), QString(), &h.recordModel));
+        session.addMove(dummyMove, QStringLiteral("▲２五歩(26)"), sfen5, QStringLiteral("0:02"));
+        QCoreApplication::processEvents();
+        QCOMPARE(boardSpy.count(), 0);
+        QCOMPARE(h.state.currentNode(), session.liveNode());
+        QCOMPARE(h.recordModel.currentHighlightRow(), 5);
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+
+        // 対局終了後: 戻る→進むで最新手の経路（△３二金→▲２五歩）を辿る
+        KifuBranchNode* end = session.commit();
+        QVERIFY(end != nullptr);
+        QCoreApplication::processEvents();
+        h.nav.goBack(2);
+        QCOMPARE(h.state.currentNode(), start);
+        h.nav.goForward(2);
+        QCOMPARE(h.state.currentNode(), end);
     }
 
     void detectsTreeHighlightMismatch()
