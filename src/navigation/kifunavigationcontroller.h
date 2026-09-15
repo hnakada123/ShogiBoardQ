@@ -74,7 +74,7 @@ public slots:
     /// 分岐候補を選択して移動する
     void selectBranchCandidate(int candidateIndex);
 
-    /// 本譜の同じ手数に移動する
+    /// 本譜の同じ手数に移動する（本譜がその手数より短い場合は本譜の最終手へ移動する）
     void goToMainLineAtCurrentPly();
 
     /**

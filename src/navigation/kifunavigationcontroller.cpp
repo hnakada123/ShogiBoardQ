@@ -434,20 +434,31 @@ void KifuNavigationController::goToMainLineAtCurrentPly()
         return;
     }
 
-    // 本譜に戻る場合、優先ラインと選択記憶をリセット
-    m_state->resetPreferredLineIndex();
-    m_state->clearLineSelectionMemory();
-
-    int currentPly = m_state->currentPly();
+    const int currentPly = m_state->currentPly();
     KifuBranchNode* mainNode = m_tree->findByPlyOnMainLine(currentPly);
 
-    if (mainNode != nullptr) {
-        m_state->setCurrentNode(mainNode);
-        qCDebug(lcNavigation).noquote() << "goToMainLineAtCurrentPly LEAVE ply=" << mainNode->ply();
-        emitUpdateSignals();
-    } else {
-        qCDebug(lcNavigation).noquote() << "goToMainLineAtCurrentPly: mainNode not found for ply=" << currentPly;
+    // 本譜が現在手数より短い場合は本譜の最終手へ移動する
+    if (mainNode == nullptr) {
+        const QList<KifuBranchNode*> mainNodes = m_tree->mainLine();
+        if (!mainNodes.isEmpty()) {
+            mainNode = mainNodes.last();
+            qCDebug(lcNavigation).noquote() << "goToMainLineAtCurrentPly: main line shorter than ply="
+                                            << currentPly << ", using last main node ply=" << mainNode->ply();
+        }
     }
+
+    if (mainNode == nullptr) {
+        // 移動先が無い場合は状態を変えずに終了する
+        qCDebug(lcNavigation).noquote() << "goToMainLineAtCurrentPly: main line is empty, no action";
+        return;
+    }
+
+    // 本譜に戻るので、優先ラインと選択記憶をリセットしてから移動する
+    m_state->resetPreferredLineIndex();
+    m_state->clearLineSelectionMemory();
+    m_state->setCurrentNode(mainNode);
+    qCDebug(lcNavigation).noquote() << "goToMainLineAtCurrentPly LEAVE ply=" << mainNode->ply();
+    emitUpdateSignals();
 }
 
 // ============================================================
