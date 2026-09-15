@@ -3,6 +3,8 @@
 
 #include "shogimove.h"
 #include "shogitypes.h"
+#include "shogiboard.h"
+#include "shogigamecontroller.h"
 #include "turnmanager.h"
 #include "shogiutils.h"
 #include "jishogicalculator.h"
@@ -461,6 +463,29 @@ private slots:
                  QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1"));
         // 未知のラベルは平手にフォールバック
         QCOMPARE(NotationUtils::mapHandicapToSfen(QStringLiteral("unknown")), kEven);
+    }
+
+    // GC の手番更新が盤面モデルの手番にも反映されること
+    //（対局中は盤面を SFEN から再設定しないため、盤面から生成する SFEN の手番はこれに依存する）
+    void gameController_setCurrentPlayer_syncsBoardTurn()
+    {
+        ShogiGameController gc;
+        QString startSfen = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        gc.newGame(startSfen);
+        QVERIFY(gc.board() != nullptr);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
+
+        gc.setCurrentPlayer(ShogiGameController::Player2);
+        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
+
+        gc.changeCurrentPlayer();
+        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player1);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
+
+        // NoPlayer では盤面の手番を変えない
+        gc.setCurrentPlayer(ShogiGameController::NoPlayer);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
     }
 
     void notationUtils_rankRoundTrip()
