@@ -4774,63 +4774,78 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">KIF形式 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="118"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="119"/>
         <source>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
         <translation>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="143"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="144"/>
         <source>KI2形式で保存</source>
         <translation>KI2形式で保存</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="144"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="145"/>
         <source>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="151"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="152"/>
         <source>CSA形式で保存</source>
         <translation>CSA形式で保存</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="152"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="153"/>
         <source>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="163"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="169"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="164"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
         <source>USI形式で保存</source>
         <translation>USI形式で保存</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="164"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="165"/>
         <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="171"/>
         <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="187"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="188"/>
         <source>未保存の棋譜</source>
         <translation>未保存の棋譜</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="188"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="189"/>
         <source>棋譜に未保存の変更があります。保存しますか？</source>
         <translation>棋譜に未保存の変更があります。保存しますか？</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="192"/>
+        <source>保存</source>
+        <translation>保存</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="193"/>
+        <source>破棄</source>
+        <translation>破棄</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="194"/>
+        <source>キャンセル</source>
+        <translation>キャンセル</translation>
     </message>
     <message>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</source>
@@ -4853,7 +4868,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="131"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="132"/>
         <source>名前を付けて保存</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5235,102 +5250,102 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>RecordPane</name>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="63"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="64"/>
         <source>文字を大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="64"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="65"/>
         <source>文字を小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="77"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="78"/>
         <source>しおりを編集</source>
         <translation>しおりを編集</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="90"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="91"/>
         <source>消費時間列の表示/非表示</source>
         <translation>消費時間列の表示/非表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="100"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="101"/>
         <source>しおり列の表示/非表示</source>
         <translation>しおり列の表示/非表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="110"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="111"/>
         <source>コメント列の表示/非表示</source>
         <translation>コメント列の表示/非表示</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="125"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="126"/>
         <source>▲|</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="126"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="127"/>
         <source>▲▲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="127"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="128"/>
         <source>▲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="128"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="129"/>
         <source>▼</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="129"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="130"/>
         <source>▼▼</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="130"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="131"/>
         <source>▼|</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="132"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="133"/>
         <source>最初に戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="133"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
         <source>10手戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="135"/>
         <source>1手戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="135"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="136"/>
         <source>1手進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="136"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="137"/>
         <source>10手進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="137"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="138"/>
         <source>最後に進む</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="410"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="448"/>
         <source>本譜に戻る</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="414"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="452"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
         <translation type="unfinished"></translation>
     </message>

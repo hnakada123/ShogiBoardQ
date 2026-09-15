@@ -5,6 +5,7 @@
 
 #include <QFileDialog>
 #include <QApplication>
+#include <QAbstractButton>
 #include <QDir>
 #include <QDateTime>
 #include <QFileInfo>
@@ -183,11 +184,17 @@ QString saveViaDialog(QWidget* parent,
 bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bool()>& save)
 {
     if (!isDirty) return true;
-    const auto choice = QMessageBox::warning(
-        parent, QObject::tr("未保存の棋譜"),
+    QMessageBox box(
+        QMessageBox::Warning, QObject::tr("未保存の棋譜"),
         QObject::tr("棋譜に未保存の変更があります。保存しますか？"),
         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
-        QMessageBox::Save);
+        parent);
+    box.button(QMessageBox::Save)->setText(QObject::tr("保存"));
+    box.button(QMessageBox::Discard)->setText(QObject::tr("破棄"));
+    box.button(QMessageBox::Cancel)->setText(QObject::tr("キャンセル"));
+    box.setDefaultButton(QMessageBox::Save);
+    box.setEscapeButton(QMessageBox::Cancel);
+    const int choice = box.exec();
     if (choice == QMessageBox::Save) return save();
     return choice == QMessageBox::Discard;
 }

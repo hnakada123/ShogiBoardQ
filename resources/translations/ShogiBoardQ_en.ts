@@ -6379,63 +6379,78 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">KIF (*.kifu);;KIF Shift_JIS (*.kif);;KI2 (*.ki2u);;KI2 Shift_JIS (*.ki2);;CSA (*.csa);;JKF (*.jkf);;USEN (*.usen);;USI (*.usi);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="118"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="119"/>
         <source>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
         <translation>KIF UTF-8 (*.kifu);;KIF Shift_JIS (*.kif);;KI2 UTF-8 (*.ki2u);;KI2 Shift_JIS (*.ki2);;CSA (*.csa);;JKF (*.jkf);;USEN (*.usen);;USI (*.usi);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="143"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="144"/>
         <source>KI2形式で保存</source>
         <translation>Save as KI2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="144"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="145"/>
         <source>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>KI2 format does not support time consumption. Time information will not be saved.
 Do you want to continue?</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="151"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="152"/>
         <source>CSA形式で保存</source>
         <translation>Save as CSA</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="152"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="153"/>
         <source>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>CSA format does not support branches. Branch information will not be saved.
 Do you want to continue?</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="163"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="169"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="164"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
         <source>USI形式で保存</source>
         <translation>Save as USI</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="164"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="165"/>
         <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI format does not support branches. Branch information will not be saved.
 Do you want to continue?</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="170"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="171"/>
         <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI format does not support time consumption. Time information will not be saved.
 Do you want to continue?</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="187"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="188"/>
         <source>未保存の棋譜</source>
         <translation>Unsaved Game Record</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="188"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="189"/>
         <source>棋譜に未保存の変更があります。保存しますか？</source>
         <translation>The game record has unsaved changes. Do you want to save them?</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="192"/>
+        <source>保存</source>
+        <translation>Save</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="193"/>
+        <source>破棄</source>
+        <translation>Discard</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="194"/>
+        <source>キャンセル</source>
+        <translation>Cancel</translation>
     </message>
     <message>
         <source>KIF形式 (*.kifu *.kif);;KI2形式 (*.ki2 *.ki2u);;すべてのファイル (*)</source>
@@ -6462,7 +6477,7 @@ Do you want to continue?</translation>
         <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="131"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="132"/>
         <source>名前を付けて保存</source>
         <translation>Save As</translation>
     </message>
@@ -6867,102 +6882,102 @@ Do you want to continue?</translation>
 <context>
     <name>RecordPane</name>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="63"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="64"/>
         <source>文字を大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="64"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="65"/>
         <source>文字を小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="77"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="78"/>
         <source>しおりを編集</source>
         <translation>Edit Bookmark</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="90"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="91"/>
         <source>消費時間列の表示/非表示</source>
         <translation>Toggle Time Column</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="100"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="101"/>
         <source>しおり列の表示/非表示</source>
         <translation>Toggle Bookmark Column</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="110"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="111"/>
         <source>コメント列の表示/非表示</source>
         <translation>Toggle Comment Column</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="125"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="126"/>
         <source>▲|</source>
         <translation>▲|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="126"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="127"/>
         <source>▲▲</source>
         <translation>▲▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="127"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="128"/>
         <source>▲</source>
         <translation>▲</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="128"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="129"/>
         <source>▼</source>
         <translation>▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="129"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="130"/>
         <source>▼▼</source>
         <translation>▼▼</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="130"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="131"/>
         <source>▼|</source>
         <translation>▼|</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="132"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="133"/>
         <source>最初に戻る</source>
         <translation>Go to Start</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="133"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
         <source>10手戻る</source>
         <translation>Go Back 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="134"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="135"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="135"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="136"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="136"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="137"/>
         <source>10手進む</source>
         <translation>Go Forward 10 Moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="137"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="138"/>
         <source>最後に進む</source>
         <translation>Go to End</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="410"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="448"/>
         <source>本譜に戻る</source>
         <translation>Return to Main</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="414"/>
+        <location filename="../../src/widgets/recordpane.cpp" line="452"/>
         <source>現在の手数で本譜（メインライン）に戻る</source>
         <translation>Return to main line at current move</translation>
     </message>
