@@ -1,5 +1,6 @@
 #include <QtTest>
 
+#include "enginemovevalidator.h"
 #include "fmvconverter.h"
 #include "fmvlegalcore.h"
 #include "fmvposition.h"
@@ -11,6 +12,22 @@ static const QString kHirateSfen =
 class TestFmvLegalCore : public QObject
 {
     Q_OBJECT
+
+    void verifyPositionUnchanged(const fmv::EnginePosition& actual,
+                                 const fmv::EnginePosition& expected)
+    {
+        QCOMPARE(actual.board, expected.board);
+        QCOMPARE(actual.occupied, expected.occupied);
+        QCOMPARE(actual.zobristKey, expected.zobristKey);
+        for (int c = 0; c < 2; ++c) {
+            QCOMPARE(actual.colorOcc[c], expected.colorOcc[c]);
+            QCOMPARE(actual.kingSq[c], expected.kingSq[c]);
+            QCOMPARE(actual.hand[c], expected.hand[c]);
+            for (int pt = 0; pt < static_cast<int>(fmv::PieceType::PieceTypeNb); ++pt) {
+                QCOMPARE(actual.pieceOcc[c][pt], expected.pieceOcc[c][pt]);
+            }
+        }
+    }
 
 private slots:
     void countLegalMoves_hirate()
@@ -78,28 +95,129 @@ private slots:
         core.undoAppliedMove(pos, fmv::Color::Black, undo);
     }
 
-    void pawnDropMate_illegal()
+    void pawnDropLegality_data()
     {
-        // 打ち歩詰めの局面: 玉の前に歩を打つと詰むが、打ち歩詰めは違法
-        // 簡易テスト: 1一玉を持つ後手に対して先手が2一歩を打つと相手が動けない場合
-        QString sfen = QStringLiteral("k8/9/9/9/9/9/9/9/8K b P 1");
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<bool>("white");
+        QTest::addColumn<bool>("legal");
+
+        // 先手は1二歩打、後手は上下左右反転した局面の9八歩打を調べる。
+        QTest::newRow("black-mate")
+            << QStringLiteral("8k/9/7LG/9/9/9/9/9/K8 b P 1") << false << false;
+        QTest::newRow("white-mate")
+            << QStringLiteral("8k/9/9/9/9/9/gl7/9/K8 w p 1") << true << false;
+
+        // 遠くの歩や斜めに動けない香は、王手した歩を取れない。
+        QTest::newRow("black-mate-unreachable-pawn")
+            << QStringLiteral("8k/9/7LG/9/9/9/p8/9/K8 b P 1") << false << false;
+        QTest::newRow("white-mate-unreachable-pawn")
+            << QStringLiteral("8k/9/8P/9/9/9/gl7/9/K8 w p 1") << true << false;
+        QTest::newRow("black-mate-unreachable-lance")
+            << QStringLiteral("7lk/9/7LG/9/9/9/9/9/K8 b P 1") << false << false;
+
+        // 3二の飛車は2二の歩を飛び越えて1二の歩を取れない。
+        QTest::newRow("black-mate-blocked-rook")
+            << QStringLiteral("7lk/6rp1/7G1/9/9/9/9/9/K8 b P 1") << false << false;
+        // 2一銀で歩を取ると3一飛の王手が通るため、王手回避にならない。
+        QTest::newRow("black-mate-pinned-silver")
+            << QStringLiteral("6Rsk/9/7LG/9/9/9/9/9/K8 b P 1") << false << false;
+
+        QTest::newRow("black-king-can-escape")
+            << QStringLiteral("8k/9/8G/9/9/9/9/9/K8 b P 1") << false << true;
+        QTest::newRow("white-king-can-escape")
+            << QStringLiteral("8k/9/9/9/9/9/g8/9/K8 w p 1") << true << true;
+        QTest::newRow("black-king-can-capture")
+            << QStringLiteral("8k/9/7L1/9/9/9/9/9/K8 b P 1") << false << true;
+        QTest::newRow("white-king-can-capture")
+            << QStringLiteral("8k/9/9/9/9/9/1l7/9/K8 w p 1") << true << true;
+        QTest::newRow("black-silver-can-capture")
+            << QStringLiteral("7sk/9/7LG/9/9/9/9/9/K8 b P 1") << false << true;
+        QTest::newRow("white-silver-can-capture")
+            << QStringLiteral("8k/9/9/9/9/9/gl7/9/KS7 w p 1") << true << true;
+    }
+
+    void pawnDropLegality()
+    {
+        QFETCH(QString, sfen);
+        QFETCH(bool, white);
+        QFETCH(bool, legal);
+
         ShogiBoard board;
         board.setSfen(sfen);
+        EngineMoveValidator validator;
+        EngineMoveValidator::Context ctx;
+        const auto turn = white ? EngineMoveValidator::WHITE : EngineMoveValidator::BLACK;
+        const auto side = white ? fmv::Color::White : fmv::Color::Black;
+        QVERIFY(validator.syncContext(ctx, turn, board.boardData(), board.pieceStand()));
+        const fmv::EnginePosition original = ctx.pos;
 
-        fmv::EnginePosition pos;
-        fmv::Converter::toEnginePosition(pos, board.boardData(), board.pieceStand());
-
-        fmv::LegalCore core;
-        // 歩を(0,1)に打つ → 相手玉(0,0)に王手
+        const QPoint to = white ? QPoint(8, 7) : QPoint(0, 1);
         fmv::Move drop;
         drop.kind = fmv::MoveKind::Drop;
-        drop.to = fmv::toSquare(0, 1);
+        drop.to = fmv::toSquare(to.x(), to.y());
         drop.piece = fmv::PieceType::Pawn;
-        drop.promote = false;
 
-        int movesWithoutDrop = core.countLegalMoves(pos, fmv::Color::Black);
-        // この局面では歩打ちを含めた手がいくつあるか確認（打ち歩詰めは除外される）
-        QVERIFY(movesWithoutDrop > 0);
+        fmv::LegalCore core;
+        fmv::MoveList moves;
+        core.generateLegalMoves(ctx.pos, side, moves);
+        verifyPositionUnchanged(ctx.pos, original);
+        int matchingDrops = 0;
+        for (int i = 0; i < moves.size; ++i) {
+            const auto& candidate = moves.moves[static_cast<std::size_t>(i)];
+            if (candidate.kind == drop.kind && candidate.to == drop.to
+                && candidate.piece == drop.piece && !candidate.promote) {
+                ++matchingDrops;
+            }
+        }
+        QCOMPARE(matchingDrops, legal ? 1 : 0);
+        QCOMPARE(core.countLegalMoves(ctx.pos, side), moves.size);
+        verifyPositionUnchanged(ctx.pos, original);
+
+        // GUIの互換API、Context API、適用APIで同じ結果になること。
+        ShogiMove move(white ? QPoint(EngineMoveValidator::WHITE_HAND_FILE, 8)
+                             : QPoint(EngineMoveValidator::BLACK_HAND_FILE, 0),
+                       to, white ? Piece::WhitePawn : Piece::BlackPawn, Piece::None, false);
+        const auto compatStatus = validator.isLegalMove(turn, board.boardData(), board.pieceStand(), move);
+        QCOMPARE(compatStatus.nonPromotingMoveExists, legal);
+        QVERIFY(!compatStatus.promotingMoveExists);
+        const auto contextStatus = validator.isLegalMove(ctx, move);
+        QCOMPARE(contextStatus.nonPromotingMoveExists, legal);
+        QVERIFY(!contextStatus.promotingMoveExists);
+        verifyPositionUnchanged(ctx.pos, original);
+
+        const auto coreStatus = core.checkMove(ctx.pos, side, drop);
+        QCOMPARE(coreStatus.nonPromotingMoveExists, legal);
+        verifyPositionUnchanged(ctx.pos, original);
+
+        const bool applied = validator.tryApplyMove(ctx, move);
+        QCOMPARE(applied, legal);
+        if (applied) {
+            QCOMPARE(ctx.undoSize, 1);
+            QVERIFY(validator.undoLastMove(ctx));
+        }
+        QCOMPARE(ctx.turn, turn);
+        QCOMPARE(ctx.undoSize, 0);
+        verifyPositionUnchanged(ctx.pos, original);
+    }
+
+    void pawnAdvanceMate_legal()
+    {
+        // 1三歩を1二へ進めて詰ませる手は、打ち歩詰めではない。
+        ShogiBoard board;
+        board.setSfen(QStringLiteral("8k/9/6NGP/9/9/9/9/9/K8 b - 1"));
+        EngineMoveValidator validator;
+        EngineMoveValidator::Context ctx;
+        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK, board.boardData(), board.pieceStand()));
+        const fmv::EnginePosition original = ctx.pos;
+        ShogiMove move(QPoint(0, 2), QPoint(0, 1), Piece::BlackPawn, Piece::None, false);
+        const auto status = validator.isLegalMove(ctx, move);
+        QVERIFY(status.nonPromotingMoveExists);
+        QVERIFY(status.promotingMoveExists);
+        QVERIFY(validator.tryApplyMove(ctx, move));
+        QCOMPARE(validator.checkIfKingInCheck(ctx), 1);
+        QCOMPARE(validator.generateLegalMoves(ctx), 0);
+        QVERIFY(validator.undoLastMove(ctx));
+        verifyPositionUnchanged(ctx.pos, original);
     }
 
     void mandatoryPromotion()

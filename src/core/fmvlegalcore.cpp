@@ -48,7 +48,7 @@ bool LegalCore::tryApplyLegalMove(EnginePosition& pos, Color side, const Move& m
     if (!pos.doMove(m, side, undo)) {
         return false;
     }
-    if (ownKingInCheck(pos, side)) {
+    if (ownKingInCheck(pos, side) || isPawnDropMate(pos, side, m)) {
         pos.undoMove(undo, side);
         return false;
     }
@@ -321,6 +321,7 @@ bool LegalCore::isPawnDropMate(EnginePosition& pos, Color side, const Move& m) c
     }
 
     Color opponent = opposite(side);
+    // 歩の直接王手は合駒で防げないため、応手に駒打ちはなく、この判定は再帰しない。
     return !hasAnyLegalMove(pos, opponent);
 }
 

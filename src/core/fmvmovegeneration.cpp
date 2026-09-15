@@ -8,7 +8,6 @@
 namespace fmv {
 
 using detail::charToPieceType;
-using detail::givesDirectPawnCheck;
 using detail::isDropDeadSquare;
 using detail::isMandatoryPromotion;
 using detail::isPromotable;
@@ -197,28 +196,8 @@ void LegalCore::generateLegalMoves(EnginePosition& pos, Color side, MoveList& ou
 
     for (int i = 0; i < pseudo.size; ++i) {
         const Move& m = pseudo.moves[static_cast<std::size_t>(i)];
-
-        if (m.kind == MoveKind::Drop && m.piece == PieceType::Pawn) {
-            UndoState undo;
-            if (!pos.doMove(m, side, undo)) {
-                continue;
-            }
-            bool selfCheck = ownKingInCheck(pos, side);
-            bool pawnDropMate = false;
-            if (!selfCheck && givesDirectPawnCheck(pos, side, m)) {
-                Color opponent = opposite(side);
-                if (!hasAnyLegalMove(pos, opponent)) {
-                    pawnDropMate = true;
-                }
-            }
-            pos.undoMove(undo, side);
-            if (!selfCheck && !pawnDropMate) {
-                out.push(m);
-            }
-        } else {
-            if (isLegalAfterDoUndo(pos, side, m)) {
-                out.push(m);
-            }
+        if (isLegalAfterDoUndo(pos, side, m)) {
+            out.push(m);
         }
     }
 }
@@ -238,28 +217,8 @@ int LegalCore::countLegalMoves(EnginePosition& pos, Color side) const
     int legalCount = 0;
     for (int i = 0; i < pseudo.size; ++i) {
         const Move& m = pseudo.moves[static_cast<std::size_t>(i)];
-
-        if (m.kind == MoveKind::Drop && m.piece == PieceType::Pawn) {
-            UndoState undo;
-            if (!pos.doMove(m, side, undo)) {
-                continue;
-            }
-            bool selfCheck = ownKingInCheck(pos, side);
-            bool pawnDropMate = false;
-            if (!selfCheck && givesDirectPawnCheck(pos, side, m)) {
-                Color opponent = opposite(side);
-                if (!hasAnyLegalMove(pos, opponent)) {
-                    pawnDropMate = true;
-                }
-            }
-            pos.undoMove(undo, side);
-            if (!selfCheck && !pawnDropMate) {
-                ++legalCount;
-            }
-        } else {
-            if (isLegalAfterDoUndo(pos, side, m)) {
-                ++legalCount;
-            }
+        if (isLegalAfterDoUndo(pos, side, m)) {
+            ++legalCount;
         }
     }
     return legalCount;
@@ -476,13 +435,8 @@ bool LegalCore::hasAnyLegalMove(EnginePosition& pos, Color side) const
 
     for (int i = 0; i < pseudo.size; ++i) {
         const Move& m = pseudo.moves[static_cast<std::size_t>(i)];
-        UndoState undo;
-        if (!pos.doMove(m, side, undo)) {
-            continue;
-        }
-        bool selfCheck = ownKingInCheck(pos, side);
-        pos.undoMove(undo, side);
-        if (!selfCheck) {
+        // 王手回避候補には利きのない移動も含むため、駒の動きから検証する。
+        if (isLegalAfterDoUndo(pos, side, m)) {
             return true;
         }
     }
