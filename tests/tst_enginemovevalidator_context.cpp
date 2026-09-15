@@ -64,27 +64,28 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
         EngineMoveValidator validator;
-        EngineMoveValidator::Context ctx;
+        EngineMoveValidator::SimulationContext simulation;
+        auto& ctx = simulation.context;
 
-        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
                                       board.boardData(), board.pieceStand()));
 
         // 7六歩を進める
         ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
-        bool ok = validator.tryApplyMove(ctx, move);
+        bool ok = validator.tryApplyMove(simulation, move);
         QVERIFY(ok);
         QCOMPARE(ctx.turn, EngineMoveValidator::WHITE); // 手番が変わった
-        QCOMPARE(ctx.undoSize, 1);
+        QCOMPARE(simulation.undoSize, 1);
 
         // 後手の合法手数を取得
         int whiteCount = validator.generateLegalMoves(ctx);
         QCOMPARE(whiteCount, 30); // 後手も30手
 
         // undo
-        bool undone = validator.undoLastMove(ctx);
+        bool undone = validator.undoLastMove(simulation);
         QVERIFY(undone);
         QCOMPARE(ctx.turn, EngineMoveValidator::BLACK);
-        QCOMPARE(ctx.undoSize, 0);
+        QCOMPARE(simulation.undoSize, 0);
 
         // 元に戻った
         int count = validator.generateLegalMoves(ctx);
@@ -96,26 +97,27 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
         EngineMoveValidator validator;
-        EngineMoveValidator::Context ctx;
+        EngineMoveValidator::SimulationContext simulation;
+        auto& ctx = simulation.context;
 
-        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
                                       board.boardData(), board.pieceStand()));
 
         // 7六歩
         ShogiMove m1(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
-        QVERIFY(validator.tryApplyMove(ctx, m1));
+        QVERIFY(validator.tryApplyMove(simulation, m1));
 
         // 3四歩
         ShogiMove m2(QPoint(2, 2), QPoint(2, 3), Piece::WhitePawn, Piece::None, false);
-        QVERIFY(validator.tryApplyMove(ctx, m2));
+        QVERIFY(validator.tryApplyMove(simulation, m2));
 
-        QCOMPARE(ctx.undoSize, 2);
+        QCOMPARE(simulation.undoSize, 2);
         QCOMPARE(ctx.turn, EngineMoveValidator::BLACK);
 
         // 2手undo
-        QVERIFY(validator.undoLastMove(ctx));
-        QVERIFY(validator.undoLastMove(ctx));
-        QCOMPARE(ctx.undoSize, 0);
+        QVERIFY(validator.undoLastMove(simulation));
+        QVERIFY(validator.undoLastMove(simulation));
+        QCOMPARE(simulation.undoSize, 0);
 
         int count = validator.generateLegalMoves(ctx);
         QCOMPARE(count, 30);
@@ -126,13 +128,58 @@ private slots:
         ShogiBoard board;
         board.setSfen(kHirateSfen);
         EngineMoveValidator validator;
-        EngineMoveValidator::Context ctx;
+        EngineMoveValidator::SimulationContext simulation;
 
-        QVERIFY(validator.syncContext(ctx, EngineMoveValidator::BLACK,
+        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
                                       board.boardData(), board.pieceStand()));
 
         // スタック空でundoはfalse
-        QVERIFY(!validator.undoLastMove(ctx));
+        QVERIFY(!validator.undoLastMove(simulation));
+    }
+
+    void syncSimulation_discardsPreviousHistory()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        EngineMoveValidator validator;
+        EngineMoveValidator::SimulationContext simulation;
+        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::BLACK,
+                                      board.boardData(), board.pieceStand()));
+        ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
+        QVERIFY(validator.tryApplyMove(simulation, move));
+        QCOMPARE(simulation.undoSize, 1);
+
+        // 別局面に同期した後は、以前の局面への取り消しを許可しない。
+        board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w P 1"));
+        QVERIFY(validator.syncContext(simulation, EngineMoveValidator::WHITE,
+                                      board.boardData(), board.pieceStand()));
+        const auto original = simulation.context.pos;
+        QCOMPARE(simulation.undoSize, 0);
+        QVERIFY(!validator.undoLastMove(simulation));
+        QCOMPARE(simulation.context.turn, EngineMoveValidator::WHITE);
+        QCOMPARE(simulation.context.pos.board, original.board);
+        QCOMPARE(simulation.context.pos.hand[0], original.hand[0]);
+        QCOMPARE(simulation.context.pos.hand[1], original.hand[1]);
+
+        // 再同期後も新しい履歴を作成・取り消しできる。
+        ShogiMove kingMove(QPoint(4, 0), QPoint(4, 1), Piece::WhiteKing, Piece::None, false);
+        QVERIFY(validator.tryApplyMove(simulation, kingMove));
+        QCOMPARE(simulation.undoSize, 1);
+        QVERIFY(validator.undoLastMove(simulation));
+        QCOMPARE(simulation.undoSize, 0);
+        QCOMPARE(simulation.context.turn, EngineMoveValidator::WHITE);
+        QCOMPARE(simulation.context.pos.board, original.board);
+    }
+
+    void unsynced_simulation_rejectsApplyAndUndo()
+    {
+        EngineMoveValidator validator;
+        EngineMoveValidator::SimulationContext simulation;
+        ShogiMove move(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false);
+        QVERIFY(!validator.tryApplyMove(simulation, move));
+        QVERIFY(!validator.undoLastMove(simulation));
+        QCOMPARE(simulation.undoSize, 0);
+        QVERIFY(!simulation.context.synced);
     }
 
     void unsynced_context_returns_zero()

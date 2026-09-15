@@ -20,7 +20,6 @@ bool EngineMoveValidator::syncContext(Context& ctx,
                                       const QMap<Piece, int>& pieceStand) const
 {
     ctx.turn = turn;
-    ctx.undoSize = 0;
     ctx.synced = fmv::Converter::toEnginePosition(ctx.pos, boardData, pieceStand);
     return ctx.synced;
 }
@@ -65,9 +64,19 @@ int EngineMoveValidator::checkIfKingInCheck(Context& ctx) const
 }
 
 #ifdef SHOGIBOARDQ_TESTING
-bool EngineMoveValidator::tryApplyMove(Context& ctx, ShogiMove& move) const
+bool EngineMoveValidator::syncContext(SimulationContext& simulation,
+                                      const Turn& turn,
+                                      const QList<Piece>& boardData,
+                                      const QMap<Piece, int>& pieceStand) const
 {
-    if (!ctx.synced || ctx.undoSize >= Context::kUndoMax) {
+    simulation.undoSize = 0;
+    return syncContext(simulation.context, turn, boardData, pieceStand);
+}
+
+bool EngineMoveValidator::tryApplyMove(SimulationContext& simulation, ShogiMove& move) const
+{
+    Context& ctx = simulation.context;
+    if (!ctx.synced || simulation.undoSize >= SimulationContext::kUndoMax) {
         return false;
     }
 
@@ -83,20 +92,21 @@ bool EngineMoveValidator::tryApplyMove(Context& ctx, ShogiMove& move) const
         return false;
     }
 
-    ctx.undoStack[static_cast<std::size_t>(ctx.undoSize++)] = undo;
+    simulation.undoStack[static_cast<std::size_t>(simulation.undoSize++)] = undo;
     ctx.turn = (ctx.turn == BLACK) ? WHITE : BLACK;
     return true;
 }
 
-bool EngineMoveValidator::undoLastMove(Context& ctx) const
+bool EngineMoveValidator::undoLastMove(SimulationContext& simulation) const
 {
-    if (!ctx.synced || ctx.undoSize <= 0) {
+    Context& ctx = simulation.context;
+    if (!ctx.synced || simulation.undoSize <= 0) {
         return false;
     }
 
     ctx.turn = (ctx.turn == BLACK) ? WHITE : BLACK;
     const fmv::Color side = fmv::Converter::toColor(ctx.turn);
-    const fmv::UndoState undo = ctx.undoStack[static_cast<std::size_t>(--ctx.undoSize)];
+    const fmv::UndoState undo = simulation.undoStack[static_cast<std::size_t>(--simulation.undoSize)];
     legalCore().undoAppliedMove(ctx.pos, side, undo);
     return true;
 }
