@@ -101,7 +101,7 @@ void KifuBranchTree::setRootSfen(const QString& sfen)
     m_root->setDisplayText(tr("開始局面"));
     m_root->setSfen(sfen);
 
-    emit treeChanged();
+    notifyTreeChanged();
 }
 
 KifuBranchNode* KifuBranchTree::createNode()
@@ -142,7 +142,7 @@ KifuBranchNode* KifuBranchTree::addMove(KifuBranchNode* parent,
     parent->addChild(node);
     invalidateLineCache();
 
-    emit treeChanged();
+    notifyTreeChanged();
 
     return node;
 }
@@ -171,7 +171,7 @@ KifuBranchNode* KifuBranchTree::addTerminalMove(KifuBranchNode* parent,
     parent->addChild(node);
     invalidateLineCache();
 
-    emit treeChanged();
+    notifyTreeChanged();
 
     return node;
 }
@@ -206,6 +206,35 @@ KifuBranchNode* KifuBranchTree::addMoveQuiet(KifuBranchNode* parent,
     invalidateLineCache();
 
     return node;
+}
+
+void KifuBranchTree::beginBatchUpdate()
+{
+    ++m_batchDepth;
+}
+
+void KifuBranchTree::endBatchUpdate()
+{
+    if (m_batchDepth <= 0) {
+        // begin と対応しない end は無視する
+        m_batchDepth = 0;
+        return;
+    }
+
+    --m_batchDepth;
+    if (m_batchDepth == 0 && m_treeChangedPending) {
+        m_treeChangedPending = false;
+        emit treeChanged();
+    }
+}
+
+void KifuBranchTree::notifyTreeChanged()
+{
+    if (m_batchDepth > 0) {
+        m_treeChangedPending = true;
+        return;
+    }
+    emit treeChanged();
 }
 
 KifuBranchNode* KifuBranchTree::nodeAt(int nodeId) const

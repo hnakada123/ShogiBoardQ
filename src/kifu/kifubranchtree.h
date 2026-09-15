@@ -93,6 +93,23 @@ public:
                                  const QString& sfen,
                                  const QString& timeText = QString());
 
+    // === 一括更新 ===
+
+    /**
+     * @brief 一括更新を開始する（treeChanged の発火を抑止する）
+     *
+     * KIF 読み込みのように多数のノードを続けて追加する場合に使う。
+     * 入れ子にでき、最も外側の endBatchUpdate() で、抑止中に変更があれば
+     * treeChanged を1回だけ発火する。
+     */
+    void beginBatchUpdate();
+
+    /**
+     * @brief 一括更新を終了する
+     * @see beginBatchUpdate()
+     */
+    void endBatchUpdate();
+
     // === クエリ ===
 
     /**
@@ -238,9 +255,15 @@ private:
                                int& lineIndex) const;
     void invalidateLineCache();
 
+    /// treeChanged を発火する（一括更新中は保留し、endBatchUpdate() でまとめて発火）
+    void notifyTreeChanged();
+
     KifuBranchNode* m_root = nullptr;
     QHash<int, KifuBranchNode*> m_nodeById;
     int m_nextNodeId = 1;
+
+    int m_batchDepth = 0;                 ///< 一括更新の入れ子深さ（0=通常）
+    bool m_treeChangedPending = false;    ///< 一括更新中に変更があったか
 
     mutable QList<BranchLine> m_linesCache;
     mutable bool m_linesCacheDirty = true;
