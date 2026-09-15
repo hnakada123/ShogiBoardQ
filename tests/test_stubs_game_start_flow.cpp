@@ -453,12 +453,12 @@ KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves, QStringLis
 void KifuLoadCoordinator::resetBranchTreeForNewGame() {}
 void KifuLoadCoordinator::resetBranchContext() {}
 void KifuLoadCoordinator::setBranchTreeManager(BranchTreeManager*) {}
-void KifuLoadCoordinator::loadKifuFromFile(const QString&) {}
-void KifuLoadCoordinator::loadJkfFromFile(const QString&) {}
-void KifuLoadCoordinator::loadCsaFromFile(const QString&) {}
-void KifuLoadCoordinator::loadKi2FromFile(const QString&) {}
-void KifuLoadCoordinator::loadUsenFromFile(const QString&) {}
-void KifuLoadCoordinator::loadUsiFromFile(const QString&) {}
+bool KifuLoadCoordinator::loadKifuFromFile(const QString&) { return false; }
+bool KifuLoadCoordinator::loadJkfFromFile(const QString&) { return false; }
+bool KifuLoadCoordinator::loadCsaFromFile(const QString&) { return false; }
+bool KifuLoadCoordinator::loadKi2FromFile(const QString&) { return false; }
+bool KifuLoadCoordinator::loadUsenFromFile(const QString&) { return false; }
+bool KifuLoadCoordinator::loadUsiFromFile(const QString&) { return false; }
 bool KifuLoadCoordinator::loadKifuFromString(const QString&) { return false; }
 bool KifuLoadCoordinator::loadPositionFromSfen(const QString&) { return false; }
 bool KifuLoadCoordinator::loadPositionFromBod(const QString&) { return false; }

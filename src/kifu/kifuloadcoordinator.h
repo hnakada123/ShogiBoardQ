@@ -77,13 +77,14 @@ public:
     };
 
     // --- ファイル形式別読み込み ---
+    // 戻り値: 読み込みと適用に成功した場合 true（失敗時は errorOccurred を発行済み）
 
-    void loadKifuFromFile(const QString& filePath);
-    void loadJkfFromFile(const QString& filePath);
-    void loadCsaFromFile(const QString& filePath);
-    void loadKi2FromFile(const QString& filePath);
-    void loadUsenFromFile(const QString& filePath);
-    void loadUsiFromFile(const QString& filePath);
+    [[nodiscard]] bool loadKifuFromFile(const QString& filePath);
+    [[nodiscard]] bool loadJkfFromFile(const QString& filePath);
+    [[nodiscard]] bool loadCsaFromFile(const QString& filePath);
+    [[nodiscard]] bool loadKi2FromFile(const QString& filePath);
+    [[nodiscard]] bool loadUsenFromFile(const QString& filePath);
+    [[nodiscard]] bool loadUsiFromFile(const QString& filePath);
 
     // --- テキスト・局面読み込み ---
 
@@ -196,7 +197,8 @@ private:
     using KifuExtractGameInfoFunc = std::function<QList<KifGameInfoItem>(const QString&)>;
 
     /// 棋譜読み込みの共通フロー（解析→データ構築→UI反映）
-    void loadKifuCommon(const QString& filePath, const char* funcName,
+    /// @return 読み込みと適用に成功した場合 true
+    bool loadKifuCommon(const QString& filePath, const char* funcName,
                          const KifuParseFunc& parseFunc,
                          const KifuDetectSfenFunc& detectSfenFunc,
                          const KifuExtractGameInfoFunc& extractGameInfoFunc,

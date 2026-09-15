@@ -154,7 +154,7 @@ static void dumpVariationsDebug(const KifParseResult& res)
 // 棋譜読み込み共通処理
 // ============================================================
 
-void KifuLoadCoordinator::loadKifuCommon(
+bool KifuLoadCoordinator::loadKifuCommon(
     const QString& filePath,
     const char* funcName,
     const KifuParseFunc& parseFunc,
@@ -198,7 +198,7 @@ void KifuLoadCoordinator::loadKifuCommon(
         emit errorOccurred(tr("棋譜ファイルの読み込みに失敗しました: %1%2")
                                .arg(QFileInfo(filePath).fileName(), detail));
         m_loadingKifu = false;
-        return;
+        return false;
     }
     if (!parseWarn.isEmpty()) {
         qCWarning(lcKifu).noquote() << "parse warn:" << parseWarn;
@@ -243,17 +243,19 @@ void KifuLoadCoordinator::loadKifuCommon(
     logStep("extractGameInfo");
 
     // 5) 共通の後処理（KifuApplyService に委譲）
-    m_applyService->applyParsedResult(filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
+    const bool applied = m_applyService->applyParsedResult(
+        filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
     qCDebug(lcKifu).noquote() << QStringLiteral("loadKifuCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
+    return applied;
 }
 
 // ============================================================
 // 各フォーマット用の公開関数
 // ============================================================
 
-void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
 {
-    loadKifuCommon(
+    return loadKifuCommon(
         filePath,
         "loadKi2FromFile",
         [](const QString& path, KifParseResult& res, QString* warn) {
@@ -267,9 +269,9 @@ void KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
     );
 }
 
-void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
 {
-    loadKifuCommon(
+    return loadKifuCommon(
         filePath,
         "loadCsaFromFile",
         [](const QString& path, KifParseResult& res, QString* warn) {
@@ -283,9 +285,9 @@ void KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
     );
 }
 
-void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
 {
-    loadKifuCommon(
+    return loadKifuCommon(
         filePath,
         "loadJkfFromFile",
         [](const QString& path, KifParseResult& res, QString* warn) {
@@ -301,9 +303,9 @@ void KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
     );
 }
 
-void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
 {
-    loadKifuCommon(
+    return loadKifuCommon(
         filePath,
         "loadKifuFromFile",
         [](const QString& path, KifParseResult& res, QString* warn) {
@@ -317,9 +319,9 @@ void KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
     );
 }
 
-void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
 {
-    loadKifuCommon(
+    return loadKifuCommon(
         filePath,
         "loadUsenFromFile",
         [](const QString& path, KifParseResult& res, QString* warn) {
@@ -335,9 +337,9 @@ void KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
     );
 }
 
-void KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
 {
-    loadKifuCommon(
+    return loadKifuCommon(
         filePath,
         "loadUsiFromFile",
         [](const QString& path, KifParseResult& res, QString* warn) {
@@ -384,20 +386,21 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
     qCDebug(lcKifu).noquote() << "created temp file:" << tempFilePath;
 
     // 形式に応じた読み込み関数を呼び出し
+    bool ok = false;
     switch (fmt) {
-    case KifuFileReader::KifuFormat::KIF:  loadKifuFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::KI2:  loadKi2FromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::CSA:  loadCsaFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::USI:  loadUsiFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::JKF:  loadJkfFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::USEN: loadUsenFromFile(tempFilePath); break;
-    default:                               loadKifuFromFile(tempFilePath); break;
+    case KifuFileReader::KifuFormat::KIF:  ok = loadKifuFromFile(tempFilePath); break;
+    case KifuFileReader::KifuFormat::KI2:  ok = loadKi2FromFile(tempFilePath); break;
+    case KifuFileReader::KifuFormat::CSA:  ok = loadCsaFromFile(tempFilePath); break;
+    case KifuFileReader::KifuFormat::USI:  ok = loadUsiFromFile(tempFilePath); break;
+    case KifuFileReader::KifuFormat::JKF:  ok = loadJkfFromFile(tempFilePath); break;
+    case KifuFileReader::KifuFormat::USEN: ok = loadUsenFromFile(tempFilePath); break;
+    default:                               ok = loadKifuFromFile(tempFilePath); break;
     }
 
     QFile::remove(tempFilePath);
     qCDebug(lcKifu).noquote() << "removed temp file:" << tempFilePath;
 
-    return true;
+    return ok;
 }
 
 // ============================================================

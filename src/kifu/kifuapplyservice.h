@@ -101,9 +101,10 @@ public:
     // --- 適用API ---
 
     /// 解析結果をモデル・UIに一括適用する
-    void applyParsedResult(const QString& filePath, const QString& initialSfen,
-                           const QString& teaiLabel, const KifParseResult& res,
-                           const QString& parseWarn, const char* callerTag);
+    /// @return 適用に成功した場合 true（指し手なし・SFEN列未構築なら false）
+    [[nodiscard]] bool applyParsedResult(const QString& filePath, const QString& initialSfen,
+                                         const QString& teaiLabel, const KifParseResult& res,
+                                         const QString& parseWarn, const char* callerTag);
 
     /// SFEN形式の局面を読み込んでモデルに適用する
     [[nodiscard]] bool loadPositionFromSfen(const QString& sfenStr);

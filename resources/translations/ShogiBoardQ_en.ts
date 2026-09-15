@@ -336,13 +336,13 @@ Analyzed moves: %1</translation>
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="132"/>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="351"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="138"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="405"/>
         <source>%1手目</source>
         <translation type="unfinished">Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="201"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="203"/>
         <source>開始局面</source>
         <translation>Starting Position</translation>
     </message>
@@ -3950,7 +3950,7 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuApplyService</name>
     <message>
-        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="100"/>
+        <location filename="../../src/kifu/kifuapplyservice_apply.cpp" line="101"/>
         <source>読み込み失敗 %1 から指し手を取得できませんでした。</source>
         <translation>Load failed: Could not get moves from %1.</translation>
     </message>
@@ -4008,7 +4008,7 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuBranchTree</name>
     <message>
-        <location filename="../../src/kifu/kifubranchtree.cpp" line="101"/>
+        <location filename="../../src/kifu/kifubranchtree.cpp" line="45"/>
         <source>開始局面</source>
         <translation>Starting Position</translation>
     </message>
@@ -4016,8 +4016,8 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuDisplayCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="259"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator_nav.cpp" line="234"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="262"/>
+        <location filename="../../src/ui/coordinators/kifudisplaycoordinator_nav.cpp" line="238"/>
         <source>コメントなし</source>
         <translation>No comment</translation>
     </message>
@@ -4135,46 +4135,47 @@ Select OK to specify the save location.</translation>
     <name>KifuExportController</name>
     <message>
         <location filename="../../src/kifu/kifuexportcontroller.cpp" line="159"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="254"/>
         <source>棋譜データがありません</source>
         <translation>No game record data</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="213"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="211"/>
         <source>棋譜を保存しました: %1</source>
         <translation>Game record saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="263"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="265"/>
         <source>棋譜を上書き保存しました: %1</source>
         <translation>Game record overwritten: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="265"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="267"/>
         <source>KIF Save Error</source>
         <translation>KIF Save Error</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="276"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="300"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="281"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="305"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="288"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="312"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="307"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="331"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished">Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="313"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="337"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished">Failed to auto-save game record: %1</translation>
     </message>
@@ -4258,42 +4259,42 @@ Select OK to specify the save location.</translation>
 <context>
     <name>KifuFileController</name>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="33"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="34"/>
         <source>棋譜ファイルを開く</source>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="34"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="35"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
         <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="124"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="135"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="126"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="137"/>
         <source>棋譜の取り込みに失敗しました</source>
         <translation>Failed to import game record</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="132"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="143"/>
         <source>棋譜の取り込みに失敗しました（内部エラー）</source>
         <translation>Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="147"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="162"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="149"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="164"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="154"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="169"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -4317,12 +4318,12 @@ Select OK to specify the save location.</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="361"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="363"/>
         <source>貼り付けるテキストが空です。</source>
         <translation>The text to paste is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="381"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="383"/>
         <source>一時ファイルの作成に失敗しました。</source>
         <translation>Failed to create temporary file.</translation>
     </message>
@@ -6372,49 +6373,49 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">KIF (*.kifu);;KIF Shift_JIS (*.kif);;KI2 (*.ki2u);;KI2 Shift_JIS (*.ki2);;CSA (*.csa);;JKF (*.jkf);;USEN (*.usen);;USI (*.usi);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="47"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="114"/>
         <source>KIF形式 UTF-8 (*.kifu);;KIF形式 Shift_JIS (*.kif);;KI2形式 UTF-8 (*.ki2u);;KI2形式 Shift_JIS (*.ki2);;CSA形式 (*.csa);;JKF形式 (*.jkf);;USEN形式 (*.usen);;USI形式 (*.usi);;すべてのファイル (*)</source>
         <translation>KIF UTF-8 (*.kifu);;KIF Shift_JIS (*.kif);;KI2 UTF-8 (*.ki2u);;KI2 Shift_JIS (*.ki2);;CSA (*.csa);;JKF (*.jkf);;USEN (*.usen);;USI (*.usi);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="77"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="137"/>
         <source>KI2形式で保存</source>
         <translation>Save as KI2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="78"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="138"/>
         <source>KI2形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>KI2 format does not support time consumption. Time information will not be saved.
 Do you want to continue?</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="101"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="146"/>
         <source>CSA形式で保存</source>
         <translation>Save as CSA</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="102"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="147"/>
         <source>CSA形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>CSA format does not support branches. Branch information will not be saved.
 Do you want to continue?</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="131"/>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="143"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="161"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="167"/>
         <source>USI形式で保存</source>
         <translation>Save as USI</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="132"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="162"/>
         <source>USI形式は分岐に対応していないため、分岐の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI format does not support branches. Branch information will not be saved.
 Do you want to continue?</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="144"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="168"/>
         <source>USI形式は消費時間に対応していないため、消費時間の情報は保存されません。
 保存を続けますか？</source>
         <translation>USI format does not support time consumption. Time information will not be saved.
@@ -6445,7 +6446,7 @@ Do you want to continue?</translation>
         <translation type="vanished">KIF Files (*.kifu *.kif);;KI2 Files (*.ki2);;All Files (*)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="59"/>
+        <location filename="../../src/kifu/kifusavecoordinator.cpp" line="126"/>
         <source>名前を付けて保存</source>
         <translation>Save As</translation>
     </message>
@@ -6818,14 +6819,14 @@ Do you want to continue?</translation>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="94"/>
-        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="163"/>
+        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="77"/>
+        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="146"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished">=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="95"/>
-        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="164"/>
+        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="78"/>
+        <location filename="../../src/ui/presenters/kifudisplaypresenter.cpp" line="147"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished">(per move / total)</translation>
     </message>
