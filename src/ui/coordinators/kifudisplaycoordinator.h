@@ -104,6 +104,9 @@ private:
     /// 状態の現在ラインと棋譜欄モデルのラインがずれていれば棋譜欄を再構築する
     /// @return 再構築した場合 true
     bool syncRecordViewToCurrentLine();
+    /// ライブ対局で追加されたノードを分岐ツリーへ差分反映する
+    /// @return 反映できた（または反映不要だった）場合 true。false なら全再構築が必要
+    bool appendLiveNodeToBranchTree(KifuBranchNode* liveNode);
     void updateRecordView();
     void updateBranchTreeView();
     void updateBranchCandidatesView();
@@ -123,6 +126,7 @@ private:
     KifuBranchListModel* m_branchModel = nullptr;
     LiveGameSession* m_liveSession = nullptr;
     BoardSfenProvider m_boardSfenProvider;
+    int m_branchTreeNodeCount = -1;   ///< 分岐ツリーに最後に反映したときのツリーのノード数
 
     std::unique_ptr<KifuDisplayPresenter> m_presenter;
     std::unique_ptr<KifuSelectionSync> m_selectionSync;

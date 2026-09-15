@@ -495,6 +495,99 @@ private slots:
                  qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
     }
 
+    // ライブ対局中の分岐ツリー更新: 既存ライン末尾への追加は差分描画、
+    // 指し直しによるノード再利用は何もしない、新規ラインの発生時だけ全再構築する
+    void liveGameMoves_updateBranchTreeIncrementally()
+    {
+        UiHarness h;
+        LiveGameSession session;
+        session.setTree(&h.tree);
+        h.coordinator.setLiveGameSession(&session);
+        ShogiMove dummyMove;
+
+        // (1) 本譜の末尾（5手目）から2手延長 → 差分追加のみ
+        KifuBranchNode* main5 = h.tree.findByPlyOnMainLine(5);
+        QVERIFY(main5 != nullptr && main5->childCount() == 0);
+        h.nav.goToNode(main5);
+        QCoreApplication::processEvents();
+        session.startFromNode(main5);
+        const int rebuildsBefore = h.branchTreeManager.rebuildCount();
+        const int rowsBefore = h.branchTreeManager.rowCount();
+
+        const QString sfen6 = SfenPositionTracer::buildSfenRecord(main5->sfen(), { QStringLiteral("8d8e") }, false).at(1);
+        h.board.setSfen(sfen6);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   6 △８五歩(84)"), QString(), QString(), QString(), &h.recordModel));
+        session.addMove(dummyMove, QStringLiteral("△８五歩(84)"), sfen6, QString());
+        QCoreApplication::processEvents();
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore);
+        QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore);
+        QVERIFY(h.branchTreeManager.nodeIdFor(0, 6) > 0);
+        QCOMPARE(h.branchTreeManager.rowDispCount(0), 7);
+        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), 0);
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 6);
+
+        const QString sfen7 = SfenPositionTracer::buildSfenRecord(sfen6, { QStringLiteral("6i7h") }, false).at(1);
+        h.board.setSfen(sfen7);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   7 ▲７八金(69)"), QString(), QString(), QString(), &h.recordModel));
+        session.addMove(dummyMove, QStringLiteral("▲７八金(69)"), sfen7, QString());
+        QCoreApplication::processEvents();
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore);
+        QVERIFY(h.branchTreeManager.nodeIdFor(0, 7) > 0);
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 7);
+        QString reason;
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+
+        // 終局（commit）時は従来どおり全再構築
+        QVERIFY(session.commit() != nullptr);
+        QCoreApplication::processEvents();
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuildsBefore + 1);
+        QVERIFY(h.branchTreeManager.nodeIdFor(0, 7) > 0);
+
+        // (2) 本譜2手目から本譜3手目と同じ手を指し直す → ノード再利用、再構築も追加も無し
+        KifuBranchNode* main2 = h.tree.findByPlyOnMainLine(2);
+        KifuBranchNode* main3 = h.tree.findByPlyOnMainLine(3);
+        h.nav.goToNode(main2);
+        QCoreApplication::processEvents();
+        LiveGameSession session2;
+        session2.setTree(&h.tree);
+        h.coordinator.setLiveGameSession(&session2);
+        session2.startFromNode(main2);
+        const int rebuilds2 = h.branchTreeManager.rebuildCount();
+        h.board.setSfen(main3->sfen());
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   3 ▲２六歩(27)"), QString(), QString(), QString(), &h.recordModel));
+        session2.addMove(dummyMove, QStringLiteral("▲２六歩(27)"), main3->sfen(), QString());
+        QCoreApplication::processEvents();
+        QCOMPARE(session2.liveNode(), main3);
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuilds2);
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 3);
+
+        // (3) 本譜3手目の局面から別の手 → 新規ライン: 全再構築で行が増える。続く手は差分追加
+        const QString sfen4b = SfenPositionTracer::buildSfenRecord(main3->sfen(), { QStringLiteral("4a3b") }, false).at(1);
+        h.board.setSfen(sfen4b);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   4 △３二金(41)"), QString(), QString(), QString(), &h.recordModel));
+        session2.addMove(dummyMove, QStringLiteral("△３二金(41)"), sfen4b, QString());
+        QCoreApplication::processEvents();
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuilds2 + 1);
+        QCOMPARE(h.branchTreeManager.rowCount(), rowsBefore + 1);
+        const int newLine = h.tree.findLineIndexForNode(session2.liveNode()).value_or(-1);
+        QVERIFY(newLine > 0);
+        QVERIFY(h.branchTreeManager.nodeIdFor(newLine, 4) > 0);
+        QCOMPARE(h.branchTreeManager.lastHighlightedRow(), newLine);
+
+        const QString sfen5b = SfenPositionTracer::buildSfenRecord(sfen4b, { QStringLiteral("2f2e") }, false).at(1);
+        h.board.setSfen(sfen5b);
+        h.recordModel.appendItem(new KifuDisplay(QStringLiteral("   5 ▲２五歩(26)"), QString(), QString(), QString(), &h.recordModel));
+        session2.addMove(dummyMove, QStringLiteral("▲２五歩(26)"), sfen5b, QString());
+        QCoreApplication::processEvents();
+        QCOMPARE(h.branchTreeManager.rebuildCount(), rebuilds2 + 1);   // 差分追加のみ
+        QVERIFY(h.branchTreeManager.nodeIdFor(newLine, 5) > 0);
+        QCOMPARE(h.branchTreeManager.rowDispCount(newLine), 6);
+        QCOMPARE(h.branchTreeManager.lastHighlightedPly(), 5);
+        QVERIFY2(h.coordinator.verifyDisplayConsistencyDetailed(&reason),
+                 qPrintable(reason + QStringLiteral("\n") + h.coordinator.consistencyReport()));
+    }
+
     void detectsTreeHighlightMismatch()
     {
         UiHarness h;
