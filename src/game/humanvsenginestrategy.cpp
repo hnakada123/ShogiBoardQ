@@ -90,8 +90,6 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
 {
     const bool humanIsP1 =
         (m_ctx.playMode() == PlayMode::EvenHumanVsEngine) || (m_ctx.playMode() == PlayMode::HandicapHumanVsEngine);
-    const ShogiGameController::Player engineSeat =
-        humanIsP1 ? ShogiGameController::Player2 : ShogiGameController::Player1;
 
     // 0) 人間手のハイライト
     if (m_ctx.hooks().ui.showMoveHighlights) {
@@ -124,16 +122,6 @@ void HumanVsEngineStrategy::onHumanMove(const QPoint& humanFrom,
 
         // ラベルなど即時更新
         m_ctx.pokeTimeUpdateNow();
-    }
-
-    // 人間手の棋譜追記中にUI側の手番同期が割り込み、GC手番が人間側へ戻ることがある。
-    // エンジン返し手の直前で、司令塔の期待手番（エンジン席）へ補正しておく。
-    if (m_ctx.gc() && m_ctx.gc()->currentPlayer() != engineSeat) {
-        qCDebug(lcGame).noquote()
-            << "HvE(pretty): correcting GC turn before engine reply"
-            << " current=" << static_cast<int>(m_ctx.gc()->currentPlayer())
-            << " expected(engineSeat)=" << static_cast<int>(engineSeat);
-        m_ctx.gc()->setCurrentPlayer(engineSeat);
     }
 
     // 「次の手番」ラベルをエンジン側に切り替える
