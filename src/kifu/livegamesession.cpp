@@ -114,12 +114,23 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                            << (m_branchPoint ? m_branchPoint->ply() : -1);
 
         if (parent != nullptr) {
-            // addMoveQuiet() を使用: treeChanged は発火しない
-            m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
-            qCDebug(lcKifu).noquote() << "addMove: added to tree, m_liveParent ply="
-                               << (m_liveParent ? m_liveParent->ply() : -1)
-                               << "sfen stored in node="
-                               << (m_liveParent ? m_liveParent->sfen().left(60) : "(null)");
+            // 同じ手が既に子として存在する場合はそのノードを再利用する。
+            // 対局後に途中局面へ戻って同じ手を指し直したときに、
+            // 同一の手を表す兄弟ノード（重複分岐）ができるのを防ぐ。
+            // 既存ノードのコメント・消費時間はそのまま維持する。
+            KifuBranchNode* existing = m_tree->findMatchingChild(parent, move, displayText, sfen);
+            if (existing != nullptr) {
+                m_liveParent = existing;
+                qCDebug(lcKifu).noquote() << "addMove: reused existing node ply=" << existing->ply()
+                                   << "displayText=" << existing->displayText();
+            } else {
+                // addMoveQuiet() を使用: treeChanged は発火しない
+                m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
+                qCDebug(lcKifu).noquote() << "addMove: added to tree, m_liveParent ply="
+                                   << (m_liveParent ? m_liveParent->ply() : -1)
+                                   << "sfen stored in node="
+                                   << (m_liveParent ? m_liveParent->sfen().left(60) : "(null)");
+            }
         }
     }
 
