@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 3 * * 1'  # 毎週月曜 03:00 UTC (日本時間 12:00)
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     if: github.event_name != 'schedule'
