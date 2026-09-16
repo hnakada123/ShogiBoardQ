@@ -365,15 +365,40 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="66"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="69"/>
         <source>
 作者: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="91"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="96"/>
         <source>適用</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="130"/>
+        <source>先読み</source>
+        <translation>先読み</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="132"/>
+        <source>相手の手番中に先読みする</source>
+        <translation>相手の手番中に先読みする</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="135"/>
+        <source>先読みに対応したエンジンで、予測した相手の指し手をもとに思考します。</source>
+        <translation>先読みに対応したエンジンで、予測した相手の指し手をもとに思考します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="138"/>
+        <source>未報告のUSI_Ponderにも設定を送信する</source>
+        <translation>未報告のUSI_Ponderにも設定を送信する</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="141"/>
+        <source>通常は有効にしてください。未対応オプションのエラーが出るエンジンでは無効にします。無効にしてもGUIによる先読みは利用できます。</source>
+        <translation>通常は有効にしてください。未対応オプションのエラーが出るエンジンでは無効にします。無効にしてもGUIによる先読みは利用できます。</translation>
     </message>
 </context>
 <context>
@@ -1897,12 +1922,12 @@
         <translation>USI_Hash オプションを追加しました。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="283"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="282"/>
         <source>オプション行の形式が無効です。</source>
         <translation>オプション行の形式が無効です。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="302"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="301"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>重複したエンジンオプションが見つかりました。</translation>
     </message>
@@ -1943,36 +1968,36 @@
 <context>
     <name>EngineSettingsOptionHandler</name>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="191"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="290"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="318"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="192"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="291"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="319"/>
         <source>%1（既定値 %2）</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="222"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="384"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="223"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="385"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="225"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="386"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="226"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="387"/>
         <source>ファイルの選択</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="242"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="243"/>
         <source>%1</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="250"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="251"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="253"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="254"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation></translation>
     </message>
@@ -6246,17 +6271,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="86"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="87"/>
         <source>Timeout waiting for usiok</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="115"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="117"/>
         <source>Timeout waiting for readyok</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="458"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="461"/>
         <source>Invalid bestmove format: %1</source>
         <translation type="unfinished"></translation>
     </message>

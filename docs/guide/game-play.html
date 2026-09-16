@@ -112,6 +112,8 @@
                     <span class="guide-step-title">エンジン設定（オプション）</span>
                 </div>
                 <p class="guide-step-text">「設定」ボタンからエンジンの各種オプション（ハッシュサイズ、スレッド数など）を変更できます。</p>
+                <p class="guide-step-text">「先読み」の「相手の手番中に先読みする」を有効にすると、対応エンジンが返す予測応手を使って相手の手番中にも思考します。Gikou 2など、USI_Ponderをオプション一覧に表示しないエンジンでも設定できます。従来のUSI_Ponderの設定値は引き継がれ、設定がない場合は先読み無効から始まります。</p>
+                <p class="guide-step-text">「未報告のUSI_Ponderにも設定を送信する」は通常有効にします。未対応オプションのエラーが出るエンジンでは無効にしてください。この通知を無効にしても、先読みに対応するエンジンではGUIから先読みを開始できます。設定はエンジンごとに保存され、次回のエンジン起動から適用されます。</p>
                 <div class="screenshot-item">
                     <img src="../images/game-play/engine-04-settings.png" alt="エンジン設定ダイアログ">
                     <p class="screenshot-caption">エンジン設定：ハッシュサイズやスレッド数などを調整</p>

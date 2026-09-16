@@ -566,6 +566,7 @@ add_shogi_test(tst_usiprotocolhandler
     ${SRC}/engine/usiprotocolhandler.cpp
     ${SRC}/engine/usiprotocolhandler_ops.cpp
     ${SRC}/engine/usiprotocolhandler_wait.cpp
+    ${SRC}/services/enginepondersettings.cpp
     ${SRC}/engine/usimovecoordinateconverter.cpp
 )
 
@@ -578,6 +579,7 @@ add_shogi_test(tst_usimatchhandler
     ${SRC}/engine/usiprotocolhandler.cpp
     ${SRC}/engine/usiprotocolhandler_ops.cpp
     ${SRC}/engine/usiprotocolhandler_wait.cpp
+    ${SRC}/services/enginepondersettings.cpp
     ${SRC}/engine/usimovecoordinateconverter.cpp
     ${SRC}/engine/engineprocessmanager.cpp
     ${SRC}/engine/engineprocessmanager_wait.cpp
@@ -677,9 +679,30 @@ add_shogi_test(tst_startgamedialog
     ${SRC}/services/gamesettings.cpp
     ${SRC}/services/enginedialogsettings.cpp
     ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/enginepondersettings.cpp
     ${SRC}/services/settingscommon.cpp
 )
 set_target_properties(tst_startgamedialog PROPERTIES
+    AUTOUIC ON
+    AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
+)
+
+add_shogi_test(tst_enginepondersettings
+    tst_enginepondersettings.cpp
+    ${SRC}/dialogs/changeenginesettingsdialog.cpp
+    ${SRC}/dialogs/changeenginesettingsdialog.ui
+    ${SRC}/dialogs/enginesettingsoptionhandler.cpp
+    ${SRC}/engine/engineoptiondescriptions.cpp
+    ${SRC}/widgets/collapsiblegroupbox.cpp
+    ${SRC}/widgets/longlongspinbox.cpp
+    ${SRC}/common/dialogutils.cpp
+    ${SRC}/common/fontsizehelper.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/services/enginedialogsettings.cpp
+    ${SRC}/services/enginepondersettings.cpp
+    ${SRC}/services/settingscommon.cpp
+)
+set_target_properties(tst_enginepondersettings PROPERTIES
     AUTOUIC ON
     AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
 )

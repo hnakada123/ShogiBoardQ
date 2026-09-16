@@ -7,6 +7,7 @@
 #include "thinkinginfopresenter.h"
 #include "shogigamecontroller.h"
 #include "enginesettingsconstants.h"
+#include "enginepondersettings.h"
 #include "settingscommon.h"
 
 #include <QSettings>
@@ -105,9 +106,10 @@ bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
         sendCommand(cmd);
     }
 
-    // エンジンがUSI_Ponderを報告していない場合はponderを無効にする
-    if (m_isPonderEnabled && !m_reportedOptions.contains(QStringLiteral("USI_Ponder"))) {
-        m_isPonderEnabled = false;
+    // USI_Ponderは報告を省略できる予約オプション。通知可否とGUIの先読み許可は独立。
+    if (m_sendUnreportedPonderOption || m_reportedOptions.contains(QStringLiteral("USI_Ponder"))) {
+        sendSetOption(QStringLiteral("USI_Ponder"),
+                      m_isPonderEnabled ? QStringLiteral("true") : QStringLiteral("false"));
     }
 
     sendIsReady();
@@ -124,7 +126,9 @@ bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
 void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
 {
     m_setOptionCommands.clear();
-    m_isPonderEnabled = false;
+    const auto ponder = EnginePonderSettings::load(engineName);
+    m_isPonderEnabled = ponder.enabled;
+    m_sendUnreportedPonderOption = ponder.sendUnreportedOption;
 
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
 
@@ -137,6 +141,9 @@ void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
         QString value = settings.value("value").toString();
         QString type = settings.value("type").toString();
 
+        // GUI設定から初期化時に一度だけ送信する。
+        if (name == QLatin1String("USI_Ponder")) continue;
+
         if (type == QLatin1String("button")) {
             // buttonタイプは"on"の場合のみvalueなしで送信
             if (value == QLatin1String("on")) {
@@ -144,10 +151,6 @@ void UsiProtocolHandler::loadEngineOptions(const QString& engineName)
             }
         } else {
             m_setOptionCommands.append("setoption name " + name + " value " + value);
-
-            if (name == QLatin1String("USI_Ponder")) {
-                m_isPonderEnabled = (value == QLatin1String("true"));
-            }
         }
     }
 

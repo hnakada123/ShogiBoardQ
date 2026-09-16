@@ -106,6 +106,8 @@
 <span class="guide-step-title">Engine Options</span>
 </div>
 <p class="guide-step-text">Click Settings to adjust engine options such as hash size and thread count.</p>
+<p class="guide-step-text">Under Pondering, enable Think during the opponent's turn to let a compatible engine think ahead using its predicted reply. This also works with engines such as Gikou 2 that do not list USI_Ponder in their options. Existing USI_Ponder preferences are preserved; engines without a saved setting start with pondering disabled.</p>
+<p class="guide-step-text">Normally leave Send USI_Ponder even if the engine does not report it enabled. Disable it for engines that report an unsupported option error. The GUI can still start pondering for compatible engines when this notification is disabled. Settings are saved per engine and apply the next time the engine starts.</p>
 <div class="screenshot-item">
 <img alt="Engine settings dialog" src="../../images/en/game-play/engine-04-settings.png"/>
 <p class="screenshot-caption">Engine settings: adjust hash size, thread count, and other options</p>

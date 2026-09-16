@@ -9,6 +9,8 @@
 #include "fontsizehelper.h"
 
 class EngineSettingsOptionHandler;
+class QCheckBox;
+class QVBoxLayout;
 
 namespace Ui {
 class ChangeEngineSettingsDialog;
@@ -51,6 +53,12 @@ private:
     // フォントサイズヘルパー
     FontSizeHelper m_fontHelper;
 
+    QCheckBox* m_ponderEnabled = nullptr;
+    QCheckBox* m_sendUnreportedPonder = nullptr;
+    bool m_defaultPonderEnabled = false;
+
+    void createPonderWidgets(QVBoxLayout* layout);
+
     // エンジンオプションに基づいてUIコンポーネントを作成して配置する。
     void createOptionWidgets();
 
@@ -58,6 +66,9 @@ private:
     void applyFontSize();
 
 private slots:
+    void saveEngineSettings();
+    void restoreDefaultSettings();
+
     // フォントサイズを増加する。
     void increaseFontSize();
 

@@ -167,6 +167,16 @@ INI ファイル内のキーは `グループ名/キー名` の形式で管理�
 エンジンの登録情報（名前、パス、オプション）は `SettingsService` ではなく、各ダイアログが直接 `QSettings` を使って読み書きする。
 INI キー名は `src/engine/enginesettingsconstants.h` に定数として定義されている。
 
+先読みのGUI設定は `EnginePonderSettings` が管理し、エンジン名グループの下に次のキーを保存する。エンジン削除時は同じグループとともに削除される。
+
+| キー | 用途・既定値 |
+|---|---|
+| `gui/ponderEnabled` | GUIが先読みを許可するか。未保存なら既存の `USI_Ponder` の値を引き継ぎ、それもなければ `false` |
+| `gui/sendUnreportedPonderOption` | 未報告の予約オプション `USI_Ponder` にも設定を通知するか。既定値 `true` |
+
+GUI設定を保存すると、既存の `USI_Ponder` オプションの保存値も同期する。未報告エンジンに架空のオプション行は追加しない。「既定値に戻す」はエンジンが登録時に報告した既定値（未報告なら無効）と、通知有効を復元する。
+初期化時は `isready` より前に `USI_Ponder` を一度だけ通知する。通知を省略する設定でも、オプションが報告されている場合は送信する。GUI側の先読み許可は通知可否に依存せず、実際の先読み開始には `bestmove` の予測応手が必要となる。
+
 ```cpp
 #include "enginesettingsconstants.h"
 #include "settingsservice.h"

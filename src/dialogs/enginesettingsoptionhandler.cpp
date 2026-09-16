@@ -96,6 +96,7 @@ void EngineSettingsOptionHandler::buildOptionWidgets(QVBoxLayout* layout)
     // オプションをカテゴリ別に分類
     for (qsizetype i = 0; i < m_optionList.size(); ++i) {
         const auto& option = m_optionList.at(i);
+        if (option.name == QLatin1String("USI_Ponder")) continue; // GUI共通設定に統合
         EngineOptionCategory category = EngineOptionDescriptions::category(m_engineName, option.name);
         categoryOptionsMap[category].append(qMakePair(static_cast<int>(i), option));
     }
@@ -396,6 +397,7 @@ void EngineSettingsOptionHandler::restoreDefaultOptions()
 {
     for (qsizetype i = 0; i < m_optionList.size(); ++i) {
         const auto& option = m_optionList[i];
+        if (option.name == QLatin1String("USI_Ponder")) continue;
         auto& widget = m_engineOptionWidgetsList[i];
 
         if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
@@ -448,6 +450,7 @@ void EngineSettingsOptionHandler::writeEngineOptions()
 
     for (qsizetype i = 0; i < m_optionList.size(); i++) {
         EngineOption option = m_optionList.at(i);
+        if (option.name == QLatin1String("USI_Ponder")) continue;
 
         if (option.type == OptionTypeFilename || option.type == OptionTypeString) {
             option.currentValue = m_engineOptionWidgetsList.at(i).lineEdit->text();
