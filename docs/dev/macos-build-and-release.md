@@ -84,7 +84,7 @@ clang++ --version     # Apple Clang
 
 ### ビルドスクリプト（推奨）
 
-`scripts/build-macos.sh` を使うと、Release ビルドから DMG 作成まで一括実行できる：
+`scripts/build-macos.sh` を使うと、Release ビルドからコード署名・DMG 作成まで一括実行できる：
 
 ```bash
 # 通常ビルド + DMG 作成
@@ -95,22 +95,32 @@ clang++ --version     # Apple Clang
 
 # クリーンビルド、DMG なし
 ./scripts/build-macos.sh --clean --skip-dmg
+
+# Developer ID で署名（既定はアドホック署名）
+./scripts/build-macos.sh --sign-identity "Developer ID Application: Your Name (TEAMID)"
 ```
 
 | オプション | 説明 |
 |---|---|
 | `--universal` | Universal Binary (arm64 + x86_64) をビルド |
+| `--deployment-target VER` | 最小対応 macOS バージョン（既定: 環境変数 `MACOSX_DEPLOYMENT_TARGET`、未設定なら `26.0`） |
+| `--sign-identity ID` | コード署名 ID（既定: `-` = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名する |
 | `--skip-dmg` | DMG 作成をスキップ（.app バンドルのみ生成） |
 | `--clean` | build ディレクトリを削除してからビルド |
 | `--help` | ヘルプを表示 |
 
 スクリプトは以下の処理を自動実行する：
 
-1. 前提ツールの存在確認（cmake, ninja, macdeployqt, create-dmg）
-2. CMake Configure + Ninja ビルド
-3. ビルド成果物の確認（.app、.qm 翻訳ファイル）
+1. 前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, create-dmg）
+2. CMake Configure（`CMAKE_OSX_DEPLOYMENT_TARGET` を指定）+ Ninja ビルド
+3. ビルド成果物の確認（.app、実行ファイルの最小 macOS バージョン、.qm 翻訳ファイル）
 4. macdeployqt によるフレームワークバンドル + 検証
-5. create-dmg による DMG 作成
+5. バンドル全体のコード署名 + `codesign --verify --deep --strict` による検証
+6. create-dmg による DMG 作成
+
+> **最小 macOS バージョンについて:** デプロイメントターゲットを指定しないと、ビルドホストの macOS バージョンが最小対応バージョンになる（例: macOS 27 でビルドすると macOS 26 で起動できない）。スクリプトは既定で `26.0` を指定し、ビルド後に実行ファイルの `minos` が一致しなければ停止する。
+>
+> **コード署名について:** macdeployqt はバイナリを書き換えるため、実行後のバンドルはリンカ署名のみの状態になり、厳格な署名検証に通らない。スクリプトは macdeployqt の後にバンドル全体を署名し直してから DMG を作成する。
 
 以下は個別のコマンドを手動で実行する場合の手順。
 
