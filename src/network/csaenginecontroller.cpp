@@ -11,6 +11,7 @@
 #include "logcategories.h"
 
 #include <QSettings>
+#include <utility>
 
 CsaEngineController::CsaEngineController(QObject* parent)
     : QObject(parent)
@@ -24,11 +25,7 @@ CsaEngineController::~CsaEngineController()
 
 void CsaEngineController::initialize(const InitParams& params)
 {
-    if (m_engine) {
-        m_engine->sendQuitCommand();
-        m_engine->deleteLater();
-        m_engine = nullptr;
-    }
+    cleanup();
 
     m_gameController = params.gameController;
 
@@ -86,8 +83,7 @@ void CsaEngineController::initialize(const InitParams& params)
     m_engine->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("CSA"), params.engineName);
     if (!m_engine->startAndInitializeEngine(enginePath, params.engineName)) {
         emit logMessage(tr("エンジン %1 の初期化に失敗しました").arg(params.engineName), true);
-        m_engine->deleteLater();
-        m_engine = nullptr;
+        cleanup();
         return;
     }
 
@@ -104,12 +100,11 @@ CsaEngineController::ThinkingResult CsaEngineController::think(const ThinkingPar
     m_gameController->setPromote(false);
 
     QString positionCmd = params.positionCmd;
-    QString ponderStr;
 
     const UsiTimingParams timing{params.byoyomiMs, params.btimeStr, params.wtimeStr,
                                  params.bincMs, params.wincMs, params.useByoyomi};
     m_engine->handleEngineVsHumanOrEngineMatchCommunication(
-        positionCmd, ponderStr, result.from, result.to, timing);
+        positionCmd, m_ponderPosition, result.from, result.to, timing);
 
     result.resign = m_engine->isResignMove();
     result.promote = m_gameController->promote();
@@ -122,6 +117,7 @@ CsaEngineController::ThinkingResult CsaEngineController::think(const ThinkingPar
 
 void CsaEngineController::sendGameOver(bool win)
 {
+    m_ponderPosition.clear();
     if (!m_engine) return;
     if (win) {
         m_engine->sendGameOverWinAndQuitCommands();
@@ -132,6 +128,7 @@ void CsaEngineController::sendGameOver(bool win)
 
 void CsaEngineController::sendQuit()
 {
+    m_ponderPosition.clear();
     if (m_engine) {
         m_engine->sendQuitCommand();
     }
@@ -139,10 +136,12 @@ void CsaEngineController::sendQuit()
 
 void CsaEngineController::cleanup()
 {
-    if (m_engine) {
-        m_engine->sendQuitCommand();
-        m_engine->deleteLater();
-        m_engine = nullptr;
+    m_ponderPosition.clear();
+    if (Usi* engine = std::exchange(m_engine, nullptr)) {
+        disconnect(engine, nullptr, this, nullptr);
+        // QObjectの子破棄中にプロセス待ちのイベントループへ入らないよう、先に停止する。
+        engine->cleanupEngineProcessAndThread(false);
+        engine->deleteLater();
     }
 }
 

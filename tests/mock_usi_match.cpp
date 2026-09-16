@@ -35,6 +35,7 @@ int main()
             pondering = false;
             std::cout << "bestmove resign" << std::endl; // 予測局面の投了は破棄する
         } else if (line == "ponderhit" || line.find("go ") == 0) {
+            if (line == "ponderhit" && !pondering) { join(); return 2; }
             if (pondering && line != "ponderhit") continue;
             join();
             pondering = false;

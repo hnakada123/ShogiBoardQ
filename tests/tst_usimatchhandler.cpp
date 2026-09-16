@@ -231,6 +231,31 @@ private slots:
         QVERIFY(!h.clock.isGameOver());
         QCOMPARE(h.errors, 0);
     }
+    void externallyStoppedPonderStartsNewSearch_data()
+    {
+        QTest::addColumn<bool>("responseReceived");
+        QTest::newRow("stop-response-pending") << false;
+        QTest::newRow("stop-response-received") << true;
+    }
+    void externallyStoppedPonderStartsNewSearch()
+    {
+        QFETCH(bool, responseReceived);
+        MatchHarness h;
+        QVERIFY(h.start(mockPath()));
+        QCOMPARE(h.reply(), QPoint(8, 4));
+        QSignalSpy resign(&h.protocol, &UsiProtocolHandler::bestMoveResignReceived);
+        h.protocol.sendStop();
+        if (responseReceived) QVERIFY(h.protocol.waitForBestMove(2000));
+        h.commands.clear();
+        h.humanMove(QStringLiteral("2g2f")); // 元の予測に一致しても新しい探索が必要
+        QCOMPARE(h.reply(), QPoint(3, 4));
+        QCOMPARE(h.errors, 0);
+        QCOMPARE(resign.count(), 0);
+        QVERIFY(h.commands.first().startsWith(QStringLiteral("position ")));
+        QVERIFY(h.commands.at(1).startsWith(QStringLiteral("go btime ")));
+        QVERIFY(!h.commands.contains(QStringLiteral("ponderhit")));
+        QVERIFY(!h.commands.contains(QStringLiteral("stop")));
+    }
     void humanMoveApiRecognizesPonderHit()
     {
         MatchHarness h;

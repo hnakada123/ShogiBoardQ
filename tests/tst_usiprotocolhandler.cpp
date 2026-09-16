@@ -75,6 +75,46 @@ private slots:
         QVERIFY(handler.keepWaitingForBestMove(1));
     }
 
+    void stoppedPonderCannotBeHit_data()
+    {
+        QTest::addColumn<QString>("result");
+        QTest::newRow("move") << QStringLiteral("bestmove 3c3d ponder 2f2e");
+        QTest::newRow("resign") << QStringLiteral("bestmove resign");
+        QTest::newRow("win") << QStringLiteral("bestmove win");
+    }
+
+    void stoppedPonderCannotBeHit()
+    {
+        QFETCH(QString, result);
+        EngineProcessManager process;
+        UsiProtocolHandler handler;
+        handler.setProcessManager(&process);
+        QSignalSpy commands(&process, &EngineProcessManager::commandSent);
+        QSignalSpy resign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
+        QSignalSpy win(&handler, &UsiProtocolHandler::bestMoveWinReceived);
+        handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
+        handler.sendGoPonder({});
+        commands.clear();
+        handler.sendStop();
+        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::StoppingPonder);
+        handler.sendPonderHit(); // stopへの応答待ちの間も切り替えてはいけない
+        handler.sendStop();
+        QCOMPARE(commands.count(), 1);
+        QCOMPARE(commands.first().at(0).toString(), QStringLiteral("stop"));
+        handler.onDataReceived(result);
+        QVERIFY(handler.waitForBestMove(10));
+        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Idle);
+        QVERIFY(handler.predictedMove().isEmpty());
+        handler.sendPonderHit(); // 回収済みの探索にも送らない
+        QCOMPARE(commands.count(), 1);
+        QCOMPARE(resign.count(), 0);
+        QCOMPARE(win.count(), 0);
+        handler.sendGoDepth(1);
+        QVERIFY(!handler.waitForBestMove(0)); // 前のbestmoveを再利用しない
+        handler.onDataReceived(QStringLiteral("bestmove 3c3d"));
+        QVERIFY(handler.waitForBestMove(10));
+    }
+
     // ================================================================
     // 1. info 行の解析
     // ================================================================
@@ -977,15 +1017,12 @@ private slots:
     // 19. フェーズ・状態遷移テスト
     // ================================================================
 
-    void phase_afterBestmove_remainsMain()
+    void phase_afterBestmove_returnsIdle()
     {
-        // bestmove受信後もフェーズはMain（Idle に戻さない）
         UsiProtocolHandler handler;
-        // beginMainSearch は sendGoDepth 等の内部で呼ばれるが、
-        // テストでは直接 onDataReceived でbestmoveのみ送る
-        // → フェーズは Idle のまま
+        handler.sendGoDepth(1);
+        QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Main);
         handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-        // bestmove 単独ではフェーズを変更しない
         QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Idle);
     }
 

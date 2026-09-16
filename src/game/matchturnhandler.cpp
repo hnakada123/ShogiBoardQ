@@ -151,7 +151,27 @@ void MatchTurnHandler::initPositionStringsFromSfen(const QString& sfenBase)
 
 void MatchTurnHandler::forceImmediateMove()
 {
-    if (!m_refs.gc || !m_hooks.sendStopToEngine) return;
+    if (!m_refs.gc || !m_refs.playMode || !m_hooks.sendStopToEngine) return;
+    if (m_refs.gameOver && m_refs.gameOver->isOver) return;
+
+    const auto player = m_refs.gc->currentPlayer();
+    if (player == ShogiGameController::NoPlayer) return;
+    // 人間の手番に「すぐ指させる」を押しても先読みは停止しない。
+    switch (*m_refs.playMode) {
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
+        if (player != ShogiGameController::Player2) return;
+        break;
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
+        if (player != ShogiGameController::Player1) return;
+        break;
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
+        break;
+    default:
+        return;
+    }
 
     const bool isEvE =
         (*m_refs.playMode == PlayMode::EvenEngineVsEngine) ||

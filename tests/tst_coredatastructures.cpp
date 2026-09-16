@@ -528,6 +528,70 @@ private slots:
         }
     }
 
+    void gameController_rejectsInvalidEngineCoordinates_data()
+    {
+        QTest::addColumn<QPoint>("from");
+        QTest::addColumn<QPoint>("to");
+        QTest::newRow("no-bestmove") << QPoint(-1, -1) << QPoint(-1, -1);
+        QTest::newRow("invalid-source") << QPoint(-1, -1) << QPoint(7, 6);
+        QTest::newRow("invalid-target") << QPoint(7, 7) << QPoint(-1, -1);
+        QTest::newRow("source-rank-zero") << QPoint(7, 0) << QPoint(7, 6);
+        QTest::newRow("target-rank-ten") << QPoint(7, 7) << QPoint(7, 10);
+        QTest::newRow("target-stand") << QPoint(7, 7) << QPoint(10, 1);
+        QTest::newRow("invalid-stand-rank") << QPoint(10, 0) << QPoint(7, 6);
+        QTest::newRow("king-drop") << QPoint(10, 8) << QPoint(7, 6);
+        QTest::newRow("opponent-stand") << QPoint(11, 9) << QPoint(7, 6);
+    }
+
+    void gameController_rejectsInvalidEngineCoordinates()
+    {
+        QFETCH(QPoint, from);
+        QFETCH(QPoint, to);
+        ShogiGameController gc;
+        QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        gc.newGame(initial);
+        const auto before = gc.board()->boardData();
+        QStringList history{initial};
+        QList<ShogiMove> moves;
+        QString record;
+        PlayMode mode = PlayMode::EvenEngineVsHuman;
+        QSignalSpy committed(&gc, &ShogiGameController::moveCommitted);
+        QVERIFY(!gc.validateAndMove(from, to, record, mode, 1, &history, moves));
+        QCOMPARE(gc.board()->boardData(), before);
+        QCOMPARE(history, QStringList{initial});
+        QVERIFY(moves.isEmpty());
+        QVERIFY(record.isEmpty());
+        QCOMPARE(committed.count(), 0);
+        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player1);
+    }
+
+    void gameController_acceptsEngineDrop_data()
+    {
+        QTest::addColumn<bool>("black");
+        QTest::newRow("black") << true;
+        QTest::newRow("white") << false;
+    }
+
+    void gameController_acceptsEngineDrop()
+    {
+        QFETCH(bool, black);
+        ShogiGameController gc;
+        QString initial = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 ")
+            + (black ? QStringLiteral("b P 1") : QStringLiteral("w p 1"));
+        gc.newGame(initial);
+        QStringList history{initial};
+        QList<ShogiMove> moves;
+        QString record;
+        PlayMode mode = PlayMode::EvenEngineVsEngine;
+        QPoint from = black ? QPoint(10, 1) : QPoint(11, 9);
+        QPoint to(5, 5);
+        QVERIFY(gc.validateAndMove(from, to, record, mode, 1, &history, moves));
+        QCOMPARE(gc.board()->pieceCharacter(5, 5), black ? Piece::BlackPawn : Piece::WhitePawn);
+        QCOMPARE(gc.board()->convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(moves.size(), 1);
+        QCOMPARE(history.size(), 2);
+    }
+
     void gameController_forcedPromotionDoesNotLeak_data()
     {
         QTest::addColumn<bool>("illegalAttempt");

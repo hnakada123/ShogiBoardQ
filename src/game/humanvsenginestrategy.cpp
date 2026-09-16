@@ -203,7 +203,7 @@ void HumanVsEngineStrategy::onHumanMoveEngineReply(const QPoint& humanFrom,
     const int byoyomiMs = m_engineIsP1 ? tc.byoyomiMs1 : tc.byoyomiMs2;
 
     QPoint eFrom = humanFrom, eTo = humanTo;
-    m_ctx.gc()->setPromote(false);
+    // 人間の成り情報はUSIの指し手へ変換するまで保持する。
 
     const UsiTimingParams timing{byoyomiMs, bTime, wTime, tc.incMs1, tc.incMs2, tc.useByoyomi};
     eng->handleHumanVsEngineCommunication(
