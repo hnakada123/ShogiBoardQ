@@ -527,6 +527,63 @@ private slots:
             QCOMPARE(NotationUtils::rankNumToLetter(num), QChar(c));
         }
     }
+
+    void gameController_forcedPromotionDoesNotLeak_data()
+    {
+        QTest::addColumn<bool>("illegalAttempt");
+        QTest::newRow("ordinary-book-move") << false;
+        QTest::newRow("illegal-book-move") << true;
+    }
+
+    void gameController_forcedPromotionDoesNotLeak()
+    {
+        QFETCH(bool, illegalAttempt);
+        ShogiGameController gc;
+        QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
+        gc.newGame(initial);
+        QStringList history{initial};
+        QList<ShogiMove> moves;
+        QString record;
+        PlayMode mode = PlayMode::HumanVsHuman;
+        QSignalSpy promotion(&gc, &ShogiGameController::showPromotionDialog);
+        gc.setForcedPromotion(true, false);
+        if (illegalAttempt) {
+            QPoint empty(7, 6), dest(7, 5);
+            QVERIFY(!gc.validateAndMove(empty, dest, record, mode, 1, &history, moves));
+        }
+        QPoint from(7, 7), to(7, 6);
+        QVERIFY(gc.validateAndMove(from, to, record, mode, 1, &history, moves));
+        from = QPoint(3, 3); to = QPoint(3, 4);
+        QVERIFY(gc.validateAndMove(from, to, record, mode, 2, &history, moves));
+        from = QPoint(8, 8); to = QPoint(2, 2);
+        QVERIFY(gc.validateAndMove(from, to, record, mode, 3, &history, moves));
+        QCOMPARE(promotion.count(), 1);
+    }
+
+    void gameController_forcedPromotionIsApplied_data()
+    {
+        QTest::addColumn<bool>("promote");
+        QTest::newRow("promote") << true;
+        QTest::newRow("do-not-promote") << false;
+    }
+
+    void gameController_forcedPromotionIsApplied()
+    {
+        QFETCH(bool, promote);
+        ShogiGameController gc;
+        QString initial = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3");
+        gc.newGame(initial);
+        QStringList history{initial};
+        QList<ShogiMove> moves;
+        QString record;
+        PlayMode mode = PlayMode::HumanVsHuman;
+        QSignalSpy promotion(&gc, &ShogiGameController::showPromotionDialog);
+        gc.setForcedPromotion(true, promote);
+        QPoint from(8, 8), to(2, 2);
+        QVERIFY(gc.validateAndMove(from, to, record, mode, 3, &history, moves));
+        QCOMPARE(promotion.count(), 0);
+        QCOMPARE(moves.last().isPromotion, promote);
+    }
 };
 
 QTEST_MAIN(TestCoreDataStructures)

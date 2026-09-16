@@ -161,7 +161,8 @@ private:
      */
     bool decidePromotion(PlayMode& playMode, EngineMoveValidator& validator,
                          const EngineMoveValidator::Turn& turnMove,
-                         int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove);
+                         int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove,
+                         bool forcedPromotionMode, bool forcedPromotionValue);
 
     /// 相手の手番をTurnで取得する
     Turn nextPlayerSfen();

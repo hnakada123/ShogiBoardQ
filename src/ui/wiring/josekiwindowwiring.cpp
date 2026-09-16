@@ -136,6 +136,8 @@ void JosekiWindowWiring::onJosekiMoveSelected(const QString& usiMove)
 
     // 指し手実行を要求
     Q_EMIT moveRequested(from, to);
+    // 上位の入力ガードで着手処理に到達しなかった場合も指定を解除する。
+    Q_EMIT forcedPromotionRequested(false, false);
 
     // 着手後の棋譜サイズを確認して成功/失敗を判定
     const qsizetype sfenSizeAfter = m_sfenHistory ? m_sfenHistory->size() : 0;

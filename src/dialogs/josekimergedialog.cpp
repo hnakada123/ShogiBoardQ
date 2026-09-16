@@ -10,7 +10,6 @@
 #include <QHBoxLayout>
 #include <QMessageBox>
 #include <QFileInfo>
-#include "logcategories.h"
 
 namespace {
 constexpr QSize kDefaultSize{600, 500};
@@ -166,6 +165,7 @@ void JosekiMergeDialog::updateTable()
 {
     const int rowCount = static_cast<int>(m_entries.size());
     m_tableWidget->setRowCount(rowCount);
+    bool hasUnregistered = false;
     
     for (int i = 0; i < rowCount; ++i) {
         const KifuMergeEntry &entry = m_entries[i];
@@ -183,6 +183,7 @@ void JosekiMergeDialog::updateTable()
         
         // 登録済みかどうかをチェック
         bool alreadyRegistered = isRegistered(entry.sfen, entry.usiMove);
+        hasUnregistered = hasUnregistered || !alreadyRegistered;
         
         // 登録ボタン（青系の配色）
         QPushButton *registerBtn = new QPushButton(alreadyRegistered ? tr("登録済") : tr("登録"), this);
@@ -213,6 +214,7 @@ void JosekiMergeDialog::updateTable()
             statusItem->setBackground(highlightColor);
         }
     }
+    m_registerAllButton->setEnabled(hasUnregistered);
 }
 
 void JosekiMergeDialog::onRegisterButtonClicked()
@@ -223,28 +225,23 @@ void JosekiMergeDialog::onRegisterButtonClicked()
     int row = button->property("row").toInt();
     if (row < 0 || row >= static_cast<int>(m_entries.size())) return;
     
-    const KifuMergeEntry &entry = m_entries[row];
-    
-    // SFENを正規化
-    QString normalizedSfen = normalizeSfen(entry.sfen);
-    
-    qCDebug(lcUi) << "Registering move:" << entry.usiMove
-             << "at ply" << entry.ply
-             << "sfen:" << normalizedSfen;
-    
-    // シグナルを発行
-    emit registerMove(normalizedSfen, entry.sfen, entry.usiMove);
-    
-    // 状態を更新
-    QTableWidgetItem *statusItem = m_tableWidget->item(row, 3);
-    if (statusItem) {
-        statusItem->setText(tr("✓登録済"));
-        statusItem->setForeground(QColor(0, 128, 0));  // 緑色
-    }
-    
-    // ボタンを無効化
-    button->setEnabled(false);
-    button->setText(tr("登録済"));
+    registerEntry(m_entries[row]);
+}
+
+bool JosekiMergeDialog::registerEntry(const KifuMergeEntry &entry)
+{
+    if (!isEnabled() || isRegistered(entry.sfen, entry.usiMove)) return false;
+    m_lastRegistrationSucceeded = false;
+    emit registerMove(normalizeSfen(entry.sfen), entry.sfen, entry.usiMove);
+    return m_lastRegistrationSucceeded;
+}
+
+void JosekiMergeDialog::onRegistrationFinished(const QString &sfen, const QString &usiMove, bool success)
+{
+    m_lastRegistrationSucceeded = success;
+    if (!success) return;
+    m_registeredMoves.insert(normalizeSfen(sfen) + QLatin1Char(':') + usiMove);
+    updateTable();
 }
 
 void JosekiMergeDialog::onRegisterAllButtonClicked()
@@ -258,29 +255,14 @@ void JosekiMergeDialog::onRegisterAllButtonClicked()
     int count = 0;
     for (int i = 0; i < entryCount; ++i) {
         const KifuMergeEntry &entry = m_entries[i];
-        QString normalizedSfen = normalizeSfen(entry.sfen);
-        
-        emit registerMove(normalizedSfen, entry.sfen, entry.usiMove);
-        
-        // 状態を更新
-        QTableWidgetItem *statusItem = m_tableWidget->item(i, 3);
-        if (statusItem) {
-            statusItem->setText(tr("✓登録済"));
-            statusItem->setForeground(QColor(0, 128, 0));
-        }
-        
-        // ボタンを無効化
-        QPushButton *btn = qobject_cast<QPushButton*>(m_tableWidget->cellWidget(i, 2));
-        if (btn) {
-            btn->setEnabled(false);
-            btn->setText(tr("登録済"));
-        }
-        
+        if (isRegistered(entry.sfen, entry.usiMove)) continue;
+        if (!registerEntry(entry)) return;
         ++count;
     }
     
-    QMessageBox::information(this, tr("一括登録完了"), 
-        tr("%1件の指し手を定跡に登録しました。").arg(count));
+    if (count > 0)
+        QMessageBox::information(this, tr("一括登録完了"),
+            tr("%1件の指し手を定跡に登録しました。").arg(count));
 }
 
 void JosekiMergeDialog::onFontSizeIncrease()

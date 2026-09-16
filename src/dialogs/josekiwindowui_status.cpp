@@ -21,7 +21,10 @@ void JosekiWindow::updateStatusDisplay()
 {
     bool hasData = !m_repository->isEmpty();
     if (m_fileStatusLabel) {
-        if (hasData) {
+        if (m_modified) {
+            m_fileStatusLabel->setText(tr("未保存"));
+            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-weight: bold;"));
+        } else if (hasData) {
             m_fileStatusLabel->setText(tr("✓読込済"));
             m_fileStatusLabel->setStyleSheet(QStringLiteral("color: green; font-weight: bold;"));
         } else {
@@ -99,25 +102,21 @@ void JosekiWindow::updateWindowTitle()
 void JosekiWindow::setModified(bool modified)
 {
     m_modified = modified;
-    m_saveButton->setEnabled(!m_currentFilePath.isEmpty() && modified);
+    m_saveButton->setEnabled(!isIoBusy() && modified);
     updateWindowTitle();
     if (m_dockWidget) {
         QString dockTitle = tr("定跡");
         if (m_modified) dockTitle += QStringLiteral(" *");
         m_dockWidget->setWindowTitle(dockTitle);
     }
-    if (m_fileStatusLabel) {
-        if (m_modified) {
-            m_fileStatusLabel->setText(tr("未保存"));
-            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-weight: bold;"));
-        } else if (!m_repository->isEmpty()) {
-            m_fileStatusLabel->setText(tr("✓読込済"));
-            m_fileStatusLabel->setStyleSheet(QStringLiteral("color: green; font-weight: bold;"));
-        } else {
-            m_fileStatusLabel->setText(QString());
-            m_fileStatusLabel->setStyleSheet(QString());
-        }
-    }
+    updateStatusDisplay();
+}
+
+bool JosekiWindow::confirmClose()
+{
+    if (!confirmDiscardChanges()) return false;
+    saveSettings();
+    return true;
 }
 
 bool JosekiWindow::confirmDiscardChanges()
@@ -137,12 +136,10 @@ bool JosekiWindow::confirmDiscardChanges()
     msgBox.setDefaultButton(saveBtn);
     msgBox.exec();
     if (msgBox.clickedButton() == saveBtn) {
-        if (m_currentFilePath.isEmpty()) {
-            onSaveAsButtonClicked();
-            return !m_modified;
-        }
+        const QString filePath = m_currentFilePath.isEmpty() ? selectSaveFilePath() : m_currentFilePath;
+        if (filePath.isEmpty()) return false;
         // 同期保存（ダイアログ応答のフロー上、完了を待つ必要がある）
-        if (saveToFile(m_currentFilePath)) setModified(false);
+        if (saveToFile(filePath)) applySavedFilePath(filePath);
         return !m_modified;
     }
     if (msgBox.clickedButton() == discardBtn) return true;

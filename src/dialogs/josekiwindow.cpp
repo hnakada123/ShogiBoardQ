@@ -36,6 +36,7 @@ JosekiWindow::JosekiWindow(QWidget *parent)
 {
     setupUi();
     loadSettings();
+    connect(m_presenter, &JosekiPresenter::modifiedChanged, this, &JosekiWindow::setModified);
 
     connect(&m_loadWatcher, &QFutureWatcher<JosekiLoadResult>::finished,
             this, &JosekiWindow::onAsyncLoadFinished);
@@ -51,17 +52,6 @@ JosekiWindow::~JosekiWindow()
     }
 }
 
-int JosekiWindow::currentPlyNumber() const
-{
-    const QStringList sfenParts = m_currentSfen.split(QChar(' '));
-    if (sfenParts.size() >= 4) {
-        bool ok;
-        int ply = sfenParts.at(3).toInt(&ok);
-        if (ok) return ply;
-    }
-    return 1;
-}
-
 // ============================================================
 // ウィンドウライフサイクル
 // ============================================================
@@ -75,16 +65,14 @@ void JosekiWindow::setDockWidget(QDockWidget *dock)
 bool JosekiWindow::eventFilter(QObject *obj, QEvent *event)
 {
     if (obj == m_dockWidget && event->type() == QEvent::Close) {
-        if (!confirmDiscardChanges()) { event->ignore(); return true; }
-        saveSettings();
+        if (!confirmClose()) { event->ignore(); return true; }
     }
     return QWidget::eventFilter(obj, event);
 }
 
 void JosekiWindow::closeEvent(QCloseEvent *event)
 {
-    if (!confirmDiscardChanges()) { event->ignore(); return; }
-    saveSettings();
+    if (!confirmClose()) { event->ignore(); return; }
     QWidget::closeEvent(event);
 }
 
@@ -130,6 +118,7 @@ void JosekiWindow::onOpenButtonClicked()
 void JosekiWindow::onNewButtonClicked()
 {
     if (!confirmDiscardChanges()) return;
+    closeMergeDialogs();
     m_repository->clear();
     m_currentFilePath.clear();
     m_filePathLabel->setText(tr("新規ファイル（未保存）"));
@@ -149,19 +138,8 @@ void JosekiWindow::onSaveButtonClicked()
 void JosekiWindow::onSaveAsButtonClicked()
 {
     if (isIoBusy()) return;
-
-    QString startDir;
-    if (!m_currentFilePath.isEmpty()) startDir = QFileInfo(m_currentFilePath).absolutePath();
-
-    QString filePath = QFileDialog::getSaveFileName(
-        this, tr("定跡ファイルを保存"), startDir,
-        tr("定跡ファイル (*.db);;すべてのファイル (*)"));
-    if (filePath.isEmpty()) return;
-
-    if (!filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive))
-        filePath += QStringLiteral(".db");
-
-    saveToFileAsync(filePath);
+    const QString filePath = selectSaveFilePath();
+    if (!filePath.isEmpty()) saveToFileAsync(filePath);
 }
 
 // ============================================================
@@ -260,15 +238,16 @@ void JosekiWindow::setHumanCanPlay(bool canPlay)
 
 void JosekiWindow::editMoveAt(int row)
 {
+    if (isIoBusy()) return;
     if (row < 0 || row >= m_currentMoves.size()) return;
 
     QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
     if (!m_repository->containsPosition(normalizedSfen)) return;
 
-    const JosekiMove &currentMove = m_currentMoves.at(row);
+    const JosekiMove currentMove = m_currentMoves.at(row);
     SfenPositionTracer tracer;
     (void)tracer.setFromSfen(m_currentSfen);
-    QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, currentPlyNumber(), tracer);
+    QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
 
     JosekiMoveDialog dialog(this, true);
     dialog.setValue(currentMove.value);
@@ -286,17 +265,18 @@ void JosekiWindow::editMoveAt(int row)
 
 void JosekiWindow::deleteMoveAt(int row)
 {
+    if (isIoBusy()) return;
     if (row < 0 || row >= m_currentMoves.size()) return;
 
     QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
     if (!m_repository->containsPosition(normalizedSfen)) return;
 
-    const JosekiMove &currentMove = m_currentMoves.at(row);
+    const JosekiMove currentMove = m_currentMoves.at(row);
 
     // 日本語表記で確認（ボタンからの場合）
     SfenPositionTracer tracer;
     (void)tracer.setFromSfen(m_currentSfen);
-    QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, currentPlyNumber(), tracer);
+    QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
 
     QMessageBox::StandardButton result = QMessageBox::question(
         this, tr("削除確認"),
@@ -331,6 +311,7 @@ void JosekiWindow::onPlayButtonClicked()
 
 void JosekiWindow::onAddMoveButtonClicked()
 {
+    if (isIoBusy()) return;
     if (m_currentSfen.isEmpty()) {
         QMessageBox::warning(this, tr("定跡手追加"),
             tr("局面が設定されていません。\n将棋盤で局面を表示してから定跡手を追加してください。"));
@@ -437,6 +418,7 @@ void JosekiWindow::onTableDoubleClicked(int row, int column)
 
 void JosekiWindow::onTableContextMenu(const QPoint &pos)
 {
+    if (isIoBusy()) return;
     QModelIndex index = m_tableWidget->indexAt(pos);
     if (!index.isValid()) return;
     int row = index.row();
@@ -479,6 +461,7 @@ void JosekiWindow::onRestoreStatusDisplay() { updateStatusDisplay(); }
 
 void JosekiWindow::onMergeFromCurrentKifu()
 {
+    if (isIoBusy()) return;
     if (!ensureFilePath()) return;
     emit requestKifuDataForMerge();
 }
@@ -486,6 +469,7 @@ void JosekiWindow::onMergeFromCurrentKifu()
 void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, const QStringList &moveList,
                                         const QStringList &japaneseMoveList, int currentPly)
 {
+    if (isIoBusy()) return;
     if (moveList.isEmpty()) {
         QMessageBox::information(this, tr("情報"), tr("棋譜に指し手がありません。"));
         return;
@@ -501,12 +485,14 @@ void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, const QStrin
     dialog->setTargetJosekiFile(m_currentFilePath);
     dialog->setRegisteredMoves(m_repository->mergeRegisteredMoves());
     connect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
+    connect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
     dialog->setKifuData(entries, currentPly);
     dialog->show();
 }
 
 void JosekiWindow::onMergeFromKifuFile()
 {
+    if (isIoBusy()) return;
     if (!ensureFilePath()) return;
 
     QString kifFilePath = QFileDialog::getOpenFileName(
@@ -534,12 +520,17 @@ void JosekiWindow::onMergeFromKifuFile()
     dialog->setRegisteredMoves(m_repository->mergeRegisteredMoves());
     dialog->setWindowTitle(tr("棋譜から定跡にマージ - %1").arg(QFileInfo(kifFilePath).fileName()));
     connect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
+    connect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
     dialog->setKifuData(entries, -1);
     dialog->show();
 }
 
 void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove)
 {
-    m_presenter->registerMergeMove(sfen, sfenWithPly, usiMove, m_currentFilePath);
+    if (isIoBusy()) return;
+    QString errorMessage;
+    const bool success = m_presenter->registerMergeMove(sfen, sfenWithPly, usiMove, m_currentFilePath, &errorMessage);
+    emit mergeRegistrationFinished(sfen, usiMove, success);
+    if (!success) QMessageBox::warning(this, tr("エラー"), errorMessage);
     updateJosekiDisplay();
 }

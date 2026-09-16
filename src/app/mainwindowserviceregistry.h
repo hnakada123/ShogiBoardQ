@@ -106,6 +106,7 @@ public:
     void prepareTurnStateSyncService();
     void prepareTurnSyncBridge();
     [[nodiscard]] bool confirmDiscardUnsavedKifu();
+    [[nodiscard]] bool confirmCloseJoseki();
     void resetToInitialState();
     void resetGameState();
     void setReplayMode(bool on);

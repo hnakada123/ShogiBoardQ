@@ -394,7 +394,6 @@ void JosekiWindow::updateJosekiDisplay()
         ? tr("定跡SFEN: %1").arg(normalizedSfen)
         : tr("定跡SFEN: %1").arg(sPly));
 
-    int plyNumber = currentPlyNumber();
     SfenPositionTracer tracer;
     (void)tracer.setFromSfen(m_currentSfen);
     m_tableWidget->setRowCount(static_cast<int>(moves.size()));
@@ -413,7 +412,7 @@ void JosekiWindow::updateJosekiDisplay()
             addRowButton(m_tableWidget, i, 1, tr("着手"), ButtonStyles::tablePlayButton(),
                          this, &JosekiWindow::onPlayButtonClicked);
 
-        QString moveJapanese = JosekiPresenter::usiMoveToJapanese(move.move, plyNumber, tracer);
+        QString moveJapanese = JosekiPresenter::usiMoveToJapanese(move.move, tracer);
         auto *moveItem = new QTableWidgetItem(moveJapanese);
         moveItem->setTextAlignment(Qt::AlignCenter);
         moveItem->setToolTip(tr("ダブルクリックで着手"));
@@ -423,7 +422,7 @@ void JosekiWindow::updateJosekiDisplay()
         (void)nextTracer.setFromSfen(m_currentSfen);
         (void)nextTracer.applyUsiMove(move.move);
         auto *nextMoveItem = new QTableWidgetItem(
-            JosekiPresenter::usiMoveToJapanese(move.nextMove, plyNumber + 1, nextTracer));
+            JosekiPresenter::usiMoveToJapanese(move.nextMove, nextTracer));
         nextMoveItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 3, nextMoveItem);
 

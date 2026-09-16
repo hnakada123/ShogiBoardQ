@@ -47,13 +47,14 @@ QString JosekiPresenter::pieceToKanji(QChar pieceChar, bool promoted)
     }
 }
 
-QString JosekiPresenter::usiMoveToJapanese(const QString &usiMove, int plyNumber,
-                                            SfenPositionTracer &tracer)
+QString JosekiPresenter::usiMoveToJapanese(const QString &usiMove,
+                                            const SfenPositionTracer &tracer)
 {
     if (usiMove.isEmpty()) return QString();
+    if (usiMove == QStringLiteral("none")) return tr("なし");
 
     // 手番記号
-    QString teban = (plyNumber % 2 != 0) ? QStringLiteral("▲") : QStringLiteral("△");
+    QString teban = tracer.blackToMove() ? QStringLiteral("▲") : QStringLiteral("△");
 
     // 駒打ちのパターン: P*7f
     if (usiMove.size() >= 4 && usiMove.at(1) == QChar('*')) {
@@ -158,21 +159,21 @@ void JosekiPresenter::deleteMove(const QString &normalizedSfen, int index)
 }
 
 bool JosekiPresenter::registerMergeMove(const QString &normalizedSfen, const QString &sfenWithPly,
-                                         const QString &usiMove, const QString &currentFilePath)
+                                         const QString &usiMove, const QString &currentFilePath,
+                                         QString *errorMessage)
 {
-    m_repository->registerMergeMove(normalizedSfen, sfenWithPly, usiMove);
-
-    emit dataChanged();
-
-    // 自動保存
-    if (!currentFilePath.isEmpty()) {
-        if (m_repository->saveToFile(currentFilePath)) {
-            emit modifiedChanged(false);
-            return true;
-        }
+    // 保存が成功するまで編集中のデータと登録済み状態を変更しない。
+    JosekiRepository updated = *m_repository;
+    const QString key = normalizedSfen + QLatin1Char(':') + usiMove;
+    if (!updated.mergeRegisteredMoves().contains(key)) {
+        updated.registerMergeMove(normalizedSfen, sfenWithPly, usiMove);
     }
+    if (!updated.saveToFile(currentFilePath, errorMessage)) return false;
 
-    return false;
+    *m_repository = std::move(updated);
+    emit dataChanged();
+    emit modifiedChanged(false);
+    return true;
 }
 
 bool JosekiPresenter::hasDuplicateMove(const QString &normalizedSfen, const QString &usiMove) const

@@ -390,6 +390,19 @@ private slots:
     //   LifecyclePipeline::runShutdown() → 設定保存 → エンジン停止
     // ================================================================
 
+    void phase7_closeConfirmsUnsavedJoseki()
+    {
+        const auto lines = readSourceLines(QStringLiteral("src/app/mainwindow.cpp"));
+        const auto range = findFunctionBody(lines, QStringLiteral("MainWindow::closeEvent("));
+        QVERIFY(range.first >= 0);
+        const QString body = bodyText(lines, range);
+        const qsizetype confirmation = body.indexOf(QStringLiteral("confirmCloseJoseki()"));
+        QVERIFY(confirmation >= 0);
+        QVERIFY(confirmation < body.indexOf(QStringLiteral("runShutdown()")));
+        const QString registry = readSourceFile(QStringLiteral("src/app/mainwindowserviceregistry.cpp"));
+        QVERIFY(registry.contains(QStringLiteral("wiring->josekiWindow()->confirmClose()")));
+    }
+
     /// runShutdown が二重実行防止ガードを持つこと
     void phase7_shutdownHasGuard()
     {

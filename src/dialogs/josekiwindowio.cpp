@@ -3,6 +3,7 @@
 
 #include "josekiwindow.h"
 #include "josekirepository.h"
+#include "josekimergedialog.h"
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -10,6 +11,7 @@
 #include <QDir>
 #include <QApplication>
 #include <QtConcurrent>
+#include <utility>
 
 // ============================================================
 // ファイル操作ヘルパー（同期）
@@ -22,6 +24,7 @@ bool JosekiWindow::loadAndApplyFile(const QString &filePath)
         if (!errorMessage.isEmpty()) QMessageBox::warning(this, tr("エラー"), errorMessage);
         return false;
     }
+    closeMergeDialogs();
     m_currentFilePath = filePath;
     m_filePathLabel->setText(filePath);
     m_filePathLabel->setStyleSheet(QString());
@@ -38,6 +41,40 @@ bool JosekiWindow::saveToFile(const QString &filePath)
         return false;
     }
     return true;
+}
+
+QString JosekiWindow::selectSaveFilePath()
+{
+    const QString startDir = m_currentFilePath.isEmpty() ? QString() : QFileInfo(m_currentFilePath).absolutePath();
+    QString filePath = QFileDialog::getSaveFileName(
+        this, tr("定跡ファイルを保存"), startDir,
+        tr("定跡ファイル (*.db);;すべてのファイル (*)"));
+    if (!filePath.isEmpty() && !filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive))
+        filePath += QStringLiteral(".db");
+    return filePath;
+}
+
+void JosekiWindow::applySavedFilePath(const QString &filePath)
+{
+    if (filePath != m_currentFilePath) closeMergeDialogs();
+    m_currentFilePath = filePath;
+    m_filePathLabel->setText(filePath);
+    m_filePathLabel->setStyleSheet(QString());
+    setModified(false);
+    addToRecentFiles(filePath);
+    saveSettings();
+    updateStatusDisplay();
+}
+
+void JosekiWindow::closeMergeDialogs()
+{
+    const auto dialogs = findChildren<JosekiMergeDialog*>();
+    for (JosekiMergeDialog *dialog : dialogs) {
+        disconnect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
+        disconnect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
+        dialog->setEnabled(false);
+        dialog->reject();
+    }
 }
 
 bool JosekiWindow::ensureFilePath()
@@ -58,18 +95,8 @@ bool JosekiWindow::ensureFilePath()
     if (!filePath.endsWith(QStringLiteral(".db"), Qt::CaseInsensitive))
         filePath += QStringLiteral(".db");
 
-    m_currentFilePath = filePath;
-    m_filePathLabel->setText(filePath);
-    m_filePathLabel->setStyleSheet(QString());
-
-    if (!saveToFile(m_currentFilePath)) {
-        m_currentFilePath.clear();
-        m_filePathLabel->setText(tr("新規ファイル（未保存）"));
-        m_filePathLabel->setStyleSheet(QStringLiteral("color: blue;"));
-        return false;
-    }
-    addToRecentFiles(m_currentFilePath);
-    updateStatusDisplay();
+    if (!saveToFile(filePath)) return false;
+    applySavedFilePath(filePath);
     return true;
 }
 
@@ -84,15 +111,21 @@ bool JosekiWindow::isIoBusy() const
 
 void JosekiWindow::setIoBusy(bool busy)
 {
+    if (m_ioBusy == busy) return;
     m_ioBusy = busy;
 
     m_openButton->setEnabled(!busy);
     m_newButton->setEnabled(!busy);
-    m_saveButton->setEnabled(!busy && !m_currentFilePath.isEmpty() && m_modified);
+    m_saveButton->setEnabled(!busy && m_modified);
     m_saveAsButton->setEnabled(!busy);
     m_recentButton->setEnabled(!busy);
     m_addMoveButton->setEnabled(!busy);
     m_mergeButton->setEnabled(!busy);
+    m_tableWidget->setEnabled(!busy);
+    m_actionEdit->setEnabled(!busy);
+    m_actionDelete->setEnabled(!busy);
+    const auto dialogs = findChildren<JosekiMergeDialog*>();
+    for (JosekiMergeDialog *dialog : dialogs) dialog->setEnabled(!busy);
 
     if (busy) {
         QApplication::setOverrideCursor(Qt::WaitCursor);
@@ -105,8 +138,9 @@ void JosekiWindow::loadAndApplyFileAsync(const QString &filePath)
 {
     if (isIoBusy()) return;
 
+    closeMergeDialogs();
     setIoBusy(true);
-    m_currentFilePath = filePath;
+    m_pendingLoadFilePath = filePath;
     if (m_statusLabel) {
         m_statusLabel->setText(tr("読み込み中..."));
     }
@@ -117,20 +151,19 @@ void JosekiWindow::loadAndApplyFileAsync(const QString &filePath)
 void JosekiWindow::onAsyncLoadFinished()
 {
     JosekiLoadResult result = m_loadWatcher.result();
+    const QString filePath = std::exchange(m_pendingLoadFilePath, QString());
     setIoBusy(false);
 
     if (!result.success) {
         if (!result.errorMessage.isEmpty()) {
             QMessageBox::warning(this, tr("エラー"), result.errorMessage);
         }
-        m_currentFilePath.clear();
-        m_filePathLabel->setText(tr("未選択"));
-        m_filePathLabel->setStyleSheet(QStringLiteral("color: gray;"));
         updateStatusDisplay();
         return;
     }
 
     m_repository->applyLoadResult(std::move(result));
+    m_currentFilePath = filePath;
     m_filePathLabel->setText(m_currentFilePath);
     m_filePathLabel->setStyleSheet(QString());
     setModified(false);
@@ -142,6 +175,7 @@ void JosekiWindow::saveToFileAsync(const QString &filePath)
 {
     if (isIoBusy()) return;
 
+    if (filePath != m_currentFilePath) closeMergeDialogs();
     setIoBusy(true);
     m_pendingSaveFilePath = filePath;
     if (m_statusLabel) {
@@ -159,6 +193,7 @@ void JosekiWindow::saveToFileAsync(const QString &filePath)
 void JosekiWindow::onAsyncSaveFinished()
 {
     JosekiSaveResult result = m_saveWatcher.result();
+    const QString filePath = std::exchange(m_pendingSaveFilePath, QString());
     setIoBusy(false);
 
     if (!result.success) {
@@ -167,17 +202,5 @@ void JosekiWindow::onAsyncSaveFinished()
         return;
     }
 
-    setModified(false);
-
-    // 名前を付けて保存の場合にファイルパスを更新
-    if (!m_pendingSaveFilePath.isEmpty() && m_pendingSaveFilePath != m_currentFilePath) {
-        m_currentFilePath = m_pendingSaveFilePath;
-        m_filePathLabel->setText(m_currentFilePath);
-        m_filePathLabel->setStyleSheet(QString());
-        addToRecentFiles(m_currentFilePath);
-        saveSettings();
-    }
-    m_pendingSaveFilePath.clear();
-
-    updateStatusDisplay();
+    applySavedFilePath(filePath);
 }

@@ -3,6 +3,13 @@
 
 #include <QtTest>
 #include <QTemporaryDir>
+#include <QProcess>
+#include <QProcessEnvironment>
+#include "sfenpositiontracer.h"
+#ifdef Q_OS_UNIX
+#include <csignal>
+#include <sys/resource.h>
+#endif
 
 #include "josekirepository.h"
 #include "josekipresenter.h"
@@ -46,6 +53,12 @@ private slots:
     void saveAndLoad_roundTrip();
     void parseFromFile_invalidPath_failsGracefully();
     void serializeToFile_writesExpectedFormat();
+    void saveAndLoad_emptyBook();
+    void failedSave_preservesOriginal();
+    void saveFailureChild();
+    void mergeFailure_canRetryWithoutDoubleCounting();
+    void japaneseMove_usesPositionTurn();
+    void japaneseMove_noneReply();
 
     // --- Merge ---
     void registerMergeMove_newEntry_addsWithFrequency1();
@@ -409,6 +422,122 @@ void TestJosekiRepository::hasDuplicateMove_false()
     QVERIFY(!presenter.hasDuplicateMove(kHirateSfen, QStringLiteral("2g2f")));
     // 未登録局面でも false
     QVERIFY(!presenter.hasDuplicateMove(QStringLiteral("unknown b -"), QStringLiteral("7g7f")));
+}
+
+void TestJosekiRepository::saveAndLoad_emptyBook()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    JosekiRepository repo;
+    const QString path = dir.filePath(QStringLiteral("empty.db"));
+    QVERIFY(repo.saveToFile(path));
+    QVERIFY(repo.loadFromFile(path));
+    QVERIFY(repo.isEmpty());
+    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f")));
+    repo.deleteMove(kHirateSfen, 0);
+    QVERIFY(repo.saveToFile(path));
+    QVERIFY(repo.loadFromFile(path));
+    QVERIFY(repo.isEmpty());
+
+    QFile invalid(dir.filePath(QStringLiteral("invalid.db")));
+    QVERIFY(invalid.open(QIODevice::WriteOnly));
+    invalid.write("#YANEURAOU-DB2016 1.00\ninvalid data\n");
+    invalid.close();
+    QVERIFY(!repo.loadFromFile(invalid.fileName()));
+}
+
+void TestJosekiRepository::failedSave_preservesOriginal()
+{
+#ifdef Q_OS_UNIX
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString path = dir.filePath(QStringLiteral("book.db"));
+    JosekiRepository repo;
+    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 5, QString(8192, QLatin1Char('a'))));
+    QVERIFY(repo.saveToFile(path));
+    QFile file(path);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QByteArray original = file.readAll();
+    file.close();
+
+    QProcess child;
+    auto environment = QProcessEnvironment::systemEnvironment();
+    environment.insert(QStringLiteral("SHOGIBOARDQ_SAVE_FAILURE_PATH"), path);
+    child.setProcessEnvironment(environment);
+    child.start(QCoreApplication::applicationFilePath(), {QStringLiteral("saveFailureChild")});
+    QVERIFY(child.waitForFinished(10000));
+    QCOMPARE(child.exitStatus(), QProcess::NormalExit);
+    QVERIFY2(child.exitCode() == 0, child.readAllStandardOutput().constData());
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    QCOMPARE(file.readAll(), original);
+#else
+    QSKIP("RLIMIT_FSIZE is only available on Unix");
+#endif
+}
+
+void TestJosekiRepository::saveFailureChild()
+{
+#ifdef Q_OS_UNIX
+    const QString path = qEnvironmentVariable("SHOGIBOARDQ_SAVE_FAILURE_PATH");
+    if (path.isEmpty()) QSKIP("Only run in the write-failure subprocess");
+    struct rlimit originalLimit;
+    QVERIFY(getrlimit(RLIMIT_FSIZE, &originalLimit) == 0);
+    struct rlimit limit = originalLimit;
+    limit.rlim_cur = 4096;
+    const auto originalHandler = std::signal(SIGXFSZ, SIG_IGN);
+    QVERIFY(setrlimit(RLIMIT_FSIZE, &limit) == 0);
+    JosekiRepository repo;
+    repo.addMove(kHirateSfen, makeMove(QStringLiteral("2g2f"), 99, 32, 1, QString(8192, QLatin1Char('b'))));
+    QString error;
+    const bool saved = repo.saveToFile(path, &error);
+    const int restored = setrlimit(RLIMIT_FSIZE, &originalLimit);
+    std::signal(SIGXFSZ, originalHandler);
+    QCOMPARE(restored, 0);
+    QVERIFY(!saved);
+    QVERIFY(!error.isEmpty());
+#else
+    QSKIP("RLIMIT_FSIZE is only available on Unix");
+#endif
+}
+
+void TestJosekiRepository::mergeFailure_canRetryWithoutDoubleCounting()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    JosekiRepository repo;
+    repo.addMove(kHirateSfen, makeMove(QStringLiteral("7g7f"), 30, 10, 5));
+    JosekiPresenter presenter(&repo);
+    QSignalSpy modified(&presenter, &JosekiPresenter::modifiedChanged);
+    QString error;
+    QVERIFY(!presenter.registerMergeMove(kHirateSfen, kHirateSfenWithPly, QStringLiteral("7g7f"),
+                                         dir.filePath(QStringLiteral("missing/book.db")), &error));
+    QVERIFY(!error.isEmpty());
+    QCOMPARE(repo.movesForPosition(kHirateSfen).first().frequency, 5);
+    QVERIFY(repo.mergeRegisteredMoves().isEmpty());
+    QVERIFY(modified.isEmpty());
+    const QString path = dir.filePath(QStringLiteral("book.db"));
+    QVERIFY(presenter.registerMergeMove(kHirateSfen, kHirateSfenWithPly, QStringLiteral("7g7f"), path));
+    QVERIFY(presenter.registerMergeMove(kHirateSfen, kHirateSfenWithPly, QStringLiteral("7g7f"), path));
+    QCOMPARE(repo.movesForPosition(kHirateSfen).first().frequency, 6);
+    QVERIFY(repo.loadFromFile(path));
+    QCOMPARE(repo.movesForPosition(kHirateSfen).first().frequency, 6);
+    QCOMPARE(modified.last().first().toBool(), false);
+}
+
+void TestJosekiRepository::japaneseMove_usesPositionTurn()
+{
+    SfenPositionTracer tracer;
+    QVERIFY(tracer.setFromSfen(QStringLiteral("lnsgkgsnl/1r7/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("3c3d"), tracer), QStringLiteral("△３四歩(33)"));
+    QVERIFY(tracer.applyUsiMove(QStringLiteral("3c3d")));
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("7g7f"), tracer), QStringLiteral("▲７六歩(77)"));
+}
+
+void TestJosekiRepository::japaneseMove_noneReply()
+{
+    SfenPositionTracer tracer;
+    QCOMPARE(JosekiPresenter::usiMoveToJapanese(QStringLiteral("none"), tracer), QStringLiteral("なし"));
+    QVERIFY(JosekiPresenter::usiMoveToJapanese(QString(), tracer).isEmpty());
 }
 
 QTEST_MAIN(TestJosekiRepository)
