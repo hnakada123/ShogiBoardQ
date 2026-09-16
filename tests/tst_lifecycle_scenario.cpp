@@ -400,7 +400,9 @@ private slots:
         QVERIFY(confirmation >= 0);
         QVERIFY(confirmation < body.indexOf(QStringLiteral("runShutdown()")));
         const QString registry = readSourceFile(QStringLiteral("src/app/mainwindowserviceregistry.cpp"));
-        QVERIFY(registry.contains(QStringLiteral("wiring->josekiWindow()->confirmClose()")));
+        QVERIFY(registry.contains(QStringLiteral("return m_kifu->confirmCloseJoseki();")));
+        const QString kifuRegistry = readSourceFile(QStringLiteral("src/app/kifusubregistry.cpp"));
+        QVERIFY(kifuRegistry.contains(QStringLiteral("wiring->josekiWindow()->confirmClose()")));
     }
 
     /// runShutdown が二重実行防止ガードを持つこと

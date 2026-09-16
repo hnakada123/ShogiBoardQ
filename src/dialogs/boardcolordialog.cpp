@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QSignalBlocker>
 #include <QVBoxLayout>
+#include <utility>
 
 BoardColorDialog::BoardColorDialog(QWidget* parent)
     : QDialog(parent), m_picker(new QColorDialog(this))
@@ -135,7 +136,7 @@ void BoardColorDialog::rebuildPresets()
     m_presets = BoardColorPresets::forPieceStyle(style);
     const QSignalBlocker blocker(m_presetCombo);
     m_presetCombo->clear();
-    for (const auto& preset : m_presets) {
+    for (const auto& preset : std::as_const(m_presets)) {
         m_presetCombo->addItem(presetIcon(preset.colors), preset.name);
     }
     syncPresetSelection();

@@ -5,7 +5,7 @@
 #include "usi.h"
 #include "boardconstants.h"
 
-#include <QtConcurrent>
+#include <QtConcurrentRun>
 
 namespace {
 /// エンジン無応答ガードの余裕時間(ms)
