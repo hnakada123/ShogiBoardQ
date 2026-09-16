@@ -70,9 +70,9 @@ void StartGameDialog::connectSignalsAndSlots()
     connect(ui->pushButtonSaveSettingsOnly, &QPushButton::clicked, this, &StartGameDialog::saveGameSettings);
 
     // OK/キャンセル: OKは設定保存→パラメータ取得→ダイアログ閉じの順で実行される
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::accept);
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::saveGameSettings);
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::updateGameSettingsFromDialog);
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::accept);
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &StartGameDialog::reject);
 
     // 秒読みと加算時間は排他制約（一方に値が入ると他方を0にする）
@@ -238,7 +238,7 @@ void StartGameDialog::updateGameSettingsFromDialog()
 {
     // 先手の設定を取得
     int player1Index = ui->comboBoxPlayer1->currentIndex();
-    if (player1Index == 0) {
+    if (player1Index <= 0) {
         m_isHuman1 = true;
         m_isEngine1 = false;
         m_engineNumber1 = -1;
@@ -254,7 +254,7 @@ void StartGameDialog::updateGameSettingsFromDialog()
 
     // 後手の設定を取得
     int player2Index = ui->comboBoxPlayer2->currentIndex();
-    if (player2Index == 0) {
+    if (player2Index <= 0) {
         m_isHuman2 = true;
         m_isEngine2 = false;
         m_engineNumber2 = -1;
@@ -267,17 +267,17 @@ void StartGameDialog::updateGameSettingsFromDialog()
     }
     m_humanName2 = ui->lineEditHumanName2->text();
 
-    m_basicTimeHour1 = ui->basicTimeHour1->text().toInt();
-    m_basicTimeMinutes1 = ui->basicTimeMinutes1->text().toInt();
-    m_byoyomiSec1 = ui->byoyomiSec1->text().toInt();
-    m_addEachMoveSec1 = ui->addEachMoveSec1->text().toInt();
+    m_basicTimeHour1 = ui->basicTimeHour1->value();
+    m_basicTimeMinutes1 = ui->basicTimeMinutes1->value();
+    m_byoyomiSec1 = ui->byoyomiSec1->value();
+    m_addEachMoveSec1 = ui->addEachMoveSec1->value();
 
     // 「後手に異なる時間を設定」の有無で分岐
     if (ui->groupBoxSecondPlayerTimeSettings->isChecked()) {
-        m_basicTimeHour2 = ui->basicTimeHour2->text().toInt();
-        m_basicTimeMinutes2 = ui->basicTimeMinutes2->text().toInt();
-        m_byoyomiSec2 = ui->byoyomiSec2->text().toInt();
-        m_addEachMoveSec2 = ui->addEachMoveSec2->text().toInt();
+        m_basicTimeHour2 = ui->basicTimeHour2->value();
+        m_basicTimeMinutes2 = ui->basicTimeMinutes2->value();
+        m_byoyomiSec2 = ui->byoyomiSec2->value();
+        m_addEachMoveSec2 = ui->addEachMoveSec2->value();
     }
     else {
         // 先手の値をコピー

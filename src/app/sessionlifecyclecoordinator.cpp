@@ -118,6 +118,20 @@ void SessionLifecycleCoordinator::startNewGame()
     }
 }
 
+void SessionLifecycleCoordinator::prepareNextGame(const QString& startSfen)
+{
+    const QString sfen = startSfen.isEmpty() || startSfen == QLatin1String("startpos")
+                             ? SfenUtils::hirateSfen() : startSfen;
+    if (m_deps.startSfenStr) *m_deps.startSfenStr = sfen;
+    if (m_deps.currentSfenStr) *m_deps.currentSfenStr = sfen;
+    if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = 0;
+
+    resetGameState();
+    if (m_deps.resetModels) m_deps.resetModels(sfen);
+    performPreStartCleanup();
+    if (m_deps.unlockGameOverStyle) m_deps.unlockGameOverStyle();
+}
+
 void SessionLifecycleCoordinator::applyTimeControl(const GameStartCoordinator::TimeControl& tc)
 {
     qCDebug(lcApp).noquote()
@@ -191,7 +205,16 @@ void SessionLifecycleCoordinator::handleGameEnded(const MatchCoordinator::GameEn
         }
     }
 
-    // 連続対局判定（EvE モードのみ）
+    if (info.cause == MatchCoordinator::Cause::BreakOff && m_deps.consecutiveGamesController) {
+        m_deps.consecutiveGamesController->reset();
+    }
+}
+
+void SessionLifecycleCoordinator::handleGameEndProcessed(const MatchCoordinator::GameEndInfo& info)
+{
+    if (info.cause == MatchCoordinator::Cause::BreakOff) return;
+
+    // 終局表示・保存が完了してから次局を予約する（EvE モードのみ）。
     if (m_deps.playMode) {
         const bool isEvE = (*m_deps.playMode == PlayMode::EvenEngineVsEngine ||
                             *m_deps.playMode == PlayMode::HandicapEngineVsEngine);

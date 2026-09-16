@@ -47,25 +47,16 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         return QString();
     };
     const QString editedStartSfen = detectEditedStartSfen();
-    const bool hasEditedStart = !editedStartSfen.isEmpty();
 
     // --- 2) ダイアログ結果（app/ 層で抽出済み）から必要情報を取得 ---
-    int  initPosNo = c.dialogData.startingPositionNumber;
+    const int initPosNo = c.dialogData.startingPositionNumber;
     const bool p1Human   = c.dialogData.isHuman1;
     const bool p2Human   = c.dialogData.isHuman2;
 
     qCDebug(lcGame).noquote() << "initializeGame: after dialog, initPosNo=" << initPosNo;
 
-    // 局面編集後の場合、ダイアログの選択に関わらず「現在の局面」を強制
-    // （app/ 層での設定バックアップ: dialogData.startingPositionNumber が
-    //   正しく 0 に設定されていない場合への対策）
-    if (hasEditedStart) {
-        if (initPosNo != 0) {
-            qCDebug(lcGame).noquote() << "initializeGame: overriding initPosNo from"
-                               << initPosNo << "to 0 (edited position detected)";
-            initPosNo = 0;
-        }
-    }
+    // ダイアログで確定した選択を尊重する。編集済み局面は、現在局面から
+    // 開始する場合の SFEN フォールバックにのみ使用する。
 
     // --- 3) 開始SFENの決定 ---
     const int startingPosNumber = initPosNo;

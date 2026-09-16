@@ -63,6 +63,7 @@ void GameEndHandler::handleResign()
 
 void GameEndHandler::handleEngineResign(int idx)
 {
+    if (m_refs.gameOver->isOver) return;
     if (m_refs.clock) m_refs.clock->stopClock();
 
     GameEndInfo info;
@@ -81,6 +82,40 @@ void GameEndHandler::handleEngineResign(int idx)
 
     const bool loserIsP1 = (info.loser == Player::P1);
     setGameOver(info, loserIsP1, true);
+    displayResultsAndUpdateGui(info);
+}
+
+void GameEndHandler::handleTimeout(Player loser)
+{
+    if (m_refs.gameOver->isOver) return;
+
+    const GameEndInfo info{Cause::Timeout, loser};
+    setGameOver(info, loser == Player::P1, true);
+    if (m_refs.clock) {
+        m_refs.clock->markGameOver();
+        m_refs.clock->stopClock();
+    }
+    if (m_hooks.disarmHumanTimerIfNeeded) m_hooks.disarmHumanTimerIfNeeded();
+
+    const auto notify = [loser](Usi* engine, Player side) {
+        if (!engine) return;
+        engine->setSquelchResignLogging(true);
+        engine->cancelCurrentOperation();
+        engine->sendStopCommand();
+        engine->sendGameOverCommand(side == loser ? GameOverResult::Lose : GameOverResult::Win);
+        engine->sendQuitCommand();
+    };
+    Usi* u1 = m_refs.usi1Provider ? m_refs.usi1Provider() : nullptr;
+    Usi* u2 = m_refs.usi2Provider ? m_refs.usi2Provider() : nullptr;
+    const PlayMode mode = *m_refs.playMode;
+    if (mode == PlayMode::EvenEngineVsEngine || mode == PlayMode::HandicapEngineVsEngine) {
+        notify(u1, Player::P1);
+        notify(u2, Player::P2);
+    } else if (mode == PlayMode::EvenEngineVsHuman || mode == PlayMode::HandicapEngineVsHuman) {
+        notify(u1, Player::P1);
+    } else if (mode == PlayMode::EvenHumanVsEngine || mode == PlayMode::HandicapHumanVsEngine) {
+        notify(u1, Player::P2);
+    }
     displayResultsAndUpdateGui(info);
 }
 
@@ -126,6 +161,8 @@ void GameEndHandler::handleNyugyokuDeclaration(Player declarer, bool success, bo
 
     const bool loserIsP1 = (info.loser == Player::P1);
     setGameOver(info, loserIsP1, true);
+    if (m_hooks.autoSaveKifuIfEnabled) m_hooks.autoSaveKifuIfEnabled();
+    emit gameEndProcessed(info);
 }
 
 // --- 中断 ---
@@ -310,6 +347,7 @@ void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
     if (m_hooks.autoSaveKifuIfEnabled) {
         m_hooks.autoSaveKifuIfEnabled();
     }
+    emit gameEndProcessed(info);
 }
 
 // --- 持将棋 ---
@@ -344,11 +382,7 @@ void GameEndHandler::handleMaxMovesJishogi()
     info.cause = Cause::Jishogi;
     info.loser = Player::P1;
 
-    m_refs.gameOver->isOver = true;
-    m_refs.gameOver->when = QDateTime::currentDateTime();
-    m_refs.gameOver->hasLast = true;
-    m_refs.gameOver->lastInfo = info;
-    m_refs.gameOver->lastLoserIsP1 = true;
+    setGameOver(info, true, true);
 
     appendGameOverLineAndMark(Cause::Jishogi, Player::P1);
     displayResultsAndUpdateGui(info);
@@ -415,11 +449,7 @@ void GameEndHandler::handleSennichite()
     info.cause = Cause::Sennichite;
     info.loser = Player::P1;
 
-    m_refs.gameOver->isOver = true;
-    m_refs.gameOver->when = QDateTime::currentDateTime();
-    m_refs.gameOver->hasLast = true;
-    m_refs.gameOver->lastInfo = info;
-    m_refs.gameOver->lastLoserIsP1 = true;
+    setGameOver(info, true, true);
 
     appendGameOverLineAndMark(Cause::Sennichite, Player::P1);
     displayResultsAndUpdateGui(info);
@@ -468,11 +498,7 @@ void GameEndHandler::handleOuteSennichite(bool p1Loses)
     info.cause = Cause::OuteSennichite;
     info.loser = loser;
 
-    m_refs.gameOver->isOver = true;
-    m_refs.gameOver->when = QDateTime::currentDateTime();
-    m_refs.gameOver->hasLast = true;
-    m_refs.gameOver->lastInfo = info;
-    m_refs.gameOver->lastLoserIsP1 = p1Loses;
+    setGameOver(info, p1Loses, true);
 
     appendGameOverLineAndMark(Cause::OuteSennichite, loser);
     displayResultsAndUpdateGui(info);
@@ -510,12 +536,13 @@ void GameEndHandler::setGameOver(const GameEndInfo& info, bool loserIsP1, bool a
     m_refs.gameOver->when          = QDateTime::currentDateTime();
 
     emit gameOverStateChanged(*m_refs.gameOver);
-    emit gameEnded(info);
 
     if (appendMoveOnce && !m_refs.gameOver->moveAppended) {
         qCDebug(lcGame) << "emit requestAppendGameOverMove";
         emit requestAppendGameOverMove(info);
     }
+    // 終局手の追記・ライブセッションの確定後に時刻と UI を更新する。
+    emit gameEnded(info);
 }
 
 void GameEndHandler::markGameOverMoveAppended()

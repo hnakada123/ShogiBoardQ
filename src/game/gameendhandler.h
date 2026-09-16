@@ -97,6 +97,7 @@ public:
     // --- 終局処理 API ---
 
     void handleResign();
+    void handleTimeout(Player loser);
     void handleEngineResign(int idx);
     void handleEngineWin(int idx);
     void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
@@ -118,6 +119,8 @@ public:
 signals:
     void requestAppendGameOverMove(const MatchCoordinator::GameEndInfo& info);
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
+    /// 終局表示・棋譜保存が完了した通知（この後に次局を予約する）
+    void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
     void gameOverStateChanged(const MatchCoordinator::GameOverState& st);
 
 private:

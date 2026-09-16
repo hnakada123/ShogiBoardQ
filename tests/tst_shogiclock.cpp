@@ -44,11 +44,13 @@ private slots:
         ShogiClock clock;
         clock.setPlayerTimes(0, 0, 1, 1, 0, 0, true);
         QSignalSpy timeout(&clock, &ShogiClock::player1TimeOut);
+        QSignalSpy resignation(&clock, &ShogiClock::resignationTriggered);
         clock.startClock();
         QTest::qSleep(1020);
         clock.finishTurn();
         QVERIFY(clock.isGameOver());
         QCOMPARE(timeout.count(), 1);
+        QCOMPARE(resignation.count(), 0);
     }
 
     void liveBudgetIncludesUntickedByoyomiTransition()

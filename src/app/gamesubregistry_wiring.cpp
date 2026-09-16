@@ -296,10 +296,10 @@ void MainWindowServiceRegistry::ensureConsecutiveGamesController()
 
     m_mw.m_consecutiveGamesController->setTimeController(m_mw.m_timeController);
     m_mw.m_consecutiveGamesController->setGameStartCoordinator(m_mw.m_gameStart);
-    m_mw.m_consecutiveGamesController->setPerformPreStartCleanup([this]() {
+    m_mw.m_consecutiveGamesController->setPerformPreStartCleanup([this](const QString& startSfen) {
         ensureSessionLifecycleCoordinator();
         if (m_mw.m_sessionLifecycle) {
-            m_mw.m_sessionLifecycle->performPreStartCleanup();
+            m_mw.m_sessionLifecycle->prepareNextGame(startSfen);
         }
     });
 }

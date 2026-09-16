@@ -196,6 +196,7 @@ GameEndHandler::GameEndHandler(QObject* parent) : QObject(parent) {}
 void GameEndHandler::setRefs(const Refs& r) { m_refs = r; }
 void GameEndHandler::setHooks(const Hooks& h) { m_hooks = h; }
 void GameEndHandler::handleResign() { MCTracker::gameEndHandlerResignCalled = true; }
+void GameEndHandler::handleTimeout(Player) {}
 void GameEndHandler::handleEngineResign(int idx) { MCTracker::gameEndHandlerEngineResignIdx = idx; }
 void GameEndHandler::handleEngineWin(int idx) { MCTracker::gameEndHandlerEngineWinIdx = idx; }
 void GameEndHandler::handleBreakOff()

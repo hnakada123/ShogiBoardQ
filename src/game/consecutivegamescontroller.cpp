@@ -38,7 +38,7 @@ void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator* g
     m_gameStart = gsc;
 }
 
-void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void()> cleanup)
+void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void(const QString&)> cleanup)
 {
     m_performPreStartCleanup = std::move(cleanup);
 }
@@ -52,8 +52,9 @@ void ConsecutiveGamesController::configure(int totalGames, bool switchTurn)
     qCDebug(lcGame).noquote() << "configure: totalGames=" << totalGames
                        << " switchTurn=" << switchTurn;
 
-    m_totalGames = totalGames;
-    m_remainingGames = totalGames - 1;  // 最初の1局目は既に開始されている
+    m_delayTimer->stop();
+    m_totalGames = qMax(1, totalGames);
+    m_remainingGames = m_totalGames - 1;  // 最初の1局目は既に開始されている
     m_gameNumber = 1;
     m_switchTurnEachGame = switchTurn;
 }
@@ -110,21 +111,12 @@ void ConsecutiveGamesController::startNextGame()
     qCDebug(lcGame).noquote() << "startNextGame: remaining=" << m_remainingGames
                        << " gameNumber=" << m_gameNumber;
 
-    if (m_remainingGames <= 0) {
+    if (m_remainingGames <= 0 || m_delayTimer->isActive()) {
         qCDebug(lcGame) << "No more consecutive games remaining.";
         return;
     }
 
-    prepareNextGameOptions();
-
-    if (m_performPreStartCleanup) {
-        m_performPreStartCleanup();
-    }
-
-    // UIの更新を待つため少し遅延を入れて次の対局を開始
-    if (m_delayTimer->isActive()) {
-        m_delayTimer->stop();
-    }
+    // 現在の終局処理・エンジン応答のスタックを抜けてから初期化する。
     m_delayTimer->start(kNextGameDelayMs);
 }
 
@@ -133,6 +125,11 @@ void ConsecutiveGamesController::launchPreparedNextGame()
     if (!m_gameStart) {
         qCWarning(lcGame) << "launchPreparedNextGame: GameStartCoordinator is not ready";
         return;
+    }
+
+    prepareNextGameOptions();
+    if (m_performPreStartCleanup) {
+        m_performPreStartCleanup(m_lastStartOptions.sfenStart);
     }
 
     if (m_timeController) {

@@ -62,6 +62,7 @@ public:
         bool     enabled = false;  ///< 時間制御が有効か
         TimeSide p1;               ///< 先手の時間設定
         TimeSide p2;               ///< 後手の時間設定
+        bool loseOnTimeout = true; ///< 時間切れを負けとするか（時計の有効/無効とは独立）
     };
 
     /// 対局開始パラメータ

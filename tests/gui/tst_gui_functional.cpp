@@ -201,6 +201,10 @@ public slots:
                 auto* mb = qobject_cast<QMessageBox*>(d);
                 if (mb && mb->button(QMessageBox::Yes)) mb->button(QMessageBox::Yes)->click();
                 else d->accept();
+            } else if (dialogMode == "discard") {
+                auto* mb = qobject_cast<QMessageBox*>(d);
+                if (mb && mb->button(QMessageBox::Discard)) mb->button(QMessageBox::Discard)->click();
+                else d->accept();
             } else if (dialogMode == "collection") {
                 operateCollection(d);
             } else if (dialogMode == "startAnalysis") {
@@ -294,7 +298,12 @@ private slots:
         if (window && QTest::currentTestFailed()) snapshot(QString("failure-") + QTest::currentTestFunction());
         for (auto* w : QApplication::topLevelWidgets())
             if (auto* d = qobject_cast<QDialog*>(w)) d->reject();
-        if (window) window->close();
+        if (window) {
+            // 終局した棋譜も未保存になるため、終了確認に応答する。
+            armDialog("discard");
+            window->close();
+            dialogTimer.stop();
+        }
         QCoreApplication::processEvents();
         window.reset();
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);

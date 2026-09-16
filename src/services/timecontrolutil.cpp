@@ -52,7 +52,7 @@ void applyToClock(
         << " P1{baseSec=" << p1BaseSec << " byoSec=" << finalByo1 << " incSec=" << finalInc1 << "}"
         << " P2{baseSec=" << p2BaseSec << " byoSec=" << finalByo2 << " incSec=" << finalInc2 << "}";
 
-    clock->setLoseOnTimeout(limited);
+    clock->setLoseOnTimeout(limited && tc.loseOnTimeout);
     clock->setPlayerTimes(
         p1BaseSec, p2BaseSec,
         finalByo1, finalByo2,

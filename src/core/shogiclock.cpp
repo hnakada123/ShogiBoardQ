@@ -279,7 +279,6 @@ void ShogiClock::updateClock()
                             m_clockRunning = false;
                             if (player == 1) emit player1TimeOut();
                             else             emit player2TimeOut();
-                            emit resignationTriggered();
                         } else {
                             remMs = 0;
                         }
@@ -294,7 +293,6 @@ void ShogiClock::updateClock()
                         m_clockRunning = false;
                         if (player == 1) emit player1TimeOut();
                         else             emit player2TimeOut();
-                        emit resignationTriggered();
                         emit timeUpdated();
                         return true;
                     }

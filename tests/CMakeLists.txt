@@ -660,6 +660,30 @@ add_shogi_test(tst_game_start_flow
     ${SRC}/services/playernameservice.cpp
 )
 
+add_shogi_test(tst_startgamedialog
+    tst_startgamedialog.cpp
+    ${SRC}/dialogs/startgamedialog.cpp
+    ${SRC}/dialogs/startgamedialog_settings.cpp
+    ${SRC}/dialogs/startgamedialog.ui
+    ${SRC}/dialogs/changeenginesettingsdialog.cpp
+    ${SRC}/dialogs/changeenginesettingsdialog.ui
+    ${SRC}/dialogs/enginesettingsoptionhandler.cpp
+    ${SRC}/engine/engineoptiondescriptions.cpp
+    ${SRC}/widgets/collapsiblegroupbox.cpp
+    ${SRC}/widgets/longlongspinbox.cpp
+    ${SRC}/common/dialogutils.cpp
+    ${SRC}/common/fontsizehelper.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/services/gamesettings.cpp
+    ${SRC}/services/enginedialogsettings.cpp
+    ${SRC}/services/enginelistsettings.cpp
+    ${SRC}/services/settingscommon.cpp
+)
+set_target_properties(tst_startgamedialog PROPERTIES
+    AUTOUIC ON
+    AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
+)
+
 # ============================================================
 # Unit 18: Game End Handler (GameEndHandler)
 # ============================================================

@@ -211,6 +211,7 @@ signals:
 
     /// 対局終了通知
     void matchGameEnded(const MatchCoordinator::GameEndInfo& info);
+    void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
 
     // --- ShogiClock シグナルの転送 ---
 

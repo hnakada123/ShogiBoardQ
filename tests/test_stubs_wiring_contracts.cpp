@@ -56,6 +56,7 @@ namespace TestTracker {
     bool onBoardFlippedCalled = false;
     bool onGameOverStateChangedCalled = false;
     bool onMatchGameEndedCalled = false;
+    bool onGameEndProcessedCalled = false;
     bool onResignationTriggeredCalled = false;
     bool onPreStartCleanupRequestedCalled = false;
     bool onApplyTimeControlRequestedCalled = false;
@@ -74,6 +75,7 @@ namespace TestTracker {
         onBoardFlippedCalled = false;
         onGameOverStateChangedCalled = false;
         onMatchGameEndedCalled = false;
+        onGameEndProcessedCalled = false;
         onResignationTriggeredCalled = false;
         onPreStartCleanupRequestedCalled = false;
         onApplyTimeControlRequestedCalled = false;
@@ -111,6 +113,10 @@ void SessionLifecycleCoordinator::commitLiveGameSessionIfActive()
 {
     TestTracker::commitLiveGameSessionIfActiveCalled = true;
 }
+void SessionLifecycleCoordinator::handleGameEndProcessed(const MatchCoordinator::GameEndInfo&)
+{
+    TestTracker::onGameEndProcessedCalled = true;
+}
 void SessionLifecycleCoordinator::handleGameEnded(const MatchCoordinator::GameEndInfo&)
 {
     TestTracker::onMatchGameEndedCalled = true;
@@ -144,7 +150,7 @@ void GameStateController::onRequestAppendGameOverMove(const MatchCoordinator::Ga
 ConsecutiveGamesController::ConsecutiveGamesController(QObject* parent) : QObject(parent) {}
 void ConsecutiveGamesController::setTimeController(TimeControlController*) {}
 void ConsecutiveGamesController::setGameStartCoordinator(GameStartCoordinator*) {}
-void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void()>) {}
+void ConsecutiveGamesController::setPerformPreStartCleanup(std::function<void(const QString&)>) {}
 void ConsecutiveGamesController::configure(int, bool)
 {
     TestTracker::onConsecutiveGamesConfiguredCalled = true;

@@ -241,6 +241,9 @@ void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps
     connect(m_match.get(), &MatchCoordinator::gameEnded,
             this,    &MatchCoordinatorWiring::matchGameEnded,
             Qt::UniqueConnection);
+    connect(m_match.get(), &MatchCoordinator::gameEndProcessed,
+            this,    &MatchCoordinatorWiring::gameEndProcessed,
+            Qt::UniqueConnection);
 
     // timeUpdated → TimeDisplayPresenter（直接配線）
     if (m_timeConn) { QObject::disconnect(m_timeConn); m_timeConn = {}; }
@@ -385,6 +388,9 @@ void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targ
                          Qt::UniqueConnection);
         QObject::connect(this, &MatchCoordinatorWiring::matchGameEnded,
                          targets.sessionLifecycle, &SessionLifecycleCoordinator::handleGameEnded,
+                         Qt::UniqueConnection);
+        QObject::connect(this, &MatchCoordinatorWiring::gameEndProcessed,
+                         targets.sessionLifecycle, &SessionLifecycleCoordinator::handleGameEndProcessed,
                          Qt::UniqueConnection);
         QObject::connect(this, &MatchCoordinatorWiring::requestPreStartCleanup,
                          targets.sessionLifecycle, &SessionLifecycleCoordinator::performPreStartCleanup,
