@@ -1,4 +1,4 @@
-#
+﻿#
 # Windows ビルドスクリプト for ShogiBoardQ
 #
 # Release ビルド → windeployqt → ZIP 作成を一括実行する。
@@ -51,6 +51,38 @@ function Write-Err($msg)   { Write-Host "==> ERROR: $msg" -ForegroundColor Red }
 function Stop-WithError($msg) {
     Write-Err $msg
     exit 1
+}
+
+# MSVC ランタイム DLL（Microsoft.VC*.CRT）のディレクトリを探す。
+# vcvarsall / Developer PowerShell が設定する VCToolsRedistDir を優先し、
+# 未設定の場合は vswhere で Visual Studio のインストール先から探す。
+function Find-VcRuntimeDir($arch) {
+    $redistRoots = @()
+    if ($env:VCToolsRedistDir) {
+        $redistRoots += $env:VCToolsRedistDir
+    } else {
+        $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+        if (Test-Path $vswhere) {
+            $vsPath = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+            if ($vsPath) {
+                # バージョン番号のディレクトリ（例: 14.51.36231）を新しい順に候補とする
+                $redistRoots += Get-ChildItem -Path (Join-Path $vsPath "VC\Redist\MSVC") -Directory -ErrorAction SilentlyContinue |
+                    Where-Object { $_.Name -match '^\d+(\.\d+)+$' } |
+                    Sort-Object { [version]$_.Name } -Descending |
+                    ForEach-Object { $_.FullName }
+            }
+        }
+    }
+
+    foreach ($root in $redistRoots) {
+        $crtDir = Get-ChildItem -Path (Join-Path $root $arch) -Directory -Filter "Microsoft.VC*.CRT" -ErrorAction SilentlyContinue |
+            Sort-Object Name -Descending |
+            Select-Object -First 1
+        if ($crtDir) {
+            return $crtDir.FullName
+        }
+    }
+    return $null
 }
 
 function Show-Usage {
@@ -134,6 +166,14 @@ if (-not $windeployqtExe) {
     }
 }
 Write-Info "windeployqt: $($windeployqtExe.Source)"
+
+# MSVC ランタイム DLL（配布先に Visual C++ 再頒布可能パッケージがなくても起動できるよう同梱する）
+$targetArch = if ($env:VSCMD_ARG_TGT_ARCH) { $env:VSCMD_ARG_TGT_ARCH } else { "x64" }
+$vcRuntimeDir = Find-VcRuntimeDir $targetArch
+if (-not $vcRuntimeDir) {
+    Stop-WithError "MSVC ランタイム DLL（Microsoft.VC*.CRT）が見つかりません。Developer PowerShell for VS から実行してください。"
+}
+Write-Info "MSVC ランタイム: $vcRuntimeDir"
 
 # ──────────────────────────────────────────────
 # Step 2: プロジェクトルートへ移動
@@ -224,7 +264,7 @@ Write-Info "実行ファイル: $exePath"
 $exeDir = Split-Path -Parent $exePath
 $qmFiles = Get-ChildItem -Path $exeDir -Filter "*.qm" -ErrorAction SilentlyContinue
 if ($qmFiles) {
-    Write-Info "翻訳ファイル: $($qmFiles.Count) 個の .qm ファイルを検出"
+    Write-Info "翻訳ファイル: $(@($qmFiles).Count) 個の .qm ファイルを検出"
 } else {
     Write-Warn ".qm 翻訳ファイルが見つかりません。"
 }
@@ -257,11 +297,27 @@ if ($qmFiles) {
 Write-Info "windeployqt で Qt DLL をデプロイ中..."
 
 $deployExePath = Join-Path $DEPLOY_DIR "${APP_NAME}.exe"
-windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw $deployExePath
+# --no-compiler-runtime: vc_redist.x64.exe を同梱せず、次のステップでランタイム DLL を直接コピーする
+windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime $deployExePath
 
 if ($LASTEXITCODE -ne 0) {
     Stop-WithError "windeployqt に失敗しました。"
 }
+
+# ──────────────────────────────────────────────
+# Step 8.5: MSVC ランタイム DLL のコピー
+# ──────────────────────────────────────────────
+
+Write-Info "MSVC ランタイム DLL をコピー中..."
+
+$runtimeDlls = Get-ChildItem -Path $vcRuntimeDir -Filter "*.dll"
+if (-not $runtimeDlls) {
+    Stop-WithError "$vcRuntimeDir に DLL がありません。"
+}
+foreach ($dll in $runtimeDlls) {
+    Copy-Item $dll.FullName $DEPLOY_DIR
+}
+Write-Info "MSVC ランタイム DLL: $(@($runtimeDlls).Count) 個をコピー"
 
 # ──────────────────────────────────────────────
 # Step 9: デプロイ後の検証
@@ -270,9 +326,10 @@ if ($LASTEXITCODE -ne 0) {
 Write-Info "デプロイを検証中..."
 
 $deployedFiles = Get-ChildItem -Path $DEPLOY_DIR -Recurse -File
-$dllCount = ($deployedFiles | Where-Object { $_.Extension -eq ".dll" }).Count
-$exeCount = ($deployedFiles | Where-Object { $_.Extension -eq ".exe" }).Count
-$qmCount  = ($deployedFiles | Where-Object { $_.Extension -eq ".qm" }).Count
+# @() で配列化する（StrictMode では単一要素のとき .Count が参照できないため）
+$dllCount = @($deployedFiles | Where-Object { $_.Extension -eq ".dll" }).Count
+$exeCount = @($deployedFiles | Where-Object { $_.Extension -eq ".exe" }).Count
+$qmCount  = @($deployedFiles | Where-Object { $_.Extension -eq ".qm" }).Count
 
 Write-Info "ファイル数: exe=$exeCount, dll=$dllCount, qm=$qmCount"
 
@@ -290,6 +347,21 @@ if ($missingDlls.Count -gt 0) {
     Write-Warn "windeployqt の出力を確認してください。"
 } else {
     Write-Info "必須 Qt DLL: すべて存在を確認"
+}
+
+# MSVC ランタイム DLL の確認（欠けていると VC++ 再頒布可能パッケージのない環境で起動できない）
+$requiredRuntimeDlls = @("vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll")
+$missingRuntimeDlls = @()
+foreach ($dll in $requiredRuntimeDlls) {
+    if (-not (Test-Path (Join-Path $DEPLOY_DIR $dll))) {
+        $missingRuntimeDlls += $dll
+    }
+}
+
+if ($missingRuntimeDlls.Count -gt 0) {
+    Stop-WithError "以下の MSVC ランタイム DLL が見つかりません: $($missingRuntimeDlls -join ', ')"
+} else {
+    Write-Info "MSVC ランタイム DLL: すべて存在を確認"
 }
 
 # platforms プラグインの確認

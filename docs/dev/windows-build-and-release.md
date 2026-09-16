@@ -113,10 +113,10 @@ windeployqt --version # Qt デプロイツール
 
 スクリプトは以下の処理を自動実行する：
 
-1. 前提ツールの存在確認（cmake, ninja, cl, windeployqt）
+1. 前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所）
 2. CMake Configure + ビルド
 3. ビルド成果物の確認（.exe、.qm 翻訳ファイル）
-4. deploy ディレクトリ作成 + windeployqt による DLL デプロイ + 検証
+4. deploy ディレクトリ作成 + windeployqt による DLL デプロイ + MSVC ランタイム DLL のコピー + 検証
 5. ZIP ファイル作成
 
 > **実行ポリシーエラーが出る場合:**
@@ -191,14 +191,13 @@ copy build\*.qm deploy\
 ### 4.2 windeployqt で Qt DLL をデプロイ
 
 ```powershell
-windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw deploy\ShogiBoardQ.exe
+windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe
 ```
 
 `windeployqt` が自動で行う処理：
 
 1. 依存する Qt DLL（Qt6Core, Qt6Gui, Qt6Widgets, Qt6Charts, Qt6Network, Qt6Multimedia 等）をコピー
 2. Qt プラグイン（platforms/qwindows.dll, imageformats/ 等）をコピー
-3. MSVC ランタイム DLL（vcruntime140.dll 等）をコピー
 
 | オプション | 説明 |
 |---|---|
@@ -206,6 +205,20 @@ windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw 
 | `--no-translations` | Qt の翻訳ファイルを除外（アプリ独自の .qm は手動コピー済み） |
 | `--no-system-d3d-compiler` | d3dcompiler_47.dll を除外（通常不要） |
 | `--no-opengl-sw` | ソフトウェア OpenGL を除外 |
+| `--no-compiler-runtime` | `vc_redist.x64.exe` を同梱しない（ランタイム DLL は次の手順で直接コピーする） |
+
+### 4.2.1 MSVC ランタイム DLL のコピー
+
+配布先に Visual C++ 再頒布可能パッケージがなくても起動できるよう、
+MSVC ランタイム DLL（`vcruntime140.dll`, `msvcp140.dll` 等）を exe と同じディレクトリに同梱する。
+Developer PowerShell for VS では `VCToolsRedistDir` 環境変数がランタイムの配置先を指している：
+
+```powershell
+copy "$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\*.dll" deploy\
+```
+
+> windeployqt のデフォルトでは DLL ではなく `vc_redist.x64.exe`（約 18 MB）が同梱されるが、
+> 利用者がそれを手動で実行しない限りランタイムは導入されないため、DLL を直接同梱する。
 
 ### 4.3 デプロイ後の確認
 
@@ -219,6 +232,11 @@ dir deploy\Qt6Gui.dll
 dir deploy\Qt6Widgets.dll
 dir deploy\Qt6Charts.dll
 dir deploy\Qt6Network.dll
+
+# MSVC ランタイム DLL の確認
+dir deploy\vcruntime140.dll
+dir deploy\vcruntime140_1.dll
+dir deploy\msvcp140.dll
 
 # platforms プラグインの確認
 dir deploy\platforms\qwindows.dll
@@ -240,7 +258,10 @@ deploy/
 ├── Qt6OpenGL.dll                  ← Qt OpenGL (Charts 依存)
 ├── Qt6OpenGLWidgets.dll           ← Qt OpenGL Widgets
 ├── Qt6Svg.dll                     ← Qt SVG (アイコン用)
-├── vc_redist.x64.exe              ← MSVC ランタイム (※)
+├── vcruntime140.dll               ← MSVC ランタイム
+├── vcruntime140_1.dll
+├── msvcp140.dll
+├── ...                            ← その他の MSVC ランタイム DLL（concrt140.dll 等）
 ├── platforms/
 │   └── qwindows.dll               ← Windows プラットフォームプラグイン
 ├── imageformats/
@@ -255,10 +276,8 @@ deploy/
     └── qnetworklistmanager.dll    ← ネットワーク情報
 ```
 
-> ※ MSVC ランタイムは `windeployqt` がコピーする場合としない場合がある。
-> 配布先のユーザーが MSVC ランタイムを持っていない場合に備え、
-> [Visual C++ 再頒布可能パッケージ](https://learn.microsoft.com/ja-jp/cpp/windows/latest-supported-vc-redist)のインストールを案内するか、
-> 同梱を検討する。
+> MSVC ランタイム DLL を同梱しているため、配布先で
+> [Visual C++ 再頒布可能パッケージ](https://learn.microsoft.com/ja-jp/cpp/windows/latest-supported-vc-redist)のインストールは不要。
 
 ### 4.4 動作テスト
 
