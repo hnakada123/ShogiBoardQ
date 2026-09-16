@@ -38,6 +38,7 @@
 #include "kifurecordlistmodel.h"
 #include "kifubranchtree.h"
 #include "gamerecordmodel.h"
+#include "evaluationchartwidget.h"
 #include "sfenpositiontracer.h"
 #include "settingscommon.h"
 #include "appsettings.h"
@@ -787,8 +788,25 @@ private slots:
         const QString beforeHand = board()->board()->convertStandToSfen();
         const Turn beforeTurn = board()->board()->currentPlayer();
 
+        auto* evalChart = window->evalChart(); QVERIFY(evalChart);
+        const int xAxisLimit = evalChart->xAxisLimit();
+        const int yAxisLimit = evalChart->yAxisLimit();
+        evalChart->appendScoreP1(1, 150);
+        evalChart->appendScoreP2(2, -200);
+        evalChart->appendScoreP1Buffered(3, 250);
+        evalChart->appendScoreP2Buffered(4, -300);
+        QVERIFY(evalChart->countP1() > 0);
+        QVERIFY(evalChart->countP2() > 0);
+
         click("actionStartEditPosition");
         QVERIFY(board()->positionEditMode());
+        // 描画待ちの評価値も破棄し、編集開始後にグラフが復活しないことを確認する。
+        evalChart->flushPendingScores();
+        QCOMPARE(evalChart->countP1(), 0);
+        QCOMPARE(evalChart->countP2(), 0);
+        QCOMPARE(evalChart->currentPly(), 0);
+        QCOMPARE(evalChart->xAxisLimit(), xAxisLimit);
+        QCOMPARE(evalChart->yAxisLimit(), yAxisLimit);
         QCOMPARE(model->rowCount(), 1);
         QCOMPARE(view->currentIndex().row(), 0);
         QCOMPARE(model->currentHighlightRow(), 0);
