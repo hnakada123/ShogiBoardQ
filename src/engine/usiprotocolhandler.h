@@ -42,7 +42,8 @@ public:
     enum class SearchPhase {
         Idle,   ///< 待機中
         Main,   ///< 本探索中（go送信後）
-        Ponder  ///< 先読み中（go ponder送信後）
+        Ponder, ///< 先読み中（go ponder送信後）
+        StoppingPonder ///< 先読みのstop送信後、bestmove回収待ち
     };
 
     explicit UsiProtocolHandler(QObject* parent = nullptr);

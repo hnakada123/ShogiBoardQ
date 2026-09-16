@@ -353,14 +353,23 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
     int fileTo   = outTo.x();
     int rankTo   = outTo.y();
 
-    qCDebug(lcGame) << "in ShogiGameController::validateAndMove";
-    qCDebug(lcGame) << "playMode = " << static_cast<int>(playMode);
-    qCDebug(lcGame) << "promote = " << m_promote;
-    qCDebug(lcGame) << "fileFrom = " << fileFrom;
-    qCDebug(lcGame) << "rankFrom = " << rankFrom;
-    qCDebug(lcGame) << "fileTo = " << fileTo;
-    qCDebug(lcGame) << "rankTo = " << rankTo;
-    qCDebug(lcGame) << "currentPlayer() = " << currentPlayer();
+    const bool boardFrom = fileFrom >= 1 && fileFrom <= BoardConstants::kBoardSize
+        && rankFrom >= 1 && rankFrom <= BoardConstants::kBoardSize;
+    const bool handFrom = (currentPlayer() == Player1
+        && fileFrom == BoardConstants::kBlackStandFile && rankFrom >= 1 && rankFrom <= 7)
+        || (currentPlayer() == Player2
+        && fileFrom == BoardConstants::kWhiteStandFile && rankFrom >= 3 && rankFrom <= 9);
+    const bool boardTo = fileTo >= 1 && fileTo <= BoardConstants::kBoardSize
+        && rankTo >= 1 && rankTo <= BoardConstants::kBoardSize;
+    if ((!boardFrom && !handFrom) || !boardTo) {
+        qCWarning(lcGame) << "validateAndMove: invalid coordinates" << outFrom << outTo;
+        emit endDragSignal();
+        return false;
+    }
+
+    qCDebug(lcGame) << "validateAndMove: mode=" << static_cast<int>(playMode)
+                   << "promote=" << m_promote << "from=" << outFrom << "to=" << outTo
+                   << "player=" << currentPlayer();
 
     EngineMoveValidator validator;
     EngineMoveValidator::Turn turn = currentTurnForValidator(validator);

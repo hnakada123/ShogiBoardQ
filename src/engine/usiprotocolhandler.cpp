@@ -324,6 +324,11 @@ void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int
 
 void UsiProtocolHandler::sendStop()
 {
+    if (m_phase == SearchPhase::StoppingPonder) return;
+    if (m_phase == SearchPhase::Ponder) {
+        m_phase = SearchPhase::StoppingPonder;
+        m_predictedOpponentMove.clear();
+    }
     sendCommand("stop");
     m_stopOrPonderhitPending = true;
     emit stopOrPonderhitSent();
@@ -331,6 +336,7 @@ void UsiProtocolHandler::sendStop()
 
 void UsiProtocolHandler::sendPonderHit()
 {
+    if (m_phase != SearchPhase::Ponder || m_bestMoveReceived) return;
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
     m_phase = SearchPhase::Main;
@@ -475,8 +481,14 @@ bool UsiProtocolHandler::handleBestMoveLine(const QString& line)
     m_lastGoToBestmoveMs = (elapsed >= 0) ? elapsed : 0;
     m_specialMove = parseSpecialMove(m_bestMove);
 
+    const bool ponderResult = m_phase == SearchPhase::Ponder
+        || m_phase == SearchPhase::StoppingPonder;
+    m_phase = SearchPhase::Idle;
     // stopで回収する予測局面の投了・宣言勝ちは、実対局の結果ではない。
-    if (m_phase == SearchPhase::Ponder) return true;
+    if (ponderResult) {
+        m_predictedOpponentMove.clear();
+        return true;
+    }
 
     if (m_specialMove == SpecialMove::Resign) {
         if (m_squelchResignLogging) {

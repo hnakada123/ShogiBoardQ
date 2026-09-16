@@ -75,6 +75,7 @@ private slots:
 
 private:
     Usi* m_engine = nullptr;
+    QString m_ponderPosition; ///< 次の手番まで保持する予測局面
     QPointer<ShogiGameController> m_gameController;
     QPointer<UsiCommLogModel> m_engineCommLog;
     QPointer<ShogiEngineThinkingModel> m_engineThinking;

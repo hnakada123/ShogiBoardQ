@@ -1196,7 +1196,9 @@ private slots:
         QVERIFY(commands.open(QIODevice::ReadOnly));
         const auto log = commands.readAll();
         QVERIFY2(!log.contains("position sfen startpos"), log.constData());
-        QCOMPARE(log.count(" position startpos\n"), 3);
+        // 初期局面はstartposと同じ内容のSFENのどちらでも送信できる。
+        const QByteArray initialSfen = " position sfen " + initial.toUtf8() + " b - 1\n";
+        QCOMPARE(log.count(" position startpos\n") + log.count(initialSfen), 3);
         QCOMPARE(log.count(" go infinite\n"), 3);
     }
     void engineAnalysis()

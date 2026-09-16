@@ -219,6 +219,7 @@ void UsiMatchHandler::handleHumanVsEngineCommunication(QString& positionStr, QSt
 {
     // 人間の指し手をUSI形式に変換
     QString bestMove = convertHumanMoveToUsiFormat(outFrom, outTo, m_gameController->promote());
+    m_gameController->setPromote(false);
 
     ensureMovesKeyword(positionStr);
     positionStr += " " + bestMove;
@@ -261,17 +262,19 @@ void UsiMatchHandler::onBestMoveReceived()
 bool UsiMatchHandler::processEngineResponse(QString& positionStr, QString& positionPonderStr,
                                             const UsiTimingParams& timing)
 {
-    if (m_protocolHandler->currentPhase() != UsiProtocolHandler::SearchPhase::Ponder) {
+    const auto phase = m_protocolHandler->currentPhase();
+    const bool stoppingPonder = phase == UsiProtocolHandler::SearchPhase::StoppingPonder;
+    if (phase != UsiProtocolHandler::SearchPhase::Ponder && !stoppingPonder) {
         return sendCommandsAndProcess(positionStr, positionPonderStr, timing);
     }
 
     // 直近の実着手を含む局面と、先読み開始時の局面を比較する。
     // 前回のエンジン着手(bestMove)との比較ではヒットを判定できない。
-    const bool hit = m_protocolHandler->isPonderEnabled()
+    const bool hit = !stoppingPonder && m_protocolHandler->isPonderEnabled()
         && !m_protocolHandler->predictedMove().isEmpty()
         && positionStr.simplified() == positionPonderStr.simplified();
     if (!hit) {
-        m_protocolHandler->sendStop();
+        if (!stoppingPonder) m_protocolHandler->sendStop();
         // 旧探索の応答を必ず回収してから新しい探索を開始する。
         // 回収したresign/winも予測局面の結果なので採用しない。
         if (!m_protocolHandler->waitForBestMove(2000)) {
