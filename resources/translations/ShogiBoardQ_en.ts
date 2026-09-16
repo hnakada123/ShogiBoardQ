@@ -410,16 +410,41 @@ Analyzed moves: %1</translation>
         <translation type="vanished">Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="66"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="69"/>
         <source>
 作者: %1</source>
         <translation>
 Author: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="91"/>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="96"/>
         <source>適用</source>
         <translation>Apply</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="130"/>
+        <source>先読み</source>
+        <translation>Pondering</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="132"/>
+        <source>相手の手番中に先読みする</source>
+        <translation>Think during the opponent&apos;s turn</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="135"/>
+        <source>先読みに対応したエンジンで、予測した相手の指し手をもとに思考します。</source>
+        <translation>Allow engines that support pondering to think ahead using the predicted opponent move.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="138"/>
+        <source>未報告のUSI_Ponderにも設定を送信する</source>
+        <translation>Send USI_Ponder even if the engine does not report it</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/changeenginesettingsdialog.cpp" line="141"/>
+        <source>通常は有効にしてください。未対応オプションのエラーが出るエンジンでは無効にします。無効にしてもGUIによる先読みは利用できます。</source>
+        <translation>Normally leave this enabled. Disable it if the engine reports an unsupported option error. The GUI can still start pondering when this is disabled.</translation>
     </message>
 </context>
 <context>
@@ -2371,12 +2396,12 @@ Discard changes and move?</translation>
         <translation>USI_Hash option added.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="283"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="282"/>
         <source>オプション行の形式が無効です。</source>
         <translation>Invalid option line format.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="302"/>
+        <location filename="../../src/dialogs/engineregistrationhandler.cpp" line="301"/>
         <source>重複したエンジンオプションが見つかりました。</source>
         <translation>Duplicate engine option found.</translation>
     </message>
@@ -2417,36 +2442,36 @@ Discard changes and move?</translation>
 <context>
     <name>EngineSettingsOptionHandler</name>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="191"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="290"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="318"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="192"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="291"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="319"/>
         <source>%1（既定値 %2）</source>
         <translation>%1 (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="222"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="384"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="223"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="385"/>
         <source>フォルダ・ディレクトリの選択</source>
         <translation>Select Folder</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="225"/>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="386"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="226"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="387"/>
         <source>ファイルの選択</source>
         <translation>Select File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="242"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="243"/>
         <source>%1</source>
         <translation>%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="250"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="251"/>
         <source>%1 以上の値を入力してください。（既定値: %2）</source>
         <translation>Please enter a value of %1 or more. (Default: %2)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="253"/>
+        <location filename="../../src/dialogs/enginesettingsoptionhandler.cpp" line="254"/>
         <source>%1 から %2 までの値を入力してください。（既定値: %3）</source>
         <translation>Please enter a value between %1 and %2. (Default: %3)</translation>
     </message>
@@ -7977,17 +8002,17 @@ Do you want to continue?</translation>
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="86"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="87"/>
         <source>Timeout waiting for usiok</source>
         <translation>Timeout waiting for usiok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="115"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="117"/>
         <source>Timeout waiting for readyok</source>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="458"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="461"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>

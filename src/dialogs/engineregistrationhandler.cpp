@@ -268,9 +268,8 @@ void EngineRegistrationHandler::parseEngineOptionsFromUsiOutput()
         qCDebug(lcUi) << tr("USI_Hash option added.");
     }
 
-    // 注: USI_Ponderはエンジンが報告した場合のみ使用する。
-    // 詰み探索専用エンジン等はUSI_Ponderを実装していないため、
-    // 自動追加するとsetoptionでエラーになる。
+    // USI_Ponderは自動追加しない。先読み許可と未報告オプションへの通知方針は
+    // EnginePonderSettingsで管理し、エンジン設定画面の共通項目で変更する。
 }
 
 // 将棋エンジンから送信されたオプション行を解析し、エンジンオプションリストに追加する。

@@ -4,9 +4,12 @@
 #include "changeenginesettingsdialog.h"
 #include "enginesettingsoptionhandler.h"
 #include "enginedialogsettings.h"
+#include "enginepondersettings.h"
 #include "dialogutils.h"
 #include "buttonstyles.h"
 #include "ui_changeenginesettingsdialog.h"
+
+#include <QGroupBox>
 
 namespace {
 constexpr QSize kMinimumSize{400, 300};
@@ -77,6 +80,8 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     // 画面レイアウトを作成する。
     QVBoxLayout* optionWidgetsLayout = new QVBoxLayout;
 
+    createPonderWidgets(optionWidgetsLayout);
+
     // ハンドラにオプションウィジェットの生成を委譲する。
     m_optionHandler->buildOptionWidgets(optionWidgetsLayout);
 
@@ -91,11 +96,10 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
     ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("適用"));
 
     // "既定値に戻す"ボタンが押された場合、全てのオプションを既定値に戻す。
-    connect(ui->restoreButton, &QPushButton::clicked, m_optionHandler.get(), &EngineSettingsOptionHandler::restoreDefaultOptions);
+    connect(ui->restoreButton, &QPushButton::clicked, this, &ChangeEngineSettingsDialog::restoreDefaultSettings);
 
     // "適用"ボタンが押された場合、全てのオプションの設定を保存してエンジン設定ダイアログを終了する。
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, m_optionHandler.get(), &EngineSettingsOptionHandler::writeEngineOptions);
+    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ChangeEngineSettingsDialog::saveEngineSettings);
 
     // "Cancel"ボタンが押された場合、エンジン設定ダイアログを保存せずに終了する。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -117,6 +121,41 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
 
     // 保存されているウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineSettingsDialogSize());
+}
+
+void ChangeEngineSettingsDialog::createPonderWidgets(QVBoxLayout* layout)
+{
+    const auto prefs = EnginePonderSettings::load(m_optionHandler->engineName());
+    m_defaultPonderEnabled = prefs.defaultEnabled;
+    auto* group = new QGroupBox(tr("先読み"), this);
+    auto* groupLayout = new QVBoxLayout(group);
+    m_ponderEnabled = new QCheckBox(tr("相手の手番中に先読みする"), group);
+    m_ponderEnabled->setObjectName(QStringLiteral("ponderEnabledCheckBox"));
+    m_ponderEnabled->setChecked(prefs.enabled);
+    m_ponderEnabled->setToolTip(tr("先読みに対応したエンジンで、予測した相手の指し手をもとに思考します。"));
+    groupLayout->addWidget(m_ponderEnabled);
+
+    m_sendUnreportedPonder = new QCheckBox(tr("未報告のUSI_Ponderにも設定を送信する"), group);
+    m_sendUnreportedPonder->setObjectName(QStringLiteral("sendUnreportedPonderCheckBox"));
+    m_sendUnreportedPonder->setChecked(prefs.sendUnreportedOption);
+    m_sendUnreportedPonder->setToolTip(tr("通常は有効にしてください。未対応オプションのエラーが出るエンジンでは無効にします。無効にしてもGUIによる先読みは利用できます。"));
+    groupLayout->addWidget(m_sendUnreportedPonder);
+    layout->addWidget(group);
+}
+
+void ChangeEngineSettingsDialog::saveEngineSettings()
+{
+    m_optionHandler->writeEngineOptions();
+    EnginePonderSettings::save(m_optionHandler->engineName(), m_ponderEnabled->isChecked(),
+                              m_sendUnreportedPonder->isChecked());
+    accept();
+}
+
+void ChangeEngineSettingsDialog::restoreDefaultSettings()
+{
+    m_optionHandler->restoreDefaultOptions();
+    m_ponderEnabled->setChecked(m_defaultPonderEnabled);
+    m_sendUnreportedPonder->setChecked(true);
 }
 
 // フォントサイズを増加する。

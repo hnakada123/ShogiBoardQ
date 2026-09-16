@@ -22,6 +22,10 @@ static constexpr char EngineNameKey[] = "name";        ///< エンジン名キ�
 static constexpr char EnginePathKey[] = "path";        ///< エンジンファイルパスキー
 static constexpr char EngineAuthorKey[] = "author";    ///< エンジン作者キー
 
+// エンジン名グループ内に保存するGUI設定（USIオプション配列とは独立）
+static constexpr char EngineGuiPonderEnabledKey[] = "gui/ponderEnabled";
+static constexpr char EngineSendUnreportedPonderKey[] = "gui/sendUnreportedPonderOption";
+
 // --- オプション属性 ---
 
 static constexpr char EngineOptionNameKey[] = "name";           ///< オプション名キー

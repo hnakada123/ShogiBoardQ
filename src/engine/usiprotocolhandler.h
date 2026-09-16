@@ -199,7 +199,7 @@ private:
     bool m_readyOkReceived = false;   ///< readyok受信済み
     bool m_bestMoveReceived = false;  ///< bestmove受信済み
     SpecialMove m_specialMove = SpecialMove::None; ///< 特殊手（投了/入玉宣言勝ち等）
-    bool m_isPonderEnabled = false;   ///< USI_Ponderが有効
+    bool m_isPonderEnabled = false;   ///< GUI側の先読み許可（オプション報告有無とは独立）
 
     // --- 指し手情報 ---
     QString m_bestMove;                ///< 最善手（USI形式）
@@ -208,6 +208,7 @@ private:
     // --- 設定 ---
     QStringList m_setOptionCommands;   ///< 初期化時に送信するsetoptionコマンド群
     QSet<QString> m_reportedOptions;   ///< エンジンが報告したオプション名（usi〜usiok間）
+    bool m_sendUnreportedPonderOption = true; ///< 未報告のUSI_Ponderにも設定を通知
 
     // --- 計測 ---
     QElapsedTimer m_goTimer;           ///< go送信からbestmoveまでの経過時間計測

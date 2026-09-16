@@ -876,6 +876,8 @@ set(SRC_SERVICES
     src/services/docksettings.h
     src/services/enginedialogsettings.cpp
     src/services/enginedialogsettings.h
+    src/services/enginepondersettings.cpp
+    src/services/enginepondersettings.h
     src/services/enginelistsettings.cpp
     src/services/enginelistsettings.h
     src/services/gamesettings.cpp
