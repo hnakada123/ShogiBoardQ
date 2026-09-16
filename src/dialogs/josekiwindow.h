@@ -67,10 +67,12 @@ public:
     void setCurrentSfen(const QString &sfen);
     void setHumanCanPlay(bool canPlay);
     void setDockWidget(QDockWidget *dock);
+    [[nodiscard]] bool confirmClose();
 
 signals:
     void josekiMoveSelected(const QString &usiMove);
     void requestKifuDataForMerge();
+    void mergeRegistrationFinished(const QString &sfen, const QString &usiMove, bool success);
 
 public slots:
     void onOpenButtonClicked();
@@ -136,7 +138,9 @@ private:
     bool isIoBusy() const;
     void editMoveAt(int row);
     void deleteMoveAt(int row);
-    int currentPlyNumber() const;
+    void closeMergeDialogs();
+    QString selectSaveFilePath();
+    void applySavedFilePath(const QString &filePath);
 
     // --- Repository / Presenter ---
     std::unique_ptr<JosekiRepository> m_repository;
@@ -201,6 +205,7 @@ private:
     /// 非同期I/O
     QFutureWatcher<JosekiLoadResult> m_loadWatcher;
     QFutureWatcher<JosekiSaveResult> m_saveWatcher;
+    QString       m_pendingLoadFilePath;
     QString       m_pendingSaveFilePath;
     bool          m_ioBusy = false;
 

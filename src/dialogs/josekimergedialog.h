@@ -65,6 +65,9 @@ public:
      */
     void setRegisteredMoves(const QSet<QString> &registeredMoves);
 
+public slots:
+    void onRegistrationFinished(const QString &sfen, const QString &usiMove, bool success);
+
 signals:
     /**
      * @brief 指し手を定跡に登録するシグナル
@@ -119,6 +122,7 @@ private:
      * @brief フォントサイズを適用する
      */
     void applyFontSize();
+    bool registerEntry(const KifuMergeEntry &entry);
     
     /**
      * @brief SFENを正規化（手数を除去）
@@ -148,6 +152,7 @@ private:
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
     int m_currentPly = -1;                  ///< 現在選択中の手数
     FontSizeHelper m_fontHelper;            ///< フォントサイズヘルパー
+    bool m_lastRegistrationSucceeded = false;
 };
 
 #endif // JOSEKIMERGEDIALOG_H

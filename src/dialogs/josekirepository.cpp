@@ -6,6 +6,7 @@
 #include "logcategories.h"
 
 #include <QFile>
+#include <QSaveFile>
 #include <QTextStream>
 #include <QStringView>
 
@@ -163,6 +164,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
     bool hasValidHeader = false;
     bool hasSfenLine = false;
     bool hasMoveLine = false;
+    bool hasContentLine = false;
     int lineNumber = 0;
     int invalidMoveLineCount = 0;
 
@@ -197,6 +199,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
             continue;
         }
 
+        hasContentLine = true;
         if (line.startsWith(QStringLiteral("sfen "))) {
             currentSfen = line.mid(5).trimmed();
             currentSfen.remove(QLatin1Char('\r'));
@@ -274,7 +277,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
         return result;
     }
 
-    if (!hasSfenLine) {
+    if (!hasSfenLine && hasContentLine) {
         result.errorMessage = QStringLiteral(
             "定跡ファイルにSFEN行が見つかりませんでした。\n\n"
             "やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。\n\n"
@@ -282,7 +285,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
         return result;
     }
 
-    if (!hasMoveLine) {
+    if (hasSfenLine && !hasMoveLine) {
         result.errorMessage = QStringLiteral(
             "定跡ファイルに有効な指し手行が見つかりませんでした。\n\n"
             "やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド\n"
@@ -314,7 +317,7 @@ JosekiSaveResult JosekiRepository::serializeToFile(
 {
     JosekiSaveResult result;
 
-    QFile file(filePath);
+    QSaveFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         result.errorMessage = QStringLiteral("ファイルを保存できませんでした: %1").arg(filePath);
         return result;
@@ -361,11 +364,14 @@ JosekiSaveResult JosekiRepository::serializeToFile(
     out.flush();
     if (out.status() != QTextStream::Ok) {
         result.errorMessage = QStringLiteral("ファイル書き込み中にエラーが発生しました: %1").arg(filePath);
-        file.close();
+        file.cancelWriting();
         return result;
     }
 
-    file.close();
+    if (!file.commit()) {
+        result.errorMessage = QStringLiteral("ファイルを保存できませんでした: %1").arg(filePath);
+        return result;
+    }
     result.success = true;
     result.savedCount = static_cast<int>(josekiData.size());
     return result;

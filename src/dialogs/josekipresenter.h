@@ -41,12 +41,11 @@ public:
     /**
      * @brief USI形式の指し手を日本語表記に変換する
      * @param usiMove USI形式の指し手
-     * @param plyNumber 手数
      * @param tracer 現在局面をセットしたSfenPositionTracer
      * @return 日本語表記
      */
-    static QString usiMoveToJapanese(const QString &usiMove, int plyNumber,
-                                     SfenPositionTracer &tracer);
+    static QString usiMoveToJapanese(const QString &usiMove,
+                                     const SfenPositionTracer &tracer);
 
     /**
      * @brief 駒の日本語名を取得
@@ -80,15 +79,18 @@ public:
     void deleteMove(const QString &normalizedSfen, int index);
 
     /**
-     * @brief マージ登録を実行し、必要なら自動保存する
+     * @brief マージ後のデータを自動保存し、成功時のみ登録を確定する
      * @param normalizedSfen 正規化SFEN
      * @param sfenWithPly 手数付きSFEN
      * @param usiMove USI形式の指し手
      * @param currentFilePath 現在のファイルパス（自動保存用）
+     * @param errorMessage 保存失敗時のエラーメッセージ
      * @return 自動保存に成功した場合 true
+     * @note 保存失敗時は編集中のデータと登録済み状態を保持する。
      */
     bool registerMergeMove(const QString &normalizedSfen, const QString &sfenWithPly,
-                           const QString &usiMove, const QString &currentFilePath);
+                           const QString &usiMove, const QString &currentFilePath,
+                           QString *errorMessage = nullptr);
 
     /**
      * @brief 棋譜データからマージエントリを作成する

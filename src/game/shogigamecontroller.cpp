@@ -6,6 +6,7 @@
 
 #include <QPoint>
 #include <QDebug>
+#include <utility>
 
 #include "logcategories.h"
 #include "matchcoordinator.h"
@@ -44,6 +45,7 @@ void ShogiGameController::newGame(QString& initialSfenString)
 
     board()->setSfen(initialSfenString);
     setResult(NoResult);
+    setForcedPromotion(false);
 
     // SFEN の手番フィールドから GC の手番を同期
     const Turn boardTurn = board()->currentPlayer();
@@ -225,7 +227,8 @@ QString ShogiGameController::pieceKanji(const Piece piece)
 
 bool ShogiGameController::decidePromotion(PlayMode& playMode, EngineMoveValidator& validator,
                                           const EngineMoveValidator::Turn& turnMove,
-                                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove)
+                                          int& fileFrom, int& rankFrom, int& fileTo, int& rankTo, Piece piece, ShogiMove& currentMove,
+                                          bool forcedPromotionMode, bool forcedPromotionValue)
 {
     // 駒台には指せない
     if (fileTo >= 10) return false;
@@ -243,13 +246,10 @@ bool ShogiGameController::decidePromotion(PlayMode& playMode, EngineMoveValidato
                 // 盤上の指し手の場合、対局者に成り/不成を選択させる
                 if (fileFrom <= 9) {
                     // 強制成りモードの場合はダイアログをスキップ
-                    if (m_forcedPromotionMode) {
-                        qCDebug(lcGame) << "decidePromotion: using forced promotion value=" << m_forcedPromotionValue;
-                        m_promote = m_forcedPromotionValue;
-                        currentMove.isPromotion = m_forcedPromotionValue;
-                        // 強制モードは1回使用したらクリア
-                        m_forcedPromotionMode = false;
-                        m_forcedPromotionValue = false;
+                    if (forcedPromotionMode) {
+                        qCDebug(lcGame) << "decidePromotion: using forced promotion value=" << forcedPromotionValue;
+                        m_promote = forcedPromotionValue;
+                        currentMove.isPromotion = forcedPromotionValue;
                         return true;
                     }
 
@@ -328,6 +328,9 @@ bool ShogiGameController::isPromotablePiece(Piece piece)
 bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QString& record, PlayMode& playMode, int moveNumber,
                                           QStringList* m_sfenHistory, QList<ShogiMove>& gameMoves)
 {
+    // 成れない手や不合法手でも、この着手の成り指定を後続の手に持ち越さない。
+    const bool forcedPromotionMode = std::exchange(m_forcedPromotionMode, false);
+    const bool forcedPromotionValue = std::exchange(m_forcedPromotionValue, false);
     // 処理フロー:
     // 1. 入力ガード（盤面・移動元の検証）
     // 2. 成り/不成の判定
@@ -377,7 +380,8 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 
     ShogiMove currentMove(fromPoint, toPoint, movingPiece, capturedPiece, m_promote);
 
-    if (!decidePromotion(playMode, validator, turn, fileFrom, rankFrom, fileTo, rankTo, movingPiece, currentMove)) {
+    if (!decidePromotion(playMode, validator, turn, fileFrom, rankFrom, fileTo, rankTo, movingPiece, currentMove,
+                         forcedPromotionMode, forcedPromotionValue)) {
         emit endDragSignal();
         return false;
     } else {

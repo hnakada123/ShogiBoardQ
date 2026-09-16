@@ -102,7 +102,8 @@ void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
 // `closeEvent`: 親クラスでイベント受理を確認してから shutdown を実行する。
 void MainWindow::closeEvent(QCloseEvent* e)
 {
-    if (!m_isShuttingDown && !m_registry->confirmDiscardUnsavedKifu()) {
+    if (!m_isShuttingDown &&
+        (!m_registry->confirmDiscardUnsavedKifu() || !m_registry->confirmCloseJoseki())) {
         e->ignore();
         return;
     }

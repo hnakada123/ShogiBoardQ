@@ -8,6 +8,8 @@
 #include "kifufilecontroller.h"
 #include "matchcoordinator.h"
 #include "matchruntimequeryservice.h"
+#include "josekiwindowwiring.h"
+#include "josekiwindow.h"
 
 MainWindowServiceRegistry::MainWindowServiceRegistry(MainWindow& mw, QObject* parent)
     : QObject(parent)
@@ -27,6 +29,12 @@ bool MainWindowServiceRegistry::confirmDiscardUnsavedKifu()
 {
     m_kifu->ensureKifuFileController();
     return m_mw.m_kifuFileController->confirmDiscardUnsaved();
+}
+
+bool MainWindowServiceRegistry::confirmCloseJoseki()
+{
+    const auto *wiring = m_mw.m_josekiWiring.get();
+    return !wiring || !wiring->josekiWindow() || wiring->josekiWindow()->confirmClose();
 }
 
 void MainWindowServiceRegistry::prepareGameRecordLoadService()
