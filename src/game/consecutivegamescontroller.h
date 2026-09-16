@@ -30,7 +30,7 @@ public:
     // --- 依存オブジェクトの設定 ---
     void setTimeController(TimeControlController* tc);
     void setGameStartCoordinator(GameStartCoordinator* gsc);
-    void setPerformPreStartCleanup(std::function<void()> cleanup);
+    void setPerformPreStartCleanup(std::function<void(const QString&)> cleanup);
 
     /**
      * @brief 連続対局の設定を受け取る
@@ -73,7 +73,7 @@ private:
 
     TimeControlController* m_timeController = nullptr;  ///< 非所有
     QPointer<GameStartCoordinator> m_gameStart;        ///< 非所有（再生成追跡）
-    std::function<void()> m_performPreStartCleanup;    ///< 次局開始前のクリーンアップ
+    std::function<void(const QString&)> m_performPreStartCleanup; ///< 次局開始局面で初期化
 
     QTimer* m_delayTimer = nullptr; ///< 次局開始遅延用タイマー（所有: this）
 };

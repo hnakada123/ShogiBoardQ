@@ -30,7 +30,8 @@ class TimeControlController;
  *
  * - resetToInitialState: 「新規」メニュー操作時の完全リセットシーケンス
  * - resetGameState: ゲーム状態変数のクリアとコントローラリセット
- * - handleGameEnded: 終局時刻反映・連続対局判定
+ * - handleGameEnded: 終局時刻反映・UI更新
+ * - handleGameEndProcessed: 終局表示・保存後の連続対局判定
  */
 class SessionLifecycleCoordinator : public QObject
 {
@@ -90,6 +91,8 @@ public:
 
     /// 対局開始前のクリーンアップとセッション依存UIのクリアを行う
     void performPreStartCleanup();
+    /// 連続対局の次局を独立した棋譜・開始局面として準備する
+    void prepareNextGame(const QString& startSfen);
 
     /// 新規対局を開始する（再開判定・評価グラフ初期化・開始呼び出し）
     void startNewGame();
@@ -103,8 +106,10 @@ public:
     /// ライブ対局セッションが有効ならコミットする
     void commitLiveGameSessionIfActive();
 
-    /// 終局処理（終局時刻反映・連続対局判定）
+    /// 終局処理（終局時刻反映）
     void handleGameEnded(const MatchCoordinator::GameEndInfo& info);
+    /// 終局表示・棋譜保存後に連続対局を予約する
+    void handleGameEndProcessed(const MatchCoordinator::GameEndInfo& info);
 
 private:
     Deps m_deps;

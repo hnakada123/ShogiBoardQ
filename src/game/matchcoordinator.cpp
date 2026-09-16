@@ -216,6 +216,8 @@ void MatchCoordinator::ensureGameEndHandler()
     // シグナル転送（GameEndHandler → MatchCoordinator）
     connect(m_gameEndHandler, &GameEndHandler::gameEnded,
             this,             &MatchCoordinator::gameEnded);
+    connect(m_gameEndHandler, &GameEndHandler::gameEndProcessed,
+            this,             &MatchCoordinator::gameEndProcessed);
     connect(m_gameEndHandler, &GameEndHandler::gameOverStateChanged,
             this,             &MatchCoordinator::gameOverStateChanged);
     connect(m_gameEndHandler, &GameEndHandler::requestAppendGameOverMove,
@@ -452,8 +454,11 @@ void MatchCoordinator::disarmHumanTimerIfNeeded() {
 }
 
 void MatchCoordinator::handlePlayerTimeOut(int player) {
+    if ((player != 1 && player != 2) || m_gameOver.isOver) return;
     ensureMatchTurnHandler();
     m_turnHandler->handlePlayerTimeOut(player);
+    ensureGameEndHandler();
+    m_gameEndHandler->handleTimeout(player == 1 ? P1 : P2);
 }
 
 void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {

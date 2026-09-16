@@ -23,6 +23,7 @@ QString lastAppendedLine;
 QString lastAppendedElapsed;
 QString lastDialogTitle;
 QString lastDialogMsg;
+QStringList events;
 
 void reset()
 {
@@ -34,6 +35,7 @@ void reset()
     lastAppendedElapsed.clear();
     lastDialogTitle.clear();
     lastDialogMsg.clear();
+    events.clear();
 }
 
 } // namespace EndTracker
@@ -78,11 +80,13 @@ struct EndTestHarness {
             EndTracker::lastAppendedElapsed = elapsed;
         };
         hooks.showGameOverDialog = [](const QString& title, const QString& msg) {
+            EndTracker::events.append(QStringLiteral("dialog"));
             EndTracker::showGameOverDialogCalled = true;
             EndTracker::lastDialogTitle = title;
             EndTracker::lastDialogMsg = msg;
         };
         hooks.autoSaveKifuIfEnabled = []() {
+            EndTracker::events.append(QStringLiteral("save"));
             EndTracker::autoSaveKifuCalled = true;
         };
         handler.setHooks(hooks);
@@ -96,7 +100,51 @@ class Tst_GameEndHandler : public QObject
 {
     Q_OBJECT
 
+public:
+    void recordEndProcessed() { EndTracker::events.append(QStringLiteral("processed")); }
+    void recordEnd() { EndTracker::events.append(QStringLiteral("ended")); }
+    void recordAppendRequest() { EndTracker::events.append(QStringLiteral("append")); }
+
 private slots:
+    void timeoutKeepsCauseAndLoser_data()
+    {
+        QTest::addColumn<int>("loser");
+        QTest::newRow("black") << 1;
+        QTest::newRow("white") << 2;
+    }
+
+    void timeoutKeepsCauseAndLoser()
+    {
+        QFETCH(int, loser);
+        EndTestHarness h;
+        const auto side = loser == 1 ? MatchCoordinator::P1 : MatchCoordinator::P2;
+        QSignalSpy ended(&h.handler, &GameEndHandler::gameEnded);
+        QSignalSpy completed(&h.handler, &GameEndHandler::gameEndProcessed);
+        h.handler.handleTimeout(side);
+        h.handler.handleTimeout(side);
+        h.handler.handleEngineResign(loser);
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(completed.count(), 1);
+        QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::Timeout);
+        QCOMPARE(h.gameOver.lastInfo.loser, side);
+        QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("時間切れ")));
+        QVERIFY(EndTracker::autoSaveKifuCalled);
+    }
+
+    void maxMovesNotifiesAfterAppendingAndBeforeCompletion()
+    {
+        EndTestHarness h;
+        connect(&h.handler, &GameEndHandler::requestAppendGameOverMove,
+                this, &Tst_GameEndHandler::recordAppendRequest);
+        connect(&h.handler, &GameEndHandler::gameEnded,
+                this, &Tst_GameEndHandler::recordEnd);
+        connect(&h.handler, &GameEndHandler::gameEndProcessed,
+                this, &Tst_GameEndHandler::recordEndProcessed);
+        h.handler.handleMaxMovesJishogi();
+        h.handler.handleMaxMovesJishogi();
+        QCOMPARE(EndTracker::events, QStringList({QStringLiteral("append"), QStringLiteral("ended"),
+                 QStringLiteral("dialog"), QStringLiteral("save"), QStringLiteral("processed")}));
+    }
     // === Section A: 投了 ===
 
     void handleResign_p1Turn_p1Loses();

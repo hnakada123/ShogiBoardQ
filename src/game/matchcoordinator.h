@@ -309,6 +309,7 @@ signals:
 
     /// 終局の通知（→ GameStartCoordinator::matchGameEnded へ再送出）
     void gameEnded(const MatchCoordinator::GameEndInfo& info);
+    void gameEndProcessed(const MatchCoordinator::GameEndInfo& info);
 
     /**
      * @brief 時計更新通知

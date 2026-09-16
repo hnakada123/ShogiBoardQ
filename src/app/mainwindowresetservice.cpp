@@ -147,7 +147,8 @@ void MainWindowResetService::resetBranchTreeForNewState(const ModelResetDeps& de
 
     if (deps.kifuLoadCoordinator) {
         deps.kifuLoadCoordinator->resetBranchTreeForNewGame();
-    } else if (deps.branchTree) {
+    }
+    if (deps.branchTree) {
         if (deps.navState) {
             deps.navState->setCurrentNode(nullptr);
             deps.navState->resetPreferredLineIndex();

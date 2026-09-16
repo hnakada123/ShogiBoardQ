@@ -8,6 +8,7 @@
 #include <QSignalSpy>
 
 #include "gamestartcoordinator.h"
+#include "gamestartoptionsbuilder.h"
 #include "matchcoordinator.h"
 #include "shogiclock.h"
 #include "playmode.h"
@@ -103,6 +104,32 @@ class TestGameStartFlow : public QObject
     Q_OBJECT
 
 private slots:
+    void timeoutChoiceSurvivesTimeControlNormalization_data()
+    {
+        QTest::addColumn<bool>("loseOnTimeout");
+        QTest::newRow("continue-after-timeout") << false;
+        QTest::newRow("lose-on-timeout") << true;
+    }
+
+    void timeoutChoiceSurvivesTimeControlNormalization()
+    {
+        QFETCH(bool, loseOnTimeout);
+        StartGameDialogData data;
+        data.byoyomiSec1 = 60;
+        data.byoyomiSec2 = 120;
+        data.isLoseOnTimeout = loseOnTimeout;
+
+        TestHarness h;
+        auto p = h.makeHvhParams();
+        p.tc = GameStartOptionsBuilder::buildTimeControl(data);
+        QVERIFY(p.tc.enabled);
+        QCOMPARE(p.tc.loseOnTimeout, loseOnTimeout);
+        h.gsc->start(p);
+        QCOMPARE(TestTracker::lastLoseOnTimeout, loseOnTimeout);
+        QCOMPARE(TestTracker::lastByoyomiMs1, 60000);
+        QCOMPARE(TestTracker::lastByoyomiMs2, 120000);
+    }
+
     // ============================================================
     // A) PlayMode 判定: determinePlayModeAlignedWithTurn()
     //    （静的メソッド、純粋ロジック）

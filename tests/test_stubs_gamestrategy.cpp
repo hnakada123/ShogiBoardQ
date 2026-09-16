@@ -190,6 +190,7 @@ GameEndHandler::GameEndHandler(QObject* parent) : QObject(parent) {}
 void GameEndHandler::setRefs(const Refs&) {}
 void GameEndHandler::setHooks(const Hooks&) {}
 void GameEndHandler::handleResign() {}
+void GameEndHandler::handleTimeout(Player) {}
 void GameEndHandler::handleEngineResign(int) {}
 void GameEndHandler::handleEngineWin(int) {}
 void GameEndHandler::handleBreakOff() {}

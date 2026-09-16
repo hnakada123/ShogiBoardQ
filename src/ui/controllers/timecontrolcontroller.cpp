@@ -90,7 +90,7 @@ void TimeControlController::applyTimeControl(const GameStartCoordinator::TimeCon
         match->setTimeControlConfig(useByoyomi,
                                     static_cast<int>(tc.p1.byoyomiMs), static_cast<int>(tc.p2.byoyomiMs),
                                     static_cast<int>(tc.p1.incrementMs), static_cast<int>(tc.p2.incrementMs),
-                                    /*loseOnTimeout*/ true);
+                                    tc.enabled && tc.loseOnTimeout);
         match->refreshGoTimes();
     }
 

@@ -114,10 +114,7 @@ void GameSessionOrchestrator::initializeGame()
         return;
     }
 
-    StartGameDialogData dialogData = extractDialogData(dlg);
-    if (hasEditedStart && dialogData.startingPositionNumber != 0) {
-        dialogData.startingPositionNumber = 0;
-    }
+    const StartGameDialogData dialogData = extractDialogData(dlg);
 
     if (dialogData.startingPositionNumber != 0 && m_deps.confirmDiscardUnsavedKifu
         && !m_deps.confirmDiscardUnsavedKifu()) return;

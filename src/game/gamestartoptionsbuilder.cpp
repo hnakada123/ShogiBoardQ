@@ -100,6 +100,7 @@ GameStartOptionsBuilder::TimeControl
 GameStartOptionsBuilder::buildTimeControl(const StartGameDialogData& data)
 {
     TimeControl tc;
+    tc.loseOnTimeout = data.isLoseOnTimeout;
 
     const int h1   = data.basicTimeHour1;
     const int m1   = data.basicTimeMinutes1;

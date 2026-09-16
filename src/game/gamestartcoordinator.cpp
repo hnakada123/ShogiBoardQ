@@ -91,7 +91,7 @@ void GameStartCoordinator::start(const StartParams& params)
 
     // 司令塔にも直に反映（UIシグナルの非同期順序に影響されないように）
     if (m_match) {
-        const bool loseOnTimeout = tc.enabled;
+        const bool loseOnTimeout = tc.enabled && tc.loseOnTimeout;
         m_match->setTimeControlConfig(
             useByoyomi,
             static_cast<int>(tc.p1.byoyomiMs), static_cast<int>(tc.p2.byoyomiMs),
