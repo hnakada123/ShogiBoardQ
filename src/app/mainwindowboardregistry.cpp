@@ -90,6 +90,8 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
     m_mw.m_compositionRoot->ensurePositionEditCoordinator(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_registryParts.posEditCoordinator);
     connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
             this, &MainWindowServiceRegistry::resetRecordForEditedPosition);
+    connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
+            this, &MainWindowServiceRegistry::clearEvalState);
     connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingFinished,
             this, &MainWindowServiceRegistry::resetRecordForEditedPosition);
 }
