@@ -22,6 +22,7 @@
 #include "commentcoordinator.h"
 #include "kifunavigationcoordinator.h"
 #include "josekiwindowwiring.h"
+#include "josekiwindow.h"
 #include "kifuexportdepsassembler.h"
 #include "kifuloadcoordinatorfactory.h"
 #include "kifuloadcoordinator.h"
@@ -96,6 +97,12 @@ void KifuSubRegistry::refreshBranchNavWiringDeps()
 // ---------------------------------------------------------------------------
 // 棋譜ファイルコントローラ
 // ---------------------------------------------------------------------------
+
+bool KifuSubRegistry::confirmDiscardUnsavedKifu()
+{
+    ensureKifuFileController();
+    return m_mw.m_kifuFileController->confirmDiscardUnsaved();
+}
 
 void KifuSubRegistry::ensureKifuFileController()
 {
@@ -277,6 +284,12 @@ void KifuSubRegistry::ensureGameRecordModel()
 // ---------------------------------------------------------------------------
 // 定跡ウィンドウ配線
 // ---------------------------------------------------------------------------
+
+bool KifuSubRegistry::confirmCloseJoseki()
+{
+    const auto *wiring = m_mw.m_josekiWiring.get();
+    return !wiring || !wiring->josekiWindow() || wiring->josekiWindow()->confirmClose();
+}
 
 void KifuSubRegistry::ensureJosekiWiring()
 {

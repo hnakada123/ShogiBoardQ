@@ -207,8 +207,8 @@ static void addJkfForksFromTree(QJsonArray& movesArray, const KifuBranchTree* tr
         }
 
         QJsonObject moveObj = movesArray[ply].toObject();
-        const QJsonObject previousTo = movesArray[ply - 1].toObject()
-            [QStringLiteral("move")].toObject()[QStringLiteral("to")].toObject();
+        const QJsonObject previousTo = movesArray.at(ply - 1).toObject()
+            .value(QStringLiteral("move")).toObject().value(QStringLiteral("to")).toObject();
 
         QJsonArray forks;
         if (moveObj.contains(QStringLiteral("forks"))) {

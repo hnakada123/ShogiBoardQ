@@ -10,6 +10,7 @@
 #include "sfenpositiontracer.h"
 
 #include <QRegularExpression>
+#include <utility>
 #include "logcategories.h"
 
 namespace {
@@ -240,7 +241,7 @@ bool parseKi2Block(const QStringList& lines, const QString& baseSfen, int startP
         QStringList moves;
         if (Ki2Lexer::parseResultLine(text, resultTerm, resultCount)) moves.append(resultTerm);
         else if (Ki2Lexer::isKi2MoveLine(text)) moves = Ki2Lexer::extractMovesFromLine(text);
-        for (const QString& move : moves) {
+        for (const QString& move : std::as_const(moves)) {
             const QString mark = blackToMove ? QStringLiteral("▲") : QStringLiteral("△");
             QString term;
             if (KifuParseCommon::isTerminalWordContains(move, &term)) {

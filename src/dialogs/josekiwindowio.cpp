@@ -10,7 +10,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QApplication>
-#include <QtConcurrent>
+#include <QtConcurrentRun>
 #include <utility>
 
 // ============================================================

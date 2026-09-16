@@ -39,6 +39,8 @@ public:
     void refreshGameRecordLoadDeps();
 
     // ===== helpers =====
+    [[nodiscard]] bool confirmDiscardUnsavedKifu();
+    [[nodiscard]] bool confirmCloseJoseki();
     void clearUiBeforeKifuLoad();
     void updateJosekiWindow();
     void updateKifuExportDeps();

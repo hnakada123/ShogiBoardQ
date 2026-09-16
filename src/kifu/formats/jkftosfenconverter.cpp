@@ -340,7 +340,8 @@ void parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
 
     for (const auto& value : moves) {
         const QJsonObject obj = value.toObject();
-        for (const auto& fork : obj[QStringLiteral("forks")].toArray()) {
+        const QJsonArray forks = obj[QStringLiteral("forks")].toArray();
+        for (const auto& fork : forks) {
             KifVariation variation;
             variation.startPly = ply;
             QList<KifVariation> nested;
