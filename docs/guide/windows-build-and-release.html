@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows ビルド・リリース手順 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ を Windows でビルドし、ZIP ファイルとして GitHub Release で公開する手順。開発環境のセットアップ、ビルド、配布用 ZIP ファイルの作成、トラブルシューティングを解説します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/windows-build-and-release.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/windows-build-and-release.html">
+    <meta property="og:title" content="Windows ビルド・リリース手順 - ShogiBoardQ">
+    <meta property="og:description" content="Windows での開発環境のセットアップからビルド、配布用 ZIP ファイルの作成、GitHub Release での公開までを解説します。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Windows ビルド・リリース手順 - ShogiBoardQ">
+    <meta name="twitter:description" content="Windows での開発環境のセットアップからビルド、配布用 ZIP ファイルの作成、GitHub Release での公開までを解説します。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/build-guide.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="../index.html#build">動作環境・ビルド方法</a></li>
+            <li><a href="#目次">目次</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="build-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Windows ビルド・リリース手順</h1>
+        <p class="hero-subtitle">ShogiBoardQ を Windows でビルドし、ZIP ファイルとして GitHub で公開する手順</p>
+        <div class="hero-badges">
+            <span class="badge">Windows</span>
+            <span class="badge">Qt 6</span>
+            <span class="badge">ZIP 配布</span>
+            <span class="badge">GitHub Release</span>
+        </div>
+    </div>
+</section>
+
+<div class="section">
+    <!-- Content from docs/dev/windows-build-and-release.md -->
+    <article class="section-inner build-document" aria-label="Windows ビルド・リリース手順の詳細">
+<section id="目次" class="level2">
+<h2>目次</h2>
+<ol type="1">
+<li><a href="#1-前提条件">前提条件</a></li>
+<li><a href="#2-開発環境のセットアップ">開発環境のセットアップ</a></li>
+<li><a href="#3-ビルド">ビルド</a></li>
+<li><a href="#4-配布パッケージの作成">配布パッケージの作成</a></li>
+<li><a href="#5-github-release-での公開">GitHub Release での公開</a></li>
+<li><a href="#6-コード署名オプション">コード署名（オプション）</a></li>
+<li><a href="#7-トラブルシューティング">トラブルシューティング</a></li>
+</ol>
+</section>
+<section id="1-前提条件" class="level2">
+<h2>1. 前提条件</h2>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>項目</th>
+<th>バージョン</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td>10 / 11（64-bit）</td>
+</tr>
+<tr>
+<td>Visual Studio</td>
+<td>2019 または 2022（C++ デスクトップ開発ワークロード）</td>
+</tr>
+<tr>
+<td>CMake</td>
+<td>3.16 以上</td>
+</tr>
+<tr>
+<td>Qt</td>
+<td>6.x（Widgets, Charts, Network, Multimedia, LinguistTools）</td>
+</tr>
+<tr>
+<td>C++</td>
+<td>C++17 対応コンパイラ（MSVC 2019 以降）</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="2-開発環境のセットアップ" class="level2">
+<h2>2. 開発環境のセットアップ</h2>
+<section id="21-visual-studio-のインストール" class="level3">
+<h3>2.1 Visual Studio のインストール</h3>
+<p><a href="https://visualstudio.microsoft.com/">Visual Studio</a> をインストールし、以下のワークロードを選択：</p>
+<ul>
+<li><strong>C++ によるデスクトップ開発</strong></li>
+</ul>
+<p>これにより MSVC コンパイラ、CMake、Ninja が含まれる。</p>
+<blockquote>
+<p><strong>Community Edition</strong> は個人開発・OSS 開発に無料で利用可能。</p>
+</blockquote>
+</section>
+<section id="22-qt-6-のインストール" class="level3">
+<h3>2.2 Qt 6 のインストール</h3>
+<section id="方法a-qt-online-installer推奨" class="level4">
+<h4>方法A: Qt Online Installer（推奨）</h4>
+<p><a href="https://www.qt.io/download-qt-installer">Qt 公式サイト</a>からインストーラをダウンロードし、以下のコンポーネントを選択：</p>
+<ul>
+<li>Qt 6.x &gt; MSVC 2019/2022 64-bit</li>
+<li>Qt 6.x &gt; Qt Charts</li>
+<li>Qt 6.x &gt; Qt Multimedia</li>
+<li>Developer and Designer Tools &gt; CMake</li>
+<li>Developer and Designer Tools &gt; Ninja</li>
+</ul>
+<p>インストール後、Qt のパスを環境変数に設定：</p>
+<pre class="powershell"><code># システム環境変数に追加（Qt のインストールパスは環境に合わせて変更）
+# 例: C:\Qt\6.8.3\msvc2022_64
+[Environment]::SetEnvironmentVariable(&quot;Qt6_DIR&quot;, &quot;C:\Qt\6.8.3\msvc2022_64\lib\cmake\Qt6&quot;, &quot;User&quot;)
+[Environment]::SetEnvironmentVariable(&quot;PATH&quot;, &quot;C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH&quot;, &quot;User&quot;)</code></pre>
+</section>
+<section id="方法b-aqtinstallciコマンドライン向け" class="level4">
+<h4>方法B: aqtinstall（CI/コマンドライン向け）</h4>
+<pre class="powershell"><code>pip install aqtinstall
+aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 -m qtcharts</code></pre>
+</section>
+</section>
+<section id="23-ninja-のインストール推奨" class="level3">
+<h3>2.3 Ninja のインストール（推奨）</h3>
+<p>Visual Studio に含まれる Ninja を使うか、別途インストール：</p>
+<pre class="powershell"><code>winget install Ninja-build.Ninja</code></pre>
+</section>
+<section id="24-インストール確認" class="level3">
+<h3>2.4 インストール確認</h3>
+<p><strong>Developer PowerShell for VS 2022</strong>（スタートメニューから起動）で確認：</p>
+<pre class="powershell"><code>cmake --version       # 3.16 以上
+cl                    # MSVC コンパイラ
+ninja --version       # Ninja
+windeployqt --version # Qt デプロイツール</code></pre>
+</section>
+</section>
+<section id="3-ビルド" class="level2">
+<h2>3. ビルド</h2>
+<section id="ビルドスクリプト推奨" class="level3">
+<h3>ビルドスクリプト（推奨）</h3>
+<p><code>scripts/build-windows.ps1</code> を使うと、Release ビルドから ZIP 作成まで一括実行できる。</p>
+<blockquote>
+<p><strong>重要</strong>: Developer PowerShell for VS 2022 から実行すること（MSVC の環境変数が必要）。</p>
+</blockquote>
+<pre class="powershell"><code># 通常ビルド + ZIP 作成
+.\scripts\build-windows.ps1
+
+# クリーンビルド、ZIP なし
+.\scripts\build-windows.ps1 -Clean -SkipZip</code></pre>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>オプション</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>-Clean</code></td>
+<td>build / deploy ディレクトリを削除してからビルド</td>
+</tr>
+<tr>
+<td><code>-SkipZip</code></td>
+<td>ZIP 作成をスキップ（deploy フォルダのみ生成）</td>
+</tr>
+<tr>
+<td><code>-Help</code></td>
+<td>ヘルプを表示</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>スクリプトは以下の処理を自動実行する：</p>
+<ol type="1">
+<li>前提ツールの存在確認（cmake, ninja, cl, windeployqt, MSVC ランタイム DLL の場所）</li>
+<li>CMake Configure + ビルド</li>
+<li>ビルド成果物の確認（.exe、.qm 翻訳ファイル）</li>
+<li>deploy ディレクトリ作成 + windeployqt による DLL デプロイ + MSVC ランタイム DLL のコピー + 検証</li>
+<li>ZIP ファイル作成</li>
+</ol>
+<blockquote>
+<p><strong>実行ポリシーエラーが出る場合:</strong></p>
+<pre class="powershell"><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></pre>
+</blockquote>
+<p>以下は個別のコマンドを手動で実行する場合の手順。</p>
+</section>
+<section id="31-release-ビルド" class="level3">
+<h3>3.1 Release ビルド</h3>
+<p>Developer PowerShell for VS 2022 で実行：</p>
+<pre class="powershell"><code>cd C:\path\to\ShogiBoardQ
+
+# Configure（Release ビルド、Ninja）
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+# ビルド
+ninja -C build</code></pre>
+<p>Ninja がない場合（Visual Studio ジェネレータを使用）：</p>
+<pre class="powershell"><code># Configure
+cmake -B build -S .
+
+# Release ビルド
+cmake --build build --config Release</code></pre>
+</section>
+<section id="32-ビルド成果物の確認" class="level3">
+<h3>3.2 ビルド成果物の確認</h3>
+<pre class="powershell"><code># exe が生成されていることを確認
+# Ninja の場合:
+dir build\ShogiBoardQ.exe
+
+# Visual Studio ジェネレータの場合:
+dir build\Release\ShogiBoardQ.exe
+
+# 翻訳ファイルの確認
+dir build\*.qm           # Ninja
+dir build\Release\*.qm   # VS ジェネレータ</code></pre>
+</section>
+<section id="33-動作確認" class="level3">
+<h3>3.3 動作確認</h3>
+<pre class="powershell"><code># ビルドしたアプリを起動（Qt DLL が PATH に含まれている環境で）
+.\build\ShogiBoardQ.exe</code></pre>
+</section>
+</section>
+<section id="4-配布パッケージの作成" class="level2">
+<h2>4. 配布パッケージの作成</h2>
+<blockquote>
+<p><strong>Note:</strong> <code>scripts/build-windows.ps1</code> を使用した場合、このセクションの手順は自動実行される。</p>
+</blockquote>
+<section id="41-deploy-ディレクトリの作成" class="level3">
+<h3>4.1 deploy ディレクトリの作成</h3>
+<p>exe と翻訳ファイルを配布用ディレクトリにコピー：</p>
+<pre class="powershell"><code>mkdir deploy
+copy build\ShogiBoardQ.exe deploy\
+copy build\*.qm deploy\</code></pre>
+</section>
+<section id="42-windeployqt-で-qt-dll-をデプロイ" class="level3">
+<h3>4.2 windeployqt で Qt DLL をデプロイ</h3>
+<pre class="powershell"><code>windeployqt --release --no-translations --no-system-d3d-compiler --no-opengl-sw --no-compiler-runtime deploy\ShogiBoardQ.exe</code></pre>
+<p><code>windeployqt</code> が自動で行う処理：</p>
+<ol type="1">
+<li>依存する Qt DLL（Qt6Core, Qt6Gui, Qt6Widgets, Qt6Charts, Qt6Network, Qt6Multimedia 等）をコピー</li>
+<li>Qt プラグイン（platforms/qwindows.dll, imageformats/ 等）をコピー</li>
+</ol>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>オプション</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--release</code></td>
+<td>Release ビルド用 DLL をデプロイ</td>
+</tr>
+<tr>
+<td><code>--no-translations</code></td>
+<td>Qt の翻訳ファイルを除外（アプリ独自の .qm は手動コピー済み）</td>
+</tr>
+<tr>
+<td><code>--no-system-d3d-compiler</code></td>
+<td>d3dcompiler_47.dll を除外（通常不要）</td>
+</tr>
+<tr>
+<td><code>--no-opengl-sw</code></td>
+<td>ソフトウェア OpenGL を除外</td>
+</tr>
+<tr>
+<td><code>--no-compiler-runtime</code></td>
+<td><code>vc_redist.x64.exe</code> を同梱しない（ランタイム DLL は次の手順で直接コピーする）</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="421-msvc-ランタイム-dll-のコピー" class="level3">
+<h3>4.2.1 MSVC ランタイム DLL のコピー</h3>
+<p>配布先に Visual C++ 再頒布可能パッケージがなくても起動できるよう、 MSVC ランタイム DLL（<code>vcruntime140.dll</code>, <code>msvcp140.dll</code> 等）を exe と同じディレクトリに同梱する。 Developer PowerShell for VS では <code>VCToolsRedistDir</code> 環境変数がランタイムの配置先を指している：</p>
+<pre class="powershell"><code>copy &quot;$env:VCToolsRedistDir\x64\Microsoft.VC*.CRT\*.dll&quot; deploy\</code></pre>
+<blockquote>
+<p>windeployqt のデフォルトでは DLL ではなく <code>vc_redist.x64.exe</code>（約 18 MB）が同梱されるが、 利用者がそれを手動で実行しない限りランタイムは導入されないため、DLL を直接同梱する。</p>
+</blockquote>
+</section>
+<section id="43-デプロイ後の確認" class="level3">
+<h3>4.3 デプロイ後の確認</h3>
+<pre class="powershell"><code># ディレクトリ構造の確認
+tree /F deploy
+
+# 必須 DLL の確認
+dir deploy\Qt6Core.dll
+dir deploy\Qt6Gui.dll
+dir deploy\Qt6Widgets.dll
+dir deploy\Qt6Charts.dll
+dir deploy\Qt6Network.dll
+
+# MSVC ランタイム DLL の確認
+dir deploy\vcruntime140.dll
+dir deploy\vcruntime140_1.dll
+dir deploy\msvcp140.dll
+
+# platforms プラグインの確認
+dir deploy\platforms\qwindows.dll</code></pre>
+<p>デプロイ後のディレクトリ構造：</p>
+<pre><code>deploy/
+├── ShogiBoardQ.exe                ← 実行ファイル
+├── ShogiBoardQ_ja_JP.qm          ← 日本語翻訳
+├── ShogiBoardQ_en.qm             ← 英語翻訳
+├── Qt6Core.dll                    ← Qt Core
+├── Qt6Gui.dll                     ← Qt GUI
+├── Qt6Widgets.dll                 ← Qt Widgets
+├── Qt6Charts.dll                  ← Qt Charts
+├── Qt6Network.dll                 ← Qt Network
+├── Qt6Multimedia.dll              ← Qt Multimedia（駒音）
+├── Qt6OpenGL.dll                  ← Qt OpenGL (Charts 依存)
+├── Qt6OpenGLWidgets.dll           ← Qt OpenGL Widgets
+├── Qt6Svg.dll                     ← Qt SVG (アイコン用)
+├── vcruntime140.dll               ← MSVC ランタイム
+├── vcruntime140_1.dll
+├── msvcp140.dll
+├── ...                            ← その他の MSVC ランタイム DLL（concrt140.dll 等）
+├── platforms/
+│   └── qwindows.dll               ← Windows プラットフォームプラグイン
+├── imageformats/
+│   ├── qsvg.dll                   ← SVG サポート
+│   ├── qico.dll                   ← ICO サポート
+│   └── ...
+├── styles/
+│   └── qmodernwindowsstyle.dll    ← Windows スタイル
+├── tls/
+│   └── qschannelbackend.dll       ← TLS (CSA ネットワーク通信用)
+└── networkinformation/
+    └── qnetworklistmanager.dll    ← ネットワーク情報</code></pre>
+<blockquote>
+<p>MSVC ランタイム DLL を同梱しているため、配布先で <a href="https://learn.microsoft.com/ja-jp/cpp/windows/latest-supported-vc-redist">Visual C++ 再頒布可能パッケージ</a>のインストールは不要。</p>
+</blockquote>
+</section>
+<section id="44-動作テスト" class="level3">
+<h3>4.4 動作テスト</h3>
+<p>deploy フォルダから直接起動してテスト：</p>
+<pre class="powershell"><code>.\deploy\ShogiBoardQ.exe</code></pre>
+<blockquote>
+<p><strong>重要</strong>: テストは Qt の bin ディレクトリが PATH に<strong>含まれない</strong>環境で行うこと。 PATH に Qt が含まれていると、deploy フォルダの DLL ではなくシステムの DLL が使われてしまい、 デプロイ漏れを検出できない。</p>
+</blockquote>
+</section>
+<section id="45-zip-ファイルの作成" class="level3">
+<h3>4.5 ZIP ファイルの作成</h3>
+<pre class="powershell"><code>Compress-Archive -Path deploy\* -DestinationPath ShogiBoardQ-windows.zip</code></pre>
+</section>
+</section>
+<section id="5-github-release-での公開" class="level2">
+<h2>5. GitHub Release での公開</h2>
+<section id="51-タグの作成" class="level3">
+<h3>5.1 タグの作成</h3>
+<pre class="powershell"><code>git tag -a v0.1.0 -m &quot;v0.1.0 リリース&quot;
+git push origin v0.1.0</code></pre>
+</section>
+<section id="52-github-cli-でリリース作成" class="level3">
+<h3>5.2 GitHub CLI でリリース作成</h3>
+<p><a href="https://cli.github.com/">GitHub CLI (gh)</a> を使用：</p>
+<pre class="powershell"><code># インストール
+winget install GitHub.cli
+
+# ログイン（初回のみ）
+gh auth login</code></pre>
+<p>リリース作成とアセットのアップロード：</p>
+<pre class="powershell"><code>gh release create v0.1.0 `
+  --title &quot;ShogiBoardQ v0.1.0&quot; `
+  --notes-file RELEASE_NOTES.md `
+  ShogiBoardQ-windows.zip</code></pre>
+<blockquote>
+<p>macOS の DMG も同時に公開する場合は、アセットを追加：</p>
+<pre class="powershell"><code>gh release create v0.1.0 `
+  --title &quot;ShogiBoardQ v0.1.0&quot; `
+  --notes-file RELEASE_NOTES.md `
+  ShogiBoardQ-windows.zip `
+  ShogiBoardQ.dmg</code></pre>
+</blockquote>
+<section id="リリースノートの自動生成" class="level4">
+<h4>リリースノートの自動生成</h4>
+<p>リリースノートファイルを用意しない場合、GitHub が自動生成する：</p>
+<pre class="powershell"><code>gh release create v0.1.0 `
+  --title &quot;ShogiBoardQ v0.1.0&quot; `
+  --generate-notes `
+  ShogiBoardQ-windows.zip</code></pre>
+</section>
+</section>
+<section id="53-web-ui-からリリース作成代替" class="level3">
+<h3>5.3 Web UI からリリース作成（代替）</h3>
+<ol type="1">
+<li>GitHub リポジトリ → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
+<li><strong>Choose a tag</strong> → 新しいタグ（例: <code>v0.1.0</code>）を入力して作成</li>
+<li><strong>Release title</strong> を入力（例: <code>ShogiBoardQ v0.1.0</code>）</li>
+<li><strong>Description</strong> にリリースノートを記入</li>
+<li><strong>Attach binaries</strong> に <code>ShogiBoardQ-windows.zip</code> をドラッグ＆ドロップ</li>
+<li><strong>Publish release</strong> をクリック</li>
+</ol>
+</section>
+<section id="54-リリースノートの書き方テンプレート" class="level3">
+<h3>5.4 リリースノートの書き方（テンプレート）</h3>
+<pre class="markdown"><code>## ShogiBoardQ v0.1.0
+
+### ダウンロード
+
+| OS | ファイル |
+|---|---|
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+| macOS | `ShogiBoardQ.dmg` |
+
+### Windows での起動方法
+
+1. ZIP ファイルを展開
+2. `ShogiBoardQ.exe` をダブルクリック
+
+&gt; 初回起動時に「Windows によって PC が保護されました」と表示される場合は、
+&gt; 「詳細情報」→「実行」をクリックしてください。
+
+### 変更点
+
+- ...</code></pre>
+</section>
+</section>
+<section id="6-コード署名オプション" class="level2">
+<h2>6. コード署名（オプション）</h2>
+<p>署名なしでも動作するが、初回起動時に SmartScreen の警告が表示される。</p>
+<section id="61-コード署名証明書の取得" class="level3">
+<h3>6.1 コード署名証明書の取得</h3>
+<p>コード署名には EV（Extended Validation）コード署名証明書が推奨。 個人開発者向けには OV（Organization Validation）証明書も選択肢。</p>
+<p>主なプロバイダ:</p>
+<ul>
+<li><a href="https://signpath.org/">SignPath Foundation</a>（OSS プロジェクト向け、無料）</li>
+<li>DigiCert</li>
+<li>Sectigo</li>
+<li>GlobalSign</li>
+</ul>
+</section>
+<section id="62-signtool-で署名" class="level3">
+<h3>6.2 signtool で署名</h3>
+<pre class="powershell"><code># Windows SDK に含まれる signtool を使用
+signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+  /f &quot;certificate.pfx&quot; /p &quot;password&quot; `
+  deploy\ShogiBoardQ.exe</code></pre>
+</section>
+<section id="63-署名なしで配布する場合" class="level3">
+<h3>6.3 署名なしで配布する場合</h3>
+<p>ユーザーに以下を案内する：</p>
+<ol type="1">
+<li>ダウンロード後、ZIP を右クリック → プロパティ → 「ブロックの解除」にチェック → OK</li>
+<li>展開後、<code>ShogiBoardQ.exe</code> を実行</li>
+<li>SmartScreen の警告が表示された場合、「詳細情報」→「実行」をクリック</li>
+</ol>
+</section>
+</section>
+<section id="7-トラブルシューティング" class="level2">
+<h2>7. トラブルシューティング</h2>
+<section id="qt-が見つからない" class="level3">
+<h3>Qt が見つからない</h3>
+<pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
+<p>Qt のインストールパスを明示的に指定する：</p>
+<pre class="powershell"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release `
+  -DCMAKE_PREFIX_PATH=&quot;C:\Qt\6.8.3\msvc2022_64&quot;</code></pre>
+</section>
+<section id="clexe-が見つからない" class="level3">
+<h3>cl.exe が見つからない</h3>
+<p>Developer PowerShell for VS 2022 を使用していない場合：</p>
+<pre class="powershell"><code># 手動で MSVC 環境をセットアップ
+# Visual Studio 2022 の場合
+&amp; &quot;C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvarsall.bat&quot; x64</code></pre>
+<p>または、スタートメニューから <strong>Developer PowerShell for VS 2022</strong> を起動する。</p>
+</section>
+<section id="windeployqt-が見つからない" class="level3">
+<h3>windeployqt が見つからない</h3>
+<pre class="powershell"><code># Qt のインストールパスを確認し、PATH に追加
+$env:PATH = &quot;C:\Qt\6.8.3\msvc2022_64\bin;$env:PATH&quot;
+
+# 確認
+windeployqt --version</code></pre>
+</section>
+<section id="アプリが起動しないdll-エラー" class="level3">
+<h3>アプリが起動しない（DLL エラー）</h3>
+<pre><code>&quot;Qt6Core.dll が見つかりません&quot; 等のエラー</code></pre>
+<ol type="1">
+<li><p><code>windeployqt</code> を再実行する</p></li>
+<li><p>必須 DLL がすべて deploy ディレクトリに存在するか確認：</p>
+<pre class="powershell"><code>dir deploy\Qt6Core.dll
+dir deploy\Qt6Gui.dll
+dir deploy\Qt6Widgets.dll
+dir deploy\Qt6Charts.dll
+dir deploy\Qt6Network.dll
+dir deploy\platforms\qwindows.dll</code></pre></li>
+<li><p>MSVC ランタイムが不足している場合：</p>
+<ul>
+<li><a href="https://learn.microsoft.com/ja-jp/cpp/windows/latest-supported-vc-redist">Visual C++ 再頒布可能パッケージ</a>をインストール</li>
+</ul></li>
+</ol>
+</section>
+<section id="qt-charts-の-dll-がデプロイされない" class="level3">
+<h3>Qt Charts の DLL がデプロイされない</h3>
+<p>windeployqt が Qt Charts を検出できない場合、手動でコピー：</p>
+<pre class="powershell"><code>copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6Charts.dll&quot; deploy\
+copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGL.dll&quot; deploy\
+copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGLWidgets.dll&quot; deploy\</code></pre>
+</section>
+<section id="翻訳が読み込まれない" class="level3">
+<h3>翻訳が読み込まれない</h3>
+<p><code>.qm</code> ファイルが exe と同じディレクトリに存在するか確認：</p>
+<pre class="powershell"><code>dir deploy\*.qm</code></pre>
+<p>ない場合、ビルドディレクトリから手動コピー：</p>
+<pre class="powershell"><code>copy build\ShogiBoardQ_ja_JP.qm deploy\
+copy build\ShogiBoardQ_en.qm deploy\</code></pre>
+</section>
+<section id="実行ポリシーエラーpowershell-スクリプト" class="level3">
+<h3>実行ポリシーエラー（PowerShell スクリプト）</h3>
+<pre><code>このシステムではスクリプトの実行が無効になっているため...</code></pre>
+<pre class="powershell"><code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code></pre>
+</section>
+<section id="smartscreen-の警告署名なし" class="level3">
+<h3>SmartScreen の警告（署名なし）</h3>
+<p>配布先ユーザーへの案内：</p>
+<ol type="1">
+<li>ZIP を右クリック → プロパティ → <strong>ブロックの解除</strong>にチェック → OK</li>
+<li>ZIP を展開してから実行</li>
+<li>「Windows によって PC が保護されました」→ <strong>詳細情報</strong> → <strong>実行</strong></li>
+</ol>
+<blockquote>
+<p>ダウンロード数が増えると SmartScreen の信頼度が上がり、警告が表示されにくくなる。</p>
+</blockquote>
+</section>
+</section>
+    </article>
+</div>
+</main>
+
+<div class="back-link-section">
+    <a href="../index.html#build" class="back-link">&larr; 動作環境・ビルド方法に戻る</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>

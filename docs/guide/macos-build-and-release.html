@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>macOS ビルド・リリース手順 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ を macOS でビルドし、DMG ファイルとして GitHub Release で公開する手順。開発環境のセットアップ、ビルド、DMG ファイルの作成、コード署名・公証、トラブルシューティングを解説します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/macos-build-and-release.html">
+    <meta property="og:title" content="macOS ビルド・リリース手順 - ShogiBoardQ">
+    <meta property="og:description" content="macOS での開発環境のセットアップからビルド、DMG ファイルの作成、コード署名・公証、GitHub Release での公開までを解説します。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="macOS ビルド・リリース手順 - ShogiBoardQ">
+    <meta name="twitter:description" content="macOS での開発環境のセットアップからビルド、DMG ファイルの作成、コード署名・公証、GitHub Release での公開までを解説します。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/build-guide.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="../index.html#build">動作環境・ビルド方法</a></li>
+            <li><a href="#目次">目次</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="build-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>macOS ビルド・リリース手順</h1>
+        <p class="hero-subtitle">ShogiBoardQ を macOS でビルドし、DMG ファイルとしてリリースする手順</p>
+        <div class="hero-badges">
+            <span class="badge">macOS</span>
+            <span class="badge">Qt 6</span>
+            <span class="badge">DMG 配布</span>
+            <span class="badge">GitHub Release</span>
+        </div>
+    </div>
+</section>
+
+<div class="section">
+    <!-- Content from docs/dev/macos-build-and-release.md -->
+    <article class="section-inner build-document" aria-label="macOS ビルド・リリース手順の詳細">
+<section id="目次" class="level2">
+<h2>目次</h2>
+<ol type="1">
+<li><a href="#1-前提条件">前提条件</a></li>
+<li><a href="#2-開発環境のセットアップ">開発環境のセットアップ</a></li>
+<li><a href="#3-ビルド">ビルド</a></li>
+<li><a href="#4-アプリバンドルの作成">アプリバンドルの作成</a></li>
+<li><a href="#5-dmg-ファイルの作成">DMG ファイルの作成</a></li>
+<li><a href="#6-コード署名と公証">コード署名と公証</a></li>
+<li><a href="#7-github-release-での公開">GitHub Release での公開</a></li>
+<li><a href="#8-トラブルシューティング">トラブルシューティング</a></li>
+</ol>
+</section>
+<section id="1-前提条件" class="level2">
+<h2>1. 前提条件</h2>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>項目</th>
+<th>バージョン</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>macOS</td>
+<td>12 (Monterey) 以降推奨</td>
+</tr>
+<tr>
+<td>Xcode</td>
+<td>14 以降（Command Line Tools 含む）</td>
+</tr>
+<tr>
+<td>CMake</td>
+<td>3.16 以上</td>
+</tr>
+<tr>
+<td>Qt</td>
+<td>6.x（Widgets, Charts, Network, Multimedia, LinguistTools）</td>
+</tr>
+<tr>
+<td>C++</td>
+<td>C++17 対応コンパイラ</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<section id="2-開発環境のセットアップ" class="level2">
+<h2>2. 開発環境のセットアップ</h2>
+<section id="21-xcode-command-line-tools" class="level3">
+<h3>2.1 Xcode Command Line Tools</h3>
+<pre class="bash"><code>xcode-select --install</code></pre>
+</section>
+<section id="22-homebrew-で依存ツールをインストール" class="level3">
+<h3>2.2 Homebrew で依存ツールをインストール</h3>
+<pre class="bash"><code>brew install cmake ninja</code></pre>
+</section>
+<section id="23-qt-6-のインストール" class="level3">
+<h3>2.3 Qt 6 のインストール</h3>
+<section id="方法a-qt-online-installer推奨" class="level4">
+<h4>方法A: Qt Online Installer（推奨）</h4>
+<p><a href="https://www.qt.io/download-qt-installer">Qt 公式サイト</a>からインストーラをダウンロードし、以下のコンポーネントを選択：</p>
+<ul>
+<li>Qt 6.x &gt; macOS</li>
+<li>Qt 6.x &gt; Qt Charts</li>
+<li>Qt 6.x &gt; Qt Multimedia</li>
+<li>Developer and Designer Tools &gt; CMake</li>
+</ul>
+<p>インストール後、Qt のパスを環境変数に設定：</p>
+<pre class="bash"><code># ~/.zshrc に追加（Qt のインストールパスは環境に合わせて変更）
+export Qt6_DIR=&quot;$HOME/Qt/6.x.x/macos/lib/cmake/Qt6&quot;
+export PATH=&quot;$HOME/Qt/6.x.x/macos/bin:$PATH&quot;</code></pre>
+</section>
+<section id="方法b-homebrew" class="level4">
+<h4>方法B: Homebrew</h4>
+<pre class="bash"><code>brew install qt@6</code></pre>
+<p>Homebrew の場合、CMake が自動検出するため環境変数の設定は不要な場合が多い。</p>
+</section>
+</section>
+<section id="24-インストール確認" class="level3">
+<h3>2.4 インストール確認</h3>
+<pre class="bash"><code>cmake --version       # 3.16 以上
+qmake --version       # Qt 6.x
+clang++ --version     # Apple Clang</code></pre>
+</section>
+</section>
+<section id="3-ビルド" class="level2">
+<h2>3. ビルド</h2>
+<section id="ビルドスクリプト推奨" class="level3">
+<h3>ビルドスクリプト（推奨）</h3>
+<p><code>scripts/build-macos.sh</code> を使うと、Release ビルドからコード署名・DMG 作成まで一括実行できる：</p>
+<pre class="bash"><code># 通常ビルド + DMG 作成
+./scripts/build-macos.sh
+
+# Universal Binary (arm64 + x86_64) でビルド
+./scripts/build-macos.sh --universal
+
+# クリーンビルド、DMG なし
+./scripts/build-macos.sh --clean --skip-dmg
+
+# Developer ID で署名（既定はアドホック署名）
+./scripts/build-macos.sh --sign-identity &quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>オプション</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--universal</code></td>
+<td>Universal Binary (arm64 + x86_64) をビルド</td>
+</tr>
+<tr>
+<td><code>--deployment-target VER</code></td>
+<td>最小対応 macOS バージョン（既定: 環境変数 <code>MACOSX_DEPLOYMENT_TARGET</code>、未設定なら <code>26.0</code>）</td>
+</tr>
+<tr>
+<td><code>--sign-identity ID</code></td>
+<td>コード署名 ID（既定: <code>-</code> = アドホック署名）。Developer ID を指定すると Hardened Runtime とタイムスタンプを付けて署名する</td>
+</tr>
+<tr>
+<td><code>--skip-dmg</code></td>
+<td>DMG 作成をスキップ（.app バンドルのみ生成）</td>
+</tr>
+<tr>
+<td><code>--clean</code></td>
+<td>build ディレクトリを削除してからビルド</td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>ヘルプを表示</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>スクリプトは以下の処理を自動実行する：</p>
+<ol type="1">
+<li>前提ツールの存在確認（cmake, ninja, macdeployqt, codesign, vtool, create-dmg）</li>
+<li>CMake Configure（<code>CMAKE_OSX_DEPLOYMENT_TARGET</code> を指定）+ Ninja ビルド</li>
+<li>ビルド成果物の確認（.app、実行ファイルの最小 macOS バージョン、.qm 翻訳ファイル）</li>
+<li>macdeployqt によるフレームワークバンドル + 検証</li>
+<li>バンドル全体のコード署名 + <code>codesign --verify --deep --strict</code> による検証</li>
+<li>create-dmg による DMG 作成</li>
+</ol>
+<blockquote>
+<p><strong>最小 macOS バージョンについて:</strong> デプロイメントターゲットを指定しないと、ビルドホストの macOS バージョンが最小対応バージョンになる（例: macOS 27 でビルドすると macOS 26 で起動できない）。スクリプトは既定で <code>26.0</code> を指定し、ビルド後に実行ファイルの <code>minos</code> が一致しなければ停止する。</p>
+<p><strong>コード署名について:</strong> macdeployqt はバイナリを書き換えるため、実行後のバンドルはリンカ署名のみの状態になり、厳格な署名検証に通らない。スクリプトは macdeployqt の後にバンドル全体を署名し直してから DMG を作成する。</p>
+</blockquote>
+<p>以下は個別のコマンドを手動で実行する場合の手順。</p>
+</section>
+<section id="31-release-ビルド" class="level3">
+<h3>3.1 Release ビルド</h3>
+<pre class="bash"><code>cd /path/to/ShogiBoardQ
+
+# Configure（Release ビルド）
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+
+# ビルド（並列ビルド）
+cmake --build build --config Release -- -j$(sysctl -n hw.ncpu)</code></pre>
+<p>Ninja を使う場合（より高速）：</p>
+<pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+ninja -C build</code></pre>
+</section>
+<section id="32-ビルド成果物の確認" class="level3">
+<h3>3.2 ビルド成果物の確認</h3>
+<pre class="bash"><code># .app バンドルが生成されていることを確認
+ls -la build/ShogiBoardQ.app/
+
+# バンドル内の構造を確認
+find build/ShogiBoardQ.app -type f | head -20</code></pre>
+<p>ビルド後のバンドル構造：</p>
+<pre><code>ShogiBoardQ.app/
+├── Contents/
+│   ├── Info.plist
+│   ├── MacOS/
+│   │   ├── ShogiBoardQ              ← 実行ファイル
+│   │   ├── ShogiBoardQ_ja_JP.qm     ← 日本語翻訳
+│   │   └── ShogiBoardQ_en.qm        ← 英語翻訳
+│   └── Resources/
+│       └── shogiboardq.icns          ← アプリアイコン</code></pre>
+</section>
+<section id="33-動作確認" class="level3">
+<h3>3.3 動作確認</h3>
+<pre class="bash"><code># ビルドしたアプリを起動
+open build/ShogiBoardQ.app</code></pre>
+</section>
+</section>
+<section id="4-アプリバンドルの作成" class="level2">
+<h2>4. アプリバンドルの作成</h2>
+<blockquote>
+<p><strong>Note:</strong> <code>scripts/build-macos.sh</code> を使用した場合、このセクションの手順は自動実行されるため手動での実行は不要。</p>
+</blockquote>
+<section id="41-macdeployqt-で-qt-フレームワークをバンドル" class="level3">
+<h3>4.1 macdeployqt で Qt フレームワークをバンドル</h3>
+<p>ビルドしただけでは Qt の動的ライブラリがバンドルに含まれない。 <code>macdeployqt</code> を使って、必要な Qt フレームワークとプラグインをバンドル内にコピーする。</p>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app -verbose=2</code></pre>
+<p><code>macdeployqt</code> が自動で行う処理：</p>
+<ol type="1">
+<li>依存する Qt フレームワーク（QtWidgets, QtCharts, QtNetwork, QtMultimedia, QtGui, QtCore 等）を <code>Contents/Frameworks/</code> にコピー</li>
+<li>Qt プラグイン（platforms/cocoa, imageformats/svg 等）を <code>Contents/PlugIns/</code> にコピー</li>
+<li>ライブラリの <code>@rpath</code> を書き換え（<code>install_name_tool</code>）</li>
+<li><code>qt.conf</code> を <code>Contents/Resources/</code> に生成</li>
+</ol>
+</section>
+<section id="42-バンドル後の構造確認" class="level3">
+<h3>4.2 バンドル後の構造確認</h3>
+<pre class="bash"><code># フレームワークが正しくバンドルされているか確認
+ls build/ShogiBoardQ.app/Contents/Frameworks/
+
+# プラグインが含まれているか確認
+ls build/ShogiBoardQ.app/Contents/PlugIns/
+
+# 依存関係に外部パスが残っていないか確認
+otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
+<p><code>otool</code> の出力に <code>/usr/local/</code> や <code>/opt/homebrew/</code> のパスが残っている場合、バンドルが不完全。</p>
+</section>
+<section id="43-翻訳ファイルの確認" class="level3">
+<h3>4.3 翻訳ファイルの確認</h3>
+<p>CMake のポストビルドステップにより <code>.qm</code> ファイルは <code>Contents/MacOS/</code> に配置される。 <code>macdeployqt</code> 実行後もファイルが残っていることを確認：</p>
+<pre class="bash"><code>ls build/ShogiBoardQ.app/Contents/MacOS/*.qm</code></pre>
+</section>
+</section>
+<section id="5-dmg-ファイルの作成" class="level2">
+<h2>5. DMG ファイルの作成</h2>
+<blockquote>
+<p><strong>Note:</strong> <code>scripts/build-macos.sh</code> を使用した場合、方法B (create-dmg) で自動作成されるため手動での実行は不要。<code>--skip-dmg</code> オプションで DMG 作成のみスキップすることも可能。</p>
+</blockquote>
+<section id="方法a-macdeployqt-の--dmg-オプション簡易" class="level3">
+<h3>方法A: macdeployqt の -dmg オプション（簡易）</h3>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app -dmg</code></pre>
+<p><code>build/ShogiBoardQ.dmg</code> が生成される。シンプルだが、背景画像や Applications フォルダへのリンクはない。</p>
+</section>
+<section id="方法b-create-dmg推奨---カスタム-dmg" class="level3">
+<h3>方法B: create-dmg（推奨 - カスタム DMG）</h3>
+<p>ユーザーが Applications フォルダにドラッグ＆ドロップできる見栄えの良い DMG を作成する。</p>
+<section id="インストール" class="level4">
+<h4>インストール</h4>
+<pre class="bash"><code>brew install create-dmg</code></pre>
+</section>
+<section id="dmg-作成" class="level4">
+<h4>DMG 作成</h4>
+<pre class="bash"><code># macdeployqt でバンドルを作成（-dmg なし）
+macdeployqt build/ShogiBoardQ.app
+
+# DMG を作成
+create-dmg \
+  --volname &quot;ShogiBoardQ&quot; \
+  --volicon &quot;resources/icons/shogiboardq.icns&quot; \
+  --window-pos 200 120 \
+  --window-size 600 400 \
+  --icon-size 100 \
+  --icon &quot;ShogiBoardQ.app&quot; 150 190 \
+  --hide-extension &quot;ShogiBoardQ.app&quot; \
+  --app-drop-link 450 190 \
+  &quot;ShogiBoardQ.dmg&quot; \
+  &quot;build/ShogiBoardQ.app&quot;</code></pre>
+</section>
+<section id="オプション説明" class="level4">
+<h4>オプション説明</h4>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>オプション</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--volname</code></td>
+<td>マウント時のボリューム名</td>
+</tr>
+<tr>
+<td><code>--volicon</code></td>
+<td>ボリュームアイコン</td>
+</tr>
+<tr>
+<td><code>--window-pos</code></td>
+<td>DMG ウィンドウの表示位置 (x y)</td>
+</tr>
+<tr>
+<td><code>--window-size</code></td>
+<td>DMG ウィンドウのサイズ (幅 高さ)</td>
+</tr>
+<tr>
+<td><code>--icon-size</code></td>
+<td>アイコンサイズ (px)</td>
+</tr>
+<tr>
+<td><code>--icon</code></td>
+<td>アプリアイコンの表示位置 (名前 x y)</td>
+</tr>
+<tr>
+<td><code>--hide-extension</code></td>
+<td>.app 拡張子を非表示</td>
+</tr>
+<tr>
+<td><code>--app-drop-link</code></td>
+<td>Applications フォルダへのリンク位置 (x y)</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</section>
+<section id="方法c-hdiutil手動---完全制御" class="level3">
+<h3>方法C: hdiutil（手動 - 完全制御）</h3>
+<pre class="bash"><code># 一時ディレクトリを作成
+mkdir -p dmg_staging
+cp -R build/ShogiBoardQ.app dmg_staging/
+ln -s /Applications dmg_staging/Applications
+
+# DMG を作成
+hdiutil create -volname &quot;ShogiBoardQ&quot; \
+  -srcfolder dmg_staging \
+  -ov -format UDZO \
+  &quot;ShogiBoardQ.dmg&quot;
+
+# クリーンアップ
+rm -rf dmg_staging</code></pre>
+</section>
+<section id="51-dmg-の検証" class="level3">
+<h3>5.1 DMG の検証</h3>
+<pre class="bash"><code># マウントして動作確認
+hdiutil attach ShogiBoardQ.dmg
+open /Volumes/ShogiBoardQ/ShogiBoardQ.app
+
+# アンマウント
+hdiutil detach /Volumes/ShogiBoardQ</code></pre>
+</section>
+</section>
+<section id="6-コード署名と公証" class="level2">
+<h2>6. コード署名と公証</h2>
+<p>配布する場合、Apple の Gatekeeper を通過するためにコード署名と公証が必要。 署名なしでも動作するが、ダウンロード時に「開発元が未確認」の警告が表示される。</p>
+<section id="61-apple-developer-program-への加入" class="level3">
+<h3>6.1 Apple Developer Program への加入</h3>
+<p>コード署名と公証には <a href="https://developer.apple.com/programs/">Apple Developer Program</a>（年額 $99）への加入が必要。</p>
+</section>
+<section id="62-署名用証明書の取得" class="level3">
+<h3>6.2 署名用証明書の取得</h3>
+<p>Xcode &gt; Settings &gt; Accounts から以下の証明書を作成：</p>
+<ul>
+<li><strong>Developer ID Application</strong> — アプリ本体の署名用</li>
+<li><strong>Developer ID Installer</strong> — DMG / pkg の署名用（オプション）</li>
+</ul>
+</section>
+<section id="63-macdeployqt-でコード署名付きバンドル" class="level3">
+<h3>6.3 macdeployqt でコード署名付きバンドル</h3>
+<pre class="bash"><code>macdeployqt build/ShogiBoardQ.app \
+  -sign-for-notarization=&quot;Developer ID Application: Your Name (TEAMID)&quot;</code></pre>
+<p>このオプションにより、<code>macdeployqt</code> は：</p>
+<ol type="1">
+<li>Qt フレームワークとプラグインをバンドル</li>
+<li>全フレームワーク・プラグイン・実行ファイルにコード署名</li>
+<li><code>--options=runtime</code>（Hardened Runtime）を有効化</li>
+</ol>
+</section>
+<section id="64-手動でのコード署名" class="level3">
+<h3>6.4 手動でのコード署名</h3>
+<p><code>macdeployqt</code> の署名オプションを使わない場合：</p>
+<pre class="bash"><code># バンドル内の全バイナリに再帰的に署名
+codesign --deep --force --verify --verbose \
+  --sign &quot;Developer ID Application: Your Name (TEAMID)&quot; \
+  --options runtime \
+  build/ShogiBoardQ.app
+
+# 署名の検証
+codesign --verify --deep --strict --verbose=2 build/ShogiBoardQ.app</code></pre>
+</section>
+<section id="65-公証-notarization" class="level3">
+<h3>6.5 公証 (Notarization)</h3>
+<pre class="bash"><code># DMG を作成（署名済みバンドルから）
+# ... (手順5の方法で DMG を作成)
+
+# 公証に提出
+xcrun notarytool submit ShogiBoardQ.dmg \
+  --apple-id &quot;your@email.com&quot; \
+  --team-id &quot;TEAMID&quot; \
+  --password &quot;app-specific-password&quot; \
+  --wait
+
+# ステープル（公証結果をDMGに埋め込み）
+xcrun stapler staple ShogiBoardQ.dmg
+
+# ステープルの検証
+xcrun stapler validate ShogiBoardQ.dmg</code></pre>
+<blockquote>
+<p><strong>注意</strong>: <code>--password</code> には Apple ID のパスワードではなく、<a href="https://appleid.apple.com/account/manage">App 用パスワード</a>を使用する。</p>
+</blockquote>
+</section>
+<section id="66-公証なしで配布する場合" class="level3">
+<h3>6.6 公証なしで配布する場合</h3>
+<p>署名や公証を行わずに配布する場合、ユーザーは初回起動時に以下の手順が必要：</p>
+<ol type="1">
+<li>Finder でアプリを右クリック → 「開く」を選択</li>
+<li>「開発元が未確認」の警告で「開く」をクリック</li>
+</ol>
+<p>または、ターミナルから Gatekeeper の隔離属性を解除：</p>
+<pre class="bash"><code>xattr -cr /Applications/ShogiBoardQ.app</code></pre>
+</section>
+</section>
+<section id="7-github-release-での公開" class="level2">
+<h2>7. GitHub Release での公開</h2>
+<section id="71-タグの作成" class="level3">
+<h3>7.1 タグの作成</h3>
+<pre class="bash"><code>git tag -a v0.1.0 -m &quot;v0.1.0 リリース&quot;
+git push origin v0.1.0</code></pre>
+</section>
+<section id="72-github-cli-でリリース作成" class="level3">
+<h3>7.2 GitHub CLI でリリース作成</h3>
+<p><a href="https://cli.github.com/">GitHub CLI (gh)</a> を使用：</p>
+<pre class="bash"><code># インストール
+brew install gh
+
+# ログイン（初回のみ）
+gh auth login</code></pre>
+<p>リリース作成とアセットのアップロード：</p>
+<pre class="bash"><code>gh release create v0.1.0 \
+  --title &quot;ShogiBoardQ v0.1.0&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ.dmg</code></pre>
+<blockquote>
+<p>Windows の ZIP も同時に公開する場合は、アセットを追加：</p>
+<pre class="bash"><code>gh release create v0.1.0 \
+  --title &quot;ShogiBoardQ v0.1.0&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ.dmg \
+  ShogiBoardQ-windows.zip</code></pre>
+</blockquote>
+<section id="リリースノートの自動生成" class="level4">
+<h4>リリースノートの自動生成</h4>
+<p>リリースノートファイルを用意しない場合、GitHub が自動生成する：</p>
+<pre class="bash"><code>gh release create v0.1.0 \
+  --title &quot;ShogiBoardQ v0.1.0&quot; \
+  --generate-notes \
+  ShogiBoardQ.dmg</code></pre>
+</section>
+<section id="既存リリースにアセットを追加" class="level4">
+<h4>既存リリースにアセットを追加</h4>
+<p>Windows 側で先にリリースを作成済みの場合、macOS の DMG を追加：</p>
+<pre class="bash"><code>gh release upload v0.1.0 ShogiBoardQ.dmg</code></pre>
+</section>
+</section>
+<section id="73-web-ui-からリリース作成代替" class="level3">
+<h3>7.3 Web UI からリリース作成（代替）</h3>
+<ol type="1">
+<li>GitHub リポジトリ → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
+<li><strong>Choose a tag</strong> → 新しいタグ（例: <code>v0.1.0</code>）を入力して作成</li>
+<li><strong>Release title</strong> を入力（例: <code>ShogiBoardQ v0.1.0</code>）</li>
+<li><strong>Description</strong> にリリースノートを記入</li>
+<li><strong>Attach binaries</strong> に <code>ShogiBoardQ.dmg</code> をドラッグ＆ドロップ</li>
+<li><strong>Publish release</strong> をクリック</li>
+</ol>
+</section>
+<section id="74-リリースノートの書き方テンプレート" class="level3">
+<h3>7.4 リリースノートの書き方（テンプレート）</h3>
+<pre class="markdown"><code>## ShogiBoardQ v0.1.0
+
+### ダウンロード
+
+| OS | ファイル |
+|---|---|
+| macOS | `ShogiBoardQ.dmg` |
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+
+### macOS での起動方法
+
+1. DMG ファイルを開く
+2. ShogiBoardQ.app を Applications フォルダにドラッグ＆ドロップ
+3. Applications から起動
+
+&gt; 署名なしの場合、初回起動時に「開発元が未確認」と表示されます。
+&gt; Finder でアプリを右クリック →「開く」で起動できます。
+
+### 変更点
+
+- ...</code></pre>
+</section>
+</section>
+<section id="8-トラブルシューティング" class="level2">
+<h2>8. トラブルシューティング</h2>
+<section id="qt-が見つからない" class="level3">
+<h3>Qt が見つからない</h3>
+<pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
+<p>Qt のインストールパスを明示的に指定する：</p>
+<pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.x.x/macos&quot;</code></pre>
+</section>
+<section id="macdeployqt-が見つからない" class="level3">
+<h3>macdeployqt が見つからない</h3>
+<pre class="bash"><code># Qt のインストールパスを確認
+which macdeployqt
+
+# 見つからない場合、パスを通す
+export PATH=&quot;$HOME/Qt/6.x.x/macos/bin:$PATH&quot;
+
+# Homebrew の場合
+export PATH=&quot;$(brew --prefix qt@6)/bin:$PATH&quot;</code></pre>
+</section>
+<section id="qt-charts-が-macdeployqt-でバンドルされない" class="level3">
+<h3>Qt Charts が macdeployqt でバンドルされない</h3>
+<p>Qt Charts は <code>macdeployqt</code> が自動検出できない場合がある。手動でコピーが必要：</p>
+<pre class="bash"><code># バンドル漏れの確認
+otool -L build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ | grep Charts
+
+# 手動コピー（必要な場合）
+cp -R &quot;$HOME/Qt/6.x.x/macos/lib/QtCharts.framework&quot; \
+  build/ShogiBoardQ.app/Contents/Frameworks/
+
+# install_name_tool で参照パスを修正
+install_name_tool -change \
+  @rpath/QtCharts.framework/Versions/A/QtCharts \
+  @executable_path/../Frameworks/QtCharts.framework/Versions/A/QtCharts \
+  build/ShogiBoardQ.app/Contents/MacOS/ShogiBoardQ</code></pre>
+</section>
+<section id="開発元が未確認の警告署名なしの場合" class="level3">
+<h3>「開発元が未確認」の警告（署名なしの場合）</h3>
+<p>配布先のユーザーに以下のいずれかを案内する：</p>
+<ul>
+<li>Finder で右クリック → 「開く」（初回のみ）</li>
+<li><code>xattr -cr /Applications/ShogiBoardQ.app</code> をターミナルで実行</li>
+</ul>
+</section>
+<section id="翻訳が読み込まれない" class="level3">
+<h3>翻訳が読み込まれない</h3>
+<p><code>.qm</code> ファイルがバンドル内に存在するか確認：</p>
+<pre class="bash"><code>find build/ShogiBoardQ.app -name &quot;*.qm&quot;</code></pre>
+<p><code>Contents/MacOS/</code> 内に <code>.qm</code> ファイルがない場合、手動でコピー：</p>
+<pre class="bash"><code>cp build/ShogiBoardQ_ja_JP.qm build/ShogiBoardQ.app/Contents/MacOS/
+cp build/ShogiBoardQ_en.qm build/ShogiBoardQ.app/Contents/MacOS/</code></pre>
+</section>
+<section id="universal-binary-intel--apple-silicon-の作成" class="level3">
+<h3>Universal Binary (Intel + Apple Silicon) の作成</h3>
+<p>両アーキテクチャに対応したバイナリを作成する場合：</p>
+<pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_ARCHITECTURES=&quot;arm64;x86_64&quot;
+
+cmake --build build --config Release</code></pre>
+<blockquote>
+<p><strong>注意</strong>: Qt 自体も Universal Binary 版がインストールされている必要がある。</p>
+</blockquote>
+</section>
+</section>
+    </article>
+</div>
+</main>
+
+<div class="back-link-section">
+    <a href="../index.html#build" class="back-link">&larr; 動作環境・ビルド方法に戻る</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
