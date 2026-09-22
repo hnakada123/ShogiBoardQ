@@ -191,14 +191,20 @@ void GameStateController::onMatchGameEnded(const MatchCoordinator::GameEndInfo& 
 void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOverState& st)
 {
     // 処理フロー:
-    // 1. 投了行の有無チェック
+    // 1. 対局終了スタイルロック・投了行の有無チェック
     // 2. ライブ追記モード終了・分岐リセット
     // 3. 手数状態の更新
     // 4. UI遷移（閲覧モードへ）・ハイライト消去
 
     if (!st.isOver) return;
 
-    // 投了行がまだ追加されていない場合は何もしない
+    // 棋譜追記に伴う閲覧モードへの遷移は gameEnded より先に起こるため、
+    // 終局を検知した時点で名前・時計の手番ハイライトを保護する。
+    if (m_hooks.setGameOverStyleLock) {
+        m_hooks.setGameOverStyleLock(true);
+    }
+
+    // 投了行が追加されるまでは UI 後処理を待つ
     if (!st.moveAppended) {
         return;
     }
