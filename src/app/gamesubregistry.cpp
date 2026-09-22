@@ -25,6 +25,7 @@
 #include "turnstatesyncservice.h"
 #include "uistatepolicymanager.h"
 #include "undoflowservice.h"
+#include "gamerecordmodel.h"
 #include "matchruntimequeryservice.h"
 #include "logcategories.h"
 
@@ -190,10 +191,22 @@ void MainWindowServiceRegistry::refreshUndoFlowDeps()
     if (!m_mw.m_undoFlowService) return;
 
     UndoFlowService::Deps deps;
-    deps.match = m_mw.m_match;
+    deps.undoTwoPlies = [this]() {
+        return m_mw.m_match && !m_mw.m_match->gameOverState().isOver
+            && m_mw.m_match->undoTwoPlies();
+    };
+    deps.markGameRecordDirty = [this]() {
+        if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
+    };
+    deps.liveSession = m_mw.m_branchNav.liveGameSession;
+    deps.recordPresenter = m_mw.m_recordPresenter;
     deps.evalGraphController = m_mw.m_evalGraphController.get();
     deps.playMode = &m_mw.m_state.playMode;
     deps.sfenRecord = m_mw.m_queryService->sfenRecord();
+    deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
+    deps.currentSfenStr = &m_mw.m_state.currentSfenStr;
+    deps.currentSelectedPly = &m_mw.m_kifu.currentSelectedPly;
+    deps.activePly = &m_mw.m_kifu.activePly;
     m_mw.m_undoFlowService->updateDeps(deps);
 }
 

@@ -35,6 +35,31 @@ private:
     }
 
 private slots:
+    void removeLeafQuiet_invalidatesCacheAndKeepsOtherBranches()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* first = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("m1"), QStringLiteral("s1"));
+        auto* main = tree.addMove(first, ShogiMove(), QStringLiteral("m2"), QStringLiteral("s2"));
+        auto* branch = tree.addMove(first, ShogiMove(), QStringLiteral("b2"), QStringLiteral("b2s"));
+        const int removedId = branch->nodeId();
+        QCOMPARE(tree.allLines().size(), 2); // キャッシュを作ってから削除する
+        QSignalSpy changed(&tree, &KifuBranchTree::treeChanged);
+        QVERIFY(!tree.removeLeafQuiet(tree.root()));
+        QVERIFY(!tree.removeLeafQuiet(first));
+        QVERIFY(!tree.removeLeafQuiet(nullptr));
+        QVERIFY(tree.removeLeafQuiet(branch));
+        QCOMPARE(changed.count(), 0);
+        QCOMPARE(tree.allLines().size(), 1);
+        QCOMPARE(tree.nodeCount(), 3);
+        QCOMPARE(first->childCount(), 1);
+        QCOMPARE(first->childAt(0), main);
+        QVERIFY(tree.nodeAt(removedId) == nullptr);
+        auto* next = tree.addMoveQuiet(main, ShogiMove(), QStringLiteral("m3"), QStringLiteral("s3"));
+        QVERIFY(next->nodeId() > removedId); // 削除されたノードIDを再利用しない
+        QCOMPARE(tree.mainLine().last(), next);
+    }
+
     void setRootSfen()
     {
         KifuBranchTree tree;

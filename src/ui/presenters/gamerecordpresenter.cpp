@@ -260,6 +260,18 @@ int GameRecordPresenter::currentRow() const
     return -1; // 選択がまだ無い／未バインド
 }
 
+void GameRecordPresenter::removeLastLiveMoves(int count)
+{
+    if (count <= 0) return;
+    m_liveDisp.resize(qMax(qsizetype(0), m_liveDisp.size() - count));
+    if (m_d.model) {
+        m_currentMoveIndex = qMax(0, m_d.model->rowCount() - 1);
+        if (m_commentsByRow.size() > m_d.model->rowCount()) {
+            m_commentsByRow.resize(m_d.model->rowCount());
+        }
+    }
+}
+
 void GameRecordPresenter::addLiveKifItem(const QString& prettyMove, const QString& elapsedTime)
 {
     KifDisplayItem item;

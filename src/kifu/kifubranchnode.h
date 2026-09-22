@@ -91,6 +91,7 @@ public:
     /// 子ノード（分岐）を取得
     const QList<KifuBranchNode*>& children() const { return m_children; }
     void addChild(KifuBranchNode* child);
+    void removeChild(KifuBranchNode* child);
     int childCount() const { return static_cast<int>(m_children.size()); }
     KifuBranchNode* childAt(int index) const;
 

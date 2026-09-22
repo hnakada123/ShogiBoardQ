@@ -46,6 +46,13 @@ void KifuBranchNode::addChild(KifuBranchNode* child)
     }
 }
 
+void KifuBranchNode::removeChild(KifuBranchNode* child)
+{
+    if (m_children.removeOne(child)) {
+        child->setParent(nullptr);
+    }
+}
+
 KifuBranchNode* KifuBranchNode::childAt(int index) const
 {
     if (index >= 0 && index < m_children.size()) {
