@@ -51,6 +51,13 @@ public:
     ShogiBoard* board() const;
     Result result() const { return m_result; }
     Player currentPlayer() const { return m_currentPlayer; }
+
+    /// 「同」表記の基準を復元する（1始まりの盤座標、QPoint() は開始局面）。
+    void setPreviousMoveDestination(const QPoint& square)
+    {
+        previousFileTo = square.x();
+        previousRankTo = square.y();
+    }
     void setCurrentPlayer(const Player);
 
     // --- 指し手処理 ---

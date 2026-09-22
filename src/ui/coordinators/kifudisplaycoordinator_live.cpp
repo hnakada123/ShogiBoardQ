@@ -56,6 +56,34 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     updateBranchCandidatesView();
 }
 
+void KifuDisplayCoordinator::onLiveGameMovesAboutToBeUndone(KifuBranchNode* target)
+{
+    if (m_state != nullptr) {
+        // setCurrentNode は旧ノードも参照するため、解放前に移動する。
+        m_state->setCurrentNode(target);
+        m_state->clearLineSelectionMemory();
+        m_state->resetPreferredLineIndex();
+    }
+}
+
+void KifuDisplayCoordinator::onLiveGameMovesUndone()
+{
+    if (m_tree == nullptr || m_state == nullptr || m_liveSession == nullptr) {
+        return;
+    }
+    KifuBranchNode* node = m_liveSession->liveNode();
+    m_lastLineIndex = m_liveSession->currentLineIndex();
+    m_state->setPreferredLineIndex(m_lastLineIndex);
+    m_state->rememberPathSelections(node);
+
+    // 既存の継続手を再利用した場合も、対局中の棋譜欄は現在手までにする。
+    m_presenter->populateRecordModelFromPath(m_tree->pathToNode(node), m_state->currentPly());
+    updateBranchTreeView();
+    highlightCurrentPosition();
+    m_pendingNavResultCheck = true;
+    updateBranchCandidatesView();
+}
+
 bool KifuDisplayCoordinator::appendLiveNodeToBranchTree(KifuBranchNode* liveNode)
 {
     if (m_branchTreeManager == nullptr || m_tree == nullptr || liveNode == nullptr) {

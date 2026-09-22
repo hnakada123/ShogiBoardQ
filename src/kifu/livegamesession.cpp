@@ -125,6 +125,9 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
             } else {
                 // addMoveQuiet() を使用: treeChanged は発火しない
                 m_liveParent = m_tree->addMoveQuiet(parent, move, displayText, sfen, elapsed);
+                if (m_liveParent != nullptr) {
+                    m_createdNodeIds.insert(m_liveParent->nodeId());
+                }
                 qCDebug(lcKifu).noquote() << "addMove: added to tree, m_liveParent ply="
                                    << (m_liveParent ? m_liveParent->ply() : -1)
                                    << "sfen stored in node="
@@ -156,6 +159,64 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
     emit recordModelUpdateRequired();
 
     qCDebug(lcKifu).noquote() << "addMove LEAVE";
+}
+
+bool LiveGameSession::canUndoMoves(int count) const
+{
+    if (!m_active || m_hasTerminal || count <= 0 || count > m_moves.size()) {
+        return false;
+    }
+    if (m_tree == nullptr) {
+        return true;
+    }
+
+    KifuBranchNode* node = m_liveParent;
+    KifuBranchNode* removedChild = nullptr;
+    for (int i = 0; i < count; ++i) {
+        if (node == nullptr || node == m_branchPoint || node == m_tree->root()) {
+            return false;
+        }
+        if (m_createdNodeIds.contains(node->nodeId())) {
+            // 今回取り消す子以外の継続手があるノードは削除しない。
+            if (node->childCount() > 0
+                && (node->childCount() != 1 || node->childAt(0) != removedChild)) {
+                return false;
+            }
+            removedChild = node;
+        } else {
+            removedChild = nullptr;
+        }
+        node = node->parent();
+    }
+    return true;
+}
+
+bool LiveGameSession::undoMoves(int count)
+{
+    if (!canUndoMoves(count)) {
+        return false;
+    }
+
+    KifuBranchNode* target = m_liveParent;
+    for (int i = 0; target != nullptr && i < count; ++i) {
+        target = target->parent();
+    }
+    emit movesAboutToBeUndone(target);
+
+    for (int i = 0; m_liveParent != nullptr && i < count; ++i) {
+        KifuBranchNode* node = m_liveParent;
+        m_liveParent = node->parent();
+        if (m_createdNodeIds.remove(node->nodeId())) {
+            m_tree->removeLeafQuiet(node);
+        }
+    }
+    m_moves.resize(m_moves.size() - count);
+    m_gameMoves.resize(m_gameMoves.size() - count);
+    if (m_sfens.size() >= count) {
+        m_sfens.resize(m_sfens.size() - count);
+    }
+    emit movesUndone();
+    return true;
 }
 
 KifuBranchNode* LiveGameSession::commit()
@@ -307,4 +368,5 @@ void LiveGameSession::reset()
     m_moves.clear();
     m_gameMoves.clear();
     m_sfens.clear();
+    m_createdNodeIds.clear();
 }

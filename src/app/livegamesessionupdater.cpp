@@ -86,8 +86,8 @@ void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& mo
         if (standPart.isEmpty()) {
             standPart = QStringLiteral("-");
         }
-        // 手数は anchorPly + 現在のセッション内の手数 + 1
-        const int moveCount = m_deps.liveSession->totalPly() + 1;
+        // 追加する手の手数は totalPly + 1、SFEN の第4フィールドは次の手数。
+        const int moveCount = m_deps.liveSession->totalPly() + 2;
         sfen = QStringLiteral("%1 %2 %3 %4")
                    .arg(boardPart, turnPart, standPart, QString::number(moveCount));
         qCDebug(lcApp).noquote() << "appendMove: constructed full SFEN for LiveGameSession"

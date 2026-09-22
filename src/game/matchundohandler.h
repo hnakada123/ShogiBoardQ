@@ -83,9 +83,7 @@ public:
 
 private:
     bool tryRemoveLastItems(QObject* model, int n);
-    static QString buildBasePositionUpToHands(const QString& prevFull,
-                                              int handCount,
-                                              const QString& startSfenHint);
+    static QString buildPositionAfterUndo(const QString& prevFull, const QString& targetSfen);
 
     Refs m_refs;
     UndoRefs u_;

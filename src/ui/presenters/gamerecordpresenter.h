@@ -72,6 +72,9 @@ public:
     // ライブ記録用アイテムを追加（保存）
     void addLiveKifItem(const QString& prettyMove, const QString& elapsedTime);
 
+    /// 「待った」後、保存用のライブ履歴とコメントの末尾を取り消す。
+    void removeLastLiveMoves(int count);
+
     // 現在のライブ記録を取得
     const QList<KifDisplayItem>& liveDisp() const { return m_liveDisp; }
 

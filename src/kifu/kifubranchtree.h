@@ -98,6 +98,10 @@ public:
                                  const QString& sfen,
                                  const QString& timeText = QString());
 
+    /// 葉ノードを削除する（ルートは不可、treeChanged は発火しない）。
+    /// 呼び出し側は削除前に現在位置の参照を退避し、削除後に表示を同期すること。
+    bool removeLeafQuiet(KifuBranchNode* node);
+
     // === 一括更新 ===
 
     /**

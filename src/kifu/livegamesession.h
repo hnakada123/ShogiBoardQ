@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QList>
 #include <QStringList>
+#include <QSet>
 
 #include "kifubranchnode.h"
 #include "kifdisplayitem.h"
@@ -101,6 +102,12 @@ public:
     void addMove(const ShogiMove& move, const QString& displayText,
                  const QString& sfen, const QString& elapsed);
 
+    /// 対局開始位置を越えず、指定手数を取り消せるか。
+    bool canUndoMoves(int count) const;
+
+    /// セッション履歴と追加ノードを巻き戻す。対局前から存在するノードは保持する。
+    bool undoMoves(int count);
+
     // === 確定・破棄 ===
 
     /**
@@ -164,6 +171,12 @@ signals:
      */
     void moveAdded(int ply, const QString& displayText);
 
+    /// ノード削除前に現在位置の参照を残るノードへ移す。
+    void movesAboutToBeUndone(KifuBranchNode* target);
+
+    /// 履歴とツリーの巻き戻し完了。棋譜欄・ツリー・選択位置を同期する。
+    void movesUndone();
+
     /**
      * @brief セッションが確定された
      */
@@ -191,6 +204,7 @@ private:
     QList<KifDisplayItem> m_moves;
     QList<ShogiMove> m_gameMoves;
     QStringList m_sfens;
+    QSet<int> m_createdNodeIds;  ///< このセッションが追加したノード（既存手の再利用は含めない）
 };
 
 #endif // LIVEGAMESESSION_H

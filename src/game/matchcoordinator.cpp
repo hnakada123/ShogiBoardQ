@@ -481,5 +481,11 @@ void MatchCoordinator::setUndoBindings(const UndoRefs& refs, const UndoHooks& ho
 bool MatchCoordinator::undoTwoPlies()
 {
     ensureUndoHandler();
-    return m_undoHandler->undoTwoPlies();
+    if (!m_undoHandler->undoTwoPlies()) {
+        return false;
+    }
+    if (m_sfenHistory) {
+        m_currentMoveIndex = static_cast<int>(qMax(qsizetype(0), m_sfenHistory->size() - 1));
+    }
+    return true;
 }

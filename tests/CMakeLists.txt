@@ -599,9 +599,7 @@ add_dependencies(tst_usimatchhandler mock_usi_match)
 # ============================================================
 # Unit 12: UI Display Consistency (Board / Record / Branch Tree)
 # ============================================================
-add_shogi_test(tst_ui_display_consistency
-    tst_ui_display_consistency.cpp
-    test_stubs_ui_display.cpp
+set(UI_DISPLAY_TEST_SOURCES
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/kifudisplaycoordinator.cpp
     ${SRC}/ui/coordinators/kifudisplaycoordinator_live.cpp
@@ -632,6 +630,36 @@ add_shogi_test(tst_ui_display_consistency
     ${SRC}/widgets/branchtreemanager_draw.cpp
     ${SETTINGS_SOURCES}
     ${SRC}/board/sfenpositiontracer.cpp
+)
+
+add_shogi_test(tst_ui_display_consistency
+    tst_ui_display_consistency.cpp
+    test_stubs_ui_display.cpp
+    ${UI_DISPLAY_TEST_SOURCES}
+)
+
+add_shogi_test(tst_undo_flow
+    tst_undo_flow.cpp
+    test_stubs_undo_flow.cpp
+    test_stubs_ui_display.cpp
+    ${UI_DISPLAY_TEST_SOURCES}
+    ${EMV_SOURCES}
+    ${SRC}/app/undoflowservice.cpp
+    ${SRC}/app/livegamesessionupdater.cpp
+    ${SRC}/game/matchundohandler.cpp
+    ${SRC}/game/shogigamecontroller.cpp
+    ${SRC}/game/piecemoverules.cpp
+    ${SRC}/game/turnmanager.cpp
+    ${SRC}/ui/presenters/gamerecordpresenter.cpp
+)
+qt_add_resources(tst_undo_flow undo_test_icons
+    PREFIX "/images/actions"
+    BASE "${CMAKE_SOURCE_DIR}/resources/images/actions"
+    FILES
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/actionEditBookmark.svg
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/actionToggleTimeColumn.svg
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/actionToggleBookmarkColumn.svg
+        ${CMAKE_SOURCE_DIR}/resources/images/actions/actionToggleCommentColumn.svg
 )
 
 # ============================================================

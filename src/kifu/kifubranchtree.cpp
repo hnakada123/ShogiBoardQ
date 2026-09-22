@@ -3,6 +3,7 @@
 
 #include "kifubranchtree.h"
 #include <algorithm>
+#include <memory>
 
 KifuBranchTree::KifuBranchTree(QObject* parent)
     : QObject(parent)
@@ -46,6 +47,20 @@ void KifuBranchTree::setRootSfen(const QString& sfen)
     m_root->setSfen(sfen);
 
     notifyTreeChanged();
+}
+
+bool KifuBranchTree::removeLeafQuiet(KifuBranchNode* node)
+{
+    if (node == nullptr || node == m_root || node->parent() == nullptr
+        || node->childCount() != 0 || nodeAt(node->nodeId()) != node) {
+        return false;
+    }
+
+    node->parent()->removeChild(node);
+    std::unique_ptr<KifuBranchNode> removed(m_nodeById.take(node->nodeId()));
+    m_linesCache.clear();
+    invalidateLineCache();
+    return true;
 }
 
 KifuBranchNode* KifuBranchTree::createNode()
@@ -463,4 +478,3 @@ QStringList KifuBranchTree::sfenListForLine(int lineIndex) const
 
     return result;
 }
-

@@ -3,7 +3,8 @@
 
 #include "undoflowservice.h"
 
-#include "matchcoordinator.h"
+#include "livegamesession.h"
+#include "gamerecordpresenter.h"
 #include "evaluationgraphcontroller.h"
 #include "playmode.h"
 
@@ -14,14 +15,34 @@ void UndoFlowService::updateDeps(const Deps& deps)
 
 void UndoFlowService::undoLastTwoMoves()
 {
-    if (!m_deps.match) {
+    if (!m_deps.undoTwoPlies) {
+        return;
+    }
+
+    // 途中局面からの対局では開始位置を越えて巻き戻さない。
+    const bool live = m_deps.liveSession && m_deps.liveSession->isActive();
+    if (live && !m_deps.liveSession->canUndoMoves(2)) {
         return;
     }
 
     // 2手戻しを実行し、成功した場合は評価値グラフを更新する
-    if (!m_deps.match->undoTwoPlies()) {
+    if (!m_deps.undoTwoPlies()) {
         return;
     }
+
+    const int currentPly = m_deps.sfenRecord
+        ? static_cast<int>(qMax(qsizetype(0), m_deps.sfenRecord->size() - 1)) : 0;
+    if (m_deps.gameUsiMoves) {
+        m_deps.gameUsiMoves->resize(qMax(qsizetype(0), m_deps.gameUsiMoves->size() - 2));
+    }
+    if (m_deps.currentSfenStr && m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
+        *m_deps.currentSfenStr = m_deps.sfenRecord->last();
+    }
+    if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = currentPly;
+    if (m_deps.activePly) *m_deps.activePly = currentPly;
+    if (m_deps.recordPresenter) m_deps.recordPresenter->removeLastLiveMoves(2);
+    if (live) m_deps.liveSession->undoMoves(2);
+    if (m_deps.markGameRecordDirty) m_deps.markGameRecordDirty();
 
     if (!m_deps.evalGraphController || !m_deps.playMode) {
         return;
@@ -49,8 +70,5 @@ void UndoFlowService::undoLastTwoMoves()
     // sfenRecordのサイズ - 1 が現在の手数（ply）
     // sfenRecord: [開局SFEN, 1手目後SFEN, 2手目後SFEN, ...]
     // size=1 → ply=0（開局）, size=2 → ply=1, size=3 → ply=2, ...
-    const int currentPly = m_deps.sfenRecord
-        ? static_cast<int>(qMax(static_cast<qsizetype>(0), m_deps.sfenRecord->size() - 1))
-        : 0;
     m_deps.evalGraphController->setCurrentPly(currentPly);
 }

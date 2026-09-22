@@ -90,6 +90,8 @@ public slots:
     // === ライブ対局セッションからのシグナル ===
 
     void onLiveGameMoveAdded(int ply, const QString& displayText);
+    void onLiveGameMovesAboutToBeUndone(KifuBranchNode* target);
+    void onLiveGameMovesUndone();
     void onLiveGameSessionStarted(KifuBranchNode* branchPoint);
     void onLiveGameCommitted(KifuBranchNode* newLineEnd);
     void onLiveGameDiscarded();
