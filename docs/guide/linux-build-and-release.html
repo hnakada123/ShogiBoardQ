@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linux ビルド・リリース手順 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ を Linux でビルドし、AppImage として GitHub Release で公開する手順。開発環境のセットアップ、ビルド、AppImage の作成、トラブルシューティングを解説します。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/linux-build-and-release.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/linux-build-and-release.html">
+    <meta property="og:title" content="Linux ビルド・リリース手順 - ShogiBoardQ">
+    <meta property="og:description" content="Linux での開発環境のセットアップからビルド、AppImage の作成、GitHub Release での公開までを解説します。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Linux ビルド・リリース手順 - ShogiBoardQ">
+    <meta name="twitter:description" content="Linux での開発環境のセットアップからビルド、AppImage の作成、GitHub Release での公開までを解説します。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/build-guide.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="../index.html#build">動作環境・ビルド方法</a></li>
+            <li><a href="#目次">目次</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="build-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Linux ビルド・リリース手順</h1>
+        <p class="hero-subtitle">ShogiBoardQ を Linux でビルドし、AppImage として GitHub で公開する手順</p>
+        <div class="hero-badges">
+            <span class="badge">Linux</span>
+            <span class="badge">Qt 6</span>
+            <span class="badge">AppImage</span>
+            <span class="badge">GitHub Release</span>
+        </div>
+    </div>
+</section>
+
+<div class="section">
+    <!-- Content from docs/dev/linux-build-and-release.md -->
+    <article class="section-inner build-document" aria-label="Linux ビルド・リリース手順の詳細">
+<section id="目次" class="level2">
+<h2>目次</h2>
+<ol type="1">
+<li><a href="#1-前提条件">前提条件</a></li>
+<li><a href="#2-開発環境のセットアップ">開発環境のセットアップ</a></li>
+<li><a href="#3-ビルド">ビルド</a></li>
+<li><a href="#4-appimage-の作成">AppImage の作成</a></li>
+<li><a href="#5-github-release-での公開">GitHub Release での公開</a></li>
+<li><a href="#6-トラブルシューティング">トラブルシューティング</a></li>
+</ol>
+</section>
+<section id="1-前提条件" class="level2">
+<h2>1. 前提条件</h2>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>項目</th>
+<th>バージョン</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Linux</td>
+<td>Ubuntu 22.04 / Fedora 38 / Arch Linux 等（x86_64）</td>
+</tr>
+<tr>
+<td>GCC</td>
+<td>9 以降、または Clang 10 以降（C++17 対応）</td>
+</tr>
+<tr>
+<td>CMake</td>
+<td>3.16 以上</td>
+</tr>
+<tr>
+<td>Qt</td>
+<td>6.x（Widgets, Charts, Network, Multimedia, LinguistTools）</td>
+</tr>
+<tr>
+<td>FUSE</td>
+<td>AppImage 実行に必要</td>
+</tr>
+</tbody>
+</table>
+</div>
+<blockquote>
+<p><strong>AppImage のビルド環境について:</strong> AppImage はビルド環境の glibc バージョン以降のシステムでのみ動作する。 より広い互換性を確保するには、古めのディストリビューション（Ubuntu 22.04 等）でビルドすることを推奨する。</p>
+</blockquote>
+</section>
+<section id="2-開発環境のセットアップ" class="level2">
+<h2>2. 開発環境のセットアップ</h2>
+<section id="21-ビルドツールのインストール" class="level3">
+<h3>2.1 ビルドツールのインストール</h3>
+<section id="ubuntu--debian" class="level4">
+<h4>Ubuntu / Debian</h4>
+<pre class="bash"><code>sudo apt update
+sudo apt install build-essential cmake ninja-build git curl \
+  libfuse2 file</code></pre>
+</section>
+<section id="fedora" class="level4">
+<h4>Fedora</h4>
+<pre class="bash"><code>sudo dnf install gcc-c++ cmake ninja-build git curl fuse-libs file</code></pre>
+</section>
+<section id="arch-linux" class="level4">
+<h4>Arch Linux</h4>
+<pre class="bash"><code>sudo pacman -S base-devel cmake ninja git curl fuse2 file</code></pre>
+</section>
+</section>
+<section id="22-qt-6-のインストール" class="level3">
+<h3>2.2 Qt 6 のインストール</h3>
+<section id="方法a-qt-online-installer推奨" class="level4">
+<h4>方法A: Qt Online Installer（推奨）</h4>
+<p><a href="https://www.qt.io/download-qt-installer">Qt 公式サイト</a>からインストーラをダウンロードし、以下のコンポーネントを選択：</p>
+<ul>
+<li>Qt 6.x &gt; Desktop gcc 64-bit</li>
+<li>Qt 6.x &gt; Qt Charts</li>
+<li>Qt 6.x &gt; Qt Multimedia</li>
+<li>Developer and Designer Tools &gt; CMake</li>
+<li>Developer and Designer Tools &gt; Ninja</li>
+</ul>
+<p>インストール後、Qt のパスを環境変数に設定：</p>
+<pre class="bash"><code># ~/.bashrc または ~/.zshrc に追加（パスは環境に合わせて変更）
+export Qt6_DIR=&quot;$HOME/Qt/6.8.3/gcc_64/lib/cmake/Qt6&quot;
+export PATH=&quot;$HOME/Qt/6.8.3/gcc_64/bin:$PATH&quot;
+export LD_LIBRARY_PATH=&quot;$HOME/Qt/6.8.3/gcc_64/lib:$LD_LIBRARY_PATH&quot;</code></pre>
+</section>
+<section id="方法b-ディストリビューションのパッケージ" class="level4">
+<h4>方法B: ディストリビューションのパッケージ</h4>
+<p><strong>Ubuntu / Debian:</strong></p>
+<pre class="bash"><code>sudo apt install qt6-base-dev qt6-charts-dev qt6-l10n-tools \
+  qt6-tools-dev qt6-tools-dev-tools libgl1-mesa-dev</code></pre>
+<p><strong>Fedora:</strong></p>
+<pre class="bash"><code>sudo dnf install qt6-qtbase-devel qt6-qtcharts-devel \
+  qt6-linguist qt6-qttools-devel mesa-libGL-devel</code></pre>
+<p><strong>Arch Linux:</strong></p>
+<pre class="bash"><code>sudo pacman -S qt6-base qt6-charts qt6-tools</code></pre>
+<blockquote>
+<p><strong>注意:</strong> ディストリビューションのパッケージは Qt のバージョンが古い場合がある。 最新の Qt 6.x を使うには方法A の Qt Online Installer を推奨。</p>
+</blockquote>
+</section>
+</section>
+<section id="23-インストール確認" class="level3">
+<h3>2.3 インストール確認</h3>
+<pre class="bash"><code>cmake --version       # 3.16 以上
+g++ --version         # GCC 9 以上
+qmake6 --version      # Qt 6.x</code></pre>
+</section>
+</section>
+<section id="3-ビルド" class="level2">
+<h2>3. ビルド</h2>
+<section id="ビルドスクリプト推奨" class="level3">
+<h3>ビルドスクリプト（推奨）</h3>
+<p><code>scripts/build-linux.sh</code> を使うと、Release ビルドから AppImage 作成まで一括実行できる：</p>
+<pre class="bash"><code># 通常ビルド + AppImage 作成
+./scripts/build-linux.sh
+
+# クリーンビルド、AppImage なし
+./scripts/build-linux.sh --clean --skip-appimage</code></pre>
+<div class="table-scroll">
+<table class="info-table">
+<thead>
+<tr>
+<th>オプション</th>
+<th>説明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--skip-appimage</code></td>
+<td>AppImage 作成をスキップ（ビルドのみ）</td>
+</tr>
+<tr>
+<td><code>--clean</code></td>
+<td>build ディレクトリを削除してからビルド</td>
+</tr>
+<tr>
+<td><code>--help</code></td>
+<td>ヘルプを表示</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>スクリプトは以下の処理を自動実行する：</p>
+<ol type="1">
+<li>前提ツールの存在確認（cmake, ninja）</li>
+<li>CMake Configure + ビルド</li>
+<li>ビルド成果物の確認（実行ファイル、.qm 翻訳ファイル）</li>
+<li>linuxdeploy + Qt プラグインのダウンロード（初回のみ）</li>
+<li>AppImage 作成</li>
+</ol>
+<p>以下は個別のコマンドを手動で実行する場合の手順。</p>
+</section>
+<section id="31-release-ビルド" class="level3">
+<h3>3.1 Release ビルド</h3>
+<pre class="bash"><code>cd /path/to/ShogiBoardQ
+
+# Configure（Release ビルド、Ninja）
+cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+# ビルド
+ninja -C build</code></pre>
+<p>Ninja がない場合：</p>
+<pre class="bash"><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build --config Release -- -j$(nproc)</code></pre>
+</section>
+<section id="32-ビルド成果物の確認" class="level3">
+<h3>3.2 ビルド成果物の確認</h3>
+<pre class="bash"><code># 実行ファイルが生成されていることを確認
+ls -la build/ShogiBoardQ
+
+# 翻訳ファイルの確認
+ls build/*.qm
+
+# 依存ライブラリの確認
+ldd build/ShogiBoardQ</code></pre>
+</section>
+<section id="33-動作確認" class="level3">
+<h3>3.3 動作確認</h3>
+<pre class="bash"><code># ビルドしたアプリを起動
+./build/ShogiBoardQ</code></pre>
+<blockquote>
+<p>Qt Online Installer で Qt をインストールした場合、<code>LD_LIBRARY_PATH</code> に Qt の lib ディレクトリが含まれている必要がある。</p>
+</blockquote>
+</section>
+</section>
+<section id="4-appimage-の作成" class="level2">
+<h2>4. AppImage の作成</h2>
+<blockquote>
+<p><strong>Note:</strong> <code>scripts/build-linux.sh</code> を使用した場合、このセクションの手順は自動実行されるため手動での実行は不要。</p>
+</blockquote>
+<section id="appimage-とは" class="level3">
+<h3>AppImage とは</h3>
+<p>AppImage は Linux 向けのポータブルなアプリケーション配布形式。 インストール不要で、単一ファイルをダウンロードして実行するだけで動作する。</p>
+</section>
+<section id="41-linuxdeploy-のダウンロード" class="level3">
+<h3>4.1 linuxdeploy のダウンロード</h3>
+<p><a href="https://github.com/linuxdeploy/linuxdeploy">linuxdeploy</a> と Qt プラグインをダウンロード：</p>
+<pre class="bash"><code># linuxdeploy 本体
+curl -fSL -o build/linuxdeploy-x86_64.AppImage \
+  https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+chmod +x build/linuxdeploy-x86_64.AppImage
+
+# Qt プラグイン
+curl -fSL -o build/linuxdeploy-plugin-qt-x86_64.AppImage \
+  https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+chmod +x build/linuxdeploy-plugin-qt-x86_64.AppImage</code></pre>
+</section>
+<section id="42-desktop-ファイルとアイコンの準備" class="level3">
+<h3>4.2 .desktop ファイルとアイコンの準備</h3>
+<p>AppImage の作成には FreeDesktop 準拠の <code>.desktop</code> ファイルとアイコンが必要。 これらはリポジトリに同梱されている：</p>
+<ul>
+<li><code>resources/platform/shogiboardq.desktop</code> — デスクトップエントリ</li>
+<li><code>resources/icons/shogiboardq.png</code> — アプリケーションアイコン</li>
+</ul>
+</section>
+<section id="43-appdir-の作成と-appimage-生成" class="level3">
+<h3>4.3 AppDir の作成と AppImage 生成</h3>
+<pre class="bash"><code># AppDir をクリーン
+rm -rf build/AppDir
+
+# 実行ファイルと .qm ファイルを AppDir に配置
+mkdir -p build/AppDir/usr/bin
+cp build/ShogiBoardQ build/AppDir/usr/bin/
+cp build/*.qm build/AppDir/usr/bin/
+
+# linuxdeploy で Qt ライブラリをバンドルし、AppImage を生成
+export EXTRA_QT_PLUGINS=&quot;svg;iconengines&quot;
+export OUTPUT=&quot;ShogiBoardQ-x86_64.AppImage&quot;
+
+build/linuxdeploy-x86_64.AppImage \
+  --appdir build/AppDir \
+  --executable build/AppDir/usr/bin/ShogiBoardQ \
+  --desktop-file resources/platform/shogiboardq.desktop \
+  --icon-file resources/icons/shogiboardq.png \
+  --plugin qt \
+  --output appimage</code></pre>
+<p><code>linuxdeploy</code> が自動で行う処理：</p>
+<ol type="1">
+<li>依存する共有ライブラリ（Qt, システムライブラリ等）を <code>AppDir/usr/lib/</code> にコピー</li>
+<li>Qt プラグイン（platforms/xcb, imageformats/ 等）をコピー</li>
+<li><code>.desktop</code> ファイルとアイコンを AppDir に配置</li>
+<li>AppRun ランチャーを生成</li>
+<li><code>appimagetool</code> で AppImage ファイルを作成</li>
+</ol>
+</section>
+<section id="44-appimage-の構造" class="level3">
+<h3>4.4 AppImage の構造</h3>
+<pre><code>ShogiBoardQ-x86_64.AppImage（単一実行ファイル）
+  └── (展開時)
+      ├── AppRun                          ← エントリーポイント
+      ├── shogiboardq.desktop             ← デスクトップエントリ
+      ├── shogiboardq.png                 ← アイコン
+      └── usr/
+          ├── bin/
+          │   ├── ShogiBoardQ             ← 実行ファイル
+          │   ├── ShogiBoardQ_ja_JP.qm    ← 日本語翻訳
+          │   └── ShogiBoardQ_en.qm       ← 英語翻訳
+          ├── lib/
+          │   ├── libQt6Core.so.6         ← Qt Core
+          │   ├── libQt6Gui.so.6          ← Qt GUI
+          │   ├── libQt6Widgets.so.6      ← Qt Widgets
+          │   ├── libQt6Charts.so.6       ← Qt Charts
+          │   ├── libQt6Network.so.6      ← Qt Network
+          │   ├── libQt6Multimedia.so.6   ← Qt Multimedia（駒音）
+          │   └── ...
+          └── plugins/
+              ├── platforms/
+              │   └── libqxcb.so          ← X11 プラットフォームプラグイン
+              ├── imageformats/
+              │   ├── libqsvg.so          ← SVG サポート
+              │   └── ...
+              └── tls/
+                  └── libqopensslbackend.so</code></pre>
+</section>
+<section id="45-動作テスト" class="level3">
+<h3>4.5 動作テスト</h3>
+<pre class="bash"><code># 実行権限の確認
+chmod +x ShogiBoardQ-x86_64.AppImage
+
+# 起動
+./ShogiBoardQ-x86_64.AppImage</code></pre>
+<blockquote>
+<p><strong>重要</strong>: テストは Qt の lib ディレクトリが <code>LD_LIBRARY_PATH</code> に<strong>含まれない</strong>環境で行うこと。 含まれていると、AppImage 内のライブラリではなくシステムのライブラリが使われてしまい、 バンドル漏れを検出できない。</p>
+</blockquote>
+</section>
+</section>
+<section id="5-github-release-での公開" class="level2">
+<h2>5. GitHub Release での公開</h2>
+<section id="51-タグの作成" class="level3">
+<h3>5.1 タグの作成</h3>
+<pre class="bash"><code>git tag -a v0.1.0 -m &quot;v0.1.0 リリース&quot;
+git push origin v0.1.0</code></pre>
+</section>
+<section id="52-github-cli-でリリース作成" class="level3">
+<h3>5.2 GitHub CLI でリリース作成</h3>
+<p><a href="https://cli.github.com/">GitHub CLI (gh)</a> を使用：</p>
+<pre class="bash"><code># インストール
+# Ubuntu / Debian
+sudo apt install gh
+# Fedora
+sudo dnf install gh
+# Arch Linux
+sudo pacman -S github-cli
+
+# ログイン（初回のみ）
+gh auth login</code></pre>
+<p>リリース作成とアセットのアップロード：</p>
+<pre class="bash"><code>gh release create v0.1.0 \
+  --title &quot;ShogiBoardQ v0.1.0&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ-x86_64.AppImage</code></pre>
+<blockquote>
+<p>他プラットフォームのファイルも同時に公開する場合：</p>
+<pre class="bash"><code>gh release create v0.1.0 \
+  --title &quot;ShogiBoardQ v0.1.0&quot; \
+  --notes-file RELEASE_NOTES.md \
+  ShogiBoardQ-x86_64.AppImage \
+  ShogiBoardQ.dmg \
+  ShogiBoardQ-windows.zip</code></pre>
+</blockquote>
+<section id="リリースノートの自動生成" class="level4">
+<h4>リリースノートの自動生成</h4>
+<pre class="bash"><code>gh release create v0.1.0 \
+  --title &quot;ShogiBoardQ v0.1.0&quot; \
+  --generate-notes \
+  ShogiBoardQ-x86_64.AppImage</code></pre>
+</section>
+<section id="既存リリースにアセットを追加" class="level4">
+<h4>既存リリースにアセットを追加</h4>
+<p>他のプラットフォームで先にリリースを作成済みの場合：</p>
+<pre class="bash"><code>gh release upload v0.1.0 ShogiBoardQ-x86_64.AppImage</code></pre>
+</section>
+</section>
+<section id="53-web-ui-からリリース作成代替" class="level3">
+<h3>5.3 Web UI からリリース作成（代替）</h3>
+<ol type="1">
+<li>GitHub リポジトリ → <strong>Releases</strong> → <strong>Draft a new release</strong></li>
+<li><strong>Choose a tag</strong> → 新しいタグ（例: <code>v0.1.0</code>）を入力して作成</li>
+<li><strong>Release title</strong> を入力（例: <code>ShogiBoardQ v0.1.0</code>）</li>
+<li><strong>Description</strong> にリリースノートを記入</li>
+<li><strong>Attach binaries</strong> に <code>ShogiBoardQ-x86_64.AppImage</code> をドラッグ＆ドロップ</li>
+<li><strong>Publish release</strong> をクリック</li>
+</ol>
+</section>
+<section id="54-リリースノートの書き方テンプレート" class="level3">
+<h3>5.4 リリースノートの書き方（テンプレート）</h3>
+<pre class="markdown"><code>## ShogiBoardQ v0.1.0
+
+### ダウンロード
+
+| OS | ファイル |
+|---|---|
+| Linux (x86_64) | `ShogiBoardQ-x86_64.AppImage` |
+| macOS | `ShogiBoardQ.dmg` |
+| Windows (64-bit) | `ShogiBoardQ-windows.zip` |
+
+### Linux での起動方法
+
+1. AppImage ファイルをダウンロード
+2. 実行権限を付与: `chmod +x ShogiBoardQ-x86_64.AppImage`
+3. 実行: `./ShogiBoardQ-x86_64.AppImage`
+
+&gt; FUSE がインストールされていない場合は `--appimage-extract-and-run` オプションで起動できます。
+
+### 変更点
+
+- ...</code></pre>
+</section>
+</section>
+<section id="6-トラブルシューティング" class="level2">
+<h2>6. トラブルシューティング</h2>
+<section id="qt-が見つからない" class="level3">
+<h3>Qt が見つからない</h3>
+<pre><code>CMake Error: Could not find a package configuration file provided by &quot;Qt6&quot;</code></pre>
+<p>Qt のインストールパスを明示的に指定する：</p>
+<pre class="bash"><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_PREFIX_PATH=&quot;$HOME/Qt/6.8.3/gcc_64&quot;</code></pre>
+</section>
+<section id="qt-charts-が見つからない" class="level3">
+<h3>Qt Charts が見つからない</h3>
+<p>ディストリビューションのパッケージで Qt をインストールした場合、Qt Charts が別パッケージになっていることがある：</p>
+<pre class="bash"><code># Ubuntu / Debian
+sudo apt install qt6-charts-dev
+
+# Fedora
+sudo dnf install qt6-qtcharts-devel
+
+# Arch Linux
+sudo pacman -S qt6-charts</code></pre>
+</section>
+<section id="opengl-関連のエラー" class="level3">
+<h3>OpenGL 関連のエラー</h3>
+<pre><code>Could not find EGL/egl.h</code></pre>
+<p>OpenGL 開発ヘッダーをインストール：</p>
+<pre class="bash"><code># Ubuntu / Debian
+sudo apt install libgl1-mesa-dev libegl1-mesa-dev
+
+# Fedora
+sudo dnf install mesa-libGL-devel mesa-libEGL-devel
+
+# Arch Linux
+sudo pacman -S mesa</code></pre>
+</section>
+<section id="linuxdeploy-が起動しない" class="level3">
+<h3>linuxdeploy が起動しない</h3>
+<pre><code>dlopen(): error loading libfuse.so.2</code></pre>
+<p>FUSE 2 ライブラリが必要：</p>
+<pre class="bash"><code># Ubuntu / Debian
+sudo apt install libfuse2
+
+# Fedora
+sudo dnf install fuse-libs
+
+# Arch Linux
+sudo pacman -S fuse2</code></pre>
+<p>FUSE をインストールできない環境（Docker コンテナ等）では、<code>--appimage-extract-and-run</code> オプションを使用：</p>
+<pre class="bash"><code>build/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
+  --appdir build/AppDir \
+  --executable build/AppDir/usr/bin/ShogiBoardQ \
+  --desktop-file resources/platform/shogiboardq.desktop \
+  --icon-file resources/icons/shogiboardq.png \
+  --plugin qt \
+  --output appimage</code></pre>
+</section>
+<section id="appimage-が起動しない" class="level3">
+<h3>AppImage が起動しない</h3>
+<pre><code>AppImages require FUSE to run.</code></pre>
+<p>FUSE をインストールするか、<code>--appimage-extract-and-run</code> オプションで起動：</p>
+<pre class="bash"><code>./ShogiBoardQ-x86_64.AppImage --appimage-extract-and-run</code></pre>
+<p>または、手動で展開して実行：</p>
+<pre class="bash"><code>./ShogiBoardQ-x86_64.AppImage --appimage-extract
+cd squashfs-root
+./AppRun</code></pre>
+</section>
+<section id="xcb-プラットフォームプラグインのエラー" class="level3">
+<h3>xcb プラットフォームプラグインのエラー</h3>
+<pre><code>qt.qpa.plugin: Could not load the Qt platform plugin &quot;xcb&quot;</code></pre>
+<p>X11 関連の依存ライブラリが不足：</p>
+<pre class="bash"><code># Ubuntu / Debian
+sudo apt install libxcb-xinerama0 libxcb-cursor0
+
+# Fedora
+sudo dnf install xcb-util-cursor xcb-util-wm xcb-util-keysyms
+
+# Arch Linux
+sudo pacman -S xcb-util-cursor xcb-util-wm xcb-util-keysyms</code></pre>
+</section>
+<section id="wayland-環境で表示が崩れる" class="level3">
+<h3>Wayland 環境で表示が崩れる</h3>
+<p>Wayland 環境で問題がある場合、XWayland 経由で起動する：</p>
+<pre class="bash"><code>QT_QPA_PLATFORM=xcb ./ShogiBoardQ-x86_64.AppImage</code></pre>
+</section>
+<section id="翻訳が読み込まれない" class="level3">
+<h3>翻訳が読み込まれない</h3>
+<p><code>.qm</code> ファイルが実行ファイルと同じディレクトリに存在するか確認：</p>
+<pre class="bash"><code># AppImage を展開して確認
+./ShogiBoardQ-x86_64.AppImage --appimage-extract
+ls squashfs-root/usr/bin/*.qm</code></pre>
+<p>ない場合、ビルドスクリプトの <code>.qm</code> コピー処理を確認する。</p>
+</section>
+<section id="glibc-バージョンエラー" class="level3">
+<h3>glibc バージョンエラー</h3>
+<pre><code>version `GLIBC_2.xx&#39; not found</code></pre>
+<p>AppImage はビルド環境の glibc バージョン以降のシステムでのみ動作する。 古いシステムで実行したい場合は、より古いディストリビューション（Ubuntu 22.04 等）でビルドする。</p>
+</section>
+</section>
+    </article>
+</div>
+</main>
+
+<div class="back-link-section">
+    <a href="../index.html#build" class="back-link">&larr; 動作環境・ビルド方法に戻る</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
