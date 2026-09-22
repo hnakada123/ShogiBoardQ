@@ -33,6 +33,7 @@
 #include <QTemporaryDir>
 #include "mainwindow.h"
 #include "shogiview.h"
+#include "elidelabel.h"
 #include "shogiboard.h"
 #include "recordpane.h"
 #include "kifurecordlistmodel.h"
@@ -1125,6 +1126,22 @@ private slots:
         const int terminalRow = lastMoveRow + 1;
         QCOMPARE(model->rowCount(), terminalRow + 1);
         QVERIFY(model->index(terminalRow, 0).data().toString().contains(QStringLiteral("投了")));
+
+        // 棋譜を操作する前の投了直後にも、手番側の3欄すべてが黄色を保つ。
+        const QLabel* activeName = humanIsBlack ? board()->blackNameLabel() : board()->whiteNameLabel();
+        const QLabel* inactiveName = humanIsBlack ? board()->whiteNameLabel() : board()->blackNameLabel();
+        const QLabel* activeClock = humanIsBlack ? board()->blackClockLabel() : board()->whiteClockLabel();
+        const QLabel* inactiveClock = humanIsBlack ? board()->whiteClockLabel() : board()->blackClockLabel();
+        const auto* turnLabel = board()->findChild<QLabel*>(
+            humanIsBlack ? QStringLiteral("turnLabelBlack") : QStringLiteral("turnLabelWhite"));
+        QVERIFY(turnLabel && turnLabel->isVisible());
+        for (const QLabel* label : {activeName, activeClock, turnLabel}) {
+            QCOMPARE(label->palette().color(QPalette::Window), QColor(Qt::yellow));
+        }
+        for (const QLabel* label : {inactiveName, inactiveClock}) {
+            QCOMPARE(label->palette().color(QPalette::Window), board()->boardColors().background);
+        }
+        snapshot(QStringLiteral("resign-highlight-") + QString::fromLatin1(QTest::currentDataTag()));
 
         QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
         if (!humanIsBlack) moves.append(QStringLiteral("2g2f"));
