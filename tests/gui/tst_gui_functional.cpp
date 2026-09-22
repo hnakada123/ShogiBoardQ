@@ -8,6 +8,7 @@
 #include <QDialogButtonBox>
 #include <QDockWidget>
 #include <QFileDialog>
+#include <QFrame>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QJsonArray>
@@ -535,7 +536,7 @@ private slots:
         QVERIFY(secondary.boardColors() == custom);
         QVERIFY(AppSettings::boardColors() == custom);
         QCOMPARE(board()->blackClockLabel()->styleSheet(), activeStyle);
-        QVERIFY(board()->whiteClockLabel()->styleSheet().contains("rgb(255,255,255)"));
+        QCOMPARE(board()->whiteClockLabel()->palette().color(QPalette::WindowText), QColor("#3d3228"));
         QCOMPARE(boardSfen(), initial);
         dialog->resize(580, 360);
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-colors-dialog.png"));
@@ -1127,20 +1128,28 @@ private slots:
         QCOMPARE(model->rowCount(), terminalRow + 1);
         QVERIFY(model->index(terminalRow, 0).data().toString().contains(QStringLiteral("投了")));
 
-        // 棋譜を操作する前の投了直後にも、手番側の3欄すべてが黄色を保つ。
-        const QLabel* activeName = humanIsBlack ? board()->blackNameLabel() : board()->whiteNameLabel();
-        const QLabel* inactiveName = humanIsBlack ? board()->whiteNameLabel() : board()->blackNameLabel();
-        const QLabel* activeClock = humanIsBlack ? board()->blackClockLabel() : board()->whiteClockLabel();
-        const QLabel* inactiveClock = humanIsBlack ? board()->whiteClockLabel() : board()->blackClockLabel();
+        // 投了直後も、カードと手番バッジの強調を保つ。
+        auto* activeCard = board()->findChild<QFrame*>(
+            humanIsBlack ? QStringLiteral("blackPlayerCard") : QStringLiteral("whitePlayerCard"));
+        auto* inactiveCard = board()->findChild<QFrame*>(
+            humanIsBlack ? QStringLiteral("whitePlayerCard") : QStringLiteral("blackPlayerCard"));
         const auto* turnLabel = board()->findChild<QLabel*>(
             humanIsBlack ? QStringLiteral("turnLabelBlack") : QStringLiteral("turnLabelWhite"));
         QVERIFY(turnLabel && turnLabel->isVisible());
-        for (const QLabel* label : {activeName, activeClock, turnLabel}) {
-            QCOMPARE(label->palette().color(QPalette::Window), QColor(Qt::yellow));
+        QVERIFY(activeCard && inactiveCard);
+        QCOMPARE(activeCard->palette().color(QPalette::Window), QColor("#dce5cc"));
+        QCOMPARE(inactiveCard->palette().color(QPalette::Window), QColor("#dce5cc"));
+        for (auto* card : {activeCard, inactiveCard}) {
+            const QImage image = card->grab().toImage();
+            const QColor borderColor(card == activeCard ? "#3f6254" : "#d6cbb5");
+            for (const QPoint& edge : {QPoint(0, image.height() / 2),
+                                       QPoint(image.width() - 1, image.height() / 2),
+                                       QPoint(image.width() / 2, 0),
+                                       QPoint(image.width() / 2, image.height() - 1)}) {
+                QCOMPARE(image.pixelColor(edge), borderColor);
+            }
         }
-        for (const QLabel* label : {inactiveName, inactiveClock}) {
-            QCOMPARE(label->palette().color(QPalette::Window), board()->boardColors().background);
-        }
+        QCOMPARE(turnLabel->palette().color(QPalette::Window), QColor("#3f6254"));
         snapshot(QStringLiteral("resign-highlight-") + QString::fromLatin1(QTest::currentDataTag()));
 
         QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};

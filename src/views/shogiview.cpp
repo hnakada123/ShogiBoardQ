@@ -16,6 +16,7 @@
 #include <QPainter>
 #include <QSettings>
 #include <QFont>
+#include <QFontDatabase>
 #include <QFontMetrics>
 #include <QDebug>
 #include <QSizePolicy>
@@ -61,7 +62,9 @@ ShogiView::ShogiView(QWidget *parent)
     m_blackClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     {
-        QFont f = font();
+        QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        f.setStyleName(QString());
+        f.setItalic(false);
         f.setBold(true);
         f.setPointSizeF(qMax(8.0, m_layout.squareSize() * 0.45));
         m_blackClockLabel->setFont(f);
@@ -91,7 +94,9 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     {
-        QFont f = font();
+        QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        f.setStyleName(QString());
+        f.setItalic(false);
         f.setBold(true);
         f.setPointSizeF(qMax(8.0, m_layout.squareSize() * 0.45));
         m_whiteClockLabel->setFont(f);
@@ -139,6 +144,7 @@ void ShogiView::setBoard(ShogiBoard* board)
     updateGeometry();
 
     qCDebug(lcView) << "setBoard complete, m_board now:" << m_board;
+    relayoutTurnLabels();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -465,10 +471,7 @@ void ShogiView::flipBoardSides()
 void ShogiView::setClockEnabled(bool enabled)
 {
     m_clockEnabled = enabled;
-    if (!enabled) {
-        if (m_blackClockLabel) m_blackClockLabel->hide();
-        if (m_whiteClockLabel) m_whiteClockLabel->hide();
-    }
+    relayoutTurnLabels();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
