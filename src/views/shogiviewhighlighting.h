@@ -74,37 +74,23 @@ private:
     // 駒打ち矢印の駒画像キャッシュ（キー: 駒文字+サイズ）
     mutable QHash<quint64, QPixmap> m_arrowDropPieceCache;
 
-    // 手番ハイライト色
-    QColor m_highlightBg    = QColor(255, 255, 0);
-    QColor m_highlightFgOn  = QColor(0, 0, 255);
-    QColor m_highlightFgOff = QColor(51, 51, 51);
+    // 木の盤に馴染むカード配色。手番はラインとバッジで示す。
+    QColor m_highlightBg    = QColor(220, 229, 204);
+    QColor m_highlightFgOn  = QColor(61, 50, 40);
+    QColor m_highlightFgOff = QColor(61, 50, 40);
     bool   m_blackActive    = true;
     bool   m_turnHighlightActive = false;
 
-    // 緊急度配色
-    QColor m_urgencyBgWarn10 = QColor(255, 193, 7);
-    QColor m_urgencyFgWarn10 = QColor(32, 32, 32);
-    QColor m_urgencyBgWarn5  = QColor(229, 57, 53);
-    QColor m_urgencyFgWarn5  = QColor(255, 255, 255);
-
-    // 色定数
-    static constexpr QColor kTurnBg{255, 255, 0};
-    static constexpr QColor kTurnFg{0, 64, 255};
-
-    static constexpr QColor kWarn10Bg{255, 255, 0};
-    static constexpr QColor kWarn10Fg{0, 0, 255};
-
-    static constexpr QColor kWarn5Bg{255, 255, 0};
-    static constexpr QColor kWarn5Fg{255, 0, 0};
-
-    static constexpr QColor kWarn10Border{0, 0, 255};
-    static constexpr QColor kWarn5Border{255, 0, 0};
+    static constexpr QColor kTurnAccent{63, 98, 84};
+    static constexpr QColor kCardBorder{214, 203, 181};
+    static constexpr QColor kWarn10Fg{135, 93, 33};
+    static constexpr QColor kWarn5Fg{178, 59, 50};
 
     Urgency m_urgency = Urgency::Normal;
 
     // ラベルスタイルヘルパ
-    void setLabelStyle(QLabel* lbl, const QColor& fg, const QColor& bg,
-                       int borderPx, const QColor& borderColor, bool bold);
+    void refreshPlayerStyles();
+    void setLabelStyle(QLabel* lbl, const QColor& fg, bool bold);
     static QString toRgb(const QColor& c);
 };
 

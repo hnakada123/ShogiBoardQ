@@ -1,5 +1,6 @@
 #include <QtTest>
 #include <QTemporaryDir>
+#include <QFrame>
 
 #include "elidelabel.h"
 #include "sfenpositiontracer.h"
@@ -51,16 +52,29 @@ class TestTurnStateSync : public QObject
         QCOMPARE(!blackLabel->isHidden(), blackTurn);
         QCOMPARE(!whiteLabel->isHidden(), !blackTurn);
 
-        const auto* activeName = blackTurn ? view.blackNameLabel() : view.whiteNameLabel();
-        const auto* inactiveName = blackTurn ? view.whiteNameLabel() : view.blackNameLabel();
-        const auto* activeClock = blackTurn ? view.blackClockLabel() : view.whiteClockLabel();
-        const auto* inactiveClock = blackTurn ? view.whiteClockLabel() : view.blackClockLabel();
-        const auto* activeTurn = blackTurn ? blackLabel : whiteLabel;
-        for (const QLabel* label : {static_cast<const QLabel*>(activeName), activeClock, activeTurn}) {
-            QCOMPARE(label->palette().color(QPalette::Window), QColor(Qt::yellow));
+        auto* activeCard = view.findChild<QFrame*>(blackTurn ? QStringLiteral("blackPlayerCard")
+                                                            : QStringLiteral("whitePlayerCard"));
+        auto* inactiveCard = view.findChild<QFrame*>(blackTurn ? QStringLiteral("whitePlayerCard")
+                                                              : QStringLiteral("blackPlayerCard"));
+        QVERIFY(activeCard);
+        QVERIFY(inactiveCard);
+        QCOMPARE(activeCard->palette().color(QPalette::Window), QColor("#dce5cc"));
+        QCOMPARE(inactiveCard->palette().color(QPalette::Window), QColor("#dce5cc"));
+        // 終局後のナビゲーションでも手番バッジとカード全周の枠線が一緒に移る。
+        for (auto* card : {activeCard, inactiveCard}) {
+            const QImage image = card->grab().toImage();
+            const QColor borderColor(card == activeCard ? "#3f6254" : "#d6cbb5");
+            for (const QPoint& edge : {QPoint(0, image.height() / 2),
+                                       QPoint(image.width() - 1, image.height() / 2),
+                                       QPoint(image.width() / 2, 0),
+                                       QPoint(image.width() / 2, image.height() - 1)}) {
+                QCOMPARE(image.pixelColor(edge), borderColor);
+            }
         }
-        QCOMPARE(inactiveName->palette().color(QPalette::Window), view.boardColors().background);
-        QCOMPARE(inactiveClock->palette().color(QPalette::Window), view.boardColors().background);
+        const auto* activeTurn = blackTurn ? blackLabel : whiteLabel;
+        QCOMPARE(activeTurn->palette().color(QPalette::Window), QColor("#3f6254"));
+        QCOMPARE(view.blackNameLabel()->palette().color(QPalette::WindowText),
+                 view.whiteNameLabel()->palette().color(QPalette::WindowText));
     }
 
 private slots:

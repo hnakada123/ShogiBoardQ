@@ -7,6 +7,7 @@
 
 #include <QPainter>
 #include <QLabel>
+#include <QFrame>
 #include <QDebug>
 
 #include "logcategories.h"
@@ -117,14 +118,8 @@ void ShogiViewHighlighting::clearTurnHighlight()
 {
     if (m_view->gameOverStyleLock()) return;
     m_turnHighlightActive = false;
-    const QColor fg = m_view->boardColors().backgroundText(QColor(51, 51, 51));
-    const QColor bg = m_view->boardColors().background;
-    setLabelStyle(m_view->blackNameLabel(),  fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
-    setLabelStyle(m_view->blackClockLabel(), fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
-    setLabelStyle(m_view->whiteNameLabel(),  fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
-    setLabelStyle(m_view->whiteClockLabel(), fg, bg, 0, QColor(0,0,0,0), /*bold=*/false);
-
     m_urgency = Urgency::Normal;
+    refreshPlayerStyles();
 }
 
 void ShogiViewHighlighting::setActiveIsBlack(bool activeIsBlack)
@@ -143,53 +138,41 @@ void ShogiViewHighlighting::setUrgencyVisuals(Urgency u)
     qCDebug(lcView) << "setUrgencyVisuals: urgency=" << static_cast<int>(u)
                      << "m_blackActive=" << m_blackActive;
 
-    QLabel* actName    = m_blackActive ? m_view->blackNameLabel()  : m_view->whiteNameLabel();
-    QLabel* actClock   = m_blackActive ? m_view->blackClockLabel() : m_view->whiteClockLabel();
-    QLabel* inactName  = m_blackActive ? m_view->whiteNameLabel()  : m_view->blackNameLabel();
-    QLabel* inactClock = m_blackActive ? m_view->whiteClockLabel() : m_view->blackClockLabel();
+    refreshPlayerStyles();
+}
 
-    QLabel* actTurnLabel   = m_blackActive
-                             ? m_view->findChild<QLabel*>(QStringLiteral("turnLabelBlack"))
-                             : m_view->findChild<QLabel*>(QStringLiteral("turnLabelWhite"));
-
-    // 非手番は font-weight=400 固定、背景はユーザー指定色
-    auto setInactive = [&](QLabel* name, QLabel* clock){
-        const QColor inactiveFg = m_view->boardColors().backgroundText(QColor(51, 51, 51));
-        const QColor inactiveBg = m_view->boardColors().background;
-        setLabelStyle(name,  inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
-        setLabelStyle(clock, inactiveFg, inactiveBg, 0, QColor(0,0,0,0), /*bold=*/false);
+void ShogiViewHighlighting::refreshPlayerStyles()
+{
+    auto stylePlayer = [&](bool black) {
+        const bool active = m_turnHighlightActive && m_blackActive == black;
+        auto* card = m_view->findChild<QFrame*>(black ? QStringLiteral("blackPlayerCard")
+                                                    : QStringLiteral("whitePlayerCard"));
+        auto* badge = m_view->findChild<QLabel*>(black ? QStringLiteral("turnLabelBlack")
+                                                     : QStringLiteral("turnLabelWhite"));
+        const QColor textColor = active ? m_highlightFgOn : m_highlightFgOff;
+        QColor clockColor = textColor;
+        if (active && m_urgency == Urgency::Warn10) clockColor = kWarn10Fg;
+        if (active && m_urgency == Urgency::Warn5) clockColor = kWarn5Fg;
+        setLabelStyle(black ? m_view->blackNameLabel() : m_view->whiteNameLabel(), textColor, false);
+        setLabelStyle(black ? m_view->blackClockLabel() : m_view->whiteClockLabel(), clockColor, true);
+        if (card) {
+            const QString css = QStringLiteral(
+                "QFrame#%1 { background:%2; border:%3px solid %4; border-radius:6px; }")
+                .arg(card->objectName(), toRgb(m_highlightBg))
+                .arg(active ? 2 : 1)
+                .arg(toRgb(active ? kTurnAccent : kCardBorder));
+            if (card->styleSheet() != css) card->setStyleSheet(css);
+        }
+        if (badge) {
+            const QString css = QStringLiteral(
+                "color:#ffffff; background:%1; border:0px; border-radius:4px; padding:0px; font-weight:700;")
+                .arg(toRgb(kTurnAccent));
+            if (badge->styleSheet() != css) badge->setStyleSheet(css);
+            badge->setVisible(active && m_view->board());
+        }
     };
-
-    switch (u) {
-    case Urgency::Normal:
-        setLabelStyle(actName,  kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
-        setLabelStyle(actClock, kTurnFg,   kTurnBg,   0, QColor(0,0,0,0), /*bold=*/true);
-        if (actTurnLabel) {
-            setLabelStyle(actTurnLabel, kTurnFg, kTurnBg, 0, QColor(0,0,0,0), /*bold=*/true);
-        }
-        setInactive(inactName, inactClock);
-        break;
-
-    case Urgency::Warn10:
-        setLabelStyle(actName,  kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
-        setLabelStyle(actClock, kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
-        if (actTurnLabel) {
-            setLabelStyle(actTurnLabel, kWarn10Fg, kWarn10Bg, 0, kWarn10Border, /*bold=*/true);
-        }
-        setInactive(inactName, inactClock);
-        break;
-
-    case Urgency::Warn5:
-        setLabelStyle(actName,  kWarn5Fg,  kWarn5Bg,  0, kWarn5Border,  /*bold=*/true);
-        setLabelStyle(actClock, kWarn5Fg,  kWarn5Bg,  0, kWarn5Border,  /*bold=*/true);
-        if (actTurnLabel) {
-            setLabelStyle(actTurnLabel, kWarn5Fg, kWarn5Bg, 0, kWarn5Border, /*bold=*/true);
-        }
-        setInactive(inactName, inactClock);
-        break;
-    default:
-        break;
-    }
+    stylePlayer(true);
+    stylePlayer(false);
 }
 
 void ShogiViewHighlighting::applyClockUrgency(qint64 activeRemainMs)
@@ -212,15 +195,7 @@ void ShogiViewHighlighting::applyStartupTypography()
 {
     m_urgency = Urgency::Normal;
     m_turnHighlightActive = false;
-    const QColor inactiveFg = m_view->boardColors().backgroundText(QColor(51, 51, 51));
-    const QColor inactiveBg = m_view->boardColors().background;
-    auto setInactive = [&](QLabel* name, QLabel* clock){
-        setLabelStyle(name,  inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false);
-        setLabelStyle(clock, inactiveFg, inactiveBg, /*borderPx=*/0, QColor(0,0,0,0), /*bold=*/false);
-    };
-
-    setInactive(m_view->blackNameLabel(),  m_view->blackClockLabel());
-    setInactive(m_view->whiteNameLabel(),  m_view->whiteClockLabel());
+    refreshPlayerStyles();
 }
 
 void ShogiViewHighlighting::refreshBackgroundColors()
@@ -459,31 +434,11 @@ QString ShogiViewHighlighting::toRgb(const QColor& c)
          QString::number(c.blue()));
 }
 
-void ShogiViewHighlighting::setLabelStyle(QLabel* lbl,
-                                          const QColor& fg, const QColor& bg,
-                                          int borderPx, const QColor& borderColor,
-                                          bool bold)
+void ShogiViewHighlighting::setLabelStyle(QLabel* lbl, const QColor& fg, bool bold)
 {
     if (!lbl) return;
-
     const QString css = QStringLiteral(
-                            "color:%1; background:%2; border:%3px solid %4; font-weight:%5; "
-                            "padding:2px; border-radius:0px;")
-                            .arg(
-                                toRgb(fg),
-                                toRgb(bg),
-                                QString::number(borderPx),
-                                toRgb(borderColor),
-                                (bold ? QStringLiteral("700")
-                                      : QStringLiteral("400"))
-                                );
-
-    static const char kLastCssProperty[] = "_sbq_last_label_css";
-    const QString lastCss = lbl->property(kLastCssProperty).toString();
-    if (lastCss == css) {
-        return;
-    }
-
-    lbl->setStyleSheet(css);
-    lbl->setProperty(kLastCssProperty, css);
+        "color:%1; background:transparent; border:0px; padding:0px; font-weight:%2;")
+        .arg(toRgb(fg), bold ? QStringLiteral("700") : QStringLiteral("400"));
+    if (lbl->styleSheet() != css) lbl->setStyleSheet(css);
 }

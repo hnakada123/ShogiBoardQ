@@ -7351,13 +7351,16 @@ Do you want to continue?</translation>
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="54"/>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="73"/>
         <source>次の手番</source>
-        <translation>Next Turn</translation>
+        <translation type="vanished">Next Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="272"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="32"/>
+        <source>手番</source>
+        <translation>Turn</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="135"/>
         <source>編集終了</source>
         <translation>End Edit</translation>
     </message>

@@ -35,6 +35,7 @@ class ShogiBoard;
 class ShogiViewHighlighting;
 class GlobalToolTip;
 class QLabel;
+class QFrame;
 class QPainter;
 class QEvent;
 class QMouseEvent;
@@ -337,6 +338,8 @@ private:
     mutable bool m_fieldRectCacheValid = false;
 
     // ラベル（子ウィジェット）
+    QFrame*     m_blackPlayerCard { nullptr };
+    QFrame*     m_whitePlayerCard { nullptr };
     QLabel*     m_blackClockLabel { nullptr };
     QLabel*     m_whiteClockLabel { nullptr };
     ElideLabel* m_blackNameLabel  { nullptr };

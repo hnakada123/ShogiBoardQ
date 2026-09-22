@@ -652,7 +652,7 @@ void MatchUndoHandler::setUndoBindings(const UndoRefs&, const UndoHooks&) {}
 bool MatchUndoHandler::undoTwoPlies() { return false; }
 bool MatchUndoHandler::isStandardStartposSfen(const QString&) { return false; }
 bool MatchUndoHandler::tryRemoveLastItems(QObject*, int) { return false; }
-QString MatchUndoHandler::buildBasePositionUpToHands(const QString&, int, const QString&) { return {}; }
+QString MatchUndoHandler::buildPositionAfterUndo(const QString&, const QString&) { return {}; }
 
 // ============================================================
 // AnalysisSessionHandler スタブ
