@@ -3,7 +3,6 @@
 
 #include "turnstatesyncservice.h"
 
-#include "playmode.h"
 #include "shogiclock.h"
 #include "shogiboard.h"
 #include "shogiview.h"
@@ -30,21 +29,14 @@ void TurnStateSyncService::setCurrentTurn()
         }
     }
 
-    const PlayMode mode = m_deps.playMode ? *m_deps.playMode : PlayMode::NotStarted;
-    const bool isLivePlayMode =
-        (mode == PlayMode::HumanVsHuman) ||
-        (mode == PlayMode::EvenHumanVsEngine) ||
-        (mode == PlayMode::EvenEngineVsHuman) ||
-        (mode == PlayMode::EvenEngineVsEngine) ||
-        (mode == PlayMode::HandicapEngineVsHuman) ||
-        (mode == PlayMode::HandicapHumanVsEngine) ||
-        (mode == PlayMode::HandicapEngineVsEngine) ||
-        (mode == PlayMode::CsaNetworkMode);
+    // 対局モードは終局後も残るため、実際の対局進行状態で同期元を選ぶ。
+    const bool gameActive = m_deps.isGameActivelyInProgress
+                               && m_deps.isGameActivelyInProgress();
 
     // ライブ対局中は GC を手番の単一ソースとする。
     // 盤面モデルの手番は GC の手番更新から同期されるが、同期前に board 側を
     // 参照すると古い手番へ巻き戻ることがあるため、ここでは GC だけを見る。
-    if (isLivePlayMode && m_deps.gameController) {
+    if (gameActive && m_deps.gameController) {
         const auto gcTurn = m_deps.gameController->currentPlayer();
         if (gcTurn == ShogiGameController::Player1 || gcTurn == ShogiGameController::Player2) {
             tm->setFromGc(gcTurn);
