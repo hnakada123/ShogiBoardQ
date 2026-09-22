@@ -14,7 +14,6 @@ class TurnManager;
 class TimeControlController;
 class TimeDisplayPresenter;
 class QObject;
-enum class PlayMode;
 
 /**
  * @brief TurnManager / GameController / View / 時計表示の手番同期ロジックを集約するサービス
@@ -32,7 +31,8 @@ public:
         ShogiView* shogiView = nullptr;
         TimeControlController* timeController = nullptr;
         TimeDisplayPresenter* timePresenter = nullptr;
-        PlayMode* playMode = nullptr;
+        /// 終局後の棋譜閲覧とライブ対局を区別する
+        std::function<bool()> isGameActivelyInProgress;
 
         /// updateTurnStatus(int currentPlayer) のコールバック
         /// (clock の currentPlayer 設定 + view の activeSide 設定)

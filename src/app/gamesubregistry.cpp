@@ -10,6 +10,7 @@
 #include "mainwindowfoundationregistry.h"
 
 #include "consecutivegamescontroller.h"
+#include "csagamecoordinator.h"
 #include "gamestatecontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "matchcoordinatorwiring.h"
@@ -155,7 +156,13 @@ void MainWindowServiceRegistry::refreshTurnStateSyncDeps()
     deps.shogiView = m_mw.m_shogiView;
     deps.timeController = m_mw.m_timeController;
     deps.timePresenter = m_mw.m_timePresenter;
-    deps.playMode = &m_mw.m_state.playMode;
+    deps.isGameActivelyInProgress = [this]() {
+        if (m_mw.m_state.playMode == PlayMode::CsaNetworkMode) {
+            return m_mw.m_csaGameCoordinator
+                && m_mw.m_csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame;
+        }
+        return m_mw.m_queryService->isGameActivelyInProgress();
+    };
     deps.turnManagerParent = &m_mw;
     deps.updateTurnStatus = [this](int currentPlayer) {
         updateTurnStatus(currentPlayer);

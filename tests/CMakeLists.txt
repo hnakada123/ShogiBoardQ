@@ -1315,6 +1315,45 @@ add_shogi_test(tst_piece_sound_processor
     ${SRC}/services/piecesoundprocessor.cpp
 )
 
+# 終局後の棋譜閲覧における手番ラベル・背景色の連動を実際のビューで検証する
+add_shogi_test(tst_turn_state_sync
+    tst_turn_state_sync.cpp
+    test_stubs_turn_state_sync.cpp
+    ${SRC}/app/turnstatesyncservice.cpp
+    ${SRC}/game/turnmanager.cpp
+    ${SRC}/game/shogigamecontroller.cpp
+    ${SRC}/game/piecemoverules.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+    ${SRC}/core/shogiutils.cpp
+    ${SRC}/core/shogiclock.cpp
+    ${SRC}/core/shogiclock_format.cpp
+    ${EMV_SOURCES}
+    ${SRC}/views/shogiview.cpp
+    ${SRC}/views/shogiview_state.cpp
+    ${SRC}/views/shogiview_draw.cpp
+    ${SRC}/views/shogiview_events.cpp
+    ${SRC}/views/shogiview_labels.cpp
+    ${SRC}/views/shogiview_stand.cpp
+    ${SRC}/views/shogiview_turnui.cpp
+    ${SRC}/views/shogiviewhighlighting.cpp
+    ${SRC}/views/shogiviewinteraction.cpp
+    ${SRC}/views/shogiviewlayout.cpp
+    ${SRC}/widgets/elidelabel.cpp
+    ${SRC}/widgets/globaltooltip.cpp
+    ${SRC}/ui/presenters/timedisplaypresenter.cpp
+    ${SRC}/board/sfenpositiontracer.cpp
+    ${SRC}/services/boardappearance.cpp
+    ${SRC}/services/pieceimageprovider.cpp
+    ${SRC}/services/appsettings.cpp
+    ${SRC}/services/settingscommon.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/common/logcategories.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../resources/shogiboardq.qrc
+)
+
 # Benchmark: EngineMoveValidator compat vs Context (not a ctest target)
 add_executable(bench_movevalidator
     bench_movevalidator.cpp
