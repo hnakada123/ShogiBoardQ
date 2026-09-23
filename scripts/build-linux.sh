@@ -356,13 +356,9 @@ info "不要ライブラリを削除中..."
 APPDIR_LIB="${APPDIR}/usr/lib"
 BEFORE_SIZE=$(du -sm "$APPDIR_LIB" | cut -f1)
 
-# libicudata: 32MB。ホストに必ず存在し、バージョン依存も低い
-rm -f "$APPDIR_LIB"/libicudata.so*
-
-# fcitx5 プラグインが引き込んだ不要ライブラリ
-rm -f "$APPDIR_LIB"/libQt6WaylandClient.so*
-rm -f "$APPDIR_LIB"/libFcitx5Qt6DBusAddons.so*
-rm -f "$APPDIR_LIB"/libwayland-cursor.so*
+# ICU データは同梱の libicuuc と同じバージョンが必要なため保持する。
+# fcitx5 の入力プラグインが参照する Qt Wayland / Fcitx5 / wayland-cursor
+# ライブラリも、日本語入力がホストの Qt インストールに依存しないよう保持する。
 
 # 除外したプラグインの専用依存ライブラリ
 # (libqmng, libqtiff, libqjp2, libqwebp, libqtga, libqicns 等を除外したため)
@@ -386,31 +382,17 @@ find "$APPDIR" -type f \( -name '*.so*' -o -executable \) -print0 | \
     done
 
 # Step 8e: AppRun をラッパースクリプトに置き換え
-# linuxdeploy はシンボリックリンクを作成するが、システムの Qt プラグイン
-# （KDE プラットフォームテーマ、Breeze スタイル等）をフォールバックとして
-# 参照するために環境変数の設定が必要
+# 同梱の Qt とホスト側の Qt プラグインが混在しないよう、検索先を固定する。
 info "AppRun ラッパースクリプトを作成中..."
 rm -f "$APPDIR/AppRun"
 cat > "$APPDIR/AppRun" <<'APPRUN_EOF'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
 
-# バンドルされたプラグインに加え、システムの Qt プラグインディレクトリを
-# フォールバックとして追加する。これにより KDE/GNOME 等のデスクトップ
-# テーマとスタイルをシステムから利用でき、ネイティブに近い体感速度になる。
-SYSTEM_QT_PLUGIN_DIRS=(
-    /usr/lib/qt6/plugins
-    /usr/lib/x86_64-linux-gnu/qt6/plugins
-    /usr/lib64/qt6/plugins
-)
-
-QT_PLUGIN_PATH="${HERE}/usr/plugins"
-for dir in "${SYSTEM_QT_PLUGIN_DIRS[@]}"; do
-    if [[ -d "$dir" ]]; then
-        QT_PLUGIN_PATH="${QT_PLUGIN_PATH}:${dir}"
-    fi
-done
-export QT_PLUGIN_PATH
+# アプリは Fusion スタイルを使用するため、ホストのテーマは不要。
+# Qt プラグインは同梱のものを使用し、別バージョンの Qt の読み込みを防ぐ。
+export QT_PLUGIN_PATH="${HERE}/usr/plugins"
+export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/plugins/platforms"
 
 exec "${HERE}/usr/bin/ShogiBoardQ" "$@"
 APPRUN_EOF
