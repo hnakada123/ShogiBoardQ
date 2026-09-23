@@ -12,6 +12,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QSignalBlocker>
+#include <QTabWidget>
 #include <QVBoxLayout>
 #include <utility>
 
@@ -19,44 +20,27 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
     : QDialog(parent), m_picker(new QColorDialog(this))
 {
     setWindowTitle(tr("盤面の配色"));
-    setMinimumSize(440, 380);
+    setMinimumSize(560, 460);
     auto* layout = new QVBoxLayout(this);
     auto* description = new QLabel(tr("色を選択すると、すべての将棋盤に反映・保存されます。"), this);
     description->setWordWrap(true);
     layout->addWidget(description);
     m_presetLabel = new QLabel(this);
     m_presetLabel->setObjectName(QStringLiteral("boardColorPresetLabel"));
-    layout->addWidget(m_presetLabel);
     m_presetCombo = new QComboBox(this);
     m_presetCombo->setObjectName(QStringLiteral("boardColorPresetCombo"));
     m_presetCombo->setPlaceholderText(tr("カスタム（個別に指定）"));
     m_presetCombo->setIconSize(QSize(120, 72));
     m_presetCombo->setMaxVisibleItems(5);
     m_presetLabel->setBuddy(m_presetCombo);
-    layout->addWidget(m_presetCombo);
     connect(m_presetCombo, &QComboBox::activated, this, &BoardColorDialog::applyPreset);
     connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged,
             this, &BoardColorDialog::rebuildPresets);
-    auto* form = new QFormLayout;
-    form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-    layout->addLayout(form);
-    m_fields = {{{new QPushButton(this), &BoardColors::background, tr("将棋盤の背景")},
-                 {new QPushButton(this), &BoardColors::board, tr("将棋盤")},
-                 {new QPushButton(this), &BoardColors::stand, tr("駒台")},
-                 {new QPushButton(this), &BoardColors::grid, tr("マス罫線")}}};
-    const QStringList names = {QStringLiteral("backgroundColorButton"), QStringLiteral("boardColorButton"),
-                               QStringLiteral("standColorButton"), QStringLiteral("gridColorButton")};
-    for (size_t i = 0; i < m_fields.size(); ++i) {
-        auto& field = m_fields[i];
-        field.button->setObjectName(names.at(static_cast<qsizetype>(i)));
-        field.button->setAccessibleName(field.label);
-        field.button->setMinimumHeight(36);
-        field.button->setIconSize(QSize(36, 22));
-        field.button->setAutoDefault(false);
-        form->addRow(field.label, field.button);
-        connect(field.button, &QPushButton::clicked, this, &BoardColorDialog::chooseColor);
-    }
-    layout->addStretch();
+    m_tabs = new QTabWidget(this);
+    m_tabs->setObjectName(QStringLiteral("boardColorTabs"));
+    layout->addWidget(m_tabs);
+    createColorPages();
+    m_tabs->setCurrentIndex(qBound(0, AppSettings::boardColorDialogTab(), m_tabs->count() - 1));
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
     auto* reset = buttons->addButton(tr("標準色に戻す"), QDialogButtonBox::ResetRole);
     reset->setObjectName(QStringLiteral("resetBoardColorsButton"));
@@ -79,6 +63,72 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
 BoardColorDialog::~BoardColorDialog()
 {
     DialogUtils::saveDialogSize(this, AppSettings::setBoardColorDialogSize);
+    AppSettings::setBoardColorDialogTab(m_tabs->currentIndex());
+}
+
+void BoardColorDialog::createColorPages()
+{
+    auto page = [this](const QString& title, const QString& note = QString()) {
+        auto* widget = new QWidget(m_tabs);
+        auto* layout = new QVBoxLayout(widget);
+        if (m_tabs->count() == 0) {
+            layout->addWidget(m_presetLabel);
+            layout->addWidget(m_presetCombo);
+        }
+        auto* form = new QFormLayout;
+        form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
+        layout->addLayout(form);
+        if (!note.isEmpty()) {
+            auto* label = new QLabel(note, widget);
+            label->setWordWrap(true);
+            layout->addWidget(label);
+        }
+        layout->addStretch();
+        m_tabs->addTab(widget, title);
+        return form;
+    };
+    const QString transparentNote = tr("背景や枠線のアルファ値を0にすると透明になります。");
+    auto* form = page(tr("盤・駒台"));
+    addColorField(form, &BoardColors::background, tr("将棋盤の背景"), QStringLiteral("backgroundColorButton"));
+    addColorField(form, &BoardColors::board, tr("将棋盤"), QStringLiteral("boardColorButton"));
+    addColorField(form, &BoardColors::stand, tr("駒台"), QStringLiteral("standColorButton"));
+    addColorField(form, &BoardColors::grid, tr("マス罫線"), QStringLiteral("gridColorButton"));
+
+    form = page(tr("カード全体"), tr("対局者名と持ち時間を囲むカードの色を設定します。"));
+    addColorField(form, &BoardColors::cardBackground, tr("カードの背景"), QStringLiteral("cardBackgroundColorButton"));
+    addColorField(form, &BoardColors::cardBorder, tr("通常の枠線"), QStringLiteral("cardBorderColorButton"));
+    addColorField(form, &BoardColors::activeCardBorder, tr("手番側の枠線"), QStringLiteral("activeCardBorderColorButton"));
+
+    form = page(tr("手番"), tr("「手番」バッジの色を設定します。") + QChar(0x0a) + transparentNote);
+    addColorField(form, &BoardColors::turnBackground, tr("手番の背景"), QStringLiteral("turnBackgroundColorButton"));
+    addColorField(form, &BoardColors::turnBorder, tr("手番の枠線"), QStringLiteral("turnBorderColorButton"));
+    addColorField(form, &BoardColors::turnText, tr("手番の文字"), QStringLiteral("turnTextColorButton"));
+
+    form = page(tr("対局者名"), transparentNote);
+    addColorField(form, &BoardColors::nameBackground, tr("対局者名の背景"), QStringLiteral("nameBackgroundColorButton"));
+    addColorField(form, &BoardColors::nameBorder, tr("対局者名の枠線"), QStringLiteral("nameBorderColorButton"));
+    addColorField(form, &BoardColors::nameText, tr("対局者名の文字"), QStringLiteral("nameTextColorButton"));
+
+    form = page(tr("持ち時間"), transparentNote);
+    addColorField(form, &BoardColors::clockBackground, tr("持ち時間の背景"), QStringLiteral("clockBackgroundColorButton"));
+    addColorField(form, &BoardColors::clockBorder, tr("持ち時間の枠線"), QStringLiteral("clockBorderColorButton"));
+    addColorField(form, &BoardColors::clockText, tr("持ち時間の文字"), QStringLiteral("clockTextColorButton"));
+    addColorField(form, &BoardColors::clockWarningText, tr("残り10秒以下の文字"), QStringLiteral("clockWarningTextColorButton"));
+    addColorField(form, &BoardColors::clockCriticalText, tr("秒読み・残り5秒以下の文字"), QStringLiteral("clockCriticalTextColorButton"));
+}
+
+void BoardColorDialog::addColorField(QFormLayout* form, BoardColors::Member member,
+                                    const QString& label, const QString& objectName)
+{
+    auto* button = new QPushButton(this);
+    button->setObjectName(objectName);
+    button->setAccessibleName(label);
+    button->setMinimumHeight(36);
+    button->setIconSize(QSize(36, 22));
+    button->setAutoDefault(false);
+    form->addRow(label, button);
+    m_fields.append({button, member, label});
+    connect(button, &QPushButton::clicked, this, &BoardColorDialog::chooseColor);
 }
 
 void BoardColorDialog::chooseColor()
@@ -87,6 +137,7 @@ void BoardColorDialog::chooseColor()
         if (field.button != sender()) continue;
         m_selectedMember = field.member;
         m_picker->setWindowTitle(tr("%1の色").arg(field.label));
+        m_picker->setOption(QColorDialog::ShowAlphaChannel, BoardColors::supportsTransparency(field.member));
         m_picker->setCurrentColor(BoardAppearance::instance().colors().*field.member);
         DialogUtils::restoreDialogSize(m_picker, AppSettings::boardColorPickerSize());
         m_picker->open();
@@ -108,13 +159,17 @@ void BoardColorDialog::refreshButtons()
     for (const auto& field : m_fields) {
         const QColor color = colors.*field.member;
         QPixmap swatch(36, 22);
-        swatch.fill(color);
+        swatch.fill(Qt::white);
         QPainter painter(&swatch);
+        for (int y = 0; y < swatch.height(); y += 6)
+            for (int x = 0; x < swatch.width(); x += 6)
+                if ((x / 6 + y / 6) % 2 == 0) painter.fillRect(x, y, 6, 6, QColor(210, 210, 210));
+        painter.fillRect(swatch.rect(), color);
         painter.setPen(palette().color(QPalette::Mid));
         painter.drawRect(swatch.rect().adjusted(0, 0, -1, -1));
         painter.end();
         field.button->setIcon(QIcon(swatch));
-        field.button->setText(color.name().toUpper());
+        field.button->setText(color.name(color.alpha() == 255 ? QColor::HexRgb : QColor::HexArgb).toUpper());
     }
     syncPresetSelection();
 }
@@ -145,7 +200,13 @@ void BoardColorDialog::rebuildPresets()
 void BoardColorDialog::applyPreset(int index)
 {
     if (index < 0 || index >= m_presets.size()) return;
-    BoardAppearance::instance().setColors(m_presets.at(index).colors);
+    auto colors = BoardAppearance::instance().colors();
+    const auto& selected = m_presets.at(index).colors;
+    colors.background = selected.background;
+    colors.board = selected.board;
+    colors.stand = selected.stand;
+    colors.grid = selected.grid;
+    BoardAppearance::instance().setColors(colors);
 }
 
 void BoardColorDialog::syncPresetSelection()
@@ -153,7 +214,7 @@ void BoardColorDialog::syncPresetSelection()
     const auto colors = BoardAppearance::instance().colors();
     int selected = -1;
     for (qsizetype i = 0; i < m_presets.size(); ++i) {
-        if (m_presets.at(i).colors == colors) {
+        if (m_presets.at(i).colors.sameBoardPalette(colors)) {
             selected = static_cast<int>(i);
             break;
         }

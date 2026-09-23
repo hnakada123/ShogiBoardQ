@@ -4,15 +4,16 @@
 #include "boardcolors.h"
 #include "boardcolorpresets.h"
 #include <QDialog>
-#include <array>
 
 class QColorDialog;
 class QPushButton;
 class QComboBox;
 class QLabel;
 class QIcon;
+class QFormLayout;
+class QTabWidget;
 
-/// 4か所の色を個別に選択し、確定した色を即時反映する。
+/// 盤面と対局者情報の色を個別に選択し、確定した色を即時反映する。
 class BoardColorDialog : public QDialog
 {
     Q_OBJECT
@@ -35,12 +36,16 @@ private:
         QColor BoardColors::* member;
         QString label;
     };
-    std::array<ColorField, 4> m_fields;
+    QList<ColorField> m_fields;
+    QTabWidget* m_tabs;
     QColorDialog* m_picker;
     QColor BoardColors::* m_selectedMember = nullptr;
     QLabel* m_presetLabel;
     QComboBox* m_presetCombo;
     QList<BoardColorPreset> m_presets;
+    void createColorPages();
+    void addColorField(QFormLayout* form, BoardColors::Member member,
+                       const QString& label, const QString& objectName);
     void syncPresetSelection();
     QIcon presetIcon(const BoardColors& colors) const;
 };

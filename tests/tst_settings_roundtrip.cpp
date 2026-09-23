@@ -151,6 +151,46 @@ private slots:
         QCOMPARE(AppSettings::boardColorPickerSize(), QSize(700, 450));
     }
 
+    void appSettings_boardInformationColors()
+    {
+        const BoardColors defaults;
+        BoardColors custom;
+        custom.cardBackground = QColor("#d9e3f0");
+        custom.cardBorder = QColor("#758291");
+        custom.activeCardBorder = QColor("#284a75");
+        custom.turnBackground = QColor("#49658a");
+        custom.turnBorder = QColor("#183459");
+        custom.turnText = QColor("#fff4ca");
+        custom.nameBackground = QColor(241, 221, 184, 128);
+        custom.nameBorder = QColor("#967049");
+        custom.nameText = QColor("#41325d");
+        custom.clockBackground = QColor("#e8ebdd");
+        custom.clockBorder = QColor("#687950");
+        custom.clockText = QColor("#254a3c");
+        custom.clockWarningText = QColor("#926129");
+        custom.clockCriticalText = QColor("#a42d64");
+        AppSettings::setBoardColors(custom);
+        QVERIFY(AppSettings::boardColors() == custom);
+        auto& settings = SettingsCommon::openSettings();
+        settings.sync();
+        QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QCOMPARE(QColor(restored.value(SettingsKeys::kBoardNameBackgroundColor).toString()), custom.nameBackground);
+        QCOMPARE(QColor(restored.value(SettingsKeys::kBoardClockCriticalTextColor).toString()), custom.clockCriticalText);
+
+        settings.setValue(SettingsKeys::kBoardTurnTextColor, QStringLiteral("invalid-color"));
+        custom.turnText = defaults.turnText;
+        QVERIFY(AppSettings::boardColors() == custom);
+        custom.nameBackground = QColor(Qt::transparent);
+        custom.cardBackground.setAlpha(32);
+        AppSettings::setBoardColors(custom);
+        custom.cardBackground.setAlpha(255);
+        QVERIFY(AppSettings::boardColors() == custom);
+        AppSettings::setBoardColors(defaults);
+        AppSettings::setBoardColorDialogTab(4);
+        QCOMPARE(AppSettings::boardColorDialogTab(), 4);
+        AppSettings::setBoardColorDialogTab(0);
+    }
+
     void appSettings_menuWindow()
     {
         QSize testSize(900, 700);

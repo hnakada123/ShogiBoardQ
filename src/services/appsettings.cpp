@@ -117,15 +117,41 @@ void setPieceSoundTone(const PieceSoundTone& tone)
 
 // --- 盤面の配色 ---
 
+namespace {
+struct ColorSetting {
+    const char* key;
+    BoardColors::Member member;
+};
+constexpr ColorSetting kColorSettings[] = {
+    {SettingsKeys::kBoardBackgroundColor, &BoardColors::background},
+    {SettingsKeys::kBoardSurfaceColor, &BoardColors::board},
+    {SettingsKeys::kBoardStandColor, &BoardColors::stand},
+    {SettingsKeys::kBoardGridColor, &BoardColors::grid},
+    {SettingsKeys::kBoardCardBackgroundColor, &BoardColors::cardBackground},
+    {SettingsKeys::kBoardCardBorderColor, &BoardColors::cardBorder},
+    {SettingsKeys::kBoardActiveCardBorderColor, &BoardColors::activeCardBorder},
+    {SettingsKeys::kBoardTurnBackgroundColor, &BoardColors::turnBackground},
+    {SettingsKeys::kBoardTurnBorderColor, &BoardColors::turnBorder},
+    {SettingsKeys::kBoardTurnTextColor, &BoardColors::turnText},
+    {SettingsKeys::kBoardNameBackgroundColor, &BoardColors::nameBackground},
+    {SettingsKeys::kBoardNameBorderColor, &BoardColors::nameBorder},
+    {SettingsKeys::kBoardNameTextColor, &BoardColors::nameText},
+    {SettingsKeys::kBoardClockBackgroundColor, &BoardColors::clockBackground},
+    {SettingsKeys::kBoardClockBorderColor, &BoardColors::clockBorder},
+    {SettingsKeys::kBoardClockTextColor, &BoardColors::clockText},
+    {SettingsKeys::kBoardClockWarningTextColor, &BoardColors::clockWarningText},
+    {SettingsKeys::kBoardClockCriticalTextColor, &BoardColors::clockCriticalText},
+};
+}
+
 BoardColors boardColors()
 {
     QSettings& s = SettingsCommon::openSettings();
-    const BoardColors defaults;
-    const BoardColors colors{
-        QColor(s.value(SettingsKeys::kBoardBackgroundColor, defaults.background.name()).toString()),
-        QColor(s.value(SettingsKeys::kBoardSurfaceColor, defaults.board.name()).toString()),
-        QColor(s.value(SettingsKeys::kBoardStandColor, defaults.stand.name()).toString()),
-        QColor(s.value(SettingsKeys::kBoardGridColor, defaults.grid.name()).toString())};
+    BoardColors colors;
+    for (const auto& entry : kColorSettings) {
+        QColor& color = colors.*entry.member;
+        color = QColor(s.value(entry.key, color.name(QColor::HexArgb)).toString());
+    }
     return colors.normalized();
 }
 
@@ -133,15 +159,25 @@ void setBoardColors(const BoardColors& colors)
 {
     QSettings& s = SettingsCommon::openSettings();
     const BoardColors normalized = colors.normalized();
-    s.setValue(SettingsKeys::kBoardBackgroundColor, normalized.background.name());
-    s.setValue(SettingsKeys::kBoardSurfaceColor, normalized.board.name());
-    s.setValue(SettingsKeys::kBoardStandColor, normalized.stand.name());
-    s.setValue(SettingsKeys::kBoardGridColor, normalized.grid.name());
+    for (const auto& entry : kColorSettings) {
+        const QColor color = normalized.*entry.member;
+        s.setValue(entry.key, color.name(color.alpha() == 255 ? QColor::HexRgb : QColor::HexArgb));
+    }
+}
+
+int boardColorDialogTab()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogTab, 0).toInt();
+}
+
+void setBoardColorDialogTab(int index)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kBoardColorDialogTab, index);
 }
 
 QSize boardColorDialogSize()
 {
-    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogSize, QSize(460, 300)).toSize();
+    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogSize, QSize(560, 480)).toSize();
 }
 
 void setBoardColorDialogSize(const QSize& size)

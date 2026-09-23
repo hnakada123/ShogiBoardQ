@@ -143,30 +143,34 @@ void ShogiViewHighlighting::setUrgencyVisuals(Urgency u)
 
 void ShogiViewHighlighting::refreshPlayerStyles()
 {
+    const auto& colors = m_view->boardColors();
     auto stylePlayer = [&](bool black) {
         const bool active = m_turnHighlightActive && m_blackActive == black;
         auto* card = m_view->findChild<QFrame*>(black ? QStringLiteral("blackPlayerCard")
                                                     : QStringLiteral("whitePlayerCard"));
         auto* badge = m_view->findChild<QLabel*>(black ? QStringLiteral("turnLabelBlack")
                                                      : QStringLiteral("turnLabelWhite"));
-        const QColor textColor = active ? m_highlightFgOn : m_highlightFgOff;
-        QColor clockColor = textColor;
-        if (active && m_urgency == Urgency::Warn10) clockColor = kWarn10Fg;
-        if (active && m_urgency == Urgency::Warn5) clockColor = kWarn5Fg;
-        setLabelStyle(black ? m_view->blackNameLabel() : m_view->whiteNameLabel(), textColor, false);
-        setLabelStyle(black ? m_view->blackClockLabel() : m_view->whiteClockLabel(), clockColor, true);
+        const QColor overrideText = active ? m_highlightFgOn : m_highlightFgOff;
+        const QColor nameColor = overrideText.isValid() ? overrideText : colors.nameText;
+        QColor clockColor = overrideText.isValid() ? overrideText : colors.clockText;
+        if (active && m_urgency == Urgency::Warn10) clockColor = colors.clockWarningText;
+        if (active && m_urgency == Urgency::Warn5) clockColor = colors.clockCriticalText;
+        setLabelStyle(black ? m_view->blackNameLabel() : m_view->whiteNameLabel(),
+                      nameColor, colors.nameBackground, colors.nameBorder, false);
+        setLabelStyle(black ? m_view->blackClockLabel() : m_view->whiteClockLabel(),
+                      clockColor, colors.clockBackground, colors.clockBorder, true);
         if (card) {
             const QString css = QStringLiteral(
                 "QFrame#%1 { background:%2; border:%3px solid %4; border-radius:6px; }")
-                .arg(card->objectName(), toRgb(m_highlightBg))
+                .arg(card->objectName(), toRgba(m_highlightBg.isValid() ? m_highlightBg : colors.cardBackground))
                 .arg(active ? 2 : 1)
-                .arg(toRgb(active ? kTurnAccent : kCardBorder));
+                .arg(toRgba(active ? colors.activeCardBorder : colors.cardBorder));
             if (card->styleSheet() != css) card->setStyleSheet(css);
         }
         if (badge) {
             const QString css = QStringLiteral(
-                "color:#ffffff; background:%1; border:0px; border-radius:4px; padding:0px; font-weight:700;")
-                .arg(toRgb(kTurnAccent));
+                "color:%1; background:%2; border:1px solid %3; border-radius:4px; padding:0px; font-weight:700;")
+                .arg(toRgba(colors.turnText), toRgba(colors.turnBackground), toRgba(colors.turnBorder));
             if (badge->styleSheet() != css) badge->setStyleSheet(css);
             badge->setVisible(active && m_view->board());
         }
@@ -200,6 +204,9 @@ void ShogiViewHighlighting::applyStartupTypography()
 
 void ShogiViewHighlighting::refreshBackgroundColors()
 {
+    m_highlightBg = QColor();
+    m_highlightFgOn = QColor();
+    m_highlightFgOff = QColor();
     if (m_turnHighlightActive) setUrgencyVisuals(m_urgency);
     else applyStartupTypography();
 }
@@ -426,19 +433,20 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
 // ラベルスタイルヘルパ
 // ─────────────────────────────────────────────────────────────────────────────
 
-QString ShogiViewHighlighting::toRgb(const QColor& c)
+QString ShogiViewHighlighting::toRgba(const QColor& c)
 {
-    return QStringLiteral("rgb(%1,%2,%3)")
-    .arg(QString::number(c.red()),
-         QString::number(c.green()),
-         QString::number(c.blue()));
+    return QStringLiteral("rgba(%1,%2,%3,%4)")
+        .arg(c.red()).arg(c.green()).arg(c.blue()).arg(c.alpha());
 }
 
-void ShogiViewHighlighting::setLabelStyle(QLabel* lbl, const QColor& fg, bool bold)
+void ShogiViewHighlighting::setLabelStyle(QLabel* lbl, const QColor& fg, const QColor& bg,
+                                         const QColor& border, bool bold)
 {
     if (!lbl) return;
     const QString css = QStringLiteral(
-        "color:%1; background:transparent; border:0px; padding:0px; font-weight:%2;")
-        .arg(toRgb(fg), bold ? QStringLiteral("700") : QStringLiteral("400"));
+        "color:%1; background:%2; border:%4px solid %3; border-radius:2px; padding:0px; font-weight:%5;")
+        .arg(toRgba(fg), toRgba(bg), toRgba(border))
+        .arg(border.alpha() == 0 ? 0 : 1)
+        .arg(bold ? QStringLiteral("700") : QStringLiteral("400"));
     if (lbl->styleSheet() != css) lbl->setStyleSheet(css);
 }
