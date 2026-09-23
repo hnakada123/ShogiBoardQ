@@ -25,6 +25,11 @@ class SfenCollectionDialog : public QDialog
 {
     Q_OBJECT
 
+#ifdef SHOGIBOARDQ_TESTING
+    /// テスト専用: tst_sfen_collection.cpp がパース結果とナビゲーション状態を直接検証する
+    friend class TestSfenCollection;
+#endif
+
 public:
     explicit SfenCollectionDialog(QWidget* parent = nullptr);
     ~SfenCollectionDialog() override;

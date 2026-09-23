@@ -53,6 +53,32 @@ private:
         return f.readAll();
     }
 
+    /// 改行コードを LF に正規化して読み出す
+    ///
+    /// KifuIoService::writeKifuFile() は QIODevice::Text で書き出すため、
+    /// 改行はプラットフォーム標準（Windows では CRLF、それ以外は LF）になる。
+    /// KIF/KI2 は Windows 系ツールの慣習で CRLF が期待され、CSA/JKF/USI/USEN も
+    /// 読み込み側が "\r?\n" を正規化するため、どちらの改行でも正しく往復する。
+    /// 内容の検証では改行コードの違いを無視する。
+    static QByteArray readAllNormalized(const QString& path)
+    {
+        QByteArray bytes = readAllBytes(path);
+        bytes.replace("\r\n", "\n");
+        return bytes;
+    }
+
+    /// UTF-8 として読み出し、改行コードを LF に正規化する
+    static QString readAllTextNormalized(const QString& path)
+    {
+        return QString::fromUtf8(readAllNormalized(path));
+    }
+
+    /// 改行コードを LF に正規化する
+    static QString normalizeNewlines(QString text)
+    {
+        return text.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    }
+
 private slots:
     void initTestCase()
     {
@@ -98,7 +124,7 @@ private slots:
         else {
             QCOMPARE(actual, expectedFormat);
             QCOMPARE(path, responder.filePath);
-            QCOMPARE(readAllBytes(path), QByteArray("selected format only\n"));
+            QCOMPARE(readAllNormalized(path), QByteArray("selected format only\n"));
         }
     }
 
@@ -133,7 +159,7 @@ private slots:
         });
         QCOMPARE(accepted, proceed);
         QCOMPARE(saves, dirty && answer == int(QMessageBox::Save) ? 1 : 0);
-        if (saves && !writeFails) QCOMPARE(readAllBytes(path), QByteArray("unsaved record\n"));
+        if (saves && !writeFails) QCOMPARE(readAllNormalized(path), QByteArray("unsaved record\n"));
     }
 
     void unsavedChangesGuard_saveAsCanceled()
@@ -275,7 +301,7 @@ private slots:
         QString err;
         QVERIFY2(KifuSaveCoordinator::overwriteExisting(path, lines, &err), qPrintable(err));
 
-        const QString text = QString::fromUtf8(readAllBytes(path));
+        const QString text = readAllTextNormalized(path);
         QCOMPARE(text, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
     }
 
@@ -292,7 +318,7 @@ private slots:
         QVERIFY(KifuSaveCoordinator::overwriteExisting(
             path, {QStringLiteral("position startpos moves 7g7f")}, &err));
 
-        QCOMPARE(QString::fromUtf8(readAllBytes(path)),
+        QCOMPARE(readAllTextNormalized(path),
                  QStringLiteral("position startpos moves 7g7f\n"));
     }
 
@@ -311,7 +337,7 @@ private slots:
         QString err;
         QVERIFY2(KifuSaveCoordinator::overwriteExisting(path, lines, &err), qPrintable(err));
 
-        const QString text = QString::fromUtf8(readAllBytes(path));
+        const QString text = readAllTextNormalized(path);
         QCOMPARE(text, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
     }
 
@@ -337,7 +363,7 @@ private slots:
 
         const QByteArray bytes = readAllBytes(path);
         QStringDecoder decoder("Shift-JIS");
-        const QString text = decoder(bytes);
+        const QString text = normalizeNewlines(decoder(bytes));
         QVERIFY(text.startsWith(QStringLiteral("#KIF version=2.0 encoding=Shift_JIS\n")));
         QVERIFY(text.contains(QStringLiteral("先手：鈴木")));
         QVERIFY(text.contains(QStringLiteral("７六歩(77)")));

@@ -29,6 +29,11 @@ class CsaClient : public QObject
 {
     Q_OBJECT
 
+#ifdef SHOGIBOARDQ_TESTING
+    /// テスト専用: tst_csaprotocol.cpp がパーサ内部状態を直接検証する
+    friend class Tst_CsaProtocol;
+#endif
+
 public:
     /**
      * @brief 接続状態

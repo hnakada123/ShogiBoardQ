@@ -60,6 +60,11 @@ class JosekiWindow : public QWidget
 {
     Q_OBJECT
 
+#ifdef SHOGIBOARDQ_TESTING
+    /// テスト専用: tst_josekiwindow.cpp が保存状態とマージ処理を直接検証する
+    friend class TestJosekiWindow;
+#endif
+
 public:
     explicit JosekiWindow(QWidget *parent = nullptr);
     ~JosekiWindow() override;

@@ -16,9 +16,8 @@
 
 #include "settingscommon.h"
 #include "josekisettings.h"
-#define private public
+// private メンバへは JosekiWindow の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "josekiwindow.h"
-#undef private
 #include "josekirepository.h"
 #include "josekipresenter.h"
 #include "josekimergedialog.h"

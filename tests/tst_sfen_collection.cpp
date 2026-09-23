@@ -1,12 +1,8 @@
 /// @file tst_sfen_collection.cpp
 /// @brief 局面集ビューア (SfenCollectionDialog) テスト
 
-// private メンバへのアクセスを許可するテスト用ハック
-#define private public
-#define protected public
+// private メンバへは SfenCollectionDialog の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "sfencollectiondialog.h"
-#undef private
-#undef protected
 
 #include <QtTest>
 #include <QSignalSpy>

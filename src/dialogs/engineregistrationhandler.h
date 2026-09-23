@@ -21,6 +21,11 @@ class EngineRegistrationHandler : public QObject
 {
     Q_OBJECT
 
+#ifdef SHOGIBOARDQ_TESTING
+    /// テスト専用: tst_engineregistrationhandler.cpp がオプション解析結果を直接検証する
+    friend class TestEngineRegistrationHandler;
+#endif
+
 public:
     explicit EngineRegistrationHandler(QObject *parent = nullptr);
     ~EngineRegistrationHandler() override;

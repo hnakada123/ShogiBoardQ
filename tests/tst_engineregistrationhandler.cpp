@@ -1,9 +1,8 @@
 /// @file tst_engineregistrationhandler.cpp
 /// @brief EngineRegistrationHandler のオプション解析と実行時キャンセルテスト
 
-#define private public
+// private メンバへは EngineRegistrationHandler の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "engineregistrationhandler.h"
-#undef private
 #include "engineregistrationdialog.h"
 
 #include <QtTest>

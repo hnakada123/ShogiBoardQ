@@ -9,9 +9,8 @@
 #include <QtTest>
 #include <QCoreApplication>
 
-#define private public
+// private メンバへは CsaClient の friend 宣言（SHOGIBOARDQ_TESTING 時のみ有効）経由でアクセスする
 #include "csaclient.h"
-#undef private
 #include "csamoveconverter.h"
 #include "sfencsapositionconverter.h"
 #include "shogiboard.h"
