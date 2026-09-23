@@ -258,12 +258,15 @@ void ElideLabel::mouseReleaseEvent(QMouseEvent* ev)
 //       2) それ以外：幅に収まるならフルテキスト、収まらないならエリプシス（…）で省略描画
 // 注意：ループ描画では textW+m_gap を周期とし、m_offset を mod 周期で折り返して継ぎ目を消す。
 // 備考：下線オプション（m_underline）時はベースライン直上に 1px ガイドラインを引く。
-void ElideLabel::paintEvent(QPaintEvent*)
+void ElideLabel::paintEvent(QPaintEvent* event)
 {
+    // ラベルの背景・枠線は QLabel に描画させ、文字だけを省略・スクロールする。
+    QLabel::paintEvent(event);
     QPainter p(this);
     p.setRenderHint(QPainter::TextAntialiasing, true);
 
     const QRect cr = contentsRect();
+    p.setClipRect(cr);
     QFontMetrics fm(font());
     const int textW = fm.horizontalAdvance(m_fullText);
     // 中央揃え用のベースライン： ascent / descent を考慮して垂直中央に配置

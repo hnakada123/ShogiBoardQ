@@ -3,6 +3,7 @@
 #include <QFrame>
 
 #include "elidelabel.h"
+#include "boardappearance.h"
 #include "sfenpositiontracer.h"
 #include "sfenutils.h"
 #include "shogiboard.h"
@@ -58,12 +59,12 @@ class TestTurnStateSync : public QObject
                                                               : QStringLiteral("blackPlayerCard"));
         QVERIFY(activeCard);
         QVERIFY(inactiveCard);
-        QCOMPARE(activeCard->palette().color(QPalette::Window), QColor("#dce5cc"));
-        QCOMPARE(inactiveCard->palette().color(QPalette::Window), QColor("#dce5cc"));
+        QCOMPARE(activeCard->palette().color(QPalette::Window), view.boardColors().cardBackground);
+        QCOMPARE(inactiveCard->palette().color(QPalette::Window), view.boardColors().cardBackground);
         // 終局後のナビゲーションでも手番バッジとカード全周の枠線が一緒に移る。
         for (auto* card : {activeCard, inactiveCard}) {
             const QImage image = card->grab().toImage();
-            const QColor borderColor(card == activeCard ? "#3f6254" : "#d6cbb5");
+            const QColor borderColor = card == activeCard ? view.boardColors().activeCardBorder : view.boardColors().cardBorder;
             for (const QPoint& edge : {QPoint(0, image.height() / 2),
                                        QPoint(image.width() - 1, image.height() / 2),
                                        QPoint(image.width() / 2, 0),
@@ -72,7 +73,7 @@ class TestTurnStateSync : public QObject
             }
         }
         const auto* activeTurn = blackTurn ? blackLabel : whiteLabel;
-        QCOMPARE(activeTurn->palette().color(QPalette::Window), QColor("#3f6254"));
+        QCOMPARE(activeTurn->palette().color(QPalette::Window), view.boardColors().turnBackground);
         QCOMPARE(view.blackNameLabel()->palette().color(QPalette::WindowText),
                  view.whiteNameLabel()->palette().color(QPalette::WindowText));
     }
@@ -139,6 +140,79 @@ private slots:
             m_sync.setCurrentTurn();
             verifyTurn(view, gc, (ply % 2 == 0) != whiteStart);
         }
+    }
+
+    void customColors_followTurnsAndWarnings()
+    {
+        ShogiGameController gc;
+        QString initialSfen = SfenUtils::hirateSfen();
+        gc.newGame(initialSfen);
+        ShogiView view;
+        view.setBoard(gc.board());
+        view.resize(view.sizeHint());
+        view.setBlackPlayerName(QStringLiteral("先手"));
+        view.setWhitePlayerName(QStringLiteral("後手"));
+        view.show();
+        BoardColors custom;
+        custom.cardBackground = QColor("#dde6f0");
+        custom.cardBorder = QColor("#647589");
+        custom.activeCardBorder = QColor("#235da1");
+        custom.turnBackground = QColor("#315e97");
+        custom.turnBorder = QColor("#112f58");
+        custom.turnText = QColor("#fff4ba");
+        custom.nameBackground = QColor("#fae8ce");
+        custom.nameBorder = QColor("#af7e48");
+        custom.nameText = QColor("#593f2b");
+        custom.clockBackground = QColor("#e4efd3");
+        custom.clockBorder = QColor("#788f54");
+        custom.clockText = QColor("#345b3d");
+        custom.clockWarningText = QColor("#996722");
+        custom.clockCriticalText = QColor("#aa2961");
+        BoardAppearance::instance().setColors(custom);
+        ShogiClock clock;
+        QObject turnParent;
+        const bool gameActive = true;
+        configure(gc, view, clock, turnParent, gameActive);
+        for (bool black : {true, false}) {
+            gc.setCurrentPlayer(black ? ShogiGameController::Player1 : ShogiGameController::Player2);
+            m_sync.setCurrentTurn();
+            verifyTurn(view, gc, black);
+            const auto* badge = view.findChild<QLabel*>(black ? "turnLabelBlack" : "turnLabelWhite");
+            QCOMPARE(badge->palette().color(QPalette::WindowText), custom.turnText);
+            for (auto* label : {view.blackNameLabel(), view.whiteNameLabel()}) {
+                QCOMPARE(label->palette().color(QPalette::WindowText), custom.nameText);
+                const QImage image = label->grab().toImage();
+                QCOMPARE(image.pixelColor(0, image.height() / 2), custom.nameBorder);
+                QCOMPARE(image.pixelColor(image.width() - 3, 2), custom.nameBackground);
+            }
+            auto* activeClock = black ? view.blackClockLabel() : view.whiteClockLabel();
+            auto* inactiveClock = black ? view.whiteClockLabel() : view.blackClockLabel();
+            QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockText);
+            const QImage clockImage = activeClock->grab().toImage();
+            QCOMPARE(clockImage.pixelColor(0, clockImage.height() / 2), custom.clockBorder);
+            QCOMPARE(clockImage.pixelColor(clockImage.width() - 3, 2), custom.clockBackground);
+            view.setUrgencyVisuals(ShogiView::Urgency::Warn10);
+            QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockWarningText);
+            view.setUrgencyVisuals(ShogiView::Urgency::Warn5);
+            QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockCriticalText);
+            custom.clockCriticalText = QColor("#bc2049");
+            BoardAppearance::instance().setColors(custom);
+            QCOMPARE(activeClock->palette().color(QPalette::WindowText), custom.clockCriticalText);
+            QCOMPARE(inactiveClock->palette().color(QPalette::WindowText), custom.clockText);
+        }
+        // 半透明の名前背景には、カードの色が一度だけ合成される。
+        custom.nameBackground = QColor(255, 255, 255, 128);
+        BoardAppearance::instance().setColors(custom);
+        const auto* name = view.blackNameLabel();
+        const QColor blended = view.grab().toImage().pixelColor(name->x() + name->width() - 3, name->y() + 2);
+        QVERIFY(qAbs(blended.red() - (255 + custom.cardBackground.red()) / 2) <= 1);
+        QVERIFY(qAbs(blended.green() - (255 + custom.cardBackground.green()) / 2) <= 1);
+        QVERIFY(qAbs(blended.blue() - (255 + custom.cardBackground.blue()) / 2) <= 1);
+    }
+
+    void cleanup()
+    {
+        BoardAppearance::instance().setColors(BoardColors{});
     }
 
     void liveGameKeepsControllerTurn()

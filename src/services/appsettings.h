@@ -56,6 +56,8 @@ void setPieceSoundTone(const PieceSoundTone& tone);
 /// 盤面の配色（不正な色は標準色に戻す）
 BoardColors boardColors();
 void setBoardColors(const BoardColors& colors);
+int boardColorDialogTab();
+void setBoardColorDialogTab(int index);
 QSize boardColorDialogSize();
 void setBoardColorDialogSize(const QSize& size);
 QSize boardColorPickerSize();

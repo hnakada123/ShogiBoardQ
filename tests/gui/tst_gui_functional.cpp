@@ -32,6 +32,7 @@
 #include <QTableWidget>
 #include <QTranslator>
 #include <QTemporaryDir>
+#include <QTabWidget>
 #include "mainwindow.h"
 #include "shogiview.h"
 #include "elidelabel.h"
@@ -593,6 +594,124 @@ private slots:
         QTest::mouseClick(reset, Qt::LeftButton);
         QCOMPARE(changed.count(), 5);
         QCOMPARE(boardSfen(), initial);
+    }
+    void boardInformationColors()
+    {
+        ShogiView secondary;
+        click("actionBoardColors");
+        auto* dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        auto* tabs = dialog->findChild<QTabWidget*>("boardColorTabs");
+        auto* picker = dialog->findChild<QColorDialog*>("boardColorPicker");
+        QVERIFY(tabs && picker);
+        QCOMPARE(tabs->count(), 5);
+        struct Choice {
+            const char* button;
+            BoardColors::Member member;
+            QColor color;
+            int tab;
+        };
+        const QList<Choice> choices = {
+            {"cardBackgroundColorButton", &BoardColors::cardBackground, QColor("#dde6f0"), 1},
+            {"cardBorderColorButton", &BoardColors::cardBorder, QColor("#647589"), 1},
+            {"activeCardBorderColorButton", &BoardColors::activeCardBorder, QColor("#235da1"), 1},
+            {"turnBackgroundColorButton", &BoardColors::turnBackground, QColor("#315e97"), 2},
+            {"turnBorderColorButton", &BoardColors::turnBorder, QColor("#112f58"), 2},
+            {"turnTextColorButton", &BoardColors::turnText, QColor("#fff4ba"), 2},
+            {"nameBackgroundColorButton", &BoardColors::nameBackground, QColor("#fae8ce"), 3},
+            {"nameBorderColorButton", &BoardColors::nameBorder, QColor("#af7e48"), 3},
+            {"nameTextColorButton", &BoardColors::nameText, QColor("#593f2b"), 3},
+            {"clockBackgroundColorButton", &BoardColors::clockBackground, QColor("#e4efd3"), 4},
+            {"clockBorderColorButton", &BoardColors::clockBorder, QColor("#788f54"), 4},
+            {"clockTextColorButton", &BoardColors::clockText, QColor("#345b3d"), 4},
+            {"clockWarningTextColorButton", &BoardColors::clockWarningText, QColor("#996722"), 4},
+            {"clockCriticalTextColorButton", &BoardColors::clockCriticalText, QColor("#aa2961"), 4}
+        };
+        auto expected = board()->boardColors();
+        board()->setActiveSide(true);
+        for (const auto& choice : choices) {
+            tabs->setCurrentIndex(choice.tab);
+            auto* button = dialog->findChild<QPushButton*>(QLatin1String(choice.button));
+            QVERIFY(button && button->isVisible());
+            QTest::mouseClick(button, Qt::LeftButton);
+            QTRY_VERIFY(picker->isVisible());
+            QCOMPARE(picker->testOption(QColorDialog::ShowAlphaChannel), BoardColors::supportsTransparency(choice.member));
+            picker->setCurrentColor(choice.color);
+            auto* buttons = picker->findChild<QDialogButtonBox*>();
+            QVERIFY(buttons);
+            QTest::mouseClick(buttons->button(QDialogButtonBox::Ok), Qt::LeftButton);
+            QTRY_VERIFY(!picker->isVisible());
+            expected.*choice.member = choice.color;
+            QVERIFY(AppSettings::boardColors() == expected);
+            QVERIFY(board()->boardColors() == expected);
+            QVERIFY(secondary.boardColors() == expected);
+            QCOMPARE(button->text(), choice.color.name().toUpper());
+        }
+        QCOMPARE(board()->blackNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
+        QCOMPARE(board()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockText);
+        QCOMPARE(board()->findChild<QLabel*>("turnLabelBlack")->palette().color(QPalette::WindowText), expected.turnText);
+        board()->setUrgencyVisuals(ShogiView::Urgency::Warn5);
+        QCOMPARE(board()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
+        snapshot("board-information-colors");
+        dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-information-colors-dialog.png"));
+
+        // おすすめ配色は盤面の4色だけを変更し、表示色は保持する。
+        tabs->setCurrentIndex(0);
+        auto* combo = dialog->findChild<QComboBox*>("boardColorPresetCombo");
+        QVERIFY(combo);
+        combo->showPopup();
+        QTest::qWait(20);
+        auto* list = combo->view();
+        const auto index = list->model()->index(0, 0);
+        QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier, list->visualRect(index).center());
+        const auto preset = BoardColorPresets::forPieceStyle(AppSettings::pieceStyle()).first().colors;
+        expected.background = preset.background;
+        expected.board = preset.board;
+        expected.stand = preset.stand;
+        expected.grid = preset.grid;
+        QVERIFY(board()->boardColors() == expected);
+        QCOMPARE(combo->currentIndex(), 0);
+        QCOMPARE(board()->blackClockLabel()->palette().color(QPalette::WindowText), expected.clockCriticalText);
+
+        // 半透明の保存、キャンセル、プリセットの選択表示を確認する。
+        tabs->setCurrentIndex(3);
+        auto* nameBackground = dialog->findChild<QPushButton*>("nameBackgroundColorButton");
+        QTest::mouseClick(nameBackground, Qt::LeftButton);
+        QTRY_VERIFY(picker->isVisible());
+        picker->setCurrentColor(QColor(255, 255, 255, 128));
+        picker->reject();
+        QVERIFY(board()->boardColors() == expected);
+        QTest::mouseClick(nameBackground, Qt::LeftButton);
+        QTRY_VERIFY(picker->isVisible());
+        expected.nameBackground = QColor(255, 255, 255, 128);
+        picker->setCurrentColor(expected.nameBackground);
+        picker->accept();
+        QVERIFY(board()->boardColors() == expected);
+        QCOMPARE(nameBackground->text(), expected.nameBackground.name(QColor::HexArgb).toUpper());
+        QCOMPARE(combo->currentIndex(), 0);
+
+        // ダイアログの選択タブと配色を、再作成したウィンドウでも復元する。
+        tabs->setCurrentIndex(4);
+        QPointer<BoardColorDialog> guard(dialog);
+        dialog->close();
+        QTRY_VERIFY(guard.isNull());
+        QCOMPARE(AppSettings::boardColorDialogTab(), 4);
+        window->close();
+        window.reset();
+        window = std::make_unique<MainWindow>();
+        window->show();
+        QVERIFY(board()->boardColors() == expected);
+        QCOMPARE(board()->whiteNameLabel()->palette().color(QPalette::WindowText), expected.nameText);
+        click("actionBoardColors");
+        dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        tabs = dialog->findChild<QTabWidget*>("boardColorTabs");
+        QCOMPARE(tabs->currentIndex(), 4);
+        QCOMPARE(dialog->findChild<QPushButton*>("clockTextColorButton")->text(), expected.clockText.name().toUpper());
+        QTest::mouseClick(dialog->findChild<QPushButton*>("resetBoardColorsButton"), Qt::LeftButton);
+        QVERIFY(board()->boardColors() == BoardColors{});
+        QVERIFY(secondary.boardColors() == BoardColors{});
+        QVERIFY(AppSettings::boardColors() == BoardColors{});
     }
     void boardColorPresets_data()
     {

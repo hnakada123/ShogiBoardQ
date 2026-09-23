@@ -145,52 +145,162 @@
 <context>
     <name>BoardColorDialog</name>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="20"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="22"/>
         <source>盤面の配色</source>
         <translation>盤面の配色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="23"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="25"/>
         <source>色を選択すると、すべての将棋盤に反映・保存されます。</source>
         <translation>色を選択すると、すべての将棋盤に反映・保存されます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="31"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="32"/>
         <source>カスタム（個別に指定）</source>
         <translation>カスタム（個別に指定）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="42"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="90"/>
+        <source>背景や枠線のアルファ値を0にすると透明になります。</source>
+        <translation>背景や枠線のアルファ値を0にすると透明になります。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="91"/>
+        <source>盤・駒台</source>
+        <translation>盤・駒台</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="92"/>
         <source>将棋盤の背景</source>
         <translation>将棋盤の背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="43"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="93"/>
         <source>将棋盤</source>
         <translation>将棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="44"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="94"/>
         <source>駒台</source>
         <translation>駒台</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="45"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="95"/>
         <source>マス罫線</source>
         <translation>マス罫線</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="60"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="45"/>
         <source>標準色に戻す</source>
         <translation>標準色に戻す</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="88"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="97"/>
+        <source>カード全体</source>
+        <translation>カード全体</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="97"/>
+        <source>対局者名と持ち時間を囲むカードの色を設定します。</source>
+        <translation>対局者名と持ち時間を囲むカードの色を設定します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="98"/>
+        <source>カードの背景</source>
+        <translation>カードの背景</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="99"/>
+        <source>通常の枠線</source>
+        <translation>通常の枠線</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="100"/>
+        <source>手番側の枠線</source>
+        <translation>手番側の枠線</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="102"/>
+        <source>手番</source>
+        <translation>手番</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="102"/>
+        <source>「手番」バッジの色を設定します。</source>
+        <translation>「手番」バッジの色を設定します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="103"/>
+        <source>手番の背景</source>
+        <translation>手番の背景</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="104"/>
+        <source>手番の枠線</source>
+        <translation>手番の枠線</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="105"/>
+        <source>手番の文字</source>
+        <translation>手番の文字</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="107"/>
+        <source>対局者名</source>
+        <translation>対局者名</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="108"/>
+        <source>対局者名の背景</source>
+        <translation>対局者名の背景</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="109"/>
+        <source>対局者名の枠線</source>
+        <translation>対局者名の枠線</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="110"/>
+        <source>対局者名の文字</source>
+        <translation>対局者名の文字</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="112"/>
+        <source>持ち時間</source>
+        <translation>持ち時間</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="113"/>
+        <source>持ち時間の背景</source>
+        <translation>持ち時間の背景</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="114"/>
+        <source>持ち時間の枠線</source>
+        <translation>持ち時間の枠線</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="115"/>
+        <source>持ち時間の文字</source>
+        <translation>持ち時間の文字</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="116"/>
+        <source>残り10秒以下の文字</source>
+        <translation>残り10秒以下の文字</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="117"/>
+        <source>秒読み・残り5秒以下の文字</source>
+        <translation>秒読み・残り5秒以下の文字</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="139"/>
         <source>%1の色</source>
         <translation>%1の色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="190"/>
         <source>%1に合うおすすめ配色</source>
         <translation>%1に合うおすすめ配色</translation>
     </message>
