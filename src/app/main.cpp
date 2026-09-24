@@ -12,8 +12,6 @@
 #include <QGuiApplication>
 #include <QToolTip>
 #include <QIcon>
-#include <QImage>
-#include <QPixmap>
 #include <QFile>
 #include <QTextStream>
 #include <QDateTime>
@@ -74,22 +72,16 @@ static std::unique_ptr<QFile> logFile;
 
 static QIcon applicationIcon()
 {
-    const QImage image(":/icons/shogiboardq.png");
 #ifdef Q_OS_WIN
-    // 元画像の透明な余白を除き、タスクバーのアイコン枠を絵柄に使う。
-    QRect contentRect;
-    for (int y = 0; y < image.height(); ++y) {
-        for (int x = 0; x < image.width(); ++x) {
-            if (image.pixelColor(x, y).alpha() != 0) {
-                contentRect |= QRect(x, y, 1, 1);
-            }
-        }
-    }
-    if (!contentRect.isEmpty()) {
-        return QIcon(QPixmap::fromImage(image.copy(contentRect)));
-    }
+    // 実行ファイルと同じ複数サイズのICOを使い、高DPI用に512pxも用意する。
+    QIcon icon(":/icons/shogiboardq.ico");
+    icon.addFile(":/icons/windows/shogiboardq.png", QSize(512, 512));
+    return icon;
+#elif defined(Q_OS_LINUX)
+    return QIcon(":/icons/linux/shogiboardq.png");
+#else
+    return QIcon(":/icons/shogiboardq.png");
 #endif
-    return QIcon(QPixmap::fromImage(image));
 }
 
 int main(int argc, char *argv[])
@@ -106,6 +98,10 @@ int main(int argc, char *argv[])
 
     QApplication a(argc, argv);
     a.setApplicationName("ShogiBoardQ");
+#ifdef Q_OS_LINUX
+    // Waylandでもデスクトップエントリのアイコンと関連付ける。
+    a.setDesktopFileName(QStringLiteral("shogiboardq"));
+#endif
 
     // アプリケーションアイコンを設定
     a.setWindowIcon(applicationIcon());

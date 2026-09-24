@@ -29,7 +29,7 @@ APP_NAME="ShogiBoardQ"
 BUILD_DIR="build"
 APPDIR="${BUILD_DIR}/AppDir"
 APPIMAGE_NAME="${APP_NAME}-linux-x86_64.AppImage"
-ICON_PATH="resources/icons/shogiboardq.png"
+ICON_PATH="resources/icons/linux/shogiboardq.png"
 DESKTOP_PATH="resources/platform/shogiboardq.desktop"
 
 LINUXDEPLOY_URL="https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"

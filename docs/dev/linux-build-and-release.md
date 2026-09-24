@@ -215,7 +215,7 @@ AppImage の作成には FreeDesktop 準拠の `.desktop` ファイルとアイ�
 これらはリポジトリに同梱されている：
 
 - `resources/platform/shogiboardq.desktop` — デスクトップエントリ
-- `resources/icons/shogiboardq.png` — アプリケーションアイコン
+- `resources/icons/linux/shogiboardq.png` — アプリケーションアイコン
 
 ### 4.3 AppDir の作成と AppImage 生成
 
@@ -236,7 +236,7 @@ build/linuxdeploy-x86_64.AppImage \
   --appdir build/AppDir \
   --executable build/AppDir/usr/bin/ShogiBoardQ \
   --desktop-file resources/platform/shogiboardq.desktop \
-  --icon-file resources/icons/shogiboardq.png \
+  --icon-file resources/icons/linux/shogiboardq.png \
   --plugin qt \
   --output appimage
 ```
@@ -470,7 +470,7 @@ build/linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
   --appdir build/AppDir \
   --executable build/AppDir/usr/bin/ShogiBoardQ \
   --desktop-file resources/platform/shogiboardq.desktop \
-  --icon-file resources/icons/shogiboardq.png \
+  --icon-file resources/icons/linux/shogiboardq.png \
   --plugin qt \
   --output appimage
 ```
