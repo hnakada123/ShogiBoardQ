@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>詰将棋対局 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQの詰将棋対局を紹介します。SFEN局面集から問題を選び、Hayanagiを玉方として盤上で解けます。問題一覧のページ表示、挑戦・正答履歴、正解手順の再生に対応しています。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsume-play.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/tsume-play.html">
+    <meta property="og:title" content="詰将棋対局 - ShogiBoardQ">
+    <meta property="og:description" content="局面集から問題を選び、Hayanagiを玉方として詰将棋に挑戦。履歴の保存と正解手順の再生で繰り返し練習できます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsume-play/tsume-play.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="詰将棋対局 - ShogiBoardQ">
+    <meta name="twitter:description" content="初期盤面から問題を選んで詰将棋に挑戦。ページ表示・挑戦履歴・正解手順の再生に対応。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsume-play/tsume-play.png">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <button class="nav-toggle" aria-label="メニュー" aria-controls="guide-nav" aria-expanded="false" onclick="const open = document.getElementById('guide-nav').classList.toggle('open'); this.setAttribute('aria-expanded', String(open));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="#problems">問題を選ぶ</a></li>
+            <li><a href="#playing">盤上で解く</a></li>
+            <li><a href="#solution">正解手順</a></li>
+            <li><a href="#history">挑戦履歴</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="tsume-play-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>詰将棋対局</h1>
+        <p class="hero-subtitle">問題を選び、盤上で解き、手順を振り返る</p>
+        <div class="hero-badges">
+            <span class="badge">SFEN局面集</span>
+            <span class="badge">玉方はHayanagi</span>
+            <span class="badge">挑戦・正答履歴</span>
+            <span class="badge">正解手順の再生</span>
+        </div>
+    </div>
+</section>
+
+<section id="problems" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">初期盤面を見て問題を選ぶ</h2>
+        <p class="section-desc">多数の問題もページごとに閲覧できます</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">局面集を開く</h3>
+                </div>
+                <p class="guide-step-text">メニューの「対局」→「詰将棋対局…」を選ぶと、「詰将棋の問題一覧」が開きます。「局面集を開く…」で、1行に1局面のSFENが書かれたテキストファイルを選択してください。</p>
+                <p class="guide-step-text"><a href="tsumeshogi-generator.html">詰将棋局面生成</a>で保存した局面集を利用できます。初期局面だけのファイルにも、参考手順付きのファイルにも対応しています。詰み手数は局面を解析して確認するため、ファイル名や参考手順の長さだけで決めることはありません。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">初期配置・手数・履歴を確認する</h3>
+                </div>
+                <p class="guide-step-text">各問題のカードに、初期盤面と持駒、問題番号、詰み手数、挑戦状況が表示されます。表示件数は10・20・50・100件から選べます。「前ページ」「次ページ」やページ番号で移動するので、1000問の局面集でも少しずつ選べます。</p>
+                <p class="guide-step-text">「すべて」「未挑戦」「挑戦済み・未正答」「正答済み」で絞り込み、練習したい問題を探せます。問題のカードをクリックすると対局画面に進みます。</p>
+                <div class="screenshot-item">
+                    <img src="../images/tsume-play/tsume-collection.png" alt="詰将棋の問題一覧。初期盤面、詰み手数、挑戦状況のカードと表示件数・ページ切替の操作欄" width="1100" height="800" loading="lazy">
+                    <p class="screenshot-caption">問題一覧：初期配置と詰み手数を見ながら、挑戦する問題を選択</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">判定エンジンと判定時間を選ぶ</h3>
+                </div>
+                <p class="guide-step-text">内蔵のHayanagiなら、追加のエンジン登録なしで利用できます。初期局面の詰み判定は31手までです。長手数の問題には、komori-n氏が開発・公開している詰将棋エンジン<a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>を別途用意し、「設定」→「エンジン設定…」で登録して、問題一覧の「判定エンジン」で選択してください。登録の操作は<a href="game-play.html#engine-registration">エンジン登録のガイド</a>で確認できます。</p>
+                <p class="guide-step-text">KomoringHeightsを選んだ場合も、玉方として応手を指すのはHayanagiです。KomoringHeightsは詰みの判定に使います。101手などの長手数も対象にできますが、制限時間内に判定できることが必要です。</p>
+                <p class="guide-step-text">「判定時間」は1〜600秒で指定できます。時間切れなどで「判定不能」になった場合は、時間を増やして「このページを再判定」を押してください。不詰が確認された問題は対局を開始できません。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="playing" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Hayanagiを玉方として盤上で解く</h2>
+        <p class="section-desc">王手を続け、表示された手数以内に詰ませます</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">攻方の駒を動かす</h3>
+                </div>
+                <p class="guide-step-text">ユーザーが攻方を担当します。駒と移動先を順にクリックするか、駒をドラッグして指してください。持駒を打つ操作や、成り・不成の選択もできます。正しい王手を指すと玉方が応手を指し、あなたの次の手番になります。</p>
+                <p class="guide-step-text">参考手順と一致するかだけでなく、表示された残り手数以内に詰ませられるかを判定します。成立する別解も正解として扱います。</p>
+                <div class="screenshot-item">
+                    <img src="../images/tsume-play/tsume-play.png" alt="詰将棋対局画面。5手詰の盤面と残り手数、盤面操作、正解手順、一覧に戻るボタン" width="760" height="760" loading="lazy">
+                    <p class="screenshot-caption">対局画面：攻方はあなた、玉方はHayanagi。残り手数を確認しながら着手</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">逃れの応手を見て考え直す</h3>
+                </div>
+                <p class="guide-step-text">詰みを逃す王手を指すと、玉方が詰みを防ぐ応手を盤上で指します。応手を確認できるよう、約1秒後に結果を表示します。完全に詰まない場合と、残り手数以内では詰まない場合を区別して知らせます。</p>
+                <p class="guide-step-text">「一手戻す」で自分の直前の着手前に戻り、別の手を試せます。王手にならない手や反則手は受け付けません。探索が時間切れになった場合は不正解と決めず、「再判定」で調べ直せます。</p>
+                <div class="screenshot-item">
+                    <img src="../images/tsume-play/tsume-refutation.png" alt="玉方の逃れの応手を表示したあと、残り手数以内では詰まないことを知らせる画面" width="760" height="760" loading="lazy">
+                    <p class="screenshot-caption">逃れの応手と判定結果を確認し、一手戻して再挑戦</p>
+                </div>
+            </div>
+        </div>
+        <table class="info-table">
+            <thead><tr><th scope="col">操作</th><th scope="col">できること</th></tr></thead>
+            <tbody>
+                <tr><td>最初から</td><td>初期局面に戻り、新しい挑戦を始めます。</td></tr>
+                <tr><td>一手戻す</td><td>自分の直前の着手前に戻します。</td></tr>
+                <tr><td>探索中止・再判定</td><td>探索を中止したり、判定時間を増やして調べ直したりできます。</td></tr>
+                <tr><td>一覧に戻る</td><td>問題一覧の元のページと絞り込み条件に戻ります。</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section id="solution" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">正解手順を1手ずつ再生する</h2>
+        <p class="section-desc">解き方を確認してから、途中の対局に戻れます</p>
+        <p class="guide-step-text">「正解手順」ボタンを押すと、盤の上に日本語の棋譜、盤の下に再生ボタンが現れます。検証した正解手順の一例を初期局面から確認できます。長い棋譜はスクロールして読むことができ、コピーも可能です。</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <img src="../images/tsume-play/tsume-solution.png" alt="正解手順の棋譜と、最初に戻る・1手戻る・1手進む・詰み局面へ・対局に戻るボタンを表示した対局画面" width="760" height="836" loading="lazy">
+                <p class="screenshot-caption">正解手順：棋譜と盤面を照らし合わせ、攻方・玉方の各手を再生</p>
+            </div>
+        </div>
+        <table class="info-table">
+            <thead><tr><th scope="col">再生ボタン</th><th scope="col">操作</th></tr></thead>
+            <tbody>
+                <tr><td>最初に戻る</td><td>正解手順の初期局面を表示します。</td></tr>
+                <tr><td>1手戻る・1手進む</td><td>攻方・玉方の手を1手ずつ戻したり進めたりします。</td></tr>
+                <tr><td>詰み局面へ</td><td>手順の最後の局面を表示します。</td></tr>
+                <tr><td>対局に戻る</td><td>棋譜と再生ボタンを隠し、再生前の対局局面から続けます。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">手順の再生中は盤面を閲覧するだけになり、駒を動かして対局を進めることはできません。再生するだけでは挑戦回数・正答回数は増えません。手順の取得に時間がかかる場合は「探索中止」や「対局に戻る」で中断できます。</p>
+    </div>
+</section>
+
+<section id="history" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">挑戦履歴を残して繰り返し練習</h2>
+        <p class="section-desc">未挑戦の問題も、以前解いた問題も探せます</p>
+        <div class="guide-step-text">
+            <ul>
+                <li>挑戦回数・正答回数・最終挑戦日時・最終正答日時を保存します。アプリを閉じたあとも履歴が残ります。</li>
+                <li>一覧を眺めたり、自動判定を待ったりするだけでは挑戦回数は増えません。対局画面で指せる状態になると1回の挑戦として記録します。</li>
+                <li>以前正答した問題を再挑戦して失敗・中断しても、過去の正答済み状態は残ります。</li>
+                <li>同じ局面なら、ファイル名や保存場所が変わっても履歴を引き継ぎます。</li>
+            </ul>
+        </div>
+        <p class="guide-step-text">履歴はShogiBoardQの設定ファイルとは別のデータベースに保存します。配布版では、履歴保存のためにSQLiteを別途インストールする必要はありません。</p>
+    </div>
+</section>
+
+<section id="display" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">見やすい大きさと向きに調整</h2>
+        <p class="section-desc">文字と将棋盤のサイズを個別に変更できます</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">操作</th><th scope="col">変更する内容</th></tr></thead>
+            <tbody>
+                <tr><td>A−・A＋</td><td>問題一覧・対局画面の文字サイズを縮小・拡大します。画面ごとに保存されます。</td></tr>
+                <tr><td>盤の上の「−」「＋」</td><td>対局画面の将棋盤を縮小・拡大します。</td></tr>
+                <tr><td>Ctrl＋マウスホイール</td><td>盤上でホイールを動かして将棋盤の大きさを調整します。</td></tr>
+                <tr><td>盤面の回転</td><td>盤の向きを180度切り替えます。回転後も着手や正解手順の再生ができます。</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">盤の大きさと回転状態は次回も引き継がれます。</p>
+        <p class="guide-step-text">自分で問題を作る方法は<a href="tsumeshogi-generator.html">詰将棋局面生成</a>、通常の対局局面から詰みを調べる方法は<a href="tsumi-search.html">詰み探索</a>をご覧ください。</p>
+    </div>
+</section>
+</main>
+
+<div class="back-link-section">
+    <a href="index.html#tsume" class="back-link">&larr; 利用ガイドの詰将棋へ戻る</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>
