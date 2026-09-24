@@ -95,7 +95,7 @@ done
 
 info "前提ツールを確認中..."
 
-REQUIRED_TOOLS=(cmake)
+REQUIRED_TOOLS=(cmake python3)
 MISSING_TOOLS=()
 for tool in "${REQUIRED_TOOLS[@]}"; do
     if ! command -v "$tool" &>/dev/null; then
@@ -401,6 +401,11 @@ chmod +x "$APPDIR/AppRun"
 # Step 8f: appimagetool で AppImage を生成
 # linuxdeploy --output appimage は依存ライブラリを再デプロイしてしまうため、
 # クリーンアップ済みの AppDir をそのままパッケージングする appimagetool を使用
+info "Qt ライセンスと対応ソース情報を同梱中..."
+python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
+    --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
+    --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ"
+
 info "AppImage を生成中..."
 "$APPIMAGETOOL" "$APPDIR" "$APPIMAGE_NAME"
 

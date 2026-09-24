@@ -9,6 +9,26 @@
 
 namespace AppSettings {
 
+QSize versionDialogSize()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kVersionDialogSize, QSize(680, 760)).toSize();
+}
+
+void setVersionDialogSize(const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kVersionDialogSize, size);
+}
+
+int versionDialogDocument()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kVersionDialogDocument, 0).toInt();
+}
+
+void setVersionDialogDocument(int index)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kVersionDialogDocument, index);
+}
+
 // --- 言語 ---
 
 QString language()

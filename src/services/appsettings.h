@@ -19,6 +19,11 @@ class QWidget;
 
 namespace AppSettings {
 
+QSize versionDialogSize();
+void setVersionDialogSize(const QSize& size);
+int versionDialogDocument();
+void setVersionDialogDocument(int index);
+
 // --- 言語 ---
 
 /// 言語コード（デフォルト: "system"）

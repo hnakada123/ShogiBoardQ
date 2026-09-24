@@ -15,7 +15,9 @@ permissions:
   contents: write
 
 env:
-  QT_VERSION: "6.7.*"
+  # Keep binary SDK and corresponding sources on exactly the same release.
+  QT_VERSION: "6.7.3"
+  QT_SOURCE_SHA256: "a3f1d257cbb14c6536585ffccf7c203ce7017418e1a0c2ed7c316c20c729c801"
 
 jobs:
   compatibility-check:
@@ -24,6 +26,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           submodules: recursive
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
@@ -57,13 +60,75 @@ jobs:
             build/CMakeFiles/CMakeOutput.log
             build/CMakeFiles/CMakeError.log
 
-  build-linux:
+  qt-sources:
     needs: compatibility-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          submodules: recursive
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: actions/cache@v4
+        with:
+          path: build/qt-sources
+          key: qt-sources-${{ env.QT_VERSION }}-${{ env.QT_SOURCE_SHA256 }}
+
+      - name: Prepare corresponding Qt sources and notices
+        run: |
+          python3 scripts/qt_licenses.py fetch --version "$QT_VERSION" \
+            --sha256 "$QT_SOURCE_SHA256" --output build/qt-sources
+          python3 scripts/qt_licenses.py prepare --version "$QT_VERSION" \
+            --archive "build/qt-sources/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+            --sha256 "$QT_SOURCE_SHA256" \
+            --source-url "https://download.qt.io/archive/qt/${QT_VERSION%.*}/${QT_VERSION}/single/qt-everywhere-src-${QT_VERSION}.tar.xz" \
+            --provenance "Official Qt ${QT_VERSION} SDK installed by install-qt-action/aqt; no ShogiBoardQ patches to Qt. Build scripts and configuration are included in the Qt source archive." \
+            --output build/qt-licenses
+
+      - name: Archive application and submodule sources
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+        run: |
+          mkdir -p dist
+          git archive --format=tar --output=build/app-source.tar HEAD
+          git -C Hayanagi archive --format=tar --prefix=Hayanagi/ --output="$GITHUB_WORKSPACE/build/hayanagi-source.tar" HEAD
+          tar --concatenate --file=build/app-source.tar build/hayanagi-source.tar
+          gzip -n -c build/app-source.tar > "dist/ShogiBoardQ-${RELEASE_TAG}-source.tar.gz"
+          cp "build/qt-sources/qt-everywhere-src-${QT_VERSION}.tar.xz" dist/
+          cp build/qt-licenses/QT-SOURCE.json dist/
+          cp resources/licenses/SOURCE_CODE.md dist/
+
+      - name: Upload license documents for packaging jobs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: qt-license-documents
+          path: build/qt-licenses/
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+
+      - name: Upload source release assets
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-sources
+          path: dist/*
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90
+
+  build-linux:
+    needs: [compatibility-check, qt-sources]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           submodules: recursive
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: qt-license-documents
+          path: build/qt-licenses
 
       - name: Install dependencies
         run: |
@@ -99,12 +164,18 @@ jobs:
           retention-days: 90
 
   build-macos:
-    needs: compatibility-check
+    needs: [compatibility-check, qt-sources]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           submodules: recursive
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: qt-license-documents
+          path: build/qt-licenses
 
       - name: Install dependencies
         run: brew install create-dmg
@@ -174,12 +245,18 @@ jobs:
           retention-days: 90
 
   build-windows:
-    needs: compatibility-check
+    needs: [compatibility-check, qt-sources]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           submodules: recursive
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: qt-license-documents
+          path: build/qt-licenses
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0
@@ -230,7 +307,7 @@ jobs:
           retention-days: 90
 
   checksums-and-sbom:
-    needs: [build-linux, build-macos, build-windows]
+    needs: [build-linux, build-macos, build-windows, qt-sources]
     runs-on: ubuntu-latest
     steps:
       - name: Download release artifacts
@@ -247,8 +324,12 @@ jobs:
 
       - name: Generate SHA256 and SBOM
         run: |
-          find release-assets -type f -print0 | sort -z | xargs -0 sha256sum > release-assets/SHA256SUMS.txt
-          ./syft dir:release-assets -o spdx-json > release-assets/SBOM.spdx.json
+          # Source archives are published separately; inventory the executable packages.
+          mkdir binary-assets
+          find release-assets -maxdepth 1 -type f \( -name '*.AppImage' -o -name '*.dmg' -o -name '*windows*.zip' \) -exec cp {} binary-assets/ \;
+          ./syft dir:binary-assets -o spdx-json > release-assets/SBOM.spdx.json
+          cd release-assets
+          find . -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS.txt
 
       - name: Upload release metadata
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
@@ -260,7 +341,7 @@ jobs:
           retention-days: 90
 
   publish-release:
-    needs: [build-linux, build-macos, build-windows, checksums-and-sbom]
+    needs: [build-linux, build-macos, build-windows, qt-sources, checksums-and-sbom]
     runs-on: ubuntu-latest
     steps:
       - name: Download all release files
@@ -281,6 +362,20 @@ jobs:
           fi
           VERSION="${TAG#v}"
 
+          # Never publish binaries if the corresponding source assets are absent.
+          test -s "release-assets/qt-everywhere-src-${QT_VERSION}.tar.xz"
+          test -s "release-assets/ShogiBoardQ-${TAG}-source.tar.gz"
+          cat > release-notes.md <<'EOF'
+          Qt を使用しています。Qt Charts は GPLv3、その他の Qt モジュールは LGPLv3/GPL の条件に従います。
+          ライセンス文書は各配布物の licenses ディレクトリと「バージョン情報」画面で参照できます。
+
+          **対応ソース / Corresponding source:** このリリースの Assets にある
+          `ShogiBoardQ-*-source.tar.gz`（Hayanagi を含む）と `qt-everywhere-src-*.tar.xz` を
+          無償でダウンロードできます。Qt の版と SHA-256 は `QT-SOURCE.json`、再ビルド手順は
+          `SOURCE_CODE.md` を参照してください。Source archives are available free of charge
+          alongside the binaries; see SOURCE_CODE.md for rebuilding instructions.
+          EOF
+
           mapfile -t ASSETS < <(find release-assets -type f | sort)
           if [ "${#ASSETS[@]}" -eq 0 ]; then
             echo "No release assets found."
@@ -289,10 +384,16 @@ jobs:
 
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "${ASSETS[@]}" --clobber
+            gh release view "$TAG" --json body --jq .body > existing-notes.md
+            if ! grep -Fq '**対応ソース / Corresponding source:**' existing-notes.md; then
+              printf '\n\n' >> existing-notes.md
+              cat release-notes.md >> existing-notes.md
+              gh release edit "$TAG" --notes-file existing-notes.md
+            fi
           else
             gh release create "$TAG" "${ASSETS[@]}" \
               --title "ShogiBoardQ ${VERSION}" \
-              --generate-notes
+              --generate-notes --notes-file release-notes.md
           fi
 
           echo "Published release assets:"
