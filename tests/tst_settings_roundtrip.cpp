@@ -541,6 +541,24 @@ private slots:
 
         TsumeshogiSettings::setTsumeshogiGeneratorLastSaveDirectory(QStringLiteral("/tmp/tsume"));
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorLastSaveDirectory(), QStringLiteral("/tmp/tsume"));
+
+        TsumeshogiSettings::CollectionPreferences collection;
+        collection.size = QSize(1200, 850);
+        collection.lastFile = QStringLiteral("/tmp/problems.sfen");
+        collection.enginePath = QStringLiteral("/tmp/KomoringHeights");
+        collection.pageSize = 50;
+        collection.page = 7;
+        collection.filter = 3;
+        collection.timeoutSec = 30;
+        TsumeshogiSettings::setCollectionPreferences(collection);
+        const auto restored = TsumeshogiSettings::collectionPreferences();
+        QCOMPARE(restored.size, collection.size);
+        QCOMPARE(restored.lastFile, collection.lastFile);
+        QCOMPARE(restored.enginePath, collection.enginePath);
+        QCOMPARE(restored.pageSize, collection.pageSize);
+        QCOMPARE(restored.page, collection.page);
+        QCOMPARE(restored.filter, collection.filter);
+        QCOMPARE(restored.timeoutSec, collection.timeoutSec);
     }
 
     // ========================================

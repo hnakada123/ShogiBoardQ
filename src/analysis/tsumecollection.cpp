@@ -2,6 +2,27 @@
 #include "position.h"
 #include <QRegularExpression>
 
+QString TsumeCollection::positionId(const QString& sfen)
+{
+    shogi::Position position;
+    if (!position.set_sfen(sfen.toStdString(), true)) return {};
+    return QString::fromStdString(position.to_sfen()).section(QLatin1Char(' '), 0, 2);
+}
+
+bool TsumeCollection::validMateLine(const QString& sfen, const QStringList& pv)
+{
+    if (pv.isEmpty() || pv.size() % 2 != 1) return false;
+    shogi::Position position;
+    if (!position.set_sfen(sfen.toStdString(), true)) return false;
+    const auto attacker = position.side_to_move();
+    for (const auto& move : pv) {
+        const bool attack = position.side_to_move() == attacker;
+        if (!position.apply_usi_move(move.toStdString())) return false;
+        if (attack && !position.is_in_check(position.side_to_move())) return false;
+    }
+    return position.is_in_check(position.side_to_move()) && position.generate_legal_moves().empty();
+}
+
 TsumeCollection::Result TsumeCollection::parse(const QString& text)
 {
     Result result;

@@ -4,6 +4,7 @@
 #include "mainwindow.h"
 #include "logcategories.h"
 #include "appsettings.h"
+#include "applicationfonts.h"
 
 #include <QApplication>
 #include <QLocale>
@@ -151,6 +152,7 @@ int main(int argc, char *argv[])
 
     // Creatorのような「Fusion」スタイルに統一する。
     a.setStyle(QStyleFactory::create("Fusion"));
+    ApplicationFonts::initialize();
 
     // QDialogButtonBox のデフォルトスタイル（全ダイアログ共通）
     a.setStyleSheet(QStringLiteral(

@@ -5,6 +5,7 @@
 #include "buttonstyles.h"
 #include "gamesettings.h"
 #include "dialogutils.h"
+#include "applicationfonts.h"
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
@@ -62,8 +63,7 @@ void KifuPasteDialog::setupUi()
     m_textEdit->setPlaceholderText(tr("ここに棋譜を貼り付けてください..."));
 
     // 等幅フォントを設定
-    QFont monoFont(QStringLiteral("Monospace"));
-    monoFont.setStyleHint(QFont::Monospace);
+    QFont monoFont = ApplicationFonts::monospaceFont();
     monoFont.setPointSize(10);
     m_textEdit->setFont(monoFont);
 

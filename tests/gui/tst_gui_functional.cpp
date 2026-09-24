@@ -45,6 +45,7 @@
 #include "sfenpositiontracer.h"
 #include "settingscommon.h"
 #include "appsettings.h"
+#include "applicationfonts.h"
 #include "boardappearance.h"
 #include "boardcolorpresets.h"
 #include "boardcolordialog.h"
@@ -987,6 +988,7 @@ private slots:
         QCOMPARE(boardSfen(), QString("lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL"));
         QTest::mouseClick(record()->lastButton(), Qt::LeftButton); QCOMPARE(boardSfen(), last);
         snapshot("kifu-navigation");
+        armDialog("discard");
         click("actionNewGame"); QCOMPARE(boardSfen(), initial);
     }
     void formatRoundTrip_data()
@@ -1597,6 +1599,7 @@ int main(int argc, char** argv)
     app.setApplicationName("ShogiBoardQ-GuiAudit");
     app.setQuitOnLastWindowClosed(false);
     app.setStyle("Fusion");
+    ApplicationFonts::initialize();
     GuiAudit audit;
     return QTest::qExec(&audit, argc, argv);
 }

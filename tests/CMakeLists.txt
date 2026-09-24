@@ -1,5 +1,5 @@
 # ==== Test Suite for ShogiBoardQ ====
-find_package(Qt6 REQUIRED COMPONENTS Test Widgets Charts Network)
+find_package(Qt6 REQUIRED COMPONENTS Test Widgets Charts Network Sql)
 
 # 配布文書の生成は Python で実装されているため、同じ実装を直接検証する。
 find_package(Python3 COMPONENTS Interpreter QUIET)
@@ -1378,14 +1378,20 @@ target_link_libraries(bench_movevalidator PRIVATE ${TEST_LIBS})
 target_compile_options(bench_movevalidator PRIVATE -O2)
 
 # Hayanagiの詰将棋探索・局面集・非同期対局フロー
+add_executable(mock_tsume_engine mock_tsume_engine.cpp)
+target_link_libraries(mock_tsume_engine PRIVATE hayanagi_tsume)
 add_shogi_test(tst_tsume_play
     tst_tsume_play.cpp
     ${SRC}/analysis/tsumecollection.cpp
     ${SRC}/analysis/tsumegamesession.cpp
+    ${SRC}/analysis/tsumepositionanalyzer.cpp
+    ${SRC}/analysis/tsumesolutionreplay.cpp
+    ${SRC}/engine/tsumemateengine.cpp
+    ${SRC}/services/tsumeprogressstore.cpp
 )
-target_link_libraries(tst_tsume_play PRIVATE hayanagi_tsume)
-target_compile_definitions(tst_tsume_play PRIVATE HAYANAGI_EXECUTABLE="$<TARGET_FILE:hayanagi>")
-add_dependencies(tst_tsume_play hayanagi)
+target_link_libraries(tst_tsume_play PRIVATE hayanagi_tsume Qt6::Sql)
+target_compile_definitions(tst_tsume_play PRIVATE HAYANAGI_EXECUTABLE="$<TARGET_FILE:hayanagi>" MOCK_MATE_EXECUTABLE="$<TARGET_FILE:mock_tsume_engine>")
+add_dependencies(tst_tsume_play hayanagi mock_tsume_engine)
 
 # 生成時の唯一解検査と、通常・停止・エラー経路の採択条件
 add_shogi_test(tst_tsumeshogi_verification
@@ -1406,3 +1412,9 @@ add_shogi_test(tst_tsumeshogi_verification
 )
 target_include_directories(tst_tsumeshogi_verification BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tsumeshogi_stubs)
 target_link_libraries(tst_tsumeshogi_verification PRIVATE hayanagi_tsume)
+
+# 漢字・仮名の実描画フォントと、等幅表示の地域別字形
+add_shogi_test(tst_applicationfonts
+    tst_applicationfonts.cpp
+    ${SRC}/common/applicationfonts.cpp
+)

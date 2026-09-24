@@ -3,6 +3,7 @@
 
 #include "csawaitingdialog.h"
 #include "buttonstyles.h"
+#include "applicationfonts.h"
 
 #include <QLabel>
 #include <QPushButton>
@@ -222,9 +223,7 @@ void CsaWaitingDialog::createLogWindow()
     m_logTextEdit->setReadOnly(true);
     m_logTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_logTextEdit->setMaximumBlockCount(5000);
-    QFont font = m_logTextEdit->font();
-    font.setFamily(QStringLiteral("monospace"));
-    font.setStyleHint(QFont::Monospace);
+    QFont font = ApplicationFonts::monospaceFont();
     font.setPointSize(m_logFontHelper.fontSize());
     m_logTextEdit->setFont(font);
 
