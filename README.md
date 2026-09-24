@@ -64,8 +64,8 @@
 ### ビルド手順
 
 ```bash
-# ソースの取得
-git clone https://github.com/hnakada123/ShogiBoardQ.git
+# ソースの取得（Hayanagiサブモジュールを含む）
+git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
 cd ShogiBoardQ
 
 # ビルド
@@ -75,6 +75,17 @@ cmake --build build
 # 実行
 ./build/ShogiBoardQ
 ```
+
+すでにclone済みの場合や更新を取り込んだ後は、ビルド前に以下を実行してください。
+
+```bash
+git submodule update --init --recursive
+```
+
+詰将棋対局には、独立リポジトリ [Hayanagi](https://github.com/hnakada123/Hayanagi) の
+詰将棋コアを静的リンクして使用します。`Hayanagi/` はサブモジュールとして管理し、
+ShogiBoardQが記録したコミットを使用します。管理・更新手順は
+[詰将棋対局の開発ドキュメント](docs/dev/tsume-play.md#hayanagiの管理と更新)を参照してください。
 
 ## 開発・運用ドキュメント
 

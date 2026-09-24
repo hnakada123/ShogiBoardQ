@@ -115,6 +115,7 @@ public slots:
     void handleNyugyokuDeclaration();
     void displayTsumeShogiSearchDialog();
     void displayTsumeshogiGeneratorDialog();
+    void displayTsumePlayDialog();
     void displayMenuWindow();
     void displayCsaGameDialog();
     void displayKifuAnalysisDialog();

@@ -1368,3 +1368,13 @@ add_executable(bench_movevalidator
 target_include_directories(bench_movevalidator PRIVATE ${TEST_INCLUDES})
 target_link_libraries(bench_movevalidator PRIVATE ${TEST_LIBS})
 target_compile_options(bench_movevalidator PRIVATE -O2)
+
+# Hayanagiの詰将棋探索・局面集・非同期対局フロー
+add_shogi_test(tst_tsume_play
+    tst_tsume_play.cpp
+    ${SRC}/analysis/tsumecollection.cpp
+    ${SRC}/analysis/tsumegamesession.cpp
+)
+target_link_libraries(tst_tsume_play PRIVATE hayanagi_tsume)
+target_compile_definitions(tst_tsume_play PRIVATE HAYANAGI_EXECUTABLE="$<TARGET_FILE:hayanagi>")
+add_dependencies(tst_tsume_play hayanagi)

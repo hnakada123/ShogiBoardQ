@@ -6,6 +6,14 @@ set(APP_VERSION "2026.09.23")
 
 project(ShogiBoardQ VERSION ${APP_VERSION} LANGUAGES CXX)
 
+# Hayanagi is built both as a USI engine and as the embedded tsume opponent.
+if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Hayanagi/CMakeLists.txt")
+    message(FATAL_ERROR
+        "Hayanagi submodule is missing. Run from the repository root: "
+        "git submodule update --init --recursive")
+endif()
+add_subdirectory(Hayanagi)
+
 # ==== Qt auto features ====
 set(CMAKE_AUTOUIC ON)
 # .ui ファイルはソースと同じディレクトリに配置
@@ -505,6 +513,10 @@ set(SRC_KIFU
 )
 
 set(SRC_ANALYSIS
+    src/analysis/tsumecollection.cpp
+    src/analysis/tsumecollection.h
+    src/analysis/tsumegamesession.cpp
+    src/analysis/tsumegamesession.h
     src/analysis/analysiscoordinator.cpp
     src/analysis/analysiscoordinator.h
     src/analysis/analysisflowcontroller.cpp
@@ -777,6 +789,8 @@ set(SRC_WIDGETS
 )
 
 set(SRC_DIALOGS
+    src/dialogs/tsumeplaydialog.cpp
+    src/dialogs/tsumeplaydialog.h
     src/dialogs/boardcolordialog.cpp
     src/dialogs/boardcolordialog.h
     src/dialogs/piecesoundsettingsdialog.cpp
@@ -1014,6 +1028,7 @@ target_include_directories(ShogiBoardQ PRIVATE
 )
 
 target_link_libraries(ShogiBoardQ PRIVATE
+    hayanagi_tsume
     Qt6::Widgets
     Qt6::Charts
     Qt6::Network

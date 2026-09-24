@@ -132,6 +132,7 @@
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="actionStopTsumeSearch"/>
     <addaction name="actionTsumeshogiGenerator"/>
+    <addaction name="actionTsumePlay"/>
     <addaction name="separator"/>
     <addaction name="actionJishogiScore"/>
     <addaction name="actionNyugyokuDeclaration"/>
@@ -779,6 +780,11 @@
    </property>
    <property name="text">
     <string>評価値グラフの画像をファイルに保存</string>
+   </property>
+  </action>
+  <action name="actionTsumePlay">
+   <property name="text">
+    <string>詰将棋対局…</string>
    </property>
   </action>
   <action name="actionTsumeshogiGenerator">
