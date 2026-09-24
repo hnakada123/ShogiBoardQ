@@ -1378,3 +1378,23 @@ add_shogi_test(tst_tsume_play
 target_link_libraries(tst_tsume_play PRIVATE hayanagi_tsume)
 target_compile_definitions(tst_tsume_play PRIVATE HAYANAGI_EXECUTABLE="$<TARGET_FILE:hayanagi>")
 add_dependencies(tst_tsume_play hayanagi)
+
+# 生成時の唯一解検査と、通常・停止・エラー経路の採択条件
+add_shogi_test(tst_tsumeshogi_verification
+    tst_tsumeshogi_verification.cpp
+    tsumeshogi_stubs/usi.h
+    ${SRC}/analysis/tsumeshogiverifier.cpp
+    ${SRC}/analysis/tsumeshogigenerator.cpp
+    ${SRC}/analysis/tsumeshogigenerator_sfen.cpp
+    ${SRC}/analysis/tsumeshogigenerator_verification.cpp
+    ${SRC}/analysis/tsumeshogipositiongenerator.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+    ${EMV_SOURCES}
+)
+target_include_directories(tst_tsumeshogi_verification BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tsumeshogi_stubs)
+target_link_libraries(tst_tsumeshogi_verification PRIVATE hayanagi_tsume)

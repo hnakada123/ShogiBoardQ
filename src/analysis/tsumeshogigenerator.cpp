@@ -27,6 +27,9 @@ TsumeshogiGenerator::TsumeshogiGenerator(QObject* parent)
     connect(&m_progressTimer, &QTimer::timeout, this, &TsumeshogiGenerator::onProgressTimerTimeout);
     connect(&m_batchWatcher, &QFutureWatcher<QStringList>::finished,
             this, &TsumeshogiGenerator::onBatchReady);
+    m_verificationStepTimer.setSingleShot(true);
+    connect(&m_verificationStepTimer, &QTimer::timeout,
+            this, &TsumeshogiGenerator::continueVerification);
 }
 
 TsumeshogiGenerator::~TsumeshogiGenerator()
@@ -44,6 +47,9 @@ void TsumeshogiGenerator::start(const Settings& settings)
     m_phase = Phase::Searching;
     m_currentSfen.clear();
     m_foundSfens.clear();
+    m_verificationRejected = 0;
+    m_verificationInconclusive = 0;
+    emit verificationStatsUpdated(0, 0);
 
     // Usi インスタンスを作成（モデル不要、ゲームコントローラ不要）。所有は parent（this）
     m_usi = new Usi(nullptr, nullptr, nullptr, this);
@@ -135,6 +141,11 @@ void TsumeshogiGenerator::onCheckmateSolved(const QStringList& pv)
     if (consumeStaleResponse()) return;
     m_safetyTimer.stop();
 
+    if (m_phase == Phase::Verifying) {
+        submitVerification(TsumeshogiVerifier::Reply::Mate, pv);
+        return;
+    }
+
     // 「ちょうどN手」のフィルタリング
     if (pv.size() != m_settings.targetMoves) {
         // 探索中: 次の局面へ / トリミング中: 手数が変わったので除去却下
@@ -142,16 +153,7 @@ void TsumeshogiGenerator::onCheckmateSolved(const QStringList& pv)
         return;
     }
 
-    if (m_phase == Phase::Searching) {
-        startTrimmingPhase(m_currentSfen, pv);
-    } else { // Trimming: 除去しても同じ手数で詰む → 除去確定
-        m_trimBaseSfen = m_trimTestSfen;
-        m_trimBasePv = pv;
-        // 候補リストを再構築し先頭から再開
-        m_trimCandidates = enumerateRemovablePieces(m_trimBaseSfen);
-        m_trimCandidateIndex = 0;
-        tryNextTrimCandidate();
-    }
+    startVerification(m_phase == Phase::Searching ? m_currentSfen : m_trimTestSfen, m_phase);
 }
 
 void TsumeshogiGenerator::onCheckmateNoMate()
@@ -159,6 +161,10 @@ void TsumeshogiGenerator::onCheckmateNoMate()
     if (m_phase == Phase::Idle) return;
     if (consumeStaleResponse()) return;
     m_safetyTimer.stop();
+    if (m_phase == Phase::Verifying) {
+        submitVerification(TsumeshogiVerifier::Reply::NoMate);
+        return;
+    }
     // 詰みなし → 探索中: 次の局面へ / トリミング中: 除去却下
     advanceAfterFailure();
 }
@@ -216,7 +222,9 @@ bool TsumeshogiGenerator::consumeStaleResponse()
 
 void TsumeshogiGenerator::advanceAfterFailure()
 {
-    if (m_phase == Phase::Searching) {
+    if (m_phase == Phase::Verifying) {
+        submitVerification(TsumeshogiVerifier::Reply::Unknown);
+    } else if (m_phase == Phase::Searching) {
         processResult(false);
     } else if (m_phase == Phase::Trimming) {
         m_trimCandidateIndex++;
@@ -268,6 +276,10 @@ void TsumeshogiGenerator::generateAndSendNext()
     }
 
     m_currentSfen = m_positionQueue.takeFirst();
+    m_verifiedSfen.clear();
+    m_verifiedPv.clear();
+    m_trimBaseSfen.clear();
+    m_trimBasePv.clear();
 
     // キューが少なくなったら次のバッチ生成を先行開始
     if (m_positionQueue.size() < 2 && !m_batchWatcher.isRunning()) {
@@ -307,6 +319,8 @@ void TsumeshogiGenerator::processResult(bool found, const QStringList& pv)
 
 bool TsumeshogiGenerator::registerFoundPosition(const QString& sfen, const QStringList& pv)
 {
+    // 通常終了・停止・エラーのすべての出力経路で同じ条件を要求する。
+    if (sfen.isEmpty() || sfen != m_verifiedSfen || pv != m_verifiedPv) return false;
     // トリミングにより異なる候補が同じ最小局面に収束することがあるため重複を除外する
     if (m_foundSfens.contains(sfen)) return false;
     m_foundSfens.insert(sfen);
@@ -317,8 +331,11 @@ bool TsumeshogiGenerator::registerFoundPosition(const QString& sfen, const QStri
 
 void TsumeshogiGenerator::flushTrimmingResult()
 {
-    // トリミング途中で終了する場合、その時点のベース局面は検証済みのN手詰なので結果として出力する
-    if (m_phase != Phase::Trimming || m_trimBaseSfen.isEmpty()) return;
+    // 除去局面の検査途中なら、最後に全検査を通ったベースだけを出力する。
+    const bool trimming = m_phase == Phase::Trimming
+        || (m_phase == Phase::Verifying && m_verificationOrigin == Phase::Trimming);
+    if (!trimming || m_trimBaseSfen.isEmpty() || m_trimBaseSfen != m_verifiedSfen
+        || m_trimBasePv != m_verifiedPv) return;
     m_triedCount++;
     registerFoundPosition(m_trimBaseSfen, m_trimBasePv);
     emit progressUpdated(m_triedCount, m_foundCount, m_elapsedTimer.elapsed());
@@ -328,6 +345,12 @@ void TsumeshogiGenerator::cleanup()
 {
     m_safetyTimer.stop();
     m_progressTimer.stop();
+    m_verificationStepTimer.stop();
+    m_verifier.abort();
+    m_verificationAwaiting = false;
+    m_verificationSfen.clear();
+    m_verifiedSfen.clear();
+    m_verifiedPv.clear();
 
     if (m_usi) {
         m_usi->cleanupEngineProcessAndThread();

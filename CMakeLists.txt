@@ -535,7 +535,10 @@ set(SRC_ANALYSIS
     src/analysis/kifuanalysislistmodel.h
     src/analysis/tsumeshogigenerator.cpp
     src/analysis/tsumeshogigenerator_sfen.cpp
+    src/analysis/tsumeshogigenerator_verification.cpp
     src/analysis/tsumeshogigenerator.h
+    src/analysis/tsumeshogiverifier.cpp
+    src/analysis/tsumeshogiverifier.h
     src/analysis/tsumeshogipositiongenerator.cpp
     src/analysis/tsumeshogipositiongenerator.h
     src/analysis/tsumesearchflowcontroller.cpp

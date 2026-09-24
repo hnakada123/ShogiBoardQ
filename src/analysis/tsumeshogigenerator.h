@@ -5,6 +5,7 @@
 /// @brief 詰将棋局面自動生成オーケストレータの定義
 
 #include "tsumeshogipositiongenerator.h"
+#include "tsumeshogiverifier.h"
 
 #include <QElapsedTimer>
 #include <QFutureWatcher>
@@ -34,7 +35,7 @@ public:
         QString enginePath;
         QString engineName;
         int targetMoves = 3;         ///< 目標手数（奇数: 1,3,5,7,...）
-        int timeoutMs = 5000;        ///< 1局面あたりの探索時間(ms)
+        int timeoutMs = 5000;        ///< 候補探索・各トリミング探索・各余詰検査全体の時間(ms)
         int maxPositionsToFind = 10; ///< 見つける局面数の上限（0=無制限）
         TsumeshogiPositionGenerator::Settings posGenSettings;
     };
@@ -51,6 +52,8 @@ signals:
     void progressUpdated(int tried, int found, qint64 elapsedMs);
     void searchPhaseStarted();                       ///< 探索フェーズに入った（開始時・トリミング完了時）
     void trimmingProgress(int candidate, int total); ///< トリミング中の候補進捗（candidate は 1 始まり）
+    void verificationProgress(int queries);
+    void verificationStatsUpdated(int rejected, int inconclusive);
     void finished();
     void errorOccurred(const QString& message);
 
@@ -63,10 +66,12 @@ private slots:
     void onProgressTimerTimeout();
     void onBatchReady();
     void onEngineError(const QString& message);
+    void continueVerification();
 
 private:
+    friend class TestTsumeshogiVerification;
     /// 状態機械
-    enum class Phase { Idle, Searching, Trimming };
+    enum class Phase { Idle, Searching, Trimming, Verifying };
 
     /// 除去候補
     struct TrimCandidate {
@@ -96,6 +101,9 @@ private:
     bool consumeStaleResponse();
     void advanceAfterFailure();
     void cleanup();
+    void startVerification(const QString& sfen, Phase origin);
+    void submitVerification(TsumeshogiVerifier::Reply reply, const QStringList& pv = {});
+    void finishVerification();
 
     // SFEN解析・再構築
     ParsedSfen parseSfen(const QString& sfen) const;
@@ -136,6 +144,19 @@ private:
     QStringList m_positionQueue;                 ///< 生成済み局面のキュー
     CancelFlag m_cancelFlag;                     ///< バッチ生成のキャンセルフラグ
     bool m_waitingForPositions = false;          ///< キュー空で生成待ちフラグ
+
+    // 余詰検査。問い合わせは通常のUSIループで行い、UIスレッドを待機させない。
+    TsumeshogiVerifier m_verifier;
+    QTimer m_verificationStepTimer;
+    QElapsedTimer m_verificationElapsed;
+    Phase m_verificationOrigin = Phase::Searching;
+    QString m_verificationSfen;
+    bool m_verificationAwaiting = false;
+    int m_verificationQueries = 0;
+    int m_verificationRejected = 0;
+    int m_verificationInconclusive = 0;
+    QString m_verifiedSfen;       ///< 全検査を通った正確な局面とPVの組
+    QStringList m_verifiedPv;
 
     // トリミング用状態
     QString m_trimBaseSfen;                  ///< トリミング元のSFEN

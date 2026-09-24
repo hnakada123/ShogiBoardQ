@@ -129,6 +129,11 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     engineNote->setWordWrap(true);
     mainLayout->addWidget(engineNote);
 
+    auto* verificationNote = new QLabel(
+        tr("全変化・最終手の余詰を検査します。成・不成を含め、別の詰め方がある局面や判定不能の局面は出力しません。"), this);
+    verificationNote->setWordWrap(true);
+    mainLayout->addWidget(verificationNote);
+
     // --- 生成設定セクション ---
     auto* settingsLabel = new QLabel(tr("生成設定"), this);
     settingsLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
@@ -161,6 +166,7 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     m_spinTimeout->setRange(1, 300);
     m_spinTimeout->setValue(5);
     m_spinTimeout->setSuffix(tr(" 秒"));
+    m_spinTimeout->setToolTip(tr("候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。"));
     formLayout->addRow(tr("探索時間/局面:"), m_spinTimeout);
     m_spinMaxPositions = new QSpinBox(this);
     m_spinMaxPositions->setRange(0, 10000);
@@ -187,6 +193,9 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     mainLayout->addWidget(m_labelElapsed);
     m_labelStatus = new QLabel(this);
     mainLayout->addWidget(m_labelStatus);
+    m_labelVerification = new QLabel(this);
+    onVerificationStatsUpdated(0, 0);
+    mainLayout->addWidget(m_labelVerification);
 }
 
 void TsumeshogiGeneratorDialog::buildResultsSection(QVBoxLayout* mainLayout)
@@ -271,6 +280,10 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
             this, &TsumeshogiGeneratorDialog::onSearchPhaseStarted);
     connect(m_generator, &TsumeshogiGenerator::trimmingProgress,
             this, &TsumeshogiGeneratorDialog::onTrimmingProgress);
+    connect(m_generator, &TsumeshogiGenerator::verificationProgress,
+            this, &TsumeshogiGeneratorDialog::onVerificationProgress);
+    connect(m_generator, &TsumeshogiGenerator::verificationStatsUpdated,
+            this, &TsumeshogiGeneratorDialog::onVerificationStatsUpdated);
 
     // ウィンドウサイズ復元
     DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
