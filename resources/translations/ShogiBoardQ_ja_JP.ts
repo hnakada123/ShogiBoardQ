@@ -3858,18 +3858,8 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="217"/>
-        <source>名前を付けて保存</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/app/mainwindow.ui" line="220"/>
         <source>Ctrl+A</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.ui" line="253"/>
-        <source>将棋盤の画像をファイルに保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3880,11 +3870,6 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="586"/>
         <source>持将棋点数</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.ui" line="262"/>
-        <source>棋譜貼り付け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3908,11 +3893,6 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="301"/>
-        <source>対局</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/app/mainwindow.ui" line="310"/>
         <source>投了</source>
         <translation type="unfinished"></translation>
@@ -3923,11 +3903,6 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="505"/>
-        <source>開く</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/app/mainwindow.ui" line="334"/>
         <source>終了</source>
         <translation type="unfinished"></translation>
@@ -3935,11 +3910,6 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="280"/>
         <source>評価値グラフ画像コピー</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.ui" line="343"/>
-        <source>棋譜解析</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -3965,11 +3935,6 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="388"/>
         <source>手番変更</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.ui" line="397"/>
-        <source>エンジン設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4023,6 +3988,21 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../../src/app/mainwindow.ui" line="505"/>
+        <source>開く…</source>
+        <translation>開く…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="568"/>
+        <source>詰み探索…</source>
+        <translation>詰み探索…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="631"/>
+        <source>通信対局（CSA）…</source>
+        <translation>通信対局（CSA）…</translation>
+    </message>
+    <message>
         <location filename="../../src/app/mainwindow.ui" line="649"/>
         <source>メニュー</source>
         <translation type="unfinished"></translation>
@@ -4031,6 +4011,11 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/app/mainwindow.ui" line="709"/>
         <source>局面集ビューア</source>
         <translation>局面集ビューア</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="727"/>
+        <source>ドックレイアウトを保存…</source>
+        <translation>ドックレイアウトを保存…</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="750"/>
@@ -4043,24 +4028,19 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="773"/>
-        <source>（保存済みレイアウトなし）</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/app/mainwindow.ui" line="762"/>
+        <source>駒音の設定…</source>
+        <translation>駒音の設定…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="782"/>
-        <source>評価値グラフの画像をファイルに保存</source>
+        <location filename="../../src/app/mainwindow.ui" line="773"/>
+        <source>（保存済みレイアウトなし）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="787"/>
         <source>詰将棋対局…</source>
         <translation>詰将棋対局…</translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.ui" line="796"/>
-        <source>詰将棋局面生成</source>
-        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>詰み探索終了</source>
@@ -4092,11 +4072,6 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="631"/>
-        <source>通信対局（CSA）</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/app/mainwindow.ui" line="640"/>
         <source>棋譜解析中止</source>
         <translation type="unfinished"></translation>
@@ -4124,6 +4099,36 @@ OKを選択すると保存先が指定できます。</source>
         <location filename="../../src/app/mainwindow.ui" line="496"/>
         <source>新規</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="217"/>
+        <source>名前を付けて保存…</source>
+        <translation>名前を付けて保存…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="253"/>
+        <source>将棋盤の画像をファイルに保存…</source>
+        <translation>将棋盤の画像をファイルに保存…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="262"/>
+        <source>棋譜貼り付け…</source>
+        <translation>棋譜貼り付け…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="301"/>
+        <source>対局…</source>
+        <translation>対局…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="343"/>
+        <source>棋譜解析…</source>
+        <translation>棋譜解析…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="397"/>
+        <source>エンジン設定…</source>
+        <translation>エンジン設定…</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="508"/>
@@ -4166,11 +4171,6 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="568"/>
-        <source>詰み探索</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="76"/>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="92"/>
         <source>エラー</source>
@@ -4201,11 +4201,6 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="718"/>
         <source>ドックレイアウトをリセット</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/mainwindow.ui" line="727"/>
-        <source>ドックレイアウトを保存...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -4240,14 +4235,19 @@ OKを選択すると保存先が指定できます。</source>
         <translation>見やすい駒（太字）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="762"/>
-        <source>駒音の設定</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
         <location filename="../../src/app/mainwindow.ui" line="765"/>
         <source>駒音の音量・音の高さ・音質を調整する</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="782"/>
+        <source>評価値グラフの画像をファイルに保存…</source>
+        <translation>評価値グラフの画像をファイルに保存…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="796"/>
+        <source>詰将棋局面生成…</source>
+        <translation>詰将棋局面生成…</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="804"/>

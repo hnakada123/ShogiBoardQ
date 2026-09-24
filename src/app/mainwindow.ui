@@ -214,7 +214,7 @@
      <normaloff>:/images/actions/actionSaveAs.svg</normaloff>:/images/actions/actionSaveAs.svg</iconset>
    </property>
    <property name="text">
-    <string>名前を付けて保存</string>
+    <string>名前を付けて保存…</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+A</string>
@@ -250,7 +250,7 @@
      <normaloff>:/images/actions/actionSaveBoardImage.svg</normaloff>:/images/actions/actionSaveBoardImage.svg</iconset>
    </property>
    <property name="text">
-    <string>将棋盤の画像をファイルに保存</string>
+    <string>将棋盤の画像をファイルに保存…</string>
    </property>
   </action>
   <action name="actionPasteKifu">
@@ -259,7 +259,7 @@
      <normaloff>:/images/actions/actionPasteKifu.svg</normaloff>:/images/actions/actionPasteKifu.svg</iconset>
    </property>
    <property name="text">
-    <string>棋譜貼り付け</string>
+    <string>棋譜貼り付け…</string>
    </property>
   </action>
   <action name="actionCopyBoardToClipboard">
@@ -298,7 +298,7 @@
      <normaloff>:/images/actions/actionStartGame.svg</normaloff>:/images/actions/actionStartGame.svg</iconset>
    </property>
    <property name="text">
-    <string>対局</string>
+    <string>対局…</string>
    </property>
   </action>
   <action name="actionResign">
@@ -340,7 +340,7 @@
      <normaloff>:/images/actions/actionAnalyzeKifu.svg</normaloff>:/images/actions/actionAnalyzeKifu.svg</iconset>
    </property>
    <property name="text">
-    <string>棋譜解析</string>
+    <string>棋譜解析…</string>
    </property>
   </action>
   <action name="actionStartEditPosition">
@@ -394,7 +394,7 @@
      <normaloff>:/images/actions/actionEngineSettings.svg</normaloff>:/images/actions/actionEngineSettings.svg</iconset>
    </property>
    <property name="text">
-    <string>エンジン設定</string>
+    <string>エンジン設定…</string>
    </property>
   </action>
   <action name="actionOpenWebsite">
@@ -502,7 +502,7 @@
      <normaloff>:/images/actions/actionOpenKifuFile.svg</normaloff>:/images/actions/actionOpenKifuFile.svg</iconset>
    </property>
    <property name="text">
-    <string>開く</string>
+    <string>開く…</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+O</string>
@@ -565,7 +565,7 @@
      <normaloff>:/images/actions/actionTsumeShogiSearch.svg</normaloff>:/images/actions/actionTsumeShogiSearch.svg</iconset>
    </property>
    <property name="text">
-    <string>詰み探索</string>
+    <string>詰み探索…</string>
    </property>
   </action>
   <action name="actionStopTsumeSearch">
@@ -628,7 +628,7 @@
      <normaloff>:/images/actions/actionCSA.svg</normaloff>:/images/actions/actionCSA.svg</iconset>
    </property>
    <property name="text">
-    <string>通信対局（CSA）</string>
+    <string>通信対局（CSA）…</string>
    </property>
   </action>
   <action name="actionCancelAnalyzeKifu">
@@ -724,7 +724,7 @@
      <normaloff>:/images/actions/actionSaveDockLayout.svg</normaloff>:/images/actions/actionSaveDockLayout.svg</iconset>
    </property>
    <property name="text">
-    <string>ドックレイアウトを保存...</string>
+    <string>ドックレイアウトを保存…</string>
    </property>
   </action>
   <action name="actionLockDocks">
@@ -759,7 +759,7 @@
      <normaloff>:/images/actions/actionPieceSound.svg</normaloff>:/images/actions/actionPieceSound.svg</iconset>
    </property>
    <property name="text">
-    <string>駒音の設定</string>
+    <string>駒音の設定…</string>
    </property>
    <property name="toolTip">
     <string>駒音の音量・音の高さ・音質を調整する</string>
@@ -779,7 +779,7 @@
      <normaloff>:/images/actions/actionSaveEvalGraphImage.svg</normaloff>:/images/actions/actionSaveEvalGraphImage.svg</iconset>
    </property>
    <property name="text">
-    <string>評価値グラフの画像をファイルに保存</string>
+    <string>評価値グラフの画像をファイルに保存…</string>
    </property>
   </action>
   <action name="actionTsumePlay">
@@ -793,7 +793,7 @@
      <normaloff>:/images/actions/actionTsumeshogiGenerator.svg</normaloff>:/images/actions/actionTsumeshogiGenerator.svg</iconset>
    </property>
    <property name="text">
-    <string>詰将棋局面生成</string>
+    <string>詰将棋局面生成…</string>
    </property>
   </action>
   <action name="actionPieceStyleWood">
