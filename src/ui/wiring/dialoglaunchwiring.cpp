@@ -26,6 +26,7 @@
 #include "kifuanalysislistmodel.h"
 #include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
+#include "tsumeplaydialog.h"
 #include "evaluationchartwidget.h"
 #include "logcategories.h"
 
@@ -128,6 +129,12 @@ void DialogLaunchWiring::displayTsumeShogiSearchDialog()
     dc->updateDeps(dcDeps);
 
     dc->showTsumeSearchDialogFromContext();
+}
+
+void DialogLaunchWiring::displayTsumePlayDialog()
+{
+    TsumePlayDialog dialog(m_deps.parentWidget);
+    dialog.exec();
 }
 
 void DialogLaunchWiring::displayTsumeshogiGeneratorDialog()

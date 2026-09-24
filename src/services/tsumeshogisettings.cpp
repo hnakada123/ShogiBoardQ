@@ -8,6 +8,28 @@
 
 namespace TsumeshogiSettings {
 
+PlayPreferences playPreferences()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    PlayPreferences p;
+    p.size = s.value(SettingsKeys::kTsumePlaySize, p.size).toSize();
+    p.lastFile = s.value(SettingsKeys::kTsumePlayFile).toString();
+    p.problemIndex = s.value(SettingsKeys::kTsumePlayIndex, 0).toInt();
+    p.timeoutSec = s.value(SettingsKeys::kTsumePlayTimeout, 5).toInt();
+    p.squareSize = s.value(SettingsKeys::kTsumePlaySquareSize, 42).toInt();
+    return p;
+}
+
+void setPlayPreferences(const PlayPreferences& p)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kTsumePlaySize, p.size);
+    s.setValue(SettingsKeys::kTsumePlayFile, p.lastFile);
+    s.setValue(SettingsKeys::kTsumePlayIndex, p.problemIndex);
+    s.setValue(SettingsKeys::kTsumePlayTimeout, p.timeoutSec);
+    s.setValue(SettingsKeys::kTsumePlaySquareSize, p.squareSize);
+}
+
 QString tsumeshogiGeneratorLastSaveDirectory()
 {
     QSettings& s = SettingsCommon::openSettings();

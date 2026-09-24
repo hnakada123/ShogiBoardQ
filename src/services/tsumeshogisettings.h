@@ -12,6 +12,16 @@
 
 namespace TsumeshogiSettings {
 
+struct PlayPreferences {
+    QSize size{760, 760};
+    QString lastFile;
+    int problemIndex = 0;
+    int timeoutSec = 5;
+    int squareSize = 42;
+};
+PlayPreferences playPreferences();
+void setPlayPreferences(const PlayPreferences& preferences);
+
 /// ファイル保存で最後に使用したディレクトリ
 QString tsumeshogiGeneratorLastSaveDirectory();
 void setTsumeshogiGeneratorLastSaveDirectory(const QString& dir);

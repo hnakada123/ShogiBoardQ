@@ -197,6 +197,11 @@ inline constexpr char kRecordPaneBookmarkColumnVisible[] = "RecordPane/bookmarkC
 inline constexpr char kRecordPaneCommentColumnVisible[]  = "RecordPane/commentColumnVisible";
 
 // --- TsumeshogiGenerator ---
+inline constexpr char kTsumePlaySize[] = "TsumePlay/size";
+inline constexpr char kTsumePlayFile[] = "TsumePlay/file";
+inline constexpr char kTsumePlayIndex[] = "TsumePlay/index";
+inline constexpr char kTsumePlayTimeout[] = "TsumePlay/timeout";
+inline constexpr char kTsumePlaySquareSize[] = "TsumePlay/squareSize";
 inline constexpr char kTsumeshogiGeneratorLastSaveDirectory[] = "TsumeshogiGenerator/lastSaveDirectory";
 inline constexpr char kTsumeshogiGeneratorEngineIndex[]       = "TsumeshogiGenerator/engineIndex";
 inline constexpr char kTsumeshogiGeneratorTargetMoves[]       = "TsumeshogiGenerator/targetMoves";

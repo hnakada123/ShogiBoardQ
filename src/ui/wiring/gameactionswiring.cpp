@@ -35,6 +35,8 @@ void GameActionsWiring::wire()
     QObject::connect(ui->actionResign,       &QAction::triggered, gso, &GameSessionOrchestrator::handleResignation, Qt::UniqueConnection);
     QObject::connect(ui->actionBreakOffGame, &QAction::triggered, gso, &GameSessionOrchestrator::handleBreakOffGame, Qt::UniqueConnection);
 
+    QObject::connect(ui->actionTsumePlay, &QAction::triggered, dlw, &DialogLaunchWiring::displayTsumePlayDialog, Qt::UniqueConnection);
+
     // 解析/検討/詰み・エンジン設定
     QObject::connect(ui->actionEngineSettings,       &QAction::triggered, dlw, &DialogLaunchWiring::displayEngineSettingsDialog,       Qt::UniqueConnection);
     QObject::connect(ui->actionPieceSoundSettings,   &QAction::triggered, dlw, &DialogLaunchWiring::displayPieceSoundSettingsDialog,   Qt::UniqueConnection);
