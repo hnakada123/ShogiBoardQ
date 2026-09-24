@@ -7973,12 +7973,12 @@ Do you want to continue?</translation>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="172"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="178"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>The engine does not support mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="195"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="201"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine is not responding.</translation>
     </message>
@@ -8012,147 +8012,157 @@ Do you want to continue?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="133"/>
+        <source>全変化・最終手の余詰を検査します。成・不成を含め、別の詰め方がある局面や判定不能の局面は出力しません。</source>
+        <translation>All variations and final moves are checked for alternative mates, including promotion choices. Positions with alternatives or inconclusive results are excluded.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="138"/>
         <source>生成設定</source>
         <translation>Generation Settings</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="148"/>
         <source> 手詰</source>
         <translation>-move mate</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="144"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="149"/>
         <source>目標手数:</source>
         <translation>Target moves:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="148"/>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="153"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="158"/>
         <source> 枚</source>
         <translation> pieces</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="149"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="154"/>
         <source>攻め駒上限:</source>
         <translation>Max attack pieces:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="154"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="159"/>
         <source>守り駒上限:</source>
         <translation>Max defense pieces:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="158"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="163"/>
         <source> マス（玉中心）</source>
         <translation> squares (from king)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="159"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="164"/>
         <source>配置範囲:</source>
         <translation>Placement range:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="168"/>
         <source> 秒</source>
         <translation> sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="164"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="169"/>
+        <source>候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。</source>
+        <translation>Time allowed for each mate search and for each complete alternative-mate check, including after removing a piece. Positions that exceed the verification time are excluded.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="170"/>
         <source>探索時間/局面:</source>
         <translation>Search time/pos:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="168"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="174"/>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="169"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="175"/>
         <source>生成上限:</source>
         <translation>Max positions:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="174"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="180"/>
         <source>開始</source>
         <translation>Start</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="176"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="182"/>
         <source>停止</source>
         <translation>Stop</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="184"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="190"/>
         <source>探索済み: 0 局面 / 発見: 0 局面</source>
         <translation>Searched: 0 positions / Found: 0 positions</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="186"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="192"/>
         <source>経過時間: 00:00:00</source>
         <translation>Elapsed: 00:00:00</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="195"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="204"/>
         <source>結果一覧</source>
         <translation>Results</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="200"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="209"/>
         <source>#</source>
         <translation>#</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="200"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="209"/>
         <source>SFEN</source>
         <translation>SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="200"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="209"/>
         <source>手数</source>
         <translation>Moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="200"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="209"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="224"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="233"/>
         <source>既定値に戻す</source>
         <translation type="unfinished">Reset to Default</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="228"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="237"/>
         <source>手順も出力</source>
         <translation>Include moves</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="230"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="239"/>
         <source>ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します</source>
         <translation>When saving or copying, append the mate sequence in USI format (moves ...) after the SFEN</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="232"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="241"/>
         <source>ファイル保存</source>
         <translation>Save to File</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="235"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="244"/>
         <source>選択コピー</source>
         <translation>Copy Selected</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="238"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="247"/>
         <source>全コピー</source>
         <translation>Copy All</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="241"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="250"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="331"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="344"/>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="61"/>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="80"/>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="162"/>
@@ -8160,7 +8170,7 @@ Do you want to continue?</translation>
         <translation>Error</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="331"/>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog.cpp" line="344"/>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="162"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
@@ -8217,6 +8227,16 @@ Do you want to continue?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="246"/>
+        <source>余詰検査中（問い合わせ %1 回）</source>
+        <translation>Checking alternative mates (%1 queries)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="251"/>
+        <source>検査で除外: %1 局面（うち判定不能: %2 局面）</source>
+        <translation>Excluded by verification: %1 positions (%2 inconclusive)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogigeneratordialog_actions.cpp" line="257"/>
         <source>状態: %1</source>
         <translation>Status: %1</translation>
     </message>

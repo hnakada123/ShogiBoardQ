@@ -42,6 +42,8 @@ private slots:
     void onGeneratorError(const QString& message);
     void onSearchPhaseStarted();
     void onTrimmingProgress(int candidate, int total);
+    void onVerificationProgress(int queries);
+    void onVerificationStatsUpdated(int rejected, int inconclusive);
     void onSaveToFile();
     void onCopySelected();
     void onCopyAll();
@@ -93,6 +95,7 @@ private:
     QLabel* m_labelProgress = nullptr;
     QLabel* m_labelElapsed = nullptr;
     QLabel* m_labelStatus = nullptr;
+    QLabel* m_labelVerification = nullptr;
 
     // 結果テーブル
     QTableWidget* m_tableResults = nullptr;

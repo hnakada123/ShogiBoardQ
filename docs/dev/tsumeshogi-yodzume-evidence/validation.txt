@@ -1,0 +1,43 @@
+build
+ninja: no work to do.
+warning/error lines: 0
+
+ctest
+Test project /home/nakada/GitHub/ShogiBoardQ/build
+    Start 71: tst_tsumeshogi_generator
+1/2 Test #71: tst_tsumeshogi_generator .........   Passed    0.04 sec
+    Start 86: tst_tsume_play
+2/2 Test #86: tst_tsume_play ...................   Passed    0.93 sec
+
+100% tests passed out of 2
+
+Total Test time (real) =   0.97 sec
+
+Hayanagi tests
+test_alternative_and_escape (__main__.EngineTests.test_alternative_and_escape) ... ok
+test_depth_limit_is_not_nomate (__main__.EngineTests.test_depth_limit_is_not_nomate) ... ok
+test_five_problems_and_reference_solutions (__main__.EngineTests.test_five_problems_and_reference_solutions) ... ok
+test_invalid_sfen_and_mode_isolation (__main__.EngineTests.test_invalid_sfen_and_mode_isolation) ... ok
+test_normal_game_moves_are_legal (__main__.EngineTests.test_normal_game_moves_are_legal) ... ok
+test_normal_perft_matches_baseline (__main__.EngineTests.test_normal_perft_matches_baseline) ... skipped 'Pass --baseline to compare with the previous engine'
+test_timeout_stop_and_new_position (__main__.EngineTests.test_timeout_stop_and_new_position) ... ok
+test_usi_and_startpos_perft (__main__.EngineTests.test_usi_and_startpos_perft) ... ok
+test_white_attacker_and_pawn_drop_mate (__main__.EngineTests.test_white_attacker_and_pawn_drop_mate) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.585s
+
+OK (skipped=1)
+
+reproduction
+problem 1: winners=['3c5c+'], independent={'1': False, '3': False}, seconds=2.386
+problem 2: winners=['G*9g', 'R*8h', 'R*9g'], independent={'1': False, '3': False}, seconds=7.615
+problem 3: winners=['R*1g'], independent={'1': False, '3': False}, seconds=4.324
+problem 4: winners=['R*4b', 'S*3b'], independent={'1': False, '3': False}, seconds=13.112
+problem 5: winners=['R*9c'], independent={'1': False, '3': False}, seconds=2.186
+saved /tmp/tsumeshogi-yodzume-results.json; verified 755 proof nodes
+
+Saved proof verification: verified proof nodes: 755
+Final build: exit 0, warning/error lines: 0
+Reproduction scripts: syntax OK
+Report: all local links resolve

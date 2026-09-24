@@ -1,0 +1,263 @@
+{
+  "engine": "/home/nakada/shogi/KomoringHeights-kh-v1.1.0/source/KomoringHeights-by-gcc",
+  "sha256": "230c5bbde4d792a8a10f4d03e6f180d1b90e775107d37a877fd2bb5343c74dba",
+  "options": {
+    "Threads": 4,
+    "USI_Hash": 4096,
+    "MultiPV": 1,
+    "GenerateAllLegalMoves": "true",
+    "NodesLimit": 0,
+    "RootIsAndNodeIfChecked": "true",
+    "PostSearchLevel": "MinLength",
+    "PvInterval": 1000,
+    "ScoreCalculation": "Ponanza",
+    "WriteDebugLog": ""
+  },
+  "millis": 5000,
+  "cases": [
+    {
+      "problem": 1,
+      "moves": "",
+      "position_command": "position sfen 9/9/6R1+R/5k3/9/7+S1/9/9/9 b 2b4g3s4n4l18p 1",
+      "response": "checkmate 3c5c+ 4d4e 1c4c P*4d 4c4d",
+      "lines": [
+        "info time 1 nodes 110 nps 110000 hashfull 0 depth 0 seldepth 2 score mate 5 string # 1st result: mate in 5(upper_bound:5)",
+        "info time 1 nodes 110 nps 110000 hashfull 0 currmove 3c5c+ score mate 5 depth 1 seldepth 2 pv 3c5c+ 4d4e 1c4c P*4d 4c4d",
+        "info time 1 nodes 224 nps 224000 hashfull 0 depth 0 seldepth 3 score mate -4 string # 2nd result: {disproof_hand= len=4 amount=1039}",
+        "info time 1 nodes 230 nps 230000 hashfull 0 currmove 3c5c+ score mate 5 depth 0 seldepth 3 pv 3c5c+ 4d4e 1c4c P*4d 4c4d",
+        "checkmate 3c5c+ 4d4e 1c4c P*4d 4c4d"
+      ],
+      "seconds": 0.035,
+      "pv_plies": 5,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 2,
+      "moves": "",
+      "position_command": "position sfen 9/9/9/R8/9/9/1k2+S4/9/3+N5 b RG2b3g3s3n4l18p 1",
+      "response": "checkmate G*9g 8g7f R*8f 7f6e 5g6f",
+      "lines": [
+        "info time 2 nodes 662 nps 331000 hashfull 0 depth 0 seldepth 4 score mate 5 string # 1st result: mate in 5(upper_bound:5)",
+        "info time 2 nodes 714 nps 357000 hashfull 0 currmove G*9g score mate 5 depth 1 seldepth 4 pv G*9g 8g7f R*8f 7f6e 5g6f",
+        "info time 2 nodes 1450 nps 725000 hashfull 0 depth 0 seldepth 4 score mate -4 string # 2nd result: {disproof_hand= 飛 金 len=4 amount=3045}",
+        "info time 2 nodes 1457 nps 728500 hashfull 0 currmove G*9g score mate 5 depth 0 seldepth 4 pv G*9g 8g7f R*8f 7f6e 5g6f",
+        "checkmate G*9g 8g7f R*8f 7f6e 5g6f"
+      ],
+      "seconds": 0.04,
+      "pv_plies": 5,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 3,
+      "moves": "",
+      "position_command": "position sfen 9/9/9/9/9/9/7+S1/5G2k/9 b RSr2b3g2s4n4l18p 1",
+      "response": "checkmate R*1g 1h2i S*3h 2i3i 4h4i",
+      "lines": [
+        "info time 1 nodes 15 nps 15000 hashfull 0 depth 0 seldepth 2 score mate 5 string # 1st result: mate in 5(upper_bound:5)",
+        "info time 1 nodes 112 nps 112000 hashfull 0 currmove R*1g score mate 5 depth 1 seldepth 3 pv R*1g 1h2i S*3h 2i3i 4h4i",
+        "info time 2 nodes 543 nps 271500 hashfull 0 depth 0 seldepth 3 score mate -4 string # 2nd result: {disproof_hand= 銀 飛 len=4 amount=4163}",
+        "info time 2 nodes 549 nps 274500 hashfull 0 currmove R*1g score mate 5 depth 0 seldepth 3 pv R*1g 1h2i S*3h 2i3i 4h4i",
+        "checkmate R*1g 1h2i S*3h 2i3i 4h4i"
+      ],
+      "seconds": 0.032,
+      "pv_plies": 5,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 4,
+      "moves": "",
+      "position_command": "position sfen 5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1",
+      "response": "checkmate S*3b 4a4b R*4a 4b5b 4d5c+",
+      "lines": [
+        "info time 2 nodes 532 nps 266000 hashfull 0 depth 0 seldepth 10 score mate 7 string # 1st result: mate in 7(upper_bound:7)",
+        "info time 2 nodes 656 nps 328000 hashfull 0 currmove S*5b score mate 7 depth 1 seldepth 10 pv S*5b 4a5b 4d5c+ 5b5a R*5b 5a4a 5b4b+",
+        "info time 2 nodes 916 nps 458000 hashfull 0 depth 0 seldepth 10 score mate 5 string # 2nd result: mate in 5(upper_bound:5)",
+        "info time 2 nodes 964 nps 482000 hashfull 0 currmove R*4b score mate 5 depth 1 seldepth 10 pv R*4b 4a4b 6d5c 4b3a S*3b",
+        "info time 2 nodes 1333 nps 666500 hashfull 0 depth 0 seldepth 10 score mate -4 string # 3rd result: {disproof_hand= 銀 飛 len=4 amount=4068}",
+        "info time 2 nodes 1339 nps 669500 hashfull 0 currmove R*4b score mate 5 depth 1 seldepth 10 pv R*4b 4a4b 6d5c 4b3a S*3b",
+        "checkmate S*3b 4a4b R*4a 4b5b 4d5c+"
+      ],
+      "seconds": 0.034,
+      "pv_plies": 5,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 5,
+      "moves": "",
+      "position_command": "position sfen 1l7/k8/9/G8/3+R5/9/9/9/9 b R2b3g4s4n3l18p 1",
+      "response": "checkmate R*9c 9b8b 6e6b P*7b 9d8c",
+      "lines": [
+        "info time 2 nodes 225 nps 112500 hashfull 0 depth 0 seldepth 3 score mate 5 string # 1st result: mate in 5(upper_bound:5)",
+        "info time 2 nodes 225 nps 112500 hashfull 0 currmove R*9c score mate 5 depth 1 seldepth 3 pv R*9c 9b8b 6e6b P*7b 9d8c",
+        "info time 2 nodes 237 nps 118500 hashfull 0 depth 0 seldepth 3 score mate -4 string # 2nd result: {disproof_hand= 飛 len=4 amount=2077}",
+        "info time 2 nodes 243 nps 121500 hashfull 0 currmove R*9c score mate 5 depth 0 seldepth 3 pv R*9c 9b8b 6e6b P*7b 9d8c",
+        "checkmate R*9c 9b8b 6e6b P*7b 9d8c"
+      ],
+      "seconds": 0.034,
+      "pv_plies": 5,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 2,
+      "moves": "G*9g",
+      "position_command": "position sfen 9/9/9/R8/9/9/1k2+S4/9/3+N5 b RG2b3g3s3n4l18p 1 moves G*9g",
+      "response": "checkmate 8g7f R*8f 7f6e 5g6f",
+      "lines": [
+        "info time 1 nodes 37 nps 37000 hashfull 0 depth 0 seldepth 2 score mate -4 string # 1st result: mate in 4(upper_bound:4)",
+        "info time 1 nodes 37 nps 37000 hashfull 0 currmove 8g8h score mate -4 depth 1 seldepth 2 pv 8g8h R*8g 8h9i 9g9h",
+        "info time 1 nodes 63 nps 63000 hashfull 0 depth 0 seldepth 2 score mate 3 string # 2nd result: {disproof_hand= 飛 len=3 amount=57}",
+        "info time 1 nodes 68 nps 68000 hashfull 0 currmove 8g8h score mate -4 depth 1 seldepth 2 pv 8g8h R*8g 8h9i 9g9h",
+        "checkmate 8g7f R*8f 7f6e 5g6f"
+      ],
+      "seconds": 0.036,
+      "pv_plies": 4,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 2,
+      "moves": "R*9g",
+      "position_command": "position sfen 9/9/9/R8/9/9/1k2+S4/9/3+N5 b RG2b3g3s3n4l18p 1 moves R*9g",
+      "response": "checkmate 8g7f 5g6g 7f6e G*6f",
+      "lines": [
+        "info time 2 nodes 76 nps 38000 hashfull 0 depth 0 seldepth 3 score mate -4 string # 1st result: mate in 4(upper_bound:4)",
+        "info time 2 nodes 76 nps 38000 hashfull 0 currmove 8g8f score mate -4 depth 1 seldepth 3 pv 8g8f 9g9f 8f7e G*7f",
+        "info time 2 nodes 76 nps 38000 hashfull 0 depth 0 seldepth 3 score mate 3 string # 2nd result: {disproof_hand= 金 len=3 amount=1024}",
+        "info time 2 nodes 81 nps 40500 hashfull 0 currmove 8g8f score mate -4 depth 1 seldepth 3 pv 8g8f 9g9f 8f7e G*7f",
+        "checkmate 8g7f 5g6g 7f6e G*6f"
+      ],
+      "seconds": 0.038,
+      "pv_plies": 4,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 2,
+      "moves": "R*8h",
+      "position_command": "position sfen 9/9/9/R8/9/9/1k2+S4/9/3+N5 b RG2b3g3s3n4l18p 1 moves R*8h",
+      "response": "checkmate 8g8h G*7h 8h8i 6i7i",
+      "lines": [
+        "info time 1 nodes 64 nps 64000 hashfull 0 depth 0 seldepth 2 score mate -4 string # 1st result: mate in 4(upper_bound:4)",
+        "info time 1 nodes 64 nps 64000 hashfull 0 currmove 8g7f score mate -4 depth 1 seldepth 2 pv 8g7f G*6f 7f7g 6i7h",
+        "info time 2 nodes 67 nps 33500 hashfull 0 depth 0 seldepth 2 score mate 3 string # 2nd result: {disproof_hand= 金 len=3 amount=1036}",
+        "info time 2 nodes 72 nps 36000 hashfull 0 currmove 8g7f score mate -4 depth 1 seldepth 2 pv 8g7f G*6f 7f7g 6i7h",
+        "checkmate 8g8h G*7h 8h8i 6i7i"
+      ],
+      "seconds": 0.043,
+      "pv_plies": 4,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 4,
+      "moves": "S*3b",
+      "position_command": "position sfen 5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1 moves S*3b",
+      "response": "checkmate 4a4b R*4a 4b5b 4d5c+",
+      "lines": [
+        "info time 1 nodes 73 nps 73000 hashfull 0 depth 0 seldepth 2 score mate -4 string # 1st result: mate in 4(upper_bound:4)",
+        "info time 1 nodes 73 nps 73000 hashfull 0 currmove 4a5b score mate -4 depth 1 seldepth 2 pv 4a5b R*7b 5b5a 7b6b+",
+        "info time 1 nodes 73 nps 73000 hashfull 0 depth 0 seldepth 2 score mate 3 string # 2nd result: {disproof_hand= 飛 len=3 amount=1046}",
+        "info time 1 nodes 78 nps 78000 hashfull 0 currmove 4a5b score mate -4 depth 1 seldepth 2 pv 4a5b R*7b 5b5a 7b6b+",
+        "checkmate 4a4b R*4a 4b5b 4d5c+"
+      ],
+      "seconds": 0.038,
+      "pv_plies": 4,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 4,
+      "moves": "R*4b",
+      "position_command": "position sfen 5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1 moves R*4b",
+      "response": "checkmate 4a5a 4b6b+ 5a4a S*3b",
+      "lines": [
+        "info time 1 nodes 53 nps 53000 hashfull 0 depth 0 seldepth 2 score mate -4 string # 1st result: mate in 4(upper_bound:4)",
+        "info time 1 nodes 53 nps 53000 hashfull 0 currmove 4a5a score mate -4 depth 1 seldepth 2 pv 4a5a 4b6b+ 5a4a S*3b",
+        "info time 1 nodes 56 nps 56000 hashfull 0 depth 0 seldepth 2 score mate 3 string # 2nd result: {disproof_hand= 銀 len=3 amount=1013}",
+        "info time 1 nodes 61 nps 61000 hashfull 0 currmove 4a5a score mate -4 depth 0 seldepth 2 pv 4a5a 4b6b+ 5a4a S*3b",
+        "checkmate 4a5a 4b6b+ 5a4a S*3b"
+      ],
+      "seconds": 0.043,
+      "pv_plies": 4,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 4,
+      "moves": "S*4b",
+      "position_command": "position sfen 5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1 moves S*4b",
+      "response": "checkmate 4a4b 6d5c 4b4a R*4b 4a3a 4b3b+",
+      "lines": [
+        "info time 1 nodes 432 nps 432000 hashfull 0 depth 0 seldepth 7 score mate -6 string # 1st result: mate in 6(upper_bound:6)",
+        "info time 1 nodes 432 nps 432000 hashfull 0 currmove 4a4b score mate -6 depth 1 seldepth 7 pv 4a4b 6d5c 4b3a R*3b 3a2a 3b2b+",
+        "info time 1 nodes 654 nps 654000 hashfull 0 depth 0 seldepth 7 score mate 5 string # 2nd result: {disproof_hand= 飛 len=5 amount=2042}",
+        "info time 1 nodes 667 nps 667000 hashfull 0 currmove 4a4b score mate -6 depth 0 seldepth 7 pv 4a4b 6d5c 4b4a R*4b 4a3a 4b3b+",
+        "checkmate 4a4b 6d5c 4b4a R*4b 4a3a 4b3b+"
+      ],
+      "seconds": 0.034,
+      "pv_plies": 6,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 4,
+      "moves": "S*3b 4a4b 6d5c",
+      "position_command": "position sfen 5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1 moves S*3b 4a4b 6d5c",
+      "response": "checkmate 4b5a R*4a",
+      "lines": [
+        "info time 1 nodes 5 nps 5000 hashfull 0 depth 0 seldepth 0 score mate -2 string # 1st result: mate in 2(upper_bound:2)",
+        "info time 1 nodes 5 nps 5000 hashfull 0 currmove 4b5a score mate -2 depth 1 seldepth 0 pv 4b5a R*4a",
+        "info time 1 nodes 5 nps 5000 hashfull 0 depth 0 seldepth 0 score mate 1 string # 2nd result: {disproof_hand= 飛 len=1 amount=1}",
+        "info time 1 nodes 8 nps 8000 hashfull 0 currmove 4b5a score mate -2 depth 0 seldepth 0 pv 4b5a R*4a",
+        "checkmate 4b5a R*4a"
+      ],
+      "seconds": 0.033,
+      "pv_plies": 2,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 4,
+      "moves": "S*3b 4a4b R*4a",
+      "position_command": "position sfen 5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1 moves S*3b 4a4b R*4a",
+      "response": "checkmate 4b5b 4d5c+",
+      "lines": [
+        "info time 1 nodes 5 nps 5000 hashfull 0 depth 0 seldepth 0 score mate -2 string # 1st result: mate in 2(upper_bound:2)",
+        "info time 1 nodes 5 nps 5000 hashfull 0 currmove 4b5b score mate -2 depth 1 seldepth 0 pv 4b5b 4d5c+",
+        "info time 1 nodes 5 nps 5000 hashfull 0 depth 0 seldepth 0 score mate 1 string # 2nd result: {disproof_hand= len=1 amount=1}",
+        "info time 1 nodes 8 nps 8000 hashfull 0 currmove 4b5b score mate -2 depth 0 seldepth 0 pv 4b5b 4d5c+",
+        "checkmate 4b5b 4d5c+"
+      ],
+      "seconds": 0.04,
+      "pv_plies": 2,
+      "independent_pv_legality_and_terminal_mate": true
+    },
+    {
+      "problem": 4,
+      "moves": "S*3b 4a4b R*4c",
+      "position_command": "position sfen 5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1 moves S*3b 4a4b R*4c",
+      "response": "checkmate 4b5a 4c4a+",
+      "lines": [
+        "info time 1 nodes 10 nps 10000 hashfull 0 depth 0 seldepth 0 score mate -2 string # 1st result: mate in 2(upper_bound:2)",
+        "info time 1 nodes 10 nps 10000 hashfull 0 currmove 4b5a score mate -2 depth 1 seldepth 0 pv 4b5a 4c4a+",
+        "info time 1 nodes 10 nps 10000 hashfull 0 depth 0 seldepth 0 score mate 1 string # 2nd result: {disproof_hand= len=1 amount=2}",
+        "info time 1 nodes 13 nps 13000 hashfull 0 currmove 4b5a score mate -2 depth 0 seldepth 0 pv 4b5a 4c4a+",
+        "checkmate 4b5a 4c4a+"
+      ],
+      "seconds": 0.037,
+      "pv_plies": 2,
+      "independent_pv_legality_and_terminal_mate": true
+    }
+  ],
+  "handshake": [
+    "id name KomoringHeights  1.1.0 64ZEN2",
+    "id author by yaneurao , komori-n",
+    "option name Threads type spin default 4 min 1 max 127",
+    "option name MultiPV type spin default 1 min 1 max 800",
+    "option name USI_Hash type spin default 4096 min 1 max 33554432",
+    "option name WriteDebugLog type string default",
+    "option name GenerateAllLegalMoves type check default true",
+    "option name NodesLimit type spin default 0 min 0 max 9223372036854775807",
+    "option name PvInterval type spin default 1000 min 0 max 1000000",
+    "option name RootIsAndNodeIfChecked type check default true",
+    "option name ScoreCalculation type combo default Ponanza var None var Dn var MinusPn var Ponanza",
+    "option name PostSearchLevel type combo default MinLength var None var UpperBound var MinLength",
+    "usiok"
+  ],
+  "ready": [
+    "readyok"
+  ]
+}

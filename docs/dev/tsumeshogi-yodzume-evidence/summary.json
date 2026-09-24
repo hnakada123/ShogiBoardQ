@@ -1,0 +1,819 @@
+{
+  "metadata": {
+    "shogiboardq_commit": "08398bbd7fd3676c66bcf9e89f9be2e024e15b00",
+    "hayanagi_commit": "30cfce58e0a863f9f2d2144635f1d9e9d4e3e54f",
+    "engine": "/home/nakada/GitHub/ShogiBoardQ/build/Hayanagi/hayanagi",
+    "engine_sha256": "955a8eff734a77eade46f652bcb3396c48538ae51906948f83034cacd65a26b5",
+    "python": "3.14.7",
+    "python_shogi": "1.1.1",
+    "python_shogi_source_sha256": "58eee28dd9c47b2728e1d877812fcde75b890623a8ceb8bec19360a7582f6f89",
+    "millis_per_query": 10000,
+    "independent_scope": "all positive proof trees + no mate within 1/3 plies; not exhaustive negative depth 5/7",
+    "usi_handshake": [
+      "id name Hayanagi",
+      "id author OpenAI",
+      "option name USI_Ponder type check default false",
+      "option name MultiPV type spin default 1 min 1 max 32",
+      "option name Threads type spin default 1 min 1 max 128",
+      "option name Hash type spin default 16 min 1 max 65536",
+      "option name MinimumThinkingTime type spin default 0 min 0 max 600000",
+      "option name NetworkDelay type spin default 0 min 0 max 600000",
+      "option name NetworkDelay2 type spin default 0 min 0 max 600000",
+      "option name SlowMover type spin default 100 min 1 max 1000",
+      "option name ResignValue type spin default 99999 min 0 max 99999",
+      "option name MaxMovesToDraw type spin default 500 min 0 max 600000",
+      "option name EnteringKingRule type combo default CSARule24 var NoEnteringKing var CSARule24 var CSARule24H var CSARule27 var CSARule27H var TryRule",
+      "option name GenerateAllLegalMoves type check default true",
+      "option name USI_OwnBook type check default true",
+      "option name BookDir type string default book",
+      "option name BookFile type combo default standard_book.db var no_book var standard_book.db var yaneura_book1.db var yaneura_book2.db var yaneura_book3.db var yaneura_book4.db var user_book1.db var user_book2.db var user_book3.db",
+      "option name TsumeMode type check default false",
+      "usiok"
+    ],
+    "explicit_options": [
+      "setoption name TsumeMode value true",
+      "setoption name USI_OwnBook value false",
+      "setoption name GenerateAllLegalMoves value true"
+    ]
+  },
+  "fixtures": {
+    "tsume_positions.sfen": {
+      "sha256": "2fa6c3532b674a67698ab5dfe7f8c82c4c950cba3adf9675cbf56d2bf960832d",
+      "desktop_exists": true,
+      "desktop_bytes_equal": true
+    },
+    "tsume_positions_with_moves.sfen": {
+      "sha256": "b7c952201652632c03f90ed1cf3f56f641f27b63de76809ccbc657e40179b279",
+      "desktop_exists": true,
+      "desktop_bytes_equal": true
+    }
+  },
+  "problems": [
+    {
+      "number": 1,
+      "sfen": "9/9/6R1+R/5k3/9/7+S1/9/9/9 b 2b4g3s4n4l18p 1",
+      "depth_results": {
+        "1": {
+          "status": "depthlimit",
+          "move": "1c1d",
+          "plies": "0",
+          "nodes": "10",
+          "raw": "tsume depthlimit move 1c1d plies 0 nodes 10"
+        },
+        "3": {
+          "status": "depthlimit",
+          "move": "1c1d",
+          "plies": "0",
+          "nodes": "339",
+          "raw": "tsume depthlimit move 1c1d plies 0 nodes 339"
+        },
+        "5": {
+          "status": "mate",
+          "move": "3c5c+",
+          "plies": "5",
+          "nodes": "668",
+          "raw": "tsume mate move 3c5c+ plies 5 nodes 668"
+        }
+      },
+      "independent_bounded_results": {
+        "1": false,
+        "3": false
+      },
+      "proof_root": "9/9/6R1+R/5k3/9/7+S1/9/9/9 b 2b4g3s4n4l18p 1 | 5",
+      "root_options": {
+        "1c1d": {
+          "status": "depthlimit",
+          "move": "B*2d",
+          "plies": "0",
+          "nodes": "4133",
+          "raw": "tsume depthlimit move B*2d plies 0 nodes 4133"
+        },
+        "1c2d": {
+          "status": "depthlimit",
+          "move": "B*3d",
+          "plies": "0",
+          "nodes": "2455",
+          "raw": "tsume depthlimit move B*3d plies 0 nodes 2455"
+        },
+        "2f3e": {
+          "status": "depthlimit",
+          "move": "4d5e",
+          "plies": "0",
+          "nodes": "668",
+          "raw": "tsume depthlimit move 4d5e plies 0 nodes 668"
+        },
+        "3c3d": {
+          "status": "depthlimit",
+          "move": "4d4e",
+          "plies": "0",
+          "nodes": "580",
+          "raw": "tsume depthlimit move 4d4e plies 0 nodes 580"
+        },
+        "3c3d+": {
+          "status": "depthlimit",
+          "move": "4d5e",
+          "plies": "0",
+          "nodes": "651",
+          "raw": "tsume depthlimit move 4d5e plies 0 nodes 651"
+        },
+        "3c3e+": {
+          "status": "depthlimit",
+          "move": "4d5d",
+          "plies": "0",
+          "nodes": "509",
+          "raw": "tsume depthlimit move 4d5d plies 0 nodes 509"
+        },
+        "3c4c": {
+          "status": "depthlimit",
+          "move": "4d5e",
+          "plies": "0",
+          "nodes": "901",
+          "raw": "tsume depthlimit move 4d5e plies 0 nodes 901"
+        },
+        "3c4c+": {
+          "status": "depthlimit",
+          "move": "4d5e",
+          "plies": "0",
+          "nodes": "461",
+          "raw": "tsume depthlimit move 4d5e plies 0 nodes 461"
+        },
+        "3c5c+": {
+          "status": "mate",
+          "move": "4d4e",
+          "plies": "4",
+          "nodes": "352",
+          "raw": "tsume mate move 4d4e plies 4 nodes 352"
+        }
+      },
+      "sequences": [
+        {
+          "moves": "3c5c+ 4d4e 1c4c P*4d 4c4d",
+          "legal_continuous_checks_and_terminal_mate": true
+        }
+      ],
+      "seconds": 2.386
+    },
+    {
+      "number": 2,
+      "sfen": "9/9/9/R8/9/9/1k2+S4/9/3+N5 b RG2b3g3s3n4l18p 1",
+      "depth_results": {
+        "1": {
+          "status": "depthlimit",
+          "move": "R*8i",
+          "plies": "0",
+          "nodes": "21",
+          "raw": "tsume depthlimit move R*8i plies 0 nodes 21"
+        },
+        "3": {
+          "status": "depthlimit",
+          "move": "R*8i",
+          "plies": "0",
+          "nodes": "2174",
+          "raw": "tsume depthlimit move R*8i plies 0 nodes 2174"
+        },
+        "5": {
+          "status": "mate",
+          "move": "G*9g",
+          "plies": "5",
+          "nodes": "34569",
+          "raw": "tsume mate move G*9g plies 5 nodes 34569"
+        }
+      },
+      "independent_bounded_results": {
+        "1": false,
+        "3": false
+      },
+      "proof_root": "9/9/9/R8/9/9/1k2+S4/9/3+N5 b RG2b3g3s3n4l18p 1 | 5",
+      "root_options": {
+        "6i7h": {
+          "status": "depthlimit",
+          "move": "8g7h",
+          "plies": "0",
+          "nodes": "6221",
+          "raw": "tsume depthlimit move 8g7h plies 0 nodes 6221"
+        },
+        "9d8d": {
+          "status": "depthlimit",
+          "move": "B*8f",
+          "plies": "0",
+          "nodes": "13402",
+          "raw": "tsume depthlimit move B*8f plies 0 nodes 13402"
+        },
+        "9d9g": {
+          "status": "depthlimit",
+          "move": "8g9g",
+          "plies": "0",
+          "nodes": "7519",
+          "raw": "tsume depthlimit move 8g9g plies 0 nodes 7519"
+        },
+        "G*7g": {
+          "status": "depthlimit",
+          "move": "8g7g",
+          "plies": "0",
+          "nodes": "1550",
+          "raw": "tsume depthlimit move 8g7g plies 0 nodes 1550"
+        },
+        "G*7h": {
+          "status": "depthlimit",
+          "move": "8g7f",
+          "plies": "0",
+          "nodes": "4045",
+          "raw": "tsume depthlimit move 8g7f plies 0 nodes 4045"
+        },
+        "G*8f": {
+          "status": "depthlimit",
+          "move": "8g8f",
+          "plies": "0",
+          "nodes": "2940",
+          "raw": "tsume depthlimit move 8g8f plies 0 nodes 2940"
+        },
+        "G*8h": {
+          "status": "depthlimit",
+          "move": "8g8h",
+          "plies": "0",
+          "nodes": "6222",
+          "raw": "tsume depthlimit move 8g8h plies 0 nodes 6222"
+        },
+        "G*9g": {
+          "status": "mate",
+          "move": "8g7f",
+          "plies": "4",
+          "nodes": "3618",
+          "raw": "tsume mate move 8g7f plies 4 nodes 3618"
+        },
+        "G*9h": {
+          "status": "depthlimit",
+          "move": "8g7g",
+          "plies": "0",
+          "nodes": "5298",
+          "raw": "tsume depthlimit move 8g7g plies 0 nodes 5298"
+        },
+        "R*6g": {
+          "status": "depthlimit",
+          "move": "B*7g",
+          "plies": "0",
+          "nodes": "2958",
+          "raw": "tsume depthlimit move B*7g plies 0 nodes 2958"
+        },
+        "R*7g": {
+          "status": "depthlimit",
+          "move": "8g7g",
+          "plies": "0",
+          "nodes": "1008",
+          "raw": "tsume depthlimit move 8g7g plies 0 nodes 1008"
+        },
+        "R*8a": {
+          "status": "depthlimit",
+          "move": "B*8f",
+          "plies": "0",
+          "nodes": "21715",
+          "raw": "tsume depthlimit move B*8f plies 0 nodes 21715"
+        },
+        "R*8b": {
+          "status": "depthlimit",
+          "move": "B*8f",
+          "plies": "0",
+          "nodes": "14665",
+          "raw": "tsume depthlimit move B*8f plies 0 nodes 14665"
+        },
+        "R*8c": {
+          "status": "depthlimit",
+          "move": "B*8f",
+          "plies": "0",
+          "nodes": "8627",
+          "raw": "tsume depthlimit move B*8f plies 0 nodes 8627"
+        },
+        "R*8d": {
+          "status": "depthlimit",
+          "move": "B*8f",
+          "plies": "0",
+          "nodes": "3325",
+          "raw": "tsume depthlimit move B*8f plies 0 nodes 3325"
+        },
+        "R*8e": {
+          "status": "depthlimit",
+          "move": "B*8f",
+          "plies": "0",
+          "nodes": "1339",
+          "raw": "tsume depthlimit move B*8f plies 0 nodes 1339"
+        },
+        "R*8f": {
+          "status": "depthlimit",
+          "move": "8g8f",
+          "plies": "0",
+          "nodes": "523",
+          "raw": "tsume depthlimit move 8g8f plies 0 nodes 523"
+        },
+        "R*8h": {
+          "status": "mate",
+          "move": "8g7f",
+          "plies": "4",
+          "nodes": "1018",
+          "raw": "tsume mate move 8g7f plies 4 nodes 1018"
+        },
+        "R*8i": {
+          "status": "depthlimit",
+          "move": "B*8h",
+          "plies": "0",
+          "nodes": "2284",
+          "raw": "tsume depthlimit move B*8h plies 0 nodes 2284"
+        },
+        "R*9g": {
+          "status": "mate",
+          "move": "8g8f",
+          "plies": "4",
+          "nodes": "781",
+          "raw": "tsume mate move 8g8f plies 4 nodes 781"
+        }
+      },
+      "sequences": [
+        {
+          "moves": "G*9g 8g8h R*8g 8h9i 9g9h",
+          "legal_continuous_checks_and_terminal_mate": true
+        },
+        {
+          "moves": "R*9g 8g8f 9g9f 8f8e G*8f",
+          "legal_continuous_checks_and_terminal_mate": true
+        },
+        {
+          "moves": "R*8h 8g7f G*6f 7f7g 6i7h",
+          "legal_continuous_checks_and_terminal_mate": true
+        }
+      ],
+      "seconds": 7.615
+    },
+    {
+      "number": 3,
+      "sfen": "9/9/9/9/9/9/7+S1/5G2k/9 b RSr2b3g2s4n4l18p 1",
+      "depth_results": {
+        "1": {
+          "status": "depthlimit",
+          "move": "R*1i",
+          "plies": "0",
+          "nodes": "15",
+          "raw": "tsume depthlimit move R*1i plies 0 nodes 15"
+        },
+        "3": {
+          "status": "depthlimit",
+          "move": "R*1i",
+          "plies": "0",
+          "nodes": "1385",
+          "raw": "tsume depthlimit move R*1i plies 0 nodes 1385"
+        },
+        "5": {
+          "status": "mate",
+          "move": "R*1g",
+          "plies": "5",
+          "nodes": "38531",
+          "raw": "tsume mate move R*1g plies 5 nodes 38531"
+        }
+      },
+      "independent_bounded_results": {
+        "1": false,
+        "3": false
+      },
+      "proof_root": "9/9/9/9/9/9/7+S1/5G2k/9 b RSr2b3g2s4n4l18p 1 | 5",
+      "root_options": {
+        "2g1g": {
+          "status": "depthlimit",
+          "move": "1h1i",
+          "plies": "0",
+          "nodes": "5014",
+          "raw": "tsume depthlimit move 1h1i plies 0 nodes 5014"
+        },
+        "2g2h": {
+          "status": "depthlimit",
+          "move": "1h2h",
+          "plies": "0",
+          "nodes": "3031",
+          "raw": "tsume depthlimit move 1h2h plies 0 nodes 3031"
+        },
+        "R*1a": {
+          "status": "depthlimit",
+          "move": "R*1f",
+          "plies": "0",
+          "nodes": "17068",
+          "raw": "tsume depthlimit move R*1f plies 0 nodes 17068"
+        },
+        "R*1b": {
+          "status": "depthlimit",
+          "move": "R*1f",
+          "plies": "0",
+          "nodes": "12085",
+          "raw": "tsume depthlimit move R*1f plies 0 nodes 12085"
+        },
+        "R*1c": {
+          "status": "depthlimit",
+          "move": "R*1f",
+          "plies": "0",
+          "nodes": "7904",
+          "raw": "tsume depthlimit move R*1f plies 0 nodes 7904"
+        },
+        "R*1d": {
+          "status": "depthlimit",
+          "move": "R*1f",
+          "plies": "0",
+          "nodes": "3232",
+          "raw": "tsume depthlimit move R*1f plies 0 nodes 3232"
+        },
+        "R*1e": {
+          "status": "depthlimit",
+          "move": "R*1f",
+          "plies": "0",
+          "nodes": "1809",
+          "raw": "tsume depthlimit move R*1f plies 0 nodes 1809"
+        },
+        "R*1f": {
+          "status": "depthlimit",
+          "move": "B*1g",
+          "plies": "0",
+          "nodes": "660",
+          "raw": "tsume depthlimit move B*1g plies 0 nodes 660"
+        },
+        "R*1g": {
+          "status": "mate",
+          "move": "1h2i",
+          "plies": "4",
+          "nodes": "31",
+          "raw": "tsume mate move 1h2i plies 4 nodes 31"
+        },
+        "R*1i": {
+          "status": "nomate",
+          "move": "1h1i",
+          "plies": "1",
+          "nodes": "264",
+          "raw": "tsume nomate move 1h1i plies 1 nodes 264"
+        },
+        "R*2h": {
+          "status": "depthlimit",
+          "move": "1h1i",
+          "plies": "0",
+          "nodes": "28",
+          "raw": "tsume depthlimit move 1h1i plies 0 nodes 28"
+        },
+        "R*3h": {
+          "status": "depthlimit",
+          "move": "B*2h",
+          "plies": "0",
+          "nodes": "462",
+          "raw": "tsume depthlimit move B*2h plies 0 nodes 462"
+        },
+        "S*1i": {
+          "status": "depthlimit",
+          "move": "1h1i",
+          "plies": "0",
+          "nodes": "3099",
+          "raw": "tsume depthlimit move 1h1i plies 0 nodes 3099"
+        },
+        "S*2i": {
+          "status": "depthlimit",
+          "move": "1h2i",
+          "plies": "0",
+          "nodes": "2861",
+          "raw": "tsume depthlimit move 1h2i plies 0 nodes 2861"
+        }
+      },
+      "sequences": [
+        {
+          "moves": "R*1g 1h2i S*3h 2i3i 4h4i",
+          "legal_continuous_checks_and_terminal_mate": true
+        }
+      ],
+      "seconds": 4.324
+    },
+    {
+      "number": 4,
+      "sfen": "5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1",
+      "depth_results": {
+        "1": {
+          "status": "depthlimit",
+          "move": "R*4c",
+          "plies": "0",
+          "nodes": "15",
+          "raw": "tsume depthlimit move R*4c plies 0 nodes 15"
+        },
+        "3": {
+          "status": "depthlimit",
+          "move": "R*4c",
+          "plies": "0",
+          "nodes": "1142",
+          "raw": "tsume depthlimit move R*4c plies 0 nodes 1142"
+        },
+        "5": {
+          "status": "mate",
+          "move": "S*3b",
+          "plies": "5",
+          "nodes": "12088",
+          "raw": "tsume mate move S*3b plies 5 nodes 12088"
+        }
+      },
+      "independent_bounded_results": {
+        "1": false,
+        "3": false
+      },
+      "proof_root": "5k3/9/9/3+P1B1N1/9/9/9/9/9 b RSrb4g3s3n4l17p 1 | 5",
+      "root_options": {
+        "2d3b+": {
+          "status": "depthlimit",
+          "move": "4a3b",
+          "plies": "0",
+          "nodes": "4491",
+          "raw": "tsume depthlimit move 4a3b plies 0 nodes 4491"
+        },
+        "R*1a": {
+          "status": "depthlimit",
+          "move": "R*2a",
+          "plies": "0",
+          "nodes": "3629",
+          "raw": "tsume depthlimit move R*2a plies 0 nodes 3629"
+        },
+        "R*2a": {
+          "status": "depthlimit",
+          "move": "R*3a",
+          "plies": "0",
+          "nodes": "1450",
+          "raw": "tsume depthlimit move R*3a plies 0 nodes 1450"
+        },
+        "R*3a": {
+          "status": "depthlimit",
+          "move": "4a3a",
+          "plies": "0",
+          "nodes": "320",
+          "raw": "tsume depthlimit move 4a3a plies 0 nodes 320"
+        },
+        "R*4b": {
+          "status": "mate",
+          "move": "4a5a",
+          "plies": "4",
+          "nodes": "285",
+          "raw": "tsume mate move 4a5a plies 4 nodes 285"
+        },
+        "R*4c": {
+          "status": "depthlimit",
+          "move": "R*4b",
+          "plies": "0",
+          "nodes": "1782",
+          "raw": "tsume depthlimit move R*4b plies 0 nodes 1782"
+        },
+        "R*5a": {
+          "status": "depthlimit",
+          "move": "4a5a",
+          "plies": "0",
+          "nodes": "497",
+          "raw": "tsume depthlimit move 4a5a plies 0 nodes 497"
+        },
+        "R*6a": {
+          "status": "depthlimit",
+          "move": "R*5a",
+          "plies": "0",
+          "nodes": "1649",
+          "raw": "tsume depthlimit move R*5a plies 0 nodes 1649"
+        },
+        "R*7a": {
+          "status": "depthlimit",
+          "move": "R*5a",
+          "plies": "0",
+          "nodes": "3625",
+          "raw": "tsume depthlimit move R*5a plies 0 nodes 3625"
+        },
+        "R*8a": {
+          "status": "depthlimit",
+          "move": "R*5a",
+          "plies": "0",
+          "nodes": "6690",
+          "raw": "tsume depthlimit move R*5a plies 0 nodes 6690"
+        },
+        "R*9a": {
+          "status": "depthlimit",
+          "move": "R*5a",
+          "plies": "0",
+          "nodes": "10683",
+          "raw": "tsume depthlimit move R*5a plies 0 nodes 10683"
+        },
+        "S*3b": {
+          "status": "mate",
+          "move": "4a5a",
+          "plies": "4",
+          "nodes": "1398",
+          "raw": "tsume mate move 4a5a plies 4 nodes 1398"
+        },
+        "S*4b": {
+          "status": "depthlimit",
+          "move": "4a4b",
+          "plies": "0",
+          "nodes": "1786",
+          "raw": "tsume depthlimit move 4a4b plies 0 nodes 1786"
+        },
+        "S*5b": {
+          "status": "depthlimit",
+          "move": "4a5b",
+          "plies": "0",
+          "nodes": "4053",
+          "raw": "tsume depthlimit move 4a5b plies 0 nodes 4053"
+        }
+      },
+      "sequences": [
+        {
+          "moves": "S*3b 4a4b R*4a 4b5b 4d5c+",
+          "legal_continuous_checks_and_terminal_mate": true
+        },
+        {
+          "moves": "R*4b 4a5a 4b6b+ 5a4a 2d3b+",
+          "legal_continuous_checks_and_terminal_mate": true
+        }
+      ],
+      "longer_S4b": {
+        "4": {
+          "status": "depthlimit",
+          "move": "4a4b",
+          "plies": "0",
+          "nodes": "1786",
+          "raw": "tsume depthlimit move 4a4b plies 0 nodes 1786"
+        },
+        "6": {
+          "status": "mate",
+          "move": "4a5b",
+          "plies": "6",
+          "nodes": "36882",
+          "raw": "tsume mate move 4a5b plies 6 nodes 36882"
+        },
+        "proof_root": "5k3/5S3/9/3+P1B1N1/9/9/9/9/9 w Rrb4g3s3n4l17p 2 | 6"
+      },
+      "seconds": 13.112
+    },
+    {
+      "number": 5,
+      "sfen": "1l7/k8/9/G8/3+R5/9/9/9/9 b R2b3g4s4n3l18p 1",
+      "depth_results": {
+        "1": {
+          "status": "depthlimit",
+          "move": "R*9c",
+          "plies": "0",
+          "nodes": "14",
+          "raw": "tsume depthlimit move R*9c plies 0 nodes 14"
+        },
+        "3": {
+          "status": "depthlimit",
+          "move": "R*9c",
+          "plies": "0",
+          "nodes": "1199",
+          "raw": "tsume depthlimit move R*9c plies 0 nodes 1199"
+        },
+        "5": {
+          "status": "mate",
+          "move": "R*9c",
+          "plies": "5",
+          "nodes": "30824",
+          "raw": "tsume mate move R*9c plies 5 nodes 30824"
+        }
+      },
+      "independent_bounded_results": {
+        "1": false,
+        "3": false
+      },
+      "proof_root": "1l7/k8/9/G8/3+R5/9/9/9/9 b R2b3g4s4n3l18p 1 | 5",
+      "root_options": {
+        "6e6b": {
+          "status": "depthlimit",
+          "move": "8a8b",
+          "plies": "0",
+          "nodes": "1627",
+          "raw": "tsume depthlimit move 8a8b plies 0 nodes 1627"
+        },
+        "9d8c": {
+          "status": "depthlimit",
+          "move": "8a8c",
+          "plies": "0",
+          "nodes": "4294",
+          "raw": "tsume depthlimit move 8a8c plies 0 nodes 4294"
+        },
+        "9d9c": {
+          "status": "depthlimit",
+          "move": "9b9c",
+          "plies": "0",
+          "nodes": "2115",
+          "raw": "tsume depthlimit move 9b9c plies 0 nodes 2115"
+        },
+        "R*1b": {
+          "status": "depthlimit",
+          "move": "B*2b",
+          "plies": "0",
+          "nodes": "14683",
+          "raw": "tsume depthlimit move B*2b plies 0 nodes 14683"
+        },
+        "R*2b": {
+          "status": "depthlimit",
+          "move": "B*3b",
+          "plies": "0",
+          "nodes": "10987",
+          "raw": "tsume depthlimit move B*3b plies 0 nodes 10987"
+        },
+        "R*3b": {
+          "status": "depthlimit",
+          "move": "B*4b",
+          "plies": "0",
+          "nodes": "7819",
+          "raw": "tsume depthlimit move B*4b plies 0 nodes 7819"
+        },
+        "R*4b": {
+          "status": "depthlimit",
+          "move": "B*5b",
+          "plies": "0",
+          "nodes": "5179",
+          "raw": "tsume depthlimit move B*5b plies 0 nodes 5179"
+        },
+        "R*5b": {
+          "status": "depthlimit",
+          "move": "B*6b",
+          "plies": "0",
+          "nodes": "3062",
+          "raw": "tsume depthlimit move B*6b plies 0 nodes 3062"
+        },
+        "R*6b": {
+          "status": "depthlimit",
+          "move": "B*7b",
+          "plies": "0",
+          "nodes": "1298",
+          "raw": "tsume depthlimit move B*7b plies 0 nodes 1298"
+        },
+        "R*7b": {
+          "status": "depthlimit",
+          "move": "B*8b",
+          "plies": "0",
+          "nodes": "422",
+          "raw": "tsume depthlimit move B*8b plies 0 nodes 422"
+        },
+        "R*8b": {
+          "status": "depthlimit",
+          "move": "8a8b",
+          "plies": "0",
+          "nodes": "263",
+          "raw": "tsume depthlimit move 8a8b plies 0 nodes 263"
+        },
+        "R*9a": {
+          "status": "nomate",
+          "move": "9b9a",
+          "plies": "1",
+          "nodes": "3",
+          "raw": "tsume nomate move 9b9a plies 1 nodes 3"
+        },
+        "R*9c": {
+          "status": "mate",
+          "move": "9b8b",
+          "plies": "4",
+          "nodes": "143",
+          "raw": "tsume mate move 9b8b plies 4 nodes 143"
+        }
+      },
+      "sequences": [
+        {
+          "moves": "R*9c 9b8b 6e6b P*7b 9d8c",
+          "legal_continuous_checks_and_terminal_mate": true
+        }
+      ],
+      "seconds": 2.186
+    }
+  ],
+  "legal_move_sets_compared": 760,
+  "independently_verified_proof_nodes": 755,
+  "hayanagi_go_mate_probe": [
+    "info string use go tsume for kingless positions",
+    "bestmove resign"
+  ],
+  "query_count": 3189,
+  "query_status_counts": {
+    "mate": 755,
+    "nomate": 3,
+    "depthlimit": 2431,
+    "timeout": 0,
+    "cancelled": 0,
+    "invalid": 0
+  },
+  "observed_current_settings": {
+    "file": "/home/nakada/.config/ShogiBoardQ/ShogiBoardQ.ini",
+    "generator": {
+      "attackRange": "3",
+      "engineIndex": "4",
+      "includePv": "true",
+      "lastSaveDirectory": "/home/nakada/Desktop",
+      "maxAttackPieces": "5",
+      "maxDefendPieces": "4",
+      "maxPositions": "5",
+      "targetMoves": "5",
+      "timeoutSec": "5"
+    },
+    "engine_options": {
+      "Threads": "4",
+      "MultiPV": "1",
+      "USI_Hash": "4096",
+      "WriteDebugLog": "",
+      "GenerateAllLegalMoves": "true",
+      "NodesLimit": "0",
+      "PvInterval": "1000",
+      "RootIsAndNodeIfChecked": "true",
+      "ScoreCalculation": "Ponanza",
+      "PostSearchLevel": "MinLength"
+    },
+    "note": "調査中に読み取った現在値。元ファイル生成時の設定ログではない。"
+  }
+}

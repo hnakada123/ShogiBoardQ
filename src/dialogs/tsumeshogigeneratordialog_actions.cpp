@@ -241,6 +241,17 @@ void TsumeshogiGeneratorDialog::onTrimmingProgress(int candidate, int total)
     setStatusText(tr("トリミング中（候補 %1/%2）").arg(candidate).arg(total));
 }
 
+void TsumeshogiGeneratorDialog::onVerificationProgress(int queries)
+{
+    setStatusText(tr("余詰検査中（問い合わせ %1 回）").arg(queries));
+}
+
+void TsumeshogiGeneratorDialog::onVerificationStatsUpdated(int rejected, int inconclusive)
+{
+    m_labelVerification->setText(tr("検査で除外: %1 局面（うち判定不能: %2 局面）")
+                                    .arg(rejected).arg(inconclusive));
+}
+
 void TsumeshogiGeneratorDialog::setStatusText(const QString& status)
 {
     m_labelStatus->setText(tr("状態: %1").arg(status));

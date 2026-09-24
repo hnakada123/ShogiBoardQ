@@ -2,7 +2,7 @@
 
 ## 概要
 
-ランダムに詰将棋の候補局面を生成し、USIエンジンで詰み探索を行い、指定手数の詰みが存在する局面を自動で発見する機能。発見した局面は不要駒トリミング処理により、最小限の駒で構成された状態に最適化される。
+ランダムに詰将棋の候補局面を生成し、USIエンジンで詰み探索を行い、指定手数で詰む局面を探索する機能。全変化の攻手（最終手・成不成を含む）が一意と確認できた局面だけを採択し、不要駒を除去した後も同じ検査を行う。余詰や判定不能の局面は出力しない。
 
 ## アーキテクチャ
 
@@ -12,6 +12,7 @@
 |---|---|---|
 | `TsumeshogiGeneratorDialog` | `src/dialogs/tsumeshogigeneratordialog.h/.cpp` | UI（パラメータ設定・進捗表示・結果テーブル） |
 | `TsumeshogiGenerator` | `src/analysis/tsumeshogigenerator.h/.cpp` | オーケストレータ（生成→検証→トリミングの全体制御） |
+| `TsumeshogiVerifier` | `src/analysis/tsumeshogiverifier.{h,cpp}` | 合法手・全応手の列挙と唯一性の検査状態を管理 |
 | `TsumeshogiPositionGenerator` | `src/analysis/tsumeshogipositiongenerator.h/.cpp` | ランダム局面生成（SFEN文字列出力） |
 
 ```
@@ -19,68 +20,33 @@ TsumeshogiGeneratorDialog
   │
   ├─ TsumeshogiGenerator          ← オーケストレータ
   │    ├─ TsumeshogiPositionGenerator  ← ランダム局面生成
+  │    ├─ TsumeshogiVerifier        ← 余詰検査（Hayanagiの合法手生成を利用）
   │    └─ Usi                          ← エンジン通信（詰探索）
   │
   signals: positionFound / progressUpdated / finished / errorOccurred
 ```
 
-### シグナルフロー
-
-```
-Dialog ──start()──▶ Generator ──generateAndSendNext()──▶ Usi
-                                                           │
-    onPositionFound() ◀── positionFound ◀── processResult() ◀── onCheckmateSolved()
-    onProgressUpdated() ◀── progressUpdated
-    onGeneratorFinished() ◀── finished
-```
-
 ## 処理フロー
 
-### 全体フロー
+1. `Searching`: ランダム候補を選択エンジンの `go mate` で調べる。
+2. 目標手数のPVが返ったら `Verifying` へ移り、`TsumeshogiVerifier` で全変化の攻手を検査する。
+3. 合格した局面だけを `Trimming` のベースにする。
+4. 駒の除去後に目標手数のPVが返っても、`Verifying` を完了するまで除去を確定しない。
+5. 除去候補を試し終えたら、検証済みの最終SFEN/PVを出力し、次の候補へ進む。
 
-```
-[開始]
-  │
-  ▼
-ランダム局面生成 (TsumeshogiPositionGenerator::generate)
-  │
-  ▼
-エンジンに送信 (go mate <timeout>)
-  │
-  ▼
-エンジン応答
-  ├─ checkmate <N手PV>
-  │   ├─ N == 目標手数 → トリミングフェーズへ
-  │   └─ N != 目標手数 → 次の局面へ
-  ├─ checkmate nomate → 次の局面へ
-  ├─ checkmate timeout → 次の局面へ（`checkmateUnknown` として通知される）
-  ├─ エンジン無応答（安全タイマー） → stop を送信して応答を待つ
-  │   ├─ 応答あり → 結果として扱わず破棄し、次の局面へ（遅延応答の誤採択防止）
-  │   └─ 3秒応答なし → エンジン固着とみなし生成終了（errorOccurred + finished）
-  └─ エンジンエラー（プロセス異常終了など） → 生成終了（errorOccurred + finished）
-```
+| Phase | 内容 |
+|---|---|
+| `Idle` | 停止中 |
+| `Searching` | 候補生成と外部エンジンによる詰み探索 |
+| `Trimming` | 駒除去候補の詰み探索 |
+| `Verifying` | 元のフェーズを保持して唯一性を検査。終了後に採択または棄却 |
 
-### 状態機械 (Phase)
+`positionFound` は全検査に合格した局面だけを通知する。`verificationProgress` は問い合わせ数、
+`verificationStatsUpdated` は検査で除外した局面数（駒除去の試行を含む）と、そのうち判定不能の件数を通知する。
 
-`TsumeshogiGenerator` は3つの状態（Phase）で動作する。
-
-| Phase | 説明 | 遷移先 |
-|---|---|---|
-| `Idle` | 停止中。`start()` で Searching へ | → Searching |
-
-`start()` のエンジン初期化中（usiok/readyok 待ち）はイベントループが回るため、この間の `stop()` は
-`m_stopRequestedDuringStart` に記録し、初期化の待機を中断させて `start()` 復帰後に後始末する。
-| `Searching` | ランダム生成→エンジン検証ループ中 | → Trimming（詰み発見時）/ → Idle（停止・上限到達） |
-| `Trimming` | 不要駒除去検証中 | → Searching（トリミング完了後）/ → Idle（停止時） |
-
-```
-     start()         N手詰発見
-Idle ──────▶ Searching ──────▶ Trimming
-  ▲            │    ▲              │
-  │  stop()    │    │  完了         │  stop()
-  └────────────┘    └──────────────┘
-  └────────────────────────────────────┘
-```
+`start()` の初期化中は従来どおり停止要求を記録し、初期化処理が復帰してから終了する。
+検査問い合わせと続行処理はUSIシグナルと単発タイマーで進め、UIスレッドを探索待ちにしない。
+キャッシュだけで進められる場合も、64ステップごとにイベントループへ制御を戻す。
 
 ## ランダム局面生成 (TsumeshogiPositionGenerator)
 
@@ -132,22 +98,50 @@ Idle ──────▶ Searching ──────▶ Trimming
 ← checkmate notimplemented … エンジン非対応
 ```
 
-### フィルタリング
+### 一次フィルタと唯一性検査
 
-エンジンが返すPV（Principal Variation）の手数が「ちょうどN手」のみを採択する。N手以下の短手数やN手超の長手数は棄却される。
+返却PVの長さが目標N手と一致することは一次フィルタであり、採択条件のすべてではない。
+候補発見を効率よく行うため、KomoringHeightsでは引き続き `PostSearchLevel=MinLength` を推奨する。
+最終的な出力PVと手数は、検査した一意な攻手と全合法応手から再構成する。
 
-この判定はエンジンが**最短手順**を返すことを前提にしている。最短性が保証されない設定では、実際にはより短手数で詰む局面が「N手詰」として採択されうる。
-KomoringHeights の場合は `PostSearchLevel` を `MinLength`（最短性を保証）にする必要がある（`None` / `UpperBound` は不可）。ダイアログにもこの旨の注意書きを表示している。
+`TsumeshogiVerifier` は次の手順で厳格に検査する。
 
-発見局面は SFEN 単位で重複排除する（トリミングにより異なる候補が同じ最小局面に収束することがあるため）。重複した局面は発見数に数えない。
+1. 攻方の合法な王手をすべて列挙する。成・不成は別手として扱う。
+2. 各王手後の玉方の全合法応手を列挙する。応手が0なら、その王手は詰み。
+3. 各応手後の**攻方手番**の局面を外部エンジンの `go mate` に問い合わせる。
+   玉方手番を根にした `go mate` の解釈に依存しない。
+4. 応手後に1つでも `nomate` があれば、その王手は不詰。全応手で詰めば詰む攻手とする。
+   `timeout`・不正なPV等が残れば判定不能。返却PVは合法性・連続王手・終端の詰みも検査する。
+5. 詰む攻手が2つあれば余詰として棄却する。詰む攻手が1つだけで、他の攻手の不詰を確認できた場合に限り、その攻手後の全応手の局面について同じ検査を続ける。
+6. 全変化の検査が終わり、最長抵抗に対する手数が目標N手と一致したら合格する。
+
+別攻めの判定にN手やN+2手の深さ上限は設けない。エンジンから長い詰みPVが返れば、それも別解として数える。
+不詰の根拠は `nomate` であり、有限深さで見つからなかったことではない。
+エンジンが詰み・不詰を正しく回答することは前提となる。単一の `checkmate` やMultiPV設定だけを唯一性保証として扱わない。
+
+この基準は、慣例上許される変化別詰・最終手複数解・成不成非限定も除外する。
+作品一般の完全性判定とは異なる、生成用の厳しい基準である。
+既存の詰将棋対局で参考手順以外の詰手を受理する動作は変更しない。
+
+`timeoutMs` は候補探索・各除去探索に加え、それぞれの余詰検査全体にも適用する。
+検査中の1問い合わせは最大1秒（総予算の残りが少なければその時間）とし、難しい1手に偏らないようにする。
+検査局面数・応答キャッシュの上限はそれぞれ10,000。時間や資源の上限に達した場合は判定不能として採択しない。
+目標手数は従来どおり1～99の奇数。Hayanagiの有限深さ探索APIは使わないため、63手への暗黙の切り詰めは行わない。
+
+SFEN重複排除は唯一性検査と独立して行う。`registerFoundPosition()` は検証済みの正確なSFEN/PVの組以外を拒否し、
+その後に `m_foundSfens` で二重出力を防ぐ。
 
 ### タイマー
 
 | タイマー | 用途 | 間隔 |
 |---|---|---|
-| `m_safetyTimer` | エンジン無応答ガード | `timeoutMs + 5000ms`（シングルショット） |
+| `m_safetyTimer` | エンジン無応答ガード | 各 `go mate` に指定した時間 + 5000ms（シングルショット） |
 | `m_safetyTimer`（stop 応答待ち） | 安全タイマー発火後に送った stop への応答待ち | 3000ms（シングルショット） |
 | `m_progressTimer` | UI進捗更新 | 500ms（リピート） |
+| `m_verificationStepTimer` | 余詰検査の続行 | 0ms（シングルショット） |
+
+エンジンの応答が遅れた場合、停止・応答待ちの時間だけ総予算を超えることがある。
+予算超過後の結果を採択せず、既存の無応答ガードで安全に次へ進むか生成を終了する。
 
 ## 不要駒トリミング
 
@@ -158,7 +152,7 @@ KomoringHeights の場合は `PostSearchLevel` を `MinLength`（最短性を保
 ### アルゴリズム
 
 ```
-N手詰の局面発見（SFEN, PV）
+N手詰・全変化の唯一性検査に合格（SFEN, PV）
   │
   ▼
 startTrimmingPhase(sfen, pv)
@@ -174,11 +168,11 @@ startTrimmingPhase(sfen, pv)
   │
   ▼
 エンジン応答:
-  ├─ ちょうどN手詰 → 除去確定
+  ├─ ちょうどN手詰 → 唯一性を再検査 → 合格した場合だけ除去確定
   │   → 除去後のSFENをベースに候補リストを再構築
   │   → 先頭から再開（新たに除去可能になった駒があるかもしれない）
   │
-  └─ それ以外（不詰・手数変化・タイムアウト） → 除去却下
+  └─ それ以外（不詰・手数変化・余詰・判定不能） → 除去却下
       → 次の候補へ（インデックスを進める）
           │
           ├─ 次の候補あり → エンジンに送信
@@ -216,7 +210,7 @@ startTrimmingPhase(sfen, pv)
 
 ### 中断時の扱い
 
-トリミング中に `stop()`・エンジンエラー・エンジン固着で終了する場合、その時点のベース局面（`m_trimBaseSfen`）は検証済みのN手詰なので、`positionFound` として出力してから終了する。
+トリミング中に `stop()`・エンジンエラー・エンジン固着で終了する場合、最後に全検査を通ったベース局面だけを出力する。除去後の局面を検査中なら、その未検証局面は出力しない。最初の候補を検査中に停止した場合も出力しない。通常終了と `flushTrimmingResult()` は、ともに `registerFoundPosition()` の共通条件を通る。
 
 ## SFEN解析・再構築
 
@@ -277,6 +271,7 @@ struct ParsedSfen {
 │ 探索済み: 150 局面 / 発見: 3 局面          │
 │ 経過時間: 00:01:23                        │
 │ 状態: トリミング中（候補 3/9）             │
+│ 検査で除外: 8 局面（うち判定不能: 2 局面） │
 │                                           │
 │ 結果一覧                                  │
 │ ┌───┬──────────────────┬────┐             │
@@ -301,7 +296,7 @@ SettingsService を通じて以下の設定が保存・復元される:
 
 ### 状態表示と手順出力
 
-- 状態ラベルは `searchPhaseStarted`（探索中）と `trimmingProgress`（トリミング中 候補 i/n）で更新し、`finished` で「待機中」に戻す。トリミング中は「探索済み」が進まないため、何をしているかを示す目的。
+- 状態ラベルは `searchPhaseStarted`（探索中）、`trimmingProgress`（トリミング中 候補 i/n）、`verificationProgress`（余詰検査中 問い合わせ回数）で更新し、`finished` で「待機中」に戻す。検査で除外した局面数と判定不能の件数も表示する。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
 - ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、`Usi` は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
@@ -314,7 +309,7 @@ SettingsService を通じて以下の設定が保存・復元される:
 | `enginePath` | QString | — | エンジン実行ファイルパス |
 | `engineName` | QString | — | エンジン名 |
 | `targetMoves` | int | 3 | 目標手数（奇数: 1,3,5,...） |
-| `timeoutMs` | int | 5000 | 1局面あたりのエンジン探索時間(ms) |
+| `timeoutMs` | int | 5000 | 各詰み探索・各余詰検査全体の時間(ms) |
 | `maxPositionsToFind` | int | 10 | 見つける局面数の上限（0=無制限） |
 | `posGenSettings` | Settings | — | 局面生成パラメータ（下記） |
 
@@ -327,29 +322,33 @@ SettingsService を通じて以下の設定が保存・復元される:
 | `attackRange` | int | 3 | 玉中心の攻め駒配置範囲 |
 | `addRemainingToDefenderHand` | bool | true | 未使用駒を受方持駒に入れる |
 
-## エンジン応答スロットの分岐
+## 応答・中断の扱いと回帰テスト
 
-全エンジン応答スロットは `m_phase` を参照して処理を分岐する:
+- 候補・除去探索の `checkmate` は一次フィルタを通して余詰検査へ進める。
+- 検査中の `checkmate` は長さがN手かにかかわらず、現在の問い合わせへの詰み応答として扱う。
+- 検査中の `nomate` はその攻手を否定するために使用し、`timeout` は判定不能として使用する。
+- 安全タイマーで送ったstopの後に来る応答は捨て、検査ではUnknownとして処理する。
+- 終了時は検査続行タイマーを止め、問い合わせ・検証結果を破棄する。旧Usiのシグナルは切断する。
 
-| スロット | Searching時 | Trimming時 |
-|---|---|---|
-| `onCheckmateSolved` | N手→トリミング開始 / 他→次局面 | N手→除去確定→再構築 / 他→次候補 |
-| `onCheckmateNoMate` | 次の局面へ | 除去却下→次の候補へ |
-| `onCheckmateUnknown`（timeout 含む） | 次の局面へ | 除去却下→次の候補へ |
-| `onSafetyTimeout`（1回目） | stop 送信→応答待ち | stop 送信→応答待ち |
-| `onSafetyTimeout`（応答待ち中） | エラー終了（エンジン固着） | エラー終了（ベース局面は出力） |
-| `onCheckmateNotImplemented` | エラー終了 | エラー終了 |
-| `onEngineError` | エラー終了 | エラー終了（ベース局面は出力） |
+`tests/tst_tsumeshogi_verification.cpp` が第2・4問の初手、途中手、最終手、長い別解、
+判定不能、不正PV、駒除去の再検査、通常・停止・エラー時の出力条件を検査する。
+基本の唯一解正例は、王手が1種類しかなく応手が0の専用1手局面を使う。
+第3問は実機照合で全攻手・全応手検査の合格を改めて確認する5手の正例とする。
+過去の有限深さ検査のみを根拠に、第1・3・5問を唯一解正例とは扱わない。
 
-「次の局面へ / 除去却下→次の候補へ」は `advanceAfterFailure()` に共通化している。応答待ち中（`m_awaitingStopResponse`）に届いた応答は `consumeStaleResponse()` で結果として扱わず破棄し、同じく `advanceAfterFailure()` に進む。
+通常の回帰テストには外部エンジンのインストールは不要。
+KomoringHeights 1.1.0 の実機照合は、次の任意テストで再現できる。
 
-## ファイル一覧
+```bash
+SHOGIBOARDQ_TEST_KOMORING=/path/to/KomoringHeights-by-gcc \
+  ./build/tests/tst_tsumeshogi_verification komoringIntegration
+```
 
-| ファイル | 行数目安 | 概要 |
-|---|---|---|
-| `src/analysis/tsumeshogigenerator.h` | ~130 | オーケストレータ定義 |
-| `src/analysis/tsumeshogigenerator.cpp` | ~510 | オーケストレータ実装（検索+トリミング） |
-| `src/analysis/tsumeshogipositiongenerator.h` | ~70 | 局面生成クラス定義 |
-| `src/analysis/tsumeshogipositiongenerator.cpp` | ~360 | 局面生成クラス実装 |
-| `src/dialogs/tsumeshogigeneratordialog.h` | ~110 | ダイアログ定義 |
-| `src/dialogs/tsumeshogigeneratordialog.cpp` | ~630 | ダイアログ実装 |
+実機照合では `Threads=1`、`USI_Hash=128`、`PostSearchLevel=MinLength`、
+`GenerateAllLegalMoves=true`、`MultiPV=1` を指定する。
+検査予算30秒・1問い合わせ1秒で、第2・4問の棄却、第3問と専用1手局面の採択を確認する。
+2026-09-24の実測では、第2問は56～57問い合わせ・約6.7秒、第4問は6問い合わせ・約0.1秒で余詰判定、
+第3問は19問い合わせ・約0.1秒で合格。5秒設定では第2問は判定不能として棄却された。
+検査を厳しくした分、従来より生成速度や採択率が下がる。
+
+原因調査と元の再現データは [余詰調査報告](tsumeshogi-yodzume-investigation.md) を参照。
