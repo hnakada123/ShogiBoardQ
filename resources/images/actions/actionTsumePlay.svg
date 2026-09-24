@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+    <title>詰将棋対局</title>
+    <circle cx="64" cy="64" r="64" fill="#9C27B0"/>
+    <!-- 王将の駒。文字もパスで描き、表示環境のフォントに依存させない。 -->
+    <path d="M55 16 L78 29 L89 100 H21 L32 29 Z" fill="#FFD700"/>
+    <path d="M41 43 H69 M44 60 H66 M38 79 H72 M55 43 V79"
+          fill="none" stroke="#7B1FA2" stroke-width="6" stroke-linecap="round"/>
+    <!-- 問題を選んで対局を始めることを表す再生マーク。 -->
+    <circle cx="96" cy="92" r="26" fill="white" stroke="#9C27B0" stroke-width="6"/>
+    <path d="M89 78 L110 92 L89 106 Z" fill="#7B1FA2"/>
+</svg>

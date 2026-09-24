@@ -783,6 +783,10 @@
    </property>
   </action>
   <action name="actionTsumePlay">
+   <property name="icon">
+    <iconset resource="../../resources/shogiboardq.qrc">
+     <normaloff>:/images/actions/actionTsumePlay.svg</normaloff>:/images/actions/actionTsumePlay.svg</iconset>
+   </property>
    <property name="text">
     <string>詰将棋対局…</string>
    </property>

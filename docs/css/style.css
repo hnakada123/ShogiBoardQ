@@ -968,7 +968,8 @@ a.feature-card-link:hover .feature-card-more {
 }
 
 /* --- Appearance Guide Screenshots --- */
-.appearance-guide section[id] {
+.appearance-guide section[id],
+.tsume-play-guide section[id] {
     scroll-margin-top: 4rem;
 }
 
