@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tsume Shogi Play - ShogiBoardQ</title>
+    <meta name="description" content="Choose a tsume shogi puzzle from an SFEN collection, solve it against Hayanagi, track your progress, and replay a solution one move at a time.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsume-play.html">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsume-play.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsume-play.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsume-play.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsume-play.html">
+    <meta property="og:title" content="Tsume Shogi Play - ShogiBoardQ">
+    <meta property="og:description" content="Choose a puzzle, solve it on the board, and review the solution and your progress.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsume-play/tsume-collection.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tsume Shogi Play - ShogiBoardQ">
+    <meta name="twitter:description" content="Choose a puzzle, solve it on the board, and review the solution and your progress.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/tsume-play/tsume-collection.png">
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <a href="../../guide/tsume-play.html" class="language-switch" hreflang="ja" lang="ja" aria-label="日本語">日本語</a>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#problems">Choose a Puzzle</a></li>
+            <li><a href="#playing">Play</a></li>
+            <li><a href="#solution">Solution</a></li>
+            <li><a href="#history">Progress</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="tsume-play-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Tsume Shogi Play</h1>
+        <p class="hero-subtitle">Choose a puzzle, solve it on the board, and review the solution</p>
+        <div class="hero-badges">
+            <span class="badge">SFEN Collections</span>
+            <span class="badge">Hayanagi as Defender</span>
+            <span class="badge">Progress Tracking</span>
+            <span class="badge">Solution Playback</span>
+        </div>
+        <p class="screenshot-note">Screenshots on this page show the Japanese interface. Button names below refer to the English interface.</p>
+    </div>
+</section>
+
+<section id="problems" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Choose a Puzzle by Its Starting Position</h2>
+        <p class="section-desc">Browse large collections a page at a time</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">Open a collection</h3>
+                </div>
+                <p class="guide-step-text">Choose Game → Tsume Shogi Play… to open Tsume Shogi Problems. Click Open collection… and select a text file containing one SFEN position per line.</p>
+                <p class="guide-step-text">You can use collections saved by the <a href="tsumeshogi-generator.html">Tsume Shogi Generator</a>. Files containing only starting positions and files with reference lines are both supported. The mate length is verified by analyzing the position; it is not inferred solely from the filename or the reference line's length. Each player's move counts as one ply.</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">Review the position, mate length, and progress</h3>
+                </div>
+                <p class="guide-step-text">Each card shows the starting board and pieces in hand, problem number, mate length, and your progress. Choose 10, 20, 50, or 100 problems per page. Use Previous, Next, or the page number to browse even a collection of 1,000 puzzles in manageable groups.</p>
+                <p class="guide-step-text">Filter by All, Not attempted, Attempted, unsolved, or Solved to find a puzzle to practice. Click its card to enter the play window.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/tsume-play/tsume-collection.png" alt="Problem cards showing starting positions, mate lengths, progress, and pagination controls" width="1100" height="800" loading="lazy">
+                    <p class="screenshot-caption">Problem list: choose a puzzle by its starting position and mate length</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">Select a mate solver and search time</h3>
+                </div>
+                <p class="guide-step-text">The built-in Hayanagi works without registering an additional engine. It checks starting positions for mates up to 31 plies. For longer puzzles, obtain <a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>, a tsume shogi engine developed and published by komori-n. Register it under Settings → Engine Settings…, then choose it under Mate solver in the problem list. See <a href="game-play.html#engine-registration">Registering an Engine</a> for the setup steps.</p>
+                <p class="guide-step-text">Hayanagi still plays the defending moves when KomoringHeights is selected; KomoringHeights determines whether mate is possible. Long puzzles, including mates in 101 plies, can be used if the engine can finish its search within the time limit.</p>
+                <p class="guide-step-text">Search time can be set from 1 to 600 seconds. If a result is Undetermined, for example after a timeout, increase the time and click Recheck this page. Problems verified to have no mate cannot be opened for play.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="playing" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Solve on the Board Against Hayanagi</h2>
+        <p class="section-desc">Keep giving check and mate within the displayed number of plies</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">Move the attacking pieces</h3>
+                </div>
+                <p class="guide-step-text">You play the attacker. Click a piece and its destination, or drag the piece to move it. You can also drop pieces from hand and choose whether to promote. After a correct checking move, the defender replies and it becomes your turn again.</p>
+                <p class="guide-step-text">Moves are judged by whether they lead to mate within the remaining number of plies, rather than just matching a reference line. Valid alternative solutions are accepted.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/tsume-play/tsume-play.png" alt="Play window with a mate-in-five position, remaining plies, board controls, and Solution button" width="760" height="760" loading="lazy">
+                    <p class="screenshot-caption">You attack and Hayanagi defends; watch the remaining number of plies as you play</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">Inspect the defensive reply and try again</h3>
+                </div>
+                <p class="guide-step-text">If your checking move loses the required mate, Hayanagi plays a defensive reply on the board. The result appears about one second later so you can see the move first. The message distinguishes between no forced mate and no mate within the remaining number of plies.</p>
+                <p class="guide-step-text">Use Undo your last move to return to the position before your move and try another. Illegal moves and moves that do not give check are rejected. A search timeout does not count as an incorrect move; use Retry search to check again.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/tsume-play/tsume-refutation.png" alt="Defensive reply followed by a message that mate is not possible within the remaining plies" width="760" height="760" loading="lazy">
+                    <p class="screenshot-caption">Review the defense and result, then undo your move to try again</p>
+                </div>
+            </div>
+        </div>
+        <table class="info-table">
+            <thead><tr><th scope="col">Control</th><th scope="col">Action</th></tr></thead>
+            <tbody>
+                <tr><td>Restart</td><td>Return to the starting position and begin a new attempt.</td></tr>
+                <tr><td>Undo your last move</td><td>Return to the position before your most recent move.</td></tr>
+                <tr><td>Stop search / Retry search</td><td>Stop a search, or increase the search time and try again.</td></tr>
+                <tr><td>Back to problems</td><td>Return to the same page and filters in the problem list.</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section id="solution" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Replay a Solution One Move at a Time</h2>
+        <p class="section-desc">Review a solution, then return to your game</p>
+        <p class="guide-step-text">Click Solution to display the moves in Japanese shogi notation above the board and playback controls below it. You can review one verified solution from the starting position. Long move lists can be scrolled and copied.</p>
+        <div class="screenshot-gallery">
+            <div class="screenshot-item">
+                <img src="../../images/tsume-play/tsume-solution.png" alt="Solution notation with First, Previous move, Next move, Final mate, and Resume play controls" width="760" height="836" loading="lazy">
+                <p class="screenshot-caption">Compare the notation and board while stepping through each attacking and defending move</p>
+            </div>
+        </div>
+        <table class="info-table">
+            <thead><tr><th scope="col">Playback control</th><th scope="col">Action</th></tr></thead>
+            <tbody>
+                <tr><td>First</td><td>Show the solution's starting position.</td></tr>
+                <tr><td>Previous move / Next move</td><td>Step backward or forward by one ply, including the defender's moves.</td></tr>
+                <tr><td>Final mate</td><td>Show the final position in the solution.</td></tr>
+                <tr><td>Resume play</td><td>Hide the solution and playback controls, and continue from your position before playback.</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">The board is read-only during playback. Viewing a solution does not increase your attempt or solve counts. If finding a solution takes time, use Stop search or Resume play to cancel.</p>
+    </div>
+</section>
+
+<section id="history" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Track Your Progress and Practice Again</h2>
+        <p class="section-desc">Find both new puzzles and ones you have solved before</p>
+        <div class="guide-step-text">
+            <ul>
+                <li>Attempt and solve counts, and the dates of your last attempt and solve, are saved across application restarts.</li>
+                <li>Browsing the list or waiting for automatic checks does not count as an attempt. An attempt is recorded when the play window is ready for you to move.</li>
+                <li>A previously solved puzzle remains marked as solved even if you fail or abandon a later attempt.</li>
+                <li>The same position retains its history when you rename or move the collection file.</li>
+            </ul>
+        </div>
+        <p class="guide-step-text">Progress is stored in a database separate from ShogiBoardQ's settings file. Distributed builds do not require a separate SQLite installation to save progress.</p>
+    </div>
+</section>
+
+<section id="display" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Adjust the Size and Board Orientation</h2>
+        <p class="section-desc">Resize text and the board independently</p>
+        <table class="info-table">
+            <thead><tr><th scope="col">Control</th><th scope="col">Action</th></tr></thead>
+            <tbody>
+                <tr><td>A− / A+</td><td>Decrease or increase text size. The problem list and play window each remember their own setting.</td></tr>
+                <tr><td>− / + above the board</td><td>Zoom out or zoom in on the board in the play window.</td></tr>
+                <tr><td>Ctrl + mouse wheel</td><td>Resize the board by scrolling while the pointer is over it.</td></tr>
+                <tr><td>Flip board</td><td>Rotate the board by 180 degrees. Playing and solution playback work in either orientation.</td></tr>
+            </tbody>
+        </table>
+        <p class="guide-step-text">The board size and orientation are remembered for your next session.</p>
+        <p class="guide-step-text">To create your own puzzles, see <a href="tsumeshogi-generator.html">Tsume Shogi Generator</a>. To find mate from a regular game position, see <a href="tsumi-search.html">Mate Search</a>.</p>
+    </div>
+</section>
+</main>
+
+<div class="back-link-section">
+    <a href="index.html#tsume" class="back-link">&larr; Back to Tsume Shogi in the User Guide</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+</body>
+</html>

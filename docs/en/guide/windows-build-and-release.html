@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows Build and Release - ShogiBoardQ</title>
+    <meta name="description" content="Build with MSVC, package the Qt runtime, and publish a ZIP. Covers development tools, Qt, packaging, and troubleshooting.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/windows-build-and-release.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/windows-build-and-release.html">
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/windows-build-and-release.html">
+    <meta property="og:title" content="Windows Build and Release - ShogiBoardQ">
+    <meta property="og:description" content="Build with MSVC, package the Qt runtime, and publish a ZIP.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Windows Build and Release - ShogiBoardQ">
+    <meta name="twitter:description" content="Build with MSVC, package the Qt runtime, and publish a ZIP.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="../../css/build-guide.css">
+</head>
+<body>
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <a href="../../guide/windows-build-and-release.html" class="language-switch" hreflang="ja" lang="ja" aria-label="日本語">日本語</a>
+        <button class="nav-toggle" aria-label="Menu" aria-controls="guide-nav" aria-expanded="false" onclick="const menu = document.getElementById('guide-nav'); this.setAttribute('aria-expanded', menu.classList.toggle('open'));">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links" id="guide-nav" onclick="if (event.target.closest('a')) { this.classList.remove('open'); document.querySelector('.nav-toggle').setAttribute('aria-expanded', 'false'); }">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="../index.html#build">Build Guides</a></li>
+            <li><a href="#contents">Contents</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+<main class="build-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>Windows Build and Release</h1>
+        <p class="hero-subtitle">Build with MSVC, package the Qt runtime, and publish a ZIP</p>
+        <div class="hero-badges">
+            <span class="badge">Windows</span>
+            <span class="badge">Qt 6</span>
+            <span class="badge">ZIP</span>
+            <span class="badge">GitHub Releases</span>
+        </div>
+    </div>
+</section>
+<div class="section">
+<article class="section-inner build-document" aria-label="Windows Build and Release instructions">
+<section id="contents" class="level2">
+<h2>Contents</h2>
+<ol>
+    <li><a href="#setup">Requirements and setup</a></li>
+    <li><a href="#build">Get the source and build</a></li>
+    <li><a href="#qt-sources">Prepare Qt notices and sources</a></li>
+    <li><a href="#package">Create a ZIP package</a></li>
+    <li><a href="#signing">Code signing</a></li>
+    <li><a href="#release">Publish on GitHub Releases</a></li>
+    <li><a href="#troubleshooting">Troubleshooting</a></li>
+</ol>
+</section>
+<section id="setup" class="level2">
+<h2>Requirements and setup</h2>
+<p>Install Visual Studio 2022 with the Desktop development with C++ workload, Git, CMake 3.16 or later, Ninja, and Python 3. Use Developer PowerShell for VS 2022 with the x64 toolchain enabled.</p>
+<p>Install a Qt 6.7 or later MSVC desktop kit matching your compiler architecture. Required modules are Widgets, Charts, Network, Concurrent, Multimedia, Sql, and LinguistTools. Include Qt Charts, Qt Multimedia, Qt SVG, and the SQLite plugin in your Qt installation.</p>
+<p>The examples use the official Qt 6.7.3 MSVC 2022 64-bit SDK. Set these paths to your installed kit:</p>
+<pre><code>$env:CMAKE_PREFIX_PATH = "C:\Qt\6.7.3\msvc2022_64"
+$env:PATH = "C:\Qt\6.7.3\msvc2022_64\bin;" + $env:PATH
+cmake --version
+cl
+windeployqt --version
+python --version</code></pre>
+<p>Keep the compiler, Qt DLLs, and application on the same architecture. The packaging script uses the Visual C++ runtime supplied by the Visual Studio developer environment.</p>
+</section>
+<section id="build" class="level2">
+<h2>Get the source and build</h2>
+<p>Clone the repository with its Hayanagi submodule. An ordinary clone without submodules is incomplete.</p>
+<pre><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ</code></pre>
+<p>For an existing checkout, initialize the recorded submodule version with <code>git submodule update --init --recursive</code>.</p>
+<pre><code>cmake -B build -S . -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
+.\build\ShogiBoardQ.exe</code></pre>
+<p>These commands build for local development. If you use the Visual Studio generator instead of Ninja, select Release when building and use the executable in <code>build\Release</code>. Start with a separate build directory when changing generators.</p>
+<p>To enable and run the test suite:</p>
+<pre><code>cmake -B build -S . -DBUILD_TESTING=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure</code></pre>
+</section>
+<section id="qt-sources" class="level2">
+<h2>Prepare Qt notices and corresponding sources</h2>
+<p>A normal local CMake build does not download Qt sources. The distribution scripts additionally require prepared license documents for the exact Qt build they deploy. They include those documents and source information in the package and stop if validation fails.</p>
+<p>For the unmodified official Qt 6.7.3 SDK, run the following from the repository root. These commands use the version and SHA-256 recorded in the release workflow. For a different Qt build, use its matching full source archive, checksum, and provenance instead.</p>
+<pre><code>python scripts/qt_licenses.py fetch --version 6.7.3 --sha256 a3f1d257cbb14c6536585ffccf7c203ce7017418e1a0c2ed7c316c20c729c801 --output build/qt-sources
+python scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-sources/qt-everywhere-src-6.7.3.tar.xz --sha256 a3f1d257cbb14c6536585ffccf7c203ce7017418e1a0c2ed7c316c20c729c801 --source-url https://download.qt.io/archive/qt/6.7/6.7.3/single/qt-everywhere-src-6.7.3.tar.xz --provenance "Official Qt 6.7.3 SDK, unmodified; build scripts in source archive" --output build/qt-licenses</code></pre>
+<p>The source archive is a large separate download, roughly 900 MB. The preparation command does not overwrite an existing output directory. A clean build deletes <code>build</code>; if using the script's clean option, prepare the sources and notices outside that directory and set <code>SHOGIBOARDQ_QT_LICENSE_DIR</code> to the notices directory.</p>
+<p>Publish the matching application source, including Hayanagi, and Qt sources alongside the binaries. GitHub's automatically generated source ZIP does not include submodule contents. For patched Qt builds, preserve the patches and build instructions too. The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt distribution notes (Japanese)</a> describe the packaging policy and source manifests.</p>
+</section>
+<section id="package" class="level2">
+<h2>Create a ZIP package</h2>
+<p>After preparing the <a href="#qt-sources">Qt notices and source archive</a>, run the distribution script from Developer PowerShell:</p>
+<pre><code>.\scripts\build-windows.ps1</code></pre>
+<p>The script builds Release, uses <code>windeployqt</code>, copies translations, the Visual C++ runtime, and license documents, and checks the Qt DLLs and SQLite plugin. It produces <code>deploy\</code> and <code>ShogiBoardQ-windows.zip</code> in the repository root.</p>
+<p>Use <code>-SkipZip</code> to prepare only the deploy folder or <code>-Help</code> to show the options. The deploy folder still requires the <a href="#qt-sources">Qt license preparation</a>.</p>
+<p>Extract the ZIP into an empty folder on a Windows machine without the development SDK and run <code>ShogiBoardQ.exe</code>. Check language switching, pieces, sound, and tsume progress. Distribute the complete folder; the executable alone does not contain Qt.</p>
+</section>
+<section id="signing" class="level2">
+<h2>Code signing</h2>
+<p>If you sign your Windows release, sign the executable in the deploy folder before creating the final ZIP. The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> uses SignTool from the Windows SDK with a certificate supplied through repository secrets, then packages the signed files.</p>
+<p>Configure the workflow's Windows certificate, password, and timestamp settings in repository secrets. Keep certificates and passwords out of source control. Test the final signed archive, not only the executable in the build directory.</p>
+</section>
+<section id="release" class="level2">
+<h2>Publish on GitHub Releases</h2>
+<p>The repository includes a <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> that builds all three platforms, prepares corresponding sources and license documents, and uploads binaries, source archives, checksums, and an SBOM to the same GitHub Release.</p>
+<p>For maintainers with push access, pushing a release tag beginning with <code>v</code> triggers this workflow. It can also be run from the Actions tab with an existing release tag. Choose the intended release commit and tag, then review the workflow results and attached files.</p>
+<p>For a manual release, open the repository's Releases page and create a release for the intended tag. Attach the tested ZIP, the application source archive containing Hayanagi, the matching Qt source archive, and source/build information and checksums. Retain these source downloads while the binaries remain available. The application package must contain its prepared license documents as well.</p>
+</section>
+<section id="troubleshooting" class="level2">
+<h2>Troubleshooting</h2>
+<ul>
+<li><strong>The compiler or Windows SDK cannot be found:</strong> open Developer PowerShell and confirm that the Desktop development with C++ workload is installed.</li>
+<li><strong>Qt6Config.cmake or Qt Charts is missing:</strong> check the kit path and install the required modules. Do not mix MinGW and MSVC Qt libraries.</li>
+<li><strong>Hayanagi source files are missing:</strong> run <code>git submodule update --init --recursive</code>.</li>
+<li><strong>windeployqt is not found:</strong> add the selected Qt kit's <code>bin</code> directory to <code>PATH</code>.</li>
+<li><strong>A DLL or plugin is missing on another PC:</strong> distribute the entire deploy folder and inspect the packaging log. Check <code>sqldrivers\qsqlite.dll</code> if puzzle history is unavailable.</li>
+<li><strong>PowerShell blocks the script:</strong> review your execution policy and the script before enabling it under your system's policy.</li>
+<li><strong>Qt notice validation fails:</strong> use the notices for the exact Qt build being deployed. For a clean build, store prepared notices outside <code>build</code> and set the notice-directory environment variable.</li>
+</ul>
+</section>
+</article>
+</div>
+</main>
+<div class="back-link-section">
+    <a href="../index.html#build" class="back-link">&larr; Back to Build and Release Guides</a>
+</div>
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

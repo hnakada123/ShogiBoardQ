@@ -161,6 +161,14 @@
 <span class="feature-card-more">Learn more →</span>
 </div>
 </a>
+<a class="feature-card-link" href="guide/tsume-play.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/tsume-play/tsume-play-icon.svg"/>
+<h3>Tsume Shogi Play</h3>
+<p>Choose a puzzle from an SFEN collection and solve it on the board against Hayanagi. Track your attempts and solves, and replay a solution one move at a time.</p>
+<span class="feature-card-more">Learn more →</span>
+</div>
+</a>
 <a class="feature-card-link" href="guide/board-edit.html">
 <div class="feature-card">
 <img alt="" class="feature-icon" src="../images/pieces/Sente_ryuu45.svg"/>
@@ -263,36 +271,33 @@
 <!-- Build -->
 <section class="section" id="build">
 <div class="section-inner">
-<h2 class="section-title">Requirements and Building</h2>
+<h2 class="section-title">Build and Release Guides</h2>
 <p class="section-desc">Build the application from source</p>
-<div class="build-content">
-<div class="build-requirements">
-<div class="req-item">
-<strong>Qt 6</strong>
-<span>Widgets, Charts, Network, Multimedia, LinguistTools</span>
+<div class="features-grid">
+<a class="feature-card-link" href="guide/linux-build-and-release.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kaku45.svg"/>
+<h3>Linux Build and Release</h3>
+<p>Set up a Linux development environment, build the application, create an AppImage, and publish it on GitHub Releases.</p>
+<span class="feature-card-more">Learn more →</span>
 </div>
-<div class="req-item">
-<strong>C++17</strong>
-<span>Compatible compiler</span>
+</a>
+<a class="feature-card-link" href="guide/windows-build-and-release.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_hi45.svg"/>
+<h3>Windows Build and Release</h3>
+<p>Set up a Windows development environment, build the application, create a distribution ZIP, and publish it on GitHub Releases.</p>
+<span class="feature-card-more">Learn more →</span>
 </div>
-<div class="req-item">
-<strong>CMake 3.16+</strong>
-<span>Build system</span>
+</a>
+<a class="feature-card-link" href="guide/macos-build-and-release.html">
+<div class="feature-card">
+<img alt="" class="feature-icon" src="../images/pieces/Sente_kin45.svg"/>
+<h3>macOS Build and Release</h3>
+<p>Set up a macOS development environment, build the application, create a DMG, sign and notarize it, and publish it on GitHub Releases.</p>
+<span class="feature-card-more">Learn more →</span>
 </div>
-</div>
-<div class="build-steps">
-<h3>Build Steps</h3>
-<pre><code># Get the source
-git clone https://github.com/hnakada123/ShogiBoardQ.git
-cd ShogiBoardQ
-
-# Build
-cmake -B build -S .
-cmake --build build
-
-# Run
-./build/ShogiBoardQ</code></pre>
-</div>
+</a>
 </div>
 </div>
 </section>
