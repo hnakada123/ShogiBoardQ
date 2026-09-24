@@ -1076,9 +1076,9 @@ install(FILES resources/platform/shogiboardq.desktop
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
 
-# アプリケーションアイコン（256x256）
-install(FILES resources/icons/shogiboardq.png
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps
+# Linux用アプリケーションアイコン（512x512、透明な余白を縮小）
+install(FILES resources/icons/linux/shogiboardq.png
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512/apps
 )
 
 # 翻訳ファイル（.qm）

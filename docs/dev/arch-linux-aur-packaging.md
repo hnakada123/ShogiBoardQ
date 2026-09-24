@@ -105,9 +105,9 @@ install(FILES resources/platform/shogiboardq.desktop
     DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/applications
 )
 
-# アプリケーションアイコン（256x256）
-install(FILES resources/icons/shogiboardq.png
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/256x256/apps
+# アプリケーションアイコン（512x512）
+install(FILES resources/icons/linux/shogiboardq.png
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/512x512/apps
 )
 
 # 翻訳ファイル（.qm）
@@ -302,9 +302,9 @@ usr/share/applications/
 usr/share/applications/shogiboardq.desktop
 usr/share/icons/
 usr/share/icons/hicolor/
-usr/share/icons/hicolor/256x256/
-usr/share/icons/hicolor/256x256/apps/
-usr/share/icons/hicolor/256x256/apps/shogiboardq.png
+usr/share/icons/hicolor/512x512/
+usr/share/icons/hicolor/512x512/apps/
+usr/share/icons/hicolor/512x512/apps/shogiboardq.png
 ```
 
 ### 5.3 インストール後の動作確認

@@ -267,7 +267,7 @@ chmod +x build/linuxdeploy-plugin-qt-x86_64.AppImage</code></pre>
 <p>AppImage の作成には FreeDesktop 準拠の <code>.desktop</code> ファイルとアイコンが必要。 これらはリポジトリに同梱されている：</p>
 <ul>
 <li><code>resources/platform/shogiboardq.desktop</code> — デスクトップエントリ</li>
-<li><code>resources/icons/shogiboardq.png</code> — アプリケーションアイコン</li>
+<li><code>resources/icons/linux/shogiboardq.png</code> — アプリケーションアイコン</li>
 </ul>
 </section>
 <section id="43-appdir-の作成と-appimage-生成" class="level3">
@@ -288,7 +288,7 @@ build/linuxdeploy-x86_64.AppImage \
   --appdir build/AppDir \
   --executable build/AppDir/usr/bin/ShogiBoardQ \
   --desktop-file resources/platform/shogiboardq.desktop \
-  --icon-file resources/icons/shogiboardq.png \
+  --icon-file resources/icons/linux/shogiboardq.png \
   --plugin qt \
   --output appimage</code></pre>
 <p><code>linuxdeploy</code> が自動で行う処理：</p>
@@ -475,7 +475,7 @@ sudo pacman -S fuse2</code></pre>
   --appdir build/AppDir \
   --executable build/AppDir/usr/bin/ShogiBoardQ \
   --desktop-file resources/platform/shogiboardq.desktop \
-  --icon-file resources/icons/shogiboardq.png \
+  --icon-file resources/icons/linux/shogiboardq.png \
   --plugin qt \
   --output appimage</code></pre>
 </section>

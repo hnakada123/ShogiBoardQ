@@ -1,6 +1,9 @@
 <RCC>
     <qresource prefix="/">
         <file>icons/shogiboardq.png</file>
+        <file>icons/shogiboardq.ico</file>
+        <file>icons/linux/shogiboardq.png</file>
+        <file>icons/windows/shogiboardq.png</file>
         <file alias="pieces/wood/Gote_fu45.svg">images/pieces/wood/Gote_fu45.svg</file>
         <file alias="pieces/wood/Gote_gin45.svg">images/pieces/wood/Gote_gin45.svg</file>
         <file alias="pieces/wood/Gote_gyoku45.svg">images/pieces/wood/Gote_gyoku45.svg</file>
