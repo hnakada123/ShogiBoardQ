@@ -26,6 +26,7 @@ public:
     ~VersionDialog() override;
 
 private:
+    void showLicenseDocument(int index);
     std::unique_ptr<Ui::VersionDialog> ui;
 };
 

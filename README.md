@@ -98,6 +98,11 @@ ShogiBoardQが記録したコミットを使用します。管理・更新手順
 
 本ソフトウェアは [GNU General Public License v3.0 (GPL-3.0)](LICENSE) のもとで公開されています。
 
+Qt を使用しています。Qt Charts は GPLv3、その他の Qt モジュールは LGPLv3/GPL の条件に従います。
+ライセンス本文と著作権表示は「バージョン情報」画面および配布物の `licenses` に収録します。
+今後の配布版では、対応する Qt・ShogiBoardQ・Hayanagi のソースを [GitHub Release](https://github.com/hnakada123/ShogiBoardQ/releases)
+の添付ファイルとして提供します。配布を作成する方は [Qt のライセンスと対応ソースの配布](docs/dev/qt-licensing.md) を参照してください。
+
 - ソフトウェアの利用・改変・再配布は自由です。改変・利用にあたって作者への連絡は不要です。
 - 改変して配布する場合は、同じGPL-3.0ライセンスのもとでソースコードを公開する必要があります。
 - 本ソフトウェアは**無保証**で提供されます。いかなる場合においても、作者は本ソフトウェアの使用によって生じた損害について一切の責任を負いません。

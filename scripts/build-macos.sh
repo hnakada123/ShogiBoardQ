@@ -117,7 +117,7 @@ done
 
 info "前提ツールを確認中..."
 
-REQUIRED_TOOLS=(cmake ninja macdeployqt codesign vtool)
+REQUIRED_TOOLS=(cmake ninja macdeployqt codesign vtool python3)
 if [[ "$OPT_SKIP_DMG" = false ]]; then
     REQUIRED_TOOLS+=(create-dmg)
 fi
@@ -262,6 +262,13 @@ info "PlugIns:    $(find "$APP_BUNDLE/Contents/PlugIns" -type f 2>/dev/null | wc
 # ──────────────────────────────────────────────
 # Step 9: コード署名
 # ──────────────────────────────────────────────
+
+info "Qt ライセンスと対応ソース情報を同梱中..."
+python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
+    --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
+    --destination "$APP_BUNDLE/Contents/Resources/licenses"
+# 通常ビルド用の簡易文書より配布用の完全な文書を優先する。
+rm -rf "$APP_BUNDLE/Contents/MacOS/licenses"
 
 # macdeployqt がバイナリを書き換えるため、バンドル全体を署名し直す。
 # 署名しないとリンカ署名のみの状態になり、厳格な検証に通らない。

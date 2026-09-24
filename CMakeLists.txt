@@ -1046,6 +1046,19 @@ target_compile_definitions(ShogiBoardQ PRIVATE
 )
 
 # ==== Bundle properties ====
+get_target_property(SHOGIBOARDQ_QT_LIBRARY_TYPE Qt6::Core TYPE)
+configure_file(cmake/qt-build.json.in ${CMAKE_CURRENT_BINARY_DIR}/qt-build.json @ONLY)
+
+# 通常ビルドでもオフラインでライセンスを参照できる。配布版には scripts/qt_licenses.py
+# が対応する Qt ソースのメタデータと第三者ライセンスを追加する。
+add_custom_command(TARGET ShogiBoardQ POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/resources/licenses $<TARGET_FILE_DIR:ShogiBoardQ>/licenses
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_CURRENT_BINARY_DIR}/qt-build.json $<TARGET_FILE_DIR:ShogiBoardQ>/licenses/BUILD.json
+    VERBATIM
+)
+
 set_target_properties(ShogiBoardQ PROPERTIES
     MACOSX_BUNDLE_GUI_IDENTIFIER io.github.hnakada123.ShogiBoardQ
     MACOSX_BUNDLE_BUNDLE_VERSION ${APP_VERSION}
@@ -1063,6 +1076,10 @@ endif()
 
 # ==== Install ====
 include(GNUInstallDirs)
+
+install(DIRECTORY resources/licenses/ DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/ShogiBoardQ)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/qt-build.json
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/licenses/ShogiBoardQ RENAME BUILD.json)
 
 # 実行ファイル
 install(TARGETS ShogiBoardQ

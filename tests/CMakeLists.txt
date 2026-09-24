@@ -1,6 +1,14 @@
 # ==== Test Suite for ShogiBoardQ ====
 find_package(Qt6 REQUIRED COMPONENTS Test Widgets Charts Network)
 
+# 配布文書の生成は Python で実装されているため、同じ実装を直接検証する。
+find_package(Python3 COMPONENTS Interpreter QUIET)
+if(Python3_Interpreter_FOUND)
+    add_test(NAME tst_qt_licenses
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_qt_licenses.py)
+    set_tests_properties(tst_qt_licenses PROPERTIES ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
+endif()
+
 # Common source root
 set(SRC ${CMAKE_SOURCE_DIR}/src)
 

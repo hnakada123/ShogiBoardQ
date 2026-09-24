@@ -323,6 +323,11 @@ Write-Info "MSVC ランタイム DLL: $(@($runtimeDlls).Count) 個をコピー"
 # Step 9: デプロイ後の検証
 # ──────────────────────────────────────────────
 
+Write-Info "Qt ライセンスと対応ソース情報を同梱中..."
+$qtNotices = if ($env:SHOGIBOARDQ_QT_LICENSE_DIR) { $env:SHOGIBOARDQ_QT_LICENSE_DIR } else { "build/qt-licenses" }
+python scripts/qt_licenses.py stage --build-dir $BUILD_DIR --notices $qtNotices --destination "$DEPLOY_DIR/licenses"
+if ($LASTEXITCODE -ne 0) { Stop-WithError "Qt ライセンスの準備に失敗しました。docs/dev/qt-licensing.md を参照してください。" }
+
 Write-Info "デプロイを検証中..."
 
 $deployedFiles = Get-ChildItem -Path $DEPLOY_DIR -Recurse -File

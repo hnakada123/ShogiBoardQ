@@ -1,4 +1,10 @@
 <RCC>
+    <qresource prefix="/licenses">
+        <file alias="NOTICE.md">licenses/NOTICE.md</file>
+        <file alias="SOURCE_CODE.md">licenses/SOURCE_CODE.md</file>
+        <file alias="GPL-3.0.txt">licenses/GPL-3.0.txt</file>
+        <file alias="LGPL-3.0.txt">licenses/LGPL-3.0.txt</file>
+    </qresource>
     <qresource prefix="/">
         <file>icons/shogiboardq.png</file>
         <file>icons/shogiboardq.ico</file>

@@ -1,0 +1,8 @@
+{
+  "application": "ShogiBoardQ",
+  "application_version": "@APP_VERSION@",
+  "qt_version": "@Qt6_VERSION@",
+  "qt_library_type": "@SHOGIBOARDQ_QT_LIBRARY_TYPE@",
+  "system": "@CMAKE_SYSTEM_NAME@",
+  "compiler": "@CMAKE_CXX_COMPILER_ID@ @CMAKE_CXX_COMPILER_VERSION@"
+}

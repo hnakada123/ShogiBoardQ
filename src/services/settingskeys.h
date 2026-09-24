@@ -10,6 +10,8 @@
 namespace SettingsKeys {
 
 // --- SizeRelated ---
+inline constexpr char kVersionDialogSize[]               = "SizeRelated/versionDialogSize";
+inline constexpr char kVersionDialogDocument[]           = "UI/versionDialogDocument";
 inline constexpr char kMainWindowSize[]                  = "SizeRelated/mainWindowSize";
 inline constexpr char kSquareSize[]                      = "SizeRelated/squareSize";
 inline constexpr char kPvBoardDialogSize[]               = "SizeRelated/pvBoardDialogSize";
