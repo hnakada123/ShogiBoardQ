@@ -151,7 +151,7 @@ void MainWindowAppearanceController::setupNameAndClockFonts()
     auto* c2 = view->whiteClockLabel();
     if (!n1 || !n2 || !c1 || !c2) return;
 
-    QFont nameFont = QFontDatabase::systemFont(QFontDatabase::GeneralFont);
+    QFont nameFont = view->font();
     nameFont.setPointSize(12);
     nameFont.setWeight(QFont::DemiBold);
 

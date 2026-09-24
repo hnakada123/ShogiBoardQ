@@ -1,17 +1,33 @@
 #include "tsumegamesession.h"
+#include "tsumepositionanalyzer.h"
 #include <QtConcurrentRun>
 #include <algorithm>
 
-TsumeGameSession::TsumeGameSession(QObject* parent) : QObject(parent) {}
+TsumeGameSession::TsumeGameSession(QObject* parent) : QObject(parent)
+{
+    m_analyzer = new TsumePositionAnalyzer(this);
+    connect(m_analyzer, &TsumePositionAnalyzer::finished, this, &TsumeGameSession::evaluationFinished);
+    m_defenseTimer.setSingleShot(true);
+    connect(&m_defenseTimer, &QTimer::timeout, this, &TsumeGameSession::evaluateNextDefense);
+}
 TsumeGameSession::~TsumeGameSession() { stopWorker(); }
 
 void TsumeGameSession::stopWorker()
 {
+    m_defenseTimer.stop();
+    m_analyzer->cancel();
     if (!m_watcher) return;
     disconnect(m_watcher.get(), nullptr, this, nullptr);
     m_stop->store(true);
     m_watcher->waitForFinished();
     m_watcher.reset();
+}
+
+void TsumeGameSession::configureEngine(const QString& path, TsumeProgressStore* store)
+{
+    stopWorker();
+    m_enginePath = path;
+    m_analyzer->configure(path, store);
 }
 
 void TsumeGameSession::setState(State state)
@@ -37,6 +53,7 @@ bool TsumeGameSession::start(const QString& sfenText)
     m_initializing = true;
     m_history.clear();
     m_remaining = 0;
+    m_detail.clear();
     emit positionChanged(sfen(), {});
     search();
     return true;
@@ -84,7 +101,16 @@ bool TsumeGameSession::play(const QString& text)
 void TsumeGameSession::search()
 {
     stopWorker();
+    m_detail.clear();
     setState(State::Thinking);
+    if (m_initializing) {
+        m_analyzer->evaluate(sfen(), m_timeLimit);
+        return;
+    }
+    if (!m_enginePath.isEmpty()) {
+        beginDefenseEvaluation();
+        return;
+    }
     m_stop = std::make_shared<std::atomic_bool>(false);
     m_watcher = std::make_unique<QFutureWatcher<shogi::TsumeResult>>(this);
     connect(m_watcher.get(), &QFutureWatcher<shogi::TsumeResult>::finished,
@@ -92,12 +118,99 @@ void TsumeGameSession::search()
     const auto position = m_position;
     const auto attacker = m_attacker;
     const auto stop = m_stop;
-    const int depth = m_initializing ? 31 : m_remaining;
+    const int depth = m_remaining;
     const int millis = m_timeLimit;
     m_watcher->setFuture(QtConcurrent::run([position, attacker, depth, millis, stop]() {
         shogi::TsumeSearch solver;
         return solver.solve(position, attacker, depth, millis, *stop);
     }));
+}
+
+void TsumeGameSession::beginDefenseEvaluation()
+{
+    // 応手生成・適用には Hayanagi を使用。外部判定には各応手後の攻方手番だけを送る。
+    m_defenses = m_position.generate_legal_moves();
+    if (m_defenses.empty()) {
+        m_remaining = 0;
+        setState(State::Solved);
+        emit finished(Outcome::Solved, 0);
+        return;
+    }
+    if (m_remaining <= 0) {
+        apply(m_defenses.front());
+        setState(State::Failed);
+        emit finished(Outcome::TooLong, 0);
+        return;
+    }
+    m_defenseIndex = 0;
+    m_longest = -1;
+    m_bestDefense = {};
+    m_unresolved = false;
+    m_turnElapsed.start();
+    evaluateNextDefense();
+}
+
+void TsumeGameSession::evaluateNextDefense()
+{
+    if (m_state != State::Thinking || m_initializing) return;
+    if (m_defenseIndex == m_defenses.size()) {
+        if (m_unresolved || !m_bestDefense.is_valid()) {
+            setState(State::Paused);
+            emit finished(Outcome::Inconclusive, m_remaining);
+        } else {
+            apply(m_bestDefense);
+            m_remaining = m_longest;
+            setState(State::Ready);
+        }
+        return;
+    }
+    const qint64 remainingTime = m_timeLimit - m_turnElapsed.elapsed();
+    if (remainingTime <= 0) {
+        m_detail = tr("すべての応手を時間内に確認できませんでした。時間を増やして再判定できます。");
+        setState(State::Paused);
+        emit finished(Outcome::Inconclusive, m_remaining);
+        return;
+    }
+    auto next = m_position;
+    next.do_move(m_defenses[m_defenseIndex]);
+    m_analyzer->evaluate(QString::fromStdString(next.to_sfen()), static_cast<int>(remainingTime));
+}
+
+void TsumeGameSession::evaluationFinished(const TsumeEvaluation& result)
+{
+    if (m_state != State::Thinking) return;
+    m_detail = result.detail;
+    using Status = TsumeEvaluation::Status;
+    if (m_initializing) {
+        if (result.status == Status::Mate) {
+            m_remaining = result.plies;
+            m_initializing = false;
+            setState(State::Ready);
+        } else if (result.status == Status::NoMate) {
+            setState(State::Failed);
+            emit finished(Outcome::InvalidProblem, 0);
+        } else {
+            setState(State::Paused);
+            emit finished(Outcome::Inconclusive, 0);
+        }
+        return;
+    }
+    if (m_defenseIndex >= m_defenses.size()) return;
+    const auto move = m_defenses[m_defenseIndex];
+    if (result.status == Status::NoMate || (result.status == Status::Mate && result.plies > m_remaining - 1)) {
+        apply(move);
+        setState(State::Failed);
+        emit finished(result.status == Status::NoMate ? Outcome::NoMate : Outcome::TooLong,
+                      std::max(0, m_remaining - 1));
+        return;
+    }
+    if (result.status == Status::Mate && result.plies > m_longest) {
+        m_bestDefense = move;
+        m_longest = result.plies;
+    }
+    m_unresolved |= result.status == Status::Unknown;
+    ++m_defenseIndex;
+    m_defenseTimer.start(0);
 }
 
 void TsumeGameSession::searchFinished()
@@ -106,24 +219,13 @@ void TsumeGameSession::searchFinished()
     const auto result = m_watcher->result();
     m_watcher.release()->deleteLater();
     using Status = shogi::TsumeStatus;
-    if (result.status == Status::Timeout || result.status == Status::Cancelled ||
-        (m_initializing && result.status == Status::Limit)) {
+    if (result.status == Status::Timeout || result.status == Status::Cancelled) {
         setState(State::Paused);
         emit finished(Outcome::Inconclusive, m_remaining);
         return;
     }
-    if (m_initializing) {
-        if (result.status == Status::Mate) {
-            m_remaining = result.plies;
-            m_initializing = false;
-            setState(State::Ready);
-        } else {
-            setState(State::Failed);
-            emit finished(Outcome::InvalidProblem, 0);
-        }
-        return;
-    }
     if (result.status == Status::Mate && result.plies == 0) {
+        m_remaining = 0;
         setState(State::Solved);
         emit finished(Outcome::Solved, 0);
         return;

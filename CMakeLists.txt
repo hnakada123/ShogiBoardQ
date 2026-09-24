@@ -219,7 +219,7 @@ if(NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR AND NOT DEFINED ENV{QTDIR})
 endif()
 
 # ==== Qt6 packages ====
-find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Concurrent Multimedia)
+find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Concurrent Multimedia Sql)
 
 # ==== Translations (.ts) ====
 set(TS_FILES
@@ -517,6 +517,10 @@ set(SRC_ANALYSIS
     src/analysis/tsumecollection.h
     src/analysis/tsumegamesession.cpp
     src/analysis/tsumegamesession.h
+    src/analysis/tsumepositionanalyzer.cpp
+    src/analysis/tsumepositionanalyzer.h
+    src/analysis/tsumesolutionreplay.cpp
+    src/analysis/tsumesolutionreplay.h
     src/analysis/analysiscoordinator.cpp
     src/analysis/analysiscoordinator.h
     src/analysis/analysisflowcontroller.cpp
@@ -560,6 +564,8 @@ set(SRC_ENGINE
     src/engine/shogienginethinkingmodel.h
     src/engine/thinkinginfopresenter.cpp
     src/engine/thinkinginfopresenter.h
+    src/engine/tsumemateengine.cpp
+    src/engine/tsumemateengine.h
     src/engine/usi.cpp
     src/engine/usi.h
     src/engine/usi_communication.cpp
@@ -735,6 +741,8 @@ set(SRC_VIEWS
 )
 
 set(SRC_WIDGETS
+    src/widgets/tsumepositionpreview.cpp
+    src/widgets/tsumepositionpreview.h
     src/widgets/apptooltipfilter.cpp
     src/widgets/apptooltipfilter.h
     src/widgets/branchrowdelegate.cpp
@@ -793,7 +801,12 @@ set(SRC_WIDGETS
 
 set(SRC_DIALOGS
     src/dialogs/tsumeplaydialog.cpp
+    src/dialogs/tsumeplaydialog_replay.cpp
     src/dialogs/tsumeplaydialog.h
+    src/dialogs/tsumecollectiondialog.cpp
+    src/dialogs/tsumecollectiondialog_navigation.cpp
+    src/dialogs/tsumecollectiondialog_analysis.cpp
+    src/dialogs/tsumecollectiondialog.h
     src/dialogs/boardcolordialog.cpp
     src/dialogs/boardcolordialog.h
     src/dialogs/piecesoundsettingsdialog.cpp
@@ -910,6 +923,8 @@ set(SRC_SERVICES
     src/services/settingsservice.h
     src/services/tsumeshogisettings.cpp
     src/services/tsumeshogisettings.h
+    src/services/tsumeprogressstore.cpp
+    src/services/tsumeprogressstore.h
     src/services/timecontrolutil.cpp
     src/services/timecontrolutil.h
     src/services/timekeepingservice.cpp
@@ -919,6 +934,9 @@ set(SRC_SERVICES
 )
 
 set(SRC_COMMON
+    src/common/applicationfonts.cpp
+    src/common/applicationfonts.h
+    src/common/tsumeevaluation.h
     src/common/boardconstants.h
     src/common/buttonstyles.h
     src/common/threadtypes.h
@@ -1037,6 +1055,7 @@ target_link_libraries(ShogiBoardQ PRIVATE
     Qt6::Network
     Qt6::Concurrent
     Qt6::Multimedia
+    Qt6::Sql
 )
 
 # リリースビルドではqDebug()出力を無効化

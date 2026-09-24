@@ -6,7 +6,7 @@ Qt — Copyright (C) The Qt Company Ltd. and other contributors.
 
 ShogiBoardQ は GNU GPL version 3 で配布されます。Qt のオープンソース版を
 使用し、Qt Charts は GPLv3、Qt Base（Core / Gui / Widgets / Network /
-Concurrent など）と Qt Multimedia は LGPLv3 または GPL の条件に従います。
+Concurrent / Sql など）と Qt Multimedia は LGPLv3 または GPL の条件に従います。
 各ファイルの著作権表示・ライセンス条件が適用されます。
 
 ShogiBoardQ is distributed under GNU GPL version 3. It uses the open-source

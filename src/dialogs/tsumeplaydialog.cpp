@@ -1,63 +1,78 @@
 #include "tsumeplaydialog.h"
 #include "boardinteractioncontroller.h"
+#include "buttonstyles.h"
 #include "dialogutils.h"
 #include "shogiboard.h"
 #include "sfenutils.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "tsumeshogisettings.h"
+#include "tsumeprogressstore.h"
+#include "tsumesolutionreplay.h"
 #include "usimovecoordinateconverter.h"
 
-#include <QComboBox>
-#include <QFile>
-#include <QFileDialog>
-#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPlainTextEdit>
 #include <QPushButton>
-#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QTimer>
+#include <QToolButton>
 #include <QVBoxLayout>
+#include <QWheelEvent>
 #include <algorithm>
 
-TsumePlayDialog::TsumePlayDialog(QWidget* parent) : QDialog(parent)
+TsumePlayDialog::TsumePlayDialog(QWidget* parent)
+    : QDialog(parent)
+    , m_fontHelper({TsumeshogiSettings::tsumePlayFontSize(), 8, 24, 1,
+                    TsumeshogiSettings::setTsumePlayFontSize})
 {
     setObjectName(QStringLiteral("tsumePlayDialog"));
-    setWindowTitle(tr("詰将棋対局 — Hayanagi"));
+    setWindowTitle(tr("詰将棋対局"));
     m_outcomeTimer.setSingleShot(true);
     m_outcomeTimer.setTimerType(Qt::PreciseTimer);
     connect(&m_outcomeTimer, &QTimer::timeout, this, &TsumePlayDialog::showPendingOutcome);
     m_session = new TsumeGameSession(this);
+    m_solution = new TsumeSolutionReplay(this);
     m_game = new ShogiGameController(this);
     QString initialSfen = SfenUtils::hirateSfen();
     m_game->newGame(initialSfen);
     buildUi();
+    applyFontSize();
     const auto preferences = TsumeshogiSettings::playPreferences();
     DialogUtils::restoreDialogSize(this, preferences.size);
     m_timeout->setValue(std::clamp(preferences.timeoutSec, 1, 600));
-    m_view->setSquareSize(std::clamp(preferences.squareSize, 20, 100));
+    m_view->setSquareSize(std::clamp(preferences.squareSize, 20, 150));
+    m_boardRotated = preferences.boardRotated;
     updateTimeLimit();
     connect(m_session, &TsumeGameSession::positionChanged, this, &TsumePlayDialog::updatePosition);
     connect(m_session, &TsumeGameSession::stateChanged, this, &TsumePlayDialog::updateState);
     connect(m_session, &TsumeGameSession::finished, this, &TsumePlayDialog::showOutcome);
     connect(m_session, &TsumeGameSession::moveRejected, this, &TsumePlayDialog::rejectMove);
+    connect(m_solution, &TsumeSolutionReplay::positionChanged, this, &TsumePlayDialog::updatePosition);
+    connect(m_solution, &TsumeSolutionReplay::stateChanged, this, &TsumePlayDialog::updateState);
     updateState();
-    QTimer::singleShot(0, this, &TsumePlayDialog::restoreLastFile);
 }
 
 TsumePlayDialog::~TsumePlayDialog()
 {
+    m_solution->cancel();
     m_session->cancel();
-    TsumeshogiSettings::setPlayPreferences({size(), m_file, m_selector->currentIndex(),
-                                          m_timeout->value(), m_view->squareSize()});
+    auto preferences = TsumeshogiSettings::playPreferences();
+    preferences.size = size();
+    preferences.timeoutSec = m_timeout->value();
+    preferences.squareSize = m_view->squareSize();
+    preferences.boardRotated = m_boardRotated;
+    TsumeshogiSettings::setPlayPreferences(preferences);
     m_interaction->clearAllHighlights();
 }
 
 void TsumePlayDialog::done(int result)
 {
     cancelPendingOutcome();
+    m_solution->cancel();
+    m_session->cancel();
     QDialog::done(result);
 }
 
@@ -70,33 +85,34 @@ void TsumePlayDialog::cancelPendingOutcome()
 void TsumePlayDialog::buildUi()
 {
     auto* layout = new QVBoxLayout(this);
-    auto* files = new QHBoxLayout;
-    auto* open = new QPushButton(tr("局面集を開く…"), this);
-    open->setObjectName(QStringLiteral("tsumeOpenFile"));
-    connect(open, &QPushButton::clicked, this, &TsumePlayDialog::openFile);
-    m_fileLabel = new QLabel(tr("局面集を選択してください。"), this);
-    m_fileLabel->setTextFormat(Qt::PlainText);
-    files->addWidget(open);
-    files->addWidget(m_fileLabel, 1);
-    layout->addLayout(files);
-
     auto* controls = new QHBoxLayout;
-    controls->addWidget(new QLabel(tr("問題:"), this));
-    m_selector = new QComboBox(this);
-    m_selector->setObjectName(QStringLiteral("tsumeProblemSelector"));
-    connect(m_selector, &QComboBox::currentIndexChanged, this, &TsumePlayDialog::selectProblem);
-    controls->addWidget(m_selector, 1);
+    m_header = new QLabel(this);
+    m_header->setWordWrap(true);
+    controls->addWidget(m_header, 1);
     controls->addWidget(new QLabel(tr("判定時間:"), this));
     m_timeout = new QSpinBox(this);
+    m_timeout->setObjectName(QStringLiteral("tsumeTimeLimit"));
     m_timeout->setRange(1, 600);
     m_timeout->setSuffix(tr(" 秒"));
     connect(m_timeout, &QSpinBox::valueChanged, this, &TsumePlayDialog::updateTimeLimit);
     controls->addWidget(m_timeout);
     layout->addLayout(controls);
+    m_history = new QLabel(this);
+    m_history->setWordWrap(true);
+    layout->addWidget(m_history);
 
     auto* instructions = new QLabel(tr("王手を続け、表示された手数以内に詰ませてください。別解も判定します。"), this);
     instructions->setWordWrap(true);
     layout->addWidget(instructions);
+    m_solutionText = new QPlainTextEdit(this);
+    m_solutionText->setObjectName(QStringLiteral("tsumeSolutionText"));
+    m_solutionText->setAccessibleName(tr("正解手順"));
+    m_solutionText->setReadOnly(true);
+    m_solutionText->setMinimumHeight(70);
+    m_solutionText->setMaximumHeight(110);
+    m_solutionText->hide();
+    layout->addWidget(m_solutionText);
+    buildBoardControls(layout);
     m_view = new ShogiView(this);
     m_view->setObjectName(QStringLiteral("tsumeBoard"));
     m_view->setBoard(m_game->board());
@@ -104,6 +120,7 @@ void TsumePlayDialog::buildUi()
     m_view->setClockEnabled(false);
     m_view->setMouseClickMode(true);
     m_view->setNameFontScale(0.3);
+    m_view->installEventFilter(this);
     m_interaction = new BoardInteractionController(m_view, m_game, this);
     connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
     connect(m_view, &ShogiView::rightClicked, m_interaction, &BoardInteractionController::onRightClick);
@@ -115,88 +132,187 @@ void TsumePlayDialog::buildUi()
     m_status->setWordWrap(true);
     m_status->setMinimumHeight(45);
     layout->addWidget(m_status);
+    buildReplayUi(layout);
     auto* buttons = new QHBoxLayout;
+    m_fontDecrease = new QToolButton(this);
+    m_fontDecrease->setObjectName(QStringLiteral("tsumePlayFontDecrease"));
+    m_fontDecrease->setText(QStringLiteral("A-"));
+    m_fontDecrease->setToolTip(tr("文字サイズを縮小"));
+    m_fontDecrease->setStyleSheet(ButtonStyles::fontButton());
+    m_fontIncrease = new QToolButton(this);
+    m_fontIncrease->setObjectName(QStringLiteral("tsumePlayFontIncrease"));
+    m_fontIncrease->setText(QStringLiteral("A+"));
+    m_fontIncrease->setToolTip(tr("文字サイズを拡大"));
+    m_fontIncrease->setStyleSheet(ButtonStyles::fontButton());
+    connect(m_fontDecrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontDecrease);
+    connect(m_fontIncrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontIncrease);
+    buttons->addWidget(m_fontDecrease);
+    buttons->addWidget(m_fontIncrease);
     m_restart = new QPushButton(tr("最初から"), this);
     m_undo = new QPushButton(tr("一手戻す"), this);
     m_stop = new QPushButton(tr("探索中止"), this);
     m_retry = new QPushButton(tr("再判定"), this);
-    auto* close = new QPushButton(tr("閉じる"), this);
+    m_restart->setObjectName(QStringLiteral("tsumeRestart"));
+    m_undo->setObjectName(QStringLiteral("tsumeUndo"));
+    m_stop->setObjectName(QStringLiteral("tsumeStop"));
+    m_retry->setObjectName(QStringLiteral("tsumeRetry"));
+    auto* close = new QPushButton(tr("一覧に戻る"), this);
+    close->setObjectName(QStringLiteral("tsumeBackToCollection"));
     connect(m_restart, &QPushButton::clicked, this, &TsumePlayDialog::selectProblem);
     connect(m_undo, &QPushButton::clicked, m_session, &TsumeGameSession::undo);
-    connect(m_stop, &QPushButton::clicked, m_session, &TsumeGameSession::cancel);
-    connect(m_retry, &QPushButton::clicked, m_session, &TsumeGameSession::retry);
+    connect(m_stop, &QPushButton::clicked, this, &TsumePlayDialog::stopSearch);
+    connect(m_retry, &QPushButton::clicked, this, &TsumePlayDialog::retrySearch);
     connect(close, &QPushButton::clicked, this, &QDialog::reject);
     for (auto* button : {m_restart, m_undo, m_stop, m_retry, close}) buttons->addWidget(button);
     layout->addLayout(buttons);
 }
 
-void TsumePlayDialog::restoreLastFile()
+void TsumePlayDialog::setProblem(const TsumeProblem& problem, int number, const QString& enginePath,
+                                TsumeProgressStore* store, int timeoutSec)
 {
-    if (!m_file.isEmpty()) return;
-    const auto preferences = TsumeshogiSettings::playPreferences();
-    if (QFileInfo::exists(preferences.lastFile) && loadFile(preferences.lastFile))
-        m_selector->setCurrentIndex(std::clamp(preferences.problemIndex, 0, m_selector->count() - 1));
-}
-
-void TsumePlayDialog::openFile()
-{
-    cancelPendingOutcome();
-    const auto path = QFileDialog::getOpenFileName(this, tr("詰将棋の局面集を開く"),
-        m_file, tr("局面集 (*.txt *.sfen *.usi);;すべてのファイル (*)"));
-    if (!path.isEmpty()) loadFile(path);
-}
-
-bool TsumePlayDialog::loadFile(const QString& path)
-{
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, windowTitle(), tr("ファイルを開けませんでした。\n%1").arg(file.errorString()));
-        return false;
-    }
-    const auto parsed = TsumeCollection::parse(QString::fromUtf8(file.readAll()));
-    if (parsed.problems.isEmpty()) {
-        QMessageBox::warning(this, windowTitle(), tr("有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。"));
-        return false;
-    }
+    m_reviewing = false;
+    m_solution->configure(problem.sfen, enginePath, store);
     m_session->cancel();
-    m_problems = parsed.problems;
-    m_file = path;
-    m_fileLabel->setText(QFileInfo(path).fileName());
-    m_fileLabel->setToolTip(path);
-    {
-        const QSignalBlocker blocker(m_selector);
-        m_selector->clear();
-        for (qsizetype i = 0; i < m_problems.size(); ++i) {
-            m_selector->addItem(tr("第%1問（%2行目）").arg(i + 1).arg(m_problems[i].lineNumber));
-            m_selector->setItemData(static_cast<int>(i), m_problems[i].sfen, Qt::ToolTipRole);
+    m_problem = problem;
+    m_number = number;
+    m_store = store;
+    m_timeout->setValue(timeoutSec);
+    m_session->configureEngine(enginePath, store);
+    selectProblem();
+}
+
+void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
+{
+    auto* row = new QHBoxLayout;
+    row->setSpacing(4);
+    auto* reduce = new QPushButton(QStringLiteral("➖"), this);
+    reduce->setObjectName(QStringLiteral("tsumeReduceBoard"));
+    reduce->setToolTip(tr("将棋盤を縮小する"));
+    reduce->setAccessibleName(reduce->toolTip());
+    auto* enlarge = new QPushButton(QStringLiteral("➕"), this);
+    enlarge->setObjectName(QStringLiteral("tsumeEnlargeBoard"));
+    enlarge->setToolTip(tr("将棋盤を拡大する"));
+    enlarge->setAccessibleName(enlarge->toolTip());
+    auto* flip = new QPushButton(tr("盤面の回転"), this);
+    flip->setObjectName(QStringLiteral("tsumeFlipBoard"));
+    for (auto* button : {reduce, enlarge, flip}) {
+        button->setStyleSheet(ButtonStyles::secondaryNeutral());
+        button->setAutoDefault(false);
+        row->addWidget(button);
+    }
+    connect(reduce, &QPushButton::clicked, this, &TsumePlayDialog::onReduceBoard);
+    connect(enlarge, &QPushButton::clicked, this, &TsumePlayDialog::onEnlargeBoard);
+    connect(flip, &QPushButton::clicked, this, &TsumePlayDialog::onFlipBoard);
+    row->addStretch();
+    m_showSolution = new QPushButton(tr("正解手順"), this);
+    m_showSolution->setObjectName(QStringLiteral("tsumeShowSolution"));
+    m_showSolution->setAutoDefault(false);
+    connect(m_showSolution, &QPushButton::clicked, this, &TsumePlayDialog::solutionFirst);
+    row->addWidget(m_showSolution);
+    layout->addLayout(row);
+}
+
+void TsumePlayDialog::cancelBoardSelection()
+{
+    m_view->endDrag();
+    m_interaction->cancelPendingClick();
+    m_interaction->clearSelectionHighlight();
+}
+
+void TsumePlayDialog::onEnlargeBoard()
+{
+    cancelBoardSelection();
+    m_view->enlargeBoard(false);
+    adjustSize();
+}
+
+void TsumePlayDialog::onReduceBoard()
+{
+    cancelBoardSelection();
+    m_view->reduceBoard(false);
+    adjustSize();
+}
+
+void TsumePlayDialog::applyBoardOrientation()
+{
+    const bool flipped = !m_session->attackerIsBlack() != m_boardRotated;
+    m_view->setFlipMode(flipped);
+    if (flipped) m_view->setPiecesFlip();
+    else m_view->setPieces();
+}
+
+void TsumePlayDialog::onFlipBoard()
+{
+    cancelBoardSelection();
+    m_boardRotated = !m_boardRotated;
+    applyBoardOrientation();
+}
+
+bool TsumePlayDialog::eventFilter(QObject* watched, QEvent* event)
+{
+    if (watched == m_view && event->type() == QEvent::Wheel) {
+        auto* wheel = static_cast<QWheelEvent*>(event);
+        if (wheel->modifiers() & Qt::ControlModifier) {
+            if (wheel->angleDelta().y() > 0) onEnlargeBoard();
+            else if (wheel->angleDelta().y() < 0) onReduceBoard();
+            wheel->accept();
+            return true;
         }
     }
-    if (!parsed.invalidLines.isEmpty()) {
-        QStringList lines;
-        for (int line : parsed.invalidLines) lines.append(QString::number(line));
-        QMessageBox::warning(this, windowTitle(), tr("次の行は形式が不正なため読み込めませんでした: %1").arg(lines.join(QStringLiteral(", "))));
+    return QDialog::eventFilter(watched, event);
+}
+
+void TsumePlayDialog::onFontIncrease()
+{
+    if (m_fontHelper.increase()) applyFontSize();
+}
+
+void TsumePlayDialog::onFontDecrease()
+{
+    if (m_fontHelper.decrease()) applyFontSize();
+}
+
+void TsumePlayDialog::applyFontSize()
+{
+    QFont f = font();
+    f.setPointSize(m_fontHelper.fontSize());
+    setFont(f);
+    const auto widgets = findChildren<QWidget*>();
+    for (QWidget* widget : widgets) {
+        // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する。
+        if (widget != m_view && !m_view->isAncestorOf(widget)) widget->setFont(f);
     }
-    selectProblem();
-    return true;
+    m_fontDecrease->setEnabled(m_fontHelper.fontSize() > 8);
+    m_fontIncrease->setEnabled(m_fontHelper.fontSize() < 24);
 }
 
 void TsumePlayDialog::selectProblem()
 {
-    const int index = m_selector->currentIndex();
-    if (index < 0 || index >= m_problems.size()) return;
+    if (m_problem.sfen.isEmpty()) return;
+    cancelPendingOutcome();
+    m_reviewing = false;
+    m_solution->cancel();
+    m_attemptRecorded = false;
+    m_solvedRecorded = false;
+    m_totalPlies = 0;
+    m_header->setText(tr("第%1問 — 詰み手数を確認しています…").arg(m_number));
     m_interaction->cancelPendingClick();
     m_interaction->clearAllHighlights();
     m_view->endDrag();
-    m_session->start(m_problems[index].sfen);
+    m_session->start(m_problem.sfen);
     const bool black = m_session->attackerIsBlack();
-    m_view->setFlipMode(!black);
+    applyBoardOrientation();
     m_view->setBlackPlayerName(black ? tr("あなた") : QStringLiteral("Hayanagi"));
     m_view->setWhitePlayerName(black ? QStringLiteral("Hayanagi") : tr("あなた"));
 }
 
 void TsumePlayDialog::requestMove(const QPoint& from, const QPoint& to)
 {
-    m_view->endDrag();
+    if (m_reviewing) {
+        m_view->endDrag();
+        return;
+    }
+    // 通常対局と同様、成りの選択が終わるまでは移動先のドラッグ表示を保つ。
     QString error;
     QString move = UsiMoveCoordinateConverter::convertHumanMoveToUsi(from, to, false, error);
     const auto legal = m_session->legalMoves();
@@ -215,6 +331,7 @@ void TsumePlayDialog::requestMove(const QPoint& from, const QPoint& to)
             }
         }
     }
+    m_view->endDrag();
     const bool accepted = m_session->play(move);
     m_interaction->onMoveApplied(from, to, accepted);
 }
@@ -242,14 +359,29 @@ void TsumePlayDialog::updateState()
     cancelPendingOutcome();
     using State = TsumeGameSession::State;
     const auto state = m_session->state();
-    m_interaction->setMoveInputEnabled(state == State::Ready);
-    m_restart->setEnabled(!m_problems.isEmpty());
-    m_undo->setEnabled(m_session->canUndo());
-    m_stop->setEnabled(state == State::Thinking);
-    m_retry->setEnabled(state == State::Paused);
-    if (state == State::Ready) m_status->setText(tr("あなたの手番です。残り%1手以内で詰ませてください。").arg(m_session->remainingPlies()));
-    else if (state == State::Thinking) m_status->setText(tr("Hayanagiが判定しています…"));
+    m_interaction->setMoveInputEnabled(!m_reviewing && state == State::Ready);
+    m_restart->setEnabled(!m_problem.sfen.isEmpty());
+    m_undo->setEnabled(!m_reviewing && m_session->canUndo());
+    m_stop->setEnabled(m_reviewing ? m_solution->loading() : state == State::Thinking);
+    m_retry->setEnabled(m_reviewing ? !m_solution->loading() && !m_solution->available() : state == State::Paused);
+    if (!m_reviewing && state == State::Ready) {
+        if (!m_totalPlies) m_totalPlies = m_session->remainingPlies();
+        m_header->setText(tr("第%1問 — %2手詰 ／ 玉方: Hayanagi").arg(m_number).arg(m_totalPlies));
+        if (!m_attemptRecorded) {
+            m_attemptRecorded = true;
+            if (m_store) m_store->recordAttempt(TsumeCollection::positionId(m_problem.sfen));
+        }
+        m_status->setText(tr("あなたの手番です。残り%1手以内で詰ませてください。").arg(m_session->remainingPlies()));
+    }
+    else if (state == State::Thinking) m_status->setText(tr("詰みと玉方の応手を確認しています…"));
     else if (state == State::Paused) m_status->setText(tr("判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。"));
+    if (m_store && !m_problem.sfen.isEmpty()) {
+        const auto progress = m_store->progress(TsumeCollection::positionId(m_problem.sfen));
+        m_history->setText(progress.solves > 0 ? tr("正答済み ／ 挑戦%1回・正答%2回").arg(progress.attempts).arg(progress.solves)
+                                             : tr("未正答 ／ 挑戦%1回").arg(progress.attempts));
+        if (!m_store->error().isEmpty()) m_history->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
+    }
+    updateReplayControls();
 }
 
 void TsumePlayDialog::showOutcome(TsumeGameSession::Outcome outcome, int remaining)
@@ -258,10 +390,20 @@ void TsumePlayDialog::showOutcome(TsumeGameSession::Outcome outcome, int remaini
     QString message;
     using Outcome = TsumeGameSession::Outcome;
     switch (outcome) {
-    case Outcome::Solved: message = tr("正解です。玉方を詰ませました！"); break;
+    case Outcome::Solved:
+        message = tr("正解です。玉方を詰ませました！");
+        if (!m_solvedRecorded) {
+            m_solvedRecorded = true;
+            if (m_store) m_store->recordSolved(TsumeCollection::positionId(m_problem.sfen));
+        }
+        updateState();
+        break;
     case Outcome::NoMate: message = tr("この応手で詰みを防がれました。王手を続けても詰みません。"); break;
     case Outcome::TooLong: message = tr("この応手により、残り%1手以内では詰みません。一手戻して考え直してください。").arg(remaining); break;
-    case Outcome::Inconclusive: message = tr("制限時間または探索上限（31手）に達したため判定できませんでした。不正解とは判定していません。"); break;
+    case Outcome::Inconclusive:
+        message = tr("判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。");
+        if (!m_session->detail().isEmpty()) message += QLatin1Char('\n') + m_session->detail();
+        break;
     case Outcome::InvalidProblem: message = tr("この局面は王手の連続で詰ませられません。別の問題を選んでください。"); break;
     }
     m_status->setText(message);

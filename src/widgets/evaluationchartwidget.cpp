@@ -47,7 +47,8 @@ EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
 
 void EvaluationChartWidget::setupAxes()
 {
-    QFont labelsFont("Noto Sans CJK JP", m_configurator->labelFontSize());
+    QFont labelsFont = font();
+    labelsFont.setPointSize(m_configurator->labelFontSize());
 
     // X軸設定
     m_axX->setRange(0, m_configurator->xAxisLimit());
@@ -321,7 +322,8 @@ void EvaluationChartWidget::setCurrentPly(int ply)
 void EvaluationChartWidget::updateLabelFonts()
 {
     const int fontSize = m_configurator->labelFontSize();
-    QFont labelsFont("Noto Sans CJK JP", fontSize);
+    QFont labelsFont = font();
+    labelsFont.setPointSize(fontSize);
 
     if (m_axX) {
         m_axX->setLabelsFont(labelsFont);
@@ -362,4 +364,3 @@ void EvaluationChartWidget::setFloating(bool floating)
     Q_UNUSED(floating)
     // 現在は特別な処理なし（将来の拡張用に残す）
 }
-

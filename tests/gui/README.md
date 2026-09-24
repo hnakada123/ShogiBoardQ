@@ -53,7 +53,26 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 詰将棋対局は次のコマンドで検証します。実際の盤クリック、成り、持ち駒の打ち込み、
 Hayanagiの応手、正解・不詰の通知、問題切替を確認し、`tsume-play.png` と
 `tsume-refutation.png` を `screenshots/` に保存します。
+`promotionKeepsDraggedPiece` は３三飛から３四への移動について、成り選択中の描画が
+移動先で維持されること、成る／成らないの確定、王手でない着手を拒否した後の表示復元を確認します。
+詰将棋・問題一覧・一般機能の GUI テストは、本体と同じ日本語フォントの初期化を行います。
+`tst_applicationfonts` は「判定時間」などに使用される実描画フォントと等幅表示を検証します。
+`solveByBoardClicks` は盤の拡大・縮小ボタン、Ctrl＋ホイール、回転後の盤での着手も確認します。
 
 ```bash
 xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_play_gui
+```
+
+問題一覧は `tst_tsume_collection_gui` で1003問のページ表示、10/20/50/100件への変更、
+履歴の絞り込み、閲覧時に挑戦回数が増えないこと、正答後の一覧復帰・再挑戦時の履歴保持を確認する。
+`menuModalRoundtrip` は実MainWindowのメニューから起動し、「一覧に戻る」・Esc・閉じる操作・
+正答後の復帰で一覧が生存すること、ページ移動・別問題の選択・一覧終了後のメニュー操作が可能なことを確認する。
+`tst_tsume_play_gui` の `solutionPlaybackAndResume` は正解手順の先頭・前・次・詰み局面への移動、
+ボタンを押す前後の棋譜・再生操作の表示切替、日本語の棋譜、閲覧中の着手禁止、
+正答履歴を増やさず途中対局へ戻れることを確認する。
+`cancelPendingSolution` は手順取得中の復帰で古い結果が盤面へ適用されないことを確認する。
+スクリーンショットは `tsume-collection.png`。
+
+```bash
+xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_collection_gui
 ```

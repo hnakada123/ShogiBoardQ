@@ -280,6 +280,9 @@ link_plugins platformthemes libqxdgdesktopportal.so
 # tls: ネットワーク通信用
 link_plugins tls libqopensslbackend.so libqcertonlybackend.so
 
+# 詰将棋の解答履歴・解析キャッシュ
+link_plugins sqldrivers libqsqlite.so
+
 # multimedia: 駒音は QSoundEffect（libQt6Multimedia 本体）だけで再生できるため、
 # ffmpeg/gstreamer バックエンドプラグインは同梱しない（数十MBの依存を回避）。
 # libQt6Multimedia.so.6 は実行ファイルの依存として linuxdeploy が自動で同梱する。
@@ -300,7 +303,7 @@ WRAPPER_EOF
 chmod +x "$QMAKE_WRAPPER"
 export QMAKE="$QMAKE_WRAPPER"
 
-export EXTRA_QT_PLUGINS="svg;iconengines"
+export EXTRA_QT_PLUGINS="svg;iconengines;sqldrivers"
 
 # linuxdeploy 内蔵の strip は古く、最新の .relr.dyn セクションを
 # 認識できない場合がある。linuxdeploy の strip をスキップし、
@@ -402,6 +405,7 @@ chmod +x "$APPDIR/AppRun"
 # linuxdeploy --output appimage は依存ライブラリを再デプロイしてしまうため、
 # クリーンアップ済みの AppDir をそのままパッケージングする appimagetool を使用
 info "Qt ライセンスと対応ソース情報を同梱中..."
+[[ -f "${APPDIR}/usr/plugins/sqldrivers/libqsqlite.so" ]] || die "SQLite ドライバーが配布物にありません。"
 python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
     --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
     --destination "${APPDIR}/usr/share/licenses/ShogiBoardQ"

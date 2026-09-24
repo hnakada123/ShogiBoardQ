@@ -16,6 +16,9 @@ struct Result {
     QList<int> invalidLines;
 };
 Result parse(const QString& text);
+/// 手数カウンタ、ファイル名、参考手順に依存しない局面識別子。
+QString positionId(const QString& sfen);
+bool validMateLine(const QString& sfen, const QStringList& pv);
 }
 
 #endif

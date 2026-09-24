@@ -324,6 +324,7 @@ Write-Info "MSVC ランタイム DLL: $(@($runtimeDlls).Count) 個をコピー"
 # ──────────────────────────────────────────────
 
 Write-Info "Qt ライセンスと対応ソース情報を同梱中..."
+if (-not (Test-Path "$DEPLOY_DIR/sqldrivers/qsqlite.dll")) { Stop-WithError "SQLite ドライバーが配布物にありません。" }
 $qtNotices = if ($env:SHOGIBOARDQ_QT_LICENSE_DIR) { $env:SHOGIBOARDQ_QT_LICENSE_DIR } else { "build/qt-licenses" }
 python scripts/qt_licenses.py stage --build-dir $BUILD_DIR --notices $qtNotices --destination "$DEPLOY_DIR/licenses"
 if ($LASTEXITCODE -ne 0) { Stop-WithError "Qt ライセンスの準備に失敗しました。docs/dev/qt-licensing.md を参照してください。" }
@@ -339,7 +340,7 @@ $qmCount  = @($deployedFiles | Where-Object { $_.Extension -eq ".qm" }).Count
 Write-Info "ファイル数: exe=$exeCount, dll=$dllCount, qm=$qmCount"
 
 # 必須 DLL の確認
-$requiredDlls = @("Qt6Core.dll", "Qt6Gui.dll", "Qt6Widgets.dll", "Qt6Charts.dll", "Qt6Network.dll", "Qt6Multimedia.dll")
+$requiredDlls = @("Qt6Core.dll", "Qt6Gui.dll", "Qt6Widgets.dll", "Qt6Charts.dll", "Qt6Network.dll", "Qt6Multimedia.dll", "Qt6Sql.dll")
 $missingDlls = @()
 foreach ($dll in $requiredDlls) {
     if (-not (Test-Path (Join-Path $DEPLOY_DIR $dll))) {

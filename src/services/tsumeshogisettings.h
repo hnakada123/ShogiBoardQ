@@ -18,9 +18,28 @@ struct PlayPreferences {
     int problemIndex = 0;
     int timeoutSec = 5;
     int squareSize = 42;
+    bool boardRotated = false; // 攻方を下にした標準の向きから回転しているか
 };
 PlayPreferences playPreferences();
 void setPlayPreferences(const PlayPreferences& preferences);
+
+struct CollectionPreferences {
+    QSize size{1100, 800};
+    QString lastFile;
+    QString enginePath;
+    int pageSize = 10;
+    int page = 1;
+    int filter = 0;
+    int timeoutSec = 5;
+};
+CollectionPreferences collectionPreferences();
+void setCollectionPreferences(const CollectionPreferences& preferences);
+
+/// 詰将棋対局・問題一覧の文字サイズ（それぞれ独立、デフォルト: 10）
+int tsumePlayFontSize();
+void setTsumePlayFontSize(int size);
+int tsumeCollectionFontSize();
+void setTsumeCollectionFontSize(int size);
 
 /// ファイル保存で最後に使用したディレクトリ
 QString tsumeshogiGeneratorLastSaveDirectory();

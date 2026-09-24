@@ -264,6 +264,7 @@ info "PlugIns:    $(find "$APP_BUNDLE/Contents/PlugIns" -type f 2>/dev/null | wc
 # ──────────────────────────────────────────────
 
 info "Qt ライセンスと対応ソース情報を同梱中..."
+[[ -f "$APP_BUNDLE/Contents/PlugIns/sqldrivers/libqsqlite.dylib" ]] || die "SQLite ドライバーが配布物にありません。"
 python3 scripts/qt_licenses.py stage --build-dir "$BUILD_DIR" \
     --notices "${SHOGIBOARDQ_QT_LICENSE_DIR:-build/qt-licenses}" \
     --destination "$APP_BUNDLE/Contents/Resources/licenses"

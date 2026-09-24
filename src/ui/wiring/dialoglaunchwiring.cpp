@@ -26,7 +26,7 @@
 #include "kifuanalysislistmodel.h"
 #include "sfencollectiondialog.h"
 #include "tsumeshogigeneratordialog.h"
-#include "tsumeplaydialog.h"
+#include "tsumecollectiondialog.h"
 #include "evaluationchartwidget.h"
 #include "logcategories.h"
 
@@ -133,7 +133,7 @@ void DialogLaunchWiring::displayTsumeShogiSearchDialog()
 
 void DialogLaunchWiring::displayTsumePlayDialog()
 {
-    TsumePlayDialog dialog(m_deps.parentWidget);
+    TsumeCollectionDialog dialog(m_deps.parentWidget);
     dialog.exec();
 }
 

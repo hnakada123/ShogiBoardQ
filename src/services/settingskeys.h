@@ -46,6 +46,8 @@ inline constexpr char kFontSizeConsiderationDialog[]     = "FontSize/considerati
 inline constexpr char kFontSizeStartGameDialog[]         = "FontSize/startGameDialog";
 inline constexpr char kFontSizeKifuPasteDialog[]         = "FontSize/kifuPasteDialog";
 inline constexpr char kFontSizeTsumeshogiGenerator[]     = "FontSize/tsumeshogiGenerator";
+inline constexpr char kFontSizeTsumePlay[]               = "FontSize/tsumePlay";
+inline constexpr char kFontSizeTsumeCollection[]         = "FontSize/tsumeCollection";
 
 // --- UI ---
 inline constexpr char kLastSelectedTabIndex[]            = "UI/lastSelectedTabIndex";
@@ -198,12 +200,21 @@ inline constexpr char kRecordPaneTimeColumnVisible[]     = "RecordPane/timeColum
 inline constexpr char kRecordPaneBookmarkColumnVisible[] = "RecordPane/bookmarkColumnVisible";
 inline constexpr char kRecordPaneCommentColumnVisible[]  = "RecordPane/commentColumnVisible";
 
-// --- TsumeshogiGenerator ---
+// --- TsumeCollection / TsumePlay ---
+inline constexpr char kTsumeCollectionSize[] = "TsumeCollection/size";
+inline constexpr char kTsumeCollectionFile[] = "TsumeCollection/file";
+inline constexpr char kTsumeCollectionEngine[] = "TsumeCollection/engine";
+inline constexpr char kTsumeCollectionPageSize[] = "TsumeCollection/pageSize";
+inline constexpr char kTsumeCollectionPage[] = "TsumeCollection/page";
+inline constexpr char kTsumeCollectionFilter[] = "TsumeCollection/filter";
+inline constexpr char kTsumeCollectionTimeout[] = "TsumeCollection/timeout";
 inline constexpr char kTsumePlaySize[] = "TsumePlay/size";
 inline constexpr char kTsumePlayFile[] = "TsumePlay/file";
 inline constexpr char kTsumePlayIndex[] = "TsumePlay/index";
 inline constexpr char kTsumePlayTimeout[] = "TsumePlay/timeout";
 inline constexpr char kTsumePlaySquareSize[] = "TsumePlay/squareSize";
+inline constexpr char kTsumePlayBoardRotated[] = "TsumePlay/boardRotated";
+// --- TsumeshogiGenerator ---
 inline constexpr char kTsumeshogiGeneratorLastSaveDirectory[] = "TsumeshogiGenerator/lastSaveDirectory";
 inline constexpr char kTsumeshogiGeneratorEngineIndex[]       = "TsumeshogiGenerator/engineIndex";
 inline constexpr char kTsumeshogiGeneratorTargetMoves[]       = "TsumeshogiGenerator/targetMoves";
