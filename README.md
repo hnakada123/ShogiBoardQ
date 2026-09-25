@@ -50,6 +50,7 @@
 - **メニュー機能** - メニュードックで各種操作にアイコン付きボタンですばやくアクセス。お気に入り登録やサイズ調整で自分好みにカスタマイズできます。
 - **駒音** - 駒を指したときに駒音を再生。設定メニューの「駒音」でON/OFF、「駒音の設定」で音量・音の高さ・音質（3バンドイコライザー）を調整できます。
 - **多言語対応** - 日本語と英語のUIに対応。アプリケーションの言語設定で切り替えられます。
+- **AI クライアント連携（MCP）** - Model Context Protocol サーバーを同梱。Claude Desktop / Claude Code / Cursor / VS Code / Gemini CLI / Codex CLI などの AI クライアントから棋譜変換・エンジン解析・詰将棋生成・アプリ操作を依頼できます。詳しくは[AI クライアント連携](docs/guide/mcp-server.html)と [mcp/README.md](mcp/README.md) を参照してください。
 - **クロスプラットフォーム** - Linux・macOS・Windowsに対応。Qt6により単一のソースコードから各OSでネイティブに動作するアプリケーションをビルドできます。
 
 ## 動作環境・ビルド方法
@@ -79,6 +80,9 @@ cmake --build build
 
 # 実行
 ./build/ShogiBoardQ
+
+# GUI を使わないコマンドライン版（MCP サーバーが利用。棋譜変換・解析・詰将棋生成など）
+./build/shogiboardq-cli
 ```
 
 すでにclone済みの場合や更新を取り込んだ後は、ビルド前に以下を実行してください。
@@ -98,6 +102,7 @@ ShogiBoardQが記録したコミットを使用します。管理・更新手順
 - [障害対応フロー](docs/dev/incident-response.md)
 - [定期メンテナンスチェックリスト](docs/dev/maintenance-checklist.md)
 - [翻訳品質ポリシー](docs/dev/translation-quality-policy.md)
+- [MCP サーバー設計](docs/dev/mcp-server.md)
 
 ## ライセンス
 

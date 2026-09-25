@@ -121,7 +121,16 @@ claude mcp add shogiboardq \
 }
 ```
 
-### Gemini CLI（`~/.gemini/settings.json`）
+### Gemini CLI
+
+```bash
+gemini mcp add -s user \
+  -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  shogiboardq python3 -m shogiboardq_mcp
+```
+
+`~/.gemini/settings.json`（プロジェクトなら `.gemini/settings.json`）に直接書く場合:
 
 ```json
 {
@@ -138,7 +147,16 @@ claude mcp add shogiboardq \
 }
 ```
 
-### Codex CLI（`~/.codex/config.toml`）
+### Codex CLI
+
+```bash
+codex mcp add shogiboardq \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -- python3 -m shogiboardq_mcp
+```
+
+`~/.codex/config.toml` に直接書く場合:
 
 ```toml
 [mcp_servers.shogiboardq]
@@ -149,6 +167,8 @@ args = ["-m", "shogiboardq_mcp"]
 SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
 PYTHONPATH = "/path/to/ShogiBoardQ/mcp"
 ```
+
+Windows では `python3` を `python` に、パスを `C:\\Users\\...\\ShogiBoardQ\\build\\ShogiBoardQ.exe` のように置き換えてください（JSON では `\\` でエスケープします）。
 
 ## 安全性
 

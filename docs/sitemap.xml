@@ -416,4 +416,20 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>

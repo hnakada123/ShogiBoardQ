@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Client Integration (MCP) - ShogiBoardQ</title>
+    <meta name="description" content="Use ShogiBoardQ's kifu conversion, engine analysis, tsume shogi generation and GUI automation from AI clients such as Claude Desktop, Claude Code, Cursor, VS Code, Gemini CLI and Codex CLI through the Model Context Protocol (MCP).">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
+    <meta property="og:title" content="AI Client Integration (MCP) - ShogiBoardQ">
+    <meta property="og:description" content="Ask Claude, Cursor, VS Code, Gemini CLI or Codex CLI to convert records, analyse positions, generate tsume shogi puzzles and drive the ShogiBoardQ window.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/mcp/board-example.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AI Client Integration (MCP) - ShogiBoardQ">
+    <meta name="twitter:description" content="Use ShogiBoardQ from AI clients through the Model Context Protocol.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/mcp/board-example.png">
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <a href="../../guide/mcp-server.html" class="language-switch" lang="ja" hreflang="ja" aria-label="日本語">日本語</a>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#setup">Setup</a></li>
+            <li><a href="#clients">Client Configuration</a></li>
+            <li><a href="#usage">Usage</a></li>
+            <li><a href="#automation">GUI Automation</a></li>
+            <li><a href="#safety">Safety</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>AI Client Integration (MCP)</h1>
+        <p class="hero-subtitle">Use ShogiBoardQ from Claude, Cursor, VS Code, Gemini CLI and Codex CLI</p>
+        <div class="hero-badges">
+            <span class="badge">Model Context Protocol</span>
+            <span class="badge">stdio</span>
+            <span class="badge">Convert · Analyse · Generate</span>
+            <span class="badge">GUI automation</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Overview -->
+<section id="overview" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Overview</h2>
+        <p class="section-desc">ShogiBoardQ ships with a Model Context Protocol (MCP) server</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">What MCP is</span>
+                </div>
+                <p class="guide-step-text">MCP is a common protocol that lets AI clients (Claude Desktop, Claude Code, Cursor, GitHub Copilot in VS Code, Gemini CLI, Codex CLI and others) call external tools. Once you register the ShogiBoardQ server (<code>shogiboardq-mcp</code>), requests such as "convert this record to CSA", "analyse this position for 10 seconds" or "generate five mate-in-three puzzles" are carried out by the client through ShogiBoardQ's own functions.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Tools that work without the GUI</span>
+                </div>
+                <p class="guide-step-text">These tools run <code>shogiboardq-cli</code> under the hood and do not need the window to be open.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>Tool</th><th>What it does</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>convert_kifu</strong></td><td>Convert a record file or text to KIF, KI2, CSA, JKF, USI, USEN or a list of SFENs</td></tr>
+                        <tr><td><strong>validate_sfen</strong></td><td>Validity of a SFEN, side to move, pieces in hand, check status, number of legal moves</td></tr>
+                        <tr><td><strong>list_engines</strong></td><td>USI engines registered in ShogiBoardQ</td></tr>
+                        <tr><td><strong>analyze_position</strong> / analysis_status / analysis_result</td><td>Position analysis with a registered engine (MultiPV, job based)</td></tr>
+                        <tr><td><strong>search_mate</strong> / mate_status</td><td>Mate search with an engine that supports <code>go mate</code> (job based)</td></tr>
+                        <tr><td><strong>generate_tsume</strong> / tsume_generation_status / stop_tsume_generation</td><td>Automatic tsume shogi puzzle generation (job based)</td></tr>
+                        <tr><td><strong>verify_tsume</strong></td><td>Uniqueness check (unique / multiple / nomate / wrong_length / unknown)</td></tr>
+                        <tr><td><strong>render_board_image</strong></td><td>Render a SFEN as a PNG board image</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item">
+                    <img src="../../images/mcp/board-example.png" alt="Board image produced by render_board_image">
+                    <p class="screenshot-caption">Output of render_board_image: the same piece images and colours as the GUI, with the last move highlighted</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Tools that drive the running window</span>
+                </div>
+                <p class="guide-step-text">When ShogiBoardQ is started with <code>--automation</code>, these tools read and change what the window shows.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>Tool</th><th>What it does</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>get_app_state</strong></td><td>State (idle, game, analysis, ...), current ply, record file, unsaved changes, open dialogs</td></tr>
+                        <tr><td><strong>get_position</strong> / set_position</td><td>SFEN and moves of the current position; set a position</td></tr>
+                        <tr><td><strong>load_kifu</strong> / save_kifu / get_kifu / goto_ply</td><td>Load, save and read the record (format and ply range selectable), move to a ply</td></tr>
+                        <tr><td><strong>list_actions</strong> / trigger_action</td><td>List and run menu actions (allow-list)</td></tr>
+                        <tr><td><strong>capture_screenshot</strong></td><td>Save a PNG screenshot of the main window or a dialog</td></tr>
+                        <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>List open dialogs, close one, read labels, fields and tables</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Resources are provided for the current position (<code>shogiboardq://position/current</code>, SFEN), the current record (<code>shogiboardq://kifu/current</code>, KIF text) and the registered engines (<code>shogiboardq://engines</code>).</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Setup -->
+<section id="setup" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Setup</h2>
+        <p class="section-desc">You need a built ShogiBoardQ and the Python mcp package</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Build ShogiBoardQ</span>
+                </div>
+                <p class="guide-step-text">The server uses <code>build/ShogiBoardQ</code> (GUI) and <code>build/shogiboardq-cli</code> (command line, no GUI). The release packages do not include <code>shogiboardq-cli</code> yet, so build from source following the <a href="linux-build-and-release.html">Linux</a>, <a href="macos-build-and-release.html">macOS</a> or <a href="windows-build-and-release.html">Windows</a> build guide.</p>
+                <div class="build-steps">
+<pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ
+cmake -B build -S . -G Ninja
+cmake --build build
+./build/shogiboardq-cli version      # prints {"ok":true,"version":"..."}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Python and the mcp package</span>
+                </div>
+                <p class="guide-step-text">Python 3.10 or later and the official <code>mcp</code> package are required. The server lives in the <code>mcp/</code> directory of the repository.</p>
+                <div class="build-steps">
+<pre class="bash"><code># install only the mcp package (the server is found through PYTHONPATH)
+pip install mcp
+
+# or install the server itself
+pip install -e mcp</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Register USI engines</span>
+                </div>
+                <p class="guide-step-text">Analysis, mate search, puzzle generation and uniqueness checks refer to engines by the name registered under Settings → Engine Settings in ShogiBoardQ; arbitrary executable paths are not accepted. Mate search, generation and verification need an engine that supports <code>go mate</code>, such as KomoringHeights.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Environment variables</span>
+                </div>
+                <p class="guide-step-text">Pass these to the server from the client configuration. At least <code>SHOGIBOARDQ_EXECUTABLE</code> is needed.</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>Variable</th><th>Meaning</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td>Path of <code>ShogiBoardQ</code>. GUI tools launch it with <code>--automation</code> when no instance is running; <code>shogiboardq-cli</code> next to it is found automatically</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_CLI</code></td><td>Path of <code>shogiboardq-cli</code> if it lives elsewhere</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>Directories the tools may read and write (<code>:</code> separated on Linux/macOS, <code>;</code> on Windows). Default: your home directory</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>Default folder for screenshots and other outputs. Default: <code>shogiboardq-mcp</code> under the temp directory</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>Automation socket path (shared with the app's <code>--automation-socket</code>)</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td>Set to <code>1</code> to close an app the server launched when the server exits (default: keep it running)</td></tr>
+                        <tr><td><code>PYTHONPATH</code></td><td>The repository's <code>mcp</code> directory unless you ran <code>pip install -e mcp</code></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Clients -->
+<section id="clients" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Client Configuration</h2>
+        <p class="section-desc">Every client does the same thing: start python3 -m shogiboardq_mcp over stdio and pass the environment variables</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <p class="guide-step-text">The examples below are for Linux; replace <code>/path/to/ShogiBoardQ</code> with your checkout. On Windows use <code>python</code> instead of <code>python3</code> and paths such as <code>C:\\Users\\...\\ShogiBoardQ\\build\\ShogiBoardQ.exe</code>. Restart the client (or reload its MCP servers) after editing the configuration.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Claude Code</span>
+                </div>
+                <p class="guide-step-text">Run the following inside your project (add <code>--scope user</code> to enable it in every project). Everything after <code>--</code> is the server command.</p>
+                <div class="build-steps">
+<pre class="bash"><code>claude mcp add shogiboardq \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -- python3 -m shogiboardq_mcp
+
+claude mcp list      # check the connection</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Claude Desktop</span>
+                </div>
+                <p class="guide-step-text">Add the server to <code>claude_desktop_config.json</code>, opened via Settings → Developer → Edit Config (macOS: <code>~/Library/Application Support/Claude/</code>, Windows: <code>%APPDATA%\Claude\</code>).</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Cursor</span>
+                </div>
+                <p class="guide-step-text">Write it to <code>.cursor/mcp.json</code> in the project, or <code>~/.cursor/mcp.json</code> for all projects.</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">VS Code (GitHub Copilot)</span>
+                </div>
+                <p class="guide-step-text">Write it to <code>.vscode/mcp.json</code> in the workspace. VS Code uses <code>servers</code> as the top-level key. For a user-wide setup use the "MCP: Open User Configuration" command and the same format.</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "servers": {
+    "shogiboardq": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Gemini CLI</span>
+                </div>
+                <p class="guide-step-text">Register it with the command below, or add it to <code>mcpServers</code> in <code>~/.gemini/settings.json</code> (or the project's <code>.gemini/settings.json</code>).</p>
+                <div class="build-steps">
+<pre class="bash"><code>gemini mcp add -s user \
+  -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  shogiboardq python3 -m shogiboardq_mcp</code></pre>
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Codex CLI</span>
+                </div>
+                <p class="guide-step-text">Register it with the command below, or add it to <code>~/.codex/config.toml</code>.</p>
+                <div class="build-steps">
+<pre class="bash"><code>codex mcp add shogiboardq \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -- python3 -m shogiboardq_mcp</code></pre>
+<pre class="toml"><code>[mcp_servers.shogiboardq]
+command = "python3"
+args = ["-m", "shogiboardq_mcp"]
+
+[mcp_servers.shogiboardq.env]
+SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
+PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Usage -->
+<section id="usage" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Usage</h2>
+        <p class="section-desc">Ask in plain language; the client picks the right tools</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Example requests</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>Request</th><th>Tools used</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>"Convert ~/kifu/game.kif to CSA and save it as ~/kifu/game.csa"</td><td>convert_kifu</td></tr>
+                        <tr><td>"Is this SFEN a legal position? Is the king in check?"</td><td>validate_sfen</td></tr>
+                        <tr><td>"Analyse the position after 7g7f 3c3d from the initial position with YaneuraOu for 10 seconds, 3 candidate lines"</td><td>list_engines → analyze_position → analysis_result</td></tr>
+                        <tr><td>"Check with KomoringHeights whether this position has a mate"</td><td>search_mate → mate_status</td></tr>
+                        <tr><td>"Generate five mate-in-three puzzles with at most three attacking pieces"</td><td>generate_tsume → tsume_generation_status</td></tr>
+                        <tr><td>"Verify that this mate-in-five has no cook"</td><td>verify_tsume</td></tr>
+                        <tr><td>"Render this position to ~/Pictures/board.png"</td><td>render_board_image</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Long operations become jobs</span>
+                </div>
+                <p class="guide-step-text">Analysis, mate search and puzzle generation return a job id immediately; the client polls the matching status tool (analysis_status and so on) for progress and results. This keeps every call short, so clients that cut tool calls off after about 60 seconds can still run analyses and generations that take minutes. Generation can be ended early with stop_tsume_generation; list_jobs and cancel_job manage all jobs.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Positions and moves</span>
+                </div>
+                <p class="guide-step-text">Positions are SFEN strings (<code>startpos</code> for the initial position) and moves are USI (<code>7g7f</code>, drops as <code>P*5e</code>). Results contain both a readable summary and structured data (structuredContent). Record text and principal variations are limited by default and can be widened with <code>max_chars</code> and <code>max_pv_moves</code>.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: Automation -->
+<section id="automation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Driving the Window</h2>
+        <p class="section-desc">A ShogiBoardQ started with --automation can be operated from the AI client</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Start with the automation API enabled</span>
+                </div>
+                <p class="guide-step-text">The automation API is off by default. Started with <code>--automation</code>, ShogiBoardQ accepts requests on a local socket that only your user can access and prints <code>automation: listening on ...</code>. When <code>SHOGIBOARDQ_EXECUTABLE</code> is set, the server launches the app on the first GUI tool call (or connects to an instance that is already running).</p>
+                <div class="build-steps">
+<pre class="bash"><code>./build/ShogiBoardQ --automation
+# with an explicit socket location
+./build/ShogiBoardQ --automation --automation-socket /tmp/shogiboardq.sock</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Example requests</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>Request</th><th>Tools used</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>"What position is shown right now?"</td><td>get_position</td></tr>
+                        <tr><td>"Open ~/kifu/game.kif and go to move 30"</td><td>load_kifu → goto_ply</td></tr>
+                        <tr><td>"Save the current record as KI2 to ~/kifu/out.ki2"</td><td>save_kifu</td></tr>
+                        <tr><td>"Open the game analysis dialog, read it and take a screenshot"</td><td>trigger_action → list_dialogs → get_widget_text → capture_screenshot</td></tr>
+                        <tr><td>"Flip the board"</td><td>trigger_action (actionFlipBoard)</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Loading a record or setting a position while the current record has unsaved changes is refused unless <code>discard_unsaved</code> is passed explicitly. Menu actions are allow-listed: quitting, overwriting the current file and language changes cannot be triggered. list_actions shows what is available.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 6: Safety -->
+<section id="safety" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Safety and Limitations</h2>
+        <p class="section-desc">Local only, off by default, explicit permission</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Safety</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>The automation socket is accessible only to your user and is never exposed on the network. It exists only when <code>--automation</code> is given</li>
+                    <li>File arguments must be absolute paths inside <code>SHOGIBOARDQ_ALLOWED_DIRS</code> (default: your home directory). Existing files are replaced only with an explicit <code>overwrite</code></li>
+                    <li>Engines are referenced only by the names registered in ShogiBoardQ</li>
+                    <li>Menu actions are allow-listed; quitting, overwriting, language changes and dock layout saving are excluded</li>
+                    <li>Clients normally ask you to confirm each tool call as well (subject to the client's settings)</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Limitations</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>Only the stdio transport is supported (no Streamable HTTP)</li>
+                    <li>CSA network games, starting games, playing moves and evaluation graph images are not available yet</li>
+                    <li>The Windows named-pipe connection is implemented but untested</li>
+                    <li>Release packages do not include <code>shogiboardq-cli</code>; a source build is required</li>
+                </ul>
+                <p class="guide-step-text">Design details (JSON-RPC methods, job states, tests) are in the developer documents <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/mcp-server.md">docs/dev/mcp-server.md</a> (Japanese) and <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/mcp/README.md">mcp/README.md</a>.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; Back to User Guide</a>
+</div>
+
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>
