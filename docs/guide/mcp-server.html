@@ -322,9 +322,9 @@ claude mcp list      # 接続状態を確認</code></pre>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">6</span>
-                    <span class="guide-step-title">Codex CLI</span>
+                    <span class="guide-step-title">Codex（CLI / アプリ / IDE 拡張）</span>
                 </div>
-                <p class="guide-step-text">コマンドで登録するか、<code>~/.codex/config.toml</code> に記述します。</p>
+                <p class="guide-step-text">同じホストの Codex クライアントは <code>~/.codex/config.toml</code> を共有します。コマンドで登録するか、下記の設定を記述してください。<code>python3</code> は <code>mcp</code> パッケージをインストールした Python を指定します。仮想環境の場合は Python の絶対パスを使ってください。</p>
                 <div class="build-steps">
 <pre class="bash"><code>codex mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
@@ -333,11 +333,16 @@ claude mcp list      # 接続状態を確認</code></pre>
 <pre class="toml"><code>[mcp_servers.shogiboardq]
 command = "python3"
 args = ["-m", "shogiboardq_mcp"]
+startup_timeout_sec = 30
+env_vars = ["DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS", "XDG_CONFIG_HOME"]
 
 [mcp_servers.shogiboardq.env]
 SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
 PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
+                <p class="guide-step-text">Linux で GUI を自動起動する場合、コマンドで登録した後も <code>[mcp_servers.shogiboardq]</code> に上記の <code>env_vars</code> を追加してください。ディスプレイ・セッションの環境変数と設定ディレクトリを引き継ぐための指定です。同じテーブルを重複して作らず、既存のテーブルを編集します。</p>
+                <p class="guide-step-text"><code>codex mcp get shogiboardq</code> で登録内容を確認し、Codex を再起動して新しい会話を開始してください。CLI では <code>/mcp</code> で接続を確認できます。「ShogiBoardQ の validate_sfen で startpos を検証して」と依頼し、合法手数 30 が返ればツールを実行できています。<code>codex mcp list</code> は登録内容のみを表示します。</p>
+                <p class="guide-step-text">画面のない環境でアプリ操作を試す場合は、<code>[mcp_servers.shogiboardq.env]</code> に <code>QT_QPA_PLATFORM = "offscreen"</code> を追加します。この場合、ウィンドウは画面に表示されません。詳細は <a href="https://developers.openai.com/codex/mcp">OpenAI 公式の MCP ドキュメント</a>を参照してください。</p>
             </div>
         </div>
     </div>
