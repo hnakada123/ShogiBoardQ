@@ -55,8 +55,8 @@ void TsumePositionAnalyzer::configure(const QString& enginePath, TsumeProgressSt
     m_enginePath = enginePath;
     m_store = store;
     m_engine->setExecutable(enginePath);
-    // 内蔵コアを更新するときは、その参照コミットと判定方式の版も更新する。
-    if (enginePath.isEmpty()) m_engineKey = QStringLiteral("hayanagi-30cfce58-depth31-v1");
+    // 内蔵コアを更新するときは、その参照バージョン（タグ）と判定方式の版も更新する。
+    if (enginePath.isEmpty()) m_engineKey = QStringLiteral("hayanagi-1.0.0-depth31-v2");
     else {
         QFile file(enginePath);
         QCryptographicHash hash(QCryptographicHash::Sha256);
