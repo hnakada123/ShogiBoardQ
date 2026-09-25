@@ -70,7 +70,7 @@ std::optional<EngineListSettings::EngineEntry> CliArgs::resolveEngine(const QCom
         if (error) *error = QStringLiteral("--engine is required");
         return std::nullopt;
     }
-    const auto entry = EngineCatalog::findByName(name, error);
+    auto entry = EngineCatalog::findByName(name, error);
     if (!entry) return std::nullopt;
     if (!QFileInfo::exists(entry->path)) {
         if (error) *error = QStringLiteral("Engine executable not found: %1").arg(entry->path);

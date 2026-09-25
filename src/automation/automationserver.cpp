@@ -13,11 +13,12 @@
 #include <QJsonObject>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <QLatin1StringView>
 #include <QStandardPaths>
 
 namespace {
 constexpr qsizetype kMaxLineBytes = 8 * 1024 * 1024; ///< 1 メッセージの上限（棋譜テキストを含む）
-const QString kEndpointFileName = QStringLiteral("automation-endpoint.json");
+constexpr QLatin1StringView kEndpointFileName("automation-endpoint.json");
 }
 
 AutomationServer::AutomationServer(QObject* parent)
@@ -35,7 +36,7 @@ AutomationServer::~AutomationServer()
 
 QString AutomationServer::defaultSocketPath()
 {
-    const QString env = qEnvironmentVariable("SHOGIBOARDQ_AUTOMATION_SOCKET");
+    QString env = qEnvironmentVariable("SHOGIBOARDQ_AUTOMATION_SOCKET");
     if (!env.isEmpty()) return env;
 #ifdef Q_OS_WIN
     const QString user = qEnvironmentVariable("USERNAME", QStringLiteral("user"));
