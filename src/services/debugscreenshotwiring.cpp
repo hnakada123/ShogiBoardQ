@@ -4,7 +4,7 @@
 #include "debugscreenshotwiring.h"
 
 #ifdef QT_DEBUG
-#include "debugscreenshotservice.h"
+#include "screenshotservice.h"
 
 #include <QMainWindow>
 #include <QShortcut>
@@ -12,15 +12,17 @@
 
 DebugScreenshotWiring::DebugScreenshotWiring(QMainWindow* mainWindow, QObject* parent)
     : QObject(parent)
-    , m_service(std::make_unique<DebugScreenshotService>(mainWindow))
+    , m_service(std::make_unique<ScreenshotService>(mainWindow))
 {
+    // 従来どおりデバッグ用の保存先を使う
+    m_service->setOutputDirectory(QStringLiteral("/tmp/shogiboardq-debug"));
     auto* shortcut = new QShortcut(Qt::Key_F12, mainWindow);
     connect(shortcut, &QShortcut::activated, this, &DebugScreenshotWiring::onShortcutActivated);
 }
 
 DebugScreenshotWiring::~DebugScreenshotWiring() = default;
 
-DebugScreenshotService* DebugScreenshotWiring::service() const
+ScreenshotService* DebugScreenshotWiring::service() const
 {
     return m_service.get();
 }

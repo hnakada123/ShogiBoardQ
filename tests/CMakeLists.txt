@@ -1463,6 +1463,9 @@ add_shogi_test(tst_applicationfonts
 # 自動化・CLI・MCP（src/automation, src/cli, mcp/）
 # 共通静的ライブラリ shogiboardq_static をリンクする
 # ============================================================
+add_shogi_test(tst_automation_dispatcher tst_automation_dispatcher.cpp)
+target_link_libraries(tst_automation_dispatcher PRIVATE shogiboardq_static)
+
 add_shogi_test(tst_usi_info_line_parser tst_usi_info_line_parser.cpp)
 target_link_libraries(tst_usi_info_line_parser PRIVATE shogiboardq_static)
 

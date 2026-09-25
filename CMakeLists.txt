@@ -311,6 +311,7 @@ set(SRC_APP
     src/app/mainwindowruntimerefs.h
     src/app/mainwindowstate.h
     src/app/mainwindowwiringassembler.cpp
+    src/app/mainwindowautomationregistry.cpp
     src/app/mainwindowuibootstrapper.cpp
     src/app/mainwindowlifecyclepipeline.cpp
     src/app/mainwindowlifecyclepipeline.h
@@ -888,12 +889,12 @@ set(SRC_SERVICES
     src/services/boardcolorpresets.cpp
     src/services/boardcolorpresets.h
     src/common/boardcolors.h
-    src/services/debugscreenshotservice.cpp
-    src/services/debugscreenshotservice.h
     src/services/debugscreenshotwiring.cpp
     src/services/debugscreenshotwiring.h
     src/services/playernameservice.cpp
     src/services/playernameservice.h
+    src/services/screenshotservice.cpp
+    src/services/screenshotservice.h
     src/services/pieceimageprovider.cpp
     src/services/pieceimageprovider.h
     src/services/piecesoundplayer.cpp
@@ -959,6 +960,21 @@ set(SRC_COMMON
 
 # 自動化 API（--automation）と CLI が共有する GUI 非依存サービス
 set(SRC_AUTOMATION
+    src/automation/automationactionpolicy.cpp
+    src/automation/automationactionpolicy.h
+    src/automation/automationcommands.h
+    src/automation/automationcommands_app.cpp
+    src/automation/automationcommands_kifu.cpp
+    src/automation/automationcommands_position.cpp
+    src/automation/automationcommands_ui.cpp
+    src/automation/automationcontext.h
+    src/automation/automationdispatcher.cpp
+    src/automation/automationdispatcher.h
+    src/automation/automationparams.h
+    src/automation/automationserver.cpp
+    src/automation/automationserver.h
+    src/automation/automationwidgets.cpp
+    src/automation/automationwidgets.h
     src/automation/boardimagerenderer.cpp
     src/automation/boardimagerenderer.h
     src/automation/engineanalysisrunner.cpp

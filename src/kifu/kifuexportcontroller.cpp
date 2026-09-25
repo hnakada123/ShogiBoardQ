@@ -242,6 +242,12 @@ bool KifuExportController::overwriteFile(const QString& filePath)
     return ok;
 }
 
+QStringList KifuExportController::exportLines(KifuSaveCoordinator::SaveFormat format)
+{
+    if (m_prepareCallback) m_prepareCallback();
+    return linesForFormat(format);
+}
+
 QStringList KifuExportController::linesForFormat(KifuSaveCoordinator::SaveFormat format) const
 {
     if (!m_deps.gameRecord) return QStringList();

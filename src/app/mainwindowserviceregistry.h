@@ -41,6 +41,7 @@ class QString;
  * - mainwindowdockbootstrapper.cpp      (ドック生成)
  * - mainwindowuibootstrapper.cpp        (UI ブートストラップ)
  * - mainwindowwiringassembler.cpp       (配線アセンブラ)
+ * - mainwindowautomationregistry.cpp    (自動化 API サーバー)
  */
 class MainWindowServiceRegistry : public QObject
 {
@@ -135,6 +136,10 @@ public:
 
     // ===== WiringAssembler系 =====
     void initializeDialogLaunchWiring();
+
+    // ===== 自動化 API（--automation）=====
+    /// 自動化サーバーを生成して待ち受けを始める（mainwindowautomationregistry.cpp）
+    void ensureAutomationServer(const QString& socketPath);
 
 private:
     /// エンジン解析タブの依存コンポーネントを設定する

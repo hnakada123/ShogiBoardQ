@@ -86,6 +86,7 @@ class MainWindowMatchAdapter;
 class MainWindowCoreInitCoordinator;
 class MatchCoordinatorWiring;
 class MainWindowLifecyclePipeline;
+class AutomationServer;
 
 #ifdef QT_DEBUG
 class DebugScreenshotWiring;
@@ -120,6 +121,8 @@ public:
     // MainWindowLifecyclePipeline 用の内部実行API
     void runLifecycleStartupInternal();
     void runLifecycleShutdownInternal(bool& shutdownDone);
+    /// 自動化 API（--automation）の待ち受けを開始する（ServiceRegistry へ委譲）
+    void startAutomationServer(const QString& socketPath);
 
 protected:
     std::unique_ptr<Ui::MainWindow> ui;
@@ -249,6 +252,9 @@ private:
 #ifdef QT_DEBUG
     std::unique_ptr<DebugScreenshotWiring> m_debugScreenshotWiring;
 #endif
+
+    // Lifecycle: Created once in ensureAutomationServer() when --automation is given, destroyed with parent
+    AutomationServer* m_automationServer = nullptr;
 
     // --- 終了フラグ ---
     bool m_isShuttingDown = false;
