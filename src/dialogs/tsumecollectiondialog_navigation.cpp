@@ -170,24 +170,46 @@ void TsumeCollectionDialog::startProblem()
 {
     const auto* card = qobject_cast<QPushButton*>(sender());
     if (!card || m_playing) return;
-    const int index = card->property("problemIndex").toInt();
+    const int position = static_cast<int>(m_filtered.indexOf(card->property("problemIndex").toInt()));
+    if (position < 0) return;
     cancelAnalysis();
     m_playing = true;
     const int scroll = m_scroll->verticalScrollBar()->value();
     savePreferences();
+    m_played.clear();
     // exec() 中の一覧を hide() すると、一覧自身のイベントループも終了する。
     // 一覧は表示したままにし、対局中の入力は子ダイアログのモーダル制御で止める。
     {
         TsumePlayDialog play(this);
-        play.setProblem(m_problems[index], index + 1, m_engine->currentData().toString(), m_store.get(), m_timeout->value());
+        m_play = &play;
+        connect(&play, &TsumePlayDialog::previousProblemRequested, this, &TsumeCollectionDialog::playPreviousProblem);
+        connect(&play, &TsumePlayDialog::nextProblemRequested, this, &TsumeCollectionDialog::playNextProblem);
+        playProblemAt(position, m_timeout->value());
         play.exec();
+        m_play = nullptr;
     }
     m_playing = false;
     // 対局開始時の再判定で確定した手数も一覧へ反映する。
-    m_results.remove(m_ids[index]);
+    for (int index : std::as_const(m_played)) m_results.remove(m_ids[index]);
     refreshProgress();
     rebuildPage();
     m_scroll->verticalScrollBar()->setValue(scroll);
     raise();
     activateWindow();
 }
+
+/// 絞り込み後の表示順（m_filtered）で position 番目の問題を対局画面に出題する。
+/// 対局中は一覧を組み直さないので、前後移動の間 m_filtered の並びは変わらない。
+void TsumeCollectionDialog::playProblemAt(int position, int timeoutSec)
+{
+    if (!m_play || position < 0 || position >= m_filtered.size()) return;
+    const int index = m_filtered[position];
+    m_playPosition = position;
+    if (!m_played.contains(index)) m_played.append(index);
+    m_play->setProblem(m_problems[index], index + 1, m_engine->currentData().toString(), m_store.get(), timeoutSec);
+    m_play->setProblemNavigation(position > 0, position + 1 < m_filtered.size());
+}
+
+// 対局画面で変更した判定時間は、前後の問題へ移っても引き継ぐ。
+void TsumeCollectionDialog::playPreviousProblem() { if (m_play) playProblemAt(m_playPosition - 1, m_play->timeoutSec()); }
+void TsumeCollectionDialog::playNextProblem() { if (m_play) playProblemAt(m_playPosition + 1, m_play->timeoutSec()); }

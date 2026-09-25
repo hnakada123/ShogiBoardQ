@@ -4293,27 +4293,27 @@ Select OK to specify the save location.</translation>
         <translation>KIF Save Error</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="272"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="278"/>
         <source>自動保存先ディレクトリが指定されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="277"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="283"/>
         <source>棋譜データがありません（自動保存をスキップ）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="284"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="290"/>
         <source>棋譜データが空のため自動保存をスキップしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="303"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="309"/>
         <source>棋譜を自動保存しました: %1</source>
         <translation type="unfinished">Game record auto-saved: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="309"/>
+        <location filename="../../src/kifu/kifuexportcontroller.cpp" line="315"/>
         <source>棋譜の自動保存に失敗しました: %1</source>
         <translation type="unfinished">Failed to auto-save game record: %1</translation>
     </message>
@@ -6397,10 +6397,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="390"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="394"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="410"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="414"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="395"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="399"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="415"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="419"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="184"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="188"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="204"/>
@@ -6410,10 +6410,10 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="113"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="391"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="399"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="407"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="415"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="396"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="404"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="412"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="420"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="185"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="193"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="201"/>
@@ -6422,10 +6422,10 @@ Are you sure you want to declare?</translation>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="395"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="398"/>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="406"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="400"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="403"/>
         <location filename="../../src/kifu/gamerecordmodel.cpp" line="411"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="416"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="189"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="192"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="200"/>
@@ -6434,13 +6434,13 @@ Are you sure you want to declare?</translation>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="402"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="407"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="196"/>
         <source>Engine1</source>
         <translation>Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/gamerecordmodel.cpp" line="403"/>
+        <location filename="../../src/kifu/gamerecordmodel.cpp" line="408"/>
         <location filename="../../src/kifu/kifucontentbuilder.cpp" line="197"/>
         <source>Engine2</source>
         <translation>Engine2</translation>
@@ -8057,88 +8057,98 @@ Last solved: %2</translation>
         <translation>Tsume Shogi Play</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="92"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="93"/>
+        <source>前の問題</source>
+        <translation>Previous problem</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="94"/>
+        <source>次の問題</source>
+        <translation>Next problem</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="105"/>
         <source>判定時間:</source>
         <translation>Search time:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="109"/>
         <source> 秒</source>
         <translation> s</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="104"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="117"/>
         <source>王手を続け、表示された手数以内に詰ませてください。別解も判定します。</source>
         <translation>Keep giving check and mate within the displayed number of plies. Alternative solutions are accepted.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="109"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="207"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="122"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="231"/>
         <source>正解手順</source>
         <translation>Solution</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="153"/>
         <source>文字サイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="145"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="158"/>
         <source>文字サイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="151"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="164"/>
         <source>最初から</source>
         <translation>Restart</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="152"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="165"/>
         <source>一手戻す</source>
         <translation>Undo your last move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="153"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="166"/>
         <source>探索中止</source>
         <translation>Stop search</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="154"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="167"/>
         <source>再判定</source>
         <translation>Retry search</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="159"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="172"/>
         <source>一覧に戻る</source>
         <translation>Back to problems</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="190"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="214"/>
         <source>将棋盤を縮小する</source>
         <translation>Zoom out the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="194"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="218"/>
         <source>将棋盤を拡大する</source>
         <translation>Zoom in the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="196"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="220"/>
         <source>盤面の回転</source>
         <translation>Flip board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="298"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="322"/>
         <source>第%1問 — 詰み手数を確認しています…</source>
         <translation>Problem %1 — Checking the mate length…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="376"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="400"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>Checking for mate and the defending move…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="404"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="428"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>The search is incomplete. Your move has not been marked incorrect. Increase the time and retry.</translation>
     </message>
@@ -8173,8 +8183,8 @@ Last solved: %2</translation>
         <translation type="vanished">These lines could not be loaded because their format is invalid: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="305"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="306"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="329"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="330"/>
         <source>あなた</source>
         <translation>You</translation>
     </message>
@@ -8187,32 +8197,32 @@ Last solved: %2</translation>
         <translation type="vanished">Hayanagi (defender)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="323"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="347"/>
         <source>成りの選択</source>
         <translation>Promotion</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="323"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="347"/>
         <source>成りますか？</source>
         <translation>Promote this piece?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="324"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="348"/>
         <source>成る</source>
         <translation>Promote</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="325"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="349"/>
         <source>成らない</source>
         <translation>Do not promote</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="369"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="393"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>Problem %1 — Mate in %2 plies / Defender: Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="374"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="398"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>Your turn. Mate within the remaining %1 plies.</translation>
     </message>
@@ -8221,37 +8231,37 @@ Last solved: %2</translation>
         <translation type="vanished">Hayanagi is searching…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="377"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="401"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>Search paused. Increase the search time and retry, or undo your last move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="380"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="404"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>Solved / Attempts: %1, solves: %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="381"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="405"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>Unsolved / Attempts: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="382"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="406"/>
         <source>履歴を保存できません: %1</source>
         <translation>Could not save progress: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="394"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="418"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>Correct! You have checkmated the defending king.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="401"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="425"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>This reply prevents mate. No sequence of checks can force mate.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="402"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="426"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>This reply prevents mate within the remaining %1 plies. Undo your last move and try again.</translation>
     </message>
@@ -8260,12 +8270,12 @@ Last solved: %2</translation>
         <translation type="vanished">The time or depth limit (31 plies) was reached. This does not mean your move is wrong.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="407"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="431"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>There is no forced mate by consecutive checks in this position. Choose another problem.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="430"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="454"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>Make a legal checking move. Double pawns, pawn-drop mate, and leaving your own king in check are not allowed.</translation>
     </message>

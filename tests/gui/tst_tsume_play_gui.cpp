@@ -9,6 +9,7 @@
 #include <QFile>
 #include <QLabel>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QToolButton>
 #include <QPlainTextEdit>
 #include <QWheelEvent>
@@ -226,6 +227,7 @@ private slots:
         auto* session = window.findChild<TsumeGameSession*>();
         connect(session, &TsumeGameSession::positionChanged, this, &TestTsumePlayGui::recordReply);
         window.setProblem(problems[problemIndex], problemIndex + 1, {}, nullptr, 5);
+        window.setProblemNavigation(true, true); // 一覧から開いたときと同じ表示で撮影する
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         clickMove(move);
@@ -286,6 +288,7 @@ private slots:
         auto problem = problems[0];
         problem.referenceMoves.clear(); // 初期局面だけのファイルでも再生する。
         window.setProblem(problem, 1, {}, &store, 5);
+        window.setProblemNavigation(true, true); // 一覧から開いたときと同じ表示で撮影する
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         auto* session = window.findChild<TsumeGameSession*>();
@@ -376,6 +379,38 @@ private slots:
         QTest::mouseClick(showSolution, Qt::LeftButton);
         QTest::mouseClick(next, Qt::LeftButton);
         QCOMPARE(replay->currentPly(), 1);
+        dialog = nullptr;
+    }
+    void problemNavigationButtons()
+    {
+        TsumePlayDialog window;
+        dialog = &window;
+        auto* previous = window.findChild<QPushButton*>(QStringLiteral("tsumePreviousProblem"));
+        auto* next = window.findChild<QPushButton*>(QStringLiteral("tsumeNextProblem"));
+        QVERIFY(previous && next);
+        // 単独で開いた対局画面（一覧なし）では前後の問題へ移動できない。
+        QVERIFY(!previous->isEnabled() && !next->isEnabled());
+        QSignalSpy previousRequests(&window, &TsumePlayDialog::previousProblemRequested);
+        QSignalSpy nextRequests(&window, &TsumePlayDialog::nextProblemRequested);
+        window.setProblem(problems[0], 1, {}, nullptr, 5);
+        window.setProblemNavigation(false, true);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(!previous->isEnabled() && next->isEnabled());
+        QTest::mouseClick(next, Qt::LeftButton);
+        QCOMPARE(nextRequests.size(), 1);
+        QVERIFY(previousRequests.isEmpty());
+        // 問題の切替は一覧側が行うので、ボタンを押しただけでは対局は変わらない。
+        auto* session = window.findChild<TsumeGameSession*>();
+        QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QCOMPARE(session->sfen(), problems[0].sfen);
+        window.setProblemNavigation(true, false);
+        QVERIFY(previous->isEnabled() && !next->isEnabled());
+        QTest::mouseClick(previous, Qt::LeftButton);
+        QCOMPARE(previousRequests.size(), 1);
+        QCOMPARE(nextRequests.size(), 1);
+        window.findChild<QSpinBox*>(QStringLiteral("tsumeTimeLimit"))->setValue(9);
+        QCOMPARE(window.timeoutSec(), 9);
         dialog = nullptr;
     }
     void cancelPendingSolution()
