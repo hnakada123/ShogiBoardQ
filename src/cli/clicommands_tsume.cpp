@@ -11,13 +11,14 @@
 #include "tsumeverificationrunner.h"
 
 #include <QCommandLineParser>
+#include <QLatin1StringView>
 #include <QElapsedTimer>
 #include <QEventLoop>
 #include <QJsonArray>
 
 namespace {
 
-const QString kInvalidArgument = QStringLiteral("invalid_argument");
+constexpr QLatin1StringView kInvalidArgument("invalid_argument");
 constexpr qint64 kProgressIntervalMs = 1000;
 
 /// 生成の進捗・発見局面を JSON Lines で書く中継役

@@ -10,12 +10,13 @@
 #include "matesearchrunner.h"
 
 #include <QCommandLineParser>
+#include <QLatin1StringView>
 #include <QEventLoop>
 #include <QJsonArray>
 
 namespace {
 
-const QString kInvalidArgument = QStringLiteral("invalid_argument");
+constexpr QLatin1StringView kInvalidArgument("invalid_argument");
 
 /// analyze / mate に共通する開始イベントの内容
 QJsonObject startedFields(const EngineListSettings::EngineEntry& engine, const CliPosition& position)

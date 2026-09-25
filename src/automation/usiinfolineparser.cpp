@@ -78,17 +78,16 @@ UsiInfoLine UsiInfoLineParser::parse(const QString& line)
             if (i + 1 < tokens.size()) info.currmove = tokens.at(++i);
         } else if (key == QLatin1String("score")) {
             if (i + 2 < tokens.size()) {
-                const QString kind = tokens.at(i + 1);
-                const QString value = tokens.at(i + 2);
+                const QString& kind = tokens.at(i + 1);
+                const QString& value = tokens.at(i + 2);
                 bool ok = false;
                 const int v = value.toInt(&ok);
                 if (kind == QLatin1String("cp") && ok) {
                     info.scoreCp = v;
                 } else if (kind == QLatin1String("mate")) {
-                    // "mate +" / "mate -" のように手数を省くエンジンもある
+                    // "mate +" / "mate -" のように手数を省くエンジンもある（手数不明は 0）
                     if (ok) info.scoreMate = v;
-                    else if (value == QLatin1String("+")) info.scoreMate = 0;
-                    else if (value == QLatin1String("-")) info.scoreMate = 0;
+                    else if (value == QLatin1String("+") || value == QLatin1String("-")) info.scoreMate = 0;
                 }
                 i += 2;
                 if (i + 1 < tokens.size()) {

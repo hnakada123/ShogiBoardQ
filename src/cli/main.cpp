@@ -33,7 +33,7 @@ int CliCommands::run(const QStringList& arguments)
         CliOutput::printUsage();
         return arguments.size() < 2 ? 2 : 0;
     }
-    const QString command = arguments.at(1);
+    const QString& command = arguments.at(1);
     const auto it = handlers.constFind(command);
     if (it == handlers.constEnd()) {
         return CliOutput::fail(QStringLiteral("unknown_command"),

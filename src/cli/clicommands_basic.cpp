@@ -12,12 +12,13 @@
 #include "sfenvalidationservice.h"
 
 #include <QCommandLineParser>
+#include <QLatin1StringView>
 #include <QCoreApplication>
 #include <QJsonArray>
 
 namespace {
 
-const QString kInvalidArgument = QStringLiteral("invalid_argument");
+constexpr QLatin1StringView kInvalidArgument("invalid_argument");
 
 void configureParser(QCommandLineParser& parser, const QString& command)
 {

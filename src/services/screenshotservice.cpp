@@ -95,7 +95,7 @@ QString ScreenshotService::saveCapture(const QImage& image, const QString& conte
         output = output.scaledToWidth(m_maxWidth, Qt::SmoothTransformation);
     }
 
-    const QString filePath = dir.filePath(generateFilename(context));
+    QString filePath = dir.filePath(generateFilename(context));
     QImageWriter writer(filePath, "png");
     if (!writer.write(output)) {
         qCWarning(lcUi) << "ScreenshotService: failed to write" << filePath << writer.errorString();
