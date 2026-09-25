@@ -11,10 +11,10 @@
 #include <memory>
 
 class QMainWindow;
-class DebugScreenshotService;
+class ScreenshotService;
 
 /**
- * @brief QShortcut::activated を受けて DebugScreenshotService を呼び出す中継クラス
+ * @brief QShortcut::activated を受けて ScreenshotService を呼び出す中継クラス
  *
  * F12 キー押下で MainWindow 全体のスクリーンショットをキャプチャする。
  * デバッグビルド専用（QT_DEBUGガード）。
@@ -24,13 +24,13 @@ class DebugScreenshotWiring final : public QObject {
 public:
     explicit DebugScreenshotWiring(QMainWindow* mainWindow, QObject* parent = nullptr);
     ~DebugScreenshotWiring() override;
-    DebugScreenshotService* service() const;
+    ScreenshotService* service() const;
 
 public slots:
     void onShortcutActivated();
 
 private:
-    std::unique_ptr<DebugScreenshotService> m_service;
+    std::unique_ptr<ScreenshotService> m_service;
 };
 
 #endif // QT_DEBUG

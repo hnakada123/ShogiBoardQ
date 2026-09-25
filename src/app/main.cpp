@@ -7,6 +7,7 @@
 #include "applicationfonts.h"
 
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QLocale>
 #include <QTranslator>
 #include <QStyleFactory>
@@ -99,6 +100,23 @@ int main(int argc, char *argv[])
 
     QApplication a(argc, argv);
     a.setApplicationName("ShogiBoardQ");
+    a.setApplicationVersion(QStringLiteral(APP_VERSION));
+
+    // コマンドライン引数。自動化 API（MCP サーバーやテストからの操作用）は既定で無効
+    QCommandLineParser parser;
+    parser.setApplicationDescription(QStringLiteral("ShogiBoardQ"));
+    parser.addHelpOption();
+    parser.addVersionOption();
+    const QCommandLineOption automationOption(
+        QStringLiteral("automation"),
+        QStringLiteral("Enable the local automation API (JSON-RPC over a user-only local socket)."));
+    const QCommandLineOption automationSocketOption(
+        QStringLiteral("automation-socket"),
+        QStringLiteral("Socket path (or pipe name on Windows) for the automation API."),
+        QStringLiteral("path"));
+    parser.addOption(automationOption);
+    parser.addOption(automationSocketOption);
+    parser.process(a);
 #ifdef Q_OS_LINUX
     // Waylandでもデスクトップエントリのアイコンと関連付ける。
     a.setDesktopFileName(QStringLiteral("shogiboardq"));
@@ -171,6 +189,10 @@ int main(int argc, char *argv[])
 
     MainWindow w;
     w.show();
+
+    if (parser.isSet(automationOption)) {
+        w.startAutomationServer(parser.value(automationSocketOption));
+    }
 
     int result = a.exec();
 

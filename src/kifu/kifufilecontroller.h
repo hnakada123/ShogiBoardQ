@@ -77,6 +77,19 @@ public:
     /// 棋譜自動保存（MatchCoordinator フック用）
     void autoSaveKifuToFile(const QString& saveDir);
 
+    // --- 自動化 API 用の非対話 API（確認ダイアログを出さない。未保存の確認は呼び出し側が行う）---
+
+    /// 未保存の変更があるか
+    bool hasUnsavedChanges() const;
+    /// 棋譜ファイルを読み込む（拡張子で形式を判定）。成功時は上書き保存先を更新する
+    [[nodiscard]] bool loadKifuFile(const QString& filePath);
+    /// 棋譜テキストを読み込む（形式は内容から判定）。上書き保存先はクリアする
+    [[nodiscard]] bool loadKifuText(const QString& content);
+    /// SFEN 局面を反映する。上書き保存先はクリアする
+    [[nodiscard]] bool applySfenPosition(const QString& sfen);
+    /// 指定パスへ保存する（形式は拡張子で決定）。成功時は上書き保存先を更新する
+    [[nodiscard]] bool saveKifuToPath(const QString& filePath);
+
 private:
     void prepareForKifuLoad();
 

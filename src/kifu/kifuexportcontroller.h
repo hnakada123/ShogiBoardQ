@@ -161,6 +161,13 @@ public:
      */
     QStringList sfenRecordToUsiMoves() const;
 
+    /**
+     * @brief 指定形式の出力行を生成する（ファイルに書かない。自動化 API 用）
+     *
+     * 準備コールバックを呼んでから生成する。棋譜モデルが無ければ空リスト。
+     */
+    QStringList exportLines(KifuSaveCoordinator::SaveFormat format);
+
 signals:
     /**
      * @brief ステータスバーにメッセージを表示

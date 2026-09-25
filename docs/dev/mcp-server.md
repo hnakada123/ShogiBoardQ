@@ -87,9 +87,11 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `save_kifu` | 棋譜を保存（形式は拡張子で決定） | `path`、`overwrite` | `kifu.save` |
 | `get_kifu` | 現在の棋譜（構造化した手順、または形式指定のテキスト） | `format`、`from_ply`、`max_moves`、`max_chars` | `kifu.get` |
 | `goto_ply` | 指定手数へ移動 | `ply` | `kifu.goto` |
-| `trigger_action` | `QAction` の objectName を許可リスト内で実行 | `name` | `action.trigger`（一覧は `action.list`） |
+| `list_actions` | `trigger_action` で実行できる動作の一覧（有効・チェック状態付き） | なし | `action.list` |
+| `trigger_action` | `QAction` の objectName を許可リスト内で実行（応答後に実行するのでモーダルダイアログでも返る） | `name` | `action.trigger` |
 | `capture_screenshot` | メインウィンドウまたは指定ダイアログを PNG 保存 | `target`、`output_dir` | `screenshot.capture` |
 | `list_dialogs` | 開いているトップレベルウィンドウ／ダイアログ | なし | `dialog.list` |
+| `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `dialog` | `dialog.close` |
 | `get_widget_text` | ダイアログ内のラベル・入力欄・テーブル内容 | `dialog`、`widget`、`max_rows` | `widget.text` |
 
 ### リソース
@@ -142,7 +144,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 
 | 項目 | 値 |
 |---|---|
-| ソケットパス（Linux/macOS） | 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `--automation-socket` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`）`/shogiboardq/automation.sock` |
+| ソケットパス（Linux/macOS） | `--automation-socket` → 環境変数 `SHOGIBOARDQ_AUTOMATION_SOCKET` → `QStandardPaths::RuntimeLocation`（`$XDG_RUNTIME_DIR`）`/shogiboardq/automation.sock`。Unix ドメインソケットの制限により 100 バイト以内 |
 | ソケット名（Windows） | `shogiboardq-automation-<ユーザー名>`（名前付きパイプ） |
 | エンドポイント情報 | `QStandardPaths::AppConfigLocation/automation-endpoint.json`（`{"socket":..., "pid":..., "version":...}`）。起動時に書き、終了時に削除する。MCP サーバーはこれを読んで接続先を決める |
 | プロトコル | 改行区切りの JSON-RPC 2.0（1 行 1 メッセージ、UTF-8）。バッチは未対応（`-32600`） |
@@ -154,7 +156,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 |---|---|---|---|
 | `app.ping` | - | `{pong:true}` | - |
 | `app.version` | - | `{version, qt, api:1}` | - |
-| `app.state` | - | `{ui_state, play_mode, current_ply, total_plies, kifu_file, dirty, board_flipped, dialogs:[...], engines:{black,white}}` | - |
+| `app.state` | - | `{ui_state, play_mode, current_ply, total_plies, sfen, kifu_file, dirty, board_flipped, dialogs:[...], engines:{black,white}}` | - |
 | `app.quit` | - | `{ok:true}`（応答後に終了。テストハーネス用で MCP ツールには出さない） | - |
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
 | `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
@@ -163,14 +165,17 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `kifu.get` | `{format?, from_ply?, max_moves?, max_chars?}` | `{format, total_plies, moves:[{ply,text,usi,time,comment}], text?, truncated}` | - |
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
-| `action.trigger` | `{name}` | `{name, triggered:true}` | `-32001` 許可リスト外、`-32002` 無効状態 |
+| `action.trigger` | `{name}` | `{name, triggered:true}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
 | `screenshot.capture` | `{target?: "main"\|objectName\|タイトル, output_dir?}` | `{path, width, height}` | `-32005` 対象なし |
-| `dialog.list` | - | `{windows:[{object_name,class,title,visible,modal,active}]}` | - |
+| `dialog.list` | - | `{windows:[{object_name,class,title,visible,modal,active,main,width,height}]}` | - |
+| `dialog.close` | `{dialog}` | `{closed:true, object_name, title}`（応答後に閉じる） | `-32005` 対象なし |
 | `widget.text` | `{dialog?, widget?, max_rows?}` | `{widgets:[{object_name,class,text?,items?,rows?}]}` | `-32005` 対象なし |
 
 エラーコード: JSON-RPC 標準（`-32700` parse、`-32600` invalid request、`-32601` method not found、`-32602` invalid params、`-32603` internal）に加え、`-32001` not allowed、`-32002` invalid state、`-32003` file error、`-32004` unsaved changes、`-32005` not found。`error.data.hint` に対処方法を入れる。
 
-`action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、言語切替、Web サイトを開く動作、ドックレイアウトの保存は除外する。
+`action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、言語切替、Web サイトを開く動作、ドックレイアウトの保存・初期化は除外する。
+
+モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。
 
 ### アプリ側のクラス構成
 

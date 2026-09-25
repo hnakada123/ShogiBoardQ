@@ -16,6 +16,7 @@ from . import __version__
 from .app_client import AppClient
 from .cli_backend import run_cli
 from .errors import ToolError
+from .handlers_app import AppTools
 from .handlers_cli import CliTools
 from .jobs import JobManager
 from .tooldefs import ALL_TOOLS, RESOURCES
@@ -38,6 +39,7 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
     jobs = JobManager()
     client = AppClient()
     cli_tools = CliTools(jobs)
+    app_tools = AppTools(client)
 
     handlers: dict[str, Handler] = {
         "convert_kifu": cli_tools.convert_kifu,
@@ -55,6 +57,19 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         "render_board_image": cli_tools.render_board_image,
         "list_jobs": cli_tools.list_jobs,
         "cancel_job": cli_tools.cancel_job,
+        "get_app_state": app_tools.get_app_state,
+        "get_position": app_tools.get_position,
+        "set_position": app_tools.set_position,
+        "load_kifu": app_tools.load_kifu,
+        "save_kifu": app_tools.save_kifu,
+        "get_kifu": app_tools.get_kifu,
+        "goto_ply": app_tools.goto_ply,
+        "list_actions": app_tools.list_actions,
+        "trigger_action": app_tools.trigger_action,
+        "capture_screenshot": app_tools.capture_screenshot,
+        "list_dialogs": app_tools.list_dialogs,
+        "close_dialog": app_tools.close_dialog,
+        "get_widget_text": app_tools.get_widget_text,
     }
     missing = {t.name for t in ALL_TOOLS} ^ set(handlers)
     assert not missing, f"tool/handler mismatch: {missing}"

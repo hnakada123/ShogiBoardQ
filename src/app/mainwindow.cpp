@@ -78,6 +78,12 @@ void MainWindow::saveSettingsAndClose()
     if (close()) m_pipeline->shutdownAndQuit();
 }
 
+// 自動化 API の待ち受けを開始する（ServiceRegistryへ委譲）。
+void MainWindow::startAutomationServer(const QString& socketPath)
+{
+    m_registry->ensureAutomationServer(socketPath);
+}
+
 // GUIを初期画面表示に戻す（ServiceRegistryへ委譲）。
 void MainWindow::resetToInitialState()
 {

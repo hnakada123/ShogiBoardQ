@@ -216,6 +216,70 @@ void KifuFileController::autoSaveKifuToFile(const QString& saveDir)
     }
 }
 
+// ============================================================
+// 自動化 API 用の非対話 API
+// ============================================================
+
+bool KifuFileController::hasUnsavedChanges() const
+{
+    auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr;
+    return record && record->isDirty();
+}
+
+bool KifuFileController::loadKifuFile(const QString& filePath)
+{
+    prepareForKifuLoad();
+    if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
+    const bool loaded = dispatchKifuLoad(filePath);
+    if (loaded) setOverwriteTarget(filePath);
+    return loaded;
+}
+
+bool KifuFileController::loadKifuText(const QString& content)
+{
+    prepareForKifuLoad();
+    if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
+    auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    if (!klc) return false;
+    const bool success = klc->loadKifuFromString(content);
+    if (success) {
+        clearOverwriteTarget();
+        if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
+            record->markDirty();
+        }
+    }
+    return success;
+}
+
+bool KifuFileController::applySfenPosition(const QString& sfen)
+{
+    prepareForKifuLoad();
+    if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
+    auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    if (!klc) return false;
+    const bool success = klc->loadPositionFromSfen(sfen);
+    if (success) {
+        clearOverwriteTarget();
+        if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
+            record->markDirty();
+        }
+    }
+    return success;
+}
+
+bool KifuFileController::saveKifuToPath(const QString& filePath)
+{
+    if (m_deps.ensureGameRecordModel) m_deps.ensureGameRecordModel();
+    if (m_deps.ensureKifuExportController) m_deps.ensureKifuExportController();
+    if (m_deps.updateKifuExportDependencies) m_deps.updateKifuExportDependencies();
+
+    auto* kec = m_deps.getKifuExportController ? m_deps.getKifuExportController() : nullptr;
+    if (!kec) return false;
+    const bool ok = kec->overwriteFile(filePath);
+    if (ok) setOverwriteTarget(filePath);
+    return ok;
+}
+
 bool KifuFileController::dispatchKifuLoad(const QString& filePath)
 {
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;

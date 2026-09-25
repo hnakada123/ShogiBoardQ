@@ -433,7 +433,167 @@ PHASE1_TOOLS: list[types.Tool] = [
     ),
 ]
 
-PHASE2_TOOLS: list[types.Tool] = []
+PHASE2_TOOLS: list[types.Tool] = [
+    _tool(
+        "get_app_state",
+        "Get app state",
+        "Return the state of the running ShogiBoardQ window: UI state (idle, game, analysis, CSA game, tsume "
+        "search, consideration, position edit), play mode, current ply and total plies, current kifu file, "
+        "unsaved changes, open dialogs and engine names. Starts ShogiBoardQ with --automation if "
+        "SHOGIBOARDQ_EXECUTABLE is set and no instance is running.",
+        {"properties": {}},
+        {"type": "object", "properties": {"ui_state": {"type": "string"}, "play_mode": {"type": "string"},
+                                          "current_ply": {"type": "integer"}, "total_plies": {"type": "integer"},
+                                          "kifu_file": {"type": "string"}, "dirty": {"type": "boolean"},
+                                          "dialogs": {"type": "array"}},
+         "required": ["ui_state"]},
+        read_only=True,
+    ),
+    _tool(
+        "get_position",
+        "Get current position",
+        "Return the position shown in ShogiBoardQ as SFEN, together with the start position and the USI moves "
+        "from the start position to the current ply.",
+        {"properties": {}},
+        {"type": "object", "properties": {"sfen": {"type": "string"}, "start_sfen": {"type": "string"},
+                                          "ply": {"type": "integer"}, "moves": {"type": "array", "items": {"type": "string"}}},
+         "required": ["sfen"]},
+        read_only=True,
+    ),
+    _tool(
+        "set_position",
+        "Set position",
+        "Replace the position shown in ShogiBoardQ with the given SFEN (the record is cleared). Fails with "
+        "unsaved_changes when the current record has unsaved edits unless discard_unsaved is true.",
+        {"properties": {"sfen": SFEN, "discard_unsaved": {"type": "boolean", "default": False}}, "required": ["sfen"]},
+        {"type": "object", "properties": {"sfen": {"type": "string"}}, "required": ["sfen"]},
+        destructive=True,
+    ),
+    _tool(
+        "load_kifu",
+        "Load kifu",
+        "Load a game record into ShogiBoardQ from a file (KIF/KI2/CSA/JKF/USI/USEN/SFEN) or from text. Fails "
+        "with unsaved_changes when the current record has unsaved edits unless discard_unsaved is true.",
+        {
+            "properties": {
+                "path": {"type": "string", "description": "Kifu file. " + ABS_PATH_DESC},
+                "text": {"type": "string", "minLength": 1, "maxLength": 2_000_000},
+                "discard_unsaved": {"type": "boolean", "default": False},
+            },
+            "oneOf": [{"required": ["path"]}, {"required": ["text"]}],
+        },
+        {"type": "object", "properties": {"total_plies": {"type": "integer"}, "start_sfen": {"type": "string"},
+                                          "kifu_file": {"type": "string"}}, "required": ["total_plies"]},
+        destructive=True,
+    ),
+    _tool(
+        "save_kifu",
+        "Save kifu",
+        "Save the record shown in ShogiBoardQ to a file. The format follows the extension (.kif .kifu .ki2 .csa "
+        ".jkf .usen .usi). Existing files are only replaced with overwrite=true.",
+        {"properties": {"path": {"type": "string", "description": "Destination file. " + ABS_PATH_DESC}, "overwrite": OVERWRITE},
+         "required": ["path"]},
+        {"type": "object", "properties": {"path": {"type": "string"}, "format": {"type": "string"}}, "required": ["path"]},
+    ),
+    _tool(
+        "get_kifu",
+        "Get kifu",
+        "Return the record shown in ShogiBoardQ. format=moves (default) gives a structured list of the main "
+        "line (ply, Japanese notation, USI move, time, comment) limited by from_ply/max_moves; the other "
+        "formats return the exported text truncated to max_chars.",
+        {
+            "properties": {
+                "format": {"type": "string", "enum": ["moves", *KIFU_FORMATS], "default": "moves"},
+                "from_ply": {"type": "integer", "minimum": 1, "default": 1},
+                "max_moves": {"type": "integer", "minimum": 1, "maximum": 2000, "default": 200},
+                "max_chars": {"type": "integer", "minimum": 1000, "maximum": 500_000, "default": 30000},
+            }
+        },
+        {"type": "object", "properties": {"format": {"type": "string"}, "total_plies": {"type": "integer"},
+                                          "moves": {"type": "array", "items": {"type": "object"}},
+                                          "text": {"type": "string"}, "truncated": {"type": "boolean"}},
+         "required": ["format", "total_plies"]},
+        read_only=True,
+    ),
+    _tool(
+        "goto_ply",
+        "Go to ply",
+        "Navigate the record shown in ShogiBoardQ to the given ply (0 = start position) on the current line.",
+        {"properties": {"ply": {"type": "integer", "minimum": 0, "maximum": 10000}}, "required": ["ply"]},
+        {"type": "object", "properties": {"ply": {"type": "integer"}, "sfen": {"type": "string"}}, "required": ["ply"]},
+        idempotent=True,
+    ),
+    _tool(
+        "list_actions",
+        "List menu actions",
+        "List the menu actions (QAction object names) that trigger_action may run, with their labels and "
+        "whether they are currently enabled or checked.",
+        {"properties": {}},
+        {"type": "object", "properties": {"actions": {"type": "array", "items": {"type": "object"}}}, "required": ["actions"]},
+        read_only=True,
+    ),
+    _tool(
+        "trigger_action",
+        "Trigger menu action",
+        "Trigger a ShogiBoardQ menu action by its QAction object name (see list_actions), e.g. "
+        "actionAnalyzeKifu, actionTsumeShogiSearch, actionTsumeshogiGenerator, actionSfenCollectionViewer, "
+        "actionCopySFEN, actionFlipBoard. Only allow-listed actions run; quitting, overwriting the current file "
+        "and language changes are refused. Actions that open dialogs return immediately; inspect them with "
+        "list_dialogs and get_widget_text.",
+        {"properties": {"name": {"type": "string", "pattern": "^action[A-Za-z0-9_]+$"}}, "required": ["name"]},
+        {"type": "object", "properties": {"name": {"type": "string"}, "triggered": {"type": "boolean"}}, "required": ["name", "triggered"]},
+    ),
+    _tool(
+        "capture_screenshot",
+        "Capture screenshot",
+        "Save a PNG screenshot of the ShogiBoardQ main window (target='main') or of an open dialog identified "
+        "by its object name or window title, and return the file path.",
+        {
+            "properties": {
+                "target": {"type": "string", "default": "main", "description": "'main', a dialog object name, or a window title substring."},
+                "output_dir": {"type": "string", "description": "Directory for the PNG. Defaults to SHOGIBOARDQ_OUTPUT_DIR or a temp directory. " + ABS_PATH_DESC},
+            }
+        },
+        {"type": "object", "properties": {"path": {"type": "string"}, "width": {"type": "integer"}, "height": {"type": "integer"}},
+         "required": ["path"]},
+        idempotent=True,
+    ),
+    _tool(
+        "list_dialogs",
+        "List dialogs",
+        "List the top-level windows and dialogs currently open in ShogiBoardQ (object name, class, title, "
+        "visibility, modality).",
+        {"properties": {}},
+        {"type": "object", "properties": {"windows": {"type": "array", "items": {"type": "object"}}}, "required": ["windows"]},
+        read_only=True,
+    ),
+    _tool(
+        "close_dialog",
+        "Close dialog",
+        "Close an open dialog (reject it) identified by its object name or window title substring. Use it to "
+        "dismiss dialogs opened by trigger_action or error message boxes.",
+        {"properties": {"dialog": {"type": "string", "minLength": 1}}, "required": ["dialog"]},
+        {"type": "object", "properties": {"closed": {"type": "boolean"}, "object_name": {"type": "string"}, "title": {"type": "string"}},
+         "required": ["closed"]},
+        idempotent=True,
+    ),
+    _tool(
+        "get_widget_text",
+        "Get widget text",
+        "Read labels, text fields, combo boxes, check boxes, lists and tables inside an open dialog (or the main "
+        "window when dialog is omitted). Restrict to one widget with its object name. Intended for verifying "
+        "what the GUI shows.",
+        {
+            "properties": {
+                "dialog": {"type": "string", "description": "Dialog object name or title substring; omit for the main window."},
+                "widget": {"type": "string", "description": "Object name of a single widget to read."},
+                "max_rows": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 50, "description": "Row limit for tables and lists."},
+            }
+        },
+        {"type": "object", "properties": {"widgets": {"type": "array", "items": {"type": "object"}}}, "required": ["widgets"]},
+        read_only=True,
+    ),
+]
 
 ALL_TOOLS: list[types.Tool] = PHASE1_TOOLS + PHASE2_TOOLS
 
