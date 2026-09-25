@@ -322,9 +322,9 @@ claude mcp list      # check the connection</code></pre>
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">6</span>
-                    <span class="guide-step-title">Codex CLI</span>
+                    <span class="guide-step-title">Codex (CLI / app / IDE extension)</span>
                 </div>
-                <p class="guide-step-text">Register it with the command below, or add it to <code>~/.codex/config.toml</code>.</p>
+                <p class="guide-step-text">Codex clients on the same host share <code>~/.codex/config.toml</code>. Register the server with the command below, or add the configuration shown here. Use the Python interpreter where the <code>mcp</code> package is installed; for a virtual environment, replace <code>python3</code> with its absolute path.</p>
                 <div class="build-steps">
 <pre class="bash"><code>codex mcp add shogiboardq \
   --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
@@ -333,11 +333,16 @@ claude mcp list      # check the connection</code></pre>
 <pre class="toml"><code>[mcp_servers.shogiboardq]
 command = "python3"
 args = ["-m", "shogiboardq_mcp"]
+startup_timeout_sec = 30
+env_vars = ["DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS", "XDG_CONFIG_HOME"]
 
 [mcp_servers.shogiboardq.env]
 SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
 PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
+                <p class="guide-step-text">To launch the GUI automatically on Linux, add the <code>env_vars</code> line to <code>[mcp_servers.shogiboardq]</code> even when registering with the command. This forwards the display and session environment and the settings directory. Edit the existing table instead of adding a duplicate.</p>
+                <p class="guide-step-text">Check the registration with <code>codex mcp get shogiboardq</code>, then restart Codex and start a new conversation. In the CLI, use <code>/mcp</code> to check the connection. Ask “Use ShogiBoardQ's validate_sfen to validate startpos”; a legal move count of 30 confirms that the tool works. <code>codex mcp list</code> only shows the registration.</p>
+                <p class="guide-step-text">To try app tools without a display, add <code>QT_QPA_PLATFORM = "offscreen"</code> under <code>[mcp_servers.shogiboardq.env]</code>. The window will not appear on screen in this mode. See the <a href="https://developers.openai.com/codex/mcp">official OpenAI MCP documentation</a> for configuration details.</p>
             </div>
         </div>
     </div>

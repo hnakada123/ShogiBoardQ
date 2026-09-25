@@ -147,7 +147,11 @@ gemini mcp add -s user \
 }
 ```
 
-### Codex CLI
+### Codex（CLI / アプリ / IDE 拡張）
+
+同じホストで動く Codex クライアントは `~/.codex/config.toml` の MCP 設定を共有します。
+まず、`mcp` パッケージをインストールした Python で登録してください。
+仮想環境を使う場合は、`python3` をその環境の Python の絶対パスに置き換えます。
 
 ```bash
 codex mcp add shogiboardq \
@@ -156,17 +160,36 @@ codex mcp add shogiboardq \
   -- python3 -m shogiboardq_mcp
 ```
 
-`~/.codex/config.toml` に直接書く場合:
+Linux で GUI の自動起動も使う場合は、登録後に `[mcp_servers.shogiboardq]` へ
+下記の `env_vars` を追加してください。Codex からディスプレイ・セッションの環境変数を
+引き継ぎます。値を固定しないため、ログインし直した後もそのセッションの値が使われます。
+`XDG_CONFIG_HOME` は設定ファイルと起動中アプリの接続先を見つけるために引き継ぎます。
+
+コマンドの代わりに `~/.codex/config.toml` に直接書く場合も、次の設定を使えます
+（既に同じテーブルがある場合は追記せず、そのテーブルを編集します）:
 
 ```toml
 [mcp_servers.shogiboardq]
 command = "python3"
 args = ["-m", "shogiboardq_mcp"]
+startup_timeout_sec = 30
+env_vars = ["DISPLAY", "WAYLAND_DISPLAY", "XDG_RUNTIME_DIR", "XAUTHORITY", "DBUS_SESSION_BUS_ADDRESS", "XDG_CONFIG_HOME"]
 
 [mcp_servers.shogiboardq.env]
 SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
 PYTHONPATH = "/path/to/ShogiBoardQ/mcp"
 ```
+
+登録を `codex mcp get shogiboardq` で確認した後、Codex を再起動して新しい会話を開始してください。
+CLI の `/mcp` で接続を確認し、「ShogiBoardQ の validate_sfen で startpos を検証して」と依頼すると、
+平手初期局面の合法手数 `30` が返ります。`codex mcp list` / `get` は登録内容の確認であり、
+ツールの実行成功までは確認しません。
+
+画面のない環境でアプリ操作も試す場合は、`[mcp_servers.shogiboardq.env]` に
+`QT_QPA_PLATFORM = "offscreen"` を追加できます。この場合、アプリのウィンドウは画面に表示されません。
+棋譜変換・局面検証など CLI 経由のツールだけなら、この追加設定は不要です。
+
+設定項目の詳細は [OpenAI 公式の MCP ドキュメント](https://developers.openai.com/codex/mcp) を参照してください。
 
 Windows では `python3` を `python` に、パスを `C:\\Users\\...\\ShogiBoardQ\\build\\ShogiBoardQ.exe` のように置き換えてください（JSON では `\\` でエスケープします）。
 
