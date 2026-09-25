@@ -5,7 +5,7 @@
 
 cd "$(dirname "$0")/.." || exit 1
 
-for dir in app core game kifu analysis engine network navigation board ui views widgets dialogs models services common; do
+for dir in app core game kifu analysis engine network navigation board ui views widgets dialogs models services common automation cli; do
     echo "# src/${dir}/"
     find "src/${dir}" -name '*.cpp' -o -name '*.h' | sort
     echo ""
