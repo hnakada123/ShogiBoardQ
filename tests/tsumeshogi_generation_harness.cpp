@@ -10,10 +10,12 @@
 ///   ./build/tests/tsumeshogi_generation_harness --engine ... --sfen-file candidates.sfen
 
 #include "threadtypes.h"
+#include "tsumeshogicandidatescreener.h"
 #include "tsumeshogipositiongenerator.h"
 #include "tsumeshogiverifier.h"
 
 #include <position.h>
+#include <tsume.h>
 
 #include <QCommandLineParser>
 #include <QCoreApplication>
@@ -24,6 +26,7 @@
 #include <QTextStream>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <map>
 
@@ -239,6 +242,26 @@ void explainNode(Engine& engine, const shogi::Position& position, int remaining,
     }
 }
 
+/// 内蔵探索で見つかる詰み手順（調査用）
+QStringList localMatePv(const QString& sfen, int plies, int timeLimitMs)
+{
+    QStringList pv;
+    shogi::Position position;
+    if (!position.set_sfen(sfen.toStdString(), true)) return pv;
+    const auto attacker = position.side_to_move();
+    const std::atomic_bool stop{false};
+    shogi::TsumeSearch search;
+    auto result = search.solve(position, attacker, plies, timeLimitMs, stop);
+    int remaining = result.plies;
+    while (result.status == shogi::TsumeStatus::Mate && remaining > 0 && result.move.is_valid()) {
+        pv.append(QString::fromStdString(position.move_to_usi(result.move)));
+        position.do_move(result.move);
+        --remaining;
+        result = search.solve(position, attacker, remaining, timeLimitMs, stop);
+    }
+    return pv;
+}
+
 } // namespace
 
 int main(int argc, char** argv)
@@ -258,6 +281,9 @@ int main(int argc, char** argv)
     parser.addOption({QStringLiteral("sfen"), QStringLiteral("verify only this sfen (prints every query)"), QStringLiteral("sfen")});
     parser.addOption({QStringLiteral("sfen-file"), QStringLiteral("verify the sfens listed in file"), QStringLiteral("file")});
     parser.addOption({QStringLiteral("explain"), QStringLiteral("list the mating moves of rejected positions")});
+    parser.addOption({QStringLiteral("screen"), QStringLiteral("pre-screen candidates with the built-in search before the engine")});
+    parser.addOption({QStringLiteral("alt-extra"), QStringLiteral("extra plies for the local alternative search"), QStringLiteral("n"), QStringLiteral("0")});
+    parser.addOption({QStringLiteral("screen-ms"), QStringLiteral("time limit per local search"), QStringLiteral("ms"), QStringLiteral("20")});
     parser.process(app);
     if (!parser.isSet(QStringLiteral("engine"))) {
         out() << "--engine is required\n";
@@ -294,15 +320,50 @@ int main(int argc, char** argv)
         settings.maxAttackPieces = parser.value(QStringLiteral("attack")).toInt();
         settings.maxDefendPieces = parser.value(QStringLiteral("defend")).toInt();
         settings.attackRange = parser.value(QStringLiteral("range")).toInt();
-        const QStringList all = TsumeshogiPositionGenerator::generateBatch(
-            settings, parser.value(QStringLiteral("count")).toInt(), CancelFlag{});
+        QStringList all;
+        if (parser.isSet(QStringLiteral("screen"))) {
+            // 生成側と同じ事前選別: 内蔵探索で候補だけを残す
+            TsumeshogiCandidateScreener::Limits limits;
+            limits.timeLimitMs = parser.value(QStringLiteral("screen-ms")).toInt();
+            limits.alternativeTimeLimitMs = limits.timeLimitMs;
+            limits.alternativeExtraPlies = parser.value(QStringLiteral("alt-extra")).toInt();
+            const int total = parser.value(QStringLiteral("count")).toInt();
+            int generated = 0, multiple = 0, unknown = 0;
+            QElapsedTimer screenTimer;
+            screenTimer.start();
+            while (generated < total) {
+                const auto batch = TsumeshogiCandidateScreener::generateBatch(
+                    settings, target, 8, std::min(2000, total - generated), limits, CancelFlag{});
+                generated += batch.generated;
+                multiple += batch.multipleFirstMoves;
+                unknown += batch.unknown;
+                all += batch.candidates;
+                if (batch.generated == 0) break;
+            }
+            out() << "=== 事前選別: " << generated << "局面を" << screenTimer.elapsed() << "msで選別, 候補=" << all.size()
+                  << " 複数初手で除外=" << multiple << " 時間切れ通過=" << unknown << "\n";
+            out().flush();
+        } else {
+            all = TsumeshogiPositionGenerator::generateBatch(
+                settings, parser.value(QStringLiteral("count")).toInt(), CancelFlag{});
+        }
         int nomate = 0, mateOther = 0, timeouts = 0, errors = 0;
         qint64 ms = 0;
         std::map<int, int> lengths;
         for (const auto& sfen : all) {
             const auto reply = engine.goMate(sfen, timeout);
             ms += reply.ms;
-            if (reply.kind == EngineReply::NoMate) ++nomate;
+            if (reply.kind == EngineReply::NoMate) {
+                ++nomate;
+                if (parser.isSet(QStringLiteral("screen"))) {
+                    const std::atomic_bool stop{false};
+                    TsumeshogiCandidateScreener::Limits slow;
+                    slow.timeLimitMs = slow.alternativeTimeLimitMs = 500;
+                    const auto verdict = TsumeshogiCandidateScreener::screen(sfen, target, slow, stop);
+                    out() << "  [engine nomate] " << sfen << "\n    local verdict(500ms)="
+                          << static_cast<int>(verdict) << " local pv=" << localMatePv(sfen, target, 500).join(QLatin1Char(' ')) << "\n";
+                }
+            }
             else if (reply.kind == EngineReply::Timeout) ++timeouts;
             else if (reply.kind == EngineReply::Error) ++errors;
             else {

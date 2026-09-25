@@ -4,6 +4,7 @@
 /// @file tsumeshogigenerator.h
 /// @brief 詰将棋局面自動生成オーケストレータの定義
 
+#include "tsumeshogicandidatescreener.h"
 #include "tsumeshogipositiongenerator.h"
 #include "tsumeshogiverifier.h"
 
@@ -22,7 +23,7 @@ class Usi;
 /**
  * @brief 詰将棋局面自動生成のオーケストレーション
  *
- * ランダム局面生成→エンジン詰み探索→結果フィルタリングのループを制御する。
+ * ランダム局面生成→内蔵探索による事前選別→エンジン詰み探索→結果フィルタリングのループを制御する。
  * 有効局面発見後は不要駒トリミングを行い、最小限の駒で構成された局面を出力する。
  * Usiインスタンスを直接作成・管理し、signal-drivenループで次々に局面を送信する。
  */
@@ -128,7 +129,8 @@ private:
     Settings m_settings;
 
     QString m_currentSfen;       ///< 現在探索中のSFEN文字列
-    int m_triedCount = 0;        ///< 探索済み局面数
+    int m_triedCount = 0;        ///< エンジンに送った候補局面数
+    int m_generatedCount = 0;    ///< 生成して内蔵探索で選別した局面数（候補以外を含む）
     int m_foundCount = 0;        ///< 発見局面数
     QSet<QString> m_foundSfens;  ///< 発見済みSFEN（重複排除用）
     Phase m_phase = Phase::Idle; ///< 現在のフェーズ
@@ -141,8 +143,8 @@ private:
     QTimer m_progressTimer;       ///< プログレス更新タイマー
 
     // バッチ生成用状態
-    QFutureWatcher<QStringList> m_batchWatcher; ///< バッチ生成の非同期監視
-    QStringList m_positionQueue;                 ///< 生成済み局面のキュー
+    QFutureWatcher<TsumeshogiCandidateScreener::Batch> m_batchWatcher; ///< バッチ生成の非同期監視
+    QStringList m_positionQueue;                 ///< 事前選別を通った候補局面のキュー
     CancelFlag m_cancelFlag;                     ///< バッチ生成のキャンセルフラグ
     bool m_waitingForPositions = false;          ///< キュー空で生成待ちフラグ
 

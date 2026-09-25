@@ -2,7 +2,7 @@
 
 ## 概要
 
-ランダムに詰将棋の候補局面を生成し、USIエンジンで詰み探索を行い、指定手数で詰む局面を探索する機能。詰将棋の慣例に沿って、主手順（玉方の最長抵抗）の各攻手が一意と確認できた局面だけを採択し、不要駒を除去した後も同じ検査を行う。主手順の余詰や判定不能の局面は出力しない。玉方が早く詰む変化での別の詰め方（変化別詰）は許容し、最終手の複数解はオプションで許容する。
+ランダムに詰将棋の候補局面を生成し、内蔵の有限深さ探索で候補を絞り込んでから、USIエンジンで詰み探索を行い、指定手数で詰む局面を探索する機能。詰将棋の慣例に沿って、主手順（玉方の最長抵抗）の各攻手が一意と確認できた局面だけを採択し、不要駒を除去した後も同じ検査を行う。主手順の余詰や判定不能の局面は出力しない。玉方が早く詰む変化での別の詰め方（変化別詰）は許容し、最終手の複数解はオプションで許容する。
 
 ## アーキテクチャ
 
@@ -13,13 +13,15 @@
 | `TsumeshogiGeneratorDialog` | `src/dialogs/tsumeshogigeneratordialog.h/.cpp` | UI（パラメータ設定・進捗表示・結果テーブル） |
 | `TsumeshogiGenerator` | `src/analysis/tsumeshogigenerator.h/.cpp` | オーケストレータ（生成→検証→トリミングの全体制御） |
 | `TsumeshogiVerifier` | `src/analysis/tsumeshogiverifier.{h,cpp}` | 合法手・全応手の列挙と唯一性の検査状態を管理 |
+| `TsumeshogiCandidateScreener` | `src/analysis/tsumeshogicandidatescreener.{h,cpp}` | 内蔵探索（Hayanagi）による候補の事前選別とバッチ生成 |
 | `TsumeshogiPositionGenerator` | `src/analysis/tsumeshogipositiongenerator.h/.cpp` | ランダム局面生成（SFEN文字列出力） |
 
 ```
 TsumeshogiGeneratorDialog
   │
   ├─ TsumeshogiGenerator          ← オーケストレータ
-  │    ├─ TsumeshogiPositionGenerator  ← ランダム局面生成
+  │    ├─ TsumeshogiCandidateScreener  ← 事前選別（ワーカースレッド。内部で TsumeshogiPositionGenerator を使用）
+  │    │    └─ TsumeshogiPositionGenerator  ← ランダム局面生成
   │    ├─ TsumeshogiVerifier        ← 余詰検査（Hayanagiの合法手生成を利用）
   │    └─ Usi                          ← エンジン通信（詰探索）
   │
@@ -28,7 +30,7 @@ TsumeshogiGeneratorDialog
 
 ## 処理フロー
 
-1. `Searching`: ランダム候補を選択エンジンの `go mate` で調べる。
+1. `Searching`: ワーカースレッドでランダム局面を生成し、内蔵探索で「目標手数ちょうどで詰み、詰む初手が1つ」の候補だけを残す。候補を選択エンジンの `go mate` で調べる。
 2. 目標手数のPVが返ったら `Verifying` へ移り、`TsumeshogiVerifier` で全変化の攻手を検査する。
 3. 合格した局面だけを `Trimming` のベースにする。
 4. 駒の除去後に目標手数のPVが返っても、`Verifying` を完了するまで除去を確定しない。
@@ -41,8 +43,9 @@ TsumeshogiGeneratorDialog
 | `Trimming` | 駒除去候補の詰み探索 |
 | `Verifying` | 元のフェーズを保持して唯一性を検査。終了後に採択または棄却 |
 
-`positionFound` は全検査に合格した局面だけを通知する。`verificationProgress` は問い合わせ数、
-`verificationStatsUpdated` は検査で除外した局面数（駒除去の試行を含む）と、そのうち判定不能の件数を通知する。
+`positionFound` は全検査に合格した局面だけを通知する。`progressUpdated` の探索済み数は、事前選別で落とした局面を含む生成局面数である。
+`verificationProgress` は問い合わせ数、`verificationStatsUpdated` は検査で除外した局面数（事前選別で複数初手を検出した局面と駒除去の試行を含む）と、
+そのうち判定不能の件数を通知する。
 
 `start()` の初期化中は従来どおり停止要求を記録し、初期化処理が復帰してから終了する。
 検査問い合わせと続行処理はUSIシグナルと単発タイマーで進め、UIスレッドを探索待ちにしない。
@@ -82,6 +85,42 @@ TsumeshogiGeneratorDialog
 駒の格納に `QChar` の Unicode Private Use Area (U+E000〜) を利用:
 - 生駒: そのままのSFEN文字（`P`, `p`, `k` 等）
 - 成駒: `0xE000 + 元文字のUnicodeコードポイント`（例: `+P` → `U+E050`）
+
+## 事前選別 (TsumeshogiCandidateScreener)
+
+ランダム局面のうち目標手数の詰みがあるものは3手詰で約1%しかなく、残りをすべて外部エンジンに送ると
+1局面あたり数十msから、詰みの証明が難しい局面では5秒（時間切れ）かかる。
+`TsumeshogiCandidateScreener::screen()` は Hayanagi の `TsumeSearch`（有限深さの詰み探索）で候補を先に選別する。
+
+| 判定 | 条件 | 扱い |
+|---|---|---|
+| `Candidate` | 目標手数ちょうどの詰みがあり、目標手数＋上乗せ以内で詰む初手が1つ | エンジンに送る |
+| `NotMateInTarget` | 目標手数以内に詰みがない（`Limit`/`NoMate`）、または目標より短く詰む | 捨てる |
+| `MultipleFirstMoves` | 目標手数＋上乗せ以内で詰む初手が2つ以上 | 余詰として捨て、「検査で除外」に数える |
+| `Unknown` | 時間切れ・中断・不正な局面・63手超の目標 | 取りこぼしを避けるためエンジンに送る |
+
+有限深さ探索で見つかった詰みは実際の詰みなので、短い詰み・複数初手による除外は確定的である。
+「目標手数以内に詰みがない」も深さ内で網羅的に調べた結果である。唯一解の最終判定は従来どおり外部エンジンと `TsumeshogiVerifier` が行う。
+
+`generateBatch()` は `TsumeshogiPositionGenerator` で生成と選別を繰り返し、候補が `kBatchSize`（8）集まるか
+`kBatchMaxGenerated`（2000）局面を生成した時点で返す。`TsumeshogiGenerator` はこれを `QtConcurrent::run` で実行し、
+キューが2局面未満になったら次のバッチを先行して始める。
+
+時間上限は `kScreenLimits`（存在探索 100ms、各初手の別詰探索 100ms、別詰の深さ上乗せ2手）。
+駒除去候補の選別はUIスレッドで行うため `kTrimScreenLimits`（20ms、5ms、上乗せ2手）と短くし、
+除去後に目標手数で詰まない・短く詰む・初手が複数ある除去はエンジンに送らず却下する。
+
+2026-09-25 の計測（KomoringHeights 1.1.0、3手詰・攻め駒4・守り駒1・範囲3・5秒、`tsumeshogi_generation_harness --screen`）:
+
+| 項目 | 事前選別なし | 事前選別あり（100ms・上乗せ2手） |
+|---|---|---|
+| 1局面あたりの選別時間 | — | 約1.5ms（ワーカースレッド） |
+| エンジンに送る局面 | 全局面（平均 40〜80ms、0.3% が5秒の時間切れ） | 生成局面の約0.5%（平均 8ms、時間切れ 0） |
+| 候補（3手PV）が余詰検査を通る割合 | 21% | 75〜78%（同手数〜5手の別初手を事前に除外） |
+| 10局面の生成に要した時間 | 8分37秒（6505局面、アプリ実測） | 約20秒（3877〜5357局面、アプリ実測。ハーネスでは4000局面から10〜14局面を13〜20秒で採択） |
+
+事前選別の時間切れは 4000 局面中 0 だった。目標手数が長い場合は時間切れが増えるが、
+その局面は従来どおりエンジンに送られるため、生成が止まることはない。
 
 ## エンジン検証 (TsumeshogiGenerator)
 
@@ -134,6 +173,8 @@ TsumeshogiGeneratorDialog
 ```bash
 # ランダム3000局面を候補探索し、目標手数の候補を最終手許容・厳格の両方で検査して内訳と棄却理由を表示する
 ./build/tests/tsumeshogi_generation_harness --engine /path/to/KomoringHeights-by-gcc --count 3000 --explain
+# 生成側と同じ事前選別を通してから測る（--screen-ms で時間上限、--alt-extra で別詰の深さ上乗せ）
+./build/tests/tsumeshogi_generation_harness --engine /path/to/KomoringHeights-by-gcc --count 4000 --screen --screen-ms 100 --alt-extra 2
 # 1局面だけ検査し、エンジンへの全問い合わせと応答を表示する
 ./build/tests/tsumeshogi_generation_harness --engine /path/to/KomoringHeights-by-gcc --sfen "<SFEN>" --target 3
 ```
@@ -181,6 +222,9 @@ startTrimmingPhase(sfen, pv)
 候補[0]を除去したSFENを生成（removePieceFromSfen）
   │
   ▼
+開始局面の王手・内蔵探索で事前選別（不詰・短い詰み・複数初手は却下して次の候補へ）
+  │
+  ▼
 エンジンに送信（go mate）
   │
   ▼
@@ -224,6 +268,7 @@ startTrimmingPhase(sfen, pv)
 ### 除去候補の事前検証
 
 除去後の局面で開始時に守方玉へ王手がかかる場合（例: 飛車と玉の間にあった守り駒を除去）、詰将棋として不正なのでエンジンに送らず候補から外す。判定には `TsumeshogiPositionGenerator::isDefenderKingInCheck()` を使う。
+続けて `TsumeshogiCandidateScreener::screen()` で目標手数の詰みと初手の一意性を内蔵探索で確かめ、通らない除去はエンジンに送らずに却下する。
 
 ### 中断時の扱い
 
@@ -352,6 +397,10 @@ SettingsService を通じて以下の設定が保存・復元される:
 
 `tests/tst_tsumeshogi_verification.cpp` が第2・4問の初手、途中手、最終手、長い別解、
 判定不能、不正PV、駒除去の再検査、通常・停止・エラー時の出力条件を検査する。
+バッチ生成が候補以外を含む生成局面数を進捗に通知し、キューに事前選別を通った局面だけを積むこと、
+駒除去の事前選別で3手で詰まない除去をエンジンに送らないことも同じファイルで検査する。
+`tests/tst_tsumeshogi_screener.cpp` は事前選別の各判定（ちょうどの手数、短い詰み、複数初手、上乗せ深さによる長い別初手の検出、
+不正入力・中断の Unknown、バッチの件数と中断）を検査する。
 基本の唯一解正例は、王手が1種類しかなく応手が0の専用1手局面を使う。
 第3問は実機照合で全攻手・全応手検査の合格を改めて確認する5手の正例とする。
 過去の有限深さ検査のみを根拠に、第1・3・5問を唯一解正例とは扱わない。

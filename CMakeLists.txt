@@ -545,6 +545,8 @@ set(SRC_ANALYSIS
     src/analysis/tsumeshogiverifier.h
     src/analysis/tsumeshogipositiongenerator.cpp
     src/analysis/tsumeshogipositiongenerator.h
+    src/analysis/tsumeshogicandidatescreener.cpp
+    src/analysis/tsumeshogicandidatescreener.h
     src/analysis/tsumesearchflowcontroller.cpp
     src/analysis/tsumesearchflowcontroller.h
 )
