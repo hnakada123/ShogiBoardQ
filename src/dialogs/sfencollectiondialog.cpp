@@ -273,6 +273,11 @@ void SfenCollectionDialog::parseSfenLines(const QString& text)
             continue;
         }
 
+        // コメント行（'#' 始まり。詰将棋局面生成のファイル保存が先頭に付ける）は読み飛ばす
+        if (trimmed.startsWith(QLatin1Char('#'))) {
+            continue;
+        }
+
         // "sfen " プレフィックスを除去
         if (trimmed.startsWith(QStringLiteral("sfen "), Qt::CaseInsensitive)) {
             trimmed = trimmed.mid(5);

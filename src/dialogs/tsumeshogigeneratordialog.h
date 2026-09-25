@@ -4,10 +4,12 @@
 /// @file tsumeshogigeneratordialog.h
 /// @brief 詰将棋局面生成ダイアログクラスの定義
 
+#include <QDateTime>
 #include <QDialog>
 #include <QList>
 
 #include "fontsizehelper.h"
+#include "tsumeshogigenerator.h"
 
 class QCheckBox;
 class QComboBox;
@@ -17,7 +19,6 @@ class QSpinBox;
 class QTableWidget;
 class QToolButton;
 class QVBoxLayout;
-class TsumeshogiGenerator;
 
 /**
  * @brief 詰将棋局面生成ダイアログ
@@ -126,6 +127,10 @@ private:
 
     // ジェネレータ（parent ownership。ダイアログと同寿命で、開始のたびに再利用する）
     TsumeshogiGenerator* m_generator = nullptr;
+
+    // 直近の生成で使った設定と開始日時（ファイル保存時のコメントヘッダに記録する）
+    TsumeshogiGenerator::Settings m_lastRunSettings;
+    QDateTime m_lastRunStartedAt;
 
     // フォントサイズヘルパー
     FontSizeHelper m_fontHelper;

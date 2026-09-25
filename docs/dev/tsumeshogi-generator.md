@@ -15,6 +15,7 @@
 | `TsumeshogiVerifier` | `src/analysis/tsumeshogiverifier.{h,cpp}` | 合法手・全応手の列挙と唯一性の検査状態を管理 |
 | `TsumeshogiCandidateScreener` | `src/analysis/tsumeshogicandidatescreener.{h,cpp}` | 内蔵探索（Hayanagi）による候補の事前選別とバッチ生成 |
 | `TsumeshogiPositionGenerator` | `src/analysis/tsumeshogipositiongenerator.h/.cpp` | ランダム局面生成（SFEN文字列出力） |
+| `TsumeshogiExportHeaderBuilder` | `src/analysis/tsumeshogiexportheaderbuilder.h/.cpp` | ファイル保存のコメントヘッダ（バージョン・生成日時・生成設定）の生成 |
 
 ```
 TsumeshogiGeneratorDialog
@@ -362,6 +363,7 @@ SettingsService を通じて以下の設定が保存・復元される:
 
 - 状態ラベルは `searchPhaseStarted`（探索中）、`trimmingProgress`（トリミング中 候補 i/n）、`verificationProgress`（余詰検査中 問い合わせ回数）で更新し、`finished` で「待機中」に戻す。検査で除外した局面数と判定不能の件数も表示する。
 - 「手順も出力」を有効にすると、ファイル保存・コピーの各行が `<SFEN> moves <USI手順>` になる。無効時は SFEN のみで、SFEN集ダイアログ等の1行1SFEN形式と互換。
+- 「ファイル保存」は先頭に `# ` 始まりのコメント行で ShogiBoardQ のバージョン（`APP_VERSION`）、生成開始日時、生成設定（エンジン、目標手数、攻め駒上限、守り駒上限、配置範囲、探索時間/局面、生成上限、余詰検査）を記録する（`TsumeshogiExportHeaderBuilder::build`）。設定と日時は「開始」時に `m_lastRunSettings` / `m_lastRunStartedAt` に控えたものを使うので、生成後に設定欄を変えても保存内容は変わらない。コピーにはヘッダを付けない。`TsumeCollection::parse` と `SfenCollectionDialog::parseSfenLines` は `#` 始まりの行を読み飛ばす。
 - ジェネレータ（`TsumeshogiGenerator`）はダイアログの子として1つだけ生成し、開始のたびに再利用する。`start()` が状態を初期化し、`Usi` は開始ごとに生成・終了時に `deleteLater` で破棄する。
 
 ## 設定パラメータ一覧
@@ -409,6 +411,8 @@ SettingsService を通じて以下の設定が保存・復元される:
 変化別詰の許容は、初手 `7e7b` の後に 8b への合駒（あと3手）と、2通りの即詰がある変化 `9b9c` を持つ5手局面
 （`3+P5/k8/9/9/1G+R6/9/9/9/9 b Sr2b3g3s4n4l17p 1`）で合格を検査する。
 この方針検査では、深さ5で詰みが見つからない局面を不詰と答える代用エンジンを使い、実機照合は `komoringIntegration()` で行う。
+`tests/tst_tsumeshogi_export_header.cpp` はファイル保存のコメントヘッダ（各行が `# ` 始まりの1行であること、バージョン・生成日時・各設定の表記、生成上限0の「無制限」と最終手厳格時の表記）を検査し、
+`tests/tst_sfen_collection.cpp` は局面集ビューアがコメント行を読み飛ばすことを検査する。
 
 通常の回帰テストには外部エンジンのインストールは不要。
 KomoringHeights 1.1.0 の実機照合は、次の任意テストで再現できる。
