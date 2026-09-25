@@ -135,6 +135,7 @@ void TsumeshogiGeneratorDialog::onRestoreDefaults()
     m_spinAttackRange->setValue(3);
     m_spinTimeout->setValue(5);
     m_spinMaxPositions->setValue(10);
+    m_checkAllowFinalAlternatives->setChecked(true);
 }
 
 void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)
@@ -225,6 +226,7 @@ void TsumeshogiGeneratorDialog::setRunningState(bool running)
     m_spinAttackRange->setEnabled(!running);
     m_spinTimeout->setEnabled(!running);
     m_spinMaxPositions->setEnabled(!running);
+    m_checkAllowFinalAlternatives->setEnabled(!running);
 
     if (!running) {
         setStatusText(tr("待機中"));

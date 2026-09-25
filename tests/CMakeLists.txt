@@ -1413,6 +1413,23 @@ add_shogi_test(tst_tsumeshogi_verification
 target_include_directories(tst_tsumeshogi_verification BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tsumeshogi_stubs)
 target_link_libraries(tst_tsumeshogi_verification PRIVATE hayanagi_tsume)
 
+# 生成の採択率を実エンジンで測る再現ハーネス（ctest 対象外。--engine で詰将棋エンジンを指定して実行）
+add_executable(tsumeshogi_generation_harness
+    tsumeshogi_generation_harness.cpp
+    ${SRC}/analysis/tsumeshogiverifier.cpp
+    ${SRC}/analysis/tsumeshogipositiongenerator.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+    ${EMV_SOURCES}
+)
+target_include_directories(tsumeshogi_generation_harness PRIVATE ${TEST_INCLUDES})
+target_link_libraries(tsumeshogi_generation_harness PRIVATE ${TEST_LIBS} hayanagi_tsume)
+set_target_properties(tsumeshogi_generation_harness PROPERTIES AUTOMOC ON)
+
 # 漢字・仮名の実描画フォントと、等幅表示の地域別字形
 add_shogi_test(tst_applicationfonts
     tst_applicationfonts.cpp

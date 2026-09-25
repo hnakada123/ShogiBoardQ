@@ -37,6 +37,7 @@ public:
         int targetMoves = 3;         ///< 目標手数（奇数: 1,3,5,7,...）
         int timeoutMs = 5000;        ///< 候補探索・各トリミング探索・各余詰検査全体の時間(ms)
         int maxPositionsToFind = 10; ///< 見つける局面数の上限（0=無制限）
+        bool allowFinalMoveAlternatives = true; ///< 主手順の最終手の複数解を許容する（最終手余詰）
         TsumeshogiPositionGenerator::Settings posGenSettings;
     };
 

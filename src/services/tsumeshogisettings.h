@@ -85,6 +85,10 @@ void setTsumeshogiGeneratorMaxPositions(int count);
 bool tsumeshogiGeneratorIncludePv();
 void setTsumeshogiGeneratorIncludePv(bool include);
 
+/// 主手順の最終手に複数の詰手があっても採択するか（デフォルト: true）
+bool tsumeshogiGeneratorAllowFinalMoveAlternatives();
+void setTsumeshogiGeneratorAllowFinalMoveAlternatives(bool allow);
+
 } // namespace TsumeshogiSettings
 
 #endif // TSUMESHOGISETTINGS_H

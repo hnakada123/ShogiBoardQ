@@ -38,6 +38,7 @@
 - `QT_QPA_PLATFORM=offscreen` は `tests/CMakeLists.txt` の `add_shogi_test` マクロで自動設定されるため、headless 環境（CI / SSH）でも追加設定なしでテストを実行できる。
 - テストカテゴリ: コアデータ構造、盤面、棋譜変換（KIF/KI2/CSA/JKF/USI/USEN）、ナビゲーション、GameRecordModel、UI表示整合性、解析フロー、対局開始フロー、EngineMoveValidator（Perft/Crosscheck 含む）など。
 - `bench_movevalidator` はベンチマーク用で ctest 対象外。
+- `tsumeshogi_generation_harness` は詰将棋局面生成の採択率を実エンジンで測る再現ハーネスで ctest 対象外（`--engine` で詰将棋エンジンを指定）。
 
 ## Commit & Pull Request Guidelines
 - Commit messages are short, imperative, and typically written in Japanese (e.g., "バグ修正", "UI改善").

@@ -210,4 +210,16 @@ void setTsumeshogiGeneratorIncludePv(bool include)
     s.setValue(SettingsKeys::kTsumeshogiGeneratorIncludePv, include);
 }
 
+bool tsumeshogiGeneratorAllowFinalMoveAlternatives()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    return s.value(SettingsKeys::kTsumeshogiGeneratorAllowFinalMoveAlternatives, true).toBool();
+}
+
+void setTsumeshogiGeneratorAllowFinalMoveAlternatives(bool allow)
+{
+    QSettings& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kTsumeshogiGeneratorAllowFinalMoveAlternatives, allow);
+}
+
 } // namespace TsumeshogiSettings

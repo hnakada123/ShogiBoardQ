@@ -129,8 +129,10 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     engineNote->setWordWrap(true);
     mainLayout->addWidget(engineNote);
 
+    // 主手順（最長抵抗の変化）の攻手の一意性を外部エンジンで検査する。
+    // 玉方が早く詰む変化での別の詰め方（変化別詰）は詰将棋の慣例どおり許容する
     auto* verificationNote = new QLabel(
-        tr("全変化・最終手の余詰を検査します。成・不成を含め、別の詰め方がある局面や判定不能の局面は出力しません。"), this);
+        tr("主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。"), this);
     verificationNote->setWordWrap(true);
     mainLayout->addWidget(verificationNote);
 
@@ -173,6 +175,10 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     m_spinMaxPositions->setValue(10);
     m_spinMaxPositions->setSpecialValueText(tr("無制限"));
     formLayout->addRow(tr("生成上限:"), m_spinMaxPositions);
+    m_checkAllowFinalAlternatives = new QCheckBox(tr("最終手の複数解を許容する"), this);
+    m_checkAllowFinalAlternatives->setToolTip(
+        tr("オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。"));
+    formLayout->addRow(tr("余詰検査:"), m_checkAllowFinalAlternatives);
     mainLayout->addLayout(formLayout);
 
     // --- 制御ボタン ---
@@ -321,6 +327,7 @@ void TsumeshogiGeneratorDialog::loadSettings()
     m_spinTimeout->setValue(TsumeshogiSettings::tsumeshogiGeneratorTimeoutSec());
     m_spinMaxPositions->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions());
     m_checkIncludePv->setChecked(TsumeshogiSettings::tsumeshogiGeneratorIncludePv());
+    m_checkAllowFinalAlternatives->setChecked(TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives());
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
@@ -335,6 +342,7 @@ void TsumeshogiGeneratorDialog::saveSettings()
     TsumeshogiSettings::setTsumeshogiGeneratorTimeoutSec(m_spinTimeout->value());
     TsumeshogiSettings::setTsumeshogiGeneratorMaxPositions(m_spinMaxPositions->value());
     TsumeshogiSettings::setTsumeshogiGeneratorIncludePv(m_checkIncludePv->isChecked());
+    TsumeshogiSettings::setTsumeshogiGeneratorAllowFinalMoveAlternatives(m_checkAllowFinalAlternatives->isChecked());
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()
@@ -352,6 +360,7 @@ void TsumeshogiGeneratorDialog::onStartClicked()
     settings.targetMoves = m_spinTargetMoves->value();
     settings.timeoutMs = m_spinTimeout->value() * 1000;
     settings.maxPositionsToFind = m_spinMaxPositions->value();
+    settings.allowFinalMoveAlternatives = m_checkAllowFinalAlternatives->isChecked();
     settings.posGenSettings.maxAttackPieces = m_spinMaxAttack->value();
     settings.posGenSettings.maxDefendPieces = m_spinMaxDefend->value();
     settings.posGenSettings.attackRange = m_spinAttackRange->value();
