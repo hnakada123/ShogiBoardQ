@@ -28,6 +28,13 @@ public:
     ~TsumePlayDialog() override;
     void setProblem(const TsumeProblem& problem, int number, const QString& enginePath,
                     TsumeProgressStore* store, int timeoutSec);
+    /// 一覧の前後に問題があるときだけ「前の問題」「次の問題」を押せるようにする。
+    void setProblemNavigation(bool hasPrevious, bool hasNext);
+    int timeoutSec() const;
+
+signals:
+    void previousProblemRequested();
+    void nextProblemRequested();
 
 protected:
     void done(int result) override;
@@ -85,6 +92,8 @@ private:
     bool m_attemptRecorded = false;
     bool m_solvedRecorded = false;
     QLabel* m_header = nullptr;
+    QPushButton* m_previousProblem = nullptr;
+    QPushButton* m_nextProblem = nullptr;
     QLabel* m_history = nullptr;
     QLabel* m_status = nullptr;
     QSpinBox* m_timeout = nullptr;

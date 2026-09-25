@@ -37,12 +37,17 @@ class TestTsumeCollectionGui : public QObject
     QString closeAction;
     QString modalError;
     int modalStage = 0;
+    QTimer navigationDriver;
+    bool navigating = false;
+    int navigationStage = 0;
+    QString navigationError;
 
     QString collectionPath() const { return files.filePath(QStringLiteral("1003.txt")); }
     QList<QPushButton*> cards(TsumeCollectionDialog& window)
     { return window.findChildren<QPushButton*>(QStringLiteral("tsumeProblemCard")); }
     void drivePlay()
     {
+        if (navigating) return;
         if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) { box->accept(); return; }
         auto* play = qobject_cast<TsumePlayDialog*>(QApplication::activeModalWidget());
         if (!play) return;
@@ -57,6 +62,43 @@ class TestTsumeCollectionGui : public QObject
             const int remaining = session->remainingPlies();
             if (remaining == 5) play->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-play.png"));
             session->play(remaining == 5 ? QStringLiteral("3c5c+") : remaining == 3 ? QStringLiteral("1c4c") : QStringLiteral("4c4d"));
+        }
+    }
+    void driveNavigation()
+    {
+        if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) { box->accept(); return; }
+        auto* play = qobject_cast<TsumePlayDialog*>(QApplication::activeModalWidget());
+        if (!play) return;
+        if (++ticks > 500) { timedOut = true; play->close(); return; }
+        auto* session = play->findChild<TsumeGameSession*>();
+        if (session->state() != TsumeGameSession::State::Ready) return;
+        // 絞り込み「未挑戦」で第2問を除いた表示順に、第1問→第3問→第4問→第3問と移動する。
+        static const int expected[] = {0, 2, 3, 2};
+        if (navigationStage >= 4 || session->sfen() != problems[expected[navigationStage]].sfen) return;
+        auto* previous = play->findChild<QPushButton*>(QStringLiteral("tsumePreviousProblem"));
+        auto* next = play->findChild<QPushButton*>(QStringLiteral("tsumeNextProblem"));
+        auto* timeout = play->findChild<QSpinBox*>(QStringLiteral("tsumeTimeLimit"));
+        const QString header = play->findChild<QLabel*>(QStringLiteral("tsumeHeader"))->text();
+        const QString title = QStringLiteral("第%1問").arg(expected[navigationStage] + 1);
+        if (!header.startsWith(title)) navigationError = QStringLiteral("stage %1: header %2").arg(navigationStage).arg(header);
+        switch (navigationStage++) {
+        case 0:
+            if (previous->isEnabled() || !next->isEnabled()) navigationError = QStringLiteral("first problem buttons");
+            timeout->setValue(7); // 対局画面で変えた判定時間は次の問題にも引き継ぐ
+            QTest::mouseClick(next, Qt::LeftButton);
+            break;
+        case 1:
+            if (!previous->isEnabled() || !next->isEnabled() || timeout->value() != 7) navigationError = QStringLiteral("middle problem state");
+            QTest::mouseClick(next, Qt::LeftButton);
+            break;
+        case 2:
+            if (!previous->isEnabled() || next->isEnabled()) navigationError = QStringLiteral("last problem buttons");
+            QTest::mouseClick(previous, Qt::LeftButton);
+            break;
+        case 3:
+            completed = true;
+            QTest::mouseClick(play->findChild<QPushButton*>(QStringLiteral("tsumeBackToCollection")), Qt::LeftButton);
+            break;
         }
     }
     void driveModalRoundtrip()
@@ -112,6 +154,7 @@ private slots:
         connect(&driver, &QTimer::timeout, this, &TestTsumeCollectionGui::drivePlay);
         driver.start(20);
         connect(&modalDriver, &QTimer::timeout, this, &TestTsumeCollectionGui::driveModalRoundtrip);
+        connect(&navigationDriver, &QTimer::timeout, this, &TestTsumeCollectionGui::driveNavigation);
         modalWatchdog.setSingleShot(true);
         connect(&modalWatchdog, &QTimer::timeout, this, &TestTsumeCollectionGui::modalTimeout);
     }
@@ -128,6 +171,10 @@ private slots:
         closeAction.clear();
         modalError.clear();
         modalStage = 0;
+        navigationDriver.stop();
+        navigating = false;
+        navigationStage = 0;
+        navigationError.clear();
     }
     void menuModalRoundtrip_data()
     {
@@ -265,6 +312,42 @@ private slots:
         QCOMPARE(store.progress(id).attempts, 2);
         QCOMPARE(store.progress(id).solves, 1);
         QCOMPARE(page->value(), 2);
+    }
+    void navigateBetweenProblems()
+    {
+        QFile file(files.filePath(QStringLiteral("four.txt")));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        for (int i = 0; i < 4; ++i) file.write(problems[i].sfen.toUtf8() + '\n');
+        file.close();
+        TsumeProgressStore store;
+        QVERIFY(store.open());
+        QVERIFY(store.recordAttempt(TsumeCollection::positionId(problems[1].sfen)));
+        TsumeCollectionDialog window;
+        QVERIFY(window.loadFile(file.fileName()));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* filter = window.findChild<QComboBox*>(QStringLiteral("tsumeProgressFilter"));
+        filter->setCurrentIndex(1); // 未挑戦: 第2問を除いた3問
+        QCOMPARE(cards(window).size(), 3);
+        navigating = true;
+        navigationDriver.start(20);
+        cards(window).first()->click(); // モーダル対局はdriverで前後の問題へ移動して一覧へ戻す
+        navigationDriver.stop();
+        QVERIFY2(!timedOut, "navigation timed out");
+        QVERIFY2(navigationError.isEmpty(), qPrintable(navigationError));
+        QVERIFY(completed);
+        QCOMPARE(navigationStage, 4);
+        QVERIFY(window.isVisible());
+        // 出題した問題はすべて挑戦として記録し、一覧へ戻ると絞り込みへ反映する。
+        QCOMPARE(store.progress(TsumeCollection::positionId(problems[0].sfen)).attempts, 1);
+        QCOMPARE(store.progress(TsumeCollection::positionId(problems[2].sfen)).attempts, 2);
+        QCOMPARE(store.progress(TsumeCollection::positionId(problems[3].sfen)).attempts, 1);
+        QVERIFY(cards(window).isEmpty());
+        filter->setCurrentIndex(0);
+        QCOMPARE(cards(window).size(), 4);
+        for (auto* card : cards(window)) {
+            QVERIFY(card->findChild<QLabel*>(QStringLiteral("cardProgress"))->text().contains(QStringLiteral("挑戦")));
+        }
     }
     void emptyFilterAndNonMate()
     {

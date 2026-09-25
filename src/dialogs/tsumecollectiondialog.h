@@ -7,9 +7,11 @@
 #include "fontsizehelper.h"
 #include <QDialog>
 #include <QHash>
+#include <QPointer>
 #include <QTimer>
 #include <memory>
 
+class TsumePlayDialog;
 class TsumePositionAnalyzer;
 class QComboBox;
 class QSpinBox;
@@ -40,6 +42,8 @@ private slots:
     void lastPage();
     void engineChanged();
     void startProblem();
+    void playPreviousProblem();
+    void playNextProblem();
     void analyzeNext();
     void analysisFinished(const TsumeEvaluation& result);
     void reanalyzePage();
@@ -47,6 +51,7 @@ private slots:
     void onFontDecrease();
 private:
     void buildUi();
+    void playProblemAt(int position, int timeoutSec);
     void refreshProgress();
     void rebuildPage();
     void arrangeCards();
@@ -71,6 +76,9 @@ private:
     QTimer m_analysisTimer;
     int m_pending = -1;
     bool m_playing = false;
+    QPointer<TsumePlayDialog> m_play;
+    int m_playPosition = -1;   // 対局中の問題の m_filtered 内での位置
+    QList<int> m_played;       // 対局画面で出題した問題の添字（一覧へ戻ったときに再判定する）
     QComboBox* m_engine = nullptr;
     QComboBox* m_pageSize = nullptr;
     QComboBox* m_filter = nullptr;

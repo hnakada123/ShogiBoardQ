@@ -87,8 +87,21 @@ void TsumePlayDialog::buildUi()
     auto* layout = new QVBoxLayout(this);
     auto* controls = new QHBoxLayout;
     m_header = new QLabel(this);
+    m_header->setObjectName(QStringLiteral("tsumeHeader"));
     m_header->setWordWrap(true);
     controls->addWidget(m_header, 1);
+    m_previousProblem = new QPushButton(tr("前の問題"), this);
+    m_nextProblem = new QPushButton(tr("次の問題"), this);
+    m_previousProblem->setObjectName(QStringLiteral("tsumePreviousProblem"));
+    m_nextProblem->setObjectName(QStringLiteral("tsumeNextProblem"));
+    connect(m_previousProblem, &QPushButton::clicked, this, &TsumePlayDialog::previousProblemRequested);
+    connect(m_nextProblem, &QPushButton::clicked, this, &TsumePlayDialog::nextProblemRequested);
+    for (auto* button : {m_previousProblem, m_nextProblem}) {
+        button->setAutoDefault(false);
+        button->setEnabled(false);
+        controls->addWidget(button);
+    }
+    controls->addSpacing(12);
     controls->addWidget(new QLabel(tr("判定時間:"), this));
     m_timeout = new QSpinBox(this);
     m_timeout->setObjectName(QStringLiteral("tsumeTimeLimit"));
@@ -179,6 +192,17 @@ void TsumePlayDialog::setProblem(const TsumeProblem& problem, int number, const 
     m_timeout->setValue(timeoutSec);
     m_session->configureEngine(enginePath, store);
     selectProblem();
+}
+
+void TsumePlayDialog::setProblemNavigation(bool hasPrevious, bool hasNext)
+{
+    m_previousProblem->setEnabled(hasPrevious);
+    m_nextProblem->setEnabled(hasNext);
+}
+
+int TsumePlayDialog::timeoutSec() const
+{
+    return m_timeout->value();
 }
 
 void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
