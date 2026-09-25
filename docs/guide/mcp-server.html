@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI クライアント連携（MCP） - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ の棋譜変換・エンジン解析・詰将棋生成・アプリ操作を、Model Context Protocol（MCP）経由で Claude Desktop / Claude Code / Cursor / VS Code / Gemini CLI / Codex CLI などの AI クライアントから使う方法を説明します。">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/mcp-server.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/mcp-server.html">
+    <meta property="og:title" content="AI クライアント連携（MCP） - ShogiBoardQ">
+    <meta property="og:description" content="Claude・Cursor・VS Code・Gemini CLI・Codex CLI などの AI クライアントから、ShogiBoardQ の棋譜変換・エンジン解析・詰将棋生成・アプリ操作を依頼できます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/mcp/board-example.png">
+    <meta property="og:locale" content="ja_JP">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AI クライアント連携（MCP） - ShogiBoardQ">
+    <meta name="twitter:description" content="AI クライアントから ShogiBoardQ の棋譜変換・エンジン解析・詰将棋生成・アプリ操作を依頼できます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/mcp/board-example.png">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <a href="../en/guide/mcp-server.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">ホーム</a></li>
+            <li><a href="index.html">利用ガイド</a></li>
+            <li><a href="#overview">概要</a></li>
+            <li><a href="#setup">準備</a></li>
+            <li><a href="#clients">クライアント設定</a></li>
+            <li><a href="#usage">使い方</a></li>
+            <li><a href="#automation">アプリ操作</a></li>
+            <li><a href="#safety">安全性</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>AI クライアント連携（MCP）</h1>
+        <p class="hero-subtitle">Claude・Cursor・VS Code・Gemini CLI・Codex CLI から ShogiBoardQ の機能を使う</p>
+        <div class="hero-badges">
+            <span class="badge">Model Context Protocol</span>
+            <span class="badge">stdio</span>
+            <span class="badge">棋譜変換・解析・詰将棋生成</span>
+            <span class="badge">アプリ操作</span>
+        </div>
+    </div>
+</section>
+
+<!-- Section 1: Overview -->
+<section id="overview" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">概要</h2>
+        <p class="section-desc">ShogiBoardQ は Model Context Protocol（MCP）のサーバーを同梱しています</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">MCP とは</span>
+                </div>
+                <p class="guide-step-text">MCP は、AI クライアント（Claude Desktop、Claude Code、Cursor、VS Code の GitHub Copilot、Gemini CLI、Codex CLI など）が外部のツールを呼び出すための共通規格です。ShogiBoardQ の MCP サーバー（<code>shogiboardq-mcp</code>）を登録すると、「この棋譜を CSA に変換して」「この局面を 10 秒解析して」「3手詰を5問作って」のような依頼を AI クライアントに話しかけるだけで、クライアントが ShogiBoardQ の機能を呼び出します。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">アプリを起動しなくても使える機能</span>
+                </div>
+                <p class="guide-step-text">次のツールは GUI を起動せずに動きます（内部では <code>shogiboardq-cli</code> を実行します）。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>ツール</th><th>内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>convert_kifu</strong></td><td>棋譜ファイル／文字列を KIF・KI2・CSA・JKF・USI・USEN・SFEN 列に変換</td></tr>
+                        <tr><td><strong>validate_sfen</strong></td><td>SFEN の妥当性、手番、持駒、王手の有無、合法手数</td></tr>
+                        <tr><td><strong>list_engines</strong></td><td>ShogiBoardQ に登録済みの USI エンジン</td></tr>
+                        <tr><td><strong>analyze_position</strong> / analysis_status / analysis_result</td><td>登録エンジンによる局面解析（MultiPV 対応、ジョブ方式）</td></tr>
+                        <tr><td><strong>search_mate</strong> / mate_status</td><td><code>go mate</code> 対応エンジンによる詰み探索（ジョブ方式）</td></tr>
+                        <tr><td><strong>generate_tsume</strong> / tsume_generation_status / stop_tsume_generation</td><td>詰将棋局面の自動生成（ジョブ方式）</td></tr>
+                        <tr><td><strong>verify_tsume</strong></td><td>余詰検査（唯一解 / 余詰あり / 不詰 / 手数違い / 判定不能）</td></tr>
+                        <tr><td><strong>render_board_image</strong></td><td>SFEN から盤面の PNG 画像を作成</td></tr>
+                    </tbody>
+                </table>
+                <div class="screenshot-item">
+                    <img src="../images/mcp/board-example.png" alt="render_board_image で作成した盤面画像">
+                    <p class="screenshot-caption">render_board_image の出力例：GUI と同じ駒画像・配色で描画され、最後の指し手を強調表示できる</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">起動中のアプリを操作する機能</span>
+                </div>
+                <p class="guide-step-text">ShogiBoardQ を <code>--automation</code> オプション付きで起動すると、次のツールで画面上の局面や棋譜を読み書きできます。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>ツール</th><th>内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>get_app_state</strong></td><td>状態（待機・対局中・解析中など）、現在手数、棋譜ファイル名、未保存の有無、開いているダイアログ</td></tr>
+                        <tr><td><strong>get_position</strong> / set_position</td><td>現在局面の SFEN と手順の取得、局面の設定</td></tr>
+                        <tr><td><strong>load_kifu</strong> / save_kifu / get_kifu / goto_ply</td><td>棋譜の読み込み・保存・取得（形式指定、手数範囲指定）・手数移動</td></tr>
+                        <tr><td><strong>list_actions</strong> / trigger_action</td><td>メニュー動作の一覧と実行（許可リスト方式）</td></tr>
+                        <tr><td><strong>capture_screenshot</strong></td><td>メインウィンドウまたはダイアログのスクリーンショットを PNG 保存</td></tr>
+                        <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>開いているダイアログの一覧、閉じる、ラベル・入力欄・テーブル内容の取得</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">リソースとして、現在局面の SFEN（<code>shogiboardq://position/current</code>）、現在の棋譜の KIF テキスト（<code>shogiboardq://kifu/current</code>）、登録エンジン（<code>shogiboardq://engines</code>）も提供します。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Setup -->
+<section id="setup" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">準備</h2>
+        <p class="section-desc">ビルド済みの ShogiBoardQ と Python の mcp パッケージが必要です</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">ShogiBoardQ をビルドする</span>
+                </div>
+                <p class="guide-step-text">MCP サーバーは <code>build/ShogiBoardQ</code>（GUI）と <code>build/shogiboardq-cli</code>（GUI 不要のコマンド）を使います。現時点では配布パッケージに <code>shogiboardq-cli</code> は含まれていないため、ソースからビルドしてください。手順は <a href="linux-build-and-release.html">Linux</a>・<a href="macos-build-and-release.html">macOS</a>・<a href="windows-build-and-release.html">Windows</a> のビルド手順を参照してください。</p>
+                <div class="build-steps">
+<pre class="bash"><code>git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+cd ShogiBoardQ
+cmake -B build -S . -G Ninja
+cmake --build build
+./build/shogiboardq-cli version      # {"ok":true,"version":"..."} が表示されれば OK</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Python と mcp パッケージ</span>
+                </div>
+                <p class="guide-step-text">Python 3.10 以上と公式の <code>mcp</code> パッケージが必要です。リポジトリの <code>mcp/</code> ディレクトリにサーバーがあります。</p>
+                <div class="build-steps">
+<pre class="bash"><code># mcp パッケージだけ入れる場合（サーバーは PYTHONPATH で参照）
+pip install mcp
+
+# サーバーごとインストールする場合
+pip install -e mcp</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">USI エンジンの登録</span>
+                </div>
+                <p class="guide-step-text">解析・詰み探索・詰将棋生成・余詰検査は、ShogiBoardQ の「設定」→「エンジン設定」で登録した USI エンジンを名前で指定します。任意の実行ファイルパスは受け付けません。詰み探索・詰将棋生成・余詰検査には <code>go mate</code> に対応したエンジン（KomoringHeights など）を登録してください。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">環境変数</span>
+                </div>
+                <p class="guide-step-text">クライアントの設定でサーバーに渡す環境変数です。最低限 <code>SHOGIBOARDQ_EXECUTABLE</code> を指定します。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>変数</th><th>意味</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>SHOGIBOARDQ_EXECUTABLE</code></td><td><code>ShogiBoardQ</code> のパス。アプリ操作ツールで起動中のアプリが無いとき <code>--automation</code> 付きで起動します。同じディレクトリの <code>shogiboardq-cli</code> も自動で見つけます</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_CLI</code></td><td><code>shogiboardq-cli</code> のパス（別の場所に置いた場合）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_ALLOWED_DIRS</code></td><td>読み書きを許可するディレクトリ（Linux/macOS は <code>:</code> 区切り、Windows は <code>;</code> 区切り）。既定はホームディレクトリ</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_OUTPUT_DIR</code></td><td>スクリーンショットなどの既定の出力先。既定は一時ディレクトリ配下の <code>shogiboardq-mcp</code></td></tr>
+                        <tr><td><code>SHOGIBOARDQ_AUTOMATION_SOCKET</code></td><td>自動化ソケットのパス（アプリ側の <code>--automation-socket</code> と共通）</td></tr>
+                        <tr><td><code>SHOGIBOARDQ_QUIT_APP_ON_EXIT</code></td><td><code>1</code> にすると、サーバーが起動したアプリをサーバー終了時に閉じます（既定は残す）</td></tr>
+                        <tr><td><code>PYTHONPATH</code></td><td><code>pip install -e mcp</code> をしていない場合、リポジトリの <code>mcp</code> ディレクトリを指定します</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Clients -->
+<section id="clients" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">クライアント設定</h2>
+        <p class="section-desc">どのクライアントでも「python3 -m shogiboardq_mcp を stdio で起動し、環境変数を渡す」だけです</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <p class="guide-step-text">以下は Linux の例です。<code>/path/to/ShogiBoardQ</code> はリポジトリの場所に置き換えてください。Windows では <code>python3</code> を <code>python</code> に、パスを <code>C:\\Users\\...\\ShogiBoardQ\\build\\ShogiBoardQ.exe</code> のように書き換えます。設定後はクライアントを再起動（または MCP サーバーを再読み込み）してください。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Claude Code</span>
+                </div>
+                <p class="guide-step-text">プロジェクト内で次のコマンドを実行します（<code>--scope user</code> を付けると全プロジェクトで有効）。<code>--</code> より後ろがサーバーの起動コマンドです。</p>
+                <div class="build-steps">
+<pre class="bash"><code>claude mcp add shogiboardq \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -- python3 -m shogiboardq_mcp
+
+claude mcp list      # 接続状態を確認</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Claude Desktop</span>
+                </div>
+                <p class="guide-step-text">「設定」→「開発者」→「構成を編集」で開く <code>claude_desktop_config.json</code>（macOS: <code>~/Library/Application Support/Claude/</code>、Windows: <code>%APPDATA%\Claude\</code>）に追記します。</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Cursor</span>
+                </div>
+                <p class="guide-step-text">プロジェクトの <code>.cursor/mcp.json</code>（全プロジェクト共通なら <code>~/.cursor/mcp.json</code>）に記述します。</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">VS Code（GitHub Copilot）</span>
+                </div>
+                <p class="guide-step-text">ワークスペースの <code>.vscode/mcp.json</code> に記述します。VS Code ではトップレベルのキーが <code>servers</code> です。ユーザー全体で使う場合はコマンドパレットの「MCP: Open User Configuration」から同じ形式で追加します。</p>
+                <div class="build-steps">
+<pre class="json"><code>{
+  "servers": {
+    "shogiboardq": {
+      "type": "stdio",
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">Gemini CLI</span>
+                </div>
+                <p class="guide-step-text">コマンドで登録するか、<code>~/.gemini/settings.json</code>（プロジェクトなら <code>.gemini/settings.json</code>）の <code>mcpServers</code> に記述します。</p>
+                <div class="build-steps">
+<pre class="bash"><code>gemini mcp add -s user \
+  -e SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  -e PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  shogiboardq python3 -m shogiboardq_mcp</code></pre>
+<pre class="json"><code>{
+  "mcpServers": {
+    "shogiboardq": {
+      "command": "python3",
+      "args": ["-m", "shogiboardq_mcp"],
+      "env": {
+        "SHOGIBOARDQ_EXECUTABLE": "/path/to/ShogiBoardQ/build/ShogiBoardQ",
+        "PYTHONPATH": "/path/to/ShogiBoardQ/mcp"
+      }
+    }
+  }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Codex CLI</span>
+                </div>
+                <p class="guide-step-text">コマンドで登録するか、<code>~/.codex/config.toml</code> に記述します。</p>
+                <div class="build-steps">
+<pre class="bash"><code>codex mcp add shogiboardq \
+  --env SHOGIBOARDQ_EXECUTABLE=/path/to/ShogiBoardQ/build/ShogiBoardQ \
+  --env PYTHONPATH=/path/to/ShogiBoardQ/mcp \
+  -- python3 -m shogiboardq_mcp</code></pre>
+<pre class="toml"><code>[mcp_servers.shogiboardq]
+command = "python3"
+args = ["-m", "shogiboardq_mcp"]
+
+[mcp_servers.shogiboardq.env]
+SHOGIBOARDQ_EXECUTABLE = "/path/to/ShogiBoardQ/build/ShogiBoardQ"
+PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Usage -->
+<section id="usage" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">使い方</h2>
+        <p class="section-desc">自然言語で依頼すると、クライアントが適切なツールを選んで呼び出します</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">依頼の例</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>依頼</th><th>呼ばれるツール</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>「~/kifu/game.kif を CSA 形式に変換して ~/kifu/game.csa に保存して」</td><td>convert_kifu</td></tr>
+                        <tr><td>「この SFEN は合法な局面？ 王手はかかっている？」</td><td>validate_sfen</td></tr>
+                        <tr><td>「YaneuraOu で初期局面から 7g7f 3c3d の局面を 10 秒、候補 3 手で解析して」</td><td>list_engines → analyze_position → analysis_result</td></tr>
+                        <tr><td>「この局面に詰みがあるか KomoringHeights で調べて」</td><td>search_mate → mate_status</td></tr>
+                        <tr><td>「3手詰を 5 問作って。攻め駒は 3 枚まで」</td><td>generate_tsume → tsume_generation_status</td></tr>
+                        <tr><td>「この 5 手詰に余詰がないか確認して」</td><td>verify_tsume</td></tr>
+                        <tr><td>「この局面を画像にして ~/Pictures/board.png に保存して」</td><td>render_board_image</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">長い処理はジョブになる</span>
+                </div>
+                <p class="guide-step-text">解析・詰み探索・詰将棋生成は開始ツールがすぐにジョブ ID を返し、クライアントが状態ツール（analysis_status など）で進捗と結果を取得します。ツール呼び出しを約 60 秒で打ち切るクライアントでも、数分の解析や生成を扱えます。生成は stop_tsume_generation で途中終了でき、ジョブ一覧は list_jobs、取消は cancel_job です。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">局面と手の表記</span>
+                </div>
+                <p class="guide-step-text">局面は SFEN（<code>startpos</code> は初期局面）、手は USI 形式（<code>7g7f</code>、駒打ちは <code>P*5e</code>）で受け渡します。結果には人が読める要約と、プログラムが扱いやすい構造化データ（structuredContent）の両方が含まれます。棋譜のテキストや読み筋は既定で先頭の一定量だけ返し、<code>max_chars</code> や <code>max_pv_moves</code> で調整できます。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: Automation -->
+<section id="automation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">アプリを操作する</h2>
+        <p class="section-desc">--automation 付きで起動した ShogiBoardQ を AI クライアントから操作できます</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">自動化 API を有効にして起動する</span>
+                </div>
+                <p class="guide-step-text">自動化 API は既定で無効です。<code>--automation</code> を付けて起動すると、所有者だけがアクセスできるローカルソケットで操作を受け付け、標準出力に <code>automation: listening on ...</code> と表示します。<code>SHOGIBOARDQ_EXECUTABLE</code> を設定しておけば、アプリ操作ツールを最初に呼んだときに MCP サーバーが自動で起動します（起動済みなら接続します）。</p>
+                <div class="build-steps">
+<pre class="bash"><code>./build/ShogiBoardQ --automation
+# ソケットの場所を指定する場合
+./build/ShogiBoardQ --automation --automation-socket /tmp/shogiboardq.sock</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">依頼の例</span>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>依頼</th><th>呼ばれるツール</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>「今表示している局面を教えて」</td><td>get_position</td></tr>
+                        <tr><td>「~/kifu/game.kif を開いて 30 手目に移動して」</td><td>load_kifu → goto_ply</td></tr>
+                        <tr><td>「表示中の棋譜を KI2 で ~/kifu/out.ki2 に保存して」</td><td>save_kifu</td></tr>
+                        <tr><td>「棋譜解析ダイアログを開いて、内容を読み取ってスクリーンショットを撮って」</td><td>trigger_action → list_dialogs → get_widget_text → capture_screenshot</td></tr>
+                        <tr><td>「盤面を反転して」</td><td>trigger_action（actionFlipBoard）</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">未保存の変更がある状態で棋譜を読み込んだり局面を設定したりする依頼は、<code>discard_unsaved</code> を明示しない限り拒否されます。メニュー動作は許可リスト方式で、終了・上書き保存・言語切替などは実行できません。実行できる動作は list_actions で確認できます。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 6: Safety -->
+<section id="safety" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">安全性と制限</h2>
+        <p class="section-desc">ローカル専用・既定で無効・明示的な許可が原則です</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">安全性</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>自動化ソケットは所有者だけがアクセスでき、ネットワークには公開しません。<code>--automation</code> を付けたときだけ有効です</li>
+                    <li>ファイルは絶対パスのみ受け付け、<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（既定はホームディレクトリ）の外は拒否します。既存ファイルは <code>overwrite</code> の明示が無ければ上書きしません</li>
+                    <li>エンジンは ShogiBoardQ に登録済みの名前だけを受け付けます</li>
+                    <li>メニュー動作は許可リスト方式で、終了・上書き保存・言語切替・ドックレイアウトの保存は実行しません</li>
+                    <li>クライアント側でも、ツールの実行前に確認が求められるのが通常です（クライアントの設定に従います）</li>
+                </ul>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">制限事項</span>
+                </div>
+                <ul class="guide-step-text">
+                    <li>トランスポートは stdio のみです（Streamable HTTP は未対応）</li>
+                    <li>CSA 通信対局、対局の開始や指し手の実行、評価値グラフ画像の取得は未対応です</li>
+                    <li>Windows の名前付きパイプ接続は実装済みですが未検証です</li>
+                    <li>配布パッケージには <code>shogiboardq-cli</code> が含まれていないため、ソースからのビルドが必要です</li>
+                </ul>
+                <p class="guide-step-text">設計の詳細（JSON-RPC メソッド一覧、ジョブの状態遷移、テスト）は開発者向け文書 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/mcp-server.md">docs/dev/mcp-server.md</a> と <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/mcp/README.md">mcp/README.md</a> を参照してください。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="back-link-section">
+    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+</div>
+
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+</body>
+</html>

@@ -20,6 +20,12 @@ ninja -C build
 # Run the application
 ./build/ShogiBoardQ
 
+# Command line tool used by the MCP server (no GUI)
+./build/shogiboardq-cli version
+
+# Python MCP server tests (also registered in ctest as tst_mcp_python)
+python3 -m pytest -q mcp/tests
+
 # With static analysis
 cmake -B build -S . -DENABLE_CLANG_TIDY=ON
 cmake -B build -S . -DENABLE_CPPCHECK=ON
@@ -101,6 +107,12 @@ cmake --build build --target translations
     - `dialogcoordinator`, `positioneditcoordinator`, etc.
 
 - **views/**: Qt Graphics View for board rendering (`shogiview.cpp/.h`)
+- **automation/**: 自動化 API（`ShogiBoardQ --automation`）と、CLI・MCP サーバーが共有する GUI 非依存サービス（設計: `docs/dev/mcp-server.md`）
+  - `automationserver.cpp/.h` - QLocalServer で改行区切り JSON-RPC 2.0 を待ち受け
+  - `automationdispatcher.cpp/.h` - JSON-RPC 解析とメソッド表（GUI 非依存）
+  - `automationcommands_*.cpp` - app / position / kifu / ui の各メソッド、`automationactionpolicy` は QAction 許可リスト
+  - `kifuconversionservice`, `sfenvalidationservice`, `boardimagerenderer`, `engineanalysisrunner`, `matesearchrunner`, `tsumeverificationrunner` - CLI と共有するサービス
+- **cli/**: `shogiboardq-cli`（GUI を起動しない JSON 出力コマンド。`mcp/` の MCP サーバーが呼び出す）
 - **widgets/**: Custom Qt widgets
 - **dialogs/**: Dialog implementations (with co-located .ui files)
 - **models/**: Qt models for lists and data binding
