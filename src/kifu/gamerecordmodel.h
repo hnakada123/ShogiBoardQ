@@ -156,6 +156,7 @@ public:
      */
     struct ExportContext {
         const QTableWidget* gameInfoTable = nullptr;
+        QList<KifGameInfoItem> gameInfoItems;  ///< 対局情報（テーブルが無い環境用。空でなければこちらを優先）
         const KifuRecordListModel* recordModel = nullptr;
         QString startSfen;
         PlayMode playMode = PlayMode::NotStarted;

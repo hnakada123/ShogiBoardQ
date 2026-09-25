@@ -297,6 +297,11 @@ QList<KifGameInfoItem> GameRecordModel::collectGameInfo(const ExportContext& ctx
 {
     QList<KifGameInfoItem> items;
 
+    // 0) 呼び出し側が対局情報を直接渡した場合（CLI などテーブルを持たない環境）
+    if (!ctx.gameInfoItems.isEmpty()) {
+        return ctx.gameInfoItems;
+    }
+
     // a) 既存の「対局情報」テーブルがあれば採用
     if (ctx.gameInfoTable && ctx.gameInfoTable->rowCount() > 0) {
         const int rows = ctx.gameInfoTable->rowCount();

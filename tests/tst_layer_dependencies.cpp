@@ -41,6 +41,12 @@ private:
              {QStringLiteral("dialogs/"), QStringLiteral("widgets/"), QStringLiteral("views/")}},
             {QStringLiteral("src/network"),
              {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/")}},
+            // 自動化 API・CLI 共通サービスは MainWindow・ダイアログ・ウィジェットに依存しない
+            {QStringLiteral("src/automation"),
+             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/")}},
+            {QStringLiteral("src/cli"),
+             {QStringLiteral("app/"), QStringLiteral("dialogs/"), QStringLiteral("widgets/"),
+              QStringLiteral("views/"), QStringLiteral("ui/")}},
         };
     }
 

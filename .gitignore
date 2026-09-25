@@ -11,3 +11,8 @@ CMakeUserPresets.json
 debug.log
 ShogiBoardQ-linux-x86_64.AppImage
 ShogiBoardQ-linux.zip
+
+# Python (mcp/)
+__pycache__/
+.pytest_cache/
+*.egg-info/

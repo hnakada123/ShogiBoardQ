@@ -1458,3 +1458,48 @@ add_shogi_test(tst_applicationfonts
     tst_applicationfonts.cpp
     ${SRC}/common/applicationfonts.cpp
 )
+
+# ============================================================
+# 自動化・CLI・MCP（src/automation, src/cli, mcp/）
+# 共通静的ライブラリ shogiboardq_static をリンクする
+# ============================================================
+add_shogi_test(tst_usi_info_line_parser tst_usi_info_line_parser.cpp)
+target_link_libraries(tst_usi_info_line_parser PRIVATE shogiboardq_static)
+
+add_shogi_test(tst_sfen_validation_service tst_sfen_validation_service.cpp)
+target_link_libraries(tst_sfen_validation_service PRIVATE shogiboardq_static)
+
+add_shogi_test(tst_kifu_conversion_service tst_kifu_conversion_service.cpp)
+target_link_libraries(tst_kifu_conversion_service PRIVATE shogiboardq_static)
+
+add_shogi_test(tst_board_image_renderer
+    tst_board_image_renderer.cpp
+    ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc
+)
+target_link_libraries(tst_board_image_renderer PRIVATE shogiboardq_static)
+
+# `go mate <ms>` に答える最小 USI エンジン（生成・余詰検査・詰み探索の結合テスト用）
+add_executable(mock_mate_engine mock_mate_engine.cpp)
+target_link_libraries(mock_mate_engine PRIVATE hayanagi_tsume)
+
+# MCP サーバーの結合テスト（mcp SDK のクライアントで stdio サーバーを起動してツールを呼ぶ）。
+# Python3 と mcp・pytest が使えるときだけ登録する。
+if(Python3_Interpreter_FOUND)
+    execute_process(
+        COMMAND ${Python3_EXECUTABLE} -c "import mcp, pytest"
+        RESULT_VARIABLE _mcp_python_missing
+        OUTPUT_QUIET ERROR_QUIET
+    )
+    if(_mcp_python_missing EQUAL 0)
+        add_test(NAME tst_mcp_python
+            COMMAND ${Python3_EXECUTABLE} -m pytest -q -p no:cacheprovider ${CMAKE_SOURCE_DIR}/mcp/tests
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/mcp
+        )
+        set_tests_properties(tst_mcp_python PROPERTIES
+            ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1;QT_QPA_PLATFORM=offscreen;SHOGIBOARDQ_CLI=$<TARGET_FILE:shogiboardq-cli>;SHOGIBOARDQ_EXECUTABLE=$<TARGET_FILE:ShogiBoardQ>;SHOGIBOARDQ_TEST_USI_ENGINE=$<TARGET_FILE:hayanagi>;SHOGIBOARDQ_TEST_MATE_ENGINE=$<TARGET_FILE:mock_mate_engine>"
+            TIMEOUT 600
+        )
+    else()
+        message(STATUS "mcp/pytest not found for ${Python3_EXECUTABLE}; tst_mcp_python is not registered")
+    endif()
+endif()

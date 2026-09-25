@@ -250,7 +250,6 @@ set(SRC_APP
     src/app/dockcreationservice.h
     src/app/gamesessionorchestrator.cpp
     src/app/gamesessionorchestrator.h
-    src/app/main.cpp
     src/app/mainwindow.cpp
     src/app/mainwindow.h
     src/app/mainwindowownedtypes.h
@@ -958,6 +957,43 @@ set(SRC_COMMON
     src/common/tsumepositionutil.h
 )
 
+# 自動化 API（--automation）と CLI が共有する GUI 非依存サービス
+set(SRC_AUTOMATION
+    src/automation/boardimagerenderer.cpp
+    src/automation/boardimagerenderer.h
+    src/automation/engineanalysisrunner.cpp
+    src/automation/engineanalysisrunner.h
+    src/automation/enginecatalog.cpp
+    src/automation/enginecatalog.h
+    src/automation/kifuconversionservice.cpp
+    src/automation/kifuconversionservice.h
+    src/automation/matesearchrunner.cpp
+    src/automation/matesearchrunner.h
+    src/automation/sfenvalidationservice.cpp
+    src/automation/sfenvalidationservice.h
+    src/automation/tsumeverificationrunner.cpp
+    src/automation/tsumeverificationrunner.h
+    src/automation/usienginesession.cpp
+    src/automation/usienginesession.h
+    src/automation/usiinfolineparser.cpp
+    src/automation/usiinfolineparser.h
+)
+
+# shogiboardq-cli（GUI を起動しない実行ファイル）
+set(SRC_CLI
+    src/cli/cliargs.cpp
+    src/cli/cliargs.h
+    src/cli/clicommands.h
+    src/cli/clicommands_basic.cpp
+    src/cli/clicommands_engine.cpp
+    src/cli/clicommands_tsume.cpp
+    src/cli/clioutput.cpp
+    src/cli/clioutput.h
+    src/cli/clistopwatcher.cpp
+    src/cli/clistopwatcher.h
+    src/cli/main.cpp
+)
+
 # ==== Application Icon ====
 # Windows用リソースファイル
 if(WIN32)
@@ -972,9 +1008,53 @@ if(APPLE)
         MACOSX_PACKAGE_LOCATION "Resources")
 endif()
 
-# ==== Executable ====
-qt_add_executable(ShogiBoardQ
-    MANUAL_FINALIZATION
+# ==== 共通オブジェクトライブラリ ====
+# GUI 本体・shogiboardq-cli・新しいテストが同じクラスを共有する。
+# ShogiBoardQ はオブジェクトライブラリを直接リンクし（従来どおり全オブジェクトを含む）、
+# CLI とテストは同じオブジェクトから作る静的ライブラリをリンクして参照した分だけ取り込む。
+set(SBQ_INCLUDE_DIRS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/app
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/automation
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/game
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kifu
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/kifu/formats
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/analysis
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/engine
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/network
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/navigation
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/board
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/controllers
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/coordinators
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/presenters
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/wiring
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/views
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/widgets
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/dialogs
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/models
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/common
+)
+
+set(SBQ_LINK_LIBS
+    hayanagi_tsume
+    Qt6::Widgets
+    Qt6::Charts
+    Qt6::Network
+    Qt6::Concurrent
+    Qt6::Multimedia
+    Qt6::Sql
+)
+
+# リリースビルドでは qDebug() 出力を無効化
+set(SBQ_COMPILE_DEFINITIONS
+    $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
+    APP_VERSION="${APP_VERSION}"
+)
+
+qt_add_library(shogiboardq_objects OBJECT
     ${SRC_APP}
     ${SRC_CORE}
     ${SRC_GAME}
@@ -991,11 +1071,36 @@ qt_add_executable(ShogiBoardQ
     ${SRC_MODELS}
     ${SRC_SERVICES}
     ${SRC_COMMON}
+    ${SRC_AUTOMATION}
     ${UI_FILES}
+)
+target_include_directories(shogiboardq_objects PUBLIC ${SBQ_INCLUDE_DIRS})
+target_link_libraries(shogiboardq_objects PUBLIC ${SBQ_LINK_LIBS})
+target_compile_definitions(shogiboardq_objects PUBLIC ${SBQ_COMPILE_DEFINITIONS})
+
+# CLI・テスト用の静的ライブラリ（同じオブジェクトファイルをアーカイブする）
+add_library(shogiboardq_static STATIC $<TARGET_OBJECTS:shogiboardq_objects>)
+target_include_directories(shogiboardq_static PUBLIC ${SBQ_INCLUDE_DIRS})
+target_link_libraries(shogiboardq_static PUBLIC ${SBQ_LINK_LIBS})
+target_compile_definitions(shogiboardq_static PUBLIC ${SBQ_COMPILE_DEFINITIONS})
+
+# ==== Executable ====
+qt_add_executable(ShogiBoardQ
+    MANUAL_FINALIZATION
+    src/app/main.cpp
     resources/shogiboardq.qrc
     ${APP_ICON_RESOURCE_WINDOWS}
     ${APP_ICON_MACOS}
 )
+target_link_libraries(ShogiBoardQ PRIVATE shogiboardq_objects)
+
+# ==== CLI ====
+# MCP サーバー（mcp/）から使う GUI 非依存の実行ファイル。offscreen の QApplication で動く
+qt_add_executable(shogiboardq-cli
+    ${SRC_CLI}
+    resources/shogiboardq.qrc
+)
+target_link_libraries(shogiboardq-cli PRIVATE shogiboardq_static)
 
 # .qm 生成（.ts → .qm コンパイルのみ、高速）
 # qt_add_translation は lrelease のみ実行し、lupdate（ソーススキャン）をスキップする
@@ -1024,49 +1129,6 @@ foreach(QM_FILE ${QM_FILES})
         COMMENT "Copying ${QM_FILE} to output directory"
     )
 endforeach()
-
-# ==== Includes / Links ====
-# ヘッダーはソースと同じディレクトリに配置
-target_include_directories(ShogiBoardQ PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}/src
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/app
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/core
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/game
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kifu
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/kifu/formats
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/analysis
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/engine
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/network
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/navigation
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/board
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/controllers
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/coordinators
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/presenters
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/ui/wiring
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/views
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/widgets
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/dialogs
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/models
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/common
-)
-
-target_link_libraries(ShogiBoardQ PRIVATE
-    hayanagi_tsume
-    Qt6::Widgets
-    Qt6::Charts
-    Qt6::Network
-    Qt6::Concurrent
-    Qt6::Multimedia
-    Qt6::Sql
-)
-
-# リリースビルドではqDebug()出力を無効化
-target_compile_definitions(ShogiBoardQ PRIVATE
-    $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
-    APP_VERSION="${APP_VERSION}"
-)
 
 # ==== Bundle properties ====
 get_target_property(SHOGIBOARDQ_QT_LIBRARY_TYPE Qt6::Core TYPE)
@@ -1108,6 +1170,9 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/qt-build.json
 install(TARGETS ShogiBoardQ
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(TARGETS shogiboardq-cli
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 

@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shogiboardq-mcp"
+version = "2026.9.25"
+description = "Model Context Protocol server that exposes ShogiBoardQ (kifu conversion, engine analysis, tsume shogi tools, and GUI automation) to AI clients"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "GPL-3.0-or-later" }
+authors = [{ name = "ShogiBoardQ contributors" }]
+dependencies = ["mcp>=1.10"]
+
+[project.optional-dependencies]
+test = ["pytest>=8", "anyio>=4"]
+
+[project.scripts]
+shogiboardq-mcp = "shogiboardq_mcp.__main__:main"
+
+[tool.setuptools.packages.find]
+include = ["shogiboardq_mcp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
