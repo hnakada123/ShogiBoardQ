@@ -10,7 +10,7 @@ void TsumeshogiGenerator::startVerification(const QString& sfen, Phase origin)
     m_verificationQueries = 0;
     m_verificationAwaiting = false;
     m_verificationElapsed.start();
-    m_verifier.start(sfen, m_settings.targetMoves);
+    m_verifier.start(sfen, m_settings.targetMoves, {m_settings.allowFinalMoveAlternatives});
     m_phase = Phase::Verifying;
     emit verificationProgress(0);
     m_verificationStepTimer.start(0);

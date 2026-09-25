@@ -86,6 +86,7 @@ private:
     QSpinBox* m_spinAttackRange = nullptr;
     QSpinBox* m_spinTimeout = nullptr;
     QSpinBox* m_spinMaxPositions = nullptr;
+    QCheckBox* m_checkAllowFinalAlternatives = nullptr; ///< 主手順の最終手の複数解を許容するか
 
     // 制御ボタン
     QPushButton* m_btnStart = nullptr;

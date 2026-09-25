@@ -1,2 +1,2 @@
-ShogiBoardQ_ja_JP.ts:978
+ShogiBoardQ_ja_JP.ts:967
 ShogiBoardQ_en.ts:286
