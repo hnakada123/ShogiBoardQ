@@ -105,6 +105,22 @@ private slots:
         QCOMPARE(dlg.m_sfenList.size(), 1);
     }
 
+    void parseSfenLines_commentLines_skipped()
+    {
+        SfenCollectionDialog dlg;
+        // 詰将棋局面生成のファイル保存が先頭に付けるコメント行（'#' 始まり）は
+        // 4パート以上あっても局面として扱わない
+        QString text = QStringLiteral(
+            "# ShogiBoardQ 2026.09.25 詰将棋局面生成\n"
+            "# 生成日時: 2026/09/25 08:21:54\n"
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"
+            "  # 目標手数: 3 手詰\n"
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2\n");
+        dlg.parseSfenLines(text);
+        QCOMPARE(dlg.m_sfenList.size(), 2);
+        QVERIFY(dlg.m_sfenList.at(0).startsWith(QStringLiteral("lnsgkgsnl/")));
+    }
+
     // ── ファイルロードテスト ──────────────────────────────
 
     void loadFromFile_validFile_loadsPositions()

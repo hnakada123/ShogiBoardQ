@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 89
+- CTest ケース数: 91
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -79,20 +79,22 @@
 70. `tst_lifecycle_runtime`
 71. `tst_joseki_repository`
 72. `tst_tsumeshogi_generator`
-73. `tst_analysis_coordinator`
-74. `tst_consideration_resolver`
-75. `tst_tsume_search`
-76. `tst_image_export`
-77. `tst_sfen_collection`
-78. `tst_dock_layout`
-79. `tst_piece_images`
-80. `tst_menu_window`
-81. `tst_language_controller`
-82. `tst_jishogi_calculator`
-83. `tst_engineregistrationhandler`
-84. `tst_translation_files`
-85. `tst_piece_sound_processor`
-86. `tst_turn_state_sync`
-87. `tst_tsume_play`
-88. `tst_tsumeshogi_verification`
-89. `tst_applicationfonts`
+73. `tst_tsumeshogi_export_header`
+74. `tst_analysis_coordinator`
+75. `tst_consideration_resolver`
+76. `tst_tsume_search`
+77. `tst_image_export`
+78. `tst_sfen_collection`
+79. `tst_dock_layout`
+80. `tst_piece_images`
+81. `tst_menu_window`
+82. `tst_language_controller`
+83. `tst_jishogi_calculator`
+84. `tst_engineregistrationhandler`
+85. `tst_translation_files`
+86. `tst_piece_sound_processor`
+87. `tst_turn_state_sync`
+88. `tst_tsume_play`
+89. `tst_tsumeshogi_verification`
+90. `tst_tsumeshogi_screener`
+91. `tst_applicationfonts`

@@ -5,6 +5,7 @@
 
 #include "changeenginesettingsdialog.h"
 #include "pvboarddialog.h"
+#include "tsumeshogiexportheaderbuilder.h"
 #include "tsumeshogikanjibuilder.h"
 #include "tsumeshogisettings.h"
 
@@ -83,6 +84,15 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
     }
 
     QTextStream out(&file);
+
+    // 先頭に ShogiBoardQ のバージョン・生成日時・生成設定をコメント行（'#' 始まり）で記録する。
+    // TsumeCollection::parse と SfenCollectionDialog の読み込みはコメント行を読み飛ばす
+    const QStringList header = TsumeshogiExportHeaderBuilder::build(
+        QStringLiteral(APP_VERSION), m_lastRunStartedAt, m_lastRunSettings);
+    for (const QString& line : header) {
+        out << line << '\n';
+    }
+
     for (int row = 0; row < m_tableResults->rowCount(); ++row) {
         const QString line = exportLine(row);
         if (!line.isEmpty()) {

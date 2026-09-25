@@ -1163,6 +1163,12 @@ add_shogi_test(tst_tsumeshogi_generator
     ${EMV_SOURCES}
 )
 
+# 詰将棋局面生成のファイル保存に付けるコメントヘッダ（バージョン・生成日時・生成設定）
+add_shogi_test(tst_tsumeshogi_export_header
+    tst_tsumeshogi_export_header.cpp
+    ${SRC}/analysis/tsumeshogiexportheaderbuilder.cpp
+)
+
 # ============================================================
 # Unit: AnalysisCoordinator + AnalysisResultHandler テスト
 # ============================================================

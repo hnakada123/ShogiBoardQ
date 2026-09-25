@@ -368,6 +368,10 @@ void TsumeshogiGeneratorDialog::onStartClicked()
     // 結果テーブルをクリア
     m_tableResults->setRowCount(0);
 
+    // ファイル保存時のコメントヘッダ用に、この実行の設定と開始日時を控える
+    m_lastRunSettings = settings;
+    m_lastRunStartedAt = QDateTime::currentDateTime();
+
     setRunningState(true);
     m_generator->start(settings);
 }
