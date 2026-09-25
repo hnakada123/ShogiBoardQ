@@ -121,7 +121,7 @@
 <li>Add all unused pieces to the defender's (White's) hand, preserving all 40 pieces.</li>
 <li>Verify that the king is not in check in the initial position.</li>
 </ul>
-<p class="guide-step-text">Candidate positions are sent to the USI engine. Only positions with mate in exactly the requested number of plies are accepted.</p>
+<p class="guide-step-text">Generated positions are first screened by the built-in mate search. Only candidates with mate in exactly the requested number of plies and a single mating first move are sent to the USI engine, and only positions whose mate the engine confirms proceed to the alternative-mate check. The searched count includes positions rejected by the built-in screening.</p>
 </div>
 </div>
 </div>
@@ -147,7 +147,7 @@
 </ul>
 <div class="screenshot-item">
 <img alt="Tsume shogi generation results" src="../../images/en/tsumeshogi-generator/generator-02-results.png"/>
-<p class="screenshot-caption">Generation results: three positions with mate in 3 plies (633 positions searched in 1:28)</p>
+<p class="screenshot-caption">Generation results: three positions with mate in 3 plies (1,371 positions searched in 4 seconds)</p>
 </div>
 </div>
 <div class="guide-step">

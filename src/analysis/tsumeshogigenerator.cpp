@@ -7,6 +7,8 @@
 
 #include <QtConcurrentRun>
 
+#include <atomic>
+
 namespace {
 /// エンジン無応答ガードの余裕時間(ms)
 constexpr int kSafetyMarginMs = 5000;
@@ -14,8 +16,16 @@ constexpr int kSafetyMarginMs = 5000;
 constexpr int kProgressIntervalMs = 500;
 /// 安全タイマー発火後に送る stop への応答待ち時間(ms)
 constexpr int kStopResponseTimeoutMs = 3000;
-/// 1回のバッチで生成する候補局面数（生成はエンジン探索に比べ十分軽いので少量でよい）
+/// 1回のバッチで集める候補局面数（候補はエンジン探索に比べ十分軽く作れるので少量でよい）
 constexpr int kBatchSize = 8;
+/// 1回のバッチで生成する局面数の上限（候補が集まらなくても進捗を返す）
+constexpr int kBatchMaxGenerated = 2000;
+/// ワーカースレッドでの事前選別の時間上限。2026-09-25 の計測では 100ms で時間切れは 4000 局面中 0
+constexpr TsumeshogiCandidateScreener::Limits kScreenLimits{100, 100, 2};
+/// 駒除去候補の事前選別はUIスレッドで行うため短くする
+constexpr TsumeshogiCandidateScreener::Limits kTrimScreenLimits{20, 5, 2};
+/// 事前選別の中断フラグ（UIスレッドでは中断しない）
+const std::atomic_bool kNeverStop{false};
 }
 
 TsumeshogiGenerator::TsumeshogiGenerator(QObject* parent)
@@ -25,7 +35,7 @@ TsumeshogiGenerator::TsumeshogiGenerator(QObject* parent)
     connect(&m_safetyTimer, &QTimer::timeout, this, &TsumeshogiGenerator::onSafetyTimeout);
 
     connect(&m_progressTimer, &QTimer::timeout, this, &TsumeshogiGenerator::onProgressTimerTimeout);
-    connect(&m_batchWatcher, &QFutureWatcher<QStringList>::finished,
+    connect(&m_batchWatcher, &QFutureWatcher<TsumeshogiCandidateScreener::Batch>::finished,
             this, &TsumeshogiGenerator::onBatchReady);
     m_verificationStepTimer.setSingleShot(true);
     connect(&m_verificationStepTimer, &QTimer::timeout,
@@ -43,6 +53,7 @@ void TsumeshogiGenerator::start(const Settings& settings)
 
     m_settings = settings;
     m_triedCount = 0;
+    m_generatedCount = 0;
     m_foundCount = 0;
     m_phase = Phase::Searching;
     m_currentSfen.clear();
@@ -234,7 +245,7 @@ void TsumeshogiGenerator::advanceAfterFailure()
 
 void TsumeshogiGenerator::onProgressTimerTimeout()
 {
-    emit progressUpdated(m_triedCount, m_foundCount, m_elapsedTimer.elapsed());
+    emit progressUpdated(m_generatedCount, m_foundCount, m_elapsedTimer.elapsed());
 }
 
 void TsumeshogiGenerator::onEngineError(const QString& message)
@@ -304,14 +315,14 @@ void TsumeshogiGenerator::processResult(bool found, const QStringList& pv)
         // 上限チェック
         if (m_settings.maxPositionsToFind > 0 && m_foundCount >= m_settings.maxPositionsToFind) {
             m_phase = Phase::Idle;
-            emit progressUpdated(m_triedCount, m_foundCount, m_elapsedTimer.elapsed());
+            emit progressUpdated(m_generatedCount, m_foundCount, m_elapsedTimer.elapsed());
             cleanup();
             emit finished();
             return;
         }
     }
 
-    emit progressUpdated(m_triedCount, m_foundCount, m_elapsedTimer.elapsed());
+    emit progressUpdated(m_generatedCount, m_foundCount, m_elapsedTimer.elapsed());
 
     // 次の局面を送信
     generateAndSendNext();
@@ -338,7 +349,7 @@ void TsumeshogiGenerator::flushTrimmingResult()
         || m_trimBasePv != m_verifiedPv) return;
     m_triedCount++;
     registerFoundPosition(m_trimBaseSfen, m_trimBasePv);
-    emit progressUpdated(m_triedCount, m_foundCount, m_elapsedTimer.elapsed());
+    emit progressUpdated(m_generatedCount, m_foundCount, m_elapsedTimer.elapsed());
 }
 
 void TsumeshogiGenerator::cleanup()
@@ -384,11 +395,13 @@ void TsumeshogiGenerator::startBatchGeneration()
     if (m_batchWatcher.isRunning()) return;
 
     const auto settings = m_settings.posGenSettings;
+    const int targetMoves = m_settings.targetMoves;
     const auto cancelFlag = m_cancelFlag;
 
-    // UI をブロックしないようワーカースレッドで生成する
-    auto future = QtConcurrent::run([settings, cancelFlag]() {
-        return TsumeshogiPositionGenerator::generateBatch(settings, kBatchSize, cancelFlag);
+    // UI をブロックしないようワーカースレッドで生成し、内蔵探索で候補だけを残す
+    auto future = QtConcurrent::run([settings, targetMoves, cancelFlag]() {
+        return TsumeshogiCandidateScreener::generateBatch(settings, targetMoves, kBatchSize,
+                                                          kBatchMaxGenerated, kScreenLimits, cancelFlag);
     });
     m_batchWatcher.setFuture(future);
 }
@@ -398,7 +411,15 @@ void TsumeshogiGenerator::onBatchReady()
     if (m_phase == Phase::Idle) return;
 
     if (!m_batchWatcher.isCanceled()) {
-        m_positionQueue.append(m_batchWatcher.result());
+        const TsumeshogiCandidateScreener::Batch batch = m_batchWatcher.result();
+        m_generatedCount += batch.generated;
+        m_positionQueue.append(batch.candidates);
+        if (batch.multipleFirstMoves > 0) {
+            // 内蔵探索で2つ以上の詰む初手が見つかった局面は余詰として除外済み
+            m_verificationRejected += batch.multipleFirstMoves;
+            emit verificationStatsUpdated(m_verificationRejected, m_verificationInconclusive);
+        }
+        emit progressUpdated(m_generatedCount, m_foundCount, m_elapsedTimer.elapsed());
     }
 
     // キュー空待ちだった場合は再開
@@ -433,6 +454,20 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
         // 除去によって開始局面で玉に王手がかかる（詰将棋として不正）候補は
         // エンジンに送らず除外する（例: 飛車と玉の間の守り駒を除去した場合）
         if (TsumeshogiPositionGenerator::isDefenderKingInCheck(testSfen)) {
+            m_trimCandidateIndex++;
+            continue;
+        }
+
+        // 内蔵探索で目標手数の詰みがない・短く詰む・初手が複数ある除去はエンジンに送らず却下する
+        const auto verdict = TsumeshogiCandidateScreener::screen(
+            testSfen, m_settings.targetMoves, kTrimScreenLimits, kNeverStop);
+        if (verdict == TsumeshogiCandidateScreener::Verdict::NotMateInTarget) {
+            m_trimCandidateIndex++;
+            continue;
+        }
+        if (verdict == TsumeshogiCandidateScreener::Verdict::MultipleFirstMoves) {
+            ++m_verificationRejected;
+            emit verificationStatsUpdated(m_verificationRejected, m_verificationInconclusive);
             m_trimCandidateIndex++;
             continue;
         }

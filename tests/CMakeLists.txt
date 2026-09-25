@@ -1402,6 +1402,7 @@ add_shogi_test(tst_tsumeshogi_verification
     ${SRC}/analysis/tsumeshogigenerator_sfen.cpp
     ${SRC}/analysis/tsumeshogigenerator_verification.cpp
     ${SRC}/analysis/tsumeshogipositiongenerator.cpp
+    ${SRC}/analysis/tsumeshogicandidatescreener.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/core/shogiboard.cpp
@@ -1413,11 +1414,27 @@ add_shogi_test(tst_tsumeshogi_verification
 target_include_directories(tst_tsumeshogi_verification BEFORE PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tsumeshogi_stubs)
 target_link_libraries(tst_tsumeshogi_verification PRIVATE hayanagi_tsume)
 
+# 生成時の事前選別（内蔵探索による候補の絞り込み）
+add_shogi_test(tst_tsumeshogi_screener
+    tst_tsumeshogi_screener.cpp
+    ${SRC}/analysis/tsumeshogicandidatescreener.cpp
+    ${SRC}/analysis/tsumeshogipositiongenerator.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/common/errorbus.cpp
+    ${SRC}/core/shogiboard.cpp
+    ${SRC}/core/shogiboard_edit.cpp
+    ${SRC}/core/shogiboard_sfen.cpp
+    ${SRC}/core/shogimove.cpp
+    ${EMV_SOURCES}
+)
+target_link_libraries(tst_tsumeshogi_screener PRIVATE hayanagi_tsume)
+
 # 生成の採択率を実エンジンで測る再現ハーネス（ctest 対象外。--engine で詰将棋エンジンを指定して実行）
 add_executable(tsumeshogi_generation_harness
     tsumeshogi_generation_harness.cpp
     ${SRC}/analysis/tsumeshogiverifier.cpp
     ${SRC}/analysis/tsumeshogipositiongenerator.cpp
+    ${SRC}/analysis/tsumeshogicandidatescreener.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/core/shogiboard.cpp
