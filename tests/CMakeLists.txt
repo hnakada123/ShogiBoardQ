@@ -1453,6 +1453,10 @@ target_include_directories(tsumeshogi_generation_harness PRIVATE ${TEST_INCLUDES
 target_link_libraries(tsumeshogi_generation_harness PRIVATE ${TEST_LIBS} hayanagi_tsume)
 set_target_properties(tsumeshogi_generation_harness PROPERTIES AUTOMOC ON)
 
+# 問題集の不要駒除去・全1枚除去の再検査（実エンジン指定。ctest 対象外）
+add_executable(tsumeshogi_collection_auditor tsumeshogi_collection_auditor.cpp)
+target_link_libraries(tsumeshogi_collection_auditor PRIVATE shogiboardq_static)
+
 # 漢字・仮名の実描画フォントと、等幅表示の地域別字形
 add_shogi_test(tst_applicationfonts
     tst_applicationfonts.cpp
@@ -1488,6 +1492,10 @@ target_link_libraries(mock_mate_engine PRIVATE hayanagi_tsume)
 # MCP サーバーの結合テスト（mcp SDK のクライアントで stdio サーバーを起動してツールを呼ぶ）。
 # Python3 と mcp・pytest が使えるときだけ登録する。
 if(Python3_Interpreter_FOUND)
+    add_test(NAME tst_tsume_collection_audit_python
+        COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/test_audit_tsume_collections.py)
+    set_tests_properties(tst_tsume_collection_audit_python PROPERTIES TIMEOUT 60
+        ENVIRONMENT "PYTHONDONTWRITEBYTECODE=1")
     execute_process(
         COMMAND ${Python3_EXECUTABLE} -c "import mcp, pytest"
         RESULT_VARIABLE _mcp_python_missing

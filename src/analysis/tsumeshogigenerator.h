@@ -24,7 +24,8 @@ class Usi;
  * @brief 詰将棋局面自動生成のオーケストレーション
  *
  * ランダム局面生成→内蔵探索による事前選別→エンジン詰み探索→結果フィルタリングのループを制御する。
- * 有効局面発見後は不要駒トリミングを行い、最小限の駒で構成された局面を出力する。
+ * 有効局面発見後は不要駒トリミングを行い、全ての1枚除去の判定が完了した局面だけを出力する。
+ * 判定不能・中断時は採択しない。大域的な最少駒数を保証するものではない。
  * Usiインスタンスを直接作成・管理し、signal-drivenループで次々に局面を送信する。
  */
 class TsumeshogiGenerator : public QObject
@@ -48,6 +49,10 @@ public:
     void start(const Settings& settings);
     void stop();
     bool isRunning() const;
+
+    /// 正規化済みの先手攻方SFENから、玉以外の盤上駒・攻方持駒を1枚ずつ玉方持駒へ移した局面。
+    /// 生成時のトリミングと保存済み問題集の再検査で同じ除去操作を使用する。
+    static QStringList onePieceRemovedPositions(const QString& sfen);
 
 signals:
     void positionFound(const QString& sfen, const QStringList& pv);
@@ -99,7 +104,7 @@ private:
     void generateAndSendNext();
     void processResult(bool found, const QStringList& pv = {});
     bool registerFoundPosition(const QString& sfen, const QStringList& pv);
-    void flushTrimmingResult();
+    void rejectInconclusiveTrim();
     bool consumeStaleResponse();
     void advanceAfterFailure();
     void cleanup();
@@ -108,16 +113,16 @@ private:
     void finishVerification();
 
     // SFEN解析・再構築
-    ParsedSfen parseSfen(const QString& sfen) const;
-    QString buildSfenFromParsed(const ParsedSfen& parsed) const;
+    static ParsedSfen parseSfen(const QString& sfen);
+    static QString buildSfenFromParsed(const ParsedSfen& parsed);
 
     // 駒種変換
     static int pieceCharToIndex(QChar upper);
     static QChar indexToPieceChar(int idx);
 
     // トリミング操作
-    QList<TrimCandidate> enumerateRemovablePieces(const QString& sfen) const;
-    QString removePieceFromSfen(const QString& sfen, const TrimCandidate& candidate) const;
+    static QList<TrimCandidate> enumerateRemovablePieces(const QString& sfen);
+    static QString removePieceFromSfen(const QString& sfen, const TrimCandidate& candidate);
 
     // トリミングフェーズ制御
     void startTrimmingPhase(const QString& sfen, const QStringList& pv);
@@ -167,6 +172,8 @@ private:
     QList<TrimCandidate> m_trimCandidates; ///< 除去候補リスト
     int m_trimCandidateIndex = 0;            ///< 現在試行中の候補インデックス
     QString m_trimTestSfen;                  ///< 現在テスト中の除去済みSFEN
+    bool m_trimComplete = false;            ///< 最終局面の全1枚除去を確定判定済み
+    bool m_trimProvenInTarget = false;      ///< 除去後の最短手数を内蔵探索で証明済み
 };
 
 #endif // TSUMESHOGIGENERATOR_H

@@ -123,7 +123,6 @@ void TsumeshogiGenerator::stop()
         return;
     }
 
-    flushTrimmingResult();
     m_phase = Phase::Idle;
 
     // バッチ生成をキャンセル
@@ -159,7 +158,12 @@ void TsumeshogiGenerator::onCheckmateSolved(const QStringList& pv)
 
     // 「ちょうどN手」のフィルタリング
     if (pv.size() != m_settings.targetMoves) {
-        // 探索中: 次の局面へ / トリミング中: 手数が変わったので除去却下
+        // 除去後のPV長だけでは最短手数が変わった証明にならない。
+        // 内蔵探索で除外できなかった候補は、未確認の駒を残したまま採択しない。
+        if (m_phase == Phase::Trimming) {
+            rejectInconclusiveTrim();
+            return;
+        }
         advanceAfterFailure();
         return;
     }
@@ -174,6 +178,11 @@ void TsumeshogiGenerator::onCheckmateNoMate()
     m_safetyTimer.stop();
     if (m_phase == Phase::Verifying) {
         submitVerification(TsumeshogiVerifier::Reply::NoMate);
+        return;
+    }
+    if (m_phase == Phase::Trimming && m_trimProvenInTarget) {
+        // 内蔵探索と食い違う応答を、駒を残す根拠にしない。
+        rejectInconclusiveTrim();
         return;
     }
     // 詰みなし → 探索中: 次の局面へ / トリミング中: 除去却下
@@ -195,7 +204,11 @@ void TsumeshogiGenerator::onCheckmateUnknown()
     if (m_phase == Phase::Idle) return;
     if (consumeStaleResponse()) return;
     m_safetyTimer.stop();
-    // 不明・時間切れ → 探索中: 次の局面へ / トリミング中: 除去却下
+    // 不明・時間切れは「その駒が必要」という証明ではない。
+    if (m_phase == Phase::Trimming) {
+        rejectInconclusiveTrim();
+        return;
+    }
     advanceAfterFailure();
 }
 
@@ -206,7 +219,6 @@ void TsumeshogiGenerator::onSafetyTimeout()
     if (m_awaitingStopResponse) {
         // stop にも応答しない → エンジンが固まっているとみなして生成を中止する
         m_awaitingStopResponse = false;
-        flushTrimmingResult();
         m_phase = Phase::Idle;
         cleanup();
         emit errorOccurred(tr("エンジンが応答しないため生成を中止しました。"));
@@ -227,7 +239,8 @@ bool TsumeshogiGenerator::consumeStaleResponse()
     if (!m_awaitingStopResponse) return false;
     m_awaitingStopResponse = false;
     m_safetyTimer.stop();
-    advanceAfterFailure();
+    if (m_phase == Phase::Trimming) rejectInconclusiveTrim();
+    else advanceAfterFailure();
     return true;
 }
 
@@ -262,7 +275,6 @@ void TsumeshogiGenerator::onEngineError(const QString& message)
     }
 
     // 探索中のエンジン異常（プロセス異常終了など）→ 生成ループを終了する
-    flushTrimmingResult();
     m_phase = Phase::Idle;
     cleanup();
     emit errorOccurred(message);
@@ -291,6 +303,7 @@ void TsumeshogiGenerator::generateAndSendNext()
     m_verifiedPv.clear();
     m_trimBaseSfen.clear();
     m_trimBasePv.clear();
+    m_trimComplete = false;
 
     // キューが少なくなったら次のバッチ生成を先行開始
     if (m_positionQueue.size() < 2 && !m_batchWatcher.isRunning()) {
@@ -331,7 +344,8 @@ void TsumeshogiGenerator::processResult(bool found, const QStringList& pv)
 bool TsumeshogiGenerator::registerFoundPosition(const QString& sfen, const QStringList& pv)
 {
     // 通常終了・停止・エラーのすべての出力経路で同じ条件を要求する。
-    if (sfen.isEmpty() || sfen != m_verifiedSfen || pv != m_verifiedPv) return false;
+    if (!m_trimComplete || sfen.isEmpty() || sfen != m_verifiedSfen || pv != m_verifiedPv)
+        return false;
     // トリミングにより異なる候補が同じ最小局面に収束することがあるため重複を除外する
     if (m_foundSfens.contains(sfen)) return false;
     m_foundSfens.insert(sfen);
@@ -340,16 +354,15 @@ bool TsumeshogiGenerator::registerFoundPosition(const QString& sfen, const QStri
     return true;
 }
 
-void TsumeshogiGenerator::flushTrimmingResult()
+void TsumeshogiGenerator::rejectInconclusiveTrim()
 {
-    // 除去局面の検査途中なら、最後に全検査を通ったベースだけを出力する。
-    const bool trimming = m_phase == Phase::Trimming
-        || (m_phase == Phase::Verifying && m_verificationOrigin == Phase::Trimming);
-    if (!trimming || m_trimBaseSfen.isEmpty() || m_trimBaseSfen != m_verifiedSfen
-        || m_trimBasePv != m_verifiedPv) return;
-    m_triedCount++;
-    registerFoundPosition(m_trimBaseSfen, m_trimBasePv);
-    emit progressUpdated(m_generatedCount, m_foundCount, m_elapsedTimer.elapsed());
+    m_trimComplete = false;
+    ++m_verificationRejected;
+    ++m_verificationInconclusive;
+    emit verificationStatsUpdated(m_verificationRejected, m_verificationInconclusive);
+    m_phase = Phase::Searching;
+    emit searchPhaseStarted();
+    processResult(false);
 }
 
 void TsumeshogiGenerator::cleanup()
@@ -384,6 +397,7 @@ void TsumeshogiGenerator::cleanup()
     m_trimCandidates.clear();
     m_trimCandidateIndex = 0;
     m_trimTestSfen.clear();
+    m_trimComplete = false;
 }
 
 // ======================================================================
@@ -440,6 +454,7 @@ void TsumeshogiGenerator::startTrimmingPhase(const QString& sfen, const QStringL
     m_trimBasePv = pv;
     m_trimCandidates = enumerateRemovablePieces(sfen);
     m_trimCandidateIndex = 0;
+    m_trimComplete = false;
     tryNextTrimCandidate();
 }
 
@@ -473,6 +488,7 @@ void TsumeshogiGenerator::tryNextTrimCandidate()
         }
 
         m_trimTestSfen = testSfen;
+        m_trimProvenInTarget = verdict == TsumeshogiCandidateScreener::Verdict::Candidate;
         emit trimmingProgress(m_trimCandidateIndex + 1, static_cast<int>(m_trimCandidates.size()));
         sendTrimmingCheck(m_trimTestSfen);
         return;
@@ -492,7 +508,9 @@ void TsumeshogiGenerator::sendTrimmingCheck(const QString& modifiedSfen)
 
 void TsumeshogiGenerator::finishTrimmingPhase()
 {
-    // トリミング結果を出力
+    // 中断時・判定不能時に、詰みだけを確認した元局面を出力しない。
+    m_trimComplete = m_trimCandidateIndex == m_trimCandidates.size()
+        && m_trimBaseSfen == m_verifiedSfen && m_trimBasePv == m_verifiedPv;
     m_currentSfen = m_trimBaseSfen;
     m_phase = Phase::Searching;
     emit searchPhaseStarted();

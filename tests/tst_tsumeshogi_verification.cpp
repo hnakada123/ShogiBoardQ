@@ -414,7 +414,7 @@ private slots:
         QCOMPARE(found.size(), 0);
         QVERIFY(!generator.isRunning());
     }
-    void trimmingStopPublishesOnlyVerifiedBase()
+    void trimmingStopDoesNotPublishIncompleteBase()
     {
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
@@ -429,10 +429,9 @@ private slots:
         generator.onCheckmateSolved({QStringLiteral("N*2c")}); // 除去後の1手PVだけでは未検証
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Verifying);
         generator.stop();
-        QCOMPARE(found.size(), 1);
-        QCOMPARE(found[0][0].toString(), kUniqueDecorated);
+        QCOMPARE(found.size(), 0);
     }
-    void rejectedTrimKeepsVerifiedBase()
+    void inconclusiveTrimRejectsEntireCandidate()
     {
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
@@ -440,18 +439,17 @@ private slots:
         generator.onCheckmateSolved({QStringLiteral("N*2c")});
         answerVerification(generator, Reply::NoMate);
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        const int queriesAtFirstTrim = static_cast<int>(generator.m_usi->positions.size());
         generator.onCheckmateSolved({QStringLiteral("N*2c")}); // 1二桂を除いた局面の候補PV
         answerVerification(generator, Reply::Unknown);            // 除去後の検査は判定不能
-        // 1二桂の除去が判定不能で却下され、次の1三歩の除去がエンジンに送られている
-        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        QVERIFY(static_cast<int>(generator.m_usi->positions.size()) > queriesAtFirstTrim);
+        // 「除去不能」と解釈せず、局面全体を採択から外して次の候補へ進む。
+        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
+        QCOMPARE(generator.m_verificationInconclusive, 1);
+        QVERIFY(!generator.m_trimComplete);
         QCOMPARE(generator.m_trimBaseSfen, kUniqueDecorated);
         QCOMPARE(generator.m_verifiedSfen, kUniqueDecorated);
         QCOMPARE(found.size(), 0);
         generator.stop();
-        QCOMPARE(found.size(), 1);
-        QCOMPARE(found[0][0].toString(), kUniqueDecorated);
+        QCOMPARE(found.size(), 0);
     }
     void timeoutAndLateResponseDoNotCertify()
     {
@@ -471,7 +469,7 @@ private slots:
         QCOMPARE(found.size(), 0);
         generator.stop();
     }
-    void certificateMatchesSfenAndPvAndDeduplicates()
+    void untrimmedCertificateNeverPublishes()
     {
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
@@ -481,10 +479,10 @@ private slots:
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
         QVERIFY(!generator.registerFoundPosition(kSecond, {QStringLiteral("N*2c")}));
         QVERIFY(!generator.registerFoundPosition(kUniqueDecorated, {QStringLiteral("N*3c")}));
-        QVERIFY(generator.registerFoundPosition(kUniqueDecorated, {QStringLiteral("N*2c")}));
+        // 詰みの証明が同じでも、除去候補を全て確認する前は出力できない。
         QVERIFY(!generator.registerFoundPosition(kUniqueDecorated, {QStringLiteral("N*2c")}));
         generator.stop();
-        QCOMPARE(found.size(), 1);
+        QCOMPARE(found.size(), 0);
     }
     void allExitPathsRequireCertificate_data()
     {
@@ -517,7 +515,7 @@ private slots:
         QCOMPARE(found.size(), 0);
         generator.stop();
     }
-    void normalOutputAndDuplicateCheck()
+    void provenMateCannotBeRejectedByContradictoryNoMate()
     {
         TsumeshogiGenerator generator;
         QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
@@ -525,12 +523,68 @@ private slots:
         generator.onCheckmateSolved({QStringLiteral("N*2c")});
         answerVerification(generator, Reply::NoMate);
         QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
-        // 各除去を不詰として拒否し、検証済みの元局面に収束させる。
-        for (int i = 0; i < 10 && generator.isRunning(); ++i) generator.onCheckmateNoMate();
-        QVERIFY(!generator.isRunning());
-        QCOMPARE(found.size(), 1);
-        QCOMPARE(found[0][0].toString(), kUniqueDecorated);
+        QVERIFY(generator.m_trimProvenInTarget);
+        generator.onCheckmateNoMate();
+        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Searching);
+        QCOMPARE(generator.m_verificationInconclusive, 1);
+        QCOMPARE(found.size(), 0);
         QVERIFY(!generator.registerFoundPosition(kUniqueDecorated, {QStringLiteral("N*2c")}));
+        generator.stop();
+    }
+    void unresolvedTrimmingNeverPublishes_data()
+    {
+        QTest::addColumn<int>("failure");
+        QTest::newRow("timeout") << 0;
+        QTest::newRow("different-pv-length") << 1;
+        QTest::newRow("late-response") << 2;
+        QTest::newRow("engine-error") << 3;
+        QTest::newRow("stop") << 4;
+    }
+    void unresolvedTrimmingNeverPublishes()
+    {
+        QFETCH(int, failure);
+        TsumeshogiGenerator generator;
+        QSignalSpy found(&generator, &TsumeshogiGenerator::positionFound);
+        prepare(generator, kUniqueDecorated);
+        generator.onCheckmateSolved({QStringLiteral("N*2c")});
+        answerVerification(generator, Reply::NoMate);
+        QCOMPARE(generator.m_phase, TsumeshogiGenerator::Phase::Trimming);
+        QCOMPARE(generator.m_verifiedSfen, kUniqueDecorated);
+        if (failure == 0) generator.onCheckmateUnknown();
+        if (failure == 1) generator.onCheckmateSolved({QStringLiteral("N*2c"), QStringLiteral("1a1b"), QStringLiteral("2c1a+")});
+        if (failure == 2) {
+            generator.m_awaitingStopResponse = true;
+            generator.onCheckmateNoMate();
+        }
+        if (failure == 3) generator.onEngineError(QStringLiteral("test error"));
+        if (failure == 4) generator.stop();
+        QCOMPARE(found.size(), 0);
+        QVERIFY(!generator.m_trimComplete);
+        generator.stop();
+        QCOMPARE(found.size(), 0);
+    }
+    void problem703RemovalPreservesMateLine()
+    {
+        const QString original = QStringLiteral("9/9/5N3/9/9/9/9/8+R/5k1L1 b Gr2b3g4s3n3l18p 1");
+        const QString noKnight = QStringLiteral("9/9/9/9/9/9/9/8+R/5k1L1 b Gr2b3g4s4n3l18p 1");
+        const QString noLance = QStringLiteral("9/9/5N3/9/9/9/9/8+R/5k3 b Gr2b3g4s3n4l18p 1");
+        const QString neither = QStringLiteral("9/9/9/9/9/9/9/8+R/5k3 b Gr2b3g4s4n4l18p 1");
+        const auto removals = TsumeshogiGenerator::onePieceRemovedPositions(original);
+        QVERIFY(removals.contains(noKnight));
+        QVERIFY(removals.contains(noLance));
+        QVERIFY(TsumeshogiGenerator::onePieceRemovedPositions(noKnight).contains(neither));
+        for (const auto& sfen : {original, noKnight, noLance, neither}) {
+            shogi::Position position;
+            QVERIFY(position.set_sfen(sfen.toStdString(), true));
+            const auto moves = QStringLiteral("G*4h 4i5i 4h5h 5i6i 5h6h 6i7i 6h7h 7i8i 7h8h 8i9i 8h9h 9i8i 1h8h")
+                                   .split(QLatin1Char(' '));
+            for (const auto& move : moves) {
+                const bool attacking = position.side_to_move() == shogi::Color::Black;
+                QVERIFY(position.apply_usi_move(move.toStdString()));
+                if (attacking) QVERIFY(position.is_in_check(shogi::Color::White));
+            }
+            QVERIFY(position.generate_legal_moves().empty());
+        }
     }
 };
 

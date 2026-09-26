@@ -57,6 +57,14 @@ void TsumeshogiGenerator::finishVerification()
 {
     const auto result = m_verifier.result();
     m_phase = m_verificationOrigin;
+    if (m_phase == Phase::Trimming
+        && (result.status == TsumeshogiVerifier::Status::Unknown
+            || result.status == TsumeshogiVerifier::Status::Invalid
+            || result.status == TsumeshogiVerifier::Status::WrongLength
+            || (result.status == TsumeshogiVerifier::Status::NoMate && m_trimProvenInTarget))) {
+        rejectInconclusiveTrim();
+        return;
+    }
     if (result.status != TsumeshogiVerifier::Status::Unique) {
         ++m_verificationRejected;
         if (result.status == TsumeshogiVerifier::Status::Unknown)
@@ -76,6 +84,7 @@ void TsumeshogiGenerator::finishVerification()
         m_trimBasePv = m_verifiedPv;
         m_trimCandidates = enumerateRemovablePieces(m_trimBaseSfen);
         m_trimCandidateIndex = 0;
+        m_trimComplete = false;
         tryNextTrimCandidate();
     }
 }
