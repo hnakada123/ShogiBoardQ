@@ -1,19 +1,22 @@
-# ShogiBoardQ 2026.09.25 詰将棋局面生成
-# 初回生成日時: 2026/09/26 11:36:49 JST
-# 更新日時: 2026/09/26 11:44:49 JST
+# ShogiBoardQ 詰将棋問題集（不要駒再検査済み）
+# 初回作成日: 2026/09/26
+# 不要駒除去・補充・最終検査: 2026-09-27T06:29:05+09:00
 # エンジン: KomoringHeights 1.1.0 64ZEN2 (PostSearchLevel=MinLength)
 # 目標手数: 3 手詰
-# 局面数: 1000（重複なし）
-# 攻め駒上限: 4 枚
-# 守り駒上限: 1 枚（玉以外）
-# 配置範囲: 3 マス（玉中心）
-# 探索時間/局面: 20 秒
-# 未使用駒: 玉方の持駒に追加
-# 余詰検査: 初手の余詰を除外、最終手の複数解を許容
-# 手順形式: SFEN moves <初手> <玉方応手> <詰めの手>
-# 追加内容: 既存300題を先頭に保持し、新規700題を追加
+# 局面数: 1000（除去後のSFENに重複なし）
+# 生成: ランダム配置、および既存局面の駒配置・持駒変更（手数別）
+# 補充時の探索時間: 候補・除去検査・余詰検査ごとに最大15秒
+# 未使用駒・除去した駒: 玉方の持駒に追加
+# 最短手数: Hayanagiの有限深さ探索（局面ごとに新しい探索表）で確認
+# 手順: 全手の合法性・攻方の連続王手・終端の詰みを確認
+# 余詰検査: 主手順の余詰を除外、最終手の複数解・変化別詰を許容
+# 不要駒検査: 玉以外の盤上駒・攻方持駒の全1枚除去を検査し、同じ条件で成立する除去がないことを確認
+# 時間切れ・判定不能・検査間の判定不一致: 採択しない
+# 二歩・行き所のない駒・駒の総数: 全件確認
+# 問題番号は初回作成分から変更。検証条件・集計はREADME.mdとvalidation_20260926.jsonを参照
+# 手順形式: SFEN moves <USI指し手を空白区切りで列挙>
 9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+
-9/9/9/9/9/9/1+P7/k8/B1+N6 b 2rb4g4s3n4l17p 1 moves 8g8h 9h9i 8h8i
+9/9/9/9/9/9/1+P7/k8/2+N6 b 2r2b4g4s3n4l17p 1 moves 8g8h 9h9i 8h8i
 1k7/2p1+N4/P8/L8/9/9/9/9/9 b B2rb4g4s3n3l16p 1 moves 9c9b+ 8a7a B*8b
 9/9/9/9/9/9/1G7/k8/1s7 b GS2r2b2g2s4n4l18p 1 moves G*9g 9h9i S*8h
 9/5+R1G1/8k/9/9/7G1/9/9/9 b r2b2g4s4n4l18p 1 moves 4b3c 1c1d 3c2c
@@ -24,7 +27,7 @@
 k2G5/9/9/2B6/9/9/9/9/9 b S2rb3g3s4n4l18p 1 moves S*9b 9a8b 7d8c+
 9/3R5/k8/9/1L7/9/9/9/9 b r2b4g4s4n3l18p 1 moves 6b8b+ 9c9d 8b8d
 9/9/9/6+R2/9/9/8k/7N1/7s1 b R2b4g3s3n4l18p 1 moves 3d3g 1g1h R*1g
-9/9/9/9/9/9/6R1N/8k/5+R3 b L2b4g4s3n3l18p 1 moves L*1i 1h2h 4i3i
+9/9/9/9/9/9/6R2/8k/5+R3 b L2b4g4s4n3l18p 1 moves L*1i 1h2h 4i3i
 9/1G7/4R4/1k7/9/2G6/9/9/9 b r2b2g4s4n4l18p 1 moves 5c8c+ 8d9e 7f8f
 9/9/9/9/9/9/5R2S/9/6+L1k b r2b4g3s4n3l18p 1 moves 1g2h 1i1h 4g1g
 9/9/9/9/R8/+B8/r8/k8/9 b b4g4s4n4l18p 1 moves 9f9g 9h9i 9g9h
@@ -47,7 +50,7 @@ k2G5/9/9/2B6/9/9/9/9/9 b S2rb3g3s4n4l18p 1 moves S*9b 9a8b 7d8c+
 7k1/9/9/7N1/9/9/9/9/9 b GN2r2b3g4s2n4l18p 1 moves G*3b 2a1a N*2c
 5k3/9/2N2+B3/6L2/9/9/9/9/9 b 2rb4g4s3n3l18p 1 moves 3d3b+ 4a5a 7c6a+
 9/sk7/3S5/9/G8/9/9/9/9 b GN2r2b2g2s3n4l18p 1 moves N*9d 8b9a G*8b
-9/8k/9/7LN/9/9/9/9/9 b G2r2b3g4s3n3l18p 1 moves G*2c 1b2a 1d2b+
+9/8k/9/7L1/9/9/9/9/9 b G2r2b3g4s4n3l18p 1 moves G*2c 1b2a 2c2b
 9/9/9/9/9/8+L/9/6+B1k/9 b S2rb4g3s4n3l18p 1 moves S*2i 1h1i 3h2h
 9/9/9/9/9/6+B1k/9/9/9 b G2rb3g4s4n4l18p 1 moves G*2f 1f1g 3f2g
 9/9/9/9/6+B1k/9/9/9/9 b Rrb4g4s4n4l18p 1 moves R*2e 1e1d 3e2d
@@ -71,7 +74,7 @@ k2G5/9/9/2B6/9/9/9/9/9 b S2rb3g3s4n4l18p 1 moves S*9b 9a8b 7d8c+
 9/1Sk6/9/9/9/9/9/9/9 b 2G2r2b2g3s4n4l18p 1 moves G*7c 7b6a G*6b
 k8/1L1R5/9/3B5/9/9/9/9/9 b rb4g4s4n3l18p 1 moves 8b8a+ 9a8a 6d8b+
 1+P1k5/9/9/2LGL4/9/9/9/9/9 b 2r2b3g4s4n2l17p 1 moves 8a7a 6a6b 7d7b+
-9/2l6/9/k1B6/9/9/9/9/9 b GS2rb3g3s4n3l18p 1 moves S*8e 9d9c G*9b
+9/9/9/k1B6/9/9/9/9/9 b GS2rb3g3s4n4l18p 1 moves S*8e 9d9c G*9b
 9/9/9/9/k8/9/9/1L+R6/9 b r2b4g4s4n3l18p 1 moves 7h7e 9e9d 7e8d
 9/9/9/9/9/k1+P6/9/9/9 b RGr2b3g4s4n4l17p 1 moves R*8f 9f9e 7f8e
 9/9/9/9/9/7+B1/9/9/6B1k b 2r4g4s4n4l18p 1 moves 2f3g 1i1h 3g2h
@@ -85,7 +88,7 @@ k8/1L1R5/9/3B5/9/9/9/9/9 b rb4g4s4n3l18p 1 moves 8b8a+ 9a8a 6d8b+
 9/9/9/9/9/5B3/6R2/5G3/8k b rb3g4s4n4l18p 1 moves 3g1g 1i2i 1g1i
 9/3k5/5+R3/1G7/9/9/9/9/9 b Sr2b3g3s4n4l18p 1 moves 8d7c 6b7a S*7b
 9/9/9/9/9/7R1/4B1k2/9/4+P4 b Br4g4s4n4l17p 1 moves 5g4h 3g4g B*5f
-6k2/6l2/3B2+S2/9/9/9/9/9/9 b B2r4g3s4n3l18p 1 moves B*1c 3a2a 1c2b+
+6k2/9/3B2+S2/9/9/9/9/9/9 b B2r4g3s4n4l18p 1 moves B*1c 3a2a 1c2b+
 1k7/9/9/N8/9/9/9/9/9 b RSr2b4g3s3n4l18p 1 moves R*8b 8a9a S*9b
 3k5/9/5G3/4R4/9/9/9/9/9 b Sr2b3g3s4n4l18p 1 moves 5d5b+ 6a7a S*8b
 9/9/9/9/9/9/9/8k/6+N2 b G2r2b3g4s3n4l18p 1 moves G*2h 1h1i 2h2i
@@ -123,7 +126,6 @@ k8/2+N+B5/9/9/9/9/9/9/9 b 2rb4g4s3n4l18p 1 moves 6b7c 9a9b 7c8b
 9/7pk/6+R2/9/9/9/9/9/9 b Gr2b3g4s4n4l17p 1 moves G*1c 1b2a 1c2b
 7k1/9/8B/6R2/9/9/9/9/9 b rb4g4s4n4l18p 1 moves 3d3a+ 2a1b 1c2b+
 9/9/8k/6S2/9/7G1/9/9/9 b G2r2b2g3s4n4l18p 1 moves G*2c 1c1d 2f2e
-9/9/k8/9/2N6/9/9/9/9 b 2R2b4g4s3n4l18p 1 moves R*8c 9c9b R*9c
 kB7/3+R5/r8/1+B7/9/9/9/9/9 b 4g4s4n4l18p 1 moves 8d7c 9a8a 7c8b
 5sk2/7R1/7P1/9/9/9/9/9/9 b 2Sr2b4gs4n4l17p 1 moves S*4b 4a4b S*3b
 6B1k/9/8g/7G1/9/9/9/9/9 b S2rb2g3s4n4l18p 1 moves S*2b 1a1b 2d1c
@@ -132,7 +134,7 @@ kB7/3+R5/r8/1+B7/9/9/9/9/9 b 4g4s4n4l18p 1 moves 8d7c 9a8a 7c8b
 7kg/9/5G3/6G2/9/9/9/9/9 b S2r2bg3s4n4l18p 1 moves S*3b 2a2b 3d2c
 7k1/6R2/9/5R3/9/9/9/9/9 b 2b4g4s4n4l18p 1 moves 4d4a+ P*3a 4a3a
 9/9/9/9/9/9/6SG1/8k/9 b G2r2b2g3s4n4l18p 1 moves 2g2h 1h1i G*1h
-k8/9/+N8/2G6/9/9/9/9/9 b Rr2b3g4s3n4l18p 1 moves R*9b 9a8a 9b8b+
+k8/9/+N8/9/9/9/9/9/9 b Rr2b4g4s3n4l18p 1 moves R*9b 9a8a 9b8b+
 8k/9/6+LB1/9/9/9/9/9/9 b B2r4g4s4n3l18p 1 moves B*2b 1a2a 3c3b
 9/9/9/9/9/2R6/4S4/4k4/6G2 b R2b3g3s4n4l18p 1 moves 3i4h 5h6g R*6f
 3k5/+N8/3B5/4L4/9/9/9/9/9 b 2rb4g4s3n3l18p 1 moves 5d5b+ 6a7a 6c8a+
@@ -146,7 +148,7 @@ k8/9/+N8/2G6/9/9/9/9/9 b Rr2b3g4s3n4l18p 1 moves R*9b 9a8a 9b8b+
 9/4B4/9/1k1g5/9/2+N1B4/9/9/9 b G2r2g4s3n4l18p 1 moves G*8c 8d9d 5b8e+
 9/9/9/9/9/9/9/k1+S6/2G6 b 2r2b3g3s4n4l18p 1 moves 7h8h 9h9i 7i8i
 5k3/4R4/6L2/9/9/9/9/9/9 b Sr2b4g3s4n3l18p 1 moves 5b3b+ 4a5a S*6b
-3k5/5+R3/9/6P2/9/9/9/9/9 b 2Nr2b4g4s2n4l17p 1 moves N*7c 6a7a N*8c
+3k5/5+R3/9/9/9/9/9/9/9 b 2Nr2b4g4s2n4l18p 1 moves N*7c 6a7a N*8c
 9/9/9/9/9/9/6+R1G/9/6g1k b r2b2g4s4n4l18p 1 moves 3g3i S*2i G*1h
 9/k8/2+S6/1s7/9/9/9/9/9 b 2S2r2b4g4n4l18p 1 moves S*8c 9b9a 8c8b+
 9/9/9/9/9/5+R3/5+L3/6k2/6B2 b rb4g4s4n3l18p 1 moves 4f3g 3h4i 3g4h
@@ -176,7 +178,7 @@ k8/r8/9/2R6/9/9/9/9/9 b N2b4g4s3n4l18p 1 moves 7d7a+ P*8a N*8c
 4k4/9/1S4+P2/5R3/9/9/9/9/9 b r2b4g3s4n4l17p 1 moves 4d4b+ 5a6a 8c7b
 9/1G7/k8/9/9/9/9/9/9 b RGr2b2g4s4n4l18p 1 moves R*8c 9c9d G*8e
 2k6/3R5/9/4R4/9/9/9/9/9 b 2b4g4s4n4l18p 1 moves 5d5a+ P*6a 5a6a
-9/9/9/9/9/6+Bnk/9/6+R2/9 b rb4g4s3n4l18p 1 moves 3h2g 1f1e 2g2f
+9/9/9/9/9/6+B1k/9/6+R2/9 b rb4g4s4n4l18p 1 moves 3h2g 1f1e 3f2e
 6B2/8k/9/8b/6N2/9/9/9/9 b S2r4g3s3n4l18p 1 moves S*1c 1b2a 1c2b+
 9/9/k8/9/1L7/1+N7/9/9/9 b G2r2b3g4s3n3l18p 1 moves G*8c 9c9d 8c8d
 9/9/9/9/9/8k/6B2/9/8G b G2rb2g4s4n4l18p 1 moves G*2f 1f1g 1i2h
@@ -208,7 +210,7 @@ k2+N5/9/9/2+B6/9/9/9/9/9 b S2rb4g3s3n4l18p 1 moves S*9b 9a8b 7d8c
 p2+N5/k8/2+R6/9/9/9/9/9/9 b Pr2b4g4s3n4l16p 1 moves P*9c 9b8a 6a7a
 9/9/9/9/2+L6/k8/3R5/9/9 b GPr2b3g4s4n3l17p 1 moves P*9g 9f9e G*8e
 9/9/9/9/9/9/1G7/k8/2G6 b 2r2b2g4s4n4l18p 1 moves 8g8h 9h9i 8h8i
-k8/9/2G6/3P5/9/9/9/9/9 b RBrb3g4s4n4l17p 1 moves B*8b 9a8a R*9a
+k8/9/2G6/9/9/9/9/9/9 b RBrb3g4s4n4l18p 1 moves B*8b 9a8a R*9a
 8p/7k1/6P2/9/5+B3/9/9/9/9 b G2rb3g4s4n4l16p 1 moves G*2c 2b3a 3c3b+
 9/9/9/9/9/9/9/8k/6+S2 b RLr2b4g3s4n3l18p 1 moves R*2h 1h1g L*1h
 9/9/9/9/9/1R7/9/k1+S6/9 b r2b4g3s4n4l18p 1 moves 7h8h 9h9i 8h8i
@@ -219,7 +221,7 @@ k8/1L7/1R7/9/9/9/9/9/9 b r2b4g4s4n3l18p 1 moves 8b8a+ 9a9b 8c8b+
 8k/5G3/7+N1/9/9/9/9/9/9 b P2r2b3g4s3n4l17p 1 moves P*1b 1a2a 4b3b
 9/9/9/9/9/9/1B3+B3/G8/2k6 b 2r3g4s4n4l18p 1 moves 4g6i 7i8i 6i7h
 9/2S6/k8/9/1L7/+L8/9/9/9 b 2r2b4g3s4n2l18p 1 moves 7b8c+ 9c9d 8c8d
-9/9/1+R7/3G5/9/2k6/3R5/9/9 b S2b3g3s4n4l18p 1 moves 8c8g 7f7e 6d6e
+9/9/1+R7/3G5/9/2k6/3R5/9/9 b 2b3g4s4n4l18p 1 moves 8c8g 7f7e 6d6e
 9/9/9/7R1/9/7G1/8k/9/8+p b r2b3g4s4n4l17p 1 moves 2f2g 1g1h 2g2h
 6k2/7r1/4+S2+S1/7L1/9/9/9/9/9 b r2b4g2s4n3l18p 1 moves 2c2b 3a4a R*3a
 9/9/9/9/9/9/2+R6/3R5/4ks3 b 2b4g3s4n4l18p 1 moves 7g7i S*6i 7i6i
@@ -454,7 +456,6 @@ k1+P6/9/9/9/9/9/9/9/9 b RGr2b3g4s4n4l17p 1 moves R*8a 9a9b G*8c
 5k3/4R4/2R6/9/9/9/9/9/9 b 2b4g4s4n4l18p 1 moves 7c4c+ 4a3a 5b3b+
 9/9/9/9/9/6R2/6+B2/9/5k3 b Grb3g4s4n4l18p 1 moves G*5i 4i3i 3g3h
 9/9/9/9/1k7/3+B5/1G7/9/9 b Rrb3g4s4n4l18p 1 moves R*8d 8e9e 8g8f
-9/6BR1/7g1/8k/9/9/9/9/9 b rb3g4s4n4l18p 1 moves 2b2c+ 1d1e G*2f
 9/9/9/6+RLk/8g/9/9/9/9 b r2b3g4s4n3l18p 1 moves 2d2c+ P*2d 2c2d
 9/9/9/9/9/k8/b1+R6/9/1L7 b rb4g4s4n3l18p 1 moves 7g8g 9f9e 8g8e
 9/9/9/9/9/5+B1k1/9/9/8L b G2rb3g4s4n3l18p 1 moves G*3f 2f2g 4f3g
@@ -522,7 +523,6 @@ k8/9/1+L7/3N5/9/9/9/9/9 b P2r2b4g4s3n3l17p 1 moves P*9b 9a8a 6d7b+
 9/9/9/9/1R7/9/9/k8/9 b Gr2b3g4s4n4l18p 1 moves G*8h 9h9i 8h8i
 3+B2k1+N/9/6P2/9/9/9/9/9/9 b Rrb4g4s3n4l17p 1 moves R*3b 3a4a 6a5b
 9/7kS/9/4B4/6N2/9/9/9/9 b 2rb4g3s3n4l18p 1 moves 3e2c+ 2b3a 5d3b+
-k8/9/+N8/9/9/9/9/9/9 b Rr2b4g4s3n4l18p 1 moves R*9b 9a8a 9b8b+
 3R5/1k7/3+B5/9/G8/9/9/9/9 b rb3g4s4n4l18p 1 moves 6a8a+ 8b9c 9e8d
 9/7Lk/9/8+S/8R/9/9/9/9 b r2b4g3s4n3l18p 1 moves 1d1c 1b1a 1c1b
 9/9/9/9/9/9/3S+R4/9/3k5 b r2b4g3s4n4l18p 1 moves 5g5h 6i7i 5h7h
@@ -560,7 +560,6 @@ k8/9/3R5/9/9/9/9/9/9 b Gr2b3g4s4n4l18p 1 moves 6c9c+ 9a8a G*8b
 kg+L6/9/S8/9/9/9/9/9/9 b 2r2b3g3s4n3l18p 1 moves 7a8a 9a8a G*8b
 9/9/9/6S2/7Sk/9/5+R3/9/9 b r2b4g2s4n4l18p 1 moves 4g1g P*1f 1g1f
 k8/9/1S7/1+B7/9/9/9/9/9 b 2rb4g3s4n4l18p 1 moves 8d7c 9a8a 8c8b+
-9/7+L1/3+B2k2/9/6b2/9/9/9/9 b RGr3g4s4n3l18p 1 moves R*2c 3c4b G*4a
 9/9/9/9/9/9/1R7/G4S3/2+lk5 b Gr2b2g3s4n3l18p 1 moves G*5i 6i7h 9h8h
 9/1S7/1k7/s1R6/9/9/9/9/9 b r2b4g2s4n4l18p 1 moves 7d7c+ 8c9b 7c9c
 7R1/9/6+P2/8k/9/9/6+N2/9/9 b r2b4g4s3n4l17p 1 moves 2a2c+ 1d1e 3g2f
@@ -592,7 +591,6 @@ S8/3R5/k8/9/9/9/9/9/9 b R2b4g3s4n4l18p 1 moves 6b8b+ 9c9d R*9c
 9/9/9/3G5/k2+B5/9/s+L7/9/9 b Rrb3g3s4n3l18p 1 moves R*9f 9e8d 6e7d
 1k7/4G4/1B7/9/9/9/9/9/9 b G2rb2g4s4n4l18p 1 moves G*9b 8a7a 5b6a
 2+N6/1k7/2l6/R+B7/9/9/9/9/9 b rb4g4s3n3l18p 1 moves 8d9c 8b9a 9c9b
-4kBR2/9/4b4/9/9/9/9/9/9 b R4g4s4n4l18p 1 moves 4a6c+ 5a4b R*4a
 2R6/k1+B6/9/9/9/9/9/9/9 b rb4g4s4n4l18p 1 moves 7a8a+ 9b9c 7b8c
 9/3Blk1+L1/9/7+P1/9/9/9/9/9 b G2rb3g4s4n2l17p 1 moves G*3c 4b4a 3c3b
 9/9/9/9/9/2B6/G8/9/k1g6 b Rrb2g4s4n4l18p 1 moves 9g9h 9i8i R*8h
@@ -926,7 +924,6 @@ k8/9/1GR6/9/9/9/9/9/9 b r2b3g4s4n4l18p 1 moves 7c7a+ P*8a 8c8b
 9/6R2/9/9/8k/6B2/9/7S1/9 b rb4g3s4n4l18p 1 moves 3b3e+ 1e1f 3f2g
 9/9/9/9/9/6S2/8k/9/9 b 2R2b4g3s4n4l18p 1 moves R*2g 1g1f R*1g
 9/9/9/9/9/5R3/7k1/9/8+N b 2Sr2b4g2s3n4l18p 1 moves S*2h 2g3h S*2g
-9/9/9/9/9/9/9/b2R5/k8 b RSb4g3s4n4l18p 1 moves S*8h 9i8i R*9i
 9/9/9/9/9/9/9/4G4/5k3 b 2R2b3g4s4n4l18p 1 moves R*4h 4i3i R*4i
 7k1/9/7B1/8+R/9/9/9/9/9 b rb4g4s4n4l18p 1 moves 1d1b 2a3a 2c3b+
 7k1/9/7P1/9/9/9/9/9/9 b RSr2b4g3s4n4l17p 1 moves R*2b 2a3a S*4b
@@ -1012,3 +1009,9 @@ g8/9/k8/9/1L7/9/9/9/9 b RSr2b3g3s4n3l18p 1 moves R*8c 9c9b S*9c
 R8/1k1+N5/9/S+S7/9/9/9/9/9 b r2b4g2s3n4l18p 1 moves 9a7a+ 8b9b 9d9c
 9/9/9/8k/6G2/9/8G/9/9 b G2r2bg4s4n4l18p 1 moves G*2d 1d1e 2d2e
 8k/6S2/6+L2/9/9/9/9/9/9 b B2rb4g3s4n3l18p 1 moves B*2b 1a1b 3c2c
+k8/1P+L6/g8/9/9/9/9/9/9 b 2r2b3g4s4n3l17p 1 moves 8b8a+ 9a9b 8a8b
+9/9/2S6/9/k1B6/9/9/+S8/9 b S2rb4gs4n4l18p 1 moves S*8f 9e9d 7c8d+
+9/2k6/3P5/9/1L1+R5/9/9/9/9 b r2b4g4s4n3l17p 1 moves 6c6b+ 7b7c 6b6c
+2+L6/3k2+S2/4l4/2R6/9/9/9/9/9 b r2b4g3s4n2l18p 1 moves 7d7b+ 6b5a 7a6a
+9/9/9/2+P6/9/1kB6/9/9/9 b GL2rb3g4s4n3l17p 1 moves G*8g 8f9e L*9f
+9/9/9/9/9/9/9/9/6+N1k b SL2r2b4g3s3n3l18p 1 moves S*2h 1i1h L*1i

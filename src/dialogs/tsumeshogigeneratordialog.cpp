@@ -93,7 +93,7 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
 
 TsumeshogiGeneratorDialog::~TsumeshogiGeneratorDialog()
 {
-    // ウィジェット破棄前に停止する（トリミング中の結果もここで確定する）。Idle なら何もしない
+    // ウィジェット破棄前に停止する。トリミング未完了の局面は出力しない。Idle なら何もしない
     m_generator->stop();
     saveSettings();
 }

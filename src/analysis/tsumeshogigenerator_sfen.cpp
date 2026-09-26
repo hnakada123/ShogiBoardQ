@@ -7,7 +7,7 @@ namespace {
 constexpr int kPieceTypeCount = 7; // P,L,N,S,G,B,R
 }
 
-TsumeshogiGenerator::ParsedSfen TsumeshogiGenerator::parseSfen(const QString& sfen) const
+TsumeshogiGenerator::ParsedSfen TsumeshogiGenerator::parseSfen(const QString& sfen)
 {
     ParsedSfen result;
 
@@ -77,7 +77,7 @@ TsumeshogiGenerator::ParsedSfen TsumeshogiGenerator::parseSfen(const QString& sf
     return result;
 }
 
-QString TsumeshogiGenerator::buildSfenFromParsed(const ParsedSfen& parsed) const
+QString TsumeshogiGenerator::buildSfenFromParsed(const ParsedSfen& parsed)
 {
     QString board;
     for (int r = 0; r < 9; ++r) {
@@ -164,7 +164,7 @@ QChar TsumeshogiGenerator::indexToPieceChar(int idx)
 }
 
 QList<TsumeshogiGenerator::TrimCandidate>
-TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen) const
+TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
 {
     QList<TrimCandidate> candidates;
     const ParsedSfen parsed = parseSfen(sfen);
@@ -213,7 +213,7 @@ TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen) const
 }
 
 QString TsumeshogiGenerator::removePieceFromSfen(
-    const QString& sfen, const TrimCandidate& candidate) const
+    const QString& sfen, const TrimCandidate& candidate)
 {
     ParsedSfen parsed = parseSfen(sfen);
 
@@ -225,7 +225,7 @@ QString TsumeshogiGenerator::removePieceFromSfen(
         // 盤上の駒を除去
         parsed.cells[candidate.rank][candidate.file].clear();
 
-        // 40駒保存則: 除去した駒は後手持駒に移動（生駒に戻す）
+        // 駒の総数を維持: 除去した駒は後手持駒に移動（生駒に戻す）
         if (pieceIdx >= 0) {
             parsed.goteHand[pieceIdx]++;
         }
@@ -236,4 +236,12 @@ QString TsumeshogiGenerator::removePieceFromSfen(
     }
 
     return buildSfenFromParsed(parsed);
+}
+
+QStringList TsumeshogiGenerator::onePieceRemovedPositions(const QString& sfen)
+{
+    QStringList positions;
+    const auto candidates = enumerateRemovablePieces(sfen);
+    for (const auto& candidate : candidates) positions.append(removePieceFromSfen(sfen, candidate));
+    return positions;
 }
