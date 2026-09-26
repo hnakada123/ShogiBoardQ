@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>詰将棋局面生成 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの詰将棋局面生成機能を紹介します。ランダムに詰将棋の候補局面を生成し、USIエンジンで詰み探索を行い、指定手数の詰みが存在する局面を自動で発見します。">
+    <meta name="description" content="ShogiBoardQの詰将棋局面生成機能を紹介します。GUIの操作に加え、3～13手詰を各1000題作成した際の候補生成の工夫、CLIとPythonによる並列実行、重複除外と全件検証の方法を説明します。">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
     <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html">
     <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html">
@@ -41,6 +41,7 @@
             <li><a href="#generation">局面生成</a></li>
             <li><a href="#results">生成結果</a></li>
             <li><a href="#replay">手順の確認</a></li>
+            <li><a href="#bulk-generation">大量生成</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -126,10 +127,10 @@
                     <li>後手の玉を9x9盤面のランダムな位置に配置</li>
                     <li>攻め駒を玉の周辺に配置（盤上または持駒としてランダムに振り分け）</li>
                     <li>守り駒を玉の周辺に配置</li>
-                    <li>未使用の駒は全て受方（後手）持駒に追加（40駒保存則）</li>
+                    <li>攻方の玉を省略し、その他の未使用駒は全て受方（後手）持駒に追加</li>
                     <li>初期局面で王手がかかっていないことを検証</li>
                 </ul>
-                <p class="guide-step-text">生成された局面はまず内蔵の詰み探索で選別され、指定手数ちょうどで詰み、かつ詰む初手が1つだけの候補がUSIエンジンに送信されます。エンジンが指定手数の詰みを確認した局面だけが余詰検査に進みます。「探索済み」には内蔵探索で除外した局面も含まれます。</p>
+                <p class="guide-step-text">生成された局面はまず内蔵の詰み探索で選別され、目標手数で詰まないと分かった局面や、複数の詰む初手が見つかった局面を除外します。標準実装では、内蔵探索で判定できなかった候補もUSIエンジンに送信します。エンジンが指定手数の詰みを確認した局面だけが余詰検査に進みます。「探索済み」には内蔵探索で除外した局面も含まれます。</p>
             </div>
 
         </div>
@@ -172,7 +173,7 @@
                 <ul class="guide-step-text">
                     <li>盤上の攻方・守方の駒、攻方の持駒を1枚ずつ試行的に除去</li>
                     <li>除去しても同じ手数で詰む場合は除去を確定</li>
-                    <li>除去した駒は後手持駒に移動（40駒保存則を維持）</li>
+                    <li>除去した駒は後手持駒に移動し、駒の総数を維持</li>
                     <li>1枚除去するたびに再チェックし、新たに不要になった駒も除去</li>
                 </ul>
             </div>
@@ -201,6 +202,309 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: Bulk Generation Case Study -->
+<section id="bulk-generation" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">各1000題の問題集を作成した方法</h2>
+        <p class="section-desc">2026年9月26日に行った、3・5・7・9・11・13手詰、計6000題の生成事例です</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">作成した問題集と実行経路</span>
+                </div>
+                <p class="guide-step-text">この作業では、PythonからCLIの <code>generate-tsume</code> を直接、並列実行しました。ShogiBoardQのMCPサーバーは使用していません。生成された問題集は、リポジトリの <a href="https://github.com/hnakada123/ShogiBoardQ/tree/main/data/tsumeshogi"><code>data/tsumeshogi/</code></a> に、1行1題のSFENとUSI形式の詰め手順を組み合わせたテキストとして保存しています。</p>
+                <table class="info-table">
+                    <thead><tr><th scope="col">問題集</th><th scope="col">作成時の主な工夫</th></tr></thead>
+                    <tbody>
+                        <tr><td><a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/tsume_3ply_1000_20260926.txt">3手詰・1000題</a></td><td>ランダム配置で300題を作成し、既存の300題を保持したまま700題を追加。</td></tr>
+                        <tr><td><a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/tsume_5ply_1000_20260926.txt">5手詰・1000題</a></td><td>ランダム配置を並列実行し、エンジンの探索時間を0.5～20秒の範囲で比較。</td></tr>
+                        <tr><td><a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/tsume_7ply_1000_20260926.txt">7手詰・1000題</a></td><td>駒数・配置範囲を比較。一時実行版で事前選別を5msに短縮し、詰みを確認できた候補に限定。</td></tr>
+                        <tr><td><a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/tsume_9ply_1000_20260926.txt">9手詰・1000題</a></td><td>事前選別を1・3・5・10・25msで比較。玉が盤端に近い候補を優先し、並列数を8から16へ変更。</td></tr>
+                        <tr><td><a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/tsume_11ply_1000_20260926.txt">11手詰・1000題</a></td><td>ランダム配置に、生成済みの7・9・11手詰の駒配置や持駒を変更する近傍探索を追加。</td></tr>
+                        <tr><td><a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/tsume_13ply_1000_20260926.txt">13手詰・1000題</a></td><td>7・9・11・13手詰を種局面に利用。駒移動・駒種変更の比率を増やし、採択後の独立した詰み確認も実施。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">全問題集で、主手順の途中の余詰を除外し、最終手の複数解は許容しました。最終的な1000題について、最短手数・手順の合法性・局面の重複を別途確認しています。具体的な生成条件は各ファイルの先頭コメントにも記録しています。</p>
+            </div>
+
+            <div class="guide-step" id="temporary-generator">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">標準機能と、作業用に追加した処理</span>
+                </div>
+                <p class="guide-step-text">標準のGUIとCLIは、共通の <code>TsumeshogiGenerator</code> を使って、候補生成、USIエンジンの詰み探索、主手順の余詰検査、不要駒トリミングを行います。長手数の大量生成では、この処理を利用する作業用の一時実行版を <code>/tmp</code> に作成し、候補の作り方と事前選別を調整しました。</p>
+                <p class="guide-step-text"><strong>以下の短時間選別、玉位置による絞り込み、近傍探索は、この作業の一時実行版に追加した処理です。</strong>標準CLIのオプションとしては提供されていません。一時実行版と補助検証プログラムは配布物に含まれないため、これらの工夫を再現するには候補生成側への実装が必要です。<a href="#cli-parallel">後述のPython例</a>は、標準CLIを使った並列実行と候補収集の方法を示します。</p>
+                <details class="guide-step-text">
+                    <summary>一時実行版を作成した箇所</summary>
+                    <p><code>src/analysis/tsumeshogicandidatescreener.cpp</code> の作業用コピーで <code>generateBatch()</code> を変更しました。<code>build/compile_commands.json</code> とビルド時のリンクコマンドを参照してコンパイルし、変更したオブジェクトを既存の静的ライブラリより先にリンクしたCLIを <code>/tmp</code> に出力しました。近傍探索用の局面読込・駒変更処理も同じ作業用ディレクトリに置きました。</p>
+                    <p>リポジトリのアプリケーションソースや標準CLIの実行ファイルは変更せず、外部エンジンによる余詰検査・トリミング処理をそのまま使用しました。</p>
+                </details>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">短時間の事前選別と、生成条件の比較</span>
+                </div>
+                <p class="guide-step-text">長手数では、ランダムに作った局面をすべて詳しく探索すると時間がかかります。一時実行版では、内蔵の有限深さ探索で目標手数ちょうどの詰みを確認でき、複数の詰む初手が検出されなかった候補だけを外部エンジンへ渡しました。時間切れなどで判定できない <code>Unknown</code> は候補から外しました。</p>
+                <p class="guide-step-text">7手詰では5ms、9手詰では1～25ms、11・13手詰では主に1msと3msを比較しました。ここでの時間は<strong>内蔵探索の事前選別の予算</strong>です。CLIの <code>--timeout-ms</code> で指定する外部エンジンの探索・検査の予算とは別です。短い時間で確認できない局面を取りこぼす代わりに、採択につながる候補を速く集める方針です。</p>
+                <p class="guide-step-text">9手詰では、玉の位置を盤端からの最短距離が0マス（盤端のみ）、1マス以内、4マス以内（盤全体）で比較しました。駒数・配置範囲・並列数も変え、採択数、重複数、判定不能数を見て条件を選びました。特定の時間や盤端への絞り込みが、すべての手数で最も速いという意味ではありません。</p>
+                <p class="guide-step-text">一時実行版では <code>SHOGIBOARDQ_BATCH_SCREEN_MS</code> と <code>SHOGIBOARDQ_BATCH_KING_EDGE</code> という環境変数でこれらを切り替えました。この2つは作業用に追加した変数で、標準CLIに設定しても事前選別は変わりません。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">生成済み局面の駒配置を変更する近傍探索</span>
+                </div>
+                <p class="guide-step-text">11手詰以降では、生成済みの問題を「種局面」として読み込み、一部の駒を変更して新しい候補を作りました。11手詰では7・9手詰と収集中の11手詰、13手詰では7・9・11手詰と収集中の13手詰を使用しました。元の詰め手順は流用せず、変更後の局面を目標手数で改めて探索します。</p>
+                <ul class="guide-step-text">
+                    <li>候補を作る試行の約10%でランダム配置、約90%で近傍探索を選択。</li>
+                    <li>近傍探索では、収集中の目標手数の局面がある場合は約60%でそこから選び、残りを既存の問題集から選択。</li>
+                    <li>1候補につき、約75%で1回、約25%で2回の駒変更を試行。</li>
+                    <li>駒を現在位置から縦横それぞれ±2マスの範囲で移動、駒種や成・不成を変更、玉周辺へ駒を追加、盤上の駒を削除、攻方の持駒を増減。</li>
+                    <li>行き所のない歩・香・桂は成駒に補正し、二歩、駒数上限、玉の数、初期王手を確認。未使用駒は玉方の持駒に戻してSFENを再構成。</li>
+                </ul>
+                <p class="guide-step-text">13手詰の途中では、不要駒を追加してもトリミングで元の局面に戻り、重複になる例を減らすため、変更操作の選択比率を次のように調整しました。比率は変更の試行時の値であり、採択された問題の構成比ではありません。</p>
+                <table class="info-table">
+                    <thead><tr><th scope="col">変更操作</th><th scope="col">当初</th><th scope="col">13手詰の調整後</th></tr></thead>
+                    <tbody>
+                        <tr><td>盤上の駒の移動</td><td>45%</td><td>60%</td></tr>
+                        <tr><td>駒種・成不成の変更</td><td>20%</td><td>25%</td></tr>
+                        <tr><td>盤上への駒の追加</td><td>20%</td><td>5%</td></tr>
+                        <tr><td>攻方の持駒の増減</td><td>10%</td><td>5%</td></tr>
+                        <tr><td>盤上の駒の削除</td><td>5%</td><td>5%</td></tr>
+                    </tbody>
+                </table>
+                <div class="format-example">
+                    <h4>13手詰の後半で使用した処理の流れ</h4>
+                    <pre><code>ランダム配置、または種局面の盤上・持駒を変更
+  → 局面の制約を確認し、SFENを作成
+  → 内蔵探索で目標手数の候補を選別
+  → 外部エンジンで詰み・主手順の余詰を検査
+  → 不要駒トリミングと再検査
+  → 最終局面の重複除外・独立した詰み確認
+  → 1000題が揃うまで収集</code></pre>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">採択後の確認と、不足分の補充</span>
+                </div>
+                <p class="guide-step-text">詰め手順の長さだけでは最短手数を確定できません。作業用の検証プログラムでは、<code>TsumeCollection::parse()</code> と <code>validMateLine()</code> で読み込み・全手の合法性・攻方の連続王手・終端の詰みを確認し、Hayanagiの <code>TsumeSearch::solve()</code> による有限深さの反復深化探索で最短手数を確かめました。</p>
+                <p class="guide-step-text">13手詰では、トリミング後の局面の確認が時間切れになる例があったため、生成済み489題を1局面1秒の独立探索で再確認し、479題を残して補充しました。その後は新しい探索表を使って最短13手詰と手順を確認できた局面だけを1000題の件数に加えました。時間切れは不詰の証明ではなく、この問題集では採択を見送る判断として扱いました。</p>
+                <p class="guide-step-text">全件が揃った時点で、正規化したSFENの重複、手順の合法性、最短手数をまとめて再検証しました。11・13手詰では、二歩・行き所のない駒・駒の総数も保存前に確認しています。候補数ではなく、これらの確認を通った重複のない問題数が1000題になることを完了条件としました。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 6: CLI and Python -->
+<section id="cli-parallel" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">CLIをPythonから並列実行する方法</h2>
+        <p class="section-desc">CLIのJSON Linesを読み取り、複数バッチの結果を重複なしでまとめます</p>
+
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">CLIとエンジン設定の準備</span>
+                </div>
+                <p class="guide-step-text">リポジトリのルートで以下を実行し、CLIをビルドして登録済みエンジンを確認します。<code>--engine</code> にはエンジンの実行ファイルのパスではなく、<code>list-engines</code> に表示される登録名を指定します。</p>
+                <div class="format-example">
+                    <h4>標準CLIのビルドと登録名の確認</h4>
+                    <pre><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target shogiboardq-cli --parallel 4
+./build/shogiboardq-cli list-engines</code></pre>
+                </div>
+                <p class="guide-step-text">今回使用したエンジンはKomoringHeights 1.1.0 64ZEN2です。並列実行用に <code>Threads=1</code>、<code>USI_Hash=256</code>、<code>PostSearchLevel=MinLength</code>、<code>GenerateAllLegalMoves=true</code> を設定しました。Linuxでは、作業用の <code>XDG_CONFIG_HOME</code> の下に <code>ShogiBoardQ/ShogiBoardQ.ini</code> を用意し、エンジン登録とエンジンオプションの設定をコピーして、全子プロセスで同じ設定を使用しました。</p>
+                <p class="guide-step-text">並列数は主に8、一部の長手数では16を使用しました。16プロセスでハッシュを各256MiBにするとハッシュだけで約4GiBを使うため、CPUとメモリに合わせて並列数を選びます。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">1バッチの実行とJSON Linesの読み取り</span>
+                </div>
+                <p class="guide-step-text">次は標準CLIで3手詰を最大100題生成する例です。登録名は使用環境に合わせて置き換えてください。今回の登録名では <code>KomoringHeights</code> と <code>1.1.0</code> の間に空白が2つあります。</p>
+                <div class="format-example">
+                    <h4>generate-tsumeの実行例</h4>
+                    <pre><code>./build/shogiboardq-cli generate-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --target-moves 3 --max-positions 100 \
+  --timeout-ms 5000 --max-attack 4 --max-defend 1 \
+  --attack-range 3 --stdin-control &gt; tsume-batch.jsonl</code></pre>
+                </div>
+                <p class="guide-step-text"><code>--target-moves</code> は1～19の奇数、<code>--max-positions</code> は1～100です。1000題は複数の起動結果をまとめて作成します。<code>--timeout-ms</code> は候補探索・トリミング・余詰検査に使う予算で、コマンド全体の終了時間ではありません。</p>
+                <p class="guide-step-text">標準出力は1行1JSONのJSON Linesです。<code>started</code>、<code>progress</code>、<code>position</code>、<code>finished</code> などのイベントが出力されます。採択された局面は <code>position</code> の <code>sfen</code> と <code>pv</code>（USI手順の配列）から取り出します。<code>error</code> は処理失敗として記録します。</p>
+                <div class="format-example">
+                    <h4>positionイベントの主要フィールド</h4>
+                    <pre><code>{"event":"position","sfen":"9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1","pv":["2c2b+","1b1c","2e2c+"]}</code></pre>
+                </div>
+                <p class="guide-step-text"><code>--stdin-control</code> を付けると、標準入力へ <code>stop\n</code> を送るか、標準入力を閉じると停止します。Pythonから起動するときは標準入力のパイプを開いたまま保持し、必要数が揃ってから停止要求を送ります。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Pythonで並列起動・重複除外・途中保存</span>
+                </div>
+                <p class="guide-step-text">実作業では <code>asyncio.create_subprocess_exec()</code> でCLIを起動し、各プロセスの標準出力を非同期に読み取りました。バッチが100題に達して終了しても、全体で1000題に届かなければ次のバッチを起動します。全ワーカーで共通の辞書に局面を集約し、盤面・手番・持駒の一致をキーにして重複を除きます。</p>
+                <p class="guide-step-text">以下を <code>generate_tsume_parallel.py</code> として保存し、リポジトリのルートで <code>python3 generate_tsume_parallel.py</code> を実行できます。標準CLIで候補を集める例で、今回の一時実行版の近傍探索や独立した最短手数の検証器は含みません。出力は最終検証前の収集ファイルとし、<a href="#collection-validation">次の確認</a>を終えてから問題集として保存します。</p>
+                <details class="guide-step-text">
+                    <summary>並列実行用のPythonコードを表示</summary>
+                    <div class="format-example">
+                        <h4>標準CLIを8並列で実行する例</h4>
+                        <pre><code id="parallel-python-example">import asyncio
+import json
+import os
+from pathlib import Path
+
+CLI = str(Path("build/shogiboardq-cli").resolve())
+ENGINE = "KomoringHeights  1.1.0 64ZEN2"  # list-engines の登録名
+PLIES = 3
+TARGET = 1000
+WORKERS = 8
+OUTPUT = Path(f"tsume-work/tsume_{PLIES}ply_candidates.txt")
+ENV = dict(os.environ)
+# 別途準備した設定を使う場合（Linux）:
+# ENV["XDG_CONFIG_HOME"] = "/path/to/tsume-config"
+
+positions = {}
+active = set()
+
+
+def remember(sfen, pv):
+    fields = sfen.split()
+    if len(fields) != 4 or len(pv) != PLIES:
+        raise ValueError("SFEN または手順長が不正です")
+    key = " ".join(fields[:3])  # 盤面・手番・持駒。開始手数を除く
+    if key not in positions and len(positions) &lt; TARGET:
+        positions[key] = sfen + " moves " + " ".join(pv)
+
+
+def checkpoint():
+    temporary = OUTPUT.with_suffix(".tmp")
+    text = "# CLI収集結果（最終検証前）\n"
+    text += "\n".join(positions.values()) + "\n"
+    temporary.write_text(text, encoding="utf-8")
+    temporary.replace(OUTPUT)
+
+
+async def stop(process):
+    if process.returncode is None:
+        try:
+            process.stdin.write(b"stop\n")
+            await process.stdin.drain()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+
+async def worker(number):
+    while len(positions) &lt; TARGET:
+        args = [
+            CLI, "generate-tsume", "--engine", ENGINE,
+            "--target-moves", str(PLIES),
+            "--max-positions", str(min(100, TARGET - len(positions))),
+            "--timeout-ms", "5000",
+            "--max-attack", "4", "--max-defend", "1",
+            "--attack-range", "3", "--stdin-control",
+        ]
+        log_path = OUTPUT.parent / f"worker-{number}.jsonl"
+        err_path = OUTPUT.parent / f"worker-{number}.stderr.log"
+        with log_path.open("a", encoding="utf-8") as log, err_path.open("ab") as err:
+            process = await asyncio.create_subprocess_exec(
+                *args, env=ENV,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE, stderr=err,
+            )
+            active.add(process)
+            try:
+                # 他のワーカーが起動待ちの間に目標数へ達した場合にも停止する。
+                if len(positions) &gt;= TARGET:
+                    await stop(process)
+                async for raw in process.stdout:
+                    line = raw.decode("utf-8")
+                    log.write(line)
+                    log.flush()
+                    event = json.loads(line)
+                    if event["event"] == "error":
+                        raise RuntimeError(event["message"])
+                    if event["event"] != "position":
+                        continue
+                    remember(event["sfen"], event["pv"])
+                    checkpoint()
+                    print(f"{len(positions)}/{TARGET}", flush=True)
+                    if len(positions) == TARGET:
+                        await asyncio.gather(*(stop(p) for p in list(active)))
+                if await process.wait() != 0:
+                    raise RuntimeError(f"CLI が異常終了しました: {err_path}")
+            finally:
+                await stop(process)
+                try:
+                    await asyncio.wait_for(process.wait(), timeout=15)
+                except asyncio.TimeoutError:
+                    process.kill()
+                    await process.wait()
+                active.discard(process)
+
+
+async def main():
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    if OUTPUT.exists():
+        for line in OUTPUT.read_text(encoding="utf-8").splitlines():
+            if line and not line.startswith("#"):
+                sfen, moves = line.split(" moves ", 1)
+                remember(sfen, moves.split())
+    tasks = [asyncio.create_task(worker(i)) for i in range(WORKERS)]
+    try:
+        await asyncio.gather(*tasks)
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        checkpoint()
+    print(f"収集完了: {OUTPUT}（最終検証は別途実施）")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())</code></pre>
+                    </div>
+                </details>
+                <p class="guide-step-text">この例は発見のたびに一時ファイルから置換して途中結果を保存し、再起動時に読み戻します。標準出力のJSON Linesと標準エラーはワーカー別に残します。実作業ではさらにバッチごとの設定、採択数、重複数、判定不能数を記録し、設定変更時には全CLIへ <code>stop</code> を送って、収集済み局面を保持したまま再開しました。</p>
+                <p class="guide-step-text">13手詰の後半では、<code>position</code> を受け取って重複を除外した後、別の常駐検証プロセスへ <code>SFEN moves …</code> を送りました。最短13手詰と手順の合法性を確認できた場合にだけ辞書へ追加し、確認できない局面のキーも記録して再採択を防ぎました。</p>
+            </div>
+
+            <div class="guide-step" id="collection-validation">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">全件検証して、手順付きテキストとして保存</span>
+                </div>
+                <p class="guide-step-text">収集後には、件数が1000であること、正規化したSFENが1000種類あること、各手順の長さが目標手数と一致することを確認します。さらに、手順を実際に適用した合法性・連続王手・終端の詰みと、目標より短い手数では詰まないことを探索で確認します。文字列の手数チェックだけで最短手数の検証を代用しないことが大切です。</p>
+                <p class="guide-step-text">主手順の余詰を再検査する場合は、標準CLIの <code>verify-tsume</code> も利用できます。これは今回別途作成した有限深さの検証器とは別の処理です。JSONの <code>ok</code> はコマンド処理の成否なので、詰将棋の判定は <code>status</code> が <code>unique</code> であることまで確認します。<code>unknown</code> は検証成功として扱いません。</p>
+                <div class="format-example">
+                    <h4>保存する局面の余詰検査例</h4>
+                    <pre><code>./build/shogiboardq-cli verify-tsume \
+  --engine 'KomoringHeights  1.1.0 64ZEN2' \
+  --target-moves 3 --timeout-ms 15000 \
+  --sfen '9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1'</code></pre>
+                </div>
+                <p class="guide-step-text">最終ファイルには、生成日時、エンジン、駒数や探索時間などの条件、余詰の扱いを <code>#</code> 始まりのコメントとして付けました。各問題は以下の形式で保存し、例えば13手詰なら <code>moves</code> の後に13個のUSI指し手を記録します。</p>
+                <div class="format-example">
+                    <h4>3手詰の保存例（1行1題）</h4>
+                    <pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre>
+                </div>
+                <p class="guide-step-text">保存先は <code>data/tsumeshogi/tsume_13ply_1000_20260926.txt</code> のように、手数・件数・生成日をファイル名に含めています。今回の例は最終手の複数解を許容しています。最終手も一意にしたい場合は、生成・余詰再検査の両方で <code>--no-final-alternatives</code> を指定します。</p>
+            </div>
         </div>
     </div>
 </section>
