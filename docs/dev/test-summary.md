@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 99
+- CTest ケース数: 100
 - 取得コマンド: `ctest --test-dir /home/nakada/GitHub/ShogiBoardQ/build -N`
 
 ## テスト一覧
@@ -101,8 +101,9 @@
 92. `tst_automation_dispatcher`
 93. `tst_usi_info_line_parser`
 94. `tst_sfen_validation_service`
-95. `tst_kifu_conversion_service`
-96. `tst_board_image_renderer`
-97. `tst_tsume_diversity_python`
-98. `tst_tsume_collection_audit_python`
-99. `tst_mcp_python`
+95. `tst_game_info_pane`
+96. `tst_kifu_conversion_service`
+97. `tst_board_image_renderer`
+98. `tst_tsume_diversity_python`
+99. `tst_tsume_collection_audit_python`
+100. `tst_mcp_python`

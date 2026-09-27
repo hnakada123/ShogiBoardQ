@@ -6,6 +6,8 @@
 #include "shogigamecontroller.h"
 
 QTableWidget* GameInfoPaneController::tableWidget() const { return nullptr; }
+void GameInfoPaneController::commitPendingEditor() {}
+void GameInfoPaneController::applyChanges() {}
 bool TimeControlController::hasTimeControl() const { return false; }
 qint64 TimeControlController::baseTimeMs() const { return 0; }
 qint64 TimeControlController::byoyomiMs() const { return 0; }

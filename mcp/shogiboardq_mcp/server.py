@@ -60,6 +60,7 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         "get_app_state": app_tools.get_app_state,
         "get_position": app_tools.get_position,
         "get_clipboard": app_tools.get_clipboard,
+        "edit_table_cell": app_tools.edit_table_cell,
         "set_position": app_tools.set_position,
         "load_kifu": app_tools.load_kifu,
         "save_kifu": app_tools.save_kifu,

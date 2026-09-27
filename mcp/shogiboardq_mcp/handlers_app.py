@@ -39,6 +39,10 @@ class AppTools:
         result = await self.client.call("clipboard.get", args)
         return (result["text"] or f"Clipboard image: {result['image_width']} x {result['image_height']}"), result
 
+    async def edit_table_cell(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("widget.editCell", args)
+        return f"Queued table edit: {result['object_name']}.", result
+
     async def set_position(self, args: dict[str, Any]) -> Result:
         result = await self.client.call("position.set", {"sfen": args["sfen"], "discard_unsaved": bool(args.get("discard_unsaved"))})
         return f"Position set: {result.get('sfen')}", result

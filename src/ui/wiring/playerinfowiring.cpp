@@ -17,6 +17,7 @@
 
 PlayerInfoWiring::PlayerInfoWiring(const Dependencies& deps, QObject* parent)
     : QObject(parent)
+    , m_markGameRecordDirty(deps.markGameRecordDirty)
     , m_parentWidget(deps.parentWidget)
     , m_tabWidget(deps.tabWidget)
     , m_shogiView(deps.shogiView)
@@ -35,8 +36,26 @@ void PlayerInfoWiring::ensureGameInfoController()
     if (m_gameInfoController) return;
 
     m_gameInfoController = new GameInfoPaneController(m_parentWidget);
+    connect(m_gameInfoController, &GameInfoPaneController::gameInfoUpdated,
+            this, &PlayerInfoWiring::onGameInfoUpdated);
 
     qCDebug(lcUi) << "GameInfoPaneController created";
+}
+
+void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
+{
+    QString black, white, shitate, uwate;
+    for (const auto& item : items) {
+        if (item.key == GameInfoKeys::kBlackPlayer) black = item.value;
+        else if (item.key == GameInfoKeys::kWhitePlayer) white = item.value;
+        else if (item.key == QStringLiteral("下手")) shitate = item.value;
+        else if (item.key == QStringLiteral("上手")) uwate = item.value;
+    }
+    if (m_shogiView) {
+        m_shogiView->setBlackPlayerName(black.isEmpty() ? shitate : black);
+        m_shogiView->setWhitePlayerName(white.isEmpty() ? uwate : white);
+    }
+    if (m_markGameRecordDirty) m_markGameRecordDirty();
 }
 
 void PlayerInfoWiring::setTabWidget(QTabWidget* tabWidget)
@@ -51,6 +70,7 @@ void PlayerInfoWiring::setAnalysisTab(EngineAnalysisTab* analysisTab)
 
 void PlayerInfoWiring::ensurePlayerInfoController()
 {
+    ensureGameInfoController();
     if (m_playerInfoController) return;
 
     m_playerInfoController = new PlayerInfoController(m_parentWidget);
@@ -383,24 +403,8 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
 void PlayerInfoWiring::updateGameInfoWithEndTime(const QDateTime& endDateTime)
 {
     if (!m_gameInfoController) return;
-
-    // 現在の対局情報を取得
-    QList<KifGameInfoItem> items = m_gameInfoController->gameInfo();
-
-    // 終了日時が既にあれば更新、なければ追加
-    bool found = false;
-    for (KifGameInfoItem& item : items) {
-        if (item.key == GameInfoKeys::kEndDateTime) {
-            item.value = endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
-        items.append({GameInfoKeys::kEndDateTime, endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
-    }
-
-    m_gameInfoController->setGameInfo(items);
+    m_gameInfoController->updateGameInfoValue(
+        GameInfoKeys::kEndDateTime, endDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
 
     qCDebug(lcUi) << "updateGameInfoWithEndTime:"
                    << endDateTime.toString(Qt::ISODate);
@@ -413,9 +417,6 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
 {
     if (!m_gameInfoController) return;
     if (!hasTimeControl) return;
-
-    // 現在の対局情報を取得
-    QList<KifGameInfoItem> items = m_gameInfoController->gameInfo();
 
     // 持ち時間文字列を生成
     const int baseMin = static_cast<int>(baseTimeMs / 60000);
@@ -437,20 +438,7 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
         timeStr += QStringLiteral("+%1").arg(incrementSec);
     }
 
-    // 持ち時間が既にあれば更新、なければ追加
-    bool found = false;
-    for (KifGameInfoItem& item : items) {
-        if (item.key == GameInfoKeys::kTimeControl) {
-            item.value = timeStr;
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
-        items.append({GameInfoKeys::kTimeControl, timeStr});
-    }
-
-    m_gameInfoController->setGameInfo(items);
+    m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, timeStr);
 
     qCDebug(lcUi) << "updateGameInfoWithTimeControl:"
                    << timeStr;

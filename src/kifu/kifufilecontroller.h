@@ -16,6 +16,7 @@ class KifuExportController;
 class KifuLoadCoordinator;
 class KifuPasteDialog;
 class GameRecordModel;
+class GameInfoPaneController;
 
 /**
  * @brief 棋譜ファイルI/O操作を担当するコントローラ
@@ -34,6 +35,7 @@ public:
     struct Deps {
         QWidget* parentWidget = nullptr;           ///< 親ウィジェット（ダイアログ表示用）
         QStatusBar* statusBar = nullptr;           ///< ステータスバー
+        GameInfoPaneController* gameInfo = nullptr;
         QString* saveFileName = nullptr;           ///< 上書き保存先パス（外部所有）。読み込み成功時に更新、貼り付け・局面反映時にクリア
 
         // --- 準備コールバック ---

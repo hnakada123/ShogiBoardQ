@@ -10,6 +10,7 @@
 #include "mainwindowcompositionroot.h"
 #include "mainwindowserviceregistry.h"
 #include "kifusubregistry.h"
+#include "gamerecordmodel.h"
 #include "ui_mainwindow.h"
 
 #include "analysisresultspresenter.h"
@@ -82,6 +83,10 @@ void MainWindowFoundationRegistry::ensurePlayerInfoWiring()
     deps.engineName2 = &m_mw.m_player.engineName2;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.timeControllerRef = &m_mw.m_timeController;
+    deps.markGameRecordDirty = [this]() {
+        m_serviceRegistry->kifu()->ensureGameRecordModel();
+        if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
+    };
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated

@@ -9,6 +9,7 @@
 #include <QString>
 #include <QList>
 #include <QDateTime>
+#include <functional>
 
 #include "playmode.h"
 #include "kifparsetypes.h"
@@ -51,6 +52,7 @@ public:
         QString* engineName2 = nullptr;
         QString* startSfenStr = nullptr;
         TimeControlController** timeControllerRef = nullptr;
+        std::function<void()> markGameRecordDirty;
     };
 
     /**
@@ -264,6 +266,8 @@ signals:
     void tabCurrentChanged(int index);
 
 private:
+    void onGameInfoUpdated(const QList<KifGameInfoItem>& items);
+    std::function<void()> m_markGameRecordDirty;
     /**
      * @brief PlayerInfoControllerを確保する
      */

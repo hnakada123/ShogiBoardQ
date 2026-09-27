@@ -61,6 +61,7 @@ KifuFileController::Deps MainWindowDepsFactory::createKifuFileControllerDeps(
 
     deps.parentWidget = refs.ui.parentWidget;
     deps.statusBar = refs.ui.statusBar;
+    deps.gameInfo = refs.analysis.gameInfoController;
     deps.saveFileName = refs.kifu.saveFileName;
 
     // 準備コールバック

@@ -11,6 +11,7 @@
 #include <QClipboard>
 #include <QDockWidget>
 #include <QImage>
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QPersistentModelIndex>
@@ -67,6 +68,49 @@ void clickCell(QTableView* table, const QPersistentModelIndex& index)
 
 void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
+    dispatcher.registerMethod(QStringLiteral("widget.editCell"), [context](const QJsonObject& params) {
+        auto* table = qobject_cast<QTableView*>(targetWidget(context, params));
+        if (!table || !table->model())
+            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a table with a model"));
+        const int row = AutomationParams::requireInt(params, QStringLiteral("row"), 0, table->model()->rowCount() - 1);
+        const int column = AutomationParams::requireInt(params, QStringLiteral("column"), 0, table->model()->columnCount() - 1);
+        const QString text = AutomationParams::optionalString(params, QStringLiteral("text"));
+        const bool commit = AutomationParams::optionalBool(params, QStringLiteral("commit"), true);
+        const QPersistentModelIndex index(table->model()->index(row, column));
+        if (!(index.flags() & Qt::ItemIsEditable) || !(index.flags() & Qt::ItemIsEnabled)
+            || table->isRowHidden(row) || table->isColumnHidden(column))
+            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Cell is read-only, hidden or disabled"));
+        AutomationDeferredCall::schedule([table, index, text, commit]() {
+            try {
+                AutomationWidgets::requireInteractive(table);
+                if (!index.isValid() || !(index.flags() & Qt::ItemIsEditable)
+                    || !(index.flags() & Qt::ItemIsEnabled)
+                    || table->isRowHidden(index.row()) || table->isColumnHidden(index.column())) return;
+                table->scrollTo(index);
+                table->setCurrentIndex(index);
+                table->setFocus();
+                table->edit(index);
+                auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+                // ダイアログを閉じた直後など、ウィンドウが非アクティブだと
+                // 生成済みのdelegate入力欄にもフォーカスが移らないことがある。
+                if (!editor || !table->isAncestorOf(editor)) {
+                    editor = nullptr;
+                    for (auto* candidate : table->findChildren<QLineEdit*>()) {
+                        if (candidate->isVisibleTo(table)) { editor = candidate; break; }
+                    }
+                }
+                if (!editor || !table->isAncestorOf(editor) || editor->isReadOnly()
+                    || editor->echoMode() != QLineEdit::Normal) return;
+                editor->setText(text);
+                if (commit) {
+                    QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+                    QApplication::sendEvent(editor, &enter);
+                }
+            } catch (const AutomationError&) { }
+        }, table);
+        return queued(table);
+    });
+
     dispatcher.registerMethod(QStringLiteral("clipboard.get"), [](const QJsonObject& params) {
         const int maxChars = AutomationParams::optionalInt(params, QStringLiteral("max_chars"), 30000, 1, 1000000);
         const auto* clipboard = QApplication::clipboard();

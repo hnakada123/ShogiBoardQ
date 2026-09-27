@@ -141,6 +141,7 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
 QString KifuExportController::saveToFile()
 {
     if (m_prepareCallback) m_prepareCallback();
+    if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
 
     if (!m_deps.gameRecord) {
         Q_EMIT statusMessage(tr("棋譜データがありません"), 3000);
@@ -177,6 +178,7 @@ QString KifuExportController::saveToFile()
     }
     
     if (!path.isEmpty()) {
+        if (m_deps.gameInfoController) m_deps.gameInfoController->applyChanges();
         if (m_deps.gameRecord) {
             m_deps.gameRecord->clearDirty();
         }
@@ -189,6 +191,7 @@ QString KifuExportController::saveToFile()
 bool KifuExportController::overwriteFile(const QString& filePath)
 {
     if (m_prepareCallback) m_prepareCallback();
+    if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
 
     if (filePath.isEmpty()) {
         return false;
@@ -231,6 +234,7 @@ bool KifuExportController::overwriteFile(const QString& filePath)
     const bool ok = KifuSaveCoordinator::overwriteExisting(filePath, lines, &error);
 
     if (ok) {
+        if (m_deps.gameInfoController) m_deps.gameInfoController->applyChanges();
         if (m_deps.gameRecord) {
             m_deps.gameRecord->clearDirty();
         }
@@ -273,6 +277,7 @@ QStringList KifuExportController::linesForFormat(KifuSaveCoordinator::SaveFormat
 std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDir)
 {
     if (m_prepareCallback) m_prepareCallback();
+    if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
 
     if (saveDir.isEmpty()) {
         Q_EMIT statusMessage(tr("自動保存先ディレクトリが指定されていません"), 3000);
@@ -303,6 +308,7 @@ std::optional<QString> KifuExportController::autoSaveToDir(const QString& saveDi
     QString errorText;
     const bool ok = KifuIoService::writeKifuFile(filePath, kifLines, &errorText);
     if (ok) {
+        if (m_deps.gameInfoController) m_deps.gameInfoController->applyChanges();
         if (m_deps.gameRecord) {
             m_deps.gameRecord->clearDirty();
         }

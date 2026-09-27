@@ -53,6 +53,7 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `show_dock` | 検討・思考などのドックを表示し、タブ化されている場合も前面へ移動 |
 | `list_docks` / `configure_dock` | 全ドックの状態確認、切り離し、四方向への再配置、タブ化、表示・非表示、タイトルバーのドラッグ |
 | `click_widget` / `set_widget_value` / `click_table_cell` | 名前付きボタン、コンボ・秒数・チェック項目・テキスト入力欄、棋譜・読み筋テーブルの操作 |
+| `edit_table_cell` | 対局情報などの編集可能なセルを通常の入力欄から編集。`commit=false` で入力中の状態も検証可能 |
 | `get_clipboard` | コピーされたテキスト・画像の有無・画像サイズを取得（テキストの上限指定可） |
 | `click_dialog_button` | ダイアログのボタン操作。問題選択、成り選択、再生・復帰など |
 | `capture_screenshot` | メインウィンドウ／ダイアログのスクリーンショット |
@@ -108,6 +109,14 @@ trigger_action(name="actionResetDockLayout")
 それ以外の配置操作はQtのドックAPIを使います。移動はドック固定・許可エリアの制約を守り、
 モーダルダイアログ表示中は操作しません。処理は予約されるため、完了は `list_docks` で確認します。
 `actionSaveDockLayout` で保存ダイアログも開けます。
+
+対局情報は `show_dock(widget="GameInfoDock")` で表示し、
+`get_widget_text(widget="gameInfoTable")` で行を確認できます。
+`edit_table_cell(widget="gameInfoTable", row=1, column=1, text="対局者名")` は0始まりの行・列を編集します。
+`gameInfoApply`、`gameInfoUndo`、`gameInfoRedo`、`gameInfoCut`、`gameInfoCopy`、`gameInfoPaste`、
+`gameInfoAddRow`、`gameInfoFontIncrease`、`gameInfoFontDecrease` は `click_widget` で操作できます。
+浮動ウィンドウでは `target="GameInfoDock"` を指定します。
+`get_widget_text(widget="blackNameLabel")` / `whiteNameLabel` は盤面に表示される対局者名の全文を返します。
 
 ## クライアント設定例
 

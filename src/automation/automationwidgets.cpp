@@ -119,8 +119,10 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         return true;
     }
     if (auto* label = qobject_cast<QLabel*>(w)) {
-        if (label->text().isEmpty()) return false;
-        obj[QStringLiteral("text")] = label->text();
+        const QVariant fullText = label->property("fullText");
+        const QString text = fullText.isValid() ? fullText.toString() : label->text();
+        if (text.isEmpty()) return false;
+        obj[QStringLiteral("text")] = text;
         return true;
     }
     if (auto* edit = qobject_cast<QLineEdit*>(w)) {
