@@ -54,6 +54,8 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionShrinkBoard"),
         QStringLiteral("actionToolBar"),
         QStringLiteral("actionLockDocks"),
+        QStringLiteral("actionResetDockLayout"),
+        QStringLiteral("actionSaveDockLayout"),
         QStringLiteral("actionMenuWindow"),
         QStringLiteral("actionPieceStyleStandard"),
         QStringLiteral("actionPieceStyleWood"),

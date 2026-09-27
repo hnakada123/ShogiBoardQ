@@ -110,6 +110,17 @@ class AppTools:
         result = await self.client.call("widget.showDock", args)
         return f"Queued dock display: {result['object_name']}.", result
 
+    async def list_docks(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("dock.list")
+        lines = [f"{d['object_name']}: {d['title']}, area={d['area']}, "
+                 f"floating={d['floating']}, hidden={d['hidden']}, exposed={d['exposed']}"
+                 for d in result["docks"]]
+        return "\n".join(lines), result
+
+    async def configure_dock(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("dock.configure", args)
+        return f"Queued dock operation: {result['object_name']}.", result
+
     async def click_widget(self, args: dict[str, Any]) -> Result:
         result = await self.client.call("widget.click", args)
         return f"Queued click: {result['object_name']}.", result

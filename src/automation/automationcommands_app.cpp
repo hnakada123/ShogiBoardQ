@@ -96,6 +96,7 @@ void AutomationCommands::registerAll(AutomationDispatcher& dispatcher, const Aut
     registerKifuCommands(dispatcher, context);
     registerUiCommands(dispatcher, context);
     registerWidgetCommands(dispatcher, context);
+    registerDockCommands(dispatcher, context);
 }
 
 void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)

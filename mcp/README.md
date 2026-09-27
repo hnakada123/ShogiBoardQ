@@ -22,7 +22,7 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `SHOGIBOARDQ_AUTOMATION_SOCKET` | 自動化ソケットのパス（アプリ側の `--automation-socket` と共通） |
 | `SHOGIBOARDQ_ALLOWED_DIRS` | 読み書きを許可するディレクトリ（`:` 区切り、Windows は `;`）。既定はホームディレクトリ |
 | `SHOGIBOARDQ_OUTPUT_DIR` | スクリーンショットなど出力先未指定時のディレクトリ。既定は一時ディレクトリ配下の `shogiboardq-mcp` |
-| `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリをサーバー終了時に閉じます（既定は残す） |
+| `SHOGIBOARDQ_QUIT_APP_ON_EXIT` | `1` のとき、サーバーが起動したアプリをサーバー終了時に閉じ、終了を待ちます。応答しない場合はその子プロセスだけを強制終了します（既定は残す） |
 | `SHOGIBOARDQ_MCP_DEBUG` | `1` で詳細ログを標準エラーに出します |
 
 ## ツール一覧
@@ -51,6 +51,7 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `list_actions` / `trigger_action` | メニュー動作の一覧と実行（許可リスト方式） |
 | `click_board_square` | 盤面・駒台のクリック。回転・盤サイズに追従し、通常のマウス入力として処理 |
 | `show_dock` | 検討・思考などのドックを表示し、タブ化されている場合も前面へ移動 |
+| `list_docks` / `configure_dock` | 全ドックの状態確認、切り離し、四方向への再配置、タブ化、表示・非表示、タイトルバーのドラッグ |
 | `click_widget` / `set_widget_value` / `click_table_cell` | 名前付きボタン、コンボ・秒数・チェック項目、読み筋テーブルの操作 |
 | `click_dialog_button` | ダイアログのボタン操作。問題選択、成り選択、再生・復帰など |
 | `capture_screenshot` | メインウィンドウ／ダイアログのスクリーンショット |
@@ -84,6 +85,28 @@ click_table_cell(widget="considerationView", row=0, column=4)  # 読み筋の盤
 時間制限を使う場合は開始前に `considerationTimed=true`、`considerationSeconds=秒数` を設定します。
 `considerationArrows` は矢印表示、`considerationFontIncrease` / `considerationFontDecrease` は文字サイズです。
 `get_widget_text` の盤面データには矢印の移動元・移動先・順位・駒種も含まれます。
+
+ドック配置は次のように検証できます。`list_docks` は閉じたドックも返します。
+`hidden` は閉じた状態、`exposed` は実際に表示領域を持つ状態です。
+タブの裏にあるパネルは `visible=true` でも `exposed=false` になります。
+
+```text
+list_docks()
+configure_dock(widget="EvalChartDock", operation="float",
+               geometry={"x": 100, "y": 100, "width": 700, "height": 400})
+capture_screenshot(target="EvalChartDock")
+configure_dock(widget="EvalChartDock", operation="dock", area="bottom")
+configure_dock(widget="EvalChartDock", operation="tabify", relative_to="ThinkingDock")
+configure_dock(widget="EvalChartDock", operation="hide")
+show_dock(widget="EvalChartDock")
+trigger_action(name="actionResetDockLayout")
+```
+
+`operation="drag", x=..., y=...` はドッキング中の表示されたパネルのタイトルバーから、
+画面全体での論理座標へマウスイベントを送ります。OSが描画する浮動ウィンドウのタイトルバーは対象外です。
+それ以外の配置操作はQtのドックAPIを使います。移動はドック固定・許可エリアの制約を守り、
+モーダルダイアログ表示中は操作しません。処理は予約されるため、完了は `list_docks` で確認します。
+`actionSaveDockLayout` で保存ダイアログも開けます。
 
 ## クライアント設定例
 

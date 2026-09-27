@@ -65,21 +65,17 @@ void DockLayoutManager::resetToDefault()
     auto* commentDock = dock(DockType::Comment);
     auto* branchTreeDock = dock(DockType::BranchTree);
     auto* evalChartDock = dock(DockType::EvalChart);
+    auto* analysisResultsDock = dock(DockType::AnalysisResults);
 
     // すべてのドックをフローティング解除
-    QList<QDockWidget*> allDocks = {
-        menuDock, josekiDock, recordDock, evalChartDock,
-        gameInfoDock, usiLogDock, csaLogDock, commentDock,
-        branchTreeDock, considerationDock, thinkingDock
-    };
-    for (QDockWidget* d : std::as_const(allDocks)) {
+    for (QDockWidget* d : std::as_const(m_docks)) {
         if (d) {
             d->setFloating(false);
         }
     }
 
     // まず全てのドックをいったん削除
-    for (QDockWidget* d : std::as_const(allDocks)) {
+    for (QDockWidget* d : std::as_const(m_docks)) {
         if (d) m_mainWindow->removeDockWidget(d);
     }
 
@@ -93,6 +89,12 @@ void DockLayoutManager::resetToDefault()
     if (josekiDock) {
         m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, josekiDock);
         josekiDock->setVisible(false);
+    }
+
+    // 棋譜解析結果も初期位置へ戻す（デフォルトは非表示）。
+    if (analysisResultsDock) {
+        m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, analysisResultsDock);
+        analysisResultsDock->setVisible(false);
     }
 
     // 上段右: 棋譜
@@ -320,6 +322,8 @@ void DockLayoutManager::wireMenuActions(QAction* resetLayout,
 
 void DockLayoutManager::setDocksLocked(bool locked)
 {
+    DockSettings::setDocksLocked(locked);
+
     // 固定時: ドッキング禁止、フローティング禁止、移動禁止
     // 非固定時: 全て許可
     const Qt::DockWidgetAreas areas = locked ? Qt::NoDockWidgetArea : Qt::AllDockWidgetAreas;
