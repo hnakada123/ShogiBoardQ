@@ -18,6 +18,7 @@
 #include "kifuclipboardservice.h"
 #include "bodtextgenerator.h"
 #include "usimoveconverter.h"
+#include "usiexporter.h"
 
 KifuExportClipboard::KifuExportClipboard(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
@@ -135,7 +136,16 @@ KifuExportClipboard::PositionData KifuExportClipboard::currentPositionData() con
         QString standSfen = board->convertStandToSfen();
         if (standSfen.isEmpty()) standSfen = QStringLiteral("-");
         const QString turn = turnToSfen(board->currentPlayer());
-        const int moveNum = data.moveIndex + 1;
+        int moveNum = data.moveIndex + 1;
+        if (m_deps.gameRecord && m_deps.gameRecord->branchTree()) {
+            const auto lines = m_deps.gameRecord->branchTree()->allLines();
+            const int line = m_deps.gameRecord->activeRow();
+            if (line >= 0 && line < lines.size() && data.moveIndex < lines[line].nodes.size()) {
+                bool ok = false;
+                const int number = lines[line].nodes[data.moveIndex]->sfen().section(QLatin1Char(' '), 3, 3).toInt(&ok);
+                if (ok) moveNum = number;
+            }
+        }
         data.sfenStr = QStringLiteral("%1 %2 %3 %4").arg(boardSfen, turn, standSfen, QString::number(moveNum));
     } else if (m_deps.sfenRecord && !m_deps.sfenRecord->isEmpty()) {
         data.moveIndex = qBound(0, data.moveIndex, static_cast<int>(m_deps.sfenRecord->size() - 1));
@@ -245,16 +255,28 @@ bool KifuExportClipboard::copyUsiCurrentToClipboard()
 {
     if (m_prepareCallback) m_prepareCallback();
 
-    QStringList usiMovesForOutput = resolveUsiMoves();
-    const int limit = m_deps.currentMoveIndex;
-    if (limit >= 0 && limit < usiMovesForOutput.size()) {
-        usiMovesForOutput = usiMovesForOutput.mid(0, limit);
-        qCDebug(lcKifu).noquote() << "copyUsiCurrentToClipboard: limited to" << limit << "moves";
-    }
-
     QStringList usiLines;
     if (m_deps.gameRecord) {
-        usiLines = m_deps.gameRecord->toUsiLines(buildExportContext(), usiMovesForOutput);
+        const int limit = currentPly();
+        QStringList moves = resolveUsiMoves().mid(0, limit);
+        QString terminal;
+        if (auto* tree = m_deps.gameRecord->branchTree(); tree && !tree->isEmpty()) {
+            const auto lines = tree->allLines();
+            const int line = m_deps.gameRecord->activeRow();
+            if (line >= 0 && line < lines.size()) {
+                QStringList positions;
+                for (const auto* node : lines[line].nodes) {
+                    if (node->ply() > limit) break;
+                    if (node->isTerminal()) { terminal = node->displayText(); break; }
+                    positions.append(node->sfen());
+                }
+                moves = UsiMoveConverter::fromSfenRecord(positions);
+            }
+        } else {
+            const auto disp = m_deps.gameRecord->collectMainlineForExport();
+            if (!disp.isEmpty() && disp.last().ply <= limit) terminal = disp.last().prettyMove;
+        }
+        usiLines = UsiExporter::exportPosition(buildExportContext().startSfen, moves, terminal);
     }
     if (usiLines.isEmpty()) {
         Q_EMIT statusMessage(tr("USI形式の棋譜データがありません"), 3000);

@@ -8,12 +8,17 @@
 #include <QAbstractButton>
 #include <QApplication>
 #include <QComboBox>
+#include <QClipboard>
 #include <QDockWidget>
+#include <QImage>
+#include <QLineEdit>
 #include <QMouseEvent>
 #include <QPersistentModelIndex>
+#include <QPlainTextEdit>
 #include <QSpinBox>
 #include <QTableView>
 #include <QTabWidget>
+#include <QTextEdit>
 
 namespace {
 
@@ -62,6 +67,18 @@ void clickCell(QTableView* table, const QPersistentModelIndex& index)
 
 void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
+    dispatcher.registerMethod(QStringLiteral("clipboard.get"), [](const QJsonObject& params) {
+        const int maxChars = AutomationParams::optionalInt(params, QStringLiteral("max_chars"), 30000, 1, 1000000);
+        const auto* clipboard = QApplication::clipboard();
+        const QString text = clipboard->text();
+        const QImage image = clipboard->image();
+        return QJsonObject{{QStringLiteral("text"), text.left(maxChars)},
+                           {QStringLiteral("truncated"), text.size() > maxChars},
+                           {QStringLiteral("has_image"), !image.isNull()},
+                           {QStringLiteral("image_width"), image.width()},
+                           {QStringLiteral("image_height"), image.height()}};
+    });
+
     dispatcher.registerMethod(QStringLiteral("widget.showDock"), [context](const QJsonObject& params) {
         auto* dock = qobject_cast<QDockWidget*>(targetWidget(context, params, false));
         if (!dock) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Widget must be a dock"));
@@ -98,6 +115,22 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                 : AutomationParams::requireInt(params, QStringLiteral("value"), 0, combo->count() - 1);
             if (index < 0) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("No matching combo item"));
             apply = [combo, index]() { combo->setCurrentIndex(index); };
+        } else if (auto* lineEdit = qobject_cast<QLineEdit*>(widget)) {
+            if (lineEdit->isReadOnly() || lineEdit->echoMode() != QLineEdit::Normal)
+                throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only or protected"));
+            if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));
+            const QString text = value.toString();
+            if (text.size() > lineEdit->maxLength())
+                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Text exceeds the field limit"));
+            apply = [lineEdit, text]() { lineEdit->setText(text); };
+        } else if (auto* plainEdit = qobject_cast<QPlainTextEdit*>(widget)) {
+            if (plainEdit->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only"));
+            if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));
+            apply = [plainEdit, value]() { plainEdit->setPlainText(value.toString()); };
+        } else if (auto* richEdit = qobject_cast<QTextEdit*>(widget)) {
+            if (richEdit->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only"));
+            if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));
+            apply = [richEdit, value]() { richEdit->setPlainText(value.toString()); };
         } else if (auto* spin = qobject_cast<QSpinBox*>(widget)) {
             if (spin->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Spin box is read-only"));
             const int number = AutomationParams::requireInt(params, QStringLiteral("value"), spin->minimum(), spin->maximum());

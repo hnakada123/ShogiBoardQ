@@ -149,6 +149,7 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
             if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
                 record->markDirty();
             }
+            if (m_kifuPasteDialog) m_kifuPasteDialog->accept();
         }
         if (m_deps.statusBar) {
             if (success) {

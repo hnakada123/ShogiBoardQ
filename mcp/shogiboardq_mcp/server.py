@@ -59,6 +59,7 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         "cancel_job": cli_tools.cancel_job,
         "get_app_state": app_tools.get_app_state,
         "get_position": app_tools.get_position,
+        "get_clipboard": app_tools.get_clipboard,
         "set_position": app_tools.set_position,
         "load_kifu": app_tools.load_kifu,
         "save_kifu": app_tools.save_kifu,

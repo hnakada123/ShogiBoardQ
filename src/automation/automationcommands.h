@@ -46,6 +46,8 @@ void registerUiCommands(AutomationDispatcher& dispatcher, const AutomationContex
 
 /// 現在表示中の局面の SFEN（SFEN 記録があればその値、無ければ盤から組み立てる）
 QString currentSfen(const AutomationContext& context);
+/// 閲覧中の分岐の局面列（終局行を含む）。
+QStringList currentLinePositions(const AutomationContext& context);
 
 } // namespace AutomationCommands
 

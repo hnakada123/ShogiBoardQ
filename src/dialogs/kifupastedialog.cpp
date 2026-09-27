@@ -42,6 +42,7 @@ void KifuPasteDialog::closeEvent(QCloseEvent* event)
 void KifuPasteDialog::setupUi()
 {
     setWindowTitle(tr("棋譜貼り付け"));
+    setObjectName(QStringLiteral("kifuPasteDialog"));
     setMinimumSize(kMinimumSize);
     resize(kDefaultSize);
 
@@ -60,6 +61,7 @@ void KifuPasteDialog::setupUi()
 
     // テキスト入力エリア
     m_textEdit = new QPlainTextEdit(this);
+    m_textEdit->setObjectName(QStringLiteral("kifuPasteText"));
     m_textEdit->setPlaceholderText(tr("ここに棋譜を貼り付けてください..."));
 
     // 等幅フォントを設定
@@ -137,7 +139,7 @@ void KifuPasteDialog::onImportClicked()
     }
 
     emit importRequested(content);
-    accept();
+    // 取り込み側が成功時に閉じる。確認キャンセルや解析失敗なら入力を保持する。
 }
 
 void KifuPasteDialog::onCancelClicked()

@@ -43,6 +43,7 @@ void RecordPane::buildUi()
 void RecordPane::buildKifuTable()
 {
     m_kifu = new QTableView(this);
+    m_kifu->setObjectName(QStringLiteral("kifuTable"));
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->verticalHeader()->setVisible(false);
@@ -172,6 +173,7 @@ void RecordPane::buildNavigationPanel()
 void RecordPane::buildBranchPanel()
 {
     m_branch = new QTableView(this);
+    m_branch->setObjectName(QStringLiteral("kifuBranchTable"));
     m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
     m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_branch->verticalHeader()->setVisible(false);

@@ -15,16 +15,16 @@ void AutomationCommands::registerPositionCommands(AutomationDispatcher& dispatch
 {
     dispatcher.registerMethod(QStringLiteral("position.get"), [context](const QJsonObject&) {
         QJsonObject result;
-        const QStringList* record = context.sfenRecord ? context.sfenRecord() : nullptr;
+        const QStringList record = currentLinePositions(context);
         const int ply = context.currentMoveIndex ? *context.currentMoveIndex : 0;
         result[QStringLiteral("sfen")] = currentSfen(context);
-        QString start = record && !record->isEmpty() ? record->first()
+        QString start = !record.isEmpty() ? record.first()
                                                      : (context.startSfenStr ? *context.startSfenStr : QString());
         result[QStringLiteral("start_sfen")] = SfenUtils::normalizeStart(start);
         result[QStringLiteral("ply")] = ply;
         QStringList moves;
-        if (record && ply > 0 && ply < record->size()) {
-            moves = UsiMoveConverter::fromSfenRecord(record->mid(0, ply + 1));
+        if (ply > 0 && ply < record.size()) {
+            moves = UsiMoveConverter::fromSfenRecord(record.mid(0, ply + 1));
         }
         result[QStringLiteral("moves")] = QJsonArray::fromStringList(moves);
         return result;

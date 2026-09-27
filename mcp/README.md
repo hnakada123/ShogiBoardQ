@@ -52,7 +52,8 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `click_board_square` | 盤面・駒台のクリック。回転・盤サイズに追従し、通常のマウス入力として処理 |
 | `show_dock` | 検討・思考などのドックを表示し、タブ化されている場合も前面へ移動 |
 | `list_docks` / `configure_dock` | 全ドックの状態確認、切り離し、四方向への再配置、タブ化、表示・非表示、タイトルバーのドラッグ |
-| `click_widget` / `set_widget_value` / `click_table_cell` | 名前付きボタン、コンボ・秒数・チェック項目、読み筋テーブルの操作 |
+| `click_widget` / `set_widget_value` / `click_table_cell` | 名前付きボタン、コンボ・秒数・チェック項目・テキスト入力欄、棋譜・読み筋テーブルの操作 |
+| `get_clipboard` | コピーされたテキスト・画像の有無・画像サイズを取得（テキストの上限指定可） |
 | `click_dialog_button` | ダイアログのボタン操作。問題選択、成り選択、再生・復帰など |
 | `capture_screenshot` | メインウィンドウ／ダイアログのスクリーンショット |
 | `list_dialogs` / `get_widget_text` | 開いているダイアログ、テキスト・テーブル・盤面内容とウィジェット座標 |

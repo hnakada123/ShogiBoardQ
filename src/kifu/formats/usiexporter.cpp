@@ -90,36 +90,27 @@ QStringList UsiExporter::exportLines(const GameRecordModel& model,
                                      const GameRecordModel::ExportContext& ctx,
                                      const QStringList& usiMoves)
 {
+    const QList<KifDisplayItem> disp = model.collectMainlineForExport();
+    return exportPosition(ctx.startSfen, usiMoves, disp.isEmpty() ? QString() : disp.last().prettyMove);
+}
+
+QStringList UsiExporter::exportPosition(const QString& startSfen, const QStringList& usiMoves,
+                                        const QString& terminalMove)
+{
     QStringList out;
 
     // 1) 初期局面を判定
-    // 平手初期局面のSFEN（手数部分は省略して比較）
-    static const QString HIRATE_SFEN = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b -");
+    // 平手初期局面のSFEN
+    static const QString HIRATE_SFEN = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1");
 
     QString positionStr;
 
     // 初期SFENが空または平手初期局面の場合は "startpos" を使用
-    if (ctx.startSfen.isEmpty()) {
+    if (startSfen.isEmpty() || startSfen == HIRATE_SFEN) {
         positionStr = QStringLiteral("position startpos");
     } else {
-        // SFENの手数部分（最後のスペースと数字）を除いて比較
-        QString sfenWithoutMoveNum = ctx.startSfen;
-        const qsizetype lastSpace = ctx.startSfen.lastIndexOf(QLatin1Char(' '));
-        if (lastSpace > 0) {
-            const QString lastPart = ctx.startSfen.mid(lastSpace + 1);
-            bool isNumber = false;
-            lastPart.toInt(&isNumber);
-            if (isNumber) {
-                sfenWithoutMoveNum = ctx.startSfen.left(lastSpace);
-            }
-        }
-
-        if (sfenWithoutMoveNum == HIRATE_SFEN) {
-            positionStr = QStringLiteral("position startpos");
-        } else {
-            // 駒落ち等の場合は sfen を使用
-            positionStr = QStringLiteral("position sfen %1").arg(ctx.startSfen);
-        }
+        // 元のSFEN手数も保持する。
+        positionStr = QStringLiteral("position sfen %1").arg(startSfen);
     }
 
     // 2) USI moves
@@ -127,13 +118,7 @@ QStringList UsiExporter::exportLines(const GameRecordModel& model,
 
     // 3) 終局コードを取得
     QString terminalCode;
-    const QList<KifDisplayItem> disp = model.collectMainlineForExport();
-    if (!disp.isEmpty()) {
-        const QString& lastMove = disp.last().prettyMove;
-        if (isTerminalMove(lastMove)) {
-            terminalCode = getUsiTerminalCode(lastMove);
-        }
-    }
+    if (isTerminalMove(terminalMove)) terminalCode = getUsiTerminalCode(terminalMove);
 
     // 4) position コマンド文字列を構築
     QString usiLine = positionStr;

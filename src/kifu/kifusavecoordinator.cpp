@@ -64,7 +64,7 @@ bool confirmLossySave(QWidget* parent, const QString& title, const QString& mess
         parent, title, message,
         QMessageBox::Ok | QMessageBox::Cancel,
         QMessageBox::Ok);
-    return result != QMessageBox::Cancel;
+    return result == QMessageBox::Ok;
 }
 
 } // namespace
