@@ -5,6 +5,7 @@
 /// @brief 検討・詰み探索セッション管理ハンドラクラスの定義
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 #include <QStringList>
 #include <functional>
@@ -65,7 +66,7 @@ public:
 
         /// @brief エンジンを初期化して通信を開始する
         /// @note 配線元: MC lambda → ELM::initializeAndStartEngineFor
-        std::function<void(int, const QString&, const QString&)> initAndStartEngine;
+        std::function<bool(int, const QString&, const QString&)> initAndStartEngine;
 
         /// @brief エンジン名をUIに設定する
         /// @note 配線元: MC lambda → MC::Hooks::setEngineNames 呼び出し
@@ -181,12 +182,17 @@ private:
     /// 詰み探索完了の共通処理（フラグリセット＋シグナル発火＋ダイアログ＋エンジン破棄）
     void finalizeTsumeSearch(const QString& resultMessage);
 
+    void requestConsiderationRestart(Usi* engine);
+
     Hooks m_hooks;                                ///< コールバック群
 
     // --- エンジン参照 ---
-    Usi* m_engine = nullptr;                      ///< 現在のエンジン（非所有）
+    QPointer<Usi> m_engine;                      ///< 現在のエンジン（非所有）
 
     // --- モードフラグ ---
+    bool m_starting = false;                     ///< 初期化待機中の再入・破棄を防ぐ
+    bool m_startCancelled = false;               ///< 初期化中に受けた中止要求
+    QString m_startupError;                      ///< 初期化終了後に通知するエラー
     bool m_inTsumeSearchMode = false;             ///< 詰み探索モード中か
     bool m_inConsiderationMode = false;           ///< 検討モード中か
 

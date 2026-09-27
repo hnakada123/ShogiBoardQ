@@ -2,6 +2,8 @@
 /// @brief 自動化 API のウィンドウ列挙・ウィジェット内容取得ヘルパの実装
 
 #include "automationwidgets.h"
+#include "automationcontext.h"
+#include "automationdispatcher.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 
@@ -11,6 +13,7 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
+#include <QDockWidget>
 #include <QDoubleSpinBox>
 #include <QGroupBox>
 #include <QHeaderView>
@@ -53,10 +56,23 @@ QJsonArray tableRows(const QAbstractItemModel* model, const QHeaderView* header,
 
 bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
 {
+    if (auto* dock = qobject_cast<QDockWidget*>(w)) {
+        obj[QStringLiteral("text")] = dock->windowTitle();
+        obj[QStringLiteral("floating")] = dock->isFloating();
+        return true;
+    }
     if (auto* board = qobject_cast<ShogiView*>(w)) {
         obj[QStringLiteral("flipped")] = board->flipMode();
         obj[QStringLiteral("square_size")] = board->squareSize();
         if (board->board()) obj[QStringLiteral("board_sfen")] = board->board()->convertBoardToSfen();
+        QJsonArray arrows;
+        for (const auto& arrow : board->arrows()) {
+            arrows.append(QJsonObject{{QStringLiteral("from_file"), arrow.fromFile},
+                {QStringLiteral("from_rank"), arrow.fromRank}, {QStringLiteral("to_file"), arrow.toFile},
+                {QStringLiteral("to_rank"), arrow.toRank}, {QStringLiteral("priority"), arrow.priority},
+                {QStringLiteral("drop_piece"), QString(arrow.dropPiece)}});
+        }
+        obj[QStringLiteral("arrows")] = arrows;
         return true;
     }
     if (auto* table = qobject_cast<QTableWidget*>(w)) {
@@ -90,6 +106,7 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         QJsonArray items;
         for (int i = 0; i < qMin(combo->count(), maxRows); ++i) items.append(combo->itemText(i));
         obj[QStringLiteral("text")] = combo->currentText();
+        obj[QStringLiteral("current_index")] = combo->currentIndex();
         obj[QStringLiteral("items")] = items;
         return true;
     }
@@ -97,6 +114,7 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         QJsonArray items;
         for (int i = 0; i < tabs->count(); ++i) items.append(tabs->tabText(i));
         obj[QStringLiteral("text")] = tabs->tabText(tabs->currentIndex());
+        obj[QStringLiteral("current_index")] = tabs->currentIndex();
         obj[QStringLiteral("items")] = items;
         return true;
     }
@@ -211,6 +229,7 @@ QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& obje
         obj[QStringLiteral("object_name")] = w->objectName();
         obj[QStringLiteral("class")] = QString::fromLatin1(w->metaObject()->className());
         obj[QStringLiteral("enabled")] = w->isEnabled();
+        obj[QStringLiteral("font_point_size")] = w->font().pointSize();
         const QPoint pos = w->mapTo(root, QPoint());
         obj[QStringLiteral("geometry")] = QJsonObject{{QStringLiteral("x"), pos.x()}, {QStringLiteral("y"), pos.y()},
                                                       {QStringLiteral("width"), w->width()}, {QStringLiteral("height"), w->height()}};
@@ -219,3 +238,28 @@ QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& obje
     }
     return array;
 }
+
+namespace AutomationWidgets {
+
+QWidget* requireWindow(const AutomationContext& context, const QString& target)
+{
+    if (target.isEmpty() || target == QLatin1String("main")) return context.mainWindow;
+    QWidget* window = AutomationWidgets::findWindow(target);
+    if (!window) {
+        throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No open window matches \"%1\"").arg(target),
+                              QStringLiteral("Use dialog.list to see the open windows"));
+    }
+    return window;
+}
+
+void requireInteractive(QWidget* widget)
+{
+    QWidget* modal = QApplication::activeModalWidget();
+    if (!widget || !widget->isVisible() || !widget->isEnabled()
+        || (modal && modal != widget->window()) || QApplication::activePopupWidget()) {
+        throw AutomationError(AutomationErrorCode::InvalidState,
+                              QStringLiteral("The target is hidden, disabled or blocked by another dialog"));
+    }
+}
+
+} // namespace AutomationWidgets

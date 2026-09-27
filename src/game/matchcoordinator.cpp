@@ -195,8 +195,11 @@ void MatchCoordinator::configureAnalysisSession()
         usi->setSquelchResignLogging(false);
         return usi;
     };
-    hooks.initAndStartEngine = [this](int, const QString& path, const QString& name) {
-        initializeAndStartEngineFor(P1, path, name);
+    hooks.initAndStartEngine = [this](int, const QString& path, const QString& name) -> bool {
+        Usi* engine = primaryEngine();
+        if (!engine) return false;
+        engine->setMatchClock(clock());
+        return engine->startAndInitializeEngine(path, name);
     };
     hooks.setEngineNames = [this](const QString& n1, const QString& n2) {
         if (m_hooks.ui.setEngineNames) m_hooks.ui.setEngineNames(n1, n2);

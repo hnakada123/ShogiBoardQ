@@ -50,6 +50,8 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `load_kifu` / `save_kifu` / `get_kifu` / `goto_ply` | 棋譜の読み込み・保存・取得・手数移動 |
 | `list_actions` / `trigger_action` | メニュー動作の一覧と実行（許可リスト方式） |
 | `click_board_square` | 盤面・駒台のクリック。回転・盤サイズに追従し、通常のマウス入力として処理 |
+| `show_dock` | 検討・思考などのドックを表示し、タブ化されている場合も前面へ移動 |
+| `click_widget` / `set_widget_value` / `click_table_cell` | 名前付きボタン、コンボ・秒数・チェック項目、読み筋テーブルの操作 |
 | `click_dialog_button` | ダイアログのボタン操作。問題選択、成り選択、再生・復帰など |
 | `capture_screenshot` | メインウィンドウ／ダイアログのスクリーンショット |
 | `list_dialogs` / `get_widget_text` | 開いているダイアログ、テキスト・テーブル・盤面内容とウィジェット座標 |
@@ -65,6 +67,23 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 同名の問題カードは `index`（0始まり）で選択できます。
 クリックは予約後に応答するため、着手の成否や探索完了は `get_widget_text` などで確認してください。
 非表示・無効な対象や、別のモーダルダイアログに遮られた対象は操作しません。
+
+検討タブは次のように操作できます。値変更・クリックは通常のUIシグナルを通り、
+処理を予約して応答します。開始・停止・エンジン切替の完了は `get_widget_text` で確認してください。
+
+```text
+show_dock(widget="ConsiderationDock")
+set_widget_value(widget="considerationEngine", value="登録したエンジン名")
+set_widget_value(widget="considerationMultiPV", value=2)  # 0始まり: 3候補
+set_widget_value(widget="considerationUnlimited", value=true)
+click_widget(widget="considerationStartStop")
+get_widget_text(widget="considerationView")
+click_table_cell(widget="considerationView", row=0, column=4)  # 読み筋の盤面
+```
+
+時間制限を使う場合は開始前に `considerationTimed=true`、`considerationSeconds=秒数` を設定します。
+`considerationArrows` は矢印表示、`considerationFontIncrease` / `considerationFontDecrease` は文字サイズです。
+`get_widget_text` の盤面データには矢印の移動元・移動先・順位・駒種も含まれます。
 
 ## クライアント設定例
 

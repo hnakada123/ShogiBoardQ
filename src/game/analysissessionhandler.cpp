@@ -7,6 +7,7 @@
 #include "logcategories.h"
 
 #include <QTimer>
+#include <QSignalBlocker>
 
 AnalysisSessionHandler::AnalysisSessionHandler(QObject* parent)
     : QObject(parent)
@@ -30,30 +31,54 @@ bool AnalysisSessionHandler::startFullAnalysis(const MatchCoordinator::AnalysisO
                        << "multiPV=" << opt.multiPV
                        << "inConsideration=" << m_inConsiderationMode;
 
-    if (m_hooks.isShutdownInProgress && m_hooks.isShutdownInProgress()) {
+    if (m_starting || (m_hooks.isShutdownInProgress && m_hooks.isShutdownInProgress())) {
         qCDebug(lcGame).noquote() << "startFullAnalysis: engine shutdown in progress";
         return false;
     }
 
+    m_starting = true;
+    m_startCancelled = false;
+    m_startupError.clear();
     if (m_hooks.setPlayMode) m_hooks.setPlayMode(opt.mode);
 
     qCDebug(lcGame).noquote() << "startFullAnalysis: destroying old engines:" << opt.enginePath;
     if (m_hooks.destroyEnginesAll) m_hooks.destroyEnginesAll();
 
     Usi* usi = m_hooks.createAnalysisEngine ? m_hooks.createAnalysisEngine(opt) : nullptr;
-    if (!usi) return false;
-
-    if (m_hooks.initAndStartEngine)
-        m_hooks.initAndStartEngine(1, opt.enginePath, opt.engineName);
-    if (m_hooks.setEngineNames)
-        m_hooks.setEngineNames(opt.engineName, QString());
-
-    if (!opt.lastUsiMove.isEmpty()) {
-        usi->setLastUsiMove(opt.lastUsiMove);
+    if (!usi) {
+        m_starting = false;
+        return false;
     }
 
+    // 初期化前に状態とモデルを準備する。待機中の中止・エラーでも安全に復帰でき、
+    // 前回の読み筋を新しい探索結果と誤認させない。
     setupModeSpecificWiring(usi, opt);
-    startCommunication(usi, opt);
+    const bool initialized = m_hooks.initAndStartEngine
+        && m_hooks.initAndStartEngine(1, opt.enginePath, opt.engineName);
+    m_starting = false;
+    if (m_startCancelled) {
+        stopFullAnalysis();
+        return false;
+    }
+    if (!initialized) {
+        handleEngineError(m_startupError.isEmpty() ? opt.enginePath : m_startupError);
+        return false;
+    }
+    if (m_hooks.setEngineNames) m_hooks.setEngineNames(opt.engineName, QString());
+
+    if (opt.mode == PlayMode::ConsiderationMode) {
+        // 初期化待機中の局面・候補手変更も反映する。
+        auto currentOptions = opt;
+        currentOptions.positionStr = m_positionStr;
+        currentOptions.multiPV = m_multiPV;
+        usi->setPreviousFileTo(m_previousFileTo);
+        usi->setPreviousRankTo(m_previousRankTo);
+        usi->setLastUsiMove(m_lastUsiMove);
+        startCommunication(usi, currentOptions);
+    } else {
+        usi->setLastUsiMove(opt.lastUsiMove);
+        startCommunication(usi, opt);
+    }
 
     qCDebug(lcGame).noquote() << "startFullAnalysis EXIT";
     return true;
@@ -63,13 +88,28 @@ void AnalysisSessionHandler::stopFullAnalysis()
 {
     qCDebug(lcGame).noquote() << "stopFullAnalysis called";
 
+    if (m_starting) {
+        m_startCancelled = true;
+        if (m_engine) m_engine->cancelCurrentOperation();
+        return;
+    }
+    if (m_hooks.isShutdownInProgress && m_hooks.isShutdownInProgress()) return;
     if (m_hooks.setShutdownInProgress) m_hooks.setShutdownInProgress(true);
 
-    handleStop();
+    const bool wasConsideration = m_inConsiderationMode;
+    const bool wasTsumeSearch = m_inTsumeSearchMode;
+    {
+        // 終了待ちのイベントループで再開要求を受けないよう状態を先に停止する。
+        // UIへの終了通知はエンジン破棄後に行い、開始可能な時点でボタンを戻す。
+        const QSignalBlocker blocker(this);
+        handleStop();
+    }
 
     if (m_hooks.destroyEnginesKeepModels) m_hooks.destroyEnginesKeepModels();
 
     if (m_hooks.setShutdownInProgress) m_hooks.setShutdownInProgress(false);
+    if (wasConsideration) emit considerationModeEnded();
+    if (wasTsumeSearch) emit tsumeSearchModeEnded();
 }
 
 // ============================================================
@@ -110,14 +150,9 @@ void AnalysisSessionHandler::setupModeSpecificWiring(Usi* engine,
     // --- 前回の移動先を設定（「同」表記のため） ---
     qCDebug(lcGame).noquote() << "setupModeSpecificWiring: opt.previousFileTo=" << opt.previousFileTo
                        << "opt.previousRankTo=" << opt.previousRankTo;
-    if (opt.previousFileTo > 0 && opt.previousRankTo > 0) {
-        engine->setPreviousFileTo(opt.previousFileTo);
-        engine->setPreviousRankTo(opt.previousRankTo);
-        qCDebug(lcGame).noquote() << "setupModeSpecificWiring: setPreviousFileTo/RankTo:"
-                           << opt.previousFileTo << "/" << opt.previousRankTo;
-    } else {
-        qCWarning(lcGame).noquote() << "setupModeSpecificWiring: previousFileTo/RankTo not set (values are 0)";
-    }
+    // 開始局面では0を設定し、前局面の「同」判定を残さない。
+    engine->setPreviousFileTo(opt.previousFileTo);
+    engine->setPreviousRankTo(opt.previousRankTo);
 
     // --- 検討モードの場合、フラグを設定し bestmove を接続 ---
     if (opt.mode == PlayMode::ConsiderationMode) {
@@ -129,8 +164,7 @@ void AnalysisSessionHandler::setupModeSpecificWiring(Usi* engine,
         m_modelPtr = opt.considerationModel;
         m_restartPending = false;
         m_waiting = false;  // 待機フラグをリセット
-        // 注意: m_restartInProgress はここではリセットしない
-        // （restartConsiderationDeferred から呼ばれた場合は呼び出し元でリセットする）
+        m_restartInProgress = false;
         m_enginePath = opt.enginePath;
         m_engineName = opt.engineName;
         m_previousFileTo = opt.previousFileTo;
@@ -177,6 +211,7 @@ void AnalysisSessionHandler::handleStop()
     if (m_inConsiderationMode) {
         m_inConsiderationMode = false;
         m_restartInProgress = false;
+        m_restartPending = false;
         m_waiting = false;
         emit considerationModeEnded();
     }
@@ -208,18 +243,21 @@ void AnalysisSessionHandler::updateMultiPV(Usi* engine, int multiPV)
         return;
     }
 
-    // 新しいMultiPV値を保存し、再開フラグを設定
-    m_multiPV = multiPV;
-    m_restartPending = true;
+    m_multiPV = qBound(1, multiPV, 10);
+    requestConsiderationRestart(engine);
+}
 
-    // 検討タブ用モデルをクリア
-    if (m_modelPtr) {
-        m_modelPtr->clearAllItems();
-    }
+void AnalysisSessionHandler::requestConsiderationRestart(Usi* engine)
+{
+    if (m_modelPtr) m_modelPtr->clearAllItems();
+    if (!engine || m_starting || m_restartPending || m_restartInProgress) return;
 
-    // エンジンを停止（bestmove を受信後に再開する）
-    if (engine) {
-        qCDebug(lcGame).noquote() << "updateMultiPV: sending stop to restart with new MultiPV";
+    if (m_waiting) {
+        // 時間切れ後はstopに応答するbestmoveが来ないため、そのまま再開する。
+        m_restartInProgress = true;
+        QTimer::singleShot(0, this, &AnalysisSessionHandler::restartConsiderationDeferred);
+    } else {
+        m_restartPending = true;
         engine->sendStopCommand();
     }
 }
@@ -259,41 +297,7 @@ bool AnalysisSessionHandler::updatePosition(Usi* engine, const QString& newPosit
     m_previousRankTo = previousRankTo;
     m_lastUsiMove = lastUsiMove;
 
-    // 検討タブ用モデルをクリア
-    if (m_modelPtr) {
-        m_modelPtr->clearAllItems();
-    }
-
-    // エンジンが待機状態の場合、直接新しい局面で検討を再開（stop不要）
-    if (m_waiting && engine) {
-        qCDebug(lcGame).noquote() << "updatePosition: engine is waiting, resuming with new position";
-        m_waiting = false;  // 待機状態を解除
-
-        // 前回の移動先を設定（「同」表記のため）
-        if (previousFileTo > 0 && previousRankTo > 0) {
-            engine->setPreviousFileTo(previousFileTo);
-            engine->setPreviousRankTo(previousRankTo);
-        }
-
-        // 最後の指し手を設定（読み筋表示ウィンドウのハイライト用）
-        if (!lastUsiMove.isEmpty()) {
-            engine->setLastUsiMove(lastUsiMove);
-        }
-
-        // 既存エンジンに直接コマンドを送信（非ブロッキング）
-        engine->sendAnalysisCommands(newPositionStr, m_byoyomiMs, m_multiPV);
-        return true;
-    }
-
-    // エンジンが稼働中の場合、停止して再開フラグを設定
-    m_restartPending = true;
-    qCDebug(lcGame).noquote() << "updatePosition: set m_restartPending=true";
-
-    // エンジンを停止（bestmove を受信後に再開する）
-    if (engine) {
-        qCDebug(lcGame).noquote() << "updatePosition: sending stop to restart with new position";
-        engine->sendStopCommand();
-    }
+    requestConsiderationRestart(engine);
 
     return true;
 }
@@ -304,6 +308,11 @@ bool AnalysisSessionHandler::updatePosition(Usi* engine, const QString& newPosit
 
 bool AnalysisSessionHandler::handleEngineError(const QString& errorMsg)
 {
+    if (m_starting) {
+        // USI初期化のコールスタック上でエンジンを破棄してはならない。
+        m_startupError = errorMsg;
+        return true;
+    }
     // 詰み探索中にエンジンがクラッシュした場合の復旧処理
     if (m_inTsumeSearchMode) {
         m_inTsumeSearchMode = false;
@@ -321,6 +330,7 @@ bool AnalysisSessionHandler::handleEngineError(const QString& errorMsg)
     if (m_inConsiderationMode) {
         m_inConsiderationMode = false;
         m_restartInProgress = false;
+        m_restartPending = false;
         m_waiting = false;
         emit considerationModeEnded();
         if (m_hooks.showGameOverDialog) {
@@ -345,6 +355,7 @@ void AnalysisSessionHandler::resetOnDestroyEngines()
     if (m_inConsiderationMode) {
         m_inConsiderationMode = false;
         m_restartInProgress = false;
+        m_restartPending = false;
         m_waiting = false;
         emit considerationModeEnded();
     }
@@ -417,12 +428,16 @@ void AnalysisSessionHandler::onConsiderationBestMoveReceived()
     // QTimer::singleShot で次のイベントループに遅延させる。
     if (m_restartPending) {
         m_restartPending = false;
+        m_waiting = true;
+        m_restartInProgress = true;
         qCDebug(lcGame).noquote() << "onConsiderationBestMoveReceived: scheduling restart (restart was pending)";
 
         // 再開処理を次のイベントループに遅延
         QTimer::singleShot(0, this, &AnalysisSessionHandler::restartConsiderationDeferred);
         return;
     }
+
+    if (m_restartInProgress) return;
 
     // 検討時間が経過した場合、エンジンを待機状態にして次の局面選択を待つ
     // エンジンを終了せず、検討モードも維持する
@@ -445,7 +460,7 @@ void AnalysisSessionHandler::restartConsiderationDeferred()
                        << "m_engine=" << (m_engine ? "valid" : "null");
 
     // 検討モード中でなければ何もしない
-    if (!m_inConsiderationMode) {
+    if (!m_inConsiderationMode || !m_restartInProgress) {
         qCDebug(lcGame).noquote() << "restartConsiderationDeferred: not in consideration mode, ignoring";
         return;
     }
@@ -471,20 +486,10 @@ void AnalysisSessionHandler::restartConsiderationDeferred()
     // 待機状態を解除
     m_waiting = false;
 
-    // 前回の移動先を設定（「同」表記のため）
-    if (m_previousFileTo > 0 && m_previousRankTo > 0) {
-        m_engine->setPreviousFileTo(m_previousFileTo);
-        m_engine->setPreviousRankTo(m_previousRankTo);
-        qCDebug(lcGame).noquote() << "restartConsiderationDeferred: setPreviousFileTo/RankTo:"
-                           << m_previousFileTo << "/" << m_previousRankTo;
-    }
-
-    // 最後の指し手を設定（読み筋表示ウィンドウのハイライト用）
-    if (!m_lastUsiMove.isEmpty()) {
-        m_engine->setLastUsiMove(m_lastUsiMove);
-        qCDebug(lcGame).noquote() << "restartConsiderationDeferred: setLastUsiMove:"
-                           << m_lastUsiMove;
-    }
+    m_engine->setPreviousFileTo(m_previousFileTo);
+    m_engine->setPreviousRankTo(m_previousRankTo);
+    m_engine->setLastUsiMove(m_lastUsiMove);
+    m_restartInProgress = false;
 
     // 既存エンジンにコマンドを送信
     m_engine->sendAnalysisCommands(m_positionStr, m_byoyomiMs, m_multiPV);

@@ -16,6 +16,7 @@
 #include <QPalette>
 #include <QRadioButton>
 #include <QSettings>
+#include <QSignalBlocker>
 #include <QSpinBox>
 #include <QTimer>
 #include <QToolButton>
@@ -128,6 +129,8 @@ void ConsiderationTabManager::loadEngineList()
 {
     if (!m_engineComboBox) return;
 
+    const QSignalBlocker blocker(m_engineComboBox);
+    const QString selectedName = m_engineComboBox->currentText();
     m_engineComboBox->clear();
 
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
@@ -138,12 +141,23 @@ void ConsiderationTabManager::loadEngineList()
         m_engineComboBox->addItem(name);
     }
     settings.endArray();
+    const int previousIndex = m_engineComboBox->findText(selectedName);
+    if (m_engineComboBox->count() > 0) {
+        m_engineComboBox->setCurrentIndex(previousIndex >= 0 ? previousIndex
+            : qBound(0, AnalysisSettings::considerationEngineIndex(), m_engineComboBox->count() - 1));
+    }
 }
 
 // ===================== 設定の保存・復元 =====================
 
 void ConsiderationTabManager::loadConsiderationTabSettings()
 {
+    // 復元中の変更通知で、未復元の設定を初期値へ上書きしない。
+    const QSignalBlocker engineBlocker(m_engineComboBox);
+    const QSignalBlocker unlimitedBlocker(m_unlimitedTimeRadioButton);
+    const QSignalBlocker timedBlocker(m_considerationTimeRadioButton);
+    const QSignalBlocker secondsBlocker(m_byoyomiSecSpinBox);
+    const QSignalBlocker multiPVBlocker(m_multiPVComboBox);
     const int engineIndex = AnalysisSettings::considerationEngineIndex();
     if (m_engineComboBox && engineIndex >= 0 && engineIndex < m_engineComboBox->count()) {
         m_engineComboBox->setCurrentIndex(engineIndex);
@@ -160,6 +174,8 @@ void ConsiderationTabManager::loadConsiderationTabSettings()
         }
         m_byoyomiSecSpinBox->setValue(byoyomiSecVal > 0 ? byoyomiSecVal : 20);
     }
+
+    m_considerationTimeLimitSec = unlimitedTime ? 0 : byoyomiSec();
 
     const int multiPV = AnalysisSettings::considerationMultiPV();
     if (m_multiPVComboBox && multiPV >= 1 && multiPV <= 10) {
@@ -224,6 +240,10 @@ void ConsiderationTabManager::setConsiderationRunning(bool running)
     qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] ENTER running=" << running;
 
     m_considerationRunning = running;
+    // 時間設定は開始時にエンジンへ渡す。実行中に表示だけ変更されないよう固定する。
+    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setEnabled(!running);
+    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setEnabled(!running);
+    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setEnabled(!running);
 
     if (!m_btnStopConsideration) {
         qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] button is null, returning";
@@ -276,6 +296,7 @@ void ConsiderationTabManager::onMultiPVComboBoxChanged(int index)
 {
     Q_UNUSED(index);
     if (m_multiPVComboBox) {
+        saveConsiderationTabSettings();
         int value = m_multiPVComboBox->currentData().toInt();
         emit considerationMultiPVChanged(value);
     }

@@ -579,6 +579,51 @@ PHASE2_TOOLS: list[types.Tool] = [
             "text": {"type": "string"}}, "required": ["queued", "object_name", "text"]},
     ),
     _tool(
+        "show_dock", "Show dock panel",
+        "Show and raise a dock panel, including panels tabbed behind another dock. Select by object "
+        "name (e.g. ConsiderationDock or ThinkingDock); get_widget_text lists dock names. "
+        "The operation is queued and refused when the main window is modally blocked.",
+        {"properties": {"widget": {"type": "string", "minLength": 1}}, "required": ["widget"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
+         "required": ["queued", "object_name"]},
+    ),
+    _tool(
+        "click_widget", "Click widget button",
+        "Click a named button in the main window or a dialog, including considerationStartStop, "
+        "considerationFontIncrease and considerationEngineSettings. Uses normal button signals. "
+        "The click is queued; inspect the result with get_widget_text. Hidden, disabled and modally "
+        "blocked widgets are refused.",
+        {"properties": {"target": {"type": "string", "default": "main"},
+                        "widget": {"type": "string", "minLength": 1}}, "required": ["widget"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
+         "required": ["queued", "object_name"]},
+    ),
+    _tool(
+        "set_widget_value", "Set widget value",
+        "Change a named combo box (exact item text or zero-based index), integer spin box (number), "
+        "check box/radio button (boolean), or tab widget (zero-based index). For example: "
+        "considerationEngine, considerationMultiPV, considerationSeconds, considerationUnlimited, "
+        "considerationArrows. Normal change signals run; the operation is queued so dialogs can open. "
+        "Hidden, disabled or modally blocked widgets and out-of-range values are refused.",
+        {"properties": {"target": {"type": "string", "default": "main"},
+                        "widget": {"type": "string", "minLength": 1},
+                        "value": {"type": ["string", "integer", "boolean"]}}, "required": ["widget", "value"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
+         "required": ["queued", "object_name"]},
+    ),
+    _tool(
+        "click_table_cell", "Click table cell",
+        "Click a zero-based row and column in a named table through normal mouse events. "
+        "Use considerationView column 4 to open the principal variation board. Scrolls the cell "
+        "into view; hidden, disabled and modally blocked cells are refused. Returns when queued.",
+        {"properties": {"target": {"type": "string", "default": "main"},
+                        "widget": {"type": "string", "minLength": 1},
+                        "row": {"type": "integer", "minimum": 0},
+                        "column": {"type": "integer", "minimum": 0}}, "required": ["widget", "row", "column"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
+         "required": ["queued", "object_name"]},
+    ),
+    _tool(
         "capture_screenshot",
         "Capture screenshot",
         "Save a PNG screenshot of the ShogiBoardQ main window (target='main') or of an open dialog identified "
@@ -618,7 +663,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Read labels, text fields, combo boxes, check boxes, lists, tables and boards inside an open dialog (or the main "
         "window when dialog is omitted). Restrict to one widget with its object name. Intended for verifying "
         "what the GUI shows. Widgets include geometry relative to the target window; boards include board_sfen "
-        "(board pieces only), flipped and square_size.",
+        "(board pieces only), flipped, square_size and candidate arrows. Combo boxes and tabs include current_index.",
         {
             "properties": {
                 "dialog": {"type": "string", "description": "Dialog object name or title substring; omit for the main window."},

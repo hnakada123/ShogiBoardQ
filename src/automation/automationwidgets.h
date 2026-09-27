@@ -10,8 +10,12 @@
 #include <QString>
 
 class QWidget;
+struct AutomationContext;
 
 namespace AutomationWidgets {
+
+QWidget* requireWindow(const AutomationContext& context, const QString& target);
+void requireInteractive(QWidget* widget);
 
 /// 表示中のトップレベルウィンドウ（メインウィンドウ・ダイアログ・メッセージボックス）
 QList<QWidget*> visibleWindows();

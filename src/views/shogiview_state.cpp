@@ -32,6 +32,11 @@ void ShogiView::setArrows(const QList<Arrow>& arrows)
     m_highlighting->setArrows(arrows);
 }
 
+const QList<ShogiView::Arrow>& ShogiView::arrows() const
+{
+    return m_highlighting->arrows();
+}
+
 void ShogiView::clearArrows()
 {
     m_highlighting->clearArrows();

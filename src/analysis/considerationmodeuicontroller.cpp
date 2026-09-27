@@ -65,6 +65,7 @@ void ConsiderationModeUIController::setShowArrowsEnabled(bool enabled)
 
 void ConsiderationModeUIController::onModeStarted()
 {
+    m_considerationActive = true;
     qCDebug(lcAnalysis).noquote() << "Initializing consideration mode";
 
     if (m_considerationTabManager && m_considerationModel) {
@@ -135,6 +136,7 @@ void ConsiderationModeUIController::onTimeSettingsReady(bool unlimited, int byoy
 
 void ConsiderationModeUIController::onModeEnded()
 {
+    m_considerationActive = false;
     qCDebug(lcAnalysis).noquote() << "consideration mode ended";
 
     if (m_considerationTabManager) {
@@ -172,6 +174,9 @@ void ConsiderationModeUIController::onMultiPVChanged(int value)
 
     // 検討中の場合のみMatchCoordinatorに転送
     emit multiPVChangeRequested(value);
+    if (m_considerationActive && m_considerationTabManager) {
+        m_considerationTabManager->startElapsedTimer();
+    }
 }
 
 void ConsiderationModeUIController::onDialogMultiPVReady(int multiPV)
@@ -255,7 +260,7 @@ void ConsiderationModeUIController::updateArrows()
     if (!m_shogiView) return;
 
     // 矢印表示がOFFの場合はクリアして終了
-    if (!m_showArrows) {
+    if (!m_considerationActive || !m_showArrows) {
         m_shogiView->clearArrows();
         return;
     }
@@ -302,15 +307,12 @@ void ConsiderationModeUIController::updateArrows()
                 QChar usiPiece = firstMove.at(0);
 
                 // 現在の手番を確認（SFENの手番フィールドを使用）
-                // SFENフォーマット: "position sfen ... b ..." (b=先手, w=後手)
+                // 読み筋の基準SFEN: "盤面 b 持駒 手数" (b=先手, w=後手)
                 bool isBlackTurn = true;  // デフォルトは先手
-                if (!m_currentSfenStr.isEmpty()) {
-                    // SFENの手番フィールドを探す（スペース区切りの2番目）
-                    QStringList sfenParts = m_currentSfenStr.split(' ');
-                    if (sfenParts.size() >= 2) {
-                        isBlackTurn = (sfenParts.at(1) == "b");
-                    }
-                }
+                const auto* record = m_considerationModel->recordAt(row);
+                const QString sfen = record ? record->baseSfen() : m_currentSfenStr;
+                const QStringList sfenParts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+                if (sfenParts.size() >= 2) isBlackTurn = (sfenParts.at(1) == QLatin1String("b"));
 
                 // USI形式では P=歩, L=香, N=桂, S=銀, G=金, B=角, R=飛
                 // ShogiViewの駒文字は 先手:大文字, 後手:小文字
