@@ -121,13 +121,14 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
         if (format == QLatin1String("moves")) {
             GameRecordModel* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
             QJsonArray moves;
+            bool truncated = false;
             if (model) {
                 const QList<KifDisplayItem> items = model->collectMainlineForExport();
                 const QStringList usi = model->collectMainlineUsiForExport();
                 int emitted = 0;
                 for (const KifDisplayItem& item : items) {
                     if (item.ply < fromPly) continue;
-                    if (emitted >= maxMoves) break;
+                    if (emitted >= maxMoves) { truncated = true; break; }
                     QJsonObject move;
                     move[QStringLiteral("ply")] = item.ply;
                     move[QStringLiteral("text")] = item.prettyMove;
@@ -140,7 +141,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
                 }
             }
             result[QStringLiteral("moves")] = moves;
-            result[QStringLiteral("truncated")] = false;
+            result[QStringLiteral("truncated")] = truncated;
             return result;
         }
 
@@ -168,7 +169,7 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
 
     dispatcher.registerMethod(QStringLiteral("kifu.goto"), [context](const QJsonObject& params) {
         const int ply = AutomationParams::requireInt(params, QStringLiteral("ply"), 0, 100000);
-        const int total = totalPlies(context);
+        const int total = qMax(0, static_cast<int>(currentLinePositions(context).size()) - 1);
         if (ply > total) {
             throw AutomationError(AutomationErrorCode::InvalidParams,
                                   QStringLiteral("ply %1 is beyond the last move (%2)").arg(ply).arg(total));

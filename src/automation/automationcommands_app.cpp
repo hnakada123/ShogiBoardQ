@@ -74,12 +74,28 @@ QString playModeName(PlayMode mode)
 
 } // namespace
 
+QStringList AutomationCommands::currentLinePositions(const AutomationContext& context)
+{
+    auto* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
+    if (model && model->branchTree() && !model->branchTree()->isEmpty()) {
+        const auto lines = model->branchTree()->allLines();
+        const int line = model->activeRow();
+        if (line >= 0 && line < lines.size()) {
+            QStringList positions;
+            for (const auto* node : lines[line].nodes) positions.append(node->sfen());
+            return positions;
+        }
+    }
+    const auto* record = context.sfenRecord ? context.sfenRecord() : nullptr;
+    return record ? *record : QStringList();
+}
+
 QString AutomationCommands::currentSfen(const AutomationContext& context)
 {
-    const QStringList* record = context.sfenRecord ? context.sfenRecord() : nullptr;
+    const QStringList record = currentLinePositions(context);
     const int index = context.currentMoveIndex ? *context.currentMoveIndex : 0;
-    if (record && index >= 0 && index < record->size()) {
-        return record->at(index);
+    if (index >= 0 && index < record.size()) {
+        return record.at(index);
     }
     if (context.gameController && context.gameController->board()) {
         ShogiBoard* board = context.gameController->board();
@@ -123,8 +139,8 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         result[QStringLiteral("play_mode")] = context.playMode ? playModeName(*context.playMode) : QStringLiteral("unknown");
         const int ply = context.currentMoveIndex ? *context.currentMoveIndex : 0;
         result[QStringLiteral("current_ply")] = ply;
-        const QStringList* record = context.sfenRecord ? context.sfenRecord() : nullptr;
-        result[QStringLiteral("total_plies")] = record && !record->isEmpty() ? static_cast<int>(record->size()) - 1 : 0;
+        const QStringList record = currentLinePositions(context);
+        result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(record.size()) - 1);
         result[QStringLiteral("kifu_file")] = context.saveFileName ? *context.saveFileName : QString();
         GameRecordModel* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
         result[QStringLiteral("dirty")] = model && model->isDirty();

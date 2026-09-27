@@ -490,7 +490,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "save_kifu",
         "Save kifu",
         "Save the record shown in ShogiBoardQ to a file. The format follows the extension (.kif .kifu .ki2 .csa "
-        ".jkf .usen .usi). Existing files are only replaced with overwrite=true.",
+        ".ki2u .jkf .usen .usi). Existing files are only replaced with overwrite=true.",
         {"properties": {"path": {"type": "string", "description": "Destination file. " + ABS_PATH_DESC}, "overwrite": OVERWRITE},
          "required": ["path"]},
         {"type": "object", "properties": {"path": {"type": "string"}, "format": {"type": "string"}}, "required": ["path"]},
@@ -636,12 +636,23 @@ PHASE2_TOOLS: list[types.Tool] = [
          "required": ["queued", "object_name"]},
     ),
     _tool(
+        "get_clipboard", "Read clipboard",
+        "Read the running application's clipboard text and image dimensions. Use after copy menu actions "
+        "to verify their actual output. Text is limited by max_chars; truncated indicates omitted text.",
+        {"properties": {"max_chars": {"type": "integer", "minimum": 1, "maximum": 1_000_000, "default": 30000}}},
+        {"type": "object", "properties": {"text": {"type": "string"}, "truncated": {"type": "boolean"},
+                                          "has_image": {"type": "boolean"}, "image_width": {"type": "integer"},
+                                          "image_height": {"type": "integer"}},
+         "required": ["text", "truncated", "has_image", "image_width", "image_height"]},
+        read_only=True,
+    ),
+    _tool(
         "set_widget_value", "Set widget value",
         "Change a named combo box (exact item text or zero-based index), integer spin box (number), "
-        "check box/radio button (boolean), or tab widget (zero-based index). For example: "
+        "check box/radio button (boolean), tab widget (zero-based index), or editable text field (plain text). For example: "
         "considerationEngine, considerationMultiPV, considerationSeconds, considerationUnlimited, "
         "considerationArrows. Normal change signals run; the operation is queued so dialogs can open. "
-        "Hidden, disabled or modally blocked widgets and out-of-range values are refused.",
+        "Hidden, disabled, read-only, protected or modally blocked widgets and out-of-range values are refused.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1},
                         "value": {"type": ["string", "integer", "boolean"]}}, "required": ["widget", "value"]},

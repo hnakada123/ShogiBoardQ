@@ -245,9 +245,9 @@ void KifuApplyService::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& it
     if (white.isEmpty())
         white = findGameInfoValue(items, { QStringLiteral("後手省略名") });
 
-    if (!black.isEmpty() && shogiView)
+    if (shogiView)
         shogiView->setBlackPlayerName(black);
-    if (!white.isEmpty() && shogiView)
+    if (shogiView)
         shogiView->setWhitePlayerName(white);
 }
 

@@ -28,6 +28,10 @@ public:
     static QStringList exportLines(const GameRecordModel& model,
                                    const GameRecordModel::ExportContext& ctx,
                                    const QStringList& usiMoves);
+
+    /// 指定された経路だけを出力する。終局表示はその経路に含まれる場合だけ渡す。
+    static QStringList exportPosition(const QString& startSfen, const QStringList& usiMoves,
+                                      const QString& terminalMove = QString());
 };
 
 #endif // USIEXPORTER_H

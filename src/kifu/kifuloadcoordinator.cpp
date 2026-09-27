@@ -191,11 +191,10 @@ bool KifuLoadCoordinator::loadKifuCommon(
     logStep("dumpMainline/Variations");
 
     // 4) 先手/後手名などヘッダ反映
-    if (extractGameInfoFunc) {
-        const QList<KifGameInfoItem> infoItems = extractGameInfoFunc(filePath);
-        m_applyService->populateGameInfo(infoItems);
-        m_applyService->applyPlayersFromGameInfo(infoItems);
-    }
+    const QList<KifGameInfoItem> infoItems = extractGameInfoFunc ? extractGameInfoFunc(filePath)
+                                                               : QList<KifGameInfoItem>();
+    m_applyService->populateGameInfo(infoItems);
+    m_applyService->applyPlayersFromGameInfo(infoItems);
     logStep("extractGameInfo");
 
     // 5) 共通の後処理（KifuApplyService に委譲）
