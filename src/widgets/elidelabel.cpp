@@ -36,6 +36,7 @@ ElideLabel::ElideLabel(QWidget* parent)
 void ElideLabel::setFullText(const QString& t) {
     if (m_fullText == t) return;   // 変更なしなら早期 return（最適化）
     m_fullText = t;                 // 元テキストを更新
+    setProperty("fullText", m_fullText); // 汎用のUI検査でも省略前の文字列を取得できるようにする
     setToolTip(m_fullText);         // ツールチップも同期
     updateElidedText();             // elidedText を再計算して再描画を促す
 

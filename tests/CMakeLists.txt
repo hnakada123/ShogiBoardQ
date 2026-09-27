@@ -1481,6 +1481,9 @@ target_link_libraries(tst_usi_info_line_parser PRIVATE shogiboardq_static)
 add_shogi_test(tst_sfen_validation_service tst_sfen_validation_service.cpp)
 target_link_libraries(tst_sfen_validation_service PRIVATE shogiboardq_static)
 
+add_shogi_test(tst_game_info_pane tst_game_info_pane.cpp)
+target_link_libraries(tst_game_info_pane PRIVATE shogiboardq_static)
+
 add_shogi_test(tst_kifu_conversion_service tst_kifu_conversion_service.cpp)
 target_link_libraries(tst_kifu_conversion_service PRIVATE shogiboardq_static)
 

@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QList>
 #include <QString>
+#include <QSet>
 
 #include "kifparsetypes.h"  // KifGameInfoItem
 
@@ -16,6 +17,7 @@ class QTableWidget;
 class QToolButton;
 class QPushButton;
 class QLabel;
+class QLineEdit;
 
 /**
  * @brief 対局情報タブ（GameInfoPane）の管理を担当するコントローラクラス
@@ -56,8 +58,13 @@ public:
     /// 対局者名を更新
     void updatePlayerNames(const QString& blackName, const QString& whiteName);
 
+    /// 終了日時などを自動更新する。編集中の他の項目とUndo/Redo履歴を維持する。
+    void updateGameInfoValue(const QString& key, const QString& value);
+
     /// 編集中かどうか
     bool isDirty() const;
+    /// 編集中のセルを通常のdelegate経由で確定する（保存・確認前に使用）。
+    void commitPendingEditor();
 
     /// 未保存の編集がある場合に警告ダイアログを表示
     /// @return 続行してよい場合true、キャンセルの場合false
@@ -76,10 +83,10 @@ public slots:
     /// フォントサイズを減少
     void decreaseFontSize();
 
-    /// 元の内容に戻す（Undo）
+    /// セル編集・行追加を1操作戻す
     void undo();
 
-    /// やり直す（Redo）- 編集中セルのredo
+    /// 元に戻した操作をやり直す
     void redo();
 
     /// 切り取り
@@ -105,6 +112,19 @@ private slots:
     void onCellChanged(int row, int column);
 
 private:
+    QLineEdit* activeEditor() const;
+    struct EditState {
+        QList<QPair<QString, QString>> cells;
+        QSet<int> editableKeys;
+        bool operator==(const EditState& other) const {
+            return cells == other.cells && editableKeys == other.editableKeys;
+        }
+    };
+    EditState editState() const;
+    void restoreEditState(const EditState& state);
+    void resetHistory();
+    QList<EditState> m_history;
+    int m_historyIndex = 0;
     void buildUi();
     void buildToolbar();
     void updateEditingIndicator();

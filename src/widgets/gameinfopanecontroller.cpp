@@ -14,8 +14,8 @@
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QApplication>
-#include <QClipboard>
 #include <QLineEdit>
+#include <QShortcut>
 #include <QMessageBox>
 #include <QIcon>
 #include "logcategories.h"
@@ -50,6 +50,7 @@ void GameInfoPaneController::buildUi()
 
     // テーブル作成
     m_table = new QTableWidget(m_container);
+    m_table->setObjectName(QStringLiteral("gameInfoTable"));
     m_table->setColumnCount(2);
     m_table->setHorizontalHeaderLabels({tr("項目"), tr("内容")});
     m_table->horizontalHeader()->setStretchLastSection(true);
@@ -67,6 +68,19 @@ void GameInfoPaneController::buildUi()
     // セル変更時の接続
     QObject::connect(m_table, &QTableWidget::cellChanged,
                      this, &GameInfoPaneController::onCellChanged);
+
+    const auto addShortcut = [this](QKeySequence::StandardKey key,
+                                    void (GameInfoPaneController::*slot)()) {
+        auto* shortcut = new QShortcut(key, m_container);
+        shortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(shortcut, &QShortcut::activated, this, slot);
+    };
+    addShortcut(QKeySequence::Undo, &GameInfoPaneController::undo);
+    addShortcut(QKeySequence::Redo, &GameInfoPaneController::redo);
+    addShortcut(QKeySequence::Cut, &GameInfoPaneController::cut);
+    addShortcut(QKeySequence::Copy, &GameInfoPaneController::copy);
+    addShortcut(QKeySequence::Paste, &GameInfoPaneController::paste);
+    resetHistory();
 }
 
 void GameInfoPaneController::buildToolbar()
@@ -78,6 +92,7 @@ void GameInfoPaneController::buildToolbar()
 
     // フォントサイズ減少ボタン
     m_btnFontDecrease = new QToolButton(m_toolbar);
+    m_btnFontDecrease->setObjectName(QStringLiteral("gameInfoFontDecrease"));
     m_btnFontDecrease->setText(QStringLiteral("A-"));
     m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnFontDecrease->setFixedSize(28, 24);
@@ -87,6 +102,7 @@ void GameInfoPaneController::buildToolbar()
 
     // フォントサイズ増加ボタン
     m_btnFontIncrease = new QToolButton(m_toolbar);
+    m_btnFontIncrease->setObjectName(QStringLiteral("gameInfoFontIncrease"));
     m_btnFontIncrease->setText(QStringLiteral("A+"));
     m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnFontIncrease->setFixedSize(28, 24);
@@ -96,6 +112,7 @@ void GameInfoPaneController::buildToolbar()
 
     // Undoボタン
     m_btnUndo = new QToolButton(m_toolbar);
+    m_btnUndo->setObjectName(QStringLiteral("gameInfoUndo"));
     m_btnUndo->setText(QStringLiteral("↩"));
     m_btnUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
     m_btnUndo->setFixedSize(28, 24);
@@ -105,6 +122,7 @@ void GameInfoPaneController::buildToolbar()
 
     // Redoボタン
     m_btnRedo = new QToolButton(m_toolbar);
+    m_btnRedo->setObjectName(QStringLiteral("gameInfoRedo"));
     m_btnRedo->setText(QStringLiteral("↪"));
     m_btnRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
     m_btnRedo->setFixedSize(28, 24);
@@ -114,6 +132,7 @@ void GameInfoPaneController::buildToolbar()
 
     // 切り取りボタン
     m_btnCut = new QToolButton(m_toolbar);
+    m_btnCut->setObjectName(QStringLiteral("gameInfoCut"));
     m_btnCut->setText(QStringLiteral("✂"));
     m_btnCut->setToolTip(tr("切り取り (Ctrl+X)"));
     m_btnCut->setFixedSize(28, 24);
@@ -123,6 +142,7 @@ void GameInfoPaneController::buildToolbar()
 
     // コピーボタン
     m_btnCopy = new QToolButton(m_toolbar);
+    m_btnCopy->setObjectName(QStringLiteral("gameInfoCopy"));
     m_btnCopy->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy"),
                                          QIcon(QStringLiteral(":/images/actions/editCopy.svg"))));
     m_btnCopy->setToolTip(tr("コピー (Ctrl+C)"));
@@ -133,6 +153,7 @@ void GameInfoPaneController::buildToolbar()
 
     // 貼り付けボタン
     m_btnPaste = new QToolButton(m_toolbar);
+    m_btnPaste->setObjectName(QStringLiteral("gameInfoPaste"));
     m_btnPaste->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste"),
                                           QIcon(QStringLiteral(":/images/actions/editPaste.svg"))));
     m_btnPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
@@ -143,6 +164,7 @@ void GameInfoPaneController::buildToolbar()
 
     // 行追加ボタン
     m_btnAddRow = new QToolButton(m_toolbar);
+    m_btnAddRow->setObjectName(QStringLiteral("gameInfoAddRow"));
     m_btnAddRow->setText(QStringLiteral("+"));
     m_btnAddRow->setToolTip(tr("新しい行を追加する"));
     m_btnAddRow->setFixedSize(28, 24);
@@ -152,11 +174,13 @@ void GameInfoPaneController::buildToolbar()
 
     // 「修正中」ラベル
     m_editingLabel = new QLabel(tr("修正中"), m_toolbar);
+    m_editingLabel->setObjectName(QStringLiteral("gameInfoEditing"));
     m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
     m_editingLabel->setVisible(false);
 
     // 更新ボタン
     m_btnUpdate = new QPushButton(tr("対局情報更新"), m_toolbar);
+    m_btnUpdate->setObjectName(QStringLiteral("gameInfoApply"));
     m_btnUpdate->setToolTip(tr("編集した対局情報を棋譜に反映する"));
     m_btnUpdate->setFixedHeight(24);
     m_btnUpdate->setStyleSheet(ButtonStyles::primaryAction());
@@ -214,6 +238,7 @@ void GameInfoPaneController::setGameInfo(const QList<KifGameInfoItem>& items)
     // 元データを保存
     m_originalItems = items;
     m_dirty = false;
+    resetHistory();
     updateEditingIndicator();
 }
 
@@ -247,12 +272,14 @@ void GameInfoPaneController::setOriginalGameInfo(const QList<KifGameInfoItem>& i
 {
     m_originalItems = items;
     m_dirty = false;
+    resetHistory();
     updateEditingIndicator();
 }
 
 void GameInfoPaneController::updatePlayerNames(const QString& blackName, const QString& whiteName)
 {
     if (!m_table) return;
+    commitPendingEditor();
 
     m_table->blockSignals(true);
 
@@ -290,15 +317,28 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
             m_originalItems[i].value = whiteName;
         }
     }
+    // 自動同期された名前は、他のセルのUndo/Redoで古い名前に戻さない。
+    for (auto& state : m_history) {
+        for (auto& cell : state.cells) {
+            if (cell.first == GameInfoKeys::kBlackPlayer) cell.second = blackName;
+            else if (cell.first == GameInfoKeys::kWhitePlayer) cell.second = whiteName;
+        }
+    }
+    m_dirty = checkDirty();
+    updateEditingIndicator();
 }
 
 bool GameInfoPaneController::isDirty() const
 {
+    auto* editor = activeEditor();
+    if (editor && m_table->currentItem()
+        && editor->text() != m_table->currentItem()->text()) return true;
     return m_dirty;
 }
 
 bool GameInfoPaneController::confirmDiscardUnsaved()
 {
+    commitPendingEditor();
     if (!m_dirty) {
         return true;
     }
@@ -313,7 +353,7 @@ bool GameInfoPaneController::confirmDiscardUnsaved()
         );
 
     if (reply == QMessageBox::Yes) {
-        undo();
+        setGameInfo(m_originalItems);
         return true;
     }
     return false;
@@ -344,113 +384,6 @@ void GameInfoPaneController::increaseFontSize()
 void GameInfoPaneController::decreaseFontSize()
 {
     setFontSize(m_fontSize - 1);
-}
-
-void GameInfoPaneController::undo()
-{
-    setGameInfo(m_originalItems);
-    qCDebug(lcUi).noquote() << "[GameInfoPane] undo: Reverted to original game info";
-}
-
-void GameInfoPaneController::redo()
-{
-    if (!m_table) return;
-
-    // QTableWidget の通常編集は setCellWidget() ではなく delegate editor を使う。
-    // そのため、フォーカス中のエディタが本テーブル配下ならそこへ redo を委譲する。
-    QWidget* focused = QApplication::focusWidget();
-    if (!focused || !m_table->isAncestorOf(focused)) {
-        return;
-    }
-
-    if (QLineEdit* lineEdit = qobject_cast<QLineEdit*>(focused)) {
-        lineEdit->redo();
-    }
-}
-
-void GameInfoPaneController::cut()
-{
-    if (!m_table) return;
-
-    QTableWidgetItem* item = m_table->currentItem();
-    if (item && (item->flags() & Qt::ItemIsEditable)) {
-        QApplication::clipboard()->setText(item->text());
-        item->setText(QString());
-    }
-}
-
-void GameInfoPaneController::copy()
-{
-    if (!m_table) return;
-
-    QTableWidgetItem* item = m_table->currentItem();
-    if (item) {
-        QApplication::clipboard()->setText(item->text());
-    }
-}
-
-void GameInfoPaneController::paste()
-{
-    if (!m_table) return;
-
-    QTableWidgetItem* item = m_table->currentItem();
-    if (item && (item->flags() & Qt::ItemIsEditable)) {
-        QString text = QApplication::clipboard()->text();
-        item->setText(text);
-    }
-}
-
-void GameInfoPaneController::addRow()
-{
-    if (!m_table) return;
-
-    const int newRow = m_table->rowCount();
-    m_table->blockSignals(true);
-    m_table->setRowCount(newRow + 1);
-
-    // 両列とも編集可能（ユーザー定義の項目のため）
-    auto* keyItem = new QTableWidgetItem();
-    auto* valueItem = new QTableWidgetItem();
-    m_table->setItem(newRow, 0, keyItem);
-    m_table->setItem(newRow, 1, valueItem);
-    m_table->blockSignals(false);
-
-    // 新しい行の項目名セルを選択して編集開始
-    m_table->setCurrentCell(newRow, 0);
-    m_table->editItem(keyItem);
-
-    // dirty状態を更新
-    onCellChanged(newRow, 0);
-}
-
-void GameInfoPaneController::applyChanges()
-{
-    if (!m_table) return;
-
-    // 現在のテーブル内容を取得
-    QList<KifGameInfoItem> currentItems = gameInfo();
-
-    // 元データを更新
-    m_originalItems = currentItems;
-    m_dirty = false;
-    updateEditingIndicator();
-
-    emit gameInfoUpdated(currentItems);
-
-    qCDebug(lcUi).noquote() << "[GameInfoPane] applyChanges: Game info updated, items=" << currentItems.size();
-}
-
-void GameInfoPaneController::onCellChanged(int row, int column)
-{
-    Q_UNUSED(row);
-    Q_UNUSED(column);
-
-    const bool wasDirty = m_dirty;
-    m_dirty = checkDirty();
-
-    if (wasDirty != m_dirty) {
-        updateEditingIndicator();
-    }
 }
 
 void GameInfoPaneController::updateEditingIndicator()

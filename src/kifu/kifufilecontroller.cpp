@@ -7,6 +7,7 @@
 #include "kifupastedialog.h"
 #include "kifusavecoordinator.h"
 #include "gamerecordmodel.h"
+#include "gameinfopanecontroller.h"
 #include "gamesettings.h"
 #include "logcategories.h"
 
@@ -26,11 +27,11 @@ void KifuFileController::updateDeps(const Deps& deps)
 
 bool KifuFileController::confirmDiscardUnsaved()
 {
-    auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr;
+    if (m_deps.gameInfo) m_deps.gameInfo->commitPendingEditor();
     return KifuSaveCoordinator::confirmDiscardUnsaved(
-        m_deps.parentWidget, record && record->isDirty(), [this, record]() {
+        m_deps.parentWidget, hasUnsavedChanges(), [this]() {
             overwriteKifuFile();
-            return record && !record->isDirty();
+            return !hasUnsavedChanges();
         });
 }
 
@@ -224,7 +225,7 @@ void KifuFileController::autoSaveKifuToFile(const QString& saveDir)
 bool KifuFileController::hasUnsavedChanges() const
 {
     auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr;
-    return record && record->isDirty();
+    return (record && record->isDirty()) || (m_deps.gameInfo && m_deps.gameInfo->isDirty());
 }
 
 bool KifuFileController::loadKifuFile(const QString& filePath)

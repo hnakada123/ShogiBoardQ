@@ -647,6 +647,18 @@ PHASE2_TOOLS: list[types.Tool] = [
         read_only=True,
     ),
     _tool(
+        "edit_table_cell", "Edit table cell",
+        "Edit a visible, editable table cell through its standard line editor. Row and column are zero-based. "
+        "By default Enter commits the edit; commit=false leaves the editor open. Read-only or modally blocked cells are refused.",
+        {"properties": {"target": {"type": "string", "default": "main"},
+                        "widget": {"type": "string", "minLength": 1},
+                        "row": {"type": "integer", "minimum": 0}, "column": {"type": "integer", "minimum": 0},
+                        "text": {"type": "string", "maxLength": 32767}, "commit": {"type": "boolean", "default": True}},
+         "required": ["widget", "row", "column", "text"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
+         "required": ["queued", "object_name"]},
+    ),
+    _tool(
         "set_widget_value", "Set widget value",
         "Change a named combo box (exact item text or zero-based index), integer spin box (number), "
         "check box/radio button (boolean), tab widget (zero-based index), or editable text field (plain text). For example: "

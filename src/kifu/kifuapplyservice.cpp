@@ -118,10 +118,8 @@ bool KifuApplyService::loadPositionFromSfen(const QString& sfenStr)
     *m_refs.currentMoveIndex = 0;
 
     // ゲーム情報をクリア
-    if (m_refs.gameInfoTable) {
-        m_refs.gameInfoTable->clearContents();
-        m_refs.gameInfoTable->setRowCount(0);
-    }
+    populateGameInfo({});
+    applyPlayersFromGameInfo({});
 
     // シグナルを発行
     if (m_hooks.displayGameRecord) m_hooks.displayGameRecord(disp);
@@ -227,7 +225,7 @@ QString KifuApplyService::findGameInfoValue(const QList<KifGameInfoItem>& items,
 
 void KifuApplyService::applyPlayersFromGameInfo(const QList<KifGameInfoItem>& items)
 {
-    ShogiView* shogiView = *m_refs.shogiView;
+    ShogiView* shogiView = m_refs.shogiView ? *m_refs.shogiView : nullptr;
 
     QString black = findGameInfoValue(items, { QStringLiteral("先手") });
     QString white = findGameInfoValue(items, { QStringLiteral("後手") });

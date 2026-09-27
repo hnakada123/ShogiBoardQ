@@ -99,16 +99,21 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `get_widget_text` | ダイアログ内のラベル・入力欄・テーブル内容 | `dialog`、`widget`、`max_rows` | `widget.text` |
 | `set_widget_value` | コンボ・スピン・チェック・タブ・編集可能なテキスト欄の変更 | `target`、`widget`、`value` | `widget.setValue` |
 | `get_clipboard` | クリップボードのテキストと画像の有無・サイズ | `max_chars` | `clipboard.get` |
+| `edit_table_cell` | 編集可能なテーブルセルに入力し、必要に応じて確定 | `target?`、`widget`、`row`、`column`、`text`、`commit?` | `widget.editCell` |
 | `widget.showDock` | `{widget}` | `{object_name, queued:true}`（ドック表示・前面化） | `-32602` 型違い、`-32002` 操作不可、`-32005` 対象なし |
 | `widget.click` | `{target?, widget}` | `{object_name, queued:true}`（ボタンクリック） | 同上 |
 | `widget.setValue` | `{target?, widget, value}` | `{object_name, queued:true}`（コンボ・整数スピン・チェック・タブ・プレーンテキスト入力） | 同上、範囲外・型違いは `-32602` |
 | `widget.clickCell` | `{target?, widget, row, column}` | `{object_name, queued:true}`（テーブルの通常マウス入力） | 同上 |
+| `widget.editCell` | `{target?, widget, row, column, text, commit?}` | `{object_name, queued:true}`（通常のセル入力欄を使用。`commit` の既定はtrue） | 同上。読み取り専用セルは `-32002` |
 
 `widget.text` はコンボ／タブの `current_index`、フォントの `font_point_size`、盤面の `arrows`
 （`from_file`, `from_rank`, `to_file`, `to_rank`, `priority`, `drop_piece`）も返す。
 UI操作は非表示・無効・モーダルで遮られた対象を拒否し、予約実行時にも再確認する。
 テキスト入力は読み取り専用・パスワード欄も拒否する。`kifuPasteText` は棋譜貼り付け欄、
 `kifuTable` / `kifuBranchTable` は棋譜・分岐候補テーブルを指定する名前。
+`gameInfoTable` は対局情報テーブル。`commit=false` は入力中の状態を維持する。
+`get_widget_text` は省略表示ラベルの `fullText` プロパティにも対応するため、
+`blackNameLabel` / `whiteNameLabel` で盤面の対局者名を全文取得できる。
 `get_position` と `get_app_state.total_plies`、`goto_ply` の上限は閲覧中の分岐に従い、
 `get_kifu` は本譜を返す。`get_kifu.truncated` は指定範囲の続きが省略されている場合に true。
 `widget.showDock` は非表示のドックを開くため、親ウィンドウの操作可否を検査する。

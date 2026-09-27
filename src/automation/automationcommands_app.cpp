@@ -5,6 +5,7 @@
 #include "automationdispatcher.h"
 #include "automationwidgets.h"
 #include "gamerecordmodel.h"
+#include "kifufilecontroller.h"
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogiview.h"
@@ -142,8 +143,8 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         const QStringList record = currentLinePositions(context);
         result[QStringLiteral("total_plies")] = qMax(0, static_cast<int>(record.size()) - 1);
         result[QStringLiteral("kifu_file")] = context.saveFileName ? *context.saveFileName : QString();
-        GameRecordModel* model = context.gameRecordModel ? context.gameRecordModel() : nullptr;
-        result[QStringLiteral("dirty")] = model && model->isDirty();
+        auto* fileController = context.kifuFileController ? context.kifuFileController() : nullptr;
+        result[QStringLiteral("dirty")] = fileController && fileController->hasUnsavedChanges();
         result[QStringLiteral("board_flipped")] = context.shogiView && context.shogiView->flipMode();
         result[QStringLiteral("sfen")] = currentSfen(context);
         QJsonObject engines;
