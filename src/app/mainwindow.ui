@@ -131,6 +131,8 @@
     <addaction name="separator"/>
     <addaction name="actionTsumeShogiSearch"/>
     <addaction name="actionStopTsumeSearch"/>
+    <addaction name="actionTsumeshogiGenerator"/>
+    <addaction name="actionTsumePlay"/>
     <addaction name="separator"/>
     <addaction name="actionJishogiScore"/>
     <addaction name="actionNyugyokuDeclaration"/>
