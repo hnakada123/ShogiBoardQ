@@ -5,22 +5,23 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Tsume Shogi Generator - ShogiBoardQ</title>
-<meta content="Learn to generate random tsume shogi candidates in ShogiBoardQ and use a USI engine to find mates of a specified length automatically." name="description"/>
+<meta content="Generate tsume shogi in ShogiBoardQ with the GUI or generate-tsume CLI. Learn parallel Python execution, checkpoints, usage notes, solution text output, and independent validation." name="description"/>
 <link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" rel="canonical"/>
 <!-- Open Graph -->
 <meta content="article" property="og:type"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" property="og:url"/>
 <meta content="Tsume Shogi Generator - ShogiBoardQ" property="og:title"/>
-<meta content="Automatically discover tsume shogi puzzles of a specified length with random position generation and USI engine verification in ShogiBoardQ." property="og:description"/>
+<meta content="Generate tsume shogi in ShogiBoardQ with the GUI or generate-tsume CLI. Learn parallel Python execution, checkpoints, usage notes, solution text output, and independent validation." property="og:description"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/generator-02-results.png" property="og:image"/>
 <meta content="en_US" property="og:locale"/>
 <meta content="ShogiBoardQ" property="og:site_name"/>
 <!-- Twitter Card -->
 <meta content="summary_large_image" name="twitter:card"/>
 <meta content="Tsume Shogi Generator - ShogiBoardQ" name="twitter:title"/>
-<meta content="Automatically discover tsume shogi puzzles of a specified length with random position generation and USI engine verification in ShogiBoardQ." name="twitter:description"/>
+<meta content="Generate tsume shogi in ShogiBoardQ with the GUI or generate-tsume CLI. Learn parallel Python execution, checkpoints, usage notes, solution text output, and independent validation." name="twitter:description"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/tsumeshogi-generator/generator-02-results.png" name="twitter:image"/>
 <link href="../../css/style.css" rel="stylesheet"/>
+<link href="../../css/tsumeshogi-generator.css" rel="stylesheet"/>
  <link href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" hreflang="ja" rel="alternate"/>
 <link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumeshogi-generator.html" hreflang="en" rel="alternate"/>
 <link href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumeshogi-generator.html" hreflang="x-default" rel="alternate"/>
@@ -41,6 +42,7 @@
 <li><a href="#generation">Generate Positions</a></li>
 <li><a href="#results">Results</a></li>
 <li><a href="#replay">Replay Solutions</a></li>
+<li><a href="#cli-generation">CLI Generation</a></li>
 <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
 </ul>
 </div>
@@ -186,6 +188,219 @@
 </div>
 </div>
 </section>
+<!-- Section 5: CLI and Python -->
+<section id="cli-generation" class="section section--alt cli-guide">
+    <div class="section-inner">
+        <h2 class="section-title">Generate Tsume Shogi with the CLI</h2>
+        <p class="section-desc">Set up generate-tsume, run parallel Python workers, save solutions, and reverify results</p>
+        <div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header"><span class="guide-step-number">1</span><span class="guide-step-title">Prepare the CLI and a mate-search engine</span></div>
+<p class="guide-step-text"><code>generate-tsume</code> uses the same generation pipeline as the GUI. It outputs JSON Lines after checking mate length, main-line uniqueness, and unnecessary pieces. Python can launch the CLI directly as a child process; no MCP server is needed.</p><p class="guide-step-text">The examples below use a Linux shell and Python 3. Run them from the repository root. See <a href="linux-build-and-release.html">Building on Linux</a> for prerequisites. On other platforms, adjust the CLI executable name and path for your environment.</p><div class="format-example"><h4>Build the CLI and list registered engines</h4>
+<pre><code>cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake --build build --target shogiboardq-cli --parallel 4
+./build/shogiboardq-cli list-engines</code></pre></div><p class="guide-step-text">First register an engine that supports <code>go mate</code> in <a href="menu.html">Settings → Engine Settings</a>. Pass the exact <strong>registered name</strong> returned by <code>list-engines</code> to <code>--engine</code>, not an executable path. Replace the example name below with your actual name, including spaces.</p><p class="guide-step-text">For KomoringHeights, a starting configuration for parallel generation is <code>Threads=1</code>, <code>USI_Hash=256</code>, <code>PostSearchLevel=MinLength</code>, and <code>GenerateAllLegalMoves=true</code>. Configure these through Engine Settings and check which options your engine supports.</p>
+</div>
+<div class="guide-step">
+<div class="guide-step-header"><span class="guide-step-number">2</span><span class="guide-step-title">Generate one batch and inspect the JSON Lines output</span></div>
+<p class="guide-step-text">Start with up to ten 3-ply puzzles to check your engine configuration and output. The JSON Lines event log is a different format from the puzzle collection text file.</p><div class="format-example"><h4>Generate up to ten 3-ply puzzles</h4>
+<pre><code>./build/shogiboardq-cli generate-tsume \
+  --engine &#x27;KomoringHeights  1.1.0 64ZEN2&#x27; \
+  --target-moves 3 --max-positions 10 \
+  --timeout-ms 5000 --max-attack 4 --max-defend 1 \
+  --attack-range 3 --stdin-control &gt; tsume-batch.jsonl</code></pre></div><table class="info-table"><thead><tr><th scope="col">Option</th><th scope="col">Meaning and range</th></tr></thead><tbody>
+<tr><td><code>--target-moves</code></td><td>Mate length: an odd number from 1 to 19; default 3</td></tr>
+<tr><td><code>--max-positions</code></td><td>Limit per process: 1–100 positions; default 10</td></tr>
+<tr><td><code>--timeout-ms</code></td><td>Time budget for candidate searches, trimming, and verification: 500–60000 ms; default 5000</td></tr>
+<tr><td><code>--max-attack</code></td><td>Maximum attacking pieces on board and in hand combined: 1–10; default 4</td></tr>
+<tr><td><code>--max-defend</code></td><td>Maximum defending pieces on the board, excluding the king: 0–10; default 1</td></tr>
+<tr><td><code>--attack-range</code></td><td>Attacking-piece placement range around the king: 1–8 squares; default 3</td></tr>
+<tr><td><code>--stdin-control</code></td><td>Stop on a line containing stop or on end-of-file on stdin</td></tr>
+<tr><td><code>--no-final-alternatives</code></td><td>Require a unique final mating move; final-move alternatives are allowed by default</td></tr>
+<tr><td><code>--no-remaining-to-hand</code></td><td>Do not give unused pieces to the defender; omit this for standard tsume shogi</td></tr>
+</tbody></table><p class="guide-step-text"><code>started</code> reports settings, <code>progress</code> reports generated, found, rejected, and inconclusive counts, <code>position</code> supplies an accepted puzzle, and <code>finished</code> marks completion. Read the SFEN and solution from <code>position.sfen</code> and <code>position.pv</code>, an array of USI moves. Also check <code>error</code> events and the process exit code.</p><div class="format-example"><h4>Key fields of a position event</h4>
+<pre><code>{&quot;event&quot;:&quot;position&quot;,&quot;sfen&quot;:&quot;9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1&quot;,&quot;pv&quot;:[&quot;2c2b+&quot;,&quot;1b1c&quot;,&quot;2e2c+&quot;]}</code></pre></div><p class="guide-step-text">With <code>--stdin-control</code>, type <code>stop</code> and press Enter to stop. Closing stdin also stops generation. Python must keep <code>stdin=PIPE</code> open until it sends a stop request. An environment that starts the process with closed stdin may cause it to stop immediately.</p>
+</div>
+<div class="guide-step" id="cli-parallel">
+<div class="guide-step-header"><span class="guide-step-number">3</span><span class="guide-step-title">Run parallel workers from Python and save progress</span></div>
+<p class="guide-step-text">Save the code below as <code>generate_tsume_parallel.py</code> and run <code>python3 generate_tsume_parallel.py</code> from the repository root. It only uses the Python standard library. Start with <code>TARGET=10</code> and <code>WORKERS=1</code>, then increase concurrency if CPU and memory capacity allow.</p><p class="guide-step-text"><code>PLIES</code> is the mate length, <code>TARGET</code> is the combined collection target, and <code>WORKERS</code> is the number of concurrent processes. Adjust <code>TIMEOUT_MS</code>, piece limits, and placement range at the top. Targets above 100 use successive batches of at most 100 positions each.</p><details class="guide-step-text"><summary>Show Python code: collect 100 three-ply puzzles with four workers</summary>
+<div class="format-example"><h4>generate_tsume_parallel.py</h4>
+<pre><code id="parallel-python-example">import asyncio
+import json
+import os
+from pathlib import Path
+
+CLI = str(Path(&quot;build/shogiboardq-cli&quot;).resolve())
+ENGINE = &quot;KomoringHeights  1.1.0 64ZEN2&quot;  # Use the exact name from list-engines
+PLIES = 3
+TARGET = 100
+WORKERS = 4
+TIMEOUT_MS = 5000
+MAX_ATTACK = 4
+MAX_DEFEND = 1
+ATTACK_RANGE = 3
+ALLOW_FINAL_ALTERNATIVES = True
+OUTPUT = Path(f&quot;tsume-work/tsume_{PLIES}ply_candidates.txt&quot;)
+ENV = dict(os.environ)
+# Optional: use a separately prepared configuration on Linux
+# ENV[&quot;XDG_CONFIG_HOME&quot;] = &quot;/path/to/tsume-config&quot;
+
+positions = {}
+active = set()
+
+
+def remember(sfen, pv):
+    fields = sfen.split()
+    if len(fields) != 4 or len(pv) != PLIES:
+        raise ValueError(&quot;Invalid SFEN or PV length&quot;)
+    key = &quot; &quot;.join(fields[:3])  # Board, turn, and hands; ignore the move number
+    if key not in positions and len(positions) &lt; TARGET:
+        positions[key] = sfen + &quot; moves &quot; + &quot; &quot;.join(pv)
+
+
+def checkpoint():
+    temporary = OUTPUT.with_suffix(&quot;.tmp&quot;)
+    text = &quot;# CLI candidates (before independent collection validation)\n&quot;
+    text += &quot;\n&quot;.join(positions.values()) + &quot;\n&quot;
+    temporary.write_text(text, encoding=&quot;utf-8&quot;)
+    temporary.replace(OUTPUT)
+
+
+async def stop(process):
+    if process.returncode is None:
+        try:
+            process.stdin.write(b&quot;stop\n&quot;)
+            await process.stdin.drain()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
+
+async def close_process(process):
+    await stop(process)
+    try:
+        await asyncio.wait_for(process.wait(), timeout=15)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+    active.discard(process)
+
+
+async def worker(number):
+    while len(positions) &lt; TARGET:
+        args = [
+            CLI, &quot;generate-tsume&quot;, &quot;--engine&quot;, ENGINE,
+            &quot;--target-moves&quot;, str(PLIES),
+            &quot;--max-positions&quot;, str(min(100, TARGET - len(positions))),
+            &quot;--timeout-ms&quot;, str(TIMEOUT_MS),
+            &quot;--max-attack&quot;, str(MAX_ATTACK), &quot;--max-defend&quot;, str(MAX_DEFEND),
+            &quot;--attack-range&quot;, str(ATTACK_RANGE), &quot;--stdin-control&quot;,
+        ]
+        if not ALLOW_FINAL_ALTERNATIVES:
+            args.append(&quot;--no-final-alternatives&quot;)
+        log_path = OUTPUT.parent / f&quot;worker-{PLIES}ply-{number}.jsonl&quot;
+        err_path = OUTPUT.parent / f&quot;worker-{PLIES}ply-{number}.stderr.log&quot;
+        with log_path.open(&quot;a&quot;, encoding=&quot;utf-8&quot;) as log, err_path.open(&quot;ab&quot;) as err:
+            process = await asyncio.create_subprocess_exec(
+                *args, env=ENV,
+                stdin=asyncio.subprocess.PIPE,
+                stdout=asyncio.subprocess.PIPE, stderr=err,
+            )
+            active.add(process)
+            try:
+                # Another worker may have reached the target during startup.
+                if len(positions) &gt;= TARGET:
+                    await stop(process)
+                async for raw in process.stdout:
+                    line = raw.decode(&quot;utf-8&quot;)
+                    log.write(line)
+                    log.flush()
+                    event = json.loads(line)
+                    if event[&quot;event&quot;] == &quot;error&quot;:
+                        raise RuntimeError(event[&quot;message&quot;])
+                    if event[&quot;event&quot;] != &quot;position&quot;:
+                        continue
+                    remember(event[&quot;sfen&quot;], event[&quot;pv&quot;])
+                    checkpoint()
+                    print(f&quot;{len(positions)}/{TARGET}&quot;, flush=True)
+                    if len(positions) == TARGET:
+                        await asyncio.gather(*(stop(p) for p in list(active)))
+                if await process.wait() != 0:
+                    raise RuntimeError(f&quot;CLI failed; see {err_path}&quot;)
+            finally:
+                await close_process(process)
+
+
+async def main():
+    if TARGET &lt; 1 or WORKERS &lt; 1:
+        raise ValueError(&quot;TARGET and WORKERS must be positive&quot;)
+    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    if OUTPUT.exists():
+        for line in OUTPUT.read_text(encoding=&quot;utf-8&quot;).splitlines():
+            if line and not line.startswith(&quot;#&quot;):
+                sfen, moves = line.split(&quot; moves &quot;, 1)
+                remember(sfen, moves.split())
+    tasks = [asyncio.create_task(worker(i)) for i in range(WORKERS)]
+    try:
+        await asyncio.gather(*tasks)
+    finally:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.gather(*(close_process(p) for p in list(active)))
+        checkpoint()
+    print(f&quot;Collected: {OUTPUT} (validate the collection separately)&quot;)
+
+
+if __name__ == &quot;__main__&quot;:
+    asyncio.run(main())</code></pre></div></details>
+<p class="guide-step-text">All workers share a dictionary keyed by the SFEN board, turn, and hands. Results are saved through temporary-file replacement after each discovery and reloaded on restart. JSON Lines and stderr logs are kept separately for each mate length and worker. Once the target is reached, all CLI processes receive a stop request. After Ctrl+C, restart to resume from saved results.</p><p class="guide-step-text">This code collects positions and removes duplicate SFENs. It does not exclude similar puzzles with the same solution but different piece types, or mirrored positions. Independent validation of the whole collection is a separate step.</p>
+</div>
+<div class="guide-step" id="cli-notes">
+<div class="guide-step-header"><span class="guide-step-number">4</span><span class="guide-step-title">Notes on running, stopping, and resuming</span></div>
+<ul class="guide-step-text">
+<li><strong>Total runtime:</strong> <code>--timeout-ms</code> is not a deadline for the entire command. Long mates or strict settings may yield few positions, so time to reach the target is not guaranteed. Start with a small target, inspect progress, and stop to adjust settings if needed. Inconclusive results are neither proof of no mate nor successful verification.</li>
+<li><strong>CPU and memory:</strong> Both the worker count and the engine thread count affect resource use. Sixteen processes with 256 MiB each require about 4 GiB for hash tables alone, plus other memory.</li>
+<li><strong>Configuration:</strong> If CLI engines differ from those in the GUI, check that you are using the same user and settings. On Linux, when changing <code>XDG_CONFIG_HOME</code>, prepare engine registrations and options in <code>ShogiBoardQ/ShogiBoardQ.ini</code> under that directory. Use the same environment for <code>list-engines</code> and Python.</li>
+<li><strong>Resuming:</strong> Do not let multiple Python collectors write to the same <code>OUTPUT</code>. The example does not reverify existing lines. If mate length, engine, or alternative-mate policy changes, use a new output file or reverify existing entries. Settings are also recorded in the <code>started</code> event logs.</li>
+<li><strong>Alternative mates:</strong> By default, multiple final mating moves and alternative solutions in shorter side lines are allowed. To require a unique final move, set <code>ALLOW_FINAL_ALTERNATIVES=False</code> and also pass <code>--no-final-alternatives</code> when reverifying.</li>
+<li><strong>Output files:</strong> <code>tsume-batch.jsonl</code> is an event log. Python writes collected SFENs and solutions to <code>tsume-work/tsume_3ply_candidates.txt</code>. If a CLI process fails, inspect its JSON Lines and stderr logs.</li>
+</ul>
+</div>
+<div class="guide-step" id="collection-validation">
+<div class="guide-step-header"><span class="guide-step-number">5</span><span class="guide-step-title">Save solution text and validate the collection</span></div>
+<p class="guide-step-text">Use UTF-8 and one puzzle per line in the form <code>SFEN moves USI-moves…</code>. Comments beginning with <code>#</code> can record the date, engine, mate length, piece limits, time budgets, and alternative-mate policy.</p><div class="format-example"><h4>A three-ply puzzle, saved as one line</h4>
+<pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre></div><p class="guide-step-text">Use <code>verify-tsume</code> to recheck main-line uniqueness. This example checks one position; for a collection, pass each SFEN in turn.</p><div class="format-example"><h4>Recheck main-line uniqueness</h4>
+<pre><code>./build/shogiboardq-cli verify-tsume \
+  --engine &#x27;KomoringHeights  1.1.0 64ZEN2&#x27; \
+  --target-moves 3 --timeout-ms 15000 \
+  --sfen &#x27;9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1&#x27;</code></pre></div><p class="guide-step-text">The JSON field <code>ok</code> reports command success. Also require <code>status</code> to be <code>unique</code> before accepting the result, and defer or retry <code>unknown</code> results. This command checks main-line uniqueness; it does not replace auditing every saved PV move and the necessity of each piece.</p><p class="guide-step-text">For independent collection validation, the tools included in the source check shortest mate length, legal solutions, main-line uniqueness, and every single-piece removal. Their <code>--engine</code> argument takes an <strong>engine executable path</strong>, unlike the CLI registered name.</p><div class="format-example"><h4>Independently audit the collected file</h4>
+<pre><code>cmake -B build -S . -DBUILD_TESTING=ON
+cmake --build build --target tsumeshogi_collection_auditor --parallel 4
+python3 scripts/audit_tsume_collections.py tsume-work/tsume_3ply_candidates.txt \
+  --engine /path/to/KomoringHeights-by-gcc \
+  --output-dir tsume-work/audit-3ply --workers 4 --timeout-ms 30000</code></pre></div><p class="guide-step-text">Inspect <code>statuses</code>, <code>unique_minimal</code>, and <code>changed</code> in <code>summary.json</code>. Do not count <code>unknown</code> entries as complete; retry with a larger budget or exclude them. Verified results are saved in <code>tsume_3ply_minimal.txt</code>. If trimming or duplicate/similarity filtering reduces the count, replenish and audit again. See the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a> for detailed validation conditions.</p><p class="guide-step-text">The piece audit establishes that no single-piece removal preserves the acceptance conditions. It does not guarantee the minimum piece count under simultaneous removals or changes of piece type.</p>
+</div>
+        </div>
+    </div>
+</section>
+
+<section id="collection-diversity" class="section cli-guide">
+    <div class="section-inner">
+        <h2 class="section-title">Build a Varied Puzzle Collection</h2>
+        <p class="section-desc">Check solution similarity and puzzle order as well as position validity</p>
+        <div class="screenshot-gallery">
+<div class="guide-step">
+<div class="guide-step-header"><span class="guide-step-number">1</span><span class="guide-step-title">Check solution similarity as well as duplicate positions</span></div>
+<p class="guide-step-text">Different SFENs can still produce similar solving experiences through the same king chase, reflection, translation, or substitutions such as gold and promoted knight. Removing duplicate positions with the standard CLI and Python example does not guarantee variety in a collection.</p>
+</div>
+<div class="guide-step">
+<div class="guide-step-header"><span class="guide-step-number">2</span><span class="guide-step-title">Filter and replenish with collection-editing tools</span></div>
+<p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> takes verified collections, shares a similarity index across workers, and generates replacements for missing entries. It uses dedicated samplers and auditors separately from the standard CLI. After replenishment, run an independent audit with <code>scripts/audit_tsume_collections.py</code>. Once all results are conclusive, <code>scripts/publish_diverse_tsume.py</code> orders puzzles to reduce overlap with the preceding ten solutions.</p><p class="guide-step-text">Similarity filtering is an editorial rule based on the main line, not a complete assessment of a puzzle’s value including variations and misleading alternatives. See the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">collection README (Japanese)</a> for input requirements, resuming, exclusions, and publication.</p>
+</div>
+        </div>
+    </div>
+</section>
+
 <!-- Back Link -->
 <div class="back-link-section">
 <a class="back-link" href="index.html">← Back to User Guide</a>

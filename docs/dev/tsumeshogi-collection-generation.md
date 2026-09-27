@@ -15,7 +15,7 @@
 | 不要駒・類似作の整理と補充 | Python → `tsumeshogi_diversity_sampler` / `tsumeshogi_collection_auditor` | 現在のリポジトリ内のツールで実行できる |
 | 最終確認と保存 | 独立した再監査 → 類似判定・並べ替え → 問題集と検証記録 | 候補収集とは別の完了条件を設ける |
 
-標準GUIとCLIは同じ `TsumeshogiGenerator` を使う。候補生成、内蔵探索による事前選別、外部USIエンジンでの詰み探索、主手順の余詰検査、不要駒トリミングが共通である。実装の詳細は [生成機能の開発資料](tsumeshogi-generator.md)、初回作業の説明は [利用ガイド](../guide/tsumeshogi-generator.html#bulk-generation) を参照。
+標準GUIとCLIは同じ `TsumeshogiGenerator` を使う。候補生成、内蔵探索による事前選別、外部USIエンジンでの詰み探索、主手順の余詰検査、不要駒トリミングが共通である。実装の詳細は [生成機能の開発資料](tsumeshogi-generator.md)、標準CLIの操作方法は [利用ガイド](../guide/tsumeshogi-generator.html#cli-generation) を参照。
 
 以下の比率・時間・並列数は作業中に比較・調整した値であり、6000題すべてを一つの固定設定で生成したという意味ではない。
 
@@ -166,6 +166,16 @@ async def stop(process):
             pass
 
 
+async def close_process(process):
+    await stop(process)
+    try:
+        await asyncio.wait_for(process.wait(), timeout=15)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+    active.discard(process)
+
+
 async def worker(number):
     while len(positions) < TARGET:
         args = [
@@ -206,13 +216,7 @@ async def worker(number):
                 if await process.wait() != 0:
                     raise RuntimeError(f"CLI が異常終了しました: {err_path}")
             finally:
-                await stop(process)
-                try:
-                    await asyncio.wait_for(process.wait(), timeout=15)
-                except asyncio.TimeoutError:
-                    process.kill()
-                    await process.wait()
-                active.discard(process)
+                await close_process(process)
 
 
 async def main():
@@ -229,6 +233,7 @@ async def main():
         for task in tasks:
             task.cancel()
         await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.gather(*(close_process(p) for p in list(active)))
         checkpoint()
     print(f"収集完了: {OUTPUT}（最終検証は別途実施）")
 

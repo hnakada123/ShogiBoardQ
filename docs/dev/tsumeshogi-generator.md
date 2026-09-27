@@ -454,7 +454,7 @@ SHOGIBOARDQ_TEST_KOMORING=/path/to/KomoringHeights-by-gcc \
 
 ## 各1000題の初回生成で得た知見
 
-[利用ガイドの「各1000題の問題集を作成した方法」](../guide/tsumeshogi-generator.html#bulk-generation) から、
+[大量生成の作業記録](tsumeshogi-collection-generation.md) に基づき、
 生成器の開発・大量生成の運用に関係する内容をまとめる。対象は2026年9月26日に初回作成した3・5・7・9・11・13手詰、各1000題・計6000題である。
 初回作成後に不要駒と類似作の問題が見つかり、翌日に再検査・補充したため、以下の初回生成の条件だけで現在の問題集の品質を保証したものではない。
 
