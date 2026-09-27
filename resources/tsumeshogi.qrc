@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/tsumeshogi">
+        <file alias="validated-collections.json">../data/tsumeshogi/validation_20260926.json</file>
+    </qresource>
+</RCC>

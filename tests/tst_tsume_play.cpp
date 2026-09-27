@@ -57,6 +57,7 @@ private slots:
         QCOMPARE(prefixed.problems.size(), 3);
         QCOMPARE(prefixed.problems.first().lineNumber, 3);
         QVERIFY(prefixed.invalidLines.isEmpty());
+        QCOMPARE(prefixed.positionIds, QStringList(3, TsumeCollection::positionId(line)));
         // The trailing reference sequence must never be applied to the starting board.
         QCOMPARE(problems.first().referenceMoves.first(), QStringLiteral("3c5c+"));
         QCOMPARE(problems.first().sfen, plain.problems.first().sfen);
@@ -88,6 +89,11 @@ private slots:
         QString reordered = problem.sfen;
         reordered.replace(QStringLiteral("2b4g3s4n4l18p"), QStringLiteral("18p4l4n3s4g2b"));
         QCOMPARE(TsumeCollection::positionId(problem.sfen), TsumeCollection::positionId(reordered));
+        const auto parsed = TsumeCollection::parse(problem.sfen + QStringLiteral("\ninvalid\n")
+                                                  + reordered.section(QLatin1Char(' '), 0, 2) + QStringLiteral(" 123"));
+        QCOMPARE(parsed.invalidLines, QList<int>{2});
+        QCOMPARE(parsed.positionIds, QStringList(2, TsumeCollection::positionId(problem.sfen)));
+        QCOMPARE(parsed.problems.last().lineNumber, 3);
         QVERIFY(TsumeCollection::validMateLine(problem.sfen, problem.referenceMoves));
         QVERIFY(!TsumeCollection::validMateLine(problem.sfen, problem.referenceMoves.mid(0, 3)));
         QVERIFY(!TsumeCollection::validMateLine(problem.sfen, {QStringLiteral("R*9i")}));
@@ -222,6 +228,142 @@ private slots:
         TsumeProgressStore uncached(data.path(), cache.path());
         QVERIFY(uncached.open());
         QCOMPARE(uncached.progress(id).solves, 1);
+    }
+    void batchedProgress()
+    {
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        QStringList ids;
+        for (int i = 0; i < 1003; ++i) {
+            const auto id = QStringLiteral("position '%1").arg(i);
+            ids.append(id);
+            QVERIFY(store.recordAttempt(id));
+        }
+        QVERIFY(store.recordSolved(ids[500]));
+        QVERIFY(store.recordAttempt(ids[1002]));
+        QVERIFY(store.recordAttempt(QStringLiteral("not requested")));
+        const auto result = store.progress(ids + QStringList{ids.first(), QStringLiteral("missing")});
+        QCOMPARE(result.size(), ids.size());
+        for (qsizetype i = 0; i < ids.size(); ++i) {
+            QCOMPARE(result.value(ids[i]).attempts, i == 1002 ? 2 : 1);
+            QCOMPARE(result.value(ids[i]).solves, i == 500 ? 1 : 0);
+            QVERIFY(!result.value(ids[i]).lastAttempt.isEmpty());
+        }
+        QVERIFY(!result.value(ids[500]).lastSolved.isEmpty());
+        QVERIFY(!result.contains(QStringLiteral("not requested")));
+        QVERIFY(!result.contains(QStringLiteral("missing")));
+        QVERIFY(store.progress(QStringList{}).isEmpty());
+        TsumeProgressStore second(data.path(), data.path());
+        QVERIFY(second.open());
+        QVERIFY(second.recordSolved(ids.first()));
+        QCOMPARE(store.progress(ids).value(ids.first()).solves, 1);
+    }
+    void verifiedCollections_data()
+    {
+        QTest::addColumn<int>("plies");
+        for (int plies : {3, 5, 7, 9, 11, 13})
+            QTest::newRow(qPrintable(QString::number(plies))) << plies;
+    }
+    void verifiedCollections()
+    {
+        QFETCH(int, plies);
+        const auto path = QFINDTESTDATA("../data/tsumeshogi")
+            + QStringLiteral("/tsume_%1ply_1000_20260926.txt").arg(plies);
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto contents = file.readAll();
+        const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));
+        QCOMPARE(TsumeCollection::verifiedMateLength(contents, parsed), plies);
+        QCOMPARE(parsed.problems.size(), 1000);
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        store.setVerifiedCollection(contents, parsed);
+        for (qsizetype i = 0; i < parsed.problems.size(); ++i) {
+            const auto result = store.validatedCached(parsed.positionIds[i], QStringLiteral("engine-A"), true);
+            QVERIFY(result);
+            QCOMPARE(result->status, TsumeEvaluation::Status::Mate);
+            QCOMPARE(result->plies, plies);
+            QCOMPARE(result->pv, parsed.problems[i].referenceMoves);
+        }
+        // 改名・移動は影響しないが、コメントや改行だけの変更でも未検証扱いに戻す。
+        const auto changed = contents + "\n# changed\n";
+        const auto changedParsed = TsumeCollection::parse(QString::fromUtf8(changed));
+        QCOMPARE(TsumeCollection::verifiedMateLength(changed, changedParsed), 0);
+        const auto id = parsed.positionIds.first();
+        store.setVerifiedCollection(changed, changedParsed);
+        QVERIFY(!store.validatedCached(id, QStringLiteral("engine-A"), true));
+        // 任意のファイル中の手順は、合法な詰み手順でも最短手数の証明にはならない。
+        const auto& problem = problems.first();
+        const auto ordinary = (problem.sfen + QStringLiteral(" moves ")
+                               + problem.referenceMoves.join(QLatin1Char(' '))).toUtf8();
+        store.setVerifiedCollection(ordinary, TsumeCollection::parse(QString::fromUtf8(ordinary)));
+        QVERIFY(!store.validatedCached(TsumeCollection::positionId(problem.sfen), QStringLiteral("engine-A"), true));
+    }
+    void verifiedCollectionReuseAndReanalysis()
+    {
+        QFile file(QFINDTESTDATA("../data/tsumeshogi/tsume_13ply_1000_20260926.txt"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto contents = file.readAll();
+        const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        store.setVerifiedCollection(contents, parsed);
+        // 探索に進むと必ず起動失敗するパスで、結果の再利用を確認する。
+        const auto engine = data.filePath(QStringLiteral("missing-engine"));
+        TsumePositionAnalyzer analyzer;
+        analyzer.configure(engine, &store);
+        QSignalSpy results(&analyzer, &TsumePositionAnalyzer::finished);
+        const auto& problem = parsed.problems.first();
+        analyzer.evaluate(problem.sfen, 100, true);
+        QVERIFY(results.isEmpty()); // キャッシュも非同期で配信する。
+        QTRY_COMPARE(results.size(), 1);
+        QCOMPARE(qvariant_cast<TsumeEvaluation>(results.takeFirst()[0]).plies, 13);
+        TsumeSolutionReplay replay;
+        replay.configure(problem.sfen, engine, &store);
+        replay.seek(13, 100);
+        QTRY_VERIFY(!replay.loading());
+        QVERIFY(replay.available());
+        QCOMPARE(replay.currentPly(), 13);
+        TsumeGameSession session;
+        session.configureEngine(engine, &store);
+        QVERIFY(session.start(problem.sfen));
+        QTRY_COMPARE(session.state(), TsumeGameSession::State::Ready);
+        QCOMPARE(session.remainingPlies(), 13);
+        const auto id = parsed.positionIds.first();
+        store.removeCached(id, analyzer.engineKey());
+        QVERIFY(!store.validatedCached(id, analyzer.engineKey(), true));
+        analyzer.evaluate(problem.sfen, 100, true);
+        QTRY_COMPARE(results.size(), 1);
+        QCOMPARE(qvariant_cast<TsumeEvaluation>(results.takeFirst()[0]).status, TsumeEvaluation::Status::Unknown);
+        // 明示的な再判定後に得た結果は、通常のエンジン別キャッシュとして再利用する。
+        store.cache(id, analyzer.engineKey(), {TsumeEvaluation::Status::Mate, 13, problem.referenceMoves, {}});
+        QVERIFY(store.validatedCached(id, analyzer.engineKey(), true));
+    }
+    void validatedCacheInvalidation()
+    {
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(store.open());
+        const auto& problem = problems.first();
+        const auto id = TsumeCollection::positionId(problem.sfen);
+        const auto engine = QStringLiteral("engine-A");
+        store.cache(id, engine, {TsumeEvaluation::Status::Mate, 5, problem.referenceMoves, {}});
+        QVERIFY(store.validatedCached(id, engine, true));
+        QVERIFY(!store.validatedCached(id, QStringLiteral("engine-B"), true));
+        store.cache(id, engine, {TsumeEvaluation::Status::Mate, 5, {}, {}});
+        QVERIFY(store.validatedCached(id, engine, false));
+        QVERIFY(!store.validatedCached(id, engine, true));
+        store.cache(id, engine, {TsumeEvaluation::Status::Mate, 1, {QStringLiteral("R*9i")}, {}});
+        QVERIFY(!store.validatedCached(id, engine, true));
+        store.cache(id, engine, {TsumeEvaluation::Status::NoMate, 0, {}, {}});
+        const auto noMate = store.validatedCached(id, engine, true);
+        QVERIFY(noMate);
+        QCOMPARE(noMate->status, TsumeEvaluation::Status::NoMate);
+        store.removeCached(id, engine);
+        QVERIFY(!store.validatedCached(id, engine, true));
     }
     void cacheCapacityAndStorageFailure()
     {

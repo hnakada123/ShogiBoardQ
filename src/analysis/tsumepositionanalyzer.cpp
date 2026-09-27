@@ -86,9 +86,8 @@ void TsumePositionAnalyzer::evaluate(const QString& sfen, int milliseconds, bool
     m_id = TsumeCollection::positionId(sfen);
     m_active = true;
     if (m_store) {
-        const auto result = m_store->cached(m_id, m_engineKey);
-        if (result && ((!requireLine && m_enginePath.isEmpty()) || result->status != TsumeEvaluation::Status::Mate
-                       || (result->pv.size() == result->plies && TsumeCollection::validMateLine(sfen, result->pv)))) {
+        const auto result = m_store->validatedCached(m_id, m_engineKey, requireLine || !m_enginePath.isEmpty());
+        if (result) {
             m_cached = *result;
             m_cacheTimer.start(0);
             return;

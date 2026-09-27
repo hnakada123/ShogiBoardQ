@@ -1388,6 +1388,7 @@ add_executable(mock_tsume_engine mock_tsume_engine.cpp)
 target_link_libraries(mock_tsume_engine PRIVATE hayanagi_tsume)
 add_shogi_test(tst_tsume_play
     tst_tsume_play.cpp
+    ${CMAKE_SOURCE_DIR}/resources/tsumeshogi.qrc
     ${SRC}/analysis/tsumecollection.cpp
     ${SRC}/analysis/tsumegamesession.cpp
     ${SRC}/analysis/tsumepositionanalyzer.cpp

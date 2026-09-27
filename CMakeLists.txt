@@ -513,6 +513,7 @@ set(SRC_KIFU
 )
 
 set(SRC_ANALYSIS
+    resources/tsumeshogi.qrc
     src/analysis/tsumecollection.cpp
     src/analysis/tsumecollection.h
     src/analysis/tsumegamesession.cpp

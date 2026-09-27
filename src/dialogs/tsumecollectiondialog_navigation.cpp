@@ -37,11 +37,12 @@ void TsumeCollectionDialog::openFile()
 bool TsumeCollectionDialog::loadFile(const QString& path)
 {
     QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    if (!file.open(QIODevice::ReadOnly)) {
         QMessageBox::warning(this, windowTitle(), tr("ファイルを開けませんでした。\n%1").arg(file.errorString()));
         return false;
     }
-    const auto parsed = TsumeCollection::parse(QString::fromUtf8(file.readAll()));
+    const QByteArray contents = file.readAll();
+    const auto parsed = TsumeCollection::parse(QString::fromUtf8(contents));
     if (parsed.problems.isEmpty()) {
         QMessageBox::warning(this, windowTitle(), tr("有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。"));
         return false;
@@ -49,9 +50,9 @@ bool TsumeCollectionDialog::loadFile(const QString& path)
     cancelAnalysis();
     m_problems = parsed.problems;
     m_file = path;
-    m_ids.clear();
+    m_ids = parsed.positionIds;
     m_results.clear();
-    for (const auto& problem : std::as_const(m_problems)) m_ids.append(TsumeCollection::positionId(problem.sfen));
+    m_store->setVerifiedCollection(contents, parsed);
     m_fileLabel->setText(QFileInfo(path).fileName());
     m_fileLabel->setToolTip(path);
     refreshProgress();
@@ -66,10 +67,7 @@ bool TsumeCollectionDialog::loadFile(const QString& path)
 
 void TsumeCollectionDialog::refreshProgress()
 {
-    m_progress.clear();
-    for (const auto& id : std::as_const(m_ids)) {
-        if (!m_progress.contains(id)) m_progress.insert(id, m_store->progress(id));
-    }
+    m_progress = m_store->progress(m_ids);
     if (!m_store->error().isEmpty()) m_notice->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
 }
 
@@ -135,11 +133,9 @@ void TsumeCollectionDialog::rebuildPage()
             contents->addWidget(label);
         }
         if (!m_results.contains(m_ids[index])) {
-            const auto cache = m_store->cached(m_ids[index], m_analyzer->engineKey());
-            if (cache && (m_engine->currentData().toString().isEmpty()
-                          || cache->status != TsumeEvaluation::Status::Mate
-                          || (cache->pv.size() == cache->plies && TsumeCollection::validMateLine(m_problems[index].sfen, cache->pv))))
-                m_results.insert(m_ids[index], *cache);
+            const auto cache = m_store->validatedCached(m_ids[index], m_analyzer->engineKey(),
+                                                        !m_engine->currentData().toString().isEmpty());
+            if (cache) m_results.insert(m_ids[index], *cache);
         }
         DialogUtils::applyFontToAllChildren(card, font());
         updateCard(card);
