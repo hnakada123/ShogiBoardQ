@@ -71,7 +71,9 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_play_gu
 `tst_tsume_play_gui` の `solutionPlaybackAndResume` は正解手順の先頭・前・次・詰み局面への移動、
 ボタンを押す前後の対局操作・再生操作の切替、日本語の棋譜、閲覧中の着手禁止、
 正答履歴を増やさず途中対局へ戻れることを確認する。
-`cancelPendingSolution` は探索中止・再判定の表示切替と、手順取得中の復帰で古い結果が盤面へ適用されないことを確認する。
+`solutionLayoutDuringToggle` は10・12・16・24ptで正解手順と対局を繰り返し切り替え、
+共通ボタン・切替ボタン・ウィンドウの寸法と位置、および全描画フレームの盤面矩形が変わらないことを確認する。
+`cancelPendingSolution` は探索中止・再判定・手順取得中の復帰でも盤面が動かず、古い結果が適用されないことを確認する。
 スクリーンショットは `tsume-collection.png`。
 
 ```bash

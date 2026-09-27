@@ -182,6 +182,10 @@ async def test_tsume_board_clicks(app_env, tmp_path):
             data = await call("get_widget_text", dialog="tsumePlayDialog", widget="tsumeBoard")
             return data["widgets"][0]
 
+        async def layout():
+            data = await call("get_widget_text", dialog="tsumePlayDialog")
+            return {widget["object_name"]: widget["geometry"] for widget in data["widgets"]}
+
         async def button(widget):
             return await call("click_dialog_button", dialog="tsumePlayDialog", widget=widget)
 
@@ -207,6 +211,10 @@ async def test_tsume_board_clicks(app_env, tmp_path):
                 await button("tsumeFlipBoard")
                 await asyncio.sleep(0.05)
             initial = await board()
+            fixed_names = ("tsumeBoard", "tsumePreviousProblem", "tsumeNextProblem", "tsumeTimeLimit",
+                           "tsumeReduceBoard", "tsumeEnlargeBoard", "tsumeFlipBoard", "tsumeStatus",
+                           "tsumePlayFontDecrease", "tsumePlayFontIncrease", "tsumeBackToCollection")
+            initial_layout = await layout()
             assert initial["flipped"] is (index == 1)
             source = (3, 3) if index == 0 else (10, 5)  # ３三飛 or Black's gold in hand
             destination = (5, 3) if index == 0 else (9, 7)
@@ -233,6 +241,7 @@ async def test_tsume_board_clicks(app_env, tmp_path):
             await button("tsumeShowSolution")
             await asyncio.sleep(0.2)
             solution = await board()
+            assert solution["geometry"] == initial["geometry"]
             await square(*source)
             await square(*destination)
             await asyncio.sleep(0.05)
@@ -241,6 +250,18 @@ async def test_tsume_board_clicks(app_env, tmp_path):
             _, _, error = await _call(session, "click_dialog_button", dialog="tsumePlayDialog", widget="tsumeRestart")
             assert error
             await button("tsumeReturnToGame")
+            assert (await board())["board_sfen"] == initial["board_sfen"]
+            # Repeat the actual MCP button clicks; common controls and the two mode buttons
+            # must keep identical rectangles, including after the solution has been cached.
+            for _ in range(4):
+                for widget, active in (("tsumeShowSolution", "tsumeReturnToGame"),
+                                       ("tsumeReturnToGame", "tsumeShowSolution")):
+                    await button(widget)
+                    await asyncio.sleep(0.05)
+                    current_layout = await layout()
+                    assert current_layout[active] == initial_layout["tsumeShowSolution"]
+                    assert {name: current_layout[name] for name in fixed_names} == {
+                        name: initial_layout[name] for name in fixed_names}
             assert (await board())["board_sfen"] == initial["board_sfen"]
             await call("close_dialog", dialog="tsumePlayDialog")
             await asyncio.sleep(0.1)

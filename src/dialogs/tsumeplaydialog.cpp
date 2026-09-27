@@ -12,11 +12,13 @@
 #include "usimovecoordinateconverter.h"
 
 #include <QHBoxLayout>
+#include <QFontMetrics>
 #include <QLabel>
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QStackedWidget>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -116,15 +118,23 @@ void TsumePlayDialog::buildUi()
 
     auto* instructions = new QLabel(tr("王手を続け、表示された手数以内に詰ませてください。別解も判定します。"), this);
     instructions->setWordWrap(true);
-    layout->addWidget(instructions);
+    m_information = new QStackedWidget(this);
+    m_information->setObjectName(QStringLiteral("tsumeInformation"));
+    m_information->addWidget(instructions);
+    auto* solutionPage = new QWidget(this);
+    auto* solutionLayout = new QVBoxLayout(solutionPage);
+    solutionLayout->setContentsMargins(0, 0, 0, 0);
+    solutionLayout->setSpacing(4);
+    m_solutionStatus = new QLabel(tr("正解手順:"), this);
+    m_solutionStatus->setObjectName(QStringLiteral("tsumeSolutionStatus"));
+    solutionLayout->addWidget(m_solutionStatus);
     m_solutionText = new QPlainTextEdit(this);
     m_solutionText->setObjectName(QStringLiteral("tsumeSolutionText"));
     m_solutionText->setAccessibleName(tr("正解手順"));
     m_solutionText->setReadOnly(true);
-    m_solutionText->setMinimumHeight(70);
-    m_solutionText->setMaximumHeight(110);
-    m_solutionText->hide();
-    layout->addWidget(m_solutionText);
+    solutionLayout->addWidget(m_solutionText, 1);
+    m_information->addWidget(solutionPage);
+    layout->addWidget(m_information);
     buildBoardControls(layout);
     m_view = new ShogiView(this);
     m_view->setObjectName(QStringLiteral("tsumeBoard"));
@@ -168,44 +178,6 @@ void TsumePlayDialog::buildUi()
     connect(close, &QPushButton::clicked, this, &QDialog::reject);
     buttons->addWidget(close);
     layout->addLayout(buttons);
-}
-
-void TsumePlayDialog::buildActionControls(QVBoxLayout* layout)
-{
-    auto* actions = new QHBoxLayout;
-    m_gameControls = new QWidget(this);
-    m_gameControls->setObjectName(QStringLiteral("tsumeGameControls"));
-    m_gameControls->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    auto* gameRow = new QHBoxLayout(m_gameControls);
-    gameRow->setContentsMargins(0, 0, 0, 0);
-    m_restart = new QPushButton(tr("最初から解き直す"), this);
-    m_undo = new QPushButton(tr("一手戻す"), this);
-    m_restart->setObjectName(QStringLiteral("tsumeRestart"));
-    m_undo->setObjectName(QStringLiteral("tsumeUndo"));
-    connect(m_restart, &QPushButton::clicked, this, &TsumePlayDialog::selectProblem);
-    connect(m_undo, &QPushButton::clicked, m_session, &TsumeGameSession::undo);
-    for (auto* button : {m_restart, m_undo}) {
-        button->setAutoDefault(false);
-        gameRow->addWidget(button);
-    }
-    gameRow->addStretch();
-    actions->addWidget(m_gameControls, 1);
-    buildReplayUi(actions);
-    m_stop = new QPushButton(tr("探索中止"), this);
-    m_retry = new QPushButton(tr("再判定"), this);
-    m_stop->setObjectName(QStringLiteral("tsumeStop"));
-    m_retry->setObjectName(QStringLiteral("tsumeRetry"));
-    connect(m_stop, &QPushButton::clicked, this, &TsumePlayDialog::stopSearch);
-    connect(m_retry, &QPushButton::clicked, this, &TsumePlayDialog::retrySearch);
-    for (auto* button : {m_stop, m_retry}) {
-        button->setAutoDefault(false);
-        // 表示切替で操作欄の制約が変わると、余った高さが再配分されて盤面が上下する。
-        auto policy = button->sizePolicy();
-        policy.setRetainSizeWhenHidden(true);
-        button->setSizePolicy(policy);
-        actions->addWidget(button);
-    }
-    layout->addLayout(actions);
 }
 
 void TsumePlayDialog::setProblem(const TsumeProblem& problem, int number, const QString& enginePath,
@@ -256,16 +228,19 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
     connect(enlarge, &QPushButton::clicked, this, &TsumePlayDialog::onEnlargeBoard);
     connect(flip, &QPushButton::clicked, this, &TsumePlayDialog::onFlipBoard);
     row->addStretch();
+    m_modeButton = new QStackedWidget(this);
+    m_modeButton->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
     m_showSolution = new QPushButton(tr("正解手順"), this);
     m_showSolution->setObjectName(QStringLiteral("tsumeShowSolution"));
     m_showSolution->setAutoDefault(false);
     connect(m_showSolution, &QPushButton::clicked, this, &TsumePlayDialog::solutionFirst);
-    row->addWidget(m_showSolution);
+    m_modeButton->addWidget(m_showSolution);
     m_returnToGame = new QPushButton(tr("対局に戻る"), this);
     m_returnToGame->setObjectName(QStringLiteral("tsumeReturnToGame"));
     m_returnToGame->setAutoDefault(false);
     connect(m_returnToGame, &QPushButton::clicked, this, &TsumePlayDialog::returnToGame);
-    row->addWidget(m_returnToGame);
+    m_modeButton->addWidget(m_returnToGame);
+    row->addWidget(m_modeButton);
     layout->addLayout(row);
 }
 
@@ -339,6 +314,10 @@ void TsumePlayDialog::applyFontSize()
         // 盤上の文字・対局者名は ShogiView がマスの大きさに合わせて調整する。
         if (widget != m_view && !m_view->isAncestorOf(widget)) widget->setFont(f);
     }
+    // 案内文と棋譜は同じ領域で切り替える。棋譜の行数やモードで盤面を動かさない。
+    m_information->setFixedHeight(std::max(70, QFontMetrics(f).lineSpacing() * 4 + 8));
+    // 大きい文字でも案内の折返しで盤下の領域が伸縮しないように余裕を確保する。
+    m_status->setMinimumHeight(std::max(45, QFontMetrics(f).lineSpacing() * 3));
     m_fontDecrease->setEnabled(m_fontHelper.fontSize() > 8);
     m_fontIncrease->setEnabled(m_fontHelper.fontSize() < 24);
 }
