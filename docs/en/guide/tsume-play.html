@@ -68,7 +68,8 @@
                     <h3 class="guide-step-title">Open a collection</h3>
                 </div>
                 <p class="guide-step-text">Choose Game → Tsume Shogi Play… to open Tsume Shogi Problems. Click Open collection… and select a text file containing one SFEN position per line.</p>
-                <p class="guide-step-text">You can use collections saved by the <a href="tsumeshogi-generator.html">Tsume Shogi Generator</a>. Files containing only starting positions and files with reference lines are both supported. The mate length is verified by analyzing the position; it is not inferred solely from the filename or the reference line's length. Each player's move counts as one ply.</p>
+                <p class="guide-step-text">You can use collections saved by the <a href="tsumeshogi-generator.html">Tsume Shogi Generator</a>. Files containing only starting positions and files with reference lines are both supported. The mate length comes from verified analysis results, rather than solely from the filename or the reference line's length. Each player's move counts as one ply.</p>
+                <p class="guide-step-text">Faster loading, batched progress retrieval, and analysis cache reuse apply to all supported collections. The six published collections of 1,000 puzzles each, covering mates in 3 to 13 plies, also skip the initial mate-length search when their contents match the verified records bundled with the app. Renaming or moving a file preserves this benefit; editing its contents restores normal analysis. Recheck this page always runs a fresh search.</p>
             </div>
             <div class="guide-step">
                 <div class="guide-step-header">

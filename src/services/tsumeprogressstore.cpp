@@ -1,4 +1,5 @@
 #include "tsumeprogressstore.h"
+#include "tsumecollection.h"
 #include <QDateTime>
 #include <QDir>
 #include <QJsonArray>
@@ -7,6 +8,7 @@
 #include <QSqlQuery>
 #include <QStandardPaths>
 #include <QUuid>
+#include <algorithm>
 
 TsumeProgressStore::TsumeProgressStore(const QString& dataDirectory, const QString& cacheDirectory)
     : m_dataDirectory(dataDirectory.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) : dataDirectory)
@@ -59,14 +61,31 @@ bool TsumeProgressStore::open()
 
 TsumeProgressStore::Progress TsumeProgressStore::progress(const QString& id)
 {
-    Progress result;
+    return progress(QStringList{id}).value(id);
+}
+
+QHash<QString, TsumeProgressStore::Progress> TsumeProgressStore::progress(const QStringList& ids)
+{
+    QHash<QString, Progress> result;
     if (!m_progress.isOpen()) return result;
-    QSqlQuery query(m_progress);
-    query.prepare(QStringLiteral("SELECT attempts,solves,last_attempt,last_solved FROM progress WHERE position=?"));
-    query.addBindValue(id);
-    if (!query.exec()) m_error = query.lastError().text();
-    else if (query.next()) {
-        result = {query.value(0).toInt(), query.value(1).toInt(), query.value(2).toString(), query.value(3).toString()};
+    const QStringList uniqueIds = QSet<QString>(ids.cbegin(), ids.cend()).values();
+    // 古いSQLiteのバインド変数上限にも収まる単位でまとめる。
+    constexpr qsizetype batchSize = 500;
+    m_error.clear();
+    for (qsizetype begin = 0; begin < uniqueIds.size(); begin += batchSize) {
+        const qsizetype count = std::min(batchSize, uniqueIds.size() - begin);
+        QStringList placeholders;
+        placeholders.reserve(count);
+        for (qsizetype i = 0; i < count; ++i) placeholders.append(QStringLiteral("?"));
+        QSqlQuery query(m_progress);
+        query.prepare(QStringLiteral("SELECT position,attempts,solves,last_attempt,last_solved FROM progress WHERE position IN (")
+                      + placeholders.join(QLatin1Char(',')) + QLatin1Char(')'));
+        for (qsizetype i = 0; i < count; ++i) query.addBindValue(uniqueIds[begin + i]);
+        if (!query.exec()) { m_error = query.lastError().text(); return {}; }
+        while (query.next()) {
+            result.insert(query.value(0).toString(), {query.value(1).toInt(), query.value(2).toInt(),
+                          query.value(3).toString(), query.value(4).toString()});
+        }
     }
     return result;
 }
@@ -87,6 +106,40 @@ bool TsumeProgressStore::record(const QString& id, bool solved)
 
 bool TsumeProgressStore::recordAttempt(const QString& id) { return record(id, false); }
 bool TsumeProgressStore::recordSolved(const QString& id) { return record(id, true); }
+
+void TsumeProgressStore::setVerifiedCollection(const QByteArray& contents, const TsumeCollection::Result& parsed)
+{
+    m_certified.clear();
+    m_bypassCertified.clear();
+    m_validated.clear();
+    const int plies = TsumeCollection::verifiedMateLength(contents, parsed);
+    if (plies == 0) return;
+    for (qsizetype i = 0; i < parsed.problems.size(); ++i)
+        m_certified.insert(parsed.positionIds[i], {TsumeEvaluation::Status::Mate, plies,
+                                                  parsed.problems[i].referenceMoves, {}});
+}
+
+std::optional<TsumeEvaluation> TsumeProgressStore::validatedCached(
+    const QString& id, const QString& engine, bool requireLine)
+{
+    const QString key = engine + QLatin1Char('\n') + id;
+    const auto usable = [requireLine](const TsumeEvaluation& result) {
+        return !requireLine || result.status != TsumeEvaluation::Status::Mate
+               || result.pv.size() == result.plies;
+    };
+    if (const auto* verified = m_validated.object(key); verified && usable(*verified)) return *verified;
+
+    std::optional<TsumeEvaluation> result;
+    const auto certified = m_certified.constFind(id);
+    if (certified != m_certified.cend() && !m_bypassCertified.contains(key)) result = *certified;
+    else result = cached(id, engine);
+    if (!result || !usable(*result)) return std::nullopt;
+    if (result->status == TsumeEvaluation::Status::Mate && !result->pv.isEmpty()
+        && (result->pv.size() != result->plies
+            || !TsumeCollection::validMateLine(id + QStringLiteral(" 1"), result->pv))) return std::nullopt;
+    m_validated.insert(key, new TsumeEvaluation(*result));
+    return result;
+}
 
 std::optional<TsumeEvaluation> TsumeProgressStore::cached(const QString& id, const QString& engine)
 {
@@ -127,6 +180,7 @@ void TsumeProgressStore::pruneCache()
 void TsumeProgressStore::cache(const QString& id, const QString& engine, const TsumeEvaluation& result)
 {
     if (!m_cache.isOpen() || result.status == TsumeEvaluation::Status::Unknown) return;
+    m_validated.remove(engine + QLatin1Char('\n') + id);
     pruneCache();
     QSqlQuery query(m_cache);
     query.prepare(QStringLiteral("INSERT OR REPLACE INTO evaluations VALUES(?,?,?,?,?,?)"));
@@ -142,6 +196,9 @@ void TsumeProgressStore::cache(const QString& id, const QString& engine, const T
 
 void TsumeProgressStore::removeCached(const QString& id, const QString& engine)
 {
+    const QString key = engine + QLatin1Char('\n') + id;
+    m_validated.remove(key);
+    m_bypassCertified.insert(key); // 「再判定」では同梱の検証結果も使わず探索する。
     if (!m_cache.isOpen()) return;
     QSqlQuery query(m_cache);
     query.prepare(QStringLiteral("DELETE FROM evaluations WHERE position=? AND engine=?"));

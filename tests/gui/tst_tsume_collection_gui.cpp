@@ -349,6 +349,34 @@ private slots:
             QVERIFY(card->findChild<QLabel*>(QStringLiteral("cardProgress"))->text().contains(QStringLiteral("挑戦")));
         }
     }
+    void verifiedCollectionSkipsInitialSearch()
+    {
+        TsumeCollectionDialog window;
+        const auto original = QStringLiteral(REPO "/data/tsumeshogi/tsume_13ply_1000_20260926.txt");
+        const auto renamed = files.filePath(QStringLiteral("renamed-verified.sfen"));
+        QVERIFY(QFile::copy(original, renamed));
+        QVERIFY(window.loadFile(renamed));
+        QCOMPARE(cards(window).size(), 10);
+        // イベントループを進める前に、探索せず確定した手数を表示できる。
+        for (auto* card : cards(window)) {
+            QCOMPARE(card->findChild<QLabel*>(QStringLiteral("cardLength"))->text(), QStringLiteral("13手詰"));
+            QCOMPARE(card->findChild<QLabel*>(QStringLiteral("cardProgress"))->text(), QStringLiteral("未挑戦"));
+        }
+        window.findChild<QSpinBox*>(QStringLiteral("tsumePageNumber"))->setValue(100);
+        QCOMPARE(cards(window).last()->property("problemIndex").toInt(), 999);
+        for (auto* card : cards(window))
+            QCOMPARE(card->findChild<QLabel*>(QStringLiteral("cardLength"))->text(), QStringLiteral("13手詰"));
+        window.findChild<QPushButton*>(QStringLiteral("tsumeReanalyzePage"))->click();
+        for (auto* card : cards(window))
+            QVERIFY(card->findChild<QLabel*>(QStringLiteral("cardLength"))->text().contains(QStringLiteral("未検証")));
+        QFile changed(renamed);
+        QVERIFY(changed.open(QIODevice::Append));
+        changed.write("\n# edited\n");
+        changed.close();
+        QVERIFY(window.loadFile(renamed));
+        for (auto* card : cards(window))
+            QVERIFY(card->findChild<QLabel*>(QStringLiteral("cardLength"))->text().contains(QStringLiteral("未検証")));
+    }
     void emptyFilterAndNonMate()
     {
         TsumeCollectionDialog window;
