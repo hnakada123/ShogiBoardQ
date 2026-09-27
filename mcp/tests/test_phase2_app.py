@@ -149,3 +149,99 @@ async def test_actions_dialogs_and_screenshots(app_env, tmp_path):
 
         text, widgets, is_error = await _call(session, "get_widget_text", max_rows=2)
         assert not is_error and widgets["widgets"]
+
+
+async def test_tsume_board_clicks(app_env, tmp_path):
+    """Exercise real dialog mouse input, promotion, flipped hand drops and modal guards through MCP."""
+    env = dict(app_env)
+    config = tmp_path / "config" / "ShogiBoardQ"
+    config.mkdir(parents=True)
+    (config / "ShogiBoardQ.ini").write_text(
+        "[TsumeCollection]\n"
+        f"file={FIXTURES / 'tsume_positions_with_moves.sfen'}\nengine=@hayanagi\n"
+        "[TsumePlay]\nsize=@Size(950 1180)\nsquareSize=65\n", encoding="utf-8")
+    env["XDG_CONFIG_HOME"] = str(config.parent)
+    env["XDG_DATA_HOME"] = str(tmp_path / "data")
+    env["XDG_CACHE_HOME"] = str(tmp_path / "cache")
+    env["SHOGIBOARDQ_AUTOMATION_SOCKET"] = str(tmp_path / "click.sock")
+    async with mcp_session(env) as session:
+        async def call(tool, **args):
+            text, data, error = await _call(session, tool, **args)
+            assert not error, text
+            return data
+
+        async def wait_ready():
+            for _ in range(100):
+                widgets = await call("get_widget_text", dialog="tsumePlayDialog", widget="tsumeStatus")
+                if "あなたの手番" in widgets["widgets"][0]["text"]:
+                    return widgets["widgets"][0]["text"]
+                await asyncio.sleep(0.05)
+            pytest.fail("Tsume dialog did not become ready")
+
+        async def board():
+            data = await call("get_widget_text", dialog="tsumePlayDialog", widget="tsumeBoard")
+            return data["widgets"][0]
+
+        async def button(widget):
+            return await call("click_dialog_button", dialog="tsumePlayDialog", widget=widget)
+
+        async def square(file, rank, **kwargs):
+            return await call("click_board_square", target="tsumePlayDialog", file=file, rank=rank, **kwargs)
+
+        names = {tool.name for tool in (await session.list_tools()).tools}
+        assert {"click_board_square", "click_dialog_button"} <= names
+        await call("trigger_action", name="actionTsumePlay")
+        await asyncio.sleep(0.5)
+        # Opening a modal dialog must prevent clicks reaching the main board behind it.
+        text, _, error = await _call(session, "click_board_square", file=7, rank=7)
+        assert error and "blocked" in text
+        for file, rank in [(0, 1), (12, 1), (1, 10), (10, 9), (11, 1), (None, 1)]:
+            _, _, error = await _call(session, "click_board_square", file=file, rank=rank)
+            assert error
+
+        for index in (0, 1):
+            await call("click_dialog_button", dialog="tsumeCollectionDialog", widget="tsumeProblemCard", index=index)
+            await asyncio.sleep(0.1)
+            await wait_ready()
+            if index == 1:
+                await button("tsumeFlipBoard")
+                await asyncio.sleep(0.05)
+            initial = await board()
+            assert initial["flipped"] is (index == 1)
+            source = (3, 3) if index == 0 else (10, 5)  # ３三飛 or Black's gold in hand
+            destination = (5, 3) if index == 0 else (9, 7)
+            await square(*source)
+            await square(*source, button="right")  # cancel selection
+            assert (await board())["board_sfen"] == initial["board_sfen"]
+            await square(*source)
+            await square(*destination)
+            if index == 0:
+                await asyncio.sleep(0.1)
+                text, _, error = await _call(session, "click_board_square", target="tsumePlayDialog", file=1, rank=1)
+                assert error and "blocked" in text
+                await call("click_dialog_button", dialog="成りの選択", text="成る")
+            await asyncio.sleep(0.1)
+            assert "残り3手" in await wait_ready()
+            moved = await board()
+            assert moved["board_sfen"] != initial["board_sfen"]
+            assert moved["geometry"] == initial["geometry"]
+            shot = await call("capture_screenshot", target="tsumePlayDialog", output_dir=str(tmp_path))
+            assert Path(shot["path"]).exists()
+            await button("tsumeUndo")
+            await wait_ready()
+            assert (await board())["board_sfen"] == initial["board_sfen"]
+            await button("tsumeShowSolution")
+            await asyncio.sleep(0.2)
+            solution = await board()
+            await square(*source)
+            await square(*destination)
+            await asyncio.sleep(0.05)
+            assert (await board())["board_sfen"] == solution["board_sfen"]
+            # Hidden play buttons cannot be invoked while reviewing the solution.
+            _, _, error = await _call(session, "click_dialog_button", dialog="tsumePlayDialog", widget="tsumeRestart")
+            assert error
+            await button("tsumeReturnToGame")
+            assert (await board())["board_sfen"] == initial["board_sfen"]
+            await call("close_dialog", dialog="tsumePlayDialog")
+            await asyncio.sleep(0.1)
+        await call("close_dialog", dialog="tsumeCollectionDialog")

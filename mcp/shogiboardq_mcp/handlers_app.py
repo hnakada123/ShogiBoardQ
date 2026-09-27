@@ -98,6 +98,14 @@ class AppTools:
         result = await self.client.call("action.trigger", {"name": args["name"]})
         return f"Triggered {result.get('name')}.", result
 
+    async def click_board_square(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("board.click", args)
+        return f"Queued board click on {result['target']}: file {result['file']}, rank {result['rank']}.", result
+
+    async def click_dialog_button(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("dialog.clickButton", args)
+        return f"Queued button click: {result['text']}.", result
+
     async def capture_screenshot(self, args: dict[str, Any]) -> Result:
         output_dir = paths.resolve_output_dir(args.get("output_dir"))
         result = await self.client.call("screenshot.capture", {"target": args.get("target", "main"), "output_dir": str(output_dir)})
@@ -127,7 +135,9 @@ class AppTools:
         lines = []
         for w in result.get("widgets", []):
             name = w.get("object_name") or "(unnamed)"
-            if "rows" in w:
+            if "board_sfen" in w:
+                lines.append(f"{w.get('class')} {name}: {w['board_sfen']}, flipped={w.get('flipped')}, geometry={w.get('geometry')}")
+            elif "rows" in w:
                 lines.append(f"{w.get('class')} {name}: {len(w['rows'])} rows")
                 for row in w["rows"]:
                     lines.append("    " + " | ".join(str(c) for c in row))

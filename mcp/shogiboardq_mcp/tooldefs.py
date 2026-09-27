@@ -544,6 +544,41 @@ PHASE2_TOOLS: list[types.Tool] = [
         {"type": "object", "properties": {"name": {"type": "string"}, "triggered": {"type": "boolean"}}, "required": ["name", "triggered"]},
     ),
     _tool(
+        "click_board_square",
+        "Click board square",
+        "Click a square on the visible board through its normal mouse event handler. Click the source, then "
+        "the destination to make a move. Coordinates are logical and do not change when the board is flipped. "
+        "For hand pieces use file=10 (Black), ranks 1..8=P,L,N,S,G,B,R,K; file=11 (White), ranks "
+        "9..2=P,L,N,S,G,B,R,K. Right-click cancels selection. Returns when the click is queued, not when "
+        "a move is accepted or the engine finishes. Use get_widget_text/capture_screenshot to inspect the "
+        "result. A promotion dialog can be answered with click_dialog_button. Hidden, disabled or modally "
+        "blocked boards are refused; normal game input rules still apply.",
+        {"properties": {
+            "target": {"type": "string", "default": "main", "description": "'main', or a dialog name such as tsumePlayDialog."},
+            "file": {"type": "integer", "minimum": 1, "maximum": 11},
+            "rank": {"type": "integer", "minimum": 1, "maximum": 9},
+            "button": {"type": "string", "enum": ["left", "right"], "default": "left"},
+        }, "required": ["file", "rank"]},
+        {"type": "object", "properties": {"target": {"type": "string"}, "file": {"type": "integer"},
+            "rank": {"type": "integer"}, "queued": {"type": "boolean"}}, "required": ["target", "file", "rank", "queued"]},
+    ),
+    _tool(
+        "click_dialog_button",
+        "Click dialog button",
+        "Click a visible, enabled button in an open dialog. Select by widget object name OR exact text "
+        "(e.g. 成る in a promotion dialog). index selects the zero-based occurrence when several buttons "
+        "match, such as tsumeProblemCard in the problem collection. The click is queued so that modal "
+        "dialogs return immediately. A dialog blocked by another modal window cannot be clicked.",
+        {"properties": {
+            "dialog": {"type": "string", "minLength": 1},
+            "widget": {"type": "string", "minLength": 1},
+            "text": {"type": "string", "minLength": 1},
+            "index": {"type": "integer", "minimum": 0, "maximum": 1000, "default": 0},
+        }, "required": ["dialog"], "oneOf": [{"required": ["widget"]}, {"required": ["text"]}]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"},
+            "text": {"type": "string"}}, "required": ["queued", "object_name", "text"]},
+    ),
+    _tool(
         "capture_screenshot",
         "Capture screenshot",
         "Save a PNG screenshot of the ShogiBoardQ main window (target='main') or of an open dialog identified "
@@ -580,9 +615,10 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "get_widget_text",
         "Get widget text",
-        "Read labels, text fields, combo boxes, check boxes, lists and tables inside an open dialog (or the main "
+        "Read labels, text fields, combo boxes, check boxes, lists, tables and boards inside an open dialog (or the main "
         "window when dialog is omitted). Restrict to one widget with its object name. Intended for verifying "
-        "what the GUI shows.",
+        "what the GUI shows. Widgets include geometry relative to the target window; boards include board_sfen "
+        "(board pieces only), flipped and square_size.",
         {
             "properties": {
                 "dialog": {"type": "string", "description": "Dialog object name or title substring; omit for the main window."},

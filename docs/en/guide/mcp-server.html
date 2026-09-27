@@ -120,7 +120,8 @@
                         <tr><td><strong>load_kifu</strong> / save_kifu / get_kifu / goto_ply</td><td>Load, save and read the record (format and ply range selectable), move to a ply</td></tr>
                         <tr><td><strong>list_actions</strong> / trigger_action</td><td>List and run menu actions (allow-list)</td></tr>
                         <tr><td><strong>capture_screenshot</strong></td><td>Save a PNG screenshot of the main window or a dialog</td></tr>
-                        <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>List open dialogs, close one, read labels, fields and tables</td></tr>
+                        <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>List or close dialogs, read labels, fields, tables and boards with widget coordinates</td></tr>
+                        <tr><td><strong>click_board_square</strong> / click_dialog_button</td><td>Click board squares or hand pieces, select problems and answer promotion dialogs. Coordinates follow board rotation and size</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">Resources are provided for the current position (<code>shogiboardq://position/current</code>, SFEN), the current record (<code>shogiboardq://kifu/current</code>, KIF text) and the registered engines (<code>shogiboardq://engines</code>).</p>
@@ -466,7 +467,7 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
                 <ul class="guide-step-text">
                     <li>Only the stdio transport is supported (no Streamable HTTP)</li>
-                    <li>CSA network games, starting games, playing moves and evaluation graph images are not available yet</li>
+                    <li>Board clicks and dialog buttons can play moves. Dedicated APIs for CSA games, starting games and USI move execution, and evaluation graph images are not available yet</li>
                     <li>The Windows named-pipe connection is implemented but untested</li>
                     <li>Release packages do not include <code>shogiboardq-cli</code>; a source build is required</li>
                 </ul>

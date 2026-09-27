@@ -120,7 +120,8 @@
                         <tr><td><strong>load_kifu</strong> / save_kifu / get_kifu / goto_ply</td><td>棋譜の読み込み・保存・取得（形式指定、手数範囲指定）・手数移動</td></tr>
                         <tr><td><strong>list_actions</strong> / trigger_action</td><td>メニュー動作の一覧と実行（許可リスト方式）</td></tr>
                         <tr><td><strong>capture_screenshot</strong></td><td>メインウィンドウまたはダイアログのスクリーンショットを PNG 保存</td></tr>
-                        <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>開いているダイアログの一覧、閉じる、ラベル・入力欄・テーブル内容の取得</td></tr>
+                        <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>開いているダイアログの一覧、閉じる、ラベル・入力欄・テーブル・盤面内容と座標の取得</td></tr>
+                        <tr><td><strong>click_board_square</strong> / click_dialog_button</td><td>盤面・駒台のクリック、問題選択・成り選択などのボタン操作。盤の回転や大きさに追従します</td></tr>
                     </tbody>
                 </table>
                 <p class="guide-step-text">リソースとして、現在局面の SFEN（<code>shogiboardq://position/current</code>）、現在の棋譜の KIF テキスト（<code>shogiboardq://kifu/current</code>）、登録エンジン（<code>shogiboardq://engines</code>）も提供します。</p>
@@ -466,7 +467,7 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                 </div>
                 <ul class="guide-step-text">
                     <li>トランスポートは stdio のみです（Streamable HTTP は未対応）</li>
-                    <li>CSA 通信対局、対局の開始や指し手の実行、評価値グラフ画像の取得は未対応です</li>
+                    <li>盤面クリックとダイアログのボタン操作で着手できます。CSA 通信対局・対局開始・USI形式の着手の専用APIと、評価値グラフ画像の取得は未対応です</li>
                     <li>Windows の名前付きパイプ接続は実装済みですが未検証です</li>
                     <li>配布パッケージには <code>shogiboardq-cli</code> が含まれていないため、ソースからのビルドが必要です</li>
                 </ul>

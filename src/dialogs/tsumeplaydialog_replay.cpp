@@ -6,39 +6,36 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSpinBox>
-#include <QVBoxLayout>
 #include <limits>
 
-void TsumePlayDialog::buildReplayUi(QVBoxLayout* layout)
+void TsumePlayDialog::buildReplayUi(QHBoxLayout* layout)
 {
     m_replayControls = new QWidget(this);
     m_replayControls->setObjectName(QStringLiteral("tsumeReplayControls"));
+    m_replayControls->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     auto* row = new QHBoxLayout(m_replayControls);
     row->setContentsMargins(0, 0, 0, 0);
     m_solutionStatus = new QLabel(tr("正解手順:"), this);
     m_solutionStatus->setObjectName(QStringLiteral("tsumeSolutionStatus"));
     m_solutionStatus->setWordWrap(true);
     row->addWidget(m_solutionStatus, 1);
-    m_solutionFirst = new QPushButton(tr("最初に戻る"), this);
+    m_solutionFirst = new QPushButton(tr("開始局面へ"), this);
     m_solutionPrevious = new QPushButton(tr("1手戻る"), this);
     m_solutionNext = new QPushButton(tr("1手進む"), this);
     m_solutionLast = new QPushButton(tr("詰み局面へ"), this);
-    m_returnToGame = new QPushButton(tr("対局に戻る"), this);
     m_solutionFirst->setObjectName(QStringLiteral("tsumeSolutionFirst"));
     m_solutionPrevious->setObjectName(QStringLiteral("tsumeSolutionPrevious"));
     m_solutionNext->setObjectName(QStringLiteral("tsumeSolutionNext"));
     m_solutionLast->setObjectName(QStringLiteral("tsumeSolutionLast"));
-    m_returnToGame->setObjectName(QStringLiteral("tsumeReturnToGame"));
     connect(m_solutionFirst, &QPushButton::clicked, this, &TsumePlayDialog::solutionFirst);
     connect(m_solutionPrevious, &QPushButton::clicked, this, &TsumePlayDialog::solutionPrevious);
     connect(m_solutionNext, &QPushButton::clicked, this, &TsumePlayDialog::solutionNext);
     connect(m_solutionLast, &QPushButton::clicked, this, &TsumePlayDialog::solutionLast);
-    connect(m_returnToGame, &QPushButton::clicked, this, &TsumePlayDialog::returnToGame);
-    for (auto* button : {m_solutionFirst, m_solutionPrevious, m_solutionNext, m_solutionLast, m_returnToGame}) {
+    for (auto* button : {m_solutionFirst, m_solutionPrevious, m_solutionNext, m_solutionLast}) {
         button->setAutoDefault(false);
         row->addWidget(button);
     }
-    layout->addWidget(m_replayControls);
+    layout->addWidget(m_replayControls, 1);
     m_replayControls->hide();
 }
 
@@ -86,7 +83,10 @@ void TsumePlayDialog::updateReplayControls()
     const int ply = m_reviewing ? m_solution->currentPly() : 0;
     const bool atEnd = m_reviewing && m_solution->available() && ply == m_solution->totalPlies();
     m_showSolution->setEnabled(enabled && !m_reviewing);
+    m_showSolution->setVisible(!m_reviewing);
+    m_returnToGame->setVisible(m_reviewing);
     m_solutionText->setVisible(m_reviewing);
+    m_gameControls->setVisible(!m_reviewing);
     m_replayControls->setVisible(m_reviewing);
     m_solutionFirst->setEnabled(enabled && m_reviewing && m_solution->available() && ply > 0);
     m_solutionPrevious->setEnabled(enabled && m_reviewing && m_solution->available() && ply > 0);

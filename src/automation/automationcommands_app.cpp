@@ -29,6 +29,9 @@ void AutomationDeferredCall::schedule(std::function<void()> callback, QObject* p
 
 void AutomationDeferredCall::run()
 {
+    // ボタン操作でモーダル画面を閉じると、呼び出し元のボタンや親が破棄されることがある。
+    // 実行前の親破棄では予約を取り消し、実行開始後はコールバックの終了まで自身を保つ。
+    setParent(nullptr);
     if (m_callback) m_callback();
     deleteLater();
 }

@@ -7,14 +7,18 @@
 #include "automationparams.h"
 #include "automationwidgets.h"
 #include "screenshotservice.h"
+#include "shogiview.h"
 
 #include <QAction>
+#include <QAbstractButton>
+#include <QApplication>
 #include <QDialog>
 #include <QDir>
 #include <QFileInfo>
 #include <QImage>
 #include <QJsonArray>
 #include <QMainWindow>
+#include <QMouseEvent>
 
 namespace {
 
@@ -34,10 +38,109 @@ QWidget* requireWindow(const AutomationContext& context, const QString& target)
     return window;
 }
 
+void requireInteractive(QWidget* widget)
+{
+    QWidget* modal = QApplication::activeModalWidget();
+    if (!widget || !widget->isVisible() || !widget->isEnabled()
+        || (modal && modal != widget->window()) || QApplication::activePopupWidget()) {
+        throw AutomationError(AutomationErrorCode::InvalidState,
+                              QStringLiteral("The target is hidden, disabled or blocked by another dialog"));
+    }
+}
+
+QPoint squareClickPosition(ShogiView* view, const QPoint& square)
+{
+    // 入力変換を逆引きして、回転・盤サイズ・駒台の表示位置に追従する。
+    const QSize cell = view->fieldSize();
+    const int stepX = qMax(1, cell.width() / 4);
+    const int stepY = qMax(1, cell.height() / 4);
+    QRect area;
+    for (int y = 0; y < view->height(); y += stepY) {
+        for (int x = 0; x < view->width(); x += stepX) {
+            if (view->clickedSquare({x, y}) == square) area |= QRect(x, y, 1, 1);
+        }
+    }
+    if (area.isEmpty() || view->clickedSquare(area.center()) != square) {
+        throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Square is not displayed on this board"));
+    }
+    return area.center();
+}
+
 } // namespace
 
 void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)
 {
+    dispatcher.registerMethod(QStringLiteral("board.click"), [context](const QJsonObject& params) {
+        const QString target = AutomationParams::optionalString(params, QStringLiteral("target"), QStringLiteral("main"));
+        const int file = AutomationParams::requireInt(params, QStringLiteral("file"), 1, 11);
+        const int rank = AutomationParams::requireInt(params, QStringLiteral("rank"), 1, 9);
+        if ((file == 10 && rank > 8) || (file == 11 && rank < 2)) {
+            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Invalid hand piece coordinate"));
+        }
+        const QString button = AutomationParams::optionalString(params, QStringLiteral("button"), QStringLiteral("left"));
+        if (button != QLatin1String("left") && button != QLatin1String("right")) {
+            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("button must be left or right"));
+        }
+        QWidget* window = requireWindow(context, target);
+        ShogiView* view = nullptr;
+        if (window) {
+            for (auto* candidate : window->findChildren<ShogiView*>()) {
+                if (candidate->window() == window && candidate->isVisible()) { view = candidate; break; }
+            }
+        }
+        if (!view) throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No visible board in the target window"));
+        requireInteractive(view);
+        const QPoint square(file, rank);
+        squareClickPosition(view, square); // 不正な座標は応答前に拒否する。
+        const auto mouseButton = button == QLatin1String("left") ? Qt::LeftButton : Qt::RightButton;
+        AutomationDeferredCall::schedule([view, square, mouseButton]() {
+            try {
+                requireInteractive(view);
+                const QPointF pos(squareClickPosition(view, square));
+                const QPointF global(view->mapToGlobal(pos.toPoint()));
+                QMouseEvent move(QEvent::MouseMove, pos, global, Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+                QMouseEvent press(QEvent::MouseButtonPress, pos, global, mouseButton, mouseButton, Qt::NoModifier);
+                QMouseEvent release(QEvent::MouseButtonRelease, pos, global, mouseButton, Qt::NoButton, Qt::NoModifier);
+                QApplication::sendEvent(view, &move);
+                QApplication::sendEvent(view, &press);
+                QApplication::sendEvent(view, &release);
+            } catch (const AutomationError&) {
+                // 応答後に対象が非表示になった場合は、背後の盤面へ入力しない。
+            }
+        }, view);
+        return QJsonObject{{QStringLiteral("target"), target}, {QStringLiteral("file"), file},
+                           {QStringLiteral("rank"), rank}, {QStringLiteral("queued"), true}};
+    });
+
+    dispatcher.registerMethod(QStringLiteral("dialog.clickButton"), [context](const QJsonObject& params) {
+        const QString target = AutomationParams::requireString(params, QStringLiteral("dialog"));
+        QWidget* window = requireWindow(context, target);
+        if (!qobject_cast<QDialog*>(window)) {
+            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Target must be an open dialog"));
+        }
+        const QString widget = AutomationParams::optionalString(params, QStringLiteral("widget"));
+        const QString text = AutomationParams::optionalString(params, QStringLiteral("text"));
+        if (widget.isEmpty() == text.isEmpty()) {
+            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Specify exactly one of widget or text"));
+        }
+        const int index = AutomationParams::optionalInt(params, QStringLiteral("index"), 0, 0, 1000);
+        QList<QAbstractButton*> matches;
+        for (auto* button : window->findChildren<QAbstractButton*>()) {
+            if (button->window() == window && button->isVisible()
+                && ((!widget.isEmpty() && button->objectName() == widget) || (!text.isEmpty() && button->text() == text)))
+                matches.append(button);
+        }
+        if (index >= matches.size()) throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No matching visible button"));
+        auto* button = matches[index];
+        requireInteractive(button);
+        AutomationDeferredCall::schedule([button]() {
+            try { requireInteractive(button); button->click(); }
+            catch (const AutomationError&) { }
+        }, button);
+        return QJsonObject{{QStringLiteral("queued"), true}, {QStringLiteral("object_name"), button->objectName()},
+                           {QStringLiteral("text"), button->text()}};
+    });
+
     dispatcher.registerMethod(QStringLiteral("action.list"), [context](const QJsonObject&) {
         QJsonArray actions;
         const QStringList& allowed = AutomationActionPolicy::allowedActions();

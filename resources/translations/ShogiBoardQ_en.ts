@@ -7903,7 +7903,7 @@ Do you want to continue?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog_analysis.cpp" line="25"/>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="73"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="71"/>
         <source>履歴を保存できません: %1</source>
         <translation>Could not save progress: %1</translation>
     </message>
@@ -7977,22 +7977,22 @@ Last solved: %2</translation>
 %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="46"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="47"/>
         <source>有効な詰将棋局面がありません。SFEN形式と玉方の玉を確認してください。</source>
         <translation>No valid tsume positions found. Check the SFEN format and the defending king.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="62"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="63"/>
         <source>次の行は形式が不正なため読み込めませんでした: %1</source>
         <translation>These lines could not be loaded because their format is invalid: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="106"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="104"/>
         <source>%1問中 %2〜%3問 ／ %4/%5ページ</source>
         <translation>%2–%3 of %1 problems / Page %4 of %5</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="126"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="124"/>
         <source>第%1問（%2行目）</source>
         <translation>Problem %1 (line %2)</translation>
     </message>
@@ -8083,7 +8083,7 @@ Last solved: %2</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="122"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="231"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="259"/>
         <source>正解手順</source>
         <translation>Solution</translation>
     </message>
@@ -8098,57 +8098,61 @@ Last solved: %2</translation>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="164"/>
         <source>最初から</source>
-        <translation>Restart</translation>
+        <translation type="vanished">Restart</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="165"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="182"/>
         <source>一手戻す</source>
         <translation>Undo your last move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="166"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="194"/>
         <source>探索中止</source>
         <translation>Stop search</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="167"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="195"/>
         <source>再判定</source>
         <translation>Retry search</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="172"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="165"/>
         <source>一覧に戻る</source>
         <translation>Back to problems</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="214"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="181"/>
+        <source>最初から解き直す</source>
+        <translation>Restart puzzle</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="242"/>
         <source>将棋盤を縮小する</source>
         <translation>Zoom out the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="218"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="246"/>
         <source>将棋盤を拡大する</source>
         <translation>Zoom in the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="220"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="248"/>
         <source>盤面の回転</source>
         <translation>Flip board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="322"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="355"/>
         <source>第%1問 — 詰み手数を確認しています…</source>
         <translation>Problem %1 — Checking the mate length…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="400"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="435"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>Checking for mate and the defending move…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="428"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="463"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>The search is incomplete. Your move has not been marked incorrect. Increase the time and retry.</translation>
     </message>
@@ -8183,8 +8187,8 @@ Last solved: %2</translation>
         <translation type="vanished">These lines could not be loaded because their format is invalid: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="329"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="330"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="362"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="363"/>
         <source>あなた</source>
         <translation>You</translation>
     </message>
@@ -8197,32 +8201,32 @@ Last solved: %2</translation>
         <translation type="vanished">Hayanagi (defender)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="347"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="380"/>
         <source>成りの選択</source>
         <translation>Promotion</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="347"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="380"/>
         <source>成りますか？</source>
         <translation>Promote this piece?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="348"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="381"/>
         <source>成る</source>
         <translation>Promote</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="349"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="382"/>
         <source>成らない</source>
         <translation>Do not promote</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="393"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="428"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>Problem %1 — Mate in %2 plies / Defender: Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="398"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="433"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>Your turn. Mate within the remaining %1 plies.</translation>
     </message>
@@ -8231,37 +8235,37 @@ Last solved: %2</translation>
         <translation type="vanished">Hayanagi is searching…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="401"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="436"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>Search paused. Increase the search time and retry, or undo your last move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="404"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="439"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>Solved / Attempts: %1, solves: %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="405"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="440"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>Unsolved / Attempts: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="406"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="441"/>
         <source>履歴を保存できません: %1</source>
         <translation>Could not save progress: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="418"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="453"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>Correct! You have checkmated the defending king.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="425"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="460"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>This reply prevents mate. No sequence of checks can force mate.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="426"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="461"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>This reply prevents mate within the remaining %1 plies. Undo your last move and try again.</translation>
     </message>
@@ -8270,12 +8274,12 @@ Last solved: %2</translation>
         <translation type="vanished">The time or depth limit (31 plies) was reached. This does not mean your move is wrong.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="431"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="466"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>There is no forced mate by consecutive checks in this position. Choose another problem.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="454"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="489"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>Make a legal checking move. Double pawns, pawn-drop mate, and leaving your own king in check are not allowed.</translation>
     </message>
@@ -8286,9 +8290,8 @@ Last solved: %2</translation>
         <translation>Solution:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="22"/>
         <source>最初に戻る</source>
-        <translation>First</translation>
+        <translation type="vanished">First</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="23"/>
@@ -8306,9 +8309,14 @@ Last solved: %2</translation>
         <translation>Final mate</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="26"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="264"/>
         <source>対局に戻る</source>
         <translation>Resume play</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="22"/>
+        <source>開始局面へ</source>
+        <translation>Initial position</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="100"/>
@@ -8340,12 +8348,12 @@ Last solved: %2</translation>
 <context>
     <name>TsumePositionAnalyzer</name>
     <message>
-        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="119"/>
+        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="118"/>
         <source>内蔵判定の時間または31手の上限に達しました。KomoringHeightsで再判定できます。</source>
         <translation>The built-in solver reached its time or 31-ply limit. You can retry with KomoringHeights.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="127"/>
+        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="126"/>
         <source>エンジンが返した手順を合法な詰み手順として確認できませんでした。</source>
         <translation>The engine response could not be verified as a legal mating line.</translation>
     </message>
@@ -8465,12 +8473,12 @@ Last solved: %2</translation>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="189"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="198"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>The engine does not support mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="212"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="224"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine is not responding.</translation>
     </message>

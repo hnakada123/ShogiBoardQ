@@ -37,6 +37,21 @@ class TestTsumePlayGui : public QObject
     QRect promotionPreviewRect;
     QImage promotionPreview;
     QString promotionSfen;
+    QList<QRect> paintedBoardRects;
+    bool trackBoardLayout = false;
+    bool paintedThinking = false;
+
+    bool eventFilter(QObject* watched, QEvent* event) override
+    {
+        if (trackBoardLayout && event->type() == QEvent::Paint) {
+            if (auto* view = qobject_cast<ShogiView*>(watched)) {
+                paintedBoardRects.append(view->geometry());
+                if (dialog->findChild<TsumeGameSession*>()->state() == TsumeGameSession::State::Thinking)
+                    paintedThinking = true;
+            }
+        }
+        return QObject::eventFilter(watched, event);
+    }
 
     QRect squareRect(ShogiView* view, const QPoint& square) const
     {
@@ -207,6 +222,51 @@ private slots:
         QVERIFY(lastNotice.contains(QStringLiteral("正解")));
         dialog = nullptr;
     }
+    void boardLayoutDuringMove_data()
+    {
+        QTest::addColumn<QSize>("windowSize");
+        QTest::addColumn<int>("squareSize");
+        QTest::addColumn<int>("fontSize");
+        QTest::newRow("normal") << QSize(760, 760) << 42 << 10;
+        QTest::newRow("tall") << QSize(950, 1180) << 65 << 12;
+        QTest::newRow("large-font") << QSize(950, 1180) << 65 << 16;
+    }
+    void boardLayoutDuringMove()
+    {
+        QFETCH(QSize, windowSize);
+        QFETCH(int, squareSize);
+        QFETCH(int, fontSize);
+        auto preferences = TsumeshogiSettings::playPreferences();
+        preferences.size = windowSize;
+        preferences.squareSize = squareSize;
+        TsumeshogiSettings::setPlayPreferences(preferences);
+        TsumeshogiSettings::setTsumePlayFontSize(fontSize);
+        TsumePlayDialog window;
+        dialog = &window;
+        window.setProblem(problems[0], 1, {}, nullptr, 5);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* session = window.findChild<TsumeGameSession*>();
+        auto* view = window.findChild<ShogiView*>();
+        QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QTest::qWait(50);
+        const QRect initial = view->geometry();
+        view->installEventFilter(this);
+        paintedBoardRects.clear();
+        paintedThinking = false;
+        trackBoardLayout = true;
+        clickMove(QStringLiteral("3c5c+"));
+        QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QTest::qWait(50);
+        trackBoardLayout = false;
+        QCOMPARE(session->remainingPlies(), 3);
+        QVERIFY(paintedThinking);
+        QVERIFY(!paintedBoardRects.isEmpty());
+        // 完了後だけでなく、着手・探索・応手を描画する全フレームで盤面が動かないこと。
+        for (const QRect& rect : std::as_const(paintedBoardRects)) QCOMPARE(rect, initial);
+        QCOMPARE(view->geometry(), initial);
+        dialog = nullptr;
+    }
     void refutationAndProblemSwitch_data()
     {
         QTest::addColumn<int>("problemIndex");
@@ -300,8 +360,14 @@ private slots:
         auto* last = window.findChild<QPushButton*>(QStringLiteral("tsumeSolutionLast"));
         auto* resume = window.findChild<QPushButton*>(QStringLiteral("tsumeReturnToGame"));
         auto* showSolution = window.findChild<QPushButton*>(QStringLiteral("tsumeShowSolution"));
+        auto* restart = window.findChild<QPushButton*>(QStringLiteral("tsumeRestart"));
+        auto* undo = window.findChild<QPushButton*>(QStringLiteral("tsumeUndo"));
+        auto* stop = window.findChild<QPushButton*>(QStringLiteral("tsumeStop"));
+        auto* retry = window.findChild<QPushButton*>(QStringLiteral("tsumeRetry"));
         auto* solutionText = window.findChild<QPlainTextEdit*>(QStringLiteral("tsumeSolutionText"));
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QVERIFY(restart->isVisible() && undo->isVisible() && showSolution->isVisible());
+        QVERIFY(!stop->isVisible() && !retry->isVisible());
         QVERIFY(!previous->isEnabled());
         QVERIFY(!resume->isEnabled());
         QVERIFY(!first->isVisible() && !next->isVisible() && !last->isVisible() && !resume->isVisible());
@@ -324,9 +390,13 @@ private slots:
         }
         lastNotice.clear(); // 実着手時の成り選択は、再生中の通知とは分けて確認する。
         const auto id = TsumeCollection::positionId(problem.sfen);
+        window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-play-before-solution.png"));
         QTest::mouseClick(showSolution, Qt::LeftButton);
         QTRY_VERIFY(replay->available());
         QCOMPARE(replay->currentPly(), 0);
+        QVERIFY(!restart->isVisible() && !undo->isVisible() && !showSolution->isVisible());
+        QVERIFY(!restart->isEnabled());
+        QVERIFY(!stop->isVisible() && !retry->isVisible());
         QVERIFY(first->isVisible() && next->isVisible() && last->isVisible() && resume->isVisible());
         QVERIFY(solutionText->isVisible() && solutionText->isReadOnly());
         QVERIFY(solutionText->toPlainText().startsWith(QStringLiteral("▲５三飛成(33)")));
@@ -360,6 +430,9 @@ private slots:
         QTest::mouseClick(resume, Qt::LeftButton);
         QVERIFY(!solutionText->isVisible() && solutionText->toPlainText().isEmpty());
         QVERIFY(!next->isVisible() && !resume->isVisible());
+        QVERIFY(restart->isVisible() && undo->isVisible() && showSolution->isVisible());
+        QVERIFY(restart->isEnabled() && showSolution->isEnabled());
+        QVERIFY(!stop->isVisible() && !retry->isVisible());
         QCOMPARE(board->convertBoardToSfen(), saved.section(QLatin1Char(' '), 0, 0));
         QCOMPARE(session->remainingPlies(), 3);
         QVERIFY(window.findChild<QPushButton*>(QStringLiteral("tsumeUndo"))->isEnabled());
@@ -370,7 +443,8 @@ private slots:
         QCOMPARE(store.progress(id).solves, 1);
         QTest::mouseClick(showSolution, Qt::LeftButton);
         QTest::mouseClick(last, Qt::LeftButton);
-        QTest::mouseClick(window.findChild<QPushButton*>(QStringLiteral("tsumeRestart")), Qt::LeftButton);
+        QTest::mouseClick(resume, Qt::LeftButton);
+        QTest::mouseClick(restart, Qt::LeftButton);
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
         QCOMPARE(store.progress(id).attempts, 2);
         QCOMPARE(store.progress(id).solves, 1);
@@ -421,14 +495,26 @@ private slots:
         window.show();
         auto* session = window.findChild<TsumeGameSession*>();
         auto* replay = window.findChild<TsumeSolutionReplay*>();
+        auto* stop = window.findChild<QPushButton*>(QStringLiteral("tsumeStop"));
+        auto* retry = window.findChild<QPushButton*>(QStringLiteral("tsumeRetry"));
+        auto* resume = window.findChild<QPushButton*>(QStringLiteral("tsumeReturnToGame"));
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
         qputenv("SHOGI_TEST_MATE_MODE", "slow");
         window.findChild<QPushButton*>(QStringLiteral("tsumeShowSolution"))->click();
         QTest::qWait(100);
+        QVERIFY(replay->loading());
+        QVERIFY(stop->isVisible() && !retry->isVisible() && resume->isVisible());
+        QTest::mouseClick(stop, Qt::LeftButton);
+        QVERIFY(!replay->loading());
+        QVERIFY(!stop->isVisible() && retry->isVisible() && resume->isVisible());
+        QTest::mouseClick(retry, Qt::LeftButton);
+        QTest::qWait(100);
         qunsetenv("SHOGI_TEST_MATE_MODE");
         QVERIFY(replay->loading());
-        window.findChild<QPushButton*>(QStringLiteral("tsumeReturnToGame"))->click();
+        QVERIFY(stop->isVisible() && !retry->isVisible());
+        QTest::mouseClick(resume, Qt::LeftButton);
         QVERIFY(!replay->loading());
+        QVERIFY(!stop->isVisible() && !retry->isVisible() && !resume->isVisible());
         QTest::qWait(2100);
         auto* board = window.findChild<ShogiView*>()->board();
         QCOMPARE(board->convertBoardToSfen(), problems[0].sfen.section(QLatin1Char(' '), 0, 0));

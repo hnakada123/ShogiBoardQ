@@ -89,6 +89,8 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `goto_ply` | 指定手数へ移動 | `ply` | `kifu.goto` |
 | `list_actions` | `trigger_action` で実行できる動作の一覧（有効・チェック状態付き） | なし | `action.list` |
 | `trigger_action` | `QAction` の objectName を許可リスト内で実行（応答後に実行するのでモーダルダイアログでも返る） | `name` | `action.trigger` |
+| `click_board_square` | 盤面・駒台へマウスクリックを送る（回転に依存しない論理座標） | `target`、`file`、`rank`、`button` | `board.click` |
+| `click_dialog_button` | ダイアログのボタンを押す。問題カード・成り選択にも対応 | `dialog`、`widget` または `text`、`index` | `dialog.clickButton` |
 | `capture_screenshot` | メインウィンドウまたは指定ダイアログを PNG 保存 | `target`、`output_dir` | `screenshot.capture` |
 | `list_dialogs` | 開いているトップレベルウィンドウ／ダイアログ | なし | `dialog.list` |
 | `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `dialog` | `dialog.close` |
@@ -166,6 +168,8 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |
 | `action.trigger` | `{name}` | `{name, triggered:true}`（応答後に実行） | `-32001` 許可リスト外、`-32002` 無効状態、`-32005` 存在しない |
+| `board.click` | `{target?, file, rank, button?: "left"\|"right"}` | `{target, file, rank, queued:true}`（応答後に実行） | `-32602` 不正座標、`-32002` 操作不可、`-32005` 盤なし |
+| `dialog.clickButton` | `{dialog, widget? または text?, index?}` | `{object_name, text, queued:true}`（応答後に実行） | `-32602` 不正引数、`-32002` 操作不可、`-32005` ボタンなし |
 | `screenshot.capture` | `{target?: "main"\|objectName\|タイトル, output_dir?}` | `{path, width, height}` | `-32005` 対象なし |
 | `dialog.list` | - | `{windows:[{object_name,class,title,visible,modal,active,main,width,height}]}` | - |
 | `dialog.close` | `{dialog}` | `{closed:true, object_name, title}`（応答後に閉じる） | `-32005` 対象なし |
@@ -291,6 +295,7 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 ## 11. 制限事項と拡張候補
 
 - Streamable HTTP は実装しない（必要になれば localhost 限定・トークン必須で追加する）。
-- CSA 通信対局、対局の開始・指し手の実行、評価値グラフ画像の取得は未対応。
+- CSA 通信対局の専用API、対局開始・USI形式の着手専用API、評価値グラフ画像の取得は未対応。
+  盤面のクリックとダイアログのボタン操作には対応し、GUIの入力規則に従って着手できる。
 - Windows の名前付きパイプ接続は実装済みだが未検証。
 - 拡張候補: 解析結果のグラフ画像、棋譜解析（全手）のジョブ化、`prompts/list` による定型手順、局面集ファイルの操作。
