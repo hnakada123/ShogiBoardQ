@@ -58,6 +58,7 @@ Hayanagiの応手、正解・不詰の通知、問題切替を確認し、`tsume
 詰将棋・問題一覧・一般機能の GUI テストは、本体と同じ日本語フォントの初期化を行います。
 `tst_applicationfonts` は「判定時間」などに使用される実描画フォントと等幅表示を検証します。
 `solveByBoardClicks` は盤の拡大・縮小ボタン、Ctrl＋ホイール、回転後の盤での着手も確認します。
+`boardLayoutDuringMove` は通常・縦長・文字拡大の各表示で、着手から玉方の応手までの全描画フレームを記録し、探索中止ボタンの表示切替で盤面の位置・大きさが変わらないことを確認します。
 
 ```bash
 xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_play_gui
@@ -68,9 +69,9 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_play_gu
 `menuModalRoundtrip` は実MainWindowのメニューから起動し、「一覧に戻る」・Esc・閉じる操作・
 正答後の復帰で一覧が生存すること、ページ移動・別問題の選択・一覧終了後のメニュー操作が可能なことを確認する。
 `tst_tsume_play_gui` の `solutionPlaybackAndResume` は正解手順の先頭・前・次・詰み局面への移動、
-ボタンを押す前後の棋譜・再生操作の表示切替、日本語の棋譜、閲覧中の着手禁止、
+ボタンを押す前後の対局操作・再生操作の切替、日本語の棋譜、閲覧中の着手禁止、
 正答履歴を増やさず途中対局へ戻れることを確認する。
-`cancelPendingSolution` は手順取得中の復帰で古い結果が盤面へ適用されないことを確認する。
+`cancelPendingSolution` は探索中止・再判定の表示切替と、手順取得中の復帰で古い結果が盤面へ適用されないことを確認する。
 スクリーンショットは `tsume-collection.png`。
 
 ```bash

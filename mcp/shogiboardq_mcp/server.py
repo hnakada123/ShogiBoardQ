@@ -66,6 +66,8 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         "goto_ply": app_tools.goto_ply,
         "list_actions": app_tools.list_actions,
         "trigger_action": app_tools.trigger_action,
+        "click_board_square": app_tools.click_board_square,
+        "click_dialog_button": app_tools.click_dialog_button,
         "capture_screenshot": app_tools.capture_screenshot,
         "list_dialogs": app_tools.list_dialogs,
         "close_dialog": app_tools.close_dialog,

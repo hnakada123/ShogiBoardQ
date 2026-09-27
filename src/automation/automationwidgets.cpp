@@ -2,6 +2,8 @@
 /// @brief 自動化 API のウィンドウ列挙・ウィジェット内容取得ヘルパの実装
 
 #include "automationwidgets.h"
+#include "shogiboard.h"
+#include "shogiview.h"
 
 #include <QAbstractButton>
 #include <QAbstractItemModel>
@@ -51,6 +53,12 @@ QJsonArray tableRows(const QAbstractItemModel* model, const QHeaderView* header,
 
 bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
 {
+    if (auto* board = qobject_cast<ShogiView*>(w)) {
+        obj[QStringLiteral("flipped")] = board->flipMode();
+        obj[QStringLiteral("square_size")] = board->squareSize();
+        if (board->board()) obj[QStringLiteral("board_sfen")] = board->board()->convertBoardToSfen();
+        return true;
+    }
     if (auto* table = qobject_cast<QTableWidget*>(w)) {
         obj[QStringLiteral("rows")] = tableRows(table->model(), table->horizontalHeader(), maxRows);
         obj[QStringLiteral("row_count")] = table->rowCount();
@@ -203,6 +211,9 @@ QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& obje
         obj[QStringLiteral("object_name")] = w->objectName();
         obj[QStringLiteral("class")] = QString::fromLatin1(w->metaObject()->className());
         obj[QStringLiteral("enabled")] = w->isEnabled();
+        const QPoint pos = w->mapTo(root, QPoint());
+        obj[QStringLiteral("geometry")] = QJsonObject{{QStringLiteral("x"), pos.x()}, {QStringLiteral("y"), pos.y()},
+                                                      {QStringLiteral("width"), w->width()}, {QStringLiteral("height"), w->height()}};
         if (!w->isVisible()) obj[QStringLiteral("visible")] = false;
         array.append(obj);
     }

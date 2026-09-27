@@ -7,6 +7,7 @@
 #include <QJsonObject>
 
 #include "automationdispatcher.h"
+#include "automationcommands.h"
 #include "automationparams.h"
 
 class TestAutomationDispatcher : public QObject
@@ -45,6 +46,21 @@ private:
     }
 
 private slots:
+    void deferredCallbackMayDeleteItsParent()
+    {
+        auto* parent = new QObject;
+        bool called = false;
+        AutomationDeferredCall::schedule([parent, &called]() { delete parent; called = true; }, parent);
+        QTRY_VERIFY(called);
+
+        auto* cancelledParent = new QObject;
+        bool cancelledCalled = false;
+        AutomationDeferredCall::schedule([&cancelledCalled]() { cancelledCalled = true; }, cancelledParent);
+        delete cancelledParent;
+        QCoreApplication::processEvents();
+        QVERIFY(!cancelledCalled);
+    }
+
     void resultAndParams()
     {
         const AutomationDispatcher dispatcher = makeDispatcher();

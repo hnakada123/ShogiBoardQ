@@ -145,7 +145,7 @@ void TsumePlayDialog::buildUi()
     m_status->setWordWrap(true);
     m_status->setMinimumHeight(45);
     layout->addWidget(m_status);
-    buildReplayUi(layout);
+    buildActionControls(layout);
     auto* buttons = new QHBoxLayout;
     m_fontDecrease = new QToolButton(this);
     m_fontDecrease->setObjectName(QStringLiteral("tsumePlayFontDecrease"));
@@ -161,23 +161,51 @@ void TsumePlayDialog::buildUi()
     connect(m_fontIncrease, &QToolButton::clicked, this, &TsumePlayDialog::onFontIncrease);
     buttons->addWidget(m_fontDecrease);
     buttons->addWidget(m_fontIncrease);
-    m_restart = new QPushButton(tr("最初から"), this);
-    m_undo = new QPushButton(tr("一手戻す"), this);
-    m_stop = new QPushButton(tr("探索中止"), this);
-    m_retry = new QPushButton(tr("再判定"), this);
-    m_restart->setObjectName(QStringLiteral("tsumeRestart"));
-    m_undo->setObjectName(QStringLiteral("tsumeUndo"));
-    m_stop->setObjectName(QStringLiteral("tsumeStop"));
-    m_retry->setObjectName(QStringLiteral("tsumeRetry"));
+    buttons->addStretch();
     auto* close = new QPushButton(tr("一覧に戻る"), this);
     close->setObjectName(QStringLiteral("tsumeBackToCollection"));
+    close->setAutoDefault(false);
+    connect(close, &QPushButton::clicked, this, &QDialog::reject);
+    buttons->addWidget(close);
+    layout->addLayout(buttons);
+}
+
+void TsumePlayDialog::buildActionControls(QVBoxLayout* layout)
+{
+    auto* actions = new QHBoxLayout;
+    m_gameControls = new QWidget(this);
+    m_gameControls->setObjectName(QStringLiteral("tsumeGameControls"));
+    m_gameControls->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    auto* gameRow = new QHBoxLayout(m_gameControls);
+    gameRow->setContentsMargins(0, 0, 0, 0);
+    m_restart = new QPushButton(tr("最初から解き直す"), this);
+    m_undo = new QPushButton(tr("一手戻す"), this);
+    m_restart->setObjectName(QStringLiteral("tsumeRestart"));
+    m_undo->setObjectName(QStringLiteral("tsumeUndo"));
     connect(m_restart, &QPushButton::clicked, this, &TsumePlayDialog::selectProblem);
     connect(m_undo, &QPushButton::clicked, m_session, &TsumeGameSession::undo);
+    for (auto* button : {m_restart, m_undo}) {
+        button->setAutoDefault(false);
+        gameRow->addWidget(button);
+    }
+    gameRow->addStretch();
+    actions->addWidget(m_gameControls, 1);
+    buildReplayUi(actions);
+    m_stop = new QPushButton(tr("探索中止"), this);
+    m_retry = new QPushButton(tr("再判定"), this);
+    m_stop->setObjectName(QStringLiteral("tsumeStop"));
+    m_retry->setObjectName(QStringLiteral("tsumeRetry"));
     connect(m_stop, &QPushButton::clicked, this, &TsumePlayDialog::stopSearch);
     connect(m_retry, &QPushButton::clicked, this, &TsumePlayDialog::retrySearch);
-    connect(close, &QPushButton::clicked, this, &QDialog::reject);
-    for (auto* button : {m_restart, m_undo, m_stop, m_retry, close}) buttons->addWidget(button);
-    layout->addLayout(buttons);
+    for (auto* button : {m_stop, m_retry}) {
+        button->setAutoDefault(false);
+        // 表示切替で操作欄の制約が変わると、余った高さが再配分されて盤面が上下する。
+        auto policy = button->sizePolicy();
+        policy.setRetainSizeWhenHidden(true);
+        button->setSizePolicy(policy);
+        actions->addWidget(button);
+    }
+    layout->addLayout(actions);
 }
 
 void TsumePlayDialog::setProblem(const TsumeProblem& problem, int number, const QString& enginePath,
@@ -233,6 +261,11 @@ void TsumePlayDialog::buildBoardControls(QVBoxLayout* layout)
     m_showSolution->setAutoDefault(false);
     connect(m_showSolution, &QPushButton::clicked, this, &TsumePlayDialog::solutionFirst);
     row->addWidget(m_showSolution);
+    m_returnToGame = new QPushButton(tr("対局に戻る"), this);
+    m_returnToGame->setObjectName(QStringLiteral("tsumeReturnToGame"));
+    m_returnToGame->setAutoDefault(false);
+    connect(m_returnToGame, &QPushButton::clicked, this, &TsumePlayDialog::returnToGame);
+    row->addWidget(m_returnToGame);
     layout->addLayout(row);
 }
 
@@ -384,10 +417,12 @@ void TsumePlayDialog::updateState()
     using State = TsumeGameSession::State;
     const auto state = m_session->state();
     m_interaction->setMoveInputEnabled(!m_reviewing && state == State::Ready);
-    m_restart->setEnabled(!m_problem.sfen.isEmpty());
+    m_restart->setEnabled(!m_reviewing && !m_problem.sfen.isEmpty());
     m_undo->setEnabled(!m_reviewing && m_session->canUndo());
     m_stop->setEnabled(m_reviewing ? m_solution->loading() : state == State::Thinking);
     m_retry->setEnabled(m_reviewing ? !m_solution->loading() && !m_solution->available() : state == State::Paused);
+    m_stop->setVisible(m_stop->isEnabled());
+    m_retry->setVisible(m_retry->isEnabled());
     if (!m_reviewing && state == State::Ready) {
         if (!m_totalPlies) m_totalPlies = m_session->remainingPlies();
         m_header->setText(tr("第%1問 — %2手詰 ／ 玉方: Hayanagi").arg(m_number).arg(m_totalPlies));

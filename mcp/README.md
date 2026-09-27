@@ -49,10 +49,22 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `get_position` / `set_position` | 現在局面の取得と設定 |
 | `load_kifu` / `save_kifu` / `get_kifu` / `goto_ply` | 棋譜の読み込み・保存・取得・手数移動 |
 | `list_actions` / `trigger_action` | メニュー動作の一覧と実行（許可リスト方式） |
+| `click_board_square` | 盤面・駒台のクリック。回転・盤サイズに追従し、通常のマウス入力として処理 |
+| `click_dialog_button` | ダイアログのボタン操作。問題選択、成り選択、再生・復帰など |
 | `capture_screenshot` | メインウィンドウ／ダイアログのスクリーンショット |
-| `list_dialogs` / `get_widget_text` | 開いているダイアログと、その中のテキスト・テーブル内容 |
+| `list_dialogs` / `get_widget_text` | 開いているダイアログ、テキスト・テーブル・盤面内容とウィジェット座標 |
 
 リソース: `shogiboardq://position/current`（SFEN）、`shogiboardq://kifu/current`（KIF）、`shogiboardq://engines`（JSON）。
+
+詰将棋対局では `click_board_square(target="tsumePlayDialog", file=3, rank=3)`、
+続けて `file=5, rank=3` と指定すると３三から５三へクリックします。座標は盤の回転に依存しません。
+成り選択は `click_dialog_button(dialog="成りの選択", text="成る")` で回答します。
+駒台は先手が `file=10`・`rank=1..8`（歩・香・桂・銀・金・角・飛・玉）、
+後手が `file=11`・`rank=9..2`（同順）です。`button="right"` は選択を取り消します。
+ボタンは `widget`（objectName）か `text`（表示文字列の完全一致）で指定し、
+同名の問題カードは `index`（0始まり）で選択できます。
+クリックは予約後に応答するため、着手の成否や探索完了は `get_widget_text` などで確認してください。
+非表示・無効な対象や、別のモーダルダイアログに遮られた対象は操作しません。
 
 ## クライアント設定例
 
