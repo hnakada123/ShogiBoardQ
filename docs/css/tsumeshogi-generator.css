@@ -1,0 +1,14 @@
+/* Keep CLI options and file paths readable in narrow guide layouts. */
+.cli-guide .guide-step-text,
+.cli-guide .info-table {
+    overflow-wrap: anywhere;
+}
+
+.cli-guide[id],
+.cli-guide [id] {
+    scroll-margin-top: 4rem;
+}
+
+.cli-guide ul.guide-step-text {
+    padding-left: 1.25rem;
+}
