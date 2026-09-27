@@ -94,6 +94,7 @@ private slots:
     }
     void init()
     {
+        trackBoardLayout = false;
         TsumeshogiSettings::setPlayPreferences({});
         TsumeshogiSettings::setTsumePlayFontSize(10);
         lastNotice.clear();
@@ -267,6 +268,72 @@ private slots:
         QCOMPARE(view->geometry(), initial);
         dialog = nullptr;
     }
+    void solutionLayoutDuringToggle_data()
+    {
+        boardLayoutDuringMove_data();
+        QTest::newRow("maximum-font") << QSize(950, 1180) << 65 << 24;
+    }
+    void solutionLayoutDuringToggle()
+    {
+        QFETCH(QSize, windowSize);
+        QFETCH(int, squareSize);
+        QFETCH(int, fontSize);
+        auto preferences = TsumeshogiSettings::playPreferences();
+        preferences.size = windowSize;
+        preferences.squareSize = squareSize;
+        TsumeshogiSettings::setPlayPreferences(preferences);
+        TsumeshogiSettings::setTsumePlayFontSize(fontSize);
+        TsumePlayDialog window;
+        dialog = &window;
+        window.setProblem(problems[0], 1, {}, nullptr, 5);
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* view = window.findChild<ShogiView*>();
+        auto* session = window.findChild<TsumeGameSession*>();
+        auto* replay = window.findChild<TsumeSolutionReplay*>();
+        auto* show = window.findChild<QPushButton*>(QStringLiteral("tsumeShowSolution"));
+        auto* resume = window.findChild<QPushButton*>(QStringLiteral("tsumeReturnToGame"));
+        auto* last = window.findChild<QPushButton*>(QStringLiteral("tsumeSolutionLast"));
+        QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QTest::qWait(50);
+        const auto rectInWindow = [&window](QWidget* widget) {
+            return QRect(widget->mapTo(&window, QPoint()), widget->size());
+        };
+        const QStringList fixedWidgets = {
+            QStringLiteral("tsumeBoard"), QStringLiteral("tsumePreviousProblem"),
+            QStringLiteral("tsumeNextProblem"), QStringLiteral("tsumeTimeLimit"),
+            QStringLiteral("tsumeReduceBoard"), QStringLiteral("tsumeEnlargeBoard"),
+            QStringLiteral("tsumeFlipBoard"), QStringLiteral("tsumeStatus"),
+            QStringLiteral("tsumePlayFontDecrease"), QStringLiteral("tsumePlayFontIncrease"),
+            QStringLiteral("tsumeBackToCollection")};
+        QMap<QString, QRect> initial;
+        for (const auto& name : fixedWidgets) initial.insert(name, rectInWindow(window.findChild<QWidget*>(name)));
+        const QRect modeButton = rectInWindow(show);
+        const QSize initialSize = window.size();
+        view->installEventFilter(this);
+        paintedBoardRects.clear();
+        trackBoardLayout = true;
+        for (int cycle = 0; cycle < 4; ++cycle) {
+            QTest::mouseClick(show, Qt::LeftButton);
+            QTRY_VERIFY(replay->available());
+            QTest::mouseClick(last, Qt::LeftButton);
+            QTest::qWait(30);
+            QCOMPARE(rectInWindow(resume), modeButton);
+            for (const auto& name : fixedWidgets)
+                QVERIFY2(rectInWindow(window.findChild<QWidget*>(name)) == initial.value(name), qPrintable(name));
+            QCOMPARE(window.size(), initialSize);
+            QTest::mouseClick(resume, Qt::LeftButton);
+            QTest::qWait(30);
+            QCOMPARE(rectInWindow(show), modeButton);
+            for (const auto& name : fixedWidgets)
+                QVERIFY2(rectInWindow(window.findChild<QWidget*>(name)) == initial.value(name), qPrintable(name));
+            QCOMPARE(window.size(), initialSize);
+        }
+        trackBoardLayout = false;
+        QVERIFY(!paintedBoardRects.isEmpty());
+        for (const QRect& rect : std::as_const(paintedBoardRects)) QCOMPARE(rect, initial.value(QStringLiteral("tsumeBoard")));
+        dialog = nullptr;
+    }
     void refutationAndProblemSwitch_data()
     {
         QTest::addColumn<int>("problemIndex");
@@ -390,6 +457,7 @@ private slots:
         }
         lastNotice.clear(); // 実着手時の成り選択は、再生中の通知とは分けて確認する。
         const auto id = TsumeCollection::positionId(problem.sfen);
+        QTest::qWait(50); // 文字サイズ変更後のレイアウトで両モードを撮影する。
         window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-play-before-solution.png"));
         QTest::mouseClick(showSolution, Qt::LeftButton);
         QTRY_VERIFY(replay->available());
@@ -499,6 +567,12 @@ private slots:
         auto* retry = window.findChild<QPushButton*>(QStringLiteral("tsumeRetry"));
         auto* resume = window.findChild<QPushButton*>(QStringLiteral("tsumeReturnToGame"));
         QTRY_COMPARE(session->state(), TsumeGameSession::State::Ready);
+        QTest::qWait(50);
+        auto* view = window.findChild<ShogiView*>();
+        const QRect initial = view->geometry();
+        view->installEventFilter(this);
+        paintedBoardRects.clear();
+        trackBoardLayout = true;
         qputenv("SHOGI_TEST_MATE_MODE", "slow");
         window.findChild<QPushButton*>(QStringLiteral("tsumeShowSolution"))->click();
         QTest::qWait(100);
@@ -522,6 +596,9 @@ private slots:
         QVERIFY(lastNotice.isEmpty());
         auto* solutionText = window.findChild<QPlainTextEdit*>(QStringLiteral("tsumeSolutionText"));
         QVERIFY(!solutionText->isVisible() && solutionText->toPlainText().isEmpty());
+        trackBoardLayout = false;
+        QVERIFY(!paintedBoardRects.isEmpty());
+        for (const QRect& rect : std::as_const(paintedBoardRects)) QCOMPARE(rect, initial);
         dialog = nullptr;
     }
 };

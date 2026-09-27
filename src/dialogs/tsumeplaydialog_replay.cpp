@@ -6,19 +6,17 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSpinBox>
+#include <QStackedWidget>
+#include <QVBoxLayout>
 #include <limits>
 
-void TsumePlayDialog::buildReplayUi(QHBoxLayout* layout)
+void TsumePlayDialog::buildReplayUi()
 {
     m_replayControls = new QWidget(this);
     m_replayControls->setObjectName(QStringLiteral("tsumeReplayControls"));
     m_replayControls->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     auto* row = new QHBoxLayout(m_replayControls);
     row->setContentsMargins(0, 0, 0, 0);
-    m_solutionStatus = new QLabel(tr("正解手順:"), this);
-    m_solutionStatus->setObjectName(QStringLiteral("tsumeSolutionStatus"));
-    m_solutionStatus->setWordWrap(true);
-    row->addWidget(m_solutionStatus, 1);
     m_solutionFirst = new QPushButton(tr("開始局面へ"), this);
     m_solutionPrevious = new QPushButton(tr("1手戻る"), this);
     m_solutionNext = new QPushButton(tr("1手進む"), this);
@@ -35,8 +33,49 @@ void TsumePlayDialog::buildReplayUi(QHBoxLayout* layout)
         button->setAutoDefault(false);
         row->addWidget(button);
     }
-    layout->addWidget(m_replayControls, 1);
-    m_replayControls->hide();
+    row->addStretch();
+    m_actionControls->addWidget(m_replayControls);
+}
+
+void TsumePlayDialog::buildActionControls(QVBoxLayout* layout)
+{
+    auto* actions = new QHBoxLayout;
+    m_actionControls = new QStackedWidget(this);
+    m_actionControls->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_gameControls = new QWidget(this);
+    m_gameControls->setObjectName(QStringLiteral("tsumeGameControls"));
+    m_gameControls->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    auto* gameRow = new QHBoxLayout(m_gameControls);
+    gameRow->setContentsMargins(0, 0, 0, 0);
+    m_restart = new QPushButton(tr("最初から解き直す"), this);
+    m_undo = new QPushButton(tr("一手戻す"), this);
+    m_restart->setObjectName(QStringLiteral("tsumeRestart"));
+    m_undo->setObjectName(QStringLiteral("tsumeUndo"));
+    connect(m_restart, &QPushButton::clicked, this, &TsumePlayDialog::selectProblem);
+    connect(m_undo, &QPushButton::clicked, m_session, &TsumeGameSession::undo);
+    for (auto* button : {m_restart, m_undo}) {
+        button->setAutoDefault(false);
+        gameRow->addWidget(button);
+    }
+    gameRow->addStretch();
+    m_actionControls->addWidget(m_gameControls);
+    buildReplayUi();
+    actions->addWidget(m_actionControls, 1);
+    m_stop = new QPushButton(tr("探索中止"), this);
+    m_retry = new QPushButton(tr("再判定"), this);
+    m_stop->setObjectName(QStringLiteral("tsumeStop"));
+    m_retry->setObjectName(QStringLiteral("tsumeRetry"));
+    connect(m_stop, &QPushButton::clicked, this, &TsumePlayDialog::stopSearch);
+    connect(m_retry, &QPushButton::clicked, this, &TsumePlayDialog::retrySearch);
+    for (auto* button : {m_stop, m_retry}) {
+        button->setAutoDefault(false);
+        // 表示切替で操作欄の制約が変わると、余った高さが再配分されて盤面が上下する。
+        auto policy = button->sizePolicy();
+        policy.setRetainSizeWhenHidden(true);
+        button->setSizePolicy(policy);
+        actions->addWidget(button);
+    }
+    layout->addLayout(actions);
 }
 
 void TsumePlayDialog::showSolution(int ply)
@@ -83,11 +122,10 @@ void TsumePlayDialog::updateReplayControls()
     const int ply = m_reviewing ? m_solution->currentPly() : 0;
     const bool atEnd = m_reviewing && m_solution->available() && ply == m_solution->totalPlies();
     m_showSolution->setEnabled(enabled && !m_reviewing);
-    m_showSolution->setVisible(!m_reviewing);
-    m_returnToGame->setVisible(m_reviewing);
-    m_solutionText->setVisible(m_reviewing);
-    m_gameControls->setVisible(!m_reviewing);
-    m_replayControls->setVisible(m_reviewing);
+    // 非表示ページもサイズ計算に含め、切替前後で操作欄の幅と高さを共有する。
+    m_modeButton->setCurrentWidget(m_reviewing ? m_returnToGame : m_showSolution);
+    m_information->setCurrentIndex(m_reviewing ? 1 : 0);
+    m_actionControls->setCurrentWidget(m_reviewing ? m_replayControls : m_gameControls);
     m_solutionFirst->setEnabled(enabled && m_reviewing && m_solution->available() && ply > 0);
     m_solutionPrevious->setEnabled(enabled && m_reviewing && m_solution->available() && ply > 0);
     m_solutionNext->setEnabled(enabled && m_reviewing && m_solution->available() && !atEnd);

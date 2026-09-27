@@ -13,7 +13,7 @@ class BoardInteractionController;
 class TsumeProgressStore;
 class TsumeSolutionReplay;
 class QVBoxLayout;
-class QHBoxLayout;
+class QStackedWidget;
 class QLabel;
 class QPushButton;
 class QSpinBox;
@@ -66,7 +66,7 @@ private slots:
 private:
     void buildUi();
     void buildActionControls(QVBoxLayout* layout);
-    void buildReplayUi(QHBoxLayout* layout);
+    void buildReplayUi();
     void buildBoardControls(QVBoxLayout* layout);
     void applyBoardOrientation();
     void cancelBoardSelection();
@@ -104,6 +104,9 @@ private:
     QPushButton* m_stop = nullptr;
     QPushButton* m_retry = nullptr;
     QPushButton* m_showSolution = nullptr;
+    QStackedWidget* m_information = nullptr;
+    QStackedWidget* m_modeButton = nullptr;
+    QStackedWidget* m_actionControls = nullptr;
     QPlainTextEdit* m_solutionText = nullptr;
     QWidget* m_gameControls = nullptr;
     QWidget* m_replayControls = nullptr;
