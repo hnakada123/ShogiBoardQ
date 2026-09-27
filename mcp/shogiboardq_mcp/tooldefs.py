@@ -579,6 +579,43 @@ PHASE2_TOOLS: list[types.Tool] = [
             "text": {"type": "string"}}, "required": ["queued", "object_name", "text"]},
     ),
     _tool(
+        "list_docks", "List dock panels",
+        "Inspect all main-window docks, including closed panels. Returns object_name, title, floating, "
+        "area (last dock area for floating panels), tabified_with, allowed_areas, closable/movable/floatable, "
+        "toggle_checked and global client geometry. hidden means explicitly closed; visible can be true "
+        "for an inactive tab. exposed reports whether the dock has a visible region.",
+        {"properties": {}},
+        {"type": "object", "properties": {"docks": {"type": "array", "items": {"type": "object"}}},
+         "required": ["docks"]},
+        read_only=True,
+    ),
+    _tool(
+        "configure_dock", "Configure dock panel",
+        "Show/raise, close (hide), float, dock to an area, or tabify a named panel using Qt dock APIs. "
+        "The drag operation sends mouse events to a visible docked panel's Qt title bar, ending at global "
+        "coordinates x/y; it cannot drag OS-native floating title bars. "
+        "Movement respects dock locks and allowed areas; a tabify relative must be visible and docked. "
+        "For float, optional geometry is the global client rectangle (Qt minimum sizes still apply). "
+        "Operations are queued and blocked by modal dialogs; poll list_docks to check completion. "
+        "Use trigger_action(actionResetDockLayout) to reset the layout.",
+        {"properties": {
+            "widget": {"type": "string", "minLength": 1},
+            "operation": {"type": "string", "enum": ["show", "hide", "float", "dock", "tabify", "drag"]},
+            "x": {"type": "integer", "minimum": -100000, "maximum": 100000},
+            "y": {"type": "integer", "minimum": -100000, "maximum": 100000},
+            "area": {"type": "string", "enum": ["left", "right", "top", "bottom"]},
+            "relative_to": {"type": "string", "minLength": 1},
+            "geometry": {"type": "object", "properties": {
+                "x": {"type": "integer", "minimum": -100000, "maximum": 100000},
+                "y": {"type": "integer", "minimum": -100000, "maximum": 100000},
+                "width": {"type": "integer", "minimum": 1, "maximum": 16384},
+                "height": {"type": "integer", "minimum": 1, "maximum": 16384}},
+                "required": ["x", "y", "width", "height"], "additionalProperties": False},
+        }, "required": ["widget", "operation"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
+         "required": ["queued", "object_name"]},
+    ),
+    _tool(
         "show_dock", "Show dock panel",
         "Show and raise a dock panel, including panels tabbed behind another dock. Select by object "
         "name (e.g. ConsiderationDock or ThinkingDock); get_widget_text lists dock names. "

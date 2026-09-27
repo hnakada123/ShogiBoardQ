@@ -91,6 +91,8 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `trigger_action` | `QAction` の objectName を許可リスト内で実行（応答後に実行するのでモーダルダイアログでも返る） | `name` | `action.trigger` |
 | `click_board_square` | 盤面・駒台へマウスクリックを送る（回転に依存しない論理座標） | `target`、`file`、`rank`、`button` | `board.click` |
 | `click_dialog_button` | ダイアログのボタンを押す。問題カード・成り選択にも対応 | `dialog`、`widget` または `text`、`index` | `dialog.clickButton` |
+| `list_docks` | 非表示を含む全ドックの配置・タブ・表示領域・固定状態 | なし | `dock.list` |
+| `configure_dock` | 表示、閉じる、浮動化、四方向配置、タブ化、タイトルバードラッグ | `widget`、`operation`、`area?`、`relative_to?`、`geometry?`、`x?`、`y?` | `dock.configure` |
 | `capture_screenshot` | メインウィンドウまたは指定ダイアログを PNG 保存 | `target`、`output_dir` | `screenshot.capture` |
 | `list_dialogs` | 開いているトップレベルウィンドウ／ダイアログ | なし | `dialog.list` |
 | `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `dialog` | `dialog.close` |
@@ -104,6 +106,17 @@ shogiboardq-cli            ShogiBoardQ --automation
 （`from_file`, `from_rank`, `to_file`, `to_rank`, `priority`, `drop_piece`）も返す。
 UI操作は非表示・無効・モーダルで遮られた対象を拒否し、予約実行時にも再確認する。
 `widget.showDock` は非表示のドックを開くため、親ウィンドウの操作可否を検査する。
+
+`dock.list` の `hidden` は明示的な非表示、`exposed` は表示領域の有無を表す。
+タブの裏側は `visible=true` でも `exposed=false` となる。`geometry` はグローバル論理座標の
+クライアント矩形、`tabified_with` は同じタブグループのobjectName、`area` は浮動時には最後の配置エリア。
+`dock.configure` の操作は `show / hide / float / dock / tabify / drag`。
+`float` は任意で `geometry={x,y,width,height}`、`dock` は `area=left/right/top/bottom`、
+`tabify` は `relative_to`、`drag` はマウスの終点 `x,y` を指定する。
+ドラッグはドッキング中のQtタイトルバーへのマウスイベント、それ以外はQtのドックAPIを使う。
+移動不可・許可エリア外・モーダルで遮られた操作は拒否し、予約後も再確認する。
+`actionResetDockLayout` と `actionSaveDockLayout` も許可リストに含む。
+`mcp/tests/test_docks.py` は独立した設定ディレクトリで実アプリを起動し、これらをstdio MCP経由で検証する。
 
 
 ### リソース

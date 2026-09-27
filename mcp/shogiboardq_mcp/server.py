@@ -69,6 +69,8 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         "click_board_square": app_tools.click_board_square,
         "click_dialog_button": app_tools.click_dialog_button,
         "show_dock": app_tools.show_dock,
+        "list_docks": app_tools.list_docks,
+        "configure_dock": app_tools.configure_dock,
         "click_widget": app_tools.click_widget,
         "set_widget_value": app_tools.set_widget_value,
         "click_table_cell": app_tools.click_table_cell,

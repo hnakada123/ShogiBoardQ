@@ -969,6 +969,7 @@ set(SRC_AUTOMATION
     src/automation/automationcommands_position.cpp
     src/automation/automationcommands_ui.cpp
     src/automation/automationcommands_widget.cpp
+    src/automation/automationcommands_dock.cpp
     src/automation/automationcontext.h
     src/automation/automationdispatcher.cpp
     src/automation/automationdispatcher.h

@@ -156,8 +156,14 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
             throw AutomationError(AutomationErrorCode::InvalidState,
                                   QStringLiteral("Action \"%1\" is disabled in the current state").arg(name));
         }
+        requireInteractive(context.mainWindow);
         // モーダルダイアログを開く動作でも応答が返るように、次のイベントループ反復で実行する
-        AutomationDeferredCall::schedule([action]() { action->trigger(); }, action);
+        AutomationDeferredCall::schedule([action, context]() {
+            try {
+                requireInteractive(context.mainWindow);
+                if (action->isEnabled()) action->trigger();
+            } catch (const AutomationError&) { }
+        }, action);
         QJsonObject result;
         result[QStringLiteral("name")] = name;
         result[QStringLiteral("triggered")] = true;

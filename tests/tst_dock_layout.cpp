@@ -58,6 +58,8 @@ private slots:
     void restoreStartupLayoutIfSet_restoresLayout();
     void restoreStartupLayoutIfSet_noLayoutSet_noEffect();
     void resetToDefault_restoresInitialState();
+    void resetToDefault_resetsAnalysisResults();
+    void setDocksLocked_persistsState();
     void saveDockStates_persistsState();
 };
 
@@ -178,16 +180,33 @@ void TestDockLayout::restoreLayout_existingName_succeeds()
     TestSetup setup;
     setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
     setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
+    setup.manager->registerDock(DockLayoutManager::DockType::EvalChart, setup.dock3);
+    setup.mainWindow.show();
+    setup.mainWindow.tabifyDockWidget(setup.dock2, setup.dock3);
+    setup.dock1->setFloating(true);
+    setup.dock1->setGeometry(40, 60, 320, 240);
+    setup.dock3->hide();
+    const QRect floatingGeometry = setup.dock1->geometry();
 
     // 現在の状態を DockSettings 経由で直接保存
     QByteArray state = setup.mainWindow.saveState();
     DockSettings::saveDockLayout(QStringLiteral("TestLayout"), state);
+
+    setup.dock1->setFloating(false);
+    setup.mainWindow.addDockWidget(Qt::LeftDockWidgetArea, setup.dock3);
+    setup.dock3->show();
 
     // restoreLayout が正常に完了すること（成功パス: QMessageBox 不表示）
     setup.manager->restoreLayout(QStringLiteral("TestLayout"));
 
     // 保存されたレイアウトデータが一致すること
     QCOMPARE(DockSettings::loadDockLayout(QStringLiteral("TestLayout")), state);
+    QVERIFY(setup.dock1->isFloating());
+    QCOMPARE(setup.dock1->geometry(), floatingGeometry);
+    QVERIFY(setup.dock3->isHidden());
+    // Qt は閉じたタブを tabifiedDockWidgets() の結果に含めない。
+    setup.dock3->show();
+    QVERIFY(setup.mainWindow.tabifiedDockWidgets(setup.dock2).contains(setup.dock3));
 }
 
 void TestDockLayout::restoreStartupLayoutIfSet_restoresLayout()
@@ -197,18 +216,22 @@ void TestDockLayout::restoreStartupLayoutIfSet_restoresLayout()
     setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
 
     // レイアウトを保存してスタートアップに設定
+    setup.mainWindow.show();
+    setup.dock1->show();
+    setup.dock2->setFloating(true);
     QByteArray state = setup.mainWindow.saveState();
     DockSettings::saveDockLayout(QStringLiteral("Startup"), state);
     DockSettings::setStartupDockLayoutName(QStringLiteral("Startup"));
 
     // dock1 を非表示にして状態を変更
     setup.dock1->setVisible(false);
+    setup.dock2->setFloating(false);
 
     // スタートアップレイアウトを復元
     setup.manager->restoreStartupLayoutIfSet();
 
-    // showAllDocks() により全ドックが表示状態にされてから restoreState される
-    // スタートアップレイアウト名が正しく設定されていること
+    QVERIFY(setup.dock1->isVisible());
+    QVERIFY(setup.dock2->isFloating());
     QCOMPARE(DockSettings::startupDockLayoutName(), QStringLiteral("Startup"));
 }
 
@@ -265,6 +288,30 @@ void TestDockLayout::saveDockStates_persistsState()
     QCOMPARE(DockSettings::evalChartDockFloating(), setup.dock3->isFloating());
     QCOMPARE(DockSettings::evalChartDockVisible(), setup.dock3->isVisible());
     QVERIFY(!DockSettings::evalChartDockGeometry().isEmpty());
+}
+
+void TestDockLayout::resetToDefault_resetsAnalysisResults()
+{
+    TestSetup setup;
+    setup.manager->registerDock(DockLayoutManager::DockType::Record, setup.dock1);
+    setup.manager->registerDock(DockLayoutManager::DockType::Thinking, setup.dock2);
+    setup.manager->registerDock(DockLayoutManager::DockType::AnalysisResults, setup.dock3);
+    setup.mainWindow.show();
+    setup.dock3->setFloating(true);
+    setup.dock3->show();
+    setup.manager->resetToDefault();
+    QVERIFY(!setup.dock3->isFloating());
+    QVERIFY(setup.dock3->isHidden());
+    QCOMPARE(setup.mainWindow.dockWidgetArea(setup.dock3), Qt::BottomDockWidgetArea);
+}
+
+void TestDockLayout::setDocksLocked_persistsState()
+{
+    TestSetup setup;
+    setup.manager->setDocksLocked(true);
+    QVERIFY(DockSettings::docksLocked());
+    setup.manager->setDocksLocked(false);
+    QVERIFY(!DockSettings::docksLocked());
 }
 
 QTEST_MAIN(TestDockLayout)

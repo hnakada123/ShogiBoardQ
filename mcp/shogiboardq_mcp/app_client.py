@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 
 CALL_TIMEOUT = 30.0
 LAUNCH_TIMEOUT = 30.0
+EXIT_TIMEOUT = 3.0
 
 
 class AppError(ToolError):
@@ -50,6 +51,7 @@ class AppClient:
         self._next_id = 1
         self._launched: subprocess.Popen | None = None
         self._socket_path: str | None = None
+        self._launched_socket_path: str | None = None
 
     # ------------------------------------------------------------------ connection
     def is_connected(self) -> bool:
@@ -117,6 +119,7 @@ class AppClient:
                     stderr=subprocess.DEVNULL,
                     start_new_session=not sys.platform.startswith("win"),
                 )
+                self._launched_socket_path = socket_path
             except OSError as exc:
                 raise ToolError("app_unavailable", f"Could not start ShogiBoardQ: {exc}") from exc
         deadline = time.monotonic() + LAUNCH_TIMEOUT
@@ -142,7 +145,7 @@ class AppClient:
         if self._writer is not None:
             try:
                 self._writer.close()
-                await self._writer.wait_closed()
+                await asyncio.wait_for(self._writer.wait_closed(), timeout=1.0)
             except Exception:  # pragma: no cover - best effort
                 pass
         self._reader = None
@@ -150,12 +153,41 @@ class AppClient:
 
     async def shutdown(self) -> None:
         """Close the connection, quitting the app only if we launched it and the operator asked for it."""
-        if self._launched is not None and os.environ.get("SHOGIBOARDQ_QUIT_APP_ON_EXIT") == "1":
+        process = self._launched
+        stop_owned = process is not None and os.environ.get("SHOGIBOARDQ_QUIT_APP_ON_EXIT") == "1"
+        if (stop_owned and process.poll() is None and self.is_connected()
+                and self._socket_path == self._launched_socket_path):
             try:
-                await self.call("app.quit", timeout=5.0)
+                # Do not reconnect here: call() could launch a replacement or find somebody else's app.
+                await asyncio.wait_for(self._quit_connected(), timeout=5.0)
             except Exception:  # pragma: no cover - best effort
                 pass
         await self.close()
+        if stop_owned:
+            # A successful RPC only queues quit; the process may still hang while shutting down.
+            # Reap exactly the Popen child we own, never a PID taken from an endpoint file.
+            await asyncio.to_thread(self._wait_for_exit, process)
+            self._launched = None
+            self._launched_socket_path = None
+
+    async def _quit_connected(self) -> None:
+        async with self._lock:
+            await self._call_locked("app.quit", None)
+
+    @staticmethod
+    def _wait_for_exit(process: subprocess.Popen) -> None:
+        try:
+            process.wait(timeout=EXIT_TIMEOUT)
+            return
+        except subprocess.TimeoutExpired:
+            log.warning("Launched ShogiBoardQ did not quit; terminating PID %s", process.pid)
+        try:
+            process.terminate()
+            process.wait(timeout=EXIT_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            log.warning("Launched ShogiBoardQ ignored termination; killing PID %s", process.pid)
+            process.kill()
+            process.wait(timeout=EXIT_TIMEOUT)
 
     # ------------------------------------------------------------------ calls
     async def call(self, method: str, params: dict[str, Any] | None = None, timeout: float = CALL_TIMEOUT) -> Any:
