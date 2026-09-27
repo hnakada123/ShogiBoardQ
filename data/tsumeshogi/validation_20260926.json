@@ -1,15 +1,17 @@
 {
-  "validated_at": "2026-09-27T06:29:05+09:00",
+  "validated_at": "2026-09-27T00:45:17+00:00",
   "method": "all_single_piece_removals_to_defender_hand",
   "allow_final_move_alternatives": true,
   "auditor_sha256": "c726372992b69b05dfea639beffd248e569aa099bb95262ef488a76849c4b4d6",
   "engine": "KomoringHeights 1.1.0 64ZEN2 (MinLength)",
   "independent_shortest_search": "Hayanagi TsumeSearch with a fresh table per SFEN",
+  "diversity_filter_sha256": "b0318af8dc82678236b9815cadb4fe3da698115724bb22f9c5faa8013d5b5956",
+  "diversity_policy": "mirrored_relative_prefix_and_long_core_one_move_difference_v1",
   "files": [
     {
       "file": "tsume_3ply_1000_20260926.txt",
-      "sha256": "283942d32e46485e65e41696a3ee9f0e3580a5c14c00963af3e72efbe58a076f",
-      "original_sha256": "a84f264475ea73cc97fd28facc3cadc63f4778c10ecd38efc91234fdd5a7ebea",
+      "sha256": "9744bc8a6bc61897d24bfda81590459fc7258be7d3988c71ac73ba99eacd6bb6",
+      "previous_sha256": "283942d32e46485e65e41696a3ee9f0e3580a5c14c00963af3e72efbe58a076f",
       "target_plies": 3,
       "positions": 1000,
       "unique_positions": 1000,
@@ -17,16 +19,26 @@
       "shortest_mate_exact_target": 1000,
       "positions_with_removable_piece": 0,
       "inconclusive_positions": 0,
-      "single_piece_removals_checked": 2941,
-      "retained_original_unique_positions": 994,
-      "excluded_original_positions": 5,
-      "merged_original_duplicates": 1,
-      "new_positions": 6
+      "single_piece_removals_checked": 3447,
+      "retained_previous_positions": 283,
+      "replacement_positions": 717,
+      "before_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 891,
+        "largest_identical_usi_group": 6,
+        "accepted_by_diversity_filter": 283
+      },
+      "after_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
     },
     {
       "file": "tsume_5ply_1000_20260926.txt",
-      "sha256": "95c00d6bfe3f8a3b99101766f31aa2d139b97552a48f9143ba3c699b9f0e7bff",
-      "original_sha256": "120fbd323e7fb7f49eab88c6d073936c74bb367dba29f3c70bae95ec5e4929ba",
+      "sha256": "fd983f212a08a5937ae62e9d9c9adc52c4548a5d69824a77f59783dd88da15f4",
+      "previous_sha256": "95c00d6bfe3f8a3b99101766f31aa2d139b97552a48f9143ba3c699b9f0e7bff",
       "target_plies": 5,
       "positions": 1000,
       "unique_positions": 1000,
@@ -34,16 +46,26 @@
       "shortest_mate_exact_target": 1000,
       "positions_with_removable_piece": 0,
       "inconclusive_positions": 0,
-      "single_piece_removals_checked": 3228,
-      "retained_original_unique_positions": 991,
-      "excluded_original_positions": 7,
-      "merged_original_duplicates": 2,
-      "new_positions": 9
+      "single_piece_removals_checked": 3558,
+      "retained_previous_positions": 693,
+      "replacement_positions": 307,
+      "before_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 930,
+        "largest_identical_usi_group": 6,
+        "accepted_by_diversity_filter": 693
+      },
+      "after_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
     },
     {
       "file": "tsume_7ply_1000_20260926.txt",
-      "sha256": "d045ddc9d4436d467bab4e56f3a882b26d32a46b45265b293ec1b229e7fbd4d3",
-      "original_sha256": "6dda284bc1dd3ccd3022dd32011b9c82d808b12aabec3e5aba31571ce1439118",
+      "sha256": "3d1a02087c842156c7c928ae18a10cc74dec64fdfe6affccbac5e16ef54866bf",
+      "previous_sha256": "d045ddc9d4436d467bab4e56f3a882b26d32a46b45265b293ec1b229e7fbd4d3",
       "target_plies": 7,
       "positions": 1000,
       "unique_positions": 1000,
@@ -51,16 +73,26 @@
       "shortest_mate_exact_target": 1000,
       "positions_with_removable_piece": 0,
       "inconclusive_positions": 0,
-      "single_piece_removals_checked": 3902,
-      "retained_original_unique_positions": 992,
-      "excluded_original_positions": 8,
-      "merged_original_duplicates": 0,
-      "new_positions": 8
+      "single_piece_removals_checked": 4147,
+      "retained_previous_positions": 781,
+      "replacement_positions": 219,
+      "before_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 892,
+        "largest_identical_usi_group": 10,
+        "accepted_by_diversity_filter": 781
+      },
+      "after_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
     },
     {
       "file": "tsume_9ply_1000_20260926.txt",
-      "sha256": "42edd7a60f687cbf1dd4a3180976d1efc798a5e2f3bf579dc74ac880eda6945d",
-      "original_sha256": "35c597a7567f28a5e0f68a27c6b84cc85a75f8792399412e25f30c968f906a65",
+      "sha256": "9397f644625687835a44bb2cdf13aa3bddad35d383b5ce7cd2a981aecdc6f69a",
+      "previous_sha256": "42edd7a60f687cbf1dd4a3180976d1efc798a5e2f3bf579dc74ac880eda6945d",
       "target_plies": 9,
       "positions": 1000,
       "unique_positions": 1000,
@@ -68,16 +100,26 @@
       "shortest_mate_exact_target": 1000,
       "positions_with_removable_piece": 0,
       "inconclusive_positions": 0,
-      "single_piece_removals_checked": 4594,
-      "retained_original_unique_positions": 992,
-      "excluded_original_positions": 8,
-      "merged_original_duplicates": 0,
-      "new_positions": 8
+      "single_piece_removals_checked": 5221,
+      "retained_previous_positions": 426,
+      "replacement_positions": 574,
+      "before_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 821,
+        "largest_identical_usi_group": 9,
+        "accepted_by_diversity_filter": 426
+      },
+      "after_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
     },
     {
       "file": "tsume_11ply_1000_20260926.txt",
-      "sha256": "54f122739a771e1deed33816b8a76fb7b6b44740c5028f242838af3947527a3b",
-      "original_sha256": "030aaf75d419346e002071d9c673096cdb1cb5099c3a54330e890d1200a9ce2b",
+      "sha256": "52236f09ec05a075cd24347da4076cd7daa0aa0e0f2424a16a148d1dc9ab34f5",
+      "previous_sha256": "54f122739a771e1deed33816b8a76fb7b6b44740c5028f242838af3947527a3b",
       "target_plies": 11,
       "positions": 1000,
       "unique_positions": 1000,
@@ -85,16 +127,26 @@
       "shortest_mate_exact_target": 1000,
       "positions_with_removable_piece": 0,
       "inconclusive_positions": 0,
-      "single_piece_removals_checked": 4505,
-      "retained_original_unique_positions": 583,
-      "excluded_original_positions": 1,
-      "merged_original_duplicates": 416,
-      "new_positions": 417
+      "single_piece_removals_checked": 5515,
+      "retained_previous_positions": 45,
+      "replacement_positions": 955,
+      "before_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 166,
+        "largest_identical_usi_group": 49,
+        "accepted_by_diversity_filter": 45
+      },
+      "after_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
     },
     {
       "file": "tsume_13ply_1000_20260926.txt",
-      "sha256": "08bffcdb93cb543a6e2ec92bb8e1a80361a3bf832e3db94186f4413548d674a6",
-      "original_sha256": "b31dc20e59c6a8f589c74e8427835dd84e8336d6c945f4dd7c17f1bc2c65e5a4",
+      "sha256": "8bdf4817932ea9cb3fbb6398105112e150d67e4a5596f76aefe51f966c7d1a14",
+      "previous_sha256": "08bffcdb93cb543a6e2ec92bb8e1a80361a3bf832e3db94186f4413548d674a6",
       "target_plies": 13,
       "positions": 1000,
       "unique_positions": 1000,
@@ -102,14 +154,23 @@
       "shortest_mate_exact_target": 1000,
       "positions_with_removable_piece": 0,
       "inconclusive_positions": 0,
-      "single_piece_removals_checked": 6298,
-      "retained_original_unique_positions": 5,
-      "excluded_original_positions": 3,
-      "merged_original_duplicates": 992,
-      "new_positions": 995,
-      "original_problem_703_new_number": 3
+      "single_piece_removals_checked": 5944,
+      "retained_previous_positions": 16,
+      "replacement_positions": 984,
+      "before_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 41,
+        "largest_identical_usi_group": 223,
+        "accepted_by_diversity_filter": 16
+      },
+      "after_diversity": {
+        "positions": 1000,
+        "distinct_usi_lines": 1000,
+        "largest_identical_usi_group": 1,
+        "accepted_by_diversity_filter": 1000
+      }
     }
   ],
   "total_positions": 6000,
-  "total_single_piece_removals_checked": 25468
+  "total_single_piece_removals_checked": 27832
 }

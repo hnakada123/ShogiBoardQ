@@ -494,7 +494,7 @@ if __name__ == "__main__":
                     <span class="guide-step-title">全件検証して、手順付きテキストとして保存</span>
                 </div>
                 <p class="guide-step-text">収集後には、件数が1000であること、正規化したSFENが1000種類あること、各手順の長さが目標手数と一致することを確認します。さらに、手順を実際に適用した合法性・連続王手・終端の詰みと、目標より短い手数では詰まないことを探索で確認します。文字列の手数チェックだけで最短手数の検証を代用しないことが大切です。</p>
-                <p class="guide-step-text">不要駒の確認には、<code>tsumeshogi_collection_auditor</code> と <code>scripts/audit_tsume_collections.py</code> を使います。全1枚除去の判定が完了した局面だけを残し、除去後の重複を排除します。2026年9月27日の再検査では、補充後の6000題について計25,468通りの除去を確認しました。実行方法と整理・補充の内訳は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a>、ファイルのハッシュと検査件数は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/validation_20260926.json">検査結果</a> に記録しています。</p>
+                <p class="guide-step-text">不要駒の確認には、<code>tsumeshogi_collection_auditor</code> と <code>scripts/audit_tsume_collections.py</code> を使います。全1枚除去の判定が完了した局面だけを残し、除去後の重複を排除します。2026年9月27日の不要駒整理では、補充後の6000題について計25,468通りの除去を確認しました。その後の類似作整理でも全問題を再検査しています。実行方法と整理・補充の内訳は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a>、最新のファイルのハッシュと検査件数は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/validation_20260926.json">検査結果</a> に記録しています。</p>
                 <p class="guide-step-text">主手順の余詰を再検査する場合は、標準CLIの <code>verify-tsume</code> も利用できます。これは今回別途作成した有限深さの検証器とは別の処理です。JSONの <code>ok</code> はコマンド処理の成否なので、詰将棋の判定は <code>status</code> が <code>unique</code> であることまで確認します。<code>unknown</code> は検証成功として扱いません。</p>
                 <div class="format-example">
                     <h4>保存する局面の余詰検査例</h4>
@@ -509,6 +509,39 @@ if __name__ == "__main__":
                     <pre><code>9/8k/7P1/9/7R1/9/9/9/9 b r2b4g4s4n4l17p 1 moves 2c2b+ 1b1c 2e2c+</code></pre>
                 </div>
                 <p class="guide-step-text">保存先は <code>data/tsumeshogi/tsume_13ply_1000_20260926.txt</code> のように、手数・件数・生成日をファイル名に含めています。今回の例は最終手の複数解を許容しています。最終手も一意にしたい場合は、生成・余詰再検査の両方で <code>--no-final-alternatives</code> を指定します。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="section" id="collection-diversity">
+    <div class="section-inner">
+        <h2 class="section-title">似た問題が続かない問題集にする</h2>
+        <p class="section-desc">詰みの成立・不要駒の検査に加え、主手順の類似性と出題順も確認します</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">局面と手順の両方で選別する</span>
+                </div>
+                <p class="guide-step-text">不要駒整理後の13手詰集では、旧722・723番のように駒種や配置が違っても同じ手順になる問題があり、1000題のUSI手順が41種類に集中していました。問題集の収集処理に、移動座標・駒打ち・成の有無を使う類似判定を追加しました。左右反転・平行移動・金と成桂などの置換・最終手だけの違いを比較し、9手以上では導入の2手と最終手を除く中間手順の違いが1手以内の候補も代表作にまとめます。</p>
+                <p class="guide-step-text">この基準は、解く手順の重なりを減らすための保守的な選別です。変化や紛れまで含む作品の価値や同一性を完全に判定するものではありません。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">全ワーカーで採択済み問題を共有して補充する</span>
+                </div>
+                <p class="guide-step-text"><code>scripts/refill_diverse_tsume.py</code> が候補生成器と監査器を直接並列実行し、不要駒除去の前後で共通の類似判定を行います。候補はランダム配置・駒変更に加え、既知局面の直前の王手と玉移動・合駒を逆算して作ります。想定した手順を流用せず、詰み・余詰・全1枚除去を検査します。手順が少し変わった近傍も各系統3題まで探索に使いますが、検証済み問題の件数には含めません。</p>
+                <p class="guide-step-text">これは問題集編集用の追加ツールです。標準GUIや <code>generate-tsume</code> の重複検査とは別に実行し、MCPサーバーは介しません。<code>progress.json</code> に不足数を記録するため、時間切れや似た問題の追加で1000題を達成した扱いにはしません。</p>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">独立した再検査と出題順の調整</span>
+                </div>
+                <p class="guide-step-text">収集後は別プロセスで再監査し、確定判定が揃ってから <code>scripts/publish_diverse_tsume.py</code> で保存します。直近10題と手順座標がなるべく重ならない順に並べ、入れ替え数・類似判定前後の指標・検査件数・ファイルのハッシュを記録します。再編に伴い問題番号が変わります。実行例と検査条件は <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/data/tsumeshogi/README.md">問題集のREADME</a> を参照してください。</p>
+                <p class="guide-step-text">今回の整理では計3,756題を入れ替え、3・5・7・9・11・13手詰を各1000題に揃えました。13手詰のUSI手順は41種類から1000種類になり、他の手数も1000種類ずつです。全6000題を再検証し、27,832通りの1枚除去を確認しました。更新した問題集を読み込み直すと、新しい内容と出題順で解けます。</p>
             </div>
         </div>
     </div>
