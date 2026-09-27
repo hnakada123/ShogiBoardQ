@@ -170,6 +170,11 @@ void GameSessionOrchestrator::handleResignation()
 
 void GameSessionOrchestrator::handleBreakOffGame()
 {
+    auto* csa = deref(m_deps.csaGameCoordinator);
+    if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
+        csa->requestChudan();
+        return;
+    }
     if (m_deps.ensureGameStateController) m_deps.ensureGameStateController();
     auto* gsc = deref(m_deps.gameStateController);
     if (gsc) {

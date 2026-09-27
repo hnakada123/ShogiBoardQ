@@ -842,42 +842,42 @@
 <context>
     <name>CsaClient</name>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="95"/>
+        <location filename="../../src/network/csaclient.cpp" line="97"/>
         <source>既に接続中です</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="100"/>
+        <location filename="../../src/network/csaclient.cpp" line="102"/>
         <source>ポート番号が不正です: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="136"/>
+        <location filename="../../src/network/csaclient.cpp" line="138"/>
         <source>サーバーに接続されていません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="158"/>
+        <location filename="../../src/network/csaclient.cpp" line="160"/>
         <source>対局条件を受信していません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="190"/>
+        <location filename="../../src/network/csaclient.cpp" line="192"/>
         <source>対局中ではありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="196"/>
+        <location filename="../../src/network/csaclient.cpp" line="198"/>
         <source>自分の手番ではありません</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="303"/>
+        <location filename="../../src/network/csaclient.cpp" line="305"/>
         <source>接続がタイムアウトしました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="317"/>
+        <location filename="../../src/network/csaclient.cpp" line="319"/>
         <source>メッセージの送信に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -913,7 +913,7 @@
 <context>
     <name>CsaGameCoordinator</name>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="73"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="74"/>
         <source>対局中は新しい対局を開始できません</source>
         <translation type="unfinished"></translation>
     </message>
@@ -923,108 +923,111 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="131"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="133"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="165"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="183"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="193"/>
         <source>相手の手番です</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="144"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="145"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="146"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="147"/>
         <source>CSA指し手の生成に失敗しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="177"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="203"/>
         <source>接続完了。ログイン中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="184"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="214"/>
         <source>サーバーから切断されました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="197"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="226"/>
         <source>エラー: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="202"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="236"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="226"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="269"/>
         <source>ログイン失敗: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="234"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="277"/>
         <source>ログアウト完了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="243"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="286"/>
         <source>対局条件を受信しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="244"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="287"/>
         <source>先手: %1, 後手: %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="245"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="288"/>
         <source>持時間: %1秒, 秒読み: %2秒</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="251"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="294"/>
         <source>対局条件に同意します...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="259"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="302"/>
         <source>対局開始！</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="283"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="326"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="343"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="388"/>
         <source>対局終了: %1 (%2)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="366"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="411"/>
         <source>対局が中断されました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="372"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="416"/>
         <source>[RECV] %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="378"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="422"/>
         <source>[SEND] %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="397"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="441"/>
         <source>エンジンが投了を選択しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="100"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="103"/>
         <source>初期局面の指し手再生に失敗しました: %1</source>
         <translation>初期局面の指し手再生に失敗しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="101"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="104"/>
         <source>サーバーから受信した初期局面データが不正です: %1</source>
         <translation>サーバーから受信した初期局面データが不正です: %1</translation>
     </message>
@@ -1195,22 +1198,22 @@
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="127"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="135"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="128"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="136"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="160"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="170"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="215"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="225"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -1218,67 +1221,67 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="216"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="233"/>
         <source>対局終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="226"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="237"/>
         <source>対局終了: %1 (%2)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="271"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="283"/>
         <source>先手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="271"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="283"/>
         <source>後手番</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="305"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="317"/>
         <source>投了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="308"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="320"/>
         <source>時間切れ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="312"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="324"/>
         <source>反則負け</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="315"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="327"/>
         <source>千日手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="318"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="330"/>
         <source>反則負け（連続王手）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="333"/>
         <source>入玉宣言</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="324"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="336"/>
         <source>中断</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="368"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="380"/>
         <source>開始局面</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="399"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="411"/>
         <source>通信対局をキャンセルしました</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1286,22 +1289,22 @@
 <context>
     <name>CsaLogPanel</name>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="88"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="89"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="96"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="97"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="117"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="118"/>
         <source>CSAサーバーへ送信</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="125"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="127"/>
         <source>コマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1384,109 +1387,109 @@
 <context>
     <name>CsaMoveProgressHandler</name>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="77"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="81"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="81"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="85"/>
         <source>不正な形式の指し手を受信しました: %1</source>
         <translation>不正な形式の指し手を受信しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="82"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="86"/>
         <source>サーバーからの指し手形式が不正です: %1</source>
         <translation>サーバーからの指し手形式が不正です: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="110"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="114"/>
         <source>不正な座標の指し手を受信しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="111"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="115"/>
         <source>サーバーからの指し手の座標が不正です: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="144"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="387"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="148"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="386"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="145"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="388"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="149"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="387"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="181"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="186"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="185"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="190"/>
         <source>不正な形式の指し手確認を受信しました: %1</source>
         <translation>不正な形式の指し手確認を受信しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="186"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="191"/>
         <source>サーバーからの指し手確認形式が不正です: %1</source>
         <translation>サーバーからの指し手確認形式が不正です: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="211"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="216"/>
         <source>不正な座標の指し手確認を受信しました: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="212"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="217"/>
         <source>サーバーからの指し手確認の座標が不正です: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="229"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="236"/>
         <source>指し手確認の変換に失敗しました: %1</source>
         <translation>指し手確認の変換に失敗しました: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="230"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="237"/>
         <source>サーバーからの指し手確認を変換できません: %1</source>
         <translation>サーバーからの指し手確認を変換できません: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="319"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="316"/>
         <source>エンジンが思考中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="325"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="324"/>
         <source>エンジンが投了しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="332"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="331"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="339"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="338"/>
         <source>盤面が取得できませんでした</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="356"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="355"/>
         <source>駒打ちの駒種変換に失敗しました</source>
         <translation>駒打ちの駒種変換に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="365"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="364"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>指し手の駒種変換に失敗しました</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="374"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="373"/>
         <source>CSA形式の指し手: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -1500,97 +1503,97 @@
     </message>
     <message>
         <location filename="../../src/dialogs/csawaitingdialog.cpp" line="65"/>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="172"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="174"/>
         <source>対局相手を待機中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="102"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="104"/>
         <source>対局キャンセル</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="116"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="118"/>
         <source>文字サイズを縮小</source>
         <translation type="unfinished">文字サイズを縮小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="122"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="124"/>
         <source>文字サイズを拡大</source>
         <translation type="unfinished">文字サイズを拡大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="166"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="168"/>
         <source>待機中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="168"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="170"/>
         <source>サーバーに接続中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="170"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="172"/>
         <source>ログイン中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="174"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="176"/>
         <source>対局条件を確認中...</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="176"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="178"/>
         <source>対局開始！</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="178"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="180"/>
         <source>対局終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="180"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="182"/>
         <source>エラーが発生しました</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="184"/>
         <source>不明な状態</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="194"/>
         <source>CSA通信ログ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="239"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="245"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="248"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="254"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="206"/>
         <source>CSAサーバーへ送信</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="93"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="95"/>
         <source>通信ログ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="215"/>
         <source>コマンドを入力してEnter</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="257"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="263"/>
         <source>閉じる</source>
         <translation type="unfinished">閉じる</translation>
     </message>
@@ -4172,13 +4175,13 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="76"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="92"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="77"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="93"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="98"/>
         <source>盤面データがありません。</source>
         <translation type="unfinished"></translation>
     </message>

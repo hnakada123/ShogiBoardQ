@@ -10,6 +10,8 @@
 #include "shogigamecontroller.h"
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
+#include "csagamecoordinator.h"
+#include <QMetaEnum>
 
 #include <QCoreApplication>
 #include <QJsonArray>
@@ -151,6 +153,18 @@ void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, c
         engines[QStringLiteral("black")] = context.engineName1 ? *context.engineName1 : QString();
         engines[QStringLiteral("white")] = context.engineName2 ? *context.engineName2 : QString();
         result[QStringLiteral("engines")] = engines;
+        if (auto* csa = context.csaGameCoordinator ? context.csaGameCoordinator() : nullptr) {
+            result[QStringLiteral("csa")] = QJsonObject{
+                {QStringLiteral("state"), QString::fromLatin1(QMetaEnum::fromType<CsaGameCoordinator::GameState>()
+                    .valueToKey(static_cast<quint64>(csa->gameState())))},
+                {QStringLiteral("is_my_turn"), csa->isMyTurn()},
+                {QStringLiteral("is_black"), csa->isBlackSide()},
+                {QStringLiteral("is_human"), csa->isHumanPlayer()},
+                {QStringLiteral("black_remaining_ms"), csa->blackRemainingMs()},
+                {QStringLiteral("white_remaining_ms"), csa->whiteRemainingMs()},
+                {QStringLiteral("black_consumed_ms"), csa->blackTotalTimeMs()},
+                {QStringLiteral("white_consumed_ms"), csa->whiteTotalTimeMs()}};
+        }
         QJsonArray dialogs;
         const QList<QWidget*> windows = AutomationWidgets::visibleWindows();
         for (QWidget* w : windows) {

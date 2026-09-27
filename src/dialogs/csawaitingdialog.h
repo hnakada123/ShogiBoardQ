@@ -160,6 +160,7 @@ private:
     // 通信ログウィンドウ
     QDialog* m_logWindow = nullptr;               ///< 通信ログウィンドウ
     QPlainTextEdit* m_logTextEdit = nullptr;      ///< 通信ログテキスト表示
+    QStringList m_logLines;                      ///< ログ画面を開く前の通信も保持
 
     // フォントサイズ調整ボタン（ログウィンドウ）
     QToolButton* m_btnLogFontIncrease = nullptr;  ///< ログA+ボタン

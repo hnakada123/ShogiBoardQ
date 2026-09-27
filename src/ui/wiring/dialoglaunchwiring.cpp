@@ -86,6 +86,11 @@ void DialogLaunchWiring::displayJishogiScoreDialog()
 
 void DialogLaunchWiring::handleNyugyokuDeclaration()
 {
+    if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode
+        && m_deps.csaGameCoordinator && *m_deps.csaGameCoordinator) {
+        (*m_deps.csaGameCoordinator)->declareWin();
+        return;
+    }
     auto* sv = m_deps.getShogiView ? m_deps.getShogiView() : nullptr;
     if (!sv || !sv->board()) {
         QMessageBox::warning(m_deps.parentWidget,

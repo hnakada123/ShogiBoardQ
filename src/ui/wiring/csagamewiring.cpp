@@ -48,6 +48,8 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_gameMoves(deps.gameMoves)
     , m_playMode(deps.playMode)
     , m_parentWidget(deps.parentWidget)
+    , m_prepareRecord(deps.prepareRecord)
+    , m_syncPly(deps.syncPly)
 {
 }
 
@@ -110,6 +112,12 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
 {
     qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
 
+    if (m_prepareRecord && m_sfenHistory && !m_sfenHistory->isEmpty()) {
+        const QStringList positions = *m_sfenHistory;
+        m_prepareRecord(positions.first(), blackName, whiteName);
+        *m_sfenHistory = positions;
+    }
+
     // ナビゲーション無効化を要求
     Q_EMIT disableNavigationRequested();
 
@@ -128,8 +136,9 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
                             tr("（１手 / 合計）")));
     }
 
-    for (const QString& prettyMove : initialPrettyMoves) {
-        appendInitialKifuLine(prettyMove);
+    for (qsizetype i = 0; i < initialPrettyMoves.size(); ++i) {
+        const QString sfen = m_sfenHistory ? m_sfenHistory->value(i + 1) : QString();
+        appendInitialKifuLine(initialPrettyMoves.at(i), sfen);
     }
 
     // 手数カウンタを、Game_Summary に含まれていた既存手順の末尾へ合わせる
@@ -153,6 +162,7 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
     if (m_shogiView) {
         m_shogiView->update();
     }
+    if (m_syncPly) m_syncPly(m_activePly);
 
     // ステータスバーに表示
     if (m_statusBar) {
@@ -213,13 +223,14 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     // 対局終了ダイアログを表示
     const QString message =
         tr("対局が終了しました。\n\n結果: %1\n原因: %2").arg(resultText, causeText);
-    Q_EMIT showGameEndDialogRequested(tr("対局終了"), message);
 
     // プレイモードをリセット
     Q_EMIT playModeChanged(0);  // NotStarted
 
     // ナビゲーション有効化を要求
     Q_EMIT enableNavigationRequested();
+    if (m_syncPly) m_syncPly(m_activePly);
+    Q_EMIT showGameEndDialogRequested(tr("対局終了"), message);
 
     // ステータスバーに表示
     if (m_statusBar) {
@@ -253,6 +264,7 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
         m_activePly = currentRow;
         m_currentSelectedPly = currentRow;
     }
+    if (m_syncPly) m_syncPly(m_activePly);
 
     // 盤面を更新
     if (m_shogiView) {
@@ -339,7 +351,7 @@ void CsaGameWiring::showGameEndDialogInternal(const QString& title, const QStrin
     QMessageBox::information(m_parentWidget, title, message);
 }
 
-void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove)
+void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QString& sfen)
 {
     const QString trimmed = prettyMove.trimmed();
     if (trimmed.isEmpty()) {
@@ -348,7 +360,7 @@ void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove)
 
     const int beforeRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : -1;
     if (m_recordService) {
-        m_recordService->appendKifuLine(trimmed, QString());
+        m_recordService->updateGameRecord(trimmed, QString(), sfen);
     }
 
     const bool appendedByService = m_kifuRecordModel && m_kifuRecordModel->rowCount() > beforeRows;

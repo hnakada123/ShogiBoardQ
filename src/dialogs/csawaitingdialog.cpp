@@ -63,6 +63,7 @@ void CsaWaitingDialog::setupUi()
 
     // 状態表示ラベル
     m_statusLabel = new QLabel(tr("対局相手を待機中..."), this);
+    m_statusLabel->setObjectName(QStringLiteral("csaWaitingStatus"));
     m_statusLabel->setAlignment(Qt::AlignCenter);
     QFont statusFont = m_statusLabel->font();
     statusFont.setBold(true);
@@ -77,6 +78,7 @@ void CsaWaitingDialog::setupUi()
 
     // 詳細メッセージラベル
     m_detailLabel = new QLabel(this);
+    m_detailLabel->setObjectName(QStringLiteral("csaWaitingDetail"));
     m_detailLabel->setAlignment(Qt::AlignCenter);
     m_detailLabel->setWordWrap(true);
     m_detailLabel->setStyleSheet(QStringLiteral("color: gray;"));
@@ -188,6 +190,7 @@ void CsaWaitingDialog::createLogWindow()
     if (m_logWindow) return;
 
     m_logWindow = new QDialog(this);
+    m_logWindow->setObjectName(QStringLiteral("csaWaitingLogWindow"));
     m_logWindow->setWindowTitle(tr("CSA通信ログ"));
     m_logWindow->setWindowFlags(m_logWindow->windowFlags() & ~Qt::WindowContextHelpButtonHint);
     QSize savedLogSize = NetworkSettings::csaLogWindowSize();
@@ -208,6 +211,7 @@ void CsaWaitingDialog::createLogWindow()
     commandLayout->addWidget(m_btnSendToServer);
 
     m_commandInput = new QLineEdit(m_logWindow);
+    m_commandInput->setObjectName(QStringLiteral("csaWaitingCommandInput"));
     m_commandInput->setPlaceholderText(tr("コマンドを入力してEnter"));
     commandLayout->addWidget(m_commandInput, 1);
     {
@@ -220,9 +224,11 @@ void CsaWaitingDialog::createLogWindow()
     layout->addLayout(commandLayout);
 
     m_logTextEdit = new QPlainTextEdit(m_logWindow);
+    m_logTextEdit->setObjectName(QStringLiteral("csaWaitingLogView"));
     m_logTextEdit->setReadOnly(true);
     m_logTextEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
     m_logTextEdit->setMaximumBlockCount(5000);
+    m_logTextEdit->setPlainText(m_logLines.join(QLatin1Char('\n')));
     QFont font = ApplicationFonts::monospaceFont();
     font.setPointSize(m_logFontHelper.fontSize());
     m_logTextEdit->setFont(font);
@@ -352,17 +358,14 @@ void CsaWaitingDialog::onShowLogClicked()
 
 void CsaWaitingDialog::onCsaCommLogAppended(const QString& line)
 {
-    qCDebug(lcUi) << "onCsaCommLogAppended received:" << line;
-    qCDebug(lcUi) << "m_logTextEdit=" << m_logTextEdit;
+    m_logLines.append(line);
+    if (m_logLines.size() > 5000) m_logLines.removeFirst();
 
     if (m_logTextEdit) {
         m_logTextEdit->appendPlainText(line);
         QTextCursor cursor = m_logTextEdit->textCursor();
         cursor.movePosition(QTextCursor::End);
         m_logTextEdit->setTextCursor(cursor);
-        qCDebug(lcUi) << "Log appended to text edit";
-    } else {
-        qCWarning(lcUi) << "m_logTextEdit is null, log not displayed";
     }
 }
 

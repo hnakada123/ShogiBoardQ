@@ -56,7 +56,8 @@ void LiveGameSessionUpdater::ensureSessionStarted()
     }
 }
 
-void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& moveText, const QString& elapsedTime)
+void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& moveText, const QString& elapsedTime,
+                                      const QString& recordedSfen)
 {
     if (m_deps.liveSession == nullptr) {
         return;
@@ -71,9 +72,9 @@ void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& mo
         return;
     }
 
-    // 実際の盤面から完全な SFEN を構築する
-    QString sfen;
-    if (m_deps.gameController && m_deps.gameController->board()) {
+    // 再生済みの初期手順では指定された局面を、それ以外では現在の盤面を記録する。
+    QString sfen = recordedSfen;
+    if (sfen.isEmpty() && m_deps.gameController && m_deps.gameController->board()) {
         ShogiBoard* board = m_deps.gameController->board();
         // 完全な SFEN を構築: <盤面> <手番> <持ち駒> <手数>
         const QString boardPart = board->convertBoardToSfen();
@@ -92,7 +93,7 @@ void LiveGameSessionUpdater::appendMove(const ShogiMove& move, const QString& mo
                    .arg(boardPart, turnPart, standPart, QString::number(moveCount));
         qCDebug(lcApp).noquote() << "appendMove: constructed full SFEN for LiveGameSession"
                            << "sfen=" << sfen.left(80);
-    } else if (m_deps.sfenRecord != nullptr && !m_deps.sfenRecord->isEmpty()) {
+    } else if (sfen.isEmpty() && m_deps.sfenRecord != nullptr && !m_deps.sfenRecord->isEmpty()) {
         // フォールバック: 盤面がない場合は sfenRecord を使用
         sfen = m_deps.sfenRecord->last();
         qCWarning(lcApp) << "appendMove: fallback to sfenRecord (no board)";

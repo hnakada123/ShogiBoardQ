@@ -175,6 +175,8 @@ bool CsaClient::handleGameSummaryTimeSectionLine(const QString& line)
             m_gameSummary.totalTimeWhite = time;
         } else {
             m_gameSummary.totalTime = time;
+            m_gameSummary.totalTimeBlack = time;
+            m_gameSummary.totalTimeWhite = time;
         }
         return true;
     }
@@ -188,6 +190,8 @@ bool CsaClient::handleGameSummaryTimeSectionLine(const QString& line)
             m_gameSummary.byoyomiWhite = time;
         } else {
             m_gameSummary.byoyomi = time;
+            m_gameSummary.byoyomiBlack = time;
+            m_gameSummary.byoyomiWhite = time;
         }
         return true;
     }
@@ -300,6 +304,16 @@ void CsaClient::processGameMessage(const QString& line)
 void CsaClient::processResultLine(const QString& line)
 {
     qCDebug(lcNetwork) << "processResultLine:" << line;
+
+    // 中断通知は勝敗行を伴わない単独の終局通知。
+    if (line == QStringLiteral("#CHUDAN")) {
+        m_pendingFirstResultLine.clear();
+        m_isMyTurn = false;
+        setConnectionState(ConnectionState::GameOver);
+        emit gameInterrupted();
+        emit gameEnded(GameResult::Chudan, GameEndCause::Chudan, m_endMoveConsumedTimeMs);
+        return;
+    }
 
     // 結果行は2行連続で来る
     // 1行目: 事象（#RESIGN, #SENNICHITE, #TIME_UP など）

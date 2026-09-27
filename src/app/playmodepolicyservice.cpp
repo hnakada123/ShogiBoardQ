@@ -32,7 +32,9 @@ bool PlayModePolicyService::isHumanTurnNow() const
 
     case PlayMode::CsaNetworkMode:
         if (m_deps.csaGameCoordinator) {
-            return m_deps.csaGameCoordinator->isMyTurn();
+            return m_deps.csaGameCoordinator->gameState() == CsaGameCoordinator::GameState::InGame
+                && m_deps.csaGameCoordinator->isHumanPlayer()
+                && m_deps.csaGameCoordinator->isMyTurn();
         }
         return false;
 

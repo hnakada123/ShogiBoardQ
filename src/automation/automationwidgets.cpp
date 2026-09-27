@@ -126,7 +126,8 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         return true;
     }
     if (auto* edit = qobject_cast<QLineEdit*>(w)) {
-        obj[QStringLiteral("text")] = edit->text();
+        obj[QStringLiteral("text")] = edit->echoMode() == QLineEdit::Normal
+            ? edit->text() : QStringLiteral("*****");
         obj[QStringLiteral("placeholder")] = edit->placeholderText();
         return true;
     }
@@ -257,8 +258,12 @@ QWidget* requireWindow(const AutomationContext& context, const QString& target)
 void requireInteractive(QWidget* widget)
 {
     QWidget* modal = QApplication::activeModalWidget();
+    bool blocked = modal != nullptr;
+    for (QWidget* parent = widget; parent; parent = parent->parentWidget()) {
+        if (parent == modal) { blocked = false; break; }
+    }
     if (!widget || !widget->isVisible() || !widget->isEnabled()
-        || (modal && modal != widget->window()) || QApplication::activePopupWidget()) {
+        || blocked || QApplication::activePopupWidget()) {
         throw AutomationError(AutomationErrorCode::InvalidState,
                               QStringLiteral("The target is hidden, disabled or blocked by another dialog"));
     }

@@ -49,6 +49,7 @@ QWidget* CsaLogPanel::buildUi(QWidget* parent)
     layout->addWidget(m_commandBar);
 
     m_logView = new QPlainTextEdit(m_container);
+    m_logView->setObjectName(QStringLiteral("csaLogView"));
     m_logView->setReadOnly(true);
     layout->addWidget(m_logView);
 
@@ -122,6 +123,7 @@ void CsaLogPanel::buildCommandBar()
     layout->addWidget(m_btnSendToServer);
 
     m_commandInput = new QLineEdit(m_commandBar);
+    m_commandInput->setObjectName(QStringLiteral("csaCommandInput"));
     m_commandInput->setPlaceholderText(tr("コマンドを入力してEnter"));
     layout->addWidget(m_commandInput, 1);
 

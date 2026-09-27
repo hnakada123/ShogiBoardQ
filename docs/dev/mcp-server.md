@@ -97,7 +97,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `list_dialogs` | 開いているトップレベルウィンドウ／ダイアログ | なし | `dialog.list` |
 | `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `dialog` | `dialog.close` |
 | `get_widget_text` | ダイアログ内のラベル・入力欄・テーブル内容 | `dialog`、`widget`、`max_rows` | `widget.text` |
-| `set_widget_value` | コンボ・スピン・チェック・タブ・編集可能なテキスト欄の変更 | `target`、`widget`、`value` | `widget.setValue` |
+| `set_widget_value` | コンボ・スピン・チェック・タブ・編集可能なテキスト欄の変更。単一行入力は `submit=true` で Enter も送信 | `target`、`widget`、`value`、`submit?` | `widget.setValue` |
 | `get_clipboard` | クリップボードのテキストと画像の有無・サイズ | `max_chars` | `clipboard.get` |
 | `edit_table_cell` | 編集可能なテーブルセルに入力し、必要に応じて確定 | `target?`、`widget`、`row`、`column`、`text`、`commit?` | `widget.editCell` |
 | `widget.showDock` | `{widget}` | `{object_name, queued:true}`（ドック表示・前面化） | `-32602` 型違い、`-32002` 操作不可、`-32005` 対象なし |
@@ -192,7 +192,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 |---|---|---|---|
 | `app.ping` | - | `{pong:true}` | - |
 | `app.version` | - | `{version, qt, api:1}` | - |
-| `app.state` | - | `{ui_state, play_mode, current_ply, total_plies, sfen, kifu_file, dirty, board_flipped, dialogs:[...], engines:{black,white}}` | - |
+| `app.state` | - | `{ui_state, play_mode, current_ply, total_plies, sfen, kifu_file, dirty, board_flipped, dialogs:[...], engines:{black,white}, csa?:{...}}` | - |
 | `app.quit` | - | `{ok:true}`（応答後に終了。テストハーネス用で MCP ツールには出さない） | - |
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
 | `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
@@ -322,6 +322,11 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 `tst_mcp_python` は Python3 と `mcp`・`pytest` が見つかるときだけ登録される。実エンジンでの確認は `SHOGIBOARDQ_TEST_KOMORING` があれば追加で行う。
 
+`mcp/tests/test_csa_game.py` は実際の shogi-server を使い、接続ダイアログ・盤面・終局・棋譜保存を stdio MCP 経由で検証する。
+`SHOGIBOARDQ_TEST_CSA_SERVER` にサーバースクリプトを指定する。実エンジン対局は `SHOGIBOARDQ_TEST_USI_ENGINE`、
+ShogiHome との相互接続は `SHOGIBOARDQ_TEST_SHOGIHOME_CDP` も指定する。
+環境構築・実行例・確認範囲は [CSA検証記録](csa-game-mcp-audit-2026-09-27.md) を参照。
+
 ## 10. 対応クライアント
 
 設定例（`claude_desktop_config.json`、`claude mcp add`、`.cursor/mcp.json`、`.vscode/mcp.json`、Gemini CLI の `settings.json`、Codex CLI の `config.toml`）は [mcp/README.md](../../mcp/README.md) と利用ガイドに記載する。いずれも stdio で `python3 -m shogiboardq_mcp` を起動し、環境変数で実行ファイルの場所を渡す。
@@ -330,6 +335,8 @@ CLI が GUI 本体と同じクラスを使えるように、`CMakeLists.txt` の
 
 - Streamable HTTP は実装しない（必要になれば localhost 限定・トークン必須で追加する）。
 - CSA 通信対局の専用API、対局開始・USI形式の着手専用API、評価値グラフ画像の取得は未対応。
-  盤面のクリックとダイアログのボタン操作には対応し、GUIの入力規則に従って着手できる。
+  CSA対局は接続ダイアログと盤面のクリックで操作できる。`get_app_state` の `csa` はコーディネータが作成された場合に返り、
+  `state`、`is_my_turn`、`is_black`、`is_human`、先後の `remaining_ms`・`consumed_ms` を含む。
+  残時間はサーバー確認済みの最新着手時点（開始時を含む）の値で、思考中の経過時間を差し引く表示時計とは異なる。
 - Windows の名前付きパイプ接続は実装済みだが未検証。
 - 拡張候補: 解析結果のグラフ画像、棋譜解析（全手）のジョブ化、`prompts/list` による定型手順、局面集ファイルの操作。

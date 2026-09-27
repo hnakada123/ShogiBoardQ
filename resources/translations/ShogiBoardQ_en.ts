@@ -889,42 +889,42 @@ Discard changes and move?</translation>
 <context>
     <name>CsaClient</name>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="95"/>
+        <location filename="../../src/network/csaclient.cpp" line="97"/>
         <source>既に接続中です</source>
         <translation>Already connected</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="100"/>
+        <location filename="../../src/network/csaclient.cpp" line="102"/>
         <source>ポート番号が不正です: %1</source>
         <translation>Invalid port number: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="136"/>
+        <location filename="../../src/network/csaclient.cpp" line="138"/>
         <source>サーバーに接続されていません</source>
         <translation>Not connected to server</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="158"/>
+        <location filename="../../src/network/csaclient.cpp" line="160"/>
         <source>対局条件を受信していません</source>
         <translation>Game conditions not received</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="190"/>
+        <location filename="../../src/network/csaclient.cpp" line="192"/>
         <source>対局中ではありません</source>
         <translation>No game in progress</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="196"/>
+        <location filename="../../src/network/csaclient.cpp" line="198"/>
         <source>自分の手番ではありません</source>
         <translation>Not your turn</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="303"/>
+        <location filename="../../src/network/csaclient.cpp" line="305"/>
         <source>接続がタイムアウトしました</source>
         <translation>Connection timed out</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="317"/>
+        <location filename="../../src/network/csaclient.cpp" line="319"/>
         <source>メッセージの送信に失敗しました: %1</source>
         <translation>Failed to send message: %1</translation>
     </message>
@@ -960,7 +960,7 @@ Discard changes and move?</translation>
 <context>
     <name>CsaGameCoordinator</name>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="73"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="74"/>
         <source>対局中は新しい対局を開始できません</source>
         <translation>Cannot start a new game while playing</translation>
     </message>
@@ -970,73 +970,76 @@ Discard changes and move?</translation>
         <translation>Connecting to server %1:%2...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="131"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="133"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="165"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="183"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="193"/>
         <source>相手の手番です</source>
         <translation>Opponent&apos;s turn</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="144"/>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="145"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="146"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="147"/>
         <source>CSA指し手の生成に失敗しました。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="177"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="203"/>
         <source>接続完了。ログイン中...</source>
         <translation>Connected. Logging in...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="184"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="214"/>
         <source>サーバーから切断されました</source>
         <translation>Disconnected from server</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="197"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="226"/>
         <source>エラー: %1</source>
         <translation>Error: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="202"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="236"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>Login successful. Waiting for game...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="226"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="269"/>
         <source>ログイン失敗: %1</source>
         <translation>Login failed: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="234"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="277"/>
         <source>ログアウト完了</source>
         <translation>Logged out</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="243"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="286"/>
         <source>対局条件を受信しました</source>
         <translation>Game conditions received</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="244"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="287"/>
         <source>先手: %1, 後手: %2</source>
         <translation>Black: %1, White: %2</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="245"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="288"/>
         <source>持時間: %1秒, 秒読み: %2秒</source>
         <translation>Time: %1 sec, Byoyomi: %2 sec</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="251"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="294"/>
         <source>対局条件に同意します...</source>
         <translation>Agreeing to game conditions...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="259"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="302"/>
         <source>対局開始！</source>
         <translation>Game started!</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="283"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="326"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>Game rejected (ID: %1, Rejected by: %2)</translation>
     </message>
@@ -1121,27 +1124,27 @@ Discard changes and move?</translation>
         <translation type="vanished">Cheating</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="343"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="388"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="366"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="411"/>
         <source>対局が中断されました</source>
         <translation>Game was interrupted</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="372"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="416"/>
         <source>[RECV] %1</source>
         <translation>[RECV] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="378"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="422"/>
         <source>[SEND] %1</source>
         <translation>[SEND] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="397"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="441"/>
         <source>エンジンが投了を選択しました</source>
         <translation>Engine chose to resign</translation>
     </message>
@@ -1178,12 +1181,12 @@ Discard changes and move?</translation>
         <translation type="vanished">CSA format move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="100"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="103"/>
         <source>初期局面の指し手再生に失敗しました: %1</source>
         <translation>Failed to replay initial position move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="101"/>
+        <location filename="../../src/network/csagamecoordinator_setup.cpp" line="104"/>
         <source>サーバーから受信した初期局面データが不正です: %1</source>
         <translation>Invalid initial position data received from server: %1</translation>
     </message>
@@ -1355,17 +1358,17 @@ Please register an engine from Tools → Engine Settings.</translation>
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="127"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="135"/>
         <source>=== 開始局面 ===</source>
         <translation>=== Starting Position ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="128"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="136"/>
         <source>（１手 / 合計）</source>
         <translation>(per move / total)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="160"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="170"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA network game started: %1 vs %2</translation>
     </message>
@@ -1374,7 +1377,7 @@ Please register an engine from Tools → Engine Settings.</translation>
         <translation type="vanished">Loss</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="215"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="225"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -1385,32 +1388,32 @@ Result: %1
 Cause: %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="216"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="233"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="226"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="237"/>
         <source>対局終了: %1 (%2)</source>
         <translation>Game Over: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="271"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="283"/>
         <source>先手番</source>
         <translation>Sente (Black)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="271"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="283"/>
         <source>後手番</source>
         <translation>Gote (White)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="305"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="317"/>
         <source>投了</source>
         <translation>Resign</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="308"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="320"/>
         <source>時間切れ</source>
         <translation>Time Up</translation>
     </message>
@@ -1419,12 +1422,12 @@ Cause: %2</translation>
         <translation type="vanished">Foul</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="312"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="324"/>
         <source>反則負け</source>
         <translation>Foul Loss</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="315"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="327"/>
         <source>千日手</source>
         <translation>Sennichite</translation>
     </message>
@@ -1433,27 +1436,27 @@ Cause: %2</translation>
         <translation type="vanished">Perpetual Check</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="318"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="330"/>
         <source>反則負け（連続王手）</source>
         <translation>Foul Loss (Perpetual Check)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="321"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="333"/>
         <source>入玉宣言</source>
         <translation>Entering King Declaration</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="324"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="336"/>
         <source>中断</source>
         <translation>Abort</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="368"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="380"/>
         <source>開始局面</source>
         <translation>Starting Position</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="399"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="411"/>
         <source>通信対局をキャンセルしました</source>
         <translation>Network game cancelled</translation>
     </message>
@@ -1461,22 +1464,22 @@ Cause: %2</translation>
 <context>
     <name>CsaLogPanel</name>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="88"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="89"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished">Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="96"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="97"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="117"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="118"/>
         <source>CSAサーバーへ送信</source>
         <translation type="unfinished">Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/csalogpanel.cpp" line="125"/>
+        <location filename="../../src/widgets/csalogpanel.cpp" line="127"/>
         <source>コマンドを入力してEnter</source>
         <translation type="unfinished">Enter command and press Enter</translation>
     </message>
@@ -1559,109 +1562,109 @@ Cause: %2</translation>
 <context>
     <name>CsaMoveProgressHandler</name>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="77"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="81"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>Opponent&apos;s move: %1 (Time: %2ms)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="81"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="85"/>
         <source>不正な形式の指し手を受信しました: %1</source>
         <translation>Received move with invalid format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="82"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="86"/>
         <source>サーバーからの指し手形式が不正です: %1</source>
         <translation>Invalid move format from server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="110"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="114"/>
         <source>不正な座標の指し手を受信しました: %1</source>
         <translation>Received move with invalid coordinates: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="111"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="115"/>
         <source>サーバーからの指し手の座標が不正です: %1</source>
         <translation>Invalid coordinates in server move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="144"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="387"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="148"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="386"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>Failed to apply move: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="145"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="388"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="149"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="387"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>Cannot apply server move to board: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="181"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="186"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>Move confirmed: %1 (Time: %2ms)</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="185"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="190"/>
         <source>不正な形式の指し手確認を受信しました: %1</source>
         <translation>Received move confirmation with invalid format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="186"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="191"/>
         <source>サーバーからの指し手確認形式が不正です: %1</source>
         <translation>Invalid move confirmation format from server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="211"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="216"/>
         <source>不正な座標の指し手確認を受信しました: %1</source>
         <translation>Received move confirmation with invalid coordinates: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="212"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="217"/>
         <source>サーバーからの指し手確認の座標が不正です: %1</source>
         <translation>Invalid coordinates in server move confirmation: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="229"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="236"/>
         <source>指し手確認の変換に失敗しました: %1</source>
         <translation>Failed to convert move confirmation: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="230"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="237"/>
         <source>サーバーからの指し手確認を変換できません: %1</source>
         <translation>Cannot convert move confirmation from server: %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="319"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="316"/>
         <source>エンジンが思考中...</source>
         <translation>Engine is thinking...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="325"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="324"/>
         <source>エンジンが投了しました</source>
         <translation>Engine resigned</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="332"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="331"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>Engine did not return a valid move</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="339"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="338"/>
         <source>盤面が取得できませんでした</source>
         <translation>Could not get board state</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="356"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="355"/>
         <source>駒打ちの駒種変換に失敗しました</source>
         <translation>Failed to convert drop piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="365"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="364"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>Failed to convert move piece type</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="374"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="373"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA format move: %1</translation>
     </message>
@@ -1675,7 +1678,7 @@ Cause: %2</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/csawaitingdialog.cpp" line="65"/>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="172"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="174"/>
         <source>対局相手を待機中...</source>
         <translation>Waiting for opponent...</translation>
     </message>
@@ -1684,92 +1687,92 @@ Cause: %2</translation>
         <translation type="vanished">Communication Log...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="102"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="104"/>
         <source>対局キャンセル</source>
         <translation>Cancel Game</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="116"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="118"/>
         <source>文字サイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="122"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="124"/>
         <source>文字サイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="166"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="168"/>
         <source>待機中...</source>
         <translation>Waiting...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="168"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="170"/>
         <source>サーバーに接続中...</source>
         <translation>Connecting to server...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="170"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="172"/>
         <source>ログイン中...</source>
         <translation>Logging in...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="174"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="176"/>
         <source>対局条件を確認中...</source>
         <translation>Confirming game conditions...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="176"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="178"/>
         <source>対局開始！</source>
         <translation>Game started!</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="178"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="180"/>
         <source>対局終了</source>
         <translation>Game Over</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="180"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="182"/>
         <source>エラーが発生しました</source>
         <translation>An error occurred</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="182"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="184"/>
         <source>不明な状態</source>
         <translation>Unknown state</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="191"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="194"/>
         <source>CSA通信ログ</source>
         <translation>CSA Log</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="239"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="245"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="248"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="254"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="206"/>
         <source>CSAサーバーへ送信</source>
         <translation>Send to CSA Server</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="93"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="95"/>
         <source>通信ログ</source>
         <translation>Communication Log</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="215"/>
         <source>コマンドを入力してEnter</source>
         <translation>Enter command and press Enter</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="257"/>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="263"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
@@ -5173,13 +5176,13 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="76"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="92"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
     <message>
         <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="77"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="93"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="98"/>
         <source>盤面データがありません。</source>
         <translation>No board data available.</translation>
     </message>

@@ -67,6 +67,9 @@ void CsaGameCoordinator::setupInitialPosition()
         startSfen = hiratePosition;
     }
     m_gameController->board()->setSfen(*startSfen);
+    m_gameController->setCurrentPlayer(m_gameController->board()->currentPlayer() == Turn::Black
+        ? ShogiGameController::Player1 : ShogiGameController::Player2);
+    if (m_gameMoves) m_gameMoves->clear();
 
     const QString boardSfen = m_gameController->board()->convertBoardToSfen();
     const QString standSfen = m_gameController->board()->convertStandToSfen();
@@ -143,17 +146,19 @@ void CsaGameCoordinator::setupClock()
     const int byoyomiWhiteSec = byoyomiWhiteUnits * timeUnitMs / 1000;
     const int incrementSec = m_gameSummary.increment * timeUnitMs / 1000;
 
-    m_clock->setPlayerTimes(totalTimeBlackSec, totalTimeWhiteSec,
-                            byoyomiBlackSec, byoyomiWhiteSec,
-                            incrementSec, incrementSec,
-                            true);
-
     m_initialBlackTimeMs = totalTimeBlackSec * 1000;
     m_initialWhiteTimeMs = totalTimeWhiteSec * 1000;
     m_blackRemainingMs = m_initialBlackTimeMs;
     m_whiteRemainingMs = m_initialWhiteTimeMs;
 
     const bool blackToMove = (m_gameSummary.toMove == QStringLiteral("+"));
+    if (blackToMove) m_blackRemainingMs += incrementSec * 1000;
+    else m_whiteRemainingMs += incrementSec * 1000;
+    m_clock->setPlayerTimes(m_blackRemainingMs / 1000, m_whiteRemainingMs / 1000,
+                            byoyomiBlackSec, byoyomiWhiteSec,
+                            incrementSec, incrementSec, true);
+    // 終局の裁定はサーバーを正とし、表示用時計の時間切れで対局を終了しない。
+    m_clock->setLoseOnTimeout(false);
     m_clock->setCurrentPlayer(blackToMove ? 1 : 2);
     m_clock->startClock();
 }
@@ -223,6 +228,5 @@ void CsaGameCoordinator::sendRawCommand(const QString& command)
         return;
     }
 
-    qCDebug(lcNetwork) << "Sending raw command:" << command;
     m_client->sendRawCommand(command);
 }

@@ -29,7 +29,8 @@ void GameRecordUpdateService::appendKifuLine(const QString& text, const QString&
     updateGameRecord(text, elapsedTime);
 }
 
-void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QString& elapsedTime)
+void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QString& elapsedTime,
+                                             const QString& recordedSfen)
 {
     const bool gameOverAppended =
         (m_deps.match && m_deps.match->gameOverState().isOver && m_deps.match->gameOverState().moveAppended);
@@ -58,7 +59,7 @@ void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QS
             if (m_deps.gameMoves && !m_deps.gameMoves->isEmpty()) {
                 move = m_deps.gameMoves->last();
             }
-            updater->appendMove(move, moveText, elapsedTime);
+            updater->appendMove(move, moveText, elapsedTime, recordedSfen);
         }
     }
     if (!moveText.isEmpty() && m_deps.markGameRecordDirty) m_deps.markGameRecordDirty();

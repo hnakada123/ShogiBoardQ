@@ -9,6 +9,7 @@
 #include <QString>
 #include <QPoint>
 #include <QList>
+#include <functional>
 
 #include "csagamecoordinator.h"
 #include "shogimove.h"
@@ -70,6 +71,8 @@ public:
         PlayMode* playMode = nullptr;
         // 親ウィジェット（ダイアログ表示用）
         QWidget* parentWidget = nullptr;
+        std::function<void(const QString&, const QString&, const QString&)> prepareRecord;
+        std::function<void(int)> syncPly;
     };
 
     /**
@@ -258,7 +261,7 @@ private:
      */
     QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack) const;
 
-    void appendInitialKifuLine(const QString& prettyMove);
+    void appendInitialKifuLine(const QString& prettyMove, const QString& sfen);
     QString buildNumberedKifuLine(const QString& prettyMove) const;
 
     // 依存オブジェクト
@@ -283,6 +286,8 @@ private:
     // 親ウィジェット（ダイアログ表示用）
     QWidget* m_parentWidget = nullptr;
     GameRecordUpdateService* m_recordService = nullptr;
+    std::function<void(const QString&, const QString&, const QString&)> m_prepareRecord;
+    std::function<void(int)> m_syncPly;
 
     // 内部状態
     int m_activePly = 0;

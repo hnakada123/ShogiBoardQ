@@ -49,7 +49,8 @@ public:
      * @param moveText 指し手の表示テキスト
      * @param elapsedTime 消費時間
      */
-    void appendMove(const ShogiMove& move, const QString& moveText, const QString& elapsedTime);
+    void appendMove(const ShogiMove& move, const QString& moveText, const QString& elapsedTime,
+                    const QString& recordedSfen = QString());
 
 private:
     Deps m_deps;

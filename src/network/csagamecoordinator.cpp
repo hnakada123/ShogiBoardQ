@@ -69,11 +69,13 @@ void CsaGameCoordinator::setDependencies(const Dependencies& deps)
 
 void CsaGameCoordinator::startGame(const StartOptions& options)
 {
-    if (m_gameState != GameState::Idle && m_gameState != GameState::Error) {
+    if (m_gameState != GameState::Idle && m_gameState != GameState::Error
+        && m_gameState != GameState::GameOver) {
         emit errorOccurred(tr("対局中は新しい対局を開始できません"));
         return;
     }
 
+    cleanup();
     m_options = options;
     m_playerType = options.playerType;
     m_moveCount = 0;
@@ -86,8 +88,6 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_initialWhiteTimeMs = 0;
     m_usiMoves.clear();
     m_initialPrettyMoves.clear();
-    if (m_sfenHistory) m_sfenHistory->clear();
-    if (m_gameMoves) m_gameMoves->clear();
 
     m_client->setCsaVersion(options.csaVersion);
 
@@ -98,9 +98,11 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
 
 void CsaGameCoordinator::stopGame()
 {
-    performResign();
-    cleanup();
+    if (m_isMyTurn) performResign();
     setGameState(GameState::Idle);
+    m_isMyTurn = false;
+    if (m_clock) m_clock->stopClock();
+    cleanup();
 }
 
 bool CsaGameCoordinator::isMyTurn() const
@@ -159,6 +161,10 @@ void CsaGameCoordinator::onResign()
 void CsaGameCoordinator::performResign()
 {
     if (m_gameState != GameState::InGame) return;
+    if (!m_isMyTurn) {
+        emit errorOccurred(tr("相手の手番です"));
+        return;
+    }
 
     if (m_clock) {
         m_clock->stopClock();
@@ -168,6 +174,26 @@ void CsaGameCoordinator::performResign()
         qCDebug(lcNetwork) << "Resign consumed time from clock:" << m_resignConsumedTimeMs << "ms";
     }
     m_client->resign();
+}
+
+void CsaGameCoordinator::requestChudan()
+{
+    if (m_gameState != GameState::InGame) return;
+    if (!m_isMyTurn) {
+        emit errorOccurred(tr("相手の手番です"));
+        return;
+    }
+    m_client->requestChudan();
+}
+
+void CsaGameCoordinator::declareWin()
+{
+    if (m_gameState != GameState::InGame) return;
+    if (!m_isMyTurn) {
+        emit errorOccurred(tr("相手の手番です"));
+        return;
+    }
+    m_client->declareWin();
 }
 
 void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState state)
@@ -180,6 +206,10 @@ void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState sta
         break;
 
     case CsaClient::ConnectionState::Disconnected:
+        if (m_gameState == GameState::InGame) {
+            onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
+            break;
+        }
         if (m_gameState != GameState::Idle && m_gameState != GameState::GameOver) {
             emit logMessage(tr("サーバーから切断されました"), true);
             setGameState(GameState::Error);
@@ -193,8 +223,12 @@ void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState sta
 
 void CsaGameCoordinator::onClientError(const QString& message)
 {
-    emit errorOccurred(message);
     emit logMessage(tr("エラー: %1").arg(message), true);
+    if (m_gameState == GameState::InGame) {
+        onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
+        return;
+    }
+    emit errorOccurred(message);
 }
 
 void CsaGameCoordinator::onLoginSucceeded()
@@ -217,7 +251,16 @@ void CsaGameCoordinator::onLoginSucceeded()
         params.gameController = m_gameController;
         params.commLog = m_usiCommLog;
         params.thinkingModel = m_engineThinking;
+        // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
+        m_initializingEngine = true;
         m_engineController->initialize(params);
+        m_initializingEngine = false;
+        if (!m_engineController->isInitialized()) {
+            setGameState(GameState::Error);
+            m_client->disconnectFromServer();
+            return;
+        }
+        if (m_gameState == GameState::WaitingForAgree) m_client->agree(m_gameSummary.gameId);
     }
 }
 
@@ -249,7 +292,7 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
     setGameState(GameState::WaitingForAgree);
 
     emit logMessage(tr("対局条件に同意します..."));
-    m_client->agree(summary.gameId);
+    if (!m_initializingEngine) m_client->agree(summary.gameId);
 }
 
 void CsaGameCoordinator::onGameStarted(const QString& gameId)
@@ -298,6 +341,8 @@ void CsaGameCoordinator::onMoveConfirmed(const QString& move, int consumedTimeMs
 
 void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClient::GameEndCause cause, int consumedTimeMs)
 {
+    if (m_gameState != GameState::InGame) return;
+    m_isMyTurn = false;
     qCDebug(lcNetwork).noquote() << "onClientGameEnded ENTER:"
                                 << "result=" << static_cast<int>(result)
                                 << "cause=" << static_cast<int>(cause)
@@ -342,7 +387,6 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
 
     emit logMessage(tr("対局終了: %1 (%2)").arg(resultStr, causeStr));
     setGameState(GameState::GameOver);
-    emit gameEnded(result, cause, actualConsumedTimeMs);
 
     // エンジンにgameoverとquitコマンドを送信
     if (m_engineController && m_engineController->isInitialized()) {
@@ -359,12 +403,12 @@ void CsaGameCoordinator::onClientGameEnded(CsaClient::GameResult result, CsaClie
             break;
         }
     }
+    emit gameEnded(result, cause, actualConsumedTimeMs);
 }
 
 void CsaGameCoordinator::onGameInterrupted()
 {
     emit logMessage(tr("対局が中断されました"));
-    setGameState(GameState::GameOver);
 }
 
 void CsaGameCoordinator::onRawMessageReceived(const QString& message)

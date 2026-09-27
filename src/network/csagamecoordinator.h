@@ -114,6 +114,10 @@ public:
     bool isHumanPlayer() const { return m_playerType == PlayerType::Human; }
     int blackTotalTimeMs() const { return m_blackTotalTimeMs; }
     int whiteTotalTimeMs() const { return m_whiteTotalTimeMs; }
+    int blackRemainingMs() const { return m_blackRemainingMs; }
+    int whiteRemainingMs() const { return m_whiteRemainingMs; }
+    void requestChudan();
+    void declareWin();
 
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
@@ -179,6 +183,7 @@ private:
 
     GameState m_gameState = GameState::Idle;
     PlayerType m_playerType = PlayerType::Human;
+    bool m_initializingEngine = false;
     StartOptions m_options;
 
     CsaClient::GameSummary m_gameSummary;
