@@ -3,6 +3,7 @@
 
 #include "csaclient.h"
 #include "logcategories.h"
+#include <QRegularExpression>
 
 namespace {
 constexpr int kMsPerSecond = 1000;
@@ -74,8 +75,9 @@ CsaClient::CsaClient(QObject* parent)
             this, &CsaClient::onSocketDisconnected);
     connect(m_socket, &QTcpSocket::errorOccurred,
             this, &CsaClient::onSocketError);
+    // USI待機の入れ子イベントループでも受信する。readyRead自体は再帰的に発火しない。
     connect(m_socket, &QTcpSocket::readyRead,
-            this, &CsaClient::onReadyRead);
+            this, &CsaClient::onReadyRead, Qt::QueuedConnection);
 
     m_connectionTimer->setSingleShot(true);
     connect(m_connectionTimer, &QTimer::timeout,
@@ -321,8 +323,13 @@ void CsaClient::sendMessage(const QString& message)
         qCWarning(lcNetwork) << "Failed to flush socket:" << m_socket->errorString();
     }
 
-    emit rawMessageSent(message);
-    qCDebug(lcNetwork).noquote() << "Sent:" << message;
+    QString displayMessage = message;
+    if (message.startsWith(QStringLiteral("LOGIN "))) {
+        static const QRegularExpression password(QStringLiteral("^(LOGIN\\s+\\S+\\s+)\\S+"));
+        displayMessage.replace(password, QStringLiteral("\\1*****"));
+    }
+    emit rawMessageSent(displayMessage);
+    qCDebug(lcNetwork).noquote() << "Sent:" << displayMessage;
 }
 
 void CsaClient::setConnectionState(ConnectionState state)

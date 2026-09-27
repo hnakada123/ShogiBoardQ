@@ -19,6 +19,7 @@ class UiStatePolicyManager;
 class KifuFileController;
 class KifuExportController;
 class GameRecordModel;
+class CsaGameCoordinator;
 
 /**
  * @brief 自動化 API が参照する MainWindow の状態とコントローラ（すべて非所有）
@@ -48,6 +49,7 @@ struct AutomationContext {
     std::function<KifuFileController*()> kifuFileController;       ///< ensure 済みを返す
     std::function<KifuExportController*()> kifuExportController;   ///< ensure + 依存更新済みを返す
     std::function<GameRecordModel*()> gameRecordModel;             ///< ensure 済みを返す
+    std::function<CsaGameCoordinator*()> csaGameCoordinator;
 
     // 上位層の操作
     std::function<void()> quitApplication;

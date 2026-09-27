@@ -45,7 +45,7 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 
 | ツール | 内容 |
 |---|---|
-| `get_app_state` | UI 状態・現在手数・棋譜ファイル・未保存・開いているダイアログ |
+| `get_app_state` | UI 状態・現在手数・棋譜ファイル・未保存・開いているダイアログ。CSAは接続状態・手番・サーバー確認済みの残時間も取得 |
 | `get_position` / `set_position` | 現在局面の取得と設定 |
 | `load_kifu` / `save_kifu` / `get_kifu` / `goto_ply` | 棋譜の読み込み・保存・取得・手数移動 |
 | `list_actions` / `trigger_action` | メニュー動作の一覧と実行（許可リスト方式） |
@@ -70,6 +70,14 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 同名の問題カードは `index`（0始まり）で選択できます。
 クリックは予約後に応答するため、着手の成否や探索完了は `get_widget_text` などで確認してください。
 非表示・無効な対象や、別のモーダルダイアログに遮られた対象は操作しません。
+
+CSA待機画面の「通信ログ」を開いた後、次の操作でコマンドを送信できます。
+`submit=true` は単一行のテキスト入力欄だけに対応し、通常の Enter キー入力として処理します。
+パスワード表示を無効にした入力欄は読み取り時に伏せ字となり、書き込みも拒否します。
+
+```text
+set_widget_value(target="csaWaitingLogWindow", widget="csaWaitingCommandInput", value="LOGOUT", submit=true)
+```
 
 検討タブは次のように操作できます。値変更・クリックは通常のUIシグナルを通り、
 処理を予約して応答します。開始・停止・エンジン切替の完了は `get_widget_text` で確認してください。
@@ -280,3 +288,6 @@ SHOGIBOARDQ_TEST_USI_ENGINE=$PWD/build/Hayanagi/hayanagi \
 SHOGIBOARDQ_TEST_MATE_ENGINE=$PWD/build/tests/mock_mate_engine \
 python3 -m pytest -q mcp/tests
 ```
+
+実際の shogi-server と ShogiHome を使うCSA対局テストの環境構築・実行方法は、
+[CSA検証記録](../docs/dev/csa-game-mcp-audit-2026-09-27.md) を参照してください。

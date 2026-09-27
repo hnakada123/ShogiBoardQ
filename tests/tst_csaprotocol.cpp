@@ -21,6 +21,34 @@ class Tst_CsaProtocol : public QObject
     Q_OBJECT
 
 private slots:
+    void csaClient_singleChudanEndsGame()
+    {
+        CsaClient client;
+        client.m_connectionState = CsaClient::ConnectionState::InGame;
+        client.m_isMyTurn = true;
+        QSignalSpy ended(&client, &CsaClient::gameEnded);
+        client.processLine(QStringLiteral("#CHUDAN"));
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(qvariant_cast<CsaClient::GameResult>(ended.at(0).at(0)), CsaClient::GameResult::Chudan);
+        QCOMPARE(qvariant_cast<CsaClient::GameEndCause>(ended.at(0).at(1)), CsaClient::GameEndCause::Chudan);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::GameOver);
+        QVERIFY(!client.isMyTurn());
+        client.processLine(QStringLiteral("#CHUDAN"));
+        QCOMPARE(ended.count(), 1);
+    }
+
+    void csaMoveConverter_promotedPieceMoveIsNotPromotion()
+    {
+        ShogiGameController gc;
+        QString start = QStringLiteral("lnsgkg1nl/1r5+B1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/7R1/LNSGKGSNL b B 5");
+        gc.newGame(start);
+        QStringList moves;
+        QStringList positions{start};
+        QVERIFY(CsaMoveConverter::applyMoveToBoard(QStringLiteral("+2231UM"), &gc, moves, &positions, 4));
+        QCOMPARE(moves, QStringList{QStringLiteral("2b3a")});
+        QVERIFY(positions.last().endsWith(QStringLiteral(" 6")));
+    }
+
     // ========================================
     // GameSummary: 時間単位変換
     // ========================================

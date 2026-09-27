@@ -36,6 +36,10 @@ void CsaMoveProgressHandler::updateTimeTracking(bool isBlackMove, int consumedTi
         *m_refs.whiteRemainingMs -= consumedTimeMs;
         if (*m_refs.whiteRemainingMs < 0) *m_refs.whiteRemainingMs = 0;
     }
+    // CSAの加算は次の手番の開始時に行う。
+    const int incrementMs = m_refs.gameSummary->increment * m_refs.gameSummary->timeUnitMs();
+    if (isBlackMove) *m_refs.whiteRemainingMs += incrementMs;
+    else *m_refs.blackRemainingMs += incrementMs;
 }
 
 void CsaMoveProgressHandler::syncClockAfterMove(bool startMyTurnClock)
@@ -160,6 +164,7 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
     m_hooks.moveHighlightRequested(from, to);
 
     QString usiMove = CsaMoveConverter::csaToUsi(move);
+    if (!isPromotion && usiMove.endsWith(QLatin1Char('+'))) usiMove.chop(1);
     QString prettyMove = CsaMoveConverter::csaToPretty(move, isPromotion, *m_refs.prevToFile, *m_refs.prevToRank, *m_refs.moveCount - 1);
 
     *m_refs.prevToFile = toFile;
@@ -224,6 +229,8 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
 
     // USI指し手リストとSFEN記録は更新する必要がある
     QString usiMove = CsaMoveConverter::csaToUsi(move);
+    if (*m_refs.gameController && !(*m_refs.gameController)->promote()
+        && usiMove.endsWith(QLatin1Char('+'))) usiMove.chop(1);
     if (usiMove.isEmpty()) {
         qCWarning(lcNetwork) << "Invalid confirmed CSA move payload:" << move;
         m_hooks.logMessage(tr("指し手確認の変換に失敗しました: %1").arg(move), true);
@@ -242,7 +249,7 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
                                        ? QStringLiteral("b") : QStringLiteral("w");
             QString fullSfen = QString("%1 %2 %3 %4")
                                    .arg(boardSfen, currentPlayerStr, standSfen)
-                                   .arg(*m_refs.moveCount + 1);
+                                   .arg(*m_refs.moveCount + 2);
             (*m_refs.sfenHistory)->append(fullSfen);
         }
     }
@@ -284,16 +291,6 @@ void CsaMoveProgressHandler::startEngineThinking()
 
     // 時間パラメータを計算
     const int timeUnitMs = m_refs.gameSummary->timeUnitMs();
-    const int totalTimeBlackMs =
-        (m_refs.gameSummary->hasIndividualTime
-             ? m_refs.gameSummary->totalTimeBlack
-             : m_refs.gameSummary->totalTime)
-        * timeUnitMs;
-    const int totalTimeWhiteMs =
-        (m_refs.gameSummary->hasIndividualTime
-             ? m_refs.gameSummary->totalTimeWhite
-             : m_refs.gameSummary->totalTime)
-        * timeUnitMs;
     const bool mySideIsBlack = *m_refs.isBlackSide;
     const int byoyomiMyMs =
         (m_refs.gameSummary->hasIndividualTime
@@ -301,8 +298,8 @@ void CsaMoveProgressHandler::startEngineThinking()
                               : m_refs.gameSummary->byoyomiWhite)
              : m_refs.gameSummary->byoyomi)
         * timeUnitMs;
-    int blackRemainMs = totalTimeBlackMs - *m_refs.blackTotalTimeMs;
-    int whiteRemainMs = totalTimeWhiteMs - *m_refs.whiteTotalTimeMs;
+    int blackRemainMs = *m_refs.blackRemainingMs;
+    int whiteRemainMs = *m_refs.whiteRemainingMs;
     if (blackRemainMs < 0) blackRemainMs = 0;
     if (whiteRemainMs < 0) whiteRemainMs = 0;
     const int incMs = m_refs.gameSummary->increment * timeUnitMs;
@@ -319,6 +316,8 @@ void CsaMoveProgressHandler::startEngineThinking()
     m_hooks.logMessage(tr("エンジンが思考中..."), false);
 
     auto result = (*m_refs.engineController)->think(params);
+    // USIの待機中には入れ子のイベントループで終局や切断が届くことがある。
+    if (*m_refs.gameState != GameState::InGame) return;
 
     // 投了チェック
     if (result.resign) {

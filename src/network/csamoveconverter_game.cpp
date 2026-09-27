@@ -152,7 +152,7 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
         return false;
     }
 
-    const QString usiMove = csaToUsi(csaMove);
+    QString usiMove = csaToUsi(csaMove);
     if (usiMove.isEmpty()) {
         return false;
     }
@@ -182,6 +182,10 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
         const Piece selectedPiece = board->pieceCharacter(fromFile, fromRank);
         if (selectedPiece == Piece::None) {
             return false;
+        }
+        if (usiMove.endsWith(QLatin1Char('+'))
+            && !QStringLiteral("PLNSBRplnsbr").contains(pieceToChar(selectedPiece))) {
+            usiMove.chop(1);
         }
         const Piece capturedPiece = board->pieceCharacter(toFile, toRank);
 
@@ -214,7 +218,7 @@ bool CsaMoveConverter::applyMoveToBoard(const QString& csaMove, ShogiGameControl
                                ? QStringLiteral("b") : QStringLiteral("w");
     QString fullSfen = QString("%1 %2 %3 %4")
                            .arg(boardSfen, currentPlayerStr, standSfen)
-                           .arg(moveCount + 1);
+                           .arg(moveCount + 2);
     if (sfenHistory) {
         sfenHistory->append(fullSfen);
     }

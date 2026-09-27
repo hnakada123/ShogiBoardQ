@@ -31,6 +31,8 @@
 #include "turnsyncbridge.h"
 #include "logcategories.h"
 
+#include <QDateTime>
+
 // ---------------------------------------------------------------------------
 // MatchCoordinator 配線
 // ---------------------------------------------------------------------------
@@ -262,6 +264,31 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.playMode = &m_mw.m_state.playMode;
     deps.parentWidget = &m_mw;
+
+    deps.prepareRecord = [this](const QString& startSfen, const QString& black, const QString& white) {
+        m_mw.m_state.startSfenStr = startSfen;
+        m_mw.m_state.currentSfenStr = startSfen;
+        m_mw.m_player.humanName1 = black;
+        m_mw.m_player.humanName2 = white;
+        m_mw.m_player.engineName1.clear();
+        m_mw.m_player.engineName2.clear();
+        m_mw.m_kifu.gameUsiMoves.clear();
+        if (m_mw.m_match) m_mw.m_match->clearGameOverState();
+        resetModels(startSfen);
+        m_foundation->ensurePlayerInfoWiring();
+        m_mw.m_playerInfoWiring->setGameInfoForMatchStart(
+            QDateTime::currentDateTime(), black, white, QString(), false, 0, 0, 0);
+        startLiveGameSessionIfNeeded();
+        m_kifu->ensureGameRecordUpdateService();
+    };
+    deps.syncPly = [this](int ply) {
+        m_mw.m_state.currentMoveIndex = ply;
+        m_mw.m_kifu.activePly = ply;
+        m_mw.m_kifu.currentSelectedPly = ply;
+        const auto* positions = m_mw.m_queryService->sfenRecord();
+        if (positions && ply >= 0 && ply < positions->size())
+            m_mw.m_state.currentSfenStr = positions->at(ply);
+    };
 
     m_mw.m_csaGameWiring = std::make_unique<CsaGameWiring>(deps);
 

@@ -439,13 +439,15 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Get app state",
         "Return the state of the running ShogiBoardQ window: UI state (idle, game, analysis, CSA game, tsume "
         "search, consideration, position edit), play mode, current ply and total plies, current kifu file, "
-        "unsaved changes, open dialogs and engine names. Starts ShogiBoardQ with --automation if "
+        "unsaved changes, open dialogs and engine names. During CSA sessions csa reports connection/game "
+        "state, side, player type and remaining/consumed milliseconds at the last server-confirmed turn. "
+        "Starts ShogiBoardQ with --automation if "
         "SHOGIBOARDQ_EXECUTABLE is set and no instance is running.",
         {"properties": {}},
         {"type": "object", "properties": {"ui_state": {"type": "string"}, "play_mode": {"type": "string"},
                                           "current_ply": {"type": "integer"}, "total_plies": {"type": "integer"},
                                           "kifu_file": {"type": "string"}, "dirty": {"type": "boolean"},
-                                          "dialogs": {"type": "array"}},
+                                          "dialogs": {"type": "array"}, "csa": {"type": "object"}},
          "required": ["ui_state"]},
         read_only=True,
     ),
@@ -664,10 +666,12 @@ PHASE2_TOOLS: list[types.Tool] = [
         "check box/radio button (boolean), tab widget (zero-based index), or editable text field (plain text). For example: "
         "considerationEngine, considerationMultiPV, considerationSeconds, considerationUnlimited, "
         "considerationArrows. Normal change signals run; the operation is queued so dialogs can open. "
+        "Use submit=true on a line edit to press Enter after entering text (for example csaCommandInput). "
         "Hidden, disabled, read-only, protected or modally blocked widgets and out-of-range values are refused.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1},
-                        "value": {"type": ["string", "integer", "boolean"]}}, "required": ["widget", "value"]},
+                        "value": {"type": ["string", "integer", "boolean"]},
+                        "submit": {"type": "boolean", "default": False}}, "required": ["widget", "value"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
     ),

@@ -150,6 +150,9 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
     dispatcher.registerMethod(QStringLiteral("widget.setValue"), [context](const QJsonObject& params) {
         QWidget* widget = targetWidget(context, params);
         const QJsonValue value = params.value(QStringLiteral("value"));
+        const bool submit = AutomationParams::optionalBool(params, QStringLiteral("submit"), false);
+        if (submit && !qobject_cast<QLineEdit*>(widget))
+            throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("submit requires a line edit"));
         if (value.isNull() || value.isUndefined()) {
             throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value is required and must not be null"));
         }
@@ -166,7 +169,14 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             const QString text = value.toString();
             if (text.size() > lineEdit->maxLength())
                 throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Text exceeds the field limit"));
-            apply = [lineEdit, text]() { lineEdit->setText(text); };
+            apply = [lineEdit, text, submit]() {
+                if (lineEdit->isReadOnly() || lineEdit->echoMode() != QLineEdit::Normal) return;
+                lineEdit->setText(text);
+                if (submit) {
+                    QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+                    QApplication::sendEvent(lineEdit, &enter);
+                }
+            };
         } else if (auto* plainEdit = qobject_cast<QPlainTextEdit*>(widget)) {
             if (plainEdit->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only"));
             if (!value.isString()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be text"));

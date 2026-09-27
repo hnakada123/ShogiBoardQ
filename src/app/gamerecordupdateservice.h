@@ -53,7 +53,8 @@ public:
      * @param moveText 指し手テキスト（空の場合はスキップ）
      * @param elapsedTime 消費時間
      */
-    void updateGameRecord(const QString& moveText, const QString& elapsedTime);
+    void updateGameRecord(const QString& moveText, const QString& elapsedTime,
+                          const QString& recordedSfen = QString());
 
     /**
      * @brief USI形式の指し手を記録し currentSfen を更新する

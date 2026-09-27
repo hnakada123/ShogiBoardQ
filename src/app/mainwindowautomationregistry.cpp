@@ -12,6 +12,7 @@
 #include "mainwindowfoundationregistry.h"
 #include "matchruntimequeryservice.h"
 #include "kifuexportcontroller.h"
+#include "csagamewiring.h"
 
 #include <QTextStream>
 
@@ -60,6 +61,9 @@ void MainWindowServiceRegistry::ensureAutomationServer(const QString& socketPath
     ctx.gameRecordModel = [this]() {
         m_kifu->ensureGameRecordModel();
         return m_mw.m_models.gameRecord;
+    };
+    ctx.csaGameCoordinator = [this]() {
+        return m_mw.m_csaGameWiring ? m_mw.m_csaGameWiring->coordinator() : nullptr;
     };
     ctx.quitApplication = [this]() {
         // 自動化からの終了では未保存確認ダイアログを出さない
