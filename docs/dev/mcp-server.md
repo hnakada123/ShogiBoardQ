@@ -95,6 +95,16 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `list_dialogs` | 開いているトップレベルウィンドウ／ダイアログ | なし | `dialog.list` |
 | `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `dialog` | `dialog.close` |
 | `get_widget_text` | ダイアログ内のラベル・入力欄・テーブル内容 | `dialog`、`widget`、`max_rows` | `widget.text` |
+| `widget.showDock` | `{widget}` | `{object_name, queued:true}`（ドック表示・前面化） | `-32602` 型違い、`-32002` 操作不可、`-32005` 対象なし |
+| `widget.click` | `{target?, widget}` | `{object_name, queued:true}`（ボタンクリック） | 同上 |
+| `widget.setValue` | `{target?, widget, value}` | `{object_name, queued:true}`（コンボ・整数スピン・チェック・タブ） | 同上、範囲外・型違いは `-32602` |
+| `widget.clickCell` | `{target?, widget, row, column}` | `{object_name, queued:true}`（テーブルの通常マウス入力） | 同上 |
+
+`widget.text` はコンボ／タブの `current_index`、フォントの `font_point_size`、盤面の `arrows`
+（`from_file`, `from_rank`, `to_file`, `to_rank`, `priority`, `drop_piece`）も返す。
+UI操作は非表示・無効・モーダルで遮られた対象を拒否し、予約実行時にも再確認する。
+`widget.showDock` は非表示のドックを開くため、親ウィンドウの操作可否を検査する。
+
 
 ### リソース
 

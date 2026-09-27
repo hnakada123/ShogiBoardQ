@@ -165,6 +165,7 @@ private:
     ShogiEngineThinkingModel* m_considerationModel = nullptr;  ///< 検討モデル（非所有）
     UsiCommLogModel* m_commLogModel = nullptr;  ///< 通信ログモデル（非所有）
     QString m_currentSfenStr;  ///< 現在局面のSFEN（手番判定に使用）
+    bool m_considerationActive = false; ///< 中止後は保持した読み筋から矢印を再生成しない
     bool m_showArrows = true;  ///< 矢印表示設定
     bool m_arrowSignalsConnected = false;  ///< 矢印更新シグナル接続済みフラグ
 };

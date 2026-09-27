@@ -35,6 +35,7 @@ public:
 
     // ──────────────── 矢印管理 ────────────────
     void setArrows(const QList<ShogiView::Arrow>& arrows);
+    const QList<ShogiView::Arrow>& arrows() const { return m_arrows; }
     void clearArrows();
     void clearDropPieceCache();
 

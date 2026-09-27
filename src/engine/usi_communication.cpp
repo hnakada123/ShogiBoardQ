@@ -101,12 +101,15 @@ void Usi::prepareAnalysisSession(const QString& positionStr, int multiPV)
     resetAnalysisStopTimer();
 
     // 思考開始時の局面SFENを保存（読み筋表示用）
-    const QString baseSfen = m_matchHandler->computeBaseSfenFromBoard();
+    const QString baseSfen = SfenPositionTracer::sfenFromPositionCommand(positionStr);
     if (!baseSfen.isEmpty()) {
         m_presenter->setBaseSfen(baseSfen);
+        m_matchHandler->setClonedBoardData(boardCharsFromSfen(baseSfen));
+    } else {
+        m_matchHandler->cloneCurrentBoardData();
+        m_presenter->setBaseSfen(m_matchHandler->computeBaseSfenFromBoard());
     }
-
-    m_matchHandler->cloneCurrentBoardData();
+    m_considerationMaxMultiPV = qBound(1, multiPV, 10);
     m_protocolHandler->sendPosition(positionStr);
 
     // MultiPV を設定（常に送信して、前回の設定をリセット）

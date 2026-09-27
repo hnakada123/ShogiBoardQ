@@ -106,6 +106,22 @@ class AppTools:
         result = await self.client.call("dialog.clickButton", args)
         return f"Queued button click: {result['text']}.", result
 
+    async def show_dock(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("widget.showDock", args)
+        return f"Queued dock display: {result['object_name']}.", result
+
+    async def click_widget(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("widget.click", args)
+        return f"Queued click: {result['object_name']}.", result
+
+    async def set_widget_value(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("widget.setValue", args)
+        return f"Queued value change: {result['object_name']}.", result
+
+    async def click_table_cell(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("widget.clickCell", args)
+        return f"Queued cell click: {result['object_name']}.", result
+
     async def capture_screenshot(self, args: dict[str, Any]) -> Result:
         output_dir = paths.resolve_output_dir(args.get("output_dir"))
         result = await self.client.call("screenshot.capture", {"target": args.get("target", "main"), "output_dir": str(output_dir)})

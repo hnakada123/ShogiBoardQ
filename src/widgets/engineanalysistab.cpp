@@ -132,6 +132,7 @@ QWidget* EngineAnalysisTab::buildThinkingPageContent(QWidget* parent)
     m_info1 = new EngineInfoWidget(page, true);
     m_info1->setWidgetIndex(0);
     m_view1 = new QTableView(page);
+    m_view1->setObjectName(QStringLiteral("thinkingView1"));
     m_info2 = new EngineInfoWidget(page, false);
     m_info2->setWidgetIndex(1);
     m_view2 = new QTableView(page);

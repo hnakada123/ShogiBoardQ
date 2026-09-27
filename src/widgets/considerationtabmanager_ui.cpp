@@ -50,9 +50,11 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 {
     // ツールバー（FlowLayout使用）
     m_considerationToolbar = new QWidget(parentWidget);
+    m_considerationToolbar->setObjectName(QStringLiteral("considerationToolbar"));
 
     // フォントサイズ減少ボタン（A-）
     m_btnConsiderationFontDecrease = new QToolButton(m_considerationToolbar);
+    m_btnConsiderationFontDecrease->setObjectName(QStringLiteral("considerationFontDecrease"));
     m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
     m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::fontButton());
@@ -61,6 +63,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
     // フォントサイズ増加ボタン（A+）
     m_btnConsiderationFontIncrease = new QToolButton(m_considerationToolbar);
+    m_btnConsiderationFontIncrease->setObjectName(QStringLiteral("considerationFontIncrease"));
     m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
     m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::fontButton());
@@ -69,6 +72,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
     // エンジン選択コンボボックス
     m_engineComboBox = new QComboBox(m_considerationToolbar);
+    m_engineComboBox->setObjectName(QStringLiteral("considerationEngine"));
     m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
     m_engineComboBox->setMinimumWidth(150);
     connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -76,6 +80,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
     // エンジン設定ボタン
     m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
+    m_btnEngineSettings->setObjectName(QStringLiteral("considerationEngineSettings"));
     m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
     m_btnEngineSettings->setStyleSheet(ButtonStyles::primaryAction());
     connect(m_btnEngineSettings, &QPushButton::clicked,
@@ -83,18 +88,21 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
     // 時間無制限ラジオボタン
     m_unlimitedTimeRadioButton = new QRadioButton(tr("時間無制限"), m_considerationToolbar);
+    m_unlimitedTimeRadioButton->setObjectName(QStringLiteral("considerationUnlimited"));
     m_unlimitedTimeRadioButton->setToolTip(tr("時間制限なしで検討します"));
     connect(m_unlimitedTimeRadioButton, &QRadioButton::toggled,
             this, &ConsiderationTabManager::onTimeSettingChanged);
 
     // 検討時間ラジオボタン
     m_considerationTimeRadioButton = new QRadioButton(tr("検討時間"), m_considerationToolbar);
+    m_considerationTimeRadioButton->setObjectName(QStringLiteral("considerationTimed"));
     m_considerationTimeRadioButton->setToolTip(tr("指定した秒数まで検討します"));
     connect(m_considerationTimeRadioButton, &QRadioButton::toggled,
             this, &ConsiderationTabManager::onTimeSettingChanged);
 
     // 検討時間スピンボックス
     m_byoyomiSecSpinBox = new QSpinBox(m_considerationToolbar);
+    m_byoyomiSecSpinBox->setObjectName(QStringLiteral("considerationSeconds"));
     m_byoyomiSecSpinBox->setRange(1, 3600);
     m_byoyomiSecSpinBox->setValue(20);
     m_byoyomiSecSpinBox->setToolTip(tr("検討時間（秒）を指定します"));
@@ -106,6 +114,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
     // 経過時間ラベル
     m_elapsedTimeLabel = new QLabel(tr("経過: 0:00"), m_considerationToolbar);
+    m_elapsedTimeLabel->setObjectName(QStringLiteral("considerationElapsed"));
     m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
     {
         QPalette palette = m_elapsedTimeLabel->palette();
@@ -121,6 +130,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     // 候補手の数
     m_multiPVLabel = new QLabel(tr("候補手の数"), m_considerationToolbar);
     m_multiPVComboBox = new QComboBox(m_considerationToolbar);
+    m_multiPVComboBox->setObjectName(QStringLiteral("considerationMultiPV"));
     for (int i = 1; i <= 10; ++i) {
         m_multiPVComboBox->addItem(tr("%1手").arg(i), i);
     }
@@ -129,6 +139,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
     // 矢印表示チェックボックス
     m_showArrowsCheckBox = new QCheckBox(tr("矢印表示"), m_considerationToolbar);
+    m_showArrowsCheckBox->setObjectName(QStringLiteral("considerationArrows"));
     m_showArrowsCheckBox->setToolTip(tr("最善手の矢印を盤面に表示します"));
     m_showArrowsCheckBox->setChecked(true);
     connect(m_showArrowsCheckBox, &QCheckBox::toggled,
@@ -136,6 +147,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
     // 検討開始/中止ボタン（初期状態は「検討開始」）
     m_btnStopConsideration = new QToolButton(m_considerationToolbar);
+    m_btnStopConsideration->setObjectName(QStringLiteral("considerationStartStop"));
     m_btnStopConsideration->setText(tr("検討開始"));
     m_btnStopConsideration->setToolTip(tr("検討を開始します"));
     m_btnStopConsideration->setStyleSheet(ButtonStyles::primaryAction());
@@ -173,11 +185,13 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
 {
     // EngineInfoWidget（検討タブ用）
     m_considerationInfo = new EngineInfoWidget(parentWidget, false, false);
+    m_considerationInfo->setObjectName(QStringLiteral("considerationInfo"));
     m_considerationInfo->setWidgetIndex(2);
     m_considerationInfo->setFontSize(m_considerationFontSize);
 
     // 読み筋テーブルビュー
     m_considerationView = new QTableView(parentWidget);
+    m_considerationView->setObjectName(QStringLiteral("considerationView"));
 
     // ヘッダ設定
     {

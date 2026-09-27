@@ -27,26 +27,8 @@ QAction* findAction(const AutomationContext& context, const QString& name)
     return context.mainWindow ? context.mainWindow->findChild<QAction*>(name) : nullptr;
 }
 
-QWidget* requireWindow(const AutomationContext& context, const QString& target)
-{
-    if (target.isEmpty() || target == QLatin1String("main")) return context.mainWindow;
-    QWidget* window = AutomationWidgets::findWindow(target);
-    if (!window) {
-        throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No open window matches \"%1\"").arg(target),
-                              QStringLiteral("Use dialog.list to see the open windows"));
-    }
-    return window;
-}
-
-void requireInteractive(QWidget* widget)
-{
-    QWidget* modal = QApplication::activeModalWidget();
-    if (!widget || !widget->isVisible() || !widget->isEnabled()
-        || (modal && modal != widget->window()) || QApplication::activePopupWidget()) {
-        throw AutomationError(AutomationErrorCode::InvalidState,
-                              QStringLiteral("The target is hidden, disabled or blocked by another dialog"));
-    }
-}
+using AutomationWidgets::requireWindow;
+using AutomationWidgets::requireInteractive;
 
 QPoint squareClickPosition(ShogiView* view, const QPoint& square)
 {

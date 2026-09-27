@@ -131,6 +131,7 @@ public:
         QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
     };
     void setArrows(const QList<Arrow>& arrows);  // 矢印をセット（複数可）
+    const QList<Arrow>& arrows() const;            // 現在の候補手矢印
     void clearArrows();                            // 矢印をクリア
 
     // ───────────────────────────── 操作/状態切替 ────────────────────────────
