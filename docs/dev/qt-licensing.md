@@ -1,4 +1,26 @@
-# Qt のライセンスと対応ソースの配布
+# Qt 文書とリリース添付の方針
+
+## Release に添付するファイル
+
+GitHub Release には各 OS の実行用パッケージだけを添付する。
+
+| OS | 公開する添付ファイル |
+|---|---|
+| Linux | `ShogiBoardQ-linux.zip`（AppImage・問題集・Hayanagi を含む） |
+| macOS | `ShogiBoardQ-<version>-macos.dmg` |
+| Windows | `ShogiBoardQ-<version>-windows-x86_64.zip` |
+
+Linux だけを公開する場合は ZIP 1個のみとする。Qt ソースアーカイブ、Qt のパッチ・
+ビルド手順アーカイブ、`QT-SOURCE.json`、`SOURCE_CODE.md`、`BUILD-INFO.txt`、
+アプリのソースアーカイブ、チェックサム、SBOM、CI ログを別添付しない。
+アップロードするファイル名を明示し、作業フォルダ全体をアップロードしない。
+GitHub が自動表示する Source code のリンクは手動添付ファイルとは別扱いとなる。
+
+Qt ソースの取得はライセンス文書の抽出に使用するビルド準備であり、Release への
+添付処理ではない。Qt の実行用ライブラリ・プラグインとライセンス文書はアプリ内に収録する。
+Linux ZIP の外部ファイルには `licenses/` を作成せず、AppImage 内の文書を利用する。
+
+## ライセンス文書
 
 ShogiBoardQ は GPL-3.0 で配布する。Qt Charts のオープンソース版は GPLv3、
 Qt Base / Multimedia などは LGPLv3 または GPL。Qt 内の第三者コードには個別の
@@ -30,20 +52,19 @@ https://download.qt.io/archive/qt/6.7/6.7.3/single/qt-everywhere-src-6.7.3.tar.x
 1. 完全な Qt ソースアーカイブを取得し、SHA-256 を検証する。
 2. アーカイブの `qtbase/.cmake.conf` でも版を確認する。
 3. ライセンス、著作権表示、`qt_attribution.json` とその参照文書を原文のまま抽出する。
-   使用しない Qt モジュールの文書も含む。Qt の全ソースも配布する。
+   使用しない Qt モジュールの文書も含む。ソースアーカイブは作業用に保持する。
 4. 全 OS の配布処理で Qt のビルド時バージョンと一致する文書を同梱する。
-5. アプリ本体と Hayanagi サブモジュールを含むソースアーカイブを作る。
-   GitHub が自動生成する Source code ZIP にはサブモジュールの中身がないため、代用しない。
-6. Qt ソース、アプリソース、ソース案内、チェックサムをバイナリと同じ Release に公開する。
-   ソースがない場合は公開ジョブを失敗させる。
+5. 製品パッケージを `release-package-*` artifact に保存する。
+6. 公開ジョブは製品パッケージだけを取得し、上表の3ファイル名を明示して公開する。
+   SHA256 と SBOM は CI の `release-verification` artifact に保存する。
 
-Qt ソースは約 900 MB の別ダウンロードであり、実行用 ZIP / DMG / AppImage に
-詰め込まない。CI の一時 artifact やキャッシュの保持期限には依存せず、GitHub
-Release の恒久的な添付ファイルにする。バイナリを公開している間は対応ソースも
-公開し続ける。Qt の一般的なトップページへのリンクだけで代用しない。
+Qt 文書の受け渡し用 `qt-license-documents` artifact と検証用 artifact は
+GitHub Release の添付対象にしない。取得元は同梱する `QT-SOURCE.json` の
+`source_url` と `provenance` に記録する。アプリと Hayanagi の取得方法は
+`SOURCE_CODE.md` で案内する。
 
-この方式は未改変の公式 Qt SDK を前提とする。Qt のビルドスクリプトはソースに含まれる。
-独自のパッチやビルド手順を使う場合は、後述の手動配布と同様にそれらも保存・提供する。
+CI は未改変の公式 Qt SDK を使用する。独自のパッチやビルド手順を使う場合は、
+後述の手動配布と同様に、使用した内容と取得元を記録する。
 
 ## 手動で配布物を作る場合
 
@@ -71,13 +92,14 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 \
 
 独自 Qt の場合は、`qtbase/.cmake.conf` を含む完全な対応ソースを tar 形式で用意し、
 `prepare` にそのファイルと取得元・パッチ・ビルド方法の説明を渡す。ライセンス文書が
-不足する場合は補ってから再実行する。配布先は `QT-SOURCE.json` の説明と
-`SOURCE_CODE.md` に正確に反映し、バイナリとともに対応ソースを公開する。
+不足する場合は補ってから再実行する。取得元は `QT-SOURCE.json` に正確に反映する。
+ここで準備した Qt ソースや文書を Release の別添付ファイルにはしない。
 
 `prepare` は既存の出力先を上書きしない。再作成時は新しい出力先を指定する。
 `stage` は文書のハッシュ、Qt の版、共有ライブラリ構成を検証する。失敗を無視して
-配布しない。通常の開発ビルドはネットワークや Qt ソースを必要としないが、その出力を
-配布用スクリプトを通さずに再配布する場合には配布者が対応文書とソースを用意する。
+配布しない。`stage` はリポジトリの最新のソース案内を使用するため、以前に準備した
+Qt 文書を使っても旧方針の「Release の別添付から取得する」という案内は引き継がない。
+通常の開発ビルドはネットワークや Qt ソースを必要としない。
 
 ## 改変版 Qt で実行する
 
@@ -96,8 +118,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 \
 
 この仕組みは Qt と Qt ソースに収録された第三者コードを扱う。配布ツールが OS から
 追加する Qt 外の共有ライブラリ、外付けプラグイン、MSVC ランタイム等については、
-配布元の条件と対応ソースの要否も別途確認する。Qt SQL / QSQLITE を将来追加しても、
-今回の完全な Qt ソースと文書抽出の対象に含まれる。SQLite の利用機能自体は未追加。
+配布元の条件と対応ソースの要否も別途確認する。Qt SQL / QSQLITE も文書抽出の対象に含む。
 
 参照:
 - https://www.qt.io/development/open-source-lgpl-obligations

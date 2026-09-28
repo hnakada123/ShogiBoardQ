@@ -66,6 +66,30 @@ class QtLicensesTest(unittest.TestCase):
             self.stage(version="6.8.0")
         self.assertFalse((self.root / "deploy").exists())
 
+    def test_cached_notices_use_current_source_guide(self):
+        self.prepare()
+        (self.output / "SOURCE_CODE.md").write_text("Download Qt sources from Release assets.\n")
+        manifest = json.loads((self.output / "QT-SOURCE.json").read_text())
+        manifest["release_sources"] = "https://github.com/hnakada123/ShogiBoardQ/releases"
+        qt.write_json(self.output / "QT-SOURCE.json", manifest)
+        inventory = json.loads((self.output / "FILES.json").read_text())
+        for name in ("SOURCE_CODE.md", "QT-SOURCE.json"):
+            inventory[name] = qt.digest(self.output / name)
+        qt.write_json(self.output / "FILES.json", inventory)
+
+        self.stage()
+        destination = self.root / "deploy/licenses"
+        self.assertEqual((destination / "SOURCE_CODE.md").read_bytes(),
+                         (qt.ROOT / "resources/licenses/SOURCE_CODE.md").read_bytes())
+        del manifest["release_sources"]
+        self.assertEqual(json.loads((destination / "QT-SOURCE.json").read_text()), manifest)
+        staged_inventory = json.loads((destination / "FILES.json").read_text())
+        for name, checksum in staged_inventory.items():
+            self.assertEqual(qt.digest(destination / name), checksum)
+            if name.startswith("qt/"):
+                self.assertEqual(checksum, inventory[name])
+        self.assertIn("release_sources", json.loads((self.output / "QT-SOURCE.json").read_text()))
+
     def test_changed_license_prevents_packaging(self):
         self.prepare()
         (self.output / "LGPL-3.0.txt").write_text("Incomplete")

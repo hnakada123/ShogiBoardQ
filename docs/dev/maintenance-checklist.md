@@ -20,7 +20,11 @@
 - リリースタグで `release.yml` を実行
 - 互換性テスト（設定・棋譜）を確認
 - 生成物の署名/公証結果を確認
-- SHA256 と SBOM が添付されていることを確認
+- Release 添付が各 OS の実行用パッケージのみであることを確認（Linux は ZIP のみ）
+- Qt ソースやソース案内、チェックサム、SBOM、CI ログが別添付されていないことを確認
+- SHA256 と SBOM は CI の `release-verification` artifact で確認
+- `ShogiBoardQ-linux.zip` に AppImage、外部の詰将棋6問題集、実行可能な Hayanagi が入っていることを確認
+- Linux ZIP の外部ファイルに `docs/`、`validation_*.json`、`licenses/` がないことを確認
 - リリースノートの互換性注意事項を確認
 
 ## 担当運用
