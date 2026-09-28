@@ -65,6 +65,7 @@ public:
      * @return お気に入りアクションのobjectNameリスト
      */
     QStringList favorites() const { return m_favoriteActionNames; }
+    QStringList availableActions() const { return m_actionMap.keys(); }
 
 signals:
     /**

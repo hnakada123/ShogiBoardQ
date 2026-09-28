@@ -944,6 +944,7 @@ set(SRC_COMMON
     src/common/applicationfonts.h
     src/common/tsumeevaluation.h
     src/common/boardconstants.h
+    src/common/branchtreeitemroles.h
     src/common/buttonstyles.h
     src/common/threadtypes.h
     src/common/dialogutils.cpp
@@ -971,6 +972,7 @@ set(SRC_AUTOMATION
     src/automation/automationcommands_ui.cpp
     src/automation/automationcommands_widget.cpp
     src/automation/automationcommands_dock.cpp
+    src/automation/automationcommands_navigation.cpp
     src/automation/automationcontext.h
     src/automation/automationdispatcher.cpp
     src/automation/automationdispatcher.h

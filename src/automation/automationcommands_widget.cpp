@@ -8,6 +8,12 @@
 #include <QAbstractButton>
 #include <QApplication>
 #include <QComboBox>
+#include <QCompleter>
+#include <QColorDialog>
+#include <QDoubleSpinBox>
+#include <QGroupBox>
+#include <QListView>
+#include <QSlider>
 #include <QClipboard>
 #include <QDockWidget>
 #include <QImage>
@@ -15,31 +21,19 @@
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QPersistentModelIndex>
+#include <QPointer>
 #include <QPlainTextEdit>
 #include <QSpinBox>
 #include <QTableView>
 #include <QTabWidget>
 #include <QTextEdit>
+#include <cmath>
 
 namespace {
 
 QWidget* targetWidget(const AutomationContext& context, const QJsonObject& params, bool requireVisible = true)
 {
-    const QString target = AutomationParams::optionalString(params, QStringLiteral("target"), QStringLiteral("main"));
-    QWidget* window = AutomationWidgets::requireWindow(context, target);
-    const QString name = AutomationParams::requireString(params, QStringLiteral("widget"));
-    QList<QWidget*> matches;
-    if (window) {
-        for (auto* widget : window->findChildren<QWidget*>(name)) {
-            if (widget->window() == window || (!requireVisible && qobject_cast<QDockWidget*>(widget)))
-                matches.append(widget);
-        }
-    }
-    if (matches.size() != 1) {
-        throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("Expected one widget named \"%1\"").arg(name));
-    }
-    if (requireVisible) AutomationWidgets::requireInteractive(matches.first());
-    return matches.first();
+    return AutomationWidgets::requireWidget(context, params, requireVisible);
 }
 
 QJsonObject queued(QWidget* widget)
@@ -157,11 +151,23 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value is required and must not be null"));
         }
         std::function<void()> apply;
-        if (auto* combo = qobject_cast<QComboBox*>(widget)) {
+        if (auto* picker = qobject_cast<QColorDialog*>(widget)) {
+            const QColor color(value.toString());
+            if (!value.isString() || !color.isValid())
+                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be a valid color"));
+            apply = [picker, color]() { picker->setCurrentColor(color); };
+        } else if (auto* combo = qobject_cast<QComboBox*>(widget)) {
             const int index = value.isString() ? combo->findText(value.toString(), Qt::MatchExactly)
                 : AutomationParams::requireInt(params, QStringLiteral("value"), 0, combo->count() - 1);
             if (index < 0) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("No matching combo item"));
-            apply = [combo, index]() { combo->setCurrentIndex(index); };
+            apply = [combo, index]() {
+                QPointer<QComboBox> guard(combo);
+                const QString text = combo->itemText(index);
+                combo->setCurrentIndex(index);
+                if (!guard) return;
+                Q_EMIT combo->activated(index);
+                if (guard) Q_EMIT combo->textActivated(text);
+            };
         } else if (auto* lineEdit = qobject_cast<QLineEdit*>(widget)) {
             if (lineEdit->isReadOnly() || lineEdit->echoMode() != QLineEdit::Normal)
                 throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Text field is read-only or protected"));
@@ -171,8 +177,13 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
                 throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Text exceeds the field limit"));
             apply = [lineEdit, text, submit]() {
                 if (lineEdit->isReadOnly() || lineEdit->echoMode() != QLineEdit::Normal) return;
-                lineEdit->setText(text);
-                if (submit) {
+                QPointer<QLineEdit> guard(lineEdit);
+                lineEdit->selectAll();
+                lineEdit->insert(text); // ユーザー編集と同じtextEditedも発行する（色入力等）。
+                // 全文を一度に指定する操作では、補完候補が次のボタン操作を遮らないよう閉じる。
+                if (guard && lineEdit->completer() && lineEdit->completer()->popup())
+                    lineEdit->completer()->popup()->hide();
+                if (submit && guard) {
                     QKeyEvent enter(QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
                     QApplication::sendEvent(lineEdit, &enter);
                 }
@@ -189,6 +200,29 @@ void AutomationCommands::registerWidgetCommands(AutomationDispatcher& dispatcher
             if (spin->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Spin box is read-only"));
             const int number = AutomationParams::requireInt(params, QStringLiteral("value"), spin->minimum(), spin->maximum());
             apply = [spin, number]() { spin->setValue(number); };
+        } else if (auto* doubleSpin = qobject_cast<QDoubleSpinBox*>(widget)) {
+            const double number = value.toDouble();
+            if (doubleSpin->isReadOnly()) throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Spin box is read-only"));
+            if (!value.isDouble() || !std::isfinite(number) || number < doubleSpin->minimum() || number > doubleSpin->maximum())
+                throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value is outside the spin box range"));
+            apply = [doubleSpin, number]() { doubleSpin->setValue(number); };
+        } else if (auto* slider = qobject_cast<QSlider*>(widget)) {
+            const int number = AutomationParams::requireInt(params, QStringLiteral("value"), slider->minimum(), slider->maximum());
+            apply = [slider, number]() { slider->setValue(number); };
+        } else if (auto* group = qobject_cast<QGroupBox*>(widget); group && group->isCheckable()) {
+            if (!value.isBool()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be boolean"));
+            apply = [group, value]() { group->setChecked(value.toBool()); };
+        } else if (auto* list = qobject_cast<QListView*>(widget); list && list->model()) {
+            const int row = AutomationParams::requireInt(params, QStringLiteral("value"), 0, list->model()->rowCount() - 1);
+            const QPersistentModelIndex index(list->model()->index(row, 0));
+            if (!(index.flags() & Qt::ItemIsEnabled) || !(index.flags() & Qt::ItemIsSelectable) || list->isRowHidden(row))
+                throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("List item is hidden or disabled"));
+            apply = [list, index]() {
+                if (!index.isValid() || !(index.flags() & Qt::ItemIsEnabled) || list->isRowHidden(index.row())) return;
+                list->setCurrentIndex(index);
+                list->selectionModel()->select(index, QItemSelectionModel::ClearAndSelect);
+                list->scrollTo(index);
+            };
         } else if (auto* button = qobject_cast<QAbstractButton*>(widget); button && button->isCheckable()) {
             if (!value.isBool()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("value must be boolean"));
             const bool checked = value.toBool();

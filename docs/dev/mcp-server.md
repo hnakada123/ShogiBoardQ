@@ -67,6 +67,8 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `analyze_position` | 登録エンジンで局面を解析するジョブを開始 | `engine`、`sfen`、`moves`、`seconds`(1-600)、`multipv`(1-10) | `analyze`（JSON Lines） |
 | `analysis_status` | 解析ジョブの状態と最新の読み筋 | `job_id`、`max_pv_moves` | （ジョブ管理） |
 | `analysis_result` | 解析ジョブの最終結果（実行中なら途中結果） | `job_id`、`max_pv_moves` | （ジョブ管理） |
+| `analyze_kifu` | 棋譜の本譜を全手または指定範囲で連続解析 | `engine`、`input_path` または `text`、`from_ply`、`to_ply`、`seconds_per_position`、`multipv` | `convert-kifu` + `analyze` |
+| `kifu_analysis_status` / `kifu_analysis_result` | 手数別の評価・読み筋・進捗・部分結果 | `job_id`、`offset`、`max_positions`、`max_pv_moves` | （ジョブ管理） |
 | `search_mate` | `go mate` 対応エンジンで詰みを探索するジョブを開始 | `engine`、`sfen`、`moves`、`seconds`(1-600) | `mate`（JSON Lines） |
 | `mate_status` | 詰み探索ジョブの状態と PV | `job_id` | （ジョブ管理） |
 | `generate_tsume` | 詰将棋局面生成ジョブを開始 | `engine`、`target_moves`、`max_positions`、`timeout_ms`、`max_attack_pieces`、`max_defend_pieces`、`attack_range`、`add_remaining_to_defender_hand`、`allow_final_move_alternatives` | `generate-tsume`（JSON Lines、stdin `stop`） |
@@ -96,8 +98,11 @@ shogiboardq-cli            ShogiBoardQ --automation
 | `capture_screenshot` | メインウィンドウまたは指定ダイアログを PNG 保存 | `target`、`output_dir` | `screenshot.capture` |
 | `list_dialogs` | 開いているトップレベルウィンドウ／ダイアログ | なし | `dialog.list` |
 | `close_dialog` | ダイアログを閉じる（`QDialog::reject`）。エラーのメッセージボックスの片付けにも使う | `dialog` | `dialog.close` |
-| `get_widget_text` | ダイアログ内のラベル・入力欄・テーブル内容 | `dialog`、`widget`、`max_rows` | `widget.text` |
-| `set_widget_value` | コンボ・スピン・チェック・タブ・編集可能なテキスト欄の変更。単一行入力は `submit=true` で Enter も送信 | `target`、`widget`、`value`、`submit?` | `widget.setValue` |
+| `get_widget_text` | ダイアログ内のラベル・入力欄・テーブル内容 | `dialog`、`widget`、`max_rows`、`max_widgets`、`include_children` | `widget.text` |
+| `set_widget_value` | コンボ・スピン・スライダー・チェック・グループ・リスト・タブ・色・テキスト欄の変更。単一行入力は `submit=true` で Enter も送信 | `target`、`widget`、`value`、`submit?` | `widget.setValue` |
+| `list_menu_actions` / `select_menu_action` | 定跡・局面集の履歴、定跡マージ、保存済みレイアウトの動的メニュー | `target?`、`widget`、選択時 `path` | `menu.items` / `menu.select` |
+| `menu_favorites` | お気に入りの取得、登録・解除・並べ替えと保存 | `actions?`（省略時は取得） | `menu.favorites` |
+| `click_branch_node` | 分岐ツリーのノードへ移動 | `target?`、`widget`、`id` | `branch.click` |
 | `get_clipboard` | クリップボードのテキストと画像の有無・サイズ | `max_chars` | `clipboard.get` |
 | `edit_table_cell` | 編集可能なテーブルセルに入力し、必要に応じて確定 | `target?`、`widget`、`row`、`column`、`text`、`commit?` | `widget.editCell` |
 | `widget.showDock` | `{widget}` | `{object_name, queued:true}`（ドック表示・前面化） | `-32602` 型違い、`-32002` 操作不可、`-32005` 対象なし |
@@ -129,6 +134,30 @@ UI操作は非表示・無効・モーダルで遮られた対象を拒否し、
 `actionResetDockLayout` と `actionSaveDockLayout` も許可リストに含む。
 `mcp/tests/test_docks.py` は独立した設定ディレクトリで実アプリを起動し、これらをstdio MCP経由で検証する。
 
+
+### 無名の部品と拡張操作
+
+`get_widget_text` / `list_dialogs` は `selector`（例: `@widget-42`）を返す。
+`widget` と `target` / `dialog` に指定でき、無名・同名の部品を区別する。
+セレクターは対象の寿命中だけ有効で、ダイアログ再生成・アプリ再起動後は再取得する。
+`get_widget_text(widget=..., include_children=true)` で対象内に絞って列挙できる。
+`max_widgets` は最大3000（既定300）、`max_rows` は表・リスト・分岐ノードの取得上限。
+`parent_selector`、`accessible_name`、`tooltip`、メニューボタンの `action_name` も返す。
+
+メニューは `list_menu_actions(widget=...)` で読み取り、0始まりの階層インデックス
+`select_menu_action(widget=..., path=[0, 1])` で選択する。
+`josekiRecentMenu`、`josekiMergeMenu`、`sfenCollectionRecentMenu`、`menuSavedLayouts` が公開済み。
+`menu_favorites(actions=[...])` はアクション名を表示順で指定し、空配列なら全解除する。
+分岐ツリーは `branchTreeView` の `nodes` を取得し、`click_branch_node` に `id` を渡す。
+
+`analyze_kifu` は本譜の開始局面（0手目）から終局面までを既定で解析する。
+`from_ply` / `to_ply` は両端を含む。分岐を含む入力では `has_branches` を返す。
+各局面へ元の開始局面と着手履歴を渡すため、千日手判定に必要な履歴を維持する。
+`lines` の評価は手番側、`score_cp_black` / `score_mate_black` は先手側に統一した値。
+`cancel_job` で中断でき、完了済み局面と停止時に返った部分結果を取得できる。
+GUIの棋譜解析結果や評価値グラフへの書き込みは行わない。
+
+新たに接続した機能と実機テストは [MCP連携の補完記録](mcp-coverage-implementation-2026-09-28.md) を参照。
 
 ### リソース
 
@@ -211,7 +240,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 
 エラーコード: JSON-RPC 標準（`-32700` parse、`-32600` invalid request、`-32601` method not found、`-32602` invalid params、`-32603` internal）に加え、`-32001` not allowed、`-32002` invalid state、`-32003` file error、`-32004` unsaved changes、`-32005` not found。`error.data.hint` に対処方法を入れる。
 
-`action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、言語切替、Web サイトを開く動作、ドックレイアウトの保存・初期化は除外する。
+`action.trigger` の許可リストは `src/automation/automationactionpolicy.cpp` で管理する。終了（`actionQuit`）、上書き保存（`actionSave`）、Web サイトを開く動作は除外する。言語切替とドックレイアウト保存・初期化は許可する。言語はアプリ再起動後に反映する。
 
 モーダルダイアログを開く動作（`action.trigger`）、ダイアログを閉じる `dialog.close`、`app.quit` は、応答を書いた後に `AutomationDeferredCall` で次のイベントループ反復に実行する。これにより `QDialog::exec()` の入れ子ループ中でも呼び出し側が応答を受け取れ、続けて `dialog.list` / `widget.text` / `screenshot.capture` で内容を確認できる。`kifu.load` / `position.set` は未保存の変更があるとき `discard_unsaved` 無しでは `-32004` を返し、確認ダイアログは出さない。
 
@@ -239,6 +268,7 @@ mcp/
     server.py               低レベル Server。tools/list・tools/call・resources
     tooldefs.py             ツール定義（name / description / inputSchema / outputSchema / annotations）
     handlers_cli.py         段階 1 ツール（CLI 呼び出し）
+    handlers_kifu_analysis.py 棋譜全体解析のジョブ開始・結果ページ取得
     handlers_app.py         段階 2 ツール（自動化 API 呼び出し）
     cli_backend.py          CLI の探索と実行（同期コマンド／ジョブ用サブプロセス）
     jobs.py                 ジョブ管理（状態、イベント、停止、期限切れ）
@@ -267,7 +297,7 @@ mcp/
 
 ## 6. ジョブの状態遷移
 
-ジョブは MCP サーバーのプロセス内に保持する（サーバー再起動で消える）。CLI のサブプロセス 1 つが 1 ジョブに対応する。
+ジョブは MCP サーバーのプロセス内に保持する（サーバー再起動で消える）。局面解析・詰み探索・生成は CLI のサブプロセス 1 つが 1 ジョブに対応する。棋譜全体解析は各局面を順次 CLI に渡し、局面間も含めて同時実行枠を 1 つ使用する。
 
 ```
             start tool            CLI が result/finished を出力
@@ -276,7 +306,7 @@ mcp/
                            │  └── CLI が error を出力 / 異常終了 ─▶ failed
                            │
                            └── stop / cancel ─▶ stopping ─▶ stopped
-                                 （stdin に stop、5 秒待って terminate、さらに 3 秒で kill）
+                                 （stdin に stop、6 秒待って terminate、さらに 3 秒で kill）
 
  finished / failed / stopped は 30 分後に一覧から消える。同時実行は 4 ジョブまで（超過は error）。
 ```
@@ -284,6 +314,7 @@ mcp/
 | ジョブ種別 | 状態ツールが返す内容 |
 |---|---|
 | analysis | `state, elapsed_ms, engine, depth, nodes, nps, lines:[{multipv, score_cp, score_mate, depth, pv[], pv_text}], bestmove, ponder` |
+| kifu_analysis | `state, completed, total_positions, current_ply, positions:[{ply,sfen,played_move,lines,bestmove,score_cp_black,score_mate_black,partial}], offset,next_offset,truncated,partial` |
 | mate | `state, elapsed_ms, engine, status, pv[], plies` |
 | tsume_generation | `state, elapsed_ms, generated, found, rejected, inconclusive, positions:[{sfen,pv}]` |
 
@@ -293,7 +324,7 @@ mcp/
 - ファイル引数は絶対パスのみ。`SHOGIBOARDQ_ALLOWED_DIRS`（既定: ホーム配下）の外は拒否する。上書きは `overwrite: true` が無ければ拒否する。検査は MCP サーバー側（`paths.py`）で行い、CLI/アプリ側は絶対パスの要求と既存ファイルの拒否だけを行う。
 - エンジンは `[Engines]` に登録済みの名前だけ。実行ファイルパスは受け付けない。
 - 自動化 API は既定で無効。`--automation` を付けたときだけ有効になり、起動時に標準出力へソケットパスを出す。
-- `trigger_action` は許可リスト方式。終了・上書き保存・言語切替など、ユーザーの意図なしに実行すべきでない動作は除外する。
+- `trigger_action` は許可リスト方式。終了・上書き保存・Web サイトを開く動作は除外する。動的メニューは作成元が明示的に公開したものだけ操作できる。
 - 出力サイズは既定で抑える（棋譜テキスト 30,000 文字、手順 200 手、読み筋 20 手、生成局面 20 件など）。
 
 ## 8. ビルド構成とソース配置
@@ -339,4 +370,4 @@ ShogiHome との相互接続は `SHOGIBOARDQ_TEST_SHOGIHOME_CDP` も指定する
   `state`、`is_my_turn`、`is_black`、`is_human`、先後の `remaining_ms`・`consumed_ms` を含む。
   残時間はサーバー確認済みの最新着手時点（開始時を含む）の値で、思考中の経過時間を差し引く表示時計とは異なる。
 - Windows の名前付きパイプ接続は実装済みだが未検証。
-- 拡張候補: 解析結果のグラフ画像、棋譜解析（全手）のジョブ化、`prompts/list` による定型手順、局面集ファイルの操作。
+- 拡張候補: 解析結果のグラフ画像専用API、`prompts/list` による定型手順、局面集の一括操作専用API。GUIの画像保存・局面集読込と履歴選択にはUI操作ツールを利用できる。

@@ -5,14 +5,19 @@
 #include <QSignalSpy>
 #include <QAction>
 #include <QTabWidget>
+#include <QTemporaryDir>
+#include <QSettings>
 
 #include "menuwindow.h"
+#include "settingscommon.h"
 
 class TestMenuWindow : public QObject
 {
     Q_OBJECT
 
 private:
+    QTemporaryDir m_config;
+
     /// テスト用アクションを作成
     QList<QAction*> makeTestActions(QObject* parent)
     {
@@ -41,6 +46,13 @@ private:
     }
 
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        QCoreApplication::setApplicationName(QStringLiteral("MenuWindowTest"));
+    }
+    void init() { SettingsCommon::openSettings().clear(); }
     void setFavorites_roundTrip();
     void setFavorites_empty();
     void setFavorites_unknownAction_skipped();
@@ -60,9 +72,13 @@ void TestMenuWindow::setFavorites_roundTrip()
     w.setCategories(makeTestCategories(actions));
 
     QStringList favs = {QStringLiteral("actionNew"), QStringLiteral("actionSave")};
+    QSignalSpy spy(&w, &MenuWindow::favoritesChanged);
     w.setFavorites(favs);
 
     QCOMPARE(w.favorites(), favs);
+    QCOMPARE(spy.count(), 1);
+    MenuWindow reopened;
+    QCOMPARE(reopened.favorites(), favs);
 }
 
 void TestMenuWindow::setFavorites_empty()

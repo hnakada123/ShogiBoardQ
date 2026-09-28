@@ -35,6 +35,7 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `validate_sfen` | SFEN の妥当性、手番、持駒、王手、合法手数 |
 | `list_engines` | 登録済み USI エンジン |
 | `analyze_position` / `analysis_status` / `analysis_result` | エンジン解析（ジョブ方式、MultiPV 対応） |
+| `analyze_kifu` / `kifu_analysis_status` / `kifu_analysis_result` | 棋譜の本譜を連続解析。範囲指定・進捗・手数別評価と読み筋・結果のページ取得・取消に対応 |
 | `search_mate` / `mate_status` | `go mate` による詰み探索（ジョブ方式） |
 | `generate_tsume` / `tsume_generation_status` / `stop_tsume_generation` | 詰将棋局面の自動生成（ジョブ方式） |
 | `verify_tsume` | 余詰検査（unique / multiple / nomate / wrong_length / unknown） |
@@ -52,7 +53,10 @@ ShogiBoardQ の機能を [Model Context Protocol (MCP)](https://modelcontextprot
 | `click_board_square` | 盤面・駒台のクリック。回転・盤サイズに追従し、通常のマウス入力として処理 |
 | `show_dock` | 検討・思考などのドックを表示し、タブ化されている場合も前面へ移動 |
 | `list_docks` / `configure_dock` | 全ドックの状態確認、切り離し、四方向への再配置、タブ化、表示・非表示、タイトルバーのドラッグ |
-| `click_widget` / `set_widget_value` / `click_table_cell` | 名前付きボタン、コンボ・秒数・チェック項目・テキスト入力欄、棋譜・読み筋テーブルの操作 |
+| `click_widget` / `set_widget_value` / `click_table_cell` | 名前またはselectorで部品を指定。ボタン、コンボ・数値・スライダー・チェック・リスト・色・テキスト、棋譜・読み筋表の操作 |
+| `list_menu_actions` / `select_menu_action` | 定跡・局面集の履歴、マージ、保存済みレイアウトのメニューを取得・実行 |
+| `menu_favorites` | お気に入りの取得・登録・解除・並べ替えと保存 |
+| `click_branch_node` | 分岐ツリーのノードへ移動 |
 | `edit_table_cell` | 対局情報などの編集可能なセルを通常の入力欄から編集。`commit=false` で入力中の状態も検証可能 |
 | `get_clipboard` | コピーされたテキスト・画像の有無・画像サイズを取得（テキストの上限指定可） |
 | `click_dialog_button` | ダイアログのボタン操作。問題選択、成り選択、再生・復帰など |
@@ -125,6 +129,34 @@ trigger_action(name="actionResetDockLayout")
 `gameInfoAddRow`、`gameInfoFontIncrease`、`gameInfoFontDecrease` は `click_widget` で操作できます。
 浮動ウィンドウでは `target="GameInfoDock"` を指定します。
 `get_widget_text(widget="blackNameLabel")` / `whiteNameLabel` は盤面に表示される対局者名の全文を返します。
+
+## 無名の部品・メニュー・棋譜全体解析
+
+`get_widget_text` と `list_dialogs` が返す `selector` を `widget` / `target` / `dialog` に指定すると、
+名前のないボタンや入力欄も操作できます。同名の部品が複数ある場合も selector を使ってください。
+ダイアログ再生成・再起動後には取り直します。`include_children=true` で指定部品内を列挙できます。
+
+```text
+get_widget_text(widget="josekiTable")
+list_menu_actions(widget="josekiMergeMenu")
+select_menu_action(widget="josekiMergeMenu", path=[0])  # 0始まりの階層インデックス
+menu_favorites(actions=["actionStartGame", "actionAnalyzeKifu"])
+get_widget_text(widget="branchTreeView")
+click_branch_node(widget="branchTreeView", id=取得したノードID)
+analyze_kifu(engine="登録したエンジン名", input_path="/absolute/path/game.kif", seconds_per_position=1)
+kifu_analysis_status(job_id="返されたID", offset=0, max_positions=100)
+kifu_analysis_result(job_id="返されたID", offset=100, max_positions=100)
+```
+
+全体解析は本譜の開始局面から終局面まで（`from_ply` / `to_ply` で両端を含む範囲を指定可能）。
+`lines` は手番側の評価、`score_cp_black` / `score_mate_black` は先手側の評価です。
+`cancel_job` で中断しても、それまでの結果を取得できます。GUIへの結果反映は行いません。
+
+言語は `actionLanguageSystem` / `actionLanguageJapanese` / `actionLanguageEnglish` で変更し、再起動後に反映されます。
+名前付きレイアウトは `actionSaveDockLayout` の入力欄を selector で指定して保存し、
+`menuSavedLayouts` から復元・削除・起動時指定を操作します。
+定跡・コメント・しおり・駒音・配色・エンジン選択などの対応表は
+[実装と検証の記録](../docs/dev/mcp-coverage-implementation-2026-09-28.md) を参照してください。
 
 ## クライアント設定例
 
@@ -270,7 +302,7 @@ Windows では `python3` を `python` に、パスを `C:\\Users\\...\\ShogiBoar
 - 自動化 API は `ShogiBoardQ --automation` を付けたときだけ有効で、ソケットは所有者のみアクセスできます。ネットワークには公開しません。
 - ファイル引数は絶対パスのみ受け付け、`SHOGIBOARDQ_ALLOWED_DIRS`（既定はホーム）の外は拒否します。既存ファイルは `overwrite: true` が無ければ上書きしません。
 - エンジンは ShogiBoardQ に登録済みの名前だけを受け付け、任意の実行ファイルパスは受け付けません。
-- `trigger_action` は許可リスト方式で、終了・上書き保存・言語切替などは実行しません。
+- `trigger_action` は許可リスト方式で、終了・上書き保存・Webサイトを開く動作は実行しません。言語切替と名前付きレイアウト管理には対応しています。
 
 ## テスト
 

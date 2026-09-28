@@ -53,6 +53,7 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
     commentLayout->addWidget(m_commentToolbar);
 
     m_comment = new QTextEdit(commentContainer);
+    m_comment->setObjectName(QStringLiteral("kifuCommentEdit"));
     m_comment->setReadOnly(false);
     m_comment->setAcceptRichText(true);
     m_comment->setPlaceholderText(tr("コメントを表示・編集"));
@@ -366,6 +367,7 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     m_editingLabel->setVisible(false);
 
     m_btnUpdateComment = new QPushButton(tr("コメント更新"), m_commentToolbar);
+    m_btnUpdateComment->setObjectName(QStringLiteral("kifuCommentApply"));
     m_btnUpdateComment->setToolTip(tr("編集したコメントを棋譜に反映する"));
     m_btnUpdateComment->setFixedHeight(24);
     m_btnUpdateComment->setStyleSheet(ButtonStyles::primaryAction());

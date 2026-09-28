@@ -24,6 +24,7 @@ log = logging.getLogger(__name__)
 CALL_TIMEOUT = 30.0
 LAUNCH_TIMEOUT = 30.0
 EXIT_TIMEOUT = 3.0
+MAX_RESPONSE_BYTES = 8 * 1024 * 1024  # Match the automation protocol's message budget.
 
 
 class AppError(ToolError):
@@ -72,12 +73,12 @@ class AppClient:
     async def _open(self, socket_path: str) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         if sys.platform.startswith("win"):
             loop = asyncio.get_running_loop()
-            reader = asyncio.StreamReader()
+            reader = asyncio.StreamReader(limit=MAX_RESPONSE_BYTES)
             protocol = asyncio.StreamReaderProtocol(reader)
             transport, _ = await loop.create_pipe_connection(lambda: protocol, socket_path)  # type: ignore[attr-defined]
             writer = asyncio.StreamWriter(transport, protocol, reader, loop)
             return reader, writer
-        return await asyncio.open_unix_connection(socket_path)
+        return await asyncio.open_unix_connection(socket_path, limit=MAX_RESPONSE_BYTES)
 
     async def connect(self) -> None:
         if self.is_connected():
@@ -215,7 +216,12 @@ class AppClient:
         self._writer.write((json.dumps(message, ensure_ascii=False) + "\n").encode("utf-8"))
         await self._writer.drain()
         while True:
-            line = await self._reader.readline()
+            try:
+                line = await self._reader.readline()
+            except ValueError as exc:
+                await self.close()
+                raise ToolError("app_response_too_large", "Application response exceeds 8 MiB. "
+                                "Reduce max_widgets, max_rows or max_chars and try again.") from exc
             if not line:
                 raise ConnectionError("connection closed by ShogiBoardQ")
             try:

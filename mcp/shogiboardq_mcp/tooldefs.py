@@ -540,7 +540,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "Trigger a ShogiBoardQ menu action by its QAction object name (see list_actions), e.g. "
         "actionAnalyzeKifu, actionTsumeShogiSearch, actionTsumeshogiGenerator, actionSfenCollectionViewer, "
         "actionCopySFEN, actionFlipBoard. Only allow-listed actions run; quitting, overwriting the current file "
-        "and language changes are refused. Actions that open dialogs return immediately; inspect them with "
+        "are refused. Language changes take effect after restarting the app. Actions that open dialogs return immediately; inspect them with "
         "list_dialogs and get_widget_text.",
         {"properties": {"name": {"type": "string", "pattern": "^action[A-Za-z0-9_]+$"}}, "required": ["name"]},
         {"type": "object", "properties": {"name": {"type": "string"}, "triggered": {"type": "boolean"}}, "required": ["name", "triggered"]},
@@ -567,7 +567,7 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "click_dialog_button",
         "Click dialog button",
-        "Click a visible, enabled button in an open dialog. Select by widget object name OR exact text "
+        "Click a visible, enabled button in an open dialog. Select by widget object name/selector OR exact text "
         "(e.g. 成る in a promotion dialog). index selects the zero-based occurrence when several buttons "
         "match, such as tsumeProblemCard in the problem collection. The click is queued so that modal "
         "dialogs return immediately. A dialog blocked by another modal window cannot be clicked.",
@@ -628,7 +628,7 @@ PHASE2_TOOLS: list[types.Tool] = [
     ),
     _tool(
         "click_widget", "Click widget button",
-        "Click a named button in the main window or a dialog, including considerationStartStop, "
+        "Click a button by object name or selector from get_widget_text in the main window or a dialog, including considerationStartStop, "
         "considerationFontIncrease and considerationEngineSettings. Uses normal button signals. "
         "The click is queued; inspect the result with get_widget_text. Hidden, disabled and modally "
         "blocked widgets are refused.",
@@ -662,22 +662,23 @@ PHASE2_TOOLS: list[types.Tool] = [
     ),
     _tool(
         "set_widget_value", "Set widget value",
-        "Change a named combo box (exact item text or zero-based index), integer spin box (number), "
-        "check box/radio button (boolean), tab widget (zero-based index), or editable text field (plain text). For example: "
+        "Change a widget by object name or selector from get_widget_text: combo box (item text or index), "
+        "spin box/slider (number), check box/radio/checkable group (boolean), list/tab (index), "
+        "color dialog (color string), or editable text field (plain text). For example: "
         "considerationEngine, considerationMultiPV, considerationSeconds, considerationUnlimited, "
         "considerationArrows. Normal change signals run; the operation is queued so dialogs can open. "
         "Use submit=true on a line edit to press Enter after entering text (for example csaCommandInput). "
         "Hidden, disabled, read-only, protected or modally blocked widgets and out-of-range values are refused.",
         {"properties": {"target": {"type": "string", "default": "main"},
                         "widget": {"type": "string", "minLength": 1},
-                        "value": {"type": ["string", "integer", "boolean"]},
+                        "value": {"type": ["string", "number", "boolean"]},
                         "submit": {"type": "boolean", "default": False}}, "required": ["widget", "value"]},
         {"type": "object", "properties": {"queued": {"type": "boolean"}, "object_name": {"type": "string"}},
          "required": ["queued", "object_name"]},
     ),
     _tool(
         "click_table_cell", "Click table cell",
-        "Click a zero-based row and column in a named table through normal mouse events. "
+        "Click a zero-based row and column in a table identified by object name or selector through normal mouse events. "
         "Use considerationView column 4 to open the principal variation board. Scrolls the cell "
         "into view; hidden, disabled and modally blocked cells are refused. Returns when queued.",
         {"properties": {"target": {"type": "string", "default": "main"},
@@ -691,7 +692,7 @@ PHASE2_TOOLS: list[types.Tool] = [
         "capture_screenshot",
         "Capture screenshot",
         "Save a PNG screenshot of the ShogiBoardQ main window (target='main') or of an open dialog identified "
-        "by its object name or window title, and return the file path.",
+        "by its object name, selector or window title, and return the file path.",
         {
             "properties": {
                 "target": {"type": "string", "default": "main", "description": "'main', a dialog object name, or a window title substring."},
@@ -705,7 +706,7 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "list_dialogs",
         "List dialogs",
-        "List the top-level windows and dialogs currently open in ShogiBoardQ (object name, class, title, "
+        "List the top-level windows and dialogs currently open in ShogiBoardQ (object name, selector, class, title, "
         "visibility, modality).",
         {"properties": {}},
         {"type": "object", "properties": {"windows": {"type": "array", "items": {"type": "object"}}}, "required": ["windows"]},
@@ -714,7 +715,7 @@ PHASE2_TOOLS: list[types.Tool] = [
     _tool(
         "close_dialog",
         "Close dialog",
-        "Close an open dialog (reject it) identified by its object name or window title substring. Use it to "
+        "Close an open dialog (reject it) identified by its object name, selector or window title substring. Use it to "
         "dismiss dialogs opened by trigger_action or error message boxes.",
         {"properties": {"dialog": {"type": "string", "minLength": 1}}, "required": ["dialog"]},
         {"type": "object", "properties": {"closed": {"type": "boolean"}, "object_name": {"type": "string"}, "title": {"type": "string"}},
@@ -725,19 +726,102 @@ PHASE2_TOOLS: list[types.Tool] = [
         "get_widget_text",
         "Get widget text",
         "Read labels, text fields, combo boxes, check boxes, lists, tables and boards inside an open dialog (or the main "
-        "window when dialog is omitted). Restrict to one widget with its object name. Intended for verifying "
+        "window when dialog is omitted). Restrict to one widget by object name or selector. Intended for verifying "
         "what the GUI shows. Widgets include geometry relative to the target window; boards include board_sfen "
         "(board pieces only), flipped, square_size and candidate arrows. Combo boxes and tabs include current_index.",
         {
             "properties": {
                 "dialog": {"type": "string", "description": "Dialog object name or title substring; omit for the main window."},
-                "widget": {"type": "string", "description": "Object name of a single widget to read."},
+                "widget": {"type": "string", "description": "Object name or selector of a widget to read. Returned selectors also identify unnamed widgets in click_widget and set_widget_value; reacquire after reopening a dialog."},
                 "max_rows": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 50, "description": "Row limit for tables and lists."},
+                "max_widgets": {"type": "integer", "minimum": 1, "maximum": 3000, "default": 300},
+                "include_children": {"type": "boolean", "default": False,
+                                     "description": "Also describe descendants of the selected widget, e.g. a dock panel."},
             }
         },
         {"type": "object", "properties": {"widgets": {"type": "array", "items": {"type": "object"}}}, "required": ["widgets"]},
         read_only=True,
     ),
+]
+
+PHASE2_TOOLS += [
+    _tool(
+        "list_menu_actions", "List menu items",
+        "Read a menu (or a menu button) by object name or widget selector. Returns nested items with zero-based "
+        "indices for select_menu_action. Includes dynamic saved layouts, joseki merge/history and collection history.",
+        {"properties": {"target": {"type": "string", "default": "main"},
+                        "widget": {"type": "string", "minLength": 1}}, "required": ["widget"]},
+        {"type": "object", "properties": {"items": {"type": "array", "items": {"type": "object"}}}, "required": ["items"]},
+        read_only=True,
+    ),
+    _tool(
+        "select_menu_action", "Select menu item",
+        "Trigger an allowed menu item using a path of indices from list_menu_actions. "
+        "For example [0,0] selects the first action of the first saved layout. Disabled or blocked actions are refused.",
+        {"properties": {"target": {"type": "string", "default": "main"},
+                        "widget": {"type": "string", "minLength": 1},
+                        "path": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 1, "maxItems": 10}},
+         "required": ["widget", "path"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "text": {"type": "string"}}, "required": ["queued", "text"]},
+    ),
+    _tool(
+        "menu_favorites", "Get or replace menu favorites",
+        "Read favorites and available action names. With actions, replace the ordered list (add/remove/reorder) "
+        "and persist it. Empty actions clears favorites. Unknown names and duplicates are rejected.",
+        {"properties": {"actions": {"type": "array", "items": {"type": "string", "minLength": 1}, "maxItems": 200, "uniqueItems": True}}},
+        {"type": "object", "properties": {"actions": {"type": "array", "items": {"type": "string"}},
+                                          "available_actions": {"type": "array", "items": {"type": "string"}}},
+         "required": ["actions", "available_actions"]},
+    ),
+    _tool(
+        "click_branch_node", "Select branch tree node",
+        "Click a branch tree node identified by id from get_widget_text(widget='branchTreeView'). "
+        "Scrolls to the node and follows the normal GUI navigation path. Refresh node ids after reloading a record.",
+        {"properties": {"target": {"type": "string", "default": "main"},
+                        "widget": {"type": "string", "minLength": 1, "default": "branchTreeView"},
+                        "id": {"type": "integer", "minimum": 1}}, "required": ["widget", "id"]},
+        {"type": "object", "properties": {"queued": {"type": "boolean"}, "id": {"type": "integer"}}, "required": ["queued", "id"]},
+    ),
+]
+
+KIFU_ANALYSIS_OUTPUT = {
+    "type": "object",
+    "properties": {**JOB_STATUS_COMMON, "completed": {"type": "integer"},
+                   "total_positions": {"type": "integer"}, "positions": {"type": "array", "items": {"type": "object"}},
+                   "partial": {"type": "boolean"}, "truncated": {"type": "boolean"},
+                   "offset": {"type": "integer"}, "next_offset": {"type": "integer"}},
+    "required": ["job_id", "state", "completed", "positions", "partial", "truncated", "next_offset"],
+}
+
+PHASE1_TOOLS += [
+    _tool(
+        "analyze_kifu", "Analyze whole game record",
+        "Analyze every main-line position in a record as one cancellable job without changing the GUI. "
+        "Accepts a file or text. The range is inclusive: ply 0 is the initial position, ply N is after N moves. "
+        "Each position retains the move history for repetition. Poll kifu_analysis_status/result; cancel_job stops it. "
+        "Variations are not analyzed; has_branches and warnings are returned.",
+        {"properties": {"engine": ENGINE, "input_path": {"type": "string", "minLength": 1, "description": ABS_PATH_DESC},
+                        "text": {"type": "string", "minLength": 1, "maxLength": 2_000_000},
+                        "input_format": {"type": "string", "enum": ["auto", *KIFU_FORMATS], "default": "auto"},
+                        "from_ply": {"type": "integer", "minimum": 0, "maximum": 10000, "default": 0},
+                        "to_ply": {"type": "integer", "minimum": 0, "maximum": 10000},
+                        "seconds_per_position": {"type": "integer", "minimum": 1, "maximum": 600, "default": 1},
+                        "multipv": {"type": "integer", "minimum": 1, "maximum": 10, "default": 1}},
+         "required": ["engine"], "oneOf": [{"required": ["input_path"], "not": {"required": ["text"]}},
+                                            {"required": ["text"], "not": {"required": ["input_path"]}}]},
+        JOB_START_OUTPUT,
+    ),
+    *[_tool(
+        name, title,
+        "Get whole-record analysis progress and a page of results. positions includes ply, SFEN, played_move, "
+        "bestmove and MultiPV lines with side-to-move scores, plus score_cp_black/score_mate_black for Black's perspective. "
+        "Results completed before cancellation or failure remain available. Use next_offset to read more results.",
+        {"properties": {"job_id": JOB_ID, "offset": {"type": "integer", "minimum": 0, "default": 0},
+                        "max_positions": {"type": "integer", "minimum": 1, "maximum": 1000, "default": 100},
+                        "max_pv_moves": MAX_PV_MOVES}, "required": ["job_id"]},
+        KIFU_ANALYSIS_OUTPUT, read_only=True,
+    ) for name, title in (("kifu_analysis_status", "Get whole-record analysis progress"),
+                          ("kifu_analysis_result", "Get whole-record analysis results"))],
 ]
 
 ALL_TOOLS: list[types.Tool] = PHASE1_TOOLS + PHASE2_TOOLS

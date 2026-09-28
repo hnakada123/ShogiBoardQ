@@ -67,6 +67,9 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionPieceSoundSettings"),
         // 設定・情報
         QStringLiteral("actionEngineSettings"),
+        QStringLiteral("actionLanguageSystem"),
+        QStringLiteral("actionLanguageJapanese"),
+        QStringLiteral("actionLanguageEnglish"),
         QStringLiteral("actionVersionInfo"),
         QStringLiteral("actionUsage"),
     };

@@ -13,6 +13,7 @@
 #include <QSet>
 
 #include "kifdisplayitem.h"
+#include "branchtreeitemroles.h"
 
 class QGraphicsView;
 class QGraphicsScene;
@@ -57,10 +58,10 @@ public:
     static constexpr int BR_ROLE_STARTPLY = 0x202;
     static constexpr int BR_ROLE_BUCKET   = 0x203;
 
-    static constexpr int ROLE_ROW            = 0x501;
-    static constexpr int ROLE_PLY            = 0x502;
+    static constexpr int ROLE_ROW            = BranchTreeItemRoles::Row;
+    static constexpr int ROLE_PLY            = BranchTreeItemRoles::Ply;
     static constexpr int ROLE_ORIGINAL_BRUSH = 0x503;
-    static constexpr int ROLE_NODE_ID        = 0x504;
+    static constexpr int ROLE_NODE_ID        = BranchTreeItemRoles::NodeId;
 
     // --- QGraphicsView 受け取り ---
     void setView(QGraphicsView* view);

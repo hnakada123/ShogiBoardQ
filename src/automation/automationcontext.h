@@ -52,6 +52,9 @@ struct AutomationContext {
     std::function<CsaGameCoordinator*()> csaGameCoordinator;
 
     // 上位層の操作
+    std::function<QStringList()> menuFavorites;
+    std::function<QStringList()> availableMenuActions;
+    std::function<void(const QStringList&)> setMenuFavorites;
     std::function<void()> quitApplication;
 };
 

@@ -118,6 +118,7 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
     }
 
     m_view = new QTableView(m_container);
+    m_view->setObjectName(QStringLiteral("analysisResultsTable"));
 
     // ヘッダー表示用に空のモデルを作成（起動時からヘッダーを表示するため）
     auto* emptyModel = new KifuAnalysisListModel(m_view);

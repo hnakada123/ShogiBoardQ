@@ -105,6 +105,7 @@ void EngineAnalysisTab::buildUi()
     // --- 分岐ツリー ---
     {
         auto* branchView = new QGraphicsView(m_tab);
+        branchView->setObjectName(QStringLiteral("branchTreeView"));
         branchView->setRenderHint(QPainter::Antialiasing, true);
         branchView->setRenderHint(QPainter::TextAntialiasing, true);
         branchView->setRenderHint(QPainter::SmoothPixmapTransform, true);
@@ -217,6 +218,7 @@ QWidget* EngineAnalysisTab::createCommentPage(QWidget* parent)
 QWidget* EngineAnalysisTab::createBranchTreePage(QWidget* parent)
 {
     auto* branchView = new QGraphicsView(parent);
+    branchView->setObjectName(QStringLiteral("branchTreeView"));
     branchView->setRenderHint(QPainter::Antialiasing, true);
     branchView->setRenderHint(QPainter::TextAntialiasing, true);
     branchView->setRenderHint(QPainter::SmoothPixmapTransform, true);
