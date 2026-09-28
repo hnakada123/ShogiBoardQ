@@ -2,8 +2,10 @@
 
 ShogiBoardQ を Windows でビルドし、ZIP ファイルとして GitHub で公開する手順。
 
-配布前に [Qt 文書とリリース添付の方針](qt-licensing.md) に従って
-パッケージ内のライセンス文書を準備してください。配布スクリプトには Python 3 も必要です。
+Windows ZIP にはアプリ、実行用 DLL、翻訳、詰将棋問題集6ファイル、Hayanagi 実行ファイル、
+README とルートの LICENSE を収録します。`Hayanagi/source/` と外部の `licenses/` は
+今後の Windows リリースでも収録しません。アプリ内蔵のライセンス表示はそのまま利用します。
+詳細は [Qt 文書とリリース添付の方針](qt-licensing.md) を参照してください。
 Release の添付は実行用 ZIP のみとし、Qt ソースや関連文書を別添付しません。
 
 ---
@@ -191,6 +193,32 @@ mkdir deploy
 copy build\ShogiBoardQ.exe deploy\
 copy build\*.qm deploy\
 ```
+
+詰将棋問題集と Hayanagi も、次の構成で収録します。
+
+```text
+deploy/
+├── data/tsumeshogi/
+│   ├── tsume_3ply_*.txt
+│   ├── tsume_5ply_*.txt
+│   ├── tsume_7ply_*.txt
+│   ├── tsume_9ply_*.txt
+│   ├── tsume_11ply_*.txt
+│   ├── tsume_13ply_*.txt
+│   └── README.md
+├── Hayanagi/
+│   ├── hayanagi.exe
+│   ├── README.md
+│   └── MSVCランタイムDLL
+├── README.md
+└── LICENSE
+```
+
+各手数の問題集を1ファイルずつ、合計6ファイル収録してください。
+Hayanagi の DLL は実行ファイルと同じディレクトリにも配置します。
+ソースツリーやビルドフォルダを丸ごとコピーせず、`Hayanagi/source/` と `licenses/` が
+ZIP に含まれていないことを公開前に確認してください。通常ビルドが生成する
+`build/licenses/` も Windows ZIP にはコピーしません。
 
 ### 4.2 windeployqt で Qt DLL をデプロイ
 
