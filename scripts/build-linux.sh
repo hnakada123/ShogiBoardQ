@@ -2,14 +2,14 @@
 #
 # Linux ビルドスクリプト for ShogiBoardQ
 #
-# Release ビルド → linuxdeploy → AppImage 作成を一括実行する。
+# Release ビルド → linuxdeploy → AppImage / ZIP 作成を一括実行する。
 # 詳細: docs/dev/linux-build-and-release.md
 #
 # Usage:
 #   ./scripts/build-linux.sh [OPTIONS]
 #
 # Options:
-#   --skip-appimage   AppImage 作成をスキップ（AppDir のみ）
+#   --skip-appimage   配布ファイル作成をスキップ（ビルドのみ）
 #   --clean           build ディレクトリを削除してからビルド
 #   --help            このヘルプを表示
 #
@@ -29,6 +29,9 @@ APP_NAME="ShogiBoardQ"
 BUILD_DIR="build"
 APPDIR="${BUILD_DIR}/AppDir"
 APPIMAGE_NAME="${APP_NAME}-linux-x86_64.AppImage"
+PACKAGE_DIR="${BUILD_DIR}/${APP_NAME}-linux"
+ZIP_NAME="${APP_NAME}-linux.zip"
+HAYANAGI_EXE="${BUILD_DIR}/Hayanagi/hayanagi"
 ICON_PATH="resources/icons/linux/shogiboardq.png"
 DESKTOP_PATH="resources/platform/shogiboardq.desktop"
 
@@ -59,10 +62,10 @@ usage() {
     cat <<'EOF'
 Usage: ./scripts/build-linux.sh [OPTIONS]
 
-Linux 用の Release ビルド〜AppImage 作成を一括実行するスクリプト。
+Linux 用の Release ビルド〜AppImage / ZIP 作成を一括実行するスクリプト。
 
 Options:
-  --skip-appimage   AppImage 作成をスキップ（ビルドのみ）
+  --skip-appimage   配布ファイル作成をスキップ（ビルドのみ）
   --clean           build ディレクトリを削除してからビルド
   --help            このヘルプを表示
 
@@ -194,6 +197,16 @@ if [[ "$OPT_SKIP_APPIMAGE" = true ]]; then
     info "出力: $EXE_PATH"
     exit 0
 fi
+
+# 外部 USI エンジンと問題集も毎回同梱する。欠落した配布物は作らない。
+[[ -x "$HAYANAGI_EXE" ]] || die "Hayanagi が見つかりません: $HAYANAGI_EXE"
+TSUME_FILES=()
+for plies in 3 5 7 9 11 13; do
+    for collection in data/tsumeshogi/tsume_"${plies}"ply_*.txt; do
+        [[ -f "$collection" ]] || die "${plies}手詰の問題集が見つかりません。"
+        TSUME_FILES+=("$collection")
+    done
+done
 
 # ──────────────────────────────────────────────
 # Step 7: linuxdeploy のダウンロード
@@ -333,8 +346,19 @@ fi
 
 # .qm ファイルを実行ファイルと同じ場所にデプロイするため、
 # まず AppDir/usr/bin/ に手動コピーしてから linuxdeploy を実行
-mkdir -p "${APPDIR}/usr/bin"
+# Qt プラグインは遅延コピー前に翻訳リンクを作るため、配置先も先に作る。
+mkdir -p "${APPDIR}/usr/bin" "${APPDIR}/usr/translations"
 cp "$EXE_PATH" "${APPDIR}/usr/bin/"
+install -m755 "$HAYANAGI_EXE" "${APPDIR}/usr/bin/hayanagi"
+
+# 問題集はリソース内の監査記録と一致するよう、元ファイルをそのままコピーする。
+BUNDLED_SHARE="${APPDIR}/usr/share/${APP_NAME}"
+mkdir -p "$BUNDLED_SHARE/data/tsumeshogi" "$BUNDLED_SHARE/Hayanagi" "$BUNDLED_SHARE/docs/dev"
+cp "${TSUME_FILES[@]}" data/tsumeshogi/README.md data/tsumeshogi/validation_*.json \
+    "$BUNDLED_SHARE/data/tsumeshogi/"
+cp Hayanagi/README.md "$BUNDLED_SHARE/Hayanagi/"
+cp docs/dev/linux-build-and-release.md docs/dev/qt-licensing.md \
+    docs/dev/tsume-play.md docs/dev/tsumeshogi-collection-generation.md "$BUNDLED_SHARE/docs/dev/"
 
 # .qm ファイルをコピー
 for qm in "$BUILD_DIR"/*.qm; do
@@ -348,6 +372,7 @@ info "AppDir を構築中..."
 "$LINUXDEPLOY" \
     --appdir "$APPDIR" \
     --executable "${APPDIR}/usr/bin/${APP_NAME}" \
+    --executable "${APPDIR}/usr/bin/hayanagi" \
     --desktop-file "$DESKTOP_PATH" \
     --icon-file "$ICON_DEPLOY" \
     --plugin qt
@@ -424,6 +449,30 @@ fi
 APPIMAGE_SIZE=$(du -h "$APPIMAGE_NAME" | cut -f1)
 info "AppImage サイズ: $APPIMAGE_SIZE"
 
+# 問題集と通常対局用エンジンを、ZIP 展開後すぐファイル選択できるよう外にも配置する。
+info "AppImage・問題集・Hayanagi を含む ZIP を作成中..."
+rm -rf "$PACKAGE_DIR"
+mkdir -p "$PACKAGE_DIR/data/tsumeshogi" "$PACKAGE_DIR/Hayanagi"
+cp "$APPIMAGE_NAME" "$PACKAGE_DIR/"
+cp "${TSUME_FILES[@]}" data/tsumeshogi/README.md "$PACKAGE_DIR/data/tsumeshogi/"
+cp Hayanagi/README.md "$PACKAGE_DIR/Hayanagi/"
+install -m755 "$HAYANAGI_EXE" "$PACKAGE_DIR/Hayanagi/hayanagi"
+strip --strip-unneeded "$PACKAGE_DIR/Hayanagi/hayanagi"
+cp resources/platform/README-linux.md "$PACKAGE_DIR/README.md"
+cp LICENSE "$PACKAGE_DIR/"
+# docs、検証 JSON、licenses は ZIP の外部ファイルに含めない。
+python3 - "$PACKAGE_DIR" "$ZIP_NAME" <<'PYTHON_EOF'
+from pathlib import Path
+import sys
+import zipfile
+
+package = Path(sys.argv[1])
+with zipfile.ZipFile(sys.argv[2], "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    for path in sorted(package.rglob("*")):
+        if path.is_file():
+            archive.write(path, path.relative_to(package.parent))
+PYTHON_EOF
+
 # ──────────────────────────────────────────────
 # 完了
 # ──────────────────────────────────────────────
@@ -431,3 +480,4 @@ info "AppImage サイズ: $APPIMAGE_SIZE"
 info "ビルド完了!"
 info "実行ファイル: $EXE_PATH"
 info "AppImage:     $APPIMAGE_NAME"
+info "ZIP:          $ZIP_NAME"

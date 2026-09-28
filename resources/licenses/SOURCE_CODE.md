@@ -1,19 +1,24 @@
 # ソースコードの入手 / Obtaining source code
 
-公式配布版のソースコードは、バイナリと同じ GitHub Release の Assets から
-無償でダウンロードできます。Qt のソースは大きいため別の添付ファイルです。
+ShogiBoardQ のソースとビルドスクリプトは次のリポジトリから取得できます。
+Hayanagi はサブモジュールとして記録した版を取得してください。
+Release の添付ファイルは実行用パッケージのみです。
 
-Source archives are available at no charge in the Assets of the same GitHub
-Release as the binaries. Qt sources are a separate download because of their size.
+Obtain ShogiBoardQ sources and build scripts from the repository below, including
+the recorded Hayanagi submodule revision. Release attachments contain only runnable packages.
 
-https://github.com/hnakada123/ShogiBoardQ/releases
+https://github.com/hnakada123/ShogiBoardQ
 
-- `ShogiBoardQ-<tag>-source.tar.gz`: アプリ本体、Hayanagi、ビルドスクリプト。
-  Application sources, Hayanagi, and build scripts.
-- `qt-everywhere-src-<version>.tar.xz`: その配布版で使用する Qt のソース。
-  The Qt sources corresponding to that release.
-- `SHA256SUMS.txt`: ダウンロードしたファイルの検証用ハッシュ。
-  Checksums for the downloads.
+    git clone --recurse-submodules https://github.com/hnakada123/ShogiBoardQ.git
+    cd ShogiBoardQ
+    git checkout <release-tag-or-commit>
+    git submodule update --init --recursive
+
+GitHub が自動生成する Source code ZIP には Hayanagi の中身がないため、再ビルドには
+上記の方法でサブモジュールも取得してください。
+
+GitHub's automatically generated source ZIP omits Hayanagi's contents; initialize
+the submodule as shown above when rebuilding.
 
 配布物の `licenses/QT-SOURCE.json` に Qt の正確なバージョン、ソースファイル名、
 SHA-256、取得元とビルド元の説明を記録します。`licenses/BUILD.json` はアプリの
@@ -23,12 +28,22 @@ SHA-256、取得元とビルド元の説明を記録します。`licenses/BUILD.
 SHA-256, origin and source provenance. `licenses/BUILD.json` records the Qt
 version used to build the application.
 
+Qt ソースは `QT-SOURCE.json` の `source_url` に記録された取得元を参照してください。
+OS パッケージや改変版を使用した場合は `provenance` の説明にあるパッチ・ビルド手順も
+確認してください。Linux ではこれらの文書は AppImage 内の
+`usr/share/licenses/ShogiBoardQ/` にあり、ZIP の外部に `licenses/` は配置しません。
+
+For Qt sources, use the `source_url` recorded in `QT-SOURCE.json`. For downstream
+builds, also consult `provenance` for the supplier's patches and build instructions.
+On Linux these documents reside inside the AppImage at `usr/share/licenses/ShogiBoardQ/`;
+the outer ZIP has no `licenses/` directory.
+
 ## 再ビルド / Rebuilding
 
-ソースアーカイブを展開し、対応する Qt と CMake、C++17 コンパイラを用意します。
+ソースを取得し、対応する Qt と CMake、C++17 コンパイラを用意します。
 Qt のビルド方法は Qt ソース内の README とプラットフォーム別説明にあります。
 
-Extract the sources and install/build the corresponding Qt, CMake and a C++17
+Obtain the sources and install/build the corresponding Qt, CMake and a C++17
 compiler. Qt's own README and platform instructions explain how to build Qt.
 
     cmake -B build -S . -DCMAKE_PREFIX_PATH=/path/to/your/Qt

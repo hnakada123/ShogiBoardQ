@@ -60,7 +60,7 @@
 <ol>
     <li><a href="#setup">Requirements and setup</a></li>
     <li><a href="#build">Get the source and build</a></li>
-    <li><a href="#qt-sources">Prepare Qt notices and sources</a></li>
+    <li><a href="#qt-sources">Prepare Qt notices</a></li>
     <li><a href="#package">Create a ZIP package</a></li>
     <li><a href="#signing">Code signing</a></li>
     <li><a href="#release">Publish on GitHub Releases</a></li>
@@ -96,13 +96,13 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure</code></pre>
 </section>
 <section id="qt-sources" class="level2">
-<h2>Prepare Qt notices and corresponding sources</h2>
+<h2>Prepare bundled Qt notices</h2>
 <p>A normal local CMake build does not download Qt sources. The distribution scripts additionally require prepared license documents for the exact Qt build they deploy. They include those documents and source information in the package and stop if validation fails.</p>
 <p>For the unmodified official Qt 6.7.3 SDK, run the following from the repository root. These commands use the version and SHA-256 recorded in the release workflow. For a different Qt build, use its matching full source archive, checksum, and provenance instead.</p>
 <pre><code>python scripts/qt_licenses.py fetch --version 6.7.3 --sha256 a3f1d257cbb14c6536585ffccf7c203ce7017418e1a0c2ed7c316c20c729c801 --output build/qt-sources
 python scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-sources/qt-everywhere-src-6.7.3.tar.xz --sha256 a3f1d257cbb14c6536585ffccf7c203ce7017418e1a0c2ed7c316c20c729c801 --source-url https://download.qt.io/archive/qt/6.7/6.7.3/single/qt-everywhere-src-6.7.3.tar.xz --provenance "Official Qt 6.7.3 SDK, unmodified; build scripts in source archive" --output build/qt-licenses</code></pre>
-<p>The source archive is a large separate download, roughly 900 MB. The preparation command does not overwrite an existing output directory. A clean build deletes <code>build</code>; if using the script's clean option, prepare the sources and notices outside that directory and set <code>SHOGIBOARDQ_QT_LICENSE_DIR</code> to the notices directory.</p>
-<p>Publish the matching application source, including Hayanagi, and Qt sources alongside the binaries. GitHub's automatically generated source ZIP does not include submodule contents. For patched Qt builds, preserve the patches and build instructions too. The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt distribution notes (Japanese)</a> describe the packaging policy and source manifests.</p>
+<p>Download the Qt source archive locally to extract license notices; it is build input and is not a release attachment. The preparation command does not overwrite an existing output directory. A clean build deletes <code>build</code>; if using the script's clean option, prepare the sources and notices outside that directory and set <code>SHOGIBOARDQ_QT_LICENSE_DIR</code> to the notices directory.</p>
+<p>Attach only runnable product packages to a GitHub Release. Keep license texts and source acquisition information inside the application package. Record the Qt source URL and, for patched builds, the supplier’s patches and build instructions in <code>QT-SOURCE.json</code>. Do not attach Qt source archives or source/build metadata separately. The repository's <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/docs/dev/qt-licensing.md">Qt distribution notes (Japanese)</a> describe the packaging policy and source manifests.</p>
 </section>
 <section id="package" class="level2">
 <h2>Create a ZIP package</h2>
@@ -119,9 +119,9 @@ python scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-sources
 </section>
 <section id="release" class="level2">
 <h2>Publish on GitHub Releases</h2>
-<p>The repository includes a <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> that builds all three platforms, prepares corresponding sources and license documents, and uploads binaries, source archives, checksums, and an SBOM to the same GitHub Release.</p>
+<p>The repository includes a <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/.github/workflows/release.yml">release workflow</a> that builds all three platforms, prepares bundled license documents, and uploads only the Linux ZIP, macOS DMG, and Windows ZIP. Checksums and the SBOM remain in the CI artifact <code>release-verification</code>; Qt sources, source guides, build metadata, and CI logs are not release attachments.</p>
 <p>For maintainers with push access, pushing a release tag beginning with <code>v</code> triggers this workflow. It can also be run from the Actions tab with an existing release tag. Choose the intended release commit and tag, then review the workflow results and attached files.</p>
-<p>For a manual release, open the repository's Releases page and create a release for the intended tag. Attach the tested ZIP, the application source archive containing Hayanagi, the matching Qt source archive, and source/build information and checksums. Retain these source downloads while the binaries remain available. The application package must contain its prepared license documents as well.</p>
+<p>For a manual release, open the repository's Releases page and create a release for the intended tag. Attach only the tested ZIP. Select the package by its exact filename instead of uploading the entire working directory. License documents remain inside the application package.</p>
 </section>
 <section id="troubleshooting" class="level2">
 <h2>Troubleshooting</h2>

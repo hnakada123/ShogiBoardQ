@@ -155,7 +155,6 @@ def prepare(args):
             "qt_version": args.version, "archive": args.archive.name,
             "sha256": checksum, "source_url": args.source_url,
             "provenance": args.provenance,
-            "release_sources": "https://github.com/hnakada123/ShogiBoardQ/releases",
         })
         files = sorted((output / "qt").rglob("*"))
         index = "# Qt license and attribution files\n\n"
@@ -193,6 +192,14 @@ def stage(args):
         if digest(source / name) != checksum:
             raise ValueError(f"Notice changed since preparation: {name}")
     shutil.copytree(source, args.destination, dirs_exist_ok=True)
+    # Cached notices may predate the product-only release policy. Refresh our
+    # source guide, while preserving the verified Qt texts and source provenance.
+    shutil.copyfile(ROOT / "resources/licenses/SOURCE_CODE.md", args.destination / "SOURCE_CODE.md")
+    manifest.pop("release_sources", None)
+    write_json(args.destination / "QT-SOURCE.json", manifest)
+    for name in ("SOURCE_CODE.md", "QT-SOURCE.json"):
+        inventory[name] = digest(args.destination / name)
+    write_json(args.destination / "FILES.json", inventory)
     shutil.copyfile(args.build_dir / "qt-build.json", args.destination / "BUILD.json")
     # Record actual Qt SDK configuration alongside the source identification.
     cache = (args.build_dir / "CMakeCache.txt").read_text(encoding="utf-8")

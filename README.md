@@ -109,9 +109,12 @@ ShogiBoardQが記録したコミットを使用します。管理・更新手順
 本ソフトウェアは [GNU General Public License v3.0 (GPL-3.0)](LICENSE) のもとで公開されています。
 
 Qt を使用しています。Qt Charts は GPLv3、その他の Qt モジュールは LGPLv3/GPL の条件に従います。
-ライセンス本文と著作権表示は「バージョン情報」画面および配布物の `licenses` に収録します。
-今後の配布版では、対応する Qt・ShogiBoardQ・Hayanagi のソースを [GitHub Release](https://github.com/hnakada123/ShogiBoardQ/releases)
-の添付ファイルとして提供します。配布を作成する方は [Qt のライセンスと対応ソースの配布](docs/dev/qt-licensing.md) を参照してください。
+ライセンス本文と著作権表示は「バージョン情報」画面およびアプリ内に収録します。
+[GitHub Release](https://github.com/hnakada123/ShogiBoardQ/releases) の添付ファイルは各 OS の実行用パッケージのみです。
+Linux は `ShogiBoardQ-linux.zip` に AppImage・詰将棋問題集・通常対局用 Hayanagi を収録します。
+問題集と Hayanagi は ZIP 展開後すぐ選択できる外部ファイルとしても配置し、Qt 文書は AppImage 内に収録します。
+Qt ソースなどを別添付にはしません。
+配布を作成する方は [Qt 文書とリリース添付の方針](docs/dev/qt-licensing.md) を参照してください。
 
 - ソフトウェアの利用・改変・再配布は自由です。改変・利用にあたって作者への連絡は不要です。
 - 改変して配布する場合は、同じGPL-3.0ライセンスのもとでソースコードを公開する必要があります。
