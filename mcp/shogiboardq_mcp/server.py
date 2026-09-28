@@ -18,6 +18,7 @@ from .cli_backend import run_cli
 from .errors import ToolError
 from .handlers_app import AppTools
 from .handlers_cli import CliTools
+from .handlers_kifu_analysis import KifuAnalysisTools
 from .jobs import JobManager
 from .tooldefs import ALL_TOOLS, RESOURCES
 
@@ -39,6 +40,7 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
     jobs = JobManager()
     client = AppClient()
     cli_tools = CliTools(jobs)
+    kifu_analysis = KifuAnalysisTools(jobs, cli_tools)
     app_tools = AppTools(client)
 
     handlers: dict[str, Handler] = {
@@ -48,6 +50,9 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         "analyze_position": cli_tools.analyze_position,
         "analysis_status": cli_tools.analysis_status,
         "analysis_result": cli_tools.analysis_result,
+        "analyze_kifu": kifu_analysis.analyze_kifu,
+        "kifu_analysis_status": kifu_analysis.status,
+        "kifu_analysis_result": kifu_analysis.status,
         "search_mate": cli_tools.search_mate,
         "mate_status": cli_tools.mate_status,
         "generate_tsume": cli_tools.generate_tsume,
@@ -76,6 +81,10 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
         "click_widget": app_tools.click_widget,
         "set_widget_value": app_tools.set_widget_value,
         "click_table_cell": app_tools.click_table_cell,
+        "list_menu_actions": app_tools.list_menu_actions,
+        "select_menu_action": app_tools.select_menu_action,
+        "menu_favorites": app_tools.menu_favorites,
+        "click_branch_node": app_tools.click_branch_node,
         "capture_screenshot": app_tools.capture_screenshot,
         "list_dialogs": app_tools.list_dialogs,
         "close_dialog": app_tools.close_dialog,

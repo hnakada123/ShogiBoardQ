@@ -91,6 +91,12 @@ void MenuWindow::setupUi()
 
     // タブウィジェット
     m_tabWidget = new QTabWidget(this);
+    m_tabWidget->setObjectName(QStringLiteral("menuTabs"));
+    m_customizeButton->setObjectName(QStringLiteral("menuCustomize"));
+    m_buttonSizeDecreaseBtn->setObjectName(QStringLiteral("menuButtonSizeDecrease"));
+    m_buttonSizeIncreaseBtn->setObjectName(QStringLiteral("menuButtonSizeIncrease"));
+    m_fontSizeDecreaseBtn->setObjectName(QStringLiteral("menuFontSizeDecrease"));
+    m_fontSizeIncreaseBtn->setObjectName(QStringLiteral("menuFontSizeIncrease"));
     connect(m_tabWidget, &QTabWidget::currentChanged, this, &MenuWindow::onTabChanged);
     mainLayout->addWidget(m_tabWidget);
 
@@ -149,6 +155,8 @@ void MenuWindow::setFavorites(const QStringList& favoriteActionNames)
     m_favoriteActionNames = favoriteActionNames;
     updateFavoritesTab();
     updateCustomizeModeForAllTabs();
+    saveSettings();
+    Q_EMIT favoritesChanged(m_favoriteActionNames);
 }
 
 QScrollArea* MenuWindow::createCategoryTab(const CategoryInfo& category)

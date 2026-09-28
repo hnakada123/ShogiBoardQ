@@ -1,6 +1,7 @@
 """In-process job manager for long-running CLI commands.
 
-Each job wraps one ``shogiboardq-cli`` subprocess that streams JSON Lines.
+Each job wraps ``shogiboardq-cli`` subprocesses that stream JSON Lines.
+Whole-record jobs run one position at a time within a single concurrency slot.
 The manager keeps the latest state so status tools can answer immediately.
 
 State machine::
@@ -18,6 +19,7 @@ import logging
 import time
 import uuid
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -76,7 +78,7 @@ class JobManager:
         self._jobs: dict[str, Job] = {}
 
     # ------------------------------------------------------------------ lifecycle
-    async def start(self, kind: str, args: list[str], summary: dict[str, Any]) -> Job:
+    def _reserve(self, kind: str, args: list[str], summary: dict[str, Any]) -> Job:
         self._purge()
         active = [j for j in self._jobs.values() if j.is_active()]
         if len(active) >= MAX_CONCURRENT_JOBS:
@@ -85,11 +87,16 @@ class JobManager:
                 f"{len(active)} jobs are already running (limit {MAX_CONCURRENT_JOBS}). "
                 "Wait for one to finish or cancel it with cancel_job.",
             )
-        cli = require_cli()
         job = Job(id=f"{kind}-{uuid.uuid4().hex[:8]}", kind=kind, args=args, summary=summary)
+        self._jobs[job.id] = job
+        return job
+
+    @staticmethod
+    async def _spawn(job: Job) -> None:
+        cli = require_cli()
         try:
             job.process = await asyncio.create_subprocess_exec(
-                str(cli), *args, "--stdin-control",
+                str(cli), *job.args, "--stdin-control",
                 stdin=asyncio.subprocess.PIPE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -97,8 +104,10 @@ class JobManager:
             )
         except OSError as exc:
             raise ToolError("cli_failed", f"Could not start {cli}: {exc}") from exc
-        self._jobs[job.id] = job
-        job.task = asyncio.create_task(self._pump(job))
+
+    async def start(self, kind: str, args: list[str], summary: dict[str, Any]) -> Job:
+        job = self._reserve(kind, args, summary)
+        job.task = asyncio.create_task(self._run_single(job))
         # Give the CLI a moment so argument/engine errors surface in the start call.
         try:
             await asyncio.wait_for(asyncio.shield(job.task), timeout=0.5)
@@ -109,6 +118,77 @@ class JobManager:
         if job.state == "failed":
             raise ToolError("job_failed", job.error or "job failed to start")
         return job
+
+    async def _run_single(self, job: Job) -> None:
+        try:
+            await self._spawn(job)
+        except Exception as exc:
+            job.error = str(exc)
+            job.state = "stopped" if job.stop_requested else "failed"
+            job.finished_at = time.monotonic()
+            return
+        if job.stop_requested and job.process and job.process.stdin:
+            try:
+                job.process.stdin.write(b"stop\n")
+                await job.process.stdin.drain()
+            except (BrokenPipeError, ConnectionResetError, OSError):
+                pass
+        await self._pump(job)
+
+    async def start_sequence(self, steps: Iterable[dict[str, Any]], summary: dict[str, Any]) -> Job:
+        """Reserve one concurrency slot for an entire kifu, including between positions."""
+        require_cli()
+        job = self._reserve("kifu_analysis", [], summary)
+        job.data["positions"] = []
+        job.task = asyncio.create_task(self._pump_sequence(job, steps))
+        try:
+            await asyncio.wait_for(asyncio.shield(job.task), timeout=0.5)
+        except asyncio.TimeoutError:
+            pass
+        if job.state == "failed":
+            raise ToolError("job_failed", job.error or "Kifu analysis failed to start")
+        return job
+
+    async def _pump_sequence(self, job: Job, steps: Iterable[dict[str, Any]]) -> None:
+        try:
+            for step in steps:
+                if job.stop_requested:
+                    break
+                child = Job(id=job.id, kind="analysis", args=step["args"], summary={})
+                job.data["current_ply"] = step["ply"]
+                await self._spawn(child)
+                job.process = child.process
+                job.data["current"] = child.data
+                if job.stop_requested and child.process and child.process.stdin:
+                    child.process.stdin.write(b"stop\n")
+                    await child.process.stdin.drain()
+                await self._pump(child)
+                job.stderr_tail.extend(child.stderr_tail)
+                if child.state == "failed" and not job.stop_requested:
+                    raise ToolError("engine_error", child.error or "Position analysis failed")
+                if child.result is not None:
+                    position = {key: value for key, value in step.items() if key != "args"}
+                    position.update({key: value for key, value in child.result.items() if key != "event"})
+                    position["partial"] = job.stop_requested
+                    first = next((line for line in position.get("lines", []) if line.get("multipv", 1) == 1), {})
+                    sign = 1 if position["sfen"].split()[1] == "b" else -1
+                    for key in ("score_cp", "score_mate"):
+                        if key in first:
+                            position[key + "_black"] = first[key] * sign
+                    job.data["positions"].append(position)
+                job.process = None
+            job.state = "stopped" if job.stop_requested else "finished"
+            job.result = {"completed": len(job.data["positions"])}
+        except Exception as exc:
+            job.error = str(exc)
+            job.state = "stopped" if job.stop_requested else "failed"
+        finally:
+            proc = job.process
+            if proc is not None and proc.returncode is None:
+                proc.kill()
+                await proc.wait()
+            job.process = None
+            job.finished_at = time.monotonic()
 
     async def _pump(self, job: Job) -> None:
         proc = job.process
@@ -130,6 +210,12 @@ class JobManager:
                 if isinstance(event, dict):
                     self._apply(job, event)
             await proc.wait()
+        except Exception as exc:
+            job.error = str(exc)
+            job.state = "failed"
+            if proc.returncode is None:
+                proc.kill()
+                await proc.wait()
         finally:
             await stderr_task
             if job.state in ("running", "stopping"):
@@ -203,8 +289,7 @@ class JobManager:
         job.stop_requested = True
         job.state = "stopping"
         proc = job.process
-        assert proc is not None
-        if proc.stdin is not None and not proc.stdin.is_closing():
+        if proc is not None and proc.stdin is not None and not proc.stdin.is_closing():
             try:
                 proc.stdin.write(b"stop\n")
                 await proc.stdin.drain()
@@ -213,11 +298,15 @@ class JobManager:
         try:
             await asyncio.wait_for(asyncio.shield(job.task), timeout=STOP_GRACE_SECONDS)
         except asyncio.TimeoutError:
-            proc.terminate()
+            proc = job.process
+            if proc is not None and proc.returncode is None:
+                proc.terminate()
             try:
                 await asyncio.wait_for(asyncio.shield(job.task), timeout=KILL_GRACE_SECONDS)
             except asyncio.TimeoutError:
-                proc.kill()
+                proc = job.process
+                if proc is not None and proc.returncode is None:
+                    proc.kill()
                 await job.task
         return job
 

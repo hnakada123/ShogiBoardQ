@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from . import formatting as fmt
@@ -141,6 +142,22 @@ class AppTools:
         result = await self.client.call("widget.clickCell", args)
         return f"Queued cell click: {result['object_name']}.", result
 
+    async def list_menu_actions(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("menu.items", args)
+        return json.dumps(result, ensure_ascii=False), result
+
+    async def select_menu_action(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("menu.select", args)
+        return f"Queued menu action: {result['text']}.", result
+
+    async def menu_favorites(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("menu.favorites", args)
+        return json.dumps(result, ensure_ascii=False), result
+
+    async def click_branch_node(self, args: dict[str, Any]) -> Result:
+        result = await self.client.call("branch.click", args)
+        return f"Queued branch node click: {result['id']}.", result
+
     async def capture_screenshot(self, args: dict[str, Any]) -> Result:
         output_dir = paths.resolve_output_dir(args.get("output_dir"))
         result = await self.client.call("screenshot.capture", {"target": args.get("target", "main"), "output_dir": str(output_dir)})
@@ -150,7 +167,7 @@ class AppTools:
         result = await self.client.call("dialog.list")
         windows = result.get("windows", [])
         lines = [
-            f"  {w.get('class', '?')} {w.get('object_name') or '(unnamed)'} — \"{w.get('title', '')}\""
+            f"  {w.get('class', '?')} {w.get('object_name') or '(unnamed)'} [{w.get('selector', '')}] — \"{w.get('title', '')}\""
             + (" [modal]" if w.get("modal") else "") + (" [active]" if w.get("active") else "")
             for w in windows
         ]
@@ -166,10 +183,13 @@ class AppTools:
             params["dialog"] = args["dialog"]
         if args.get("widget"):
             params["widget"] = args["widget"]
+        for key in ("max_widgets", "include_children"):
+            if key in args:
+                params[key] = args[key]
         result = await self.client.call("widget.text", params)
         lines = []
         for w in result.get("widgets", []):
-            name = w.get("object_name") or "(unnamed)"
+            name = f"{w.get('object_name') or '(unnamed)'} [{w.get('selector', '')}]"
             if "board_sfen" in w:
                 lines.append(f"{w.get('class')} {name}: {w['board_sfen']}, flipped={w.get('flipped')}, geometry={w.get('geometry')}")
             elif "rows" in w:
@@ -178,6 +198,8 @@ class AppTools:
                     lines.append("    " + " | ".join(str(c) for c in row))
             elif "items" in w:
                 lines.append(f"{w.get('class')} {name}: " + ", ".join(str(i) for i in w["items"]))
+            elif "nodes" in w:
+                lines.append(f"{w.get('class')} {name}: " + json.dumps(w["nodes"], ensure_ascii=False))
             else:
-                lines.append(f"{w.get('class')} {name}: {w.get('text', '')}")
+                lines.append(f"{w.get('class')} {name}: {w.get('text', w.get('value', w.get('color', '')))}")
         return "\n".join(lines) if lines else "No readable widgets found.", result

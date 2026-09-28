@@ -13,6 +13,7 @@
 #include "matchruntimequeryservice.h"
 #include "kifuexportcontroller.h"
 #include "csagamewiring.h"
+#include "menuwindow.h"
 
 #include <QTextStream>
 
@@ -64,6 +65,17 @@ void MainWindowServiceRegistry::ensureAutomationServer(const QString& socketPath
     };
     ctx.csaGameCoordinator = [this]() {
         return m_mw.m_csaGameWiring ? m_mw.m_csaGameWiring->coordinator() : nullptr;
+    };
+    ctx.menuFavorites = [this]() {
+        auto* menu = m_mw.findChild<MenuWindow*>();
+        return menu ? menu->favorites() : QStringList{};
+    };
+    ctx.availableMenuActions = [this]() {
+        auto* menu = m_mw.findChild<MenuWindow*>();
+        return menu ? menu->availableActions() : QStringList{};
+    };
+    ctx.setMenuFavorites = [this](const QStringList& names) {
+        if (auto* menu = m_mw.findChild<MenuWindow*>()) menu->setFavorites(names);
     };
     ctx.quitApplication = [this]() {
         // 自動化からの終了では未保存確認ダイアログを出さない

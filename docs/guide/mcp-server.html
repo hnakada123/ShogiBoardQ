@@ -92,6 +92,7 @@
                         <tr><td><strong>validate_sfen</strong></td><td>SFEN の妥当性、手番、持駒、王手の有無、合法手数</td></tr>
                         <tr><td><strong>list_engines</strong></td><td>ShogiBoardQ に登録済みの USI エンジン</td></tr>
                         <tr><td><strong>analyze_position</strong> / analysis_status / analysis_result</td><td>登録エンジンによる局面解析（MultiPV 対応、ジョブ方式）</td></tr>
+                        <tr><td><strong>analyze_kifu</strong> / kifu_analysis_status / kifu_analysis_result</td><td>棋譜の本譜を全手解析。範囲指定・進捗・結果ページ取得・取消に対応</td></tr>
                         <tr><td><strong>search_mate</strong> / mate_status</td><td><code>go mate</code> 対応エンジンによる詰み探索（ジョブ方式）</td></tr>
                         <tr><td><strong>generate_tsume</strong> / tsume_generation_status / stop_tsume_generation</td><td>詰将棋局面の自動生成（ジョブ方式）</td></tr>
                         <tr><td><strong>verify_tsume</strong></td><td>余詰検査（唯一解 / 余詰あり / 不詰 / 手数違い / 判定不能）</td></tr>
@@ -121,6 +122,9 @@
                         <tr><td><strong>list_actions</strong> / trigger_action</td><td>メニュー動作の一覧と実行（許可リスト方式）</td></tr>
                         <tr><td><strong>capture_screenshot</strong></td><td>メインウィンドウまたはダイアログのスクリーンショットを PNG 保存</td></tr>
                         <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>開いているダイアログの一覧、閉じる、ラベル・入力欄・テーブル・盤面内容と座標の取得</td></tr>
+                        <tr><td><strong>list_menu_actions / select_menu_action</strong></td><td>定跡・局面集履歴・保存済みレイアウトの動的メニューを取得・操作</td></tr>
+                        <tr><td><strong>menu_favorites</strong></td><td>メニューのお気に入り取得・登録・解除・並べ替えと保存</td></tr>
+                        <tr><td><strong>click_branch_node</strong></td><td>分岐ツリーのノードへ移動</td></tr>
                         <tr><td><strong>click_board_square</strong> / click_dialog_button</td><td>盤面・駒台のクリック、問題選択・成り選択などのボタン操作。盤の回転や大きさに追従します</td></tr>
                         <tr><td><strong>show_dock</strong> / click_widget / set_widget_value / click_table_cell</td><td>ドック表示、ボタン・設定・棋譜と読み筋テーブルの操作、貼り付け欄などへの文字入力</td></tr>
                         <tr><td><strong>edit_table_cell</strong></td><td>対局情報などの編集可能なセルへの文字入力。入力を確定せずに保持する操作にも対応</td></tr>
@@ -437,7 +441,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                         <tr><td>「盤面を反転して」</td><td>trigger_action（actionFlipBoard）</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">未保存の変更がある状態で棋譜を読み込んだり局面を設定したりする依頼は、<code>discard_unsaved</code> を明示しない限り拒否されます。メニュー動作は許可リスト方式で、終了・上書き保存・言語切替などは実行できません。実行できる動作は list_actions で確認できます。</p>
+                <p class="guide-step-text">未保存の変更がある状態で棋譜を読み込んだり局面を設定したりする依頼は、<code>discard_unsaved</code> を明示しない限り拒否されます。メニュー動作は許可リスト方式で、終了・上書き保存は実行できません。言語切替は可能で、アプリ再起動後に反映されます。実行できる動作は list_actions で確認できます。</p>
+                <p class="guide-step-text">名前のない部品は get_widget_text / list_dialogs の selector を widget・target・dialog に指定して操作できます。ダイアログの再生成・アプリ再起動後は再取得してください。set_widget_value はスライダー・リスト・チェック付きグループ・色にも対応します。メニューは list_menu_actions で階層インデックスを調べ、select_menu_action の path に指定します。</p>
             </div>
         </div>
     </div>
@@ -459,7 +464,7 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     <li>自動化ソケットは所有者だけがアクセスでき、ネットワークには公開しません。<code>--automation</code> を付けたときだけ有効です</li>
                     <li>ファイルは絶対パスのみ受け付け、<code>SHOGIBOARDQ_ALLOWED_DIRS</code>（既定はホームディレクトリ）の外は拒否します。既存ファイルは <code>overwrite</code> の明示が無ければ上書きしません</li>
                     <li>エンジンは ShogiBoardQ に登録済みの名前だけを受け付けます</li>
-                    <li>メニュー動作は許可リスト方式で、終了・上書き保存・言語切替・ドックレイアウトの保存は実行しません</li>
+                    <li>メニュー動作は許可リスト方式で、終了・上書き保存は実行しません。言語切替・名前付きドックレイアウト管理は操作できます</li>
                     <li>クライアント側でも、ツールの実行前に確認が求められるのが通常です（クライアントの設定に従います）</li>
                 </ul>
             </div>

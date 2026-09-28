@@ -68,6 +68,8 @@ void MenuButtonWidget::setupUi()
 
     // メインボタン（アイコンとテキストを含むコンテナ）
     m_mainButton = new QPushButton(this);
+    m_mainButton->setProperty("automationAction", actionName());
+    m_mainButton->setAccessibleName(m_action ? m_action->text() : QString());
     m_mainButton->setFixedSize(m_buttonWidth - 4, m_buttonHeight - 4);
     m_mainButton->setFlat(true);
     m_mainButton->setStyleSheet(ButtonStyles::menuMainButton());

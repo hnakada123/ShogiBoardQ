@@ -116,6 +116,7 @@ void AutomationCommands::registerAll(AutomationDispatcher& dispatcher, const Aut
     registerUiCommands(dispatcher, context);
     registerWidgetCommands(dispatcher, context);
     registerDockCommands(dispatcher, context);
+    registerNavigationCommands(dispatcher, context);
 }
 
 void AutomationCommands::registerAppCommands(AutomationDispatcher& dispatcher, const AutomationContext& context)

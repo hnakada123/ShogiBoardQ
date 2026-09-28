@@ -4,14 +4,23 @@
 #include "automationwidgets.h"
 #include "automationcontext.h"
 #include "automationdispatcher.h"
+#include "automationparams.h"
+#include "automationactionpolicy.h"
+#include "branchtreeitemroles.h"
 #include "shogiboard.h"
 #include "shogiview.h"
 
 #include <QAbstractButton>
+#include <QAction>
 #include <QAbstractItemModel>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QCompleter>
+#include <QColorDialog>
+#include <QGraphicsView>
+#include <QGraphicsScene>
+#include <QGraphicsItem>
 #include <QDialog>
 #include <QDockWidget>
 #include <QDoubleSpinBox>
@@ -24,13 +33,23 @@
 #include <QPlainTextEdit>
 #include <QProgressBar>
 #include <QSpinBox>
+#include <QSlider>
+#include <QMenu>
 #include <QTabWidget>
 #include <QTableView>
 #include <QTableWidget>
 #include <QTextEdit>
 #include <QTreeWidget>
+#include <QToolButton>
 
 namespace {
+
+QString widgetActionName(QWidget* widget)
+{
+    if (auto* button = qobject_cast<QToolButton*>(widget); button && button->defaultAction())
+        return button->defaultAction()->objectName();
+    return widget->property("automationAction").toString();
+}
 
 QJsonArray tableRows(const QAbstractItemModel* model, const QHeaderView* header, int maxRows)
 {
@@ -56,6 +75,28 @@ QJsonArray tableRows(const QAbstractItemModel* model, const QHeaderView* header,
 
 bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
 {
+    if (auto* picker = qobject_cast<QColorDialog*>(w)) {
+        obj[QStringLiteral("color")] = picker->currentColor().name(QColor::HexArgb);
+        return true;
+    }
+    if (auto* menu = qobject_cast<QMenu*>(w)) {
+        obj[QStringLiteral("text")] = menu->title();
+        return true;
+    }
+    if (auto* graphics = qobject_cast<QGraphicsView*>(w)) {
+        QJsonArray nodes;
+        if (graphics->scene()) {
+            for (auto* item : graphics->scene()->items(Qt::AscendingOrder)) {
+                const QVariant id = item->data(BranchTreeItemRoles::NodeId);
+                if (!id.isValid() || nodes.size() >= maxRows) continue;
+                nodes.append(QJsonObject{{QStringLiteral("id"), id.toInt()},
+                    {QStringLiteral("row"), item->data(BranchTreeItemRoles::Row).toInt()},
+                    {QStringLiteral("ply"), item->data(BranchTreeItemRoles::Ply).toInt()}});
+            }
+        }
+        obj[QStringLiteral("nodes")] = nodes;
+        return true;
+    }
     if (auto* dock = qobject_cast<QDockWidget*>(w)) {
         obj[QStringLiteral("text")] = dock->windowTitle();
         obj[QStringLiteral("floating")] = dock->isFloating();
@@ -90,6 +131,7 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         for (int i = 0; i < qMin(list->count(), maxRows); ++i) items.append(list->item(i)->text());
         obj[QStringLiteral("items")] = items;
         obj[QStringLiteral("row_count")] = list->count();
+        obj[QStringLiteral("current_index")] = list->currentRow();
         return true;
     }
     if (auto* tree = qobject_cast<QTreeWidget*>(w)) {
@@ -149,6 +191,12 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         obj[QStringLiteral("text")] = spin->text();
         return true;
     }
+    if (auto* slider = qobject_cast<QSlider*>(w)) {
+        obj[QStringLiteral("value")] = slider->value();
+        obj[QStringLiteral("minimum")] = slider->minimum();
+        obj[QStringLiteral("maximum")] = slider->maximum();
+        return true;
+    }
     if (auto* progress = qobject_cast<QProgressBar*>(w)) {
         obj[QStringLiteral("value")] = progress->value();
         obj[QStringLiteral("text")] = progress->text();
@@ -161,7 +209,6 @@ bool describeOne(QWidget* w, int maxRows, QJsonObject& obj)
         return true;
     }
     if (auto* button = qobject_cast<QAbstractButton*>(w)) {
-        if (button->text().isEmpty()) return false;
         obj[QStringLiteral("text")] = button->text();
         if (button->isCheckable()) obj[QStringLiteral("checked")] = button->isChecked();
         return true;
@@ -190,7 +237,7 @@ QWidget* AutomationWidgets::findWindow(const QString& nameOrTitle)
 {
     const QList<QWidget*> windows = visibleWindows();
     for (QWidget* w : windows) {
-        if (w->objectName() == nameOrTitle) return w;
+        if (w->objectName() == nameOrTitle || selector(w) == nameOrTitle) return w;
     }
     for (QWidget* w : windows) {
         if (!nameOrTitle.isEmpty() && w->windowTitle().contains(nameOrTitle, Qt::CaseInsensitive)) return w;
@@ -198,10 +245,11 @@ QWidget* AutomationWidgets::findWindow(const QString& nameOrTitle)
     return nullptr;
 }
 
-QJsonObject AutomationWidgets::describeWindow(const QWidget* window, bool isMain)
+QJsonObject AutomationWidgets::describeWindow(QWidget* window, bool isMain)
 {
     QJsonObject obj;
     obj[QStringLiteral("object_name")] = window->objectName();
+    obj[QStringLiteral("selector")] = selector(window);
     obj[QStringLiteral("class")] = QString::fromLatin1(window->metaObject()->className());
     obj[QStringLiteral("title")] = window->windowTitle();
     obj[QStringLiteral("visible")] = window->isVisible();
@@ -213,14 +261,17 @@ QJsonObject AutomationWidgets::describeWindow(const QWidget* window, bool isMain
     return obj;
 }
 
-QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& objectName, int maxRows, int maxWidgets)
+QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& objectName, int maxRows, int maxWidgets,
+                                             bool includeChildren)
 {
     QJsonArray array;
     if (!root) return array;
     QList<QWidget*> targets;
     if (!objectName.isEmpty()) {
-        if (root->objectName() == objectName) targets.append(root);
-        else if (auto* child = root->findChild<QWidget*>(objectName)) targets.append(child);
+        if (auto* child = findWidget(root, objectName)) {
+            targets.append(child);
+            if (includeChildren) targets.append(child->findChildren<QWidget*>());
+        }
     } else {
         targets = root->findChildren<QWidget*>();
     }
@@ -230,6 +281,12 @@ QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& obje
         QJsonObject obj;
         if (!describeOne(w, maxRows, obj)) continue;
         obj[QStringLiteral("object_name")] = w->objectName();
+        obj[QStringLiteral("selector")] = selector(w);
+        obj[QStringLiteral("parent_selector")] = w->parent() ? selector(w->parent()) : QString();
+        obj[QStringLiteral("tooltip")] = w->toolTip();
+        obj[QStringLiteral("accessible_name")] = w->accessibleName();
+        const QString actionName = widgetActionName(w);
+        if (!actionName.isEmpty()) obj[QStringLiteral("action_name")] = actionName;
         obj[QStringLiteral("class")] = QString::fromLatin1(w->metaObject()->className());
         obj[QStringLiteral("enabled")] = w->isEnabled();
         obj[QStringLiteral("font_point_size")] = w->font().pointSize();
@@ -244,6 +301,44 @@ QJsonArray AutomationWidgets::describeWidgets(QWidget* root, const QString& obje
 
 namespace AutomationWidgets {
 
+QString selector(QObject* object)
+{
+    static quint64 nextId = 0; // 自動化APIはメインスレッドでのみ呼ばれる。
+    constexpr auto key = "_automationSelector";
+    QString id = object->property(key).toString();
+    if (id.isEmpty()) {
+        id = QStringLiteral("@widget-%1").arg(++nextId);
+        object->setProperty(key, id);
+    }
+    return id;
+}
+
+QWidget* findWidget(QWidget* root, const QString& nameOrSelector)
+{
+    if (!root) return nullptr;
+    QList<QWidget*> candidates = root->findChildren<QWidget*>();
+    candidates.prepend(root);
+    QWidget* found = nullptr;
+    for (auto* widget : std::as_const(candidates)) {
+        if (widget->objectName() != nameOrSelector && selector(widget) != nameOrSelector) continue;
+        if (found) throw AutomationError(AutomationErrorCode::InvalidParams,
+            QStringLiteral("Ambiguous widget name; use its selector from widget.text"));
+        found = widget;
+    }
+    return found;
+}
+
+QWidget* requireWidget(const AutomationContext& context, const QJsonObject& params, bool interactive)
+{
+    QWidget* window = requireWindow(context, AutomationParams::optionalString(params, QStringLiteral("target")));
+    const QString name = AutomationParams::requireString(params, QStringLiteral("widget"));
+    QWidget* widget = findWidget(window, name);
+    if (!widget || (interactive && widget->window() != window))
+        throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No widget in target window: %1").arg(name));
+    if (interactive) requireInteractive(widget);
+    return widget;
+}
+
 QWidget* requireWindow(const AutomationContext& context, const QString& target)
 {
     if (target.isEmpty() || target == QLatin1String("main")) return context.mainWindow;
@@ -255,17 +350,34 @@ QWidget* requireWindow(const AutomationContext& context, const QString& target)
     return window;
 }
 
-void requireInteractive(QWidget* widget)
+void requireInteractive(QWidget* widget, bool allowPopup)
 {
+    if (widget) {
+        const QString action = widgetActionName(widget);
+        if (!action.isEmpty() && !AutomationActionPolicy::isAllowed(action))
+            throw AutomationError(AutomationErrorCode::NotAllowed, QStringLiteral("Menu button action is not allowed"));
+    }
     QWidget* modal = QApplication::activeModalWidget();
     bool blocked = modal != nullptr;
     for (QWidget* parent = widget; parent; parent = parent->parentWidget()) {
         if (parent == modal) { blocked = false; break; }
     }
-    if (!widget || !widget->isVisible() || !widget->isEnabled()
-        || blocked || QApplication::activePopupWidget()) {
+    if (!widget || !widget->isVisible() || !widget->isEnabled() || blocked) {
         throw AutomationError(AutomationErrorCode::InvalidState,
                               QStringLiteral("The target is hidden, disabled or blocked by another dialog"));
+    }
+    // QFileDialogの補完はディレクトリ読込後にも開く。同じウィンドウ内の操作なら、
+    // 通常のクリックと同じようにその入力欄の候補だけを閉じる。
+    if (!allowPopup && QApplication::activePopupWidget()) {
+        for (auto* edit : widget->window()->findChildren<QLineEdit*>()) {
+            if (edit->window() == widget->window() && edit->completer()
+                && edit->completer()->popup() == QApplication::activePopupWidget()) {
+                edit->completer()->popup()->hide();
+                break;
+            }
+        }
+        if (QApplication::activePopupWidget())
+            throw AutomationError(AutomationErrorCode::InvalidState, QStringLiteral("Another popup is active"));
     }
 }
 

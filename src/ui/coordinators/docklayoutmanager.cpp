@@ -315,6 +315,7 @@ void DockLayoutManager::wireMenuActions(QAction* resetLayout,
         setDocksLocked(lockDocks->isChecked());
     }
     if (savedLayoutsMenu) {
+        savedLayoutsMenu->setProperty("automationMenu", true);
         setSavedLayoutsMenu(savedLayoutsMenu);
         updateSavedLayoutsMenu();
     }

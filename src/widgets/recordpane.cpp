@@ -74,6 +74,7 @@ void RecordPane::buildToolButtons()
 
     // --- しおり編集ボタン ---
     m_btnBookmarkEdit = new QPushButton(this);
+    m_btnBookmarkEdit->setObjectName(QStringLiteral("kifuBookmarkEdit"));
     m_btnBookmarkEdit->setIcon(QIcon(QStringLiteral(":/images/actions/actionEditBookmark.svg")));
     m_btnBookmarkEdit->setIconSize(QSize(20, 20));
     m_btnBookmarkEdit->setToolTip(tr("しおりを編集"));
@@ -85,6 +86,7 @@ void RecordPane::buildToolButtons()
     const QString toggleBtnStyle = ButtonStyles::toggleButton();
 
     m_btnToggleTime = new QPushButton(this);
+    m_btnToggleTime->setObjectName(QStringLiteral("kifuToggleTime"));
     m_btnToggleTime->setCheckable(true);
     m_btnToggleTime->setChecked(GameSettings::kifuTimeColumnVisible());
     m_btnToggleTime->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleTimeColumn.svg")));
@@ -95,6 +97,7 @@ void RecordPane::buildToolButtons()
     m_btnToggleTime->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     m_btnToggleBookmark = new QPushButton(this);
+    m_btnToggleBookmark->setObjectName(QStringLiteral("kifuToggleBookmark"));
     m_btnToggleBookmark->setCheckable(true);
     m_btnToggleBookmark->setChecked(GameSettings::kifuBookmarkColumnVisible());
     m_btnToggleBookmark->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleBookmarkColumn.svg")));
@@ -105,6 +108,7 @@ void RecordPane::buildToolButtons()
     m_btnToggleBookmark->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     m_btnToggleComment = new QPushButton(this);
+    m_btnToggleComment->setObjectName(QStringLiteral("kifuToggleComment"));
     m_btnToggleComment->setCheckable(true);
     m_btnToggleComment->setChecked(GameSettings::kifuCommentColumnVisible());
     m_btnToggleComment->setIcon(QIcon(QStringLiteral(":/images/actions/actionToggleCommentColumn.svg")));

@@ -40,6 +40,11 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
     , m_highLabel(new QLabel(this))
 {
     setWindowTitle(tr("駒音の設定"));
+    m_volumeSlider->setObjectName(QStringLiteral("pieceSoundVolume"));
+    m_pitchSlider->setObjectName(QStringLiteral("pieceSoundPitch"));
+    m_lowSlider->setObjectName(QStringLiteral("pieceSoundLow"));
+    m_midSlider->setObjectName(QStringLiteral("pieceSoundMid"));
+    m_highSlider->setObjectName(QStringLiteral("pieceSoundHigh"));
     setSizeGripEnabled(false);
 
     auto* mainLayout = new QVBoxLayout(this);

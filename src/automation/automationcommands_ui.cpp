@@ -109,7 +109,8 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         QList<QAbstractButton*> matches;
         for (auto* button : window->findChildren<QAbstractButton*>()) {
             if (button->window() == window && button->isVisible()
-                && ((!widget.isEmpty() && button->objectName() == widget) || (!text.isEmpty() && button->text() == text)))
+                && ((!widget.isEmpty() && (button->objectName() == widget || AutomationWidgets::selector(button) == widget))
+                    || (!text.isEmpty() && button->text() == text)))
                 matches.append(button);
         }
         if (index >= matches.size()) throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No matching visible button"));
@@ -214,10 +215,14 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         if (!window || window == context.mainWindow) {
             throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No open dialog matches \"%1\"").arg(target));
         }
+        requireInteractive(window);
         // モーダルダイアログの exec() を抜けさせるため、応答後に閉じる
         AutomationDeferredCall::schedule([window]() {
-            if (auto* dialog = qobject_cast<QDialog*>(window)) dialog->reject();
-            else window->close();
+            try {
+                requireInteractive(window);
+                if (auto* dialog = qobject_cast<QDialog*>(window)) dialog->reject();
+                else window->close();
+            } catch (const AutomationError&) { }
         }, window);
         QJsonObject result;
         result[QStringLiteral("closed")] = true;
@@ -230,10 +235,12 @@ void AutomationCommands::registerUiCommands(AutomationDispatcher& dispatcher, co
         const QString target = AutomationParams::optionalString(params, QStringLiteral("dialog"));
         const QString widget = AutomationParams::optionalString(params, QStringLiteral("widget"));
         const int maxRows = AutomationParams::optionalInt(params, QStringLiteral("max_rows"), 50, 1, 1000);
+        const int maxWidgets = AutomationParams::optionalInt(params, QStringLiteral("max_widgets"), 300, 1, 3000);
+        const bool children = AutomationParams::optionalBool(params, QStringLiteral("include_children"), false);
         QWidget* window = requireWindow(context, target);
         QJsonObject result;
         result[QStringLiteral("window")] = AutomationWidgets::describeWindow(window, window == context.mainWindow);
-        result[QStringLiteral("widgets")] = AutomationWidgets::describeWidgets(window, widget, maxRows);
+        result[QStringLiteral("widgets")] = AutomationWidgets::describeWidgets(window, widget, maxRows, maxWidgets, children);
         if (!widget.isEmpty() && result.value(QStringLiteral("widgets")).toArray().isEmpty()) {
             throw AutomationError(AutomationErrorCode::NotFound, QStringLiteral("No readable widget named \"%1\"").arg(widget));
         }

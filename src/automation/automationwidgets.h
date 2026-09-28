@@ -10,12 +10,17 @@
 #include <QString>
 
 class QWidget;
+class QObject;
 struct AutomationContext;
 
 namespace AutomationWidgets {
 
 QWidget* requireWindow(const AutomationContext& context, const QString& target);
-void requireInteractive(QWidget* widget);
+void requireInteractive(QWidget* widget, bool allowPopup = false);
+/// 名前がない／重複するQObjectにも、寿命中変わらない識別子を割り当てる。
+QString selector(QObject* object);
+QWidget* findWidget(QWidget* root, const QString& nameOrSelector);
+QWidget* requireWidget(const AutomationContext& context, const QJsonObject& params, bool interactive = true);
 
 /// 表示中のトップレベルウィンドウ（メインウィンドウ・ダイアログ・メッセージボックス）
 QList<QWidget*> visibleWindows();
@@ -24,10 +29,11 @@ QList<QWidget*> visibleWindows();
 QWidget* findWindow(const QString& nameOrTitle);
 
 /// ウィンドウの概要（object_name, class, title, visible, modal, active, width, height）
-QJsonObject describeWindow(const QWidget* window, bool isMain);
+QJsonObject describeWindow(QWidget* window, bool isMain);
 
 /// root 配下（objectName 指定時はその 1 つ）の読み取れるウィジェットを列挙する
-QJsonArray describeWidgets(QWidget* root, const QString& objectName, int maxRows, int maxWidgets = 300);
+QJsonArray describeWidgets(QWidget* root, const QString& objectName, int maxRows, int maxWidgets = 300,
+                           bool includeChildren = false);
 
 } // namespace AutomationWidgets
 

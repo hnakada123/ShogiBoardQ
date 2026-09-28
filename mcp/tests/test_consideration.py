@@ -70,6 +70,21 @@ class UI:
         widgets = (await self.call("get_widget_text", **args))["widgets"]
         return next(w for w in widgets if "board_sfen" in w)
 
+    async def open_pv(self):
+        # Navigation replaces the model asynchronously. A queued click is discarded
+        # if its persistent index is invalidated; reacquire the rows before retrying.
+        deadline = asyncio.get_running_loop().time() + 8
+        while asyncio.get_running_loop().time() < deadline:
+            await self.wait("considerationView", "row_count", 3)
+            await self.call("click_table_cell", widget="considerationView", row=0, column=4)
+            for _ in range(10):
+                await asyncio.sleep(0.1)
+                dialogs = (await self.call("list_dialogs"))["windows"]
+                matches = [w for w in dialogs if w["class"] == "PvBoardDialog"]
+                if matches:
+                    return matches[0]
+        pytest.fail(f"PV dialog did not open: {await self.widget('considerationView')}")
+
     async def start(self, *, multipv=1, seconds=None):
         await self.call("get_app_state")
         await self.call("show_dock", widget="ConsiderationDock")
@@ -152,10 +167,7 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
                 assert pos["ply"] == ply
                 await ui.wait("considerationView", "row_count", 3)
                 assert (await ui.board())["board_sfen"] == pos["sfen"].split()[0]
-                await ui.call("click_table_cell", widget="considerationView", row=0, column=4)
-                await asyncio.sleep(0.15)
-                dialogs = (await ui.call("list_dialogs"))["windows"]
-                dialog = next(w for w in dialogs if w["class"] == "PvBoardDialog")
+                dialog = await ui.open_pv()
                 title = dialog["title"]
                 board = await ui.board(dialog=title)
                 assert board["board_sfen"] == pos["sfen"].split()[0]

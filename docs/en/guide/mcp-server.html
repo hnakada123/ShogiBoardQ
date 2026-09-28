@@ -92,6 +92,7 @@
                         <tr><td><strong>validate_sfen</strong></td><td>Validity of a SFEN, side to move, pieces in hand, check status, number of legal moves</td></tr>
                         <tr><td><strong>list_engines</strong></td><td>USI engines registered in ShogiBoardQ</td></tr>
                         <tr><td><strong>analyze_position</strong> / analysis_status / analysis_result</td><td>Position analysis with a registered engine (MultiPV, job based)</td></tr>
+                        <tr><td><strong>analyze_kifu</strong> / kifu_analysis_status / kifu_analysis_result</td><td>Whole-record main-line analysis with ranges, progress, paginated results and cancellation</td></tr>
                         <tr><td><strong>search_mate</strong> / mate_status</td><td>Mate search with an engine that supports <code>go mate</code> (job based)</td></tr>
                         <tr><td><strong>generate_tsume</strong> / tsume_generation_status / stop_tsume_generation</td><td>Automatic tsume shogi puzzle generation (job based)</td></tr>
                         <tr><td><strong>verify_tsume</strong></td><td>Uniqueness check (unique / multiple / nomate / wrong_length / unknown)</td></tr>
@@ -121,6 +122,9 @@
                         <tr><td><strong>list_actions</strong> / trigger_action</td><td>List and run menu actions (allow-list)</td></tr>
                         <tr><td><strong>capture_screenshot</strong></td><td>Save a PNG screenshot of the main window or a dialog</td></tr>
                         <tr><td><strong>list_dialogs</strong> / close_dialog / get_widget_text</td><td>List or close dialogs, read labels, fields, tables and boards with widget coordinates</td></tr>
+                        <tr><td><strong>list_menu_actions / select_menu_action</strong></td><td>Inspect and select dynamic menus: opening books, recent files and saved dock layouts</td></tr>
+                        <tr><td><strong>menu_favorites</strong></td><td>Read, add, remove, reorder and save menu favorites</td></tr>
+                        <tr><td><strong>click_branch_node</strong></td><td>Navigate to a node in the branch tree</td></tr>
                         <tr><td><strong>click_board_square</strong> / click_dialog_button</td><td>Click board squares or hand pieces, select problems and answer promotion dialogs. Coordinates follow board rotation and size</td></tr>
                         <tr><td><strong>show_dock</strong> / click_widget / set_widget_value / click_table_cell</td><td>Show docks, operate buttons, settings and record/PV tables, and enter text in editable fields</td></tr>
                         <tr><td><strong>edit_table_cell</strong></td><td>Edit writable table cells, including game information. Can leave the editor open to inspect an uncommitted edit</td></tr>
@@ -437,7 +441,8 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                         <tr><td>"Flip the board"</td><td>trigger_action (actionFlipBoard)</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">Loading a record or setting a position while the current record has unsaved changes is refused unless <code>discard_unsaved</code> is passed explicitly. Menu actions are allow-listed: quitting, overwriting the current file and language changes cannot be triggered. list_actions shows what is available.</p>
+                <p class="guide-step-text">Loading a record or setting a position while the current record has unsaved changes is refused unless <code>discard_unsaved</code> is passed explicitly. Menu actions are allow-listed: quitting and overwriting the current file cannot be triggered. Language changes are available and take effect after restarting the app. list_actions shows what is available.</p>
+                <p class="guide-step-text">Use the selector returned by get_widget_text or list_dialogs as widget, target or dialog to operate unnamed controls. Fetch it again after reopening the dialog or restarting the app. set_widget_value supports sliders, lists, checkable groups and colors; list_menu_actions provides the index paths for select_menu_action.</p>
             </div>
         </div>
     </div>
@@ -459,7 +464,7 @@ PYTHONPATH = "/path/to/ShogiBoardQ/mcp"</code></pre>
                     <li>The automation socket is accessible only to your user and is never exposed on the network. It exists only when <code>--automation</code> is given</li>
                     <li>File arguments must be absolute paths inside <code>SHOGIBOARDQ_ALLOWED_DIRS</code> (default: your home directory). Existing files are replaced only with an explicit <code>overwrite</code></li>
                     <li>Engines are referenced only by the names registered in ShogiBoardQ</li>
-                    <li>Menu actions are allow-listed; quitting, overwriting, language changes and dock layout saving are excluded</li>
+                    <li>Menu actions are allow-listed; quitting and overwriting are excluded. Language changes and saved dock layouts are supported</li>
                     <li>Clients normally ask you to confirm each tool call as well (subject to the client's settings)</li>
                 </ul>
             </div>

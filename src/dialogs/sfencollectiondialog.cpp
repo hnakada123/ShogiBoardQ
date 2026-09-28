@@ -88,6 +88,8 @@ void SfenCollectionDialog::buildUi()
     m_btnRecentFiles->setToolTip(tr("最近使ったファイルを開く"));
     m_btnRecentFiles->setStyleSheet(ButtonStyles::fileOperation());
     m_recentFilesMenu = new QMenu(this);
+    m_recentFilesMenu->setObjectName(QStringLiteral("sfenCollectionRecentMenu"));
+    m_recentFilesMenu->setProperty("automationMenu", true);
     m_btnRecentFiles->setMenu(m_recentFilesMenu);
     fileLayout->addWidget(m_btnRecentFiles);
 

@@ -42,6 +42,7 @@ void registerPositionCommands(AutomationDispatcher& dispatcher, const Automation
 void registerKifuCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);     ///< kifu.*
 void registerWidgetCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);  ///< widget.* 操作
 void registerDockCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);    ///< dock.*
+void registerNavigationCommands(AutomationDispatcher& dispatcher, const AutomationContext& context); ///< メニュー・分岐ツリー
 void registerUiCommands(AutomationDispatcher& dispatcher, const AutomationContext& context);       ///< action.* / screenshot.* / dialog.* / widget.*
 
 /// 現在表示中の局面の SFEN（SFEN 記録があればその値、無ければ盤から組み立てる）

@@ -93,6 +93,8 @@ void JosekiWindow::setupUi()
     m_recentButton->setToolTip(tr("最近使ったファイルを開く"));
     m_recentButton->setStyleSheet(fileBtnStyle);
     m_recentFilesMenu = new QMenu(this);
+    m_recentFilesMenu->setObjectName(QStringLiteral("josekiRecentMenu"));
+    m_recentFilesMenu->setProperty("automationMenu", true);
     m_recentButton->setMenu(m_recentFilesMenu);
     fileGroupLayout->addWidget(m_recentButton);
     toolbarLayout->addWidget(fileGroup);
@@ -137,6 +139,8 @@ void JosekiWindow::setupUi()
     m_mergeButton->setStyleSheet(editBtnStyle);
 
     m_mergeMenu = new QMenu(this);
+    m_mergeMenu->setObjectName(QStringLiteral("josekiMergeMenu"));
+    m_mergeMenu->setProperty("automationMenu", true);
     m_mergeMenu->addAction(tr("現在の棋譜から"), this, &JosekiWindow::onMergeFromCurrentKifu);
     m_mergeMenu->addAction(tr("棋譜ファイルから"), this, &JosekiWindow::onMergeFromKifuFile);
     m_mergeButton->setMenu(m_mergeMenu);
@@ -192,6 +196,7 @@ void JosekiWindow::setupUi()
     mainLayout->addWidget(m_sfenDetailWidget);
 
     m_tableWidget = new QTableWidget(this);
+    m_tableWidget->setObjectName(QStringLiteral("josekiTable"));
     m_tableWidget->setColumnCount(10);
     QStringList headers;
     headers << tr("No.") << tr("着手") << tr("定跡手") << tr("予想応手") << tr("編集")
