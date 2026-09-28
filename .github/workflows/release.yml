@@ -218,18 +218,13 @@ jobs:
           retention-days: 90
 
   build-windows:
-    needs: [compatibility-check, qt-notices]
+    needs: [compatibility-check]
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
           submodules: recursive
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: qt-license-documents
-          path: build/qt-licenses
 
       - name: Install Qt6
         uses: jurplel/install-qt-action@d325aaf2a8baeeda41ad0b5d39f84a6af9bcf005  # v4.3.0

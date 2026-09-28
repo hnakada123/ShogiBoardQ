@@ -323,11 +323,14 @@ Write-Info "MSVC ランタイム DLL: $(@($runtimeDlls).Count) 個をコピー"
 # Step 9: デプロイ後の検証
 # ──────────────────────────────────────────────
 
-Write-Info "Qt ライセンスと対応ソース情報を同梱中..."
 if (-not (Test-Path "$DEPLOY_DIR/sqldrivers/qsqlite.dll")) { Stop-WithError "SQLite ドライバーが配布物にありません。" }
-$qtNotices = if ($env:SHOGIBOARDQ_QT_LICENSE_DIR) { $env:SHOGIBOARDQ_QT_LICENSE_DIR } else { "build/qt-licenses" }
-python scripts/qt_licenses.py stage --build-dir $BUILD_DIR --notices $qtNotices --destination "$DEPLOY_DIR/licenses"
-if ($LASTEXITCODE -ne 0) { Stop-WithError "Qt ライセンスの準備に失敗しました。docs/dev/qt-licensing.md を参照してください。" }
+# Windows 配布では外部のライセンス文書・Hayanagi ソースを収録しない。
+# アプリ内蔵のライセンス表示は維持する。
+foreach ($excluded in @("licenses", "Hayanagi/source")) {
+    if (Test-Path (Join-Path $DEPLOY_DIR $excluded)) {
+        Stop-WithError "Windows 配布物に収録対象外の $excluded が含まれています。"
+    }
+}
 
 Write-Info "デプロイを検証中..."
 

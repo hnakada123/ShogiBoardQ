@@ -19,6 +19,9 @@ GitHub が自動表示する Source code のリンクは手動添付ファイル
 Qt ソースの取得はライセンス文書の抽出に使用するビルド準備であり、Release への
 添付処理ではない。Qt の実行用ライブラリ・プラグインとライセンス文書はアプリ内に収録する。
 Linux ZIP の外部ファイルには `licenses/` を作成せず、AppImage 内の文書を利用する。
+Windows ZIP にも外部の `licenses/` と `Hayanagi/source/` は収録しない。
+Windows ではアプリ内蔵のライセンス表示とルートの `LICENSE` を維持し、
+実行用ファイル・問題集・利用案内を配布する。この構成を今後の Windows リリースにも適用する。
 
 ## ライセンス文書
 
@@ -36,7 +39,7 @@ GPL / LGPL 本文、対応ソースの案内を表示する。本文はリソー
 
 | 形式 | 保存先 |
 |---|---|
-| Windows ZIP | `licenses/` |
+| Windows ZIP | 外部 `licenses/` は収録しない。アプリ内蔵の表示とルートの `LICENSE` を利用 |
 | macOS .app / DMG | `ShogiBoardQ.app/Contents/Resources/licenses/` |
 | Linux AppImage | 展開した AppDir の `usr/share/licenses/ShogiBoardQ/` |
 | 通常の CMake install | `<prefix>/share/licenses/ShogiBoardQ/` |
@@ -53,7 +56,7 @@ https://download.qt.io/archive/qt/6.7/6.7.3/single/qt-everywhere-src-6.7.3.tar.x
 2. アーカイブの `qtbase/.cmake.conf` でも版を確認する。
 3. ライセンス、著作権表示、`qt_attribution.json` とその参照文書を原文のまま抽出する。
    使用しない Qt モジュールの文書も含む。ソースアーカイブは作業用に保持する。
-4. 全 OS の配布処理で Qt のビルド時バージョンと一致する文書を同梱する。
+4. Linux / macOS の配布処理で Qt のビルド時バージョンと一致する文書を同梱する。Windows は外部文書の配置を行わない。
 5. 製品パッケージを `release-package-*` artifact に保存する。
 6. 公開ジョブは製品パッケージだけを取得し、上表の3ファイル名を明示して公開する。
    SHA256 と SBOM は CI の `release-verification` artifact に保存する。
@@ -68,7 +71,8 @@ CI は未改変の公式 Qt SDK を使用する。独自のパッチやビルド
 
 ## 手動で配布物を作る場合
 
-Python 3 が必要。実際に使用した Qt の対応ソース、変更箇所、ビルド手順を準備する。
+以下の文書抽出・配置は Linux / macOS 向け。Windows の ZIP 作成では実行しない。
+文書抽出には Python 3 が必要。実際に使用した Qt の対応ソース、変更箇所、ビルド手順を準備する。
 版番号が同じでも、OS パッケージのパッチ済み Qt と公式の未改変 Qt は同一ではない。
 バージョン一致の自動確認は必要条件であり、由来の確認の代わりにはならない。
 
@@ -86,8 +90,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 \
   --output build/qt-licenses
 ```
 
-その後、各 OS の `scripts/build-*` を実行する。Windows では `python3` を `python`
-に置き換える。`--clean` / `-Clean` は build を消すため、文書をその外に生成し、
+その後、対象 OS の `scripts/build-*` を実行する。`--clean` は build を消すため、文書をその外に生成し、
 `SHOGIBOARDQ_QT_LICENSE_DIR` 環境変数で指定する。
 
 独自 Qt の場合は、`qtbase/.cmake.conf` を含む完全な対応ソースを tar 形式で用意し、
