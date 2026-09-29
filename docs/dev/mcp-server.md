@@ -41,7 +41,7 @@ shogiboardq-cli            ShogiBoardQ --automation
 
 | 層 | 役割 | 実装 |
 |---|---|---|
-| MCP サーバー | ツール定義（JSON Schema）、引数検証、パス方針、ジョブ管理、アプリの自動起動・再接続、エラー変換 | `mcp/shogiboardq_mcp/`（Python 3.10+、`mcp>=1.10,<2`） |
+| MCP サーバー | ツール定義（JSON Schema）、引数検証、パス方針、ジョブ管理、アプリの自動起動・再接続、エラー変換 | `mcp/shogiboardq_mcp/`（Python 3.10+、`mcp>=1.10,<3`（1.x・2.x 両対応）） |
 | CLI | アプリを起動せずに使える機能（棋譜変換、SFEN 検証、エンジン一覧、解析、詰み探索、詰将棋生成・余詰検査、盤面画像） | `src/cli/` + `src/automation/` の共通サービス |
 | 自動化 API | 起動中のアプリの状態取得・操作（局面、棋譜、メニュー動作、スクリーンショット、ダイアログ内容） | `src/automation/`（`--automation` 指定時のみ有効） |
 

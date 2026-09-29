@@ -105,7 +105,12 @@ async def mcp_session(env: dict[str, str]):
             yield session
 
 
+def field(model, snake: str, camel: str):
+    """Read a result field by its mcp 2.x (snake_case) or mcp 1.x (camelCase) attribute name."""
+    return getattr(model, snake) if hasattr(model, snake) else getattr(model, camel)
+
+
 def result_data(result):
     """Return (text, structured, is_error) from a CallToolResult."""
     text = "\n".join(c.text for c in result.content if getattr(c, "type", "") == "text")
-    return text, result.structuredContent, bool(result.isError)
+    return text, field(result, "structured_content", "structuredContent"), bool(field(result, "is_error", "isError"))
