@@ -7799,7 +7799,7 @@ Do you want to continue?</translation>
     <name>TsumeCollectionDialog</name>
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="26"/>
-        <source>詰将棋の問題一覧</source>
+        <source>詰将棋問題一覧</source>
         <translation>Tsume Shogi Problems</translation>
     </message>
     <message>
@@ -8368,17 +8368,17 @@ Last solved: %2</translation>
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="55"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="56"/>
         <source>攻方</source>
         <translation>Attacker</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="55"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="56"/>
         <source>玉方</source>
         <translation>Defender</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="67"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="68"/>
         <source>なし</source>
         <translation>None</translation>
     </message>
@@ -8480,12 +8480,12 @@ Last solved: %2</translation>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="204"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="205"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation>The engine does not support mate search.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="230"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="231"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation>Generation was aborted because the engine is not responding.</translation>
     </message>

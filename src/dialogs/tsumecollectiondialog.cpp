@@ -23,7 +23,7 @@ TsumeCollectionDialog::TsumeCollectionDialog(QWidget* parent)
                     TsumeshogiSettings::setTsumeCollectionFontSize})
 {
     setObjectName(QStringLiteral("tsumeCollectionDialog"));
-    setWindowTitle(tr("詰将棋の問題一覧"));
+    setWindowTitle(tr("詰将棋問題一覧"));
     m_store = std::make_unique<TsumeProgressStore>();
     m_store->open();
     m_analyzer = new TsumePositionAnalyzer(this);

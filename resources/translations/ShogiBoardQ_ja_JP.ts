@@ -6064,8 +6064,8 @@ OKを選択すると保存先が指定できます。</source>
     <name>TsumeCollectionDialog</name>
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="26"/>
-        <source>詰将棋の問題一覧</source>
-        <translation>詰将棋の問題一覧</translation>
+        <source>詰将棋問題一覧</source>
+        <translation>詰将棋問題一覧</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="71"/>
@@ -6633,17 +6633,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="55"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="56"/>
         <source>攻方</source>
         <translation>攻方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="55"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="56"/>
         <source>玉方</source>
         <translation>玉方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="67"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="68"/>
         <source>なし</source>
         <translation>なし</translation>
     </message>
@@ -6745,12 +6745,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>TsumeshogiGenerator</name>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="204"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="205"/>
         <source>エンジンが詰み探索に対応していません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="230"/>
+        <location filename="../../src/analysis/tsumeshogigenerator.cpp" line="231"/>
         <source>エンジンが応答しないため生成を中止しました。</source>
         <translation type="unfinished"></translation>
     </message>
