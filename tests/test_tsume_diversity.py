@@ -81,6 +81,8 @@ class DiversityTest(unittest.TestCase):
         self.assertNotEqual(set(first), set(second))
 
 
+# 偽の sampler/auditor を shebang 付きスクリプトとして直接起動するため POSIX 専用
+@unittest.skipIf(sys.platform == "win32", "shebang スクリプトを実行ファイルとして起動できない")
 class RefillTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()

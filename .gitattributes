@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# 問題集は SHA-256 で検証レポートと照合するため、Windows でも改行を LF のまま保つ
+data/tsumeshogi/*.txt text eol=lf
