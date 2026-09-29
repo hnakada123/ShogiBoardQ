@@ -165,10 +165,10 @@ cmake --build build
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">Python と mcp パッケージ</span>
                 </div>
-                <p class="guide-step-text">Python 3.10 以上と公式の <code>mcp</code> パッケージが必要です。リポジトリの <code>mcp/</code> ディレクトリにサーバーがあります。</p>
+                <p class="guide-step-text">Python 3.10 以上と公式の <code>mcp</code> パッケージ（1.10 以上。1.x・2.x のどちらでも動作します）が必要です。リポジトリの <code>mcp/</code> ディレクトリにサーバーがあります。</p>
                 <div class="build-steps">
 <pre class="bash"><code># mcp パッケージだけ入れる場合（サーバーは PYTHONPATH で参照）
-pip install "mcp<2"
+pip install mcp
 
 # サーバーごとインストールする場合
 pip install -e mcp</code></pre>

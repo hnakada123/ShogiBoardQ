@@ -9,7 +9,6 @@ from typing import Any
 
 import mcp.types as types
 from mcp.server.lowlevel import Server
-from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.server.stdio import stdio_server
 
 from . import __version__
@@ -25,6 +24,12 @@ from .tooldefs import ALL_TOOLS, RESOURCES
 log = logging.getLogger(__name__)
 
 Handler = Callable[[dict[str, Any]], Awaitable[tuple[str, dict[str, Any]]]]
+ToolOutcome = tuple[str, dict[str, Any]] | types.CallToolResult
+ToolDispatcher = Callable[[str, dict[str, Any] | None], Awaitable[ToolOutcome]]
+ResourceReader = Callable[[str], Awaitable[tuple[str, str]]]
+
+# mcp 2.x は lowlevel Server のデコレータ登録を廃止し、コンストラクタの on_* 引数に変えた
+MCP_V2 = not hasattr(Server, "list_tools")
 
 INSTRUCTIONS = (
     "ShogiBoardQ tools. Positions are SFEN strings ('startpos' = initial position) and moves are USI "
@@ -93,50 +98,100 @@ def build_server() -> tuple[Server, JobManager, AppClient]:
     missing = {t.name for t in ALL_TOOLS} ^ set(handlers)
     assert not missing, f"tool/handler mismatch: {missing}"
 
-    server: Server = Server("shogiboardq", version=__version__, instructions=INSTRUCTIONS)
-
-    @server.list_tools()
-    async def list_tools() -> list[types.Tool]:
-        return ALL_TOOLS
-
-    @server.call_tool()
-    async def call_tool(name: str, arguments: dict[str, Any]):
+    async def dispatch_tool(name: str, arguments: dict[str, Any] | None) -> ToolOutcome:
         handler = handlers.get(name)
         if handler is None:
             return _error_result("unknown_tool", f"Unknown tool {name!r}")
         try:
-            text, structured = await handler(arguments or {})
+            return await handler(arguments or {})
         except ToolError as exc:
             log.info("tool %s failed: %s", name, exc)
             return _error_result(exc.code, exc.message, exc.data)
         except Exception as exc:  # pragma: no cover - defensive
             log.exception("tool %s crashed", name)
             return _error_result("internal_error", f"{type(exc).__name__}: {exc}")
+
+    async def read_text_resource(uri: str) -> tuple[str, str]:
+        try:
+            if uri == "shogiboardq://position/current":
+                pos = await client.call("position.get")
+                return str(pos.get("sfen", "")), "text/plain"
+            if uri == "shogiboardq://kifu/current":
+                result = await client.call("kifu.get", {"format": "kif", "max_moves": 2000})
+                return str(result.get("text", "")), "text/plain"
+            if uri == "shogiboardq://engines":
+                result = await run_cli(["list-engines"])
+                return json.dumps(result.get("engines", []), ensure_ascii=False, indent=2), "application/json"
+        except ToolError as exc:
+            raise ValueError(f"{exc.code}: {exc.message}") from exc
+        raise ValueError(f"Unknown resource: {uri}")
+
+    build = _build_server_v2 if MCP_V2 else _build_server_v1
+    return build(dispatch_tool, read_text_resource), jobs, client
+
+
+def _build_server_v2(dispatch_tool: ToolDispatcher, read_text_resource: ResourceReader) -> Server:
+    """mcp 2.x: handlers are passed to the constructor and return result models."""
+
+    async def list_tools(_ctx: Any, _params: Any) -> types.ListToolsResult:
+        return types.ListToolsResult(tools=ALL_TOOLS)
+
+    async def call_tool(_ctx: Any, params: types.CallToolRequestParams) -> types.CallToolResult:
+        outcome = await dispatch_tool(params.name, params.arguments)
+        if isinstance(outcome, types.CallToolResult):
+            return outcome
+        text, structured = outcome
+        return types.CallToolResult(content=[types.TextContent(type="text", text=text)],
+                                    structuredContent=structured)
+
+    async def list_resources(_ctx: Any, _params: Any) -> types.ListResourcesResult:
+        return types.ListResourcesResult(resources=RESOURCES)
+
+    async def read_resource(_ctx: Any, params: types.ReadResourceRequestParams) -> types.ReadResourceResult:
+        uri = str(params.uri)
+        text, mime_type = await read_text_resource(uri)
+        return types.ReadResourceResult(
+            contents=[types.TextResourceContents(uri=uri, text=text, mimeType=mime_type)])  # type: ignore[arg-type]
+
+    return Server(  # type: ignore[call-arg]
+        "shogiboardq",
+        version=__version__,
+        instructions=INSTRUCTIONS,
+        on_list_tools=list_tools,
+        on_call_tool=call_tool,
+        on_list_resources=list_resources,
+        on_read_resource=read_resource,
+    )
+
+
+def _build_server_v1(dispatch_tool: ToolDispatcher, read_text_resource: ResourceReader) -> Server:
+    """mcp 1.x: handlers are registered with decorators (distribution packages still ship 1.x)."""
+    from mcp.server.lowlevel.helper_types import ReadResourceContents
+
+    server: Server = Server("shogiboardq", version=__version__, instructions=INSTRUCTIONS)
+
+    @server.list_tools()  # type: ignore[attr-defined]
+    async def list_tools() -> list[types.Tool]:
+        return ALL_TOOLS
+
+    @server.call_tool()  # type: ignore[attr-defined]
+    async def call_tool(name: str, arguments: dict[str, Any]):
+        outcome = await dispatch_tool(name, arguments)
+        if isinstance(outcome, types.CallToolResult):
+            return outcome
+        text, structured = outcome
         return [types.TextContent(type="text", text=text)], structured
 
-    @server.list_resources()
+    @server.list_resources()  # type: ignore[attr-defined]
     async def list_resources() -> list[types.Resource]:
         return RESOURCES
 
-    @server.read_resource()
+    @server.read_resource()  # type: ignore[attr-defined]
     async def read_resource(uri) -> list[ReadResourceContents]:
-        key = str(uri)
-        try:
-            if key == "shogiboardq://position/current":
-                pos = await client.call("position.get")
-                return [ReadResourceContents(content=str(pos.get("sfen", "")), mime_type="text/plain")]
-            if key == "shogiboardq://kifu/current":
-                result = await client.call("kifu.get", {"format": "kif", "max_moves": 2000})
-                return [ReadResourceContents(content=str(result.get("text", "")), mime_type="text/plain")]
-            if key == "shogiboardq://engines":
-                result = await run_cli(["list-engines"])
-                return [ReadResourceContents(content=json.dumps(result.get("engines", []), ensure_ascii=False, indent=2),
-                                             mime_type="application/json")]
-        except ToolError as exc:
-            raise ValueError(f"{exc.code}: {exc.message}") from exc
-        raise ValueError(f"Unknown resource: {key}")
+        text, mime_type = await read_text_resource(str(uri))
+        return [ReadResourceContents(content=text, mime_type=mime_type)]
 
-    return server, jobs, client
+    return server
 
 
 def _error_result(code: str, message: str, data: dict | None = None) -> types.CallToolResult:
