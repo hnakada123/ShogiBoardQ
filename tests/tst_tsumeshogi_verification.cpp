@@ -236,11 +236,17 @@ private slots:
         TsumeshogiCandidateScreener::Limits limits;
         limits.timeLimitMs = limits.alternativeTimeLimitMs = 3000;
         limits.alternativeExtraPlies = 2;
+        // 時間切れのまま通した局面は制限を広げると除外されうるため、食い違いはその数までに限る
+        QStringList rejected;
         for (const QString& sfen : std::as_const(generator.m_positionQueue)) {
             const auto verdict = TsumeshogiCandidateScreener::screen(sfen, 3, limits, noStop);
-            QVERIFY2(verdict == TsumeshogiCandidateScreener::Verdict::Candidate
-                         || verdict == TsumeshogiCandidateScreener::Verdict::Unknown, qPrintable(sfen));
+            if (verdict != TsumeshogiCandidateScreener::Verdict::Candidate
+                && verdict != TsumeshogiCandidateScreener::Verdict::Unknown) {
+                rejected.append(sfen);
+            }
         }
+        QVERIFY2(rejected.size() <= generator.m_screenUnknownCount,
+                 qPrintable(rejected.join(QStringLiteral(", "))));
         generator.stop();
     }
     void trimmingSkipsRemovalsRejectedByScreening()

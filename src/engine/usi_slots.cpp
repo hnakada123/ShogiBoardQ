@@ -143,7 +143,9 @@ void Usi::onThinkingInfoUpdated(const QString& time, const QString& depth,
     }
 
     // 検討タブへ追記（MultiPVモード: multipv値に基づいて行を更新/挿入）
-    if (m_considerationModel) {
+    // PV のない info（停止時の time/nodes だけの行など）は multipv 1 扱いになり、
+    // 最善手の行を空の読み筋で上書きしてしまうため反映しない
+    if (m_considerationModel && !pvKanjiStr.isEmpty()) {
         const auto existingRow = m_considerationModel->findRowByMultipv(multipv);
         const ShogiInfoRecord* existingMultipvRecord = existingRow.has_value()
             ? m_considerationModel->recordAt(*existingRow) : nullptr;
