@@ -7,6 +7,8 @@ import tempfile
 import unittest
 
 
+# 偽の auditor を shebang 付きスクリプトとして直接起動するため POSIX 専用
+@unittest.skipIf(sys.platform == "win32", "shebang スクリプトを実行ファイルとして起動できない")
 class AuditCollectionsTest(unittest.TestCase):
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
