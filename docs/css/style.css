@@ -917,6 +917,24 @@ a.feature-card-link:hover .feature-card-more {
     background: var(--color-bg);
 }
 
+/* --- Hayanagi Guide --- */
+.hayanagi-guide .info-table {
+    table-layout: fixed;
+}
+
+.hayanagi-guide .info-table th:first-child {
+    width: 32%;
+}
+
+.hayanagi-guide .info-table td,
+.hayanagi-guide .guide-step-text code {
+    overflow-wrap: anywhere;
+}
+
+.hayanagi-guide section[id] {
+    scroll-margin-top: 56px;
+}
+
 /* --- Format Examples --- */
 .format-examples {
     display: grid;
