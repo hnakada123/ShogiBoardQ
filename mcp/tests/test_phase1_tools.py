@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from conftest import FIXTURES, mcp_session, result_data
+from conftest import FIXTURES, field, mcp_session, result_data
 
 pytestmark = pytest.mark.anyio
 
@@ -27,7 +27,7 @@ async def test_list_tools_and_resources(server_env):
         assert {"convert_kifu", "validate_sfen", "list_engines", "analyze_position", "generate_tsume",
                 "verify_tsume", "render_board_image", "get_app_state", "trigger_action"} <= names
         for tool in tools.tools:
-            assert tool.description and tool.inputSchema["type"] == "object"
+            assert tool.description and field(tool, "input_schema", "inputSchema")["type"] == "object"
             assert tool.annotations is not None
         resources = await session.list_resources()
         assert {str(r.uri) for r in resources.resources} == {
@@ -94,7 +94,7 @@ async def test_list_engines_and_resource(server_env):
         if os.environ.get("SHOGIBOARDQ_TEST_USI_ENGINE"):
             assert "TestUsi" in names
         resource = await session.read_resource("shogiboardq://engines")  # type: ignore[arg-type]
-        assert resource.contents and resource.contents[0].mimeType == "application/json"
+        assert resource.contents and field(resource.contents[0], "mime_type", "mimeType") == "application/json"
 
 
 async def test_render_board_image(server_env, tmp_path):

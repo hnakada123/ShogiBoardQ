@@ -42,6 +42,12 @@ jobs:
           QT_QPA_PLATFORM: offscreen
         run: cd build && ctest --output-on-failure
 
+      # MCP サーバーは mcp 1.x（ディストリのパッケージ）と 2.x の両方に対応するため、1.x でも確認する
+      - name: Test MCP server with mcp 1.x
+        run: |
+          python3 -m pip install 'mcp>=1.10,<2'
+          cd build && ctest -R tst_mcp_python --output-on-failure
+
       - name: Test Summary Drift Check
         if: always()
         run: bash scripts/update-test-summary.sh --build-dir build --check
