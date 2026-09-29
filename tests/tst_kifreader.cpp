@@ -6,6 +6,7 @@
 #include <QTemporaryFile>
 
 #include "kifreader.h"
+#include "shiftjiscodec.h"
 
 class TestKifReader : public QObject
 {
@@ -48,6 +49,42 @@ private slots:
         QCOMPARE(usedEncoding, expectedEncoding);
         QCOMPARE(lines, expectedLines);
         QVERIFY2(warn.isEmpty(), qPrintable(warn));
+    }
+
+    void readAllLinesAuto_decodesShiftJis()
+    {
+        QTemporaryFile file(QDir::tempPath() + QStringLiteral("/kifreader_XXXXXX.kif"));
+        QVERIFY(file.open());
+        const QByteArray content = QByteArray::fromHex("81a38256985a95e00d0a");  // "▲７六歩\r\n"
+        QCOMPARE(file.write(content), content.size());
+        file.close();
+
+        QStringList lines;
+        QString usedEncoding;
+        QVERIFY(KifReader::readAllLinesAuto(file.fileName(), lines, &usedEncoding));
+
+        QCOMPARE(usedEncoding, QStringLiteral("cp932"));
+        QCOMPARE(lines, (QStringList{QStringLiteral("▲７六歩"), QString()}));
+    }
+
+    // Qt が Shift_JIS を扱えない環境（ICU なし）で使う OS の変換機能を直接確認する
+    void shiftJisPlatform_roundTrip()
+    {
+        const QByteArray bytes = QByteArray::fromHex("81a38256985a95e08740");  // "▲７六歩①"（①は CP932 拡張）
+        const auto decoded = ShiftJisCodec::decodeWithPlatform(bytes);
+        QVERIFY(decoded.has_value());
+        QCOMPARE(*decoded, QStringLiteral("▲７六歩①"));
+
+        const auto encoded = ShiftJisCodec::encodeWithPlatform(*decoded);
+        QVERIFY(encoded.has_value());
+        QCOMPARE(*encoded, bytes);
+    }
+
+    void shiftJisPlatform_rejectsInvalidInput()
+    {
+        QVERIFY(!ShiftJisCodec::decodeWithPlatform(QByteArray::fromHex("81")).has_value());
+        QVERIFY(!ShiftJisCodec::encodeWithPlatform(QStringLiteral("\U0001F600")).has_value());
+        QVERIFY(!ShiftJisCodec::encode(QStringLiteral("\U0001F600")).has_value());
     }
 };
 

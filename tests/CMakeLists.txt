@@ -55,6 +55,9 @@ set(TEST_INCLUDES
 
 # Common link libraries
 set(TEST_LIBS Qt6::Test Qt6::Widgets Qt6::Charts Qt6::Network Qt6::Concurrent)
+if(NOT WIN32)
+    list(APPEND TEST_LIBS Iconv::Iconv)  # shiftjiscodec.cpp
+endif()
 
 # Settings sources (全ドメイン設定ファイル)
 set(SETTINGS_SOURCES
@@ -217,6 +220,7 @@ add_shogi_test(tst_shogiclock
 add_shogi_test(tst_kifreader
     tst_kifreader.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/common/logcategories.cpp
 )
 
@@ -237,6 +241,7 @@ add_shogi_test(tst_kifconverter
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -258,6 +263,7 @@ add_shogi_test(tst_ki2converter
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -275,6 +281,7 @@ add_shogi_test(tst_csaconverter
     ${SRC}/kifu/formats/csalexer.cpp
     ${SRC}/kifu/formats/csalexer_position.cpp
     ${SRC}/kifu/formats/csatosfenconverter.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/kifreader.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
@@ -290,6 +297,7 @@ add_shogi_test(tst_jkfconverter
     ${SRC}/kifu/formats/jkfmoveparser.cpp
     ${SRC}/kifu/formats/jkftosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -303,6 +311,7 @@ add_shogi_test(tst_usiconverter
     ${TEST_STUBS}
     ${SRC}/kifu/formats/usitosfenconverter.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -317,6 +326,7 @@ add_shogi_test(tst_usenconverter
     ${SRC}/kifu/formats/usentosfenconverter.cpp
     ${SRC}/kifu/formats/usentosfenconverter_decode.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiboard.cpp
@@ -388,6 +398,7 @@ add_shogi_test(tst_gamerecordmodel
     ${SRC}/kifu/kifuexportclipboard.cpp
     ${SRC}/kifu/kifuclipboardservice.cpp
     ${SRC}/kifu/formats/csatosfenconverter.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/formats/csalexer.cpp
     ${SRC}/kifu/formats/csalexer_position.cpp
     ${SRC}/kifu/formats/jkftosfenconverter.cpp
@@ -433,6 +444,7 @@ add_shogi_test(tst_kifusavecoordinator
     tst_kifusavecoordinator.cpp
     ${SRC}/kifu/kifusavecoordinator.cpp
     ${SRC}/kifu/kifuioservice.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/services/settingscommon.cpp
     ${SRC}/services/gamesettings.cpp
 )
@@ -469,6 +481,7 @@ add_shogi_test(tst_kifu_comment_sync
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/kifucontentbuilder.cpp
 )
 
@@ -497,6 +510,7 @@ add_shogi_test(tst_josekiwindow
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
 
@@ -562,6 +576,7 @@ add_shogi_test(tst_integration
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
 )
 
 # ============================================================
@@ -1145,6 +1160,7 @@ add_shogi_test(tst_joseki_repository
     ${SRC}/kifu/formats/kiflexer.cpp
     ${SRC}/kifu/formats/kiflexer_bod.cpp
     ${SRC}/kifu/kifreader.cpp
+    ${SRC}/kifu/shiftjiscodec.cpp
     ${SRC}/kifu/kifubranchnode.cpp
 )
 

@@ -8,6 +8,7 @@
 #include "csalexer.h"
 #include "kifdisplayitem.h"
 #include "parsecommon.h"
+#include "shiftjiscodec.h"
 
 #include <QFile>
 #include <QStringDecoder>
@@ -39,9 +40,8 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
         QStringDecoder dec(QStringDecoder::Utf8);
         text = dec(raw);
     } else if (sjisHeader) {
-        QStringDecoder decSjis("Shift-JIS");
-        if (decSjis.isValid()) {
-            text = decSjis(raw);
+        if (auto decoded = ShiftJisCodec::decode(raw)) {
+            text = std::move(*decoded);
         } else {
             QStringDecoder dec(QStringDecoder::System);
             text = dec(raw);
@@ -52,9 +52,8 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
         if (!decUtf8.hasError() && !t.isEmpty()) {
             text = t;
         } else {
-            QStringDecoder decSjis("Shift-JIS");
-            if (decSjis.isValid()) {
-                text = decSjis(raw);
+            if (auto decoded = ShiftJisCodec::decode(raw)) {
+                text = std::move(*decoded);
             } else {
                 QStringDecoder decSys(QStringDecoder::System);
                 text = decSys(raw);
