@@ -27,6 +27,10 @@ jobs:
           version: '6.7.*'
           modules: 'qtcharts qtmultimedia'
 
+      # tst_mcp_python は mcp/pytest がある場合のみ登録される（test-summary.md と一致させる）
+      - name: Install MCP test dependencies
+        run: python3 -m pip install './mcp[test]'
+
       - name: Configure
         run: cmake -B build -S . -DBUILD_TESTING=ON -DCMAKE_BUILD_TYPE=Release -DENABLE_WERROR=ON
 
@@ -435,7 +439,7 @@ jobs:
 
   build-macos:
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
-    runs-on: macos-latest
+    runs-on: macos-15  # macOS 26 SDK には AGL が無く Qt 6.7 がリンクできない
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
@@ -481,7 +485,7 @@ jobs:
       - name: Test
         env:
           QT_QPA_PLATFORM: offscreen
-        run: ctest --test-dir build --config Release --output-on-failure
+        run: ctest --test-dir build -C Release --output-on-failure
 
   translation-check:
     if: github.event_name != 'schedule'

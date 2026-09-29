@@ -44,7 +44,8 @@ QJsonArray menuItems(QMenu* menu, int depth = 0)
     QJsonArray items;
     if (depth > 10) return items;
     int index = 0;
-    for (auto* action : menu->actions()) {
+    const QList<QAction*> actions = menu->actions();
+    for (auto* action : actions) {
         QJsonObject item{{QStringLiteral("index"), index++}, {QStringLiteral("text"), action->text()},
             {QStringLiteral("object_name"), action->objectName()}, {QStringLiteral("enabled"), action->isEnabled()},
             {QStringLiteral("visible"), action->isVisible()}, {QStringLiteral("checked"), action->isChecked()},
@@ -67,7 +68,8 @@ void requireMenuInteractive(QWidget* window, QWidget* source, QMenu* menu)
 QGraphicsItem* branchNode(QGraphicsView* view, int id)
 {
     if (view->scene()) {
-        for (auto* item : view->scene()->items()) {
+        const QList<QGraphicsItem*> sceneItems = view->scene()->items();
+        for (auto* item : sceneItems) {
             const QVariant value = item->data(BranchTreeItemRoles::NodeId);
             if (value.isValid() && value.toInt() == id && item->isVisible()) return item;
         }
@@ -122,7 +124,8 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
                 for (const auto& parent : parents)
                     if (!parent || !parent->isEnabled() || !parent->isVisible()) return;
                 if (!guarded || !parentMenu || !isAllowed(parentMenu, guarded)) return;
-                for (auto* submenu : guardedMenu->findChildren<QMenu*>()) submenu->hide();
+                const QList<QMenu*> submenus = guardedMenu->findChildren<QMenu*>();
+                for (auto* submenu : submenus) submenu->hide();
                 guardedMenu->hide();
                 guarded->trigger();
             } catch (const AutomationError&) { }
@@ -141,7 +144,8 @@ void AutomationCommands::registerNavigationCommands(AutomationDispatcher& dispat
             const auto value = params.value(QStringLiteral("actions"));
             if (!value.isArray()) throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("actions must be an array"));
             QStringList names;
-            for (const auto& name : value.toArray()) {
+            const QJsonArray requested = value.toArray();
+            for (const auto& name : requested) {
                 if (!name.isString() || !available.contains(name.toString()) || names.contains(name.toString()))
                     throw AutomationError(AutomationErrorCode::InvalidParams, QStringLiteral("Unknown or duplicate favorite action"));
                 names.append(name.toString());

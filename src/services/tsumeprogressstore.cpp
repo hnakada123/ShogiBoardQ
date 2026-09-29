@@ -154,7 +154,8 @@ std::optional<TsumeEvaluation> TsumeProgressStore::cached(const QString& id, con
     if (status != 1 && status != 2) return std::nullopt;
     result.status = status == 1 ? TsumeEvaluation::Status::Mate : TsumeEvaluation::Status::NoMate;
     result.plies = query.value(1).toInt();
-    for (const auto& move : QJsonDocument::fromJson(query.value(2).toByteArray()).array()) result.pv.append(move.toString());
+    const QJsonArray pvMoves = QJsonDocument::fromJson(query.value(2).toByteArray()).array();
+    for (const auto& move : pvMoves) result.pv.append(move.toString());
     if (result.status == TsumeEvaluation::Status::Mate && (result.plies < 1 || result.plies % 2 != 1)) return std::nullopt;
     query.finish();
     QSqlQuery touch(m_cache);

@@ -30,7 +30,8 @@ int TsumeCollection::verifiedMateLength(const QByteArray& contents, const Result
            != QStringLiteral("Hayanagi TsumeSearch with a fresh table per SFEN")
         || !report.value(QStringLiteral("allow_final_move_alternatives")).toBool()) return 0;
     const QString hash = QString::fromLatin1(QCryptographicHash::hash(contents, QCryptographicHash::Sha256).toHex());
-    for (const auto& entry : report.value(QStringLiteral("files")).toArray()) {
+    const QJsonArray files = report.value(QStringLiteral("files")).toArray();
+    for (const auto& entry : files) {
         const auto file = entry.toObject();
         if (file.value(QStringLiteral("sha256")).toString() != hash) continue;
         const int count = file.value(QStringLiteral("positions")).toInt();
