@@ -5,6 +5,8 @@
 /// @brief 対局通信フロー・盤面データ管理を担当するハンドラクラスの定義
 
 #include <QChar>
+#include <QObject>
+#include <QTimer>
 #include <QPoint>
 #include <QString>
 #include <QStringList>
@@ -24,14 +26,15 @@ class ShogiClock;
  * Usiファサードクラスから対局通信処理（ポンダー制御含む）と
  * 盤面データ管理（クローン・SFEN計算）を分離したもの。
  *
- * 非QObjectクラス。エラー通知はHooksコールバック経由で行う。
+ * エラー・着手通知はHooksコールバック経由で行う。
  */
-class UsiMatchHandler
+class UsiMatchHandler : public QObject
 {
 public:
     /// コールバック定義（Usiファサードからの注入用）
     struct Hooks {
         std::function<void()> onBestmoveTimeout; ///< bestmoveタイムアウト時の処理
+        std::function<void(const QPoint&, const QPoint&, const QString&, const QString&)> onMoveReady = {};
     };
 
     UsiMatchHandler(UsiProtocolHandler* protocolHandler,
@@ -41,6 +44,8 @@ public:
     void setHooks(const Hooks& hooks);
     void setClock(ShogiClock* clock) { m_clock = clock; }
     void onBestMoveReceived();
+    void requestMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
+    void cancelAsync();
 
     // --- 盤面データ管理 ---
 
@@ -76,6 +81,16 @@ public:
     QString convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote);
 
 private:
+    void startAsyncSearch();
+    void onSearchTimeout();
+    int remainingTimeMs(const UsiTimingParams& timing) const;
+    enum class Pending { None, PonderStop, Move };
+    Pending m_pending = Pending::None;
+    QString m_position;
+    QString m_ponder;
+    UsiTimingParams m_timing;
+    QTimer m_responseTimer;
+
     void executeEngineCommunication(QString& positionStr, QString& positionPonderStr,
                                     QPoint& outFrom, QPoint& outTo,
                                     const UsiTimingParams& timing);

@@ -17,7 +17,8 @@
  * エンジン初手・エンジン返し手）を分離した Strategy 実装。
  * 共通処理は StrategyContext 経由で呼ぶ。
  */
-class HumanVsEngineStrategy : public GameModeStrategy {
+class HumanVsEngineStrategy : public QObject, public GameModeStrategy {
+    Q_OBJECT
 public:
     HumanVsEngineStrategy(MatchCoordinator::StrategyContext& ctx,
                           bool engineIsP1,
@@ -34,7 +35,13 @@ public:
     void disarmTurnTimer() override;
     void startInitialMoveIfNeeded() override;
 
+private slots:
+    void onEngineInitialized();
+    void onEngineMoveReady(QPoint from, QPoint to, const QString& position, const QString& ponder);
+
 private:
+    bool m_waitingForMove = false;
+    bool m_initialMoveRequested = false;
     /// エンジン返し手の処理（人間着手後の2手目以降）
     void onHumanMoveEngineReply(const QPoint& humanFrom, const QPoint& humanTo);
 

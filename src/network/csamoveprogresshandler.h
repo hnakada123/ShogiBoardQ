@@ -5,6 +5,8 @@
 /// @brief CSA対局の指し手進行ハンドラの定義
 
 #include <QCoreApplication>
+#include <QObject>
+#include "csaenginecontroller.h"
 #include <QPointer>
 #include <QString>
 #include <QStringList>
@@ -29,7 +31,7 @@ class CsaClient;
  * CsaGameCoordinator 内部状態への参照は Refs struct で受け取り、
  * シグナル発火や副作用は Hooks struct のコールバックで実行する。
  */
-class CsaMoveProgressHandler
+class CsaMoveProgressHandler : public QObject
 {
     Q_DECLARE_TR_FUNCTIONS(CsaMoveProgressHandler)
 
@@ -121,6 +123,7 @@ public:
     void startEngineThinking();
 
 private:
+    void onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result);
     void updateTimeTracking(bool isBlackMove, int consumedTimeMs);
     void syncClockAfterMove(bool startMyTurnClock);
 

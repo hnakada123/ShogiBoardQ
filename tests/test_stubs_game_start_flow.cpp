@@ -450,6 +450,8 @@ KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves, QStringLis
     , m_currentSelectedPly(currentSelectedPly)
     , m_currentMoveIndex(currentMoveIndex) {}
 
+KifuLoadCoordinator::~KifuLoadCoordinator() = default;
+void KifuLoadCoordinator::onLoadFinished() {}
 void KifuLoadCoordinator::resetBranchTreeForNewGame() {}
 void KifuLoadCoordinator::resetBranchContext() {}
 void KifuLoadCoordinator::setBranchTreeManager(BranchTreeManager*) {}
@@ -776,3 +778,17 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_branchtreemanager.cpp"
 #include "moc_kifuloadcoordinator.cpp"
 #include "moc_analysissessionhandler.cpp"
+
+bool Usi::startAndInitializeEngineAsync(const QString& path, const QString& name) { return startAndInitializeEngine(path, name); }
+void Usi::onProcessStarted() {}
+void Usi::onEngineInitialized(bool) {}
+void Usi::onStartTimeout() {}
+void Usi::requestMatchMove(const QString&, const QString&, const UsiTimingParams&) {}
+void Usi::requestHumanReply(QString&, const QString&, const QPoint&, const QPoint&, const UsiTimingParams&, QStringList&) {}
+
+void UsiProtocolHandler::onInitializationUsiOk() {}
+void UsiProtocolHandler::onInitializationReadyOk() {}
+void UsiProtocolHandler::onInitializationTimeout() {}
+
+void Usi::onProtocolError(const QString&) {}
+void Usi::onProcessExited() {}

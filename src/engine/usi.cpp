@@ -5,6 +5,7 @@
 #include "usimatchhandler.h"
 
 #include <QTimer>
+#include <utility>
 
 // ============================================================
 // 構築・破棄
@@ -23,6 +24,11 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
     , m_thinkingModel(modelThinking)
     , m_gameController(gameController)
 {
+    m_startTimer.setSingleShot(true);
+    connect(&m_startTimer, &QTimer::timeout, this, &Usi::onStartTimeout);
+    connect(m_processManager.get(), &EngineProcessManager::processExited, this, &Usi::onProcessExited);
+    connect(m_processManager.get(), &EngineProcessManager::processStarted, this, &Usi::onProcessStarted);
+    connect(m_protocolHandler.get(), &UsiProtocolHandler::initializationFinished, this, &Usi::onEngineInitialized);
     setupConnections();
 
     // Presenterにゲームコントローラのみを設定（モデルへの直接依存を排除）
@@ -35,8 +41,11 @@ Usi::Usi(UsiCommLogModel* model, ShogiEngineThinkingModel* modelThinking,
     // UsiMatchHandlerのフック設定
     m_matchHandler->setHooks({
         /*.onBestmoveTimeout =*/ [this]() {
-            emit errorOccurred(tr("Timeout waiting for bestmove."));
             cancelCurrentOperation();
+            emit errorOccurred(tr("Timeout waiting for bestmove."));
+        },
+        /*.onMoveReady =*/ [this](const QPoint& from, const QPoint& to, const QString& position, const QString& ponder) {
+            emit matchMoveReady(from, to, position, ponder);
         }
     });
 }
@@ -49,7 +58,7 @@ Usi::~Usi()
         // m_analysisStopTimer は this を parent に持つため、Qt親子モデルにより自動解放される
     }
     // デストラクタ時はモデルクリアをスキップ（モデルが既に破棄されている可能性があるため）
-    m_processManager->stopProcess();
+    m_processManager->stopProcessAsync();
     // m_presenter->requestClearThinkingInfo() は呼ばない
 }
 
@@ -84,7 +93,7 @@ void Usi::setupConnections()
     connect(m_protocolHandler.get(), &UsiProtocolHandler::bestMoveWinReceived,
             this, &Usi::bestMoveWinReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::errorOccurred,
-            this, &Usi::errorOccurred);
+            this, &Usi::onProtocolError);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::infoLineReceived,
             this, &Usi::infoLineReceived);
     connect(m_protocolHandler.get(), &UsiProtocolHandler::checkmateSolved,
@@ -124,7 +133,6 @@ void Usi::onProcessError(QProcess::ProcessError error, const QString& message)
     Q_UNUSED(error)
     cleanupEngineProcessAndThread();
     emit errorOccurred(message);
-    cancelCurrentOperation();
 }
 
 void Usi::onCommandSent(const QString& command)
@@ -240,6 +248,8 @@ void Usi::resetWinNotified()
 
 void Usi::markHardTimeout()
 {
+    m_matchHandler->cancelAsync();
+    m_pendingActions.clear();
     m_protocolHandler->markHardTimeout();
 }
 
@@ -273,6 +283,11 @@ void Usi::setLogModel(UsiCommLogModel* m)
 
 void Usi::cancelCurrentOperation()
 {
+    ++m_asyncGeneration;
+    m_startTimer.stop();
+    m_initializing = false;
+    m_pendingActions.clear();
+    m_matchHandler->cancelAsync();
     m_protocolHandler->cancelCurrentOperation();
 }
 
@@ -285,11 +300,10 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
     if (engineFile.isEmpty()) {
         cleanupEngineProcessAndThread();
         emit errorOccurred(tr("Engine file path is empty."));
-        cancelCurrentOperation();
         return;
     }
 
-    (void)startAndInitializeEngine(engineFile, enginename);
+    (void)startAndInitializeEngineAsync(engineFile, enginename);
 }
 
 bool Usi::startAndInitializeEngine(const QString& engineFile, const QString& enginename)
@@ -314,11 +328,12 @@ bool Usi::startAndInitializeEngine(const QString& engineFile, const QString& eng
 
 void Usi::cleanupEngineProcessAndThread(bool clearThinking)
 {
+    cancelCurrentOperation();
     // エンジンプロセスが実行中の場合は quit コマンドを送信してから停止
     if (m_processManager->isRunning()) {
         m_protocolHandler->sendQuit();
     }
-    m_processManager->stopProcess();
+    m_processManager->stopProcessAsync();
     if (clearThinking) {
         m_presenter->requestClearThinkingInfo();
     }
@@ -335,11 +350,13 @@ void Usi::sendGameOverCommand(GameOverResult result)
 
 void Usi::sendQuitCommand()
 {
+    cancelCurrentOperation();
     m_protocolHandler->sendQuit();
 }
 
 void Usi::sendStopCommand()
 {
+    if (m_initializing) { m_pendingActions.clear(); return; }
     m_protocolHandler->sendStop();
     // 検討モデルはクリアしない（再開時に必要なため）
     // モデルのクリアはエンジン破棄時に自動的に行われる
@@ -372,7 +389,7 @@ void Usi::updateConsiderationMultiPV(int multiPV)
 
     // エンジンにMultiPV設定を送信
     if (m_protocolHandler) {
-        m_protocolHandler->sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(newMultiPV));
+        sendRaw(QStringLiteral("setoption name MultiPV value %1").arg(newMultiPV));
     }
 
     // モデルをクリアして新しいMultiPV設定で再表示
@@ -383,6 +400,7 @@ void Usi::updateConsiderationMultiPV(int multiPV)
 
 void Usi::sendGoCommand(const UsiTimingParams& timing)
 {
+    if (deferUntilReady([this, timing]() { sendGoCommand(timing); })) return;
     m_matchHandler->cloneCurrentBoardData();
     m_protocolHandler->sendGo(timing.byoyomiMilliSec, timing.btime, timing.wtime,
                               timing.addEachMoveMilliSec1, timing.addEachMoveMilliSec2,
@@ -391,6 +409,7 @@ void Usi::sendGoCommand(const UsiTimingParams& timing)
 
 void Usi::sendRaw(const QString& command) const
 {
+    if (deferUntilReady([this, command]() { sendRaw(command); })) return;
     m_protocolHandler->sendRaw(command);
 }
 

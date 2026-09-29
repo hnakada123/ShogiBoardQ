@@ -1,0 +1,273 @@
+#include <QtTest>
+#include <QTemporaryDir>
+#include <QTimer>
+#include <QThread>
+
+#include "kifuloadcoordinator.h"
+#include "kifuloadparser.h"
+#include "sfenutils.h"
+#include "sfenpositiontracer.h"
+#include "shogigamecontroller.h"
+#include "shogiboard.h"
+#include "usi.h"
+#include "usiprotocolhandler.h"
+#include "enginepondersettings.h"
+#include "tsumethreadbudget.h"
+#include "tsumecollection.h"
+#include "tsume.h"
+
+namespace {
+struct KifuHarness {
+    QList<ShogiMove> moves;
+    QStringList commands;
+    int active = 0, selected = 0, current = 0;
+    QStringList history;
+    KifuLoadCoordinator loader{moves, commands, active, selected, current, &history,
+                                nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+};
+const QString engineName = QStringLiteral("BackgroundTest");
+QString fixture(const QString& name)
+{
+    return QCoreApplication::applicationDirPath() + QStringLiteral("/fixtures/") + name;
+}
+}
+
+class TestBackgroundTasks : public QObject
+{
+    Q_OBJECT
+    QTemporaryDir m_config;
+    QTimer m_heartbeat;
+    int m_ticks = 0;
+private slots:
+    void tick() { ++m_ticks; }
+    void initTestCase()
+    {
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+        connect(&m_heartbeat, &QTimer::timeout, this, &TestBackgroundTasks::tick);
+        m_heartbeat.start(10);
+    }
+    void cleanup()
+    {
+        qunsetenv("SBQ_MATCH_INIT_DELAY_MS");
+        qunsetenv("SBQ_MATCH_STOP_DELAY_MS");
+        qunsetenv("SBQ_MATCH_EXIT_ON_GO");
+        qunsetenv("SBQ_MATCH_NO_USIOK");
+        EnginePonderSettings::save(engineName, false, true);
+    }
+    void allKifuFormatsLoadInBackground()
+    {
+        for (const auto& extension : {"kif", "ki2", "csa", "jkf", "usi", "usen"}) {
+            KifuHarness h;
+            QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
+            QSignalSpy errors(&h.loader, &KifuLoadCoordinator::errorOccurred);
+            h.loader.loadFileAsync(fixture(QStringLiteral("test_basic.") + QString::fromLatin1(extension)));
+            QCOMPARE(finished.size(), 0);
+            QTRY_COMPARE(finished.size(), 1);
+            QVERIFY2(finished.first().first().toBool(), extension);
+            QCOMPARE(errors.size(), 0);
+            QCOMPARE(h.moves.size(), 7);
+            QCOMPARE(h.history.first(), SfenUtils::hirateSfen());
+            QCOMPARE(h.commands.size(), 8);
+            QVERIFY(h.commands.last().endsWith(QStringLiteral("7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6i7h")));
+        }
+    }
+    void replacementAndCancelDoNotApplyOldResults()
+    {
+        KifuHarness h;
+        QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
+        h.loader.loadFileAsync(fixture(QStringLiteral("test_branch.kif")));
+        QString position = SfenUtils::hirateSfen();
+        position.replace(QStringLiteral(" b "), QStringLiteral(" w "));
+        h.loader.loadTextAsync(position);
+        QTRY_COMPARE(finished.size(), 1);
+        QCOMPARE(h.history, QStringList{position});
+        h.loader.loadFileAsync(fixture(QStringLiteral("test_basic.kif")));
+        h.loader.cancelLoad();
+        QCOMPARE(finished.size(), 2);
+        QVERIFY(!finished.last().first().toBool());
+        QTest::qWait(100);
+        QCOMPARE(finished.size(), 2);
+        QCOMPARE(h.history, QStringList{position});
+    }
+    void failedLoadKeepsExistingRecord()
+    {
+        KifuHarness h;
+        QVERIFY(h.loader.loadKifuFromString(QStringLiteral("position startpos moves 7g7f")));
+        const auto before = h.history;
+        QSignalSpy finished(&h.loader, &KifuLoadCoordinator::loadFinished);
+        QSignalSpy errors(&h.loader, &KifuLoadCoordinator::errorOccurred);
+        h.loader.loadFileAsync(fixture(QStringLiteral("missing.kif")));
+        QTRY_COMPARE(finished.size(), 1);
+        QVERIFY(!finished.first().first().toBool());
+        QCOMPARE(errors.size(), 1);
+        QCOMPARE(h.history, before);
+    }
+    void destructionDoesNotWaitForParsing()
+    {
+        auto h = std::make_unique<KifuHarness>();
+        h->loader.loadFileAsync(fixture(QStringLiteral("test_branch.kif")));
+        h.reset();
+        QTest::qWait(50); // ワーカー完了後も解放済みGUIに触れない。
+    }
+    void protocolInitializationTimeoutAndCancel()
+    {
+        UsiProtocolHandler handler;
+        QSignalSpy done(&handler, &UsiProtocolHandler::initializationFinished);
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.initializeEngineAsync(30);
+        QCOMPARE(done.size(), 0);
+        QTRY_COMPARE(done.size(), 1);
+        QVERIFY(!done.first().first().toBool());
+        QCOMPARE(errors.size(), 1);
+        handler.initializeEngineAsync(30);
+        handler.cancelCurrentOperation();
+        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QTest::qWait(60);
+        QCOMPARE(done.size(), 1);
+        handler.initializeEngineAsync();
+        handler.onDataReceived(QStringLiteral("readyok")); // 順序の違う応答は完了にしない。
+        QCOMPARE(done.size(), 1);
+        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QCOMPARE(done.size(), 2);
+        QVERIFY(done.last().first().toBool());
+    }
+    void initializationAndMoveKeepEventLoopResponsive()
+    {
+        qputenv("SBQ_MATCH_INIT_DELAY_MS", "250");
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi engine(nullptr, nullptr, &game);
+        QSignalSpy ready(&engine, &Usi::engineInitialized);
+        QSignalSpy moves(&engine, &Usi::matchMoveReady);
+        QSignalSpy errors(&engine, &Usi::errorOccurred);
+        const int ticks = m_ticks;
+        QElapsedTimer elapsed;
+        elapsed.start();
+        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.sendRaw(QStringLiteral("setoption name ReplyDelay value 250"));
+        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+        QVERIFY(elapsed.elapsed() < 200);
+        QCOMPARE(ready.size(), 0);
+        QCOMPARE(moves.size(), 0);
+        QTRY_COMPARE(moves.size(), 1);
+        QCOMPARE(ready.size(), 1);
+        QCOMPARE(errors.size(), 0);
+        QVERIFY(m_ticks > ticks + 5);
+        QCOMPARE(moves.first().at(0).toPoint(), QPoint(8, 3));
+        QCOMPARE(moves.first().at(1).toPoint(), QPoint(8, 4));
+        QVERIFY(moves.first().at(2).toString().endsWith(QStringLiteral("7g7f 8c8d")));
+    }
+    void ponderSwitch_data()
+    {
+        QTest::addColumn<bool>("hit");
+        QTest::newRow("hit") << true;
+        QTest::newRow("miss") << false;
+    }
+    void ponderSwitch()
+    {
+        QFETCH(bool, hit);
+        qputenv("SBQ_MATCH_STOP_DELAY_MS", "200");
+        EnginePonderSettings::save(engineName, true, true);
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi engine(nullptr, nullptr, &game);
+        QSignalSpy moves(&engine, &Usi::matchMoveReady);
+        QSignalSpy resigns(&engine, &Usi::bestMoveResignReceived);
+        QSignalSpy errors(&engine, &Usi::errorOccurred);
+        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true};
+        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
+        QTRY_COMPARE(moves.size(), 1);
+        const QString ponder = moves.first().at(3).toString();
+        QVERIFY(ponder.endsWith(QStringLiteral("2g2f")));
+        const QString position = hit ? ponder : moves.first().at(2).toString() + QStringLiteral(" 6g6f");
+        const int ticks = m_ticks;
+        engine.requestMatchMove(position, ponder, timing);
+        QCOMPARE(moves.size(), 1);
+        QTRY_COMPARE(moves.size(), 2);
+        QCOMPARE(moves.last().at(1).toPoint(), QPoint(3, 4));
+        QCOMPARE(resigns.size(), 0); // 先読み停止時のresignは対局結果に使わない。
+        QCOMPARE(errors.size(), 0);
+        if (!hit) QVERIFY(m_ticks > ticks + 3);
+    }
+    void canceledMoveAndShutdownDoNotBlock()
+    {
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi engine(nullptr, nullptr, &game);
+        QSignalSpy ready(&engine, &Usi::engineInitialized);
+        QSignalSpy moves(&engine, &Usi::matchMoveReady);
+        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QTRY_COMPARE(ready.size(), 1);
+        engine.sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
+        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+        engine.cancelCurrentOperation();
+        QTest::qWait(400);
+        QCOMPARE(moves.size(), 0);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        engine.cleanupEngineProcessAndThread();
+        QVERIFY(elapsed.elapsed() < 200);
+    }
+    void exitWhileThinkingReportsError()
+    {
+        qputenv("SBQ_MATCH_EXIT_ON_GO", "1");
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi engine(nullptr, nullptr, &game);
+        QSignalSpy errors(&engine, &Usi::errorOccurred);
+        QSignalSpy moves(&engine, &Usi::matchMoveReady);
+        QVERIFY(engine.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        engine.requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {},
+                                {5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true});
+        QTRY_COMPARE(errors.size(), 1);
+        QCOMPARE(moves.size(), 0);
+    }
+    void embeddedSearchBudgetIsSharedAndReleased()
+    {
+        const int maximum = std::clamp(QThread::idealThreadCount() / 2, 1, 4);
+        {
+            const TsumeThreadBudget first;
+            const TsumeThreadBudget second;
+            QCOMPARE(first.threads(), maximum);
+            QCOMPARE(second.threads(), 1);
+        }
+        const TsumeThreadBudget next;
+        QCOMPARE(next.threads(), maximum);
+    }
+    void parallelMateSearchPreservesResult()
+    {
+        QFile file(fixture(QStringLiteral("tsume_positions_with_moves.sfen")));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto collection = TsumeCollection::parse(QString::fromUtf8(file.readAll()));
+        QVERIFY(!collection.problems.isEmpty());
+        for (const auto& problem : collection.problems) {
+            shogi::Position position;
+            QVERIFY(position.set_sfen(problem.sfen.toStdString(), true));
+            std::atomic_bool stop{false};
+            shogi::TsumeSearch solver;
+            const auto sequential = solver.solve(position, position.side_to_move(), 7, 10000, stop, 1);
+            const auto parallel = solver.solve(position, position.side_to_move(), 7, 10000, stop, 4);
+            QCOMPARE(parallel.status, sequential.status);
+            QCOMPARE(parallel.plies, sequential.plies);
+            stop.store(true);
+            QCOMPARE(solver.solve(position, position.side_to_move(), 7, 10000, stop, 4).status,
+                     shogi::TsumeStatus::Cancelled);
+        }
+    }
+};
+QTEST_MAIN(TestBackgroundTasks)
+#include "tst_background_tasks.moc"

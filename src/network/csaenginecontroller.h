@@ -57,7 +57,7 @@ public:
     ~CsaEngineController() override;
 
     void initialize(const InitParams& params);
-    ThinkingResult think(const ThinkingParams& params);
+    void thinkAsync(const ThinkingParams& params);
     void sendGameOver(bool win);
     void sendQuit();
     void cleanup();
@@ -66,14 +66,20 @@ public:
     bool isInitialized() const { return m_engine != nullptr; }
 
 signals:
+    void initialized();
+    void engineError(const QString& message);
+    void thinkingFinished(const CsaEngineController::ThinkingResult& result);
     void logMessage(const QString& message, bool isError = false);
     void resignRequested();
 
 private slots:
-    void onBestMoveReceived();
+    void onEngineInitialized();
+    void onEngineError(const QString& message);
+    void onMatchMoveReady(const QPoint& from, const QPoint& to, const QString& position, const QString& ponder);
     void onEngineResign();
 
 private:
+    QString m_engineName;
     Usi* m_engine = nullptr;
     QString m_ponderPosition; ///< 次の手番まで保持する予測局面
     QPointer<ShogiGameController> m_gameController;

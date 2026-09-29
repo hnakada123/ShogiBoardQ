@@ -1,4 +1,5 @@
 #include "tsumegamesession.h"
+#include "tsumethreadbudget.h"
 #include "tsumepositionanalyzer.h"
 #include <QtConcurrentRun>
 #include <algorithm>
@@ -121,8 +122,9 @@ void TsumeGameSession::search()
     const int depth = m_remaining;
     const int millis = m_timeLimit;
     m_watcher->setFuture(QtConcurrent::run([position, attacker, depth, millis, stop]() {
+        const TsumeThreadBudget budget;
         shogi::TsumeSearch solver;
-        return solver.solve(position, attacker, depth, millis, *stop);
+        return solver.solve(position, attacker, depth, millis, *stop, budget.threads());
     }));
 }
 

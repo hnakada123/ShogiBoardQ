@@ -14,6 +14,7 @@ class QWidget;
 class QStatusBar;
 class KifuExportController;
 class KifuLoadCoordinator;
+class QProgressDialog;
 class KifuPasteDialog;
 class GameRecordModel;
 class GameInfoPaneController;
@@ -92,7 +93,11 @@ public:
     /// 指定パスへ保存する（形式は拡張子で決定）。成功時は上書き保存先を更新する
     [[nodiscard]] bool saveKifuToPath(const QString& filePath);
 
+private slots:
+    void onAsyncLoadFinished(bool success);
+
 private:
+    void startAsyncLoad(const QString& input, bool text);
     void prepareForKifuLoad();
 
     /// 拡張子に応じた読み込み関数へ振り分ける
@@ -107,6 +112,9 @@ private:
 
     Deps m_deps;
     QPointer<KifuPasteDialog> m_kifuPasteDialog;
+    QPointer<QProgressDialog> m_loadProgress;
+    QString m_pendingLoadPath;
+    bool m_loadingText = false;
 };
 
 #endif // KIFUFILECONTROLLER_H

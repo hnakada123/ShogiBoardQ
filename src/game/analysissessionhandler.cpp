@@ -252,7 +252,11 @@ void AnalysisSessionHandler::requestConsiderationRestart(Usi* engine)
     if (m_modelPtr) m_modelPtr->clearAllItems();
     if (!engine || m_starting || m_restartPending || m_restartInProgress) return;
 
-    if (m_waiting) {
+    if (engine->isInitializing()) {
+        engine->sendStopCommand();
+        m_restartInProgress = true;
+        QTimer::singleShot(0, this, &AnalysisSessionHandler::restartConsiderationDeferred);
+    } else if (m_waiting) {
         // 時間切れ後はstopに応答するbestmoveが来ないため、そのまま再開する。
         m_restartInProgress = true;
         QTimer::singleShot(0, this, &AnalysisSessionHandler::restartConsiderationDeferred);

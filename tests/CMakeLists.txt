@@ -1526,3 +1526,9 @@ if(Python3_Interpreter_FOUND)
         message(STATUS "mcp/pytest not found for ${Python3_EXECUTABLE}; tst_mcp_python is not registered")
     endif()
 endif()
+
+# 非同期読み込み、USIライフサイクル・対局応答、内蔵探索の並列数を実装で検証する。
+add_shogi_test(tst_background_tasks tst_background_tasks.cpp)
+target_link_libraries(tst_background_tasks PRIVATE shogiboardq_static)
+target_compile_definitions(tst_background_tasks PRIVATE MOCK_USI_EXECUTABLE="$<TARGET_FILE:mock_usi_match>")
+add_dependencies(tst_background_tasks mock_usi_match)

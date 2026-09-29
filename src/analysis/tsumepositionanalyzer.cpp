@@ -1,4 +1,5 @@
 #include "tsumepositionanalyzer.h"
+#include "tsumethreadbudget.h"
 #include "tsumecollection.h"
 #include "tsumemateengine.h"
 #include "tsumeprogressstore.h"
@@ -14,9 +15,10 @@ TsumeEvaluation evaluateInternal(shogi::Position position, int milliseconds, boo
 {
     QElapsedTimer elapsed;
     elapsed.start();
+    const TsumeThreadBudget budget;
     shogi::TsumeSearch solver;
     const auto attacker = position.side_to_move();
-    auto search = solver.solve(position, attacker, 31, milliseconds, stop);
+    auto search = solver.solve(position, attacker, 31, milliseconds, stop, budget.threads());
     if (search.status == shogi::TsumeStatus::NoMate) return {TsumeEvaluation::Status::NoMate, 0, {}, {}};
     if (search.status != shogi::TsumeStatus::Mate) return {};
     TsumeEvaluation result{TsumeEvaluation::Status::Mate, search.plies, {}, {}};
@@ -31,7 +33,7 @@ TsumeEvaluation evaluateInternal(shogi::Position position, int milliseconds, boo
         if (remaining > 1) {
             const qint64 timeLeft = milliseconds - elapsed.elapsed();
             if (timeLeft <= 0) return {};
-            search = solver.solve(position, attacker, remaining - 1, static_cast<int>(timeLeft), stop);
+            search = solver.solve(position, attacker, remaining - 1, static_cast<int>(timeLeft), stop, budget.threads());
         }
     }
     return result;

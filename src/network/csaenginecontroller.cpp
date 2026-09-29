@@ -28,6 +28,7 @@ void CsaEngineController::initialize(const InitParams& params)
     cleanup();
 
     m_gameController = params.gameController;
+    m_engineName = params.engineName;
 
     QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
     settings.beginReadArray("Engines");
@@ -40,7 +41,7 @@ void CsaEngineController::initialize(const InitParams& params)
     }
 
     if (enginePath.isEmpty()) {
-        emit logMessage(tr("エンジンパスが指定されていません"), true);
+        onEngineError(tr("エンジンパスが指定されていません"));
         return;
     }
 
@@ -75,44 +76,50 @@ void CsaEngineController::initialize(const InitParams& params)
     m_engine = new Usi(m_engineCommLog, m_engineThinking,
                        m_gameController.data(), this);
 
-    connect(m_engine, &Usi::bestMoveReceived,
-            this, &CsaEngineController::onBestMoveReceived);
+    connect(m_engine, &Usi::matchMoveReady, this, &CsaEngineController::onMatchMoveReady);
+    connect(m_engine, &Usi::engineInitialized, this, &CsaEngineController::onEngineInitialized);
+    connect(m_engine, &Usi::errorOccurred, this, &CsaEngineController::onEngineError);
     connect(m_engine, &Usi::bestMoveResignReceived,
             this, &CsaEngineController::onEngineResign);
 
     m_engine->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("CSA"), params.engineName);
-    if (!m_engine->startAndInitializeEngine(enginePath, params.engineName)) {
-        emit logMessage(tr("エンジン %1 の初期化に失敗しました").arg(params.engineName), true);
-        cleanup();
-        return;
-    }
-
-    emit logMessage(tr("エンジン %1 を起動しました").arg(params.engineName));
+    (void)m_engine->startAndInitializeEngineAsync(enginePath, params.engineName);
 }
 
-CsaEngineController::ThinkingResult CsaEngineController::think(const ThinkingParams& params)
+void CsaEngineController::onEngineInitialized()
 {
-    ThinkingResult result;
-    if (!m_engine || !m_gameController) {
-        return result;
-    }
+    emit logMessage(tr("エンジン %1 を起動しました").arg(m_engineName));
+    emit initialized();
+}
 
+void CsaEngineController::onEngineError(const QString& message)
+{
+    cleanup();
+    emit logMessage(message, true);
+    emit engineError(message);
+}
+
+void CsaEngineController::thinkAsync(const ThinkingParams& params)
+{
+    if (!m_engine || !m_gameController) return;
     m_gameController->setPromote(false);
-
-    QString positionCmd = params.positionCmd;
-
     const UsiTimingParams timing{params.byoyomiMs, params.btimeStr, params.wtimeStr,
                                  params.bincMs, params.wincMs, params.useByoyomi};
-    m_engine->handleEngineVsHumanOrEngineMatchCommunication(
-        positionCmd, m_ponderPosition, result.from, result.to, timing);
+    m_engine->requestMatchMove(params.positionCmd, m_ponderPosition, timing);
+}
 
-    result.resign = m_engine->isResignMove();
+void CsaEngineController::onMatchMoveReady(const QPoint& from, const QPoint& to,
+                                          const QString&, const QString& ponder)
+{
+    if (!m_engine || sender() != m_engine || !m_gameController) return;
+    m_ponderPosition = ponder;
+    ThinkingResult result;
+    result.from = from;
+    result.to = to;
     result.promote = m_gameController->promote();
-    result.valid = (result.to.x() >= 1 && result.to.x() <= 9 &&
-                    result.to.y() >= 1 && result.to.y() <= 9);
+    result.valid = to.x() >= 1 && to.x() <= 9 && to.y() >= 1 && to.y() <= 9;
     result.scoreCp = m_engine->lastScoreCp();
-
-    return result;
+    emit thinkingFinished(result);
 }
 
 void CsaEngineController::sendGameOver(bool win)
@@ -143,11 +150,6 @@ void CsaEngineController::cleanup()
         engine->cleanupEngineProcessAndThread(false);
         engine->deleteLater();
     }
-}
-
-void CsaEngineController::onBestMoveReceived()
-{
-    qCDebug(lcNetwork) << "onEngineBestMoveReceived called (handled in think)";
 }
 
 void CsaEngineController::onEngineResign()

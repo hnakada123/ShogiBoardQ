@@ -368,6 +368,7 @@ void KifuSubRegistry::createAndWireKifuLoadCoordinator()
     // 既存があればシグナル発火を止めて遅延破棄
     if (m_mw.m_kifuLoadCoordinator) {
         m_mw.m_kifuLoadCoordinator->blockSignals(true);
+        m_mw.m_kifuLoadCoordinator->cancelLoad();
         m_mw.m_kifuLoadCoordinator->deleteLater();
         m_mw.m_kifuLoadCoordinator = nullptr;
     }

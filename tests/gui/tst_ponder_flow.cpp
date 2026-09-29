@@ -270,7 +270,10 @@ private slots:
         params.positionCmd = "position startpos";
         params.btimeStr = "60000";
         params.wtimeStr = "60000";
-        auto result = controller.think(params);
+        QSignalSpy results(&controller, &CsaEngineController::thinkingFinished);
+        controller.thinkAsync(params);
+        QTRY_COMPARE(results.size(), 1);
+        auto result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
         QVERIFY(result.valid);
         QCOMPARE(result.to, QPoint(7, 6));
         QTRY_VERIFY(commands().join('\n').contains("go ponder "));
@@ -279,7 +282,9 @@ private slots:
         sfen = SfenPositionTracer::buildSfenRecord(m_initial, {"7g7f", opponent}, false).last();
         gc.newGame(sfen);
         params.positionCmd = "position startpos moves 7g7f " + opponent;
-        result = controller.think(params);
+        controller.thinkAsync(params);
+        QTRY_COMPARE(results.size(), 1);
+        result = qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first());
         QVERIFY(result.valid);
         QVERIFY(!result.resign);
         QCOMPARE(result.to, QPoint(2, 6));
@@ -298,7 +303,9 @@ private slots:
         controller.initialize(init);
         params.positionCmd = "position startpos";
         const auto restart = commands().size();
-        QVERIFY(controller.think(params).valid);
+        controller.thinkAsync(params);
+        QTRY_COMPARE(results.size(), 1);
+        QVERIFY(qvariant_cast<CsaEngineController::ThinkingResult>(results.takeFirst().first()).valid);
         QVERIFY(!commands().mid(restart).contains("ponderhit"));
         controller.sendQuit();
         QVERIFY(!commands().join('\n').contains("ERROR"));

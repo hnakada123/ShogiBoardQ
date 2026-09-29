@@ -18,6 +18,7 @@ EngineAnalysisRunner::EngineAnalysisRunner(QObject* parent)
     m_noResponseTimer.setSingleShot(true);
     connect(&m_thinkTimer, &QTimer::timeout, this, &EngineAnalysisRunner::onThinkTimeout);
     connect(&m_noResponseTimer, &QTimer::timeout, this, &EngineAnalysisRunner::onNoResponse);
+    connect(m_session, &UsiEngineSession::ready, this, &EngineAnalysisRunner::onSessionReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &EngineAnalysisRunner::onSessionError);
     connect(m_session->handler(), &UsiProtocolHandler::infoLineReceived,
             this, &EngineAnalysisRunner::onInfoLine);
@@ -29,7 +30,17 @@ bool EngineAnalysisRunner::start(const Request& request, QString* error)
 {
     m_latest.clear();
     m_done = false;
-    if (!m_session->start(request.enginePath, request.engineName, error)) return false;
+    m_request = request;
+    m_searchStarted = false;
+    m_elapsed.invalidate();
+    return m_session->startAsync(request.enginePath, request.engineName, error);
+}
+
+void EngineAnalysisRunner::onSessionReady()
+{
+    if (m_done) return;
+    m_searchStarted = true;
+    const auto& request = m_request;
 
     UsiProtocolHandler* handler = m_session->handler();
     handler->sendSetOption(QStringLiteral("MultiPV"), QString::number(qMax(1, request.multiPv)));
@@ -37,12 +48,12 @@ bool EngineAnalysisRunner::start(const Request& request, QString* error)
     handler->sendRaw(QStringLiteral("go infinite"));
     m_elapsed.start();
     m_thinkTimer.start(qMax(100, request.thinkMs));
-    return true;
 }
 
 void EngineAnalysisRunner::stop()
 {
     if (m_done) return;
+    if (!m_searchStarted) { finish({}, {}); return; }
     m_thinkTimer.stop();
     onThinkTimeout();
 }

@@ -10,6 +10,8 @@
 #include <QDockWidget>
 #include <QStyledItemDelegate>
 #include <functional>
+#include <QFutureWatcher>
+#include "kifuloadparser.h"
 
 #include "logcategories.h"
 #include "kiftosfenconverter.h"
@@ -51,6 +53,12 @@ public:
                         KifuBranchListModel* kifuBranchModel,
                         QObject* parent=nullptr);
 
+    ~KifuLoadCoordinator() override;
+
+    void loadFileAsync(const QString& filePath);
+    void loadTextAsync(const QString& content);
+    void cancelLoad();
+
     // --- 装飾（棋譜テーブル マーカー描画） ---
 
     /// 分岐あり行にオレンジ背景を描画するデリゲート
@@ -65,7 +73,7 @@ public:
     private:
         const QSet<int>* m_marks = nullptr;  ///< 分岐あり手数のセット（非所有）
     };
-    BranchRowDelegate* m_branchRowDelegate = nullptr;
+    QPointer<BranchRowDelegate> m_branchRowDelegate;
 
     // --- 分岐候補（テキスト）側の索引 ---
 
@@ -121,6 +129,8 @@ public:
     void resetBranchTreeForNewGame();
 
 signals:
+    void loadFinished(bool success);
+
     /// 棋譜読み込み中のエラーを通知する
     void errorOccurred(const QString& errorMessage);
 
@@ -187,22 +197,16 @@ private:
     KifuApplyService* m_applyService = nullptr; ///< 適用層サービス（Qt parent所有）
 
     // --- 内部ヘルパ ---
-    QString prepareInitialSfen(const QString& filePath, QString& teaiLabel) const;
     void updateKifuBranchMarkersForActiveRow();
     void ensureBranchRowDelegateInstalled();
 
-    // --- 棋譜読み込み共通ロジック ---
-    using KifuParseFunc = std::function<bool(const QString&, KifParseResult&, QString*)>;
-    using KifuDetectSfenFunc = std::function<QString(const QString&, QString*)>;
-    using KifuExtractGameInfoFunc = std::function<QList<KifGameInfoItem>(const QString&)>;
+    bool applyLoadResult(const KifuLoadResult& result);
+    void startLoad(const QString& input, bool text);
+    QFutureWatcher<KifuLoadResult>* m_loadWatcher = nullptr;
+    CancelFlag m_loadCancel;
 
-    /// 棋譜読み込みの共通フロー（解析→データ構築→UI反映）
-    /// @return 読み込みと適用に成功した場合 true
-    bool loadKifuCommon(const QString& filePath, const char* funcName,
-                         const KifuParseFunc& parseFunc,
-                         const KifuDetectSfenFunc& detectSfenFunc,
-                         const KifuExtractGameInfoFunc& extractGameInfoFunc,
-                         bool dumpVariations);
+private slots:
+    void onLoadFinished();
 };
 
 #endif // KIFULOADCOORDINATOR_H

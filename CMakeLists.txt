@@ -499,6 +499,8 @@ set(SRC_KIFU
     src/kifu/kifufilereader.h
     src/kifu/kifuioservice.cpp
     src/kifu/kifuioservice.h
+    src/kifu/kifuloadparser.cpp
+    src/kifu/kifuloadparser.h
     src/kifu/kifuloadcoordinator.cpp
     src/kifu/kifuloadcoordinator.h
     src/kifu/kifunavigationstate.cpp
@@ -516,6 +518,7 @@ set(SRC_ANALYSIS
     resources/tsumeshogi.qrc
     src/analysis/tsumecollection.cpp
     src/analysis/tsumecollection.h
+    src/analysis/tsumethreadbudget.h
     src/analysis/tsumegamesession.cpp
     src/analysis/tsumegamesession.h
     src/analysis/tsumepositionanalyzer.cpp
@@ -572,6 +575,7 @@ set(SRC_ENGINE
     src/engine/tsumemateengine.cpp
     src/engine/tsumemateengine.h
     src/engine/usi.cpp
+    src/engine/usi_async.cpp
     src/engine/usi.h
     src/engine/usi_communication.cpp
     src/engine/usi_slots.cpp

@@ -12,6 +12,7 @@
 #include <QPoint>
 #include <QElapsedTimer>
 #include <QPointer>
+#include <QTimer>
 #include <optional>
 
 #include "shogitypes.h"
@@ -60,6 +61,8 @@ public:
     /// エンジン初期化シーケンスを実行
     [[nodiscard]] bool initializeEngine(const QString& engineName);
     
+    void initializeEngineAsync(int timeoutMs = 5000);
+
     /// 設定ファイルからオプションを読み込み
     void loadEngineOptions(const QString& engineName);
 
@@ -148,6 +151,8 @@ public:
     void cancelCurrentOperation();
 
 signals:
+    void initializationFinished(bool success);
+
     void usiOkReceived();              ///< usiok受信（Handler → waitForUsiOk）
     void readyOkReceived();            ///< readyok受信（Handler → waitForReadyOk）
     void bestMoveReceived();           ///< bestmove受信（Handler → Usi/MatchCoordinator）
@@ -167,7 +172,18 @@ public slots:
     /// データ受信ハンドラ
     void onDataReceived(const QString& line);
 
+private slots:
+    void onInitializationUsiOk();
+    void onInitializationReadyOk();
+    void onInitializationTimeout();
+
 private:
+    void sendConfiguredOptions();
+    enum class Initialization { Idle, UsiOk, ReadyOk };
+    Initialization m_initialization = Initialization::Idle;
+    QTimer m_initializationTimer;
+    int m_initializationTimeoutMs = 5000;
+
     /// コマンド送信（内部）
     void sendCommand(const QString& command);
 

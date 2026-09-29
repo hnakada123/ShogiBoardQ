@@ -2,6 +2,7 @@
 /// @brief 外部エンジンに送る前に候補局面を内蔵探索で選別するクラスの実装
 
 #include "tsumeshogicandidatescreener.h"
+#include "tsumethreadbudget.h"
 
 #include <position.h>
 #include <tsume.h>
@@ -22,8 +23,10 @@ TsumeshogiCandidateScreener::Verdict TsumeshogiCandidateScreener::screen(
     if (!position.set_sfen(sfen.toStdString(), true)) return Verdict::Unknown;
     const auto attacker = position.side_to_move();
 
+    // 外部エンジンでの検証と並行するため、候補選別は最大2本に制限する。
+    const TsumeThreadBudget budget(2);
     shogi::TsumeSearch search;
-    const auto result = search.solve(position, attacker, targetMoves, limits.timeLimitMs, stop);
+    const auto result = search.solve(position, attacker, targetMoves, limits.timeLimitMs, stop, budget.threads());
     switch (result.status) {
     case shogi::TsumeStatus::Mate:
         // 目標より短く詰む局面はエンジンも短いPVを返すので候補にしない
@@ -44,7 +47,7 @@ TsumeshogiCandidateScreener::Verdict TsumeshogiCandidateScreener::screen(
     for (const auto& move : position.generate_checking_moves()) {
         auto child = position;
         child.do_move(move);
-        const auto reply = search.solve(child, attacker, depth, limits.alternativeTimeLimitMs, stop);
+        const auto reply = search.solve(child, attacker, depth, limits.alternativeTimeLimitMs, stop, budget.threads());
         if (reply.status == shogi::TsumeStatus::Cancelled) return Verdict::Unknown;
         if (reply.status == shogi::TsumeStatus::Mate && ++mating >= 2) return Verdict::MultipleFirstMoves;
     }

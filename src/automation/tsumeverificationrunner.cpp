@@ -22,6 +22,7 @@ TsumeVerificationRunner::TsumeVerificationRunner(QObject* parent)
     m_safetyTimer.setSingleShot(true);
     connect(&m_stepTimer, &QTimer::timeout, this, &TsumeVerificationRunner::step);
     connect(&m_safetyTimer, &QTimer::timeout, this, &TsumeVerificationRunner::onSafetyTimeout);
+    connect(m_session, &UsiEngineSession::ready, this, &TsumeVerificationRunner::onSessionReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &TsumeVerificationRunner::onSessionError);
     UsiProtocolHandler* handler = m_session->handler();
     connect(handler, &UsiProtocolHandler::checkmateSolved, this, &TsumeVerificationRunner::onSolved);
@@ -56,10 +57,15 @@ bool TsumeVerificationRunner::start(const Request& request, QString* error)
         if (error) *error = QStringLiteral("The SFEN is not a valid tsume position");
         return false;
     }
-    if (!m_session->start(request.enginePath, request.engineName, error)) return false;
+    m_elapsed.invalidate();
+    return m_session->startAsync(request.enginePath, request.engineName, error);
+}
+
+void TsumeVerificationRunner::onSessionReady()
+{
+    if (m_done) return;
     m_elapsed.start();
     m_stepTimer.start(0);
-    return true;
 }
 
 void TsumeVerificationRunner::abort()

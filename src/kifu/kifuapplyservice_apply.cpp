@@ -2,6 +2,7 @@
 /// @brief 棋譜解析結果の一括適用フェーズ実装
 
 #include "kifuapplyservice.h"
+#include "kifuloadparser.h"
 
 #include "kifuapplylogger.h"
 #include "branchtreemanager.h"
@@ -49,7 +50,8 @@ bool KifuApplyService::applyParsedResult(
     const QString& teaiLabel,
     const KifParseResult& res,
     const QString& parseWarn,
-    const char* callerTag)
+    const char* callerTag,
+    const KifuLoadResult* prepared)
 {
     QElapsedTimer totalTimer;
     totalTimer.start();
@@ -69,15 +71,23 @@ bool KifuApplyService::applyParsedResult(
         return false;
     }
 
-    if (!rebuildMainlineState(initialSfen, hasTerminal)) {
+    if (!ensureSfenHistoryStorage(callerTag)) {
         *m_refs.loadingKifu = false;
         qCDebug(lcKifu).noquote() << callerTag << "OUT (missing sfen history)";
         return false;
     }
-    logStep("rebuildMainlineState");
-
-    rebuildPositionCommands(initialSfen);
-    logStep("rebuildPositionCommands");
+    if (prepared) {
+        **m_refs.sfenHistory = prepared->sfens;
+        *m_refs.gameMoves = prepared->moves;
+        *m_refs.positionStrList = prepared->positionCommands;
+    } else {
+        if (!rebuildMainlineState(initialSfen, hasTerminal)) {
+            *m_refs.loadingKifu = false;
+            return false;
+        }
+        rebuildPositionCommands(initialSfen);
+    }
+    logStep("applyMainlineState");
 
     applyToRecordView(res, filePath, teaiLabel, parseWarn);
     logStep("applyToRecordView");

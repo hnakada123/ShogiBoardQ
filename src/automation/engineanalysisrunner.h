@@ -49,6 +49,7 @@ signals:
     void errorOccurred(const QString& message);
 
 private slots:
+    void onSessionReady();
     void onInfoLine(const QString& line);
     void onBestMove();
     void onThinkTimeout();
@@ -64,6 +65,8 @@ private:
     QElapsedTimer m_elapsed;
     QMap<int, UsiInfoLine> m_latest;
     bool m_done = false;
+    bool m_searchStarted = false;
+    Request m_request;
 };
 
 #endif // ENGINEANALYSISRUNNER_H

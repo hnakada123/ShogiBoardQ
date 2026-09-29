@@ -65,15 +65,11 @@ void EngineVsEngineStrategy::start()
 
     initPositionStringsForEvE(m_opt.sfenStart);
 
-    // 駒落ちの場合は後手（上手）から開始
-    const bool isHandicap = (m_ctx.playMode() == PlayMode::HandicapEngineVsEngine);
-    const bool whiteToMove = (m_ctx.gc()->currentPlayer() == ShogiGameController::Player2);
-
-    if (isHandicap && whiteToMove) {
-        startEvEFirstMoveByWhite();
-    } else {
-        startEvEFirstMoveByBlack();
-    }
+    connect(m_ctx.usi1(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
+    connect(m_ctx.usi2(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
+    connect(m_ctx.usi1(), &Usi::matchMoveReady, this, &EngineVsEngineStrategy::onEngineMoveReady, Qt::UniqueConnection);
+    connect(m_ctx.usi2(), &Usi::matchMoveReady, this, &EngineVsEngineStrategy::onEngineMoveReady, Qt::UniqueConnection);
+    kickNextEvETurn();
 }
 
 // ============================================================
@@ -133,253 +129,52 @@ void EngineVsEngineStrategy::initPositionStringsForEvE(const QString& sfenStart)
 }
 
 // ============================================================
-// 平手EvE：先手から開始
-// ============================================================
-
-void EngineVsEngineStrategy::startEvEFirstMoveByBlack()
-{
-    const MatchCoordinator::GoTimes t1 = m_ctx.computeGoTimes();
-    const QString btimeStr1 = QString::number(t1.btime);
-    const QString wtimeStr1 = QString::number(t1.wtime);
-
-    QPoint p1From(-1, -1), p1To(-1, -1);
-    m_ctx.gc()->setPromote(false);
-
-    {
-        const UsiTimingParams timing{static_cast<int>(t1.byoyomi), btimeStr1, wtimeStr1,
-                                     static_cast<int>(t1.binc), static_cast<int>(t1.winc),
-                                     (t1.byoyomi > 0)};
-        m_ctx.usi1()->handleEngineVsHumanOrEngineMatchCommunication(
-            m_ctx.positionStr1(), m_ctx.positionPonder1(),
-            p1From, p1To, timing);
-    }
-
-    QString rec1;
-
-    // 先手1手目：次の手を渡す
-    int nextEve = m_eveMoveIndex + 1;
-    if (!m_ctx.gc()->validateAndMove(
-            p1From, p1To, rec1,
-            m_ctx.playModeRef(),
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_ctx.clock()) {
-        const qint64 thinkMs = m_ctx.usi1() ? m_ctx.usi1()->lastBestmoveElapsedMs() : 0;
-        m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-        m_ctx.clock()->applyByoyomiAndResetConsideration1();
-    }
-    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->player1ConsiderationAndTotalTime());
-    }
-
-    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p1From, p1To);
-    m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
-                                ? MatchCoordinator::P1 : MatchCoordinator::P2);
-
-    if (m_ctx.usi2()) {
-        m_ctx.usi2()->setPreviousFileTo(p1To.x());
-        m_ctx.usi2()->setPreviousRankTo(p1To.y());
-    }
-
-    m_ctx.positionStr2()     = m_ctx.positionStr1();
-    m_ctx.positionPonder2().clear();
-
-    const MatchCoordinator::GoTimes t2 = m_ctx.computeGoTimes();
-    const QString btimeStr2 = QString::number(t2.btime);
-    const QString wtimeStr2 = QString::number(t2.wtime);
-
-    QPoint p2From(-1, -1), p2To(-1, -1);
-    m_ctx.gc()->setPromote(false);
-
-    {
-        const UsiTimingParams timing{static_cast<int>(t2.byoyomi), btimeStr2, wtimeStr2,
-                                     static_cast<int>(t2.binc), static_cast<int>(t2.winc),
-                                     (t2.byoyomi > 0)};
-        m_ctx.usi2()->handleEngineVsHumanOrEngineMatchCommunication(
-            m_ctx.positionStr2(), m_ctx.positionPonder2(),
-            p2From, p2To, timing);
-    }
-
-    QString rec2;
-
-    // 後手1手目：次の手を渡す
-    nextEve = m_eveMoveIndex + 1;
-    if (!m_ctx.gc()->validateAndMove(
-            p2From, p2To, rec2,
-            m_ctx.playModeRef(),
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_ctx.clock()) {
-        const qint64 thinkMs = m_ctx.usi2() ? m_ctx.usi2()->lastBestmoveElapsedMs() : 0;
-        m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-        m_ctx.clock()->applyByoyomiAndResetConsideration2();
-    }
-    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->player2ConsiderationAndTotalTime());
-    }
-
-    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p2From, p2To);
-    m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
-                                ? MatchCoordinator::P1 : MatchCoordinator::P2);
-
-    // P2の手をP1のポジション文字列に同期
-    m_ctx.positionStr1() = m_ctx.positionStr2();
-
-    QTimer::singleShot(std::chrono::milliseconds(0), this, &EngineVsEngineStrategy::kickNextEvETurn);
-}
-
-// ============================================================
-// 駒落ちEvE：後手（上手）から開始
-// ============================================================
-
-void EngineVsEngineStrategy::startEvEFirstMoveByWhite()
-{
-    // 後手（上手 = m_usi2）が初手を指す
-    const MatchCoordinator::GoTimes t2 = m_ctx.computeGoTimes();
-    const QString btimeStr2 = QString::number(t2.btime);
-    const QString wtimeStr2 = QString::number(t2.wtime);
-
-    QPoint p2From(-1, -1), p2To(-1, -1);
-    m_ctx.gc()->setPromote(false);
-
-    {
-        const UsiTimingParams timing{static_cast<int>(t2.byoyomi), btimeStr2, wtimeStr2,
-                                     static_cast<int>(t2.binc), static_cast<int>(t2.winc),
-                                     (t2.byoyomi > 0)};
-        m_ctx.usi2()->handleEngineVsHumanOrEngineMatchCommunication(
-            m_ctx.positionStr2(), m_ctx.positionPonder2(),
-            p2From, p2To, timing);
-    }
-
-    QString rec2;
-
-    // 後手（上手）1手目
-    int nextEve = m_eveMoveIndex + 1;
-    if (!m_ctx.gc()->validateAndMove(
-            p2From, p2To, rec2,
-            m_ctx.playModeRef(),
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_ctx.clock()) {
-        const qint64 thinkMs = m_ctx.usi2() ? m_ctx.usi2()->lastBestmoveElapsedMs() : 0;
-        m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
-        m_ctx.clock()->applyByoyomiAndResetConsideration2();
-    }
-    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec2, m_ctx.clock()->player2ConsiderationAndTotalTime());
-    }
-
-    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p2From, p2To);
-    m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
-                                ? MatchCoordinator::P1 : MatchCoordinator::P2);
-
-    if (m_ctx.usi1()) {
-        m_ctx.usi1()->setPreviousFileTo(p2To.x());
-        m_ctx.usi1()->setPreviousRankTo(p2To.y());
-    }
-
-    m_ctx.positionStr1()     = m_ctx.positionStr2();
-    m_ctx.positionPonder1().clear();
-
-    // 先手（下手 = m_usi1）が2手目を指す
-    const MatchCoordinator::GoTimes t1 = m_ctx.computeGoTimes();
-    const QString btimeStr1 = QString::number(t1.btime);
-    const QString wtimeStr1 = QString::number(t1.wtime);
-
-    QPoint p1From(-1, -1), p1To(-1, -1);
-    m_ctx.gc()->setPromote(false);
-
-    {
-        const UsiTimingParams timing{static_cast<int>(t1.byoyomi), btimeStr1, wtimeStr1,
-                                     static_cast<int>(t1.binc), static_cast<int>(t1.winc),
-                                     (t1.byoyomi > 0)};
-        m_ctx.usi1()->handleEngineVsHumanOrEngineMatchCommunication(
-            m_ctx.positionStr1(), m_ctx.positionPonder1(),
-            p1From, p1To, timing);
-    }
-
-    QString rec1;
-
-    // 先手（下手）2手目
-    nextEve = m_eveMoveIndex + 1;
-    if (!m_ctx.gc()->validateAndMove(
-            p1From, p1To, rec1,
-            m_ctx.playModeRef(),
-            nextEve,
-            sfenRecordForEvE(),
-            gameMovesForEvE()
-            )) {
-        return;
-    } else {
-        m_eveMoveIndex = nextEve;
-    }
-
-    if (m_ctx.clock()) {
-        const qint64 thinkMs = m_ctx.usi1() ? m_ctx.usi1()->lastBestmoveElapsedMs() : 0;
-        m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
-        m_ctx.clock()->applyByoyomiAndResetConsideration1();
-    }
-    if (m_ctx.hooks().game.appendKifuLine && m_ctx.clock()) {
-        m_ctx.hooks().game.appendKifuLine(rec1, m_ctx.clock()->player1ConsiderationAndTotalTime());
-    }
-
-    if (m_ctx.hooks().ui.renderBoardFromGc) m_ctx.hooks().ui.renderBoardFromGc();
-    if (m_ctx.hooks().ui.showMoveHighlights) m_ctx.hooks().ui.showMoveHighlights(p1From, p1To);
-    m_ctx.updateTurnDisplay((m_ctx.gc()->currentPlayer() == ShogiGameController::Player1)
-                                ? MatchCoordinator::P1 : MatchCoordinator::P2);
-
-    // P1の手をP2のポジション文字列に同期
-    m_ctx.positionStr2() = m_ctx.positionStr1();
-
-    QTimer::singleShot(std::chrono::milliseconds(0), this, &EngineVsEngineStrategy::kickNextEvETurn);
-}
-
-// ============================================================
 // EvE ターンループ
 // ============================================================
 
 void EngineVsEngineStrategy::kickNextEvETurn()
 {
+    if (m_waitingForMove || m_ctx.gameOverState().isOver) return;
     if (m_ctx.playMode() != PlayMode::EvenEngineVsEngine
         && m_ctx.playMode() != PlayMode::HandicapEngineVsEngine)
         return;
     if (!m_ctx.usi1() || !m_ctx.usi2() || !m_ctx.gc()) return;
+    if (m_ctx.usi1()->isInitializing() || m_ctx.usi2()->isInitializing()) {
+        m_waitingInitialization = true;
+        if (m_ctx.clock()) m_ctx.clock()->stopClock();
+        return;
+    }
+    if (m_waitingInitialization) {
+        m_waitingInitialization = false;
+        if (m_ctx.clock()) m_ctx.clock()->startClock();
+    }
 
     const bool p1ToMove = (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1);
     Usi* mover    = p1ToMove ? m_ctx.usi1() : m_ctx.usi2();
-    Usi* receiver = p1ToMove ? m_ctx.usi2() : m_ctx.usi1();
 
     QString& pos    = p1ToMove ? m_ctx.positionStr1()     : m_ctx.positionStr2();
     QString& ponder = p1ToMove ? m_ctx.positionPonder1()  : m_ctx.positionPonder2();
 
-    QPoint from(-1,-1), to(-1,-1);
-    if (!m_ctx.engineThinkApplyMove(mover, pos, ponder, &from, &to))
-        return;
+    const auto times = m_ctx.computeGoTimes();
+    const UsiTimingParams timing{static_cast<int>(times.byoyomi), QString::number(times.btime),
+                                 QString::number(times.wtime), static_cast<int>(times.binc),
+                                 static_cast<int>(times.winc), times.byoyomi > 0};
+    m_ctx.gc()->setPromote(false);
+    m_waitingForMove = true;
+    mover->requestMatchMove(pos, ponder, timing);
+}
 
+void EngineVsEngineStrategy::onEngineMoveReady(QPoint from, QPoint to,
+                                               const QString& position, const QString& ponder)
+{
+    if (!m_waitingForMove || m_ctx.gameOverState().isOver || !m_ctx.gc()) return;
+    const bool p1ToMove = m_ctx.gc()->currentPlayer() == ShogiGameController::Player1;
+    Usi* mover = p1ToMove ? m_ctx.usi1() : m_ctx.usi2();
+    if (sender() != mover) return;
+    m_waitingForMove = false;
+    Usi* receiver = p1ToMove ? m_ctx.usi2() : m_ctx.usi1();
+    (p1ToMove ? m_ctx.positionStr1() : m_ctx.positionStr2()) = position;
+    (p1ToMove ? m_ctx.positionPonder1() : m_ctx.positionPonder2()) = ponder;
     QString rec;
 
     // 次の手を渡す

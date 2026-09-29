@@ -241,6 +241,10 @@ void CsaGameCoordinator::onLoginSucceeded()
             m_engineController = new CsaEngineController(this);
             connect(m_engineController, &CsaEngineController::logMessage,
                     this, &CsaGameCoordinator::logMessage);
+            connect(m_engineController, &CsaEngineController::initialized,
+                    this, &CsaGameCoordinator::onEngineControllerInitialized);
+            connect(m_engineController, &CsaEngineController::engineError,
+                    this, &CsaGameCoordinator::onEngineControllerError);
             connect(m_engineController, &CsaEngineController::resignRequested,
                     this, &CsaGameCoordinator::onEngineControllerResign);
         }
@@ -254,13 +258,7 @@ void CsaGameCoordinator::onLoginSucceeded()
         // USI初期化の待機中にもTCPのGame_Summaryが届く。readyokを待って合意する。
         m_initializingEngine = true;
         m_engineController->initialize(params);
-        m_initializingEngine = false;
-        if (!m_engineController->isInitialized()) {
-            setGameState(GameState::Error);
-            m_client->disconnectFromServer();
-            return;
-        }
-        if (m_gameState == GameState::WaitingForAgree) m_client->agree(m_gameSummary.gameId);
+
     }
 }
 
@@ -441,4 +439,18 @@ void CsaGameCoordinator::onEngineControllerResign()
         emit logMessage(tr("エンジンが投了を選択しました"));
         performResign();
     }
+}
+
+void CsaGameCoordinator::onEngineControllerInitialized()
+{
+    m_initializingEngine = false;
+    if (m_gameState == GameState::WaitingForAgree) m_client->agree(m_gameSummary.gameId);
+}
+
+void CsaGameCoordinator::onEngineControllerError(const QString& message)
+{
+    m_initializingEngine = false;
+    setGameState(GameState::Error);
+    m_client->disconnectFromServer();
+    emit errorOccurred(message);
 }

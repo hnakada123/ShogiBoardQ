@@ -46,6 +46,7 @@ signals:
     void errorOccurred(const QString& message);
 
 private slots:
+    void onSessionReady();
     void step();
     void onSolved(const QStringList& pv);
     void onNoMate();

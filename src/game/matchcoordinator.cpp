@@ -199,7 +199,7 @@ void MatchCoordinator::configureAnalysisSession()
         Usi* engine = primaryEngine();
         if (!engine) return false;
         engine->setMatchClock(clock());
-        return engine->startAndInitializeEngine(path, name);
+        return engine->startAndInitializeEngineAsync(path, name);
     };
     hooks.setEngineNames = [this](const QString& n1, const QString& n2) {
         if (m_hooks.ui.setEngineNames) m_hooks.ui.setEngineNames(n1, n2);

@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QProcess>
 #include <QString>
+#include <QTimer>
 
 class EngineProcessManager;
 class UsiProtocolHandler;
@@ -16,7 +17,7 @@ class UsiProtocolHandler;
  *
  * `Usi` ファサードは思考タブ用のプレゼンタと盤面データを必要とするため、
  * 自動化・CLI ではこのクラスでプロトコルハンドラを直接使う。
- * すべてメインスレッドで動作し、`start()` は usiok/readyok をイベントループで待つ。
+ * startAsync() は起動とusiok/readyokをシグナルで処理する。start()は同期互換API。
  */
 class UsiEngineSession : public QObject
 {
@@ -28,6 +29,7 @@ public:
 
     /// エンジンを起動して usi/isready の初期化を行う。失敗時は error に理由を入れる
     [[nodiscard]] bool start(const QString& enginePath, const QString& engineName, QString* error = nullptr);
+    [[nodiscard]] bool startAsync(const QString& enginePath, const QString& engineName, QString* error = nullptr);
     /// quit を送ってプロセスを止める（未起動なら何もしない）
     void quit();
     bool isRunning() const;
@@ -36,9 +38,14 @@ public:
     EngineProcessManager* process() const { return m_process; }
 
 signals:
+    void ready();
     void errorOccurred(const QString& message);
 
 private slots:
+    void onProcessStarted();
+    void onInitialized(bool success);
+    void onStartTimeout();
+    void onProcessExited();
     void onProcessError(QProcess::ProcessError error, const QString& message);
     void onHandlerError(const QString& message);
 
@@ -47,6 +54,8 @@ private:
     UsiProtocolHandler* m_handler = nullptr;   ///< QObject parent 所有
     QString m_lastError;
     bool m_starting = false;
+    bool m_initializing = false;
+    QTimer m_startTimer;
 };
 
 #endif // USIENGINESESSION_H

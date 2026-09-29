@@ -280,7 +280,9 @@ void EngineProcessManager::onProcessFinished(int exitCode, QProcess::ExitStatus 
         }
     }
 
+    const bool unexpected = m_shutdownState == ShutdownState::Running;
     m_shutdownState = ShutdownState::IgnoreAll;
+    if (unexpected) emit processExited();
 }
 
 void EngineProcessManager::scheduleMoreReading()

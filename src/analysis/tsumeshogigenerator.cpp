@@ -77,11 +77,11 @@ void TsumeshogiGenerator::start(const Settings& settings)
     connect(m_usi, &Usi::errorOccurred,
             this, &TsumeshogiGenerator::onEngineError);
 
-    // エンジン起動。usiok/readyok 待ちでイベントループが回るため、
-    // この間の stop() は m_stopRequestedDuringStart に記録して復帰後に処理する
+    connect(m_usi, &Usi::engineInitialized, this, &TsumeshogiGenerator::onEngineInitialized);
+    // 起動要求中の即時エラーで二重に後始末しないようにする。
     m_starting = true;
     m_stopRequestedDuringStart = false;
-    const bool started = m_usi->startAndInitializeEngine(settings.enginePath, settings.engineName);
+    const bool started = m_usi->startAndInitializeEngineAsync(settings.enginePath, settings.engineName);
     m_starting = false;
 
     if (!started || m_stopRequestedDuringStart) {
@@ -92,6 +92,12 @@ void TsumeshogiGenerator::start(const Settings& settings)
         return;
     }
 
+    if (!m_usi->isInitializing()) onEngineInitialized();
+}
+
+void TsumeshogiGenerator::onEngineInitialized()
+{
+    if (m_phase != Phase::Searching || !m_usi) return;
     // ThinkingInfoPresenter が info 行を処理する際に盤面データが必要。
     // 局面は position コマンドで直接指定するため、ダミーの盤面（81マス空欄）を一度だけ設定する
     m_usi->setClonedBoardData(QList<QChar>(BoardConstants::kNumBoardSquares, QChar(' ')));

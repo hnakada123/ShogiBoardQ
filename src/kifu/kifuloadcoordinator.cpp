@@ -30,6 +30,8 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QElapsedTimer>
+#include <QtConcurrentRun>
+#include <utility>
 
 namespace {
 const QColor kBranchHighlightColor(255, 220, 160);
@@ -110,264 +112,114 @@ void KifuLoadCoordinator::initApplyService()
 // 棋譜読み込み共通処理
 // ============================================================
 
-bool KifuLoadCoordinator::loadKifuCommon(
-    const QString& filePath,
-    const char* funcName,
-    const KifuParseFunc& parseFunc,
-    const KifuDetectSfenFunc& detectSfenFunc,
-    const KifuExtractGameInfoFunc& extractGameInfoFunc,
-    bool dumpVariations)
+KifuLoadCoordinator::~KifuLoadCoordinator()
 {
-    QElapsedTimer totalTimer;
-    totalTimer.start();
-    QElapsedTimer stepTimer;
-    auto logStep = [&](const char* stepName) {
-        qCDebug(lcKifu).noquote() << QStringLiteral("%1: %2 ms").arg(stepName).arg(stepTimer.elapsed());
-        stepTimer.restart();
-    };
-    stepTimer.start();
+    if (m_loadCancel) m_loadCancel->store(true);
+    if (m_branchRowDelegate) m_branchRowDelegate->setMarkers(nullptr);
+}
 
-    qCDebug(lcKifu).noquote() << funcName << "IN file=" << filePath;
-
-    m_loadingKifu = true;
-
-    // 1) 初期局面（手合割）を決定
-    QString teaiLabel;
-    QString initialSfen;
-    if (detectSfenFunc) {
-        initialSfen = detectSfenFunc(filePath, &teaiLabel);
-        if (initialSfen.isEmpty()) {
-            initialSfen = SfenUtils::hirateSfen();
-            teaiLabel = QStringLiteral("平手(既定)");
-        }
-    } else {
-        initialSfen = prepareInitialSfen(filePath, teaiLabel);
+void KifuLoadCoordinator::cancelLoad()
+{
+    if (!m_loadWatcher) return;
+    m_loadCancel->store(true);
+    if (auto* watcher = std::exchange(m_loadWatcher, nullptr)) {
+        disconnect(watcher, nullptr, this, nullptr);
+        watcher->deleteLater();
     }
-    logStep("detectInitialSfen");
+    m_loadingKifu = false;
+    emit loadFinished(false);
+}
 
-    // 2) 解析（本譜＋分岐＋コメント）を一括取得
-    KifParseResult res;
-    QString parseWarn;
-    if (!parseFunc(filePath, res, &parseWarn)) {
-        qCWarning(lcKifu).noquote() << "parse failed:" << filePath << parseWarn;
-        QString detail = parseWarn.isEmpty() ? QString() : QStringLiteral("\n") + parseWarn;
-        emit errorOccurred(tr("棋譜ファイルの読み込みに失敗しました: %1%2")
-                               .arg(QFileInfo(filePath).fileName(), detail));
+void KifuLoadCoordinator::startLoad(const QString& input, bool text)
+{
+    // 以前のジョブは値だけを所有するため、完了を待たずに破棄できる。
+    if (m_loadCancel) m_loadCancel->store(true);
+    if (auto* watcher = std::exchange(m_loadWatcher, nullptr)) {
+        disconnect(watcher, nullptr, this, nullptr);
+        watcher->deleteLater();
+    }
+    m_loadCancel = makeCancelFlag();
+    const auto cancel = m_loadCancel;
+    m_loadWatcher = new QFutureWatcher<KifuLoadResult>(this);
+    connect(m_loadWatcher, &QFutureWatcher<KifuLoadResult>::finished,
+            this, &KifuLoadCoordinator::onLoadFinished);
+    m_loadingKifu = true;
+    m_loadWatcher->setFuture(QtConcurrent::run([input, text, cancel]() {
+        return text ? KifuLoadParser::parseText(input, cancel)
+                    : KifuLoadParser::parseFile(input, KifuFileReader::KifuFormat::Unknown, cancel);
+    }));
+}
+
+void KifuLoadCoordinator::loadFileAsync(const QString& filePath) { startLoad(filePath, false); }
+void KifuLoadCoordinator::loadTextAsync(const QString& content) { startLoad(content, true); }
+
+void KifuLoadCoordinator::onLoadFinished()
+{
+    if (sender() != m_loadWatcher) return;
+    auto* watcher = std::exchange(m_loadWatcher, nullptr);
+    const auto result = watcher->result();
+    watcher->deleteLater();
+    const bool success = !m_loadCancel->load() && applyLoadResult(result);
+    m_loadingKifu = false;
+    emit loadFinished(success);
+}
+
+bool KifuLoadCoordinator::applyLoadResult(const KifuLoadResult& result)
+{
+    if (!result.success) {
         m_loadingKifu = false;
+        if (!result.error.isEmpty()) emit errorOccurred(result.error);
         return false;
     }
-    if (!parseWarn.isEmpty()) {
-        qCWarning(lcKifu).noquote() << "parse warn:" << parseWarn;
-        emit errorOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(parseWarn));
-    }
-    logStep("parseFunc");
-
-    // 2.5) sfenList が未生成の場合は baseSfen + usiMoves から補完
-    if (res.mainline.sfenList.isEmpty() && !res.mainline.usiMoves.isEmpty()) {
-        res.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
-            res.mainline.baseSfen, res.mainline.usiMoves, false);
-    }
-    for (KifVariation& var : res.variations) {
-        if (!var.line.sfenList.isEmpty() || var.line.usiMoves.isEmpty()) {
-            continue;
-        }
-        if (var.line.baseSfen.isEmpty() && !res.mainline.sfenList.isEmpty()) {
-            const int branchPly = var.startPly - 1;
-            if (branchPly >= 0 && branchPly < res.mainline.sfenList.size()) {
-                var.line.baseSfen = res.mainline.sfenList.at(branchPly);
-            }
-        }
-        if (!var.line.baseSfen.isEmpty()) {
-            var.line.sfenList = SfenPositionTracer::buildSfenRecord(
-                var.line.baseSfen, var.line.usiMoves, var.line.endsWithTerminal);
-        }
-    }
-
-    // 3) デバッグ出力
-    KifuApplyLogger::dumpMainline(res, parseWarn);
-    if (dumpVariations) {
-        KifuApplyLogger::dumpVariationsDebug(res);
-    }
-    logStep("dumpMainline/Variations");
-
-    // 4) 先手/後手名などヘッダ反映
-    const QList<KifGameInfoItem> infoItems = extractGameInfoFunc ? extractGameInfoFunc(filePath)
-                                                               : QList<KifGameInfoItem>();
-    m_applyService->populateGameInfo(infoItems);
-    m_applyService->applyPlayersFromGameInfo(infoItems);
-    logStep("extractGameInfo");
-
-    // 5) 共通の後処理（KifuApplyService に委譲）
-    const bool applied = m_applyService->applyParsedResult(
-        filePath, initialSfen, teaiLabel, res, parseWarn, funcName);
-    qCDebug(lcKifu).noquote() << QStringLiteral("loadKifuCommon TOTAL: %1 ms").arg(totalTimer.elapsed());
-    return applied;
+    if (!result.positionOnly.isEmpty()) return m_applyService->loadPositionFromSfen(result.positionOnly);
+    if (!result.warning.isEmpty()) emit errorOccurred(tr("棋譜の読み込みで警告があります:\n%1").arg(result.warning));
+    m_loadingKifu = true;
+    m_applyService->populateGameInfo(result.gameInfo);
+    m_applyService->applyPlayersFromGameInfo(result.gameInfo);
+    return m_applyService->applyParsedResult(result.filePath, result.initialSfen, result.teaiLabel,
+                                            result.record, result.warning, "loadKifu", &result);
 }
 
-// ============================================================
-// 各フォーマット用の公開関数
-// ============================================================
-
-bool KifuLoadCoordinator::loadKi2FromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadKifuFromFile(const QString& path)
 {
-    return loadKifuCommon(
-        filePath,
-        "loadKi2FromFile",
-        [](const QString& path, KifParseResult& res, QString* warn) {
-            return Ki2ToSfenConverter::parseWithVariations(path, res, warn);
-        },
-        KifuDetectSfenFunc(),
-        [](const QString& path) {
-            return Ki2ToSfenConverter::extractGameInfo(path);
-        },
-        false
-    );
+    cancelLoad();
+    return applyLoadResult(KifuLoadParser::parseFile(path, KifuFileReader::KifuFormat::KIF));
 }
 
-bool KifuLoadCoordinator::loadCsaFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadKi2FromFile(const QString& path)
 {
-    return loadKifuCommon(
-        filePath,
-        "loadCsaFromFile",
-        [](const QString& path, KifParseResult& res, QString* warn) {
-            return CsaToSfenConverter::parse(path, res, warn);
-        },
-        KifuDetectSfenFunc(),
-        [](const QString& path) {
-            return CsaToSfenConverter::extractGameInfo(path);
-        },
-        false
-    );
+    cancelLoad();
+    return applyLoadResult(KifuLoadParser::parseFile(path, KifuFileReader::KifuFormat::KI2));
 }
 
-bool KifuLoadCoordinator::loadJkfFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadCsaFromFile(const QString& path)
 {
-    return loadKifuCommon(
-        filePath,
-        "loadJkfFromFile",
-        [](const QString& path, KifParseResult& res, QString* warn) {
-            return JkfToSfenConverter::parseWithVariations(path, res, warn);
-        },
-        [](const QString& path, QString* label) {
-            return JkfToSfenConverter::detectInitialSfenFromFile(path, label);
-        },
-        [](const QString& path) {
-            return JkfToSfenConverter::extractGameInfo(path);
-        },
-        true
-    );
+    cancelLoad();
+    return applyLoadResult(KifuLoadParser::parseFile(path, KifuFileReader::KifuFormat::CSA));
 }
 
-bool KifuLoadCoordinator::loadKifuFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadJkfFromFile(const QString& path)
 {
-    return loadKifuCommon(
-        filePath,
-        "loadKifuFromFile",
-        [](const QString& path, KifParseResult& res, QString* warn) {
-            return KifToSfenConverter::parseWithVariations(path, res, warn);
-        },
-        KifuDetectSfenFunc(),
-        [](const QString& path) {
-            return KifToSfenConverter::extractGameInfo(path);
-        },
-        true
-    );
+    cancelLoad();
+    return applyLoadResult(KifuLoadParser::parseFile(path, KifuFileReader::KifuFormat::JKF));
 }
 
-bool KifuLoadCoordinator::loadUsenFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadUsenFromFile(const QString& path)
 {
-    return loadKifuCommon(
-        filePath,
-        "loadUsenFromFile",
-        [](const QString& path, KifParseResult& res, QString* warn) {
-            return UsenToSfenConverter::parseWithVariations(path, res, warn);
-        },
-        [](const QString& path, QString* label) {
-            return UsenToSfenConverter::detectInitialSfenFromFile(path, label);
-        },
-        [](const QString& path) {
-            return UsenToSfenConverter::extractGameInfo(path);
-        },
-        true
-    );
+    cancelLoad();
+    return applyLoadResult(KifuLoadParser::parseFile(path, KifuFileReader::KifuFormat::USEN));
 }
 
-bool KifuLoadCoordinator::loadUsiFromFile(const QString& filePath)
+bool KifuLoadCoordinator::loadUsiFromFile(const QString& path)
 {
-    // 指し手を含まないファイル（.sfen の局面のみ等）は棋譜ではなく局面として反映する。
-    // 棋譜パイプラインは指し手 0 手を読み込み失敗として扱うため。
-    {
-        QString baseSfen;
-        QStringList usiMoves;
-        QString terminalCode;
-        QString warn;
-        if (UsiToSfenConverter::parseUsiFile(filePath, baseSfen, usiMoves, &terminalCode, &warn)
-            && usiMoves.isEmpty() && terminalCode.isEmpty()) {
-            qCDebug(lcKifu).noquote() << "loadUsiFromFile: position only, applying as SFEN:" << baseSfen;
-            return m_applyService->loadPositionFromSfen(baseSfen);
-        }
-    }
-
-    return loadKifuCommon(
-        filePath,
-        "loadUsiFromFile",
-        [](const QString& path, KifParseResult& res, QString* warn) {
-            return UsiToSfenConverter::parseWithVariations(path, res, warn);
-        },
-        [](const QString& path, QString* label) {
-            return UsiToSfenConverter::detectInitialSfenFromFile(path, label);
-        },
-        KifuExtractGameInfoFunc(),
-        false
-    );
+    cancelLoad();
+    return applyLoadResult(KifuLoadParser::parseFile(path, KifuFileReader::KifuFormat::USI));
 }
-
-// ============================================================
-// 文字列からの棋譜読み込み（フォーマット自動判定）
-// ============================================================
 
 bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
 {
-    if (content.trimmed().isEmpty()) {
-        emit errorOccurred(tr("貼り付けるテキストが空です。"));
-        return false;
-    }
-
-    qCDebug(lcKifu).noquote() << "loadKifuFromString: content length =" << content.size();
-
-    // I/O層でフォーマット判定
-    const auto fmt = KifuFileReader::detectFormat(content);
-
-    // SFEN/BOD は適用層で直接処理
-    if (fmt == KifuFileReader::KifuFormat::SFEN) {
-        return m_applyService->loadPositionFromSfen(content.trimmed());
-    }
-    if (fmt == KifuFileReader::KifuFormat::BOD) {
-        return m_applyService->loadPositionFromBod(content);
-    }
-
-    // 一時ファイルを作成して読み込み
-    const auto tempFile = KifuFileReader::createTempFile(fmt, content);
-    if (!tempFile) {
-        emit errorOccurred(tr("一時ファイルの作成に失敗しました。"));
-        return false;
-    }
-    const QString tempFilePath = tempFile->fileName();
-    qCDebug(lcKifu).noquote() << "created temp file:" << tempFilePath;
-
-    // 形式に応じた読み込み関数を呼び出し
-    bool ok = false;
-    switch (fmt) {
-    case KifuFileReader::KifuFormat::KIF:  ok = loadKifuFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::KI2:  ok = loadKi2FromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::CSA:  ok = loadCsaFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::USI:  ok = loadUsiFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::JKF:  ok = loadJkfFromFile(tempFilePath); break;
-    case KifuFileReader::KifuFormat::USEN: ok = loadUsenFromFile(tempFilePath); break;
-    default:                               ok = loadKifuFromFile(tempFilePath); break;
-    }
-
-    return ok;
+    cancelLoad();
+    return applyLoadResult(KifuLoadParser::parseText(content));
 }
 
 // ============================================================
@@ -376,24 +228,14 @@ bool KifuLoadCoordinator::loadKifuFromString(const QString& content)
 
 bool KifuLoadCoordinator::loadPositionFromSfen(const QString& sfenStr)
 {
+    cancelLoad();
     return m_applyService->loadPositionFromSfen(sfenStr);
 }
 
 bool KifuLoadCoordinator::loadPositionFromBod(const QString& bodStr)
 {
+    cancelLoad();
     return m_applyService->loadPositionFromBod(bodStr);
-}
-
-// ============================================================
-// 初期SFEN検出
-// ============================================================
-
-QString KifuLoadCoordinator::prepareInitialSfen(const QString& filePath, QString& teaiLabel) const
-{
-    const QString sfen = KifToSfenConverter::detectInitialSfenFromFile(filePath, &teaiLabel);
-    return sfen.isEmpty()
-               ? SfenUtils::hirateSfen()
-               : sfen;
 }
 
 // ============================================================
@@ -482,6 +324,7 @@ void KifuLoadCoordinator::resetBranchContext()
 
 void KifuLoadCoordinator::resetBranchTreeForNewGame()
 {
+    cancelLoad();
     qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: clearing all branch data";
 
     m_branchPlyContext = -1;

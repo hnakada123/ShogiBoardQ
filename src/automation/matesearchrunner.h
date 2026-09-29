@@ -43,6 +43,7 @@ signals:
     void errorOccurred(const QString& message);
 
 private slots:
+    void onSessionReady();
     void onSolved(const QStringList& pv);
     void onNoMate();
     void onNotImplemented();
@@ -57,6 +58,8 @@ private:
     QTimer m_safetyTimer;
     QElapsedTimer m_elapsed;
     bool m_done = false;
+    bool m_searchStarted = false;
+    Request m_request;
     bool m_stopSent = false;
 };
 
