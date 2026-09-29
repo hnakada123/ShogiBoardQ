@@ -138,7 +138,7 @@ jobs:
 
   build-macos:
     needs: [compatibility-check, qt-notices]
-    runs-on: macos-latest
+    runs-on: macos-15  # macOS 26 SDK には AGL が無く Qt 6.7 がリンクできない
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
         with:
