@@ -60,6 +60,7 @@ void TsumeshogiGenerator::start(const Settings& settings)
     m_foundSfens.clear();
     m_verificationRejected = 0;
     m_verificationInconclusive = 0;
+    m_screenUnknownCount = 0;
     emit verificationStatsUpdated(0, 0);
 
     // Usi インスタンスを作成（モデル不要、ゲームコントローラ不要）。所有は parent（this）
@@ -434,6 +435,7 @@ void TsumeshogiGenerator::onBatchReady()
         const TsumeshogiCandidateScreener::Batch batch = m_batchWatcher.result();
         m_generatedCount += batch.generated;
         m_positionQueue.append(batch.candidates);
+        m_screenUnknownCount += batch.unknown;
         if (batch.multipleFirstMoves > 0) {
             // 内蔵探索で2つ以上の詰む初手が見つかった局面は余詰として除外済み
             m_verificationRejected += batch.multipleFirstMoves;

@@ -162,6 +162,9 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
             elapsed = (await ui.widget("considerationElapsed"))["text"]
             await asyncio.sleep(0.3)
             assert (await ui.widget("considerationElapsed"))["text"] == elapsed
+            # 停止時の PV なし info（time/nodes のみ）で最善手の行が空にならない
+            rows = (await ui.widget("considerationView"))["rows"][1:]
+            assert rows and all(row[5] for row in rows), rows
             for ply in (1, 3, 0, 2):
                 pos = await ui.call("goto_ply", ply=ply)
                 assert pos["ply"] == ply

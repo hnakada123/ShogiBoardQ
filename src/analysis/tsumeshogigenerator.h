@@ -164,6 +164,7 @@ private:
     int m_verificationQueries = 0;
     int m_verificationRejected = 0;
     int m_verificationInconclusive = 0;
+    int m_screenUnknownCount = 0; ///< 事前選別が時間切れで未確定のままキューに積んだ局面数
     QString m_verifiedSfen;       ///< 全検査を通った正確な局面とPVの組
     QStringList m_verifiedPv;
 

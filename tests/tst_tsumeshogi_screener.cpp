@@ -96,10 +96,14 @@ private slots:
         QVERIFY(batch.generated <= 300);
         QVERIFY(batch.candidates.size() <= 2);
         QVERIFY(batch.candidates.size() == 2 || batch.generated == 300);
+        // 短い制限で時間切れのまま通した局面（Unknown）は、制限を広げると除外されうる。
+        // 実行環境の速さに依存しないよう、食い違いは Unknown で通した数までに限る。
+        QStringList rejected;
         for (const QString& sfen : batch.candidates) {
             const auto verdict = TsumeshogiCandidateScreener::screen(sfen, 3, generous(2), kNoStop);
-            QVERIFY2(verdict == Verdict::Candidate || verdict == Verdict::Unknown, qPrintable(sfen));
+            if (verdict != Verdict::Candidate && verdict != Verdict::Unknown) rejected.append(sfen);
         }
+        QVERIFY2(rejected.size() <= batch.unknown, qPrintable(rejected.join(QStringLiteral(", "))));
     }
     void batchStopsOnCancel()
     {
