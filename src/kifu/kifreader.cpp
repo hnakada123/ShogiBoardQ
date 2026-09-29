@@ -5,6 +5,7 @@
 
 #include <QByteArray>
 #include "logcategories.h"
+#include "shiftjiscodec.h"
 #include <QFile>
 #include <QStringDecoder>
 
@@ -35,8 +36,13 @@ static inline void splitByNewlines(const QString& s, QStringList& out)
 static inline QString decodeWith(const QByteArray& bytes, const char* codecName, bool& ok)
 {
     QStringDecoder dec(codecName);
+    // ICU なしの Qt では UTF 以外のデコーダが無効になり、空文字列を返すため失敗扱いにする
+    if (!dec.isValid()) {
+        ok = false;
+        return QString();
+    }
     QString s = dec.decode(bytes);
-    ok = !s.contains(QChar(0xFFFD));
+    ok = !dec.hasError() && !s.contains(QChar(0xFFFD));
     return s;
 }
 
@@ -126,11 +132,9 @@ bool readAllLinesAuto(const QString& filePath,
             if (usedEncoding) *usedEncoding = QStringLiteral("utf-8");
         } else {
             // 3) CP932 / Shift_JIS
-            bool okSj = false;
-            QString sSj = decodeWith(bytes, "Shift-JIS", okSj);
-            if (okSj) {
-                text = std::move(sSj);
-                if (usedEncoding) *usedEncoding = QStringLiteral("cp932(iconv)");
+            if (auto sSj = ShiftJisCodec::decode(bytes)) {
+                text = std::move(*sSj);
+                if (usedEncoding) *usedEncoding = QStringLiteral("cp932");
             } else {
                 // 4) EUC-JP（稀）
                 bool okEuc = false;

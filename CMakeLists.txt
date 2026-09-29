@@ -510,6 +510,8 @@ set(SRC_KIFU
     src/kifu/kifutypes.h
     src/kifu/livegamesession.cpp
     src/kifu/livegamesession.h
+    src/kifu/shiftjiscodec.cpp
+    src/kifu/shiftjiscodec.h
     src/kifu/shogiinforecord.cpp
     src/kifu/shogiinforecord.h
 )
@@ -1073,6 +1075,12 @@ set(SBQ_LINK_LIBS
     Qt6::Multimedia
     Qt6::Sql
 )
+
+# Shift_JIS 変換: ICU なしの Qt では OS の変換機能を使う（Windows は Win32 API）
+if(NOT WIN32)
+    find_package(Iconv REQUIRED)
+    list(APPEND SBQ_LINK_LIBS Iconv::Iconv)
+endif()
 
 # リリースビルドでは qDebug() 出力を無効化
 set(SBQ_COMPILE_DEFINITIONS

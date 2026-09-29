@@ -2,9 +2,9 @@
 /// @brief 棋譜ファイルI/Oサービスの実装
 
 #include "kifuioservice.h"
+#include "shiftjiscodec.h"
 
 #include <QSaveFile>
-#include <QStringEncoder>
 #include <QDateTime>
 #include <QDir>
 #include <QFileInfo>
@@ -89,16 +89,12 @@ bool KifuIoService::writeKifuFile(const QString& filePath,
     const QString text = kifuLines.isEmpty() ? QString()
         : kifuLines.join(QLatin1Char('\n')) + QLatin1Char('\n');
     if (useShiftJis) {
-        QStringEncoder encoder("Shift-JIS");
-        if (!encoder.isValid()) {
-            if (errorText) *errorText = QObject::tr("Shift_JIS encoder is not available on this system.");
-            return false;
-        }
-        encoded = encoder.encode(text);
-        if (encoder.hasError()) {
+        auto sjis = ShiftJisCodec::encode(text);
+        if (!sjis) {
             if (errorText) *errorText = QObject::tr("Some characters cannot be saved in Shift_JIS. Please save as UTF-8.");
             return false;
         }
+        encoded = std::move(*sjis);
     } else {
         encoded = text.toUtf8();
     }

@@ -1875,7 +1875,7 @@
         <location filename="../../src/engine/engineprocessmanager_wait.cpp" line="230"/>
         <location filename="../../src/engine/engineprocessmanager_wait.cpp" line="370"/>
         <source>Failed to start engine: %1</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">エンジンの起動に失敗しました: %1</translation>
     </message>
     <message>
         <location filename="../../src/engine/engineprocessmanager.cpp" line="232"/>
@@ -4882,32 +4882,31 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="99"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="94"/>
         <source>Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</source>
         <translation>Shift_JISでは保存できない文字が含まれています。UTF-8で保存してください。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="111"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="107"/>
         <source>Failed to create directory: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="120"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="116"/>
         <source>Could not open the file for writing: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="94"/>
         <source>Shift_JIS encoder is not available on this system.</source>
-        <translation>Shift_JIS エンコーダが利用できません。</translation>
+        <translation type="vanished">Shift_JIS エンコーダが利用できません。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="126"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="122"/>
         <source>Failed to write data to file.</source>
         <translation>ファイルへのデータ書き込みに失敗しました。</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="131"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="127"/>
         <source>Failed to close file: %1</source>
         <translation>ファイルのクローズに失敗しました: %1</translation>
     </message>
