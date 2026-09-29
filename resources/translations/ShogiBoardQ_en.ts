@@ -6487,32 +6487,31 @@ Are you sure you want to declare?</translation>
         <translation>File path is empty.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="99"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="94"/>
         <source>Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</source>
         <translation>Some characters cannot be saved in Shift_JIS. Please save as UTF-8.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="111"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="107"/>
         <source>Failed to create directory: %1</source>
         <translation>Failed to create directory: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="120"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="116"/>
         <source>Could not open the file for writing: %1</source>
         <translation>Could not open the file for writing: %1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="94"/>
         <source>Shift_JIS encoder is not available on this system.</source>
-        <translation>Shift_JIS encoder is not available on this system.</translation>
+        <translation type="vanished">Shift_JIS encoder is not available on this system.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="126"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="122"/>
         <source>Failed to write data to file.</source>
         <translation>Failed to write data to file.</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuioservice.cpp" line="131"/>
+        <location filename="../../src/kifu/kifuioservice.cpp" line="127"/>
         <source>Failed to close file: %1</source>
         <translation>Failed to close file: %1</translation>
     </message>
