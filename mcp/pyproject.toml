@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "GPL-3.0-or-later" }
 authors = [{ name = "ShogiBoardQ contributors" }]
-dependencies = ["mcp>=1.10"]
+dependencies = ["mcp>=1.10,<2"]  # mcp 2.x は lowlevel Server API が非互換
 
 [project.optional-dependencies]
 test = ["pytest>=8", "anyio>=4"]
