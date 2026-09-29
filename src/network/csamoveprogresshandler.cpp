@@ -315,8 +315,14 @@ void CsaMoveProgressHandler::startEngineThinking()
 
     m_hooks.logMessage(tr("エンジンが思考中..."), false);
 
-    auto result = (*m_refs.engineController)->think(params);
-    // USIの待機中には入れ子のイベントループで終局や切断が届くことがある。
+    connect(*m_refs.engineController, &CsaEngineController::thinkingFinished,
+            this, &CsaMoveProgressHandler::onEngineThinkingFinished, Qt::UniqueConnection);
+    (*m_refs.engineController)->thinkAsync(params);
+}
+
+void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController::ThinkingResult& result)
+{
+    if (sender() != *m_refs.engineController || !*m_refs.isMyTurn) return;
     if (*m_refs.gameState != GameState::InGame) return;
 
     // 投了チェック

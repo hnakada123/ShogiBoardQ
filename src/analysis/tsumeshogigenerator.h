@@ -65,6 +65,7 @@ signals:
     void errorOccurred(const QString& message);
 
 private slots:
+    void onEngineInitialized();
     void onCheckmateSolved(const QStringList& pv);
     void onCheckmateNoMate();
     void onCheckmateNotImplemented();

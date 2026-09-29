@@ -159,6 +159,8 @@ private slots:
     void onRawMessageReceived(const QString& message);
     void onRawMessageSent(const QString& message);
     void onEngineControllerResign();
+    void onEngineControllerInitialized();
+    void onEngineControllerError(const QString& message);
 
 private:
     void setGameState(GameState state);

@@ -17,6 +17,7 @@ MateSearchRunner::MateSearchRunner(QObject* parent)
 {
     m_safetyTimer.setSingleShot(true);
     connect(&m_safetyTimer, &QTimer::timeout, this, &MateSearchRunner::onSafetyTimeout);
+    connect(m_session, &UsiEngineSession::ready, this, &MateSearchRunner::onSessionReady);
     connect(m_session, &UsiEngineSession::errorOccurred, this, &MateSearchRunner::onSessionError);
     UsiProtocolHandler* handler = m_session->handler();
     connect(handler, &UsiProtocolHandler::checkmateSolved, this, &MateSearchRunner::onSolved);
@@ -40,18 +41,28 @@ bool MateSearchRunner::start(const Request& request, QString* error)
 {
     m_done = false;
     m_stopSent = false;
-    if (!m_session->start(request.enginePath, request.engineName, error)) return false;
+    m_request = request;
+    m_searchStarted = false;
+    m_elapsed.invalidate();
+    return m_session->startAsync(request.enginePath, request.engineName, error);
+}
+
+void MateSearchRunner::onSessionReady()
+{
+    if (m_done) return;
+    m_searchStarted = true;
+    const auto& request = m_request;
     UsiProtocolHandler* handler = m_session->handler();
     handler->sendPosition(request.positionCommand);
     handler->sendGoMate(qMax(100, request.timeMs));
     m_elapsed.start();
     m_safetyTimer.start(qMax(100, request.timeMs) + kSafetyMarginMs);
-    return true;
 }
 
 void MateSearchRunner::stop()
 {
     if (m_done || m_stopSent) return;
+    if (!m_searchStarted) { finish(Status::Unknown, {}); return; }
     m_stopSent = true;
     m_session->handler()->sendStop();
     m_safetyTimer.start(kStopResponseMs);

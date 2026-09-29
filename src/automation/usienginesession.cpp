@@ -13,8 +13,11 @@ UsiEngineSession::UsiEngineSession(QObject* parent)
     , m_handler(new UsiProtocolHandler(this))
 {
     m_handler->setProcessManager(m_process);
-    connect(m_process, &EngineProcessManager::dataReceived,
-            m_handler, &UsiProtocolHandler::onDataReceived);
+    m_startTimer.setSingleShot(true);
+    connect(&m_startTimer, &QTimer::timeout, this, &UsiEngineSession::onStartTimeout);
+    connect(m_process, &EngineProcessManager::processStarted, this, &UsiEngineSession::onProcessStarted);
+    connect(m_process, &EngineProcessManager::processExited, this, &UsiEngineSession::onProcessExited);
+    connect(m_handler, &UsiProtocolHandler::initializationFinished, this, &UsiEngineSession::onInitialized);
     connect(m_process, &EngineProcessManager::processError,
             this, &UsiEngineSession::onProcessError);
     connect(m_handler, &UsiProtocolHandler::errorOccurred,
@@ -48,12 +51,57 @@ bool UsiEngineSession::start(const QString& enginePath, const QString& engineNam
     return true;
 }
 
+bool UsiEngineSession::startAsync(const QString& enginePath, const QString& engineName, QString* error)
+{
+    quit();
+    m_lastError.clear();
+    m_handler->loadEngineOptions(engineName);
+    m_starting = true;
+    m_initializing = true;
+    m_startTimer.start(5000);
+    const bool accepted = m_process->startProcessAsync(enginePath);
+    m_starting = false;
+    if (!accepted) {
+        quit();
+        if (error) *error = m_lastError;
+    }
+    return accepted;
+}
+
+void UsiEngineSession::onProcessStarted()
+{
+    if (!m_initializing) return;
+    m_startTimer.stop();
+    m_handler->initializeEngineAsync();
+}
+
+void UsiEngineSession::onInitialized(bool success)
+{
+    if (!m_initializing) return;
+    m_initializing = false;
+    if (success) emit ready();
+    else quit();
+}
+
+void UsiEngineSession::onStartTimeout()
+{
+    onHandlerError(QStringLiteral("Timed out starting the engine"));
+}
+
+void UsiEngineSession::onProcessExited()
+{
+    onHandlerError(QStringLiteral("Engine exited unexpectedly"));
+}
+
 void UsiEngineSession::quit()
 {
+    m_startTimer.stop();
+    m_initializing = false;
+    m_handler->cancelCurrentOperation();
     if (m_process->isRunning()) {
         m_handler->sendQuit();
     }
-    m_process->stopProcess();
+    m_process->stopProcessAsync();
 }
 
 bool UsiEngineSession::isRunning() const
@@ -66,12 +114,12 @@ void UsiEngineSession::onProcessError(QProcess::ProcessError error, const QStrin
     Q_UNUSED(error)
     qCWarning(lcEngine) << "UsiEngineSession process error:" << message;
     m_lastError = message;
-    if (!m_starting) emit errorOccurred(message);
+    if (!m_starting) { quit(); emit errorOccurred(message); }
 }
 
 void UsiEngineSession::onHandlerError(const QString& message)
 {
     qCWarning(lcEngine) << "UsiEngineSession protocol error:" << message;
     m_lastError = message;
-    if (!m_starting) emit errorOccurred(message);
+    if (!m_starting) { quit(); emit errorOccurred(message); }
 }

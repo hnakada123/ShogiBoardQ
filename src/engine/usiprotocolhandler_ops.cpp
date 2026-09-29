@@ -2,6 +2,7 @@
 /// @brief UsiProtocolHandler の局所操作（checkmate/座標変換/operation context）実装
 
 #include "usiprotocolhandler.h"
+#include <QPointer>
 #include "usimovecoordinateconverter.h"
 #include "shogigamecontroller.h"
 
@@ -108,6 +109,8 @@ quint64 UsiProtocolHandler::beginOperationContext()
 
 void UsiProtocolHandler::cancelCurrentOperation()
 {
+    m_initializationTimer.stop();
+    m_initialization = Initialization::Idle;
     if (m_opCtx) {
         m_opCtx->deleteLater();
         m_opCtx = nullptr;
@@ -118,4 +121,44 @@ void UsiProtocolHandler::cancelCurrentOperation()
     m_phase = SearchPhase::Idle;
     m_predictedOpponentMove.clear();
     ++m_seq;
+}
+
+void UsiProtocolHandler::initializeEngineAsync(int timeoutMs)
+{
+    cancelCurrentOperation();
+    clearHardTimeout();
+    m_reportedOptions.clear();
+    m_initializationTimeoutMs = qMax(1, timeoutMs);
+    m_initialization = Initialization::UsiOk;
+    m_initializationTimer.start(m_initializationTimeoutMs);
+    sendUsi();
+}
+
+void UsiProtocolHandler::onInitializationUsiOk()
+{
+    if (m_initialization != Initialization::UsiOk) return;
+    m_initialization = Initialization::ReadyOk;
+    sendConfiguredOptions();
+    m_initializationTimer.start(m_initializationTimeoutMs);
+    sendIsReady();
+}
+
+void UsiProtocolHandler::onInitializationReadyOk()
+{
+    if (m_initialization != Initialization::ReadyOk) return;
+    m_initialization = Initialization::Idle;
+    m_initializationTimer.stop();
+    sendUsiNewGame();
+    emit initializationFinished(true);
+}
+
+void UsiProtocolHandler::onInitializationTimeout()
+{
+    const auto state = m_initialization;
+    if (state == Initialization::Idle) return;
+    cancelCurrentOperation();
+    const QPointer<UsiProtocolHandler> guard(this);
+    emit errorOccurred(state == Initialization::UsiOk ? tr("Timeout waiting for usiok")
+                                                     : tr("Timeout waiting for readyok"));
+    if (guard) emit initializationFinished(false);
 }

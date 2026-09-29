@@ -31,6 +31,9 @@ QList<QChar> boardCharsFromSfen(const QString& sfen)
 
 void Usi::executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec)
 {
+    if (deferUntilReady([this, positionStr, mateLimitMilliSec]() mutable {
+        executeTsumeCommunication(positionStr, mateLimitMilliSec);
+    })) return;
     const QString baseSfen = SfenPositionTracer::sfenFromPositionCommand(positionStr);
     if (!baseSfen.isEmpty()) {
         m_presenter->setBaseSfen(baseSfen);
@@ -48,6 +51,9 @@ void Usi::executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec)
 
 void Usi::sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr)
 {
+    if (deferUntilReady([this, positionStr, mateLimitMilliSec]() mutable {
+        sendPositionAndGoMateCommands(mateLimitMilliSec, positionStr);
+    })) return;
     m_protocolHandler->sendPosition(positionStr);
     m_protocolHandler->sendGoMate(mateLimitMilliSec);
 }
@@ -127,6 +133,9 @@ void Usi::executeAnalysisCommunication(QString& positionStr, int byoyomiMilliSec
 
 void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, int multiPV)
 {
+    if (deferUntilReady([this, positionStr, byoyomiMilliSec, multiPV]() {
+        sendAnalysisCommands(positionStr, byoyomiMilliSec, multiPV);
+    })) return;
     qCDebug(lcEngine) << "sendAnalysisCommands:"
                       << "positionStr=" << positionStr
                       << "byoyomiMilliSec=" << byoyomiMilliSec

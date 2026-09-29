@@ -14,6 +14,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QStatusBar>
+#include <QProgressDialog>
 
 KifuFileController::KifuFileController(QObject* parent)
     : QObject(parent)
@@ -65,21 +66,7 @@ void KifuFileController::chooseAndLoadKifuFile()
     QFileInfo fileInfo(filePath);
     GameSettings::setLastKifuDirectory(fileInfo.absolutePath());
 
-    prepareForKifuLoad();
-
-    // 2) KifuLoadCoordinator の作成・配線・読み込み実行
-    if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
-
-    qCDebug(lcApp) << "chooseAndLoadKifuFile: loading file=" << filePath;
-    const bool loaded = dispatchKifuLoad(filePath);
-
-    // 読み込んだファイルを「上書き保存」の対象にする。
-    // 失敗時は表示中の棋譜が変わらないので、保存先も変更しない。
-    if (loaded) {
-        setOverwriteTarget(filePath);
-    }
-
-    qCDebug(lcApp) << "chooseAndLoadKifuFile LEAVE";
+    startAsyncLoad(filePath, false);
 }
 
 void KifuFileController::saveKifuToFile()
@@ -138,32 +125,47 @@ void KifuFileController::onKifuPasteImportRequested(const QString& content)
     qCDebug(lcApp) << "onKifuPasteImportRequested: content length =" << content.size();
 
     if (!confirmDiscardUnsaved()) return;
-    prepareForKifuLoad();
-    if (m_deps.prepareKifuLoadCoordinatorForLive) m_deps.prepareKifuLoadCoordinatorForLive();
+    startAsyncLoad(content, true);
+}
 
-    auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
-    if (klc) {
-        const bool success = klc->loadKifuFromString(content);
-        // 貼り付けた棋譜はファイル由来ではないので、以前のファイルへ上書きさせない
-        if (success) {
-            clearOverwriteTarget();
-            if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
-                record->markDirty();
-            }
-            if (m_kifuPasteDialog) m_kifuPasteDialog->accept();
-        }
-        if (m_deps.statusBar) {
-            if (success) {
-                m_deps.statusBar->showMessage(tr("棋譜を取り込みました"), 3000);
-            } else {
-                m_deps.statusBar->showMessage(tr("棋譜の取り込みに失敗しました"), 3000);
-            }
-        }
+void KifuFileController::startAsyncLoad(const QString& input, bool text)
+{
+    prepareForKifuLoad();
+    if (m_deps.createAndWireKifuLoadCoordinator) m_deps.createAndWireKifuLoadCoordinator();
+    auto* coordinator = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
+    if (!coordinator) {
+        qCWarning(lcApp) << "KifuLoadCoordinator is null";
+        return;
+    }
+    if (m_loadProgress) m_loadProgress->deleteLater();
+    m_loadingText = text;
+    m_pendingLoadPath = text ? QString() : input;
+    // 入力を待つイベントループは通常どおり動かし、読み込み中の棋譜編集を防ぐ。
+    m_loadProgress = new QProgressDialog(tr("棋譜を読み込み中..."), tr("キャンセル"), 0, 0, m_deps.parentWidget);
+    m_loadProgress->setWindowModality(Qt::WindowModal);
+    m_loadProgress->setMinimumDuration(0);
+    connect(m_loadProgress, &QProgressDialog::canceled, coordinator, &KifuLoadCoordinator::cancelLoad);
+    connect(coordinator, &KifuLoadCoordinator::loadFinished, this, &KifuFileController::onAsyncLoadFinished, Qt::UniqueConnection);
+    m_loadProgress->show();
+    if (text) coordinator->loadTextAsync(input);
+    else coordinator->loadFileAsync(input);
+}
+
+void KifuFileController::onAsyncLoadFinished(bool success)
+{
+    if (m_loadProgress) {
+        m_loadProgress->close();
+        m_loadProgress->deleteLater();
+        m_loadProgress = nullptr;
+    }
+    if (!success) return;
+    if (m_loadingText) {
+        clearOverwriteTarget();
+        if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) record->markDirty();
+        if (m_kifuPasteDialog) m_kifuPasteDialog->accept();
+        if (m_deps.statusBar) m_deps.statusBar->showMessage(tr("棋譜を取り込みました"), 3000);
     } else {
-        qCWarning(lcApp) << "onKifuPasteImportRequested: KifuLoadCoordinator is null";
-        if (m_deps.statusBar) {
-            m_deps.statusBar->showMessage(tr("棋譜の取り込みに失敗しました（内部エラー）"), 3000);
-        }
+        setOverwriteTarget(m_pendingLoadPath);
     }
 }
 

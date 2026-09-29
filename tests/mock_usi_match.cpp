@@ -18,6 +18,9 @@ int main()
     std::string line;
     while (std::getline(std::cin, line)) {
         if (line == "usi") {
+            if (const char* delayMs = std::getenv("SBQ_MATCH_INIT_DELAY_MS"))
+                std::this_thread::sleep_for(std::chrono::milliseconds(std::atoi(delayMs)));
+            if (std::getenv("SBQ_MATCH_NO_USIOK")) continue;
             if (mode == "reported") {
                 std::cout << "option name USI_Ponder type check default true" << std::endl;
             }
@@ -31,10 +34,13 @@ int main()
         else if (line.find("setoption name ReplyDelay value ") == 0) delay = std::stoi(line.substr(32));
         else if (line.find("go ponder") == 0) { join(); pondering = true; }
         else if (line == "stop") {
+            if (const char* delayMs = std::getenv("SBQ_MATCH_STOP_DELAY_MS"))
+                std::this_thread::sleep_for(std::chrono::milliseconds(std::atoi(delayMs)));
             join();
             pondering = false;
             std::cout << "bestmove resign" << std::endl; // 予測局面の投了は破棄する
         } else if (line == "ponderhit" || line.find("go ") == 0) {
+            if (std::getenv("SBQ_MATCH_EXIT_ON_GO")) { join(); return 3; }
             if (line == "ponderhit" && !pondering) { join(); return 2; }
             if (pondering && line != "ponderhit") continue;
             join();

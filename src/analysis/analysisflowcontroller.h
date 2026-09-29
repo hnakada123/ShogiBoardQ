@@ -89,6 +89,7 @@ signals:
     void analysisResultRowSelected(int row);
 
 private slots:
+    void onEngineInitialized();
     /// USI通信ログの更新時に`bestmove`検出を行う
     void onUsiCommLogChanged();
 

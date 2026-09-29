@@ -327,34 +327,13 @@ private slots:
     /// chooseAndLoadKifuFile が正しい順序で処理すること
     void chooseAndLoad_flowOrder()
     {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::chooseAndLoadKifuFile()"));
-        QVERIFY2(range.first >= 0, "chooseAndLoadKifuFile not found");
-
+        const auto lines = kfcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuFileController::chooseAndLoadKifuFile("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        // 1) ファイル選択ダイアログ
-        const auto fileDialogIdx = body.indexOf(QStringLiteral("getOpenFileName"));
-        QVERIFY2(fileDialogIdx >= 0, "Must use QFileDialog::getOpenFileName");
-
-        // 2) 未保存の棋譜を保護してから、共通の読み込み準備
-        const auto guardIdx = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
-        const auto clearIdx = body.indexOf(QStringLiteral("prepareForKifuLoad"));
-        QVERIFY2(guardIdx > fileDialogIdx, "Unsaved guard must follow file selection");
-        QVERIFY2(clearIdx > guardIdx, "Load preparation must follow the unsaved guard");
-
-        // 4) KifuLoadCoordinator 作成
-        const auto createIdx = body.indexOf(QStringLiteral("createAndWireKifuLoadCoordinator"));
-        QVERIFY2(createIdx >= 0, "Must call createAndWireKifuLoadCoordinator");
-        QVERIFY2(createIdx > clearIdx,
-                  "createAndWire must come after clearUi");
-
-        // 5) dispatchKifuLoad
-        const auto dispatchIdx = body.indexOf(QStringLiteral("dispatchKifuLoad"));
-        QVERIFY2(dispatchIdx >= 0, "Must call dispatchKifuLoad");
-        QVERIFY2(dispatchIdx > createIdx,
-                  "dispatchKifuLoad must come after createAndWire");
+        const auto guard = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
+        QVERIFY(guard >= 0);
+        QVERIFY(body.indexOf(QStringLiteral("startAsyncLoad")) > guard);
     }
 
     /// ファイル・貼り付け・局面集の共通準備で、リプレイと対局情報を初期化すること
@@ -376,22 +355,13 @@ private slots:
     /// chooseAndLoadKifuFile が読み込み成功時に上書き保存先を記録すること
     void chooseAndLoad_recordsOverwriteTarget()
     {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::chooseAndLoadKifuFile()"));
-        QVERIFY2(range.first >= 0, "chooseAndLoadKifuFile not found");
-
+        const auto lines = kfcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuFileController::onAsyncLoadFinished("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        // dispatchKifuLoad の結果で分岐し、成功時のみ保存先を更新する
-        const auto dispatchIdx = body.indexOf(QStringLiteral("dispatchKifuLoad"));
-        const auto targetIdx = body.indexOf(QStringLiteral("setOverwriteTarget"));
-        QVERIFY2(dispatchIdx >= 0, "Must call dispatchKifuLoad");
-        QVERIFY2(targetIdx >= 0, "Must record the loaded file as overwrite target");
-        QVERIFY2(targetIdx > dispatchIdx,
-                  "Overwrite target must be recorded after the load");
-        QVERIFY2(body.contains(QStringLiteral("= dispatchKifuLoad(")),
-                  "Must use the result of dispatchKifuLoad");
+        const auto guard = body.indexOf(QStringLiteral("if (!success) return"));
+        QVERIFY(guard >= 0);
+        QVERIFY(body.indexOf(QStringLiteral("setOverwriteTarget(m_pendingLoadPath)")) > guard);
     }
 
     /// setOverwriteTarget が保存形式を決められる拡張子だけを対象にすること
@@ -551,63 +521,38 @@ private slots:
     /// onKifuPasteImportRequested が正しいフローで処理すること
     void onKifuPasteImport_flowOrder()
     {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::onKifuPasteImportRequested"));
-        QVERIFY2(range.first >= 0, "onKifuPasteImportRequested not found");
-
+        const auto lines = kfcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuFileController::onKifuPasteImportRequested("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        // 1) 未保存の棋譜を保護してから、共通の読み込み準備
-        const auto guardIdx = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
-        const auto clearIdx = body.indexOf(QStringLiteral("prepareForKifuLoad"));
-        QVERIFY2(guardIdx >= 0, "Must guard unsaved changes");
-        QVERIFY2(clearIdx > guardIdx, "Load preparation must follow the unsaved guard");
-
-        // 2) KLC 確保
-        const auto ensureIdx = body.indexOf(QStringLiteral("prepareKifuLoadCoordinatorForLive"));
-        QVERIFY2(ensureIdx >= 0, "Must call prepareKifuLoadCoordinatorForLive");
-        QVERIFY2(ensureIdx > clearIdx, "ensure must come after clearUi");
-
-        // 3) ロード実行
-        const auto loadIdx = body.indexOf(QStringLiteral("loadKifuFromString"));
-        QVERIFY2(loadIdx >= 0, "Must call loadKifuFromString");
-        QVERIFY2(loadIdx > ensureIdx, "load must come after ensure");
-
-        // 4) ステータスバー更新
-        QVERIFY2(body.contains(QStringLiteral("statusBar")),
-                  "Must update status bar on result");
+        const auto guard = body.indexOf(QStringLiteral("confirmDiscardUnsaved"));
+        QVERIFY(guard >= 0);
+        QVERIFY(body.indexOf(QStringLiteral("startAsyncLoad")) > guard);
     }
 
     /// onKifuPasteImportRequested が成功時に上書き保存先をクリアすること
     void onKifuPasteImport_clearsOverwriteTarget()
     {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::onKifuPasteImportRequested"));
-        QVERIFY2(range.first >= 0, "onKifuPasteImportRequested not found");
-
+        const auto lines = kfcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuFileController::onAsyncLoadFinished("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-        const auto loadIdx = body.indexOf(QStringLiteral("loadKifuFromString"));
-        const auto clearIdx = body.indexOf(QStringLiteral("clearOverwriteTarget"));
-        QVERIFY2(clearIdx >= 0,
-                  "Pasted kifu must not overwrite the previously loaded file");
-        QVERIFY2(clearIdx > loadIdx, "Target must be cleared after a successful load");
+        const auto guard = body.indexOf(QStringLiteral("if (!success) return"));
+        QVERIFY(guard >= 0);
+        QVERIFY(body.indexOf(QStringLiteral("clearOverwriteTarget")) > guard);
+        QVERIFY(body.contains(QStringLiteral("m_loadingText")));
+        QVERIFY(body.contains(QStringLiteral("markDirty()")));
     }
 
     /// onKifuPasteImportRequested が KLC null 時にエラーハンドリングすること
     void onKifuPasteImport_handlesNullKLC()
     {
-        const QStringList& lines = kfcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuFileController::onKifuPasteImportRequested"));
-        QVERIFY2(range.first >= 0, "onKifuPasteImportRequested not found");
-
+        const auto lines = kfcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuFileController::startAsyncLoad("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        // null チェック後のエラーメッセージ
-        QVERIFY2(body.contains(QStringLiteral("KifuLoadCoordinator is null")),
-                  "Must log warning when KLC is null");
+        QVERIFY(body.contains(QStringLiteral("KifuLoadCoordinator is null")));
+        QVERIFY(body.contains(QStringLiteral("if (!coordinator)")));
     }
 
     // ================================================================
@@ -716,71 +661,43 @@ private slots:
         }
     }
 
-    /// loadKifuCommon が共通パイプラインを実装していること
-    void klc_loadKifuCommonPipeline()
+    /// applyLoadResult が共通パイプラインを実装していること
+    void klc_applyLoadResultPipeline()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadKifuCommon("));
-        QVERIFY2(range.first >= 0, "loadKifuCommon not found");
-
+        const auto lines = klcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadCoordinator::applyLoadResult("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        // 1) loadingKifu フラグ設定
-        QVERIFY2(body.contains(QStringLiteral("m_loadingKifu = true")),
-                  "Must set m_loadingKifu flag");
-
-        // 2) 初期局面の検出
-        QVERIFY2(body.contains(QStringLiteral("initialSfen")),
-                  "Must determine initial SFEN");
-
-        // 3) パース実行
-        QVERIFY2(body.contains(QStringLiteral("parseFunc")),
-                  "Must call parseFunc");
-
-        // 4) エラー時の errorOccurred シグナル
-        QVERIFY2(body.contains(QStringLiteral("errorOccurred")),
-                  "Must emit errorOccurred on parse failure");
-
-        // 5) ゲーム情報抽出
-        QVERIFY2(body.contains(QStringLiteral("extractGameInfoFunc")),
-                  "Must call extractGameInfoFunc");
-
-        // 6) 結果適用
-        QVERIFY2(body.contains(QStringLiteral("applyParsedResult")),
-                  "Must call applyParsedResult");
+        QVERIFY(body.contains(QStringLiteral("m_loadingKifu = true")));
+        QVERIFY(body.contains(QStringLiteral("initialSfen")));
+        QVERIFY(body.contains(QStringLiteral("errorOccurred")));
+        QVERIFY(body.contains(QStringLiteral("populateGameInfo")));
+        QVERIFY(body.contains(QStringLiteral("applyParsedResult")));
     }
 
-    /// loadKifuCommon がパース失敗時にフラグをリセットすること
-    void klc_loadKifuCommon_resetsOnFailure()
+    /// applyLoadResult がパース失敗時にフラグをリセットすること
+    void klc_applyLoadResult_resetsOnFailure()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadKifuCommon("));
-        QVERIFY2(range.first >= 0, "loadKifuCommon not found");
-
+        const auto lines = klcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadCoordinator::applyLoadResult("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        // パース失敗時に m_loadingKifu = false が設定されること
-        QVERIFY2(body.contains(QStringLiteral("m_loadingKifu = false")),
-                  "Must reset m_loadingKifu on parse failure");
+        QVERIFY(body.contains(QStringLiteral("!result.success")));
+        QVERIFY(body.contains(QStringLiteral("m_loadingKifu = false")));
+        QVERIFY(body.contains(QStringLiteral("return false")));
     }
 
     /// loadUsiFromFile が指し手のないファイルを局面として反映すること
     void klc_loadUsi_handlesPositionOnlyFile()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadUsiFromFile"));
-        QVERIFY2(range.first >= 0, "loadUsiFromFile not found");
-
+        const auto lines = readSourceLines(QStringLiteral("src/kifu/kifuloadparser.cpp"));
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadParser::parseFile("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("parseUsiFile")),
-                  "Must inspect the file for moves before choosing the pipeline");
-        QVERIFY2(body.contains(QStringLiteral("loadPositionFromSfen")),
-                  "Position-only files must be applied as a position");
-        QVERIFY2(body.contains(QStringLiteral("loadKifuCommon")),
-                  "Files with moves must go through the kifu pipeline");
+        QVERIFY(body.contains(QStringLiteral("parseUsiFile")));
+        QVERIFY(body.contains(QStringLiteral("moves.isEmpty() && terminal.isEmpty()")));
+        QVERIFY(body.contains(QStringLiteral("result.positionOnly = base")));
+        QVERIFY(body.contains(QStringLiteral("UsiToSfenConverter::parseWithVariations")));
     }
 
     /// 各フォーマットのロードメソッドが成否を返すこと
@@ -796,105 +713,69 @@ private slots:
             QVERIFY2(header.contains(QStringLiteral("bool %1(").arg(m)),
                       qPrintable(QStringLiteral("%1 must return bool").arg(m)));
         }
-        QVERIFY2(header.contains(QStringLiteral("bool loadKifuCommon(")),
-                  "loadKifuCommon must return bool");
+        QVERIFY2(header.contains(QStringLiteral("bool applyLoadResult(")),
+                  "applyLoadResult must return bool");
     }
 
     /// loadKifuFromString が読み込み結果をそのまま返すこと
     void klc_loadFromString_propagatesResult()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadKifuFromString"));
-        QVERIFY2(range.first >= 0, "loadKifuFromString not found");
-
+        const auto lines = klcLines();
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadCoordinator::loadKifuFromString("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("ok = loadKifuFromFile(")),
-                  "Must capture the loader result");
-        QVERIFY2(body.contains(QStringLiteral("return ok;")),
-                  "Must return the loader result instead of a constant");
+        QVERIFY(body.contains(QStringLiteral("return applyLoadResult(KifuLoadParser::parseText(content))")));
     }
 
     /// loadKifuFromString がフォーマット自動判定を行うこと
     void klc_loadFromString_autoDetectsFormat()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadKifuFromString"));
-        QVERIFY2(range.first >= 0, "loadKifuFromString not found");
-
+        const auto lines = readSourceLines(QStringLiteral("src/kifu/kifuloadparser.cpp"));
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadParser::parseText("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        // フォーマット判定
-        QVERIFY2(body.contains(QStringLiteral("detectFormat")),
-                  "Must call detectFormat for auto-detection");
-
-        // 空テキストチェック
-        QVERIFY2(body.contains(QStringLiteral("isEmpty")),
-                  "Must check for empty content");
-        QVERIFY2(body.contains(QStringLiteral("errorOccurred")),
-                  "Must emit error for empty content");
+        QVERIFY(body.contains(QStringLiteral("detectFormat")));
+        QVERIFY(body.contains(QStringLiteral("isEmpty")));
+        QVERIFY(body.contains(QStringLiteral("result.error")));
     }
 
     /// loadKifuFromString が SFEN/BOD を直接処理すること
     void klc_loadFromString_handlesSfenAndBodDirectly()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadKifuFromString"));
-        QVERIFY2(range.first >= 0, "loadKifuFromString not found");
-
+        const auto lines = readSourceLines(QStringLiteral("src/kifu/kifuloadparser.cpp"));
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadParser::parseText("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("KifuFormat::SFEN")),
-                  "Must handle SFEN format directly");
-        QVERIFY2(body.contains(QStringLiteral("KifuFormat::BOD")),
-                  "Must handle BOD format directly");
-        QVERIFY2(body.contains(QStringLiteral("loadPositionFromSfen")),
-                  "Must call loadPositionFromSfen for SFEN");
-        QVERIFY2(body.contains(QStringLiteral("loadPositionFromBod")),
-                  "Must call loadPositionFromBod for BOD");
+        QVERIFY(body.contains(QStringLiteral("Format::SFEN")));
+        QVERIFY(body.contains(QStringLiteral("Format::BOD")));
+        QVERIFY(body.contains(QStringLiteral("result.positionOnly")));
+        QVERIFY(body.contains(QStringLiteral("buildInitialSfenFromBod")));
     }
 
     /// loadKifuFromString が一時ファイルを作成・削除すること
     void klc_loadFromString_cleanupTempFile()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadKifuFromString"));
-        QVERIFY2(range.first >= 0, "loadKifuFromString not found");
-
+        const auto lines = readSourceLines(QStringLiteral("src/kifu/kifuloadparser.cpp"));
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadParser::parseText("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("tempFilePath")),
-                  "Must create temp file path");
-        QVERIFY2(body.contains(QStringLiteral("createTempFile")),
-                  "Must own a temporary file for the duration of loading");
+        QVERIFY(body.contains(QStringLiteral("const auto file = KifuFileReader::createTempFile")));
+        QVERIFY(body.contains(QStringLiteral("return parseFile(file->fileName()")));
     }
 
-    /// loadKifuFromString が全フォーマットに対応した switch を持つこと
+    /// KifuLoadParser が全フォーマットに対応すること
     void klc_loadFromString_switchCoversAllFormats()
     {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::loadKifuFromString"));
-        QVERIFY2(range.first >= 0, "loadKifuFromString not found");
-
+        const auto lines = readSourceLines(QStringLiteral("src/kifu/kifuloadparser.cpp"));
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadParser::parseFile("));
+        QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-
-        const QStringList formats = {
-            QStringLiteral("KifuFormat::KIF"),
-            QStringLiteral("KifuFormat::KI2"),
-            QStringLiteral("KifuFormat::CSA"),
-            QStringLiteral("KifuFormat::USI"),
-            QStringLiteral("KifuFormat::JKF"),
-            QStringLiteral("KifuFormat::USEN"),
-        };
-
-        for (const QString& fmt : formats) {
-            QVERIFY2(body.contains(fmt),
-                      qPrintable(QStringLiteral("loadKifuFromString missing format case: %1").arg(fmt)));
-        }
+        QVERIFY(body.contains(QStringLiteral("Format::KI2")));
+        QVERIFY(body.contains(QStringLiteral("Format::CSA")));
+        QVERIFY(body.contains(QStringLiteral("Format::USI")));
+        QVERIFY(body.contains(QStringLiteral("Format::JKF")));
+        QVERIFY(body.contains(QStringLiteral("Format::USEN")));
+        QVERIFY(body.contains(QStringLiteral("KifToSfenConverter::parseWithVariations")));
     }
 
     // ================================================================
@@ -939,48 +820,25 @@ private slots:
 
     void klc_ki2UsesKi2GameInfo()
     {
-        const auto range = findFunctionBody(
-            klcLines(), QStringLiteral("KifuLoadCoordinator::loadKi2FromFile"));
+        const auto lines = readSourceLines(QStringLiteral("src/kifu/kifuloadparser.cpp"));
+        const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadParser::parseFile("));
         QVERIFY(range.first >= 0);
-        const QString body = bodyText(klcLines(), range);
+        const QString body = bodyText(lines, range);
         QVERIFY(body.contains(QStringLiteral("Ki2ToSfenConverter::extractGameInfo")));
     }
 
-    /// 各フォーマットのロードメソッドが loadKifuCommon に委譲すること
+    /// 各フォーマットのロードメソッドが KifuLoadParser に委譲すること
     void klc_formatMethods_delegateToCommon()
     {
-        const QStringList& lines = klcLines();
-
-        struct FormatCheck {
-            const char* signature;
-            const char* converter;
-        };
-
-        const FormatCheck checks[] = {
-            {"KifuLoadCoordinator::loadKi2FromFile", "Ki2ToSfenConverter"},
-            {"KifuLoadCoordinator::loadCsaFromFile", "CsaToSfenConverter"},
-            {"KifuLoadCoordinator::loadJkfFromFile", "JkfToSfenConverter"},
-            {"KifuLoadCoordinator::loadKifuFromFile", "KifToSfenConverter"},
-            {"KifuLoadCoordinator::loadUsenFromFile", "UsenToSfenConverter"},
-            {"KifuLoadCoordinator::loadUsiFromFile", "UsiToSfenConverter"},
-        };
-
-        for (const auto& chk : checks) {
-            const auto range = findFunctionBody(lines, QString::fromLatin1(chk.signature));
-            QVERIFY2(range.first >= 0,
-                      qPrintable(QStringLiteral("Method not found: %1")
-                                     .arg(QString::fromLatin1(chk.signature))));
-
-            const QString body = bodyText(lines, range);
-
-            QVERIFY2(body.contains(QStringLiteral("loadKifuCommon")),
-                      qPrintable(QStringLiteral("%1 must delegate to loadKifuCommon")
-                                     .arg(QString::fromLatin1(chk.signature))));
-
-            QVERIFY2(body.contains(QString::fromLatin1(chk.converter)),
-                      qPrintable(QStringLiteral("%1 must use %2")
-                                     .arg(QString::fromLatin1(chk.signature),
-                                          QString::fromLatin1(chk.converter))));
+        const auto lines = klcLines();
+        const QStringList methods = {"loadKifuFromFile", "loadKi2FromFile", "loadCsaFromFile",
+                                     "loadJkfFromFile", "loadUsenFromFile", "loadUsiFromFile"};
+        for (const auto& method : methods) {
+            const auto range = findFunctionBody(lines, QStringLiteral("KifuLoadCoordinator::") + method + '(');
+            QVERIFY(range.first >= 0);
+            const auto body = bodyText(lines, range);
+            QVERIFY(body.contains(QStringLiteral("cancelLoad()")));
+            QVERIFY(body.contains(QStringLiteral("return applyLoadResult(KifuLoadParser::parseFile(")));
         }
     }
 };

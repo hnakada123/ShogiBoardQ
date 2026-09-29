@@ -222,7 +222,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     // USI通信ログのエンジン識別子を設定（"E?" ではなく "E1" と表示されるようにする）
     m_usi->setLogIdentity(QStringLiteral("[E1]"), QString(), engineName);
 
-    if (!m_usi->startAndInitializeEngine(enginePath, engineName)) { // usi→usiok/setoption/isready→readyok
+    if (!m_usi->startAndInitializeEngineAsync(enginePath, engineName)) { // usi→usiok/setoption/isready→readyok
         if (m_presenter) {
             m_presenter->setStopButtonEnabled(false);
         }
@@ -253,7 +253,13 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     // 解析開始
     m_lastStartSucceeded = true;
     m_running = true;
-    m_coord->startAnalyzeRange();
+    connect(m_usi, &Usi::engineInitialized, this, &AnalysisFlowController::onEngineInitialized, Qt::UniqueConnection);
+    if (!m_usi->isInitializing()) onEngineInitialized();
+}
+
+void AnalysisFlowController::onEngineInitialized()
+{
+    if (m_running && m_coord) m_coord->startAnalyzeRange();
 }
 
 void AnalysisFlowController::stop()

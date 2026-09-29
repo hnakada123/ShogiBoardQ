@@ -33,6 +33,10 @@ const QRegularExpression& whitespaceRe()
 UsiProtocolHandler::UsiProtocolHandler(QObject* parent)
     : QObject(parent)
 {
+    m_initializationTimer.setSingleShot(true);
+    connect(&m_initializationTimer, &QTimer::timeout, this, &UsiProtocolHandler::onInitializationTimeout);
+    connect(this, &UsiProtocolHandler::usiOkReceived, this, &UsiProtocolHandler::onInitializationUsiOk);
+    connect(this, &UsiProtocolHandler::readyOkReceived, this, &UsiProtocolHandler::onInitializationReadyOk);
 }
 
 UsiProtocolHandler::~UsiProtocolHandler()
@@ -88,6 +92,21 @@ bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
         return false;
     }
 
+    sendConfiguredOptions();
+
+    sendIsReady();
+    if (!waitForReadyOk(5000)) {
+        emit errorOccurred(tr("Timeout waiting for readyok"));
+        return false;
+    }
+
+    sendUsiNewGame();
+
+    return true;
+}
+
+void UsiProtocolHandler::sendConfiguredOptions()
+{
     // エンジンが報告したオプションのみ送信する。
     // 設定ファイルに保存されていてもエンジンが対応していないオプションは送信しない。
     for (const QString& cmd : std::as_const(m_setOptionCommands)) {
@@ -112,15 +131,6 @@ bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
                       m_isPonderEnabled ? QStringLiteral("true") : QStringLiteral("false"));
     }
 
-    sendIsReady();
-    if (!waitForReadyOk(5000)) {
-        emit errorOccurred(tr("Timeout waiting for readyok"));
-        return false;
-    }
-
-    sendUsiNewGame();
-
-    return true;
 }
 
 void UsiProtocolHandler::loadEngineOptions(const QString& engineName)

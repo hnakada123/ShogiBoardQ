@@ -10,6 +10,8 @@ class Usi : public QObject
     Q_OBJECT
 public:
     Usi(void*, void*, void*, QObject* parent) : QObject(parent) {}
+    bool isInitializing() const { return false; }
+    bool startAndInitializeEngineAsync(const QString&, const QString&) { return true; }
     bool startAndInitializeEngine(const QString&, const QString&) { return true; }
     void setClonedBoardData(const QList<QChar>&) {}
     void cancelCurrentOperation() {}
@@ -24,6 +26,7 @@ public:
     QList<int> timeouts;
     int stops = 0;
 signals:
+    void engineInitialized();
     void checkmateSolved(const QStringList&);
     void checkmateNoMate();
     void checkmateNotImplemented();

@@ -11,6 +11,8 @@
 #include <QList>
 #include <QPointer>
 #include <QTimer>
+#include <functional>
+#include <vector>
 #include <memory>
 
 #include "logcategories.h"
@@ -183,12 +185,20 @@ public:
     void cleanupEngineProcessAndThread(bool clearThinking = true);
 
     [[nodiscard]] bool startAndInitializeEngine(const QString& engineFile, const QString& enginename);
+    /// 要求受付を返す。実際の初期化完了は engineInitialized、失敗は errorOccurred で通知する。
+    [[nodiscard]] bool startAndInitializeEngineAsync(const QString& engineFile, const QString& enginename);
+    bool isInitializing() const { return m_initializing; }
+    void requestMatchMove(const QString& position, const QString& ponder, const UsiTimingParams& timing);
+    void requestHumanReply(QString& position, const QString& ponder, const QPoint& from, const QPoint& to,
+                           const UsiTimingParams& timing, QStringList& history);
 
     void executeTsumeCommunication(QString& positionStr, int mateLimitMilliSec);
     void sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& positionStr);
     void cancelCurrentOperation();
 
 signals:
+    void engineInitialized();
+    void matchMoveReady(const QPoint& from, const QPoint& to, const QString& position, const QString& ponder);
     void bestMoveResignReceived();                    ///< bestmove resign受信（ProtocolHandler → 外部）
     void bestMoveWinReceived();                       ///< bestmove win（入玉宣言勝ち）受信（ProtocolHandler → 外部）
     void checkmateSolved(const QStringList& pvMoves); ///< 詰みあり（ProtocolHandler → TsumeSearchFlowController）
@@ -206,6 +216,12 @@ signals:
                              const QString& baseSfen, int multipv, int scoreCp); ///< 思考情報更新（Presenter → 外部）
 
 private:
+    bool deferUntilReady(std::function<void()> action) const;
+    bool m_initializing = false;
+    quint64 m_asyncGeneration = 0;
+    mutable std::vector<std::function<void()>> m_pendingActions;
+    QTimer m_startTimer;
+
     // --- 内部コンポーネント ---
 
     std::unique_ptr<EngineProcessManager> m_processManager;  ///< エンジンプロセス管理（所有）
@@ -238,6 +254,11 @@ private:
     void prepareAnalysisSession(const QString& positionStr, int multiPV);
 
 private slots:
+    void onProcessStarted();
+    void onProtocolError(const QString& message);
+    void onProcessExited();
+    void onEngineInitialized(bool success);
+    void onStartTimeout();
     /// エンジンプロセスエラー時のクリーンアップ処理
     void onProcessError(QProcess::ProcessError error, const QString& message);
     void onCommandSent(const QString& command);

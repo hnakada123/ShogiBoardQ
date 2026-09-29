@@ -119,7 +119,7 @@ class GuiAudit : public QObject
         dialogHandled = false; dialogClass.clear(); dialogTitle.clear();
         dialogTimer.start(30);
     }
-    void paste(const QString& text)
+    void paste(const QString& text, bool waitForLoad = true)
     {
         click("actionPasteKifu");
         QDialog* dialog = nullptr;
@@ -138,7 +138,7 @@ class GuiAudit : public QObject
             if (b->text() == QStringLiteral("取り込む")) import = b;
         QVERIFY(import);
         QTest::mouseClick(import, Qt::LeftButton);
-        QCoreApplication::processEvents();
+        if (waitForLoad) QTRY_VERIFY(!hasKifuPasteDialog());
     }
     void sampleGame()
     {
@@ -347,7 +347,7 @@ private slots:
         armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_basic.kif"));
         click("actionOpenKifuFile");
         QVERIFY(dialogHandled);
-        QVERIFY(record()->kifuView()->model()->rowCount() > 1);
+        QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 1);
         record()->onToggleBookmarkColumn(false);
         record()->onToggleCommentColumn(false);
         record()->onToggleTimeColumn(true);
@@ -976,6 +976,12 @@ private slots:
         QCOMPARE(model->rowCount(), 1);
         click("actionEndEditPosition");
     }
+    void closeWhileLoading()
+    {
+        paste("position startpos moves 7g7f 3c3d 2g2f 8c8d", false);
+        window.reset();
+        QTest::qWait(100);
+    }
     void pasteNavigation()
     {
         sampleGame();
@@ -1003,6 +1009,7 @@ private slots:
         QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
         const auto last = boardSfen(); const auto text = copy(name);
         QVERIFY2(!text.isEmpty(), qPrintable(name));
+        armDialog("discard");
         click("actionNewGame"); paste(text);
         const auto roundTripUsi = copy("actionCopyUSIAll");
         qInfo() << "round trip" << name << text << roundTripUsi;
@@ -1036,7 +1043,7 @@ private slots:
     {
         armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_basic.kif"));
         click("actionOpenKifuFile"); QVERIFY(dialogHandled);
-        QVERIFY(record()->kifuView()->model()->rowCount() > 2);
+        QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 2);
         QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
         const auto last = boardSfen();
         const QString path = QStringLiteral(AUDIT_DIR "/saved.kif");
@@ -1046,6 +1053,7 @@ private slots:
         click("actionSave");
         click("actionNewGame");
         armDialog("file", path); click("actionOpenKifuFile");
+        QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 2);
         QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
         QCOMPARE(boardSfen(), last);
     }
@@ -1118,7 +1126,10 @@ private slots:
         const auto bod = copy("actionCopyBOD");
         QVERIFY(bod.contains(QStringLiteral("手数＝%1").arg(ply)));
         qInfo() << "BOD" << bod;
-        click("actionNewGame"); armDialog("auto"); paste(bod);
+        armDialog("discard");
+        click("actionNewGame");
+        dialogMessages.clear();
+        paste(bod);
         QVERIFY2(dialogMessages.isEmpty(), qPrintable(dialogMessages.join("\n")));
         QCOMPARE(boardSfen(), last);
         QCOMPARE(board()->board()->currentPlayer(), turn);
@@ -1163,7 +1174,7 @@ private slots:
         QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_en.qm")));
         window.reset(); qApp->installTranslator(&translator);
         window = std::make_unique<MainWindow>(); window->show();
-        QCOMPARE(action("actionOpenKifuFile")->text(), QString("Open"));
+        QCOMPARE(action("actionOpenKifuFile")->text(), QStringLiteral("Open…"));
         snapshot("english");
         window.reset(); qApp->removeTranslator(&translator);
     }
@@ -1201,9 +1212,9 @@ private slots:
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
         QTRY_COMPARE_WITH_TIMEOUT(record()->kifuView()->model()->rowCount(), 3, 5000);
-        QVERIFY(copy("actionCopyUSIAll").contains("7g7f 3c3d"));
         armDialog("auto"); click("actionBreakOffGame");
         QTRY_VERIFY(!record()->isNavigationDisabled());
+        QVERIFY(copy("actionCopyUSIAll").contains("7g7f 3c3d"));
     }
     void engineVersusEngine()
     {
@@ -1308,6 +1319,10 @@ private slots:
     }
     void consideration()
     {
+        const auto goCount = []() {
+            QFile file(qEnvironmentVariable("AUDIT_USI_LOG"));
+            return file.open(QIODevice::ReadOnly) ? file.readAll().count(" go infinite\n") : 0;
+        };
         sampleGame();
         QDockWidget* dock = nullptr;
         for (auto* d : window->findChildren<QDockWidget*>()) if (d->windowTitle() == QStringLiteral("検討")) dock = d;
@@ -1327,14 +1342,16 @@ private slots:
                 if (table->model() && table->model()->rowCount() > 0 && table->model()->columnCount() >= 5) infoFound = true;
             QTest::qWait(30);
         }
-        QVERIFY(infoFound); snapshot("consideration");
+        QVERIFY(infoFound);
+        QTRY_COMPARE(goCount(), 1);
+        snapshot("consideration");
         QTest::mouseClick(start, Qt::LeftButton);
         QTRY_COMPARE_WITH_TIMEOUT(start->text(), QStringLiteral("検討開始"), 3000);
         QCOMPARE(starts.size(), 1); QCOMPARE(stops.size(), 1);
         for (int cycle = 2; cycle <= 3; ++cycle) {
             QTest::mouseClick(start, Qt::LeftButton);
             QTRY_COMPARE_WITH_TIMEOUT(start->text(), QStringLiteral("検討中止"), 3000);
-            QTest::qWait(100);
+            QTRY_COMPARE(goCount(), cycle);
             QTest::mouseClick(start, Qt::LeftButton);
             QTRY_COMPARE_WITH_TIMEOUT(start->text(), QStringLiteral("検討開始"), 3000);
             QCOMPARE(starts.size(), cycle); QCOMPARE(stops.size(), cycle);
@@ -1417,6 +1434,7 @@ private slots:
         QVERIFY(dialogHandled);
         const auto saved = copy("actionCopyKIF");
         QVERIFY(saved.contains("&Audit bookmark"));
+        armDialog("discard");
         click("actionNewGame"); paste(saved);
         QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
         QTest::qWait(80);

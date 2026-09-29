@@ -31,6 +31,7 @@ public:
                            QObject* parent = nullptr);
 
     void start() override;
+    void startInitialMoveIfNeeded() override { kickNextEvETurn(); }
     void onHumanMove(const QPoint& from, const QPoint& to,
                      const QString& prettyMove) override;
     bool needsEngine() const override { return true; }
@@ -42,11 +43,12 @@ public:
 
 private slots:
     void kickNextEvETurn();
+    void onEngineMoveReady(QPoint from, QPoint to, const QString& position, const QString& ponder);
 
 private:
     void initPositionStringsForEvE(const QString& sfenStart);
-    void startEvEFirstMoveByBlack();
-    void startEvEFirstMoveByWhite();
+    bool m_waitingForMove = false;
+    bool m_waitingInitialization = false;
 
     MatchCoordinator::StrategyContext& m_ctx;
     MatchCoordinator::StartOptions m_opt;

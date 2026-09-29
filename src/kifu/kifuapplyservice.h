@@ -15,6 +15,7 @@
 #include "kifdisplayitem.h"
 #include "shogimove.h"
 
+struct KifuLoadResult;
 class QTableWidget;
 class QDockWidget;
 class QTabWidget;
@@ -104,7 +105,8 @@ public:
     /// @return 適用に成功した場合 true（指し手なし・SFEN列未構築なら false）
     [[nodiscard]] bool applyParsedResult(const QString& filePath, const QString& initialSfen,
                                          const QString& teaiLabel, const KifParseResult& res,
-                                         const QString& parseWarn, const char* callerTag);
+                                         const QString& parseWarn, const char* callerTag,
+                                         const KifuLoadResult* prepared = nullptr);
 
     /// SFEN形式の局面を読み込んでモデルに適用する
     [[nodiscard]] bool loadPositionFromSfen(const QString& sfenStr);

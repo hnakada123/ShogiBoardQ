@@ -84,6 +84,8 @@ UsiMatchHandler::UsiMatchHandler(UsiProtocolHandler* protocolHandler,
     , m_presenter(presenter)
     , m_gameController(gameController)
 {
+    m_responseTimer.setSingleShot(true);
+    connect(&m_responseTimer, &QTimer::timeout, this, &UsiMatchHandler::onSearchTimeout);
 }
 
 void UsiMatchHandler::setHooks(const Hooks& hooks)
@@ -253,10 +255,103 @@ void UsiMatchHandler::executeEngineCommunication(QString& positionStr, QString& 
     outTo = QPoint(fileTo, rankTo);
 }
 
+void UsiMatchHandler::cancelAsync()
+{
+    m_responseTimer.stop();
+    m_pending = Pending::None;
+    m_acceptBestMove = false;
+}
+
+void UsiMatchHandler::requestMove(const QString& position, const QString& ponder, const UsiTimingParams& timing)
+{
+    cancelAsync();
+    if (!m_gameController) return;
+    if (m_clock) m_clock->updateClock();
+    if (m_clock && m_clock->isGameOver()) return;
+    m_position = position;
+    m_ponder = ponder;
+    m_timing = timing;
+    const auto phase = m_protocolHandler->currentPhase();
+    if (phase == UsiProtocolHandler::SearchPhase::Ponder
+        || phase == UsiProtocolHandler::SearchPhase::StoppingPonder) {
+        const bool hit = phase == UsiProtocolHandler::SearchPhase::Ponder
+            && m_protocolHandler->isPonderEnabled() && !m_protocolHandler->predictedMove().isEmpty()
+            && position.simplified() == ponder.simplified();
+        if (!hit) {
+            m_pending = Pending::PonderStop;
+            m_responseTimer.start(qMin(2000, remainingTimeMs(timing)));
+            if (phase != UsiProtocolHandler::SearchPhase::StoppingPonder) m_protocolHandler->sendStop();
+            return;
+        }
+        cloneCurrentBoardData();
+        m_presenter->setBaseSfen(computeBaseSfenFromBoard());
+        m_lastUsiMove = position.section(QLatin1Char(' '), -1);
+        m_pending = Pending::Move;
+        m_acceptBestMove = true;
+        m_responseTimer.start(remainingTimeMs(timing));
+        m_protocolHandler->sendPonderHit();
+        return;
+    }
+    startAsyncSearch();
+}
+
+void UsiMatchHandler::startAsyncSearch()
+{
+    if (m_clock) m_clock->updateClock();
+    if (m_clock && m_clock->isGameOver()) { cancelAsync(); return; }
+    m_presenter->setBaseSfen(computeBaseSfenFromBoard());
+    if (m_position.contains(QStringLiteral(" moves ")))
+        m_lastUsiMove = m_position.section(QLatin1Char(' '), -1);
+    cloneCurrentBoardData();
+    const auto timing = timingForSearch(m_timing, false);
+    m_pending = Pending::Move;
+    m_acceptBestMove = true;
+    m_responseTimer.start(remainingTimeMs(m_timing));
+    m_protocolHandler->sendPosition(m_position);
+    m_protocolHandler->sendGo(timing.byoyomiMilliSec, timing.btime, timing.wtime,
+                             timing.addEachMoveMilliSec1, timing.addEachMoveMilliSec2, timing.useByoyomi);
+}
+
 void UsiMatchHandler::onBestMoveReceived()
 {
+    if (m_pending == Pending::PonderStop) {
+        m_responseTimer.stop();
+        startAsyncSearch();
+        return;
+    }
     if (m_acceptBestMove && m_clock) m_clock->finishTurn();
     m_acceptBestMove = false;
+    if (m_pending != Pending::Move) return;
+    m_pending = Pending::None;
+    m_responseTimer.stop();
+    if (m_clock && m_clock->isGameOver()) return;
+    if (m_protocolHandler->specialMove() != SpecialMove::None) return;
+    int fx, fy, tx, ty;
+    m_protocolHandler->parseMoveCoordinates(fx, fy, tx, ty);
+    if (tx < 1 || tx > 9 || ty < 1 || ty > 9) return;
+    appendBestMoveAndStartPondering(m_position, m_ponder, m_timing);
+    // コールバック先で次の探索や破棄が起きても、参照中の結果は変化させない。
+    const auto position = m_position;
+    const auto ponder = m_ponder;
+    if (m_hooks.onMoveReady) m_hooks.onMoveReady(QPoint(fx, fy), QPoint(tx, ty), position, ponder);
+}
+
+int UsiMatchHandler::remainingTimeMs(const UsiTimingParams& timing) const
+{
+    const int side = m_gameController->currentPlayer() == ShogiGameController::Player1 ? 1 : 2;
+    qint64 budget = side == 1 ? timing.btime.toLongLong() : timing.wtime.toLongLong();
+    if (timing.useByoyomi) budget += timing.byoyomiMilliSec;
+    if (m_clock) budget = m_clock->enforcesTimeout() ? m_clock->remainingTurnTimeMs(side)
+                                                     : UsiProtocolHandler::kKeepWaitingHardTimeoutMs;
+    return static_cast<int>(qBound(qint64(1), budget, qint64(std::numeric_limits<int>::max())));
+}
+
+void UsiMatchHandler::onSearchTimeout()
+{
+    cancelAsync();
+    if (m_clock) m_clock->updateClock();
+    if (m_clock && m_clock->isGameOver()) return;
+    if (!m_protocolHandler->isTimeoutDeclared() && m_hooks.onBestmoveTimeout) m_hooks.onBestmoveTimeout();
 }
 
 bool UsiMatchHandler::processEngineResponse(QString& positionStr, QString& positionPonderStr,

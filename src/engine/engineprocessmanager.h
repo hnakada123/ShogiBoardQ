@@ -45,6 +45,9 @@ public:
     /// エンジンプロセスを起動し、シグナル接続を行う
     [[nodiscard]] bool startProcess(const QString& engineFile);
 
+    /// 非同期起動。戻り値は要求の受付、完了は processStarted で通知する。
+    [[nodiscard]] bool startProcessAsync(const QString& engineFile);
+    void stopProcessAsync();
     void stopProcess();
     bool isRunning() const;
     QProcess::ProcessState state() const;
@@ -93,6 +96,9 @@ public:
     QString logPrefix() const;
 
 signals:
+    void processStarted();
+    void processExited();
+
     /// 標準出力から1行受信（→ USIProtocolHandler）
     void dataReceived(const QString& line);
 

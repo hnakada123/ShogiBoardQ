@@ -15,6 +15,7 @@
 #include "enginevsenginestrategy.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
+#include "usi.h"
 
 // ============================================================
 // test_stubs_gamestrategy.cpp で定義されたトラッカー
@@ -389,7 +390,10 @@ void Tst_GameStrategy::hve_startInitialMove_engineIsP1()
     // Engine is P1, GC says Player1 to move → engine should attempt initial move
     hve.startInitialMoveIfNeeded();
 
-    // validateAndMove should have been called (engine makes the first move)
+    // 送信時は盤面を変更せず、応答を受信してから着手する。
+    QCOMPARE(StrategyTracker::validateAndMoveCallCount, 0);
+    emit h.mc->strategyCtx().primaryEngine()->matchMoveReady(
+        QPoint(7, 7), QPoint(7, 6), QStringLiteral("position startpos moves 7g7f"), {});
     QVERIFY(StrategyTracker::validateAndMoveCallCount > 0);
 }
 
