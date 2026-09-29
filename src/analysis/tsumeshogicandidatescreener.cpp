@@ -43,6 +43,7 @@ TsumeshogiCandidateScreener::Verdict TsumeshogiCandidateScreener::screen(
 
     // 目標手数（＋上乗せ）以内で詰む初手を数える。2つ見つかれば余詰として除外する
     int mating = 0;
+    bool timedOut = false;
     const int depth = std::min(kMaxSearchPlies, targetMoves - 1 + limits.alternativeExtraPlies);
     for (const auto& move : position.generate_checking_moves()) {
         auto child = position;
@@ -50,8 +51,10 @@ TsumeshogiCandidateScreener::Verdict TsumeshogiCandidateScreener::screen(
         const auto reply = search.solve(child, attacker, depth, limits.alternativeTimeLimitMs, stop, budget.threads());
         if (reply.status == shogi::TsumeStatus::Cancelled) return Verdict::Unknown;
         if (reply.status == shogi::TsumeStatus::Mate && ++mating >= 2) return Verdict::MultipleFirstMoves;
+        if (reply.status == shogi::TsumeStatus::Timeout) timedOut = true;
     }
-    return Verdict::Candidate;
+    // 別詰探索が時間切れの初手があれば、詰む初手が1つだけとは確認できていない
+    return timedOut ? Verdict::Unknown : Verdict::Candidate;
 }
 
 TsumeshogiCandidateScreener::Batch TsumeshogiCandidateScreener::generateBatch(
