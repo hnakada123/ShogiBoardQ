@@ -10,7 +10,7 @@ class TsumePositionPreview : public QWidget
     Q_OBJECT
 public:
     explicit TsumePositionPreview(const QString& sfen, QWidget* parent = nullptr);
-    QSize sizeHint() const override { return {330, 260}; }
+    QSize sizeHint() const override { return {336, 260}; }
 protected:
     void paintEvent(QPaintEvent*) override;
 private:
