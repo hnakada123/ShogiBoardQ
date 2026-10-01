@@ -206,8 +206,8 @@ void CsaGameCoordinator::ensureMoveProgressHandler()
         emit moveHighlightRequested(f, t);
     };
     hooks.moveAppliedToBoard = [this]() { emit moveAppliedToBoard(); };
-    hooks.engineScoreUpdated = [this](int scoreCp, int ply) {
-        emit engineScoreUpdated(scoreCp, ply);
+    hooks.engineScoreUpdated = [this](int scoreCp, int ply, const QString& mate) {
+        emit engineScoreUpdated(scoreCp, ply, mate);
     };
     hooks.performResign = [this]() { performResign(); };
     m_moveProgressHandler->setHooks(hooks);

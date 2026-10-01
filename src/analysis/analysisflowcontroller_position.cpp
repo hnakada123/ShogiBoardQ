@@ -162,7 +162,8 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
     if (m_resultHandler->lastCommittedPly() >= 0) {
         qCDebug(lcAnalysis).noquote() << "emitting analysisProgressReported: ply="
                                       << m_resultHandler->lastCommittedPly() << "scoreCp=" << m_resultHandler->lastCommittedScoreCp();
-        Q_EMIT analysisProgressReported(m_resultHandler->lastCommittedPly(), m_resultHandler->lastCommittedScoreCp());
+        Q_EMIT analysisProgressReported(m_resultHandler->lastCommittedPly(), m_resultHandler->lastCommittedScoreCp(),
+                                       m_resultHandler->lastCommittedMate());
 
         // リセット
         m_resultHandler->resetLastCommitted();

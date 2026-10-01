@@ -175,7 +175,8 @@ void EvaluationGraphController::doRedrawEngine1Graph()
     m_evalChart->setEngine1Name(m_engine1Name);
 
     qCDebug(lcUi) << "P1: calling m_evalChart->appendScoreP1(" << ply << "," << cpAfter << ", false)";
-    m_evalChart->appendScoreP1(ply, cpAfter, false);
+    Usi* engine = m_match ? m_match->primaryEngine() : nullptr;
+    m_evalChart->appendScoreP1(ply, cpAfter, false, engine ? engine->lastScoreMate() : QString());
     qCDebug(lcUi) << "P1: appendScoreP1 done, chart countP1 =" << m_evalChart->countP1();
 }
 
@@ -223,7 +224,9 @@ void EvaluationGraphController::doRedrawEngine2Graph()
     // 後手/上手のエンジン評価値は符号を反転させてプロット
     // USIエンジンは手番側から見た評価値を出力するため、後手の評価値を先手視点に変換
     qCDebug(lcUi) << "P2: calling m_evalChart->appendScoreP2(" << ply << "," << cpAfter << ", true)";
-    m_evalChart->appendScoreP2(ply, cpAfter, true);
+    Usi* engine = m_match ? m_match->secondaryEngine() : nullptr;
+    if (!engine && m_match) engine = m_match->primaryEngine();
+    m_evalChart->appendScoreP2(ply, cpAfter, true, engine ? engine->lastScoreMate() : QString());
     qCDebug(lcUi) << "P2: appendScoreP2 done, chart countP2 =" << m_evalChart->countP2();
 }
 
@@ -284,5 +287,6 @@ void EvaluationGraphController::setCurrentPly(int ply)
         return;
     }
 
+    if (m_sfenHistory) m_evalChart->setRecordLength(static_cast<int>(m_sfenHistory->size()) - 1);
     m_evalChart->setCurrentPly(ply);
 }

@@ -319,18 +319,9 @@ void ThinkingInfoPresenter::updateLastScore(int scoreInt)
 {
     qCDebug(lcEngine) << "updateLastScore: scoreInt=" << scoreInt << "before=" << m_lastScoreCp;
     
-    // 評価値グラフの表示上限に合わせてクリッピング
-    // 詰み評価値（±31111）を考慮した上限を設定
-    static constexpr int SCORE_CLIP_MAX = 32000;
-    
-    if (scoreInt > SCORE_CLIP_MAX) {
-        m_lastScoreCp = SCORE_CLIP_MAX;
-    } else if (scoreInt < -SCORE_CLIP_MAX) {
-        m_lastScoreCp = -SCORE_CLIP_MAX;
-    } else {
-        m_lastScoreCp = scoreInt;
-    }
-    
+    // 表示範囲外の値も保持し、チャート側で端のマーカーとして描画する。
+    m_lastScoreCp = scoreInt;
+
     qCDebug(lcEngine) << "updateLastScore: after=" << m_lastScoreCp;
 
 }
@@ -380,7 +371,7 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
         if (isMultipv1) {
             m_scoreStr = info->scoreMate();
             m_lastScoreCp = scoreInt;
-        
+            m_lastScoreMate = info->scoreMate();
         }
     } else {
         // score cp の場合
@@ -391,6 +382,7 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
         if (isMultipv1) {
             m_pvKanjiStr = info->pvKanjiStr();
             qCDebug(lcEngine) << "評価値更新: scoreInt=" << scoreInt << "scoreStr=" << m_scoreStr;
+            m_lastScoreMate.clear();
             updateLastScore(scoreInt);
         } else {
             qCDebug(lcEngine) << "multipv=" << multipv << "グラフ更新スキップ（表示用のみ）";

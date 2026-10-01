@@ -174,6 +174,11 @@ bool Usi::isWinMove() const
     return m_protocolHandler->isWinMove();
 }
 
+QString Usi::lastScoreMate() const
+{
+    return m_presenter->lastScoreMate();
+}
+
 int Usi::lastScoreCp() const
 {
     return m_presenter->lastScoreCp();

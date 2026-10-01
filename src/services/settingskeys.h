@@ -99,6 +99,9 @@ inline constexpr char kEvalChartYLimit[]                 = "EvalChart/yLimit";
 inline constexpr char kEvalChartXLimit[]                 = "EvalChart/xLimit";
 inline constexpr char kEvalChartXInterval[]              = "EvalChart/xInterval";
 inline constexpr char kEvalChartLabelFontSize[]          = "EvalChart/labelFontSize";
+inline constexpr char kEvalChartAutomaticRange[]         = "EvalChart/automaticRange";
+inline constexpr char kEvalChartYInterval[]              = "EvalChart/yInterval";
+inline constexpr char kEvalChartSettingsSize[]           = "EvalChart/settingsSize";
 
 // --- EngineInfo (動的キー: QString(...).arg(idx) で使用) ---
 inline constexpr char kEngineInfoColumnWidthsFmt[]       = "EngineInfo/columnWidths%1";

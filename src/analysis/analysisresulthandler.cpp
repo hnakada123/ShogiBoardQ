@@ -185,22 +185,33 @@ void AnalysisResultHandler::reset()
     m_pendingPly = -1;
     m_pendingScoreCp = 0;
     m_pendingMate = 0;
+    m_pendingMateText.clear();
     m_pendingPv.clear();
     m_pendingPvKanji.clear();
     m_lastCommittedPly = -1;
     m_lastCommittedScoreCp = 0;
+    m_lastCommittedMate.clear();
 }
 
-void AnalysisResultHandler::updatePending(int ply, int scoreCp, int mate, const QString& pv)
+void AnalysisResultHandler::updatePending(int ply, int scoreCp, int mate, const QString& pv, const QString& rawMate)
 {
     // 結果を一時保存（bestmove時に確定）
     // 最新のinfo行で更新し続ける
     // 注意: m_pendingPvKanjiはupdatePendingPvKanjiで設定されるため、ここではクリアしない
     //       plyが変わった場合でも、ThinkingInfoUpdatedが先に呼ばれて設定済み
+    if (m_pendingPly != ply) {
+        m_pendingScoreCp = std::numeric_limits<int>::min();
+        m_pendingMate = 0;
+        m_pendingMateText.clear();
+        m_pendingPv.clear();
+    }
     m_pendingPly = ply;
-    m_pendingScoreCp = scoreCp;
-    m_pendingMate = mate;
-    m_pendingPv = pv;
+    if (scoreCp != std::numeric_limits<int>::min() || mate != 0 || !rawMate.isEmpty()) {
+        m_pendingScoreCp = scoreCp;
+        m_pendingMate = mate;
+        m_pendingMateText = rawMate.isEmpty() && mate != 0 ? QString::number(mate) : rawMate;
+    }
+    if (!pv.isEmpty()) m_pendingPv = pv;
 
     qCDebug(lcAnalysis).noquote() << "updatePending: ply=" << ply << "pv=" << pv.left(30) << "pvKanji=" << m_pendingPvKanji.left(30);
 }
@@ -236,6 +247,7 @@ void AnalysisResultHandler::commitPendingResult()
 
     const int scoreCp = m_pendingScoreCp;
     const int mate = m_pendingMate;
+    QString mateText = m_pendingMateText;
     const QString usiPv = sanitizeUsiPv(m_pendingPv, isBook);
 
     // 漢字PVがあればそれを使用、なければUSI形式PV、定跡なら「定跡」
@@ -252,18 +264,28 @@ void AnalysisResultHandler::commitPendingResult()
     m_pendingPly = -1;
     m_pendingScoreCp = 0;
     m_pendingMate = 0;
+    m_pendingMateText.clear();
     m_pendingPv.clear();
     m_pendingPvKanji.clear();
 
     const QString moveLabel = resolveMoveLabel(m_refs, ply);
 
     QString evalStr;
-    const int curVal = evaluateForDisplay(ply,
+    const int curVal = !mateText.isEmpty() ? m_prevEvalCp : evaluateForDisplay(ply,
                                           scoreCp,
                                           mate,
                                           isBook,
                                           m_prevEvalCp,
                                           &evalStr);
+    if (!mateText.isEmpty() && !isBook) {
+        if (ply % 2 == 1) {
+            if (mateText == QStringLiteral("+")) mateText = QStringLiteral("-");
+            else if (mateText == QStringLiteral("-")) mateText = QStringLiteral("+");
+            else if (mateText.toLongLong() == 0) mateText = QStringLiteral("+0");
+            else mateText = QString::number(-mateText.toLongLong());
+        }
+        evalStr = QStringLiteral("mate %1").arg(mateText);
+    }
     const QString diff = isBook ? QStringLiteral("-") : QString::number(curVal - m_prevEvalCp);
     m_prevEvalCp = curVal;
 
@@ -309,4 +331,5 @@ void AnalysisResultHandler::commitPendingResult()
     // GUI更新用に結果を保存（次のonPositionPreparedでシグナルを発行）
     m_lastCommittedPly = ply;
     m_lastCommittedScoreCp = curVal;
+    m_lastCommittedMate = isBook ? QString() : mateText;
 }

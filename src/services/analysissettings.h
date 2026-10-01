@@ -24,13 +24,21 @@ void setEvalChartYLimit(int limit);
 int evalChartXLimit();
 void setEvalChartXLimit(int limit);
 
-/// 手数間隔（デフォルト: 10）
+/// 手数間隔（デフォルト: 0 = 自動）
 int evalChartXInterval();
 void setEvalChartXInterval(int interval);
 
-/// 軸ラベルフォントサイズ（デフォルト: 7）
+/// 軸ラベルフォントサイズ（デフォルト: 10）
 int evalChartLabelFontSize();
 void setEvalChartLabelFontSize(int size);
+
+bool evalChartAutomaticRange();
+void setEvalChartAutomaticRange(bool automatic);
+/// 0 は画面サイズに応じた自動目盛り
+int evalChartYInterval();
+void setEvalChartYInterval(int interval);
+QSize evalChartSettingsSize();
+void setEvalChartSettingsSize(const QSize& size);
 
 // --- 解析タブ ---
 

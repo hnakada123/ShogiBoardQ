@@ -1,366 +1,209 @@
 /// @file evaluationchartwidget.cpp
-/// @brief 評価値グラフウィジェットのUI構築・設定変更の実装（データ操作は evaluationchartwidget_data.cpp）
-
+/// @brief 評価値グラフの構築・軸更新・棋譜ナビゲーション
 #include "evaluationchartwidget.h"
 #include "evaluationchartconfigurator.h"
+#include "evaluationchartview.h"
 
-#include <QtCharts/QChartView>
-#include <QtCharts/QChart>
-#include <QtCharts/QLineSeries>
-#include <QtCharts/QValueAxis>
+#include <QChart>
+#include <QLineSeries>
+#include <QValueAxis>
 #include <QVBoxLayout>
-#include <QBrush>
-#include <QPen>
-#include <QFont>
-#include <QColor>
-#include "logcategories.h"
-#include <QtGlobal>
-#include <QTimer>
-#include <QLabel>
+#include <QFontMetrics>
 #include <QMouseEvent>
-
-namespace {
-const QColor kAxisLabelColor(192, 192, 192);
-const QColor kGridLineColor(255, 255, 255, 80);
-const QColor kChartBackgroundColor(0, 100, 0);
-} // namespace
+#include <QTimer>
 
 EvaluationChartWidget::EvaluationChartWidget(QWidget* parent)
     : QWidget(parent)
     , m_chart(new QChart())
-    , m_s1(new QLineSeries(this))
-    , m_s2(new QLineSeries(this))
-    , m_axX(new QValueAxis(this))
-    , m_axY(new QValueAxis(this))
-    , m_chartView(new QChartView(m_chart, this))
+    , m_axX(new QValueAxis())
+    , m_axY(new QValueAxis())
+    , m_chartView(new EvaluationChartView(m_chart, this))
     , m_configurator(new EvaluationChartConfigurator(this))
 {
     m_configurator->loadSettings();
     setupAxes();
     setupChart();
-    setupZeroLine();
-    setupCursorLine();
     setupSeries();
     setupChartViewAndLayout();
-    initFlushTimer();
+    m_flushTimer = new QTimer(this);
+    m_flushTimer->setSingleShot(true);
+    connect(m_flushTimer, &QTimer::timeout, this, &EvaluationChartWidget::flushPendingScores);
+    applyFontSize();
+    refreshData();
+}
+
+EvaluationChartWidget::~EvaluationChartWidget()
+{
+    m_configurator->saveSettings();
 }
 
 void EvaluationChartWidget::setupAxes()
 {
-    QFont labelsFont = font();
-    labelsFont.setPointSize(m_configurator->labelFontSize());
-
-    // X軸設定
-    m_axX->setRange(0, m_configurator->xAxisLimit());
-    m_axX->setTickType(QValueAxis::TicksDynamic);
-    m_axX->setTickInterval(m_configurator->xAxisInterval());
-    m_axX->setLabelsFont(labelsFont);
-    m_axX->setLabelFormat("%i");
-
-    // Y軸設定
-    m_axY->setRange(-m_configurator->yAxisLimit(), m_configurator->yAxisLimit());
-    m_axY->setTickType(QValueAxis::TicksDynamic);
-    m_axY->setTickInterval(m_configurator->yAxisInterval());
-    m_axY->setLabelsFont(labelsFont);
-    m_axY->setLabelFormat("%i");
-
-    m_axX->setLabelsColor(kAxisLabelColor);
-    m_axY->setLabelsColor(kAxisLabelColor);
-
-    // グリッド線の色を設定
-    QPen gridPen(kGridLineColor);
-    gridPen.setWidth(1);
-    m_axX->setGridLinePen(gridPen);
-    m_axY->setGridLinePen(gridPen);
+    m_axX->setObjectName(QStringLiteral("evalAxisX"));
+    m_axY->setObjectName(QStringLiteral("evalAxisY"));
+    for (auto* axis : {m_axX, m_axY}) {
+        axis->setTickType(QValueAxis::TicksDynamic);
+        axis->setTickAnchor(0);
+        axis->setLabelFormat("%i");
+        axis->setLabelsColor(QColor(QStringLiteral("#475569")));
+        axis->setGridLinePen(QPen(QColor(QStringLiteral("#E2E8F0")), 1));
+        axis->setLineVisible(false);
+    }
+    m_axX->setRange(0, xAxisLimit());
+    m_axX->setTickInterval(xAxisInterval());
+    m_axY->setRange(-yAxisLimit(), yAxisLimit());
+    m_axY->setTickInterval(yAxisInterval());
 }
 
 void EvaluationChartWidget::setupChart()
 {
     m_chart->legend()->hide();
-    m_chart->setBackgroundBrush(QBrush(kChartBackgroundColor));
-    m_chart->setMargins(QMargins(10, 5, 10, 5));
+    m_chart->setAnimationOptions(QChart::NoAnimation);
+    m_chart->setBackgroundBrush(QColor(QStringLiteral("#FAFBFC")));
+    m_chart->setBackgroundRoundness(6);
+    m_chart->setDropShadowEnabled(false);
     m_chart->addAxis(m_axX, Qt::AlignBottom);
     m_chart->addAxis(m_axY, Qt::AlignLeft);
 }
 
 void EvaluationChartWidget::setupSeries()
 {
-    {
-        QPen p = m_s1->pen();
-        p.setWidth(2);
-        m_s1->setPen(p);
-        m_s1->setPointsVisible(true);
-        m_s1->setColor(Qt::black);
+    m_zeroLine = new QLineSeries;
+    m_zeroLine->setPen(QPen(QColor(QStringLiteral("#94A3B8")), 1));
+    m_cursorLine = new QLineSeries;
+    m_cursorLine->setPen(QPen(QColor(QStringLiteral("#64748B")), 1, Qt::DashLine));
+    for (auto* line : {m_zeroLine, m_cursorLine}) {
+        m_chart->addSeries(line);
+        line->attachAxis(m_axX);
+        line->attachAxis(m_axY);
     }
-    {
-        QPen p = m_s2->pen();
-        p.setWidth(2);
-        m_s2->setPen(p);
-        m_s2->setPointsVisible(true);
-        m_s2->setColor(Qt::white);
+    for (int side = 0; side < 2; ++side) {
+        auto* series = new QLineSeries;
+        series->setObjectName(side == 0 ? QStringLiteral("evalSeries1") : QStringLiteral("evalSeries2"));
+        series->setPen(QPen(EvaluationChartView::seriesColor(side), 2,
+                            side == 0 ? Qt::SolidLine : Qt::DashLine));
+        m_chart->addSeries(series);
+        series->attachAxis(m_axX);
+        series->attachAxis(m_axY);
+        m_series[side] = series;
     }
-
-    m_chart->addSeries(m_s1);
-    m_chart->addSeries(m_s2);
-
-    m_s1->attachAxis(m_axX);
-    m_s1->attachAxis(m_axY);
-    m_s2->attachAxis(m_axX);
-    m_s2->attachAxis(m_axY);
-
-    connect(m_s1, &QLineSeries::hovered, this, &EvaluationChartWidget::onSeriesHovered);
-    connect(m_s2, &QLineSeries::hovered, this, &EvaluationChartWidget::onSeriesHovered);
+    updateReferenceLines();
 }
 
 void EvaluationChartWidget::setupChartViewAndLayout()
 {
-    m_chartView->setRenderHint(QPainter::Antialiasing);
     m_chartView->viewport()->installEventFilter(this);
-
     setupTooltip();
-
-    // コントロールパネル（Configurator が生成）
-    QWidget* controlPanel = m_configurator->createControlPanel(this);
-
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+    layout->addWidget(m_configurator->createControlPanel(this));
+    layout->addWidget(m_chartView, 1);
+    setMinimumSize(320, 230);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     connect(m_configurator, &EvaluationChartConfigurator::yAxisSettingsChanged,
             this, &EvaluationChartWidget::applyYAxisSettings);
     connect(m_configurator, &EvaluationChartConfigurator::xAxisSettingsChanged,
             this, &EvaluationChartWidget::applyXAxisSettings);
     connect(m_configurator, &EvaluationChartConfigurator::fontSizeChanged,
             this, &EvaluationChartWidget::applyFontSize);
-
-    // レイアウト
-    auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(2);
-    mainLayout->addWidget(controlPanel);
-    mainLayout->addWidget(m_chartView, 1);
-    setLayout(mainLayout);
-
-    setMinimumHeight(150);
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    connect(m_chart, &QChart::plotAreaChanged, this, &EvaluationChartWidget::onPlotAreaChanged);
 }
 
-EvaluationChartWidget::~EvaluationChartWidget()
-{
-    if (m_flushTimer && m_flushTimer->isActive()) {
-        m_flushTimer->stop();
-    }
-    m_configurator->saveSettings();
-}
-
-QWidget* EvaluationChartWidget::chartViewWidget() const
-{
-    return m_chartView;
-}
-
-// --- Configurator からの設定変更通知 ---
-
-void EvaluationChartWidget::applyYAxisSettings()
-{
-    if (!m_axY) return;
-
-    const int yLimit = m_configurator->yAxisLimit();
-    const int yInterval = m_configurator->yAxisInterval();
-    m_axY->setRange(-yLimit, yLimit);
-    m_axY->setTickInterval(yInterval);
-
-    // カーソルラインもY軸範囲に合わせて更新
-    updateCursorLine();
-
-    if (m_chartView) {
-        m_chartView->update();
-    }
-
-    emit yAxisSettingsChanged(yLimit, yInterval);
-}
-
-void EvaluationChartWidget::applyXAxisSettings()
-{
-    if (!m_axX) return;
-
-    const int xLimit = m_configurator->xAxisLimit();
-    const int xInterval = m_configurator->xAxisInterval();
-    m_axX->setRange(0, xLimit);
-    m_axX->setTickInterval(xInterval);
-
-    // ゼロラインも更新
-    updateZeroLine();
-
-    if (m_chartView) {
-        m_chartView->update();
-    }
-
-    emit xAxisSettingsChanged(xLimit, xInterval);
-}
-
-void EvaluationChartWidget::applyFontSize()
-{
-    updateLabelFonts();
-}
-
-// --- 公開 getter / setter ---
-
+QWidget* EvaluationChartWidget::chartViewWidget() const { return m_chartView; }
 int EvaluationChartWidget::yAxisLimit() const { return m_configurator->yAxisLimit(); }
 int EvaluationChartWidget::yAxisInterval() const { return m_configurator->yAxisInterval(); }
 int EvaluationChartWidget::xAxisLimit() const { return m_configurator->xAxisLimit(); }
 int EvaluationChartWidget::xAxisInterval() const { return m_configurator->xAxisInterval(); }
 int EvaluationChartWidget::labelFontSize() const { return m_configurator->labelFontSize(); }
+void EvaluationChartWidget::setYAxisLimit(int limit) { m_configurator->setYAxisLimit(limit); }
+void EvaluationChartWidget::setXAxisLimit(int limit) { m_configurator->setXAxisLimit(limit); }
+void EvaluationChartWidget::setYAxisInterval(int interval) { m_configurator->setYAxisInterval(interval); }
+void EvaluationChartWidget::setXAxisInterval(int interval) { m_configurator->setXAxisInterval(interval); }
+void EvaluationChartWidget::setLabelFontSize(int size) { m_configurator->setLabelFontSize(size); }
+void EvaluationChartWidget::setAutomaticRange(bool automatic) { m_configurator->setAutomaticRange(automatic); }
 
-void EvaluationChartWidget::setYAxisLimit(int limit)
+void EvaluationChartWidget::applyYAxisSettings()
 {
-    m_configurator->setYAxisLimit(limit);
-    // Configurator の signal 経由で applyYAxisSettings が呼ばれる
+    m_axY->setRange(-yAxisLimit(), yAxisLimit());
+    m_axY->setTickInterval(yAxisInterval());
+    rebuildSeries();
+    updateReferenceLines();
+    updatePresentation();
+    clearHover();
+    emit yAxisSettingsChanged(yAxisLimit(), yAxisInterval());
 }
 
-void EvaluationChartWidget::setYAxisInterval(int interval)
+void EvaluationChartWidget::applyXAxisSettings()
 {
-    m_configurator->setYAxisInterval(interval);
+    m_axX->setRange(0, xAxisLimit());
+    m_axX->setTickInterval(xAxisInterval());
+    updateReferenceLines();
+    updatePresentation();
+    clearHover();
+    emit xAxisSettingsChanged(xAxisLimit(), xAxisInterval());
 }
 
-void EvaluationChartWidget::setXAxisLimit(int limit)
+void EvaluationChartWidget::applyFontSize()
 {
-    m_configurator->setXAxisLimit(limit);
+    QFont labels = font();
+    labels.setPointSize(labelFontSize());
+    m_axX->setLabelsFont(labels);
+    m_axY->setLabelsFont(labels);
+    m_chartView->setFont(labels);
+    onPlotAreaChanged();
 }
 
-void EvaluationChartWidget::setXAxisInterval(int interval)
+void EvaluationChartWidget::onPlotAreaChanged()
 {
-    m_configurator->setXAxisInterval(interval);
+    // 横長表示では評価値と凡例を同じ行に置き、描画領域を広く取る。
+    const QFontMetrics fm(m_chartView->font());
+    const int hintWidth = qMax(fm.horizontalAdvance(tr("先手有利")), fm.horizontalAdvance(tr("後手有利")));
+    const int headerRows = m_chartView->width() >= 700 ? 2 : 3;
+    const QMargins margins(8, (fm.height() + 7) * headerRows + 8, hintWidth + 8, 8);
+    if (m_chart->margins() != margins) m_chart->setMargins(margins);
+    m_configurator->updatePlotSize(m_chart->plotArea().size());
+    updatePresentation();
+    clearHover();
 }
 
-void EvaluationChartWidget::setLabelFontSize(int size)
+void EvaluationChartWidget::updateReferenceLines()
 {
-    m_configurator->setLabelFontSize(size);
-}
-
-// --- ゼロライン / カーソルライン ---
-
-void EvaluationChartWidget::setupZeroLine()
-{
-    m_zeroLine = new QLineSeries(this);
-
-    // ゼロラインのスタイル（太い黄色の線）
-    QPen zeroPen(QColor(255, 255, 0, 200));  // 黄色、やや透明
-    zeroPen.setWidth(2);
-    m_zeroLine->setPen(zeroPen);
-    m_zeroLine->setPointsVisible(false);
-
-    // X軸の範囲全体にわたる水平線
-    m_zeroLine->append(0, 0);
-    m_zeroLine->append(m_configurator->xAxisLimit(), 0);
-
-    m_chart->addSeries(m_zeroLine);
-    m_zeroLine->attachAxis(m_axX);
-    m_zeroLine->attachAxis(m_axY);
-}
-
-void EvaluationChartWidget::updateZeroLine()
-{
-    if (!m_zeroLine) return;
-
-    m_zeroLine->clear();
-    m_zeroLine->append(0, 0);
-    m_zeroLine->append(m_configurator->xAxisLimit(), 0);
-}
-
-void EvaluationChartWidget::setupCursorLine()
-{
-    qCDebug(lcUi) << "setupCursorLine called: m_currentPly=" << m_currentPly
-                   << "yLimit=" << m_configurator->yAxisLimit();
-
-    m_cursorLine = new QLineSeries(this);
-
-    // カーソルラインのスタイル（オレンジ色の縦線）
-    QPen cursorPen(QColor(255, 165, 0, 220));  // オレンジ、やや透明
-    cursorPen.setWidth(2);
-    m_cursorLine->setPen(cursorPen);
-    m_cursorLine->setPointsVisible(false);
-
-    // 初期状態では手数0の位置に縦線を描画
-    const int yLimit = m_configurator->yAxisLimit();
-    m_cursorLine->append(m_currentPly, -yLimit);
-    m_cursorLine->append(m_currentPly, yLimit);
-
-    m_chart->addSeries(m_cursorLine);
-    m_cursorLine->attachAxis(m_axX);
-    m_cursorLine->attachAxis(m_axY);
-
-    qCDebug(lcUi) << "setupCursorLine done";
-}
-
-void EvaluationChartWidget::updateCursorLine()
-{
-    if (!m_cursorLine) return;
-
-    const int yLimit = m_configurator->yAxisLimit();
-    m_cursorLine->clear();
-    m_cursorLine->append(m_currentPly, -yLimit);
-    m_cursorLine->append(m_currentPly, yLimit);
+    m_zeroLine->replace({QPointF(0, 0), QPointF(xAxisLimit(), 0)});
+    m_cursorLine->replace({QPointF(m_currentPly, -yAxisLimit()), QPointF(m_currentPly, yAxisLimit())});
+    m_cursorLine->setVisible(m_currentPly <= xAxisLimit());
 }
 
 void EvaluationChartWidget::setCurrentPly(int ply)
 {
-    qCDebug(lcUi) << "setCurrentPly called: ply=" << ply << "m_currentPly(before)=" << m_currentPly;
-
-    if (m_currentPly == ply) {
-        qCDebug(lcUi) << "setCurrentPly: same value, skipping";
-        return;
-    }
-
-    m_currentPly = ply;
-    updateCursorLine();
-
-    if (m_chartView) {
-        m_chartView->update();
-    }
-
-    qCDebug(lcUi) << "setCurrentPly done: m_currentPly(after)=" << m_currentPly;
+    m_currentPly = qMax(0, ply);
+    m_maxVisitedPly = qMax(m_maxVisitedPly, m_currentPly);
+    refreshData();
 }
 
-// --- フォントサイズ ---
-
-void EvaluationChartWidget::updateLabelFonts()
+void EvaluationChartWidget::setRecordLength(int plies)
 {
-    const int fontSize = m_configurator->labelFontSize();
-    QFont labelsFont = font();
-    labelsFont.setPointSize(fontSize);
-
-    if (m_axX) {
-        m_axX->setLabelsFont(labelsFont);
-    }
-    if (m_axY) {
-        m_axY->setLabelsFont(labelsFont);
-    }
-
-    // フォントサイズに応じて左マージンを調整（Y軸ラベルが切れないように）
-    if (m_chart) {
-        // Y軸の数値幅（最大5桁: -20000）とフォントサイズに基づいてマージンを計算
-        int leftMargin = 10 + (fontSize - 5) * 4;
-        m_chart->setMargins(QMargins(leftMargin, 5, 10, 5));
-    }
-
-    if (m_chartView) {
-        m_chartView->update();
-    }
+    m_maxVisitedPly = qMax(0, plies);
+    refreshData();
 }
 
-bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* ev)
+bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* event)
 {
-    if (obj == m_chartView->viewport() && ev->type() == QEvent::MouseButtonPress) {
-        auto* me = static_cast<QMouseEvent*>(ev);
-        if (me->button() == Qt::LeftButton) {
-            const QPointF scenePos = m_chartView->mapToScene(me->pos());
-            const QPointF dataPos = m_chart->mapToValue(scenePos, m_s1);
-            const int ply = qMax(0, qRound(dataPos.x()));
+    if (obj != m_chartView->viewport()) return QWidget::eventFilter(obj, event);
+    if (event->type() == QEvent::MouseMove) {
+        hoverAt(static_cast<QMouseEvent*>(event)->pos());
+    } else if (event->type() == QEvent::Leave) {
+        clearHover();
+    } else if (event->type() == QEvent::MouseButtonPress) {
+        auto* mouse = static_cast<QMouseEvent*>(event);
+        const QPointF chartPos = m_chart->mapFromScene(m_chartView->mapToScene(mouse->pos()));
+        if (mouse->button() == Qt::LeftButton && m_chart->plotArea().contains(chartPos)) {
+            const int ply = qMax(0, qRound(m_chart->mapToValue(chartPos, m_series[0]).x()));
             emit plyClicked(ply);
             return true;
         }
     }
-    return QWidget::eventFilter(obj, ev);
+    return QWidget::eventFilter(obj, event);
 }
 
-void EvaluationChartWidget::setFloating(bool floating)
-{
-    Q_UNUSED(floating)
-    // 現在は特別な処理なし（将来の拡張用に残す）
-}
+void EvaluationChartWidget::setFloating(bool floating) { Q_UNUSED(floating) }

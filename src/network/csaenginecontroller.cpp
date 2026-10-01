@@ -119,6 +119,7 @@ void CsaEngineController::onMatchMoveReady(const QPoint& from, const QPoint& to,
     result.promote = m_gameController->promote();
     result.valid = to.x() >= 1 && to.x() <= 9 && to.y() >= 1 && to.y() <= 9;
     result.scoreCp = m_engine->lastScoreCp();
+    result.scoreMate = m_engine->lastScoreMate();
     emit thinkingFinished(result);
 }
 

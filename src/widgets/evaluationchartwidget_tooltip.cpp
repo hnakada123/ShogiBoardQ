@@ -1,122 +1,66 @@
 /// @file evaluationchartwidget_tooltip.cpp
-/// @brief 評価値グラフウィジェット - ツールチップ・ホバー処理
-
+/// @brief 近傍点のホバー・元の評価値を表示するツールチップ
 #include "evaluationchartwidget.h"
+#include "evaluationchartview.h"
 
-#include <QtCharts/QChartView>
-#include <QtCharts/QChart>
-#include <QtCharts/QLineSeries>
+#include <QChart>
 #include <QLabel>
-#include "logcategories.h"
-
-// ============================================================
-// ツールチップ
-// ============================================================
+#include <QLineSeries>
+#include <cmath>
+#include <limits>
 
 void EvaluationChartWidget::setupTooltip()
 {
     m_tooltip = new QLabel(m_chartView);
-    m_tooltip->setStyleSheet(
-        "QLabel {"
-        "  background-color: #FFFACD;"  // レモンシフォン（薄い黄色）
-        "  border: 1px solid #DAA520;"  // ゴールデンロッド（枠線）
-        "  border-radius: 4px;"
-        "  padding: 4px 8px;"
-        "  font-size: 11px;"
-        "  font-weight: bold;"
-        "  color: #333333;"
-        "}"
-    );
-    m_tooltip->setAlignment(Qt::AlignCenter);
+    m_tooltip->setObjectName(QStringLiteral("evalTooltip"));
+    m_tooltip->setTextFormat(Qt::PlainText);
+    m_tooltip->setAttribute(Qt::WA_TransparentForMouseEvents);
+    m_tooltip->setStyleSheet(QStringLiteral(
+        "QLabel { background: #FFFFFF; color: #334155; border: 1px solid #CBD5E1;"
+        "border-radius: 5px; padding: 7px 10px; }"));
     m_tooltip->hide();
 }
 
-void EvaluationChartWidget::onSeriesHovered(const QPointF& point, bool state)
+void EvaluationChartWidget::clearHover()
 {
-    if (!m_tooltip || !m_chartView || !m_chart) return;
+    if (m_tooltip) m_tooltip->hide();
+    if (m_hoverSide < 0) return;
+    m_hoverSide = -1;
+    m_hoverPly = -1;
+    updatePresentation();
+}
 
-    if (state) {
-        // 送信元のシリーズを特定
-        QLineSeries* series = qobject_cast<QLineSeries*>(sender());
-        if (!series || series->count() == 0) {
-            m_tooltip->hide();
-            return;
+void EvaluationChartWidget::hoverAt(const QPoint& position)
+{
+    const QPointF chartPos = m_chart->mapFromScene(m_chartView->mapToScene(position));
+    if (!m_chart->plotArea().contains(chartPos)) { clearHover(); return; }
+    double distance = std::numeric_limits<double>::max();
+    int sideFound = -1;
+    int plyFound = -1;
+    for (int side = 0; side < 2; ++side) {
+        for (auto it = m_scores[side].cbegin(); it != m_scores[side].cend(); ++it) {
+            if (it.key() > xAxisLimit()) continue;
+            const QPointF point = m_chart->mapToPosition(QPointF(it.key(), displayedValue(*it)), m_series[side]);
+            const qreal dx = qAbs(point.x() - chartPos.x());
+            // 手数の範囲によらず、画面上で近い点を拾う。
+            if (dx > 14) continue;
+            const double candidate = dx * dx + std::pow((point.y() - chartPos.y()) * 0.15, 2);
+            if (candidate < distance) { distance = candidate; sideFound = side; plyFound = it.key(); }
         }
-
-        QString engineName;
-        QString sideMarker;  // ▲（先手）または △（後手）
-        if (series == m_s1) {
-            engineName = m_engine1Name;
-            sideMarker = QStringLiteral("▲");
-            qCDebug(lcUi) << "onSeriesHovered: series=m_s1, m_engine1Name=" << m_engine1Name;
-        } else if (series == m_s2) {
-            engineName = m_engine2Name;
-            sideMarker = QStringLiteral("△");
-            qCDebug(lcUi) << "onSeriesHovered: series=m_s2, m_engine2Name=" << m_engine2Name;
-        }
-
-        // 最も近いデータポイントを探す
-        int closestIndex = -1;
-        qreal minDist = std::numeric_limits<qreal>::max();
-        for (int i = 0; i < series->count(); ++i) {
-            const QPointF pt = series->at(i);
-            const qreal dist = qAbs(pt.x() - point.x());
-            if (dist < minDist) {
-                minDist = dist;
-                closestIndex = i;
-            }
-        }
-
-        // プロット点から離れすぎている場合はツールチップを非表示
-        // X軸方向で0.3手分（約30%）以上離れていたら表示しない
-        const qreal threshold = 0.3;
-        if (closestIndex < 0 || minDist > threshold) {
-            m_tooltip->hide();
-            return;
-        }
-
-        // 最も近いデータポイントの値を使用
-        const QPointF closestPt = series->at(closestIndex);
-        const int ply = qRound(closestPt.x());
-        const int cp = qRound(closestPt.y());
-
-        // ツールチップのテキストを設定
-        // フォーマット: "▲エンジン名\nN手目: 評価値" または "△エンジン名\nN手目: 評価値"
-        QString text;
-        if (!engineName.isEmpty()) {
-            text = tr("%1%2\nMove %3: %4").arg(sideMarker, engineName).arg(ply).arg(cp);
-        } else {
-            // エンジン名がない場合は「先手」「後手」を表示
-            const QString sideName = (series == m_s1) ? tr("先手") : tr("後手");
-            text = tr("%1%2\nMove %3: %4").arg(sideMarker, sideName).arg(ply).arg(cp);
-        }
-        qCDebug(lcUi) << "onSeriesHovered: tooltip text=" << text;
-        m_tooltip->setText(text);
-        m_tooltip->adjustSize();
-
-        // 最も近いデータポイントの位置にツールチップを表示
-        const QPointF chartPos = m_chart->mapToPosition(closestPt);
-        const QPoint viewPos = m_chartView->mapFromScene(chartPos);
-
-        // ツールチップの位置を調整（プロットの少し上に表示）
-        int tooltipX = viewPos.x() - m_tooltip->width() / 2;
-        int tooltipY = viewPos.y() - m_tooltip->height() - 10;
-
-        // 画面外にはみ出さないように調整
-        if (tooltipX < 5) tooltipX = 5;
-        if (tooltipX + m_tooltip->width() > m_chartView->width() - 5) {
-            tooltipX = m_chartView->width() - m_tooltip->width() - 5;
-        }
-        if (tooltipY < 5) {
-            // 上にはみ出す場合は下に表示
-            tooltipY = viewPos.y() + 15;
-        }
-
-        m_tooltip->move(tooltipX, tooltipY);
-        m_tooltip->show();
-        m_tooltip->raise();
-    } else {
-        // ホバー終了：ツールチップを非表示
-        m_tooltip->hide();
     }
+    if (sideFound < 0) { clearHover(); return; }
+    m_hoverSide = sideFound;
+    m_hoverPly = plyFound;
+    const Score score = m_scores[sideFound].value(plyFound);
+    m_tooltip->setFont(m_chartView->font());
+    m_tooltip->setText(tr("%1\n%2手目：%3\n先手視点の評価値")
+                       .arg(seriesName(sideFound)).arg(plyFound).arg(scoreText(score)));
+    m_tooltip->adjustSize();
+    const int x = qBound(4, position.x() + 12, qMax(4, m_chartView->width() - m_tooltip->width() - 4));
+    const int y = qBound(4, position.y() - m_tooltip->height() - 12,
+                        qMax(4, m_chartView->height() - m_tooltip->height() - 4));
+    m_tooltip->move(x, y);
+    m_tooltip->show();
+    m_tooltip->raise();
+    updatePresentation();
 }

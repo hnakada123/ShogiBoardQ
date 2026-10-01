@@ -5,13 +5,13 @@
     <name>AnalysisFlowController</name>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="54"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="421"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="430"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation>Internal error: sfenRecord is not ready. Please load a game record first.</translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="58"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="425"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="434"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation>Internal error: Analysis model is not ready.</translation>
     </message>
@@ -26,7 +26,7 @@
         <translation>Invalid engine selection.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="228"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="229"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -43,7 +43,7 @@
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="531"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="540"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -52,7 +52,7 @@
     <name>AnalysisResultHandler</name>
     <message>
         <location filename="../../src/analysis/analysisresulthandler.cpp" line="148"/>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="244"/>
+        <location filename="../../src/analysis/analysisresulthandler.cpp" line="256"/>
         <source>（定跡）</source>
         <translation type="unfinished">(Book)</translation>
     </message>
@@ -2256,7 +2256,7 @@ Cause: %2</translation>
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="366"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="371"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
@@ -2265,8 +2265,8 @@ Cause: %2</translation>
         <translation type="vanished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="366"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="524"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="371"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="529"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -3068,75 +3068,168 @@ Discard changes and move?</translation>
 <context>
     <name>EvaluationChartConfigurator</name>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="89"/>
         <source>評価値上限:</source>
-        <translation>Score Limit:</translation>
+        <translation type="vanished">Score Limit:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="93"/>
         <source>評価値の表示上限を選択</source>
-        <translation>Select evaluation display limit</translation>
+        <translation type="vanished">Select evaluation display limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="99"/>
         <source>評価値間隔:</source>
-        <translation>Eval Interval:</translation>
+        <translation type="vanished">Eval Interval:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="103"/>
         <source>評価値の目盛り間隔を選択</source>
-        <translation>Select evaluation tick interval</translation>
+        <translation type="vanished">Select evaluation tick interval</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="109"/>
         <source>手数上限:</source>
-        <translation>Move Limit:</translation>
+        <translation type="vanished">Move Limit:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="113"/>
         <source>手数の表示上限を選択</source>
-        <translation>Select move display limit</translation>
+        <translation type="vanished">Select move display limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="119"/>
         <source>手数間隔:</source>
-        <translation>Move Interval:</translation>
+        <translation type="vanished">Move Interval:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="123"/>
         <source>手数の目盛り間隔を選択</source>
-        <translation>Select move tick interval</translation>
+        <translation type="vanished">Select move tick interval</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="135"/>
         <source>目盛りの文字を小さく</source>
-        <translation>Decrease tick font size</translation>
+        <translation type="vanished">Decrease tick font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="136"/>
         <source>目盛りの文字を大きく</source>
-        <translation>Increase tick font size</translation>
+        <translation type="vanished">Increase tick font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="48"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="200"/>
+        <source>表示範囲:</source>
+        <translation>Range:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="51"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="185"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="196"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="197"/>
+        <source>自動</source>
+        <translation>Automatic</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="51"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="185"/>
+        <source>手動固定</source>
+        <translation>Fixed</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="54"/>
+        <source>表示設定…</source>
+        <translation>Display settings…</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="181"/>
+        <source>評価値グラフの表示設定</source>
+        <translation>Evaluation graph settings</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="201"/>
+        <source>評価値の範囲（手動）:</source>
+        <translation>Score range (fixed):</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="202"/>
+        <source>手数の上限（手動）:</source>
+        <translation>Move limit (fixed):</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="203"/>
+        <source>評価値の目盛り間隔:</source>
+        <translation>Score tick interval:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="204"/>
+        <source>手数の目盛り間隔:</source>
+        <translation>Move tick interval:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="205"/>
+        <source>文字サイズ:</source>
+        <translation>Font size:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="207"/>
+        <source>目盛りは文字が重ならないように間引きます。詰みはグラフの端に表示します。</source>
+        <translation>Ticks are spaced to keep labels readable. Mate scores appear at the edge of the graph.</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="210"/>
+        <source>現在の目盛り間隔：評価値 %1 ／ 手数 %2</source>
+        <translation>Current tick spacing: score %1 / moves %2</translation>
     </message>
 </context>
 <context>
     <name>EvaluationChartWidget</name>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="87"/>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="91"/>
         <source>%1%2
 Move %3: %4</source>
-        <translation>%1%2
+        <translation type="vanished">%1%2
 Move %3: %4</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="90"/>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="50"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="90"/>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="50"/>
         <source>後手</source>
         <translation>White</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="53"/>
+        <source>%1勝ち・詰みまで%2手</source>
+        <translation>%1 wins · mate in %2 plies</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="54"/>
+        <source>%1勝ち・詰み</source>
+        <translation>%1 wins · mate</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="57"/>
+        <source>%1（表示範囲外）</source>
+        <translation>%1 (outside range)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="63"/>
+        <source>先手エンジン</source>
+        <translation>Black engine</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="63"/>
+        <source>後手エンジン</source>
+        <translation>White engine</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="102"/>
+        <source>%1：%2</source>
+        <translation>%1: %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="111"/>
+        <source>%1手目  |  %2</source>
+        <translation>Move %1  |  %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="112"/>
+        <source>評価値なし</source>
+        <translation>No evaluation</translation>
     </message>
     <message>
         <source>評価値上限:</source>
@@ -3181,6 +3274,32 @@ Move %3: %4</translation>
     <message>
         <source>目盛りの文字を大きく</source>
         <translation type="vanished">Increase tick font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartview.cpp" line="54"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="161"/>
+        <source>先手有利</source>
+        <translation>Black advantage</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartview.cpp" line="57"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="161"/>
+        <source>後手有利</source>
+        <translation>White advantage</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartview.cpp" line="60"/>
+        <source>%1手目</source>
+        <translation>Move %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="56"/>
+        <source>%1
+%2手目：%3
+先手視点の評価値</source>
+        <translation>%1
+Move %2: %3
+Score from Black’s perspective</translation>
     </message>
 </context>
 <context>
@@ -9384,7 +9503,7 @@ Last solved: %2</translation>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="302"/>
+        <location filename="../../src/engine/usi.cpp" line="307"/>
         <source>Engine file path is empty.</source>
         <translation>Engine file path is empty.</translation>
     </message>

@@ -403,7 +403,7 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
 
     // 評価値更新
     int ply = *m_refs.moveCount + 1;
-    m_hooks.engineScoreUpdated(result.scoreCp, ply);
+    m_hooks.engineScoreUpdated(result.scoreCp, ply, result.scoreMate);
 
     // サーバーに送信
     m_refs.client->sendMove(csaMove);
