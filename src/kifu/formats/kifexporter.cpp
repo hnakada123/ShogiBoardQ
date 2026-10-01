@@ -319,7 +319,8 @@ QStringList KifExporter::exportLines(const GameRecordModel& model,
 
     // 1) ヘッダ
     const QList<KifGameInfoItem> header = GameRecordModel::collectGameInfo(ctx);
-    bool isNonStandard = false;
+    // 手合割の行が削除されていても、開始局面は盤面図で保持する。
+    bool isNonStandard = !ctx.startSfen.trimmed().isEmpty() && !SfenUtils::isHirateStart(ctx.startSfen);
     for (const auto& it : std::as_const(header)) {
         if (!it.key.trimmed().isEmpty()) {
             out << fwColonLine(it.key.trimmed(), it.value.trimmed());

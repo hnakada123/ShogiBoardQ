@@ -9,6 +9,7 @@
 #include <QList>
 #include <QString>
 #include <QSet>
+#include <QPointer>
 
 #include "kifparsetypes.h"  // KifGameInfoItem
 
@@ -98,6 +99,9 @@ public slots:
     /// 新しい行を追加
     void addRow();
 
+    /// 選択行を削除（Undoで復元可能）
+    void removeRow();
+
     /// 対局情報を更新（編集を確定）
     void applyChanges();
 
@@ -107,6 +111,9 @@ signals:
 
 private slots:
     void onCellChanged(int row, int column);
+    void updateEditingIndicator();
+    void observeEditor();
+    void onColumnResized(int column, int oldSize, int newSize);
 
 private:
     QLineEdit* activeEditor() const;
@@ -124,14 +131,14 @@ private:
     int m_historyIndex = 0;
     void buildUi();
     void buildToolbar();
-    void updateEditingIndicator();
+    void updateTablePresentation();
     void applyFontSize();
     bool checkDirty() const;
 
     // UI部品
     QWidget*      m_container = nullptr;
-    QWidget*      m_toolbar = nullptr;
-    QTableWidget* m_table = nullptr;
+    QPointer<QWidget> m_toolbar;
+    QPointer<QTableWidget> m_table;
     QToolButton*  m_btnFontIncrease = nullptr;
     QToolButton*  m_btnFontDecrease = nullptr;
     QToolButton*  m_btnUndo = nullptr;
@@ -140,12 +147,14 @@ private:
     QToolButton*  m_btnCopy = nullptr;
     QToolButton*  m_btnPaste = nullptr;
     QToolButton*  m_btnAddRow = nullptr;
+    QToolButton*  m_btnRemoveRow = nullptr;
     QLabel*       m_editingLabel = nullptr;
     QPushButton*  m_btnUpdate = nullptr;
 
     // 状態
     int  m_fontSize = 10;
     bool m_dirty = false;
+    int m_keyColumnWidth = 0;
     QList<KifGameInfoItem> m_originalItems;
 };
 

@@ -2861,68 +2861,93 @@
 <context>
     <name>GameInfoPaneController</name>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="55"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
         <source>項目</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="55"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
         <source>内容</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="97"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="64"/>
+        <source>対局情報</source>
+        <translation>対局情報</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="58"/>
         <source>フォントサイズを小さくする</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">フォントサイズを小さくする</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="107"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="60"/>
         <source>フォントサイズを大きくする</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">フォントサイズを大きくする</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="117"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="62"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="127"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="64"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="137"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="67"/>
         <source>切り取り (Ctrl+X)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="148"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="69"/>
         <source>コピー (Ctrl+C)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="159"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="71"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="169"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="74"/>
+        <source>行を追加</source>
+        <translation>行を追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="75"/>
         <source>新しい行を追加する</source>
         <translation>新しい行を追加する</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="176"/>
-        <source>修正中</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="76"/>
+        <source>行を削除</source>
+        <translation>行を削除</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="182"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="77"/>
+        <source>選択行を削除する（元に戻す操作で復元できます）</source>
+        <translation>選択行を削除する（元に戻す操作で復元できます）</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="82"/>
+        <source>編集した対局情報を棋譜に反映する (Ctrl+Enter)</source>
+        <translation>編集した対局情報を棋譜に反映する (Ctrl+Enter)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
+        <source>未反映の変更があります</source>
+        <translation>未反映の変更があります</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
+        <source>内容をダブルクリックして編集</source>
+        <translation>内容をダブルクリックして編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="80"/>
         <source>対局情報更新</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="184"/>
-        <source>編集した対局情報を棋譜に反映する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -2934,12 +2959,12 @@
         <translation type="obsolete">後手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="343"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="244"/>
         <source>未保存の対局情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="344"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="245"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation type="unfinished"></translation>

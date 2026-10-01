@@ -104,6 +104,20 @@ void GameInfoPaneController::applyChanges()
     qCDebug(lcUi).noquote() << "[GameInfoPane] applyChanges: Game info updated, items=" << currentItems.size();
 }
 
+void GameInfoPaneController::removeRow()
+{
+    if (!m_table || !m_table->currentItem() || !m_table->currentItem()->isSelected()) return;
+    commitPendingEditor();
+    const int row = m_table->currentRow();
+    {
+        const QSignalBlocker blocker(m_table);
+        m_table->removeRow(row);
+        if (m_table->rowCount() > 0)
+            m_table->setCurrentCell(qMin(row, m_table->rowCount() - 1), 1);
+    }
+    onCellChanged(row, 0);
+}
+
 void GameInfoPaneController::onCellChanged(int row, int column)
 {
     Q_UNUSED(row);
@@ -116,12 +130,9 @@ void GameInfoPaneController::onCellChanged(int row, int column)
         m_historyIndex = static_cast<int>(m_history.size()) - 1;
     }
 
-    const bool wasDirty = m_dirty;
     m_dirty = checkDirty();
-
-    if (wasDirty != m_dirty) {
-        updateEditingIndicator();
-    }
+    updateTablePresentation();
+    updateEditingIndicator();
 }
 
 void GameInfoPaneController::commitPendingEditor()
@@ -171,6 +182,7 @@ void GameInfoPaneController::restoreEditState(const EditState& state)
     }
     if (!state.cells.isEmpty()) m_table->setCurrentCell(qBound(0, currentRow, m_table->rowCount() - 1), qMax(0, currentColumn));
     m_dirty = checkDirty();
+    updateTablePresentation();
     updateEditingIndicator();
 }
 
@@ -207,5 +219,6 @@ void GameInfoPaneController::updateGameInfoValue(const QString& key, const QStri
         else cell->second = value;
     }
     m_dirty = checkDirty();
+    updateTablePresentation();
     updateEditingIndicator();
 }

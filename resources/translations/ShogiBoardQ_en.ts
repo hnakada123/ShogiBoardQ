@@ -3401,69 +3401,102 @@ Score from Black’s perspective</translation>
 <context>
     <name>GameInfoPaneController</name>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="55"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
         <source>項目</source>
         <translation>Item</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="55"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="52"/>
         <source>内容</source>
         <translation>Value</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="97"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="64"/>
+        <source>対局情報</source>
+        <translation>Game Info</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="58"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="107"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="60"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="117"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="62"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="127"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="64"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="137"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="67"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="148"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="69"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="159"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="71"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="169"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="74"/>
+        <source>行を追加</source>
+        <translation>Add row</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="75"/>
         <source>新しい行を追加する</source>
         <translation>Add a new row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="176"/>
-        <source>修正中</source>
-        <translation>Editing</translation>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="76"/>
+        <source>行を削除</source>
+        <translation>Delete row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="182"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="77"/>
+        <source>選択行を削除する（元に戻す操作で復元できます）</source>
+        <translation>Delete the selected row (can be restored with Undo)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="82"/>
+        <source>編集した対局情報を棋譜に反映する (Ctrl+Enter)</source>
+        <translation>Apply edited game info to the record (Ctrl+Enter)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
+        <source>未反映の変更があります</source>
+        <translation>Unapplied changes</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
+        <source>内容をダブルクリックして編集</source>
+        <translation>Double-click a value to edit</translation>
+    </message>
+    <message>
+        <source>修正中</source>
+        <translation type="vanished">Editing</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="80"/>
         <source>対局情報更新</source>
         <translation>Update Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="184"/>
         <source>編集した対局情報を棋譜に反映する</source>
-        <translation>Apply edited game info to record</translation>
+        <translation type="vanished">Apply edited game info to record</translation>
     </message>
     <message>
         <source>先手</source>
@@ -3474,12 +3507,12 @@ Score from Black’s perspective</translation>
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="343"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="244"/>
         <source>未保存の対局情報</source>
         <translation>Unsaved Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="344"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="245"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation>The game info has been edited but not saved yet.

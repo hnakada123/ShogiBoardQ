@@ -73,6 +73,7 @@
 #include "enginelistsettings.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
+#include "gameinfopanecontroller.h"
 #include "analysissettings.h"
 #include "shogienginethinkingmodel.h"
 
@@ -1836,6 +1837,74 @@ private slots:
         const auto engines = EngineListSettings::loadEngines();
         QCOMPARE(engines.size(), 1); QCOMPARE(engines.first().name, QString("Audit USI"));
     }
+    void gameInfoPresentation()
+    {
+        auto* dock = window->findChild<QDockWidget*>("GameInfoDock");
+        auto* controller = window->findChild<GameInfoPaneController*>();
+        auto* table = window->findChild<QTableWidget*>("gameInfoTable");
+        auto* apply = window->findChild<QPushButton*>("gameInfoApply");
+        QVERIFY(dock && controller && table && apply);
+        dock->show(); dock->raise();
+        QTest::qWait(50);
+        QVERIFY(!apply->isEnabled());
+        snapshot("game-info-startup");
+
+        table->setColumnWidth(0, 160);
+        armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));
+        click("actionOpenKifuFile");
+        QVERIFY(dialogHandled);
+        QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 90);
+        dock->show(); dock->raise();
+        QCOMPARE(table->columnWidth(0), 160);
+        QVERIFY(!apply->isEnabled());
+        QTest::qWait(50);
+        snapshot("game-info-loaded");
+
+        int noteRow = -1;
+        for (int row = 0; row < table->rowCount(); ++row)
+            if (table->item(row, 0)->text() == QStringLiteral("備考")) noteRow = row;
+        QVERIFY(noteRow >= 0);
+        window->activateWindow();
+        table->setFocus();
+        QTRY_VERIFY(table->hasFocus());
+        table->setCurrentCell(noteRow, 1);
+        table->scrollToItem(table->currentItem());
+        table->editItem(table->currentItem());
+        auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+        QVERIFY(editor);
+        const QString note = QStringLiteral("長い備考も、ウィンドウの幅に合わせて折り返して表示します。会場や対局条件などの情報を編集できます。");
+        editor->setText(note);
+        QVERIFY(apply->isEnabled());
+        QTest::mouseClick(apply, Qt::LeftButton);
+        QCOMPARE(table->item(noteRow, 1)->text(), note);
+        QVERIFY(!apply->isEnabled());
+        const QString saved = copy("actionCopyKIF");
+        QVERIFY(saved.contains(QStringLiteral("備考：") + note));
+        armDialog("discard");
+        click("actionNewGame");
+        paste(saved);
+        dock->show(); dock->raise();
+        QCOMPARE(table->columnWidth(0), 160);
+        QVERIFY(!controller->isDirty());
+        QCOMPARE(table->item(noteRow, 1)->text(), note);
+
+        dock->setFloating(true);
+        dock->resize(460, 560);
+        QTest::qWait(50);
+        QVERIFY(dock->width() <= 460);
+        auto* toolbar = dock->findChild<QWidget*>("gameInfoToolbar");
+        QVERIFY(toolbar);
+        for (auto* button : toolbar->findChildren<QAbstractButton*>()) {
+            const QRect rect(button->mapTo(toolbar, QPoint()), button->size());
+            QVERIFY2(toolbar->rect().contains(rect), qPrintable(button->objectName()));
+        }
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/game-info-narrow.png")));
+        controller->setFontSize(16);
+        QTest::qWait(50);
+        QVERIFY(table->rowHeight(noteRow) > table->rowHeight(0));
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/game-info-large-font.png")));
+    }
+
     void commentPresentation()
     {
         armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));

@@ -303,7 +303,8 @@ QList<KifGameInfoItem> GameRecordModel::collectGameInfo(const ExportContext& ctx
     }
 
     // a) 既存の「対局情報」テーブルがあれば採用
-    if (ctx.gameInfoTable && ctx.gameInfoTable->rowCount() > 0) {
+    // 全行を削除した場合も編集結果を尊重し、初期情報を再生成しない。
+    if (ctx.gameInfoTable) {
         const int rows = ctx.gameInfoTable->rowCount();
         for (int r = 0; r < rows; ++r) {
             const QTableWidgetItem* keyItem   = ctx.gameInfoTable->item(r, 0);

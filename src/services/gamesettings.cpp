@@ -120,6 +120,16 @@ void setGameInfoFontSize(int size)
     s.setValue(SettingsKeys::kFontSizeGameInfo, size);
 }
 
+int gameInfoKeyColumnWidth()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kGameInfoKeyColumnWidth, 0).toInt();
+}
+
+void setGameInfoKeyColumnWidth(int width)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kGameInfoKeyColumnWidth, width);
+}
+
 // --- 対局開始 ---
 
 QSize startGameDialogSize()

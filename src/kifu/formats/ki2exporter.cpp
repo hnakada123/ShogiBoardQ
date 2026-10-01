@@ -5,6 +5,7 @@
 #include "ki2tosfenconverter.h"
 #include "kifexporter.h"
 #include "kifubranchtree.h"
+#include "sfenutils.h"
 #include "logcategories.h"
 
 #include <QRegularExpression>
@@ -277,7 +278,8 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
 
     // 1) ヘッダ
     const QList<KifGameInfoItem> header = GameRecordModel::collectGameInfo(ctx);
-    bool isNonStandard = false;
+    // 手合割の行が削除されていても、開始局面は盤面図で保持する。
+    bool isNonStandard = !ctx.startSfen.trimmed().isEmpty() && !SfenUtils::isHirateStart(ctx.startSfen);
     for (const auto& it : std::as_const(header)) {
         if (!it.key.trimmed().isEmpty()) {
             // 消費時間は KI2 では省略

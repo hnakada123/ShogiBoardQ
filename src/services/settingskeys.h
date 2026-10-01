@@ -50,6 +50,7 @@ inline constexpr char kFontSizeTsumePlay[]               = "FontSize/tsumePlay";
 inline constexpr char kFontSizeTsumeCollection[]         = "FontSize/tsumeCollection";
 
 // --- UI ---
+inline constexpr char kGameInfoKeyColumnWidth[]          = "GameInfo/keyColumnWidth";
 inline constexpr char kUsiLogWrapLines[]                 = "UsiLog/wrapLines";
 inline constexpr char kUsiLogCommandTarget[]             = "UsiLog/commandTarget";
 inline constexpr char kLastSelectedTabIndex[]            = "UI/lastSelectedTabIndex";
