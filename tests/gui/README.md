@@ -88,4 +88,6 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_collect
 
 `evaluationGraphAppearance` は実MainWindow内で2系列・詰み・選択手数を表示し、`evaluation-graph-main.png` とグラフ単体の `evaluation-graph-export.png` を保存します。自動範囲・手動固定・目盛りの間引き・詰みの先後・ホバー・設定保存・待ったの詳細は CTest の `tst_evaluationchart` で検証します。
 
+`commentPresentation` は棋王戦の棋譜で段落・開始局面のコメント列・全文ツールチップ・Ctrl＋クリックでのリンク操作・空行の保存と再読込を確認し、`comment-presentation.png` を保存します。`commentEditing` は空コメントの表示、書式付きクリップボードからのテキスト貼り付け、Ctrl＋Enterでの更新、記号・URL・段落を含む本文の保存と再読込、コメント削除を検証します。
+
 `josekiLoadAndPlay` は定跡ファイルの読込・合法手の追加・予想応手の編集・保存内容・盤上への着手を検証し、`joseki-window.png`・`joseki-add.png`・`joseki-edit.png` を保存します。`josekiVisibleDuringDestruction` は定跡ドックを表示したままメイン画面を破棄してもクラッシュしないことを確認します。

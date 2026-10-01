@@ -263,7 +263,7 @@ void KifuDisplayCoordinator::highlightCurrentPosition()
     if (commentInfo.ply >= 0) {
         const QString& comment = commentInfo.comment;
         emit commentUpdateRequired(commentInfo.ply,
-                                   comment.isEmpty() ? tr("コメントなし") : comment,
+                                   comment,
                                    commentInfo.asHtml);
     }
 }

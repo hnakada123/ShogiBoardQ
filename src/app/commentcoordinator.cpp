@@ -14,7 +14,6 @@
 #include "recordpane.h"
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
-#include "kifucontentbuilder.h"
 #include "kifurecordlistmodel.h"
 
 CommentCoordinator::CommentCoordinator(QObject* parent)
@@ -24,19 +23,14 @@ CommentCoordinator::CommentCoordinator(QObject* parent)
 
 void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
 {
+    Q_UNUSED(asHtml)
     // 現在の手数インデックスをCommentEditorPanelに設定
     if (m_commentEditor && m_currentMoveIndex) {
         m_commentEditor->setCurrentMoveIndex(*m_currentMoveIndex);
     }
 
-    if (asHtml) {
-        // 「*の手前で改行」＋「URLリンク化」付きのHTMLに整形して配信
-        const QString html = KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(text);
-        if (m_commentEditor) m_commentEditor->setCommentHtml(html);
-    } else {
-        // プレーンテキスト経路は従来通り
-        if (m_commentEditor) m_commentEditor->setCommentText(text);
-    }
+    // 棋譜のコメントはプレーンテキスト。表示用の整形で本文を書き換えない。
+    if (m_commentEditor) m_commentEditor->setCommentText(text);
 }
 
 bool CommentCoordinator::handleRecordRowChangeRequest(int row, const QString& comment)
@@ -44,6 +38,7 @@ bool CommentCoordinator::handleRecordRowChangeRequest(int row, const QString& co
     // 未保存コメントの確認
     const int editingRow = m_commentEditor ? m_commentEditor->currentMoveIndex() : -1;
     if (m_commentEditor && m_commentEditor->hasUnsavedComment()) {
+        if (row == editingRow) return true;
         if (row != editingRow) {
             if (!m_commentEditor->confirmDiscardUnsavedComment()) {
                 // キャンセル：元の行に戻す
@@ -62,8 +57,7 @@ bool CommentCoordinator::handleRecordRowChangeRequest(int row, const QString& co
     }
 
     // コメント表示
-    const QString cmt = comment.trimmed();
-    broadcastComment(cmt.isEmpty() ? tr("コメントなし") : cmt, true);
+    broadcastComment(comment, true);
     return true;
 }
 
@@ -142,13 +136,12 @@ void CommentCoordinator::onCommentUpdateCallback(int ply, const QString& comment
             // dataChanged を発火して表示を更新
             const QModelIndex tl = m_kifuRecordModel->index(ply, 3);  // コメント列
             const QModelIndex br = m_kifuRecordModel->index(ply, 3);
-            emit m_kifuRecordModel->dataChanged(tl, br, { Qt::DisplayRole });
+            emit m_kifuRecordModel->dataChanged(tl, br, { Qt::DisplayRole, Qt::ToolTipRole });
         }
     }
 
     // 現在表示中のコメントを更新（両方のコメント欄に反映）
-    const QString displayComment = comment.trimmed().isEmpty() ? tr("コメントなし") : comment;
-    broadcastComment(displayComment, /*asHtml=*/true);
+    broadcastComment(comment, /*asHtml=*/true);
 }
 
 void CommentCoordinator::onBookmarkEditRequested()

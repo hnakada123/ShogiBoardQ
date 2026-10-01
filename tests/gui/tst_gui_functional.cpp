@@ -21,8 +21,10 @@
 #include <QMenuBar>
 #include <QMenu>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QPlainTextEdit>
 #include <QTextEdit>
+#include <QTextBlock>
 #include <QSpinBox>
 #include <QSettings>
 #include <QScrollBar>
@@ -1790,6 +1792,136 @@ private slots:
         const auto engines = EngineListSettings::loadEngines();
         QCOMPARE(engines.size(), 1); QCOMPARE(engines.first().name, QString("Audit USI"));
     }
+    void commentPresentation()
+    {
+        armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));
+        click("actionOpenKifuFile");
+        QVERIFY(dialogHandled);
+        auto* table = record()->kifuView();
+        QTRY_VERIFY(table->model()->rowCount() > 90);
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        record()->onToggleCommentColumn(true);
+        record()->onToggleBookmarkColumn(false);
+        auto* edit = window->findChild<QTextEdit*>("kifuCommentEdit");
+        QVERIFY(edit);
+        auto* dock = qobject_cast<QDockWidget*>(edit->parentWidget()->parentWidget());
+        QVERIFY(dock);
+        dock->show(); dock->raise();
+        auto* panel = window->findChild<CommentEditorPanel*>();
+        auto* apply = window->findChild<QPushButton*>("kifuCommentApply");
+        auto* position = window->findChild<QLabel*>("kifuCommentPosition");
+        QVERIFY(panel && apply && position);
+        QTRY_COMPARE(panel->currentMoveIndex(), 0);
+        QCOMPARE(position->text(), QStringLiteral("開始局面"));
+        QVERIFY(!apply->isEnabled());
+        QVERIFY(edit->toPlainText().contains(QStringLiteral("\n\n【棋王戦第３局｜ABEMA】")));
+        QVERIFY(edit->document()->firstBlock().blockFormat().lineHeight() >= 130);
+        const QString opening = edit->toPlainText();
+        QCOMPARE(table->model()->data(table->model()->index(0, 3)).toString(), opening.simplified());
+        QTextDocument tooltip;
+        tooltip.setHtml(table->model()->data(table->model()->index(0, 3), Qt::ToolTipRole).toString());
+        QCOMPARE(tooltip.toPlainText(), opening);
+
+        // 通常クリックでは選択・編集でき、Ctrl+クリックだけがリンクを開く。
+        auto cursor = edit->document()->find(QStringLiteral("https://abema.tv/"));
+        QVERIFY(!cursor.isNull());
+        cursor.setPosition(cursor.selectionStart() + 5);
+        edit->setTextCursor(cursor);
+        edit->ensureCursorVisible();
+        QTest::qWait(30);
+        const QPoint linkPoint = edit->cursorRect().center();
+        QVERIFY(!edit->anchorAt(linkPoint).isEmpty());
+        QTest::mouseClick(edit->viewport(), Qt::LeftButton, Qt::NoModifier, linkPoint);
+        QVERIFY(urls.isEmpty());
+        QTest::mouseClick(edit->viewport(), Qt::LeftButton, Qt::ControlModifier, linkPoint);
+        QCOMPARE(urls.size(), 1);
+        QCOMPARE(urls.first(), QUrl("https://abema.tv/channels/shogi/slots/CmppFMdYCe6dn7"));
+        QVERIFY(!panel->hasUnsavedComment());
+        edit->moveCursor(QTextCursor::Start);
+        edit->verticalScrollBar()->setValue(0);
+        QTest::qWait(50);
+        snapshot("comment-presentation");
+
+        // 空行は保存・再読込後も残る。
+        const QString saved = copy("actionCopyKIF");
+        QVERIFY(saved.contains(QStringLiteral("\n*\n*【棋王戦第３局｜ABEMA】")));
+        click("actionNewGame");
+        paste(saved);
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTRY_COMPARE(edit->toPlainText(), opening);
+    }
+
+    void commentEditing()
+    {
+        sampleGame();
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        auto* edit = window->findChild<QTextEdit*>("kifuCommentEdit");
+        auto* apply = window->findChild<QPushButton*>("kifuCommentApply");
+        auto* panel = window->findChild<CommentEditorPanel*>();
+        auto* position = window->findChild<QLabel*>("kifuCommentPosition");
+        QVERIFY(edit && apply && panel && position);
+        auto* dock = qobject_cast<QDockWidget*>(edit->parentWidget()->parentWidget());
+        QVERIFY(dock);
+        dock->show(); dock->raise();
+        QTRY_COMPARE(panel->currentMoveIndex(), 1);
+        QCOMPARE(position->text(), QStringLiteral("1手目"));
+        QVERIFY(edit->toPlainText().isEmpty());
+        QVERIFY(!edit->placeholderText().isEmpty());
+        QVERIFY(!apply->isEnabled());
+        QVERIFY(!panel->hasUnsavedComment());
+
+        const QString comment = QStringLiteral("検討 <b>強調ではない</b> &amp; 2*3\n\n"
+                                               "https://example.com/?a=1&b=2*x\n次の段落");
+        auto* mime = new QMimeData;
+        mime->setText(comment);
+        mime->setHtml(QStringLiteral("<h1>書式付きの貼り付け</h1>"));
+        QApplication::clipboard()->setMimeData(mime);
+        window->activateWindow();
+        QVERIFY(QTest::qWaitForWindowActive(window.get()));
+        edit->setFocus();
+        QTRY_VERIFY(edit->hasFocus());
+        QTest::keyClick(edit, Qt::Key_V, Qt::ControlModifier);
+        QCOMPARE(edit->toPlainText(), comment);
+        QVERIFY(panel->hasUnsavedComment());
+        QVERIFY(apply->isEnabled());
+        QSignalSpy updates(panel, &CommentEditorPanel::commentUpdated);
+        QTest::keyClick(edit, Qt::Key_Return, Qt::ControlModifier);
+        QCOMPARE(updates.size(), 1);
+        QCOMPARE(updates.first().at(0).toInt(), 1);
+        QCOMPARE(updates.first().at(1).toString(), comment);
+        QCOMPARE(edit->toPlainText(), comment);
+        QVERIFY(!panel->hasUnsavedComment());
+        QVERIFY(!apply->isEnabled());
+        auto* model = record()->kifuView()->model();
+        QCOMPARE(model->data(model->index(1, 3)).toString(), comment.simplified());
+        QTextDocument tooltip;
+        tooltip.setHtml(model->data(model->index(1, 3), Qt::ToolTipRole).toString());
+        QCOMPARE(tooltip.toPlainText(), comment);
+        QTest::keyClick(edit, Qt::Key_Return, Qt::ControlModifier);
+        QCOMPARE(updates.size(), 1);
+
+        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTRY_VERIFY(edit->toPlainText().isEmpty());
+        QTest::mouseClick(record()->prevButton(), Qt::LeftButton);
+        QTRY_COMPARE(edit->toPlainText(), comment);
+        const QString saved = copy("actionCopyKIF");
+        QVERIFY(saved.contains(QStringLiteral("2*3\n*\n*https://example.com/?a=1&b=2*x")));
+        armDialog("discard"); click("actionNewGame"); paste(saved);
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTRY_COMPARE(edit->toPlainText(), comment);
+        edit->setFocus();
+        QTest::keyClick(edit, Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClick(edit, Qt::Key_Backspace);
+        QTest::mouseClick(apply, Qt::LeftButton);
+        QVERIFY(edit->toPlainText().isEmpty());
+        QVERIFY(!panel->hasUnsavedComment());
+        QVERIFY(!apply->isEnabled());
+        QVERIFY(model->data(model->index(1, 3), Qt::ToolTipRole).toString().isEmpty());
+        QVERIFY(!copy("actionCopyKIF").contains(QStringLiteral("コメントなし")));
+    }
+
     void commentsAndBookmark()
     {
         sampleGame(); QTest::mouseClick(record()->firstButton(), Qt::LeftButton);

@@ -242,7 +242,6 @@ static void appendKifComments(const QString& comment, QStringList& out)
     const QStringList lines = comment.split(newlineRe, Qt::KeepEmptyParts);
     for (const QString& raw : std::as_const(lines)) {
         const QString t = raw.trimmed();
-        if (t.isEmpty()) continue;
         // 後方互換: コメント中の【しおり】マーカーを & 行として出力
         if (t.startsWith(QStringLiteral("【しおり】"))) {
             const QString name = t.mid(5).trimmed(); // "【しおり】" is 5 chars

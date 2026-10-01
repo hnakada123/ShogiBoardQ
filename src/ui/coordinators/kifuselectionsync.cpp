@@ -205,7 +205,7 @@ KifuSelectionSync::CommentInfo KifuSelectionSync::highlightCurrentPosition(int l
 
     // コメント情報を返す
     if (m_refs.state->currentNode() != nullptr) {
-        const QString comment = m_refs.state->currentNode()->comment().trimmed();
+        const QString comment = m_refs.state->currentNode()->comment();
         commentInfo.ply = ply;
         commentInfo.comment = comment;
         commentInfo.asHtml = true;

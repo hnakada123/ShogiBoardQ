@@ -165,6 +165,22 @@ private slots:
         QVERIFY(foundGote);
     }
 
+    void comments_preserveParagraphs()
+    {
+        const QString path = fixturePath(QStringLiteral("test_kiou_comments.kif"));
+        QString error;
+        const auto items = KifToSfenConverter::extractMovesWithTimes(path, &error);
+        QVERIFY2(error.isEmpty(), qPrintable(error));
+        QVERIFY(!items.isEmpty());
+        QVERIFY(items.first().comment.contains(QStringLiteral("\n\n【棋王戦第３局｜ABEMA】")));
+        QVERIFY(items.at(1).comment.contains(QStringLiteral("\n\n【対局開始】")));
+
+        KifParseResult result;
+        QVERIFY2(KifToSfenConverter::parseWithVariations(path, result, &error), qPrintable(error));
+        QCOMPARE(result.mainline.disp.first().comment, items.first().comment);
+        QCOMPARE(result.mainline.disp.at(1).comment, items.at(1).comment);
+    }
+
     void comments_extraction()
     {
         QString error;

@@ -20,6 +20,11 @@
 #include <QMessageBox>
 #include <QSizePolicy>
 #include <QIcon>
+#include <QApplication>
+#include <QClipboard>
+#include <QMimeData>
+#include <QShortcut>
+#include <QTextDocument>
 
 namespace {
 void relaxToolbarWidth(QWidget* toolbar)
@@ -46,8 +51,8 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
 {
     QWidget* commentContainer = new QWidget(parent);
     QVBoxLayout* commentLayout = new QVBoxLayout(commentContainer);
-    commentLayout->setContentsMargins(4, 4, 4, 4);
-    commentLayout->setSpacing(2);
+    commentLayout->setContentsMargins(6, 4, 6, 6);
+    commentLayout->setSpacing(4);
 
     buildCommentToolbar(commentContainer);
     commentLayout->addWidget(m_commentToolbar);
@@ -55,8 +60,10 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
     m_comment = new QTextEdit(commentContainer);
     m_comment->setObjectName(QStringLiteral("kifuCommentEdit"));
     m_comment->setReadOnly(false);
-    m_comment->setAcceptRichText(true);
-    m_comment->setPlaceholderText(tr("コメントを表示・編集"));
+    m_comment->setAcceptRichText(false);
+    m_comment->setPlaceholderText(tr("この局面のコメントを入力できます"));
+    m_comment->setToolTip(tr("リンクは Ctrl+クリックで開きます"));
+    m_comment->document()->setDocumentMargin(10);
     commentLayout->addWidget(m_comment);
 
     if (m_comment->viewport()) {
@@ -66,6 +73,24 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
 
     connect(m_comment, &QTextEdit::textChanged,
             this, &CommentEditorPanel::onCommentTextChanged);
+    connect(m_comment, &QTextEdit::undoAvailable, m_btnCommentUndo, &QToolButton::setEnabled);
+    connect(m_comment, &QTextEdit::redoAvailable, m_btnCommentRedo, &QToolButton::setEnabled);
+    connect(m_comment, &QTextEdit::copyAvailable, m_btnCommentCut, &QToolButton::setEnabled);
+    connect(m_comment, &QTextEdit::copyAvailable, m_btnCommentCopy, &QToolButton::setEnabled);
+    connect(QApplication::clipboard(), &QClipboard::dataChanged,
+            this, &CommentEditorPanel::updatePasteAvailability);
+    m_btnCommentUndo->setEnabled(false);
+    m_btnCommentRedo->setEnabled(false);
+    m_btnCommentCut->setEnabled(false);
+    m_btnCommentCopy->setEnabled(false);
+    updatePasteAvailability();
+    updateEditingIndicator();
+
+    for (const auto key : {Qt::Key_Return, Qt::Key_Enter}) {
+        auto* shortcut = new QShortcut(QKeySequence(Qt::CTRL | key), m_comment);
+        shortcut->setContext(Qt::WidgetShortcut);
+        connect(shortcut, &QShortcut::activated, this, &CommentEditorPanel::onUpdateCommentClicked);
+    }
 
     m_currentFontSize = GameSettings::commentFontSize();
     if (m_comment) {
@@ -79,10 +104,7 @@ QWidget* CommentEditorPanel::buildCommentUi(QWidget* parent)
 
 void CommentEditorPanel::setCommentText(const QString& text)
 {
-    if (m_comment) {
-        QString htmlText = convertUrlsToLinks(text);
-        m_comment->setHtml(htmlText);
-    }
+    setCommentHtml(convertUrlsToLinks(text));
 }
 
 void CommentEditorPanel::setCommentHtml(const QString& html)
@@ -93,8 +115,7 @@ void CommentEditorPanel::setCommentHtml(const QString& html)
             << " html.len=" << html.size()
             << " m_isCommentDirty(before)=" << m_isCommentDirty;
 
-        QString processedHtml = convertUrlsToLinks(html);
-        m_comment->setHtml(processedHtml);
+        m_comment->setHtml(html);
         m_originalComment = m_comment->toPlainText();
 
         qCDebug(lcUi).noquote()
@@ -117,6 +138,11 @@ void CommentEditorPanel::setCurrentMoveIndex(int index)
         << " old=" << m_currentMoveIndex
         << " new=" << index;
     m_currentMoveIndex = index;
+    if (m_positionLabel) {
+        m_positionLabel->setText(index < 0 ? QString()
+            : index == 0 ? tr("開始局面") : tr("%1手目").arg(index));
+    }
+    updateEditingIndicator();
 }
 
 bool CommentEditorPanel::confirmDiscardUnsavedComment()
@@ -169,40 +195,29 @@ void CommentEditorPanel::clearCommentDirty()
 // static
 QString CommentEditorPanel::convertUrlsToLinks(const QString& text)
 {
-    QString result = text;
+    QString plain = text;
+    plain.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    plain.replace(QLatin1Char('\r'), QLatin1Char('\n'));
 
     static const QRegularExpression urlPattern(
         QStringLiteral(R"((https?://|ftp://)[^\s<>"']+)"),
         QRegularExpression::CaseInsensitiveOption
     );
 
-    static const QRegularExpression existingLinkPattern(
-        QStringLiteral(R"(<a\s+[^>]*href=)"),
-        QRegularExpression::CaseInsensitiveOption
-    );
-
-    if (existingLinkPattern.match(result).hasMatch()) {
-        return result;
-    }
-
-    result.replace(QStringLiteral("\n"), QStringLiteral("<br>"));
-
-    QRegularExpressionMatchIterator i = urlPattern.globalMatch(result);
-    QList<QPair<int, int>> matches;
+    QString result;
+    qsizetype last = 0;
+    QRegularExpressionMatchIterator i = urlPattern.globalMatch(plain);
     while (i.hasNext()) {
-        QRegularExpressionMatch match = i.next();
-        matches.append(qMakePair(match.capturedStart(), match.capturedLength()));
+        const QRegularExpressionMatch match = i.next();
+        result += plain.mid(last, match.capturedStart() - last).toHtmlEscaped();
+        const QString url = match.captured().toHtmlEscaped();
+        result += QStringLiteral("<a href=\"%1\">%1</a>").arg(url);
+        last = match.capturedEnd();
     }
-
-    for (qsizetype j = matches.size() - 1; j >= 0; --j) {
-        int start = matches[j].first;
-        int length = matches[j].second;
-        QString url = result.mid(start, length);
-        QString link = QStringLiteral("<a href=\"%1\" style=\"color: blue; text-decoration: underline;\">%1</a>").arg(url);
-        result.replace(start, length, link);
-    }
-
-    return result;
+    result += plain.mid(last).toHtmlEscaped();
+    result.replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
+    return QStringLiteral("<p style=\"white-space: pre-wrap; line-height: 135%; margin: 0;\">%1</p>")
+        .arg(result);
 }
 
 bool CommentEditorPanel::eventFilter(QObject* obj, QEvent* ev)
@@ -211,16 +226,27 @@ bool CommentEditorPanel::eventFilter(QObject* obj, QEvent* ev)
         return QObject::eventFilter(obj, ev);
     }
 
-    if (m_commentViewport && obj == m_commentViewport
-        && ev->type() == QEvent::MouseButtonRelease)
-    {
+    if (m_comment && obj == m_commentViewport && ev->type() == QEvent::MouseButtonPress) {
         auto* me = static_cast<QMouseEvent*>(ev);
-        if (me->button() == Qt::LeftButton && m_comment) {
-            const QString anchor = m_comment->anchorAt(me->pos());
-            if (!anchor.isEmpty()) {
-                QDesktopServices::openUrl(QUrl(anchor));
-                return true;
-            }
+        m_pressedAnchor.clear();
+        if (me->button() == Qt::LeftButton && me->modifiers().testFlag(Qt::ControlModifier)) {
+            m_pressedAnchor = m_comment->anchorAt(me->pos());
+            m_linkPressPosition = me->pos();
+            if (!m_pressedAnchor.isEmpty()) return true;
+        }
+    } else if (m_comment && obj == m_commentViewport && ev->type() == QEvent::MouseMove) {
+        auto* me = static_cast<QMouseEvent*>(ev);
+        if ((me->pos() - m_linkPressPosition).manhattanLength() >= QApplication::startDragDistance()) {
+            m_pressedAnchor.clear();
+        }
+    } else if (m_comment && obj == m_commentViewport && ev->type() == QEvent::MouseButtonRelease) {
+        auto* me = static_cast<QMouseEvent*>(ev);
+        const QString anchor = m_pressedAnchor;
+        m_pressedAnchor.clear();
+        if (me->button() == Qt::LeftButton && me->modifiers().testFlag(Qt::ControlModifier)
+            && !anchor.isEmpty() && anchor == m_comment->anchorAt(me->pos())) {
+            QDesktopServices::openUrl(QUrl(anchor));
+            return true;
         }
     }
     return QObject::eventFilter(obj, ev);
@@ -240,7 +266,7 @@ void CommentEditorPanel::onFontDecrease()
 
 void CommentEditorPanel::onUpdateCommentClicked()
 {
-    if (!m_comment) return;
+    if (!m_comment || !m_isCommentDirty || m_currentMoveIndex < 0) return;
 
     QString newComment = m_comment->toPlainText();
 
@@ -300,6 +326,12 @@ void CommentEditorPanel::onCommentPaste()
 {
     if (!m_comment) return;
     m_comment->paste();
+}
+
+void CommentEditorPanel::updatePasteAvailability()
+{
+    const QMimeData* data = QApplication::clipboard()->mimeData();
+    m_btnCommentPaste->setEnabled(data && data->hasText());
 }
 
 // ===================== Private helpers =====================
@@ -366,7 +398,7 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
 
     m_btnUpdateComment = new QPushButton(tr("コメント更新"), m_commentToolbar);
     m_btnUpdateComment->setObjectName(QStringLiteral("kifuCommentApply"));
-    m_btnUpdateComment->setToolTip(tr("編集したコメントを棋譜に反映する"));
+    m_btnUpdateComment->setToolTip(tr("編集したコメントを棋譜に反映する (Ctrl+Enter)"));
     m_btnUpdateComment->setFixedHeight(24);
     m_btnUpdateComment->setStyleSheet(ButtonStyles::primaryAction());
     connect(m_btnUpdateComment, &QPushButton::clicked, this, &CommentEditorPanel::onUpdateCommentClicked);
@@ -382,7 +414,12 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     toolbarLayout->addWidget(m_btnUpdateComment);
     toolbarLayout->addSpacing(8);
     toolbarLayout->addWidget(m_editingLabel);
+    m_positionLabel = new QLabel(m_commentToolbar);
+    m_positionLabel->setObjectName(QStringLiteral("kifuCommentPosition"));
+    toolbarLayout->addWidget(m_positionLabel);
     toolbarLayout->addStretch();
+    auto* linkHint = new QLabel(tr("リンクは Ctrl+クリックで開きます"), m_commentToolbar);
+    toolbarLayout->addWidget(linkHint);
 
     m_commentToolbar->setLayout(toolbarLayout);
     relaxToolbarWidth(m_commentToolbar);
@@ -405,6 +442,9 @@ void CommentEditorPanel::updateCommentFontSize(int delta)
 
 void CommentEditorPanel::updateEditingIndicator()
 {
+    if (m_btnUpdateComment) {
+        m_btnUpdateComment->setEnabled(m_isCommentDirty && m_currentMoveIndex >= 0);
+    }
     if (m_editingLabel) {
         m_editingLabel->setVisible(m_isCommentDirty);
         qCDebug(lcUi).noquote() << "[CommentEditorPanel] updateEditingIndicator: visible=" << m_isCommentDirty;

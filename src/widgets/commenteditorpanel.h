@@ -6,6 +6,7 @@
 
 #include <QObject>
 #include <QString>
+#include <QPoint>
 
 class QWidget;
 class QTextEdit;
@@ -28,7 +29,7 @@ public:
     /// プレーンテキストでコメントを設定（URLをリンクに変換）
     void setCommentText(const QString& text);
 
-    /// HTMLでコメントを設定（URLをリンクに変換）
+    /// 整形済みHTMLでコメントを設定
     void setCommentHtml(const QString& html);
 
     /// 現在の手数インデックスを設定
@@ -46,7 +47,7 @@ public:
     /// 編集状態をクリア（コメント更新後に呼ぶ）
     void clearCommentDirty();
 
-    /// URLをHTMLリンクに変換（staticヘルパー）
+    /// プレーンテキストをエスケープし、URLをHTMLリンクに変換
     static QString convertUrlsToLinks(const QString& text);
 
 signals:
@@ -72,6 +73,7 @@ private slots:
     void onCommentCut();
     void onCommentCopy();
     void onCommentPaste();
+    void updatePasteAvailability();
 
 private:
     void buildCommentToolbar(QWidget* parentWidget);
@@ -91,12 +93,15 @@ private:
     QToolButton* m_btnCommentPaste = nullptr;
     QPushButton* m_btnUpdateComment = nullptr;
     QLabel* m_editingLabel = nullptr;
+    QLabel* m_positionLabel = nullptr;
 
     // State
     int m_currentFontSize = 10;
     int m_currentMoveIndex = -1;
     QString m_originalComment;
     bool m_isCommentDirty = false;
+    QString m_pressedAnchor;
+    QPoint m_linkPressPosition;
 };
 
 #endif // COMMENTEDITORPANEL_H
