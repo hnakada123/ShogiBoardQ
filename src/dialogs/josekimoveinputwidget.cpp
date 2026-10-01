@@ -2,6 +2,8 @@
 /// @brief 定跡手入力ウィジェットクラスの実装
 
 #include "josekimoveinputwidget.h"
+#include "josekipresenter.h"
+#include "sfenpositiontracer.h"
 
 #include <QButtonGroup>
 #include <QComboBox>
@@ -9,6 +11,7 @@
 #include <QLabel>
 #include <QRadioButton>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 #include <QVBoxLayout>
 
 #include <algorithm>
@@ -45,6 +48,7 @@ JosekiMoveInputWidget::JosekiMoveInputWidget(const QString &title, bool hasNoneO
 void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
 {
     QVBoxLayout *layout = new QVBoxLayout(this);
+    setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
 
     // ラジオボタン
     QHBoxLayout *radioLayout = new QHBoxLayout();
@@ -161,11 +165,12 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
     QHBoxLayout *previewLayout = new QHBoxLayout();
     QLabel *previewTitleLabel = new QLabel(tr("プレビュー:"), this);
     m_previewLabel = new QLabel(this);
-    m_previewLabel->setStyleSheet(QStringLiteral("font-weight: bold; font-size: 12pt; color: #333;"));
+    m_previewLabel->setObjectName(QStringLiteral("movePreview"));
 
     QLabel *usiTitleLabel = new QLabel(tr("USI形式:"), this);
     m_usiLabel = new QLabel(this);
     m_usiLabel->setStyleSheet(QStringLiteral("font-family: monospace; color: #666;"));
+    m_usiLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     previewLayout->addWidget(previewTitleLabel);
     previewLayout->addWidget(m_previewLabel);
@@ -224,7 +229,9 @@ void JosekiMoveInputWidget::updatePreview()
 
     QString usi = buildUsiMove();
     m_usiLabel->setText(usi);
-    m_previewLabel->setText(usiToJapanese(usi));
+    SfenPositionTracer tracer;
+    m_previewLabel->setText(!m_currentSfen.isEmpty() && tracer.setFromSfen(m_currentSfen)
+        ? JosekiPresenter::usiMoveToJapanese(usi, tracer) : usiToJapanese(usi));
     emit moveChanged();
 }
 
@@ -241,15 +248,29 @@ QString JosekiMoveInputWidget::usiMove() const
 
 void JosekiMoveInputWidget::setUsiMove(const QString &usiMove)
 {
+    // コンボを一括設定する間の中間状態は通知しない。
+    QSignalBlocker blocker(this);
     if (usiMove == QStringLiteral("none") || usiMove.isEmpty()) {
         if (m_noneRadio) {
             m_noneRadio->setChecked(true);
             onInputModeChanged();
         }
+        blocker.unblock();
+        emit moveChanged();
         return;
     }
 
     setComboFromUsi(usiMove);
+    blocker.unblock();
+    emit moveChanged();
+}
+
+void JosekiMoveInputWidget::setCurrentSfen(const QString &sfen)
+{
+    if (m_currentSfen == sfen) return;
+    m_currentSfen = sfen;
+    QSignalBlocker blocker(this);
+    updatePreview();
 }
 
 QString JosekiMoveInputWidget::buildUsiMove() const
@@ -340,7 +361,7 @@ bool JosekiMoveInputWidget::isValidUsiMove(const QString &move)
 
     // 通常移動形式: XYZW または XYZW+ (例: 7g7f, 8h2b+)
     static QRegularExpression movePattern(QStringLiteral("^[1-9][a-i][1-9][a-i]\\+?$"));
-    return movePattern.match(move).hasMatch();
+    return movePattern.match(move).hasMatch() && move.left(2) != move.mid(2, 2);
 }
 
 QString JosekiMoveInputWidget::usiToJapanese(const QString &usiMove)

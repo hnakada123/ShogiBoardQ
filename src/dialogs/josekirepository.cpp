@@ -39,13 +39,15 @@ void JosekiRepository::addMove(const QString &normalizedSfen, const JosekiMove &
 }
 
 void JosekiRepository::updateMove(const QString &normalizedSfen, const QString &usiMove,
-                                   int value, int depth, int frequency, const QString &comment)
+                                   int value, int depth, int frequency, const QString &comment,
+                                   const QString &nextMove)
 {
     if (!m_josekiData.contains(normalizedSfen)) return;
 
     QList<JosekiMove> &moves = m_josekiData[normalizedSfen];
     for (int i = 0; i < moves.size(); ++i) {
         if (moves[i].move == usiMove) {
+            if (!nextMove.isNull()) moves[i].nextMove = nextMove;
             moves[i].value = value;
             moves[i].depth = depth;
             moves[i].frequency = frequency;

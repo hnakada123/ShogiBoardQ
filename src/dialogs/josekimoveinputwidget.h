@@ -41,6 +41,7 @@ public:
      * @param usiMove USI形式の指し手（"none" で「なし」を選択）
      */
     void setUsiMove(const QString &usiMove);
+    void setCurrentSfen(const QString &sfen);
 
     /**
      * @brief USI形式の指し手が有効かどうかを検証
@@ -99,6 +100,7 @@ private:
     QWidget *m_boardWidget = nullptr;
     QWidget *m_dropWidget = nullptr;
     QWidget *m_inputWidget = nullptr;
+    QString m_currentSfen;
 };
 
 #endif // JOSEKIMOVEINPUTWIDGET_H

@@ -69,9 +69,11 @@ public:
 
     /**
      * @brief 定跡手の編集を実行する
+     * @param nextMove 予想応手。null の場合は既存の値を保持する。
      */
     void editMove(const QString &normalizedSfen, const QString &usiMove,
-                  int value, int depth, int frequency, const QString &comment);
+                  int value, int depth, int frequency, const QString &comment,
+                  const QString &nextMove = QString());
 
     /**
      * @brief 定跡手の削除を実行する

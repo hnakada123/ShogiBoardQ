@@ -79,7 +79,7 @@ void JosekiWindow::closeEvent(QCloseEvent *event)
 void JosekiWindow::showEvent(QShowEvent *event)
 {
     QWidget::showEvent(event);
-    applyFontSize();
+    updateJosekiDisplay();
 }
 
 void JosekiWindow::onFontSizeIncrease()
@@ -250,6 +250,9 @@ void JosekiWindow::editMoveAt(int row)
     QString japaneseMoveStr = JosekiPresenter::usiMoveToJapanese(currentMove.move, tracer);
 
     JosekiMoveDialog dialog(this, true);
+    dialog.setMove(currentMove.move);
+    dialog.setNextMove(currentMove.nextMove);
+    dialog.setCurrentSfen(m_currentSfen);
     dialog.setValue(currentMove.value);
     dialog.setDepth(currentMove.depth);
     dialog.setFrequency(currentMove.frequency);
@@ -258,7 +261,7 @@ void JosekiWindow::editMoveAt(int row)
     if (dialog.exec() != QDialog::Accepted) return;
 
     m_presenter->editMove(normalizedSfen, currentMove.move,
-                          dialog.value(), dialog.depth(), dialog.frequency(), dialog.comment());
+                          dialog.value(), dialog.depth(), dialog.frequency(), dialog.comment(), dialog.nextMove());
     setModified(true);
     updateJosekiDisplay();
 }
@@ -318,7 +321,9 @@ void JosekiWindow::onAddMoveButtonClicked()
         return;
     }
 
+    const QString targetSfen = m_currentSfen;
     JosekiMoveDialog dialog(this, false);
+    dialog.setCurrentSfen(targetSfen);
     if (dialog.exec() != QDialog::Accepted) return;
 
     JosekiMove newMove;
@@ -329,7 +334,7 @@ void JosekiWindow::onAddMoveButtonClicked()
     newMove.frequency = dialog.frequency();
     newMove.comment = dialog.comment();
 
-    QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
+    QString normalizedSfen = JosekiPresenter::normalizeSfen(targetSfen);
 
     if (m_presenter->hasDuplicateMove(normalizedSfen, newMove.move)) {
         QMessageBox::StandardButton result = QMessageBox::question(
@@ -340,7 +345,7 @@ void JosekiWindow::onAddMoveButtonClicked()
         m_repository->removeMoveByUsi(normalizedSfen, newMove.move);
     }
 
-    m_presenter->addMove(normalizedSfen, m_currentSfen, newMove);
+    m_presenter->addMove(normalizedSfen, targetSfen, newMove);
     setModified(true);
     updateJosekiDisplay();
 }
@@ -374,11 +379,9 @@ void JosekiWindow::onStopButtonClicked()
     m_displayEnabled = !m_stopButton->isChecked();
     if (m_displayEnabled) {
         m_stopButton->setText(tr("■ 停止"));
-        m_stopButton->setStyleSheet(QString());
         updateJosekiDisplay();
     } else {
         m_stopButton->setText(tr("▶ 再開"));
-        m_stopButton->setStyleSheet(QStringLiteral("color: #cc0000; font-weight: bold;"));
         clearTable();
     }
     JosekiSettings::setJosekiWindowDisplayEnabled(m_displayEnabled);

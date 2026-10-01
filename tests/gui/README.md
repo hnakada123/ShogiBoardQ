@@ -87,3 +87,5 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_collect
 外観統合ウィンドウは `appearanceWindow` で組み合わせ、絞り込み、成駒・持駒プレビュー、反転、開始時への復元、カスタム表示を検証します。`appearanceComponents:boards`・`appearanceComponents:backgrounds`・`appearanceComponents:stands`・`appearanceComponents:information` はそれぞれ20見本を実際にクリックし、他部品の保持、描画、別盤面への反映、再起動後の復元を確認します。`appearanceBoardBackground` は将棋盤と背景の双方向の独立性、カスタム背景、両方の選択状態の保存を確認します。
 
 `evaluationGraphAppearance` は実MainWindow内で2系列・詰み・選択手数を表示し、`evaluation-graph-main.png` とグラフ単体の `evaluation-graph-export.png` を保存します。自動範囲・手動固定・目盛りの間引き・詰みの先後・ホバー・設定保存・待ったの詳細は CTest の `tst_evaluationchart` で検証します。
+
+`josekiLoadAndPlay` は定跡ファイルの読込・合法手の追加・予想応手の編集・保存内容・盤上への着手を検証し、`joseki-window.png`・`joseki-add.png`・`joseki-edit.png` を保存します。`josekiVisibleDuringDestruction` は定跡ドックを表示したままメイン画面を破棄してもクラッシュしないことを確認します。

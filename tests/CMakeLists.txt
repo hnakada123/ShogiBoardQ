@@ -494,6 +494,7 @@ add_shogi_test(tst_kifu_comment_sync
 # ============================================================
 add_shogi_test(tst_josekiwindow
     tst_josekiwindow.cpp
+    ${EMV_SOURCES}
     ${TEST_STUBS}
     ${SRC}/dialogs/josekiwindow.cpp
     ${SRC}/dialogs/josekiwindowio.cpp

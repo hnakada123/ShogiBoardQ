@@ -6,15 +6,21 @@
 #include "dialogutils.h"
 #include "josekimoveinputwidget.h"
 #include "josekisettings.h"
+#include "enginemovevalidator.h"
+#include "shogiboard.h"
+#include "sfenpositiontracer.h"
 
 #include <QDialogButtonBox>
 #include <QGroupBox>
+#include <QFormLayout>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QSpinBox>
 #include <QVBoxLayout>
+
+#include <limits>
 
 JosekiMoveDialog::JosekiMoveDialog(QWidget *parent, bool isEdit)
     : QDialog(parent)
@@ -32,20 +38,23 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     setMinimumWidth(500);
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(10);
+    m_positionLabel = new QLabel(this);
+    m_positionLabel->setWordWrap(true);
+    m_positionLabel->hide();
+    mainLayout->addWidget(m_positionLabel);
 
     // === 指し手入力ウィジェット ===（編集モードでは非表示）
     m_moveInput = new JosekiMoveInputWidget(tr("指し手"), false, this);
     if (isEdit) {
         m_moveInput->hide();
     }
+    m_moveInput->setObjectName(QStringLiteral("moveInput"));
     mainLayout->addWidget(m_moveInput);
 
-    // === 予想応手入力ウィジェット ===（編集モードでは非表示）
+    // === 予想応手入力ウィジェット ===
     m_nextMoveInput = new JosekiMoveInputWidget(tr("予想応手"), true, this);
-    if (isEdit) {
-        m_nextMoveInput->hide();
-    }
-    mainLayout->addWidget(m_nextMoveInput);
+    m_nextMoveInput->setObjectName(QStringLiteral("nextMoveInput"));
 
     // === 編集対象の定跡手表示 ===（編集モードのみ）
     m_editMoveLabel = new QLabel(this);
@@ -58,6 +67,7 @@ void JosekiMoveDialog::setupUi(bool isEdit)
         "  border-radius: 4px;"
         "}"
     ));
+    m_editMoveLabel->setTextFormat(Qt::PlainText);
     m_editMoveLabel->setAlignment(Qt::AlignCenter);
     if (isEdit) {
         mainLayout->addWidget(m_editMoveLabel);
@@ -65,51 +75,41 @@ void JosekiMoveDialog::setupUi(bool isEdit)
         m_editMoveLabel->hide();
     }
 
+    mainLayout->addWidget(m_nextMoveInput);
+
     // === 評価情報グループ ===
     QGroupBox *evalGroup = new QGroupBox(tr("評価情報"), this);
-    QVBoxLayout *evalMainLayout = new QVBoxLayout(evalGroup);
+    evalGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    QFormLayout *evalMainLayout = new QFormLayout(evalGroup);
+    evalMainLayout->setFieldGrowthPolicy(QFormLayout::FieldsStayAtSizeHint);
 
     // 評価値
-    QHBoxLayout *valueLayout = new QHBoxLayout();
-    QLabel *valueLabel = new QLabel(tr("評価値:"), this);
     m_valueSpinBox = new QSpinBox(this);
-    m_valueSpinBox->setRange(-99999, 99999);
+    m_valueSpinBox->setRange(std::numeric_limits<int>::min(), std::numeric_limits<int>::max());
     m_valueSpinBox->setValue(0);
     m_valueSpinBox->setToolTip(tr("この指し手を指した時の評価値。\n"
                                    "正の値は手番側が有利、負の値は手番側が不利。"));
-    valueLayout->addWidget(valueLabel);
-    valueLayout->addWidget(m_valueSpinBox);
-    valueLayout->addStretch();
-    evalMainLayout->addLayout(valueLayout);
+    evalMainLayout->addRow(tr("評価値:"), m_valueSpinBox);
 
     // 深さ
-    QHBoxLayout *depthLayout = new QHBoxLayout();
-    QLabel *depthLabel = new QLabel(tr("探索深さ:"), this);
     m_depthSpinBox = new QSpinBox(this);
-    m_depthSpinBox->setRange(0, 999);
+    m_depthSpinBox->setRange(0, std::numeric_limits<int>::max());
     m_depthSpinBox->setValue(32);
     m_depthSpinBox->setToolTip(tr("この評価値を算出した時の探索深さ。"));
-    depthLayout->addWidget(depthLabel);
-    depthLayout->addWidget(m_depthSpinBox);
-    depthLayout->addStretch();
-    evalMainLayout->addLayout(depthLayout);
+    evalMainLayout->addRow(tr("探索深さ:"), m_depthSpinBox);
 
     // 出現頻度
-    QHBoxLayout *frequencyLayout = new QHBoxLayout();
-    QLabel *frequencyLabel = new QLabel(tr("出現頻度:"), this);
     m_frequencySpinBox = new QSpinBox(this);
-    m_frequencySpinBox->setRange(0, 999999);
+    m_frequencySpinBox->setRange(0, std::numeric_limits<int>::max());
     m_frequencySpinBox->setValue(1);
     m_frequencySpinBox->setToolTip(tr("この指し手が選択された回数。"));
-    frequencyLayout->addWidget(frequencyLabel);
-    frequencyLayout->addWidget(m_frequencySpinBox);
-    frequencyLayout->addStretch();
-    evalMainLayout->addLayout(frequencyLayout);
+    evalMainLayout->addRow(tr("出現頻度:"), m_frequencySpinBox);
 
     mainLayout->addWidget(evalGroup);
 
     // === コメントグループ ===
     QGroupBox *commentGroup = new QGroupBox(tr("コメント（任意）"), this);
+    commentGroup->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     QVBoxLayout *commentLayout = new QVBoxLayout(commentGroup);
 
     m_commentEdit = new QLineEdit(this);
@@ -122,11 +122,15 @@ void JosekiMoveDialog::setupUi(bool isEdit)
 
     m_moveErrorLabel = new QLabel(this);
     m_moveErrorLabel->setStyleSheet(QStringLiteral("color: red; font-weight: bold;"));
+    m_moveErrorLabel->setWordWrap(true);
+    m_moveErrorLabel->setObjectName(QStringLiteral("moveError"));
     m_moveErrorLabel->hide();
     bottomLayout->addWidget(m_moveErrorLabel);
 
     bottomLayout->addStretch();
     mainLayout->addLayout(bottomLayout);
+
+    mainLayout->addStretch();
 
     // === ボタン ===
     QHBoxLayout *buttonLayout = new QHBoxLayout();
@@ -134,13 +138,15 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
     m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
     m_fontDecreaseBtn->setFixedWidth(36);
-    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
+    m_fontDecreaseBtn->setAutoDefault(false);
+    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::panelToolButton());
     buttonLayout->addWidget(m_fontDecreaseBtn);
 
     m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
     m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
     m_fontIncreaseBtn->setFixedWidth(36);
-    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
+    m_fontIncreaseBtn->setAutoDefault(false);
+    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::panelToolButton());
     buttonLayout->addWidget(m_fontIncreaseBtn);
 
     buttonLayout->addStretch();
@@ -160,23 +166,91 @@ void JosekiMoveDialog::setupUi(bool isEdit)
     connect(m_fontIncreaseBtn, &QPushButton::clicked, this, &JosekiMoveDialog::onFontSizeIncrease);
     connect(m_fontDecreaseBtn, &QPushButton::clicked, this, &JosekiMoveDialog::onFontSizeDecrease);
 
+    connect(m_moveInput, &JosekiMoveInputWidget::moveChanged, this, &JosekiMoveDialog::updateValidation);
+    connect(m_nextMoveInput, &JosekiMoveInputWidget::moveChanged, this, &JosekiMoveDialog::updateValidation);
     applyFontSize();
+    updateValidation();
+}
+
+namespace {
+bool isLegalMove(const QString &sfen, const QString &usi)
+{
+    if (!JosekiMoveInputWidget::isValidUsiMove(usi)) return false;
+    SfenPositionTracer tracer;
+    if (!tracer.setFromSfen(sfen)) return false;
+    ShogiBoard board;
+    board.setSfen(sfen);
+    auto moves = SfenPositionTracer::buildGameMoves(sfen, {usi});
+    if (moves.size() != 1) return false;
+    EngineMoveValidator validator;
+    const auto turn = tracer.blackToMove() ? EngineMoveValidator::BLACK : EngineMoveValidator::WHITE;
+    const auto status = validator.isLegalMove(turn, board.boardData(), board.pieceStand(), moves.first());
+    return usi.endsWith(QLatin1Char('+')) ? status.promotingMoveExists : status.nonPromotingMoveExists;
+}
+} // namespace
+
+QString JosekiMoveDialog::inputError() const
+{
+    if (!JosekiMoveInputWidget::isValidUsiMove(move()))
+        return tr("移動元と移動先を別のマスに設定してください。");
+    if (!m_currentSfen.isEmpty() && !isLegalMove(m_currentSfen, move()))
+        return tr("指し手が現在の局面の合法手ではありません。移動元・移動先・成りを確認してください。");
+    if (nextMove() != QStringLiteral("none")) {
+        if (!JosekiMoveInputWidget::isValidUsiMove(nextMove()))
+            return tr("予想応手の移動元と移動先を別のマスに設定してください。");
+        if (!m_currentSfen.isEmpty()) {
+            SfenPositionTracer tracer;
+            if (!tracer.setFromSfen(m_currentSfen) || !tracer.applyUsiMove(move())
+                || !isLegalMove(tracer.toSfenString(), nextMove()))
+                return tr("予想応手が着手後の局面の合法手ではありません。");
+        }
+    }
+    return {};
+}
+
+void JosekiMoveDialog::updateValidation()
+{
+    const QString error = inputError();
+    m_moveErrorLabel->setText(error);
+    m_moveErrorLabel->setVisible(!error.isEmpty());
+    m_buttonBox->button(QDialogButtonBox::Ok)->setEnabled(error.isEmpty());
+    SfenPositionTracer tracer;
+    const bool validMove = !m_currentSfen.isEmpty() && isLegalMove(m_currentSfen, move())
+        && tracer.setFromSfen(m_currentSfen) && tracer.applyUsiMove(move());
+    m_nextMoveInput->setCurrentSfen(validMove ? tracer.toSfenString() : QString());
+    m_nextMoveInput->setEnabled(m_currentSfen.isEmpty() || validMove);
 }
 
 void JosekiMoveDialog::validateInput()
 {
-    m_moveErrorLabel->hide();
+    updateValidation();
+    if (inputError().isEmpty()) accept();
+}
 
-    QString moveStr = move();
-
-    if (moveStr.isEmpty() || !JosekiMoveInputWidget::isValidUsiMove(moveStr)) {
-        m_moveErrorLabel->setText(tr("指し手が正しく設定されていません"));
-        m_moveErrorLabel->show();
+void JosekiMoveDialog::done(int result)
+{
+    if (result == QDialog::Accepted && !inputError().isEmpty()) {
+        updateValidation();
         return;
     }
-
     DialogUtils::saveDialogSize(this, JosekiSettings::setJosekiMoveDialogSize);
-    accept();
+    QDialog::done(result);
+}
+
+void JosekiMoveDialog::setCurrentSfen(const QString &sfen)
+{
+    m_currentSfen = sfen;
+    m_moveInput->setCurrentSfen(sfen);
+    SfenPositionTracer tracer;
+    const bool valid = !sfen.isEmpty() && tracer.setFromSfen(sfen);
+    m_positionLabel->setVisible(valid);
+    if (valid) m_positionLabel->setText(tr("登録する局面: %1番").arg(tracer.blackToMove() ? tr("先手") : tr("後手")));
+    updateValidation();
+}
+
+void JosekiMoveDialog::setNextMove(const QString &move)
+{
+    m_nextMoveInput->setUsiMove(move);
 }
 
 QString JosekiMoveDialog::move() const

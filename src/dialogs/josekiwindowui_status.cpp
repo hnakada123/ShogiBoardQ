@@ -20,6 +20,9 @@ void JosekiWindow::clearTable()
 void JosekiWindow::updateStatusDisplay()
 {
     bool hasData = !m_repository->isEmpty();
+    m_addMoveButton->setEnabled(!isIoBusy() && !m_currentSfen.isEmpty());
+    m_filePathLabel->setToolTip(m_currentFilePath);
+    m_noticeLabel->setVisible(m_modified);
     if (m_fileStatusLabel) {
         if (m_modified) {
             m_fileStatusLabel->setText(tr("未保存"));
@@ -33,7 +36,7 @@ void JosekiWindow::updateStatusDisplay()
         }
     }
     if (m_stopButton)
-        m_stopButton->setVisible(hasData);
+        m_stopButton->setVisible(hasData || !m_displayEnabled);
     if (m_statusLabel) {
         QStringList statusParts;
         if (!m_currentFilePath.isEmpty())
@@ -43,15 +46,21 @@ void JosekiWindow::updateStatusDisplay()
         statusParts << tr("局面数: %1").arg(m_repository->positionCount());
         if (!m_displayEnabled)
             statusParts << tr("【停止中】");
-        else if (!m_currentMoves.isEmpty())
+        else
             statusParts << tr("定跡: %1件").arg(m_currentMoves.size());
         m_statusLabel->setText(statusParts.join(QStringLiteral("  |  ")));
     }
     if (m_emptyGuideLabel && m_tableWidget) {
-        bool showGuide = m_displayEnabled && m_currentMoves.isEmpty() && !m_currentSfen.isEmpty();
+        bool showGuide = m_currentMoves.isEmpty();
+        if (!m_displayEnabled)
+            m_emptyGuideLabel->setText(tr("定跡表示を停止しています。「再開」で表示を再開します。"));
+        else if (m_currentSfen.isEmpty())
+            m_emptyGuideLabel->setText(tr("将棋盤で局面を表示すると、その局面の定跡を確認できます。"));
+        else
+            m_emptyGuideLabel->setText(tr("この局面には定跡が登録されていません。\n"
+                                        "「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。"));
         m_emptyGuideLabel->setVisible(showGuide);
         if (showGuide) {
-            m_emptyGuideLabel->setGeometry(m_tableWidget->geometry());
             m_emptyGuideLabel->raise();
         }
     }

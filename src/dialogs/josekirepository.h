@@ -101,9 +101,10 @@ public:
     /** @brief 指定局面に定跡手を追加する */
     void addMove(const QString &normalizedSfen, const JosekiMove &move);
 
-    /** @brief 指定局面の指し手を更新する */
+    /** @brief 指定局面の指し手を更新する（nextMove が null なら予想応手は保持） */
     void updateMove(const QString &normalizedSfen, const QString &usiMove,
-                    int value, int depth, int frequency, const QString &comment);
+                    int value, int depth, int frequency, const QString &comment,
+                    const QString &nextMove = QString());
 
     /** @brief 指定局面の指し手を削除する */
     void deleteMove(const QString &normalizedSfen, int index);
