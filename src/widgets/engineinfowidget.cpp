@@ -3,6 +3,7 @@
 
 #include "engineinfowidget.h"
 #include "buttonstyles.h"
+#include "tablestyles.h"
 #include "logcategories.h"
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -233,19 +234,7 @@ QList<int> EngineInfoWidget::columnWidths() const
 void EngineInfoWidget::applyHeaderStyle()
 {
     if (!m_table) return;
-    const QString headerStyle = QStringLiteral(
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "  font-size: %1pt;"
-        "}")
-        .arg(m_fontSize);
-    m_table->setStyleSheet(headerStyle);
+    m_table->setStyleSheet(TableStyles::header(m_fontSize));
 }
 
 // 列幅の設定
