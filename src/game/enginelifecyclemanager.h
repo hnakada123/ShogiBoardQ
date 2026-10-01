@@ -48,7 +48,6 @@ public:
     /// MatchCoordinator の内部状態への参照群
     struct Refs {
         ShogiGameController* gc = nullptr;
-        PlayMode* playMode = nullptr;
     };
 
     /**
@@ -135,9 +134,7 @@ public:
 
     // --- USI送信 ---
 
-    void sendGoToEngine(Usi* which, const GoTimes& t);
     void sendStopToEngine(Usi* which);
-    void sendRawToEngine(Usi* which, const QString& cmd);
 
     // --- シグナル配線 ---
 

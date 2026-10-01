@@ -32,12 +32,6 @@ ChangeEngineSettingsDialog::~ChangeEngineSettingsDialog()
     DialogUtils::saveDialogSize(this, EngineDialogSettings::setEngineSettingsDialogSize);
 }
 
-// 将棋エンジン番号のsetter
-void ChangeEngineSettingsDialog::setEngineNumber(const int& engineNumber)
-{
-    m_engineNumber = engineNumber;
-}
-
 // 将棋エンジン名のsetter
 void ChangeEngineSettingsDialog::setEngineName(const QString& engineName)
 {

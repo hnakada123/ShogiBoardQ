@@ -24,7 +24,6 @@ public:
 
     struct Square {
         PieceType piece = EMPTY;
-        bool isSente = true;
     };
 
     Square board[9][9];
@@ -41,7 +40,7 @@ public:
     static PieceType charToPiece(QChar c);
     static PieceType promote(PieceType p);
 
-    QString applyMove(const QString& usiMove, bool isSente);
+    QString applyMove(const QString& usiMove);
 };
 
 /**

@@ -77,7 +77,6 @@ void BranchTreeManager::clearBranchGraph()
 {
     m_nodeIdByRowPly.clear();
     m_nodesById.clear();
-    m_prevIds.clear();
     m_nextIds.clear();
     m_rowEntryNode.clear();
     m_nextNodeId = 1;
@@ -85,14 +84,12 @@ void BranchTreeManager::clearBranchGraph()
     m_lastHighlightedPly = -1;
 }
 
-int BranchTreeManager::registerNode(int vid, int row, int ply, QGraphicsPathItem* item)
+int BranchTreeManager::registerNode(int row, int ply, QGraphicsPathItem* item)
 {
     if (!item) return -1;
     const int id = m_nextNodeId++;
 
     BranchGraphNode n;
-    n.id   = id;
-    n.vid  = vid;
     n.row  = row;
     n.ply  = ply;
     n.item = item;
@@ -110,7 +107,6 @@ void BranchTreeManager::linkEdge(int prevId, int nextId)
 {
     if (prevId <= 0 || nextId <= 0) return;
     m_nextIds[prevId].push_back(nextId);
-    m_prevIds[nextId].push_back(prevId);
 }
 
 // ===================== 親行解決 =====================

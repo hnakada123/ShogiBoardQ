@@ -28,9 +28,6 @@ class KifuNavigationController;
 class KifuDisplayCoordinator;
 class LiveGameSession;
 
-// --- 前方宣言（KifuState用） ---
-class KifuDisplay;
-
 // --- 前方宣言（RegistryParts用） ---
 class AnalysisTabWiring;
 class RecordPaneWiring;
@@ -99,7 +96,6 @@ struct KifuState {
     int activePly = 0;
     int currentSelectedPly = 0;
     bool onMainRowGuard = false;
-    QList<KifuDisplay*> moveRecords;
     QList<ShogiMove> gameMoves;
     QString saveFileName;
 };

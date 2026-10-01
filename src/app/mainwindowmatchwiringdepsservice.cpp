@@ -9,9 +9,7 @@ MatchCoordinatorWiring::Deps MainWindowMatchWiringDepsService::buildDeps(const I
 
     builder.hookDeps.evalGraphController = in.evalGraphController;
     builder.hookDeps.onTurnChanged = in.onTurnChanged;
-    builder.hookDeps.sendGo = in.sendGo;
     builder.hookDeps.sendStop = in.sendStop;
-    builder.hookDeps.sendRaw = in.sendRaw;
     builder.hookDeps.initializeNewGame = in.initializeNewGame;
     builder.hookDeps.renderBoard = in.renderBoard;
     builder.hookDeps.showMoveHighlights = in.showMoveHighlights;
@@ -48,7 +46,6 @@ MatchCoordinatorWiring::Deps MainWindowMatchWiringDepsService::buildDeps(const I
 
     builder.ensureTimeController = in.ensureTimeController;
     builder.ensureEvaluationGraphController = in.ensureEvaluationGraphController;
-    builder.ensurePlayerInfoWiring = in.ensurePlayerInfoWiring;
     builder.ensureUsiCommandController = in.ensureUsiCommandController;
     builder.ensureUiStatePolicyManager = in.ensureUiStatePolicyManager;
     builder.connectBoardClicks = in.connectBoardClicks;

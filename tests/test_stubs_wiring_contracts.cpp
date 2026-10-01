@@ -126,7 +126,6 @@ GameStateController::GameStateController(QObject* parent) : QObject(parent) {}
 GameStateController::~GameStateController() = default;
 void GameStateController::setMatchCoordinator(MatchCoordinator*) {}
 void GameStateController::setTimeController(TimeControlController*) {}
-void GameStateController::setKifuLoadCoordinator(KifuLoadCoordinator*) {}
 void GameStateController::setKifuRecordModel(KifuRecordListModel*) {}
 void GameStateController::setHooks(const Hooks&) {}
 void GameStateController::setPlayMode(PlayMode) {}
@@ -220,9 +219,7 @@ void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
 void MatchCoordinator::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void MatchCoordinator::forceImmediateMove() {}
-void MatchCoordinator::sendGoToEngine(Usi*, const GoTimes&) {}
 void MatchCoordinator::sendStopToEngine(Usi*) {}
-void MatchCoordinator::sendRawToEngine(Usi*, const QString&) {}
 void MatchCoordinator::handleMaxMovesJishogi() {}
 ShogiClock* MatchCoordinator::clock() { return nullptr; }
 const ShogiClock* MatchCoordinator::clock() const { return nullptr; }
@@ -277,8 +274,6 @@ void MatchCoordinator::ensureUndoHandler() {}
 GameStartCoordinator::GameStartCoordinator(const Deps& deps, QObject* parent)
     : QObject(parent)
     , m_match(deps.match)
-    , m_clock(deps.clock)
-    , m_gc(deps.gc)
 {
 }
 
@@ -607,9 +602,7 @@ EngineLifecycleManager::EngineModelPair EngineLifecycleManager::ensureEngineMode
 void EngineLifecycleManager::setModelPtrs(UsiCommLogModel*, ShogiEngineThinkingModel*, UsiCommLogModel*, ShogiEngineThinkingModel*) {}
 bool EngineLifecycleManager::engineThinkApplyMove(Usi*, QString&, QString&, QPoint*, QPoint*) { return false; }
 bool EngineLifecycleManager::engineMoveOnce(Usi*, QString&, QString&, bool, int, QPoint*) { return false; }
-void EngineLifecycleManager::sendGoToEngine(Usi*, const GoTimes&) {}
 void EngineLifecycleManager::sendStopToEngine(Usi*) {}
-void EngineLifecycleManager::sendRawToEngine(Usi*, const QString&) {}
 void EngineLifecycleManager::wireResignToArbiter(Usi*, bool) {}
 void EngineLifecycleManager::wireWinToArbiter(Usi*, bool) {}
 void EngineLifecycleManager::onEngine1Resign() {}

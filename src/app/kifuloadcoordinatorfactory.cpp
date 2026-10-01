@@ -24,8 +24,6 @@ KifuLoadCoordinator* KifuLoadCoordinatorFactory::createAndWire(const Params& p)
         /* currentMoveIndex    */ *p.currentMoveIndex,
         /* sfenRecord          */ p.sfenRecord,
         /* gameInfoTable       */ p.gameInfoController ? p.gameInfoController->tableWidget() : nullptr,
-        /* gameInfoDock        */ nullptr,  // GameInfoPaneControllerに移行済み
-        /* tab                 */ p.tab,
         /* recordPane          */ p.recordPane,
         /* kifuRecordModel     */ p.kifuRecordModel,
         /* kifuBranchModel     */ p.kifuBranchModel,

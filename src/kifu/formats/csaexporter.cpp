@@ -255,7 +255,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
                 const QString toSquare = usiMove.mid(2, 2);
                 const int toFile = toSquare.at(0).toLatin1() - '0';
                 const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
-                const QString csaPiece = boardTracker.applyMove(usiMove, isSente);
+                const QString csaPiece = boardTracker.applyMove(usiMove);
 
                 if (!csaPiece.isEmpty()) {
                     csaMove = QStringLiteral("%1%2%3%4%5")
@@ -269,7 +269,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
                 const int fromRank = fromSquare.at(1).toLatin1() - 'a' + 1;
                 const int toFile = toSquare.at(0).toLatin1() - '0';
                 const int toRank = toSquare.at(1).toLatin1() - 'a' + 1;
-                const QString csaPiece = boardTracker.applyMove(usiMove, isSente);
+                const QString csaPiece = boardTracker.applyMove(usiMove);
 
                 if (!csaPiece.isEmpty()) {
                     csaMove = QStringLiteral("%1%2%3%4%5%6")

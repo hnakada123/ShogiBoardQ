@@ -18,8 +18,6 @@
 #include "kifutypes.h"  // ResolvedRow
 
 class QWidget;
-class QTableWidget;
-class QStatusBar;
 class GameRecordModel;
 class KifuRecordListModel;
 class GameInfoPaneController;
@@ -27,7 +25,6 @@ class TimeControlController;
 class KifuLoadCoordinator;
 class GameRecordPresenter;
 class MatchCoordinator;
-class ReplayController;
 class ShogiGameController;
 class KifuExportClipboard;
 struct ShogiMove;
@@ -66,9 +63,7 @@ public:
         KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         GameRecordPresenter* recordPresenter = nullptr;
         MatchCoordinator* match = nullptr;
-        ReplayController* replayController = nullptr;
         ShogiGameController* gameController = nullptr;
-        QStatusBar* statusBar = nullptr;
 
         // データソース（ポインタ）
         QStringList* sfenRecord = nullptr;

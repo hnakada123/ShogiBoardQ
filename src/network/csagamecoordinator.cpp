@@ -59,8 +59,6 @@ void CsaGameCoordinator::setDependencies(const Dependencies& deps)
     m_gameController = deps.gameController;
     m_view = deps.view;
     m_clock = deps.clock;
-    m_boardController = deps.boardController;
-    m_recordModel = deps.recordModel;
     m_sfenHistory = deps.sfenRecord;
     m_gameMoves = deps.gameMoves;
     m_usiCommLog = deps.usiCommLog;
@@ -88,8 +86,6 @@ void CsaGameCoordinator::startGame(const StartOptions& options)
     m_initialWhiteTimeMs = 0;
     m_usiMoves.clear();
     m_initialPrettyMoves.clear();
-
-    m_client->setCsaVersion(options.csaVersion);
 
     setGameState(GameState::Connecting);
     emit logMessage(tr("サーバー %1:%2 に接続中...").arg(options.host).arg(options.port));

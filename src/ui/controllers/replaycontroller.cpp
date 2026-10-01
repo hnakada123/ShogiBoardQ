@@ -65,7 +65,6 @@ void ReplayController::setReplayMode(bool on)
 
     // 再生モードの入/出でハイライト方針を切替
     if (m_view) {
-        m_view->setUiMuted(on);
         if (on) {
             m_view->clearTurnHighlight();  // 中立に
         } else {

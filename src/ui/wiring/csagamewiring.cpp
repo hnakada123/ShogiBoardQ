@@ -144,12 +144,10 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
     // 手数カウンタを、Game_Summary に含まれていた既存手順の末尾へ合わせる
     const int initialMoveCount = static_cast<int>(initialPrettyMoves.size());
     m_activePly = initialMoveCount;
-    m_currentSelectedPly = initialMoveCount;
 
     if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > 0) {
         const int currentRow = m_kifuRecordModel->rowCount() - 1;
         m_activePly = currentRow;
-        m_currentSelectedPly = currentRow;
         m_kifuRecordModel->setCurrentHighlightRow(currentRow);
 
         if (m_recordPane && m_recordPane->kifuView()) {
@@ -210,7 +208,6 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     if (m_kifuRecordModel) {
         const int currentRow = m_kifuRecordModel->rowCount() - 1;
         m_activePly = currentRow;
-        m_currentSelectedPly = currentRow;
 
         // 棋譜欄で終局行を選択状態にする
         if (m_recordPane && m_recordPane->kifuView()) {
@@ -262,7 +259,6 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
     if (m_kifuRecordModel) {
         const int currentRow = m_kifuRecordModel->rowCount() - 1;
         m_activePly = currentRow;
-        m_currentSelectedPly = currentRow;
     }
     if (m_syncPly) m_syncPly(m_activePly);
 
@@ -438,8 +434,6 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         deps.gameController = m_gameController;
         deps.view = m_shogiView;
         deps.clock = m_timeController ? m_timeController->clock() : nullptr;
-        deps.boardController = m_boardController;
-        deps.recordModel = m_kifuRecordModel;
         deps.sfenRecord = m_sfenHistory;
         deps.gameMoves = m_gameMoves;
         deps.usiCommLog = m_usiCommLog;
@@ -474,7 +468,6 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
     options.port = dialog->port();
     options.username = dialog->loginId();
     options.password = dialog->password();
-    options.csaVersion = dialog->csaVersion();
 
     if (dialog->isHuman()) {
         options.playerType = CsaGameCoordinator::PlayerType::Human;

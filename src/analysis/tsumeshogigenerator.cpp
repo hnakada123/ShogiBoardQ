@@ -52,7 +52,6 @@ void TsumeshogiGenerator::start(const Settings& settings)
     if (m_phase != Phase::Idle) return;
 
     m_settings = settings;
-    m_triedCount = 0;
     m_generatedCount = 0;
     m_foundCount = 0;
     m_phase = Phase::Searching;
@@ -329,8 +328,6 @@ void TsumeshogiGenerator::generateAndSendNext()
 
 void TsumeshogiGenerator::processResult(bool found, const QStringList& pv)
 {
-    m_triedCount++;
-
     if (found && registerFoundPosition(m_currentSfen, pv)) {
         // 上限チェック
         if (m_settings.maxPositionsToFind > 0 && m_foundCount >= m_settings.maxPositionsToFind) {

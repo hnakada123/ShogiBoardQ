@@ -32,7 +32,6 @@ public:
      * @brief カテゴリ情報の構造体
      */
     struct CategoryInfo {
-        QString name;           ///< カテゴリ名
         QString displayName;    ///< 表示名
         QList<QAction*> actions;///< カテゴリに属するアクション
     };
@@ -208,7 +207,6 @@ private:
     QGridLayout* m_favoritesLayout = nullptr;
 
     // データ
-    QList<CategoryInfo> m_categories;
     QStringList m_favoriteActionNames;
     QMap<QString, QAction*> m_actionMap;  // objectName -> QAction
     QList<MenuButtonWidget*> m_allButtons;

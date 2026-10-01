@@ -8,7 +8,6 @@
 #include "logcategories.h"
 #include "matchcoordinator.h"
 #include "timecontrolcontroller.h"
-#include "kifuloadcoordinator.h"
 #include "kifurecordlistmodel.h"
 #include "shogiclock.h"
 
@@ -35,11 +34,6 @@ void GameStateController::setMatchCoordinator(MatchCoordinator* match)
 void GameStateController::setTimeController(TimeControlController* tc)
 {
     m_timeController = tc;
-}
-
-void GameStateController::setKifuLoadCoordinator(KifuLoadCoordinator* kc)
-{
-    m_kifuLoadCoordinator = kc;
 }
 
 void GameStateController::setKifuRecordModel(KifuRecordListModel* model)
@@ -183,7 +177,7 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
 {
     // 処理フロー:
     // 1. 対局終了スタイルロック・投了行の有無チェック
-    // 2. ライブ追記モード終了・分岐リセット
+    // 2. 分岐ツリー再構築
     // 3. 手数状態の更新
     // 4. UI遷移（閲覧モードへ）・ハイライト消去
 
@@ -198,11 +192,6 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
     // 投了行が追加されるまでは UI 後処理を待つ
     if (!st.moveAppended) {
         return;
-    }
-
-    // 分岐コンテキストをリセット
-    if (m_kifuLoadCoordinator) {
-        m_kifuLoadCoordinator->resetBranchContext();
     }
 
     // 分岐ツリーを再構築

@@ -39,7 +39,6 @@ private:
     QList<MenuWindow::CategoryInfo> makeTestCategories(const QList<QAction*>& actions)
     {
         MenuWindow::CategoryInfo cat;
-        cat.name = QStringLiteral("file");
         cat.displayName = QStringLiteral("File");
         cat.actions = actions;
         return {cat};
@@ -151,12 +150,10 @@ void TestMenuWindow::setCategories_createsTabs()
 
     // 2カテゴリ作成
     MenuWindow::CategoryInfo cat1;
-    cat1.name = QStringLiteral("file");
     cat1.displayName = QStringLiteral("File");
     cat1.actions = {actions[0], actions[1]};
 
     MenuWindow::CategoryInfo cat2;
-    cat2.name = QStringLiteral("edit");
     cat2.displayName = QStringLiteral("Edit");
     cat2.actions = {actions[2], actions[3]};
 

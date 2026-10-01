@@ -138,16 +138,9 @@ private:
     // エンジン情報
     QString m_engine1Name;
     QString m_engine2Name;
-    int m_engine1Ply = 0;
-    int m_engine2Ply = 0;
-    int m_engine1Cp = 0;
-    int m_engine2Cp = 0;
 
     // 現在の手数（縦線表示用）
     int m_currentPly = 0;
-
-    // フローティング状態（ドッキング時はfalse）
-    bool m_isFloating = false;
 
     // バッチ更新用
     struct PendingScore {

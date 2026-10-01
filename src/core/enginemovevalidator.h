@@ -16,7 +16,6 @@ class EngineMoveValidator
 {
 public:
     static constexpr int BOARD_SIZE = 9;
-    static constexpr int NUM_BOARD_SQUARES = BOARD_SIZE * BOARD_SIZE;
     static constexpr int BLACK_HAND_FILE = BOARD_SIZE;
     static constexpr int WHITE_HAND_FILE = BOARD_SIZE + 1;
 

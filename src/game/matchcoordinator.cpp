@@ -25,7 +25,6 @@ using P = MatchCoordinator::Player;
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_gc(d.gc)
-    , m_view(d.view)
     , m_hooks(d.hooks)
     , m_externalGameMoves(d.gameMoves)
 {
@@ -65,7 +64,6 @@ EngineLifecycleManager::Refs MatchCoordinator::buildEngineLifecycleRefs()
 {
     EngineLifecycleManager::Refs refs;
     refs.gc = m_gc;
-    refs.playMode = &m_playMode;
     return refs;
 }
 

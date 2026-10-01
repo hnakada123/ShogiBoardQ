@@ -134,10 +134,9 @@ void JosekiMergeDialog::setupUi()
     applyFontSize();
 }
 
-void JosekiMergeDialog::setKifuData(const QList<KifuMergeEntry> &entries, int currentPly)
+void JosekiMergeDialog::setKifuData(const QList<KifuMergeEntry> &entries)
 {
     m_entries = entries;
-    m_currentPly = currentPly;
     
     m_statusLabel->setText(tr("%1手の棋譜").arg(entries.size()));
     

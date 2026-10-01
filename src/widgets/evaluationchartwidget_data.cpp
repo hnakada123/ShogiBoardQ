@@ -20,10 +20,6 @@ void EvaluationChartWidget::appendScoreP1(int ply, int cp, bool invert)
 
     appendScoreToSeries(m_s1, ply, cp, invert);
 
-    // エンジン情報を更新
-    m_engine1Ply = ply;
-    m_engine1Cp = invert ? -cp : cp;
-
     // 対局中は最新のプロット位置に縦線を更新
     setCurrentPly(ply);
 
@@ -39,10 +35,6 @@ void EvaluationChartWidget::appendScoreP2(int ply, int cp, bool invert)
     qCDebug(lcUi) << "P2 append ply=" << ply << "cp=" << cp << "invert=" << invert;
 
     appendScoreToSeries(m_s2, ply, cp, invert);
-
-    // エンジン情報を更新
-    m_engine2Ply = ply;
-    m_engine2Cp = invert ? -cp : cp;
 
     // 対局中は最新のプロット位置に縦線を更新
     setCurrentPly(ply);

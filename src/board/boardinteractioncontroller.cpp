@@ -61,7 +61,6 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
 
     if (!m_waitingSecondClick) {
         // 1stクリック：選択＆ドラッグ開始
-        m_firstClick = pt;
         m_view->startDrag(pt);
         m_waitingSecondClick = true;
 

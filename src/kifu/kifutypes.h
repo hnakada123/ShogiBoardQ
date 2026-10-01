@@ -17,12 +17,8 @@
  *
  */
 struct ResolvedRow {
-    int startPly = 1;               ///< 開始手数
     int parent   = -1;              ///< 親行のインデックス（本譜は -1）
     QList<KifDisplayItem> disp;     ///< 表示用アイテムリスト
-    QStringList sfen;               ///< 各手数のSFENリスト
-    QList<ShogiMove> gm;          ///< 指し手リスト
-    int varIndex = -1;              ///< 変化インデックス（本譜 = -1）
     QStringList comments;           ///< 各手のコメント
 };
 

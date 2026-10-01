@@ -81,10 +81,6 @@ public:
     bool isLoseOnTimeout() const;
     bool isSwitchTurnEachGame() const;
 
-    /// 持将棋ルールを取得する
-    /// @return 0: なし, 1: 24点法, 2: 27点法
-    int jishogiRule() const;
-
 private:
     std::unique_ptr<Ui::StartGameDialog> ui; ///< UIオブジェクト
 
@@ -127,7 +123,6 @@ private:
     QString m_kifuSaveDir;                  ///< 棋譜の保存ディレクトリ
     bool m_isLoseOnTimeout = false;          ///< 時間切れ負けフラグ
     bool m_isSwitchTurnEachGame = false;     ///< 1局ごとに手番入替フラグ
-    int m_jishogiRule = 0;                   ///< 持将棋ルール（0:なし, 1:24点法, 2:27点法）
 
     // --- 初期化・設定 ---
 

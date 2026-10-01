@@ -228,18 +228,15 @@ private:
     // --- 計測 ---
     QElapsedTimer m_goTimer;           ///< go送信からbestmoveまでの経過時間計測
     qint64 m_lastGoToBestmoveMs = 0;  ///< 直近のgo→bestmove経過時間(ms)
-    static constexpr int kBestmoveGraceMs = 250; ///< bestmove待ちの猶予時間(ms)
 
     // --- フェーズ管理 ---
     SearchPhase m_phase = SearchPhase::Idle; ///< 現在の思考フェーズ
-    int m_ponderSession = 0;           ///< ponderセッション番号（重複防止用）
 
     // --- 状態管理 ---
     bool m_resignNotified = false;     ///< 投了シグナル発行済み（重複防止）
     bool m_winNotified = false;        ///< 入玉宣言勝ちシグナル発行済み（重複防止）
     bool m_squelchResignLogging = false; ///< resign 通知/ログ抑止
     bool m_timeoutDeclared = false;    ///< ハードタイムアウト宣言済み
-    bool m_modeTsume = false;          ///< 詰将棋探索モード
     bool m_stopOrPonderhitPending = false; ///< stop/ponderhit送信通知のラッチ
 
     // --- オペレーションコンテキスト ---

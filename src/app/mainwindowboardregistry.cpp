@@ -237,7 +237,6 @@ void MainWindowServiceRegistry::resetRecordForEditedPosition()
     m_mw.m_kifu.currentSelectedPly = 0;
     m_mw.m_kifu.gameUsiMoves.clear();
     m_mw.m_kifu.gameMoves.clear();
-    m_mw.m_kifu.moveRecords.clear();
     m_mw.m_kifu.commentsByRow.clear();
     m_mw.m_kifu.positionStrList = QStringList{QStringLiteral("position sfen ") + sfen};
 
@@ -263,8 +262,6 @@ void MainWindowServiceRegistry::resetRecordForEditedPosition()
 
 void MainWindowServiceRegistry::resetModels(const QString& hirateStartSfen)
 {
-    m_mw.m_kifu.moveRecords.clear();
-
     MainWindowResetService::ModelResetDeps deps;
     deps.navState = m_mw.m_branchNav.navState;
     deps.recordPresenter = m_mw.m_recordPresenter;

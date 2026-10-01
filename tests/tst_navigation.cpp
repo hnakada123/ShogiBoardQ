@@ -162,7 +162,7 @@ private slots:
         QCOMPARE(state.currentPly(), 5);
     }
 
-    // 対局終了後のナビゲーション：resetBranchContext() → goToRoot() の後、
+    // 対局終了後のナビゲーション：goToRoot() の後、
     // ナビ状態を最終手に再設定すれば goBack が正しく動作することを確認する。
     void goBack_afterGameOverNavSync()
     {
@@ -176,7 +176,7 @@ private slots:
         controller.setTreeAndState(&tree, &state);
 
         // 対局終了時の流れをシミュレート:
-        // 1) resetBranchContext() → goToRoot()
+        // 1) goToRoot()
         state.goToRoot();
         QCOMPARE(state.currentPly(), 0);
 

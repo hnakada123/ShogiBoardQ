@@ -11,7 +11,6 @@
 #include "matchcoordinator.h"
 #include "startgamedatabridge.h"
 
-class QWidget;
 class ShogiClock;
 class ShogiGameController;
 class KifuLoadCoordinator;
@@ -38,8 +37,6 @@ public:
     /// 依存オブジェクト
     struct Deps {
         MatchCoordinator*     match  = nullptr;  ///< 対局進行の司令塔（必須）
-        ShogiClock*           clock  = nullptr;  ///< 時計（任意、時間適用リクエストを出すだけ）
-        ShogiGameController*  gc     = nullptr;  ///< ゲームコントローラ（任意、開始前の状態同期用）
     };
 
     /// 盤面ビュー操作コールバック群
@@ -74,9 +71,7 @@ public:
 
     /// 開始前の適用（時計/人手前など）を依頼するための軽量入力
     struct Request {
-        int              mode = 0;           ///< PlayModeをintで受ける（enum依存を避ける）
         QString          startSfen;          ///< "startpos ..." or "<sfen> [b|w] ..."
-        bool             bottomIsP1 = true;  ///< 手前が先手か
         StartGameDialogData dialogData;      ///< ダイアログから抽出した持ち時間等の設定
         ShogiClock*      clock = nullptr;    ///< 時計への参照（任意）
         bool             skipCleanup = false;///< trueならクリーンアップをスキップ（呼び出し済みの場合）
@@ -91,7 +86,6 @@ public:
         QString*               currentSfenStr = nullptr;     ///< 現在SFEN文字列への参照
 
         int   selectedPly = -1;                              ///< 選択中の手数
-        bool  resumeFromCurrent = true;                      ///< 現在局面から再開するか
 
         KifuRecordListModel* kifuModel  = nullptr;           ///< 棋譜欄モデル
         QStringList*         sfenRecord = nullptr;           ///< SFEN履歴リスト
@@ -197,8 +191,6 @@ private:
     bool validate(const StartParams& params, QString& whyNot) const;
 
     QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、再生成追跡）
-    ShogiClock*          m_clock = nullptr;  ///< 将棋時計（非所有）
-    ShogiGameController* m_gc    = nullptr;  ///< ゲームコントローラ（非所有）
     ViewHooks            m_viewHooks;        ///< 盤面ビュー操作コールバック群
 };
 

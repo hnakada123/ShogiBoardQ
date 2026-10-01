@@ -180,7 +180,6 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.kifu.sfenRecord = m_queryService ? m_queryService->sfenRecord() : nullptr;
     refs.kifu.gameMoves = &m_kifu.gameMoves;
     refs.kifu.gameUsiMoves = &m_kifu.gameUsiMoves;
-    refs.kifu.moveRecords = &m_kifu.moveRecords;
     refs.kifu.positionStrList = &m_kifu.positionStrList;
     refs.kifu.activePly = &m_kifu.activePly;
     refs.kifu.currentSelectedPly = &m_kifu.currentSelectedPly;

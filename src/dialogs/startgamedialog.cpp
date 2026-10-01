@@ -228,7 +228,6 @@ bool StartGameDialog::isAutoSaveKifu() const { return m_isAutoSaveKifu; }
 const QString& StartGameDialog::kifuSaveDir() const { return m_kifuSaveDir; }
 bool StartGameDialog::isLoseOnTimeout() const { return m_isLoseOnTimeout; }
 bool StartGameDialog::isSwitchTurnEachGame() const { return m_isSwitchTurnEachGame; }
-int StartGameDialog::jishogiRule() const { return m_jishogiRule; }
 
 // ============================================================
 // パラメータ取得（OK押下時）
@@ -296,7 +295,6 @@ void StartGameDialog::updateGameSettingsFromDialog()
     m_kifuSaveDir = ui->lineEditKifuSaveDir->text();
     m_isLoseOnTimeout = ui->checkBoxLoseOnTimeOut->isChecked();
     m_isSwitchTurnEachGame = ui->checkBoxSwitchTurnEachGame->isChecked();
-    m_jishogiRule = ui->comboBoxJishogi->currentIndex();
 }
 
 // ============================================================
@@ -314,8 +312,6 @@ void StartGameDialog::showEngineSettingsDialog(int playerNumber)
         return;
     }
 
-    // インデックスから1を引いてエンジン番号を算出
-    int engineNumber = currentIndex - 1;
     QString engineName = comboBox->currentText();
 
     if (engineName.isEmpty()) {
@@ -323,7 +319,6 @@ void StartGameDialog::showEngineSettingsDialog(int playerNumber)
     }
     else {
         ChangeEngineSettingsDialog dialog(this);
-        dialog.setEngineNumber(engineNumber);
         dialog.setEngineName(engineName);
         dialog.setupEngineOptionsDialog();
         if (dialog.exec() == QDialog::Rejected) {

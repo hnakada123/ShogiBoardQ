@@ -73,23 +73,10 @@ Usi* MatchCoordinator::secondaryEngine() const
     return m_engineManager ? m_engineManager->usi2() : nullptr;
 }
 
-void MatchCoordinator::sendGoToEngine(Usi* which, const GoTimes& t)
-{
-    ensureEngineManager();
-    const EngineLifecycleManager::GoTimes et = { t.btime, t.wtime, t.byoyomi, t.binc, t.winc };
-    m_engineManager->sendGoToEngine(which, et);
-}
-
 void MatchCoordinator::sendStopToEngine(Usi* which)
 {
     ensureEngineManager();
     m_engineManager->sendStopToEngine(which);
-}
-
-void MatchCoordinator::sendRawToEngine(Usi* which, const QString& cmd)
-{
-    ensureEngineManager();
-    m_engineManager->sendRawToEngine(which, cmd);
 }
 
 // --- 検討セッション転送 ---

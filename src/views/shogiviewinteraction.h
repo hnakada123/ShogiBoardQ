@@ -60,7 +60,6 @@ private:
     QPoint m_dragFrom;
     Piece  m_dragPiece        = Piece::None;
     QPoint m_dragPos;
-    bool   m_dragFromStand    = false;
     QMap<Piece, int> m_tempPieceStandCounts;
 };
 

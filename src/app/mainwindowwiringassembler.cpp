@@ -43,7 +43,6 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getPieceSoundPlayer  = [this]() { m_foundation->ensurePieceSoundPlayer(); return m_mw.m_registryParts.pieceSoundPlayer; };
 
     // 値型メンバーへのポインタ
-    d.moveRecords   = &m_mw.m_kifu.moveRecords;
     d.gameUsiMoves  = &m_mw.m_kifu.gameUsiMoves;
     d.activePly     = &m_mw.m_kifu.activePly;
 

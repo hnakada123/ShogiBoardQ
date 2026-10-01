@@ -9,8 +9,6 @@
 #include <functional>
 
 class EvaluationGraphController;
-class PlayerInfoWiring;
-class KifuFileController;
 class ShogiClock;
 class TimeControlController;
 class UiStatePolicyManager;
@@ -28,9 +26,7 @@ public:
         // --- Hook 構築に使う依存 ---
         EvaluationGraphController* evalGraphController = nullptr;
         std::function<void(ShogiGameController::Player)> onTurnChanged;
-        std::function<void(Usi*, const MatchCoordinator::GoTimes&)> sendGo;
         std::function<void(Usi*)> sendStop;
-        std::function<void(Usi*, const QString&)> sendRaw;
         std::function<void(const QString&)> initializeNewGame;
         std::function<void()> renderBoard;
         std::function<void(const QPoint&, const QPoint&)> showMoveHighlights;
@@ -70,7 +66,6 @@ public:
         // --- 遅延初期化コールバック ---
         std::function<void()> ensureTimeController;
         std::function<void()> ensureEvaluationGraphController;
-        std::function<void()> ensurePlayerInfoWiring;
         std::function<void()> ensureUsiCommandController;
         std::function<void()> ensureUiStatePolicyManager;
         std::function<void()> connectBoardClicks;

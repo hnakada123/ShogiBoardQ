@@ -179,7 +179,6 @@ void EngineRegistrationDialog::configureEngine()
     // 選択されたエンジンの設定変更ダイアログを表示する。
     ChangeEngineSettingsDialog dialog(this);
 
-    dialog.setEngineNumber(engineNumber);
     dialog.setEngineName(engineName);
     dialog.setEngineAuthor(engineAuthor);
     dialog.setupEngineOptionsDialog();

@@ -126,7 +126,6 @@ QImage ShogiView::toImage(qreal) { return {}; }
 void ShogiView::applyBoardAndRender(ShogiBoard*) {}
 void ShogiView::configureFixedSizing(int) {}
 void ShogiView::clearTurnHighlight() {}
-void ShogiView::setUiMuted(bool) {}
 void ShogiView::setActiveIsBlack(bool) {}
 void ShogiView::setGameOverStyleLock(bool) {}
 ShogiViewHighlighting* ShogiView::highlighting() const { return nullptr; }

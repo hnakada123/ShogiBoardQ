@@ -182,26 +182,6 @@ void KifuApplyService::applyToRecordView(const KifParseResult& res, const QStrin
         m_hooks.displayGameRecord(disp);
     }
 
-    *m_refs.dispMain = disp;
-    if (sfenHistory) {
-        *m_refs.sfenMain = *sfenHistory;
-    } else {
-        m_refs.sfenMain->clear();
-    }
-    *m_refs.gmMain = *m_refs.gameMoves;
-
-    m_refs.variationsByPly->clear();
-    m_refs.variationsSeq->clear();
-    for (const KifVariation& kv : std::as_const(res.variations)) {
-        KifLine line = kv.line;
-        line.startPly = kv.startPly;
-        if (line.disp.isEmpty()) {
-            continue;
-        }
-        (*m_refs.variationsByPly)[line.startPly].push_back(line);
-        m_refs.variationsSeq->push_back(line);
-    }
-
     if (m_refs.recordPane && m_refs.recordPane->kifuView()) {
         QTableView* view = m_refs.recordPane->kifuView();
         if (view->model() && view->model()->rowCount() > 0) {

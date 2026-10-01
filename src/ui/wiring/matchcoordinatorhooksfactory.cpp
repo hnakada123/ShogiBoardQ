@@ -26,9 +26,7 @@ MatchCoordinator::Hooks MatchCoordinatorHooksFactory::buildHooks(const HookDeps&
     hooks.time.byoyomiMs = deps.byoyomiMs;
 
     // Engine hooks
-    hooks.engine.sendGoToEngine = deps.sendGo;
     hooks.engine.sendStopToEngine = deps.sendStop;
-    hooks.engine.sendRawToEngine = deps.sendRaw;
 
     // Game hooks
     hooks.game.initializeNewGame = deps.initializeNewGame;

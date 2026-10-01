@@ -117,7 +117,6 @@ void UsiProtocolHandler::cancelCurrentOperation()
     }
     m_stopOrPonderhitPending = false;
     m_bestMoveReceived = false;
-    m_modeTsume = false;
     m_phase = SearchPhase::Idle;
     m_predictedOpponentMove.clear();
     ++m_seq;

@@ -23,11 +23,6 @@ void ShogiView::setGameOverStyleLock(bool locked)
     m_gameOverStyleLock = locked;
 }
 
-void ShogiView::setUiMuted(bool on)
-{
-    m_uiMuted = on;
-}
-
 void ShogiView::setActiveIsBlack(bool activeIsBlack)
 {
     m_highlighting->setActiveIsBlack(activeIsBlack);

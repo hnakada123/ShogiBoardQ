@@ -31,9 +31,7 @@ public:
         EvaluationGraphController* evalGraphController = nullptr; ///< 評価値グラフ（appendEvalP1/P2 用）
 
         std::function<void(ShogiGameController::Player)> onTurnChanged;        ///< → MC::Hooks::updateTurnDisplay
-        std::function<void(Usi*, const MatchCoordinator::GoTimes&)> sendGo;    ///< → MC::Hooks::sendGoToEngine
         std::function<void(Usi*)> sendStop;                                    ///< → MC::Hooks::sendStopToEngine
-        std::function<void(Usi*, const QString&)> sendRaw;                     ///< → MC::Hooks::sendRawToEngine
 
         std::function<void(const QString&)> initializeNewGame;                 ///< → MC::Hooks::initializeNewGame
         std::function<void()> renderBoard;                                     ///< → MC::Hooks::renderBoardFromGc

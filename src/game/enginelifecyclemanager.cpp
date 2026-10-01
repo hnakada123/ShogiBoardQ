@@ -340,28 +340,10 @@ bool EngineLifecycleManager::engineMoveOnce(Usi* eng,
 // USI 送信
 // ============================================================
 
-void EngineLifecycleManager::sendGoToEngine(Usi* which, const GoTimes& t)
-{
-    if (!which) return;
-
-    const bool useByoyomi = (t.byoyomi > 0 && t.binc == 0 && t.winc == 0);
-
-    const UsiTimingParams timing{clampMsToInt(t.byoyomi),
-                                 QString::number(t.btime), QString::number(t.wtime),
-                                 clampMsToInt(t.binc), clampMsToInt(t.winc), useByoyomi};
-    which->sendGoCommand(timing);
-}
-
 void EngineLifecycleManager::sendStopToEngine(Usi* which)
 {
     if (!which) return;
     which->sendStopCommand();
-}
-
-void EngineLifecycleManager::sendRawToEngine(Usi* which, const QString& cmd)
-{
-    if (!which) return;
-    which->sendRaw(cmd);
 }
 
 void EngineLifecycleManager::sendRawTo(Usi* which, const QString& cmd)

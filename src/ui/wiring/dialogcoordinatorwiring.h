@@ -26,9 +26,7 @@ class AnalysisResultsPresenter;
 class ConsiderationWiring;
 class UiStatePolicyManager;
 class EngineAnalysisTab;
-class RecordPane;
 struct ShogiMove;
-class KifuDisplay;
 
 /**
  * @brief DialogCoordinator の生成・コンテキスト設定・シグナル配線を担当するクラス
@@ -68,7 +66,6 @@ public:
         QStringList* positionStrList = nullptr;        ///< 局面文字列リスト（外部所有）
 
         // --- KifuAnalysisContext 固有 ---
-        QList<KifuDisplay*>* moveRecords = nullptr;    ///< 移動記録（外部所有）
         int* activePly = nullptr;                      ///< アクティブ手数（外部所有）
         GameInfoPaneController* gameInfoController = nullptr; ///< 対局情報コントローラ（非所有）
         EvaluationChartWidget* evalChart = nullptr;    ///< 評価値グラフ（非所有）

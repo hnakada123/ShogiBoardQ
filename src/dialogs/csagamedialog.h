@@ -87,12 +87,6 @@ public:
      */
     QString password() const;
 
-    /**
-     * @brief CSAプロトコルバージョンを取得
-     * @return バージョン文字列
-     */
-    QString csaVersion() const;
-
     // ========== 対局者情報の取得 ==========
 
     /**
@@ -225,7 +219,6 @@ private:
     int m_port = 4081;      ///< ポート番号
     QString m_loginId;      ///< ログインID
     QString m_password;     ///< パスワード
-    QString m_csaVersion;   ///< CSAプロトコルバージョン
 };
 
 #endif // CSAGAMEDIALOG_H

@@ -196,8 +196,6 @@ private:
     bool m_restartPending = false;                ///< 検討再開待ちフラグ
     bool m_restartInProgress = false;             ///< 検討再開処理中フラグ（再入防止）
     bool m_waiting = false;                       ///< 検討待機中フラグ
-    QString m_enginePath;                         ///< 検討中のエンジンパス
-    QString m_engineName;                         ///< 検討中のエンジン名
     int m_previousFileTo = 0;                     ///< 前回の移動先の筋
     int m_previousRankTo = 0;                     ///< 前回の移動先の段
     QString m_lastUsiMove;                        ///< 最後の指し手（USI形式）

@@ -203,7 +203,6 @@ public:
 
     bool isMyTurn() const { return m_isMyTurn; }
 
-    void setCsaVersion(const QString& version) { m_csaVersion = version; }
 
 signals:
     /// 接続状態が変化した時に発行する（→ CsaGameCoordinator::onConnectionStateChanged）
@@ -334,9 +333,6 @@ private:
     ConnectionState m_connectionState = ConnectionState::Disconnected; ///< 接続状態
     QString m_receiveBuffer;            ///< 受信バッファ
 
-    QString m_username;                 ///< ログインユーザー名
-    QString m_csaVersion;               ///< CSAプロトコルバージョン
-
     GameSummary m_gameSummary;          ///< 対局情報
     bool m_isMyTurn = false;            ///< 自分の手番かどうか
     bool m_inGameSummary = false;       ///< Game_Summary解析中フラグ
@@ -345,7 +341,6 @@ private:
     QString m_currentTimeSection;       ///< 現在のTimeセクション名（Time/Time+/Time-）
 
     QString m_pendingFirstResultLine;   ///< 最初の結果行（#で始まる行）を保持
-    int m_moveCount = 0;                ///< 指し手カウント
     int m_endMoveConsumedTimeMs = 0;    ///< 終局手の消費時間（ミリ秒）
 
     static constexpr int kConnectionTimeoutMs = 10000; ///< 接続タイムアウト（10秒）

@@ -130,7 +130,6 @@ private slots:
         m_sync.setCurrentTurn();
         gameActive = false;
         view.setGameOverStyleLock(true);
-        view.setUiMuted(true);
 
         // 先頭・末尾へのジャンプ、一手ずつの前後移動、同じ局面の再選択。
         // 終局行は最終局面と同じ手番を維持する。

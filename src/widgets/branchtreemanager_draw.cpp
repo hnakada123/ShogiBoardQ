@@ -146,7 +146,7 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& r
 
     m_nodeIndex.insert(qMakePair(row, ply), item);
 
-    const int nodeId = registerNode(/*vid*/row, row, ply, item);
+    const int nodeId = registerNode(row, ply, item);
     item->setData(ROLE_NODE_ID, nodeId);
 
     return item;
@@ -229,7 +229,7 @@ void BranchTreeManager::rebuildBranchTree()
         t->setPos(rect.center().x() - br.width() / 2.0,
                   rect.center().y() - br.height() / 2.0);
 
-        const int nid = registerNode(/*vid*/0, /*row*/0, /*ply*/0, startNode);
+        const int nid = registerNode(/*row*/0, /*ply*/0, startNode);
         startNode->setData(ROLE_NODE_ID, nid);
     }
 

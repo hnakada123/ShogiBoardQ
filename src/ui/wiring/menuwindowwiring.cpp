@@ -62,7 +62,6 @@ void MenuWindowWiring::collectCategoriesFromMenuBar()
         menuTitle.remove(QChar('&'));  // アクセラレータを除去
 
         MenuWindow::CategoryInfo category;
-        category.name = menu->objectName();
         category.displayName = menuTitle;
 
         // メニュー内のアクションを収集

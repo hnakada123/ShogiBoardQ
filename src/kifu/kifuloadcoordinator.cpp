@@ -37,16 +37,12 @@ KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves,
                                          int& currentMoveIndex,
                                          QStringList* sfenRecord,
                                          QTableWidget* gameInfoTable,
-                                         QDockWidget* gameInfoDock,
-                                         QTabWidget* tab,
                                          RecordPane* recordPane,
                                          KifuRecordListModel* kifuRecordModel,
                                          KifuBranchListModel* kifuBranchModel,
                                          QObject* parent)
     : QObject(parent)
     , m_gameInfoTable(gameInfoTable)
-    , m_gameInfoDock(gameInfoDock)
-    , m_tab(tab)
     , m_sfenHistory(sfenRecord)
     , m_gameMoves(gameMoves)
     , m_positionStrList(positionStrList)
@@ -68,22 +64,15 @@ void KifuLoadCoordinator::initApplyService()
     refs.kifuUsiMoves = &m_kifuUsiMoves;
     refs.gameMoves = &m_gameMoves;
     refs.positionStrList = &m_positionStrList;
-    refs.dispMain = &m_dispMain;
-    refs.sfenMain = &m_sfenMain;
-    refs.gmMain = &m_gmMain;
-    refs.variationsByPly = &m_variationsByPly;
-    refs.variationsSeq = &m_variationsSeq;
     refs.activePly = &m_activePly;
     refs.currentSelectedPly = &m_currentSelectedPly;
     refs.currentMoveIndex = &m_currentMoveIndex;
     refs.loadingKifu = &m_loadingKifu;
     refs.gameInfoTable = m_gameInfoTable;
-    refs.tab = m_tab;
     refs.recordPane = m_recordPane;
     refs.kifuRecordModel = m_kifuRecordModel;
     refs.kifuBranchModel = m_kifuBranchModel;
     refs.sfenHistory = &m_sfenHistory;
-    refs.gameInfoDock = &m_gameInfoDock;
     refs.shogiView = &m_shogiView;
     refs.branchTreeManager = &m_branchTreeManager;
     refs.branchTree = &m_branchTree;
@@ -243,17 +232,10 @@ void KifuLoadCoordinator::setBranchTreeManager(BranchTreeManager* manager)
 // 分岐管理
 // ============================================================
 
-void KifuLoadCoordinator::resetBranchContext()
-{
-    m_branchPlyContext = -1;
-}
-
 void KifuLoadCoordinator::resetBranchTreeForNewGame()
 {
     cancelLoad();
     qCDebug(lcKifu).noquote() << "resetBranchTreeForNewGame: clearing all branch data";
-
-    m_branchPlyContext = -1;
 
     if (m_navState != nullptr) {
         m_navState->setCurrentNode(nullptr);

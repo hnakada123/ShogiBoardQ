@@ -36,7 +36,6 @@ public:
     void setEvaluationBound(EvaluationBound newEvaluationBound);
 
     static constexpr int BOARD_SIZE = BoardConstants::kBoardSize;                       ///< 盤面の1辺のマス数
-    static constexpr int NUM_BOARD_SQUARES = BoardConstants::kNumBoardSquares; ///< 将棋盤の総マス数
     static constexpr int STAND_FILE = 99;                   ///< 駒台を示す筋番号
     static constexpr int INFO_STRING_SPECIAL_CASE = -2;     ///< "(57.54%)"等の非指し手文字列を示す戻り値
 
@@ -97,7 +96,6 @@ private:
     QString m_nps;              ///< 1秒あたりの探索局面数
     QString m_time;             ///< 思考開始からの経過時間（ミリ秒）
     QString m_score;            ///< 評価値文字列
-    QString m_string;           ///< info stringサブコマンドの値
     QString m_scoreCp;          ///< 評価値（centipawn）
     QString m_scoreMate;        ///< 詰み手数
     QString m_pvKanjiStr;       ///< 漢字表記の読み筋文字列

@@ -51,7 +51,6 @@ MatchCoordinatorWiring::Deps MatchCoordinatorWiring::buildDeps(const BuilderInpu
 
     deps.ensureTimeController           = in.ensureTimeController;
     deps.ensureEvaluationGraphController = in.ensureEvaluationGraphController;
-    deps.ensurePlayerInfoWiring         = in.ensurePlayerInfoWiring;
     deps.ensureUsiCommandController     = in.ensureUsiCommandController;
     deps.ensureUiStatePolicyManager     = in.ensureUiStatePolicyManager;
     deps.connectBoardClicks             = in.connectBoardClicks;
@@ -100,8 +99,6 @@ void MatchCoordinatorWiring::updateDeps(const Deps& deps)
         m_ensureTimeController = deps.ensureTimeController;
     if (deps.ensureEvaluationGraphController)
         m_ensureEvaluationGraphController = deps.ensureEvaluationGraphController;
-    if (deps.ensurePlayerInfoWiring)
-        m_ensurePlayerInfoWiring = deps.ensurePlayerInfoWiring;
     if (deps.ensureUsiCommandController)
         m_ensureUsiCommandController = deps.ensureUsiCommandController;
     if (deps.ensureUiStatePolicyManager)
@@ -133,7 +130,6 @@ void MatchCoordinatorWiring::wireConnections()
     MatchCoordinator::Deps d;
     d.gc    = m_gc;
     d.clock = m_getClock ? m_getClock() : nullptr;
-    d.view  = m_view;
     d.usi1  = m_usi1;
     d.usi2  = m_usi2;
     d.comm1  = m_comm1;
@@ -270,8 +266,6 @@ void MatchCoordinatorWiring::ensureMenuGameStartCoordinator()
 
     GameStartCoordinator::Deps d;
     d.match = m_match.get();
-    d.clock = m_getClock ? m_getClock() : nullptr;
-    d.gc    = m_gc;
 
     m_menuGameStart = new GameStartCoordinator(d, this);
 

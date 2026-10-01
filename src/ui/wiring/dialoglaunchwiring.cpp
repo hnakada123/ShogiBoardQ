@@ -126,7 +126,6 @@ void DialogLaunchWiring::displayTsumeShogiSearchDialog()
     auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
     DialogCoordinator::Deps dcDeps;
     dcDeps.matchCoordinator = m_deps.getMatch ? m_deps.getMatch() : nullptr;
-    dcDeps.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;
     dcDeps.considerationTabManager = analysisTab ? analysisTab->considerationTabManager() : nullptr;
     dcDeps.usiEngine = m_deps.getUsi1 ? m_deps.getUsi1() : nullptr;
     dcDeps.logModel = m_deps.getLineEditModel1 ? m_deps.getLineEditModel1() : nullptr;
@@ -256,7 +255,6 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
     auto* analysisTab = m_deps.getAnalysisTab ? m_deps.getAnalysisTab() : nullptr;
     DialogCoordinator::Deps dcDeps;
     dcDeps.matchCoordinator = m_deps.getMatch ? m_deps.getMatch() : nullptr;
-    dcDeps.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;
     dcDeps.analysisModel = analysisModel;
     dcDeps.considerationTabManager = analysisTab ? analysisTab->considerationTabManager() : nullptr;
     dcDeps.usiEngine = m_deps.getUsi1 ? m_deps.getUsi1() : nullptr;
@@ -267,7 +265,6 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
     // 棋譜解析コンテキストを更新（遅延初期化されたオブジェクトを反映）
     DialogCoordinator::KifuAnalysisContext kifuCtx;
     kifuCtx.sfenRecord = m_deps.getSfenRecord ? m_deps.getSfenRecord() : nullptr;
-    kifuCtx.moveRecords = m_deps.moveRecords;
     kifuCtx.recordModel = m_deps.getKifuRecordModel ? m_deps.getKifuRecordModel() : nullptr;
     kifuCtx.activePly = m_deps.activePly;
     kifuCtx.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;

@@ -60,9 +60,6 @@ void MainWindowCoreInitCoordinator::initializeGameControllerAndKifu()
         *gc = new ShogiGameController(m_deps.parent);
     }
 
-    if (m_deps.moveRecords) {
-        m_deps.moveRecords->clear();
-    }
     if (m_deps.gameMoves) {
         m_deps.gameMoves->clear();
     }

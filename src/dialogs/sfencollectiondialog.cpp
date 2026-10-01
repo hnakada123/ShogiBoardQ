@@ -245,7 +245,6 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
         return false;
     }
 
-    m_currentFilePath = filePath;
     m_currentIndex = 0;
 
     // ファイル名ラベルを更新

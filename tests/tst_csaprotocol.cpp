@@ -904,7 +904,6 @@ private slots:
         client.m_inPositionSection = true;
         client.m_currentTimeSection = QStringLiteral("Time+");
         client.m_pendingFirstResultLine = QStringLiteral("#RESIGN");
-        client.m_moveCount = 42;
         client.m_endMoveConsumedTimeMs = 1234;
         client.m_connectionState = CsaClient::ConnectionState::InGame;
 
@@ -918,7 +917,6 @@ private slots:
         QVERIFY(!client.m_inPositionSection);
         QVERIFY(client.m_currentTimeSection.isEmpty());
         QVERIFY(client.m_pendingFirstResultLine.isEmpty());
-        QCOMPARE(client.m_moveCount, 0);
         QCOMPARE(client.m_endMoveConsumedTimeMs, 0);
         // 接続状態は resetSessionState() では変更しない
         QCOMPARE(client.m_connectionState, CsaClient::ConnectionState::InGame);
@@ -945,24 +943,6 @@ private slots:
         client.m_gameSummary.maxMoves = 256;
         client.processGameSummary(QStringLiteral("Max_Moves:not-a-number"));
         QCOMPARE(client.m_gameSummary.maxMoves, 256);
-    }
-
-    // ========================================
-    // 異常系: CsaClient setCsaVersion の安全性
-    // ========================================
-
-    void csaClient_setCsaVersion()
-    {
-        CsaClient client;
-
-        // 正常なバージョン
-        client.setCsaVersion(QStringLiteral("1.2.1"));
-        // 空文字列
-        client.setCsaVersion(QString());
-        // 長い文字列
-        client.setCsaVersion(QString(1000, QChar('X')));
-        // クラッシュしなければOK
-        QVERIFY(true);
     }
 
     // ========================================

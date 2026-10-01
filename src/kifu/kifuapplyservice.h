@@ -17,9 +17,6 @@
 
 struct KifuLoadResult;
 class QTableWidget;
-class QDockWidget;
-class QTabWidget;
-class QTableView;
 class ShogiView;
 class RecordPane;
 class BranchTreeManager;
@@ -51,11 +48,6 @@ public:
         QStringList* kifuUsiMoves = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
         QStringList* positionStrList = nullptr;
-        QList<KifDisplayItem>* dispMain = nullptr;
-        QStringList* sfenMain = nullptr;
-        QList<ShogiMove>* gmMain = nullptr;
-        QHash<int, QList<KifLine>>* variationsByPly = nullptr;
-        QList<KifLine>* variationsSeq = nullptr;
 
         // ナビゲーション状態（直接ポインタ: アドレス不変）
         int* activePly = nullptr;
@@ -65,14 +57,12 @@ public:
 
         // UIウィジェット（直接ポインタ: コンストラクタで確定）
         QTableWidget* gameInfoTable = nullptr;
-        QTabWidget* tab = nullptr;
         RecordPane* recordPane = nullptr;
         KifuRecordListModel* kifuRecordModel = nullptr;
         KifuBranchListModel* kifuBranchModel = nullptr;
 
         // セッター経由で変化するポインタ（二重ポインタ）
         QStringList** sfenHistory = nullptr;
-        QDockWidget** gameInfoDock = nullptr;
         ShogiView** shogiView = nullptr;
         BranchTreeManager** branchTreeManager = nullptr;
         KifuBranchTree** branchTree = nullptr;

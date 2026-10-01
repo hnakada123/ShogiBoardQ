@@ -48,9 +48,7 @@ struct MatchCoordinatorHooks {
 
     /// USI送受系コールバック
     struct Engine {
-        std::function<void(Usi* which, const MatchGoTimes& t)> sendGoToEngine;
         std::function<void(Usi* which)> sendStopToEngine;
-        std::function<void(Usi* which, const QString& cmd)> sendRawToEngine;
     };
 
     /// ゲーム初期化・棋譜系コールバック

@@ -307,7 +307,6 @@ void CsaGameDialog::onAccepted()
     m_port = ui->spinBoxPort->value();
     m_loginId = id;
     m_password = password;
-    m_csaVersion = ui->comboBoxVersion->currentText();
 
     // 設定を保存
     saveGameSettings();
@@ -358,7 +357,6 @@ void CsaGameDialog::onShowPasswordToggled(bool checked)
 // エンジン設定ダイアログを表示する
 void CsaGameDialog::showEngineSettingsDialog(QComboBox* comboBox)
 {
-    int engineNumber = comboBox->currentIndex();
     QString engineName = comboBox->currentText();
 
     if (engineName.isEmpty()) {
@@ -367,7 +365,6 @@ void CsaGameDialog::showEngineSettingsDialog(QComboBox* comboBox)
     }
 
     ChangeEngineSettingsDialog dialog(this);
-    dialog.setEngineNumber(engineNumber);
     dialog.setEngineName(engineName);
     dialog.setupEngineOptionsDialog();
 
@@ -396,11 +393,6 @@ QString CsaGameDialog::loginId() const
 QString CsaGameDialog::password() const
 {
     return m_password;
-}
-
-QString CsaGameDialog::csaVersion() const
-{
-    return m_csaVersion;
 }
 
 bool CsaGameDialog::isHuman() const

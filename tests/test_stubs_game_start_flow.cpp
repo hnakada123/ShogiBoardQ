@@ -87,7 +87,6 @@ namespace TestTracker {
 MatchCoordinator::MatchCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_gc(d.gc)
-    , m_view(d.view)
     , m_hooks(d.hooks)
 {
     m_sfenHistory = d.sfenRecord ? d.sfenRecord : &m_sharedSfenRecord;
@@ -203,9 +202,7 @@ void MatchCoordinator::startMatchTimingAndMaybeInitialGo() {}
 void MatchCoordinator::appendGameOverLineAndMark(Cause, Player) {}
 void MatchCoordinator::onHumanMove(const QPoint&, const QPoint&, const QString&) {}
 void MatchCoordinator::forceImmediateMove() {}
-void MatchCoordinator::sendGoToEngine(Usi*, const GoTimes&) {}
 void MatchCoordinator::sendStopToEngine(Usi*) {}
-void MatchCoordinator::sendRawToEngine(Usi*, const QString&) {}
 void MatchCoordinator::handleMaxMovesJishogi() {}
 void MatchCoordinator::setUndoBindings(const MatchUndoHandler::UndoRefs&, const MatchUndoHandler::UndoHooks&) {}
 bool MatchCoordinator::undoTwoPlies() { return false; }
@@ -440,7 +437,7 @@ void KifuDisplay::setBookmark(const QString& bookmark) { m_bookmark = bookmark; 
 
 KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves, QStringList& positionStrList,
                                           int& activePly, int& currentSelectedPly, int& currentMoveIndex,
-                                          QStringList*, QTableWidget*, QDockWidget*, QTabWidget*,
+                                          QStringList*, QTableWidget*,
                                           RecordPane*, KifuRecordListModel*, KifuBranchListModel*,
                                           QObject* parent)
     : QObject(parent)
@@ -453,7 +450,6 @@ KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves, QStringLis
 KifuLoadCoordinator::~KifuLoadCoordinator() = default;
 void KifuLoadCoordinator::onLoadFinished() {}
 void KifuLoadCoordinator::resetBranchTreeForNewGame() {}
-void KifuLoadCoordinator::resetBranchContext() {}
 void KifuLoadCoordinator::setBranchTreeManager(BranchTreeManager*) {}
 bool KifuLoadCoordinator::loadKifuFromFile(const QString&) { return false; }
 bool KifuLoadCoordinator::loadJkfFromFile(const QString&) { return false; }

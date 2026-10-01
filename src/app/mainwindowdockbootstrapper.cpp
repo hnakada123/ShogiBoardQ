@@ -62,8 +62,6 @@ void MainWindowServiceRegistry::setupEngineAnalysisTab()
     if (!m_mw.m_registryParts.analysisWiring) {
         AnalysisTabWiring::Deps d;
         d.centralParent = m_mw.m_central;         // 既存の central エリア
-        d.log1          = m_mw.m_models.commLog1;  // USIログ(先手)
-        d.log2          = m_mw.m_models.commLog2;  // USIログ(後手)
 
         // Lifetime: owned by MainWindow (QObject parent=&m_mw)
         // Created: once at startup, never recreated

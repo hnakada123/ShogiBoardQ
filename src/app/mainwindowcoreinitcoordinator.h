@@ -11,7 +11,6 @@
 class QWidget;
 class ShogiGameController;
 class ShogiView;
-class KifuDisplay;
 struct ShogiMove;
 
 /**
@@ -36,7 +35,6 @@ public:
         // --- 状態参照 ---
         QString* startSfenStr = nullptr;
         QString* resumeSfenStr = nullptr;
-        QList<KifuDisplay*>* moveRecords = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
         QStringList* gameUsiMoves = nullptr;
 

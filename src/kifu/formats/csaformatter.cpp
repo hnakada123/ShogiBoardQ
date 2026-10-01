@@ -16,31 +16,31 @@ CsaBoardTracker::CsaBoardTracker() {
 void CsaBoardTracker::initHirate() {
     for (auto& file : board) {
         for (auto& sq : file) {
-            sq = {EMPTY, true};
+            sq = {EMPTY};
         }
     }
     // 後手の駒（1段目）
-    board[0][0] = {KY, false}; board[1][0] = {KE, false}; board[2][0] = {GI, false};
-    board[3][0] = {KI, false}; board[4][0] = {OU, false}; board[5][0] = {KI, false};
-    board[6][0] = {GI, false}; board[7][0] = {KE, false}; board[8][0] = {KY, false};
+    board[0][0] = {KY}; board[1][0] = {KE}; board[2][0] = {GI};
+    board[3][0] = {KI}; board[4][0] = {OU}; board[5][0] = {KI};
+    board[6][0] = {GI}; board[7][0] = {KE}; board[8][0] = {KY};
     // 後手の飛車・角（2段目）: 飛車は8筋(file=8)、角は2筋(file=2)
-    board[7][1] = {HI, false}; board[1][1] = {KA, false};
+    board[7][1] = {HI}; board[1][1] = {KA};
     // 後手の歩（3段目）
-    for (auto& file : board) file[2] = {FU, false};
+    for (auto& file : board) file[2] = {FU};
     // 先手の歩（7段目）
-    for (auto& file : board) file[6] = {FU, true};
+    for (auto& file : board) file[6] = {FU};
     // 先手の飛車・角（8段目）: 飛車は2筋(file=2)、角は8筋(file=8)
-    board[1][7] = {HI, true}; board[7][7] = {KA, true};
+    board[1][7] = {HI}; board[7][7] = {KA};
     // 先手の駒（9段目）
-    board[0][8] = {KY, true}; board[1][8] = {KE, true}; board[2][8] = {GI, true};
-    board[3][8] = {KI, true}; board[4][8] = {OU, true}; board[5][8] = {KI, true};
-    board[6][8] = {GI, true}; board[7][8] = {KE, true}; board[8][8] = {KY, true};
+    board[0][8] = {KY}; board[1][8] = {KE}; board[2][8] = {GI};
+    board[3][8] = {KI}; board[4][8] = {OU}; board[5][8] = {KI};
+    board[6][8] = {GI}; board[7][8] = {KE}; board[8][8] = {KY};
 }
 
 void CsaBoardTracker::initFromSfen(const QString& sfen) {
     for (auto& file : board)
         for (auto& sq : file)
-            sq = {EMPTY, true};
+            sq = {EMPTY};
 
     const QStringList parts = sfen.trimmed().split(QLatin1Char(' '), Qt::SkipEmptyParts);
     if (parts.isEmpty()) { initHirate(); return; }
@@ -61,10 +61,9 @@ void CsaBoardTracker::initFromSfen(const QString& sfen) {
                 promoted = false;
                 continue;
             }
-            const bool sente = ch.isUpper();
             PieceType piece = charToPiece(ch);
             if (promoted) piece = promote(piece);
-            at(file, rank + 1) = {piece, sente};
+            at(file, rank + 1) = {piece};
             --file;
             promoted = false;
         }
@@ -125,7 +124,7 @@ CsaBoardTracker::PieceType CsaBoardTracker::promote(PieceType p) {
     }
 }
 
-QString CsaBoardTracker::applyMove(const QString& usiMove, bool isSente) {
+QString CsaBoardTracker::applyMove(const QString& usiMove) {
     if (usiMove.size() < 4) return QString();
 
     // 駒打ちの場合
@@ -135,7 +134,7 @@ QString CsaBoardTracker::applyMove(const QString& usiMove, bool isSente) {
         int toRank = usiMove.at(3).toLatin1() - 'a' + 1;
 
         if (toFile >= 1 && toFile <= 9 && toRank >= 1 && toRank <= 9) {
-            at(toFile, toRank) = {piece, isSente};
+            at(toFile, toRank) = {piece};
         }
         return pieceToCSA(piece);
     }
@@ -157,8 +156,8 @@ QString CsaBoardTracker::applyMove(const QString& usiMove, bool isSente) {
         piece = promote(piece);
     }
 
-    at(toFile, toRank) = {piece, isSente};
-    at(fromFile, fromRank) = {EMPTY, true};
+    at(toFile, toRank) = {piece};
+    at(fromFile, fromRank) = {EMPTY};
 
     return pieceToCSA(piece);
 }

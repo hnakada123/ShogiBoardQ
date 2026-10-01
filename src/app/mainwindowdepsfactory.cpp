@@ -33,7 +33,6 @@ DialogCoordinatorWiring::Deps MainWindowDepsFactory::createDialogCoordinatorDeps
     deps.positionStrList = refs.kifu.positionStrList;
 
     // KifuAnalysisContext 固有
-    deps.moveRecords = refs.kifu.moveRecords;
     deps.activePly = refs.kifu.activePly;
     deps.gameInfoController = refs.analysis.gameInfoController;
     deps.evalChart = refs.ui.evalChart;

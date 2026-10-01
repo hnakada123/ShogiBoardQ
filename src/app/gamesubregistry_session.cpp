@@ -189,7 +189,6 @@ void MainWindowServiceRegistry::refreshCoreInitDeps()
     deps.shogiView = &m_mw.m_shogiView;
     deps.startSfenStr = &m_mw.m_state.startSfenStr;
     deps.resumeSfenStr = &m_mw.m_state.resumeSfenStr;
-    deps.moveRecords = &m_mw.m_kifu.moveRecords;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
     deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.parent = &m_mw;

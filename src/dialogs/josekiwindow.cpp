@@ -486,7 +486,7 @@ void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, const QStrin
     dialog->setRegisteredMoves(m_repository->mergeRegisteredMoves());
     connect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
     connect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
-    dialog->setKifuData(entries, currentPly);
+    dialog->setKifuData(entries);
     dialog->show();
 }
 
@@ -521,7 +521,7 @@ void JosekiWindow::onMergeFromKifuFile()
     dialog->setWindowTitle(tr("棋譜から定跡にマージ - %1").arg(QFileInfo(kifFilePath).fileName()));
     connect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
     connect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
-    dialog->setKifuData(entries, -1);
+    dialog->setKifuData(entries);
     dialog->show();
 }
 
