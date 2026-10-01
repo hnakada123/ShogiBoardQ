@@ -164,6 +164,26 @@ void setUsiLogFontSize(int size)
     s.setValue(SettingsKeys::kFontSizeUsiLog, size);
 }
 
+bool usiLogWrapLines()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kUsiLogWrapLines, false).toBool();
+}
+
+void setUsiLogWrapLines(bool wrap)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kUsiLogWrapLines, wrap);
+}
+
+int usiLogCommandTarget()
+{
+    return qBound(0, SettingsCommon::openSettings().value(SettingsKeys::kUsiLogCommandTarget, 0).toInt(), 2);
+}
+
+void setUsiLogCommandTarget(int target)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kUsiLogCommandTarget, qBound(0, target, 2));
+}
+
 int thinkingFontSize()
 {
     QSettings& s = SettingsCommon::openSettings();

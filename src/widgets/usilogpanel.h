@@ -9,11 +9,14 @@
 #include <memory>
 
 class QWidget;
+class QAction;
 class QPlainTextEdit;
 class QToolButton;
-class QLabel;
+class QToolBar;
+class QPushButton;
 class QLineEdit;
 class QComboBox;
+class ElideLabel;
 
 class LogViewFontManager;
 class UsiCommLogModel;
@@ -60,6 +63,12 @@ private slots:
     void onEngine2NameChanged();
     void onLog1Changed();
     void onLog2Changed();
+    void onWrapToggled(bool checked);
+    void scrollToLatest();
+    void copyAll();
+    void updateLogActions();
+    void updateSendButton();
+    void onTargetChanged(int index);
 
 private:
     void buildToolbar();
@@ -67,10 +76,14 @@ private:
     void initFontManager();
 
     QWidget* m_container = nullptr;
-    QWidget* m_toolbar = nullptr;
+    QToolBar* m_toolbar = nullptr;
     QPlainTextEdit* m_logView = nullptr;
-    QLabel* m_engine1Label = nullptr;
-    QLabel* m_engine2Label = nullptr;
+    ElideLabel* m_engine1Label = nullptr;
+    ElideLabel* m_engine2Label = nullptr;
+    QAction* m_wrapAction = nullptr;
+    QAction* m_latestAction = nullptr;
+    QAction* m_copyAction = nullptr;
+    QAction* m_clearAction = nullptr;
     QToolButton* m_btnFontIncrease = nullptr;
     QToolButton* m_btnFontDecrease = nullptr;
     int m_fontSize = 10;
@@ -79,6 +92,7 @@ private:
     QWidget* m_commandBar = nullptr;
     QComboBox* m_targetCombo = nullptr;
     QLineEdit* m_commandInput = nullptr;
+    QPushButton* m_sendButton = nullptr;
 
     UsiCommLogModel* m_log1 = nullptr;
     UsiCommLogModel* m_log2 = nullptr;

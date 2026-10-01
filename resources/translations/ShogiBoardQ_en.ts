@@ -9616,24 +9616,95 @@ Last solved: %2</translation>
 <context>
     <name>UsiLogPanel</name>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="132"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="61"/>
+        <source>USI通信ログ</source>
+        <translation>USI communication log</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="66"/>
+        <source>エンジンとの通信ログを表示します（▶ 送信 / ◀ 受信）</source>
+        <translation>Engine communication will appear here (▶ sent / ◀ received)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="157"/>
         <source>フォントサイズを小さくする</source>
-        <translation type="unfinished">Decrease font size</translation>
+        <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="140"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="165"/>
         <source>フォントサイズを大きくする</source>
-        <translation type="unfinished">Increase font size</translation>
+        <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="175"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="193"/>
+        <source>折り返し</source>
+        <translation>Wrap lines</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="195"/>
+        <source>長い行をウィンドウ幅で折り返す</source>
+        <translation>Wrap long lines to the window width</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="200"/>
+        <source>最新へ</source>
+        <translation>Latest</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="202"/>
+        <source>最新のログへ移動（末尾では新着ログに自動追従）</source>
+        <translation>Go to the latest log (new entries are followed at the bottom)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="205"/>
+        <source>全てコピー</source>
+        <translation>Copy all</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="207"/>
+        <source>ログ全体をクリップボードへコピー</source>
+        <translation>Copy the entire log to the clipboard</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="209"/>
+        <source>消去</source>
+        <translation>Clear</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="211"/>
+        <source>表示中のログを消去</source>
+        <translation>Clear the displayed log</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="229"/>
         <source>コマンドの送信先を選択</source>
-        <translation type="unfinished"></translation>
+        <translation>Select the command destination</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/usilogpanel.cpp" line="178"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="230"/>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="232"/>
+        <source>送信先</source>
+        <translation>Send to</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="237"/>
+        <source>USIコマンド</source>
+        <translation>USI command</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="238"/>
         <source>USIコマンドを入力してEnter</source>
-        <translation type="unfinished"></translation>
+        <translation>Enter a USI command and press Enter</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="242"/>
+        <source>送信</source>
+        <translation>Send</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/usilogpanel.cpp" line="244"/>
+        <source>選択した送信先へUSIコマンドを送信</source>
+        <translation>Send the USI command to the selected destination</translation>
     </message>
 </context>
 <context>
