@@ -234,8 +234,8 @@ void KifuDisplayCoordinator::onPositionChanged(int lineIndex, int ply, const QSt
 
     // コメント表示の更新
     {
-        const QString comment = targetNode->comment().trimmed();
-        emit commentUpdateRequired(ply, comment.isEmpty() ? tr("コメントなし") : comment, true);
+        const QString comment = targetNode->comment();
+        emit commentUpdateRequired(ply, comment, true);
     }
 
     // 位置変更完了時の一致性チェック

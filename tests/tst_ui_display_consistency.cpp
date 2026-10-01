@@ -691,8 +691,8 @@ private slots:
                             .arg(emittedComment)));
     }
 
-    // コメントなしノードでは「コメントなし」が通知されることを確認
-    void commentUpdateRequired_emitsNoCommentPlaceholder()
+    // 空コメントは説明文を本文に混ぜず空のまま通知する。
+    void commentUpdateRequired_emitsEmptyComment()
     {
         UiHarness h;
         // ply 1 のノードはコメントなし
@@ -710,6 +710,7 @@ private slots:
 
         QVERIFY2(spy.count() > 0,
                  "commentUpdateRequired not emitted for empty comment node");
+        QCOMPARE(spy.last().at(1).toString(), QString());
     }
 };
 

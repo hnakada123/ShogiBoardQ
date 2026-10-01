@@ -995,38 +995,32 @@
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="102"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="96"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="66"/>
-        <location filename="../../src/app/commentcoordinator.cpp" line="150"/>
-        <source>コメントなし</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="174"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="167"/>
         <source>手を選択してください</source>
         <translation>手を選択してください</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="195"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="188"/>
         <source>しおりを編集</source>
         <translation>しおりを編集</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="196"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="189"/>
         <source>しおり名（手数: %1）:</source>
         <translation>しおり名（手数: %1）:</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="212"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="205"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>しおりを削除しました（手数: %1）</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="214"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="207"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>しおりを設定しました（手数: %1）</translation>
     </message>
@@ -1034,70 +1028,86 @@
 <context>
     <name>CommentEditorPanel</name>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="59"/>
-        <source>コメントを表示・編集</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="64"/>
+        <source>この局面のコメントを入力できます</source>
+        <translation>この局面のコメントを入力できます</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="140"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="65"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="421"/>
+        <source>リンクは Ctrl+クリックで開きます</source>
+        <translation>リンクは Ctrl+クリックで開きます</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="143"/>
+        <source>開始局面</source>
+        <translation>開始局面</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="143"/>
+        <source>%1手目</source>
+        <translation>%1手目</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="166"/>
         <source>未保存のコメント</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="141"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="167"/>
         <source>コメントが編集されていますが、まだ更新されていません。
 変更を破棄して移動しますか？</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="316"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="348"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="323"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="355"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="330"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="362"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="337"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="369"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="344"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="376"/>
         <source>切り取り (Ctrl+X)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="352"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="383"/>
         <source>コピー (Ctrl+C)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="360"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="390"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="365"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="395"/>
         <source>修正中</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="369"/>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="399"/>
         <source>コメント更新</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/commenteditorpanel.cpp" line="371"/>
-        <source>編集したコメントを棋譜に反映する</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/widgets/commenteditorpanel.cpp" line="401"/>
+        <source>編集したコメントを棋譜に反映する (Ctrl+Enter)</source>
+        <translation>編集したコメントを棋譜に反映する (Ctrl+Enter)</translation>
     </message>
 </context>
 <context>
@@ -4115,15 +4125,6 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
-    <name>KifuDisplayCoordinator</name>
-    <message>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator.cpp" line="266"/>
-        <location filename="../../src/ui/coordinators/kifudisplaycoordinator_nav.cpp" line="238"/>
-        <source>コメントなし</source>
-        <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
     <name>KifuExportClipboard</name>
     <message>
         <location filename="../../src/kifu/kifuexportclipboard.cpp" line="180"/>
@@ -4401,22 +4402,22 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuRecordListModel</name>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="86"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="95"/>
         <source>指し手</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="87"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="96"/>
         <source>消費時間</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="88"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="97"/>
         <source>しおり</source>
         <translation>しおり</translation>
     </message>
     <message>
-        <location filename="../../src/models/kifurecordlistmodel.cpp" line="89"/>
+        <location filename="../../src/models/kifurecordlistmodel.cpp" line="98"/>
         <source>コメント</source>
         <translation type="unfinished"></translation>
     </message>

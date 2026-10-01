@@ -326,7 +326,7 @@ void KifToSfenConverter::extractMovesFromBlock(const QStringList& blockLines,
 
         if (KifuParseCommon::isKifCommentLine(lineStr)) {
             const QString c = lineStr.mid(1).trimmed();
-            if (!c.isEmpty()) KifuParseCommon::appendLine(commentBuf, c);
+            KifuParseCommon::appendLine(commentBuf, c);
             continue;
         }
 

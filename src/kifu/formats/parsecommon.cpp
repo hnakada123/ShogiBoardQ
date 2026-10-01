@@ -421,9 +421,8 @@ bool tryHandleCommentLine(const QString& line, bool firstMoveFound,
 {
     if (!isKifCommentLine(line)) return false;
     const QString c = line.mid(1).trimmed();
-    if (!c.isEmpty()) {
-        appendLine(firstMoveFound ? commentBuf : openingCommentBuf, c);
-    }
+    // 空の「*」行も段落の区切りとして保持する。
+    appendLine(firstMoveFound ? commentBuf : openingCommentBuf, c);
     return true;
 }
 

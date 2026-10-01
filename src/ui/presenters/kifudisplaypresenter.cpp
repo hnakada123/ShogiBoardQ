@@ -65,10 +65,12 @@ void KifuDisplayPresenter::populateRecordModel()
     const BranchLine& line = lines.at(currentLineIndex);
 
     // 開始局面（ply=0）を追加
-    // ルートノード（ply==0）がある場合はしおりを取得
+    // ルートノード（ply==0）のコメントとしおりを取得
+    QString openingComment;
     QString openingBookmark;
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
         if (node->ply() == 0) {
+            openingComment = node->comment();
             openingBookmark = node->bookmark();
             break;
         }
@@ -76,7 +78,7 @@ void KifuDisplayPresenter::populateRecordModel()
     auto* startItem = new KifuDisplay(
         QObject::tr("=== 開始局面 ==="),
         QObject::tr("（１手 / 合計）"),
-        QString(),
+        openingComment,
         openingBookmark,
         m_refs.recordModel);
     m_refs.recordModel->appendItem(startItem);
@@ -134,10 +136,12 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
 
     m_refs.recordModel->clearAllItems();
 
-    // 開始局面のしおりを取得（ply==0 のノード）
+    // 開始局面のコメントとしおりを取得（ply==0 のノード）
+    QString openingComment;
     QString openingBookmark;
     for (KifuBranchNode* node : std::as_const(path)) {
         if (node != nullptr && node->ply() == 0) {
+            openingComment = node->comment();
             openingBookmark = node->bookmark();
             break;
         }
@@ -145,7 +149,7 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
     auto* startItem = new KifuDisplay(
         QObject::tr("=== 開始局面 ==="),
         QObject::tr("（１手 / 合計）"),
-        QString(),
+        openingComment,
         openingBookmark,
         m_refs.recordModel);
     m_refs.recordModel->appendItem(startItem);

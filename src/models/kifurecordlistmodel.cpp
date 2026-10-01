@@ -26,6 +26,15 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
 
     const int row = index.row();
     const int col = index.column();
+    if (row < 0 || row >= list.size()) return QVariant();
+
+    if (role == Qt::ToolTipRole && col == 3) {
+        const QString comment = list[row]->comment();
+        if (comment.isEmpty()) return QVariant();
+        QString html = comment.toHtmlEscaped();
+        html.replace(QLatin1Char('\n'), QStringLiteral("<br/>"));
+        return QStringLiteral("<qt>%1</qt>").arg(html);
+    }
 
     // 背景色：現在行は淡い青、分岐ありの手はオレンジ系、その他は白色
     if (role == Qt::BackgroundRole) {
@@ -71,7 +80,7 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
         return list[row]->bookmark();
     case 3:
         // コメント列
-        return list[row]->comment();
+        return list[row]->comment().simplified();
     default:
         return QVariant();
     }
