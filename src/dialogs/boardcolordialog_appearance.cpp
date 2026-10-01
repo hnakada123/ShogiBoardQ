@@ -33,13 +33,16 @@ void BoardColorDialog::createAppearancePage()
     m_pieceScale->setSuffix(QStringLiteral(" %"));
     form->addRow(tr("駒の大きさ"), m_pieceScale);
     layout->addLayout(form);
-    m_woodGrain = new QCheckBox(tr("控えめな木目を表示する"), page);
+    m_woodGrain = new QCheckBox(tr("将棋盤の木目を表示する"), page);
     m_woodGrain->setObjectName(QStringLiteral("boardWoodGrain"));
     m_pieceShadow = new QCheckBox(tr("駒の影を表示する"), page);
     m_pieceShadow->setObjectName(QStringLiteral("boardPieceShadow"));
     layout->addWidget(m_woodGrain);
     layout->addWidget(m_pieceShadow);
-    auto* note = new QLabel(tr("外観を選ぶと「標準の駒」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。"), page);
+    m_standWoodGrain = new QCheckBox(tr("駒台の木目を表示する"), page);
+    m_standWoodGrain->setObjectName(QStringLiteral("standWoodGrain"));
+    layout->addWidget(m_standWoodGrain);
+    auto* note = new QLabel(tr("外観を選ぶと「標準の駒」と標準の大きさ・影に切り替わります。各部品はこのウィンドウの見本から個別に選べます。"), page);
     note->setWordWrap(true);
     layout->addWidget(note);
     layout->addStretch();
@@ -50,6 +53,7 @@ void BoardColorDialog::createAppearancePage()
     connect(m_pieceScale, &QSpinBox::valueChanged, this, &BoardColorDialog::applyVisuals);
     connect(m_woodGrain, &QCheckBox::toggled, this, &BoardColorDialog::applyVisuals);
     connect(m_pieceShadow, &QCheckBox::toggled, this, &BoardColorDialog::applyVisuals);
+    connect(m_standWoodGrain, &QCheckBox::toggled, this, &BoardColorDialog::applyVisuals);
     connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged,
             this, &BoardColorDialog::refreshVisuals);
 }
@@ -67,16 +71,17 @@ void BoardColorDialog::applyTheme(int index)
 void BoardColorDialog::applyVisuals()
 {
     BoardAppearance::instance().setVisuals({m_woodGrain->isChecked(), m_pieceShadow->isChecked(),
-                                          m_pieceScale->value()});
+                                          m_pieceScale->value(), m_standWoodGrain->isChecked()});
 }
 
 void BoardColorDialog::refreshVisuals()
 {
     const auto visuals = BoardAppearance::instance().visuals();
-    const QSignalBlocker blockGrain(m_woodGrain), blockShadow(m_pieceShadow), blockScale(m_pieceScale);
+    const QSignalBlocker blockGrain(m_woodGrain), blockShadow(m_pieceShadow), blockScale(m_pieceScale), blockStand(m_standWoodGrain);
     m_woodGrain->setChecked(visuals.woodGrain);
     m_pieceShadow->setChecked(visuals.pieceShadow);
     m_pieceScale->setValue(visuals.pieceScale);
+    m_standWoodGrain->setChecked(visuals.standWoodGrain);
     syncThemeSelection();
 }
 

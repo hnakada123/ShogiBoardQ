@@ -823,6 +823,9 @@ set(SRC_DIALOGS
     src/dialogs/tsumecollectiondialog_navigation.cpp
     src/dialogs/tsumecollectiondialog_analysis.cpp
     src/dialogs/tsumecollectiondialog.h
+    src/dialogs/boardappearancepreview.cpp
+    src/dialogs/boardappearancepreview.h
+    src/dialogs/boardcolordialog_catalog.cpp
     src/dialogs/boardcolordialog.cpp
     src/dialogs/boardcolordialog_appearance.cpp
     src/dialogs/boardcolordialog.h
@@ -899,6 +902,8 @@ set(SRC_MODELS
 set(SRC_SERVICES
     src/services/boardappearance.cpp
     src/services/boardappearance.h
+    src/services/boardappearancecatalog.cpp
+    src/services/boardappearancecatalog.h
     src/services/boardcolorpresets.cpp
     src/services/boardcolorpresets.h
     src/common/boardcolors.h

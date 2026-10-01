@@ -80,53 +80,6 @@
     <property name="title">
      <string>表示(I)</string>
     </property>
-    <widget class="QMenu" name="menuPieceStyle">
-     <property name="title">
-      <string>駒の種類</string>
-     </property>
-     <property name="icon">
-      <iconset>
-       <normaloff>:/images/actions/actionPieceStyle.svg</normaloff>:/images/actions/actionPieceStyle.svg</iconset>
-     </property>
-     <widget class="QMenu" name="menuPieceStyleTorafu">
-      <property name="title"><string>虎斑</string></property>
-      <addaction name="actionPieceStyleTorafuLight"/>
-      <addaction name="actionPieceStyleTorafuSilk"/>
-      <addaction name="actionPieceStyleTorafuAmber"/>
-      <addaction name="actionPieceStyleTorafuRed"/>
-      <addaction name="actionPieceStyleTorafuGold"/>
-     </widget>
-     <widget class="QMenu" name="menuPieceStyleWood">
-      <property name="title"><string>木肌</string></property>
-      <addaction name="actionPieceStyleWoodPale"/>
-      <addaction name="actionPieceStyleWoodStraight"/>
-      <addaction name="actionPieceStyleWoodAmber"/>
-      <addaction name="actionPieceStyleWoodBamboo"/>
-      <addaction name="actionPieceStyleWoodWalnut"/>
-     </widget>
-     <widget class="QMenu" name="menuPieceStyleTint">
-      <property name="title"><string>淡色</string></property>
-      <addaction name="actionPieceStyleTintLinen"/>
-      <addaction name="actionPieceStyleTintSakura"/>
-      <addaction name="actionPieceStyleTintCeladon"/>
-      <addaction name="actionPieceStyleTintMoon"/>
-      <addaction name="actionPieceStyleTintWisteria"/>
-     </widget>
-     <widget class="QMenu" name="menuPieceStyleDeep">
-      <property name="title"><string>深色</string></property>
-      <addaction name="actionPieceStyleDeepEbony"/>
-      <addaction name="actionPieceStyleDeepNavy"/>
-      <addaction name="actionPieceStyleDeepGreen"/>
-      <addaction name="actionPieceStyleDeepGrape"/>
-      <addaction name="actionPieceStyleDeepGold"/>
-     </widget>
-     <addaction name="actionPieceStyleStandard"/>
-     <addaction name="separator"/>
-     <addaction name="menuPieceStyleTorafu"/>
-     <addaction name="menuPieceStyleWood"/>
-     <addaction name="menuPieceStyleTint"/>
-     <addaction name="menuPieceStyleDeep"/>
-    </widget>
     <widget class="QMenu" name="menuSavedLayouts">
      <property name="title">
       <string>保存済みレイアウト</string>
@@ -136,8 +89,7 @@
     <addaction name="actionFlipBoard"/>
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
-    <addaction name="menuPieceStyle"/>
-    <addaction name="actionBoardColors"/>
+    <addaction name="actionBoardAppearance"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
     <addaction name="separator"/>
@@ -253,118 +205,6 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+A</string>
-   </property>
-  </action>
-  <action name="actionPieceStyleTorafuLight">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/torafu_light/Sente_ou45.svg</normaloff>:/pieces/torafu_light/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>淡虎斑</string></property>
-  </action>
-  <action name="actionPieceStyleTorafuSilk">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/torafu_silk/Sente_ou45.svg</normaloff>:/pieces/torafu_silk/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>絹虎斑</string></property>
-  </action>
-  <action name="actionPieceStyleTorafuAmber">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/torafu_amber/Sente_ou45.svg</normaloff>:/pieces/torafu_amber/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>飴虎斑</string></property>
-  </action>
-  <action name="actionPieceStyleTorafuRed">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/torafu_red/Sente_ou45.svg</normaloff>:/pieces/torafu_red/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>紅虎斑</string></property>
-  </action>
-  <action name="actionPieceStyleTorafuGold">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/torafu_gold/Sente_ou45.svg</normaloff>:/pieces/torafu_gold/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>山吹虎斑</string></property>
-  </action>
-  <action name="actionPieceStyleWoodPale">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/wood_pale/Sente_ou45.svg</normaloff>:/pieces/wood_pale/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>白木</string></property>
-  </action>
-  <action name="actionPieceStyleWoodStraight">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/wood_straight/Sente_ou45.svg</normaloff>:/pieces/wood_straight/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>糸柾</string></property>
-  </action>
-  <action name="actionPieceStyleWoodAmber">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/wood_amber/Sente_ou45.svg</normaloff>:/pieces/wood_amber/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>飴柾</string></property>
-  </action>
-  <action name="actionPieceStyleWoodBamboo">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/wood_bamboo/Sente_ou45.svg</normaloff>:/pieces/wood_bamboo/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>笹杢</string></property>
-  </action>
-  <action name="actionPieceStyleWoodWalnut">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/wood_walnut/Sente_ou45.svg</normaloff>:/pieces/wood_walnut/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>胡桃</string></property>
-  </action>
-  <action name="actionPieceStyleTintLinen">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/tint_linen/Sente_ou45.svg</normaloff>:/pieces/tint_linen/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>生成り</string></property>
-  </action>
-  <action name="actionPieceStyleTintSakura">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/tint_sakura/Sente_ou45.svg</normaloff>:/pieces/tint_sakura/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>薄桜</string></property>
-  </action>
-  <action name="actionPieceStyleTintCeladon">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/tint_celadon/Sente_ou45.svg</normaloff>:/pieces/tint_celadon/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>青磁</string></property>
-  </action>
-  <action name="actionPieceStyleTintMoon">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/tint_moon/Sente_ou45.svg</normaloff>:/pieces/tint_moon/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>月白</string></property>
-  </action>
-  <action name="actionPieceStyleTintWisteria">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/tint_wisteria/Sente_ou45.svg</normaloff>:/pieces/tint_wisteria/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>藤鼠</string></property>
-  </action>
-  <action name="actionPieceStyleDeepEbony">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/deep_ebony/Sente_ou45.svg</normaloff>:/pieces/deep_ebony/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>黒檀</string></property>
-  </action>
-  <action name="actionPieceStyleDeepNavy">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/deep_navy/Sente_ou45.svg</normaloff>:/pieces/deep_navy/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>鉄紺</string></property>
-  </action>
-  <action name="actionPieceStyleDeepGreen">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/deep_green/Sente_ou45.svg</normaloff>:/pieces/deep_green/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>深緑</string></property>
-  </action>
-  <action name="actionPieceStyleDeepGrape">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/deep_grape/Sente_ou45.svg</normaloff>:/pieces/deep_grape/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>葡萄</string></property>
-  </action>
-  <action name="actionPieceStyleDeepGold">
-   <property name="checkable"><bool>true</bool></property>
-   <property name="icon"><iconset><normaloff>:/pieces/deep_gold/Sente_ou45.svg</normaloff>:/pieces/deep_gold/Sente_ou45.svg</iconset></property>
-   <property name="text"><string>墨金</string></property>
-  </action>
-  <action name="actionPieceStyleStandard">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset>
-     <normaloff>:/pieces/Sente_ou45.svg</normaloff>:/pieces/Sente_ou45.svg</iconset>
-   </property>
-   <property name="text">
-    <string>標準の駒</string>
    </property>
   </action>
   <action name="actionSaveBoardImage">
@@ -923,13 +763,13 @@
     <string>詰将棋局面生成…</string>
    </property>
   </action>
-  <action name="actionBoardColors">
+  <action name="actionBoardAppearance">
    <property name="icon">
     <iconset>
      <normaloff>:/images/actions/actionBoardColors.svg</normaloff>:/images/actions/actionBoardColors.svg</iconset>
    </property>
    <property name="text">
-    <string>盤面の配色…</string>
+    <string>対局画面の外観…</string>
    </property>
   </action>
  </widget>

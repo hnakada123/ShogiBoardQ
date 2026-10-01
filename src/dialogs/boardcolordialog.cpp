@@ -21,10 +21,13 @@
 BoardColorDialog::BoardColorDialog(QWidget* parent)
     : QDialog(parent), m_picker(new QColorDialog(this))
 {
-    setWindowTitle(tr("盤面の配色"));
-    setMinimumSize(560, 460);
+    setWindowTitle(tr("対局画面の外観"));
+    m_openingColors = BoardAppearance::instance().colors();
+    m_openingVisuals = BoardAppearance::instance().visuals();
+    m_openingStyle = PieceImageProvider::instance().style();
+    setMinimumSize(960, 640);
     auto* layout = new QVBoxLayout(this);
-    auto* description = new QLabel(tr("色を選択すると、すべての将棋盤に反映・保存されます。"), this);
+    auto* description = new QLabel(tr("駒・将棋盤・背景・駒台・対局者情報を自由に組み合わせられます。選択はすべての盤面に反映・保存されます。"), this);
     description->setWordWrap(true);
     layout->addWidget(description);
     m_presetLabel = new QLabel(this);
@@ -40,11 +43,15 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
             this, &BoardColorDialog::rebuildPresets);
     m_tabs = new QTabWidget(this);
     m_tabs->setObjectName(QStringLiteral("boardColorTabs"));
-    layout->addWidget(m_tabs);
+    m_tabs->setTabPosition(QTabWidget::West);
     createColorPages();
     createAppearancePage();
+    createWorkspace(layout);
     m_tabs->setCurrentIndex(qBound(0, AppSettings::boardColorDialogTab(), m_tabs->count() - 1));
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
+    auto* undo = buttons->addButton(tr("開いたときの外観に戻す"), QDialogButtonBox::ResetRole);
+    undo->setObjectName(QStringLiteral("restoreOpeningAppearanceButton"));
+    connect(undo, &QPushButton::clicked, this, &BoardColorDialog::restoreOpeningAppearance);
     auto* reset = buttons->addButton(tr("標準色に戻す"), QDialogButtonBox::ResetRole);
     reset->setObjectName(QStringLiteral("resetBoardColorsButton"));
     connect(reset, &QPushButton::clicked, this, &BoardColorDialog::restoreDefaults);
@@ -67,6 +74,8 @@ BoardColorDialog::~BoardColorDialog()
 {
     DialogUtils::saveDialogSize(this, AppSettings::setBoardColorDialogSize);
     AppSettings::setBoardColorDialogTab(m_tabs->currentIndex());
+    AppSettings::setAppearanceSection(m_sections->currentIndex());
+    AppSettings::setAppearancePieceFilter(m_pieceFilter->currentIndex());
 }
 
 void BoardColorDialog::createColorPages()
@@ -236,8 +245,8 @@ QIcon BoardColorDialog::presetIcon(const BoardColors& colors, const QString& sty
     preview.setDevicePixelRatio(2);
     preview.fill(colors.background);
     QPainter painter(&preview);
-    BoardSurfacePainter::draw(painter, QRect(4, 5, 22, 29), colors.stand, visuals.woodGrain, 20);
-    BoardSurfacePainter::draw(painter, QRect(94, 38, 22, 29), colors.stand, visuals.woodGrain, 20);
+    BoardSurfacePainter::draw(painter, QRect(4, 5, 22, 29), colors.stand, visuals.standWoodGrain, 20);
+    BoardSurfacePainter::draw(painter, QRect(94, 38, 22, 29), colors.stand, visuals.standWoodGrain, 20);
     BoardSurfacePainter::draw(painter, QRect(28, 1, 64, 70), colors.board, visuals.woodGrain, 20);
     painter.setBrush(Qt::NoBrush);
     painter.setPen(colors.grid);

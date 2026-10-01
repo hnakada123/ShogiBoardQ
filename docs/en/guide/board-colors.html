@@ -4,18 +4,18 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Board Colors - ShogiBoardQ</title>
+<title>Game Appearance - ShogiBoardQ</title>
 <meta content="Learn to customize ShogiBoardQ board colors with screenshots: choose matching palettes and adjust board, turn indicator, player name, and clock backgrounds, borders, and text colors." name="description"/>
 <link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html" rel="canonical"/>
 <meta content="article" property="og:type"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html" property="og:url"/>
-<meta content="Board Colors - ShogiBoardQ" property="og:title"/>
+<meta content="Game Appearance - ShogiBoardQ" property="og:title"/>
 <meta content="Customize board, player card, turn indicator, name, and clock colors." property="og:description"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png" property="og:image"/>
 <meta content="en_US" property="og:locale"/>
 <meta content="ShogiBoardQ" property="og:site_name"/>
 <meta content="summary_large_image" name="twitter:card"/>
-<meta content="Board Colors - ShogiBoardQ" name="twitter:title"/>
+<meta content="Game Appearance - ShogiBoardQ" name="twitter:title"/>
 <meta content="Customize board, player card, turn indicator, name, and clock colors." name="twitter:description"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png" name="twitter:image"/>
 <link href="../../css/style.css" rel="stylesheet"/>
@@ -43,127 +43,41 @@
 </div>
 </nav>
 <main class="appearance-guide">
-<section class="hero hero--sub">
-<div class="hero-content">
-<h1>Board Colors</h1>
-<p class="hero-subtitle">Choose colors that complement your pieces and make the board your own</p>
-<div class="hero-badges">
-<span class="badge">Palettes for Each Piece Style</span>
-<span class="badge">Turn, Name and Clock Colors</span>
-<span class="badge">Saved Settings</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
-</section>
-<section class="section section--alt" id="open-dialog">
-<div class="section-inner">
-<h2 class="section-title">Open the Color Settings</h2>
-<p class="section-desc">Choose View → Board Colors… from the menu</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<p class="guide-step-text">The Board Colors dialog has six tabs: Board / stands, Player cards, Turn, Player names, Clocks, and Appearance. Choose a coordinated appearance, then adjust individual colors in the other tabs. Each color button displays a sample and color code.</p>
-<div class="screenshot-item screenshot-item--compact">
-<a href="../../images/en/board-colors/board-colors-dialog.png">
-<img alt="Board Colors dialog with tabs for board colors, player cards, turn indicators, player names, and clocks" height="480" loading="lazy" src="../../images/en/board-colors/board-colors-dialog.png" width="560"/>
-</a>
-<p class="screenshot-caption">Board / stands tab: recommended palettes and four board colors</p>
-</div>
-</div>
-</div>
-</div>
-</section>
-<section class="section" id="appearance">
-<div class="section-inner">
-<h2 class="section-title">Wooden Board Appearances</h2>
-<p class="section-desc">The Appearance tab coordinates the board, stands, pieces, and player cards.</p>
-<p>Kaya and tatami combines pale wood with a muted green background. Ink and kaya pairs a light board with a dark green background. Amber uses warmer wood colors. New installations default to Kaya and tatami with Standard Pieces, using wooden Mincho artwork. Saved colors are preserved; retired piece selections migrate to Standard Pieces.</p>
-<p>Wood grain and piece shadows can be toggled independently, and piece size can be adjusted from 90% to 112%. Selecting an appearance applies all its colors, wooden pieces, grain and shadows, and a piece size of 108%. Reset to Default Colors only resets the colors.</p>
-<p>Settings are saved and shared with variation boards, tsume previews, and exported board images. The light and shadow direction stays fixed when the board is flipped.</p>
-</div>
-</section>
-<section id="presets" class="section"><div class="section-inner">
-<h2 class="section-title">Choose a Recommended Palette</h2>
-<p>The Board and Stands tab offers five shared palettes for all piece styles, each with a preview: Moss Garden, Walnut, Linen, Deep Forest, and Rock Garden.</p>
-<p>Selecting a palette applies the background, board, piece stand, and grid colors together. Player card, turn indicator, name, and clock colors are preserved.</p>
+<section class="hero hero--sub"><div class="hero-content"><h1>Game Appearance</h1><p class="hero-subtitle">Combine five components using visual samples</p></div></section>
+<section id="open-dialog" class="section section--alt"><div class="section-inner">
+<h2 class="section-title">Open the Appearance Window</h2>
+<p>Choose View → Game Appearance…. This replaces the former Piece Style and Board Colors menus.</p>
+<p>Select samples on the left and check the combined result in the preview on the right. Your choices apply to all boards immediately and are saved automatically.</p>
+<div class="screenshot-item"><a href="../../images/board-colors/appearance-window-ebony.png"><img src="../../images/board-colors/appearance-window-ebony.png" alt="Appearance window combining Ebony pieces with the Moon White board; Japanese interface" loading="lazy"></a></div>
 </div></section>
-<section class="section section--alt" id="information-colors">
-<div class="section-inner">
-<h2 class="section-title">Customize Turn Indicators, Player Names and Clocks</h2>
-<p class="section-desc">Use the tabs to choose backgrounds, borders and text colors. The same settings apply to both players.</p>
-<table class="judgment-table">
-<thead><tr><th scope="col">Tab</th><th scope="col">Available colors</th></tr></thead>
-<tbody>
-<tr><th scope="row">Player cards</th><td>Card background, normal border, and active player border</td></tr>
-<tr><th scope="row"><a href="../../images/en/board-colors/board-colors-turn.png">Turn</a></th><td>Turn badge background, border, and text</td></tr>
-<tr><th scope="row"><a href="../../images/en/board-colors/board-colors-name.png">Player names</a></th><td>Name background, border, and text</td></tr>
-<tr><th scope="row">Clocks</th><td>Clock background, border, normal text, text with 10 seconds or less, and text in byoyomi or with 5 seconds or less</td></tr>
-</tbody>
-</table>
-<p class="guide-step-text">The active player border surrounds the entire card and moves to the other card when the turn changes. It is separate from the turn badge border. While a time warning is active, the clock uses the warning text color instead of the normal text color.</p>
-<div class="screenshot-gallery screenshot-gallery--comparison">
-<div class="screenshot-item">
-<a href="../../images/en/board-colors/board-colors-card.png"><img src="../../images/en/board-colors/board-colors-card.png" alt="Player cards tab with background, normal border, and active player border settings" loading="lazy" width="560" height="480"/></a>
-<p class="screenshot-caption">Player cards: choose the background and normal and active borders</p>
-</div>
-<div class="screenshot-item">
-<a href="../../images/en/board-colors/board-colors-clock.png"><img src="../../images/en/board-colors/board-colors-clock.png" alt="Clocks tab with background, border, and normal and warning text colors" loading="lazy" width="560" height="480"/></a>
-<p class="screenshot-caption">Clocks: choose background, border, text, and time warning colors</p>
-</div>
-</div>
-<p class="guide-step-text">By default, name and clock backgrounds and borders are transparent so the card background shows through. Set the alpha value to 255 for an opaque color, 0 for transparency, or an intermediate value for partial transparency. Turn badge backgrounds and borders also support transparency.</p>
-<div class="screenshot-gallery">
-<div class="screenshot-item">
-<a href="../../images/en/board-colors/board-information-colors.png"><img src="../../images/en/board-colors/board-information-colors.png" alt="Board with blue player cards, beige name labels, and green clock labels" loading="lazy" width="708" height="551"/></a>
-<p class="screenshot-caption">Example: set player card, turn badge, name, and clock colors separately</p>
-</div>
-</div>
-</div>
-</section>
-<section class="section section--alt" id="custom-colors">
-<div class="section-inner">
-<h2 class="section-title">Adjust Individual Colors</h2>
-<p class="section-desc">Start with a recommended palette and change just the colors you want</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<h3 class="guide-step-title">Click the Color Button for the Item You Want to Change</h3>
-</div>
-<table class="judgment-table">
-<thead><tr><th scope="col">Item</th><th scope="col">Area Affected</th></tr></thead>
-<tbody>
-<tr><th scope="row">Board Background</th><td>The background around the board and piece stands</td></tr>
-<tr><th scope="row">Board</th><td>The playing surface where pieces are placed</td></tr>
-<tr><th scope="row">Piece Stands</th><td>The stands holding captured pieces for Black and White</td></tr>
-<tr><th scope="row">Grid Lines</th><td>The lines separating squares on the board</td></tr>
-</tbody>
-</table>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<h3 class="guide-step-title">Choose and Apply a Color</h3>
-</div>
-<p class="guide-step-text">Choose a color in the color picker and click OK to apply it. Clicking Cancel leaves that color unchanged. If the four board colors differ from the recommended combinations, the palette list shows Custom (individual colors). Changing only player information colors preserves the selected palette name.</p>
-<div class="screenshot-item screenshot-item--compact">
-<a href="../../images/en/board-colors/board-colors-picker.png">
-<img alt="Board color picker with swatches, hue and brightness controls, RGB values, and an HTML color code" height="423" loading="lazy" src="../../images/en/board-colors/board-colors-picker.png" width="528"/>
-</a>
-<p class="screenshot-caption">Color picker: select a swatch or enter a color code</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<h3 class="guide-step-title">Saving Settings and Restoring Defaults</h3>
-</div>
-<p class="guide-step-text">The selected colors apply to all boards and are saved automatically. They remain in effect after you close the dialog and the next time you start the application. The dialog size and last selected tab are also saved.</p>
-<p class="guide-step-text">Click Restore Default Colors to reset all 18 board and player information colors while keeping the current piece style. You can also save an image of your customized board with <a href="image-export.html">Image Export</a>.</p>
-</div>
-</div>
-</div>
-</section>
-</main>
+<section id="appearance" class="section"><div class="section-inner">
+<h2 class="section-title">Choose Components Independently</h2>
+<table class="judgment-table"><thead><tr><th>Tab</th><th>Samples</th><th>Changes</th></tr></thead><tbody>
+<tr><td>Pieces</td><td>21</td><td>Standard, tiger grain, wood tones, light colors, and dark colors. Filter by family.</td></tr>
+<tr><td>Board</td><td>20</td><td>Board color and grain, and grid lines.</td></tr>
+<tr><td>Background</td><td>20</td><td>The background color around the board and stands.</td></tr>
+<tr><td>Stands</td><td>20</td><td>Color and grain of the captured piece stands.</td></tr>
+<tr><td>Players</td><td>20</td><td>Cards, turn badges, player names, clocks, and time warning colors.</td></tr>
+</tbody></table>
+<p>Choosing one component preserves the others. Changing the board preserves the background; changing the background preserves the board color, grain, and grid lines. Board and stand grain can also be set independently.</p>
+<div class="screenshot-item"><a href="../../images/board-colors/appearance-background.png"><img src="../../images/board-colors/appearance-background.png" alt="Independent background selection combining a Pale Kaya board with an Indigo Blue background; Japanese interface" loading="lazy"></a></div>
+</div></section>
+<section id="presets" class="section section--alt"><div class="section-inner">
+<h2 class="section-title">Suggested Combinations and Preview</h2>
+<p>Six combinations, including Ebony / Moon White and Pale Wood / Ink Night, provide starting points. A suggested combination changes all five components, including the background. You can then choose each component separately.</p>
+<p>The preview uses the same renderer as the game screen. Check promoted and captured pieces or flip the preview to assess readability. These preview controls do not change a game in progress.</p>
+</div></section>
+<section id="information-colors" class="section"><div class="section-inner">
+<h2 class="section-title">20 Player Information Styles</h2>
+<p>Choose light or dark cards, including Spring Green, Linen, Porcelain, Cherry Mist, Wisteria Mist, Celadon, Pale Aqua, Sand Dune, Amber, Walnut, Charcoal, Indigo Night, Forest Green, Grape, Iron Navy, Ink and Gold, Silver Gray, Red Earth, Rock Garden, and Moon White.</p>
+<div class="screenshot-item"><a href="../../images/board-colors/appearance-information.png"><img src="../../images/board-colors/appearance-information.png" alt="Player information samples and board preview; Japanese interface" loading="lazy"></a></div>
+</div></section>
+<section id="custom-colors" class="section section--alt"><div class="section-inner">
+<h2 class="section-title">Details and Saved Preferences</h2>
+<p>Details retains all 18 individual color controls, transparency, piece size (90–112%), shadows, and separate board and stand grain settings. Individual changes are shown as Custom.</p>
+<p>Restore Opening Appearance restores the pieces, colors, and textures from when this window was opened. Restore Default Colors resets only the 18 colors.</p>
+<p>The appearance, window size, selected tabs, and piece filter are remembered. The same appearance is used in variation boards, tsume boards, and <a href="image-export.html">exported board images</a>.</p>
+</div></section></main>
 <div class="back-link-section">
 <a class="back-link" href="index.html">← Back to User Guide</a>
 </div>

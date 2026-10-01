@@ -200,7 +200,9 @@ BoardVisuals boardVisuals()
     const BoardVisuals defaults;
     return BoardVisuals{s.value(SettingsKeys::kBoardWoodGrain, defaults.woodGrain).toBool(),
                         s.value(SettingsKeys::kBoardPieceShadow, defaults.pieceShadow).toBool(),
-                        s.value(SettingsKeys::kBoardPieceScale, defaults.pieceScale).toInt()}.normalized();
+                        s.value(SettingsKeys::kBoardPieceScale, defaults.pieceScale).toInt(),
+                        s.value(SettingsKeys::kStandWoodGrain,
+                                s.value(SettingsKeys::kBoardWoodGrain, defaults.woodGrain)).toBool()}.normalized();
 }
 
 void setBoardVisuals(const BoardVisuals& visuals)
@@ -208,6 +210,7 @@ void setBoardVisuals(const BoardVisuals& visuals)
     auto& s = SettingsCommon::openSettings();
     const auto normalized = visuals.normalized();
     s.setValue(SettingsKeys::kBoardWoodGrain, normalized.woodGrain);
+    s.setValue(SettingsKeys::kStandWoodGrain, normalized.standWoodGrain);
     s.setValue(SettingsKeys::kBoardPieceShadow, normalized.pieceShadow);
     s.setValue(SettingsKeys::kBoardPieceScale, normalized.pieceScale);
 }
@@ -217,6 +220,40 @@ int boardColorDialogTab()
     return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogTab, 5).toInt();
 }
 
+namespace {
+const QStringList kAppearanceSections{
+    QStringLiteral("pieces"), QStringLiteral("board"), QStringLiteral("background"),
+    QStringLiteral("stand"), QStringLiteral("information"), QStringLiteral("details")};
+}
+
+int appearanceSection()
+{
+    const auto saved = SettingsCommon::openSettings().value(SettingsKeys::kAppearanceSection, "pieces").toString();
+    const int index = static_cast<int>(kAppearanceSections.indexOf(saved));
+    if (index >= 0) return index;
+    // 背景タブの追加前に保存した番号も、同じ項目を開くよう引き継ぐ。
+    bool ok = false;
+    const int legacy = saved.toInt(&ok);
+    if (!ok || legacy < 0 || legacy > 4) return 0;
+    return legacy < 2 ? legacy : legacy + 1;
+}
+
+void setAppearanceSection(int index)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearanceSection,
+                                            kAppearanceSections.at(qBound(0, index, 5)));
+}
+
+int appearancePieceFilter()
+{
+    return qBound(0, SettingsCommon::openSettings().value(SettingsKeys::kAppearancePieceFilter, 0).toInt(), 4);
+}
+
+void setAppearancePieceFilter(int index)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearancePieceFilter, qBound(0, index, 4));
+}
+
 void setBoardColorDialogTab(int index)
 {
     SettingsCommon::openSettings().setValue(SettingsKeys::kBoardColorDialogTab, index);
@@ -224,7 +261,7 @@ void setBoardColorDialogTab(int index)
 
 QSize boardColorDialogSize()
 {
-    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogSize, QSize(560, 480)).toSize();
+    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogSize, QSize(1180, 800)).toSize();
 }
 
 void setBoardColorDialogSize(const QSize& size)

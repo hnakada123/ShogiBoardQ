@@ -116,15 +116,43 @@ private slots:
         QCOMPARE(AppSettings::language(), QStringLiteral("ja_JP"));
     }
 
+    void appSettings_appearanceSection()
+    {
+        auto& settings = SettingsCommon::openSettings();
+        settings.remove(SettingsKeys::kAppearanceSection);
+        QCOMPARE(AppSettings::appearanceSection(), 0);
+        for (int legacy = 0; legacy <= 4; ++legacy) {
+            settings.setValue(SettingsKeys::kAppearanceSection, legacy);
+            QCOMPARE(AppSettings::appearanceSection(), legacy < 2 ? legacy : legacy + 1);
+        }
+        for (int index = 0; index < 6; ++index) {
+            AppSettings::setAppearanceSection(index);
+            QCOMPARE(AppSettings::appearanceSection(), index);
+        }
+        AppSettings::setAppearanceSection(2);
+        settings.sync();
+        const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QCOMPARE(restored.value(SettingsKeys::kAppearanceSection).toString(), QStringLiteral("background"));
+        settings.setValue(SettingsKeys::kAppearanceSection, QStringLiteral("unknown"));
+        QCOMPARE(AppSettings::appearanceSection(), 0);
+        AppSettings::setAppearanceSection(100);
+        QCOMPARE(AppSettings::appearanceSection(), 5);
+        AppSettings::setAppearanceSection(-1);
+        QCOMPARE(AppSettings::appearanceSection(), 0);
+    }
+
     void appSettings_boardVisuals()
     {
         auto& settings = SettingsCommon::openSettings();
         settings.remove(QStringLiteral("BoardVisuals"));
         QVERIFY(AppSettings::boardVisuals() == BoardVisuals{});
+        settings.setValue(SettingsKeys::kBoardWoodGrain, false);
+        QVERIFY(!AppSettings::boardVisuals().standWoodGrain);
         AppSettings::setBoardVisuals({false, false, 94});
         settings.sync();
         const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(restored.value(SettingsKeys::kBoardWoodGrain).toBool(), false);
+        QCOMPARE(restored.value(SettingsKeys::kStandWoodGrain).toBool(), true);
         QCOMPARE(restored.value(SettingsKeys::kBoardPieceShadow).toBool(), false);
         QCOMPARE(restored.value(SettingsKeys::kBoardPieceScale).toInt(), 94);
         QVERIFY(AppSettings::boardVisuals() == (BoardVisuals{false, false, 94}));
