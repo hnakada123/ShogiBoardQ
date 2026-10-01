@@ -82,7 +82,6 @@ QRect ShogiView::calculateSquareRectangleBasedOnBoardState(int, int) const { ret
 QRect ShogiView::calculateRectangleForRankOrFileLabel(int, int) const { return {}; }
 QRect ShogiView::cachedFieldRect(int, int) const { return {}; }
 void ShogiView::invalidateFieldRectCache() {}
-void ShogiView::setPiece(char, const QIcon&) {}
 QIcon ShogiView::piece(QChar) const { return {}; }
 void ShogiView::setPieces() {}
 void ShogiView::setPiecesFlip() {}
@@ -104,7 +103,6 @@ bool ShogiView::positionEditMode() const { return false; }
 void ShogiView::resetAndEqualizePiecesOnStands() {}
 void ShogiView::initializeToFlatStartingPosition() {}
 void ShogiView::shogiProblemInitialPosition() {}
-void ShogiView::flipBoardSides() {}
 bool ShogiView::flipMode() const { return false; }
 void ShogiView::setFlipMode(bool) {}
 void ShogiView::setErrorOccurred(bool) {}
@@ -115,7 +113,6 @@ void ShogiView::setWhiteClockText(const QString&) {}
 QLabel* ShogiView::blackClockLabel() const { return nullptr; }
 QLabel* ShogiView::whiteClockLabel() const { return nullptr; }
 void ShogiView::setClockEnabled(bool) {}
-bool ShogiView::isClockEnabled() const { return false; }
 void ShogiView::setBlackPlayerName(const QString&) {}
 void ShogiView::setWhitePlayerName(const QString&) {}
 ElideLabel* ShogiView::blackNameLabel() const { return nullptr; }
@@ -125,8 +122,6 @@ void ShogiView::setNameFontScale(double) {}
 void ShogiView::setRankFontScale(double) {}
 void ShogiView::setActiveSide(bool) {}
 void ShogiView::setHighlightStyle(const QColor&, const QColor&, const QColor&) {}
-void ShogiView::setBlackTimeMs(qint64) {}
-void ShogiView::setWhiteTimeMs(qint64) {}
 QImage ShogiView::toImage(qreal) { return {}; }
 void ShogiView::applyBoardAndRender(ShogiBoard*) {}
 void ShogiView::configureFixedSizing(int) {}

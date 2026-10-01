@@ -935,7 +935,7 @@ private slots:
         auto* list = combo->view();
         const auto index = list->model()->index(0, 0);
         QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier, list->visualRect(index).center());
-        const auto preset = BoardColorPresets::forPieceStyle(AppSettings::pieceStyle()).first().colors;
+        const auto preset = BoardColorPresets::palettes().first().colors;
         expected.background = preset.background;
         expected.board = preset.board;
         expected.stand = preset.stand;
@@ -1003,7 +1003,7 @@ private slots:
         auto* label = dialog->findChild<QLabel*>("boardColorPresetLabel");
         QVERIFY(label);
         QVERIFY(label->text().contains(BoardColorPresets::pieceStyleName(style)));
-        const auto presets = BoardColorPresets::forPieceStyle(style);
+        const auto presets = BoardColorPresets::palettes();
         QCOMPARE(presets.size(), 5);
         QCOMPARE(combo->count(), 5);
         QCOMPARE(combo->currentIndex(), -1);

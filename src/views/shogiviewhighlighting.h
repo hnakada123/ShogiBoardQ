@@ -7,9 +7,7 @@
 #include "shogiview.h"
 
 #include <QColor>
-#include <QHash>
 #include <QList>
-#include <QPixmap>
 
 class QPainter;
 class QLabel;
@@ -70,7 +68,6 @@ private:
     // ハイライト/矢印データ
     QList<ShogiView::Highlight*> m_highlights;
     QList<ShogiView::Arrow> m_arrows;
-
 
     // setHighlightStyle() による一時的な上書き。通常は盤面の配色設定を参照する。
     QColor m_highlightBg;

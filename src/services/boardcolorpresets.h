@@ -17,13 +17,13 @@ struct BoardThemePreset {
     BoardColors colors;
 };
 
-/// 駒の地色・文字色に合わせた配色候補。各駒セットに5種類を用意する。
+/// 詳細設定で使う全体テーマ・共通配色と、駒セットの表示名。
 class BoardColorPresets
 {
     Q_DECLARE_TR_FUNCTIONS(BoardColorPresets)
 public:
     static QList<BoardThemePreset> themes();
-    static QList<BoardColorPreset> forPieceStyle(const QString& style);
+    static QList<BoardColorPreset> palettes();
     static QString pieceStyleName(const QString& style);
 };
 

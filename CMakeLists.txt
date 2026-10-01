@@ -638,8 +638,6 @@ set(SRC_UI
     src/ui/controllers/jishogiscoredialogcontroller.h
     src/ui/controllers/languagecontroller.cpp
     src/ui/controllers/languagecontroller.h
-    src/ui/controllers/piecestylecontroller.cpp
-    src/ui/controllers/piecestylecontroller.h
     src/ui/controllers/mainwindowappearancecontroller.cpp
     src/ui/controllers/mainwindowappearancecontroller.h
     src/ui/controllers/nyugyokudeclarationhandler.cpp

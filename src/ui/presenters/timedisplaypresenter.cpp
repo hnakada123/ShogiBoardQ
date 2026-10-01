@@ -5,7 +5,6 @@
 #include "shogiview.h"
 #include "shogiclock.h"
 #include "logcategories.h"
-#include <QTime>
 
 TimeDisplayPresenter::TimeDisplayPresenter(ShogiView* view, QObject* parent)
     : QObject(parent), m_view(view)
@@ -46,8 +45,6 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64 p1ms, qint64 p2ms, bool p1t
     if (m_view) {
         if (auto* b = m_view->blackClockLabel()) b->setText(fmt_hhmmss(p1ms));
         if (auto* w = m_view->whiteClockLabel()) w->setText(fmt_hhmmss(p2ms));
-        m_view->setBlackTimeMs(p1ms);
-        m_view->setWhiteTimeMs(p2ms);
     }
     applyTurnHighlights(p1turn);
 }

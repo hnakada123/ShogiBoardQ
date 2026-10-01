@@ -10,7 +10,6 @@
 #include <QColor>
 #include <QPainter>
 #include <QFont>
-#include <QFontMetrics>
 
 void ShogiView::drawRanks(QPainter* painter)
 {
