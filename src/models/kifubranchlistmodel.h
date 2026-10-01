@@ -47,9 +47,6 @@ public:
     /// 指定行が「本譜へ戻る」行かどうか
     bool isBackToMainRow(int row) const;
 
-    /// 「本譜へ戻る」行のインデックス（無効時は -1）
-    int backToMainRowIndex() const;
-
     /// 表示行のラベルを返す
     QString labelAt(int row) const {
         if (row < 0 || row >= rowCount()) return {};
@@ -114,9 +111,6 @@ private:
     QHash<quint64, int> m_key2node;         ///< (vid<<32)|ply → nodeId の検索マップ
 
 private:
-    static quint64 vpKey(int vid, int ply) {
-        return (quint64(uint32_t(vid)) << 32) | uint32_t(ply);
-    }
     void setActiveNode(int nodeId);
     bool graphFallbackToPly(int targetPly, bool preferPrev);
 

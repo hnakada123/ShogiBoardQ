@@ -27,7 +27,6 @@ public:
     void toggle();
 
     // --- Turn enum 変換 ---
-    Turn toTurn() const;
     void setFromTurn(Turn t);
 
     // --- SFEN "b"/"w" 変換 ---
@@ -36,8 +35,6 @@ public:
 
     // --- Clock 1/2 変換 ---
     int  toClockPlayer() const;
-    void setFromClockPlayer(int p);
-
     // --- GameController 変換 ---
     ShogiGameController::Player toGc() const;
     void setFromGc(ShogiGameController::Player p);

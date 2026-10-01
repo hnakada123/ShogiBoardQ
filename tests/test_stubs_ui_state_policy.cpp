@@ -33,13 +33,8 @@ QTableView* RecordPane::branchView() const { return nullptr; }
 void RecordPane::setArrowButtonsEnabled(bool) {}
 void RecordPane::setKifuViewEnabled(bool) {}
 void RecordPane::setNavigationEnabled(bool) {}
-CommentTextAdapter* RecordPane::commentLabel() { return nullptr; }
-QPushButton* RecordPane::backToMainButton() { return nullptr; }
 void RecordPane::setupKifuSelectionAppearance() {}
 void RecordPane::setupBranchViewSelectionAppearance() {}
-// public slots
-void RecordPane::setBranchCommentText(const QString&) {}
-void RecordPane::setBranchCommentHtml(const QString&) {}
 void RecordPane::onFontIncrease(bool) {}
 void RecordPane::onFontDecrease(bool) {}
 void RecordPane::onToggleTimeColumn(bool) {}

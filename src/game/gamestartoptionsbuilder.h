@@ -11,8 +11,6 @@
 #include "playmode.h"
 #include "startgamedatabridge.h"
 
-class QObject;
-class QWidget;
 class ShogiGameController;
 class ShogiBoard;
 
@@ -31,9 +29,6 @@ public:
     using TimeControl = GameStartCoordinator::TimeControl;
 
     // --- TimeControl 構築 ---
-
-    /// QWidget の子オブジェクトの property から TimeControl を組み立てる
-    static TimeControl extractTimeControl(const QWidget* dlg);
 
     /// StartGameDialogData から TimeControl を組み立てる
     static TimeControl buildTimeControl(const StartGameDialogData& data);
@@ -76,10 +71,6 @@ public:
                                          const std::function<void(ShogiBoard*)>& renderBoard);
 
 private:
-    static int  readIntProperty(const QObject* root, const char* objectName,
-                                const char* prop = "value", int def = 0);
-    static bool readBoolProperty(const QObject* root, const char* objectName,
-                                 const char* prop = "checked", bool def = false);
     static QChar turnFromSfen(const QString& sfen);
 };
 

@@ -151,11 +151,6 @@ public:
         PositionEditCoordinator* coordinator,
         const MainWindowRuntimeRefs& refs,
         const MainWindowDepsFactory::PositionEditCoordinatorCallbacks& cbs);
-    void refreshConsiderationWiringDeps(
-        ConsiderationWiring* wiring,
-        const MainWindowRuntimeRefs& refs,
-        const MainWindowDepsFactory::ConsiderationWiringCallbacks& cbs,
-        QWidget* parentWidget);
     void refreshCommentCoordinatorDeps(
         CommentCoordinator* coordinator,
         const MainWindowRuntimeRefs& refs);

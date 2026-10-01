@@ -18,10 +18,6 @@ namespace JosekiSettings {
 int josekiWindowFontSize();
 void setJosekiWindowFontSize(int size);
 
-/// 定跡ウィンドウのSFEN表示フォントサイズ（デフォルト: 9）
-int josekiWindowSfenFontSize();
-void setJosekiWindowSfenFontSize(int size);
-
 /// 定跡ウィンドウの最後に開いた定跡ファイルパス
 QString josekiWindowLastFilePath();
 void setJosekiWindowLastFilePath(const QString& path);

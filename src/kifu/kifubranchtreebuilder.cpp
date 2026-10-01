@@ -8,14 +8,6 @@
 #include "kifdisplayitem.h"
 #include "logcategories.h"
 
-KifuBranchTree* KifuBranchTreeBuilder::fromKifParseResult(const KifParseResult& result,
-                                                          const QString& startSfen)
-{
-    auto* tree = new KifuBranchTree();
-    buildFromKifParseResult(tree, result, startSfen);
-    return tree;
-}
-
 void KifuBranchTreeBuilder::buildFromKifParseResult(KifuBranchTree* tree,
                                                      const KifParseResult& result,
                                                      const QString& startSfen)
@@ -136,49 +128,6 @@ void KifuBranchTreeBuilder::addKifLineToTree(KifuBranchTree* tree,
         int moveIdx = i - startIndex;
         if (moveIdx < line.gameMoves.size()) {
             move = line.gameMoves.at(moveIdx);
-        }
-
-        currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);
-        if (currentNode != nullptr) {
-            currentNode->setComment(item.comment);
-            currentNode->setBookmark(item.bookmark);
-        }
-    }
-}
-
-void KifuBranchTreeBuilder::addLineToTree(KifuBranchTree* tree,
-                                          const QList<KifDisplayItem>& disp,
-                                          const QStringList& sfens,
-                                          const QList<ShogiMove>& moves,
-                                          int startPly,
-                                          int parentRow)
-{
-    Q_UNUSED(parentRow)  // 将来の拡張用
-
-    if (tree == nullptr || tree->root() == nullptr) {
-        return;
-    }
-
-    // 分岐開始点を見つける
-    KifuBranchNode* branchPoint = nullptr;
-    if (startPly <= 1) {
-        branchPoint = tree->root();
-    } else {
-        branchPoint = tree->findByPlyOnMainLine(startPly - 1);
-        if (branchPoint == nullptr) {
-            branchPoint = tree->root();
-        }
-    }
-
-    KifuBranchNode* currentNode = branchPoint;
-
-    // disp[0]は開始局面ラベルなのでスキップ
-    for (int i = startPly; i < disp.size(); ++i) {
-        const KifDisplayItem& item = disp.at(i);
-        QString sfen = (i < sfens.size()) ? sfens.at(i) : QString();
-        ShogiMove move;
-        if (i - 1 < moves.size()) {
-            move = moves.at(i - 1);
         }
 
         currentNode = tree->addMove(currentNode, move, item.prettyMove, sfen, item.timeText);

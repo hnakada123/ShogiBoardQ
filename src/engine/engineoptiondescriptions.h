@@ -38,9 +38,6 @@ public:
      */
     static QString description(const QString& engineName, const QString& optionName);
 
-    /// エンジン・オプションに対する説明が存在するかを確認する
-    static bool hasDescription(const QString& engineName, const QString& optionName);
-
     /**
      * @brief 指定エンジン・オプションに対するカテゴリを取得する
      * @return 未対応エンジンの場合は Other
@@ -52,9 +49,6 @@ public:
 
     /// 定義されている全カテゴリのリストを表示順で取得する
     static QList<EngineOptionCategory> allCategories();
-
-    /// エンジンが説明文データベースに対応しているかを確認する
-    static bool isEngineSupported(const QString& engineName);
 
 private:
     static void initializeDescriptions();

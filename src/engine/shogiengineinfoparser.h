@@ -55,8 +55,6 @@ public:
                                          const bool isPondering);
 
     void setThinkingStartPlayer(ShogiGameController::Player player);
-    ShogiGameController::Player thinkingStartPlayer() const;
-
     // --- 解析結果アクセサ ---
 
     QString depth() const;
@@ -85,16 +83,8 @@ public:
     /// GUIの「探索手」欄に表示する読み筋の先頭手
     QString searchedHand() const;
 
-    void setScoreMate(const QString& newScoremate);
-
-    /// bestmoveの予想手を漢字表記に変換する
-    QString convertPredictedMoveToKanjiString(const ShogiGameController* algorithm, QString& predictedOpponentMove, QList<QChar>& clonedBoardData);
-
     /// 指し手を解析し、盤面コピーに適用する
     void parseAndApplyMoveToClonedBoard(const QString& str, QList<QChar>& clonedBoardData);
-
-    /// 盤面データをデバッグ出力する
-    void printShogiBoard(const QList<QChar>& boardData) const;
 
     void setScore(const QString& newScore);
     QString score() const;

@@ -131,47 +131,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endif()
 endif()
 
-# --- 厳格なコンパイルオプション
-#if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-#    add_compile_options(
-#        -Wall
-#        -Wextra
-#        -Wpedantic
-#        -Wshadow                    # 変数のシャドウイング
-#        -Wconversion                # 暗黙の型変換
-#        -Wsign-conversion           # 符号付き/符号なしの変換
-#        -Wnon-virtual-dtor          # 仮想デストラクタがない
-#        -Wold-style-cast            # Cスタイルキャスト
-#        -Wcast-align                # アライメントを増加させるキャスト
-#        -Woverloaded-virtual        # 仮想関数の隠蔽
-#        -Wnull-dereference          # nullポインタ参照の可能性
-#        -Wdouble-promotion          # floatからdoubleへの暗黙変換
-#        -Wformat=2                  # printf系のフォーマット文字列チェック
-#        -Wimplicit-fallthrough      # switch文のフォールスルー
-#    )
-#
-#    # GCC固有
-#    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-#        add_compile_options(
-#            -Wduplicated-cond       # 重複した条件
-#            -Wduplicated-branches   # 重複した分岐
-#            -Wlogical-op            # 論理演算の誤り
-#            -Wuseless-cast          # 不要なキャスト
-#        )
-#    endif()
-#
-#    # Clang固有
-#    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-#        add_compile_options(
-#            -Weverything            # 全ての警告（非常に厳格）
-#            -Wno-c++98-compat       # C++98互換性警告を除外
-#            -Wno-c++98-compat-pedantic
-#            -Wno-padded             # パディング警告を除外（うるさい）
-#        )
-#    endif()
-#endif()
-# --- ここまで
-
 # ==== Qt6 自動検出 ====
 # CMAKE_PREFIX_PATH が未設定の場合、一般的なインストールパスから Qt6 を探す
 if(NOT CMAKE_PREFIX_PATH AND NOT Qt6_DIR AND NOT DEFINED ENV{QTDIR})
@@ -664,8 +623,6 @@ set(SRC_UI
     src/ui/coordinators/docklayoutmanager.h
     src/ui/coordinators/dockuicoordinator.cpp
     src/ui/coordinators/dockuicoordinator.h
-    src/ui/coordinators/gamelayoutbuilder.cpp
-    src/ui/coordinators/gamelayoutbuilder.h
     src/ui/coordinators/kifudisplaycoordinator.cpp
     src/ui/coordinators/kifudisplaycoordinator.h
     src/ui/coordinators/kifudisplaycoordinator_live.cpp
@@ -685,8 +642,6 @@ set(SRC_UI
     src/ui/presenters/evalgraphpresenter.h
     src/ui/presenters/gamerecordpresenter.cpp
     src/ui/presenters/gamerecordpresenter.h
-    src/ui/presenters/navigationpresenter.cpp
-    src/ui/presenters/navigationpresenter.h
     src/ui/presenters/kifudisplaypresenter.cpp
     src/ui/presenters/kifudisplaypresenter_verify.cpp
     src/ui/presenters/kifudisplaypresenter.h
@@ -758,8 +713,6 @@ set(SRC_WIDGETS
     src/widgets/tsumepositionpreview.h
     src/widgets/apptooltipfilter.cpp
     src/widgets/apptooltipfilter.h
-    src/widgets/branchrowdelegate.cpp
-    src/widgets/branchrowdelegate.h
     src/widgets/branchtreemanager.cpp
     src/widgets/branchtreemanager.h
     src/widgets/branchtreemanager_draw.cpp
@@ -948,8 +901,6 @@ set(SRC_SERVICES
     src/services/tsumeprogressstore.h
     src/services/timecontrolutil.cpp
     src/services/timecontrolutil.h
-    src/services/timekeepingservice.cpp
-    src/services/timekeepingservice.h
     src/services/uinotificationservice.cpp
     src/services/uinotificationservice.h
 )

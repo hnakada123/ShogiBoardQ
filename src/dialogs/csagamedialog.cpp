@@ -301,7 +301,6 @@ void CsaGameDialog::onAccepted()
 
     // 設定値をメンバー変数にキャッシュ
     m_isHuman = ui->radioButtonHuman->isChecked();
-    m_isEngine = ui->radioButtonEngine->isChecked();
     m_engineName = ui->comboBoxEngine->currentText();
     m_engineNumber = ui->comboBoxEngine->currentIndex();
     m_host = host;
@@ -407,11 +406,6 @@ QString CsaGameDialog::csaVersion() const
 bool CsaGameDialog::isHuman() const
 {
     return m_isHuman;
-}
-
-bool CsaGameDialog::isEngine() const
-{
-    return m_isEngine;
 }
 
 QString CsaGameDialog::engineName() const

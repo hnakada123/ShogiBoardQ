@@ -116,11 +116,6 @@ public:
     /// 先後の配置を反転する
     void flipSides();
 
-    // --- デバッグ ---
-
-    void printPieceStand();
-    void printPieceCount() const;
-
 signals:
     /// 盤面全体リセット通知（→ ShogiView::repaint）
     void boardReset();
@@ -143,7 +138,6 @@ private:
     bool setPieceStandFromSfen(const QString& str);
     std::optional<QString> validateAndConvertSfenBoardStr(QString sfenStr);
     bool setPiecePlacementFromSfen(QString& initialSfenStr);
-    void printPlayerPieces(const QString& player, const QString& pieceSet) const;
     Piece convertPieceChar(const Piece c) const;
     Piece convertPromotedPieceToOriginal(const Piece dest) const;
     void setInitialPieceStandValues();

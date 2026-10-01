@@ -13,10 +13,6 @@
 
 namespace DockSettings {
 
-/// 評価値グラフドックの状態（QMainWindow::saveState()のバイト列）
-QByteArray evalChartDockState();
-void setEvalChartDockState(const QByteArray& state);
-
 /// 評価値グラフドックのフローティング状態
 bool evalChartDockFloating();
 void setEvalChartDockFloating(bool floating);
@@ -40,30 +36,6 @@ void setRecordPaneDockGeometry(const QByteArray& geometry);
 /// 棋譜欄ドックの表示状態
 bool recordPaneDockVisible();
 void setRecordPaneDockVisible(bool visible);
-
-/// 解析タブドックのフローティング状態
-bool analysisTabDockFloating();
-void setAnalysisTabDockFloating(bool floating);
-
-/// 解析タブドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
-QByteArray analysisTabDockGeometry();
-void setAnalysisTabDockGeometry(const QByteArray& geometry);
-
-/// 解析タブドックの表示状態
-bool analysisTabDockVisible();
-void setAnalysisTabDockVisible(bool visible);
-
-/// 将棋盤ドックのフローティング状態
-bool boardDockFloating();
-void setBoardDockFloating(bool floating);
-
-/// 将棋盤ドックのジオメトリ（フローティング時のウィンドウ位置・サイズ）
-QByteArray boardDockGeometry();
-void setBoardDockGeometry(const QByteArray& geometry);
-
-/// 将棋盤ドックの表示状態
-bool boardDockVisible();
-void setBoardDockVisible(bool visible);
 
 /// メニューウィンドウドックのフローティング状態
 bool menuWindowDockFloating();

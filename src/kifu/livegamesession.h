@@ -148,18 +148,6 @@ public:
      */
     int currentLineIndex() const;
 
-    // === 確定時の分岐情報 ===
-
-    /**
-     * @brief 分岐を作成するか（途中からの場合true）
-     */
-    bool willCreateBranch() const;
-
-    /**
-     * @brief 確定後の分岐名を取得（"分岐N"）
-     */
-    QString newLineName() const;
-
 signals:
     /**
      * @brief セッションが開始された

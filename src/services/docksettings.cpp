@@ -8,20 +8,6 @@
 
 namespace DockSettings {
 
-// 評価値グラフドックの状態を取得
-QByteArray evalChartDockState()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kEvalChartDockState, QByteArray()).toByteArray();
-}
-
-// 評価値グラフドックの状態を保存
-void setEvalChartDockState(const QByteArray& state)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kEvalChartDockState, state);
-}
-
 // 評価値グラフドックのフローティング状態を取得
 bool evalChartDockFloating()
 {
@@ -104,90 +90,6 @@ void setRecordPaneDockVisible(bool visible)
 {
     QSettings& s = SettingsCommon::openSettings();
     s.setValue(SettingsKeys::kRecordPaneDockVisible, visible);
-}
-
-// 解析タブドックのフローティング状態を取得
-bool analysisTabDockFloating()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kAnalysisTabDockFloating, false).toBool();
-}
-
-// 解析タブドックのフローティング状態を保存
-void setAnalysisTabDockFloating(bool floating)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kAnalysisTabDockFloating, floating);
-}
-
-// 解析タブドックのジオメトリを取得
-QByteArray analysisTabDockGeometry()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kAnalysisTabDockGeometry, QByteArray()).toByteArray();
-}
-
-// 解析タブドックのジオメトリを保存
-void setAnalysisTabDockGeometry(const QByteArray& geometry)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kAnalysisTabDockGeometry, geometry);
-}
-
-// 解析タブドックの表示状態を取得
-bool analysisTabDockVisible()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kAnalysisTabDockVisible, true).toBool();
-}
-
-// 解析タブドックの表示状態を保存
-void setAnalysisTabDockVisible(bool visible)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kAnalysisTabDockVisible, visible);
-}
-
-// 将棋盤ドックのフローティング状態を取得
-bool boardDockFloating()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kBoardDockFloating, false).toBool();
-}
-
-// 将棋盤ドックのフローティング状態を保存
-void setBoardDockFloating(bool floating)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kBoardDockFloating, floating);
-}
-
-// 将棋盤ドックのジオメトリを取得
-QByteArray boardDockGeometry()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kBoardDockGeometry, QByteArray()).toByteArray();
-}
-
-// 将棋盤ドックのジオメトリを保存
-void setBoardDockGeometry(const QByteArray& geometry)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kBoardDockGeometry, geometry);
-}
-
-// 将棋盤ドックの表示状態を取得
-bool boardDockVisible()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kBoardDockVisible, true).toBool();
-}
-
-// 将棋盤ドックの表示状態を保存
-void setBoardDockVisible(bool visible)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kBoardDockVisible, visible);
 }
 
 // メニューウィンドウドックのフローティング状態を取得

@@ -31,9 +31,6 @@ const QRegularExpression& resultPatternCaptureRe();
 /// 結果行検出（キャプチャなし）: "まで○手で..." の判定のみ
 const QRegularExpression& resultPatternRe();
 
-/// コロン以降を削除用: "棋戦：タイトル" → "タイトル"
-const QRegularExpression& afterColonRe();
-
 // === 行の種類判定 ===
 
 /// KI2行が指し手行かどうか判定（▲または△で始まる）

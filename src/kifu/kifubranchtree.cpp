@@ -217,22 +217,6 @@ KifuBranchNode* KifuBranchTree::nodeAt(int nodeId) const
     return m_nodeById.value(nodeId, nullptr);
 }
 
-KifuBranchNode* KifuBranchTree::findByPlyOnLine(KifuBranchNode* lineEnd, int ply) const
-{
-    if (lineEnd == nullptr) {
-        return nullptr;
-    }
-
-    // lineEndからルートまで辿って、指定plyのノードを探す
-    QList<KifuBranchNode*> path = pathToNode(lineEnd);
-    for (KifuBranchNode* node : std::as_const(path)) {
-        if (node->ply() == ply) {
-            return node;
-        }
-    }
-    return nullptr;
-}
-
 KifuBranchNode* KifuBranchTree::findByPlyOnMainLine(int ply) const
 {
     if (m_root == nullptr) {

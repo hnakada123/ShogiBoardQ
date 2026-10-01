@@ -53,12 +53,6 @@ public:
     QString nextMove() const;
 
     /**
-     * @brief 予想応手を設定
-     * @param nextMove USI形式の予想応手
-     */
-    void setNextMove(const QString &nextMove);
-
-    /**
      * @brief 評価値を取得
      * @return 評価値
      */

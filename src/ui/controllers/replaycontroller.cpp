@@ -4,14 +4,11 @@
 #include "replaycontroller.h"
 
 #include "logcategories.h"
-#include <QTableView>
-#include <QAbstractItemView>
 
 #include "shogiclock.h"
 #include "shogiview.h"
 #include "shogigamecontroller.h"
 #include "matchcoordinator.h"
-#include "recordpane.h"
 
 ReplayController::ReplayController(QObject* parent)
     : QObject(parent)
@@ -42,11 +39,6 @@ void ReplayController::setGameController(ShogiGameController* gc)
 void ReplayController::setMatchCoordinator(MatchCoordinator* match)
 {
     m_match = match;
-}
-
-void ReplayController::setRecordPane(RecordPane* pane)
-{
-    m_recordPane = pane;
 }
 
 // --------------------------------------------------------
@@ -94,51 +86,6 @@ void ReplayController::setReplayMode(bool on)
 bool ReplayController::isReplayMode() const
 {
     return m_isReplayMode;
-}
-
-// --------------------------------------------------------
-// ライブ追記モード管理
-// --------------------------------------------------------
-
-void ReplayController::enterLiveAppendMode()
-{
-    if (m_isLiveAppendMode) return;
-
-    m_isLiveAppendMode = true;
-
-    qCDebug(lcUi).noquote() << "enterLiveAppendMode";
-
-    // 棋譜ビューの選択を無効化（ライブ中はスクロール追従のみ）
-    if (m_recordPane) {
-        if (QTableView* view = m_recordPane->kifuView()) {
-            view->setSelectionMode(QAbstractItemView::NoSelection);
-            view->setFocusPolicy(Qt::NoFocus);
-        }
-    }
-
-}
-
-void ReplayController::exitLiveAppendMode()
-{
-    if (!m_isLiveAppendMode) return;
-
-    m_isLiveAppendMode = false;
-
-    qCDebug(lcUi).noquote() << "exitLiveAppendMode";
-
-    // 棋譜ビューの選択を再有効化
-    if (m_recordPane) {
-        if (QTableView* view = m_recordPane->kifuView()) {
-            view->setSelectionMode(QAbstractItemView::SingleSelection);
-            view->setFocusPolicy(Qt::StrongFocus);
-        }
-    }
-
-}
-
-bool ReplayController::isLiveAppendMode() const
-{
-    return m_isLiveAppendMode;
 }
 
 // --------------------------------------------------------

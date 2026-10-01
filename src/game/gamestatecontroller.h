@@ -13,7 +13,6 @@
 #include "matchcoordinator.h"  // GameOverState, GameEndInfo, Cause, Player
 #include "shogigamecontroller.h"  // ShogiGameController::Player
 
-class ReplayController;
 class TimeControlController;
 class KifuLoadCoordinator;
 class KifuRecordListModel;
@@ -47,7 +46,6 @@ public:
 
     // --- 依存オブジェクトの設定 ---
     void setMatchCoordinator(MatchCoordinator* match);
-    void setReplayController(ReplayController* replay);
     void setTimeController(TimeControlController* tc);
     void setKifuLoadCoordinator(KifuLoadCoordinator* kc);
     void setKifuRecordModel(KifuRecordListModel* model);
@@ -87,7 +85,6 @@ public slots:
 
 private:
     QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
-    ReplayController* m_replayController = nullptr;     ///< 非所有
     TimeControlController* m_timeController = nullptr;  ///< 非所有
     KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr; ///< 非所有
     KifuRecordListModel* m_kifuRecordModel = nullptr;   ///< 非所有

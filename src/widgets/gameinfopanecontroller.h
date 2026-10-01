@@ -49,9 +49,6 @@ public:
     /// 現在の対局情報を取得
     QList<KifGameInfoItem> gameInfo() const;
 
-    /// 元の対局情報（編集前）を取得
-    QList<KifGameInfoItem> originalGameInfo() const;
-
     /// 現在表示は維持したまま、編集前スナップショットだけを更新する
     void setOriginalGameInfo(const QList<KifGameInfoItem>& items);
 

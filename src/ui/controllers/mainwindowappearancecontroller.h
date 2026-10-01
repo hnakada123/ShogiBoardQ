@@ -69,8 +69,6 @@ public:
     // --- アクセサ ---
 
     QWidget* central() const { return m_central; }
-    QVBoxLayout* centralLayout() const { return m_centralLayout; }
-
 public slots:
     /// 盤面サイズ変更時の後処理
     void onBoardSizeChanged(QSize fieldSize);

@@ -35,10 +35,6 @@ public:
     /// ペンディングバッファを即座にフラッシュする
     void flushPendingScores();
 
-    /// 全スコアを一括置換する（QLineSeries::replace()使用）
-    void replaceAllScoresP1(const QList<QPointF>& points);
-    void replaceAllScoresP2(const QList<QPointF>& points);
-
     void clearAll();
 
     void removeLastP1();
@@ -72,9 +68,6 @@ public:
     int labelFontSize() const;
     void setLabelFontSize(int size);
 
-    // エンジン情報の設定
-    void setEngine1Info(const QString& name, int ply, int cp);
-    void setEngine2Info(const QString& name, int ply, int cp);
     void setEngine1Name(const QString& name);
     void setEngine2Name(const QString& name);
 

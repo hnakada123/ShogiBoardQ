@@ -794,8 +794,6 @@ private slots:
 
         QVERIFY2(body.contains(QStringLiteral("m_branchPlyContext = -1")),
                   "Must reset branchPlyContext");
-        QVERIFY2(body.contains(QStringLiteral("m_branchablePlySet.clear()")),
-                  "Must clear branchablePlySet");
         QVERIFY2(body.contains(QStringLiteral("setRootSfen")),
                   "Must set root SFEN");
     }

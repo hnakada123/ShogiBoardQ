@@ -125,7 +125,6 @@ void SessionLifecycleCoordinator::handleGameEnded(const MatchCoordinator::GameEn
 GameStateController::GameStateController(QObject* parent) : QObject(parent) {}
 GameStateController::~GameStateController() = default;
 void GameStateController::setMatchCoordinator(MatchCoordinator*) {}
-void GameStateController::setReplayController(ReplayController*) {}
 void GameStateController::setTimeController(TimeControlController*) {}
 void GameStateController::setKifuLoadCoordinator(KifuLoadCoordinator*) {}
 void GameStateController::setKifuRecordModel(KifuRecordListModel*) {}
@@ -499,7 +498,7 @@ void TimeDisplayPresenter::onMatchTimeUpdated(qint64, qint64, bool, qint64) {}
 
 BoardInteractionController::BoardInteractionController(ShogiView*, ShogiGameController*, QObject* parent)
     : QObject(parent) {}
-// setMode, mode, setMoveInputEnabled, isMoveInputEnabled are inline in header
+// setMode, mode, setMoveInputEnabled are inline in header
 void BoardInteractionController::clearSelectionHighlight() {}
 void BoardInteractionController::showMoveHighlights(const QPoint&, const QPoint&) {}
 void BoardInteractionController::clearAllHighlights() {}

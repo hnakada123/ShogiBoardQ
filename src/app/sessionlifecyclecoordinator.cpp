@@ -71,7 +71,6 @@ void SessionLifecycleCoordinator::resetGameState()
     // リプレイコントローラのリセット
     if (m_deps.replayController) {
         m_deps.replayController->setReplayMode(false);
-        m_deps.replayController->exitLiveAppendMode();
         m_deps.replayController->setResumeFromCurrent(false);
     }
 

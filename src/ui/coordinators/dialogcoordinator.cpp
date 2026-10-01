@@ -522,11 +522,6 @@ void DialogCoordinator::showTsumeSearchDialogFromContext()
     showTsumeSearchDialog(params);
 }
 
-void DialogCoordinator::showErrorMessage(const QString& message)
-{
-    QMessageBox::critical(m_parentWidget, tr("エラー"), message);
-}
-
 void DialogCoordinator::showFlowError(const QString& message)
 {
     qCWarning(lcUi).noquote() << "Flow error:" << message;

@@ -464,12 +464,6 @@ bool KifuLoadCoordinator::loadUsiFromFile(const QString&) { return false; }
 bool KifuLoadCoordinator::loadKifuFromString(const QString&) { return false; }
 bool KifuLoadCoordinator::loadPositionFromSfen(const QString&) { return false; }
 bool KifuLoadCoordinator::loadPositionFromBod(const QString&) { return false; }
-KifuLoadCoordinator::BranchRowDelegate::BranchRowDelegate(QObject* parent)
-    : QStyledItemDelegate(parent) {}
-KifuLoadCoordinator::BranchRowDelegate::~BranchRowDelegate() = default;
-void KifuLoadCoordinator::BranchRowDelegate::paint(QPainter*, const QStyleOptionViewItem&,
-                                                    const QModelIndex&) const {}
-
 // ============================================================
 // TimeControlUtil スタブ
 // ============================================================

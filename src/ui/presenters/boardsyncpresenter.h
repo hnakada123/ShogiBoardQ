@@ -35,9 +35,6 @@ public:
     // 盤描画＋最終手のハイライトまで一括適用（ply=0 はハイライト無し）
     void syncBoardAndHighlightsAtRow(int ply) const;
 
-    // ユーティリティ：ハイライトの明示クリア
-    void clearHighlights() const;
-
     /// sfenRecord ポインタを更新する（MatchCoordinator 再生成時に呼ぶ）
     void setSfenRecord(const QStringList* sfenRecord) { m_sfenHistory = sfenRecord; }
 

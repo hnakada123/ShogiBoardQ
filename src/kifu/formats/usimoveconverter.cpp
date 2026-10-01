@@ -4,45 +4,6 @@
 #include "usimoveconverter.h"
 
 #include <QPoint>
-#include <QList>
-
-#include "shogimove.h"
-#include "shogitypes.h"
-
-QStringList UsiMoveConverter::fromGameMoves(const QList<ShogiMove>& moves)
-{
-    QStringList usiMoves;
-    usiMoves.reserve(moves.size());
-
-    for (const ShogiMove& mv : moves) {
-        QString usiMove;
-
-        if (mv.fromSquare.x() >= 9) {
-            // 駒打ち
-            QChar pieceChar = pieceToChar(toBlack(mv.movingPiece));
-            int toFile = mv.toSquare.x() + 1;
-            int toRank = mv.toSquare.y() + 1;
-            QChar toRankChar = QChar('a' + toRank - 1);
-            usiMove = QStringLiteral("%1*%2%3").arg(pieceChar).arg(toFile).arg(toRankChar);
-        } else {
-            // 通常移動
-            int fromFile = mv.fromSquare.x() + 1;
-            int fromRank = mv.fromSquare.y() + 1;
-            int toFile = mv.toSquare.x() + 1;
-            int toRank = mv.toSquare.y() + 1;
-            QChar fromRankChar = QChar('a' + fromRank - 1);
-            QChar toRankChar = QChar('a' + toRank - 1);
-            usiMove = QStringLiteral("%1%2%3%4").arg(fromFile).arg(fromRankChar).arg(toFile).arg(toRankChar);
-            if (mv.isPromotion) {
-                usiMove += QLatin1Char('+');
-            }
-        }
-
-        usiMoves.append(usiMove);
-    }
-
-    return usiMoves;
-}
 
 QStringList UsiMoveConverter::fromSfenRecord(const QStringList& sfenRecord)
 {

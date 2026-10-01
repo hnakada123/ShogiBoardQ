@@ -90,14 +90,6 @@ public:
     /// 検討エンジンを停止する（フラグ管理含む）
     void stopFullAnalysis();
 
-    // --- モード状態クエリ ---
-
-    /// 検討モード中かどうかを返す
-    bool isInConsiderationMode() const { return m_inConsiderationMode; }
-
-    /// 詰み探索モード中かどうかを返す
-    bool isInTsumeSearchMode() const { return m_inTsumeSearchMode; }
-
     // --- startAnalysis から呼び出されるセットアップ ---
 
     /**

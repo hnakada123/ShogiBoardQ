@@ -329,36 +329,6 @@ int LiveGameSession::currentLineIndex() const
     return node->lineIndex();
 }
 
-bool LiveGameSession::willCreateBranch() const
-{
-    // 分岐起点がある場合、または既に子がある場合は分岐を作成
-    if (m_branchPoint != nullptr) {
-        return true;
-    }
-
-    // ルートからでも、既に本譜がある場合は分岐を作成
-    if (m_tree != nullptr && m_tree->root() != nullptr) {
-        return m_tree->root()->childCount() > 0;
-    }
-
-    return false;
-}
-
-QString LiveGameSession::newLineName() const
-{
-    if (!willCreateBranch()) {
-        return QStringLiteral("本譜");
-    }
-
-    if (m_tree == nullptr) {
-        return QStringLiteral("分岐1");
-    }
-
-    // 既存のライン数から新しい分岐名を決定
-    int lineCount = m_tree->lineCount();
-    return QStringLiteral("分岐%1").arg(lineCount);
-}
-
 void LiveGameSession::reset()
 {
     m_active = false;

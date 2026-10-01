@@ -5,25 +5,15 @@
 /// @brief USI指し手変換クラスの定義
 
 #include <QStringList>
-#include <QList>
-
-struct ShogiMove;
 
 /**
  * @brief USI形式の指し手文字列を生成する変換クラス
  *
- * ShogiMoveリストやSFENレコードからUSI形式の指し手リストへの変換を行う。
+ * SFENレコードからUSI形式の指し手リストへの変換を行う。
  */
 class UsiMoveConverter
 {
 public:
-    /**
-     * @brief ShogiMoveリストからUSI指し手リストを生成
-     * @param moves ShogiMove構造体のリスト
-     * @return USI形式の指し手文字列リスト
-     */
-    static QStringList fromGameMoves(const QList<ShogiMove>& moves);
-
     /**
      * @brief SFENレコード（局面列）からUSI指し手リストを生成
      *

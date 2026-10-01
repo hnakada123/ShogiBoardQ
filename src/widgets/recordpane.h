@@ -6,24 +6,11 @@
 
 
 #include <QWidget>
-#include <QTextBrowser>
 #include <QPersistentModelIndex>
 #include "recordpaneappearancemanager.h"
 
-class QTableView; class QPushButton; class QTextBrowser; class QSplitter;
+class QTableView; class QPushButton; class QSplitter;
 class KifuRecordListModel; class KifuBranchListModel;
-
-// コメント表示用のラッパ（setText を提供）
-class CommentTextAdapter {
-public:
-    explicit CommentTextAdapter(QTextBrowser* tb = nullptr) : m_tb(tb) {}
-    void setText(const QString& text) { if (m_tb) m_tb->setPlainText(text); }
-    void setHtml(const QString& html) { if (m_tb) m_tb->setHtml(html); }
-    QTextBrowser* widget() const { return m_tb; }
-    void reset(QTextBrowser* tb) { m_tb = tb; }
-private:
-    QTextBrowser* m_tb = nullptr;
-};
 
 class RecordPane : public QWidget {
     Q_OBJECT
@@ -50,10 +37,6 @@ public:
     QPushButton* fontDecreaseButton() const { return m_btnFontDown; }
     QPushButton* bookmarkEditButton() const { return m_btnBookmarkEdit; }
 
-    CommentTextAdapter* commentLabel();
-
-    QPushButton* backToMainButton();
-
     void setupKifuSelectionAppearance();
     void setupBranchViewSelectionAppearance();
 
@@ -74,7 +57,7 @@ private:
 
     QTableView *m_kifu=nullptr, *m_branch=nullptr;
     QWidget *m_navButtons=nullptr;  // ナビゲーションボタン群（棋譜と分岐の間に縦配置）
-    QWidget *m_branchContainer=nullptr;  // 分岐候補欄のコンテナ（本譜に戻るボタン用）
+    QWidget *m_branchContainer=nullptr;  // 分岐候補欄のコンテナ
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
     QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
     QPushButton *m_btnBookmarkEdit=nullptr;  // しおり編集ボタン
@@ -109,16 +92,7 @@ private:
     QPersistentModelIndex m_lastClickedBranchIndex;
     bool m_branchClickGuard = false;
 
-    // コメント用アダプタの実体
-    CommentTextAdapter m_commentAdapter{nullptr};
-
 public slots:
-    // プレーンテキストで分岐コメント欄に反映
-    void setBranchCommentText(const QString& text);
-
-    // HTMLで分岐コメント欄に反映（将来HTML対応したくなった時用）
-    void setBranchCommentHtml(const QString& html);
-
     // 文字サイズ変更スロット
     void onFontIncrease(bool checked = false);
     void onFontDecrease(bool checked = false);

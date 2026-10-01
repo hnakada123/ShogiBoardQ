@@ -8,7 +8,6 @@
 #include <QObject>
 #include <QTableWidget>
 #include <QDockWidget>
-#include <QStyledItemDelegate>
 #include <functional>
 #include <QFutureWatcher>
 #include "kifuloadparser.h"
@@ -58,22 +57,6 @@ public:
     void loadFileAsync(const QString& filePath);
     void loadTextAsync(const QString& content);
     void cancelLoad();
-
-    // --- 装飾（棋譜テーブル マーカー描画） ---
-
-    /// 分岐あり行にオレンジ背景を描画するデリゲート
-    class BranchRowDelegate : public QStyledItemDelegate {
-    public:
-        explicit BranchRowDelegate(QObject* parent = nullptr);
-        ~BranchRowDelegate() override;
-        void setMarkers(const QSet<int>* marks) { m_marks = marks; }
-        void paint(QPainter* painter,
-                   const QStyleOptionViewItem& option,
-                   const QModelIndex& index) const override;
-    private:
-        const QSet<int>* m_marks = nullptr;  ///< 分岐あり手数のセット（非所有）
-    };
-    QPointer<BranchRowDelegate> m_branchRowDelegate;
 
     // --- 分岐候補（テキスト）側の索引 ---
 
@@ -189,7 +172,6 @@ private:
 
     // --- 分岐管理 ---
     int m_branchPlyContext = -1;              ///< 分岐コンテキストの手数（-1は無効）
-    QSet<int> m_branchablePlySet;             ///< 分岐可能な手数のセット
     KifuBranchTree* m_branchTree = nullptr;   ///< 分岐ツリー（非所有）
     KifuNavigationState* m_navState = nullptr; ///< ナビゲーション状態（非所有）
 
@@ -197,9 +179,6 @@ private:
     KifuApplyService* m_applyService = nullptr; ///< 適用層サービス（Qt parent所有）
 
     // --- 内部ヘルパ ---
-    void updateKifuBranchMarkersForActiveRow();
-    void ensureBranchRowDelegateInstalled();
-
     bool applyLoadResult(const KifuLoadResult& result);
     void startLoad(const QString& input, bool text);
     QFutureWatcher<KifuLoadResult>* m_loadWatcher = nullptr;

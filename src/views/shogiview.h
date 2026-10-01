@@ -192,8 +192,6 @@ public:
     void clearTurnHighlight();
 
     void setUiMuted(bool on);
-    bool uiMuted() const { return m_uiMuted; }
-
     void setActiveIsBlack(bool activeIsBlack);
 
     // 対局終了時のスタイル維持（trueの間はclearTurnHighlightを無視）

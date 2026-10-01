@@ -26,7 +26,6 @@ public:
     TsumeProgressStore& operator=(const TsumeProgressStore&) = delete;
     bool open();
     QString error() const { return m_error; }
-    QString progressPath() const { return m_progress.databaseName(); }
     Progress progress(const QString& id);
     QHash<QString, Progress> progress(const QStringList& ids);
     bool recordAttempt(const QString& id);

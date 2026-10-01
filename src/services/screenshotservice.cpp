@@ -27,21 +27,6 @@ void ScreenshotService::setOutputDirectory(const QString& dir)
     m_outputDir = dir;
 }
 
-QString ScreenshotService::outputDirectory() const
-{
-    return m_outputDir;
-}
-
-void ScreenshotService::setMaxWidth(int width)
-{
-    m_maxWidth = width;
-}
-
-QString ScreenshotService::lastCapturedPath() const
-{
-    return m_lastCapturedPath;
-}
-
 QString ScreenshotService::captureMainWindow(const QString& context)
 {
     if (!m_mainWindow) {
@@ -70,18 +55,6 @@ QString ScreenshotService::captureWidget(QWidget* widget, const QString& context
     return saveCapture(image, context.isEmpty() ? QStringLiteral("widget") : context);
 }
 
-void ScreenshotService::clearOutputDirectory()
-{
-    QDir dir(m_outputDir);
-    if (!dir.exists()) return;
-
-    const QStringList pngFiles = dir.entryList({QStringLiteral("*.png")}, QDir::Files);
-    for (const QString& file : std::as_const(pngFiles)) {
-        dir.remove(file);
-    }
-    qCDebug(lcUi) << "ScreenshotService: cleared" << pngFiles.size() << "files from" << m_outputDir;
-}
-
 QString ScreenshotService::saveCapture(const QImage& image, const QString& context)
 {
     QDir dir(m_outputDir);
@@ -91,8 +64,8 @@ QString ScreenshotService::saveCapture(const QImage& image, const QString& conte
     }
 
     QImage output = image;
-    if (output.width() > m_maxWidth) {
-        output = output.scaledToWidth(m_maxWidth, Qt::SmoothTransformation);
+    if (output.width() > kMaxWidth) {
+        output = output.scaledToWidth(kMaxWidth, Qt::SmoothTransformation);
     }
 
     QString filePath = dir.filePath(generateFilename(context));
@@ -102,7 +75,6 @@ QString ScreenshotService::saveCapture(const QImage& image, const QString& conte
         return {};
     }
 
-    m_lastCapturedPath = filePath;
     qCDebug(lcUi) << "ScreenshotService: captured" << filePath
                   << "(" << output.width() << "x" << output.height() << ")";
     return filePath;

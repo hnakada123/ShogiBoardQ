@@ -17,9 +17,6 @@ inline QString turnToSfen(Turn t) { return t == Turn::Black ? QStringLiteral("b"
 /// SFEN手番文字列 → Turn
 inline Turn sfenToTurn(const QString& s) { return s == QStringLiteral("b") ? Turn::Black : Turn::White; }
 
-/// 相手番を返す
-inline Turn oppositeTurn(Turn t) { return t == Turn::Black ? Turn::White : Turn::Black; }
-
 /// SFEN文字列をパースした結果を保持する構造体
 struct SfenComponents {
     QString board;

@@ -132,13 +132,6 @@ public:
     KifuBranchNode* nodeAt(int nodeId) const;
 
     /**
-     * @brief 指定ラインの指定手数のノードを取得
-     * @param lineEnd ラインの終端ノード
-     * @param ply 手数
-     */
-    KifuBranchNode* findByPlyOnLine(KifuBranchNode* lineEnd, int ply) const;
-
-    /**
      * @brief 本譜のN手目を取得
      */
     KifuBranchNode* findByPlyOnMainLine(int ply) const;

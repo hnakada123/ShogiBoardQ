@@ -33,11 +33,9 @@ void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
         // 「*の手前で改行」＋「URLリンク化」付きのHTMLに整形して配信
         const QString html = KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(text);
         if (m_commentEditor) m_commentEditor->setCommentHtml(html);
-        if (m_recordPane)    m_recordPane->setBranchCommentHtml(html);
     } else {
         // プレーンテキスト経路は従来通り
         if (m_commentEditor) m_commentEditor->setCommentText(text);
-        if (m_recordPane)    m_recordPane->setBranchCommentText(text);
     }
 }
 

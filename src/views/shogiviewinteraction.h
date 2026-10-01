@@ -51,9 +51,6 @@ public:
     bool positionEditMode() const { return m_positionEditMode; }
     bool dragging() const { return m_dragging; }
     QPoint dragFrom() const { return m_dragFrom; }
-    Piece dragPiece() const { return m_dragPiece; }
-    QPoint dragPos() const { return m_dragPos; }
-    bool dragFromStand() const { return m_dragFromStand; }
     const QMap<Piece, int>& tempPieceStandCounts() const { return m_tempPieceStandCounts; }
 
 private:

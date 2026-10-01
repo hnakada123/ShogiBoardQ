@@ -56,13 +56,6 @@ struct BoardColors {
         return result;
     }
 
-    QColor backgroundText(const QColor& dark = QColor(40, 30, 20)) const
-    {
-        const int brightness = (background.red() * 299 + background.green() * 587
-                                + background.blue() * 114) / 1000;
-        return brightness < 128 ? QColor(Qt::white) : dark;
-    }
-
     bool sameBoardPalette(const BoardColors& other) const
     {
         return background == other.background && board == other.board
