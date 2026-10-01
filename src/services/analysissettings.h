@@ -54,6 +54,12 @@ void setThinkingViewColumnWidths(int viewIndex, const QList<int>& widths);
 int usiLogFontSize();
 void setUsiLogFontSize(int size);
 
+bool usiLogWrapLines();
+void setUsiLogWrapLines(bool wrap);
+/// コマンド送信先（0=E1、1=E2、2=両方）
+int usiLogCommandTarget();
+void setUsiLogCommandTarget(int target);
+
 /// 思考タブのフォントサイズ（デフォルト: 10）
 int thinkingFontSize();
 void setThinkingFontSize(int size);

@@ -59,6 +59,7 @@
 #include "engineanalysistab.h"
 #include "engineinfowidget.h"
 #include "usicommlogmodel.h"
+#include "usilogpanel.h"
 #include "gamesettings.h"
 #include "sfencollectiondialog.h"
 #include "kifupastedialog.h"
@@ -398,6 +399,45 @@ private slots:
         QVERIFY(f.open(QIODevice::WriteOnly));
         f.write(QJsonDocument(menus).toJson());
         snapshot("startup");
+    }
+    void usiLogPresentation()
+    {
+        sampleGame();
+        auto* dock = window->findChild<QDockWidget*>("UsiLogDock");
+        auto* panel = window->findChild<UsiLogPanel*>();
+        QVERIFY(dock);
+        QVERIFY(panel);
+        dock->show();
+        dock->raise();
+        UsiCommLogModel first;
+        UsiCommLogModel second;
+        first.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
+        second.setEngineName(QStringLiteral("Engine 2"));
+        panel->setModels(&first, &second);
+        first.appendUsiCommLog(QStringLiteral("▶ E1: position startpos moves 7g7f 3c3d 2g2f 8c8d"));
+        first.appendUsiCommLog(QStringLiteral("▶ E1: go btime 278000 wtime 280000 byoyomi 3000"));
+        for (int i = 1; i <= 9; ++i) {
+            first.appendUsiCommLog(QStringLiteral("◀ E1: info depth %1 seldepth %2 score cp -16 nodes %3 time %4 nps 313918 hashfull 45 pv 2h5h 3a4b 2g2f 8c8d 7g7f")
+                .arg(i).arg(i + 3).arg(i * 35801).arg(i * 100));
+        }
+        first.appendUsiCommLog(QStringLiteral("◀ E1: bestmove 2h5h"));
+        second.appendUsiCommLog(QStringLiteral("◀ E2: readyok"));
+        QTest::qWait(50);
+        auto* view = dock->findChild<QPlainTextEdit*>("usiLogView");
+        auto* input = dock->findChild<QLineEdit*>("usiCommandInput");
+        QVERIFY(view && input);
+        QVERIFY(input->mapTo(dock, QPoint()).y() > view->mapTo(dock, QPoint()).y() + view->height());
+        snapshot("usi-log-main");
+        first.setEngineName(QStringLiteral("Hayanagi 1.5.0 / Custom configuration with a long name"));
+        dock->setFloating(true);
+        dock->resize(560, 350);
+        QTest::qWait(50);
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/usi-log-narrow.png")));
+        dock->findChild<QAction*>("usiLogWrap")->trigger();
+        QCOMPARE(view->lineWrapMode(), QPlainTextEdit::WidgetWidth);
+        QTest::qWait(50);
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/usi-log-wrapped.png")));
+        panel->setModels(nullptr, nullptr);
     }
     void windowWidthFollowsContent()
     {

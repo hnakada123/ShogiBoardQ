@@ -44,6 +44,8 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 
 各シナリオは独立したプロセスで実行し、35秒でタイムアウトする。通常のアプリ設定は使用せず、テスト用一時ディレクトリに隔離する。結果は`build/gui-audit/`に保存される。
 
+`usiLogPresentation` はUSI通信ログの通常表示・狭いフローティング表示・折り返し表示を確認し、`usi-log-main.png`・`usi-log-narrow.png`・`usi-log-wrapped.png` を保存します。閲覧位置と選択範囲の保持、コピー・消去、送信先別のEnter／ボタン送信、設定復元は CTest の `tst_usilogpanel` で検証します。
+
 - `run-results.json`: シナリオ別結果。失敗・タイムアウト時は実行スクリプトも非0で終了する。
 - `*.log` / `*.xml`: Qt TestのテキストログとJUnit XML。
 - `*.usi.log`: 模擬USIエンジンへ送信したコマンド。

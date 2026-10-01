@@ -1567,3 +1567,16 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/settingscommon.cpp
 )
+
+# USI通信ログの閲覧・コマンド操作
+add_shogi_test(tst_usilogpanel
+    tst_usilogpanel.cpp
+    ${SRC}/widgets/usilogpanel.cpp
+    ${SRC}/widgets/logviewfontmanager.cpp
+    ${SRC}/widgets/elidelabel.cpp
+    ${SRC}/engine/usicommlogmodel.cpp
+    ${SRC}/common/applicationfonts.cpp
+    ${SRC}/common/logcategories.cpp
+    ${SRC}/services/analysissettings.cpp
+    ${SRC}/services/settingscommon.cpp
+)
