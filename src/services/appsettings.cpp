@@ -71,15 +71,24 @@ void setToolbarVisible(bool visible)
 
 QStringList availablePieceStyles()
 {
-    return {QStringLiteral("standard"), QStringLiteral("clear"), QStringLiteral("wood"),
-            QStringLiteral("ivory"), QStringLiteral("dark")};
+    return {QStringLiteral("standard"),
+            QStringLiteral("torafu_light"), QStringLiteral("torafu_silk"), QStringLiteral("torafu_amber"),
+            QStringLiteral("torafu_red"), QStringLiteral("torafu_gold"), QStringLiteral("wood_pale"),
+            QStringLiteral("wood_straight"), QStringLiteral("wood_amber"), QStringLiteral("wood_bamboo"),
+            QStringLiteral("wood_walnut"), QStringLiteral("tint_linen"), QStringLiteral("tint_sakura"),
+            QStringLiteral("tint_celadon"), QStringLiteral("tint_moon"), QStringLiteral("tint_wisteria"),
+            QStringLiteral("deep_ebony"), QStringLiteral("deep_navy"), QStringLiteral("deep_green"),
+            QStringLiteral("deep_grape"), QStringLiteral("deep_gold")};
 }
 
 QString pieceStyle()
 {
-    const QString style = SettingsCommon::openSettings()
-        .value(SettingsKeys::kPieceStyle, QStringLiteral("wood")).toString();
-    return availablePieceStyles().contains(style) ? style : QStringLiteral("standard");
+    auto& settings = SettingsCommon::openSettings();
+    const QString style = settings.value(SettingsKeys::kPieceStyle, QStringLiteral("standard")).toString();
+    if (availablePieceStyles().contains(style)) return style;
+    // 旧セットの選択も、現在の木目の駒を採用した標準セットへ移行する。
+    settings.setValue(SettingsKeys::kPieceStyle, QStringLiteral("standard"));
+    return QStringLiteral("standard");
 }
 
 void setPieceStyle(const QString& style)

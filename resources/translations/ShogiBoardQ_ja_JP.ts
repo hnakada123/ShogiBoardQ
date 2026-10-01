@@ -333,8 +333,12 @@
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="42"/>
+        <source>外観を選ぶと「標準の駒」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。</source>
+        <translation>外観を選ぶと「標準の駒」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。</translation>
+    </message>
+    <message>
         <source>外観を選ぶと「木目の駒（明朝）」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。</source>
-        <translation>外観を選ぶと「木目の駒（明朝）」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。</translation>
+        <translation type="vanished">外観を選ぶと「木目の駒（明朝）」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。</translation>
     </message>
 </context>
 <context>
@@ -355,129 +359,109 @@
         <translation>琥珀</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="39"/>
         <source>若葉</source>
-        <translation>若葉</translation>
+        <translation type="vanished">若葉</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="40"/>
         <source>青灰</source>
-        <translation>青灰</translation>
+        <translation type="vanished">青灰</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="41"/>
         <source>蜂蜜</source>
-        <translation>蜂蜜</translation>
+        <translation type="vanished">蜂蜜</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="42"/>
         <source>藤色</source>
-        <translation>藤色</translation>
+        <translation type="vanished">藤色</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="43"/>
         <source>夕暮れ</source>
-        <translation>夕暮れ</translation>
+        <translation type="vanished">夕暮れ</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="47"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="39"/>
         <source>苔庭</source>
         <translation>苔庭</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="48"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="40"/>
         <source>胡桃</source>
         <translation>胡桃</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="49"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="41"/>
         <source>生成り</source>
         <translation>生成り</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="50"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="42"/>
         <source>深い森</source>
         <translation>深い森</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="51"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="43"/>
         <source>石庭</source>
         <translation>石庭</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="55"/>
         <source>藍夜</source>
-        <translation>藍夜</translation>
+        <translation type="vanished">藍夜</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="56"/>
         <source>青磁の海</source>
-        <translation>青磁の海</translation>
+        <translation type="vanished">青磁の海</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="57"/>
         <source>セージ</source>
-        <translation>セージ</translation>
+        <translation type="vanished">セージ</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="58"/>
         <source>ラベンダー</source>
-        <translation>ラベンダー</translation>
+        <translation type="vanished">ラベンダー</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="59"/>
         <source>墨色</source>
-        <translation>墨色</translation>
+        <translation type="vanished">墨色</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="63"/>
         <source>金屏風</source>
-        <translation>金屏風</translation>
+        <translation type="vanished">金屏風</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="64"/>
         <source>銀鼠</source>
-        <translation>銀鼠</translation>
+        <translation type="vanished">銀鼠</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="65"/>
         <source>青磁</source>
-        <translation>青磁</translation>
+        <translation type="vanished">青磁</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="66"/>
         <source>桜霞</source>
-        <translation>桜霞</translation>
+        <translation type="vanished">桜霞</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="67"/>
         <source>砂紋</source>
-        <translation>砂紋</translation>
+        <translation type="vanished">砂紋</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="70"/>
         <source>畳と榧</source>
-        <translation>畳と榧</translation>
+        <translation type="vanished">畳と榧</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="71"/>
         <source>薄茶</source>
-        <translation>薄茶</translation>
+        <translation type="vanished">薄茶</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="72"/>
         <source>若竹</source>
-        <translation>若竹</translation>
+        <translation type="vanished">若竹</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="73"/>
         <source>暖かな灰色</source>
-        <translation>暖かな灰色</translation>
+        <translation type="vanished">暖かな灰色</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="74"/>
         <source>藍染</source>
-        <translation>藍染</translation>
+        <translation type="vanished">藍染</translation>
     </message>
 </context>
 <context>
@@ -3880,212 +3864,352 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="119"/>
+        <location filename="../../src/app/mainwindow.ui" line="152"/>
         <source>対局(G)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="159"/>
+        <location filename="../../src/app/mainwindow.ui" line="192"/>
         <source>ヘルプ(H)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="177"/>
+        <location filename="../../src/app/mainwindow.ui" line="210"/>
         <source>toolBar</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="207"/>
+        <location filename="../../src/app/mainwindow.ui" line="240"/>
         <source>上書き保存</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="210"/>
+        <location filename="../../src/app/mainwindow.ui" line="243"/>
         <source>Ctrl+S</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="222"/>
+        <location filename="../../src/app/mainwindow.ui" line="255"/>
         <source>Ctrl+A</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="579"/>
+        <location filename="../../src/app/mainwindow.ui" line="700"/>
         <source>詰み探索中止</source>
         <translation>詰み探索中止</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="588"/>
+        <location filename="../../src/app/mainwindow.ui" line="709"/>
         <source>持将棋点数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="291"/>
+        <location filename="../../src/app/mainwindow.ui" line="412"/>
         <source>盤面の回転</source>
         <translation type="unfinished">盤面の回転</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="142"/>
+        <location filename="../../src/app/mainwindow.ui" line="175"/>
         <source>設定(S)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="146"/>
+        <location filename="../../src/app/mainwindow.ui" line="179"/>
         <source>言語設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="273"/>
+        <location filename="../../src/app/mainwindow.ui" line="394"/>
         <source>将棋盤画像コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="312"/>
+        <location filename="../../src/app/mainwindow.ui" line="433"/>
         <source>投了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="321"/>
+        <location filename="../../src/app/mainwindow.ui" line="442"/>
         <source>中断</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="336"/>
+        <location filename="../../src/app/mainwindow.ui" line="457"/>
         <source>終了</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="282"/>
+        <location filename="../../src/app/mainwindow.ui" line="403"/>
         <source>評価値グラフ画像コピー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="354"/>
+        <location filename="../../src/app/mainwindow.ui" line="92"/>
+        <source>虎斑</source>
+        <translation>虎斑</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="100"/>
+        <source>木肌</source>
+        <translation>木肌</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="108"/>
+        <source>淡色</source>
+        <translation>淡色</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="116"/>
+        <source>深色</source>
+        <translation>深色</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="261"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="49"/>
+        <source>淡虎斑</source>
+        <translation>淡虎斑</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="266"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="51"/>
+        <source>絹虎斑</source>
+        <translation>絹虎斑</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="271"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="53"/>
+        <source>飴虎斑</source>
+        <translation>飴虎斑</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="276"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="55"/>
+        <source>紅虎斑</source>
+        <translation>紅虎斑</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="281"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="57"/>
+        <source>山吹虎斑</source>
+        <translation>山吹虎斑</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="286"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="59"/>
+        <source>白木</source>
+        <translation>白木</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="291"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="61"/>
+        <source>糸柾</source>
+        <translation>糸柾</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="296"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="63"/>
+        <source>飴柾</source>
+        <translation>飴柾</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="301"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="65"/>
+        <source>笹杢</source>
+        <translation>笹杢</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="306"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="67"/>
+        <source>胡桃</source>
+        <translation>胡桃</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="311"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="69"/>
+        <source>生成り</source>
+        <translation>生成り</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="316"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="71"/>
+        <source>薄桜</source>
+        <translation>薄桜</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="321"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="73"/>
+        <source>青磁</source>
+        <translation>青磁</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="326"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="75"/>
+        <source>月白</source>
+        <translation>月白</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="331"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="77"/>
+        <source>藤鼠</source>
+        <translation>藤鼠</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="336"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="79"/>
+        <source>黒檀</source>
+        <translation>黒檀</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="341"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="81"/>
+        <source>鉄紺</source>
+        <translation>鉄紺</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="346"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="83"/>
+        <source>深緑</source>
+        <translation>深緑</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="351"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="85"/>
+        <source>葡萄</source>
+        <translation>葡萄</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="356"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="87"/>
+        <source>墨金</source>
+        <translation>墨金</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="475"/>
         <source>局面編集開始</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="363"/>
+        <location filename="../../src/app/mainwindow.ui" line="484"/>
         <source>平手初期配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="372"/>
+        <location filename="../../src/app/mainwindow.ui" line="493"/>
         <source>詰将棋初期配置</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="381"/>
+        <location filename="../../src/app/mainwindow.ui" line="502"/>
         <source>全ての駒を駒台へ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="390"/>
+        <location filename="../../src/app/mainwindow.ui" line="511"/>
         <source>手番変更</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="408"/>
+        <location filename="../../src/app/mainwindow.ui" line="529"/>
         <source>ホームページ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="417"/>
+        <location filename="../../src/app/mainwindow.ui" line="538"/>
         <source>使い方</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="426"/>
+        <location filename="../../src/app/mainwindow.ui" line="547"/>
         <source>バージョン情報</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="435"/>
+        <location filename="../../src/app/mainwindow.ui" line="556"/>
         <source>Qtについて</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="444"/>
+        <location filename="../../src/app/mainwindow.ui" line="565"/>
         <source>KIF形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="453"/>
+        <location filename="../../src/app/mainwindow.ui" line="574"/>
         <source>KI2形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="462"/>
+        <location filename="../../src/app/mainwindow.ui" line="583"/>
         <source>CSA形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="471"/>
+        <location filename="../../src/app/mainwindow.ui" line="592"/>
         <source>USI形式（現在の指し手まで）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="480"/>
+        <location filename="../../src/app/mainwindow.ui" line="601"/>
         <source>SFEN形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="489"/>
+        <location filename="../../src/app/mainwindow.ui" line="610"/>
         <source>BOD形式</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="507"/>
+        <location filename="../../src/app/mainwindow.ui" line="628"/>
         <source>開く…</source>
         <translation>開く…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="570"/>
+        <location filename="../../src/app/mainwindow.ui" line="691"/>
         <source>詰み探索…</source>
         <translation>詰み探索…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="633"/>
+        <location filename="../../src/app/mainwindow.ui" line="754"/>
         <source>通信対局（CSA）…</source>
         <translation>通信対局（CSA）…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="651"/>
+        <location filename="../../src/app/mainwindow.ui" line="772"/>
         <source>メニュー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="711"/>
+        <location filename="../../src/app/mainwindow.ui" line="832"/>
         <source>局面集ビューア</source>
         <translation>局面集ビューア</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="729"/>
+        <location filename="../../src/app/mainwindow.ui" line="850"/>
         <source>ドックレイアウトを保存…</source>
         <translation>ドックレイアウトを保存…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="752"/>
+        <location filename="../../src/app/mainwindow.ui" line="873"/>
         <source>駒音</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="755"/>
+        <location filename="../../src/app/mainwindow.ui" line="876"/>
         <source>駒を指したときに駒音を鳴らす</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="764"/>
+        <location filename="../../src/app/mainwindow.ui" line="885"/>
         <source>駒音の設定…</source>
         <translation>駒音の設定…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="775"/>
+        <location filename="../../src/app/mainwindow.ui" line="896"/>
         <source>（保存済みレイアウトなし）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="793"/>
+        <location filename="../../src/app/mainwindow.ui" line="914"/>
         <source>詰将棋対局…</source>
         <translation>詰将棋対局…</translation>
     </message>
@@ -4094,32 +4218,32 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">詰み探索終了</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="702"/>
+        <location filename="../../src/app/mainwindow.ui" line="823"/>
         <source>ツールバー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="597"/>
+        <location filename="../../src/app/mainwindow.ui" line="718"/>
         <source>入玉宣言</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="606"/>
+        <location filename="../../src/app/mainwindow.ui" line="727"/>
         <source>USI形式（全て）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="615"/>
+        <location filename="../../src/app/mainwindow.ui" line="736"/>
         <source>JSON棋譜フォーマット</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="624"/>
+        <location filename="../../src/app/mainwindow.ui" line="745"/>
         <source>USEN</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="642"/>
+        <location filename="../../src/app/mainwindow.ui" line="763"/>
         <source>棋譜解析中止</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4128,92 +4252,92 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="obsolete">メニューウィンドウ</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="663"/>
+        <location filename="../../src/app/mainwindow.ui" line="784"/>
         <source>システム設定に従う</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="675"/>
+        <location filename="../../src/app/mainwindow.ui" line="796"/>
         <source>日本語</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="687"/>
+        <location filename="../../src/app/mainwindow.ui" line="808"/>
         <source>English</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="498"/>
+        <location filename="../../src/app/mainwindow.ui" line="619"/>
         <source>新規</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="219"/>
+        <location filename="../../src/app/mainwindow.ui" line="252"/>
         <source>名前を付けて保存…</source>
         <translation>名前を付けて保存…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="255"/>
+        <location filename="../../src/app/mainwindow.ui" line="376"/>
         <source>将棋盤の画像をファイルに保存…</source>
         <translation>将棋盤の画像をファイルに保存…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="264"/>
+        <location filename="../../src/app/mainwindow.ui" line="385"/>
         <source>棋譜貼り付け…</source>
         <translation>棋譜貼り付け…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="303"/>
+        <location filename="../../src/app/mainwindow.ui" line="424"/>
         <source>対局…</source>
         <translation>対局…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="345"/>
+        <location filename="../../src/app/mainwindow.ui" line="466"/>
         <source>棋譜解析…</source>
         <translation>棋譜解析…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="399"/>
+        <location filename="../../src/app/mainwindow.ui" line="520"/>
         <source>エンジン設定…</source>
         <translation>エンジン設定…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="510"/>
+        <location filename="../../src/app/mainwindow.ui" line="631"/>
         <source>Ctrl+O</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="519"/>
+        <location filename="../../src/app/mainwindow.ui" line="640"/>
         <source>待った</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="528"/>
+        <location filename="../../src/app/mainwindow.ui" line="649"/>
         <source>すぐ指させる</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="537"/>
+        <location filename="../../src/app/mainwindow.ui" line="658"/>
         <source>将棋盤の拡大</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="540"/>
+        <location filename="../../src/app/mainwindow.ui" line="661"/>
         <source>Ctrl++</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="549"/>
+        <location filename="../../src/app/mainwindow.ui" line="670"/>
         <source>将棋盤の縮小</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="552"/>
+        <location filename="../../src/app/mainwindow.ui" line="673"/>
         <source>Ctrl+-</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="561"/>
+        <location filename="../../src/app/mainwindow.ui" line="682"/>
         <source>局面編集終了</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4246,17 +4370,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">局面の反映に失敗しました（内部エラー）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="720"/>
+        <location filename="../../src/app/mainwindow.ui" line="841"/>
         <source>ドックレイアウトをリセット</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="99"/>
+        <location filename="../../src/app/mainwindow.ui" line="132"/>
         <source>保存済みレイアウト</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="737"/>
+        <location filename="../../src/app/mainwindow.ui" line="858"/>
         <source>ドックを固定</source>
         <translation type="unfinished"></translation>
     </message>
@@ -4270,52 +4394,44 @@ OKを選択すると保存先が指定できます。</source>
         <translation>駒の種類</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="234"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="87"/>
+        <location filename="../../src/app/mainwindow.ui" line="367"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="88"/>
         <source>標準の駒</source>
         <translation>標準の駒</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="246"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="80"/>
         <source>見やすい駒（太字）</source>
-        <translation>見やすい駒（太字）</translation>
+        <translation type="vanished">見やすい駒（太字）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="767"/>
+        <location filename="../../src/app/mainwindow.ui" line="888"/>
         <source>駒音の音量・音の高さ・音質を調整する</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="784"/>
+        <location filename="../../src/app/mainwindow.ui" line="905"/>
         <source>評価値グラフの画像をファイルに保存…</source>
         <translation>評価値グラフの画像をファイルに保存…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="802"/>
+        <location filename="../../src/app/mainwindow.ui" line="923"/>
         <source>詰将棋局面生成…</source>
         <translation>詰将棋局面生成…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="814"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="82"/>
         <source>木目の駒（明朝）</source>
-        <translation>木目の駒（明朝）</translation>
+        <translation type="vanished">木目の駒（明朝）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="826"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="84"/>
         <source>白い駒（ゴシック）</source>
-        <translation>白い駒（ゴシック）</translation>
+        <translation type="vanished">白い駒（ゴシック）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="847"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="86"/>
         <source>黒い駒（金文字）</source>
-        <translation>黒い駒（金文字）</translation>
+        <translation type="vanished">黒い駒（金文字）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="835"/>
+        <location filename="../../src/app/mainwindow.ui" line="932"/>
         <source>盤面の配色…</source>
         <translation>盤面の配色…</translation>
     </message>

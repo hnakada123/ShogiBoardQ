@@ -402,49 +402,44 @@ private slots:
     }
     void pieceStyles()
     {
+        auto* styles = window->findChild<QMenu*>("menuPieceStyle");
+        QVERIFY(styles);
+        QCOMPARE(styles->actions().size(), 6);
+        for (const auto& name : {"Torafu", "Wood", "Tint", "Deep"}) {
+            auto* group = window->findChild<QMenu*>(QStringLiteral("menuPieceStyle") + QLatin1String(name));
+            QVERIFY(group);
+            QCOMPARE(group->actions().size(), 5);
+        }
+        QCOMPARE(styles->actions().first(), action("actionPieceStyleStandard"));
         click("actionPieceStyleStandard");
-        const auto standardPawn = board()->piece('P').pixmap(90).toImage();
-        ShogiView secondary;
-        secondary.setPieces();
         QVERIFY(action("actionPieceStyleStandard")->isChecked());
+        QVERIFY(!hasKifuPasteDialog());
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
+        const auto pawn = QIcon(":/pieces/Sente_fu45.svg").pixmap(90).toImage();
+        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
+        ShogiView secondary;
+        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(boardSfen(), initial);
         snapshot("pieces-standard");
 
-        click("actionPieceStyleClear");
-        QVERIFY(action("actionPieceStyleClear")->isChecked());
-        QVERIFY(!action("actionPieceStyleStandard")->isChecked());
-        QVERIFY2(!hasKifuPasteDialog(),
-                 "Changing piece style must not open the kifu paste dialog");
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
-        const auto clearPawn = board()->piece('P').pixmap(90).toImage();
-        QVERIFY(clearPawn != standardPawn);
-        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), clearPawn);
-        QCOMPARE(boardSfen(), initial);
-        snapshot("pieces-clear");
-
         click("actionFlipBoard");
-        QVERIFY(board()->flipMode());
-        QCOMPARE(board()->piece('K').pixmap(90).toImage(),
-                 QIcon(":/pieces/clear/Gote_ou45.svg").pixmap(90).toImage());
-        click("actionPieceStyleStandard");
-        QVERIFY(board()->flipMode());
         QCOMPARE(board()->piece('K').pixmap(90).toImage(),
                  QIcon(":/pieces/Gote_ou45.svg").pixmap(90).toImage());
-        QCOMPARE(secondary.piece('P').pixmap(90).toImage(), standardPawn);
-        click("actionPieceStyleClear");
-        snapshot("pieces-clear-flipped");
+        QCOMPARE(board()->piece('k').pixmap(90).toImage(),
+                 QIcon(":/pieces/Sente_gyoku45.svg").pixmap(90).toImage());
+        click("actionPieceStyleStandard");
+        QVERIFY(board()->flipMode());
+        snapshot("pieces-standard-flipped");
         click("actionFlipBoard");
-        QCOMPARE(board()->piece('P').pixmap(90).toImage(), clearPawn);
 
-        ShogiView createdAfterChange;
-        QCOMPARE(createdAfterChange.piece('P').pixmap(90).toImage(), clearPawn);
         window->close();
         window.reset();
         window = std::make_unique<MainWindow>();
         window->show();
-        QVERIFY(action("actionPieceStyleClear")->isChecked());
-        QCOMPARE(board()->piece('P').pixmap(90).toImage(), clearPawn);
+        QVERIFY(action("actionPieceStyleStandard")->isChecked());
+        QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
 
-        // 成駒・持ち駒・駒打ち矢印を表示してキャッシュを作り、切替後の描画を比較する。
+        // 成駒・持ち駒・駒打ち矢印も標準の駒で描画する。
         board()->board()->setSfen(QStringLiteral(
             "4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
         ShogiView::Arrow drop;
@@ -452,28 +447,41 @@ private slots:
         drop.toRank = 5;
         drop.dropPiece = 'P';
         board()->setArrows({drop});
-        click("actionPieceStyleStandard");
-        const auto standardPosition = board()->toImage();
-        click("actionPieceStyleClear");
-        const auto clearPosition = board()->toImage();
-        QVERIFY(clearPosition != standardPosition);
+        const auto position = board()->toImage();
+        QVERIFY(!position.isNull());
         board()->setPieces();
-        QCOMPARE(board()->toImage(), clearPosition);
-        snapshot("pieces-clear-promoted-and-hand");
+        QCOMPARE(board()->toImage(), position);
+        snapshot("pieces-standard-promoted-and-hand");
     }
     void pieceVariants_data()
     {
         QTest::addColumn<QString>("style");
         QTest::addColumn<QString>("actionName");
-        QTest::newRow("wood") << QStringLiteral("wood") << QStringLiteral("actionPieceStyleWood");
-        QTest::newRow("ivory") << QStringLiteral("ivory") << QStringLiteral("actionPieceStyleIvory");
-        QTest::newRow("dark") << QStringLiteral("dark") << QStringLiteral("actionPieceStyleDark");
+        QTest::newRow("torafu_light") << QStringLiteral("torafu_light") << QStringLiteral("actionPieceStyleTorafuLight");
+        QTest::newRow("torafu_silk") << QStringLiteral("torafu_silk") << QStringLiteral("actionPieceStyleTorafuSilk");
+        QTest::newRow("torafu_amber") << QStringLiteral("torafu_amber") << QStringLiteral("actionPieceStyleTorafuAmber");
+        QTest::newRow("torafu_red") << QStringLiteral("torafu_red") << QStringLiteral("actionPieceStyleTorafuRed");
+        QTest::newRow("torafu_gold") << QStringLiteral("torafu_gold") << QStringLiteral("actionPieceStyleTorafuGold");
+        QTest::newRow("wood_pale") << QStringLiteral("wood_pale") << QStringLiteral("actionPieceStyleWoodPale");
+        QTest::newRow("wood_straight") << QStringLiteral("wood_straight") << QStringLiteral("actionPieceStyleWoodStraight");
+        QTest::newRow("wood_amber") << QStringLiteral("wood_amber") << QStringLiteral("actionPieceStyleWoodAmber");
+        QTest::newRow("wood_bamboo") << QStringLiteral("wood_bamboo") << QStringLiteral("actionPieceStyleWoodBamboo");
+        QTest::newRow("wood_walnut") << QStringLiteral("wood_walnut") << QStringLiteral("actionPieceStyleWoodWalnut");
+        QTest::newRow("tint_linen") << QStringLiteral("tint_linen") << QStringLiteral("actionPieceStyleTintLinen");
+        QTest::newRow("tint_sakura") << QStringLiteral("tint_sakura") << QStringLiteral("actionPieceStyleTintSakura");
+        QTest::newRow("tint_celadon") << QStringLiteral("tint_celadon") << QStringLiteral("actionPieceStyleTintCeladon");
+        QTest::newRow("tint_moon") << QStringLiteral("tint_moon") << QStringLiteral("actionPieceStyleTintMoon");
+        QTest::newRow("tint_wisteria") << QStringLiteral("tint_wisteria") << QStringLiteral("actionPieceStyleTintWisteria");
+        QTest::newRow("deep_ebony") << QStringLiteral("deep_ebony") << QStringLiteral("actionPieceStyleDeepEbony");
+        QTest::newRow("deep_navy") << QStringLiteral("deep_navy") << QStringLiteral("actionPieceStyleDeepNavy");
+        QTest::newRow("deep_green") << QStringLiteral("deep_green") << QStringLiteral("actionPieceStyleDeepGreen");
+        QTest::newRow("deep_grape") << QStringLiteral("deep_grape") << QStringLiteral("actionPieceStyleDeepGrape");
+        QTest::newRow("deep_gold") << QStringLiteral("deep_gold") << QStringLiteral("actionPieceStyleDeepGold");
     }
     void pieceVariants()
     {
         QFETCH(QString, style);
         QFETCH(QString, actionName);
-        click("actionPieceStyleStandard");
         ShogiView secondary;
         const auto standardPawn = board()->piece('P').pixmap(90).toImage();
         click(actionName);
@@ -486,18 +494,18 @@ private slots:
         QVERIFY(pawn != standardPawn);
         QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
         QCOMPARE(secondary.piece('P').pixmap(90).toImage(), pawn);
+        QVERIFY(board()->boardColors() == BoardColors{});
         QCOMPARE(boardSfen(), initial);
-        snapshot("pieces-" + style);
+        QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/pieces-%1.png").arg(style)));
 
         click("actionFlipBoard");
-        QCOMPARE(board()->piece('K').pixmap(90).toImage(),
-                 QIcon(prefix + "Gote_ou45.svg").pixmap(90).toImage());
-        click("actionPieceStyleClear");
+        QCOMPARE(board()->piece('K').pixmap(90).toImage(), QIcon(prefix + "Gote_ou45.svg").pixmap(90).toImage());
+        QCOMPARE(board()->piece('k').pixmap(90).toImage(), QIcon(prefix + "Sente_gyoku45.svg").pixmap(90).toImage());
+        click("actionPieceStyleStandard");
         QVERIFY(!action(actionName)->isChecked());
         click(actionName);
-        QVERIFY(!action("actionPieceStyleClear")->isChecked());
-        QCOMPARE(board()->piece('k').pixmap(90).toImage(),
-                 QIcon(prefix + "Sente_gyoku45.svg").pixmap(90).toImage());
+        QVERIFY(!action("actionPieceStyleStandard")->isChecked());
+        click("actionFlipBoard");
 
         window->close();
         window.reset();
@@ -505,7 +513,29 @@ private slots:
         window->show();
         QVERIFY(action(actionName)->isChecked());
         QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
-        QVERIFY(!hasKifuPasteDialog());
+
+        // 開いている配色ダイアログの表示名・見本も選択した駒に追従する。
+        click("actionBoardColors");
+        auto* dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        auto* label = dialog->findChild<QLabel*>("boardColorPresetLabel");
+        QVERIFY(label && label->text().contains(BoardColorPresets::pieceStyleName(style)));
+        dialog->close();
+
+        // キャッシュを作った後でも成駒・持駒・駒打ち矢印が切り替わる。
+        board()->board()->setSfen(QStringLiteral(
+            "4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
+        ShogiView::Arrow drop;
+        drop.toFile = 5;
+        drop.toRank = 5;
+        drop.dropPiece = 'P';
+        board()->setArrows({drop});
+        const auto variantImage = board()->toImage();
+        QVERIFY(!variantImage.isNull());
+        click("actionPieceStyleStandard");
+        QVERIFY(board()->toImage() != variantImage);
+        click(actionName);
+        QCOMPARE(board()->toImage(), variantImage);
     }
     void boardThemes()
     {
@@ -529,7 +559,7 @@ private slots:
             QVERIFY(board()->boardColors() == BoardColorPresets::themes().at(i).colors);
             QVERIFY(secondary.boardColors() == board()->boardColors());
             QVERIFY(board()->boardVisuals() == BoardVisuals{});
-            QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("wood"));
+            QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
             QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-theme-%1.png").arg(i)));
             QCOMPARE(boardSfen(), initial);
         }
@@ -579,7 +609,7 @@ private slots:
                                  QColor("#6a8494"), QColor("#193b45")};
         ShogiView secondary;
         QSignalSpy changed(&BoardAppearance::instance(), &BoardAppearance::colorsChanged);
-        click("actionPieceStyleDark");
+        click("actionPieceStyleStandard");
         click("actionBoardColors");
         auto* dialog = window->findChild<BoardColorDialog*>();
         QVERIFY(dialog && dialog->isVisible());
@@ -787,10 +817,6 @@ private slots:
         QTest::addColumn<QString>("style");
         QTest::addColumn<QString>("styleAction");
         QTest::newRow("standard") << QStringLiteral("standard") << QStringLiteral("actionPieceStyleStandard");
-        QTest::newRow("clear") << QStringLiteral("clear") << QStringLiteral("actionPieceStyleClear");
-        QTest::newRow("wood") << QStringLiteral("wood") << QStringLiteral("actionPieceStyleWood");
-        QTest::newRow("ivory") << QStringLiteral("ivory") << QStringLiteral("actionPieceStyleIvory");
-        QTest::newRow("dark") << QStringLiteral("dark") << QStringLiteral("actionPieceStyleDark");
     }
     void boardColorPresets()
     {
@@ -850,17 +876,6 @@ private slots:
         QVERIFY(combo);
         QCOMPARE(combo->currentIndex(), 4);
         QVERIFY(board()->boardColors() == selectedColors);
-
-        // 駒の変更で候補だけが更新され、既存の配色は保持される。
-        const QString other = style == "dark" ? QStringLiteral("standard") : QStringLiteral("dark");
-        click(other == "dark" ? "actionPieceStyleDark" : "actionPieceStyleStandard");
-        QCOMPARE(combo->count(), 5);
-        QCOMPARE(combo->currentIndex(), -1);
-        QCOMPARE(combo->itemText(0), BoardColorPresets::forPieceStyle(other).first().name);
-        QVERIFY(board()->boardColors() == selectedColors);
-        QCOMPARE(changed.count(), 5);
-        click(styleAction);
-        QCOMPARE(combo->currentIndex(), 4);
 
         // 個別調整でカスタム表示に変わり、候補の配色に戻すと選択も同期する。
         auto* colorButton = dialog->findChild<QPushButton*>("gridColorButton");
@@ -1568,15 +1583,25 @@ private slots:
         for (int i = 0; i < tabs->count(); ++i) {
             if (tabs->tabText(i).contains(QStringLiteral("表示"))) tabs->setCurrentIndex(i);
         }
-        MenuButtonWidget* clear = nullptr;
+        MenuButtonWidget* standard = nullptr;
+        MenuButtonWidget* variant = nullptr;
+        int styleButtons = 0;
         for (auto* button : menu->findChildren<MenuButtonWidget*>()) {
-            if (button->actionName() == "actionPieceStyleClear") clear = button;
+            if (button->actionName() == "actionPieceStyleStandard") standard = button;
+            if (button->actionName() == "actionPieceStyleTorafuLight") variant = button;
+            if (button->actionName().startsWith(QStringLiteral("actionPieceStyle"))) ++styleButtons;
         }
-        QVERIFY(clear);
-        auto* button = clear->findChild<QPushButton*>();
+        QCOMPARE(styleButtons, 21);
+        QVERIFY(standard);
+        QVERIFY(variant);
+        auto* variantButton = variant->findChild<QPushButton*>();
+        QVERIFY(variantButton);
+        QTest::mouseClick(variantButton, Qt::LeftButton);
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("torafu_light"));
+        auto* button = standard->findChild<QPushButton*>();
         QVERIFY(button);
         QTest::mouseClick(button, Qt::LeftButton);
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
         QVERIFY2(!hasKifuPasteDialog(),
                  "The piece style button must not open the kifu paste dialog");
     }
@@ -1592,10 +1617,28 @@ private slots:
         QTest::mouseMove(display, display->actionGeometry(styles->menuAction()).center());
         QTRY_VERIFY(styles->isVisible());
         QTest::mouseClick(styles, Qt::LeftButton, Qt::NoModifier,
-                          styles->actionGeometry(action("actionPieceStyleClear")).center());
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
+                          styles->actionGeometry(action("actionPieceStyleStandard")).center());
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
         QVERIFY2(!hasKifuPasteDialog(),
                  "The piece style submenu must not open the kifu paste dialog");
+        auto* torafu = window->findChild<QMenu*>("menuPieceStyleTorafu");
+        QVERIFY(torafu);
+        QTRY_VERIFY(!display->isVisible());
+        // mouseClick は実カーソルを移動しないため、開き直す前にメニューバーへ戻す。
+        QTest::mouseMove(window->menuBar(),
+                         window->menuBar()->actionGeometry(display->menuAction()).center());
+        QTest::mouseClick(window->menuBar(), Qt::LeftButton, Qt::NoModifier,
+                          window->menuBar()->actionGeometry(display->menuAction()).center());
+        QTRY_VERIFY(display->isVisible());
+        QTest::mouseMove(display, display->actionGeometry(styles->menuAction()).center());
+        QTRY_VERIFY(styles->isVisible());
+        QTest::mouseMove(styles, styles->actionGeometry(torafu->menuAction()).center());
+        QTRY_VERIFY(torafu->isVisible());
+        QTest::mouseClick(torafu, Qt::LeftButton, Qt::NoModifier,
+                          torafu->actionGeometry(action("actionPieceStyleTorafuLight")).center());
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("torafu_light"));
+        QVERIFY(action("actionPieceStyleTorafuLight")->isChecked());
+        QVERIFY(!hasKifuPasteDialog());
     }
     void humanResignAndDeclaration()
     {

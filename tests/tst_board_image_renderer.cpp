@@ -54,7 +54,7 @@ private slots:
             QVERIFY(QMetaObject::invokeMethod(themes, "activated", Q_ARG(int, i)));
             QVERIFY(first.boardColors() == BoardColorPresets::themes().at(i).colors);
             QVERIFY(second.boardColors() == first.boardColors());
-            QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("wood"));
+            QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
         }
         grain->setChecked(false);
         shadow->setChecked(false);
