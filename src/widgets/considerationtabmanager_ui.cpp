@@ -59,7 +59,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnConsiderationFontDecrease->setObjectName(QStringLiteral("considerationFontDecrease"));
     m_btnConsiderationFontDecrease->setText(QStringLiteral("A-"));
     m_btnConsiderationFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::fontButton());
+    m_btnConsiderationFontDecrease->setStyleSheet(ButtonStyles::panelToolButton());
     connect(m_btnConsiderationFontDecrease, &QToolButton::clicked,
             this, &ConsiderationTabManager::onConsiderationFontDecrease);
 
@@ -68,7 +68,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnConsiderationFontIncrease->setObjectName(QStringLiteral("considerationFontIncrease"));
     m_btnConsiderationFontIncrease->setText(QStringLiteral("A+"));
     m_btnConsiderationFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::fontButton());
+    m_btnConsiderationFontIncrease->setStyleSheet(ButtonStyles::panelToolButton());
     connect(m_btnConsiderationFontIncrease, &QToolButton::clicked,
             this, &ConsiderationTabManager::onConsiderationFontIncrease);
 
@@ -286,8 +286,8 @@ void ConsiderationTabManager::initFontManager()
         // A+/A- ボタンはフォントサイズに合わせてボタンサイズも更新
         {
             const QFontMetrics fm(font);
-            const int btnW = fm.horizontalAdvance(QStringLiteral("A+")) + 12;
-            const int btnH = fm.height() + 8;
+            const int btnW = qMax(36, fm.horizontalAdvance(QStringLiteral("A+")) + 8);
+            const int btnH = qMax(24, fm.height() + 4);
             if (m_btnConsiderationFontDecrease) {
                 m_btnConsiderationFontDecrease->setFont(font);
                 m_btnConsiderationFontDecrease->setFixedSize(btnW, btnH);

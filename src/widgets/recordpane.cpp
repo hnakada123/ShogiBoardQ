@@ -15,6 +15,7 @@
 #include <QScrollBar>
 #include <QAbstractItemView>
 #include <QPushButton>
+#include <QToolButton>
 #include <QSplitter>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
@@ -94,8 +95,8 @@ void RecordPane::buildToolButtons()
     m_btnFontUp->setToolTip(tr("文字を大きくする"));
     m_btnFontDown->setToolTip(tr("文字を小さくする"));
 
-    m_btnFontUp->setStyleSheet(ButtonStyles::fontButton());
-    m_btnFontDown->setStyleSheet(ButtonStyles::fontButton());
+    m_btnFontUp->setStyleSheet(ButtonStyles::panelToolButton());
+    m_btnFontDown->setStyleSheet(ButtonStyles::panelToolButton());
     m_btnFontUp->setFixedSize(36, 24);
     m_btnFontDown->setFixedSize(36, 24);
     m_btnFontUp->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -107,12 +108,12 @@ void RecordPane::buildToolButtons()
     m_btnBookmarkEdit->setIcon(QIcon(QStringLiteral(":/images/actions/actionEditBookmark.svg")));
     m_btnBookmarkEdit->setIconSize(QSize(20, 20));
     m_btnBookmarkEdit->setToolTip(tr("しおりを編集"));
-    m_btnBookmarkEdit->setStyleSheet(ButtonStyles::fontButton());
+    m_btnBookmarkEdit->setStyleSheet(ButtonStyles::panelToolButton());
     m_btnBookmarkEdit->setFixedSize(36, 24);
     m_btnBookmarkEdit->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 
     // --- 列表示トグルボタン ---
-    const QString toggleBtnStyle = ButtonStyles::toggleButton();
+    const QString toggleBtnStyle = ButtonStyles::panelToolButton();
 
     m_btnToggleTime = new QPushButton(this);
     m_btnToggleTime->setObjectName(QStringLiteral("kifuToggleTime"));
@@ -171,7 +172,7 @@ void RecordPane::buildNavigationPanel()
     m_btn5->setToolTip(tr("10手進む"));
     m_btn6->setToolTip(tr("最後に進む"));
 
-    const QString btnStyle = ButtonStyles::navigationButton();
+    const QString btnStyle = ButtonStyles::panelToolButton();
     const QList<QPushButton*> allBtns = {m_btn1, m_btn2, m_btn3, m_btn4, m_btn5, m_btn6};
     for (QPushButton* const b : std::as_const(allBtns)) {
         b->setStyleSheet(btnStyle);
@@ -183,12 +184,14 @@ void RecordPane::buildNavigationPanel()
     auto* navLay = new QVBoxLayout;
     navLay->setContentsMargins(2, 4, 2, 4);
     navLay->setSpacing(3);
-    navLay->addWidget(m_btnFontUp, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnFontDown, 0, Qt::AlignHCenter);
+    navLay->addWidget(m_btnFontUp, 0, Qt::AlignHCenter);
+    navLay->addSpacing(8);
     navLay->addWidget(m_btnBookmarkEdit, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnToggleTime, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnToggleBookmark, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btnToggleComment, 0, Qt::AlignHCenter);
+    navLay->addSpacing(8);
     navLay->addWidget(m_btn1, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btn2, 0, Qt::AlignHCenter);
     navLay->addWidget(m_btn3, 0, Qt::AlignHCenter);
@@ -220,9 +223,23 @@ void RecordPane::buildBranchPanel()
     m_branchContainer = new QWidget(this);
     auto* branchLay = new QVBoxLayout(m_branchContainer);
     branchLay->setContentsMargins(0, 0, 0, 0);
-    branchLay->setSpacing(2);
-    branchLay->addWidget(m_branch);
-    m_branchContainer->setFixedWidth(120);
+    branchLay->setSpacing(0);
+    branchLay->setAlignment(Qt::AlignTop);
+    m_branch->horizontalHeader()->hide();
+    m_branchToggle = new QToolButton(m_branchContainer);
+    m_branchToggle->setObjectName(QStringLiteral("kifuBranchToggle"));
+    m_branchToggle->setCheckable(true);
+    m_branchToggle->setChecked(GameSettings::kifuBranchExpanded());
+    m_branchToggle->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+    m_branchToggle->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    m_branchToggle->setStyleSheet(QStringLiteral(
+        "QToolButton { background: #f1f3f5; color: #46515c; border: none;"
+        " border-bottom: 1px solid #d8dee5; padding: 2px; }"
+        "QToolButton:hover { background: #e7f0f8; }"
+        "QToolButton:focus { border: 1px solid #52799c; }"));
+    branchLay->addWidget(m_branchToggle);
+    branchLay->addWidget(m_branch, 1);
+    updateBranchAppearance();
 }
 
 void RecordPane::buildMainLayout()
@@ -243,6 +260,7 @@ void RecordPane::buildMainLayout()
 
 void RecordPane::wireSignals()
 {
+    connect(m_branchToggle, &QToolButton::toggled, this, &RecordPane::onBranchToggled);
     // 列の表示・内容・フォントとスクロールバーの変化に追従して余白を詰める。
     // ヘッダーの列幅計算が完了してから表とペインの幅を更新する。
     connect(m_kifu->horizontalHeader(), &QHeaderView::sectionResized,
@@ -278,10 +296,12 @@ void RecordPane::wireSignals()
 
     // 初期フォントサイズを適用
     m_appearanceManager.applyFontToViews(m_kifu, m_branch);
+    updateBranchAppearance();
 }
 
 void RecordPane::updateKifuTableWidth()
 {
+    updateBranchAppearance();
     if (!m_kifu->model()) return;
 
     const auto* scrollBar = m_kifu->verticalScrollBar();
@@ -426,37 +446,6 @@ void RecordPane::onKifuCurrentRowChanged(const QModelIndex& cur, const QModelInd
     emit mainRowChanged(row);
 }
 
-void RecordPane::onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex&)
-{
-    auto* brModel = qobject_cast<KifuBranchListModel*>(m_branch->model());
-    if (brModel && current.isValid()) {
-        brModel->setCurrentHighlightRow(current.row());
-    }
-}
-
-void RecordPane::onBranchClicked(const QModelIndex& index)
-{
-    m_lastClickedBranchIndex = index;
-    m_branchClickGuard = true;
-    QTimer::singleShot(0, this, &RecordPane::clearBranchClickGuard);
-    emit branchActivated(index);
-}
-
-void RecordPane::onBranchActivated(const QModelIndex& index)
-{
-    if (m_branchClickGuard && index.isValid() && index == m_lastClickedBranchIndex) {
-        qCDebug(lcUi).noquote() << "[RecordPane] onBranchActivated: skipped (already handled by clicked) row=" << index.row();
-        return;
-    }
-    emit branchActivated(index);
-}
-
-void RecordPane::clearBranchClickGuard()
-{
-    m_branchClickGuard = false;
-    m_lastClickedBranchIndex = QPersistentModelIndex();
-}
-
 void RecordPane::connectKifuCurrentRowChanged()
 {
     if (!m_kifu) return;
@@ -484,6 +473,7 @@ void RecordPane::onFontIncrease(bool /*checked*/)
 {
     if (m_appearanceManager.tryIncreaseFontSize()) {
         m_appearanceManager.applyFontToViews(m_kifu, m_branch);
+        updateBranchAppearance();
     }
 }
 
@@ -491,6 +481,7 @@ void RecordPane::onFontDecrease(bool /*checked*/)
 {
     if (m_appearanceManager.tryDecreaseFontSize()) {
         m_appearanceManager.applyFontToViews(m_kifu, m_branch);
+        updateBranchAppearance();
     }
 }
 

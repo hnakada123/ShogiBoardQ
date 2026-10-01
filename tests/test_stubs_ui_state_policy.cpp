@@ -46,6 +46,7 @@ void RecordPane::onKifuCurrentRowChanged(const QModelIndex&, const QModelIndex&)
 void RecordPane::onBranchCurrentRowChanged(const QModelIndex&, const QModelIndex&) {}
 void RecordPane::connectKifuCurrentRowChanged() {}
 void RecordPane::onBranchClicked(const QModelIndex&) {}
+void RecordPane::onBranchToggled(bool) {}
 void RecordPane::onBranchActivated(const QModelIndex&) {}
 void RecordPane::clearBranchClickGuard() {}
 

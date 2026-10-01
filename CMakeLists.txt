@@ -760,6 +760,7 @@ set(SRC_WIDGETS
     src/widgets/numericrightaligncommadelegate.h
     src/widgets/pvboardbuttondelegate.h
     src/widgets/recordpane.cpp
+    src/widgets/recordpane_branch.cpp
     src/widgets/recordpane.h
     src/widgets/recordpaneappearancemanager.cpp
     src/widgets/recordpaneappearancemanager.h

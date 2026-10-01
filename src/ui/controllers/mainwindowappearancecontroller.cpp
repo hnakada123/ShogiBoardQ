@@ -91,11 +91,16 @@ void MainWindowAppearanceController::configureToolBarFromUi(QToolBar* toolBar, Q
     m_toolBar = toolBar;
     if (!toolBar) return;
 
-    toolBar->setIconSize(QSize(18, 18));
+    toolBar->setIconSize(QSize(20, 20));
     toolBar->setToolButtonStyle(Qt::ToolButtonIconOnly);
     toolBar->setStyleSheet(
-        "QToolBar{margin:0px; padding:0px; spacing:2px;}"
-        "QToolButton{margin:0px; padding:2px;}"
+        "QToolBar { background: #f7f8fa; border: none; border-bottom: 1px solid #d8dee5;"
+        " margin: 0px; padding: 3px 6px; spacing: 3px; }"
+        "QToolBar::separator { background: #d8dee5; width: 1px; margin: 4px 7px; }"
+        "QToolButton { margin: 0px; padding: 4px; border: 1px solid transparent; border-radius: 4px; }"
+        "QToolButton:hover { background: #e7edf3; }"
+        "QToolButton:pressed, QToolButton:checked { background: #dce7f1; border-color: #a7bbce; }"
+        "QToolButton:focus { border-color: #52799c; }"
         );
 
     // 保存された設定からツールバーの表示状態を復元

@@ -6,6 +6,7 @@
 
 
 #include <QLabel>
+#include <QStringList>
 #include <QTimer>
 
 /**
@@ -90,9 +91,11 @@ private slots:
     void onTimerTimeout();
 
 private:
-    // 省略文字列を最新化。
+    /// wordWrap 有効時は2行に分け、収まらない末尾だけを省略・スクロールする。
+    QStringList displayLines() const;
+    // 表示とホバースクロールを更新。
     // 役割：contentsRect().width() に基づいて elidedText を作り直し、必要ならスクロール開始判定。
-    void updateElidedText();
+    void refreshDisplayText();
 
     // 自動スクロール開始条件を評価して起動。
     // 役割：ホバー中・はみ出し・非ドラッグ・許可フラグの全条件を満たしたときのみ開始。
@@ -106,7 +109,6 @@ private:
 
     // ───────── 内部状態 ─────────
     QString m_fullText;                    // 元テキスト
-    QString m_elidedText;                  // 省略済みテキスト（表示用キャッシュ）
     Qt::TextElideMode m_mode = Qt::ElideMiddle; // 省略位置
 
     // スライド関連

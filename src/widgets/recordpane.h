@@ -9,7 +9,7 @@
 #include <QPersistentModelIndex>
 #include "recordpaneappearancemanager.h"
 
-class QTableView; class QPushButton; class QSplitter;
+class QTableView; class QPushButton; class QSplitter; class QToolButton;
 class KifuRecordListModel; class KifuBranchListModel;
 
 class RecordPane : public QWidget {
@@ -54,10 +54,12 @@ private:
     void buildMainLayout();
     void wireSignals();
     void updateKifuTableWidth();
+    void updateBranchAppearance();
 
     QTableView *m_kifu=nullptr, *m_branch=nullptr;
     QWidget *m_navButtons=nullptr;  // ナビゲーションボタン群（棋譜と分岐の間に縦配置）
     QWidget *m_branchContainer=nullptr;  // 分岐候補欄のコンテナ
+    QToolButton* m_branchToggle = nullptr;
     QPushButton *m_btn1=nullptr,*m_btn2=nullptr,*m_btn3=nullptr,*m_btn4=nullptr,*m_btn5=nullptr,*m_btn6=nullptr;
     QPushButton *m_btnFontUp=nullptr, *m_btnFontDown=nullptr;  // 文字サイズ変更ボタン
     QPushButton *m_btnBookmarkEdit=nullptr;  // しおり編集ボタン
@@ -70,6 +72,7 @@ private:
     RecordPaneAppearanceManager m_appearanceManager{10};
 
 private slots:
+    void onBranchToggled(bool expanded);
     void onKifuRowsInserted(const QModelIndex& parent, int first, int last);
     void onKifuCurrentRowChanged(const QModelIndex& cur, const QModelIndex& prev);
     void onBranchCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);

@@ -59,6 +59,20 @@ inline QString buildPushStyle(const char* bg, const char* fg,
 
 } // namespace detail
 
+/// 棋譜・思考欄の補助操作（選択中だけ淡い青で強調）
+inline QString panelToolButton()
+{
+    return detail::buildDualStyle(
+        "#f7f8fa", "#46515c", "#d8dee5",
+        "#edf2f7", "#dce7f1",
+        "#f3f4f5", "#a6aeb6", "#e6eaee",
+        "padding: 0px;",
+        "QPushButton:checked, QToolButton:checked {"
+        "  background-color: #e7f0f8; color: #243b53; border: 1px solid #52799c;"
+        "}"
+        "QPushButton:focus, QToolButton:focus { border: 1px solid #52799c; }");
+}
+
 /// A+/A- フォントサイズボタン（ライトブルー）
 inline QString fontButton()
 {

@@ -1,20 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>投了</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <!-- Board background -->
-    <rect x="0" y="0" width="128" height="128" fill="#D4A574" stroke="#8B4513" stroke-width="4"/>
-    <line x1="0" y1="42.7" x2="128" y2="42.7" stroke="#8B4513" stroke-width="2"/>
-    <line x1="0" y1="85.3" x2="128" y2="85.3" stroke="#8B4513" stroke-width="2"/>
-    <line x1="42.7" y1="0" x2="42.7" y2="128" stroke="#8B4513" stroke-width="2"/>
-    <line x1="85.3" y1="0" x2="85.3" y2="128" stroke="#8B4513" stroke-width="2"/>
-    <!-- Fallen king piece (tilted ~130 degrees = toppled over) -->
-    <g transform="translate(64, 68) rotate(130)">
-        <polygon points="0,-34 -18,-10 -15,34 15,34 18,-10" fill="#1A1A1A"/>
-        <text x="0" y="22" text-anchor="middle" font-family="serif" font-size="24" fill="white">玉</text>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>投了</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 21V3m0 1h13l-3 4 3 4H5"/>
+  </g>
 </svg>

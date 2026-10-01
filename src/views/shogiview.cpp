@@ -76,6 +76,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_blackNameLabel = new ElideLabel(this);
     m_blackNameLabel->setObjectName(QStringLiteral("blackNameLabel"));
     m_blackNameLabel->setElideMode(Qt::ElideRight);
+    m_blackNameLabel->setWordWrap(true);
     m_blackNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_blackNameLabel->setSlideOnHover(true);
     m_blackNameLabel->setManualPanEnabled(true);
@@ -86,6 +87,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteNameLabel = new ElideLabel(this);
     m_whiteNameLabel->setObjectName(QStringLiteral("whiteNameLabel"));
     m_whiteNameLabel->setElideMode(Qt::ElideRight);
+    m_whiteNameLabel->setWordWrap(true);
     m_whiteNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     m_whiteNameLabel->setSlideOnHover(true);
     m_whiteNameLabel->setManualPanEnabled(true);

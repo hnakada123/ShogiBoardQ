@@ -169,18 +169,22 @@
    </attribute>
    <addaction name="actionOpenKifuFile"/>
    <addaction name="actionSave"/>
+   <addaction name="separator"/>
    <addaction name="actionStartGame"/>
    <addaction name="actionResign"/>
    <addaction name="actionUndoMove"/>
    <addaction name="actionMakeImmediateMove"/>
    <addaction name="actionBreakOffGame"/>
+   <addaction name="separator"/>
    <addaction name="actionAnalyzeKifu"/>
    <addaction name="actionTsumeShogiSearch"/>
    <addaction name="actionTsumeshogiGenerator"/>
    <addaction name="actionTsumePlay"/>
+   <addaction name="separator"/>
    <addaction name="actionFlipBoard"/>
    <addaction name="actionEnlargeBoard"/>
    <addaction name="actionShrinkBoard"/>
+   <addaction name="separator"/>
    <addaction name="actionCSA"/>
   </widget>
   <action name="actionSave">
