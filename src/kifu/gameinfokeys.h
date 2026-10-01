@@ -16,6 +16,9 @@ inline const QString kBlackPlayer = QStringLiteral("先手");
 inline const QString kWhitePlayer = QStringLiteral("後手");
 inline const QString kHandicap = QStringLiteral("手合割");
 inline const QString kTimeControl = QStringLiteral("持ち時間");
+inline const QString kEvent = QStringLiteral("棋戦");
+inline const QString kSite = QStringLiteral("場所");
+inline const QString kNote = QStringLiteral("備考");
 
 } // namespace GameInfoKeys
 

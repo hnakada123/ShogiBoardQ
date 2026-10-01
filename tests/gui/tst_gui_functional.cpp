@@ -1844,10 +1844,19 @@ private slots:
         auto* table = window->findChild<QTableWidget*>("gameInfoTable");
         auto* apply = window->findChild<QPushButton*>("gameInfoApply");
         QVERIFY(dock && controller && table && apply);
+        window->resize(1400, 1120);
         dock->show(); dock->raise();
         QTest::qWait(50);
         QVERIFY(!apply->isEnabled());
+        QCOMPARE(table->rowCount(), 9);
+        QVERIFY(table->item(1, 1)->text().isEmpty());
+        QVERIFY(table->item(2, 1)->text().isEmpty());
+        QVERIFY(table->item(5, 1)->text().isEmpty());
+        QVERIFY(table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
         snapshot("game-info-startup");
+        const QString initialKif = copy("actionCopyKIF");
+        QVERIFY(!initialKif.contains(QStringLiteral("未開始")));
+        QVERIFY(!initialKif.contains(QStringLiteral("未設定")));
 
         table->setColumnWidth(0, 160);
         armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));
@@ -1882,6 +1891,10 @@ private slots:
         QVERIFY(saved.contains(QStringLiteral("備考：") + note));
         armDialog("discard");
         click("actionNewGame");
+        QCOMPARE(table->rowCount(), 9);
+        QVERIFY(table->item(1, 1)->text().isEmpty());
+        QVERIFY(table->item(8, 1)->text().isEmpty());
+        QVERIFY(!controller->isDirty());
         paste(saved);
         dock->show(); dock->raise();
         QCOMPARE(table->columnWidth(0), 160);

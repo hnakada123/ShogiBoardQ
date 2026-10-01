@@ -52,8 +52,10 @@ void PlayerInfoWiring::onGameInfoUpdated(const QList<KifGameInfoItem>& items)
         else if (item.key == QStringLiteral("上手")) uwate = item.value;
     }
     if (m_shogiView) {
-        m_shogiView->setBlackPlayerName(black.isEmpty() ? shitate : black);
-        m_shogiView->setWhitePlayerName(white.isEmpty() ? uwate : white);
+        if (black.isEmpty()) black = shitate.isEmpty() ? tr("先手") : shitate;
+        if (white.isEmpty()) white = uwate.isEmpty() ? tr("後手") : uwate;
+        m_shogiView->setBlackPlayerName(black);
+        m_shogiView->setWhitePlayerName(white);
     }
     if (m_markGameRecordDirty) m_markGameRecordDirty();
 }
@@ -112,17 +114,7 @@ void PlayerInfoWiring::populateDefaultGameInfo()
 {
     if (!m_gameInfoController) return;
 
-    // デフォルトの対局情報を設定（対局開始時刻は現在時刻）
-    const QDateTime now = QDateTime::currentDateTime();
-
-    QList<KifGameInfoItem> defaultItems;
-    defaultItems.append({GameInfoKeys::kGameDate, now.toString(QStringLiteral("yyyy/MM/dd"))});
-    defaultItems.append({GameInfoKeys::kStartDateTime, now.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
-    defaultItems.append({GameInfoKeys::kBlackPlayer, tr("先手")});
-    defaultItems.append({GameInfoKeys::kWhitePlayer, tr("後手")});
-    defaultItems.append({GameInfoKeys::kHandicap, tr("平手")});
-
-    m_gameInfoController->setGameInfo(defaultItems);
+    m_gameInfoController->resetGameInfo();
 }
 
 void PlayerInfoWiring::applyPlayersNamesForMode()
@@ -371,7 +363,7 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
     // 手合割
     items.append({GameInfoKeys::kHandicap, handicap.isEmpty() ? tr("平手") : handicap});
 
-    // 持ち時間（時間制御が有効な場合のみ）
+    // 未開始の「未設定」と、時間制限のない対局を区別する。
     if (hasTimeControl) {
         const int baseMin = static_cast<int>(baseTimeMs / 60000);
         const int baseSec = static_cast<int>((baseTimeMs % 60000) / 1000);
@@ -392,9 +384,11 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
             timeStr += QStringLiteral("+%1").arg(incrementSec);
         }
         items.append({GameInfoKeys::kTimeControl, timeStr});
+    } else {
+        items.append({GameInfoKeys::kTimeControl, QStringLiteral("無制限")});
     }
 
-    m_gameInfoController->setGameInfo(items);
+    m_gameInfoController->setGameInfoForMatch(items);
 
     qCDebug(lcUi) << "setGameInfoForMatchStart: items=" << items.size()
                    << " hasTimeControl=" << hasTimeControl;
@@ -416,7 +410,10 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
                                                      qint64 incrementMs)
 {
     if (!m_gameInfoController) return;
-    if (!hasTimeControl) return;
+    if (!hasTimeControl) {
+        m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, QStringLiteral("無制限"));
+        return;
+    }
 
     // 持ち時間文字列を生成
     const int baseMin = static_cast<int>(baseTimeMs / 60000);

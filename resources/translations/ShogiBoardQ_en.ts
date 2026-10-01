@@ -3416,72 +3416,98 @@ Score from Black’s perspective</translation>
         <translation>Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="58"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="61"/>
+        <source>未開始（対局開始時に設定）</source>
+        <translation>Not started (set when the game starts)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="61"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="65"/>
+        <source>未設定</source>
+        <translation>Not set</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="63"/>
+        <source>未設定（名前を入力できます）</source>
+        <translation>Not set (enter a player name)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="65"/>
+        <source>未設定（対局設定から反映）</source>
+        <translation>Not set (from game settings)</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="67"/>
+        <source>任意入力</source>
+        <translation>Optional</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="108"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="60"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="110"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="62"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="112"/>
         <source>元に戻す (Ctrl+Z)</source>
         <translation>Undo (Ctrl+Z)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="64"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="114"/>
         <source>やり直す (Ctrl+Y)</source>
         <translation>Redo (Ctrl+Y)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="67"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="117"/>
         <source>切り取り (Ctrl+X)</source>
         <translation>Cut (Ctrl+X)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="69"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="119"/>
         <source>コピー (Ctrl+C)</source>
         <translation>Copy (Ctrl+C)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="71"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="121"/>
         <source>貼り付け (Ctrl+V)</source>
         <translation>Paste (Ctrl+V)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="74"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="124"/>
         <source>行を追加</source>
         <translation>Add row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="75"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="125"/>
         <source>新しい行を追加する</source>
         <translation>Add a new row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="76"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
         <source>行を削除</source>
         <translation>Delete row</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="77"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="127"/>
         <source>選択行を削除する（元に戻す操作で復元できます）</source>
         <translation>Delete the selected row (can be restored with Undo)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="82"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="132"/>
         <source>編集した対局情報を棋譜に反映する (Ctrl+Enter)</source>
         <translation>Apply edited game info to the record (Ctrl+Enter)</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="176"/>
         <source>未反映の変更があります</source>
         <translation>Unapplied changes</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="126"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="176"/>
         <source>内容をダブルクリックして編集</source>
         <translation>Double-click a value to edit</translation>
     </message>
@@ -3490,7 +3516,7 @@ Score from Black’s perspective</translation>
         <translation type="vanished">Editing</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="80"/>
+        <location filename="../../src/widgets/gameinfopanecontroller_ui.cpp" line="130"/>
         <source>対局情報更新</source>
         <translation>Update Game Info</translation>
     </message>
@@ -3507,12 +3533,12 @@ Score from Black’s perspective</translation>
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="244"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="280"/>
         <source>未保存の対局情報</source>
         <translation>Unsaved Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="245"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="281"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation>The game info has been edited but not saved yet.
@@ -7017,20 +7043,20 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Start Time</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="121"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="262"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="267"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="281"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="366"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="55"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="254"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="259"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="273"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="358"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="122"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="263"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="273"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="282"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="369"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="56"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="255"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="265"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="274"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="361"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -7039,30 +7065,29 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Handicap</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="123"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="289"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="372"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="281"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="364"/>
         <source>平手</source>
         <translation>Even Game</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="268"/>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="272"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="260"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="264"/>
         <source>Engine</source>
         <translation type="unfinished">Engine</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="277"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="269"/>
         <source>Engine1</source>
         <translation type="unfinished">Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="278"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="270"/>
         <source>Engine2</source>
         <translation type="unfinished">Engine2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="293"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="285"/>
         <source>その他</source>
         <translation type="unfinished"></translation>
     </message>

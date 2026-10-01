@@ -10,6 +10,9 @@
 #include <QToolButton>
 #include "gameinfopanecontroller.h"
 #include "gamesettings.h"
+#include "gameinfokeys.h"
+#include "playerinfowiring.h"
+#include "gamerecordmodel.h"
 
 class TestGameInfoPane : public QObject
 {
@@ -293,6 +296,89 @@ private slots:
         QScopedPointer<QWidget> restoredContainer(restored.containerWidget());
         QCOMPARE(restored.fontSize(), 8);
         QCOMPARE(restored.tableWidget()->columnWidth(0), 180);
+    }
+
+    void initialValuesAreEmptyWithDisplayOnlyHints()
+    {
+        m_controller->resetGameInfo();
+        QCOMPARE(m_table->rowCount(), 9);
+        const QStringList keys = {QStringLiteral("対局日"), QStringLiteral("開始日時"),
+                                  QStringLiteral("先手"), QStringLiteral("後手"), QStringLiteral("手合割"),
+                                  QStringLiteral("持ち時間"), QStringLiteral("棋戦"),
+                                  QStringLiteral("場所"), QStringLiteral("備考")};
+        for (int row = 0; row < keys.size(); ++row) {
+            QCOMPARE(m_table->item(row, 0)->text(), keys.at(row));
+            QCOMPARE(m_table->item(row, 1)->text(), row == 4 ? QStringLiteral("平手") : QString());
+        }
+        QVERIFY(!m_controller->isDirty());
+        QVERIFY(m_table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
+        m_table->setCurrentCell(2, 1);
+        m_table->editItem(m_table->currentItem());
+        auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+        QVERIFY(editor);
+        QVERIFY(editor->text().isEmpty());
+        QVERIFY(editor->placeholderText().contains(QStringLiteral("名前を入力")));
+        m_controller->commitPendingEditor();
+        QVERIFY(!m_controller->isDirty());
+
+        GameRecordModel record;
+        GameRecordModel::ExportContext context;
+        context.gameInfoTable = m_table;
+        const QString kif = record.toKifLines(context).join(QLatin1Char('\n'));
+        QVERIFY(!kif.contains(QStringLiteral("未開始")));
+        QVERIFY(!kif.contains(QStringLiteral("未設定")));
+        QVERIFY(!kif.contains(QStringLiteral("任意入力")));
+        QVERIFY(kif.contains(QStringLiteral("開始日時：\n")));
+
+        m_controller->setGameInfo({{GameInfoKeys::kStartDateTime, {}}});
+        QVERIFY(!m_table->item(0, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
+    }
+
+    void startingGameKeepsMetadataAndPendingEdits()
+    {
+        QWidget parent;
+        PlayerInfoWiring::Dependencies deps;
+        deps.parentWidget = &parent;
+        PlayerInfoWiring wiring(deps);
+        wiring.addGameInfoTabAtStartup();
+        auto* controller = wiring.gameInfoController();
+        QScopedPointer<QWidget> container(controller->containerWidget());
+        auto* table = controller->tableWidget();
+        container->resize(700, 400);
+        container->show();
+        container->activateWindow();
+        table->setFocus();
+        QTRY_VERIFY(table->hasFocus());
+        table->item(6, 1)->setText(QStringLiteral("練習対局"));
+        table->item(7, 1)->setText(QStringLiteral("自宅"));
+        controller->updateGameInfoValue(GameInfoKeys::kEndDateTime, QStringLiteral("2025/01/01 10:00:00"));
+        controller->updateGameInfoValue(QStringLiteral("消費時間"), QStringLiteral("前局の消費時間"));
+        table->setCurrentCell(8, 1);
+        table->editItem(table->currentItem());
+        auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+        QVERIFY(editor);
+        editor->setText(QStringLiteral("入力途中の備考"));
+        const QDateTime start(QDate(2026, 10, 2), QTime(15, 30, 5));
+        wiring.setGameInfoForMatchStart(start, QStringLiteral("太郎"), QStringLiteral("花子"),
+                                       QStringLiteral("平手"), true, 300000, 30000, 0);
+        QCOMPARE(table->rowCount(), 9);
+        QCOMPARE(table->item(0, 1)->text(), QStringLiteral("2026/10/02"));
+        QCOMPARE(table->item(1, 1)->text(), QStringLiteral("2026/10/02 15:30:05"));
+        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("太郎"));
+        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("花子"));
+        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("05:00+30"));
+        QCOMPARE(table->item(6, 1)->text(), QStringLiteral("練習対局"));
+        QCOMPARE(table->item(7, 1)->text(), QStringLiteral("自宅"));
+        QCOMPARE(table->item(8, 1)->text(), QStringLiteral("入力途中の備考"));
+        QVERIFY(!controller->isDirty());
+        wiring.setGameInfoForMatchStart(start.addSecs(3600), QStringLiteral("花子"), QStringLiteral("太郎"),
+                                       QStringLiteral("平手"), false, 0, 0, 0);
+        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("無制限"));
+        QCOMPARE(table->item(8, 1)->text(), QStringLiteral("入力途中の備考"));
+        controller->resetGameInfo();
+        QVERIFY(table->item(6, 1)->text().isEmpty());
+        QVERIFY(table->item(1, 1)->text().isEmpty());
+        QVERIFY(table->item(1, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
     }
 };
 

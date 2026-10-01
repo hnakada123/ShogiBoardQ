@@ -19,6 +19,7 @@
 #include "considerationwiring.h"
 #include "csagamewiring.h"
 #include "gamerecordupdateservice.h"
+#include "gameinfopanecontroller.h"
 #include "gamesessionorchestrator.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcoordinator.h"
@@ -265,8 +266,13 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
         m_mw.m_player.engineName2.clear();
         m_mw.m_kifu.gameUsiMoves.clear();
         if (m_mw.m_match) m_mw.m_match->clearGameOverState();
-        resetModels(startSfen);
         m_foundation->ensurePlayerInfoWiring();
+        m_mw.m_playerInfoWiring->ensureGameInfoController();
+        auto* gameInfo = m_mw.m_playerInfoWiring->gameInfoController();
+        gameInfo->commitPendingEditor();
+        const auto preparedInfo = gameInfo->gameInfo();
+        resetModels(startSfen);
+        gameInfo->setGameInfo(preparedInfo);
         m_mw.m_playerInfoWiring->setGameInfoForMatchStart(
             QDateTime::currentDateTime(), black, white, QString(), false, 0, 0, 0);
         startLiveGameSessionIfNeeded();

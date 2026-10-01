@@ -29,6 +29,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 外観の切替は `boardThemes` で「榧と畳」「墨と榧」「琥珀」の選択、木目・影・駒倍率の変更、複数盤面への反映、再起動後の復元、反転を検証します。`board-appearance-main.png`、`board-appearance-flipped.png`、`board-appearance-dialog.png` と各テーマの盤面画像を保存します。
 標準の駒の選択メニュー、反転表示、別の盤面への反映、設定復元は `pieceStyles` で検証します。
 `tst_start_game_flow` は設定の保存・復元、先後入れ替え、初期設定への復帰、開始局面の選択、時間切れ負け設定と終局理由、最大手数での終局通知、連続対局の継続と各局の棋譜保存を検証します。
+`preparedGameInfoSurvivesStart` は現在局面・平手からの対局開始で、事前入力した棋戦・場所・入力途中の備考を保持し、開始日時・対局者・持ち時間を更新することを検証します。
 `tst_ponder_flow` はUSI_Ponderを報告しない模擬エンジンで、先後両方の成りと予測一致・不一致、人間とエンジンそれぞれの手番での「すぐ指させる」、エンジン同士の先読み対局を検証します。CSAは実際のCsaEngineControllerを使い、予測局面の保持とエンジン再初期化・終了を確認します（CSAサーバーには接続しません）。
 標準の駒と反転時のスクリーンショットも保存します。
 追加20種類は `pieceVariants:<style>`（例: `pieceVariants:torafu_light`）で種類ごとに実行します。各種類の選択、別盤面への反映、再起動後の復元、反転時の王・玉、成駒・持駒・駒打ち矢印、配色ダイアログの表示名と画像を検証します。`pieceStyleMenuBar` と `pieceStyleMenuDock` は旧メニュー・ボタンがなくなり、統合ウィンドウを開けることを確認します。
@@ -93,6 +94,6 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_collect
 
 `commentPresentation` は棋王戦の棋譜で段落・開始局面のコメント列・全文ツールチップ・Ctrl＋クリックでのリンク操作・空行の保存と再読込を確認し、`comment-presentation.png` を保存します。`commentEditing` は空コメントの表示、書式付きクリップボードからのテキスト貼り付け、Ctrl＋Enterでの更新、記号・URL・段落を含む本文の保存と再読込、コメント削除を検証します。
 
-`gameInfoPresentation` は対局情報の起動時・棋譜読込後の表示、入力途中からの更新、備考のKIF出力と再読込、項目列幅の保持、狭いドックでの操作ボタンの折り返し、文字拡大を検証します。`game-info-startup.png`・`game-info-loaded.png`・`game-info-narrow.png`・`game-info-large-font.png` を保存します。編集状態に応じたボタンの有効化、Ctrl＋Enter、行削除のUndo/Redo、全文ツールチップ、設定復元は CTest の `tst_game_info_pane` で検証します。
+`gameInfoPresentation` は対局情報の起動時の9項目と未開始・未設定の案内、新規作成時の初期化、案内文を含めないKIF出力、棋譜読込後の表示、入力途中からの更新、備考のKIF出力と再読込、項目列幅の保持、狭いドックでの操作ボタンの折り返し、文字拡大を検証します。`game-info-startup.png`・`game-info-loaded.png`・`game-info-narrow.png`・`game-info-large-font.png` を保存します。編集状態に応じたボタンの有効化、Ctrl＋Enter、行削除のUndo/Redo、全文ツールチップ、設定復元は CTest の `tst_game_info_pane` で検証します。
 
 `josekiLoadAndPlay` は定跡ファイルの読込・合法手の追加・予想応手の編集・保存内容・盤上への着手を検証し、`joseki-window.png`・`joseki-add.png`・`joseki-edit.png` を保存します。`josekiVisibleDuringDestruction` は定跡ドックを表示したままメイン画面を破棄してもクラッシュしないことを確認します。
