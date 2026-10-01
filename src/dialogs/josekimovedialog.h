@@ -51,6 +51,10 @@ public:
      * @return USI形式の予想応手（なければ"none"）
      */
     QString nextMove() const;
+    void setNextMove(const QString &move);
+
+    /// 登録対象の局面。指し手と、その着手後の予想応手を検証する。
+    void setCurrentSfen(const QString &sfen);
 
     /**
      * @brief 評価値を取得
@@ -106,14 +110,19 @@ public:
      */
     void setEditMoveDisplay(const QString &japaneseMove);
 
+public slots:
+    void done(int result) override;
+
 private slots:
     void validateInput();
+    void updateValidation();
     void onFontSizeIncrease();
     void onFontSizeDecrease();
 
 private:
     void setupUi(bool isEdit);
     void applyFontSize();
+    QString inputError() const;
 
     // 指し手入力ウィジェット
     JosekiMoveInputWidget *m_moveInput = nullptr;
@@ -134,6 +143,8 @@ private:
     int m_fontSize = 0;
 
     QLabel *m_moveErrorLabel = nullptr;
+    QLabel *m_positionLabel = nullptr;
+    QString m_currentSfen;
     QDialogButtonBox *m_buttonBox = nullptr;
 };
 

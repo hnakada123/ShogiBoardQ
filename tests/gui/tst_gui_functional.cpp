@@ -61,6 +61,8 @@
 #include "sfencollectiondialog.h"
 #include "kifupastedialog.h"
 #include "josekiwindow.h"
+#include "josekimovedialog.h"
+#include "josekimoveinputwidget.h"
 #include "menuwindow.h"
 #include "menubuttonwidget.h"
 #include "enginelistsettings.h"
@@ -214,6 +216,24 @@ public slots:
                 fd->selectFile(dialogPath);
                 if (auto* name = fd->findChild<QLineEdit*>("fileNameEdit")) name->setText(dialogPath);
                 QMetaObject::invokeMethod(fd, "accept", Qt::DirectConnection);
+            } else if (dialogMode == "joseki-add" || dialogMode == "joseki-edit") {
+                auto* moveDialog = qobject_cast<JosekiMoveDialog*>(d);
+                QVERIFY(moveDialog);
+                auto* buttons = d->findChild<QDialogButtonBox*>();
+                QVERIFY(buttons);
+                if (dialogMode == "joseki-add") {
+                    QVERIFY(!buttons->button(QDialogButtonBox::Ok)->isEnabled());
+                    moveDialog->setMove(QStringLiteral("2g2f"));
+                } else {
+                    QCOMPARE(moveDialog->move(), QStringLiteral("7g7f"));
+                    auto* reply = d->findChild<JosekiMoveInputWidget*>("nextMoveInput");
+                    QVERIFY(reply && reply->isVisible());
+                }
+                moveDialog->setNextMove(QStringLiteral("8c8d"));
+                QVERIFY(buttons->button(QDialogButtonBox::Ok)->isEnabled());
+                QCoreApplication::processEvents();
+                QVERIFY(d->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/") + dialogMode + ".png"));
+                QTest::mouseClick(buttons->button(QDialogButtonBox::Ok), Qt::LeftButton);
             } else if (dialogMode == "bookmark") {
                 auto* input = qobject_cast<QInputDialog*>(d);
                 QVERIFY(input);
@@ -1486,6 +1506,19 @@ private slots:
         armDialog("collection"); click("actionSfenCollectionViewer");
         QVERIFY(!selectedCollection.isEmpty()); QCOMPARE(boardSfen(), selectedCollection);
     }
+    void josekiVisibleDuringDestruction()
+    {
+        auto* jw = window->findChild<JosekiWindow*>();
+        QVERIFY(jw);
+        auto* dock = qobject_cast<QDockWidget*>(jw->parentWidget());
+        QVERIFY(dock);
+        dock->show();
+        dock->raise();
+        QTRY_VERIFY(jw->isVisible());
+        QPointer<JosekiWindow> guard(jw);
+        window.reset();
+        QVERIFY(guard.isNull());
+    }
     void josekiLoadAndPlay()
     {
         armDialog("game"); click("actionStartGame");
@@ -1500,6 +1533,34 @@ private slots:
         QVERIFY(open); armDialog("file", f.fileName()); QTest::mouseClick(open, Qt::LeftButton);
         auto* table = jw->findChild<QTableWidget*>(); QVERIFY(table);
         QTRY_COMPARE_WITH_TIMEOUT(table->rowCount(), 1, 2000);
+        QPushButton* add = nullptr;
+        QPushButton* save = nullptr;
+        for (auto* button : jw->findChildren<QPushButton*>()) {
+            if (button->text() == QStringLiteral("＋追加")) add = button;
+            if (button->text() == QStringLiteral("保存")) save = button;
+        }
+        QVERIFY(add && save);
+        armDialog("joseki-add");
+        QTest::mouseClick(add, Qt::LeftButton);
+        QCOMPARE(table->rowCount(), 2);
+        QTRY_VERIFY(table->cellWidget(0, 4)->isVisible());
+        QCoreApplication::processEvents();
+        armDialog("joseki-edit");
+        QTest::mouseClick(table->cellWidget(0, 4), Qt::LeftButton);
+        QVERIFY(dialogHandled);
+        QCOMPARE(table->item(0, 3)->text(), QStringLiteral("△８四歩(83)"));
+        QVERIFY(save->isEnabled());
+        QTest::mouseClick(save, Qt::LeftButton);
+        QTRY_VERIFY(table->isEnabled());
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        const QByteArray contents = f.readAll();
+        QVERIFY(contents.contains("7g7f 8c8d"));
+        QVERIFY(contents.contains("2g2f 8c8d"));
+        f.close();
+        dock->setFloating(true);
+        dock->resize(1120, 620);
+        QTest::qWait(30);
+        QVERIFY(jw->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/joseki-window.png")));
         auto index = table->model()->index(0, 1);
         armDialog("auto");
         QTest::mouseClick(table->viewport(), Qt::LeftButton, Qt::NoModifier, table->visualRect(index).center());

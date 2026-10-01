@@ -140,9 +140,10 @@ void JosekiPresenter::addMove(const QString &normalizedSfen, const QString &curr
 }
 
 void JosekiPresenter::editMove(const QString &normalizedSfen, const QString &usiMove,
-                                int value, int depth, int frequency, const QString &comment)
+                                int value, int depth, int frequency, const QString &comment,
+                                const QString &nextMove)
 {
-    m_repository->updateMove(normalizedSfen, usiMove, value, depth, frequency, comment);
+    m_repository->updateMove(normalizedSfen, usiMove, value, depth, frequency, comment, nextMove);
 
     qCDebug(lcUi) << "Updated joseki move:" << usiMove;
 

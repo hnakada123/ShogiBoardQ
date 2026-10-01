@@ -7,6 +7,7 @@
 #include "josekisettings.h"
 #include "sfenpositiontracer.h"
 #include "buttonstyles.h"
+#include "tablestyles.h"
 #include "dialogutils.h"
 #include "logcategories.h"
 
@@ -39,6 +40,7 @@ static void addRowButton(QTableWidget *table, int row, int col,
     btn->setProperty("row", row);
     btn->setFont(win->font());
     btn->setStyleSheet(style);
+    btn->setCursor(Qt::PointingHandCursor);
     QObject::connect(btn, &QPushButton::clicked, win, slot);
     table->setCellWidget(row, col, btn);
 }
@@ -55,10 +57,10 @@ void JosekiWindow::setupUi()
     QHBoxLayout *toolbarLayout = new QHBoxLayout();
     toolbarLayout->setSpacing(12);
 
-    const QString fileBtnStyle = ButtonStyles::fileOperation();
-    const QString fontBtnStyle = ButtonStyles::fontButton();
-    const QString editBtnStyle = ButtonStyles::editOperation();
-    const QString stopBtnStyle = ButtonStyles::dangerStop();
+    const QString fileBtnStyle = ButtonStyles::panelToolButton() + QStringLiteral("QPushButton { padding: 4px 8px; }");
+    const QString fontBtnStyle = ButtonStyles::panelToolButton();
+    const QString editBtnStyle = fileBtnStyle;
+    const QString stopBtnStyle = fileBtnStyle;
 
     QGroupBox *fileGroup = new QGroupBox(tr("ファイル"), this);
     QHBoxLayout *fileGroupLayout = new QHBoxLayout(fileGroup);
@@ -98,7 +100,7 @@ void JosekiWindow::setupUi()
     m_recentFilesMenu->setProperty("automationMenu", true);
     m_recentButton->setMenu(m_recentFilesMenu);
     fileGroupLayout->addWidget(m_recentButton);
-    toolbarLayout->addWidget(fileGroup);
+    toolbarLayout->addWidget(fileGroup, 0, Qt::AlignLeft);
 
     QGroupBox *displayGroup = new QGroupBox(tr("表示"), this);
     QHBoxLayout *displayGroupLayout = new QHBoxLayout(displayGroup);
@@ -121,7 +123,8 @@ void JosekiWindow::setupUi()
     m_autoLoadCheckBox->setToolTip(tr("定跡ウィンドウ表示時に前回のファイルを自動で読み込む"));
     m_autoLoadCheckBox->setChecked(true);
     displayGroupLayout->addWidget(m_autoLoadCheckBox);
-    toolbarLayout->addWidget(displayGroup);
+    toolbarLayout->addWidget(displayGroup, 0, Qt::AlignLeft);
+    toolbarLayout->addStretch();
 
     QGroupBox *operationGroup = new QGroupBox(tr("操作"), this);
     QHBoxLayout *operationGroupLayout = new QHBoxLayout(operationGroup);
@@ -152,13 +155,15 @@ void JosekiWindow::setupUi()
     m_stopButton->setCheckable(true);
     m_stopButton->setStyleSheet(stopBtnStyle);
     operationGroupLayout->addWidget(m_stopButton);
-    toolbarLayout->addWidget(operationGroup);
+    toolbarLayout->addWidget(operationGroup, 0, Qt::AlignRight);
     mainLayout->addLayout(toolbarLayout);
 
     QHBoxLayout *fileInfoLayout = new QHBoxLayout();
     fileInfoLayout->addWidget(new QLabel(tr("ファイル:"), this));
     m_filePathLabel = new QLabel(tr("未選択"), this);
     m_filePathLabel->setStyleSheet(QStringLiteral("color: gray;"));
+    m_filePathLabel->setTextFormat(Qt::PlainText);
+    m_filePathLabel->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
     m_filePathLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     fileInfoLayout->addWidget(m_filePathLabel, 1);
     m_fileStatusLabel = new QLabel(this);
@@ -207,6 +212,8 @@ void JosekiWindow::setupUi()
     m_tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_tableWidget->setSelectionMode(QAbstractItemView::SingleSelection);
     m_tableWidget->setAlternatingRowColors(true);
+    m_tableWidget->setShowGrid(false);
+    m_tableWidget->setWordWrap(false);
     m_tableWidget->verticalHeader()->setVisible(false);
     m_tableWidget->setContextMenuPolicy(Qt::CustomContextMenu);
     m_tableWidget->setColumnWidth(0, 40);
@@ -221,13 +228,11 @@ void JosekiWindow::setupUi()
     m_tableWidget->horizontalHeader()->setStretchLastSection(true);
     mainLayout->addWidget(m_tableWidget, 1);
 
-    m_emptyGuideLabel = new QLabel(this);
-    m_emptyGuideLabel->setText(
-        tr("<div style='text-align: center; color: #888;'>"
-           "<p style='font-size: 14pt; margin-bottom: 10px;'>定跡が登録されていません</p>"
-           "<p>「＋追加」ボタンで手動追加、または<br>"
-           "「マージ」メニューから棋譜を取り込めます</p>"
-           "</div>"));
+    m_emptyGuideLabel = new QLabel(m_tableWidget->viewport());
+    m_emptyGuideLabel->setWordWrap(true);
+    m_emptyGuideLabel->setAttribute(Qt::WA_TransparentForMouseEvents);
+    auto *emptyLayout = new QVBoxLayout(m_tableWidget->viewport());
+    emptyLayout->addWidget(m_emptyGuideLabel);
     m_emptyGuideLabel->setAlignment(Qt::AlignCenter);
     m_emptyGuideLabel->setVisible(false);
 
@@ -240,7 +245,7 @@ void JosekiWindow::setupUi()
     mainLayout->addWidget(statusFrame);
 
     m_noticeLabel = new QLabel(this);
-    m_noticeLabel->setText(tr("※ 編集・削除後は「保存」ボタンで定跡ファイルに保存してください"));
+    m_noticeLabel->setText(tr("※ 追加・編集・削除後は「保存」ボタンで定跡ファイルに保存してください"));
     m_noticeLabel->setStyleSheet(QStringLiteral("color: #cc6600; font-size: 9pt;"));
     mainLayout->addWidget(m_noticeLabel);
 
@@ -286,23 +291,15 @@ void JosekiWindow::applyFontSize()
         QFontMetrics fm(font);
         header->setFixedHeight(fm.height() + 12);
         m_tableWidget->verticalHeader()->setDefaultSectionSize(fm.height() + 12);
-        m_tableWidget->setStyleSheet(QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  padding: 4px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "  font-size: %1pt;"
-            "}")
-            .arg(fontSize));
-        for (int col = 0; col < m_tableWidget->columnCount(); ++col) {
-            QString headerText = m_tableWidget->horizontalHeaderItem(col)
-                                     ? m_tableWidget->horizontalHeaderItem(col)->text()
-                                     : QString();
-            m_tableWidget->setColumnWidth(col, fm.horizontalAdvance(headerText) + 24);
+        m_tableWidget->setStyleSheet(TableStyles::thinking(fontSize) + QStringLiteral(
+            "QTableView { alternate-background-color: #f7f9fb; }"
+            "QTableView::item { padding: 3px 6px; }"));
+        for (int col = 0; col < m_tableWidget->columnCount() - 1; ++col) {
+            QString sample = m_tableWidget->horizontalHeaderItem(col)->text();
+            if (col == 2 || col == 3) sample = QStringLiteral("▲７六歩(77)");
+            if (col == 8) sample = QStringLiteral("999,999,999");
+            m_tableWidget->setColumnWidth(col, qMax(m_tableWidget->columnWidth(col),
+                                                     fm.horizontalAdvance(sample) + 24));
         }
         header->setStretchLastSection(true);
     }
@@ -329,6 +326,10 @@ void JosekiWindow::loadSettings()
 {
     applyFontSize();
     DialogUtils::restoreDialogSize(this, JosekiSettings::josekiWindowSize());
+    const auto widths = JosekiSettings::josekiWindowColumnWidths();
+    for (int col = 0; col < widths.size() && col < m_tableWidget->columnCount() - 1; ++col) {
+        if (widths.at(col) > 0) m_tableWidget->setColumnWidth(col, widths.at(col));
+    }
     m_autoLoadEnabled = JosekiSettings::josekiWindowAutoLoadEnabled();
     m_autoLoadCheckBox->setChecked(m_autoLoadEnabled);
     m_recentFiles = JosekiSettings::josekiWindowRecentFiles();
@@ -337,7 +338,6 @@ void JosekiWindow::loadSettings()
     if (!m_displayEnabled) {
         m_stopButton->setChecked(true);
         m_stopButton->setText(tr("▶ 再開"));
-        m_stopButton->setStyleSheet(QStringLiteral("color: #cc0000; font-weight: bold;"));
     }
     bool sfenDetailVisible = JosekiSettings::josekiWindowSfenDetailVisible();
     m_showSfenDetailBtn->setChecked(sfenDetailVisible);
@@ -378,12 +378,13 @@ void JosekiWindow::updateJosekiDisplay()
     }
 
     clearTable();
+    updatePositionSummary();
+    m_sfenLineLabel->clear();
     if (!m_displayEnabled) return;
     if (m_currentSfen.isEmpty()) return;
 
     QString normalizedSfen = JosekiPresenter::normalizeSfen(m_currentSfen);
     qCDebug(lcUi) << "Looking for:" << normalizedSfen;
-    updatePositionSummary();
 
     if (!m_repository->containsPosition(normalizedSfen)) {
         m_currentMoves.clear();
@@ -415,13 +416,14 @@ void JosekiWindow::updateJosekiDisplay()
         m_tableWidget->setItem(i, 0, noItem);
 
         if (m_humanCanPlay)
-            addRowButton(m_tableWidget, i, 1, tr("着手"), ButtonStyles::tablePlayButton(),
+            addRowButton(m_tableWidget, i, 1, tr("着手"), ButtonStyles::panelToolButton(),
                          this, &JosekiWindow::onPlayButtonClicked);
 
         QString moveJapanese = JosekiPresenter::usiMoveToJapanese(move.move, tracer);
         auto *moveItem = new QTableWidgetItem(moveJapanese);
         moveItem->setTextAlignment(Qt::AlignCenter);
-        moveItem->setToolTip(tr("ダブルクリックで着手"));
+        moveItem->setToolTip(m_humanCanPlay
+            ? move.move + QLatin1Char('\n') + tr("ダブルクリックで着手") : move.move);
         m_tableWidget->setItem(i, 2, moveItem);
 
         SfenPositionTracer nextTracer;
@@ -429,21 +431,22 @@ void JosekiWindow::updateJosekiDisplay()
         (void)nextTracer.applyUsiMove(move.move);
         auto *nextMoveItem = new QTableWidgetItem(
             JosekiPresenter::usiMoveToJapanese(move.nextMove, nextTracer));
+        nextMoveItem->setToolTip(move.nextMove);
         nextMoveItem->setTextAlignment(Qt::AlignCenter);
         m_tableWidget->setItem(i, 3, nextMoveItem);
 
-        addRowButton(m_tableWidget, i, 4, tr("編集"), ButtonStyles::tableEditButton(),
+        addRowButton(m_tableWidget, i, 4, tr("編集"), ButtonStyles::panelToolButton(),
                      this, &JosekiWindow::onEditButtonClicked);
-        addRowButton(m_tableWidget, i, 5, tr("削除"), ButtonStyles::tableDeleteButton(),
+        addRowButton(m_tableWidget, i, 5, tr("削除"), ButtonStyles::panelToolButton(),
                      this, &JosekiWindow::onDeleteButtonClicked);
 
         m_tableWidget->setItem(i, 6, numericItem(locale, move.value));
         m_tableWidget->setItem(i, 7, numericItem(locale, move.depth));
         m_tableWidget->setItem(i, 8, numericItem(locale, move.frequency));
-        m_tableWidget->setItem(i, 9, new QTableWidgetItem(move.comment));
+        auto *commentItem = new QTableWidgetItem(move.comment);
+        commentItem->setToolTip(move.comment);
+        m_tableWidget->setItem(i, 9, commentItem);
     }
 
-    m_tableWidget->resizeColumnToContents(2);
-    m_tableWidget->resizeColumnToContents(3);
     updateStatusDisplay();
 }

@@ -103,7 +103,7 @@ void JosekiWindow::setIoBusy(bool busy)
     m_saveButton->setEnabled(!busy && m_modified);
     m_saveAsButton->setEnabled(!busy);
     m_recentButton->setEnabled(!busy);
-    m_addMoveButton->setEnabled(!busy);
+    m_addMoveButton->setEnabled(!busy && !m_currentSfen.isEmpty());
     m_mergeButton->setEnabled(!busy);
     m_tableWidget->setEnabled(!busy);
     m_actionEdit->setEnabled(!busy);
