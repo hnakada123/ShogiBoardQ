@@ -744,6 +744,7 @@ set(SRC_WIDGETS
     src/widgets/flowlayout.h
     src/widgets/gameinfopanecontroller.cpp
     src/widgets/gameinfopanecontroller_edit.cpp
+    src/widgets/gameinfopanecontroller_ui.cpp
     src/widgets/gameinfopanecontroller.h
     src/widgets/globaltooltip.cpp
     src/widgets/globaltooltip.h

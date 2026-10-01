@@ -9,6 +9,7 @@
 #include "bodtextgenerator.h"
 #include "csaformatter.h"
 #include "kifuclipboardservice.h"
+#include "kifucontentbuilder.h"
 
 #include "gamerecordmodel.h"
 #include "kifubranchtree.h"
@@ -265,9 +266,7 @@ private slots:
         tree.setRootSfen(kHirateSfen);
         GameRecordModel model;
         model.setBranchTree(&tree);
-        QTableWidget emptyInfo;
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = &emptyInfo;
         ctx.startSfen = kHirateSfen;
         ctx.hasTimeControl = true;
         ctx.initialTimeMs = 630000;
@@ -280,6 +279,46 @@ private slots:
         QVERIFY(KifuClipboardService::copyKi2(model, ctx));
         QCOMPARE(QApplication::clipboard()->text(), model.toKi2Lines(ctx).join(QLatin1Char('\n')));
         QVERIFY(QApplication::clipboard()->text().contains(QStringLiteral("2025/01/02 06:07:08")));
+    }
+
+    void removedGameInfoStaysEmptyOnExport()
+    {
+        GameRecordModel model;
+        QTableWidget emptyInfo(0, 2);
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = &emptyInfo;
+        ctx.startSfen = kHirateSfen;
+        const QString kif = model.toKifLines(ctx).join(QLatin1Char('\n'));
+        QVERIFY(!kif.contains(QStringLiteral("開始日時：")));
+        QVERIFY(!kif.contains(QStringLiteral("先手：")));
+        QVERIFY(!kif.contains(QStringLiteral("後手：")));
+        KifuExportContext legacy;
+        legacy.gameInfoTable = &emptyInfo;
+        legacy.startSfen = kHirateSfen;
+        const QString legacyKif = KifuContentBuilder::buildKifuDataList(legacy).join(QLatin1Char('\n'));
+        QVERIFY(!legacyKif.contains(QStringLiteral("開始日時：")));
+        QVERIFY(!legacyKif.contains(QStringLiteral("先手：")));
+        ctx.gameInfoTable = nullptr;
+        QVERIFY(model.toKifLines(ctx).join(QLatin1Char('\n')).contains(QStringLiteral("開始日時：")));
+    }
+
+    void removedGameInfoPreservesCustomPosition()
+    {
+        const QString initial = QStringLiteral("4k4/9/9/9/4p4/4+S4/9/9/4K4 w Pp 1");
+        KifuBranchTree tree;
+        tree.setRootSfen(initial);
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        QTableWidget emptyInfo(0, 2);
+        GameRecordModel::ExportContext ctx;
+        ctx.gameInfoTable = &emptyInfo;
+        ctx.startSfen = initial;
+        QTemporaryFile kif;
+        QVERIFY(KifuTestHelper::writeToTempFile(kif, model.toKifLines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("kif")));
+        QCOMPARE(KifToSfenConverter::detectInitialSfenFromFile(kif.fileName()), initial);
+        QTemporaryFile ki2;
+        QVERIFY(KifuTestHelper::writeToTempFile(ki2, model.toKi2Lines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("ki2")));
+        QCOMPARE(Ki2ToSfenConverter::detectInitialSfenFromFile(ki2.fileName()), initial);
     }
 
     void clipboardExportAfterResume_data()

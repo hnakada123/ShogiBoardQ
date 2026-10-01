@@ -57,6 +57,10 @@ void setCommentFontSize(int size);
 int gameInfoFontSize();
 void setGameInfoFontSize(int size);
 
+/// 対局情報の項目列幅（0: 内容に合わせて自動調整）
+int gameInfoKeyColumnWidth();
+void setGameInfoKeyColumnWidth(int width);
+
 // --- 対局開始 ---
 
 /// 対局開始ダイアログのウィンドウサイズ（デフォルト: 1000x580）

@@ -2,23 +2,19 @@
 /// @brief 対局情報ペインコントローラクラスの実装
 
 #include "gameinfopanecontroller.h"
-#include "buttonstyles.h"
+#include "tablestyles.h"
 #include "gamesettings.h"
 #include "gameinfokeys.h"
 
 #include <QTableWidget>
-#include <QToolButton>
-#include <QPushButton>
-#include <QLabel>
 #include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QApplication>
 #include <QLineEdit>
 #include <QShortcut>
 #include <QMessageBox>
-#include <QIcon>
-#include "logcategories.h"
+#include <QClipboard>
+#include <QAbstractItemDelegate>
 
 GameInfoPaneController::GameInfoPaneController(QObject* parent)
     : QObject(parent)
@@ -28,6 +24,7 @@ GameInfoPaneController::GameInfoPaneController(QObject* parent)
     if (m_fontSize < 8)  m_fontSize = 10;
     if (m_fontSize > 24) m_fontSize = 24;
 
+    m_keyColumnWidth = qBound(0, GameSettings::gameInfoKeyColumnWidth(), 600);
     buildUi();
 }
 
@@ -54,11 +51,17 @@ void GameInfoPaneController::buildUi()
     m_table->setColumnCount(2);
     m_table->setHorizontalHeaderLabels({tr("項目"), tr("内容")});
     m_table->horizontalHeader()->setStretchLastSection(true);
+    m_table->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    m_table->horizontalHeader()->setMinimumSectionSize(60);
     m_table->verticalHeader()->setVisible(false);
-    m_table->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+    m_table->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     m_table->setSelectionBehavior(QAbstractItemView::SelectItems);
     m_table->setSelectionMode(QAbstractItemView::SingleSelection);
-    m_table->setWordWrap(false);
+    m_table->setWordWrap(true);
+    m_table->setShowGrid(false);
+    m_table->setAlternatingRowColors(true);
+    m_table->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+    m_table->setAccessibleName(tr("対局情報"));
 
     // フォントサイズ適用
     applyFontSize();
@@ -80,125 +83,23 @@ void GameInfoPaneController::buildUi()
     addShortcut(QKeySequence::Cut, &GameInfoPaneController::cut);
     addShortcut(QKeySequence::Copy, &GameInfoPaneController::copy);
     addShortcut(QKeySequence::Paste, &GameInfoPaneController::paste);
+    for (const auto key : {Qt::Key_Return, Qt::Key_Enter}) {
+        auto* shortcut = new QShortcut(QKeySequence(Qt::CTRL | key), m_container);
+        shortcut->setContext(Qt::WidgetWithChildrenShortcut);
+        connect(shortcut, &QShortcut::activated, this, &GameInfoPaneController::applyChanges);
+    }
+    connect(m_table, &QTableWidget::itemSelectionChanged,
+            this, &GameInfoPaneController::updateEditingIndicator);
+    connect(m_table->horizontalHeader(), &QHeaderView::sectionResized,
+            this, &GameInfoPaneController::onColumnResized);
+    connect(qApp, &QApplication::focusChanged, this, &GameInfoPaneController::observeEditor);
+    connect(QApplication::clipboard(), &QClipboard::dataChanged,
+            this, &GameInfoPaneController::updateEditingIndicator);
+    connect(m_table->itemDelegate(), &QAbstractItemDelegate::closeEditor,
+            this, &GameInfoPaneController::updateEditingIndicator, Qt::QueuedConnection);
     resetHistory();
-}
-
-void GameInfoPaneController::buildToolbar()
-{
-    m_toolbar = new QWidget(m_container);
-    QHBoxLayout* layout = new QHBoxLayout(m_toolbar);
-    layout->setContentsMargins(2, 2, 2, 2);
-    layout->setSpacing(4);
-
-    // フォントサイズ減少ボタン
-    m_btnFontDecrease = new QToolButton(m_toolbar);
-    m_btnFontDecrease->setObjectName(QStringLiteral("gameInfoFontDecrease"));
-    m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-    m_btnFontDecrease->setFixedSize(28, 24);
-    m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    QObject::connect(m_btnFontDecrease, &QToolButton::clicked,
-                     this, &GameInfoPaneController::decreaseFontSize);
-
-    // フォントサイズ増加ボタン
-    m_btnFontIncrease = new QToolButton(m_toolbar);
-    m_btnFontIncrease->setObjectName(QStringLiteral("gameInfoFontIncrease"));
-    m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-    m_btnFontIncrease->setFixedSize(28, 24);
-    m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    QObject::connect(m_btnFontIncrease, &QToolButton::clicked,
-                     this, &GameInfoPaneController::increaseFontSize);
-
-    // Undoボタン
-    m_btnUndo = new QToolButton(m_toolbar);
-    m_btnUndo->setObjectName(QStringLiteral("gameInfoUndo"));
-    m_btnUndo->setIcon(QIcon(QStringLiteral(":/images/actions/editUndo.svg")));
-    m_btnUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
-    m_btnUndo->setFixedSize(28, 24);
-    m_btnUndo->setStyleSheet(ButtonStyles::undoRedo());
-    QObject::connect(m_btnUndo, &QToolButton::clicked,
-                     this, &GameInfoPaneController::undo);
-
-    // Redoボタン
-    m_btnRedo = new QToolButton(m_toolbar);
-    m_btnRedo->setObjectName(QStringLiteral("gameInfoRedo"));
-    m_btnRedo->setIcon(QIcon(QStringLiteral(":/images/actions/editRedo.svg")));
-    m_btnRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
-    m_btnRedo->setFixedSize(28, 24);
-    m_btnRedo->setStyleSheet(ButtonStyles::undoRedo());
-    QObject::connect(m_btnRedo, &QToolButton::clicked,
-                     this, &GameInfoPaneController::redo);
-
-    // 切り取りボタン
-    m_btnCut = new QToolButton(m_toolbar);
-    m_btnCut->setObjectName(QStringLiteral("gameInfoCut"));
-    m_btnCut->setIcon(QIcon(QStringLiteral(":/images/actions/editCut.svg")));
-    m_btnCut->setToolTip(tr("切り取り (Ctrl+X)"));
-    m_btnCut->setFixedSize(28, 24);
-    m_btnCut->setStyleSheet(ButtonStyles::editOperation());
-    QObject::connect(m_btnCut, &QToolButton::clicked,
-                     this, &GameInfoPaneController::cut);
-
-    // コピーボタン
-    m_btnCopy = new QToolButton(m_toolbar);
-    m_btnCopy->setObjectName(QStringLiteral("gameInfoCopy"));
-    m_btnCopy->setIcon(QIcon(QStringLiteral(":/images/actions/editCopy.svg")));
-    m_btnCopy->setToolTip(tr("コピー (Ctrl+C)"));
-    m_btnCopy->setFixedSize(28, 24);
-    m_btnCopy->setStyleSheet(ButtonStyles::editOperation());
-    QObject::connect(m_btnCopy, &QToolButton::clicked,
-                     this, &GameInfoPaneController::copy);
-
-    // 貼り付けボタン
-    m_btnPaste = new QToolButton(m_toolbar);
-    m_btnPaste->setObjectName(QStringLiteral("gameInfoPaste"));
-    m_btnPaste->setIcon(QIcon(QStringLiteral(":/images/actions/editPaste.svg")));
-    m_btnPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
-    m_btnPaste->setFixedSize(28, 24);
-    m_btnPaste->setStyleSheet(ButtonStyles::editOperation());
-    QObject::connect(m_btnPaste, &QToolButton::clicked,
-                     this, &GameInfoPaneController::paste);
-
-    // 行追加ボタン
-    m_btnAddRow = new QToolButton(m_toolbar);
-    m_btnAddRow->setObjectName(QStringLiteral("gameInfoAddRow"));
-    m_btnAddRow->setText(QStringLiteral("+"));
-    m_btnAddRow->setToolTip(tr("新しい行を追加する"));
-    m_btnAddRow->setFixedSize(28, 24);
-    m_btnAddRow->setStyleSheet(ButtonStyles::editOperation());
-    QObject::connect(m_btnAddRow, &QToolButton::clicked,
-                     this, &GameInfoPaneController::addRow);
-
-    // 「修正中」ラベル
-    m_editingLabel = new QLabel(tr("修正中"), m_toolbar);
-    m_editingLabel->setObjectName(QStringLiteral("gameInfoEditing"));
-    m_editingLabel->setStyleSheet(QStringLiteral("QLabel { color: red; font-weight: bold; }"));
-    m_editingLabel->setVisible(false);
-
-    // 更新ボタン
-    m_btnUpdate = new QPushButton(tr("対局情報更新"), m_toolbar);
-    m_btnUpdate->setObjectName(QStringLiteral("gameInfoApply"));
-    m_btnUpdate->setToolTip(tr("編集した対局情報を棋譜に反映する"));
-    m_btnUpdate->setFixedHeight(24);
-    m_btnUpdate->setStyleSheet(ButtonStyles::primaryAction());
-    QObject::connect(m_btnUpdate, &QPushButton::clicked,
-                     this, &GameInfoPaneController::applyChanges);
-
-    // レイアウトに追加（更新ボタンを左側に配置）
-    layout->addWidget(m_btnFontDecrease);
-    layout->addWidget(m_btnFontIncrease);
-    layout->addWidget(m_btnUndo);
-    layout->addWidget(m_btnRedo);
-    layout->addWidget(m_btnCut);
-    layout->addWidget(m_btnCopy);
-    layout->addWidget(m_btnPaste);
-    layout->addWidget(m_btnAddRow);
-    layout->addSpacing(8);
-    layout->addWidget(m_btnUpdate);
-    layout->addSpacing(8);
-    layout->addWidget(m_editingLabel);
-    layout->addStretch();
+    updateTablePresentation();
+    updateEditingIndicator();
 }
 
 QWidget* GameInfoPaneController::containerWidget() const
@@ -230,13 +131,13 @@ void GameInfoPaneController::setGameInfo(const QList<KifGameInfoItem>& items)
         m_table->setItem(static_cast<int>(row), 1, valueItem);
     }
 
-    m_table->resizeColumnToContents(0);
     m_table->blockSignals(false);
 
     // 元データを保存
     m_originalItems = items;
     m_dirty = false;
     resetHistory();
+    updateTablePresentation();
     updateEditingIndicator();
 }
 
@@ -266,6 +167,7 @@ void GameInfoPaneController::setOriginalGameInfo(const QList<KifGameInfoItem>& i
     m_originalItems = items;
     m_dirty = false;
     resetHistory();
+    updateTablePresentation();
     updateEditingIndicator();
 }
 
@@ -318,6 +220,7 @@ void GameInfoPaneController::updatePlayerNames(const QString& blackName, const Q
         }
     }
     m_dirty = checkDirty();
+    updateTablePresentation();
     updateEditingIndicator();
 }
 
@@ -379,22 +282,18 @@ void GameInfoPaneController::decreaseFontSize()
     setFontSize(m_fontSize - 1);
 }
 
-void GameInfoPaneController::updateEditingIndicator()
-{
-    if (m_editingLabel) {
-        m_editingLabel->setVisible(m_dirty);
-    }
-}
-
 void GameInfoPaneController::applyFontSize()
 {
     if (m_table) {
         QFont font = m_table->font();
         font.setPointSize(m_fontSize);
         m_table->setFont(font);
-        // フォントメトリクスに基づいた固定行高さを設定
-        const int rowHeight = m_table->fontMetrics().height() + 4;
-        m_table->verticalHeader()->setDefaultSectionSize(rowHeight);
+        m_table->setStyleSheet(TableStyles::thinking(m_fontSize) + QStringLiteral(
+            "QTableView { alternate-background-color: #f7f9fb; }"
+            "QTableView::item { padding: 4px 8px; }"));
+        m_table->verticalHeader()->setMinimumSectionSize(m_table->fontMetrics().height() + 10);
+        updateTablePresentation();
+        updateEditingIndicator();
     }
 }
 
