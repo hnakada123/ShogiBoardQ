@@ -3,6 +3,8 @@
 #include "boardappearance.h"
 #include "dialogutils.h"
 #include "pieceimageprovider.h"
+#include "boardsurfacepainter.h"
+#include "piecepainter.h"
 
 #include <QColorDialog>
 #include <QComboBox>
@@ -40,6 +42,7 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
     m_tabs->setObjectName(QStringLiteral("boardColorTabs"));
     layout->addWidget(m_tabs);
     createColorPages();
+    createAppearancePage();
     m_tabs->setCurrentIndex(qBound(0, AppSettings::boardColorDialogTab(), m_tabs->count() - 1));
     auto* buttons = new QDialogButtonBox(QDialogButtonBox::Close, this);
     auto* reset = buttons->addButton(tr("標準色に戻す"), QDialogButtonBox::ResetRole);
@@ -172,6 +175,7 @@ void BoardColorDialog::refreshButtons()
         field.button->setText(color.name(color.alpha() == 255 ? QColor::HexRgb : QColor::HexArgb).toUpper());
     }
     syncPresetSelection();
+    syncThemeSelection();
 }
 
 void BoardColorDialog::restoreDefaults()
@@ -195,6 +199,7 @@ void BoardColorDialog::rebuildPresets()
         m_presetCombo->addItem(presetIcon(preset.colors), preset.name);
     }
     syncPresetSelection();
+    syncThemeSelection();
 }
 
 void BoardColorDialog::applyPreset(int index)
@@ -223,24 +228,27 @@ void BoardColorDialog::syncPresetSelection()
     m_presetCombo->setCurrentIndex(selected);
 }
 
-QIcon BoardColorDialog::presetIcon(const BoardColors& colors) const
+QIcon BoardColorDialog::presetIcon(const BoardColors& colors, const QString& style,
+                                  const BoardVisuals& visuals) const
 {
     // 高DPIでも輪郭が崩れないよう2倍で描画する。
     QPixmap preview(240, 144);
     preview.setDevicePixelRatio(2);
     preview.fill(colors.background);
     QPainter painter(&preview);
-    painter.fillRect(QRect(4, 5, 22, 29), colors.stand);
-    painter.fillRect(QRect(94, 38, 22, 29), colors.stand);
-    painter.setBrush(colors.board);
+    BoardSurfacePainter::draw(painter, QRect(4, 5, 22, 29), colors.stand, visuals.woodGrain, 20);
+    BoardSurfacePainter::draw(painter, QRect(94, 38, 22, 29), colors.stand, visuals.woodGrain, 20);
+    BoardSurfacePainter::draw(painter, QRect(28, 1, 64, 70), colors.board, visuals.woodGrain, 20);
+    painter.setBrush(Qt::NoBrush);
     painter.setPen(colors.grid);
     for (int row = 0; row < 3; ++row)
         for (int col = 0; col < 3; ++col)
             painter.drawRect(QRect(30 + col * 20, 3 + row * 22, 20, 22));
     auto& pieces = PieceImageProvider::instance();
-    pieces.icon(QLatin1Char('u')).paint(&painter, QRect(50, 3, 20, 22));
-    pieces.icon(QLatin1Char('P')).paint(&painter, QRect(70, 25, 20, 22));
-    pieces.icon(QLatin1Char('K')).paint(&painter, QRect(50, 47, 20, 22));
+    const QString selected = style.isEmpty() ? pieces.style() : style;
+    PiecePainter::draw(painter, pieces.iconForStyle(QLatin1Char('u'), selected), QRect(50, 3, 20, 22), visuals);
+    PiecePainter::draw(painter, pieces.iconForStyle(QLatin1Char('P'), selected), QRect(70, 25, 20, 22), visuals);
+    PiecePainter::draw(painter, pieces.iconForStyle(QLatin1Char('K'), selected), QRect(50, 47, 20, 22), visuals);
     painter.end();
     return QIcon(preview);
 }

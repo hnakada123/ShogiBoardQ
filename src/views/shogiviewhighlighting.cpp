@@ -2,6 +2,7 @@
 /// @brief 将棋盤面のハイライト・矢印・手番表示の実装
 
 #include "shogiviewhighlighting.h"
+#include "piecepainter.h"
 #include "shogiboard.h"
 #include "shogiviewlayout.h"
 
@@ -69,21 +70,16 @@ void ShogiViewHighlighting::removeHighlightAllData()
 void ShogiViewHighlighting::setArrows(const QList<ShogiView::Arrow>& arrows)
 {
     m_arrows = arrows;
-    m_arrowDropPieceCache.clear();
     m_view->update();
 }
 
 void ShogiViewHighlighting::clearArrows()
 {
     m_arrows.clear();
-    m_arrowDropPieceCache.clear();
     m_view->update();
 }
 
-void ShogiViewHighlighting::clearDropPieceCache()
-{
-    m_arrowDropPieceCache.clear();
-}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 手番ハイライト
@@ -284,14 +280,13 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLay
 
         const QColor originalColor = fhl->color();
 
-        if (originalColor.red() > 200 && originalColor.green() < 150 && originalColor.blue() < 150) {
-            const QColor fillColor(255, 100, 100, 80);
-            painter.fillRect(rect, fillColor);
-        } else {
-            const QColor fillColor(255, 255, 100, 120);
-            const QRect innerRect = rect.adjusted(1, 1, -1, -1);
-            painter.fillRect(innerRect, fillColor);
-        }
+        // 移動元は木の盤になじむ黄緑系、移動先・選択表示は橙系に揃える。
+        // マスの内側だけを塗り、盤の罫線と駒の視認性を保つ。
+        const bool source = originalColor.red() > 200 && originalColor.green() < 100
+            && originalColor.blue() < 150;
+        const QColor fill = source ? QColor(145, 163, 96, 155) : QColor(238, 147, 68, 165);
+        const QRect inner = rect.adjusted(1, 1, -1, -1);
+        painter.fillRect(inner, fill);
     }
     painter.restore();
 }
@@ -317,24 +312,8 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
                                        toRect.width(),
                                        toRect.height());
 
-                    const int pmW = adjustedRect.width();
-                    const int pmH = adjustedRect.height();
-                    const quint64 cacheKey =
-                        (static_cast<quint64>(static_cast<quint16>(arrow.dropPiece.unicode())) << 32U)
-                        | (static_cast<quint64>(static_cast<quint16>(pmW)) << 16U)
-                        | static_cast<quint64>(static_cast<quint16>(pmH));
-                    QPixmap pixmap;
-                    const auto it = m_arrowDropPieceCache.constFind(cacheKey);
-                    if (it != m_arrowDropPieceCache.constEnd()) {
-                        pixmap = it.value();
-                    } else {
-                        pixmap = icon.pixmap(adjustedRect.size());
-                        if (!pixmap.isNull()) {
-                            m_arrowDropPieceCache.insert(cacheKey, pixmap);
-                        }
-                    }
                     painter.setOpacity(0.6);
-                    painter.drawPixmap(adjustedRect, pixmap);
+                    PiecePainter::draw(painter, icon, adjustedRect, m_view->boardVisuals());
                     painter.setOpacity(1.0);
 
                     QPen borderPen(QColor(255, 0, 0, 200));

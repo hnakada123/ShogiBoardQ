@@ -1,6 +1,8 @@
 #include "tsumepositionpreview.h"
 #include "pieceimageprovider.h"
 #include "boardappearance.h"
+#include "boardsurfacepainter.h"
+#include "piecepainter.h"
 #include <QPainter>
 
 TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent) : QWidget(parent)
@@ -11,6 +13,7 @@ TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent)
     setAttribute(Qt::WA_TransparentForMouseEvents);
     connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged, this, &TsumePositionPreview::appearanceChanged);
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged, this, &TsumePositionPreview::appearanceChanged);
+    connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged, this, &TsumePositionPreview::appearanceChanged);
 }
 
 void TsumePositionPreview::appearanceChanged() { update(); }
@@ -24,10 +27,11 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
     painter.setFont(boardFont);
     painter.translate((width() - 336) / 2, 0);
     const auto colors = BoardAppearance::instance().colors();
+    const auto visuals = BoardAppearance::instance().visuals();
     const bool flipped = m_position.side_to_move() == shogi::Color::White;
-    painter.fillRect(QRect(55, 24, 216, 216), colors.board);
-    painter.fillRect(QRect(2, 24, 48, 216), colors.stand);
-    painter.fillRect(QRect(289, 24, 46, 216), colors.stand);
+    BoardSurfacePainter::draw(painter, QRect(55, 24, 216, 216), colors.board, visuals.woodGrain, 24);
+    BoardSurfacePainter::draw(painter, QRect(2, 24, 48, 216), colors.stand, visuals.woodGrain, 24);
+    BoardSurfacePainter::draw(painter, QRect(289, 24, 46, 216), colors.stand, visuals.woodGrain, 24);
     painter.setPen(colors.grid);
     for (int i = 0; i <= 9; ++i) {
         painter.drawLine(55 + i * 24, 24, 55 + i * 24, 240);
@@ -47,7 +51,8 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
         if (flipped) { row = 8 - row; column = 8 - column; }
         QChar code = QLatin1Char(codes[static_cast<int>(shogi::piece_type(piece))]);
         if (shogi::piece_color(piece) == shogi::Color::White) code = code.toLower();
-        PieceImageProvider::instance().icon(code, flipped).paint(&painter, QRect(56 + column * 24, 25 + row * 24, 22, 22));
+        PiecePainter::draw(painter, PieceImageProvider::instance().icon(code, flipped),
+                           QRect(56 + column * 24, 25 + row * 24, 22, 22), visuals);
     }
     for (int side = 0; side < 2; ++side) {
         const auto owner = side == 1 ? m_position.side_to_move() : shogi::opposite(m_position.side_to_move());
@@ -61,7 +66,7 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
             if (!count) continue;
             QChar code = QLatin1Char(codes[kind]);
             if (owner == shogi::Color::White) code = code.toLower();
-            PieceImageProvider::instance().icon(code, flipped).paint(&painter, QRect(x, y, 23, 23));
+            PiecePainter::draw(painter, PieceImageProvider::instance().icon(code, flipped), QRect(x, y, 23, 23), visuals);
             painter.drawText(QRect(x + 24, y, 21, 23), Qt::AlignCenter, QString::number(count));
             y += 29;
         }

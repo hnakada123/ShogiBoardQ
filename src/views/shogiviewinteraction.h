@@ -1,6 +1,8 @@
 #ifndef SHOGIVIEWINTERACTION_H
 #define SHOGIVIEWINTERACTION_H
 
+#include "boardvisuals.h"
+
 /// @file shogiviewinteraction.h
 /// @brief 将棋盤面のマウス操作・ドラッグの責務を担うクラスの定義
 
@@ -35,7 +37,7 @@ public:
                    const QPoint& cursorWidgetPos);
     void endDrag();
     void drawDraggingPiece(QPainter& painter, const ShogiViewLayout& layout,
-                           const QMap<QChar, QIcon>& pieces);
+                           const QMap<QChar, QIcon>& pieces, const BoardVisuals& visuals);
 
     // ───────────────────────── ドラッグ位置更新 ─────────────────────
     void updateDragPos(const QPoint& pos);

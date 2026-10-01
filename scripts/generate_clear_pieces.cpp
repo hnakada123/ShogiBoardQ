@@ -29,9 +29,9 @@ static bool selectPalette(const QString& style, PiecePalette& palette)
 {
     if (style == QLatin1String("clear")) return true;
     if (style == QLatin1String("wood")) {
-        palette = {QStringLiteral("url(#surface)"), QStringLiteral("#765023"),
+        palette = {QStringLiteral("url(#surface)"), QStringLiteral("#987040"),
                    QStringLiteral("#211810"), QStringLiteral("#aa1e21"),
-                   QStringLiteral("#ffe8a2"), QStringLiteral("#d99b44"), true};
+                   QStringLiteral("#ffedc3"), QStringLiteral("#dfb775"), true};
     } else if (style == QLatin1String("ivory")) {
         palette = {QStringLiteral("#f9fbfc"), QStringLiteral("#4d6172"),
                    QStringLiteral("#162d43"), QStringLiteral("#ad2034"), {}, {}, false};
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
             }
             out << "    <polygon points=\"" << shape.points
                 << "\" fill=\"" << palette.fill << "\" stroke=\"" << palette.stroke
-                << "\" stroke-width=\"" << shape.strokeWidth << "\"/>\n";
+                << "\" stroke-width=\"" << (palette.woodGrain ? QStringLiteral("0.55") : shape.strokeWidth) << "\"/>\n";
             if (palette.woodGrain) {
                 out << "    <path d=\"M13 10C11 19 16 29 12 41M21 8C18 18 24 30 20 41M29 8C26 18 32 31 28 41\""
                     << " fill=\"none\" stroke=\"#996126\" stroke-opacity=\"0.14\" stroke-width=\"0.22\"/>\n";

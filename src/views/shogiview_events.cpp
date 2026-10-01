@@ -146,8 +146,6 @@ void ShogiView::endDrag()
 void ShogiView::setPiece(char type, const QIcon &icon)
 {
     m_pieces.insert(type, icon);
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
     update();
 }
 
@@ -178,7 +176,5 @@ void ShogiView::loadPieceImages(bool flipped)
     for (const QChar type : types) {
         m_pieces.insert(type, provider.icon(type, flipped));
     }
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
     update();
 }

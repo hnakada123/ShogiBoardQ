@@ -37,7 +37,6 @@ public:
     void setArrows(const QList<ShogiView::Arrow>& arrows);
     const QList<ShogiView::Arrow>& arrows() const { return m_arrows; }
     void clearArrows();
-    void clearDropPieceCache();
 
     // ──────────────── 手番ハイライト ────────────────
     void setActiveSide(bool blackTurn);
@@ -72,8 +71,6 @@ private:
     QList<ShogiView::Highlight*> m_highlights;
     QList<ShogiView::Arrow> m_arrows;
 
-    // 駒打ち矢印の駒画像キャッシュ（キー: 駒文字+サイズ）
-    mutable QHash<quint64, QPixmap> m_arrowDropPieceCache;
 
     // setHighlightStyle() による一時的な上書き。通常は盤面の配色設定を参照する。
     QColor m_highlightBg;

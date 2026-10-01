@@ -739,6 +739,10 @@ set(SRC_VIEWS
     src/views/shogiview.h
     src/views/shogiview_state.cpp
     src/views/shogiview_draw.cpp
+    src/views/boardsurfacepainter.cpp
+    src/views/boardsurfacepainter.h
+    src/views/piecepainter.cpp
+    src/views/piecepainter.h
     src/views/shogiview_events.cpp
     src/views/shogiview_labels.cpp
     src/views/shogiview_stand.cpp
@@ -820,6 +824,7 @@ set(SRC_DIALOGS
     src/dialogs/tsumecollectiondialog_analysis.cpp
     src/dialogs/tsumecollectiondialog.h
     src/dialogs/boardcolordialog.cpp
+    src/dialogs/boardcolordialog_appearance.cpp
     src/dialogs/boardcolordialog.h
     src/dialogs/piecesoundsettingsdialog.cpp
     src/dialogs/piecesoundsettingsdialog.h
@@ -897,6 +902,7 @@ set(SRC_SERVICES
     src/services/boardcolorpresets.cpp
     src/services/boardcolorpresets.h
     src/common/boardcolors.h
+    src/common/boardvisuals.h
     src/services/debugscreenshotwiring.cpp
     src/services/debugscreenshotwiring.h
     src/services/playernameservice.cpp

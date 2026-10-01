@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QCheckBox>
 #include <QColorDialog>
 #include <QDesktopServices>
 #include <QDialog>
@@ -401,6 +402,7 @@ private slots:
     }
     void pieceStyles()
     {
+        click("actionPieceStyleStandard");
         const auto standardPawn = board()->piece('P').pixmap(90).toImage();
         ShogiView secondary;
         secondary.setPieces();
@@ -471,6 +473,7 @@ private slots:
     {
         QFETCH(QString, style);
         QFETCH(QString, actionName);
+        click("actionPieceStyleStandard");
         ShogiView secondary;
         const auto standardPawn = board()->piece('P').pixmap(90).toImage();
         click(actionName);
@@ -504,8 +507,73 @@ private slots:
         QCOMPARE(board()->piece('P').pixmap(90).toImage(), pawn);
         QVERIFY(!hasKifuPasteDialog());
     }
+    void boardThemes()
+    {
+        ShogiView secondary;
+        click("actionBoardColors");
+        auto* dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        auto* tabs = dialog->findChild<QTabWidget*>("boardColorTabs");
+        tabs->setCurrentIndex(5);
+        auto* combo = dialog->findChild<QComboBox*>("boardThemeCombo");
+        QVERIFY(combo);
+        QCOMPARE(combo->count(), 3);
+        for (int i = 0; i < combo->count(); ++i) {
+            combo->showPopup();
+            QTest::qWait(20);
+            auto* list = combo->view();
+            const auto index = list->model()->index(i, 0);
+            list->scrollTo(index);
+            QTest::mouseClick(list->viewport(), Qt::LeftButton, Qt::NoModifier, list->visualRect(index).center());
+            QTRY_COMPARE(combo->currentIndex(), i);
+            QVERIFY(board()->boardColors() == BoardColorPresets::themes().at(i).colors);
+            QVERIFY(secondary.boardColors() == board()->boardColors());
+            QVERIFY(board()->boardVisuals() == BoardVisuals{});
+            QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("wood"));
+            QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-theme-%1.png").arg(i)));
+            QCOMPARE(boardSfen(), initial);
+        }
+        auto* grain = dialog->findChild<QCheckBox*>("boardWoodGrain");
+        auto* shadow = dialog->findChild<QCheckBox*>("boardPieceShadow");
+        auto* scale = dialog->findChild<QSpinBox*>("boardPieceScale");
+        QVERIFY(grain && shadow && scale);
+        const auto textured = board()->grab().toImage();
+        QTest::mouseClick(grain, Qt::LeftButton, Qt::NoModifier, QPoint(8, grain->height() / 2));
+        QTest::mouseClick(shadow, Qt::LeftButton, Qt::NoModifier, QPoint(8, shadow->height() / 2));
+        scale->setValue(94);
+        QVERIFY(board()->boardVisuals() == (BoardVisuals{false, false, 94}));
+        QVERIFY(board()->grab().toImage() != textured);
+        QCOMPARE(combo->currentIndex(), -1);
+        QPointer<BoardColorDialog> guard(dialog);
+        dialog->close();
+        QTRY_VERIFY(guard.isNull());
+        window->close();
+        window.reset();
+        window = std::make_unique<MainWindow>();
+        window->show();
+        QVERIFY(board()->boardVisuals() == (BoardVisuals{false, false, 94}));
+        click("actionBoardColors");
+        dialog = window->findChild<BoardColorDialog*>();
+        QVERIFY(dialog);
+        combo = dialog->findChild<QComboBox*>("boardThemeCombo");
+        QVERIFY(QMetaObject::invokeMethod(combo, "activated", Q_ARG(int, 0)));
+        QVERIFY(board()->boardVisuals() == BoardVisuals{});
+        QVERIFY(board()->boardColors() == BoardColors{});
+        dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-appearance-dialog.png"));
+        guard = dialog;
+        dialog->close();
+        QTRY_VERIFY(guard.isNull());
+        snapshot("board-appearance-main");
+        click("actionFlipBoard");
+        QVERIFY(board()->flipMode());
+        snapshot("board-appearance-flipped");
+        QCOMPARE(boardSfen(), initial);
+    }
+
     void boardColors()
     {
+        BoardAppearance::instance().setVisuals({false, true, 108});
+        AppSettings::setBoardColorDialogTab(0);
         const BoardColors defaults;
         const BoardColors custom{QColor("#182838"), QColor("#c0d8d0"),
                                  QColor("#6a8494"), QColor("#193b45")};
@@ -538,7 +606,7 @@ private slots:
         QVERIFY(secondary.boardColors() == custom);
         QVERIFY(AppSettings::boardColors() == custom);
         QCOMPARE(board()->blackClockLabel()->styleSheet(), activeStyle);
-        QCOMPARE(board()->whiteClockLabel()->palette().color(QPalette::WindowText), QColor("#3d3228"));
+        QCOMPARE(board()->whiteClockLabel()->palette().color(QPalette::WindowText), BoardColors{}.clockText);
         QCOMPARE(boardSfen(), initial);
         dialog->resize(580, 360);
         dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-colors-dialog.png"));
@@ -605,7 +673,7 @@ private slots:
         auto* tabs = dialog->findChild<QTabWidget*>("boardColorTabs");
         auto* picker = dialog->findChild<QColorDialog*>("boardColorPicker");
         QVERIFY(tabs && picker);
-        QCOMPARE(tabs->count(), 5);
+        QCOMPARE(tabs->count(), 6);
         struct Choice {
             const char* button;
             BoardColors::Member member;
@@ -726,6 +794,8 @@ private slots:
     }
     void boardColorPresets()
     {
+        BoardAppearance::instance().setVisuals({false, true, 108});
+        AppSettings::setBoardColorDialogTab(0);
         QFETCH(QString, style);
         QFETCH(QString, styleAction);
         click(styleAction);
@@ -1269,11 +1339,11 @@ private slots:
             humanIsBlack ? QStringLiteral("turnLabelBlack") : QStringLiteral("turnLabelWhite"));
         QVERIFY(turnLabel && turnLabel->isVisible());
         QVERIFY(activeCard && inactiveCard);
-        QCOMPARE(activeCard->palette().color(QPalette::Window), QColor("#dce5cc"));
-        QCOMPARE(inactiveCard->palette().color(QPalette::Window), QColor("#dce5cc"));
+        QCOMPARE(activeCard->palette().color(QPalette::Window), BoardColors{}.cardBackground);
+        QCOMPARE(inactiveCard->palette().color(QPalette::Window), BoardColors{}.cardBackground);
         for (auto* card : {activeCard, inactiveCard}) {
             const QImage image = card->grab().toImage();
-            const QColor borderColor(card == activeCard ? "#3f6254" : "#d6cbb5");
+            const QColor borderColor = card == activeCard ? BoardColors{}.activeCardBorder : BoardColors{}.cardBorder;
             for (const QPoint& edge : {QPoint(0, image.height() / 2),
                                        QPoint(image.width() - 1, image.height() / 2),
                                        QPoint(image.width() / 2, 0),
@@ -1281,7 +1351,7 @@ private slots:
                 QCOMPARE(image.pixelColor(edge), borderColor);
             }
         }
-        QCOMPARE(turnLabel->palette().color(QPalette::Window), QColor("#3f6254"));
+        QCOMPARE(turnLabel->palette().color(QPalette::Window), BoardColors{}.turnBackground);
         snapshot(QStringLiteral("resign-highlight-") + QString::fromLatin1(QTest::currentDataTag()));
 
         QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};

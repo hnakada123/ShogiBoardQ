@@ -13,6 +13,7 @@
 #include <QStringList>
 #include <QSize>
 #include "boardcolors.h"
+#include "boardvisuals.h"
 #include "piecesoundtone.h"
 
 class QWidget;
@@ -42,7 +43,7 @@ void setToolbarVisible(bool visible);
 
 /// 選択可能な駒画像の種類（先頭は standard）
 QStringList availablePieceStyles();
-/// 駒画像の種類（未設定・不正値は standard）
+/// 駒画像の種類（未設定は wood、不正値は standard）
 QString pieceStyle();
 void setPieceStyle(const QString& style);
 
@@ -61,6 +62,8 @@ void setPieceSoundTone(const PieceSoundTone& tone);
 /// 盤面の配色（不正な色は標準色に戻す）
 BoardColors boardColors();
 void setBoardColors(const BoardColors& colors);
+BoardVisuals boardVisuals();
+void setBoardVisuals(const BoardVisuals& visuals);
 int boardColorDialogTab();
 void setBoardColorDialogTab(int index);
 QSize boardColorDialogSize();

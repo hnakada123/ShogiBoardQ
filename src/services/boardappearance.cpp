@@ -19,3 +19,16 @@ void BoardAppearance::setColors(const BoardColors& colors)
     AppSettings::setBoardColors(normalized);
     emit colorsChanged();
 }
+
+BoardVisuals BoardAppearance::visuals() const
+{
+    return AppSettings::boardVisuals();
+}
+
+void BoardAppearance::setVisuals(const BoardVisuals& visuals)
+{
+    const auto normalized = visuals.normalized();
+    if (normalized == this->visuals()) return;
+    AppSettings::setBoardVisuals(normalized);
+    emit visualsChanged();
+}

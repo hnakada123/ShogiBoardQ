@@ -3,6 +3,8 @@
 
 #include "shogiview.h"
 #include "shogiboard.h"
+#include "boardsurfacepainter.h"
+#include "piecepainter.h"
 
 #include <QColor>
 #include <QPainter>
@@ -32,65 +34,15 @@ static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int off
     return adjustedRect;
 }
 
-void ShogiView::drawBlackNormalModeStand(QPainter* painter)
-{
-    painter->setPen(palette().color(QPalette::Dark));
-    for (int r = 6; r <= 9; ++r) {
-        for (int c = 1; c <= 2; ++c) {
-            drawBlackStandField(painter, c, r);
-        }
-    }
-}
-
-void ShogiView::drawWhiteNormalModeStand(QPainter* painter)
-{
-    painter->setPen(palette().color(QPalette::Dark));
-    for (int r = 1; r <= 4; ++r) {
-        for (int c = 1; c <= 2; ++c) {
-            drawWhiteStandField(painter, c, r);
-        }
-    }
-}
-
-// 通常対局モードにおける「駒台」描画の統括エントリポイント。
-// 役割：先手（黒）→ 後手（白）の順に、通常モード用の駒台マスを描画する関数へ委譲する。
+// 持駒の配置・当たり判定はセルのまま、木肌は駒台全体を通して描く。
 void ShogiView::drawNormalModeStand(QPainter* painter)
 {
-    // 先手（黒）側の通常モード駒台を描画
-    drawBlackNormalModeStand(painter);
-
-    // 後手（白）側の通常モード駒台を描画
-    drawWhiteNormalModeStand(painter);
-}
-
-// 先手（黒）側の駒台セル（1マス）を描画する。
-void ShogiView::drawBlackStandField(QPainter* painter, const int file, const int rank) const
-{
-    const QRect fieldRect = cachedFieldRect(file, rank);
-    QRect adjustedRect = makeStandCellRect(
-        m_layout.flipMode(), m_layout.param1(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, true);
-
-    painter->save();
-    const QColor fillColor = m_boardColors.stand;
-    painter->setPen(fillColor);
-    painter->setBrush(fillColor);
-    painter->drawRect(adjustedRect);
-    painter->restore();
-}
-
-// 後手（白）側の駒台セル（1マス）を描画する。
-void ShogiView::drawWhiteStandField(QPainter* painter, const int file, const int rank) const
-{
-    const QRect fieldRect = cachedFieldRect(file, rank);
-    QRect adjustedRect = makeStandCellRect(
-        m_layout.flipMode(), m_layout.param2(), m_layout.offsetX(), m_layout.offsetY(), fieldRect, false);
-
-    painter->save();
-    const QColor fillColor = m_boardColors.stand;
-    painter->setPen(fillColor);
-    painter->setBrush(fillColor);
-    painter->drawRect(adjustedRect);
-    painter->restore();
+    if (!m_board) return;
+    const qreal inset = qMax(1.0, fieldSize().width() * 0.035);
+    for (const auto& stand : {blackStandBoundingRect(), whiteStandBoundingRect()}) {
+        BoardSurfacePainter::draw(*painter, QRectF(stand).adjusted(inset, 0, -inset, 0),
+                                  m_boardColors.stand, m_boardVisuals.woodGrain, fieldSize().width());
+    }
 }
 
 // 【通常対局モード：先手（左側）駒台のアイコンを 4×2 で描画】
@@ -167,35 +119,13 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->setRenderHint(QPainter::Antialiasing, true);
 
-    const quint64 cacheKey =
-        (static_cast<quint64>(static_cast<quint16>(value.unicode())) << 32U)
-        | (static_cast<quint64>(static_cast<quint16>(iconW)) << 16U)
-        | static_cast<quint64>(static_cast<quint16>(iconH));
-    QPixmap pm;
-    const auto it = m_standPiecePixmapCache.constFind(cacheKey);
-    if (it != m_standPiecePixmapCache.constEnd()) {
-        pm = it.value();
-    } else {
-        pm = icon.pixmap(QSize(iconW, iconH), QIcon::Normal, QIcon::On);
-        if (!pm.isNull()) {
-            m_standPiecePixmapCache.insert(cacheKey, pm);
-        }
-    }
-    const bool iconOk = !pm.isNull();
-
     // 奥(左)→手前(右)。表示は最大 visible 枚に限定
     for (int i = 0; i < visible; ++i) {
         const qreal t = (stepsEff > 0) ? (qreal(i) / qreal(stepsEff)) : 1.0;
         const qreal shiftX = -totalSpread * (1.0 - t);
         const QRect r = base.translated(int(shiftX), 0);
 
-        if (iconOk) painter->drawPixmap(r, pm);
-        else {
-            QFont f = painter->font();
-            f.setPixelSize(qMax(8, int(iconH * 0.7)));
-            painter->setFont(f);
-            painter->drawText(r, Qt::AlignCenter, QString(value));
-        }
+        PiecePainter::draw(*painter, icon, r, m_boardVisuals);
     }
 
     // 右下バッジ（総数表示）
@@ -233,16 +163,16 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
         badge.moveBottomRight(QPoint(topRect.right() - margin, topRect.bottom() - margin));
 
         const qreal radius = qMin(badge.width(), badge.height()) * 0.35;
-        QPen outline(QColor(255, 255, 255, 220), qMax(1, iconW / 60));
+        QPen outline(m_boardColors.cardBorder, qMax(1, iconW / 60));
         painter->setPen(Qt::NoPen);
-        painter->setBrush(QColor(0, 0, 0, 170));
+        painter->setBrush(m_boardColors.cardBackground);
         painter->drawRoundedRect(badge, radius, radius);
 
         painter->setPen(outline);
         painter->setBrush(Qt::NoBrush);
         painter->drawRoundedRect(badge, radius, radius);
 
-        painter->setPen(Qt::white);
+        painter->setPen(m_boardColors.nameText);
         painter->drawText(badge, Qt::AlignCenter, text);
     }
 
