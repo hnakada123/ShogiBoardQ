@@ -22,12 +22,13 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <tuple>
 
 namespace {
 using Status = TsumeshogiVerifier::Status;
 using Reply = TsumeshogiVerifier::Reply;
 struct Answer { Reply reply = Reply::Unknown; QStringList pv; };
-struct Verdict { Status status = Status::Unknown; QStringList pv; };
+struct Verdict { Status status = Status::Unknown; QStringList pv; int checkedMatePositions = 0; };
 
 QString statusName(Status status)
 {
@@ -37,6 +38,7 @@ QString statusName(Status status)
     case Status::NoMate: return QStringLiteral("nomate");
     case Status::WrongLength: return QStringLiteral("wrong_length");
     case Status::Invalid: return QStringLiteral("invalid");
+    case Status::Surplus: return QStringLiteral("surplus");
     default: return QStringLiteral("unknown");
     }
 }
@@ -70,7 +72,7 @@ public:
         return true;
     }
 
-    QJsonObject audit(QString sfen, int target, int budget)
+    QJsonObject audit(QString sfen, int target, int budget, bool requireNoSurplus)
     {
         QJsonObject result{{QStringLiteral("original"), sfen}, {QStringLiteral("target"), target}};
         shogi::Position position;
@@ -84,6 +86,13 @@ public:
         if (base.status != Status::Unique) {
             result[QStringLiteral("status")] = statusName(base.status);
             return result;
+        }
+        if (requireNoSurplus) {
+            const auto strict = verify(sfen, target, budget, true);
+            if (strict.status != Status::Unique) {
+                result[QStringLiteral("status")] = statusName(strict.status);
+                return result;
+            }
         }
         int removed = 0;
         for (;;) {
@@ -131,6 +140,15 @@ public:
             result[QStringLiteral("shortest_plies")] = length;
             const bool legal = base.pv.size() == target && TsumeCollection::validMateLine(sfen, base.pv);
             result[QStringLiteral("legal_pv")] = legal;
+            if (requireNoSurplus) {
+                const auto strict = verify(sfen, target, budget, true);
+                result[QStringLiteral("no_surplus")] = strict.status == Status::Unique;
+                result[QStringLiteral("checked_mate_positions")] = strict.checkedMatePositions;
+                if (strict.status != Status::Unique) {
+                    result[QStringLiteral("status")] = statusName(strict.status);
+                    return result;
+                }
+            }
             result[QStringLiteral("status")] = length == target && legal
                 ? QStringLiteral("minimal") : QStringLiteral("unknown");
             return result;
@@ -180,13 +198,13 @@ private:
         if (answer.reply != Reply::Unknown) m_replies.emplace(sfen, answer);
         return answer;
     }
-    Verdict verify(const QString& sfen, int target, int budget)
+    Verdict verify(const QString& sfen, int target, int budget, bool requireNoSurplus = false)
     {
-        const auto key = std::make_pair(sfen, target);
+        const auto key = std::make_tuple(sfen, target, requireNoSurplus);
         const auto found = m_verdicts.find(key);
         if (found != m_verdicts.end()) return found->second;
         TsumeshogiVerifier verifier;
-        verifier.start(sfen, target, {true});
+        verifier.start(sfen, target, {true, requireNoSurplus});
         QElapsedTimer timer;
         timer.start();
         while (verifier.result().status == Status::Running) {
@@ -202,7 +220,7 @@ private:
             const auto answer = query(next, static_cast<int>(std::min<qint64>(remaining, 1000)));
             verifier.submit(answer.reply, answer.pv);
         }
-        Verdict verdict{verifier.result().status, verifier.result().pv};
+        Verdict verdict{verifier.result().status, verifier.result().pv, verifier.result().checkedMatePositions};
         if (verdict.status != Status::Unknown) m_verdicts.emplace(key, verdict);
         return verdict;
     }
@@ -225,7 +243,7 @@ private:
 
     QProcess m_engine;
     std::map<QString, Answer> m_replies;
-    std::map<std::pair<QString, int>, Verdict> m_verdicts;
+    std::map<std::tuple<QString, int, bool>, Verdict> m_verdicts;
     std::map<std::pair<QString, int>, int> m_lengths;
 };
 }
@@ -247,7 +265,8 @@ int main(int argc, char** argv)
         const auto request = document.object();
         const auto result = auditor.audit(request.value(QStringLiteral("sfen")).toString(),
                                          request.value(QStringLiteral("target")).toInt(),
-                                         request.value(QStringLiteral("timeout_ms")).toInt(15000));
+                                         request.value(QStringLiteral("timeout_ms")).toInt(15000),
+                                         request.value(QStringLiteral("require_no_surplus")).toBool());
         std::cout << QJsonDocument(result).toJson(QJsonDocument::Compact).toStdString() << std::endl;
     }
 }

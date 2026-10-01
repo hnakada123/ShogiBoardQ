@@ -13,6 +13,7 @@ from pathlib import Path
 import time
 
 from tsume_diversity import DiversityIndex, Problem, board_from_sfen
+from tsume_surplus import remaining_hand
 
 
 def atomic(path, text):
@@ -44,6 +45,8 @@ def arguments():
     p.add_argument("--seconds", type=int, default=3600)
     p.add_argument("--timeout-ms", type=int, default=15000)
     p.add_argument("--screen-ms", type=int, default=5)
+    p.add_argument("--require-no-surplus", action="store_true",
+                   help="全最長主手順・全最終手で攻方持駒を使い切る問題だけを採択する")
     p.add_argument("--exclude-sfens", type=Path,
                    help="最終監査等で除外するSFENの一覧。除外は作業ディレクトリに保存される")
     return p.parse_args()
@@ -79,6 +82,8 @@ async def run(args):
 
     def accept(problem):
         if problem.sfen in exclusions:
+            return False
+        if args.require_no_surplus and remaining_hand(problem):
             return False
         n = len(problem.pv)
         index = indexes.setdefault(n, DiversityIndex())
@@ -127,6 +132,7 @@ async def run(args):
         initial[n] = len(index.problems)
 
     manifest = {"inputs": inputs, "auditor_sha256": binary_hash, "count": args.count,
+                "require_no_surplus": args.require_no_surplus,
                 "diversity_sha256": hashlib.sha256(Path(__file__).with_name("tsume_diversity.py").read_bytes()).hexdigest()}
     manifest_path = root / "run.json"
     if manifest_path.exists() and json.loads(manifest_path.read_text()) != manifest:
@@ -139,7 +145,7 @@ async def run(args):
             if record["auditor_sha256"] != binary_hash:
                 raise ValueError("監査ログと現在の検査器が一致しません")
             seen.add((record["target"], record["original"]))
-            if record["status"] == "minimal":
+            if record["status"] == "minimal" and (not args.require_no_surplus or record.get("no_surplus")):
                 problem = Problem(record["sfen"], tuple(record["pv"]))
                 index = indexes.get(record["target"])
                 if index is not None and len(index.problems) < capacity(record["target"]):
@@ -237,7 +243,8 @@ async def run(args):
             children.add(remover)
 
             async def audit_candidate(sfen, target, source):
-                request = {"sfen": sfen, "target": target, "timeout_ms": args.timeout_ms}
+                request = {"sfen": sfen, "target": target, "timeout_ms": args.timeout_ms,
+                           "require_no_surplus": args.require_no_surplus}
                 auditor.stdin.write((json.dumps(request) + "\n").encode())
                 await auditor.stdin.drain()
                 reply = await asyncio.wait_for(auditor.stdout.readline(), args.timeout_ms / 1000 * 100 + 60)
@@ -250,7 +257,7 @@ async def run(args):
                 audit_log.write(json.dumps(record) + "\n")
                 audit_log.flush()
                 counters[record["status"]] += 1
-                if record["status"] == "minimal":
+                if record["status"] == "minimal" and (not args.require_no_surplus or record.get("no_surplus")):
                     clean = Problem(record["sfen"], tuple(record["pv"]))
                     # await後は、他ワーカーの採択と不要駒除去後の手順をもう一度確認する。
                     index = indexes[target]
@@ -273,6 +280,9 @@ async def run(args):
                     if index is None or len(index.problems) >= capacity(n):
                         continue
                     problem = Problem(event["sfen"], tuple(event["pv"]))
+                    if args.require_no_surplus and remaining_hand(problem):
+                        counters["surplus_before_audit"] += 1
+                        continue
                     key = (n, problem.sfen)
                     if key in seen:
                         counters["known_sfen"] += 1

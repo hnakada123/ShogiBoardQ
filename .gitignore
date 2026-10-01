@@ -16,3 +16,11 @@ ShogiBoardQ-linux.zip
 __pycache__/
 .pytest_cache/
 *.egg-info/
+
+# Old tsumeshogi collections
+/data/tsumeshogi/tsume_3ply_1000_20260926.txt
+/data/tsumeshogi/tsume_5ply_1000_20260926.txt
+/data/tsumeshogi/tsume_7ply_1000_20260926.txt
+/data/tsumeshogi/tsume_9ply_1000_20260926.txt
+/data/tsumeshogi/tsume_11ply_1000_20260926.txt
+/data/tsumeshogi/tsume_13ply_1000_20260926.txt

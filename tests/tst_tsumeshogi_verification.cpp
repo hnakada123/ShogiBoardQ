@@ -199,6 +199,41 @@ private slots:
         verifier.start(kFinalTwo, 3);
         QCOMPARE(runScripted(verifier), Status::Unique);
     }
+    void optionalNoSurplusCheck()
+    {
+        TsumeshogiVerifier verifier;
+        verifier.start(kUnique, 1, {true, true});
+        QCOMPARE(run(verifier, true), Status::Unique);
+        QCOMPARE(verifier.result().checkedMatePositions, 1);
+        const auto surplus = QStringLiteral("7nk/7nn/9/9/9/9/9/9/9 b NL 1");
+        verifier.start(surplus, 1, {true, true});
+        QCOMPARE(runScripted(verifier), Status::Surplus);
+        verifier.start(surplus, 1);
+        QCOMPARE(runScripted(verifier), Status::Unique);
+        // 最終手複数解の省略経路でも持駒を確認する。
+        verifier.start(kFinalTwo, 3, {true, true});
+        QCOMPARE(runScripted(verifier), Status::Unique);
+        QVERIFY(verifier.result().checkedMatePositions >= 2);
+        // 旧3手詰19番。途中で取った金が詰め上がりに残る。
+        const auto finalSurplus = QStringLiteral("2kg5/9/1+R2+R4/9/9/9/9/9/9 b 2b3g4s4n4l18p 1");
+        verifier.start(finalSurplus, 3, {true, true});
+        QCOMPARE(runScripted(verifier), Status::Surplus);
+    }
+    void rejectsSurplusInAnotherLongestDefense()
+    {
+        // 保存手順は駒余りなし。別の同手数の応手（合駒）も省略せず検査する。
+        const auto sfen = QStringLiteral("2+R6/9/9/9/9/9/9/k8/2B6 b rb4g4s4n4l18p 1");
+        shogi::Position terminal;
+        QVERIFY(terminal.set_sfen(after(sfen, QStringLiteral("7a7h 9h9i 7h8h")).toStdString(), true));
+        QVERIFY(terminal.generate_legal_moves().empty());
+        for (int piece = 1; piece <= 7; ++piece)
+            QCOMPARE(terminal.hand_count(shogi::Color::Black, static_cast<shogi::PieceType>(piece)), 0);
+        TsumeshogiVerifier verifier;
+        verifier.start(sfen, 3, {true});
+        QCOMPARE(runScripted(verifier), Status::Unique);
+        verifier.start(sfen, 3, {true, true});
+        QCOMPARE(runScripted(verifier), Status::Surplus);
+    }
     void acceptsAlternativesInShorterVariations()
     {
         // 変化 9b9c には即詰が2手あるが、主手順ではないので余詰と数えない

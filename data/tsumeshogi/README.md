@@ -2,6 +2,55 @@
 
 3・5・7・9・11・13手詰を各1000題収録しています。UTF-8のテキストで、`#` 始まりはコメント、各問題は `SFEN moves USI指し手…` の1行です。
 
+## 2026年10月1日版：駒余りの検査と差し替え
+
+`tsume_{3,5,7,9,11,13}ply_1000_20261001.txt` が駒余り検査を追加した新版です。20260926版の6ファイルと検証記録は変更せずに残しています。残した局面の問題番号を維持し、除外した問題の番号に別の局面を入れています。解答履歴はSFENをキーにしているため、残した局面の履歴は引き継がれます。
+
+旧版の保存手順を全件再生すると、手順中に取った駒を含めて攻方の持駒が余る問題が1,835題ありました。9手詰14番も歩1枚が余ります。
+
+| 手数 | 旧版の保存手順で駒余り | 新版で差し替えた問題 |
+|---|---:|---:|
+| 3 | 202 | 361 |
+| 5 | 244 | 318 |
+| 7 | 288 | 329 |
+| 9 | 342 | 400 |
+| 11 | 354 | 406 |
+| 13 | 405 | 435 |
+| 合計 | 1,835 | 2,249 |
+
+新版では保存手順だけでなく、**最長抵抗の全応手と、最終手の全ての詰め方で、攻方の持駒が空になること**を要求します。別の主手順・最終手で駒が余る400題も保守的に除外しました。長い駒余り変化と短い駒余りのない変化が併存する問題は、解答手順を書き換える代わりに別問題へ差し替えています。これにより、採択作では最長抵抗と駒余り回避の選択が食い違いません。短い変化での駒余りまで一律に禁止するものではありません。
+
+再検証が確定しなかった旧版の14題も含め、計2,249題を差し替えました。公開する6000題は別プロセスで最終監査を行い、詰め上がり21,723局面の持駒と、28,177通りの1枚除去を確認しました。判定不能のまま採択した問題はありません。
+
+最短手数、連続王手、全指し手の合法性、主手順の余詰、全1枚除去による不要駒、同手数内の重複・類似作も従来どおり検査しています。新規候補は局面変更・逆算・ランダム配置・検証済み手順の途中局面から作成し、いずれも同じ監査を通します。時間切れや判定不一致を合格には数えません。
+
+新版のファイルハッシュ、差し替え番号、検査件数は `validation_20261001.json` に記録しています。各問題の独立監査と全1枚除去の判定理由は `audit_20261001.jsonl.gz` に保存しています。
+
+再検査・補充の例（エンジンのパスは環境に合わせて指定）:
+
+```bash
+cmake --build build --target tsumeshogi_collection_auditor tsumeshogi_diversity_sampler --parallel 4
+python3 scripts/tsume_surplus.py data/tsumeshogi/tsume_*ply_1000_20260926.txt \
+  --output-dir /tmp/tsume-hands
+python3 scripts/audit_tsume_collections.py /tmp/tsume-hands/tsume_*ply_clean.txt \
+  --engine /path/to/KomoringHeights-by-gcc --output-dir /tmp/tsume-hands-audit \
+  --workers 8 --timeout-ms 60000 --require-no-surplus
+python3 scripts/refill_diverse_tsume.py /tmp/tsume-hands-audit/tsume_*ply_minimal.txt \
+  --engine /path/to/KomoringHeights-by-gcc --output-dir /tmp/tsume-hands-refill \
+  --workers 14 --seconds 3600 --require-no-surplus \
+  --exclude-sfens /tmp/tsume-hands/excluded-originals.txt
+python3 scripts/audit_tsume_collections.py /tmp/tsume-hands-refill/tsume_*ply_working.txt \
+  --engine /path/to/KomoringHeights-by-gcc --output-dir /tmp/tsume-hands-final \
+  --workers 8 --timeout-ms 60000 --require-no-surplus
+python3 scripts/publish_diverse_tsume.py data/tsumeshogi/tsume_*ply_1000_20260926.txt \
+  --audit-logs /tmp/tsume-hands-final/audit.jsonl --output-dir /tmp/tsume-hands-publish \
+  --date 20261001 --require-no-surplus --preserve-order
+```
+
+補充は全手数の `missing` が0になるまで再開します。最終監査で除外が出た場合も、そのSFENを除外一覧へ追加して補充・再監査します。公開処理は各手数1000題の確定監査、駒余り検査の証明、手順の再生、類似判定が揃わなければ出力しません。`--require-no-surplus` は問題集の監査・補充用の追加条件で、通常のGUI生成設定の既定値は変更していません。
+
+## 20260926版の作成記録
+
 ランダム配置・生成済み局面の変更などの試行錯誤と、CLIの `generate-tsume` をPythonから直接並列実行するコードは [詰将棋6000題の生成・検証・再編の記録](../../docs/dev/tsumeshogi-collection-generation.md) にまとめています。
 
 詰将棋対局では、アプリに同梱した監査記録と内容が一致する6ファイルの最短手数・手順を再利用し、初回の手数確認の探索を省略します。改名・移動は可能ですが、編集すると通常の解析に戻ります。履歴の一括取得・SFEN解析の重複削減・解析キャッシュの再利用は他の問題集にも有効です。詳細は [詰将棋対局の読み込みと適用範囲](../../docs/dev/tsume-play.md#読み込みの軽量化と適用範囲) を参照してください。

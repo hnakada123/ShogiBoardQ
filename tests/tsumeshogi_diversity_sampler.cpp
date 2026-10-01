@@ -258,7 +258,8 @@ int main(int argc, char** argv)
                 if (seed.matePlies == growthTarget) mutationSeeds.append(seed);
             }
             for (const auto& seed : seed_mutation::load(seedFile + QStringLiteral(".certified")))
-                if (seed.matePlies == growthTarget - 2) growSeeds.append(seed);
+                if (seed.matePlies >= growthTarget - 4 && seed.matePlies < growthTarget)
+                    growSeeds.append(seed);
             QFile minimumFile(seedFile + QStringLiteral(".minimum"));
             if (minimumFile.open(QIODevice::ReadOnly))
                 minimumPlies = std::clamp(QString::fromUtf8(minimumFile.readAll()).toInt(), 3, depth);
@@ -276,7 +277,8 @@ int main(int argc, char** argv)
         ++generated;
         const int mode = seeds.isEmpty() ? 99 : QRandomGenerator::global()->bounded(100);
         // 長手数の補充では同じ手数の種を多めに変更する。短い種の逆算と新規配置も併用する。
-        const int growthLimit = growthTarget >= 13 ? 15 : 40;
+        // 13手詰は9手詰から2段階の逆算も行い、11手詰の既知の接頭辞だけに偏らせない。
+        const int growthLimit = growthTarget >= 13 ? (worker % 3 == 0 ? 70 : 35) : 40;
         const int mutationLimit = growthTarget >= 13 ? 90 : 75;
         const QString sfen = mode < growthLimit ? grow(growSeeds, mutationSettings, growthTarget, budget, known, growthTried) : mode < mutationLimit
             ? seed_mutation::sample(mutationSeeds.isEmpty() ? seeds : mutationSeeds, mutationSettings) : generator.generate();
