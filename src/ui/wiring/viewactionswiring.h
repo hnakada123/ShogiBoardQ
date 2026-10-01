@@ -14,7 +14,6 @@ class DialogLaunchWiring;
 class MainWindowAppearanceController;
 class ShogiView;
 class EvaluationChartWidget;
-class PieceStyleController;
 class BoardColorDialog;
 
 /**
@@ -47,11 +46,10 @@ private slots:
     void copyEvalGraphToClipboard();
     void saveShogiBoardImage();
     void saveEvaluationGraphImage();
-    void showBoardColors();
+    void showBoardAppearance();
 
 private:
     Deps m_d;
-    PieceStyleController* m_pieceStyleController = nullptr;
     QPointer<BoardColorDialog> m_boardColorDialog;
 };
 

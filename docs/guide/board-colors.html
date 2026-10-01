@@ -3,21 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>盤面の配色 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの盤面の配色機能を紹介します。駒に合うおすすめ配色の選択、盤面に加え、手番・対局者名・持ち時間の背景、枠線、文字色の個別調整をスクリーンショット付きで解説。">
+    <title>対局画面の外観 - ShogiBoardQ</title>
+    <meta name="description" content="駒21種類と将棋盤・背景・駒台・対局者情報各20種類を、プレビューを見ながら自由に組み合わせる外観設定を紹介します。">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
     <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/board-colors.html">
     <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/board-colors.html">
-    <meta property="og:title" content="盤面の配色 - ShogiBoardQ">
+    <meta property="og:title" content="対局画面の外観 - ShogiBoardQ">
     <meta property="og:description" content="駒に合うおすすめ配色と、盤面・手番・対局者名・持ち時間の個別配色。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="盤面の配色 - ShogiBoardQ">
+    <meta name="twitter:title" content="対局画面の外観 - ShogiBoardQ">
     <meta name="twitter:description" content="駒に合うおすすめ配色と、盤面・手番・対局者名・持ち時間の個別配色。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/board-colors/board-theme-kaya.png">
     <link rel="stylesheet" href="../css/style.css">
@@ -44,139 +44,43 @@
 </nav>
 
 <main class="appearance-guide">
-<section class="hero hero--sub">
-    <div class="hero-content">
-        <h1>盤面の配色</h1>
-        <p class="hero-subtitle">駒に合う配色を選んで、自分好みの将棋盤に</p>
-        <div class="hero-badges">
-            <span class="badge">駒ごとのおすすめ配色</span>
-            <span class="badge">手番・名前・時計も個別調整</span>
-            <span class="badge">設定を保存</span>
-        </div>
-    </div>
-</section>
-
-<section id="open-dialog" class="section section--alt">
-    <div class="section-inner">
-        <h2 class="section-title">配色の設定を開く</h2>
-        <p class="section-desc">メニューの「表示」→「盤面の配色…」を選択します</p>
-        <div class="screenshot-gallery">
-            <div class="guide-step">
-                <p class="guide-step-text">「盤面の配色」ダイアログには、「盤・駒台」「カード全体」「手番」「対局者名」「持ち時間」「外観」の6つのタブがあります。「外観」で全体の組み合わせを選び、ほかのタブで色を個別に調整できます。各ボタンには現在の色見本とカラーコードが表示されます。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/board-colors/board-colors-dialog.png">
-                        <img src="../images/board-colors/board-colors-dialog.png" alt="盤・駒台、カード全体、手番、対局者名、持ち時間の5タブを備えた盤面の配色ダイアログ" loading="lazy" width="560" height="480">
-                    </a>
-                    <p class="screenshot-caption">「盤・駒台」タブ：おすすめ配色の選択と盤面4色の個別調整</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section id="appearance" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">木の質感を持つ外観</h2>
-        <p class="section-desc">「外観」タブで、盤・駒台・駒・対局者カードをまとめて選べます</p>
-        <p>「榧と畳」は淡い木肌と落ち着いた緑の背景、「墨と榧」は暗い緑の背景と明るい盤、「琥珀」は暖かい盤色の組み合わせです。初期設定は「榧と畳」と「標準の駒」です。保存済みの配色は引き続き利用できます。旧セットの駒選択は標準の駒に切り替わります。</p>
-        <p>木目と駒の影は個別に切り替えられ、駒の大きさは90〜112%に調整できます。外観を選び直すと、全配色、木目の駒、木目・影の表示、駒の大きさ108%が適用されます。「標準色に戻す」は配色だけを初期化します。</p>
-        <p>設定は保存され、メイン盤、読み筋盤、詰将棋のプレビュー、盤面画像出力に反映されます。盤面の反転時も光と影の方向は変わりません。</p>
-        <div class="screenshot-item screenshot-item--compact">
-            <a href="../images/board-colors/board-appearance-dialog.png"><img src="../images/board-colors/board-appearance-dialog.png" alt="外観タブ。榧と畳、駒の大きさ、木目、駒の影を設定" loading="lazy" width="560" height="480"></a>
-            <p class="screenshot-caption">「外観」タブ</p>
-        </div>
-        <div class="screenshot-item">
-            <a href="../images/board-colors/board-theme-kaya.png"><img src="../images/board-colors/board-theme-kaya.png" alt="榧と畳の外観。木目の盤と駒台、淡い駒と影" loading="lazy"></a>
-            <p class="screenshot-caption">榧と畳</p>
-        </div>
-    </div>
-</section>
-
-<section id="presets" class="section"><div class="section-inner">
-<h2 class="section-title">おすすめ配色から選ぶ</h2>
-<p>「盤・駒台」タブの一覧から、どの駒でも共通の「苔庭」「胡桃」「生成り」「深い森」「石庭」の5種類をプレビュー付きで選べます。</p>
-<p>背景・将棋盤・駒台・マス罫線の4色がまとめて反映されます。カード・手番・対局者名・持ち時間で指定した色は保持されます。</p>
+<section class="hero hero--sub"><div class="hero-content"><h1>対局画面の外観</h1><p class="hero-subtitle">5つの部品を、見本から自由に組み合わせる</p></div></section>
+<section id="open-dialog" class="section section--alt"><div class="section-inner">
+<h2 class="section-title">外観ウィンドウを開く</h2>
+<p>「表示」→「対局画面の外観…」を選びます。旧「駒の種類」「盤面の配色」メニューは、このウィンドウに統合しました。</p>
+<p>左側で見本を選び、右側のプレビューで全体の組み合わせを確認します。選択はすべての盤面へ即時反映され、自動保存されます。</p>
+<div class="screenshot-item"><a href="../images/board-colors/appearance-window-ebony.png"><img src="../images/board-colors/appearance-window-ebony.png" alt="外観ウィンドウで黒檀の駒と月白の盤を組み合わせた例" loading="lazy"></a></div>
 </div></section>
-
-<section id="information-colors" class="section section--alt">
-    <div class="section-inner">
-        <h2 class="section-title">手番・対局者名・持ち時間の色を変える</h2>
-        <p class="section-desc">各タブで背景・枠線・文字色を選択できます。先手・後手に共通の設定です。</p>
-        <table class="judgment-table">
-            <thead><tr><th scope="col">タブ</th><th scope="col">変更できる色</th></tr></thead>
-            <tbody>
-                <tr><th scope="row">カード全体</th><td>情報を囲むカードの背景、通常の枠線、手番側の枠線</td></tr>
-                <tr><th scope="row"><a href="../images/board-colors/board-colors-turn.png">手番</a></th><td>「手番」バッジの背景、枠線、文字</td></tr>
-                <tr><th scope="row"><a href="../images/board-colors/board-colors-name.png">対局者名</a></th><td>先手・後手の対局者名の背景、枠線、文字</td></tr>
-                <tr><th scope="row">持ち時間</th><td>時計の背景、枠線、通常の文字、残り10秒以下の文字、秒読み・残り5秒以下の文字</td></tr>
-            </tbody>
-        </table>
-        <p class="guide-step-text">手番側の枠線はカード全体を囲み、手番が移ると反対側のカードに切り替わります。「手番」バッジの枠線とは別々に指定できます。残り時間の警告中は、時計の通常の文字色に代わって警告用の文字色が使われます。</p>
-        <div class="screenshot-gallery screenshot-gallery--comparison">
-            <div class="screenshot-item">
-                <a href="../images/board-colors/board-colors-card.png"><img src="../images/board-colors/board-colors-card.png" alt="カードの背景、通常の枠線、手番側の枠線を設定するカード全体タブ" loading="lazy" width="560" height="480"></a>
-                <p class="screenshot-caption">カード全体：背景と、通常・手番側の枠線を個別に設定</p>
-            </div>
-            <div class="screenshot-item">
-                <a href="../images/board-colors/board-colors-clock.png"><img src="../images/board-colors/board-colors-clock.png" alt="時計の背景、枠線、通常と残り時間警告の文字色を設定する持ち時間タブ" loading="lazy" width="560" height="480"></a>
-                <p class="screenshot-caption">持ち時間：背景・枠線・文字と、警告時の文字色を設定</p>
-            </div>
-        </div>
-        <p class="guide-step-text">標準設定では、対局者名と持ち時間の背景・枠線は透明になっており、カードの背景色が見えます。個別の背景・枠線を付けるには、色選択画面でアルファ値を255にします。アルファ値を0にすると透明、途中の値にすると半透明になります。透明度は手番バッジの背景・枠線にも指定できます。</p>
-        <div class="screenshot-gallery">
-            <div class="screenshot-item">
-                <a href="../images/board-colors/board-information-colors.png"><img src="../images/board-colors/board-information-colors.png" alt="カードを青系、対局者名を薄茶系、持ち時間を緑系に個別設定した将棋盤" loading="lazy" width="708" height="551"></a>
-                <p class="screenshot-caption">表示色の調整例：カード、手番バッジ、対局者名、時計をそれぞれ設定</p>
-            </div>
-        </div>
-    </div>
-</section>
-
-<section id="custom-colors" class="section section--alt">
-    <div class="section-inner">
-        <h2 class="section-title">色を個別に調整する</h2>
-        <p class="section-desc">おすすめ配色をもとに、一部分だけ好みの色へ変えることもできます</p>
-        <div class="screenshot-gallery">
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <h3 class="guide-step-title">変更したい項目の色ボタンを押す</h3>
-                </div>
-                <table class="judgment-table">
-                    <thead><tr><th scope="col">項目</th><th scope="col">変更する場所</th></tr></thead>
-                    <tbody>
-                        <tr><th scope="row">将棋盤の背景</th><td>盤や駒台の周囲にある背景</td></tr>
-                        <tr><th scope="row">将棋盤</th><td>駒を配置する盤の面</td></tr>
-                        <tr><th scope="row">駒台</th><td>先手・後手の持ち駒を置く台</td></tr>
-                        <tr><th scope="row">マス罫線</th><td>盤のマスを区切る線</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <h3 class="guide-step-title">色を選んで確定する</h3>
-                </div>
-                <p class="guide-step-text">色選択ダイアログで好みの色を選び、「OK」を押すと反映されます。「Cancel」で閉じた場合、その色の変更は反映されません。盤面の4色をおすすめの組み合わせと異なる色にすると、一覧は「カスタム（個別に指定）」の表示になります。カードや各表示の色だけを変更した場合、おすすめ配色の選択表示は維持されます。</p>
-                <div class="screenshot-item screenshot-item--compact">
-                    <a href="../images/board-colors/board-colors-picker.png">
-                        <img src="../images/board-colors/board-colors-picker.png" alt="将棋盤の色を選ぶダイアログ。色見本・色相と明度の選択・RGB値・HTMLカラーコードを表示" loading="lazy" width="528" height="423">
-                    </a>
-                    <p class="screenshot-caption">色選択ダイアログ：色見本やカラーコードから指定できます</p>
-                </div>
-            </div>
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
-                    <h3 class="guide-step-title">設定の保存と標準色への復帰</h3>
-                </div>
-                <p class="guide-step-text">選択した配色はすべての将棋盤に反映され、自動で保存されます。配色の設定画面を閉じても変更は維持され、次回起動時にも引き継がれます。ダイアログのサイズと最後に開いたタブも保存されます。</p>
-                <p class="guide-step-text">初期設定の配色に戻すには「標準色に戻す」を押します。駒の種類はそのままで、盤面・カード・手番・対局者名・持ち時間の全18項目の色を標準色に戻せます。好みの駒と配色にした盤面は、<a href="image-export.html">画像エクスポート</a>で保存することもできます。</p>
-            </div>
-        </div>
-    </div>
-</section>
-</main>
+<section id="appearance" class="section"><div class="section-inner">
+<h2 class="section-title">5項目を独立して選ぶ</h2>
+<table class="judgment-table"><thead><tr><th>タブ</th><th>見本</th><th>変更される範囲</th></tr></thead><tbody>
+<tr><td>駒</td><td>21種類</td><td>標準・虎斑・木肌・淡色・深色の駒。種類で絞り込めます。</td></tr>
+<tr><td>将棋盤</td><td>20種類</td><td>盤面の色・木目、マス罫線。</td></tr>
+<tr><td>背景</td><td>20種類</td><td>盤や駒台の周囲の背景色。</td></tr>
+<tr><td>駒台</td><td>20種類</td><td>持駒を置く台の色と木目。</td></tr>
+<tr><td>対局者情報</td><td>20種類</td><td>カード、手番バッジ、対局者名、持ち時間と警告時の色。</td></tr>
+</tbody></table>
+<p>各タブで選んでも、ほかの部品は変わりません。将棋盤を変えても背景色は保たれ、背景を変えても盤の色・木目・罫線は保たれます。将棋盤と駒台の木目も独立して設定できます。</p>
+<p>将棋盤の見本：榧、白榧、本榧、琥珀、胡桃、焦茶、白桐、生成り、月白、銀鼠、薄墨、墨夜、青磁、若竹、苔庭、藍青、薄桜、藤鼠、砂岩、青灰。</p>
+<p>駒台の見本：木肌、白榧、本榧、飴色、胡桃、黒檀、白桐、生成り、月白、銀鼠、薄墨、墨夜、青磁、若竹、苔庭、藍青、薄桜、藤鼠、砂岩、青灰。</p>
+<div class="screenshot-item"><a href="../images/board-colors/appearance-background.png"><img src="../images/board-colors/appearance-background.png" alt="背景を独立して選び、白榧の盤と藍青の背景を組み合わせた例" loading="lazy"></a></div>
+</div></section>
+<section id="presets" class="section section--alt"><div class="section-inner">
+<h2 class="section-title">おすすめの組み合わせとプレビュー</h2>
+<p>「黒檀・月白」「白木・墨夜」「淡虎斑・白榧」など、6種類の組み合わせを出発点にできます。おすすめを選ぶと背景を含む5項目をまとめて変更します。その後は部品を個別に選び直せます。</p>
+<p>プレビューは実際の対局画面と同じ描画です。「成駒・持駒の見本」と「盤面反転」で、文字や持駒の読みやすさも確認できます。プレビューの局面・反転操作は、進行中の対局に影響しません。</p>
+</div></section>
+<section id="information-colors" class="section"><div class="section-inner">
+<h2 class="section-title">手番・対局者・持ち時間の20見本</h2>
+<p>若草、生成り、白磁、桜霞、藤霞、青磁、水浅葱、砂丘、琥珀、胡桃、墨、藍夜、深緑、葡萄、鉄紺、墨金、銀鼠、紅殻、石庭、月白から選べます。明るいカードと暗いカードの両方を用意しています。</p>
+<div class="screenshot-item"><a href="../images/board-colors/appearance-information.png"><img src="../images/board-colors/appearance-information.png" alt="対局者情報の見本一覧と盤面プレビュー" loading="lazy"></a></div>
+</div></section>
+<section id="custom-colors" class="section section--alt"><div class="section-inner">
+<h2 class="section-title">詳細調整と設定の保存</h2>
+<p>「詳細」タブでは、従来の18項目の色調整、透明度、駒の大きさ（90〜112%）、駒の影、盤と駒台それぞれの木目を変更できます。見本から色を変えると「カスタム」と表示されます。</p>
+<p>「開いたときの外観に戻す」は、このウィンドウを開いた時点の駒・色・質感を復元します。「標準色に戻す」は18項目の色のみを標準に戻します。</p>
+<p>選択した外観、ウィンドウの大きさ、最後のタブ、駒の絞り込みを保存します。読み筋盤や詰将棋、<a href="image-export.html">盤面画像の出力</a>にも同じ設定が反映されます。</p>
+</div></section></main>
 
 <div class="back-link-section">
     <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>

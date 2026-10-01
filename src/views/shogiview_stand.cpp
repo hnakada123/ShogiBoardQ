@@ -41,7 +41,7 @@ void ShogiView::drawNormalModeStand(QPainter* painter)
     const qreal inset = qMax(1.0, fieldSize().width() * 0.035);
     for (const auto& stand : {blackStandBoundingRect(), whiteStandBoundingRect()}) {
         BoardSurfacePainter::draw(*painter, QRectF(stand).adjusted(inset, 0, -inset, 0),
-                                  m_boardColors.stand, m_boardVisuals.woodGrain, fieldSize().width());
+                                  m_boardColors.stand, m_boardVisuals.standWoodGrain, fieldSize().width());
     }
 }
 

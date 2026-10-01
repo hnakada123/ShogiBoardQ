@@ -11,6 +11,11 @@
 #include <QCheckBox>
 #include <QSpinBox>
 #include <QSettings>
+#include <QListWidget>
+#include <QLabel>
+#include <QPushButton>
+#include <QTabWidget>
+#include <cmath>
 
 #include "boardimagerenderer.h"
 #include "boardappearance.h"
@@ -22,6 +27,8 @@
 #include "shogiboard.h"
 #include "shogiview.h"
 #include "appsettings.h"
+#include "boardappearancecatalog.h"
+#include "boardappearancepreview.h"
 
 class TestBoardImageRenderer : public QObject
 {
@@ -72,6 +79,105 @@ private slots:
         QVERIFY(first.boardVisuals() == BoardVisuals{});
         QCOMPARE(themes->currentData().toString(), QStringLiteral("kaya"));
         QCOMPARE(restoredDialog.findChild<QComboBox*>("boardThemeCombo")->currentIndex(), 0);
+    }
+
+    void componentSamplesAreIndependent()
+    {
+        using Component = BoardAppearanceCatalog::Component;
+        for (const auto component : {Component::Board, Component::Stand, Component::Information, Component::Background}) {
+            const auto samples = BoardAppearanceCatalog::samples(component);
+            QCOMPARE(samples.size(), 20);
+            QSet<QString> names;
+            for (const auto& sample : samples) {
+                QVERIFY(!names.contains(sample.name));
+                names.insert(sample.name);
+                BoardColors colors;
+                colors.background = QColor("#123456");
+                colors.stand = QColor("#abcdef");
+                colors.clockBackground = QColor(40, 50, 60, 90);
+                const BoardColors before = colors;
+                BoardVisuals visuals{false, false, 95, false};
+                BoardAppearanceCatalog::apply(component, sample, colors, visuals);
+                QVERIFY(BoardAppearanceCatalog::matches(component, sample, colors, visuals));
+                QVERIFY(colors == colors.normalized());
+                QCOMPARE(visuals.pieceScale, 95);
+                QCOMPARE(visuals.pieceShadow, false);
+                const auto members = BoardColors::members();
+                for (size_t i = 0; i < members.size(); ++i) {
+                    const bool affected = component == Component::Board ? (i == 1 || i == 3)
+                        : component == Component::Stand ? i == 2
+                        : component == Component::Background ? i == 0 : i >= 4;
+                    if (!affected) QCOMPARE(colors.*members[i], before.*members[i]);
+                }
+                if (component != Component::Board) QCOMPARE(visuals.woodGrain, false);
+                if (component != Component::Stand) QCOMPARE(visuals.standWoodGrain, false);
+                int matching = 0;
+                for (const auto& candidate : samples)
+                    if (BoardAppearanceCatalog::matches(component, candidate, colors, visuals)) ++matching;
+                QCOMPARE(matching, 1);
+            }
+        }
+        const auto luminance = [](QColor color) {
+            const auto channel = [](double value) {
+                return value <= 0.04045 ? value / 12.92 : std::pow((value + 0.055) / 1.055, 2.4);
+            };
+            return .2126 * channel(color.redF()) + .7152 * channel(color.greenF()) + .0722 * channel(color.blueF());
+        };
+        for (const auto& sample : BoardAppearanceCatalog::samples(Component::Information)) {
+            const auto& c = sample.colors;
+            for (const auto& pair : {qMakePair(c.cardBackground, c.nameText),
+                                      qMakePair(c.cardBackground, c.clockText), qMakePair(c.turnBackground, c.turnText)}) {
+                const auto a = luminance(pair.first), b = luminance(pair.second);
+                QVERIFY2((qMax(a, b) + .05) / (qMin(a, b) + .05) >= 4.5, qPrintable(sample.name));
+            }
+        }
+    }
+
+    void appearancePreviewAndRestore()
+    {
+        ShogiBoard model;
+        model.resetGameBoard();
+        ShogiView live;
+        live.applyBoardAndRender(&model);
+        live.setBlackClockText(QStringLiteral("03:21"));
+        const auto position = model.convertBoardToSfen();
+        BoardColorDialog dialog;
+        auto* pieces = dialog.findChild<QListWidget*>("appearancePieces");
+        auto* preview = dialog.findChild<BoardAppearancePreview*>();
+        auto* combination = dialog.findChild<QComboBox*>("appearanceCombination");
+        QVERIFY(pieces && preview && combination);
+        QCOMPARE(pieces->count(), 21);
+        for (const auto* list : dialog.findChildren<QListWidget*>()) {
+            for (int i = 0; i < list->count(); ++i) {
+                const auto icon = list->item(i)->icon();
+                QCOMPARE(icon.pixmap(142, 86, QIcon::Normal).toImage(),
+                         icon.pixmap(142, 86, QIcon::Selected).toImage());
+            }
+        }
+        QCOMPARE(preview->findChild<ShogiBoard*>()->convertBoardToSfen(),
+                 QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL"));
+        const auto original = preview->image();
+        QVERIFY(QMetaObject::invokeMethod(combination, "activated", Q_ARG(int, 2)));
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("deep_ebony"));
+        QVERIFY(preview->image() != original);
+        const auto selected = preview->image();
+        preview->setPosition(1);
+        QVERIFY(preview->image() != selected);
+        const auto middle = preview->image();
+        preview->setFlipped(true);
+        QVERIFY(preview->image() != middle);
+        QCOMPARE(preview->findChild<ShogiView*>()->piece('K').pixmap(90).toImage(),
+                 QIcon(":/pieces/deep_ebony/Gote_ou45.svg").pixmap(90).toImage());
+        QCOMPARE(model.convertBoardToSfen(), position);
+        QCOMPARE(live.blackClockLabel()->text(), QStringLiteral("03:21"));
+        QVERIFY(!live.flipMode());
+        dialog.findChild<QPushButton*>("restoreOpeningAppearanceButton")->click();
+        QVERIFY(live.boardColors() == BoardColors{});
+        QVERIFY(live.boardVisuals() == BoardVisuals{});
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
+        preview->setPosition(0);
+        preview->setFlipped(false);
+        QCOMPARE(preview->image(), original);
     }
 
     void surfaceTextureIsStableAndOptional()
