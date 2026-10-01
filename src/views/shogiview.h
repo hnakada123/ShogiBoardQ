@@ -27,7 +27,6 @@
 #include <QHash>
 #include <QMap>
 #include <QPointer>
-#include <QPixmap>
 #include <QWidget>
 #include <QPushButton>
 
@@ -104,7 +103,6 @@ public:
     void  invalidateFieldRectCache();
 
     // ───────────────────────────── 駒画像管理 ────────────────────────────────
-    void  setPiece(char type, const QIcon &icon); // 駒文字 → アイコン登録
     QIcon piece(QChar type) const;                // 駒文字 → アイコン取得
     void  setPieces();                            // 通常向きの画像一括登録
     void  setPiecesFlip();                        // 反転向きの画像一括登録
@@ -146,7 +144,6 @@ public:
     void resetAndEqualizePiecesOnStands();       // 初期化（平手/駒台均し等は ShogiBoard 実装に依存）
     void initializeToFlatStartingPosition();     // 平手初期局面を適用
     void shogiProblemInitialPosition();          // 問題用初期局面を適用
-    void flipBoardSides();                       // 先後入替（モデル側で処理）
 
     bool flipMode() const;                    // 反転表示か
     void setFlipMode(bool newFlipMode);          // 反転表示の切替
@@ -165,7 +162,6 @@ public:
     
     // 時計表示の有効/無効
     void setClockEnabled(bool enabled);
-    bool isClockEnabled() const;
 
     // プレイヤー名
     void setBlackPlayerName(const QString& name);
@@ -183,10 +179,6 @@ public:
 
     // 手番ハイライト配色（任意）
     void setHighlightStyle(const QColor& bgOn, const QColor& fgOn, const QColor& fgOff);
-
-    // 追加: 残時間(ミリ秒)を受け取るセッター
-    void setBlackTimeMs(qint64 ms);
-    void setWhiteTimeMs(qint64 ms);
 
     QImage toImage(qreal scale = 1.0);
 
@@ -358,14 +350,6 @@ private:
 
     // ハイライト/矢印/手番表示の管理クラス
     ShogiViewHighlighting* m_highlighting = nullptr;
-
-    // 追加: ログ用に保持
-    qint64 m_blackTimeMs = -1;
-    qint64 m_whiteTimeMs = -1;
-
-    // ログスパム防止（前回値と同じなら出力しない）
-    qint64 m_lastLoggedBlackMs = -2;
-    qint64 m_lastLoggedWhiteMs = -2;
 
     bool m_uiMuted = false;
     bool m_gameOverStyleLock = false;  // 対局終了時のスタイル維持

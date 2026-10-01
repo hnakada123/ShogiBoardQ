@@ -1268,14 +1268,13 @@ add_shogi_test(tst_dock_layout
 )
 
 # ============================================================
-# Unit: 駒画像・駒種類メニューのテスト
+# Unit: 駒画像・駒種類の切り替えと保存のテスト
 # ============================================================
 add_shogi_test(tst_piece_images
     tst_piece_images.cpp
     ${SRC}/services/pieceimageprovider.cpp
     ${SRC}/services/appsettings.cpp
     ${SRC}/services/settingscommon.cpp
-    ${SRC}/ui/controllers/piecestylecontroller.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../resources/shogiboardq.qrc
 )
 

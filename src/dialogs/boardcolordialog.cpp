@@ -201,7 +201,7 @@ void BoardColorDialog::rebuildPresets()
 {
     const QString style = PieceImageProvider::instance().style();
     m_presetLabel->setText(tr("%1に合うおすすめ配色").arg(BoardColorPresets::pieceStyleName(style)));
-    m_presets = BoardColorPresets::forPieceStyle(style);
+    m_presets = BoardColorPresets::palettes();
     const QSignalBlocker blocker(m_presetCombo);
     m_presetCombo->clear();
     for (const auto& preset : std::as_const(m_presets)) {

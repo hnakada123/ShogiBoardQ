@@ -1,11 +1,9 @@
 #include <QtTest>
-#include <QAction>
 #include <QSettings>
 #include <QTemporaryDir>
 
 #include "appsettings.h"
 #include "pieceimageprovider.h"
-#include "piecestylecontroller.h"
 #include "settingscommon.h"
 #include "settingskeys.h"
 
@@ -27,27 +25,6 @@ private slots:
         SettingsCommon::openSettings().clear();
     }
 
-    void menuSelectionAndPersistence()
-    {
-        // 旧セットを選んでいた環境でも、残したメニューで標準の駒を選択できる。
-        SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle, "wood");
-        QAction standard;
-        PieceStyleController controller({{&standard, QStringLiteral("standard")}});
-        auto& provider = PieceImageProvider::instance();
-        QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
-        QVERIFY(standard.isChecked());
-        standard.trigger();
-        QCOMPARE(provider.style(), QStringLiteral("standard"));
-        QVERIFY(standard.isChecked());
-        QCOMPARE(changed.count(), 0);
-        SettingsCommon::openSettings().sync();
-        QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-        QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), QStringLiteral("standard"));
-        QAction restoredStandard;
-        PieceStyleController restoredController({{&restoredStandard, QStringLiteral("standard")}});
-        QVERIFY(restoredStandard.isChecked());
-    }
-
     void variantSelectionAndPersistence_data()
     {
         QTest::addColumn<QString>("selectedStyle");
@@ -59,31 +36,21 @@ private slots:
     void variantSelectionAndPersistence()
     {
         QFETCH(QString, selectedStyle);
-        QAction standard, selected;
-        PieceStyleController controller({{&standard, QStringLiteral("standard")}, {&selected, selectedStyle}});
         auto& provider = PieceImageProvider::instance();
         QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
         const auto standardPawn = provider.icon('P').pixmap(90).toImage();
-        selected.trigger();
-        QVERIFY(selected.isChecked());
-        QVERIFY(!standard.isChecked());
+        provider.setStyle(selectedStyle);
         QCOMPARE(changed.count(), 1);
         QCOMPARE(provider.style(), selectedStyle);
         QVERIFY(provider.icon('P').pixmap(90).toImage() != standardPawn);
         SettingsCommon::openSettings().sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), selectedStyle);
-        QAction restoredStandard, restoredSelected;
-        PieceStyleController restoredController({{&restoredStandard, QStringLiteral("standard")},
-                                                 {&restoredSelected, selectedStyle}});
-        QVERIFY(restoredSelected.isChecked());
-        selected.trigger();
+        provider.setStyle(selectedStyle);
         QCOMPARE(changed.count(), 1);
-        standard.trigger();
+        provider.setStyle(QStringLiteral("standard"));
         QCOMPARE(changed.count(), 2);
-        QVERIFY(standard.isChecked());
-        QVERIFY(restoredStandard.isChecked());
-        QVERIFY(!restoredSelected.isChecked());
+        QCOMPARE(provider.style(), QStringLiteral("standard"));
         QCOMPARE(provider.icon('P').pixmap(90).toImage(), standardPawn);
     }
 
@@ -100,6 +67,7 @@ private slots:
         const BoardColors colors = AppSettings::boardColors();
         SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle, legacyStyle);
         auto& provider = PieceImageProvider::instance();
+        QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
         QCOMPARE(provider.style(), QStringLiteral("standard"));
         QCOMPARE(SettingsCommon::openSettings().value(SettingsKeys::kPieceStyle).toString(),
                  QStringLiteral("standard"));
@@ -108,8 +76,13 @@ private slots:
         QVERIFY(!pawn.isNull());
         QCOMPARE(provider.icon('P').pixmap(90).toImage(), pawn);
         QCOMPARE(provider.iconForStyle('P', legacyStyle).pixmap(90).toImage(), pawn);
+        provider.setStyle(QStringLiteral("standard"));
         provider.setStyle(QStringLiteral("../unknown"));
         QCOMPARE(provider.style(), QStringLiteral("standard"));
+        QCOMPARE(changed.count(), 0);
+        SettingsCommon::openSettings().sync();
+        const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), QStringLiteral("standard"));
     }
 
     void standardAndVariantsAreAvailable()

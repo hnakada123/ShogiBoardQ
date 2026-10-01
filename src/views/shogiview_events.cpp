@@ -143,12 +143,6 @@ void ShogiView::endDrag()
 // 駒画像管理
 // ─────────────────────────────────────────────────────────────────────────────
 
-void ShogiView::setPiece(char type, const QIcon &icon)
-{
-    m_pieces.insert(type, icon);
-    update();
-}
-
 QIcon ShogiView::piece(QChar type) const
 {
     return m_pieces.value(type, QIcon());

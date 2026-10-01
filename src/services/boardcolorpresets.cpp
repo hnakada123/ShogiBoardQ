@@ -32,9 +32,8 @@ QList<BoardThemePreset> BoardColorPresets::themes()
             {QStringLiteral("amber"), tr("琥珀"), amber}};
 }
 
-QList<BoardColorPreset> BoardColorPresets::forPieceStyle(const QString& style)
+QList<BoardColorPreset> BoardColorPresets::palettes()
 {
-    Q_UNUSED(style)
     return {
         preset(tr("苔庭"),       0x52604a, 0xabb28b, 0x818d67, 0x3e4c36),
         preset(tr("胡桃"),       0x443831, 0xb49578, 0x876a53, 0x4b392c),

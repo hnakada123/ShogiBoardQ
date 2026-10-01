@@ -171,7 +171,6 @@ QLabel* ShogiView::blackClockLabel() const { return m_blackClockLabel; }
 ElideLabel* ShogiView::whiteNameLabel() const { return m_whiteNameLabel; }
 QLabel* ShogiView::whiteClockLabel() const { return m_whiteClockLabel; }
 
-bool ShogiView::isClockEnabled() const { return m_clockEnabled; }
 bool ShogiView::positionEditMode() const { return m_interaction.positionEditMode(); }
 int  ShogiView::squareSize() const { return m_layout.squareSize(); }
 bool ShogiView::flipMode() const { return m_layout.flipMode(); }
@@ -462,13 +461,6 @@ void ShogiView::shogiProblemInitialPosition()
     update();
 }
 
-void ShogiView::flipBoardSides()
-{
-    removeHighlightAllData();
-    board()->flipSides();
-    update();
-}
-
 void ShogiView::setClockEnabled(bool enabled)
 {
     m_clockEnabled = enabled;
@@ -499,9 +491,6 @@ void ShogiView::updateBoardSize()
 }
 
 void ShogiView::setUrgencyVisuals(Urgency u) { m_highlighting->setUrgencyVisuals(u); }
-
-void ShogiView::setBlackTimeMs(qint64 ms) { m_blackTimeMs = ms; }
-void ShogiView::setWhiteTimeMs(qint64 ms) { m_whiteTimeMs = ms; }
 
 QImage ShogiView::toImage(qreal scale)
 {
