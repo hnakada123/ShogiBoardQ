@@ -94,14 +94,31 @@ struct TsumeshogiVerifier::Impl {
     }
 
     /// 即詰の攻手を1つ返す（最終手の複数解を許容した終端の手順表示用）
-    static std::optional<std::string> immediateMate(const shogi::Position& position)
+    bool checkHand(const shogi::Position& position)
     {
+        if (!options.requireNoSurplus) return true;
+        ++result.checkedMatePositions;
+        for (int piece = 1; piece <= 7; ++piece) {
+            if (position.hand_count(attacker, static_cast<shogi::PieceType>(piece)) > 0) {
+                result.status = Status::Surplus;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    std::optional<std::string> immediateMate(const shogi::Position& position)
+    {
+        std::optional<std::string> first;
         for (const auto& move : position.generate_checking_moves()) {
             auto next = position;
             next.do_move(move);
-            if (next.generate_legal_moves().empty()) return position.move_to_usi(move);
+            if (!next.generate_legal_moves().empty()) continue;
+            if (!checkHand(next)) return std::nullopt;
+            if (!first) first = position.move_to_usi(move);
+            if (!options.requireNoSurplus) break;
         }
-        return std::nullopt;
+        return first;
     }
 
     void recordPv(const QStringList& pv)
@@ -134,6 +151,9 @@ struct TsumeshogiVerifier::Impl {
             return;
         }
         if (winner.children.empty()) {
+            auto terminal = current.node.position;
+            terminal.apply_usi_move(winner.usi.toStdString());
+            if (!checkHand(terminal)) return;
             QStringList pv = current.node.path;
             pv.append(winner.usi);
             recordPv(pv);
@@ -145,10 +165,10 @@ struct TsumeshogiVerifier::Impl {
         for (auto& child : winner.children) {
             if (child.len != longest) continue;
             if (longest == 1 && options.allowFinalMoveAlternatives) {
-                if (!result.pv.isEmpty()) continue;
+                if (!result.pv.isEmpty() && !options.requireNoSurplus) continue;
                 const auto mate = immediateMate(child.node.position);
                 if (!mate) {
-                    result.status = Status::Unknown;
+                    if (result.status != Status::Surplus) result.status = Status::Unknown;
                     return;
                 }
                 QStringList pv = child.node.path;

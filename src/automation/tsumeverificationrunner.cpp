@@ -41,6 +41,7 @@ QString TsumeVerificationRunner::statusName(TsumeshogiVerifier::Status status)
     case TsumeshogiVerifier::Status::WrongLength: return QStringLiteral("wrong_length");
     case TsumeshogiVerifier::Status::Unknown: return QStringLiteral("unknown");
     case TsumeshogiVerifier::Status::Invalid: return QStringLiteral("invalid");
+    case TsumeshogiVerifier::Status::Surplus: return QStringLiteral("surplus");
     }
     return QStringLiteral("unknown");
 }

@@ -140,6 +140,7 @@ const char* statusName(Status status)
     case Status::WrongLength: return "WrongLength";
     case Status::Unknown: return "Unknown";
     case Status::Invalid: return "Invalid";
+    case Status::Surplus: return "Surplus";
     }
     return "?";
 }

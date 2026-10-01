@@ -16,6 +16,7 @@ def arguments():
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--timeout-ms", type=int, default=15000)
+    parser.add_argument("--require-no-surplus", action="store_true")
     return parser.parse_args()
 
 
@@ -31,6 +32,8 @@ async def run(args):
             record = json.loads(line)
             if record["auditor_sha256"] != signature:
                 raise ValueError("検証器が変わっています。新しい出力ディレクトリを指定してください")
+            if record.get("require_no_surplus", False) != args.require_no_surplus:
+                raise ValueError("駒余り検査の設定が異なります。新しい出力ディレクトリを指定してください")
             if record["status"] != "unknown" or record["timeout_ms"] >= args.timeout_ms:
                 records[(record["original"], record["target"])] = record
     source_keys = []
@@ -82,7 +85,8 @@ async def run(args):
             try:
                 while not queue.empty():
                     key = queue.get_nowait()
-                    request = {"sfen": key[0], "target": key[1], "timeout_ms": args.timeout_ms}
+                    request = {"sfen": key[0], "target": key[1], "timeout_ms": args.timeout_ms,
+                               "require_no_surplus": args.require_no_surplus}
                     process.stdin.write((json.dumps(request) + "\n").encode())
                     await process.stdin.drain()
                     raw = await asyncio.wait_for(process.stdout.readline(), args.timeout_ms / 1000 * 100 + 60)
@@ -90,7 +94,8 @@ async def run(args):
                         raise RuntimeError(f"検証器 {number} が応答せず終了しました")
                     record = json.loads(raw)
                     assert (record["original"], record["target"]) == key
-                    record.update(auditor_sha256=signature, timeout_ms=args.timeout_ms)
+                    record.update(auditor_sha256=signature, timeout_ms=args.timeout_ms,
+                                  require_no_surplus=args.require_no_surplus)
                     records[key] = record
                     log.write(json.dumps(record, ensure_ascii=False) + "\n")
                     log.flush()

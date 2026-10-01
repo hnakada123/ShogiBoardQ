@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from tsume_diversity import Problem, board_from_sfen, select, spread
 from publish_diverse_tsume import publish
 from refill_diverse_tsume import seed_sample
+from tsume_surplus import remaining_hand
 
 LINE_722 = "1+N+P6/1Pp6/1kL6/9/2S6/9/9/9/9 b G2r2b3g3s3n3l15p 1 moves G*8d 8c9b 8a9a 9b9a 8b8a+ 9a9b 8a8b 9b8b 7c7b+ 8b9a 7a8a 9a9b 8a8b"
 LINE_723 = "1G+P6/1Pp6/1kP6/9/1S7/9/9/9/9 b G2r2b2g3s4n4l14p 1 moves G*8d 8c9b 8a9a 9b9a 8b8a+ 9a9b 8a8b 9b8b 7c7b+ 8b9a 7a8a 9a9b 8a8b"
@@ -45,6 +46,11 @@ def transform(problem, file_map):
 
 
 class DiversityTest(unittest.TestCase):
+    def test_captured_piece_is_counted_in_final_hand(self):
+        line = "+Np7/2S6/kP7/9/SR7/9/9/9/9 b r2b4g2s3n4l16p 1 moves 9a9b 9c9b 7b8a 9b9c 8a9b+ 9c9b 8c8b+ 9b9c 8e8c"
+        self.assertEqual(remaining_hand(Problem.parse(line)), {"P": 1})
+        self.assertEqual(remaining_hand(Problem.parse(SHORT[0])), {})
+
     def test_reported_pair_and_gold_equivalent_substitutions(self):
         self.assertEqual(len(select([Problem.parse(LINE_722), Problem.parse(LINE_723)]).problems), 1)
 
@@ -185,6 +191,32 @@ class RefillTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             publish(args)
         self.assertFalse((output / "input.txt").exists())
+
+    def test_dated_publish_requires_no_surplus_certificate_and_preserves_numbers(self):
+        original = self.root / "tsume_3ply_2_20260926.txt"
+        original.write_text("\n".join(SHORT[:2]) + "\n")
+        problems = [Problem.parse(SHORT[i]) for i in (0, 2)]
+        records = [dict(original=p.sfen, sfen=p.sfen, target=3, status="minimal", removed=0,
+                        auditor_sha256=hashlib.sha256(self.auditor.read_bytes()).hexdigest(),
+                        legal_pv=True, shortest_plies=3, pv=p.pv, checks=[]) for p in problems]
+        log = self.root / "audit.jsonl"
+        log.write_text("\n".join(json.dumps(r) for r in records) + "\n")
+        output = self.root / "publish"
+        args = SimpleNamespace(auditor=self.auditor, audit_logs=[log], originals=[original],
+                               output_dir=output, count=2, date="20261001", preserve_order=True,
+                               require_no_surplus=True)
+        with self.assertRaises(ValueError):
+            publish(args)
+        for record in records:
+            record.update(no_surplus=True, checked_mate_positions=1)
+        log.write_text("\n".join(json.dumps(r) for r in records) + "\n")
+        publish(args)
+        lines = (output / "tsume_3ply_2_20261001.txt").read_text().splitlines()
+        self.assertEqual([line for line in lines if not line.startswith("#")], [p.line for p in problems])
+        self.assertEqual(original.read_text(), "\n".join(SHORT[:2]) + "\n")
+        report = json.loads((output / "validation_20261001.json").read_text())
+        self.assertEqual(report["files"][0]["replaced_numbers"], [2])
+        self.assertEqual(report["files"][0]["saved_lines_with_surplus"], 0)
 
 
 if __name__ == "__main__":

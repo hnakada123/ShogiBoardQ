@@ -17,14 +17,18 @@
 class TsumeshogiVerifier
 {
 public:
-    enum class Status { Running, Unique, Multiple, NoMate, WrongLength, Unknown, Invalid };
+    enum class Status { Running, Unique, Multiple, NoMate, WrongLength, Unknown, Invalid, Surplus };
     enum class Reply { Mate, NoMate, Unknown };
     struct Result {
         Status status = Status::Invalid;
         QStringList pv;
+        int checkedMatePositions = 0;
     };
     struct Options {
         bool allowFinalMoveAlternatives = true; ///< 主手順の最終手（根を除く）の複数解を許容する
+        /// 最長抵抗の全主手順・全最終手で攻方持駒が空であることを要求する保守的な収集条件。
+        /// 駒余りになる長い変化から、駒余りのない短い変化への手順の選び直しは行わない。
+        bool requireNoSurplus = false;
     };
 
     TsumeshogiVerifier();
