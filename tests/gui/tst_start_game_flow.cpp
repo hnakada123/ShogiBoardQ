@@ -30,7 +30,11 @@
 #include "shogiboard.h"
 #include "shogiclock.h"
 #include "recordpane.h"
+#include "gameinfopanecontroller.h"
+#include "gameinfokeys.h"
+#include "gamerecordmodel.h"
 #include <QTableView>
+#include <QTableWidget>
 
 class TestStartGameFlow : public QObject {
     Q_OBJECT
@@ -190,6 +194,64 @@ private slots:
         qInfo() << "unchecked timeout: gameOver=" << match->gameOverState().isOver;
         QVERIFY(!match->clock()->enforcesTimeout());
         QVERIFY(!match->gameOverState().isOver);
+    }
+    void preparedGameInfoSurvivesStart_data() {
+        QTest::addColumn<int>("preset");
+        QTest::newRow("current-position") << 0;
+        QTest::newRow("initial-position") << 1;
+    }
+    void preparedGameInfoSurvivesStart() {
+        QFETCH(int, preset);
+        auto& settings = SettingsCommon::openSettings();
+        settings.setValue("GameSettings/humanName1", QStringLiteral("対局者A"));
+        settings.setValue("GameSettings/humanName2", QStringLiteral("対局者B"));
+        settings.setValue("GameSettings/byoyomiSec1", 30);
+        settings.sync();
+        window = std::make_unique<MainWindow>();
+        window->resize(1400, 1000);
+        window->show();
+        auto* controller = window->findChild<GameInfoPaneController*>();
+        QVERIFY(controller);
+        auto* table = controller->tableWidget();
+        QCOMPARE(table->rowCount(), 9);
+        QVERIFY(table->item(1, 1)->text().isEmpty());
+        QVERIFY(table->item(2, 1)->text().isEmpty());
+        table->item(6, 1)->setText(QStringLiteral("練習対局"));
+        table->item(7, 1)->setText(QStringLiteral("自宅"));
+        controller->applyChanges();
+        window->activateWindow();
+        table->setFocus();
+        QTRY_VERIFY(table->hasFocus());
+        table->setCurrentCell(8, 1);
+        table->scrollToItem(table->currentItem());
+        table->editItem(table->currentItem());
+        auto* editor = qobject_cast<QLineEdit*>(QApplication::focusWidget());
+        QVERIFY(editor);
+        editor->setText(QStringLiteral("更新ボタンを押す前の備考"));
+        const QDateTime before = QDateTime::currentDateTime().addSecs(-1);
+        requestedPreset = preset;
+        startWindowGame();
+        QCOMPARE(table->rowCount(), 9);
+        const auto start = QDateTime::fromString(table->item(1, 1)->text(), QStringLiteral("yyyy/MM/dd HH:mm:ss"));
+        QVERIFY(start.isValid());
+        QVERIFY(start >= before && start <= QDateTime::currentDateTime());
+        QCOMPARE(table->item(2, 1)->text(), QStringLiteral("対局者A"));
+        QCOMPARE(table->item(3, 1)->text(), QStringLiteral("対局者B"));
+        QCOMPARE(table->item(5, 1)->text(), QStringLiteral("05:00+30"));
+        QCOMPARE(table->item(6, 1)->text(), QStringLiteral("練習対局"));
+        QCOMPARE(table->item(7, 1)->text(), QStringLiteral("自宅"));
+        QCOMPARE(table->item(8, 1)->text(), QStringLiteral("更新ボタンを押す前の備考"));
+        QVERIFY(!controller->isDirty());
+        auto* record = window->findChild<GameRecordModel*>();
+        QVERIFY(record);
+        GameRecordModel::ExportContext context;
+        context.gameInfoTable = table;
+        const QString kif = record->toKifLines(context).join(QLatin1Char('\n'));
+        QVERIFY(kif.contains(QStringLiteral("棋戦：練習対局")));
+        QVERIFY(kif.contains(QStringLiteral("場所：自宅")));
+        QVERIFY(kif.contains(QStringLiteral("備考：更新ボタンを押す前の備考")));
+        QVERIFY(!kif.contains(QStringLiteral("未開始")));
+        window->m_match->handleBreakOff();
     }
     void newPresetAfterHandicapGame() {
         auto& settings = SettingsCommon::openSettings();

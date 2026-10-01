@@ -62,6 +62,7 @@ void GameInfoPaneController::buildUi()
     m_table->setAlternatingRowColors(true);
     m_table->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
     m_table->setAccessibleName(tr("対局情報"));
+    installValueDelegate();
 
     // フォントサイズ適用
     applyFontSize();
@@ -112,9 +113,10 @@ QTableWidget* GameInfoPaneController::tableWidget() const
     return m_table;
 }
 
-void GameInfoPaneController::setGameInfo(const QList<KifGameInfoItem>& items)
+void GameInfoPaneController::setGameInfo(const QList<KifGameInfoItem>& items, bool beforeMatchStart)
 {
     if (!m_table) return;
+    m_beforeMatchStart = beforeMatchStart;
 
     m_table->blockSignals(true);
 
@@ -141,6 +143,39 @@ void GameInfoPaneController::setGameInfo(const QList<KifGameInfoItem>& items)
     updateEditingIndicator();
 }
 
+void GameInfoPaneController::resetGameInfo()
+{
+    setGameInfo({{GameInfoKeys::kGameDate, {}},
+                 {GameInfoKeys::kStartDateTime, {}},
+                 {GameInfoKeys::kBlackPlayer, {}},
+                 {GameInfoKeys::kWhitePlayer, {}},
+                 {GameInfoKeys::kHandicap, QStringLiteral("平手")},
+                 {GameInfoKeys::kTimeControl, {}},
+                 {GameInfoKeys::kEvent, {}},
+                 {GameInfoKeys::kSite, {}},
+                 {GameInfoKeys::kNote, {}}}, true);
+}
+
+void GameInfoPaneController::setGameInfoForMatch(const QList<KifGameInfoItem>& automaticItems)
+{
+    commitPendingEditor();
+    QList<KifGameInfoItem> items = automaticItems;
+    QSet<QString> replacedKeys = {GameInfoKeys::kEndDateTime, QStringLiteral("消費時間"),
+                                 QStringLiteral("結果"), QStringLiteral("上手"), QStringLiteral("下手")};
+    for (const auto& item : automaticItems) replacedKeys.insert(item.key);
+    QSet<QString> retainedKeys;
+    for (const auto& item : gameInfo()) {
+        const QString key = item.key.trimmed();
+        if (key.isEmpty() || replacedKeys.contains(key)) continue;
+        items.append(item);
+        retainedKeys.insert(key);
+    }
+    for (const auto& key : {GameInfoKeys::kEvent, GameInfoKeys::kSite, GameInfoKeys::kNote}) {
+        if (!retainedKeys.contains(key)) items.append({key, {}});
+    }
+    setGameInfo(items);
+}
+
 QList<KifGameInfoItem> GameInfoPaneController::gameInfo() const
 {
     QList<KifGameInfoItem> items;
@@ -164,6 +199,7 @@ QList<KifGameInfoItem> GameInfoPaneController::gameInfo() const
 
 void GameInfoPaneController::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
 {
+    m_beforeMatchStart = false;
     m_originalItems = items;
     m_dirty = false;
     resetHistory();
@@ -249,7 +285,7 @@ bool GameInfoPaneController::confirmDiscardUnsaved()
         );
 
     if (reply == QMessageBox::Yes) {
-        setGameInfo(m_originalItems);
+        setGameInfo(m_originalItems, m_beforeMatchStart);
         return true;
     }
     return false;

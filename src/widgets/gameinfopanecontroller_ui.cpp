@@ -5,6 +5,7 @@
 #include "buttonstyles.h"
 #include "flowlayout.h"
 #include "gamesettings.h"
+#include "gameinfokeys.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -15,8 +16,57 @@
 #include <QMimeData>
 #include <QPushButton>
 #include <QSignalBlocker>
+#include <QStyledItemDelegate>
 #include <QTableWidget>
 #include <QToolButton>
+
+namespace {
+constexpr int kPlaceholderRole = Qt::UserRole + 1;
+
+// 案内文は描画時だけ表示し、編集値・コピー・棋譜出力には含めない。
+class GameInfoValueDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    QWidget* createEditor(QWidget* parent, const QStyleOptionViewItem& option,
+                          const QModelIndex& index) const override
+    {
+        auto* editor = QStyledItemDelegate::createEditor(parent, option, index);
+        if (auto* input = qobject_cast<QLineEdit*>(editor))
+            input->setPlaceholderText(index.data(kPlaceholderRole).toString());
+        return editor;
+    }
+
+protected:
+    void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
+    {
+        QStyledItemDelegate::initStyleOption(option, index);
+        if (!option->text.isEmpty()) return;
+        option->text = index.data(kPlaceholderRole).toString();
+        option->features |= QStyleOptionViewItem::HasDisplay;
+        option->palette.setColor(QPalette::Text, option->palette.color(QPalette::PlaceholderText));
+    }
+};
+} // namespace
+
+void GameInfoPaneController::installValueDelegate()
+{
+    m_table->setItemDelegate(new GameInfoValueDelegate(m_table));
+}
+
+QString GameInfoPaneController::placeholderForKey(const QString& key) const
+{
+    if (key == GameInfoKeys::kGameDate || key == GameInfoKeys::kStartDateTime)
+        return m_beforeMatchStart ? tr("未開始（対局開始時に設定）") : tr("未設定");
+    if (key == GameInfoKeys::kBlackPlayer || key == GameInfoKeys::kWhitePlayer)
+        return tr("未設定（名前を入力できます）");
+    if (key == GameInfoKeys::kTimeControl)
+        return m_beforeMatchStart ? tr("未設定（対局設定から反映）") : tr("未設定");
+    if (key == GameInfoKeys::kEvent || key == GameInfoKeys::kSite || key == GameInfoKeys::kNote)
+        return tr("任意入力");
+    return {};
+}
 
 void GameInfoPaneController::buildToolbar()
 {
@@ -138,9 +188,17 @@ void GameInfoPaneController::updateTablePresentation()
         for (int column = 0; column < 2; ++column) {
             auto* item = m_table->item(row, column);
             if (!item) continue;
+            const auto* keyItem = m_table->item(row, 0);
+            const QString placeholder = column == 1 && keyItem
+                ? placeholderForKey(keyItem->text().trimmed()) : QString();
+            if (item->data(kPlaceholderRole).toString() != placeholder)
+                item->setData(kPlaceholderRole, placeholder);
+            const QString displayText = item->text().isEmpty() ? placeholder : item->text();
+            if (item->data(Qt::AccessibleTextRole).toString() != displayText)
+                item->setData(Qt::AccessibleTextRole, displayText);
             // ツールチップでは棋譜中のHTMLらしい文字列もそのまま表示する。
             const QString tooltip = QStringLiteral("<qt>%1</qt>")
-                .arg(item->text().toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>")));
+                .arg(displayText.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>")));
             if (item->toolTip() != tooltip) item->setToolTip(tooltip);
             if (column == 0)
                 keyWidth = qMax(keyWidth, m_table->fontMetrics().horizontalAdvance(item->text()) + 24);

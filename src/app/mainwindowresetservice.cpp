@@ -134,7 +134,7 @@ void MainWindowResetService::clearGameDataModels(const ModelResetDeps& deps,
     }
 
     if (deps.gameInfoController) {
-        deps.gameInfoController->setGameInfo({});
+        deps.gameInfoController->resetGameInfo();
     }
 }
 

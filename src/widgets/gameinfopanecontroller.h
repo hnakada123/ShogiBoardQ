@@ -45,7 +45,13 @@ public:
     QTableWidget* tableWidget() const;
 
     /// 対局情報を設定（棋譜読み込み時など）
-    void setGameInfo(const QList<KifGameInfoItem>& items);
+    void setGameInfo(const QList<KifGameInfoItem>& items, bool beforeMatchStart = false);
+
+    /// 未開始の対局用に基本項目を用意する。
+    void resetGameInfo();
+
+    /// 日時・対局者・時間設定を更新し、入力済みの棋戦・場所などを引き継ぐ。
+    void setGameInfoForMatch(const QList<KifGameInfoItem>& automaticItems);
 
     /// 現在の対局情報を取得
     QList<KifGameInfoItem> gameInfo() const;
@@ -131,6 +137,8 @@ private:
     int m_historyIndex = 0;
     void buildUi();
     void buildToolbar();
+    void installValueDelegate();
+    QString placeholderForKey(const QString& key) const;
     void updateTablePresentation();
     void applyFontSize();
     bool checkDirty() const;
@@ -154,6 +162,7 @@ private:
     // 状態
     int  m_fontSize = 10;
     bool m_dirty = false;
+    bool m_beforeMatchStart = false;
     int m_keyColumnWidth = 0;
     QList<KifGameInfoItem> m_originalItems;
 };
