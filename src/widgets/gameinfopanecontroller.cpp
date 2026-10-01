@@ -263,11 +263,6 @@ QList<KifGameInfoItem> GameInfoPaneController::gameInfo() const
     return items;
 }
 
-QList<KifGameInfoItem> GameInfoPaneController::originalGameInfo() const
-{
-    return m_originalItems;
-}
-
 void GameInfoPaneController::setOriginalGameInfo(const QList<KifGameInfoItem>& items)
 {
     m_originalItems = items;

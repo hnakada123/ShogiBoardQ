@@ -40,7 +40,7 @@ public:
     void setKifuRecordListModel(KifuRecordListModel* model) { m_kifuRecordModel = model; }
 
     /**
-     * @brief コメントを解析タブと棋譜ペインに配信
+     * @brief コメントを解析タブのコメントエディタに配信
      * @param text コメントテキスト
      * @param asHtml HTMLとして配信する場合はtrue
      */

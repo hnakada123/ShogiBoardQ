@@ -299,7 +299,6 @@ void MainWindowCompositionRoot::refreshGameStateControllerDeps(
     const MainWindowDepsFactory::GameStateControllerCallbacks& cbs)
 {
     controller->setMatchCoordinator(refs.gameService.match);
-    controller->setReplayController(refs.kifuService.replayController);
     controller->setTimeController(refs.uiController.timeController);
     controller->setKifuLoadCoordinator(refs.kifuService.kifuLoadCoordinator);
     controller->setKifuRecordModel(refs.models.kifuRecordModel);
@@ -370,16 +369,6 @@ void MainWindowCompositionRoot::refreshPositionEditCoordinatorDeps(
     actions.actionSetTsumePosition = cbs.actionSetTsumePosition;
     actions.actionChangeTurn = cbs.actionChangeTurn;
     coordinator->setEditActions(actions);
-}
-
-void MainWindowCompositionRoot::refreshConsiderationWiringDeps(
-    ConsiderationWiring* wiring,
-    const MainWindowRuntimeRefs& refs,
-    const MainWindowDepsFactory::ConsiderationWiringCallbacks& cbs,
-    QWidget* parentWidget)
-{
-    auto deps = buildConsiderationDeps(refs, cbs, parentWidget);
-    wiring->updateDeps(deps);
 }
 
 void MainWindowCompositionRoot::refreshCommentCoordinatorDeps(

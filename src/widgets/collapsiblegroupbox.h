@@ -27,9 +27,6 @@ public:
     // 展開/折りたたみ状態を設定
     void setExpanded(bool expanded);
 
-    // 展開状態かどうかを取得
-    bool isExpanded() const { return m_expanded; }
-
 signals:
     // 展開状態が変更された時に発行
     void expandedChanged(bool expanded);

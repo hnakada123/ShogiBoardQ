@@ -462,37 +462,3 @@ bool KifToSfenConverter::buildInitialSfenFromBod(const QStringList& lines,
 
     return true;
 }
-
-QString KifToSfenConverter::extractOpeningComment(const QString& filePath)
-{
-    QString usedEnc, warn;
-    QStringList lines;
-    if (!KifReader::readLinesAuto(filePath, lines, &usedEnc, &warn)) {
-        qCWarning(lcKifu).noquote() << "read failed for opening comment:" << filePath << "warn:" << warn;
-        return QString();
-    }
-
-    QString buf;
-
-    for (const QString& raw : std::as_const(lines)) {
-        const QString t = raw.trimmed();
-        if (t.isEmpty()) continue;
-        if (KifuParseCommon::isKifSkippableHeaderLine(t)
-            || KifuParseCommon::isBoardHeaderOrFrame(t)) continue;
-
-        if (KifLexer::startsWithMoveNumber(t).has_value()) break;
-        if (KifLexer::variationHeaderRe().match(t).hasMatch()) break;
-
-        if (t.startsWith(QChar(u'*')) || t.startsWith(QChar(u'＊'))) {
-            const QString c = t.mid(1).trimmed();
-            if (!c.isEmpty()) {
-                if (!buf.isEmpty()) buf += QLatin1Char('\n');
-                buf += c;
-            }
-            continue;
-        }
-
-        if (t.startsWith(QLatin1Char('&'))) continue;
-    }
-    return buf;
-}

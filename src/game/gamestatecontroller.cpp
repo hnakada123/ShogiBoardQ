@@ -7,7 +7,6 @@
 
 #include "logcategories.h"
 #include "matchcoordinator.h"
-#include "replaycontroller.h"
 #include "timecontrolcontroller.h"
 #include "kifuloadcoordinator.h"
 #include "kifurecordlistmodel.h"
@@ -31,11 +30,6 @@ GameStateController::~GameStateController() = default;
 void GameStateController::setMatchCoordinator(MatchCoordinator* match)
 {
     m_match = match;
-}
-
-void GameStateController::setReplayController(ReplayController* replay)
-{
-    m_replayController = replay;
 }
 
 void GameStateController::setTimeController(TimeControlController* tc)
@@ -101,9 +95,6 @@ void GameStateController::setGameOverMove(MatchCoordinator::Cause cause, bool lo
     }
     if (m_hooks.setReplayMode) {
         m_hooks.setReplayMode(true);
-    }
-    if (m_replayController) {
-        m_replayController->exitLiveAppendMode();
     }
 }
 
@@ -207,11 +198,6 @@ void GameStateController::onGameOverStateChanged(const MatchCoordinator::GameOve
     // 投了行が追加されるまでは UI 後処理を待つ
     if (!st.moveAppended) {
         return;
-    }
-
-    // ライブ追記モードを終了
-    if (m_replayController) {
-        m_replayController->exitLiveAppendMode();
     }
 
     // 分岐コンテキストをリセット

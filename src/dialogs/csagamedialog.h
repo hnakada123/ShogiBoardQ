@@ -102,12 +102,6 @@ public:
     bool isHuman() const;
 
     /**
-     * @brief こちら側がエンジンかどうかを取得
-     * @return エンジンの場合true
-     */
-    bool isEngine() const;
-
-    /**
      * @brief 選択されているエンジン名を取得
      * @return エンジン名
      */
@@ -225,7 +219,6 @@ private:
 
     // 設定値のキャッシュ
     bool m_isHuman = true;  ///< こちら側が人間かどうか
-    bool m_isEngine = false; ///< こちら側がエンジンかどうか
     QString m_engineName;   ///< 選択されたエンジン名
     int m_engineNumber = 0; ///< 選択されたエンジン番号
     QString m_host;         ///< 接続先ホスト

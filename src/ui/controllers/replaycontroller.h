@@ -12,7 +12,6 @@ class ShogiClock;
 class ShogiView;
 class ShogiGameController;
 class MatchCoordinator;
-class RecordPane;
 
 /**
  * @brief ReplayController - リプレイモードの管理クラス
@@ -20,7 +19,6 @@ class RecordPane;
  * MainWindowからリプレイモード関連の処理を分離したクラス。
  * 以下の責務を担当:
  * - リプレイモードの状態管理
- * - ライブ追記モードの状態管理
  * - モード遷移時の各コンポーネントへの通知・同期
  */
 class ReplayController : public QObject
@@ -55,11 +53,6 @@ public:
      */
     void setMatchCoordinator(MatchCoordinator* match);
 
-    /**
-     * @brief RecordPaneを設定（棋譜ビュー制御用）
-     */
-    void setRecordPane(RecordPane* pane);
-
     // --------------------------------------------------------
     // リプレイモード管理
     // --------------------------------------------------------
@@ -86,30 +79,6 @@ public:
     bool isReplayMode() const;
 
     // --------------------------------------------------------
-    // ライブ追記モード管理
-    // --------------------------------------------------------
-
-    /**
-     * @brief ライブ追記モードを開始
-     *
-     * 対局進行中に棋譜が追加されるモード。
-     * 棋譜ビューの選択モードをNoSelectionに設定。
-     */
-    void enterLiveAppendMode();
-
-    /**
-     * @brief ライブ追記モードを終了
-     *
-     * 棋譜ビューの選択モードをSingleSelectionに戻す。
-     */
-    void exitLiveAppendMode();
-
-    /**
-     * @brief 現在ライブ追記モードかどうか
-     */
-    bool isLiveAppendMode() const;
-
-    // --------------------------------------------------------
     // 中断からの再開モード
     // --------------------------------------------------------
 
@@ -128,10 +97,8 @@ private:
     ShogiView* m_view = nullptr;
     ShogiGameController* m_gc = nullptr;
     QPointer<MatchCoordinator> m_match;       ///< 非所有（再生成追跡）
-    RecordPane* m_recordPane = nullptr;
 
     bool m_isReplayMode = false;
-    bool m_isLiveAppendMode = false;
     bool m_isResumeFromCurrent = false;
 };
 

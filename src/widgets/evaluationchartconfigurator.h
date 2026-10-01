@@ -50,10 +50,6 @@ public:
     /// 評価値上限に応じた適切な間隔を計算（上限の半分）
     int calculateAppropriateYInterval(int yLimit) const;
 
-    // 利用可能な値リスト（static）
-    static const QList<int>& availableYLimits();
-    static const QList<int>& availableXLimits();
-
 signals:
     void yAxisSettingsChanged(int limit, int interval);
     void xAxisSettingsChanged(int limit, int interval);

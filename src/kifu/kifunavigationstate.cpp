@@ -89,14 +89,6 @@ void KifuNavigationState::clearLineSelectionMemory()
     m_lastSelectedChildAtBranch.clear();
 }
 
-QString KifuNavigationState::currentLineName() const
-{
-    if (m_currentNode == nullptr) {
-        return QStringLiteral("本譜");
-    }
-    return m_currentNode->lineName();
-}
-
 QString KifuNavigationState::currentSfen() const
 {
     if (m_currentNode == nullptr) {
@@ -153,30 +145,6 @@ bool KifuNavigationState::canGoBack() const
     }
     // 親がいれば戻れる
     return m_currentNode->parent() != nullptr;
-}
-
-int KifuNavigationState::maxPlyOnCurrentLine() const
-{
-    if (m_currentNode == nullptr || m_tree == nullptr) {
-        return 0;
-    }
-
-    // 現在のノードから終端まで辿って最大plyを取得
-    KifuBranchNode* node = m_currentNode;
-
-    // まず、現在のノードが属するラインの終端を探す
-    // 現在位置から最初の子を辿り続ける
-    while (node->childCount() > 0) {
-        // 最後に選択したラインがあればそれを使う
-        int selectedLine = lastSelectedChildAt(node);
-        if (selectedLine < node->childCount()) {
-            node = node->childAt(selectedLine);
-        } else {
-            node = node->childAt(0);  // フォールバック
-        }
-    }
-
-    return node->ply();
 }
 
 QList<KifuBranchNode*> KifuNavigationState::branchCandidatesAtCurrent() const

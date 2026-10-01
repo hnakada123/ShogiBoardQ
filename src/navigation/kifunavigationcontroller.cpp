@@ -316,54 +316,6 @@ void KifuNavigationController::goToPly(int ply)
     }
 }
 
-void KifuNavigationController::switchToLine(int lineIndex)
-{
-    if (m_state == nullptr || m_tree == nullptr) {
-        return;
-    }
-
-    // 全ラインを取得して、指定インデックスのラインの最終ノードに移動
-    QList<BranchLine> lines = m_tree->allLines();
-    if (lineIndex < 0 || lineIndex >= lines.size()) {
-        return;
-    }
-
-    const BranchLine& line = lines.at(lineIndex);
-    if (line.nodes.isEmpty()) {
-        return;
-    }
-
-    // 現在のplyと同じ位置に移動（可能であれば）
-    int currentPly = m_state->currentPly();
-    KifuBranchNode* targetNode = nullptr;
-
-    for (KifuBranchNode* node : std::as_const(line.nodes)) {
-        if (node->ply() == currentPly) {
-            targetNode = node;
-            break;
-        }
-    }
-
-    if (targetNode == nullptr) {
-        // 同じplyがない場合は最も近いノードを探す
-        for (KifuBranchNode* node : std::as_const(line.nodes)) {
-            if (node->ply() <= currentPly) {
-                targetNode = node;
-            }
-        }
-    }
-
-    if (targetNode == nullptr && !line.nodes.isEmpty()) {
-        // フォールバック: ラインの最初のノード
-        targetNode = line.nodes.first();
-    }
-
-    if (targetNode != nullptr) {
-        m_state->setCurrentNode(targetNode);
-        emitUpdateSignals();
-    }
-}
-
 void KifuNavigationController::selectBranchCandidate(int candidateIndex)
 {
     qCDebug(lcNavigation).noquote() << "selectBranchCandidate ENTER candidateIndex=" << candidateIndex;

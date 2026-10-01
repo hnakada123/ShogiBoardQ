@@ -3,7 +3,6 @@
 
 #include "kifuloadcoordinator.h"
 #include "kifuapplyservice.h"
-#include "kifuapplylogger.h"
 #include "kifufilereader.h"
 #include "kiftosfenconverter.h"
 #include "sfenpositiontracer.h"
@@ -21,21 +20,15 @@
 
 #include "logcategories.h"
 
-#include <QStyledItemDelegate>
 #include <QAbstractItemView>
 #include <QFile>
 #include <QTextStream>
 #include <QTableWidget>
-#include <QPainter>
 #include <QFileInfo>
 #include <QDir>
 #include <QElapsedTimer>
 #include <QtConcurrentRun>
 #include <utility>
-
-namespace {
-const QColor kBranchHighlightColor(255, 220, 160);
-} // namespace
 
 KifuLoadCoordinator::KifuLoadCoordinator(QList<ShogiMove>& gameMoves,
                                          QStringList& positionStrList,
@@ -115,7 +108,6 @@ void KifuLoadCoordinator::initApplyService()
 KifuLoadCoordinator::~KifuLoadCoordinator()
 {
     if (m_loadCancel) m_loadCancel->store(true);
-    if (m_branchRowDelegate) m_branchRowDelegate->setMarkers(nullptr);
 }
 
 void KifuLoadCoordinator::cancelLoad()
@@ -239,72 +231,6 @@ bool KifuLoadCoordinator::loadPositionFromBod(const QString& bodStr)
 }
 
 // ============================================================
-// 分岐マーカー描画
-// ============================================================
-
-void KifuLoadCoordinator::updateKifuBranchMarkersForActiveRow()
-{
-    m_branchablePlySet.clear();
-
-    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-
-    if (m_branchTree != nullptr && !m_branchTree->isEmpty()) {
-        QList<BranchLine> lines = m_branchTree->allLines();
-        const int nLines = static_cast<int>(lines.size());
-        const int currentLineIdx = (m_navState != nullptr) ? m_navState->currentLineIndex() : 0;
-        const int active = (nLines == 0) ? 0 : qBound(0, currentLineIdx, nLines - 1);
-
-        if (active >= 0 && active < nLines) {
-            const BranchLine& line = lines.at(active);
-            m_branchablePlySet = m_branchTree->branchablePlysOnLine(line);
-        }
-    }
-
-    ensureBranchRowDelegateInstalled();
-
-    if (view && view->viewport()) view->viewport()->update();
-}
-
-void KifuLoadCoordinator::ensureBranchRowDelegateInstalled()
-{
-    QTableView* view = (m_recordPane ? m_recordPane->kifuView() : nullptr);
-    if (!view) return;
-
-    if (!m_branchRowDelegate) {
-        m_branchRowDelegate = new BranchRowDelegate(view);
-        view->setItemDelegate(m_branchRowDelegate);
-    } else {
-        if (m_branchRowDelegate->parent() != view) {
-            m_branchRowDelegate->setParent(view);
-            view->setItemDelegate(m_branchRowDelegate);
-        }
-    }
-
-    m_branchRowDelegate->setMarkers(&m_branchablePlySet);
-}
-
-KifuLoadCoordinator::BranchRowDelegate::BranchRowDelegate(QObject* parent)
-    : QStyledItemDelegate(parent) {}
-
-KifuLoadCoordinator::BranchRowDelegate::~BranchRowDelegate() = default;
-
-void KifuLoadCoordinator::BranchRowDelegate::paint(QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index) const
-{
-    QStyleOptionViewItem opt(option);
-    QStyledItemDelegate::initStyleOption(&opt, index);
-
-    const bool isBranchable = (m_marks && m_marks->contains(index.row()));
-
-    if (isBranchable && !(opt.state & QStyle::State_Selected)) {
-        painter->save();
-        painter->fillRect(opt.rect, kBranchHighlightColor);
-        painter->restore();
-    }
-
-    QStyledItemDelegate::paint(painter, opt, index);
-}
-
-// ============================================================
 // 外部オブジェクト設定
 // ============================================================
 
@@ -344,8 +270,6 @@ void KifuLoadCoordinator::resetBranchTreeForNewGame()
     if (m_navState != nullptr) {
         m_navState->goToRoot();
     }
-
-    m_branchablePlySet.clear();
 
     if (m_branchTreeManager) {
         QList<BranchTreeManager::ResolvedRowLite> emptyRows;

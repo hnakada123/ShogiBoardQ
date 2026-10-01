@@ -82,9 +82,6 @@ public:
     // 追加（HvE/EvE の配線で使う）
     EngineInfoWidget* info1() const { return m_info1; }
     EngineInfoWidget* info2() const { return m_info2; }
-    QTableView*       view1() const { return m_view1; }
-    QTableView*       view2() const { return m_view2; }
-
     // --- サブコンポーネントアクセサ ---
     BranchTreeManager* branchTreeManager();
     CommentEditorPanel* commentEditor();

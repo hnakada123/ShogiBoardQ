@@ -40,11 +40,6 @@ QString ShogiEngineInfoParser::searchedHand() const
     return m_searchedHand;
 }
 
-void ShogiEngineInfoParser::setScoreMate(const QString& newScoremate)
-{
-    m_scoreMate = newScoremate;
-}
-
 QString ShogiEngineInfoParser::hashfull() const
 {
     return m_hashfull;
@@ -188,11 +183,6 @@ void ShogiEngineInfoParser::setPreviousRankTo(int newPreviousRankTo)
 void ShogiEngineInfoParser::setThinkingStartPlayer(ShogiGameController::Player player)
 {
     m_thinkingStartPlayer = player;
-}
-
-ShogiGameController::Player ShogiEngineInfoParser::thinkingStartPlayer() const
-{
-    return m_thinkingStartPlayer;
 }
 
 // ============================================================

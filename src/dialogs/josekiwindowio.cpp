@@ -17,22 +17,6 @@
 // ファイル操作ヘルパー（同期）
 // ============================================================
 
-bool JosekiWindow::loadAndApplyFile(const QString &filePath)
-{
-    QString errorMessage;
-    if (!m_repository->loadFromFile(filePath, &errorMessage)) {
-        if (!errorMessage.isEmpty()) QMessageBox::warning(this, tr("エラー"), errorMessage);
-        return false;
-    }
-    closeMergeDialogs();
-    m_currentFilePath = filePath;
-    m_filePathLabel->setText(filePath);
-    m_filePathLabel->setStyleSheet(QString());
-    setModified(false);
-    updateStatusDisplay();
-    return true;
-}
-
 bool JosekiWindow::saveToFile(const QString &filePath)
 {
     QString errorMessage;

@@ -40,21 +40,6 @@ void JosekiWindowWiring::ensureJosekiWindow()
     qCDebug(lcUi) << "JosekiWindow created and connected";
 }
 
-void JosekiWindowWiring::displayJosekiWindow()
-{
-    ensureJosekiWindow();
-
-    // ウィンドウを表示する（独立ウィンドウとして）
-    m_josekiWindow->show();
-    m_josekiWindow->raise();
-    m_josekiWindow->activateWindow();
-
-    // 現在の局面のSFENを設定（show後に呼ぶ）
-    if (m_currentSfenStr) {
-        m_josekiWindow->setCurrentSfen(*m_currentSfenStr);
-    }
-}
-
 void JosekiWindowWiring::updateJosekiWindow()
 {
     // 定跡ウィンドウが存在し、表示されている場合のみ更新

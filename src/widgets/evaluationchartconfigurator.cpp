@@ -47,16 +47,6 @@ EvaluationChartConfigurator::EvaluationChartConfigurator(QObject* parent)
 {
 }
 
-const QList<int>& EvaluationChartConfigurator::availableYLimits()
-{
-    return s_availableYLimits;
-}
-
-const QList<int>& EvaluationChartConfigurator::availableXLimits()
-{
-    return s_availableXLimits;
-}
-
 QWidget* EvaluationChartConfigurator::createControlPanel(QWidget* parentWidget)
 {
     auto* controlPanel = new QWidget(parentWidget);

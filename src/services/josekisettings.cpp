@@ -20,18 +20,6 @@ void setJosekiWindowFontSize(int size)
     s.setValue(SettingsKeys::kJosekiWindowFontSize, size);
 }
 
-int josekiWindowSfenFontSize()
-{
-    QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kJosekiWindowSfenFontSize, 9).toInt();
-}
-
-void setJosekiWindowSfenFontSize(int size)
-{
-    QSettings& s = SettingsCommon::openSettings();
-    s.setValue(SettingsKeys::kJosekiWindowSfenFontSize, size);
-}
-
 QString josekiWindowLastFilePath()
 {
     QSettings& s = SettingsCommon::openSettings();

@@ -54,7 +54,6 @@ public:
     using Handler = std::function<QJsonValue(const QJsonObject& params)>;
 
     void registerMethod(const QString& name, Handler handler);
-    bool hasMethod(const QString& name) const { return m_handlers.contains(name); }
     QStringList methodNames() const;
 
     /// 1 行（1 メッセージ）を処理して応答（改行付き）を返す。通知なら空

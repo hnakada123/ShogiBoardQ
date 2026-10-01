@@ -128,25 +128,6 @@ private slots:
         ShogiMove m(QPoint(0, 0), QPoint(-1, 0), Piece::BlackPawn, Piece::None, false);
         QCOMPARE(ShogiUtils::moveToUsi(m), QString());
     }
-
-    // === Game timer ===
-
-    void gameEpoch_initialState()
-    {
-        // 開始前は0を返す（最初のテストで呼ばれた場合）
-        // startGameEpoch後は正の値を返す
-        ShogiUtils::startGameEpoch();
-        qint64 elapsed = ShogiUtils::nowMs();
-        QVERIFY(elapsed >= 0);
-    }
-
-    void gameEpoch_monotonic()
-    {
-        ShogiUtils::startGameEpoch();
-        qint64 t1 = ShogiUtils::nowMs();
-        qint64 t2 = ShogiUtils::nowMs();
-        QVERIFY(t2 >= t1);
-    }
 };
 
 QTEST_MAIN(TestShogiUtils)

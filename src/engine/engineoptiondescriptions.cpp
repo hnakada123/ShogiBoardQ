@@ -31,11 +31,6 @@ bool EngineOptionDescriptions::isGikouEngine(const QString& engineName)
            engineName.contains(QStringLiteral("技巧"), Qt::CaseInsensitive);
 }
 
-bool EngineOptionDescriptions::isEngineSupported(const QString& engineName)
-{
-    return isYaneuraOuEngine(engineName) || isGikouEngine(engineName);
-}
-
 // ============================================================
 // 説明・カテゴリ取得
 // ============================================================
@@ -56,24 +51,6 @@ QString EngineOptionDescriptions::description(const QString& engineName, const Q
     }
 
     return QString();
-}
-
-bool EngineOptionDescriptions::hasDescription(const QString& engineName, const QString& optionName)
-{
-    if (!s_initialized) {
-        initializeDescriptions();
-        initializeCategories();
-    }
-
-    if (isYaneuraOuEngine(engineName)) {
-        return s_yaneuraouDescriptions.contains(optionName);
-    }
-
-    if (isGikouEngine(engineName)) {
-        return s_gikouDescriptions.contains(optionName);
-    }
-
-    return false;
 }
 
 EngineOptionCategory EngineOptionDescriptions::category(const QString& engineName, const QString& optionName)

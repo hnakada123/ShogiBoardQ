@@ -5,13 +5,13 @@
     <name>AnalysisFlowController</name>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="54"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="434"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="423"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation>Internal error: sfenRecord is not ready. Please load a game record first.</translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="58"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="438"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="427"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation>Internal error: Analysis model is not ready.</translation>
     </message>
@@ -43,7 +43,7 @@
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="544"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="533"/>
         <source>エンジンエラー: %1</source>
         <translation>Engine error: %1</translation>
     </message>
@@ -1041,38 +1041,38 @@ Author: %1</translation>
 <context>
     <name>CommentCoordinator</name>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="104"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="102"/>
         <source>コメントを更新しました（手数: %1）</source>
         <translation type="unfinished">Comment updated (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="68"/>
-        <location filename="../../src/app/commentcoordinator.cpp" line="152"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="66"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="150"/>
         <source>コメントなし</source>
         <translation type="unfinished">No comment</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="176"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="174"/>
         <source>手を選択してください</source>
         <translation>Please select a move</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="197"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="195"/>
         <source>しおりを編集</source>
         <translation>Edit Bookmark</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="198"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="196"/>
         <source>しおり名（手数: %1）:</source>
         <translation>Bookmark name (move: %1):</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="214"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="212"/>
         <source>しおりを削除しました（手数: %1）</source>
         <translation>Bookmark removed (move: %1)</translation>
     </message>
     <message>
-        <location filename="../../src/app/commentcoordinator.cpp" line="216"/>
+        <location filename="../../src/app/commentcoordinator.cpp" line="214"/>
         <source>しおりを設定しました（手数: %1）</source>
         <translation>Bookmark set (move: %1)</translation>
     </message>
@@ -1814,7 +1814,7 @@ Discard changes and move?</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/csagamedialog.cpp" line="298"/>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="366"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="365"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -1826,7 +1826,7 @@ Discard changes and move?</translation>
 Please register an engine from Tools → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="366"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="365"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
@@ -2266,8 +2266,7 @@ Cause: %2</translation>
     </message>
     <message>
         <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="370"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="527"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="533"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="528"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -3069,52 +3068,52 @@ Discard changes and move?</translation>
 <context>
     <name>EvaluationChartConfigurator</name>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="99"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="89"/>
         <source>評価値上限:</source>
         <translation>Score Limit:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="103"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="93"/>
         <source>評価値の表示上限を選択</source>
         <translation>Select evaluation display limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="109"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="99"/>
         <source>評価値間隔:</source>
         <translation>Eval Interval:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="113"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="103"/>
         <source>評価値の目盛り間隔を選択</source>
         <translation>Select evaluation tick interval</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="119"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="109"/>
         <source>手数上限:</source>
         <translation>Move Limit:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="123"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="113"/>
         <source>手数の表示上限を選択</source>
         <translation>Select move display limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="129"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="119"/>
         <source>手数間隔:</source>
         <translation>Move Interval:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="133"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="123"/>
         <source>手数の目盛り間隔を選択</source>
         <translation>Select move tick interval</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="145"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="135"/>
         <source>目盛りの文字を小さく</source>
         <translation>Decrease tick font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="146"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="136"/>
         <source>目盛りの文字を大きく</source>
         <translation>Increase tick font size</translation>
     </message>
@@ -3320,12 +3319,12 @@ Move %3: %4</translation>
         <translation type="vanished">White</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="348"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="343"/>
         <source>未保存の対局情報</source>
         <translation>Unsaved Game Info</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="349"/>
+        <location filename="../../src/widgets/gameinfopanecontroller.cpp" line="344"/>
         <source>対局情報が編集されていますが、まだ更新されていません。
 変更を破棄して続行しますか？</source>
         <translation>The game info has been edited but not saved yet.
@@ -3718,7 +3717,7 @@ Positive values favor the side to move, negative values are unfavorable.</transl
         <translation>Move is not set correctly</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekimovedialog.cpp" line="283"/>
+        <location filename="../../src/dialogs/josekimovedialog.cpp" line="278"/>
         <source>定跡手: %1</source>
         <translation>Book Move: %1</translation>
     </message>
@@ -4078,8 +4077,8 @@ Positive values favor the side to move, negative values are unfavorable.</transl
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="109"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="51"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="92"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="35"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="76"/>
         <source>定跡ファイル (*.db);;すべてのファイル (*)</source>
         <translation>Opening Book Files (*.db);;All Files (*)</translation>
     </message>
@@ -4088,9 +4087,8 @@ Positive values favor the side to move, negative values are unfavorable.</transl
         <location filename="../../src/dialogs/josekiwindow.cpp" line="509"/>
         <location filename="../../src/dialogs/josekiwindow.cpp" line="534"/>
         <location filename="../../src/dialogs/josekiwindowio.cpp" line="24"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="40"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="159"/>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="200"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="143"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="184"/>
         <source>エラー</source>
         <translation>Error</translation>
     </message>
@@ -4212,7 +4210,7 @@ There may be an error in the opening book data.</translation>
         <translation>New File (Unsaved)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="50"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="34"/>
         <source>定跡ファイルを保存</source>
         <translation>Save Opening Book</translation>
     </message>
@@ -4307,29 +4305,29 @@ Overwrite?</translation>
         <translation>Delete book move &quot;%1&quot;?</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="85"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="69"/>
         <source>保存先の指定</source>
         <translation>Specify Save Location</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="86"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="70"/>
         <source>定跡ファイルの保存先が設定されていません。
 OKを選択すると保存先が指定できます。</source>
         <translation>Opening book save location is not set.
 Select OK to specify the save location.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="91"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="75"/>
         <source>定跡ファイルの保存先を指定</source>
         <translation>Specify Opening Book Save Location</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="145"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="129"/>
         <source>読み込み中...</source>
         <translation>Loading...</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/josekiwindowio.cpp" line="182"/>
+        <location filename="../../src/dialogs/josekiwindowio.cpp" line="166"/>
         <source>保存中...</source>
         <translation>Saving...</translation>
     </message>
@@ -4938,7 +4936,7 @@ Select OK to specify the save location.</translation>
         <translation>Failed to load game record file: %1%2</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="175"/>
+        <location filename="../../src/kifu/kifuloadcoordinator.cpp" line="167"/>
         <source>棋譜の読み込みで警告があります:
 %1</source>
         <translation>Warning while loading game record:
@@ -7055,12 +7053,12 @@ Are you sure you want to declare?</translation>
         <translation>Gote (White)</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiutils.cpp" line="31"/>
+        <location filename="../../src/core/shogiutils.cpp" line="30"/>
         <source>The rank must be a value between 1 and 9. (got %1)</source>
         <translation>The rank must be a value between 1 and 9. (got %1)</translation>
     </message>
     <message>
-        <location filename="../../src/core/shogiutils.cpp" line="50"/>
+        <location filename="../../src/core/shogiutils.cpp" line="49"/>
         <source>The file must be a value between 1 and 9. (got %1)</source>
         <translation>The file must be a value between 1 and 9. (got %1)</translation>
     </message>
@@ -7298,294 +7296,294 @@ Do you want to continue?</translation>
         <translation>Draw</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="101"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="78"/>
         <source>基本設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="103"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="80"/>
         <source>思考設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="105"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="82"/>
         <source>時間制御</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="107"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="84"/>
         <source>定跡設定</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="109"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="86"/>
         <source>対局ルール</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="112"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="89"/>
         <source>その他</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="136"/>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="272"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="113"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="249"/>
         <source>探索に使用するスレッド数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="139"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="116"/>
         <source>置換表サイズ(MB)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="142"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="119"/>
         <source>出力する候補手の数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="145"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="122"/>
         <source>評価関数フォルダのパス</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="150"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="127"/>
         <source>相手の手番中の先読み</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="153"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="130"/>
         <source>Ponder時の確率的な応手予測</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="166"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="143"/>
         <source>検討モードの有効化</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="169"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="146"/>
         <source>fail-low/fail-high時の読み筋出力</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="158"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="135"/>
         <source>探索の最大深さ(0で無制限)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="161"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="138"/>
         <source>探索ノード数の上限(0で無制限)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="174"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="151"/>
         <source>通信遅延補正(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="177"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="154"/>
         <source>秒読み時の最大遅延補正(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="183"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="160"/>
         <source>序盤の時間配分調整(100が標準)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="194"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="171"/>
         <source>使用する定跡ファイル</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="197"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="174"/>
         <source>定跡フォルダのパス</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="200"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="177"/>
         <source>定跡を使用する手数の上限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="203"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="180"/>
         <source>定跡を無視する確率(%)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="212"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="189"/>
         <source>定跡の評価値差の許容範囲</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="215"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="192"/>
         <source>先手番での定跡採用の評価値下限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="218"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="195"/>
         <source>後手番での定跡採用の評価値下限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="221"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="198"/>
         <source>定跡として採用する最小探索深さ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="238"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="215"/>
         <source>入玉時の勝敗判定ルール</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="241"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="218"/>
         <source>引き分けとなる手数(0で無効)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="244"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="221"/>
         <source>投了する評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="247"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="224"/>
         <source>先手番での引き分けの評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="250"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="227"/>
         <source>後手番での引き分けの評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="255"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="232"/>
         <source>NUMAメモリ割り当てポリシー</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="258"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="235"/>
         <source>デバッグログの出力先ファイル</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="261"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="238"/>
         <source>読み筋の出力間隔(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="267"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="244"/>
         <source>評価関数のスケーリング係数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="275"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="252"/>
         <source>候補手の数</source>
         <translation type="unfinished">Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="278"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="255"/>
         <source>読みの深さ（強さのレベル調節用）</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="284"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="261"/>
         <source>定跡ファイル(戦型選択用)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="180"/>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="296"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="157"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="273"/>
         <source>最小思考時間(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="186"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="163"/>
         <source>消費時間の秒単位切り上げ</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="191"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="168"/>
         <source>エンジン内蔵定跡の使用</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="206"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="183"/>
         <source>定跡の部分読み込み</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="209"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="186"/>
         <source>最善手に近い定跡手のみの選択</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="224"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="201"/>
         <source>定跡選択時の出現頻度考慮</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="227"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="204"/>
         <source>定跡の読み筋出力手数</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="230"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="207"/>
         <source>定跡の手数制限無視</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="233"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="210"/>
         <source>後手定跡の先手定跡からの反転生成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="264"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="241"/>
         <source>すべての合法手の生成</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="281"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="258"/>
         <source>定跡の使用</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="287"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="264"/>
         <source>定跡使用の手数上限</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="290"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="267"/>
         <source>低勝率の定跡手の除外</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="293"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="270"/>
         <source>低出現頻度の定跡手の除外</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="299"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="276"/>
         <source>秒読み時の余裕(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="302"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="279"/>
         <source>切れ負けルール時の余裕(秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="305"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="282"/>
         <source>フィッシャールール時の余裕(ミリ秒)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="308"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="285"/>
         <source>技巧が投了する評価値</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="311"/>
+        <location filename="../../src/engine/engineoptiondescriptions.cpp" line="288"/>
         <source>千日手の評価値</source>
         <translation type="unfinished"></translation>
     </message>
@@ -7710,16 +7708,6 @@ Do you want to continue?</translation>
         <location filename="../../src/widgets/recordpane.cpp" line="143"/>
         <source>最後に進む</source>
         <translation>Go to End</translation>
-    </message>
-    <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="465"/>
-        <source>本譜に戻る</source>
-        <translation>Return to Main</translation>
-    </message>
-    <message>
-        <location filename="../../src/widgets/recordpane.cpp" line="469"/>
-        <source>現在の手数で本譜（メインライン）に戻る</source>
-        <translation>Return to main line at current move</translation>
     </message>
 </context>
 <context>
@@ -9453,7 +9441,7 @@ Last solved: %2</translation>
         <translation>Timeout waiting for readyok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler.cpp" line="477"/>
+        <location filename="../../src/engine/usiprotocolhandler.cpp" line="471"/>
         <source>Invalid bestmove format: %1</source>
         <translation>Invalid bestmove format: %1</translation>
     </message>

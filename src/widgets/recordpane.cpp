@@ -440,40 +440,6 @@ void RecordPane::connectKifuCurrentRowChanged()
     }
 }
 
-void RecordPane::setBranchCommentText(const QString& text)
-{
-    Q_UNUSED(text)
-}
-
-void RecordPane::setBranchCommentHtml(const QString& html)
-{
-    Q_UNUSED(html)
-}
-
-CommentTextAdapter* RecordPane::commentLabel()
-{
-    return &m_commentAdapter;
-}
-
-QPushButton* RecordPane::backToMainButton()
-{
-    if (!m_branchContainer) return nullptr;
-
-    if (auto* existed = this->findChild<QPushButton*>("backToMainButton"))
-        return existed;
-
-    auto* btn = new QPushButton(tr("本譜に戻る"), this);
-    btn->setObjectName(QStringLiteral("backToMainButton"));
-    btn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    btn->setVisible(false);
-    btn->setToolTip(tr("現在の手数で本譜（メインライン）に戻る"));
-
-    if (auto* lay = qobject_cast<QVBoxLayout*>(m_branchContainer->layout())) {
-        lay->addWidget(btn);
-    }
-    return btn;
-}
-
 void RecordPane::setupKifuSelectionAppearance()
 {
     RecordPaneAppearanceManager::setupSelectionPalette(m_kifu);

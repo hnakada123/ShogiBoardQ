@@ -9,7 +9,6 @@
 #include <QModelIndex>
 #include <QStringList>
 #include "shogiboard.h"
-#include <QAtomicInteger>
 #include <QObject>
 
 namespace ShogiUtils {
@@ -180,22 +179,3 @@ std::optional<std::pair<int, int>> parseMoveCoordinateFromModel(
 }
 
 } // namespace ShogiUtils
-
-// ============================================================
-// 対局タイマー
-// ============================================================
-
-namespace {
-QElapsedTimer g_gameEpoch;
-QAtomicInteger<bool> g_epochStarted(false);
-}
-
-void ShogiUtils::startGameEpoch() {
-    g_gameEpoch.start();
-    g_epochStarted.storeRelease(true);
-}
-
-qint64 ShogiUtils::nowMs() {
-    if (!g_epochStarted.loadAcquire()) return 0;
-    return g_gameEpoch.elapsed();
-}

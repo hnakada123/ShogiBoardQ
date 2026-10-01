@@ -57,12 +57,6 @@ void ConsiderationModeUIController::setCurrentSfenStr(const QString& sfen)
     m_currentSfenStr = sfen;
 }
 
-void ConsiderationModeUIController::setShowArrowsEnabled(bool enabled)
-{
-    m_showArrows = enabled;
-    updateArrows();
-}
-
 void ConsiderationModeUIController::onModeStarted()
 {
     m_considerationActive = true;

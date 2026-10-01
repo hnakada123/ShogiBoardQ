@@ -228,11 +228,6 @@ void BoardSyncPresenter::syncBoardAndHighlightsAtRow(int ply) const
     }
 }
 
-void BoardSyncPresenter::clearHighlights() const
-{
-    if (m_bic) m_bic->clearAllHighlights();
-}
-
 void BoardSyncPresenter::loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen) const
 {
     qCDebug(lcUi).noquote() << "loadBoardWithHighlights ENTER"

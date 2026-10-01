@@ -43,8 +43,6 @@ public:
                                         QString* detectedLabel = nullptr, QString* warn = nullptr);
 
 private:
-    static QString extractOpeningComment(const QString& filePath);
-
     // ---------- parseWithVariations ヘルパ ----------
     static void extractMainLine(const QString& kifPath, KifParseResult& out, QString* errorMessage);
     static QString findBranchBaseSfen(const QList<KifVariation>& vars,

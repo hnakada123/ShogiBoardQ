@@ -77,7 +77,6 @@ public:
     void sendGoPonder(const UsiTimingParams& timing);
     void sendGoMate(int timeMs, bool infinite = false);
     void sendGoDepth(int depth);              ///< go depth <x> - 指定深さまで探索
-    void sendGoNodes(qint64 nodes);           ///< go nodes <x> - 指定ノード数まで探索
     void sendGoMovetime(int timeMs);          ///< go movetime <x> - 指定時間(ms)探索
 
     /// go searchmoves <move1> ... <movei> [infinite] - 指定した手のみを探索
@@ -138,7 +137,6 @@ public:
     SearchPhase currentPhase() const { return m_phase; }
     qint64 lastBestmoveElapsedMs() const { return m_lastGoToBestmoveMs; }
 
-    void setSpecialMove(SpecialMove sm) { m_specialMove = sm; }
     void setSquelchResignLogging(bool on) { m_squelchResignLogging = on; }
     bool isResignLoggingSquelched() const { return m_squelchResignLogging; }
     void resetResignNotified() { m_resignNotified = false; }

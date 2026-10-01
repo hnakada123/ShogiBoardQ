@@ -38,11 +38,6 @@ void TurnManager::toggle() {
 // Turn enum 変換
 // ============================================================
 
-Turn TurnManager::toTurn() const {
-    return (m_side == ShogiGameController::Player2)
-               ? Turn::White : Turn::Black;
-}
-
 void TurnManager::setFromTurn(Turn t) {
     set(t == Turn::White
             ? ShogiGameController::Player2
@@ -72,11 +67,6 @@ void TurnManager::setFromSfenToken(const QString& bw) {
 
 int TurnManager::toClockPlayer() const {
     return (m_side == ShogiGameController::Player2) ? 2 : 1;
-}
-
-void TurnManager::setFromClockPlayer(int p) {
-    set(p == 2 ? ShogiGameController::Player2
-               : ShogiGameController::Player1);
 }
 
 // ============================================================

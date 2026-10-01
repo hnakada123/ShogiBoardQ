@@ -62,7 +62,6 @@ void MainWindowServiceRegistry::ensureReplayController()
     m_mw.m_replayController->setShogiView(m_mw.m_shogiView);
     m_mw.m_replayController->setGameController(m_mw.m_gameController);
     m_mw.m_replayController->setMatchCoordinator(m_mw.m_match);
-    m_mw.m_replayController->setRecordPane(m_mw.m_recordPane);
 }
 
 // ---------------------------------------------------------------------------

@@ -285,11 +285,6 @@ public:
     // --------------------------------------------------------
 
     /**
-     * @brief エラーメッセージを表示
-     */
-    void showErrorMessage(const QString& message);
-
-    /**
      * @brief Flowからのエラーを表示
      */
     void showFlowError(const QString& message);

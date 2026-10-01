@@ -68,9 +68,6 @@ public slots:
     /// 現在ライン上の指定手数へ移動する
     void goToPly(int ply);
 
-    /// 分岐ラインを切り替える
-    void switchToLine(int lineIndex);
-
     /// 分岐候補を選択して移動する
     void selectBranchCandidate(int candidateIndex);
 

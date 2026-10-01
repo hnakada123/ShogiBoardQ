@@ -46,10 +46,7 @@ public:
     
     /// 解析中止ボタンの有効/無効を切り替える
     void setStopButtonEnabled(bool enabled);
-    
-    /// 解析実行中フラグを設定する（行追加時の自動選択に使用）
-    void setAnalyzing(bool analyzing) { m_isAnalyzing = analyzing; }
-    
+
     /// 解析完了メッセージを表示する
     void showAnalysisComplete(int totalMoves);
 

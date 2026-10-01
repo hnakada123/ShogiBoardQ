@@ -117,22 +117,6 @@ int EvaluationChartWidget::countP2() const { return m_s2 ? m_s2->count() : 0; }
 
 // --- エンジン情報 ---
 
-void EvaluationChartWidget::setEngine1Info(const QString& name, int ply, int cp)
-{
-    qCDebug(lcUi) << "setEngine1Info called: name=" << name << "ply=" << ply << "cp=" << cp;
-    m_engine1Name = name;
-    m_engine1Ply = ply;
-    m_engine1Cp = cp;
-}
-
-void EvaluationChartWidget::setEngine2Info(const QString& name, int ply, int cp)
-{
-    qCDebug(lcUi) << "setEngine2Info called: name=" << name << "ply=" << ply << "cp=" << cp;
-    m_engine2Name = name;
-    m_engine2Ply = ply;
-    m_engine2Cp = cp;
-}
-
 void EvaluationChartWidget::setEngine1Name(const QString& name)
 {
     qCDebug(lcUi) << "setEngine1Name called: name=" << name;
@@ -216,21 +200,3 @@ void EvaluationChartWidget::flushPendingScores()
 }
 
 // --- 一括置換 ---
-
-void EvaluationChartWidget::replaceAllScoresP1(const QList<QPointF>& points)
-{
-    if (!m_s1) return;
-
-    m_chartView->setUpdatesEnabled(false);
-    m_s1->replace(points);
-    m_chartView->setUpdatesEnabled(true);
-}
-
-void EvaluationChartWidget::replaceAllScoresP2(const QList<QPointF>& points)
-{
-    if (!m_s2) return;
-
-    m_chartView->setUpdatesEnabled(false);
-    m_s2->replace(points);
-    m_chartView->setUpdatesEnabled(true);
-}

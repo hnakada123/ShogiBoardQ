@@ -77,11 +77,6 @@ public:
     int preferredLineIndex() const { return m_preferredLineIndex; }
 
     /**
-     * @brief 現在のライン名を取得（"本譜" または "分岐N"）
-     */
-    QString currentLineName() const;
-
-    /**
      * @brief 現在位置のSFENを取得
      */
     QString currentSfen() const;
@@ -119,11 +114,6 @@ public:
      * @brief 戻れるかどうか
      */
     bool canGoBack() const;
-
-    /**
-     * @brief 現在ラインの最大手数を取得
-     */
-    int maxPlyOnCurrentLine() const;
 
     // === 分岐候補 ===
 

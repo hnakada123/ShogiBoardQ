@@ -74,8 +74,6 @@ public:
     ShutdownState shutdownState() const { return m_shutdownState; }
 
     void setPostQuitInfoStringLinesLeft(int count);
-    int postQuitInfoStringLinesLeft() const { return m_postQuitInfoStringLinesLeft; }
-
     /// quit後の残行数をデクリメントし、0になったらIgnoreAllへ遷移
     void decrementPostQuitLines();
 

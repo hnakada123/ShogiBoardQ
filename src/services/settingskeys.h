@@ -120,7 +120,6 @@ inline constexpr char kKifuAnalysisEndPly[]              = "KifuAnalysis/endPly"
 
 // --- JosekiWindow ---
 inline constexpr char kJosekiWindowFontSize[]            = "JosekiWindow/fontSize";
-inline constexpr char kJosekiWindowSfenFontSize[]        = "JosekiWindow/sfenFontSize";
 inline constexpr char kJosekiWindowLastFilePath[]        = "JosekiWindow/lastFilePath";
 inline constexpr char kJosekiWindowSize[]                = "JosekiWindow/size";
 inline constexpr char kJosekiWindowAutoLoadEnabled[]     = "JosekiWindow/autoLoadEnabled";
@@ -157,7 +156,6 @@ inline constexpr char kConsiderationMultiPV[]            = "Consideration/multiP
 inline constexpr char kConsiderationTabFontSize[]        = "ConsiderationTab/fontSize";
 
 // --- EvalChartDock ---
-inline constexpr char kEvalChartDockState[]              = "EvalChartDock/state";
 inline constexpr char kEvalChartDockFloating[]           = "EvalChartDock/floating";
 inline constexpr char kEvalChartDockGeometry[]           = "EvalChartDock/geometry";
 inline constexpr char kEvalChartDockVisible[]            = "EvalChartDock/visible";
@@ -166,16 +164,6 @@ inline constexpr char kEvalChartDockVisible[]            = "EvalChartDock/visibl
 inline constexpr char kRecordPaneDockFloating[]          = "RecordPaneDock/floating";
 inline constexpr char kRecordPaneDockGeometry[]          = "RecordPaneDock/geometry";
 inline constexpr char kRecordPaneDockVisible[]           = "RecordPaneDock/visible";
-
-// --- AnalysisTabDock ---
-inline constexpr char kAnalysisTabDockFloating[]         = "AnalysisTabDock/floating";
-inline constexpr char kAnalysisTabDockGeometry[]         = "AnalysisTabDock/geometry";
-inline constexpr char kAnalysisTabDockVisible[]          = "AnalysisTabDock/visible";
-
-// --- BoardDock ---
-inline constexpr char kBoardDockFloating[]               = "BoardDock/floating";
-inline constexpr char kBoardDockGeometry[]               = "BoardDock/geometry";
-inline constexpr char kBoardDockVisible[]                = "BoardDock/visible";
 
 // --- MenuWindowDock ---
 inline constexpr char kMenuWindowDockFloating[]          = "MenuWindowDock/floating";

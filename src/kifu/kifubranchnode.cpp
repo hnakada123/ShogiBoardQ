@@ -75,15 +75,6 @@ bool KifuBranchNode::isMainLine() const
     return !siblings.isEmpty() && siblings.first() == this;
 }
 
-QString KifuBranchNode::lineName() const
-{
-    int idx = lineIndex();
-    if (idx == 0) {
-        return QStringLiteral("本譜");
-    }
-    return QStringLiteral("分岐%1").arg(idx);
-}
-
 int KifuBranchNode::lineIndex() const
 {
     // ルートから辿って、最初の分岐点での子インデックスを返す

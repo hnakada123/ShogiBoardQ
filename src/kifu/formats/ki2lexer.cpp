@@ -71,15 +71,6 @@ const QRegularExpression& resultPatternRe()
     return re;
 }
 
-const QRegularExpression& afterColonRe()
-{
-    static const auto& re = *[]() {
-        static const QRegularExpression r(QStringLiteral("^.*[:：]"));
-        return &r;
-    }();
-    return re;
-}
-
 // === 行の種類判定 ===
 
 bool isKi2MoveLine(const QString& line)

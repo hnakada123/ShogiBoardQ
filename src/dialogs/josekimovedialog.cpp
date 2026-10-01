@@ -194,11 +194,6 @@ QString JosekiMoveDialog::nextMove() const
     return m_nextMoveInput->usiMove();
 }
 
-void JosekiMoveDialog::setNextMove(const QString &nextMove)
-{
-    m_nextMoveInput->setUsiMove(nextMove);
-}
-
 int JosekiMoveDialog::value() const
 {
     return m_valueSpinBox->value();

@@ -70,14 +70,6 @@ public:
                                              const QList<ShogiMove>* gameMoves,
                                              KifuRecordListModel* kifuRecordModel);
 
-    // --- 表示設定 ---
-
-    /// 矢印表示が有効か返す
-    bool isShowArrowsEnabled() const { return m_showArrows; }
-
-    /// 矢印表示の有効/無効を切り替える
-    void setShowArrowsEnabled(bool enabled);
-
 public slots:
     /**
      * @brief 検討モード開始時の初期化

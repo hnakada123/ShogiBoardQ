@@ -40,7 +40,6 @@ public:
 
     /// 指し手入力の有効/無効を設定する（UiStatePolicyManagerから呼ばれる）
     void setMoveInputEnabled(bool enabled) { m_moveInputEnabled = enabled; }
-    bool isMoveInputEnabled() const { return m_moveInputEnabled; }
 
     // --- 人間の手番判定コールバック ---
     /// trueを返すと人間の手番、falseなら相手の手番としてクリックを無視する

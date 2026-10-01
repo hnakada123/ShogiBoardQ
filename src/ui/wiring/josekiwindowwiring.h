@@ -61,11 +61,6 @@ public:
     ~JosekiWindowWiring() override = default;
 
     /**
-     * @brief 定跡ウィンドウを表示する
-     */
-    void displayJosekiWindow();
-
-    /**
      * @brief 定跡ウィンドウを更新する
      *
      * 現在の局面と手番情報を反映する。

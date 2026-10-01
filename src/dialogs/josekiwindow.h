@@ -134,7 +134,6 @@ private:
     bool confirmDiscardChanges();
     void addToRecentFiles(const QString &filePath);
     void updateRecentFilesMenu();
-    bool loadAndApplyFile(const QString &filePath);
     void loadAndApplyFileAsync(const QString &filePath);
     bool saveToFile(const QString &filePath);
     void saveToFileAsync(const QString &filePath);

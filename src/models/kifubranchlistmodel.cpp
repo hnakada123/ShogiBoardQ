@@ -177,11 +177,6 @@ bool KifuBranchListModel::isBackToMainRow(int row) const
     return m_hasBackToMainRow && (row == static_cast<int>(list.size()));
 }
 
-int KifuBranchListModel::backToMainRowIndex() const
-{
-    return m_hasBackToMainRow ? static_cast<int>(list.size()) : -1;
-}
-
 void KifuBranchListModel::setActiveNode(int nodeId)
 {
     if (nodeId < 0 || nodeId >= m_nodes.size()) return;

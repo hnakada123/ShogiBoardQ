@@ -101,9 +101,6 @@ public:
     /// 表示上の「本譜」判定には KifuNavigationState::isOnMainLine() を使うこと
     bool isMainLine() const;
 
-    /// このノードが属するラインの名前（"本譜", "分岐1", "分岐2"...）
-    QString lineName() const;
-
     /// このノードが属するラインのインデックス（0=本譜、1以降=分岐）
     int lineIndex() const;
 

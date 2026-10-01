@@ -100,7 +100,9 @@ class UI:
 async def test_colors_sound_groups_and_language(coverage_env):
     async with mcp_session(coverage_env) as session:
         ui = UI(session)
-        color = await ui.open("actionBoardColors", "BoardColorDialog")
+        color = await ui.open("actionBoardAppearance", "BoardColorDialog")
+        await ui.call("set_widget_value", target=color, widget="appearanceSections", value=5)
+        await ui.call("set_widget_value", target=color, widget="boardColorTabs", value=5)
         await ui.call("set_widget_value", target=color, widget="boardThemeCombo", value="墨と榧")
         await ui.call("set_widget_value", target=color, widget="boardPieceScale", value=94)
         assert (await ui.read("boardPieceScale", color))["value"] == 94
@@ -194,10 +196,10 @@ async def test_menu_customization_and_saved_layouts(coverage_env):
         assert "not_allowed" in await ui.error("click_widget", widget=quit_button["selector"])
         for name in ("menuButtonSizeIncrease", "menuButtonSizeDecrease", "menuFontSizeIncrease", "menuFontSizeDecrease"):
             await ui.call("click_widget", widget=name)
-        await ui.call("menu_favorites", actions=["actionFlipBoard", "actionBoardColors"])
-        await ui.call("menu_favorites", actions=["actionBoardColors", "actionFlipBoard"])
-        await ui.call("menu_favorites", actions=["actionBoardColors"])
-        assert (await ui.call("menu_favorites"))["actions"] == ["actionBoardColors"]
+        await ui.call("menu_favorites", actions=["actionFlipBoard", "actionBoardAppearance"])
+        await ui.call("menu_favorites", actions=["actionBoardAppearance", "actionFlipBoard"])
+        await ui.call("menu_favorites", actions=["actionBoardAppearance"])
+        assert (await ui.call("menu_favorites"))["actions"] == ["actionBoardAppearance"]
         await ui.error("menu_favorites", actions=["missing"])
 
         await ui.call("configure_dock", widget="RecordPaneDock", operation="float")
@@ -216,7 +218,7 @@ async def test_menu_customization_and_saved_layouts(coverage_env):
         await ui.close(await ui.dialog("QMessageBox"))
     async with mcp_session(coverage_env) as session:
         ui = UI(session)
-        assert (await ui.call("menu_favorites"))["actions"] == ["actionBoardColors"]
+        assert (await ui.call("menu_favorites"))["actions"] == ["actionBoardAppearance"]
         items = (await ui.call("list_menu_actions", widget="menuSavedLayouts"))["items"]
         layout = next(item for item in items if "MCP配置" in item["text"])
         assert "★" in layout["text"]

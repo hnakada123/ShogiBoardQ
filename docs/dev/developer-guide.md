@@ -389,7 +389,6 @@ src/
 │
 ├── services/                       # クロスカッティングサービス
 │   ├── settingsservice.cpp/.h      #   INI設定の読み書き
-│   ├── timekeepingservice.cpp/.h   #   時間管理サービス
 │   ├── playernameservice.cpp/.h    #   対局者名解決サービス
 │   └── timecontrolutil.cpp/.h      #   時間制御ユーティリティ
 │
@@ -1802,7 +1801,6 @@ public:
 ```
 
 **KifuDisplayCoordinator** — 棋譜表示・分岐候補の再構築を管理
-**GameLayoutBuilder** — ゲーム画面のレイアウト構築を管理
 
 #### 命名ガイドライン
 
@@ -2366,7 +2364,6 @@ SfenUtils::normalizeStart("startpos")
 | `parseKanjiRank(ch)` | 漢数字 → 1-9 |
 | `parseMoveLabel(label, &file, &rank)` | 指し手ラベルから移動先座標を解析 |
 | `parseMoveCoordinateFromModel(model, row, &file, &rank)` | 棋譜モデルから座標を解析（「同」の遡り対応） |
-| `startGameEpoch()` / `nowMs()` | 対局タイマーのリセット・経過時間取得（モノトニック） |
 
 ### 5.8 core層の他層との関係
 
@@ -4217,7 +4214,7 @@ loadKifuCommon(filePath, parseFunc, detectSfenFunc, extractGameInfoFunc)
         ├── 4a. 内部データ構築
         │     ├── gameMoves, positionStrList, sfenRecord を再構築
         │     ├── m_dispMain / m_sfenMain / m_gmMain にスナップショット保存
-        │     └── KifuBranchTreeBuilder::fromKifParseResult() でツリー構築
+        │     └── KifuBranchTreeBuilder::buildFromKifParseResult() でツリー構築
         │
         ├── 4b. UI モデル更新
         │     ├── populateGameInfo() → 対局情報テーブルに反映
@@ -4229,7 +4226,6 @@ loadKifuCommon(filePath, parseFunc, detectSfenFunc, extractGameInfoFunc)
         │     └── emit setReplayMode(true)
         │
         └── 4d. 分岐マーカー設定
-              ├── ensureBranchRowDelegateInstalled()
               ├── applyBranchMarksForCurrentLine()
               └── emit branchTreeBuilt()
 ```
@@ -4238,9 +4234,9 @@ loadKifuCommon(filePath, parseFunc, detectSfenFunc, extractGameInfoFunc)
 
 `loadKifuFromString(content)` は `KifuClipboardService::detectFormat()` で形式を自動判定し、適切なパーサーにディスパッチする。
 
-#### BranchRowDelegate — 分岐マーカー表示
+#### 分岐マーカー表示
 
-棋譜一覧テーブルに分岐のある手をオレンジ背景で表示するカスタムデリゲート。`QStyledItemDelegate` を継承し、`m_branchablePlySet` に含まれる手数の行を視覚的にマーク表示する。
+`KifuApplyService::applyBranchMarksForCurrentLine()` が分岐のある手数を収集し、`KifuRecordListModel::setBranchPlyMarks()` で棋譜モデルへ反映する。
 
 ### 8.8 KifuSaveCoordinator / KifuIoService — 保存
 
@@ -4995,11 +4991,10 @@ graph TB
     subgraph UI層 4カテゴリ
         direction TB
 
-        subgraph Presenters["Presenters（5クラス）"]
+        subgraph Presenters["Presenters（4クラス）"]
             direction LR
             P1[BoardSyncPresenter]
             P2[EvalGraphPresenter]
-            P3[NavigationPresenter]
             P4[GameRecordPresenter]
             P5[TimeDisplayPresenter]
         end
@@ -5068,7 +5063,6 @@ Presenters は「Model → View」の単方向データフローを担当する�
 |-----------|--------|------|
 | `BoardSyncPresenter` | `boardsyncpresenter.h` | 盤面表示の同期。SFENから盤面を描画し、最終手のハイライトを表示する |
 | `EvalGraphPresenter` | `evalgraphpresenter.h` | 評価値グラフのデータ収集。先手/後手エンジンの評価値をリストに蓄積する |
-| `NavigationPresenter` | `navigationpresenter.h` | 分岐ツリーのハイライト更新。分岐候補の再構築後にツリー表示を同期する |
 | `GameRecordPresenter` | `gamerecordpresenter.h` | 棋譜リスト表示の管理。棋譜全体の描画、ライブ対局中の1手追加、コメント管理を行う |
 | `TimeDisplayPresenter` | `timedisplaypresenter.h` | 対局時計の表示。残り時間の表示、手番に応じたハイライト、秒読み時の緊急表示を行う |
 
@@ -5109,20 +5103,6 @@ EvalGraphPresenter::appendSecondaryScore(scoreCp, match);  // 後手エンジン
 ```
 
 `match` が `nullptr` の場合は 0 を追加する。`EvaluationGraphController`（後述）から呼び出される。
-
-#### NavigationPresenter — 分岐ツリー表示
-
-**ソース**: `src/ui/presenters/navigationpresenter.h`, `src/ui/presenters/navigationpresenter.cpp`
-
-分岐ツリーのハイライトとUI更新通知を担当する。分岐候補の表示自体は `KifuDisplayCoordinator` が管理し、本クラスはツリーウィジェットのハイライトと更新完了シグナルの発行に特化する。
-
-| メソッド | 説明 |
-|---------|------|
-| `refreshAll(row, ply)` | 分岐候補再構築 → ツリーハイライト → `branchUiUpdated` シグナル発行を一括実行 |
-| `refreshBranchCandidates(row, ply)` | 分岐候補の再構築のみ |
-| `updateAfterBranchListChanged(row, ply)` | `KifuDisplayCoordinator` 側でモデル更新が完了した後に呼ぶ。ハイライト更新 + シグナル発行 |
-
-**シグナル**: `branchUiUpdated(int row, int ply)` — UI更新完了を外部に通知する。
 
 #### GameRecordPresenter — 棋譜リスト表示
 
@@ -5277,7 +5257,7 @@ onPvRowClicked(engineIndex, row)
 | Controller | 説明 |
 |-----------|------|
 | `PlayerInfoController` | プレイヤー名（人間名・エンジン名）の保持と、プレイモードに応じた名前表示の切り替えを管理する。`onPlayerNamesResolved` スロットで名前確定イベントを受け取り、`ShogiView` と `GameInfoPaneController` に反映する |
-| `ReplayController` | リプレイモード（対局中に過去の手を閲覧）とライブ追加モード（ライブ対局で新しい手を末尾に追加）の状態を管理する。モード遷移時に `ShogiClock` の一時停止・再開と `RecordPane` の選択制御を行う |
+| `ReplayController` | リプレイモードと途中局面からの再開フラグを管理する。リプレイモードの切り替え時に `ShogiClock` と盤面の手番表示を更新する |
 | `LanguageController` | 言語メニュー（システム/日本語/英語）のアクション処理と、言語変更後のアプリケーション再起動ダイアログの表示を担当する |
 | `UsiCommandController` | `EngineAnalysisTab` の手動コマンド入力欄からのUSIコマンドを、`MatchCoordinator` 経由でエンジンに送信する。エンジン未起動時はステータスログにエラーを表示する |
 | `NyugyokuDeclarationHandler` | 入玉宣言勝ちの判定を行う。24点法・27点法の2ルールで判定し、結果をダイアログで表示した後、`declarationCompleted` シグナルを発行する |
@@ -5421,7 +5401,6 @@ Coordinators は、複数のオブジェクトをまたぐ複雑な処理フロ�
 | `DialogCoordinator` | `dialogcoordinator.h` | ダイアログ表示の統合窓口。検討・詰将棋探索・棋譜解析のダイアログ起動を管理 |
 | `KifuDisplayCoordinator` | `kifudisplaycoordinator.h` | 棋譜表示の統合UI更新。棋譜リスト・分岐ツリー・分岐候補を同期的に更新 |
 | `PositionEditCoordinator` | `positioneditcoordinator.h` | 局面編集モードの開始/終了フローと関連UIの状態管理 |
-| `GameLayoutBuilder` | `gamelayoutbuilder.h` | メインウィンドウの水平スプリットレイアウト構築 |
 | `AboutCoordinator` | `aboutcoordinator.h` | バージョン情報ダイアログとプロジェクトWebサイトの表示 |
 | `DockLayoutManager` | `docklayoutmanager.h` | ドックウィジェットのレイアウト管理、保存・復元・ロック |
 
@@ -5546,21 +5525,6 @@ finishPositionEditing()
 | `setDocksLocked(locked)` | ドックの移動・リサイズを禁止/許可 |
 | `wireMenuActions(...)` | メニューアクションとの接続 |
 
-#### GameLayoutBuilder — レイアウト構築
-
-**ソース**: `src/ui/coordinators/gamelayoutbuilder.h`, `src/ui/coordinators/gamelayoutbuilder.cpp`
-
-メインウィンドウの中央領域のレイアウトを構築するシンプルなビルダーである。盤面ビュー（左）と棋譜ペイン（右）を `QSplitter` で水平に分割し、下部に解析タブを配置する。
-
-```
-buildHorizontalSplit()
-  └── QSplitter (Horizontal)
-        ├── 左: ShogiView（盤面）
-        └── 右: QSplitter (Vertical)
-              ├── 上: RecordPane（棋譜ペイン）
-              └── 下: QTabWidget（解析タブ）
-```
-
 #### AboutCoordinator — バージョン情報
 
 **ソース**: `src/ui/coordinators/aboutcoordinator.h`, `src/ui/coordinators/aboutcoordinator.cpp`
@@ -5600,11 +5564,8 @@ BoardSetupController::onMoveCommitted(mover, ply)
   ├── [Presenter] GameRecordPresenter::appendMoveLine(move, time)
   │     └── RecordPane に棋譜行追加
   │
-  ├── [Controller] EvaluationGraphController::redrawEngine1Graph(ply)
-  │     └── EvaluationChartWidget を再描画
-  │
-  └── [Coordinator] NavigationPresenter::refreshAll(row, ply)
-        └── 分岐ツリーのハイライト更新
+  └── [Controller] EvaluationGraphController::redrawEngine1Graph(ply)
+        └── EvaluationChartWidget を再描画
 ```
 
 <!-- chapter-10-end -->
@@ -5739,7 +5700,6 @@ Urgency::Warn5  → 黄色背景 + 赤文字 + 赤枠（残5秒）
 
 | クラス名 | 基底クラス | 機能 |
 |---------|-----------|------|
-| BranchRowDelegate | QStyledItemDelegate | 棋譜表示の分岐マーカー（●）描画、選択行の背景色カスタマイズ |
 | NumericRightAlignCommaDelegate | QStyledItemDelegate | テーブル内の数値を3桁カンマ区切り＋右寄せ表示 |
 
 ---
@@ -5929,7 +5889,7 @@ Qt の公式サンプルコードを参考にした自動折り返しレイア�
 
 **4. デリゲートによる描画カスタマイズ**
 
-QTableView / QTreeView の表示をカスタマイズする場合は QStyledItemDelegate を継承する。`BranchRowDelegate` は分岐マーカー（●）の描画、`NumericRightAlignCommaDelegate` は数値の3桁区切り右寄せを担当する。
+QTableView / QTreeView の表示をカスタマイズする場合は QStyledItemDelegate を継承する。`NumericRightAlignCommaDelegate` は数値の3桁区切り右寄せを担当する。
 
 <!-- chapter-11-end -->
 
@@ -5962,11 +5922,11 @@ network層はCSA（Computer Shogi Association）プロトコルによるネッ�
 ┌─────────────────────────────────────────────────────────────────┐
 │                      services 層                                 │
 │                                                                 │
-│  ┌─────────────────────┐   ┌─────────────────────────────┐      │
-│  │  SettingsService     │   │  TimekeepingService         │      │
-│  │  INI設定の永続化      │   │  秒読み・加算・時計制御      │      │
-│  │  (namespace)         │   │  (static methods)           │      │
-│  └─────────────────────┘   └─────────────────────────────┘      │
+│  ┌─────────────────────┐                                        │
+│  │  SettingsService    │                                        │
+│  │  INI設定の永続化     │                                        │
+│  │  (namespace)        │                                        │
+│  └─────────────────────┘                                        │
 │                                                                 │
 │  ┌─────────────────────┐   ┌─────────────────────────────┐      │
 │  │  PlayerNameService   │   │  TimeControlUtil            │      │
@@ -6517,69 +6477,17 @@ void MyDialog::closeEvent(QCloseEvent* event)
 - **列幅**: テーブルやリストビューの列幅
 - **最後に選択した項目**: コンボボックスの選択状態、最後に開いたファイルパス
 
-### 12.6 TimekeepingService — 時間管理サービス
+### 12.6 手番・時計表示の同期
 
-**ソース**: `src/services/timekeepingservice.h/.cpp`
+**ソース**: `src/app/turnstatesyncservice.h/.cpp`, `src/game/matchtimekeeper.h/.cpp`
 
-対局中の時間管理を統合するサービス。ShogiClockへの秒読み/加算適用、MatchCoordinatorの時間エポック記録、UI手番表示の更新を一括で実行する静的メソッド群を提供する。
-
-#### メソッド構成
-
-TimekeepingServiceは3つの静的メソッドで構成される。下位2つが部品で、上位1つが統合APIという階層になっている。
-
-```
-updateTurnAndTimekeepingDisplay()  ← 統合API（通常はこちらを呼ぶ）
-  ├── applyByoyomiAndCollectElapsed()  ← 秒読み適用
-  └── finalizeTurnPresentation()       ← 時計制御・後処理
-```
-
-**applyByoyomiAndCollectElapsed()** — 秒読み適用と消費時間取得:
-
-直前に指した側の秒読みを適用し、消費時間/累計時間を `"mm:ss/HH:MM:SS"` 形式の文字列で返す。`nextIsP1` が `true` のとき（次が先手の番 = 直前は後手が指した）、後手側の時計に秒読みを適用する。
-
-**finalizeTurnPresentation()** — 時計制御の後処理:
-
-1. `MatchCoordinator::pokeTimeUpdateNow()` でGUI表示を即時更新
-2. 棋譜再生モードでなければ時計を開始（`startClock()`）
-3. MatchCoordinatorの時間エポックを記録
-4. 人間の手番なら `armHumanTimerIfNeeded()` で人間の持ち時間タイマーを作動
-
-**updateTurnAndTimekeepingDisplay()** — 統合API:
-
-指し手確定後に呼ばれる統合関数。以下の処理を一括で実行する。
-
-```
-1. KIF再生中 → 時計を止めてリターン
-2. 終局後 → 時計を止めてリターン
-3. 直前手の秒読み/加算を適用 → 消費時間を棋譜欄へ追記（コールバック）
-4. UIの手番表示を更新（コールバック: 1=先手, 2=後手）
-5. 時計/MatchCoordinatorの後処理
-```
-
-コールバックは `std::function` で受け取るため、呼び出し側はUI更新の具体的な方法を自由に選べる。
+`TurnStateSyncService::updateTurnAndTimekeepingDisplay()` がゲームコントローラの手番を表示へ反映し、`ShogiClock` の現在値を `TimeDisplayPresenter` へ渡す。対局中の時間計測と手番タイマーは `MatchTimekeeper` が担当する。
 
 ### 12.7 PlayerNameService — 対局者名解決サービス
 
 **ソース**: `src/services/playernameservice.h/.cpp`
 
-`PlayMode`（対局モード）に応じて、先手/後手の表示名とエンジン名のログ用割り当てを決定する静的メソッド群。
-
-#### computePlayers() — 表示名の決定
-
-対局モードと4つの名前候補（先手人間名、後手人間名、先手エンジン名、後手エンジン名）から、先手/後手の表示名を決定する。
-
-| PlayMode | 先手(p1) | 後手(p2) |
-|---------|----------|----------|
-| `HumanVsHuman` | human1 | human2 |
-| `EvenHumanVsEngine` | human1 | engine2 |
-| `EvenEngineVsHuman` | engine1 | human2 |
-| `EvenEngineVsEngine` | engine1 | engine2 |
-| `HandicapHumanVsEngine` | human1 | engine2 |
-| `HandicapEngineVsHuman` | engine1 | human2 |
-| `HandicapEngineVsEngine` | engine1 | engine2 |
-| その他（解析/検討等） | "先手" | "後手" |
-
-戻り値は `PlayerNameMapping` 構造体（`p1`, `p2` フィールド）。
+`PlayMode`（対局モード）に応じて、エンジン名のログ用割り当てを決定する。
 
 #### computeEngineModels() — エンジン名のログ割り当て
 
@@ -7739,7 +7647,7 @@ sequenceDiagram
 **補足:**
 - `loadKifuCommon()` は形式非依存の共通フローを提供する。形式ごとの解析関数（`parseFunc`）、SFEN検出関数（`detectSfenFunc`）、対局情報抽出関数（`extractGameInfoFunc`）をラムダで受け取り、統一的に処理する
 - KIF以外の形式も同様のパターンで処理される: `Ki2ToSfenConverter`（KI2形式）、`CsaToSfenConverter`（CSA形式）等
-- 分岐ツリー構築後、棋譜欄の分岐あり手数に対して `BranchRowDelegate` がオレンジ背景マーカーを描画する
+- 分岐ツリー構築後、`KifuApplyService` が分岐のある手数を棋譜モデルの `setBranchPlyMarks()` に渡す
 - 文字列からの読み込み（`loadKifuFromString()`）はクリップボード貼り付け機能で使用され、形式を自動判定する
 
 ---
@@ -9042,11 +8950,9 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | BoardInteractionController | C | board | 盤面クリック・ドラッグ操作とハイライト制御 | 第13章 |
 | BoardSetupController | C | ui/controllers | 盤面初期配置のセットアップ | 第10章 |
 | BoardSyncPresenter | C | ui/presenters | 盤面状態の同期プレゼンター | 第10章 |
-| BranchRowDelegate | C | widgets | 分岐行の描画デリゲート | 第11章 |
 | ChangeEngineSettingsDialog | C | dialogs | エンジン設定変更ダイアログ | 第11章 |
 | CollapsibleGroupBox | C | widgets | 折りたたみ可能なグループボックス | 第11章 |
 | CommentCoordinator | C | app | コメント編集の統合調整 | 第14章 |
-| CommentTextAdapter | C | widgets | コメントテキストの変換アダプタ | 第11章 |
 | ConsecutiveGamesController | C | game | 連続対局の進行管理 | 第6章 |
 | ConsiderationDialog | C | dialogs | 検討モード設定ダイアログ | 第11章 |
 | ConsiderationFlowController | C | analysis | 検討モードのフロー制御 | 第9章 |
@@ -9075,7 +8981,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | EvaluationGraphController | C | ui/controllers | 評価値グラフの表示制御 | 第10章 |
 | FlowLayout | C | widgets | フロー（折り返し）レイアウトマネージャ | 第11章 |
 | GameInfoPaneController | C | widgets | 対局情報ペインの制御 | 第11章 |
-| GameLayoutBuilder | C | ui/coordinators | 対局画面レイアウトの構築 | 第10章 |
 | GameRecordModel | C | kifu | 棋譜データモデル（コメントのSingle Source of Truth） | 第8章 |
 | GameRecordPresenter | C | ui/presenters | 棋譜表示プレゼンター | 第10章 |
 | GameStartCoordinator | C | game | 対局開始フローの統合調整 | 第6章 |
@@ -9120,7 +9025,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | MenuWindow | C | dialogs | 対局開始メニューウィンドウ | 第11章 |
 | MenuWindowWiring | C | ui/wiring | メニューウィンドウのシグナル/スロット配線 | 第10章 |
 | FastMoveValidator | C | core | 合法手判定・バリデーション | 第5章 |
-| NavigationPresenter | C | ui/presenters | ナビゲーション状態表示プレゼンター | 第10章 |
 | NumericRightAlignCommaDelegate | C | widgets | 数値右寄せカンマ区切りデリゲート | 第11章 |
 | NyugyokuDeclarationHandler | C | ui/controllers | 入玉宣言の処理ハンドラ | 第10章 |
 | PlayerInfoController | C | ui/controllers | プレイヤー情報表示の制御 | 第10章 |
@@ -9153,7 +9057,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | TimeControlController | C | ui/controllers | 持ち時間・時計表示の制御 | 第10章 |
 | TimeControlUtil | NS | services | 持ち時間設定のユーティリティ | 第12章 |
 | TimeDisplayPresenter | C | ui/presenters | 時間表示更新プレゼンター | 第10章 |
-| TimekeepingService | C | services | 時間管理サービス | 第12章 |
 | TsumePositionUtil | C | common | 詰将棋局面のユーティリティ | 第9章, 第12章 |
 | TsumeSearchFlowController | C | analysis | 詰将棋探索フローの制御 | 第9章 |
 | TsumeShogiSearchDialog | C | dialogs | 詰将棋探索ダイアログ | 第11章 |
@@ -9396,7 +9299,6 @@ KifuTagWiring::KifuTagWiring(const Deps& deps, QObject* parent)
 | ファイル | 解説章 | 内容 |
 |---------|--------|------|
 | settingsservice | 第12章 | INI設定永続化 |
-| timekeepingservice | 第12章 | 時間管理 |
 | playernameservice | 第12章 | プレイヤー名解決 |
 | timecontrolutil | 第12章 | 持ち時間ユーティリティ |
 

@@ -278,12 +278,6 @@ void UsiProtocolHandler::sendGoDepth(int depth)
     sendCommand(QStringLiteral("go depth %1").arg(depth));
 }
 
-void UsiProtocolHandler::sendGoNodes(qint64 nodes)
-{
-    beginMainSearch();
-    sendCommand(QStringLiteral("go nodes %1").arg(nodes));
-}
-
 void UsiProtocolHandler::sendGoMovetime(int timeMs)
 {
     beginMainSearch();

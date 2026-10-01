@@ -331,17 +331,6 @@ void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
 //  スロット実装（非ラムダ）
 // ======================
 
-void AnalysisFlowController::onUsiCommLogChanged()
-{
-    if (!m_coord || !m_logModel) return;
-
-    const QString line = m_logModel->usiCommLog().trimmed();
-    if (line.startsWith(QStringLiteral("info "))) {
-        m_coord->onEngineInfoLine(line);
-    }
-    // bestmoveはonBestMoveReceived_で処理するため、ここでは処理しない
-}
-
 void AnalysisFlowController::onBestMoveReceived()
 {
     qCDebug(lcAnalysis).noquote() << "onBestMoveReceived";

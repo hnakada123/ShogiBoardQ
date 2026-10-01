@@ -2,75 +2,10 @@
 /// @brief プレイヤー名解決サービスクラスの実装
 
 #include "playernameservice.h"
-#include "logcategories.h"
 
 // ============================================================
 // 名前解決 API
 // ============================================================
-
-PlayerNameMapping PlayerNameService::computePlayers(PlayMode mode,
-                                                    const QString& human1,
-                                                    const QString& human2,
-                                                    const QString& engine1,
-                                                    const QString& engine2)
-{
-    qCDebug(lcUi).noquote() << "computePlayers: mode=" << static_cast<int>(mode)
-                            << " human1=" << human1 << " human2=" << human2
-                            << " engine1=" << engine1 << " engine2=" << engine2;
-
-    PlayerNameMapping out;
-
-    switch (mode) {
-    case PlayMode::HumanVsHuman:
-        out.p1 = human1;
-        out.p2 = human2;
-        break;
-
-    case PlayMode::EvenHumanVsEngine:
-        out.p1 = human1;
-        out.p2 = engine2;
-        break;
-
-    case PlayMode::EvenEngineVsHuman:
-        out.p1 = engine1;
-        out.p2 = human2;
-        break;
-
-    case PlayMode::EvenEngineVsEngine:
-        out.p1 = engine1;
-        out.p2 = engine2;
-        break;
-
-    case PlayMode::HandicapHumanVsEngine:
-        out.p1 = human1;
-        out.p2 = engine2;
-        break;
-
-    case PlayMode::HandicapEngineVsHuman:
-        out.p1 = engine1;
-        out.p2 = human2;
-        break;
-
-    case PlayMode::HandicapEngineVsEngine:
-        out.p1 = engine1;
-        out.p2 = engine2;
-        break;
-
-    // 解析/検討/詰み探索などはデフォルトラベル
-    case PlayMode::AnalysisMode:
-    case PlayMode::ConsiderationMode:
-    case PlayMode::TsumiSearchMode:
-    case PlayMode::NotStarted:
-    case PlayMode::PlayModeError:
-    default:
-        out.p1 = QStringLiteral("先手");
-        out.p2 = QStringLiteral("後手");
-        break;
-    }
-
-    qCDebug(lcUi).noquote() << "computePlayers: result p1=" << out.p1 << " p2=" << out.p2;
-    return out;
-}
 
 EngineNameMapping PlayerNameService::computeEngineModels(PlayMode mode,
                                                          const QString& engine1,

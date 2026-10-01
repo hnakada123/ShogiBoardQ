@@ -1,9 +1,8 @@
 /// @file shogiboard_edit.cpp
-/// @brief 盤面編集・デバッグ出力の実装
+/// @brief 盤面編集の実装
 
 #include "shogiboard.h"
 #include "boardconstants.h"
-#include "logcategories.h"
 
 // ============================================================
 // 盤面更新
@@ -165,45 +164,4 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     }
 
     setData(fileFrom, rankFrom, next);
-}
-
-// ============================================================
-// デバッグ出力
-// ============================================================
-
-void ShogiBoard::printPlayerPieces(const QString& player, const QString& pieceSet) const
-{
-    qCDebug(lcCore, "%s の持ち駒", qUtf8Printable(player));
-
-    for (const QChar& ch : pieceSet) {
-        Piece piece = charToPiece(ch);
-        qCDebug(lcCore, "%s  %d", qUtf8Printable(QString(ch)), m_pieceStand.value(piece, 0));
-    }
-}
-
-void ShogiBoard::printPieceStand()
-{
-    printPlayerPieces("先手", "KRGBSNLP");
-    printPlayerPieces("後手", "krgbsnlp");
-}
-
-void ShogiBoard::printPieceCount() const
-{
-    qCDebug(lcCore, "先手の持ち駒:");
-    qCDebug(lcCore, "歩:  %d", m_pieceStand.value(Piece::BlackPawn, 0));
-    qCDebug(lcCore, "香車:  %d", m_pieceStand.value(Piece::BlackLance, 0));
-    qCDebug(lcCore, "桂馬:  %d", m_pieceStand.value(Piece::BlackKnight, 0));
-    qCDebug(lcCore, "銀:  %d", m_pieceStand.value(Piece::BlackSilver, 0));
-    qCDebug(lcCore, "金:  %d", m_pieceStand.value(Piece::BlackGold, 0));
-    qCDebug(lcCore, "角:  %d", m_pieceStand.value(Piece::BlackBishop, 0));
-    qCDebug(lcCore, "飛車:  %d", m_pieceStand.value(Piece::BlackRook, 0));
-
-    qCDebug(lcCore, "後手の持ち駒:");
-    qCDebug(lcCore, "歩:  %d", m_pieceStand.value(Piece::WhitePawn, 0));
-    qCDebug(lcCore, "香車:  %d", m_pieceStand.value(Piece::WhiteLance, 0));
-    qCDebug(lcCore, "桂馬:  %d", m_pieceStand.value(Piece::WhiteKnight, 0));
-    qCDebug(lcCore, "銀:  %d", m_pieceStand.value(Piece::WhiteSilver, 0));
-    qCDebug(lcCore, "金:  %d", m_pieceStand.value(Piece::WhiteGold, 0));
-    qCDebug(lcCore, "角:  %d", m_pieceStand.value(Piece::WhiteBishop, 0));
-    qCDebug(lcCore, "飛車:  %d", m_pieceStand.value(Piece::WhiteRook, 0));
 }

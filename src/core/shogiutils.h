@@ -5,7 +5,6 @@
 /// @brief 将棋関連の共通ユーティリティ関数群の定義
 
 #include <QString>
-#include <QElapsedTimer>
 #include <QStringView>
 #include <optional>
 #include <utility>
@@ -76,14 +75,6 @@ namespace ShogiUtils {
      */
     [[nodiscard]] std::optional<std::pair<int, int>> parseMoveCoordinateFromModel(
         const QAbstractItemModel* model, int row);
-
-    // --- 対局タイマー ---
-
-    /// 新規対局の開始時にエポックタイマーをリセットする
-    void startGameEpoch();
-
-    /// 対局開始からの経過時間をミリ秒で返す（モノトニック）
-    qint64 nowMs();
 }
 
 #endif // SHOGIUTILS_H

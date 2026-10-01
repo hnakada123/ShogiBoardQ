@@ -50,7 +50,6 @@ public:
     /// @return 次の対局を開始すべきなら true
     bool shouldStartNextGame() const;
 
-    int remainingGames() const { return m_remainingGames; } ///< 残り対局数
     int currentGameNumber() const { return m_gameNumber; }  ///< 現在の対局番号（1始まり）
     int totalGames() const { return m_totalGames; }         ///< 合計対局数
 

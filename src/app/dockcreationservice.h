@@ -65,7 +65,6 @@ public:
     QDockWidget* commentDock() const { return m_commentDock; }
     QDockWidget* branchTreeDock() const { return m_branchTreeDock; }
     QDockWidget* menuWindowDock() const { return m_menuWindowDock; }
-    QDockWidget* josekiWindowDock() const { return m_josekiWindowDock; }
     QDockWidget* analysisResultsDock() const { return m_analysisResultsDock; }
 
 private:
