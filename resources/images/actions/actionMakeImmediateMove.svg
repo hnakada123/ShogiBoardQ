@@ -2,6 +2,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
   <title>すぐ指させる</title>
   <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m5 5 10 7L5 19Z" fill="#52799c" stroke="#52799c"/><path d="M19 5v14"/>
+    <path d="m5 5 10 7L5 19Z" fill="#52606d" stroke="#52606d"/><path d="M19 5v14"/>
   </g>
 </svg>

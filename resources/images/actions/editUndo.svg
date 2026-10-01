@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <title>新規</title>
+  <title>元に戻す</title>
   <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M14 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9Zm0 0v6h6M9 15h6m-3-3v6"/>
+    <path d="M3 4v6h6m-6 0 4-4a8 8 0 1 1 0 12"/>
   </g>
 </svg>

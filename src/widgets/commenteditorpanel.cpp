@@ -326,37 +326,35 @@ void CommentEditorPanel::buildCommentToolbar(QWidget* parentWidget)
     connect(m_btnFontIncrease, &QToolButton::clicked, this, &CommentEditorPanel::onFontIncrease);
 
     m_btnCommentUndo = new QToolButton(m_commentToolbar);
-    m_btnCommentUndo->setText(QStringLiteral("↩"));
+    m_btnCommentUndo->setIcon(QIcon(QStringLiteral(":/images/actions/editUndo.svg")));
     m_btnCommentUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
     m_btnCommentUndo->setFixedSize(28, 24);
     m_btnCommentUndo->setStyleSheet(ButtonStyles::undoRedo());
     connect(m_btnCommentUndo, &QToolButton::clicked, this, &CommentEditorPanel::onCommentUndo);
 
     m_btnCommentRedo = new QToolButton(m_commentToolbar);
-    m_btnCommentRedo->setText(QStringLiteral("↪"));
+    m_btnCommentRedo->setIcon(QIcon(QStringLiteral(":/images/actions/editRedo.svg")));
     m_btnCommentRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
     m_btnCommentRedo->setFixedSize(28, 24);
     m_btnCommentRedo->setStyleSheet(ButtonStyles::undoRedo());
     connect(m_btnCommentRedo, &QToolButton::clicked, this, &CommentEditorPanel::onCommentRedo);
 
     m_btnCommentCut = new QToolButton(m_commentToolbar);
-    m_btnCommentCut->setText(QStringLiteral("✂"));
+    m_btnCommentCut->setIcon(QIcon(QStringLiteral(":/images/actions/editCut.svg")));
     m_btnCommentCut->setToolTip(tr("切り取り (Ctrl+X)"));
     m_btnCommentCut->setFixedSize(28, 24);
     m_btnCommentCut->setStyleSheet(ButtonStyles::editOperation());
     connect(m_btnCommentCut, &QToolButton::clicked, this, &CommentEditorPanel::onCommentCut);
 
     m_btnCommentCopy = new QToolButton(m_commentToolbar);
-    m_btnCommentCopy->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy"),
-                                                QIcon(QStringLiteral(":/images/actions/editCopy.svg"))));
+    m_btnCommentCopy->setIcon(QIcon(QStringLiteral(":/images/actions/editCopy.svg")));
     m_btnCommentCopy->setToolTip(tr("コピー (Ctrl+C)"));
     m_btnCommentCopy->setFixedSize(28, 24);
     m_btnCommentCopy->setStyleSheet(ButtonStyles::editOperation());
     connect(m_btnCommentCopy, &QToolButton::clicked, this, &CommentEditorPanel::onCommentCopy);
 
     m_btnCommentPaste = new QToolButton(m_commentToolbar);
-    m_btnCommentPaste->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste"),
-                                                 QIcon(QStringLiteral(":/images/actions/editPaste.svg"))));
+    m_btnCommentPaste->setIcon(QIcon(QStringLiteral(":/images/actions/editPaste.svg")));
     m_btnCommentPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
     m_btnCommentPaste->setFixedSize(28, 24);
     m_btnCommentPaste->setStyleSheet(ButtonStyles::editOperation());

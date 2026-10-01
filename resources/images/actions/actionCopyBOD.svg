@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>BOD形式</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <rect x="0" y="0" width="128" height="128" rx="8" fill="#00BCD4"/>
-        <text x="64" y="82" text-anchor="middle" font-family="Arial Black" font-size="44" font-weight="bold" fill="white">BOD</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>BOD形式</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 3H4v18h16V9Zm0 0v6h6"/><g stroke-width="1.15"><path transform="translate(6.5 12)" d="M0 5V0h1.5a1.25 1.25 0 0 1 0 2.5H0h1.5a1.25 1.25 0 0 1 0 2.5Z"/><path transform="translate(10.5 12)" d="M1.5 0Q0 0 0 2.5T1.5 5 3 2.5 1.5 0Z"/><path transform="translate(14.5 12)" d="M0 0v5h1Q3 5 3 2.5T1 0Z"/></g>
+  </g>
 </svg>

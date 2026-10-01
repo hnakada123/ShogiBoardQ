@@ -2,6 +2,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
   <title>対局開始</title>
   <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m12 3 6 3 3 15H3L6 6Z"/><path d="m10 9 5 4-5 4Z" fill="#52799c" stroke="#52799c"/>
+    <path d="m12 3 6 3 3 15H3L6 6Z"/><path d="m10 9 5 4-5 4Z" fill="#52606d" stroke="#52606d"/>
   </g>
 </svg>

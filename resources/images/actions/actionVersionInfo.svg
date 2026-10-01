@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>バージョン情報</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <circle cx="64" cy="64" r="64" fill="#3F51B5"/>
-        <circle cx="64" cy="32" r="12" fill="white"/>
-        <rect x="52" y="52" width="24" height="64" rx="8" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>バージョン情報</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="9"/><path d="M11 11h1v6m-1 0h3"/><circle cx="12" cy="7" r=".6" fill="#52606d" stroke="none"/>
+  </g>
 </svg>

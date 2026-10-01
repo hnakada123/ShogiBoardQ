@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>終了</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <circle cx="64" cy="64" r="64" fill="#F44336"/>
-        <line x1="32" y1="32" x2="96" y2="96" stroke="white" stroke-width="14" stroke-linecap="round"/>
-        <line x1="96" y1="32" x2="32" y2="96" stroke="white" stroke-width="14" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>終了</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M10 3H4v18h6m-2-9h13m-5-5 5 5-5 5"/>
+  </g>
 </svg>
