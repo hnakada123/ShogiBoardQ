@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>USI形式（全て）</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <rect x="0" y="0" width="128" height="128" rx="8" fill="#9C27B0"/>
-        <text x="64" y="60" text-anchor="middle" font-family="Arial Black" font-size="36" font-weight="bold" fill="white">USI</text>
-        <text x="64" y="104" text-anchor="middle" font-family="Arial" font-size="28" fill="white">ALL</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>USI形式（全て）</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 3H4v18h16V9Zm0 0v6h6"/><g stroke-width="1.15"><path transform="translate(6.5 12)" d="M0 0v3.5a1.5 1.5 0 0 0 3 0V0"/><path transform="translate(10.5 12)" d="M3 .5Q0-1 0 1.2c0 1.7 3 .9 3 2.6Q3 6 0 4.5"/><path transform="translate(14.5 12)" d="M0 0h3M1.5 0v5M0 5h3"/></g><path d="M7 6h4"/>
+  </g>
 </svg>

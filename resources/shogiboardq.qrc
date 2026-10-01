@@ -646,7 +646,6 @@
         <file>images/actions/actionCancelAnalyzeKifu.svg</file>
         <file>images/actions/actionCancelTsumeShogiSearch.svg</file>
         <file>images/actions/actionChangeTurn.svg</file>
-        <file>images/actions/actionConsideration.svg</file>
         <file>images/actions/actionCopyBOD.svg</file>
         <file>images/actions/actionCopyBoardToClipboard.svg</file>
         <file>images/actions/actionCopyCSA.svg</file>
@@ -667,7 +666,6 @@
         <file>images/actions/actionPieceSound.svg</file>
         <file>images/actions/actionBoardColors.svg</file>
         <file>images/actions/actionJishogiScore.svg</file>
-        <file>images/actions/actionJosekiWindow.svg</file>
         <file>images/actions/actionLanguageEnglish.svg</file>
         <file>images/actions/actionLanguageJapanese.svg</file>
         <file>images/actions/actionLanguageSystem.svg</file>
@@ -692,7 +690,6 @@
         <file>images/actions/actionShrinkBoard.svg</file>
         <file>images/actions/actionStartEditPosition.svg</file>
         <file>images/actions/actionStartGame.svg</file>
-        <file>images/actions/actionSwapSides.svg</file>
         <file>images/actions/actionToggleBookmarkColumn.svg</file>
         <file>images/actions/actionToggleCommentColumn.svg</file>
         <file>images/actions/actionToggleTimeColumn.svg</file>
@@ -705,6 +702,9 @@
         <file>images/actions/actionVersionInfo.svg</file>
         <file>images/actions/actionSaveEvalGraphImage.svg</file>
         <file>images/actions/editCopy.svg</file>
+        <file>images/actions/editCut.svg</file>
+        <file>images/actions/editUndo.svg</file>
+        <file>images/actions/editRedo.svg</file>
         <file>images/actions/editPaste.svg</file>
         <file>sounds/piece_move.wav</file>
     </qresource>

@@ -14,6 +14,7 @@
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QIcon>
 #include <QFrame>
 #include <QToolButton>
 #include <QFileInfo>
@@ -66,26 +67,26 @@ void JosekiWindow::setupUi()
 
     m_newButton = new QPushButton(tr("新規"), this);
     m_newButton->setToolTip(tr("新しい空の定跡ファイルを作成"));
-    m_newButton->setIcon(style()->standardIcon(QStyle::SP_FileIcon));
+    m_newButton->setIcon(QIcon(QStringLiteral(":/images/actions/actionNewGame.svg")));
     m_newButton->setStyleSheet(fileBtnStyle);
     fileGroupLayout->addWidget(m_newButton);
 
     m_openButton = new QPushButton(tr("開く"), this);
     m_openButton->setToolTip(tr("定跡ファイル(.db)を開く"));
-    m_openButton->setIcon(style()->standardIcon(QStyle::SP_DialogOpenButton));
+    m_openButton->setIcon(QIcon(QStringLiteral(":/images/actions/actionOpenKifuFile.svg")));
     m_openButton->setStyleSheet(fileBtnStyle);
     fileGroupLayout->addWidget(m_openButton);
 
     m_saveButton = new QPushButton(tr("保存"), this);
     m_saveButton->setToolTip(tr("現在のファイルに上書き保存"));
-    m_saveButton->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    m_saveButton->setIcon(QIcon(QStringLiteral(":/images/actions/actionSave.svg")));
     m_saveButton->setStyleSheet(fileBtnStyle);
     m_saveButton->setEnabled(false);
     fileGroupLayout->addWidget(m_saveButton);
 
     m_saveAsButton = new QPushButton(tr("別名保存"), this);
     m_saveAsButton->setToolTip(tr("別の名前で保存"));
-    m_saveAsButton->setIcon(style()->standardIcon(QStyle::SP_DialogSaveButton));
+    m_saveAsButton->setIcon(QIcon(QStringLiteral(":/images/actions/actionSaveAs.svg")));
     m_saveAsButton->setStyleSheet(fileBtnStyle);
     fileGroupLayout->addWidget(m_saveAsButton);
 

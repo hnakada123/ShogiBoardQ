@@ -113,7 +113,7 @@ void GameInfoPaneController::buildToolbar()
     // Undoボタン
     m_btnUndo = new QToolButton(m_toolbar);
     m_btnUndo->setObjectName(QStringLiteral("gameInfoUndo"));
-    m_btnUndo->setText(QStringLiteral("↩"));
+    m_btnUndo->setIcon(QIcon(QStringLiteral(":/images/actions/editUndo.svg")));
     m_btnUndo->setToolTip(tr("元に戻す (Ctrl+Z)"));
     m_btnUndo->setFixedSize(28, 24);
     m_btnUndo->setStyleSheet(ButtonStyles::undoRedo());
@@ -123,7 +123,7 @@ void GameInfoPaneController::buildToolbar()
     // Redoボタン
     m_btnRedo = new QToolButton(m_toolbar);
     m_btnRedo->setObjectName(QStringLiteral("gameInfoRedo"));
-    m_btnRedo->setText(QStringLiteral("↪"));
+    m_btnRedo->setIcon(QIcon(QStringLiteral(":/images/actions/editRedo.svg")));
     m_btnRedo->setToolTip(tr("やり直す (Ctrl+Y)"));
     m_btnRedo->setFixedSize(28, 24);
     m_btnRedo->setStyleSheet(ButtonStyles::undoRedo());
@@ -133,7 +133,7 @@ void GameInfoPaneController::buildToolbar()
     // 切り取りボタン
     m_btnCut = new QToolButton(m_toolbar);
     m_btnCut->setObjectName(QStringLiteral("gameInfoCut"));
-    m_btnCut->setText(QStringLiteral("✂"));
+    m_btnCut->setIcon(QIcon(QStringLiteral(":/images/actions/editCut.svg")));
     m_btnCut->setToolTip(tr("切り取り (Ctrl+X)"));
     m_btnCut->setFixedSize(28, 24);
     m_btnCut->setStyleSheet(ButtonStyles::editOperation());
@@ -143,8 +143,7 @@ void GameInfoPaneController::buildToolbar()
     // コピーボタン
     m_btnCopy = new QToolButton(m_toolbar);
     m_btnCopy->setObjectName(QStringLiteral("gameInfoCopy"));
-    m_btnCopy->setIcon(QIcon::fromTheme(QStringLiteral("edit-copy"),
-                                         QIcon(QStringLiteral(":/images/actions/editCopy.svg"))));
+    m_btnCopy->setIcon(QIcon(QStringLiteral(":/images/actions/editCopy.svg")));
     m_btnCopy->setToolTip(tr("コピー (Ctrl+C)"));
     m_btnCopy->setFixedSize(28, 24);
     m_btnCopy->setStyleSheet(ButtonStyles::editOperation());
@@ -154,8 +153,7 @@ void GameInfoPaneController::buildToolbar()
     // 貼り付けボタン
     m_btnPaste = new QToolButton(m_toolbar);
     m_btnPaste->setObjectName(QStringLiteral("gameInfoPaste"));
-    m_btnPaste->setIcon(QIcon::fromTheme(QStringLiteral("edit-paste"),
-                                          QIcon(QStringLiteral(":/images/actions/editPaste.svg"))));
+    m_btnPaste->setIcon(QIcon(QStringLiteral(":/images/actions/editPaste.svg")));
     m_btnPaste->setToolTip(tr("貼り付け (Ctrl+V)"));
     m_btnPaste->setFixedSize(28, 24);
     m_btnPaste->setStyleSheet(ButtonStyles::editOperation());

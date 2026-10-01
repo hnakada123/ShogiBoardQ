@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>手番変更</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <circle cx="64" cy="64" r="64" fill="#9E9E9E"/>
-        <path d="M28 28 L64 64 L28 100" stroke="white" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M100 28 L64 64 L100 100" stroke="#1A1A1A" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>手番変更</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 9a8 8 0 0 1 14-4l2 3m0-5v5h-5M20 15a8 8 0 0 1-14 4l-2-3m0 5v-5h5m3-8 3 2 1 6H8l1-6Z"/>
+  </g>
 </svg>

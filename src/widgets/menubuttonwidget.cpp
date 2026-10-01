@@ -48,12 +48,12 @@ void MenuButtonWidget::updateSizes(int buttonSize, int fontSize, int iconSize)
     m_mainButton->setFixedSize(m_buttonWidth - 4, m_buttonHeight - 4);
 
     // アイコンを更新
-    if (m_action && !m_action->icon().isNull()) {
-        m_iconLabel->setPixmap(m_action->icon().pixmap(m_iconSize, m_iconSize));
-    }
+    onActionChanged();
 
     // フォントサイズを更新
-    m_textLabel->setStyleSheet(QStringLiteral("font-size: %1px; color: white;").arg(m_fontSize));
+    m_textLabel->setStyleSheet(QStringLiteral(
+        "QLabel { font-size: %1px; color: #344351; }"
+        "QLabel:disabled { color: #929eaa; }").arg(m_fontSize));
 
     // ウィジェット全体のサイズヒントを更新
     setMinimumSize(m_buttonWidth, m_buttonHeight);
@@ -82,9 +82,6 @@ void MenuButtonWidget::setupUi()
     // アイコンラベル
     m_iconLabel = new QLabel(m_mainButton);
     m_iconLabel->setAlignment(Qt::AlignCenter);
-    if (m_action && !m_action->icon().isNull()) {
-        m_iconLabel->setPixmap(m_action->icon().pixmap(m_iconSize, m_iconSize));
-    }
     btnLayout->addWidget(m_iconLabel, 0, Qt::AlignCenter);
 
     // テキストラベル
@@ -100,7 +97,9 @@ void MenuButtonWidget::setupUi()
         }
         m_textLabel->setText(text);
     }
-    m_textLabel->setStyleSheet(QStringLiteral("font-size: %1px; color: white;").arg(m_fontSize));
+    m_textLabel->setStyleSheet(QStringLiteral(
+        "QLabel { font-size: %1px; color: #344351; }"
+        "QLabel:disabled { color: #929eaa; }").arg(m_fontSize));
     btnLayout->addWidget(m_textLabel, 0, Qt::AlignCenter);
 
     m_mainLayout->addWidget(m_mainButton, 0, Qt::AlignCenter);
@@ -124,7 +123,7 @@ void MenuButtonWidget::setupUi()
 
     // アクションの有効/無効状態を反映
     if (m_action) {
-        m_mainButton->setEnabled(m_action->isEnabled());
+        onActionChanged();
         connect(m_action, &QAction::changed, this, &MenuButtonWidget::onActionChanged);
     }
 }
@@ -177,7 +176,10 @@ void MenuButtonWidget::onRemoveButtonClicked()
 
 void MenuButtonWidget::onActionChanged()
 {
+    if (!m_action) return;
     m_mainButton->setEnabled(m_action->isEnabled());
+    const auto mode = m_action->isEnabled() ? QIcon::Normal : QIcon::Disabled;
+    m_iconLabel->setPixmap(m_action->icon().pixmap(m_iconSize, m_iconSize, mode));
 }
 
 void MenuButtonWidget::mousePressEvent(QMouseEvent* event)

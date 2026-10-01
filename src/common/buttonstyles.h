@@ -196,18 +196,19 @@ inline QString customizeSettings()
         "}");
 }
 
-/// MenuButtonWidget メインボタン（青）
+/// MenuButtonWidget メインボタン（線画アイコン用の淡い背景）
 inline QString menuMainButton()
 {
     return QStringLiteral(
         "QPushButton, QToolButton {"
-        "  border: none; border-radius: 6px;"
-        "  background-color: #42A5F5; color: white; padding: 4px;"
+        "  border: 1px solid #d5dde5; border-radius: 6px;"
+        "  background-color: #fafbfd; color: #344351; padding: 4px;"
         "}"
-        "QPushButton:hover, QToolButton:hover { background-color: #1E88E5; }"
-        "QPushButton:pressed, QToolButton:pressed { background-color: #1565C0; }"
+        "QPushButton:hover, QToolButton:hover { background-color: #eef4f9; border-color: #9bb5cb; }"
+        "QPushButton:pressed, QToolButton:pressed { background-color: #e0ebf4; }"
+        "QPushButton:focus, QToolButton:focus { border-color: #6b92b5; }"
         "QPushButton:disabled, QToolButton:disabled {"
-        "  background-color: #B0BEC5; color: #ECEFF1;"
+        "  background-color: #f4f6f8; border-color: #e2e7ec; color: #929eaa;"
         "}");
 }
 

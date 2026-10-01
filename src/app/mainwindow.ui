@@ -583,7 +583,7 @@
   <action name="actionCopyUSEN">
    <property name="icon">
     <iconset>
-     <normaloff>:/images/actions/actionCopyUSIAll.svg</normaloff>:/images/actions/actionCopyUSIAll.svg</iconset>
+     <normaloff>:/images/actions/actionCopyUSEN.svg</normaloff>:/images/actions/actionCopyUSEN.svg</iconset>
    </property>
    <property name="text">
     <string>USEN</string>

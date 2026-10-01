@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>持将棋の点数</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <circle cx="64" cy="64" r="64" fill="#00BCD4"/>
-        <text x="64" y="52" text-anchor="middle" font-family="Arial Black" font-size="32" fill="white">24</text>
-        <line x1="20" y1="68" x2="108" y2="68" stroke="white" stroke-width="5"/>
-        <text x="64" y="104" text-anchor="middle" font-family="Arial Black" font-size="32" fill="white">27</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>持将棋の点数</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8m-8 5h2m-1-1v2m5-1h2m-8 5h2m4 0h2"/>
+  </g>
 </svg>

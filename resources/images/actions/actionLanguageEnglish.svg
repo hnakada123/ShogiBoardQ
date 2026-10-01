@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>English</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <rect x="0" y="0" width="128" height="128" rx="0" fill="#012169"/>
-        <path d="M0 0 L128 128 M128 0 L0 128" stroke="white" stroke-width="16"/>
-        <path d="M0 0 L128 128 M128 0 L0 128" stroke="#C8102E" stroke-width="8"/>
-        <path d="M64 0 L64 128 M0 64 L128 64" stroke="white" stroke-width="24"/>
-        <path d="M64 0 L64 128 M0 64 L128 64" stroke="#C8102E" stroke-width="12"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>English</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="3" y="3" width="18" height="18" rx="3"/><path d="m7 17 5-10 5 10m-8-3h6"/>
+  </g>
 </svg>
