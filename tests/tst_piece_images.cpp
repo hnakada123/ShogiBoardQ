@@ -27,7 +27,28 @@ private slots:
         SettingsCommon::openSettings().clear();
     }
 
-    void menuSelectionAndPersistence_data()
+    void menuSelectionAndPersistence()
+    {
+        // 旧セットを選んでいた環境でも、残したメニューで標準の駒を選択できる。
+        SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle, "wood");
+        QAction standard;
+        PieceStyleController controller({{&standard, QStringLiteral("standard")}});
+        auto& provider = PieceImageProvider::instance();
+        QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
+        QVERIFY(standard.isChecked());
+        standard.trigger();
+        QCOMPARE(provider.style(), QStringLiteral("standard"));
+        QVERIFY(standard.isChecked());
+        QCOMPARE(changed.count(), 0);
+        SettingsCommon::openSettings().sync();
+        QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), QStringLiteral("standard"));
+        QAction restoredStandard;
+        PieceStyleController restoredController({{&restoredStandard, QStringLiteral("standard")}});
+        QVERIFY(restoredStandard.isChecked());
+    }
+
+    void variantSelectionAndPersistence_data()
     {
         QTest::addColumn<QString>("selectedStyle");
         for (const auto& style : AppSettings::availablePieceStyles()) {
@@ -35,52 +56,69 @@ private slots:
         }
     }
 
-    void menuSelectionAndPersistence()
+    void variantSelectionAndPersistence()
     {
         QFETCH(QString, selectedStyle);
-        // 明示的に選んだ旧来の駒からの切替・復元を引き続き検証する。
-        AppSettings::setPieceStyle(QStringLiteral("standard"));
         QAction standard, selected;
-        PieceStyleController controller({{&standard, QStringLiteral("standard")},
-                                         {&selected, selectedStyle}});
+        PieceStyleController controller({{&standard, QStringLiteral("standard")}, {&selected, selectedStyle}});
         auto& provider = PieceImageProvider::instance();
         QSignalSpy changed(&provider, &PieceImageProvider::styleChanged);
-        QVERIFY(standard.isChecked());
-        QVERIFY(!selected.isChecked());
-
+        const auto standardPawn = provider.icon('P').pixmap(90).toImage();
         selected.trigger();
         QVERIFY(selected.isChecked());
         QVERIFY(!standard.isChecked());
         QCOMPARE(changed.count(), 1);
         QCOMPARE(provider.style(), selectedStyle);
+        QVERIFY(provider.icon('P').pixmap(90).toImage() != standardPawn);
         SettingsCommon::openSettings().sync();
         QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(restored.value(SettingsKeys::kPieceStyle).toString(), selectedStyle);
-
         QAction restoredStandard, restoredSelected;
         PieceStyleController restoredController({{&restoredStandard, QStringLiteral("standard")},
                                                  {&restoredSelected, selectedStyle}});
         QVERIFY(restoredSelected.isChecked());
         selected.trigger();
         QCOMPARE(changed.count(), 1);
-        QVERIFY(selected.isChecked());
-
         standard.trigger();
         QCOMPARE(changed.count(), 2);
         QVERIFY(standard.isChecked());
         QVERIFY(restoredStandard.isChecked());
         QVERIFY(!restoredSelected.isChecked());
+        QCOMPARE(provider.icon('P').pixmap(90).toImage(), standardPawn);
+    }
+
+    void legacySettingsMigrate_data()
+    {
+        QTest::addColumn<QString>("legacyStyle");
+        for (const auto& style : {"standard", "clear", "wood", "ivory", "dark", "unknown"})
+            QTest::newRow(style) << QString::fromLatin1(style);
+    }
+
+    void legacySettingsMigrate()
+    {
+        QFETCH(QString, legacyStyle);
+        const BoardColors colors = AppSettings::boardColors();
+        SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle, legacyStyle);
+        auto& provider = PieceImageProvider::instance();
+        QCOMPARE(provider.style(), QStringLiteral("standard"));
+        QCOMPARE(SettingsCommon::openSettings().value(SettingsKeys::kPieceStyle).toString(),
+                 QStringLiteral("standard"));
+        QVERIFY(AppSettings::boardColors() == colors);
+        const auto pawn = QIcon(":/pieces/Sente_fu45.svg").pixmap(90).toImage();
+        QVERIFY(!pawn.isNull());
+        QCOMPARE(provider.icon('P').pixmap(90).toImage(), pawn);
+        QCOMPARE(provider.iconForStyle('P', legacyStyle).pixmap(90).toImage(), pawn);
+        provider.setStyle(QStringLiteral("../unknown"));
         QCOMPARE(provider.style(), QStringLiteral("standard"));
     }
 
-    void invalidSettingFallsBack()
+    void standardAndVariantsAreAvailable()
     {
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("wood"));
-        SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle, "unknown");
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
-        PieceImageProvider::instance().setStyle(QStringLiteral("clear"));
-        PieceImageProvider::instance().setStyle(QStringLiteral("../unknown"));
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("clear"));
+        QCOMPARE(AppSettings::availablePieceStyles().size(), 21);
+        QCOMPARE(AppSettings::availablePieceStyles().first(), QStringLiteral("standard"));
+        for (const auto& removed : {"clear", "wood", "ivory", "dark"})
+            QVERIFY(!QFile::exists(QStringLiteral(":/pieces/%1/Sente_fu45.svg").arg(QLatin1String(removed))));
     }
 
     void allResourcesRender()
@@ -98,7 +136,17 @@ private slots:
                         const auto image = QIcon(path).pixmap(size, size).toImage();
                         QVERIFY2(!image.isNull(), qPrintable(path));
                         QVERIFY2(image.pixelColor(size / 2, size / 2).alpha() > 0, qPrintable(path));
-                        QCOMPARE(image.pixelColor(0, 0).alpha(), 0);
+                        const auto silhouette = QIcon(QStringLiteral(":/pieces/") + side + name
+                                                      + QStringLiteral("45.svg")).pixmap(size, size).toImage();
+                        for (int y = 0; y < size; ++y) {
+                            for (int x = 0; x < size; ++x) {
+                                if (silhouette.pixelColor(x, y).alpha() == 0) {
+                                    QVERIFY2(image.pixelColor(x, y).alpha() == 0,
+                                             qPrintable(QStringLiteral("%1 size=%2 outside (%3,%4)")
+                                                            .arg(path).arg(size).arg(x).arg(y)));
+                                }
+                            }
+                        }
                     }
                 }
             }

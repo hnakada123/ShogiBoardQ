@@ -73,10 +73,26 @@ void ViewActionsWiring::wire()
     if (!m_pieceStyleController) {
         m_pieceStyleController = new PieceStyleController({
             {ui->actionPieceStyleStandard, QStringLiteral("standard")},
-            {ui->actionPieceStyleClear, QStringLiteral("clear")},
-            {ui->actionPieceStyleWood, QStringLiteral("wood")},
-            {ui->actionPieceStyleIvory, QStringLiteral("ivory")},
-            {ui->actionPieceStyleDark, QStringLiteral("dark")}}, this);
+            {ui->actionPieceStyleTorafuLight, QStringLiteral("torafu_light")},
+            {ui->actionPieceStyleTorafuSilk, QStringLiteral("torafu_silk")},
+            {ui->actionPieceStyleTorafuAmber, QStringLiteral("torafu_amber")},
+            {ui->actionPieceStyleTorafuRed, QStringLiteral("torafu_red")},
+            {ui->actionPieceStyleTorafuGold, QStringLiteral("torafu_gold")},
+            {ui->actionPieceStyleWoodPale, QStringLiteral("wood_pale")},
+            {ui->actionPieceStyleWoodStraight, QStringLiteral("wood_straight")},
+            {ui->actionPieceStyleWoodAmber, QStringLiteral("wood_amber")},
+            {ui->actionPieceStyleWoodBamboo, QStringLiteral("wood_bamboo")},
+            {ui->actionPieceStyleWoodWalnut, QStringLiteral("wood_walnut")},
+            {ui->actionPieceStyleTintLinen, QStringLiteral("tint_linen")},
+            {ui->actionPieceStyleTintSakura, QStringLiteral("tint_sakura")},
+            {ui->actionPieceStyleTintCeladon, QStringLiteral("tint_celadon")},
+            {ui->actionPieceStyleTintMoon, QStringLiteral("tint_moon")},
+            {ui->actionPieceStyleTintWisteria, QStringLiteral("tint_wisteria")},
+            {ui->actionPieceStyleDeepEbony, QStringLiteral("deep_ebony")},
+            {ui->actionPieceStyleDeepNavy, QStringLiteral("deep_navy")},
+            {ui->actionPieceStyleDeepGreen, QStringLiteral("deep_green")},
+            {ui->actionPieceStyleDeepGrape, QStringLiteral("deep_grape")},
+            {ui->actionPieceStyleDeepGold, QStringLiteral("deep_gold")}}, this);
     }
 
     QObject::connect(ui->actionFlipBoard,                  &QAction::triggered, app, &MainWindowAppearanceController::onActionFlipBoardTriggered,    Qt::UniqueConnection);

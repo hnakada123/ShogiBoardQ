@@ -53,8 +53,10 @@ QIcon PieceImageProvider::iconForStyle(QChar piece, const QString& currentStyle,
     default: return {};
     }
 
-    const QString prefix = currentStyle == QStringLiteral("standard")
-        ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(currentStyle);
+    const QString selected = AppSettings::availablePieceStyles().contains(currentStyle)
+        ? currentStyle : QStringLiteral("standard");
+    const QString prefix = selected == QStringLiteral("standard")
+        ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(selected);
     const QString side = piece.isUpper() != flipped
         ? QStringLiteral("Sente_") : QStringLiteral("Gote_");
     const QString path = prefix + side + QLatin1String(name) + QStringLiteral("45.svg");

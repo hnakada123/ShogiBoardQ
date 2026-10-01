@@ -1,42 +1,77 @@
-# 駒画像セット
+# 駒のセット
 
-「表示」→「駒の種類」で選択できます。すべて先手・後手各15種類のSVGです。
-
-| フォルダ | メニュー表示 | デザイン |
-| --- | --- | --- |
-| `standard` | 標準の駒 | 元の駒セット |
-| `clear` | 見やすい駒（太字） | 明るい地色と太いゴシック体 |
-| `wood` | 木目の駒（明朝） | 淡い木肌と細い縁、控えめな木目、太い明朝体（初期設定） |
-| `ivory` | 白い駒（ゴシック） | 白地に濃紺のゴシック体 |
-| `dark` | 黒い駒（金文字） | 黒地に金色の太字、成駒は明るい赤色 |
-
-追加セットの輪郭・サイズは、各 `standard` SVGと同一です。
-木目の駒は細い枠線に調整しています。駒の表示倍率と影は共通の描画処理で付け、
-盤上・持駒・ドラッグ中・プレビューで統一しています。
-先手・後手の変換も個別に読み込んで再現します。
+`standard/` に先手・後手各15種類のSVGを収録しています。
+淡い木肌、細い縁、控えめな木目、太い明朝体を組み合わせた従来の木目セットを、
+画像を変えずに標準の駒として採用しています。
 成香は「杏」、成桂は「圭」、成銀は「全」の一文字表記です。
 文字はパス化されているため、利用者の環境に日本語フォントは不要です。
+表示倍率と影は共通の描画処理で付け、盤上・持駒・ドラッグ中・プレビューで統一します。
 
-## 再生成
+「表示」→「駒の種類」で、標準の駒と20種類のバリエーションを選べます。
+初期設定は `standard` です。旧セットの保存済み選択も `standard` に移行します。
+各バリエーションは標準セットの外形・字形・大きさ・向きを保ち、木目と色調だけを変更しています。
 
-Qt 6 GuiとNoto CJKフォントを使って生成します。通常のアプリビルドでは不要です。
-リポジトリのルートで実行してください。フォントパスは環境に応じて変更します。
+## バリエーション
+
+| グループ | 名前 | フォルダ |
+| --- | --- | --- |
+| 虎斑 | 淡虎斑 | `torafu_light/` |
+| 虎斑 | 絹虎斑 | `torafu_silk/` |
+| 虎斑 | 飴虎斑 | `torafu_amber/` |
+| 虎斑 | 紅虎斑 | `torafu_red/` |
+| 虎斑 | 山吹虎斑 | `torafu_gold/` |
+| 木肌 | 白木 | `wood_pale/` |
+| 木肌 | 糸柾 | `wood_straight/` |
+| 木肌 | 飴柾 | `wood_amber/` |
+| 木肌 | 笹杢 | `wood_bamboo/` |
+| 木肌 | 胡桃 | `wood_walnut/` |
+| 淡色 | 生成り | `tint_linen/` |
+| 淡色 | 薄桜 | `tint_sakura/` |
+| 淡色 | 青磁 | `tint_celadon/` |
+| 淡色 | 月白 | `tint_moon/` |
+| 淡色 | 藤鼠 | `tint_wisteria/` |
+| 深色 | 黒檀 | `deep_ebony/` |
+| 深色 | 鉄紺 | `deep_navy/` |
+| 深色 | 深緑 | `deep_green/` |
+| 深色 | 葡萄 | `deep_grape/` |
+| 深色 | 墨金 | `deep_gold/` |
+
+`variants.json` に配色と木目の生成パラメーターを保存しています。
+標準と合わせて21セット、各30枚（先手・後手各15種類）、計630枚です。
+
+## 今後のバリエーション追加
+
+標準セットを基に別フォルダへSVGを生成し、`shogiboardq.qrc` に登録します。
+`AppSettings::availablePieceStyles()`、駒メニューと `ViewActionsWiring` のアクション一覧、
+`BoardColorPresets` の表示名・配色に新しい種類を追加してください。
+`PieceStyleController` と `PieceImageProvider` が選択の保存と全盤面への反映を担います。
+標準セットのリソース名は `:/pieces/`、追加セットは `:/pieces/<種類>/` です。
+
+## 標準セットの再生成
+
+Qt 6 GuiとNoto Serif CJK Boldフォントを使います。通常のアプリビルドでは不要です。
+リポジトリのルートで実行してください。生成先を確認してから標準セットと置き換えます。
 
 ```sh
 c++ -std=c++17 -fPIC -Wall -Wextra -Wpedantic -Wshadow \
-  scripts/generate_clear_pieces.cpp -o /tmp/generate_clear_pieces \
+  scripts/generate_pieces.cpp -o /tmp/generate_pieces \
   $(pkg-config --cflags --libs Qt6Gui)
 
-QT_QPA_PLATFORM=offscreen /tmp/generate_clear_pieces \
+QT_QPA_PLATFORM=offscreen /tmp/generate_pieces \
   /usr/share/fonts/noto-cjk/NotoSerifCJK-Bold.ttc \
-  resources/images/pieces/standard resources/images/pieces/wood wood
-QT_QPA_PLATFORM=offscreen /tmp/generate_clear_pieces \
-  /usr/share/fonts/noto-cjk/NotoSansCJK-Medium.ttc \
-  resources/images/pieces/standard resources/images/pieces/ivory ivory
-QT_QPA_PLATFORM=offscreen /tmp/generate_clear_pieces \
-  /usr/share/fonts/noto-cjk/NotoSansCJK-Bold.ttc \
-  resources/images/pieces/standard resources/images/pieces/dark dark
+  resources/images/pieces/standard /tmp/shogiboardq-standard-pieces
 ```
 
-従来の太字セットは `clear/README.md` の手順で再生成できます。
 Noto CJKのライセンスは同梱の `OFL.txt` を参照してください。
+
+## バリエーションの再生成
+
+Python 3 と PySide6 を使います。アプリのビルド・実行には不要です。
+標準セットのSVGを読み、字形・外形を維持して色と木目を生成します。
+Qt SVGで木目が外へはみ出さないよう、生成時に輪郭内へ切り抜いたベクターパスを保存します。
+
+```sh
+python3 scripts/generate_piece_variants.py --output /tmp/shogiboardq-piece-variants
+```
+
+生成先の20フォルダを確認後、このディレクトリの同名フォルダへ反映します。

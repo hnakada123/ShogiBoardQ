@@ -25,7 +25,7 @@ void BoardColorDialog::createAppearancePage()
     m_themeCombo->setIconSize(QSize(120, 72));
     m_themes = BoardColorPresets::themes();
     for (const auto& theme : std::as_const(m_themes))
-        m_themeCombo->addItem(presetIcon(theme.colors, QStringLiteral("wood")), theme.name, theme.id);
+        m_themeCombo->addItem(presetIcon(theme.colors, QStringLiteral("standard")), theme.name, theme.id);
     form->addRow(tr("外観"), m_themeCombo);
     m_pieceScale = new QSpinBox(page);
     m_pieceScale->setObjectName(QStringLiteral("boardPieceScale"));
@@ -39,7 +39,7 @@ void BoardColorDialog::createAppearancePage()
     m_pieceShadow->setObjectName(QStringLiteral("boardPieceShadow"));
     layout->addWidget(m_woodGrain);
     layout->addWidget(m_pieceShadow);
-    auto* note = new QLabel(tr("外観を選ぶと「木目の駒（明朝）」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。"), page);
+    auto* note = new QLabel(tr("外観を選ぶと「標準の駒」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。"), page);
     note->setWordWrap(true);
     layout->addWidget(note);
     layout->addStretch();
@@ -58,7 +58,7 @@ void BoardColorDialog::applyTheme(int index)
 {
     if (index < 0 || index >= m_themes.size()) return;
     const auto colors = m_themes.at(index).colors;
-    PieceImageProvider::instance().setStyle(QStringLiteral("wood"));
+    PieceImageProvider::instance().setStyle(QStringLiteral("standard"));
     BoardAppearance::instance().setColors(colors);
     BoardAppearance::instance().setVisuals(BoardVisuals{});
     syncThemeSelection();
@@ -84,7 +84,7 @@ void BoardColorDialog::syncThemeSelection()
 {
     if (!m_themeCombo) return;
     int selected = -1;
-    if (PieceImageProvider::instance().style() == QLatin1String("wood")
+    if (PieceImageProvider::instance().style() == QLatin1String("standard")
         && BoardAppearance::instance().visuals() == BoardVisuals{}) {
         const auto colors = BoardAppearance::instance().colors();
         for (qsizetype i = 0; i < m_themes.size(); ++i)
