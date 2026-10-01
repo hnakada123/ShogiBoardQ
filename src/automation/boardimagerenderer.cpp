@@ -71,7 +71,7 @@ QImage BoardImageRenderer::render(const QString& sfen, const Options& options, Q
             view.addHighlight(toHighlight.get());
         }
         if (move.at(1) != QLatin1Char('*') && parseSquare(move.left(2), file, rank)) {
-            fromHighlight = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 255, 0, 110));
+            fromHighlight = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 80, 80, 70));
             view.addHighlight(fromHighlight.get());
         }
     }

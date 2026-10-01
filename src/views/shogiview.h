@@ -21,6 +21,7 @@
 #include "shogiviewinteraction.h"
 #include "shogiviewlayout.h"
 #include "boardcolors.h"
+#include "boardvisuals.h"
 
 #include <QIcon>
 #include <QHash>
@@ -82,6 +83,7 @@ public:
     // ───────────────────────────── コンストラクタ ─────────────────────────────
     explicit ShogiView(QWidget *parent = nullptr);
     const BoardColors& boardColors() const { return m_boardColors; }
+    const BoardVisuals& boardVisuals() const { return m_boardVisuals; }
 
     // ───────────────────────────── ボード接続 ────────────────────────────────
     void setBoard(ShogiBoard* board);   // モデル（局面）を差し替え
@@ -259,29 +261,21 @@ private:
     void drawRanks(QPainter* painter);                         // 全段ラベル
     void drawRank(QPainter* painter, int rank) const;          // 段ラベル 1 本
 
-    void drawBackground(QPainter* painter);                    // E1: 背景グラデーション
-    void drawBoardShadow(QPainter* painter);                   // 将棋盤の影（立体感）
-    void drawBoardMargin(QPainter* painter);                   // 将棋盤の余白部分を描画
-    void drawStandShadow(QPainter* painter);                   // 駒台の影（立体感）
+    void drawBackground(QPainter* painter);
+    void drawBoardSurface(QPainter* painter);                  // 余白を含む一枚の木肌
     void drawBoardFields(QPainter* painter);                   // 盤の全マス
-    void drawField(QPainter* painter, int file, int rank) const;
 
     void drawPieces(QPainter* painter);                        // 盤の全駒
     void drawPiece(QPainter* painter, int file, int rank);
 
     void drawFourStars(QPainter* painter);                     // 4隅の星（装飾）
 
-    // 駒台（マス背景）
-    void drawBlackStandField(QPainter* painter, int file, int rank) const;
-    void drawWhiteStandField(QPainter* painter, int file, int rank) const;
 
     // 駒台（駒・枚数：通常モード）
     void drawBlackStandPiece(QPainter* painter, int file, int rank) const;
     void drawWhiteStandPiece(QPainter* painter, int file, int rank) const;
 
     // 表示モード別の駒台領域/駒描画
-    void drawBlackNormalModeStand(QPainter* painter);
-    void drawWhiteNormalModeStand(QPainter* painter);
     void drawNormalModeStand(QPainter* painter);
     void drawPiecesBlackStandInNormalMode(QPainter* painter);
     void drawPiecesWhiteStandInNormalMode(QPainter* painter);
@@ -322,7 +316,9 @@ private:
     void loadPieceImages(bool flipped);
     void refreshPieceImages();
     void refreshBoardColors();
+    void refreshBoardVisuals();
     BoardColors m_boardColors;
+    BoardVisuals m_boardVisuals;
 
     // モデル
     QPointer<ShogiBoard> m_board;       // 局面。寿命は外部管理（QPointerで安全）
@@ -332,7 +328,6 @@ private:
 
     // リソース（駒アイコン）
     QMap<QChar, QIcon>  m_pieces;       // 駒文字 → QIcon
-    mutable QHash<quint64, QPixmap> m_standPiecePixmapCache; // 駒台描画用pixmapキャッシュ
 
     // マス矩形キャッシュ（レイアウト変更時に無効化、描画時に遅延再構築）
     mutable QHash<quint64, QRect> m_fieldRectCache;

@@ -38,8 +38,11 @@ ShogiView::ShogiView(QWidget *parent)
 {
     // ハイライト/矢印/手番表示の管理クラスを生成
     m_boardColors = BoardAppearance::instance().colors();
+    m_boardVisuals = BoardAppearance::instance().visuals();
     connect(&BoardAppearance::instance(), &BoardAppearance::colorsChanged,
             this, &ShogiView::refreshBoardColors);
+    connect(&BoardAppearance::instance(), &BoardAppearance::visualsChanged,
+            this, &ShogiView::refreshBoardVisuals);
     connect(m_highlighting, &ShogiViewHighlighting::highlightsCleared,
             this, &ShogiView::highlightsCleared);
 
@@ -50,7 +53,7 @@ ShogiView::ShogiView(QWidget *parent)
     if (sq < 20 || sq > 150) sq = 50;
     m_layout.setSquareSize(sq);
 
-    m_layout.setStandGapCols(0.5);
+    m_layout.setStandGapCols(0.7);
     recalcLayoutParams();
 
     setMouseTracking(true);
@@ -186,8 +189,6 @@ void ShogiView::setFieldSize(QSize fieldSize)
     }
 
     m_layout.setFieldSize(fieldSize);
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
     invalidateFieldRectCache();
 
     emit fieldSizeChanged(fieldSize);
@@ -314,8 +315,6 @@ void ShogiView::recalcLayoutParams()
 
 void ShogiView::applyBoardScaleChange(bool emitSignal)
 {
-    m_standPiecePixmapCache.clear();
-    m_highlighting->clearDropPieceCache();
     invalidateFieldRectCache();
     recalcLayoutParams();
     updateGeometry();
@@ -534,8 +533,8 @@ void ShogiView::configureFixedSizing(int squarePx)
 {
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
     const int s = (squarePx > 0) ? squarePx : squareSize();
-    setFieldSize(QSize(s, qRound(s * ShogiViewLayout::kSquareAspectRatio)));
-    update();
+    m_layout.setSquareSize(s);
+    applyBoardScaleChange(false);
 }
 
 void ShogiView::applyClockUrgency(qint64 activeRemainMs)

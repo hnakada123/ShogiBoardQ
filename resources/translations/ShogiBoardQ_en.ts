@@ -155,290 +155,337 @@ Analyzed moves: %1</translation>
 <context>
     <name>BoardColorDialog</name>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="22"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="24"/>
         <source>盤面の配色</source>
         <translation>Board Colors</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="25"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="27"/>
         <source>色を選択すると、すべての将棋盤に反映・保存されます。</source>
         <translation>Selected colors are applied to all boards and saved automatically.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="32"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="34"/>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="24"/>
         <source>カスタム（個別に指定）</source>
         <translation>Custom (individual colors)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="90"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="93"/>
         <source>背景や枠線のアルファ値を0にすると透明になります。</source>
         <translation>Set the alpha value to 0 to make a background or border transparent.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="91"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="94"/>
         <source>盤・駒台</source>
         <translation>Board / stands</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="92"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="95"/>
         <source>将棋盤の背景</source>
         <translation>Background</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="93"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="96"/>
         <source>将棋盤</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="94"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="97"/>
         <source>駒台</source>
         <translation>Piece stands</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="95"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="98"/>
         <source>マス罫線</source>
         <translation>Grid lines</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="45"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="48"/>
         <source>標準色に戻す</source>
         <translation>Restore Default Colors</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="100"/>
         <source>カード全体</source>
         <translation>Player cards</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="97"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="100"/>
         <source>対局者名と持ち時間を囲むカードの色を設定します。</source>
         <translation>Set the colors of the cards surrounding the player names and clocks.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="98"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="101"/>
         <source>カードの背景</source>
         <translation>Card background</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="99"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="102"/>
         <source>通常の枠線</source>
         <translation>Normal border</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="100"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="103"/>
         <source>手番側の枠線</source>
         <translation>Active player border</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="102"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="105"/>
         <source>手番</source>
         <translation>Turn</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="102"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="105"/>
         <source>「手番」バッジの色を設定します。</source>
         <translation>Set the colors of the turn badge.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="103"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="106"/>
         <source>手番の背景</source>
         <translation>Turn background</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="104"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="107"/>
         <source>手番の枠線</source>
         <translation>Turn border</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="108"/>
         <source>手番の文字</source>
         <translation>Turn text</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="107"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="110"/>
         <source>対局者名</source>
         <translation>Player names</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="108"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="111"/>
         <source>対局者名の背景</source>
         <translation>Name background</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="109"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="112"/>
         <source>対局者名の枠線</source>
         <translation>Name border</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="110"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="113"/>
         <source>対局者名の文字</source>
         <translation>Name text</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="115"/>
         <source>持ち時間</source>
         <translation>Clocks</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="113"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="116"/>
         <source>持ち時間の背景</source>
         <translation>Clock background</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="114"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="117"/>
         <source>持ち時間の枠線</source>
         <translation>Clock border</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="115"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="118"/>
         <source>持ち時間の文字</source>
         <translation>Clock text</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="116"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="119"/>
         <source>残り10秒以下の文字</source>
         <translation>Text with 10 seconds or less</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="120"/>
         <source>秒読み・残り5秒以下の文字</source>
         <translation>Text in byoyomi / 5 seconds or less</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="142"/>
         <source>%1の色</source>
         <translation>%1 Color</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog.cpp" line="190"/>
+        <location filename="../../src/dialogs/boardcolordialog.cpp" line="194"/>
         <source>%1に合うおすすめ配色</source>
         <translation>Recommended colors for %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="18"/>
+        <source>盤・駒台・駒・対局者情報をまとめて整える外観です。選択するとすべての将棋盤に反映・保存されます。</source>
+        <translation>Coordinate the board, stands, pieces, and player cards. Selecting an appearance applies and saves it for all boards.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="29"/>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="47"/>
+        <source>外観</source>
+        <translation>Appearance</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="34"/>
+        <source>駒の大きさ</source>
+        <translation>Piece size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="36"/>
+        <source>控えめな木目を表示する</source>
+        <translation>Show subtle wood grain</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="38"/>
+        <source>駒の影を表示する</source>
+        <translation>Show piece shadows</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_appearance.cpp" line="42"/>
+        <source>外観を選ぶと「木目の駒（明朝）」と標準の大きさ・影に切り替わります。色は各タブ、駒の種類は「表示」メニューで個別に変更できます。</source>
+        <translation>Selecting an appearance uses wooden pieces (Mincho) and the default size and shadows. You can adjust colors in each tab and choose pieces in the View menu.</translation>
     </message>
 </context>
 <context>
     <name>BoardColorPresets</name>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="14"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="30"/>
+        <source>榧と畳</source>
+        <translation>Kaya and tatami</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="31"/>
+        <source>墨と榧</source>
+        <translation>Ink and kaya</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="32"/>
+        <source>琥珀</source>
+        <translation>Amber</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="39"/>
         <source>若葉</source>
         <translation>Fresh Leaves</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="15"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="40"/>
         <source>青灰</source>
         <translation>Blue Gray</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="16"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="41"/>
         <source>蜂蜜</source>
         <translation>Honey</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="17"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="42"/>
         <source>藤色</source>
         <translation>Wisteria</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="18"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="43"/>
         <source>夕暮れ</source>
         <translation>Dusk</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="22"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="47"/>
         <source>苔庭</source>
         <translation>Moss Garden</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="23"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="48"/>
         <source>胡桃</source>
         <translation>Walnut</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="24"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="49"/>
         <source>生成り</source>
         <translation>Linen</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="25"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="50"/>
         <source>深い森</source>
         <translation>Deep Forest</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="26"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="51"/>
         <source>石庭</source>
         <translation>Stone Garden</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="30"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="55"/>
         <source>藍夜</source>
         <translation>Indigo Night</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="31"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="56"/>
         <source>青磁の海</source>
         <translation>Celadon Sea</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="32"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="57"/>
         <source>セージ</source>
         <translation>Sage</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="33"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="58"/>
         <source>ラベンダー</source>
         <translation>Lavender</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="34"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="59"/>
         <source>墨色</source>
         <translation>Charcoal</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="38"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="63"/>
         <source>金屏風</source>
         <translation>Golden Screen</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="39"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="64"/>
         <source>銀鼠</source>
         <translation>Silver Gray</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="40"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="65"/>
         <source>青磁</source>
         <translation>Celadon</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="41"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="66"/>
         <source>桜霞</source>
         <translation>Cherry Blossom</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="42"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="67"/>
         <source>砂紋</source>
         <translation>Sand Ripples</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="45"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="70"/>
         <source>畳と榧</source>
         <translation>Tatami and Kaya</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="46"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="71"/>
         <source>薄茶</source>
         <translation>Light Brown</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="47"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="72"/>
         <source>若竹</source>
         <translation>Young Bamboo</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="48"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="73"/>
         <source>暖かな灰色</source>
         <translation>Warm Gray</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="49"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="74"/>
         <source>藍染</source>
         <translation>Indigo</translation>
     </message>
@@ -5603,13 +5650,13 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="234"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="62"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="87"/>
         <source>標準の駒</source>
         <translation>Standard Pieces</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="246"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="55"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="80"/>
         <source>見やすい駒（太字）</source>
         <translation>Clear Pieces (Bold)</translation>
     </message>
@@ -5635,19 +5682,19 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="814"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="57"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="82"/>
         <source>木目の駒（明朝）</source>
         <translation>Wood Pieces (Serif)</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="826"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="59"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="84"/>
         <source>白い駒（ゴシック）</source>
         <translation>White Pieces (Sans Serif)</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="847"/>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="61"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="86"/>
         <source>黒い駒（金文字）</source>
         <translation>Black Pieces (Gold Lettering)</translation>
     </message>
@@ -8368,17 +8415,17 @@ Last solved: %2</translation>
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="56"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="61"/>
         <source>攻方</source>
         <translation>Attacker</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="56"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="61"/>
         <source>玉方</source>
         <translation>Defender</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="68"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="73"/>
         <source>なし</source>
         <translation>None</translation>
     </message>

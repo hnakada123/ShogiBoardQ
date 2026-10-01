@@ -101,8 +101,12 @@ async def test_colors_sound_groups_and_language(coverage_env):
     async with mcp_session(coverage_env) as session:
         ui = UI(session)
         color = await ui.open("actionBoardColors", "BoardColorDialog")
-        await ui.call("set_widget_value", target=color, widget="boardColorPresetCombo", value="畳と榧")
-        assert (await ui.read("boardColorButton", color))["text"] == "#DAB86B"
+        await ui.call("set_widget_value", target=color, widget="boardThemeCombo", value="墨と榧")
+        await ui.call("set_widget_value", target=color, widget="boardPieceScale", value=94)
+        assert (await ui.read("boardPieceScale", color))["value"] == 94
+        await ui.call("set_widget_value", target=color, widget="boardColorTabs", value=0)
+        await ui.call("set_widget_value", target=color, widget="boardColorPresetCombo", value="生成り")
+        assert (await ui.read("boardColorButton", color))["text"] == "#D9CFBB"
         await ui.call("click_widget", target=color, widget="boardColorButton")
         picker = await ui.dialog("QColorDialog")
         await ui.call("set_widget_value", target=picker, widget="qt_colorname_lineedit", value="#123456")

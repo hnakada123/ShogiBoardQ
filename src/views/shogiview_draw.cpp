@@ -1,22 +1,17 @@
 /// @file shogiview_draw.cpp
-/// @brief ShogiView の描画ヘルパ（盤面・駒・背景・段筋ラベル描画）
+/// @brief 盤全体の木肌・罫線・駒・座標の描画
 
 #include "shogiview.h"
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
+#include "boardsurfacepainter.h"
+#include "piecepainter.h"
 
 #include <QColor>
 #include <QPainter>
 #include <QFont>
 #include <QFontMetrics>
 
-// 段番号（rank）の描画エントリポイント。
-// 役割：
-//  - 盤が未設定なら何もしない安全弁
-//  - 共通の描画状態（ここでは文字色＝QPalette::WindowText）を一度だけ設定
-//  - 1..ranks() を走査して各段の描画を drawRank() に委譲
-// 前提：drawRank() は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さないこと。
-//       もし一時的に変更する場合は drawRank() 内部で局所 save()/restore() を使う。
 void ShogiView::drawRanks(QPainter* painter)
 {
     // 【安全弁】盤が無ければ段ラベルは描けない
@@ -31,13 +26,6 @@ void ShogiView::drawRanks(QPainter* painter)
     }
 }
 
-// 筋番号（file）の描画エントリポイント。
-// 役割：
-//  - 盤が未設定なら何もしない安全弁
-//  - 共通の描画状態（文字色など）を一度だけ設定
-//  - 1..files() を走査して各筋の描画を drawFile() に委譲
-// 備考：フォントサイズ等を変更する場合は、ここでまとめて setFont しておくと効率的。
-// 前提：drawFile() は QPainter の永続状態を汚さない（必要時のみ局所 save()/restore()）。
 void ShogiView::drawFiles(QPainter* painter)
 {
     // 【安全弁】盤が無ければ筋ラベルは描けない
@@ -52,163 +40,52 @@ void ShogiView::drawFiles(QPainter* painter)
     }
 }
 
-// 将棋盤と駒台の周囲をユーザー指定の背景色で描画する。
 void ShogiView::drawBackground(QPainter* painter)
 {
     painter->fillRect(rect(), m_boardColors.background);
 }
 
-// 将棋盤の影を描画する（立体感を出すため）。
-// 役割：将棋盤が畳の上に置かれているような立体感を表現する。
-void ShogiView::drawBoardShadow(QPainter* painter)
+void ShogiView::drawBoardSurface(QPainter* painter)
 {
     if (!m_board) return;
-
-    painter->save();
-    painter->setRenderHint(QPainter::Antialiasing, true);
-
-    // 9×9マス部分 + 余白を含めた将棋盤全体の矩形
     const QSize fs = fieldSize();
-    const int boardWidth  = fs.width()  * m_board->files();
-    const int boardHeight = fs.height() * m_board->ranks();
-    const int boardLeft   = m_layout.offsetX() - m_layout.boardMarginPx();
-    const int boardTop    = m_layout.offsetY() - m_layout.boardMarginPx();
-    const int totalWidth  = boardWidth  + m_layout.boardMarginPx() * 2;
-    const int totalHeight = boardHeight + m_layout.boardMarginPx() * 2;
-
-    // 影のオフセットとぼかし幅
-    const int shadowOffsetX = 3;
-    const int shadowOffsetY = 3;
-    const int shadowBlur = 3;
-
-    // 複数の半透明レイヤーで影のぼかし効果を表現（効果控えめ）
-    for (int i = shadowBlur; i >= 0; --i) {
-        const int alpha = 8 - (i * 2);  // 外側ほど薄く（効果控えめ）
-        if (alpha <= 0) continue;
-
-        QColor shadowColor(0, 0, 0, alpha);
-        painter->setPen(Qt::NoPen);
-        painter->setBrush(shadowColor);
-
-        QRect shadowRect(
-            boardLeft + shadowOffsetX - i,
-            boardTop + shadowOffsetY - i,
-            totalWidth + i * 2,
-            totalHeight + i * 2
-        );
-        painter->drawRect(shadowRect);
-    }
-
-    painter->restore();
+    const qreal margin = m_layout.boardMarginPx();
+    const qreal labelMargin = fs.width() * 0.50;
+    // 反転時は座標の帯も盤と一緒に反対側へ移す。
+    const QRectF surface(m_layout.offsetX() - (flipMode() ? labelMargin : margin),
+                         m_layout.offsetY() - (flipMode() ? margin : labelMargin),
+                         fs.width() * m_board->files() + margin + labelMargin,
+                         fs.height() * m_board->ranks() + margin + labelMargin);
+    BoardSurfacePainter::draw(*painter, surface, m_boardColors.board, m_boardVisuals.woodGrain, fs.width());
 }
 
-// 駒台の影を描画する（立体感を出すため）。
-// 役割：駒台が畳の上に置かれているような立体感を表現する。
-void ShogiView::drawStandShadow(QPainter* painter)
-{
-    if (!m_board) return;
-
-    painter->save();
-    painter->setRenderHint(QPainter::Antialiasing, true);
-
-    // 影のオフセットとぼかし幅
-    const int shadowOffsetX = 2;
-    const int shadowOffsetY = 2;
-    const int shadowBlur = 3;
-
-    // 先手（黒）側駒台の矩形を取得
-    const QRect blackStand = blackStandBoundingRect();
-    // 後手（白）側駒台の矩形を取得
-    const QRect whiteStand = whiteStandBoundingRect();
-
-    // 駒台の影を描画するラムダ（効果控えめ）
-    auto drawShadow = [&](const QRect& standRect) {
-        if (!standRect.isValid()) return;
-
-        for (int i = shadowBlur; i >= 0; --i) {
-            const int alpha = 6 - (i * 2);  // 外側ほど薄く（効果控えめ）
-            if (alpha <= 0) continue;
-
-            QColor shadowColor(0, 0, 0, alpha);
-            painter->setPen(Qt::NoPen);
-            painter->setBrush(shadowColor);
-
-            QRect shadowRect(
-                standRect.left() + shadowOffsetX - i,
-                standRect.top() + shadowOffsetY - i,
-                standRect.width() + i * 2,
-                standRect.height() + i * 2
-            );
-            painter->drawRect(shadowRect);
-        }
-    };
-
-    drawShadow(blackStand);
-    drawShadow(whiteStand);
-
-    painter->restore();
-}
-
-// 将棋盤の余白部分（9×9マスの外側の枠）を描画する。
-// 役割：実際の将棋盤に近い見た目にするため、盤の周囲に余白を追加する。
-// 実際の将棋盤: 縦36.4cm×横33.3cm, 余白各約0.8cm（比率約2.4%）
-void ShogiView::drawBoardMargin(QPainter* painter)
-{
-    if (!m_board) return;
-    if (m_layout.boardMarginPx() <= 0) return;
-
-    painter->save();
-
-    // 余白も盤のマスと同じ色にする。
-    const QColor boardColor = m_boardColors.board;
-
-    // 9×9マス部分の矩形
-    const QSize fs = fieldSize();
-    const int boardWidth  = fs.width()  * m_board->files();
-    const int boardHeight = fs.height() * m_board->ranks();
-    const int boardLeft   = m_layout.offsetX();
-    const int boardTop    = m_layout.offsetY();
-
-    // 余白を含めた将棋盤全体の矩形
-    const int marginLeft   = boardLeft   - m_layout.boardMarginPx();
-    const int marginTop    = boardTop    - m_layout.boardMarginPx();
-    const int marginWidth  = boardWidth  + m_layout.boardMarginPx() * 2;
-
-    // 余白部分を塗りつぶす（4辺）
-    painter->setPen(Qt::NoPen);
-    painter->setBrush(boardColor);
-
-    // 上辺の余白
-    painter->drawRect(QRect(marginLeft, marginTop, marginWidth, m_layout.boardMarginPx()));
-    // 下辺の余白
-    painter->drawRect(QRect(marginLeft, boardTop + boardHeight, marginWidth, m_layout.boardMarginPx()));
-    // 左辺の余白
-    painter->drawRect(QRect(marginLeft, boardTop, m_layout.boardMarginPx(), boardHeight));
-    // 右辺の余白
-    painter->drawRect(QRect(boardLeft + boardWidth, boardTop, m_layout.boardMarginPx(), boardHeight));
-
-    painter->restore();
-}
-
-// 盤の各マス（field）を描画するエントリポイント。
-// 最適化方針を適用：セルごとの save()/restore() を撤去し、共通状態は外側で一度だけ設定。
 void ShogiView::drawBoardFields(QPainter* painter)
 {
-    // 【安全弁】盤が未設定なら何もしない
     if (!m_board) return;
-
-    // 【共通状態の一括設定】
-    painter->setPen(palette().color(QPalette::Dark));
-
-    // 【描画ループ】段（r）× 筋（c）で全マスを走査し、個々の描画は drawField() に委譲
-    for (int r = 1; r <= m_board->ranks(); ++r) {
-        for (int c = 1; c <= m_board->files(); ++c) {
-            drawField(painter, c, r);
-        }
+    const QSize fs = fieldSize();
+    const QRectF grid(m_layout.offsetX(), m_layout.offsetY(),
+                      fs.width() * m_board->files(), fs.height() * m_board->ranks());
+    painter->save();
+    painter->setRenderHint(QPainter::Antialiasing);
+    const qreal dpr = painter->device()->devicePixelRatioF();
+    const int physicalWidth = qMax(1, qRound(qMax(1.0, fs.width() / 60.0) * dpr));
+    const qreal alignment = physicalWidth % 2 ? 0.5 / dpr : 0;
+    painter->translate(alignment, alignment);
+    painter->setPen(QPen(m_boardColors.grid, physicalWidth / dpr));
+    for (int c = 1; c < m_board->files(); ++c) {
+        const qreal x = grid.left() + c * fs.width();
+        painter->drawLine(QPointF(x, grid.top()), QPointF(x, grid.bottom()));
     }
+    for (int r = 1; r < m_board->ranks(); ++r) {
+        const qreal y = grid.top() + r * fs.height();
+        painter->drawLine(QPointF(grid.left(), y), QPointF(grid.right(), y));
+    }
+    painter->setPen(QPen(m_boardColors.grid, qMax(1.0, fs.width() / 40.0)));
+    painter->setBrush(Qt::NoBrush);
+    painter->drawRect(grid);
+    painter->restore();
 }
 
-// 盤上の全ての駒を描画するエントリポイント。
 void ShogiView::drawPieces(QPainter* painter)
 {
     // 【安全弁】盤が未設定なら何もしない
@@ -223,7 +100,6 @@ void ShogiView::drawPieces(QPainter* painter)
     }
 }
 
-// 画面全体の描画エントリポイント（paintEvent）。
 void ShogiView::paintEvent(QPaintEvent *)
 {
     // 【安全弁】盤未設定、またはエラーフラグが立っている場合は描画を行わない。
@@ -238,17 +114,13 @@ void ShogiView::paintEvent(QPaintEvent *)
     painter.setRenderHint(QPainter::SmoothPixmapTransform, true);
 
     // 【描画順序：背面 → 前面】
-    // 0) E1: 背景グラデーション（最背面）
+    // 0) 背景
     drawBackground(&painter);
 
-    // 0.3) 将棋盤と駒台の影（立体感）を描画
-    drawBoardShadow(&painter);
-    drawStandShadow(&painter);
+    // 1) 余白まで連続する木肌と縁・影
+    drawBoardSurface(&painter);
 
-    // 0.5) 将棋盤の余白部分（9×9マスの外側）を描画
-    drawBoardMargin(&painter);
-
-    // 1) 盤面（マスの背景・枠など）
+    // 2) 罫線
     drawBoardFields(&painter);
 
     // 2) 局面編集/通常に応じた周辺（駒台グリッドなどのフィールド）
@@ -277,10 +149,9 @@ void ShogiView::paintEvent(QPaintEvent *)
     drawFiles(&painter);
 
     // 8) 最前面：ドラッグ中の駒（マウス追従）。盤やラベルより上に重ねる。
-    m_interaction.drawDraggingPiece(painter, m_layout, m_pieces);
+    m_interaction.drawDraggingPiece(painter, m_layout, m_pieces, m_boardVisuals);
 }
 
-// 将棋盤の「四隅の星（3,3）（6,3）（3,6）（6,6）」を描画する。
 void ShogiView::drawFourStars(QPainter* painter)
 {
     // 【状態の局所保護】このブロックでのみ描画状態を変更し、外へ影響させない
@@ -291,7 +162,8 @@ void ShogiView::drawFourStars(QPainter* painter)
     painter->setPen(Qt::NoPen);  // 縁取りなし
 
     // 【サイズ/基準点】
-    const int starRadius = 3;
+    const qreal starRadius = qMax(1.5, fieldSize().width() * 0.05);
+    painter->setRenderHint(QPainter::Antialiasing);
     const QSize fs = fieldSize();
     const int basePointX3 = fs.width()  * 3;
     const int basePointX6 = fs.width()  * 6;
@@ -299,39 +171,15 @@ void ShogiView::drawFourStars(QPainter* painter)
     const int basePointY6 = fs.height() * 6;
 
     // 【描画】
-    painter->drawEllipse(QPoint(basePointX3 + m_layout.offsetX(), basePointY3 + m_layout.offsetY()), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePointX6 + m_layout.offsetX(), basePointY3 + m_layout.offsetY()), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePointX3 + m_layout.offsetX(), basePointY6 + m_layout.offsetY()), starRadius, starRadius);
-    painter->drawEllipse(QPoint(basePointX6 + m_layout.offsetX(), basePointY6 + m_layout.offsetY()), starRadius, starRadius);
+    painter->drawEllipse(QPointF(basePointX3 + m_layout.offsetX(), basePointY3 + m_layout.offsetY()), starRadius, starRadius);
+    painter->drawEllipse(QPointF(basePointX6 + m_layout.offsetX(), basePointY3 + m_layout.offsetY()), starRadius, starRadius);
+    painter->drawEllipse(QPointF(basePointX3 + m_layout.offsetX(), basePointY6 + m_layout.offsetY()), starRadius, starRadius);
+    painter->drawEllipse(QPointF(basePointX6 + m_layout.offsetX(), basePointY6 + m_layout.offsetY()), starRadius, starRadius);
 
     // 【状態復元】
     painter->restore();
 }
 
-// 指定された (file, rank) のマス（1 マス分の矩形）を描画する。
-void ShogiView::drawField(QPainter* painter, const int file, const int rank) const
-{
-    // 【盤座標 → ウィジェット座標】（キャッシュ済み矩形を使用）
-    const QRect fieldRect = cachedFieldRect(file, rank);
-    QRect adjustedRect(fieldRect.left() + m_layout.offsetX(),
-                       fieldRect.top()  + m_layout.offsetY(),
-                       fieldRect.width(),
-                       fieldRect.height());
-
-    painter->save();
-
-    painter->setBrush(m_boardColors.board);
-
-    QPen gridPen(m_boardColors.grid);
-    gridPen.setWidth(1);
-    painter->setPen(gridPen);
-
-    painter->drawRect(adjustedRect);
-
-    painter->restore();
-}
-
-// 指定された (file, rank) のマスに存在する「駒」を描画する。
 void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
 {
     // 【ドラッグ中の元マスは描かない】
@@ -353,94 +201,43 @@ void ShogiView::drawPiece(QPainter* painter, const int file, const int rank)
     if (pieceValue != Piece::None) {
         const QIcon icon = piece(pieceToChar(pieceValue));
         if (!icon.isNull()) {
-            icon.paint(painter, adjustedRect, Qt::AlignCenter);
+            PiecePainter::draw(*painter, icon, adjustedRect, m_boardVisuals);
         }
     }
 }
 
-// 指定段（rank）に対応する「段ラベル（漢数字）」を描画する。
 void ShogiView::drawRank(QPainter* painter, const int rank) const
 {
     if (!m_board) return;
-
-    // (1) 指定段の基準セル（file=1）を取り、Y と高さを決める
     const QRect cell = cachedFieldRect(1, rank);
-    const int h = cell.height();
-    const int y = cell.top() + m_layout.offsetY();
-
-    // (2) 反転していなければ右側に段ラベル、反転時は左側に段ラベル
-    const bool rightSide = !m_layout.flipMode();
-
-    const int boardEdge  = rightSide ? boardRightPx() : boardLeftPx();
-    const int innerEdge  = standInnerEdgePx(rightSide);
-
-    // (3) その中点を段ラベル帯の中心 X とする
-    const int xCenter    = (boardEdge + innerEdge) / 2;
-
-    // (4) ラベル帯の幅を決定（隙間が狭い場合はクリップ）
-    int w = m_layout.labelBandPx();
-    const int gapPx = std::abs(innerEdge - boardEdge);
-    if (w > gapPx - 2) w = std::max(12, gapPx - 2);
-
-    const QRect rankRect(xCenter - w/2, y, w, h);
-
-    // (5) フォントを段ラベル用に調整（局所的に保存/復元）
+    const int band = qRound(fieldSize().width() * 0.50);
+    const int x = flipMode() ? boardLeftPx() - band : boardRightPx();
+    const QRect label(x, cell.top() + m_layout.offsetY(), band, cell.height());
     painter->save();
     QFont f = painter->font();
-    double pt = m_layout.labelFontPt() * m_layout.rankFontScale() * 1.3;
-    pt = std::min(pt, h * 0.95);
-    f.setPointSizeF(pt);
-    f.setBold(true);
+    f.setPixelSize(qMax(8, qRound(fieldSize().width() * 0.30 * m_layout.rankFontScale())));
+    f.setBold(false);
     painter->setFont(f);
-    painter->setPen(m_boardColors.backgroundText());
-
-    // (6) 1..9 段に対応する漢数字を中央揃えで描画
-    static const QStringList rankTexts = { "一","二","三","四","五","六","七","八","九" };
-    if (rank >= 1 && rank <= rankTexts.size()) {
-        painter->drawText(rankRect, Qt::AlignCenter, rankTexts.at(rank - 1));
-    }
+    painter->setPen(m_boardColors.grid);
+    static const QString ranks = QStringLiteral("一二三四五六七八九");
+    if (rank >= 1 && rank <= ranks.size()) painter->drawText(label, Qt::AlignCenter, ranks.mid(rank - 1, 1));
     painter->restore();
 }
 
-// 指定筋（file）に対応する「筋ラベル（全角数字）」を描画する。
 void ShogiView::drawFile(QPainter* painter, const int file) const
 {
     if (!m_board) return;
-
-    // (1) 指定筋の基準セル（rank=1）から X と幅を算出
     const QRect cell = cachedFieldRect(file, 1);
-    const int x = cell.left() + m_layout.offsetX();
-    const int w = cell.width();
-
-    const int h = std::max(8, int(m_layout.squareSize() * 0.35));
-    int y = 0;
-
-    // (2) 配置先の決定（反転時は下側、非反転時は上側）
-    if (m_layout.flipMode()) {
-        const QSize fs = fieldSize();
-        const int boardBottom = m_layout.offsetY() + fs.height() * m_board->ranks();
-        y = boardBottom + m_layout.labelGapPx();
-    } else {
-        y = m_layout.offsetY() - m_layout.labelGapPx() - h;
-        if (y < 0) y = 0;
-    }
-
-    const QRect fileRect(x, y, w, h);
-
-    // (3) フォント調整（局所保護）
+    const int band = qRound(fieldSize().width() * 0.50);
+    const int y = flipMode() ? m_layout.offsetY() + fieldSize().height() * m_board->ranks()
+                            : m_layout.offsetY() - band;
+    const QRect label(cell.left() + m_layout.offsetX(), y, cell.width(), band);
     painter->save();
     QFont f = painter->font();
-    double pt = m_layout.labelFontPt() * m_layout.rankFontScale() * 1.3;
-    pt = std::min(pt, w * 0.95);
-    f.setPointSizeF(pt);
-    f.setBold(true);
+    f.setPixelSize(qMax(8, qRound(fieldSize().width() * 0.30 * m_layout.rankFontScale())));
+    f.setBold(false);
     painter->setFont(f);
-    painter->setPen(m_boardColors.backgroundText());
-
-    // (4) 全角数字 １..９ を中央描画
-    static const QStringList fileTexts = { "１","２","３","４","５","６","７","８","９" };
-    if (file >= 1 && file <= fileTexts.size())
-        painter->drawText(fileRect, Qt::AlignHCenter | Qt::AlignVCenter, fileTexts.at(file - 1));
-
+    painter->setPen(m_boardColors.grid);
+    painter->drawText(label, Qt::AlignCenter, QString::number(file));
     painter->restore();
 }

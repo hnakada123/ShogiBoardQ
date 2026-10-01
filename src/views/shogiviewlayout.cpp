@@ -21,7 +21,7 @@ void ShogiViewLayout::recalcLayoutParams(const QFont& baseFont)
     m_fieldSize = QSize(squareWidth, squareHeight);
 
     // 将棋盤余白
-    m_boardMarginPx = qMax(2, qRound(m_squareSize * 0.22));
+    m_boardMarginPx = qMax(2, qRound(m_squareSize * 0.28));
 
     // ラベル関連
     m_labelBandPx = std::max(10, int(m_squareSize * 0.68));

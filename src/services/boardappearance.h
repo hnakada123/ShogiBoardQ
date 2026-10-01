@@ -2,6 +2,7 @@
 #define BOARDAPPEARANCE_H
 
 #include "boardcolors.h"
+#include "boardvisuals.h"
 #include <QObject>
 
 /// 全盤面に共通する配色の保存と変更通知。
@@ -12,9 +13,12 @@ public:
     static BoardAppearance& instance();
     BoardColors colors() const;
     void setColors(const BoardColors& colors);
+    BoardVisuals visuals() const;
+    void setVisuals(const BoardVisuals& visuals);
 
 signals:
     void colorsChanged();
+    void visualsChanged();
 
 private:
     BoardAppearance() = default;

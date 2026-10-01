@@ -26,6 +26,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
   consideration dockVisibilityAndLock usageLink branchNavigation
 ```
 
+外観の切替は `boardThemes` で「榧と畳」「墨と榧」「琥珀」の選択、木目・影・駒倍率の変更、複数盤面への反映、再起動後の復元、反転を検証します。`board-appearance-main.png`、`board-appearance-flipped.png`、`board-appearance-dialog.png` と各テーマの盤面画像を保存します。
 駒の種類の切り替え、反転表示、別の盤面への反映、設定復元は `pieceStyles` で検証します。
 `tst_start_game_flow` は設定の保存・復元、先後入れ替え、初期設定への復帰、開始局面の選択、時間切れ負け設定と終局理由、最大手数での終局通知、連続対局の継続と各局の棋譜保存を検証します。
 `tst_ponder_flow` はUSI_Ponderを報告しない模擬エンジンで、先後両方の成りと予測一致・不一致、人間とエンジンそれぞれの手番での「すぐ指させる」、エンジン同士の先読み対局を検証します。CSAは実際のCsaEngineControllerを使い、予測局面の保持とエンジン再初期化・終了を確認します（CSAサーバーには接続しません）。

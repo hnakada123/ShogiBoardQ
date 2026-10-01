@@ -5,6 +5,12 @@
 #include "shogiviewhighlighting.h"
 #include "boardappearance.h"
 
+void ShogiView::refreshBoardVisuals()
+{
+    m_boardVisuals = BoardAppearance::instance().visuals();
+    update();
+}
+
 void ShogiView::refreshBoardColors()
 {
     m_boardColors = BoardAppearance::instance().colors();

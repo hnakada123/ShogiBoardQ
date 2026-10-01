@@ -7,6 +7,31 @@ BoardColorPreset preset(const QString& name, QRgb background, QRgb board, QRgb s
 }
 }
 
+QList<BoardThemePreset> BoardColorPresets::themes()
+{
+    BoardColors ink;
+    ink.background = QColor("#303b38");
+    ink.board = QColor("#e1c68e");
+    ink.stand = QColor("#86715a");
+    ink.cardBackground = QColor("#3e4b44");
+    ink.cardBorder = QColor("#58665b");
+    ink.activeCardBorder = ink.turnBackground = ink.turnBorder = QColor("#7d9878");
+    ink.nameText = ink.clockText = QColor("#e5e7d9");
+    ink.clockWarningText = QColor("#f2cf83");
+    ink.clockCriticalText = QColor("#ffa397");
+    BoardColors amber;
+    amber.background = QColor("#39352f");
+    amber.board = QColor("#e3b161");
+    amber.stand = QColor("#a26a37");
+    amber.cardBackground = QColor("#eee4cf");
+    amber.cardBorder = QColor("#bdab87");
+    amber.activeCardBorder = amber.turnBackground = amber.turnBorder = QColor("#8c6937");
+    amber.nameText = amber.clockText = QColor("#483c29");
+    return {{QStringLiteral("kaya"), tr("榧と畳"), BoardColors{}},
+            {QStringLiteral("ink"), tr("墨と榧"), ink},
+            {QStringLiteral("amber"), tr("琥珀"), amber}};
+}
+
 QList<BoardColorPreset> BoardColorPresets::forPieceStyle(const QString& style)
 {
     if (style == QLatin1String("clear")) {

@@ -38,6 +38,8 @@ private slots:
     void menuSelectionAndPersistence()
     {
         QFETCH(QString, selectedStyle);
+        // 明示的に選んだ旧来の駒からの切替・復元を引き続き検証する。
+        AppSettings::setPieceStyle(QStringLiteral("standard"));
         QAction standard, selected;
         PieceStyleController controller({{&standard, QStringLiteral("standard")},
                                          {&selected, selectedStyle}});
@@ -73,6 +75,7 @@ private slots:
 
     void invalidSettingFallsBack()
     {
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("wood"));
         SettingsCommon::openSettings().setValue(SettingsKeys::kPieceStyle, "unknown");
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
         PieceImageProvider::instance().setStyle(QStringLiteral("clear"));

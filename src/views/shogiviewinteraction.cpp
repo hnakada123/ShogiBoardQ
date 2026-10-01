@@ -2,6 +2,7 @@
 /// @brief 将棋盤面のマウス操作・ドラッグの責務を担うクラスの実装
 
 #include "shogiviewinteraction.h"
+#include "piecepainter.h"
 #include "shogiviewlayout.h"
 #include "shogiboard.h"
 
@@ -332,7 +333,7 @@ void ShogiViewInteraction::endDrag()
 // 備考：ドラッグ位置 m_dragPos の中心に、1マス分でアイコンを描画する。
 void ShogiViewInteraction::drawDraggingPiece(QPainter& painter,
                                               const ShogiViewLayout& layout,
-                                              const QMap<QChar, QIcon>& pieces)
+                                              const QMap<QChar, QIcon>& pieces, const BoardVisuals& visuals)
 {
     // 【前提確認】ドラッグ中でなければ何もしない／駒種が空白なら描かない
     if (!m_dragging || m_dragPiece == Piece::None) return;
@@ -347,7 +348,7 @@ void ShogiViewInteraction::drawDraggingPiece(QPainter& painter,
                   fs.width(), fs.height());
 
     // 【描画】既存の painter を用いて中央揃えでペイント（状態は汚さない）
-    icon.paint(&painter, r, Qt::AlignCenter);
+    PiecePainter::draw(painter, icon, r, visuals);
 }
 
 // ─────────────────────────── ドラッグ位置更新 ───────────────────────

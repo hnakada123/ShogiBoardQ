@@ -78,7 +78,7 @@ QStringList availablePieceStyles()
 QString pieceStyle()
 {
     const QString style = SettingsCommon::openSettings()
-        .value(SettingsKeys::kPieceStyle, QStringLiteral("standard")).toString();
+        .value(SettingsKeys::kPieceStyle, QStringLiteral("wood")).toString();
     return availablePieceStyles().contains(style) ? style : QStringLiteral("standard");
 }
 
@@ -185,9 +185,27 @@ void setBoardColors(const BoardColors& colors)
     }
 }
 
+BoardVisuals boardVisuals()
+{
+    auto& s = SettingsCommon::openSettings();
+    const BoardVisuals defaults;
+    return BoardVisuals{s.value(SettingsKeys::kBoardWoodGrain, defaults.woodGrain).toBool(),
+                        s.value(SettingsKeys::kBoardPieceShadow, defaults.pieceShadow).toBool(),
+                        s.value(SettingsKeys::kBoardPieceScale, defaults.pieceScale).toInt()}.normalized();
+}
+
+void setBoardVisuals(const BoardVisuals& visuals)
+{
+    auto& s = SettingsCommon::openSettings();
+    const auto normalized = visuals.normalized();
+    s.setValue(SettingsKeys::kBoardWoodGrain, normalized.woodGrain);
+    s.setValue(SettingsKeys::kBoardPieceShadow, normalized.pieceShadow);
+    s.setValue(SettingsKeys::kBoardPieceScale, normalized.pieceScale);
+}
+
 int boardColorDialogTab()
 {
-    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogTab, 0).toInt();
+    return SettingsCommon::openSettings().value(SettingsKeys::kBoardColorDialogTab, 5).toInt();
 }
 
 void setBoardColorDialogTab(int index)

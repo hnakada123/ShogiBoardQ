@@ -32,7 +32,7 @@ QPoint ShogiViewInteraction::getClickedSquareInDefaultState(const QPoint&, const
 QPoint ShogiViewInteraction::getClickedSquareInFlippedState(const QPoint&, const ShogiViewLayout&, ShogiBoard*) const { return {}; }
 void ShogiViewInteraction::startDrag(const QPoint&, ShogiBoard*, const QPoint&) {}
 void ShogiViewInteraction::endDrag() {}
-void ShogiViewInteraction::drawDraggingPiece(QPainter&, const ShogiViewLayout&, const QMap<QChar, QIcon>&) {}
+void ShogiViewInteraction::drawDraggingPiece(QPainter&, const ShogiViewLayout&, const QMap<QChar, QIcon>&, const BoardVisuals&) {}
 void ShogiViewInteraction::updateDragPos(const QPoint&) {}
 void ShogiViewInteraction::setMouseClickMode(bool) {}
 void ShogiViewInteraction::setPositionEditMode(bool) {}
@@ -154,20 +154,13 @@ void ShogiView::drawFile(QPainter*, int) const {}
 void ShogiView::drawRanks(QPainter*) {}
 void ShogiView::drawRank(QPainter*, int) const {}
 void ShogiView::drawBackground(QPainter*) {}
-void ShogiView::drawBoardShadow(QPainter*) {}
-void ShogiView::drawBoardMargin(QPainter*) {}
-void ShogiView::drawStandShadow(QPainter*) {}
+void ShogiView::drawBoardSurface(QPainter*) {}
 void ShogiView::drawBoardFields(QPainter*) {}
-void ShogiView::drawField(QPainter*, int, int) const {}
 void ShogiView::drawPieces(QPainter*) {}
 void ShogiView::drawPiece(QPainter*, int, int) {}
 void ShogiView::drawFourStars(QPainter*) {}
-void ShogiView::drawBlackStandField(QPainter*, int, int) const {}
-void ShogiView::drawWhiteStandField(QPainter*, int, int) const {}
 void ShogiView::drawBlackStandPiece(QPainter*, int, int) const {}
 void ShogiView::drawWhiteStandPiece(QPainter*, int, int) const {}
-void ShogiView::drawBlackNormalModeStand(QPainter*) {}
-void ShogiView::drawWhiteNormalModeStand(QPainter*) {}
 void ShogiView::drawNormalModeStand(QPainter*) {}
 void ShogiView::drawPiecesBlackStandInNormalMode(QPainter*) {}
 void ShogiView::drawPiecesWhiteStandInNormalMode(QPainter*) {}

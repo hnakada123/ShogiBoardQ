@@ -116,6 +116,25 @@ private slots:
         QCOMPARE(AppSettings::language(), QStringLiteral("ja_JP"));
     }
 
+    void appSettings_boardVisuals()
+    {
+        auto& settings = SettingsCommon::openSettings();
+        settings.remove(QStringLiteral("BoardVisuals"));
+        QVERIFY(AppSettings::boardVisuals() == BoardVisuals{});
+        AppSettings::setBoardVisuals({false, false, 94});
+        settings.sync();
+        const QSettings restored(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        QCOMPARE(restored.value(SettingsKeys::kBoardWoodGrain).toBool(), false);
+        QCOMPARE(restored.value(SettingsKeys::kBoardPieceShadow).toBool(), false);
+        QCOMPARE(restored.value(SettingsKeys::kBoardPieceScale).toInt(), 94);
+        QVERIFY(AppSettings::boardVisuals() == (BoardVisuals{false, false, 94}));
+        settings.setValue(SettingsKeys::kBoardPieceScale, 10000);
+        QCOMPARE(AppSettings::boardVisuals().pieceScale, 112);
+        settings.setValue(SettingsKeys::kBoardPieceScale, -3);
+        QCOMPARE(AppSettings::boardVisuals().pieceScale, 90);
+        AppSettings::setBoardVisuals(BoardVisuals{});
+    }
+
     void appSettings_boardColors()
     {
         auto& settings = SettingsCommon::openSettings();

@@ -1368,6 +1368,8 @@ add_shogi_test(tst_turn_state_sync
     ${SRC}/views/shogiview.cpp
     ${SRC}/views/shogiview_state.cpp
     ${SRC}/views/shogiview_draw.cpp
+    ${SRC}/views/boardsurfacepainter.cpp
+    ${SRC}/views/piecepainter.cpp
     ${SRC}/views/shogiview_events.cpp
     ${SRC}/views/shogiview_labels.cpp
     ${SRC}/views/shogiview_stand.cpp

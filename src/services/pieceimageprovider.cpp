@@ -1,10 +1,17 @@
 #include "pieceimageprovider.h"
 #include "appsettings.h"
+#include <QCoreApplication>
+#include <QPointer>
 
 PieceImageProvider& PieceImageProvider::instance()
 {
-    static PieceImageProvider provider;
-    return provider;
+    // SVGアイコンのキャッシュはGUI基盤より先に破棄する。
+    static QPointer<PieceImageProvider> provider;
+    if (!provider) {
+        provider = new PieceImageProvider;
+        provider->setParent(QCoreApplication::instance());
+    }
+    return *provider;
 }
 
 QString PieceImageProvider::style() const
@@ -21,6 +28,11 @@ void PieceImageProvider::setStyle(const QString& newStyle)
 }
 
 QIcon PieceImageProvider::icon(QChar piece, bool flipped) const
+{
+    return iconForStyle(piece, style(), flipped);
+}
+
+QIcon PieceImageProvider::iconForStyle(QChar piece, const QString& currentStyle, bool flipped) const
 {
     const char* name = nullptr;
     switch (piece.toUpper().toLatin1()) {
@@ -41,10 +53,14 @@ QIcon PieceImageProvider::icon(QChar piece, bool flipped) const
     default: return {};
     }
 
-    const QString currentStyle = style();
     const QString prefix = currentStyle == QStringLiteral("standard")
         ? QStringLiteral(":/pieces/") : QStringLiteral(":/pieces/%1/").arg(currentStyle);
     const QString side = piece.isUpper() != flipped
         ? QStringLiteral("Sente_") : QStringLiteral("Gote_");
-    return QIcon(prefix + side + QLatin1String(name) + QStringLiteral("45.svg"));
+    const QString path = prefix + side + QLatin1String(name) + QStringLiteral("45.svg");
+    auto it = m_icons.constFind(path);
+    if (it != m_icons.constEnd()) return it.value();
+    const QIcon result(path);
+    m_icons.insert(path, result);
+    return result;
 }

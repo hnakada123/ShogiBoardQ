@@ -4,24 +4,24 @@
 #include <QColor>
 #include <array>
 
-/// 盤面の配色。初期値は従来の色を保持する。
+/// 盤面の配色。初期値は「榧と畳」。
 struct BoardColors {
-    QColor background{200, 190, 130};
-    QColor board{228, 203, 115};
-    QColor stand{228, 167, 46};
-    QColor grid{80, 60, 30};
-    QColor cardBackground{220, 229, 204};
-    QColor cardBorder{214, 203, 181};
-    QColor activeCardBorder{63, 98, 84};
-    QColor turnBackground{63, 98, 84};
-    QColor turnBorder{63, 98, 84};
+    QColor background{137, 146, 129};
+    QColor board{224, 187, 121};
+    QColor stand{168, 126, 82};
+    QColor grid{84, 65, 39};
+    QColor cardBackground{236, 237, 223};
+    QColor cardBorder{166, 177, 153};
+    QColor activeCardBorder{75, 101, 79};
+    QColor turnBackground{75, 101, 79};
+    QColor turnBorder{75, 101, 79};
     QColor turnText{255, 255, 255};
     QColor nameBackground{Qt::transparent};
     QColor nameBorder{Qt::transparent};
-    QColor nameText{61, 50, 40};
+    QColor nameText{53, 64, 51};
     QColor clockBackground{Qt::transparent};
     QColor clockBorder{Qt::transparent};
-    QColor clockText{61, 50, 40};
+    QColor clockText{53, 64, 51};
     QColor clockWarningText{135, 93, 33};
     QColor clockCriticalText{178, 59, 50};
 
