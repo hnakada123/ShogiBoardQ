@@ -2292,6 +2292,64 @@ private slots:
         QTest::mouseClick(button, Qt::LeftButton); QCOMPARE(board()->flipMode(), !before);
         snapshot("menu-dock");
     }
+    void menuPresentation()
+    {
+        auto* menu = window->findChild<MenuWindow*>(); QVERIFY(menu);
+        auto* dock = qobject_cast<QDockWidget*>(menu->parentWidget()); QVERIFY(dock);
+        dock->show();
+        dock->raise();
+        auto* tabs = menu->findChild<QTabWidget*>(); QVERIFY(tabs);
+        int editTab = -1;
+        for (int i = 0; i < tabs->count(); ++i)
+            if (tabs->tabText(i) == QStringLiteral("編集")) editTab = i;
+        QVERIFY(editTab >= 0);
+        tabs->setCurrentIndex(editTab);
+        auto* area = qobject_cast<QScrollArea*>(tabs->currentWidget()); QVERIFY(area);
+        QTest::qWait(100);
+        snapshot("menu-presentation");
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/menu-panel.png")));
+        auto* search = menu->findChild<QLineEdit*>("menuSearch"); QVERIFY(search);
+        search->setText(QStringLiteral("USI"));
+        QTest::qWait(50);
+        int visible = 0;
+        for (auto* card : area->findChildren<MenuButtonWidget*>()) {
+            if (!card->isVisible()) continue;
+            ++visible;
+            auto* label = card->findChild<QLabel*>("menuActionText"); QVERIFY(label);
+            QVERIFY(label->text().contains(QStringLiteral("USI")));
+            QVERIFY(!label->text().contains(QStringLiteral("...")));
+            QVERIFY(label->height() >= label->heightForWidth(label->width()));
+        }
+        QCOMPARE(visible, 2);
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/menu-search.png")));
+        search->clear();
+        dock->setFloating(true);
+        dock->resize(350, 600);
+        QTest::qWait(100);
+        for (auto* card : area->findChildren<MenuButtonWidget*>()) {
+            if (card->isHidden()) continue;
+            const auto topLeft = card->mapTo(area->viewport(), QPoint(0, 0));
+            QVERIFY(topLeft.x() >= 0);
+            QVERIFY(topLeft.x() + card->width() <= area->viewport()->width());
+        }
+        QCOMPARE(area->horizontalScrollBar()->maximum(), 0);
+        QVERIFY(area->verticalScrollBar()->maximum() > 0);
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/menu-narrow.png")));
+        auto* customize = menu->findChild<QToolButton*>("menuCustomize"); QVERIFY(customize);
+        QTest::mouseClick(customize, Qt::LeftButton);
+        for (auto* card : area->findChildren<MenuButtonWidget*>()) {
+            if (card->isVisible() && card->action()->isEnabled()) {
+                QTest::mouseClick(card->findChild<QPushButton*>("menuAddFavorite"), Qt::LeftButton);
+                break;
+            }
+        }
+        QCOMPARE(menu->favorites().size(), 1);
+        tabs->setCurrentIndex(0);
+        QTest::qWait(100);
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/menu-favorites.png")));
+        QTest::mouseClick(customize, Qt::LeftButton);
+        QCOMPARE(AppSettings::menuWindowFavorites(), menu->favorites());
+    }
     void pieceStyleMenuDock()
     {
         auto* menu = window->findChild<MenuWindow*>();

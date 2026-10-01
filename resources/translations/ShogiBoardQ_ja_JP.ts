@@ -5104,6 +5104,19 @@ OKを選択すると保存先が指定できます。</source>
     </message>
 </context>
 <context>
+    <name>MenuButtonWidget</name>
+    <message>
+        <location filename="../../src/widgets/menubuttonwidget.cpp" line="123"/>
+        <source>お気に入りに追加</source>
+        <translation>お気に入りに追加</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/menubuttonwidget.cpp" line="131"/>
+        <source>お気に入りから削除</source>
+        <translation>お気に入りから削除</translation>
+    </message>
+</context>
+<context>
     <name>MenuWindow</name>
     <message>
         <source>Menu Window</source>
@@ -5114,43 +5127,82 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">メニューウィンドウ</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="26"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="38"/>
         <source>メニュー</source>
-        <translation type="unfinished"></translation>
+        <translation>メニュー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="40"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="52"/>
         <source>Decrease button size</source>
         <translation>ボタンを縮小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="48"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="60"/>
         <source>Increase button size</source>
         <translation>ボタンを拡大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="62"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="74"/>
         <source>Decrease font size</source>
         <translation>文字を縮小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="70"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="82"/>
         <source>Increase font size</source>
         <translation>文字を拡大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="85"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="95"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="325"/>
+        <source>お気に入り編集</source>
+        <translation>お気に入り編集</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="97"/>
+        <source>お気に入りの追加・削除・並べ替え</source>
+        <translation>お気に入りの追加・削除・並べ替え</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="104"/>
+        <source>各項目の＋で追加、×で削除できます。お気に入りはドラッグで並べ替えできます。</source>
+        <translation>各項目の＋で追加、×で削除できます。お気に入りはドラッグで並べ替えできます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="112"/>
+        <source>このタブの項目を検索</source>
+        <translation>このタブの項目を検索</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="167"/>
+        <source>お気に入り</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="310"/>
+        <source>お気に入りはまだありません。「お気に入り編集」を押して、各タブの項目を追加してください。</source>
+        <translation>お気に入りはまだありません。「お気に入り編集」を押して、各タブの項目を追加してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="311"/>
+        <source>該当する項目がありません。</source>
+        <translation>該当する項目がありません。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="325"/>
+        <source>編集完了</source>
+        <translation>編集完了</translation>
+    </message>
+    <message>
         <source>Customize</source>
-        <translation>カスタマイズ</translation>
+        <translation type="vanished">カスタマイズ</translation>
     </message>
     <message>
         <source>閉じる</source>
         <translation type="vanished">閉じる</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="137"/>
         <source>Favorites</source>
-        <translation>お気に入り</translation>
+        <translation type="vanished">お気に入り</translation>
     </message>
 </context>
 <context>

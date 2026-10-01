@@ -308,7 +308,7 @@ void setMenuWindowSize(const QSize& size)
 int menuWindowButtonSize()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kMenuWindowButtonSize, 72).toInt();
+    return s.value(SettingsKeys::kMenuWindowButtonSize, 104).toInt();
 }
 
 void setMenuWindowButtonSize(int size)
@@ -320,13 +320,25 @@ void setMenuWindowButtonSize(int size)
 int menuWindowFontSize()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kMenuWindowFontSize, 9).toInt();
+    return s.value(SettingsKeys::kMenuWindowFontSize, 12).toInt();
 }
 
 void setMenuWindowFontSize(int size)
 {
     QSettings& s = SettingsCommon::openSettings();
     s.setValue(SettingsKeys::kMenuWindowFontSize, size);
+}
+
+int menuWindowCurrentTab()
+{
+    const auto& s = SettingsCommon::openSettings();
+    return s.value(SettingsKeys::kMenuWindowCurrentTab, 0).toInt();
+}
+
+void setMenuWindowCurrentTab(int index)
+{
+    auto& s = SettingsCommon::openSettings();
+    s.setValue(SettingsKeys::kMenuWindowCurrentTab, index);
 }
 
 // --- メインウィンドウ ---

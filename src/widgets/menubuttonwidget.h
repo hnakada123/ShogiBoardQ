@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QDrag>
+#include <QPointer>
 
 /**
  * @brief メニューウィンドウ用のボタンウィジェット
@@ -98,12 +99,13 @@ signals:
     void dropReceived(const QString& sourceActionName, const QString& targetActionName);
 
 protected:
+    bool eventFilter(QObject* watched, QEvent* event) override;
+    void resizeEvent(QResizeEvent* event) override;
     void mousePressEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void dragEnterEvent(QDragEnterEvent* event) override;
+    void dragLeaveEvent(QDragLeaveEvent* event) override;
     void dropEvent(QDropEvent* event) override;
-    void enterEvent(QEnterEvent* event) override;
-    void leaveEvent(QEvent* event) override;
 
 private slots:
     void onMainButtonClicked();
@@ -114,25 +116,30 @@ private slots:
 private:
     void setupUi();
     void updateButtonState();
+    void updateGeometryForText();
+    void startDrag();
 
-    QAction* m_action = nullptr;
+    QPointer<QAction> m_action;
     QPushButton* m_mainButton = nullptr;
     QPushButton* m_addButton = nullptr;
     QPushButton* m_removeButton = nullptr;
     QLabel* m_iconLabel = nullptr;
     QLabel* m_textLabel = nullptr;
+    QLabel* m_checkedLabel = nullptr;
     QVBoxLayout* m_mainLayout = nullptr;
 
     bool m_customizeMode = false;
     bool m_isFavoriteTab = false;
     bool m_isInFavorites = false;
     QPoint m_dragStartPosition;
+    bool m_dragPending = false;
 
     // サイズ設定（動的に変更可能）
-    int m_buttonWidth = 72;
-    int m_buttonHeight = 64;
+    int m_buttonWidth = 104;
+    int m_buttonHeight = 96;
+    int m_buttonSize = 104;
     int m_iconSize = 24;
-    int m_fontSize = 9;
+    int m_fontSize = 12;
 };
 
 #endif // MENUBUTTONWIDGET_H

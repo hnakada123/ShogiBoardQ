@@ -6596,49 +6596,97 @@ Please restart the application to apply the changes.</translation>
     </message>
 </context>
 <context>
+    <name>MenuButtonWidget</name>
+    <message>
+        <location filename="../../src/widgets/menubuttonwidget.cpp" line="123"/>
+        <source>お気に入りに追加</source>
+        <translation>Add to favorites</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/menubuttonwidget.cpp" line="131"/>
+        <source>お気に入りから削除</source>
+        <translation>Remove from favorites</translation>
+    </message>
+</context>
+<context>
     <name>MenuWindow</name>
     <message>
         <source>メニューウィンドウ</source>
         <translation type="vanished">Menu Window</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="26"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="38"/>
         <source>メニュー</source>
         <translation>Menu</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="40"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="52"/>
         <source>Decrease button size</source>
-        <translation type="unfinished"></translation>
+        <translation>Decrease button size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="48"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="60"/>
         <source>Increase button size</source>
-        <translation type="unfinished"></translation>
+        <translation>Increase button size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="62"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="74"/>
         <source>Decrease font size</source>
-        <translation type="unfinished"></translation>
+        <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="70"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="82"/>
         <source>Increase font size</source>
-        <translation type="unfinished"></translation>
+        <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="85"/>
-        <source>Customize</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="95"/>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="325"/>
+        <source>お気に入り編集</source>
+        <translation>Edit favorites</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="97"/>
+        <source>お気に入りの追加・削除・並べ替え</source>
+        <translation>Add, remove or reorder favorites</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="104"/>
+        <source>各項目の＋で追加、×で削除できます。お気に入りはドラッグで並べ替えできます。</source>
+        <translation>Use + to add and × to remove items. Drag favorites to reorder them.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="112"/>
+        <source>このタブの項目を検索</source>
+        <translation>Search items in this tab</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="167"/>
+        <source>お気に入り</source>
+        <translation>Favorites</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="310"/>
+        <source>お気に入りはまだありません。「お気に入り編集」を押して、各タブの項目を追加してください。</source>
+        <translation>No favorites yet. Choose “Edit favorites” to add items from each tab.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="311"/>
+        <source>該当する項目がありません。</source>
+        <translation>No matching items.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/menuwindow.cpp" line="325"/>
+        <source>編集完了</source>
+        <translation>Done editing</translation>
     </message>
     <message>
         <source>閉じる</source>
         <translation type="vanished">Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/menuwindow.cpp" line="137"/>
         <source>Favorites</source>
-        <translation type="unfinished"></translation>
+        <translation type="vanished">Favorites</translation>
     </message>
 </context>
 <context>

@@ -7,6 +7,14 @@
 #include <QTabWidget>
 #include <QTemporaryDir>
 #include <QSettings>
+#include <QLineEdit>
+#include <QScrollBar>
+#include <QMimeData>
+#include <QDropEvent>
+#include <QDragEnterEvent>
+
+#include "menubuttonwidget.h"
+#include "appsettings.h"
 
 #include "menuwindow.h"
 #include "settingscommon.h"
@@ -58,6 +66,12 @@ private slots:
     void favoritesChanged_emittedOnAdd();
     void setCategories_createsTabs();
     void setCategories_empty_noExtraTabs();
+    void responsiveLayoutAndFilter();
+    void fullLabelAndActionState();
+    void favoritesEditingAndDrop();
+    void favoriteDragStartsOnButton();
+    void settingsSavedWithoutClosingDock();
+    void destroyedActionIsSafe();
 };
 
 // ----------------------------------------------------------
@@ -174,6 +188,194 @@ void TestMenuWindow::setCategories_empty_noExtraTabs()
     auto* tabWidget = w.findChild<QTabWidget*>();
     QVERIFY(tabWidget);
     QCOMPARE(tabWidget->count(), 1);
+}
+
+
+void TestMenuWindow::responsiveLayoutAndFilter()
+{
+    MenuWindow w;
+    auto actions = makeTestActions(&w);
+    actions[0]->setText(QStringLiteral("USI形式（現局面まで）"));
+    actions[1]->setText(QStringLiteral("USI形式（全指し手）"));
+    w.setCategories(makeTestCategories(actions));
+    auto* tabs = w.findChild<QTabWidget*>();
+    tabs->setCurrentIndex(1);
+    auto* area = qobject_cast<QScrollArea*>(tabs->currentWidget());
+    auto buttons = area->findChildren<MenuButtonWidget*>();
+    QCOMPARE(buttons.size(), 4);
+    w.resize(650, 420);
+    w.show();
+    QTRY_VERIFY(buttons[0]->isVisible());
+    QTRY_COMPARE(buttons[0]->y(), buttons[3]->y());
+    w.resize(330, 420);
+    QTRY_VERIFY(buttons[3]->y() > buttons[0]->y());
+    for (const auto* button : buttons) {
+        const auto position = button->mapTo(area->viewport(), QPoint(0, 0));
+        QVERIFY(position.x() >= 0);
+        QVERIFY(position.x() + button->width() <= area->viewport()->width());
+    }
+    QCOMPARE(area->horizontalScrollBar()->maximum(), 0);
+
+    auto* search = w.findChild<QLineEdit*>(QStringLiteral("menuSearch"));
+    QVERIFY(search);
+    search->setText(QStringLiteral("全指し手"));
+    QTRY_VERIFY(buttons[0]->isHidden());
+    QVERIFY(!buttons[1]->isHidden());
+    QTRY_COMPARE(buttons[1]->pos(), QPoint(8, 8));
+    search->setText(QStringLiteral("usi"));
+    QTRY_VERIFY(!buttons[0]->isHidden());
+    QVERIFY(!buttons[1]->isHidden());
+    search->setText(QStringLiteral("存在しない項目"));
+    auto* empty = area->findChild<QLabel*>(QStringLiteral("menuEmptyMessage"));
+    QTRY_VERIFY(empty->isVisible());
+    search->clear();
+    QTRY_VERIFY(!empty->isVisible());
+
+    // QAction の非表示指定も詰めて配置し、再表示を反映する。
+    actions[0]->setVisible(false);
+    QTRY_VERIFY(buttons[0]->isHidden());
+    QTRY_COMPARE(buttons[1]->pos(), QPoint(8, 8));
+    actions[0]->setVisible(true);
+    QTRY_VERIFY(buttons[0]->isVisible());
+}
+
+void TestMenuWindow::fullLabelAndActionState()
+{
+    MenuWindow w;
+    QAction action(QStringLiteral("USI形式（現局面まで）(&U)"), &w);
+    action.setObjectName(QStringLiteral("actionUSI"));
+    action.setCheckable(true);
+    action.setShortcut(QKeySequence(QStringLiteral("Ctrl+U")));
+    w.setCategories({{QStringLiteral("編集(E)"), {&action}}});
+    auto* tabs = w.findChild<QTabWidget*>();
+    QCOMPARE(tabs->tabText(1), QStringLiteral("編集"));
+    tabs->setCurrentIndex(1);
+    w.show();
+    auto* card = tabs->currentWidget()->findChild<MenuButtonWidget*>();
+    auto* button = card->findChild<QPushButton*>();
+    auto* label = card->findChild<QLabel*>(QStringLiteral("menuActionText"));
+    QCOMPARE(label->text(), QStringLiteral("USI形式（現局面まで）"));
+    QVERIFY(button->toolTip().contains(QStringLiteral("Ctrl+U")));
+    QSignalSpy triggered(&action, &QAction::triggered);
+    QTest::mouseClick(button, Qt::LeftButton);
+    QCOMPARE(triggered.count(), 1);
+    QVERIFY(action.isChecked());
+    QVERIFY(button->isChecked());
+    QVERIFY(card->findChild<QLabel*>(QStringLiteral("menuActionChecked"))->isVisible());
+    action.setChecked(false);
+    QVERIFY(!button->isChecked());
+    action.setText(QStringLiteral("将棋盤と評価値グラフを画像に保存する"));
+    QCOMPARE(label->text(), action.text());
+    QCOMPARE(button->accessibleName(), action.text());
+    card->updateSizes(48, 24, 16);
+    QCoreApplication::processEvents();
+    QVERIFY(label->rect().height() >= label->heightForWidth(label->width()));
+    QVERIFY(button->rect().contains(label->geometry()));
+    action.setEnabled(false);
+    QVERIFY(!button->isEnabled());
+    QTest::mouseClick(button, Qt::LeftButton);
+    QCOMPARE(triggered.count(), 1);
+}
+
+void TestMenuWindow::favoritesEditingAndDrop()
+{
+    MenuWindow w;
+    auto actions = makeTestActions(&w);
+    w.setCategories(makeTestCategories(actions));
+    auto* tabs = w.findChild<QTabWidget*>();
+    w.show();
+    auto* empty = tabs->widget(0)->findChild<QLabel*>(QStringLiteral("menuEmptyMessage"));
+    QTRY_VERIFY(empty->isVisible());
+    QTest::mouseClick(w.findChild<QToolButton*>(QStringLiteral("menuCustomize")), Qt::LeftButton);
+    tabs->setCurrentIndex(1);
+    auto cards = tabs->currentWidget()->findChildren<MenuButtonWidget*>();
+    QSignalSpy triggered(actions[0], &QAction::triggered);
+    actions[0]->setCheckable(true);
+    // 無効な機能も実行せずにお気に入りへ登録できる。
+    actions[0]->setEnabled(false);
+    QTest::mouseClick(cards[0]->findChild<QPushButton*>(), Qt::LeftButton);
+    QTest::mouseClick(cards[1]->findChild<QPushButton*>(QStringLiteral("menuAddFavorite")), Qt::LeftButton);
+    QCOMPARE(triggered.count(), 0);
+    QVERIFY(!cards[0]->findChild<QPushButton*>()->isChecked());
+    QCOMPARE(w.favorites(), QStringList({actions[0]->objectName(), actions[1]->objectName()}));
+    tabs->setCurrentIndex(0);
+    QTRY_VERIFY(!empty->isVisible());
+    auto favorites = tabs->currentWidget()->findChildren<MenuButtonWidget*>();
+    // 再構築で deleteLater になったボタンを先に破棄する。
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    favorites = tabs->currentWidget()->findChildren<MenuButtonWidget*>();
+    QCOMPARE(favorites.size(), 2);
+    QMimeData mime;
+    mime.setData("application/x-shogiboardq-menu-action", actions[0]->objectName().toUtf8());
+    QDragEnterEvent enter(QPoint(10, 10), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(favorites[1], &enter);
+    QVERIFY(enter.isAccepted());
+    QDropEvent drop(QPointF(10, 10), Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(favorites[1], &drop);
+    QVERIFY(drop.isAccepted());
+    QCOMPARE(w.favorites(), QStringList({actions[1]->objectName(), actions[0]->objectName()}));
+    QCOMPARE(AppSettings::menuWindowFavorites(), w.favorites());
+    QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+    favorites = tabs->currentWidget()->findChildren<MenuButtonWidget*>();
+    QTest::mouseClick(favorites[0]->findChild<QPushButton*>(QStringLiteral("menuRemoveFavorite")), Qt::LeftButton);
+    QCOMPARE(w.favorites(), QStringList({actions[0]->objectName()}));
+}
+
+void TestMenuWindow::settingsSavedWithoutClosingDock()
+{
+    MenuWindow w;
+    const auto actions = makeTestActions(&w);
+    w.setCategories(makeTestCategories(actions));
+    w.findChild<QTabWidget*>()->setCurrentIndex(1);
+    auto* bigger = w.findChild<QToolButton*>(QStringLiteral("menuButtonSizeIncrease"));
+    auto* font = w.findChild<QToolButton*>(QStringLiteral("menuFontSizeIncrease"));
+    const int oldFontSize = AppSettings::menuWindowFontSize();
+    font->click();
+    QCOMPARE(AppSettings::menuWindowFontSize(), oldFontSize + 1);
+    while (bigger->isEnabled()) bigger->click();
+    QCOMPARE(AppSettings::menuWindowButtonSize(), 120);
+    MenuWindow reopened;
+    reopened.setCategories(makeTestCategories(actions));
+    QCOMPARE(reopened.findChild<QTabWidget*>()->currentIndex(), 1);
+    QVERIFY(!reopened.findChild<QToolButton*>(QStringLiteral("menuButtonSizeIncrease"))->isEnabled());
+}
+
+void TestMenuWindow::favoriteDragStartsOnButton()
+{
+    MenuWindow w;
+    const auto actions = makeTestActions(&w);
+    w.setCategories(makeTestCategories(actions));
+    w.setFavorites({actions[0]->objectName()});
+    w.show();
+    w.findChild<QToolButton*>(QStringLiteral("menuCustomize"))->click();
+    auto* card = w.findChild<QTabWidget*>()->widget(0)->findChild<MenuButtonWidget*>();
+    auto* button = card->findChild<QPushButton*>();
+    QSignalSpy started(card, &MenuButtonWidget::dragStarted);
+    QSignalSpy triggered(actions[0], &QAction::triggered);
+    QTimer cancel;
+    cancel.setSingleShot(true);
+    connect(&cancel, &QTimer::timeout, &QDrag::cancel);
+    cancel.start(50);
+    QTest::mousePress(button, Qt::LeftButton, Qt::NoModifier, QPoint(10, 10));
+    const QPoint destination(10 + QApplication::startDragDistance(), 10);
+    QMouseEvent move(QEvent::MouseMove, destination, button->mapToGlobal(destination),
+                     Qt::NoButton, Qt::LeftButton, Qt::NoModifier);
+    QApplication::sendEvent(button, &move);
+    QTest::mouseRelease(button, Qt::LeftButton);
+    QCOMPARE(started.count(), 1);
+    QCOMPARE(triggered.count(), 0);
+}
+
+void TestMenuWindow::destroyedActionIsSafe()
+{
+    MenuWindow w;
+    auto* action = new QAction(QStringLiteral("Temporary"));
+    action->setObjectName(QStringLiteral("temporary"));
+    w.setCategories({{QStringLiteral("File"), {action}}});
+    delete action;
+    w.setFavorites({QStringLiteral("temporary")});
+    w.setCategories({});
+    QCOMPARE(w.findChild<QTabWidget*>()->count(), 1);
 }
 
 QTEST_MAIN(TestMenuWindow)

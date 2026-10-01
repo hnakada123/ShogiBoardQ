@@ -1288,6 +1288,7 @@ add_shogi_test(tst_menu_window
     ${SRC}/common/logcategories.cpp
     ${SRC}/dialogs/menuwindow.cpp
     ${SRC}/widgets/menubuttonwidget.cpp
+    ${SRC}/widgets/flowlayout.cpp
     ${SETTINGS_SOURCES}
 )
 

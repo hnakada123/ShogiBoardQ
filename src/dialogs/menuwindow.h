@@ -8,14 +8,17 @@
 #include <QWidget>
 #include <QTabWidget>
 #include <QToolButton>
-#include <QGridLayout>
 #include <QScrollArea>
 #include <QAction>
 #include <QList>
 #include <QMap>
 #include <QStringList>
+#include <QPointer>
 
 class MenuButtonWidget;
+class FlowLayout;
+class QLabel;
+class QLineEdit;
 
 /**
  * @brief メニューウィンドウクラス
@@ -45,7 +48,7 @@ public:
     /**
      * @brief デストラクタ
      */
-    ~MenuWindow() override = default;
+    ~MenuWindow() override;
 
     /**
      * @brief カテゴリとアクションを設定
@@ -86,6 +89,7 @@ protected:
     void closeEvent(QCloseEvent* event) override;
 
 private slots:
+    void updateFilter();
     /**
      * @brief カスタマイズモード切替ボタンがクリックされたときのスロット
      */
@@ -153,7 +157,7 @@ private:
      * @param category カテゴリ情報
      * @return 作成されたスクロールエリア
      */
-    QScrollArea* createCategoryTab(const CategoryInfo& category);
+    QScrollArea* createCategoryTab(const CategoryInfo& category, bool isFavoriteTab = false);
 
     /**
      * @brief お気に入りタブを更新
@@ -166,12 +170,12 @@ private:
     void updateCustomizeModeForAllTabs();
 
     /**
-     * @brief ボタンをグリッドに配置
-     * @param layout グリッドレイアウト
+     * @brief ボタンを幅に応じて折り返して配置
+     * @param layout フローレイアウト
      * @param actions アクションリスト
      * @param isFavoriteTab お気に入りタブかどうか
      */
-    void populateGrid(QGridLayout* layout, const QList<QAction*>& actions, bool isFavoriteTab);
+    void populateButtons(FlowLayout* layout, const QList<QAction*>& actions, bool isFavoriteTab);
 
     /**
      * @brief アクション名からアクションを取得
@@ -204,23 +208,26 @@ private:
     QToolButton* m_fontSizeDecreaseBtn = nullptr;
     QScrollArea* m_favoritesScrollArea = nullptr;
     QWidget* m_favoritesContainer = nullptr;
-    QGridLayout* m_favoritesLayout = nullptr;
+    FlowLayout* m_favoritesLayout = nullptr;
+    QLineEdit* m_searchEdit = nullptr;
+    QLabel* m_customizeHint = nullptr;
+    QMap<QWidget*, QLabel*> m_emptyLabels;
 
     // データ
     QStringList m_favoriteActionNames;
-    QMap<QString, QAction*> m_actionMap;  // objectName -> QAction
+    QMap<QString, QPointer<QAction>> m_actionMap;  // objectName -> QAction
     QList<MenuButtonWidget*> m_allButtons;
 
     // 状態
     bool m_customizeMode = false;
+    int m_savedTabIndex = 0;
 
     // サイズ設定
-    int m_buttonSize = 72;   // ボタンサイズ
-    int m_fontSize = 9;      // フォントサイズ
+    int m_buttonSize = 104;  // ボタンサイズ
+    int m_fontSize = 12;     // フォントサイズ
     int m_iconSize = 24;     // アイコンサイズ
 
     // 定数
-    static constexpr int kColumnsPerRow = 5;
     static constexpr int kMinButtonSize = 48;
     static constexpr int kMaxButtonSize = 120;
     static constexpr int kMinFontSize = 7;

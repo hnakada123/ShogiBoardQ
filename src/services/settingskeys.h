@@ -145,6 +145,7 @@ inline constexpr char kMenuWindowFavorites[]             = "MenuWindow/favorites
 inline constexpr char kMenuWindowSize[]                  = "MenuWindow/size";
 inline constexpr char kMenuWindowButtonSize[]            = "MenuWindow/buttonSize";
 inline constexpr char kMenuWindowFontSize[]              = "MenuWindow/fontSize";
+inline constexpr char kMenuWindowCurrentTab[]            = "MenuWindow/currentTab";
 
 // --- EngineSettings ---
 inline constexpr char kEngineSettingsDialogSize[]        = "EngineSettings/dialogSize";

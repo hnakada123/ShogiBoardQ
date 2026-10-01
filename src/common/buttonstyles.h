@@ -206,6 +206,7 @@ inline QString menuMainButton()
         "}"
         "QPushButton:hover, QToolButton:hover { background-color: #eef4f9; border-color: #9bb5cb; }"
         "QPushButton:pressed, QToolButton:pressed { background-color: #e0ebf4; }"
+        "QPushButton:checked, QToolButton:checked { background-color: #e0edf7; border-color: #6b92b5; }"
         "QPushButton:focus, QToolButton:focus { border-color: #6b92b5; }"
         "QPushButton:disabled, QToolButton:disabled {"
         "  background-color: #f4f6f8; border-color: #e2e7ec; color: #929eaa;"
