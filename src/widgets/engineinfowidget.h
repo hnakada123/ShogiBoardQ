@@ -43,7 +43,7 @@ signals:
     void columnWidthChanged();
 
 protected:
-    // リサイズイベント（エンジン名列の自動調整用）
+    // 情報帯を表示幅に合わせる
     void resizeEvent(QResizeEvent* event) override;
     void showEvent(QShowEvent* event) override;
 
@@ -66,7 +66,7 @@ private:
     int m_fontSize=10;
     int m_widgetIndex=0;  // ウィジェットインデックス
     bool m_columnWidthsLoaded=false;  // 列幅が設定ファイルから読み込まれたか
-    int m_buttonRowHeight=0;  // ボタン行の高さ（ボタン非表示時は0）
+    QWidget* m_fontControls = nullptr;
 
     // フォントサイズボタン
     QToolButton* m_btnFontDecrease=nullptr;
@@ -93,8 +93,8 @@ private:
     void initializeCells();
     void buildLayout();
 
-    // エンジン名列の幅を残りスペースに合わせて調整
-    void adjustEngineNameColumn();
+    // 内容に合う列幅と情報帯の高さを計算（手動の列幅は維持）
+    void updateTableGeometry();
 
     // ヘッダースタイルの再適用（フォントサイズ反映用）
     void applyHeaderStyle();

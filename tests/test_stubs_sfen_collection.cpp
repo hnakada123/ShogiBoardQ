@@ -61,7 +61,7 @@ void ElideLabel::mousePressEvent(QMouseEvent* e) { QLabel::mousePressEvent(e); }
 void ElideLabel::mouseMoveEvent(QMouseEvent* e) { QLabel::mouseMoveEvent(e); }
 void ElideLabel::mouseReleaseEvent(QMouseEvent* e) { QLabel::mouseReleaseEvent(e); }
 void ElideLabel::onTimerTimeout() {}
-void ElideLabel::updateElidedText() {}
+void ElideLabel::refreshDisplayText() {}
 void ElideLabel::startSlideIfNeeded() {}
 void ElideLabel::stopSlide() {}
 bool ElideLabel::isOverflowing() const { return false; }

@@ -652,6 +652,7 @@ set(UI_DISPLAY_TEST_SOURCES
     ${SRC}/widgets/kifudisplay.cpp
     ${SRC}/widgets/kifubranchdisplay.cpp
     ${SRC}/widgets/recordpane.cpp
+    ${SRC}/widgets/recordpane_branch.cpp
     ${SRC}/widgets/recordpaneappearancemanager.cpp
     ${SRC}/widgets/branchtreemanager.cpp
     ${SRC}/widgets/branchtreemanager_draw.cpp

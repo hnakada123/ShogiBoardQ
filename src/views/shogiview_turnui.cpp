@@ -58,9 +58,10 @@ void ShogiView::relayoutTurnLabels()
     QFont badgeFont = font();
     badgeFont.setPixelSize(qMax(8, qRound(fs.height() * 0.16)));
     badgeFont.setBold(true);
-    const int nameHeight = QFontMetrics(nameFont).height() + 2;
+    // 両者とも2行分を確保し、長い名前でも残り時間と重ならないようにする。
+    const int nameHeight = QFontMetrics(nameFont).height() * 2 + 2;
     const int badgeHeight = QFontMetrics(badgeFont).height() + 4;
-    const int clockHeight = qMax(nameHeight + 2, qRound(fs.height() * 0.42));
+    const int clockHeight = qMax(QFontMetrics(nameFont).height() + 4, qRound(fs.height() * 0.42));
     // 非手番側にもバッジの余白を確保し、手番交代でカードや文字が動かないようにする。
     const int cardHeight = padding * 2 + badgeHeight + gap + nameHeight
         + (m_clockEnabled ? gap + clockHeight : 0);

@@ -1,11 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>すぐ指させる</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <circle cx="64" cy="64" r="64" fill="#4CAF50"/>
-        <polygon points="32,16 112,64 32,112" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>すぐ指させる</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m5 5 10 7L5 19Z" fill="#52799c" stroke="#52799c"/><path d="M19 5v14"/>
+  </g>
 </svg>

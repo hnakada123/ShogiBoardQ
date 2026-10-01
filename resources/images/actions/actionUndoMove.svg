@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-    <title>待った</title>
-    <defs>
-        <style>
-            text { font-family: 'Noto Sans JP', 'Yu Gothic', sans-serif; }
-        </style>
-    </defs>
-    <circle cx="64" cy="64" r="64" fill="#FF5722"/>
-        <path d="M104 64 A40 40 0 1 0 64 104" stroke="white" stroke-width="10" fill="none" stroke-linecap="round"/>
-        <polygon points="96,40 112,64 96,88" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>待った</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m8 4-5 5 5 5M3 9h10a7 7 0 0 1 0 14" transform="translate(0 -2)"/>
+  </g>
 </svg>

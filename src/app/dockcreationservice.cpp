@@ -22,6 +22,14 @@ DockCreationService::DockCreationService(QMainWindow* mainWindow, QObject* paren
     : QObject(parent)
     , m_mainWindow(mainWindow)
 {
+    if (m_mainWindow) {
+        m_mainWindow->setStyleSheet(m_mainWindow->styleSheet() + QStringLiteral(
+            "QMainWindow > QTabBar::tab { background: #edf0f3; color: #596571;"
+            " border: none; border-bottom: 2px solid transparent; padding: 6px 12px; }"
+            "QMainWindow > QTabBar::tab:hover { background: #e7edf3; color: #243b53; }"
+            "QMainWindow > QTabBar::tab:selected { background: #ffffff; color: #243b53;"
+            " border-bottom-color: #52799c; }"));
+    }
 }
 
 void DockCreationService::setModels(ShogiEngineThinkingModel* think1,
@@ -45,7 +53,7 @@ void DockCreationService::setupDockFeatures(QDockWidget* dock, const QString& ob
     dock->setAllowedAreas(Qt::AllDockWidgetAreas);
     // タイトルバーの高さと色を設定（ドラッグ領域を認識しやすくする）
     dock->setStyleSheet(QStringLiteral(
-        "QDockWidget::title { padding: 8px; background-color: #dcdcdc; }"));
+        "QDockWidget::title { padding: 6px 8px; background-color: #edf0f3; }"));
 }
 
 void DockCreationService::addToggleActionToMenu(QDockWidget* dock, const QString& title)
@@ -146,7 +154,7 @@ void DockCreationService::createAnalysisDocks()
         dock->setAllowedAreas(Qt::AllDockWidgetAreas);
         // タイトルバーの高さと色を設定（ドラッグ領域を認識しやすくする）
         dock->setStyleSheet(QStringLiteral(
-            "QDockWidget::title { padding: 8px; background-color: #dcdcdc; }"));
+            "QDockWidget::title { padding: 6px 8px; background-color: #edf0f3; }"));
         m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, dock);
         addToggleActionToMenu(dock, title);
     };

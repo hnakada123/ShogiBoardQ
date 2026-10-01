@@ -43,6 +43,10 @@ void setKifuBookmarkColumnVisible(bool visible);
 bool kifuCommentColumnVisible();
 void setKifuCommentColumnVisible(bool visible);
 
+/// 分岐候補欄の開閉状態（デフォルト: 展開）
+bool kifuBranchExpanded();
+void setKifuBranchExpanded(bool expanded);
+
 // --- メインタブ（コメント・対局情報） ---
 
 /// 棋譜コメントタブのフォントサイズ（デフォルト: 10）

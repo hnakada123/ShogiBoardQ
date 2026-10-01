@@ -14,6 +14,8 @@
 #include <QPalette>
 #include <QResizeEvent>
 #include <QShowEvent>
+#include <QScrollBar>
+#include <QSignalBlocker>
 #include "usicommlogmodel.h"
 
 EngineInfoWidget::EngineInfoWidget(QWidget* parent, bool showFontButtons, bool showPredictedMove)
@@ -35,6 +37,9 @@ void EngineInfoWidget::setupTable()
             << tr("深さ") << tr("ノード数") << tr("探索局面数") << tr("ハッシュ使用率");
     m_table->setHorizontalHeaderLabels(headers);
     applyHeaderStyle();
+
+    m_table->setObjectName(QStringLiteral("engineInfoTable"));
+    m_table->setShowGrid(false);
 
     // 行ヘッダーを非表示
     m_table->verticalHeader()->setVisible(false);
@@ -76,7 +81,7 @@ void EngineInfoWidget::setupTable()
 
     // スクロールバー非表示
     m_table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_table->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    m_table->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
 }
 
 void EngineInfoWidget::initializeCells()
@@ -94,55 +99,44 @@ void EngineInfoWidget::initializeCells()
 
 void EngineInfoWidget::buildLayout()
 {
-    auto* mainLayout = new QVBoxLayout(this);
+    auto* mainLayout = new QHBoxLayout(this);
+    mainLayout->setSizeConstraint(QLayout::SetNoConstraint);
+    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->setSpacing(0);
-
-    // フォントサイズボタンを追加（showFontButtons=trueの場合のみ）
-    m_buttonRowHeight = 0;
+    mainLayout->setSpacing(8);
     if (m_showFontButtons) {
-        QWidget* buttonRow = new QWidget(this);
-        QHBoxLayout* buttonLayout = new QHBoxLayout(buttonRow);
-        buttonLayout->setContentsMargins(0, 0, 0, 2);
-        buttonLayout->setSpacing(4);
-
-        m_btnFontDecrease = new QToolButton(buttonRow);
+        m_fontControls = new QWidget(this);
+        auto* buttonLayout = new QVBoxLayout(m_fontControls);
+        buttonLayout->setContentsMargins(0, 0, 0, 0);
+        buttonLayout->setSpacing(3);
+        m_btnFontDecrease = new QToolButton(m_fontControls);
         m_btnFontDecrease->setText(QStringLiteral("A-"));
         m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
-        m_btnFontDecrease->setFixedSize(28, 20);
-        m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-        connect(m_btnFontDecrease, &QToolButton::clicked,
-                this, &EngineInfoWidget::fontSizeDecreaseRequested);
-
-        m_btnFontIncrease = new QToolButton(buttonRow);
+        m_btnFontIncrease = new QToolButton(m_fontControls);
         m_btnFontIncrease->setText(QStringLiteral("A+"));
         m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
-        m_btnFontIncrease->setFixedSize(28, 20);
-        m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
+        for (auto* button : {m_btnFontDecrease, m_btnFontIncrease}) {
+            button->setFixedSize(36, 24);
+            button->setStyleSheet(ButtonStyles::panelToolButton());
+            buttonLayout->addWidget(button);
+        }
+        connect(m_btnFontDecrease, &QToolButton::clicked,
+                this, &EngineInfoWidget::fontSizeDecreaseRequested);
         connect(m_btnFontIncrease, &QToolButton::clicked,
                 this, &EngineInfoWidget::fontSizeIncreaseRequested);
-
-        buttonLayout->addWidget(m_btnFontDecrease);
-        buttonLayout->addWidget(m_btnFontIncrease);
-        buttonLayout->addStretch();
-
-        buttonRow->setLayout(buttonLayout);
-        mainLayout->addWidget(buttonRow);
-        m_buttonRowHeight = 22;
+        mainLayout->addWidget(m_fontControls, 0, Qt::AlignTop);
     }
-
     mainLayout->addWidget(m_table);
-
-    // 高さ固定（ボタン行 + ヘッダー + 1行）
-    int headerHeight = m_table->horizontalHeader()->height();
-    int rowHeight = m_table->verticalHeader()->defaultSectionSize();
-    setFixedHeight(m_buttonRowHeight + headerHeight + rowHeight + 2);
+    mainLayout->addStretch();
+    updateTableGeometry();
 }
 
 void EngineInfoWidget::setCellValue(int col, const QString& value) {
     QTableWidgetItem* item = m_table->item(0, col);
     if (item) {
         item->setText(value);
+        item->setToolTip(value);
+        updateTableGeometry();
     }
 }
 
@@ -164,9 +158,7 @@ void EngineInfoWidget::setFontSize(int pointSize) {
     int rowHeight = fm.height() + 4;
     m_table->verticalHeader()->setDefaultSectionSize(rowHeight);
 
-    // ウィジェット全体の高さを再計算（ボタン行 + ヘッダー + 1行）
-    int headerHeight = m_table->horizontalHeader()->height();
-    setFixedHeight(m_buttonRowHeight + headerHeight + rowHeight + 2);
+    updateTableGeometry();
 }
 
 void EngineInfoWidget::setModel(UsiCommLogModel* m) {
@@ -234,7 +226,8 @@ QList<int> EngineInfoWidget::columnWidths() const
 void EngineInfoWidget::applyHeaderStyle()
 {
     if (!m_table) return;
-    m_table->setStyleSheet(TableStyles::header(m_fontSize));
+    m_table->setStyleSheet(TableStyles::header(m_fontSize) + QStringLiteral(
+        "QTableView { background: #ffffff; color: #303841; border: 1px solid #d8dee5; }"));
 }
 
 // 列幅の設定
@@ -255,6 +248,7 @@ void EngineInfoWidget::setColumnWidths(const QList<int>& widths)
     
     // 設定ファイルから読み込まれたことを記録
     m_columnWidthsLoaded = true;
+    updateTableGeometry();
 }
 
 // 列幅変更時のスロット
@@ -264,58 +258,47 @@ void EngineInfoWidget::onSectionResized(int logicalIndex, int oldSize, int newSi
     Q_UNUSED(oldSize)
     Q_UNUSED(newSize)
     
-    // ユーザーが列幅を手動で変更した場合は、エンジン名列の自動調整は行わない
-    // （各列が独立してリサイズされるようにする）
-    
-    // 列幅が変更されたことを通知
+    m_columnWidthsLoaded = true;
+    updateTableGeometry();
     emit columnWidthChanged();
 }
 
-// リサイズイベント
 void EngineInfoWidget::resizeEvent(QResizeEvent* event)
 {
     QWidget::resizeEvent(event);
-    // 設定ファイルから列幅が読み込まれていない場合のみ、エンジン名列を調整
-    // （読み込み済みの場合は、ユーザーの設定を維持する）
-    if (!m_columnWidthsLoaded) {
-        adjustEngineNameColumn();
-    }
+    updateTableGeometry();
 }
 
-// 表示イベント
 void EngineInfoWidget::showEvent(QShowEvent* event)
 {
     QWidget::showEvent(event);
-    // 設定ファイルから列幅が読み込まれていない場合のみ、エンジン名列を調整
-    if (!m_columnWidthsLoaded) {
-        adjustEngineNameColumn();
-    }
+    updateTableGeometry();
 }
 
-// エンジン名列の幅を残りスペースに合わせて調整
-void EngineInfoWidget::adjustEngineNameColumn()
+void EngineInfoWidget::updateTableGeometry()
 {
-    if (!m_table) return;
-    
-    // 他の列の合計幅を計算（非表示列はスキップ）
-    int otherColumnsWidth = 0;
-    for (int col = COL_PRED; col < COL_COUNT; ++col) {
-        if (!m_table->isColumnHidden(col)) {
-            otherColumnsWidth += m_table->columnWidth(col);
+    const QSignalBlocker blocker(m_table->horizontalHeader());
+    if (!m_columnWidthsLoaded) {
+        for (int col = 0; col < COL_COUNT; ++col) {
+            const auto* item = m_table->item(0, col);
+            const auto* heading = m_table->horizontalHeaderItem(col);
+            const QFontMetrics metrics(m_table->font());
+            int contentWidth = qMax(metrics.horizontalAdvance(item ? item->text() : QString()),
+                                    metrics.horizontalAdvance(heading ? heading->text() : QString())) + 20;
+            if (col == COL_ENGINE_NAME) contentWidth = qBound(120, contentWidth, 260);
+            m_table->setColumnWidth(col, contentWidth);
         }
     }
-    
-    // テーブルの利用可能な幅を取得
-    int availableWidth = m_table->viewport()->width();
-    
-    // エンジン名列の幅を計算（最小幅100を確保）
-    int engineNameWidth = availableWidth - otherColumnsWidth;
-    if (engineNameWidth < 100) {
-        engineNameWidth = 100;
-    }
-    
-    // シグナルをブロックして設定
-    m_table->horizontalHeader()->blockSignals(true);
-    m_table->setColumnWidth(COL_ENGINE_NAME, engineNameWidth);
-    m_table->horizontalHeader()->blockSignals(false);
+    const int contentWidth = m_table->horizontalHeader()->length();
+    const int controlsWidth = m_fontControls ? m_fontControls->sizeHint().width() + 8 : 0;
+    const int availableWidth = qMax(1, width() - controlsWidth);
+    const int frame = 2 * m_table->frameWidth();
+    const int tableWidth = qMin(contentWidth + frame, availableWidth);
+    m_table->setFixedWidth(tableWidth);
+    const int scrollHeight = contentWidth + frame > tableWidth
+        ? m_table->horizontalScrollBar()->sizeHint().height() : 0;
+    const int tableHeight = m_table->horizontalHeader()->sizeHint().height()
+        + m_table->verticalHeader()->defaultSectionSize() + frame + scrollHeight;
+    m_table->setFixedHeight(tableHeight);
+    setFixedHeight(qMax(tableHeight, m_fontControls ? m_fontControls->sizeHint().height() : 0));
 }

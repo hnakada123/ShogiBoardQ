@@ -84,6 +84,16 @@ void setKifuCommentColumnVisible(bool visible)
     s.setValue(SettingsKeys::kRecordPaneCommentColumnVisible, visible);
 }
 
+bool kifuBranchExpanded()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kRecordPaneBranchExpanded, true).toBool();
+}
+
+void setKifuBranchExpanded(bool expanded)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kRecordPaneBranchExpanded, expanded);
+}
+
 // --- メインタブ（コメント・対局情報） ---
 
 int commentFontSize()

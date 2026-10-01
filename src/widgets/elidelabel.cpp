@@ -4,6 +4,7 @@
 #include "elidelabel.h"
 #include <QPainter>
 #include <QMouseEvent>
+#include <QTextLayout>
 
 /*
  * ElideLabel
@@ -38,7 +39,7 @@ void ElideLabel::setFullText(const QString& t) {
     m_fullText = t;                 // 元テキストを更新
     setProperty("fullText", m_fullText); // 汎用のUI検査でも省略前の文字列を取得できるようにする
     setToolTip(m_fullText);         // ツールチップも同期
-    updateElidedText();             // elidedText を再計算して再描画を促す
+    refreshDisplayText();             // elidedText を再計算して再描画を促す
 
     // （オプション）変更時にスクロール位置を初期化したい場合：
     // m_offset = 0;
@@ -57,7 +58,7 @@ QString ElideLabel::fullText() const { return m_fullText; }
 void ElideLabel::setElideMode(Qt::TextElideMode m) {
     if (m_mode == m) return;
     m_mode = m;
-    updateElidedText();  // contentsRect().width() に基づいて elidedText を作り直す
+    refreshDisplayText();  // contentsRect().width() に基づいて elidedText を作り直す
 }
 
 // 現在のエリプシス位置（Qt::TextElideMode）を返すゲッター。
@@ -123,10 +124,8 @@ QSize ElideLabel::sizeHint() const
 // 役割：現在のフォントと内容矩形幅（contentsRect().width()）に基づき、
 //       m_fullText を elidedText で省略・更新して再描画する。
 // 副作用：必要条件を満たす場合は自動スクロール開始を試みる（startSlideIfNeeded）。
-void ElideLabel::updateElidedText()
+void ElideLabel::refreshDisplayText()
 {
-    QFontMetrics fm(font());
-    m_elidedText = fm.elidedText(m_fullText, m_mode, contentsRect().width());
     update();
     startSlideIfNeeded();
 }
@@ -137,7 +136,27 @@ void ElideLabel::updateElidedText()
 bool ElideLabel::isOverflowing() const
 {
     QFontMetrics fm(font());
-    return fm.horizontalAdvance(m_fullText) > contentsRect().width();
+    return fm.horizontalAdvance(displayLines().last()) > contentsRect().width();
+}
+
+QStringList ElideLabel::displayLines() const
+{
+    if (!wordWrap() || m_fullText.isEmpty()) return {m_fullText};
+    QTextLayout layout(m_fullText, font());
+    QTextOption option;
+    option.setWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
+    layout.setTextOption(option);
+    layout.beginLayout();
+    QTextLine line = layout.createLine();
+    if (!line.isValid()) {
+        layout.endLayout();
+        return {m_fullText};
+    }
+    line.setLineWidth(qMax(1, contentsRect().width()));
+    const int split = line.textLength();
+    layout.endLayout();
+    if (split >= m_fullText.size()) return {m_fullText};
+    return {m_fullText.left(split).trimmed(), m_fullText.mid(split).trimmed()};
 }
 
 // 自動スクロール用タイマーのタイムアウトハンドラ。
@@ -199,7 +218,7 @@ void ElideLabel::leaveEvent(QEvent*)
 void ElideLabel::resizeEvent(QResizeEvent* e)
 {
     QLabel::resizeEvent(e);  // 既定の処理（レイアウト/内部状態更新など）
-    updateElidedText();      // 新しい contentsRect().width() を使って省略文字列を更新
+    refreshDisplayText();      // 新しい contentsRect().width() を使って省略文字列を更新
 }
 
 // マウス押下イベント。
@@ -269,9 +288,18 @@ void ElideLabel::paintEvent(QPaintEvent* event)
     const QRect cr = contentsRect();
     p.setClipRect(cr);
     QFontMetrics fm(font());
-    const int textW = fm.horizontalAdvance(m_fullText);
+    const QStringList lines = displayLines();
+    const QString& lastLine = lines.last();
+    const int textW = fm.horizontalAdvance(lastLine);
     // 中央揃え用のベースライン： ascent / descent を考慮して垂直中央に配置
-    const int baseY = cr.y() + (cr.height() + fm.ascent() - fm.descent())/2;
+    QRect lastRect = cr;
+    if (lines.size() > 1) {
+        const int top = cr.top() + qMax(0, (cr.height() - 2 * fm.height()) / 2);
+        p.drawText(QRect(cr.left(), top, cr.width(), fm.height()),
+                   static_cast<int>(alignment()) | Qt::AlignVCenter, lines.first());
+        lastRect = QRect(cr.left(), top + fm.height(), cr.width(), fm.height());
+    }
+    const int baseY = lastRect.y() + (lastRect.height() + fm.ascent() - fm.descent())/2;
 
     const bool overflow = textW > cr.width();
 
@@ -283,13 +311,13 @@ void ElideLabel::paintEvent(QPaintEvent* event)
         const int off = (m_offset % period + period) % period;
 
         // 2 回描画して継ぎ目を目立たなくする
-        p.drawText(startX - off,           baseY, m_fullText);
-        p.drawText(startX - off + period,  baseY, m_fullText);
+        p.drawText(startX - off,           baseY, lastLine);
+        p.drawText(startX - off + period,  baseY, lastLine);
     } else {
         // ── 通常描画（非スクロール） ──
-        // 収まる：m_fullText、収まらない：m_elidedText（alignment は QLabel 設定を流用）
-        p.drawText(cr, static_cast<int>(alignment()) | Qt::AlignVCenter,
-                   overflow ? m_elidedText : m_fullText);
+        // 最終行だけを必要に応じて省略（alignment は QLabel 設定を流用）
+        p.drawText(lastRect, static_cast<int>(alignment()) | Qt::AlignVCenter,
+                   overflow ? fm.elidedText(lastLine, m_mode, cr.width()) : lastLine);
     }
 
     // 下線オプション（装飾）

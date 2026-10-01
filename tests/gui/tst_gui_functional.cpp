@@ -55,6 +55,9 @@
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
 #include "engineanalysistab.h"
+#include "engineinfowidget.h"
+#include "usicommlogmodel.h"
+#include "gamesettings.h"
 #include "sfencollectiondialog.h"
 #include "kifupastedialog.h"
 #include "josekiwindow.h"
@@ -1739,6 +1742,75 @@ private slots:
         QTest::qWait(80);
         QVERIFY(edit->toPlainText().contains("Audit comment at ply one"));
         QVERIFY(copy("actionCopyKIF").contains("&Audit bookmark"));
+    }
+    void branchPanelCollapse()
+    {
+        sampleGame();
+        auto* toggle = record()->findChild<QToolButton*>(QStringLiteral("kifuBranchToggle"));
+        QVERIFY(toggle);
+        QVERIFY(toggle->isChecked());
+        const int expandedWidth = record()->width();
+        const QString originalPosition = boardSfen();
+        QTest::mouseClick(toggle, Qt::LeftButton);
+        QVERIFY(record()->branchView()->isHidden());
+        QTRY_VERIFY(record()->width() < expandedWidth);
+        QCOMPARE(boardSfen(), originalPosition);
+        QVERIFY(!GameSettings::kifuBranchExpanded());
+        {
+            RecordPane restored;
+            QVERIFY(restored.branchView()->isHidden());
+            QVERIFY(!restored.findChild<QToolButton*>(QStringLiteral("kifuBranchToggle"))->isChecked());
+        }
+        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 1);
+        const QString movedPosition = boardSfen();
+        QVERIFY(movedPosition != originalPosition);
+        board()->setBlackPlayerName(QStringLiteral("Hayanagi 1.5.0"));
+        board()->setWhitePlayerName(QStringLiteral("将棋盤Q テスト対局者"));
+        snapshot("branch-panel-collapsed");
+        QTest::mouseClick(toggle, Qt::LeftButton);
+        QVERIFY(record()->branchView()->isVisible());
+        QTRY_COMPARE(record()->width(), expandedWidth);
+        QCOMPARE(boardSfen(), movedPosition);
+        QVERIFY(GameSettings::kifuBranchExpanded());
+    }
+    void engineInfoLayout()
+    {
+        UsiCommLogModel model;
+        EngineInfoWidget info(nullptr, true);
+        model.setEngineName(QStringLiteral("Hayanagi 1.5.0"));
+        model.setPredictiveMove(QStringLiteral("▲７六歩(77)"));
+        model.setSearchedMove(QStringLiteral("△３四歩(33)"));
+        model.setSearchDepth(QStringLiteral("12/18"));
+        model.setNodeCount(QStringLiteral("1,234,567"));
+        model.setNodesPerSecond(QStringLiteral("456,789"));
+        model.setHashUsage(QStringLiteral("12%"));
+        info.setModel(&model);
+        info.resize(1200, info.height());
+        info.show();
+        auto* table = info.findChild<QTableWidget*>(QStringLiteral("engineInfoTable"));
+        QVERIFY(table);
+        QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
+        QVERIFY(table->columnWidth(0) < info.width() / 3);
+        const auto widths = info.columnWidths();
+        info.resize(400, info.height());
+        QTRY_VERIFY(table->horizontalScrollBar()->maximum() > 0);
+        QCOMPARE(info.columnWidths(), widths);
+        table->horizontalScrollBar()->setValue(table->horizontalScrollBar()->maximum());
+        QVERIFY(table->visualRect(table->model()->index(0, 6)).right() < table->viewport()->width());
+        info.resize(1200, info.height());
+        QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
+        info.setFontSize(16);
+        QTRY_VERIFY(table->columnWidth(4) >= table->fontMetrics().horizontalAdvance(table->item(0, 4)->text()) + 6);
+        auto customWidths = info.columnWidths();
+        customWidths[0] += 40;
+        info.setColumnWidths(customWidths);
+        info.resize(500, info.height());
+        info.resize(1300, info.height());
+        QCOMPARE(info.columnWidths(), customWidths);
+        model.setEngineName(QStringLiteral("An engine with a very long display name"));
+        QCOMPARE(info.columnWidths(), customWidths);
+        QCOMPARE(table->item(0, 0)->toolTip(), model.engineName());
     }
     void branchNavigation()
     {

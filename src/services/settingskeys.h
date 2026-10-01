@@ -193,6 +193,7 @@ inline constexpr char kDocksLocked[]                     = "Dock/docksLocked";
 inline constexpr char kRecordPaneTimeColumnVisible[]     = "RecordPane/timeColumnVisible";
 inline constexpr char kRecordPaneBookmarkColumnVisible[] = "RecordPane/bookmarkColumnVisible";
 inline constexpr char kRecordPaneCommentColumnVisible[]  = "RecordPane/commentColumnVisible";
+inline constexpr char kRecordPaneBranchExpanded[]        = "RecordPane/branchExpanded";
 
 // --- TsumeCollection / TsumePlay ---
 inline constexpr char kTsumeCollectionSize[] = "TsumeCollection/size";
