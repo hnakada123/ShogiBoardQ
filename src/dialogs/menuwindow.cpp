@@ -5,12 +5,16 @@
 #include "buttonstyles.h"
 #include "menubuttonwidget.h"
 #include "appsettings.h"
+#include "flowlayout.h"
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QCloseEvent>
 #include <QFrame>
-#include <QDebug>
+#include <QLabel>
+#include <QLineEdit>
+#include <QSignalBlocker>
+#include <QRegularExpression>
 #include <memory>
 #include <utility>
 
@@ -21,14 +25,22 @@ MenuWindow::MenuWindow(QWidget* parent)
     loadSettings();
 }
 
+MenuWindow::~MenuWindow()
+{
+    // 子 QAction の破棄通知が、破棄済みのメンバーへアクセスしないようにする。
+    for (QAction* action : std::as_const(m_actionMap)) {
+        if (action) disconnect(action, nullptr, this, nullptr);
+    }
+}
+
 void MenuWindow::setupUi()
 {
     setWindowTitle(tr("メニュー"));
     setAttribute(Qt::WA_DeleteOnClose, false);  // 閉じても破棄しない
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(4, 4, 4, 4);
-    mainLayout->setSpacing(4);
+    mainLayout->setContentsMargins(8, 8, 8, 8);
+    mainLayout->setSpacing(8);
 
     // タイトルバー風のヘッダー
     QHBoxLayout* headerLayout = new QHBoxLayout();
@@ -78,16 +90,30 @@ void MenuWindow::setupUi()
     separator2->setFrameShadow(QFrame::Sunken);
     headerLayout->addWidget(separator2);
 
-    // カスタマイズボタン（歯車アイコン）
+    // お気に入り編集の用途を明示する
     m_customizeButton = new QToolButton(this);
-    m_customizeButton->setText(QStringLiteral("\u2699"));  // 歯車記号
+    m_customizeButton->setText(tr("お気に入り編集"));
     m_customizeButton->setCheckable(true);
-    m_customizeButton->setToolTip(tr("Customize"));
-    m_customizeButton->setStyleSheet(ButtonStyles::customizeSettings());
+    m_customizeButton->setToolTip(tr("お気に入りの追加・削除・並べ替え"));
+    m_customizeButton->setStyleSheet(ButtonStyles::menuMainButton());
     connect(m_customizeButton, &QToolButton::clicked, this, &MenuWindow::onCustomizeButtonClicked);
     headerLayout->addWidget(m_customizeButton);
 
     mainLayout->addLayout(headerLayout);
+
+    m_customizeHint = new QLabel(tr("各項目の＋で追加、×で削除できます。お気に入りはドラッグで並べ替えできます。"), this);
+    m_customizeHint->setWordWrap(true);
+    m_customizeHint->setStyleSheet(QStringLiteral("color: #466783; padding: 4px;"));
+    m_customizeHint->hide();
+    mainLayout->addWidget(m_customizeHint);
+
+    m_searchEdit = new QLineEdit(this);
+    m_searchEdit->setObjectName(QStringLiteral("menuSearch"));
+    m_searchEdit->setPlaceholderText(tr("このタブの項目を検索"));
+    m_searchEdit->setAccessibleName(m_searchEdit->placeholderText());
+    m_searchEdit->setClearButtonEnabled(true);
+    connect(m_searchEdit, &QLineEdit::textChanged, this, &MenuWindow::updateFilter);
+    mainLayout->addWidget(m_searchEdit);
 
     // タブウィジェット
     m_tabWidget = new QTabWidget(this);
@@ -106,8 +132,15 @@ void MenuWindow::setupUi()
 
 void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
 {
+    const QSignalBlocker blocker(m_tabWidget);
+    for (QAction* action : std::as_const(m_actionMap)) {
+        if (!action) continue;
+        disconnect(action, &QAction::changed, this, &MenuWindow::updateFilter);
+        disconnect(action, &QObject::destroyed, this, &MenuWindow::updateFilter);
+    }
     m_actionMap.clear();
     m_allButtons.clear();
+    m_emptyLabels.clear();
 
     // タブをクリア
     while (m_tabWidget->count() > 0) {
@@ -124,22 +157,22 @@ void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
         }
     }
 
+    for (QAction* action : std::as_const(m_actionMap)) {
+        connect(action, &QAction::changed, this, &MenuWindow::updateFilter);
+        connect(action, &QObject::destroyed, this, &MenuWindow::updateFilter);
+    }
+
     // お気に入りタブを最初に追加
-    m_favoritesScrollArea = new QScrollArea(this);
-    m_favoritesScrollArea->setWidgetResizable(true);
-    m_favoritesScrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_favoritesContainer = new QWidget();
-    m_favoritesLayout = new QGridLayout(m_favoritesContainer);
-    m_favoritesLayout->setContentsMargins(8, 8, 8, 8);
-    m_favoritesLayout->setSpacing(8);
-    m_favoritesLayout->setAlignment(Qt::AlignTop | Qt::AlignLeft);
-    m_favoritesScrollArea->setWidget(m_favoritesContainer);
-    m_tabWidget->addTab(m_favoritesScrollArea, QStringLiteral("\u2605 ") + tr("Favorites"));
+    m_favoritesScrollArea = createCategoryTab({QString(), {}}, true);
+    m_tabWidget->addTab(m_favoritesScrollArea, QStringLiteral("\u2605 ") + tr("お気に入り"));
 
     // カテゴリタブを追加
     for (const auto& category : categories) {
         QScrollArea* scrollArea = createCategoryTab(category);
-        m_tabWidget->addTab(scrollArea, category.displayName);
+        QString title = category.displayName;
+        title.remove(QRegularExpression(QStringLiteral("\\s*\\([A-Za-z]\\)")));
+        m_tabWidget->addTab(scrollArea, title);
+        m_tabWidget->setTabToolTip(m_tabWidget->count() - 1, title);
     }
 
     // お気に入りタブを更新
@@ -147,6 +180,8 @@ void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
 
     // 保存されたサイズ設定を適用
     updateAllButtonSizes();
+    m_tabWidget->setCurrentIndex(qBound(0, m_savedTabIndex, m_tabWidget->count() - 1));
+    updateFilter();
 }
 
 void MenuWindow::setFavorites(const QStringList& favoriteActionNames)
@@ -158,21 +193,34 @@ void MenuWindow::setFavorites(const QStringList& favoriteActionNames)
     Q_EMIT favoritesChanged(m_favoriteActionNames);
 }
 
-QScrollArea* MenuWindow::createCategoryTab(const CategoryInfo& category)
+QScrollArea* MenuWindow::createCategoryTab(const CategoryInfo& category, bool isFavoriteTab)
 {
-    QScrollArea* scrollArea = new QScrollArea(this);
+    auto* scrollArea = new QScrollArea(this);
     scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
     scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    QWidget* container = new QWidget();
-    QGridLayout* layout = new QGridLayout(container);
-    layout->setContentsMargins(8, 8, 8, 8);
-    layout->setSpacing(8);
-    layout->setAlignment(Qt::AlignTop | Qt::AlignLeft);
+    auto* page = new QWidget;
+    auto* pageLayout = new QVBoxLayout(page);
+    pageLayout->setContentsMargins(0, 0, 0, 0);
+    auto* emptyLabel = new QLabel(page);
+    emptyLabel->setObjectName(QStringLiteral("menuEmptyMessage"));
+    emptyLabel->setWordWrap(true);
+    emptyLabel->setContentsMargins(12, 16, 12, 16);
+    emptyLabel->setStyleSheet(QStringLiteral("color: #596b7b;"));
+    pageLayout->addWidget(emptyLabel);
 
-    populateGrid(layout, category.actions, false);
-
-    scrollArea->setWidget(container);
+    auto* container = new QWidget(page);
+    auto* layout = new FlowLayout(container, 8, 8, 8);
+    pageLayout->addWidget(container);
+    pageLayout->addStretch();
+    m_emptyLabels.insert(container, emptyLabel);
+    if (isFavoriteTab) {
+        m_favoritesContainer = container;
+        m_favoritesLayout = layout;
+    }
+    populateButtons(layout, category.actions, isFavoriteTab);
+    scrollArea->setWidget(page);
     return scrollArea;
 }
 
@@ -188,7 +236,9 @@ void MenuWindow::updateFavoritesTab()
             if (btn) {
                 m_allButtons.removeAll(btn);
             }
-            std::unique_ptr<QWidget> widgetGuard(widget);
+            // クリック・ドロップのシグナル送信元はイベント処理が終わるまで生存させる。
+            widget->hide();
+            widget->deleteLater();
         }
     }
 
@@ -201,7 +251,8 @@ void MenuWindow::updateFavoritesTab()
         }
     }
 
-    populateGrid(m_favoritesLayout, favoriteActions, true);
+    populateButtons(m_favoritesLayout, favoriteActions, true);
+    updateFilter();
 }
 
 void MenuWindow::updateCustomizeModeForAllTabs()
@@ -225,38 +276,42 @@ void MenuWindow::updateCustomizeModeForAllTabs()
     }
 }
 
-void MenuWindow::populateGrid(QGridLayout* layout, const QList<QAction*>& actions, bool isFavoriteTab)
+void MenuWindow::populateButtons(FlowLayout* layout, const QList<QAction*>& actions, bool isFavoriteTab)
 {
-    int row = 0;
-    int col = 0;
+    for (QAction* action : actions) {
+        if (!action || action->objectName().isEmpty() || action->isSeparator()) continue;
 
-    for (QAction* action : std::as_const(actions)) {
-        if (!action || action->objectName().isEmpty()) continue;
-        if (action->isSeparator()) continue;
-
-        MenuButtonWidget* button = new MenuButtonWidget(action, layout->parentWidget());
-        button->updateSizes(m_buttonSize, m_fontSize, m_iconSize);  // 保存されたサイズを適用
-        bool isInFavorites = m_favoriteActionNames.contains(action->objectName());
-        button->setCustomizeMode(m_customizeMode, isFavoriteTab, isInFavorites);
-
+        auto* button = new MenuButtonWidget(action, layout->parentWidget());
+        button->updateSizes(m_buttonSize, m_fontSize, m_iconSize);
+        button->setCustomizeMode(m_customizeMode, isFavoriteTab, m_favoriteActionNames.contains(action->objectName()));
         connect(button, &MenuButtonWidget::actionTriggered, this, &MenuWindow::onActionTriggered);
         connect(button, &MenuButtonWidget::addToFavorites, this, &MenuWindow::onAddToFavorites);
         connect(button, &MenuButtonWidget::removeFromFavorites, this, &MenuWindow::onRemoveFromFavorites);
         connect(button, &MenuButtonWidget::dropReceived, this, &MenuWindow::onFavoriteReordered);
-
-        layout->addWidget(button, row, col);
+        layout->addWidget(button);
         m_allButtons.append(button);
-
-        col++;
-        if (col >= kColumnsPerRow) {
-            col = 0;
-            row++;
-        }
     }
+}
 
-    // 残りのセルにストレッチを追加
-    layout->setRowStretch(row + 1, 1);
-    layout->setColumnStretch(kColumnsPerRow, 1);
+void MenuWindow::updateFilter()
+{
+    const QString query = m_searchEdit->text().trimmed();
+    QMap<QWidget*, int> visibleCounts;
+    for (MenuButtonWidget* button : std::as_const(m_allButtons)) {
+        const QAction* action = button->action();
+        const bool visible = action && action->isVisible()
+            && (query.isEmpty() || action->text().contains(query, Qt::CaseInsensitive)
+                || action->toolTip().contains(query, Qt::CaseInsensitive));
+        button->setVisible(visible);
+        if (visible) ++visibleCounts[button->parentWidget()];
+    }
+    for (auto it = m_emptyLabels.cbegin(); it != m_emptyLabels.cend(); ++it) {
+        it.value()->setText(it.key() == m_favoritesContainer && query.isEmpty()
+            ? tr("お気に入りはまだありません。「お気に入り編集」を押して、各タブの項目を追加してください。")
+            : tr("該当する項目がありません。"));
+        it.value()->setVisible(visibleCounts.value(it.key()) == 0);
+        it.key()->layout()->invalidate();
+    }
 }
 
 QAction* MenuWindow::findActionByName(const QString& actionName) const
@@ -267,12 +322,14 @@ QAction* MenuWindow::findActionByName(const QString& actionName) const
 void MenuWindow::onCustomizeButtonClicked()
 {
     m_customizeMode = m_customizeButton->isChecked();
+    m_customizeButton->setText(m_customizeMode ? tr("編集完了") : tr("お気に入り編集"));
+    m_customizeHint->setVisible(m_customizeMode);
     updateCustomizeModeForAllTabs();
 }
 
 void MenuWindow::onActionTriggered(QAction* action)
 {
-    if (action) {
+    if (action && action->isEnabled() && action->isVisible()) {
         action->trigger();
         Q_EMIT actionTriggered(action);
     }
@@ -284,6 +341,7 @@ void MenuWindow::onAddToFavorites(const QString& actionName)
         m_favoriteActionNames.append(actionName);
         updateFavoritesTab();
         updateCustomizeModeForAllTabs();
+        AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
         Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
@@ -293,6 +351,7 @@ void MenuWindow::onRemoveFromFavorites(const QString& actionName)
     if (m_favoriteActionNames.removeAll(actionName) > 0) {
         updateFavoritesTab();
         updateCustomizeModeForAllTabs();
+        AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
         Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
@@ -305,20 +364,21 @@ void MenuWindow::onFavoriteReordered(const QString& sourceActionName, const QStr
     if (sourceIndex >= 0 && targetIndex >= 0 && sourceIndex != targetIndex) {
         m_favoriteActionNames.move(sourceIndex, targetIndex);
         updateFavoritesTab();
+        AppSettings::setMenuWindowFavorites(m_favoriteActionNames);
         Q_EMIT favoritesChanged(m_favoriteActionNames);
     }
 }
 
 void MenuWindow::onTabChanged(int index)
 {
-    Q_UNUSED(index);
-    // タブ変更時の処理（必要に応じて実装）
+    m_savedTabIndex = index;
+    AppSettings::setMenuWindowCurrentTab(index);
 }
 
 void MenuWindow::onButtonSizeIncrease()
 {
     if (m_buttonSize < kMaxButtonSize) {
-        m_buttonSize += 8;
+        m_buttonSize = qMin(kMaxButtonSize, m_buttonSize + 8);
         m_iconSize = m_buttonSize / 3;
         updateAllButtonSizes();
     }
@@ -327,7 +387,7 @@ void MenuWindow::onButtonSizeIncrease()
 void MenuWindow::onButtonSizeDecrease()
 {
     if (m_buttonSize > kMinButtonSize) {
-        m_buttonSize -= 8;
+        m_buttonSize = qMax(kMinButtonSize, m_buttonSize - 8);
         m_iconSize = m_buttonSize / 3;
         updateAllButtonSizes();
     }
@@ -356,6 +416,12 @@ void MenuWindow::updateAllButtonSizes()
             btn->updateSizes(m_buttonSize, m_fontSize, m_iconSize);
         }
     }
+    m_buttonSizeDecreaseBtn->setEnabled(m_buttonSize > kMinButtonSize);
+    m_buttonSizeIncreaseBtn->setEnabled(m_buttonSize < kMaxButtonSize);
+    m_fontSizeDecreaseBtn->setEnabled(m_fontSize > kMinFontSize);
+    m_fontSizeIncreaseBtn->setEnabled(m_fontSize < kMaxFontSize);
+    AppSettings::setMenuWindowButtonSize(m_buttonSize);
+    AppSettings::setMenuWindowFontSize(m_fontSize);
 }
 
 void MenuWindow::closeEvent(QCloseEvent* event)
@@ -367,8 +433,9 @@ void MenuWindow::closeEvent(QCloseEvent* event)
 void MenuWindow::loadSettings()
 {
     m_favoriteActionNames = AppSettings::menuWindowFavorites();
-    m_buttonSize = AppSettings::menuWindowButtonSize();
-    m_fontSize = AppSettings::menuWindowFontSize();
+    m_buttonSize = qBound(kMinButtonSize, AppSettings::menuWindowButtonSize(), kMaxButtonSize);
+    m_fontSize = qBound(kMinFontSize, AppSettings::menuWindowFontSize(), kMaxFontSize);
+    m_savedTabIndex = AppSettings::menuWindowCurrentTab();
     m_iconSize = m_buttonSize / 3;
     resize(AppSettings::menuWindowSize());
 }

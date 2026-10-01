@@ -85,13 +85,17 @@ void setMenuWindowFavorites(const QStringList& favorites);
 QSize menuWindowSize();
 void setMenuWindowSize(const QSize& size);
 
-/// メニューウィンドウのボタンサイズ（デフォルト: 72）
+/// メニューウィンドウのボタンサイズ（デフォルト: 104）
 int menuWindowButtonSize();
 void setMenuWindowButtonSize(int size);
 
-/// メニューウィンドウのフォントサイズ（デフォルト: 9）
+/// メニューウィンドウのフォントサイズ（デフォルト: 12）
 int menuWindowFontSize();
 void setMenuWindowFontSize(int size);
+
+/// メニューウィンドウで最後に選択したタブ
+int menuWindowCurrentTab();
+void setMenuWindowCurrentTab(int index);
 
 // --- メインウィンドウ ---
 
