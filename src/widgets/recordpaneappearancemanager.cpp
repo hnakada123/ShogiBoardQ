@@ -3,6 +3,7 @@
 
 #include "recordpaneappearancemanager.h"
 #include "gamesettings.h"
+#include "tablestyles.h"
 #include "logcategories.h"
 
 #include <QTableView>
@@ -142,11 +143,11 @@ void RecordPaneAppearanceManager::setupSelectionPalette(QTableView* view)
     view->setSelectionMode(QAbstractItemView::SingleSelection);
 
     QPalette pal = view->palette();
-    const QColor kSelYellow(255, 255, 0);
-    pal.setColor(QPalette::Active,   QPalette::Highlight,       kSelYellow);
-    pal.setColor(QPalette::Inactive, QPalette::Highlight,       kSelYellow);
-    pal.setColor(QPalette::Active,   QPalette::HighlightedText, Qt::black);
-    pal.setColor(QPalette::Inactive, QPalette::HighlightedText, Qt::black);
+    const QColor selectionBg = TableStyles::selectionBackground();
+    pal.setColor(QPalette::Active,   QPalette::Highlight,       selectionBg);
+    pal.setColor(QPalette::Inactive, QPalette::Highlight,       selectionBg);
+    pal.setColor(QPalette::Active,   QPalette::HighlightedText, TableStyles::selectionText());
+    pal.setColor(QPalette::Inactive, QPalette::HighlightedText, TableStyles::selectionText());
     view->setPalette(pal);
 }
 
@@ -156,59 +157,13 @@ void RecordPaneAppearanceManager::setupSelectionPalette(QTableView* view)
 
 QString RecordPaneAppearanceManager::kifuTableStyleSheet(int fontSize)
 {
-    return QStringLiteral(
-        "QTableView {"
-        "  background-color: #ffffff;"
-        "}"
-        "QTableView::item:selected:active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QTableView::item:selected:!active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  font-size: %1pt;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}").arg(fontSize);
+    return TableStyles::header(fontSize) + TableStyles::selection() + QStringLiteral(
+        "QTableView { background-color: #ffffff; color: #303841; }");
 }
 
 QString RecordPaneAppearanceManager::branchTableStyleSheet(int fontSize)
 {
-    return QStringLiteral(
-        "QTableView {"
-        "  background-color: #ffffff;"
-        "  selection-background-color: #ffff00;"
-        "  selection-color: black;"
-        "}"
-        "QTableView::item {"
-        "  background-color: #ffffff;"
-        "}"
-        "QTableView::item:selected:active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QTableView::item:selected:!active {"
-        "  background-color: #ffff00;"
-        "  color: black;"
-        "}"
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  font-size: %1pt;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}").arg(fontSize);
+    return kifuTableStyleSheet(fontSize);
 }
 
 // --------------------------------------------------------

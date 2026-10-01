@@ -2,7 +2,6 @@
 /// @brief エンジン思考結果の表示用リストモデルの実装
 
 #include "shogienginethinkingmodel.h"
-#include <QColor>
 #include <algorithm>
 #include <memory>
 
@@ -39,12 +38,6 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
         }
         if (role == Qt::TextAlignmentRole) {
             return Qt::AlignCenter;
-        }
-        if (role == Qt::BackgroundRole) {
-            return QColor(0x3d, 0x8d, 0xe2);
-        }
-        if (role == Qt::ForegroundRole) {
-            return QColor(Qt::white);
         }
         return QVariant();
     }

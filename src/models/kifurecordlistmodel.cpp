@@ -2,6 +2,7 @@
 /// @brief 棋譜レコードリストモデルクラスの実装
 
 #include "kifurecordlistmodel.h"
+#include "tablestyles.h"
 #include <QDebug> // 必要なら
 #include <QColor>
 #include <QBrush>
@@ -26,12 +27,12 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
     const int row = index.row();
     const int col = index.column();
 
-    // 背景色：現在行は黄色、分岐ありの手はオレンジ系、その他は白色
+    // 背景色：現在行は淡い青、分岐ありの手はオレンジ系、その他は白色
     if (role == Qt::BackgroundRole) {
-        // 現在行（黄色ハイライト）を優先
+        // 現在行のハイライトを優先
         if (row == m_currentHighlightRow) {
-            static const QBrush kYellowBg(QColor(255, 255, 0));
-            return kYellowBg;
+            static const QBrush kCurrentBg(TableStyles::selectionBackground());
+            return kCurrentBg;
         }
         // 分岐ありの手はオレンジ系
         if (row > 0 && m_branchPlySet.contains(row)) {
@@ -161,7 +162,7 @@ void KifuRecordListModel::setBranchPlyMarks(const QSet<int>& ply1Set)
     }
 }
 
-// 現在の行（黄色ハイライト）を設定
+// ハイライトする現在行を設定
 void KifuRecordListModel::setCurrentHighlightRow(int row)
 {
     if (m_currentHighlightRow == row) return;

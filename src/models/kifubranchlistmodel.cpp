@@ -2,6 +2,7 @@
 /// @brief 分岐候補リストモデルクラスの実装
 
 #include "kifubranchlistmodel.h"
+#include "tablestyles.h"
 #include "logcategories.h"
 #include <QBrush>
 #include <QColor>
@@ -91,11 +92,11 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
         return QVariant();
     }
 
-    // --- 背景色：現在選択行は黄色 ---
+    // --- 背景色：現在選択行は淡い青 ---
     if (role == Qt::BackgroundRole) {
         if (index.row() == m_currentHighlightRow) {
-            static const QBrush kYellowBg(QColor(255, 255, 0));
-            return kYellowBg;
+            static const QBrush kCurrentBg(TableStyles::selectionBackground());
+            return kCurrentBg;
         }
         return QVariant();
     }

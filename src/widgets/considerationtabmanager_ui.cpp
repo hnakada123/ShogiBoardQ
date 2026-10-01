@@ -8,6 +8,8 @@
 #include "flowlayout.h"
 #include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
+#include "pvboardbuttondelegate.h"
+#include "tablestyles.h"
 #include "analysissettings.h"
 #include "shogienginethinkingmodel.h"
 
@@ -193,20 +195,15 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
     m_considerationView = new QTableView(parentWidget);
     m_considerationView->setObjectName(QStringLiteral("considerationView"));
 
+    m_considerationView->setShowGrid(false);
+    m_considerationView->setMouseTracking(true);
+    m_considerationView->setItemDelegateForColumn(4, new PvBoardButtonDelegate(m_considerationView));
+
     // ヘッダ設定
     {
         auto* h = m_considerationView->horizontalHeader();
         if (h) {
-            m_considerationView->setStyleSheet(QStringLiteral(
-                "QHeaderView::section {"
-                "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-                "    stop:0 #40acff, stop:1 #209cee);"
-                "  color: white;"
-                "  font-weight: normal;"
-                "  padding: 2px 6px;"
-                "  border: none;"
-                "  border-bottom: 1px solid #209cee;"
-                "}"));
+            m_considerationView->setStyleSheet(TableStyles::thinking());
             h->setDefaultSectionSize(100);
             h->setMinimumSectionSize(24);
             h->setStretchLastSection(true);
@@ -314,18 +311,7 @@ void ConsiderationTabManager::initFontManager()
 
         if (m_considerationInfo) m_considerationInfo->setFontSize(size);
 
-        QString headerStyle = QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  padding: 2px 6px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "  font-size: %1pt;"
-            "}")
-            .arg(size);
+        const QString headerStyle = TableStyles::thinking(size);
 
         if (m_considerationView) {
             m_considerationView->setFont(font);

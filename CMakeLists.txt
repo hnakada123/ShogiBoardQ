@@ -758,6 +758,7 @@ set(SRC_WIDGETS
     src/widgets/menubuttonwidget.cpp
     src/widgets/menubuttonwidget.h
     src/widgets/numericrightaligncommadelegate.h
+    src/widgets/pvboardbuttondelegate.h
     src/widgets/recordpane.cpp
     src/widgets/recordpane.h
     src/widgets/recordpaneappearancemanager.cpp
@@ -912,6 +913,7 @@ set(SRC_COMMON
     src/common/boardconstants.h
     src/common/branchtreeitemroles.h
     src/common/buttonstyles.h
+    src/common/tablestyles.h
     src/common/threadtypes.h
     src/common/dialogutils.cpp
     src/common/dialogutils.h

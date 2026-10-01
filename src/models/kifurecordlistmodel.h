@@ -31,7 +31,7 @@ public:
     void setBranchPlyMarks(const QSet<int>& ply1Set);
     QSet<int> branchPlyMarks() const { return m_branchPlySet; }
 
-    // 現在の行（黄色ハイライト）を設定
+    // ハイライトする現在行を設定
     void setCurrentHighlightRow(int row);
     int currentHighlightRow() const { return m_currentHighlightRow; }
 

@@ -6,6 +6,7 @@
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "gamesettings.h"
+#include "tablestyles.h"
 
 #include "logcategories.h"
 #include <QTextBrowser>
@@ -22,6 +23,33 @@
 #include <QModelIndex>
 #include <QItemSelectionModel>
 #include <QTimer>
+#include <QPainter>
+#include <QStyledItemDelegate>
+
+namespace {
+// Qt の選択行に加え、操作が無効な対局中もモデルの現在行に目印を描く。
+class RecordHighlightDelegate : public QStyledItemDelegate
+{
+public:
+    using QStyledItemDelegate::QStyledItemDelegate;
+
+    void paint(QPainter* painter, const QStyleOptionViewItem& option,
+               const QModelIndex& index) const override
+    {
+        QStyledItemDelegate::paint(painter, option, index);
+        if (index.column() != 0) return;
+
+        const auto* recordModel = qobject_cast<const KifuRecordListModel*>(index.model());
+        const auto* branchModel = qobject_cast<const KifuBranchListModel*>(index.model());
+        const bool current = (recordModel && recordModel->currentHighlightRow() == index.row())
+            || (branchModel && branchModel->currentHighlightRow() == index.row());
+        if (current || (option.state & QStyle::State_Selected)) {
+            painter->fillRect(QRect(option.rect.left(), option.rect.top(), 3, option.rect.height()),
+                              TableStyles::selectionAccent());
+        }
+    }
+};
+} // namespace
 
 RecordPane::RecordPane(QWidget* parent)
     : QWidget(parent)
@@ -44,6 +72,7 @@ void RecordPane::buildKifuTable()
 {
     m_kifu = new QTableView(this);
     m_kifu->setObjectName(QStringLiteral("kifuTable"));
+    m_kifu->setItemDelegate(new RecordHighlightDelegate(m_kifu));
     m_kifu->setSelectionMode(QAbstractItemView::SingleSelection);
     m_kifu->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_kifu->verticalHeader()->setVisible(false);
@@ -178,6 +207,7 @@ void RecordPane::buildBranchPanel()
 {
     m_branch = new QTableView(this);
     m_branch->setObjectName(QStringLiteral("kifuBranchTable"));
+    m_branch->setItemDelegate(new RecordHighlightDelegate(m_branch));
     m_branch->setSelectionMode(QAbstractItemView::SingleSelection);
     m_branch->setSelectionBehavior(QAbstractItemView::SelectRows);
     m_branch->verticalHeader()->setVisible(false);
@@ -240,10 +270,10 @@ void RecordPane::wireSignals()
     connect(m_btnToggleBookmark, &QPushButton::toggled, this, &RecordPane::onToggleBookmarkColumn);
     connect(m_btnToggleComment, &QPushButton::toggled, this, &RecordPane::onToggleCommentColumn);
 
-    // 棋譜表の選択ハイライトを黄色に
+    // 棋譜表の選択ハイライトを統一
     setupKifuSelectionAppearance();
 
-    // 分岐候補欄の選択ハイライトを黄色に
+    // 分岐候補欄の選択ハイライトを統一
     setupBranchViewSelectionAppearance();
 
     // 初期フォントサイズを適用

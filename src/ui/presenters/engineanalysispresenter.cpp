@@ -13,6 +13,8 @@
 #include "analysissettings.h"
 #include "logcategories.h"
 #include "numericrightaligncommadelegate.h"
+#include "pvboardbuttondelegate.h"
+#include "tablestyles.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
 
@@ -104,16 +106,10 @@ void EngineAnalysisPresenter::setupThinkingViewHeader(QTableView* v)
     auto* h = v->horizontalHeader();
     if (!h) return;
 
-    v->setStyleSheet(QStringLiteral(
-        "QHeaderView::section {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #40acff, stop:1 #209cee);"
-        "  color: white;"
-        "  font-weight: normal;"
-        "  padding: 2px 6px;"
-        "  border: none;"
-        "  border-bottom: 1px solid #209cee;"
-        "}"));
+    v->setStyleSheet(TableStyles::thinking());
+    v->setShowGrid(false);
+    v->setMouseTracking(true);
+    v->setItemDelegateForColumn(4, new PvBoardButtonDelegate(v));
 
     h->setDefaultSectionSize(100);
     h->setMinimumSectionSize(24);
@@ -278,18 +274,7 @@ void EngineAnalysisPresenter::initThinkingFontManager()
         if (m_info1) m_info1->setFontSize(size);
         if (m_info2) m_info2->setFontSize(size);
 
-        QString headerStyle = QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  padding: 2px 6px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "  font-size: %1pt;"
-            "}")
-            .arg(size);
+        const QString headerStyle = TableStyles::thinking(size);
 
         if (m_view1) {
             m_view1->setFont(font);

@@ -40,6 +40,7 @@
 #include "elidelabel.h"
 #include "shogiboard.h"
 #include "recordpane.h"
+#include "tablestyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchtree.h"
 #include "gamerecordmodel.h"
@@ -1608,7 +1609,7 @@ private slots:
                 for (int other = 0; other < model->rowCount(); ++other) {
                     const QColor background = model->index(other, column)
                         .data(Qt::BackgroundRole).value<QBrush>().color();
-                    QCOMPARE(background == QColor(Qt::yellow), other == row);
+                    QCOMPARE(background == TableStyles::selectionBackground(), other == row);
                 }
             }
         }
