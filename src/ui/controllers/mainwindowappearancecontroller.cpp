@@ -45,6 +45,15 @@ void MainWindowAppearanceController::setupCentralWidgetContainer(QWidget* centra
 
 bool MainWindowAppearanceController::eventFilter(QObject* watched, QEvent* event)
 {
+    if (watched == m_mainWindow && event->type() == QEvent::WindowStateChange) {
+        // 通常表示の固定幅が全画面表示・最大化時のサイズ変更を妨げないようにする。
+        if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized()) {
+            m_mainWindow->setMinimumWidth(0);
+            m_mainWindow->setMaximumWidth(QWIDGETSIZE_MAX);
+        }
+        // 通常表示に戻った際は、現在の盤面・ドックに合わせた横幅に戻す。
+        scheduleWindowWidthUpdate();
+    }
     if (watched == m_mainWindow
         && (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)) {
         scheduleWindowWidthUpdate();
@@ -63,6 +72,9 @@ void MainWindowAppearanceController::updateWindowWidth()
 {
     m_windowWidthUpdatePending = false;
     if (!m_mainWindow || !m_mainWindow->isVisible() || !m_mainWindow->layout()) return;
+    // setFixedWidth() によるリサイズは全画面表示・最大化を解除してしまう。
+    if (m_mainWindow->isFullScreen() || m_mainWindow->isMaximized()
+        || m_mainWindow->isMinimized()) return;
 
     // 棋譜の列幅・ドック配置の再計算後、内容に必要な横幅に固定する。
     // 高さは従来どおり変更でき、盤の拡縮やフォント変更時には横幅も追従する。

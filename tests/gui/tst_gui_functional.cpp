@@ -430,6 +430,49 @@ private slots:
         QTRY_COMPARE(table->horizontalScrollBar()->maximum(), 0);
         QVERIFY(table->visualRect(table->model()->index(1, 1)).right() < table->viewport()->width());
     }
+    void boardZoomPreservesWindowState_data()
+    {
+        QTest::addColumn<bool>("fullScreen");
+        QTest::addColumn<bool>("enlargeFirst");
+        QTest::newRow("maximized-enlarge") << false << true;
+        QTest::newRow("maximized-shrink") << false << false;
+        QTest::newRow("fullscreen-enlarge") << true << true;
+        QTest::newRow("fullscreen-shrink") << true << false;
+    }
+    void boardZoomPreservesWindowState()
+    {
+        QFETCH(bool, fullScreen);
+        QFETCH(bool, enlargeFirst);
+        QTRY_COMPARE(window->width(), window->layout()->minimumSize().width());
+        const int normalWidth = window->width();
+        const Qt::WindowState state = fullScreen ? Qt::WindowFullScreen : Qt::WindowMaximized;
+        if (fullScreen) window->showFullScreen();
+        else window->showMaximized();
+        QTest::qWait(100);
+        QVERIFY(window->windowState().testFlag(state));
+        const QRect geometry = window->geometry();
+
+        // 拡大・縮小を交互にメニューから実行し、盤だけが変化することを確認する。
+        for (int i = 0; i < 3; ++i) {
+            const bool enlarge = (i % 2 == 0) == enlargeFirst;
+            const int fieldWidth = board()->fieldSize().width();
+            click(enlarge ? "actionEnlargeBoard" : "actionShrinkBoard");
+            QTRY_COMPARE(board()->fieldSize().width(), fieldWidth + (enlarge ? 1 : -1));
+            QTest::qWait(100);
+            QVERIFY(window->windowState().testFlag(state));
+            QCOMPARE(window->geometry(), geometry);
+        }
+        snapshot(QStringLiteral("board-zoom-") + QTest::currentDataTag());
+
+        // 通常表示に戻すと、変更後の盤サイズに合わせて横幅を固定し直す。
+        window->showNormal();
+        QTRY_COMPARE(window->width(), window->layout()->minimumSize().width());
+        QTRY_COMPARE(window->minimumWidth(), window->maximumWidth());
+        QVERIFY(!window->isMaximized() && !window->isFullScreen());
+        QVERIFY(enlargeFirst ? window->width() > normalWidth : window->width() < normalWidth);
+        click(enlargeFirst ? "actionShrinkBoard" : "actionEnlargeBoard");
+        QTRY_COMPARE(window->width(), normalWidth);
+    }
     void pieceStyles()
     {
         QVERIFY(!window->findChild<QMenu*>("menuPieceStyle"));
