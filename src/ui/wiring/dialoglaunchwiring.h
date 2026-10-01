@@ -124,7 +124,7 @@ signals:
     void sfenCollectionPositionSelected(const QString& sfen);
 
 private slots:
-    void onCsaEngineScoreUpdatedInternal(int scoreCp, int ply);
+    void onCsaEngineScoreUpdatedInternal(int scoreCp, int ply, const QString& mate);
 
 private:
     Deps m_deps;

@@ -132,7 +132,7 @@ signals:
     void moveAppliedToBoard();
     void logMessage(const QString& message, bool isError = false);
     void csaCommLogAppended(const QString& line);
-    void engineScoreUpdated(int scoreCp, int ply);
+    void engineScoreUpdated(int scoreCp, int ply, const QString& mate);
 
 public slots:
     void onHumanMove(const QPoint& from, const QPoint& to, bool promote);

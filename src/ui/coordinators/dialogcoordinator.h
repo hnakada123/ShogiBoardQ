@@ -325,7 +325,7 @@ signals:
     /**
      * @brief 棋譜解析進捗を通知
      */
-    void analysisProgressReported(int ply, int scoreCp);
+    void analysisProgressReported(int ply, int scoreCp, const QString& mate = {});
 
     /**
      * @brief 棋譜解析結果の行が選択されたときに通知

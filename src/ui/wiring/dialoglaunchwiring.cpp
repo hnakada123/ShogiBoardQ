@@ -300,7 +300,7 @@ void DialogLaunchWiring::displaySfenCollectionViewer()
     dlg->show();
 }
 
-void DialogLaunchWiring::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply)
+void DialogLaunchWiring::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply, const QString& mate)
 {
     qCDebug(lcUi).noquote() << "onCsaEngineScoreUpdatedInternal: scoreCp=" << scoreCp << "ply=" << ply;
 
@@ -313,9 +313,9 @@ void DialogLaunchWiring::onCsaEngineScoreUpdatedInternal(int scoreCp, int ply)
     auto* csaCoord = m_deps.getCsaGameCoordinator ? m_deps.getCsaGameCoordinator() : nullptr;
     if (csaCoord) {
         if (csaCoord->isBlackSide()) {
-            evalChart->appendScoreP1(ply, scoreCp, false);
+            evalChart->appendScoreP1(ply, scoreCp, false, mate);
         } else {
-            evalChart->appendScoreP2(ply, -scoreCp, false);
+            evalChart->appendScoreP2(ply, scoreCp, true, mate);
         }
     }
 }

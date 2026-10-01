@@ -738,6 +738,8 @@ set(SRC_WIDGETS
     src/widgets/evaluationchartwidget.h
     src/widgets/evaluationchartwidget_data.cpp
     src/widgets/evaluationchartwidget_tooltip.cpp
+    src/widgets/evaluationchartview.cpp
+    src/widgets/evaluationchartview.h
     src/widgets/flowlayout.cpp
     src/widgets/flowlayout.h
     src/widgets/gameinfopanecontroller.cpp

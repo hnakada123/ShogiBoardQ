@@ -81,7 +81,8 @@ signals:
     void analysisStopped();
     
     /// 解析進捗を通知する（→ DialogCoordinator::analysisProgressReported → MainWindow）
-    void analysisProgressReported(int ply, int scoreCp);
+    void analysisProgressReported(int ply, int scoreCp, const QString& mate = {});
+    void analysisEngineNameChanged(const QString& name);
     
     /// 解析結果の行選択を通知する（→ DialogCoordinator::analysisResultRowSelected → MainWindow、棋譜欄・盤面・分岐ツリー連動）
     void analysisResultRowSelected(int row);

@@ -89,6 +89,7 @@ public:
     
     /// 最後の評価値を取得
     int lastScoreCp() const { return m_lastScoreCp; }
+    QString lastScoreMate() const { return m_lastScoreMate; }
     
     /// 評価値文字列を取得
     QString scoreStr() const { return m_scoreStr; }
@@ -172,6 +173,7 @@ private:
 
     QList<QChar> m_clonedBoardData;   ///< クローンした盤面データ
 
+    QString m_lastScoreMate;            ///< 最後の主候補の score mate（空は通常評価値）
     int m_lastScoreCp = 0;              ///< 最後の評価値（センチポーン）
     QString m_scoreStr;                 ///< 評価値文字列
     QString m_pvKanjiStr;               ///< 漢字PV文字列

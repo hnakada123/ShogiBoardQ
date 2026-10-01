@@ -1554,3 +1554,15 @@ add_shogi_test(tst_background_tasks tst_background_tasks.cpp)
 target_link_libraries(tst_background_tasks PRIVATE shogiboardq_static)
 target_compile_definitions(tst_background_tasks PRIVATE MOCK_USI_EXECUTABLE="$<TARGET_FILE:mock_usi_match>")
 add_dependencies(tst_background_tasks mock_usi_match)
+
+# 評価値グラフ: 自動範囲・詰み・画像表示・設定保存
+add_shogi_test(tst_evaluationchart
+    tst_evaluationchart.cpp
+    ${SRC}/widgets/evaluationchartwidget.cpp
+    ${SRC}/widgets/evaluationchartwidget_data.cpp
+    ${SRC}/widgets/evaluationchartwidget_tooltip.cpp
+    ${SRC}/widgets/evaluationchartview.cpp
+    ${SRC}/widgets/evaluationchartconfigurator.cpp
+    ${SRC}/services/analysissettings.cpp
+    ${SRC}/services/settingscommon.cpp
+)

@@ -44,7 +44,7 @@ public:
     void reset();
 
     /// 解析進捗データを一時保存する
-    void updatePending(int ply, int scoreCp, int mate, const QString& pv);
+    void updatePending(int ply, int scoreCp, int mate, const QString& pv, const QString& rawMate = {});
 
     /// 漢字PVを一時保存する
     void updatePendingPvKanji(const QString& pvKanjiStr);
@@ -63,6 +63,7 @@ public:
 
     /// 最後に確定した評価値を返す
     int lastCommittedScoreCp() const { return m_lastCommittedScoreCp; }
+    QString lastCommittedMate() const { return m_lastCommittedMate; }
 
     /// 確定結果の手数をリセットする
     void resetLastCommitted() { m_lastCommittedPly = -1; }
@@ -72,12 +73,14 @@ private:
 
     int m_pendingPly = -1;         ///< 一時結果の対象手数（bestmoveで確定）
     int m_pendingScoreCp = 0;      ///< 一時結果の評価値
+    QString m_pendingMateText;
     int m_pendingMate = 0;         ///< 一時結果の詰み手数（0は未設定）
     QString m_pendingPv;           ///< 一時結果のUSI PV
     QString m_pendingPvKanji;      ///< 一時結果の漢字PV
 
     int m_lastCommittedPly = -1;       ///< 最後に確定した手数（GUI同期用）
     int m_lastCommittedScoreCp = 0;    ///< 最後に確定した評価値
+    QString m_lastCommittedMate;
     int m_prevEvalCp = 0;              ///< 前回評価値（差分計算用）
 };
 

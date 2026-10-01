@@ -1667,6 +1667,33 @@ private slots:
         QCOMPARE(log.count(" position startpos\n") + log.count(initialSfen), 3);
         QCOMPARE(log.count(" go infinite\n"), 3);
     }
+    void evaluationGraphAppearance()
+    {
+        sampleGame();
+        auto* graph = window->evalChart();
+        QVERIFY(graph);
+        graph->setAutomaticRange(true);
+        graph->setLabelFontSize(10);
+        graph->setEngine1Name(QStringLiteral("Hayanagi 1.5.0"));
+        graph->setEngine2Name(QStringLiteral("YaneuraOu"));
+        for (int ply = 1; ply <= 40; ++ply) {
+            const int score = (ply < 20 ? ply * 45 : (40 - ply) * 75 - 850);
+            if (ply % 2 == 1) graph->appendScoreP1(ply, score);
+            else graph->appendScoreP2(ply, score - 70);
+        }
+        graph->appendScoreP2(42, -31111, false, QStringLiteral("-7"));
+        graph->setCurrentPly(42);
+        for (auto* dock : window->findChildren<QDockWidget*>()) {
+            if (dock->widget() == graph) { dock->show(); dock->raise(); }
+        }
+        QTest::qWait(100);
+        QVERIFY(graph->isVisible());
+        QVERIFY(graph->yAxisLimit() <= 2000);
+        QVERIFY(graph->chartViewWidget()->accessibleName().contains(QStringLiteral("詰みまで7手")));
+        snapshot("evaluation-graph-main");
+        QVERIFY(graph->chartViewWidget()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/evaluation-graph-export.png")));
+    }
+
     void engineAnalysis()
     {
         sampleGame();

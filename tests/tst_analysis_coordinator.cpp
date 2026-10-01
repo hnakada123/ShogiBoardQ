@@ -52,6 +52,7 @@ private slots:
     void commitPendingResult_updatesLastCommitted();
     void commitPendingResult_bookMove_clearsUsiPv();
     void reset_clearsAllPending();
+    void mateMetadataSurvivesCommit();
     void extractUsiMoveFromKanji_basicMove();
     void extractUsiMoveFromKanji_promotion();
     void extractUsiMoveFromKanji_drop();
@@ -403,6 +404,29 @@ void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()
     QVERIFY(second != nullptr);
     QCOMPARE(second->principalVariation(), QStringLiteral("（定跡）"));
     QCOMPARE(second->usiPv(), QString());
+}
+
+void TestAnalysisCoordinator::mateMetadataSurvivesCommit()
+{
+    AnalysisResultHandler handler;
+    KifuAnalysisListModel model;
+    AnalysisResultHandler::Refs refs;
+    refs.analysisModel = &model;
+    handler.setRefs(refs);
+    handler.updatePending(1, std::numeric_limits<int>::min(), 5, QStringLiteral("7g7f"));
+    // nodes/time のみの追報で詰み情報が消えない。
+    handler.updatePending(1, std::numeric_limits<int>::min(), 0, QString());
+    handler.commitPendingResult();
+    QCOMPARE(handler.lastCommittedMate(), QStringLiteral("-5"));
+    handler.updatePending(2, 120, 0, QStringLiteral("7g7f"));
+    handler.commitPendingResult();
+    QVERIFY(handler.lastCommittedMate().isEmpty());
+    QCOMPARE(handler.lastCommittedScoreCp(), 120);
+    handler.updatePending(3, std::numeric_limits<int>::min(), 0, QString(), QStringLiteral("-"));
+    handler.commitPendingResult();
+    QCOMPARE(handler.lastCommittedMate(), QStringLiteral("+"));
+    handler.reset();
+    QVERIFY(handler.lastCommittedMate().isEmpty());
 }
 
 void TestAnalysisCoordinator::reset_clearsAllPending()

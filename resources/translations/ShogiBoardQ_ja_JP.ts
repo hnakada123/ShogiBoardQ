@@ -5,13 +5,13 @@
     <name>AnalysisFlowController</name>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="54"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="421"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="430"/>
         <source>内部エラー: sfenRecord が未準備です。棋譜読み込み後に実行してください。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../../src/analysis/analysisflowcontroller.cpp" line="58"/>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="425"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="434"/>
         <source>内部エラー: 解析モデルが未準備です。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -26,7 +26,7 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="228"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="229"/>
         <source>エンジン初期化に失敗しました。エンジン設定を確認してください。</source>
         <translation type="unfinished"></translation>
     </message>
@@ -39,7 +39,7 @@
         <translation type="obsolete">後手</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="531"/>
+        <location filename="../../src/analysis/analysisflowcontroller.cpp" line="540"/>
         <source>エンジンエラー: %1</source>
         <translation type="unfinished"></translation>
     </message>
@@ -48,7 +48,7 @@
     <name>AnalysisResultHandler</name>
     <message>
         <location filename="../../src/analysis/analysisresulthandler.cpp" line="148"/>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="244"/>
+        <location filename="../../src/analysis/analysisresulthandler.cpp" line="256"/>
         <source>（定跡）</source>
         <translation type="unfinished"></translation>
     </message>
@@ -920,7 +920,7 @@
         <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="138"/>
         <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="405"/>
         <source>%1手目</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">%1手目</translation>
     </message>
     <message>
         <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="203"/>
@@ -2077,13 +2077,13 @@
 <context>
     <name>DialogCoordinator</name>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="366"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="371"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="366"/>
-        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="524"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="371"/>
+        <location filename="../../src/ui/coordinators/dialogcoordinator.cpp" line="529"/>
         <source>エラー</source>
         <translation type="unfinished">エラー</translation>
     </message>
@@ -2594,74 +2594,188 @@
 <context>
     <name>EvaluationChartConfigurator</name>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="89"/>
         <source>評価値上限:</source>
-        <translation>評価値上限:</translation>
+        <translation type="vanished">評価値上限:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="93"/>
         <source>評価値の表示上限を選択</source>
-        <translation>評価値の表示上限を選択</translation>
+        <translation type="vanished">評価値の表示上限を選択</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="99"/>
         <source>評価値間隔:</source>
-        <translation>評価値間隔:</translation>
+        <translation type="vanished">評価値間隔:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="103"/>
         <source>評価値の目盛り間隔を選択</source>
-        <translation>評価値の目盛り間隔を選択</translation>
+        <translation type="vanished">評価値の目盛り間隔を選択</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="109"/>
         <source>手数上限:</source>
-        <translation>手数上限:</translation>
+        <translation type="vanished">手数上限:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="113"/>
         <source>手数の表示上限を選択</source>
-        <translation>手数の表示上限を選択</translation>
+        <translation type="vanished">手数の表示上限を選択</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="119"/>
         <source>手数間隔:</source>
-        <translation>手数間隔:</translation>
+        <translation type="vanished">手数間隔:</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="123"/>
         <source>手数の目盛り間隔を選択</source>
-        <translation>手数の目盛り間隔を選択</translation>
+        <translation type="vanished">手数の目盛り間隔を選択</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="135"/>
         <source>目盛りの文字を小さく</source>
-        <translation>目盛りの文字を小さく</translation>
+        <translation type="vanished">目盛りの文字を小さく</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="136"/>
         <source>目盛りの文字を大きく</source>
-        <translation>目盛りの文字を大きく</translation>
+        <translation type="vanished">目盛りの文字を大きく</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="48"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="200"/>
+        <source>表示範囲:</source>
+        <translation>表示範囲:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="51"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="185"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="196"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="197"/>
+        <source>自動</source>
+        <translation>自動</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="51"/>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="185"/>
+        <source>手動固定</source>
+        <translation>手動固定</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="54"/>
+        <source>表示設定…</source>
+        <translation>表示設定…</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="181"/>
+        <source>評価値グラフの表示設定</source>
+        <translation>評価値グラフの表示設定</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="201"/>
+        <source>評価値の範囲（手動）:</source>
+        <translation>評価値の範囲（手動）:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="202"/>
+        <source>手数の上限（手動）:</source>
+        <translation>手数の上限（手動）:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="203"/>
+        <source>評価値の目盛り間隔:</source>
+        <translation>評価値の目盛り間隔:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="204"/>
+        <source>手数の目盛り間隔:</source>
+        <translation>手数の目盛り間隔:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="205"/>
+        <source>文字サイズ:</source>
+        <translation>文字サイズ:</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="207"/>
+        <source>目盛りは文字が重ならないように間引きます。詰みはグラフの端に表示します。</source>
+        <translation>目盛りは文字が重ならないように間引きます。詰みはグラフの端に表示します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartconfigurator.cpp" line="210"/>
+        <source>現在の目盛り間隔：評価値 %1 ／ 手数 %2</source>
+        <translation>現在の目盛り間隔：評価値 %1 ／ 手数 %2</translation>
     </message>
 </context>
 <context>
     <name>EvaluationChartWidget</name>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="87"/>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="91"/>
-        <source>%1%2
-Move %3: %4</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="90"/>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="50"/>
         <source>先手</source>
-        <translation type="unfinished">先手</translation>
+        <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="90"/>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="50"/>
         <source>後手</source>
-        <translation type="unfinished">後手</translation>
+        <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="53"/>
+        <source>%1勝ち・詰みまで%2手</source>
+        <translation>%1勝ち・詰みまで%2手</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="54"/>
+        <source>%1勝ち・詰み</source>
+        <translation>%1勝ち・詰み</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="57"/>
+        <source>%1（表示範囲外）</source>
+        <translation>%1（表示範囲外）</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="63"/>
+        <source>先手エンジン</source>
+        <translation>先手エンジン</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="63"/>
+        <source>後手エンジン</source>
+        <translation>後手エンジン</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="102"/>
+        <source>%1：%2</source>
+        <translation>%1：%2</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="111"/>
+        <source>%1手目  |  %2</source>
+        <translation>%1手目  |  %2</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_data.cpp" line="112"/>
+        <source>評価値なし</source>
+        <translation>評価値なし</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartview.cpp" line="54"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="161"/>
+        <source>先手有利</source>
+        <translation>先手有利</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartview.cpp" line="57"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="161"/>
+        <source>後手有利</source>
+        <translation>後手有利</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartview.cpp" line="60"/>
+        <source>%1手目</source>
+        <translation>%1手目</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/evaluationchartwidget_tooltip.cpp" line="56"/>
+        <source>%1
+%2手目：%3
+先手視点の評価値</source>
+        <translation>%1
+%2手目：%3
+先手視点の評価値</translation>
     </message>
 </context>
 <context>
@@ -3752,7 +3866,7 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="85"/>
         <source>%1手目</source>
-        <translation type="unfinished"></translation>
+        <translation type="unfinished">%1手目</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/josekiwindowui_status.cpp" line="87"/>
@@ -7649,7 +7763,7 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>Usi</name>
     <message>
-        <location filename="../../src/engine/usi.cpp" line="302"/>
+        <location filename="../../src/engine/usi.cpp" line="307"/>
         <source>Engine file path is empty.</source>
         <translation type="unfinished"></translation>
     </message>

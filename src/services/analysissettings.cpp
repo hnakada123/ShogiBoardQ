@@ -37,7 +37,7 @@ void setEvalChartXLimit(int limit)
 int evalChartXInterval()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kEvalChartXInterval, 10).toInt();
+    return s.value(SettingsKeys::kEvalChartXInterval, 0).toInt();
 }
 
 void setEvalChartXInterval(int interval)
@@ -49,13 +49,43 @@ void setEvalChartXInterval(int interval)
 int evalChartLabelFontSize()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kEvalChartLabelFontSize, 7).toInt();
+    return s.value(SettingsKeys::kEvalChartLabelFontSize, 10).toInt();
 }
 
 void setEvalChartLabelFontSize(int size)
 {
     QSettings& s = SettingsCommon::openSettings();
     s.setValue(SettingsKeys::kEvalChartLabelFontSize, size);
+}
+
+bool evalChartAutomaticRange()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kEvalChartAutomaticRange, true).toBool();
+}
+
+void setEvalChartAutomaticRange(bool automatic)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kEvalChartAutomaticRange, automatic);
+}
+
+int evalChartYInterval()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kEvalChartYInterval, 0).toInt();
+}
+
+void setEvalChartYInterval(int interval)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kEvalChartYInterval, interval);
+}
+
+QSize evalChartSettingsSize()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kEvalChartSettingsSize, QSize(420, 320)).toSize();
+}
+
+void setEvalChartSettingsSize(const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kEvalChartSettingsSize, size);
 }
 
 // --- 解析タブ ---

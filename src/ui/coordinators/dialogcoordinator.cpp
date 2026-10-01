@@ -246,6 +246,11 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.boardFlipped = params.boardFlipped;
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
+    if (m_kifuAnalysisCtx.evalChart) {
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisEngineNameChanged,
+                         m_kifuAnalysisCtx.evalChart, &EvaluationChartWidget::setEngine1Name,
+                         Qt::UniqueConnection);
+    }
     const bool started = m_analysisFlow->runWithDialog(d, m_parentWidget);
     if (!started) {
         Q_EMIT analysisModeEnded();

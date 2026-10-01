@@ -211,6 +211,7 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     }
     const QString enginePath = engines.at(engineIdx).path;
     const QString engineName = dlg->engineName();
+    emit analysisEngineNameChanged(engineName);
 
     // 思考タブのエンジン名を設定
     if (m_logModel) {
@@ -372,9 +373,16 @@ void AnalysisFlowController::onThinkingInfoUpdated(const QString& /*time*/, cons
 
 void AnalysisFlowController::onAnalysisProgress(int ply, int /*depth*/, int /*seldepth*/,
                                                  int scoreCp, int mate,
-                                                 const QString& pv, const QString& /*raw*/)
+                                                 const QString& pv, const QString& raw)
 {
-    m_resultHandler->updatePending(ply, scoreCp, mate, pv);
+    const QStringList tokens = raw.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    const qsizetype scoreIndex = tokens.indexOf(QStringLiteral("score"));
+    QString rawMate;
+    if (scoreIndex >= 0 && scoreIndex + 2 < tokens.size()
+        && tokens.at(scoreIndex + 1) == QStringLiteral("mate")) {
+        rawMate = tokens.at(scoreIndex + 2);
+    }
+    m_resultHandler->updatePending(ply, scoreCp, mate, pv, rawMate);
 }
 
 
@@ -386,7 +394,8 @@ void AnalysisFlowController::onAnalysisFinished(AnalysisCoordinator::Mode /*mode
     if (m_resultHandler->lastCommittedPly() >= 0) {
         qCDebug(lcAnalysis).noquote() << "emitting final analysisProgressReported: ply="
                                       << m_resultHandler->lastCommittedPly() << "scoreCp=" << m_resultHandler->lastCommittedScoreCp();
-        Q_EMIT analysisProgressReported(m_resultHandler->lastCommittedPly(), m_resultHandler->lastCommittedScoreCp());
+        Q_EMIT analysisProgressReported(m_resultHandler->lastCommittedPly(), m_resultHandler->lastCommittedScoreCp(),
+                                       m_resultHandler->lastCommittedMate());
         m_resultHandler->resetLastCommitted();
     }
 

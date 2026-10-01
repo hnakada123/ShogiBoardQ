@@ -107,7 +107,7 @@ public:
         std::function<void()> moveAppliedToBoard;
 
         /// @brief エンジン評価値を通知する
-        std::function<void(int, int)> engineScoreUpdated;
+        std::function<void(int, int, const QString&)> engineScoreUpdated;
 
         /// @brief 投了を実行する
         std::function<void()> performResign;

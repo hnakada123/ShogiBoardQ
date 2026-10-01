@@ -73,6 +73,7 @@ public:
     bool isResignMove() const;
     bool isWinMove() const;           ///< bestmove win（入玉宣言勝ち）を受信したか
     int lastScoreCp() const;
+    QString lastScoreMate() const;
     QString pvKanjiStr() const;
     void setPvKanjiStr(const QString& newPvKanjiStr);
 

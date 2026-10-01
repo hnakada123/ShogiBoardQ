@@ -51,6 +51,7 @@ public:
         bool resign = false;
         bool valid = false;
         int scoreCp = 0;
+        QString scoreMate;
     };
 
     explicit CsaEngineController(QObject* parent = nullptr);
