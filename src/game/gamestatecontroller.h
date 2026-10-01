@@ -14,7 +14,6 @@
 #include "shogigamecontroller.h"  // ShogiGameController::Player
 
 class TimeControlController;
-class KifuLoadCoordinator;
 class KifuRecordListModel;
 
 /**
@@ -47,7 +46,6 @@ public:
     // --- 依存オブジェクトの設定 ---
     void setMatchCoordinator(MatchCoordinator* match);
     void setTimeController(TimeControlController* tc);
-    void setKifuLoadCoordinator(KifuLoadCoordinator* kc);
     void setKifuRecordModel(KifuRecordListModel* model);
     void setHooks(const Hooks& hooks);
 
@@ -86,7 +84,6 @@ public slots:
 private:
     QPointer<MatchCoordinator> m_match;                  ///< 非所有（再生成追跡）
     TimeControlController* m_timeController = nullptr;  ///< 非所有
-    KifuLoadCoordinator* m_kifuLoadCoordinator = nullptr; ///< 非所有
     KifuRecordListModel* m_kifuRecordModel = nullptr;   ///< 非所有
 
     PlayMode m_playMode = PlayMode::NotStarted; ///< 現在のプレイモード

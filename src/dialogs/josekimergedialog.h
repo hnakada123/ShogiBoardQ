@@ -49,9 +49,8 @@ public:
     /**
      * @brief 棋譜データを設定する
      * @param entries 棋譜エントリのリスト
-     * @param currentPly 現在選択中の手数
      */
-    void setKifuData(const QList<KifuMergeEntry> &entries, int currentPly);
+    void setKifuData(const QList<KifuMergeEntry> &entries);
     
     /**
      * @brief マージ先の定跡ファイル名を設定する
@@ -150,7 +149,6 @@ private:
 
     QList<KifuMergeEntry> m_entries; ///< 棋譜エントリ
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
-    int m_currentPly = -1;                  ///< 現在選択中の手数
     FontSizeHelper m_fontHelper;            ///< フォントサイズヘルパー
     bool m_lastRegistrationSucceeded = false;
 };

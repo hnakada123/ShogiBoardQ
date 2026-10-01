@@ -245,7 +245,6 @@ void UsiProtocolHandler::sendGoPonder(const UsiTimingParams& timing)
         m_presenter->requestClearThinkingInfo();
     }
     m_phase = SearchPhase::Ponder;
-    ++m_ponderSession;
     QString command = QStringLiteral("go ponder btime %1 wtime %2")
                           .arg(timing.btime, timing.wtime);
     if (timing.useByoyomi) {
@@ -264,7 +263,6 @@ void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
     m_specialMove = SpecialMove::None;
     m_predictedOpponentMove.clear();
 
-    m_modeTsume = true;
     if (infinite || timeMs <= 0) {
         sendCommand("go mate infinite");
     } else {

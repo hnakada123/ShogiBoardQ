@@ -20,9 +20,8 @@
 #include "usimoveconverter.h"
 #include "usiexporter.h"
 
-KifuExportClipboard::KifuExportClipboard(QWidget* parentWidget, QObject* parent)
+KifuExportClipboard::KifuExportClipboard(QObject* parent)
     : QObject(parent)
-    , m_parentWidget(parentWidget)
 {
 }
 
@@ -76,7 +75,6 @@ GameRecordModel::ExportContext KifuExportClipboard::buildExportContext() const
 {
     GameRecordModel::ExportContext ctx;
     ctx.gameInfoTable = m_deps.gameInfoController ? m_deps.gameInfoController->tableWidget() : nullptr;
-    ctx.recordModel = m_deps.kifuRecordModel;
     ctx.startSfen = m_deps.gameRecord
         ? m_deps.gameRecord->initialSfenForExport(m_deps.startSfenStr) : m_deps.startSfenStr;
     ctx.playMode = m_deps.playMode;

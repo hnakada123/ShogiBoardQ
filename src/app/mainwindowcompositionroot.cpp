@@ -300,7 +300,6 @@ void MainWindowCompositionRoot::refreshGameStateControllerDeps(
 {
     controller->setMatchCoordinator(refs.gameService.match);
     controller->setTimeController(refs.uiController.timeController);
-    controller->setKifuLoadCoordinator(refs.kifuService.kifuLoadCoordinator);
     controller->setKifuRecordModel(refs.models.kifuRecordModel);
     controller->setPlayMode(*refs.state.playMode);
 

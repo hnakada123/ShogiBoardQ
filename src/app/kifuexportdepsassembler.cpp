@@ -18,9 +18,7 @@ void KifuExportDepsAssembler::assemble(KifuExportController* controller, const M
     deps.kifuLoadCoordinator = refs.kifuService.kifuLoadCoordinator;
     deps.recordPresenter = refs.kifuService.recordPresenter;
     deps.match = refs.gameService.match;
-    deps.replayController = refs.kifuService.replayController;
     deps.gameController = refs.gameService.gameController;
-    deps.statusBar = refs.ui.statusBar;
     deps.sfenRecord = refs.kifu.sfenRecord;
     deps.usiMoves = refs.kifu.gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用

@@ -139,7 +139,6 @@ void CsaClient::login(const QString& username, const QString& password)
         return;
     }
 
-    m_username = username;
     QString loginCmd = QStringLiteral("LOGIN %1 %2").arg(username, password);
     sendMessage(loginCmd);
 }
@@ -350,6 +349,5 @@ void CsaClient::resetSessionState()
     m_inPositionSection = false;
     m_currentTimeSection.clear();
     m_pendingFirstResultLine.clear();
-    m_moveCount = 0;
     m_endMoveConsumedTimeMs = 0;
 }

@@ -35,7 +35,6 @@ class EvaluationChartWidget;
 class KifuAnalysisListModel;
 class GameInfoPaneController;
 class SfenCollectionDialog;
-class KifuDisplay;
 class PieceSoundPlayer;
 
 /**
@@ -78,7 +77,6 @@ public:
         std::function<PieceSoundPlayer*()> getPieceSoundPlayer;
 
         // 値型メンバーへのポインタ
-        QList<KifuDisplay*>* moveRecords = nullptr;
         QStringList* gameUsiMoves = nullptr;
         int* activePly = nullptr;
 

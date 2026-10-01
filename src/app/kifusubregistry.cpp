@@ -388,7 +388,6 @@ void KifuSubRegistry::createAndWireKifuLoadCoordinator()
     p.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
     p.sfenRecord = m_mw.m_queryService->sfenRecord();
     p.gameInfoController = m_mw.m_gameInfoController;
-    p.tab = m_mw.m_tab;
     p.recordPane = m_mw.m_recordPane;
     p.kifuRecordModel = m_mw.m_models.kifuRecord;
     p.kifuBranchModel = m_mw.m_models.kifuBranch;

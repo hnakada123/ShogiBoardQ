@@ -113,7 +113,6 @@ void ConsiderationWiring::onEngineSettingsRequested(int engineNumber, const QStr
                    << " engineName=" << engineName;
 
     ChangeEngineSettingsDialog dialog(m_parentWidget);
-    dialog.setEngineNumber(engineNumber);
     dialog.setEngineName(engineName);
     dialog.setupEngineOptionsDialog();
 

@@ -53,7 +53,6 @@ void CsaClient::processLine(const QString& line)
             QString gameId = line.mid(6);
             setConnectionState(ConnectionState::InGame);
             m_isMyTurn = (m_gameSummary.myTurn == m_gameSummary.toMove);
-            m_moveCount = 0;
             m_endMoveConsumedTimeMs = 0;  // 終局時消費時間をリセット
             emit gameStarted(gameId);
         } else if (line.startsWith(QStringLiteral("REJECT:"))) {
@@ -393,8 +392,6 @@ void CsaClient::processMoveLine(const QString& line)
 
     // 消費時間をミリ秒に変換
     int consumedTimeMs = consumedTime * m_gameSummary.timeUnitMs();
-
-    m_moveCount++;
 
     // 手番を判定（指し手の先頭文字で判定）
     bool isBlackMove = move.startsWith(QLatin1Char('+'));

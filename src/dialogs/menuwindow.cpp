@@ -106,7 +106,6 @@ void MenuWindow::setupUi()
 
 void MenuWindow::setCategories(const QList<CategoryInfo>& categories)
 {
-    m_categories = categories;
     m_actionMap.clear();
     m_allButtons.clear();
 

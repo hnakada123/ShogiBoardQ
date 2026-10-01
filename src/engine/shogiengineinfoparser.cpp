@@ -323,7 +323,6 @@ void ShogiEngineInfoParser::clearParsedInfo()
     m_nps.clear();
     m_time.clear();
     m_score.clear();
-    m_string.clear();
     m_scoreCp.clear();
     m_scoreMate.clear();
     m_pvKanjiStr.clear();

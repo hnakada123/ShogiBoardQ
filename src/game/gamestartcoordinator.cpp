@@ -22,8 +22,6 @@
 GameStartCoordinator::GameStartCoordinator(const Deps& d, QObject* parent)
     : QObject(parent)
     , m_match(d.match)
-    , m_clock(d.clock)
-    , m_gc(d.gc)
 {
     // MainWindow との queued 接続でも安全に受け渡せるように登録
     qRegisterMetaType<GameStartCoordinator::TimeControl>("GameStartCoordinator::TimeControl");

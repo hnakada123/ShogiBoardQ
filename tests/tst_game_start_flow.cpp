@@ -48,7 +48,6 @@ struct TestHarness {
     {
         match = new MatchCoordinator(matchDeps);
         gscDeps.match = match;
-        gscDeps.clock = &clock;
         gsc = new GameStartCoordinator(gscDeps);
         TestTracker::reset();
     }
@@ -477,7 +476,6 @@ private slots:
         QSignalSpy spy(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
 
         GameStartCoordinator::Request req;
-        req.mode = static_cast<int>(PlayMode::HumanVsHuman);
         req.startSfen = kHirateSfen;
         req.clock = &h.clock;
         req.skipCleanup = false;
@@ -493,7 +491,6 @@ private slots:
         QSignalSpy spy(h.gsc, &GameStartCoordinator::requestPreStartCleanup);
 
         GameStartCoordinator::Request req;
-        req.mode = static_cast<int>(PlayMode::HumanVsHuman);
         req.startSfen = kHirateSfen;
         req.clock = &h.clock;
         req.skipCleanup = true;

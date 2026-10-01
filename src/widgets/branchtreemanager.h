@@ -44,8 +44,6 @@ public:
 
     // --- グラフノード ---
     struct BranchGraphNode {
-        int id   = -1;
-        int vid  = -1;
         int row  = -1;
         int ply  =  0;
         QGraphicsPathItem* item = nullptr;
@@ -95,7 +93,7 @@ public:
     bool hasHighlightedNode() const { return m_lastHighlightedRow >= 0 && m_lastHighlightedPly >= 0; }
 
     void clearBranchGraph();
-    int  registerNode(int vid, int row, int ply, QGraphicsPathItem* item);
+    int  registerNode(int row, int ply, QGraphicsPathItem* item);
     void linkEdge(int prevId, int nextId);
     int  nodeIdFor(int row, int ply) const;
 
@@ -137,7 +135,6 @@ private:
     // --- グラフ ---
     QHash<QPair<int,int>, int> m_nodeIdByRowPly;
     QHash<int, BranchGraphNode> m_nodesById;
-    QHash<int, QList<int>>    m_prevIds;
     QHash<int, QList<int>>    m_nextIds;
     QHash<int, int>             m_rowEntryNode;
     int m_nextNodeId = 1;

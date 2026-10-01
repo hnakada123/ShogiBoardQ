@@ -175,7 +175,6 @@ void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
     }
 
     ChangeEngineSettingsDialog dialog(this);
-    dialog.setEngineNumber(engineIndex);
     dialog.setEngineName(m_engineList.at(engineIndex).name);
     dialog.setEngineAuthor(m_engineList.at(engineIndex).author);
     dialog.setupEngineOptionsDialog();

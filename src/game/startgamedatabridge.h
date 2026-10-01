@@ -31,7 +31,6 @@ struct StartGameDialogData {
 
     // --- エンジンリスト ---
     struct Engine {
-        QString name;  ///< エンジン表示名
         QString path;  ///< エンジン実行ファイルのパス
     };
     QList<Engine> engineList;  ///< 登録エンジン一覧
@@ -59,7 +58,6 @@ struct StartGameDialogData {
     bool    isShowHumanInFront = false; ///< 人間を手前に表示するか
     int     consecutiveGames  = 1;     ///< 連続対局数
     bool    isSwitchTurnEachGame = false; ///< 1局ごとに手番入替フラグ
-    int     jishogiRule       = 0;     ///< 持将棋ルール（0:なし, 1:24点法, 2:27点法）
 };
 
 #endif // STARTGAMEDATABRIDGE_H

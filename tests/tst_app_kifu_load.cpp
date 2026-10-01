@@ -792,24 +792,8 @@ private slots:
 
         const QString body = bodyText(lines, range);
 
-        QVERIFY2(body.contains(QStringLiteral("m_branchPlyContext = -1")),
-                  "Must reset branchPlyContext");
         QVERIFY2(body.contains(QStringLiteral("setRootSfen")),
                   "Must set root SFEN");
-    }
-
-    /// resetBranchContext がコンテキストをリセットすること
-    void klc_resetBranchContext_resetsContext()
-    {
-        const QStringList& lines = klcLines();
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("KifuLoadCoordinator::resetBranchContext()"));
-        QVERIFY2(range.first >= 0, "resetBranchContext not found");
-
-        const QString body = bodyText(lines, range);
-
-        QVERIFY2(body.contains(QStringLiteral("m_branchPlyContext = -1")),
-                  "Must reset branchPlyContext to -1");
     }
 
     // ================================================================

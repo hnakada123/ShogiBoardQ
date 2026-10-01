@@ -35,7 +35,6 @@ void MainWindowServiceRegistry::ensurePvClickController()
     stateRefs.engineName2 = &m_mw.m_player.engineName2;
     stateRefs.currentSfenStr = &m_mw.m_state.currentSfenStr;
     stateRefs.startSfenStr = &m_mw.m_state.startSfenStr;
-    stateRefs.currentMoveIndex = &m_mw.m_state.currentMoveIndex;
     stateRefs.considerationModel = &m_mw.m_models.consideration;
     stateRefs.sfenRecordGetter = [this]() { return m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr; };
     m_mw.m_pvClickController->setStateRefs(stateRefs);

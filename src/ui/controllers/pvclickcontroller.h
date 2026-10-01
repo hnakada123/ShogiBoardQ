@@ -42,7 +42,6 @@ public:
         const QString* engineName2 = nullptr;
         const QString* currentSfenStr = nullptr;
         const QString* startSfenStr = nullptr;
-        const int* currentMoveIndex = nullptr;
         ShogiEngineThinkingModel** considerationModel = nullptr;  ///< ダブルポインタ（外部所有）
         std::function<QStringList*()> sfenRecordGetter;           ///< SFEN履歴の動的取得（MC再生成対応）
     };
@@ -126,7 +125,6 @@ private:
     QString m_engineName2;
     QString m_currentSfenStr;
     QString m_startSfenStr;
-    int m_currentRecordIndex = -1;  ///< 現在選択されている棋譜行のインデックス（PV表示では未使用）
     bool m_boardFlipped = false;     ///< GUI本体の盤面反転状態
 };
 

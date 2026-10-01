@@ -14,14 +14,12 @@
 #include "gamerecordmodel.h"  // GameRecordModel::ExportContext
 #include "kifuclipboardservice.h"  // KifuClipboardService::ExportContext
 
-class QWidget;
 class GameRecordModel;
 class KifuRecordListModel;
 class GameInfoPaneController;
 class TimeControlController;
 class KifuLoadCoordinator;
 class MatchCoordinator;
-class ReplayController;
 class ShogiGameController;
 
 /**
@@ -36,7 +34,7 @@ class KifuExportClipboard : public QObject
     Q_OBJECT
 
 public:
-    explicit KifuExportClipboard(QWidget* parentWidget, QObject* parent = nullptr);
+    explicit KifuExportClipboard(QObject* parent = nullptr);
 
     struct Deps {
         GameRecordModel* gameRecord = nullptr;
@@ -45,7 +43,6 @@ public:
         TimeControlController* timeController = nullptr;
         KifuLoadCoordinator* kifuLoadCoordinator = nullptr;
         MatchCoordinator* match = nullptr;
-        ReplayController* replayController = nullptr;
         ShogiGameController* gameController = nullptr;
 
         // データソース（ポインタ）
@@ -114,7 +111,6 @@ private:
     PositionData currentPositionData() const;
     QString generateBodText(const PositionData& pos) const;
 
-    QWidget* m_parentWidget = nullptr;
     Deps m_deps;
     std::function<void()> m_prepareCallback;
 };

@@ -22,7 +22,6 @@ class RecordPane;
 class BoardInteractionController;
 class QStatusBar;
 class CsaGameDialog;
-class CsaWaitingDialog;
 class EngineAnalysisTab;
 class BoardSetupController;
 class UsiCommLogModel;
@@ -291,7 +290,6 @@ private:
 
     // 内部状態
     int m_activePly = 0;
-    int m_currentSelectedPly = 0;
 };
 
 #endif // CSAGAMEWIRING_H

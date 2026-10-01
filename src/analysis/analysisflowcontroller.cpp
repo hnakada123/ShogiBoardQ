@@ -66,12 +66,10 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
 
     // Cache deps
     m_sfenHistory    = d.sfenRecord;
-    m_moveRecords   = d.moveRecords;
     m_recordModel   = d.recordModel;
     m_analysisModel = d.analysisModel;
     m_usi           = d.usi;
     m_logModel      = d.logModel;
-    m_activePly     = d.activePly;
     m_blackPlayerName = d.blackPlayerName;
     m_whitePlayerName = d.whitePlayerName;
     m_usiMoves      = d.usiMoves;

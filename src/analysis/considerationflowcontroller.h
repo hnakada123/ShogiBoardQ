@@ -27,7 +27,6 @@ public:
         MatchCoordinator* match = nullptr;  ///< 司令塔（必須、非所有）
         std::function<void()> onStarted;  ///< 開始確定通知（任意）
         std::function<void(const QString&)> onError;  ///< エラー表示コールバック（任意）
-        int multiPV = 1;  ///< 候補手本数
         ShogiEngineThinkingModel* considerationModel = nullptr;  ///< 検討用思考モデル（非所有）
         std::function<void(bool unlimited, int byoyomiSec)> onTimeSettingsReady;  ///< 時間設定通知（任意）
         std::function<void(int multiPV)> onMultiPVReady;  ///< MultiPV確定通知（任意）

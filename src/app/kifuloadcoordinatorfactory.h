@@ -9,7 +9,6 @@
 
 struct ShogiMove;
 class QWidget;
-class QTabWidget;
 class KifuLoadCoordinator;
 class KifuRecordListModel;
 class KifuBranchListModel;
@@ -44,7 +43,6 @@ public:
         int* currentMoveIndex = nullptr;
         QStringList* sfenRecord = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
-        QTabWidget* tab = nullptr;
         RecordPane* recordPane = nullptr;
         KifuRecordListModel* kifuRecordModel = nullptr;
         KifuBranchListModel* kifuBranchModel = nullptr;

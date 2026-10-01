@@ -11,7 +11,6 @@ class QWidget;
 class QTabWidget;
 class EngineAnalysisTab;
 class ShogiEngineThinkingModel;
-class UsiCommLogModel;
 class CommentCoordinator;
 class UsiCommandController;
 class ConsiderationWiring;
@@ -25,8 +24,6 @@ class AnalysisTabWiring : public QObject
 public:
     struct Deps {
         QWidget*        centralParent = nullptr;  // EngineAnalysisTab の親にする QWidget（通常は MainWindow の central）
-        UsiCommLogModel* log1 = nullptr;          // USIログ(先手)
-        UsiCommLogModel* log2 = nullptr;          // USIログ(後手)
     };
 
     /// 外部シグナル接続に必要な依存オブジェクト

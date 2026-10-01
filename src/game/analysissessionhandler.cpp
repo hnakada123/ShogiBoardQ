@@ -165,8 +165,6 @@ void AnalysisSessionHandler::setupModeSpecificWiring(Usi* engine,
         m_restartPending = false;
         m_waiting = false;  // 待機フラグをリセット
         m_restartInProgress = false;
-        m_enginePath = opt.enginePath;
-        m_engineName = opt.engineName;
         m_previousFileTo = opt.previousFileTo;
         m_previousRankTo = opt.previousRankTo;
         m_lastUsiMove = opt.lastUsiMove;

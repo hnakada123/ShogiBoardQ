@@ -76,8 +76,7 @@ void ConsiderationDialog::showEngineSettingsDialog()
         // エンジン設定ダイアログを表示する。
         ChangeEngineSettingsDialog dialog(this);
 
-        // エンジン名、エンジン番号を設定する。
-        dialog.setEngineNumber(m_engineNumber);
+        // エンジン名を設定する。
         dialog.setEngineName(m_engineName);
 
         // エンジン設定ダイアログを作成する。

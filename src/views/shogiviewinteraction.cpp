@@ -311,10 +311,7 @@ void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
     // 画面上はドラッグで 1 枚減った見え方にするため、つまみ上げた分をデクリメント。
     m_tempPieceStandCounts = board->pieceStand();
     if (from.x() == 10 || from.x() == 11) {
-        m_dragFromStand = true;                       // 駒台からのドラッグ
         m_tempPieceStandCounts[m_dragPiece]--;        // 一時的に在庫を減らす
-    } else {
-        m_dragFromStand = false;                      // 盤上からのドラッグ
     }
 }
 

@@ -28,9 +28,6 @@ public:
     // デストラクタ
     ~ChangeEngineSettingsDialog() override;
 
-    // 将棋エンジン番号のsetter
-    void setEngineNumber(const int &engineNumber);
-
     // 将棋エンジン名のsetter
     void setEngineName(const QString &engineName);
 
@@ -43,9 +40,6 @@ public:
 private:
     // UIコンポーネントのポインタを保持するためのポインタ変数
     std::unique_ptr<Ui::ChangeEngineSettingsDialog> ui;
-
-    // エンジン番号
-    int m_engineNumber = 0;
 
     // オプション管理ハンドラ
     std::unique_ptr<EngineSettingsOptionHandler> m_optionHandler;

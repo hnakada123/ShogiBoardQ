@@ -53,7 +53,6 @@ struct MCTestHarness {
         MatchCoordinator::Deps deps;
         deps.gc = &gc;
         deps.clock = &clock;
-        deps.view = nullptr;
         deps.usi1 = nullptr;
         deps.usi2 = nullptr;
         deps.comm1 = nullptr;
@@ -84,9 +83,7 @@ struct MCTestHarness {
         deps.hooks.time.incrementMsFor = [](MatchCoordinator::Player) -> qint64 { return 0; };
         deps.hooks.time.byoyomiMs = []() -> qint64 { return 0; };
 
-        deps.hooks.engine.sendGoToEngine = [](Usi*, const MatchCoordinator::GoTimes&) {};
         deps.hooks.engine.sendStopToEngine = [](Usi*) {};
-        deps.hooks.engine.sendRawToEngine = [](Usi*, const QString&) {};
 
         deps.hooks.game.initializeNewGame = [this](const QString&) {
             initializeNewGameCalled = true;

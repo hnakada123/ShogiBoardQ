@@ -116,7 +116,6 @@ DialogCoordinator::~DialogCoordinator() = default;
 void DialogCoordinator::updateDeps(const Deps& deps)
 {
     m_match = deps.matchCoordinator;
-    m_gc = deps.gameController;
     m_usi = deps.usiEngine;
     m_logModel = deps.logModel;
     m_thinkingModel = deps.thinkingModel;
@@ -166,7 +165,6 @@ bool DialogCoordinator::startConsiderationDirect(const ConsiderationDirectParams
         Q_EMIT considerationModeStarted();
     };
     d.onError = [this](const QString& msg) { showFlowError(msg); };
-    d.multiPV = params.multiPV;
     d.considerationModel = params.considerationModel;
     d.onTimeSettingsReady = [this](bool unlimited, int byoyomiSec) {
         Q_EMIT considerationTimeSettingsReady(unlimited, byoyomiSec);
@@ -234,7 +232,6 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     // 依存を詰めて Flow へ一任
     AnalysisFlowController::Deps d;
     d.sfenRecord = params.sfenRecord;
-    d.moveRecords = params.moveRecords;
     d.recordModel = params.recordModel;
     d.analysisModel = m_analysisModel;
     d.usi = m_usi;
@@ -273,7 +270,6 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
     // パラメータを構築
     KifuAnalysisParams params;
     params.sfenRecord = m_kifuAnalysisCtx.sfenRecord;
-    params.moveRecords = m_kifuAnalysisCtx.moveRecords;
     params.recordModel = m_kifuAnalysisCtx.recordModel;
     params.activePly = m_kifuAnalysisCtx.activePly ? *m_kifuAnalysisCtx.activePly : 0;
     params.gameController = m_kifuAnalysisCtx.gameController;

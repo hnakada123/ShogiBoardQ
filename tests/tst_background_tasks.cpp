@@ -23,7 +23,7 @@ struct KifuHarness {
     int active = 0, selected = 0, current = 0;
     QStringList history;
     KifuLoadCoordinator loader{moves, commands, active, selected, current, &history,
-                                nullptr, nullptr, nullptr, nullptr, nullptr, nullptr};
+                                nullptr, nullptr, nullptr, nullptr};
 };
 const QString engineName = QStringLiteral("BackgroundTest");
 QString fixture(const QString& name)

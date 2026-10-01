@@ -6,7 +6,6 @@
 
 #include <QVariant>
 #include <QList>
-#include <QRectF>
 #include "abstractlistmodel.h"
 #include "kifubranchdisplay.h"
 #include "kifdisplayitem.h"
@@ -95,20 +94,16 @@ private:
 private:
     /// 分岐グラフのノード
     struct Node {
-        int id = -1;                        ///< ノードID
         int vid = -1;                       ///< 変化番号（0=本譜, 1..=変化）
         int ply = 0;                        ///< グローバル手数
         int row = 0;                        ///< 表示行
-        QRectF rect;                        ///< 画面上の矩形
         int prevId = -1;                    ///< 直前ノードID
         QList<int> nextIds;               ///< 直後ノードIDリスト（分岐なら複数）
     };
 
     int m_activeNodeId = -1;                ///< 現在アクティブなノードID
-    int m_mainVid = 0;                      ///< 本譜の変化番号
 
     QList<Node> m_nodes;                  ///< ノード配列（nodeId = index）
-    QHash<quint64, int> m_key2node;         ///< (vid<<32)|ply → nodeId の検索マップ
 
 private:
     void setActiveNode(int nodeId);

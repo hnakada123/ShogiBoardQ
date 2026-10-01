@@ -30,9 +30,6 @@ class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class ShogiGameController;
 class ShogiClock;
-class GameModeStrategy;
-class EngineVsEngineStrategy;
-class ShogiView;
 class Usi;
 class AnalysisSessionHandler;
 class GameEndHandler;
@@ -88,7 +85,6 @@ public:
     struct Deps {
         ShogiGameController* gc = nullptr;         ///< ゲームコントローラ（非所有）
         ShogiClock*          clock = nullptr;       ///< 将棋時計（非所有）
-        ShogiView*           view = nullptr;        ///< 盤面ビュー（非所有）
         Usi*                 usi1 = nullptr;         ///< エンジン1（非所有）
         Usi*                 usi2 = nullptr;         ///< エンジン2（非所有）
         UsiCommLogModel*           comm1 = nullptr;  ///< エンジン1通信ログ（非所有）
@@ -267,9 +263,7 @@ public:
 
     // --- USI送受 ---
 
-    void sendGoToEngine(Usi* which, const GoTimes& t);
     void sendStopToEngine(Usi* which);
-    void sendRawToEngine(Usi* which, const QString& cmd);
 
     /// 持将棋（最大手数到達）時の棋譜1行追記と終局処理
     void handleMaxMovesJishogi();
@@ -355,7 +349,6 @@ private:
     // --- コアオブジェクト（非所有、寿命はMainWindow側で管理） ---
 
     ShogiGameController* m_gc   = nullptr;   ///< ゲームコントローラ
-    ShogiView*           m_view = nullptr;   ///< 盤面ビュー
     Hooks                m_hooks;             ///< UIコールバック群
 
     // --- エンジン管理 ---
@@ -429,7 +422,6 @@ private:
 
     // --- 対局履歴 ---
 
-    static constexpr int kMaxGameHistories = 10;  ///< 最大対局履歴数
     QList<QStringList> m_allGameHistories;  ///< 過去の対局履歴
 };
 

@@ -26,7 +26,6 @@ void DialogCoordinatorWiring::ensure(const Deps& deps)
         m_coordinator = new DialogCoordinator(deps.parentWidget, deps.parentWidget);
         DialogCoordinator::Deps dcDeps;
         dcDeps.matchCoordinator = deps.match;
-        dcDeps.gameController = deps.gameController;
         m_coordinator->updateDeps(dcDeps);
         wireSignals(deps);
     }
@@ -84,7 +83,6 @@ void DialogCoordinatorWiring::bindContexts(const Deps& deps)
     // 棋譜解析コンテキストを設定
     DialogCoordinator::KifuAnalysisContext kifuCtx;
     kifuCtx.sfenRecord = deps.sfenRecord;
-    kifuCtx.moveRecords = deps.moveRecords;
     kifuCtx.recordModel = deps.kifuRecordModel;
     kifuCtx.activePly = deps.activePly;
     kifuCtx.gameController = deps.gameController;

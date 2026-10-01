@@ -129,9 +129,7 @@ void EngineLifecycleManager::destroyEngines(bool) {}
 void EngineLifecycleManager::initEnginesForEvE(const QString&, const QString&) {}
 bool EngineLifecycleManager::engineThinkApplyMove(Usi*, QString&, QString&, QPoint*, QPoint*) { return false; }
 bool EngineLifecycleManager::engineMoveOnce(Usi*, QString&, QString&, bool, int, QPoint*) { return false; }
-void EngineLifecycleManager::sendGoToEngine(Usi*, const GoTimes&) {}
 void EngineLifecycleManager::sendStopToEngine(Usi*) {}
-void EngineLifecycleManager::sendRawToEngine(Usi*, const QString&) {}
 void EngineLifecycleManager::wireResignToArbiter(Usi*, bool) {}
 void EngineLifecycleManager::wireWinToArbiter(Usi*, bool) {}
 void EngineLifecycleManager::disconnectArbiterSignals() {}

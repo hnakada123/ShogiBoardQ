@@ -12,7 +12,6 @@ class QWidget;
 class MainWindow;
 class QStatusBar;
 struct ShogiMove;
-class KifuDisplay;
 enum class PlayMode;
 
 class MatchCoordinator;
@@ -85,7 +84,6 @@ struct RuntimeKifuRefs {
     QStringList* sfenRecord = nullptr;                     ///< SFEN記録（外部所有）
     QList<ShogiMove>* gameMoves = nullptr;               ///< 指し手リスト（外部所有）
     QStringList* gameUsiMoves = nullptr;                   ///< USI形式指し手リスト（外部所有）
-    QList<KifuDisplay*>* moveRecords = nullptr;            ///< 移動記録（外部所有）
     QStringList* positionStrList = nullptr;                ///< 局面文字列リスト（外部所有）
     int* activePly = nullptr;                              ///< アクティブ手数（外部所有）
     int* currentSelectedPly = nullptr;                     ///< 選択中手数（外部所有）

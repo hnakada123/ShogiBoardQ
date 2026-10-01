@@ -17,13 +17,11 @@
 
 class CsaMoveProgressHandler;
 
-class KifuRecordListModel;
 class ShogiGameController;
 class ShogiView;
 class ShogiClock;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
-class BoardInteractionController;
 class CsaEngineController;
 
 /**
@@ -78,8 +76,6 @@ public:
         ShogiGameController* gameController = nullptr;
         ShogiView* view = nullptr;
         ShogiClock* clock = nullptr;
-        BoardInteractionController* boardController = nullptr;
-        KifuRecordListModel* recordModel = nullptr;
         QStringList* sfenRecord = nullptr;
         QList<ShogiMove>* gameMoves = nullptr;
         UsiCommLogModel* usiCommLog = nullptr;
@@ -94,7 +90,6 @@ public:
         int port;
         QString username;
         QString password;
-        QString csaVersion;
         PlayerType playerType;
         QString enginePath;
         QString engineName;
@@ -176,8 +171,6 @@ private:
     QPointer<ShogiGameController> m_gameController;
     QPointer<ShogiView> m_view;
     QPointer<ShogiClock> m_clock;
-    QPointer<BoardInteractionController> m_boardController;
-    QPointer<KifuRecordListModel> m_recordModel;
 
     // エンジン初期化用（CsaEngineControllerに渡す）
     UsiCommLogModel* m_usiCommLog = nullptr;
@@ -212,8 +205,6 @@ private:
     QList<ShogiMove>* m_gameMoves = nullptr;
 
     std::unique_ptr<CsaMoveProgressHandler> m_moveProgressHandler;
-
-    static constexpr int kDefaultPort = 4081;
 };
 
 #endif // CSAGAMECOORDINATOR_H

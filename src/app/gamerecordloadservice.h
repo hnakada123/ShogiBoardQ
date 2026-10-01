@@ -29,8 +29,6 @@ public:
         QList<QString>* commentsByRow = nullptr;    ///< 行ごとのコメント配列
 
         // Object pointers（非所有）
-        GameRecordModel* gameRecord = nullptr;        ///< 棋譜データモデル
-        GameRecordPresenter* recordPresenter = nullptr; ///< 棋譜表示プレゼンタ
         RecordPane* recordPane = nullptr;             ///< 棋譜欄ウィジェット
 
         // Lazy-init callbacks

@@ -23,7 +23,6 @@ class Usi;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class ShogiGameController;
-class KifuDisplay;
 class QWidget;
 
 /**
@@ -40,7 +39,6 @@ public:
     /// 依存オブジェクト
     struct Deps {
         QStringList*                 sfenRecord = nullptr;    ///< 各手数の局面コマンド列（必須、非所有）
-        QList<KifuDisplay *>*        moveRecords = nullptr;   ///< 旧棋譜データ（任意、非所有）
         KifuRecordListModel*         recordModel = nullptr;   ///< 棋譜表示モデル（任意、非所有）
         KifuAnalysisListModel*       analysisModel = nullptr; ///< 解析結果モデル（必須、非所有）
         Usi*                         usi = nullptr;           ///< USI通信窓口（必須、非所有）
@@ -126,12 +124,10 @@ private:
     QPointer<AnalysisResultsPresenter> m_presenter;  ///< 結果表示Presenter（非所有）
 
     QStringList*           m_sfenHistory = nullptr;  ///< 局面コマンド列（非所有）
-    QList<KifuDisplay *>*  m_moveRecords = nullptr; ///< 旧棋譜データ（非所有）
     KifuRecordListModel*   m_recordModel = nullptr; ///< 棋譜モデル（非所有）
     KifuAnalysisListModel* m_analysisModel = nullptr; ///< 解析結果モデル（非所有）
     Usi*                   m_usi = nullptr;         ///< USI通信窓口（非所有）
     UsiCommLogModel*       m_logModel = nullptr;    ///< USIログモデル（非所有）
-    int                    m_activePly = 0;         ///< 開始時の手数
     QString                m_blackPlayerName;       ///< 先手名
     QString                m_whitePlayerName;       ///< 後手名
     QStringList*           m_usiMoves = nullptr;    ///< USI形式指し手列（非所有）

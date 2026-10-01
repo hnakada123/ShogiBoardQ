@@ -29,7 +29,7 @@
 KifuExportController::KifuExportController(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
     , m_parentWidget(parentWidget)
-    , m_clipboard(new KifuExportClipboard(parentWidget, this))
+    , m_clipboard(new KifuExportClipboard(this))
 {
     connect(m_clipboard, &KifuExportClipboard::statusMessage,
             this, &KifuExportController::statusMessage);
@@ -46,7 +46,6 @@ static KifuExportClipboard::Deps toClipboardDeps(const KifuExportController::Dep
     cd.timeController = d.timeController;
     cd.kifuLoadCoordinator = d.kifuLoadCoordinator;
     cd.match = d.match;
-    cd.replayController = d.replayController;
     cd.gameController = d.gameController;
     cd.sfenRecord = d.sfenRecord;
     cd.usiMoves = d.usiMoves;
@@ -112,7 +111,6 @@ GameRecordModel::ExportContext KifuExportController::buildExportContext() const
 {
     GameRecordModel::ExportContext ctx;
     ctx.gameInfoTable = m_deps.gameInfoController ? m_deps.gameInfoController->tableWidget() : nullptr;
-    ctx.recordModel = m_deps.kifuRecordModel;
     ctx.startSfen = m_deps.gameRecord
         ? m_deps.gameRecord->initialSfenForExport(m_deps.startSfenStr) : m_deps.startSfenStr;
     ctx.playMode = m_deps.playMode;

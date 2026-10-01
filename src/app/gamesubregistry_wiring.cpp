@@ -121,14 +121,8 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     in.onTurnChanged = [this](ShogiGameController::Player player) {
         m_mw.onTurnManagerChanged(player);
     };
-    in.sendGo = [this](Usi* which, const MatchCoordinator::GoTimes& t) {
-        if (m_mw.m_match) m_mw.m_match->sendGoToEngine(which, t);
-    };
     in.sendStop = [this](Usi* which) {
         if (m_mw.m_match) m_mw.m_match->sendStopToEngine(which);
-    };
-    in.sendRaw = [this](Usi* which, const QString& cmd) {
-        if (m_mw.m_match) m_mw.m_match->sendRawToEngine(which, cmd);
     };
     auto* adapter = m_mw.m_matchAdapter.get();
     in.initializeNewGame = [adapter](const QString& sfen) {
@@ -205,9 +199,6 @@ MatchCoordinatorWiring::Deps MainWindowServiceRegistry::buildMatchWiringDeps()
     };
     in.ensureEvaluationGraphController = [this]() {
         m_foundation->ensureEvaluationGraphController();
-    };
-    in.ensurePlayerInfoWiring = [this]() {
-        m_foundation->ensurePlayerInfoWiring();
     };
     in.ensureUsiCommandController = [this]() {
         ensureUsiCommandController();

@@ -193,7 +193,6 @@ TsumeshogiGenerator::enumerateRemovablePieces(const QString& sfen)
             tc.file = c;
             tc.rank = r;
             tc.pieceChar = pieceChar;
-            tc.promoted = isPromoted;
             candidates.append(tc);
         }
     }

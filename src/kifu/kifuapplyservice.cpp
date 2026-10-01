@@ -16,8 +16,6 @@
 #include "logcategories.h"
 
 #include <QTableWidget>
-#include <QDockWidget>
-#include <QTabWidget>
 #include <QAbstractItemView>
 
 KifuApplyService::KifuApplyService(QObject* parent)

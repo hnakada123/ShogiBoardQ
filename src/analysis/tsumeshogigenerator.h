@@ -88,7 +88,6 @@ private:
         int file = -1;           ///< Board時: 筋 (0-8)
         int rank = -1;           ///< Board時: 段 (0-8)
         QChar pieceChar;         ///< SFEN文字 (P/p/k等)
-        bool promoted = false;   ///< Board時: 成駒か
     };
 
     /// SFEN解析結果
@@ -135,7 +134,6 @@ private:
     Settings m_settings;
 
     QString m_currentSfen;       ///< 現在探索中のSFEN文字列
-    int m_triedCount = 0;        ///< エンジンに送った候補局面数
     int m_generatedCount = 0;    ///< 生成して内蔵探索で選別した局面数（候補以外を含む）
     int m_foundCount = 0;        ///< 発見局面数
     QSet<QString> m_foundSfens;  ///< 発見済みSFEN（重複排除用）

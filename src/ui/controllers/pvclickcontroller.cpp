@@ -94,8 +94,6 @@ void PvClickController::syncFromRefs()
         m_currentSfenStr = *m_stateRefs.currentSfenStr;
     if (m_stateRefs.startSfenStr)
         m_startSfenStr = *m_stateRefs.startSfenStr;
-    if (m_stateRefs.currentMoveIndex)
-        m_currentRecordIndex = *m_stateRefs.currentMoveIndex;
     if (m_stateRefs.considerationModel)
         m_considerationModel = *m_stateRefs.considerationModel;
     if (m_stateRefs.sfenRecordGetter)
@@ -159,7 +157,6 @@ void PvClickController::onPvRowClicked(int engineIndex, int row)
 
     //重要: 読み筋（PV）が生成された時点の局面を使用する
     // record->baseSfen() は読み筋生成時の局面SFENを保持している
-    // m_currentRecordIndex は棋譜欄で選択中の位置なので、PV表示には使用しない
     QString currentSfen = resolveCurrentSfen(record->baseSfen());
     qCDebug(lcUi) << "onPvRowClicked: currentSfen=" << currentSfen;
     qCDebug(lcUi) << "onPvRowClicked: record->baseSfen()=" << record->baseSfen();

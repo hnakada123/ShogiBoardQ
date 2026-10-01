@@ -191,7 +191,6 @@ public:
 
     void clearTurnHighlight();
 
-    void setUiMuted(bool on);
     void setActiveIsBlack(bool activeIsBlack);
 
     // 対局終了時のスタイル維持（trueの間はclearTurnHighlightを無視）
@@ -349,7 +348,6 @@ private:
     // ハイライト/矢印/手番表示の管理クラス
     ShogiViewHighlighting* m_highlighting = nullptr;
 
-    bool m_uiMuted = false;
     bool m_gameOverStyleLock = false;  // 対局終了時のスタイル維持
 
     void ensureTurnLabels();

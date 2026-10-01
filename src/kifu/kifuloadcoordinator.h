@@ -7,7 +7,6 @@
 
 #include <QObject>
 #include <QTableWidget>
-#include <QDockWidget>
 #include <functional>
 #include <QFutureWatcher>
 #include "kifuloadparser.h"
@@ -45,8 +44,6 @@ public:
                         int& currentMoveIndex,
                         QStringList* sfenRecord,
                         QTableWidget* gameInfoTable,
-                        QDockWidget* gameInfoDock,
-                        QTabWidget* tab,
                         RecordPane* recordPane,
                         KifuRecordListModel* kifuRecordModel,
                         KifuBranchListModel* kifuBranchModel,
@@ -105,9 +102,6 @@ public:
 
     // --- 分岐管理 ---
 
-    /// 分岐コンテキストをリセット（対局終了時に使用）
-    void resetBranchContext();
-
     /// 分岐ツリーを完全リセット（新規対局開始時に使用）
     void resetBranchTreeForNewGame();
 
@@ -143,9 +137,7 @@ private:
 
     // --- UIウィジェット（非所有） ---
     QTableWidget* m_gameInfoTable;            ///< 対局情報テーブル（非所有）
-    QDockWidget*  m_gameInfoDock;             ///< 対局情報ドック（非所有）
     BranchTreeManager* m_branchTreeManager = nullptr; ///< 分岐ツリーマネージャー
-    QTabWidget* m_tab;                        ///< メインタブウィジェット（非所有）
     ShogiView* m_shogiView = nullptr;         ///< 盤面ビュー（非所有）
 
     // --- 棋譜データ ---
@@ -153,12 +145,6 @@ private:
     QStringList* m_sfenHistory;                ///< 局面SFEN列への参照（非所有）
     QList<ShogiMove>& m_gameMoves;          ///< ゲーム指し手列への参照
     QStringList& m_positionStrList;           ///< USI positionコマンド列への参照
-    QList<KifDisplayItem> m_dispMain;         ///< 本譜の表示データスナップショット
-    QList<KifDisplayItem> m_dispCurrent;      ///< 現在表示中の表示データ
-    QStringList           m_sfenMain;         ///< 本譜のSFEN列スナップショット
-    QList<ShogiMove>    m_gmMain;           ///< 本譜のゲーム指し手スナップショット
-    QHash<int, QList<KifLine>> m_variationsByPly; ///< ply→変化リストのマップ
-    QList<KifLine> m_variationsSeq;           ///< 変化の入力順リスト
     RecordPane* m_recordPane;                 ///< 棋譜ペイン（非所有）
 
     // --- ナビゲーション状態（参照で共有） ---
@@ -171,7 +157,6 @@ private:
     KifuBranchListModel* m_kifuBranchModel;   ///< 分岐リストモデル（非所有）
 
     // --- 分岐管理 ---
-    int m_branchPlyContext = -1;              ///< 分岐コンテキストの手数（-1は無効）
     KifuBranchTree* m_branchTree = nullptr;   ///< 分岐ツリー（非所有）
     KifuNavigationState* m_navState = nullptr; ///< ナビゲーション状態（非所有）
 

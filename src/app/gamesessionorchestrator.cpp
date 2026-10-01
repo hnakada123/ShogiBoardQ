@@ -56,7 +56,6 @@ StartGameDialogData extractDialogData(const StartGameDialog& dlg)
 
     for (const auto& e : std::as_const(dlg.engineList())) {
         StartGameDialogData::Engine eng;
-        eng.name = e.name;
         eng.path = e.path;
         data.engineList.append(eng);
     }
@@ -78,7 +77,6 @@ StartGameDialogData extractDialogData(const StartGameDialog& dlg)
     data.isShowHumanInFront = dlg.isShowHumanInFront();
     data.consecutiveGames = dlg.consecutiveGames();
     data.isSwitchTurnEachGame = dlg.isSwitchTurnEachGame();
-    data.jishogiRule = dlg.jishogiRule();
 
     return data;
 }

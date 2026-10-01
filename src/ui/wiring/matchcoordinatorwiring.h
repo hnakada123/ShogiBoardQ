@@ -84,7 +84,6 @@ public:
         /// @note 各 ensure* は MainWindowServiceRegistry 内の対応メソッドに束縛される
         std::function<void()> ensureTimeController;            ///< TimeControlController 遅延初期化
         std::function<void()> ensureEvaluationGraphController; ///< EvaluationGraphController 遅延初期化
-        std::function<void()> ensurePlayerInfoWiring;          ///< PlayerInfoWiring 遅延初期化
         std::function<void()> ensureUsiCommandController;      ///< UsiCommandController 遅延初期化
         std::function<void()> ensureUiStatePolicyManager;      ///< UiStatePolicyManager 遅延初期化
         std::function<void()> connectBoardClicks;              ///< 盤面クリック接続
@@ -126,7 +125,6 @@ public:
         // --- 遅延初期化コールバック ---
         std::function<void()> ensureTimeController;
         std::function<void()> ensureEvaluationGraphController;
-        std::function<void()> ensurePlayerInfoWiring;
         std::function<void()> ensureUsiCommandController;
         std::function<void()> ensureUiStatePolicyManager;
         std::function<void()> connectBoardClicks;
@@ -271,7 +269,6 @@ private:
 
     std::function<void()> m_ensureTimeController;
     std::function<void()> m_ensureEvaluationGraphController;
-    std::function<void()> m_ensurePlayerInfoWiring;
     std::function<void()> m_ensureUsiCommandController;
     std::function<void()> m_ensureUiStatePolicyManager;
     std::function<void()> m_connectBoardClicks;

@@ -100,7 +100,6 @@ private:
     // --- クリック状態 ---
     QPoint m_clickPoint; ///< 現在選択中のマス座標
     bool   m_waitingSecondClick = false; ///< 2クリック目待ちフラグ
-    QPoint m_firstClick; ///< 1クリック目の座標
 
     // --- ハイライトポインタ（所有） ---
     // ShogiView 側は非所有参照のみ保持するため、寿命管理は本クラスが行う。

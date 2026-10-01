@@ -22,10 +22,7 @@ class KifuAnalysisListModel;
 class KifuRecordListModel;
 class ConsiderationTabManager;
 class ShogiGameController;
-class ConsiderationFlowController;
-class TsumeSearchFlowController;
 class AnalysisFlowController;
-class KifuDisplay;
 class GameInfoPaneController;
 class KifuLoadCoordinator;
 class EvaluationChartWidget;
@@ -63,7 +60,6 @@ public:
      */
     struct Deps {
         MatchCoordinator* matchCoordinator = nullptr;         ///< 対局調整（非所有）
-        ShogiGameController* gameController = nullptr;        ///< ゲーム制御（非所有）
         Usi* usiEngine = nullptr;                             ///< USIエンジン（解析用、非所有）
         UsiCommLogModel* logModel = nullptr;                  ///< ログモデル（解析用、非所有）
         ShogiEngineThinkingModel* thinkingModel = nullptr;    ///< 思考モデル（解析用、非所有）
@@ -221,7 +217,6 @@ public:
      */
     struct KifuAnalysisParams {
         QStringList* sfenRecord = nullptr;
-        QList<KifuDisplay*>* moveRecords = nullptr;
         KifuRecordListModel* recordModel = nullptr;  // 棋譜モデル（指し手ラベル取得用）
         int activePly = 0;
         ShogiGameController* gameController = nullptr;  // 盤面情報取得用
@@ -239,7 +234,6 @@ public:
      */
     struct KifuAnalysisContext {
         QStringList* sfenRecord = nullptr;
-        QList<KifuDisplay*>* moveRecords = nullptr;
         KifuRecordListModel* recordModel = nullptr;
         int* activePly = nullptr;
         ShogiGameController* gameController = nullptr;
@@ -341,7 +335,6 @@ signals:
 private:
     QWidget* m_parentWidget = nullptr;
     MatchCoordinator* m_match = nullptr;
-    ShogiGameController* m_gc = nullptr;
     Usi* m_usi = nullptr;
     UsiCommLogModel* m_logModel = nullptr;
     ShogiEngineThinkingModel* m_thinkingModel = nullptr;
