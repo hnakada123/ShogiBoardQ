@@ -124,12 +124,16 @@ private slots:
     void onEngineSettingsClicked();
     void onTimeSettingChanged();
     void onElapsedTimerTick();
+    void saveViewColumnWidths(int logicalIndex);
+    void saveInfoColumnWidths();
 
 private:
     void buildToolbarControls(QWidget* parentWidget);
     void layoutToolbar();
     void buildConsiderationView(QWidget* parentWidget);
     void initFontManager();
+    void applyViewColumnWidths();
+    void updateTimeControls();
 
     // 検討タブ用UI
     EngineInfoWidget* m_considerationInfo = nullptr;

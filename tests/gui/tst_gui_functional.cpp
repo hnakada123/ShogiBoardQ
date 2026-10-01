@@ -23,6 +23,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPlainTextEdit>
+#include <QRadioButton>
 #include <QTextEdit>
 #include <QTextBlock>
 #include <QSpinBox>
@@ -37,6 +38,7 @@
 #include <QTranslator>
 #include <QTemporaryDir>
 #include <QTabWidget>
+#include <QVBoxLayout>
 #include "mainwindow.h"
 #include "shogiview.h"
 #include "elidelabel.h"
@@ -71,6 +73,8 @@
 #include "enginelistsettings.h"
 #include "commenteditorpanel.h"
 #include "considerationtabmanager.h"
+#include "analysissettings.h"
+#include "shogienginethinkingmodel.h"
 
 class GuiAudit : public QObject
 {
@@ -2033,6 +2037,96 @@ private slots:
         QTRY_COMPARE(record()->width(), expandedWidth);
         QCOMPARE(boardSfen(), movedPosition);
         QVERIFY(GameSettings::kifuBranchExpanded());
+    }
+    void engineConsiderationLayout()
+    {
+        sampleGame();
+        auto* manager = window->findChild<ConsiderationTabManager*>(); QVERIFY(manager);
+        auto* view = manager->considerationView(); QVERIFY(view);
+        auto* model = manager->considerationModel(); QVERIFY(model);
+        QDockWidget* dock = nullptr;
+        for (auto* d : window->findChildren<QDockWidget*>())
+            if (d->windowTitle() == QStringLiteral("検討")) dock = d;
+        QVERIFY(dock); dock->show(); dock->raise();
+        auto* unlimited = dock->findChild<QRadioButton*>("considerationUnlimited");
+        auto* timed = dock->findChild<QRadioButton*>("considerationTimed");
+        auto* seconds = dock->findChild<QSpinBox*>("considerationSeconds");
+        auto* toolbar = dock->findChild<QWidget*>("considerationToolbar");
+        auto* increase = dock->findChild<QToolButton*>("considerationFontIncrease");
+        QVERIFY(unlimited && timed && seconds && toolbar && increase);
+        manager->setConsiderationTimeLimit(true, 20);
+        QVERIFY(!seconds->isEnabled());
+        QTest::mouseClick(timed, Qt::LeftButton);
+        QVERIFY(!unlimited->isChecked()); QVERIFY(seconds->isEnabled());
+        QTest::mouseClick(unlimited, Qt::LeftButton);
+        QVERIFY(!timed->isChecked()); QVERIFY(!seconds->isEnabled());
+        manager->setConsiderationTimeLimit(false, 20);
+        manager->setConsiderationRunning(true);
+        QVERIFY(!seconds->isEnabled()); QVERIFY(!timed->isEnabled());
+        manager->setConsiderationRunning(false);
+        QVERIFY(seconds->isEnabled()); QVERIFY(timed->isEnabled());
+
+        const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)△３二金(41)");
+        for (int rank = 1; rank <= 6; ++rank) {
+            auto* info = new ShogiInfoRecord(QStringLiteral("11006"), QStringLiteral("22"),
+                QStringLiteral("29113787"), QString::number(150 - rank * 10), pv + pv);
+            info->setMultipv(rank);
+            model->updateByMultipv(info, 6);
+        }
+        manager->setConsiderationMultiPV(6);
+        manager->setConsiderationEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
+        auto* summary = new UsiCommLogModel(window.get());
+        summary->setEngineName(QStringLiteral("YaneuraOu NNUE 9.10git 64ZEN2"));
+        summary->setSearchedMove(QStringLiteral("▲７六歩(77)"));
+        summary->setSearchDepth(QStringLiteral("22/40"));
+        summary->setNodeCount(QStringLiteral("29,113,787"));
+        summary->setNodesPerSecond(QStringLiteral("2,645,265"));
+        summary->setHashUsage(QStringLiteral("14%"));
+        manager->considerationInfo()->setModel(summary);
+        QTest::qWait(80);
+        QCOMPARE(model->headerData(0, Qt::Horizontal).toString(), QStringLiteral("時間(ms)"));
+        QVERIFY(model->index(0, 5).data(Qt::ToolTipRole).toString().contains(pv + pv));
+        QVERIFY(view->columnWidth(1) < 100);
+        QVERIFY(view->columnWidth(4) < 100);
+        QVERIFY(view->columnWidth(5) > view->viewport()->width() / 2);
+        QSignalSpy pvClicked(manager, &ConsiderationTabManager::pvRowClicked);
+        const auto index = model->index(2, 4);
+        QTest::mouseClick(view->viewport(), Qt::LeftButton, Qt::NoModifier, view->visualRect(index).center());
+        QCOMPARE(pvClicked.size(), 1);
+        QCOMPARE(pvClicked.first().at(1).toInt(), 2);
+        // 盤面ダイアログを閉じてからレイアウトを確認する。
+        for (auto* dialog : window->findChildren<QDialog*>()) dialog->close();
+        snapshot("consideration-layout");
+
+        view->setColumnWidth(2, 180);
+        auto* infoTable = manager->considerationInfo()->findChild<QTableWidget*>(); QVERIFY(infoTable);
+        infoTable->setColumnWidth(0, 290);
+        if (action("actionLockDocks")->isChecked()) click("actionLockDocks");
+        dock->setFloating(true);
+        dock->resize(660, 460);
+        QTest::qWait(80);
+        for (auto* control : toolbar->findChildren<QWidget*>()) {
+            if (control->isVisible())
+                QVERIFY2(toolbar->rect().contains(QRect(control->mapTo(toolbar, QPoint()), control->size())),
+                         qPrintable(control->objectName()));
+        }
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/consideration-narrow.png")));
+        for (int i = 0; i < 4; ++i) QTest::mouseClick(increase, Qt::LeftButton);
+        QTest::qWait(80);
+        QCOMPARE(manager->considerationFontSize(), AnalysisSettings::considerationFontSize());
+        for (int col = 0; col < 5; ++col)
+            QVERIFY(view->columnWidth(col) >= view->fontMetrics().horizontalAdvance(model->headerData(col, Qt::Horizontal).toString()));
+        QCOMPARE(AnalysisSettings::thinkingViewColumnWidths(2).at(2), 180);
+
+        QWidget restoredPanel;
+        new QVBoxLayout(&restoredPanel);
+        ConsiderationTabManager restored;
+        restored.setConsiderationThinkingModel(model);
+        restored.buildConsiderationUi(&restoredPanel);
+        QCOMPARE(restored.considerationView()->columnWidth(2), 180);
+        QCOMPARE(restored.considerationInfo()->columnWidths().at(0), 290);
+        restored.setConsiderationTimeLimit(true, 20);
+        QVERIFY(!restoredPanel.findChild<QSpinBox*>("considerationSeconds")->isEnabled());
     }
     void engineInfoLayout()
     {

@@ -17,15 +17,17 @@
 #include <QComboBox>
 #include <QFont>
 #include <QHeaderView>
+#include <QHBoxLayout>
 #include <QLabel>
-#include <QPalette>
 #include <QPushButton>
 #include <QRadioButton>
 #include <QSpinBox>
+#include <QSignalBlocker>
 #include <QTableView>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <initializer_list>
 
 void ConsiderationTabManager::buildConsiderationUi(QWidget* parentWidget)
 {
@@ -77,6 +79,8 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_engineComboBox->setObjectName(QStringLiteral("considerationEngine"));
     m_engineComboBox->setToolTip(tr("検討に使用するエンジンを選択します"));
     m_engineComboBox->setMinimumWidth(150);
+    m_engineComboBox->setMinimumContentsLength(24);
+    m_engineComboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
     connect(m_engineComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &ConsiderationTabManager::onEngineComboBoxChanged);
 
@@ -84,7 +88,8 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_btnEngineSettings = new QPushButton(tr("エンジン設定"), m_considerationToolbar);
     m_btnEngineSettings->setObjectName(QStringLiteral("considerationEngineSettings"));
     m_btnEngineSettings->setToolTip(tr("選択したエンジンの設定を変更します"));
-    m_btnEngineSettings->setStyleSheet(ButtonStyles::primaryAction());
+    m_btnEngineSettings->setStyleSheet(ButtonStyles::panelToolButton()
+        + QStringLiteral("QPushButton { padding: 2px 8px; }"));
     connect(m_btnEngineSettings, &QPushButton::clicked,
             this, &ConsiderationTabManager::onEngineSettingsClicked);
 
@@ -118,11 +123,7 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
     m_elapsedTimeLabel = new QLabel(tr("経過: 0:00"), m_considerationToolbar);
     m_elapsedTimeLabel->setObjectName(QStringLiteral("considerationElapsed"));
     m_elapsedTimeLabel->setToolTip(tr("検討開始からの経過時間"));
-    {
-        QPalette palette = m_elapsedTimeLabel->palette();
-        palette.setColor(QPalette::WindowText, Qt::red);
-        m_elapsedTimeLabel->setPalette(palette);
-    }
+    m_elapsedTimeLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
 
     // 経過時間更新タイマー
     m_elapsedTimer = new QTimer(this);
@@ -159,20 +160,23 @@ void ConsiderationTabManager::buildToolbarControls(QWidget* parentWidget)
 
 void ConsiderationTabManager::layoutToolbar()
 {
-    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 8, 4);
-    toolbarLayout->addWidget(m_btnConsiderationFontDecrease);
-    toolbarLayout->addWidget(m_btnConsiderationFontIncrease);
-    toolbarLayout->addWidget(m_engineComboBox);
-    toolbarLayout->addWidget(m_btnEngineSettings);
-    toolbarLayout->addWidget(m_unlimitedTimeRadioButton);
-    toolbarLayout->addWidget(m_considerationTimeRadioButton);
-    toolbarLayout->addWidget(m_byoyomiSecSpinBox);
-    toolbarLayout->addWidget(m_byoyomiSecUnitLabel);
-    toolbarLayout->addWidget(m_elapsedTimeLabel);
-    toolbarLayout->addWidget(m_multiPVLabel);
-    toolbarLayout->addWidget(m_multiPVComboBox);
-    toolbarLayout->addWidget(m_showArrowsCheckBox);
-    toolbarLayout->addWidget(m_btnStopConsideration);
+    auto* toolbarLayout = new FlowLayout(m_considerationToolbar, 2, 16, 6);
+    // 関連する操作を同じ行に保ち、グループ単位で折り返す。
+    const auto addGroup = [this, toolbarLayout](std::initializer_list<QWidget*> widgets) {
+        auto* group = new QWidget(m_considerationToolbar);
+        auto* row = new QHBoxLayout(group);
+        row->setContentsMargins(0, 0, 0, 0);
+        row->setSpacing(6);
+        for (auto* widget : widgets) row->addWidget(widget);
+        toolbarLayout->addWidget(group);
+    };
+    addGroup({m_btnConsiderationFontDecrease, m_btnConsiderationFontIncrease});
+    addGroup({m_engineComboBox, m_btnEngineSettings});
+    // ラジオボタンは同じ親に置き、相互排他を維持する。
+    addGroup({m_unlimitedTimeRadioButton, m_considerationTimeRadioButton,
+              m_byoyomiSecSpinBox, m_byoyomiSecUnitLabel});
+    addGroup({m_multiPVLabel, m_multiPVComboBox, m_showArrowsCheckBox});
+    addGroup({m_elapsedTimeLabel, m_btnStopConsideration});
 
     // コンボボックスの値変更シグナルを接続
     connect(m_multiPVComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
@@ -190,6 +194,9 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
     m_considerationInfo->setObjectName(QStringLiteral("considerationInfo"));
     m_considerationInfo->setWidgetIndex(2);
     m_considerationInfo->setFontSize(m_considerationFontSize);
+    m_considerationInfo->setColumnWidths(AnalysisSettings::engineInfoColumnWidths(2));
+    connect(m_considerationInfo, &EngineInfoWidget::columnWidthChanged,
+            this, &ConsiderationTabManager::saveInfoColumnWidths);
 
     // 読み筋テーブルビュー
     m_considerationView = new QTableView(parentWidget);
@@ -197,6 +204,10 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
 
     m_considerationView->setShowGrid(false);
     m_considerationView->setMouseTracking(true);
+    m_considerationView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_considerationView->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_considerationView->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    m_considerationView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
     m_considerationView->setItemDelegateForColumn(4, new PvBoardButtonDelegate(m_considerationView));
 
     // ヘッダ設定
@@ -207,6 +218,8 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
             h->setDefaultSectionSize(100);
             h->setMinimumSectionSize(24);
             h->setStretchLastSection(true);
+            connect(h, &QHeaderView::sectionResized,
+                    this, &ConsiderationTabManager::saveViewColumnWidths);
         }
         auto* vh = m_considerationView->verticalHeader();
         if (vh) {
@@ -235,24 +248,51 @@ void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingM
 {
     m_considerationModel = m;
     if (m_considerationView && m) {
+        const QSignalBlocker blocker(m_considerationView->horizontalHeader());
         m_considerationView->setModel(m);
         // 数値列の右寄せ＆3桁カンマ
         // delegate は m_considerationView を Qt parent として生成されるため、自動削除される
         auto* delegate = new NumericRightAlignCommaDelegate(m_considerationView);
-        const QStringList targets = {
-            "Time", "Depth", "Nodes", "Score",
-            "時間", "深さ", "ノード数", "評価値"
-        };
-        for (const QString& t : std::as_const(targets)) {
-            for (int c = 0; c < m->columnCount(); ++c) {
-                const QString h = m->headerData(c, Qt::Horizontal, Qt::DisplayRole).toString().trimmed();
-                if (QString::compare(h, t, Qt::CaseInsensitive) == 0) {
-                    m_considerationView->setItemDelegateForColumn(c, delegate);
-                }
-            }
+        for (int c = 0; c < 4; ++c) {
+            m_considerationView->setItemDelegateForColumn(c, delegate);
         }
+        applyViewColumnWidths();
     }
 } // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
+
+void ConsiderationTabManager::applyViewColumnWidths()
+{
+    if (!m_considerationView || !m_considerationModel) return;
+    auto* header = m_considerationView->horizontalHeader();
+    const QSignalBlocker blocker(header);
+    const QFontMetrics metrics(m_considerationView->font());
+    const auto saved = AnalysisSettings::thinkingViewColumnWidths(2);
+    const QString samples[] = {QStringLiteral("99,999"), QStringLiteral("99"),
+        QStringLiteral("99,999,999"), QStringLiteral("-9,999"), tr("表示")};
+    for (int col = 0; col < 5; ++col) {
+        const QString title = m_considerationModel->headerData(col, Qt::Horizontal).toString();
+        const int minimum = qMax(metrics.horizontalAdvance(title), metrics.horizontalAdvance(samples[col])) + 20;
+        const int width = saved.size() == 6 ? qMax(minimum, saved.at(col)) : minimum;
+        m_considerationView->setColumnWidth(col, width);
+    }
+    // 読み筋は残り幅を使う。狭いドックでも横スクロールで閲覧できる。
+    m_considerationView->setColumnWidth(5, metrics.horizontalAdvance(QStringLiteral("M")) * 24);
+}
+
+void ConsiderationTabManager::saveViewColumnWidths(int logicalIndex)
+{
+    // 最終列はドックのリサイズでも伸縮するため保存対象から除く。
+    if (logicalIndex >= 5 || !m_considerationModel) return;
+    QList<int> widths;
+    for (int col = 0; col < 5; ++col) widths.append(m_considerationView->columnWidth(col));
+    widths.append(0);
+    AnalysisSettings::setThinkingViewColumnWidths(2, widths);
+}
+
+void ConsiderationTabManager::saveInfoColumnWidths()
+{
+    AnalysisSettings::setEngineInfoColumnWidths(2, m_considerationInfo->columnWidths());
+}
 
 // ===================== スロット（UI関連） =====================
 
@@ -279,6 +319,7 @@ void ConsiderationTabManager::initFontManager()
 {
     m_considerationFontManager = std::make_unique<LogViewFontManager>(m_considerationFontSize, nullptr);
     m_considerationFontManager->setPostApplyCallback([this](int size) {
+        m_considerationFontSize = size;
         QFont font;
         font.setPointSize(size);
 
@@ -303,7 +344,10 @@ void ConsiderationTabManager::initFontManager()
         if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setFont(font);
         if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setFont(font);
         if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setFont(font);
-        if (m_elapsedTimeLabel) m_elapsedTimeLabel->setFont(font);
+        if (m_elapsedTimeLabel) {
+            m_elapsedTimeLabel->setFont(font);
+            m_elapsedTimeLabel->setMinimumWidth(QFontMetrics(font).horizontalAdvance(tr("経過: 000:00")));
+        }
         if (m_multiPVLabel) m_multiPVLabel->setFont(font);
         if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
         if (m_showArrowsCheckBox) m_showArrowsCheckBox->setFont(font);
@@ -314,10 +358,12 @@ void ConsiderationTabManager::initFontManager()
         const QString headerStyle = TableStyles::thinking(size);
 
         if (m_considerationView) {
+            const QSignalBlocker blocker(m_considerationView->horizontalHeader());
             m_considerationView->setFont(font);
             m_considerationView->setStyleSheet(headerStyle);
             const int rowHeight = m_considerationView->fontMetrics().height() + 4;
             m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
+            applyViewColumnWidths();
         }
 
         AnalysisSettings::setConsiderationFontSize(size);

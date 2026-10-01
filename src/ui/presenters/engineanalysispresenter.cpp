@@ -160,9 +160,13 @@ void EngineAnalysisPresenter::applyThinkingViewColumnWidths(QTableView* v, int v
         }
     } else {
         for (int col = 0; col < kColCount; ++col) {
-            v->setColumnWidth(col, defaultWidths[col]);
+            const QString title = v->model()->headerData(col, Qt::Horizontal).toString();
+            v->setColumnWidth(col, qMax(defaultWidths[col], v->fontMetrics().horizontalAdvance(title) + 16));
         }
     }
+    // 旧設定の狭い時間列でも、追加した単位まで表示する。
+    const QString timeTitle = v->model()->headerData(0, Qt::Horizontal).toString();
+    v->setColumnWidth(0, qMax(v->columnWidth(0), v->fontMetrics().horizontalAdvance(timeTitle) + 16));
     h->blockSignals(false);
 
     QTimer::singleShot(kColumnWidthLoadDelayMs, this, [this, viewIndex]() {
@@ -244,8 +248,8 @@ void EngineAnalysisPresenter::applyNumericFormattingTo(QTableView* view, QAbstra
     auto* delegate = new NumericRightAlignCommaDelegate(view);
 
     const QStringList targets = {
-        "Time", "Depth", "Nodes", "Score",
-        "時間", "深さ", "ノード数", "評価値"
+        "Time", "Time (ms)", "Depth", "Nodes", "Score",
+        "時間", "時間(ms)", "深さ", "ノード数", "評価値"
     };
     for (const QString& t : std::as_const(targets)) {
         const int col = findColumnByHeader(model, t);
