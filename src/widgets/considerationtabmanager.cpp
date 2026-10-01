@@ -13,7 +13,6 @@
 #include <QComboBox>
 #include <QLabel>
 #include <QMessageBox>
-#include <QPalette>
 #include <QRadioButton>
 #include <QSettings>
 #include <QSignalBlocker>
@@ -70,6 +69,7 @@ void ConsiderationTabManager::setConsiderationTimeLimit(bool unlimited, int byoy
         m_considerationTimeRadioButton->blockSignals(false);
         m_byoyomiSecSpinBox->blockSignals(false);
     }
+    updateTimeControls();
 }
 
 bool ConsiderationTabManager::isUnlimitedTime() const
@@ -139,6 +139,7 @@ void ConsiderationTabManager::loadEngineList()
         settings.setArrayIndex(i);
         const QString name = settings.value(EngineSettingsConstants::EngineNameKey).toString();
         m_engineComboBox->addItem(name);
+        m_engineComboBox->setItemData(i, name, Qt::ToolTipRole);
     }
     settings.endArray();
     const int previousIndex = m_engineComboBox->findText(selectedName);
@@ -176,6 +177,7 @@ void ConsiderationTabManager::loadConsiderationTabSettings()
     }
 
     m_considerationTimeLimitSec = unlimitedTime ? 0 : byoyomiSec();
+    updateTimeControls();
 
     const int multiPV = AnalysisSettings::considerationMultiPV();
     if (m_multiPVComboBox && multiPV >= 1 && multiPV <= 10) {
@@ -207,9 +209,6 @@ void ConsiderationTabManager::startElapsedTimer()
         m_elapsedSeconds = 0;
         if (m_elapsedTimeLabel) {
             m_elapsedTimeLabel->setText(tr("経過: 0:00"));
-            QPalette palette = m_elapsedTimeLabel->palette();
-            palette.setColor(QPalette::WindowText, Qt::red);
-            m_elapsedTimeLabel->setPalette(palette);
         }
         m_elapsedTimer->start();
     }
@@ -241,9 +240,7 @@ void ConsiderationTabManager::setConsiderationRunning(bool running)
 
     m_considerationRunning = running;
     // 時間設定は開始時にエンジンへ渡す。実行中に表示だけ変更されないよう固定する。
-    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setEnabled(!running);
-    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setEnabled(!running);
-    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setEnabled(!running);
+    updateTimeControls();
 
     if (!m_btnStopConsideration) {
         qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] button is null, returning";
@@ -339,6 +336,7 @@ void ConsiderationTabManager::onEngineSettingsClicked()
 
 void ConsiderationTabManager::onTimeSettingChanged()
 {
+    updateTimeControls();
     saveConsiderationTabSettings();
 
     const bool unlimited = isUnlimitedTime();
@@ -346,6 +344,15 @@ void ConsiderationTabManager::onTimeSettingChanged()
     m_considerationTimeLimitSec = unlimited ? 0 : sec;
 
     emit considerationTimeSettingsChanged(unlimited, sec);
+}
+
+void ConsiderationTabManager::updateTimeControls()
+{
+    if (m_unlimitedTimeRadioButton) m_unlimitedTimeRadioButton->setEnabled(!m_considerationRunning);
+    if (m_considerationTimeRadioButton) m_considerationTimeRadioButton->setEnabled(!m_considerationRunning);
+    const bool enabled = !m_considerationRunning && !isUnlimitedTime();
+    if (m_byoyomiSecSpinBox) m_byoyomiSecSpinBox->setEnabled(enabled);
+    if (m_byoyomiSecUnitLabel) m_byoyomiSecUnitLabel->setEnabled(enabled);
 }
 
 void ConsiderationTabManager::onElapsedTimerTick()

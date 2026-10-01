@@ -1256,135 +1256,145 @@ Discard changes and move?</translation>
 <context>
     <name>ConsiderationTabManager</name>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="61"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="63"/>
         <source>フォントサイズを小さくする</source>
         <translation type="unfinished">Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="70"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="72"/>
         <source>フォントサイズを大きくする</source>
         <translation type="unfinished">Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="78"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="80"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="84"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="88"/>
         <source>エンジン設定</source>
         <translation type="unfinished">Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="86"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="90"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="92"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="97"/>
         <source>時間無制限</source>
         <translation type="unfinished">Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="94"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="99"/>
         <source>時間制限なしで検討します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="99"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="104"/>
         <source>検討時間</source>
         <translation type="unfinished">Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="101"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="106"/>
         <source>指定した秒数まで検討します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="110"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="115"/>
         <source>検討時間（秒）を指定します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="115"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="120"/>
         <source>秒まで</source>
         <translation type="unfinished">seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="209"/>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="232"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="118"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="271"/>
+        <source>表示</source>
+        <translation>Show</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="349"/>
+        <source>経過: 000:00</source>
+        <translation>Elapsed: 000:00</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="211"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="231"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="123"/>
         <source>経過: 0:00</source>
         <translation type="unfinished">Elapsed: 0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="120"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="125"/>
         <source>検討開始からの経過時間</source>
         <translation type="unfinished">Elapsed time since consideration started</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="133"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="134"/>
         <source>候補手の数</source>
         <translation type="unfinished">Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="137"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="138"/>
         <source>%1手</source>
         <translation type="unfinished">%1手</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="140"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="141"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation type="unfinished">Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="143"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="144"/>
         <source>矢印表示</source>
         <translation type="unfinished">Show Arrows</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="145"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="146"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation type="unfinished">Displays arrows for the best moves on the board</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="270"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="153"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="267"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="154"/>
         <source>検討開始</source>
         <translation type="unfinished">Start Consideration</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="154"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="155"/>
         <source>検討を開始します</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="262"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="259"/>
         <source>検討中止</source>
         <translation type="unfinished">Stop</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="263"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="260"/>
         <source>検討を中止してエンジンを停止します</source>
         <translation type="unfinished">Stop analysis and terminate the engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="271"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="268"/>
         <source>検討ダイアログを開いて検討を開始します</source>
         <translation type="unfinished">Open consideration dialog to start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="333"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="330"/>
         <source>エラー</source>
         <translation type="unfinished">Error</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="333"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="330"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation type="unfinished">No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="366"/>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="373"/>
         <source>経過: %1:%2</source>
         <translation type="unfinished">Elapsed: %1:%2</translation>
     </message>
@@ -2687,14 +2697,18 @@ Discard changes and move?</translation>
         <translation>Nodes</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
         <source>探索局面数</source>
-        <translation>NPS</translation>
+        <translation type="vanished">NPS</translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
         <source>ハッシュ使用率</source>
         <translation>Hash Usage</translation>
+    </message>
+    <message>
+        <location filename="../../src/widgets/engineinfowidget.cpp" line="37"/>
+        <source>探索局面数/秒</source>
+        <translation>Nodes/s</translation>
     </message>
     <message>
         <location filename="../../src/widgets/engineinfowidget.cpp" line="114"/>
@@ -8185,37 +8199,41 @@ Do you want to continue?</translation>
 <context>
     <name>ShogiEngineThinkingModel</name>
     <message>
-        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="37"/>
+        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="41"/>
         <source>表示</source>
         <translation>Show</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="74"/>
         <source>時間</source>
-        <translation>Time</translation>
+        <translation type="vanished">Time</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="76"/>
+        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="78"/>
+        <source>時間(ms)</source>
+        <translation>Time (ms)</translation>
+    </message>
+    <message>
+        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="80"/>
         <source>深さ</source>
         <translation>Depth</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="78"/>
+        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="82"/>
         <source>ノード数</source>
         <translation>Nodes</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="80"/>
+        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="84"/>
         <source>評価値</source>
         <translation>Score</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="82"/>
+        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="86"/>
         <source>盤面</source>
         <translation>Board</translation>
     </message>
     <message>
-        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="84"/>
+        <location filename="../../src/engine/shogienginethinkingmodel.cpp" line="88"/>
         <source>読み筋</source>
         <translation>PV</translation>
     </message>

@@ -27,8 +27,12 @@ int ShogiEngineThinkingModel::columnCount(const QModelIndex &parent) const
 
 QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid()) {
+    if (!index.isValid() || index.row() < 0 || index.row() >= list.size()) {
         return QVariant();
+    }
+
+    if (role == Qt::ToolTipRole && index.column() == 5) {
+        return QStringLiteral("<qt>%1</qt>").arg(list[index.row()]->pv().toHtmlEscaped());
     }
 
     // 盤面列（列4）はボタン風の表示
@@ -71,7 +75,7 @@ QVariant ShogiEngineThinkingModel::headerData(int section, Qt::Orientation orien
     if (orientation == Qt::Horizontal) {
         switch (section) {
         case 0:
-            return tr("時間");
+            return tr("時間(ms)");
         case 1:
             return tr("深さ");
         case 2:

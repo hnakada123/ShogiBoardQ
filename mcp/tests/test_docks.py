@@ -72,6 +72,7 @@ async def test_dock_float_move_tab_close_and_reopen(dock_env, tmp_path):
                 shot = await ui.call("capture_screenshot", target=name, output_dir=str(tmp_path))
                 assert Path(shot["path"]).stat().st_size > 1000
                 # Floating controls still work when their window is selected explicitly.
+                await ui.call("set_widget_value", target=name, widget="considerationTimed", value=True)
                 await ui.call("set_widget_value", target=name, widget="considerationSeconds", value=17)
                 widgets = (await ui.call("get_widget_text", dialog=name, widget="considerationSeconds"))["widgets"]
                 assert widgets[0]["value"] == 17

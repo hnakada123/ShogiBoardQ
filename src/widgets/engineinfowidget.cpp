@@ -34,7 +34,7 @@ void EngineInfoWidget::setupTable()
     // ヘッダー設定
     QStringList headers;
     headers << tr("エンジン") << tr("予想手") << tr("探索手")
-            << tr("深さ") << tr("ノード数") << tr("探索局面数") << tr("ハッシュ使用率");
+            << tr("深さ") << tr("ノード数") << tr("探索局面数/秒") << tr("ハッシュ使用率");
     m_table->setHorizontalHeaderLabels(headers);
     applyHeaderStyle();
 
