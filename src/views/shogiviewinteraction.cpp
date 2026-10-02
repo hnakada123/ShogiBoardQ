@@ -114,7 +114,7 @@ QPoint ShogiViewInteraction::getClickedSquareInDefaultState(const QPoint& pos,
     }
 
     // 4) （1stクリック）従来の駒台セル判定はそのまま
-    {
+    if (senteStandRect.contains(pos)) {
         // 先手（右側＝layout.param2() 側） rank 5..8
         float tempFile = static_cast<float>(pos.x() - layout.param2() - layout.offsetX()) / static_cast<float>(w);
         float tempRank = static_cast<float>(pos.y() - layout.offsetY()) / static_cast<float>(h);
@@ -133,7 +133,7 @@ QPoint ShogiViewInteraction::getClickedSquareInDefaultState(const QPoint& pos,
             if (rank == 5) return QPoint(10, 8); // 玉 K
         }
     }
-    {
+    if (goteStandRect.contains(pos)) {
         // 後手（左側＝layout.param1() 側） rank 0..3
         float tempFile = static_cast<float>(pos.x() + layout.param1() - layout.offsetX()) / static_cast<float>(w);
         float tempRank = static_cast<float>(pos.y() - layout.offsetY()) / static_cast<float>(h);
@@ -240,7 +240,7 @@ QPoint ShogiViewInteraction::getClickedSquareInFlippedState(const QPoint& pos,
 
     // 4) （1stクリック）反転時の駒台セル判定
     //    反転時は先手駒台が左側（layout.param1()使用）、後手駒台が右側（layout.param2()使用）
-    {
+    if (senteStandRect.contains(pos)) {
         // 先手駒台（左側＝layout.param1() 側） rank 0..3
         float tempFile = static_cast<float>(pos.x() + layout.param1() - layout.offsetX()) / static_cast<float>(w);
         float tempRank = static_cast<float>(pos.y() - layout.offsetY()) / static_cast<float>(h);
@@ -259,7 +259,7 @@ QPoint ShogiViewInteraction::getClickedSquareInFlippedState(const QPoint& pos,
             if (rank == 3) return QPoint(10, 8); // 玉 K
         }
     }
-    {
+    if (goteStandRect.contains(pos)) {
         // 後手駒台（右側＝layout.param2() 側） rank 5..8
         float tempFile = static_cast<float>(pos.x() - layout.param2() - layout.offsetX()) / static_cast<float>(w);
         float tempRank = static_cast<float>(pos.y() - layout.offsetY()) / static_cast<float>(h);

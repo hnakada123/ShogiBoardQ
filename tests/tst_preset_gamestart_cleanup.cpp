@@ -202,6 +202,23 @@ private slots:
         QCOMPARE(h.currentMoveIndex, 0);
     }
 
+    void cleanup_changedRoot_resetsNavigation()
+    {
+        CleanupHarness h;
+        h.simulateGameWithMoves(3);
+        h.navState.setCurrentNode(h.branchTree.mainLine().last());
+        h.navState.setPreferredLineIndex(2);
+        h.startSfenStr = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        h.currentSfenStr = QStringLiteral("startpos");
+
+        h.handler->performCleanup();
+
+        QCOMPARE(h.branchTree.root()->sfen(), h.startSfenStr);
+        QCOMPARE(h.navState.currentNode(), h.branchTree.root());
+        QCOMPARE(h.navState.currentLineIndex(), 0);
+        QCOMPARE(h.navState.currentPly(), 0);
+    }
+
     void cleanup_presetHirate_branchTreeRootPreserved()
     {
         CleanupHarness h;

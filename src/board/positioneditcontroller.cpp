@@ -17,6 +17,15 @@
 
 namespace {
 
+void resetEditInteraction(ShogiView* view, BoardInteractionController* bic)
+{
+    view->endDrag();
+    if (bic) {
+        bic->cancelPendingClick();
+        bic->clearAllHighlights();
+    }
+}
+
 /// 将棋の平手初期配置（board部分）
 static constexpr char kInitialBoard[] =
     "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL";
@@ -90,19 +99,15 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
 
     ShogiBoard* board = c.view->board();
 
-    // GCの手番から desiredTurn を決める（未設定なら先手扱い）
-    ShogiGameController::Player preSide = c.gc->currentPlayer();
-    if (preSide == ShogiGameController::NoPlayer) preSide = ShogiGameController::Player1;
-    const QChar desiredTurn = (preSide == ShogiGameController::Player2) ? QLatin1Char('w') : QLatin1Char('b');
+    // 棋譜読込直後も、表示している盤面の手番を編集開始時に保持する。
+    const QChar desiredTurn = board->currentPlayer() == Turn::White ? QLatin1Char('w') : QLatin1Char('b');
 
-    // 編集開始SFENの決定（record / current / resume / 盤面 から）
-    QString baseSfen;
-    if (c.sfenRecord && !c.sfenRecord->isEmpty()) {
+    // 分岐表示中のsfenRecordは本譜なので、表示中の局面を優先する。
+    QString baseSfen = c.currentSfenStr ? *c.currentSfenStr : QString();
+    if (baseSfen.isEmpty() && c.sfenRecord && !c.sfenRecord->isEmpty()) {
         const qsizetype lastIdx = c.sfenRecord->size() - 1;
         qsizetype idx = -1;
-        if (c.gameOver) {
-            idx = lastIdx;
-        } else if (c.selectedPly >= 0 && c.selectedPly <= lastIdx) {
+        if (c.selectedPly >= 0 && c.selectedPly <= lastIdx) {
             idx = c.selectedPly;
         } else if (c.activePly >= 0 && c.activePly <= lastIdx) {
             idx = c.activePly;
@@ -112,9 +117,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
         if (idx >= 0 && idx <= lastIdx) baseSfen = c.sfenRecord->at(idx);
     }
     if (baseSfen.isEmpty()) {
-        if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
-            baseSfen = *c.currentSfenStr;
-        } else if (c.resumeSfenStr && !c.resumeSfenStr->isEmpty()) {
+        if (c.resumeSfenStr && !c.resumeSfenStr->isEmpty()) {
             baseSfen = *c.resumeSfenStr;
         } else {
             baseSfen = QStringLiteral("%1 %2 %3 %4")
@@ -130,6 +133,7 @@ void PositionEditController::beginPositionEditing(const BeginEditContext& c)
     const QString adjusted = forceTurnAndPly(minimal, desiredTurn, /*ply*/1);
 
     // 盤へ適用し、編集モードへ
+    resetEditInteraction(c.view, c.bic);
     board->setSfen(adjusted);
     c.view->setPositionEditMode(true);
     c.view->setMouseClickMode(true);
@@ -178,6 +182,7 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
                                      QString::number(1));
 
     // 盤面へ反映し、描画
+    resetEditInteraction(c.view, c.bic);
     board->setSfen(sfenNow);
     c.view->setPositionEditMode(false);
     c.view->setMouseClickMode(false);
@@ -226,21 +231,21 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 void PositionEditController::resetPiecesToStand(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
-    if (bic) bic->clearAllHighlights();
+    resetEditInteraction(view, bic);
     view->resetAndEqualizePiecesOnStands();
 }
 
 void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
-    if (bic) bic->clearAllHighlights();
+    resetEditInteraction(view, bic);
     view->initializeToFlatStartingPosition();
 }
 
 void PositionEditController::setTsumeShogiStartPosition(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
-    if (bic) bic->clearAllHighlights();
+    resetEditInteraction(view, bic);
     view->shogiProblemInitialPosition();
 }
 
@@ -283,12 +288,14 @@ void PositionEditController::onFlatHandInitialPositionTriggered()
 {
     if (!m_view) return;
     setStandardStartPosition(m_view, m_bic);
+    if (m_gc) m_gc->setCurrentPlayer(ShogiGameController::Player1);
 }
 
 void PositionEditController::onShogiProblemInitialPositionTriggered()
 {
     if (!m_view) return;
     setTsumeShogiStartPosition(m_view, m_bic);
+    if (m_gc) m_gc->setCurrentPlayer(ShogiGameController::Player1);
 }
 
 void PositionEditController::onToggleSideToMoveTriggered()
@@ -296,14 +303,7 @@ void PositionEditController::onToggleSideToMoveTriggered()
     if (!m_gc) return;
     const auto next = (m_gc->currentPlayer() == ShogiGameController::Player1)
                           ? ShogiGameController::Player2 : ShogiGameController::Player1;
-    // コピーなどが参照する盤面の手番も、編集中から表示と一致させる。
-    if (m_view && m_view->board()) {
-        auto* board = m_view->board();
-        const QString turn = (next == ShogiGameController::Player2)
-                                 ? QStringLiteral("w") : QStringLiteral("b");
-        board->setSfen(QStringLiteral("%1 %2 %3 1")
-                           .arg(board->convertBoardToSfen(), turn, board->convertStandToSfen()));
-    }
+    // SFENの持ち駒には玉を含められないため、盤を再構築せず手番だけ同期する。
     m_gc->setCurrentPlayer(next);
     if (m_view) m_view->update();
 }

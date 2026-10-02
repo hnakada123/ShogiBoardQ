@@ -71,6 +71,12 @@ public:
 
     void updateDeps(const Deps& deps);
 
+    /// 遅延生成したプレゼンターを依存スナップショットへ反映する。
+    void setBoardSyncPresenter(BoardSyncPresenter* presenter) { m_deps.boardSync = presenter; }
+
+    /// 棋譜読込後の盤面を、古い分岐選択の抑止状態に影響されず表示する。
+    void syncLoadedPositionAtRow(int ply);
+
     /// 棋譜ビューを指定手数の行にスクロールし盤面を同期する
     void navigateToRow(int ply);
 
