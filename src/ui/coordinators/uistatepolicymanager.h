@@ -86,6 +86,7 @@ public:
 
         // --- 設定メニュー ---
         SettingsEngine,
+        SettingsReset,
 
         // --- ウィジェット ---
         WidgetNavigation,      ///< ナビゲーションボタン + 棋譜欄クリック

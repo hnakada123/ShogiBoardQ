@@ -42,6 +42,24 @@ private:
     }
 
 private slots:
+    void settingsResetOnlyEnabledWhileIdle()
+    {
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
+        QVERIFY(ui.Setting->actions().contains(ui.actionResetSettings));
+        UiStatePolicyManager manager;
+        UiStatePolicyManager::Deps deps;
+        deps.ui = &ui;
+        manager.updateDeps(deps);
+        for (const auto state : {S::DuringGame, S::DuringCsaGame, S::DuringAnalysis,
+                                S::DuringTsumeSearch, S::DuringConsideration,
+                                S::DuringPositionEdit, S::Idle}) {
+            manager.applyState(state);
+            QCOMPARE(ui.actionResetSettings->isEnabled(), state == S::Idle);
+        }
+    }
+
     void allRecordFormatsShareMenuPolicy()
     {
         QMainWindow window;
