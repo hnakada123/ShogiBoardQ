@@ -9594,9 +9594,87 @@ Last solved: %2</translation>
 <context>
     <name>TsumeShogiSearchDialog</name>
     <message>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="11"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="8"/>
         <source>詰み探索</source>
         <translation>Mate Search</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="17"/>
+        <source>現在の局面から、手番側が連続王手で詰ませる手順を探します。</source>
+        <translation>Find a checkmate sequence with continuous checks for the side to move in the current position.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="23"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="32"/>
+        <source>探索エンジン</source>
+        <translation>Search engine</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="37"/>
+        <source>エンジン設定…</source>
+        <translation>Engine Settings…</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="38"/>
+        <source>選択したエンジンのオプションを変更します</source>
+        <translation>Change options for the selected engine</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="53"/>
+        <source>探索時間</source>
+        <translation>Search time</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="62"/>
+        <source>時間を指定</source>
+        <translation>Time limit</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="68"/>
+        <source>探索時間（秒）</source>
+        <translation>Search time (seconds)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="69"/>
+        <source> 秒</source>
+        <translation> s</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="85"/>
+        <source>時間無制限</source>
+        <translation>Unlimited</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="90"/>
+        <source>探索中は「対局」→「詰み探索中止」で中止できます。</source>
+        <translation>To stop the search, choose Game → Cancel Tsume Search.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="115"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="116"/>
+        <source>文字を小さくする</source>
+        <translation>Decrease font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="122"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="123"/>
+        <source>文字を大きくする</source>
+        <translation>Increase font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="24"/>
+        <source>探索開始</source>
+        <translation>Start search</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="105"/>
+        <source>詰み探索に対応したエンジンを選択してください。</source>
+        <translation>Select an engine that supports mate search.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="106"/>
+        <source>使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。</source>
+        <translation>No engine is available. Register one in Settings → Engine Settings.</translation>
     </message>
 </context>
 <context>

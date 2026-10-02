@@ -45,7 +45,7 @@ bool TsumeSearchFlowController::runWithDialog(const Deps& d, QWidget* parent)
         TsumeShogiSearchDialog dlg(parent);
         if (dlg.exec() != QDialog::Accepted) return false;
 
-        const QList<ConsiderationDialog::Engine>& engines = dlg.engineList();
+        const auto& engines = dlg.engineList();
         const int idx = dlg.engineNumber();
 
         if (engines.isEmpty() || idx < 0 || idx >= engines.size()) {

@@ -7753,9 +7753,87 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>TsumeShogiSearchDialog</name>
     <message>
-        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="11"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="8"/>
         <source>詰み探索</source>
-        <translation type="unfinished"></translation>
+        <translation>詰み探索</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="17"/>
+        <source>現在の局面から、手番側が連続王手で詰ませる手順を探します。</source>
+        <translation>現在の局面から、手番側が連続王手で詰ませる手順を探します。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="23"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="32"/>
+        <source>探索エンジン</source>
+        <translation>探索エンジン</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="37"/>
+        <source>エンジン設定…</source>
+        <translation>エンジン設定…</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="38"/>
+        <source>選択したエンジンのオプションを変更します</source>
+        <translation>選択したエンジンのオプションを変更します</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="53"/>
+        <source>探索時間</source>
+        <translation>探索時間</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="62"/>
+        <source>時間を指定</source>
+        <translation>時間を指定</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="68"/>
+        <source>探索時間（秒）</source>
+        <translation>探索時間（秒）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="69"/>
+        <source> 秒</source>
+        <translation> 秒</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="85"/>
+        <source>時間無制限</source>
+        <translation>時間無制限</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="90"/>
+        <source>探索中は「対局」→「詰み探索中止」で中止できます。</source>
+        <translation>探索中は「対局」→「詰み探索中止」で中止できます。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="115"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="116"/>
+        <source>文字を小さくする</source>
+        <translation>文字を小さくする</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="122"/>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="123"/>
+        <source>文字を大きくする</source>
+        <translation>文字を大きくする</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="24"/>
+        <source>探索開始</source>
+        <translation>探索開始</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="105"/>
+        <source>詰み探索に対応したエンジンを選択してください。</source>
+        <translation>詰み探索に対応したエンジンを選択してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumeshogisearchdialog.cpp" line="106"/>
+        <source>使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。</source>
+        <translation>使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。</translation>
     </message>
 </context>
 <context>

@@ -2257,6 +2257,9 @@ private slots:
         armDialog("auto"); QTest::qWait(700);
         QVERIFY(!action("actionStopTsumeSearch")->isEnabled());
         QVERIFY(window->isVisible());
+        QFile commands(qEnvironmentVariable("AUDIT_USI_LOG"));
+        QVERIFY(commands.open(QIODevice::ReadOnly));
+        QVERIFY(commands.readAll().contains(" go mate 1000\n"));
     }
     void engineGeneratorStartStop()
     {
@@ -2892,8 +2895,15 @@ private slots:
     }
     void engineStopMate()
     {
+        AnalysisSettings::setTsumeSearchUnlimitedTime(true);
         sampleGame(); armDialog("startAnalysis"); click("actionTsumeShogiSearch");
         QTRY_VERIFY_WITH_TIMEOUT(action("actionStopTsumeSearch")->isEnabled(), 1500);
+        const auto searchStarted = [] {
+            QFile commands(qEnvironmentVariable("AUDIT_USI_LOG"));
+            return commands.open(QIODevice::ReadOnly)
+                && commands.readAll().contains(" go mate infinite\n");
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(searchStarted(), 1500);
         armDialog("auto"); click("actionStopTsumeSearch");
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionStopTsumeSearch")->isEnabled(), 2500);
     }

@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>TsumeShogiSearchDialog</class>
+ <widget class="QDialog" name="TsumeShogiSearchDialog">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>560</width><height>360</height></rect>
+  </property>
+  <property name="windowTitle"><string>詰み探索</string></property>
+  <layout class="QVBoxLayout" name="mainLayout">
+   <property name="spacing"><number>14</number></property>
+   <property name="leftMargin"><number>16</number></property>
+   <property name="topMargin"><number>16</number></property>
+   <property name="rightMargin"><number>16</number></property>
+   <property name="bottomMargin"><number>16</number></property>
+   <item>
+    <widget class="QLabel" name="searchDescription">
+     <property name="text"><string>現在の局面から、手番側が連続王手で詰ませる手順を探します。</string></property>
+     <property name="wordWrap"><bool>true</bool></property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBoxEngine">
+     <property name="title"><string>探索エンジン</string></property>
+     <property name="alignment"><set>Qt::AlignLeft</set></property>
+     <layout class="QVBoxLayout" name="engineLayout">
+      <property name="spacing"><number>10</number></property>
+      <item>
+       <layout class="QHBoxLayout" name="engineRow" stretch="1,0">
+        <property name="spacing"><number>10</number></property>
+        <item>
+         <widget class="QComboBox" name="comboBoxEngine1">
+          <property name="accessibleName"><string>探索エンジン</string></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="engineSetting">
+          <property name="text"><string>エンジン設定…</string></property>
+          <property name="toolTip"><string>選択したエンジンのオプションを変更します</string></property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QLabel" name="engineHint">
+        <property name="wordWrap"><bool>true</bool></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="QGroupBox" name="groupBoxTime">
+     <property name="title"><string>探索時間</string></property>
+     <property name="alignment"><set>Qt::AlignLeft</set></property>
+     <layout class="QVBoxLayout" name="timeLayout">
+      <property name="spacing"><number>10</number></property>
+      <item>
+       <layout class="QHBoxLayout" name="limitedTimeRow">
+        <property name="spacing"><number>12</number></property>
+        <item>
+         <widget class="QRadioButton" name="considerationTimeRadioButton">
+          <property name="text"><string>時間を指定</string></property>
+          <property name="checked"><bool>true</bool></property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSpinBox" name="byoyomiSec">
+          <property name="accessibleName"><string>探索時間（秒）</string></property>
+          <property name="suffix"><string> 秒</string></property>
+          <property name="minimum"><number>1</number></property>
+          <property name="maximum"><number>999999</number></property>
+          <property name="value"><number>20</number></property>
+         </widget>
+        </item>
+        <item>
+         <spacer name="timeSpacer">
+          <property name="orientation"><enum>Qt::Horizontal</enum></property>
+          <property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property>
+         </spacer>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <widget class="QRadioButton" name="unlimitedTimeRadioButton">
+        <property name="text"><string>時間無制限</string></property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QLabel" name="stopHint">
+        <property name="text"><string>探索中は「対局」→「詰み探索中止」で中止できます。</string></property>
+        <property name="wordWrap"><bool>true</bool></property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation"><enum>Qt::Vertical</enum></property>
+     <property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QFrame" name="footerSeparator">
+     <property name="frameShape"><enum>QFrame::HLine</enum></property>
+     <property name="frameShadow"><enum>QFrame::Sunken</enum></property>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="footerLayout">
+     <property name="spacing"><number>8</number></property>
+     <item>
+      <widget class="QPushButton" name="toolButtonFontDecrease">
+       <property name="text"><string notr="true">A−</string></property>
+       <property name="toolTip"><string>文字を小さくする</string></property>
+       <property name="accessibleName"><string>文字を小さくする</string></property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="toolButtonFontIncrease">
+       <property name="text"><string notr="true">A+</string></property>
+       <property name="toolTip"><string>文字を大きくする</string></property>
+       <property name="accessibleName"><string>文字を大きくする</string></property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="footerSpacer">
+       <property name="orientation"><enum>Qt::Horizontal</enum></property>
+       <property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QDialogButtonBox" name="buttonBox">
+       <property name="standardButtons"><set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set></property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>comboBoxEngine1</tabstop>
+  <tabstop>engineSetting</tabstop>
+  <tabstop>considerationTimeRadioButton</tabstop>
+  <tabstop>byoyomiSec</tabstop>
+  <tabstop>unlimitedTimeRadioButton</tabstop>
+  <tabstop>buttonBox</tabstop>
+  <tabstop>toolButtonFontDecrease</tabstop>
+  <tabstop>toolButtonFontIncrease</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>
