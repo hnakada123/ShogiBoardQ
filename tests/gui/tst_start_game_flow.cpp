@@ -46,6 +46,7 @@ class TestStartGameFlow : public QObject {
     Q_OBJECT
     std::unique_ptr<MainWindow> window;
     QTimer dialogTimer;
+    QStringList messages;
     template<class T> T* child(QObject& parent, const char* name) {
         auto* result = parent.findChild<T*>(QString::fromLatin1(name));
         Q_ASSERT(result);
@@ -73,6 +74,24 @@ class TestStartGameFlow : public QObject {
                     return QPoint(x, y) + QPoint(board->fieldSize().width()/3, board->fieldSize().height()/3);
         return {};
     }
+    void editPosition(const QString& boardSfen, bool whiteToMove) {
+        if (!window) {
+            window = std::make_unique<MainWindow>();
+            window->resize(1400, 1000);
+            window->show();
+            QTest::qWait(30);
+        }
+        child<QAction>(*window, "actionStartEditPosition")->trigger();
+        child<QAction>(*window, "actionSetHiratePosition")->trigger();
+        auto* view = window->findChild<ShogiView*>();
+        QVERIFY(view->positionEditMode());
+        view->board()->setSfen(boardSfen + QStringLiteral(" b - 1"));
+        if (whiteToMove) child<QAction>(*window, "actionChangeTurn")->trigger();
+        child<QAction>(*window, "actionEndEditPosition")->trigger();
+        QVERIFY(!view->positionEditMode());
+        QCOMPARE(window->m_state.currentSfenStr,
+                 boardSfen + (whiteToMove ? QStringLiteral(" w - 1") : QStringLiteral(" b - 1")));
+    }
 private slots:
     void initTestCase() {
         connect(&dialogTimer, &QTimer::timeout, this, &TestStartGameFlow::handleDialog);
@@ -87,6 +106,7 @@ public slots:
             }
             else if (auto* message = qobject_cast<QMessageBox*>(widget)) {
                 qInfo() << "message:" << message->text();
+                messages.append(message->text());
                 if (message->button(QMessageBox::Discard)) message->button(QMessageBox::Discard)->click();
                 else if (message->button(QMessageBox::Yes)) message->button(QMessageBox::Yes)->click();
                 else message->accept();
@@ -96,6 +116,7 @@ public slots:
 private slots:
     void init() {
         requestedPreset = -1;
+        messages.clear();
         auto& settings = SettingsCommon::openSettings();
         settings.clear();
         settings.setValue("GameSettings/isHuman1", true);
@@ -307,6 +328,135 @@ private slots:
         QVERIFY(kif.contains(QStringLiteral("備考：更新ボタンを押す前の備考")));
         QVERIFY(!kif.contains(QStringLiteral("未開始")));
         window->m_match->handleBreakOff();
+    }
+    void invalidEditedKings_data() {
+        QTest::addColumn<QString>("boardSfen");
+        QTest::addColumn<bool>("whiteToMove");
+        QTest::addColumn<int>("opponents");
+        const QStringList boards = {
+            QStringLiteral("9/4+r4/9/9/9/9/9/9/9"), // 報告された龍1枚の局面
+            QStringLiteral("9/9/9/9/9/9/9/9/9"),
+            QStringLiteral("4k4/9/9/9/9/9/9/9/9"),
+            QStringLiteral("9/9/9/9/9/9/9/9/4K4"),
+            QStringLiteral("4K4/9/9/9/9/9/9/9/4K4"),
+            QStringLiteral("4k4/9/9/9/9/9/9/9/4k4")
+        };
+        for (int i = 0; i < boards.size(); ++i)
+            for (bool white : {false, true})
+                for (int opponents = 0; opponents < 3; ++opponents)
+                    QTest::newRow(qPrintable(QStringLiteral("position-%1-%2-mode-%3")
+                        .arg(i).arg(white ? "white" : "black").arg(opponents)))
+                        << boards.at(i) << white << opponents;
+    }
+    void invalidEditedKings() {
+        QFETCH(QString, boardSfen);
+        QFETCH(bool, whiteToMove);
+        QFETCH(int, opponents);
+        if (opponents != 0) {
+            configureEngineGames(0);
+            auto& settings = SettingsCommon::openSettings();
+            settings.setValue("GameSettings/isHuman1", opponents == 1);
+            settings.setValue("GameSettings/consecutiveGames", 1);
+            settings.sync();
+        }
+        editPosition(boardSfen, whiteToMove);
+        auto* view = window->findChild<ShogiView*>();
+        auto* match = window->m_match;
+        QVERIFY(match);
+        auto* clock = match->clock();
+        QVERIFY(clock);
+        auto* record = window->findChild<RecordPane*>();
+        const QString sfen = window->m_state.currentSfenStr;
+        const QStringList history = *match->sfenRecordPtr();
+        const auto box = view->board()->pieceBox();
+        const auto hands = view->board()->pieceStand();
+        const int rows = record->kifuView()->model()->rowCount();
+        const qint64 blackTime = clock->remainingMainTimeMs(1);
+        const qint64 whiteTime = clock->remainingMainTimeMs(2);
+        const qint64 engineLogSize = QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size();
+        QSignalSpy ended(match, &MatchCoordinator::gameEnded);
+        auto* wiring = window->m_matchWiring.get();
+        QVERIFY(wiring);
+        wiring->ensureMenuGameStartCoordinator();
+        auto* gameStart = wiring->menuGameStartCoordinator();
+        QVERIFY(gameStart);
+        QSignalSpy started(gameStart, &GameStartCoordinator::started);
+        QSignalSpy cleaned(gameStart, &GameStartCoordinator::requestPreStartCleanup);
+
+        startWindowGame();
+        QTest::qWait(50);
+
+        QCOMPARE(messages.size(), 1);
+        QVERIFY(messages.first().contains(QStringLiteral("対局を開始できません")));
+        QVERIFY(messages.first().contains(QStringLiteral("先手 %1枚、後手 %2枚")
+                     .arg(boardSfen.count('K')).arg(boardSfen.count('k'))));
+        QCOMPARE(started.count(), 0);
+        QCOMPARE(cleaned.count(), 0);
+        QCOMPARE(ended.count(), 0);
+        QVERIFY(!clock->isRunning());
+        QCOMPARE(clock->remainingMainTimeMs(1), blackTime);
+        QCOMPARE(clock->remainingMainTimeMs(2), whiteTime);
+        QCOMPARE(QFile(qEnvironmentVariable("AUDIT_USI_LOG")).size(), engineLogSize);
+        QCOMPARE(window->m_state.playMode, PlayMode::NotStarted);
+        QVERIFY(!window->m_state.errorOccurred);
+        QCOMPARE(view->board()->convertBoardToSfen(), boardSfen);
+        QCOMPARE(view->board()->pieceBox(), box);
+        QCOMPARE(view->board()->pieceStand(), hands);
+        QCOMPARE(window->m_state.currentSfenStr, sfen);
+        QCOMPARE(window->m_state.startSfenStr, sfen);
+        QCOMPARE(*match->sfenRecordPtr(), history);
+        QCOMPARE(record->kifuView()->model()->rowCount(), rows);
+        QVERIFY(!record->isNavigationDisabled());
+        QVERIFY(child<QAction>(*window, "actionStartGame")->isEnabled());
+        QVERIFY(child<QAction>(*window, "actionStartEditPosition")->isEnabled());
+        // 拒否後も編集を再開でき、収納していた王・玉も維持される。
+        child<QAction>(*window, "actionStartEditPosition")->trigger();
+        QVERIFY(view->positionEditMode());
+        QVERIFY(!view->pieceBoxRect().isEmpty());
+        QCOMPARE(view->board()->pieceBox(), box);
+        child<QAction>(*window, "actionEndEditPosition")->trigger();
+    }
+    void validStartAfterInvalidEdit_data() {
+        QTest::addColumn<int>("preset");
+        QTest::addColumn<bool>("whiteToMove");
+        QTest::newRow("corrected-black") << 0 << false;
+        QTest::newRow("corrected-white") << 0 << true;
+        QTest::newRow("hirate") << 1 << false;
+        QTest::newRow("handicap") << 2 << true;
+    }
+    void validStartAfterInvalidEdit() {
+        QFETCH(int, preset);
+        QFETCH(bool, whiteToMove);
+        editPosition(QStringLiteral("9/4+r4/9/9/9/9/9/9/9"), whiteToMove);
+        startWindowGame();
+        QCOMPARE(messages.size(), 1);
+        QVERIFY(!window->m_match->clock()->isRunning());
+        messages.clear();
+        QString expectedBoard;
+        if (preset == 0) {
+            expectedBoard = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4");
+            editPosition(expectedBoard, whiteToMove);
+        } else {
+            expectedBoard = GameStartOptionsBuilder::startingPositionSfen(preset).section(' ', 0, 0);
+        }
+        requestedPreset = preset;
+        startWindowGame();
+        QVERIFY2(!messages.join('\n').contains(QStringLiteral("対局を開始できません")),
+                 qPrintable(messages.join('\n')));
+        QVERIFY(window->m_match->clock()->isRunning());
+        QCOMPARE(window->m_state.playMode, PlayMode::HumanVsHuman);
+        auto* view = window->findChild<ShogiView*>();
+        QCOMPARE(view->board()->convertBoardToSfen(), expectedBoard);
+        if (preset == 0) {
+            // 王・玉だけの正常な編集局面から、両手番とも実際に指せる。
+            const int rank = whiteToMove ? 1 : 9;
+            const int nextRank = whiteToMove ? 2 : 8;
+            QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(5, rank));
+            QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(5, nextRank));
+            QTRY_COMPARE(window->findChild<RecordPane*>()->kifuView()->model()->rowCount(), 2);
+            QCOMPARE(view->board()->pieceCharacter(5, nextRank),
+                     whiteToMove ? Piece::WhiteKing : Piece::BlackKing);
+        }
     }
     void newPresetAfterHandicapGame() {
         auto& settings = SettingsCommon::openSettings();

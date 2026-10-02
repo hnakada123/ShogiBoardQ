@@ -117,8 +117,8 @@ public:
     /// 初期局面（平手／手合割）で開始する場合の準備
     void prepareInitialPosition(const Ctx& c);
 
-    /// ダイアログ表示→対局開始までの一連のフローを実行する
-    void initializeGame(const Ctx& c);
+    /// 対局開始フローを実行する。不正な開始局面では状態を変更せずエラーを返す。
+    bool initializeGame(const Ctx& c, QString& errorMessage);
 
     /// 時計を設定し対局を開始する
     void setTimerAndStart(const Ctx& c);
@@ -189,6 +189,7 @@ signals:
 
 private:
     bool validate(const StartParams& params, QString& whyNot) const;
+    bool validateKingsForGame(const QString& sfen, QString& whyNot) const;
 
     QPointer<MatchCoordinator> m_match;       ///< 対局進行の司令塔（非所有、再生成追跡）
     ViewHooks            m_viewHooks;        ///< 盤面ビュー操作コールバック群

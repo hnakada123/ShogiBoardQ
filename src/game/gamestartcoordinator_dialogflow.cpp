@@ -17,8 +17,11 @@
 // 対局開始メインフロー（ダイアログ対話は app/ 層で完了済み）
 // ============================================================
 
-void GameStartCoordinator::initializeGame(const Ctx& c)
+bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
 {
+    errorMessage.clear();
+    if (!m_match) return false;
+
     qCDebug(lcGame).noquote() << "initializeGame: ENTER"
                        << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null")
                        << " c.startSfenStr=" << (c.startSfenStr ? c.startSfenStr->left(50) : "null")
@@ -54,6 +57,20 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
     const bool p2Human   = c.dialogData.isHuman2;
 
     qCDebug(lcGame).noquote() << "initializeGame: after dialog, initPosNo=" << initPosNo;
+
+    // prepareDataCurrentPosition と同じ優先順で、実際に対局に使用する局面を検証する。
+    // 棋譜・対局情報のクリアや時計・エンジンの起動より前に中止する必要がある。
+    QString candidateSfen;
+    if (initPosNo != 0) {
+        candidateSfen = GameStartOptionsBuilder::startingPositionSfen(initPosNo);
+    } else if (c.currentSfenStr && !c.currentSfenStr->isEmpty()) {
+        candidateSfen = *c.currentSfenStr;
+    } else if (c.startSfenStr && !c.startSfenStr->isEmpty()) {
+        candidateSfen = *c.startSfenStr;
+    } else {
+        candidateSfen = QStringLiteral("startpos");
+    }
+    if (!validateKingsForGame(candidateSfen, errorMessage)) return false;
 
     // ダイアログで確定した選択を尊重する。編集済み局面は、現在局面から
     // 開始する場合の SFEN フォールバックにのみ使用する。
@@ -157,7 +174,7 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
 
     // --- 5) StartOptions 構築 ---
     if (!m_match) {
-        return;
+        return false;
     }
     MatchCoordinator::StartOptions opt =
         m_match->buildStartOptions(mode, seedSfen, c.sfenRecord, &c.dialogData);
@@ -220,4 +237,5 @@ void GameStartCoordinator::initializeGame(const Ctx& c)
         // 初手がエンジン手番なら go を起動（1回だけ）
         m_match->startInitialEngineMoveIfNeeded();
     }
+    return true;
 }

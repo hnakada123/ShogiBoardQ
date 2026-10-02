@@ -3061,13 +3061,24 @@
 <context>
     <name>GameStartCoordinator</name>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="260"/>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="266"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="53"/>
+        <source>対局を開始できません。
+通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。
+現在の枚数：先手 %1枚、後手 %2枚
+「編集」→「局面編集開始」で配置を修正してください。</source>
+        <translation>対局を開始できません。
+通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。
+現在の枚数：先手 %1枚、後手 %2枚
+「編集」→「局面編集開始」で配置を修正してください。</translation>
+    </message>
+    <message>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="277"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="283"/>
         <source>=== 開始局面 ===</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../../src/game/gamestartcoordinator.cpp" line="266"/>
+        <location filename="../../src/game/gamestartcoordinator.cpp" line="283"/>
         <source>（１手 / 合計）</source>
         <translation type="unfinished"></translation>
     </message>
