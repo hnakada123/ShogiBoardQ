@@ -17,7 +17,7 @@ class ShogiBoard;
 class PieceMoveRules
 {
 public:
-    /// 移動の総合チェック（二歩・味方駒・駒台在庫・駒台間移動・玉取りを検証）
+    /// 移動の総合チェック（玉の駒台移動・二歩・味方駒・駒台在庫・駒台間移動・玉取りを検証）
     static bool checkMovePiece(ShogiBoard* board,
                                Piece source, Piece dest,
                                int fileFrom, int fileTo);

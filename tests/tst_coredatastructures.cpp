@@ -514,6 +514,32 @@ private slots:
         QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
     }
 
+    void gameController_editRejectsKingToStand_data()
+    {
+        QTest::addColumn<QPoint>("from");
+        QTest::addColumn<QPoint>("to");
+        QTest::newRow("black-to-black") << QPoint(5, 9) << QPoint(10, 8);
+        QTest::newRow("black-to-white") << QPoint(5, 9) << QPoint(11, 2);
+        QTest::newRow("white-to-black") << QPoint(5, 1) << QPoint(10, 8);
+        QTest::newRow("white-to-white") << QPoint(5, 1) << QPoint(11, 2);
+    }
+
+    void gameController_editRejectsKingToStand()
+    {
+        QFETCH(QPoint, from);
+        QFETCH(QPoint, to);
+        ShogiGameController gc;
+        QString initial = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1");
+        gc.newGame(initial);
+        const auto before = gc.board()->boardData();
+        const auto hand = gc.board()->pieceStand();
+        QVERIFY(!gc.editPosition(from, to));
+        QCOMPARE(gc.board()->boardData(), before);
+        QCOMPARE(gc.board()->pieceStand(), hand);
+        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
+    }
+
     void notationUtils_rankRoundTrip()
     {
         // rankNumToLetter → rankLetterToNum ラウンドトリップ

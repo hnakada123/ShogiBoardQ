@@ -36,13 +36,13 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 追加20種類は `pieceVariants:<style>`（例: `pieceVariants:torafu_light`）で種類ごとに実行します。各種類の選択、別盤面への反映、再起動後の復元、反転時の王・玉、成駒・持駒・駒打ち矢印、配色ダイアログの表示名と画像を検証します。`pieceStyleMenuBar` と `pieceStyleMenuDock` は旧メニュー・ボタンがなくなり、統合ウィンドウを開けることを確認します。
 人間対エンジンの投了後の棋譜操作は `engineHumanResignNavigation` で検証します。人間が先手・後手の両方で、投了直後も淡い若草色の対局者カードと深緑の手番バッジ・カード全周の枠線を保つことを確認します。その後、指し手列・消費時間列から開始局面・途中の手・投了行を繰り返し選び、盤面と手番表示が選択と一致することを確認します。
 局面編集開始時の棋譜クリアは `boardEditingClearsRecord` で検証します。読込棋譜の先頭・途中・最終局面と対局終了後から編集を開始し、盤面・持ち駒・手番を保持したまま棋譜欄が起動時と同じ1行に戻ることを確認します。メニューと盤上ボタンの両方から編集を終了し、棋譜操作・USI出力・再編集にも編集後の開始局面が使われることを検証します。
-局面編集の直接操作は `boardEditingPieceTransfers` で通常・反転表示それぞれの両側8種類について、駒台から盤、相手駒台、元の駒台への移動と枚数を検証します。`boardEditingPromotionAndCapture`・`boardEditingForcedPromotion`・`boardEditingRejectedMoves` は成り・不成・先後の巡回、成駒の取り込み、行き所のない駒の自動成り、二歩・味方駒・玉取り・空の駒台・不正座標の拒否を確認します。`boardEditingStandMargins` は駒台の外側がクリック対象にならないことを検証します。
-`boardEditingTurn` は配置操作による手番の保持、平手・詰将棋への切替時の手番同期、手番変更で駒台の玉が消えないことを確認します。`boardEditingSelectionReset` は駒を選択したまま配置変更・編集終了した後に選択が残らないこと、`boardEditingFromBranch` は表示中の分岐局面から編集できることを検証します。`boardEditingGameAndExport` は編集後の後手番と持ち駒を保った対局開始・着手・投了・開始局面への復帰・KIF再読込を確認します。`board-edit-custom.png`・`board-edit-stands.png`・`board-edit-stands-flipped.png` を保存します。
+局面編集の直接操作は `boardEditingPieceTransfers` で通常・反転表示それぞれの玉以外の両側7種類について、駒台から盤、相手駒台、元の駒台への移動と枚数を検証します。一括操作「王・玉以外を駒台へ」では王・玉の現在位置が保持され、編集終了・再編集でも消えないことを確認します。`boardEditingKingsStayOnBoard` は先後の王・玉を両方の駒台へ移す操作の拒否、拒否後の盤上移動、編集終了・再編集時の駒の保持を通常・反転の計8ケースで検証します。`boardEditingPromotionAndCapture`・`boardEditingForcedPromotion`・`boardEditingRejectedMoves` は成り・不成・先後の巡回、成駒の取り込み、行き所のない駒の自動成り、二歩・味方駒・玉取り・空の駒台・不正座標の拒否を確認します。`boardEditingStandMargins` は駒台の外側がクリック対象にならないことを検証します。
+`boardEditingTurn` は配置操作による手番の保持、平手・詰将棋への切替時の手番同期、手番変更で持ち駒が保持されることを確認します。`boardEditingSelectionReset` は駒を選択したまま配置変更・編集終了した後に選択が残らないこと、`boardEditingFromBranch` は表示中の分岐局面から編集できることを検証します。`boardEditingGameAndExport` は編集後の後手番と持ち駒を保った対局開始・着手・投了・開始局面への復帰・KIF再読込を確認します。`board-edit-custom.png`・`board-edit-stands.png`・`board-edit-stands-flipped.png` を保存します。
 
 ```bash
 xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
   boardEditing boardEditingClearsRecord boardEditingTurn boardEditingSelectionReset \
-  boardEditingPieceTransfers boardEditingPromotionAndCapture boardEditingStandMargins \
+  boardEditingPieceTransfers boardEditingKingsStayOnBoard boardEditingPromotionAndCapture boardEditingStandMargins \
   boardEditingForcedPromotion boardEditingRejectedMoves boardEditingFromBranch boardEditingGameAndExport
 ```
 

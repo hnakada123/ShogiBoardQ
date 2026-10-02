@@ -13,6 +13,10 @@ bool PieceMoveRules::checkMovePiece(ShogiBoard* board,
                                     Piece source, Piece dest,
                                     int fileFrom, int fileTo)
 {
+    // 王・玉は盤上でのみ移動でき、どちらの駒台にも載せられない。
+    if ((source == Piece::BlackKing || source == Piece::WhiteKing)
+        && (fileFrom >= BoardConstants::kBlackStandFile || fileTo >= BoardConstants::kBlackStandFile)) return false;
+
     if (!checkTwoPawn(board, source, fileFrom, fileTo)) return false;
     if (!checkWhetherAllyPiece(source, dest, fileFrom, fileTo)) return false;
     if (!checkNumberStandPiece(board, source, fileFrom)) return false;

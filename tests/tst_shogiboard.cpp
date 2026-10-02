@@ -158,17 +158,36 @@ private slots:
 
     // === Board Operations ===
 
+    void resetGameBoard_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::addColumn<QString>("expectedBoard");
+        QTest::newRow("hirate") << kHirateSfen << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4");
+        QTest::newRow("moved-kings") << QStringLiteral("9/3k5/9/9/9/9/9/5K3/9 w Pp 1")
+                                   << QStringLiteral("9/3k5/9/9/9/9/9/5K3/9");
+        QTest::newRow("tsume") << QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R 1")
+                             << QStringLiteral("4k4/9/9/9/9/9/9/9/9");
+    }
+
     void resetGameBoard()
     {
+        QFETCH(QString, sfen);
+        QFETCH(QString, expectedBoard);
         ShogiBoard board;
-        board.setSfen(kHirateSfen);
+        board.setSfen(sfen);
+        const auto turn = board.currentPlayer();
         board.resetGameBoard();
 
-        const auto& data = board.boardData();
-        // All squares should be empty
-        for (int i = 0; i < 81; ++i) {
-            QCOMPARE(data[i], Piece::None);
-        }
+        QCOMPARE(board.convertBoardToSfen(), expectedBoard);
+        QCOMPARE(board.pieceStandCount(Piece::BlackKing), 0);
+        QCOMPARE(board.pieceStandCount(Piece::WhiteKing), 0);
+        QCOMPARE(board.convertStandToSfen(), QStringLiteral("RrBb2G2g2S2s2N2n2L2l9P9p"));
+        QCOMPARE(board.currentPlayer(), turn);
+        ShogiBoard restored;
+        restored.setSfen(board.convertBoardToSfen() + QStringLiteral(" b ")
+                        + board.convertStandToSfen() + QStringLiteral(" 1"));
+        QCOMPARE(restored.boardData(), board.boardData());
+        QCOMPARE(restored.pieceStand(), board.pieceStand());
     }
 
     void flipSides()
