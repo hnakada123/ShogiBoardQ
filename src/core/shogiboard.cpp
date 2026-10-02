@@ -107,7 +107,7 @@ Piece ShogiBoard::pieceCharacter(const int file, const int rank)
             return Piece::None;
         }
         return m_boardData.at((rank - 1) * files() + (file - 1));
-    } else if (file == BoardConstants::kBlackStandFile) {
+    } else if (file == BoardConstants::kBlackStandFile || file == BoardConstants::kPieceBoxFile) {
         const auto it = pieceMapBlack.find(rank);
         if (it != pieceMapBlack.end()) return it.value();
 
@@ -224,6 +224,7 @@ bool ShogiBoard::decrementPieceOnStand(Piece source)
 // 駒台から指そうとした場合、駒台の駒数が0以下なら指せない。
 bool ShogiBoard::isPieceAvailableOnStand(const Piece source, const int fileFrom) const
 {
+    if (fileFrom == BoardConstants::kPieceBoxFile) return pieceBoxCount(source) > 0;
     if (fileFrom == BoardConstants::kBlackStandFile || fileFrom == BoardConstants::kWhiteStandFile) {
         return pieceStandCount(source) > 0;
     }

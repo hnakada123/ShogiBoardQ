@@ -415,7 +415,7 @@ void ShogiView::setFlipMode(bool newFlipMode)
     update();
 }
 
-void ShogiView::resetAndEqualizePiecesOnStands()
+void ShogiView::returnAllPiecesToBox()
 {
     removeHighlightAllData();
     board()->resetGameBoard();
@@ -439,7 +439,6 @@ void ShogiView::shogiProblemInitialPosition()
         "5+r1kl/6p2/6Bpn/9/7P1/9/9/9/9 b RSb4g3s3n3l15p 1";
     board()->setSfen(shogiProblemInitialSFENStr);
 
-    board()->incrementPieceOnStand(Piece::BlackKing);
     update();
 }
 

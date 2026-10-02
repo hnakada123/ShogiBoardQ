@@ -228,11 +228,11 @@ void PositionEditController::finishPositionEditing(const PositionEditController:
 // 盤面操作API
 // ======================================================================
 
-void PositionEditController::resetPiecesToStand(ShogiView* view, BoardInteractionController* bic)
+void PositionEditController::resetPiecesToBox(ShogiView* view, BoardInteractionController* bic)
 {
     if (!view) return;
     resetEditInteraction(view, bic);
-    view->resetAndEqualizePiecesOnStands();
+    view->returnAllPiecesToBox();
 }
 
 void PositionEditController::setStandardStartPosition(ShogiView* view, BoardInteractionController* bic)
@@ -278,10 +278,10 @@ void PositionEditController::hideEditExitButtonOnBoard(ShogiView* view)
 // アクション用スロット
 // ======================================================================
 
-void PositionEditController::onReturnAllPiecesOnStandTriggered()
+void PositionEditController::onReturnAllPiecesToBoxTriggered()
 {
     if (!m_view) return;
-    resetPiecesToStand(m_view, m_bic);
+    resetPiecesToBox(m_view, m_bic);
 }
 
 void PositionEditController::onFlatHandInitialPositionTriggered()
@@ -303,7 +303,7 @@ void PositionEditController::onToggleSideToMoveTriggered()
     if (!m_gc) return;
     const auto next = (m_gc->currentPlayer() == ShogiGameController::Player1)
                           ? ShogiGameController::Player2 : ShogiGameController::Player1;
-    // SFENの持ち駒には玉を含められないため、盤を再構築せず手番だけ同期する。
+    // 編集中の配置は再構築せず、手番だけ同期する。
     m_gc->setCurrentPlayer(next);
     if (m_view) m_view->update();
 }

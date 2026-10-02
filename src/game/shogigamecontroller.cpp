@@ -478,7 +478,8 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
     const auto validSquare = [](const QPoint& square) {
         return (square.x() >= 1 && square.x() <= 9 && square.y() >= 1 && square.y() <= 9)
             || (square.x() == BoardConstants::kBlackStandFile && square.y() >= 1 && square.y() <= 8)
-            || (square.x() == BoardConstants::kWhiteStandFile && square.y() >= 2 && square.y() <= 9);
+            || (square.x() == BoardConstants::kWhiteStandFile && square.y() >= 2 && square.y() <= 9)
+            || (square.x() == BoardConstants::kPieceBoxFile && square.y() >= 1 && square.y() <= 8);
     };
     if (!validSquare(outFrom) || !validSquare(outTo) || outFrom == outTo) return false;
 

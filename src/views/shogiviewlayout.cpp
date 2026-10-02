@@ -122,6 +122,24 @@ QRect ShogiViewLayout::whiteStandBoundingRect(int boardFiles, int boardRanks) co
     return QRect(x, y, w, h);
 }
 
+QRect ShogiViewLayout::pieceBoxLabelRect(const QRect& box)
+{
+    if (box.isEmpty()) return {};
+    return QRect(box.left(), box.top(), box.width(), qMax(1, box.height() / 9));
+}
+
+QRect ShogiViewLayout::pieceBoxCellRect(const QRect& box, int rank)
+{
+    if (box.isEmpty() || rank < 1 || rank > 8) return {};
+    const int labelHeight = pieceBoxLabelRect(box).height();
+    const int index = 8 - rank;
+    const int x = (index % 2) * box.width() / 2;
+    const int y = (index / 2) * (box.height() - labelHeight) / 4;
+    const int nextX = (index % 2 + 1) * box.width() / 2;
+    const int nextY = (index / 2 + 1) * (box.height() - labelHeight) / 4;
+    return QRect(box.left() + x, box.top() + labelHeight + y, nextX - x, nextY - y);
+}
+
 int ShogiViewLayout::coordinateBandPx() const
 {
     return qRound(m_fieldSize.width() * 0.50);

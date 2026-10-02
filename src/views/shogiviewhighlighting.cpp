@@ -5,6 +5,7 @@
 #include "piecepainter.h"
 #include "shogiboard.h"
 #include "shogiviewlayout.h"
+#include "boardconstants.h"
 
 #include <QPainter>
 #include <QLabel>
@@ -249,6 +250,8 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLay
     const auto makeHighlightRect = [&](const ShogiView::FieldHighlight* fhl) -> QRect {
         const int f = fhl->file();
         const int r = fhl->rank();
+
+        if (f == BoardConstants::kPieceBoxFile) return m_view->pieceBoxCellRect(r);
 
         if (f == 10 || f == 11) {
             auto [ok, baseFile, baseRank, isBlackStand] = standPseudoToBase(f, r);

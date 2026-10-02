@@ -4989,8 +4989,8 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="346"/>
-        <source>王・玉以外を駒台へ</source>
-        <translation>王・玉以外を駒台へ</translation>
+        <source>全ての駒を駒箱へ</source>
+        <translation>全ての駒を駒箱へ</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="355"/>
@@ -6864,6 +6864,11 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <source>詰み探索終了</source>
         <translation type="vanished">詰み探索終了</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="44"/>
+        <source>駒箱</source>
+        <translation>駒箱</translation>
     </message>
 </context>
 <context>

@@ -343,7 +343,7 @@
      <normaloff>:/images/actions/actionReturnAllPiecesToStand.svg</normaloff>:/images/actions/actionReturnAllPiecesToStand.svg</iconset>
    </property>
    <property name="text">
-    <string>王・玉以外を駒台へ</string>
+    <string>全ての駒を駒箱へ</string>
    </property>
   </action>
   <action name="actionChangeTurn">

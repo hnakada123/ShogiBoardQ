@@ -703,6 +703,7 @@ set(SRC_VIEWS
     src/views/shogiview_events.cpp
     src/views/shogiview_labels.cpp
     src/views/shogiview_stand.cpp
+    src/views/shogiview_piecebox.cpp
     src/views/shogiview_turnui.cpp
     src/views/shogiviewhighlighting.cpp
     src/views/shogiviewhighlighting.h

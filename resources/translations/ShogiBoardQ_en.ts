@@ -6148,8 +6148,8 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="346"/>
-        <source>王・玉以外を駒台へ</source>
-        <translation>Return Pieces Except Kings to Hand</translation>
+        <source>全ての駒を駒箱へ</source>
+        <translation>Move All Pieces to Piece Box</translation>
     </message>
     <message>
         <source>先後反転</source>
@@ -8718,6 +8718,11 @@ Do you want to continue?</translation>
     <message>
         <source>詰み探索終了</source>
         <translation type="vanished">Stop Tsume Search</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="44"/>
+        <source>駒箱</source>
+        <translation>Piece Box</translation>
     </message>
 </context>
 <context>

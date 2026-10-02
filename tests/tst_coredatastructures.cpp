@@ -514,6 +514,70 @@ private slots:
         QCOMPARE(gc.board()->currentPlayer(), Turn::Black);
     }
 
+    void gameController_pieceBoxTransfers_data()
+    {
+        QTest::addColumn<int>("rank");
+        for (int rank = 1; rank <= 8; ++rank)
+            QTest::newRow(qPrintable(QString::number(rank))) << rank;
+    }
+
+    void gameController_pieceBoxTransfers()
+    {
+        QFETCH(int, rank);
+        ShogiGameController gc;
+        QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 w - 1");
+        gc.newGame(empty);
+        auto* board = gc.board();
+        const auto initialBox = board->pieceBox();
+        const Piece piece = board->pieceCharacter(12, rank);
+        const int states = rank == 5 || rank == 8 ? 2 : 4;
+        // 全駒種・先後・成駒を駒箱へ戻すと、生駒・先手向きに統一される。
+        for (int state = 0; state < states; ++state) {
+            QVERIFY(gc.editPosition({12, rank}, {5, 5}));
+            QCOMPARE(board->pieceCharacter(5, 5), piece);
+            QCOMPARE(board->pieceBoxCount(piece), initialBox.value(piece) - 1);
+            for (int step = 0; step < state; ++step)
+                gc.switchPiecePromotionStatusOnRightClick(5, 5);
+            const Piece expected = state < 2 ? piece : toWhite(piece);
+            if (states == 4)
+                QCOMPARE(board->pieceCharacter(5, 5), state % 2 ? promote(expected) : expected);
+            else
+                QCOMPARE(board->pieceCharacter(5, 5), state ? toWhite(piece) : piece);
+            QVERIFY(gc.editPosition({5, 5}, {12, rank}));
+            QCOMPARE(board->pieceBox(), initialBox);
+            QCOMPARE(board->convertStandToSfen(), QStringLiteral("-"));
+        }
+        // 駒箱と両駒台との往復。王・玉の持ち駒化は引き続き拒否する。
+        for (int stand : {10, 11}) {
+            const int standRank = stand == 10 ? rank : 10 - rank;
+            QCOMPARE(gc.editPosition({12, rank}, {stand, standRank}), rank != 8);
+            if (rank != 8) {
+                QCOMPARE(board->pieceStandCount(stand == 10 ? piece : toWhite(piece)), 1);
+                QVERIFY(gc.editPosition({stand, standRank}, {12, rank}));
+            }
+            QCOMPARE(board->pieceBox(), initialBox);
+        }
+        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+    }
+
+    void gameController_pieceBoxRejectsEmptyAndWrongSlots()
+    {
+        ShogiGameController gc;
+        QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
+        gc.newGame(empty);
+        QVERIFY(gc.editPosition({12, 8}, {5, 1}));
+        gc.switchPiecePromotionStatusOnRightClick(5, 1);
+        QVERIFY(gc.editPosition({12, 8}, {5, 9}));
+        const auto before = gc.board()->boardData();
+        const auto box = gc.board()->pieceBox();
+        QVERIFY(!gc.editPosition({12, 8}, {5, 5}));
+        QVERIFY(!gc.editPosition({5, 1}, {12, 1}));
+        QVERIFY(!gc.editPosition({12, 1}, {12, 1}));
+        QVERIFY(!gc.editPosition({12, 0}, {5, 5}));
+        QCOMPARE(gc.board()->boardData(), before);
+        QCOMPARE(gc.board()->pieceBox(), box);
+    }
+
     void gameController_editRejectsKingToStand_data()
     {
         QTest::addColumn<QPoint>("from");

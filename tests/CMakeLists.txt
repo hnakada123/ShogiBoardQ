@@ -1397,6 +1397,7 @@ add_shogi_test(tst_turn_state_sync
     ${SRC}/views/shogiview_events.cpp
     ${SRC}/views/shogiview_labels.cpp
     ${SRC}/views/shogiview_stand.cpp
+    ${SRC}/views/shogiview_piecebox.cpp
     ${SRC}/views/shogiview_turnui.cpp
     ${SRC}/views/shogiviewhighlighting.cpp
     ${SRC}/views/shogiviewinteraction.cpp

@@ -70,8 +70,8 @@ public:
 
     // --- 盤面操作API ---
 
-    /// 全駒を駒台に戻す
-    void resetPiecesToStand(ShogiView* view, BoardInteractionController* bic);
+    /// 全駒を駒箱に戻す
+    void resetPiecesToBox(ShogiView* view, BoardInteractionController* bic);
 
     /// 平手初期配置にする
     void setStandardStartPosition(ShogiView* view, BoardInteractionController* bic);
@@ -92,7 +92,7 @@ public:
                        BoardInteractionController* bic);
 
 public slots:
-    void onReturnAllPiecesOnStandTriggered();
+    void onReturnAllPiecesToBoxTriggered();
     void onFlatHandInitialPositionTriggered();
     void onShogiProblemInitialPositionTriggered();
     void onToggleSideToMoveTriggered();

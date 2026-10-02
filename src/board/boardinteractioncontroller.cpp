@@ -52,9 +52,9 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     }
 
     // 駒台クリック時：枚数0を弾く（1stクリックのときのみ）
-    if (!m_waitingSecondClick && (pt.x() == kBlackStandFile || pt.x() == kWhiteStandFile)) {
+    if (!m_waitingSecondClick && pt.x() >= kBlackStandFile) {
         const Piece piece = m_view->board()->pieceCharacter(pt.x(), pt.y());
-        if (m_view->board()->pieceStand().value(piece) <= 0) {
+        if (!m_view->board()->isPieceAvailableOnStand(piece, pt.x())) {
             return; // 持ち駒がないマスはドラッグさせない
         }
     }
@@ -189,8 +189,8 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     }
 
     // 駒台：枚数0は無視
-    const bool isStand = (file == kBlackStandFile || file == kWhiteStandFile);
-    if (isStand && board->pieceStand().value(value) <= 0) {
+    const bool isStand = (file >= kBlackStandFile);
+    if (isStand && !board->isPieceAvailableOnStand(value, file)) {
         m_clickPoint = QPoint();
         return;
     }
