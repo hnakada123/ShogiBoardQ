@@ -110,6 +110,7 @@ void ShogiView::relayoutTurnLabels()
     placeCard(m_whitePlayerCard, m_whiteNameLabel, m_whiteClockLabel,
               findChild<QLabel*>(QStringLiteral("turnLabelWhite")), whiteStandBoundingRect(), flipMode());
     relayoutEditExitButton();
+    relayoutPieceBoxSideSelector();
 }
 
 void ShogiView::updateTurnIndicator(ShogiGameController::Player now)

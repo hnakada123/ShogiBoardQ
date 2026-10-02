@@ -128,10 +128,17 @@ QRect ShogiViewLayout::pieceBoxLabelRect(const QRect& box)
     return QRect(box.left(), box.top(), box.width(), qMax(1, box.height() / 9));
 }
 
+QRect ShogiViewLayout::pieceBoxSideSelectorRect(const QRect& box)
+{
+    if (box.isEmpty()) return {};
+    const QRect label = pieceBoxLabelRect(box);
+    return QRect(box.left(), label.bottom() + 1, box.width(), qMax(1, box.height() / 8));
+}
+
 QRect ShogiViewLayout::pieceBoxCellRect(const QRect& box, int rank)
 {
     if (box.isEmpty() || rank < 1 || rank > 8) return {};
-    const int labelHeight = pieceBoxLabelRect(box).height();
+    const int labelHeight = pieceBoxLabelRect(box).height() + pieceBoxSideSelectorRect(box).height();
     const int index = 8 - rank;
     const int x = (index % 2) * box.width() / 2;
     const int y = (index / 2) * (box.height() - labelHeight) / 4;

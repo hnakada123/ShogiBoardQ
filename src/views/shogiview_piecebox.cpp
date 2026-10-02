@@ -5,12 +5,13 @@
 #include "shogiboard.h"
 #include "boardconstants.h"
 #include "boardsurfacepainter.h"
-#include "pieceimageprovider.h"
 #include "piecepainter.h"
 
+#include <QButtonGroup>
 #include <QFrame>
 #include <QFontMetrics>
 #include <QPainter>
+#include <QToolButton>
 
 QRect ShogiView::pieceBoxRect() const
 {
@@ -28,6 +29,69 @@ QRect ShogiView::pieceBoxRect() const
 QRect ShogiView::pieceBoxCellRect(int rank) const
 {
     return ShogiViewLayout::pieceBoxCellRect(pieceBoxRect(), rank);
+}
+
+void ShogiView::setPieceBoxSide(Turn side)
+{
+    m_interaction.setPieceBoxSide(side);
+    if (m_pieceBoxBlackButton) m_pieceBoxBlackButton->setChecked(side == Turn::Black);
+    if (m_pieceBoxWhiteButton) m_pieceBoxWhiteButton->setChecked(side == Turn::White);
+    update();
+}
+
+void ShogiView::onPieceBoxSideClicked(int id)
+{
+    setPieceBoxSide(id == 0 ? Turn::Black : Turn::White);
+}
+
+void ShogiView::relayoutPieceBoxSideSelector()
+{
+    const QRect selector = ShogiViewLayout::pieceBoxSideSelectorRect(pieceBoxRect());
+    if (selector.isEmpty()) {
+        if (m_pieceBoxBlackButton) m_pieceBoxBlackButton->hide();
+        if (m_pieceBoxWhiteButton) m_pieceBoxWhiteButton->hide();
+        return;
+    }
+    if (!m_pieceBoxBlackButton) {
+        auto* group = new QButtonGroup(this);
+        m_pieceBoxBlackButton = new QToolButton(this);
+        m_pieceBoxWhiteButton = new QToolButton(this);
+        m_pieceBoxBlackButton->setObjectName(QStringLiteral("pieceBoxBlackButton"));
+        m_pieceBoxWhiteButton->setObjectName(QStringLiteral("pieceBoxWhiteButton"));
+        m_pieceBoxBlackButton->setText(tr("先手"));
+        m_pieceBoxWhiteButton->setText(tr("後手"));
+        m_pieceBoxBlackButton->setToolTip(tr("先手の駒を配置（手番は変更しません）"));
+        m_pieceBoxWhiteButton->setToolTip(tr("後手の駒を配置（手番は変更しません）"));
+        group->addButton(m_pieceBoxBlackButton, 0);
+        group->addButton(m_pieceBoxWhiteButton, 1);
+        for (auto* button : {m_pieceBoxBlackButton, m_pieceBoxWhiteButton}) {
+            button->setCheckable(true);
+            button->setCursor(Qt::PointingHandCursor);
+            button->setStyleSheet(QStringLiteral(
+                "QToolButton { border: 1px solid palette(mid); border-radius: 3px;"
+                " padding: 0px; background: palette(button); color: palette(button-text); }"
+                "QToolButton:checked { background: palette(highlight); color: palette(highlighted-text); }"
+                "QToolButton:focus { border: 1px solid palette(text); }"));
+        }
+        connect(group, &QButtonGroup::idClicked, this, &ShogiView::onPieceBoxSideClicked);
+        setPieceBoxSide(pieceBoxSide());
+    }
+    const int halfWidth = selector.width() / 2;
+    m_pieceBoxBlackButton->setGeometry(selector.left() + 1, selector.top(), halfWidth - 2, selector.height() - 1);
+    m_pieceBoxWhiteButton->setGeometry(selector.left() + halfWidth + 1, selector.top(),
+                                     selector.width() - halfWidth - 2, selector.height() - 1);
+    for (auto* button : {m_pieceBoxBlackButton, m_pieceBoxWhiteButton}) {
+        QFont buttonFont = font();
+        buttonFont.setBold(true);
+        int pixels = qMax(1, button->height() * 2 / 3);
+        buttonFont.setPixelSize(pixels);
+        while (pixels > 1 && (QFontMetrics(buttonFont).horizontalAdvance(button->text()) > button->width() - 4
+                              || QFontMetrics(buttonFont).height() > button->height() - 2))
+            buttonFont.setPixelSize(--pixels);
+        button->setFont(buttonFont);
+        button->show();
+        button->raise();
+    }
 }
 
 void ShogiView::drawPieceBoxBackground(QPainter* painter)
@@ -56,8 +120,8 @@ void ShogiView::drawPieceBoxPieces(QPainter* painter)
         int count = counts.value(boxPiece);
         if (m_interaction.dragging() && m_interaction.dragFrom() == QPoint(BoardConstants::kPieceBoxFile, rank)) --count;
         if (count <= 0) continue;
-        // 駒箱は盤の反転にかかわらず先手向きの生駒として表示する。
-        const QIcon icon = PieceImageProvider::instance().icon(pieceToChar(boxPiece), false);
+        const Piece displayPiece = pieceBoxSide() == Turn::Black ? boxPiece : toWhite(boxPiece);
+        const QIcon icon = piece(pieceToChar(displayPiece));
         const QRect cell = pieceBoxCellRect(rank);
         const int numberWidth = qMax(1, cell.width() * 3 / 10);
         painter->save();

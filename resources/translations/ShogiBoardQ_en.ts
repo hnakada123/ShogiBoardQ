@@ -8722,7 +8722,7 @@ Do you want to continue?</translation>
         <translation>Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="136"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="137"/>
         <source>編集終了</source>
         <translation>End Edit</translation>
     </message>
@@ -8731,7 +8731,27 @@ Do you want to continue?</translation>
         <translation type="vanished">Stop Tsume Search</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_piecebox.cpp" line="44"/>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="61"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="62"/>
+        <source>後手</source>
+        <translation>White</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="63"/>
+        <source>先手の駒を配置（手番は変更しません）</source>
+        <translation>Place black pieces (does not change the side to move)</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="64"/>
+        <source>後手の駒を配置（手番は変更しません）</source>
+        <translation>Place white pieces (does not change the side to move)</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="110"/>
         <source>駒箱</source>
         <translation>Piece Box</translation>
     </message>

@@ -36,6 +36,7 @@ class ShogiViewHighlighting;
 class GlobalToolTip;
 class QLabel;
 class QFrame;
+class QToolButton;
 class QPainter;
 class QEvent;
 class QMouseEvent;
@@ -144,6 +145,8 @@ public:
     void returnAllPiecesToBox();       // 盤上・持ち駒をすべて駒箱へ戻す
     QRect pieceBoxRect() const;                  // 編集中のみ有効な、左下の駒箱
     QRect pieceBoxCellRect(int rank) const;
+    Turn pieceBoxSide() const { return m_interaction.pieceBoxSide(); }
+    void setPieceBoxSide(Turn side);
     void initializeToFlatStartingPosition();     // 平手初期局面を適用
     void shogiProblemInitialPosition();          // 問題用初期局面を適用
 
@@ -273,6 +276,8 @@ private:
     void drawPiecesStandFeatures(QPainter* painter);
     void drawPieceBoxBackground(QPainter* painter);
     void drawPieceBoxPieces(QPainter* painter);
+    void relayoutPieceBoxSideSelector();
+    void onPieceBoxSideClicked(int id);
 
     // ドラッグ中の駒描画は m_interaction に委譲
 
@@ -342,6 +347,8 @@ private:
 
     // 入力/ドラッグ（ShogiViewInteraction に委譲）
     ShogiViewInteraction m_interaction;
+    QToolButton* m_pieceBoxBlackButton = nullptr;
+    QToolButton* m_pieceBoxWhiteButton = nullptr;
 
 
     // エラー状態

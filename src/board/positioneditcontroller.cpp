@@ -321,7 +321,7 @@ bool PositionEditController::applyEditMove(const QPoint& from,
     if (!view || !gc || !bic) return false;
 
     QPoint hFrom = from, hTo = to;
-    const bool ok = gc->editPosition(hFrom, hTo);
+    const bool ok = gc->editPosition(hFrom, hTo, view->pieceBoxSide());
 
     // UI 後処理（ドラッグ終了／結果通知）
     view->endDrag();

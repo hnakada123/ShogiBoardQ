@@ -6,7 +6,6 @@
 #include "shogiviewlayout.h"
 #include "shogiboard.h"
 #include "boardconstants.h"
-#include "pieceimageprovider.h"
 
 #include <QPainter>
 #include <QtMath>
@@ -23,6 +22,7 @@ QPoint ShogiViewInteraction::clickedSquare(const QPoint &clickPosition,
                                                ShogiBoard* board, const QRect& pieceBox) const
 {
     if (board && m_positionEditMode && pieceBox.contains(clickPosition)) {
+        if (ShogiViewLayout::pieceBoxSideSelectorRect(pieceBox).contains(clickPosition)) return {};
         for (int rank = 1; rank <= 8; ++rank) {
             const bool matches = m_dragging
                 ? board->pieceCharacter(BoardConstants::kPieceBoxFile, rank) == toBlack(demote(m_dragPiece))
@@ -316,6 +316,8 @@ void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
     m_dragging  = true;                               // ドラッグ中フラグ
     m_dragFrom  = from;                               // つまみ上げ元（盤/駒台の座標）
     m_dragPiece = board->pieceCharacter(from.x(), from.y()); // 対象駒
+    if (from.x() == BoardConstants::kPieceBoxFile && m_pieceBoxSide == Turn::White)
+        m_dragPiece = toWhite(m_dragPiece);
     m_dragPos   = cursorWidgetPos;                    // 現在のポインタ位置（ウィジェット座標）
 
     // 【駒台の一時枚数マップを作成】
@@ -335,6 +337,13 @@ void ShogiViewInteraction::endDrag()
     m_tempPieceStandCounts.clear();    // 一時的な駒台枚数をクリア（表示を通常状態へ）
 }
 
+void ShogiViewInteraction::setPieceBoxSide(Turn side)
+{
+    m_pieceBoxSide = side;
+    if (m_dragging && m_dragFrom.x() == BoardConstants::kPieceBoxFile)
+        m_dragPiece = side == Turn::Black ? toBlack(m_dragPiece) : toWhite(m_dragPiece);
+}
+
 // 【ドラッグ中の駒を描画】
 // 方針：paintEvent で開始済みの QPainter を使い回すため、ここで新たに QPainter を生成しない。
 // 前提：本関数は QPainter の永続状態（ペン/ブラシ/変換/クリップ等）を汚さない。
@@ -347,9 +356,7 @@ void ShogiViewInteraction::drawDraggingPiece(QPainter& painter,
     if (!m_dragging || m_dragPiece == Piece::None) return;
 
     // 【アイコン取得】該当駒のアイコンが無ければ描かない（安全弁）
-    const QIcon icon = m_dragFrom.x() == BoardConstants::kPieceBoxFile
-        ? PieceImageProvider::instance().icon(pieceToChar(m_dragPiece), false)
-        : pieces.value(pieceToChar(m_dragPiece), QIcon());
+    const QIcon icon = pieces.value(pieceToChar(m_dragPiece), QIcon());
     if (icon.isNull()) return;
 
     // 【描画矩形算出】ドラッグ座標を矩形の中心に据える（縦長マス）

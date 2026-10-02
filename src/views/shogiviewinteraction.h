@@ -47,6 +47,8 @@ public:
     // ───────────────────────── モード設定 ─────────────────────────
     void setMouseClickMode(bool mouseClickMode);
     void setPositionEditMode(bool positionEditMode);
+    void setPieceBoxSide(Turn side);
+    Turn pieceBoxSide() const { return m_pieceBoxSide; }
 
     // ───────────────────────── 状態アクセサ ─────────────────────────
     bool mouseClickMode() const { return m_mouseClickMode; }
@@ -61,6 +63,7 @@ private:
     bool   m_dragging         = false;
     QPoint m_dragFrom;
     Piece  m_dragPiece        = Piece::None;
+    Turn   m_pieceBoxSide     = Turn::Black;
     QPoint m_dragPos;
     QMap<Piece, int> m_tempPieceStandCounts;
 };
