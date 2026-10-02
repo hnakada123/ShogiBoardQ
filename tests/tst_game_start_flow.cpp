@@ -310,6 +310,70 @@ private slots:
     // C) start() 正常系: HvH, HvE, EvE
     // ============================================================
 
+    void start_invalidKings_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        for (const QString& turn : {QStringLiteral("b"), QStringLiteral("w")}) {
+            const QStringList boards = {
+                QStringLiteral("9/4+r4/9/9/9/9/9/9/9"),
+                QStringLiteral("9/9/9/9/9/9/9/9/9"),
+                QStringLiteral("4k4/9/9/9/9/9/9/9/9"),
+                QStringLiteral("9/9/9/9/9/9/9/9/4K4"),
+                QStringLiteral("4K4/9/9/9/9/9/9/9/4K4"),
+                QStringLiteral("4k4/9/9/9/9/9/9/9/4k4")
+            };
+            for (const QString& board : boards) {
+                const QString sfen = board + QLatin1Char(' ') + turn + QStringLiteral(" - 1");
+                QTest::newRow(qPrintable(sfen)) << sfen;
+            }
+        }
+    }
+
+    void start_invalidKings()
+    {
+        QFETCH(QString, sfen);
+        TestHarness h;
+        auto p = h.makeEveParams();
+        p.opt.sfenStart = sfen;
+        p.tc.enabled = true;
+        p.tc.p1.baseMs = 300000;
+        QSignalSpy started(h.gsc, &GameStartCoordinator::started);
+        QSignalSpy timeControl(h.gsc, &GameStartCoordinator::requestApplyTimeControl);
+
+        h.gsc->start(p);
+
+        QCOMPARE(started.count(), 0);
+        QCOMPARE(timeControl.count(), 0);
+        QVERIFY(!TestTracker::configureAndStartCalled);
+        QVERIFY(!TestTracker::setTimeControlConfigCalled);
+        QVERIFY(!TestTracker::startInitialEngineMoveIfNeededCalled);
+    }
+
+    void start_validKings_data()
+    {
+        QTest::addColumn<QString>("sfen");
+        QTest::newRow("default-position") << QString();
+        QTest::newRow("startpos") << QStringLiteral("startpos");
+        QTest::newRow("kings-only-black") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1");
+        QTest::newRow("kings-only-white") << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 w - 1");
+        for (int preset = 1; preset <= GameStartOptionsBuilder::kStartingPositionCount; ++preset) {
+            QTest::newRow(qPrintable(QStringLiteral("preset-%1").arg(preset)))
+                << GameStartOptionsBuilder::startingPositionSfen(preset);
+        }
+    }
+
+    void start_validKings()
+    {
+        QFETCH(QString, sfen);
+        TestHarness h;
+        auto p = h.makeHvhParams();
+        p.opt.sfenStart = sfen;
+        QSignalSpy started(h.gsc, &GameStartCoordinator::started);
+        h.gsc->start(p);
+        QCOMPARE(started.count(), 1);
+        QVERIFY(TestTracker::configureAndStartCalled);
+    }
+
     void start_hvh_emitsStartedSignal()
     {
         TestHarness h;

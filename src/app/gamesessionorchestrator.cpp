@@ -5,6 +5,7 @@
 
 #include "csagamecoordinator.h"
 #include "dialogcoordinator.h"
+#include "errorbus.h"
 #include "gamestatecontroller.h"
 #include "logcategories.h"
 #include "mainwindowgamestartservice.h"
@@ -148,7 +149,10 @@ void GameSessionOrchestrator::initializeGame()
 
     GameStartCoordinator::Ctx c = gameStartService.buildContext(ctx);
     c.dialogData = dialogData;
-    gameStart->initializeGame(c);
+    QString errorMessage;
+    if (!gameStart->initializeGame(c, errorMessage) && !errorMessage.isEmpty()) {
+        ErrorBus::instance().postMessage(ErrorBus::ErrorLevel::Warning, errorMessage);
+    }
 }
 
 void GameSessionOrchestrator::handleResignation()

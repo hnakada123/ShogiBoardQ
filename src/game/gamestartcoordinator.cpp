@@ -38,7 +38,24 @@ bool GameStartCoordinator::validate(const StartParams& p, QString& whyNot) const
         whyNot = QStringLiteral("対局モードが PlayMode::NotStarted のままです。");
         return false;
     }
-    return true;
+    return validateKingsForGame(p.opt.sfenStart, whyNot);
+}
+
+bool GameStartCoordinator::validateKingsForGame(const QString& sfen, QString& whyNot) const
+{
+    // 駒箱に入っている王・玉は通常対局の盤上の玉として数えない。
+    // 局面編集や詰将棋用の片玉局面は許可し、通常対局の開始時だけ検証する。
+    const QString board = GameStartOptionsBuilder::canonicalizeSfen(sfen).section(QLatin1Char(' '), 0, 0);
+    const auto blackKings = board.count(QLatin1Char('K'));
+    const auto whiteKings = board.count(QLatin1Char('k'));
+    if (blackKings == 1 && whiteKings == 1) return true;
+
+    whyNot = tr("対局を開始できません。\n"
+                "通常の対局には、先手と後手の王・玉を盤上に1枚ずつ配置してください。\n"
+                "現在の枚数：先手 %1枚、後手 %2枚\n"
+                "「編集」→「局面編集開始」で配置を修正してください。")
+                 .arg(blackKings).arg(whiteKings);
+    return false;
 }
 
 // ============================================================

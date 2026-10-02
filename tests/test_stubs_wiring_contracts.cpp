@@ -281,7 +281,7 @@ void GameStartCoordinator::start(const StartParams&) {}
 void GameStartCoordinator::prepare(const Request&) {}
 void GameStartCoordinator::prepareDataCurrentPosition(const Ctx&) {}
 void GameStartCoordinator::prepareInitialPosition(const Ctx&) {}
-void GameStartCoordinator::initializeGame(const Ctx&) {}
+bool GameStartCoordinator::initializeGame(const Ctx&, QString&) { return true; }
 void GameStartCoordinator::setTimerAndStart(const Ctx&) {}
 PlayMode GameStartCoordinator::setPlayMode(const Ctx&) const { return PlayMode::NotStarted; }
 PlayMode GameStartCoordinator::determinePlayModeAlignedWithTurn(int, bool, bool, const QString&) { return PlayMode::NotStarted; }
