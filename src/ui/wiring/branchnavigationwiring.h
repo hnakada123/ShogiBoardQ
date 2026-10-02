@@ -71,6 +71,8 @@ public slots:
     void onBranchTreeResetForNewGame();
 
 signals:
+    /// 棋譜欄の選択シグナルを抑止した移動でも、グラフの現在手数を同期する
+    void currentPlyChanged(int ply);
     /// 盤面とハイライトの更新が必要（→ MainWindow::loadBoardWithHighlights へ接続）
     void boardWithHighlightsRequired(const QString& currentSfen, const QString& prevSfen);
     /// SFEN文字列から盤面更新が必要（→ MainWindow::loadBoardFromSfen へ接続）

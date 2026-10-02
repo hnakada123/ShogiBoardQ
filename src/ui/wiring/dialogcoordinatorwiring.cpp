@@ -19,7 +19,7 @@ void DialogCoordinatorWiring::ensure(const Deps& deps)
     m_evalChartWidget = deps.evalChartWidget;
     m_analysisTab = deps.analysisTab;
     m_playMode = deps.playMode;
-    m_navigateKifuViewToRow = deps.navigateKifuViewToRow;
+    m_navigateKifuViewToLine = deps.navigateKifuViewToLine;
 
     const bool firstTime = !m_coordinator;
     if (firstTime) {
@@ -46,6 +46,13 @@ void DialogCoordinatorWiring::wireSignals(const Deps& deps)
     // 解析結果行選択シグナルを自身のスロットに接続
     connect(m_coordinator, &DialogCoordinator::analysisResultRowSelected,
             this, &DialogCoordinatorWiring::onKifuAnalysisResultRowSelected);
+
+    connect(m_coordinator, &DialogCoordinator::analysisStarted,
+            this, &DialogCoordinatorWiring::onKifuAnalysisStarted);
+    if (m_evalChartWidget) {
+        connect(m_evalChartWidget, &EvaluationChartWidget::analysisPlyClicked,
+                this, &DialogCoordinatorWiring::onAnalysisPositionSelected, Qt::UniqueConnection);
+    }
 
     // UI状態遷移シグナルをオーケストレータ経由で接続
     UiStatePolicyManager* uiStatePolicy = deps.getUiStatePolicyManager();
@@ -84,6 +91,8 @@ void DialogCoordinatorWiring::bindContexts(const Deps& deps)
     DialogCoordinator::KifuAnalysisContext kifuCtx;
     kifuCtx.sfenRecord = deps.sfenRecord;
     kifuCtx.recordModel = deps.kifuRecordModel;
+    kifuCtx.branchTree = deps.branchTree;
+    kifuCtx.navState = deps.navState;
     kifuCtx.activePly = deps.activePly;
     kifuCtx.gameController = deps.gameController;
     kifuCtx.gameInfoController = deps.gameInfoController;
@@ -119,9 +128,7 @@ void DialogCoordinatorWiring::onKifuAnalysisProgress(int ply, int scoreCp, const
     qCDebug(lcUi) << "onKifuAnalysisProgress: ply=" << ply << "scoreCp=" << scoreCp;
 
     // 1) 棋譜欄の該当行をハイライトし、盤面を更新
-    if (m_navigateKifuViewToRow) {
-        m_navigateKifuViewToRow(ply);
-    }
+    onAnalysisPositionSelected(m_coordinator ? m_coordinator->analysisLineIndex() : 0, ply);
 
     // 2) 評価値グラフに評価値をプロット（バッチ更新で描画負荷を軽減）
     static constexpr int POSITION_ONLY_MARKER = std::numeric_limits<int>::min();
@@ -137,12 +144,16 @@ void DialogCoordinatorWiring::onKifuAnalysisResultRowSelected(int row)
     const int ply = row;
 
     // 1) 棋譜欄の該当行をハイライトし、盤面を更新
-    if (m_navigateKifuViewToRow) {
-        m_navigateKifuViewToRow(ply);
-    }
+    onAnalysisPositionSelected(m_coordinator ? m_coordinator->analysisLineIndex() : 0, ply);
 
-    // 2) 分岐ツリーの該当手数をハイライト
-    if (m_analysisTab) {
-        m_analysisTab->highlightBranchTreeAt(/*row=*/0, ply, /*centerOn=*/true);
-    }
+}
+
+void DialogCoordinatorWiring::onKifuAnalysisStarted(int lineIndex)
+{
+    if (m_evalChartWidget) m_evalChartWidget->setAnalysisLineIndex(lineIndex);
+}
+
+void DialogCoordinatorWiring::onAnalysisPositionSelected(int lineIndex, int ply)
+{
+    if (m_navigateKifuViewToLine) m_navigateKifuViewToLine(lineIndex, ply);
 }

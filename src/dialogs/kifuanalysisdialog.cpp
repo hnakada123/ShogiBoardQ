@@ -8,23 +8,39 @@
 #include "dialogutils.h"
 #include "enginelistsettings.h"
 #include "shogiutils.h"
+#include "buttonstyles.h"
 
 #include <QFile>
 #include <QComboBox>
 #include <QLabel>
 #include <QAbstractItemView>
 #include <QTextStream>
+#include <QTimer>
 #include <qmessagebox.h>
 
 // 棋譜解析ダイアログのUIを設定する。
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::KifuAnalysisDialog)
-    , m_fontHelper({AnalysisSettings::kifuAnalysisFontSize(), 8, 24, 2,
+    , m_fontHelper({AnalysisSettings::kifuAnalysisFontSize() > 0
+                        ? AnalysisSettings::kifuAnalysisFontSize() : qMax(10, font().pointSize()), 8, 24, 1,
                     AnalysisSettings::setKifuAnalysisFontSize})
 {
     // UIをセットアップする。
     ui->setupUi(this);
+
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setText(tr("解析開始"));
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setStyleSheet(ButtonStyles::primaryAction());
+    ui->btnFontDecrease->setStyleSheet(ButtonStyles::panelToolButton());
+    ui->btnFontIncrease->setStyleSheet(ButtonStyles::panelToolButton());
+    ui->spinBoxStartPly->setAccessibleName(tr("解析開始手数"));
+    ui->spinBoxEndPly->setAccessibleName(tr("解析終了手数"));
+    ui->label->setBuddy(ui->byoyomiSec);
+    ui->comboBoxEngine1->setAccessibleName(tr("解析エンジン"));
+    ui->comboBoxEngine1->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    ui->comboBoxEngine1->setMinimumContentsLength(16);
+    ui->analysisSummary->setStyleSheet(QStringLiteral(
+        "background: #e7f0f8; color: #243b53; border-radius: 4px; padding: 10px;"));
 
     // フォントサイズを適用
     applyFontSize();
@@ -59,12 +75,8 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     // エンジン設定ボタンが押されたときの処理
     connect(ui->engineSetting, &QPushButton::clicked, this, &KifuAnalysisDialog::showEngineSettingsDialog);
 
-    // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
-    // 重要: accept()より先に接続し、メンバー変数が確実に更新されるようにする
+    // 条件を検証・保存してからダイアログを閉じる。
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::processEngineSettings);
-
-    // OKボタンが押された場合、ダイアログを受け入れたとして閉じる動作を行う。
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &KifuAnalysisDialog::accept);
 
     // キャンセルボタンが押された場合、ダイアログを拒否する動作を行う。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &KifuAnalysisDialog::reject);
@@ -74,6 +86,8 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     
     // 開始手数が変更された場合、終了手数の最小値を更新
     connect(ui->spinBoxStartPly, QOverload<int>::of(&QSpinBox::valueChanged), this, &KifuAnalysisDialog::onStartPlyChanged);
+    connect(ui->spinBoxEndPly, &QSpinBox::valueChanged, this, &KifuAnalysisDialog::updateSummary);
+    connect(ui->byoyomiSec, &QSpinBox::valueChanged, this, &KifuAnalysisDialog::updateSummary);
     
     // フォントサイズ調整ボタン
     connect(ui->btnFontIncrease, &QPushButton::clicked, this, &KifuAnalysisDialog::onFontIncrease);
@@ -84,8 +98,51 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->spinBoxStartPly->setEnabled(rangeEnabled);
     ui->spinBoxEndPly->setEnabled(rangeEnabled);
 
+    const bool hasEngine = !m_engineList.isEmpty();
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(hasEngine);
+    ui->engineSetting->setEnabled(hasEngine);
+    ui->engineHint->setVisible(!hasEngine);
+    updateSummary();
+
     // ウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize());
+}
+
+KifuAnalysisDialog::~KifuAnalysisDialog()
+{
+    delete ui;
+}
+
+void KifuAnalysisDialog::done(int result)
+{
+    DialogUtils::saveDialogSize(this, AnalysisSettings::setKifuAnalysisDialogSize);
+    QDialog::done(result);
+}
+
+void KifuAnalysisDialog::resizeEvent(QResizeEvent* event)
+{
+    QDialog::resizeEvent(event);
+    updateMinimumSize();
+}
+
+void KifuAnalysisDialog::updateMinimumSize()
+{
+    // 折り返す説明・所要時間も、文字拡大時に欠けない高さを確保する。
+    const int contentHeight = ui->mainLayout->totalHeightForWidth(width());
+    setMinimumHeight(qMax(280, contentHeight));
+}
+
+void KifuAnalysisDialog::updateSummary()
+{
+    const int count = ui->radioButtonInitPosition->isChecked()
+        ? m_maxPly + 1 : ui->spinBoxEndPly->value() - ui->spinBoxStartPly->value() + 1;
+    const qint64 seconds = static_cast<qint64>(count) * ui->byoyomiSec->value();
+    QString duration;
+    if (seconds < 60) duration = tr("約%1秒").arg(seconds);
+    else if (seconds < 3600) duration = tr("約%1分%2秒").arg(seconds / 60).arg(seconds % 60);
+    else duration = tr("約%1時間%2分").arg(seconds / 3600).arg((seconds % 3600) / 60);
+    ui->analysisSummary->setText(tr("解析対象: %1局面　所要時間の目安: %2").arg(count).arg(duration));
+    ui->analysisSummary->setToolTip(tr("エンジンの起動時間などにより、実際の所要時間は前後します。"));
 }
 
 // 範囲指定ラジオボタンが選択された場合
@@ -93,6 +150,7 @@ void KifuAnalysisDialog::onRangeRadioToggled(bool checked)
 {
     ui->spinBoxStartPly->setEnabled(checked);
     ui->spinBoxEndPly->setEnabled(checked);
+    updateSummary();
 }
 
 // 開始手数が変更された場合
@@ -103,11 +161,13 @@ void KifuAnalysisDialog::onStartPlyChanged(int value)
     if (ui->spinBoxEndPly->value() < value) {
         ui->spinBoxEndPly->setValue(value);
     }
+    updateSummary();
 }
 
 // 最大手数を設定する
 void KifuAnalysisDialog::setMaxPly(int maxPly)
 {
+    maxPly = qMax(0, maxPly);
     m_maxPly = maxPly;
     
     // スピンボックスの最大値を設定
@@ -118,13 +178,14 @@ void KifuAnalysisDialog::setMaxPly(int maxPly)
     int startVal = qBound(0, m_savedStartPly, maxPly);
     int endVal = qBound(startVal, m_savedEndPly, maxPly);
     
-    // 保存値が0の場合はデフォルト値を使用
-    if (m_savedEndPly == 0) {
+    // 未設定の場合は最終局面までを初期値とする（0は開始局面のみ）。
+    if (m_savedEndPly < 0) {
         endVal = maxPly;
     }
     
     ui->spinBoxStartPly->setValue(startVal);
     ui->spinBoxEndPly->setValue(endVal);
+    updateSummary();
 }
 
 // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
@@ -165,6 +226,7 @@ void KifuAnalysisDialog::showEngineSettingsDialog()
 // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
 void KifuAnalysisDialog::processEngineSettings()
 {
+    if (ui->comboBoxEngine1->currentIndex() < 0) return;
     // 選択したエンジン名を取得する。
     m_engineName = ui->comboBoxEngine1->currentText();
 
@@ -185,7 +247,7 @@ void KifuAnalysisDialog::processEngineSettings()
     }
 
     // 1手あたりの思考時間（秒数）を取得する。
-    m_byoyomiSec = ui->byoyomiSec->text().toInt();
+    m_byoyomiSec = ui->byoyomiSec->value();
     
     // 設定を保存
     AnalysisSettings::setKifuAnalysisEngineIndex(m_engineNumber);
@@ -193,7 +255,7 @@ void KifuAnalysisDialog::processEngineSettings()
     AnalysisSettings::setKifuAnalysisFullRange(m_initPosition);
     AnalysisSettings::setKifuAnalysisStartPly(ui->spinBoxStartPly->value());
     AnalysisSettings::setKifuAnalysisEndPly(ui->spinBoxEndPly->value());
-    DialogUtils::saveDialogSize(this, AnalysisSettings::setKifuAnalysisDialogSize);
+    accept();
 }
 
 // エンジンの名前とディレクトリを格納するリストを取得する。
@@ -290,6 +352,11 @@ void KifuAnalysisDialog::applyFontSize()
     ui->labelSectionEngine->setFont(boldFont);
     ui->labelSectionRange->setFont(boldFont);
     ui->labelSectionTime->setFont(boldFont);
+    ui->btnFontDecrease->setEnabled(size > 8);
+    ui->btnFontIncrease->setEnabled(size < 24);
+    const int buttonWidth = qMax(40, fontMetrics().horizontalAdvance(QStringLiteral("A+")) + 20);
+    ui->btnFontDecrease->setFixedWidth(buttonWidth);
+    ui->btnFontIncrease->setFixedWidth(buttonWidth);
 
     // コンボボックスのポップアップリストにも反映する
     const QList<QComboBox*> comboBoxes = findChildren<QComboBox*>();
@@ -298,4 +365,6 @@ void KifuAnalysisDialog::applyFontSize()
             comboBox->view()->setFont(f);
         }
     }
+    ui->mainLayout->invalidate();
+    QTimer::singleShot(0, this, &KifuAnalysisDialog::updateMinimumSize);
 }

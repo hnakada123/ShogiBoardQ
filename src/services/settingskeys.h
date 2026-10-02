@@ -117,6 +117,7 @@ inline constexpr char kArrayWidth[]                      = "width";
 
 // --- KifuAnalysis ---
 inline constexpr char kKifuAnalysisFontSize[]            = "KifuAnalysis/fontSize";
+inline constexpr char kKifuAnalysisColumnWidths[]        = "KifuAnalysis/columnWidths";
 inline constexpr char kKifuAnalysisResultsWindowSize[]   = "KifuAnalysis/resultsWindowSize";
 inline constexpr char kKifuAnalysisByoyomiSec[]          = "KifuAnalysis/byoyomiSec";
 inline constexpr char kKifuAnalysisEngineIndex[]         = "KifuAnalysis/engineIndex";

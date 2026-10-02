@@ -68,6 +68,9 @@ public slots:
     /// 現在ライン上の指定手数へ移動する
     void goToPly(int ply);
 
+    /// 指定ライン上へ移動する（解析結果など、共有局面でもラインを明示する場合）
+    void goToLine(int lineIndex, int ply);
+
     /// 分岐候補を選択して移動する
     void selectBranchCandidate(int candidateIndex);
 

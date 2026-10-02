@@ -82,6 +82,7 @@ private:
     int m_lastCommittedScoreCp = 0;    ///< 最後に確定した評価値
     QString m_lastCommittedMate;
     int m_prevEvalCp = 0;              ///< 前回評価値（差分計算用）
+    bool m_hasPreviousEval = false;   ///< 直前の局面に数値評価があるか
 };
 
 #endif // ANALYSISRESULTHANDLER_H

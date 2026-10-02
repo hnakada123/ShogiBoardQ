@@ -45,6 +45,14 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 `engineConsiderationLayout` は検討操作部の折り返し、時間設定の切替、読み筋の表示幅と全文ツールチップ、盤面表示操作、文字拡大、列幅の保存・復元を確認し、`consideration-layout.png` と `consideration-narrow.png` を保存します。
 `boardZoomPreservesWindowState` は全画面表示・最大化それぞれで「将棋盤の拡大」「将棋盤の縮小」を繰り返しクリックし、ウィンドウの表示状態と位置・大きさの維持、通常表示に戻した後の横幅の追従を検証します。
 
+`engineAnalysisSettings` は局面数・所要時間の更新、範囲指定、開始局面のみの設定復元、文字拡大とエンジン未登録時の表示を確認します。
+`engineAnalysisLayout` は進捗・完了表示、列幅の保存、横スクロール、読み筋の全文ツールチップ、Enterによる盤面表示要求を検証します。
+`engineAnalysisRange` は途中の手から解析し、結果の選択が正しい棋譜の手数へ移動することを確認します。
+`enginePostGameAnalysis` は実GUIで先手／後手として対局・投了した後、全局面と最終局面の再解析を実行します。終局行の除外、結果とグラフの評価値一致、盤面・棋譜・グラフ・ツリー・移動ボタンの同期を確認し、Hayanagiを使うケースも実行します。
+`engineAnalysisBranch` は分岐の解析対象・指し手と局面の一致、本譜へ移動後の結果選択、キャンセル後のグラフから元の分岐への復帰を検証し、`analysis-branch-synchronized.png` を保存します。
+`engineAnalysisCancelPreservesGraph` は条件ダイアログをキャンセルしても既存の2系列と選択手数が保持されることを確認します。
+`engineAnalysisRecord` はビルド済みのHayanagiと棋王戦の棋譜で開始局面から14手目までを解析し、局面移動と読み筋盤面の表示を確認します。`ANALYSIS_AUDIT_KIF` で入力棋譜を指定できます。`analysis-settings.png`、`analysis-settings-large.png`、`analysis-layout.png`、`analysis-narrow.png`、`analysis-record.png` を保存します。
+
 各シナリオは独立したプロセスで実行し、35秒でタイムアウトする。通常のアプリ設定は使用せず、テスト用一時ディレクトリに隔離する。結果は`build/gui-audit/`に保存される。
 
 `menuPresentation` はメニューパネルの全文ラベル、USI形式の検索、狭いドックでの折り返し、お気に入りの登録を確認し、`menu-panel.png`・`menu-search.png`・`menu-narrow.png`・`menu-favorites.png` を保存します。チェック状態・表示状態の同期、ボタン上からのドラッグ開始、並べ替え・削除、設定の即時保存は CTest の `tst_menu_window` で検証します。

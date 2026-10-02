@@ -33,6 +33,35 @@ private:
     }
 
 private slots:
+    void explicitLineNavigationPreservesBranchAtSharedPositions()
+    {
+        KifuBranchTree tree;
+        buildTestTree(tree);
+        KifuNavigationState state;
+        state.setTree(&tree);
+        KifuNavigationController controller;
+        controller.setTreeAndState(&tree, &state);
+        QSignalSpy handled(&controller, &KifuNavigationController::branchNodeHandled);
+
+        controller.goToLine(1, 0);
+        QCOMPARE(state.currentNode(), tree.root());
+        QCOMPARE(state.currentLineIndex(), 1);
+        controller.goForward(3);
+        QCOMPARE(state.currentNode()->sfen(), QStringLiteral("bsfen1"));
+        controller.goToLine(0, 2);
+        QCOMPARE(state.currentLineIndex(), 0);
+        controller.goForward();
+        QCOMPARE(state.currentNode()->sfen(), QStringLiteral("sfen3"));
+        controller.goToLine(1, 20);
+        QCOMPARE(state.currentPly(), 4);
+        QCOMPARE(state.currentLineIndex(), 1);
+        QCOMPARE(handled.count(), 3);
+        controller.goToLine(-1, 0);
+        controller.goToLine(9, 0);
+        QCOMPARE(state.currentPly(), 4);
+        QCOMPARE(handled.count(), 3);
+    }
+
     void goToFirst()
     {
         KifuBranchTree tree;

@@ -28,7 +28,7 @@ public:
         std::function<bool()> getBoardFlipped;                              ///< 盤面反転状態取得
         std::function<ConsiderationWiring*()> getConsiderationWiring;       ///< ConsiderationWiring取得
         std::function<UiStatePolicyManager*()> getUiStatePolicyManager;    ///< UiStatePolicyManager取得
-        std::function<void(int)> navigateKifuViewToRow;                    ///< 棋譜ビューの行遷移
+        std::function<void(int, int)> navigateKifuViewToLine;                    ///< 棋譜ビューの行遷移
     };
 
     /// KifuFileController 用コールバック群

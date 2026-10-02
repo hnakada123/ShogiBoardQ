@@ -73,14 +73,23 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
         }
     }
 
-    const BranchLine& line = lines.at(effectiveRow);
+    goToLine(effectiveRow, ply);
+}
+
+void KifuNavigationController::goToLine(int lineIndex, int ply)
+{
+    if (!m_tree || !m_state) return;
+    const auto lines = m_tree->allLines();
+    if (lineIndex < 0 || lineIndex >= lines.size()) return;
+
+    const BranchLine& line = lines.at(lineIndex);
     const int maxPly = line.nodes.isEmpty() ? 0 : line.nodes.last()->ply();
     const int selPly = qBound(0, ply, maxPly);
 
     // 分岐ラインを選択した場合、以降のナビゲーションで優先されるよう設定する
-    if (effectiveRow > 0) {
-        m_state->setPreferredLineIndex(effectiveRow);
-        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: setPreferredLineIndex=" << effectiveRow;
+    if (lineIndex > 0) {
+        m_state->setPreferredLineIndex(lineIndex);
+        qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: setPreferredLineIndex=" << lineIndex;
     } else {
         m_state->resetPreferredLineIndex();
         qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: resetPreferredLineIndex (main line)";

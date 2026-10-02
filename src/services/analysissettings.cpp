@@ -210,6 +210,22 @@ void setKifuAnalysisFontSize(int size)
     s.setValue(SettingsKeys::kKifuAnalysisFontSize, size);
 }
 
+QList<int> kifuAnalysisColumnWidths()
+{
+    const QVariantList values = SettingsCommon::openSettings()
+        .value(SettingsKeys::kKifuAnalysisColumnWidths).toList();
+    QList<int> widths;
+    for (const QVariant& value : values) widths.append(qMax(0, value.toInt()));
+    return widths;
+}
+
+void setKifuAnalysisColumnWidths(const QList<int>& widths)
+{
+    QVariantList values;
+    for (int width : widths) values.append(width);
+    SettingsCommon::openSettings().setValue(SettingsKeys::kKifuAnalysisColumnWidths, values);
+}
+
 QSize kifuAnalysisResultsWindowSize()
 {
     QSettings& s = SettingsCommon::openSettings();
@@ -273,7 +289,7 @@ void setKifuAnalysisStartPly(int ply)
 int kifuAnalysisEndPly()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kKifuAnalysisEndPly, 0).toInt();
+    return s.value(SettingsKeys::kKifuAnalysisEndPly, -1).toInt();
 }
 
 void setKifuAnalysisEndPly(int ply)
@@ -285,7 +301,7 @@ void setKifuAnalysisEndPly(int ply)
 QSize kifuAnalysisDialogSize()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kKifuAnalysisDialogSize, QSize(500, 340)).toSize();
+    return s.value(SettingsKeys::kKifuAnalysisDialogSize, QSize(560, 380)).toSize();
 }
 
 void setKifuAnalysisDialogSize(const QSize& size)

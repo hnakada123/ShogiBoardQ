@@ -70,6 +70,10 @@ void setThinkingFontSize(int size);
 int kifuAnalysisFontSize();
 void setKifuAnalysisFontSize(int size);
 
+/// 解析結果の先頭7列の幅（0は内容に合わせて調整）
+QList<int> kifuAnalysisColumnWidths();
+void setKifuAnalysisColumnWidths(const QList<int>& widths);
+
 /// 棋譜解析結果ウィンドウのサイズ（デフォルト: 1100x600）
 QSize kifuAnalysisResultsWindowSize();
 void setKifuAnalysisResultsWindowSize(const QSize& size);
@@ -90,11 +94,11 @@ void setKifuAnalysisFullRange(bool fullRange);
 int kifuAnalysisStartPly();
 void setKifuAnalysisStartPly(int ply);
 
-/// 解析範囲: 終了手数（デフォルト: 0）
+/// 解析範囲: 終了手数（デフォルト: -1 = 最終局面）
 int kifuAnalysisEndPly();
 void setKifuAnalysisEndPly(int ply);
 
-/// 棋譜解析ダイアログのウィンドウサイズ（デフォルト: 500x340）
+/// 棋譜解析ダイアログのウィンドウサイズ（デフォルト: 560x380）
 QSize kifuAnalysisDialogSize();
 void setKifuAnalysisDialogSize(const QSize& size);
 

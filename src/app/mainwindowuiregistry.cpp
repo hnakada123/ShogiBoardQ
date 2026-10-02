@@ -19,6 +19,7 @@
 #include "evaluationchartwidget.h"
 #include "gamerecordpresenter.h"
 #include "kifunavigationcoordinator.h"
+#include "kifunavigationcontroller.h"
 #include "recordnavigationhandler.h"
 #include "recordnavigationwiring.h"
 #include "shogiview.h"
@@ -68,8 +69,12 @@ void MainWindowServiceRegistry::ensureDialogCoordinator()
     callbacks.getConsiderationWiring = [this]() { ensureConsiderationWiring(); return m_mw.m_considerationWiring; };
     callbacks.getUiStatePolicyManager = [this]() { m_foundation->ensureUiStatePolicyManager(); return m_mw.m_uiStatePolicy; };
     m_foundation->ensureKifuNavigationCoordinator();
-    callbacks.navigateKifuViewToRow = [this](int row) {
-        m_mw.m_kifuNavCoordinator->navigateToRow(row);
+    callbacks.navigateKifuViewToLine = [this](int lineIndex, int ply) {
+        if (m_mw.m_branchNav.kifuNavController) {
+            m_mw.m_branchNav.kifuNavController->goToLine(lineIndex, ply);
+        } else {
+            m_mw.m_kifuNavCoordinator->navigateToRow(ply);
+        }
     };
 
     m_mw.m_compositionRoot->ensureDialogCoordinator(refs, callbacks, &m_mw,

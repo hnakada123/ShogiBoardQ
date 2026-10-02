@@ -266,6 +266,8 @@ void DialogLaunchWiring::displayKifuAnalysisDialog()
     DialogCoordinator::KifuAnalysisContext kifuCtx;
     kifuCtx.sfenRecord = m_deps.getSfenRecord ? m_deps.getSfenRecord() : nullptr;
     kifuCtx.recordModel = m_deps.getKifuRecordModel ? m_deps.getKifuRecordModel() : nullptr;
+    kifuCtx.branchTree = m_deps.getBranchTree ? m_deps.getBranchTree() : nullptr;
+    kifuCtx.navState = m_deps.getNavState ? m_deps.getNavState() : nullptr;
     kifuCtx.activePly = m_deps.activePly;
     kifuCtx.gameController = m_deps.getGameController ? m_deps.getGameController() : nullptr;
     kifuCtx.gameInfoController = m_deps.gameInfoController ? *m_deps.gameInfoController : nullptr;

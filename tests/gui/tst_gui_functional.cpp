@@ -1,6 +1,10 @@
 #include <QtTest>
 #include <QApplication>
 #include <QClipboard>
+#include <QChart>
+#include <QLineSeries>
+#include <QGraphicsView>
+#include <QGraphicsItem>
 #include <QComboBox>
 #include <QCheckBox>
 #include <QColorDialog>
@@ -23,6 +27,7 @@
 #include <QMessageBox>
 #include <QMimeData>
 #include <QPlainTextEdit>
+#include <QProgressBar>
 #include <QRadioButton>
 #include <QTextEdit>
 #include <QTextBlock>
@@ -49,6 +54,8 @@
 #include "kifubranchtree.h"
 #include "gamerecordmodel.h"
 #include "evaluationchartwidget.h"
+#include "evaluationchartview.h"
+#include "branchtreemanager.h"
 #include "sfenpositiontracer.h"
 #include "settingscommon.h"
 #include "appsettings.h"
@@ -75,6 +82,9 @@
 #include "considerationtabmanager.h"
 #include "gameinfopanecontroller.h"
 #include "analysissettings.h"
+#include "kifuanalysisdialog.h"
+#include "analysisresultspresenter.h"
+#include "kifuanalysislistmodel.h"
 #include "shogienginethinkingmodel.h"
 
 class GuiAudit : public QObject
@@ -1638,12 +1648,17 @@ private slots:
     void engineHumanResignNavigation_data()
     {
         QTest::addColumn<bool>("humanIsBlack");
-        QTest::newRow("human-black") << true;
-        QTest::newRow("human-white") << false;
+        QTest::addColumn<bool>("realAnalysis");
+        QTest::newRow("human-black") << true << false;
+        QTest::newRow("human-white") << false << false;
+        QTest::newRow("human-black-real-analysis") << true << true;
     }
     void engineHumanResignNavigation()
     {
         QFETCH(bool, humanIsBlack);
+        QFETCH(bool, realAnalysis);
+        const QString realEngine = QStringLiteral(APP_BUILD "/Hayanagi/hayanagi");
+        if (realAnalysis && !QFileInfo::exists(realEngine)) QSKIP("Hayanagi is not built");
         armDialog(humanIsBlack ? "gameEngineWhite" : "gameEngineBlack");
         click("actionStartGame");
         QVERIFY(dialogHandled);
@@ -1802,6 +1817,340 @@ private slots:
         QVERIFY(graph->chartViewWidget()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/evaluation-graph-export.png")));
     }
 
+    void enginePostGameAnalysis_data()
+    {
+        QTest::addColumn<bool>("humanIsBlack");
+        QTest::addColumn<bool>("realAnalysis");
+        QTest::newRow("human-black") << true << false;
+        QTest::newRow("human-white") << false << false;
+        QTest::newRow("human-black-real-analysis") << true << true;
+    }
+    void enginePostGameAnalysis()
+    {
+        QFETCH(bool, humanIsBlack);
+        QFETCH(bool, realAnalysis);
+        const QString realEngine = QStringLiteral(APP_BUILD "/Hayanagi/hayanagi");
+        if (realAnalysis && !QFileInfo::exists(realEngine)) QSKIP("Hayanagi is not built");
+        armDialog(humanIsBlack ? "gameEngineWhite" : "gameEngineBlack");
+        click("actionStartGame");
+        auto* recordView = record()->kifuView();
+        auto* recordModel = qobject_cast<KifuRecordListModel*>(recordView->model());
+        QVERIFY(recordModel);
+        if (!humanIsBlack) QTRY_COMPARE_WITH_TIMEOUT(recordModel->rowCount(), 2, 5000);
+        const int file = humanIsBlack ? 7 : 3;
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(file, humanIsBlack ? 7 : 3));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(file, humanIsBlack ? 6 : 4));
+        const int lastPly = humanIsBlack ? 2 : 3;
+        QTRY_COMPARE_WITH_TIMEOUT(recordModel->rowCount(), lastPly + 1, 5000);
+        armDialog("auto");
+        click("actionResign");
+        QTRY_VERIFY(!record()->isNavigationDisabled());
+        QCOMPARE(recordModel->rowCount(), lastPly + 2);
+        QVERIFY(recordModel->index(lastPly + 1, 0).data().toString().contains(QStringLiteral("投了")));
+        QStringList moves = {QStringLiteral("7g7f"), QStringLiteral("3c3d")};
+        if (!humanIsBlack) moves.append(QStringLiteral("2g2f"));
+        const auto sfens = SfenPositionTracer::buildSfenRecord(initial + QStringLiteral(" b - 1"), moves, false);
+        auto* graph = window->evalChart();
+        auto* tree = window->findChild<BranchTreeManager*>();
+        QVERIFY(graph && tree);
+        if (realAnalysis) {
+            auto& settings = SettingsCommon::openSettings();
+            settings.beginWriteArray("Engines");
+            settings.setArrayIndex(0);
+            settings.setValue("name", "Hayanagi");
+            settings.setValue("path", realEngine);
+            settings.endArray();
+        }
+        armDialog("startAnalysis");
+        click("actionAnalyzeKifu");
+        auto* progress = window->findChild<QProgressBar*>("analysisProgressBar");
+        auto* results = window->findChild<QTableView*>("analysisResultsTable");
+        QVERIFY(progress && results);
+        QCOMPARE(progress->maximum(), lastPly + 1); // 投了は着手後の局面ではない。
+        QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 8000);
+        QCOMPARE(results->model()->rowCount(), lastPly + 1);
+        QTRY_COMPARE(graph->countP1(), lastPly + 1);
+        QCOMPARE(graph->countP2(), 0);
+        auto* chartView = static_cast<EvaluationChartView*>(graph->chartViewWidget());
+        QLineSeries* scores = nullptr;
+        for (auto* series : chartView->chart()->series()) {
+            if (series->objectName() == "evalSeries1") scores = qobject_cast<QLineSeries*>(series);
+        }
+        QVERIFY(scores);
+        for (int ply = 0; ply <= lastPly; ++ply) {
+            QCOMPARE(scores->at(ply).x(), double(ply));
+            QCOMPARE(scores->at(ply).y(), results->model()->index(ply, 3).data().toDouble());
+        }
+        for (const int ply : {0, lastPly, 1, 0}) {
+            results->setCurrentIndex(results->model()->index(ply, 0));
+            QTest::qWait(150); // グラフの遅延更新後にも選択が戻らないこと。
+            QCOMPARE(recordView->currentIndex().row(), ply);
+            QCOMPARE(boardSfen(), sfens.at(ply).section(QLatin1Char(' '), 0, 0));
+            QCOMPARE(turnToSfen(board()->board()->currentPlayer()), sfens.at(ply).section(QLatin1Char(' '), 1, 1));
+            QCOMPARE(graph->currentPly(), ply);
+            QCOMPARE(tree->lastHighlightedPly(), ply);
+            QCOMPARE(tree->lastHighlightedRow(), 0);
+        }
+        // グラフから移動しても棋譜・盤面・ツリーが同期する。
+        for (auto* dock : window->findChildren<QDockWidget*>()) {
+            if (dock->isAncestorOf(graph)) { dock->show(); dock->raise(); }
+        }
+        QTest::qWait(50);
+        const QPoint graphPoint = chartView->mapFromScene(chartView->chart()->mapToScene(
+            chartView->chart()->mapToPosition(QPointF(lastPly, 0), scores)));
+        QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, graphPoint);
+        QTRY_COMPARE(recordView->currentIndex().row(), lastPly);
+        QCOMPARE(graph->currentPly(), lastPly);
+        QCOMPARE(tree->lastHighlightedPly(), lastPly);
+        // 分岐ツリーから開始局面へ戻る。
+        auto* treeView = window->findChild<QGraphicsView*>("branchTreeView");
+        QVERIFY(treeView);
+        for (auto* dock : window->findChildren<QDockWidget*>()) {
+            if (dock->isAncestorOf(treeView)) { dock->show(); dock->raise(); }
+        }
+        QGraphicsItem* startNode = nullptr;
+        for (auto* item : treeView->scene()->items()) {
+            if (item->data(BranchTreeManager::BR_ROLE_KIND).isValid()
+                && item->data(BranchTreeManager::ROLE_ROW).toInt() == 0
+                && item->data(BranchTreeManager::ROLE_PLY).toInt() == 0) startNode = item;
+        }
+        QVERIFY(startNode);
+        treeView->ensureVisible(startNode);
+        QTest::qWait(50);
+        QTest::mouseClick(treeView->viewport(), Qt::LeftButton, Qt::NoModifier,
+                         treeView->mapFromScene(startNode->sceneBoundingRect().center()));
+        QTRY_COMPARE(recordView->currentIndex().row(), 0);
+        QCOMPARE(graph->currentPly(), 0);
+        QCOMPARE(boardSfen(), initial);
+        QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        QCOMPARE(recordView->currentIndex().row(), 1);
+        QCOMPARE(graph->currentPly(), 1);
+        QCOMPARE(tree->lastHighlightedPly(), 1);
+        snapshot(QStringLiteral("post-game-analysis-") + QString::fromLatin1(QTest::currentDataTag()));
+        // 同じ対局を最終局面だけ再解析する。古い点と終局行は残さない。
+        AnalysisSettings::setKifuAnalysisFullRange(false);
+        AnalysisSettings::setKifuAnalysisStartPly(lastPly);
+        AnalysisSettings::setKifuAnalysisEndPly(lastPly);
+        armDialog("startAnalysis");
+        click("actionAnalyzeKifu");
+        QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 5000);
+        QCOMPARE(results->model()->rowCount(), 1);
+        QTRY_COMPARE(graph->countP1(), 1);
+        QCOMPARE(graph->countP2(), 0);
+        QCOMPARE(scores->at(0).x(), double(lastPly));
+        QCOMPARE(recordView->currentIndex().row(), lastPly);
+        QCOMPARE(graph->currentPly(), lastPly);
+        QCOMPARE(tree->lastHighlightedPly(), lastPly);
+    }
+
+    void engineAnalysisBranch()
+    {
+        QFile f(QStringLiteral(REPO "/tests/fixtures/test_branch.kif"));
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        paste(QString::fromUtf8(f.readAll()));
+        auto* tree = window->findChild<BranchTreeManager*>();
+        QVERIFY(tree);
+        tree->branchNodeActivated(1, 3);
+        QTest::qWait(50);
+        QCOMPARE(tree->lastHighlightedRow(), 1);
+        const QString branchBoard = boardSfen();
+        const QString branchMove = record()->kifuView()->model()->index(3, 0).data().toString();
+        AnalysisSettings::setKifuAnalysisFullRange(false);
+        AnalysisSettings::setKifuAnalysisStartPly(3);
+        AnalysisSettings::setKifuAnalysisEndPly(4);
+        armDialog("startAnalysis");
+        click("actionAnalyzeKifu");
+        QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 7000);
+        auto* results = window->findChild<QTableView*>("analysisResultsTable");
+        QVERIFY(results);
+        auto* model = qobject_cast<KifuAnalysisListModel*>(results->model());
+        QVERIFY(model);
+        QCOMPARE(model->rowCount(), 2);
+        QCOMPARE(model->item(0)->sfen().section(QLatin1Char(' '), 0, 0), branchBoard);
+        QCOMPARE(model->index(0, 0).data().toString(), branchMove);
+        QCOMPARE(model->item(0)->lastUsiMove(), QStringLiteral("6g6f"));
+        tree->branchNodeActivated(0, 4);
+        QTest::qWait(50);
+        results->setCurrentIndex(model->index(0, 0));
+        QTest::qWait(150);
+        QCOMPARE(tree->lastHighlightedRow(), 1);
+        QCOMPARE(record()->kifuView()->currentIndex().row(), 3);
+        QCOMPARE(tree->lastHighlightedRow(), 1);
+        QCOMPARE(tree->lastHighlightedPly(), 3);
+        QCOMPARE(window->evalChart()->currentPly(), 3);
+        QCOMPARE(boardSfen(), branchBoard);
+        // 本譜を表示して条件ダイアログをキャンセルしても、結果の分岐を保持する。
+        tree->branchNodeActivated(0, 4);
+        armDialog("auto");
+        click("actionAnalyzeKifu");
+        auto* graph = window->evalChart();
+        QTRY_COMPARE(graph->countP1(), 2);
+        auto* chartView = static_cast<EvaluationChartView*>(graph->chartViewWidget());
+        QLineSeries* scores = nullptr;
+        for (auto* series : chartView->chart()->series()) {
+            if (series->objectName() == "evalSeries1") scores = qobject_cast<QLineSeries*>(series);
+        }
+        QVERIFY(scores);
+        for (auto* dock : window->findChildren<QDockWidget*>()) {
+            if (dock->isAncestorOf(graph)) { dock->show(); dock->raise(); }
+        }
+        QTest::qWait(50);
+        const QPoint point = chartView->mapFromScene(chartView->chart()->mapToScene(
+            chartView->chart()->mapToPosition(QPointF(3, 0), scores)));
+        QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+        QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 3);
+        QCOMPARE(tree->lastHighlightedRow(), 1);
+        QCOMPARE(tree->lastHighlightedPly(), 3);
+        QCOMPARE(graph->currentPly(), 3);
+        QCOMPARE(boardSfen(), branchBoard);
+        snapshot("analysis-branch-synchronized");
+    }
+
+    void engineAnalysisCancelPreservesGraph()
+    {
+        sampleGame();
+        auto* graph = window->evalChart();
+        graph->appendScoreP1(1, 75);
+        graph->appendScoreP2(2, -120);
+        graph->setCurrentPly(2);
+        armDialog("auto");
+        click("actionAnalyzeKifu");
+        QCOMPARE(dialogClass, QStringLiteral("KifuAnalysisDialog"));
+        QCOMPARE(graph->countP1(), 1);
+        QCOMPARE(graph->countP2(), 1);
+        QCOMPARE(graph->currentPly(), 2);
+    }
+
+    void engineAnalysisSettings()
+    {
+        AnalysisSettings::setKifuAnalysisByoyomiSec(3);
+        {
+            KifuAnalysisDialog dialog;
+            dialog.setMaxPly(14);
+            dialog.show();
+            auto* summary = dialog.findChild<QLabel*>("analysisSummary");
+            auto* range = dialog.findChild<QRadioButton*>("radioButtonRangePosition");
+            auto* start = dialog.findChild<QSpinBox*>("spinBoxStartPly");
+            auto* end = dialog.findChild<QSpinBox*>("spinBoxEndPly");
+            auto* time = dialog.findChild<QSpinBox*>("byoyomiSec");
+            auto* buttons = dialog.findChild<QDialogButtonBox*>();
+            QVERIFY(summary && range && start && end && time && buttons);
+            QVERIFY(summary->text().contains(QStringLiteral("15局面")));
+            QVERIFY(summary->text().contains(QStringLiteral("45秒")));
+            QTest::qWait(50);
+            QVERIFY(dialog.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-settings.png")));
+            range->click();
+            start->setValue(5);
+            end->setValue(8);
+            time->setValue(10);
+            QVERIFY(summary->text().contains(QStringLiteral("4局面")));
+            QVERIFY(summary->text().contains(QStringLiteral("40秒")));
+            start->setValue(10);
+            QCOMPARE(end->value(), 10);
+            QVERIFY(summary->text().contains(QStringLiteral("1局面")));
+            start->setValue(0);
+            end->setValue(0);
+            dialog.resize(650, 440);
+            QTest::mouseClick(buttons->button(QDialogButtonBox::Ok), Qt::LeftButton);
+            QCOMPARE(dialog.result(), int(QDialog::Accepted));
+            QCOMPARE(dialog.startPly(), 0);
+            QCOMPARE(dialog.endPly(), 0);
+            QCOMPARE(dialog.byoyomiSec(), 10);
+        }
+        {
+            KifuAnalysisDialog restored;
+            restored.setMaxPly(120);
+            restored.show();
+            QCOMPARE(restored.findChild<QSpinBox*>("spinBoxEndPly")->value(), 0);
+            QVERIFY(restored.findChild<QRadioButton*>("radioButtonRangePosition")->isChecked());
+            QCOMPARE(restored.size(), QSize(650, 440));
+            auto* increase = restored.findChild<QPushButton*>("btnFontIncrease");
+            QVERIFY(increase);
+            while (increase->isEnabled()) increase->click();
+            QTest::qWait(50);
+            auto* ok = restored.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok);
+            QVERIFY(restored.rect().contains(QRect(ok->mapTo(&restored, QPoint()), ok->size())));
+            for (const QString& name : {QStringLiteral("analysisSummary"), QStringLiteral("rangeHint")}) {
+                auto* label = restored.findChild<QLabel*>(name);
+                QVERIFY(label);
+                QVERIFY2(label->height() >= label->heightForWidth(label->width()), qPrintable(name));
+            }
+            QVERIFY(restored.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-settings-large.png")));
+            restored.resize(restored.width() + 20, restored.height() + 20);
+            const QSize canceledSize = restored.size();
+            restored.reject();
+            QCOMPARE(AnalysisSettings::kifuAnalysisDialogSize(), canceledSize);
+        }
+        SettingsCommon::openSettings().remove("Engines");
+        KifuAnalysisDialog empty;
+        empty.setMaxPly(0);
+        QVERIFY(!empty.findChild<QDialogButtonBox*>()->button(QDialogButtonBox::Ok)->isEnabled());
+        QVERIFY(!empty.findChild<QPushButton*>("engineSetting")->isEnabled());
+        QVERIFY(!empty.findChild<QLabel*>("engineHint")->isHidden());
+    }
+
+    void engineAnalysisLayout()
+    {
+        KifuAnalysisListModel model;
+        AnalysisResultsPresenter presenter;
+        QWidget* container = presenter.containerWidget();
+        container->setParent(window.get(), Qt::Window);
+        container->resize(1100, 480);
+        presenter.showWithModel(&model);
+        container->show();
+        presenter.beginAnalysis(24, QStringLiteral("Hayanagi 1.5.0"));
+        auto* table = presenter.view();
+        auto* progress = container->findChild<QProgressBar*>("analysisProgressBar");
+        auto* status = container->findChild<QLabel*>("analysisStatusLabel");
+        QVERIFY(table && progress && status);
+        QCOMPARE(progress->maximum(), 24);
+        table->setColumnWidth(0, 200);
+        const QString pv = QStringLiteral("▲７六歩(77)△３四歩(33)▲２六歩(27)△８四歩(83)▲２五歩(26)△８五歩(84)▲７七角(88)");
+        for (int row = 0; row < 24; ++row) {
+            auto* item = new KifuAnalysisResultsDisplay(
+                QStringLiteral("%1 ▲７六歩(77)").arg(row), QString::number(row * 25), QStringLiteral("25"), pv);
+            item->setCandidateMove(QStringLiteral("▲７六歩(77)"));
+            model.appendItem(item);
+        }
+        QCOMPARE(progress->value(), 24);
+        presenter.showAnalysisComplete(24);
+        QTest::qWait(50);
+        QCOMPARE(table->columnWidth(0), 200);
+        QVERIFY(status->text().contains(QStringLiteral("解析完了")));
+        QVERIFY(table->model()->index(0, 7).data(Qt::ToolTipRole).toString().contains(pv));
+        QVERIFY(container->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-layout.png")));
+        QSignalSpy boardRequests(&presenter, &AnalysisResultsPresenter::rowDoubleClicked);
+        table->setCurrentIndex(model.index(0, 6));
+        table->setFocus();
+        QTest::keyClick(table, Qt::Key_Return);
+        QCOMPARE(boardRequests.size(), 1);
+        container->resize(520, 400);
+        QTest::qWait(50);
+        QVERIFY(table->horizontalScrollBar()->maximum() > 0);
+        table->scrollTo(model.index(0, 7));
+        QVERIFY(table->visualRect(model.index(0, 7)).intersects(table->viewport()->rect()));
+        QVERIFY(container->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-narrow.png")));
+        auto* increase = container->findChild<QPushButton*>("analysisFontIncrease");
+        QVERIFY(increase);
+        const int oldHeight = table->verticalHeader()->defaultSectionSize();
+        increase->click();
+        QVERIFY(table->verticalHeader()->defaultSectionSize() > oldHeight);
+        QCOMPARE(table->columnWidth(0), 200);
+        {
+            AnalysisResultsPresenter restored;
+            QWidget* restoredContainer = restored.containerWidget();
+            restoredContainer->setParent(window.get(), Qt::Window);
+            restored.showWithModel(&model);
+            QTest::qWait(50);
+            QCOMPARE(restored.view()->columnWidth(0), 200);
+            delete restoredContainer;
+        }
+        model.clearAllItems();
+        QVERIFY(!progress->isVisible());
+        QVERIFY(status->text().contains(QStringLiteral("開始してください")));
+        delete container;
+    }
+
     void engineAnalysis()
     {
         sampleGame();
@@ -1814,8 +2163,92 @@ private slots:
         auto* table = dock->findChild<QTableView*>(); QVERIFY(table); QVERIFY(table->model());
         QTRY_VERIFY_WITH_TIMEOUT(table->model()->rowCount() >= 4, 7000);
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 4000);
+        auto* progress = dock->findChild<QProgressBar*>("analysisProgressBar");
+        auto* status = dock->findChild<QLabel*>("analysisStatusLabel");
+        QVERIFY(progress && status);
+        QCOMPARE(progress->value(), table->model()->rowCount());
+        QCOMPARE(progress->value(), progress->maximum());
+        QVERIFY(status->text().contains(QStringLiteral("解析完了")));
+        QVERIFY(!QApplication::activeModalWidget());
         snapshot("analysis-results");
     }
+    void engineAnalysisRange()
+    {
+        sampleGame();
+        AnalysisSettings::setKifuAnalysisFullRange(false);
+        AnalysisSettings::setKifuAnalysisStartPly(2);
+        AnalysisSettings::setKifuAnalysisEndPly(3);
+        armDialog("startAnalysis");
+        click("actionAnalyzeKifu");
+        auto* table = window->findChild<QTableView*>("analysisResultsTable");
+        auto* progress = window->findChild<QProgressBar*>("analysisProgressBar");
+        QVERIFY(table && progress);
+        QCOMPARE(progress->maximum(), 2);
+        QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 7000);
+        QCOMPARE(table->model()->rowCount(), 2);
+        QCOMPARE(table->model()->index(0, 5).data().toString(), QStringLiteral("-"));
+        table->setCurrentIndex(table->model()->index(0, 0));
+        QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 2);
+        table->setCurrentIndex(table->model()->index(1, 0));
+        QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 3);
+        snapshot("analysis-range");
+    }
+
+    void engineAnalysisRecord()
+    {
+        const QString engine = QStringLiteral(APP_BUILD "/Hayanagi/hayanagi");
+        if (!QFileInfo::exists(engine)) QSKIP("Hayanagi is not built");
+        auto& settings = SettingsCommon::openSettings();
+        settings.beginWriteArray("Engines");
+        settings.setArrayIndex(0);
+        settings.setValue("name", "Hayanagi");
+        settings.setValue("path", engine);
+        settings.endArray();
+        const QString kifu = qEnvironmentVariable("ANALYSIS_AUDIT_KIF",
+            QStringLiteral(REPO "/tests/fixtures/test_kiou_comments.kif"));
+        armDialog("file", kifu);
+        click("actionOpenKifuFile");
+        QTRY_VERIFY_WITH_TIMEOUT(record()->kifuView()->model()->rowCount() > 14, 3000);
+        AnalysisSettings::setKifuAnalysisFullRange(false);
+        AnalysisSettings::setKifuAnalysisStartPly(0);
+        AnalysisSettings::setKifuAnalysisEndPly(14);
+        armDialog("startAnalysis");
+        click("actionAnalyzeKifu");
+        auto* table = window->findChild<QTableView*>("analysisResultsTable");
+        QVERIFY(table);
+        QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 22000);
+        QCOMPARE(table->model()->rowCount(), 15);
+        bool hasScore = false;
+        for (int row = 0; row < 15; ++row) {
+            bool ok = false;
+            table->model()->index(row, 3).data().toString().toInt(&ok);
+            hasScore = hasScore || ok;
+        }
+        QVERIFY(hasScore);
+        QDockWidget* dock = nullptr;
+        for (auto* candidate : window->findChildren<QDockWidget*>()) {
+            if (candidate->isAncestorOf(table)) dock = candidate;
+        }
+        QVERIFY(dock);
+        dock->setFloating(true);
+        dock->resize(1460, 700);
+        dock->show();
+        QTest::qWait(100);
+        QVERIFY(dock->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/analysis-record.png")));
+        table->setCurrentIndex(table->model()->index(7, 0));
+        QTRY_COMPARE(record()->kifuView()->currentIndex().row(), 7);
+        table->scrollTo(table->model()->index(7, 6));
+        QTest::mouseClick(table->viewport(), Qt::LeftButton, Qt::NoModifier,
+                         table->visualRect(table->model()->index(7, 6)).center());
+        QDialog* pv = nullptr;
+        for (auto* widget : QApplication::topLevelWidgets()) {
+            if (QString::fromLatin1(widget->metaObject()->className()) == "PvBoardDialog")
+                pv = qobject_cast<QDialog*>(widget);
+        }
+        QVERIFY(pv && pv->isVisible());
+        pv->close();
+    }
+
     void engineMateNoMate()
     {
         sampleGame();
@@ -2448,8 +2881,14 @@ private slots:
     {
         sampleGame(); armDialog("startAnalysis"); click("actionAnalyzeKifu");
         QTRY_VERIFY_WITH_TIMEOUT(action("actionCancelAnalyzeKifu")->isEnabled(), 1500);
+        auto* progress = window->findChild<QProgressBar*>("analysisProgressBar");
+        QVERIFY(progress);
+        QVERIFY(progress->value() < progress->maximum());
+        snapshot("analysis-in-progress");
         armDialog("auto"); click("actionCancelAnalyzeKifu");
         QTRY_VERIFY_WITH_TIMEOUT(!action("actionCancelAnalyzeKifu")->isEnabled(), 2500);
+        auto* status = window->findChild<QLabel*>("analysisStatusLabel");
+        QVERIFY(status && status->text().contains(QStringLiteral("解析中止")));
     }
     void engineStopMate()
     {

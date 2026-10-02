@@ -1199,6 +1199,7 @@ add_shogi_test(tst_analysis_coordinator
     test_stubs_analysis_coordinator.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
+    ${SRC}/analysis/kifuanalysislistmodel.cpp
     ${SRC}/analysis/analysisresulthandler.cpp
     ${SRC}/analysis/analysisresulthandler_dialog.cpp
 )

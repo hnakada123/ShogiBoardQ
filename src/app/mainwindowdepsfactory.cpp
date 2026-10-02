@@ -47,7 +47,7 @@ DialogCoordinatorWiring::Deps MainWindowDepsFactory::createDialogCoordinatorDeps
     deps.evalChartWidget = refs.ui.evalChart;
     deps.analysisTab = refs.ui.analysisTab;
     deps.playMode = refs.state.playMode;
-    deps.navigateKifuViewToRow = callbacks.navigateKifuViewToRow;
+    deps.navigateKifuViewToLine = callbacks.navigateKifuViewToLine;
 
     return deps;
 }

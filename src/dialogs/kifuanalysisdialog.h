@@ -21,6 +21,7 @@ class KifuAnalysisDialog : public QDialog
 public:
     // コンストラクタ
     explicit KifuAnalysisDialog(QWidget *parent = nullptr);
+    ~KifuAnalysisDialog() override;
 
     // エンジンの名前とディレクトリを格納する構造体
     struct Engine
@@ -53,6 +54,10 @@ public:
     // エンジン名を取得する。
     QString engineName() const;
 
+protected:
+    void done(int result) override;
+    void resizeEvent(QResizeEvent* event) override;
+
 private slots:
     // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
     void showEngineSettingsDialog();
@@ -65,6 +70,9 @@ private slots:
     
     // 開始手数が変更された場合
     void onStartPlyChanged(int value);
+
+    void updateSummary();
+    void updateMinimumSize();
     
     // フォントサイズ拡大
     void onFontIncrease();

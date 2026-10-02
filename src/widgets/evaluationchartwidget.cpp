@@ -181,6 +181,12 @@ void EvaluationChartWidget::setCurrentPly(int ply)
     refreshData();
 }
 
+void EvaluationChartWidget::setAnalysisLineIndex(int lineIndex)
+{
+    m_analysisLineIndex = lineIndex;
+    updatePresentation();
+}
+
 void EvaluationChartWidget::setRecordLength(int plies)
 {
     m_maxVisitedPly = qMax(0, plies);
@@ -199,7 +205,8 @@ bool EvaluationChartWidget::eventFilter(QObject* obj, QEvent* event)
         const QPointF chartPos = m_chart->mapFromScene(m_chartView->mapToScene(mouse->pos()));
         if (mouse->button() == Qt::LeftButton && m_chart->plotArea().contains(chartPos)) {
             const int ply = qMax(0, qRound(m_chart->mapToValue(chartPos, m_series[0]).x()));
-            emit plyClicked(ply);
+            if (m_analysisLineIndex >= 0) emit analysisPlyClicked(m_analysisLineIndex, ply);
+            else emit plyClicked(ply);
             return true;
         }
     }

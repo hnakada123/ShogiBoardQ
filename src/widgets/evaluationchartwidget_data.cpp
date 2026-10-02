@@ -110,6 +110,10 @@ void EvaluationChartWidget::updatePresentation()
     }
     m_chartView->summary = tr("%1手目  |  %2").arg(m_currentPly)
         .arg(values.isEmpty() ? tr("評価値なし") : values.join(QStringLiteral("   /   ")));
+    if (m_analysisLineIndex >= 0) {
+        const QString lineName = m_analysisLineIndex == 0 ? tr("本譜") : tr("分岐 %1").arg(m_analysisLineIndex);
+        m_chartView->summary.prepend(lineName + QStringLiteral("  |  "));
+    }
     m_chartView->setAccessibleName(m_chartView->summary);
     m_chartView->currentPly = m_currentPly;
     m_chartView->xLimit = xAxisLimit();
@@ -119,6 +123,7 @@ void EvaluationChartWidget::updatePresentation()
 
 void EvaluationChartWidget::clearAll()
 {
+    m_analysisLineIndex = -1;
     m_pending.clear();
     m_flushTimer->stop();
     for (auto& scores : m_scores) scores.clear();
@@ -176,9 +181,10 @@ void EvaluationChartWidget::flushPendingScores()
     if (m_pending.isEmpty()) return;
     for (const auto& point : std::as_const(m_pending)) {
         appendScore(point.side, point.ply, point.cp, point.invert, point.mate);
-        m_currentPly = point.ply;
         m_maxVisitedPly = qMax(m_maxVisitedPly, point.ply);
     }
+    // バッファには直前の局面の評価値が入る。閲覧・解析中の現在手数は
+    // ナビゲーション側が管理し、遅延描画で過去の手数へ戻さない。
     m_pending.clear();
     refreshData();
 }

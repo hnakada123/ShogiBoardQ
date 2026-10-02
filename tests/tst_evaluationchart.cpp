@@ -163,6 +163,21 @@ private slots:
         QCOMPARE(widget.countP1(), 0);
     }
 
+    void pendingScoresPreserveNavigation()
+    {
+        EvaluationChartWidget widget;
+        widget.appendScoreP1Buffered(4, 100);
+        widget.setCurrentPly(5); // 次の局面を解析中。
+        widget.flushPendingScores();
+        QCOMPARE(widget.currentPly(), 5);
+        QCOMPARE(widget.countP1(), 1);
+        widget.appendScoreP1Buffered(5, 150);
+        widget.setCurrentPly(1); // 解析直後にユーザーが過去の手へ移動。
+        widget.flushPendingScores();
+        QCOMPARE(widget.currentPly(), 1);
+        QCOMPARE(widget.countP1(), 2);
+    }
+
     void settingsPersistAndCancel()
     {
         {
@@ -218,6 +233,30 @@ private slots:
         QVERIFY(tooltip->text().contains(QStringLiteral("4500")));
         widget.setCurrentPly(6);
         QVERIFY(chartView->summary.contains(QStringLiteral("評価値なし")));
+    }
+
+    void analysisNavigationKeepsSourceLineUntilCleared()
+    {
+        EvaluationChartWidget widget;
+        widget.resize(1000, 400);
+        widget.appendScoreP1(3, 50);
+        widget.setAnalysisLineIndex(2);
+        widget.show();
+        QTest::qWait(30);
+        auto* chartView = view(widget);
+        QSignalSpy normal(&widget, &EvaluationChartWidget::plyClicked);
+        QSignalSpy analysis(&widget, &EvaluationChartWidget::analysisPlyClicked);
+        const QPoint point = chartView->mapFromScene(chartView->chart()->mapToScene(
+            chartView->chart()->mapToPosition(QPointF(3, 0), series(widget))));
+        QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+        QCOMPARE(normal.count(), 0);
+        QCOMPARE(analysis.count(), 1);
+        QCOMPARE(analysis.at(0).at(0).toInt(), 2);
+        QCOMPARE(analysis.at(0).at(1).toInt(), 3);
+        widget.clearAll();
+        QTest::mouseClick(chartView->viewport(), Qt::LeftButton, Qt::NoModifier, point);
+        QCOMPARE(normal.count(), 1);
+        QCOMPARE(analysis.count(), 1);
     }
 
     void renderExamples()

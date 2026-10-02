@@ -2,6 +2,9 @@
 /// @brief ダイアログコーディネータクラスの実装
 
 #include "dialogcoordinator.h"
+#include "kifubranchtree.h"
+#include "kifunavigationstate.h"
+#include "usimoveconverter.h"
 
 #include <QWidget>
 #include <QMessageBox>
@@ -221,6 +224,8 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     if (!m_analysisFlow) {
         m_analysisFlow = new AnalysisFlowController(this);
         // シグナル中継（Flow → DialogCoordinator → MainWindow）
+        connect(m_analysisFlow, &AnalysisFlowController::analysisStarted,
+                this, &DialogCoordinator::analysisStarted);
         QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisProgressReported,
                          this, &DialogCoordinator::analysisProgressReported, Qt::UniqueConnection);
         QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisResultRowSelected,
@@ -240,6 +245,7 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.gameController = params.gameController;  // 盤面情報取得用
     d.presenter = params.presenter;  // 結果表示用プレゼンター
     d.activePly = params.activePly;
+    d.lineIndex = params.lineIndex;
     d.blackPlayerName = params.blackPlayerName;
     d.whitePlayerName = params.whitePlayerName;
     d.usiMoves = params.usiMoves;
@@ -247,6 +253,10 @@ void DialogCoordinator::showKifuAnalysisDialog(const KifuAnalysisParams& params)
     d.displayError = [this](const QString& msg) { showFlowError(msg); };
 
     if (m_kifuAnalysisCtx.evalChart) {
+        // 条件ダイアログのキャンセル時は対局中の評価値を保持する。
+        QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisEngineNameChanged,
+                         m_kifuAnalysisCtx.evalChart, &EvaluationChartWidget::clearAll,
+                         Qt::UniqueConnection);
         QObject::connect(m_analysisFlow, &AnalysisFlowController::analysisEngineNameChanged,
                          m_kifuAnalysisCtx.evalChart, &EvaluationChartWidget::setEngine1Name,
                          Qt::UniqueConnection);
@@ -265,12 +275,6 @@ void DialogCoordinator::setKifuAnalysisContext(const KifuAnalysisContext& ctx)
 void DialogCoordinator::showKifuAnalysisDialogFromContext()
 {
     qCDebug(lcUi).noquote() << "showKifuAnalysisDialogFromContext";
-
-    // 評価値グラフをクリア（対局時のグラフが残らないようにする）
-    if (m_kifuAnalysisCtx.evalChart) {
-        m_kifuAnalysisCtx.evalChart->clearAll();
-        qCDebug(lcUi).noquote() << "evaluation chart cleared";
-    }
 
     // パラメータを構築
     KifuAnalysisParams params;
@@ -329,6 +333,26 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
                        << "blackPlayerName=" << params.blackPlayerName
                        << "whitePlayerName=" << params.whitePlayerName;
 
+    // 分岐選択中は、本譜の履歴ではなく表示中のラインを解析する。
+    // Flow が開始時にコピーするので、条件ダイアログのキャンセルは前回結果に影響しない。
+    QStringList branchSfens;
+    QStringList branchMoves;
+    if (m_kifuAnalysisCtx.branchTree && m_kifuAnalysisCtx.navState) {
+        const int lineIndex = m_kifuAnalysisCtx.navState->currentLineIndex();
+        const auto lines = m_kifuAnalysisCtx.branchTree->allLines();
+        if (lineIndex > 0 && lineIndex < lines.size()) {
+            for (const auto* node : lines.at(lineIndex).nodes) {
+                if (!node || node->isTerminal() || node->sfen().isEmpty()) break;
+                branchSfens.append(node->sfen());
+            }
+            if (!branchSfens.isEmpty()) {
+                branchMoves = UsiMoveConverter::fromSfenRecord(branchSfens);
+                params.sfenRecord = &branchSfens;
+                params.usiMoves = &branchMoves;
+                params.lineIndex = lineIndex;
+            }
+        }
+    }
     showKifuAnalysisDialog(params);
 }
 
@@ -350,6 +374,11 @@ void DialogCoordinator::stopKifuAnalysis()
     if (m_analysisFlow) {
         m_analysisFlow->stop();
     }
+}
+
+int DialogCoordinator::analysisLineIndex() const
+{
+    return m_analysisFlow ? m_analysisFlow->analysisLineIndex() : 0;
 }
 
 bool DialogCoordinator::isKifuAnalysisRunning() const
