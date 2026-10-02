@@ -1197,7 +1197,7 @@ private slots:
             {"actionAnalyzeKifu", "KifuAnalysisDialog"},
             {"actionTsumeShogiSearch", "TsumeShogiSearchDialog"},
             {"actionTsumeshogiGenerator", "TsumeshogiGeneratorDialog"},
-            {"actionJishogiScore", "QDialog"},
+            {"actionJishogiScore", "JishogiScoreDialog"},
             {"actionSfenCollectionViewer", "SfenCollectionDialog"},
             {"actionVersionInfo", "VersionDialog"}, {"actionAboutQt", "QMessageBox"},
             {"actionSaveDockLayout", "QInputDialog"}})

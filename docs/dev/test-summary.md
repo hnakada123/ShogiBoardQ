@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 103
+- CTest ケース数: 104
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -90,23 +90,24 @@
 81. `tst_menu_window`
 82. `tst_language_controller`
 83. `tst_jishogi_calculator`
-84. `tst_engineregistrationhandler`
-85. `tst_translation_files`
-86. `tst_piece_sound_processor`
-87. `tst_turn_state_sync`
-88. `tst_tsume_play`
-89. `tst_tsumeshogi_verification`
-90. `tst_tsumeshogi_screener`
-91. `tst_applicationfonts`
-92. `tst_automation_dispatcher`
-93. `tst_usi_info_line_parser`
-94. `tst_sfen_validation_service`
-95. `tst_game_info_pane`
-96. `tst_kifu_conversion_service`
-97. `tst_board_image_renderer`
-98. `tst_tsume_diversity_python`
-99. `tst_tsume_collection_audit_python`
-100. `tst_mcp_python`
-101. `tst_background_tasks`
-102. `tst_evaluationchart`
-103. `tst_usilogpanel`
+84. `tst_jishogi_score_dialog`
+85. `tst_engineregistrationhandler`
+86. `tst_translation_files`
+87. `tst_piece_sound_processor`
+88. `tst_turn_state_sync`
+89. `tst_tsume_play`
+90. `tst_tsumeshogi_verification`
+91. `tst_tsumeshogi_screener`
+92. `tst_applicationfonts`
+93. `tst_automation_dispatcher`
+94. `tst_usi_info_line_parser`
+95. `tst_sfen_validation_service`
+96. `tst_game_info_pane`
+97. `tst_kifu_conversion_service`
+98. `tst_board_image_renderer`
+99. `tst_tsume_diversity_python`
+100. `tst_tsume_collection_audit_python`
+101. `tst_mcp_python`
+102. `tst_background_tasks`
+103. `tst_evaluationchart`
+104. `tst_usilogpanel`

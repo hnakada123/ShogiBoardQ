@@ -3636,34 +3636,189 @@ Discard changes and continue?</translation>
     </message>
 </context>
 <context>
+    <name>JishogiScoreDialog</name>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="32"/>
+        <source>持将棋の点数</source>
+        <translation>Jishogi Points</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="49"/>
+        <source>表示中の局面で、各側が入玉宣言した場合の判定です。</source>
+        <translation>Declaration outcomes for each side in the displayed position.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <source>点数・宣言条件</source>
+        <translation>Points / conditions</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <source>先手</source>
+        <translation>Black</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <source>後手</source>
+        <translation>White</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="61"/>
+        <source>宣言点数
+敵陣の駒 ＋ 持ち駒</source>
+        <translation>Declaration points
+Enemy camp + hand</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="62"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="63"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="65"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="66"/>
+        <source>%1点</source>
+        <translation>%1 pts</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="64"/>
+        <source>総点数
+盤上の全駒 ＋ 持ち駒</source>
+        <translation>Total points
+Entire board + hand</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="67"/>
+        <source>玉が敵陣にいる</source>
+        <translation>King in enemy camp</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="69"/>
+        <source>敵陣に玉以外の駒が10枚以上</source>
+        <translation>At least 10 pieces in enemy camp (excluding king)</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="70"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="72"/>
+        <source>%1
+%2 / 10枚</source>
+        <translation>%1
+%2 / 10 pieces</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="74"/>
+        <source>王手がかかっていない</source>
+        <translation>Not in check</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="76"/>
+        <source>24点法</source>
+        <translation>24-point rule</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="78"/>
+        <source>27点法</source>
+        <translation>27-point rule</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="82"/>
+        <source>点数：飛・角（龍・馬）は5点、その他は1点。玉は数えません。
+敵陣：先手は一〜三段、後手は七〜九段。
+24点法：24〜30点で引き分け、31点以上で勝ち。
+27点法：先手28点以上、後手27点以上で勝ち。
+どちらも上の3つの宣言条件を満たす必要があります。実際の宣言は自分の手番で行います。</source>
+        <translation>Scoring: rooks and bishops (including promoted ones) are worth 5 points; other pieces are worth 1. Kings do not count.
+Enemy camp: ranks 1–3 for Black, 7–9 for White.
+24-point rule: 24–30 points to draw; 31 or more to win.
+27-point rule: Black needs 28 points to win; White needs 27.
+Both rules also require all three conditions above. You may declare only on your own turn.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="115"/>
+        <source>A-</source>
+        <translation>A-</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="117"/>
+        <source>文字を小さくする</source>
+        <translation>Decrease font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="119"/>
+        <source>A+</source>
+        <translation>A+</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="121"/>
+        <source>文字を大きくする</source>
+        <translation>Increase font size</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="132"/>
+        <source>結果をコピー</source>
+        <translation>Copy results</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="137"/>
+        <source>閉じる</source>
+        <translation>Close</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="179"/>
+        <source>○ 達成</source>
+        <translation>○ Met</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="179"/>
+        <source>× 未達</source>
+        <translation>× Unmet</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="188"/>
+        <source>条件未達</source>
+        <translation>Conditions unmet</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="190"/>
+        <source>点数不足</source>
+        <translation>Insufficient points</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="192"/>
+        <source>宣言時：%1</source>
+        <translation>If declared: %1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="196"/>
+        <source>あと%1点</source>
+        <translation>%1 more points needed</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="223"/>
+        <source>%1 pt</source>
+        <translation>%1 pt</translation>
+    </message>
+</context>
+<context>
     <name>JishogiScoreDialogController</name>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="30"/>
         <source>【宣言条件】</source>
-        <translation type="unfinished">[Declaration Conditions]</translation>
+        <translation type="obsolete">[Declaration Conditions]</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="31"/>
         <source>① 玉が敵陣 : %1</source>
-        <translation type="unfinished">① King in enemy camp: %1</translation>
+        <translation type="obsolete">① King in enemy camp: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="32"/>
         <source>② 敵陣10枚以上 : %1 (%2枚)</source>
-        <translation type="unfinished">② 10+ pieces in enemy camp: %1 (%2 pieces)</translation>
+        <translation type="obsolete">② 10+ pieces in enemy camp: %1 (%2 pieces)</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="35"/>
         <source>③ 王手なし : %1</source>
-        <translation type="unfinished">③ Not in check: %1</translation>
+        <translation type="obsolete">③ Not in check: %1</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="36"/>
         <source>④ 宣言点数 : %1点</source>
-        <translation type="unfinished">④ Declaration points: %1 pts</translation>
+        <translation type="obsolete">④ Declaration points: %1 pts</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="70"/>
         <source>持将棋の点数
 
 先手
@@ -3675,7 +3830,7 @@ Discard changes and continue?</translation>
 %4
 24点法 : %5
 27点法 : %6</source>
-        <translation type="unfinished">Jishogi Points
+        <translation type="obsolete">Jishogi Points
 
 Black
 %1
@@ -3688,24 +3843,20 @@ White
 27-Point Rule: %6</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="88"/>
         <source>持将棋の点数</source>
-        <translation type="unfinished">Jishogi Points</translation>
+        <translation type="obsolete">Jishogi Points</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="114"/>
         <source>A-</source>
-        <translation type="unfinished">A-</translation>
+        <translation type="obsolete">A-</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="121"/>
         <source>A+</source>
-        <translation type="unfinished">A+</translation>
+        <translation type="obsolete">A+</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="130"/>
         <source>OK</source>
-        <translation type="unfinished">OK</translation>
+        <translation type="obsolete">OK</translation>
     </message>
 </context>
 <context>

@@ -826,6 +826,8 @@ set(SRC_DIALOGS
     src/dialogs/kifuanalysisdialog.h
     src/dialogs/kifupastedialog.cpp
     src/dialogs/kifupastedialog.h
+    src/dialogs/jishogiscoredialog.cpp
+    src/dialogs/jishogiscoredialog.h
     src/dialogs/menuwindow.cpp
     src/dialogs/menuwindow.h
     src/dialogs/promotedialog.cpp

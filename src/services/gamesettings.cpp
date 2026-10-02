@@ -249,7 +249,7 @@ void setJishogiScoreFontSize(int size)
 QSize jishogiScoreDialogSize()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kJishogiScoreDialogSize, QSize(250, 280)).toSize();
+    return s.value(SettingsKeys::kJishogiScoreDialogSize, QSize(660, 640)).toSize();
 }
 
 void setJishogiScoreDialogSize(const QSize& size)
