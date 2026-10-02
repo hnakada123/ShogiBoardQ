@@ -96,6 +96,36 @@ git submodule update --init --recursive
 ShogiBoardQが記録したコミットを使用します。管理・更新手順は
 [詰将棋対局の開発ドキュメント](docs/dev/tsume-play.md#hayanagiの管理と更新)を参照してください。
 
+### Linuxのアプリケーションメニューへの登録
+
+GNOMEやKDEなどのメニュー用ファイルは
+[`resources/platform/shogiboardq.desktop`](resources/platform/shogiboardq.desktop) です。
+ビルド後、リポジトリのルートで次を実行すると、本体・翻訳ファイル・デスクトップエントリ・
+アイコンをインストールできます（システム全体へのインストールには管理者権限が必要です）。
+
+```bash
+sudo cmake --install build --prefix /usr/local
+```
+
+標準のインストール先は、本体が `/usr/local/bin/ShogiBoardQ`、メニュー用ファイルが
+`/usr/local/share/applications/shogiboardq.desktop`、アイコンが
+`/usr/local/share/icons/hicolor/512x512/apps/shogiboardq.png` です。
+メニューの「ゲーム」カテゴリ直下や「ShogiBoardQ」「将棋」の検索から起動できます。
+KDEで表示が更新されない場合は、ログイン中のユーザーで次を実行してください
+（`sudo` は付けません。Plasma 5では `kbuildsycoca5` を使用します）。
+
+```bash
+kbuildsycoca6 --noincremental
+```
+
+それでも表示が更新されない場合は、ログアウトして再ログインしてください。
+
+`.desktop` ファイルを手動で登録する場合は、`Exec=ShogiBoardQ` の実行ファイルが
+デスクトップ環境の `PATH` に含まれている必要があります。ビルドした実行ファイルや
+AppImageを直接使う場合は、`Exec` を実行ファイルの絶対パスに変更し、空白を含むパスは
+ダブルクォートで囲んでください。`Icon` もアイコン画像の絶対パスに変更し、
+ファイルを `${XDG_DATA_HOME:-$HOME/.local/share}/applications/shogiboardq.desktop` に配置します。
+
 ## 開発・運用ドキュメント
 
 - [サポートポリシー](docs/dev/support-policy.md)

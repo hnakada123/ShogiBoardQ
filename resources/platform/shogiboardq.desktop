@@ -1,8 +1,13 @@
 [Desktop Entry]
 Type=Application
 Name=ShogiBoardQ
-Comment=Shogi Board Application
+GenericName=Shogi GUI
+GenericName[ja]=将棋ソフト
+Comment=Play shogi and analyze game records with USI engines
+Comment[ja]=USIエンジンを使った将棋の対局・棋譜解析
 Exec=ShogiBoardQ
 Icon=shogiboardq
-Categories=Game;BoardGame;
+Categories=Game;
+Keywords=shogi;japanese chess;kifu;USI;analysis;
+Keywords[ja]=将棋;しょうぎ;棋譜;対局;解析;詰将棋;USI;
 Terminal=false
