@@ -141,7 +141,9 @@ public:
     void setPositionEditMode(bool positionEditMode); // 局面編集モードON/OFF
     bool positionEditMode() const;
 
-    void resetAndEqualizePiecesOnStands();       // 初期化（平手/駒台均し等は ShogiBoard 実装に依存）
+    void returnAllPiecesToBox();       // 盤上・持ち駒をすべて駒箱へ戻す
+    QRect pieceBoxRect() const;                  // 編集中のみ有効な、左下の駒箱
+    QRect pieceBoxCellRect(int rank) const;
     void initializeToFlatStartingPosition();     // 平手初期局面を適用
     void shogiProblemInitialPosition();          // 問題用初期局面を適用
 
@@ -269,11 +271,14 @@ private:
     void drawPiecesBlackStandInNormalMode(QPainter* painter);
     void drawPiecesWhiteStandInNormalMode(QPainter* painter);
     void drawPiecesStandFeatures(QPainter* painter);
+    void drawPieceBoxBackground(QPainter* painter);
+    void drawPieceBoxPieces(QPainter* painter);
 
     // ドラッグ中の駒描画は m_interaction に委譲
 
     // 駒台の駒・枚数描画の共通ロジック
     void drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const;
+    void drawCountedPiece(QPainter* painter, const QRect& rect, const QIcon& icon, int count) const;
 
     // 駒台の段→駒文字マッピング
     QChar rankToBlackShogiPiece(const int file, const int rank) const;

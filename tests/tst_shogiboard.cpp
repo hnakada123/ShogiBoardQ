@@ -161,33 +161,53 @@ private slots:
     void resetGameBoard_data()
     {
         QTest::addColumn<QString>("sfen");
-        QTest::addColumn<QString>("expectedBoard");
-        QTest::newRow("hirate") << kHirateSfen << QStringLiteral("4k4/9/9/9/9/9/9/9/4K4");
-        QTest::newRow("moved-kings") << QStringLiteral("9/3k5/9/9/9/9/9/5K3/9 w Pp 1")
-                                   << QStringLiteral("9/3k5/9/9/9/9/9/5K3/9");
-        QTest::newRow("tsume") << QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R 1")
-                             << QStringLiteral("4k4/9/9/9/9/9/9/9/9");
+        QTest::newRow("hirate") << kHirateSfen;
+        QTest::newRow("moved-kings") << QStringLiteral("9/3k5/9/9/9/9/9/5K3/9 w Pp 1");
+        QTest::newRow("tsume") << QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R 1");
     }
 
     void resetGameBoard()
     {
         QFETCH(QString, sfen);
-        QFETCH(QString, expectedBoard);
         ShogiBoard board;
         board.setSfen(sfen);
         const auto turn = board.currentPlayer();
         board.resetGameBoard();
 
-        QCOMPARE(board.convertBoardToSfen(), expectedBoard);
+        QCOMPARE(board.convertBoardToSfen(), QStringLiteral("9/9/9/9/9/9/9/9/9"));
         QCOMPARE(board.pieceStandCount(Piece::BlackKing), 0);
         QCOMPARE(board.pieceStandCount(Piece::WhiteKing), 0);
-        QCOMPARE(board.convertStandToSfen(), QStringLiteral("RrBb2G2g2S2s2N2n2L2l9P9p"));
+        QCOMPARE(board.convertStandToSfen(), QStringLiteral("-"));
+        const QMap<Piece, int> allPieces = {
+            {Piece::BlackPawn, 18}, {Piece::BlackLance, 4}, {Piece::BlackKnight, 4},
+            {Piece::BlackSilver, 4}, {Piece::BlackGold, 4}, {Piece::BlackBishop, 2},
+            {Piece::BlackRook, 2}, {Piece::BlackKing, 2}};
+        QCOMPARE(board.pieceBox(), allPieces);
         QCOMPARE(board.currentPlayer(), turn);
         ShogiBoard restored;
         restored.setSfen(board.convertBoardToSfen() + QStringLiteral(" b ")
                         + board.convertStandToSfen() + QStringLiteral(" 1"));
         QCOMPARE(restored.boardData(), board.boardData());
         QCOMPARE(restored.pieceStand(), board.pieceStand());
+        QCOMPARE(restored.pieceBox(), board.pieceBox());
+    }
+
+    void pieceBox_countsUnusedPieces()
+    {
+        ShogiBoard board;
+        board.setSfen(kHirateSfen);
+        for (int count : board.pieceBox()) QCOMPARE(count, 0);
+        // 成駒・先後・持ち駒を同じ駒種として数える。
+        board.setSfen(QStringLiteral("4k4/9/9/4+p4/9/4+R4/9/9/4K4 w 2Pr 1"));
+        QCOMPARE(board.pieceBoxCount(Piece::BlackPawn), 15);
+        QCOMPARE(board.pieceBoxCount(Piece::WhitePromotedPawn), 15);
+        QCOMPARE(board.pieceBoxCount(Piece::BlackRook), 0);
+        QCOMPARE(board.pieceBoxCount(Piece::BlackKing), 0);
+        // SFENの往復でも未使用の玉を復元できる。
+        board.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/9 b R 1"));
+        QCOMPARE(board.pieceBoxCount(Piece::BlackKing), 1);
+        board.flipSides();
+        QCOMPARE(board.pieceBoxCount(Piece::BlackKing), 1);
     }
 
     void flipSides()

@@ -134,6 +134,7 @@ class GuiAudit : public QObject
     QPoint editPoint(int file, int rank) const
     {
         const auto layout = editLayout();
+        if (file == 12) return board()->pieceBoxCellRect(rank).center();
         if (file <= 9)
             return layout.calculateSquareRectangleBasedOnBoardState(file, rank, 9, 9)
                 .translated(layout.offsetX(), layout.offsetY()).center();
@@ -145,6 +146,11 @@ class GuiAudit : public QObject
         const int row = top ? type / 2 : 3 - type / 2;
         return stand.topLeft() + QPoint((2 * col + 1) * board()->fieldSize().width() / 2,
                                          (2 * row + 1) * board()->fieldSize().height() / 2);
+    }
+    void editMove(const QPoint& from, const QPoint& to)
+    {
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(from.x(), from.y()));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(to.x(), to.y()));
     }
     void click(const QString& name)
     {
@@ -1257,8 +1263,9 @@ private slots:
     {
         QVERIFY(!board()->positionEditMode());
         click("actionStartEditPosition"); QVERIFY(board()->positionEditMode());
-        click("actionReturnAllPiecesToStand"); QCOMPARE(boardSfen(), QString("4k4/9/9/9/9/9/9/9/4K4"));
-        QVERIFY(board()->board()->convertStandToSfen() != "-");
+        click("actionReturnAllPiecesToStand"); QCOMPARE(boardSfen(), QString("9/9/9/9/9/9/9/9/9"));
+        QCOMPARE(board()->board()->convertStandToSfen(), QStringLiteral("-"));
+        QCOMPARE(board()->board()->pieceBoxCount(Piece::BlackKing), 2);
         click("actionSetTsumePosition"); QVERIFY(boardSfen().contains('k'));
         click("actionSetHiratePosition"); QCOMPARE(boardSfen(), initial);
         auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
@@ -1404,8 +1411,10 @@ private slots:
         } else if (operation == "stands") {
             click("actionReturnAllPiecesToStand");
             const auto hand = board()->board()->pieceStand();
+            const auto box = board()->board()->pieceBox();
             click("actionChangeTurn");
             QCOMPARE(board()->board()->pieceStand(), hand);
+            QCOMPARE(board()->board()->pieceBox(), box);
             QCOMPARE(gc->currentPlayer(), ShogiGameController::Player2);
         } else {
             click("actionChangeTurn");
@@ -1465,48 +1474,152 @@ private slots:
         QFETCH(bool, flipped);
         click("actionStartEditPosition");
         if (flipped) click("actionFlipBoard");
-        // 玉を移した後も、一括操作では現在の位置に残す。
-        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(5, 9));
-        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(4, 8));
-        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(5, 1));
-        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(6, 2));
         click("actionReturnAllPiecesToStand");
         auto* model = board()->board();
-        QCOMPARE(boardSfen(), QStringLiteral("9/3k5/9/9/9/9/9/5K3/9"));
-        QCOMPARE(model->pieceStandCount(Piece::BlackKing), 0);
-        QCOMPARE(model->pieceStandCount(Piece::WhiteKing), 0);
+        const auto originalBox = model->pieceBox();
         const auto originalHand = model->pieceStand();
-        // 玉以外の両側7種類を駒台→盤→相手駒台→元の駒台へ移す。
+        // 両側7種類を駒箱→駒台→盤→相手駒台→元の駒台→駒箱へ移す。
         for (int side : {10, 11}) {
             for (int type = 1; type <= 7; ++type) {
                 const int rank = side == 10 ? type : 10 - type;
                 const int otherSide = side == 10 ? 11 : 10;
                 const Piece piece = model->pieceCharacter(side, rank);
                 const Piece otherPiece = model->pieceCharacter(otherSide, 10 - rank);
-                auto point = [this](int file, int row) {
-                    return editPoint(file, row);
-                };
-                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(side, rank));
-                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(5, 5));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(12, type));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, rank));
+                QCOMPARE(model->pieceStandCount(piece), 1);
+                QCOMPARE(model->pieceBoxCount(piece), originalBox.value(toBlack(piece)) - 1);
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, rank));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(5, 5));
                 QCOMPARE(model->pieceCharacter(5, 5), piece);
-                QCOMPARE(model->pieceStandCount(piece), originalHand.value(piece) - 1);
-                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(5, 5));
-                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(otherSide, 10 - rank));
+                QCOMPARE(model->pieceStandCount(piece), 0);
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(5, 5));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(otherSide, 10 - rank));
                 QCOMPARE(model->pieceCharacter(5, 5), Piece::None);
-                QCOMPARE(model->pieceStandCount(otherPiece), originalHand.value(otherPiece) + 1);
-                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(otherSide, 10 - rank));
-                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(side, rank));
+                QCOMPARE(model->pieceStandCount(otherPiece), 1);
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(otherSide, 10 - rank));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, rank));
+                QCOMPARE(model->pieceStandCount(piece), 1);
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, rank));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(12, type));
                 QCOMPARE(model->pieceStand(), originalHand);
+                QCOMPARE(model->pieceBox(), originalBox);
             }
         }
-        snapshot(flipped ? "board-edit-stands-flipped" : "board-edit-stands");
-        const QString expectedBoard = boardSfen();
+        snapshot(flipped ? "board-edit-box-full-flipped" : "board-edit-box-full");
         click("actionEndEditPosition");
-        QCOMPARE(boardSfen(), expectedBoard);
-        QCOMPARE(model->pieceStand(), originalHand);
+        QVERIFY(board()->pieceBoxRect().isEmpty());
+        QCOMPARE(model->pieceBox(), originalBox);
         click("actionStartEditPosition");
-        QCOMPARE(boardSfen(), expectedBoard);
+        QVERIFY(!board()->pieceBoxRect().isEmpty());
+        QCOMPARE(model->pieceBox(), originalBox);
         QCOMPARE(model->pieceStand(), originalHand);
+        click("actionEndEditPosition");
+    }
+    void boardEditingPieceBox_data() { boardEditingPieceTransfers_data(); }
+    void boardEditingPieceBox()
+    {
+        QFETCH(bool, flipped);
+        QVERIFY(board()->pieceBoxRect().isEmpty());
+        click("actionStartEditPosition");
+        if (flipped) click("actionFlipBoard");
+        auto* model = board()->board();
+        QVERIFY(!board()->pieceBoxRect().isEmpty());
+        for (int count : model->pieceBox()) QCOMPARE(count, 0);
+        // 空の駒箱からは取り出せない。
+        editMove({12, 8}, {5, 5});
+        QCOMPARE(boardSfen(), initial);
+        click("actionReturnAllPiecesToStand");
+        QCOMPARE(model->pieceBoxCount(Piece::BlackKing), 2);
+        QCOMPARE(model->convertStandToSfen(), QStringLiteral("-"));
+        // 王を2枚とも先手向きで取り出し、右クリックで片方を後手の玉にする。
+        editMove({12, 8}, {5, 1});
+        QCOMPARE(model->pieceCharacter(5, 1), Piece::BlackKing);
+        QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, editPoint(5, 1));
+        QCOMPARE(model->pieceCharacter(5, 1), Piece::WhiteKing);
+        editMove({12, 8}, {5, 9});
+        QCOMPARE(model->pieceCharacter(5, 9), Piece::BlackKing);
+        editMove({12, 8}, {5, 5});
+        QCOMPARE(model->pieceCharacter(5, 5), Piece::None);
+        editMove({5, 9}, {12, 8});
+        QCOMPARE(model->pieceBoxCount(Piece::BlackKing), 1);
+        // 詰将棋用の片玉局面。成りと金の先後変更、通常の持ち駒も保持する。
+        editMove({12, 7}, {5, 5});
+        QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, editPoint(5, 5));
+        QCOMPARE(model->pieceCharacter(5, 5), Piece::BlackDragon);
+        editMove({12, 5}, {4, 5});
+        QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, editPoint(4, 5));
+        QCOMPARE(model->pieceCharacter(4, 5), Piece::WhiteGold);
+        editMove({12, 6}, {10, 6});
+        QCOMPARE(model->pieceStandCount(Piece::BlackBishop), 1);
+        const auto box = model->pieceBox();
+        const auto hand = model->pieceStand();
+        const QString expected = copy("actionCopySFEN").trimmed();
+        snapshot(flipped ? "board-edit-box-tsume-flipped" : "board-edit-box-tsume");
+        // 編集終了では駒箱だけを隠し、再開時は未使用駒をそのまま表示する。
+        const QPoint oldBoxCenter = board()->pieceBoxCellRect(8).center();
+        auto* finish = board()->findChild<QPushButton*>("editExitButton"); QVERIFY(finish);
+        QTest::mouseClick(finish, Qt::LeftButton);
+        QVERIFY(board()->pieceBoxRect().isEmpty());
+        QCOMPARE(board()->clickedSquare(oldBoxCenter), QPoint());
+        QCOMPARE(model->pieceBox(), box);
+        click("actionStartEditPosition");
+        QVERIFY(!board()->pieceBoxRect().isEmpty());
+        QCOMPARE(model->pieceBox(), box);
+        QCOMPARE(model->pieceStand(), hand);
+        QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
+        click("actionEndEditPosition");
+        const QString savedKif = copy("actionCopyKIF");
+        armDialog("discard"); click("actionNewGame");
+        dialogMessages.clear(); armDialog("messages"); paste(savedKif);
+        QVERIFY2(dialogMessages.isEmpty(), qPrintable(dialogMessages.join('\n')));
+        QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
+        click("actionStartEditPosition");
+        QCOMPARE(board()->board()->pieceBox(), box);
+        QCOMPARE(board()->board()->pieceStand(), hand);
+        // 保存・再読込後も、駒箱に残していた玉を取り出せる。
+        editMove({12, 8}, {5, 9});
+        QCOMPARE(board()->board()->pieceCharacter(5, 9), Piece::BlackKing);
+        QCOMPARE(board()->board()->pieceBoxCount(Piece::BlackKing), 0);
+        click("actionEndEditPosition");
+    }
+    void boardEditingPieceBoxLayout_data()
+    {
+        QTest::addColumn<bool>("flipped");
+        QTest::addColumn<int>("size");
+        for (bool flipped : {false, true}) {
+            for (int size : {30, 50, 100}) {
+                const QString name = QStringLiteral("%1-%2").arg(flipped ? "flipped" : "normal").arg(size);
+                QTest::newRow(qPrintable(name)) << flipped << size;
+            }
+        }
+    }
+    void boardEditingPieceBoxLayout()
+    {
+        QFETCH(bool, flipped); QFETCH(int, size);
+        click("actionStartEditPosition");
+        if (flipped) click("actionFlipBoard");
+        board()->setSquareSize(size - 1);
+        click("actionEnlargeBoard");
+        QCOMPARE(board()->squareSize(), size);
+        click("actionReturnAllPiecesToStand");
+        const QRect box = board()->pieceBoxRect();
+        QVERIFY(!box.isEmpty());
+        QVERIFY(board()->rect().contains(box));
+        auto* card = board()->findChild<QWidget*>(flipped ? "blackPlayerCard" : "whitePlayerCard");
+        QVERIFY(card);
+        QVERIFY(!box.intersects(card->geometry()));
+        QVERIFY(!box.intersects(editLayout().blackStandBoundingRect(9, 9)));
+        QVERIFY(!box.intersects(editLayout().whiteStandBoundingRect(9, 9)));
+        for (int rank = 1; rank <= 8; ++rank) {
+            const QRect cell = board()->pieceBoxCellRect(rank);
+            QVERIFY(box.contains(cell));
+            QCOMPARE(board()->clickedSquare(cell.center()), QPoint(12, rank));
+        }
+        editMove({12, 8}, {5, 5});
+        QCOMPARE(board()->board()->pieceCharacter(5, 5), Piece::BlackKing);
+        editMove({5, 5}, {12, 8});
+        QCOMPARE(board()->board()->pieceBoxCount(Piece::BlackKing), 2);
         click("actionEndEditPosition");
     }
     void boardEditingKingsStayOnBoard_data()
@@ -1569,9 +1682,9 @@ private slots:
         click("actionReturnAllPiecesToStand");
         auto* model = board()->board();
         for (int type : {1, 2, 3, 4, 6, 7}) {
-            const Piece piece = model->pieceCharacter(10, type);
-            const int count = model->pieceStandCount(piece);
-            const QPoint stand = editPoint(10, type);
+            const Piece piece = model->pieceCharacter(12, type);
+            const int count = model->pieceBoxCount(piece);
+            const QPoint stand = editPoint(12, type);
             const QPoint center = squarePoint(5, 5);
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, stand);
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, center);
@@ -1583,7 +1696,7 @@ private slots:
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, center);
             QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, stand);
             QCOMPARE(model->pieceCharacter(5, 5), Piece::None);
-            QCOMPARE(model->pieceStandCount(piece), count);
+            QCOMPARE(model->pieceBoxCount(piece), count);
         }
         click("actionSetHiratePosition");
         // 相手の成駒を取ると、生駒として持ち駒に加わる。
@@ -1646,6 +1759,8 @@ private slots:
         auto* model = board()->board();
         const int standRank = side == 10 ? type : 10 - type;
         const Piece piece = model->pieceCharacter(side, standRank);
+        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
+        QVERIFY(gc->editPosition({12, type}, {side, standRank}));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, standRank));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(4, destinationRank));
         QCOMPARE(model->pieceCharacter(4, destinationRank), promote(piece));
@@ -1676,7 +1791,7 @@ private slots:
         // 不正な座標や駒台セルを渡されても、駒が消えたり別の種類に変わったりしない。
         const QList<QPair<QPoint, QPoint>> invalid = {
             {{0, 0}, {5, 1}}, {{5, 5}, {3, 3}}, {{7, 7}, {5, 0}},
-            {{7, 7}, {12, 1}}, {{7, 7}, {10, 9}}, {{7, 7}, {11, 1}},
+            {{7, 7}, {13, 1}}, {{7, 7}, {10, 9}}, {{7, 7}, {11, 1}},
             {{7, 7}, {10, 7}}, {{7, 7}, {7, 7}}};
         for (const auto& move : invalid) {
             QVERIFY(!gc->editPosition(move.first, move.second));

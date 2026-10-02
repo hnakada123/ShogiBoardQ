@@ -45,7 +45,7 @@ bool ShogiView::eventFilter(QObject* obj, QEvent* ev)
 
 QPoint ShogiView::clickedSquare(const QPoint &clickPosition) const
 {
-    return m_interaction.clickedSquare(clickPosition, m_layout, m_board);
+    return m_interaction.clickedSquare(clickPosition, m_layout, m_board, pieceBoxRect());
 }
 
 QPoint ShogiView::getClickedSquareInDefaultState(const QPoint& pos) const

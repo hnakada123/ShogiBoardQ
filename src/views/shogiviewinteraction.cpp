@@ -5,6 +5,8 @@
 #include "piecepainter.h"
 #include "shogiviewlayout.h"
 #include "shogiboard.h"
+#include "boardconstants.h"
+#include "pieceimageprovider.h"
 
 #include <QPainter>
 #include <QtMath>
@@ -18,8 +20,17 @@ ShogiViewInteraction::ShogiViewInteraction() {}
 //       getClickedSquareIn*State() 側で行う。
 QPoint ShogiViewInteraction::clickedSquare(const QPoint &clickPosition,
                                                const ShogiViewLayout& layout,
-                                               ShogiBoard* board) const
+                                               ShogiBoard* board, const QRect& pieceBox) const
 {
+    if (board && m_positionEditMode && pieceBox.contains(clickPosition)) {
+        for (int rank = 1; rank <= 8; ++rank) {
+            const bool matches = m_dragging
+                ? board->pieceCharacter(BoardConstants::kPieceBoxFile, rank) == toBlack(demote(m_dragPiece))
+                : ShogiViewLayout::pieceBoxCellRect(pieceBox, rank).contains(clickPosition);
+            if (matches) return QPoint(BoardConstants::kPieceBoxFile, rank);
+        }
+        return {};
+    }
     // 【反転時】上下左右が入れ替わるため、反転用の座標変換を使用
     if (layout.flipMode()) {
         return getClickedSquareInFlippedState(clickPosition, layout, board);
@@ -296,9 +307,9 @@ void ShogiViewInteraction::startDrag(const QPoint &from, ShogiBoard* board,
 
     // 【駒台からのドラッグ可否チェック】
     // file=10/11 は駒台。対象駒の在庫が 0 以下ならドラッグ開始しない。
-    if ((from.x() == 10 || from.x() == 11)) {
+    if (from.x() >= BoardConstants::kBlackStandFile) {
         Piece piece = board->pieceCharacter(from.x(), from.y());
-        if (board->pieceStandCount(piece) <= 0) return;
+        if (!board->isPieceAvailableOnStand(piece, from.x())) return;
     }
 
     // 【ドラッグ状態の確立】
@@ -336,7 +347,9 @@ void ShogiViewInteraction::drawDraggingPiece(QPainter& painter,
     if (!m_dragging || m_dragPiece == Piece::None) return;
 
     // 【アイコン取得】該当駒のアイコンが無ければ描かない（安全弁）
-    const QIcon icon = pieces.value(pieceToChar(m_dragPiece), QIcon());
+    const QIcon icon = m_dragFrom.x() == BoardConstants::kPieceBoxFile
+        ? PieceImageProvider::instance().icon(pieceToChar(m_dragPiece), false)
+        : pieces.value(pieceToChar(m_dragPiece), QIcon());
     if (icon.isNull()) return;
 
     // 【描画矩形算出】ドラッグ座標を矩形の中心に据える（縦長マス）

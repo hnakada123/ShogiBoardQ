@@ -174,7 +174,7 @@ void PositionEditCoordinator::beginPositionEditing()
     // 編集用アクション配線
     if (m_editActions.actionReturnAllPiecesToStand) {
         QObject::connect(m_editActions.actionReturnAllPiecesToStand, &QAction::triggered,
-                         m_posEdit, &PositionEditController::onReturnAllPiecesOnStandTriggered,
+                         m_posEdit, &PositionEditController::onReturnAllPiecesToBoxTriggered,
                          Qt::UniqueConnection);
     }
 

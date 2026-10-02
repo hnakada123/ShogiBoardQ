@@ -14,7 +14,7 @@ void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, 
     if (fileTo < BoardConstants::kBlackStandFile) {
         // 指したマスに相手の駒があった場合、自分の駒台に加える
         addPieceToStand(dest);
-    } else {
+    } else if (fileTo != BoardConstants::kPieceBoxFile) {
         // 駒台に駒を移した場合
         incrementPieceOnStand(dest);
     }
@@ -26,29 +26,32 @@ void ShogiBoard::updateBoardAndPieceStand(const Piece source, const Piece dest, 
     movePieceToSquare(source, fileFrom, rankFrom, fileTo, rankTo, promote);
 }
 
-void ShogiBoard::setInitialPieceStandValues()
+QMap<Piece, int> ShogiBoard::pieceBox() const
 {
-    static const QList<QPair<Piece, int>> initialValues = {
-        {Piece::BlackPawn, 9}, {Piece::BlackLance, 2}, {Piece::BlackKnight, 2},
-        {Piece::BlackSilver, 2}, {Piece::BlackGold, 2}, {Piece::BlackBishop, 1},
-        {Piece::BlackRook, 1}, {Piece::BlackKing, 0},
-        {Piece::WhiteKing, 0}, {Piece::WhiteRook, 1}, {Piece::WhiteBishop, 1},
-        {Piece::WhiteGold, 2}, {Piece::WhiteSilver, 2}, {Piece::WhiteKnight, 2},
-        {Piece::WhiteLance, 2}, {Piece::WhitePawn, 9},
+    QMap<Piece, int> counts = {
+        {Piece::BlackPawn, 18}, {Piece::BlackLance, 4}, {Piece::BlackKnight, 4},
+        {Piece::BlackSilver, 4}, {Piece::BlackGold, 4}, {Piece::BlackBishop, 2},
+        {Piece::BlackRook, 2}, {Piece::BlackKing, 2},
     };
-
-    for (const auto& pair : initialValues) {
-        m_pieceStand[pair.first] = pair.second;
+    // SFENに駒箱は含めない。局面から復元するため、編集の再開・棋譜読込でも失われない。
+    for (Piece piece : m_boardData) {
+        if (piece != Piece::None) --counts[toBlack(demote(piece))];
     }
+    for (auto it = m_pieceStand.cbegin(); it != m_pieceStand.cend(); ++it)
+        counts[toBlack(demote(it.key()))] -= it.value();
+    for (auto it = counts.begin(); it != counts.end(); ++it) it.value() = qMax(0, it.value());
+    return counts;
 }
 
-// 王・玉は現在位置に残し、それ以外の駒を先後同数ずつ駒台に載せる。
+int ShogiBoard::pieceBoxCount(Piece piece) const
+{
+    return pieceBox().value(toBlack(demote(piece)), 0);
+}
+
 void ShogiBoard::resetGameBoard()
 {
-    for (Piece& piece : m_boardData) {
-        if (piece != Piece::BlackKing && piece != Piece::WhiteKing) piece = Piece::None;
-    }
-    setInitialPieceStandValues();
+    initBoard();
+    initStand();
 }
 
 // 先手の配置を後手の配置に変更し、後手の配置を先手の配置に変更する。
@@ -85,6 +88,7 @@ void ShogiBoard::flipSides()
 // 局面編集中に右クリックで成駒/不成駒/先後を巡回変換する（禁置き段＋二歩をスキップ）。
 void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
 {
+    if (fileFrom < 1 || fileFrom > files() || rankFrom < 1 || rankFrom > ranks()) return;
     // 処理フロー:
     // 1. 駒種ごとの巡回リストを特定
     // 2. 禁置き段・二歩の候補をフィルタ
@@ -102,6 +106,8 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     const auto bishopCycle = QList<Piece>{Piece::BlackBishop, Piece::BlackHorse, Piece::WhiteBishop, Piece::WhiteHorse};
     const auto rookCycle   = QList<Piece>{Piece::BlackRook, Piece::BlackDragon, Piece::WhiteRook, Piece::WhiteDragon};
     const auto pawnCycle   = QList<Piece>{Piece::BlackPawn, Piece::BlackPromotedPawn, Piece::WhitePawn, Piece::WhitePromotedPawn};
+    const auto goldCycle   = QList<Piece>{Piece::BlackGold, Piece::WhiteGold};
+    const auto kingCycle   = QList<Piece>{Piece::BlackKing, Piece::WhiteKing};
 
     const Piece cur = pieceCharacter(fileFrom, rankFrom);
     QList<Piece> base;
@@ -112,8 +118,10 @@ void ShogiBoard::promoteOrDemotePiece(const int fileFrom, const int rankFrom)
     case 'B': case 'C': case 'b': case 'c': base = bishopCycle; break;
     case 'R': case 'U': case 'r': case 'u': base = rookCycle;   break;
     case 'P': case 'Q': case 'p': case 'q': base = pawnCycle;   break;
+    case 'G': case 'g': base = goldCycle; break;
+    case 'K': case 'k': base = kingCycle; break;
     default:
-        return; // 金・玉などは変換対象外
+        return;
     }
 
     const bool onBoard = (fileFrom >= 1 && fileFrom <= 9);

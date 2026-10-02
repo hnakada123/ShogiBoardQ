@@ -38,6 +38,10 @@ public:
     /// 指定駒の駒台枚数を返す（存在しない場合は0）
     int pieceStandCount(Piece piece) const;
 
+    /// 盤上・両駒台にない未使用駒を、生駒・先手向きで数える（標準40枚との差分）。
+    QMap<Piece, int> pieceBox() const;
+    int pieceBoxCount(Piece piece) const;
+
     /// 指定駒を駒台に加算する（delta>0 のときのみ）
     void addStandPiece(Piece piece, int delta = 1);
 
@@ -107,7 +111,7 @@ public:
 
     // --- 盤面リセット ---
 
-    /// 王・玉を盤上に残し、それ以外の駒を駒台に配置する（局面編集用）
+    /// 盤上・両駒台を空にして、全駒を駒箱に戻す（局面編集用）
     void resetGameBoard();
 
     /// 駒台を全て0枚にリセットする
@@ -140,7 +144,6 @@ private:
     bool setPiecePlacementFromSfen(QString& initialSfenStr);
     Piece convertPieceChar(const Piece c) const;
     Piece convertPromotedPieceToOriginal(const Piece dest) const;
-    void setInitialPieceStandValues();
     QString convertPieceToSfen(const Piece piece) const;
 };
 

@@ -12,6 +12,7 @@
 #include <QIcon>
 #include <QMap>
 #include <QPoint>
+#include <QRect>
 
 class QPainter;
 class ShogiBoard;
@@ -26,7 +27,8 @@ public:
 
     // ───────────────────────── 入力座標変換 ─────────────────────────
     QPoint clickedSquare(const QPoint& clickPosition,
-                            const ShogiViewLayout& layout, ShogiBoard* board) const;
+                            const ShogiViewLayout& layout, ShogiBoard* board,
+                            const QRect& pieceBox = {}) const;
     QPoint getClickedSquareInDefaultState(const QPoint& clickPosition,
                                           const ShogiViewLayout& layout, ShogiBoard* board) const;
     QPoint getClickedSquareInFlippedState(const QPoint& clickPosition,

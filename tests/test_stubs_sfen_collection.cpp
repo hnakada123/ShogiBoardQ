@@ -27,7 +27,7 @@ void ShogiViewLayout::setSquareSize(int) {}
 
 // ===================== ShogiViewInteraction stubs =====================
 ShogiViewInteraction::ShogiViewInteraction() {}
-QPoint ShogiViewInteraction::clickedSquare(const QPoint&, const ShogiViewLayout&, ShogiBoard*) const { return {}; }
+QPoint ShogiViewInteraction::clickedSquare(const QPoint&, const ShogiViewLayout&, ShogiBoard*, const QRect&) const { return {}; }
 QPoint ShogiViewInteraction::getClickedSquareInDefaultState(const QPoint&, const ShogiViewLayout&, ShogiBoard*) const { return {}; }
 QPoint ShogiViewInteraction::getClickedSquareInFlippedState(const QPoint&, const ShogiViewLayout&, ShogiBoard*) const { return {}; }
 void ShogiViewInteraction::startDrag(const QPoint&, ShogiBoard*, const QPoint&) {}
@@ -100,7 +100,7 @@ int ShogiView::squareSize() const { return 50; }
 void ShogiView::setSquareSize(int) {}
 void ShogiView::setPositionEditMode(bool) {}
 bool ShogiView::positionEditMode() const { return false; }
-void ShogiView::resetAndEqualizePiecesOnStands() {}
+void ShogiView::returnAllPiecesToBox() {}
 void ShogiView::initializeToFlatStartingPosition() {}
 void ShogiView::shogiProblemInitialPosition() {}
 bool ShogiView::flipMode() const { return false; }

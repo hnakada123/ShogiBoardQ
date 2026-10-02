@@ -43,6 +43,7 @@ void ShogiView::drawNormalModeStand(QPainter* painter)
         BoardSurfacePainter::draw(*painter, m_layout.standSurfaceRect(stand),
                                   m_boardColors.stand, m_boardVisuals.standWoodGrain, fieldSize().width());
     }
+    drawPieceBoxBackground(painter);
 }
 
 // 【通常対局モード：先手（左側）駒台のアイコンを 4×2 で描画】
@@ -72,6 +73,7 @@ void ShogiView::drawPiecesStandFeatures(QPainter* painter)
     // 先手/後手の駒台にある「駒」と「枚数」を描画
     drawPiecesBlackStandInNormalMode(painter);
     drawPiecesWhiteStandInNormalMode(painter);
+    drawPieceBoxPieces(painter);
 }
 
 /**
@@ -83,10 +85,13 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     const int count = (m_interaction.dragging() && m_interaction.tempPieceStandCounts().contains(pieceKey))
     ? m_interaction.tempPieceStandCounts()[pieceKey]
     : m_board->pieceStandCount(pieceKey);
-    if (count <= 0 || value == QLatin1Char(' ')) return;
+    drawCountedPiece(painter, adjustedRect, piece(value), count);
+}
 
-    const QIcon icon = piece(value);
-    if (icon.isNull()) return;
+void ShogiView::drawCountedPiece(QPainter* painter, const QRect& adjustedRect,
+                                 const QIcon& icon, int count) const
+{
+    if (count <= 0 || icon.isNull()) return;
 
     const int cellW = adjustedRect.width();
     const auto rendered = PiecePainter::image(icon, cellW, m_boardVisuals,

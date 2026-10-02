@@ -13,6 +13,7 @@
 /// | 盤上       | 1 〜 9        | 将棋盤の筋番号              |
 /// | 先手駒台   | kBlackStandFile (10) | 先手の駒台                 |
 /// | 後手駒台   | kWhiteStandFile (11) | 後手の駒台                 |
+/// | 駒箱       | kPieceBoxFile (12) | 局面編集用の未使用駒         |
 ///
 /// **注意**: ShogiMove / FMV / エンジン内部座標系は 0-indexed（盤上 0〜8、
 /// 先手持ち駒 = EngineMoveValidator::BLACK_HAND_FILE = 9、
@@ -25,6 +26,7 @@ constexpr int kBoardSize = 9;           ///< 盤面の1辺のマス数
 constexpr int kNumBoardSquares = 81;    ///< 将棋盤の総マス数（kBoardSize * kBoardSize）
 constexpr int kBlackStandFile = 10;     ///< 先手駒台のファイル番号（1-indexed）
 constexpr int kWhiteStandFile = 11;     ///< 後手駒台のファイル番号（1-indexed）
+constexpr int kPieceBoxFile = 12;       ///< 駒箱（段は先手駒台と同じ1〜8）
 
 } // namespace BoardConstants
 
