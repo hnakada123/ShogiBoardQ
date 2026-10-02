@@ -600,6 +600,8 @@ set(SRC_UI
     src/ui/controllers/jishogiscoredialogcontroller.h
     src/ui/controllers/languagecontroller.cpp
     src/ui/controllers/languagecontroller.h
+    src/ui/controllers/settingsresetcontroller.cpp
+    src/ui/controllers/settingsresetcontroller.h
     src/ui/controllers/mainwindowappearancecontroller.cpp
     src/ui/controllers/mainwindowappearancecontroller.h
     src/ui/controllers/nyugyokudeclarationhandler.cpp

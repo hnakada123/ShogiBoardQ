@@ -27,4 +27,12 @@ QSettings& openSettings()
     return s;
 }
 
+bool resetAllSettings()
+{
+    QSettings& settings = openSettings();
+    settings.clear();
+    settings.sync();
+    return settings.status() == QSettings::NoError;
+}
+
 } // namespace SettingsCommon

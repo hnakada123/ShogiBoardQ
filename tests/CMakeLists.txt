@@ -970,6 +970,14 @@ add_shogi_test(tst_settings_roundtrip
     ${SETTINGS_SOURCES}
 )
 
+add_shogi_test(tst_settings_reset
+    tst_settings_reset.cpp
+    ${SRC}/ui/controllers/settingsresetcontroller.cpp
+    ${SRC}/services/settingscommon.cpp
+    ${SRC}/services/appsettings.cpp
+)
+set_tests_properties(tst_settings_reset PROPERTIES TIMEOUT 20)
+
 # ============================================================
 # Unit 22: App Lifecycle Pipeline (起動/終了フロー構造契約)
 # ============================================================

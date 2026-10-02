@@ -23,6 +23,10 @@ QString settingsFilePath();
 /// 各ドメイン設定の実装から使用されます。
 QSettings& openSettings();
 
+/// 全設定を消去して同期し、各 getter が既定値を返す状態に戻します。
+/// 終了時の設定保存がすべて完了した後に呼び出してください。
+[[nodiscard]] bool resetAllSettings();
+
 } // namespace SettingsCommon
 
 #endif // SETTINGSCOMMON_H

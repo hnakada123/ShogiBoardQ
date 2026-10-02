@@ -5,6 +5,7 @@
 #include "logcategories.h"
 #include "appsettings.h"
 #include "applicationfonts.h"
+#include "settingsresetcontroller.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
@@ -187,14 +188,20 @@ int main(int argc, char *argv[])
         "QDialogButtonBox QPushButton:default:pressed { background-color: #1565c0; }"
     ));
 
-    MainWindow w;
-    w.show();
+    int result;
+    {
+        MainWindow w;
+        w.show();
 
-    if (parser.isSet(automationOption)) {
-        w.startAutomationServer(parser.value(automationSocketOption));
+        if (parser.isSet(automationOption)) {
+            w.startAutomationServer(parser.value(automationSocketOption));
+        }
+
+        result = a.exec();
     }
 
-    int result = a.exec();
+    // デストラクタによる設定の再保存も終わってから初期化する。
+    result = SettingsResetController::finalizeExit(result);
 
     // ログファイルのクリーンアップ
     if (logFile) {

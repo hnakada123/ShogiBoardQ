@@ -172,6 +172,10 @@ void UiStatePolicyManager::buildPolicyTable()
     set(S::Idle,                E::SettingsEngine, P::Enabled);
     set(S::DuringConsideration, E::SettingsEngine, P::Enabled);
 
+    // 全設定の初期化はアプリケーションを終了するため、Idle のみ有効。
+    setAll(E::SettingsReset, P::Disabled);
+    set(S::Idle, E::SettingsReset, P::Enabled);
+
     // =====================================================================
     // ウィジェット
     // =====================================================================
@@ -424,6 +428,9 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
     // --- 設定メニュー ---
     case UiElement::SettingsEngine:
         applyActionPolicy(ui ? ui->actionEngineSettings : nullptr, policy);
+        break;
+    case UiElement::SettingsReset:
+        applyActionPolicy(ui ? ui->actionResetSettings : nullptr, policy);
         break;
 
     // --- ウィジェット ---

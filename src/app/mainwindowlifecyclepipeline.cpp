@@ -16,6 +16,7 @@
 
 // UI skeleton
 #include "mainwindowappearancecontroller.h"
+#include "settingsresetcontroller.h"
 
 // QPointer<T> の完全型
 #include "boardinteractioncontroller.h"    // IWYU pragma: keep
@@ -303,6 +304,10 @@ void MainWindow::finalizeAndConfigureUiForLifecycle()
 
     // 言語メニューをグループ化（相互排他）して現在の設定を反映
     m_mw.m_registry->foundation()->ensureLanguageController();
+
+    auto* settingsReset = new SettingsResetController(&m_mw);
+    QObject::connect(m_mw.ui->actionResetSettings, &QAction::triggered,
+                     settingsReset, &SettingsResetController::confirmAndQuit);
 
     // 駒音プレイヤーを生成し、メニュー「駒音」のチェック状態を設定と同期
     m_mw.m_registry->foundation()->ensurePieceSoundPlayer();
