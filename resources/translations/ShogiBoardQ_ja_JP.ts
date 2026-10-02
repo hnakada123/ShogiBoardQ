@@ -3073,66 +3073,164 @@
     </message>
 </context>
 <context>
-    <name>JishogiScoreDialogController</name>
+    <name>JishogiScoreDialog</name>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="30"/>
-        <source>【宣言条件】</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="31"/>
-        <source>① 玉が敵陣 : %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="32"/>
-        <source>② 敵陣10枚以上 : %1 (%2枚)</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="35"/>
-        <source>③ 王手なし : %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="36"/>
-        <source>④ 宣言点数 : %1点</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="70"/>
-        <source>持将棋の点数
-
-先手
-%1
-24点法 : %2
-27点法 : %3
-
-後手
-%4
-24点法 : %5
-27点法 : %6</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="88"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="32"/>
         <source>持将棋の点数</source>
-        <translation type="unfinished"></translation>
+        <translation>持将棋の点数</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="114"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="49"/>
+        <source>表示中の局面で、各側が入玉宣言した場合の判定です。</source>
+        <translation>表示中の局面で、各側が入玉宣言した場合の判定です。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <source>点数・宣言条件</source>
+        <translation>点数・宣言条件</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <source>先手</source>
+        <translation>先手</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="60"/>
+        <source>後手</source>
+        <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="61"/>
+        <source>宣言点数
+敵陣の駒 ＋ 持ち駒</source>
+        <translation>宣言点数
+敵陣の駒 ＋ 持ち駒</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="62"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="63"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="65"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="66"/>
+        <source>%1点</source>
+        <translation>%1点</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="64"/>
+        <source>総点数
+盤上の全駒 ＋ 持ち駒</source>
+        <translation>総点数
+盤上の全駒 ＋ 持ち駒</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="67"/>
+        <source>玉が敵陣にいる</source>
+        <translation>玉が敵陣にいる</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="69"/>
+        <source>敵陣に玉以外の駒が10枚以上</source>
+        <translation>敵陣に玉以外の駒が10枚以上</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="70"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="72"/>
+        <source>%1
+%2 / 10枚</source>
+        <translation>%1
+%2 / 10枚</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="74"/>
+        <source>王手がかかっていない</source>
+        <translation>王手がかかっていない</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="76"/>
+        <source>24点法</source>
+        <translation>24点法</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="78"/>
+        <source>27点法</source>
+        <translation>27点法</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="82"/>
+        <source>点数：飛・角（龍・馬）は5点、その他は1点。玉は数えません。
+敵陣：先手は一〜三段、後手は七〜九段。
+24点法：24〜30点で引き分け、31点以上で勝ち。
+27点法：先手28点以上、後手27点以上で勝ち。
+どちらも上の3つの宣言条件を満たす必要があります。実際の宣言は自分の手番で行います。</source>
+        <translation>点数：飛・角（龍・馬）は5点、その他は1点。玉は数えません。
+敵陣：先手は一〜三段、後手は七〜九段。
+24点法：24〜30点で引き分け、31点以上で勝ち。
+27点法：先手28点以上、後手27点以上で勝ち。
+どちらも上の3つの宣言条件を満たす必要があります。実際の宣言は自分の手番で行います。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="115"/>
         <source>A-</source>
-        <translation type="unfinished"></translation>
+        <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="121"/>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="117"/>
+        <source>文字を小さくする</source>
+        <translation>文字を小さくする</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="119"/>
         <source>A+</source>
-        <translation type="unfinished"></translation>
+        <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/jishogiscoredialogcontroller.cpp" line="130"/>
-        <source>OK</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="121"/>
+        <source>文字を大きくする</source>
+        <translation>文字を大きくする</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="132"/>
+        <source>結果をコピー</source>
+        <translation>結果をコピー</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="137"/>
+        <source>閉じる</source>
+        <translation>閉じる</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="179"/>
+        <source>○ 達成</source>
+        <translation>○ 達成</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="179"/>
+        <source>× 未達</source>
+        <translation>× 未達</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="188"/>
+        <source>条件未達</source>
+        <translation>条件未達</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="190"/>
+        <source>点数不足</source>
+        <translation>点数不足</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="192"/>
+        <source>宣言時：%1</source>
+        <translation>宣言時：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="196"/>
+        <source>あと%1点</source>
+        <translation>あと%1点</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/jishogiscoredialog.cpp" line="223"/>
+        <source>%1 pt</source>
+        <translation>%1 pt</translation>
     </message>
 </context>
 <context>

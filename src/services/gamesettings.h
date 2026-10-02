@@ -105,7 +105,7 @@ void setSfenCollectionLastDirectory(const QString& dir);
 int jishogiScoreFontSize();
 void setJishogiScoreFontSize(int size);
 
-/// 持将棋の点数ダイアログのウィンドウサイズ（デフォルト: 250x280）
+/// 持将棋の点数ダイアログのウィンドウサイズ（デフォルト: 660x640）
 QSize jishogiScoreDialogSize();
 void setJishogiScoreDialogSize(const QSize& size);
 

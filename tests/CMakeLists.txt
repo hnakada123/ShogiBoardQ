@@ -1313,6 +1313,21 @@ add_shogi_test(tst_jishogi_calculator
     ${SRC}/common/jishogicalculator.cpp
 )
 
+add_shogi_test(tst_jishogi_score_dialog
+    tst_jishogi_score_dialog.cpp
+    ${SRC}/dialogs/jishogiscoredialog.cpp
+    ${SRC}/common/jishogicalculator.cpp
+    ${SRC}/common/fontsizehelper.cpp
+    ${SRC}/common/dialogutils.cpp
+    ${SRC}/common/applicationfonts.cpp
+    ${SRC}/services/gamesettings.cpp
+    ${SRC}/services/settingscommon.cpp
+)
+target_compile_definitions(tst_jishogi_score_dialog PRIVATE
+    TRANSLATION_DIR="${CMAKE_BINARY_DIR}"
+)
+add_dependencies(tst_jishogi_score_dialog translations)
+
 # ============================================================
 # Unit: EngineRegistrationHandler テスト
 # ============================================================

@@ -7,7 +7,6 @@
 
 #include <QObject>
 
-class QLabel;
 class ShogiBoard;
 class QWidget;
 
@@ -16,8 +15,7 @@ class QWidget;
  *
  * MainWindowから分離された責務:
  * - 持将棋の点数計算結果の表示
- * - 宣言条件の判定表示
- * - ダイアログのフォントサイズとウィンドウサイズの保存/復元
+ * - 王手判定と表示専用ダイアログの起動
  */
 class JishogiScoreDialogController : public QObject
 {
@@ -33,23 +31,6 @@ public:
      */
     void showDialog(QWidget* parentWidget, ShogiBoard* board);
 
-private slots:
-    void shrinkFont();
-    void enlargeFont();
-
-private:
-    /**
-     * @brief 宣言条件の判定文字列を生成する
-     * @param kingInEnemyTerritory 玉が敵陣にいるか
-     * @param piecesInEnemyTerritory 敵陣にある駒数
-     * @param inCheck 王手がかかっているか
-     * @param declarationPoints 宣言点数
-     * @return 判定結果の文字列
-     */
-    QString buildConditionString(bool kingInEnemyTerritory, int piecesInEnemyTerritory,
-                                  bool inCheck, int declarationPoints) const;
-
-    QLabel* m_scoreLabel = nullptr;
 };
 
 #endif // JISHOGISCOREDIALOGCONTROLLER_H
