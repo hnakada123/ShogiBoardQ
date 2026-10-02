@@ -31,8 +31,8 @@ void ShogiBoard::setInitialPieceStandValues()
     static const QList<QPair<Piece, int>> initialValues = {
         {Piece::BlackPawn, 9}, {Piece::BlackLance, 2}, {Piece::BlackKnight, 2},
         {Piece::BlackSilver, 2}, {Piece::BlackGold, 2}, {Piece::BlackBishop, 1},
-        {Piece::BlackRook, 1}, {Piece::BlackKing, 1},
-        {Piece::WhiteKing, 1}, {Piece::WhiteRook, 1}, {Piece::WhiteBishop, 1},
+        {Piece::BlackRook, 1}, {Piece::BlackKing, 0},
+        {Piece::WhiteKing, 0}, {Piece::WhiteRook, 1}, {Piece::WhiteBishop, 1},
         {Piece::WhiteGold, 2}, {Piece::WhiteSilver, 2}, {Piece::WhiteKnight, 2},
         {Piece::WhiteLance, 2}, {Piece::WhitePawn, 9},
     };
@@ -42,10 +42,12 @@ void ShogiBoard::setInitialPieceStandValues()
     }
 }
 
-// 先手と後手の駒を同じ枚数にして全ての駒を駒台に載せる。
+// 王・玉は現在位置に残し、それ以外の駒を先後同数ずつ駒台に載せる。
 void ShogiBoard::resetGameBoard()
 {
-    m_boardData.fill(Piece::None, static_cast<qsizetype>(ranks()) * files());
+    for (Piece& piece : m_boardData) {
+        if (piece != Piece::BlackKing && piece != Piece::WhiteKing) piece = Piece::None;
+    }
     setInitialPieceStandValues();
 }
 

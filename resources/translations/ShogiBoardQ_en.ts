@@ -6148,8 +6148,8 @@ Please restart the application to apply the changes.</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="346"/>
-        <source>全ての駒を駒台へ</source>
-        <translation>Return All Pieces to Hand</translation>
+        <source>王・玉以外を駒台へ</source>
+        <translation>Return Pieces Except Kings to Hand</translation>
     </message>
     <message>
         <source>先後反転</source>
