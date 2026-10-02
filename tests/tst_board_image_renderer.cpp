@@ -295,11 +295,20 @@ private slots:
         view.applyBoardAndRender(&model);
         for (const int size : {20, 53, 100, 150}) {
             view.setSquareSize(size);
+            view.setFlipMode(false);
             const QSize normalSize = view.sizeHint();
-            for (const bool flipped : {false, true}) {
+            const auto normalLayout = viewLayout(view);
+            for (const bool flipped : {false, true, false, true}) {
                 view.setFlipMode(flipped);
                 const auto layout = viewLayout(view);
                 QCOMPARE(view.sizeHint(), normalSize);
+                QCOMPARE(layout.boardSurfaceRect(9, 9), normalLayout.boardSurfaceRect(9, 9));
+                QCOMPARE(layout.offsetX(), normalLayout.offsetX());
+                QCOMPARE(layout.offsetY(), normalLayout.offsetY());
+                QCOMPARE(flipped ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9),
+                         normalLayout.whiteStandBoundingRect(9, 9));
+                QCOMPARE(flipped ? layout.whiteStandBoundingRect(9, 9) : layout.blackStandBoundingRect(9, 9),
+                         normalLayout.blackStandBoundingRect(9, 9));
                 for (const qreal dpr : {1.0, 1.25, 2.0}) {
                     const auto image = renderView(view, dpr);
                     const int x = image.width() / 2;
@@ -313,7 +322,7 @@ private slots:
                              qPrintable(QStringLiteral("size=%1 flip=%2 dpr=%3 top=%4 bottom=%5")
                                  .arg(size).arg(flipped).arg(dpr).arg(top).arg(image.height() - 1 - bottom)));
                 }
-                // 縦位置が変わっても、盤上の81マスは表示位置で選択できる。
+                // 反転後も、盤上の81マスは表示位置で選択できる。
                 for (int file = 1; file <= 9; ++file) {
                     for (int rank = 1; rank <= 9; ++rank) {
                         const QRect cell = view.calculateSquareRectangleBasedOnBoardState(file, rank);
