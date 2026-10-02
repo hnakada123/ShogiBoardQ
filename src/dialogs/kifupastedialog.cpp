@@ -9,20 +9,27 @@
 #include <QApplication>
 #include <QClipboard>
 #include <QFont>
+#include <QFontMetrics>
+#include <QShortcut>
+#include <QTextDocument>
 #include <utility>
 
 namespace {
 constexpr QSize kDefaultSize{600, 500};
 constexpr QSize kMinimumSize{500, 400};
+constexpr int kMinimumFontSize = 7;
+constexpr int kMaximumFontSize = 20;
 } // namespace
 
 KifuPasteDialog::KifuPasteDialog(QWidget* parent)
     : QDialog(parent)
-    , m_fontHelper({GameSettings::kifuPasteDialogFontSize(), 7, 20, 1,
+    , m_fontHelper({GameSettings::kifuPasteDialogFontSize(), kMinimumFontSize, kMaximumFontSize, 1,
                     GameSettings::setKifuPasteDialogFontSize})
 {
     setupUi();
     applyFontSize();
+    updateInputActions();
+    updateClipboardAction();
 
     // ウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, GameSettings::kifuPasteDialogSize());
@@ -47,68 +54,95 @@ void KifuPasteDialog::setupUi()
     resize(kDefaultSize);
 
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(10, 10, 10, 10);
-    mainLayout->setSpacing(8);
+    mainLayout->setContentsMargins(16, 16, 16, 16);
+    mainLayout->setSpacing(12);
 
     // 説明ラベル
-    m_lblInfo = new QLabel(tr("棋譜または局面テキストを下のエリアに貼り付けてください。\n"
-                              "対応形式:\n"
-                              "  棋譜: KIF、KI2、CSA、USI、JSON棋譜フォーマット(JKF)、USEN\n"
-                              "  局面: SFEN、BOD（局面図）\n"
-                              "形式は自動判定されます。"), this);
-    m_lblInfo->setWordWrap(true);
-    mainLayout->addWidget(m_lblInfo);
+    auto* info = new QLabel(tr("棋譜や局面のテキストを貼り付けてください。形式は自動判定されます。"), this);
+    info->setWordWrap(true);
+    mainLayout->addWidget(info);
 
     // テキスト入力エリア
     m_textEdit = new QPlainTextEdit(this);
     m_textEdit->setObjectName(QStringLiteral("kifuPasteText"));
-    m_textEdit->setPlaceholderText(tr("ここに棋譜を貼り付けてください..."));
+    m_textEdit->setAccessibleName(tr("棋譜・局面テキスト"));
+    m_textEdit->setPlaceholderText(tr("ここに棋譜や局面を貼り付け（Ctrl+V）"));
+    m_textEdit->setLineWrapMode(QPlainTextEdit::NoWrap);
+    m_textEdit->document()->setDocumentMargin(10);
 
     // 等幅フォントを設定
     QFont monoFont = ApplicationFonts::monospaceFont();
     monoFont.setPointSize(10);
     m_textEdit->setFont(monoFont);
 
-    mainLayout->addWidget(m_textEdit, 1);  // stretch factor = 1
-
-    // ボタンレイアウト（上段：貼り付け・クリア）
+    // 入力欄の操作を一か所にまとめる。
     QHBoxLayout* toolLayout = new QHBoxLayout();
-    toolLayout->setSpacing(6);
+    toolLayout->setSpacing(8);
 
     m_btnPaste = new QPushButton(tr("クリップボードから貼り付け"), this);
-    m_btnPaste->setStyleSheet(ButtonStyles::editOperation());
+    m_btnPaste->setObjectName(QStringLiteral("pasteFromClipboard"));
+    m_btnPaste->setStyleSheet(ButtonStyles::panelToolButton());
     m_btnClear = new QPushButton(tr("クリア"), this);
-    m_btnClear->setStyleSheet(ButtonStyles::secondaryNeutral());
+    m_btnClear->setObjectName(QStringLiteral("clearText"));
+    m_btnClear->setStyleSheet(ButtonStyles::panelToolButton());
 
     toolLayout->addWidget(m_btnPaste);
     toolLayout->addWidget(m_btnClear);
     toolLayout->addStretch();
 
-    mainLayout->addLayout(toolLayout);
-
-    // ボタンレイアウト（下段：フォントサイズ・取り込む・キャンセル）
-    QHBoxLayout* buttonLayout = new QHBoxLayout();
-    buttonLayout->setSpacing(6);
-
     m_btnFontSizeDown = new QPushButton(tr("A-"), this);
-    m_btnFontSizeDown->setStyleSheet(ButtonStyles::fontButton());
+    m_btnFontSizeDown->setObjectName(QStringLiteral("fontDecrease"));
+    m_btnFontSizeDown->setStyleSheet(ButtonStyles::panelToolButton());
+    m_btnFontSizeDown->setToolTip(tr("文字を小さくする"));
+    m_btnFontSizeDown->setAccessibleName(m_btnFontSizeDown->toolTip());
     m_btnFontSizeUp = new QPushButton(tr("A+"), this);
-    m_btnFontSizeUp->setStyleSheet(ButtonStyles::fontButton());
+    m_btnFontSizeUp->setObjectName(QStringLiteral("fontIncrease"));
+    m_btnFontSizeUp->setStyleSheet(ButtonStyles::panelToolButton());
+    m_btnFontSizeUp->setToolTip(tr("文字を大きくする"));
+    m_btnFontSizeUp->setAccessibleName(m_btnFontSizeUp->toolTip());
+    m_fontSizeLabel = new QLabel(this);
+    m_fontSizeLabel->setAlignment(Qt::AlignCenter);
+    m_fontSizeLabel->setToolTip(tr("文字サイズ"));
+    toolLayout->addWidget(m_btnFontSizeDown);
+    toolLayout->addWidget(m_fontSizeLabel);
+    toolLayout->addWidget(m_btnFontSizeUp);
+    mainLayout->addLayout(toolLayout);
+    mainLayout->addWidget(m_textEdit, 1);
+
+    auto* formats = new QLabel(tr("棋譜: KIF / KI2 / CSA / JKF / USI / USEN\n局面: SFEN / BOD（局面図）"), this);
+    formats->setWordWrap(true);
+    mainLayout->addWidget(formats);
+
+    // 確定・キャンセルは入力欄の操作と分離する。
+    QHBoxLayout* buttonLayout = new QHBoxLayout();
+    buttonLayout->setSpacing(8);
 
     m_btnImport = new QPushButton(tr("取り込む"), this);
+    m_btnImport->setObjectName(QStringLiteral("importKifu"));
     m_btnImport->setStyleSheet(ButtonStyles::primaryAction());
+    m_btnImport->setToolTip(tr("取り込む（Ctrl+Enter）"));
     m_btnCancel = new QPushButton(tr("キャンセル"), this);
-    m_btnCancel->setStyleSheet(ButtonStyles::secondaryNeutral());
+    m_btnCancel->setObjectName(QStringLiteral("cancelPaste"));
+    m_btnCancel->setStyleSheet(ButtonStyles::panelToolButton());
 
     m_btnImport->setDefault(true);
 
-    buttonLayout->addWidget(m_btnFontSizeDown);
-    buttonLayout->addWidget(m_btnFontSizeUp);
     buttonLayout->addStretch();
     buttonLayout->addWidget(m_btnImport);
     buttonLayout->addWidget(m_btnCancel);
 
     mainLayout->addLayout(buttonLayout);
+
+    for (auto* button : {m_btnPaste, m_btnClear, m_btnFontSizeDown, m_btnFontSizeUp, m_btnCancel}) {
+        button->setAutoDefault(false);
+    }
+    setTabOrder(m_textEdit, m_btnImport);
+    setTabOrder(m_btnImport, m_btnCancel);
+    setTabOrder(m_btnCancel, m_btnPaste);
+    setTabOrder(m_btnPaste, m_btnClear);
+    setTabOrder(m_btnClear, m_btnFontSizeDown);
+    setTabOrder(m_btnFontSizeDown, m_btnFontSizeUp);
+    m_textEdit->setFocus();
 
     // シグナル・スロット接続
     connect(m_btnImport, &QPushButton::clicked,
@@ -123,6 +157,14 @@ void KifuPasteDialog::setupUi()
             this, &KifuPasteDialog::decreaseFontSize);
     connect(m_btnFontSizeUp, &QPushButton::clicked,
             this, &KifuPasteDialog::increaseFontSize);
+    connect(m_textEdit, &QPlainTextEdit::textChanged,
+            this, &KifuPasteDialog::updateInputActions);
+    connect(QApplication::clipboard(), &QClipboard::dataChanged,
+            this, &KifuPasteDialog::updateClipboardAction);
+    for (const auto key : {Qt::Key_Return, Qt::Key_Enter}) {
+        auto* shortcut = new QShortcut(QKeySequence(Qt::CTRL | key), this);
+        connect(shortcut, &QShortcut::activated, this, &KifuPasteDialog::onImportClicked);
+    }
 }
 
 QString KifuPasteDialog::text() const
@@ -154,6 +196,7 @@ void KifuPasteDialog::onPasteClicked()
         const QString clipText = clipboard->text();
         if (!clipText.isEmpty()) {
             m_textEdit->setPlainText(clipText);
+            m_textEdit->setFocus();
         }
     }
 }
@@ -162,6 +205,7 @@ void KifuPasteDialog::onClearClicked()
 {
     if (m_textEdit) {
         m_textEdit->clear();
+        m_textEdit->setFocus();
     }
 }
 
@@ -175,6 +219,18 @@ void KifuPasteDialog::decreaseFontSize()
     if (m_fontHelper.decrease()) applyFontSize();
 }
 
+void KifuPasteDialog::updateInputActions()
+{
+    const QString content = text();
+    m_btnImport->setEnabled(!content.trimmed().isEmpty());
+    m_btnClear->setEnabled(!content.isEmpty());
+}
+
+void KifuPasteDialog::updateClipboardAction()
+{
+    m_btnPaste->setEnabled(!QApplication::clipboard()->text().trimmed().isEmpty());
+}
+
 void KifuPasteDialog::applyFontSize()
 {
     const int size = m_fontHelper.fontSize();
@@ -186,6 +242,7 @@ void KifuPasteDialog::applyFontSize()
     QFont monoFont = m_textEdit->font();
     monoFont.setPointSize(size);
     m_textEdit->setFont(monoFont);
+    m_textEdit->setMinimumHeight(qMax(120, QFontMetrics(monoFont).lineSpacing() * 4 + 20));
 
     // 全子ウィジェットにフォントを適用
     const auto widgets = findChildren<QWidget*>();
@@ -194,4 +251,21 @@ void KifuPasteDialog::applyFontSize()
             widget->setFont(font);
         }
     }
+    m_fontSizeLabel->setText(tr("%1 pt").arg(size));
+    m_btnFontSizeDown->setEnabled(size > kMinimumFontSize);
+    m_btnFontSizeUp->setEnabled(size < kMaximumFontSize);
+    const int buttonHeight = qMax(32, QFontMetrics(font).height() + 12);
+    for (auto* button : {m_btnPaste, m_btnClear, m_btnFontSizeDown, m_btnFontSizeUp, m_btnImport, m_btnCancel}) {
+        button->setMinimumHeight(buttonHeight);
+        button->setMinimumWidth(qMax(36, QFontMetrics(font).horizontalAdvance(button->text()) + 24));
+    }
+
+    // 明示した固定の最小サイズだけでは、大きな文字でレイアウトが重なる。
+    // 折り返す説明文も含め、その文字サイズで収まる寸法を下限にする。
+    layout()->invalidate();
+    layout()->activate();
+    const QSize contentsMinimum = layout()->totalMinimumSize();
+    const int minimumWidth = qMax(kMinimumSize.width(), contentsMinimum.width());
+    const int minimumHeight = qMax(contentsMinimum.height(), layout()->totalHeightForWidth(minimumWidth));
+    setMinimumSize(minimumWidth, qMax(kMinimumSize.height(), minimumHeight));
 }

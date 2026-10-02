@@ -4738,53 +4738,86 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>KifuPasteDialog</name>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="44"/>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="51"/>
         <source>棋譜貼り付け</source>
-        <translation type="unfinished"></translation>
+        <translation>棋譜貼り付け</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="54"/>
-        <source>棋譜または局面テキストを下のエリアに貼り付けてください。
-対応形式:
-  棋譜: KIF、KI2、CSA、USI、JSON棋譜フォーマット(JKF)、USEN
-  局面: SFEN、BOD（局面図）
-形式は自動判定されます。</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="61"/>
+        <source>棋譜や局面のテキストを貼り付けてください。形式は自動判定されます。</source>
+        <translation>棋譜や局面のテキストを貼り付けてください。形式は自動判定されます。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="65"/>
-        <source>ここに棋譜を貼り付けてください...</source>
-        <translation type="unfinished"></translation>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="68"/>
+        <source>棋譜・局面テキスト</source>
+        <translation>棋譜・局面テキスト</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="78"/>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="69"/>
+        <source>ここに棋譜や局面を貼り付け（Ctrl+V）</source>
+        <translation>ここに棋譜や局面を貼り付け（Ctrl+V）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="82"/>
         <source>クリップボードから貼り付け</source>
-        <translation type="unfinished"></translation>
+        <translation>クリップボードから貼り付け</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="80"/>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="85"/>
         <source>クリア</source>
-        <translation type="unfinished">クリア</translation>
+        <translation>クリア</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/kifupastedialog.cpp" line="93"/>
         <source>A-</source>
-        <translation type="unfinished">A-</translation>
+        <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="95"/>
-        <source>A+</source>
-        <translation type="unfinished">A+</translation>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="96"/>
+        <source>文字を小さくする</source>
+        <translation>文字を小さくする</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/kifupastedialog.cpp" line="98"/>
-        <source>取り込む</source>
-        <translation type="unfinished"></translation>
+        <source>A+</source>
+        <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifupastedialog.cpp" line="100"/>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="101"/>
+        <source>文字を大きくする</source>
+        <translation>文字を大きくする</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="105"/>
+        <source>文字サイズ</source>
+        <translation>文字サイズ</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="112"/>
+        <source>棋譜: KIF / KI2 / CSA / JKF / USI / USEN
+局面: SFEN / BOD（局面図）</source>
+        <translation>棋譜: KIF / KI2 / CSA / JKF / USI / USEN
+局面: SFEN / BOD（局面図）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="120"/>
+        <source>取り込む</source>
+        <translation>取り込む</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="123"/>
+        <source>取り込む（Ctrl+Enter）</source>
+        <translation>取り込む（Ctrl+Enter）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="124"/>
         <source>キャンセル</source>
-        <translation type="unfinished">キャンセル</translation>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifupastedialog.cpp" line="254"/>
+        <source>%1 pt</source>
+        <translation>%1 pt</translation>
     </message>
 </context>
 <context>
