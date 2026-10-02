@@ -1,11 +1,18 @@
 #include "piecepainter.h"
 
+#include <QCache>
 #include <QIcon>
+#include <QImage>
 #include <QPainter>
 #include <QPixmapCache>
 #include <QtMath>
 
 namespace {
+int pieceSize(qreal cellSize, const BoardVisuals& visuals)
+{
+    return qMax(1, qRound(cellSize * visuals.normalized().pieceScale / 100.0));
+}
+
 QPixmap renderedPiece(const QIcon& icon, int size, qreal dpr, bool shadow)
 {
     const QString key = QStringLiteral("shogi-piece/%1/%2/%3/%4")
@@ -45,10 +52,38 @@ QPixmap renderedPiece(const QIcon& icon, int size, qreal dpr, bool shadow)
 }
 }
 
+PiecePainter::Image PiecePainter::image(const QIcon& icon, qreal cellSize,
+                                        const BoardVisuals& visuals, qreal dpr)
+{
+    if (icon.isNull() || cellSize <= 0) return {};
+    const auto pixmap = renderedPiece(icon, pieceSize(cellSize, visuals), dpr, visuals.pieceShadow);
+    // 画像そのものはQPixmapCacheに任せ、GUI終了後も安全な矩形だけを保持する。
+    static QCache<qint64, QRectF> boundsCache(256);
+    const qint64 key = pixmap.cacheKey();
+    if (const auto* bounds = boundsCache.object(key)) return {pixmap, *bounds};
+
+    const auto pixels = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
+    int left = pixels.width(), top = pixels.height(), right = -1, bottom = -1;
+    for (int y = 0; y < pixels.height(); ++y) {
+        const auto* row = reinterpret_cast<const QRgb*>(pixels.constScanLine(y));
+        for (int x = 0; x < pixels.width(); ++x) {
+            if (qAlpha(row[x]) == 0) continue;
+            left = qMin(left, x);
+            top = qMin(top, y);
+            right = qMax(right, x);
+            bottom = qMax(bottom, y);
+        }
+    }
+    const QRectF bounds = right < left ? QRectF()
+        : QRectF(left / dpr, top / dpr, (right - left + 1) / dpr, (bottom - top + 1) / dpr);
+    boundsCache.insert(key, new QRectF(bounds));
+    return {pixmap, bounds};
+}
+
 void PiecePainter::draw(QPainter& painter, const QIcon& icon, const QRectF& cell, const BoardVisuals& visuals)
 {
     if (icon.isNull() || cell.isEmpty()) return;
-    const int size = qMax(1, qRound(qMin(cell.width(), cell.height()) * visuals.normalized().pieceScale / 100.0));
+    const int size = pieceSize(qMin(cell.width(), cell.height()), visuals);
     const qreal dpr = painter.device()->devicePixelRatioF();
     const auto pixmap = renderedPiece(icon, size, dpr, visuals.pieceShadow);
     const QSizeF renderedSize = pixmap.deviceIndependentSize();

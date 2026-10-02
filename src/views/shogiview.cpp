@@ -206,36 +206,15 @@ QSize ShogiView::sizeHint() const
         return QSize(100, 100);
     }
 
-    const QSize fs = fieldSize().isValid() ? fieldSize()
-                                           : QSize(m_layout.squareSize(), qRound(m_layout.squareSize() * ShogiViewLayout::kSquareAspectRatio));
-
-    const int boardWidth  = fs.width()  * m_board->files();
-    const int boardHeight = fs.height() * m_board->ranks();
-
-    const int standWidth = fs.width() * 2;
-
-    const int totalWidth = standWidth + m_layout.standGapPx() + boardWidth + m_layout.standGapPx() + standWidth;
-    const int totalHeight = boardHeight + m_layout.offsetY() * 2;
-
-    return QSize(totalWidth, totalHeight);
+    return m_layout.viewSize(m_board->files(), m_board->ranks());
 }
 
 QSize ShogiView::minimumSizeHint() const
 {
-    const int minSquare = 20;
-    const int minSquareH = qRound(minSquare * ShogiViewLayout::kSquareAspectRatio);
-    const int files = m_board ? m_board->files() : 9;
-    const int ranks = m_board ? m_board->ranks() : 9;
-
-    const int minBoardWidth = minSquare * files;
-    const int minBoardHeight = minSquareH * ranks;
-    const int minStandWidth = minSquare * 2;
-    const int minGap = qRound(minSquare * 0.5);
-
-    const int minWidth = minStandWidth + minGap + minBoardWidth + minGap + minStandWidth;
-    const int minHeight = minBoardHeight + m_layout.offsetY() * 2;
-
-    return QSize(minWidth, minHeight);
+    ShogiViewLayout minimumLayout = m_layout;
+    minimumLayout.setSquareSize(20);
+    minimumLayout.recalcLayoutParams(font());
+    return minimumLayout.viewSize(m_board ? m_board->files() : 9, m_board ? m_board->ranks() : 9);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -421,6 +400,7 @@ void ShogiView::setFlipMode(bool newFlipMode)
 
     m_layout.setFlipMode(newFlipMode);
     invalidateFieldRectCache();
+    refreshPieceImages();
 
     refreshNameLabels();
 

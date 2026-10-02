@@ -15,6 +15,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QTabWidget>
+#include <QtMath>
 #include <cmath>
 
 #include "boardimagerenderer.h"
@@ -26,9 +27,46 @@
 #include "settingscommon.h"
 #include "shogiboard.h"
 #include "shogiview.h"
+#include "shogiviewlayout.h"
 #include "appsettings.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
+
+namespace {
+ShogiViewLayout viewLayout(const ShogiView& view)
+{
+    ShogiViewLayout layout;
+    layout.setSquareSize(view.squareSize());
+    layout.setStandGapCols(0.7);
+    layout.setFlipMode(view.flipMode());
+    layout.recalcLayoutParams(view.font());
+    return layout;
+}
+
+QImage renderView(ShogiView& view, qreal dpr)
+{
+    view.resize(view.sizeHint());
+    QImage image(qRound(view.width() * dpr), qRound(view.height() * dpr), QImage::Format_ARGB32_Premultiplied);
+    image.setDevicePixelRatio(dpr);
+    image.fill(Qt::transparent);
+    QPainter painter(&image);
+    view.render(&painter);
+    return image;
+}
+
+QRect changedBounds(const QImage& before, const QImage& after, const QRect& cell, qreal dpr)
+{
+    QRect result;
+    const QRect pixels(qFloor(cell.x() * dpr), qFloor(cell.y() * dpr),
+                       qCeil(cell.width() * dpr), qCeil(cell.height() * dpr));
+    for (int y = pixels.top(); y <= pixels.bottom(); ++y) {
+        for (int x = pixels.left(); x <= pixels.right(); ++x) {
+            if (before.pixel(x, y) != after.pixel(x, y)) result |= QRect(x, y, 1, 1);
+        }
+    }
+    return result;
+}
+}
 
 class TestBoardImageRenderer : public QObject
 {
@@ -245,6 +283,134 @@ private slots:
             const auto flipped = view.toImage();
             QCOMPARE(flipped.size(), normal.size());
             QVERIFY(flipped != normal);
+        }
+    }
+
+    void boardOuterMargins()
+    {
+        BoardAppearance::instance().setVisuals({false, true, 108, false});
+        ShogiBoard model;
+        model.resetGameBoard();
+        ShogiView view;
+        view.applyBoardAndRender(&model);
+        for (const int size : {20, 53, 100, 150}) {
+            view.setSquareSize(size);
+            const QSize normalSize = view.sizeHint();
+            for (const bool flipped : {false, true}) {
+                view.setFlipMode(flipped);
+                const auto layout = viewLayout(view);
+                QCOMPARE(view.sizeHint(), normalSize);
+                for (const qreal dpr : {1.0, 1.25, 2.0}) {
+                    const auto image = renderView(view, dpr);
+                    const int x = image.width() / 2;
+                    const QRgb background = view.boardColors().background.rgb();
+                    int top = 0, bottom = image.height() - 1;
+                    while (top < image.height() && image.pixel(x, top) == background) ++top;
+                    while (bottom >= 0 && image.pixel(x, bottom) == background) --bottom;
+                    QVERIFY(top < bottom);
+                    QVERIFY(top > 0);
+                    QVERIFY2(qAbs(top - (image.height() - 1 - bottom)) <= qCeil(1.5 * dpr),
+                             qPrintable(QStringLiteral("size=%1 flip=%2 dpr=%3 top=%4 bottom=%5")
+                                 .arg(size).arg(flipped).arg(dpr).arg(top).arg(image.height() - 1 - bottom)));
+                }
+                // 縦位置が変わっても、盤上の81マスは表示位置で選択できる。
+                for (int file = 1; file <= 9; ++file) {
+                    for (int rank = 1; rank <= 9; ++rank) {
+                        const QRect cell = view.calculateSquareRectangleBasedOnBoardState(file, rank);
+                        QCOMPARE(view.clickedSquare(cell.center() + QPoint(layout.boardLeftPx(), layout.offsetY())), QPoint(file, rank));
+                    }
+                }
+            }
+        }
+    }
+
+    void standPiecesKeepPadding_data()
+    {
+        QTest::addColumn<int>("squareSize");
+        QTest::addColumn<int>("pieceScale");
+        QTest::addColumn<qreal>("dpr");
+        QTest::addColumn<bool>("shadow");
+        QTest::newRow("small") << 20 << 112 << 1.0 << true;
+        QTest::newRow("screenshot") << 53 << 108 << 1.25 << true;
+        QTest::newRow("small-pieces") << 53 << 90 << 1.0 << false;
+        QTest::newRow("large-pieces-hidpi") << 53 << 112 << 2.0 << true;
+        QTest::newRow("large-board") << 100 << 108 << 1.5 << false;
+        QTest::newRow("largest-board") << 150 << 112 << 1.0 << true;
+    }
+
+    void standPiecesKeepPadding()
+    {
+        QFETCH(int, squareSize);
+        QFETCH(int, pieceScale);
+        QFETCH(qreal, dpr);
+        QFETCH(bool, shadow);
+        BoardAppearance::instance().setVisuals({false, shadow, pieceScale, false});
+        ShogiBoard model;
+        ShogiView view;
+        view.configureFixedSizing(squareSize);
+        view.applyBoardAndRender(&model);
+        for (const bool flipped : {false, true}) {
+            view.setFlipMode(flipped);
+            const auto layout = viewLayout(view);
+            for (const int count : {1, 2, 5, 18}) {
+                model.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1"));
+                const auto before = renderView(view, dpr);
+                model.incrementPieceOnStand(Piece::BlackBishop);
+                model.incrementPieceOnStand(Piece::WhiteBishop);
+                for (int i = 0; i < count; ++i) {
+                    model.incrementPieceOnStand(Piece::BlackPawn);
+                    model.incrementPieceOnStand(Piece::WhitePawn);
+                }
+                const auto after = renderView(view, dpr);
+                for (const bool black : {true, false}) {
+                    const QRect stand = black ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9);
+                    const auto bounds = changedBounds(before, after, stand, dpr);
+                    QVERIFY(!bounds.isEmpty());
+                    const qreal woodInset = qMax(1.0, squareSize * 0.035);
+                    // 駒・影・バッジすべてが木製部分から最低1論理px内側にあること。
+                    const QRectF safe = QRectF(stand).adjusted(woodInset + 1, 1, -woodInset - 1, -1);
+                    const QRectF ink(bounds.x() / dpr, bounds.y() / dpr,
+                                     bounds.width() / dpr, bounds.height() / dpr);
+                    QVERIFY2(safe.contains(ink), qPrintable(QStringLiteral("flip=%1 count=%2 black=%3")
+                                                              .arg(flipped).arg(count).arg(black)));
+                    const int w = view.fieldSize().width(), h = view.fieldSize().height();
+                    const bool bottom = black != flipped;
+                    const QPoint pawn = stand.topLeft() + QPoint(bottom ? w / 2 : w + w / 2,
+                                                                  bottom ? 3 * h + h / 2 : h / 2);
+                    const QPoint bishop = stand.topLeft() + QPoint(bottom ? w + w / 2 : w / 2,
+                                                                    bottom ? h + h / 2 : 2 * h + h / 2);
+                    QCOMPARE(view.clickedSquare(pawn), black ? QPoint(10, 1) : QPoint(11, 9));
+                    QCOMPARE(view.clickedSquare(bishop), black ? QPoint(10, 6) : QPoint(11, 4));
+                }
+            }
+        }
+    }
+
+    void singleBishopsAreCentered()
+    {
+        BoardAppearance::instance().setVisuals({false, false, 108, false});
+        ShogiBoard model;
+        ShogiView view;
+        view.configureFixedSizing(53);
+        view.applyBoardAndRender(&model);
+        for (const bool flipped : {false, true}) {
+            view.setFlipMode(flipped);
+            const auto layout = viewLayout(view);
+            model.setSfen(QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 b - 1"));
+            const auto before = renderView(view, 2);
+            model.incrementPieceOnStand(Piece::BlackBishop);
+            model.incrementPieceOnStand(Piece::WhiteBishop);
+            const auto after = renderView(view, 2);
+            for (const bool black : {true, false}) {
+                const QRect stand = black ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9);
+                const int w = view.fieldSize().width(), h = view.fieldSize().height();
+                const bool bottom = black != flipped;
+                const QRect cell(stand.topLeft() + QPoint(bottom ? w : 0, bottom ? h : 2 * h), QSize(w, h));
+                const auto bounds = changedBounds(before, after, cell, 2);
+                QVERIFY(!bounds.isEmpty());
+                const qreal centerX = (bounds.left() + bounds.width() / 2.0) / 2;
+                QVERIFY(qAbs(centerX - QRectF(cell).center().x()) <= 1.0);
+            }
         }
     }
 

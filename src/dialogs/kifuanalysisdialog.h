@@ -6,6 +6,7 @@
 
 
 #include <QDialog>
+#include <memory>
 
 #include "fontsizehelper.h"
 
@@ -82,7 +83,7 @@ private slots:
 
 private:
     // UI
-    Ui::KifuAnalysisDialog* ui;
+    std::unique_ptr<Ui::KifuAnalysisDialog> ui;
 
     // 選択したエンジン名
     QString m_engineName;

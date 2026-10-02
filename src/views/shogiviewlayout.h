@@ -39,6 +39,14 @@ public:
     /// 後手（白）側駒台の外接矩形
     QRect whiteStandBoundingRect(int boardFiles, int boardRanks) const;
 
+    /// 木製部分と全体サイズは同じ余白・座標帯・影の寸法から算出する。
+    QRectF boardSurfaceRect(int boardFiles, int boardRanks) const;
+    QSize viewSize(int boardFiles, int boardRanks) const;
+    int coordinateBandPx() const;
+    int outerMarginPx() const;
+    QRectF standSurfaceRect(const QRect& stand) const;
+    QRectF standPieceArea(const QRect& cell) const;
+
     // ───────────────────────── 盤・駒台の境界ユーティリティ ────────────
     int boardLeftPx() const;
     int boardRightPx(int boardFiles) const;
@@ -84,7 +92,6 @@ private:
     int    m_param1       { 0 };
     int    m_param2       { 0 };
     int    m_offsetX      { 0 };
-    int    m_offsetY      { 20 };
     int    m_labelGapPx   { 8 };
     int    m_labelBandPx  { 36 };
     double m_labelFontPt  { 12.0 };
@@ -103,7 +110,6 @@ inline int    ShogiViewLayout::boardMarginPx() const { return m_boardMarginPx; }
 inline int    ShogiViewLayout::param1()        const { return m_param1; }
 inline int    ShogiViewLayout::param2()        const { return m_param2; }
 inline int    ShogiViewLayout::offsetX()       const { return m_offsetX; }
-inline int    ShogiViewLayout::offsetY()       const { return m_offsetY; }
 inline int    ShogiViewLayout::labelGapPx()    const { return m_labelGapPx; }
 inline int    ShogiViewLayout::labelBandPx()   const { return m_labelBandPx; }
 inline double ShogiViewLayout::labelFontPt()   const { return m_labelFontPt; }

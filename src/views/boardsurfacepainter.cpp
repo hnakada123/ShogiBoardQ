@@ -8,6 +8,14 @@
 #include <QtMath>
 
 namespace {
+constexpr int kShadowSteps = 5;
+constexpr qreal kShadowSpread = 0.015;
+
+qreal surfaceDepth(qreal squareSize)
+{
+    return qMax(1.0, squareSize * 0.07);
+}
+
 QImage woodSurface(const QSize& size, qreal dpr, const QColor& color)
 {
     // 高DPIの大きい盤を保持しても再描画時に木目を生成し直さない。
@@ -45,16 +53,24 @@ QImage woodSurface(const QSize& size, qreal dpr, const QColor& color)
 }
 }
 
+QMarginsF BoardSurfacePainter::shadowMargins(qreal squareSize)
+{
+    const qreal depth = surfaceDepth(squareSize);
+    const qreal spread = squareSize * kShadowSteps * kShadowSpread;
+    return {qMax(0.0, spread - depth * 0.2), qMax(0.0, spread - depth),
+            spread + depth * 0.2, spread + depth};
+}
+
 void BoardSurfacePainter::draw(QPainter& painter, const QRectF& surface, const QColor& color,
                               bool woodGrain, qreal squareSize)
 {
     if (surface.isEmpty()) return;
     painter.save();
     painter.setRenderHint(QPainter::Antialiasing);
-    const qreal depth = qMax(1.0, squareSize * 0.07);
+    const qreal depth = surfaceDepth(squareSize);
     painter.setPen(Qt::NoPen);
-    for (int i = 5; i >= 1; --i) {
-        const qreal spread = squareSize * i * 0.015;
+    for (int i = kShadowSteps; i >= 1; --i) {
+        const qreal spread = squareSize * i * kShadowSpread;
         painter.setBrush(QColor(25, 30, 20, 7));
         painter.drawRoundedRect(surface.translated(depth * 0.2, depth)
                                     .adjusted(-spread, -spread, spread, spread), 2, 2);

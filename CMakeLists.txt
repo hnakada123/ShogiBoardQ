@@ -327,6 +327,7 @@ set(SRC_GAME
     src/game/enginelifecyclemanager.cpp
     src/game/enginelifecyclemanager.h
     src/game/gameendhandler.cpp
+    src/game/gameendhandler_record.cpp
     src/game/gameendhandler.h
     src/game/gamestartorchestrator.cpp
     src/game/gamestartorchestrator.h
@@ -490,6 +491,7 @@ set(SRC_ANALYSIS
     src/analysis/analysiscoordinator.cpp
     src/analysis/analysiscoordinator.h
     src/analysis/analysisflowcontroller.cpp
+    src/analysis/analysisflowcontroller_dialog.cpp
     src/analysis/analysisflowcontroller.h
     src/analysis/analysisflowcontroller_position.cpp
     src/analysis/analysisresulthandler.cpp
@@ -617,6 +619,7 @@ set(SRC_UI
     src/ui/coordinators/aboutcoordinator.cpp
     src/ui/coordinators/aboutcoordinator.h
     src/ui/coordinators/dialogcoordinator.cpp
+    src/ui/coordinators/dialogcoordinator_analysis.cpp
     src/ui/coordinators/dialogcoordinator.h
     src/ui/coordinators/dialogorchestrator.cpp
     src/ui/coordinators/dialogorchestrator.h

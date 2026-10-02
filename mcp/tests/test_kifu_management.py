@@ -378,7 +378,7 @@ async def test_game_end_auto_save(kifu_env, tmp_path):
         assert field["text"] == str(tmp_path)
         _, _, error = result_data(await session.call_tool("set_widget_value", dict(target="StartGameDialog", widget="lineEditKifuSaveDir", value="/invalid")))
         assert error
-        await ui.call("click_dialog_button", dialog="StartGameDialog", text="OK")
+        await ui.call("click_dialog_button", dialog="StartGameDialog", text="対局開始")
         await ui.wait("get_app_state", lambda d: d["ui_state"] == "game")
         await ui.call("click_board_square", file=7, rank=7)
         await ui.call("click_board_square", file=7, rank=6)
