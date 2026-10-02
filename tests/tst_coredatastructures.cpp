@@ -560,6 +560,56 @@ private slots:
         QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
     }
 
+    void gameController_pieceBoxWhiteTransfers_data() { gameController_pieceBoxTransfers_data(); }
+
+    void gameController_pieceBoxWhiteTransfers()
+    {
+        QFETCH(int, rank);
+        ShogiGameController gc;
+        QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 b - 1");
+        gc.newGame(empty);
+        auto* board = gc.board();
+        const auto initialBox = board->pieceBox();
+        const Piece piece = toWhite(board->pieceCharacter(12, rank));
+        QVERIFY(gc.editPosition({12, rank}, {5, 1}, Turn::White));
+        QCOMPARE(board->pieceCharacter(5, 1), piece);
+        QCOMPARE(board->pieceBoxCount(piece), initialBox.value(toBlack(piece)) - 1);
+        QVERIFY(gc.editPosition({5, 1}, {12, rank}, Turn::White));
+        QCOMPARE(board->pieceBox(), initialBox);
+        // 行き所のない駒の自動成りも、選択した先後で判定する。
+        QVERIFY(gc.editPosition({12, rank}, {5, 9}, Turn::White));
+        QCOMPARE(board->pieceCharacter(5, 9), rank <= 3 ? promote(piece) : piece);
+        QVERIFY(gc.editPosition({5, 9}, {12, rank}, Turn::White));
+        for (int stand : {10, 11}) {
+            const int standRank = stand == 10 ? rank : 10 - rank;
+            QCOMPARE(gc.editPosition({12, rank}, {stand, standRank}, Turn::White), rank != 8);
+            if (rank != 8) {
+                QCOMPARE(board->pieceStandCount(stand == 10 ? toBlack(piece) : piece), 1);
+                QVERIFY(gc.editPosition({stand, standRank}, {12, rank}, Turn::White));
+            }
+            QCOMPARE(board->pieceBox(), initialBox);
+        }
+        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player1);
+        QCOMPARE(board->currentPlayer(), Turn::Black);
+    }
+
+    void gameController_pieceBoxPawnsOnSameFile()
+    {
+        ShogiGameController gc;
+        QString empty = QStringLiteral("9/9/9/9/9/9/9/9/9 w - 1");
+        gc.newGame(empty);
+        QVERIFY(gc.editPosition({12, 1}, {5, 7}, Turn::Black));
+        QVERIFY(!gc.editPosition({12, 1}, {5, 3}, Turn::Black));
+        QVERIFY(gc.editPosition({12, 1}, {5, 3}, Turn::White));
+        QVERIFY(!gc.editPosition({12, 1}, {5, 5}, Turn::White));
+        QCOMPARE(gc.board()->pieceCharacter(5, 7), Piece::BlackPawn);
+        QCOMPARE(gc.board()->pieceCharacter(5, 3), Piece::WhitePawn);
+        QCOMPARE(gc.board()->pieceBoxCount(Piece::BlackPawn), 16);
+        QCOMPARE(gc.board()->pieceBoxCount(Piece::WhitePawn), 16);
+        QCOMPARE(gc.currentPlayer(), ShogiGameController::Player2);
+        QCOMPARE(gc.board()->currentPlayer(), Turn::White);
+    }
+
     void gameController_pieceBoxRejectsEmptyAndWrongSlots()
     {
         ShogiGameController gc;

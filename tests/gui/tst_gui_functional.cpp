@@ -1638,6 +1638,66 @@ private slots:
         QCOMPARE(board()->board()->pieceBoxCount(Piece::BlackKing), 0);
         click("actionEndEditPosition");
     }
+    void boardEditingPieceBoxSide_data() { boardEditingPieceTransfers_data(); }
+    void boardEditingPieceBoxSide()
+    {
+        QFETCH(bool, flipped);
+        if (flipped) click("actionFlipBoard");
+        click("actionStartEditPosition");
+        auto* model = board()->board();
+        auto* black = board()->findChild<QToolButton*>("pieceBoxBlackButton");
+        auto* white = board()->findChild<QToolButton*>("pieceBoxWhiteButton");
+        QVERIFY(black && white);
+        QVERIFY(black->isVisible() && white->isVisible());
+        QVERIFY(black->isChecked() && !white->isChecked());
+        const auto turn = model->currentPlayer();
+        editMove({5, 7}, {12, 1});
+        editMove({5, 3}, {12, 1});
+        QCOMPARE(model->pieceBoxCount(Piece::BlackPawn), 2);
+
+        editMove({12, 1}, {5, 7});
+        QCOMPARE(model->pieceCharacter(5, 7), Piece::BlackPawn);
+        editMove({12, 1}, {5, 3}); // 先手のままなら二歩として拒否。
+        QCOMPARE(model->pieceCharacter(5, 3), Piece::None);
+        QCOMPARE(model->pieceBoxCount(Piece::BlackPawn), 1);
+
+        // 持ち上げてからの切替でも表示と配置が同じ先後になる。
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(12, 1));
+        QTest::mouseClick(white, Qt::LeftButton);
+        QVERIFY(!black->isChecked() && white->isChecked());
+        QCOMPARE(board()->pieceBoxSide(), Turn::White);
+        QTest::mouseMove(board(), editPoint(5, 3));
+        snapshot(flipped ? "board-edit-box-white-drag-flipped" : "board-edit-box-white-drag");
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(5, 3));
+        QCOMPARE(model->pieceCharacter(5, 3), Piece::WhitePawn);
+        QCOMPARE(model->pieceBoxCount(Piece::WhitePawn), 0);
+        QCOMPARE(model->currentPlayer(), turn);
+        QCOMPARE(boardSfen(), initial);
+
+        // 反転・編集の終了と再開でも、選択中の先後と局面を維持する。
+        editMove({5, 3}, {12, 1});
+        const QString beforeFlip = boardSfen();
+        click("actionFlipBoard");
+        QCOMPARE(board()->pieceBoxSide(), Turn::White);
+        QVERIFY(white->isChecked());
+        QCOMPARE(boardSfen(), beforeFlip);
+        editMove({12, 1}, {5, 3});
+        QCOMPARE(boardSfen(), initial);
+        click("actionFlipBoard");
+        editMove({5, 3}, {12, 1});
+        snapshot(flipped ? "board-edit-box-white-flipped" : "board-edit-box-white");
+        click("actionEndEditPosition");
+        QVERIFY(!black->isVisible() && !white->isVisible());
+        click("actionStartEditPosition");
+        QVERIFY(white->isVisible() && white->isChecked());
+        QCOMPARE(board()->pieceBoxSide(), Turn::White);
+        // 選択を戻したあとも、既存の盤上の駒の所属は変わらない。
+        QTest::mouseClick(black, Qt::LeftButton);
+        QCOMPARE(board()->pieceBoxSide(), Turn::Black);
+        QCOMPARE(model->pieceCharacter(5, 7), Piece::BlackPawn);
+        QCOMPARE(model->currentPlayer(), turn);
+        click("actionEndEditPosition");
+    }
     void boardEditingPieceBoxLayout_data()
     {
         QTest::addColumn<bool>("flipped");
@@ -1666,9 +1726,17 @@ private slots:
         QVERIFY(!box.intersects(card->geometry()));
         QVERIFY(!box.intersects(editLayout().blackStandBoundingRect(9, 9)));
         QVERIFY(!box.intersects(editLayout().whiteStandBoundingRect(9, 9)));
+        auto* black = board()->findChild<QToolButton*>("pieceBoxBlackButton");
+        auto* white = board()->findChild<QToolButton*>("pieceBoxWhiteButton");
+        QVERIFY(black && white);
+        QVERIFY(box.contains(black->geometry()) && box.contains(white->geometry()));
+        QVERIFY(!black->geometry().intersects(white->geometry()));
+        QCOMPARE(board()->clickedSquare(black->geometry().center()), QPoint());
+        QCOMPARE(board()->clickedSquare(white->geometry().center()), QPoint());
         for (int rank = 1; rank <= 8; ++rank) {
             const QRect cell = board()->pieceBoxCellRect(rank);
             QVERIFY(box.contains(cell));
+            QVERIFY(!cell.intersects(black->geometry()) && !cell.intersects(white->geometry()));
             QCOMPARE(board()->clickedSquare(cell.center()), QPoint(12, rank));
         }
         editMove({12, 8}, {5, 5});

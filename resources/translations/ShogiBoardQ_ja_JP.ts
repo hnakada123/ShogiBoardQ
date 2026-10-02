@@ -6868,7 +6868,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>手番</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="136"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="137"/>
         <source>編集終了</source>
         <translation type="unfinished"></translation>
     </message>
@@ -6877,7 +6877,27 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">詰み探索終了</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_piecebox.cpp" line="44"/>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="61"/>
+        <source>先手</source>
+        <translation>先手</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="62"/>
+        <source>後手</source>
+        <translation>後手</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="63"/>
+        <source>先手の駒を配置（手番は変更しません）</source>
+        <translation>先手の駒を配置（手番は変更しません）</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="64"/>
+        <source>後手の駒を配置（手番は変更しません）</source>
+        <translation>後手の駒を配置（手番は変更しません）</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_piecebox.cpp" line="110"/>
         <source>駒箱</source>
         <translation>駒箱</translation>
     </message>

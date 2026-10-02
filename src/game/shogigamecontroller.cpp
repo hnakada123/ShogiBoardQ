@@ -463,7 +463,7 @@ bool ShogiGameController::validateAndMove(QPoint& outFrom, QPoint& outTo, QStrin
 // 局面編集
 // ============================================================
 
-bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outTo)
+bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outTo, Turn pieceBoxSide)
 {
     if (!board()) {
         qCWarning(lcGame) << "editPosition: board() is null.";
@@ -485,6 +485,9 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
 
     Piece source = board()->pieceCharacter(fileFrom, rankFrom);
     Piece dest = board()->pieceCharacter(fileTo, rankTo);
+    // 駒箱は先後共通の在庫。盤上に置く側を、二歩・成りなどの判定前に確定する。
+    if (fileFrom == BoardConstants::kPieceBoxFile && pieceBoxSide == Turn::White)
+        source = toWhite(source);
     if (source == Piece::None) return false;
     if (fileTo >= BoardConstants::kBlackStandFile && toBlack(demote(source)) != toBlack(dest)) return false;
 

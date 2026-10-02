@@ -70,7 +70,7 @@ public:
                          QStringList* m_sfenHistory, QList<ShogiMove>& gameMoves);
 
     /// 局面編集モードで駒を移動し、盤面を更新する
-    bool editPosition(const QPoint& outFrom, const QPoint& outTo);
+    bool editPosition(const QPoint& outFrom, const QPoint& outTo, Turn pieceBoxSide = Turn::Black);
 
     /// 局面編集モードで右クリックによる成/不成を切り替える
     void switchPiecePromotionStatusOnRightClick(const int fileFrom, const int rankFrom) const;

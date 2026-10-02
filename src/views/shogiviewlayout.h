@@ -42,6 +42,7 @@ public:
     /// 駒箱は反転によらず左上から王・飛・角・金・銀・桂・香・歩の2列4段。
     static QRect pieceBoxCellRect(const QRect& box, int rank);
     static QRect pieceBoxLabelRect(const QRect& box);
+    static QRect pieceBoxSideSelectorRect(const QRect& box);
 
     /// 木製部分と全体サイズは同じ余白・座標帯・影の寸法から算出する。
     QRectF boardSurfaceRect(int boardFiles, int boardRanks) const;
