@@ -163,6 +163,9 @@ private slots:
     /// 現在の対局設定を設定ファイルに保存する
     void saveGameSettings();
 
+    /// 設定だけを保存し、画面内に完了を表示する
+    void saveSettingsOnly();
+
     /// 設定を初期値にリセットする
     void resetSettingsToDefault();
 
@@ -186,6 +189,9 @@ private slots:
 
     /// 連続対局スピンボックスの有効/無効を更新する（両方エンジン時のみ有効）
     void updateConsecutiveGamesEnabled();
+
+    void updateKifuSaveEnabled();
+    void updateTimeSettingsTitle();
 
 private:
     // --- フォント設定 ---

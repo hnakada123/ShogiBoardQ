@@ -5,6 +5,8 @@
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QGroupBox>
+#include <QLabel>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QSettings>
 #include <QSpinBox>
@@ -155,10 +157,76 @@ private slots:
         widget<QSpinBox>(dialog, "basicTimeMinutes1")->setValue(5);
         widget<QPushButton>(dialog, "pushButtonSaveSettingsOnly")->click();
         QVERIFY(dialog.isVisible());
+        QVERIFY(!widget<QLabel>(dialog, "labelSaveStatus")->text().isEmpty());
         widget<QSpinBox>(dialog, "basicTimeMinutes1")->setValue(12);
         widget<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Cancel)->click();
         StartGameDialog reopened;
         QCOMPARE(widget<QSpinBox>(reopened, "basicTimeMinutes1")->value(), 5);
+    }
+
+    void autoSaveControlsFollowSettingAndRestore()
+    {
+        const QString path = m_config.path();
+        {
+            StartGameDialog dialog;
+            auto* toggle = widget<QCheckBox>(dialog, "checkBoxAutoSaveKifu");
+            auto* directory = widget<QLineEdit>(dialog, "lineEditKifuSaveDir");
+            auto* browse = widget<QPushButton>(dialog, "pushButtonSelectKifuDir");
+            QVERIFY(!directory->isEnabled());
+            QVERIFY(!browse->isEnabled());
+            toggle->setChecked(true);
+            QVERIFY(directory->isEnabled());
+            QVERIFY(browse->isEnabled());
+            directory->setText(path);
+            toggle->setChecked(false);
+            QCOMPARE(directory->text(), path);
+            toggle->setChecked(true);
+            accept(dialog);
+            QVERIFY(dialog.isAutoSaveKifu());
+            QCOMPARE(dialog.kifuSaveDir(), path);
+        }
+        StartGameDialog reopened;
+        QVERIFY(widget<QPushButton>(reopened, "pushButtonSelectKifuDir")->isEnabled());
+        QCOMPARE(widget<QLineEdit>(reopened, "lineEditKifuSaveDir")->text(), path);
+        widget<QPushButton>(reopened, "pushButtonResetToDefault")->click();
+        QVERIFY(!widget<QPushButton>(reopened, "pushButtonSelectKifuDir")->isEnabled());
+    }
+
+    void turnSwitchRequiresMultipleEngineGames()
+    {
+        setEngines({QStringLiteral("engine")});
+        StartGameDialog dialog;
+        auto* count = widget<QSpinBox>(dialog, "spinBoxConsecutiveGames");
+        auto* toggle = widget<QCheckBox>(dialog, "checkBoxSwitchTurnEachGame");
+        QVERIFY(!count->isEnabled());
+        QVERIFY(!toggle->isEnabled());
+        widget<QComboBox>(dialog, "comboBoxPlayer1")->setCurrentIndex(1);
+        QVERIFY(count->isEnabled());
+        count->setValue(0);
+        QCOMPARE(count->value(), 1);
+        QVERIFY(!toggle->isEnabled());
+        count->setValue(2);
+        QVERIFY(toggle->isEnabled());
+        toggle->setChecked(true);
+        widget<QPushButton>(dialog, "pushButtonSaveSettingsOnly")->click();
+        {
+            StartGameDialog reopened;
+            accept(reopened);
+            QCOMPARE(reopened.consecutiveGames(), 2);
+            QVERIFY(reopened.isSwitchTurnEachGame());
+        }
+        count->setValue(1);
+        QVERIFY(!toggle->isEnabled());
+        accept(dialog);
+        QVERIFY(!dialog.isSwitchTurnEachGame());
+        count->setValue(2);
+        QVERIFY(toggle->isChecked()); // 一時的に無効にしても選択は保持する。
+        widget<QComboBox>(dialog, "comboBoxPlayer2")->setCurrentIndex(0);
+        QCOMPARE(count->value(), 1);
+        QVERIFY(!toggle->isEnabled());
+        accept(dialog);
+        QCOMPARE(dialog.consecutiveGames(), 1);
+        QVERIFY(!dialog.isSwitchTurnEachGame());
     }
 };
 

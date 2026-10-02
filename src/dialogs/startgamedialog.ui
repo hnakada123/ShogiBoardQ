@@ -69,7 +69,7 @@
         <number>0</number>
        </property>
        <item>
-        <layout class="QHBoxLayout" name="playerLayout">
+        <layout class="QHBoxLayout" name="playerLayout" stretch="1,1">
          <property name="spacing">
           <number>10</number>
          </property>
@@ -412,31 +412,31 @@
         </layout>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="timeSettingsLayout">
+        <layout class="QHBoxLayout" name="timeSettingsLayout" stretch="1,1">
          <property name="spacing">
           <number>10</number>
          </property>
          <item>
           <widget class="QGroupBox" name="groupBox_7">
-           <property name="title">
-            <string>時間設定</string>
-           </property>
-           <layout class="QVBoxLayout" name="verticalLayout_8">
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_14">
-              <item>
-               <widget class="QLabel" name="label_2">
-                <property name="minimumSize">
-                 <size>
-                  <width>60</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>持ち時間</string>
-                </property>
-               </widget>
-              </item>
+           <layout class="QGridLayout" name="timeGrid1" columnstretch="0,0,1">
+            <property name="horizontalSpacing">
+             <number>8</number>
+            </property>
+            <property name="verticalSpacing">
+             <number>8</number>
+            </property>
+            <item row="0" column="0">
+             <widget class="QLabel" name="timeLabel1_0">
+              <property name="text">
+               <string>持ち時間</string>
+              </property>
+              <property name="buddy">
+               <cstring>basicTimeHour1</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <layout class="QHBoxLayout" name="timeRow1_0">
               <item>
                <widget class="QSpinBox" name="basicTimeHour1">
                 <property name="minimumSize">
@@ -445,12 +445,11 @@
                   <height>0</height>
                  </size>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_10">
-                <property name="text">
-                 <string>時間</string>
+                <property name="suffix">
+                 <string> 時間</string>
+                </property>
+                <property name="accessibleName">
+                 <string>持ち時間（時間）</string>
                 </property>
                </widget>
               </item>
@@ -465,45 +464,28 @@
                 <property name="maximum">
                  <number>59</number>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_11">
-                <property name="text">
-                 <string>分</string>
+                <property name="suffix">
+                 <string> 分</string>
+                </property>
+                <property name="accessibleName">
+                 <string>持ち時間（分）</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_10">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
              </layout>
             </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_15">
-              <item>
-               <widget class="QLabel" name="label_12">
-                <property name="minimumSize">
-                 <size>
-                  <width>60</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>秒読み</string>
-                </property>
-               </widget>
-              </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="timeLabel1_1">
+              <property name="text">
+               <string>秒読み</string>
+              </property>
+              <property name="buddy">
+               <cstring>byoyomiSec1</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <layout class="QHBoxLayout" name="timeRow1_1">
               <item>
                <widget class="QSpinBox" name="byoyomiSec1">
                 <property name="minimumSize">
@@ -515,68 +497,28 @@
                 <property name="maximum">
                  <number>3600</number>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_13">
-                <property name="text">
-                 <string>秒</string>
+                <property name="suffix">
+                 <string> 秒</string>
+                </property>
+                <property name="accessibleName">
+                 <string>秒読み</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_11">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeType">
-                 <enum>QSizePolicy::Policy::Fixed</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>20</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_8">
-                <property name="text">
-                 <string>※ 秒読みと増加は併用できません</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_14">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
              </layout>
             </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_16">
-              <item>
-               <widget class="QLabel" name="label_15">
-                <property name="minimumSize">
-                 <size>
-                  <width>60</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>増加</string>
-                </property>
-               </widget>
-              </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="timeLabel1_2">
+              <property name="text">
+               <string>1手ごとの加算</string>
+              </property>
+              <property name="buddy">
+               <cstring>addEachMoveSec1</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <layout class="QHBoxLayout" name="timeRow1_2">
               <item>
                <widget class="QSpinBox" name="addEachMoveSec1">
                 <property name="minimumSize">
@@ -588,60 +530,49 @@
                 <property name="maximum">
                  <number>3600</number>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_16">
-                <property name="text">
-                 <string>秒</string>
+                <property name="suffix">
+                 <string> 秒</string>
+                </property>
+                <property name="accessibleName">
+                 <string>1手ごとの加算</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_12">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
              </layout>
             </item>
            </layout>
+           <property name="title">
+            <string>共通の時間設定</string>
+           </property>
           </widget>
          </item>
          <item>
           <widget class="QGroupBox" name="groupBoxSecondPlayerTimeSettings">
-           <property name="title">
-            <string>後手／上手に異なる時間を設定</string>
-           </property>
            <property name="checkable">
             <bool>true</bool>
            </property>
            <property name="checked">
             <bool>false</bool>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_6">
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_7">
-              <item>
-               <widget class="QLabel" name="label">
-                <property name="minimumSize">
-                 <size>
-                  <width>60</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>持ち時間</string>
-                </property>
-               </widget>
-              </item>
+           <layout class="QGridLayout" name="timeGrid2" columnstretch="0,0,1">
+            <property name="horizontalSpacing">
+             <number>8</number>
+            </property>
+            <property name="verticalSpacing">
+             <number>8</number>
+            </property>
+            <item row="0" column="0">
+             <widget class="QLabel" name="timeLabel2_0">
+              <property name="text">
+               <string>持ち時間</string>
+              </property>
+              <property name="buddy">
+               <cstring>basicTimeHour2</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <layout class="QHBoxLayout" name="timeRow2_0">
               <item>
                <widget class="QSpinBox" name="basicTimeHour2">
                 <property name="minimumSize">
@@ -650,12 +581,11 @@
                   <height>0</height>
                  </size>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_4">
-                <property name="text">
-                 <string>時間</string>
+                <property name="suffix">
+                 <string> 時間</string>
+                </property>
+                <property name="accessibleName">
+                 <string>持ち時間（時間）</string>
                 </property>
                </widget>
               </item>
@@ -670,45 +600,28 @@
                 <property name="maximum">
                  <number>59</number>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_5">
-                <property name="text">
-                 <string>分</string>
+                <property name="suffix">
+                 <string> 分</string>
+                </property>
+                <property name="accessibleName">
+                 <string>持ち時間（分）</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_3">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
              </layout>
             </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_9">
-              <item>
-               <widget class="QLabel" name="label_3">
-                <property name="minimumSize">
-                 <size>
-                  <width>60</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>秒読み</string>
-                </property>
-               </widget>
-              </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="timeLabel2_1">
+              <property name="text">
+               <string>秒読み</string>
+              </property>
+              <property name="buddy">
+               <cstring>byoyomiSec2</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <layout class="QHBoxLayout" name="timeRow2_1">
               <item>
                <widget class="QSpinBox" name="byoyomiSec2">
                 <property name="minimumSize">
@@ -720,45 +633,28 @@
                 <property name="maximum">
                  <number>3600</number>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_7">
-                <property name="text">
-                 <string>秒</string>
+                <property name="suffix">
+                 <string> 秒</string>
+                </property>
+                <property name="accessibleName">
+                 <string>秒読み</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_6">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
              </layout>
             </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_8">
-              <item>
-               <widget class="QLabel" name="label_14">
-                <property name="minimumSize">
-                 <size>
-                  <width>60</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>増加</string>
-                </property>
-               </widget>
-              </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="timeLabel2_2">
+              <property name="text">
+               <string>1手ごとの加算</string>
+              </property>
+              <property name="buddy">
+               <cstring>addEachMoveSec2</cstring>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <layout class="QHBoxLayout" name="timeRow2_2">
               <item>
                <widget class="QSpinBox" name="addEachMoveSec2">
                 <property name="minimumSize">
@@ -770,370 +666,380 @@
                 <property name="maximum">
                  <number>3600</number>
                 </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_6">
-                <property name="text">
-                 <string>秒</string>
+                <property name="suffix">
+                 <string> 秒</string>
+                </property>
+                <property name="accessibleName">
+                 <string>1手ごとの加算</string>
                 </property>
                </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_7">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
               </item>
              </layout>
             </item>
            </layout>
+           <property name="title">
+            <string>後手／上手に異なる時間を設定</string>
+           </property>
+           <property name="toolTip">
+            <string>チェックを外すと、両者に共通の時間設定を使います。</string>
+           </property>
           </widget>
          </item>
         </layout>
        </item>
        <item>
+        <widget class="QLabel" name="labelTimeNote">
+         <property name="text">
+          <string>秒読みと加算は両者とも同じ方式です。一方を設定すると、もう一方は両者とも0になります。</string>
+         </property>
+         <property name="wordWrap">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QGroupBox" name="groupBox_5">
          <property name="title">
-          <string>設定</string>
+          <string>対局条件</string>
          </property>
-         <layout class="QVBoxLayout" name="settingsOuterLayout">
-          <property name="spacing">
+         <layout class="QGridLayout" name="gameConditionsGrid" columnstretch="0,1,2">
+          <property name="horizontalSpacing">
+           <number>12</number>
+          </property>
+          <property name="verticalSpacing">
            <number>8</number>
           </property>
-          <item>
-           <layout class="QHBoxLayout" name="settingsMainLayout">
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout_5">
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout">
-              <item>
-               <widget class="QLabel" name="label_9">
-                <property name="text">
-                 <string>開始局面</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="comboBoxStartingPosition">
-                <property name="currentIndex">
-                 <number>1</number>
-                </property>
-                <item>
-                 <property name="text">
-                  <string>現在の局面</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>平手</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>香落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>右香落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>角落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>飛車落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>飛香落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>二枚落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>三枚落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>四枚落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>五枚落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>左五枚落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>六枚落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>八枚落ち</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>十枚落ち</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_8">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_10">
-              <item>
-               <widget class="QLabel" name="label_17">
-                <property name="text">
-                 <string>最大手数</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QSpinBox" name="spinBoxMaxMoves">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximum">
-                 <number>9999</number>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_5">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_19">
-              <item>
-               <widget class="QLabel" name="label_19">
-                <property name="text">
-                 <string>連続対局</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QSpinBox" name="spinBoxConsecutiveGames">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximum">
-                 <number>9999</number>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_17">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <layout class="QHBoxLayout" name="horizontalLayoutJishogi">
-              <item>
-               <widget class="QLabel" name="labelJishogi">
-                <property name="text">
-                 <string>持将棋</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QComboBox" name="comboBoxJishogi">
-                <property name="minimumSize">
-                 <size>
-                  <width>80</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <item>
-                 <property name="text">
-                  <string>なし</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>24点法</string>
-                 </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>27点法</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacerJishogi">
-                <property name="orientation">
-                 <enum>Qt::Orientation::Horizontal</enum>
-                </property>
-                <property name="sizeHint" stdset="0">
-                 <size>
-                  <width>40</width>
-                  <height>20</height>
-                 </size>
-                </property>
-               </spacer>
-              </item>
-             </layout>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <layout class="QVBoxLayout" name="verticalLayout">
-            <item>
-             <widget class="QCheckBox" name="checkBoxShowHumanInFront">
-              <property name="text">
-               <string>人を手前に表示する</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="checkBoxLoseOnTimeOut">
-              <property name="text">
-               <string>時間切れを負けにする</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="checkBoxSwitchTurnEachGame">
-              <property name="text">
-               <string>1局ごとに手番を入れ替える</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-          <item>
-           <spacer name="settingsRightSpacer">
-            <property name="orientation">
-             <enum>Qt::Orientation::Horizontal</enum>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_9">
+            <property name="text">
+             <string>開始局面</string>
             </property>
-            <property name="sizeHint" stdset="0">
+            <property name="buddy">
+             <cstring>comboBoxStartingPosition</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboBoxStartingPosition">
+            <property name="currentIndex">
+             <number>1</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>現在の局面</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>平手</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>香落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>右香落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>角落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>飛車落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>飛香落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>二枚落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>三枚落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>四枚落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>五枚落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>左五枚落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>六枚落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>八枚落ち</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>十枚落ち</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_17">
+            <property name="text">
+             <string>最大手数</string>
+            </property>
+            <property name="buddy">
+             <cstring>spinBoxMaxMoves</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QSpinBox" name="spinBoxMaxMoves">
+            <property name="minimumSize">
              <size>
-              <width>40</width>
-              <height>20</height>
+              <width>80</width>
+              <height>0</height>
              </size>
             </property>
-           </spacer>
+            <property name="maximum">
+             <number>9999</number>
+            </property>
+            <property name="suffix">
+             <string> 手</string>
+            </property>
+            <property name="specialValueText">
+             <string>無制限</string>
+            </property>
+           </widget>
           </item>
-           </layout>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_19">
+            <property name="text">
+             <string>連続対局</string>
+            </property>
+            <property name="buddy">
+             <cstring>spinBoxConsecutiveGames</cstring>
+            </property>
+           </widget>
           </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayoutAutoSaveKifu">
-            <property name="spacing">
-             <number>6</number>
+          <item row="2" column="1">
+           <widget class="QSpinBox" name="spinBoxConsecutiveGames">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximum">
+             <number>9999</number>
+            </property>
+            <property name="minimum">
+             <number>1</number>
+            </property>
+            <property name="suffix">
+             <string> 局</string>
+            </property>
+            <property name="toolTip">
+             <string>エンジン同士の対局で利用できます。</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="labelJishogi">
+            <property name="text">
+             <string>持将棋</string>
+            </property>
+            <property name="buddy">
+             <cstring>comboBoxJishogi</cstring>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QComboBox" name="comboBoxJishogi">
+            <property name="minimumSize">
+             <size>
+              <width>80</width>
+              <height>0</height>
+             </size>
             </property>
             <item>
-             <widget class="QCheckBox" name="checkBoxAutoSaveKifu">
-              <property name="text">
-               <string>棋譜自動保存</string>
-              </property>
-             </widget>
+             <property name="text">
+              <string>なし</string>
+             </property>
             </item>
             <item>
-             <widget class="QLineEdit" name="lineEditKifuSaveDir">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>200</width>
-                <height>0</height>
-               </size>
-              </property>
-              <property name="readOnly">
-               <bool>true</bool>
-              </property>
-              <property name="placeholderText">
-               <string>保存先を選択...</string>
-              </property>
-             </widget>
+             <property name="text">
+              <string>24点法</string>
+             </property>
             </item>
             <item>
-             <widget class="QPushButton" name="pushButtonSelectKifuDir">
-              <property name="text">
-               <string>...</string>
-              </property>
-              <property name="maximumSize">
-               <size>
-                <width>30</width>
-                <height>16777215</height>
-               </size>
-              </property>
-             </widget>
+             <property name="text">
+              <string>27点法</string>
+             </property>
             </item>
-           </layout>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QCheckBox" name="checkBoxShowHumanInFront">
+            <property name="text">
+             <string>人を手前に表示する</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QCheckBox" name="checkBoxLoseOnTimeOut">
+            <property name="text">
+             <string>時間切れを負けにする</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QCheckBox" name="checkBoxSwitchTurnEachGame">
+            <property name="text">
+             <string>1局ごとに手番を入れ替える</string>
+            </property>
+            <property name="toolTip">
+             <string>エンジン同士で2局以上対局する場合に利用できます。</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxKifuSave">
+         <property name="title">
+          <string>棋譜の保存</string>
+         </property>
+         <layout class="QHBoxLayout" name="horizontalLayoutAutoSaveKifu">
+          <property name="spacing">
+           <number>6</number>
+          </property>
+          <item>
+           <widget class="QCheckBox" name="checkBoxAutoSaveKifu">
+            <property name="text">
+             <string>自動保存する</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEditKifuSaveDir">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>200</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="readOnly">
+             <bool>true</bool>
+            </property>
+            <property name="placeholderText">
+             <string>保存先を選択...</string>
+            </property>
+            <property name="accessibleName">
+             <string>棋譜の保存先</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButtonSelectKifuDir">
+            <property name="text">
+             <string>参照...</string>
+            </property>
+            <property name="toolTip">
+             <string>棋譜の保存先フォルダを選択します。</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="utilityLayout">
+         <item>
+          <widget class="QPushButton" name="pushButtonSwapSides">
+           <property name="text">
+            <string>↔ 先後入れ替え</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonResetToDefault">
+           <property name="text">
+            <string>初期設定に戻す</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonFontSizeDown">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>28</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>A-</string>
+           </property>
+           <property name="toolTip">
+            <string>文字を小さくする</string>
+           </property>
+           <property name="accessibleName">
+            <string>文字を小さくする</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButtonFontSizeUp">
+           <property name="minimumSize">
+            <size>
+             <width>40</width>
+             <height>28</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>A+</string>
+           </property>
+           <property name="toolTip">
+            <string>文字を大きくする</string>
+           </property>
+           <property name="accessibleName">
+            <string>文字を大きくする</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="utilitySpacer">
+           <property name="orientation">
+            <enum>Qt::Orientation::Horizontal</enum>
+           </property>
+          </spacer>
+         </item>
+        </layout>
        </item>
       </layout>
      </widget>
@@ -1142,13 +1048,6 @@
    <item>
     <layout class="QHBoxLayout" name="buttonLayout">
      <item>
-      <widget class="QPushButton" name="pushButtonSwapSides">
-       <property name="text">
-        <string>↔ 先後入れ替え</string>
-       </property>
-      </widget>
-     </item>
-     <item>
       <widget class="QPushButton" name="pushButtonSaveSettingsOnly">
        <property name="text">
         <string>設定のみ保存</string>
@@ -1156,47 +1055,9 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButtonResetToDefault">
+      <widget class="QLabel" name="labelSaveStatus">
        <property name="text">
-        <string>初期設定に戻す</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButtonFontSizeDown">
-       <property name="minimumSize">
-        <size>
-         <width>40</width>
-         <height>28</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>28</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>A-</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="pushButtonFontSizeUp">
-       <property name="minimumSize">
-        <size>
-         <width>40</width>
-         <height>28</height>
-        </size>
-       </property>
-       <property name="maximumSize">
-        <size>
-         <width>40</width>
-         <height>28</height>
-        </size>
-       </property>
-       <property name="text">
-        <string>A+</string>
+        <string></string>
        </property>
       </widget>
      </item>
@@ -1204,12 +1065,6 @@
       <spacer name="buttonSpacer">
        <property name="orientation">
         <enum>Qt::Orientation::Horizontal</enum>
-       </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
        </property>
       </spacer>
      </item>
@@ -1224,6 +1079,39 @@
    </item>
   </layout>
  </widget>
- <resources/>
- <connections/>
+ <tabstops>
+  <tabstop>comboBoxPlayer1</tabstop>
+  <tabstop>lineEditHumanName1</tabstop>
+  <tabstop>pushButtonEngineSettings1</tabstop>
+  <tabstop>comboBoxPlayer2</tabstop>
+  <tabstop>lineEditHumanName2</tabstop>
+  <tabstop>pushButtonEngineSettings2</tabstop>
+  <tabstop>basicTimeHour1</tabstop>
+  <tabstop>basicTimeMinutes1</tabstop>
+  <tabstop>byoyomiSec1</tabstop>
+  <tabstop>addEachMoveSec1</tabstop>
+  <tabstop>groupBoxSecondPlayerTimeSettings</tabstop>
+  <tabstop>basicTimeHour2</tabstop>
+  <tabstop>basicTimeMinutes2</tabstop>
+  <tabstop>byoyomiSec2</tabstop>
+  <tabstop>addEachMoveSec2</tabstop>
+  <tabstop>comboBoxStartingPosition</tabstop>
+  <tabstop>spinBoxMaxMoves</tabstop>
+  <tabstop>spinBoxConsecutiveGames</tabstop>
+  <tabstop>comboBoxJishogi</tabstop>
+  <tabstop>checkBoxShowHumanInFront</tabstop>
+  <tabstop>checkBoxLoseOnTimeOut</tabstop>
+  <tabstop>checkBoxSwitchTurnEachGame</tabstop>
+  <tabstop>checkBoxAutoSaveKifu</tabstop>
+  <tabstop>lineEditKifuSaveDir</tabstop>
+  <tabstop>pushButtonSelectKifuDir</tabstop>
+  <tabstop>pushButtonSwapSides</tabstop>
+  <tabstop>pushButtonResetToDefault</tabstop>
+  <tabstop>pushButtonFontSizeDown</tabstop>
+  <tabstop>pushButtonFontSizeUp</tabstop>
+  <tabstop>pushButtonSaveSettingsOnly</tabstop>
+  <tabstop>buttonBox</tabstop>
+ </tabstops>
+ <resources></resources>
+ <connections></connections>
 </ui>

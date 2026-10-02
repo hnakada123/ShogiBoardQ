@@ -10,10 +10,16 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QScrollArea>
+#include <QScrollBar>
 #include <QSettings>
 #include <QSpinBox>
 #include <QTimer>
+#include <QTranslator>
+#include <QLibraryInfo>
 #include "startgamedialog.h"
+#include "applicationfonts.h"
+#include "gamesettings.h"
 #include "settingscommon.h"
 #include "gamestartcoordinator.h"
 #include "gamestartoptionsbuilder.h"
@@ -121,6 +127,55 @@ private slots:
         StartGameDialog reopened;
         QCOMPARE(child<QSpinBox>(reopened,"byoyomiSec2")->value(),3);
         QVERIFY(child<QGroupBox>(reopened,"groupBoxSecondPlayerTimeSettings")->isChecked());
+    }
+    void dialogPresentation_data() {
+        QTest::addColumn<bool>("english");
+        QTest::newRow("japanese") << false;
+        QTest::newRow("english") << true;
+    }
+    void dialogPresentation() {
+        QFETCH(bool, english);
+        QTranslator translator;
+        QTranslator qtTranslator;
+        if (english) {
+            QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_en.qm")));
+            QCoreApplication::installTranslator(&translator);
+        } else if (qtTranslator.load(QStringLiteral("qt_ja"),
+                                     QLibraryInfo::path(QLibraryInfo::TranslationsPath))) {
+            QCoreApplication::installTranslator(&qtTranslator);
+        }
+        auto& settings = SettingsCommon::openSettings();
+        settings.beginWriteArray(QStringLiteral("Engines"));
+        settings.setArrayIndex(0);
+        settings.setValue(QStringLiteral("name"), QStringLiteral("Hayanagi 1.5.0"));
+        settings.setValue(QStringLiteral("path"), QStringLiteral(REPO "/tests/gui/mock_usi.py"));
+        settings.endArray();
+        settings.sync();
+        GameSettings::setStartGameDialogFontSize(12);
+        StartGameDialog dialog;
+        child<QComboBox>(dialog, "comboBoxPlayer2")->setCurrentIndex(1);
+        child<QGroupBox>(dialog, "groupBoxSecondPlayerTimeSettings")->setChecked(true);
+        child<QSpinBox>(dialog, "byoyomiSec1")->setValue(10);
+        child<QSpinBox>(dialog, "byoyomiSec2")->setValue(4);
+        dialog.resize(1000, 800);
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* scroll = child<QScrollArea>(dialog, "scrollArea");
+        QTRY_COMPARE(scroll->horizontalScrollBar()->maximum(), 0);
+        auto* start = child<QDialogButtonBox>(dialog, "buttonBox")->button(QDialogButtonBox::Ok);
+        QVERIFY(start->isDefault());
+        QTRY_COMPARE(scroll->verticalScrollBar()->maximum(), 0);
+        const QString suffix = english ? QStringLiteral("-en") : QString();
+        QVERIFY(dialog.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/start-game-dialog%1.png").arg(suffix)));
+        auto* increase = child<QPushButton>(dialog, "pushButtonFontSizeUp");
+        while (increase->isEnabled()) increase->click();
+        dialog.resize(800, 480);
+        QTest::qWait(50);
+        const QRect startRect(start->mapTo(&dialog, QPoint()), start->size());
+        QVERIFY(dialog.rect().contains(startRect));
+        scroll->ensureWidgetVisible(increase);
+        QVERIFY(increase->height() >= increase->sizeHint().height());
+        QVERIFY(dialog.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/start-game-dialog-large-font%1.png").arg(suffix)));
     }
     void sameTimeCopiesFirstPlayer() {
         StartGameDialog d;
@@ -379,8 +434,9 @@ int main(int argc,char** argv) {
     if (!config.isValid()) return 1;
     qputenv("XDG_CONFIG_HOME", config.path().toUtf8());
     qputenv("AUDIT_USI_LOG", (config.path() + QStringLiteral("/usi.log")).toUtf8());
-    qputenv("QT_QPA_PLATFORM","offscreen");
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) qputenv("QT_QPA_PLATFORM", "offscreen");
     QApplication app(argc,argv);
+    ApplicationFonts::initialize();
     app.setApplicationName("TestStartGameFlow");
     TestStartGameFlow test;
     return QTest::qExec(&test,argc,argv);

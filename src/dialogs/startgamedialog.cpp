@@ -13,6 +13,7 @@
 #include <QFileDialog>
 #include <QStandardPaths>
 #include <QAbstractItemView>
+#include <QTimer>
 #include <utility>
 
 // ============================================================
@@ -39,11 +40,23 @@ StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(std::mak
     ui->pushButtonFontSizeUp->setStyleSheet(ButtonStyles::fontButton());
     ui->pushButtonSelectKifuDir->setStyleSheet(ButtonStyles::secondaryNeutral());
 
+    // 補助操作でEnterの既定動作が変わらないよう、開始ボタンを明示する。
+    const auto buttons = findChildren<QPushButton*>();
+    for (QPushButton* button : buttons) {
+        button->setAutoDefault(false);
+    }
+    auto* startButton = ui->buttonBox->button(QDialogButtonBox::Ok);
+    startButton->setText(tr("対局開始"));
+    startButton->setDefault(true);
+    startButton->setToolTip(tr("設定を保存して対局を開始します。"));
+
     loadFontSizeSettings();
     loadEngineConfigurations();
     populatePlayerComboBoxes();
     loadGameSettings();
     connectSignalsAndSlots();
+    updateTimeSettingsTitle();
+    updateKifuSaveEnabled();
 
     // ウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, GameSettings::startGameDialogSize());
@@ -67,7 +80,7 @@ void StartGameDialog::connectSignalsAndSlots()
             &StartGameDialog::onSecondPlayerSettingsClicked);
     connect(ui->pushButtonSwapSides, &QPushButton::clicked, this, &StartGameDialog::swapSides);
     connect(ui->pushButtonResetToDefault, &QPushButton::clicked, this, &StartGameDialog::resetSettingsToDefault);
-    connect(ui->pushButtonSaveSettingsOnly, &QPushButton::clicked, this, &StartGameDialog::saveGameSettings);
+    connect(ui->pushButtonSaveSettingsOnly, &QPushButton::clicked, this, &StartGameDialog::saveSettingsOnly);
 
     // OK/キャンセル: OKは設定保存→パラメータ取得→ダイアログ閉じの順で実行される
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &StartGameDialog::saveGameSettings);
@@ -97,6 +110,11 @@ void StartGameDialog::connectSignalsAndSlots()
 
     // 棋譜保存先ディレクトリ選択
     connect(ui->pushButtonSelectKifuDir, &QPushButton::clicked, this, &StartGameDialog::onSelectKifuDirClicked);
+    connect(ui->checkBoxAutoSaveKifu, &QCheckBox::toggled, this, &StartGameDialog::updateKifuSaveEnabled);
+    connect(ui->groupBoxSecondPlayerTimeSettings, &QGroupBox::toggled,
+            this, &StartGameDialog::updateTimeSettingsTitle);
+    connect(ui->spinBoxConsecutiveGames, QOverload<int>::of(&QSpinBox::valueChanged),
+            this, &StartGameDialog::updateConsecutiveGamesEnabled);
 }
 
 // ============================================================
@@ -294,7 +312,8 @@ void StartGameDialog::updateGameSettingsFromDialog()
     m_isAutoSaveKifu = ui->checkBoxAutoSaveKifu->isChecked();
     m_kifuSaveDir = ui->lineEditKifuSaveDir->text();
     m_isLoseOnTimeout = ui->checkBoxLoseOnTimeOut->isChecked();
-    m_isSwitchTurnEachGame = ui->checkBoxSwitchTurnEachGame->isChecked();
+    m_isSwitchTurnEachGame = ui->checkBoxSwitchTurnEachGame->isEnabled()
+                            && ui->checkBoxSwitchTurnEachGame->isChecked();
 }
 
 // ============================================================
@@ -383,6 +402,8 @@ void StartGameDialog::applyFontSize(int size)
             comboBox->view()->setFont(font);
         }
     }
+    ui->pushButtonFontSizeDown->setEnabled(size > MinFontSize);
+    ui->pushButtonFontSizeUp->setEnabled(size < MaxFontSize);
 }
 
 void StartGameDialog::loadFontSizeSettings()
@@ -439,11 +460,34 @@ void StartGameDialog::updateConsecutiveGamesEnabled()
     bool enableConsecutive = (isEngine1 && isEngine2);
 
     ui->spinBoxConsecutiveGames->setEnabled(enableConsecutive);
+    ui->label_19->setEnabled(enableConsecutive);
 
     // 人間が含まれる場合は連続対局数を1に固定
     if (!enableConsecutive) {
         ui->spinBoxConsecutiveGames->setValue(1);
     }
+    ui->checkBoxSwitchTurnEachGame->setEnabled(
+        enableConsecutive && ui->spinBoxConsecutiveGames->value() > 1);
+}
+
+void StartGameDialog::updateKifuSaveEnabled()
+{
+    const bool enabled = ui->checkBoxAutoSaveKifu->isChecked();
+    ui->lineEditKifuSaveDir->setEnabled(enabled);
+    ui->pushButtonSelectKifuDir->setEnabled(enabled);
+}
+
+void StartGameDialog::updateTimeSettingsTitle()
+{
+    ui->groupBox_7->setTitle(ui->groupBoxSecondPlayerTimeSettings->isChecked()
+                                ? tr("先手／下手の時間設定") : tr("共通の時間設定"));
+}
+
+void StartGameDialog::saveSettingsOnly()
+{
+    saveGameSettings();
+    ui->labelSaveStatus->setText(tr("設定を保存しました"));
+    QTimer::singleShot(3000, ui->labelSaveStatus, &QLabel::clear);
 }
 
 void StartGameDialog::onSelectKifuDirClicked()
