@@ -4,11 +4,13 @@
 | --- | --- |
 | `shogiboardq.png` | 元画像。macOS等のウィンドウとバージョン情報ダイアログで使用 |
 | `shogiboardq.icns` | macOSアプリケーションバンドル用 |
-| `linux/shogiboardq.png` | Linux用512×512px。絵柄の幅は画像の約89%（元画像は約80%） |
+| `linux/shogiboardq.png` | Linux用512×512px。控えめな角丸と透明背景。絵柄の幅は画像の約95%（元画像は約80%） |
 | `windows/shogiboardq.png` | Windows用512×512px。外側の余白なし。高DPI表示とICOの生成元 |
 | `shogiboardq.ico` | Windows実行ファイルとウィンドウ用。16/20/24/32/40/48/64/96/128/256pxを収録 |
 
 Linux用はQtリソース、CMakeのhicolor/512x512へのインストール、AppImageで共用します。
+KDEパネルの小さなアイコンでも図柄が小さく見えないよう、Linux用の透明な余白を
+左右それぞれ約2〜3%に抑えています。角の外側も透明で、木目・黒いQ・「将」を維持しています。
 Windows用はICOに加えて512pxのPNGもQIconに登録します。
 macOS用のPNG・ICNSは今回変更していません。
 
@@ -26,12 +28,14 @@ magick resources/icons/windows/shogiboardq.png \\
 
 ```text
 Use case: precise-object-edit
-Asset type: ShogiBoardQ Linux desktop application icon.
-Input image 1 is the EDIT TARGET, the existing production icon.
-Primary request: Recreate this SAME icon with much less transparent outer padding, so the visible icon is larger among Linux application icons. Preserve the existing identity and artwork as faithfully as possible.
-Composition/framing: Square 1024x1024 PNG with actual transparent alpha background. The square wooden board should occupy approximately 944x944 pixels, centered with only 40 pixels of transparent padding on each edge (92% canvas width and height). Keep the entire design visible, no clipping. This is a precise enlargement/reframing edit, not a new logo design.
-Invariants: Keep the same straight-on square honey-gold wooden board, its wood grain and thin dark grid, the same oversized elegant BLACK capital Q ring and tail, and the same central black Japanese character "将" with identical calligraphic strokes and proportions. Preserve relative placement of all elements, original colors, geometry, sharp square board corners, and original visual style.
-Constraints: only reduce outer blank margin and scale the existing artwork to use the space. No extra symbols, text, decorative borders, drop shadows, rounded corners, lighting changes, perspective, mockup, or backdrop. The outside border must be genuinely transparent, never a checkerboard or black fill. Return the single finished icon.
+Asset type: ShogiBoardQ Linux desktop and KDE taskbar application icon, transparent PNG.
+Input image 1 is the EDIT TARGET: the original production ShogiBoardQ icon supplied by the user.
+Primary request: Keep this SAME logo and artwork, enlarge the wooden square to remove almost all empty outer padding, and gently round only the four outside corners.
+Composition/framing: Square 1024x1024 canvas. Wooden board centered from approximately x=12 to x=1012 and y=12 to y=1012, occupying 97.6% of the canvas width and height. Just 12 pixels of transparent margin on each side. Corner radius approximately 55 pixels (subtle rounding, NOT a circle or squircle). Preserve the entire design inside the board.
+Invariants: Keep the straight-on honey-gold wooden board, fine wood grain, original thin dark grid, large black capital Q with its elegant long tail, and exact central black Japanese character "将" in the same calligraphic style, stroke shapes, proportions, and relative placement as the input. The black Q and 将 must remain clearly legible at 32x32 pixels. This is a padding and outer-corner edit, not a new logo design.
+Background: genuine transparent alpha outside the rounded wooden board, including the four corner cutouts.
+Avoid: checkerboard, solid background, shadows, glow, bevel, 3D perspective, new colors, extra strokes, additional letters, watermark, mockup. Keep the logo itself sharp and unchanged; round only the outside wood silhouette.
+Return a single final transparent icon.
 ```
 
 ## Windows用の生成プロンプト
