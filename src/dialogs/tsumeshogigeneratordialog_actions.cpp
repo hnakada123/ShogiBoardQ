@@ -8,25 +8,34 @@
 #include "tsumeshogiexportheaderbuilder.h"
 #include "tsumeshogikanjibuilder.h"
 #include "tsumeshogisettings.h"
+#include "tablestyles.h"
 
 #include <QApplication>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QComboBox>
-#include <QFile>
+#include <QSaveFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QLabel>
+#include <QHeaderView>
 #include <QMessageBox>
+#include <QProgressBar>
+#include <QPushButton>
+#include <QScrollBar>
 #include <QSpinBox>
 #include <QTableWidget>
 #include <QTextStream>
+#include <QToolButton>
 #include <QWidget>
+#include <algorithm>
 #include <utility>
 
 void TsumeshogiGeneratorDialog::onPositionFound(const QString& sfen, const QStringList& pv)
 {
     const int row = m_tableResults->rowCount();
+    const auto* scroll = m_tableResults->verticalScrollBar();
+    const bool followResults = scroll->value() == scroll->maximum();
     m_tableResults->insertRow(row);
 
     auto* itemNum = new QTableWidgetItem(QString::number(row + 1));
@@ -35,32 +44,42 @@ void TsumeshogiGeneratorDialog::onPositionFound(const QString& sfen, const QStri
 
     auto* itemSfen = new QTableWidgetItem(sfen);
     itemSfen->setData(Qt::UserRole, QVariant(pv));
+    itemSfen->setToolTip(sfen);
     m_tableResults->setItem(row, 1, itemSfen);
 
-    m_tableResults->setItem(row, 2, new QTableWidgetItem());
+    auto* boardItem = new QTableWidgetItem(tr("表示"));
+    boardItem->setToolTip(tr("盤面と詰み手順を表示します。行のダブルクリック、または Enter キーでも開けます。"));
+    m_tableResults->setItem(row, 2, boardItem);
 
     auto* itemMoves = new QTableWidgetItem(QString::number(pv.size()));
     itemMoves->setTextAlignment(Qt::AlignCenter);
     m_tableResults->setItem(row, 3, itemMoves);
 
-    m_tableResults->scrollToBottom();
+    if (followResults) m_tableResults->scrollToBottom();
+    updateResultActions();
+    updateProgressBar();
 }
 
 void TsumeshogiGeneratorDialog::onProgressUpdated(int tried, int found, qint64 elapsedMs)
 {
-    m_labelProgress->setText(tr("探索済み: %1 局面 / 発見: %2 局面").arg(tried).arg(found));
+    m_labelProgress->setText(tr("探索済み: %1 局面 / 採択: %2 局面").arg(tried).arg(found));
     m_labelElapsed->setText(tr("経過時間: %1").arg(formatElapsedTime(elapsedMs)));
 }
 
 void TsumeshogiGeneratorDialog::onGeneratorFinished()
 {
     setRunningState(false);
+    if (m_runFailed) return;
+    setStatusText(m_stopRequested ? tr("停止しました（%1 局面を採択）").arg(m_tableResults->rowCount())
+                                 : tr("生成完了（%1 局面を採択）").arg(m_tableResults->rowCount()));
 }
 
 void TsumeshogiGeneratorDialog::onGeneratorError(const QString& message)
 {
-    QMessageBox::warning(this, tr("エラー"), message);
+    m_runFailed = true;
     setRunningState(false);
+    setStatusText(tr("エラー: %1").arg(message));
+    QMessageBox::warning(this, tr("エラー"), message);
 }
 
 void TsumeshogiGeneratorDialog::onSaveToFile()
@@ -76,7 +95,7 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
 
     TsumeshogiSettings::setTsumeshogiGeneratorLastSaveDirectory(QFileInfo(filePath).absolutePath());
 
-    QFile file(filePath);
+    QSaveFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QMessageBox::warning(this, tr("エラー"),
                              tr("ファイルを保存できませんでした: %1").arg(file.errorString()));
@@ -99,12 +118,19 @@ void TsumeshogiGeneratorDialog::onSaveToFile()
             out << line << '\n';
         }
     }
+    out.flush();
+    if (out.status() != QTextStream::Ok || !file.commit()) {
+        QMessageBox::warning(this, tr("エラー"),
+                             tr("ファイルを保存できませんでした: %1").arg(file.errorString()));
+    }
 }
 
 void TsumeshogiGeneratorDialog::onCopySelected()
 {
-    const auto selectedRows = m_tableResults->selectionModel()->selectedRows(1);
+    auto selectedRows = m_tableResults->selectionModel()->selectedRows(1);
     if (selectedRows.isEmpty()) return;
+    std::sort(selectedRows.begin(), selectedRows.end(),
+              [](const QModelIndex& left, const QModelIndex& right) { return left.row() < right.row(); });
 
     QStringList lines;
     for (const auto& index : std::as_const(selectedRows)) {
@@ -139,6 +165,7 @@ void TsumeshogiGeneratorDialog::onFontDecrease()
 
 void TsumeshogiGeneratorDialog::onRestoreDefaults()
 {
+    if (m_running) return;
     m_spinTargetMoves->setValue(3);
     m_spinMaxAttack->setValue(4);
     m_spinMaxDefend->setValue(1);
@@ -151,6 +178,12 @@ void TsumeshogiGeneratorDialog::onRestoreDefaults()
 void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)
 {
     if (!index.isValid() || index.column() != 2) return;
+    onResultTableActivated(index);
+}
+
+void TsumeshogiGeneratorDialog::onResultTableActivated(const QModelIndex& index)
+{
+    if (!index.isValid()) return;
 
     const auto* sfenItem = m_tableResults->item(index.row(), 1);
     if (!sfenItem) return;
@@ -164,6 +197,34 @@ void TsumeshogiGeneratorDialog::onResultTableClicked(const QModelIndex& index)
     dlg->setKanjiPv(TsumeshogiKanjiBuilder::buildKanjiPv(sfen, pv));
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->show();
+}
+
+void TsumeshogiGeneratorDialog::updateResultActions()
+{
+    const bool hasResults = m_tableResults->rowCount() > 0;
+    m_btnSaveToFile->setEnabled(hasResults);
+    m_btnCopyAll->setEnabled(hasResults);
+    m_btnCopySelected->setEnabled(m_tableResults->selectionModel()->hasSelection());
+    m_labelEmptyResults->setVisible(!hasResults);
+    m_labelEmptyResults->setText(m_running
+        ? tr("条件に合う局面を探索しています。\n採択した局面から順に表示します。")
+        : tr("生成した局面がここに表示されます。\n設定を確認して「開始」を押してください。"));
+}
+
+void TsumeshogiGeneratorDialog::updateProgressBar()
+{
+    const int limit = m_lastRunStartedAt.isValid() ? m_lastRunSettings.maxPositionsToFind
+                                                : m_spinMaxPositions->value();
+    const int found = m_tableResults->rowCount();
+    m_progressBar->setRange(0, limit > 0 ? limit : (m_running ? 0 : qMax(1, found)));
+    m_progressBar->setValue(found);
+    m_progressBar->setFormat(limit > 0 ? tr("%v / %m 局面") : tr("%1 局面（無制限）").arg(found));
+}
+
+void TsumeshogiGeneratorDialog::toggleHelp(bool visible)
+{
+    m_labelHelp->setVisible(visible);
+    m_btnHelp->setArrowType(visible ? Qt::DownArrow : Qt::RightArrow);
 }
 
 void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
@@ -203,32 +264,25 @@ void TsumeshogiGeneratorDialog::applyFontSize()
     }
 
     applyTableHeaderStyle();
+    m_tableResults->verticalHeader()->setDefaultSectionSize(QFontMetrics(f).height() + 10);
+    m_btnFontDecrease->setEnabled(size > 8);
+    m_btnFontIncrease->setEnabled(size < 24);
 }
 
 void TsumeshogiGeneratorDialog::applyTableHeaderStyle()
 {
     if (!m_tableResults) return;
 
-    m_tableResults->setStyleSheet(
-        QStringLiteral(
-            "QHeaderView::section {"
-            "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-            "    stop:0 #40acff, stop:1 #209cee);"
-            "  color: white;"
-            "  font-weight: normal;"
-            "  font-size: %1pt;"
-            "  padding: 2px 6px;"
-            "  border: none;"
-            "  border-bottom: 1px solid #209cee;"
-            "}").arg(m_fontHelper.fontSize()));
+    m_tableResults->setStyleSheet(TableStyles::thinking(m_fontHelper.fontSize()));
 }
 
 void TsumeshogiGeneratorDialog::setRunningState(bool running)
 {
-    m_btnStart->setEnabled(!running);
+    m_running = running;
+    m_btnStart->setEnabled(!running && !m_engineList.isEmpty());
     m_btnStop->setEnabled(running);
     m_comboEngine->setEnabled(!running);
-    m_btnEngineSetting->setEnabled(!running);
+    m_btnEngineSetting->setEnabled(!running && !m_engineList.isEmpty());
     m_spinTargetMoves->setEnabled(!running);
     m_spinMaxAttack->setEnabled(!running);
     m_spinMaxDefend->setEnabled(!running);
@@ -236,10 +290,9 @@ void TsumeshogiGeneratorDialog::setRunningState(bool running)
     m_spinTimeout->setEnabled(!running);
     m_spinMaxPositions->setEnabled(!running);
     m_checkAllowFinalAlternatives->setEnabled(!running);
-
-    if (!running) {
-        setStatusText(tr("待機中"));
-    }
+    m_btnRestoreDefaults->setEnabled(!running);
+    updateResultActions();
+    updateProgressBar();
 }
 
 void TsumeshogiGeneratorDialog::onSearchPhaseStarted()

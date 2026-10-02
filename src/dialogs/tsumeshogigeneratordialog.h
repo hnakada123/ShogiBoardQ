@@ -14,6 +14,7 @@
 class QCheckBox;
 class QComboBox;
 class QLabel;
+class QProgressBar;
 class QPushButton;
 class QSpinBox;
 class QTableWidget;
@@ -34,6 +35,9 @@ public:
     explicit TsumeshogiGeneratorDialog(QWidget* parent = nullptr);
     ~TsumeshogiGeneratorDialog() override;
 
+protected:
+    void done(int result) override;
+
 private slots:
     void onStartClicked();
     void onStopClicked();
@@ -52,6 +56,10 @@ private slots:
     void onFontDecrease();
     void onRestoreDefaults();
     void onResultTableClicked(const QModelIndex& index);
+    void onResultTableActivated(const QModelIndex& index);
+    void updateResultActions();
+    void updateProgressBar();
+    void toggleHelp(bool visible);
     void showEngineSettingsDialog();
 
 private:
@@ -64,6 +72,7 @@ private:
 
     void setupUi();
     void buildFormSection(QVBoxLayout* mainLayout);
+    void buildProgressSection(QVBoxLayout* mainLayout);
     void buildResultsSection(QVBoxLayout* mainLayout);
     void connectDialogSignals();
     void readEngineNameAndDir();
@@ -88,6 +97,8 @@ private:
     QSpinBox* m_spinTimeout = nullptr;
     QSpinBox* m_spinMaxPositions = nullptr;
     QCheckBox* m_checkAllowFinalAlternatives = nullptr; ///< 主手順の最終手の複数解を許容するか
+    QToolButton* m_btnHelp = nullptr;
+    QLabel* m_labelHelp = nullptr;
 
     // 制御ボタン
     QPushButton* m_btnStart = nullptr;
@@ -98,9 +109,11 @@ private:
     QLabel* m_labelElapsed = nullptr;
     QLabel* m_labelStatus = nullptr;
     QLabel* m_labelVerification = nullptr;
+    QProgressBar* m_progressBar = nullptr;
 
     // 結果テーブル
     QTableWidget* m_tableResults = nullptr;
+    QLabel* m_labelEmptyResults = nullptr;
 
     // フォントボタン
     QToolButton* m_btnFontDecrease = nullptr;
@@ -131,6 +144,9 @@ private:
     // 直近の生成で使った設定と開始日時（ファイル保存時のコメントヘッダに記録する）
     TsumeshogiGenerator::Settings m_lastRunSettings;
     QDateTime m_lastRunStartedAt;
+    bool m_running = false;
+    bool m_stopRequested = false;
+    bool m_runFailed = false;
 
     // フォントサイズヘルパー
     FontSizeHelper m_fontHelper;

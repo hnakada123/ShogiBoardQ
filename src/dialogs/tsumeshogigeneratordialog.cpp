@@ -1,79 +1,19 @@
 /// @file tsumeshogigeneratordialog.cpp
-/// @brief 詰将棋局面生成ダイアログクラスの実装
+/// @brief 詰将棋局面生成ダイアログの設定・生成制御
 
 #include "tsumeshogigeneratordialog.h"
-#include "tsumeshogikanjibuilder.h"
-#include "buttonstyles.h"
-#include "changeenginesettingsdialog.h"
 #include "tsumeshogisettings.h"
 #include "dialogutils.h"
-#include "tsumeshogigenerator.h"
-#include "pvboarddialog.h"
 #include "enginelistsettings.h"
 
-#include <QAbstractItemView>
-#include <QApplication>
 #include <QCheckBox>
-#include <QClipboard>
 #include <QComboBox>
-#include <QFile>
-#include <QFileDialog>
-#include <QFileInfo>
-#include <QFormLayout>
-#include <QGroupBox>
-#include <QHBoxLayout>
-#include <QHeaderView>
 #include <QLabel>
 #include <QMessageBox>
-#include <QPainter>
 #include <QPushButton>
 #include <QSpinBox>
-#include <QStyledItemDelegate>
 #include <QTableWidget>
-#include <QTextStream>
 #include <QToolButton>
-#include <QValidator>
-#include <QVBoxLayout>
-
-/// 「表示」ボタン列用のデリゲート
-/// 選択状態に関わらず青背景・白文字を維持する
-class BoardButtonDelegate : public QStyledItemDelegate
-{
-public:
-    explicit BoardButtonDelegate(QObject* parent = nullptr) : QStyledItemDelegate(parent) {}
-
-    void paint(QPainter* painter, const QStyleOptionViewItem& option,
-               const QModelIndex& /*index*/) const override
-    {
-        painter->save();
-
-        // 背景色（常に青色）
-        QColor bgColor(0x20, 0x9c, 0xee);
-        painter->fillRect(option.rect, bgColor);
-
-        // テキスト「表示」を白色で中央に描画
-        painter->setPen(Qt::white);
-        painter->drawText(option.rect, Qt::AlignCenter, QObject::tr("表示"));
-
-        painter->restore();
-    }
-};
-
-/// 奇数のみを受け付けるスピンボックス
-/// 詰将棋の手数は必ず奇数なので、偶数の直接入力は確定させない（前の値に戻る）
-class OddSpinBox : public QSpinBox
-{
-public:
-    explicit OddSpinBox(QWidget* parent = nullptr) : QSpinBox(parent) {}
-
-protected:
-    QValidator::State validate(QString& input, int& pos) const override
-    {
-        const QValidator::State state = QSpinBox::validate(input, pos);
-        if (state != QValidator::Acceptable) return state;
-        return (valueFromText(input) % 2 != 0) ? QValidator::Acceptable : QValidator::Intermediate;
-    }
-};
 
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     : QDialog(parent)
@@ -86,9 +26,12 @@ TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
     applyFontSize();
     readEngineNameAndDir();
     loadSettings();
+    DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
 
     // 初期状態
     setRunningState(false);
+    setStatusText(m_engineList.isEmpty()
+        ? tr("設定メニューで詰将棋エンジンを登録してください。") : tr("待機中"));
 }
 
 TsumeshogiGeneratorDialog::~TsumeshogiGeneratorDialog()
@@ -98,166 +41,11 @@ TsumeshogiGeneratorDialog::~TsumeshogiGeneratorDialog()
     saveSettings();
 }
 
-void TsumeshogiGeneratorDialog::setupUi()
+void TsumeshogiGeneratorDialog::done(int result)
 {
-    auto* mainLayout = new QVBoxLayout(this);
-    buildFormSection(mainLayout);
-    buildResultsSection(mainLayout);
-    connectDialogSignals();
-}
-
-void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
-{
-    // --- エンジン設定セクション ---
-    auto* engineLabel = new QLabel(tr("エンジン設定"), this);
-    engineLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
-    mainLayout->addWidget(engineLabel);
-
-    auto* engineLayout = new QHBoxLayout;
-    engineLayout->addWidget(new QLabel(tr("エンジン:"), this));
-    m_comboEngine = new QComboBox(this);
-    m_comboEngine->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-    engineLayout->addWidget(m_comboEngine);
-    m_btnEngineSetting = new QPushButton(tr("設定..."), this);
-    engineLayout->addWidget(m_btnEngineSetting);
-    mainLayout->addLayout(engineLayout);
-
-    // 「ちょうどN手」の判定はエンジンが最短手順を返すことを前提にしている
-    auto* engineNote = new QLabel(
-        tr("※ エンジンは最短手順を返す設定で使用してください（KomoringHeights の場合: PostSearchLevel = MinLength）"),
-        this);
-    engineNote->setWordWrap(true);
-    mainLayout->addWidget(engineNote);
-
-    // 主手順（最長抵抗の変化）の攻手の一意性を外部エンジンで検査する。
-    // 玉方が早く詰む変化での別の詰め方（変化別詰）は詰将棋の慣例どおり許容する
-    auto* verificationNote = new QLabel(
-        tr("主手順の攻手が一意な局面だけを出力します（成・不成も区別）。玉方が早く詰む変化での別の詰め方は許容し、判定不能の局面は出力しません。"), this);
-    verificationNote->setWordWrap(true);
-    mainLayout->addWidget(verificationNote);
-
-    // --- 生成設定セクション ---
-    auto* settingsLabel = new QLabel(tr("生成設定"), this);
-    settingsLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
-    mainLayout->addWidget(settingsLabel);
-
-    auto* formLayout = new QFormLayout;
-
-    m_spinTargetMoves = new OddSpinBox(this);
-    m_spinTargetMoves->setRange(1, 99);
-    m_spinTargetMoves->setSingleStep(2);
-    m_spinTargetMoves->setValue(3);
-    m_spinTargetMoves->setSuffix(tr(" 手詰"));
-    formLayout->addRow(tr("目標手数:"), m_spinTargetMoves);
-    m_spinMaxAttack = new QSpinBox(this);
-    m_spinMaxAttack->setRange(1, 10);
-    m_spinMaxAttack->setValue(4);
-    m_spinMaxAttack->setSuffix(tr(" 枚"));
-    formLayout->addRow(tr("攻め駒上限:"), m_spinMaxAttack);
-    m_spinMaxDefend = new QSpinBox(this);
-    m_spinMaxDefend->setRange(0, 5);
-    m_spinMaxDefend->setValue(1);
-    m_spinMaxDefend->setSuffix(tr(" 枚"));
-    formLayout->addRow(tr("守り駒上限:"), m_spinMaxDefend);
-    m_spinAttackRange = new QSpinBox(this);
-    m_spinAttackRange->setRange(1, 8);
-    m_spinAttackRange->setValue(3);
-    m_spinAttackRange->setSuffix(tr(" マス（玉中心）"));
-    formLayout->addRow(tr("配置範囲:"), m_spinAttackRange);
-    m_spinTimeout = new QSpinBox(this);
-    m_spinTimeout->setRange(1, 300);
-    m_spinTimeout->setValue(5);
-    m_spinTimeout->setSuffix(tr(" 秒"));
-    m_spinTimeout->setToolTip(tr("候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。"));
-    formLayout->addRow(tr("探索時間/局面:"), m_spinTimeout);
-    m_spinMaxPositions = new QSpinBox(this);
-    m_spinMaxPositions->setRange(0, 10000);
-    m_spinMaxPositions->setValue(10);
-    m_spinMaxPositions->setSpecialValueText(tr("無制限"));
-    formLayout->addRow(tr("生成上限:"), m_spinMaxPositions);
-    m_checkAllowFinalAlternatives = new QCheckBox(tr("最終手の複数解を許容する"), this);
-    m_checkAllowFinalAlternatives->setToolTip(
-        tr("オンにすると、主手順の最終手に複数の詰手があっても採択します（1手詰の初手は除く）。オフにすると最終手も一意な局面だけを出力します。"));
-    formLayout->addRow(tr("余詰検査:"), m_checkAllowFinalAlternatives);
-    mainLayout->addLayout(formLayout);
-
-    // --- 制御ボタン ---
-    auto* controlLayout = new QHBoxLayout;
-    m_btnStart = new QPushButton(tr("開始"), this);
-    m_btnStart->setStyleSheet(ButtonStyles::primaryAction());
-    m_btnStop = new QPushButton(tr("停止"), this);
-    m_btnStop->setStyleSheet(ButtonStyles::dangerStop());
-    controlLayout->addWidget(m_btnStart);
-    controlLayout->addWidget(m_btnStop);
-    controlLayout->addStretch();
-    mainLayout->addLayout(controlLayout);
-
-    // --- プログレス表示 ---
-    m_labelProgress = new QLabel(tr("探索済み: 0 局面 / 発見: 0 局面"), this);
-    mainLayout->addWidget(m_labelProgress);
-    m_labelElapsed = new QLabel(tr("経過時間: 00:00:00"), this);
-    mainLayout->addWidget(m_labelElapsed);
-    m_labelStatus = new QLabel(this);
-    mainLayout->addWidget(m_labelStatus);
-    m_labelVerification = new QLabel(this);
-    onVerificationStatsUpdated(0, 0);
-    mainLayout->addWidget(m_labelVerification);
-}
-
-void TsumeshogiGeneratorDialog::buildResultsSection(QVBoxLayout* mainLayout)
-{
-    // --- 結果テーブル ---
-    auto* resultLabel = new QLabel(tr("結果一覧"), this);
-    resultLabel->setStyleSheet(QStringLiteral("font-weight: bold;"));
-    mainLayout->addWidget(resultLabel);
-
-    m_tableResults = new QTableWidget(0, 4, this);
-    m_tableResults->setHorizontalHeaderLabels({tr("#"), tr("SFEN"), tr("盤面"), tr("手数")});
-    m_tableResults->horizontalHeader()->setStretchLastSection(false);
-    m_tableResults->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
-    m_tableResults->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
-    m_tableResults->horizontalHeader()->setSectionResizeMode(2, QHeaderView::ResizeToContents);
-    m_tableResults->horizontalHeader()->setSectionResizeMode(3, QHeaderView::ResizeToContents);
-    m_tableResults->setItemDelegateForColumn(2, new BoardButtonDelegate(m_tableResults));
-    m_tableResults->verticalHeader()->setVisible(false);
-    m_tableResults->setSelectionBehavior(QAbstractItemView::SelectRows);
-    m_tableResults->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    applyTableHeaderStyle();
-    mainLayout->addWidget(m_tableResults);
-
-    // --- 下部ボタン行 ---
-    auto* bottomLayout = new QHBoxLayout;
-
-    m_btnFontDecrease = new QToolButton(this);
-    m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
-    bottomLayout->addWidget(m_btnFontDecrease);
-    m_btnFontIncrease = new QToolButton(this);
-    m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
-    bottomLayout->addWidget(m_btnFontIncrease);
-    m_btnRestoreDefaults = new QPushButton(tr("既定値に戻す"), this);
-    m_btnRestoreDefaults->setStyleSheet(ButtonStyles::undoRedo());
-    bottomLayout->addWidget(m_btnRestoreDefaults);
-    bottomLayout->addStretch();
-    m_checkIncludePv = new QCheckBox(tr("手順も出力"), this);
-    m_checkIncludePv->setToolTip(
-        tr("ファイル保存・コピー時に、SFEN の後ろに USI 形式の詰み手順（moves ...）を付加します"));
-    bottomLayout->addWidget(m_checkIncludePv);
-    m_btnSaveToFile = new QPushButton(tr("ファイル保存"), this);
-    m_btnSaveToFile->setStyleSheet(ButtonStyles::fileOperation());
-    bottomLayout->addWidget(m_btnSaveToFile);
-    m_btnCopySelected = new QPushButton(tr("選択コピー"), this);
-    m_btnCopySelected->setStyleSheet(ButtonStyles::editOperation());
-    bottomLayout->addWidget(m_btnCopySelected);
-    m_btnCopyAll = new QPushButton(tr("全コピー"), this);
-    m_btnCopyAll->setStyleSheet(ButtonStyles::editOperation());
-    bottomLayout->addWidget(m_btnCopyAll);
-    m_btnClose = new QPushButton(tr("閉じる"), this);
-    m_btnClose->setStyleSheet(ButtonStyles::secondaryNeutral());
-    bottomLayout->addWidget(m_btnClose);
-
-    mainLayout->addLayout(bottomLayout);
+    onStopClicked();
+    saveSettings();
+    QDialog::done(result);
 }
 
 void TsumeshogiGeneratorDialog::connectDialogSignals()
@@ -273,6 +61,10 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
     connect(m_btnRestoreDefaults, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::onRestoreDefaults);
     connect(m_btnEngineSetting, &QPushButton::clicked, this, &TsumeshogiGeneratorDialog::showEngineSettingsDialog);
     connect(m_tableResults, &QTableWidget::clicked, this, &TsumeshogiGeneratorDialog::onResultTableClicked);
+    connect(m_tableResults, &QTableWidget::activated, this, &TsumeshogiGeneratorDialog::onResultTableActivated);
+    connect(m_tableResults, &QTableWidget::itemSelectionChanged, this, &TsumeshogiGeneratorDialog::updateResultActions);
+    connect(m_spinMaxPositions, &QSpinBox::valueChanged, this, &TsumeshogiGeneratorDialog::updateProgressBar);
+    connect(m_btnHelp, &QToolButton::toggled, this, &TsumeshogiGeneratorDialog::toggleHelp);
 
     connect(m_generator, &TsumeshogiGenerator::positionFound,
             this, &TsumeshogiGeneratorDialog::onPositionFound);
@@ -290,9 +82,6 @@ void TsumeshogiGeneratorDialog::connectDialogSignals()
             this, &TsumeshogiGeneratorDialog::onVerificationProgress);
     connect(m_generator, &TsumeshogiGenerator::verificationStatsUpdated,
             this, &TsumeshogiGeneratorDialog::onVerificationStatsUpdated);
-
-    // ウィンドウサイズ復元
-    DialogUtils::restoreDialogSize(this, TsumeshogiSettings::tsumeshogiGeneratorDialogSize());
 }
 
 void TsumeshogiGeneratorDialog::readEngineNameAndDir()
@@ -328,6 +117,7 @@ void TsumeshogiGeneratorDialog::loadSettings()
     m_spinMaxPositions->setValue(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions());
     m_checkIncludePv->setChecked(TsumeshogiSettings::tsumeshogiGeneratorIncludePv());
     m_checkAllowFinalAlternatives->setChecked(TsumeshogiSettings::tsumeshogiGeneratorAllowFinalMoveAlternatives());
+    m_btnHelp->setChecked(TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded());
 }
 
 void TsumeshogiGeneratorDialog::saveSettings()
@@ -343,10 +133,12 @@ void TsumeshogiGeneratorDialog::saveSettings()
     TsumeshogiSettings::setTsumeshogiGeneratorMaxPositions(m_spinMaxPositions->value());
     TsumeshogiSettings::setTsumeshogiGeneratorIncludePv(m_checkIncludePv->isChecked());
     TsumeshogiSettings::setTsumeshogiGeneratorAllowFinalMoveAlternatives(m_checkAllowFinalAlternatives->isChecked());
+    TsumeshogiSettings::setTsumeshogiGeneratorHelpExpanded(m_btnHelp->isChecked());
 }
 
 void TsumeshogiGeneratorDialog::onStartClicked()
 {
+    if (m_running) return;
     const int engineIndex = m_comboEngine->currentIndex();
     if (engineIndex < 0 || engineIndex >= m_engineList.size()) {
         QMessageBox::critical(this, tr("エラー"), tr("将棋エンジンが選択されていません。"));
@@ -371,12 +163,19 @@ void TsumeshogiGeneratorDialog::onStartClicked()
     // ファイル保存時のコメントヘッダ用に、この実行の設定と開始日時を控える
     m_lastRunSettings = settings;
     m_lastRunStartedAt = QDateTime::currentDateTime();
+    m_stopRequested = false;
+    m_runFailed = false;
 
     setRunningState(true);
+    onProgressUpdated(0, 0, 0);
+    onVerificationStatsUpdated(0, 0);
+    setStatusText(tr("エンジンを起動中"));
     m_generator->start(settings);
 }
 
 void TsumeshogiGeneratorDialog::onStopClicked()
 {
+    if (!m_running) return;
+    m_stopRequested = true;
     m_generator->stop();
 }
