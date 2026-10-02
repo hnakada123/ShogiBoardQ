@@ -14,7 +14,7 @@ add_library(hayanagi_tsume STATIC IMPORTED)
 set_target_properties(hayanagi_tsume PROPERTIES
   IMPORTED_LOCATION "${APP_BUILD}/Hayanagi/libhayanagi_tsume.a"
   INTERFACE_INCLUDE_DIRECTORIES "${REPO}/Hayanagi/src")
-foreach(test IN ITEMS tst_gui_functional tst_start_game_flow tst_ponder_flow tst_tsume_play_gui tst_tsume_collection_gui tst_tsumeshogi_generator_gui)
+foreach(test IN ITEMS tst_gui_functional tst_start_game_flow tst_ponder_flow tst_tsume_play_gui tst_tsume_collection_gui tst_tsumeshogi_generator_gui tst_tsume_search_dialog)
   add_executable(${test} ${test}.cpp ${APP_OBJECTS})
   target_include_directories(${test} PRIVATE ${APP_INCLUDES})
   target_link_libraries(${test} PRIVATE hayanagi_tsume Qt6::Test Qt6::Widgets Qt6::Charts Qt6::Network Qt6::Concurrent Qt6::Multimedia Qt6::Sql)

@@ -191,6 +191,7 @@ set(UI_FILES
     src/app/mainwindow.ui
     src/dialogs/changeenginesettingsdialog.ui
     src/dialogs/considerationdialog.ui
+    src/dialogs/tsumeshogisearchdialog.ui
     src/dialogs/csagamedialog.ui
     src/dialogs/engineregistrationdialog.ui
     src/dialogs/kifuanalysisdialog.ui

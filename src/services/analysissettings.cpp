@@ -384,6 +384,58 @@ void setConsiderationFontSize(int size)
     s.setValue(SettingsKeys::kConsiderationTabFontSize, size);
 }
 
+// --- 詰み探索 ---
+
+QString tsumeSearchEnginePath()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kTsumeSearchEnginePath).toString();
+}
+
+void setTsumeSearchEnginePath(const QString& path)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kTsumeSearchEnginePath, path);
+}
+
+bool tsumeSearchUnlimitedTime()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kTsumeSearchUnlimitedTime, false).toBool();
+}
+
+void setTsumeSearchUnlimitedTime(bool unlimited)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kTsumeSearchUnlimitedTime, unlimited);
+}
+
+int tsumeSearchTimeLimitSec()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kTsumeSearchTimeLimitSec, 20).toInt();
+}
+
+void setTsumeSearchTimeLimitSec(int sec)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kTsumeSearchTimeLimitSec, sec);
+}
+
+int tsumeSearchFontSize()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kTsumeSearchFontSize, 0).toInt();
+}
+
+void setTsumeSearchFontSize(int size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kTsumeSearchFontSize, size);
+}
+
+QSize tsumeSearchDialogSize()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kTsumeSearchDialogSize, QSize(560, 360)).toSize();
+}
+
+void setTsumeSearchDialogSize(const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kTsumeSearchDialogSize, size);
+}
+
 // --- 読み筋盤面 ---
 
 QSize pvBoardDialogSize()

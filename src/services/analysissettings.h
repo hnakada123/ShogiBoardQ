@@ -11,6 +11,7 @@
 
 #include <QSize>
 #include <QList>
+#include <QString>
 
 namespace AnalysisSettings {
 
@@ -127,6 +128,24 @@ void setConsiderationMultiPV(int multiPV);
 /// 検討タブのフォントサイズ（デフォルト: 10）
 int considerationFontSize();
 void setConsiderationFontSize(int size);
+
+// --- 詰み探索（検討とは独立して保存） ---
+
+/// 登録順が変わっても同じエンジンを復元するための実行ファイルパス
+QString tsumeSearchEnginePath();
+void setTsumeSearchEnginePath(const QString& path);
+
+/// 探索時間（デフォルト: 時間制限あり・20秒）
+bool tsumeSearchUnlimitedTime();
+void setTsumeSearchUnlimitedTime(bool unlimited);
+int tsumeSearchTimeLimitSec();
+void setTsumeSearchTimeLimitSec(int sec);
+
+/// 0 はアプリケーションの文字サイズを使用
+int tsumeSearchFontSize();
+void setTsumeSearchFontSize(int size);
+QSize tsumeSearchDialogSize();
+void setTsumeSearchDialogSize(const QSize& size);
 
 // --- 読み筋盤面 ---
 

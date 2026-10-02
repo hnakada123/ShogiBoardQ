@@ -163,6 +163,13 @@ inline constexpr char kConsiderationMultiPV[]            = "Consideration/multiP
 // --- ConsiderationTab ---
 inline constexpr char kConsiderationTabFontSize[]        = "ConsiderationTab/fontSize";
 
+// --- TsumeSearch ---
+inline constexpr char kTsumeSearchEnginePath[]           = "TsumeSearch/enginePath";
+inline constexpr char kTsumeSearchUnlimitedTime[]        = "TsumeSearch/unlimitedTime";
+inline constexpr char kTsumeSearchTimeLimitSec[]         = "TsumeSearch/timeLimitSec";
+inline constexpr char kTsumeSearchFontSize[]             = "TsumeSearch/fontSize";
+inline constexpr char kTsumeSearchDialogSize[]           = "TsumeSearch/dialogSize";
+
 // --- EvalChartDock ---
 inline constexpr char kEvalChartDockFloating[]           = "EvalChartDock/floating";
 inline constexpr char kEvalChartDockGeometry[]           = "EvalChartDock/geometry";

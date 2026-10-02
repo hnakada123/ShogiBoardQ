@@ -118,3 +118,14 @@ Escでの停止、設定復元、文字拡大時の表示を検証します。�
 ```bash
 xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsumeshogi_generator_gui
 ```
+
+詰み探索の条件設定は `tst_tsume_search_dialog` でエンジン未登録時の開始禁止、
+時間指定・無制限の切替、秒数の直接入力とEnterによる開始、検討設定との独立性、
+エンジンの登録順変更後の選択復元、キャンセル時の条件保持、文字・画面サイズの保存を検証します。
+日本語・英語の通常表示と24pt表示、幅を狭めたときの折り返しも確認し、
+`tsume-search-ja.png`・`tsume-search-en.png` と文字拡大版・未登録時の画像を保存します。
+探索開始・結果表示・中止の実MainWindow経由の確認には `engineMateNoMate`・`engineStopMate` を使用します。
+
+```bash
+xvfb-run -a -s '-screen 0 1600x1200x24' env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_search_dialog
+```
