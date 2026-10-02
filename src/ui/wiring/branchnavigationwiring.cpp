@@ -157,6 +157,9 @@ void BranchNavigationWiring::connectDisplaySignals()
                 m_deps.commentCoordinator, &CommentCoordinator::onNavigationCommentUpdate);
     }
 
+    connect(nc, &KifuNavigationController::recordHighlightRequired,
+            this, &BranchNavigationWiring::currentPlyChanged);
+
     // 分岐ノード処理完了シグナルを転送
     connect(nc, &KifuNavigationController::branchNodeHandled,
             this, &BranchNavigationWiring::branchNodeHandled);

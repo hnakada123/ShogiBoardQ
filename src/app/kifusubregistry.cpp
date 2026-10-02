@@ -21,6 +21,7 @@
 #include "gamerecordpresenter.h"
 #include "commentcoordinator.h"
 #include "kifunavigationcoordinator.h"
+#include "evaluationgraphcontroller.h"
 #include "josekiwindowwiring.h"
 #include "josekiwindow.h"
 #include "kifuexportdepsassembler.h"
@@ -70,6 +71,10 @@ void KifuSubRegistry::createBranchNavigationWiring()
     m_foundation->ensureKifuNavigationCoordinator();
     connect(m_mw.m_branchNavWiring.get(), &BranchNavigationWiring::branchNodeHandled,
             m_mw.m_kifuNavCoordinator.get(), &KifuNavigationCoordinator::handleBranchNodeHandled);
+    // ツリー選択時の棋譜欄更新はシグナルを抑止するため、グラフへも明示的に通知する。
+    m_foundation->ensureEvaluationGraphController();
+    connect(m_mw.m_branchNavWiring.get(), &BranchNavigationWiring::currentPlyChanged,
+            m_mw.m_evalGraphController.get(), &EvaluationGraphController::setCurrentPly);
 }
 
 void KifuSubRegistry::refreshBranchNavWiringDeps()

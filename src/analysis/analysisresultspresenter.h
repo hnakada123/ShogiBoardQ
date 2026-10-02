@@ -14,6 +14,9 @@ class QAbstractItemModel;
 class QTimer;
 class QPushButton;
 class QDockWidget;
+class QLabel;
+class ElideLabel;
+class QProgressBar;
 class KifuAnalysisListModel;
 
 /**
@@ -47,6 +50,9 @@ public:
     /// 解析中止ボタンの有効/無効を切り替える
     void setStopButtonEnabled(bool enabled);
 
+    /// 対象局面数と使用エンジンを表示して進捗を開始する
+    void beginAnalysis(int totalPositions, const QString& engineName);
+
     /// 解析完了メッセージを表示する
     void showAnalysisComplete(int totalMoves);
 
@@ -76,9 +82,6 @@ private slots:
     /// レイアウト変更時に再配置を行う
     void onLayoutChanged();
 
-    /// スクロール範囲変更時に追従処理を行う
-    void onScrollRangeChanged(int, int);
-
     /// テーブルクリック時に行選択通知を行う
     void onTableClicked(const QModelIndex& index);
 
@@ -94,6 +97,8 @@ private slots:
     /// ドックサイズを設定へ保存する
     void saveWindowSize();
 
+    void saveColumnWidth(int column, int oldSize, int newSize);
+
 private:
     /// 初回UI構築を行う
     void buildUi(KifuAnalysisListModel* model);
@@ -107,12 +112,24 @@ private:
     /// 保存済みフォントサイズを復元する
     void restoreFontSize();
 
+    void applyFontSize(int size);
+    void updateProgress();
+
     QPointer<QDockWidget> m_dock;       ///< 結果表示ドック（非所有）
     QPointer<QWidget> m_container;      ///< ドック内コンテナ（非所有）
     QPointer<QTableView> m_view;        ///< 解析結果テーブル（非所有）
     QPointer<QHeaderView> m_header;     ///< テーブルヘッダー（非所有）
     QPointer<QPushButton> m_stopButton; ///< 中止ボタン（非所有）
+    QPointer<QPushButton> m_fontDecrease;
+    QPointer<QPushButton> m_fontIncrease;
+    QPointer<QLabel> m_statusLabel;
+    QPointer<ElideLabel> m_engineLabel;
+    QPointer<QProgressBar> m_progressBar;
     QTimer* m_reflowTimer;              ///< 再レイアウト遅延実行タイマー（thisが所有）
+
+    QList<int> m_columnWidths;     ///< ユーザー指定の列幅（0は自動）
+    bool m_resizingColumns = false;
+    int m_totalPositions = 0;
 
     bool m_isAnalyzing = false;    ///< 解析中フラグ（行追加時の自動選択制御）
 

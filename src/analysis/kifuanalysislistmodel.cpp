@@ -3,7 +3,6 @@
 
 #include "kifuanalysislistmodel.h"
 #include <cmath>
-#include <QColor>
 
 KifuAnalysisListModel::KifuAnalysisListModel(QObject *parent) : AbstractListModel<KifuAnalysisResultsDisplay>(parent)
 {
@@ -77,7 +76,9 @@ static QString getJudgementString(const QString& evalStr)
 
     // 詰み表示の場合
     if (evalStr.contains(QStringLiteral("詰")) || evalStr.contains(QStringLiteral("mate"))) {
-        if (evalStr.startsWith(QStringLiteral("-"))) {
+        const QString mate = evalStr.startsWith(QStringLiteral("mate "))
+            ? evalStr.mid(5).trimmed() : evalStr;
+        if (mate.startsWith(QLatin1Char('-')) || mate == QStringLiteral("0")) {
             return QObject::tr("後手勝ち");
         } else {
             return QObject::tr("先手勝ち");
@@ -90,7 +91,7 @@ static QString getJudgementString(const QString& evalStr)
         return QString();
     }
 
-    int absScore = std::abs(score);
+    const qint64 absScore = std::abs(static_cast<qint64>(score));
     QString advantage;
 
     if (absScore <= 100) {
@@ -116,8 +117,16 @@ static QString getJudgementString(const QString& evalStr)
 
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid())
+    if (!index.isValid() || index.row() < 0 || index.row() >= list.size()
+        || index.column() < 0 || index.column() >= columnCount())
         return QVariant();
+
+    if (role == Qt::ToolTipRole || role == Qt::AccessibleTextRole) {
+        const QString value = data(index, Qt::DisplayRole).toString();
+        if (index.column() == 6) return tr("この局面からの読み筋を盤面で表示します。");
+        const QString description = headerData(index.column(), Qt::Horizontal, Qt::ToolTipRole).toString();
+        return description.isEmpty() ? value : value + QLatin1Char('\n') + description;
+    }
 
     // 盤面列（列6）は特別扱い：ボタン風の表示
     if (index.column() == 6) {
@@ -126,13 +135,6 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         }
         if (role == Qt::TextAlignmentRole) {
             return Qt::AlignCenter;
-        }
-        if (role == Qt::BackgroundRole) {
-            // 青緑系のボタン色（クリック可能であることを示す）
-            return QColor(0x20, 0x9c, 0xee);  // 明るい青
-        }
-        if (role == Qt::ForegroundRole) {
-            return QColor(Qt::white);  // 白文字
         }
         return QVariant();
     }
@@ -180,6 +182,19 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 
 QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientation, int role) const
 {
+    if (orientation == Qt::Horizontal && role == Qt::ToolTipRole) {
+        switch (section) {
+        case 0: return tr("棋譜で実際に指された手。この手を指した後の局面を評価します。");
+        case 1: return tr("直前の局面でエンジンが推奨した手。解析範囲の先頭では空欄になります。");
+        case 2: return tr("実際の指し手と候補手が一致すると○を表示します。");
+        case 3: return tr("先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。");
+        case 4: return tr("評価値から判定した形勢です。");
+        case 5: return tr("直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。");
+        case 6: return tr("クリックまたはEnterキーで読み筋を盤面に表示します。");
+        case 7: return tr("この手を指した後の局面からの読み筋です。");
+        default: return QVariant();
+        }
+    }
     if (role != Qt::DisplayRole) {
         return QVariant();
     }
@@ -197,7 +212,7 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
         case 4:
             return tr("形勢");
         case 5:
-            return tr("差");
+            return tr("評価値差");
         case 6:
             return tr("盤面");
         case 7:

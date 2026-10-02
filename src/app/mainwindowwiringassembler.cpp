@@ -37,6 +37,8 @@ void MainWindowServiceRegistry::initializeDialogLaunchWiring()
     d.getLineEditModel1    = [this]() { return m_mw.m_models.commLog1; };
     d.getModelThinking1    = [this]() { return m_mw.m_models.thinking1; };
     d.getKifuRecordModel   = [this]() { return m_mw.m_models.kifuRecord; };
+    d.getBranchTree        = [this]() { return m_mw.m_branchNav.branchTree; };
+    d.getNavState          = [this]() { return m_mw.m_branchNav.navState; };
     d.getKifuLoadCoordinator = [this]() { return m_mw.m_kifuLoadCoordinator; };
     d.getEvalChart         = [this]() { return m_mw.m_evalChart; };
     d.getSfenRecord        = [this]() { return m_mw.m_queryService->sfenRecord(); };

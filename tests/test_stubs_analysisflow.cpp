@@ -115,6 +115,11 @@ void Usi::onThinkingInfoUpdated(const QString&, const QString&, const QString&,
 // === KifuAnalysisDialog スタブ ===
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget* parent)
     : QDialog(parent), ui(nullptr), m_fontHelper({10, 8, 24, 2, nullptr}) {}
+KifuAnalysisDialog::~KifuAnalysisDialog() = default;
+void KifuAnalysisDialog::done(int result) { QDialog::done(result); }
+void KifuAnalysisDialog::updateSummary() {}
+void KifuAnalysisDialog::updateMinimumSize() {}
+void KifuAnalysisDialog::resizeEvent(QResizeEvent* event) { QDialog::resizeEvent(event); }
 QList<KifuAnalysisDialog::Engine> KifuAnalysisDialog::engineList() const
 {
     return { { QStringLiteral("TestEngine"), QStringLiteral("/usr/bin/test_engine") } };
@@ -139,13 +144,14 @@ void AnalysisResultsPresenter::setDockWidget(QDockWidget*) {}
 QWidget* AnalysisResultsPresenter::containerWidget() { return nullptr; }
 void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel*) {}
 void AnalysisResultsPresenter::setStopButtonEnabled(bool) {}
+void AnalysisResultsPresenter::beginAnalysis(int, const QString&) {}
+void AnalysisResultsPresenter::saveColumnWidth(int, int, int) {}
 void AnalysisResultsPresenter::showAnalysisComplete(int) {}
 void AnalysisResultsPresenter::reflowNow() {}
 void AnalysisResultsPresenter::onModelReset() {}
 void AnalysisResultsPresenter::onRowsInserted(const QModelIndex&, int, int) {}
 void AnalysisResultsPresenter::onDataChanged(const QModelIndex&, const QModelIndex&, const QList<int>&) {}
 void AnalysisResultsPresenter::onLayoutChanged() {}
-void AnalysisResultsPresenter::onScrollRangeChanged(int, int) {}
 void AnalysisResultsPresenter::onTableClicked(const QModelIndex&) {}
 void AnalysisResultsPresenter::onTableSelectionChanged(const QModelIndex&, const QModelIndex&) {}
 void AnalysisResultsPresenter::increaseFontSize() {}

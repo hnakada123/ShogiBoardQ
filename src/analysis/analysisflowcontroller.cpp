@@ -8,6 +8,7 @@
 #include "analysisresultspresenter.h"
 #include "kifuanalysisdialog.h"
 #include "kifuanalysislistmodel.h"
+#include "kifurecordlistmodel.h"
 #include "usi.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
@@ -65,14 +66,25 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     if (!dlg) return;
 
     // Cache deps
-    m_sfenHistory    = d.sfenRecord;
-    m_recordModel   = d.recordModel;
+    // 解析中に表示する分岐を切り替えても、対象局面と指し手を変えない。
+    m_sfenSnapshot = *d.sfenRecord;
+    m_sfenHistory = &m_sfenSnapshot;
+    m_usiMovesSnapshot = d.usiMoves ? *d.usiMoves : QStringList();
+    m_recordSnapshot = std::make_unique<KifuRecordListModel>();
+    if (d.recordModel) {
+        for (int row = 0; row < d.recordModel->rowCount(); ++row) {
+            const auto* item = d.recordModel->item(row);
+            m_recordSnapshot->appendItem(new KifuDisplay(item ? item->currentMove() : QString(), QString()));
+        }
+    }
+    m_recordModel = m_recordSnapshot.get();
+    m_analysisLineIndex = d.lineIndex;
     m_analysisModel = d.analysisModel;
     m_usi           = d.usi;
     m_logModel      = d.logModel;
     m_blackPlayerName = d.blackPlayerName;
     m_whitePlayerName = d.whitePlayerName;
-    m_usiMoves      = d.usiMoves;
+    m_usiMoves      = d.usiMoves ? &m_usiMovesSnapshot : nullptr;
     m_boardFlipped  = d.boardFlipped;
     m_err           = d.displayError;
 
@@ -192,12 +204,11 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
         // 行選択のシグナルを接続（棋譜欄・将棋盤・分岐ツリー連動用）
         QObject::connect(
             m_presenter, &AnalysisResultsPresenter::rowSelected,
-            this,        &AnalysisFlowController::analysisResultRowSelected,
+            this,        &AnalysisFlowController::onResultRowSelected,
             Qt::UniqueConnection
             );
     }
     m_presenter->showWithModel(m_analysisModel);
-    m_presenter->setStopButtonEnabled(true);  // 解析開始時は有効
 
     // ダイアログ設定を AC オプションへ反映
     applyDialogOptions(dlg);
@@ -206,12 +217,14 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     const int  engineIdx = dlg->engineNumber();
     const auto engines   = dlg->engineList();
     if (engineIdx < 0 || engineIdx >= engines.size()) {
+        m_presenter->setStopButtonEnabled(false);
         if (m_err) m_err(tr("エンジン選択が不正です。"));
         return;
     }
     const QString enginePath = engines.at(engineIdx).path;
     const QString engineName = dlg->engineName();
     emit analysisEngineNameChanged(engineName);
+    emit analysisStarted(m_analysisLineIndex);
 
     // 思考タブのエンジン名を設定
     if (m_logModel) {
@@ -324,6 +337,10 @@ void AnalysisFlowController::applyDialogOptions(KifuAnalysisDialog* dlg)
     opt.centerTree = true;
 
     m_coord->setOptions(opt);
+    m_analysisStartPly = opt.startPly;
+    if (m_presenter) {
+        m_presenter->beginAnalysis(opt.endPly - opt.startPly + 1, dlg->engineName());
+    }
 }
 
 // ======================
@@ -526,6 +543,13 @@ bool AnalysisFlowController::runWithDialog(const Deps& d, QWidget* parent)
 void AnalysisFlowController::onResultRowDoubleClicked(int row)
 {
     m_resultHandler->showPvBoardDialog(row);
+}
+
+void AnalysisFlowController::onResultRowSelected(int row)
+{
+    if (!m_running && m_analysisModel && row >= 0 && row < m_analysisModel->rowCount()) {
+        emit analysisResultRowSelected(m_analysisStartPly + row);
+    }
 }
 
 

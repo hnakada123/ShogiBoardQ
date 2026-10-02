@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>500</width>
-    <height>340</height>
+    <width>560</width>
+    <height>380</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -101,7 +101,7 @@
      <item>
       <widget class="QRadioButton" name="radioButtonRangePosition">
        <property name="text">
-        <string/>
+        <string>範囲指定</string>
        </property>
       </widget>
      </item>
@@ -167,6 +167,12 @@
     </layout>
    </item>
    <item>
+    <widget class="QLabel" name="rangeHint">
+     <property name="text"><string>0手目は開始局面です。指定した手を指した後の局面を解析します。</string></property>
+     <property name="wordWrap"><bool>true</bool></property>
+    </widget>
+   </item>
+   <item>
     <spacer name="spacerAfterRange">
      <property name="orientation">
       <enum>Qt::Orientation::Vertical</enum>
@@ -194,7 +200,7 @@
      <item>
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>１手あたりの思考時間</string>
+        <string>1局面あたりの思考時間</string>
        </property>
       </widget>
      </item>
@@ -238,6 +244,19 @@
       </spacer>
      </item>
     </layout>
+   </item>
+   <item>
+    <widget class="QLabel" name="analysisSummary">
+     <property name="text"><string/></property>
+     <property name="wordWrap"><bool>true</bool></property>
+     <property name="textFormat"><enum>Qt::TextFormat::PlainText</enum></property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="engineHint">
+     <property name="text"><string>「設定」→「エンジン設定」でエンジンを登録してください。</string></property>
+     <property name="wordWrap"><bool>true</bool></property>
+    </widget>
    </item>
    <item>
     <spacer name="verticalSpacer">

@@ -218,6 +218,7 @@ public:
     struct KifuAnalysisParams {
         QStringList* sfenRecord = nullptr;
         KifuRecordListModel* recordModel = nullptr;  // 棋譜モデル（指し手ラベル取得用）
+        int lineIndex = 0;        // 解析対象の分岐ライン
         int activePly = 0;
         ShogiGameController* gameController = nullptr;  // 盤面情報取得用
         QString blackPlayerName;   // 先手対局者名
@@ -235,6 +236,8 @@ public:
     struct KifuAnalysisContext {
         QStringList* sfenRecord = nullptr;
         KifuRecordListModel* recordModel = nullptr;
+        KifuBranchTree* branchTree = nullptr;
+        KifuNavigationState* navState = nullptr;
         int* activePly = nullptr;
         ShogiGameController* gameController = nullptr;
         GameInfoPaneController* gameInfoController = nullptr;
@@ -273,6 +276,7 @@ public:
      * @brief 棋譜解析中かどうか
      */
     bool isKifuAnalysisRunning() const;
+    int analysisLineIndex() const;
 
     // --------------------------------------------------------
     // エラー表示
@@ -316,6 +320,9 @@ signals:
      * @brief 棋譜解析モードが開始された
      */
     void analysisModeStarted();
+
+    /// 条件確定後の解析開始（キャンセル時は通知しない）
+    void analysisStarted(int lineIndex);
 
     /**
      * @brief 棋譜解析モードが終了した（完了または中止）

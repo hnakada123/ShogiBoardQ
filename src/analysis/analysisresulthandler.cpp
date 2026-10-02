@@ -89,8 +89,8 @@ int evaluateForDisplay(int ply,
         return adjustedScore;
     }
 
-    *outEvalStr = QStringLiteral("0");
-    return 0;
+    *outEvalStr = QStringLiteral("-");
+    return prevEvalCp;
 }
 
 QString extractDestination(const QString& moveText)
@@ -182,6 +182,7 @@ void AnalysisResultHandler::setRefs(const Refs& refs)
 void AnalysisResultHandler::reset()
 {
     m_prevEvalCp = 0;
+    m_hasPreviousEval = false;
     m_pendingPly = -1;
     m_pendingScoreCp = 0;
     m_pendingMate = 0;
@@ -286,8 +287,12 @@ void AnalysisResultHandler::commitPendingResult()
         }
         evalStr = QStringLiteral("mate %1").arg(mateText);
     }
-    const QString diff = isBook ? QStringLiteral("-") : QString::number(curVal - m_prevEvalCp);
-    m_prevEvalCp = curVal;
+    bool hasNumericEval = false;
+    evalStr.toInt(&hasNumericEval);
+    const QString diff = hasNumericEval && m_hasPreviousEval
+        ? QString::number(static_cast<qint64>(curVal) - m_prevEvalCp) : QStringLiteral("-");
+    m_hasPreviousEval = hasNumericEval;
+    if (hasNumericEval) m_prevEvalCp = curVal;
 
     qCDebug(lcAnalysis).noquote() << "commitPendingResult: ply=" << ply << "moveLabel=" << moveLabel << "evalStr=" << evalStr << "pv=" << pv.left(30);
 
@@ -330,6 +335,7 @@ void AnalysisResultHandler::commitPendingResult()
 
     // GUI更新用に結果を保存（次のonPositionPreparedでシグナルを発行）
     m_lastCommittedPly = ply;
-    m_lastCommittedScoreCp = curVal;
+    m_lastCommittedScoreCp = hasNumericEval || !mateText.isEmpty()
+        ? curVal : std::numeric_limits<int>::min();
     m_lastCommittedMate = isBook ? QString() : mateText;
 }

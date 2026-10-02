@@ -30,6 +30,8 @@ class EngineAnalysisTab;
 class UsiCommLogModel;
 class ShogiEngineThinkingModel;
 class KifuRecordListModel;
+class KifuBranchTree;
+class KifuNavigationState;
 class KifuLoadCoordinator;
 class EvaluationChartWidget;
 class KifuAnalysisListModel;
@@ -71,6 +73,8 @@ public:
         std::function<UsiCommLogModel*()> getLineEditModel1;
         std::function<ShogiEngineThinkingModel*()> getModelThinking1;
         std::function<KifuRecordListModel*()> getKifuRecordModel;
+        std::function<KifuBranchTree*()> getBranchTree;
+        std::function<KifuNavigationState*()> getNavState;
         std::function<KifuLoadCoordinator*()> getKifuLoadCoordinator;
         std::function<EvaluationChartWidget*()> getEvalChart;
         std::function<QStringList*()> getSfenRecord;

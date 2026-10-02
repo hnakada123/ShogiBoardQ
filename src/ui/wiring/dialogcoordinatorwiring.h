@@ -80,7 +80,7 @@ public:
         EvaluationChartWidget* evalChartWidget = nullptr;   ///< 評価値グラフ（非所有）
         EngineAnalysisTab* analysisTab = nullptr;           ///< エンジン解析タブ（非所有）
         PlayMode* playMode = nullptr;                       ///< プレイモード（外部所有）
-        std::function<void(int)> navigateKifuViewToRow;     ///< 棋譜ビューの行遷移コールバック
+        std::function<void(int, int)> navigateKifuViewToLine;     ///< 棋譜ビューの行遷移コールバック
     };
 
     explicit DialogCoordinatorWiring(QObject* parent = nullptr);
@@ -98,6 +98,8 @@ public slots:
     void onKifuAnalysisProgress(int ply, int scoreCp, const QString& mate);
     /// 棋譜解析結果リストの行選択時に該当局面へ遷移する
     void onKifuAnalysisResultRowSelected(int row);
+    void onKifuAnalysisStarted(int lineIndex);
+    void onAnalysisPositionSelected(int lineIndex, int ply);
 
 private:
     void wireSignals(const Deps& deps);
@@ -109,7 +111,7 @@ private:
     EvaluationChartWidget* m_evalChartWidget = nullptr;
     EngineAnalysisTab* m_analysisTab = nullptr;
     PlayMode* m_playMode = nullptr;
-    std::function<void(int)> m_navigateKifuViewToRow;
+    std::function<void(int, int)> m_navigateKifuViewToLine;
 };
 
 #endif // DIALOGCOORDINATORWIRING_H

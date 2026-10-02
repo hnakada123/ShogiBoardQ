@@ -53,6 +53,9 @@ private slots:
     void commitPendingResult_bookMove_clearsUsiPv();
     void reset_clearsAllPending();
     void mateMetadataSurvivesCommit();
+    void missingEvaluationAndDifferences();
+    void mateJudgement_data();
+    void mateJudgement();
     void extractUsiMoveFromKanji_basicMove();
     void extractUsiMoveFromKanji_promotion();
     void extractUsiMoveFromKanji_drop();
@@ -427,6 +430,54 @@ void TestAnalysisCoordinator::mateMetadataSurvivesCommit()
     QCOMPARE(handler.lastCommittedMate(), QStringLiteral("+"));
     handler.reset();
     QVERIFY(handler.lastCommittedMate().isEmpty());
+}
+
+void TestAnalysisCoordinator::missingEvaluationAndDifferences()
+{
+    AnalysisResultHandler handler;
+    KifuAnalysisListModel model;
+    AnalysisResultHandler::Refs refs;
+    refs.analysisModel = &model;
+    handler.setRefs(refs);
+    handler.updatePending(0, 120, 0, QStringLiteral("7g7f"));
+    handler.commitPendingResult();
+    QCOMPARE(model.item(0)->evaluationDifference(), QStringLiteral("-"));
+    handler.updatePending(1, -160, 0, QStringLiteral("3c3d"));
+    handler.commitPendingResult();
+    QCOMPARE(model.item(1)->evaluationDifference(), QStringLiteral("40"));
+    handler.updatePending(2, std::numeric_limits<int>::min(), 0, QStringLiteral("2g2f"));
+    handler.commitPendingResult();
+    QCOMPARE(model.item(2)->evaluationValue(), QStringLiteral("-"));
+    QCOMPARE(model.item(2)->evaluationDifference(), QStringLiteral("-"));
+    QVERIFY(model.index(2, 4).data().toString().isEmpty());
+    QCOMPARE(handler.lastCommittedScoreCp(), std::numeric_limits<int>::min());
+    handler.updatePending(3, -200, 0, QStringLiteral("8c8d"));
+    handler.commitPendingResult();
+    QCOMPARE(model.item(3)->evaluationDifference(), QStringLiteral("-"));
+    handler.updatePending(4, std::numeric_limits<int>::min(), -3, QStringLiteral("7g7f"));
+    handler.commitPendingResult();
+    QCOMPARE(model.item(4)->evaluationDifference(), QStringLiteral("-"));
+}
+
+void TestAnalysisCoordinator::mateJudgement_data()
+{
+    QTest::addColumn<QString>("score");
+    QTest::addColumn<QString>("judgement");
+    QTest::newRow("positive") << QStringLiteral("mate 5") << QStringLiteral("先手勝ち");
+    QTest::newRow("negative") << QStringLiteral("mate -5") << QStringLiteral("後手勝ち");
+    QTest::newRow("positive-sign") << QStringLiteral("mate +") << QStringLiteral("先手勝ち");
+    QTest::newRow("negative-sign") << QStringLiteral("mate -") << QStringLiteral("後手勝ち");
+    QTest::newRow("mated") << QStringLiteral("mate 0") << QStringLiteral("後手勝ち");
+    QTest::newRow("opponent-mated") << QStringLiteral("mate +0") << QStringLiteral("先手勝ち");
+}
+
+void TestAnalysisCoordinator::mateJudgement()
+{
+    QFETCH(QString, score);
+    QFETCH(QString, judgement);
+    KifuAnalysisListModel model;
+    model.appendItem(new KifuAnalysisResultsDisplay(QString(), score, QString(), QString()));
+    QCOMPARE(model.index(0, 4).data().toString(), judgement);
 }
 
 void TestAnalysisCoordinator::reset_clearsAllPending()

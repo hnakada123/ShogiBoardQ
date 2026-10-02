@@ -49,12 +49,14 @@ public:
     void setEngine2Name(const QString& name);
     void setCurrentPly(int ply);
     void setRecordLength(int plies);
+    void setAnalysisLineIndex(int lineIndex);
     int currentPly() const { return m_currentPly; }
 
 signals:
     void yAxisSettingsChanged(int limit, int interval);
     void xAxisSettingsChanged(int limit, int interval);
     void plyClicked(int ply);
+    void analysisPlyClicked(int lineIndex, int ply);
 
 protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
@@ -98,6 +100,7 @@ private:
     void hoverAt(const QPoint& position);
     void clearHover();
 
+    int m_analysisLineIndex = -1; // -1: 対局中のグラフ、0以上: 解析対象のライン
     QChart* m_chart = nullptr;
     QLineSeries* m_series[2] = {};
     QLineSeries* m_zeroLine = nullptr;
