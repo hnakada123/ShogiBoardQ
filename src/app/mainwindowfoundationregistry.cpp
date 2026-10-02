@@ -204,6 +204,9 @@ void MainWindowFoundationRegistry::refreshBoardSyncPresenterDeps()
     // sfenRecord ポインタが変わっている場合は更新する
     const QStringList* current = m_mw.m_queryService->sfenRecord();
     m_mw.m_boardSync->setSfenRecord(current);
+    if (m_mw.m_kifuNavCoordinator) {
+        m_mw.m_kifuNavCoordinator->setBoardSyncPresenter(m_mw.m_boardSync);
+    }
 }
 
 // ---------------------------------------------------------------------------

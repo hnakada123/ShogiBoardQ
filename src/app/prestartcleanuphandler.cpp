@@ -373,8 +373,16 @@ void PreStartCleanupHandler::ensureBranchTreeRoot()
     if (m_branchTree->root() != nullptr) {
         // ルートが既に存在する場合でも、SFENが異なれば更新する
         if (m_branchTree->root()->sfen() != rootSfen) {
-            m_branchTree->clear();
+            // setRootSfen()は旧ノードを削除してtreeChangedを同期通知する。
+            // 通知先が古い選択ノードを参照しないよう、先に切り離す。
+            m_savedCurrentNode = nullptr;
+            if (m_navState) {
+                m_navState->setCurrentNode(nullptr);
+                m_navState->resetPreferredLineIndex();
+                m_navState->clearLineSelectionMemory();
+            }
             m_branchTree->setRootSfen(rootSfen);
+            if (m_navState) m_navState->goToRoot();
             qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: updated root sfen=" << rootSfen;
         } else {
             qCDebug(lcGame).noquote() << "ensureBranchTreeRoot: root already exists with correct sfen";

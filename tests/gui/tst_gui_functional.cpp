@@ -46,6 +46,8 @@
 #include <QVBoxLayout>
 #include "mainwindow.h"
 #include "shogiview.h"
+#include "shogiviewlayout.h"
+#include "boardinteractioncontroller.h"
 #include "elidelabel.h"
 #include "shogiboard.h"
 #include "recordpane.h"
@@ -120,6 +122,30 @@ class GuiAudit : public QObject
         return {};
     }
     QAction* action(const QString& name) const { return window->findChild<QAction*>(name); }
+    ShogiViewLayout editLayout() const
+    {
+        ShogiViewLayout layout;
+        layout.setSquareSize(board()->squareSize());
+        layout.setStandGapCols(0.7);
+        layout.setFlipMode(board()->flipMode());
+        layout.recalcLayoutParams(board()->font());
+        return layout;
+    }
+    QPoint editPoint(int file, int rank) const
+    {
+        const auto layout = editLayout();
+        if (file <= 9)
+            return layout.calculateSquareRectangleBasedOnBoardState(file, rank, 9, 9)
+                .translated(layout.offsetX(), layout.offsetY()).center();
+        const QRect stand = file == 10 ? layout.blackStandBoundingRect(9, 9)
+                                      : layout.whiteStandBoundingRect(9, 9);
+        const int type = file == 10 ? rank - 1 : 9 - rank;
+        const bool top = (file == 10) == board()->flipMode();
+        const int col = top ? 1 - type % 2 : type % 2;
+        const int row = top ? type / 2 : 3 - type / 2;
+        return stand.topLeft() + QPoint((2 * col + 1) * board()->fieldSize().width() / 2,
+                                         (2 * row + 1) * board()->fieldSize().height() / 2);
+    }
     void click(const QString& name)
     {
         auto* a = action(name);
@@ -218,6 +244,7 @@ public slots:
             auto* d = qobject_cast<QDialog*>(w);
             if (!d || !d->isVisible()) continue;
             if (dialogMode == "file" && !qobject_cast<QFileDialog*>(d)) continue;
+            if (dialogMode == "messages" && !qobject_cast<QMessageBox*>(d)) continue;
             if (dialogMode != "auto") dialogTimer.stop();
             dialogHandled = true;
             dialogClass = d->metaObject()->className();
@@ -1250,6 +1277,8 @@ private slots:
         QTest::newRow("loaded-middle") << 2 << false << true;
         QTest::newRow("loaded-last") << 4 << false << false;
         QTest::newRow("finished-game") << 3 << true << true;
+        QTest::newRow("finished-start") << 0 << true << false;
+        QTest::newRow("finished-middle") << 1 << true << true;
     }
     void boardEditingClearsRecord()
     {
@@ -1353,6 +1382,308 @@ private slots:
         click("actionStartEditPosition");
         QCOMPARE(boardSfen(), editedBoard);
         QCOMPARE(model->rowCount(), 1);
+        click("actionEndEditPosition");
+    }
+    void boardEditingTurn_data()
+    {
+        QTest::addColumn<QString>("operation");
+        for (const char* op : {"move", "rejected-move", "hirate", "tsume", "stand-kings"})
+            QTest::newRow(op) << QString::fromLatin1(op);
+    }
+    void boardEditingTurn()
+    {
+        QFETCH(QString, operation);
+        click("actionStartEditPosition");
+        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
+        if (operation == "move" || operation == "rejected-move") {
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 3));
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier,
+                              squarePoint(operation == "move" ? 3 : 4, 4));
+            QCOMPARE(board()->board()->pieceCharacter(3, operation == "move" ? 4 : 3), Piece::WhitePawn);
+            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player1);
+        } else if (operation == "stand-kings") {
+            click("actionReturnAllPiecesToStand");
+            const auto hand = board()->board()->pieceStand();
+            click("actionChangeTurn");
+            QCOMPARE(board()->board()->pieceStand(), hand);
+            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player2);
+        } else {
+            click("actionChangeTurn");
+            click(operation == "hirate" ? "actionSetHiratePosition" : "actionSetTsumePosition");
+            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player1);
+        }
+        const Turn turn = gc->currentPlayer() == ShogiGameController::Player1 ? Turn::Black : Turn::White;
+        QCOMPARE(board()->board()->currentPlayer(), turn);
+        const QString expected = QStringLiteral("%1 %2 %3 1")
+            .arg(boardSfen(), turnToSfen(turn), board()->board()->convertStandToSfen());
+        QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
+        click("actionEndEditPosition");
+        QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
+    }
+    void boardEditingSelectionReset_data()
+    {
+        QTest::addColumn<QString>("operation");
+        for (const char* op : {"actionSetHiratePosition", "actionSetTsumePosition",
+                               "actionReturnAllPiecesToStand", "finish", "begin"})
+            QTest::newRow(op) << QString::fromLatin1(op);
+    }
+    void boardEditingSelectionReset()
+    {
+        QFETCH(QString, operation);
+        if (operation != "begin") click("actionStartEditPosition");
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(2, 8));
+        if (operation == "begin") {
+            click("actionStartEditPosition");
+        } else if (operation == "finish") {
+            click("actionEndEditPosition");
+            click("actionStartEditPosition");
+        } else {
+            click(operation);
+        }
+        const QString before = boardSfen();
+        const auto hand = board()->board()->pieceStand();
+        QSignalSpy moves(window->findChild<BoardInteractionController*>(), &BoardInteractionController::moveRequested);
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(5, 5));
+        QCOMPARE(moves.count(), 0);
+        QCOMPARE(boardSfen(), before);
+        QCOMPARE(board()->board()->pieceStand(), hand);
+        // 次の選択・移動が通常どおり成立することも確認する。
+        click("actionSetHiratePosition");
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 5));
+        QCOMPARE(board()->board()->pieceCharacter(7, 5), Piece::BlackPawn);
+        click("actionEndEditPosition");
+    }
+    void boardEditingPieceTransfers_data()
+    {
+        QTest::addColumn<bool>("flipped");
+        QTest::newRow("normal") << false;
+        QTest::newRow("flipped") << true;
+    }
+    void boardEditingPieceTransfers()
+    {
+        QFETCH(bool, flipped);
+        click("actionStartEditPosition");
+        if (flipped) click("actionFlipBoard");
+        click("actionReturnAllPiecesToStand");
+        auto* model = board()->board();
+        const auto originalHand = model->pieceStand();
+        // 両側8種類を駒台→盤→相手駒台→元の駒台へ移し、枚数と種類を確認する。
+        for (int side : {10, 11}) {
+            for (int type = 1; type <= 8; ++type) {
+                const int rank = side == 10 ? type : 10 - type;
+                const int otherSide = side == 10 ? 11 : 10;
+                const Piece piece = model->pieceCharacter(side, rank);
+                const Piece otherPiece = model->pieceCharacter(otherSide, 10 - rank);
+                auto point = [this](int file, int row) {
+                    return editPoint(file, row);
+                };
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(side, rank));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(5, 5));
+                QCOMPARE(model->pieceCharacter(5, 5), piece);
+                QCOMPARE(model->pieceStandCount(piece), originalHand.value(piece) - 1);
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(5, 5));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(otherSide, 10 - rank));
+                QCOMPARE(model->pieceCharacter(5, 5), Piece::None);
+                QCOMPARE(model->pieceStandCount(otherPiece), originalHand.value(otherPiece) + 1);
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(otherSide, 10 - rank));
+                QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, point(side, rank));
+                QCOMPARE(model->pieceStand(), originalHand);
+            }
+        }
+        snapshot(flipped ? "board-edit-stands-flipped" : "board-edit-stands");
+        click("actionEndEditPosition");
+    }
+    void boardEditingPromotionAndCapture()
+    {
+        click("actionStartEditPosition");
+        click("actionReturnAllPiecesToStand");
+        auto* model = board()->board();
+        for (int type : {1, 2, 3, 4, 6, 7}) {
+            const Piece piece = model->pieceCharacter(10, type);
+            const int count = model->pieceStandCount(piece);
+            const QPoint stand = editPoint(10, type);
+            const QPoint center = squarePoint(5, 5);
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, stand);
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, center);
+            for (Piece expected : {promote(piece), toWhite(piece), promote(toWhite(piece)), piece}) {
+                QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, center);
+                QCOMPARE(model->pieceCharacter(5, 5), expected);
+            }
+            QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, center);
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, center);
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, stand);
+            QCOMPARE(model->pieceCharacter(5, 5), Piece::None);
+            QCOMPARE(model->pieceStandCount(piece), count);
+        }
+        click("actionSetHiratePosition");
+        // 相手の成駒を取ると、生駒として持ち駒に加わる。
+        QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, squarePoint(3, 3));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(2, 8));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 3));
+        QCOMPARE(model->pieceCharacter(3, 3), Piece::BlackRook);
+        QCOMPARE(model->pieceStandCount(Piece::BlackPawn), 1);
+        // 同じマス、右クリック、空きマス・空の駒台で状態を壊さない。
+        const QString before = boardSfen();
+        for (Qt::MouseButton cancel : {Qt::LeftButton, Qt::RightButton}) {
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 3));
+            QTest::mouseClick(board(), cancel, Qt::NoModifier, squarePoint(3, 3));
+            QCOMPARE(boardSfen(), before);
+        }
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(5, 5));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(10, 7));
+        QCOMPARE(boardSfen(), before);
+        click("actionEndEditPosition");
+    }
+    void boardEditingStandMargins_data() { boardEditingPieceTransfers_data(); }
+    void boardEditingStandMargins()
+    {
+        QFETCH(bool, flipped);
+        click("actionStartEditPosition");
+        if (flipped) click("actionFlipBoard");
+        click("actionReturnAllPiecesToStand");
+        for (int side : {10, 11}) {
+            const auto layout = editLayout();
+            const QRect stand = side == 10 ? layout.blackStandBoundingRect(9, 9)
+                                           : layout.whiteStandBoundingRect(9, 9);
+            const QList<QPoint> outside = {
+                QPoint(stand.left() - 1, stand.center().y()),
+                QPoint(stand.right() + 1, stand.center().y()),
+                QPoint(stand.center().x(), stand.top() - 1),
+                QPoint(stand.center().x(), stand.bottom() + 1)};
+            for (const QPoint& point : outside) QCOMPARE(board()->clickedSquare(point), QPoint());
+        }
+        click("actionEndEditPosition");
+    }
+    void boardEditingForcedPromotion_data()
+    {
+        QTest::addColumn<int>("side");
+        QTest::addColumn<int>("type");
+        QTest::addColumn<int>("destinationRank");
+        for (int side : {10, 11}) {
+            for (int type : {1, 2, 3}) {
+                for (int rank = 1; rank <= (type == 3 ? 2 : 1); ++rank) {
+                    const QString name = QStringLiteral("%1-%2-%3").arg(side).arg(type).arg(rank);
+                    QTest::newRow(qPrintable(name)) << side << type << (side == 10 ? rank : 10 - rank);
+                }
+            }
+        }
+    }
+    void boardEditingForcedPromotion()
+    {
+        QFETCH(int, side); QFETCH(int, type); QFETCH(int, destinationRank);
+        click("actionStartEditPosition");
+        click("actionReturnAllPiecesToStand");
+        auto* model = board()->board();
+        const int standRank = side == 10 ? type : 10 - type;
+        const Piece piece = model->pieceCharacter(side, standRank);
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(side, standRank));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(5, destinationRank));
+        QCOMPARE(model->pieceCharacter(5, destinationRank), promote(piece));
+        // 右クリックの巡回でも、行き所のない不成駒には戻らない。
+        for (int i = 0; i < 4; ++i) {
+            QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, editPoint(5, destinationRank));
+            QVERIFY(model->pieceCharacter(5, destinationRank) != piece);
+        }
+        click("actionEndEditPosition");
+    }
+    void boardEditingRejectedMoves()
+    {
+        click("actionStartEditPosition");
+        auto* model = board()->board();
+        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
+        const QString before = boardSfen();
+        const auto hand = model->pieceStand();
+        // 二歩、味方駒、玉取り、空の駒台をGUIから操作する。
+        const QList<QPair<QPoint, QPoint>> moves = {
+            {{7, 7}, {6, 5}}, {{2, 8}, {5, 9}}, {{2, 8}, {5, 1}}, {{10, 7}, {5, 5}}};
+        for (const auto& move : moves) {
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(move.first.x(), move.first.y()));
+            QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(move.second.x(), move.second.y()));
+            QCOMPARE(boardSfen(), before);
+            QCOMPARE(model->pieceStand(), hand);
+            QCOMPARE(gc->currentPlayer(), ShogiGameController::Player1);
+        }
+        // 不正な座標や駒台セルを渡されても、駒が消えたり別の種類に変わったりしない。
+        const QList<QPair<QPoint, QPoint>> invalid = {
+            {{0, 0}, {5, 1}}, {{5, 5}, {3, 3}}, {{7, 7}, {5, 0}},
+            {{7, 7}, {12, 1}}, {{7, 7}, {10, 9}}, {{7, 7}, {11, 1}},
+            {{7, 7}, {10, 7}}, {{7, 7}, {7, 7}}};
+        for (const auto& move : invalid) {
+            QVERIFY(!gc->editPosition(move.first, move.second));
+            QCOMPARE(boardSfen(), before);
+            QCOMPARE(model->pieceStand(), hand);
+        }
+        // 二歩になる先後変更は右クリックでもスキップする。
+        QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, editPoint(7, 7));
+        QCOMPARE(model->pieceCharacter(7, 7), Piece::BlackPromotedPawn);
+        QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, editPoint(7, 7));
+        QCOMPARE(model->pieceCharacter(7, 7), Piece::WhitePromotedPawn);
+        click("actionEndEditPosition");
+    }
+    void boardEditingFromBranch()
+    {
+        QFile fixture(QStringLiteral(REPO "/tests/fixtures/test_branch.kif"));
+        QVERIFY(fixture.open(QIODevice::ReadOnly));
+        paste(QString::fromUtf8(fixture.readAll()));
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        for (int i = 0; i < 3; ++i) QTest::mouseClick(record()->nextButton(), Qt::LeftButton);
+        auto* branches = record()->branchView(); QVERIFY(branches->model());
+        QTRY_VERIFY(branches->model()->rowCount() >= 2);
+        const auto index = branches->model()->index(1, 0);
+        QTest::mouseClick(branches->viewport(), Qt::LeftButton, Qt::NoModifier, branches->visualRect(index).center());
+        const QString expected = QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2PP5/PP2PPPPP/1B5R1/LNSGKGSNL w - 1");
+        QTRY_COMPARE(boardSfen(), expected.section(' ', 0, 0));
+        click("actionStartEditPosition");
+        QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
+        click("actionEndEditPosition");
+        QCOMPARE(copy("actionCopySFEN").trimmed(), expected);
+        QCOMPARE(record()->kifuView()->model()->rowCount(), 1);
+        QVERIFY(copy("actionCopyUSIAll").contains(expected));
+    }
+    void boardEditingGameAndExport()
+    {
+        click("actionStartEditPosition");
+        QVERIFY(!action("actionStartGame")->isEnabled());
+        QVERIFY(!action("actionPasteKifu")->isEnabled());
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(7, 7));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(10, 1));
+        click("actionChangeTurn");
+        const QString edited = copy("actionCopySFEN").trimmed();
+        snapshot("board-edit-custom");
+        auto* exitButton = board()->findChild<QPushButton*>("editExitButton"); QVERIFY(exitButton);
+        QTest::mouseClick(exitButton, Qt::LeftButton);
+        QVERIFY(!board()->positionEditMode());
+        QVERIFY(action("actionStartGame")->isEnabled());
+        const QString savedKif = copy("actionCopyKIF");
+        QVERIFY(copy("actionCopyUSIAll").contains(edited));
+        armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
+        QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(3, 3));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(3, 4));
+        QTRY_COMPARE(record()->kifuView()->model()->rowCount(), 2);
+        QCOMPARE(board()->board()->pieceCharacter(3, 4), Piece::WhitePawn);
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(10, 1));
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, editPoint(7, 6));
+        QTRY_COMPARE(record()->kifuView()->model()->rowCount(), 3);
+        QCOMPARE(board()->board()->pieceCharacter(7, 6), Piece::BlackPawn);
+        armDialog("auto"); click("actionResign");
+        QTRY_VERIFY(!record()->isNavigationDisabled());
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
+        armDialog("discard"); click("actionNewGame");
+        dialogMessages.clear();
+        armDialog("messages");
+        paste(savedKif);
+        QVERIFY2(dialogMessages.isEmpty(), qPrintable(dialogMessages.join('\n')));
+        auto* loadedRecord = window->findChild<GameRecordModel*>(); QVERIFY(loadedRecord);
+        QCOMPARE(loadedRecord->branchTree()->root()->sfen(), edited);
+        QVERIFY(copy("actionCopyUSIAll").contains(edited));
+        QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
+        auto* gc = window->findChild<ShogiGameController*>(); QVERIFY(gc);
+        QCOMPARE(gc->currentPlayer(), ShogiGameController::Player2);
+        click("actionStartEditPosition");
+        QCOMPARE(copy("actionCopySFEN").trimmed(), edited);
         click("actionEndEditPosition");
     }
     void closeWhileLoading()

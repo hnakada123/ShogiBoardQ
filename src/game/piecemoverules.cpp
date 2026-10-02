@@ -17,7 +17,8 @@ bool PieceMoveRules::checkMovePiece(ShogiBoard* board,
     if (!checkWhetherAllyPiece(source, dest, fileFrom, fileTo)) return false;
     if (!checkNumberStandPiece(board, source, fileFrom)) return false;
     if (!checkFromPieceStandToPieceStand(source, dest, fileFrom, fileTo)) return false;
-    if (!checkGetKingOpponentPiece(source, dest)) return false;
+    // 駒台のdestは駒種を表すセルであり、玉を取る移動ではない。
+    if (fileTo < BoardConstants::kBlackStandFile && !checkGetKingOpponentPiece(source, dest)) return false;
 
     return true;
 }

@@ -80,6 +80,14 @@ void KifuNavigationCoordinator::navigateToRow(int ply)
     qCDebug(lcNavTrace).noquote() << "navigateKifuViewToRow LEAVE";
 }
 
+void KifuNavigationCoordinator::syncLoadedPositionAtRow(int ply)
+{
+    // 新しい棋譜の読込は、以前の分岐選択に伴う一時的な同期抑止に優先する。
+    if (m_deps.skipBoardSyncForBranchNav) *m_deps.skipBoardSyncForBranchNav = false;
+    syncBoardAndHighlightsAtRow(ply);
+    if (m_deps.setCurrentTurn) m_deps.setCurrentTurn();
+}
+
 // `syncBoardAndHighlightsAtRow`: 指定手数の盤面・ハイライト・関連UI状態を同期する。
 void KifuNavigationCoordinator::syncBoardAndHighlightsAtRow(int ply)
 {

@@ -67,7 +67,9 @@ bool KifuApplyService::applyParsedResult(
     *m_refs.kifuUsiMoves = res.mainline.usiMoves;
     const bool hasTerminal = !disp.isEmpty() && isTerminalPretty(disp.back().prettyMove);
 
-    if (!validateParsedResult(filePath, disp, hasTerminal, callerTag)) {
+    // 局面編集から保存した棋譜は指し手が0手でも、有効な開始局面図を持つ。
+    const bool hasPositionDiagram = teaiLabel == QStringLiteral("BOD") || teaiLabel == QStringLiteral("配置");
+    if (!hasPositionDiagram && !validateParsedResult(filePath, disp, hasTerminal, callerTag)) {
         return false;
     }
 
@@ -96,6 +98,12 @@ bool KifuApplyService::applyParsedResult(
     logStep("applyBranchTree");
 
     *m_refs.loadingKifu = false;
+
+    // 0手の棋譜でも、選択行が0のままでselectionChangedが発火しない場合がある。
+    // ツリーと履歴を構築し終えてから、開始局面を明示的に表示する。
+    if (m_hooks.syncBoardAndHighlightsAtRow) {
+        m_hooks.syncBoardAndHighlightsAtRow(0);
+    }
 
     qCDebug(lcKifu).noquote()
         << QStringLiteral("applyParsedResult TOTAL: %1 ms").arg(totalTimer.elapsed());

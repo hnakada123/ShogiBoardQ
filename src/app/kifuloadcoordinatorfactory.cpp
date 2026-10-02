@@ -57,7 +57,7 @@ KifuLoadCoordinator* KifuLoadCoordinatorFactory::createAndWire(const Params& p)
     }
     if (p.kifuNavCoordinator) {
         QObject::connect(coordinator, &KifuLoadCoordinator::syncBoardAndHighlightsAtRow,
-                         p.kifuNavCoordinator, &KifuNavigationCoordinator::syncBoardAndHighlightsAtRow, Qt::UniqueConnection);
+                         p.kifuNavCoordinator, &KifuNavigationCoordinator::syncLoadedPositionAtRow, Qt::UniqueConnection);
     }
     if (p.uiStatePolicy) {
         QObject::connect(coordinator, &KifuLoadCoordinator::enableArrowButtons,

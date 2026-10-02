@@ -475,16 +475,19 @@ bool ShogiGameController::editPosition(const QPoint& outFrom, const QPoint& outT
     int fileTo = outTo.x();
     int rankTo = outTo.y();
 
+    const auto validSquare = [](const QPoint& square) {
+        return (square.x() >= 1 && square.x() <= 9 && square.y() >= 1 && square.y() <= 9)
+            || (square.x() == BoardConstants::kBlackStandFile && square.y() >= 1 && square.y() <= 8)
+            || (square.x() == BoardConstants::kWhiteStandFile && square.y() >= 2 && square.y() <= 9);
+    };
+    if (!validSquare(outFrom) || !validSquare(outTo) || outFrom == outTo) return false;
+
     Piece source = board()->pieceCharacter(fileFrom, rankFrom);
     Piece dest = board()->pieceCharacter(fileTo, rankTo);
+    if (source == Piece::None) return false;
+    if (fileTo >= BoardConstants::kBlackStandFile && toBlack(demote(source)) != toBlack(dest)) return false;
 
-    // 移動元の駒の先手/後手から手番を推定
-    if (isBlackPiece(source)) {
-        setCurrentPlayer(Player1);
-    } else {
-        setCurrentPlayer(Player2);
-    }
-
+    // 編集中の駒配置は、ユーザーが選んだ手番を変更しない。
     if (!PieceMoveRules::checkMovePiece(board(), source, dest, fileFrom, fileTo)) return false;
 
     m_promote = PieceMoveRules::shouldAutoPromote(fileTo, rankTo, source);
