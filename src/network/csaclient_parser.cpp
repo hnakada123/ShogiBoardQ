@@ -266,6 +266,10 @@ void CsaClient::processGameMessage(const QString& line)
 {
     qCDebug(lcNetwork) << "processGameMessage:" << line;
 
+    // shogi-serverの拡張コマンド応答（例: ##[WHO]）は終局通知ではない。
+    // 通信ログには受信時に記録済みなので、対局状態には反映しない。
+    if (line.startsWith(QStringLiteral("##"))) return;
+
     // #で始まる行は結果行
     if (line.startsWith(QLatin1Char('#'))) {
         qCDebug(lcNetwork) << "Result line detected";

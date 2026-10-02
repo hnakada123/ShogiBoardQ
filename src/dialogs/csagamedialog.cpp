@@ -10,7 +10,7 @@
 #include "dialogutils.h"
 #include <QSettings>
 #include <QMessageBox>
-#include <QDir>
+#include <QRegularExpression>
 
 namespace {
 constexpr auto kCsaServerHistoryArray = "CsaServerHistory";
@@ -18,8 +18,6 @@ constexpr auto kCsaGameSettingsGroup = "CsaGameSettings";
 constexpr auto kKeyHost = "host";
 constexpr auto kKeyPort = "port";
 constexpr auto kKeyId = "id";
-constexpr auto kKeyVersion = "version";
-constexpr auto kKeyVersionIndex = "versionIndex";
 constexpr auto kKeyIsHuman = "isHuman";
 constexpr auto kKeyEngineNumber = "engineNumber";
 constexpr auto kKeyEngineName = "engineName";
@@ -54,9 +52,13 @@ CsaGameDialog::CsaGameDialog(QWidget *parent)
 
     // シグナル・スロットの接続を行う
     connectSignalsAndSlots();
+    updateFormState();
 
     // ウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, NetworkSettings::csaGameDialogSize());
+    if (ui->lineEditHost->text().isEmpty()) ui->lineEditHost->setFocus();
+    else if (ui->lineEditId->text().isEmpty()) ui->lineEditId->setFocus();
+    else ui->lineEditPassword->setFocus();
 }
 
 CsaGameDialog::~CsaGameDialog()
@@ -67,6 +69,13 @@ CsaGameDialog::~CsaGameDialog()
 // シグナル・スロットの接続を行う
 void CsaGameDialog::connectSignalsAndSlots()
 {
+    connect(ui->radioButtonEngine, &QRadioButton::toggled,
+            this, &CsaGameDialog::updateFormState);
+    connect(ui->comboBoxEngine, &QComboBox::currentIndexChanged,
+            this, &CsaGameDialog::updateFormState);
+    for (auto* input : {ui->lineEditHost, ui->lineEditId, ui->lineEditPassword}) {
+        connect(input, &QLineEdit::textChanged, this, &CsaGameDialog::updateFormState);
+    }
     // 対局開始ボタン
     connect(ui->pushButtonStart, &QPushButton::clicked,
             this, &CsaGameDialog::onAccepted);
@@ -137,7 +146,6 @@ void CsaGameDialog::loadServerHistory()
         history.host = settings.value(kKeyHost).toString();
         history.port = settings.value(kKeyPort, 4081).toInt();
         history.id = settings.value(kKeyId).toString();
-        history.version = settings.value(kKeyVersion, "CSAプロトコル1.2.1 読み筋コメント出力あり").toString();
         m_serverHistory.append(history);
     }
 
@@ -152,7 +160,6 @@ void CsaGameDialog::saveServerHistory()
     current.host = ui->lineEditHost->text().trimmed();
     current.port = ui->spinBoxPort->value();
     current.id = ui->lineEditId->text().trimmed();
-    current.version = ui->comboBoxVersion->currentText();
 
     // 空の場合は保存しない
     if (current.host.isEmpty() || current.id.isEmpty()) {
@@ -186,7 +193,6 @@ void CsaGameDialog::saveServerHistory()
         settings.setValue(kKeyHost, h.host);
         settings.setValue(kKeyPort, h.port);
         settings.setValue(kKeyId, h.id);
-        settings.setValue(kKeyVersion, h.version);
     }
     settings.endArray();
 }
@@ -197,8 +203,8 @@ void CsaGameDialog::populateUIWithServerHistory()
     // 履歴コンボボックスをクリアする
     ui->comboBoxHistory->clear();
 
-    // 空の選択肢を追加
-    ui->comboBoxHistory->addItem(QString());
+    ui->comboBoxHistory->addItem(tr("新しい接続先"));
+    ui->comboBoxHistory->setEnabled(!m_serverHistory.isEmpty());
 
     // 履歴リストからサーバー履歴をコンボボックスに追加する
     for (const ServerHistory& history : std::as_const(m_serverHistory)) {
@@ -225,7 +231,8 @@ void CsaGameDialog::loadGameSettings()
     ui->radioButtonHuman->setChecked(isHuman);
     ui->radioButtonEngine->setChecked(!isHuman);
 
-    int engineIndex = settings.value(kKeyEngineNumber, 0).toInt();
+    int engineIndex = ui->comboBoxEngine->findText(settings.value(kKeyEngineName).toString());
+    if (engineIndex < 0) engineIndex = settings.value(kKeyEngineNumber, 0).toInt();
     if (engineIndex >= 0 && engineIndex < ui->comboBoxEngine->count()) {
         ui->comboBoxEngine->setCurrentIndex(engineIndex);
     }
@@ -236,11 +243,6 @@ void CsaGameDialog::loadGameSettings()
     ui->lineEditId->setText(settings.value(kKeyId, "").toString());
     ui->lineEditPassword->clear();
     settings.remove(kKeyPassword);
-
-    int versionIndex = settings.value(kKeyVersionIndex, 0).toInt();
-    if (versionIndex >= 0 && versionIndex < ui->comboBoxVersion->count()) {
-        ui->comboBoxVersion->setCurrentIndex(versionIndex);
-    }
 
     settings.endGroup();
 }
@@ -262,40 +264,43 @@ void CsaGameDialog::saveGameSettings()
     settings.setValue(kKeyPort, ui->spinBoxPort->value());
     settings.setValue(kKeyId, ui->lineEditId->text().trimmed());
     settings.remove(kKeyPassword);
-    settings.setValue(kKeyVersionIndex, ui->comboBoxVersion->currentIndex());
 
     settings.endGroup();
 }
 
-// 対局開始ボタンが押された時の処理
+QString CsaGameDialog::validationMessage() const
+{
+    if (ui->radioButtonEngine->isChecked() && ui->comboBoxEngine->currentIndex() < 0) {
+        return tr("「設定」→「エンジン設定」からエンジンを登録してください。");
+    }
+    const QString host = ui->lineEditHost->text().trimmed();
+    const QString id = ui->lineEditId->text().trimmed();
+    const QString password = ui->lineEditPassword->text();
+    if (host.isEmpty()) return tr("接続先ホストを入力してください。");
+    if (id.isEmpty()) return tr("IDを入力してください。");
+    if (password.isEmpty()) return tr("パスワードを入力してください。");
+    static const QRegularExpression whitespace(QStringLiteral("\\s"));
+    if (host.contains(whitespace) || id.contains(whitespace) || password.contains(whitespace)) {
+        return tr("接続先ホスト・ID・パスワードに空白や改行は使用できません。");
+    }
+    return {};
+}
+
+void CsaGameDialog::updateFormState()
+{
+    const bool engine = ui->radioButtonEngine->isChecked();
+    ui->comboBoxEngine->setEnabled(engine && ui->comboBoxEngine->count() > 0);
+    ui->pushButtonEngineSettings->setEnabled(engine && ui->comboBoxEngine->currentIndex() >= 0);
+    const QString message = validationMessage();
+    ui->labelValidation->setText(message.isEmpty() ? tr("接続後、対局相手を待ちます。") : message);
+    ui->pushButtonStart->setEnabled(message.isEmpty());
+}
+
+// 接続ボタンが押された時の処理
 void CsaGameDialog::onAccepted()
 {
-    // 入力値の検証
-    QString host = ui->lineEditHost->text().trimmed();
-    QString id = ui->lineEditId->text().trimmed();
-    QString password = ui->lineEditPassword->text();
-
-    if (host.isEmpty()) {
-        QMessageBox::warning(this, tr("入力エラー"), tr("接続先ホストを入力してください。"));
-        ui->lineEditHost->setFocus();
-        return;
-    }
-
-    if (id.isEmpty()) {
-        QMessageBox::warning(this, tr("入力エラー"), tr("IDを入力してください。"));
-        ui->lineEditId->setFocus();
-        return;
-    }
-
-    if (password.isEmpty()) {
-        QMessageBox::warning(this, tr("入力エラー"), tr("パスワードを入力してください。"));
-        ui->lineEditPassword->setFocus();
-        return;
-    }
-
-    // エンジンが選択されている場合、エンジンが存在するか確認
-    if (ui->radioButtonEngine->isChecked() && ui->comboBoxEngine->count() == 0) {
-        QMessageBox::warning(this, tr("エラー"), tr("将棋エンジンが登録されていません。\nツール→エンジン設定からエンジンを登録してください。"));
+    if (!validationMessage().isEmpty()) {
+        updateFormState();
         return;
     }
 
@@ -303,10 +308,10 @@ void CsaGameDialog::onAccepted()
     m_isHuman = ui->radioButtonHuman->isChecked();
     m_engineName = ui->comboBoxEngine->currentText();
     m_engineNumber = ui->comboBoxEngine->currentIndex();
-    m_host = host;
+    m_host = ui->lineEditHost->text().trimmed();
     m_port = ui->spinBoxPort->value();
-    m_loginId = id;
-    m_password = password;
+    m_loginId = ui->lineEditId->text().trimmed();
+    m_password = ui->lineEditPassword->text();
 
     // 設定を保存
     saveGameSettings();
@@ -325,7 +330,7 @@ void CsaGameDialog::onEngineSettingsClicked()
 // サーバー履歴が選択された時の処理
 void CsaGameDialog::onServerHistoryChanged(int index)
 {
-    // インデックス0は空の選択肢なのでスキップ
+    // インデックス0は新しい接続先なのでスキップ
     if (index <= 0 || index > m_serverHistory.size()) {
         return;
     }
@@ -336,12 +341,6 @@ void CsaGameDialog::onServerHistoryChanged(int index)
     ui->spinBoxPort->setValue(history.port);
     ui->lineEditId->setText(history.id);
     ui->lineEditPassword->clear();
-
-    // バージョンを設定
-    int versionIndex = ui->comboBoxVersion->findText(history.version);
-    if (versionIndex >= 0) {
-        ui->comboBoxVersion->setCurrentIndex(versionIndex);
-    }
 }
 
 // パスワード表示チェックボックスの状態が変化した時の処理

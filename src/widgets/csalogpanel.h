@@ -12,6 +12,7 @@ class QPlainTextEdit;
 class QToolButton;
 class QPushButton;
 class QLineEdit;
+class QLabel;
 
 class LogViewFontManager;
 
@@ -37,6 +38,7 @@ public:
 
     /// ログをクリア
     void clear();
+    void setConnected(bool connected);
 
 signals:
     /// CSAコマンド送信シグナル
@@ -46,6 +48,8 @@ private slots:
     void onFontIncrease();
     void onFontDecrease();
     void onCommandEntered();
+    void updateSendButton();
+    void copyLog();
 
 private:
     void buildToolbar();
@@ -63,6 +67,8 @@ private:
     QWidget* m_commandBar = nullptr;
     QPushButton* m_btnSendToServer = nullptr;
     QLineEdit* m_commandInput = nullptr;
+    QLabel* m_connectionStatus = nullptr;
+    bool m_connected = false;
 };
 
 #endif // CSALOGPANEL_H

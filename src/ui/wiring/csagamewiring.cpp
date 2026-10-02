@@ -445,6 +445,9 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
 
         // CSA通信ログをEngineAnalysisTabに転送
         if (m_analysisTab) {
+            connect(m_coordinator, &CsaGameCoordinator::connectionStateChanged,
+                    m_analysisTab, &EngineAnalysisTab::setCsaConnected,
+                    Qt::UniqueConnection);
             connect(m_coordinator, &CsaGameCoordinator::csaCommLogAppended,
                     m_analysisTab, &EngineAnalysisTab::appendCsaLog,
                     Qt::UniqueConnection);

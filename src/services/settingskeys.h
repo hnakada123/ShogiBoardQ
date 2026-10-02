@@ -20,6 +20,7 @@ inline constexpr char kStartGameDialogSize[]             = "SizeRelated/startGam
 inline constexpr char kKifuPasteDialogSize[]             = "SizeRelated/kifuPasteDialogSize";
 inline constexpr char kCsaLogWindowSize[]                = "SizeRelated/csaLogWindowSize";
 inline constexpr char kCsaGameDialogSize[]               = "SizeRelated/csaGameDialogSize";
+inline constexpr char kCsaWaitingDialogSize[]            = "SizeRelated/csaWaitingDialogSize";
 inline constexpr char kKifuAnalysisDialogSize[]          = "SizeRelated/kifuAnalysisDialogSize";
 inline constexpr char kJosekiMoveDialogSize[]            = "SizeRelated/josekiMoveDialogSize";
 inline constexpr char kTsumeshogiGeneratorDialogSize[]   = "SizeRelated/tsumeshogiGeneratorDialogSize";

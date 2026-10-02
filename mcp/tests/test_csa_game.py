@@ -248,6 +248,86 @@ async def test_waiting_log_and_mcp_enter(csa_env, csa_server):
         await ui.wait_state(ui_state="idle", play_mode="not_started")
 
 
+@pytest.mark.parametrize("language,font_size", [("ja_JP", 10), ("ja_JP", 18), ("en", 18)])
+async def test_connection_form_feedback(csa_env, tmp_path, language, font_size):
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config.write_text(config.read_text() + f"\n[%General]\nlanguage={language}\n"
+                      + f"\n[FontSize]\ncsaGameDialog={font_size}\n")
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.call("trigger_action", name="actionCSA")
+        title = await ui.dialog("CsaGameDialog")
+
+        async def widget(name):
+            return (await ui.call("get_widget_text", dialog=title, widget=name))["widgets"][0]
+
+        assert not (await widget("pushButtonStart"))["enabled"]
+        assert not (await widget("comboBoxEngine"))["enabled"]
+        assert not (await widget("pushButtonEngineSettings"))["enabled"]
+        assert (await widget("labelValidation"))["text"]
+        await ui.call("capture_screenshot", target=title, output_dir=str(tmp_path))
+        for name, value in [("lineEditHost", "127.0.0.1"), ("lineEditId", "BoardQ"),
+                            ("checkBoxShowPassword", True), ("lineEditPassword", "test-600-10,pw")]:
+            await ui.call("set_widget_value", target=title, widget=name, value=value)
+        assert (await widget("pushButtonStart"))["enabled"]
+        await ui.call("set_widget_value", target=title, widget="lineEditId", value="bad id")
+        assert not (await widget("pushButtonStart"))["enabled"]
+        assert ("空白" if language == "ja_JP" else "whitespace") in (await widget("labelValidation"))["text"]
+        await ui.call("close_dialog", dialog=title)
+
+
+async def test_log_send_buttons_and_disconnect(csa_env, csa_server, tmp_path):
+    for name in ("disconnected", "waiting", "connected"):
+        (tmp_path / name).mkdir()
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.call("show_dock", widget="CsaLogDock")
+        before = await ui.call("get_widget_text", widget="csaCommandInput")
+        assert not before["widgets"][0]["enabled"]
+        await ui.call("capture_screenshot", output_dir=str(tmp_path / "disconnected"))
+        title = await ui.connect(csa_server[0])
+        await ui.call("click_dialog_button", dialog=title, text="通信ログ")
+        await ui.call("set_widget_value", target="csaWaitingLogWindow", widget="csaWaitingCommandInput",
+                      value="%%WHO")
+        await ui.call("click_widget", target="csaWaitingLogWindow", widget="csaWaitingSendButton")
+        deadline = asyncio.get_running_loop().time() + 5
+        while True:
+            data = await ui.call("get_widget_text", dialog="csaWaitingLogWindow", widget="csaWaitingLogView")
+            if "##[WHO]" in data["widgets"][0]["text"]:
+                break
+            assert asyncio.get_running_loop().time() < deadline
+            await asyncio.sleep(0.05)
+        await ui.call("capture_screenshot", target="csaWaitingLogWindow", output_dir=str(tmp_path / "waiting"))
+        await ui.call("close_dialog", dialog="csaWaitingLogWindow")
+        peer = await Peer.connect(csa_server[0])
+        try:
+            await peer.start()
+            await ui.wait_state(ui_state="csa_game")
+            await ui.call("show_dock", widget="CsaLogDock")
+            await ui.call("set_widget_value", widget="csaCommandInput", value="%%WHO")
+            await ui.call("click_widget", widget="csaSendButton")
+            assert (await ui.call("get_widget_text", widget="csaCommandInput"))["widgets"][0]["text"] == ""
+            deadline = asyncio.get_running_loop().time() + 5
+            while True:
+                log = (await ui.call("get_widget_text", widget="csaLogView"))["widgets"][0]["text"]
+                if log.count("##[WHO] +OK") >= 2:
+                    break
+                assert asyncio.get_running_loop().time() < deadline
+                await asyncio.sleep(0.05)
+            assert (await ui.call("get_app_state"))["ui_state"] == "csa_game"
+            await ui.move("7g7f")
+            await peer.until("+7776FU")
+            await ui.wait_state(current_ply=1)
+            await ui.call("capture_screenshot", output_dir=str(tmp_path / "connected"))
+            # Ending the TCP session must immediately disable both ways of sending.
+            await ui.call("set_widget_value", widget="csaCommandInput", value="LOGOUT", submit=True)
+            await ui.dismiss_end()
+            assert not (await ui.call("get_widget_text", widget="csaCommandInput"))["widgets"][0]["enabled"]
+            assert not (await ui.call("get_widget_text", widget="csaSendButton"))["widgets"][0]["enabled"]
+        finally:
+            await peer.close()
+
+
 @pytest.mark.parametrize("action,command", [("actionBreakOffGame", "%CHUDAN"),
                                             ("actionNyugyokuDeclaration", "%KACHI")])
 async def test_server_adjudicates_declarations(csa_env, csa_server, action, command):
@@ -426,7 +506,8 @@ async def test_capture_promotion_drop_and_navigation(csa_env, csa_server, side, 
             await peer.close()
 
 
-async def test_shogihome_interoperability(csa_env, csa_server, tmp_path):
+@pytest.mark.parametrize("side", ["b", "w"])
+async def test_shogihome_interoperability(csa_env, csa_server, tmp_path, side):
     endpoint = os.environ.get("SHOGIBOARDQ_TEST_SHOGIHOME_CDP")
     if not endpoint:
         pytest.skip("SHOGIBOARDQ_TEST_SHOGIHOME_CDP is required (isolated ShogiHome)")
@@ -441,9 +522,13 @@ async def test_shogihome_interoperability(csa_env, csa_server, tmp_path):
 
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
-        await ui.connect(csa_server[0])
-        settings = {"protocolVersion": "v121", "host": "127.0.0.1", "port": csa_server[0],
-                    "id": "ShogiHome", "password": "audit-300-5-w", "tcpKeepalive": {"initialDelay": 10}}
+        # An explicitly supplied port allows checking an already running local server.
+        port = int(os.environ.get("SHOGIBOARDQ_TEST_SHOGIHOME_SERVER_PORT", csa_server[0]))
+        game = f"boardq-ui-{os.getpid()}-300-5"
+        await ui.connect(port, side=side, game=game)
+        settings = {"protocolVersion": "v121", "host": "127.0.0.1", "port": port,
+                    "id": "ShogiHome", "password": f"{game}-{'w' if side == 'b' else 'b'}",
+                    "tcpKeepalive": {"initialDelay": 10}}
         await home("""(async () => { window.csaAudit = {moves: [], results: []};
             if (!window.csaAuditHandlers) {
             electronShogiAPI.onCSAGameSummary((id,s) => {
@@ -458,16 +543,27 @@ async def test_shogihome_interoperability(csa_env, csa_server, tmp_path):
             csaAudit.id = await electronShogiAPI.csaLogin(""" + json.dumps(json.dumps(settings)) + "); return csaAudit.id; })()")
         try:
             await ui.wait_state(ui_state="csa_game")
-            await ui.move("7g7f")
-            await ui.wait_state(current_ply=1)
-            await home("electronShogiAPI.csaMove(csaAudit.id, '-3334FU')")
-            await ui.wait_state(current_ply=2)
-            assert (await ui.call("get_position"))["moves"] == ["7g7f", "3c3d"]
-            await ui.call("trigger_action", name="actionResign")
-            assert "負け" in await ui.dismiss_end()
+            sequence = [("7g7f", "+7776FU"), ("3c3d", "-3334FU"),
+                        ("8h2b+", "+8822UM"), ("8c8d", "-8384FU"),
+                        ("2b3a", "+2231UM"), ("8d8e", "-8485FU"),
+                        ("B*5e", "+0055KA"), ("9c9d", "-9394FU")]
+            for ply, (usi, csa) in enumerate(sequence, start=1):
+                if (csa[0] == "+") == (side == "b"):
+                    await ui.move(usi)
+                else:
+                    await home(f"electronShogiAPI.csaMove(csaAudit.id, {json.dumps(csa)})")
+                await ui.wait_state(current_ply=ply)
+                assert (await ui.call("get_position"))["moves"] == [m[0] for m in sequence[:ply]]
+            await ui.call("capture_screenshot", output_dir=str(tmp_path))
+            if side == "b":
+                await ui.call("trigger_action", name="actionResign")
+                assert "負け" in await ui.dismiss_end()
+            else:
+                await home("electronShogiAPI.csaResign(csaAudit.id)")
+                assert "勝ち" in await ui.dismiss_end()
             peer = await home("csaAudit")
             assert peer["started"] is True
-            assert len(peer["moves"]) == 2, peer
+            assert len(peer["moves"]) == 8, peer
             assert peer["results"], peer
             kifu = (await ui.call("get_kifu", format="kif"))["text"]
             assert "ShogiHome" in kifu, kifu

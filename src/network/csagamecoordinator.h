@@ -104,6 +104,13 @@ public:
     void stopGame();
 
     GameState gameState() const { return m_gameState; }
+    bool isConnected() const
+    {
+        // RemoteHostClosedErrorではソケットの状態が切り替わる前に切断通知が届く。
+        return m_client->connectionState() != CsaClient::ConnectionState::Disconnected
+            && m_client->connectionState() != CsaClient::ConnectionState::Connecting
+            && m_client->isConnected();
+    }
     bool isMyTurn() const;
     bool isBlackSide() const;
     bool isHumanPlayer() const { return m_playerType == PlayerType::Human; }
@@ -118,6 +125,7 @@ public:
     QString username() const { return m_options.username; }
 
 signals:
+    void connectionStateChanged(bool connected);
     void gameStateChanged(CsaGameCoordinator::GameState state);
     void errorOccurred(const QString& message);
     void gameStarted(const QString& blackName, const QString& whiteName,

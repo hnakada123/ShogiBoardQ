@@ -76,12 +76,12 @@
 <p class="guide-step-text">Configure the following settings.</p>
 <ul class="guide-step-text">
 <li><strong>Local Player</strong>: Choose a human player or USI engine.</li>
-<li><strong>Version</strong>: Select the CSA protocol version.</li>
+<li><strong>Protocol</strong>: Connect using CSA protocol 1.2.1.</li>
 <li><strong>Host</strong>: The server hostname or IP address.</li>
 <li><strong>Port</strong>: The server port number.</li>
 <li><strong>ID and Password</strong>: Your server login credentials.</li>
 </ul>
-<p class="guide-step-text">You can also select a previous connection from the history to restore its server settings.</p>
+<p class="guide-step-text">You can also select a previous connection from the history to restore its server settings. Passwords are not saved. Connect becomes available when the required fields are valid. For a local shogi-server, use localhost, port 4081 and a password in the form game-name,password (for example, test-600-10,pw). Both players must use the same game name.</p>
 <div class="screenshot-item">
 <img alt="Network Game (CSA) dialog" src="../../images/en/csa-game/csa-01-dialog.png"/>
 <p class="screenshot-caption">Network game dialog: configure the player and server connection</p>
@@ -101,13 +101,13 @@
 <span class="guide-step-number">2</span>
 <span class="guide-step-title">Connect and Wait</span>
 </div>
-<p class="guide-step-text">Click Start Game to connect to the server. Once login succeeds, a waiting screen appears while the server finds an opponent.</p>
+<p class="guide-step-text">Click Connect to connect to the server. Once login succeeds, a waiting screen appears while the server finds an opponent.</p>
 <p class="guide-step-text">Click Communication Log to view messages exchanged with the server. Click Cancel Game to stop waiting.</p>
 <div class="screenshot-item">
 <img alt="Waiting for an opponent" src="../../images/en/csa-game/csa-02-waiting.png"/>
 <p class="screenshot-caption">Waiting screen: looking for an opponent after a successful login</p>
 </div>
-<p class="guide-step-text">Click Communication Log to open a window showing CSA server communication in real time. You can also send commands directly to the server through the command input field.</p>
+<p class="guide-step-text">Click Communication Log to open a window showing CSA server communication in real time. While connected, press Enter or click Send to send a command. The main CSA log also shows connection status and offers Copy and Clear. It keeps up to 5,000 lines and preserves your reading position when you scroll back.</p>
 <div class="screenshot-item">
 <img alt="CSA communication log window" src="../../images/en/csa-game/csa-02-commlog.png"/>
 <p class="screenshot-caption">Communication log: view server messages and send commands</p>

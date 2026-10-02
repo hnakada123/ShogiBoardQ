@@ -1592,6 +1592,16 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/services/settingscommon.cpp
 )
 
+# CSA通信ログの閲覧・コマンド操作
+add_shogi_test(tst_csalogpanel
+    tst_csalogpanel.cpp
+    ${SRC}/widgets/csalogpanel.cpp
+    ${SRC}/widgets/logviewfontmanager.cpp
+    ${SRC}/common/applicationfonts.cpp
+    ${SRC}/services/networksettings.cpp
+    ${SRC}/services/settingscommon.cpp
+)
+
 # USI通信ログの閲覧・コマンド操作
 add_shogi_test(tst_usilogpanel
     tst_usilogpanel.cpp
