@@ -395,6 +395,12 @@ void EngineAnalysisTab::clearCsaLog()
     m_csaLogPanel->clear();
 }
 
+void EngineAnalysisTab::setCsaConnected(bool connected)
+{
+    ensureCsaLogPanel();
+    m_csaLogPanel->setConnected(connected);
+}
+
 void EngineAnalysisTab::clearUsiLog()
 {
     ensureUsiLogPanel();

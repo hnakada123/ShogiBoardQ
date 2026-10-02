@@ -74,6 +74,7 @@ void EngineAnalysisTab::setEngine2ThinkingModel(ShogiEngineThinkingModel*) {}
 void EngineAnalysisTab::setCommentText(const QString&) {}
 void EngineAnalysisTab::appendCsaLog(const QString&) {}
 void EngineAnalysisTab::clearCsaLog() {}
+void EngineAnalysisTab::setCsaConnected(bool) {}
 void EngineAnalysisTab::clearUsiLog() {}
 void EngineAnalysisTab::appendUsiLogStatus(const QString&) {}
 BranchTreeManager* EngineAnalysisTab::branchTreeManager() { return nullptr; }

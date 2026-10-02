@@ -68,4 +68,15 @@ void setCsaGameDialogSize(const QSize& size)
     s.setValue(SettingsKeys::kCsaGameDialogSize, size);
 }
 
+QSize csaWaitingDialogSize()
+{
+    QSettings& s = SettingsCommon::openSettings();
+    return s.value(SettingsKeys::kCsaWaitingDialogSize, QSize(400, 260)).toSize();
+}
+
+void setCsaWaitingDialogSize(const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kCsaWaitingDialogSize, size);
+}
+
 } // namespace NetworkSettings

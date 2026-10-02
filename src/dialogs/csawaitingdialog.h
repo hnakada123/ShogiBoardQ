@@ -90,6 +90,7 @@ private slots:
      * @brief コマンド入力でEnterが押された時の処理
      */
     void onCommandEntered();
+    void updateCommandState();
 
     /**
      * @brief ログウィンドウのフォントサイズを大きくする

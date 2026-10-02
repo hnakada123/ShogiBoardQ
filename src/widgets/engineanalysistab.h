@@ -73,6 +73,7 @@ public:
     void appendCsaLog(const QString& line);
     // CSA通信ログクリア
     void clearCsaLog();
+    void setCsaConnected(bool connected);
     // USI通信ログクリア
     void clearUsiLog();
 

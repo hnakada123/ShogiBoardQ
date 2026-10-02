@@ -47,7 +47,6 @@ public:
         QString host;       ///< 接続先ホスト
         int port;           ///< ポート番号
         QString id;         ///< ログインID
-        QString version;    ///< CSAプロトコルバージョン
     };
 
     /**
@@ -114,6 +113,7 @@ public:
     const QList<Engine>& engineList() const;
 
 private slots:
+    void updateFormState();
     /**
      * @brief 対局開始ボタンが押された時の処理
      */
@@ -147,6 +147,7 @@ private slots:
     void onFontDecrease();
 
 private:
+    QString validationMessage() const;
     /**
      * @brief シグナル・スロットの接続を行う
      */

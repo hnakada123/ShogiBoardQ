@@ -21,6 +21,29 @@ class Tst_CsaProtocol : public QObject
     Q_OBJECT
 
 private slots:
+    void csaClient_extensionRepliesDoNotEndGame()
+    {
+        CsaClient client;
+        client.m_connectionState = CsaClient::ConnectionState::InGame;
+        client.m_isMyTurn = true;
+        QSignalSpy ended(&client, &CsaClient::gameEnded);
+        client.processLine(QStringLiteral("##[WHO] BoardQ CSA game test-300-5 +"));
+        client.processLine(QStringLiteral("##[WHO] Peer CSA game test-300-5 -"));
+        client.processLine(QStringLiteral("##[WHO] +OK"));
+        QCOMPARE(ended.count(), 0);
+        QCOMPARE(client.connectionState(), CsaClient::ConnectionState::InGame);
+        QVERIFY(client.isMyTurn());
+
+        // 結果の2行の間に拡張応答が挟まっても、元の終局理由と勝敗を保持する。
+        client.processLine(QStringLiteral("#RESIGN"));
+        client.processLine(QStringLiteral("##[LIST] +OK"));
+        QCOMPARE(ended.count(), 0);
+        client.processLine(QStringLiteral("#WIN"));
+        QCOMPARE(ended.count(), 1);
+        QCOMPARE(qvariant_cast<CsaClient::GameResult>(ended.at(0).at(0)), CsaClient::GameResult::Win);
+        QCOMPARE(qvariant_cast<CsaClient::GameEndCause>(ended.at(0).at(1)), CsaClient::GameEndCause::Resign);
+    }
+
     void csaClient_singleChudanEndsGame()
     {
         CsaClient client;

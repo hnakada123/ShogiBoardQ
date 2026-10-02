@@ -31,6 +31,9 @@ void setCsaLogWindowSize(const QSize& size);
 QSize csaGameDialogSize();
 void setCsaGameDialogSize(const QSize& size);
 
+QSize csaWaitingDialogSize();
+void setCsaWaitingDialogSize(const QSize& size);
+
 } // namespace NetworkSettings
 
 #endif // NETWORKSETTINGS_H

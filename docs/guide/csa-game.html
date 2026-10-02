@@ -79,12 +79,12 @@
                 <p class="guide-step-text">以下の項目を設定します。</p>
                 <ul class="guide-step-text">
                     <li><strong>こちら側の対局者</strong>：人間またはUSIエンジンを選択</li>
-                    <li><strong>バージョン</strong>：CSAプロトコルのバージョンを選択</li>
+                    <li><strong>プロトコル</strong>：CSAプロトコル1.2.1で接続</li>
                     <li><strong>接続先ホスト</strong>：サーバーのホスト名またはIPアドレス</li>
                     <li><strong>ポート番号</strong>：サーバーのポート番号</li>
                     <li><strong>ID・パスワード</strong>：サーバーのログイン情報</li>
                 </ul>
-                <p class="guide-step-text">履歴から選ぶことで、過去に接続したサーバーの設定を呼び出すこともできます。</p>
+                <p class="guide-step-text">履歴から選ぶことで、過去に接続したサーバーの設定を呼び出すこともできます。パスワードは保存されません。必要な項目を入力すると「接続」ボタンが有効になります。ローカルのshogi-serverでは、ホストに localhost、ポートに 4081、パスワードに「ゲーム名,パスワード」（例: test-600-10,pw）を指定し、相手とゲーム名を揃えてください。</p>
                 <div class="screenshot-item">
                     <img src="../images/csa-game/csa-01-dialog.png" alt="通信対局（CSA）ダイアログ">
                     <p class="screenshot-caption">通信対局ダイアログ：対局者・サーバー接続情報を設定</p>
@@ -108,13 +108,13 @@
                     <span class="guide-step-number">2</span>
                     <span class="guide-step-title">サーバーへの接続と待機</span>
                 </div>
-                <p class="guide-step-text">「対局開始」ボタンを押すと、サーバーへの接続が行われます。ログインに成功すると対局相手とのマッチングを待機する画面が表示されます。</p>
+                <p class="guide-step-text">「接続」ボタンを押すと、サーバーへの接続が行われます。ログインに成功すると対局相手とのマッチングを待機する画面が表示されます。</p>
                 <p class="guide-step-text">「通信ログ」ボタンからサーバーとの通信ログを確認できます。対局をやめたい場合は「対局キャンセル」ボタンで待機を中止できます。</p>
                 <div class="screenshot-item">
                     <img src="../images/csa-game/csa-02-waiting.png" alt="対局相手を待機中の画面">
                     <p class="screenshot-caption">待機画面：ログイン成功後、対局相手とのマッチングを待機</p>
                 </div>
-                <p class="guide-step-text">「通信ログ」ボタンを押すと、CSAサーバーとの通信内容をリアルタイムで確認できるログウィンドウが開きます。コマンド入力欄からサーバーへ直接コマンドを送信することも可能です。</p>
+                <p class="guide-step-text">「通信ログ」ボタンを押すと、CSAサーバーとの通信内容をリアルタイムで確認できるログウィンドウが開きます。接続中はコマンド入力欄からEnterキーまたは「送信」ボタンでコマンドを送信できます。メイン画面のCSA通信ログには接続状態とコピー・クリアボタンも表示されます。ログは最大5000行を保持し、過去の行を読み返している間は新しい通信で末尾に移動しません。</p>
                 <div class="screenshot-item">
                     <img src="../images/csa-game/csa-02-commlog.png" alt="CSA通信ログウィンドウ">
                     <p class="screenshot-caption">通信ログ：サーバーとの通信内容を確認・コマンド送信</p>

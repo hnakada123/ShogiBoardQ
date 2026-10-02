@@ -194,6 +194,7 @@ void CsaGameCoordinator::declareWin()
 
 void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState state)
 {
+    emit connectionStateChanged(isConnected());
     switch (state) {
     case CsaClient::ConnectionState::Connected:
         emit logMessage(tr("接続完了。ログイン中..."));

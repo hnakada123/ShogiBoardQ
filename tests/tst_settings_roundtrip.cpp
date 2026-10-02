@@ -465,6 +465,10 @@ private slots:
         QSize gameSize(500, 400);
         NetworkSettings::setCsaGameDialogSize(gameSize);
         QCOMPARE(NetworkSettings::csaGameDialogSize(), gameSize);
+
+        QSize waitingSize(460, 300);
+        NetworkSettings::setCsaWaitingDialogSize(waitingSize);
+        QCOMPARE(NetworkSettings::csaWaitingDialogSize(), waitingSize);
     }
 
     // ========================================

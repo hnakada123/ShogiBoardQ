@@ -4,6 +4,7 @@
 #include "csawaitingdialog.h"
 #include "buttonstyles.h"
 #include "applicationfonts.h"
+#include "dialogutils.h"
 
 #include <QLabel>
 #include <QPushButton>
@@ -13,7 +14,6 @@
 #include <QLineEdit>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QTextCursor>
 #include "logcategories.h"
 
 #include "networksettings.h"
@@ -33,9 +33,15 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
     qCDebug(lcUi) << "Constructor called, coordinator=" << coordinator;
     setupUi();
     applyFontSize();
+    DialogUtils::restoreDialogSize(this, NetworkSettings::csaWaitingDialogSize());
 
     createLogWindow();
     connectSignalsAndSlots();
+    if (m_coordinator) {
+        connect(m_coordinator, &CsaGameCoordinator::connectionStateChanged,
+                this, &CsaWaitingDialog::updateCommandState);
+    }
+    updateCommandState();
     if (m_coordinator) {
         m_statusLabel->setText(stateMessage(m_coordinator->gameState()));
         qCDebug(lcUi) << "Initial state:" << static_cast<int>(m_coordinator->gameState());
@@ -44,6 +50,7 @@ CsaWaitingDialog::CsaWaitingDialog(CsaGameCoordinator* coordinator, QWidget* par
 
 CsaWaitingDialog::~CsaWaitingDialog()
 {
+    DialogUtils::saveDialogSize(this, NetworkSettings::setCsaWaitingDialogSize);
     if (m_logWindow) {
         NetworkSettings::setCsaLogWindowSize(m_logWindow->size());
         m_logWindow->close();
@@ -203,25 +210,21 @@ void CsaWaitingDialog::createLogWindow()
     QVBoxLayout* layout = new QVBoxLayout(m_logWindow);
 
     QHBoxLayout* commandLayout = new QHBoxLayout();
-    m_btnSendToServer = new QPushButton(tr("CSAサーバーへ送信"), m_logWindow);
-    m_btnSendToServer->setEnabled(false);
-    m_btnSendToServer->setFlat(true);
-    m_btnSendToServer->setMinimumWidth(130);
-
-    commandLayout->addWidget(m_btnSendToServer);
-
     m_commandInput = new QLineEdit(m_logWindow);
     m_commandInput->setObjectName(QStringLiteral("csaWaitingCommandInput"));
     m_commandInput->setPlaceholderText(tr("コマンドを入力してEnter"));
+    m_commandInput->setAccessibleName(tr("CSAコマンド"));
     commandLayout->addWidget(m_commandInput, 1);
+    m_btnSendToServer = new QPushButton(tr("送信"), m_logWindow);
+    m_btnSendToServer->setObjectName(QStringLiteral("csaWaitingSendButton"));
+    m_btnSendToServer->setAutoDefault(false);
+    commandLayout->addWidget(m_btnSendToServer);
     {
         QFont cmdFont;
         cmdFont.setPointSize(m_logFontHelper.fontSize());
         m_btnSendToServer->setFont(cmdFont);
         m_commandInput->setFont(cmdFont);
     }
-
-    layout->addLayout(commandLayout);
 
     m_logTextEdit = new QPlainTextEdit(m_logWindow);
     m_logTextEdit->setObjectName(QStringLiteral("csaWaitingLogView"));
@@ -234,6 +237,7 @@ void CsaWaitingDialog::createLogWindow()
     m_logTextEdit->setFont(font);
 
     layout->addWidget(m_logTextEdit);
+    layout->addLayout(commandLayout);
 
     QHBoxLayout* buttonLayout = new QHBoxLayout();
     buttonLayout->addStretch();
@@ -275,6 +279,10 @@ void CsaWaitingDialog::createLogWindow()
     m_logWindow->setLayout(layout);
 
     connect(m_commandInput, &QLineEdit::returnPressed,
+            this, &CsaWaitingDialog::onCommandEntered);
+    connect(m_commandInput, &QLineEdit::textChanged,
+            this, &CsaWaitingDialog::updateCommandState);
+    connect(m_btnSendToServer, &QPushButton::clicked,
             this, &CsaWaitingDialog::onCommandEntered);
 }
 void CsaWaitingDialog::applyLogFontSize()
@@ -363,20 +371,24 @@ void CsaWaitingDialog::onCsaCommLogAppended(const QString& line)
 
     if (m_logTextEdit) {
         m_logTextEdit->appendPlainText(line);
-        QTextCursor cursor = m_logTextEdit->textCursor();
-        cursor.movePosition(QTextCursor::End);
-        m_logTextEdit->setTextCursor(cursor);
     }
 }
 
 void CsaWaitingDialog::onCommandEntered()
 {
-    if (!m_commandInput || !m_coordinator) return;
+    if (!m_commandInput || !m_coordinator || !m_coordinator->isConnected()) return;
 
     QString command = m_commandInput->text().trimmed();
     if (command.isEmpty()) return;
     m_coordinator->sendRawCommand(command);
     m_commandInput->clear();
+}
+
+void CsaWaitingDialog::updateCommandState()
+{
+    const bool connected = m_coordinator && m_coordinator->isConnected();
+    m_commandInput->setEnabled(connected);
+    m_btnSendToServer->setEnabled(connected && !m_commandInput->text().trimmed().isEmpty());
 }
 void CsaWaitingDialog::onLogFontIncrease()
 {
