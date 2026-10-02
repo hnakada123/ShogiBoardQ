@@ -486,13 +486,13 @@
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="105"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="159"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="160"/>
         <source>将棋盤</source>
         <translation>将棋盤</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="106"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="159"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="160"/>
         <source>駒台</source>
         <translation>駒台</translation>
     </message>
@@ -720,97 +720,106 @@
         <translation>▲先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="139"/>
         <source>すべての駒（21種類）</source>
-        <translation>すべての駒（21種類）</translation>
+        <translation type="vanished">すべての駒（21種類）</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="139"/>
+        <source>すべての駒（%1種類）</source>
+        <translation>すべての駒（%1種類）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="140"/>
         <source>虎斑</source>
         <translation>虎斑</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="139"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="140"/>
         <source>木肌</source>
         <translation>木肌</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="139"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="140"/>
         <source>淡色</source>
         <translation>淡色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="139"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="140"/>
         <source>深色</source>
         <translation>深色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="140"/>
+        <source>意匠</source>
+        <translation>意匠</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="159"/>
         <source>駒</source>
         <translation>駒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="159"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="160"/>
         <source>対局者情報</source>
         <translation>対局者情報</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="159"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="160"/>
         <source>背景</source>
         <translation>背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="166"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="167"/>
         <source>手番・対局者名・持ち時間の見本（20種類）</source>
         <translation>手番・対局者名・持ち時間の見本（20種類）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="167"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="168"/>
         <source>%1の見本（20種類）</source>
         <translation>%1の見本（20種類）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="185"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="186"/>
         <source>詳細</source>
         <translation>詳細</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="190"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="191"/>
         <source>おすすめの組み合わせ</source>
         <translation>おすすめの組み合わせ</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="193"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="194"/>
         <source>自由な組み合わせ</source>
         <translation>自由な組み合わせ</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="198"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="199"/>
         <source>プレビュー</source>
         <translation>プレビュー</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="202"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="203"/>
         <source>初期局面</source>
         <translation>初期局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="202"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="203"/>
         <source>成駒・持駒の見本</source>
         <translation>成駒・持駒の見本</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="204"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="205"/>
         <source>盤面反転</source>
         <translation>盤面反転</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="290"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="296"/>
         <source>カスタム</source>
         <translation>カスタム</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="292"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="298"/>
         <source>駒：%1
 将棋盤：%2&#x3000;／&#x3000;背景：%5
 駒台：%3&#x3000;／&#x3000;対局者情報：%4</source>
@@ -4984,6 +4993,11 @@ OKを選択すると保存先が指定できます。</source>
         <translation>墨金</translation>
     </message>
     <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="88"/>
+        <source>戦国文字</source>
+        <translation>戦国文字</translation>
+    </message>
+    <message>
         <location filename="../../src/app/mainwindow.ui" line="319"/>
         <source>局面編集開始</source>
         <translation type="unfinished"></translation>
@@ -5298,7 +5312,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation type="vanished">駒の種類</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="87"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="89"/>
         <source>標準の駒</source>
         <translation>標準の駒</translation>
     </message>

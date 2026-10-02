@@ -78,7 +78,7 @@ QStringList availablePieceStyles()
             QStringLiteral("wood_walnut"), QStringLiteral("tint_linen"), QStringLiteral("tint_sakura"),
             QStringLiteral("tint_celadon"), QStringLiteral("tint_moon"), QStringLiteral("tint_wisteria"),
             QStringLiteral("deep_ebony"), QStringLiteral("deep_navy"), QStringLiteral("deep_green"),
-            QStringLiteral("deep_grape"), QStringLiteral("deep_gold")};
+            QStringLiteral("deep_grape"), QStringLiteral("deep_gold"), QStringLiteral("sengoku")};
 }
 
 QString pieceStyle()

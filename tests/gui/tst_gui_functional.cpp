@@ -181,7 +181,8 @@ class GuiAudit : public QObject
         dialog->findChild<QTabWidget*>("appearanceSections")->setCurrentIndex(0);
         dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(0);
         auto* list = dialog->findChild<QListWidget*>("appearancePieces");
-        QVERIFY(list && list->count() == 21);
+        QVERIFY(list);
+        QCOMPARE(list->count(), AppSettings::availablePieceStyles().size());
         const int row = static_cast<int>(AppSettings::availablePieceStyles().indexOf(style));
         QVERIFY(row >= 0);
         auto* item = list->item(row);
@@ -657,6 +658,7 @@ private slots:
         click("actionFlipBoard");
         QCOMPARE(board()->piece('K').pixmap(90).toImage(), QIcon(prefix + "Gote_ou45.svg").pixmap(90).toImage());
         QCOMPARE(board()->piece('k').pixmap(90).toImage(), QIcon(prefix + "Sente_gyoku45.svg").pixmap(90).toImage());
+        QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/pieces-%1-flipped.png").arg(style)));
         selectPieceStyle(QStringLiteral("standard"));
         selectPieceStyle(style);
         click("actionFlipBoard");
@@ -673,6 +675,10 @@ private slots:
         QVERIFY(dialog);
         auto* label = dialog->findChild<QLabel*>("boardColorPresetLabel");
         QVERIFY(label && label->text().contains(BoardColorPresets::pieceStyleName(style)));
+        dialog->findChild<QTabWidget*>("appearanceSections")->setCurrentIndex(0);
+        if (style == QStringLiteral("sengoku"))
+            dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(5);
+        QVERIFY(dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/appearance-pieces-%1.png").arg(style)));
         dialog->close();
 
         // キャッシュを作った後でも成駒・持駒・駒打ち矢印が切り替わる。
@@ -689,6 +695,7 @@ private slots:
         QVERIFY(board()->toImage() != variantImage);
         selectPieceStyle(style);
         QCOMPARE(board()->toImage(), variantImage);
+        QVERIFY(board()->toImage().save(QStringLiteral(AUDIT_DIR "/screenshots/pieces-%1-promoted-and-hand.png").arg(style)));
     }
     void appearanceComponents_data()
     {
@@ -828,8 +835,14 @@ private slots:
         for (int family = 0; family < filter->count(); ++family) {
             filter->setCurrentIndex(family);
             int visible = 0;
-            for (int i = 0; i < pieces->count(); ++i) if (!pieces->item(i)->isHidden()) ++visible;
-            QCOMPARE(visible, family == 0 ? 21 : 5);
+            for (int i = 0; i < pieces->count(); ++i) {
+                if (pieces->item(i)->isHidden()) continue;
+                ++visible;
+                if (family == 5)
+                    QCOMPARE(pieces->item(i)->data(Qt::UserRole).toString(), QStringLiteral("sengoku"));
+            }
+            QCOMPARE(visible, family == 0 ? static_cast<int>(AppSettings::availablePieceStyles().size())
+                                         : (family == 5 ? 1 : 5));
         }
         filter->setCurrentIndex(0);
         combinations->showPopup();
@@ -3447,7 +3460,8 @@ private slots:
         QTest::mouseClick(button, Qt::LeftButton);
         auto* dialog = window->findChild<BoardColorDialog*>();
         QVERIFY(dialog && dialog->isVisible());
-        QCOMPARE(dialog->findChild<QListWidget*>("appearancePieces")->count(), 21);
+        QCOMPARE(dialog->findChild<QListWidget*>("appearancePieces")->count(),
+                 AppSettings::availablePieceStyles().size());
     }
     void pieceStyleMenuBar()
     {

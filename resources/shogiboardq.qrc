@@ -10,6 +10,36 @@
         <file>icons/shogiboardq.ico</file>
         <file>icons/linux/shogiboardq.png</file>
         <file>icons/windows/shogiboardq.png</file>
+        <file alias="pieces/sengoku/Gote_fu45.svg">images/pieces/sengoku/Gote_fu45.svg</file>
+        <file alias="pieces/sengoku/Gote_gin45.svg">images/pieces/sengoku/Gote_gin45.svg</file>
+        <file alias="pieces/sengoku/Gote_gyoku45.svg">images/pieces/sengoku/Gote_gyoku45.svg</file>
+        <file alias="pieces/sengoku/Gote_hi45.svg">images/pieces/sengoku/Gote_hi45.svg</file>
+        <file alias="pieces/sengoku/Gote_kaku45.svg">images/pieces/sengoku/Gote_kaku45.svg</file>
+        <file alias="pieces/sengoku/Gote_kei45.svg">images/pieces/sengoku/Gote_kei45.svg</file>
+        <file alias="pieces/sengoku/Gote_kin45.svg">images/pieces/sengoku/Gote_kin45.svg</file>
+        <file alias="pieces/sengoku/Gote_kyou45.svg">images/pieces/sengoku/Gote_kyou45.svg</file>
+        <file alias="pieces/sengoku/Gote_narigin45.svg">images/pieces/sengoku/Gote_narigin45.svg</file>
+        <file alias="pieces/sengoku/Gote_narikei45.svg">images/pieces/sengoku/Gote_narikei45.svg</file>
+        <file alias="pieces/sengoku/Gote_narikyou45.svg">images/pieces/sengoku/Gote_narikyou45.svg</file>
+        <file alias="pieces/sengoku/Gote_ou45.svg">images/pieces/sengoku/Gote_ou45.svg</file>
+        <file alias="pieces/sengoku/Gote_ryuu45.svg">images/pieces/sengoku/Gote_ryuu45.svg</file>
+        <file alias="pieces/sengoku/Gote_to45.svg">images/pieces/sengoku/Gote_to45.svg</file>
+        <file alias="pieces/sengoku/Gote_uma45.svg">images/pieces/sengoku/Gote_uma45.svg</file>
+        <file alias="pieces/sengoku/Sente_fu45.svg">images/pieces/sengoku/Sente_fu45.svg</file>
+        <file alias="pieces/sengoku/Sente_gin45.svg">images/pieces/sengoku/Sente_gin45.svg</file>
+        <file alias="pieces/sengoku/Sente_gyoku45.svg">images/pieces/sengoku/Sente_gyoku45.svg</file>
+        <file alias="pieces/sengoku/Sente_hi45.svg">images/pieces/sengoku/Sente_hi45.svg</file>
+        <file alias="pieces/sengoku/Sente_kaku45.svg">images/pieces/sengoku/Sente_kaku45.svg</file>
+        <file alias="pieces/sengoku/Sente_kei45.svg">images/pieces/sengoku/Sente_kei45.svg</file>
+        <file alias="pieces/sengoku/Sente_kin45.svg">images/pieces/sengoku/Sente_kin45.svg</file>
+        <file alias="pieces/sengoku/Sente_kyou45.svg">images/pieces/sengoku/Sente_kyou45.svg</file>
+        <file alias="pieces/sengoku/Sente_narigin45.svg">images/pieces/sengoku/Sente_narigin45.svg</file>
+        <file alias="pieces/sengoku/Sente_narikei45.svg">images/pieces/sengoku/Sente_narikei45.svg</file>
+        <file alias="pieces/sengoku/Sente_narikyou45.svg">images/pieces/sengoku/Sente_narikyou45.svg</file>
+        <file alias="pieces/sengoku/Sente_ou45.svg">images/pieces/sengoku/Sente_ou45.svg</file>
+        <file alias="pieces/sengoku/Sente_ryuu45.svg">images/pieces/sengoku/Sente_ryuu45.svg</file>
+        <file alias="pieces/sengoku/Sente_to45.svg">images/pieces/sengoku/Sente_to45.svg</file>
+        <file alias="pieces/sengoku/Sente_uma45.svg">images/pieces/sengoku/Sente_uma45.svg</file>
         <file alias="pieces/torafu_light/Gote_fu45.svg">images/pieces/torafu_light/Gote_fu45.svg</file>
         <file alias="pieces/torafu_light/Gote_gin45.svg">images/pieces/torafu_light/Gote_gin45.svg</file>
         <file alias="pieces/torafu_light/Gote_gyoku45.svg">images/pieces/torafu_light/Gote_gyoku45.svg</file>

@@ -136,7 +136,8 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     auto* pieceLayout = new QVBoxLayout(piecePage);
     m_pieceFilter = new QComboBox(piecePage);
     m_pieceFilter->setObjectName(QStringLiteral("appearancePieceFilter"));
-    m_pieceFilter->addItems({tr("すべての駒（21種類）"), tr("虎斑"), tr("木肌"), tr("淡色"), tr("深色")});
+    m_pieceFilter->addItems({tr("すべての駒（%1種類）").arg(AppSettings::availablePieceStyles().size()),
+                            tr("虎斑"), tr("木肌"), tr("淡色"), tr("深色"), tr("意匠")});
     pieceLayout->addWidget(m_pieceFilter);
     m_pieceList = gallery(piecePage, QStringLiteral("appearancePieces"));
     m_pieceList->viewport()->installEventFilter(this);
@@ -254,8 +255,13 @@ void BoardColorDialog::selectComponent(int row)
 
 void BoardColorDialog::filterPieces(int index)
 {
-    for (int row = 0; row < m_pieceList->count(); ++row)
-        m_pieceList->item(row)->setHidden(index != 0 && (row == 0 || (row - 1) / 5 + 1 != index));
+    const QStringList prefixes{QString(), QStringLiteral("torafu_"), QStringLiteral("wood_"),
+                               QStringLiteral("tint_"), QStringLiteral("deep_"), QStringLiteral("sengoku")};
+    if (index < 0 || index >= prefixes.size()) return;
+    for (int row = 0; row < m_pieceList->count(); ++row) {
+        auto* item = m_pieceList->item(row);
+        item->setHidden(index != 0 && !item->data(Qt::UserRole).toString().startsWith(prefixes.at(index)));
+    }
 }
 
 void BoardColorDialog::refreshCatalogIcons()

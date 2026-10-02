@@ -84,5 +84,7 @@ QString BoardColorPresets::pieceStyleName(const QString& style)
         return QCoreApplication::translate("MainWindow", "葡萄");
     if (style == QLatin1String("deep_gold"))
         return QCoreApplication::translate("MainWindow", "墨金");
+    if (style == QLatin1String("sengoku"))
+        return QCoreApplication::translate("MainWindow", "戦国文字");
     return QCoreApplication::translate("MainWindow", "標準の駒");
 }

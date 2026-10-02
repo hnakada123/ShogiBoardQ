@@ -184,7 +184,7 @@ private slots:
         auto* preview = dialog.findChild<BoardAppearancePreview*>();
         auto* combination = dialog.findChild<QComboBox*>("appearanceCombination");
         QVERIFY(pieces && preview && combination);
-        QCOMPARE(pieces->count(), 21);
+        QCOMPARE(pieces->count(), AppSettings::availablePieceStyles().size());
         for (const auto* list : dialog.findChildren<QListWidget*>()) {
             for (int i = 0; i < list->count(); ++i) {
                 const auto icon = list->item(i)->icon();

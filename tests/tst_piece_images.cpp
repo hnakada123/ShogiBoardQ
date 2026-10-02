@@ -88,7 +88,8 @@ private slots:
     void standardAndVariantsAreAvailable()
     {
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
-        QCOMPARE(AppSettings::availablePieceStyles().size(), 21);
+        QCOMPARE(AppSettings::availablePieceStyles().size(), 22);
+        QVERIFY(AppSettings::availablePieceStyles().contains(QStringLiteral("sengoku")));
         QCOMPARE(AppSettings::availablePieceStyles().first(), QStringLiteral("standard"));
         for (const auto& removed : {"clear", "wood", "ivory", "dark"})
             QVERIFY(!QFile::exists(QStringLiteral(":/pieces/%1/Sente_fu45.svg").arg(QLatin1String(removed))));
@@ -113,6 +114,13 @@ private slots:
                                                       + QStringLiteral("45.svg")).pixmap(size, size).toImage();
                         for (int y = 0; y < size; ++y) {
                             for (int x = 0; x < size; ++x) {
+                                if (style == QStringLiteral("sengoku")) {
+                                    // 境界の合成による1段階の丸め差は許容し、透過領域は完全一致させる。
+                                    const int alpha = image.pixelColor(x, y).alpha();
+                                    const int standardAlpha = silhouette.pixelColor(x, y).alpha();
+                                    QCOMPARE(alpha == 0, standardAlpha == 0);
+                                    QVERIFY(qAbs(alpha - standardAlpha) <= 1);
+                                }
                                 if (silhouette.pixelColor(x, y).alpha() == 0) {
                                     QVERIFY2(image.pixelColor(x, y).alpha() == 0,
                                              qPrintable(QStringLiteral("%1 size=%2 outside (%3,%4)")
