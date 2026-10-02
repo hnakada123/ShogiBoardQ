@@ -27,6 +27,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 ```
 
 外観の切替は `boardThemes` で「榧と畳」「墨と榧」「琥珀」の選択、木目・影・駒倍率の変更、複数盤面への反映、再起動後の復元、反転を検証します。`board-appearance-main.png`、`board-appearance-flipped.png`、`board-appearance-dialog.png` と各テーマの盤面画像を保存します。
+`boardFlipKeepsLayout` は盤サイズ30・53・100で「盤面を反転」を各12回クリックし、将棋盤・駒台・対局者情報・ウィンドウの位置と大きさ、および81マスのクリック判定を検証します。`board-flip-normal.png`・`board-flip-flipped.png` を保存します。
 標準の駒の選択メニュー、反転表示、別の盤面への反映、設定復元は `pieceStyles` で検証します。
 `tst_start_game_flow` は設定の保存・復元、先後入れ替え、初期設定への復帰、開始局面の選択、時間切れ負け設定と終局理由、最大手数での終局通知、連続対局の継続と各局の棋譜保存を検証します。王・玉の不足・重複がある編集局面では、両手番と人同士・人対エンジン・エンジン同士の各設定で対局開始を拒否し、盤面・棋譜・時計を維持すること、および局面修正や平手・駒落ちの選択後に開始できることも確認します。
 `dialogPresentation` は日本語・英語の対局設定画面と文字拡大時の配置を確認し、`start-game-dialog.png`・`start-game-dialog-en.png` と文字拡大版を保存します。狭い画面でも「対局開始」ボタンが見えることを検証します。

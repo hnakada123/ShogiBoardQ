@@ -866,6 +866,61 @@ private slots:
         QCOMPARE(dialog->findChild<QListWidget*>("appearanceStands")->currentRow(), -1);
         QCOMPARE(combinations->currentIndex(), -1);
     }
+    void boardFlipKeepsLayout()
+    {
+        const QStringList blackInfo = {"blackPlayerCard", "blackNameLabel", "blackClockLabel", "turnLabelBlack"};
+        const QStringList whiteInfo = {"whitePlayerCard", "whiteNameLabel", "whiteClockLabel", "turnLabelWhite"};
+        for (const int size : {30, 53, 100}) {
+            board()->setSquareSize(size - 1);
+            click("actionEnlargeBoard");
+            QTest::qWait(50);
+            QVERIFY(!board()->flipMode());
+            const QRect windowRect = window->geometry();
+            const QRect viewRect(board()->mapToGlobal(QPoint()), board()->size());
+            const auto normalLayout = editLayout();
+            QList<QRect> leftInfoRects, rightInfoRects;
+            for (qsizetype i = 0; i < blackInfo.size(); ++i) {
+                auto* black = board()->findChild<QWidget*>(blackInfo.at(i));
+                auto* white = board()->findChild<QWidget*>(whiteInfo.at(i));
+                QVERIFY(black && white);
+                rightInfoRects.append(black->geometry());
+                leftInfoRects.append(white->geometry());
+            }
+            for (int iteration = 0; iteration < 12; ++iteration) {
+                click("actionFlipBoard");
+                const bool flipped = iteration % 2 == 0;
+                QCOMPARE(board()->flipMode(), flipped);
+                QCOMPARE(window->geometry(), windowRect);
+                QCOMPARE(QRect(board()->mapToGlobal(QPoint()), board()->size()), viewRect);
+                const auto layout = editLayout();
+                QCOMPARE(layout.boardSurfaceRect(9, 9), normalLayout.boardSurfaceRect(9, 9));
+                QCOMPARE(flipped ? layout.blackStandBoundingRect(9, 9) : layout.whiteStandBoundingRect(9, 9),
+                         normalLayout.whiteStandBoundingRect(9, 9));
+                QCOMPARE(flipped ? layout.whiteStandBoundingRect(9, 9) : layout.blackStandBoundingRect(9, 9),
+                         normalLayout.blackStandBoundingRect(9, 9));
+                for (qsizetype i = 0; i < blackInfo.size(); ++i) {
+                    QCOMPARE(board()->findChild<QWidget*>(flipped ? blackInfo.at(i) : whiteInfo.at(i))->geometry(),
+                             leftInfoRects.at(i));
+                    QCOMPARE(board()->findChild<QWidget*>(flipped ? whiteInfo.at(i) : blackInfo.at(i))->geometry(),
+                             rightInfoRects.at(i));
+                }
+                // 同じ画面座標が、反転後の対応するマスを指すことも確認する。
+                for (int file = 1; file <= 9; ++file) {
+                    for (int rank = 1; rank <= 9; ++rank) {
+                        const QPoint point = normalLayout.calculateSquareRectangleBasedOnBoardState(file, rank, 9, 9)
+                            .translated(normalLayout.offsetX(), normalLayout.offsetY()).center();
+                        QCOMPARE(board()->clickedSquare(point), flipped ? QPoint(10 - file, 10 - rank) : QPoint(file, rank));
+                    }
+                }
+                QCOMPARE(boardSfen(), initial);
+                if (size == 53 && iteration < 2) {
+                    QVERIFY(board()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/board-flip-%1.png")
+                                                    .arg(flipped ? "flipped" : "normal")));
+                }
+            }
+        }
+    }
+
     void boardThemes()
     {
         ShogiView secondary;

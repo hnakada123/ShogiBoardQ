@@ -154,16 +154,16 @@ int ShogiViewLayout::offsetY() const
 {
     const auto shadow = BoardSurfacePainter::shadowMargins(m_fieldSize.width());
     return outerMarginPx() + qCeil(shadow.top())
-        + (m_flipMode ? m_boardMarginPx : coordinateBandPx());
+        + qMax(m_boardMarginPx, coordinateBandPx());
 }
 
 QRectF ShogiViewLayout::boardSurfaceRect(int boardFiles, int boardRanks) const
 {
-    const int band = coordinateBandPx();
-    return QRectF(m_offsetX - (m_flipMode ? band : m_boardMarginPx),
-                  offsetY() - (m_flipMode ? m_boardMarginPx : band),
-                  m_fieldSize.width() * boardFiles + m_boardMarginPx + band,
-                  m_fieldSize.height() * boardRanks + m_boardMarginPx + band);
+    // 四辺に座標帯を確保し、反転しても盤・駒台・対局者情報の基準位置を変えない。
+    const int margin = qMax(m_boardMarginPx, coordinateBandPx());
+    return QRectF(m_offsetX - margin, offsetY() - margin,
+                  m_fieldSize.width() * boardFiles + margin * 2,
+                  m_fieldSize.height() * boardRanks + margin * 2);
 }
 
 QSize ShogiViewLayout::viewSize(int boardFiles, int boardRanks) const
