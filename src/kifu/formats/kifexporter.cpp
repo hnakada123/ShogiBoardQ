@@ -46,8 +46,11 @@ static QString removeTurnMarker(const QString& move)
 
 // ヘルパ関数: KIF形式の時間文字列にフォーマット（括弧付き）
 // 仕様: ( m:ss/HH:MM:SS) 形式
-static QString formatKifTime(const QString& timeText)
+static QString formatKifTime(const QString& rawTimeText)
 {
+    // KIFの時間は整数秒。CSA V3のミリ秒はこの形式への出力時だけ切り捨てる。
+    static const QRegularExpression fractionRe(QStringLiteral("\\.\\d+"));
+    const QString timeText = QString(rawTimeText).remove(fractionRe);
     // 既に括弧付きならそのまま返す
     if (timeText.startsWith(QLatin1Char('('))) return timeText;
     // 空なら既定値
@@ -250,11 +253,8 @@ static void appendKifComments(const QString& comment, QStringList& out)
             }
             continue;
         }
-        if (t.startsWith(QLatin1Char('*'))) {
-            out << t;
-        } else {
-            out << (QStringLiteral("*") + t);
-        }
+        // モデルのコメントは接頭辞を除いた本文。本文先頭の * も保持する。
+        out << (QStringLiteral("*") + t);
     }
 }
 

@@ -130,6 +130,7 @@ bool applyPPlusMinusLine(const QString& raw, Board& b,
         if (file == 0 && rank == 0 && pc2 == QLatin1String("AL")) {
             if (side == Black) alBlack = true;
             else               alWhite = true;
+            ++matched;
             continue;
         }
 
@@ -242,7 +243,8 @@ QString handsToSfen(const int bH[7], const int wH[7])
 bool parseStartPos(const QStringList& lines, int& idx,
                    QString& baseSfen, Color& stm, Board& board)
 {
-    setHirate(board);
+    // CSAでは配置が省略された駒は駒箱に残る。PIだけが平手配置を指定する。
+    board = Board{};
     stm = Black;
 
     int bH[7] = {0,0,0,0,0,0,0};
@@ -268,8 +270,18 @@ bool parseStartPos(const QStringList& lines, int& idx,
         if (raw.isEmpty()) continue;
         if (isMetaLine(raw) || isCommentLine(raw)) continue;
 
-        if (raw == QLatin1String("PI")) {
+        if (raw.startsWith(QLatin1String("PI"))) {
             setHirate(board);
+            const QString removed = raw.mid(2);
+            if (removed.size() % 4 != 0) return false;
+            for (qsizetype pos = 0; pos < removed.size(); pos += 4) {
+                const int file = removed.at(pos).digitValue();
+                const int rank = removed.at(pos + 1).digitValue();
+                const Piece piece = pieceFromCsa2(removed.mid(pos + 2, 2));
+                if (!inside(file) || !inside(rank) || piece == NO_P
+                    || board.sq[file][rank].p != piece) return false;
+                board.sq[file][rank] = Cell{};
+            }
             for (int k = 0; k < 7; ++k) { bH[k] = 0; wH[k] = 0; }
             sawPI = true; sawAnyP = true;
             continue;
@@ -301,9 +313,7 @@ bool parseStartPos(const QStringList& lines, int& idx,
     if (alBlack || alWhite)
         processAlRemainder(board, bH, wH, alBlack, alWhite);
 
-    QString boardField = sawAnyP || sawPI
-                             ? toSfenBoard(board)
-                             : QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+    const QString boardField = toSfenBoard(board);
     const QString handsField = handsToSfen(bH, wH);
 
     baseSfen = boardField

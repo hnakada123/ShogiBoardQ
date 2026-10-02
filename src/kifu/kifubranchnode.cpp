@@ -20,6 +20,11 @@ TerminalType detectTerminalType(const QString& displayText)
     if (displayText.contains(QStringLiteral("不戦勝"))) return TerminalType::Forfeit;
     if (displayText.contains(QStringLiteral("中断"))) return TerminalType::Interrupt;
     if (displayText.contains(QStringLiteral("不詰"))) return TerminalType::NoCheckmate;
+    if (displayText.contains(QStringLiteral("入玉勝ち"))
+        || displayText.contains(QStringLiteral("宣言勝ち"))) return TerminalType::DeclarationWin;
+    if (displayText.contains(QStringLiteral("引き分け"))) return TerminalType::Draw;
+    if (displayText.contains(QStringLiteral("最大手数到達"))) return TerminalType::MaxMoves;
+    if (displayText.contains(QStringLiteral("エラー"))) return TerminalType::Error;
     return TerminalType::None;
 }
 

@@ -24,7 +24,11 @@ enum class TerminalType {
     IllegalLoss,    ///< 反則負け
     Forfeit,        ///< 不戦敗
     Interrupt,      ///< 中断
-    NoCheckmate     ///< 不詰（詰将棋用）
+    NoCheckmate,    ///< 不詰（詰将棋用）
+    DeclarationWin, ///< 入玉宣言勝ち
+    Draw,          ///< 引き分け
+    MaxMoves,      ///< 最大手数到達
+    Error          ///< エラー
 };
 
 /**

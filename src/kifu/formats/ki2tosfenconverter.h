@@ -58,7 +58,7 @@ private:
         const QList<Ki2Lexer::Candidate>& candidates,
         int srcFile, int srcRank,
         int dstFile, int dstRank,
-        bool blackToMove);
+        bool blackToMove, bool allowStraight);
 };
 
 #endif // KI2TOSFENCONVERTER_H

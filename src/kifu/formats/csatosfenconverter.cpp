@@ -63,7 +63,27 @@ bool CsaToSfenConverter::readAllLinesDetectEncoding(const QString& path, QString
 
     text.replace("\r\n", "\n");
     text.replace("\r", "\n");
-    outLines = text.split('\n', Qt::KeepEmptyParts);
+    outLines.clear();
+    // 初期配置を含めてマルチステートメントを展開する。コメントと文字列値の
+    // カンマは本文として保持し、複数対局の指し手を一つの棋譜に混ぜない。
+    const QStringList physicalLines = text.split(QLatin1Char('\n'));
+    for (QString line : physicalLines) {
+        while (!line.isEmpty()) {
+            line = line.trimmed();
+            if (line == QLatin1String("/")) {
+                if (warn) *warn += QStringLiteral("CSA: only the first game in the file is loaded.\n");
+                return true;
+            }
+            const qsizetype comma = line.indexOf(QLatin1Char(','));
+            if (comma < 0 || line.startsWith(QLatin1Char('\''))
+                || line.startsWith(QLatin1Char('N')) || line.startsWith(QLatin1Char('$'))) {
+                outLines.append(line);
+                break;
+            }
+            outLines.append(line.left(comma));
+            line = line.mid(comma + 1);
+        }
+    }
     return true;
 }
 
@@ -94,7 +114,7 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
             const qsizetype colon = line.indexOf(QLatin1Char(':'));
             if (colon > 0) {
                 QString key = line.mid(1, colon - 1).trimmed();
-                const QString val = line.mid(colon + 1).trimmed();
+                QString val = line.mid(colon + 1).trimmed();
 
                 if (key == QLatin1String("EVENT"))          key = QStringLiteral("棋戦");
                 else if (key == QLatin1String("SITE"))       key = QStringLiteral("場所");
@@ -111,6 +131,18 @@ QList<KifGameInfoItem> CsaToSfenConverter::extractGameInfo(const QString& filePa
                          || key == QLatin1String("JISHOGI"))
                     key = QStringLiteral("持将棋点数");
                 else if (key == QLatin1String("OPENING"))    key = QStringLiteral("戦型");
+                else if (key == QLatin1String("NOTE")) {
+                    key = QStringLiteral("備考");
+                    QString decoded;
+                    for (qsizetype i = 0; i < val.size(); ++i) {
+                        if (val.at(i) == QLatin1Char('\\') && i + 1 < val.size()) {
+                            if (val.at(i + 1) == QLatin1Char('n')) { decoded += QLatin1Char('\n'); ++i; continue; }
+                            if (val.at(i + 1) == QLatin1Char('\\')) { decoded += QLatin1Char('\\'); ++i; continue; }
+                        }
+                        decoded += val.at(i);
+                    }
+                    val = decoded;
+                }
 
                 items.append({ key, val });
             }
@@ -166,12 +198,12 @@ static void ensureOpeningItemAdded(CsaParseState& st)
     st.pendingComments.clear();
 }
 
-static void handleCsaComment(const QString& token, CsaParseState& st, bool attachToResult)
+static void handleCsaComment(const QString& token, CsaParseState& st)
 {
     const QString norm = CsaLexer::normalizeCsaCommentLine(token);
     if (norm.isNull()) return;
 
-    if (attachToResult && st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
+    if (st.lastDispIsResult && st.lastResultDispIndex >= 0 &&
         st.lastResultDispIndex < st.out.mainline.disp.size()) {
         QString& dst = st.out.mainline.disp[st.lastResultDispIndex].comment;
         if (!dst.isEmpty()) dst += QLatin1Char('\n');
@@ -198,13 +230,18 @@ static void handleCsaResultCode(const QString& token, CsaParseState& st)
         ? QStringLiteral("▲") : QStringLiteral("△");
     QString label = CsaLexer::csaResultToLabel(token);
     if (label.isEmpty()) label = token;
+    if ((token == QLatin1String("%+ILLEGAL_ACTION") && st.turn == CsaLexer::White)
+        || (token == QLatin1String("%-ILLEGAL_ACTION") && st.turn == CsaLexer::Black)) {
+        label = QStringLiteral("反則勝ち");
+    }
 
     st.out.mainline.disp.append(
-        KifuParseCommon::createMoveDisplayItem(st.moveCount, sideMark + label));
+        KifuParseCommon::createMoveDisplayItem(st.moveCount + 1, sideMark + label));
 
     st.lastDispIsResult = true;
     st.lastResultDispIndex = static_cast<int>(st.out.mainline.disp.size() - 1);
     st.lastResultSideIdx = (st.turn == CsaLexer::Black) ? 0 : 1;
+    st.out.mainline.endsWithTerminal = true;
 }
 
 static void handleCsaTimeToken(const QString& token, CsaParseState& st)
@@ -268,14 +305,13 @@ bool CsaToSfenConverter::parse(const QString& filePath, KifParseResult& out, QSt
         s = s.trimmed();
         if (s.isEmpty()) continue;
 
-        const bool isCommaLine = s.contains(QLatin1Char(','));
-        const QStringList tokens = s.split(QLatin1Char(','), Qt::SkipEmptyParts);
+        const QStringList tokens{s}; // readAllLinesDetectEncodingで展開済み
         for (const QString& tokenRaw : std::as_const(tokens)) {
             const QString token = tokenRaw.trimmed();
             if (token.isEmpty()) continue;
 
             if (token.startsWith(QLatin1Char('\''))) {
-                handleCsaComment(token, st, isCommaLine);
+                handleCsaComment(token, st);
             } else if (CsaLexer::isTurnMarker(token)) {
                 handleCsaTurnMarker(token, st);
             } else if (token.startsWith(QLatin1Char('%'))) {

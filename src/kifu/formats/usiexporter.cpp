@@ -50,7 +50,7 @@ static QString getUsiTerminalCode(const QString& terminalMove)
     if (stripped.contains(QStringLiteral("投了"))) {
         return QStringLiteral("resign");
     }
-    // 中断 → break (将棋所の仕様)
+    // 以下の終局コードは棋譜ファイル用の拡張であり、USIのposition通信には含めない。
     if (stripped.contains(QStringLiteral("中断"))) {
         return QStringLiteral("break");
     }
@@ -70,13 +70,15 @@ static QString getUsiTerminalCode(const QString& terminalMove)
     if (stripped.contains(QStringLiteral("入玉勝ち"))) {
         return QStringLiteral("win");
     }
-    // 詰み → mate (カスタム)
+    // 詰み（棋譜ファイル用の拡張）
     if (stripped.contains(QStringLiteral("詰み"))) {
-        return QStringLiteral("mate");
+        return QStringLiteral("checkmate");
     }
-    // 反則勝ち/反則負け → illegal (カスタム)
-    if (stripped.contains(QStringLiteral("反則"))) {
-        return QStringLiteral("illegal");
+    if (stripped.contains(QStringLiteral("反則勝ち"))) {
+        return QStringLiteral("illegal_win");
+    }
+    if (stripped.contains(QStringLiteral("反則負け"))) {
+        return QStringLiteral("lose");
     }
 
     return QString();

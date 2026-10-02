@@ -20,6 +20,13 @@ static const QRegularExpression& newlineRe()
     return re;
 }
 
+static void appendCsaComments(const QString& comment, QStringList& out)
+{
+    if (comment.isEmpty()) return;
+    const QStringList lines = comment.split(newlineRe(), Qt::KeepEmptyParts);
+    for (const QString& line : lines) out << (QStringLiteral("'*") + line);
+}
+
 // ========================================
 // CsaExporter 本体
 // ========================================
@@ -107,11 +114,20 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             QString timeVal = CsaFormatter::convertToCsaTime(val);
             out << timeVal;
             hasTime = true;
+        } else if (key == QStringLiteral("持ち時間(秒/加算)")) {
+            out << QStringLiteral("$TIME:%1").arg(val);
+            hasTime = true;
+        } else if (key == QStringLiteral("先手:持ち時間(秒/加算)")) {
+            out << QStringLiteral("$TIME+:%1").arg(val);
+            hasTime = true;
+        } else if (key == QStringLiteral("後手:持ち時間(秒/加算)")) {
+            out << QStringLiteral("$TIME-:%1").arg(val);
+            hasTime = true;
         } else if (key == QStringLiteral("戦型")) {
             out << QStringLiteral("$OPENING:%1").arg(val);
         } else if (key == QStringLiteral("最大手数")) {
             out << QStringLiteral("$MAX_MOVES:%1").arg(val);
-        } else if (key == QStringLiteral("持将棋")) {
+        } else if (key == QStringLiteral("持将棋") || key == QStringLiteral("持将棋点数")) {
             out << QStringLiteral("$JISHOGI:%1").arg(val);
         } else if (key == QStringLiteral("備考")) {
             QString noteVal = val;
@@ -177,20 +193,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
     // 開始局面のコメントを出力
     int startIdx = 0;
     if (!disp.isEmpty() && disp[0].ply == 0) {
-        const QString cmt = disp[0].comment.trimmed();
-        if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(newlineRe(), Qt::KeepEmptyParts);
-            for (const QString& raw : std::as_const(lines)) {
-                QString t = raw.trimmed();
-                if (t.isEmpty()) continue;
-
-                if (t.startsWith(QLatin1Char('\''))) {
-                    out << t;
-                } else {
-                    out << (QStringLiteral("'*") + t);
-                }
-            }
-        }
+        appendCsaComments(disp[0].comment, out);
         startIdx = 1;
         qCDebug(lcKifu).noquote() << "toCsaLines: 開始局面エントリあり、startIdx = 1";
     }
@@ -228,9 +231,9 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             const QString resultCode = CsaFormatter::csaResultCode(moveText);
             if (!resultCode.isEmpty()) {
                 out << resultCode;
-                const int timeSec = CsaFormatter::extractCsaTimeSeconds(it.timeText);
-                out << QStringLiteral("T%1").arg(timeSec);
+                out << CsaFormatter::extractCsaTimeToken(it.timeText);
             }
+            appendCsaComments(it.comment, out);
             break;
         }
 
@@ -293,25 +296,11 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
 
         // 指し手を出力
         out << csaMove;
-        const int timeSec = CsaFormatter::extractCsaTimeSeconds(it.timeText);
-        out << QStringLiteral("T%1").arg(timeSec);
+        out << CsaFormatter::extractCsaTimeToken(it.timeText);
         ++processedMoves;
 
         // コメント出力
-        const QString cmt = it.comment.trimmed();
-        if (!cmt.isEmpty()) {
-            const QStringList lines = cmt.split(newlineRe(), Qt::KeepEmptyParts);
-            for (const QString& raw : std::as_const(lines)) {
-                QString t = raw.trimmed();
-                if (t.isEmpty()) continue;
-
-                if (t.startsWith(QLatin1Char('\''))) {
-                    out << t;
-                } else {
-                    out << (QStringLiteral("'*") + t);
-                }
-            }
-        }
+        appendCsaComments(it.comment, out);
 
         ++moveNo;
         isSente = !isSente;

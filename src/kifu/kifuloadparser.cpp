@@ -42,8 +42,10 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, con
         if (result.success) result.gameInfo = Ki2ToSfenConverter::extractGameInfo(path);
         break;
     case Format::CSA:
-        result.initialSfen = KifToSfenConverter::detectInitialSfenFromFile(path, label);
         result.success = CsaToSfenConverter::parse(path, record, warning);
+        result.initialSfen = record.mainline.baseSfen;
+        result.teaiLabel = SfenUtils::isHirateStart(result.initialSfen)
+            ? QStringLiteral("平手") : QStringLiteral("局面指定");
         if (result.success) result.gameInfo = CsaToSfenConverter::extractGameInfo(path);
         break;
     case Format::JKF:
@@ -103,7 +105,7 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, con
     const QStringList terminals = {QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),
         QStringLiteral("千日手"), QStringLiteral("切れ負け"), QStringLiteral("反則勝ち"), QStringLiteral("反則負け"),
         QStringLiteral("入玉勝ち"), QStringLiteral("不戦勝"), QStringLiteral("不戦敗"), QStringLiteral("詰み"), QStringLiteral("不詰")};
-    bool hasTerminal = false;
+    bool hasTerminal = line.endsWithTerminal;
     for (const auto& terminal : terminals) hasTerminal |= terminalText.contains(terminal);
     result.sfens = SfenPositionTracer::buildSfenRecord(result.initialSfen, line.usiMoves, hasTerminal);
     if (canceled(cancel)) return result;

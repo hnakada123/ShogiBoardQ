@@ -62,12 +62,16 @@ static const TerminalInfo kTerminalCodes[] = {
     {"resign",     "投了"},
     {"break",      "中断"},
     {"rep_draw",   "千日手"},
-    {"draw",       "引き分け"},
-    {"timeout",    "時間切れ"},
+    {"draw",       "持将棋"},
+    {"timeout",    "切れ負け"},
     {"win",        "入玉勝ち"},
     {"lose",       "反則負け"},
     {"sennichite", "千日手"},
     {"checkmate",  "詰み"},
+    {"illegal_win", "反則勝ち"},
+    // 過去のShogiBoardQが出力した独自終局コードも読み込む。
+    {"mate",       "詰み"},
+    {"illegal",    "反則負け"},
     {nullptr, nullptr}
 };
 
@@ -244,8 +248,8 @@ QList<KifDisplayItem> UsiToSfenConverter::extractMovesWithTimes(const QString& u
 
     // 終局理由があれば追加
     if (!terminalCode.isEmpty()) {
-        out.push_back(KifuParseCommon::createTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode)));
+        out.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
+            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
     }
 
     return out;
@@ -279,8 +283,8 @@ bool UsiToSfenConverter::parseWithVariations(const QString& usiPath,
 
     // 終局理由があれば追加
     if (!terminalCode.isEmpty()) {
-        out.mainline.disp.push_back(KifuParseCommon::createTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode)));
+        out.mainline.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
+            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
         out.mainline.endsWithTerminal = true;
     }
 
@@ -449,8 +453,8 @@ void UsiToSfenConverter::buildKifLine(const QStringList& usiMoves,
 
     // 終局理由
     if (!terminalCode.isEmpty()) {
-        outLine.disp.push_back(KifuParseCommon::createTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode)));
+        outLine.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
+            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
         outLine.endsWithTerminal = true;
     }
 }

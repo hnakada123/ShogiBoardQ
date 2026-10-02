@@ -118,7 +118,7 @@
                     <span class="guide-step-number">4</span>
                     <span class="guide-step-title">フォーマットの例</span>
                 </div>
-                <p class="guide-step-text">同じ棋譜でも、フォーマットによって記録方法が異なります。以下は同一の対局を各形式で記録した例です。</p>
+                <p class="guide-step-text">以下は平手から「７六歩・３四歩・２六歩」と進めた、終局していない3手の棋譜です。形式によって、対局者名や消費時間など記録できる情報が異なります。</p>
 
                 <div class="format-examples">
                     <div class="format-example">
@@ -129,27 +129,22 @@
 手数----指手---------消費時間--
    1 ７六歩(77)   ( 0:02/00:00:02)
    2 ３四歩(33)   ( 0:02/00:00:02)
-   3 ２六歩(27)   ( 0:02/00:00:04)
-   ...</code></pre>
+   3 ２六歩(27)   ( 0:02/00:00:04)</code></pre>
                     </div>
                     <div class="format-example">
                         <h4>KI2形式（.ki2）</h4>
                         <pre><code>先手：鈴木
 後手：山田
 
-▲７六歩    △３四歩    ▲２六歩    △８四歩    ▲２五歩    △３二金
-▲７八金    △７二銀    ▲３八銀    △５二金    ▲５八金    △４一王
-まで12手で後手の勝ち</code></pre>
+▲７六歩    △３四歩    ▲２六歩</code></pre>
                     </div>
                     <div class="format-example">
                         <h4>CSA形式（.csa）</h4>
                         <pre><code>V2.2
 N+鈴木
 N-山田
-P1-KY-KE-GI-KI-OU-KI-GI-KE-KY
-P2 * -HI *  *  *  *  * -KA *
-P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
-...
+PI
++
 +7776FU,T2
 -3334FU,T2
 +2726FU,T2</code></pre>
@@ -166,17 +161,22 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
     {"move":{"from":{"x":7,"y":7},
              "to":{"x":7,"y":6},
              "color":0,"piece":"FU"}},
-    ...
+    {"move":{"from":{"x":3,"y":3},
+             "to":{"x":3,"y":4},
+             "color":1,"piece":"FU"}},
+    {"move":{"from":{"x":2,"y":7},
+             "to":{"x":2,"y":6},
+             "color":0,"piece":"FU"}}
   ]
 }</code></pre>
                     </div>
                     <div class="format-example">
                         <h4>USI形式（.usi）</h4>
-                        <pre><code>position startpos moves 7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6g6f 8e8f 8g8f</code></pre>
+                        <pre><code>position startpos moves 7g7f 3c3d 2g2f</code></pre>
                     </div>
                     <div class="format-example">
                         <h4>USEN形式（.usen）</h4>
-                        <pre><code>1nsgkgsn1_9_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGKGSNL.w.-~0.09k7ku0e46y22jm5t21a49co0n89h80rw.r</code></pre>
+                        <pre><code>~0.7ku2jm6y2.</code></pre>
                     </div>
                 </div>
             </div>
@@ -212,6 +212,10 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
                         <tr><td>USI形式</td><td>.usi</td><td>UTF-8</td></tr>
                     </tbody>
                 </table>
+                <p class="guide-step-text">KIF・KI2・JKF・USENでは分岐を保存できます。CSA・USIは本譜のみ、KI2は消費時間を保存しません。USI・USENは対局者名・コメント・消費時間を保存せず、USENで表現できる終局理由にも制限があります。CSAのミリ秒単位の消費時間をKIF・JKFへ変換する場合は秒未満を切り捨てます。</p>
+                <p class="guide-step-text">CSAファイルに「/」で区切られた複数の棋譜がある場合は、先頭の棋譜のみを読み込みます。</p>
+                <p class="guide-step-text">USI形式の棋譜で末尾に付く終局コードは、棋譜保存用の拡張です。エンジン通信用のUSI「position」コマンドの仕様には含まれません。</p>
+                <p class="guide-step-text">各形式の資料：<a href="https://kakinoki.o.oo7.jp/kif_format.html">KIF仕様</a>、<a href="https://www.shogi.or.jp/faq/kihuhyouki/">棋譜表記（KI2の指し手表記）</a>、<a href="https://www.computer-shogi.org/protocol/record_v3.html">CSA V3.0仕様</a>、<a href="https://github.com/na2hiro/json-kifu-format">JKF仕様</a>、<a href="https://shogidokoro2.stars.ne.jp/usi.html">USI・SFEN仕様</a>、<a href="https://github.com/mogproject/mog-playground/wiki/USEN-Format">USEN資料</a>。</p>
             </div>
 
             <div class="guide-step">
@@ -302,8 +306,8 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
                     </thead>
                     <tbody>
                         <tr><td>KIF</td><td>「手数----」を含むか、行頭に手数と移動先がある。「手数」「指し手」という語だけでは判定しない</td></tr>
-                        <tr><td>KI2</td><td>行頭の▲・△に移動先が続く指し手の並び</td></tr>
-                        <tr><td>CSA</td><td>V2または ' で始まるか、+・-に数字が続く指し手行がある</td></tr>
+                        <tr><td>KI2</td><td>行頭の▲・△・▽・☗・☖に移動先が続く指し手の並び</td></tr>
+                        <tr><td>CSA</td><td>V2・V3・コメント行、PIやPで始まる初期配置、対局者名・棋譜情報、または+・-に数字が続く指し手行がある</td></tr>
                         <tr><td>USI</td><td>position、startpos、sfenで始まる行、またはSFENに指し手列を付けた記述。startpos moves ... も対応</td></tr>
                         <tr><td>JKF</td><td>{ または [ で始まるJSONをJKFとして検査。取り込みにはJKFのオブジェクト構造が必要で、配列だけのJSONはエラー</td></tr>
                         <tr><td>USEN</td><td>~で区切った手数・符号列などがUSENの構造に一致。コメントやURL内の~だけでは判定しない</td></tr>

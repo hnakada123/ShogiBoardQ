@@ -2,7 +2,7 @@
 
 > このファイルは `scripts/update-test-summary.sh` で生成します。
 
-- CTest ケース数: 105
+- CTest ケース数: 106
 - 取得コマンド: `ctest --test-dir build -N`
 
 ## テスト一覧
@@ -104,11 +104,12 @@
 95. `tst_sfen_validation_service`
 96. `tst_game_info_pane`
 97. `tst_kifu_conversion_service`
-98. `tst_board_image_renderer`
-99. `tst_tsume_diversity_python`
-100. `tst_tsume_collection_audit_python`
-101. `tst_mcp_python`
-102. `tst_background_tasks`
-103. `tst_evaluationchart`
-104. `tst_csalogpanel`
-105. `tst_usilogpanel`
+98. `tst_kifu_format_compliance`
+99. `tst_board_image_renderer`
+100. `tst_tsume_diversity_python`
+101. `tst_tsume_collection_audit_python`
+102. `tst_mcp_python`
+103. `tst_background_tasks`
+104. `tst_evaluationchart`
+105. `tst_csalogpanel`
+106. `tst_usilogpanel`

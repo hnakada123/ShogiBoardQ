@@ -139,17 +139,28 @@ int buildUsiMoveDisplayItems(const QStringList& usiMoves,
 
     int prevToFile = 0, prevToRank = 0;
     int plyNumber = startPly - 1;
+    bool blackToMove = !baseSfen.contains(QStringLiteral(" w "));
 
     for (const QString& usi : std::as_const(usiMoves)) {
         ++plyNumber;
         const QString pieceToken = extractUsiPieceToken(usi, tracer);
         outDisp.push_back(createMoveDisplayItem(
             plyNumber,
-            usiMoveToPretty(usi, plyNumber, prevToFile, prevToRank, pieceToken)));
+            usiMoveToPretty(usi, blackToMove ? 1 : 2, prevToFile, prevToRank, pieceToken)));
         (void)tracer.applyUsiMove(usi);
+        blackToMove = !blackToMove;
     }
 
     return plyNumber;
+}
+
+KifDisplayItem createUsiTerminalDisplayItem(int ply, const QString& term,
+                                           const QString& baseSfen, qsizetype moveCount)
+{
+    const bool blackToMove = (moveCount % 2 == 0) != baseSfen.contains(QStringLiteral(" w "));
+    auto item = createTerminalDisplayItem(ply, term);
+    item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + term;
+    return item;
 }
 
 } // namespace KifuParseCommon

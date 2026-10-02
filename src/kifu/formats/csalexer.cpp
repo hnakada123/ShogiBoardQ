@@ -145,6 +145,11 @@ bool parseMoveLine(const QString& line, Color mover, Board& b,
     const Piece after = moveOpt->afterPiece;
 
     const bool isDrop = (fx == 0 && fy == 0);
+    if (!inside(tx) || !inside(ty)
+        || (isDrop && (isPromotedPiece(after) || after == OU))) {
+        if (warn) *warn += QStringLiteral("Invalid destination or drop piece: %1\n").arg(token);
+        return false;
+    }
 
     Piece beforePiece = NO_P;
     const bool srcInside = (!isDrop && inside(fx) && inside(fy));
@@ -198,7 +203,7 @@ bool parseMoveLine(const QString& line, Color mover, Board& b,
         prettyOut = sideMark + dest + pj + QStringLiteral("打");
     } else {
         QString pj;
-        if (promote)           pj = pieceKanji(after);
+        if (promote)           pj = pieceKanji(beforePiece) + QStringLiteral("成");
         else                   pj = pieceKanji(beforePiece);
 
         QString dest;
@@ -230,15 +235,13 @@ QString normalizeCsaCommentLine(const QString& line)
 
     const QString trimmed = t.trimmed();
 
-    if (trimmed.startsWith(QLatin1String("**"))) {
+    if (trimmed.startsWith(QLatin1String("** "))) {
         const QString body = trimmed.mid(2).trimmed();
         return QStringLiteral("評価/読み筋: ") + body;
     }
 
-    if (trimmed == QLatin1String("*")) return QString("");
-
-    if (trimmed.startsWith(QLatin1Char('*'))) {
-        return trimmed.mid(1).trimmed();
+    if (t.startsWith(QLatin1Char('*'))) {
+        return t.mid(1);
     }
     return t;
 }
@@ -271,7 +274,12 @@ std::optional<qint64> parseTimeTokenMs(const QString& token)
 
 QString composeTimeText(qint64 moveMs, qint64 cumMs)
 {
-    return KifuParseCommon::formatTimeText(moveMs, cumMs);
+    auto fraction = [](qint64 ms) {
+        return ms % 1000 == 0 ? QString()
+            : QStringLiteral(".%1").arg(ms % 1000, 3, 10, QLatin1Char('0'));
+    };
+    return KifuParseCommon::formatTimeMS(moveMs) + fraction(moveMs) + QLatin1Char('/')
+        + KifuParseCommon::formatTimeHMS(cumMs) + fraction(cumMs);
 }
 
 } // namespace CsaLexer

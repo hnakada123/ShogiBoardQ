@@ -24,7 +24,7 @@ bool getPieceTypeAndPromoted(const QString& moveText, Piece& pieceUpper, bool& i
 bool isGoldLikeMove(int df, int dr, int forward)
 {
     if (qAbs(df) > 1 || qAbs(dr) > 1) return false;
-    if (df == 0 && dr == -forward) return false;
+    if (df == 0 && dr == 0) return false;
     if (qAbs(df) == 1 && dr == -forward) return false;
     return true;
 }
@@ -320,7 +320,7 @@ QList<Candidate> filterByDirection(const QList<Candidate>& candidates,
         QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if (c.file == targetFile) tmp.push_back(c);
-        if (!tmp.isEmpty()) filtered = tmp;
+        filtered = tmp;
     }
 
     if (modifier.contains(QChar(u'左'))) {
@@ -332,32 +332,32 @@ QList<Candidate> filterByDirection(const QList<Candidate>& candidates,
         QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if (c.file == targetFile) tmp.push_back(c);
-        if (!tmp.isEmpty()) filtered = tmp;
+        filtered = tmp;
     }
 
     if (modifier.contains(QChar(u'上')) || modifier.contains(QChar(u'行'))) {
         QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if ((toRank - c.rank) * forward > 0) tmp.push_back(c);
-        if (!tmp.isEmpty()) filtered = tmp;
+        filtered = tmp;
     }
     if (modifier.contains(QChar(u'引'))) {
         QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if ((toRank - c.rank) * forward < 0) tmp.push_back(c);
-        if (!tmp.isEmpty()) filtered = tmp;
+        filtered = tmp;
     }
     if (modifier.contains(QChar(u'寄'))) {
         QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
             if (c.rank == toRank) tmp.push_back(c);
-        if (!tmp.isEmpty()) filtered = tmp;
+        filtered = tmp;
     }
     if (modifier.contains(QChar(u'直'))) {
         QList<Candidate> tmp;
         for (const auto& c : std::as_const(filtered))
-            if (c.file == toFile) tmp.push_back(c);
-        if (!tmp.isEmpty()) filtered = tmp;
+            if (c.file == toFile && (toRank - c.rank) * forward > 0) tmp.push_back(c);
+        filtered = tmp;
     }
     return filtered;
 }
@@ -372,13 +372,8 @@ bool inferSourceSquare(Piece pieceUpper, bool moveIsPromoted,
                                                toFile, toRank, blackToMove, boardState);
     if (candidates.isEmpty()) return false;
 
-    if (candidates.size() == 1) {
-        outFromFile = candidates[0].file;
-        outFromRank = candidates[0].rank;
-        return true;
-    }
-
     const auto filtered = filterByDirection(candidates, modifier, blackToMove, toFile, toRank);
+    if (filtered.size() != 1) return false;
     outFromFile = filtered[0].file;
     outFromRank = filtered[0].rank;
     return true;

@@ -20,9 +20,9 @@ struct TerminalInfo {
 };
 
 static const TerminalInfo kTerminalCodes[] = {
-    {"i", "反則"},
+    {"i", "反則負け"},
     {"r", "投了"},
-    {"t", "時間切れ"},
+    {"t", "切れ負け"},
     {"p", "中断"},
     {"j", "持将棋"},
     {nullptr, nullptr}
@@ -163,10 +163,10 @@ bool UsenToSfenConverter::parseUsenString(const QString& usen,
 
         // 末尾から終局コードを探す
         const qsizetype lastDot = movesAndTerminal.lastIndexOf(QChar('.'));
-        if (lastDot >= 0 && lastDot < movesAndTerminal.size() - 1) {
+        if (lastDot >= 0) {
             const QString possibleTerminal = movesAndTerminal.mid(lastDot + 1);
             // 1文字の終局コードかチェック
-            if (possibleTerminal.size() == 1 && isTerminalCode(possibleTerminal)) {
+            if (possibleTerminal.isEmpty() || isTerminalCode(possibleTerminal)) {
                 terminal = possibleTerminal;
                 moves = movesAndTerminal.left(lastDot);
             }
@@ -224,9 +224,9 @@ UsenDecodeResult UsenToSfenConverter::decodeUsenMovesStrict(const QString& usenS
     // 終局コードを除去
     if (terminalOut) terminalOut->clear();
     const qsizetype lastDot = movesStr.lastIndexOf(QChar('.'));
-    if (lastDot >= 0 && lastDot < movesStr.size() - 1) {
+    if (lastDot >= 0) {
         const QString possibleTerminal = movesStr.mid(lastDot + 1);
-        if (possibleTerminal.size() == 1 && isTerminalCode(possibleTerminal)) {
+        if (possibleTerminal.isEmpty() || isTerminalCode(possibleTerminal)) {
             if (terminalOut) *terminalOut = possibleTerminal;
             movesStr = movesStr.left(lastDot);
         }
@@ -366,8 +366,8 @@ void UsenToSfenConverter::buildKifLine(const QStringList& usiMoves,
 
     // 終局理由
     if (!terminalCode.isEmpty()) {
-        outLine.disp.push_back(KifuParseCommon::createTerminalDisplayItem(
-            plyNumber + 1, terminalCodeToJapanese(terminalCode)));
+        outLine.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
+            plyNumber + 1, terminalCodeToJapanese(terminalCode), baseSfen, usiMoves.size()));
         outLine.endsWithTerminal = true;
     }
 }

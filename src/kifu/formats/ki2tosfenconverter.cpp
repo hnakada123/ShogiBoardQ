@@ -371,33 +371,24 @@ QString Ki2ToSfenConverter::generateModifier(
     const QList<Ki2Lexer::Candidate>& candidates,
     int srcFile, int srcRank,
     int dstFile, int dstRank,
-    bool blackToMove)
+    bool blackToMove, bool allowStraight)
 {
     if (candidates.size() <= 1) return {};
 
     const int forward = blackToMove ? -1 : 1;
     QStringList singleModifiers;
 
-    {
-        bool hasDifferentFile = false;
-        for (const auto& c : std::as_const(candidates)) {
-            if (c.file != srcFile || c.rank != srcRank) {
-                if (c.file != srcFile) { hasDifferentFile = true; break; }
-            }
-        }
-        if (hasDifferentFile)
-            singleModifiers << QStringLiteral("右") << QStringLiteral("左");
-    }
-
+    // 棋譜表記では動作（上・引・寄）を左右より優先する。
     const int dr = dstRank - srcRank;
     if (dr * forward > 0) {
         singleModifiers << QStringLiteral("上");
-        if (srcFile == dstFile) singleModifiers << QStringLiteral("直");
+        if (allowStraight && srcFile == dstFile) singleModifiers << QStringLiteral("直");
     } else if (dr * forward < 0) {
         singleModifiers << QStringLiteral("引");
     } else {
         singleModifiers << QStringLiteral("寄");
     }
+    singleModifiers << QStringLiteral("右") << QStringLiteral("左");
 
     for (const QString& mod : std::as_const(singleModifiers)) {
         const auto filtered = Ki2Lexer::filterByDirection(candidates, mod, blackToMove, dstFile, dstRank);
@@ -457,6 +448,9 @@ QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
 
     QString ki2Move = prettyMove;
     ki2Move.remove(fromPosRe);
+    // 読み込んだKI2/JKFに既にある修飾子を重複して付加しない。
+    static const QRegularExpression directionRe(QStringLiteral("[左右上引寄直行]"));
+    ki2Move.remove(directionRe);
 
     bool isDrop = prettyMove.contains(QChar(u'打'));
     if (!isDrop && !hasSource) isDrop = true;
@@ -467,7 +461,8 @@ QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
                                                              blackToMove, boardState);
         if (candidates.size() >= 2) {
             const QString modifier = generateModifier(candidates, srcFile, srcRank,
-                                                       dstFile, dstRank, blackToMove);
+                                                       dstFile, dstRank, blackToMove,
+                                                       pieceUpper != Piece::BlackRook && pieceUpper != Piece::BlackBishop);
             if (!modifier.isEmpty()) {
                 static const QRegularExpression promoteSuffixRe(QStringLiteral("(成|不成)$"));
                 const QRegularExpressionMatch pm = promoteSuffixRe.match(ki2Move);

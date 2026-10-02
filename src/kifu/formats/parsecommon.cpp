@@ -71,8 +71,8 @@ const std::array<QString, 16>& terminalWords()
         QStringLiteral("不戦勝"),
         QStringLiteral("不戦敗"),
         QStringLiteral("詰み"),
-        QStringLiteral("詰"),
         QStringLiteral("不詰"),
+        QStringLiteral("詰"),
         QStringLiteral("入玉勝ち"),
         QStringLiteral("宣言勝ち"),
         QStringLiteral("入玉宣言勝ち")

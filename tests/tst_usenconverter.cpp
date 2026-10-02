@@ -212,7 +212,7 @@ private slots:
     void terminalCodeToJapanese_timeout()
     {
         QCOMPARE(UsenToSfenConverter::terminalCodeToJapanese(QStringLiteral("t")),
-                 QStringLiteral("時間切れ"));
+                 QStringLiteral("切れ負け"));
     }
 
     void terminalCodeToJapanese_unknown()

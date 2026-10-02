@@ -250,7 +250,8 @@ public slots:
         for (auto* w : QApplication::topLevelWidgets()) {
             auto* d = qobject_cast<QDialog*>(w);
             if (!d || !d->isVisible()) continue;
-            if (dialogMode == "file" && !qobject_cast<QFileDialog*>(d)) continue;
+            if ((dialogMode == "file" || dialogMode == "file-lossy") && !qobject_cast<QFileDialog*>(d)) continue;
+            if (dialogMode == "save-warning" && !qobject_cast<QMessageBox*>(d)) continue;
             if (dialogMode == "messages" && !qobject_cast<QMessageBox*>(d)) continue;
             if (dialogMode != "auto") dialogTimer.stop();
             dialogHandled = true;
@@ -262,12 +263,17 @@ public slots:
                 qInfo() << "message" << mb->text();
             }
             d->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/") + dialogClass + ".png");
-            if (dialogMode == "file") {
+            if (dialogMode == "file" || dialogMode == "file-lossy") {
                 auto* fd = qobject_cast<QFileDialog*>(d);
                 if (!fd) { d->reject(); return; }
                 fd->selectFile(dialogPath);
                 if (auto* name = fd->findChild<QLineEdit*>("fileNameEdit")) name->setText(dialogPath);
+                if (dialogMode == "file-lossy") armDialog("save-warning");
                 QMetaObject::invokeMethod(fd, "accept", Qt::DirectConnection);
+            } else if (dialogMode == "save-warning") {
+                auto* mb = qobject_cast<QMessageBox*>(d);
+                QVERIFY(mb && mb->button(QMessageBox::Ok));
+                mb->button(QMessageBox::Ok)->click();
             } else if (dialogMode == "joseki-add" || dialogMode == "joseki-edit") {
                 auto* moveDialog = qobject_cast<JosekiMoveDialog*>(d);
                 QVERIFY(moveDialog);
@@ -2047,6 +2053,44 @@ private slots:
         QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
         QCOMPARE(boardSfen(), last);
     }
+    void formatCompliance_data()
+    {
+        QTest::addColumn<QString>("text");
+        QTest::addColumn<QString>("start");
+        QTest::addColumn<QString>("last");
+        QTest::addColumn<QString>("moves");
+        QTest::newRow("csa-handicap") << QString("V2.2\nPI82HI22KA,-,-3334FU,T2\n")
+            << QString("lnsgkgsnl/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
+            << QString("lnsgkgsnl/9/pppppp1pp/6p2/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 2")
+            << QString("3c3d");
+        QTest::newRow("csa-piece-position") << QString("V3.0\nP-51OU\nP+59OU00HI\n+\n+0055HI\n")
+            << QString("4k4/9/9/9/9/9/9/9/4K4 b R 1")
+            << QString("4k4/9/9/9/4R4/9/9/9/4K4 w - 2") << QString("R*5e");
+        QTest::newRow("usen-without-result") << QString("~0.7ku36e8uc.")
+            << initial + " b - 1"
+            << QString("lnsgkgsnl/1r5b1/p1ppppppp/1p7/9/2P6/PPBPPPPPP/7R1/LNSGKGSNL w - 4")
+            << QString("7g7f 8c8d 8h7g");
+        QTest::newRow("jkf-white-first") << QString(R"({"initial":{"preset":"6"},"moves":[{},
+            {"move":{"color":1,"piece":"OU","from":{"x":5,"y":1},"to":{"x":4,"y":2},"promote":null}}]})")
+            << QString("2sgkgs2/9/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL w - 1")
+            << QString("2sg1gs2/5k3/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 2")
+            << QString("5a4b");
+    }
+    void formatCompliance()
+    {
+        QFETCH(QString, text); QFETCH(QString, start); QFETCH(QString, last); QFETCH(QString, moves);
+        paste(text);
+        QCOMPARE(record()->kifuView()->model()->rowCount(), moves.split(' ').size() + 1);
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        QCOMPARE(copy("actionCopySFEN"), start);
+        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QCOMPARE(copy("actionCopySFEN"), last);
+        QVERIFY(copy("actionCopyUSIAll").endsWith("moves " + moves));
+        const QString saved = copy("actionCopyKIF");
+        armDialog("discard"); click("actionNewGame"); paste(saved);
+        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        QCOMPARE(copy("actionCopySFEN"), last);
+    }
     void currentPositionCopy_data()
     {
         QTest::addColumn<int>("ply");
@@ -2069,17 +2113,26 @@ private slots:
         QCOMPARE(sfen, expected);
         const auto bod = copy("actionCopyBOD"); QVERIFY(bod.contains(QStringLiteral("歩")));
     }
+    void fileOpenSave_data()
+    {
+        QTest::addColumn<QString>("extension");
+        for (const char* ext : {"kif", "kifu", "ki2", "ki2u", "csa", "jkf", "usi", "usen"})
+            QTest::newRow(ext) << QString::fromLatin1(ext);
+    }
     void fileOpenSave()
     {
+        QFETCH(QString, extension);
         armDialog("file", QStringLiteral(REPO "/tests/fixtures/test_basic.kif"));
         click("actionOpenKifuFile"); QVERIFY(dialogHandled);
         QTRY_VERIFY(record()->kifuView()->model()->rowCount() > 2);
         QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
         const auto last = boardSfen();
-        const QString path = QStringLiteral(AUDIT_DIR "/saved.kif");
+        const QString path = QStringLiteral(AUDIT_DIR "/saved.") + extension;
         QFile::remove(path);
-        armDialog("file", path); click("actionSaveAs"); QVERIFY(dialogHandled);
-        QVERIFY(QFileInfo(path).size() > 50);
+        const bool lossy = extension.startsWith("ki2") || extension == "usi";
+        armDialog(lossy ? "file-lossy" : "file", path); click("actionSaveAs"); QVERIFY(dialogHandled);
+        dialogTimer.stop();
+        QVERIFY(QFileInfo(path).size() > 0);
         click("actionSave");
         click("actionNewGame");
         armDialog("file", path); click("actionOpenKifuFile");

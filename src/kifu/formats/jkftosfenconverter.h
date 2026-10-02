@@ -36,7 +36,7 @@ public:
 private:
     static bool loadJsonFile(const QString& filePath, QJsonObject& root, QString* warn);
     static QString buildInitialSfen(const QJsonObject& root, QString* detectedLabel = nullptr);
-    static void parseMovesArray(const QJsonArray& movesArray,
+    static bool parseMovesArray(const QJsonArray& movesArray,
                                 const QString& baseSfen,
                                 KifLine& mainline,
                                 QList<KifVariation>& variations,
