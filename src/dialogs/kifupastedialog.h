@@ -52,6 +52,8 @@ private slots:
     void onClearClicked();
     void increaseFontSize();
     void decreaseFontSize();
+    void updateInputActions();
+    void updateClipboardAction();
 
 private:
     void setupUi();
@@ -64,7 +66,7 @@ private:
     QPushButton* m_btnClear = nullptr;
     QPushButton* m_btnFontSizeDown = nullptr;
     QPushButton* m_btnFontSizeUp = nullptr;
-    QLabel* m_lblInfo = nullptr;
+    QLabel* m_fontSizeLabel = nullptr;
 
     FontSizeHelper m_fontHelper;
 };

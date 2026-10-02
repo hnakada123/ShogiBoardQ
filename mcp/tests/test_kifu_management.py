@@ -148,7 +148,7 @@ async def test_paste_dialog_controls_and_cancel(kifu_env, tmp_path):
         await ui.call("set_widget_value", target="kifuPasteDialog", widget="kifuPasteText", value="discard me")
         await ui.call("click_dialog_button", dialog="kifuPasteDialog", text="クリア")
         assert (await ui.call("get_widget_text", dialog="kifuPasteDialog", widget="kifuPasteText"))["widgets"][0]["text"] == ""
-        await ui.call("click_dialog_button", dialog="kifuPasteDialog", text="取り込む")
+        assert not (await ui.call("get_widget_text", dialog="kifuPasteDialog", widget="importKifu"))["widgets"][0]["enabled"]
         await ui.dialog("kifuPasteDialog")
         await ui.call("close_dialog", dialog="kifuPasteDialog")
         await ui.paste("startpos moves 7g7f 8c8d")

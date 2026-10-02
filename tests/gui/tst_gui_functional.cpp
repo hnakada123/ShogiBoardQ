@@ -2018,6 +2018,119 @@ private slots:
         window.reset();
         QTest::qWait(100);
     }
+    void pasteDialogControls()
+    {
+        QApplication::clipboard()->clear();
+        click("actionPasteKifu");
+        auto* dialog = window->findChild<KifuPasteDialog*>();
+        QVERIFY(dialog);
+        dialog->activateWindow();
+        QVERIFY(QTest::qWaitForWindowActive(dialog));
+        auto* editor = dialog->findChild<QPlainTextEdit*>("kifuPasteText");
+        auto* pasteButton = dialog->findChild<QPushButton*>("pasteFromClipboard");
+        auto* clearButton = dialog->findChild<QPushButton*>("clearText");
+        auto* importButton = dialog->findChild<QPushButton*>("importKifu");
+        QVERIFY(editor && pasteButton && clearButton && importButton);
+        QVERIFY(!pasteButton->isEnabled());
+        QVERIFY(!clearButton->isEnabled());
+        QVERIFY(!importButton->isEnabled());
+        editor->setPlainText(" \n\t ");
+        QVERIFY(clearButton->isEnabled());
+        QVERIFY(!importButton->isEnabled());
+        QSignalSpy imported(dialog, &KifuPasteDialog::importRequested);
+        editor->setFocus();
+        QTest::keyClick(editor, Qt::Key_Return, Qt::ControlModifier);
+        QCOMPARE(imported.count(), 0);
+        QTest::mouseClick(clearButton, Qt::LeftButton);
+        QTRY_VERIFY(editor->hasFocus());
+        QVERIFY(dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/paste-dialog-empty.png")));
+        QApplication::clipboard()->setText("position startpos moves 7g7f 3c3d");
+        QTRY_VERIFY(pasteButton->isEnabled());
+        QTest::mouseClick(pasteButton, Qt::LeftButton);
+        QCOMPARE(editor->toPlainText(), QApplication::clipboard()->text());
+        QVERIFY(importButton->isEnabled());
+        QTRY_VERIFY(editor->hasFocus());
+        QTest::keyClick(editor, Qt::Key_Return);
+        QCOMPARE(imported.count(), 0);
+        QVERIFY(editor->toPlainText().contains('\n'));
+        QVERIFY(dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/paste-dialog-filled.png")));
+        QTest::keyClick(editor, Qt::Key_Return, Qt::ControlModifier);
+        QTRY_VERIFY(!hasKifuPasteDialog());
+        QCOMPARE(record()->kifuView()->model()->rowCount(), 3);
+        QTest::mouseClick(record()->lastButton(), Qt::LeftButton);
+        const QString before = copy("actionCopyUSIAll");
+        click("actionPasteKifu");
+        dialog = window->findChild<KifuPasteDialog*>();
+        QVERIFY(dialog);
+        dialog->findChild<QPlainTextEdit*>("kifuPasteText")->setPlainText("position startpos moves 2g2f");
+        QTest::keyClick(dialog, Qt::Key_Escape);
+        QTRY_VERIFY(!hasKifuPasteDialog());
+        QCOMPARE(copy("actionCopyUSIAll"), before);
+    }
+    void pasteDialogLayout_data()
+    {
+        QTest::addColumn<bool>("english");
+        QTest::newRow("japanese") << false;
+        QTest::newRow("english") << true;
+    }
+    void pasteDialogLayout()
+    {
+        QFETCH(bool, english);
+        QTranslator translator;
+        if (english) {
+            QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_en.qm")));
+            qApp->installTranslator(&translator);
+        }
+        KifuPasteDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* editor = dialog.findChild<QPlainTextEdit*>("kifuPasteText");
+        auto* decrease = dialog.findChild<QPushButton*>("fontDecrease");
+        auto* increase = dialog.findChild<QPushButton*>("fontIncrease");
+        QVERIFY(editor && decrease && increase);
+        const int original = editor->font().pointSize();
+        QTest::mouseClick(increase, Qt::LeftButton);
+        QCOMPARE(editor->font().pointSize(), original + 1);
+        QTest::mouseClick(decrease, Qt::LeftButton);
+        QCOMPARE(editor->font().pointSize(), original);
+        if (english) QCOMPARE(dialog.windowTitle(), QStringLiteral("Paste Game Record"));
+        for (const int size : {7, 20, 10}) {
+            while (editor->font().pointSize() > size) QTest::mouseClick(decrease, Qt::LeftButton);
+            while (editor->font().pointSize() < size) QTest::mouseClick(increase, Qt::LeftButton);
+            dialog.resize(500, 400);
+            QTest::qWait(30);
+            qInfo() << "paste dialog layout" << english << size << dialog.size() << dialog.minimumSize();
+            QCOMPARE(decrease->isEnabled(), size > 7);
+            QCOMPARE(increase->isEnabled(), size < 20);
+            QVERIFY(editor->height() >= 80);
+            for (auto* button : dialog.findChildren<QPushButton*>()) {
+                QVERIFY(button->height() >= 32);
+                QVERIFY(button->width() >= button->fontMetrics().horizontalAdvance(button->text()) + 16);
+                QVERIFY(dialog.rect().contains(button->geometry()));
+            }
+            const auto controls = dialog.findChildren<QWidget*>(QString(), Qt::FindDirectChildrenOnly);
+            for (qsizetype i = 0; i < controls.size(); ++i) {
+                if (!controls.at(i)->isVisible()) continue;
+                for (qsizetype j = i + 1; j < controls.size(); ++j) {
+                    if (!controls.at(j)->isVisible()) continue;
+                    QVERIFY2(!controls.at(i)->geometry().intersects(controls.at(j)->geometry()),
+                             qPrintable(controls.at(i)->objectName() + " overlaps " + controls.at(j)->objectName()));
+                }
+            }
+            if (size != 7) {
+                const QString name = QStringLiteral(AUDIT_DIR "/screenshots/paste-dialog-%1-%2pt.png")
+                    .arg(english ? QStringLiteral("en") : QStringLiteral("ja")).arg(size);
+                QVERIFY(dialog.grab().save(name));
+            }
+        }
+        dialog.resize(720, 540);
+        const QSize savedSize = dialog.size();
+        dialog.close();
+        KifuPasteDialog reopened;
+        QCOMPARE(reopened.size(), savedSize);
+        QCOMPARE(reopened.findChild<QPlainTextEdit*>("kifuPasteText")->font().pointSize(), 10);
+        if (english) qApp->removeTranslator(&translator);
+    }
     void pasteNavigation()
     {
         sampleGame();
