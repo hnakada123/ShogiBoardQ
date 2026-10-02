@@ -10,6 +10,7 @@
 #include <QPainter>
 #include <QFont>
 #include <QFontMetrics>
+#include <QtMath>
 
 // 駒台セル（1マス）の描画矩形を算出するユーティリティ。
 // 役割：盤上の基準マス矩形（fieldRect）から、先手/後手の駒台側に水平オフセットした矩形を返す。
@@ -38,9 +39,8 @@ static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int off
 void ShogiView::drawNormalModeStand(QPainter* painter)
 {
     if (!m_board) return;
-    const qreal inset = qMax(1.0, fieldSize().width() * 0.035);
     for (const auto& stand : {blackStandBoundingRect(), whiteStandBoundingRect()}) {
-        BoardSurfacePainter::draw(*painter, QRectF(stand).adjusted(inset, 0, -inset, 0),
+        BoardSurfacePainter::draw(*painter, m_layout.standSurfaceRect(stand),
                                   m_boardColors.stand, m_boardVisuals.standWoodGrain, fieldSize().width());
     }
 }
@@ -75,7 +75,7 @@ void ShogiView::drawPiecesStandFeatures(QPainter* painter)
 }
 
 /**
- * @brief 駒台セル内に「等倍」の駒アイコンを重ね描きする（最大2段＝最大3枚表示）。
+ * @brief 駒台の内側に駒・重なり・枚数表示を収める（最大3枚表示）。
  */
 void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect, QChar value) const
 {
@@ -88,82 +88,68 @@ void ShogiView::drawStandPieceIcon(QPainter* painter, const QRect& adjustedRect,
     const QIcon icon = piece(value);
     if (icon.isNull()) return;
 
-    // === 駒画像は正方形のアスペクト比を維持 ===
     const int cellW = adjustedRect.width();
-    const int iconW = cellW;
-    const int iconH = cellW;  // 幅と同じにして正方形を維持
-
-    // ▼ここで"見せる重なり段数"と"最大表示枚数"をハードキャップ
-    const int maxOverlapSteps = 2;
-    const int maxVisibleIcons = maxOverlapSteps + 1;
-    const int visible = qMin(count, maxVisibleIcons);
-    const int stepsEff = qMax(0, visible - 1);
-
-    // 重なり幅（横広がり）
-    const qreal perStep = iconW * 0.05;
-    const qreal hardMax = iconW * 0.85;
-    const qreal totalSpread = qMin(hardMax, perStep * qreal(stepsEff));
-
-    // 最前面ベースを「重ね全体センター=マス中心」に配置
-    QRect base(0, 0, iconW, iconH);
-    base.moveCenter(QPoint(adjustedRect.center().x() + int(totalSpread / 2.0),
-                           adjustedRect.center().y()));
-
-    // バッジ右端のはみ出しを微修正
-    int margin = qMax(2, iconW / 40);
-    int overflowRight = base.right() - (adjustedRect.right() - margin);
-    if (overflowRight > 0) base.translate(-overflowRight, 0);
+    const auto rendered = PiecePainter::image(icon, cellW, m_boardVisuals,
+                                               painter->device()->devicePixelRatioF());
+    if (rendered.bounds.isEmpty()) return;
+    const QRectF inner = m_layout.standPieceArea(adjustedRect);
+    const QSizeF canvas = rendered.pixmap.deviceIndependentSize();
+    const QPointF center(canvas.width() / 2, canvas.height() / 2);
+    // 影の右下への張り出しも左右・上下に同じ幅を予約し、駒本体は中央に保つ。
+    const qreal width = 2 * qMax(center.x() - rendered.bounds.left(), rendered.bounds.right() - center.x());
+    const qreal height = 2 * qMax(center.y() - rendered.bounds.top(), rendered.bounds.bottom() - center.y());
+    const int visible = qMin(count, 3);
+    const int steps = visible - 1;
+    const qreal minSpread = cellW * 0.02 * steps;
+    const qreal fit = qMin(1.0, qMin((inner.width() - minSpread) / width, inner.height() / height));
+    const qreal spread = qMin(cellW * 0.05 * steps, qMax(0.0, inner.width() - width * fit));
+    QRectF base(QPointF(), canvas * fit);
+    base.moveCenter(inner.center() + QPointF(spread / 2, 0));
 
     painter->save();
-    painter->setClipRect(adjustedRect);
+    painter->setClipRect(inner, Qt::IntersectClip);
     painter->setRenderHint(QPainter::SmoothPixmapTransform, true);
     painter->setRenderHint(QPainter::Antialiasing, true);
 
     // 奥(左)→手前(右)。表示は最大 visible 枚に限定
     for (int i = 0; i < visible; ++i) {
-        const qreal t = (stepsEff > 0) ? (qreal(i) / qreal(stepsEff)) : 1.0;
-        const qreal shiftX = -totalSpread * (1.0 - t);
-        const QRect r = base.translated(int(shiftX), 0);
-
-        PiecePainter::draw(*painter, icon, r, m_boardVisuals);
+        const qreal shift = steps > 0 ? spread * (steps - i) / steps : 0;
+        painter->drawPixmap(base.translated(-shift, 0), rendered.pixmap, QRectF(rendered.pixmap.rect()));
     }
 
     // 右下バッジ（総数表示）
     if (count >= 2) {
-        const QRect topRect = base;
+        const QRectF topRect(base.topLeft() + rendered.bounds.topLeft() * fit,
+                             rendered.bounds.size() * fit);
+        const qreal margin = qMax(1.0, cellW * 0.02);
         QFont f = painter->font();
-        int px = qBound(9, int(iconH * 0.34), 48);
+        int px = qBound(6, int(cellW * 0.34), 48);
         f.setPixelSize(px);
         f.setBold(true);
         painter->setFont(f);
 
         const QString text = QString::number(count);
         QFontMetrics fm(f);
-        int padX = qMax(3, iconW / 18);
-        int padY = qMax(2, iconH / 22);
+        const int padX = qMax(1, cellW / 18);
+        const int padY = qMax(1, cellW / 22);
         QSize tsz = fm.size(Qt::TextSingleLine, text);
 
-        const int maxBadgeW = qMax(8, iconW - 2 * margin);
-        const int maxBadgeH = qMax(8, iconH - 2 * margin);
-        const int needW = tsz.width() + padX * 2;
-        const int needH = tsz.height() + padY * 2;
-        const qreal scale = qMin<qreal>(1.0, qMin(qreal(maxBadgeW)/needW, qreal(maxBadgeH)/needH));
-        if (scale < 1.0) {
-            px   = qMax(8, int(px   * scale));
-            padX = qMax(2, int(padX * scale));
-            padY = qMax(2, int(padY * scale));
-            f.setPixelSize(px);
-            painter->setFont(f);
-            fm  = QFontMetrics(f);
+        const int maxBadgeW = qFloor(inner.width() - 2 * margin);
+        const int maxBadgeH = qFloor(inner.height() - 2 * margin);
+        while (px > 1 && (tsz.width() + padX * 2 > maxBadgeW || tsz.height() + padY * 2 > maxBadgeH)) {
+            f.setPixelSize(--px);
+            fm = QFontMetrics(f);
             tsz = fm.size(Qt::TextSingleLine, text);
         }
+        painter->setFont(f);
 
-        QRect badge(0, 0, qMin(maxBadgeW, tsz.width() + padX * 2),
-                    qMin(maxBadgeH, tsz.height() + padY * 2));
-        badge.moveBottomRight(QPoint(topRect.right() - margin, topRect.bottom() - margin));
+        QRectF badge(0, 0, tsz.width() + padX * 2, tsz.height() + padY * 2);
+        badge.moveBottomRight(QPointF(
+            qBound(inner.left() + margin + badge.width(), topRect.right() - margin, inner.right() - margin),
+            qBound(inner.top() + margin + badge.height(), topRect.bottom() - margin, inner.bottom() - margin)));
 
         const qreal radius = qMin(badge.width(), badge.height()) * 0.35;
-        QPen outline(m_boardColors.cardBorder, qMax(1, iconW / 60));
+        QPen outline(m_boardColors.cardBorder, qMax(1.0, cellW / 60.0));
         painter->setPen(Qt::NoPen);
         painter->setBrush(m_boardColors.cardBackground);
         painter->drawRoundedRect(badge, radius, radius);

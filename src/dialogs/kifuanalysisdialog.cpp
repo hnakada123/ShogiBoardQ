@@ -21,7 +21,7 @@
 // 棋譜解析ダイアログのUIを設定する。
 KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     : QDialog(parent)
-    , ui(new Ui::KifuAnalysisDialog)
+    , ui(std::make_unique<Ui::KifuAnalysisDialog>())
     , m_fontHelper({AnalysisSettings::kifuAnalysisFontSize() > 0
                         ? AnalysisSettings::kifuAnalysisFontSize() : qMax(10, font().pointSize()), 8, 24, 1,
                     AnalysisSettings::setKifuAnalysisFontSize})
@@ -108,10 +108,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     DialogUtils::restoreDialogSize(this, AnalysisSettings::kifuAnalysisDialogSize());
 }
 
-KifuAnalysisDialog::~KifuAnalysisDialog()
-{
-    delete ui;
-}
+KifuAnalysisDialog::~KifuAnalysisDialog() = default;
 
 void KifuAnalysisDialog::done(int result)
 {

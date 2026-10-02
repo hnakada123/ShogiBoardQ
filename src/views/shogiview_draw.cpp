@@ -48,13 +48,7 @@ void ShogiView::drawBoardSurface(QPainter* painter)
 {
     if (!m_board) return;
     const QSize fs = fieldSize();
-    const qreal margin = m_layout.boardMarginPx();
-    const qreal labelMargin = fs.width() * 0.50;
-    // 反転時は座標の帯も盤と一緒に反対側へ移す。
-    const QRectF surface(m_layout.offsetX() - (flipMode() ? labelMargin : margin),
-                         m_layout.offsetY() - (flipMode() ? margin : labelMargin),
-                         fs.width() * m_board->files() + margin + labelMargin,
-                         fs.height() * m_board->ranks() + margin + labelMargin);
+    const QRectF surface = m_layout.boardSurfaceRect(m_board->files(), m_board->ranks());
     BoardSurfacePainter::draw(*painter, surface, m_boardColors.board, m_boardVisuals.woodGrain, fs.width());
 }
 
@@ -209,7 +203,7 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
 {
     if (!m_board) return;
     const QRect cell = cachedFieldRect(1, rank);
-    const int band = qRound(fieldSize().width() * 0.50);
+    const int band = m_layout.coordinateBandPx();
     const int x = flipMode() ? boardLeftPx() - band : boardRightPx();
     const QRect label(x, cell.top() + m_layout.offsetY(), band, cell.height());
     painter->save();
@@ -227,7 +221,7 @@ void ShogiView::drawFile(QPainter* painter, const int file) const
 {
     if (!m_board) return;
     const QRect cell = cachedFieldRect(file, 1);
-    const int band = qRound(fieldSize().width() * 0.50);
+    const int band = m_layout.coordinateBandPx();
     const int y = flipMode() ? m_layout.offsetY() + fieldSize().height() * m_board->ranks()
                             : m_layout.offsetY() - band;
     const QRect label(cell.left() + m_layout.offsetX(), y, cell.width(), band);

@@ -31,9 +31,18 @@ class GameInfoUi(KifuUi):
     async def button(self, name):
         await self.call("click_widget", widget="gameInfo" + name)
 
+    async def button_enabled(self, name):
+        widget = (await self.call("get_widget_text", widget="gameInfo" + name))["widgets"][0]
+        return widget["enabled"]
+
+    async def assert_button_disabled(self, name):
+        assert not await self.button_enabled(name)
+        text, _, error = result_data(await self.session.call_tool(
+            "click_widget", {"widget": "gameInfo" + name}))
+        assert error and "invalid_state" in text
+
     async def dirty(self):
-        widget = (await self.call("get_widget_text", widget="gameInfoEditing"))["widgets"][0]
-        return widget.get("visible", True)
+        return await self.button_enabled("Apply")
 
 
 async def test_apply_updates_names_and_record_dirty(kifu_env, tmp_path):
@@ -104,8 +113,8 @@ async def test_cut_copy_paste_and_key_protection(kifu_env, tmp_path):
         await ui.button("Undo")
         assert ["後手", "テスト先手"] in await ui.rows()
         await ui.call("click_table_cell", widget="gameInfoTable", row=black, column=0)
-        await ui.button("Cut")
-        await ui.button("Paste")
+        await ui.assert_button_disabled("Cut")
+        await ui.assert_button_disabled("Paste")
         assert (await ui.rows())[black][0] == "先手"
         _, _, error = result_data(await session.call_tool("edit_table_cell", dict(widget="gameInfoTable", row=black, column=0, text="破損")))
         assert error
@@ -186,7 +195,7 @@ async def test_saved_edits_can_be_undone_and_redone(kifu_env, tmp_path):
     async with mcp_session(kifu_env) as session:
         ui = GameInfoUi(session, tmp_path)
         await ui.open()
-        await ui.button("Apply")
+        await ui.assert_button_disabled("Apply")
         assert not (await ui.call("get_app_state"))["dirty"]
         await ui.edit("先手", "一度保存した名前")
         path = tmp_path / "saved.kifu"
@@ -201,8 +210,8 @@ async def test_saved_edits_can_be_undone_and_redone(kifu_env, tmp_path):
         _, _, error = result_data(await session.call_tool("save_kifu", {"path": str(path)}))
         assert error and (await ui.call("get_app_state"))["dirty"]
         await ui.call("load_kifu", path=str(path), discard_unsaved=True)
-        await ui.button("Undo")
-        await ui.button("Redo")
+        await ui.assert_button_disabled("Undo")
+        await ui.assert_button_disabled("Redo")
         assert ["後手", "テスト後手"] in await ui.rows()
         assert not (await ui.call("get_app_state"))["dirty"]
 
@@ -235,7 +244,7 @@ async def test_game_end_preserves_active_metadata(kifu_env, tmp_path):
         for widget in ("comboBoxPlayer1", "comboBoxPlayer2"):
             await ui.call("set_widget_value", target="StartGameDialog", widget=widget, value=0)
         await ui.call("set_widget_value", target="StartGameDialog", widget="checkBoxAutoSaveKifu", value=True)
-        await ui.call("click_dialog_button", dialog="StartGameDialog", text="OK")
+        await ui.call("click_dialog_button", dialog="StartGameDialog", text="対局開始")
         await ui.wait("get_app_state", lambda d: d["ui_state"] == "game")
         await ui.call("click_board_square", file=7, rank=7)
         await ui.call("click_board_square", file=7, rank=6)
@@ -258,7 +267,7 @@ async def test_discard_to_sfen_resets_metadata_history(kifu_env, tmp_path):
         await ui.edit("先手", "破棄する名前")
         await ui.call("set_position", sfen="lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1",
                       discard_unsaved=True)
-        await ui.button("Undo")
-        await ui.button("Redo")
+        await ui.assert_button_disabled("Undo")
+        await ui.assert_button_disabled("Redo")
         assert await ui.rows() == []
         assert not await ui.dirty()

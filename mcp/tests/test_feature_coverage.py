@@ -341,15 +341,16 @@ async def test_analysis_results_gui_and_batch_job(coverage_env, tmp_path):
         dialog = await ui.open("actionAnalyzeKifu", "KifuAnalysisDialog")
         await ui.call("set_widget_value", target=dialog, widget="comboBoxEngine1", value="TestUsi")
         await ui.call("set_widget_value", target=dialog, widget="byoyomiSec", value=1)
-        await ui.click("OK", dialog)
-        await ui.close(await ui.dialog("QMessageBox"))
+        await ui.click("解析開始", dialog)
         for _ in range(300):
             state = await ui.call("get_app_state")
             if state["ui_state"] == "idle":
                 break
             await asyncio.sleep(0.05)
+        assert state["ui_state"] == "idle"
         await ui.call("show_dock", widget="AnalysisResultsDock")
-        assert (await ui.read("analysisResultsTable"))["row_count"] >= 1
+        assert "解析完了" in (await ui.read("analysisStatusLabel"))["text"]
+        assert (await ui.read("analysisResultsTable"))["row_count"] == 3
         await ui.call("click_table_cell", widget="analysisResultsTable", row=0, column=6)
         windows = (await ui.call("list_dialogs"))["windows"]
         pv = next(w for w in windows if w["class"] == "PvBoardDialog")

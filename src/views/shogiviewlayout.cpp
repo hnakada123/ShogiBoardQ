@@ -2,9 +2,11 @@
 /// @brief 将棋盤面のレイアウト計算クラスの実装
 
 #include "shogiviewlayout.h"
+#include "boardsurfacepainter.h"
 
 #include <QFontMetrics>
 #include <QStringList>
+#include <QtMath>
 
 #include <algorithm>
 
@@ -27,12 +29,6 @@ void ShogiViewLayout::recalcLayoutParams(const QFont& baseFont)
     m_labelBandPx = std::max(10, int(m_squareSize * 0.68));
     m_labelFontPt = std::clamp(m_squareSize * 0.26, 5.0, 18.0);
     m_labelGapPx  = std::max(2,  int(m_squareSize * 0.12));
-
-    // 筋番号帯の高さ
-    const int fileLabelHeight = std::max(8, int(m_squareSize * 0.35));
-
-    // 縦方向オフセット
-    m_offsetY = fileLabelHeight + m_boardMarginPx;
 
     // 駒台の実効ギャップ
     const int userGapPx = qRound(m_squareSize * m_standGapCols);
@@ -99,7 +95,7 @@ QRect ShogiViewLayout::blackStandBoundingRect(int boardFiles, int boardRanks) co
 
     const int x = (m_flipMode ? (cell.left() - m_param1 + m_offsetX)
                               : (cell.left() + m_param1 + m_offsetX));
-    const int y = cell.top() + m_offsetY;
+    const int y = cell.top() + offsetY();
     const int w = fs.width() * 2;
     const int h = fs.height() * rows;
 
@@ -119,11 +115,58 @@ QRect ShogiViewLayout::whiteStandBoundingRect(int boardFiles, int boardRanks) co
 
     const int x = (m_flipMode ? (cell.left() + m_param2 + m_offsetX)
                               : (cell.left() - m_param2 + m_offsetX));
-    const int y = cell.top() + m_offsetY;
+    const int y = cell.top() + offsetY();
     const int w = fs.width() * 2;
     const int h = fs.height() * rows;
 
     return QRect(x, y, w, h);
+}
+
+int ShogiViewLayout::coordinateBandPx() const
+{
+    return qRound(m_fieldSize.width() * 0.50);
+}
+
+int ShogiViewLayout::outerMarginPx() const
+{
+    return qMax(4, qRound(m_fieldSize.width() * 0.12));
+}
+
+int ShogiViewLayout::offsetY() const
+{
+    const auto shadow = BoardSurfacePainter::shadowMargins(m_fieldSize.width());
+    return outerMarginPx() + qCeil(shadow.top())
+        + (m_flipMode ? m_boardMarginPx : coordinateBandPx());
+}
+
+QRectF ShogiViewLayout::boardSurfaceRect(int boardFiles, int boardRanks) const
+{
+    const int band = coordinateBandPx();
+    return QRectF(m_offsetX - (m_flipMode ? band : m_boardMarginPx),
+                  offsetY() - (m_flipMode ? m_boardMarginPx : band),
+                  m_fieldSize.width() * boardFiles + m_boardMarginPx + band,
+                  m_fieldSize.height() * boardRanks + m_boardMarginPx + band);
+}
+
+QSize ShogiViewLayout::viewSize(int boardFiles, int boardRanks) const
+{
+    const auto shadow = BoardSurfacePainter::shadowMargins(m_fieldSize.width());
+    return QSize(m_fieldSize.width() * (boardFiles + 4) + m_standGapPx * 2,
+                 qCeil(boardSurfaceRect(boardFiles, boardRanks).height())
+                     + qCeil(shadow.top()) + qCeil(shadow.bottom()) + outerMarginPx() * 2);
+}
+
+QRectF ShogiViewLayout::standSurfaceRect(const QRect& stand) const
+{
+    const qreal inset = qMax(1.0, m_fieldSize.width() * 0.035);
+    return QRectF(stand).adjusted(inset, 0, -inset, 0);
+}
+
+QRectF ShogiViewLayout::standPieceArea(const QRect& cell) const
+{
+    // 両列に同じ余白を設け、先後・盤反転によらずセル中心を保つ。
+    const qreal padding = qMax(2.0, m_fieldSize.width() * 0.04);
+    return standSurfaceRect(cell).adjusted(padding, padding, -padding, -padding);
 }
 
 // ─────────────────────────── 境界ユーティリティ ─────────────────────────

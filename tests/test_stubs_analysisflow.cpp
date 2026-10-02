@@ -16,6 +16,7 @@
 #include "usi.h"
 #include "usimatchhandler.h"
 #include "kifuanalysisdialog.h"
+#include "ui_kifuanalysisdialog.h"
 #include "analysisresultspresenter.h"
 #include "kifurecordlistmodel.h"
 #include "kifuanalysislistmodel.h"

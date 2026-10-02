@@ -700,11 +700,16 @@ add_shogi_test(tst_analysisflow
     ${SRC}/common/logcategories.cpp
     ${SRC}/common/fontsizehelper.cpp
     ${SRC}/analysis/analysisflowcontroller.cpp
+    ${SRC}/analysis/analysisflowcontroller_dialog.cpp
     ${SRC}/analysis/analysisflowcontroller_position.cpp
     ${SRC}/analysis/analysisresulthandler.cpp
     ${SRC}/analysis/analysisresulthandler_dialog.cpp
     ${SRC}/analysis/analysiscoordinator.cpp
     ${SRC}/analysis/considerationflowcontroller.cpp
+)
+set_target_properties(tst_analysisflow PROPERTIES
+    AUTOUIC ON
+    AUTOUIC_SEARCH_PATHS "${SRC}/dialogs"
 )
 
 # ============================================================
@@ -772,6 +777,7 @@ add_shogi_test(tst_game_end_handler
     test_stubs_game_end_handler.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/game/gameendhandler.cpp
+    ${SRC}/game/gameendhandler_record.cpp
 )
 
 # ============================================================
