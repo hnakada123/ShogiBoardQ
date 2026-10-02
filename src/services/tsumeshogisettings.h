@@ -45,7 +45,7 @@ void setTsumeCollectionFontSize(int size);
 QString tsumeshogiGeneratorLastSaveDirectory();
 void setTsumeshogiGeneratorLastSaveDirectory(const QString& dir);
 
-/// ダイアログのウィンドウサイズ（デフォルト: 600x550）
+/// ダイアログのウィンドウサイズ（デフォルト: 840x800）
 QSize tsumeshogiGeneratorDialogSize();
 void setTsumeshogiGeneratorDialogSize(const QSize& size);
 
@@ -84,6 +84,10 @@ void setTsumeshogiGeneratorMaxPositions(int count);
 /// ファイル保存・コピー時に詰み手順も出力するか（デフォルト: false）
 bool tsumeshogiGeneratorIncludePv();
 void setTsumeshogiGeneratorIncludePv(bool include);
+
+/// 生成条件の説明を展開して表示するか（デフォルト: false）
+bool tsumeshogiGeneratorHelpExpanded();
+void setTsumeshogiGeneratorHelpExpanded(bool expanded);
 
 /// 主手順の最終手に複数の詰手があっても採択するか（デフォルト: true）
 bool tsumeshogiGeneratorAllowFinalMoveAlternatives();

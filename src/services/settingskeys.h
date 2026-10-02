@@ -226,6 +226,7 @@ inline constexpr char kTsumeshogiGeneratorAttackRange[]       = "TsumeshogiGener
 inline constexpr char kTsumeshogiGeneratorTimeoutSec[]        = "TsumeshogiGenerator/timeoutSec";
 inline constexpr char kTsumeshogiGeneratorMaxPositions[]      = "TsumeshogiGenerator/maxPositions";
 inline constexpr char kTsumeshogiGeneratorIncludePv[]         = "TsumeshogiGenerator/includePv";
+inline constexpr char kTsumeshogiGeneratorHelpExpanded[]      = "TsumeshogiGenerator/helpExpanded";
 inline constexpr char kTsumeshogiGeneratorAllowFinalMoveAlternatives[] = "TsumeshogiGenerator/allowFinalMoveAlternatives";
 
 // --- Settings version ---

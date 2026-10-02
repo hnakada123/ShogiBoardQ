@@ -93,7 +93,7 @@ void setTsumeshogiGeneratorLastSaveDirectory(const QString& dir)
 QSize tsumeshogiGeneratorDialogSize()
 {
     QSettings& s = SettingsCommon::openSettings();
-    return s.value(SettingsKeys::kTsumeshogiGeneratorDialogSize, QSize(600, 550)).toSize();
+    return s.value(SettingsKeys::kTsumeshogiGeneratorDialogSize, QSize(840, 800)).toSize();
 }
 
 void setTsumeshogiGeneratorDialogSize(const QSize& size)
@@ -214,6 +214,16 @@ bool tsumeshogiGeneratorAllowFinalMoveAlternatives()
 {
     QSettings& s = SettingsCommon::openSettings();
     return s.value(SettingsKeys::kTsumeshogiGeneratorAllowFinalMoveAlternatives, true).toBool();
+}
+
+bool tsumeshogiGeneratorHelpExpanded()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kTsumeshogiGeneratorHelpExpanded, false).toBool();
+}
+
+void setTsumeshogiGeneratorHelpExpanded(bool expanded)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kTsumeshogiGeneratorHelpExpanded, expanded);
 }
 
 void setTsumeshogiGeneratorAllowFinalMoveAlternatives(bool allow)

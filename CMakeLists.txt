@@ -837,6 +837,7 @@ set(SRC_DIALOGS
     src/dialogs/startgamedialog.h
     src/dialogs/startgamedialog_settings.cpp
     src/dialogs/tsumeshogigeneratordialog.cpp
+    src/dialogs/tsumeshogigeneratordialog_ui.cpp
     src/dialogs/tsumeshogigeneratordialog_actions.cpp
     src/dialogs/tsumeshogigeneratordialog.h
     src/dialogs/tsumeshogikanjibuilder.cpp

@@ -99,3 +99,13 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_collect
 `gameInfoPresentation` は対局情報の起動時の9項目と未開始・未設定の案内、新規作成時の初期化、案内文を含めないKIF出力、棋譜読込後の表示、入力途中からの更新、備考のKIF出力と再読込、項目列幅の保持、狭いドックでの操作ボタンの折り返し、文字拡大を検証します。`game-info-startup.png`・`game-info-loaded.png`・`game-info-narrow.png`・`game-info-large-font.png` を保存します。編集状態に応じたボタンの有効化、Ctrl＋Enter、行削除のUndo/Redo、全文ツールチップ、設定復元は CTest の `tst_game_info_pane` で検証します。
 
 `josekiLoadAndPlay` は定跡ファイルの読込・合法手の追加・予想応手の編集・保存内容・盤上への着手を検証し、`joseki-window.png`・`joseki-add.png`・`joseki-edit.png` を保存します。`josekiVisibleDuringDestruction` は定跡ドックを表示したままメイン画面を破棄してもクラッシュしないことを確認します。
+
+詰将棋局面生成は `tst_tsumeshogi_generator_gui` で設定欄と一覧の配置、未登録時の案内、
+複数選択とCtrl+C、手順を含む保存、盤面表示、閲覧位置の保持、進捗・停止・再開始・エラー表示、
+Escでの停止、設定復元、文字拡大時の表示を検証します。開始・停止には模擬USIエンジンを使用します。
+`tsumeshogi-generator-empty.png`・`tsumeshogi-generator-results.png`・
+`tsumeshogi-generator-help.png`・`tsumeshogi-generator-large-font.png` を保存します。
+
+```bash
+xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsumeshogi_generator_gui
+```
