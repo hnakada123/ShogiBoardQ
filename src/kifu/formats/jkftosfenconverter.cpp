@@ -68,133 +68,14 @@ QString JkfToSfenConverter::detectInitialSfenFromFile(const QString& jkfPath, QS
 
 QStringList JkfToSfenConverter::convertFile(const QString& jkfPath, QString* errorMessage)
 {
-    QStringList out;
-
-    QJsonObject root;
-    if (!loadJsonFile(jkfPath, root, errorMessage)) {
-        return out;
-    }
-
-    if (!root.contains(QStringLiteral("moves"))) {
-        if (errorMessage) *errorMessage = QStringLiteral("JKF: 'moves' array not found");
-        return out;
-    }
-
-    const QJsonArray moves = root[QStringLiteral("moves")].toArray();
-    int prevToX = 0, prevToY = 0;
-
-    for (const QJsonValueConstRef moveVal : moves) {
-        const QJsonObject moveObj = moveVal.toObject();
-
-        if (moveObj.contains(QStringLiteral("special"))) {
-            break;
-        }
-
-        if (moveObj.contains(QStringLiteral("move"))) {
-            const QJsonObject mv = moveObj[QStringLiteral("move")].toObject();
-            const QString usi = JkfMoveParser::convertMoveToUsi(mv, prevToX, prevToY);
-            if (!usi.isEmpty()) {
-                out.append(usi);
-            }
-        }
-    }
-
-    return out;
+    KifParseResult result;
+    return parseWithVariations(jkfPath, result, errorMessage) ? result.mainline.usiMoves : QStringList();
 }
 
 QList<KifDisplayItem> JkfToSfenConverter::extractMovesWithTimes(const QString& jkfPath, QString* errorMessage)
 {
-    QList<KifDisplayItem> out;
-
-    QJsonObject root;
-    if (!loadJsonFile(jkfPath, root, errorMessage)) {
-        return out;
-    }
-
-    if (!root.contains(QStringLiteral("moves"))) {
-        if (errorMessage) *errorMessage = QStringLiteral("JKF: 'moves' array not found");
-        return out;
-    }
-
-    const QJsonArray moves = root[QStringLiteral("moves")].toArray();
-    int prevToX = 0, prevToY = 0;
-    int plyNumber = 0;
-    qint64 cumSec[2] = {0, 0};
-    QString pendingComment;
-
-    KifDisplayItem openingItem = KifuParseCommon::createOpeningDisplayItem(QString(), QString());
-
-    for (const QJsonValueConstRef moveVal : moves) {
-        const QJsonObject moveObj = moveVal.toObject();
-
-        const QString comment = JkfMoveParser::extractCommentsFromMoveObj(moveObj);
-
-        // 終局語
-        if (moveObj.contains(QStringLiteral("special"))) {
-            if (out.isEmpty()) {
-                openingItem.comment = pendingComment;
-                out.append(openingItem);
-            } else if (!pendingComment.isEmpty() && out.size() > 1) {
-                QString& dst = out.last().comment;
-                if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                dst += pendingComment;
-            }
-            pendingComment.clear();
-
-            const QString special = moveObj[QStringLiteral("special")].toString();
-            const QString label = JkfMoveParser::specialToJapanese(special);
-            KifDisplayItem termItem = KifuParseCommon::createTerminalDisplayItem(plyNumber + 1, label);
-            termItem.comment = comment;
-            out.append(termItem);
-            break;
-        }
-
-        // move フィールド
-        if (moveObj.contains(QStringLiteral("move"))) {
-            if (out.isEmpty()) {
-                openingItem.comment = pendingComment;
-                out.append(openingItem);
-                pendingComment.clear();
-            } else if (!pendingComment.isEmpty()) {
-                QString& dst = out.last().comment;
-                if (!dst.isEmpty()) dst += QLatin1Char('\n');
-                dst += pendingComment;
-                pendingComment.clear();
-            }
-
-            ++plyNumber;
-
-            const QJsonObject mv = moveObj[QStringLiteral("move")].toObject();
-            const QString pretty = JkfMoveParser::convertMoveToPretty(mv, plyNumber, prevToX, prevToY);
-
-            QString timeText;
-            if (moveObj.contains(QStringLiteral("time"))) {
-                const QJsonObject timeObj = moveObj[QStringLiteral("time")].toObject();
-                const int color = normalizedColorIndex(mv, plyNumber, errorMessage);
-                timeText = JkfMoveParser::formatTimeText(timeObj, cumSec[color]);
-            }
-
-            KifDisplayItem moveItem = KifuParseCommon::createMoveDisplayItem(plyNumber, pretty, timeText);
-            moveItem.comment = comment;
-            out.append(moveItem);
-        } else {
-            if (!comment.isEmpty()) {
-                if (out.isEmpty()) {
-                    openingItem.comment = comment;
-                } else {
-                    if (!pendingComment.isEmpty()) pendingComment += QLatin1Char('\n');
-                    pendingComment += comment;
-                }
-            }
-        }
-    }
-
-    if (out.isEmpty()) {
-        openingItem.comment = pendingComment;
-        out.append(openingItem);
-    }
-
-    return out;
+    KifParseResult result;
+    return parseWithVariations(jkfPath, result, errorMessage) ? result.mainline.disp : QList<KifDisplayItem>();
 }
 
 bool JkfToSfenConverter::parseWithVariations(const QString& jkfPath,
@@ -211,6 +92,10 @@ bool JkfToSfenConverter::parseWithVariations(const QString& jkfPath,
     QString detectedLabel;
     out.mainline.baseSfen = buildInitialSfen(root, &detectedLabel);
     out.mainline.startPly = 1;
+    if (out.mainline.baseSfen.isEmpty()) {
+        if (errorMessage) *errorMessage = QStringLiteral("JKF: invalid initial position");
+        return false;
+    }
 
     if (!root.contains(QStringLiteral("moves"))) {
         if (errorMessage) *errorMessage = QStringLiteral("JKF: 'moves' array not found");
@@ -218,9 +103,9 @@ bool JkfToSfenConverter::parseWithVariations(const QString& jkfPath,
     }
 
     const QJsonArray movesArray = root[QStringLiteral("moves")].toArray();
-    parseMovesArray(movesArray, out.mainline.baseSfen, out.mainline, out.variations, errorMessage);
-
-    return true;
+    if (parseMovesArray(movesArray, out.mainline.baseSfen, out.mainline, out.variations, errorMessage)) return true;
+    out = KifParseResult{};
+    return false;
 }
 
 QList<KifGameInfoItem> JkfToSfenConverter::extractGameInfo(const QString& filePath)
@@ -280,6 +165,10 @@ bool JkfToSfenConverter::loadJsonFile(const QString& filePath, QJsonObject& root
     }
 
     root = doc.object();
+    if (!root.value(QStringLiteral("moves")).isArray()) {
+        if (warn) *warn = QStringLiteral("JKF: 'moves' must be an array");
+        return false;
+    }
     return true;
 }
 
@@ -299,6 +188,7 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
             const QJsonObject data = initial[QStringLiteral("data")].toObject();
             return JkfMoveParser::buildSfenFromInitialData(data);
         }
+        return {};
     }
 
     if (detectedLabel) {
@@ -321,12 +211,14 @@ QString JkfToSfenConverter::buildInitialSfen(const QJsonObject& root, QString* d
         else *detectedLabel = preset;
     }
 
-    return JkfMoveParser::presetToSfen(preset);
+    const QString sfen = JkfMoveParser::presetToSfen(preset);
+    if (preset != QLatin1String("HIRATE") && sfen == JkfMoveParser::presetToSfen(QStringLiteral("HIRATE"))) return {};
+    return sfen;
 }
 
 namespace {
 // 分岐にはその手を指す前の局面・移動先・累計時間を引き継ぐ。
-void parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly,
+bool parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly,
                   int prevToX, int prevToY, std::array<qint64, 2> cumSec,
                   bool isMainline, KifLine& line, QList<KifVariation>& variations, QString* warn)
 {
@@ -339,25 +231,43 @@ void parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
     if (isMainline) line.disp.append(KifuParseCommon::createOpeningDisplayItem({}, {}));
 
     for (const auto& value : moves) {
+        if (!value.isObject()) {
+            appendWarning(warn, QStringLiteral("JKF: move entry must be an object"));
+            return false;
+        }
         const QJsonObject obj = value.toObject();
+        if (obj.contains(QStringLiteral("forks")) && !obj[QStringLiteral("forks")].isArray()) {
+            appendWarning(warn, QStringLiteral("JKF: forks must be an array"));
+            return false;
+        }
         const QJsonArray forks = obj[QStringLiteral("forks")].toArray();
         for (const auto& fork : forks) {
+            if (!fork.isArray()) {
+                appendWarning(warn, QStringLiteral("JKF: fork must be an array of moves"));
+                return false;
+            }
             KifVariation variation;
             variation.startPly = ply;
             QList<KifVariation> nested;
-            parseJkfLine(fork.toArray(), tracer.toSfenString(), ply, prevToX, prevToY,
-                         cumSec, false, variation.line, nested, warn);
+            if (!parseJkfLine(fork.toArray(), tracer.toSfenString(), ply, prevToX, prevToY,
+                              cumSec, false, variation.line, nested, warn)) return false;
             variations.append(variation);
             variations.append(nested);
         }
 
         const QString comment = JkfMoveParser::extractCommentsFromMoveObj(obj);
         if (obj.contains(QStringLiteral("special"))) {
-            const QString label = JkfMoveParser::specialToJapanese(obj[QStringLiteral("special")].toString());
-            auto item = KifuParseCommon::createTerminalDisplayItem(ply, label);
+            const QString special = obj[QStringLiteral("special")].toString();
+            QString label = JkfMoveParser::specialToJapanese(special);
             const bool blackToMove = tracer.toSfenString().contains(QStringLiteral(" b "));
+            if ((special == QLatin1String("+ILLEGAL_ACTION") && !blackToMove)
+                || (special == QLatin1String("-ILLEGAL_ACTION") && blackToMove)) label = QStringLiteral("反則勝ち");
+            auto item = KifuParseCommon::createTerminalDisplayItem(ply, label);
             item.prettyMove = (blackToMove ? QStringLiteral("▲") : QStringLiteral("△")) + label;
             item.comment = comment;
+            if (obj.contains(QStringLiteral("time"))) {
+                item.timeText = JkfMoveParser::formatTimeText(obj[QStringLiteral("time")].toObject(), cumSec[blackToMove ? 0 : 1]);
+            }
             line.disp.append(item);
             line.endsWithTerminal = true;
             break;
@@ -369,6 +279,10 @@ void parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
 
         const QJsonObject move = obj[QStringLiteral("move")].toObject();
         const QString usi = JkfMoveParser::convertMoveToUsi(move, prevToX, prevToY);
+        if (usi.isEmpty()) {
+            appendWarning(warn, QStringLiteral("JKF: invalid move at ply %1").arg(ply));
+            return false;
+        }
         const QString pretty = JkfMoveParser::convertMoveToPretty(move, ply, prevToX, prevToY);
         QString time;
         if (obj.contains(QStringLiteral("time"))) {
@@ -385,12 +299,13 @@ void parseJkfLine(const QJsonArray& moves, const QString& baseSfen, int firstPly
         }
         ++ply;
     }
+    return true;
 }
 } // namespace
 
-void JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
+bool JkfToSfenConverter::parseMovesArray(const QJsonArray& movesArray,
                                         const QString& baseSfen, KifLine& mainline,
                                         QList<KifVariation>& variations, QString* warn)
 {
-    parseJkfLine(movesArray, baseSfen, 1, 0, 0, {0, 0}, true, mainline, variations, warn);
+    return parseJkfLine(movesArray, baseSfen, 1, 0, 0, {0, 0}, true, mainline, variations, warn);
 }

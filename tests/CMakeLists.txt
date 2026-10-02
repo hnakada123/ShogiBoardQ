@@ -1534,6 +1534,9 @@ target_link_libraries(tst_game_info_pane PRIVATE shogiboardq_static)
 add_shogi_test(tst_kifu_conversion_service tst_kifu_conversion_service.cpp)
 target_link_libraries(tst_kifu_conversion_service PRIVATE shogiboardq_static)
 
+add_shogi_test(tst_kifu_format_compliance tst_kifu_format_compliance.cpp)
+target_link_libraries(tst_kifu_format_compliance PRIVATE shogiboardq_static)
+
 add_shogi_test(tst_board_image_renderer
     tst_board_image_renderer.cpp
     ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc

@@ -62,7 +62,10 @@ QString japaneseToJkfSpecial(const QString& japanese)
     if (japanese.contains(QStringLiteral("千日手"))) return QStringLiteral("SENNICHITE");
     if (japanese.contains(QStringLiteral("持将棋"))) return QStringLiteral("JISHOGI");
     if (japanese.contains(QStringLiteral("切れ負け"))) return QStringLiteral("TIME_UP");
-    if (japanese.contains(QStringLiteral("反則負け")) || japanese.contains(QStringLiteral("反則勝ち"))) return QStringLiteral("ILLEGAL_ACTION");
+    if (japanese.contains(QStringLiteral("反則負け"))) return QStringLiteral("ILLEGAL_MOVE");
+    if (japanese.contains(QStringLiteral("反則勝ち")))
+        return japanese.startsWith(QStringLiteral("▲"))
+            ? QStringLiteral("-ILLEGAL_ACTION") : QStringLiteral("+ILLEGAL_ACTION");
     if (japanese.contains(QStringLiteral("入玉勝ち"))) return QStringLiteral("KACHI");
     if (japanese.contains(QStringLiteral("引き分け"))) return QStringLiteral("HIKIWAKE");
     if (japanese.contains(QStringLiteral("詰み"))) return QStringLiteral("TSUMI");
@@ -87,7 +90,7 @@ QJsonObject parseTimeToJkf(const QString& timeText)
         if (nowParts.size() >= 2) {
             QJsonObject now;
             now[QStringLiteral("m")] = nowParts[0].trimmed().toInt();
-            now[QStringLiteral("s")] = nowParts[1].trimmed().toInt();
+            now[QStringLiteral("s")] = nowParts[1].section(QLatin1Char('.'), 0, 0).trimmed().toInt();
             result[QStringLiteral("now")] = now;
         }
     }
@@ -97,7 +100,7 @@ QJsonObject parseTimeToJkf(const QString& timeText)
             QJsonObject total;
             total[QStringLiteral("h")] = totalParts[0].trimmed().toInt();
             total[QStringLiteral("m")] = totalParts[1].trimmed().toInt();
-            total[QStringLiteral("s")] = totalParts[2].trimmed().toInt();
+            total[QStringLiteral("s")] = totalParts[2].section(QLatin1Char('.'), 0, 0).trimmed().toInt();
             result[QStringLiteral("total")] = total;
         }
     }
@@ -263,12 +266,22 @@ QJsonObject convertMoveToJkf(const KifDisplayItem& disp, int& prevToX, int& prev
     QString moveText = disp.prettyMove.trimmed();
     if (moveText.isEmpty()) return result;
 
+    // 時間とコメントは通常の指し手・終局の両方に付ける。
+    const QJsonObject timeObj = parseTimeToJkf(disp.timeText);
+    if (!timeObj.isEmpty()) result[QStringLiteral("time")] = timeObj;
+    if (!disp.comment.isEmpty()) {
+        QJsonArray comments;
+        const QStringList lines = disp.comment.split(newlineRe());
+        for (const QString& line : lines) comments.append(line);
+        result[QStringLiteral("comments")] = comments;
+    }
+
     const bool isSente = moveText.startsWith(QStringLiteral("▲"));
     if (moveText.startsWith(QStringLiteral("▲")) || moveText.startsWith(QStringLiteral("△"))) {
         moveText = moveText.mid(1);
     }
 
-    const QString special = japaneseToJkfSpecial(moveText);
+    const QString special = japaneseToJkfSpecial(disp.prettyMove);
     if (!special.isEmpty()) {
         result[QStringLiteral("special")] = special;
         return result;
@@ -400,27 +413,6 @@ QJsonObject convertMoveToJkf(const KifDisplayItem& disp, int& prevToX, int& prev
     }
 
     result[QStringLiteral("move")] = move;
-
-    const QJsonObject timeObj = parseTimeToJkf(disp.timeText);
-    if (!timeObj.isEmpty()) {
-        result[QStringLiteral("time")] = timeObj;
-    }
-
-    if (!disp.comment.isEmpty()) {
-        QJsonArray comments;
-        const QStringList lines = disp.comment.split(newlineRe());
-        for (const QString& line : std::as_const(lines)) {
-            const QString trimmed = line.trimmed();
-            if (trimmed.startsWith(QLatin1Char('*'))) {
-                comments.append(trimmed.mid(1));
-            } else if (!trimmed.isEmpty()) {
-                comments.append(trimmed);
-            }
-        }
-        if (!comments.isEmpty()) {
-            result[QStringLiteral("comments")] = comments;
-        }
-    }
 
     return result;
 }

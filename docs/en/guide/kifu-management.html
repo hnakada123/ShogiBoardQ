@@ -112,7 +112,7 @@
 <span class="guide-step-number">4</span>
 <span class="guide-step-title">Format Examples</span>
 </div>
-<p class="guide-step-text">The same game can be represented in different formats. The examples below show one game in each format. Japanese notation and field names are preserved where they are part of the file format.</p>
+<p class="guide-step-text">Each example records the same three moves from the standard position: 7g7f, 3c3d, and 2g2f, without a game result. The formats differ in whether they can record player names, time spent, and other information.</p>
 <div class="format-examples">
 <div class="format-example">
 <h4>KIF Format (.kif)</h4>
@@ -122,27 +122,22 @@
 手数----指手---------消費時間--
    1 ７六歩(77)   ( 0:02/00:00:02)
    2 ３四歩(33)   ( 0:02/00:00:02)
-   3 ２六歩(27)   ( 0:02/00:00:04)
-   ...</code></pre>
+   3 ２六歩(27)   ( 0:02/00:00:04)</code></pre>
 </div>
 <div class="format-example">
 <h4>KI2 Format (.ki2)</h4>
 <pre><code>先手：鈴木
 後手：山田
 
-▲７六歩    △３四歩    ▲２六歩    △８四歩    ▲２五歩    △３二金
-▲７八金    △７二銀    ▲３八銀    △５二金    ▲５八金    △４一王
-まで12手で後手の勝ち</code></pre>
+▲７六歩    △３四歩    ▲２六歩</code></pre>
 </div>
 <div class="format-example">
 <h4>CSA Format (.csa)</h4>
 <pre><code>V2.2
 N+鈴木
 N-山田
-P1-KY-KE-GI-KI-OU-KI-GI-KE-KY
-P2 * -HI *  *  *  *  * -KA *
-P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
-...
+PI
++
 +7776FU,T2
 -3334FU,T2
 +2726FU,T2</code></pre>
@@ -159,17 +154,22 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
     {"move":{"from":{"x":7,"y":7},
              "to":{"x":7,"y":6},
              "color":0,"piece":"FU"}},
-    ...
+    {"move":{"from":{"x":3,"y":3},
+             "to":{"x":3,"y":4},
+             "color":1,"piece":"FU"}},
+    {"move":{"from":{"x":2,"y":7},
+             "to":{"x":2,"y":6},
+             "color":0,"piece":"FU"}}
   ]
 }</code></pre>
 </div>
 <div class="format-example">
 <h4>USI Format (.usi)</h4>
-<pre><code>position startpos moves 7g7f 3c3d 2g2f 8c8d 2f2e 8d8e 6g6f 8e8f 8g8f</code></pre>
+<pre><code>position startpos moves 7g7f 3c3d 2g2f</code></pre>
 </div>
 <div class="format-example">
 <h4>USEN Format (.usen)</h4>
-<pre><code>1nsgkgsn1_9_ppppppppp_9_9_9_PPPPPPPPP_1B5R1_LNSGKGSNL.w.-~0.09k7ku0e46y22jm5t21a49co0n89h80rw.r</code></pre>
+<pre><code>~0.7ku2jm6y2.</code></pre>
 </div>
 </div>
 </div>
@@ -201,6 +201,10 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
 <tr><td>USI Format</td><td>.usi</td><td>UTF-8</td></tr>
 </tbody>
 </table>
+<p class="guide-step-text">KIF, KI2, JKF, and USEN can save variations. CSA and USI save only the main line; KI2 does not save time spent. USI and USEN omit player names, comments, and time spent, and USEN supports only a limited set of game results. Converting CSA times to KIF or JKF discards fractions of a second.</p>
+<p class="guide-step-text">For CSA files containing multiple games separated by a line with “/”, only the first game is loaded.</p>
+<p class="guide-step-text">Trailing game-result tokens in USI records are extensions for saving records. They are not part of the USI “position” command used to communicate with engines.</p>
+<p class="guide-step-text">Format references: <a href="https://kakinoki.o.oo7.jp/kif_format.html">KIF</a>, <a href="https://www.shogi.or.jp/faq/kihuhyouki/">move notation used in KI2</a>, <a href="https://www.computer-shogi.org/protocol/record_v3.html">CSA V3.0</a>, <a href="https://github.com/na2hiro/json-kifu-format">JKF</a>, <a href="https://shogidokoro2.stars.ne.jp/usi.html">USI and SFEN</a>, and <a href="https://github.com/mogproject/mog-playground/wiki/USEN-Format">USEN</a>.</p>
 </div>
 <div class="guide-step">
 <div class="guide-step-header">
@@ -283,8 +287,8 @@ P3-FU-FU-FU-FU-FU-FU-FU-FU-FU
 </thead>
 <tbody>
 <tr><td>KIF</td><td>Contains 手数---- or a line beginning with a move number and destination. The words 手数 or 指し手 alone do not establish the format</td></tr>
-<tr><td>KI2</td><td>A move line beginning with ▲ or △ followed by a destination</td></tr>
-<tr><td>CSA</td><td>Starts with V2 or ', or contains a move line beginning with + or - followed by digits</td></tr>
+<tr><td>KI2</td><td>A move line beginning with ▲, △, ▽, ☗, or ☖ followed by a destination</td></tr>
+<tr><td>CSA</td><td>A V2/V3 version or comment line, PI/P position data, player names or game metadata, or a move line beginning with + or - followed by digits</td></tr>
 <tr><td>USI</td><td>A line beginning with position, startpos, or sfen, or an SFEN position followed by moves. Also accepts startpos moves ...</td></tr>
 <tr><td>JKF</td><td>JSON beginning with { or [ is checked as JKF. Import requires a JKF object; a JSON array alone is rejected</td></tr>
 <tr><td>USEN</td><td>Matches the USEN structure of move numbers and encoded sequences separated by ~. A ~ inside a comment or URL is insufficient</td></tr>

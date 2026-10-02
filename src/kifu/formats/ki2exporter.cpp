@@ -154,7 +154,6 @@ static void appendKifComments(const QString& comment, QStringList& out)
     const QStringList lines = comment.split(newlineRe, Qt::KeepEmptyParts);
     for (const QString& raw : std::as_const(lines)) {
         const QString t = raw.trimmed();
-        if (t.isEmpty()) continue;
         if (t.startsWith(QStringLiteral("【しおり】"))) {
             const QString name = t.mid(5).trimmed();
             if (!name.isEmpty()) {
@@ -162,11 +161,7 @@ static void appendKifComments(const QString& comment, QStringList& out)
             }
             continue;
         }
-        if (t.startsWith(QLatin1Char('*'))) {
-            out << t;
-        } else {
-            out << (QStringLiteral("*") + t);
-        }
+        out << (QStringLiteral("*") + t);
     }
 }
 
@@ -392,6 +387,10 @@ QStringList Ki2Exporter::exportLines(const GameRecordModel& model,
 
     // 6) 終了行
     out << buildEndingLine(lastActualMoveNo, terminalMove, !ctx.startSfen.contains(QStringLiteral(" w ")));
+    if (!terminalMove.isEmpty() && !disp.isEmpty()) {
+        appendKifBookmarks(disp.last().bookmark, out);
+        appendKifComments(disp.last().comment, out);
+    }
 
     // 7) 変化（分岐）を出力（KifuBranchTree から）
     KifuBranchTree* branchTree = model.branchTree();

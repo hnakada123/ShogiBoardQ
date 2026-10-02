@@ -78,12 +78,7 @@ static QJsonArray buildJkfMoves(const QList<KifDisplayItem>& disp)
                 QJsonArray comments;
                 const QStringList lines = item.comment.split(newlineRe());
                 for (const QString& line : std::as_const(lines)) {
-                    const QString trimmed = line.trimmed();
-                    if (trimmed.startsWith(QLatin1Char('*'))) {
-                        comments.append(trimmed.mid(1));
-                    } else if (!trimmed.isEmpty()) {
-                        comments.append(trimmed);
-                    }
+                    comments.append(line);
                 }
                 if (!comments.isEmpty()) {
                     openingMove[QStringLiteral("comments")] = comments;

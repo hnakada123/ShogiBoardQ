@@ -21,13 +21,16 @@ KifuFormat detectFormat(const QString& content)
         QStringLiteral("^\\s*(?:position\\b|startpos\\b|sfen\\s|[lnsgkrpb1-9+]+(?:/[lnsgkrpb1-9+]+){8}\\s+[bw]\\s)"),
         QRegularExpression::MultilineOption | QRegularExpression::CaseInsensitiveOption);
     static const QRegularExpression usenRe(
-        QStringLiteral("^[a-zA-Z0-9_.-]*(?:~[0-9]*\\.[a-zA-Z0-9]*(?:\\.[a-zA-Z])?)+$"));
+        QStringLiteral("^[a-zA-Z0-9_.-]*(?:~[0-9]*\\.[a-zA-Z0-9]*(?:\\.[a-zA-Z]?)?)+$"));
+    static const QRegularExpression csaHeaderRe(
+        QStringLiteral("^(?:V[23](?:\\.\\d+)?(?:,|$)|PI(?:[0-9]{2}[A-Z]{2})*(?:,|$)|P[1-9+-]|N[+-]|\\$(?:EVENT|SITE|TIME|START_TIME|END_TIME|NOTE):)"),
+        QRegularExpression::MultilineOption);
     static const QRegularExpression csaLineStartRe(QStringLiteral("^[+-][0-9]"));
     static const QRegularExpression csaNewlineRe(QStringLiteral("\\n[+-][0-9]"));
     static const QRegularExpression kifMoveRe(QStringLiteral("^\\s*\\d+\\s+[０-９一二三四五六七八九同]"),
                                               QRegularExpression::MultilineOption);
     // BODの「手数＝4 △８四歩 まで」やコメント中の指し手をKI2と誤認しない。
-    static const QRegularExpression ki2MoveRe(QStringLiteral("^\\s*[▲△][０-９一二三四五六七八九同]"),
+    static const QRegularExpression ki2MoveRe(QStringLiteral("^\\s*[▲△▽☗☖][0-9０-９一二三四五六七八九同]"),
                                               QRegularExpression::MultilineOption);
     static const QRegularExpression bodBorderRe(QStringLiteral("^\\+[-─]+\\+"), QRegularExpression::MultilineOption);
 
@@ -51,8 +54,8 @@ KifuFormat detectFormat(const QString& content)
         qCDebug(lcKifu).noquote() << "detected format: USEN";
         return KifuFormat::USEN;
     }
-    // CSA判定（V2ヘッダまたは +/- で始まる指し手行）
-    if (trimmed.startsWith(QLatin1String("V2")) ||
+    // 指し手がないV3・旧版の局面ファイルも判定する。
+    if (csaHeaderRe.match(trimmed).hasMatch() ||
         trimmed.startsWith(QLatin1String("'")) ||
         csaLineStartRe.match(trimmed).hasMatch() ||
         content.contains(csaNewlineRe)) {

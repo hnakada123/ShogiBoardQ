@@ -113,8 +113,9 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
 
     // 終局理由
     if (!mainTerminal.isEmpty()) {
-        out.mainline.disp.push_back(KifuParseCommon::createTerminalDisplayItem(
-            mainPlyNumber + 1, terminalCodeToJapanese(mainTerminal)));
+        out.mainline.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
+            mainPlyNumber + 1, terminalCodeToJapanese(mainTerminal), initialSfen, mainUsiMoves.size()));
+        out.mainline.endsWithTerminal = true;
     }
 
     // 分岐のデコード
@@ -162,8 +163,9 @@ bool UsenToSfenConverter::parseWithVariations(const QString& usenPath,
 
         // 分岐の終局理由
         if (!varTerminal.isEmpty()) {
-            kifVar.line.disp.push_back(KifuParseCommon::createTerminalDisplayItem(
-                varPlyNumber + 1, terminalCodeToJapanese(varTerminal)));
+            kifVar.line.disp.push_back(KifuParseCommon::createUsiTerminalDisplayItem(
+                varPlyNumber + 1, terminalCodeToJapanese(varTerminal), kifVar.line.baseSfen, varUsiMoves.size()));
+            kifVar.line.endsWithTerminal = true;
         }
 
         // sfenList を構築（ツリービルダーが findBySfen で正しい分岐点を見つけるために必要）

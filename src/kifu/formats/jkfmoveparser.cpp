@@ -42,7 +42,28 @@ QString presetToSfen(const QString& preset)
 
 QString buildSfenFromInitialData(const QJsonObject& data, int moveNumber)
 {
-    const int color = data[QStringLiteral("color")].toInt(0);
+    const int color = data[QStringLiteral("color")].toInt(-1);
+    const QJsonArray boardData = data[QStringLiteral("board")].toArray();
+    const QJsonArray handsData = data[QStringLiteral("hands")].toArray();
+    if ((color != 0 && color != 1) || boardData.size() != 9 || handsData.size() != 2) return {};
+    for (const auto& column : boardData) {
+        if (!column.isArray() || column.toArray().size() != 9) return {};
+        for (const auto& value : column.toArray()) {
+            if (!value.isObject()) return {};
+            const auto cell = value.toObject();
+            if (cell.isEmpty()) continue;
+            const int side = cell[QStringLiteral("color")].toInt(-1);
+            if ((side != 0 && side != 1) || pieceKindFromCsa(cell[QStringLiteral("kind")].toString()) == 0) return {};
+        }
+    }
+    for (const auto& value : handsData) {
+        if (!value.isObject()) return {};
+        const auto hand = value.toObject();
+        for (auto it = hand.begin(); it != hand.end(); ++it) {
+            const int piece = pieceKindFromCsa(it.key());
+            if (piece < 1 || piece > 7 || it.value().toInt(-1) < 0) return {};
+        }
+    }
 
     QString boardStr;
     if (data.contains(QStringLiteral("board"))) {
@@ -191,6 +212,8 @@ QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
     const QJsonObject to = move[QStringLiteral("to")].toObject();
     const int toX = to[QStringLiteral("x")].toInt();
     const int toY = to[QStringLiteral("y")].toInt();
+    if (toX < 1 || toX > 9 || toY < 1 || toY > 9
+        || pieceKindFromCsa(move[QStringLiteral("piece")].toString()) == 0) return {};
 
     QString usi;
 
@@ -211,6 +234,7 @@ QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
         const QJsonObject from = move[QStringLiteral("from")].toObject();
         const int fromX = from[QStringLiteral("x")].toInt();
         const int fromY = from[QStringLiteral("y")].toInt();
+        if (fromX < 1 || fromX > 9 || fromY < 1 || fromY > 9) return {};
 
         const bool promotes = move.contains(QStringLiteral("promote")) && move[QStringLiteral("promote")].toBool();
         usi = NotationUtils::formatSfenMove(fromX, fromY, toX, toY, promotes);
@@ -225,7 +249,9 @@ QString convertMoveToUsi(const QJsonObject& move, int& prevToX, int& prevToY)
 QString convertMoveToPretty(const QJsonObject& move, int plyNumber,
                             int& prevToX, int& prevToY)
 {
-    const QString teban = KifuParseCommon::tebanMark(plyNumber);
+    Q_UNUSED(plyNumber)
+    const QString teban = move[QStringLiteral("color")].toInt() == 1
+        ? QStringLiteral("△") : QStringLiteral("▲");
 
     if (!move.contains(QStringLiteral("to"))) {
         return teban + QStringLiteral("???");
@@ -260,7 +286,7 @@ QString convertMoveToPretty(const QJsonObject& move, int plyNumber,
         result += QStringLiteral("打");
     }
 
-    if (move.contains(QStringLiteral("promote"))) {
+    if (move[QStringLiteral("promote")].isBool()) {
         if (move[QStringLiteral("promote")].toBool()) {
             result += QStringLiteral("成");
         } else {

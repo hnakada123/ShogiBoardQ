@@ -377,10 +377,7 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
     // 初期局面は~の前に置く（平手の場合は空）、本譜のオフセットは0
     QString usen = position + QStringLiteral("~0.%1").arg(mainMoves);
 
-    // 終局コードを追加（明示的な終局語がない場合は投了をデフォルトとする）
-    if (terminalCode.isEmpty()) {
-        terminalCode = QStringLiteral("r");
-    }
+    // 未終局は空の終局フィールドで表す。
     usen += QStringLiteral(".") + terminalCode;
 
     // 3) 分岐を追加
@@ -428,10 +425,6 @@ QStringList UsenExporter::exportLines(const GameRecordModel& model,
             }
 
             // 分岐のUSEN文字列を構築
-            // 終局コードがない場合は投了をデフォルトとする（USEN仕様）
-            if (branchTerminal.isEmpty()) {
-                branchTerminal = QStringLiteral("r");
-            }
             QString branchUsen = QStringLiteral("~%1.%2.%3").arg(offset).arg(branchMoves, branchTerminal);
 
             usen += branchUsen;

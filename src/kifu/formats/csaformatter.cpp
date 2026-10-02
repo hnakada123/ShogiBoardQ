@@ -179,28 +179,11 @@ QString removeTurnMarker(const QString& move)
 
 bool isTerminalMove(const QString& move)
 {
-    static const QStringList terminals = {
-        QStringLiteral("投了"),
-        QStringLiteral("中断"),
-        QStringLiteral("持将棋"),
-        QStringLiteral("千日手"),
-        QStringLiteral("切れ負け"),
-        QStringLiteral("反則勝ち"),
-        QStringLiteral("反則負け"),
-        QStringLiteral("入玉勝ち"),
-        QStringLiteral("不戦勝"),
-        QStringLiteral("不戦敗"),
-        QStringLiteral("詰み"),
-        QStringLiteral("不詰")
-    };
-    const QString stripped = removeTurnMarker(move);
-    for (const QString& t : terminals) {
-        if (stripped.contains(t)) return true;
-    }
-    return false;
+    return !csaResultCode(move).isEmpty()
+        || move.contains(QStringLiteral("不戦勝")) || move.contains(QStringLiteral("不戦敗"));
 }
 
-int extractCsaTimeSeconds(const QString& timeText)
+QString extractCsaTimeToken(const QString& timeText)
 {
     QString text = timeText.trimmed();
 
@@ -208,18 +191,19 @@ int extractCsaTimeSeconds(const QString& timeText)
     if (text.endsWith(QLatin1Char(')'))) text.chop(1);
 
     const qsizetype slashIdx = text.indexOf(QLatin1Char('/'));
-    if (slashIdx < 0) return 0;
+    if (slashIdx < 0) return QStringLiteral("T0");
 
     const QString moveTime = text.left(slashIdx).trimmed();
     const QStringList parts = moveTime.split(QLatin1Char(':'));
-    if (parts.size() != 2) return 0;
+    if (parts.size() != 2) return QStringLiteral("T0");
 
     bool ok1, ok2;
-    const int minutes = parts[0].toInt(&ok1);
-    const int seconds = parts[1].toInt(&ok2);
-    if (!ok1 || !ok2) return 0;
-
-    return minutes * 60 + seconds;
+    const qint64 minutes = parts[0].toLongLong(&ok1);
+    const int seconds = parts[1].section(QLatin1Char('.'), 0, 0).toInt(&ok2);
+    if (!ok1 || !ok2) return QStringLiteral("T0");
+    const qsizetype dot = parts[1].indexOf(QLatin1Char('.'));
+    const QString fraction = dot < 0 ? QString() : parts[1].mid(dot);
+    return QStringLiteral("T%1%2").arg(minutes * 60 + seconds).arg(fraction);
 }
 
 QString csaResultCode(const QString& terminalMove)
@@ -232,6 +216,9 @@ QString csaResultCode(const QString& terminalMove)
     if (move.contains(QStringLiteral("持将棋"))) return QStringLiteral("%JISHOGI");
     if (move.contains(QStringLiteral("切れ負け")) || move.contains(QStringLiteral("時間切れ")))
         return QStringLiteral("%TIME_UP");
+    if (move.contains(QStringLiteral("反則勝ち")))
+        return terminalMove.startsWith(QStringLiteral("▲"))
+            ? QStringLiteral("%-ILLEGAL_ACTION") : QStringLiteral("%+ILLEGAL_ACTION");
     if (move.contains(QStringLiteral("反則負け"))) return QStringLiteral("%ILLEGAL_MOVE");
     if (move.contains(QStringLiteral("先手の反則"))) return QStringLiteral("%+ILLEGAL_ACTION");
     if (move.contains(QStringLiteral("後手の反則"))) return QStringLiteral("%-ILLEGAL_ACTION");

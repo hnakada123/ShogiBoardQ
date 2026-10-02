@@ -198,7 +198,7 @@ private slots:
         QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("rep_draw")),
                  QStringLiteral("千日手"));
         QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("timeout")),
-                 QStringLiteral("時間切れ"));
+                 QStringLiteral("切れ負け"));
         QCOMPARE(UsiToSfenConverter::terminalCodeToJapanese(QStringLiteral("win")),
                  QStringLiteral("入玉勝ち"));
     }
