@@ -90,6 +90,7 @@
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
     <addaction name="actionBoardAppearance"/>
+    <addaction name="actionLegalMoves"/>
     <addaction name="actionFontSettings"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
@@ -825,6 +826,11 @@
    <property name="text">
     <string>詰将棋局面生成…</string>
    </property>
+  </action>
+  <action name="actionLegalMoves">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>指せるマスを表示</string></property>
+   <property name="toolTip"><string>選択した駒を指せるマスに色を付けます</string></property>
   </action>
   <action name="actionBoardAppearance">
    <property name="icon">

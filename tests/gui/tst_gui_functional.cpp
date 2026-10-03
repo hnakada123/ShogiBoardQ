@@ -51,6 +51,7 @@
 #include "mainwindow.h"
 #include "shogiview.h"
 #include "shogiviewlayout.h"
+#include "shogiviewhighlighting.h"
 #include "boardinteractioncontroller.h"
 #include "elidelabel.h"
 #include "shogiboard.h"
@@ -2349,6 +2350,48 @@ private slots:
             img = QApplication::clipboard()->image();
         }
         QVERIFY(!img.isNull()); QVERIFY(img.width() > 100); QVERIFY(img.height() > 100);
+    }
+    void legalMoveHighlights()
+    {
+        const auto destinations = [this]() {
+            QList<QPoint> points;
+            for (int i = 0; i < board()->highlighting()->highlightCount(); ++i) {
+                auto* hl = static_cast<ShogiView::FieldHighlight*>(board()->highlight(i));
+                if (hl->purpose() == ShogiView::FieldHighlight::Purpose::LegalDestination)
+                    points.append(QPoint(hl->file(), hl->rank()));
+            }
+            return points;
+        };
+        QVERIFY(action("actionLegalMoves"));
+        QVERIFY(action("actionLegalMoves")->isChecked());
+        armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
+        QCOMPARE(destinations(), QList<QPoint>{QPoint(7, 6)});
+        snapshot("legal-moves-selected");
+        click("actionLegalMoves");
+        QVERIFY(destinations().isEmpty());
+        QVERIFY(!AppSettings::legalMovesVisible());
+        click("actionLegalMoves");
+        QCOMPARE(destinations(), QList<QPoint>{QPoint(7, 6)});
+        click("actionFlipBoard");
+        QCOMPARE(destinations(), QList<QPoint>{QPoint(7, 6)});
+        snapshot("legal-moves-flipped");
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
+        QTRY_COMPARE(record()->kifuView()->model()->rowCount(), 2);
+        QVERIFY(destinations().isEmpty());
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(3, 3));
+        QCOMPARE(destinations(), QList<QPoint>{QPoint(3, 4)});
+        QTest::mouseClick(board(), Qt::RightButton, Qt::NoModifier, squarePoint(3, 3));
+        QVERIFY(destinations().isEmpty());
+        click("actionLegalMoves");
+        armDialog("yes"); click("actionBreakOffGame");
+        armDialog("discard"); window->close(); dialogTimer.stop();
+        window.reset();
+        window = std::make_unique<MainWindow>();
+        window->show();
+        QVERIFY(!action("actionLegalMoves")->isChecked());
+        QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
+        QVERIFY(destinations().isEmpty());
     }
     void humanGame()
     {

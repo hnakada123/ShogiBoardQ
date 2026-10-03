@@ -59,6 +59,10 @@ void setLastSelectedTabIndex(int index);
 bool toolbarVisible();
 void setToolbarVisible(bool visible);
 
+/// 選択した駒の合法な移動先を表示（デフォルト: true）
+bool legalMovesVisible();
+void setLegalMovesVisible(bool visible);
+
 /// 選択可能な駒画像の種類（先頭は standard）
 QStringList availablePieceStyles();
 /// 駒画像の種類（未設定は standard、旧セット・不正値も standard へ移行）

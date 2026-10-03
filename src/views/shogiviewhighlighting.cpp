@@ -287,9 +287,16 @@ void ShogiViewHighlighting::drawHighlights(QPainter& painter, const ShogiViewLay
         // マスの内側だけを塗り、盤の罫線と駒の視認性を保つ。
         const bool source = originalColor.red() > 200 && originalColor.green() < 100
             && originalColor.blue() < 150;
-        const QColor fill = source ? QColor(145, 163, 96, 155) : QColor(238, 147, 68, 165);
+        const bool legalDestination = fhl->purpose() == ShogiView::FieldHighlight::Purpose::LegalDestination;
+        const QColor fill = legalDestination ? originalColor
+            : source ? QColor(145, 163, 96, 155) : QColor(238, 147, 68, 165);
         const QRect inner = rect.adjusted(1, 1, -1, -1);
         painter.fillRect(inner, fill);
+        if (legalDestination) {
+            painter.setPen(QPen(QColor(35, 105, 165, 200), 2));
+            painter.setBrush(Qt::NoBrush);
+            painter.drawRect(inner.adjusted(1, 1, -1, -1));
+        }
     }
     painter.restore();
 }

@@ -1648,6 +1648,11 @@ add_shogi_test(tst_usilogpanel
 )
 
 add_shogi_test(tst_kifupresentation tst_kifupresentation.cpp)
+add_shogi_test(tst_legal_move_highlights
+    tst_legal_move_highlights.cpp
+    ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc
+)
+target_link_libraries(tst_legal_move_highlights PRIVATE shogiboardq_static)
 add_shogi_test(tst_i18n_workflows tst_i18n_workflows.cpp)
 target_link_libraries(tst_i18n_workflows PRIVATE shogiboardq_static)
 target_compile_definitions(tst_i18n_workflows PRIVATE TRANSLATIONS_DIR="${CMAKE_BINARY_DIR}")
