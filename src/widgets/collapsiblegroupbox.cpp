@@ -2,6 +2,7 @@
 /// @brief 折りたたみ可能グループボックスクラスの実装
 
 #include "collapsiblegroupbox.h"
+#include "buttonstyles.h"
 #include <QStyle>
 
 CollapsibleGroupBox::CollapsibleGroupBox(const QString& title, QWidget* parent)
@@ -23,39 +24,17 @@ CollapsibleGroupBox::CollapsibleGroupBox(const QString& title, QWidget* parent)
     m_toggleButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     m_toggleButton->setCheckable(true);
     m_toggleButton->setChecked(true);
-    m_toggleButton->setStyleSheet(
-        "QPushButton {"
-        "  text-align: left;"
-        "  padding: 10px 14px;"
-        "  font-weight: bold;"
-        "  border: none;"
-        "  border-radius: 6px;"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #4a9eff, stop:1 #2d7dd2);"
-        "  color: white;"
-        "}"
-        "QPushButton:hover {"
-        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1,"
-        "    stop:0 #5aafff, stop:1 #3d8de2);"
-        "}"
-        "QPushButton:checked {"
-        "  border-bottom-left-radius: 0px;"
-        "  border-bottom-right-radius: 0px;"
-        "}"
-    );
+    m_toggleButton->setAutoDefault(false);
+    m_toggleButton->setStyleSheet(ButtonStyles::panelToolButton() + QStringLiteral(
+        "QPushButton { text-align: left; padding: 10px 14px; font-weight: bold; }"));
     updateToggleButtonText(title);
 
     // コンテンツフレームの設定
     m_contentFrame->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    m_contentFrame->setStyleSheet(
-        "QFrame {"
-        "  border: 1px solid #d4c9a8;"
-        "  border-top: none;"
-        "  border-bottom-left-radius: 6px;"
-        "  border-bottom-right-radius: 6px;"
-        "  background-color: #fefcf6;"
-        "}"
-    );
+    m_contentFrame->setObjectName(QStringLiteral("engineOptionContent"));
+    m_contentFrame->setStyleSheet(QStringLiteral(
+        "QFrame#engineOptionContent { border: 1px solid palette(midlight); border-top: none; "
+        "border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; background: palette(base); }"));
 
     // コンテンツレイアウトの設定
     m_contentLayout->setContentsMargins(12, 8, 12, 12);

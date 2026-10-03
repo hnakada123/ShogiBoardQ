@@ -57,6 +57,7 @@ private slots:
 
     // 登録処理の進行状態変化時のスロット
     void onRegistrationInProgressChanged(bool inProgress);
+    void updateSelectionState();
 
     // フォントサイズを増加する
     void increaseFontSize();

@@ -5,6 +5,7 @@
 #include "enginesettingsconstants.h"
 #include "engineoptiondescriptions.h"
 #include "settingscommon.h"
+#include "buttonstyles.h"
 #include <QApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -37,7 +38,7 @@ void applyButtonToggleStyle(QPushButton* button, bool checked)
 }
 
 const char* kLabelBoldStyle =
-    "QLabel { color: #333333; font-weight: bold; "
+    "QLabel { color: palette(text); font-weight: bold; "
     "background: transparent; padding: 4px 0px 2px 0px; }";
 
 } // namespace
@@ -178,7 +179,7 @@ void EngineSettingsOptionHandler::createHelpDescriptionLabel(const QString& opti
         m_optionWidgets.helpDescriptionLabel = new QLabel(description, m_parentWidget);
         m_optionWidgets.helpDescriptionLabel->setWordWrap(true);
         m_optionWidgets.helpDescriptionLabel->setStyleSheet(
-            "QLabel { color: #333333; padding: 2px 0px 6px 0px; "
+            "QLabel { color: palette(text); padding: 2px 0px 6px 0px; "
             "background: transparent; }");
         layout->addWidget(m_optionWidgets.helpDescriptionLabel);
     } else {
@@ -191,16 +192,14 @@ void EngineSettingsOptionHandler::createTextBox(const EngineOption& option, QVBo
 {
     m_optionWidgets.optionNameLabel = new QLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), m_parentWidget);
     m_optionWidgets.optionNameLabel->setStyleSheet(kLabelBoldStyle);
+    m_optionWidgets.optionNameLabel->setWordWrap(true);
     layout->addWidget(m_optionWidgets.optionNameLabel);
 
     createHelpDescriptionLabel(option.name, layout);
 
     // テキスト入力用のLineEditを作成する。
     m_optionWidgets.lineEdit = new QLineEdit(m_parentWidget);
-    m_optionWidgets.lineEdit->setStyleSheet(
-        "QLineEdit { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
-        "background-color: white; color: #333333; }"
-        "QLineEdit:focus { border: 2px solid #4a9eff; }");
+
     m_optionWidgets.lineEdit->setText(option.currentValue);
     layout->addWidget(m_optionWidgets.lineEdit);
 
@@ -210,13 +209,8 @@ void EngineSettingsOptionHandler::createTextBox(const EngineOption& option, QVBo
         option.name.contains("Log", Qt::CaseInsensitive)) {
 
         m_optionWidgets.selectionButton = new QPushButton(m_parentWidget);
-        m_optionWidgets.selectionButton->setStyleSheet(
-            "QPushButton { border: 1px solid #7fb3d5; border-radius: 4px; padding: 6px 12px; "
-            "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #e8f4fc, stop:1 #d4e9f7); "
-            "color: #1a5276; }"
-            "QPushButton:hover { background: qlineargradient(x1:0, y1:0, x2:0, y2:1, "
-            "stop:0 #d4e9f7, stop:1 #c0ddf0); }"
-            "QPushButton:pressed { background: #b8d4e8; }");
+        m_optionWidgets.selectionButton->setAutoDefault(false);
+        m_optionWidgets.selectionButton->setStyleSheet(ButtonStyles::fileOperation());
 
         EngineSettings::FileType fileType = EngineSettings::FileType::File;
         if (option.name.contains("Dir", Qt::CaseInsensitive)) {
@@ -235,6 +229,8 @@ void EngineSettingsOptionHandler::createTextBox(const EngineOption& option, QVBo
     }
 
     m_optionWidgets.lineEdit->setObjectName(option.name);
+    m_optionWidgets.lineEdit->setAccessibleName(option.name);
+    m_optionWidgets.optionNameLabel->setBuddy(m_optionWidgets.lineEdit);
 }
 
 // エンジンオプションのためのスピンボックスを作成する。
@@ -242,6 +238,7 @@ void EngineSettingsOptionHandler::createSpinBox(const EngineOption& option, QVBo
 {
     m_optionWidgets.optionNameLabel = new QLabel(tr("%1").arg(option.name), m_parentWidget);
     m_optionWidgets.optionNameLabel->setStyleSheet(kLabelBoldStyle);
+    m_optionWidgets.optionNameLabel->setWordWrap(true);
     layout->addWidget(m_optionWidgets.optionNameLabel);
 
     createHelpDescriptionLabel(option.name, layout);
@@ -255,38 +252,30 @@ void EngineSettingsOptionHandler::createSpinBox(const EngineOption& option, QVBo
                                     .arg(option.min, option.max, option.defaultValue), m_parentWidget);
     }
     m_optionWidgets.optionDescriptionLabel->setStyleSheet(
-        "QLabel { color: #5d6d7e; background: transparent; }");
+        "QLabel { color: palette(text); background: transparent; }");
 
     m_optionWidgets.integerSpinBox = new LongLongSpinBox(m_parentWidget);
-    m_optionWidgets.integerSpinBox->setMaximumWidth(200);
-    m_optionWidgets.integerSpinBox->setStyleSheet(
-        "QSpinBox { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
-        "background-color: white; color: #333333; }"
-        "QSpinBox:focus { border: 2px solid #4a9eff; }");
+    m_optionWidgets.integerSpinBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+
     m_optionWidgets.integerSpinBox->setSpinBoxRange(option.min.toLongLong(), option.max.toLongLong());
     m_optionWidgets.integerSpinBox->setSpinBoxValue(option.currentValue.toLongLong());
-    m_optionWidgets.integerSpinBox->setFocusPolicy(Qt::ClickFocus);
+    m_optionWidgets.integerSpinBox->setFocusPolicy(Qt::StrongFocus);
     m_optionWidgets.integerSpinBox->installEventFilter(this);
 
+    m_optionWidgets.optionDescriptionLabel->setWordWrap(true);
     layout->addWidget(m_optionWidgets.optionDescriptionLabel);
     layout->addWidget(m_optionWidgets.integerSpinBox);
 
     m_optionWidgets.integerSpinBox->setObjectName(option.name);
+    m_optionWidgets.integerSpinBox->setAccessibleName(option.name);
+    m_optionWidgets.optionNameLabel->setBuddy(m_optionWidgets.integerSpinBox);
 }
 
 // エンジンオプションのためのチェックボックスを作成する。
 void EngineSettingsOptionHandler::createCheckBox(const EngineOption& option, QVBoxLayout* layout)
 {
     m_optionWidgets.optionCheckBox = new QCheckBox(m_parentWidget);
-    m_optionWidgets.optionCheckBox->setStyleSheet(
-        "QCheckBox { color: #333333; font-weight: bold; "
-        "background: transparent; padding: 4px 0px 2px 0px; spacing: 8px; }"
-        "QCheckBox::indicator { width: 18px; height: 18px; }"
-        "QCheckBox::indicator:unchecked { border: 2px solid #a8c8e8; border-radius: 4px; "
-        "background-color: white; }"
-        "QCheckBox::indicator:checked { border: 2px solid #4a9eff; border-radius: 4px; "
-        "background-color: #4a9eff; }"
-        "QCheckBox::indicator:hover { border: 2px solid #4a9eff; }");
+
 
     m_optionWidgets.optionCheckBox->setText(tr("%1（既定値 %2）").arg(option.name, option.defaultValue));
     m_optionWidgets.optionCheckBox->setChecked(option.currentValue == "true");
@@ -301,6 +290,7 @@ void EngineSettingsOptionHandler::createCheckBox(const EngineOption& option, QVB
 void EngineSettingsOptionHandler::createButton(const EngineOption& option, QVBoxLayout* layout)
 {
     m_optionWidgets.selectionButton = new QPushButton(option.name, m_parentWidget);
+    m_optionWidgets.selectionButton->setAutoDefault(false);
     m_optionWidgets.selectionButton->setCheckable(true);
     m_optionWidgets.selectionButton->setChecked(option.currentValue == "on");
 
@@ -318,6 +308,7 @@ void EngineSettingsOptionHandler::createComboBox(const EngineOption& option, QVB
 {
     m_optionWidgets.optionNameLabel = new QLabel(tr("%1（既定値 %2）").arg(option.name, option.defaultValue), m_parentWidget);
     m_optionWidgets.optionNameLabel->setStyleSheet(kLabelBoldStyle);
+    m_optionWidgets.optionNameLabel->setWordWrap(true);
     layout->addWidget(m_optionWidgets.optionNameLabel);
 
     createHelpDescriptionLabel(option.name, layout);
@@ -325,16 +316,9 @@ void EngineSettingsOptionHandler::createComboBox(const EngineOption& option, QVB
     m_optionWidgets.comboBox = new QComboBox(m_parentWidget);
     m_optionWidgets.comboBox->setFocusPolicy(Qt::StrongFocus);
     m_optionWidgets.comboBox->installEventFilter(this);
-    m_optionWidgets.comboBox->setMaximumWidth(200);
-    m_optionWidgets.comboBox->setStyleSheet(
-        "QComboBox { border: 1px solid #a8c8e8; border-radius: 4px; padding: 6px 8px; "
-        "background-color: white; color: #333333; }"
-        "QComboBox:focus { border: 2px solid #4a9eff; }"
-        "QComboBox::drop-down { border: none; width: 24px; }"
-        "QComboBox::down-arrow { image: none; border-left: 5px solid transparent; "
-        "border-right: 5px solid transparent; border-top: 6px solid #4a9eff; }"
-        "QComboBox QAbstractItemView { border: 1px solid #a8c8e8; background-color: white; "
-        "selection-background-color: #d4e9f7; selection-color: #333333; }");
+    m_optionWidgets.comboBox->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    m_optionWidgets.comboBox->setMinimumContentsLength(20);
+
 
     for (const QString& value : option.valueList) {
         m_optionWidgets.comboBox->addItem(value);
@@ -348,6 +332,8 @@ void EngineSettingsOptionHandler::createComboBox(const EngineOption& option, QVB
     layout->addWidget(m_optionWidgets.comboBox);
 
     m_optionWidgets.comboBox->setObjectName(option.name);
+    m_optionWidgets.comboBox->setAccessibleName(option.name);
+    m_optionWidgets.optionNameLabel->setBuddy(m_optionWidgets.comboBox);
 }
 
 // オプションのタイプに応じたUIコンポーネントを作成し、レイアウトに追加する。

@@ -233,6 +233,7 @@ void KifuPasteDialog::updateClipboardAction()
 
 void KifuPasteDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     const int size = m_fontHelper.fontSize();
     QFont font = this->font();
     font.setPointSize(size);
@@ -268,4 +269,5 @@ void KifuPasteDialog::applyFontSize()
     const int minimumWidth = qMax(kMinimumSize.width(), contentsMinimum.width());
     const int minimumHeight = qMax(contentsMinimum.height(), layout()->totalHeightForWidth(minimumWidth));
     setMinimumSize(minimumWidth, qMax(kMinimumSize.height(), minimumHeight));
+    DialogUtils::updateFontButtons(this, size, kMinimumFontSize, kMaximumFontSize);
 }

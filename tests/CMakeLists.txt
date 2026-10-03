@@ -1263,6 +1263,7 @@ add_shogi_test(tst_sfen_collection
     ${SRC}/views/shogiview.h
     ${SRC}/widgets/elidelabel.h
     ${SRC}/dialogs/sfencollectiondialog.cpp
+    ${SRC}/common/dialogfontscale.cpp
     ${SRC}/common/dialogutils.cpp
     ${SRC}/common/errorbus.cpp
     ${SRC}/common/fontsizehelper.cpp
@@ -1281,6 +1282,8 @@ add_shogi_test(tst_dock_layout
     tst_dock_layout.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/ui/coordinators/docklayoutmanager.cpp
+    ${SRC}/common/dialogfontscale.cpp
+    ${SRC}/common/dialogutils.cpp
     ${SETTINGS_SOURCES}
 )
 
@@ -1526,6 +1529,11 @@ add_shogi_test(tst_applicationfonts
 add_shogi_test(tst_fontsettingsdialog tst_fontsettingsdialog.cpp)
 target_link_libraries(tst_fontsettingsdialog PRIVATE shogiboardq_static)
 
+add_shogi_test(tst_dialog_appearance tst_dialog_appearance.cpp ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
+set_target_properties(tst_dialog_appearance PROPERTIES AUTORCC ON)
+target_link_libraries(tst_dialog_appearance PRIVATE shogiboardq_static)
+target_compile_definitions(tst_dialog_appearance PRIVATE TRANSLATIONS_DIR="${CMAKE_BINARY_DIR}")
+
 # ============================================================
 # 自動化・CLI・MCP（src/automation, src/cli, mcp/）
 # 共通静的ライブラリ shogiboardq_static をリンクする
@@ -1602,6 +1610,9 @@ add_shogi_test(tst_evaluationchart
     ${SRC}/widgets/evaluationchartwidget_tooltip.cpp
     ${SRC}/widgets/evaluationchartview.cpp
     ${SRC}/widgets/evaluationchartconfigurator.cpp
+    ${SRC}/common/dialogfontscale.cpp
+    ${SRC}/common/dialogutils.cpp
+    ${SRC}/services/appsettings.cpp
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/settingscommon.cpp
 )

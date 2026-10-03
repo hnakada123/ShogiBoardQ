@@ -1,6 +1,8 @@
 /// @file considerationdialog.cpp
 /// @brief 検討ダイアログクラスの実装
 
+#include "dialogutils.h"
+#include "appsettings.h"
 #include "considerationdialog.h"
 #include "buttonstyles.h"
 #include "changeenginesettingsdialog.h"
@@ -13,6 +15,8 @@
 #include <QTextStream>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QLabel>
+#include <QTimer>
 
 // 検討ダイアログを表示する。
 ConsiderationDialog::ConsiderationDialog(QWidget *parent)
@@ -36,6 +40,26 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
 
     // 保存された設定を復元する
     loadSettings();
+    ui->byoyomiSec->setMinimum(1);
+    ui->byoyomiSec->setEnabled(ui->considerationTimeRadioButton->isChecked());
+    connect(ui->considerationTimeRadioButton, &QRadioButton::toggled,
+            ui->byoyomiSec, &QSpinBox::setEnabled);
+    auto* start = ui->buttonBox->button(QDialogButtonBox::Ok);
+    start->setText(tr("検討開始"));
+    start->setDefault(true);
+    const bool hasEngine = !m_engineList.isEmpty();
+    start->setEnabled(hasEngine);
+    ui->engineSetting->setEnabled(hasEngine);
+    ui->engineSetting->setAutoDefault(false);
+    ui->comboBoxEngine1->setEnabled(hasEngine);
+    ui->comboBoxEngine1->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
+    ui->comboBoxEngine1->setMinimumContentsLength(18);
+    if (!hasEngine) {
+        auto* hint = new QLabel(tr("使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。"), this);
+        hint->setWordWrap(true);
+        ui->verticalLayoutEngine->addWidget(hint);
+    }
+    DialogUtils::restoreDialogSize(this, AppSettings::auxiliaryDialogSize(QStringLiteral("consideration")));
 
     // エンジン設定ボタンが押されたときの処理
     connect(ui->engineSetting, &QPushButton::clicked, this, &ConsiderationDialog::showEngineSettingsDialog);
@@ -44,7 +68,6 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConsiderationDialog::accept);
 
     // OKボタンが押された場合、エンジン名、エンジン番号、解析局面フラグ、思考時間を取得する。
-    connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &ConsiderationDialog::processEngineSettings);
 
     // キャンセルボタンが押された場合、ダイアログを拒否する動作を行う。
     connect(ui->buttonBox, &QDialogButtonBox::rejected, this, &ConsiderationDialog::reject);
@@ -55,6 +78,21 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
 }
 
 ConsiderationDialog::~ConsiderationDialog() = default;
+
+void ConsiderationDialog::accept()
+{
+    if (ui->comboBoxEngine1->currentIndex() < 0) return;
+    ui->byoyomiSec->interpretText();
+    ui->spinBoxMultiPV->interpretText();
+    processEngineSettings();
+    QDialog::accept();
+}
+
+void ConsiderationDialog::done(int result)
+{
+    AppSettings::setAuxiliaryDialogSize(QStringLiteral("consideration"), size());
+    QDialog::done(result);
+}
 
 // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
 void ConsiderationDialog::showEngineSettingsDialog()
@@ -127,7 +165,7 @@ void ConsiderationDialog::processEngineSettings()
     // "検討時間"にチェックが入っている場合
     else if (ui->considerationTimeRadioButton->isChecked()) {
         m_unlimitedTimeFlag = false;
-        m_byoyomiSec = ui->byoyomiSec->text().toInt();
+        m_byoyomiSec = ui->byoyomiSec->value();
     }
 
     // 候補手の数を取得する。
@@ -175,6 +213,7 @@ void ConsiderationDialog::onFontDecrease()
 // ダイアログ全体にフォントサイズを適用する
 void ConsiderationDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     const int size = m_fontHelper.fontSize();
     QFont f = font();
     f.setPointSize(size);
@@ -196,6 +235,19 @@ void ConsiderationDialog::applyFontSize()
             comboBox->view()->setFont(f);
         }
     }
+    DialogUtils::updateFontButtons(this, size);
+    QTimer::singleShot(0, this, &ConsiderationDialog::updateLayout);
+}
+
+void ConsiderationDialog::updateLayout()
+{
+    DialogUtils::fitWrappedLabels(this);
+}
+
+void ConsiderationDialog::resizeEvent(QResizeEvent* event)
+{
+    QDialog::resizeEvent(event);
+    QTimer::singleShot(0, this, &ConsiderationDialog::updateLayout);
 }
 
 // 保存された設定を読み込む

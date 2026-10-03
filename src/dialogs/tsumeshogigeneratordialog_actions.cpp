@@ -1,6 +1,7 @@
 /// @file tsumeshogigeneratordialog_actions.cpp
 /// @brief 詰将棋局面生成ダイアログの結果操作・表示更新処理
 
+#include "dialogutils.h"
 #include "tsumeshogigeneratordialog.h"
 
 #include "changeenginesettingsdialog.h"
@@ -244,6 +245,7 @@ void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
 
 void TsumeshogiGeneratorDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     const int size = m_fontHelper.fontSize();
     QFont f = font();
     f.setPointSize(size);
@@ -267,6 +269,8 @@ void TsumeshogiGeneratorDialog::applyFontSize()
     m_tableResults->verticalHeader()->setDefaultSectionSize(QFontMetrics(f).height() + 10);
     m_btnFontDecrease->setEnabled(size > 8);
     m_btnFontIncrease->setEnabled(size < 24);
+    DialogUtils::updateFontButtons(this, size);
+    DialogUtils::fitWrappedLabels(this);
 }
 
 void TsumeshogiGeneratorDialog::applyTableHeaderStyle()

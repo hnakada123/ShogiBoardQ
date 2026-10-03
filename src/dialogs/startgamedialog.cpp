@@ -23,6 +23,13 @@
 StartGameDialog::StartGameDialog(QWidget *parent) : QDialog(parent), ui(std::make_unique<Ui::StartGameDialog>())
 {
     ui->setupUi(this);
+    // スクロール位置にかかわらず文字サイズを戻せるよう、操作を固定フッターへ移す。
+    ui->utilityLayout->removeWidget(ui->pushButtonFontSizeDown);
+    ui->utilityLayout->removeWidget(ui->pushButtonFontSizeUp);
+    ui->pushButtonFontSizeDown->setParent(this);
+    ui->pushButtonFontSizeUp->setParent(this);
+    ui->buttonLayout->insertWidget(0, ui->pushButtonFontSizeUp);
+    ui->buttonLayout->insertWidget(0, ui->pushButtonFontSizeDown);
 
     // グリッドレイアウトの列ストレッチを設定（ラベル列は伸びず、コントロール列が伸びる）
     ui->gridLayoutPlayer1->setColumnStretch(0, 0);
@@ -380,6 +387,7 @@ void StartGameDialog::decreaseFontSize()
 
 void StartGameDialog::applyFontSize(int size)
 {
+    DialogUtils::standardizeDialog(this);
     QFont font = this->font();
     font.setPointSize(size);
     this->setFont(font);
@@ -404,6 +412,7 @@ void StartGameDialog::applyFontSize(int size)
     }
     ui->pushButtonFontSizeDown->setEnabled(size > MinFontSize);
     ui->pushButtonFontSizeUp->setEnabled(size < MaxFontSize);
+    DialogUtils::updateFontButtons(this, size, MinFontSize, MaxFontSize);
 }
 
 void StartGameDialog::loadFontSizeSettings()

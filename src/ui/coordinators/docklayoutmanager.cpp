@@ -1,6 +1,7 @@
 /// @file docklayoutmanager.cpp
 /// @brief ドックレイアウト管理クラスの実装
 
+#include "dialogfontscale.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
 
@@ -137,15 +138,15 @@ void DockLayoutManager::saveLayoutAs()
 {
     if (!m_mainWindow) return;
 
-    bool ok;
-    QString name = QInputDialog::getText(m_mainWindow,
-        tr("ドックレイアウトを保存"),
-        tr("レイアウト名:"),
-        QLineEdit::Normal,
-        QString(),
-        &ok);
-
-    if (!ok || name.trimmed().isEmpty()) {
+    QInputDialog dialog(m_mainWindow);
+    dialog.setWindowTitle(tr("ドックレイアウトを保存"));
+    dialog.setLabelText(tr("レイアウト名:"));
+    dialog.setInputMode(QInputDialog::TextInput);
+    dialog.ensurePolished();
+    DialogFontScale::install(&dialog, QStringLiteral("dockLayoutName"), true);
+    const int result = dialog.exec();
+    QString name = dialog.textValue();
+    if (result != QDialog::Accepted || name.trimmed().isEmpty()) {
         return;  // キャンセルまたは空の名前
     }
 

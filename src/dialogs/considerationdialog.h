@@ -51,6 +51,9 @@ public:
 
     bool unlimitedTimeFlag() const;
 
+    void accept() override;
+    void done(int result) override;
+
 private slots:
     // エンジン設定ボタンが押された場合、エンジン設定ダイアログを表示する。
     void showEngineSettingsDialog();
@@ -63,6 +66,10 @@ private slots:
 
     // フォントサイズを小さくする
     void onFontDecrease();
+    void updateLayout();
+
+protected:
+    void resizeEvent(QResizeEvent* event) override;
 
 private:
     // UI

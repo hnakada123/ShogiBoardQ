@@ -1,6 +1,7 @@
 /// @file commentcoordinator.cpp
 /// @brief コメントコーディネータクラスの実装
 
+#include "dialogfontscale.h"
 #include "commentcoordinator.h"
 #include "logcategories.h"
 #include "mainwindow.h"
@@ -181,18 +182,15 @@ void CommentCoordinator::onBookmarkEditRequested()
     }
 
     // 入力ダイアログを表示
-    bool ok = false;
     QWidget* parentWidget = m_recordPane ? m_recordPane : qobject_cast<QWidget*>(parent());
-    const QString newBookmark = QInputDialog::getText(
-        parentWidget,
-        tr("しおりを編集"),
-        tr("しおり名（手数: %1）:").arg(ply),
-        QLineEdit::Normal,
-        currentBookmark,
-        &ok
-    );
-
-    if (!ok) return; // キャンセル
+    QInputDialog dialog(parentWidget);
+    dialog.setWindowTitle(tr("しおりを編集"));
+    dialog.setLabelText(tr("しおり名（手数: %1）:").arg(ply));
+    dialog.setTextValue(currentBookmark);
+    dialog.ensurePolished();
+    DialogFontScale::install(&dialog, QStringLiteral("bookmark"), true);
+    if (dialog.exec() != QDialog::Accepted) return;
+    const QString newBookmark = dialog.textValue();
 
     // GameRecordModel に保存
     if (m_gameRecord) {

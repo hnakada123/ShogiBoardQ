@@ -199,10 +199,12 @@ void TsumeCollectionDialog::onFontDecrease()
 
 void TsumeCollectionDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     QFont f = font();
     f.setPointSize(m_fontHelper.fontSize());
     DialogUtils::applyFontToAllChildren(this, f);
     for (auto* combo : {m_engine, m_pageSize, m_filter}) combo->view()->setFont(f);
     m_fontDecrease->setEnabled(m_fontHelper.fontSize() > 8);
     m_fontIncrease->setEnabled(m_fontHelper.fontSize() < 24);
+    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize());
 }

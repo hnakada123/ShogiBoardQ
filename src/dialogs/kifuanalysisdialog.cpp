@@ -329,6 +329,7 @@ void KifuAnalysisDialog::onFontDecrease()
 // フォントサイズを適用
 void KifuAnalysisDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     const int size = m_fontHelper.fontSize();
     QFont f = font();
     f.setPointSize(size);
@@ -364,4 +365,6 @@ void KifuAnalysisDialog::applyFontSize()
     }
     ui->mainLayout->invalidate();
     QTimer::singleShot(0, this, &KifuAnalysisDialog::updateMinimumSize);
+    DialogUtils::updateFontButtons(this, size);
+    DialogUtils::fitWrappedLabels(this);
 }

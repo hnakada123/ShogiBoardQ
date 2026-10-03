@@ -20,6 +20,12 @@ class QWidget;
 
 namespace AppSettings {
 
+/// 個別の設定項目を持たない補助ダイアログの表示設定。id は固定の識別子。
+int dialogFontSize(const QString& id, int defaultSize);
+void setDialogFontSize(const QString& id, int size);
+QSize auxiliaryDialogSize(const QString& id);
+void setAuxiliaryDialogSize(const QString& id, const QSize& size);
+
 QSize versionDialogSize();
 void setVersionDialogSize(const QSize& size);
 int versionDialogDocument();

@@ -200,6 +200,7 @@ QString JishogiScoreDialog::ruleText(const JishogiCalculator::PlayerScore& score
 
 void JishogiScoreDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     QFont contentFont = font();
     contentFont.setPointSize(m_fontHelper.fontSize());
     DialogUtils::applyFontToAllChildren(m_content, contentFont);
@@ -221,6 +222,7 @@ void JishogiScoreDialog::applyFontSize()
     m_fontDecrease->setEnabled(m_fontHelper.fontSize() > kMinFontSize);
     m_fontIncrease->setEnabled(m_fontHelper.fontSize() < kMaxFontSize);
     m_fontSizeLabel->setText(tr("%1 pt").arg(m_fontHelper.fontSize()));
+    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize());
 }
 
 void JishogiScoreDialog::decreaseFontSize()

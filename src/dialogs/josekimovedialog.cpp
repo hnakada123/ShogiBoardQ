@@ -328,6 +328,7 @@ void JosekiMoveDialog::onFontSizeDecrease()
 
 void JosekiMoveDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     QFont font = this->font();
     font.setPointSize(m_fontSize);
 
@@ -344,6 +345,7 @@ void JosekiMoveDialog::applyFontSize()
         editFont.setBold(true);
         m_editMoveLabel->setFont(editFont);
     }
+    DialogUtils::updateFontButtons(this, m_fontSize, 8, 18);
 }
 
 void JosekiMoveDialog::setEditMoveDisplay(const QString &japaneseMove)

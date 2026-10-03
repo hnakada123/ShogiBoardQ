@@ -8,6 +8,7 @@
 #include <QButtonGroup>
 #include <QComboBox>
 #include <QHBoxLayout>
+#include <QGridLayout>
 #include <QLabel>
 #include <QRadioButton>
 #include <QRegularExpression>
@@ -82,7 +83,7 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
 
     // 盤上移動用ウィジェット
     m_boardWidget = new QWidget(m_inputWidget);
-    QHBoxLayout *boardLayout = new QHBoxLayout(m_boardWidget);
+    auto* boardLayout = new QGridLayout(m_boardWidget);
     boardLayout->setContentsMargins(0, 0, 0, 0);
 
     QLabel *fromLabel = new QLabel(tr("移動元:"), m_boardWidget);
@@ -112,17 +113,18 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
     m_promoteCombo->addItem(tr("不成"), 0);
     m_promoteCombo->addItem(tr("成"), 1);
 
-    boardLayout->addWidget(fromLabel);
-    boardLayout->addWidget(m_fromFileCombo);
-    boardLayout->addWidget(m_fromRankCombo);
-    boardLayout->addSpacing(10);
-    boardLayout->addWidget(toLabel);
-    boardLayout->addWidget(m_toFileCombo);
-    boardLayout->addWidget(m_toRankCombo);
-    boardLayout->addSpacing(10);
-    boardLayout->addWidget(promoteLabel);
-    boardLayout->addWidget(m_promoteCombo);
-    boardLayout->addStretch();
+    boardLayout->addWidget(fromLabel, 0, 0);
+    boardLayout->addWidget(m_fromFileCombo, 0, 1);
+    boardLayout->addWidget(m_fromRankCombo, 0, 2);
+    boardLayout->addWidget(toLabel, 1, 0);
+    boardLayout->addWidget(m_toFileCombo, 1, 1);
+    boardLayout->addWidget(m_toRankCombo, 1, 2);
+    boardLayout->addWidget(promoteLabel, 0, 3);
+    boardLayout->addWidget(m_promoteCombo, 0, 4);
+    boardLayout->setColumnStretch(5, 1);
+    fromLabel->setBuddy(m_fromFileCombo);
+    toLabel->setBuddy(m_toFileCombo);
+    promoteLabel->setBuddy(m_promoteCombo);
 
     inputLayout->addWidget(m_boardWidget);
 

@@ -68,10 +68,6 @@ void TsumeshogiGeneratorDialog::setupUi()
 void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
 {
     auto* engineGroup = new QGroupBox(tr("エンジン設定"), this);
-    const QString groupStyle = QStringLiteral(
-        "QGroupBox { border: 1px solid #d8dee5; border-radius: 4px; margin-top: 10px; padding-top: 8px; }"
-        "QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; left: 10px; padding: 0 4px; }");
-    engineGroup->setStyleSheet(groupStyle);
     auto* engineLayout = new QVBoxLayout(engineGroup);
     auto* engineRow = new QHBoxLayout;
     auto* engineLabel = new QLabel(tr("エンジン:"), this);
@@ -107,7 +103,6 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     mainLayout->addWidget(engineGroup);
 
     auto* settingsGroup = new QGroupBox(tr("生成設定"), this);
-    settingsGroup->setStyleSheet(groupStyle);
     auto* settingsLayout = new QVBoxLayout(settingsGroup);
     auto* columns = new QHBoxLayout;
     columns->setSpacing(24);

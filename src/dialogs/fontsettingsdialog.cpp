@@ -2,6 +2,7 @@
 
 #include "applicationfonts.h"
 #include "appsettings.h"
+#include "dialogfontscale.h"
 
 #include <QApplication>
 #include <QCheckBox>
@@ -55,6 +56,7 @@ FontSettingsDialog::FontSettingsDialog(QWidget* parent)
     connect(reset, &QPushButton::clicked, this, &FontSettingsDialog::restoreDefaults);
     connect(buttons, &QDialogButtonBox::accepted, this, &FontSettingsDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &FontSettingsDialog::reject);
+    DialogFontScale::install(this, QStringLiteral("fontSettings"));
 }
 
 void FontSettingsDialog::updatePreview()
@@ -63,7 +65,7 @@ void FontSettingsDialog::updatePreview()
     QFont preview = QApplication::font();
     preview.setFamily(m_useDefault->isChecked() ? ApplicationFonts::defaultFamily()
                                                : m_family->currentFont().family());
-    preview.setPointSize(16);
+    preview.setPointSize(font().pointSize() + 6);
     m_preview->setFont(preview);
 }
 

@@ -18,6 +18,15 @@ void saveDialogSize(const QWidget* dialog, const std::function<void(const QSize&
 /// 明示的に全子ウィジェットにフォントを設定する。
 void applyFontToAllChildren(QWidget* widget, const QFont& font);
 
+/// 文字サイズボタンの寸法・説明・上下限を統一する（子の別ウィンドウは対象外）。
+void updateFontButtons(QWidget* widget, int size, int minimum = 8, int maximum = 24);
+
+/// 余白と決定ボタンの表現を統一する。
+void standardizeDialog(QWidget* dialog);
+
+/// 折り返しラベルの必要な高さを確保し、内容の重なりを防ぐ。
+void fitWrappedLabels(QWidget* dialog);
+
 } // namespace DialogUtils
 
 #endif // DIALOGUTILS_H
