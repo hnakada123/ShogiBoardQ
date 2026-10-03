@@ -28,6 +28,8 @@
 #include "csaenginecontroller.h"
 #include "shogigamecontroller.h"
 #include "sfenpositiontracer.h"
+#include "engineanalysistab.h"
+#include "engineinfowidget.h"
 
 class TestPonderFlow : public QObject
 {
@@ -140,6 +142,15 @@ private slots:
             if (dock->windowTitle() == QStringLiteral("思考")) { dock->show(); dock->raise(); }
         }
         QTest::qWait(30);
+        auto* analysisTab = m_window->findChild<EngineAnalysisTab*>();
+        QVERIFY(analysisTab);
+        QVERIFY(analysisTab->info1()->isVisible());
+        QCOMPARE(analysisTab->info2()->isVisible(), bothEngines);
+        const auto thinkingViews = analysisTab->info1()->parentWidget()
+            ->findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
+        QCOMPARE(thinkingViews.size(), 2);
+        QCOMPARE(thinkingViews.at(1)->isVisible(), bothEngines);
+        QVERIFY(thinkingViews.at(0)->model() != thinkingViews.at(1)->model());
         QVERIFY(!master->isChecked());
         QVERIFY(!ponder->isEnabled());
         if (humanBlack && !bothEngines) move(QPoint(7, 7), QPoint(7, 6));
@@ -158,6 +169,10 @@ private slots:
         QTRY_COMPARE(view()->arrows().size(), bothEngines ? 1 : 0);
         ponder->setChecked(true);
         QTRY_COMPARE(view()->arrows().size(), bothEngines ? 2 : 1);
+        if (bothEngines) {
+            QTRY_VERIFY(thinkingViews.at(0)->model()->rowCount() > 0);
+            QTRY_VERIFY(thinkingViews.at(1)->model()->rowCount() > 0);
+        }
         int dashed = 0;
         for (const auto& arrow : view()->arrows()) {
             if (arrow.penStyle != Qt::DashLine) continue;
