@@ -55,6 +55,7 @@ bool TsumeCollectionDialog::loadFile(const QString& path)
     m_store->setVerifiedCollection(contents, parsed);
     m_fileLabel->setText(QFileInfo(path).fileName());
     m_fileLabel->setToolTip(path);
+    m_resetCollection->setEnabled(true);
     refreshProgress();
     filterChanged();
     if (!parsed.invalidLines.isEmpty()) {
@@ -69,6 +70,32 @@ void TsumeCollectionDialog::refreshProgress()
 {
     m_progress = m_store->progress(m_ids);
     if (!m_store->error().isEmpty()) m_notice->setText(tr("履歴を保存できません: %1").arg(m_store->error()));
+}
+
+void TsumeCollectionDialog::resetCollectionProgress() { resetProgress(false); }
+void TsumeCollectionDialog::resetAllProgress() { resetProgress(true); }
+
+void TsumeCollectionDialog::resetProgress(bool allCollections)
+{
+    if (m_playing || (!allCollections && m_ids.isEmpty())) return;
+    const QString message = allCollections
+        ? tr("過去に開いたすべての局面集の挑戦・正答履歴を初期化し、すべての問題を未挑戦に戻します。\nこの操作は取り消せません。初期化しますか？")
+        : tr("「%1」の全問題の挑戦・正答履歴を初期化し、未挑戦に戻します。\n表示中のページや絞り込みに関係なく、この局面集の全問題が対象です。\n同じ局面が他の局面集にもある場合、その共有履歴も初期化されます。\nこの操作は取り消せません。初期化しますか？").arg(QFileInfo(m_file).fileName());
+    QMessageBox confirmation(QMessageBox::Warning, tr("履歴の初期化"), message,
+                             QMessageBox::Yes | QMessageBox::Cancel, this);
+    confirmation.setOption(QMessageBox::Option::DontUseNativeDialog);
+    confirmation.setTextFormat(Qt::PlainText);
+    confirmation.button(QMessageBox::Yes)->setText(tr("初期化する"));
+    confirmation.setDefaultButton(QMessageBox::Cancel);
+    confirmation.setEscapeButton(QMessageBox::Cancel);
+    if (confirmation.exec() != QMessageBox::Yes) return;
+    const bool succeeded = allCollections ? m_store->resetAllProgress() : m_store->resetProgress(m_ids);
+    if (!succeeded) {
+        QMessageBox::warning(this, tr("履歴の初期化"), tr("履歴を初期化できませんでした。\n%1").arg(m_store->error()));
+        return;
+    }
+    refreshProgress();
+    rebuildPage();
 }
 
 void TsumeCollectionDialog::filterChanged()

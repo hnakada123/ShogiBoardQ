@@ -107,6 +107,52 @@ bool TsumeProgressStore::record(const QString& id, bool solved)
 bool TsumeProgressStore::recordAttempt(const QString& id) { return record(id, false); }
 bool TsumeProgressStore::recordSolved(const QString& id) { return record(id, true); }
 
+bool TsumeProgressStore::resetProgress(const QStringList& ids)
+{
+    if (!m_progress.isOpen()) {
+        if (m_error.isEmpty()) m_error = QStringLiteral("Progress database is not open.");
+        return false;
+    }
+    m_error.clear();
+    if (ids.isEmpty()) return true;
+    if (!m_progress.transaction()) { m_error = m_progress.lastError().text(); return false; }
+    QSqlQuery query(m_progress);
+    bool succeeded = query.prepare(QStringLiteral("DELETE FROM progress WHERE position=?"));
+    if (succeeded) {
+        const QSet<QString> uniqueIds(ids.cbegin(), ids.cend());
+        for (const auto& id : uniqueIds) {
+            query.bindValue(0, id);
+            if (!query.exec()) { succeeded = false; break; }
+        }
+    }
+    if (!succeeded) {
+        m_error = query.lastError().text();
+        m_progress.rollback();
+        return false;
+    }
+    if (!m_progress.commit()) {
+        m_error = m_progress.lastError().text();
+        m_progress.rollback();
+        return false;
+    }
+    return true;
+}
+
+bool TsumeProgressStore::resetAllProgress()
+{
+    if (!m_progress.isOpen()) {
+        if (m_error.isEmpty()) m_error = QStringLiteral("Progress database is not open.");
+        return false;
+    }
+    QSqlQuery query(m_progress);
+    if (!query.exec(QStringLiteral("DELETE FROM progress"))) {
+        m_error = query.lastError().text();
+        return false;
+    }
+    m_error.clear();
+    return true;
+}
+
 void TsumeProgressStore::setVerifiedCollection(const QByteArray& contents, const TsumeCollection::Result& parsed)
 {
     m_certified.clear();

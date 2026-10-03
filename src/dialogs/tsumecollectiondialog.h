@@ -47,12 +47,15 @@ private slots:
     void analyzeNext();
     void analysisFinished(const TsumeEvaluation& result);
     void reanalyzePage();
+    void resetCollectionProgress();
+    void resetAllProgress();
     void onFontIncrease();
     void onFontDecrease();
 private:
     void buildUi();
     void playProblemAt(int position, int timeoutSec);
     void refreshProgress();
+    void resetProgress(bool allCollections);
     void rebuildPage();
     void arrangeCards();
     void updateCard(QPushButton* card);
@@ -93,6 +96,7 @@ private:
     QPushButton* m_previous = nullptr;
     QPushButton* m_next = nullptr;
     QPushButton* m_last = nullptr;
+    QPushButton* m_resetCollection = nullptr;
 };
 
 #endif

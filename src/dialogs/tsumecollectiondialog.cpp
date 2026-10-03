@@ -75,6 +75,17 @@ void TsumeCollectionDialog::buildUi()
     m_fileLabel->setTextFormat(Qt::PlainText);
     fileRow->addWidget(open);
     fileRow->addWidget(m_fileLabel, 1);
+    m_resetCollection = new QPushButton(tr("この局面集の履歴を初期化…"), this);
+    m_resetCollection->setObjectName(QStringLiteral("tsumeResetCollectionProgress"));
+    m_resetCollection->setAutoDefault(false);
+    m_resetCollection->setEnabled(false);
+    connect(m_resetCollection, &QPushButton::clicked, this, &TsumeCollectionDialog::resetCollectionProgress);
+    fileRow->addWidget(m_resetCollection);
+    auto* resetAll = new QPushButton(tr("全局面集の履歴を初期化…"), this);
+    resetAll->setObjectName(QStringLiteral("tsumeResetAllProgress"));
+    resetAll->setAutoDefault(false);
+    connect(resetAll, &QPushButton::clicked, this, &TsumeCollectionDialog::resetAllProgress);
+    fileRow->addWidget(resetAll);
     layout->addLayout(fileRow);
 
     auto* engineRow = new QHBoxLayout;

@@ -259,6 +259,91 @@ private slots:
         QVERIFY(second.recordSolved(ids.first()));
         QCOMPARE(store.progress(ids).value(ids.first()).solves, 1);
     }
+    void resetProgressScopeAndPersistence()
+    {
+        QTemporaryDir data;
+        QStringList ids;
+        const QString other = QStringLiteral("other collection");
+        const QString engine = QStringLiteral("engine-A");
+        {
+            TsumeProgressStore store(data.path(), data.path());
+            QVERIFY(store.open());
+            for (int i = 0; i < 1003; ++i) {
+                const auto id = QStringLiteral("position '%1").arg(i);
+                ids.append(id);
+                QVERIFY(store.recordAttempt(id));
+                QVERIFY(store.recordSolved(id));
+            }
+            QVERIFY(store.recordAttempt(other));
+            QVERIFY(store.recordSolved(other));
+            store.cache(ids.first(), engine, {TsumeEvaluation::Status::NoMate, 0, {}, {}});
+            QVERIFY(store.resetProgress({}));
+            QCOMPARE(store.progress(ids).size(), ids.size());
+            QVERIFY(store.resetProgress(ids + QStringList{ids.first(), QStringLiteral("missing")}));
+            QVERIFY(store.error().isEmpty());
+            QVERIFY(store.progress(ids).isEmpty());
+            QCOMPARE(store.progress(other).attempts, 1);
+            QCOMPARE(store.progress(other).solves, 1);
+            QVERIFY(!store.progress(other).lastAttempt.isEmpty());
+            QVERIFY(!store.progress(other).lastSolved.isEmpty());
+            QVERIFY(store.cached(ids.first(), engine));
+        }
+        {
+            TsumeProgressStore reopened(data.path(), data.path());
+            QVERIFY(reopened.open());
+            QVERIFY(reopened.progress(ids).isEmpty());
+            const auto cleared = reopened.progress(ids.first());
+            QCOMPARE(cleared.attempts, 0);
+            QCOMPARE(cleared.solves, 0);
+            QVERIFY(cleared.lastAttempt.isEmpty());
+            QVERIFY(cleared.lastSolved.isEmpty());
+            QCOMPARE(reopened.progress(other).solves, 1);
+            QVERIFY(reopened.recordAttempt(ids.first()));
+            QCOMPARE(reopened.progress(ids.first()).attempts, 1);
+            QCOMPARE(reopened.progress(ids.first()).solves, 0);
+            QVERIFY(reopened.resetAllProgress());
+            QVERIFY(reopened.resetAllProgress()); // 空の履歴でも成功する。
+            QVERIFY(reopened.error().isEmpty());
+            QVERIFY(reopened.progress(ids + QStringList{other}).isEmpty());
+            QVERIFY(reopened.cached(ids.first(), engine));
+        }
+        TsumeProgressStore reopened(data.path(), data.path());
+        QVERIFY(reopened.open());
+        QVERIFY(reopened.progress(ids + QStringList{other}).isEmpty());
+    }
+    void resetProgressFailureIsAtomic()
+    {
+        QTemporaryDir data;
+        TsumeProgressStore store(data.path(), data.path());
+        QVERIFY(!store.resetProgress({QStringLiteral("first")}));
+        QVERIFY(!store.error().isEmpty());
+        QVERIFY(!store.resetAllProgress());
+        QVERIFY(!store.error().isEmpty());
+        QVERIFY(store.open());
+        const QStringList ids{QStringLiteral("first"), QStringLiteral("second")};
+        for (const auto& id : ids) QVERIFY(store.recordAttempt(id));
+        {
+            auto db = QSqlDatabase::addDatabase(QStringLiteral("QSQLITE"), QStringLiteral("progress-reset-test"));
+            db.setDatabaseName(data.filePath(QStringLiteral("tsume_progress.sqlite")));
+            QVERIFY(db.open());
+            QSqlQuery query(db);
+            // 2件目の削除で失敗させ、すでに削除した1件目も復元されることを確認する。
+            QVERIFY(query.exec(QStringLiteral("CREATE TRIGGER reject_reset BEFORE DELETE ON progress "
+                                              "WHEN (SELECT COUNT(*) FROM progress)=1 "
+                                              "BEGIN SELECT RAISE(ABORT, 'reset failed'); END")));
+            QVERIFY(!store.resetProgress(ids));
+            QVERIFY(store.error().contains(QStringLiteral("reset failed")));
+            QCOMPARE(store.progress(ids).size(), 2);
+            QVERIFY(!store.resetAllProgress());
+            QVERIFY(store.error().contains(QStringLiteral("reset failed")));
+            QCOMPARE(store.progress(ids).size(), 2);
+            QVERIFY(query.exec(QStringLiteral("DROP TRIGGER reject_reset")));
+        }
+        QSqlDatabase::removeDatabase(QStringLiteral("progress-reset-test"));
+        QVERIFY(store.resetProgress(ids));
+        QVERIFY(store.error().isEmpty());
+        QVERIFY(store.progress(ids).isEmpty());
+    }
     void verifiedCollections_data()
     {
         QTest::addColumn<int>("plies");

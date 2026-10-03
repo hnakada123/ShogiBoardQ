@@ -41,6 +41,9 @@ class TestTsumeCollectionGui : public QObject
     bool navigating = false;
     int navigationStage = 0;
     QString navigationError;
+    QMessageBox::StandardButton resetAnswer = QMessageBox::NoButton;
+    bool resetConfirmationSeen = false;
+    bool resetDefaultsToCancel = false;
 
     QString collectionPath() const { return files.filePath(QStringLiteral("1003.txt")); }
     QList<QPushButton*> cards(TsumeCollectionDialog& window)
@@ -48,7 +51,16 @@ class TestTsumeCollectionGui : public QObject
     void drivePlay()
     {
         if (navigating) return;
-        if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) { box->accept(); return; }
+        if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+            if (resetAnswer != QMessageBox::NoButton) {
+                resetConfirmationSeen = true;
+                resetDefaultsToCancel = box->defaultButton() == box->button(QMessageBox::Cancel);
+                box->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-collection-reset-confirmation.png"));
+                if (auto* answer = box->button(resetAnswer)) answer->click();
+                else { modalError = box->text(); box->accept(); }
+            } else box->accept();
+            return;
+        }
         auto* play = qobject_cast<TsumePlayDialog*>(QApplication::activeModalWidget());
         if (!play) return;
         if (++ticks > 500) { timedOut = true; play->close(); return; }
@@ -175,6 +187,8 @@ private slots:
         navigating = false;
         navigationStage = 0;
         navigationError.clear();
+        resetAnswer = QMessageBox::NoButton;
+        resetConfirmationSeen = resetDefaultsToCancel = false;
     }
     void menuModalRoundtrip_data()
     {
@@ -283,6 +297,101 @@ private slots:
         filter->setCurrentIndex(3);
         QVERIFY(summary->text().startsWith(QStringLiteral("201問中")));
         QCOMPARE(cards(window).first()->property("problemIndex").toInt(), 0);
+    }
+    void resetHistory_data()
+    {
+        QTest::addColumn<bool>("allCollections");
+        QTest::addColumn<bool>("confirm");
+        QTest::newRow("current-cancel") << false << false;
+        QTest::newRow("current-reset") << false << true;
+        QTest::newRow("all-cancel") << true << false;
+        QTest::newRow("all-reset") << true << true;
+    }
+    void resetHistory()
+    {
+        QFETCH(bool, allCollections);
+        QFETCH(bool, confirm);
+        QFile file(files.filePath(QStringLiteral("reset.txt")));
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Truncate));
+        for (int i = 0; i < 13; ++i) file.write(problems[i % 4].sfen.toUtf8() + '\n');
+        file.close();
+        TsumeProgressStore store;
+        QVERIFY(store.open());
+        for (const auto& problem : std::as_const(problems)) {
+            const auto id = TsumeCollection::positionId(problem.sfen);
+            QVERIFY(store.recordAttempt(id));
+            QVERIFY(store.recordSolved(id));
+        }
+        TsumeCollectionDialog window;
+        QVERIFY(window.loadFile(file.fileName()));
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* filter = window.findChild<QComboBox*>(QStringLiteral("tsumeProgressFilter"));
+        auto* page = window.findChild<QSpinBox*>(QStringLiteral("tsumePageNumber"));
+        filter->setCurrentIndex(3); // 正答済みの2ページ目から全問題を初期化する。
+        page->setValue(2);
+        QCOMPARE(cards(window).size(), 3);
+        resetAnswer = confirm ? QMessageBox::Yes : QMessageBox::Cancel;
+        auto* button = window.findChild<QPushButton*>(allCollections
+            ? QStringLiteral("tsumeResetAllProgress") : QStringLiteral("tsumeResetCollectionProgress"));
+        QVERIFY(button && button->isEnabled());
+        QVERIFY(!button->autoDefault());
+        QTest::mouseClick(button, Qt::LeftButton);
+        QVERIFY2(modalError.isEmpty(), qPrintable(modalError));
+        QVERIFY(resetConfirmationSeen);
+        QVERIFY(resetDefaultsToCancel);
+        QCOMPARE(filter->currentIndex(), 3);
+        QCOMPARE(cards(window).size(), confirm ? 0 : 3);
+        QCOMPARE(page->value(), confirm ? 1 : 2);
+        const auto other = TsumeCollection::positionId(problems[4].sfen);
+        QCOMPARE(store.progress(other).attempts, confirm && allCollections ? 0 : 1);
+        QCOMPARE(store.progress(other).solves, confirm && allCollections ? 0 : 1);
+        filter->setCurrentIndex(0);
+        QCOMPARE(cards(window).size(), 10);
+        for (auto* card : cards(window)) {
+            const auto history = card->findChild<QLabel*>(QStringLiteral("cardProgress"))->text();
+            if (confirm) QCOMPARE(history, QStringLiteral("未挑戦"));
+            else QVERIFY(history.contains(QStringLiteral("正答済み")));
+        }
+        for (int i = 0; i < 4; ++i) {
+            const auto progress = store.progress(TsumeCollection::positionId(problems[i].sfen));
+            QCOMPARE(progress.attempts, confirm ? 0 : 1);
+            QCOMPARE(progress.solves, confirm ? 0 : 1);
+            QCOMPARE(progress.lastAttempt.isEmpty(), confirm);
+            QCOMPARE(progress.lastSolved.isEmpty(), confirm);
+        }
+        filter->setCurrentIndex(1);
+        QCOMPARE(cards(window).size(), confirm ? 10 : 0);
+        if (confirm) {
+            page->setValue(2);
+            QCOMPARE(cards(window).size(), 3);
+            page->setValue(1);
+            QTRY_VERIFY(cards(window).first()->isVisible());
+            QTRY_VERIFY(cards(window).first()->height() >= cards(window).first()->findChild<TsumePositionPreview*>()->height() + 40);
+            QTRY_VERIFY(!cards(window).at(0)->geometry().intersects(cards(window).at(2)->geometry()));
+            window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-collection-reset.png"));
+        }
+        window.close();
+        TsumeCollectionDialog reopened;
+        QVERIFY(reopened.loadFile(file.fileName()));
+        reopened.findChild<QComboBox*>(QStringLiteral("tsumeProgressFilter"))->setCurrentIndex(3);
+        QCOMPARE(cards(reopened).size(), confirm ? 0 : 10);
+    }
+    void resetAllHistoryWithoutCollection()
+    {
+        TsumeProgressStore store;
+        QVERIFY(store.open());
+        const auto id = TsumeCollection::positionId(problems.first().sfen);
+        QVERIFY(store.recordAttempt(id));
+        TsumeCollectionDialog window;
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QVERIFY(!window.findChild<QPushButton*>(QStringLiteral("tsumeResetCollectionProgress"))->isEnabled());
+        resetAnswer = QMessageBox::Yes;
+        QTest::mouseClick(window.findChild<QPushButton*>(QStringLiteral("tsumeResetAllProgress")), Qt::LeftButton);
+        QVERIFY(resetConfirmationSeen);
+        QCOMPARE(store.progress(id).attempts, 0);
+        QVERIFY(cards(window).isEmpty());
     }
     void selectionHistoryAndReturn()
     {
