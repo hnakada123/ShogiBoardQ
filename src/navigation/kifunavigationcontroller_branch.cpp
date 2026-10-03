@@ -5,7 +5,6 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
-#include "shogiutils.h"
 
 #include "logcategories.h"
 
@@ -40,8 +39,6 @@ void KifuNavigationController::handleBranchNodeActivated(int row, int ply)
         if (targetNode != nullptr) {
             m_state->resetPreferredLineIndex();
             goToNode(targetNode);
-            const QString sfen = targetNode->sfen().isEmpty() ? QString() : targetNode->sfen();
-            emit branchNodeHandled(0, sfen, 0, 0, QString());
         }
         qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated LEAVE (root node)";
         return;
@@ -112,23 +109,6 @@ void KifuNavigationController::goToLine(int lineIndex, int ply)
         goToNode(targetNode);
         qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: goToNode ply=" << selPly;
 
-        const QString sfen = targetNode->sfen().isEmpty() ? QString() : targetNode->sfen();
-
-        // 検討モード用: 移動先座標とUSI表記を取得
-        int fileTo = 0;
-        int rankTo = 0;
-        QString usiMove;
-        if (targetNode->isActualMove()) {
-            const ShogiMove& move = targetNode->move();
-            // movingPieceが空白の場合はデフォルト構築された無効な指し手（KIF分岐でgameMoves未設定時）
-            if (move.movingPiece != Piece::None) {
-                fileTo = move.toSquare.x();
-                rankTo = move.toSquare.y();
-                usiMove = ShogiUtils::moveToUsi(move);
-            }
-        }
-
-        emit branchNodeHandled(selPly, sfen, fileTo, rankTo, usiMove);
     } else {
         qCDebug(lcNavigation).noquote() << "handleBranchNodeActivated: node not found for ply=" << selPly;
     }

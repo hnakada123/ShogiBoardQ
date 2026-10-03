@@ -225,7 +225,6 @@ void ConsiderationWiring::onDialogMultiPVReady(int) {}
 
 void ConsiderationWiring::onMultiPVChangeRequested(int) {}
 
-void ConsiderationWiring::updateArrows() {}
 
 void ConsiderationWiring::onShowArrowsChanged(bool) {}
 

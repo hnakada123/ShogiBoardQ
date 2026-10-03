@@ -18,6 +18,7 @@
 #include "uistatepolicymanager.h"
 #include "boardinteractioncontroller.h"
 #include "shogiview.h"
+#include "candidatearrowcontroller.h"
 #include "kifurecordlistmodel.h"
 #include "shogiclock.h"
 #include "matchcoordinatorhooksfactory.h"
@@ -142,6 +143,8 @@ void MatchCoordinatorWiring::wireConnections()
 
     // --- MatchCoordinator（司令塔）の生成＆初期配線 ---
     createMatchCoordinator(d);
+    if (auto* arrows = CandidateArrowController::forView(m_view))
+        arrows->setMatchCoordinator(m_match.get());
 
     // USIコマンドコントローラへ司令塔を反映
     if (m_ensureUsiCommandController) m_ensureUsiCommandController();

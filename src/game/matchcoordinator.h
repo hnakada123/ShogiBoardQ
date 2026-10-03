@@ -298,6 +298,7 @@ public slots:
     void pokeTimeUpdateNow();
 
 signals:
+    void playModeChanged();
     /// 盤面反転の通知（→ GameStartCoordinator::boardFlipped へ再送出）
     void boardFlipped(bool nowFlipped);
 

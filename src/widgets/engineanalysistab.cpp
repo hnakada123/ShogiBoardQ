@@ -7,6 +7,11 @@
 #include "usilogpanel.h"
 #include "csalogpanel.h"
 #include "engineanalysispresenter.h"
+#include "candidatearrowcontroller.h"
+#include "analysissettings.h"
+#include <QCheckBox>
+#include <QLabel>
+#include <QHBoxLayout>
 
 #include <QTabWidget>
 #include <QTableView>
@@ -129,6 +134,26 @@ QWidget* EngineAnalysisTab::buildThinkingPageContent(QWidget* parent)
     auto* v = new QVBoxLayout(page);
     v->setContentsMargins(4, 4, 4, 4);
     v->setSpacing(4);
+
+    auto* arrowControls = new QHBoxLayout;
+    m_matchArrows = new QCheckBox(tr("対局中の矢印表示"), page);
+    m_matchArrows->setObjectName(QStringLiteral("matchArrows"));
+    m_matchArrows->setChecked(AnalysisSettings::matchArrowsVisible());
+    m_ponderArrows = new QCheckBox(tr("先読み側も表示"), page);
+    m_ponderArrows->setObjectName(QStringLiteral("ponderArrows"));
+    m_ponderArrows->setChecked(AnalysisSettings::ponderArrowsVisible());
+    m_ponderArrows->setToolTip(tr("Ponder中の応手を青の破線で表示します。エンジンの先読み設定は変更しません。"));
+    arrowControls->addWidget(m_matchArrows);
+    arrowControls->addWidget(m_ponderArrows);
+    arrowControls->addStretch();
+    v->addLayout(arrowControls);
+    m_arrowDescription = new QLabel(page);
+    m_arrowDescription->setObjectName(QStringLiteral("matchArrowDescription"));
+    m_arrowDescription->setWordWrap(true);
+    v->addWidget(m_arrowDescription);
+    connect(m_matchArrows, &QCheckBox::toggled, this, &EngineAnalysisTab::onMatchArrowsToggled);
+    connect(m_ponderArrows, &QCheckBox::toggled, this, &EngineAnalysisTab::onPonderArrowsToggled);
+    updateArrowControls();
 
     m_info1 = new EngineInfoWidget(page, true);
     m_info1->setWidgetIndex(0);
@@ -253,6 +278,51 @@ void EngineAnalysisTab::setModels(ShogiEngineThinkingModel* m1, ShogiEngineThink
 }
 
 QTabWidget* EngineAnalysisTab::tab() const { return m_tab; }
+
+void EngineAnalysisTab::setArrowController(CandidateArrowController* controller)
+{
+    if (m_arrowController == controller) return;
+    if (m_arrowController) disconnect(m_arrowController, nullptr, this, nullptr);
+    m_arrowController = controller;
+    if (controller) {
+        connect(controller, &CandidateArrowController::displayStateChanged,
+                this, &EngineAnalysisTab::updateArrowControls);
+    }
+    updateArrowControls();
+}
+
+void EngineAnalysisTab::onMatchArrowsToggled(bool checked)
+{
+    AnalysisSettings::setMatchArrowsVisible(checked);
+    updateArrowControls();
+    if (m_arrowController) m_arrowController->scheduleRefresh();
+}
+
+void EngineAnalysisTab::onPonderArrowsToggled(bool checked)
+{
+    AnalysisSettings::setPonderArrowsVisible(checked);
+    updateArrowControls();
+    if (m_arrowController) m_arrowController->scheduleRefresh();
+}
+
+void EngineAnalysisTab::updateArrowControls()
+{
+    if (!m_matchArrows || !m_ponderArrows || !m_arrowDescription) return;
+    const bool consideration = m_arrowController && m_arrowController->considerationActive();
+    m_matchArrows->setEnabled(!consideration);
+    m_ponderArrows->setEnabled(!consideration && m_matchArrows->isChecked());
+    QString description;
+    if (consideration) {
+        description = tr("検討中の矢印表示は検討タブで設定します。");
+    } else if (m_matchArrows->isChecked()) {
+        description = tr("赤の実線：手番側");
+        if (m_ponderArrows->isChecked()) description += tr(" ／ 青の破線：先読み側");
+        if (m_arrowController && !m_arrowController->ponderDescription().isEmpty())
+            description += QStringLiteral(" — ") + m_arrowController->ponderDescription();
+    }
+    m_arrowDescription->setText(description);
+    m_arrowDescription->setVisible(!description.isEmpty());
+}
 
 void EngineAnalysisTab::setAnalysisVisible(bool on)
 {

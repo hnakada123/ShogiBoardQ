@@ -189,21 +189,6 @@ void ConsiderationWiring::onMultiPVChangeRequested(int value)
     }
 }
 
-void ConsiderationWiring::updateArrows()
-{
-    ensureUIController();
-    if (m_uiController) {
-        m_uiController->setShogiView(m_shogiView);
-        m_uiController->setConsiderationTabManager(m_considerationTabManager);
-        m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
-        m_uiController->setConsiderationModel(m_considerationModel);
-        if (m_currentSfenStr) {
-            m_uiController->setCurrentSfenStr(*m_currentSfenStr);
-        }
-        m_uiController->updateArrows();
-    }
-}
-
 void ConsiderationWiring::onShowArrowsChanged(bool checked)
 {
     ensureUIController();

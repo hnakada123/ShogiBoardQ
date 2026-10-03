@@ -48,6 +48,8 @@ class Usi : public QObject
     Q_OBJECT
 
 public:
+    const UsiProtocolHandler::SearchCandidate& searchCandidate() const
+    { return m_protocolHandler->searchCandidate(); }
     void setMatchClock(ShogiClock* clock) { m_matchClock = clock; }
     /// 詰み探索結果
     struct TsumeResult {
@@ -198,6 +200,7 @@ public:
     void cancelCurrentOperation();
 
 signals:
+    void searchCandidateChanged();
     void engineInitialized();
     void matchMoveReady(const QPoint& from, const QPoint& to, const QString& position, const QString& ponder);
     void bestMoveResignReceived();                    ///< bestmove resign受信（ProtocolHandler → 外部）

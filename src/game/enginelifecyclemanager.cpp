@@ -52,13 +52,14 @@ void EngineLifecycleManager::setModelPtrs(UsiCommLogModel* comm1,
 
 Usi* EngineLifecycleManager::usi1() const { return m_usi1; }
 Usi* EngineLifecycleManager::usi2() const { return m_usi2; }
-void EngineLifecycleManager::setUsi1(Usi* u) { m_usi1 = u; }
-void EngineLifecycleManager::setUsi2(Usi* u) { m_usi2 = u; }
+void EngineLifecycleManager::setUsi1(Usi* u) { m_usi1 = u; emit enginesChanged(); }
+void EngineLifecycleManager::setUsi2(Usi* u) { m_usi2 = u; emit enginesChanged(); }
 
 void EngineLifecycleManager::updateUsiPtrs(Usi* e1, Usi* e2)
 {
     m_usi1 = e1;
     m_usi2 = e2;
+    emit enginesChanged();
 }
 
 bool EngineLifecycleManager::isShutdownInProgress() const { return m_engineShutdownInProgress; }
@@ -172,6 +173,7 @@ void EngineLifecycleManager::destroyEngine(int idx, bool clearThinking)
         ref->cleanupEngineProcessAndThread(clearThinking);
         ref->deleteLater();
         ref = nullptr;
+        emit enginesChanged();
     }
 }
 

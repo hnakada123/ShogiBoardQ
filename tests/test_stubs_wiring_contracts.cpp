@@ -30,6 +30,8 @@
 #include "shogiclock.h"
 #include "matchcoordinatorhooksfactory.h"
 #include "shogiview.h"
+#include "candidatearrowcontroller.h"
+
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "gamestartoptionsbuilder.h"
@@ -739,3 +741,6 @@ ShogiViewInteraction::ShogiViewInteraction() {}
 #include "moc_matchtimekeeper.cpp"
 #include "moc_analysissessionhandler.cpp"
 #include "moc_gameendhandler.cpp"
+
+CandidateArrowController* CandidateArrowController::forView(ShogiView*) { return nullptr; }
+void CandidateArrowController::setMatchCoordinator(MatchCoordinator*) {}

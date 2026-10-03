@@ -7,6 +7,7 @@
 
 #include <QWidget>
 #include <QList>
+#include <QPointer>
 
 #include "branchtreemanager.h"
 
@@ -21,6 +22,9 @@ class ConsiderationTabManager;
 class UsiLogPanel;
 class CsaLogPanel;
 class EngineAnalysisPresenter;
+class CandidateArrowController;
+class QCheckBox;
+class QLabel;
 
 class EngineAnalysisTab : public QWidget
 {
@@ -31,6 +35,7 @@ public:
     ~EngineAnalysisTab() override;
 
     void buildUi();
+    void setArrowController(CandidateArrowController* controller);
 
     // 独立したドック用にページを作成
     // 各メソッドは独立したQWidgetを作成して返す（呼び出し側が親を設定）
@@ -240,6 +245,17 @@ private:
     EngineAnalysisPresenter* m_presenter = nullptr;
     void ensurePresenter();
 
+    QPointer<CandidateArrowController> m_arrowController;
+    QCheckBox* m_matchArrows = nullptr;
+    QCheckBox* m_ponderArrows = nullptr;
+    QLabel* m_arrowDescription = nullptr;
+
+private slots:
+    void onMatchArrowsToggled(bool checked);
+    void onPonderArrowsToggled(bool checked);
+    void updateArrowControls();
+
+private:
     // 思考ページ構築ヘルパ
     QWidget* buildThinkingPageContent(QWidget* parent);
 };

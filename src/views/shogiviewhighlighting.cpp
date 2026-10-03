@@ -326,7 +326,8 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
                     PiecePainter::draw(painter, icon, adjustedRect, m_view->boardVisuals());
                     painter.setOpacity(1.0);
 
-                    QPen borderPen(QColor(255, 0, 0, 200));
+                    QPen borderPen(arrow.color);
+                    borderPen.setStyle(arrow.penStyle);
                     borderPen.setWidth(qMax(2, layout.squareSize() / 20));
                     painter.setPen(borderPen);
                     painter.setBrush(Qt::NoBrush);
@@ -349,7 +350,7 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
                 painter.setBrush(QColor(255, 255, 255, 230));
                 painter.drawEllipse(numPos, circleRadius, circleRadius);
 
-                painter.setPen(QColor(220, 0, 0));
+                painter.setPen(arrow.color);
                 QString priorityText = QString::number(arrow.priority);
                 QRectF textRect(numPos.x() - circleRadius, numPos.y() - circleRadius,
                                circleRadius * 2, circleRadius * 2);
@@ -366,11 +367,11 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
         const int arrowHeadSize = qMax(10, layout.squareSize() / 4);
 
         QColor color = arrow.color;
-        color.setAlpha(200);
 
         QPen pen(color);
         pen.setWidth(arrowWidth);
         pen.setCapStyle(Qt::RoundCap);
+        pen.setStyle(arrow.penStyle);
         painter.setPen(pen);
 
         QPointF dir = to - from;
@@ -407,7 +408,7 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
             painter.setBrush(QColor(255, 255, 255, 230));
             painter.drawEllipse(center, circleRadius, circleRadius);
 
-            painter.setPen(QColor(220, 0, 0));
+            painter.setPen(arrow.color);
             QString priorityText = QString::number(arrow.priority);
             QRectF textRect(center.x() - circleRadius, center.y() - circleRadius,
                            circleRadius * 2, circleRadius * 2);

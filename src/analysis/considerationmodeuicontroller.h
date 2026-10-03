@@ -55,9 +55,6 @@ public:
     /// 通信ログモデル参照を設定する（非所有）
     void setCommLogModel(UsiCommLogModel* model);
 
-    /// 現在局面のSFEN文字列を設定する
-    void setCurrentSfenStr(const QString& sfen);
-
     /**
      * @brief 検討モード中に局面が変更されたときの処理
      * @param row 新しい行番号
@@ -132,34 +129,14 @@ signals:
     void multiPVChangeRequested(int value);
 
 private:
-    /**
-     * @brief USI形式の指し手から座標を取得
-     * @param usiMove USI形式の指し手（例: "7g7f", "P*3c"）
-     * @param fromFile 出力: 移動元の筋（1-9、駒打ちは0）
-     * @param fromRank 出力: 移動元の段（1-9、駒打ちは0）
-     * @param toFile 出力: 移動先の筋（1-9）
-     * @param toRank 出力: 移動先の段（1-9）
-     * @return 解析成功ならtrue
-     */
-    static bool parseUsiMove(const QString& usiMove,
-                             int& fromFile, int& fromRank,
-                             int& toFile, int& toRank);
-
-    /**
-     * @brief 矢印更新用のシグナル接続を設定
-     */
-    void connectArrowUpdateSignals();
-
     ConsiderationTabManager* m_considerationTabManager = nullptr;  ///< 検討タブマネージャー（非所有）
     EngineInfoWidget* m_thinkingInfo1 = nullptr;  ///< 思考タブのEngineInfoWidget（非所有）
     ShogiView* m_shogiView = nullptr;  ///< 盤面ビュー（非所有）
     MatchCoordinator* m_match = nullptr;  ///< 対局司令塔（非所有）
     ShogiEngineThinkingModel* m_considerationModel = nullptr;  ///< 検討モデル（非所有）
     UsiCommLogModel* m_commLogModel = nullptr;  ///< 通信ログモデル（非所有）
-    QString m_currentSfenStr;  ///< 現在局面のSFEN（手番判定に使用）
     bool m_considerationActive = false; ///< 中止後は保持した読み筋から矢印を再生成しない
     bool m_showArrows = true;  ///< 矢印表示設定
-    bool m_arrowSignalsConnected = false;  ///< 矢印更新シグナル接続済みフラグ
 };
 
 #endif // CONSIDERATIONMODEUICONTROLLER_H

@@ -101,11 +101,6 @@ public slots:
     void onMultiPVChangeRequested(int value);
 
     /**
-     * @brief 検討モデル更新時に矢印を更新
-     */
-    void updateArrows();
-
-    /**
      * @brief 矢印表示チェックボックスの状態変更時
      */
     void onShowArrowsChanged(bool checked);

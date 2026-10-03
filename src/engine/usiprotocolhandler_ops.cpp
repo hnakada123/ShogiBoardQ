@@ -3,6 +3,8 @@
 
 #include "usiprotocolhandler.h"
 #include <QPointer>
+#include <QRegularExpression>
+#include "thinkinginfopresenter.h"
 #include "usimovecoordinateconverter.h"
 #include "shogigamecontroller.h"
 
@@ -109,6 +111,7 @@ quint64 UsiProtocolHandler::beginOperationContext()
 
 void UsiProtocolHandler::cancelCurrentOperation()
 {
+    invalidateCandidate();
     m_initializationTimer.stop();
     m_initialization = Initialization::Idle;
     if (m_opCtx) {
@@ -160,4 +163,37 @@ void UsiProtocolHandler::onInitializationTimeout()
     emit errorOccurred(state == Initialization::UsiOk ? tr("Timeout waiting for usiok")
                                                      : tr("Timeout waiting for readyok"));
     if (guard) emit initializationFinished(false);
+}
+
+void UsiProtocolHandler::beginCandidateSearch(bool pondering)
+{
+    m_searchCandidate = {};
+    m_searchCandidate.active = true;
+    m_searchCandidate.pondering = pondering;
+    if (m_presenter) m_searchCandidate.baseSfen = m_presenter->baseSfen();
+    if (pondering) m_searchCandidate.predictedMove = m_predictedOpponentMove;
+    emit searchCandidateChanged();
+}
+
+void UsiProtocolHandler::invalidateCandidate()
+{
+    m_searchCandidate = {};
+    emit searchCandidateChanged();
+}
+
+void UsiProtocolHandler::updateCandidate(const QString& line)
+{
+    if (!m_searchCandidate.active || m_activeSearchSeq != m_seq) return;
+    const auto tokens = line.simplified().split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    // info string 内の文字列をPVとして解釈しない。
+    const auto pv = tokens.indexOf(QStringLiteral("pv"));
+    const auto infoString = tokens.indexOf(QStringLiteral("string"));
+    if (pv < 0 || pv + 1 >= tokens.size() || (infoString >= 0 && infoString < pv)) return;
+    const auto multipv = tokens.indexOf(QStringLiteral("multipv"));
+    if (multipv >= 0 && (multipv + 1 >= tokens.size() || tokens.at(multipv + 1) != QLatin1String("1"))) return;
+    const QString move = tokens.at(pv + 1);
+    static const QRegularExpression validMove(QStringLiteral("^(?:[1-9][a-i][1-9][a-i]\\+?|[PLNSGBR]\\*[1-9][a-i])$"));
+    if (!validMove.match(move).hasMatch() || move == m_searchCandidate.move) return;
+    m_searchCandidate.move = move;
+    emit searchCandidateChanged();
 }

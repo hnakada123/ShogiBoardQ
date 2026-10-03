@@ -198,6 +198,26 @@ void setThinkingFontSize(int size)
 
 // --- 棋譜解析 ---
 
+bool matchArrowsVisible()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kMatchArrowsVisible, false).toBool();
+}
+
+void setMatchArrowsVisible(bool visible)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kMatchArrowsVisible, visible);
+}
+
+bool ponderArrowsVisible()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kPonderArrowsVisible, false).toBool();
+}
+
+void setPonderArrowsVisible(bool visible)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kPonderArrowsVisible, visible);
+}
+
 int kifuAnalysisFontSize()
 {
     QSettings& s = SettingsCommon::openSettings();

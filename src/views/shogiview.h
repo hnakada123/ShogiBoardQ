@@ -134,6 +134,7 @@ public:
         int priority = 0;   // 優先順位（1が最善手、2以上で数字を表示）
         QChar dropPiece = ' ';  // 駒打ちの場合の駒種（例: 'P', 'G' など）、通常の移動は空白
         QColor color = QColor(255, 0, 0, 200);  // 半透明の赤
+        Qt::PenStyle penStyle = Qt::SolidLine;
     };
     void setArrows(const QList<Arrow>& arrows);  // 矢印をセット（複数可）
     const QList<Arrow>& arrows() const;            // 現在の候補手矢印
@@ -235,6 +236,7 @@ public slots:
     void applyClockUrgency(qint64 activeRemainMs);
 
 signals:
+    void positionChanged();
     void fieldSizeChanged(QSize fieldSize);  // setFieldSize 内で発火
     void clicked(const QPoint&);             // 左クリック
     void rightClicked(const QPoint&);        // 右クリック

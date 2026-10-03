@@ -15,6 +15,7 @@
 #include "considerationwiring.h"
 #include "usicommandcontroller.h"
 #include "engineanalysistab.h"
+#include "candidatearrowcontroller.h"
 
 // ---------------------------------------------------------------------------
 // 読み筋クリック
@@ -105,4 +106,7 @@ void MainWindowServiceRegistry::ensureUsiCommandController()
     }
     m_mw.m_usiCommandController->setMatchCoordinator(m_mw.m_match);
     m_mw.m_usiCommandController->setAnalysisTab(m_mw.m_analysisTab);
+    if (m_mw.m_analysisTab && m_mw.m_shogiView) {
+        m_mw.m_analysisTab->setArrowController(CandidateArrowController::forView(m_mw.m_shogiView));
+    }
 }

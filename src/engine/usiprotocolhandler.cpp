@@ -217,6 +217,7 @@ void UsiProtocolHandler::beginMainSearch()
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
     m_phase = SearchPhase::Main;
+    beginCandidateSearch(false);
 }
 
 void UsiProtocolHandler::sendGo(int byoyomiMs, const QString& btime, const QString& wtime,
@@ -245,6 +246,7 @@ void UsiProtocolHandler::sendGoPonder(const UsiTimingParams& timing)
         m_presenter->requestClearThinkingInfo();
     }
     m_phase = SearchPhase::Ponder;
+    beginCandidateSearch(true);
     QString command = QStringLiteral("go ponder btime %1 wtime %2")
                           .arg(timing.btime, timing.wtime);
     if (timing.useByoyomi) {
@@ -258,6 +260,7 @@ void UsiProtocolHandler::sendGoPonder(const UsiTimingParams& timing)
 
 void UsiProtocolHandler::sendGoMate(int timeMs, bool infinite)
 {
+    invalidateCandidate();
     m_activeSearchSeq = beginOperationContext();
     m_bestMoveReceived = false;
     m_specialMove = SpecialMove::None;
@@ -326,6 +329,7 @@ void UsiProtocolHandler::sendGoSearchmovesMovetime(const QStringList& moves, int
 
 void UsiProtocolHandler::sendStop()
 {
+    invalidateCandidate();
     if (m_phase == SearchPhase::StoppingPonder) return;
     if (m_phase == SearchPhase::Ponder) {
         m_phase = SearchPhase::StoppingPonder;
@@ -342,6 +346,10 @@ void UsiProtocolHandler::sendPonderHit()
     m_lastGoToBestmoveMs = 0;
     m_goTimer.start();
     m_phase = SearchPhase::Main;
+
+    m_searchCandidate.pondering = false;
+    m_searchCandidate.predictedMove.clear();
+    emit searchCandidateChanged();
 
     sendCommand("ponderhit");
     m_stopOrPonderhitPending = true;
@@ -418,6 +426,7 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     }
 
     if (line.startsWith(QStringLiteral("info"))) {
+        updateCandidate(line);
         qCDebug(lcEngine) << "info行受信:" << line.left(60);
         emit infoLineReceived(line);
         if (m_presenter) {
@@ -486,6 +495,7 @@ bool UsiProtocolHandler::handleBestMoveLine(const QString& line)
     const bool ponderResult = m_phase == SearchPhase::Ponder
         || m_phase == SearchPhase::StoppingPonder;
     m_phase = SearchPhase::Idle;
+    invalidateCandidate();
     // stopで回収する予測局面の投了・宣言勝ちは、実対局の結果ではない。
     if (ponderResult) {
         m_predictedOpponentMove.clear();

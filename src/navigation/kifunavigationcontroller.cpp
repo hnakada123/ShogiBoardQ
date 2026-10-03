@@ -470,5 +470,17 @@ void KifuNavigationController::emitUpdateSignals()
     emit branchTreeHighlightRequired(m_state->currentLineIndex(), node->ply());
     emit branchCandidatesUpdateRequired(m_state->branchCandidatesAtCurrent());
 
+    // 移動経路によらず、検討エンジンにも移動先の局面と直前手を通知する。
+    int fileTo = 0;
+    int rankTo = 0;
+    QString usiMove;
+    if (node->isActualMove() && node->move().movingPiece != Piece::None) {
+        const ShogiMove& move = node->move();
+        fileTo = move.toSquare.x();
+        rankTo = move.toSquare.y();
+        usiMove = ShogiUtils::moveToUsi(move);
+    }
+    emit branchNodeHandled(node->ply(), node->sfen(), fileTo, rankTo, usiMove);
+
     qCDebug(lcNavigation).noquote() << "emitUpdateSignals LEAVE";
 }

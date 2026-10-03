@@ -13,6 +13,10 @@
 #include <QTableView>
 #include <QTemporaryDir>
 #include <QTimer>
+#include <QCheckBox>
+#include <QLabel>
+#include <QDockWidget>
+#include <QToolButton>
 #include "mainwindow.h"
 #include "startgamedialog.h"
 #include "promotedialog.h"
@@ -111,6 +115,137 @@ public slots:
         }
     }
 private slots:
+    void arrowsDuringMatch_data()
+    {
+        QTest::addColumn<bool>("humanBlack");
+        QTest::addColumn<bool>("bothEngines");
+        QTest::newRow("human-black") << true << false;
+        QTest::newRow("human-white") << false << false;
+        QTest::newRow("both-engines") << true << true;
+    }
+    void arrowsDuringMatch()
+    {
+        QFETCH(bool, humanBlack);
+        QFETCH(bool, bothEngines);
+        m_humanBlack = humanBlack;
+        m_bothEngines = bothEngines;
+        qputenv("AUDIT_ENGINE_WAIT_FOR_STOP", "1");
+        qputenv("AUDIT_ENGINE_DELAY", "0.8");
+        start();
+        auto* master = m_window->findChild<QCheckBox*>("matchArrows");
+        auto* ponder = m_window->findChild<QCheckBox*>("ponderArrows");
+        auto* description = m_window->findChild<QLabel*>("matchArrowDescription");
+        QVERIFY(master && ponder && description);
+        for (auto* dock : m_window->findChildren<QDockWidget*>()) {
+            if (dock->windowTitle() == QStringLiteral("思考")) { dock->show(); dock->raise(); }
+        }
+        QTest::qWait(30);
+        QVERIFY(!master->isChecked());
+        QVERIFY(!ponder->isEnabled());
+        if (humanBlack && !bothEngines) move(QPoint(7, 7), QPoint(7, 6));
+        QTRY_VERIFY(commands().join('\n').contains("go btime "));
+        QTest::qWait(100);
+        QVERIFY(view()->arrows().isEmpty());
+        master->setChecked(true);
+        QTRY_COMPARE(view()->arrows().size(), 1);
+        QCOMPARE(view()->arrows().first().penStyle, Qt::SolidLine);
+        QVERIFY(view()->arrows().first().color.red() > view()->arrows().first().color.blue());
+
+        const int before = rows();
+        trigger("actionMakeImmediateMove");
+        QTRY_COMPARE(rows(), before + 1);
+        QTRY_VERIFY(commands().join('\n').contains("go ponder "));
+        QTRY_COMPARE(view()->arrows().size(), bothEngines ? 1 : 0);
+        ponder->setChecked(true);
+        QTRY_COMPARE(view()->arrows().size(), bothEngines ? 2 : 1);
+        int dashed = 0;
+        for (const auto& arrow : view()->arrows()) {
+            if (arrow.penStyle != Qt::DashLine) continue;
+            ++dashed;
+            QVERIFY(arrow.color.blue() > arrow.color.red());
+        }
+        QCOMPARE(dashed, 1);
+        QVERIFY(description->text().contains(QStringLiteral("先読み：")));
+        view()->setFlipMode(true);
+        QTest::qWait(30);
+        QVERIFY(view()->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/match-arrows-%1.png")
+                                       .arg(QString::fromLatin1(QTest::currentDataTag()))));
+        if (bothEngines)
+            QVERIFY(m_window->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/match-arrows-window.png")));
+        master->setChecked(false);
+        QTRY_VERIFY(view()->arrows().isEmpty());
+        QVERIFY(ponder->isChecked());
+        QVERIFY(!ponder->isEnabled());
+        master->setChecked(true);
+        QTRY_COMPARE(view()->arrows().size(), bothEngines ? 2 : 1);
+
+        if (!bothEngines) {
+            // 予想手が当たれば、新たなinfoを待たず先読み候補が赤の実線になる。
+            view()->setFlipMode(false);
+            move(humanBlack ? QPoint(2, 7) : QPoint(3, 3),
+                 humanBlack ? QPoint(2, 6) : QPoint(3, 4));
+            QTRY_VERIFY(commands().join('\n').contains("ponderhit"));
+            QTRY_COMPARE(view()->arrows().size(), 1);
+            QCOMPARE(view()->arrows().first().penStyle, Qt::SolidLine);
+        }
+        finish();
+        QTRY_VERIFY(view()->arrows().isEmpty());
+    }
+
+    void arrowsPonderMiss()
+    {
+        qputenv("AUDIT_ENGINE_WAIT_FOR_STOP", "1");
+        start();
+        m_window->findChild<QCheckBox*>("matchArrows")->setChecked(true);
+        m_window->findChild<QCheckBox*>("ponderArrows")->setChecked(true);
+        move(QPoint(7, 7), QPoint(7, 6));
+        QTRY_COMPARE(view()->arrows().size(), 1);
+        trigger("actionMakeImmediateMove");
+        QTRY_COMPARE(rows(), 3);
+        QTRY_VERIFY(view()->arrows().size() == 1 && view()->arrows().first().penStyle == Qt::DashLine);
+        move(QPoint(9, 7), QPoint(9, 6));
+        QTRY_VERIFY(view()->arrows().size() == 1 && view()->arrows().first().penStyle == Qt::SolidLine);
+        QVERIFY(!commands().contains("ponderhit"));
+        finish();
+        QTRY_VERIFY(view()->arrows().isEmpty());
+    }
+
+    void arrowsConsiderationExclusive()
+    {
+        qputenv("AUDIT_ENGINE_WAIT_FOR_STOP", "1");
+        start();
+        auto* master = m_window->findChild<QCheckBox*>("matchArrows");
+        auto* ponder = m_window->findChild<QCheckBox*>("ponderArrows");
+        master->setChecked(true);
+        ponder->setChecked(true);
+        move(QPoint(7, 7), QPoint(7, 6));
+        QTRY_COMPARE(view()->arrows().size(), 1);
+        finish();
+        QTRY_VERIFY(view()->arrows().isEmpty());
+        auto* toggle = m_window->findChild<QCheckBox*>("considerationArrows");
+        auto* startStop = m_window->findChild<QToolButton*>("considerationStartStop");
+        QVERIFY(toggle && startStop);
+        record()->firstButton()->click();
+        QCoreApplication::processEvents();
+        startStop->click();
+        QTRY_COMPARE(startStop->text(), QStringLiteral("検討中止"));
+        QTRY_COMPARE(view()->arrows().size(), 1);
+        QVERIFY(!master->isEnabled());
+        QVERIFY(!ponder->isEnabled());
+        toggle->setChecked(false);
+        QTRY_VERIFY(view()->arrows().isEmpty());
+        QTest::qWait(100);
+        QVERIFY(view()->arrows().isEmpty());
+        toggle->setChecked(true);
+        QTRY_COMPARE(view()->arrows().size(), 1);
+        startStop->click();
+        QTRY_COMPARE(startStop->text(), QStringLiteral("検討開始"));
+        QTRY_VERIFY(view()->arrows().isEmpty());
+        QVERIFY(master->isEnabled());
+        QVERIFY(master->isChecked());
+        QVERIFY(ponder->isChecked());
+    }
+
     void initTestCase()
     {
         QVERIFY(m_logs.isValid());

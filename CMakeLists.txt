@@ -594,6 +594,8 @@ set(SRC_BOARD
 )
 
 set(SRC_UI
+    src/ui/controllers/candidatearrowcontroller.cpp
+    src/ui/controllers/candidatearrowcontroller.h
     src/ui/controllers/boardsetupcontroller.cpp
     src/ui/controllers/boardsetupcontroller.h
     src/ui/controllers/evaluationgraphcontroller.cpp
