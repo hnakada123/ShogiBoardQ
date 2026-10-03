@@ -66,7 +66,6 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionLanguageJapanese"),
         QStringLiteral("actionLanguageEnglish"),
         QStringLiteral("actionVersionInfo"),
-        QStringLiteral("actionUsage"),
     };
     return actions;
 }

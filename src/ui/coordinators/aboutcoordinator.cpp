@@ -19,9 +19,4 @@ void openProjectWebsite()
     QDesktopServices::openUrl(QUrl("https://hnakada123.github.io/ShogiBoardQ/"));
 }
 
-void openUsageGuide()
-{
-    QDesktopServices::openUrl(QUrl("https://hnakada123.github.io/ShogiBoardQ/guide/"));
-}
-
 } // namespace AboutCoordinator

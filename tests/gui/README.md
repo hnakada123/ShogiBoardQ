@@ -44,7 +44,7 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb timeout 60s build/gui-audit/test-build/tst_p
 # 修正対象のシナリオだけを実行
 xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
   currentPositionCopy bodCurrentPosition commentsAndBookmark \
-  consideration dockVisibilityAndLock usageLink branchNavigation
+  consideration dockVisibilityAndLock websiteLink branchNavigation
 ```
 
 外観の切替は `boardThemes` で「榧と畳」「墨と榧」「琥珀」の選択、木目・影・駒倍率の変更、複数盤面への反映、再起動後の復元、反転を検証します。`board-appearance-main.png`、`board-appearance-flipped.png`、`board-appearance-dialog.png` と各テーマの盤面画像を保存します。
@@ -103,7 +103,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 
 `mock_usi.py`は決まった思考情報と指し手を返す検証用エンジン。実エンジンの評価精度・棋力は検証しない。通常のGUIシナリオではCSAは設定画面までを確認する。WebリンクはURLハンドラで宛先を検査するため、ブラウザ起動・外部通信は行わない。
 
-現在局面のSFEN/BODコピー、分岐からのコピー、コメント・しおりの保存と再読込、検討開始・中止の繰り返し、全ドックの固定、「使い方」のURL表示を回帰テストに含む。加えて棋譜形式の相互変換、対局、解析、詰み探索、画像保存などを検証する。
+現在局面のSFEN/BODコピー、分岐からのコピー、コメント・しおりの保存と再読込、検討開始・中止の繰り返し、全ドックの固定、「ホームページ」のURL表示を回帰テストに含む。加えて棋譜形式の相互変換、対局、解析、詰み探索、画像保存などを検証する。
 
 詰将棋対局は次のコマンドで検証します。実際の盤クリック、成り、持ち駒の打ち込み、
 Hayanagiの応手、正解・不詰の通知、問題切替を確認し、`tsume-play.png` と

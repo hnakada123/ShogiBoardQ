@@ -15,9 +15,6 @@ void showVersionDialog(QWidget* parent);
 // プロジェクトWebサイトを既定ブラウザで開きます。
 void openProjectWebsite();
 
-// 利用ガイドを既定ブラウザで開きます。
-void openUsageGuide();
-
 } // namespace AboutCoordinator
 
 #endif // ABOUTCOORDINATOR_H
