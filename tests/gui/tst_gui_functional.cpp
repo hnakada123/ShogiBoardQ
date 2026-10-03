@@ -2552,6 +2552,7 @@ private slots:
         QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_") + language + ".qm"));
         qApp->installTranslator(&translator);
         KifuPresentation::configure(language, notation, false);
+        ApplicationFonts::initialize({}, language);
         const bool western = KifuPresentation::options().notation == KifuPresentation::Notation::Western;
         window = std::make_unique<MainWindow>();
         window->resize(1400, 1000);
@@ -2563,6 +2564,9 @@ private slots:
         QTRY_VERIFY(model->rowCount() > 3);
         QVERIFY2(model->index(1, 0).data().toString().contains(western ? QStringLiteral("P-7f") : QStringLiteral("７六歩")),
                  qPrintable(model->index(1, 0).data().toString()));
+        const QFont cellFont = western ? record()->kifuView()->font()
+            : ApplicationFonts::japaneseFont(record()->kifuView()->font());
+        QVERIFY(record()->kifuView()->rowHeight(1) >= QFontMetrics(cellFont).height() + 4);
         const QString saved = copy("actionCopyKIF");
         QVERIFY(saved.contains(QStringLiteral("７六歩")));
         QVERIFY(!saved.contains(QStringLiteral("P-7f")));
@@ -2601,6 +2605,7 @@ private slots:
         window.reset();
         qApp->removeTranslator(&translator);
         KifuPresentation::configure("ja_JP", "auto", false);
+        ApplicationFonts::initialize();
     }
     void languageSettings()
     {

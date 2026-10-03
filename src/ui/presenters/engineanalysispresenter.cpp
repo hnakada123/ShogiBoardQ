@@ -2,6 +2,7 @@
 /// @brief エンジン解析思考ビュープレゼンタの実装
 
 #include "engineanalysispresenter.h"
+#include "kifumovedelegate.h"
 #include "logviewfontmanager.h"
 
 #include <QTableView>
@@ -118,7 +119,7 @@ void EngineAnalysisPresenter::setupThinkingViewHeader(QTableView* v)
     auto* vh = v->verticalHeader();
     if (vh) {
         vh->setVisible(false);
-        const int rowHeight = v->fontMetrics().height() + 4;
+        const int rowHeight = KifuMoveDelegate::textHeight(v->font()) + 4;
         vh->setDefaultSectionSize(rowHeight);
         vh->setSectionResizeMode(QHeaderView::Fixed);
     }
@@ -262,13 +263,13 @@ void EngineAnalysisPresenter::initThinkingFontManager()
         if (m_view1) {
             m_view1->setFont(font);
             m_view1->setStyleSheet(headerStyle);
-            const int rowHeight = m_view1->fontMetrics().height() + 4;
+            const int rowHeight = KifuMoveDelegate::textHeight(m_view1->font()) + 4;
             m_view1->verticalHeader()->setDefaultSectionSize(rowHeight);
         }
         if (m_view2) {
             m_view2->setFont(font);
             m_view2->setStyleSheet(headerStyle);
-            const int rowHeight = m_view2->fontMetrics().height() + 4;
+            const int rowHeight = KifuMoveDelegate::textHeight(m_view2->font()) + 4;
             m_view2->verticalHeader()->setDefaultSectionSize(rowHeight);
         }
 

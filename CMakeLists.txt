@@ -771,6 +771,7 @@ set(SRC_WIDGETS
     src/widgets/menubuttonwidget.h
     src/widgets/numericrightaligncommadelegate.h
     src/widgets/pvboardbuttondelegate.h
+    src/widgets/kifumovedelegate.h
     src/widgets/recordpane.cpp
     src/widgets/recordpane_branch.cpp
     src/widgets/recordpane.h

@@ -3,6 +3,7 @@
 
 #include "branchtreemanager.h"
 #include "kifupresentation.h"
+#include "applicationfonts.h"
 #include "logcategories.h"
 
 #include <QGraphicsScene>
@@ -44,7 +45,9 @@ static void debugFontInfo(const QFont &font, const QString &context)
 
 QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifDisplayItem& entry)
 {
-    const QFont LABEL_FONT(QApplication::font().family(), 10);
+    QFont LABEL_FONT(QApplication::font().family(), 10);
+    if (!entry.usiMove.isEmpty() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        LABEL_FONT = ApplicationFonts::japaneseFont(LABEL_FONT);
     const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
 
     static bool fontDebugDone = false;
@@ -158,9 +161,11 @@ void BranchTreeManager::rebuildBranchTree()
     const QFont LABEL_FONT(QApplication::font().family(), 10);
     const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
     m_columnSpacing = 110.0;
-    const QFontMetrics spacingMetrics(LABEL_FONT);
     for (const auto& row : std::as_const(m_rows)) {
         for (const auto& entry : row.disp) {
+            const QFontMetrics spacingMetrics(!entry.usiMove.isEmpty()
+                && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese
+                    ? ApplicationFonts::japaneseFont(LABEL_FONT) : LABEL_FONT);
             const QString text = KifuPresentation::label(entry.prettyMove, entry.beforeSfen, entry.usiMove);
             m_columnSpacing = qMax(m_columnSpacing, qreal(spacingMetrics.horizontalAdvance(text) + 48));
         }
@@ -338,7 +343,10 @@ bool BranchTreeManager::appendNodeToRow(int row, int ply, const KifDisplayItem& 
     QGraphicsPathItem* prev = m_nodeIndex.value(qMakePair(row, ply - 1), nullptr);
     if (!prev) return false;
 
-    const QFontMetrics metrics(QFont(QApplication::font().family(), 10));
+    QFont font(QApplication::font().family(), 10);
+    if (!item.usiMove.isEmpty() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        font = ApplicationFonts::japaneseFont(font);
+    const QFontMetrics metrics(font);
     const QString text = KifuPresentation::label(item.prettyMove, item.beforeSfen, item.usiMove);
     if (metrics.horizontalAdvance(text) + 48 > m_columnSpacing) {
         rv.disp.append(item);

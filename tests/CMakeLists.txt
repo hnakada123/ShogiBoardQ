@@ -98,12 +98,16 @@ add_library(kifupresentation_test STATIC
 target_include_directories(kifupresentation_test PRIVATE ${TEST_INCLUDES})
 target_link_libraries(kifupresentation_test PRIVATE Qt6::Core)
 
+add_library(applicationfonts_test STATIC ${SRC}/common/applicationfonts.cpp)
+target_include_directories(applicationfonts_test PRIVATE ${TEST_INCLUDES})
+target_link_libraries(applicationfonts_test PRIVATE Qt6::Widgets)
+
 # ---- Helper macro to add a test ----
 macro(add_shogi_test NAME)
     add_executable(${NAME} ${ARGN})
     target_include_directories(${NAME} PRIVATE ${TEST_INCLUDES})
     target_compile_definitions(${NAME} PRIVATE SHOGIBOARDQ_TESTING=1)
-    target_link_libraries(${NAME} PRIVATE ${TEST_LIBS} kifupresentation_test)
+    target_link_libraries(${NAME} PRIVATE ${TEST_LIBS} kifupresentation_test applicationfonts_test)
     set_target_properties(${NAME} PROPERTIES AUTOMOC ON)
     add_test(NAME ${NAME} COMMAND ${NAME})
     # ヘッドレスCI環境でもWidgetsテストを実行できるようにする

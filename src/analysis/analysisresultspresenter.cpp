@@ -2,6 +2,7 @@
 /// @brief 解析結果表示プレゼンタクラスの実装
 
 #include "analysisresultspresenter.h"
+#include "kifumovedelegate.h"
 #include "logcategories.h"
 #include "buttonstyles.h"
 #include <QDockWidget>
@@ -389,7 +390,7 @@ void AnalysisResultsPresenter::applyFontSize(int size)
     m_view->setFont(font);
     m_view->setStyleSheet(TableStyles::thinking(font.pointSize()));
     m_view->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    m_view->verticalHeader()->setDefaultSectionSize(m_view->fontMetrics().height() + 10);
+    m_view->verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(m_view->font()) + 10);
     m_fontDecrease->setEnabled(font.pointSize() > 8);
     m_fontIncrease->setEnabled(font.pointSize() < 24);
     m_reflowTimer->start();

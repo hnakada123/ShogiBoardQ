@@ -2,6 +2,7 @@
 /// @brief 定跡手入力ウィジェットクラスの実装
 
 #include "josekimoveinputwidget.h"
+#include "applicationfonts.h"
 #include "kifupresentation.h"
 #include "josekipresenter.h"
 #include "sfenpositiontracer.h"
@@ -11,6 +12,7 @@
 #include <QHBoxLayout>
 #include <QGridLayout>
 #include <QLabel>
+#include <QAbstractItemView>
 #include <QRadioButton>
 #include <QRegularExpression>
 #include <QSignalBlocker>
@@ -165,6 +167,14 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
     QLabel *previewTitleLabel = new QLabel(tr("プレビュー:"), this);
     m_previewLabel = new QLabel(this);
     m_previewLabel->setObjectName(QStringLiteral("movePreview"));
+    const bool japaneseNotation = KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
+    const QList<QWidget*> japaneseWidgets{m_previewLabel, m_fromRankCombo, m_toRankCombo,
+                                         m_dropToRankCombo, m_dropPieceCombo};
+    for (QWidget* widget : japaneseWidgets) {
+        ApplicationFonts::useJapaneseFont(widget, japaneseNotation);
+        if (auto* combo = qobject_cast<QComboBox*>(widget))
+            ApplicationFonts::useJapaneseFont(combo->view(), japaneseNotation);
+    }
 
     QLabel *usiTitleLabel = new QLabel(tr("USI形式:"), this);
     m_usiLabel = new QLabel(this);

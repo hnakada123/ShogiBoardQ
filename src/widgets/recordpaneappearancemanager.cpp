@@ -2,6 +2,7 @@
 /// @brief 棋譜欄の外観管理クラスの実装
 
 #include "recordpaneappearancemanager.h"
+#include "kifumovedelegate.h"
 #include "gamesettings.h"
 #include "tablestyles.h"
 #include "logcategories.h"
@@ -50,14 +51,14 @@ void RecordPaneAppearanceManager::applyFontToViews(QTableView* kifu, QTableView*
     if (kifu) {
         kifu->setFont(font);
         kifu->setStyleSheet(kifuTableStyleSheet(m_fontSize));
-        const int rowHeight = kifu->fontMetrics().height() + 4;
+        const int rowHeight = KifuMoveDelegate::textHeight(kifu->font()) + 4;
         kifu->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
 
     if (branch) {
         branch->setFont(font);
         branch->setStyleSheet(branchTableStyleSheet(m_fontSize));
-        const int rowHeight = branch->fontMetrics().height() + 4;
+        const int rowHeight = KifuMoveDelegate::textHeight(branch->font()) + 4;
         branch->verticalHeader()->setDefaultSectionSize(rowHeight);
     }
 }

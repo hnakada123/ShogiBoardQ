@@ -146,7 +146,7 @@ int main(int argc, char *argv[])
 
     // Creatorのような「Fusion」スタイルに統一する。
     a.setStyle(QStyleFactory::create("Fusion"));
-    ApplicationFonts::initialize(AppSettings::uiFontFamily());
+    ApplicationFonts::initialize(AppSettings::uiFontFamily(), language);
 
     // QDialogButtonBox のデフォルトスタイル（全ダイアログ共通）
     a.setStyleSheet(QStringLiteral(

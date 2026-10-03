@@ -2,6 +2,7 @@
 /// @brief JosekiWindow の UI構築・表示更新メソッド群
 
 #include "josekiwindow.h"
+#include "kifumovedelegate.h"
 #include "josekirepository.h"
 #include "josekipresenter.h"
 #include "josekisettings.h"
@@ -202,6 +203,9 @@ void JosekiWindow::setupUi()
     mainLayout->addWidget(m_sfenDetailWidget);
 
     m_tableWidget = new QTableWidget(this);
+    auto* moveDelegate = new KifuMoveDelegate(m_tableWidget);
+    m_tableWidget->setItemDelegateForColumn(2, moveDelegate);
+    m_tableWidget->setItemDelegateForColumn(3, moveDelegate);
     m_tableWidget->setObjectName(QStringLiteral("josekiTable"));
     m_tableWidget->setColumnCount(10);
     QStringList headers;

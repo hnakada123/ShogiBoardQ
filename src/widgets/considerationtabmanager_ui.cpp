@@ -2,6 +2,7 @@
 /// @brief ConsiderationTabManager のUI構築・フォント管理
 
 #include "considerationtabmanager.h"
+#include "kifumovedelegate.h"
 #include "logviewfontmanager.h"
 #include "buttonstyles.h"
 #include "engineinfowidget.h"
@@ -224,7 +225,7 @@ void ConsiderationTabManager::buildConsiderationView(QWidget* parentWidget)
         auto* vh = m_considerationView->verticalHeader();
         if (vh) {
             vh->setVisible(false);
-            const int rowHeight = m_considerationView->fontMetrics().height() + 4;
+            const int rowHeight = KifuMoveDelegate::textHeight(m_considerationView->font()) + 4;
             vh->setDefaultSectionSize(rowHeight);
             vh->setSectionResizeMode(QHeaderView::Fixed);
         }
@@ -361,7 +362,7 @@ void ConsiderationTabManager::initFontManager()
             const QSignalBlocker blocker(m_considerationView->horizontalHeader());
             m_considerationView->setFont(font);
             m_considerationView->setStyleSheet(headerStyle);
-            const int rowHeight = m_considerationView->fontMetrics().height() + 4;
+            const int rowHeight = KifuMoveDelegate::textHeight(m_considerationView->font()) + 4;
             m_considerationView->verticalHeader()->setDefaultSectionSize(rowHeight);
             applyViewColumnWidths();
         }

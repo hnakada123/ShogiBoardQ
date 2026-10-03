@@ -4,6 +4,7 @@
 #include "boardsurfacepainter.h"
 #include "piecepainter.h"
 #include "kifupresentation.h"
+#include "applicationfonts.h"
 #include <QPainter>
 
 TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent) : QWidget(parent)
@@ -44,11 +45,14 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
         painter.drawLine(55, 24 + i * 24, 271, 24 + i * 24);
     }
     painter.setPen(palette().color(QPalette::Text));
+    if (KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        painter.setFont(ApplicationFonts::japaneseFont(boardFont));
     for (int i = 0; i < 9; ++i) {
         painter.drawText(QRect(55 + i * 24, 2, 24, 20), Qt::AlignCenter, QString::number(flipped ? i + 1 : 9 - i));
         painter.drawText(QRect(272, 24 + i * 24, 16, 24), Qt::AlignCenter,
                          KifuPresentation::rankLabel(flipped ? 9 - i : i + 1));
     }
+    painter.setFont(boardFont);
     static const char codes[] = " PLNSGBRKQMOTCU";
     for (int square = 0; square < 81; ++square) {
         const int piece = m_position.piece_at(square);

@@ -129,7 +129,11 @@ class TestDialogAppearance : public QObject
     }
 
 private slots:
-    void init() { QVERIFY(SettingsCommon::resetAllSettings()); }
+    void init()
+    {
+        QVERIFY(SettingsCommon::resetAllSettings());
+        ApplicationFonts::initialize();
+    }
 
     void dialogs_data()
     {
@@ -156,6 +160,7 @@ private slots:
             QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_en.qm")));
             qApp->installTranslator(&translator);
         }
+        ApplicationFonts::initialize({}, english ? QStringLiteral("en") : QStringLiteral("ja_JP"));
         auto dialog = create(name);
         dialog->show();
         QVERIFY(QTest::qWaitForWindowExposed(dialog.get()));

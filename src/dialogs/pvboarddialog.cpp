@@ -2,6 +2,8 @@
 /// @brief 読み筋盤面ダイアログクラスの実装
 
 #include "pvboarddialog.h"
+#include "applicationfonts.h"
+#include "kifupresentation.h"
 #include "pvboardcontroller.h"
 #include "buttonstyles.h"
 #include "shogiview.h"
@@ -119,6 +121,8 @@ void PvBoardDialog::buildUi()
 
     // 読み筋ラベル（スクロール可能なラベル）
     m_pvLabel = new QLabel(this);
+    ApplicationFonts::useJapaneseFont(m_pvLabel,
+        KifuPresentation::options().notation == KifuPresentation::Notation::Japanese);
     m_pvLabel->setWordWrap(true);
     m_pvLabel->setStyleSheet(QStringLiteral(
         "QLabel { background-color: #f5f5f5; border: 1px solid #ccc; "

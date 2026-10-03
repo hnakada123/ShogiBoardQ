@@ -37,8 +37,17 @@ private slots:
         ApplicationFonts::applyFamily({});
     }
 
+    void previewCancelApplyAndRestore_data()
+    {
+        QTest::addColumn<QString>("language");
+        for (const auto* language : {"ja_JP", "en", "zh_CN", "zh_TW"})
+            QTest::newRow(language) << QString::fromLatin1(language);
+    }
+
     void previewCancelApplyAndRestore()
     {
+        QFETCH(QString, language);
+        ApplicationFonts::initialize({}, language);
         QStringList families = QFontDatabase::families();
         families.removeAll(ApplicationFonts::defaultFamily());
         if (families.isEmpty()) QSKIP("An alternative font is required.");
@@ -73,7 +82,7 @@ private slots:
         QSettings disk(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
         QCOMPARE(disk.value(SettingsKeys::kUiFontFamily).toString(), chosen);
         ApplicationFonts::applyFamily({});
-        ApplicationFonts::initialize(AppSettings::uiFontFamily());
+        ApplicationFonts::initialize(AppSettings::uiFontFamily(), language);
         QCOMPARE(QApplication::font().family(), chosen);
 
         FontSettingsDialog restored;
