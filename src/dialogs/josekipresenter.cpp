@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウのプレゼンタークラスの実装
 
 #include "josekipresenter.h"
+#include "kifupresentation.h"
 #include "josekirepository.h"
 #include "josekiwindow.h"  // JosekiMove 構造体
 #include "josekimergedialog.h"  // KifuMergeEntry 構造体
@@ -52,6 +53,9 @@ QString JosekiPresenter::usiMoveToJapanese(const QString &usiMove,
 {
     if (usiMove.isEmpty()) return QString();
     if (usiMove == QStringLiteral("none")) return tr("なし");
+
+    if (KifuPresentation::options().notation == KifuPresentation::Notation::Western)
+        return KifuPresentation::move(tracer.toSfenString(), usiMove, KifuPresentation::options());
 
     // 手番記号
     QString teban = tracer.blackToMove() ? QStringLiteral("▲") : QStringLiteral("△");
@@ -211,7 +215,7 @@ QList<KifuMergeEntry> JosekiPresenter::buildMergeEntries(const QStringList &sfen
 
         // 日本語表記を取得（japaneseMoveListの先頭は「=== 開始局面 ===」なので+1）
         if (i + 1 < japaneseMoveList.size()) {
-            entry.japaneseMove = japaneseMoveList[i + 1];
+            entry.japaneseMove = KifuPresentation::label(japaneseMoveList[i + 1], sfenList.value(i), moveList.at(i));
         } else {
             entry.japaneseMove = moveList[i];
         }
@@ -276,7 +280,7 @@ bool JosekiPresenter::buildMergeEntriesFromKifFile(const QString &kifFilePath,
         }
 
         if (dispIndex < mainline.disp.size() && !mainline.disp[dispIndex].prettyMove.isEmpty()) {
-            entry.japaneseMove = mainline.disp[dispIndex].prettyMove;
+            entry.japaneseMove = KifuPresentation::label(mainline.disp[dispIndex].prettyMove, mainline.sfenList.value(i), mainline.usiMoves.at(i));
         } else {
             entry.japaneseMove = mainline.usiMoves[i];
         }

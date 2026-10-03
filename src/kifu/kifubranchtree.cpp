@@ -1,3 +1,4 @@
+#include "kifupresentation.h"
 /// @file kifubranchtree.cpp
 /// @brief 分岐ツリーデータモデルクラスの実装
 
@@ -436,6 +437,9 @@ QList<KifDisplayItem> KifuBranchTree::displayItemsForLine(int lineIndex) const
     for (KifuBranchNode* node : std::as_const(line.nodes)) {
         KifDisplayItem item;
         item.prettyMove = node->displayText();
+        item.beforeSfen = node->parent() ? node->parent()->sfen() : QString();
+        item.usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
+        item.terminal = node->isTerminal();
         item.comment = node->comment();
         item.bookmark = node->bookmark();
         item.timeText = node->timeText();

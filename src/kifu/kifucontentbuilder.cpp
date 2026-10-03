@@ -57,6 +57,7 @@ QStringList KifuContentBuilder::buildKifuDataList(const KifuExportContext& ctx)
 
 QList<KifGameInfoItem> KifuContentBuilder::collectGameInfo(const KifuExportContext& ctx)
 {
+    if (ctx.gameInfoProvided || !ctx.gameInfoItems.isEmpty()) return ctx.gameInfoItems;
     QList<KifGameInfoItem> items;
 
     // a) 既存の「対局情報」テーブルがあれば採用

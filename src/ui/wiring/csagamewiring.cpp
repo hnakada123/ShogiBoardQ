@@ -4,6 +4,7 @@
 #include "csagamewiring.h"
 #include "uistatepolicymanager.h"
 #include "gamerecordupdateservice.h"
+#include "sfenpositiontracer.h"
 #include "uinotificationservice.h"
 
 #include "logcategories.h"
@@ -138,7 +139,16 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
 
     for (qsizetype i = 0; i < initialPrettyMoves.size(); ++i) {
         const QString sfen = m_sfenHistory ? m_sfenHistory->value(i + 1) : QString();
+        if (m_gameMoves && m_gameMoves->size() == i && m_coordinator && m_sfenHistory)
+            m_gameMoves->append(SfenPositionTracer::buildGameMoves(
+                m_sfenHistory->value(i), {m_coordinator->usiMoves().value(i)}));
         appendInitialKifuLine(initialPrettyMoves.at(i), sfen);
+        if (m_kifuRecordModel && m_coordinator) {
+            if (auto* item = m_kifuRecordModel->item(static_cast<int>(i + 1))) {
+                item->beforeSfen = m_sfenHistory ? m_sfenHistory->value(i) : QString();
+                item->usiMove = m_coordinator->usiMoves().value(i);
+            }
+        }
     }
 
     // 手数カウンタを、Game_Summary に含まれていた既存手順の末尾へ合わせる
@@ -238,8 +248,6 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
 void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
                                const QString& prettyMove, int consumedTimeMs)
 {
-    Q_UNUSED(usiMove)
-
     qCDebug(lcUi) << "onMoveMade:" << prettyMove;
 
     if (!m_coordinator) return;
@@ -253,7 +261,19 @@ void CsaGameWiring::onMoveMade(const QString& csaMove, const QString& usiMove,
     const QString elapsedStr = KifuParseCommon::formatTimeText(consumedTimeMs, totalMs);
 
     // 棋譜欄に追記
+    if (m_gameMoves && m_sfenHistory && m_sfenHistory->size() >= 2
+        && m_gameMoves->size() + 1 == m_coordinator->usiMoves().size())
+        m_gameMoves->append(SfenPositionTracer::buildGameMoves(
+            m_sfenHistory->at(m_sfenHistory->size() - 2), {usiMove}));
+    const int previousRows = m_kifuRecordModel ? m_kifuRecordModel->rowCount() : 0;
     Q_EMIT appendKifuLineRequested(prettyMove, elapsedStr);
+    if (m_kifuRecordModel && m_kifuRecordModel->rowCount() > previousRows
+        && m_sfenHistory && m_sfenHistory->size() >= 2) {
+        if (auto* item = m_kifuRecordModel->item(m_kifuRecordModel->rowCount() - 1)) {
+            item->beforeSfen = m_sfenHistory->at(m_sfenHistory->size() - 2);
+            item->usiMove = usiMove;
+        }
+    }
 
     // 手数を更新
     if (m_kifuRecordModel) {
@@ -309,29 +329,19 @@ QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool lose
 {
     const QString mark = loserIsBlack ? QStringLiteral("▲") : QStringLiteral("△");
 
-    if (cause == CsaClient::GameEndCause::Resign) {
-        return mark + tr("投了");
+    // Keep the record canonical; the presentation layer translates the terminal label.
+    using Cause = CsaClient::GameEndCause;
+    switch (cause) {
+    case Cause::Resign: return mark + QStringLiteral("投了");
+    case Cause::TimeUp: return mark + QStringLiteral("切れ負け");
+    case Cause::IllegalMove:
+    case Cause::IllegalAction:
+    case Cause::OuteSennichite: return mark + QStringLiteral("反則負け");
+    case Cause::Sennichite: return QStringLiteral("千日手");
+    case Cause::Jishogi: return QStringLiteral("入玉勝ち");
+    case Cause::MaxMoves: return QStringLiteral("最大手数到達");
+    default: return QStringLiteral("中断");
     }
-    if (cause == CsaClient::GameEndCause::TimeUp) {
-        return mark + tr("時間切れ");
-    }
-    if (cause == CsaClient::GameEndCause::IllegalMove
-        || cause == CsaClient::GameEndCause::IllegalAction) {
-        return mark + tr("反則負け");
-    }
-    if (cause == CsaClient::GameEndCause::Sennichite) {
-        return tr("千日手");
-    }
-    if (cause == CsaClient::GameEndCause::OuteSennichite) {
-        return mark + tr("反則負け（連続王手）");
-    }
-    if (cause == CsaClient::GameEndCause::Jishogi) {
-        return tr("入玉宣言");
-    }
-    if (cause == CsaClient::GameEndCause::Chudan) {
-        return tr("中断");
-    }
-    return CsaMoveConverter::gameEndCauseToString(cause);
 }
 
 void CsaGameWiring::onPlayModeChangedInternal(int mode)
@@ -367,22 +377,7 @@ void CsaGameWiring::appendInitialKifuLine(const QString& prettyMove, const QStri
 
 QString CsaGameWiring::buildNumberedKifuLine(const QString& prettyMove) const
 {
-    int moveRows = 0;
-    if (m_kifuRecordModel) {
-        moveRows = m_kifuRecordModel->rowCount();
-        if (moveRows > 0) {
-            const QModelIndex headIdx = m_kifuRecordModel->index(0, 0);
-            const QString headText = m_kifuRecordModel->data(headIdx, Qt::DisplayRole).toString();
-            if (headText.contains(tr("開始局面"))
-                || headText.contains(QStringLiteral("平手"))
-                || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
-                --moveRows;
-                if (moveRows < 0) {
-                    moveRows = 0;
-                }
-            }
-        }
-    }
+    const int moveRows = m_kifuRecordModel ? qMax(0, m_kifuRecordModel->rowCount() - 1) : 0;
 
     const int nextMoveNumber = moveRows + 1;
     const QString moveNumberStr = QString::number(nextMoveNumber);

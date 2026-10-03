@@ -81,6 +81,9 @@ def server_env(cli_path: Path, test_config: Path, tmp_path_factory) -> dict[str,
     env["XDG_CONFIG_HOME"] = str(test_config)
     env["XDG_RUNTIME_DIR"] = str(tmp_path_factory.mktemp("runtime"))
     env["QT_QPA_PLATFORM"] = "offscreen"
+    # GUI scenarios (including those creating their own config) locate Japanese labels.
+    env["LC_ALL"] = "ja_JP.UTF-8"
+    env["LANGUAGE"] = "ja_JP"
     env["SHOGIBOARDQ_ALLOWED_DIRS"] = os.pathsep.join([str(tmp_path_factory.getbasetemp()), str(REPO_ROOT / "tests")])
     env["SHOGIBOARDQ_OUTPUT_DIR"] = str(tmp_path_factory.mktemp("output"))
     env["PYTHONDONTWRITEBYTECODE"] = "1"

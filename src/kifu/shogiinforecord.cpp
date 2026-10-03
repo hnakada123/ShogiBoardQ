@@ -2,6 +2,7 @@
 /// @brief USIエンジン思考情報レコードクラスの実装
 
 #include "shogiinforecord.h"
+#include "kifupresentation.h"
 
 // GUIの思考タブの表に「時間」「深さ」「ノード数」「評価値」「読み筋」をセットするためのクラス
 ShogiInfoRecord::ShogiInfoRecord(QObject* parent) : QObject(parent)
@@ -117,4 +118,17 @@ int ShogiInfoRecord::scoreCp() const
 void ShogiInfoRecord::setScoreCp(int scoreCp)
 {
     m_scoreCp = scoreCp;
+}
+
+QString ShogiInfoRecord::displayPv(bool fullOrigin) const
+{
+    const auto style = KifuPresentation::options();
+    const QString key = m_baseSfen + QLatin1Char('|') + m_usiPv + QLatin1Char('|')
+        + QString::number(static_cast<int>(style.notation)) + QString::number(style.alwaysOrigin);
+    if (m_displayCacheKey != key) {
+        m_displayCacheKey = key;
+        m_displayCache = KifuPresentation::pv(m_baseSfen, m_usiPv, m_pv);
+        m_tooltipCache = KifuPresentation::pv(m_baseSfen, m_usiPv, m_pv, true);
+    }
+    return fullOrigin ? m_tooltipCache : m_displayCache;
 }

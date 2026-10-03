@@ -71,32 +71,36 @@ void PlayerInfoController::setEngineNames(const QString& name1, const QString& n
     m_engineName2 = name2;
 }
 
-void PlayerInfoController::resolveDisplayNames(QString& blackName, QString& whiteName) const
+void PlayerInfoController::resolveDisplayNames(QString& blackName, QString& whiteName, bool displayFallback) const
 {
     switch (m_playMode) {
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
+        blackName = m_humanName1;
+        whiteName = m_engineName2;
         break;
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
+        blackName = m_engineName1;
+        whiteName = m_humanName2;
         break;
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:
-        blackName = m_engineName1.isEmpty() ? tr("先手") : m_engineName1;
-        whiteName = m_engineName2.isEmpty() ? tr("後手") : m_engineName2;
+        blackName = m_engineName1;
+        whiteName = m_engineName2;
         break;
     case PlayMode::HumanVsHuman:
-        blackName = m_humanName1.isEmpty() ? tr("先手") : m_humanName1;
-        whiteName = m_humanName2.isEmpty() ? tr("後手") : m_humanName2;
+        blackName = m_humanName1;
+        whiteName = m_humanName2;
         break;
     default:
-        blackName = tr("先手");
-        whiteName = tr("後手");
+        blackName.clear();
+        whiteName.clear();
         break;
+    }
+    if (displayFallback) {
+        if (blackName.isEmpty()) blackName = tr("先手");
+        if (whiteName.isEmpty()) whiteName = tr("後手");
     }
 }
 
@@ -162,7 +166,7 @@ void PlayerInfoController::updateGameInfoForCurrentMatch()
 
     QString blackName;
     QString whiteName;
-    resolveDisplayNames(blackName, whiteName);
+    resolveDisplayNames(blackName, whiteName, false);
 
     updateGameInfoPlayerNames(blackName, whiteName);
 }

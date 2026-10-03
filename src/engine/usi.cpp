@@ -2,6 +2,8 @@
 /// @brief USIプロトコル通信ファサードクラスの実装（構築・配線・アクセサ・コマンド送信）
 
 #include "usi.h"
+#include "kifupresentation.h"
+#include "sfenpositiontracer.h"
 #include "usimatchhandler.h"
 
 #include <QTimer>
@@ -147,6 +149,16 @@ void Usi::onDataReceived(const QString& line)
 
 void Usi::onMatchBestMoveReceived()
 {
+    if (m_commLogModel) {
+        SfenPositionTracer board;
+        QString prediction;
+        if (!m_protocolHandler->predictedMove().isEmpty()
+            && board.setFromSfen(m_presenter->baseSfen())
+            && board.applyUsiMove(m_protocolHandler->bestMove())) {
+            prediction = KifuPresentation::move(board.toSfenString(), m_protocolHandler->predictedMove(), KifuPresentation::options());
+        }
+        m_commLogModel->setPredictiveMove(prediction);
+    }
     m_matchHandler->onBestMoveReceived();
 }
 

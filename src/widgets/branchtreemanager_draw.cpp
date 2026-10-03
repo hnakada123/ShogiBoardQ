@@ -2,6 +2,7 @@
 /// @brief BranchTreeManager のシーン構築・ノード/エッジ描画
 
 #include "branchtreemanager.h"
+#include "kifupresentation.h"
 #include "logcategories.h"
 
 #include <QGraphicsScene>
@@ -20,7 +21,6 @@
 
 namespace {
 // レイアウト定数（ノード配置・シーン範囲・ラベル位置で共有）
-constexpr qreal kStepX  = 110.0;
 constexpr qreal kBaseX  = 40.0;
 constexpr qreal kShiftX = 40.0;
 constexpr qreal kBaseY  = 40.0;
@@ -42,7 +42,7 @@ static void debugFontInfo(const QFont &font, const QString &context)
 
 // ===================== ノード/エッジ描画 =====================
 
-QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& rawText)
+QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const KifDisplayItem& entry)
 {
     const QFont LABEL_FONT(QApplication::font().family(), 10);
     const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
@@ -54,11 +54,11 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& r
         fontDebugDone = true;
     }
 
-    const qreal x = kBaseX + kShiftX + ply * kStepX;
+    const qreal x = kBaseX + kShiftX + ply * m_columnSpacing;
     const qreal y = kBaseY + row * kStepY;
 
     static const QRegularExpression kDropHeadNumber(QStringLiteral(R"(^\s*[0-9０-９]+\s*)"));
-    QString labelText = rawText;
+    QString labelText = entry.prettyMove;
     labelText.replace(kDropHeadNumber, QString());
     labelText = labelText.trimmed();
 
@@ -67,7 +67,10 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& r
         labelText = labelText.trimmed();
     }
 
-    const bool odd = (ply % 2) == 1;
+    const QString canonical = labelText;
+    labelText = KifuPresentation::label(canonical, entry.beforeSfen, entry.usiMove);
+    const bool odd = entry.beforeSfen.isEmpty() ? (ply % 2) == 1
+        : entry.beforeSfen.section(QLatin1Char(' '), 1, 1) == QStringLiteral("b");
 
     const QColor mainOdd (196, 230, 255);
     const QColor mainEven(255, 223, 196);
@@ -87,6 +90,7 @@ QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& r
     auto* item = m_scene->addPath(path, QPen(Qt::black, 1.2));
     item->setBrush(fill);
     item->setZValue(10);
+    item->setToolTip(KifuPresentation::label(canonical, entry.beforeSfen, entry.usiMove, true));
     item->setData(ROLE_ORIGINAL_BRUSH, item->brush().color().rgba());
 
     item->setData(ROLE_ROW, row);
@@ -153,6 +157,15 @@ void BranchTreeManager::rebuildBranchTree()
 
     const QFont LABEL_FONT(QApplication::font().family(), 10);
     const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
+    m_columnSpacing = 110.0;
+    const QFontMetrics spacingMetrics(LABEL_FONT);
+    for (const auto& row : std::as_const(m_rows)) {
+        for (const auto& entry : row.disp) {
+            const QString text = KifuPresentation::label(entry.prettyMove, entry.beforeSfen, entry.usiMove);
+            m_columnSpacing = qMax(m_columnSpacing, qreal(spacingMetrics.horizontalAdvance(text) + 48));
+        }
+    }
+
 
     static bool fontDebugDone2 = false;
     if (!fontDebugDone2) {
@@ -207,7 +220,7 @@ void BranchTreeManager::rebuildBranchTree()
         for (qsizetype i = 1; i < main.disp.size(); ++i) {
             const auto& it = main.disp.at(i);
             const int ply = static_cast<int>(i);
-            QGraphicsPathItem* node = addNode(0, ply, it.prettyMove);
+            QGraphicsPathItem* node = addNode(0, ply, it);
             if (prev) addEdge(prev, node);
             prev = node;
         }
@@ -282,7 +295,7 @@ void BranchTreeManager::rebuildBranchTree()
             const auto& it = rv.disp.at(cut + i);
             const int absPly = startPly + i;
 
-            QGraphicsPathItem* node = addNode(static_cast<int>(row), absPly, it.prettyMove);
+            QGraphicsPathItem* node = addNode(static_cast<int>(row), absPly, it);
 
             node->setData(BR_ROLE_STARTPLY, startPly);
             node->setData(BR_ROLE_BUCKET,   row - 1);
@@ -325,7 +338,15 @@ bool BranchTreeManager::appendNodeToRow(int row, int ply, const KifDisplayItem& 
     QGraphicsPathItem* prev = m_nodeIndex.value(qMakePair(row, ply - 1), nullptr);
     if (!prev) return false;
 
-    QGraphicsPathItem* node = addNode(row, ply, item.prettyMove);
+    const QFontMetrics metrics(QFont(QApplication::font().family(), 10));
+    const QString text = KifuPresentation::label(item.prettyMove, item.beforeSfen, item.usiMove);
+    if (metrics.horizontalAdvance(text) + 48 > m_columnSpacing) {
+        rv.disp.append(item);
+        rv.sfen.append(sfen);
+        rebuildBranchTree();
+        return true;
+    }
+    QGraphicsPathItem* node = addNode(row, ply, item);
     if (row == 0) {
         // 本譜ノードは自身に「n手目」ラベルを持つので、補完ラベルがあれば取り除く
         removeMoveNumberLabel(ply);
@@ -371,7 +392,7 @@ void BranchTreeManager::addMoveNumberLabel(int ply)
     const QString moveNo = tr("%1\u624b\u76ee").arg(ply);
     auto* noItem = m_scene->addSimpleText(moveNo, MOVE_NO_FONT);
     const QRectF nbr = noItem->boundingRect();
-    const qreal x = kBaseX + kShiftX + ply * kStepX;
+    const qreal x = kBaseX + kShiftX + ply * m_columnSpacing;
     noItem->setZValue(15);
     noItem->setPos(x - nbr.width() / 2.0, topY - nbr.height());
     m_plyLabels.insert(ply, noItem);
@@ -392,7 +413,7 @@ void BranchTreeManager::updateSceneRect()
     if (!m_scene) return;
     const int mainLen = m_rows.isEmpty() ? 0 : static_cast<int>(qMax(qsizetype(0), m_rows.at(0).disp.size() - 1));
     const int spanLen = qMax(mainLen, maxDrawnPly());
-    const qreal width  = (kBaseX + kShiftX) + kStepX * qMax(40, spanLen + 6) + 40.0;
+    const qreal width  = (kBaseX + kShiftX) + m_columnSpacing * qMax(40, spanLen + 6) + 40.0;
     const qreal height = 30 + kStepY * static_cast<qreal>(qMax(qsizetype(2), m_rows.size() + 1));
     m_scene->setSceneRect(QRectF(0, 0, width, height));
 }

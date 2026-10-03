@@ -9,6 +9,7 @@
 #include "kifubranchlistmodel.h"
 #include "kifudisplay.h"
 #include "kifdisplayitem.h"
+#include "kifupresentation.h"
 #include "branchtreemanager.h"
 
 #include "logcategories.h"
@@ -108,6 +109,8 @@ void KifuDisplayPresenter::populateRecordModel()
             node->bookmark(),
             m_refs.recordModel
         );
+        item->beforeSfen = node->parent() ? node->parent()->sfen() : QString();
+        item->usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
         m_refs.recordModel->appendItem(item);
     }
 
@@ -179,6 +182,8 @@ int KifuDisplayPresenter::populateRecordModelFromPath(const QList<KifuBranchNode
             node->bookmark(),
             m_refs.recordModel
         );
+        item->beforeSfen = node->parent() ? node->parent()->sfen() : QString();
+        item->usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
         m_refs.recordModel->appendItem(item);
     }
 
@@ -265,6 +270,9 @@ QList<BranchTreeManager::ResolvedRowLite> KifuDisplayPresenter::buildBranchTreeR
                 item.prettyMove = QString();
             } else {
                 item.prettyMove = node->displayText();
+                item.beforeSfen = node->parent() ? node->parent()->sfen() : QString();
+                item.usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
+                item.terminal = node->isTerminal();
             }
             item.timeText = node->timeText();
             item.comment = node->comment();

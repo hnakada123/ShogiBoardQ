@@ -234,6 +234,7 @@ void ShogiEngineInfoParser::parseEngineInfoTokens(const QStringList& tokens, con
         } else if (token == "hashfull") {
             m_hashfull = nextToken;
         } else if (token == "currmove") {
+            m_searchedUsi = nextToken;
             m_searchedHand =  convertCurrMoveToKanjiNotation(nextToken, algorithm, clonedBoardData, isPondering);
         } else if (token == "score") {
             parseScore(tokens, i);
@@ -329,6 +330,7 @@ void ShogiEngineInfoParser::clearParsedInfo()
     m_pvUsiStr.clear();
     m_hashfull.clear();
     m_searchedHand.clear();
+    m_searchedUsi.clear();
     m_evaluationBound = EvaluationBound::None;
 }
 

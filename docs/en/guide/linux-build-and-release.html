@@ -105,13 +105,13 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-source
 <h2>Create the Linux ZIP package</h2>
 <p>After preparing the <a href="#qt-sources">matching Qt notices and source archive</a>, run:</p>
 <pre><code>./scripts/build-linux.sh</code></pre>
-<p>The script builds the application, assembles <code>build/AppDir</code>, deploys Qt and the required plugins, copies translations and license documents, and creates <code>ShogiBoardQ-linux-x86_64.AppImage</code> in the repository root. It also creates <code>ShogiBoardQ-linux.zip</code> containing the AppImage, a standalone Hayanagi engine, and six puzzle collections (3, 5, 7, 9, 11, and 13 moves to mate; 1,000 puzzles each). The outer ZIP excludes <code>docs/</code>, <code>validation_*.json</code>, and <code>licenses/</code>. Qt notices remain inside the AppImage and are accessible from About. The QSQLITE plugin is checked so that tsume puzzle history works in the distributed application.</p>
+<p>The script builds the application, assembles <code>build/AppDir</code>, deploys Qt and the required plugins, copies all four application translations (ja_JP, en, zh_CN, zh_TW) and license documents, and creates <code>ShogiBoardQ-linux-x86_64.AppImage</code> in the repository root. It also creates <code>ShogiBoardQ-linux.zip</code> containing the AppImage, a standalone Hayanagi engine, and six puzzle collections (3, 5, 7, 9, 11, and 13 moves to mate; 1,000 puzzles each). The outer ZIP excludes <code>docs/</code>, <code>validation_*.json</code>, and <code>licenses/</code>. Qt notices remain inside the AppImage and are accessible from About. The QSQLITE plugin is checked so that tsume puzzle history works in the distributed application.</p>
 <pre><code>unzip ShogiBoardQ-linux.zip
 cd ShogiBoardQ-linux
 chmod +x ShogiBoardQ-linux-x86_64.AppImage Hayanagi/hayanagi
 ./ShogiBoardQ-linux-x86_64.AppImage</code></pre>
 <p>After extracting the ZIP, select a puzzle file from <code>ShogiBoardQ-linux/data/tsumeshogi/</code>, or register <code>ShogiBoardQ-linux/Hayanagi/hayanagi</code> as a regular USI engine. These external files can be selected without extracting the AppImage. The embedded tsume opponent requires no engine registration.</p>
-<p>Test the AppImage on a separate machine or environment without the Qt development SDK. Check English/Japanese switching, SVG pieces, sound, and saving tsume puzzle progress. Use <code>--help</code> to see the script's options.</p>
+<p>Test the AppImage on a separate machine or environment without the Qt development SDK. Check Japanese, English, and Chinese (Simplified/Traditional) switching, SVG pieces, sound, and saving tsume puzzle progress. Use <code>--help</code> to see the script's options.</p>
 </section>
 
 <section id="release" class="level2">

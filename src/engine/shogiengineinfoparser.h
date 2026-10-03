@@ -81,6 +81,7 @@ public:
 
     /// GUIの「探索手」欄に表示する読み筋の先頭手
     QString searchedHand() const;
+    QString searchedUsi() const { return m_searchedUsi; }
 
     /// 指し手を解析し、盤面コピーに適用する
     void parseAndApplyMoveToClonedBoard(const QString& str, QList<QChar>& clonedBoardData);
@@ -101,6 +102,7 @@ private:
     QString m_pvKanjiStr;       ///< 漢字表記の読み筋文字列
     QString m_pvUsiStr;         ///< USI形式の読み筋文字列
     QString m_hashfull;         ///< ハッシュ使用率（千分率）
+    QString m_searchedUsi;
     QString m_searchedHand;     ///< 探索手（読み筋の先頭手）
     int m_previousFileTo = 0;   ///< 直前の指し手の筋
     int m_previousRankTo = 0;   ///< 直前の指し手の段

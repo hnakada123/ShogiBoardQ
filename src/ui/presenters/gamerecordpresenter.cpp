@@ -67,7 +67,10 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
         const QString spaces = QString(qMax(0, 4 - moveNumberStr.length()), QLatin1Char(' '));
         const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + prettyMove;
 
-        items.append(new KifuDisplay(recordLine, it.timeText, it.comment, it.bookmark));
+        auto* row = new KifuDisplay(recordLine, it.timeText, it.comment, it.bookmark);
+        row->beforeSfen = it.beforeSfen;
+        row->usiMove = it.usiMove;
+        items.append(row);
     }
 
     // 一括追加（beginInsertRows/endInsertRows は1回だけ）
@@ -95,7 +98,8 @@ void GameRecordPresenter::presentGameRecord(const QList<KifDisplayItem>& disp) {
     }
 }
 
-void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QString& elapsedTime)
+void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QString& elapsedTime,
+                                         const QString& beforeSfen, const QString& usiMove)
 {
     const QString last = prettyMove.trimmed();
     if (last.isEmpty()) return;
@@ -103,24 +107,7 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
     // --- 手数の算出 ---
     // 基本は「モデルの現在行数」だが、先頭に「開始局面」「平手」「startpos」などの見出し行が
     // 1行入っている構成のため、これを手数計算から除外する。
-    int moveRows = 0;
-    if (m_d.model) {
-        moveRows = m_d.model->rowCount();
-
-        if (moveRows > 0) {
-            const QModelIndex headIdx = m_d.model->index(0, 0);
-            const QString headText = m_d.model->data(headIdx, Qt::DisplayRole).toString();
-
-            // 見出し行の代表的な文言を検出して 1 行分を差し引く
-            // （必要に応じて追加： "開始局面", "平手", "Handicap", "startpos" 等）
-            if (headText.contains(tr("開始局面"))
-                || headText.contains(QStringLiteral("平手"))
-                || headText.contains(QStringLiteral("startpos"), Qt::CaseInsensitive)) {
-                moveRows -= 1;
-                if (moveRows < 0) moveRows = 0;
-            }
-        }
-    }
+    const int moveRows = m_d.model ? qMax(0, m_d.model->rowCount() - 1) : 0;
 
     // 次に付与すべき手数（1始まり）
     const int nextMoveNumber = moveRows + 1;
@@ -134,7 +121,10 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
     const QString recordLine = spaces + moveNumberStr + QLatin1Char(' ') + last;
 
     if (m_d.model) {
-        m_d.model->appendItem(new KifuDisplay(recordLine, elapsedTime));
+        auto* item = new KifuDisplay(recordLine, elapsedTime);
+        item->beforeSfen = beforeSfen;
+        item->usiMove = usiMove;
+        m_d.model->appendItem(item);
 
         // 新しく追加した行（最後の行）を黄色でハイライト
         const int newRow = m_d.model->rowCount() - 1;

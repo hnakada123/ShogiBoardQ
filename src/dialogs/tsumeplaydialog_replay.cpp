@@ -1,6 +1,7 @@
 #include "tsumeplaydialog.h"
 #include "tsumesolutionreplay.h"
 #include "tsumeshogikanjibuilder.h"
+#include "kifupresentation.h"
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
@@ -139,7 +140,8 @@ void TsumePlayDialog::updateReplayControls()
         m_solutionStatus->setText(tr("正解手順を確認中…"));
         m_status->setText(tr("正解手順を取得しています。探索中止または対局に戻る操作で中断できます。"));
     } else if (m_solution->available()) {
-        const QString text = TsumeshogiKanjiBuilder::buildKanjiPv(m_problem.sfen, m_solution->moves());
+        const QString text = KifuPresentation::pv(m_problem.sfen, m_solution->moves().join(QLatin1Char(' ')),
+            TsumeshogiKanjiBuilder::buildKanjiPv(m_problem.sfen, m_solution->moves()));
         if (m_solutionText->toPlainText() != text) m_solutionText->setPlainText(text);
         m_solutionStatus->setText(tr("正解手順: %1 / %2手").arg(ply).arg(m_solution->totalPlies()));
         m_status->setText(tr("正解手順の一例を再生中です。「対局に戻る」で元の局面から続けられます。"));

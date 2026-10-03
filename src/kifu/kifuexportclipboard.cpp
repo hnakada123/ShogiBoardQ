@@ -74,7 +74,10 @@ QStringList KifuExportClipboard::resolveUsiMoves() const
 GameRecordModel::ExportContext KifuExportClipboard::buildExportContext() const
 {
     GameRecordModel::ExportContext ctx;
-    ctx.gameInfoTable = m_deps.gameInfoController ? m_deps.gameInfoController->tableWidget() : nullptr;
+    if (m_deps.gameInfoController) {
+        ctx.gameInfoItems = m_deps.gameInfoController->gameInfo();
+        ctx.gameInfoProvided = true;
+    }
     ctx.startSfen = m_deps.gameRecord
         ? m_deps.gameRecord->initialSfenForExport(m_deps.startSfenStr) : m_deps.startSfenStr;
     ctx.playMode = m_deps.playMode;

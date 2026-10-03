@@ -2,6 +2,7 @@
 /// @brief PV盤面コントローラクラスの実装
 
 #include "pvboardcontroller.h"
+#include "kifupresentation.h"
 #include "shogiboard.h"
 #include "logcategories.h"
 #include "sfenutils.h"
@@ -66,12 +67,19 @@ bool PvBoardController::isBlackTurn() const
     return !sfen.contains(QStringLiteral(" w "));
 }
 
+QString PvBoardController::displayPv(bool fullOrigin) const
+{
+    return KifuPresentation::pv(m_sfenHistory.value(0), m_pvMoves.join(QLatin1Char(' ')), m_kanjiPv, fullOrigin);
+}
+
 QString PvBoardController::currentMoveText() const
 {
     if (m_currentPly <= 0 || m_currentPly > m_pvMoves.size()) {
         return {};
     }
     const int moveIdx = m_currentPly - 1;
+    if (KifuPresentation::options().notation == KifuPresentation::Notation::Western)
+        return KifuPresentation::move(m_sfenHistory.value(moveIdx), m_pvMoves.at(moveIdx), KifuPresentation::options());
     if (moveIdx < m_kanjiMoves.size() && !m_kanjiMoves.at(moveIdx).isEmpty()) {
         return m_kanjiMoves.at(moveIdx);
     }

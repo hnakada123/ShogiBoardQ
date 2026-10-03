@@ -85,6 +85,7 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, con
     }
     if (canceled(cancel)) return result;
     if (result.initialSfen.isEmpty()) result.initialSfen = SfenUtils::hirateSfen();
+    if (record.mainline.baseSfen.isEmpty()) record.mainline.baseSfen = result.initialSfen;
     if (record.mainline.sfenList.isEmpty() && !record.mainline.usiMoves.isEmpty()) {
         record.mainline.sfenList = SfenPositionTracer::buildSfenRecord(
             record.mainline.baseSfen, record.mainline.usiMoves, false);
@@ -100,6 +101,24 @@ KifuLoadResult KifuLoadParser::parseFile(const QString& path, Format format, con
             line.sfenList = SfenPositionTracer::buildSfenRecord(line.baseSfen, line.usiMoves, line.endsWithTerminal);
     }
     if (canceled(cancel)) return result;
+    // Attach display context once at the import boundary; writers still use canonical fields.
+    const auto attachContext = [](KifLine& parsed) {
+        if (parsed.gameMoves.size() != parsed.usiMoves.size())
+            parsed.gameMoves = SfenPositionTracer::buildGameMoves(parsed.baseSfen, parsed.usiMoves);
+        int moveIndex = 0;
+        const int first = !parsed.disp.isEmpty() && (parsed.disp.first().ply == 0 || parsed.disp.first().prettyMove.isEmpty()) ? 1 : 0;
+        for (qsizetype i = first; i < parsed.disp.size(); ++i) {
+            auto& item = parsed.disp[i];
+            if (moveIndex < parsed.usiMoves.size()) {
+                item.beforeSfen = parsed.sfenList.value(moveIndex);
+                item.usiMove = parsed.usiMoves.at(moveIndex++);
+            } else {
+                item.terminal = parsed.endsWithTerminal;
+            }
+        }
+    };
+    attachContext(record.mainline);
+    for (auto& variation : record.variations) attachContext(variation.line);
     const auto& line = record.mainline;
     const QString terminalText = line.disp.isEmpty() ? QString() : line.disp.last().prettyMove;
     const QStringList terminals = {QStringLiteral("投了"), QStringLiteral("中断"), QStringLiteral("持将棋"),

@@ -112,7 +112,7 @@ public slots:
                                int playMode);
 
 private:
-    void resolveDisplayNames(QString& blackName, QString& whiteName) const;
+    void resolveDisplayNames(QString& blackName, QString& whiteName, bool displayFallback = true) const;
 
     ShogiView* m_shogiView = nullptr;
     GameInfoPaneController* m_gameInfoController = nullptr;

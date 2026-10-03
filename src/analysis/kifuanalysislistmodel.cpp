@@ -16,56 +16,6 @@ int KifuAnalysisListModel::columnCount(const QModelIndex &parent) const
     return 8;
 }
 
-// 指し手と候補手の一致判定
-// 「同　」と「同」の表記揺れを正規化して比較する
-static bool isMoveMatch(const QString& currentMove, const QString& candidateMove)
-{
-    if (currentMove.isEmpty() || candidateMove.isEmpty()) {
-        return false;
-    }
-    
-    // 指し手から▲/△の後の部分を抽出
-    static const QString senteMark = QStringLiteral("▲");
-    static const QString goteMark = QStringLiteral("△");
-    
-    // 現在の指し手の移動部分を抽出
-    QString currentMoveBody;
-    qsizetype currentMarkPos = currentMove.indexOf(senteMark);
-    if (currentMarkPos < 0) {
-        currentMarkPos = currentMove.indexOf(goteMark);
-    }
-    if (currentMarkPos >= 0) {
-        currentMoveBody = currentMove.mid(currentMarkPos);
-    } else {
-        currentMoveBody = currentMove;
-    }
-    
-    // 候補手の移動部分を抽出
-    QString candidateMoveBody;
-    qsizetype candidateMarkPos = candidateMove.indexOf(senteMark);
-    if (candidateMarkPos < 0) {
-        candidateMarkPos = candidateMove.indexOf(goteMark);
-    }
-    if (candidateMarkPos >= 0) {
-        candidateMoveBody = candidateMove.mid(candidateMarkPos);
-    } else {
-        candidateMoveBody = candidateMove;
-    }
-    
-    // 比較用に正規化
-    QString normalizedCurrent = currentMoveBody;
-    QString normalizedCandidate = candidateMoveBody;
-    
-    // 「同」の後の空白を統一して削除（半角空白、全角空白の両方）
-    // 「同　」→「同」、「同 」→「同」
-    normalizedCurrent.replace(QStringLiteral("同　"), QStringLiteral("同"));
-    normalizedCurrent.replace(QStringLiteral("同 "), QStringLiteral("同"));
-    normalizedCandidate.replace(QStringLiteral("同　"), QStringLiteral("同"));
-    normalizedCandidate.replace(QStringLiteral("同 "), QStringLiteral("同"));
-    
-    return normalizedCurrent == normalizedCandidate;
-}
-
 // 評価値を将棋の形勢表現（互角/やや有利/有利/優勢/勝勢）に変換する
 // 評価値は先手視点の値を前提とする（正=先手有利、負=後手有利）
 static QString getJudgementString(const QString& evalStr)
@@ -112,7 +62,7 @@ static QString getJudgementString(const QString& evalStr)
     }
 
     QString side = (score > 0) ? QObject::tr("先手") : QObject::tr("後手");
-    return side + advantage;
+    return QObject::tr("%1：%2").arg(side, advantage);
 }
 
 QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
@@ -122,7 +72,10 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
         return QVariant();
 
     if (role == Qt::ToolTipRole || role == Qt::AccessibleTextRole) {
-        const QString value = data(index, Qt::DisplayRole).toString();
+        const auto* item = list.at(index.row());
+        const QString value = index.column() == 0 ? item->displayMove(true)
+            : index.column() == 1 ? item->displayCandidate(true)
+            : index.column() == 7 ? item->displayPv(true) : data(index, Qt::DisplayRole).toString();
         if (index.column() == 6) return tr("この局面からの読み筋を盤面で表示します。");
         const QString description = headerData(index.column(), Qt::Horizontal, Qt::ToolTipRole).toString();
         return description.isEmpty() ? value : value + QLatin1Char('\n') + description;
@@ -159,11 +112,13 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
 
     switch (index.column()) {
     case 0: // 指し手
-        return item->currentMove();
+        return item->displayMove();
     case 1: // 候補手
-        return item->candidateMove();
+        return item->displayCandidate();
     case 2: // 一致
-        if (isMoveMatch(item->currentMove(), item->candidateMove())) {
+        if (!item->lastUsiMove().isEmpty() && !item->candidateUsi.isEmpty()
+            && !item->beforeSfen.isEmpty() && item->lastUsiMove() == item->candidateUsi
+            && item->beforeSfen == item->candidateSfen) {
             return QStringLiteral("◯");
         }
         return QString();
@@ -174,7 +129,7 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     case 5: // 差
         return item->evaluationDifference();
     case 7: // 読み筋
-        return item->principalVariation();
+        return item->displayPv();
     default:
         return QVariant();
     }

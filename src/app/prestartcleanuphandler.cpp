@@ -2,6 +2,7 @@
 /// @brief 対局開始前クリーンアップハンドラクラスの実装
 
 #include "prestartcleanuphandler.h"
+#include "kifupresentation.h"
 #include "logcategories.h"
 #include "matchcoordinator.h"
 
@@ -162,6 +163,10 @@ int PreStartCleanupHandler::cleanupKifuModel(bool startFromCurrentPos, int /*kee
 
             for (KifuBranchNode* node : std::as_const(path)) {
                 auto* item = new KifuDisplay(node->displayText(), node->timeText(), node->comment());
+                if (node->parent() && !node->isTerminal()) {
+                    item->beforeSfen = node->parent()->sfen();
+                    item->usiMove = KifuPresentation::usiMove(node->move());
+                }
                 m_kifuRecordModel->appendItem(item);
             }
             return branchPoint->ply();

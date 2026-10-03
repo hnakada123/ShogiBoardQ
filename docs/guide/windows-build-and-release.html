@@ -330,6 +330,8 @@ dir deploy\platforms\qwindows.dll</code></pre>
 ├── ShogiBoardQ.exe                ← 実行ファイル
 ├── ShogiBoardQ_ja_JP.qm          ← 日本語翻訳
 ├── ShogiBoardQ_en.qm             ← 英語翻訳
+├── ShogiBoardQ_zh_CN.qm             ← 中国語（簡体字）翻訳
+├── ShogiBoardQ_zh_TW.qm             ← 中国語（繁体字）翻訳
 ├── Qt6Core.dll                    ← Qt Core
 ├── Qt6Gui.dll                     ← Qt GUI
 ├── Qt6Widgets.dll                 ← Qt Widgets
@@ -531,7 +533,9 @@ copy &quot;C:\Qt\6.8.3\msvc2022_64\bin\Qt6OpenGLWidgets.dll&quot; deploy\</code>
 <pre class="powershell"><code>dir deploy\*.qm</code></pre>
 <p>ない場合、ビルドディレクトリから手動コピー：</p>
 <pre class="powershell"><code>copy build\ShogiBoardQ_ja_JP.qm deploy\
-copy build\ShogiBoardQ_en.qm deploy\</code></pre>
+copy build\ShogiBoardQ_en.qm deploy\
+copy build\ShogiBoardQ_zh_CN.qm deploy\
+copy build\ShogiBoardQ_zh_TW.qm deploy\</code></pre>
 </section>
 <section id="実行ポリシーエラーpowershell-スクリプト" class="level3">
 <h3>実行ポリシーエラー（PowerShell スクリプト）</h3>

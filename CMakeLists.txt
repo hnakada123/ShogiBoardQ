@@ -184,6 +184,8 @@ find_package(Qt6 6.7 REQUIRED COMPONENTS Widgets LinguistTools Charts Network Co
 set(TS_FILES
     resources/translations/ShogiBoardQ_ja_JP.ts
     resources/translations/ShogiBoardQ_en.ts
+    resources/translations/ShogiBoardQ_zh_CN.ts
+    resources/translations/ShogiBoardQ_zh_TW.ts
 )
 
 # ==== UI (.ui) ====
@@ -923,6 +925,8 @@ set(SRC_SERVICES
 )
 
 set(SRC_COMMON
+    src/common/kifupresentation.cpp
+    src/common/kifupresentation.h
     src/common/applicationfonts.cpp
     src/common/applicationfonts.h
     src/common/tsumeevaluation.h
@@ -1143,6 +1147,23 @@ foreach(QM_FILE ${QM_FILES})
         COMMENT "Copying ${QM_FILE} to output directory"
     )
 endforeach()
+
+# Bundle the standard Qt dialog translations as well (deploy scripts may omit them).
+get_filename_component(SHOGIBOARDQ_QT_TRANSLATIONS_DIR "${QT6_INSTALL_TRANSLATIONS}"
+    ABSOLUTE BASE_DIR "${QT6_INSTALL_PREFIX}")
+set(SHOGIBOARDQ_QT_DIALOG_TRANSLATIONS)
+foreach(language ja zh_CN zh_TW)
+    set(qm "${SHOGIBOARDQ_QT_TRANSLATIONS_DIR}/qtbase_${language}.qm")
+    if(EXISTS "${qm}")
+        list(APPEND SHOGIBOARDQ_QT_DIALOG_TRANSLATIONS "${qm}")
+    endif()
+endforeach()
+if(SHOGIBOARDQ_QT_DIALOG_TRANSLATIONS)
+    qt_add_resources(ShogiBoardQ qt_dialog_translations
+        PREFIX "/translations/qt"
+        BASE "${SHOGIBOARDQ_QT_TRANSLATIONS_DIR}"
+        FILES ${SHOGIBOARDQ_QT_DIALOG_TRANSLATIONS})
+endif()
 
 # ==== Bundle properties ====
 get_target_property(SHOGIBOARDQ_QT_LIBRARY_TYPE Qt6::Core TYPE)

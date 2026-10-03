@@ -317,7 +317,7 @@ async def test_collection_recent_menu(coverage_env, tmp_path):
         dialog = await ui.open("actionSfenCollectionViewer", "SfenCollectionDialog")
         await ui.click("ファイルを開く", dialog)
         await ui.file(path)
-        await ui.click("次へ ▶", dialog)
+        await ui.click("次へ", dialog)
         board = await ui.find(dialog, **{"class": "ShogiView"})
         assert board["board_sfen"] == record["sfens"][1].split()[0]
         await ui.close(dialog)

@@ -4,12 +4,14 @@
 #include "mainwindow.h"
 #include "logcategories.h"
 #include "appsettings.h"
+#include "kifupresentation.h"
 #include "applicationfonts.h"
 #include "settingsresetcontroller.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
 #include <QLocale>
+#include <QLibraryInfo>
 #include <QTranslator>
 #include <QStyleFactory>
 #include <QGuiApplication>
@@ -128,46 +130,19 @@ int main(int argc, char *argv[])
 
     // 言語設定を読み込み、適切な翻訳ファイルをロード
     QTranslator translator;
-    QString langSetting = AppSettings::language();
-
-    qCInfo(lcApp) << "Language setting:" << langSetting;
-    qCInfo(lcApp) << "Application dir:" << QCoreApplication::applicationDirPath();
-
-    bool loaded = false;
-    if (langSetting == "ja_JP") {
-        // 日本語を明示的に指定
-        loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_ja_JP.qm");
-        qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_ja_JP.qm ->" << (loaded ? "SUCCESS" : "FAILED");
-        if (loaded) {
-            a.installTranslator(&translator);
-            qCInfo(lcApp) << "Translator installed for ja_JP";
-        }
-    } else if (langSetting == "en") {
-        // 英語翻訳ファイルをロード
-        loaded = translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_en.qm");
-        qCInfo(lcApp) << "Trying applicationDir/ShogiBoardQ_en.qm ->" << (loaded ? "SUCCESS" : "FAILED");
-        if (loaded) {
-            a.installTranslator(&translator);
-            qCInfo(lcApp) << "Translator installed for en";
-        } else {
-            qCWarning(lcApp) << "English translation file not found!";
-        }
-    } else {
-        // "system" またはその他: システムロケールに従う（既存の動作）
-        qCInfo(lcApp) << "Using system locale";
-        const QStringList uiLanguages = QLocale::system().uiLanguages();
-        qCInfo(lcApp) << "System UI languages:" << uiLanguages;
-        for (const QString &locale : std::as_const(uiLanguages)) {
-            const QString baseName = "ShogiBoardQ_" + QLocale(locale).name();
-            loaded = translator.load(QCoreApplication::applicationDirPath() + "/" + baseName + ".qm");
-            qCInfo(lcApp) << "Trying applicationDir/" << baseName << ".qm ->" << (loaded ? "SUCCESS" : "FAILED");
-            if (loaded) {
-                a.installTranslator(&translator);
-                qCInfo(lcApp) << "Translator installed for" << baseName;
-                break;
-            }
-        }
-    }
+    const QStringList systemLanguages = QLocale::system().uiLanguages();
+    const QString language = KifuPresentation::resolveLanguage(AppSettings::language(),
+        systemLanguages.isEmpty() ? QLocale::system().name() : systemLanguages.first());
+    QTranslator qtTranslator;
+    const QString qtLanguage = language == QStringLiteral("ja_JP") ? QStringLiteral("ja") : language;
+    if (qtTranslator.load(QStringLiteral(":/translations/qt/qtbase_") + qtLanguage + QStringLiteral(".qm"))
+        || qtTranslator.load(QStringLiteral("qtbase_") + qtLanguage, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+        a.installTranslator(&qtTranslator);
+    if (translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_" + language + ".qm"))
+        a.installTranslator(&translator);
+    else
+        qCWarning(lcApp) << "Translation file not found:" << language;
+    KifuPresentation::configure(language, AppSettings::moveNotation(), AppSettings::notationOrigin());
 
     // Creatorのような「Fusion」スタイルに統一する。
     a.setStyle(QStyleFactory::create("Fusion"));

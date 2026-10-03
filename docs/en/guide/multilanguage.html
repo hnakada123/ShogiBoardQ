@@ -5,20 +5,20 @@
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>Language Support - ShogiBoardQ</title>
-<meta content="Learn to switch ShogiBoardQ's interface between Japanese and English through the application's language settings." name="description"/>
+<meta content="Learn to switch ShogiBoardQ's interface between Japanese, English, and Chinese (Simplified or Traditional) through the application's language settings." name="description"/>
 <link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html" rel="canonical"/>
 <!-- Open Graph -->
 <meta content="article" property="og:type"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html" property="og:url"/>
 <meta content="Language Support - ShogiBoardQ" property="og:title"/>
-<meta content="ShogiBoardQ supports Japanese and English interfaces, selectable in the language settings." property="og:description"/>
+<meta content="ShogiBoardQ supports Japanese, English, and Chinese (Simplified or Traditional) interfaces, selectable in the language settings." property="og:description"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png" property="og:image"/>
 <meta content="en_US" property="og:locale"/>
 <meta content="ShogiBoardQ" property="og:site_name"/>
 <!-- Twitter Card -->
 <meta content="summary_large_image" name="twitter:card"/>
 <meta content="Language Support - ShogiBoardQ" name="twitter:title"/>
-<meta content="ShogiBoardQ supports Japanese and English interfaces, selectable in the language settings." name="twitter:description"/>
+<meta content="ShogiBoardQ supports Japanese, English, and Chinese (Simplified or Traditional) interfaces, selectable in the language settings." name="twitter:description"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png" name="twitter:image"/>
 <link href="../../css/style.css" rel="stylesheet"/>
  <link href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html" hreflang="ja" rel="alternate"/>
@@ -48,11 +48,12 @@
 <section class="hero hero--sub">
 <div class="hero-content">
 <h1>Language Support</h1>
-<p class="hero-subtitle">Switch between Japanese and English in the language settings</p>
+<p class="hero-subtitle">Switch between Japanese, English, and Chinese (Simplified or Traditional) in the language settings</p>
 <div class="hero-badges">
 <span class="badge">Japanese</span>
 <span class="badge">English</span>
-<span class="badge">Easy Switching</span>
+<span class="badge">简体中文</span>
+<span class="badge">繁體中文</span>
 </div>
 <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
 </div>
@@ -70,7 +71,7 @@
 </div>
 <p class="guide-step-text">In the Japanese interface, the menu bar, game record area, engine information tabs, game information, and other interface elements are displayed in Japanese.</p>
 <div class="screenshot-item">
-<img alt="Language menu in the English interface on Linux, with Japanese and English options" src="../../images/en/multilanguage/language-menu.png"/>
+<img alt="Language menu in the English interface on Linux, with Japanese, English, and Chinese (Simplified or Traditional) options" src="../../images/en/multilanguage/language-menu.png" style="width:176px;max-width:100%;margin:16px auto;display:block"/>
 <p class="screenshot-caption">Settings → Language in the English interface, captured on Linux. Select Japanese and restart to use Japanese.</p>
 </div>
 </div>
@@ -91,7 +92,7 @@
 <p class="guide-step-text">The English interface displays menus such as File, Edit, View, Game, Settings, and Help, and tabs such as Game Info, Thinking, Consideration, and Branch Tree in English.</p>
 <div class="screenshot-item">
 <img alt="ShogiBoardQ English UI" src="../../images/en/multilanguage/multilanguage-02-english.png"/>
-<p class="screenshot-caption">English UI: menus, tabs, and game record area in English</p>
+<p class="screenshot-caption">English UI: Western move notation in the game record and PV; board ranks a–i</p>
 </div>
 </div>
 </div>
@@ -108,10 +109,12 @@
 <span class="guide-step-number">1</span>
 <span class="guide-step-title">Open the Language Settings</span>
 </div>
-<p class="guide-step-text">Choose Settings → Language to select a language. In the Japanese interface, this menu is labeled 設定 → 言語.</p>
+<p class="guide-step-text">Choose Settings → Language to select a language. In the Japanese interface, this menu is labeled 設定 → 言語設定.</p>
 <ul class="guide-step-text">
 <li>Japanese</li>
 <li>English</li>
+<li>简体中文 (Simplified Chinese)</li>
+<li>繁體中文 (Traditional Chinese)</li>
 </ul>
 </div>
 <div class="guide-step">
@@ -122,6 +125,27 @@
 <p class="guide-step-text">After selecting a language, restart the application to apply it. Menus, dialogs, tab names, buttons, and other interface elements are then displayed in the selected language.</p>
 </div>
 </div>
+</div>
+</section>
+<section class="section" id="notation">
+<div class="section-inner">
+<h2 class="section-title">Move Notation and Board Coordinates</h2>
+<p class="section-desc">Choose Settings → Move notation and board coordinates independently of the interface language. Restart the application to apply changes.</p>
+<ul class="guide-step-text">
+<li>Automatic uses Japanese notation for Japanese and Chinese interfaces, and Western notation for English.</li>
+<li>Western piece letters: K (king), R (rook), B (bishop), G (gold), S (silver), N (knight), L (lance), P (pawn). Examples: ▲P-7f, △Bx8h+, ▲P*5e.</li>
+<li>A + before a piece letter means a promoted piece; a + at the end means promotion. = means declining promotion, x a capture, and * a drop. [+] marks a variation.</li>
+<li>Western notation uses files 1–9 and ranks a–i. Japanese notation uses ranks 一–九. Flipping the board does not change a square's coordinates.</li>
+<li>Western notation includes the origin square when needed to distinguish moves. Enable Always show origin in Western notation to include it in every move, or view the tooltip.</li>
+<li>Chinese interfaces retain Japanese move symbols, including 歩, 飛, 同 (same square), 成 (promotion), 不成 (declining promotion), and 打 (drop). Piece artwork can be selected separately in appearance settings.</li>
+</ul>
+</div>
+</section>
+<section class="section section--alt" id="record-data">
+<div class="section-inner">
+<h2 class="section-title">Original Record Text and Saving</h2>
+<p class="guide-step-text">Player names, event names, comments, and unknown tags remain in their original language. Known game information keys and handicap values are translated for display; editing uses the original text.</p>
+<p class="guide-step-text">Changing the interface language or notation does not alter the record data. Saving and copying records continue to use KIF, KI2, CSA, JKF, USI, and USEN. Moves in KIF and KI2 remain in Japanese. There is no separate English record format.</p>
 </div>
 </section>
 <!-- Back Link -->

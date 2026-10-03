@@ -17,11 +17,6 @@
 #include "logcategories.h"
 
 namespace {
-const QString kSenteMark = QStringLiteral("▲"); // clazy:exclude=non-pod-global-static
-const QString kGoteMark = QStringLiteral("△"); // clazy:exclude=non-pod-global-static
-const QString kDoWithSpace = QStringLiteral("同　"); // clazy:exclude=non-pod-global-static
-const QString kDoWithoutSpace = QStringLiteral("同"); // clazy:exclude=non-pod-global-static
-
 QString sanitizeUsiPv(const QString& rawPv, bool isBook)
 {
     if (isBook) {
@@ -56,13 +51,13 @@ QString resolveLastUsiMove(const AnalysisResultHandler::Refs& refs, int ply)
     }
     if (refs.recordModel && ply > 0 && ply < refs.recordModel->rowCount()) {
         if (KifuDisplay* moveDisp = refs.recordModel->item(ply)) {
-            return AnalysisResultHandler::extractUsiMoveFromKanji(moveDisp->currentMove());
+            return moveDisp->usiMove;
         }
     }
     return QString();
 }
 
-int evaluateForDisplay(int ply,
+int evaluateForDisplay(bool isGoteTurn,
                        int scoreCp,
                        int mate,
                        bool isBook,
@@ -73,7 +68,6 @@ int evaluateForDisplay(int ply,
         return prevEvalCp;
     }
 
-    const bool isGoteTurn = (ply % 2 == 1);
     if (isBook) {
         *outEvalStr = QStringLiteral("-");
         return prevEvalCp;
@@ -93,85 +87,6 @@ int evaluateForDisplay(int ply,
     return prevEvalCp;
 }
 
-QString extractDestination(const QString& moveText)
-{
-    qsizetype markPos = moveText.indexOf(kSenteMark);
-    if (markPos < 0) {
-        markPos = moveText.indexOf(kGoteMark);
-    }
-    if (markPos < 0) {
-        return QString();
-    }
-
-    const QString afterMark = moveText.mid(markPos + 1);
-    if (afterMark.startsWith(kDoWithoutSpace) || afterMark.size() < 2) {
-        return QString();
-    }
-    return afterMark.left(2);
-}
-
-QString extractCandidateFirstMove(const QString& pvText)
-{
-    if (pvText.startsWith(kSenteMark) || pvText.startsWith(kGoteMark)) {
-        const qsizetype sentePos = pvText.indexOf(kSenteMark, 1);
-        const qsizetype gotePos = pvText.indexOf(kGoteMark, 1);
-        qsizetype nextMark = -1;
-        if (sentePos > 0 && gotePos > 0) {
-            nextMark = qMin(sentePos, gotePos);
-        } else if (sentePos > 0) {
-            nextMark = sentePos;
-        } else if (gotePos > 0) {
-            nextMark = gotePos;
-        }
-        if (nextMark > 0) {
-            return pvText.left(nextMark);
-        }
-    }
-    return pvText;
-}
-
-QString normalizeDoNotation(QString moveText)
-{
-    if (moveText.contains(kDoWithoutSpace) && !moveText.contains(kDoWithSpace)) {
-        moveText.replace(kDoWithoutSpace, kDoWithSpace);
-    }
-    return moveText;
-}
-
-QString buildCandidateMoveFromPrevious(const KifuAnalysisResultsDisplay* prevItem)
-{
-    if (!prevItem) {
-        return QString();
-    }
-
-    const QString prevPv = prevItem->principalVariation();
-    if (prevPv.isEmpty() || prevPv == AnalysisResultHandler::tr("（定跡）")) {
-        return QString();
-    }
-
-    QString candidateMove = extractCandidateFirstMove(prevPv);
-    if (candidateMove.isEmpty()) {
-        return QString();
-    }
-
-    const QString prevDestination = extractDestination(prevItem->currentMove());
-    const QString candDestination = extractDestination(candidateMove);
-    if (!prevDestination.isEmpty() &&
-        !candDestination.isEmpty() &&
-        prevDestination == candDestination) {
-        qsizetype markPos = candidateMove.indexOf(kSenteMark);
-        if (markPos < 0) {
-            markPos = candidateMove.indexOf(kGoteMark);
-        }
-        if (markPos >= 0 && candidateMove.size() >= markPos + 3) {
-            const QString prefix = candidateMove.left(markPos + 1);
-            const QString suffix = candidateMove.mid(markPos + 3);
-            candidateMove = prefix + kDoWithSpace + suffix;
-        }
-    }
-
-    return normalizeDoNotation(candidateMove);
-}
 } // namespace
 
 void AnalysisResultHandler::setRefs(const Refs& refs)
@@ -271,15 +186,19 @@ void AnalysisResultHandler::commitPendingResult()
 
     const QString moveLabel = resolveMoveLabel(m_refs, ply);
 
+    const QString position = m_refs.sfenHistory && ply < m_refs.sfenHistory->size()
+        ? SfenUtils::normalizePositionLikeSfen(m_refs.sfenHistory->at(ply)) : QString();
+    const bool isGoteTurn = position.isEmpty() ? ply % 2 == 1
+        : position.section(QLatin1Char(' '), 1, 1) == QStringLiteral("w");
     QString evalStr;
-    const int curVal = !mateText.isEmpty() ? m_prevEvalCp : evaluateForDisplay(ply,
+    const int curVal = !mateText.isEmpty() ? m_prevEvalCp : evaluateForDisplay(isGoteTurn,
                                           scoreCp,
                                           mate,
                                           isBook,
                                           m_prevEvalCp,
                                           &evalStr);
     if (!mateText.isEmpty() && !isBook) {
-        if (ply % 2 == 1) {
+        if (isGoteTurn) {
             if (mateText == QStringLiteral("+")) mateText = QStringLiteral("-");
             else if (mateText == QStringLiteral("-")) mateText = QStringLiteral("+");
             else if (mateText.toLongLong() == 0) mateText = QStringLiteral("+0");
@@ -305,6 +224,8 @@ void AnalysisResultHandler::commitPendingResult()
         );
 
     resultItem->setUsiPv(usiPv);
+    if (m_refs.sfenHistory && ply > 0 && ply <= m_refs.sfenHistory->size())
+        resultItem->beforeSfen = SfenUtils::normalizePositionLikeSfen(m_refs.sfenHistory->at(ply - 1));
 
     // 局面SFENを設定
     if (m_refs.sfenHistory && ply >= 0 && ply < m_refs.sfenHistory->size()) {
@@ -323,10 +244,17 @@ void AnalysisResultHandler::commitPendingResult()
     if (prevRow >= 0) {
         KifuAnalysisResultsDisplay* prevItem = m_refs.analysisModel->item(prevRow);
         if (prevItem) {
-            const QString candidateMove = buildCandidateMoveFromPrevious(prevItem);
-            if (!candidateMove.isEmpty()) {
-                resultItem->setCandidateMove(candidateMove);
-                qCDebug(lcAnalysis).noquote() << "setCandidateMove:" << candidateMove;
+            if (!resultItem->beforeSfen.isEmpty() && resultItem->beforeSfen == prevItem->sfen()) {
+                resultItem->candidateUsi = prevItem->usiPv().simplified().section(QLatin1Char(' '), 0, 0);
+                resultItem->candidateSfen = prevItem->sfen();
+            }
+            if (!resultItem->candidateUsi.isEmpty()) {
+                QString candidate = KifuPresentation::move(resultItem->candidateSfen, resultItem->candidateUsi,
+                    {KifuPresentation::Notation::Japanese, false});
+                const QString previous = prevItem->lastUsiMove();
+                if (previous.size() >= 4 && previous.mid(2, 2) == resultItem->candidateUsi.mid(2, 2))
+                    candidate.replace(1, 2, QStringLiteral("同　"));
+                resultItem->setCandidateMove(candidate);
             }
         }
     }

@@ -155,6 +155,7 @@ public:
      */
     struct ExportContext {
         const QTableWidget* gameInfoTable = nullptr;
+        bool gameInfoProvided = false; ///< 空のメタデータも明示的な編集結果として扱う
         QList<KifGameInfoItem> gameInfoItems;  ///< 対局情報（テーブルが無い環境用。空でなければこちらを優先）
         QString startSfen;
         PlayMode playMode = PlayMode::NotStarted;

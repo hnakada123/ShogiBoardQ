@@ -2,6 +2,7 @@
 /// @brief 盤全体の木肌・罫線・駒・座標の描画
 
 #include "shogiview.h"
+#include "kifupresentation.h"
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
 #include "boardsurfacepainter.h"
@@ -212,8 +213,7 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
     f.setBold(false);
     painter->setFont(f);
     painter->setPen(m_boardColors.grid);
-    static const QString ranks = QStringLiteral("一二三四五六七八九");
-    if (rank >= 1 && rank <= ranks.size()) painter->drawText(label, Qt::AlignCenter, ranks.mid(rank - 1, 1));
+    painter->drawText(label, Qt::AlignCenter, KifuPresentation::rankLabel(rank));
     painter->restore();
 }
 

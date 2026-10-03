@@ -34,7 +34,8 @@ public:
     void presentGameRecord(const QList<KifDisplayItem>& disp);
 
     // 1手分を末尾に追記（対局中のライブ更新でも使用）
-    void appendMoveLine(const QString& prettyMove, const QString& elapsedTime);
+    void appendMoveLine(const QString& prettyMove, const QString& elapsedTime,
+                        const QString& beforeSfen = {}, const QString& usiMove = {});
 
 private:
     Deps        m_d;

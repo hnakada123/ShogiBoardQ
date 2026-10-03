@@ -91,12 +91,19 @@ set(EMV_SOURCES
     ${SRC}/core/fmvposition.cpp
 )
 
+add_library(kifupresentation_test STATIC
+    ${SRC}/common/kifupresentation.cpp
+    ${SRC}/board/sfenpositiontracer.cpp
+    ${SRC}/core/shogimove.cpp)
+target_include_directories(kifupresentation_test PRIVATE ${TEST_INCLUDES})
+target_link_libraries(kifupresentation_test PRIVATE Qt6::Core)
+
 # ---- Helper macro to add a test ----
 macro(add_shogi_test NAME)
     add_executable(${NAME} ${ARGN})
     target_include_directories(${NAME} PRIVATE ${TEST_INCLUDES})
     target_compile_definitions(${NAME} PRIVATE SHOGIBOARDQ_TESTING=1)
-    target_link_libraries(${NAME} PRIVATE ${TEST_LIBS})
+    target_link_libraries(${NAME} PRIVATE ${TEST_LIBS} kifupresentation_test)
     set_target_properties(${NAME} PROPERTIES AUTOMOC ON)
     add_test(NAME ${NAME} COMMAND ${NAME})
     # ヘッドレスCI環境でもWidgetsテストを実行できるようにする
@@ -1639,3 +1646,9 @@ add_shogi_test(tst_usilogpanel
     ${SRC}/services/analysissettings.cpp
     ${SRC}/services/settingscommon.cpp
 )
+
+add_shogi_test(tst_kifupresentation tst_kifupresentation.cpp)
+add_shogi_test(tst_i18n_workflows tst_i18n_workflows.cpp)
+target_link_libraries(tst_i18n_workflows PRIVATE shogiboardq_static)
+target_compile_definitions(tst_i18n_workflows PRIVATE TRANSLATIONS_DIR="${CMAKE_BINARY_DIR}")
+add_dependencies(tst_i18n_workflows translations)

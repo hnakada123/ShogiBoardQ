@@ -57,10 +57,7 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
             // 形式: 「▲７六歩(77)」または「△５五角打」など
             KifuDisplay* moveDisp = m_recordModel->item(ply);
             if (moveDisp) {
-                QString moveLabel = moveDisp->currentMove();
-                qCDebug(lcAnalysis).noquote() << "extracting USI move from kanji:" << moveLabel;
-                lastUsiMove = AnalysisResultHandler::extractUsiMoveFromKanji(moveLabel);
-                qCDebug(lcAnalysis).noquote() << "extracted lastUsiMove from kanji:" << lastUsiMove;
+                lastUsiMove = moveDisp->usiMove;
             }
         } else {
             qCDebug(lcAnalysis).noquote() << "no lastUsiMove: ply=" << ply << "is out of range or m_usiMoves/m_recordModel is null";
@@ -71,68 +68,9 @@ void AnalysisFlowController::onPositionPrepared(int ply, const QString& sfen)
         // 直前の指し手の移動先を設定（読み筋の最初の指し手で「同」表記を正しく判定するため）
         // ply=0は開始局面なので直前の指し手なし
         // ply>=1の場合、その局面に至った指し手はrecordModel->item(ply)（ply番目の指し手）
-        bool previousMoveSet = false;
-        if (m_recordModel && ply > 0 && ply < m_recordModel->rowCount()) {
-            KifuDisplay* prevDisp = m_recordModel->item(ply);  // plyの指し手（その局面に至った指し手）
-            if (prevDisp) {
-                QString prevMoveLabel = prevDisp->currentMove();
-                qCDebug(lcAnalysis).noquote() << "prevMoveLabel from recordModel[" << ply << "]:" << prevMoveLabel;
-
-                // 漢字の移動先を抽出して整数座標に変換
-                // 形式: 「▲７六歩(77)」または「△同　銀(31)」
-                static const QString senteMark = QStringLiteral("▲");
-                static const QString goteMark = QStringLiteral("△");
-
-                qsizetype markPos = prevMoveLabel.indexOf(senteMark);
-                if (markPos < 0) {
-                    markPos = prevMoveLabel.indexOf(goteMark);
-                }
-
-                if (markPos >= 0 && prevMoveLabel.length() > markPos + 2) {
-                    QString afterMark = prevMoveLabel.mid(markPos + 1);
-
-                    // 「同」の場合はスキップ（前回の移動先をそのまま使用）
-                    if (!afterMark.startsWith(QStringLiteral("同"))) {
-                        // 「７六」のような漢字座標を取得
-                        QChar fileChar = afterMark.at(0);  // 全角数字 '１'〜'９'
-                        QChar rankChar = afterMark.at(1);  // 漢数字 '一'〜'九'
-
-                        // 全角数字を整数に変換（'１'=0xFF11 → 1）
-                        int fileTo = 0;
-                        if (fileChar >= QChar(0xFF11) && fileChar <= QChar(0xFF19)) {
-                            fileTo = fileChar.unicode() - 0xFF11 + 1;
-                        }
-
-                        // 漢数字を整数に変換
-                        int rankTo = 0;
-                        static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
-                        qsizetype rankIdxPos = kanjiRanks.indexOf(rankChar);
-                        if (rankIdxPos >= 0) {
-                            rankTo = static_cast<int>(rankIdxPos) + 1;
-                        }
-
-                        if (fileTo >= 1 && fileTo <= 9 && rankTo >= 1 && rankTo <= 9) {
-                            m_usi->setPreviousFileTo(fileTo);
-                            m_usi->setPreviousRankTo(rankTo);
-                            previousMoveSet = true;
-                            qCDebug(lcAnalysis).noquote() << "setPreviousMove from recordModel:"
-                                                          << "fileTo=" << fileTo << "rankTo=" << rankTo;
-                        }
-                    } else {
-                        // 「同」の場合は、前回設定した座標をそのまま維持
-                        previousMoveSet = true;
-                        qCDebug(lcAnalysis).noquote() << "previousMove kept (同 notation)";
-                    }
-                }
-            }
-        }
-
-        if (!previousMoveSet) {
-            // 開始局面（ply=0）または取得失敗の場合は移動先をリセット
-            m_usi->setPreviousFileTo(0);
-            m_usi->setPreviousRankTo(0);
-            qCDebug(lcAnalysis).noquote() << "reset previousMove";
-        }
+        const bool hasDestination = lastUsiMove.size() >= 4;
+        m_usi->setPreviousFileTo(hasDestination ? lastUsiMove.at(2).digitValue() : 0);
+        m_usi->setPreviousRankTo(hasDestination ? lastUsiMove.at(3).unicode() - 'a' + 1 : 0);
 
         // SFENから手番を抽出してGameControllerに設定
         // 形式: "盤面 手番 駒台 手数" 例: "lnsgkgsnl/... b - 1"

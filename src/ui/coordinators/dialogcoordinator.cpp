@@ -28,82 +28,6 @@
 #include "shogiutils.h"
 #include "sfenutils.h"
 
-namespace {
-QString extractUsiMoveFromKanjiLabel(const QString& moveLabel, int fallbackFileTo, int fallbackRankTo)
-{
-    if (moveLabel.isEmpty()) {
-        return QString();
-    }
-
-    static const QString senteMark = QStringLiteral("▲");
-    static const QString goteMark  = QStringLiteral("△");
-    qsizetype markPos = moveLabel.indexOf(senteMark);
-    if (markPos < 0) {
-        markPos = moveLabel.indexOf(goteMark);
-    }
-    if (markPos < 0 || moveLabel.length() <= markPos + 1) {
-        return QString();
-    }
-
-    const QString afterMark = moveLabel.mid(markPos + 1);
-    const bool isDrop = afterMark.contains(QStringLiteral("打"));
-    const bool isPromotion = afterMark.contains(QStringLiteral("成")) && !afterMark.contains(QStringLiteral("不成"));
-
-    int fileTo = 0;
-    int rankTo = 0;
-    if (afterMark.startsWith(QStringLiteral("同"))) {
-        fileTo = fallbackFileTo;
-        rankTo = fallbackRankTo;
-    } else if (afterMark.size() >= 2) {
-        fileTo = ShogiUtils::parseFullwidthFile(afterMark.at(0));
-        rankTo = ShogiUtils::parseKanjiRank(afterMark.at(1));
-    }
-    if (fileTo < 1 || fileTo > 9 || rankTo < 1 || rankTo > 9) {
-        return QString();
-    }
-    const QChar toRankAlpha = QChar('a' + rankTo - 1);
-
-    if (isDrop) {
-        static const QString pieceChars = QStringLiteral("歩香桂銀金角飛");
-        static const QString usiPieces  = QStringLiteral("PLNSGBR");
-        QChar pieceUsi;
-        for (qsizetype i = 0; i < pieceChars.size(); ++i) {
-            if (afterMark.contains(pieceChars.at(i))) {
-                pieceUsi = usiPieces.at(i);
-                break;
-            }
-        }
-        if (pieceUsi.isNull()) {
-            return QString();
-        }
-        return QStringLiteral("%1*%2%3").arg(pieceUsi).arg(fileTo).arg(toRankAlpha);
-    }
-
-    const qsizetype parenStart = afterMark.indexOf(QLatin1Char('('));
-    const qsizetype parenEnd   = afterMark.indexOf(QLatin1Char(')'));
-    if (parenStart < 0 || parenEnd <= parenStart + 1) {
-        return QString();
-    }
-    const QString srcStr = afterMark.mid(parenStart + 1, parenEnd - parenStart - 1);
-    if (srcStr.size() != 2) {
-        return QString();
-    }
-    const int fileFrom = srcStr.at(0).digitValue();
-    const int rankFrom = srcStr.at(1).digitValue();
-    if (fileFrom < 1 || fileFrom > 9 || rankFrom < 1 || rankFrom > 9) {
-        return QString();
-    }
-    const QChar fromRankAlpha = QChar('a' + rankFrom - 1);
-
-    QString usiMove = QStringLiteral("%1%2%3%4")
-        .arg(fileFrom).arg(fromRankAlpha).arg(fileTo).arg(toRankAlpha);
-    if (isPromotion) {
-        usiMove += QLatin1Char('+');
-    }
-    return usiMove;
-}
-}  // namespace
-
 DialogCoordinator::DialogCoordinator(QWidget* parentWidget, QObject* parent)
     : QObject(parent)
     , m_parentWidget(parentWidget)
@@ -281,16 +205,12 @@ bool DialogCoordinator::startConsiderationFromContext()
     params.previousRankTo = resolved.previousRankTo;
     params.lastUsiMove = resolved.lastUsiMove;
 
-    // 漢字表記からUSI指し手を抽出（UI固有フォールバック: resolver では解決できない場合）
+    // resolver で取得できない場合はレコードの構造化された指し手を使用する
     if (params.lastUsiMove.isEmpty() && currentMoveIdx > 0 && m_considerationCtx.kifuRecordModel) {
         const int rowCount = m_considerationCtx.kifuRecordModel->rowCount();
         if (currentMoveIdx < rowCount) {
-            const QString moveLabel =
-                m_considerationCtx.kifuRecordModel->index(currentMoveIdx, 0).data(Qt::DisplayRole).toString();
-            params.lastUsiMove = extractUsiMoveFromKanjiLabel(
-                moveLabel, params.previousFileTo, params.previousRankTo);
-            qCDebug(lcUi).noquote() << "lastUsiMove (from record label fallback):" << params.lastUsiMove
-                               << " label=" << moveLabel;
+            if (const auto* item = m_considerationCtx.kifuRecordModel->item(currentMoveIdx))
+                params.lastUsiMove = item->usiMove;
         }
     }
 

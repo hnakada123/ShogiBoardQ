@@ -36,6 +36,8 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
         return QStringLiteral("<qt>%1</qt>").arg(html);
     }
 
+    if (role == Qt::ToolTipRole && col == 0) return list[row]->displayMove(true);
+
     // 背景色：現在行は淡い青、分岐ありの手はオレンジ系、その他は白色
     if (role == Qt::BackgroundRole) {
         // 現在行のハイライトを優先
@@ -66,9 +68,9 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
     switch (col) {
     case 0: {
         // 指し手列：分岐ありなら末尾に '+' を付与（表示上のみ）
-        QString s = list[row]->currentMove();
-        if (row > 0 && m_branchPlySet.contains(row) && !s.endsWith(QLatin1Char('+'))) {
-            s.append(QLatin1Char('+'));
+        QString s = list[row]->displayMove();
+        if (row > 0 && m_branchPlySet.contains(row) && !s.endsWith(QLatin1Char('+')) && !s.endsWith(QStringLiteral(" [+]"))) {
+            s.append(KifuPresentation::options().notation == KifuPresentation::Notation::Western ? QStringLiteral(" [+]") : QStringLiteral("+"));
         }
         return s;
     }

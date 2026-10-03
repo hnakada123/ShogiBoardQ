@@ -2,6 +2,7 @@
 /// @brief 定跡手入力ウィジェットクラスの実装
 
 #include "josekimoveinputwidget.h"
+#include "kifupresentation.h"
 #include "josekipresenter.h"
 #include "sfenpositiontracer.h"
 
@@ -21,11 +22,6 @@
 // 筋の表示用（1-9）
 static constexpr std::array<QStringView, 9> kFileLabels = {
     u"１", u"２", u"３", u"４", u"５", u"６", u"７", u"８", u"９"
-};
-
-// 段の表示用（一〜九）
-static constexpr std::array<QStringView, 9> kRankLabels = {
-    u"一", u"二", u"三", u"四", u"五", u"六", u"七", u"八", u"九"
 };
 
 // 駒種の表示用
@@ -94,7 +90,7 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
         m_fromFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
     }
     for (int i = 0; i < 9; ++i) {
-        m_fromRankCombo->addItem(kRankLabels[static_cast<size_t>(i)].toString(), QChar('a' + i));
+        m_fromRankCombo->addItem(KifuPresentation::rankLabel(i + 1), QChar('a' + i));
     }
 
     QLabel *toLabel = new QLabel(tr("移動先:"), m_boardWidget);
@@ -105,7 +101,7 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
         m_toFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
     }
     for (int i = 0; i < 9; ++i) {
-        m_toRankCombo->addItem(kRankLabels[static_cast<size_t>(i)].toString(), QChar('a' + i));
+        m_toRankCombo->addItem(KifuPresentation::rankLabel(i + 1), QChar('a' + i));
     }
 
     QLabel *promoteLabel = new QLabel(tr("成り:"), m_boardWidget);
@@ -136,7 +132,8 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
     QLabel *pieceLabel = new QLabel(tr("駒種:"), m_dropWidget);
     m_dropPieceCombo = new QComboBox(m_dropWidget);
     for (size_t i = 0; i < kPieceLabels.size(); ++i) {
-        m_dropPieceCombo->addItem(kPieceLabels[i].toString(), kPieceUsi[i].toString());
+        m_dropPieceCombo->addItem(KifuPresentation::options().notation == KifuPresentation::Notation::Western
+            ? kPieceUsi[i].toString() : kPieceLabels[i].toString(), kPieceUsi[i].toString());
     }
 
     QLabel *dropToLabel = new QLabel(tr("打ち先:"), m_dropWidget);
@@ -147,7 +144,7 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
         m_dropToFileCombo->addItem(kFileLabels[static_cast<size_t>(i)].toString(), i + 1);
     }
     for (int i = 0; i < 9; ++i) {
-        m_dropToRankCombo->addItem(kRankLabels[static_cast<size_t>(i)].toString(), QChar('a' + i));
+        m_dropToRankCombo->addItem(KifuPresentation::rankLabel(i + 1), QChar('a' + i));
     }
 
     dropLayout->addWidget(pieceLabel);
@@ -233,7 +230,9 @@ void JosekiMoveInputWidget::updatePreview()
     m_usiLabel->setText(usi);
     SfenPositionTracer tracer;
     m_previewLabel->setText(!m_currentSfen.isEmpty() && tracer.setFromSfen(m_currentSfen)
-        ? JosekiPresenter::usiMoveToJapanese(usi, tracer) : usiToJapanese(usi));
+        ? JosekiPresenter::usiMoveToJapanese(usi, tracer)
+        : (KifuPresentation::options().notation == KifuPresentation::Notation::Western
+               ? usi : usiToJapanese(usi)));
     emit moveChanged();
 }
 

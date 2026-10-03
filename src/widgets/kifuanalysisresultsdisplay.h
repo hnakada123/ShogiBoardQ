@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include "kifupresentation.h"
 
 class KifuAnalysisResultsDisplay : public QObject
 {
@@ -42,6 +43,16 @@ private:
     QString m_sfen;
 
 public:
+    QString beforeSfen;
+    QString candidateUsi;
+    QString candidateSfen;
+    QString displayMove(bool full = false) const
+    { return KifuPresentation::label(m_currentMove, beforeSfen, m_lastUsiMove, full); }
+    QString displayCandidate(bool full = false) const
+    { return KifuPresentation::label(m_candidateMove, candidateSfen, candidateUsi, full); }
+    QString displayPv(bool full = false) const
+    { return KifuPresentation::pv(m_sfen, m_usiPv, m_principalVariation, full); }
+
     // 指し手を取得する。
     QString currentMove() const;
 

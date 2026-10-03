@@ -41,6 +41,7 @@ public:
 
     // 現在の読み筋を取得する。
     QString pv() const;
+    QString displayPv(bool fullOrigin = false) const;
 
     // USI形式の読み筋を取得する。
     QString usiPv() const;
@@ -73,6 +74,9 @@ public:
     void setScoreCp(int scoreCp);
 
 private:
+    mutable QString m_displayCacheKey;
+    mutable QString m_displayCache;
+    mutable QString m_tooltipCache;
     // 思考時間
     QString m_time;
 

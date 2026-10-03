@@ -51,6 +51,7 @@ public:
     QString currentSfen() const;
     bool isBlackTurn() const;
     QString currentMoveText() const;
+    QString displayPv(bool fullOrigin = false) const;
 
     // Property setters
     void setKanjiPv(const QString& kanjiPv);

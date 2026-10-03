@@ -72,7 +72,12 @@ void AnalysisFlowController::start(const Deps& d, KifuAnalysisDialog* dlg)
     if (d.recordModel) {
         for (int row = 0; row < d.recordModel->rowCount(); ++row) {
             const auto* item = d.recordModel->item(row);
-            m_recordSnapshot->appendItem(new KifuDisplay(item ? item->currentMove() : QString(), QString()));
+            auto* snapshot = new KifuDisplay(item ? item->currentMove() : QString(), QString());
+            if (item) {
+                snapshot->beforeSfen = item->beforeSfen;
+                snapshot->usiMove = item->usiMove;
+            }
+            m_recordSnapshot->appendItem(snapshot);
         }
     }
     m_recordModel = m_recordSnapshot.get();
