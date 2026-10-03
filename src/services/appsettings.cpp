@@ -146,7 +146,7 @@ QStringList availablePieceStyles()
     return {QStringLiteral("standard"),
             QStringLiteral("torafu_light"), QStringLiteral("torafu_silk"), QStringLiteral("torafu_amber"),
             QStringLiteral("torafu_red"), QStringLiteral("torafu_gold"), QStringLiteral("wood_pale"),
-            QStringLiteral("wood_straight"), QStringLiteral("wood_amber"), QStringLiteral("wood_bamboo"),
+            QStringLiteral("wood_classic"), QStringLiteral("wood_amber"), QStringLiteral("wood_bamboo"),
             QStringLiteral("wood_walnut"), QStringLiteral("tint_linen"), QStringLiteral("tint_sakura"),
             QStringLiteral("tint_celadon"), QStringLiteral("tint_moon"), QStringLiteral("tint_wisteria"),
             QStringLiteral("deep_ebony"), QStringLiteral("deep_navy"), QStringLiteral("deep_green"),
@@ -167,7 +167,7 @@ QString pieceStyle()
     auto& settings = SettingsCommon::openSettings();
     const QString style = settings.value(SettingsKeys::kPieceStyle, QStringLiteral("standard")).toString();
     if (availablePieceStyles().contains(style)) return style;
-    // 旧セットの選択も、現在の木目の駒を採用した標準セットへ移行する。
+    // 糸柾（wood_straight）と廃止済みの旧セットは、糸柾を採用した標準セットへ移行する。
     settings.setValue(SettingsKeys::kPieceStyle, QStringLiteral("standard"));
     return QStringLiteral("standard");
 }

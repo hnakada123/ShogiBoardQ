@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""標準の駒から採用済み20種類の木肌・色調バリエーションを再生成する。"""
+"""木目の駒から、現標準の糸柾を含む20種類の木肌・色調を再生成する。"""
 from pathlib import Path
 import argparse
 import hashlib
@@ -175,9 +175,9 @@ def main():
     parser.add_argument('--output', type=Path, required=True, help='生成先ディレクトリ')
     args = parser.parse_args()
     designs = json.loads((pieces / 'variants.json').read_text())
-    sources = sorted((pieces / 'standard').glob('*.svg'))
+    sources = sorted((pieces / 'wood_classic').glob('*.svg'))
     if len(sources) != 30:
-        raise SystemExit('標準の駒が30枚必要です')
+        raise SystemExit('木目の駒が30枚必要です')
     for design in designs:
         target = args.output / design['style']
         target.mkdir(parents=True, exist_ok=True)

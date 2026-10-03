@@ -104,7 +104,7 @@ def main():
                 glyph = trace_glyph(image, (center - 108, top, center + 108, bottom), Path(temporary))
                 for side in ('Sente', 'Gote'):
                     filename = f'{side}_{name}45.svg'
-                    make_piece(pieces / 'standard' / filename, glyph, name in PROMOTED,
+                    make_piece(pieces / 'wood_classic' / filename, glyph, name in PROMOTED,
                                args.output / filename)
     print(f'{args.output}: 戦国文字のSVG30枚を生成しました。')
 

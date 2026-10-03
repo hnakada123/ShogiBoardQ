@@ -56,8 +56,8 @@ QString BoardColorPresets::pieceStyleName(const QString& style)
         return QCoreApplication::translate("MainWindow", "山吹虎斑");
     if (style == QLatin1String("wood_pale"))
         return QCoreApplication::translate("MainWindow", "白木");
-    if (style == QLatin1String("wood_straight"))
-        return QCoreApplication::translate("MainWindow", "糸柾");
+    if (style == QLatin1String("wood_classic"))
+        return QCoreApplication::translate("MainWindow", "木目");
     if (style == QLatin1String("wood_amber"))
         return QCoreApplication::translate("MainWindow", "飴柾");
     if (style == QLatin1String("wood_bamboo"))
