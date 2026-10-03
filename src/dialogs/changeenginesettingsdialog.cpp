@@ -67,9 +67,6 @@ void ChangeEngineSettingsDialog::createOptionWidgets()
         "QLabel { background-color: transparent; padding: 8px; "
         "font-weight: bold; color: #333333; }");
 
-    // ダイアログ全体の背景をクリーム色にする
-    this->setStyleSheet(
-        "QDialog { background-color: #fefcf6; }");
 
     // 画面レイアウトを作成する。
     QVBoxLayout* optionWidgetsLayout = new QVBoxLayout;
@@ -167,7 +164,9 @@ void ChangeEngineSettingsDialog::decreaseFontSize()
 // すべてのウィジェットにフォントサイズを適用する。
 void ChangeEngineSettingsDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     QFont font = this->font();
     font.setPointSize(m_fontHelper.fontSize());
     DialogUtils::applyFontToAllChildren(this, font);
+    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize(), 8, 20);
 }

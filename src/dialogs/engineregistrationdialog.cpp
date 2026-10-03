@@ -49,6 +49,7 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
 
     // 保存されているウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineRegistrationDialogSize());
+    updateSelectionState();
 }
 
 EngineRegistrationDialog::~EngineRegistrationDialog()
@@ -63,6 +64,8 @@ EngineRegistrationDialog::~EngineRegistrationDialog()
 // シグナル・スロットの接続を行う。
 void EngineRegistrationDialog::initializeSignals() const
 {
+    connect(ui->engineListWidget, &QListWidget::itemSelectionChanged,
+            this, &EngineRegistrationDialog::updateSelectionState);
     // 追加ボタンが押されたときの処理を接続
     connect(ui->addEngineButton, &QPushButton::clicked, this, &EngineRegistrationDialog::addEngineFromFileSelection);
 
@@ -204,14 +207,21 @@ void EngineRegistrationDialog::onHandlerError(const QString& errorMessage)
 void EngineRegistrationDialog::onRegistrationInProgressChanged(bool inProgress)
 {
     ui->addEngineButton->setEnabled(!inProgress);
-    ui->removeEngineButton->setEnabled(!inProgress);
-    ui->configureEngineButton->setEnabled(!inProgress);
+    updateSelectionState();
 
     if (inProgress) {
         ui->addEngineButton->setText(tr("登録中..."));
     } else {
         ui->addEngineButton->setText(tr("追加"));
     }
+}
+
+void EngineRegistrationDialog::updateSelectionState()
+{
+    const bool available = !m_handler->isRegistrationInProgress()
+        && ui->engineListWidget->selectedItems().size() == 1;
+    ui->removeEngineButton->setEnabled(available);
+    ui->configureEngineButton->setEnabled(available);
 }
 
 // フォントサイズを増加する
@@ -237,6 +247,7 @@ void EngineRegistrationDialog::decreaseFontSize()
 // すべてのウィジェットにフォントサイズを適用する
 void EngineRegistrationDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     QFont font = this->font();
     font.setPointSize(m_fontSize);
     this->setFont(font);
@@ -246,4 +257,5 @@ void EngineRegistrationDialog::applyFontSize()
     for (QWidget* widget : std::as_const(widgets)) {
         widget->setFont(font);
     }
+    DialogUtils::updateFontButtons(this, m_fontSize, 8, 20);
 }

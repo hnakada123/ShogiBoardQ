@@ -3,6 +3,9 @@
 
 #include "piecesoundsettingsdialog.h"
 #include "piecesoundplayer.h"
+#include "dialogfontscale.h"
+#include <QSpinBox>
+#include <QSignalBlocker>
 
 #include <QDialogButtonBox>
 #include <QGridLayout>
@@ -12,16 +15,6 @@
 #include <QPushButton>
 #include <QSlider>
 #include <QVBoxLayout>
-
-namespace {
-
-/// 符号付きの整数表記（"+3" / "0" / "-2"）
-QString signedNumber(int value)
-{
-    return value > 0 ? QStringLiteral("+%1").arg(value) : QString::number(value);
-}
-
-} // namespace
 
 PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWidget* parent)
     : QDialog(parent)
@@ -33,11 +26,11 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
     , m_lowSlider(makeGainSlider(PieceSoundTone::kMaxGainDb, this))
     , m_midSlider(makeGainSlider(PieceSoundTone::kMaxGainDb, this))
     , m_highSlider(makeGainSlider(PieceSoundTone::kMaxGainDb, this))
-    , m_volumeLabel(new QLabel(this))
-    , m_pitchLabel(new QLabel(this))
-    , m_lowLabel(new QLabel(this))
-    , m_midLabel(new QLabel(this))
-    , m_highLabel(new QLabel(this))
+    , m_volumeValue(new QSpinBox(this))
+    , m_pitchValue(new QSpinBox(this))
+    , m_lowValue(new QSpinBox(this))
+    , m_midValue(new QSpinBox(this))
+    , m_highValue(new QSpinBox(this))
 {
     setWindowTitle(tr("駒音の設定"));
     m_volumeSlider->setObjectName(QStringLiteral("pieceSoundVolume"));
@@ -45,10 +38,10 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
     m_lowSlider->setObjectName(QStringLiteral("pieceSoundLow"));
     m_midSlider->setObjectName(QStringLiteral("pieceSoundMid"));
     m_highSlider->setObjectName(QStringLiteral("pieceSoundHigh"));
-    setSizeGripEnabled(false);
+    setSizeGripEnabled(true);
 
     auto* mainLayout = new QVBoxLayout(this);
-    mainLayout->setSizeConstraint(QLayout::SetFixedSize);
+    mainLayout->setSpacing(10);
 
     // --- 音量 / 音の高さ（横スライダー） ---
     auto* grid = new QGridLayout();
@@ -64,18 +57,16 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
     m_pitchSlider->setTickPosition(QSlider::TicksBelow);
     m_pitchSlider->setMinimumWidth(280);
 
-    const int valueWidth = fontMetrics().horizontalAdvance(QStringLiteral("+12 半音")) + 8;
-    for (QLabel* label : {m_volumeLabel, m_pitchLabel}) {
-        label->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-        label->setMinimumWidth(valueWidth);
-    }
-
-    grid->addWidget(new QLabel(tr("音量"), this), 0, 0);
+    auto* volumeTitle = new QLabel(tr("音量"), this);
+    auto* pitchTitle = new QLabel(tr("音の高さ"), this);
+    volumeTitle->setBuddy(m_volumeValue);
+    pitchTitle->setBuddy(m_pitchValue);
+    grid->addWidget(volumeTitle, 0, 0);
     grid->addWidget(m_volumeSlider, 0, 1);
-    grid->addWidget(m_volumeLabel, 0, 2);
-    grid->addWidget(new QLabel(tr("音の高さ"), this), 1, 0);
+    grid->addWidget(m_volumeValue, 0, 2);
+    grid->addWidget(pitchTitle, 1, 0);
     grid->addWidget(m_pitchSlider, 1, 1);
-    grid->addWidget(m_pitchLabel, 1, 2);
+    grid->addWidget(m_pitchValue, 1, 2);
     grid->setColumnStretch(1, 1);
     mainLayout->addLayout(grid);
 
@@ -84,21 +75,21 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
     auto* eqLayout = new QHBoxLayout(eqBox);
     const struct {
         QSlider* slider;
-        QLabel* valueLabel;
+        QSpinBox* valueInput;
         QString title;
     } bands[] = {
-        {m_lowSlider, m_lowLabel, tr("低音")},
-        {m_midSlider, m_midLabel, tr("中音")},
-        {m_highSlider, m_highLabel, tr("高音")},
+        {m_lowSlider, m_lowValue, tr("低音")},
+        {m_midSlider, m_midValue, tr("中音")},
+        {m_highSlider, m_highValue, tr("高音")},
     };
     for (const auto& band : bands) {
         auto* column = new QVBoxLayout();
         auto* title = new QLabel(band.title, eqBox);
         title->setAlignment(Qt::AlignHCenter);
-        band.valueLabel->setAlignment(Qt::AlignHCenter);
+        title->setBuddy(band.valueInput);
         column->addWidget(title);
         column->addWidget(band.slider, 0, Qt::AlignHCenter);
-        column->addWidget(band.valueLabel);
+        column->addWidget(band.valueInput);
         eqLayout->addLayout(column);
     }
     mainLayout->addWidget(eqBox);
@@ -113,6 +104,29 @@ PieceSoundSettingsDialog::PieceSoundSettingsDialog(PieceSoundPlayer* player, QWi
     auto* defaultsButton = buttonBox->addButton(tr("標準に戻す"), QDialogButtonBox::ResetRole);
     auto* previewButton = buttonBox->addButton(tr("試聴"), QDialogButtonBox::ActionRole);
     mainLayout->addWidget(buttonBox);
+
+    const struct {
+        QSlider* slider;
+        QSpinBox* input;
+        QString title;
+        QString suffix;
+    } controls[] = {
+        {m_volumeSlider, m_volumeValue, tr("音量"), QStringLiteral(" %")},
+        {m_pitchSlider, m_pitchValue, tr("音の高さ"), tr(" 半音")},
+        {m_lowSlider, m_lowValue, tr("低音"), QStringLiteral(" dB")},
+        {m_midSlider, m_midValue, tr("中音"), QStringLiteral(" dB")},
+        {m_highSlider, m_highValue, tr("高音"), QStringLiteral(" dB")},
+    };
+    for (const auto& control : controls) {
+        control.input->setRange(control.slider->minimum(), control.slider->maximum());
+        control.input->setSuffix(control.suffix);
+        control.input->setKeyboardTracking(false);
+        control.input->setObjectName(control.slider->objectName() + QStringLiteral("Value"));
+        control.input->setAccessibleName(control.title);
+        control.slider->setAccessibleName(control.title);
+        connect(control.input, &QSpinBox::valueChanged, control.slider, &QSlider::setValue);
+    }
+    DialogFontScale::install(this, QStringLiteral("pieceSound"), true);
 
     // 初期値を反映してから接続する（初期化で試聴しないため）
     applySliders(m_initialVolume, m_initialTone);
@@ -219,11 +233,13 @@ void PieceSoundSettingsDialog::applySliders(int volume, const PieceSoundTone& to
 
 void PieceSoundSettingsDialog::updateLabels()
 {
-    m_volumeLabel->setText(tr("%1%").arg(m_volumeSlider->value()));
-    m_pitchLabel->setText(tr("%1 半音").arg(signedNumber(m_pitchSlider->value())));
-    m_lowLabel->setText(tr("%1 dB").arg(signedNumber(m_lowSlider->value())));
-    m_midLabel->setText(tr("%1 dB").arg(signedNumber(m_midSlider->value())));
-    m_highLabel->setText(tr("%1 dB").arg(signedNumber(m_highSlider->value())));
+    const QList<QPair<QSpinBox*, QSlider*>> controls{
+        {m_volumeValue, m_volumeSlider}, {m_pitchValue, m_pitchSlider},
+        {m_lowValue, m_lowSlider}, {m_midValue, m_midSlider}, {m_highValue, m_highSlider}};
+    for (const auto& control : controls) {
+        const QSignalBlocker blocker(control.first);
+        control.first->setValue(control.second->value());
+    }
 }
 
 bool PieceSoundSettingsDialog::anySliderDown() const

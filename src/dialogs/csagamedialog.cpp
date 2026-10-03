@@ -429,7 +429,9 @@ void CsaGameDialog::onFontDecrease()
 // ダイアログ全体にフォントサイズを適用する
 void CsaGameDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     QFont font = this->font();
     font.setPointSize(m_fontHelper.fontSize());
     DialogUtils::applyFontToAllChildren(this, font);
+    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize());
 }

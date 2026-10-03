@@ -209,6 +209,7 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     toolbar->addWidget(flip);
     right->addLayout(toolbar);
     m_preview = new BoardAppearancePreview(this);
+    m_preview->setProperty("dialogFontScaleExcluded", true);
     right->addWidget(m_preview, 1);
     m_selectionSummary = new QLabel(this);
     m_selectionSummary->setObjectName(QStringLiteral("appearanceSelectionSummary"));
@@ -334,12 +335,14 @@ void BoardColorDialog::restoreOpeningAppearance()
 
 bool BoardColorDialog::eventFilter(QObject* watched, QEvent* event)
 {
-    if (event->type() == QEvent::Resize) {
+    if (event->type() == QEvent::Resize || event->type() == QEvent::FontChange) {
         auto* viewport = qobject_cast<QWidget*>(watched);
         auto* list = viewport ? qobject_cast<QListWidget*>(viewport->parentWidget()) : nullptr;
         if (list) {
-            const int columns = qMax(1, viewport->width() / 164);
-            list->setGridSize(QSize(viewport->width() / columns - 2 * list->spacing(), 120));
+            const int cellWidth = qMax(164, list->fontMetrics().horizontalAdvance(QStringLiteral("対局者情報")) + 32);
+            const int columns = qMax(1, viewport->width() / cellWidth);
+            const int cellHeight = list->iconSize().height() + list->fontMetrics().lineSpacing() * 2 + 24;
+            list->setGridSize(QSize(viewport->width() / columns - 2 * list->spacing(), cellHeight));
         }
     }
     return QDialog::eventFilter(watched, event);

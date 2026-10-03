@@ -306,6 +306,7 @@ void TsumePlayDialog::onFontDecrease()
 
 void TsumePlayDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     QFont f = font();
     f.setPointSize(m_fontHelper.fontSize());
     setFont(f);
@@ -320,6 +321,7 @@ void TsumePlayDialog::applyFontSize()
     m_status->setMinimumHeight(std::max(45, QFontMetrics(f).lineSpacing() * 3));
     m_fontDecrease->setEnabled(m_fontHelper.fontSize() > 8);
     m_fontIncrease->setEnabled(m_fontHelper.fontSize() < 24);
+    DialogUtils::updateFontButtons(this, m_fontHelper.fontSize());
 }
 
 void TsumePlayDialog::selectProblem()

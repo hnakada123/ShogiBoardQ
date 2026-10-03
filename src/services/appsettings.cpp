@@ -9,6 +9,28 @@
 
 namespace AppSettings {
 
+int dialogFontSize(const QString& id, int defaultSize)
+{
+    const QString key = QStringLiteral("DialogAppearance/%1/fontSize").arg(id);
+    return qBound(8, SettingsCommon::openSettings().value(key, defaultSize).toInt(), 24);
+}
+
+void setDialogFontSize(const QString& id, int size)
+{
+    SettingsCommon::openSettings().setValue(QStringLiteral("DialogAppearance/%1/fontSize").arg(id), qBound(8, size, 24));
+}
+
+QSize auxiliaryDialogSize(const QString& id)
+{
+    const QString key = QStringLiteral("DialogAppearance/%1/size").arg(id);
+    return SettingsCommon::openSettings().value(key, QSize()).toSize();
+}
+
+void setAuxiliaryDialogSize(const QString& id, const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(QStringLiteral("DialogAppearance/%1/size").arg(id), size);
+}
+
 QSize versionDialogSize()
 {
     return SettingsCommon::openSettings().value(SettingsKeys::kVersionDialogSize, QSize(680, 760)).toSize();
@@ -47,7 +69,7 @@ void setLanguage(const QString& lang)
 
 QString uiFontFamily()
 {
-    return SettingsCommon::openSettings().value(SettingsKeys::kUiFontFamily).toString();
+    return SettingsCommon::openSettings().value(SettingsKeys::kUiFontFamily, QString()).toString();
 }
 
 void setUiFontFamily(const QString& family)

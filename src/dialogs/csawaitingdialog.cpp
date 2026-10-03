@@ -267,7 +267,7 @@ void CsaWaitingDialog::createLogWindow()
     m_logCloseButton = new QPushButton(tr("閉じる"), m_logWindow);
     m_logCloseButton->setAutoDefault(false);
     m_logCloseButton->setDefault(false);
-    m_logCloseButton->setFocusPolicy(Qt::NoFocus);
+    m_logCloseButton->setFocusPolicy(Qt::StrongFocus);
     m_logCloseButton->setFont(btnFont);
     connect(m_logCloseButton, &QPushButton::clicked,
             m_logWindow, &QDialog::close);
@@ -277,6 +277,8 @@ void CsaWaitingDialog::createLogWindow()
     layout->addLayout(buttonLayout);
 
     m_logWindow->setLayout(layout);
+    DialogUtils::standardizeDialog(m_logWindow);
+    applyLogFontSize();
 
     connect(m_commandInput, &QLineEdit::returnPressed,
             this, &CsaWaitingDialog::onCommandEntered);
@@ -317,6 +319,7 @@ void CsaWaitingDialog::applyLogFontSize()
     if (m_btnLogFontIncrease) {
         m_btnLogFontIncrease->setFont(btnFont);
     }
+    DialogUtils::updateFontButtons(m_logWindow, size);
 }
 
 void CsaWaitingDialog::onGameStateChanged(CsaGameCoordinator::GameState state)
@@ -412,6 +415,7 @@ void CsaWaitingDialog::onFontDecrease()
 
 void CsaWaitingDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     const int size = m_fontHelper.fontSize();
     QFont f = font();
     f.setPointSize(size);
@@ -419,7 +423,7 @@ void CsaWaitingDialog::applyFontSize()
 
     const QList<QWidget*> widgets = findChildren<QWidget*>();
     for (QWidget* widget : std::as_const(widgets)) {
-        if (widget) {
+        if (widget && widget->window() == this) {
             widget->setFont(f);
         }
     }
@@ -430,4 +434,5 @@ void CsaWaitingDialog::applyFontSize()
         boldFont.setPointSize(size + 2);
         m_statusLabel->setFont(boldFont);
     }
+    DialogUtils::updateFontButtons(this, size);
 }

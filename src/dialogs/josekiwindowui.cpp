@@ -280,6 +280,7 @@ void JosekiWindow::setupUi()
 
 void JosekiWindow::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     const int fontSize = m_fontHelper.fontSize();
     QFont font = this->font();
     font.setPointSize(fontSize);
@@ -320,6 +321,7 @@ void JosekiWindow::applyFontSize()
     if (m_sfenLineLabel)
         m_sfenLineLabel->setStyleSheet(QStringLiteral("color: #228b22; font-size: %1pt;").arg(sfenFontSize));
     updateJosekiDisplay();
+    DialogUtils::updateFontButtons(this, fontSize, 6, 24);
 }
 
 void JosekiWindow::loadSettings()

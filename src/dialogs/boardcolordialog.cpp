@@ -2,6 +2,7 @@
 #include "appsettings.h"
 #include "boardappearance.h"
 #include "dialogutils.h"
+#include "dialogfontscale.h"
 #include "pieceimageprovider.h"
 #include "boardsurfacepainter.h"
 #include "piecepainter.h"
@@ -68,6 +69,8 @@ BoardColorDialog::BoardColorDialog(QWidget* parent)
     rebuildPresets();
     refreshButtons();
     DialogUtils::restoreDialogSize(this, AppSettings::boardColorDialogSize());
+    DialogFontScale::install(this, QStringLiteral("boardColors"));
+    DialogFontScale::install(m_picker, QStringLiteral("colorPicker"));
 }
 
 BoardColorDialog::~BoardColorDialog()

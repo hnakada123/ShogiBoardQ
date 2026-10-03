@@ -8,9 +8,12 @@
 #include "shogigamecontroller.h"
 #include "gamesettings.h"
 #include "dialogutils.h"
+#include "dialogfontscale.h"
 #include "sfenutils.h"
 
 #include <QVBoxLayout>
+#include <QScrollArea>
+#include <QScreen>
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
@@ -39,6 +42,8 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
 
     // UIを構築
     buildUi();
+    m_shogiView->setProperty("dialogFontScaleExcluded", true);
+    DialogFontScale::install(this, QStringLiteral("sfenCollection"));
 
     // 最近使ったファイルリストを読み込み
     m_recentFiles = GameSettings::sfenCollectionRecentFiles();
@@ -143,13 +148,19 @@ void SfenCollectionDialog::buildUi()
     m_shogiView->setBlackPlayerName(tr("先手"));
     m_shogiView->setWhitePlayerName(tr("後手"));
 
-    mainLayout->addWidget(m_shogiView, 1);
+    auto* boardScroll = new QScrollArea(this);
+    boardScroll->setObjectName(QStringLiteral("boardScrollArea"));
+    boardScroll->setFrameShape(QFrame::NoFrame);
+    boardScroll->setAlignment(Qt::AlignCenter);
+    boardScroll->setMinimumSize(300, 300);
+    boardScroll->setWidget(m_shogiView);
+    mainLayout->addWidget(boardScroll, 1);
 
     // 局面ラベル
     m_positionLabel = new QLabel(this);
     m_positionLabel->setAlignment(Qt::AlignCenter);
     m_positionLabel->setStyleSheet(QStringLiteral(
-        "QLabel { font-size: 14px; font-weight: bold; padding: 4px; }"));
+        "QLabel { font-weight: bold; padding: 4px; }"));
     mainLayout->addWidget(m_positionLabel);
 
     // ナビゲーションボタン
@@ -439,7 +450,12 @@ void SfenCollectionDialog::adjustWindowToContents()
         m_shogiView->updateBoardSize();
         hideClockLabels();
     }
-    adjustSize();
+    // 通常表示は盤全体が入る寸法を優先し、小さい画面ではスクロールで補う。
+    layout()->activate();
+    auto* scroll = findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
+    const QSize controls = size() - scroll->viewport()->size();
+    const QSize available = screen()->availableGeometry().size() - QSize(40, 80);
+    resize((m_shogiView->size() + controls).boundedTo(available));
 }
 
 void SfenCollectionDialog::closeEvent(QCloseEvent* event)

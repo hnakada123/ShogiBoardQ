@@ -73,13 +73,10 @@ inline QString panelToolButton()
         "QPushButton:focus, QToolButton:focus { border: 1px solid #52799c; }");
 }
 
-/// A+/A- フォントサイズボタン（ライトブルー）
+/// A+/A− フォントサイズボタン（共通の補助操作色）
 inline QString fontButton()
 {
-    return detail::buildDualStyle(
-        "#e3f2fd", "", "#90caf9",
-        "#bbdefb", "#90caf9",
-        "#f5f5f5", "#9e9e9e", "#e0e0e0");
+    return panelToolButton();
 }
 
 /// ▲▼ 棋譜ナビゲーションボタン（緑）

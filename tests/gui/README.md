@@ -1,5 +1,20 @@
 # 実MainWindowのGUI回帰テスト
 
+ダイアログ共通の外観・文字サイズ監査は CTest の `tst_dialog_appearance` でも実行します。
+独自ダイアログ全22種類と補助入力画面を日本語・英語で開き、A−/A＋の上下限、
+操作ボタンの欠け、フォーカス、設定の復元、駒音の数値入力、エンジン選択を検証します。
+色選択・CSA通信ログ・評価値グラフ設定も対象です。OS／Qt標準のファイル選択・
+通知ダイアログは標準の操作を維持し、実メニューからの起動は `dialogs` で確認します。
+
+```bash
+ctest --test-dir build --output-on-failure -R '^tst_dialog_appearance$'
+xvfb-run -a -s '-screen 0 1600x1200x24' env QT_QPA_PLATFORM=xcb \
+  SHOGIBOARDQ_DIALOG_SCREENSHOTS=/tmp/shogiboardq-dialog-audit \
+  build/tests/tst_dialog_appearance
+```
+
+スクリーンショットを指定した場合、通常・最大文字サイズの各画面をそのディレクトリへ保存します。
+
 Qt Testで実際のメニュー、ボタン、棋譜欄を操作する。アプリケーション本体のオブジェクトファイルを再利用し、`main.cpp`だけをテスト用の起動処理へ置き換える。MainWindowやコーディネーターのスタブは使用しない。
 
 対象環境はLinux、Qt6、Python3、Xvfb、Release/Ninjaビルド。通常のCTestとは別に実行する。既存の`build/`が別の構成の場合、この手順の対象外となる。

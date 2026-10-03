@@ -9,8 +9,11 @@
 #include "shogigamecontroller.h"
 #include "analysissettings.h"
 #include "dialogutils.h"
+#include "dialogfontscale.h"
 
 #include <QVBoxLayout>
+#include <QScrollArea>
+#include <QScreen>
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
@@ -37,6 +40,8 @@ PvBoardDialog::PvBoardDialog(const QString& baseSfen,
 
     // UIを構築（この中でm_boardが作られる）
     buildUi();
+    m_shogiView->setProperty("dialogFontScaleExcluded", true);
+    DialogFontScale::install(this, QStringLiteral("pvBoard"));
 
     // 初期盤面を設定
     const QString initialSfen = m_controller->currentSfen();
@@ -116,9 +121,8 @@ void PvBoardDialog::buildUi()
     m_pvLabel->setWordWrap(true);
     m_pvLabel->setStyleSheet(QStringLiteral(
         "QLabel { background-color: #f5f5f5; border: 1px solid #ccc; "
-        "padding: 8px; font-size: 12px; }"));
+        "padding: 8px; }"));
     m_pvLabel->setMinimumHeight(60);
-    m_pvLabel->setMaximumHeight(100);
     mainLayout->addWidget(m_pvLabel);
 
     // 将棋盤拡大・縮小ボタン（将棋盤の上に配置）
@@ -168,13 +172,19 @@ void PvBoardDialog::buildUi()
     m_shogiView->setWhitePlayerName(m_whitePlayerName.isEmpty() ? tr("後手") : m_whitePlayerName);
 
     // ShogiViewをレイアウトに追加（サイズはShogiView自身のsizeHintに任せる）
-    mainLayout->addWidget(m_shogiView, 1);
+    auto* boardScroll = new QScrollArea(this);
+    boardScroll->setObjectName(QStringLiteral("boardScrollArea"));
+    boardScroll->setFrameShape(QFrame::NoFrame);
+    boardScroll->setAlignment(Qt::AlignCenter);
+    boardScroll->setMinimumSize(300, 300);
+    boardScroll->setWidget(m_shogiView);
+    mainLayout->addWidget(boardScroll, 1);
 
     // 手数ラベル
     m_plyLabel = new QLabel(this);
     m_plyLabel->setAlignment(Qt::AlignCenter);
     m_plyLabel->setStyleSheet(QStringLiteral(
-        "QLabel { font-size: 14px; font-weight: bold; padding: 4px; }"));
+        "QLabel { font-weight: bold; padding: 4px; }"));
     mainLayout->addWidget(m_plyLabel);
 
     // ナビゲーションボタン
@@ -422,7 +432,12 @@ void PvBoardDialog::adjustWindowToContents()
         m_shogiView->updateBoardSize();
         hideClockLabels();
     }
-    adjustSize();
+    // 通常表示は盤全体が入る寸法を優先し、小さい画面ではスクロールで補う。
+    layout()->activate();
+    auto* scroll = findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
+    const QSize controls = size() - scroll->viewport()->size();
+    const QSize available = screen()->availableGeometry().size() - QSize(40, 80);
+    resize((m_shogiView->size() + controls).boundedTo(available));
 }
 
 void PvBoardDialog::closeEvent(QCloseEvent* event)

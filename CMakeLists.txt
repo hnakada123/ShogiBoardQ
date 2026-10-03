@@ -933,6 +933,8 @@ set(SRC_COMMON
     src/common/threadtypes.h
     src/common/dialogutils.cpp
     src/common/dialogutils.h
+    src/common/dialogfontscale.cpp
+    src/common/dialogfontscale.h
     src/common/fontsizehelper.cpp
     src/common/fontsizehelper.h
     src/common/errorbus.cpp

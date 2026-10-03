@@ -149,6 +149,7 @@ void TsumeShogiSearchDialog::onFontDecrease()
 
 void TsumeShogiSearchDialog::applyFontSize()
 {
+    DialogUtils::standardizeDialog(this);
     const int size = m_fontHelper.fontSize();
     QFont dialogFont = font();
     dialogFont.setPointSize(size);
@@ -161,6 +162,7 @@ void TsumeShogiSearchDialog::applyFontSize()
     ui->toolButtonFontIncrease->setFixedWidth(buttonWidth);
     ui->mainLayout->invalidate();
     QTimer::singleShot(0, this, &TsumeShogiSearchDialog::updateMinimumSize);
+    DialogUtils::updateFontButtons(this, size);
 }
 
 void TsumeShogiSearchDialog::updateMinimumSize()

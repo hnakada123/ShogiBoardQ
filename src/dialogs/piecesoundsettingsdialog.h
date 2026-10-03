@@ -10,7 +10,7 @@
 
 class PieceSoundPlayer;
 class QSlider;
-class QLabel;
+class QSpinBox;
 
 /**
  * @brief 駒音の音量・音の高さ・3バンドイコライザーをスライダーで調整するダイアログ
@@ -62,11 +62,11 @@ private:
     QSlider* m_lowSlider;
     QSlider* m_midSlider;
     QSlider* m_highSlider;
-    QLabel* m_volumeLabel;
-    QLabel* m_pitchLabel;
-    QLabel* m_lowLabel;
-    QLabel* m_midLabel;
-    QLabel* m_highLabel;
+    QSpinBox* m_volumeValue;
+    QSpinBox* m_pitchValue;
+    QSpinBox* m_lowValue;
+    QSpinBox* m_midValue;
+    QSpinBox* m_highValue;
 };
 
 #endif // PIECESOUNDSETTINGSDIALOG_H
