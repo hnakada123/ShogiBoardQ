@@ -90,6 +90,7 @@
     <addaction name="actionEnlargeBoard"/>
     <addaction name="actionShrinkBoard"/>
     <addaction name="actionBoardAppearance"/>
+    <addaction name="actionFontSettings"/>
     <addaction name="separator"/>
     <addaction name="actionToolBar"/>
     <addaction name="separator"/>
@@ -138,7 +139,6 @@
     <addaction name="actionPieceSound"/>
     <addaction name="actionPieceSoundSettings"/>
     <addaction name="menuLanguage"/>
-    <addaction name="actionFontSettings"/>
     <addaction name="separator"/>
     <addaction name="actionResetSettings"/>
    </widget>
@@ -620,6 +620,10 @@
    </property>
   </action>
   <action name="actionFontSettings">
+   <property name="icon">
+    <iconset>
+     <normaloff>:/images/actions/actionFontSettings.svg</normaloff>:/images/actions/actionFontSettings.svg</iconset>
+   </property>
    <property name="text">
     <string>GUI全体のフォント…</string>
    </property>
