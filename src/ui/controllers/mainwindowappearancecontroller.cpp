@@ -3,7 +3,6 @@
 
 #include "mainwindowappearancecontroller.h"
 
-#include <QFontDatabase>
 #include <QEvent>
 #include <QMainWindow>
 #include <QTimer>
@@ -172,7 +171,7 @@ void MainWindowAppearanceController::setupNameAndClockFonts()
     nameFont.setPointSize(12);
     nameFont.setWeight(QFont::DemiBold);
 
-    QFont clockFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    QFont clockFont = view->font();
     clockFont.setPointSize(16);
     clockFont.setWeight(QFont::DemiBold);
 

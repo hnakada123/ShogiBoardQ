@@ -794,6 +794,8 @@ set(SRC_DIALOGS
     src/dialogs/boardcolordialog.h
     src/dialogs/piecesoundsettingsdialog.cpp
     src/dialogs/piecesoundsettingsdialog.h
+    src/dialogs/fontsettingsdialog.cpp
+    src/dialogs/fontsettingsdialog.h
     src/dialogs/changeenginesettingsdialog.cpp
     src/dialogs/changeenginesettingsdialog.h
     src/dialogs/enginesettingsoptionhandler.cpp

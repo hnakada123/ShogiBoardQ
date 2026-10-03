@@ -189,12 +189,12 @@ void JosekiWindow::setupUi()
     sfenDetailLayout->setContentsMargins(20, 0, 0, 0);
     sfenDetailLayout->setSpacing(2);
     m_currentSfenLabel = new QLabel(this);
-    m_currentSfenLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-family: monospace; font-size: 9pt;"));
+    m_currentSfenLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-size: 9pt;"));
     m_currentSfenLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_currentSfenLabel->setWordWrap(true);
     sfenDetailLayout->addWidget(m_currentSfenLabel);
     m_sfenLineLabel = new QLabel(this);
-    m_sfenLineLabel->setStyleSheet(QStringLiteral("color: #228b22; font-family: monospace; font-size: 9pt;"));
+    m_sfenLineLabel->setStyleSheet(QStringLiteral("color: #228b22; font-size: 9pt;"));
     m_sfenLineLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
     m_sfenLineLabel->setWordWrap(true);
     sfenDetailLayout->addWidget(m_sfenLineLabel);
@@ -316,9 +316,9 @@ void JosekiWindow::applyFontSize()
     if (m_tableContextMenu) m_tableContextMenu->setFont(font);
     int sfenFontSize = qMax(fontSize - 1, 6);
     if (m_currentSfenLabel)
-        m_currentSfenLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-family: monospace; font-size: %1pt;").arg(sfenFontSize));
+        m_currentSfenLabel->setStyleSheet(QStringLiteral("color: #0066cc; font-size: %1pt;").arg(sfenFontSize));
     if (m_sfenLineLabel)
-        m_sfenLineLabel->setStyleSheet(QStringLiteral("color: #228b22; font-family: monospace; font-size: %1pt;").arg(sfenFontSize));
+        m_sfenLineLabel->setStyleSheet(QStringLiteral("color: #228b22; font-size: %1pt;").arg(sfenFontSize));
     updateJosekiDisplay();
 }
 

@@ -169,7 +169,7 @@ void JosekiMoveInputWidget::setupUi(bool hasNoneOption)
 
     QLabel *usiTitleLabel = new QLabel(tr("USI形式:"), this);
     m_usiLabel = new QLabel(this);
-    m_usiLabel->setStyleSheet(QStringLiteral("font-family: monospace; color: #666;"));
+    m_usiLabel->setStyleSheet(QStringLiteral("color: #666;"));
     m_usiLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
     previewLayout->addWidget(previewTitleLabel);

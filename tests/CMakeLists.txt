@@ -1523,6 +1523,9 @@ add_shogi_test(tst_applicationfonts
     ${SRC}/common/applicationfonts.cpp
 )
 
+add_shogi_test(tst_fontsettingsdialog tst_fontsettingsdialog.cpp)
+target_link_libraries(tst_fontsettingsdialog PRIVATE shogiboardq_static)
+
 # ============================================================
 # 自動化・CLI・MCP（src/automation, src/cli, mcp/）
 # 共通静的ライブラリ shogiboardq_static をリンクする

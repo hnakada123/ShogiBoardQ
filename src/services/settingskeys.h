@@ -29,6 +29,8 @@ inline constexpr char kTsumeshogiGeneratorDialogSize[]   = "SizeRelated/tsumesho
 inline constexpr char kLastKifuDirectory[]               = "General/lastKifuDirectory";
 inline constexpr char kLastKifuSaveDirectory[]           = "General/lastKifuSaveDirectory";
 inline constexpr char kLanguage[]                        = "General/language";
+inline constexpr char kUiFontFamily[]                    = "General/uiFontFamily";
+inline constexpr char kFontSettingsDialogSize[]          = "SizeRelated/fontSettingsDialogSize";
 inline constexpr char kSettingsVersion[]                 = "General/settingsVersion";
 
 // --- FontSize ---

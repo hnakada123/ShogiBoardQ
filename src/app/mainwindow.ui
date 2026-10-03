@@ -138,6 +138,7 @@
     <addaction name="actionPieceSound"/>
     <addaction name="actionPieceSoundSettings"/>
     <addaction name="menuLanguage"/>
+    <addaction name="actionFontSettings"/>
     <addaction name="separator"/>
     <addaction name="actionResetSettings"/>
    </widget>
@@ -616,6 +617,14 @@
    </property>
    <property name="text">
     <string>メニュー</string>
+   </property>
+  </action>
+  <action name="actionFontSettings">
+   <property name="text">
+    <string>GUI全体のフォント…</string>
+   </property>
+   <property name="toolTip">
+    <string>GUI全体で使用する書体を選択します</string>
    </property>
   </action>
   <action name="actionResetSettings">

@@ -200,16 +200,8 @@ void ShogiView::ensureAndPlaceEditExitButton()
         }
     }
 
-    // サイズは名前ラベルに合わせ、漢字の字形は日本語用フォントを優先する。
+    // 書体とサイズを名前ラベルに合わせる。
     QFont buttonFont = base ? base->font() : font();
-    QStringList families = {
-        QStringLiteral("Noto Sans CJK JP"), QStringLiteral("Noto Sans JP"),
-        QStringLiteral("Yu Gothic UI"), QStringLiteral("Meiryo"),
-        QStringLiteral("Hiragino Sans"), QStringLiteral("Hiragino Kaku Gothic ProN"),
-        QStringLiteral("IPAGothic")
-    };
-    families.append(buttonFont.families());
-    buttonFont.setFamilies(families);
     exitBtn->setFont(buttonFont);
 
     int x = baseGeo.x();

@@ -43,6 +43,29 @@ void setLanguage(const QString& lang)
     s.setValue(SettingsKeys::kLanguage, lang);
 }
 
+// --- GUI共通フォント ---
+
+QString uiFontFamily()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kUiFontFamily).toString();
+}
+
+void setUiFontFamily(const QString& family)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kUiFontFamily, family);
+}
+
+QSize fontSettingsDialogSize()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kFontSettingsDialogSize,
+                                                QSize(520, 300)).toSize();
+}
+
+void setFontSettingsDialogSize(const QSize& size)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kFontSettingsDialogSize, size);
+}
+
 // --- UI状態 ---
 
 int lastSelectedTabIndex()

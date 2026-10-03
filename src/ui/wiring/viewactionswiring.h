@@ -47,6 +47,7 @@ private slots:
     void saveShogiBoardImage();
     void saveEvaluationGraphImage();
     void showBoardAppearance();
+    void showFontSettings();
 
 private:
     Deps m_d;

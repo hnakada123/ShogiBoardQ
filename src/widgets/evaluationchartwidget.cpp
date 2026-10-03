@@ -37,6 +37,12 @@ EvaluationChartWidget::~EvaluationChartWidget()
     m_configurator->saveSettings();
 }
 
+void EvaluationChartWidget::changeEvent(QEvent* event)
+{
+    QWidget::changeEvent(event);
+    if (event->type() == QEvent::FontChange && m_flushTimer) applyFontSize();
+}
+
 void EvaluationChartWidget::setupAxes()
 {
     m_axX->setObjectName(QStringLiteral("evalAxisX"));
