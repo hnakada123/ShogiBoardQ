@@ -980,13 +980,13 @@ Stands: %3 / Players: %4</translation>
 <context>
     <name>BranchTreeManager</name>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="138"/>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="405"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="104"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="371"/>
         <source>%1手目</source>
         <translation type="unfinished">Move %1</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="203"/>
+        <location filename="../../src/widgets/branchtreemanager_draw.cpp" line="169"/>
         <source>開始局面</source>
         <translation>Starting Position</translation>
     </message>
@@ -3469,13 +3469,13 @@ Move %3: %4</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="54"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="161"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="167"/>
         <source>先手有利</source>
         <translation>Black advantage</translation>
     </message>
     <message>
         <location filename="../../src/widgets/evaluationchartview.cpp" line="57"/>
-        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="161"/>
+        <location filename="../../src/widgets/evaluationchartwidget.cpp" line="167"/>
         <source>後手有利</source>
         <translation>White advantage</translation>
     </message>
@@ -3492,6 +3492,45 @@ Move %3: %4</translation>
         <translation>%1
 Move %2: %3
 Score from Black’s perspective</translation>
+    </message>
+</context>
+<context>
+    <name>FontSettingsDialog</name>
+    <message>
+        <location filename="../../src/dialogs/fontsettingsdialog.cpp" line="17"/>
+        <source>標準フォントを使用する</source>
+        <translation>Use the default font</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/fontsettingsdialog.cpp" line="19"/>
+        <source>将棋盤・棋譜・検討
+先手 ▲７六歩&#x3000;後手 △３四歩
+ABC abc 0123456789</source>
+        <translation>Board / Game record / Analysis
+Black ▲７六歩  White △３四歩
+ABC abc 0123456789</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/fontsettingsdialog.cpp" line="21"/>
+        <source>GUI全体のフォント</source>
+        <translation>Application Font</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/fontsettingsdialog.cpp" line="28"/>
+        <source>メニュー、棋譜、ログ、各ダイアログに共通の書体を設定します。
+文字サイズは各画面の設定を維持します。</source>
+        <translation>Choose a font family for menus, game records, logs, and dialogs.
+Each screen keeps its current text size.</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/fontsettingsdialog.cpp" line="32"/>
+        <source>書体:</source>
+        <translation>Font family:</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/fontsettingsdialog.cpp" line="43"/>
+        <source>標準に戻す</source>
+        <translation>Restore Defaults</translation>
     </message>
 </context>
 <context>
@@ -5897,27 +5936,27 @@ Please restart the application to apply the changes.</translation>
         <translation>Language</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="146"/>
+        <location filename="../../src/app/mainwindow.ui" line="147"/>
         <source>ヘルプ(H)</source>
         <translation>Help(&amp;H)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="164"/>
+        <location filename="../../src/app/mainwindow.ui" line="165"/>
         <source>toolBar</source>
         <translation>Toolbar</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="198"/>
+        <location filename="../../src/app/mainwindow.ui" line="199"/>
         <source>上書き保存</source>
         <translation>Save</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="201"/>
+        <location filename="../../src/app/mainwindow.ui" line="202"/>
         <source>Ctrl+S</source>
         <translation>Ctrl+S</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="213"/>
+        <location filename="../../src/app/mainwindow.ui" line="214"/>
         <source>Ctrl+A</source>
         <translation>Ctrl+A</translation>
     </message>
@@ -6027,87 +6066,97 @@ Please restart the application to apply the changes.</translation>
         <translation>Sengoku Kanji</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="222"/>
+        <location filename="../../src/app/mainwindow.ui" line="223"/>
         <source>将棋盤の画像をファイルに保存…</source>
         <translation>Save Board Image to File…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="231"/>
+        <location filename="../../src/app/mainwindow.ui" line="232"/>
         <source>棋譜貼り付け…</source>
         <translation>Paste Game Record…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="249"/>
+        <location filename="../../src/app/mainwindow.ui" line="250"/>
         <source>評価値グラフ画像コピー</source>
         <translation>Copy Eval Graph Image</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="270"/>
+        <location filename="../../src/app/mainwindow.ui" line="271"/>
         <source>対局…</source>
         <translation>Game…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="312"/>
+        <location filename="../../src/app/mainwindow.ui" line="313"/>
         <source>棋譜解析…</source>
         <translation>Analyze Game Record…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="366"/>
+        <location filename="../../src/app/mainwindow.ui" line="367"/>
         <source>エンジン設定…</source>
         <translation>Engine Settings…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="474"/>
+        <location filename="../../src/app/mainwindow.ui" line="475"/>
         <source>開く…</source>
         <translation>Open…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="537"/>
+        <location filename="../../src/app/mainwindow.ui" line="538"/>
         <source>詰み探索…</source>
         <translation>Mate Search…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="546"/>
+        <location filename="../../src/app/mainwindow.ui" line="547"/>
         <source>詰み探索中止</source>
         <translation>Cancel Tsume Search</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="600"/>
+        <location filename="../../src/app/mainwindow.ui" line="601"/>
         <source>通信対局（CSA）…</source>
         <translation>Network Game (CSA)…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="623"/>
+        <location filename="../../src/app/mainwindow.ui" line="624"/>
+        <source>GUI全体のフォント…</source>
+        <translation>Application Font…</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="627"/>
+        <source>GUI全体で使用する書体を選択します</source>
+        <translation>Choose the font family used throughout the application</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="632"/>
         <source>設定を初期値に戻す…</source>
         <translation>Reset Settings to Defaults…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="683"/>
+        <location filename="../../src/app/mainwindow.ui" line="692"/>
         <source>局面集ビューア</source>
         <translation>SFEN Collection Viewer</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="701"/>
+        <location filename="../../src/app/mainwindow.ui" line="710"/>
         <source>ドックレイアウトを保存…</source>
         <translation>Save Dock Layout…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="724"/>
+        <location filename="../../src/app/mainwindow.ui" line="733"/>
         <source>駒音</source>
         <translation>Piece Sound</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="727"/>
+        <location filename="../../src/app/mainwindow.ui" line="736"/>
         <source>駒を指したときに駒音を鳴らす</source>
         <translation>Play a sound when a piece is moved</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="736"/>
+        <location filename="../../src/app/mainwindow.ui" line="745"/>
         <source>駒音の設定…</source>
         <translation>Piece Sound Settings…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="783"/>
+        <location filename="../../src/app/mainwindow.ui" line="792"/>
         <source>対局画面の外観…</source>
         <translation>Game Appearance…</translation>
     </message>
@@ -6124,17 +6173,17 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Stop Tsume Search</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="555"/>
+        <location filename="../../src/app/mainwindow.ui" line="556"/>
         <source>持将棋点数</source>
         <translation>Jishogi Points</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="618"/>
+        <location filename="../../src/app/mainwindow.ui" line="619"/>
         <source>メニュー</source>
         <translation>Menu</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="674"/>
+        <location filename="../../src/app/mainwindow.ui" line="683"/>
         <source>ツールバー</source>
         <translation>Toolbar</translation>
     </message>
@@ -6163,7 +6212,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Pass</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="240"/>
+        <location filename="../../src/app/mainwindow.ui" line="241"/>
         <source>将棋盤画像コピー</source>
         <translation>Copy Board Image</translation>
     </message>
@@ -6184,7 +6233,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Bookmark</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="258"/>
+        <location filename="../../src/app/mainwindow.ui" line="259"/>
         <source>盤面の回転</source>
         <translation>Flip Board</translation>
     </message>
@@ -6221,12 +6270,12 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Analysis Mode</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="279"/>
+        <location filename="../../src/app/mainwindow.ui" line="280"/>
         <source>投了</source>
         <translation>Resign</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="288"/>
+        <location filename="../../src/app/mainwindow.ui" line="289"/>
         <source>中断</source>
         <translation>Abort</translation>
     </message>
@@ -6247,7 +6296,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Save</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="303"/>
+        <location filename="../../src/app/mainwindow.ui" line="304"/>
         <source>終了</source>
         <translation>Exit</translation>
     </message>
@@ -6300,22 +6349,22 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Opening Book Info</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="321"/>
+        <location filename="../../src/app/mainwindow.ui" line="322"/>
         <source>局面編集開始</source>
         <translation>Start Position Edit</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="330"/>
+        <location filename="../../src/app/mainwindow.ui" line="331"/>
         <source>平手初期配置</source>
         <translation>Even Game Setup</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="339"/>
+        <location filename="../../src/app/mainwindow.ui" line="340"/>
         <source>詰将棋初期配置</source>
         <translation>Tsume Shogi Setup</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="348"/>
+        <location filename="../../src/app/mainwindow.ui" line="349"/>
         <source>全ての駒を駒箱へ</source>
         <translation>Move All Pieces to Piece Box</translation>
     </message>
@@ -6324,7 +6373,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Swap Sides</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="357"/>
+        <location filename="../../src/app/mainwindow.ui" line="358"/>
         <source>手番変更</source>
         <translation>Change Turn</translation>
     </message>
@@ -6357,52 +6406,52 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Shogi Wars Game Records</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="375"/>
+        <location filename="../../src/app/mainwindow.ui" line="376"/>
         <source>ホームページ</source>
         <translation>Website</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="384"/>
+        <location filename="../../src/app/mainwindow.ui" line="385"/>
         <source>使い方</source>
         <translation>How to Use</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="393"/>
+        <location filename="../../src/app/mainwindow.ui" line="394"/>
         <source>バージョン情報</source>
         <translation>Version Info</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="402"/>
+        <location filename="../../src/app/mainwindow.ui" line="403"/>
         <source>Qtについて</source>
         <translation>About Qt</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="411"/>
+        <location filename="../../src/app/mainwindow.ui" line="412"/>
         <source>KIF形式</source>
         <translation>KIF Format</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="420"/>
+        <location filename="../../src/app/mainwindow.ui" line="421"/>
         <source>KI2形式</source>
         <translation>KI2 Format</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="429"/>
+        <location filename="../../src/app/mainwindow.ui" line="430"/>
         <source>CSA形式</source>
         <translation>CSA Format</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="438"/>
+        <location filename="../../src/app/mainwindow.ui" line="439"/>
         <source>USI形式（現在の指し手まで）</source>
         <translation>USI Format (Up to Current Move)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="447"/>
+        <location filename="../../src/app/mainwindow.ui" line="448"/>
         <source>SFEN形式</source>
         <translation>SFEN Format</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="456"/>
+        <location filename="../../src/app/mainwindow.ui" line="457"/>
         <source>BOD形式</source>
         <translation>BOD Format</translation>
     </message>
@@ -6415,47 +6464,47 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">With i&amp;mg Tag</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="465"/>
+        <location filename="../../src/app/mainwindow.ui" line="466"/>
         <source>新規</source>
         <translation>New</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="477"/>
+        <location filename="../../src/app/mainwindow.ui" line="478"/>
         <source>Ctrl+O</source>
         <translation>Ctrl+O</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="486"/>
+        <location filename="../../src/app/mainwindow.ui" line="487"/>
         <source>待った</source>
         <translation>Take Back</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="495"/>
+        <location filename="../../src/app/mainwindow.ui" line="496"/>
         <source>すぐ指させる</source>
         <translation>Move Now</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="504"/>
+        <location filename="../../src/app/mainwindow.ui" line="505"/>
         <source>将棋盤の拡大</source>
         <translation>Enlarge Board</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="507"/>
+        <location filename="../../src/app/mainwindow.ui" line="508"/>
         <source>Ctrl++</source>
         <translation>Ctrl++</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="516"/>
+        <location filename="../../src/app/mainwindow.ui" line="517"/>
         <source>将棋盤の縮小</source>
         <translation>Shrink Board</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="519"/>
+        <location filename="../../src/app/mainwindow.ui" line="520"/>
         <source>Ctrl+-</source>
         <translation>Ctrl+-</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="528"/>
+        <location filename="../../src/app/mainwindow.ui" line="529"/>
         <source>局面編集終了</source>
         <translation>End Position Edit</translation>
     </message>
@@ -6468,27 +6517,27 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Jishogi Points</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="564"/>
+        <location filename="../../src/app/mainwindow.ui" line="565"/>
         <source>入玉宣言</source>
         <translation>Entering King Declaration</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="573"/>
+        <location filename="../../src/app/mainwindow.ui" line="574"/>
         <source>USI形式（全て）</source>
         <translation>USI Format (All)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="582"/>
+        <location filename="../../src/app/mainwindow.ui" line="583"/>
         <source>JSON棋譜フォーマット</source>
         <translation>JSON Game Format</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="591"/>
+        <location filename="../../src/app/mainwindow.ui" line="592"/>
         <source>USEN</source>
         <translation>USEN</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="609"/>
+        <location filename="../../src/app/mainwindow.ui" line="610"/>
         <source>棋譜解析中止</source>
         <translation>Cancel Analysis</translation>
     </message>
@@ -6505,17 +6554,17 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Game Analysis Settings</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="635"/>
+        <location filename="../../src/app/mainwindow.ui" line="644"/>
         <source>システム設定に従う</source>
         <translation>Use System Default</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="647"/>
+        <location filename="../../src/app/mainwindow.ui" line="656"/>
         <source>日本語</source>
         <translation>Japanese</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="659"/>
+        <location filename="../../src/app/mainwindow.ui" line="668"/>
         <source>English</source>
         <translation>English</translation>
     </message>
@@ -6756,7 +6805,7 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Entering King Declaration Result</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="692"/>
+        <location filename="../../src/app/mainwindow.ui" line="701"/>
         <source>ドックレイアウトをリセット</source>
         <translation>Reset Dock Layout</translation>
     </message>
@@ -6770,7 +6819,7 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Allow Docking</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="709"/>
+        <location filename="../../src/app/mainwindow.ui" line="718"/>
         <source>ドックを固定</source>
         <translation>Lock Docks</translation>
     </message>
@@ -6825,7 +6874,7 @@ Are you sure you want to declare?</translation>
 The default layout will be used on next startup.</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="747"/>
+        <location filename="../../src/app/mainwindow.ui" line="756"/>
         <source>（保存済みレイアウトなし）</source>
         <translation>(No saved layouts)</translation>
     </message>
@@ -6948,7 +6997,7 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Piece Style</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="210"/>
+        <location filename="../../src/app/mainwindow.ui" line="211"/>
         <source>名前を付けて保存…</source>
         <translation>Save As…</translation>
     </message>
@@ -6962,22 +7011,22 @@ Please restart the application to apply the changes.</translation>
         <translation type="vanished">Clear Pieces (Bold)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="739"/>
+        <location filename="../../src/app/mainwindow.ui" line="748"/>
         <source>駒音の音量・音の高さ・音質を調整する</source>
         <translation>Adjust the piece sound volume, pitch, and tone</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="756"/>
+        <location filename="../../src/app/mainwindow.ui" line="765"/>
         <source>評価値グラフの画像をファイルに保存…</source>
         <translation>Save Evaluation Graph Image to File…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="765"/>
+        <location filename="../../src/app/mainwindow.ui" line="774"/>
         <source>詰将棋対局…</source>
         <translation>Play tsume shogi…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="774"/>
+        <location filename="../../src/app/mainwindow.ui" line="783"/>
         <source>詰将棋局面生成…</source>
         <translation>Tsume Position Generator…</translation>
     </message>

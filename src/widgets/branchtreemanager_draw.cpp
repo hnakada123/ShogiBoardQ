@@ -10,7 +10,7 @@
 #include <QPainterPath>
 #include <QFont>
 #include <QFontMetrics>
-#include <QFontDatabase>
+#include <QApplication>
 #include <QFontInfo>
 #include <QRegularExpression>
 
@@ -28,40 +28,6 @@ constexpr qreal kStepY  = 56.0;
 constexpr qreal kRadius = 8.0;
 } // namespace
 
-static QString getJapaneseFontFamily()
-{
-#ifdef Q_OS_WIN
-    static const QStringList candidates = {
-        QStringLiteral("Yu Gothic UI"),
-        QStringLiteral("Meiryo UI"),
-        QStringLiteral("Meiryo"),
-        QStringLiteral("MS UI Gothic"),
-        QStringLiteral("Noto Sans JP"),
-        QStringLiteral("MS Gothic"),
-    };
-#elif defined(Q_OS_MAC)
-    static const QStringList candidates = {
-        QStringLiteral("Hiragino Sans"),
-        QStringLiteral("Hiragino Kaku Gothic ProN"),
-        QStringLiteral("Noto Sans JP"),
-    };
-#else
-    static const QStringList candidates = {
-        QStringLiteral("Noto Sans CJK JP"),
-        QStringLiteral("Noto Sans JP"),
-        QStringLiteral("IPAGothic"),
-    };
-#endif
-
-    const QStringList availableFamilies = QFontDatabase::families();
-    for (const QString &candidate : candidates) {
-        if (availableFamilies.contains(candidate)) {
-            return candidate;
-        }
-    }
-    return QString();
-}
-
 static void debugFontInfo(const QFont &font, const QString &context)
 {
     QFontInfo info(font);
@@ -78,8 +44,8 @@ static void debugFontInfo(const QFont &font, const QString &context)
 
 QGraphicsPathItem* BranchTreeManager::addNode(int row, int ply, const QString& rawText)
 {
-    static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
-    static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
+    const QFont LABEL_FONT(QApplication::font().family(), 10);
+    const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
 
     static bool fontDebugDone = false;
     if (!fontDebugDone) {
@@ -185,8 +151,8 @@ void BranchTreeManager::rebuildBranchTree()
     clearBranchGraph();
     m_prevSelected = nullptr;
 
-    static const    QFont LABEL_FONT(getJapaneseFontFamily(), 10);
-    static const    QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
+    const QFont LABEL_FONT(QApplication::font().family(), 10);
+    const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
 
     static bool fontDebugDone2 = false;
     if (!fontDebugDone2) {
@@ -388,8 +354,8 @@ int BranchTreeManager::maxDrawnPly() const
 
 void BranchTreeManager::addMoveNumberLabel(int ply)
 {
-    static const QFont LABEL_FONT(getJapaneseFontFamily(), 10);
-    static const QFont MOVE_NO_FONT(getJapaneseFontFamily(), 9);
+    const QFont LABEL_FONT(QApplication::font().family(), 10);
+    const QFont MOVE_NO_FONT(QApplication::font().family(), 9);
 
     if (!m_scene || ply < 1) return;
     // 本譜ノードがあればそのノードがラベルを持つ。既に補完済みなら何もしない

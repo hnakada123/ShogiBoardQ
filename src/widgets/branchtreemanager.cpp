@@ -11,6 +11,7 @@
 #include <QQueue>
 #include <QSet>
 #include <QTransform>
+#include <QScrollBar>
 
 // ===================== コンストラクタ / デストラクタ =====================
 
@@ -234,6 +235,17 @@ bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev)
 {
     if (!obj || ev->type() == QEvent::Destroy) {
         return QObject::eventFilter(obj, ev);
+    }
+
+    if (obj == m_branchTreeViewport && ev->type() == QEvent::FontChange) {
+        const int row = m_lastHighlightedRow;
+        const int ply = m_lastHighlightedPly;
+        const int x = m_branchTree->horizontalScrollBar()->value();
+        const int y = m_branchTree->verticalScrollBar()->value();
+        rebuildBranchTree();
+        if (row >= 0 && ply >= 0) highlightBranchTreeAt(row, ply, false);
+        m_branchTree->horizontalScrollBar()->setValue(x);
+        m_branchTree->verticalScrollBar()->setValue(y);
     }
 
     if (m_branchTreeViewport && obj == m_branchTreeViewport

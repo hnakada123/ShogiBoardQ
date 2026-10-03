@@ -12,6 +12,7 @@
 #include "evaluationchartwidget.h"
 #include "logcategories.h"
 #include "boardcolordialog.h"
+#include "fontsettingsdialog.h"
 
 void ViewActionsWiring::copyBoardToClipboard()
 {
@@ -47,6 +48,12 @@ void ViewActionsWiring::showBoardAppearance()
     m_boardColorDialog->activateWindow();
 }
 
+void ViewActionsWiring::showFontSettings()
+{
+    FontSettingsDialog dialog(m_d.mw);
+    dialog.exec();
+}
+
 void ViewActionsWiring::wire()
 {
     auto* ui  = m_d.ui;
@@ -69,6 +76,8 @@ void ViewActionsWiring::wire()
     // 盤操作・表示（外観コントローラへ委譲）
     QObject::connect(ui->actionBoardAppearance, &QAction::triggered,
                      this, &ViewActionsWiring::showBoardAppearance, Qt::UniqueConnection);
+    QObject::connect(ui->actionFontSettings, &QAction::triggered,
+                     this, &ViewActionsWiring::showFontSettings, Qt::UniqueConnection);
 
     QObject::connect(ui->actionFlipBoard,                  &QAction::triggered, app, &MainWindowAppearanceController::onActionFlipBoardTriggered,    Qt::UniqueConnection);
     QObject::connect(ui->actionCopyBoardToClipboard,       &QAction::triggered, this, &ViewActionsWiring::copyBoardToClipboard,          Qt::UniqueConnection);

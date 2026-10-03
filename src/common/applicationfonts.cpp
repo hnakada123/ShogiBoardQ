@@ -2,8 +2,16 @@
 
 #include <QApplication>
 #include <QFontDatabase>
+#include <QPointer>
+#include <QWidget>
+
+#include <optional>
+#include <utility>
 
 namespace {
+
+std::optional<QFont> defaultFont;
+QString selectedFamily;
 
 QString firstInstalled(const QStringList& candidates)
 {
@@ -34,28 +42,65 @@ QString japaneseFamily()
 
 } // namespace
 
-void ApplicationFonts::initialize()
+void ApplicationFonts::initialize(const QString& selected)
 {
     const QString family = japaneseFamily();
-    if (family.isEmpty()) return;
-
-    // システムの文字サイズ・太さを保ち、全ウィジェットの既定書体を揃える。
-    // 英語 UI でも棋譜・プレイヤー名などに日本語を表示する。
-    QFont font = QApplication::font();
-    font.setFamily(family);
-    QApplication::setFont(font);
+    if (!defaultFont) {
+        defaultFont = QApplication::font();
+        if (!family.isEmpty()) defaultFont->setFamily(family);
+    }
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
     // 個別に欧文フォントを指定する表示でも、漢字・仮名は日本語用へ補完する。
     // Qt 6.7 は上の既定書体と monospaceFont() の明示指定で対応する。
-    for (const auto script : {QChar::Script_Han, QChar::Script_Hiragana, QChar::Script_Katakana}) {
-        QFontDatabase::addApplicationFallbackFontFamily(script, family);
+    if (!family.isEmpty()) {
+        for (const auto script : {QChar::Script_Han, QChar::Script_Hiragana, QChar::Script_Katakana}) {
+            QFontDatabase::addApplicationFallbackFontFamily(script, family);
+        }
     }
 #endif
+    applyFamily(selected);
+}
+
+QString ApplicationFonts::defaultFamily()
+{
+    if (!defaultFont) initialize();
+    return defaultFont->family();
+}
+
+void ApplicationFonts::applyFamily(const QString& family)
+{
+    if (!defaultFont) initialize();
+    selectedFamily = firstInstalled({family});
+    QFont appFont = *defaultFont;
+    if (!selectedFamily.isEmpty()) appFont.setFamily(selectedFamily);
+
+    // 個別の setFont() やスタイルシートがあると、QApplication の変更だけでは
+    // 書体が伝播しない。親からの伝播前に全ウィジェットのサイズ・装飾を退避する。
+    QList<std::pair<QPointer<QWidget>, QFont>> widgetFonts;
+    const auto widgets = QApplication::allWidgets();
+    for (QWidget* widget : widgets) {
+        widgetFonts.append({widget, widget->font()});
+    }
+    QApplication::setFont(appFont);
+    for (const auto& entry : widgetFonts) {
+        if (!entry.first) continue;
+        QFont font = entry.second;
+        // 標準に戻したときは、通信ログなどの等幅表示も復元する。
+        const QFont base = selectedFamily.isEmpty() && font.styleHint() == QFont::Monospace
+            ? monospaceFont() : appFont;
+        font.setFamilies(base.families());
+        entry.first->setFont(font);
+    }
 }
 
 QFont ApplicationFonts::monospaceFont()
 {
+    if (!selectedFamily.isEmpty()) {
+        QFont font = QApplication::font();
+        font.setStyleHint(QFont::Monospace);
+        return font;
+    }
     QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     const QString family = firstInstalled({
 #ifdef Q_OS_WIN

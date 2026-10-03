@@ -31,6 +31,14 @@ void setVersionDialogDocument(int index);
 QString language();
 void setLanguage(const QString& lang);
 
+// --- GUI共通フォント ---
+
+/// 空文字列は標準の書体を使用する。
+QString uiFontFamily();
+void setUiFontFamily(const QString& family);
+QSize fontSettingsDialogSize();
+void setFontSettingsDialogSize(const QSize& size);
+
 // --- UI状態 ---
 
 /// 最後に選択されたタブインデックス（デフォルト: 0＝対局情報）

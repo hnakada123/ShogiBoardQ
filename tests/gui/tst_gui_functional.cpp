@@ -5,6 +5,10 @@
 #include <QLineSeries>
 #include <QGraphicsView>
 #include <QGraphicsItem>
+#include <QGraphicsSimpleTextItem>
+#include <QFontComboBox>
+#include <QFontDatabase>
+#include <QValueAxis>
 #include <QComboBox>
 #include <QCheckBox>
 #include <QColorDialog>
@@ -62,6 +66,7 @@
 #include "settingscommon.h"
 #include "appsettings.h"
 #include "applicationfonts.h"
+#include "fontsettingsdialog.h"
 #include "boardappearance.h"
 #include "boardcolorpresets.h"
 #include "boardcolordialog.h"
@@ -245,6 +250,20 @@ class GuiAudit : public QObject
     }
 
 public slots:
+    void chooseApplicationFont()
+    {
+        auto* dialog = qobject_cast<FontSettingsDialog*>(QApplication::activeModalWidget());
+        if (!dialog) return;
+        dialogTimer.stop();
+        auto* defaults = dialog->findChild<QCheckBox*>(QStringLiteral("useDefaultFont"));
+        auto* combo = dialog->findChild<QFontComboBox*>();
+        QVERIFY(defaults && combo);
+        defaults->setChecked(false);
+        combo->setCurrentFont(QFont(QStringLiteral("Noto Serif CJK JP")));
+        QVERIFY(dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/application-font-dialog.png")));
+        dialog->accept();
+    }
+
     void handleDialog()
     {
         for (auto* w : QApplication::topLevelWidgets()) {
@@ -434,6 +453,60 @@ private slots:
         QFile f(QStringLiteral(AUDIT_DIR "/clicked-actions.json"));
         QVERIFY(f.open(QIODevice::WriteOnly));
         f.write(QJsonDocument(QJsonArray::fromStringList(clicked)).toJson());
+    }
+    void applicationFont()
+    {
+        const QString chosen = QStringLiteral("Noto Serif CJK JP");
+        if (!QFontDatabase::families().contains(chosen)) QSKIP("Noto Serif CJK JP is required.");
+        sampleGame();
+        const int recordSize = record()->kifuView()->font().pointSize();
+        const int clockSize = board()->blackClockLabel()->font().pointSize();
+        const auto* tree = window->findChild<BranchTreeManager*>();
+        QVERIFY(tree);
+        const int row = tree->lastHighlightedRow();
+        const int ply = tree->lastHighlightedPly();
+        disconnect(&dialogTimer, &QTimer::timeout, this, &GuiAudit::handleDialog);
+        connect(&dialogTimer, &QTimer::timeout, this, &GuiAudit::chooseApplicationFont);
+        dialogTimer.start(20);
+        click("actionFontSettings");
+        disconnect(&dialogTimer, &QTimer::timeout, this, &GuiAudit::chooseApplicationFont);
+        connect(&dialogTimer, &QTimer::timeout, this, &GuiAudit::handleDialog);
+        QTRY_COMPARE(QApplication::font().family(), chosen);
+        QCOMPARE(AppSettings::uiFontFamily(), chosen);
+        QCOMPARE(window->menuBar()->font().family(), chosen);
+        QCOMPARE(record()->kifuView()->font().family(), chosen);
+        QCOMPARE(record()->kifuView()->font().pointSize(), recordSize);
+        QCOMPARE(board()->blackClockLabel()->font().family(), chosen);
+        QCOMPARE(board()->blackClockLabel()->font().pointSize(), clockSize);
+        QCOMPARE(tree->lastHighlightedRow(), row);
+        QCOMPARE(tree->lastHighlightedPly(), ply);
+        auto* log = window->findChild<QPlainTextEdit*>(QStringLiteral("usiLogView"));
+        QVERIFY(log);
+        QCOMPARE(log->font().family(), chosen);
+        auto* graph = window->findChild<EvaluationChartWidget*>();
+        QVERIFY(graph);
+        auto* chartView = qobject_cast<QChartView*>(graph->chartViewWidget());
+        QVERIFY(chartView);
+        auto* axis = qobject_cast<QValueAxis*>(chartView->chart()->axes(Qt::Horizontal).value(0));
+        QVERIFY(axis);
+        QCOMPARE(axis->labelsFont().family(), chosen);
+        bool foundTreeText = false;
+        for (auto* view : window->findChildren<QGraphicsView*>()) {
+            if (!view->scene()) continue;
+            for (auto* item : view->scene()->items()) {
+                if (auto* text = qgraphicsitem_cast<QGraphicsSimpleTextItem*>(item)) {
+                    foundTreeText = true;
+                    QCOMPARE(text->font().family(), chosen);
+                }
+            }
+        }
+        QVERIFY(foundTreeText);
+        KifuPasteDialog pasteDialog(window.get());
+        QCOMPARE(pasteDialog.font().family(), chosen);
+        QCOMPARE(pasteDialog.findChild<QPlainTextEdit*>()->font().family(), chosen);
+        snapshot("application-font-main");
+        ApplicationFonts::applyFamily({});
+        AppSettings::setUiFontFamily({});
     }
     void startupMenuInventory()
     {

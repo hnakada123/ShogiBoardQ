@@ -16,7 +16,6 @@
 #include <QPainter>
 #include <QSettings>
 #include <QFont>
-#include <QFontDatabase>
 #include <QFontMetrics>
 #include <QDebug>
 #include <QSizePolicy>
@@ -65,7 +64,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_blackClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     m_blackClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     {
-        QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        QFont f = font();
         f.setStyleName(QString());
         f.setItalic(false);
         f.setBold(true);
@@ -101,7 +100,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteClockLabel->setAttribute(Qt::WA_TransparentForMouseEvents, true);
     m_whiteClockLabel->setStyleSheet(QStringLiteral("background: transparent; color: black;"));
     {
-        QFont f = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        QFont f = font();
         f.setStyleName(QString());
         f.setItalic(false);
         f.setBold(true);

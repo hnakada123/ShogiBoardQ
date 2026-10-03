@@ -59,6 +59,7 @@ signals:
     void analysisPlyClicked(int lineIndex, int ply);
 
 protected:
+    void changeEvent(QEvent* event) override;
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 public slots:
