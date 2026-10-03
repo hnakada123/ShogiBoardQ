@@ -160,7 +160,6 @@
      <string>ヘルプ(H)</string>
     </property>
     <addaction name="actionOpenWebsite"/>
-    <addaction name="actionUsage"/>
     <addaction name="separator"/>
     <addaction name="actionVersionInfo"/>
     <addaction name="actionAboutQt"/>
@@ -387,15 +386,6 @@
    </property>
    <property name="text">
     <string>ホームページ</string>
-   </property>
-  </action>
-  <action name="actionUsage">
-   <property name="icon">
-    <iconset>
-     <normaloff>:/images/actions/actionUsage.svg</normaloff>:/images/actions/actionUsage.svg</iconset>
-   </property>
-   <property name="text">
-    <string>使い方</string>
    </property>
   </action>
   <action name="actionVersionInfo">

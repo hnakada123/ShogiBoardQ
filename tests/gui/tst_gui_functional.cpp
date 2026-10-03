@@ -2474,11 +2474,6 @@ private slots:
         click("actionOpenWebsite"); QTRY_COMPARE_WITH_TIMEOUT(urls.size(), 1, 500);
         QCOMPARE(urls.first(), QUrl("https://hnakada123.github.io/ShogiBoardQ/"));
     }
-    void usageLink()
-    {
-        click("actionUsage"); QTRY_COMPARE_WITH_TIMEOUT(urls.size(), 1, 500);
-        QVERIFY(urls.first().path().contains("guide"));
-    }
     void bodCurrentPosition_data()
     {
         QTest::addColumn<int>("ply");
