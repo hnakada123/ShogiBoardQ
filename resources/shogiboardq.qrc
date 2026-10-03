@@ -691,6 +691,7 @@
         <file>images/actions/actionEditBookmark.svg</file>
         <file>images/actions/actionEndEditPosition.svg</file>
         <file>images/actions/actionEngineSettings.svg</file>
+        <file>images/actions/actionFontSettings.svg</file>
         <file>images/actions/actionEnlargeBoard.svg</file>
         <file>images/actions/actionFlipBoard.svg</file>
         <file>images/actions/actionPieceSound.svg</file>
