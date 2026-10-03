@@ -11343,5 +11343,17 @@ Qt Charts: GPLv3 / Other Qt modules: LGPLv3 / GPL</translation>
         <source>ライセンス文書</source>
         <translation>License document</translation>
     </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="80"/>
+        <source>NOTICE.md</source>
+        <extracomment>Bundled document filename. Use the translated NOTICE_&lt;language&gt;.md file.</extracomment>
+        <translation>NOTICE_en.md</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="82"/>
+        <source>SOURCE_CODE.md</source>
+        <extracomment>Bundled document filename. Use the translated SOURCE_CODE_&lt;language&gt;.md file.</extracomment>
+        <translation>SOURCE_CODE_en.md</translation>
+    </message>
 </context>
 </TS>

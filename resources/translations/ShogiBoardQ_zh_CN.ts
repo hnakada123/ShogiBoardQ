@@ -8919,5 +8919,17 @@ Qt Charts：GPLv3／其他 Qt 模块：LGPLv3 / GPL</translation>
         <source>ライセンス文書</source>
         <translation>许可证文档</translation>
     </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="80"/>
+        <source>NOTICE.md</source>
+        <extracomment>Bundled document filename. Use the translated NOTICE_&lt;language&gt;.md file.</extracomment>
+        <translation>NOTICE_zh_CN.md</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/versiondialog.cpp" line="82"/>
+        <source>SOURCE_CODE.md</source>
+        <extracomment>Bundled document filename. Use the translated SOURCE_CODE_&lt;language&gt;.md file.</extracomment>
+        <translation>SOURCE_CODE_zh_CN.md</translation>
+    </message>
 </context>
 </TS>

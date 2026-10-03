@@ -13,6 +13,7 @@
 #include <QSlider>
 #include <QSpinBox>
 #include <QTemporaryDir>
+#include <QTextBrowser>
 #include <QTranslator>
 #include <QTimer>
 #include <QTableWidget>
@@ -186,6 +187,62 @@ private slots:
         QVERIFY(!buttons[0]->isEnabled());
         if (name != QLatin1String("jishogi")) QVERIFY(dialog->font().pointSize() <= initial);
         dialog->reject();
+    }
+
+    void licenseDocuments_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<QString>("noticeText");
+        QTest::addColumn<QString>("sourceTitle");
+        QTest::newRow("ja_JP") << QStringLiteral("ja_JP") << QStringLiteral("ShogiBoardQ は Qt を使用しています。")
+                             << QStringLiteral("ソースコードの入手");
+        QTest::newRow("en") << QStringLiteral("en") << QStringLiteral("ShogiBoardQ uses Qt.")
+                          << QStringLiteral("Obtaining source code");
+        QTest::newRow("zh_CN") << QStringLiteral("zh_CN") << QStringLiteral("ShogiBoardQ 使用 Qt。")
+                             << QStringLiteral("获取源代码");
+        QTest::newRow("zh_TW") << QStringLiteral("zh_TW") << QStringLiteral("ShogiBoardQ 使用 Qt。")
+                             << QStringLiteral("取得原始碼");
+    }
+
+    void licenseDocuments()
+    {
+        QFETCH(QString, language);
+        QFETCH(QString, noticeText);
+        QFETCH(QString, sourceTitle);
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
+        qApp->installTranslator(&translator);
+        VersionDialog dialog;
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* documents = dialog.findChild<QComboBox*>(QStringLiteral("licenseDocuments"));
+        auto* browser = dialog.findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
+        QVERIFY(documents && browser);
+        QVERIFY(browser->toPlainText().contains(noticeText));
+        const QRegularExpression japanese(QStringLiteral("[\\p{Hiragana}\\p{Katakana}\\p{Han}]"));
+        if (language == QLatin1String("en")) QVERIFY(!japanese.match(browser->toPlainText()).hasMatch());
+        snapshot(&dialog, QStringLiteral("license-notice-") + language);
+
+        // 本文中のリンクも同じ言語の案内文書を開く。
+        const QRegularExpression sourceLink(QStringLiteral("qrc:/licenses/SOURCE_CODE[^\"]*\\.md"));
+        const auto link = sourceLink.match(browser->toHtml());
+        QVERIFY(link.hasMatch());
+        browser->setSource(QUrl(link.captured()));
+        QVERIFY(browser->toPlainText().startsWith(sourceTitle));
+        if (language == QLatin1String("en")) QVERIFY(!japanese.match(browser->toPlainText()).hasMatch());
+        documents->setCurrentIndex(3);
+        QVERIFY(browser->toPlainText().startsWith(sourceTitle));
+        if (language == QLatin1String("en")) QVERIFY(!japanese.match(browser->toPlainText()).hasMatch());
+        snapshot(&dialog, QStringLiteral("license-source-") + language);
+
+        // ライセンス本文は翻訳・短縮せず、収録した原文を全文表示する。
+        for (int index : {1, 2}) {
+            documents->setCurrentIndex(index);
+            QFile original(index == 1 ? QStringLiteral(":/licenses/GPL-3.0.txt")
+                                      : QStringLiteral(":/licenses/LGPL-3.0.txt"));
+            QVERIFY(original.open(QIODevice::ReadOnly));
+            QCOMPARE(browser->toPlainText().trimmed(), QString::fromUtf8(original.readAll()).trimmed());
+        }
     }
 
     void soundNumericInput()

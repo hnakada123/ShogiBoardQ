@@ -66,21 +66,26 @@ class QtLicensesTest(unittest.TestCase):
             self.stage(version="6.8.0")
         self.assertFalse((self.root / "deploy").exists())
 
-    def test_cached_notices_use_current_source_guide(self):
+    def test_cached_notices_use_current_localized_guides(self):
         self.prepare()
         (self.output / "SOURCE_CODE.md").write_text("Download Qt sources from Release assets.\n")
         manifest = json.loads((self.output / "QT-SOURCE.json").read_text())
         manifest["release_sources"] = "https://github.com/hnakada123/ShogiBoardQ/releases"
         qt.write_json(self.output / "QT-SOURCE.json", manifest)
         inventory = json.loads((self.output / "FILES.json").read_text())
+        # 古いキャッシュには各言語の案内がまだ含まれていない。
+        for guide in list(self.output.glob("*.md")):
+            if guide.name.startswith(("NOTICE_", "SOURCE_CODE_")):
+                guide.unlink()
+                del inventory[guide.name]
         for name in ("SOURCE_CODE.md", "QT-SOURCE.json"):
             inventory[name] = qt.digest(self.output / name)
         qt.write_json(self.output / "FILES.json", inventory)
 
         self.stage()
         destination = self.root / "deploy/licenses"
-        self.assertEqual((destination / "SOURCE_CODE.md").read_bytes(),
-                         (qt.ROOT / "resources/licenses/SOURCE_CODE.md").read_bytes())
+        for guide in (qt.ROOT / "resources/licenses").glob("*.md"):
+            self.assertEqual((destination / guide.name).read_bytes(), guide.read_bytes())
         del manifest["release_sources"]
         self.assertEqual(json.loads((destination / "QT-SOURCE.json").read_text()), manifest)
         staged_inventory = json.loads((destination / "FILES.json").read_text())
