@@ -9,6 +9,9 @@
 #include "kifubranchtree.h"
 #include "gamerecordmodel.h"
 #include "gamerecordpresenter.h"
+#include "gamerecordupdateservice.h"
+#include "livegamesession.h"
+#include "livegamesessionupdater.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
 #include "gameinfopanecontroller.h"
@@ -29,6 +32,85 @@ class TestI18nWorkflows : public QObject
 private slots:
     void initTestCase() { qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8()); }
     void cleanup() { KifuPresentation::configure("ja_JP", "auto", false); }
+
+    void liveTimeoutIsTerminal_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<int>("plies");
+        for (const auto* language : {"ja_JP", "en", "zh_CN", "zh_TW"})
+            for (int plies : {1, 2})
+                QTest::newRow(qPrintable(QStringLiteral("%1-after-%2").arg(language).arg(plies)))
+                    << QString::fromLatin1(language) << plies;
+    }
+
+    void liveTimeoutIsTerminal()
+    {
+        QFETCH(QString, language);
+        QFETCH(int, plies);
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
+        qApp->installTranslator(&translator);
+        KifuPresentation::configure(language, "auto", false);
+        SfenPositionTracer board;
+        const QString initial = board.toSfenString();
+        const QStringList usiMoves = QStringList{"7g7f", "3c3d"}.mid(0, plies);
+        auto moves = SfenPositionTracer::buildGameMoves(initial, usiMoves);
+        auto history = SfenPositionTracer::buildSfenRecord(initial, usiMoves, false);
+        KifuBranchTree tree;
+        tree.setRootSfen(initial);
+        auto* node = tree.root();
+        for (int i = 0; i < plies; ++i) {
+            const QString japanese = KifuPresentation::move(history.at(i), usiMoves.at(i),
+                {KifuPresentation::Notation::Japanese, false});
+            node = tree.addMove(node, moves.at(i), japanese, history.at(i + 1));
+        }
+        LiveGameSession session;
+        session.setTree(&tree);
+        session.startFromNode(node);
+        LiveGameSessionUpdater updater;
+        LiveGameSessionUpdater::Deps liveDeps;
+        liveDeps.liveSession = &session;
+        liveDeps.sfenRecord = &history;
+        updater.updateDeps(liveDeps);
+        KifuRecordListModel rows;
+        GameRecordPresenter presenter({&rows, nullptr});
+        presenter.presentGameRecord(tree.displayItemsForLine(0));
+        GameRecordUpdateService service;
+        GameRecordUpdateService::Deps deps;
+        deps.gameMoves = &moves;
+        deps.sfenRecord = &history;
+        deps.liveGameSession = &session;
+        deps.ensureRecordPresenter = [&presenter] { return &presenter; };
+        deps.ensureLiveGameSessionUpdater = [&updater] { return &updater; };
+        service.updateDeps(deps);
+        const QString terminal = (plies == 2 ? QStringLiteral("▲") : QStringLiteral("△"))
+            + QStringLiteral("時間切れ");
+        service.appendKifuLine(terminal, "00:01/00:00:01");
+        const auto index = rows.index(plies + 1, 0);
+        QVERIFY(rows.item(plies + 1)->usiMove.isEmpty());
+        QVERIFY(index.data().toString().endsWith(KifuPresentation::status(terminal)));
+        if (language == "en") QVERIFY(index.data().toString().endsWith("Time loss"));
+        auto* end = session.liveNode();
+        QCOMPARE(end->terminalType(), TerminalType::Timeout);
+        QCOMPARE(end->move().movingPiece, Piece::None);
+        QCOMPARE(end->sfen(), node->sfen());
+        QVERIFY(!session.canAddMove());
+        QVERIFY(session.moves().last().terminal);
+        QVERIFY(session.moves().last().usiMove.isEmpty());
+        GameRecordModel record;
+        record.setBranchTree(&tree);
+        GameRecordModel::ExportContext context;
+        context.startSfen = initial;
+        const QString saved = record.toKifLines(context).join('\n');
+        QVERIFY(saved.contains(QStringLiteral("時間切れ")));
+        QVERIFY(!saved.contains("Time loss"));
+        const auto reloaded = KifuLoadParser::parseText(saved);
+        QVERIFY2(reloaded.success, qPrintable(reloaded.error));
+        QCOMPARE(reloaded.record.mainline.usiMoves, usiMoves);
+        KifuBranchTree reopened;
+        KifuBranchTreeBuilder::buildFromKifParseResult(&reopened, reloaded.record, reloaded.initialSfen);
+        QCOMPARE(reopened.mainLine().last()->terminalType(), TerminalType::Timeout);
+    }
 
     void whiteStartAnalysisUsesPositionAndMoveIdentity()
     {

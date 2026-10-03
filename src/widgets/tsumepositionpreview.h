@@ -10,10 +10,11 @@ class TsumePositionPreview : public QWidget
     Q_OBJECT
 public:
     explicit TsumePositionPreview(const QString& sfen, QWidget* parent = nullptr);
-    QSize sizeHint() const override { return {336, 260}; }
+    QSize sizeHint() const override { return {336, 260 + kHeaderHeight}; }
 protected:
     void paintEvent(QPaintEvent*) override;
 private:
+    static constexpr int kHeaderHeight = 22;
     void appearanceChanged();
     shogi::Position m_position;
 };

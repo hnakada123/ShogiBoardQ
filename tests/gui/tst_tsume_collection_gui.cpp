@@ -14,12 +14,14 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QToolButton>
+#include <QTranslator>
 #include "tsumecollectiondialog.h"
 #include "tsumeplaydialog.h"
 #include "tsumepositionpreview.h"
 #include "tsumeshogisettings.h"
 #include "mainwindow.h"
 #include "applicationfonts.h"
+#include "kifupresentation.h"
 
 class TestTsumeCollectionGui : public QObject
 {
@@ -227,8 +229,23 @@ private slots:
         QTRY_VERIFY(QApplication::activePopupWidget());
         QTest::keyClick(QApplication::activePopupWidget(), Qt::Key_Escape);
     }
+    void cleanup()
+    {
+        KifuPresentation::configure("ja_JP", "auto", false);
+    }
+    void paginationAndPersistence_data()
+    {
+        QTest::addColumn<QString>("language");
+        for (const auto* language : {"ja_JP", "en", "zh_CN", "zh_TW"})
+            QTest::newRow(language) << QString::fromLatin1(language);
+    }
     void paginationAndPersistence()
     {
+        QFETCH(QString, language);
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_") + language + ".qm"));
+        qApp->installTranslator(&translator);
+        KifuPresentation::configure(language, "auto", false);
         {
             TsumeCollectionDialog window;
             QVERIFY(window.loadFile(collectionPath()));
@@ -262,11 +279,12 @@ private slots:
             }
             page->setValue(2);
             // 一覧を見て解析が完了しても挑戦履歴は増えない。
-            QTRY_VERIFY(cards(window).first()->findChild<QLabel*>(QStringLiteral("cardLength"))->text().contains(QStringLiteral("5手詰")));
+            QTRY_VERIFY(cards(window).first()->findChild<QLabel*>(QStringLiteral("cardLength"))->text().contains(
+                QCoreApplication::translate("TsumeCollectionDialog", "%1手詰").arg(5)));
             TsumeProgressStore store;
             QVERIFY(store.open());
             QCOMPARE(store.progress(TsumeCollection::positionId(problems[0].sfen)).attempts, 0);
-            window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-collection.png"));
+            QVERIFY(window.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsume-collection-%1.png").arg(language)));
             window.close();
         }
         TsumeCollectionDialog restored;

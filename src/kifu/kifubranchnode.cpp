@@ -13,7 +13,9 @@ TerminalType detectTerminalType(const QString& displayText)
     if (displayText.contains(QStringLiteral("詰み"))) return TerminalType::Checkmate;
     if (displayText.contains(QStringLiteral("千日手"))) return TerminalType::Repetition;
     if (displayText.contains(QStringLiteral("持将棋"))) return TerminalType::Impasse;
-    if (displayText.contains(QStringLiteral("切れ負け"))) return TerminalType::Timeout;
+    // 棋譜ファイルの「切れ負け」と、対局終了処理の「時間切れ」を同じ終局として扱う。
+    if (displayText.contains(QStringLiteral("切れ負け"))
+        || displayText.contains(QStringLiteral("時間切れ"))) return TerminalType::Timeout;
     if (displayText.contains(QStringLiteral("反則勝ち"))) return TerminalType::IllegalWin;
     if (displayText.contains(QStringLiteral("反則負け"))) return TerminalType::IllegalLoss;
     if (displayText.contains(QStringLiteral("不戦敗"))) return TerminalType::Forfeit;

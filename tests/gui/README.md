@@ -131,7 +131,8 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_play_gu
 `solutionLayoutDuringToggle` は10・12・16・24ptで正解手順と対局を繰り返し切り替え、
 共通ボタン・切替ボタン・ウィンドウの寸法と位置、および全描画フレームの盤面矩形が変わらないことを確認する。
 `cancelPendingSolution` は探索中止・再判定・手順取得中の復帰でも盤面が動かず、古い結果が適用されないことを確認する。
-スクリーンショットは `tsume-collection.png`。
+`paginationAndPersistence` は日本語・英語・中国語（簡体字・繁体字）で実行し、
+表示確認用のスクリーンショットを `tsume-collection-<言語>.png` に保存する。
 
 ```bash
 xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_collection_gui

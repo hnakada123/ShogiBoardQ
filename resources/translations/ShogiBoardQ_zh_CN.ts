@@ -8085,17 +8085,17 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="61"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="33"/>
         <source>攻方</source>
         <translation>进攻方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="61"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="32"/>
         <source>玉方</source>
         <translation>防守方</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="73"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="77"/>
         <source>なし</source>
         <translation>无</translation>
     </message>
