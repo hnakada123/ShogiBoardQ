@@ -117,7 +117,7 @@ signals:
     void lineSelectionChanged(int newLineIndex);
 
     /**
-     * @brief 分岐ノード処理完了を通知する（Controller → MainWindow）
+     * @brief 移動先ノードの局面と直前手を通知する（全ナビゲーション経路共通）
      * @param ply 選択された手数
      * @param sfen ノードのSFEN（空なら更新不要）
      * @param previousFileTo 移動先の筋（検討モード用、0=なし）

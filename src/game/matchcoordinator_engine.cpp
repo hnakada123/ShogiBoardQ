@@ -54,6 +54,7 @@ void MatchCoordinator::destroyEngines(bool clearModels)
 void MatchCoordinator::setPlayMode(PlayMode m)
 {
     m_playMode = m;
+    emit playModeChanged();
 }
 
 void MatchCoordinator::initEnginesForEvE(const QString& engineName1,

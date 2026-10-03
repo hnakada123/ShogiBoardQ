@@ -14,8 +14,7 @@
 #include "shogimove.h"
 #include "kifurecordlistmodel.h"
 #include "shogiutils.h"
-
-#include <QColor>
+#include "candidatearrowcontroller.h"
 
 ConsiderationModeUIController::ConsiderationModeUIController(QObject* parent)
     : QObject(parent)
@@ -52,11 +51,6 @@ void ConsiderationModeUIController::setCommLogModel(UsiCommLogModel* model)
     m_commLogModel = model;
 }
 
-void ConsiderationModeUIController::setCurrentSfenStr(const QString& sfen)
-{
-    m_currentSfenStr = sfen;
-}
-
 void ConsiderationModeUIController::onModeStarted()
 {
     m_considerationActive = true;
@@ -76,8 +70,8 @@ void ConsiderationModeUIController::onModeStarted()
             m_thinkingInfo1->setModel(m_commLogModel);
         }
 
-        // 矢印更新用のシグナル接続
-        connectArrowUpdateSignals();
+        // 検討と対局で共有する矢印コントローラへ表示元を設定
+        updateArrows();
 
         // 矢印表示チェックボックスの状態変更時
         connect(m_considerationTabManager, &ConsiderationTabManager::showArrowsChanged,
@@ -146,7 +140,7 @@ void ConsiderationModeUIController::onModeEnded()
 
     // 検討終了時に矢印をクリア
     if (m_shogiView) {
-        m_shogiView->clearArrows();
+        updateArrows();
     }
 }
 
@@ -189,146 +183,13 @@ void ConsiderationModeUIController::onShowArrowsChanged(bool checked)
     updateArrows();
 }
 
-void ConsiderationModeUIController::connectArrowUpdateSignals()
-{
-    if (m_arrowSignalsConnected || !m_considerationModel) return;
-
-    connect(m_considerationModel, &ShogiEngineThinkingModel::rowsInserted,
-            this, &ConsiderationModeUIController::updateArrows,
-            Qt::UniqueConnection);
-    connect(m_considerationModel, &ShogiEngineThinkingModel::dataChanged,
-            this, &ConsiderationModeUIController::updateArrows,
-            Qt::UniqueConnection);
-    connect(m_considerationModel, &ShogiEngineThinkingModel::modelReset,
-            this, &ConsiderationModeUIController::updateArrows,
-            Qt::UniqueConnection);
-
-    m_arrowSignalsConnected = true;
-}
-
-bool ConsiderationModeUIController::parseUsiMove(const QString& usiMove,
-                                                  int& fromFile, int& fromRank,
-                                                  int& toFile, int& toRank)
-{
-    if (usiMove.isEmpty()) return false;
-
-    // 駒打ちの場合: "P*3c" のような形式
-    if (usiMove.length() >= 4 && usiMove.at(1) == '*') {
-        fromFile = 0;
-        fromRank = 0;
-        // 移動先の座標を取得
-        QChar toFileChar = usiMove.at(2);
-        QChar toRankChar = usiMove.at(3);
-        if (toFileChar >= '1' && toFileChar <= '9' && toRankChar >= 'a' && toRankChar <= 'i') {
-            toFile = toFileChar.digitValue();
-            toRank = toRankChar.toLatin1() - 'a' + 1;
-            return true;
-        }
-        return false;
-    }
-
-    // 通常の指し手: "7g7f" のような形式
-    if (usiMove.length() >= 4) {
-        QChar fromFileChar = usiMove.at(0);
-        QChar fromRankChar = usiMove.at(1);
-        QChar toFileChar = usiMove.at(2);
-        QChar toRankChar = usiMove.at(3);
-
-        if (fromFileChar >= '1' && fromFileChar <= '9' &&
-            fromRankChar >= 'a' && fromRankChar <= 'i' &&
-            toFileChar >= '1' && toFileChar <= '9' &&
-            toRankChar >= 'a' && toRankChar <= 'i') {
-            fromFile = fromFileChar.digitValue();
-            fromRank = fromRankChar.toLatin1() - 'a' + 1;
-            toFile = toFileChar.digitValue();
-            toRank = toRankChar.toLatin1() - 'a' + 1;
-            return true;
-        }
-    }
-
-    return false;
-}
-
 void ConsiderationModeUIController::updateArrows()
 {
     if (!m_shogiView) return;
-
-    // 矢印表示がOFFの場合はクリアして終了
-    if (!m_considerationActive || !m_showArrows) {
-        m_shogiView->clearArrows();
-        return;
-    }
-
-    // 検討モデルがない場合はクリアして終了
-    if (!m_considerationModel || m_considerationModel->rowCount() == 0) {
-        m_shogiView->clearArrows();
-        return;
-    }
-
-    // 「矢印表示」チェックボックスの状態を確認
-    if (m_considerationTabManager && !m_considerationTabManager->isShowArrowsChecked()) {
-        m_shogiView->clearArrows();
-        return;
-    }
-
-    QList<ShogiView::Arrow> arrows;
-
-    // 検討モデルの各行から読み筋の最初の指し手を取得して矢印を作成
-    const int rowCount = m_considerationModel->rowCount();
-    for (int row = 0; row < rowCount; ++row) {
-        QString usiPv = m_considerationModel->usiPvAt(row);
-        if (usiPv.isEmpty()) continue;
-
-        // 読み筋の最初の指し手を取得（スペース区切り）
-        QString firstMove = usiPv.split(' ').first();
-        if (firstMove.isEmpty()) continue;
-
-        int fromFile = 0, fromRank = 0, toFile = 0, toRank = 0;
-        if (!parseUsiMove(firstMove, fromFile, fromRank, toFile, toRank)) continue;
-
-        ShogiView::Arrow arrow;
-        arrow.fromFile = fromFile;
-        arrow.fromRank = fromRank;
-        arrow.toFile = toFile;
-        arrow.toRank = toRank;
-        arrow.priority = row + 1;  // 優先順位（1が最善手）
-
-        // 駒打ちの場合は打つ駒を設定（USI形式: "P*3c" → 'P'）
-        if (fromFile == 0 || fromRank == 0) {
-            if (firstMove.length() >= 1) {
-                // USI形式の駒打ちは "P*3c" のような形式
-                // 最初の文字が駒種（大文字）
-                QChar usiPiece = firstMove.at(0);
-
-                // 現在の手番を確認（SFENの手番フィールドを使用）
-                // 読み筋の基準SFEN: "盤面 b 持駒 手数" (b=先手, w=後手)
-                bool isBlackTurn = true;  // デフォルトは先手
-                const auto* record = m_considerationModel->recordAt(row);
-                const QString sfen = record ? record->baseSfen() : m_currentSfenStr;
-                const QStringList sfenParts = sfen.split(QLatin1Char(' '), Qt::SkipEmptyParts);
-                if (sfenParts.size() >= 2) isBlackTurn = (sfenParts.at(1) == QLatin1String("b"));
-
-                // USI形式では P=歩, L=香, N=桂, S=銀, G=金, B=角, R=飛
-                // ShogiViewの駒文字は 先手:大文字, 後手:小文字
-                if (isBlackTurn) {
-                    arrow.dropPiece = usiPiece;  // 先手は大文字
-                } else {
-                    arrow.dropPiece = usiPiece.toLower();  // 後手は小文字
-                }
-            }
-        }
-
-        // 最善手（最初の行）は濃い赤、それ以外は薄い赤
-        if (row == 0) {
-            arrow.color = QColor(255, 0, 0, 200);  // 濃い赤（半透明）
-        } else {
-            arrow.color = QColor(255, 100, 100, 150);  // 薄い赤（より透明）
-        }
-
-        arrows.append(arrow);
-    }
-
-    m_shogiView->setArrows(arrows);
+    const bool show = m_showArrows && (!m_considerationTabManager
+        || m_considerationTabManager->isShowArrowsChecked());
+    CandidateArrowController::forView(m_shogiView)->setConsiderationState(
+        m_considerationActive, show, m_considerationModel);
 }
 
 bool ConsiderationModeUIController::updatePositionIfInConsiderationMode(

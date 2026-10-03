@@ -145,12 +145,15 @@ void ShogiView::setBoard(ShogiBoard* board)
     if (board) {
         connect(board, &ShogiBoard::dataChanged, this, qOverload<>(&ShogiView::update));
         connect(board, &ShogiBoard::boardReset,  this, qOverload<>(&ShogiView::update));
+        connect(board, &ShogiBoard::dataChanged, this, &ShogiView::positionChanged);
+        connect(board, &ShogiBoard::boardReset, this, &ShogiView::positionChanged);
     }
 
     updateGeometry();
 
     qCDebug(lcView) << "setBoard complete, m_board now:" << m_board;
     relayoutTurnLabels();
+    emit positionChanged();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

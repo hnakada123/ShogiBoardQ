@@ -117,6 +117,8 @@ inline constexpr char kEngineInfoColumnWidthsFmt[]       = "EngineInfo/columnWid
 
 // --- ThinkingView (動的キー) ---
 inline constexpr char kThinkingViewColumnWidthsFmt[]     = "ThinkingView/columnWidths%1";
+inline constexpr char kMatchArrowsVisible[]               = "ThinkingView/matchArrowsVisible";
+inline constexpr char kPonderArrowsVisible[]              = "ThinkingView/ponderArrowsVisible";
 
 // --- 配列内サブキー ---
 inline constexpr char kArrayWidth[]                      = "width";

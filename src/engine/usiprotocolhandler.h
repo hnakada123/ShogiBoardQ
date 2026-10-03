@@ -47,6 +47,16 @@ public:
         StoppingPonder ///< 先読みのstop送信後、bestmove回収待ち
     };
 
+    /// 現在の探索の最善候補。履歴表示の遅延バッファとは独立して受信時に更新する。
+    struct SearchCandidate {
+        QString baseSfen;
+        QString move;
+        QString predictedMove;
+        bool active = false;
+        bool pondering = false;
+    };
+    const SearchCandidate& searchCandidate() const { return m_searchCandidate; }
+
     explicit UsiProtocolHandler(QObject* parent = nullptr);
     ~UsiProtocolHandler() override;
 
@@ -149,6 +159,7 @@ public:
     void cancelCurrentOperation();
 
 signals:
+    void searchCandidateChanged();
     void initializationFinished(bool success);
 
     void usiOkReceived();              ///< usiok受信（Handler → waitForUsiOk）
@@ -196,6 +207,10 @@ private:
 
     /// go本探索の共通前処理
     void beginMainSearch();
+    void beginCandidateSearch(bool pondering);
+    void invalidateCandidate();
+    void updateCandidate(const QString& line);
+    SearchCandidate m_searchCandidate;
 
     /// 待機メソッドの共通実装
     bool waitForResponseFlag(bool& flag, void(UsiProtocolHandler::*signal)(), int timeoutMs);

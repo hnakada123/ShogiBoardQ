@@ -66,6 +66,8 @@ Usi::~Usi()
 
 void Usi::setupConnections()
 {
+    connect(m_protocolHandler.get(), &UsiProtocolHandler::searchCandidateChanged,
+            this, &Usi::searchCandidateChanged);
     // 処理フロー:
     // 1. ProcessManager → Usi（プロセスイベント転送）
     // 2. ProtocolHandler → Usi（USIプロトコルイベント転送）

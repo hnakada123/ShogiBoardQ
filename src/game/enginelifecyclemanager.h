@@ -142,6 +142,9 @@ public:
     void wireWinToArbiter(Usi* engine, bool asP1);
     void disconnectArbiterSignals();
 
+signals:
+    void enginesChanged();
+
 private slots:
     void onEngine1Resign();
     void onEngine2Resign();

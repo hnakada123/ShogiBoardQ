@@ -13,6 +13,7 @@
 
 #include "recordpane.h"
 #include "engineanalysistab.h"
+
 #include "boardinteractioncontroller.h"
 #include "branchtreemanager.h"
 #include "shogiview.h"
@@ -220,3 +221,7 @@ bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev)
 #include "moc_elidelabel.cpp"
 #include "moc_shogigamecontroller.cpp"
 #include "moc_shogiboard.cpp"
+
+void EngineAnalysisTab::onMatchArrowsToggled(bool) {}
+void EngineAnalysisTab::onPonderArrowsToggled(bool) {}
+void EngineAnalysisTab::updateArrowControls() {}

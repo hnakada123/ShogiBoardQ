@@ -65,6 +65,11 @@ void setUsiLogCommandTarget(int target);
 int thinkingFontSize();
 void setThinkingFontSize(int size);
 
+bool matchArrowsVisible();
+void setMatchArrowsVisible(bool visible);
+bool ponderArrowsVisible();
+void setPonderArrowsVisible(bool visible);
+
 // --- 棋譜解析 ---
 
 /// 棋譜解析ダイアログのフォントサイズ（デフォルト: 10）
