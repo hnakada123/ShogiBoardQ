@@ -3,6 +3,7 @@
 
 #include "shogiview.h"
 #include "kifupresentation.h"
+#include "applicationfonts.h"
 #include "shogiviewhighlighting.h"
 #include "shogiboard.h"
 #include "boardsurfacepainter.h"
@@ -209,6 +210,8 @@ void ShogiView::drawRank(QPainter* painter, const int rank) const
     const QRect label(x, cell.top() + m_layout.offsetY(), band, cell.height());
     painter->save();
     QFont f = painter->font();
+    if (KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        f = ApplicationFonts::japaneseFont(f);
     f.setPixelSize(qMax(8, qRound(fieldSize().width() * 0.30 * m_layout.rankFontScale())));
     f.setBold(false);
     painter->setFont(f);

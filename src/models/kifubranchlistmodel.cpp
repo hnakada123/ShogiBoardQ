@@ -2,6 +2,7 @@
 /// @brief 分岐候補リストモデルクラスの実装
 
 #include "kifubranchlistmodel.h"
+#include "applicationfonts.h"
 #include "tablestyles.h"
 #include "logcategories.h"
 #include <QBrush>
@@ -66,6 +67,11 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
     if (!index.isValid()) return QVariant();
 
     const bool isBackRow = (m_hasBackToMainRow && index.row() == list.size());
+
+    if (role == Qt::FontRole && !isBackRow && index.row() >= 0 && index.row() < list.size()
+        && !list[index.row()]->usiMove.isEmpty()
+        && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        return ApplicationFonts::japaneseFont(QFont());
 
     // --- カスタムロール: この行(分岐)の最大手数 ---
     if (role == DispCountRole) {

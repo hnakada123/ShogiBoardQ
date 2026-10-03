@@ -74,6 +74,7 @@ void KifuPasteDialog::setupUi()
     QFont monoFont = ApplicationFonts::monospaceFont();
     monoFont.setPointSize(10);
     m_textEdit->setFont(monoFont);
+    ApplicationFonts::useJapaneseFont(m_textEdit);
 
     // 入力欄の操作を一か所にまとめる。
     QHBoxLayout* toolLayout = new QHBoxLayout();

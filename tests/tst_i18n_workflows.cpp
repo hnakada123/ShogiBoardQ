@@ -4,6 +4,7 @@
 #include <QTemporaryDir>
 #include <QLabel>
 #include "kifupresentation.h"
+#include "applicationfonts.h"
 #include "kifuloadparser.h"
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
@@ -31,7 +32,11 @@ class TestI18nWorkflows : public QObject
     QTemporaryDir m_config;
 private slots:
     void initTestCase() { qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8()); }
-    void cleanup() { KifuPresentation::configure("ja_JP", "auto", false); }
+    void cleanup()
+    {
+        KifuPresentation::configure("ja_JP", "auto", false);
+        ApplicationFonts::initialize();
+    }
 
     void liveTimeoutIsTerminal_data()
     {
@@ -182,6 +187,7 @@ private slots:
         qApp->installTranslator(&translator);
         KifuPresentation::configure(language, notation, false);
         const bool western = KifuPresentation::options().notation == KifuPresentation::Notation::Western;
+        ApplicationFonts::initialize({}, language);
 
         KifuRecordListModel rows;
         GameRecordPresenter presenter({&rows, nullptr});
@@ -204,14 +210,32 @@ private slots:
         thinking.appendItem(info);
         const QString pv = thinking.data(thinking.index(0, 5), Qt::DisplayRole).toString();
         QCOMPARE(pv, western ? QStringLiteral("▲P-7f △P-3d") : info->pv());
+        // UIの書体と棋譜の書体を分け、ビュー個別の文字サイズを維持する。
+        QFont viewFont = QApplication::font();
+        viewFont.setPointSize(19);
+        viewFont.setBold(true);
+        const QFont expectedFont = western ? viewFont : ApplicationFonts::japaneseFont(viewFont);
+        for (const auto& index : {rows.index(1, 0), branches.index(0, 0), thinking.index(0, 5)}) {
+            const QVariant role = index.data(Qt::FontRole);
+            const QFont painted = role.isValid() ? qvariant_cast<QFont>(role).resolve(viewFont) : viewFont;
+            QCOMPARE(painted.family(), expectedFont.family());
+            QCOMPARE(painted.pointSize(), 19);
+            QVERIFY(painted.bold());
+        }
+        QVERIFY(!rows.index(1, 3).data(Qt::FontRole).isValid()); // 注釈はUIの書体。
+        QVERIFY(!rows.index(4, 0).data(Qt::FontRole).isValid()); // 翻訳された終局もUIの書体。
         PvBoardController board(imported.initialSfen, {"7g7f", "3c3d"});
         board.setKanjiPv(info->pv());
         QCOMPARE(board.displayPv(), pv);
         PvBoardDialog pvDialog(imported.initialSfen, {"7g7f", "3c3d"});
         pvDialog.setKanjiPv(info->pv());
         bool foundPv = false;
-        for (const auto* label : pvDialog.findChildren<QLabel*>())
-            foundPv = foundPv || label->text() == pv;
+        for (const auto* label : pvDialog.findChildren<QLabel*>()) {
+            if (label->text() == pv) {
+                foundPv = true;
+                QCOMPARE(label->font().family(), expectedFont.family());
+            }
+        }
         QVERIFY(foundPv);
         QVERIFY(board.goForward());
         if (western) QCOMPARE(board.currentMoveText(), QStringLiteral("▲P-7f"));

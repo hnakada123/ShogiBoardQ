@@ -13,6 +13,8 @@ class TestApplicationFonts : public QObject
 {
     Q_OBJECT
 
+    QFont originalFont;
+
     bool hasJapaneseFonts() const
     {
 #ifdef Q_OS_LINUX
@@ -24,10 +26,11 @@ class TestApplicationFonts : public QObject
 #endif
     }
 
-    void verifyGlyphs(const QFont& font, const QString& family)
+    void verifyGlyphs(const QFont& font, const QString& family,
+                      const QString& text = QStringLiteral("判定時間骨直令あいうアイウ"))
     {
         // 指定名だけでなく、漢字・仮名を描画する実フォントを検査する。
-        QTextLayout layout(QStringLiteral("判定時間骨直令あいうアイウ"), font);
+        QTextLayout layout(text, font);
         layout.beginLayout();
         layout.createLine().setLineWidth(1000);
         layout.endLayout();
@@ -43,10 +46,105 @@ private slots:
     void initTestCase()
     {
         QFont original(QStringLiteral("Noto Sans"), 13, QFont::DemiBold);
+        originalFont = original;
         QApplication::setFont(original);
         ApplicationFonts::initialize();
         QCOMPARE(QApplication::font().pointSize(), 13);
         QCOMPARE(QApplication::font().weight(), QFont::DemiBold);
+    }
+
+    void init() { ApplicationFonts::initialize({}, QStringLiteral("ja_JP")); }
+
+    void languageDefaults_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<QString>("family");
+        QTest::newRow("english") << QStringLiteral("en") << QStringLiteral("Noto Sans");
+        QTest::newRow("japanese") << QStringLiteral("ja_JP") << QStringLiteral("Noto Sans CJK JP");
+        QTest::newRow("simplified") << QStringLiteral("zh_CN") << QStringLiteral("Noto Sans CJK SC");
+        QTest::newRow("traditional") << QStringLiteral("zh_TW") << QStringLiteral("Noto Sans CJK TC");
+    }
+
+    void languageDefaults()
+    {
+        QFETCH(QString, language);
+        QFETCH(QString, family);
+#ifndef Q_OS_LINUX
+        if (language != QLatin1String("en")) QSKIP("This glyph check uses Linux Noto CJK fonts.");
+#endif
+        if (!QFontDatabase::families().contains(family)) QSKIP("Required test font is not installed.");
+        ApplicationFonts::initialize({}, language);
+        QCOMPARE(ApplicationFonts::defaultFamily(), family);
+        const QFont font = QApplication::font();
+        QCOMPARE(font.pointSize(), originalFont.pointSize());
+        QCOMPARE(font.weight(), originalFont.weight());
+        verifyGlyphs(font, family, language == QLatin1String("en") ? QStringLiteral("ABC 123")
+                                                                                : QStringLiteral("骨直令"));
+        if (language == QLatin1String("en")) {
+            QCOMPARE(ApplicationFonts::monospaceFont().family(),
+                     QFontDatabase::systemFont(QFontDatabase::FixedFont).family());
+        } else {
+            const QString mono = QString(family).replace(QStringLiteral("Noto Sans CJK"), QStringLiteral("Noto Sans Mono CJK"));
+            if (QFontDatabase::families().contains(mono))
+                verifyGlyphs(ApplicationFonts::monospaceFont(), mono, QStringLiteral("骨直令"));
+        }
+        if (hasJapaneseFonts())
+            verifyGlyphs(ApplicationFonts::japaneseFont(font), QStringLiteral("Noto Sans CJK JP"));
+
+        // 言語を往復しても、以前の標準書体がOS標準として残らない。
+        ApplicationFonts::initialize({}, QStringLiteral("ja_JP"));
+        ApplicationFonts::initialize(QStringLiteral("ShogiBoardQ nonexistent font 12345"), language);
+        QCOMPARE(QApplication::font().family(), family);
+        ApplicationFonts::applyFamily(QStringLiteral("Noto Sans"));
+        QCOMPARE(QApplication::font().family(), QStringLiteral("Noto Sans"));
+        QCOMPARE(ApplicationFonts::japaneseFont(font).family(), QStringLiteral("Noto Sans"));
+        ApplicationFonts::applyFamily({});
+        QCOMPARE(QApplication::font().family(), family);
+    }
+
+    void noRegionalFontsUsesSystemFont()
+    {
+        if (!QFontDatabase::families(QFontDatabase::Japanese).isEmpty()
+            || !QFontDatabase::families(QFontDatabase::SimplifiedChinese).isEmpty()
+            || !QFontDatabase::families(QFontDatabase::TraditionalChinese).isEmpty())
+            QSKIP("Run with a Latin-only fontconfig configuration to test missing regional fonts.");
+        for (const auto* language : {"ja_JP", "en", "zh_CN", "zh_TW"}) {
+            ApplicationFonts::initialize({}, QString::fromLatin1(language));
+            QCOMPARE(QApplication::font().family(), originalFont.family());
+            QCOMPARE(ApplicationFonts::japaneseFont(QApplication::font()).family(), originalFont.family());
+            ApplicationFonts::initialize(QStringLiteral("ShogiBoardQ nonexistent font 12345"), QString::fromLatin1(language));
+            QCOMPARE(QApplication::font().family(), originalFont.family());
+        }
+    }
+
+    void chineseFallbackAndJapaneseNotation()
+    {
+        if (!hasJapaneseFonts() || !QFontDatabase::families().contains(QStringLiteral("Noto Sans CJK SC")))
+            QSKIP("Noto CJK JP/SC fonts are not installed.");
+        ApplicationFonts::initialize({}, QStringLiteral("zh_CN"));
+        QLabel label(QStringLiteral("▲７六歩"));
+        ApplicationFonts::useJapaneseFont(&label);
+        verifyGlyphs(label.font(), QStringLiteral("Noto Sans CJK JP"));
+        QFont resized = QApplication::font();
+        resized.setPointSize(23);
+        resized.setItalic(true);
+        label.setFont(resized);
+        QCOMPARE(label.font().pointSize(), 23);
+        QVERIFY(label.font().italic());
+        QCOMPARE(label.font().family(), QStringLiteral("Noto Sans CJK JP"));
+        ApplicationFonts::applyFamily(QStringLiteral("Noto Sans CJK SC"));
+        QCOMPARE(label.font().family(), QStringLiteral("Noto Sans CJK SC"));
+        ApplicationFonts::applyFamily({});
+        QCOMPARE(label.font().family(), QStringLiteral("Noto Sans CJK JP"));
+        QCOMPARE(label.font().pointSize(), 23);
+        ApplicationFonts::useJapaneseFont(&label, false);
+        QCOMPARE(label.font().family(), QStringLiteral("Noto Sans CJK SC"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
+        verifyGlyphs(QFont(QStringLiteral("Noto Sans")), QStringLiteral("Noto Sans CJK SC"), QStringLiteral("骨直令"));
+        verifyGlyphs(QFont(QStringLiteral("Noto Sans")), QStringLiteral("Noto Sans CJK JP"), QStringLiteral("あいうアイウ"));
+        ApplicationFonts::initialize({}, QStringLiteral("en"));
+        verifyGlyphs(QFont(QStringLiteral("Noto Sans")), QStringLiteral("Noto Sans CJK JP"));
+#endif
     }
 
     void widgetsUseJapaneseGlyphs()

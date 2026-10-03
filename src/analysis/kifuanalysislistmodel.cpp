@@ -2,6 +2,7 @@
 /// @brief 棋譜解析結果リストモデルクラスの実装
 
 #include "kifuanalysislistmodel.h"
+#include "applicationfonts.h"
 #include <cmath>
 
 KifuAnalysisListModel::KifuAnalysisListModel(QObject *parent) : AbstractListModel<KifuAnalysisResultsDisplay>(parent)
@@ -70,6 +71,10 @@ QVariant KifuAnalysisListModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() < 0 || index.row() >= list.size()
         || index.column() < 0 || index.column() >= columnCount())
         return QVariant();
+
+    if (role == Qt::FontRole && (index.column() == 0 || index.column() == 1 || index.column() == 7)
+        && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        return ApplicationFonts::japaneseFont(QFont());
 
     if (role == Qt::ToolTipRole || role == Qt::AccessibleTextRole) {
         const auto* item = list.at(index.row());

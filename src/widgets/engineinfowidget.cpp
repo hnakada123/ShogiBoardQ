@@ -2,6 +2,7 @@
 /// @brief エンジン情報表示ウィジェットクラスの実装
 
 #include "engineinfowidget.h"
+#include "kifumovedelegate.h"
 #include "buttonstyles.h"
 #include "tablestyles.h"
 #include "logcategories.h"
@@ -36,6 +37,9 @@ void EngineInfoWidget::setupTable()
     headers << tr("エンジン") << tr("予想手") << tr("探索手")
             << tr("深さ") << tr("ノード数") << tr("探索局面数/秒") << tr("ハッシュ使用率");
     m_table->setHorizontalHeaderLabels(headers);
+    auto* moveDelegate = new KifuMoveDelegate(m_table);
+    m_table->setItemDelegateForColumn(COL_PRED, moveDelegate);
+    m_table->setItemDelegateForColumn(COL_SEARCHED, moveDelegate);
     applyHeaderStyle();
 
     m_table->setObjectName(QStringLiteral("engineInfoTable"));
@@ -76,8 +80,7 @@ void EngineInfoWidget::setupTable()
     m_table->setFocusPolicy(Qt::NoFocus);
 
     // 行の高さを文字サイズに合わせて固定（棋譜欄と同様の余白）
-    QFontMetrics fm(m_table->font());
-    m_table->verticalHeader()->setDefaultSectionSize(fm.height() + 4);
+    m_table->verticalHeader()->setDefaultSectionSize(KifuMoveDelegate::textHeight(m_table->font()) + 4);
 
     // スクロールバー非表示
     m_table->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -154,8 +157,7 @@ void EngineInfoWidget::setFontSize(int pointSize) {
     applyHeaderStyle();
 
     // 行の高さを調整（棋譜欄と同様の余白）
-    QFontMetrics fm(font);
-    int rowHeight = fm.height() + 4;
+    int rowHeight = KifuMoveDelegate::textHeight(font) + 4;
     m_table->verticalHeader()->setDefaultSectionSize(rowHeight);
 
     updateTableGeometry();
@@ -282,9 +284,12 @@ void EngineInfoWidget::updateTableGeometry()
         for (int col = 0; col < COL_COUNT; ++col) {
             const auto* item = m_table->item(0, col);
             const auto* heading = m_table->horizontalHeaderItem(col);
-            const QFontMetrics metrics(m_table->font());
+            const QFontMetrics headingMetrics(m_table->font());
+            const bool japaneseMove = (col == COL_PRED || col == COL_SEARCHED)
+                && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese;
+            const QFontMetrics metrics(japaneseMove ? ApplicationFonts::japaneseFont(m_table->font()) : m_table->font());
             int contentWidth = qMax(metrics.horizontalAdvance(item ? item->text() : QString()),
-                                    metrics.horizontalAdvance(heading ? heading->text() : QString())) + 20;
+                                    headingMetrics.horizontalAdvance(heading ? heading->text() : QString())) + 20;
             if (col == COL_ENGINE_NAME) contentWidth = qBound(120, contentWidth, 260);
             m_table->setColumnWidth(col, contentWidth);
         }

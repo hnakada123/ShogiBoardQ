@@ -2,6 +2,7 @@
 /// @brief 棋譜レコードリストモデルクラスの実装
 
 #include "kifurecordlistmodel.h"
+#include "applicationfonts.h"
 #include "tablestyles.h"
 #include <QDebug> // 必要なら
 #include <QColor>
@@ -27,6 +28,10 @@ QVariant KifuRecordListModel::data(const QModelIndex &index, int role) const
     const int row = index.row();
     const int col = index.column();
     if (row < 0 || row >= list.size()) return QVariant();
+
+    if (role == Qt::FontRole && col == 0 && !list[row]->usiMove.isEmpty()
+        && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        return ApplicationFonts::japaneseFont(QFont());
 
     if (role == Qt::ToolTipRole && col == 3) {
         const QString comment = list[row]->comment();

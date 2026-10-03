@@ -1,4 +1,5 @@
 #include "tsumeplaydialog.h"
+#include "applicationfonts.h"
 #include "tsumesolutionreplay.h"
 #include "tsumeshogikanjibuilder.h"
 #include "kifupresentation.h"
@@ -132,6 +133,8 @@ void TsumePlayDialog::updateReplayControls()
     m_solutionNext->setEnabled(enabled && m_reviewing && m_solution->available() && !atEnd);
     m_solutionLast->setEnabled(enabled && m_reviewing && m_solution->available() && !atEnd);
     m_returnToGame->setEnabled(m_reviewing);
+    ApplicationFonts::useJapaneseFont(m_solutionText, m_reviewing && m_solution->available()
+        && !m_solution->loading() && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese);
     if (!m_reviewing) {
         m_solutionText->clear();
         m_solutionStatus->setText(tr("正解手順:"));

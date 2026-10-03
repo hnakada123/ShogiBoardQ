@@ -2,6 +2,7 @@
 /// @brief 定跡統合ダイアログクラスの実装
 
 #include "josekimergedialog.h"
+#include "kifumovedelegate.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
 #include "josekisettings.h"
@@ -70,6 +71,7 @@ void JosekiMergeDialog::setupUi()
     
     // === テーブル ===
     m_tableWidget = new QTableWidget(this);
+    m_tableWidget->setItemDelegateForColumn(1, new KifuMoveDelegate(m_tableWidget));
     m_tableWidget->setColumnCount(4);
     
     QStringList headers;

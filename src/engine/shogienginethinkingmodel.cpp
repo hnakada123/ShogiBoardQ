@@ -3,6 +3,7 @@
 
 #include "shogienginethinkingmodel.h"
 #include "kifupresentation.h"
+#include "applicationfonts.h"
 #include <algorithm>
 #include <memory>
 
@@ -35,6 +36,10 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     if (role == Qt::ToolTipRole && index.column() == 5) {
         return QStringLiteral("<qt>%1</qt>").arg(list[index.row()]->displayPv(true).toHtmlEscaped());
     }
+
+    if (role == Qt::FontRole && index.column() == 5
+        && KifuPresentation::options().notation == KifuPresentation::Notation::Japanese)
+        return ApplicationFonts::japaneseFont(QFont());
 
     // 盤面列（列4）はボタン風の表示
     if (index.column() == 4) {
