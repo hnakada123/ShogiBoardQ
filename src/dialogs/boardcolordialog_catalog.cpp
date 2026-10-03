@@ -36,7 +36,16 @@ const Combination combinations[] = {
     {QT_TRANSLATE_NOOP("BoardColorDialog", "黒檀・月白"), "deep_ebony", 8, 8, 16, 8},
     {QT_TRANSLATE_NOOP("BoardColorDialog", "白木・墨夜"), "wood_pale", 11, 11, 10, 11},
     {QT_TRANSLATE_NOOP("BoardColorDialog", "青磁・白磁"), "tint_celadon", 6, 6, 2, 6},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "葡萄・藤鼠"), "deep_grape", 17, 17, 4, 17}
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "葡萄・藤鼠"), "deep_grape", 17, 17, 4, 17},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（木肌）"), "chess_facet_wood", 20, 20, 1, 20},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（白）"), "chess_facet_paper", 21, 21, 2, 21},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Facet（墨）"), "chess_facet_slate", 22, 22, 10, 22},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（木肌）"), "chess_atelier_wood", 20, 20, 1, 20},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（白）"), "chess_atelier_paper", 21, 21, 2, 21},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（墨）"), "chess_atelier_slate", 22, 22, 10, 22},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（木肌）"), "chess_ribbon_wood", 20, 20, 1, 20},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（白）"), "chess_ribbon_paper", 21, 21, 2, 21},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（墨）"), "chess_ribbon_slate", 22, 22, 10, 22}
 };
 
 QListWidget* gallery(QWidget* parent, const QString& name)
@@ -137,7 +146,7 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     m_pieceFilter = new QComboBox(piecePage);
     m_pieceFilter->setObjectName(QStringLiteral("appearancePieceFilter"));
     m_pieceFilter->addItems({tr("すべての駒（%1種類）").arg(AppSettings::availablePieceStyles().size()),
-                            tr("虎斑"), tr("木肌"), tr("淡色"), tr("深色"), tr("意匠")});
+                            tr("虎斑"), tr("木肌"), tr("淡色"), tr("深色"), tr("意匠"), tr("チェス")});
     pieceLayout->addWidget(m_pieceFilter);
     m_pieceList = gallery(piecePage, QStringLiteral("appearancePieces"));
     m_pieceList->viewport()->installEventFilter(this);
@@ -165,7 +174,7 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
         auto* page = new QWidget(m_sections);
         auto* column = new QVBoxLayout(page);
         auto* note = new QLabel(i == 2 ? tr("手番・対局者名・持ち時間の見本（20種類）")
-                                      : tr("%1の見本（20種類）").arg(titles.at(i)), page);
+                                      : tr("%1の見本（%2種類）").arg(titles.at(i)).arg(BoardAppearanceCatalog::samples(component).size()), page);
         note->setWordWrap(true);
         column->addWidget(note);
         auto* list = gallery(page, names.at(i));
@@ -257,7 +266,7 @@ void BoardColorDialog::selectComponent(int row)
 void BoardColorDialog::filterPieces(int index)
 {
     const QStringList prefixes{QString(), QStringLiteral("torafu_"), QStringLiteral("wood_"),
-                               QStringLiteral("tint_"), QStringLiteral("deep_"), QStringLiteral("sengoku")};
+                               QStringLiteral("tint_"), QStringLiteral("deep_"), QStringLiteral("sengoku"), QStringLiteral("chess_")};
     if (index < 0 || index >= prefixes.size()) return;
     for (int row = 0; row < m_pieceList->count(); ++row) {
         auto* item = m_pieceList->item(row);

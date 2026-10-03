@@ -86,5 +86,23 @@ QString BoardColorPresets::pieceStyleName(const QString& style)
         return QCoreApplication::translate("MainWindow", "墨金");
     if (style == QLatin1String("sengoku"))
         return QCoreApplication::translate("MainWindow", "戦国文字");
+    if (style == QLatin1String("chess_facet_wood"))
+        return QCoreApplication::translate("MainWindow", "Facet（木肌）");
+    if (style == QLatin1String("chess_facet_paper"))
+        return QCoreApplication::translate("MainWindow", "Facet（白）");
+    if (style == QLatin1String("chess_facet_slate"))
+        return QCoreApplication::translate("MainWindow", "Facet（墨）");
+    if (style == QLatin1String("chess_atelier_wood"))
+        return QCoreApplication::translate("MainWindow", "Atelier（木肌）");
+    if (style == QLatin1String("chess_atelier_paper"))
+        return QCoreApplication::translate("MainWindow", "Atelier（白）");
+    if (style == QLatin1String("chess_atelier_slate"))
+        return QCoreApplication::translate("MainWindow", "Atelier（墨）");
+    if (style == QLatin1String("chess_ribbon_wood"))
+        return QCoreApplication::translate("MainWindow", "Ribbon（木肌）");
+    if (style == QLatin1String("chess_ribbon_paper"))
+        return QCoreApplication::translate("MainWindow", "Ribbon（白）");
+    if (style == QLatin1String("chess_ribbon_slate"))
+        return QCoreApplication::translate("MainWindow", "Ribbon（墨）");
     return QCoreApplication::translate("MainWindow", "標準の駒");
 }

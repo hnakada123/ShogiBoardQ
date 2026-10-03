@@ -7,7 +7,7 @@
 文字はパス化されているため、利用者の環境に日本語フォントは不要です。
 表示倍率と影は共通の描画処理で付け、盤上・持駒・ドラッグ中・プレビューで統一します。
 
-「表示」→「対局画面の外観…」の「駒」タブで、標準の駒と21種類のバリエーションを選べます。
+「表示」→「対局画面の外観…」の「駒」タブで、標準の駒と30種類のバリエーションを選べます。
 初期設定は `standard` です。旧セットの保存済み選択も `standard` に移行します。
 木目・色調の20種類は標準セットの外形・字形・大きさ・向きを保ちます。
 「戦国文字」は同じ外形・大きさ・向きで、文字と兜を組み合わせた独自の字形を使います。
@@ -37,9 +37,18 @@
 | 深色 | 葡萄 | `deep_grape/` |
 | 深色 | 墨金 | `deep_gold/` |
 | 意匠 | 戦国文字 | `sengoku/` |
+| チェス | Facet（木肌） | `chess_facet_wood/` |
+| チェス | Facet（白） | `chess_facet_paper/` |
+| チェス | Facet（墨） | `chess_facet_slate/` |
+| チェス | Atelier（木肌） | `chess_atelier_wood/` |
+| チェス | Atelier（白） | `chess_atelier_paper/` |
+| チェス | Atelier（墨） | `chess_atelier_slate/` |
+| チェス | Ribbon（木肌） | `chess_ribbon_wood/` |
+| チェス | Ribbon（白） | `chess_ribbon_paper/` |
+| チェス | Ribbon（墨） | `chess_ribbon_slate/` |
 
 `variants.json` に配色と木目の生成パラメーターを保存しています。
-標準と合わせて22セット、各30枚（先手・後手各15種類）、計660枚です。
+標準と合わせて31セット、各30枚（先手・後手各15種類）、計930枚です。
 
 ## 戦国文字
 
@@ -60,6 +69,28 @@ python3 scripts/generate_sengoku_pieces.py \
 
 採用サンプルは内蔵 imagegen で生成したもので、生成プロンプトは
 `~/Pictures/sengoku_sample/kanji_generation.txt` に保存しています。フォントファイルは使用していません。
+
+## チェス風の駒
+
+`chess_*` は Facet・Atelier・Ribbon の3案それぞれに木肌・白・墨を用意した9セットです。
+五角形・種類別の縮尺・先後の向きは標準SVGと同じです。漢字・アルファベットを載せず、
+王冠・城・馬・盾・槍などの絵柄で種類を区別し、成駒は元の絵柄を赤色にします。
+王将・玉将は同じ王冠です。動きや成り、持駒のルールは通常の将棋と変わりません。
+「表示」→「対局画面の外観…」→「駒」→「チェス」で選択でき、
+「おすすめの組み合わせ」から選ぶと盤・駒台・背景も見本の配色になります。
+「墨」は濃い青灰色の盤面と明るい駒面を組み合わせたものです。
+
+元画像と承認済みHTMLは `design/chess-shogi/` に保存しています。
+`generation.txt` と `pawn-lance-refinement.txt` に画像生成時のプロンプトを記録しています。
+SVGの五角形はベクター、絵柄は透明PNGの埋め込みです。成駒の赤色とAtelierの陰影は
+書き出し時に確定させ、Qt SVGで未対応のフィルターや外部画像には依存しません。
+
+再生成には Node.js 22以上、Chromium、Python 3を使います。アプリのビルド・実行には不要です。
+
+```sh
+node scripts/export_chess_symbols.mjs /tmp/shogi-chess-symbols
+python3 scripts/generate_chess_pieces.py /tmp/shogi-chess-symbols
+```
 
 ## 今後のバリエーション追加
 
