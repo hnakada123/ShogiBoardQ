@@ -13,6 +13,8 @@
 #include "gameinfokeys.h"
 #include "playerinfowiring.h"
 #include "gamerecordmodel.h"
+#include "engineanalysistab.h"
+#include "engineinfowidget.h"
 
 class TestGameInfoPane : public QObject
 {
@@ -332,6 +334,43 @@ private slots:
 
         m_controller->setGameInfo({{GameInfoKeys::kStartDateTime, {}}});
         QVERIFY(!m_table->item(0, 1)->data(Qt::AccessibleTextRole).toString().contains(QStringLiteral("未開始")));
+    }
+
+    void thinkingPanelsFollowMatchMode_data()
+    {
+        QTest::addColumn<bool>("tabFirst");
+        QTest::newRow("tab-before-controller") << true;
+        QTest::newRow("tab-after-controller") << false;
+    }
+
+    void thinkingPanelsFollowMatchMode()
+    {
+        QFETCH(bool, tabFirst);
+        QWidget parent;
+        EngineAnalysisTab tab;
+        auto* page = tab.createThinkingPage(&parent);
+        const auto views = page->findChildren<QTableView*>(QString(), Qt::FindDirectChildrenOnly);
+        QCOMPARE(views.size(), 2);
+        PlayerInfoWiring::Dependencies deps;
+        deps.parentWidget = &parent;
+        PlayerInfoWiring wiring(deps);
+        if (tabFirst) wiring.setAnalysisTab(&tab);
+        wiring.onPlayerNamesResolved({}, {}, "Engine A", "Engine B",
+                                     static_cast<int>(PlayMode::EvenEngineVsEngine));
+        if (!tabFirst) wiring.setAnalysisTab(&tab);
+        QVERIFY(tab.info1()->isVisibleTo(page));
+        QVERIFY(tab.info2()->isVisibleTo(page));
+        QVERIFY(views.at(0)->isVisibleTo(page));
+        QVERIFY(views.at(1)->isVisibleTo(page));
+
+        wiring.onPlayerNamesResolved("Human", {}, {}, "Engine B",
+                                     static_cast<int>(PlayMode::EvenHumanVsEngine));
+        QVERIFY(!tab.info2()->isVisibleTo(page));
+        QVERIFY(!views.at(1)->isVisibleTo(page));
+        wiring.onPlayerNamesResolved({}, {}, "Engine A", "Engine B",
+                                     static_cast<int>(PlayMode::HandicapEngineVsEngine));
+        QVERIFY(tab.info2()->isVisibleTo(page));
+        QVERIFY(views.at(1)->isVisibleTo(page));
     }
 
     void startingGameKeepsMetadataAndPendingEdits()

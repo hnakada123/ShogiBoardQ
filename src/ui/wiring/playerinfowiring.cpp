@@ -68,6 +68,10 @@ void PlayerInfoWiring::setTabWidget(QTabWidget* tabWidget)
 void PlayerInfoWiring::setAnalysisTab(EngineAnalysisTab* analysisTab)
 {
     m_analysisTab = analysisTab;
+    if (m_playerInfoController) {
+        m_playerInfoController->setAnalysisTab(analysisTab);
+        m_playerInfoController->updateSecondEngineVisibility();
+    }
 }
 
 void PlayerInfoWiring::ensurePlayerInfoController()
@@ -80,6 +84,7 @@ void PlayerInfoWiring::ensurePlayerInfoController()
     // 依存オブジェクトの設定
     m_playerInfoController->setShogiView(m_shogiView);
     m_playerInfoController->setGameInfoController(m_gameInfoController);
+    setAnalysisTab(m_analysisTab);
 
     qCDebug(lcUi) << "PlayerInfoController created";
 }
