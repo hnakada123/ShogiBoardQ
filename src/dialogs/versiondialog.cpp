@@ -76,9 +76,13 @@ VersionDialog::~VersionDialog()
 
 void VersionDialog::showLicenseDocument(int index)
 {
-    static const QStringList names{QStringLiteral("NOTICE.md"), QStringLiteral("GPL-3.0.txt"),
-                                   QStringLiteral("LGPL-3.0.txt"), QStringLiteral("SOURCE_CODE.md"),
-                                   QStringLiteral("QT-NOTICES.md")};
+    //: Bundled document filename. Use the translated NOTICE_<language>.md file.
+    const QString notice = tr("NOTICE.md");
+    //: Bundled document filename. Use the translated SOURCE_CODE_<language>.md file.
+    const QString sourceCode = tr("SOURCE_CODE.md");
+    const QStringList names{notice, QStringLiteral("GPL-3.0.txt"),
+                            QStringLiteral("LGPL-3.0.txt"), sourceCode,
+                            QStringLiteral("QT-NOTICES.md")};
     if (index < 0 || index >= names.size()) return;
     auto* browser = findChild<QTextBrowser*>(QStringLiteral("licenseBrowser"));
     QString document = QStringLiteral(":/licenses/") + names.at(index);

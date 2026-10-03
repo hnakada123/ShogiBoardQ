@@ -192,13 +192,14 @@ def stage(args):
         if digest(source / name) != checksum:
             raise ValueError(f"Notice changed since preparation: {name}")
     shutil.copytree(source, args.destination, dirs_exist_ok=True)
-    # Cached notices may predate the product-only release policy. Refresh our
-    # source guide, while preserving the verified Qt texts and source provenance.
-    shutil.copyfile(ROOT / "resources/licenses/SOURCE_CODE.md", args.destination / "SOURCE_CODE.md")
+    # Refresh our guides, including translations absent from older caches,
+    # while preserving the verified Qt texts and source provenance.
+    for guide in sorted((ROOT / "resources/licenses").glob("*.md")):
+        shutil.copyfile(guide, args.destination / guide.name)
+        inventory[guide.name] = digest(args.destination / guide.name)
     manifest.pop("release_sources", None)
     write_json(args.destination / "QT-SOURCE.json", manifest)
-    for name in ("SOURCE_CODE.md", "QT-SOURCE.json"):
-        inventory[name] = digest(args.destination / name)
+    inventory["QT-SOURCE.json"] = digest(args.destination / "QT-SOURCE.json")
     write_json(args.destination / "FILES.json", inventory)
     shutil.copyfile(args.build_dir / "qt-build.json", args.destination / "BUILD.json")
     # Record actual Qt SDK configuration alongside the source identification.
