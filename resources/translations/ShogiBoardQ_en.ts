@@ -9400,88 +9400,98 @@ Check the write permissions and available disk space for the settings location.
         <translation>Select a problem collection.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="81"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="78"/>
+        <source>この局面集の履歴を初期化…</source>
+        <translation>Reset This Collection&apos;s History…</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="84"/>
+        <source>全局面集の履歴を初期化…</source>
+        <translation>Reset All Collections&apos; History…</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="92"/>
         <source>判定エンジン:</source>
         <translation>Mate solver:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="84"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="95"/>
         <source>Hayanagi（内蔵・31手まで）</source>
         <translation>Hayanagi (built-in, up to 31 plies)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="89"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="100"/>
         <source>判定時間:</source>
         <translation>Search time:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="93"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="104"/>
         <source> 秒</source>
         <translation> sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="95"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="106"/>
         <source>このページを再判定</source>
         <translation>Recheck this page</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="105"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="116"/>
         <source>表示件数:</source>
         <translation>Per page:</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="123"/>
         <source>すべて</source>
         <translation>All</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="123"/>
         <location filename="../../src/dialogs/tsumecollectiondialog_analysis.cpp" line="52"/>
         <source>未挑戦</source>
         <translation>Not attempted</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="123"/>
         <source>挑戦済み・未正答</source>
         <translation>Attempted, unsolved</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="112"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="123"/>
         <source>正答済み</source>
         <translation>Solved</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="131"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="142"/>
         <source>文字サイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="136"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="147"/>
         <source>文字サイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="142"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="153"/>
         <source>最初</source>
         <translation>First</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="143"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="154"/>
         <source>前ページ</source>
         <translation>Previous</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="144"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="155"/>
         <source>次ページ</source>
         <translation>Next</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="146"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="157"/>
         <source>最後</source>
         <translation>Last</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="160"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="171"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
@@ -9497,7 +9507,7 @@ Check the write permissions and available disk space for the settings location.
     </message>
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog_analysis.cpp" line="25"/>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="71"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="72"/>
         <source>履歴を保存できません: %1</source>
         <translation>Could not save progress: %1</translation>
     </message>
@@ -9576,17 +9586,53 @@ Last solved: %2</translation>
         <translation>No valid tsume positions found. Check the SFEN format and the defending king.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="63"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="64"/>
         <source>次の行は形式が不正なため読み込めませんでした: %1</source>
         <translation>These lines could not be loaded because their format is invalid: %1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="104"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="82"/>
+        <source>過去に開いたすべての局面集の挑戦・正答履歴を初期化し、すべての問題を未挑戦に戻します。
+この操作は取り消せません。初期化しますか？</source>
+        <translation>Clear attempt and solve history for every collection you have opened and mark all puzzles as unattempted.
+This cannot be undone. Reset history?</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="83"/>
+        <source>「%1」の全問題の挑戦・正答履歴を初期化し、未挑戦に戻します。
+表示中のページや絞り込みに関係なく、この局面集の全問題が対象です。
+同じ局面が他の局面集にもある場合、その共有履歴も初期化されます。
+この操作は取り消せません。初期化しますか？</source>
+        <translation>Clear attempt and solve history for every puzzle in “%1” and mark them as unattempted.
+All puzzles in this collection are included, regardless of the current page or filter.
+Identical positions in other collections share this history and will also be reset.
+This cannot be undone. Reset history?</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="84"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="94"/>
+        <source>履歴の初期化</source>
+        <translation>Reset History</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="88"/>
+        <source>初期化する</source>
+        <translation>Reset</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="94"/>
+        <source>履歴を初期化できませんでした。
+%1</source>
+        <translation>Could not reset history.
+%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="131"/>
         <source>%1問中 %2〜%3問 ／ %4/%5ページ</source>
         <translation>%2–%3 of %1 problems / Page %4 of %5</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="124"/>
+        <location filename="../../src/dialogs/tsumecollectiondialog_navigation.cpp" line="151"/>
         <source>第%1問（%2行目）</source>
         <translation>Problem %1 (line %2)</translation>
     </message>

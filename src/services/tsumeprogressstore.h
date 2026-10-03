@@ -30,6 +30,9 @@ public:
     QHash<QString, Progress> progress(const QStringList& ids);
     bool recordAttempt(const QString& id);
     bool recordSolved(const QString& id);
+    /// 指定局面の挑戦・正答履歴を一括削除する。解析キャッシュは保持する。
+    bool resetProgress(const QStringList& ids);
+    bool resetAllProgress();
     std::optional<TsumeEvaluation> cached(const QString& id, const QString& engine);
     /// 合法手順を一度確認したキャッシュを再利用。手順必須時は手数だけの記録を返さない。
     std::optional<TsumeEvaluation> validatedCached(const QString& id, const QString& engine, bool requireLine);
