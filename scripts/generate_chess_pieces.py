@@ -35,7 +35,7 @@ def main():
                 data = base64.b64encode(symbol.read_bytes()).decode('ascii')
                 for side in ('Sente', 'Gote'):
                     filename = f'{side}_{name}45.svg'
-                    root = ET.parse(pieces / 'standard' / filename).getroot()
+                    root = ET.parse(pieces / 'wood_classic' / filename).getroot()
                     for parent in root.iter():
                         for child in list(parent):
                             if child.tag in (f'{{{NS}}}defs', f'{{{NS}}}path'):

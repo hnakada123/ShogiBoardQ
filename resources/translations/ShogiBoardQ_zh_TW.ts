@@ -5162,9 +5162,13 @@ OKを選択すると保存先が指定できます。</source>
         <translation>淺木</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="60"/>
         <source>糸柾</source>
-        <translation>細直紋</translation>
+        <translation type="vanished">細直紋</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="60"/>
+        <source>木目</source>
+        <translation>木紋</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="62"/>

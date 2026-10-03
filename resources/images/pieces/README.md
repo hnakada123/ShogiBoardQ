@@ -1,14 +1,15 @@
 # 駒のセット
 
-`standard/` に先手・後手各15種類のSVGを収録しています。
-淡い木肌、細い縁、控えめな木目、太い明朝体を組み合わせた従来の木目セットを、
+`wood_straight/` に先手・後手各15種類のSVGを収録しています。
+淡い木肌、細い縁、まっすぐな木目、太い明朝体を組み合わせた「糸柾」を、
 画像を変えずに標準の駒として採用しています。
+元の標準駒は `wood_classic/` に移し、「木目」として選択できます。
 成香は「杏」、成桂は「圭」、成銀は「全」の一文字表記です。
 文字はパス化されているため、利用者の環境に日本語フォントは不要です。
 表示倍率と影は共通の描画処理で付け、盤上・持駒・ドラッグ中・プレビューで統一します。
 
 「表示」→「対局画面の外観…」の「駒」タブで、標準の駒と30種類のバリエーションを選べます。
-初期設定は `standard` です。旧セットの保存済み選択も `standard` に移行します。
+初期設定は `standard` です。「糸柾」（`wood_straight`）や廃止済み旧セットの保存済み選択も `standard` に移行します。
 木目・色調の20種類は標準セットの外形・字形・大きさ・向きを保ちます。
 「戦国文字」は同じ外形・大きさ・向きで、文字と兜を組み合わせた独自の字形を使います。
 
@@ -22,7 +23,7 @@
 | 虎斑 | 紅虎斑 | `torafu_red/` |
 | 虎斑 | 山吹虎斑 | `torafu_gold/` |
 | 木肌 | 白木 | `wood_pale/` |
-| 木肌 | 糸柾 | `wood_straight/` |
+| 木肌 | 木目 | `wood_classic/` |
 | 木肌 | 飴柾 | `wood_amber/` |
 | 木肌 | 笹杢 | `wood_bamboo/` |
 | 木肌 | 胡桃 | `wood_walnut/` |
@@ -100,10 +101,10 @@ python3 scripts/generate_chess_pieces.py /tmp/shogi-chess-symbols
 `PieceImageProvider` が選択の保存と全盤面への反映を担います。
 標準セットのリソース名は `:/pieces/`、追加セットは `:/pieces/<種類>/` です。
 
-## 標準セットの再生成
+## 木目セットの再生成
 
 Qt 6 GuiとNoto Serif CJK Boldフォントを使います。通常のアプリビルドでは不要です。
-リポジトリのルートで実行してください。生成先を確認してから標準セットと置き換えます。
+リポジトリのルートで実行してください。生成先を確認してから木目セットと置き換えます。
 
 ```sh
 c++ -std=c++17 -fPIC -Wall -Wextra -Wpedantic -Wshadow \
@@ -112,7 +113,7 @@ c++ -std=c++17 -fPIC -Wall -Wextra -Wpedantic -Wshadow \
 
 QT_QPA_PLATFORM=offscreen /tmp/generate_pieces \
   /usr/share/fonts/noto-cjk/NotoSerifCJK-Bold.ttc \
-  resources/images/pieces/standard /tmp/shogiboardq-standard-pieces
+  resources/images/pieces/wood_classic /tmp/shogiboardq-classic-pieces
 ```
 
 Noto CJKのライセンスは同梱の `OFL.txt` を参照してください。
@@ -120,7 +121,8 @@ Noto CJKのライセンスは同梱の `OFL.txt` を参照してください。
 ## バリエーションの再生成
 
 Python 3 と PySide6 を使います。アプリのビルド・実行には不要です。
-標準セットのSVGを読み、字形・外形を維持して色と木目を生成します。
+木目セットのSVGを読み、字形・外形を維持して色と木目を生成します。
+現標準の「糸柾」（`wood_straight/`）もこの生成対象に含まれます。
 Qt SVGで木目が外へはみ出さないよう、生成時に輪郭内へ切り抜いたベクターパスを保存します。
 
 ```sh

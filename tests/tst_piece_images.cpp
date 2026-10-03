@@ -57,7 +57,7 @@ private slots:
     void legacySettingsMigrate_data()
     {
         QTest::addColumn<QString>("legacyStyle");
-        for (const auto& style : {"standard", "clear", "wood", "ivory", "dark", "unknown"})
+        for (const auto& style : {"standard", "wood_straight", "clear", "wood", "ivory", "dark", "unknown"})
             QTest::newRow(style) << QString::fromLatin1(style);
     }
 

@@ -5447,9 +5447,13 @@ OKを選択すると保存先が指定できます。</translation>
         <translation>白木</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="60"/>
         <source>糸柾</source>
-        <translation>糸柾</translation>
+        <translation type="vanished">糸柾</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="60"/>
+        <source>木目</source>
+        <translation>木目</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="62"/>

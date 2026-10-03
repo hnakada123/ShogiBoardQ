@@ -6385,9 +6385,13 @@ Please restart the application to apply the changes.</translation>
         <translation>Pale Wood</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="60"/>
         <source>糸柾</source>
-        <translation>Fine Straight Grain</translation>
+        <translation type="vanished">Fine Straight Grain</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="60"/>
+        <source>木目</source>
+        <translation>Wood Grain</translation>
     </message>
     <message>
         <location filename="../../src/services/boardcolorpresets.cpp" line="62"/>
