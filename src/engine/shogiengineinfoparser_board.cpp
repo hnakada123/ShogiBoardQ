@@ -256,7 +256,7 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
 
         m_pvKanjiStr += shogiStr;
 
-        if (i == 0) m_searchedHand = shogiStr;
+        if (i == 0) { m_searchedHand = shogiStr; m_searchedUsi = token; }
 
         movePieceToSquare(clonedBoardData, movingPiece, fileFrom, rankFrom, fileTo, rankTo, promote);
     }

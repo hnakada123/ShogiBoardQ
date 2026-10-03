@@ -65,6 +65,23 @@ void setLanguage(const QString& lang)
     s.setValue(SettingsKeys::kLanguage, lang);
 }
 
+QString moveNotation()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kMoveNotation, "auto").toString();
+}
+void setMoveNotation(const QString& notation)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kMoveNotation, notation);
+}
+bool notationOrigin()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kNotationOrigin, false).toBool();
+}
+void setNotationOrigin(bool enabled)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kNotationOrigin, enabled);
+}
+
 // --- GUI共通フォント ---
 
 QString uiFontFamily()

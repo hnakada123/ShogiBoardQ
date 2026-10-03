@@ -18,6 +18,8 @@ class KifuRecordListModel;
 
 // 保存に必要な情報をまとめた構造体
 struct KifuExportContext {
+    QList<KifGameInfoItem> gameInfoItems;
+    bool gameInfoProvided = false;
     // UI/Model参照（読み取り専用）
     const QTableWidget* gameInfoTable = nullptr;
     const KifuRecordListModel* recordModel = nullptr;

@@ -7,6 +7,7 @@
 
 #include <QObject>
 #include <QString>
+#include "kifupresentation.h"
 
 // 棋譜欄を表示するクラス
 class KifuBranchDisplay : public QObject
@@ -22,6 +23,10 @@ public:
 
     // 指し手を取得する。
     QString currentMove() const;
+    QString beforeSfen;
+    QString usiMove;
+    QString displayMove(bool fullOrigin = false) const
+    { return KifuPresentation::label(m_currentMove, beforeSfen, usiMove, fullOrigin); }
 
     void setCurrentMove(const QString &newCurrentMove);
 

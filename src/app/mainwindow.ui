@@ -134,11 +134,23 @@
      <addaction name="actionLanguageSystem"/>
      <addaction name="actionLanguageJapanese"/>
      <addaction name="actionLanguageEnglish"/>
+     <addaction name="actionLanguageChineseSimplified"/>
+     <addaction name="actionLanguageChineseTraditional"/>
+    </widget>
+    <widget class="QMenu" name="menuNotation">
+     <property name="title"><string>棋譜と盤の座標表記</string></property>
+     <addaction name="actionNotationAuto"/>
+     <addaction name="actionNotationJapanese"/>
+     <addaction name="actionNotationWestern"/>
+     <addaction name="separator"/>
+     <addaction name="actionNotationOrigin"/>
+     <addaction name="actionNotationHelp"/>
     </widget>
     <addaction name="actionEngineSettings"/>
     <addaction name="actionPieceSound"/>
     <addaction name="actionPieceSoundSettings"/>
     <addaction name="menuLanguage"/>
+    <addaction name="menuNotation"/>
     <addaction name="separator"/>
     <addaction name="actionResetSettings"/>
    </widget>
@@ -635,6 +647,33 @@
    <property name="text">
     <string>設定を初期値に戻す…</string>
    </property>
+  </action>
+  <action name="actionLanguageChineseSimplified">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>简体中文</string></property>
+  </action>
+  <action name="actionLanguageChineseTraditional">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>繁體中文</string></property>
+  </action>
+  <action name="actionNotationAuto">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>言語に合わせる</string></property>
+  </action>
+  <action name="actionNotationJapanese">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>日本語表記（▲７六歩、段は一〜九）</string></property>
+  </action>
+  <action name="actionNotationWestern">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>英語表記（▲P-7f、段はa〜i）</string></property>
+  </action>
+  <action name="actionNotationOrigin">
+   <property name="checkable"><bool>true</bool></property>
+   <property name="text"><string>英語表記で移動元を常に表示</string></property>
+  </action>
+  <action name="actionNotationHelp">
+   <property name="text"><string>棋譜表記の読み方…</string></property>
   </action>
   <action name="actionLanguageSystem">
    <property name="checkable">

@@ -251,38 +251,38 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
     QString blackName, whiteName;
     switch (mode) {
     case PlayMode::HumanVsHuman:
-        blackName = human1.isEmpty() ? tr("先手") : human1;
-        whiteName = human2.isEmpty() ? tr("後手") : human2;
+        blackName = human1;
+        whiteName = human2;
         break;
     case PlayMode::EvenHumanVsEngine:
     case PlayMode::HandicapHumanVsEngine:
-        blackName = human1.isEmpty() ? tr("先手") : human1;
-        whiteName = engine2.isEmpty() ? tr("Engine") : engine2;
+        blackName = human1;
+        whiteName = engine2;
         break;
     case PlayMode::EvenEngineVsHuman:
     case PlayMode::HandicapEngineVsHuman:
-        blackName = engine1.isEmpty() ? tr("Engine") : engine1;
-        whiteName = human2.isEmpty() ? tr("後手") : human2;
+        blackName = engine1;
+        whiteName = human2;
         break;
     case PlayMode::EvenEngineVsEngine:
     case PlayMode::HandicapEngineVsEngine:
-        blackName = engine1.isEmpty() ? tr("Engine1") : engine1;
-        whiteName = engine2.isEmpty() ? tr("Engine2") : engine2;
+        blackName = engine1;
+        whiteName = engine2;
         break;
     default:
-        blackName = tr("先手");
-        whiteName = tr("後手");
+        blackName.clear();
+        whiteName.clear();
         break;
     }
 
     // 手合割の判定
     const QString sfen = startSfen.trimmed();
     const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    QString handicap = tr("平手");
+    QString handicap = QStringLiteral("平手");
     if (!sfen.isEmpty()) {
         const QString pp = sfen.section(QLatin1Char(' '), 0, 0);
         if (!pp.isEmpty() && pp != initPP) {
-            handicap = tr("その他");
+            handicap = QStringLiteral("その他");
         }
     }
 
@@ -355,13 +355,13 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
     items.append({GameInfoKeys::kStartDateTime, startDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))});
 
     // 先手
-    items.append({GameInfoKeys::kBlackPlayer, blackName.isEmpty() ? tr("先手") : blackName});
+    items.append({GameInfoKeys::kBlackPlayer, blackName});
 
     // 後手
-    items.append({GameInfoKeys::kWhitePlayer, whiteName.isEmpty() ? tr("後手") : whiteName});
+    items.append({GameInfoKeys::kWhitePlayer, whiteName});
 
     // 手合割
-    items.append({GameInfoKeys::kHandicap, handicap.isEmpty() ? tr("平手") : handicap});
+    items.append({GameInfoKeys::kHandicap, handicap.isEmpty() ? QStringLiteral("平手") : handicap});
 
     // 未開始の「未設定」と、時間制限のない対局を区別する。
     if (hasTimeControl) {

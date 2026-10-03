@@ -9,6 +9,7 @@
 #include "kifubranchlistmodel.h"
 #include "kifudisplay.h"
 #include "kifdisplayitem.h"
+#include "kifupresentation.h"
 #include "branchtreemanager.h"
 #include "recordpane.h"
 
@@ -145,6 +146,9 @@ void KifuSelectionSync::applyBranchCandidates(const QList<KifuBranchNode*>& cand
     for (KifuBranchNode* node : std::as_const(candidates)) {
         KifDisplayItem item;
         item.prettyMove = node->displayText();
+        item.beforeSfen = node->parent() ? node->parent()->sfen() : QString();
+        item.usiMove = node->isTerminal() ? QString() : KifuPresentation::usiMove(node->move());
+        item.terminal = node->isTerminal();
         item.timeText = node->timeText();
         items.append(item);
     }
@@ -235,6 +239,9 @@ void KifuSelectionSync::syncBranchCandidatesForNode(KifuBranchNode* targetNode)
             KifuBranchNode* sibling = parentNode->childAt(i);
             KifDisplayItem item;
             item.prettyMove = sibling->displayText();
+            item.beforeSfen = sibling->parent() ? sibling->parent()->sfen() : QString();
+            item.usiMove = sibling->isTerminal() ? QString() : KifuPresentation::usiMove(sibling->move());
+            item.terminal = sibling->isTerminal();
             item.timeText = sibling->timeText();
             items.append(item);
         }

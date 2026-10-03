@@ -32,7 +32,9 @@ public:
      * @param japaneseAction 日本語アクション
      * @param englishAction 英語アクション
      */
-    void setActions(QAction* systemAction, QAction* japaneseAction, QAction* englishAction);
+    void setActions(QAction* systemAction, QAction* japaneseAction, QAction* englishAction,
+                    QAction* simplifiedAction = nullptr, QAction* traditionalAction = nullptr);
+    void setNotationActions(QAction* automatic, QAction* japanese, QAction* western, QAction* origin, QAction* help);
 
     /**
      * @brief 親ウィジェットを設定（ダイアログ表示用）
@@ -60,7 +62,15 @@ public slots:
      */
     void onEnglishTriggered();
 
+private slots:
+    void onChineseSimplifiedTriggered();
+    void onChineseTraditionalTriggered();
+    void onNotationTriggered(QAction* action);
+    void onOriginTriggered(bool enabled);
+    void showNotationHelp();
+
 private:
+    void restartNotice();
     /**
      * @brief 言語を変更する
      * @param lang 言語コード（"system", "ja_JP", "en"）
@@ -71,6 +81,9 @@ private:
     QAction* m_systemAction = nullptr;
     QAction* m_japaneseAction = nullptr;
     QAction* m_englishAction = nullptr;
+    QAction* m_simplifiedAction = nullptr;
+    QAction* m_traditionalAction = nullptr;
+    QActionGroup* m_notationGroup = nullptr;
     QWidget* m_parentWidget = nullptr;
 };
 

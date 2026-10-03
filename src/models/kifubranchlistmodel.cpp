@@ -33,7 +33,11 @@ void rebuildRows(QList<KifuBranchDisplay*>& rows, const QList<KifDisplayItem>& s
         auto* row = new KifuBranchDisplay();
         QString label = item.prettyMove; // 例: "3 ▲２六歩(27)" or "▲２六歩(27)"
         label.replace(dropHeadNumber, QString());
-        row->setCurrentMove(label.trimmed());
+        label = label.trimmed();
+        if (label.endsWith(QLatin1Char('+'))) label.chop(1); // canonical branch marker only
+        row->setCurrentMove(label);
+        row->beforeSfen = item.beforeSfen;
+        row->usiMove = item.usiMove;
         rows.push_back(row);
     }
 }
@@ -70,6 +74,9 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
         return rowMaxPly(index.row());
     }
 
+    if (role == Qt::ToolTipRole && !isBackRow && index.row() >= 0 && index.row() < list.size())
+        return list[index.row()]->displayMove(true);
+
     // --- 表示テキスト ---
     if (role == Qt::DisplayRole) {
         if (isBackRow) {
@@ -77,16 +84,7 @@ QVariant KifuBranchListModel::data(const QModelIndex &index, int role) const
         }
         if (index.column() == 0) {
             if (index.row() >= 0 && index.row() < list.size() && list[index.row()]) {
-                QString text = list[index.row()]->currentMove();
-
-                // 棋譜欄では分岐ありを示すため末尾に '+' を付与しているが、
-                // 分岐候補欄では '+' を表示しないようにする
-                if (text.endsWith(QLatin1Char('+'))) {
-                    text.chop(1);          // 末尾の '+' を削除
-                    text = text.trimmed(); // 念のため前後の空白を除去
-                }
-
-                return text;
+                return list[index.row()]->displayMove();
             }
         }
         return QVariant();

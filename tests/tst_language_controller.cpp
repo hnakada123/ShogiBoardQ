@@ -26,13 +26,17 @@ private:
         QAction systemAction{QStringLiteral("System")};
         QAction japaneseAction{QStringLiteral("日本語")};
         QAction englishAction{QStringLiteral("English")};
+        QAction simplifiedAction{QStringLiteral("简体中文")};
+        QAction traditionalAction{QStringLiteral("繁體中文")};
 
         TestSetup()
         {
             systemAction.setCheckable(true);
             japaneseAction.setCheckable(true);
             englishAction.setCheckable(true);
-            controller.setActions(&systemAction, &japaneseAction, &englishAction);
+            simplifiedAction.setCheckable(true);
+            traditionalAction.setCheckable(true);
+            controller.setActions(&systemAction, &japaneseAction, &englishAction, &simplifiedAction, &traditionalAction);
         }
     };
 
@@ -41,6 +45,19 @@ private slots:
     void cleanupTestCase();
     void cleanup();
 
+    void chineseLanguagesAreExclusive()
+    {
+        TestSetup setup;
+        setup.simplifiedAction.trigger();
+        QCOMPARE(AppSettings::language(), QStringLiteral("zh_CN"));
+        QVERIFY(setup.simplifiedAction.isChecked());
+        setup.traditionalAction.trigger();
+        QCOMPARE(AppSettings::language(), QStringLiteral("zh_TW"));
+        QVERIFY(setup.traditionalAction.isChecked());
+        QVERIFY(!setup.simplifiedAction.isChecked());
+        setup.englishAction.trigger();
+        QVERIFY(!setup.traditionalAction.isChecked());
+    }
     void setActions_createsActionGroup();
     void setActions_actionsAreExclusive();
     void updateMenuState_system_checksSystemAction();

@@ -2,6 +2,7 @@
 /// @brief ライブ対局セッション管理クラスの実装
 
 #include "livegamesession.h"
+#include "kifupresentation.h"
 #include "kifubranchtree.h"
 
 #include "logcategories.h"
@@ -138,6 +139,9 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
 
     KifDisplayItem item;
     item.prettyMove = displayText;
+    item.beforeSfen = m_sfens.isEmpty() ? anchorSfen() : m_sfens.last();
+    item.terminal = detectTerminalType(displayText) != TerminalType::None;
+    item.usiMove = item.terminal ? QString() : KifuPresentation::usiMove(move);
     item.timeText = elapsed;
     item.ply = ply;
     m_moves.append(item);

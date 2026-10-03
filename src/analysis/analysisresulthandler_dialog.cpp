@@ -71,7 +71,7 @@ void AnalysisResultHandler::showPvBoardDialog(int row)
         const int ply = row;
         if (m_refs.recordModel && ply > 0 && ply < m_refs.recordModel->rowCount()) {
             if (KifuDisplay* moveDisp = m_refs.recordModel->item(ply)) {
-                lastMove = extractUsiMoveFromKanji(moveDisp->currentMove());
+                lastMove = moveDisp->usiMove;
             }
         }
     }

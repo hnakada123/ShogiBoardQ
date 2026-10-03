@@ -226,20 +226,6 @@ void EngineAnalysisPresenter::wireThinkingViewSignals()
 
 // ===================== 数値フォーマット =====================
 
-int EngineAnalysisPresenter::findColumnByHeader(QAbstractItemModel* model, const QString& title)
-{
-    if (!model) return -1;
-    const int cols = model->columnCount();
-    for (int c = 0; c < cols; ++c) {
-        const QVariant hd = model->headerData(c, Qt::Horizontal, Qt::DisplayRole);
-        const QString h = hd.toString().trimmed();
-        if (QString::compare(h, title, Qt::CaseInsensitive) == 0) {
-            return c;
-        }
-    }
-    return -1;
-}
-
 void EngineAnalysisPresenter::applyNumericFormattingTo(QTableView* view, QAbstractItemModel* model)
 {
     if (!view || !model) return;
@@ -247,16 +233,9 @@ void EngineAnalysisPresenter::applyNumericFormattingTo(QTableView* view, QAbstra
     // delegate は view を Qt parent として生成されるため、view 破棄時に自動削除される
     auto* delegate = new NumericRightAlignCommaDelegate(view);
 
-    const QStringList targets = {
-        "Time", "Time (ms)", "Depth", "Nodes", "Score",
-        "時間", "時間(ms)", "深さ", "ノード数", "評価値"
-    };
-    for (const QString& t : std::as_const(targets)) {
-        const int col = findColumnByHeader(model, t);
-        if (col >= 0) {
-            view->setItemDelegateForColumn(col, delegate);
-        }
-    }
+    // ShogiEngineThinkingModel: time, depth, nodes, score are numeric columns.
+    for (int column = 0; column < qMin(4, model->columnCount()); ++column)
+        view->setItemDelegateForColumn(column, delegate);
 } // NOLINT(clang-analyzer-cplusplus.NewDeleteLeaks)
 
 void EngineAnalysisPresenter::reapplyViewTuning(QTableView* v, QAbstractItemModel* m)

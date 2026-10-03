@@ -4,6 +4,7 @@
 #include "gamerecordupdateservice.h"
 
 #include "kifdisplayitem.h"
+#include "kifubranchnode.h"
 #include "matchcoordinator.h"
 #include "gamerecordpresenter.h"
 #include "livegamesessionupdater.h"
@@ -42,7 +43,15 @@ void GameRecordUpdateService::updateGameRecord(const QString& moveText, const QS
     }
 
     if (presenter) {
-        presenter->appendMoveLine(moveText, elapsedTime);
+        QString beforeSfen, usiMove;
+        if (detectTerminalType(moveText) == TerminalType::None && m_deps.gameMoves && !m_deps.gameMoves->isEmpty()
+            && m_deps.sfenRecord && m_deps.sfenRecord->size() >= 2) {
+            const qsizetype previousIndex = recordedSfen.isEmpty() ? m_deps.sfenRecord->size() - 2
+                : m_deps.sfenRecord->indexOf(recordedSfen) - 1;
+            beforeSfen = m_deps.sfenRecord->value(previousIndex);
+            usiMove = ShogiUtils::moveToUsi(m_deps.gameMoves->last());
+        }
+        presenter->appendMoveLine(moveText, elapsedTime, beforeSfen, usiMove);
 
         if (!moveText.isEmpty()) {
             presenter->addLiveKifItem(moveText, elapsedTime);

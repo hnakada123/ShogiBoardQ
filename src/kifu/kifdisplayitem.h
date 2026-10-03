@@ -25,6 +25,11 @@ struct KifDisplayItem
     QString bookmark;   ///< しおり
     int     ply = 0;    ///< 手数（0始まり）
 
+    // Structured display context. prettyMove remains canonical for file writers.
+    QString beforeSfen;
+    QString usiMove;
+    bool terminal = false;
+
     KifDisplayItem() = default;
 
     explicit KifDisplayItem(QString move,

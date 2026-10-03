@@ -36,6 +36,10 @@ void setVersionDialogDocument(int index);
 /// 言語コード（デフォルト: "system"）
 QString language();
 void setLanguage(const QString& lang);
+QString moveNotation();
+void setMoveNotation(const QString& notation);
+bool notationOrigin();
+void setNotationOrigin(bool enabled);
 
 // --- GUI共通フォント ---
 

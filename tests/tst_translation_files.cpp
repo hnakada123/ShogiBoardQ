@@ -6,6 +6,8 @@
 #include <QXmlStreamReader>
 #include <QDir>
 #include <QSet>
+#include <QRegularExpression>
+#include <QMap>
 
 class TestTranslationFiles : public QObject
 {
@@ -85,6 +87,43 @@ private:
     }
 
 private slots:
+    void allLanguagesHaveCompleteMatchingCatalogs()
+    {
+        const QRegularExpression placeholders(QStringLiteral("%(?:L?[0-9]+|n|v|m)"));
+        const auto tokens = [&placeholders](const QString& value) {
+            QStringList result;
+            auto matches = placeholders.globalMatch(value);
+            while (matches.hasNext()) result.append(matches.next().captured());
+            result.sort();
+            return result;
+        };
+        QSet<QString> reference;
+        for (const auto* language : {"en", "ja_JP", "zh_CN", "zh_TW"}) {
+            QFile file(translationsDir() + QStringLiteral("/ShogiBoardQ_%1.ts").arg(language));
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            QXmlStreamReader xml(&file);
+            QString context, source;
+            QSet<QString> messages;
+            while (!xml.atEnd()) {
+                xml.readNext();
+                if (!xml.isStartElement()) continue;
+                if (xml.name() == QLatin1String("name")) context = xml.readElementText();
+                else if (xml.name() == QLatin1String("source")) source = xml.readElementText();
+                else if (xml.name() == QLatin1String("translation")) {
+                    const QString type = xml.attributes().value(QLatin1String("type")).toString();
+                    const QString translation = xml.readElementText();
+                    if (type == QLatin1String("obsolete") || type == QLatin1String("vanished")) continue;
+                    QVERIFY2(!translation.isEmpty() && type != QLatin1String("unfinished"), qPrintable(context + ": " + source));
+                    QCOMPARE(tokens(translation), tokens(source));
+                    messages.insert(context + QLatin1Char('|') + source);
+                }
+            }
+            QVERIFY2(!xml.hasError(), qPrintable(xml.errorString()));
+            if (reference.isEmpty()) reference = messages;
+            else QCOMPARE(messages, reference);
+        }
+    }
+
     // --- 翻訳ソースファイル存在テスト ---
 
     void tsFile_japanese_exists()

@@ -85,7 +85,6 @@ private:
     void applyThinkingViewColumnWidths(QTableView* v, int viewIndex);
     void onThinkingViewColumnWidthChanged(int viewIndex);
 
-    static int findColumnByHeader(QAbstractItemModel* model, const QString& title);
     static void applyNumericFormattingTo(QTableView* view, QAbstractItemModel* model);
 
     QTableView* m_view1 = nullptr;

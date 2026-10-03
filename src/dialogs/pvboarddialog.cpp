@@ -74,7 +74,8 @@ void PvBoardDialog::setKanjiPv(const QString& kanjiPv)
 {
     m_controller->setKanjiPv(kanjiPv);
     if (m_pvLabel) {
-        m_pvLabel->setText(kanjiPv);
+        m_pvLabel->setText(m_controller->displayPv());
+        m_pvLabel->setToolTip(m_controller->displayPv(true));
     }
 }
 

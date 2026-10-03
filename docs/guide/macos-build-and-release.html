@@ -241,7 +241,9 @@ find build/ShogiBoardQ.app -type f | head -20</code></pre>
 │   ├── MacOS/
 │   │   ├── ShogiBoardQ              ← 実行ファイル
 │   │   ├── ShogiBoardQ_ja_JP.qm     ← 日本語翻訳
-│   │   └── ShogiBoardQ_en.qm        ← 英語翻訳
+│   │   ├── ShogiBoardQ_en.qm        ← 英語翻訳
+│   │   ├── ShogiBoardQ_zh_CN.qm        ← 中国語（簡体字）翻訳
+│   │   └── ShogiBoardQ_zh_TW.qm        ← 中国語（繁体字）翻訳
 │   └── Resources/
 │       └── shogiboardq.icns          ← アプリアイコン</code></pre>
 </section>
@@ -593,7 +595,9 @@ install_name_tool -change \
 <pre class="bash"><code>find build/ShogiBoardQ.app -name &quot;*.qm&quot;</code></pre>
 <p><code>Contents/MacOS/</code> 内に <code>.qm</code> ファイルがない場合、手動でコピー：</p>
 <pre class="bash"><code>cp build/ShogiBoardQ_ja_JP.qm build/ShogiBoardQ.app/Contents/MacOS/
-cp build/ShogiBoardQ_en.qm build/ShogiBoardQ.app/Contents/MacOS/</code></pre>
+cp build/ShogiBoardQ_en.qm build/ShogiBoardQ.app/Contents/MacOS/
+cp build/ShogiBoardQ_zh_CN.qm build/ShogiBoardQ.app/Contents/MacOS/
+cp build/ShogiBoardQ_zh_TW.qm build/ShogiBoardQ.app/Contents/MacOS/</code></pre>
 </section>
 <section id="universal-binary-intel--apple-silicon-の作成" class="level3">
 <h3>Universal Binary (Intel + Apple Silicon) の作成</h3>

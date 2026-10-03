@@ -298,7 +298,12 @@ void MainWindowFoundationRegistry::ensureLanguageController()
     m_mw.m_languageController->setActions(
         m_mw.ui->actionLanguageSystem,
         m_mw.ui->actionLanguageJapanese,
-        m_mw.ui->actionLanguageEnglish);
+        m_mw.ui->actionLanguageEnglish,
+        m_mw.ui->actionLanguageChineseSimplified,
+        m_mw.ui->actionLanguageChineseTraditional);
+    m_mw.m_languageController->setNotationActions(
+        m_mw.ui->actionNotationAuto, m_mw.ui->actionNotationJapanese,
+        m_mw.ui->actionNotationWestern, m_mw.ui->actionNotationOrigin, m_mw.ui->actionNotationHelp);
 }
 
 // ---------------------------------------------------------------------------

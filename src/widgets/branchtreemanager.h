@@ -107,9 +107,10 @@ protected:
     bool eventFilter(QObject* obj, QEvent* ev) override;
 
 private:
+    qreal m_columnSpacing = 110.0;
     // --- 描画 ---
     void rebuildBranchTree();
-    QGraphicsPathItem* addNode(int row, int ply, const QString& text);
+    QGraphicsPathItem* addNode(int row, int ply, const KifDisplayItem& entry);
     void addEdge(QGraphicsPathItem* from, QGraphicsPathItem* to);
     int  resolveParentRowForVariation(int row) const;
     int  graphFallbackToPly(int row, int targetPly) const;

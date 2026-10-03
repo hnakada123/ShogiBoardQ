@@ -2,6 +2,7 @@
 /// @brief エンジン思考結果の表示用リストモデルの実装
 
 #include "shogienginethinkingmodel.h"
+#include "kifupresentation.h"
 #include <algorithm>
 #include <memory>
 
@@ -32,7 +33,7 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     }
 
     if (role == Qt::ToolTipRole && index.column() == 5) {
-        return QStringLiteral("<qt>%1</qt>").arg(list[index.row()]->pv().toHtmlEscaped());
+        return QStringLiteral("<qt>%1</qt>").arg(list[index.row()]->displayPv(true).toHtmlEscaped());
     }
 
     // 盤面列（列4）はボタン風の表示
@@ -60,7 +61,7 @@ QVariant ShogiEngineThinkingModel::data(const QModelIndex &index, int role) cons
     case 3:
         return list[index.row()]->score();
     case 5:
-        return list[index.row()]->pv();
+        return list[index.row()]->displayPv();
     default:
         return QVariant();
     }

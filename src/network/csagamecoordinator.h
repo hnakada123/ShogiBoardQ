@@ -123,6 +123,7 @@ public:
 
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
+    const QStringList& usiMoves() const { return m_usiMoves; }
 
 signals:
     void connectionStateChanged(bool connected);

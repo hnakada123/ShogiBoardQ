@@ -2,6 +2,7 @@
 /// @brief 思考情報GUI表示Presenterクラスの実装
 
 #include "thinkinginfopresenter.h"
+#include "kifupresentation.h"
 #include "usi.h"
 #include "shogiengineinfoparser.h"
 #include "shogigamecontroller.h"
@@ -220,7 +221,7 @@ void ThinkingInfoPresenter::logStderrData(const QString& prefix, const QString& 
 void ThinkingInfoPresenter::emitSearchedHand(const ShogiEngineInfoParser* info)
 {
     if (!info->searchedHand().isEmpty()) {
-        emit searchedMoveUpdated(info->searchedHand());
+        emit searchedMoveUpdated(KifuPresentation::label(info->searchedHand(), m_baseSfen, info->searchedUsi()));
     }
 }
 
@@ -360,9 +361,9 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
         
         QString scoreMate = info->scoreMate();
         if ((scoreMate == "+") || (scoreMate == "-")) {
-            scoreMate = "詰";
+            scoreMate = tr("詰み");
         } else {
-            scoreMate += "手詰";
+            scoreMate = tr("%1手詰").arg(scoreMate);
         }
         
         info->setScore(scoreMate);

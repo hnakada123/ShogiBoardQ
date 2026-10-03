@@ -6,6 +6,7 @@
 #include "flowlayout.h"
 #include "gamesettings.h"
 #include "gameinfokeys.h"
+#include "kifupresentation.h"
 
 #include <QApplication>
 #include <QClipboard>
@@ -42,7 +43,11 @@ protected:
     void initStyleOption(QStyleOptionViewItem* option, const QModelIndex& index) const override
     {
         QStyledItemDelegate::initStyleOption(option, index);
-        if (!option->text.isEmpty()) return;
+        if (!option->text.isEmpty()) {
+            option->text = index.column() == 0 ? KifuPresentation::infoKey(option->text)
+                : KifuPresentation::infoValue(index.siblingAtColumn(0).data().toString(), option->text);
+            return;
+        }
         option->text = index.data(kPlaceholderRole).toString();
         option->features |= QStyleOptionViewItem::HasDisplay;
         option->palette.setColor(QPalette::Text, option->palette.color(QPalette::PlaceholderText));
@@ -193,7 +198,9 @@ void GameInfoPaneController::updateTablePresentation()
                 ? placeholderForKey(keyItem->text().trimmed()) : QString();
             if (item->data(kPlaceholderRole).toString() != placeholder)
                 item->setData(kPlaceholderRole, placeholder);
-            const QString displayText = item->text().isEmpty() ? placeholder : item->text();
+            const QString displayText = item->text().isEmpty() ? placeholder : column == 0
+                ? KifuPresentation::infoKey(item->text())
+                : KifuPresentation::infoValue(keyItem ? keyItem->text() : QString(), item->text());
             if (item->data(Qt::AccessibleTextRole).toString() != displayText)
                 item->setData(Qt::AccessibleTextRole, displayText);
             // ツールチップでは棋譜中のHTMLらしい文字列もそのまま表示する。
@@ -201,7 +208,7 @@ void GameInfoPaneController::updateTablePresentation()
                 .arg(displayText.toHtmlEscaped().replace(QLatin1Char('\n'), QStringLiteral("<br/>")));
             if (item->toolTip() != tooltip) item->setToolTip(tooltip);
             if (column == 0)
-                keyWidth = qMax(keyWidth, m_table->fontMetrics().horizontalAdvance(item->text()) + 24);
+                keyWidth = qMax(keyWidth, m_table->fontMetrics().horizontalAdvance(displayText) + 24);
         }
     }
     m_table->setColumnWidth(0, m_keyColumnWidth > 0 ? m_keyColumnWidth : qMin(keyWidth, 320));

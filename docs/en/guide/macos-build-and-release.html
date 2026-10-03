@@ -107,7 +107,7 @@ python3 scripts/qt_licenses.py prepare --version 6.7.3 --archive build/qt-source
 <h2>Create a DMG package</h2>
 <p>After preparing the <a href="#qt-sources">Qt notices and source archive</a>, run:</p>
 <pre><code>./scripts/build-macos.sh</code></pre>
-<p>The script builds <code>build/ShogiBoardQ.app</code>, deploys Qt frameworks and plugins with <code>macdeployqt</code>, copies translations and license documents, signs the app, and creates <code>ShogiBoardQ.dmg</code> in the repository root. It checks the bundled SQLite plugin used for puzzle history.</p>
+<p>The script builds <code>build/ShogiBoardQ.app</code>, deploys Qt frameworks and plugins with <code>macdeployqt</code>, copies all four application translations (ja_JP, en, zh_CN, zh_TW) and license documents, signs the app, and creates <code>ShogiBoardQ.dmg</code> in the repository root. It checks the bundled SQLite plugin used for puzzle history.</p>
 <p>Use <code>--skip-dmg</code> to produce only the deployed app bundle, <code>--universal</code> for both CPU architectures, or <code>--help</code> for all options. Preparing a deployed app still requires the <a href="#qt-sources">Qt notices</a>.</p>
 <p>Mount the DMG, copy the app to Applications, and test it on a machine without the Qt SDK. Check language switching, pieces, sound, and saving tsume puzzle progress. For a universal release, test both architectures.</p>
 </section>

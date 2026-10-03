@@ -93,6 +93,8 @@
 #include "analysisresultspresenter.h"
 #include "kifuanalysislistmodel.h"
 #include "shogienginethinkingmodel.h"
+#include "shogiinforecord.h"
+#include "kifupresentation.h"
 
 class GuiAudit : public QObject
 {
@@ -228,7 +230,7 @@ class GuiAudit : public QObject
         QCOMPARE(editor->toPlainText(), text);
         QPushButton* import = nullptr;
         for (auto* b : dialog->findChildren<QPushButton*>())
-            if (b->text() == QStringLiteral("取り込む")) import = b;
+            if (b->text() == QCoreApplication::translate("KifuPasteDialog", "取り込む")) import = b;
         QVERIFY(import);
         QTest::mouseClick(import, Qt::LeftButton);
         if (waitForLoad) QTRY_VERIFY(!hasKifuPasteDialog());
@@ -2432,6 +2434,74 @@ private slots:
         for (auto* dock : docks) QVERIFY(dock->features().testFlag(QDockWidget::DockWidgetMovable));
         armDialog("yes"); click("actionResetDockLayout");
         snapshot("docks");
+    }
+    void localizedNotation_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<QString>("notation");
+        for (const auto* language : {"ja_JP", "en", "zh_CN", "zh_TW"})
+            for (const auto* notation : {"auto", "japanese", "western"})
+                QTest::newRow(qPrintable(QStringLiteral("%1-%2").arg(language, notation)))
+                    << QString::fromLatin1(language) << QString::fromLatin1(notation);
+    }
+    void localizedNotation()
+    {
+        QFETCH(QString, language);
+        QFETCH(QString, notation);
+        window.reset();
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_") + language + ".qm"));
+        qApp->installTranslator(&translator);
+        KifuPresentation::configure(language, notation, false);
+        const bool western = KifuPresentation::options().notation == KifuPresentation::Notation::Western;
+        window = std::make_unique<MainWindow>();
+        window->resize(1400, 1000);
+        window->show();
+        QFile fixture(QStringLiteral(REPO "/tests/fixtures/test_branch.kif"));
+        QVERIFY(fixture.open(QIODevice::ReadOnly));
+        paste(QString::fromUtf8(fixture.readAll()));
+        auto* model = record()->kifuView()->model();
+        QTRY_VERIFY(model->rowCount() > 3);
+        QVERIFY2(model->index(1, 0).data().toString().contains(western ? QStringLiteral("P-7f") : QStringLiteral("７六歩")),
+                 qPrintable(model->index(1, 0).data().toString()));
+        const QString saved = copy("actionCopyKIF");
+        QVERIFY(saved.contains(QStringLiteral("７六歩")));
+        QVERIFY(!saved.contains(QStringLiteral("P-7f")));
+        QTest::mouseClick(record()->firstButton(), Qt::LeftButton);
+        for (auto* view : window->findChildren<QTableView*>()) {
+            auto* thinking = qobject_cast<ShogiEngineThinkingModel*>(view->model());
+            if (!thinking) continue;
+            auto* info = new ShogiInfoRecord("123", "8", "10000", "35", QStringLiteral("▲７六歩(77)△３四歩(33)▲２二角成(88)"));
+            info->setUsiPv(QStringLiteral("7g7f 3c3d 8h2b+"));
+            info->setBaseSfen(initial + QStringLiteral(" b - 1"));
+            thinking->appendItem(info);
+        }
+        QTest::qWait(100);
+        snapshot(QStringLiteral("i18n-%1-%2").arg(language, notation));
+        if (language == QStringLiteral("en") && notation == QStringLiteral("auto")) {
+            auto* menu = window->findChild<QMenu*>(QStringLiteral("menuLanguage"));
+            QVERIFY(menu);
+            menu->popup(window->mapToGlobal(QPoint(40, 40)));
+            QTest::qWait(50);
+            QVERIFY(menu->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/i18n-language-menu.png")));
+            menu->hide();
+        }
+        for (const auto* name : {"GameInfoDock", "BranchTreeDock"}) {
+            auto* dock = window->findChild<QDockWidget*>(QString::fromLatin1(name));
+            QVERIFY(dock);
+            dock->show();
+            dock->raise();
+            QTest::qWait(80);
+            snapshot(QStringLiteral("i18n-%1-%2-%3").arg(language, notation, QString::fromLatin1(name)));
+        }
+        const QString position = boardSfen();
+        click("actionFlipBoard");
+        QCOMPARE(boardSfen(), position);
+        if (language == QStringLiteral("en") && notation == QStringLiteral("auto"))
+            snapshot(QStringLiteral("i18n-en-flipped"));
+        window.reset();
+        qApp->removeTranslator(&translator);
+        KifuPresentation::configure("ja_JP", "auto", false);
     }
     void languageSettings()
     {

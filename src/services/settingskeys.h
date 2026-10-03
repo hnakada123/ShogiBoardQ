@@ -26,6 +26,8 @@ inline constexpr char kJosekiMoveDialogSize[]            = "SizeRelated/josekiMo
 inline constexpr char kTsumeshogiGeneratorDialogSize[]   = "SizeRelated/tsumeshogiGeneratorDialogSize";
 
 // --- General ---
+inline constexpr char kMoveNotation[] = "General/moveNotation";
+inline constexpr char kNotationOrigin[] = "General/notationOrigin";
 inline constexpr char kLastKifuDirectory[]               = "General/lastKifuDirectory";
 inline constexpr char kLastKifuSaveDirectory[]           = "General/lastKifuSaveDirectory";
 inline constexpr char kLanguage[]                        = "General/language";

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>多言語対応 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの多言語対応機能を紹介します。日本語と英語のUIに対応し、アプリケーションの言語設定で簡単に切り替えられます。">
+    <meta name="description" content="ShogiBoardQの多言語対応機能を紹介します。日本語・英語・中国語（簡体字／繁体字）のUIに対応し、アプリケーションの言語設定で簡単に切り替えられます。">
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
     <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/multilanguage.html">
     <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
@@ -13,15 +13,15 @@
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/multilanguage.html">
     <meta property="og:title" content="多言語対応 - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQの多言語対応機能を紹介。日本語と英語のUIに対応し、言語設定で簡単に切り替え可能。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multilanguage/multilanguage-02-english.png">
+    <meta property="og:description" content="ShogiBoardQの多言語対応機能を紹介。日本語・英語・中国語（簡体字／繁体字）のUIに対応し、言語設定で簡単に切り替え可能。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="多言語対応 - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQの多言語対応機能を紹介。日本語と英語のUIに対応し、言語設定で簡単に切り替え可能。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/multilanguage/multilanguage-02-english.png">
+    <meta name="twitter:description" content="ShogiBoardQの多言語対応機能を紹介。日本語・英語・中国語（簡体字／繁体字）のUIに対応し、言語設定で簡単に切り替え可能。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/multilanguage/multilanguage-02-english.png">
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -49,11 +49,12 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>多言語対応</h1>
-        <p class="hero-subtitle">日本語と英語のUIに対応し、言語設定で切り替え可能</p>
+        <p class="hero-subtitle">日本語・英語・中国語（簡体字／繁体字）のUIに対応し、言語設定で切り替え可能</p>
         <div class="hero-badges">
             <span class="badge">日本語</span>
             <span class="badge">English</span>
-            <span class="badge">簡単切り替え</span>
+            <span class="badge">简体中文</span>
+            <span class="badge">繁體中文</span>
         </div>
     </div>
 </section>
@@ -86,7 +87,7 @@
 <section id="english-ui" class="section">
     <div class="section-inner">
         <h2 class="section-title">英語UI</h2>
-        <p class="section-desc">英語UIに切り替えると、すべてのUI要素が英語で表示されます</p>
+        <p class="section-desc">メニューや既知の対局情報項目は英語、指し手は英語表記で表示されます</p>
 
         <div class="screenshot-gallery">
 
@@ -97,8 +98,8 @@
                 </div>
                 <p class="guide-step-text">英語UIでは、メニューバー（File, Edit, View, Game, Settings, Help）やタブ名（Game Info, Thinking, Consideration, Branch Tree など）がすべて英語で表示されます。</p>
                 <div class="screenshot-item">
-                    <img src="../images/multilanguage/multilanguage-02-english.png" alt="ShogiBoardQ English UI">
-                    <p class="screenshot-caption">英語UI：メニュー・タブ・棋譜欄などすべて英語で表示</p>
+                    <img src="../images/en/multilanguage/multilanguage-02-english.png" alt="ShogiBoardQ English UI">
+                    <p class="screenshot-caption">英語UI：読み筋・棋譜欄に英語表記、盤の段にa〜iを使用</p>
                 </div>
             </div>
 
@@ -119,10 +120,12 @@
                     <span class="guide-step-number">1</span>
                     <span class="guide-step-title">言語設定を開く</span>
                 </div>
-                <p class="guide-step-text">メニューの「設定」→「言語」から言語を選択します。英語UIの場合は「Settings」→「Language」から選択します。</p>
+                <p class="guide-step-text">メニューの「設定」→「言語設定」から言語を選択します。英語UIの場合は「Settings」→「Language」から選択します。</p>
                 <ul class="guide-step-text">
                     <li>日本語（Japanese）</li>
                     <li>English（英語）</li>
+                    <li>简体中文（中国語・簡体字）</li>
+                    <li>繁體中文（中国語・繁体字）</li>
                 </ul>
             </div>
 
@@ -135,6 +138,28 @@
             </div>
 
         </div>
+    </div>
+</section>
+
+<section id="notation" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">棋譜表記と盤の座標</h2>
+        <p class="section-desc">「設定」→「棋譜と盤の座標表記」で、画面の言語とは別に指し手の表記を選べます。変更は再起動後に反映されます。</p>
+        <ul class="guide-step-text">
+            <li>自動：日本語・中国語では日本語表記、英語では英語表記を使います。</li>
+            <li>英語表記：K=玉、R=飛、B=角、G=金、S=銀、N=桂、L=香、P=歩。例：▲P-7f、△Bx8h+、▲P*5e。</li>
+            <li>駒名の前の + は成駒、末尾の + は成り、= は不成、x は駒取り、* は駒打ちを表します。[+] は棋譜の分岐です。</li>
+            <li>英語表記の筋は1〜9、段はa〜iです。日本語表記の段は一〜九です。盤を反転しても各マスの座標は変わりません。</li>
+            <li>英語表記では必要な場合に移動元を表示します。「英語表記で移動元を常に表示」でも指定でき、ツールチップでは常に確認できます。</li>
+            <li>中国語の画面でも、指し手の「歩」「飛」「同」「成」「不成」「打」などは日本語の棋譜表記を保持します。駒画像は外観設定で選べます。</li>
+        </ul>
+    </div>
+</section>
+<section id="record-data" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">棋譜の原文と保存形式</h2>
+        <p class="guide-step-text">対局者名・棋戦名・コメント・未知のタグは翻訳せず、原文を表示します。対局情報の既知の項目名や手合割は表示だけを翻訳し、編集時には元の文字列を扱います。</p>
+        <p class="guide-step-text">言語や表記を変更しても棋譜データは変わりません。保存や棋譜のコピーには従来どおりKIF・KI2・CSA・JKF・USI・USENの各形式を使い、KIF・KI2の指し手は日本語で出力します。英語表記専用の保存形式は追加していません。</p>
     </div>
 </section>
 
