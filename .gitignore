@@ -1,4 +1,5 @@
 /build*
+/design/
 CMakeLists.txt.user
 .cache
 /out

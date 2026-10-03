@@ -150,7 +150,16 @@ QStringList availablePieceStyles()
             QStringLiteral("wood_walnut"), QStringLiteral("tint_linen"), QStringLiteral("tint_sakura"),
             QStringLiteral("tint_celadon"), QStringLiteral("tint_moon"), QStringLiteral("tint_wisteria"),
             QStringLiteral("deep_ebony"), QStringLiteral("deep_navy"), QStringLiteral("deep_green"),
-            QStringLiteral("deep_grape"), QStringLiteral("deep_gold"), QStringLiteral("sengoku")};
+            QStringLiteral("deep_grape"), QStringLiteral("deep_gold"), QStringLiteral("sengoku"),
+            QStringLiteral("chess_facet_wood"),
+            QStringLiteral("chess_facet_paper"),
+            QStringLiteral("chess_facet_slate"),
+            QStringLiteral("chess_atelier_wood"),
+            QStringLiteral("chess_atelier_paper"),
+            QStringLiteral("chess_atelier_slate"),
+            QStringLiteral("chess_ribbon_wood"),
+            QStringLiteral("chess_ribbon_paper"),
+            QStringLiteral("chess_ribbon_slate")};
 }
 
 QString pieceStyle()

@@ -88,7 +88,7 @@ private slots:
     void standardAndVariantsAreAvailable()
     {
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
-        QCOMPARE(AppSettings::availablePieceStyles().size(), 22);
+        QCOMPARE(AppSettings::availablePieceStyles().size(), 31);
         QVERIFY(AppSettings::availablePieceStyles().contains(QStringLiteral("sengoku")));
         QCOMPARE(AppSettings::availablePieceStyles().first(), QStringLiteral("standard"));
         for (const auto& removed : {"clear", "wood", "ivory", "dark"})
@@ -114,7 +114,7 @@ private slots:
                                                       + QStringLiteral("45.svg")).pixmap(size, size).toImage();
                         for (int y = 0; y < size; ++y) {
                             for (int x = 0; x < size; ++x) {
-                                if (style == QStringLiteral("sengoku")) {
+                                if (style == QStringLiteral("sengoku") || style.startsWith(QLatin1String("chess_"))) {
                                     // 境界の合成による1段階の丸め差は許容し、透過領域は完全一致させる。
                                     const int alpha = image.pixelColor(x, y).alpha();
                                     const int standardAlpha = silhouette.pixelColor(x, y).alpha();
@@ -132,6 +132,42 @@ private slots:
                 }
             }
         }
+    }
+
+    void chessSymbolsAndPromotionsRender()
+    {
+        auto& provider = PieceImageProvider::instance();
+        int count = 0;
+        for (const auto& style : AppSettings::availablePieceStyles()) {
+            if (!style.startsWith(QLatin1String("chess_"))) continue;
+            ++count;
+            // SVG内のPNGが読めず、五角形だけ表示される退行も検出する。
+            const QString plain = QStringLiteral("PLNSBR");
+            const QString promoted = QStringLiteral("QMOTCU");
+            for (int i = 0; i < plain.size(); ++i) {
+                for (const bool gote : {false, true}) {
+                    const QChar base = gote ? plain.at(i).toLower() : plain.at(i);
+                    const QChar promotedPiece = gote ? promoted.at(i).toLower() : promoted.at(i);
+                    const auto normal = provider.iconForStyle(base, style).pixmap(90).toImage();
+                    const auto red = provider.iconForStyle(promotedPiece, style).pixmap(90).toImage();
+                    QVERIFY(normal != red);
+                    int inkPixels = 0;
+                    int redPixels = 0;
+                    for (int y = 0; y < 90; ++y) {
+                        for (int x = 0; x < 90; ++x) {
+                            const auto a = normal.pixelColor(x, y);
+                            const auto b = red.pixelColor(x, y);
+                            if (a.alpha() > 200 && a.lightness() < 160) ++inkPixels;
+                            if (b.alpha() > 200 && b.red() > b.green() * 1.5
+                                && b.red() > b.blue() * 1.5) ++redPixels;
+                        }
+                    }
+                    QVERIFY2(inkPixels > 30, qPrintable(style));
+                    QVERIFY2(redPixels > 80, qPrintable(style));
+                }
+            }
+        }
+        QCOMPARE(count, 9);
     }
 
     void flippedKingsKeepIdentity()

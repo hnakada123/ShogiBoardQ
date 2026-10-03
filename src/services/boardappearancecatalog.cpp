@@ -61,7 +61,10 @@ QList<BoardAppearanceSample> BoardAppearanceCatalog::samples(Component component
             board(tr("薄桜"), 0xe2c9c4, 0x7c5653, false),
             board(tr("藤鼠"), 0xc8c2d4, 0x635773, false),
             board(tr("砂岩"), 0xd9c6a9, 0x796348, false),
-            board(tr("青灰"), 0xb6c7cf, 0x506877, false)};
+            board(tr("青灰"), 0xb6c7cf, 0x506877, false),
+            board(tr("チェス・木肌"), 0xe4ca98, 0x9e865c, false),
+            board(tr("チェス・白"), 0xe9ede7, 0xa2afa4, false),
+            board(tr("チェス・墨"), 0x3c5055, 0x809294, false)};
     }
     if (component == Component::Background) {
         return {
@@ -75,7 +78,10 @@ QList<BoardAppearanceSample> BoardAppearanceCatalog::samples(Component component
             background(tr("若竹"), 0x747e66), background(tr("苔庭"), 0x52604a),
             background(tr("藍青"), 0x354957), background(tr("薄桜"), 0x8d7a79),
             background(tr("藤鼠"), 0x767080), background(tr("砂岩"), 0x857c6d),
-            background(tr("青灰"), 0x667983)};
+            background(tr("青灰"), 0x667983),
+            background(tr("チェス・木肌"), 0xe9dcc1),
+            background(tr("チェス・白"), 0xf0f2ed),
+            background(tr("チェス・墨"), 0x44555b)};
     }
     if (component == Component::Stand) {
         return {
@@ -89,7 +95,10 @@ QList<BoardAppearanceSample> BoardAppearanceCatalog::samples(Component component
             stand(tr("若竹"), 0x9da57d), stand(tr("苔庭"), 0x788560),
             stand(tr("藍青"), 0x4d6e84, false), stand(tr("薄桜"), 0xbea09b, false),
             stand(tr("藤鼠"), 0x9c90af, false), stand(tr("砂岩"), 0xb2a083, false),
-            stand(tr("青灰"), 0x8096a2, false)};
+            stand(tr("青灰"), 0x8096a2, false),
+            stand(tr("チェス・木肌"), 0xe4ca98, false),
+            stand(tr("チェス・白"), 0xe9ede7, false),
+            stand(tr("チェス・墨"), 0x3c5055, false)};
     }
     return {
         {tr("若草"), BoardColors{}, false},
