@@ -15,6 +15,7 @@
 #include <QTemporaryDir>
 #include <QTranslator>
 #include <QTimer>
+#include <QTableWidget>
 #include <QLibraryInfo>
 #include <memory>
 
@@ -157,6 +158,7 @@ private slots:
         auto dialog = create(name);
         dialog->show();
         QVERIFY(QTest::qWaitForWindowExposed(dialog.get()));
+        QTest::qWait(30);
         const auto buttons = fontButtons(dialog.get());
         QVERIFY2(buttons[0] && buttons[1], qPrintable(name + " has no font controls"));
         snapshot(dialog.get(), QString::fromLatin1(QTest::currentDataTag()));
@@ -198,6 +200,68 @@ private slots:
             slider->setValue(slider->minimum());
             QCOMPARE(input->value(), slider->minimum());
         }
+    }
+
+    void footerReflowsWithoutHidingActions()
+    {
+        PieceSoundSettingsDialog dialog(nullptr);
+        dialog.resize(1000, 500);
+        dialog.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&dialog));
+        auto* box = dialog.findChild<QDialogButtonBox*>();
+        auto* scale = dialog.findChild<QWidget*>(QStringLiteral("dialogFontScale"));
+        QVERIFY(box && scale);
+        QTRY_VERIFY(qAbs(box->geometry().center().y() - scale->geometry().center().y()) <= 2);
+        for (int i = 0; i < 14; ++i) QTest::mouseClick(fontButtons(&dialog)[1], Qt::LeftButton);
+        dialog.resize(qMax(box->minimumSizeHint().width(), scale->minimumSizeHint().width()) + 32, 750);
+        QTRY_VERIFY(box->geometry().top() >= scale->geometry().bottom());
+        QTest::qWait(50);
+        for (auto* button : box->buttons()) {
+            QVERIFY(button->visibleRegion().boundingRect().contains(button->rect()));
+            QVERIFY(dialog.rect().contains(QRect(button->mapTo(&dialog, QPoint()), button->size())));
+        }
+        dialog.resize(1600, 800);
+        QTRY_VERIFY(qAbs(box->geometry().center().y() - scale->geometry().center().y()) <= 2);
+        dialog.reject();
+    }
+
+    void emptyStatesAndMergeSelection()
+    {
+        EngineRegistrationDialog registration;
+        auto* list = registration.findChild<QListWidget*>();
+        auto* hint = registration.findChild<QLabel*>(QStringLiteral("engineHintLabel"));
+        QVERIFY(list && hint);
+        QVERIFY(hint->text().contains(QStringLiteral("追加")));
+        list->addItem(QStringLiteral("Test engine"));
+        QVERIFY(hint->text().contains(QStringLiteral("ダブルクリック")));
+        list->clear();
+        QVERIFY(hint->text().contains(QStringLiteral("追加")));
+
+        JosekiMergeDialog merge;
+        auto* all = merge.findChild<QPushButton*>(QStringLiteral("registerAllMoves"));
+        auto* table = merge.findChild<QTableWidget*>();
+        QVERIFY(all && table);
+        QVERIFY(!all->isEnabled());
+        const QString sfen = SfenUtils::hirateSfen();
+        merge.setKifuData({{1, sfen, QStringLiteral("7g7f"), QStringLiteral("▲７六歩"), true}});
+        QVERIFY(all->isEnabled());
+        merge.setRegisteredMoves({sfen.section(QLatin1Char(' '), 0, 2) + QStringLiteral(":7g7f")});
+        QVERIFY(!all->isEnabled());
+        QVERIFY(!table->cellWidget(0, 2)->isEnabled());
+        merge.setRegisteredMoves({});
+        QVERIFY(all->isEnabled());
+        merge.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&merge));
+        for (int i = 0; i < 12; ++i) QTest::mouseClick(fontButtons(&merge)[1], Qt::LeftButton);
+        QTest::qWait(30);
+        QVERIFY(table->rowHeight(0) >= table->cellWidget(0, 2)->sizeHint().height());
+        snapshot(&merge, QStringLiteral("joseki-merge-populated-large"));
+        merge.reject();
+
+        SfenCollectionDialog collection;
+        auto* file = collection.findChild<QLabel*>(QStringLiteral("collectionFileLabel"));
+        QVERIFY(file);
+        QVERIFY(file->text().contains(QStringLiteral("ファイルを開く")));
     }
 
     void engineSelectionAndKeyboard()

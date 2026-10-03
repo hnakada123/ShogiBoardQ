@@ -46,33 +46,16 @@ void JosekiMergeDialog::setupUi()
     
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     
-    // === ツールバー行 ===
-    QHBoxLayout *toolbarLayout = new QHBoxLayout();
-    
-    // フォントサイズボタン
     m_fontDecreaseBtn = new QPushButton(tr("A-"), this);
-    m_fontDecreaseBtn->setToolTip(tr("フォントサイズを縮小"));
-    m_fontDecreaseBtn->setFixedWidth(36);
-    m_fontDecreaseBtn->setStyleSheet(ButtonStyles::fontButton());
-    toolbarLayout->addWidget(m_fontDecreaseBtn);
-
     m_fontIncreaseBtn = new QPushButton(tr("A+"), this);
-    m_fontIncreaseBtn->setToolTip(tr("フォントサイズを拡大"));
-    m_fontIncreaseBtn->setFixedWidth(36);
-    m_fontIncreaseBtn->setStyleSheet(ButtonStyles::fontButton());
-    toolbarLayout->addWidget(m_fontIncreaseBtn);
-    
-    toolbarLayout->addStretch();
-    
-    // 状態ラベル
-    m_statusLabel = new QLabel(this);
-    toolbarLayout->addWidget(m_statusLabel);
-    
-    mainLayout->addLayout(toolbarLayout);
-    
+    m_statusLabel = new QLabel(tr("登録する指し手がありません。"), this);
+    m_statusLabel->setWordWrap(true);
+
     // === マージ先ファイル表示 ===
-    m_targetFileLabel = new QLabel(this);
-    m_targetFileLabel->setStyleSheet(QStringLiteral("QLabel { color: #0066cc; font-weight: bold; }"));
+    m_targetFileLabel = new QLabel(tr("マージ先: (未設定)"), this);
+    m_targetFileLabel->setWordWrap(true);
+    m_targetFileLabel->setTextFormat(Qt::PlainText);
+    m_targetFileLabel->setStyleSheet(QStringLiteral("QLabel { font-weight: bold; }"));
     mainLayout->addWidget(m_targetFileLabel);
     
     // === 説明ラベル ===
@@ -82,7 +65,7 @@ void JosekiMergeDialog::setupUi()
     
     // === 自動保存説明ラベル ===
     m_autoSaveLabel = new QLabel(tr("※ 登録時に定跡ファイルへ自動保存されます"), this);
-    m_autoSaveLabel->setStyleSheet(QStringLiteral("QLabel { color: #228b22; font-weight: bold; }"));
+    m_autoSaveLabel->setWordWrap(true);
     mainLayout->addWidget(m_autoSaveLabel);
     
     // === テーブル ===
@@ -107,17 +90,22 @@ void JosekiMergeDialog::setupUi()
     
     m_tableWidget->horizontalHeader()->setStretchLastSection(true);
     
-    mainLayout->addWidget(m_tableWidget);
+    mainLayout->addWidget(m_statusLabel);
+    mainLayout->addWidget(m_tableWidget, 1);
     
     // === ボタン行 ===
     QHBoxLayout *buttonLayout = new QHBoxLayout();
+    buttonLayout->addWidget(m_fontDecreaseBtn);
+    buttonLayout->addWidget(m_fontIncreaseBtn);
+    buttonLayout->addStretch();
     
     m_registerAllButton = new QPushButton(tr("全て登録"), this);
+    m_registerAllButton->setObjectName(QStringLiteral("registerAllMoves"));
+    m_registerAllButton->setEnabled(false);
+    m_registerAllButton->setAutoDefault(false);
     m_registerAllButton->setToolTip(tr("全ての指し手を定跡に登録"));
     m_registerAllButton->setStyleSheet(ButtonStyles::primaryAction());
     buttonLayout->addWidget(m_registerAllButton);
-
-    buttonLayout->addStretch();
 
     m_closeButton = new QPushButton(tr("閉じる"), this);
     m_closeButton->setStyleSheet(ButtonStyles::secondaryNeutral());
@@ -138,7 +126,8 @@ void JosekiMergeDialog::setKifuData(const QList<KifuMergeEntry> &entries)
 {
     m_entries = entries;
     
-    m_statusLabel->setText(tr("%1手の棋譜").arg(entries.size()));
+    m_statusLabel->setText(entries.isEmpty() ? tr("登録する指し手がありません。")
+                                           : tr("%1手の棋譜").arg(entries.size()));
     
     updateTable();
 }
@@ -146,12 +135,14 @@ void JosekiMergeDialog::setKifuData(const QList<KifuMergeEntry> &entries)
 void JosekiMergeDialog::setRegisteredMoves(const QSet<QString> &registeredMoves)
 {
     m_registeredMoves = registeredMoves;
+    updateTable();
 }
 
 void JosekiMergeDialog::setTargetJosekiFile(const QString &filePath)
 {
     if (filePath.isEmpty()) {
         m_targetFileLabel->setText(tr("マージ先: (未設定)"));
+        m_targetFileLabel->setToolTip(QString());
     } else {
         // ファイル名のみを表示
         QFileInfo fi(filePath);
@@ -187,6 +178,7 @@ void JosekiMergeDialog::updateTable()
         // 登録ボタン（青系の配色）
         QPushButton *registerBtn = new QPushButton(alreadyRegistered ? tr("登録済") : tr("登録"), this);
         registerBtn->setProperty("row", i);
+        registerBtn->setAutoDefault(false);
         registerBtn->setStyleSheet(ButtonStyles::tableRegisterButton());
         
         if (alreadyRegistered) {
@@ -214,6 +206,7 @@ void JosekiMergeDialog::updateTable()
         }
     }
     m_registerAllButton->setEnabled(hasUnregistered);
+    m_tableWidget->resizeRowsToContents();
 }
 
 void JosekiMergeDialog::onRegisterButtonClicked()
@@ -283,7 +276,9 @@ void JosekiMergeDialog::applyFontSize()
     DialogUtils::applyFontToAllChildren(this, font);
 
     m_tableWidget->horizontalHeader()->setFont(font);
-    m_tableWidget->verticalHeader()->setDefaultSectionSize(size + 16);
+    m_tableWidget->verticalHeader()->setDefaultSectionSize(fontMetrics().height() + 16);
+    m_tableWidget->resizeRowsToContents();
+    m_tableWidget->resizeColumnsToContents();
     DialogUtils::updateFontButtons(this, size, 8, 20);
 }
 

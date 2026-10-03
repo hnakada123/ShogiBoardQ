@@ -233,7 +233,6 @@ void PvBoardDialog::buildUi()
     QHBoxLayout* closeBtnLayout = new QHBoxLayout();
     closeBtnLayout->addStretch();
     closeBtnLayout->addWidget(closeBtn);
-    closeBtnLayout->addStretch();
     mainLayout->addLayout(closeBtnLayout);
 }
 

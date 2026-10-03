@@ -57,6 +57,7 @@ ConsiderationDialog::ConsiderationDialog(QWidget *parent)
     if (!hasEngine) {
         auto* hint = new QLabel(tr("使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。"), this);
         hint->setWordWrap(true);
+        hint->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
         ui->verticalLayoutEngine->addWidget(hint);
     }
     DialogUtils::restoreDialogSize(this, AppSettings::auxiliaryDialogSize(QStringLiteral("consideration")));

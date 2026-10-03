@@ -138,6 +138,16 @@ void TsumeCollectionDialog::rebuildPage()
         const std::unique_ptr<QWidget> widget(item->widget());
     }
     m_cards.clear();
+    m_grid->setAlignment(count == 0 ? Qt::AlignTop : Qt::AlignTop | Qt::AlignLeft);
+    if (count == 0) {
+        auto* empty = new QLabel(m_problems.isEmpty()
+            ? tr("問題がありません。「局面集を開く…」からSFEN形式のファイルを選んでください。")
+            : tr("この挑戦状況に一致する問題はありません。絞り込みを「すべて」にすると全問を表示できます。"), m_scroll->widget());
+        empty->setObjectName(QStringLiteral("tsumeEmptyState"));
+        empty->setWordWrap(true);
+        empty->setMargin(16);
+        m_grid->addWidget(empty, 0, 0);
+    }
     for (int row = begin; row < end; ++row) {
         const int index = m_filtered[row];
         auto* card = new QPushButton(m_scroll->widget());
