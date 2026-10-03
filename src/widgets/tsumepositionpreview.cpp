@@ -3,12 +3,13 @@
 #include "boardappearance.h"
 #include "boardsurfacepainter.h"
 #include "piecepainter.h"
+#include "kifupresentation.h"
 #include <QPainter>
 
 TsumePositionPreview::TsumePositionPreview(const QString& sfen, QWidget* parent) : QWidget(parent)
 {
     m_position.set_sfen(sfen.toStdString(), true);
-    setMinimumSize(336, 260);
+    setMinimumSize(sizeHint());
     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
     setAttribute(Qt::WA_TransparentForMouseEvents);
     connect(&PieceImageProvider::instance(), &PieceImageProvider::styleChanged, this, &TsumePositionPreview::appearanceChanged);
@@ -26,6 +27,11 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
     boardFont.setPixelSize(13);
     painter.setFont(boardFont);
     painter.translate((width() - 336) / 2, 0);
+    // 翻訳された役割名は駒台幅に収めず、筋番号と別の行で表示する。
+    painter.setPen(palette().color(QPalette::Text));
+    painter.drawText(QRect(2, 0, 164, kHeaderHeight), Qt::AlignLeft | Qt::AlignVCenter, tr("玉方"));
+    painter.drawText(QRect(170, 0, 165, kHeaderHeight), Qt::AlignRight | Qt::AlignVCenter, tr("攻方"));
+    painter.translate(0, kHeaderHeight);
     const auto colors = BoardAppearance::instance().colors();
     const auto visuals = BoardAppearance::instance().visuals();
     const bool flipped = m_position.side_to_move() == shogi::Color::White;
@@ -38,10 +44,10 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
         painter.drawLine(55, 24 + i * 24, 271, 24 + i * 24);
     }
     painter.setPen(palette().color(QPalette::Text));
-    static const QString kanjiRanks = QStringLiteral("一二三四五六七八九");
     for (int i = 0; i < 9; ++i) {
         painter.drawText(QRect(55 + i * 24, 2, 24, 20), Qt::AlignCenter, QString::number(flipped ? i + 1 : 9 - i));
-        painter.drawText(QRect(272, 24 + i * 24, 16, 24), Qt::AlignCenter, QString(kanjiRanks.at(flipped ? 8 - i : i)));
+        painter.drawText(QRect(272, 24 + i * 24, 16, 24), Qt::AlignCenter,
+                         KifuPresentation::rankLabel(flipped ? 9 - i : i + 1));
     }
     static const char codes[] = " PLNSGBRKQMOTCU";
     for (int square = 0; square < 81; ++square) {
@@ -57,8 +63,6 @@ void TsumePositionPreview::paintEvent(QPaintEvent*)
     for (int side = 0; side < 2; ++side) {
         const auto owner = side == 1 ? m_position.side_to_move() : shogi::opposite(m_position.side_to_move());
         const int x = side == 1 ? 290 : 3;
-        painter.setPen(palette().color(QPalette::Text));
-        painter.drawText(QRect(x, 0, 45, 22), Qt::AlignCenter, side == 1 ? tr("攻方") : tr("玉方"));
         painter.setPen(colors.grid);
         int y = 30;
         for (int kind = 7; kind >= 1; --kind) {

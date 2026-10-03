@@ -10473,17 +10473,17 @@ This cannot be undone. Reset history?</translation>
 <context>
     <name>TsumePositionPreview</name>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="61"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="33"/>
         <source>攻方</source>
         <translation>Attacker</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="61"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="32"/>
         <source>玉方</source>
         <translation>Defender</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="73"/>
+        <location filename="../../src/widgets/tsumepositionpreview.cpp" line="77"/>
         <source>なし</source>
         <translation>None</translation>
     </message>

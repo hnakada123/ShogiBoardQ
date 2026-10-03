@@ -21,6 +21,7 @@
 #include "applicationfonts.h"
 #include "gamesettings.h"
 #include "settingscommon.h"
+#include "kifupresentation.h"
 #include "gamestartcoordinator.h"
 #include "gamestartoptionsbuilder.h"
 #define private public
@@ -134,6 +135,7 @@ private slots:
             window.reset();
         }
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        KifuPresentation::configure("ja_JP", "auto", false);
     }
     void screenshotValuesRoundtrip() {
         StartGameDialog d;
@@ -498,7 +500,21 @@ private slots:
         QVERIFY(match->gameOverState().isOver);
         QCOMPARE(ended.count(),1);
     }
+    void timeoutHasCorrectCause_data() {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<int>("plies");
+        for (const auto* language : {"ja_JP", "en", "zh_CN", "zh_TW"})
+            for (int plies : {0, 1, 2})
+                QTest::newRow(qPrintable(QStringLiteral("%1-after-%2").arg(language).arg(plies)))
+                    << QString::fromLatin1(language) << plies;
+    }
     void timeoutHasCorrectCause() {
+        QFETCH(QString, language);
+        QFETCH(int, plies);
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(APP_BUILD "/ShogiBoardQ_") + language + ".qm"));
+        qApp->installTranslator(&translator);
+        KifuPresentation::configure(language, "auto", false);
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
         auto& settings = SettingsCommon::openSettings();
@@ -511,14 +527,29 @@ private slots:
         startWindowGame();
         auto* match = window->m_match;
         QVERIFY(match);
+        auto* board = window->findChild<ShogiView*>();
+        if (plies >= 1) {
+            QTest::mouseClick(board, Qt::LeftButton, Qt::NoModifier, square(7, 7));
+            QTest::mouseClick(board, Qt::LeftButton, Qt::NoModifier, square(7, 6));
+        }
+        if (plies == 2) {
+            QTest::mouseClick(board, Qt::LeftButton, Qt::NoModifier, square(3, 3));
+            QTest::mouseClick(board, Qt::LeftButton, Qt::NoModifier, square(3, 4));
+        }
+        QCOMPARE(window->findChild<RecordPane*>()->kifuView()->model()->rowCount(), plies + 1);
         dialogTimer.start(10);
         QTest::qWait(1300);
         dialogTimer.stop();
         QVERIFY(match->gameOverState().isOver);
         QCOMPARE(match->gameOverState().lastInfo.cause,MatchCoordinator::Cause::Timeout);
         auto* model = window->findChild<RecordPane*>()->kifuView()->model();
-        QCOMPARE(model->rowCount(), 2);
-        QVERIFY(model->index(1, 0).data().toString().contains(QStringLiteral("時間切れ")));
+        QCOMPARE(model->rowCount(), plies + 2);
+        const QString terminal = (plies % 2 == 0 ? QStringLiteral("▲") : QStringLiteral("△"))
+            + QStringLiteral("時間切れ");
+        QVERIFY(model->index(plies + 1, 0).data().toString().endsWith(KifuPresentation::status(terminal)));
+        if (language == "en") QVERIFY(model->index(plies + 1, 0).data().toString().endsWith("Time loss"));
+        QVERIFY(window->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/timeout-%1-%2.png")
+            .arg(language).arg(plies)));
         const QStringList files = QDir(dir.path()).entryList({"*.kifu"}, QDir::Files);
         QCOMPARE(files.size(), 1);
         QFile saved(QDir(dir.path()).filePath(files.first()));
