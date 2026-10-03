@@ -167,6 +167,7 @@ void BoardSetupController::setupBoardInteractionController()
 {
     // 既存があれば入れ替え
     if (m_boardController) {
+        m_boardController->clearAllHighlights();
         disconnectBoardInteractionController(m_boardController);
         m_boardController->deleteLater();
         m_boardController = nullptr;

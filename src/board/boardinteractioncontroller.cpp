@@ -7,6 +7,8 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "shogitypes.h"
+#include "appsettings.h"
+#include "enginemovevalidator.h"
 #include <QColor>
 #include <QClipboard>
 #include <QApplication>
@@ -30,6 +32,8 @@ BoardInteractionController::BoardInteractionController(ShogiView* view,
     // ShogiView 側でハイライト参照配列がクリアされた場合、
     // 本クラスの所有ポインタも同期してリセットする。
     connect(m_view, &ShogiView::highlightsCleared, this, &BoardInteractionController::onHighlightsCleared);
+    connect(m_gc, &ShogiGameController::currentPlayerChanged,
+            this, &BoardInteractionController::cancelPendingClick);
 }
 
 // ======================================================================
@@ -85,6 +89,7 @@ void BoardInteractionController::onLeftClick(const QPoint& pt)
     // モードに関わらず「移動要求」を発火（適用は呼び元が行う）
     const QPoint from = m_clickPoint;
     const QPoint to   = pt;
+    clearLegalMoveHighlights();
 
     // 成/不成ダイアログ表示中もドラッグ状態を維持するため、ここではドラッグを終了しない。
     // ShogiGameController 側で昇格判定後に endDragSignal を emit し、
@@ -139,7 +144,7 @@ void BoardInteractionController::showMoveHighlights(const QPoint& from, const QP
 
 void BoardInteractionController::clearAllHighlights()
 {
-    deleteHighlight(m_selectedField);
+    cancelPendingClick();
     deleteHighlight(m_selectedField2);
     deleteHighlight(m_movedField);
 }
@@ -150,16 +155,19 @@ void BoardInteractionController::onHighlightsCleared()
     m_selectedField.reset();
     m_selectedField2.reset();
     m_movedField.reset();
+    m_legalMoveHighlights.clear();
+    cancelPendingClick();
 }
 
 void BoardInteractionController::cancelPendingClick()
 {
-    m_waitingSecondClick = false;
-    m_clickPoint = QPoint();
+    finalizeDrag();
 }
 
 void BoardInteractionController::clearSelectionHighlight()
 {
+    clearLegalMoveHighlights();
+    m_waitingSecondClick = false;
     m_clickPoint = QPoint();
     deleteHighlight(m_selectedField); // 選択（オレンジ）だけ消す
     // m_selectedField2（赤）と m_movedField（黄）は残す
@@ -207,6 +215,59 @@ void BoardInteractionController::selectPieceAndHighlight(const QPoint& field)
     if (m_selectedField) deleteHighlight(m_selectedField);
     m_selectedField = std::make_unique<ShogiView::FieldHighlight>(file, rank, QColor(255, 128, 0, 70));
     m_view->addHighlight(m_selectedField.get());
+
+    // 対局開始で盤モデルが差し替わるため、選択時に現在の盤へ接続する。
+    connect(board, &ShogiBoard::boardReset,
+            this, &BoardInteractionController::cancelPendingClick, Qt::UniqueConnection);
+    connect(board, &ShogiBoard::dataChanged,
+            this, &BoardInteractionController::clearLegalMoveHighlights, Qt::UniqueConnection);
+    refreshLegalMoveHighlights();
+}
+
+void BoardInteractionController::setLegalMovesVisible(bool visible)
+{
+    m_legalMovesVisible = visible;
+    AppSettings::setLegalMovesVisible(visible);
+    refreshLegalMoveHighlights();
+}
+
+void BoardInteractionController::clearLegalMoveHighlights()
+{
+    for (auto& highlight : m_legalMoveHighlights) deleteHighlight(highlight);
+    m_legalMoveHighlights.clear();
+}
+
+void BoardInteractionController::refreshLegalMoveHighlights()
+{
+    clearLegalMoveHighlights();
+    if (!m_legalMovesVisible || !m_waitingSecondClick || !m_moveInputEnabled
+        || m_mode == Mode::Edit || !m_view || m_view->positionEditMode()
+        || !m_gc || !m_view->board() || m_clickPoint.isNull()
+        || (m_isHumanTurnCb && !m_isHumanTurnCb())) return;
+
+    auto* board = m_view->board();
+    EngineMoveValidator validator;
+    EngineMoveValidator::Context context;
+    const auto turn = m_gc->currentPlayer() == ShogiGameController::Player1
+        ? EngineMoveValidator::BLACK : EngineMoveValidator::WHITE;
+    if (!validator.syncContext(context, turn, board->boardData(), board->pieceStand())) return;
+
+    const QPoint from = m_clickPoint - QPoint(1, 1);
+    const Piece piece = board->pieceCharacter(m_clickPoint.x(), m_clickPoint.y());
+    // 局面変換は1回だけ行い、成り・不成のどちらかが合法なマスを表示する。
+    for (int rank = 1; rank <= 9; ++rank) {
+        for (int file = 1; file <= 9; ++file) {
+            ShogiMove move(from, QPoint(file - 1, rank - 1), piece,
+                           board->pieceCharacter(file, rank), false);
+            const auto status = validator.isLegalMove(context, move);
+            if (!status.nonPromotingMoveExists && !status.promotingMoveExists) continue;
+            auto highlight = std::make_unique<ShogiView::FieldHighlight>(
+                file, rank, QColor(65, 155, 225, 105),
+                ShogiView::FieldHighlight::Purpose::LegalDestination);
+            m_view->addHighlight(highlight.get());
+            m_legalMoveHighlights.push_back(std::move(highlight));
+        }
+    }
 }
 
 void BoardInteractionController::updateHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl,
@@ -234,14 +295,12 @@ void BoardInteractionController::addNewHighlight(std::unique_ptr<ShogiView::Fiel
 
 void BoardInteractionController::resetSelectionAndHighlight()
 {
-    m_clickPoint = QPoint();
-    deleteHighlight(m_selectedField); // 選択（オレンジ）は消す
-    // m_selectedField2（赤）と m_movedField（黄）は残す
+    clearSelectionHighlight();
 }
 
 void BoardInteractionController::finalizeDrag()
 {
-    m_view->endDrag();
+    if (m_view) m_view->endDrag();
     m_waitingSecondClick = false;
     resetSelectionAndHighlight();
 }

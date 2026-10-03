@@ -107,6 +107,16 @@ void setFontSettingsDialogSize(const QSize& size)
 
 // --- UI状態 ---
 
+bool legalMovesVisible()
+{
+    return SettingsCommon::openSettings().value(SettingsKeys::kLegalMovesVisible, true).toBool();
+}
+
+void setLegalMovesVisible(bool visible)
+{
+    SettingsCommon::openSettings().setValue(SettingsKeys::kLegalMovesVisible, visible);
+}
+
 int lastSelectedTabIndex()
 {
     QSettings& s = SettingsCommon::openSettings();

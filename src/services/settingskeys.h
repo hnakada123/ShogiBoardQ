@@ -60,6 +60,7 @@ inline constexpr char kUsiLogWrapLines[]                 = "UsiLog/wrapLines";
 inline constexpr char kUsiLogCommandTarget[]             = "UsiLog/commandTarget";
 inline constexpr char kLastSelectedTabIndex[]            = "UI/lastSelectedTabIndex";
 inline constexpr char kToolbarVisible[]                  = "UI/toolbarVisible";
+inline constexpr char kLegalMovesVisible[]                = "UI/legalMovesVisible";
 inline constexpr char kPieceStyle[]                      = "UI/pieceStyle";
 inline constexpr char kBoardWoodGrain[]                  = "BoardVisuals/woodGrain";
 inline constexpr char kStandWoodGrain[]                  = "BoardVisuals/standWoodGrain";

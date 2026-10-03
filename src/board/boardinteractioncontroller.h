@@ -9,6 +9,7 @@
 #include <QColor>
 #include <functional>
 #include <memory>
+#include <vector>
 #include "shogiview.h"
 #include "boardconstants.h"
 
@@ -35,11 +36,22 @@ public:
                                         ShogiGameController* gc,
                                         QObject* parent = nullptr);
 
-    void setMode(Mode m) { m_mode = m; }
+    void setMode(Mode m)
+    {
+        if (m_mode != m) cancelPendingClick();
+        m_mode = m;
+    }
     Mode mode() const { return m_mode; }
 
     /// 指し手入力の有効/無効を設定する（UiStatePolicyManagerから呼ばれる）
-    void setMoveInputEnabled(bool enabled) { m_moveInputEnabled = enabled; }
+    void setMoveInputEnabled(bool enabled)
+    {
+        m_moveInputEnabled = enabled;
+        if (!enabled) cancelPendingClick();
+    }
+
+    /// 選択した駒の合法な移動先を表示し、設定を保存する。
+    void setLegalMovesVisible(bool visible);
 
     // --- 人間の手番判定コールバック ---
     /// trueを返すと人間の手番、falseなら相手の手番としてクリックを無視する
@@ -84,6 +96,8 @@ private:
     void addNewHighlight(std::unique_ptr<ShogiView::FieldHighlight>& hl, const QPoint& pos, const QColor& color);
     void resetSelectionAndHighlight();
     void finalizeDrag();
+    void refreshLegalMoveHighlights();
+    void clearLegalMoveHighlights();
     void togglePiecePromotionOnClick(const QPoint& field);
 
     static constexpr int kBlackStandFile = BoardConstants::kBlackStandFile; ///< 先手駒台のファイル番号
@@ -95,6 +109,7 @@ private:
 
     Mode m_mode = Mode::HumanVsHuman; ///< 現在の操作モード
     bool m_moveInputEnabled = true;      ///< 指し手入力の有効/無効
+    bool m_legalMovesVisible = true;     ///< 合法な移動先の表示
     IsHumanTurnCallback m_isHumanTurnCb; ///< 人間の手番判定コールバック
 
     // --- クリック状態 ---
@@ -106,6 +121,7 @@ private:
     std::unique_ptr<ShogiView::FieldHighlight> m_selectedField;  ///< 選択中（オレンジ）
     std::unique_ptr<ShogiView::FieldHighlight> m_selectedField2; ///< 直前の移動元（赤）
     std::unique_ptr<ShogiView::FieldHighlight> m_movedField;     ///< 移動先（黄）
+    std::vector<std::unique_ptr<ShogiView::FieldHighlight>> m_legalMoveHighlights;
 };
 
 #endif // BOARDINTERACTIONCONTROLLER_H

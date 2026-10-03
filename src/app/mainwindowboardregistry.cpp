@@ -19,6 +19,7 @@
 #include "boardloadservice.h"
 #include "kifuloadcoordinator.h"            // IWYU pragma: keep (QPointer の完全型)
 #include "boardinteractioncontroller.h"
+#include "appsettings.h"
 #include "commentcoordinator.h"
 #include "evaluationgraphcontroller.h"
 #include "gamerecordupdateservice.h"
@@ -141,6 +142,11 @@ void MainWindowServiceRegistry::setupBoardInteractionController()
         m_mw.m_boardController = m_mw.m_boardSetupController->boardController();
 
         if (m_mw.m_boardController) {
+            auto* action = m_mw.ui->actionLegalMoves;
+            action->setChecked(AppSettings::legalMovesVisible());
+            m_mw.m_boardController->setLegalMovesVisible(action->isChecked());
+            connect(action, &QAction::toggled, m_mw.m_boardController,
+                    &BoardInteractionController::setLegalMovesVisible, Qt::UniqueConnection);
             m_mw.m_boardController->setIsHumanTurnCallback([this]() -> bool {
                 return m_mw.m_queryService ? m_mw.m_queryService->isHumanTurnNow() : false;
             });

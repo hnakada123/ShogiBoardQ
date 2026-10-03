@@ -5012,47 +5012,47 @@ OKを選択すると保存先が指定できます。</source>
         <translation>視圖(&amp;V)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="105"/>
+        <location filename="../../src/app/mainwindow.ui" line="106"/>
         <source>対局(G)</source>
         <translation>對局(&amp;G)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="128"/>
+        <location filename="../../src/app/mainwindow.ui" line="129"/>
         <source>設定(S)</source>
         <translation>設置(&amp;S)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="132"/>
+        <location filename="../../src/app/mainwindow.ui" line="133"/>
         <source>言語設定</source>
         <translation>語言</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="141"/>
+        <location filename="../../src/app/mainwindow.ui" line="142"/>
         <source>棋譜と盤の座標表記</source>
         <translation>棋譜與棋盤坐標表示</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="159"/>
+        <location filename="../../src/app/mainwindow.ui" line="160"/>
         <source>ヘルプ(H)</source>
         <translation>幫助(&amp;H)</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="177"/>
+        <location filename="../../src/app/mainwindow.ui" line="178"/>
         <source>toolBar</source>
         <translation>工具欄</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="211"/>
+        <location filename="../../src/app/mainwindow.ui" line="212"/>
         <source>上書き保存</source>
         <translation>保存</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="214"/>
+        <location filename="../../src/app/mainwindow.ui" line="215"/>
         <source>Ctrl+S</source>
         <translation>Ctrl+S</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="226"/>
+        <location filename="../../src/app/mainwindow.ui" line="227"/>
         <source>Ctrl+A</source>
         <translation>Ctrl+A</translation>
     </message>
@@ -5162,332 +5162,342 @@ OKを選択すると保存先が指定できます。</source>
         <translation>戰國漢字</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="235"/>
+        <location filename="../../src/app/mainwindow.ui" line="236"/>
         <source>将棋盤の画像をファイルに保存…</source>
         <translation>保存棋盤圖片…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="244"/>
+        <location filename="../../src/app/mainwindow.ui" line="245"/>
         <source>棋譜貼り付け…</source>
         <translation>粘貼棋譜…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="262"/>
+        <location filename="../../src/app/mainwindow.ui" line="263"/>
         <source>評価値グラフ画像コピー</source>
         <translation>複製評價值圖表圖片</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="283"/>
+        <location filename="../../src/app/mainwindow.ui" line="284"/>
         <source>対局…</source>
         <translation>對局…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="325"/>
+        <location filename="../../src/app/mainwindow.ui" line="326"/>
         <source>棋譜解析…</source>
         <translation>分析棋譜…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="379"/>
+        <location filename="../../src/app/mainwindow.ui" line="380"/>
         <source>エンジン設定…</source>
         <translation>引擎設置…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="487"/>
+        <location filename="../../src/app/mainwindow.ui" line="488"/>
         <source>開く…</source>
         <translation>打開…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="550"/>
+        <location filename="../../src/app/mainwindow.ui" line="551"/>
         <source>詰み探索…</source>
         <translation>搜索詰棋…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="559"/>
+        <location filename="../../src/app/mainwindow.ui" line="560"/>
         <source>詰み探索中止</source>
         <translation>取消詰棋搜索</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="613"/>
+        <location filename="../../src/app/mainwindow.ui" line="614"/>
         <source>通信対局（CSA）…</source>
         <translation>網絡對局 (CSA)…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="640"/>
+        <location filename="../../src/app/mainwindow.ui" line="641"/>
         <source>GUI全体のフォント…</source>
         <translation>應用程序字體…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="643"/>
+        <location filename="../../src/app/mainwindow.ui" line="644"/>
         <source>GUI全体で使用する書体を選択します</source>
         <translation>選擇整個應用程序使用的字體</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="648"/>
+        <location filename="../../src/app/mainwindow.ui" line="649"/>
         <source>設定を初期値に戻す…</source>
         <translation>恢復默認設置…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="653"/>
+        <location filename="../../src/app/mainwindow.ui" line="654"/>
         <source>简体中文</source>
         <translation>简体中文</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="657"/>
+        <location filename="../../src/app/mainwindow.ui" line="658"/>
         <source>繁體中文</source>
         <translation>繁體中文</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="661"/>
+        <location filename="../../src/app/mainwindow.ui" line="662"/>
         <source>言語に合わせる</source>
         <translation>跟隨界面語言</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="665"/>
+        <location filename="../../src/app/mainwindow.ui" line="666"/>
         <source>日本語表記（▲７六歩、段は一〜九）</source>
         <translation>日文記法（▲７六歩；段為一至九）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="669"/>
+        <location filename="../../src/app/mainwindow.ui" line="670"/>
         <source>英語表記（▲P-7f、段はa〜i）</source>
         <translation>西文記法（▲P-7f；段為 a 至 i）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="673"/>
+        <location filename="../../src/app/mainwindow.ui" line="674"/>
         <source>英語表記で移動元を常に表示</source>
         <translation>西文記法始終顯示起點</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="735"/>
+        <location filename="../../src/app/mainwindow.ui" line="736"/>
         <source>局面集ビューア</source>
         <translation>SFEN 局面集查看器</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="753"/>
+        <location filename="../../src/app/mainwindow.ui" line="754"/>
         <source>ドックレイアウトを保存…</source>
         <translation>保存面板佈局…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="776"/>
+        <location filename="../../src/app/mainwindow.ui" line="777"/>
         <source>駒音</source>
         <translation>走子音效</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="779"/>
+        <location filename="../../src/app/mainwindow.ui" line="780"/>
         <source>駒を指したときに駒音を鳴らす</source>
         <translation>移動棋子時播放聲音</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="788"/>
+        <location filename="../../src/app/mainwindow.ui" line="789"/>
         <source>駒音の設定…</source>
         <translation>走子音效設置…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="835"/>
+        <location filename="../../src/app/mainwindow.ui" line="832"/>
+        <source>指せるマスを表示</source>
+        <translation>顯示合法落點</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="833"/>
+        <source>選択した駒を指せるマスに色を付けます</source>
+        <translation>醒目顯示所選棋子可以移動到的格子</translation>
+    </message>
+    <message>
+        <location filename="../../src/app/mainwindow.ui" line="841"/>
         <source>対局画面の外観…</source>
         <translation>對局外觀…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="568"/>
+        <location filename="../../src/app/mainwindow.ui" line="569"/>
         <source>持将棋点数</source>
         <translation>持將棋點數</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="631"/>
+        <location filename="../../src/app/mainwindow.ui" line="632"/>
         <source>メニュー</source>
         <translation>菜單</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="726"/>
+        <location filename="../../src/app/mainwindow.ui" line="727"/>
         <source>ツールバー</source>
         <translation>工具欄</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="253"/>
+        <location filename="../../src/app/mainwindow.ui" line="254"/>
         <source>将棋盤画像コピー</source>
         <translation>複製棋盤圖片</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="271"/>
+        <location filename="../../src/app/mainwindow.ui" line="272"/>
         <source>盤面の回転</source>
         <translation>翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="292"/>
+        <location filename="../../src/app/mainwindow.ui" line="293"/>
         <source>投了</source>
         <translation>認輸</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="301"/>
+        <location filename="../../src/app/mainwindow.ui" line="302"/>
         <source>中断</source>
         <translation>中斷</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="316"/>
+        <location filename="../../src/app/mainwindow.ui" line="317"/>
         <source>終了</source>
         <translation>退出</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="334"/>
+        <location filename="../../src/app/mainwindow.ui" line="335"/>
         <source>局面編集開始</source>
         <translation>開始編輯局面</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="343"/>
+        <location filename="../../src/app/mainwindow.ui" line="344"/>
         <source>平手初期配置</source>
         <translation>平手佈局</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="352"/>
+        <location filename="../../src/app/mainwindow.ui" line="353"/>
         <source>詰将棋初期配置</source>
         <translation>詰棋佈局</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="361"/>
+        <location filename="../../src/app/mainwindow.ui" line="362"/>
         <source>全ての駒を駒箱へ</source>
         <translation>將所有棋子放入棋子盒</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="370"/>
+        <location filename="../../src/app/mainwindow.ui" line="371"/>
         <source>手番変更</source>
         <translation>切換行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="388"/>
+        <location filename="../../src/app/mainwindow.ui" line="389"/>
         <source>ホームページ</source>
         <translation>官方網站</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="397"/>
+        <location filename="../../src/app/mainwindow.ui" line="398"/>
         <source>使い方</source>
         <translation>使用說明</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="406"/>
+        <location filename="../../src/app/mainwindow.ui" line="407"/>
         <source>バージョン情報</source>
         <translation>版本信息</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="415"/>
+        <location filename="../../src/app/mainwindow.ui" line="416"/>
         <source>Qtについて</source>
         <translation>關於 Qt</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="424"/>
+        <location filename="../../src/app/mainwindow.ui" line="425"/>
         <source>KIF形式</source>
         <translation>KIF 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="433"/>
+        <location filename="../../src/app/mainwindow.ui" line="434"/>
         <source>KI2形式</source>
         <translation>KI2 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="442"/>
+        <location filename="../../src/app/mainwindow.ui" line="443"/>
         <source>CSA形式</source>
         <translation>CSA 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="451"/>
+        <location filename="../../src/app/mainwindow.ui" line="452"/>
         <source>USI形式（現在の指し手まで）</source>
         <translation>USI 格式（截至當前著法）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="460"/>
+        <location filename="../../src/app/mainwindow.ui" line="461"/>
         <source>SFEN形式</source>
         <translation>SFEN 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="469"/>
+        <location filename="../../src/app/mainwindow.ui" line="470"/>
         <source>BOD形式</source>
         <translation>BOD 格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="478"/>
+        <location filename="../../src/app/mainwindow.ui" line="479"/>
         <source>新規</source>
         <translation>新建</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="490"/>
+        <location filename="../../src/app/mainwindow.ui" line="491"/>
         <source>Ctrl+O</source>
         <translation>Ctrl+O</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="499"/>
+        <location filename="../../src/app/mainwindow.ui" line="500"/>
         <source>待った</source>
         <translation>悔棋</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="508"/>
+        <location filename="../../src/app/mainwindow.ui" line="509"/>
         <source>すぐ指させる</source>
         <translation>立即落子</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="517"/>
+        <location filename="../../src/app/mainwindow.ui" line="518"/>
         <source>将棋盤の拡大</source>
         <translation>放大棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="520"/>
+        <location filename="../../src/app/mainwindow.ui" line="521"/>
         <source>Ctrl++</source>
         <translation>Ctrl++</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="529"/>
+        <location filename="../../src/app/mainwindow.ui" line="530"/>
         <source>将棋盤の縮小</source>
         <translation>縮小棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="532"/>
+        <location filename="../../src/app/mainwindow.ui" line="533"/>
         <source>Ctrl+-</source>
         <translation>Ctrl+-</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="541"/>
+        <location filename="../../src/app/mainwindow.ui" line="542"/>
         <source>局面編集終了</source>
         <translation>結束編輯局面</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="577"/>
+        <location filename="../../src/app/mainwindow.ui" line="578"/>
         <source>入玉宣言</source>
         <translation>入玉宣言</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="586"/>
+        <location filename="../../src/app/mainwindow.ui" line="587"/>
         <source>USI形式（全て）</source>
         <translation>USI 格式（全部）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="595"/>
+        <location filename="../../src/app/mainwindow.ui" line="596"/>
         <source>JSON棋譜フォーマット</source>
         <translation>JSON 棋譜格式</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="604"/>
+        <location filename="../../src/app/mainwindow.ui" line="605"/>
         <source>USEN</source>
         <translation>USEN</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="622"/>
+        <location filename="../../src/app/mainwindow.ui" line="623"/>
         <source>棋譜解析中止</source>
         <translation>取消分析</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="676"/>
+        <location filename="../../src/app/mainwindow.ui" line="677"/>
         <source>棋譜表記の読み方…</source>
         <translation>棋譜記法說明…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="687"/>
+        <location filename="../../src/app/mainwindow.ui" line="688"/>
         <source>システム設定に従う</source>
         <translation>跟隨系統設置</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="699"/>
+        <location filename="../../src/app/mainwindow.ui" line="700"/>
         <source>日本語</source>
         <translation>日本語</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="711"/>
+        <location filename="../../src/app/mainwindow.ui" line="712"/>
         <source>English</source>
         <translation>English</translation>
     </message>
@@ -5504,7 +5514,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>沒有棋盤數據。</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="744"/>
+        <location filename="../../src/app/mainwindow.ui" line="745"/>
         <source>ドックレイアウトをリセット</source>
         <translation>重置面板佈局</translation>
     </message>
@@ -5514,17 +5524,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation>已保存的佈局</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="761"/>
+        <location filename="../../src/app/mainwindow.ui" line="762"/>
         <source>ドックを固定</source>
         <translation>鎖定面板</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="799"/>
+        <location filename="../../src/app/mainwindow.ui" line="800"/>
         <source>（保存済みレイアウトなし）</source>
         <translation>（無已保存的佈局）</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="223"/>
+        <location filename="../../src/app/mainwindow.ui" line="224"/>
         <source>名前を付けて保存…</source>
         <translation>另存為…</translation>
     </message>
@@ -5534,22 +5544,22 @@ OKを選択すると保存先が指定できます。</source>
         <translation>標準棋子</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="791"/>
+        <location filename="../../src/app/mainwindow.ui" line="792"/>
         <source>駒音の音量・音の高さ・音質を調整する</source>
         <translation>調整走子音效的音量、音高和音色</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="808"/>
+        <location filename="../../src/app/mainwindow.ui" line="809"/>
         <source>評価値グラフの画像をファイルに保存…</source>
         <translation>保存評價值圖表圖片…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="817"/>
+        <location filename="../../src/app/mainwindow.ui" line="818"/>
         <source>詰将棋対局…</source>
         <translation>練習詰棋…</translation>
     </message>
     <message>
-        <location filename="../../src/app/mainwindow.ui" line="826"/>
+        <location filename="../../src/app/mainwindow.ui" line="827"/>
         <source>詰将棋局面生成…</source>
         <translation>詰棋局面生成器…</translation>
     </message>

@@ -69,15 +69,19 @@ public:
     {
     public:
         enum { Type = 1 };
-        FieldHighlight(int file, int rank, QColor color) : m_field(file, rank), m_color(color) {}
+        enum class Purpose { Move, LegalDestination };
+        FieldHighlight(int file, int rank, QColor color, Purpose purpose = Purpose::Move)
+            : m_field(file, rank), m_color(color), m_purpose(purpose) {}
         ~FieldHighlight() override;
         int file()        const { return m_field.x(); }
         int rank()        const { return m_field.y(); }
         QColor color()    const { return m_color; }
+        Purpose purpose() const { return m_purpose; }
         int type() const override { return Type; }
     private:
         QPoint m_field;  // (file, rank)
         QColor m_color;
+        Purpose m_purpose;
     };
 
     // ───────────────────────────── コンストラクタ ─────────────────────────────
