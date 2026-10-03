@@ -67,11 +67,6 @@ SfenCollectionDialog::SfenCollectionDialog(QWidget* parent)
     QTimer::singleShot(0, this, &SfenCollectionDialog::adjustWindowToContents);
 }
 
-SfenCollectionDialog::~SfenCollectionDialog()
-{
-    // m_board と m_shogiView は Qt のオブジェクトツリーで管理
-}
-
 void SfenCollectionDialog::buildUi()
 {
     QVBoxLayout* mainLayout = new QVBoxLayout(this);
@@ -98,7 +93,10 @@ void SfenCollectionDialog::buildUi()
     m_btnRecentFiles->setMenu(m_recentFilesMenu);
     fileLayout->addWidget(m_btnRecentFiles);
 
-    m_fileLabel = new QLabel(this);
+    m_fileLabel = new QLabel(tr("「ファイルを開く」から局面集を選んでください。"), this);
+    m_fileLabel->setObjectName(QStringLiteral("collectionFileLabel"));
+    m_fileLabel->setWordWrap(true);
+    m_fileLabel->setTextFormat(Qt::PlainText);
     m_fileLabel->setStyleSheet(QStringLiteral(
         "QLabel { color: #555; padding: 4px; }"));
     fileLayout->addWidget(m_fileLabel, 1);
@@ -109,14 +107,14 @@ void SfenCollectionDialog::buildUi()
     QHBoxLayout* zoomLayout = new QHBoxLayout();
     zoomLayout->setSpacing(4);
 
-    m_btnReduce = new QPushButton(QStringLiteral("将棋盤縮小 ➖"), this);
+    m_btnReduce = new QPushButton(tr("縮小"), this);
     m_btnReduce->setToolTip(tr("将棋盤を縮小する"));
     m_btnReduce->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnReduce, &QPushButton::clicked,
             this, &SfenCollectionDialog::onReduceBoard);
     zoomLayout->addWidget(m_btnReduce);
 
-    m_btnEnlarge = new QPushButton(QStringLiteral("将棋盤拡大 ➕"), this);
+    m_btnEnlarge = new QPushButton(tr("拡大"), this);
     m_btnEnlarge->setToolTip(tr("将棋盤を拡大する"));
     m_btnEnlarge->setStyleSheet(ButtonStyles::secondaryNeutral());
     connect(m_btnEnlarge, &QPushButton::clicked,
@@ -157,7 +155,8 @@ void SfenCollectionDialog::buildUi()
     mainLayout->addWidget(boardScroll, 1);
 
     // 局面ラベル
-    m_positionLabel = new QLabel(this);
+    m_positionLabel = new QLabel(tr("局面集が読み込まれていません"), this);
+    m_positionLabel->setWordWrap(true);
     m_positionLabel->setAlignment(Qt::AlignCenter);
     m_positionLabel->setStyleSheet(QStringLiteral(
         "QLabel { font-weight: bold; padding: 4px; }"));
@@ -167,7 +166,7 @@ void SfenCollectionDialog::buildUi()
     QHBoxLayout* navLayout = new QHBoxLayout();
     navLayout->setSpacing(8);
 
-    m_btnFirst = new QPushButton(QStringLiteral("⏮ 最初"), this);
+    m_btnFirst = new QPushButton(tr("最初"), this);
     m_btnFirst->setMinimumWidth(80);
     m_btnFirst->setToolTip(tr("最初の局面に移動"));
     m_btnFirst->setStyleSheet(ButtonStyles::wideNavigationButton());
@@ -175,7 +174,7 @@ void SfenCollectionDialog::buildUi()
             this, &SfenCollectionDialog::onGoFirst);
     navLayout->addWidget(m_btnFirst);
 
-    m_btnBack = new QPushButton(QStringLiteral("◀ 前へ"), this);
+    m_btnBack = new QPushButton(tr("前へ"), this);
     m_btnBack->setMinimumWidth(80);
     m_btnBack->setToolTip(tr("前の局面に移動"));
     m_btnBack->setStyleSheet(ButtonStyles::wideNavigationButton());
@@ -183,7 +182,7 @@ void SfenCollectionDialog::buildUi()
             this, &SfenCollectionDialog::onGoBack);
     navLayout->addWidget(m_btnBack);
 
-    m_btnForward = new QPushButton(QStringLiteral("次へ ▶"), this);
+    m_btnForward = new QPushButton(tr("次へ"), this);
     m_btnForward->setMinimumWidth(80);
     m_btnForward->setToolTip(tr("次の局面に移動"));
     m_btnForward->setStyleSheet(ButtonStyles::wideNavigationButton());
@@ -191,7 +190,7 @@ void SfenCollectionDialog::buildUi()
             this, &SfenCollectionDialog::onGoForward);
     navLayout->addWidget(m_btnForward);
 
-    m_btnLast = new QPushButton(QStringLiteral("最後 ⏭"), this);
+    m_btnLast = new QPushButton(tr("最後"), this);
     m_btnLast->setMinimumWidth(80);
     m_btnLast->setToolTip(tr("最後の局面に移動"));
     m_btnLast->setStyleSheet(ButtonStyles::wideNavigationButton());
@@ -221,7 +220,6 @@ void SfenCollectionDialog::buildUi()
             this, &QDialog::close);
     actionLayout->addWidget(closeBtn);
 
-    actionLayout->addStretch();
     mainLayout->addLayout(actionLayout);
 }
 
@@ -261,6 +259,7 @@ bool SfenCollectionDialog::loadFromFile(const QString& filePath)
     // ファイル名ラベルを更新
     QFileInfo fi(filePath);
     m_fileLabel->setText(tr("ファイル: %1").arg(fi.fileName()));
+    m_fileLabel->setToolTip(fi.absoluteFilePath());
 
     // 最後に開いたディレクトリを保存
     GameSettings::setSfenCollectionLastDirectory(fi.absolutePath());

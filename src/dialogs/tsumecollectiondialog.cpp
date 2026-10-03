@@ -118,9 +118,13 @@ void TsumeCollectionDialog::buildUi()
     m_pageSize->setObjectName(QStringLiteral("tsumePageSize"));
     for (int count : {10, 20, 50, 100}) m_pageSize->addItem(QString::number(count), count);
     filters->addWidget(m_pageSize);
+    auto* filterLabel = new QLabel(tr("挑戦状況:"), this);
+    filters->addWidget(filterLabel);
     m_filter = new QComboBox(this);
     m_filter->setObjectName(QStringLiteral("tsumeProgressFilter"));
     m_filter->addItems({tr("すべて"), tr("未挑戦"), tr("挑戦済み・未正答"), tr("正答済み")});
+    filterLabel->setBuddy(m_filter);
+    m_filter->setAccessibleName(filterLabel->text());
     filters->addWidget(m_filter);
     m_summary = new QLabel(this);
     m_summary->setObjectName(QStringLiteral("tsumePageSummary"));

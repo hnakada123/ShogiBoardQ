@@ -21,7 +21,7 @@ void applyFontToAllChildren(QWidget* widget, const QFont& font);
 /// 文字サイズボタンの寸法・説明・上下限を統一する（子の別ウィンドウは対象外）。
 void updateFontButtons(QWidget* widget, int size, int minimum = 8, int maximum = 24);
 
-/// 余白と決定ボタンの表現を統一する。
+/// 余白、ボタンの最小高さ、主操作・補助操作の表現を統一する。
 void standardizeDialog(QWidget* dialog);
 
 /// 折り返しラベルの必要な高さを確保し、内容の重なりを防ぐ。

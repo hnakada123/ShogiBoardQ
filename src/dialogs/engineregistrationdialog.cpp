@@ -13,6 +13,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QAbstractItemModel>
 #include <utility>
 
 // 将棋エンジン登録ダイアログを表示する。
@@ -34,12 +35,13 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
     // GUIのリストウィジェットにエンジン名を追加する。
     for (const Engine& engine : std::as_const(m_handler->engineList())) {
         ui->engineListWidget->addItem(engine.name);
+        ui->engineListWidget->item(ui->engineListWidget->count() - 1)->setToolTip(engine.path);
     }
 
     // ボタンスタイルを適用
-    ui->addEngineButton->setStyleSheet(ButtonStyles::editOperation());
-    ui->removeEngineButton->setStyleSheet(ButtonStyles::dangerStop());
-    ui->configureEngineButton->setStyleSheet(ButtonStyles::primaryAction());
+    ui->addEngineButton->setStyleSheet(ButtonStyles::primaryAction());
+    ui->removeEngineButton->setStyleSheet(ButtonStyles::dialogSecondaryAction());
+    ui->configureEngineButton->setStyleSheet(ButtonStyles::dialogSecondaryAction());
     ui->closeButton->setStyleSheet(ButtonStyles::secondaryNeutral());
     ui->fontDecreaseButton->setStyleSheet(ButtonStyles::fontButton());
     ui->fontIncreaseButton->setStyleSheet(ButtonStyles::fontButton());
@@ -49,11 +51,19 @@ EngineRegistrationDialog::EngineRegistrationDialog(QWidget *parent)
 
     // 保存されているウィンドウサイズを復元
     DialogUtils::restoreDialogSize(this, EngineDialogSettings::engineRegistrationDialogSize());
+    if (ui->engineListWidget->count() > 0) ui->engineListWidget->setCurrentRow(0);
+    ui->engineListWidget->setAccessibleName(tr("登録済みエンジン"));
+    ui->addEngineButton->setAutoDefault(false);
+    ui->removeEngineButton->setAutoDefault(false);
+    ui->configureEngineButton->setAutoDefault(false);
     updateSelectionState();
 }
 
 EngineRegistrationDialog::~EngineRegistrationDialog()
 {
+    // 子ウィジェットの破棄中に modelReset が発生しても、破棄済みの案内欄を更新しない。
+    disconnect(ui->engineListWidget->model(), nullptr, this, nullptr);
+    disconnect(ui->engineListWidget, nullptr, this, nullptr);
     // 進行中の登録処理をキャンセルする
     m_handler->cancelRegistration();
 
@@ -66,6 +76,14 @@ void EngineRegistrationDialog::initializeSignals() const
 {
     connect(ui->engineListWidget, &QListWidget::itemSelectionChanged,
             this, &EngineRegistrationDialog::updateSelectionState);
+    connect(ui->engineListWidget->model(), &QAbstractItemModel::rowsInserted,
+            this, &EngineRegistrationDialog::updateSelectionState);
+    connect(ui->engineListWidget->model(), &QAbstractItemModel::rowsRemoved,
+            this, &EngineRegistrationDialog::updateSelectionState);
+    connect(ui->engineListWidget->model(), &QAbstractItemModel::modelReset,
+            this, &EngineRegistrationDialog::updateSelectionState);
+    connect(ui->engineListWidget, &QListWidget::itemDoubleClicked,
+            this, &EngineRegistrationDialog::configureEngine);
     // 追加ボタンが押されたときの処理を接続
     connect(ui->addEngineButton, &QPushButton::clicked, this, &EngineRegistrationDialog::addEngineFromFileSelection);
 
@@ -157,6 +175,7 @@ void EngineRegistrationDialog::removeEngine()
 // 選択したエンジンの設定を変更する。
 void EngineRegistrationDialog::configureEngine()
 {
+    if (m_handler->isRegistrationInProgress()) return;
     QList<QListWidgetItem *> items = ui->engineListWidget->selectedItems();
 
     // 選択されたアイテムが正確に一つであるかをチェックする。
@@ -194,6 +213,9 @@ void EngineRegistrationDialog::onEngineRegistered(const QString& engineName)
 {
     // エンジン名をリストに追加する。
     ui->engineListWidget->addItem(engineName);
+    const int row = ui->engineListWidget->count() - 1;
+    ui->engineListWidget->item(row)->setToolTip(m_handler->engineAt(row).path);
+    ui->engineListWidget->setCurrentRow(row);
 }
 
 // ハンドラエラー時のスロット
@@ -222,6 +244,11 @@ void EngineRegistrationDialog::updateSelectionState()
         && ui->engineListWidget->selectedItems().size() == 1;
     ui->removeEngineButton->setEnabled(available);
     ui->configureEngineButton->setEnabled(available);
+    ui->engineHintLabel->setText(m_handler->isRegistrationInProgress()
+        ? tr("エンジンの情報を取得しています…")
+        : ui->engineListWidget->count() == 0
+            ? tr("エンジンが登録されていません。「追加」からエンジンの実行ファイルを選んでください。")
+            : tr("エンジンを選んで「設定」を押すと、思考設定を変更できます。ダブルクリックでも開けます。"));
 }
 
 // フォントサイズを増加する

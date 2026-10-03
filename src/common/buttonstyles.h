@@ -26,6 +26,7 @@ inline QString buildDualStyle(const char* bg, const char* fg, const char* border
                           "%5"
                           "QPushButton:hover, QToolButton:hover { background-color: %6; }"
                           "QPushButton:pressed, QToolButton:pressed { background-color: %7; }"
+                          "QPushButton:focus, QToolButton:focus { border-style: dashed; }"
                           "QPushButton:disabled, QToolButton:disabled {"
                           "  background-color: %8; color: %9; border: 1px solid %10;"
                           "}")
@@ -106,7 +107,17 @@ inline QString primaryAction()
         "#1976d2", "white", "#1565c0",
         "#1e88e5", "#1565c0",
         "#b0bec5", "#eceff1", "#90a4ae",
-        "padding: 2px 8px;");
+        "padding: 5px 12px;");
+}
+
+/// ダイアログ内の補助操作。主操作だけを強調し、他は落ち着いた配色にする。
+inline QString dialogSecondaryAction()
+{
+    return detail::buildDualStyle(
+        "#f7f8fa", "#344351", "#cbd3dc",
+        "#edf2f7", "#dce7f1",
+        "#f3f4f5", "#919ba5", "#e0e5eb",
+        "padding: 5px 12px;");
 }
 
 /// キャンセル/閉じる/回転/拡縮ボタン（グレー）

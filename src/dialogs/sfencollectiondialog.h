@@ -32,7 +32,7 @@ class SfenCollectionDialog : public QDialog
 
 public:
     explicit SfenCollectionDialog(QWidget* parent = nullptr);
-    ~SfenCollectionDialog() override;
+    ~SfenCollectionDialog() override = default;
 
 signals:
     /// 「選択」ボタン押下時に現在表示中の局面SFENを発行

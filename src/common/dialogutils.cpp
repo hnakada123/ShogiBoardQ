@@ -63,6 +63,17 @@ void standardizeDialog(QWidget* dialog)
         dialog->layout()->setContentsMargins(16, 16, 16, 16);
         dialog->layout()->setSpacing(10);
     }
+    const auto buttons = dialog->findChildren<QPushButton*>();
+    for (auto* button : buttons) {
+        if (button->window() != dialog->window()) continue;
+        if (button->maximumHeight() >= 32)
+            button->setMinimumHeight(qMax(32, button->minimumHeight()));
+        const QString style = button->styleSheet();
+        if (style.isEmpty() || style == ButtonStyles::secondaryNeutral()
+            || style == ButtonStyles::editOperation() || style == ButtonStyles::undoRedo()
+            || style == ButtonStyles::fileOperation() || style == ButtonStyles::wideNavigationButton())
+            button->setStyleSheet(ButtonStyles::dialogSecondaryAction());
+    }
     const auto boxes = dialog->findChildren<QDialogButtonBox*>();
     for (auto* box : boxes) {
         if (box->window() != dialog->window()) continue;
