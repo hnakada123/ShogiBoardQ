@@ -4712,37 +4712,41 @@ OKを選択すると保存先が指定できます。</source>
         <translation>打開棋譜文件</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="55"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
-        <translation>棋譜文件 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 文件 (*.kif *.kifu *.ki2 *.ki2u);;CSA 文件 (*.csa);;JKF 文件 (*.jkf);;USI 文件 (*.usi *.sfen);;USEN 文件 (*.usen)</translation>
+        <translation type="vanished">棋譜文件 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 文件 (*.kif *.kifu *.ki2 *.ki2u);;CSA 文件 (*.csa);;JKF 文件 (*.jkf);;USI 文件 (*.usi *.sfen);;USEN 文件 (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="144"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="55"/>
+        <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</source>
+        <translation>棋譜文件 (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF 文件 (*.kif *.kifu);;KI2 文件 (*.ki2 *.ki2u);;CSA 文件 (*.csa);;JKF 文件 (*.jkf);;USI/SFEN 文件 (*.usi *.sfen);;USEN 文件 (*.usen)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
         <source>棋譜を読み込み中...</source>
         <translation>正在載入棋譜...</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="144"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
         <source>キャンセル</source>
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="166"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="167"/>
         <source>棋譜を取り込みました</source>
         <translation>棋譜已導入</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="190"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="191"/>
         <source>局面を反映しました</source>
         <translation>局面已應用</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="192"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="193"/>
         <source>局面の反映に失敗しました</source>
         <translation>應用局面失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="197"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="198"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>應用局面失敗（內部錯誤）</translation>
     </message>
