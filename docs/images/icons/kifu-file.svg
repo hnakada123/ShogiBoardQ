@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>KIF形式</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 3H4v18h16V9Zm0 0v6h6"/><g stroke-width="1.15"><path transform="translate(6.5 12)" d="M0 0v5m3-5L0 2.5 3 5"/><path transform="translate(10.5 12)" d="M0 0h3M1.5 0v5M0 5h3"/><path transform="translate(14.5 12)" d="M3 0H0v5m0-2.5h2.5"/></g>
+  </g>
+</svg>

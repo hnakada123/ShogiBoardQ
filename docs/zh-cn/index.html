@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShogiBoardQ - 将棋对局、分析与诘棋软件</title>
+    <meta name="description" content="ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，附带 6,000 道诘棋题目，并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。">
+    <meta name="google-site-verification" content="6uVKShyfeRaK8nx6ROgoIuBXb2qdMtwgX8NJfiBrwVM" />
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/">
+    <meta property="og:title" content="ShogiBoardQ - 将棋对局、分析与诘棋软件">
+    <meta property="og:description" content="ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，附带 6,000 道诘棋题目，并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta property="og:locale:alternate" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ShogiBoardQ - 将棋对局、分析与诘棋软件">
+    <meta name="twitter:description" content="与 USI 引擎对局、分析棋谱、挑战 6,000 道诘棋。适用于 Windows、macOS、Linux 的免费将棋软件。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/og-image.png">
+    <link rel="icon" type="image/png" href="../images/shogiboardq-icon.png">
+    <link rel="stylesheet" href="../css/style.css?v=20261004">
+    <link rel="stylesheet" href="../css/home.css?v=20261004">
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ShogiBoardQ",
+    "url": "https://hnakada123.github.io/ShogiBoardQ/zh-cn/",
+    "description": "ShogiBoardQ 是一款免费的将棋（日本象棋）软件，支持与 USI 引擎对局、局面研究和棋谱分析，附带 6,000 道诘棋题目，并提供 40 种棋子和可自由搭配的棋盘外观。可在 Windows、macOS 和 Linux 上运行。",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "inLanguage": "zh-Hans",
+    "image": "https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/screenshot-main.png",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "downloadUrl": "https://github.com/hnakada123/ShogiBoardQ/releases/latest",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "JPY"
+    }
+}
+    </script>
+</head>
+<body class="home">
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="#top" class="nav-logo"><img src="../images/shogiboardq-icon.png" alt="" width="28" height="28"><span>ShogiBoardQ</span></a>
+        <ul class="nav-links">
+            <li><a href="#highlights">特色</a></li>
+            <li><a href="#features">功能</a></li>
+            <li><a href="#download">下载</a></li>
+            <li><a href="../en/guide/index.html">使用指南</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+            <li>
+                <a href="https://x.com/intent/post?url=https%3A%2F%2Fhnakada123.github.io%2FShogiBoardQ%2Fzh-cn%2F&amp;text=ShogiBoardQ%20-%20%E5%B0%86%E6%A3%8B%E5%AF%B9%E5%B1%80%E3%80%81%E5%88%86%E6%9E%90%E4%B8%8E%E8%AF%98%E6%A3%8B%E8%BD%AF%E4%BB%B6" target="_blank" rel="noopener noreferrer" class="share-btn-x">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    分享
+                </a>
+            </li>
+        </ul>
+        <details class="lang-menu">
+            <summary aria-label="语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../index.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../en/index.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="index.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../zh-tw/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
+</nav>
+
+<main id="top">
+
+<!-- Hero -->
+<header class="home-hero">
+    <div class="home-hero__inner">
+        <img src="../images/shogiboardq-icon.png" alt="ShogiBoardQ 图标" class="home-hero__icon" width="96" height="96">
+        <p class="home-hero__eyebrow">免费开源的将棋软件</p>
+        <h1>ShogiBoardQ</h1>
+        <p class="home-hero__lead">从对局、研究、棋谱分析到诘棋，<br>研究将棋所需的功能都集中在一个窗口中。</p>
+        <div class="home-hero__actions">
+            <a href="#download" class="btn btn--wood"><img src="../images/icons/download.svg" alt="">下载</a>
+            <a href="../en/guide/index.html" class="btn btn--ghost">使用指南（英文）</a>
+        </div>
+        <p class="home-hero__meta"><span>Windows / macOS / Linux</span><span><span lang="ja">日本語</span> / <span lang="en">English</span> / <span lang="zh-Hans">简体中文</span> / <span lang="zh-Hant">繁體中文</span></span></p>
+    </div>
+    <figure class="home-hero__shot">
+        <div class="window-frame">
+            <div class="window-frame__bar" aria-hidden="true">ShogiBoardQ</div>
+            <a href="../images/zh-cn/screenshot-main.png"><img src="../images/zh-cn/screenshot-main.png" alt="ShogiBoardQ 主窗口的研究模式。Hayanagi 给出的 3 个候选着法以带编号的箭头显示在棋盘上，下方“研究”标签页列出了各自的主要变化。" width="1400" height="1000"></a>
+        </div>
+        <figcaption>研究模式：通过棋盘上的箭头和主要变化比较引擎的候选着法（在 Linux 上以简体中文界面截图）</figcaption>
+    </figure>
+</header>
+
+<!-- Stats -->
+<div class="stats">
+    <ul class="stats__grid">
+        <li class="stats__item"><span class="stats__value">40</span><span class="stats__label">种棋子样式</span></li>
+        <li class="stats__item"><span class="stats__value">6,000</span><span class="stats__label">道附带的诘棋（3～13 手诘）</span></li>
+        <li class="stats__item"><span class="stats__value">7</span><span class="stats__label">种可读取的棋谱格式</span></li>
+        <li class="stats__item"><span class="stats__value">4</span><span class="stats__label">种界面语言</span></li>
+    </ul>
+</div>
+
+<!-- Highlights -->
+<section id="highlights" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">主要特色</h2>
+        <p class="section-desc">从研究、外观和诘棋三个场景，介绍 ShogiBoardQ 的使用体验。</p>
+
+        <article class="highlight">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="../images/icons/eval-graph.svg" alt="">研究与分析</p>
+                <h3>候选着法化作箭头，<br>形势变化一目了然</h3>
+                <p>注册 USI 引擎后，即可在研究模式中分析任意局面，或一次性分析整盘棋谱。借助评价值图表和分析结果列表，可以迅速找到形势发生转折的那一手。</p>
+                <ul class="check-list">
+                    <li>候选着法以带编号的箭头显示，打入的着法从驹台引出</li>
+                    <li>棋谱分析逐手列出评价值、是否与最佳着法一致以及评价值变化</li>
+                    <li>对局中也能用箭头查看引擎的最佳着法；引擎对引擎时可同时显示双方的思考</li>
+                    <li>通过变化树、书签和注释整理研究内容</li>
+                </ul>
+                <p class="link-row">
+                    <a href="../en/guide/consideration.html">研究模式 &rarr;</a>
+                    <a href="../en/guide/kifu-analysis.html">棋谱分析 &rarr;</a>
+                    <a href="../en/guide/game-play.html">对局 &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <a href="../images/zh-cn/home/analysis.png"><img src="../images/zh-cn/home/analysis.png" alt="棋谱分析结果。评价值图表显示从第 49 手起形势倒向后手，旁边是各手的评价值与候选着法列表。" width="1400" height="1000" loading="lazy"></a>
+                <figcaption>棋谱分析：评价值图表与分析结果并排显示</figcaption>
+            </figure>
+        </article>
+
+        <article class="highlight highlight--reverse">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="../images/icons/appearance.svg" alt="">外观</p>
+                <h3>40 种棋子，<br>自由搭配棋盘外观</h3>
+                <p>通过“视图”→“对局外观…”，可以从样本中分别选择棋子、棋盘、背景、驹台和对局者信息，并在预览中确认整体效果。</p>
+                <ul class="piece-row" aria-label="棋子样式示例">
+                    <li><img src="../images/pieces/showcase/standard.png" alt="标准棋子" title="标准棋子" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/torafu_light.png" alt="浅虎纹" title="浅虎纹" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/wood_walnut.png" alt="胡桃木" title="胡桃木" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/tint_sakura.png" alt="淡樱" title="淡樱" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/deep_ebony.png" alt="乌木" title="乌木" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/deep_navy.png" alt="铁蓝" title="铁蓝" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/sengoku.png" alt="战国汉字" title="战国汉字" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/chess_facet_wood.png" alt="Facet（木色）" title="Facet（木色）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/chess_atelier_paper.png" alt="Atelier（白色）" title="Atelier（白色）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/chess_ribbon_slate.png" alt="Ribbon（墨色）" title="Ribbon（墨色）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/alphabet_sei_wood.png" alt="端正（木肌）" title="端正（木肌）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/alphabet_rin_slate.png" alt="凛（墨）" title="凛（墨）" width="40" height="40" loading="lazy"></li>
+                </ul>
+                <ul class="check-list">
+                    <li>棋子共 40 种：标准、虎纹、木纹、浅色、深色、战国汉字、国际象棋风格和字母</li>
+                    <li>棋盘、背景、驹台各 26 种，对局者信息 20 种，另有 24 种推荐组合</li>
+                    <li>所选外观同样应用于变化棋盘、诘棋和导出的图片</li>
+                </ul>
+                <p class="link-row">
+                    <a href="../en/guide/piece-style.html">棋子样式 &rarr;</a>
+                    <a href="../en/guide/board-colors.html">对局外观 &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <a href="../images/zh-cn/home/appearance.png"><img src="../images/zh-cn/home/appearance.png" alt="对局外观窗口。在棋子样本中选择了乌木，并与月白棋盘组合进行预览。" width="1180" height="800" loading="lazy"></a>
+                <figcaption>对局外观：“乌木／月白”组合</figcaption>
+            </figure>
+        </article>
+
+        <article class="highlight">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="../images/icons/tsume-play.svg" alt="">诘棋</p>
+                <h3>在棋盘上挑战<br>6,000 道诘棋</h3>
+                <p>发布包收录 3、5、7、9、11、13 手诘各 1,000 道。从题目列表中选题，由内置引擎 Hayanagi 担任守方，在棋盘上将死对方的玉。</p>
+                <ul class="check-list">
+                    <li>以棋盘卡片浏览题目，并按挑战进度筛选</li>
+                    <li>在剩余手数内将死即为正解，成立的其他解法同样判为正确</li>
+                    <li>通过挑战记录和正解手顺回放进行复盘</li>
+                    <li>还可以用诘棋搜索和诘棋局面生成器（GUI 与 CLI）自己出题</li>
+                </ul>
+                <p class="link-row">
+                    <a href="../en/guide/tsume-play.html">诘棋练习 &rarr;</a>
+                    <a href="../en/guide/tsumeshogi-generator.html">诘棋局面生成器 &rarr;</a>
+                    <a href="../en/guide/tsumi-search.html">诘棋搜索 &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <div class="shot-stack">
+                    <a href="../images/zh-cn/home/tsume-list.png" class="shot-stack__back"><img src="../images/zh-cn/home/tsume-list.png" alt="诘棋题集列表，以棋盘卡片显示 5 手诘题目" width="1100" height="800" loading="lazy"></a>
+                    <a href="../images/zh-cn/home/tsume-play.png" class="shot-stack__front"><img src="../images/zh-cn/home/tsume-play.png" alt="诘棋练习窗口，由你作为攻方将死 Hayanagi 防守的玉" width="760" height="864" loading="lazy"></a>
+                </div>
+                <figcaption>题目列表（后）与诘棋练习窗口（前）</figcaption>
+            </figure>
+        </article>
+    </div>
+</section>
+
+<!-- Features -->
+<section id="features" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">功能一览</h2>
+        <p class="section-desc">使用指南按用途介绍了全部功能（目前提供英文版和日文版）。</p>
+        <p class="feature-intro"><img src="../images/icons/engine.svg" alt=""><span>对局、研究和分析需要注册支持 USI 协议的将棋引擎。发布包中附带了将棋引擎 Hayanagi。在此向各位将棋引擎开发者致以谢意。</span></p>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">对局</h3>
+            <ul class="mini-grid">
+                <li><a href="../en/guide/game-play.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/game.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>对局</h4><p>支持人与引擎、引擎与引擎、人与人对局。选中棋子时会提示可走的位置，中断的对局可保留局面和剩余时间继续进行。</p></div>
+                </a></li>
+                <li><a href="../en/guide/hayanagi.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/engine.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>将棋引擎 Hayanagi</h4><p>随附的 USI 引擎。注册后即可用于对局、研究和分析，在诘棋练习中担任守方。</p></div>
+                </a></li>
+                <li><a href="../en/guide/csa-game.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/network.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>CSA 网络对局</h4><p>连接 floodgate 等支持 CSA 协议的服务器，由人或引擎进行网络对局。</p></div>
+                </a></li>
+                <li><a href="../en/guide/nyugyoku.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/nyugyoku.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>入玉宣言</h4><p>计算持将棋点数，按 24 点法和 27 点法判定入玉宣言。</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">研究与分析</h3>
+            <ul class="mini-grid">
+                <li><a href="../en/guide/consideration.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/consideration.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>研究模式</h4><p>让引擎思考任意局面的候选着法，通过多条主要变化和箭头进行比较。</p></div>
+                </a></li>
+                <li><a href="../en/guide/kifu-analysis.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/eval-graph.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>棋谱分析</h4><p>用引擎分析整盘棋谱，通过图表查看每一手的评价值和形势变化。</p></div>
+                </a></li>
+                <li><a href="../en/guide/joseki.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/book.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>定跡</h4><p>读取定跡（开局定式）文件，显示、走出并编辑与当前局面对应的定跡着法。</p></div>
+                </a></li>
+                <li><a href="../en/guide/kyokumenshu-viewer.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/position-viewer.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>局面集查看器</h4><p>在棋盘上浏览 SFEN 格式的局面集，并将选中的局面导入主窗口。</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">棋谱与局面</h3>
+            <ul class="mini-grid">
+                <li><a href="../en/guide/kifu-display.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/kifu-list.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>棋谱显示</h4><p>显示着法、用时、书签、注释和变化。棋谱和坐标也可切换为西式记法。</p></div>
+                </a></li>
+                <li><a href="../en/guide/kifu-management.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/kifu-file.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>棋谱管理</h4><p>支持读取和保存 KIF、KI2、CSA、JKF、USI、SFEN、USEN，并可通过剪贴板复制和粘贴。</p></div>
+                </a></li>
+                <li><a href="../en/guide/board-edit.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/board-edit.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>局面编辑</h4><p>使用驹箱自由摆放棋子，并从编辑好的局面开始对局或研究。</p></div>
+                </a></li>
+                <li><a href="../en/guide/image-export.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/image-export.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>图片导出</h4><p>将棋盘和评价值图表保存或复制为图片。</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">诘棋</h3>
+            <ul class="mini-grid">
+                <li><a href="../en/guide/tsume-play.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/tsume-play.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>诘棋练习</h4><p>从题目列表中选题，在棋盘上解题，并通过挑战记录和正解手顺复盘。</p></div>
+                </a></li>
+                <li><a href="../en/guide/tsumi-search.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/mate-search.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>诘棋搜索</h4><p>使用 USI 引擎搜索诘杀，并显示诘杀手顺。</p></div>
+                </a></li>
+                <li><a href="../en/guide/tsumeshogi-generator.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/tsume-generator.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>诘棋局面生成器</h4><p>在 GUI 或 CLI 中自动生成符合条件的诘棋，检查余诘后保存。</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">界面与设置</h3>
+            <ul class="mini-grid">
+                <li><a href="../en/guide/piece-style.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/piece.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>棋子样式</h4><p>除标准棋子外，还有虎纹、战国汉字、国际象棋风格、字母等，共 40 种。</p></div>
+                </a></li>
+                <li><a href="../en/guide/board-colors.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/appearance.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>对局外观</h4><p>从样本中自由组合棋子、棋盘、背景、驹台和对局者信息。</p></div>
+                </a></li>
+                <li><a href="../en/guide/dock.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/dock.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>停靠面板</h4><p>自由排列棋谱、思考、评价值图表等面板，并保存布局。</p></div>
+                </a></li>
+                <li><a href="../en/guide/menu.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/menu.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>菜单面板</h4><p>通过带图标的菜单面板快速执行各项操作，还可以登记常用功能。</p></div>
+                </a></li>
+                <li><a href="../en/guide/piece-sound.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/piece-sound.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>走子音效</h4><p>开启或关闭走子音效，并调整音量、音高和音色。</p></div>
+                </a></li>
+                <li><a href="../en/guide/multilanguage.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/language.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>多语言</h4><p>支持日语、英语、中文（简体／繁体）界面，还可选择整个界面的字体。</p></div>
+                </a></li>
+                <li><a href="../en/guide/multi-os.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/platform.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>跨平台</h4><p>基于 Qt 6 开发，可在 Linux、macOS 和 Windows 上运行。</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">AI 集成</h3>
+            <ul class="mini-grid">
+                <li><a href="../en/guide/mcp-server.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/ai.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>AI 客户端集成（MCP）</h4><p>可以从 Claude、Cursor、VS Code、Gemini CLI、Codex CLI 等 AI 客户端请求棋谱转换、分析、诘棋生成和应用操作。</p></div>
+                </a></li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- Download -->
+<section id="download" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">下载</h2>
+        <p class="section-desc">可从 GitHub 发布页面获取最新版本，免费使用。</p>
+        <ul class="download-grid">
+            <li class="dl-card">
+                <h3>Windows</h3>
+                <p class="dl-card__arch">64 位 Windows（x64）</p>
+                <ol>
+                    <li>下载 ZIP 并全部解压</li>
+                    <li>运行 <code>ShogiBoardQ.exe</code></li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-windows.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">Windows 版（ZIP）</a>
+            </li>
+            <li class="dl-card">
+                <h3>macOS</h3>
+                <p class="dl-card__arch">搭载 Apple 芯片的 Mac</p>
+                <ol>
+                    <li>解压 ZIP 并打开 DMG</li>
+                    <li>将 <code>ShogiBoardQ.app</code> 拖到“应用程序”文件夹</li>
+                    <li>首次启动被阻止时，请在“系统设置”→“隐私与安全性”中允许</li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-macos.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">macOS 版（ZIP）</a>
+            </li>
+            <li class="dl-card">
+                <h3>Linux</h3>
+                <p class="dl-card__arch">x86_64（AppImage）</p>
+                <ol>
+                    <li>解压 ZIP</li>
+                    <li>为 <code>ShogiBoardQ-linux-x86_64.AppImage</code> 添加执行权限后运行</li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-linux.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">Linux 版（ZIP）</a>
+            </li>
+        </ul>
+        <p class="dl-note">各安装包均附带将棋引擎 Hayanagi 和诘棋题集（6,000 道）。系统要求和更新内容请参阅<a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest">发布说明</a>（日文）。</p>
+
+        <div class="build-box">
+            <h3><img src="../images/icons/code.svg" alt="">从源代码构建</h3>
+            <p>获取包含子模块的仓库后，即可使用 Qt 6 和 CMake 构建。各操作系统的步骤请参阅构建指南（英文）。</p>
+            <div class="build-box__links">
+                <a href="../en/guide/linux-build-and-release.html" class="btn btn--outline">Linux 构建指南</a>
+                <a href="../en/guide/windows-build-and-release.html" class="btn btn--outline">Windows 构建指南</a>
+                <a href="../en/guide/macos-build-and-release.html" class="btn btn--outline">macOS 构建指南</a>
+                <a href="https://github.com/hnakada123/ShogiBoardQ" class="btn btn--outline"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub 仓库</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- License -->
+<section id="license" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">许可证</h2>
+        <div class="license-content">
+            <p>ShogiBoardQ 是依据 <a href="https://www.gnu.org/licenses/gpl-3.0.html"><strong>GNU 通用公共许可证第 3 版（GPL-3.0）</strong></a>发布的自由软件。</p>
+            <ul class="license-points">
+                <li>可以自由使用、修改和再分发本软件。使用或修改时无需联系作者。</li>
+                <li>修改后再分发时，必须以相同的 GPL-3.0 许可证公开源代码。</li>
+                <li>本软件<strong>不提供任何担保</strong>。在任何情况下，作者均不对因使用本软件而产生的任何损害承担责任。</li>
+            </ul>
+            <p class="license-link">许可证全文请参阅 <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/LICENSE">LICENSE</a> 文件。</p>
+        </div>
+    </div>
+</section>
+
+</main>
+
+<!-- Footer -->
+<footer class="home-footer">
+    <div class="home-footer__inner">
+        <div>
+            <p class="home-footer__brand"><img src="../images/shogiboardq-icon.png" alt="" width="32" height="32">ShogiBoardQ</p>
+            <p>将棋对局、研究、棋谱分析与诘棋软件</p>
+        </div>
+        <nav aria-label="网站">
+            <h2>网站</h2>
+            <ul>
+                <li><a href="#highlights">特色</a></li>
+                <li><a href="#features">功能</a></li>
+                <li><a href="#download">下载</a></li>
+                <li><a href="../en/guide/index.html">使用指南</a></li>
+            </ul>
+        </nav>
+        <nav aria-label="链接">
+            <h2>链接</h2>
+            <ul>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ/releases">发布页面</a></li>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ/issues">问题反馈与建议</a></li>
+            </ul>
+        </nav>
+        <nav aria-label="语言">
+            <h2>语言</h2>
+            <ul>
+                <li><a href="../index.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../en/index.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="index.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../zh-tw/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </nav>
+    </div>
+    <p class="home-footer__copy">&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

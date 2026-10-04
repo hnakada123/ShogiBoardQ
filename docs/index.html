@@ -3,368 +3,406 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ShogiBoardQ - Qt6で作られた将棋対局・解析ソフト</title>
-    <meta name="description" content="ShogiBoardQはQt6とC++17で開発された将棋対局・棋譜解析アプリケーションです。USIエンジン対応、多フォーマット棋譜管理、CSA通信対局に対応。">
+    <title>ShogiBoardQ - 将棋の対局・検討・棋譜解析・詰将棋ソフト</title>
+    <meta name="description" content="ShogiBoardQは、USIエンジンとの対局・検討・棋譜解析、6,000題の詰将棋、40種類の駒と自由な盤面デザインに対応した無料の将棋ソフトです。Windows・macOS・Linuxで動作します。">
     <meta name="google-site-verification" content="6uVKShyfeRaK8nx6ROgoIuBXb2qdMtwgX8NJfiBrwVM" />
     <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/">
     <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/">
     <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/">
     <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/">
-    <meta property="og:title" content="ShogiBoardQ - Qt6で作られた将棋対局・解析ソフト">
-    <meta property="og:description" content="ShogiBoardQはQt6とC++17で開発された将棋対局・棋譜解析アプリケーションです。USIエンジン対応、多フォーマット棋譜管理、CSA通信対局に対応。">
+    <meta property="og:title" content="ShogiBoardQ - 将棋の対局・検討・棋譜解析・詰将棋ソフト">
+    <meta property="og:description" content="ShogiBoardQは、USIエンジンとの対局・検討・棋譜解析、6,000題の詰将棋、40種類の駒と自由な盤面デザインに対応した無料の将棋ソフトです。Windows・macOS・Linuxで動作します。">
     <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
     <meta property="og:locale" content="ja_JP">
+    <meta property="og:locale:alternate" content="en_US">
+    <meta property="og:locale:alternate" content="zh_CN">
+    <meta property="og:locale:alternate" content="zh_TW">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="ShogiBoardQ - Qt6で作られた将棋対局・解析ソフト">
-    <meta name="twitter:description" content="Qt6とC++17で開発された将棋対局・棋譜解析アプリケーション。USIエンジン対応、多フォーマット棋譜管理、CSA通信対局。">
+    <meta name="twitter:title" content="ShogiBoardQ - 将棋の対局・検討・棋譜解析・詰将棋ソフト">
+    <meta name="twitter:description" content="USIエンジンとの対局・検討・棋譜解析、詰将棋6,000題、40種類の駒。Windows・macOS・Linux対応の無料将棋ソフト。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/og-image.png">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/png" href="images/shogiboardq-icon.png">
+    <link rel="stylesheet" href="css/style.css?v=20261004">
+    <link rel="stylesheet" href="css/home.css?v=20261004">
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ShogiBoardQ",
+    "url": "https://hnakada123.github.io/ShogiBoardQ/",
+    "description": "ShogiBoardQは、USIエンジンとの対局・検討・棋譜解析、6,000題の詰将棋、40種類の駒と自由な盤面デザインに対応した無料の将棋ソフトです。Windows・macOS・Linuxで動作します。",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "inLanguage": "ja",
+    "image": "https://hnakada123.github.io/ShogiBoardQ/images/screenshot-main.png",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "downloadUrl": "https://github.com/hnakada123/ShogiBoardQ/releases/latest",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "JPY"
+    }
+}
+    </script>
 </head>
-<body>
+<body class="home">
 
 <!-- Navigation -->
 <nav class="site-nav">
     <div class="nav-inner">
-        <a href="#" class="nav-logo">ShogiBoardQ</a>
-        <a href="en/index.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
-        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-            <span></span><span></span><span></span>
-        </button>
+        <a href="#top" class="nav-logo"><img src="images/shogiboardq-icon.png" alt="" width="28" height="28"><span>ShogiBoardQ</span></a>
         <ul class="nav-links">
+            <li><a href="#highlights">特長</a></li>
             <li><a href="#features">機能</a></li>
+            <li><a href="#download">ダウンロード</a></li>
             <li><a href="guide/index.html">利用ガイド</a></li>
-            <li><a href="#screenshot">画面</a></li>
-            <li><a href="#build">ビルド</a></li>
-            <li><a href="#license">ライセンス</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
             <li>
-                <a href="https://x.com/intent/post?url=https%3A%2F%2Fhnakada123.github.io%2FShogiBoardQ%2F%3Fv%3D2&text=ShogiBoardQ%20-%20Qt6%E3%81%A7%E4%BD%9C%E3%82%89%E3%82%8C%E3%81%9F%E5%B0%86%E6%A3%8B%E5%AF%BE%E5%B1%80%E3%83%BB%E8%A7%A3%E6%9E%90%E3%82%BD%E3%83%95%E3%83%88" target="_blank" rel="noopener noreferrer" class="share-btn-x">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                <a href="https://x.com/intent/post?url=https%3A%2F%2Fhnakada123.github.io%2FShogiBoardQ%2F&amp;text=ShogiBoardQ%20-%20%E5%B0%86%E6%A3%8B%E3%81%AE%E5%AF%BE%E5%B1%80%E3%83%BB%E6%A4%9C%E8%A8%8E%E3%83%BB%E6%A3%8B%E8%AD%9C%E8%A7%A3%E6%9E%90%E3%83%BB%E8%A9%B0%E5%B0%86%E6%A3%8B%E3%82%BD%E3%83%95%E3%83%88" target="_blank" rel="noopener noreferrer" class="share-btn-x">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                     共有
                 </a>
             </li>
         </ul>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="index.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="en/index.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="zh-cn/index.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="zh-tw/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
     </div>
 </nav>
 
-<!-- Hero -->
-<section class="hero">
-    <div class="hero-content">
-        <div class="hero-piece-decoration">
-            <img src="images/pieces/Sente_kyou45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_kei45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_gin45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_kin45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_ou45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_kin45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_gin45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_kei45.svg" alt="" width="40" height="40">
-            <img src="images/pieces/Sente_kyou45.svg" alt="" width="40" height="40">
-        </div>
-        <img src="images/shogiboardq-icon.png" alt="ShogiBoardQ アイコン" class="hero-icon" width="128" height="128">
-        <h1>ShogiBoardQ</h1>
-        <p class="hero-subtitle">Qt6で作られた将棋対局・解析ソフト</p>
-        <div class="hero-badges">
-            <span class="badge">Qt 6</span>
-            <span class="badge">C++17</span>
-            <span class="badge">USI対応</span>
-            <span class="badge">CSA通信対局</span>
-            <span class="badge">日本語 / English</span>
-        </div>
-    </div>
-</section>
+<main id="top">
 
-<!-- Screenshot -->
-<section id="screenshot" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">画面イメージ</h2>
-        <p class="section-desc">将棋盤・棋譜・解析情報を一画面に統合</p>
-        <div class="screenshot-gallery">
-            <div class="screenshot-item">
-                <img src="images/screenshot-main.png" alt="ShogiBoardQ メイン画面 - 将棋盤、棋譜、エンジン解析パネル" width="1769" height="1462">
-                <p class="screenshot-caption">メイン画面：将棋盤・棋譜一覧・エンジン解析（検討モード）を統合表示</p>
-            </div>
+<!-- Hero -->
+<header class="home-hero">
+    <div class="home-hero__inner">
+        <img src="images/shogiboardq-icon.png" alt="ShogiBoardQ アイコン" class="home-hero__icon" width="96" height="96">
+        <p class="home-hero__eyebrow">無料・オープンソースの将棋ソフト</p>
+        <h1>ShogiBoardQ</h1>
+        <p class="home-hero__lead">対局・検討・棋譜解析から詰将棋まで。<br>将棋の研究に必要な機能を、ひとつの画面にまとめました。</p>
+        <div class="home-hero__actions">
+            <a href="#download" class="btn btn--wood"><img src="images/icons/download.svg" alt="">ダウンロード</a>
+            <a href="guide/index.html" class="btn btn--ghost">利用ガイド</a>
         </div>
+        <p class="home-hero__meta"><span>Windows / macOS / Linux</span><span><span lang="ja">日本語</span> / <span lang="en">English</span> / <span lang="zh-Hans">简体中文</span> / <span lang="zh-Hant">繁體中文</span></span></p>
+    </div>
+    <figure class="home-hero__shot">
+        <div class="window-frame">
+            <div class="window-frame__bar" aria-hidden="true">将棋盤Q</div>
+            <a href="images/screenshot-main.png"><img src="images/screenshot-main.png" alt="ShogiBoardQのメイン画面。検討モードでHayanagiが示した3つの候補手が盤上に番号付きの矢印で表示され、下の検討タブに読み筋が並んでいる" width="1400" height="1000"></a>
+        </div>
+        <figcaption>検討モード：エンジンの候補手を盤上の矢印と読み筋で確認できます（Linuxで撮影）</figcaption>
+    </figure>
+</header>
+
+<!-- Stats -->
+<div class="stats">
+    <ul class="stats__grid">
+        <li class="stats__item"><span class="stats__value">40</span><span class="stats__label">駒の種類</span></li>
+        <li class="stats__item"><span class="stats__value">6,000</span><span class="stats__label">同梱の詰将棋（3〜13手詰）</span></li>
+        <li class="stats__item"><span class="stats__value">7</span><span class="stats__label">読み込める棋譜形式</span></li>
+        <li class="stats__item"><span class="stats__value">4</span><span class="stats__label">表示言語</span></li>
+    </ul>
+</div>
+
+<!-- Highlights -->
+<section id="highlights" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">主な特長</h2>
+        <p class="section-desc">研究・外観・詰将棋の3つの場面から、ShogiBoardQの使い心地を紹介します。</p>
+
+        <article class="highlight">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="images/icons/eval-graph.svg" alt="">研究・解析</p>
+                <h3>候補手は盤上の矢印で、<br>形勢は評価値グラフで</h3>
+                <p>USIエンジンを登録すれば、任意の局面を検討モードで調べたり、棋譜全体を一括で解析したりできます。評価値グラフと解析結果の一覧から、形勢が動いた一手をすぐに見つけられます。</p>
+                <ul class="check-list">
+                    <li>候補手は番号付きの矢印で表示。持駒を打つ手は駒台から伸びます</li>
+                    <li>棋譜解析で各手の評価値・最善手との一致・評価値差を一覧表示</li>
+                    <li>対局中もエンジンの最善手を矢印で確認。エンジン同士の対局では双方の思考を並べて表示</li>
+                    <li>分岐ツリー・しおり・コメントで研究内容を整理</li>
+                </ul>
+                <p class="link-row">
+                    <a href="guide/consideration.html">検討モード &rarr;</a>
+                    <a href="guide/kifu-analysis.html">棋譜解析 &rarr;</a>
+                    <a href="guide/game-play.html">対局機能 &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <a href="images/home/analysis.png"><img src="images/home/analysis.png" alt="棋譜解析の結果画面。評価値グラフで49手目から形勢が後手に傾いた様子と、各手の評価値・候補手の一覧が並んでいる" width="1400" height="1000" loading="lazy"></a>
+                <figcaption>棋譜解析：評価値グラフと解析結果を並べて表示</figcaption>
+            </figure>
+        </article>
+
+        <article class="highlight highlight--reverse">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="images/icons/appearance.svg" alt="">外観</p>
+                <h3>40種類の駒と、<br>自由に組み合わせる盤面</h3>
+                <p>「表示」→「対局画面の外観…」で、駒・将棋盤・背景・駒台・対局者情報を見本から選べます。プレビューで全体を確かめながら、好みの対局画面に仕上げられます。</p>
+                <ul class="piece-row" aria-label="駒の見本">
+                    <li><img src="images/pieces/showcase/standard.png" alt="標準の駒" title="標準の駒" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/torafu_light.png" alt="淡虎斑" title="淡虎斑" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/wood_walnut.png" alt="胡桃" title="胡桃" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/tint_sakura.png" alt="薄桜" title="薄桜" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/deep_ebony.png" alt="黒檀" title="黒檀" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/deep_navy.png" alt="鉄紺" title="鉄紺" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/sengoku.png" alt="戦国文字" title="戦国文字" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/chess_facet_wood.png" alt="Facet（木肌）" title="Facet（木肌）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/chess_atelier_paper.png" alt="Atelier（白）" title="Atelier（白）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/chess_ribbon_slate.png" alt="Ribbon（墨）" title="Ribbon（墨）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/alphabet_sei_wood.png" alt="端正（木肌）" title="端正（木肌）" width="40" height="40" loading="lazy"></li>
+                    <li><img src="images/pieces/showcase/alphabet_rin_slate.png" alt="凛（墨）" title="凛（墨）" width="40" height="40" loading="lazy"></li>
+                </ul>
+                <ul class="check-list">
+                    <li>駒は標準・虎斑・木肌・淡色・深色・戦国文字・チェス風・アルファベットの40種類</li>
+                    <li>将棋盤・背景・駒台は各26種類、対局者情報は20種類。おすすめの組み合わせも24種類</li>
+                    <li>選んだ外観は読み筋盤・詰将棋・画像出力にも反映</li>
+                </ul>
+                <p class="link-row">
+                    <a href="guide/piece-style.html">駒の種類 &rarr;</a>
+                    <a href="guide/board-colors.html">対局画面の外観 &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <a href="images/home/appearance.png"><img src="images/home/appearance.png" alt="対局画面の外観ウィンドウ。駒の見本から黒檀を選び、月白の将棋盤と組み合わせたプレビューを表示している" width="1180" height="800" loading="lazy"></a>
+                <figcaption>対局画面の外観：「黒檀・月白」の組み合わせ</figcaption>
+            </figure>
+        </article>
+
+        <article class="highlight">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="images/icons/tsume-play.svg" alt="">詰将棋</p>
+                <h3>6,000題の詰将棋を、<br>盤上で解く</h3>
+                <p>配布パッケージには3・5・7・9・11・13手詰を各1,000題収録。問題一覧から選び、内蔵エンジンHayanagiが務める玉方を相手に盤上で詰ませます。</p>
+                <ul class="check-list">
+                    <li>初期盤面のカードで問題を選び、挑戦状況で絞り込み</li>
+                    <li>残り手数以内に詰ませれば正解。成立する別解も正解として判定</li>
+                    <li>挑戦・正答の履歴と正解手順の再生で振り返り</li>
+                    <li>詰み探索や詰将棋局面生成（GUI・CLI）で問題づくりにも対応</li>
+                </ul>
+                <p class="link-row">
+                    <a href="guide/tsume-play.html">詰将棋対局 &rarr;</a>
+                    <a href="guide/tsumeshogi-generator.html">詰将棋局面生成 &rarr;</a>
+                    <a href="guide/tsumi-search.html">詰み探索 &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <div class="shot-stack">
+                    <a href="images/home/tsume-list.png" class="shot-stack__back"><img src="images/home/tsume-list.png" alt="詰将棋の問題一覧。5手詰の問題が初期盤面のカードで並んでいる" width="1100" height="800" loading="lazy"></a>
+                    <a href="images/home/tsume-play.png" class="shot-stack__front"><img src="images/home/tsume-play.png" alt="詰将棋対局の画面。攻方のあなたがHayanagiの玉を詰ませる" width="760" height="864" loading="lazy"></a>
+                </div>
+                <figcaption>問題一覧（奥）と詰将棋対局の画面（手前）</figcaption>
+            </figure>
+        </article>
     </div>
 </section>
 
 <!-- Features -->
 <section id="features" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">主な機能</h2>
-        <p class="section-desc">
-            将棋の対局・研究に必要な機能を幅広くサポート<br>
-            ShogiBoardQは、USIプロトコルに対応した将棋エンジンを登録することで対局できます。<br>
-            将棋エンジンの開発者の方々に感謝いたします。
-        </p>
-        <div class="features-grid">
+        <h2 class="section-title">機能一覧</h2>
+        <p class="section-desc">利用ガイドで、すべての機能の使い方を目的別に解説しています。</p>
+        <p class="feature-intro"><img src="images/icons/engine.svg" alt=""><span>対局・検討・解析には、USIプロトコルに対応した将棋エンジンを登録して使います。配布パッケージには将棋エンジンHayanagiを同梱しています。将棋エンジンの開発者の方々に感謝いたします。</span></p>
 
-            <a href="guide/game-play.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_ou45.svg" alt="">
-                <h3>対局機能</h3>
-                <p>人間 vs エンジン、エンジン vs エンジン、人間 vs 人間の対局に対応。USIプロトコル準拠のエンジンを利用できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/hayanagi.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kaku45.svg" alt="">
-                <h3>将棋エンジン Hayanagi</h3>
-                <p>サブモジュールとして組み込まれたUSI対応将棋エンジン。対局・検討・詰み探索に対応し、詰将棋対局では内蔵の玉方として動作します。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/csa-game.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_hi45.svg" alt="">
-                <h3>CSA通信対局</h3>
-                <p>CSAプロトコルに対応したサーバーとのネットワーク対局が可能。floodgateなどに接続できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/kifu-display.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kaku45.svg" alt="">
-                <h3>棋譜表示</h3>
-                <p>棋譜ドックで指し手・消費時間・しおり・コメントを表示。分岐棋譜の操作やナビゲーションボタンで棋譜を自在に閲覧できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/kifu-management.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kin45.svg" alt="">
-                <h3>棋譜管理</h3>
-                <p>KIF / KI2 / CSA / USI / SFEN / JKF など主要な棋譜フォーマットの読み込み・書き出しに対応。分岐棋譜も扱えます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/kifu-analysis.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_gin45.svg" alt="">
-                <h3>棋譜解析</h3>
-                <p>USIエンジンによる棋譜解析機能。各手の評価値をグラフ表示し、形勢の推移を視覚的に把握できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/consideration.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kei45.svg" alt="">
-                <h3>検討モード</h3>
-                <p>任意の局面でエンジンに候補手を検討させるモード。複数の読み筋を同時に表示できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/tsumi-search.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kyou45.svg" alt="">
-                <h3>詰み探索</h3>
-                <p>エンジンによる詰み探索機能。詰みがある局面で詰み手順を表示します。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/tsumeshogi-generator.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_fu45.svg" alt="">
-                <h3>詰将棋局面生成</h3>
-                <p>ランダムに詰将棋の候補局面を生成し、USIエンジンで詰み探索を行い、指定手数の詰みがある局面を自動で発見。不要駒トリミングで最小限の駒に最適化します。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/tsume-play.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_to45.svg" alt="">
-                <h3>詰将棋対局</h3>
-                <p>局面集から問題を選び、Hayanagiを玉方として盤上で解けます。問題一覧のページ表示、挑戦・正答履歴、正解手順の再生に対応しています。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/mcp-server.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_ou45.svg" alt="">
-                <h3>AI クライアント連携（MCP）</h3>
-                <p>Claude・Cursor・VS Code などの AI クライアントから、棋譜変換・エンジン解析・詰将棋生成・アプリ操作を依頼できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/board-edit.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_ryuu45.svg" alt="">
-                <h3>局面編集</h3>
-                <p>自由に駒を配置して任意の局面を作成。作成した局面から対局や解析を開始できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/kyokumenshu-viewer.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_uma45.svg" alt="">
-                <h3>局面集ビューア</h3>
-                <p>SFEN形式の局面集ファイルを読み込み、局面を盤面上で閲覧。選択した局面をメイン画面に取り込んで検討・解析を開始できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/joseki.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_narigin45.svg" alt="">
-                <h3>定跡機能</h3>
-                <p>定跡ファイルの読み込み・表示に対応。局面に応じた定跡手の一覧表示、着手、定跡手の編集・追加・削除が行えます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/nyugyoku.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_narikei45.svg" alt="">
-                <h3>入玉宣言</h3>
-                <p>局面から持将棋の点数を計算し、入玉宣言の条件を確認。対局メニューから24点法・27点法に基づく入玉宣言を行えます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/image-export.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_narikyou45.svg" alt="">
-                <h3>画像エクスポート</h3>
-                <p>現在の盤面や評価値グラフを画像ファイルとしてエクスポート。ブログや解説記事への掲載に便利です。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/dock.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_to45.svg" alt="">
-                <h3>ドック機能</h3>
-                <p>棋譜・エンジン情報・評価値グラフなどのパネルをドッキング・フローティング・タブ化して、レイアウトを自由にカスタマイズできます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/menu.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_ou45.svg" alt="">
-                <h3>メニュー機能</h3>
-                <p>メニュードックで各種操作にアイコン付きボタンですばやくアクセス。お気に入り登録やサイズ調整で自分好みにカスタマイズできます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/piece-style.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kin45.svg" alt="">
-                <h3>駒の種類</h3>
-                <p>淡い木肌と明朝体の標準の駒に、虎斑・木肌・淡色・深色の20種類を追加。「表示」→「対局画面の外観」で選べます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/board-colors.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_gin45.svg" alt="">
-                <h3>対局画面の外観</h3>
-                <p>駒に合うおすすめ配色を選んで盤面をカスタマイズ。将棋盤の背景・将棋盤・駒台・マス罫線の色を個別に調整することもできます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/piece-sound.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_fu45.svg" alt="">
-                <h3>駒音</h3>
-                <p>駒を指すと盤に駒を打つ音が鳴ります。「設定」メニューでON/OFFを切り替え、音量・音の高さ・イコライザーで好みの音に調整できます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/multilanguage.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_hi45.svg" alt="">
-                <h3>多言語対応</h3>
-                <p>日本語・英語・中国語（簡体字／繁体字）のUIに対応。アプリケーションの言語設定で切り替えられます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
-            <a href="guide/multi-os.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kaku45.svg" alt="">
-                <h3>クロスプラットフォーム</h3>
-                <p>Linux・macOS・Windowsに対応。Qt6により単一のソースコードから各OSでネイティブに動作するアプリケーションをビルドできます。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
-
+        <div class="feature-group">
+            <h3 class="feature-group__title">対局</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/game-play.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/game.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>対局機能</h4><p>人間対エンジン・エンジン同士・人間同士で対局。駒を選ぶと移動できるマスを表示し、中断した対局は局面と残り時間を保ったまま再開できます。</p></div>
+                </a></li>
+                <li><a href="guide/hayanagi.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/engine.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>将棋エンジン Hayanagi</h4><p>同梱のUSIエンジン。登録すれば対局・検討・解析にすぐ使え、詰将棋対局では玉方を務めます。</p></div>
+                </a></li>
+                <li><a href="guide/csa-game.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/network.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>CSA通信対局</h4><p>floodgateなどCSAプロトコル対応サーバーに接続し、人間またはエンジンで通信対局できます。</p></div>
+                </a></li>
+                <li><a href="guide/nyugyoku.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/nyugyoku.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>入玉宣言</h4><p>持将棋の点数を計算し、24点法・27点法に基づく入玉宣言を判定します。</p></div>
+                </a></li>
+            </ul>
         </div>
-    </div>
-</section>
 
-<!-- Build -->
-<section id="build" class="section">
-    <div class="section-inner">
-        <h2 class="section-title">ビルド・リリース手順</h2>
-        <p class="section-desc">ソースからビルドして利用できます</p>
-        <div class="features-grid">
-            <a href="guide/linux-build-and-release.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kaku45.svg" alt="">
-                <h3>Linux ビルド・リリース手順</h3>
-                <p>Linux での開発環境のセットアップからビルド、AppImage の作成、GitHub Release での公開までを解説します。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
+        <div class="feature-group">
+            <h3 class="feature-group__title">研究・解析</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/consideration.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/consideration.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>検討モード</h4><p>任意の局面でエンジンに候補手を考えさせ、複数の読み筋と矢印で比較します。</p></div>
+                </a></li>
+                <li><a href="guide/kifu-analysis.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/eval-graph.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>棋譜解析</h4><p>棋譜全体をエンジンで解析し、各手の評価値と形勢の推移をグラフで確認します。</p></div>
+                </a></li>
+                <li><a href="guide/joseki.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/book.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>定跡機能</h4><p>定跡ファイルを読み込み、局面に合う定跡手の表示・着手・編集ができます。</p></div>
+                </a></li>
+                <li><a href="guide/kyokumenshu-viewer.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/position-viewer.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>局面集ビューア</h4><p>SFEN形式の局面集を盤面で閲覧し、選んだ局面をメイン画面に取り込めます。</p></div>
+                </a></li>
+            </ul>
+        </div>
 
-            <a href="guide/windows-build-and-release.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_hi45.svg" alt="">
-                <h3>Windows ビルド・リリース手順</h3>
-                <p>Windows での開発環境のセットアップからビルド、配布用 ZIP ファイルの作成、GitHub Release での公開までを解説します。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
+        <div class="feature-group">
+            <h3 class="feature-group__title">棋譜・局面の操作</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/kifu-display.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/kifu-list.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>棋譜表示</h4><p>指し手・消費時間・しおり・コメント・分岐を表示。棋譜と座標は英語式の表記にも切り替えられます。</p></div>
+                </a></li>
+                <li><a href="guide/kifu-management.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/kifu-file.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>棋譜管理</h4><p>KIF・KI2・CSA・JKF・USI・SFEN・USENの読み込みと保存、クリップボード経由のコピー・貼り付けに対応。</p></div>
+                </a></li>
+                <li><a href="guide/board-edit.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/board-edit.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>盤面編集</h4><p>駒箱を使って自由に駒を配置し、作った局面から対局や検討を始められます。</p></div>
+                </a></li>
+                <li><a href="guide/image-export.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/image-export.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>画像エクスポート</h4><p>盤面や評価値グラフを画像として保存・コピーできます。</p></div>
+                </a></li>
+            </ul>
+        </div>
 
-            <a href="guide/macos-build-and-release.html" class="feature-card-link">
-            <div class="feature-card">
-                <img class="feature-icon" src="images/pieces/Sente_kin45.svg" alt="">
-                <h3>macOS ビルド・リリース手順</h3>
-                <p>macOS での開発環境のセットアップからビルド、DMG ファイルの作成、コード署名・公証、GitHub Release での公開までを解説します。</p>
-                <span class="feature-card-more">詳しく見る &rarr;</span>
-            </div>
-            </a>
+        <div class="feature-group">
+            <h3 class="feature-group__title">詰将棋</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/tsume-play.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/tsume-play.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>詰将棋対局</h4><p>問題一覧から選んで盤上で解き、挑戦履歴と正解手順で振り返ります。</p></div>
+                </a></li>
+                <li><a href="guide/tsumi-search.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/mate-search.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>詰み探索</h4><p>USIエンジンで詰みを探し、詰み手順を表示します。</p></div>
+                </a></li>
+                <li><a href="guide/tsumeshogi-generator.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/tsume-generator.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>詰将棋局面生成</h4><p>条件に合う詰将棋をGUIやCLIで自動生成し、余詰を検査して保存します。</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">導入・画面設定</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/piece-style.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/piece.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>駒の種類</h4><p>標準の駒に加え、虎斑・戦国文字・チェス風・アルファベットなど全40種類。</p></div>
+                </a></li>
+                <li><a href="guide/board-colors.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/appearance.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>対局画面の外観</h4><p>駒・将棋盤・背景・駒台・対局者情報を見本から自由に組み合わせます。</p></div>
+                </a></li>
+                <li><a href="guide/dock.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/dock.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>ドック機能</h4><p>棋譜・思考・評価値グラフなどのパネルを自由に配置し、レイアウトを保存できます。</p></div>
+                </a></li>
+                <li><a href="guide/menu.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/menu.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>メニュー機能</h4><p>アイコン付きのメニューパネルから各操作へすばやくアクセス。お気に入りも登録できます。</p></div>
+                </a></li>
+                <li><a href="guide/piece-sound.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/piece-sound.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>駒音</h4><p>駒を指したときの駒音のON/OFFと、音量・音の高さ・音質を調整できます。</p></div>
+                </a></li>
+                <li><a href="guide/multilanguage.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/language.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>多言語対応</h4><p>日本語・英語・中国語（簡体字／繁体字）のUIに対応。GUI全体の書体も選べます。</p></div>
+                </a></li>
+                <li><a href="guide/multi-os.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/platform.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>クロスプラットフォーム</h4><p>Qt 6で開発し、Linux・macOS・Windowsで動作します。</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">AI連携</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/mcp-server.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="images/icons/ai.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>AIクライアント連携（MCP）</h4><p>Claude・Cursor・VS Code・Gemini CLI・Codex CLIなどから、棋譜変換・解析・詰将棋生成・アプリ操作を依頼できます。</p></div>
+                </a></li>
+            </ul>
         </div>
     </div>
 </section>
 
 <!-- Download -->
-<section class="section section--alt download-section">
+<section id="download" class="section">
     <div class="section-inner">
-        <h2 class="section-title">ソースコード</h2>
-        <p class="section-desc">GitHubリポジトリからソースコードを取得できます</p>
-        <a href="https://github.com/hnakada123/ShogiBoardQ" class="download-btn">
-            <svg width="20" height="20" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-            GitHubで見る
-        </a>
+        <h2 class="section-title">ダウンロード</h2>
+        <p class="section-desc">最新版はGitHubのリリースページから入手できます。無料でご利用いただけます。</p>
+        <ul class="download-grid">
+            <li class="dl-card">
+                <h3>Windows</h3>
+                <p class="dl-card__arch">Windows 64ビット版（x64）</p>
+                <ol>
+                    <li>ZIPをダウンロードしてすべて展開</li>
+                    <li><code>ShogiBoardQ.exe</code> を起動</li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-windows.zip" class="btn btn--accent"><img src="images/icons/download.svg" alt="">Windows版（ZIP）</a>
+            </li>
+            <li class="dl-card">
+                <h3>macOS</h3>
+                <p class="dl-card__arch">Apple Silicon搭載のMac</p>
+                <ol>
+                    <li>ZIPを展開してDMGを開く</li>
+                    <li><code>ShogiBoardQ.app</code> をアプリケーションフォルダへ</li>
+                    <li>初回起動が止められたら「システム設定」→「プライバシーとセキュリティ」で許可</li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-macos.zip" class="btn btn--accent"><img src="images/icons/download.svg" alt="">macOS版（ZIP）</a>
+            </li>
+            <li class="dl-card">
+                <h3>Linux</h3>
+                <p class="dl-card__arch">x86_64（AppImage）</p>
+                <ol>
+                    <li>ZIPを展開</li>
+                    <li><code>ShogiBoardQ-linux-x86_64.AppImage</code> に実行権限を付けて起動</li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-linux.zip" class="btn btn--accent"><img src="images/icons/download.svg" alt="">Linux版（ZIP）</a>
+            </li>
+        </ul>
+        <p class="dl-note">各パッケージには将棋エンジンHayanagiと詰将棋問題集（6,000題）を同梱しています。動作条件と変更点は<a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest">リリースノート</a>をご覧ください。</p>
+
+        <div class="build-box">
+            <h3><img src="images/icons/code.svg" alt="">ソースからビルド</h3>
+            <p>リポジトリをサブモジュールごと取得し、Qt 6とCMakeでビルドできます。各OSの手順を利用ガイドで解説しています。</p>
+            <div class="build-box__links">
+                <a href="guide/linux-build-and-release.html" class="btn btn--outline">Linux ビルド手順</a>
+                <a href="guide/windows-build-and-release.html" class="btn btn--outline">Windows ビルド手順</a>
+                <a href="guide/macos-build-and-release.html" class="btn btn--outline">macOS ビルド手順</a>
+                <a href="https://github.com/hnakada123/ShogiBoardQ" class="btn btn--outline"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHubリポジトリ</a>
+            </div>
+        </div>
     </div>
 </section>
 
 <!-- License -->
-<section id="license" class="section">
+<section id="license" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">ライセンス</h2>
         <div class="license-content">
@@ -379,10 +417,59 @@
     </div>
 </section>
 
+</main>
+
 <!-- Footer -->
-<footer class="site-footer">
-    <p>&copy; 2025 ShogiBoardQ</p>
+<footer class="home-footer">
+    <div class="home-footer__inner">
+        <div>
+            <p class="home-footer__brand"><img src="images/shogiboardq-icon.png" alt="" width="32" height="32">ShogiBoardQ</p>
+            <p>将棋の対局・検討・棋譜解析・詰将棋ソフト</p>
+        </div>
+        <nav aria-label="サイト">
+            <h2>サイト</h2>
+            <ul>
+                <li><a href="#highlights">特長</a></li>
+                <li><a href="#features">機能</a></li>
+                <li><a href="#download">ダウンロード</a></li>
+                <li><a href="guide/index.html">利用ガイド</a></li>
+            </ul>
+        </nav>
+        <nav aria-label="リンク">
+            <h2>リンク</h2>
+            <ul>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ/releases">リリース</a></li>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ/issues">不具合の報告・要望</a></li>
+            </ul>
+        </nav>
+        <nav aria-label="表示言語">
+            <h2>表示言語</h2>
+            <ul>
+                <li><a href="index.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="en/index.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="zh-cn/index.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="zh-tw/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </nav>
+    </div>
+    <p class="home-footer__copy">&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>

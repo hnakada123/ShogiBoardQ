@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>利用ガイド</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 6.5C10 4.8 7.2 4 3 4v14c4.2 0 7 .8 9 2.5 2-1.7 4.8-2.5 9-2.5V4c-4.2 0-7 .8-9 2.5Z"/><path d="M12 6.5v14"/>
+  </g>
+</svg>
