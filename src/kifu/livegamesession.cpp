@@ -134,6 +134,7 @@ void LiveGameSession::addMove(const ShogiMove& move, const QString& displayText,
                                    << "sfen stored in node="
                                    << (m_liveParent ? m_liveParent->sfen().left(60) : "(null)");
             }
+            placeBeforeUndoneSiblings(m_liveParent);
         }
     }
 
@@ -174,21 +175,11 @@ bool LiveGameSession::canUndoMoves(int count) const
         return true;
     }
 
+    // 対局開始位置（分岐起点・ルート）より前には戻らない。
     KifuBranchNode* node = m_liveParent;
-    KifuBranchNode* removedChild = nullptr;
     for (int i = 0; i < count; ++i) {
         if (node == nullptr || node == m_branchPoint || node == m_tree->root()) {
             return false;
-        }
-        if (m_createdNodeIds.contains(node->nodeId())) {
-            // 今回取り消す子以外の継続手があるノードは削除しない。
-            if (node->childCount() > 0
-                && (node->childCount() != 1 || node->childAt(0) != removedChild)) {
-                return false;
-            }
-            removedChild = node;
-        } else {
-            removedChild = nullptr;
         }
         node = node->parent();
     }
@@ -201,18 +192,20 @@ bool LiveGameSession::undoMoves(int count)
         return false;
     }
 
-    KifuBranchNode* target = m_liveParent;
-    for (int i = 0; target != nullptr && i < count; ++i) {
-        target = target->parent();
+    // 取り消す手順の先頭ノード（巻き戻し先の子）。ノードは削除せず分岐として残す。
+    KifuBranchNode* undoneHead = m_liveParent;
+    for (int i = 1; undoneHead != nullptr && i < count; ++i) {
+        undoneHead = undoneHead->parent();
     }
+    KifuBranchNode* target = (undoneHead != nullptr) ? undoneHead->parent() : nullptr;
     emit movesAboutToBeUndone(target);
 
-    for (int i = 0; m_liveParent != nullptr && i < count; ++i) {
-        KifuBranchNode* node = m_liveParent;
-        m_liveParent = node->parent();
-        if (m_createdNodeIds.remove(node->nodeId())) {
-            m_tree->removeLeafQuiet(node);
+    if (undoneHead != nullptr) {
+        // 以前の棋譜にあった手を再利用して取り消した場合は、その棋譜の並び順を保つ。
+        if (m_createdNodeIds.contains(undoneHead->nodeId())) {
+            m_undoneNodeIds.insert(undoneHead->nodeId());
         }
+        m_liveParent = target;
     }
     m_moves.resize(m_moves.size() - count);
     m_gameMoves.resize(m_gameMoves.size() - count);
@@ -221,6 +214,28 @@ bool LiveGameSession::undoMoves(int count)
     }
     emit movesUndone();
     return true;
+}
+
+void LiveGameSession::placeBeforeUndoneSiblings(KifuBranchNode* node)
+{
+    if (node == nullptr || node->parent() == nullptr) {
+        return;
+    }
+    m_undoneNodeIds.remove(node->nodeId());
+    if (m_undoneNodeIds.isEmpty()) {
+        return;
+    }
+
+    // 待ったで取り消した手順より前に並べ、実際に指した手順を本譜側にする。
+    // 対局前から存在する兄弟（以前の対局の本譜など）の順序は変えない。
+    const QList<KifuBranchNode*>& siblings = node->parent()->children();
+    const qsizetype current = siblings.indexOf(node);
+    for (qsizetype i = 0; i < current; ++i) {
+        if (m_undoneNodeIds.contains(siblings.at(i)->nodeId())) {
+            m_tree->moveChildQuiet(node, static_cast<int>(i));
+            return;
+        }
+    }
 }
 
 KifuBranchNode* LiveGameSession::commit()
@@ -343,4 +358,5 @@ void LiveGameSession::reset()
     m_gameMoves.clear();
     m_sfens.clear();
     m_createdNodeIds.clear();
+    m_undoneNodeIds.clear();
 }

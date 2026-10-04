@@ -16,6 +16,8 @@
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
 #include "usi.h"
+#include "playmodepolicyservice.h"
+#include "playmode.h"
 
 // ============================================================
 // test_stubs_gamestrategy.cpp で定義されたトラッカー
@@ -151,6 +153,11 @@ private slots:
     void eve_onHumanMove_isNoop();
     void eve_initialState_moveIndexIsZero();
     void eve_start_earlyReturnWhenNoEngines();
+    void eve_gameMoves_useSharedList();
+
+    // === Section C2: 人間の手番判定（終局後は盤を操作させない） ===
+    void policy_humanTurn_onlyWhileGameInProgress_data();
+    void policy_humanTurn_onlyWhileGameInProgress();
 
     // === Section D: 共通特性 ===
     void baseClass_defaultTimerMethodsAreNoop();
@@ -503,6 +510,68 @@ void Tst_GameStrategy::eve_start_earlyReturnWhenNoEngines()
     QCOMPARE(eve.eveMoveIndex(), 0);
     // No hooks should have been called (early return before hook calls)
     QVERIFY(!h.updateTurnDisplayCalled);
+}
+
+void Tst_GameStrategy::eve_gameMoves_useSharedList()
+{
+    // エンジン同士の対局も共有の指し手リストへ記録する。内部リストに記録すると、
+    // 棋譜欄の英語式表記・USI指し手列・分岐ツリーのノードに指し手が渡らない。
+    StrategyTestHarness h;
+    MatchCoordinator::StartOptions opt;
+    opt.mode = PlayMode::EvenEngineVsEngine;
+
+    EngineVsEngineStrategy eve(h.mc->strategyCtx(), opt);
+
+    QCOMPARE(&eve.gameMovesForEvE(), &h.gameMoves);
+    QCOMPARE(eve.sfenRecordForEvE(), &h.sfenRecord);
+}
+
+// ============================================================
+// Section C2: 人間の手番判定
+// ============================================================
+
+void Tst_GameStrategy::policy_humanTurn_onlyWhileGameInProgress_data()
+{
+    QTest::addColumn<int>("mode");
+    QTest::addColumn<int>("humanPlayer");
+    QTest::newRow("human-vs-human") << int(PlayMode::HumanVsHuman) << int(ShogiGameController::Player1);
+    QTest::newRow("human-vs-engine") << int(PlayMode::EvenHumanVsEngine) << int(ShogiGameController::Player1);
+    QTest::newRow("engine-vs-human") << int(PlayMode::EvenEngineVsHuman) << int(ShogiGameController::Player2);
+    QTest::newRow("handicap-human-vs-engine") << int(PlayMode::HandicapHumanVsEngine) << int(ShogiGameController::Player1);
+}
+
+void Tst_GameStrategy::policy_humanTurn_onlyWhileGameInProgress()
+{
+    QFETCH(int, mode);
+    QFETCH(int, humanPlayer);
+    StrategyTestHarness h;
+    PlayMode playMode = static_cast<PlayMode>(mode);
+    h.gc.setCurrentPlayer(static_cast<ShogiGameController::Player>(humanPlayer));
+
+    PlayModePolicyService policy;
+    PlayModePolicyService::Deps deps;
+    deps.playMode = &playMode;
+    deps.gameController = &h.gc;
+    deps.match = h.mc.get();
+    policy.updateDeps(deps);
+
+    h.mc->clearGameOverState();
+    QVERIFY(policy.isHumanTurnNow());
+
+    // 終局後はプレイモードが残っていても盤上の着手を受け付けない（棋譜に記録されないため）。
+    MatchCoordinator::GameEndInfo info;
+    h.mc->setGameOver(info, true);
+    QVERIFY(h.mc->gameOverState().isOver);
+    QVERIFY(!policy.isHumanTurnNow());
+
+    // 中断からの再開などで終局状態が解除されれば再び指せる。
+    h.mc->clearGameOverState();
+    QVERIFY(policy.isHumanTurnNow());
+
+    // 対局コーディネータがない状態では指せない。
+    deps.match = nullptr;
+    policy.updateDeps(deps);
+    QVERIFY(!policy.isHumanTurnNow());
 }
 
 // ============================================================

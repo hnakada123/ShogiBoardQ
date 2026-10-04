@@ -96,6 +96,8 @@ public:
     const QList<KifuBranchNode*>& children() const { return m_children; }
     void addChild(KifuBranchNode* child);
     void removeChild(KifuBranchNode* child);
+    /// 子の並び順を変える（先頭ほど本譜側）。子でない場合や範囲外は何もしない。
+    bool moveChild(KifuBranchNode* child, int index);
     int childCount() const { return static_cast<int>(m_children.size()); }
     KifuBranchNode* childAt(int index) const;
 

@@ -51,7 +51,11 @@ void KifuDisplayCoordinator::onLiveGameMoveAdded(int ply, const QString& display
     m_state->rememberPathSelections(liveNode);   // 対局後の「戻る→進む」で最新手の経路を辿れるように
     m_state->setCurrentNode(liveNode);
 
-    syncRecordViewToCurrentLine();
+    // 対局中の棋譜欄は1行ずつ追記するため、待ったで残した手順と分岐した場合などに
+    // 既存行の分岐マーク（+）をここで現在の手順に合わせる。
+    if (!syncRecordViewToCurrentLine()) {
+        m_presenter->populateBranchMarks();
+    }
     highlightCurrentPosition();
     m_pendingNavResultCheck = true;
     updateBranchCandidatesView();
@@ -92,14 +96,17 @@ bool KifuDisplayCoordinator::appendLiveNodeToBranchTree(KifuBranchNode* liveNode
     }
 
     const int nodeCount = m_tree->nodeCount();
+    const quint64 revision = m_tree->revision();
     if (m_branchTreeNodeCount < 0) {
         return false;   // まだ一度も反映していない
     }
-    if (nodeCount == m_branchTreeNodeCount) {
+    if (nodeCount == m_branchTreeNodeCount && revision == m_branchTreeRevision) {
         return true;    // 既存ノードの再利用（指し直し）: 描画済みなので何もしない
     }
-    if (nodeCount != m_branchTreeNodeCount + 1 || liveNode->childCount() != 0) {
-        return false;   // 想定外の変化
+    // 1ノードの追加以外（待ったで残した手順との並べ替えなど）は全再構築に任せる
+    if (nodeCount != m_branchTreeNodeCount + 1 || revision != m_branchTreeRevision + 1
+        || liveNode->childCount() != 0) {
+        return false;
     }
 
     // 新しいラインができた場合は行の並びが変わり得るため全再構築に任せる
@@ -122,6 +129,7 @@ bool KifuDisplayCoordinator::appendLiveNodeToBranchTree(KifuBranchNode* liveNode
         return false;
     }
     m_branchTreeNodeCount = nodeCount;
+    m_branchTreeRevision = revision;
     return true;
 }
 

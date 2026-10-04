@@ -183,7 +183,7 @@ void MatchTimekeeper::emitTimeUpdateFromClock() {}
 // ============================================================
 
 GameEndHandler::GameEndHandler(QObject* parent) : QObject(parent) {}
-void GameEndHandler::setRefs(const Refs&) {}
+void GameEndHandler::setRefs(const Refs& refs) { m_refs = refs; }
 void GameEndHandler::setHooks(const Hooks&) {}
 void GameEndHandler::handleResign() {}
 void GameEndHandler::handleTimeout(Player) {}
@@ -197,8 +197,9 @@ void GameEndHandler::handleMaxMovesJishogi() {}
 bool GameEndHandler::checkAndHandleSennichite() { return StrategyTracker::sennichiteDetected; }
 void GameEndHandler::handleSennichite() {}
 void GameEndHandler::handleOuteSennichite(bool) {}
-void GameEndHandler::clearGameOverState() {}
-void GameEndHandler::setGameOver(const GameEndInfo&, bool, bool) {}
+// 終局状態の有無で振る舞いが変わる判定（PlayModePolicyService）を検証できるよう、状態だけは反映する。
+void GameEndHandler::clearGameOverState() { if (m_refs.gameOver) *m_refs.gameOver = {}; }
+void GameEndHandler::setGameOver(const GameEndInfo&, bool, bool) { if (m_refs.gameOver) m_refs.gameOver->isOver = true; }
 void GameEndHandler::markGameOverMoveAppended() {}
 
 // ============================================================
@@ -681,3 +682,11 @@ void Usi::onProcessExited() {}
 ShogiClock::Snapshot ShogiClock::pauseAndSnapshot() { return {}; }
 void ShogiClock::restoreSnapshot(const Snapshot&) {}
 void ShogiClock::setMeasuredConsiderationTime(int, qint64) {}
+
+// ============================================================
+// CsaGameCoordinator スタブ（PlayModePolicyService のリンク用）
+// ============================================================
+
+#include "csagamecoordinator.h"
+
+bool CsaGameCoordinator::isMyTurn() const { return false; }

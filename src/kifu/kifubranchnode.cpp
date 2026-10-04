@@ -60,6 +60,18 @@ void KifuBranchNode::removeChild(KifuBranchNode* child)
     }
 }
 
+bool KifuBranchNode::moveChild(KifuBranchNode* child, int index)
+{
+    const qsizetype from = m_children.indexOf(child);
+    if (from < 0 || index < 0 || index >= m_children.size()) {
+        return false;
+    }
+    if (from != index) {
+        m_children.move(from, index);
+    }
+    return true;
+}
+
 KifuBranchNode* KifuBranchNode::childAt(int index) const
 {
     if (index >= 0 && index < m_children.size()) {

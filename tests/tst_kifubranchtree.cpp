@@ -60,6 +60,51 @@ private slots:
         QCOMPARE(tree.mainLine().last(), next);
     }
 
+    void moveChildQuiet_reordersLinesWithoutTreeChanged()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* first = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("m1"), QStringLiteral("s1"));
+        auto* main = tree.addMove(first, ShogiMove(), QStringLiteral("m2"), QStringLiteral("s2"));
+        auto* branch = tree.addMove(first, ShogiMove(), QStringLiteral("b2"), QStringLiteral("b2s"));
+        QCOMPARE(tree.mainLine().last(), main); // キャッシュを作ってから並べ替える
+        const quint64 before = tree.revision();
+        QSignalSpy changed(&tree, &KifuBranchTree::treeChanged);
+
+        QVERIFY(tree.moveChildQuiet(branch, 0));
+        QCOMPARE(changed.count(), 0);
+        QVERIFY(tree.revision() > before);
+        QCOMPARE(first->childAt(0), branch);
+        QCOMPARE(first->childAt(1), main);
+        QCOMPARE(tree.mainLine().last(), branch);
+        QCOMPARE(tree.findLineIndexForNode(main).value_or(-1), 1);
+
+        // 同じ位置・範囲外・ルートは変更しない。
+        const quint64 unchanged = tree.revision();
+        QVERIFY(tree.moveChildQuiet(branch, 0));
+        QVERIFY(!tree.moveChildQuiet(branch, 2));
+        QVERIFY(!tree.moveChildQuiet(tree.root(), 0));
+        QVERIFY(!tree.moveChildQuiet(nullptr, 0));
+        QCOMPARE(tree.revision(), unchanged);
+    }
+
+    void revision_increasesOnEveryStructuralChange()
+    {
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        quint64 last = tree.revision();
+        auto* node = tree.addMoveQuiet(tree.root(), ShogiMove(), QStringLiteral("m1"), QStringLiteral("s1"));
+        QVERIFY(tree.revision() > last);
+        last = tree.revision();
+        tree.setComment(node->nodeId(), QStringLiteral("comment"));
+        QCOMPARE(tree.revision(), last); // コメントは構造変更ではない
+        QVERIFY(tree.removeLeafQuiet(node));
+        QVERIFY(tree.revision() > last);
+        last = tree.revision();
+        tree.clear();
+        QVERIFY(tree.revision() > last);
+    }
+
     void setRootSfen()
     {
         KifuBranchTree tree;

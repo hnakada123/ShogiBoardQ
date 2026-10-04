@@ -105,7 +105,8 @@ public:
     /// 対局開始位置を越えず、指定手数を取り消せるか。
     bool canUndoMoves(int count) const;
 
-    /// セッション履歴と追加ノードを巻き戻す。対局前から存在するノードは保持する。
+    /// セッション履歴を巻き戻す（待った）。取り消した手順はツリーに分岐として残す。
+    /// 次に別の手を指すと、その手順が取り消した手順より本譜側に並ぶ。
     bool undoMoves(int count);
 
     // === 確定・破棄 ===
@@ -181,6 +182,9 @@ signals:
     void recordModelUpdateRequired();
 
 private:
+    /// 指した手のノードを、待ったで取り消した兄弟より前（本譜側）へ移す。
+    void placeBeforeUndoneSiblings(KifuBranchNode* node);
+
     void reset();
 
     bool m_active = false;
@@ -193,6 +197,7 @@ private:
     QList<ShogiMove> m_gameMoves;
     QStringList m_sfens;
     QSet<int> m_createdNodeIds;  ///< このセッションが追加したノード（既存手の再利用は含めない）
+    QSet<int> m_undoneNodeIds;   ///< 待ったで取り消した、このセッションの手順の先頭ノード
 };
 
 #endif // LIVEGAMESESSION_H

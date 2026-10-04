@@ -981,6 +981,7 @@ add_shogi_test(tst_gamestrategy
     ${SRC}/game/humanvshumanstrategy.cpp
     ${SRC}/game/humanvsenginestrategy.cpp
     ${SRC}/game/enginevsenginestrategy.cpp
+    ${SRC}/app/playmodepolicyservice.cpp
     ${SRC}/common/logcategories.cpp
 )
 

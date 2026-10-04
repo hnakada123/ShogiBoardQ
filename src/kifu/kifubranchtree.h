@@ -104,6 +104,10 @@ public:
     /// 葉ノードを削除し、表示に構造変更を通知する。
     bool removeLeaf(KifuBranchNode* node);
 
+    /// 子ノードを兄弟の中で index の位置へ移す（treeChanged は発火しない）。
+    /// 先頭の子が本譜側になるため、ライン番号が変わり得る。
+    bool moveChildQuiet(KifuBranchNode* child, int index);
+
     // === 一括更新 ===
 
     /**
@@ -176,6 +180,13 @@ public:
      * @brief ノード数を取得
      */
     int nodeCount() const { return static_cast<int>(m_nodeById.size()); }
+
+    /**
+     * @brief 構造変更（追加・削除・並べ替え・クリア）のたびに増える値
+     *
+     * quiet 版の変更は treeChanged を発火しないため、表示側はこの値で差分更新できるか判断する。
+     */
+    quint64 revision() const { return m_revision; }
 
     // === ライン操作 ===
 
@@ -271,6 +282,7 @@ private:
 
     mutable QList<BranchLine> m_linesCache;
     mutable bool m_linesCacheDirty = true;
+    quint64 m_revision = 0;               ///< 構造変更の回数（revision() 参照）
 };
 
 #endif // KIFUBRANCHTREE_H
