@@ -60,6 +60,8 @@ QWidget* UsiLogPanel::buildUi(QWidget* parent)
     m_logView->setObjectName(QStringLiteral("usiLogView"));
     m_logView->setAccessibleName(tr("USI通信ログ"));
     m_logView->setReadOnly(true);
+    // 対局・検討を繰り返しても通信履歴でメモリーが増え続けないようにする。
+    m_logView->setMaximumBlockCount(5000);
     m_logView->setFont(ApplicationFonts::monospaceFont());
     m_logView->setLineWrapMode(m_wrapAction->isChecked()
                                   ? QPlainTextEdit::WidgetWidth : QPlainTextEdit::NoWrap);
@@ -108,8 +110,14 @@ void UsiLogPanel::appendColoredLog(const QString& logLine, const QColor& lineCol
     const int oldVertical = vertical->value();
     const int oldHorizontal = horizontal->value();
     const QTextCursor original = m_logView->textCursor();
-    const int position = original.position();
-    const int anchor = original.anchor();
+    // 数値の位置ではなくカーソルで保持し、先頭ログの削除に追従させる。
+    // 末尾を選択している場合も追記で選択が伸びないよう、両端を個別に固定する。
+    QTextCursor position(m_logView->document());
+    position.setPosition(original.position());
+    position.setKeepPositionOnInsert(true);
+    QTextCursor anchor(m_logView->document());
+    anchor.setPosition(original.anchor());
+    anchor.setKeepPositionOnInsert(true);
     const bool follow = oldVertical == vertical->maximum() && !original.hasSelection();
 
     QTextCursor cursor(m_logView->document());
@@ -122,11 +130,12 @@ void UsiLogPanel::appendColoredLog(const QString& logLine, const QColor& lineCol
     cursor.insertText(logLine, coloredFormat);
     cursor.endEditBlock();
 
+    const int adjustedVertical = vertical->value();
     QTextCursor restored(m_logView->document());
-    restored.setPosition(anchor);
-    restored.setPosition(position, QTextCursor::KeepAnchor);
+    restored.setPosition(anchor.position());
+    restored.setPosition(position.position(), QTextCursor::KeepAnchor);
     m_logView->setTextCursor(restored);
-    vertical->setValue(follow ? vertical->maximum() : oldVertical);
+    vertical->setValue(follow ? vertical->maximum() : adjustedVertical);
     horizontal->setValue(oldHorizontal);
 }
 

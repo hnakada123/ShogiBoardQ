@@ -2,6 +2,7 @@
 /// @brief エンジン解析思考ビュープレゼンタの実装
 
 #include "engineanalysispresenter.h"
+#include "tablemodelutils.h"
 #include "kifumovedelegate.h"
 #include "logviewfontmanager.h"
 
@@ -46,8 +47,8 @@ void EngineAnalysisPresenter::setModels(ShogiEngineThinkingModel* m1, ShogiEngin
     m_model1 = m1;
     m_model2 = m2;
 
-    if (m_view1) m_view1->setModel(m1);
-    if (m_view2) m_view2->setModel(m2);
+    TableModelUtils::setModel(m_view1, m1);
+    TableModelUtils::setModel(m_view2, m2);
 
     applyThinkingViewColumnWidths(m_view1, 0);
     applyThinkingViewColumnWidths(m_view2, 1);
@@ -68,7 +69,7 @@ void EngineAnalysisPresenter::setModels(ShogiEngineThinkingModel* m1, ShogiEngin
 void EngineAnalysisPresenter::setEngine1ThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_model1 = m;
-    if (m_view1) m_view1->setModel(m);
+    TableModelUtils::setModel(m_view1, m);
     if (m_view1 && m_view1->horizontalHeader())
         m_view1->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 }
@@ -76,7 +77,7 @@ void EngineAnalysisPresenter::setEngine1ThinkingModel(ShogiEngineThinkingModel* 
 void EngineAnalysisPresenter::setEngine2ThinkingModel(ShogiEngineThinkingModel* m)
 {
     m_model2 = m;
-    if (m_view2) m_view2->setModel(m);
+    TableModelUtils::setModel(m_view2, m);
     if (m_view2 && m_view2->horizontalHeader())
         m_view2->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Stretch);
 }
@@ -110,7 +111,8 @@ void EngineAnalysisPresenter::setupThinkingViewHeader(QTableView* v)
     v->setStyleSheet(TableStyles::thinking());
     v->setShowGrid(false);
     v->setMouseTracking(true);
-    v->setItemDelegateForColumn(4, new PvBoardButtonDelegate(v));
+    if (!dynamic_cast<PvBoardButtonDelegate*>(v->itemDelegateForColumn(4)))
+        v->setItemDelegateForColumn(4, new PvBoardButtonDelegate(v));
 
     h->setDefaultSectionSize(100);
     h->setMinimumSectionSize(24);
@@ -231,8 +233,9 @@ void EngineAnalysisPresenter::applyNumericFormattingTo(QTableView* view, QAbstra
 {
     if (!view || !model) return;
 
-    // delegate は view を Qt parent として生成されるため、view 破棄時に自動削除される
-    auto* delegate = new NumericRightAlignCommaDelegate(view);
+    // モデルのリセットでも再利用する。setItemDelegateForColumn は旧 delegate を削除しない。
+    auto* delegate = qobject_cast<NumericRightAlignCommaDelegate*>(view->itemDelegateForColumn(0));
+    if (!delegate) delegate = new NumericRightAlignCommaDelegate(view);
 
     // ShogiEngineThinkingModel: time, depth, nodes, score are numeric columns.
     for (int column = 0; column < qMin(4, model->columnCount()); ++column)

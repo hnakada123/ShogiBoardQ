@@ -2,6 +2,7 @@
 /// @brief 解析結果表示プレゼンタクラスの実装
 
 #include "analysisresultspresenter.h"
+#include "tablemodelutils.h"
 #include "kifumovedelegate.h"
 #include "logcategories.h"
 #include "buttonstyles.h"
@@ -70,7 +71,7 @@ void AnalysisResultsPresenter::showWithModel(KifuAnalysisListModel* model)
 
         // 新しいモデルを設定
         if (model) {
-            m_view->setModel(model);
+            TableModelUtils::setModel(m_view, model);
             connectModelSignals(model);
             setupHeaderConfiguration();
 
@@ -99,7 +100,7 @@ void AnalysisResultsPresenter::buildUi(KifuAnalysisListModel* /*model*/)
 
     // ヘッダー表示用に空のモデルを作成（起動時からヘッダーを表示するため）
     auto* emptyModel = new KifuAnalysisListModel(m_view);
-    m_view->setModel(emptyModel);
+    TableModelUtils::setModel(m_view, emptyModel);
 
     m_view->setAlternatingRowColors(true);
     m_view->setWordWrap(false);

@@ -2,6 +2,7 @@
 /// @brief 棋譜欄ペインクラスの実装
 
 #include "recordpane.h"
+#include "tablemodelutils.h"
 #include "buttonstyles.h"
 #include "kifurecordlistmodel.h"
 #include "kifubranchlistmodel.h"
@@ -346,7 +347,7 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     qCDebug(lcUi) << "m_kifu styleSheet in setModels:" << m_kifu->styleSheet().left(100) << "...";
 
     // --- 棋譜テーブル ---
-    m_kifu->setModel(recModel);
+    TableModelUtils::setModel(m_kifu, recModel);
 
     // 行追加→自動スクロール（多重接続防止）
     if (auto* model = m_kifu->model()) {
@@ -394,7 +395,7 @@ void RecordPane::setModels(KifuRecordListModel* recModel, KifuBranchListModel* b
     }
 
     // --- 分岐テーブル ---
-    m_branch->setModel(brModel);
+    TableModelUtils::setModel(m_branch, brModel);
     if (auto* hh2 = m_branch->horizontalHeader()) {
         hh2->setSectionResizeMode(0, QHeaderView::Stretch);
     }

@@ -131,13 +131,6 @@ void TsumeshogiGenerator::stop()
 
     m_phase = Phase::Idle;
 
-    // バッチ生成をキャンセル
-    if (m_cancelFlag) m_cancelFlag->store(true);
-    if (m_batchWatcher.isRunning()) {
-        // UIブロックを避けるため同期待機せず、完了通知は onBatchReady 側で無視する。
-        m_batchWatcher.cancel();
-    }
-
     cleanup();
     emit finished();
 }
@@ -371,6 +364,13 @@ void TsumeshogiGenerator::rejectInconclusiveTrim()
 
 void TsumeshogiGenerator::cleanup()
 {
+    // 上限到達・エラーでも先行生成を中止する。フラグを手放す前にワーカーへ通知する。
+    if (m_cancelFlag) m_cancelFlag->store(true);
+    if (m_batchWatcher.isRunning()) {
+        m_batchWatcher.cancel();
+    } else {
+        m_batchWatcher.setFuture({});
+    }
     m_safetyTimer.stop();
     m_progressTimer.stop();
     m_verificationStepTimer.stop();
@@ -391,6 +391,7 @@ void TsumeshogiGenerator::cleanup()
 
     // バッチ生成状態をクリア
     m_positionQueue.clear();
+    m_foundSfens.clear();
     m_waitingForPositions = false;
     m_awaitingStopResponse = false;
     m_cancelFlag.reset();
@@ -426,10 +427,14 @@ void TsumeshogiGenerator::startBatchGeneration()
 
 void TsumeshogiGenerator::onBatchReady()
 {
-    if (m_phase == Phase::Idle) return;
+    if (m_phase == Phase::Idle) {
+        m_batchWatcher.setFuture({});
+        return;
+    }
 
     if (!m_batchWatcher.isCanceled()) {
         const TsumeshogiCandidateScreener::Batch batch = m_batchWatcher.result();
+        m_batchWatcher.setFuture({});
         m_generatedCount += batch.generated;
         m_positionQueue.append(batch.candidates);
         m_screenUnknownCount += batch.unknown;

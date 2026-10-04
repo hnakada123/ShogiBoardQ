@@ -8,6 +8,7 @@
 #include <QScrollBar>
 #include <QSettings>
 #include <QTemporaryDir>
+#include <QTextBlock>
 
 #include "analysissettings.h"
 #include "settingscommon.h"
@@ -89,6 +90,49 @@ private slots:
         QCOMPARE(vertical->value(), vertical->maximum());
         page->findChild<QAction*>("usiLogWrap")->trigger();
         QCOMPARE(vertical->value(), vertical->maximum());
+    }
+
+    void logHistoryIsBounded()
+    {
+        UsiLogPanel panel;
+        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
+        for (int i = 0; i < 12000; ++i)
+            panel.appendColoredLog(QStringLiteral("info depth %1 pv 7g7f").arg(i), Qt::blue);
+        QVERIFY(view->document()->blockCount() <= 5000);
+        QCOMPARE(view->document()->lastBlock().text(), QStringLiteral("info depth 11999 pv 7g7f"));
+        QVERIFY(!view->document()->isUndoAvailable());
+    }
+
+    void trimmingPreservesRetainedSelection_data()
+    {
+        QTest::addColumn<bool>("reverse");
+        QTest::newRow("forward") << false;
+        QTest::newRow("reverse") << true;
+    }
+
+    void trimmingPreservesRetainedSelection()
+    {
+        QFETCH(bool, reverse);
+        UsiLogPanel panel;
+        std::unique_ptr<QWidget> page(panel.buildUi(nullptr));
+        auto* view = page->findChild<QPlainTextEdit*>("usiLogView");
+        view->setMaximumBlockCount(8);
+        for (int i = 0; i < 8; ++i)
+            panel.appendColoredLog(QStringLiteral("line %1").arg(i), Qt::blue);
+        QTextCursor cursor(view->document());
+        const int start = view->document()->findBlockByNumber(5).position();
+        const int end = view->document()->characterCount() - 1;
+        cursor.setPosition(reverse ? end : start);
+        cursor.setPosition(reverse ? start : end, QTextCursor::KeepAnchor);
+        view->setTextCursor(cursor);
+        const QString selected = cursor.selectedText();
+        for (int i = 8; i < 11; ++i) {
+            panel.appendColoredLog(QStringLiteral("line %1").arg(i), Qt::blue);
+            QCOMPARE(view->document()->blockCount(), 8);
+            QCOMPARE(view->textCursor().selectedText(), selected);
+        }
+        QCOMPARE(view->document()->firstBlock().text(), QStringLiteral("line 3"));
     }
 
     void copyAndClearKeepRawLog()
