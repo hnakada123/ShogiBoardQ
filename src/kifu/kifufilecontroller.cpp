@@ -53,10 +53,11 @@ void KifuFileController::chooseAndLoadKifuFile()
     const QString filePath = QFileDialog::getOpenFileName(
         m_deps.parentWidget, tr("棋譜ファイルを開く"), lastDir,
         tr("Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;"
-           "KIF Files (*.kif *.kifu *.ki2 *.ki2u);;"
+           "KIF Files (*.kif *.kifu);;"
+           "KI2 Files (*.ki2 *.ki2u);;"
            "CSA Files (*.csa);;"
            "JKF Files (*.jkf);;"
-           "USI Files (*.usi *.sfen);;"
+           "USI/SFEN Files (*.usi *.sfen);;"
            "USEN Files (*.usen)")
         );
 

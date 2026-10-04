@@ -5841,22 +5841,26 @@ Use Add to enter a move or Merge to import a game record.</translation>
         <translation>Open Game Record File</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="55"/>
         <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</source>
-        <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
+        <translation type="vanished">Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu *.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="144"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="55"/>
+        <source>Kifu Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</source>
+        <translation>Game Record Files (*.kif *.kifu *.ki2 *.ki2u *.csa *.jkf *.usi *.sfen *.usen);;KIF Files (*.kif *.kifu);;KI2 Files (*.ki2 *.ki2u);;CSA Files (*.csa);;JKF Files (*.jkf);;USI/SFEN Files (*.usi *.sfen);;USEN Files (*.usen)</translation>
+    </message>
+    <message>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
         <source>棋譜を読み込み中...</source>
         <translation>Loading game record...</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="144"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="145"/>
         <source>キャンセル</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="166"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="167"/>
         <source>棋譜を取り込みました</source>
         <translation>Game record imported</translation>
     </message>
@@ -5869,17 +5873,17 @@ Use Add to enter a move or Merge to import a game record.</translation>
         <translation type="vanished">Failed to import game record (internal error)</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="190"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="191"/>
         <source>局面を反映しました</source>
         <translation>Position applied</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="192"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="193"/>
         <source>局面の反映に失敗しました</source>
         <translation>Failed to apply position</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="197"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="198"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>Failed to apply position (internal error)</translation>
     </message>
@@ -8603,7 +8607,7 @@ Are you sure you want to declare?</translation>
 UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。</source>
         <translation>The following characters cannot be saved in Shift_JIS: %1
 
-Save as UTF-8 instead? The first line of the file will record "encoding=UTF-8".</translation>
+Save as UTF-8 instead? The first line of the file will record &quot;encoding=UTF-8&quot;.</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifusavecoordinator.cpp" line="58"/>
