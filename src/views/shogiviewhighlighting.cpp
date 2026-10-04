@@ -2,7 +2,6 @@
 /// @brief 将棋盤面のハイライト・矢印・手番表示の実装
 
 #include "shogiviewhighlighting.h"
-#include "shogiboard.h"
 #include "shogiviewlayout.h"
 #include "boardconstants.h"
 
