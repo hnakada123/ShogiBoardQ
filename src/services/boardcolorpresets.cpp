@@ -104,5 +104,23 @@ QString BoardColorPresets::pieceStyleName(const QString& style)
         return QCoreApplication::translate("MainWindow", "Ribbon（白）");
     if (style == QLatin1String("chess_ribbon_slate"))
         return QCoreApplication::translate("MainWindow", "Ribbon（墨）");
+    if (style == QLatin1String("alphabet_sei_wood"))
+        return QCoreApplication::translate("MainWindow", "端正（木肌）");
+    if (style == QLatin1String("alphabet_sei_paper"))
+        return QCoreApplication::translate("MainWindow", "端正（白）");
+    if (style == QLatin1String("alphabet_sei_slate"))
+        return QCoreApplication::translate("MainWindow", "端正（墨）");
+    if (style == QLatin1String("alphabet_rin_wood"))
+        return QCoreApplication::translate("MainWindow", "凛（木肌）");
+    if (style == QLatin1String("alphabet_rin_paper"))
+        return QCoreApplication::translate("MainWindow", "凛（白）");
+    if (style == QLatin1String("alphabet_rin_slate"))
+        return QCoreApplication::translate("MainWindow", "凛（墨）");
+    if (style == QLatin1String("alphabet_sumi_wood"))
+        return QCoreApplication::translate("MainWindow", "墨（木肌）");
+    if (style == QLatin1String("alphabet_sumi_paper"))
+        return QCoreApplication::translate("MainWindow", "墨（白）");
+    if (style == QLatin1String("alphabet_sumi_slate"))
+        return QCoreApplication::translate("MainWindow", "墨（墨）");
     return QCoreApplication::translate("MainWindow", "標準の駒");
 }

@@ -159,7 +159,16 @@ QStringList availablePieceStyles()
             QStringLiteral("chess_atelier_slate"),
             QStringLiteral("chess_ribbon_wood"),
             QStringLiteral("chess_ribbon_paper"),
-            QStringLiteral("chess_ribbon_slate")};
+            QStringLiteral("chess_ribbon_slate"),
+            QStringLiteral("alphabet_sei_wood"),
+            QStringLiteral("alphabet_sei_paper"),
+            QStringLiteral("alphabet_sei_slate"),
+            QStringLiteral("alphabet_rin_wood"),
+            QStringLiteral("alphabet_rin_paper"),
+            QStringLiteral("alphabet_rin_slate"),
+            QStringLiteral("alphabet_sumi_wood"),
+            QStringLiteral("alphabet_sumi_paper"),
+            QStringLiteral("alphabet_sumi_slate")};
 }
 
 QString pieceStyle()
@@ -327,12 +336,12 @@ void setAppearanceSection(int index)
 
 int appearancePieceFilter()
 {
-    return qBound(0, SettingsCommon::openSettings().value(SettingsKeys::kAppearancePieceFilter, 0).toInt(), 4);
+    return qBound(0, SettingsCommon::openSettings().value(SettingsKeys::kAppearancePieceFilter, 0).toInt(), 7);
 }
 
 void setAppearancePieceFilter(int index)
 {
-    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearancePieceFilter, qBound(0, index, 4));
+    SettingsCommon::openSettings().setValue(SettingsKeys::kAppearancePieceFilter, qBound(0, index, 7));
 }
 
 void setBoardColorDialogTab(int index)

@@ -8,7 +8,7 @@
 文字はパス化されているため、利用者の環境に日本語フォントは不要です。
 表示倍率と影は共通の描画処理で付け、盤上・持駒・ドラッグ中・プレビューで統一します。
 
-「表示」→「対局画面の外観…」の「駒」タブで、標準の駒と30種類のバリエーションを選べます。
+「表示」→「対局画面の外観…」の「駒」タブで、標準の駒と39種類のバリエーションを選べます。
 初期設定は `standard` です。「糸柾」（`wood_straight`）や廃止済み旧セットの保存済み選択も `standard` に移行します。
 木目・色調の20種類は標準セットの外形・字形・大きさ・向きを保ちます。
 「戦国文字」は同じ外形・大きさ・向きで、文字と兜を組み合わせた独自の字形を使います。
@@ -47,9 +47,18 @@
 | チェス | Ribbon（木肌） | `chess_ribbon_wood/` |
 | チェス | Ribbon（白） | `chess_ribbon_paper/` |
 | チェス | Ribbon（墨） | `chess_ribbon_slate/` |
+| アルファベット | 端正（木肌） | `alphabet_sei_wood/` |
+| アルファベット | 端正（白） | `alphabet_sei_paper/` |
+| アルファベット | 端正（墨） | `alphabet_sei_slate/` |
+| アルファベット | 凛（木肌） | `alphabet_rin_wood/` |
+| アルファベット | 凛（白） | `alphabet_rin_paper/` |
+| アルファベット | 凛（墨） | `alphabet_rin_slate/` |
+| アルファベット | 墨（木肌） | `alphabet_sumi_wood/` |
+| アルファベット | 墨（白） | `alphabet_sumi_paper/` |
+| アルファベット | 墨（墨） | `alphabet_sumi_slate/` |
 
 `variants.json` に配色と木目の生成パラメーターを保存しています。
-標準と合わせて31セット、各30枚（先手・後手各15種類）、計930枚です。
+標準と合わせて40セット、各30枚（先手・後手各15種類）、計1200枚です。
 
 ## 戦国文字
 
@@ -92,6 +101,29 @@ SVGの五角形はベクター、絵柄は透明PNGの埋め込みです。成�
 node scripts/export_chess_symbols.mjs /tmp/shogi-chess-symbols
 python3 scripts/generate_chess_pieces.py /tmp/shogi-chess-symbols
 ```
+
+## アルファベットの駒
+
+`alphabet_*` は明朝体の「端正」「凛」「墨」と、木肌・白・墨の各配色を組み合わせた9セットです。
+王・玉=K、飛=R、角=B、金=G、銀=S、桂=N、香=L、歩=Pです。
+通常は黒文字、成駒は同じ文字の赤色で表し、記号や下線は付けません。
+五角形・種類別の縮尺・先後の向きは標準SVGを使い、文字も駒の大きさに比例させています。
+字形の実際の高さと下余白を基準に揃え、中心からわずかに右へ調整しています。
+
+「駒」タブの「アルファベット」から選択できます。「おすすめの組み合わせ」には、
+承認済みのHTML見本と同じ盤・駒台・背景の配色も収録しています。
+墨の配色は濃い緑灰色の盤と明るい駒面です。駒の動きと持駒のルールは通常の将棋と同じです。
+
+文字は Noto Serif CJK JP のSemiBold（端正）、Medium（凛）、Black（墨）をパス化しています。
+ライセンスは同梱の `OFL.txt` を参照してください。アプリのビルド・実行にはフォントは不要です。
+再生成には Python 3、PySide6 と上記3書体のNoto Serif CJKフォントが必要です。
+承認済みのHTMLはローカルの `design/alphabet-shogi/` にありますが、再生成には使用しません。
+
+```sh
+python3 scripts/generate_alphabet_pieces.py --output /tmp/shogiboardq-alphabet-pieces
+```
+
+フォントの場所を変える場合は `--font-dir` を指定します。出力した9フォルダを確認してから反映します。
 
 ## 今後のバリエーション追加
 

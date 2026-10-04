@@ -172,269 +172,290 @@
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="46"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="89"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="95"/>
         <source>白榧</source>
         <translation>浅榧木</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="47"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="89"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="95"/>
         <source>本榧</source>
         <translation>金榧木</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="48"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="112"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="121"/>
         <source>琥珀</source>
         <translation>琥珀</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="49"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="73"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="90"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="113"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="76"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="96"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="122"/>
         <source>胡桃</source>
         <translation>胡桃木</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="50"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="73"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="76"/>
         <source>焦茶</source>
         <translation>深棕</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="51"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="91"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="97"/>
         <source>白桐</source>
         <translation>浅桐木</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="52"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="75"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="92"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="105"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="78"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="98"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="114"/>
         <source>生成り</source>
         <translation>亚麻</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="53"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="92"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="123"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="98"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="132"/>
         <source>月白</source>
         <translation>月白</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="54"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="76"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="93"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="120"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="79"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="99"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="129"/>
         <source>銀鼠</source>
         <translation>银灰</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="55"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="76"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="93"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="79"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="99"/>
         <source>薄墨</source>
         <translation>柔炭灰</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="56"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="77"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="94"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="80"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="100"/>
         <source>墨夜</source>
         <translation>墨夜</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="57"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="77"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="94"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="109"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="80"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="100"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="118"/>
         <source>青磁</source>
         <translation>青瓷</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="58"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="78"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="95"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="81"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="101"/>
         <source>若竹</source>
         <translation>嫩竹</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="59"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="78"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="95"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="81"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="101"/>
         <source>苔庭</source>
         <translation>苔庭</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="60"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="79"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="96"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="82"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="102"/>
         <source>藍青</source>
         <translation>靛蓝</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="61"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="79"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="96"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="82"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="102"/>
         <source>薄桜</source>
         <translation>淡樱</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="62"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="80"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="97"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="83"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="103"/>
         <source>藤鼠</source>
         <translation>藤灰</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="63"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="80"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="97"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="83"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="103"/>
         <source>砂岩</source>
         <translation>砂岩</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="64"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="81"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="98"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="84"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="104"/>
         <source>青灰</source>
         <translation>蓝灰</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="65"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="82"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="99"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="85"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="105"/>
         <source>チェス・木肌</source>
         <translation>国际象棋・木色</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="66"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="83"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="100"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="86"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="106"/>
         <source>チェス・白</source>
         <translation>国际象棋・白色</translation>
     </message>
     <message>
         <location filename="../../src/services/boardappearancecatalog.cpp" line="67"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="84"/>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="101"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="87"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="107"/>
         <source>チェス・墨</source>
         <translation>国际象棋・墨色</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="71"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="68"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="88"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="108"/>
+        <source>欧文・木肌</source>
+        <translation>字母・木肌</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="69"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="89"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="109"/>
+        <source>欧文・白</source>
+        <translation>字母・白</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="70"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="90"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="110"/>
+        <source>欧文・墨</source>
+        <translation>字母・墨</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="74"/>
         <source>畳</source>
         <translation>榻榻米</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="72"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="75"/>
         <source>白緑</source>
         <translation>浅绿</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="72"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="75"/>
         <source>松葉</source>
         <translation>松绿</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="74"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="77"/>
         <source>炭</source>
         <translation>炭灰</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="74"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="77"/>
         <source>柳鼠</source>
         <translation>柳灰</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="75"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="78"/>
         <source>青鼠</source>
         <translation>板岩灰</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="88"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="94"/>
         <source>木肌</source>
         <translation>原木</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="90"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="96"/>
         <source>飴色</source>
         <translation>琥珀木</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="91"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="97"/>
         <source>黒檀</source>
         <translation>乌木</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="104"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="113"/>
         <source>若草</source>
         <translation>春绿</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="106"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="115"/>
         <source>白磁</source>
         <translation>瓷白</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="107"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="116"/>
         <source>桜霞</source>
         <translation>樱雾</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="108"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="117"/>
         <source>藤霞</source>
         <translation>藤雾</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="110"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="119"/>
         <source>水浅葱</source>
         <translation>浅水蓝</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="111"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="120"/>
         <source>砂丘</source>
         <translation>沙丘</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="114"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="123"/>
         <source>墨</source>
         <translation>炭灰</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="115"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="124"/>
         <source>藍夜</source>
         <translation>靛夜</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="116"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="125"/>
         <source>深緑</source>
         <translation>森林绿</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="117"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="126"/>
         <source>葡萄</source>
         <translation>葡萄紫</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="118"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="127"/>
         <source>鉄紺</source>
         <translation>铁蓝</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="119"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="128"/>
         <source>墨金</source>
         <translation>墨金</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="121"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="130"/>
         <source>紅殻</source>
         <translation>赤土</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardappearancecatalog.cpp" line="122"/>
+        <location filename="../../src/services/boardappearancecatalog.cpp" line="131"/>
         <source>石庭</source>
         <translation>石庭</translation>
     </message>
@@ -482,13 +503,13 @@
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="108"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="169"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="178"/>
         <source>将棋盤</source>
         <translation>棋盘</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="109"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="169"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="178"/>
         <source>駒台</source>
         <translation>驹台</translation>
     </message>
@@ -544,7 +565,7 @@
     </message>
     <message>
         <location filename="../../src/dialogs/boardcolordialog.cpp" line="117"/>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="103"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="112"/>
         <source>手番</source>
         <translation>行棋方</translation>
     </message>
@@ -740,67 +761,117 @@
         <translation>Ribbon（墨色）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="108"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="49"/>
+        <source>端正（木肌）</source>
+        <translation>端正（木肌）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="50"/>
+        <source>端正（白）</source>
+        <translation>端正（白）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="51"/>
+        <source>端正（墨）</source>
+        <translation>端正（墨）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="52"/>
+        <source>凛（木肌）</source>
+        <translation>凛（木肌）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="53"/>
+        <source>凛（白）</source>
+        <translation>凛（白）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="54"/>
+        <source>凛（墨）</source>
+        <translation>凛（墨）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="55"/>
+        <source>墨（木肌）</source>
+        <translation>墨（木肌）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="56"/>
+        <source>墨（白）</source>
+        <translation>墨（白）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="57"/>
+        <source>墨（墨）</source>
+        <translation>墨（墨）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="117"/>
         <source>▲先手</source>
         <translation>▲先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="148"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="157"/>
         <source>すべての駒（%1種類）</source>
         <translation>全部棋子（%1 种）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="149"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
         <source>虎斑</source>
         <translation>虎纹</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="149"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
         <source>木肌</source>
         <translation>原木</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="149"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
         <source>淡色</source>
         <translation>浅色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="149"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
         <source>深色</source>
         <translation>深色</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="149"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
         <source>意匠</source>
         <translation>符号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="149"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
         <source>チェス</source>
         <translation>国际象棋</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="168"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="158"/>
+        <source>アルファベット</source>
+        <translation>字母</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="177"/>
         <source>駒</source>
         <translation>棋子</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="169"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="178"/>
         <source>対局者情報</source>
         <translation>对局者</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="169"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="178"/>
         <source>背景</source>
         <translation>背景</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="176"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="185"/>
         <source>手番・対局者名・持ち時間の見本（20種類）</source>
         <translation>行棋方、姓名及时钟（20 种）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="177"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="186"/>
         <source>%1の見本（%2種類）</source>
         <translation>%1示例（%2种）</translation>
     </message>
@@ -809,47 +880,47 @@
         <translation type="vanished">%1样例（20 种）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="195"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="204"/>
         <source>詳細</source>
         <translation>详细设置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="200"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="209"/>
         <source>おすすめの組み合わせ</source>
         <translation>推荐组合</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="203"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="212"/>
         <source>自由な組み合わせ</source>
         <translation>自定义组合</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="208"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="217"/>
         <source>プレビュー</source>
         <translation>预览</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="212"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="221"/>
         <source>初期局面</source>
         <translation>初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="212"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="221"/>
         <source>成駒・持駒の見本</source>
         <translation>成驹与持驹</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="214"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="223"/>
         <source>盤面反転</source>
         <translation>翻转棋盘</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="306"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="315"/>
         <source>カスタム</source>
         <translation>自定义</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="308"/>
+        <location filename="../../src/dialogs/boardcolordialog_catalog.cpp" line="317"/>
         <source>駒：%1
 将棋盤：%2&#x3000;／&#x3000;背景：%5
 駒台：%3&#x3000;／&#x3000;対局者情報：%4</source>
@@ -5324,6 +5395,51 @@ OKを選択すると保存先が指定できます。</source>
         <translation>Ribbon（墨色）</translation>
     </message>
     <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="108"/>
+        <source>端正（木肌）</source>
+        <translation>端正（木肌）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="110"/>
+        <source>端正（白）</source>
+        <translation>端正（白）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="112"/>
+        <source>端正（墨）</source>
+        <translation>端正（墨）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="114"/>
+        <source>凛（木肌）</source>
+        <translation>凛（木肌）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="116"/>
+        <source>凛（白）</source>
+        <translation>凛（白）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="118"/>
+        <source>凛（墨）</source>
+        <translation>凛（墨）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="120"/>
+        <source>墨（木肌）</source>
+        <translation>墨（木肌）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="122"/>
+        <source>墨（白）</source>
+        <translation>墨（白）</translation>
+    </message>
+    <message>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="124"/>
+        <source>墨（墨）</source>
+        <translation>墨（墨）</translation>
+    </message>
+    <message>
         <location filename="../../src/app/mainwindow.ui" line="235"/>
         <source>将棋盤の画像をファイルに保存…</source>
         <translation>保存棋盘图片…</translation>
@@ -5696,7 +5812,7 @@ OKを選択すると保存先が指定できます。</source>
         <translation>另存为…</translation>
     </message>
     <message>
-        <location filename="../../src/services/boardcolorpresets.cpp" line="107"/>
+        <location filename="../../src/services/boardcolorpresets.cpp" line="125"/>
         <source>標準の駒</source>
         <translation>标准棋子</translation>
     </message>

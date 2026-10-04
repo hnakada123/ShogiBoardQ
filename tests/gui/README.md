@@ -56,7 +56,7 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 `tst_ponder_flow` はUSI_Ponderを報告しない模擬エンジンで、先後両方の成りと予測一致・不一致、人間とエンジンそれぞれの手番での「すぐ指させる」、エンジン同士の先読み対局を検証します。CSAは実際のCsaEngineControllerを使い、予測局面の保持とエンジン再初期化・終了を確認します（CSAサーバーには接続しません）。
 標準の駒と反転時のスクリーンショットも保存します。
 同テストの `arrowsDuringMatch` は先後両方の人間対エンジンとエンジン同士の対局で、矢印表示のON/OFF、先読み側の追加表示、色・破線、予想手の説明、ponderhit時の実線への切替と終局時の消去を検証します。`arrowsPonderMiss` は予測が外れた後の古い先読み矢印の消去を確認します。`match-arrows-*.png` に反転盤の表示を保存します。
-追加30種類は `pieceVariants:<style>`（例: `pieceVariants:torafu_light`、戦国文字は `pieceVariants:sengoku`、チェス風は `pieceVariants:chess_facet_wood` など）で種類ごとに実行します。各種類の選択、別盤面への反映、再起動後の復元、反転時の王・玉、成駒・持駒・駒打ち矢印、配色ダイアログの表示名と画像を検証します。`pieceStyleMenuBar` と `pieceStyleMenuDock` は旧メニュー・ボタンがなくなり、統合ウィンドウを開けることを確認します。
+追加39種類は `pieceVariants:<style>`（例: `pieceVariants:torafu_light`、戦国文字は `pieceVariants:sengoku`、チェス風は `pieceVariants:chess_facet_wood`、アルファベットは `pieceVariants:alphabet_sei_wood` など）で種類ごとに実行します。各種類の選択、別盤面への反映、再起動後の復元、反転時の王・玉、成駒・持駒・駒打ち矢印、配色ダイアログの表示名と画像を検証します。`pieceStyleMenuBar` と `pieceStyleMenuDock` は旧メニュー・ボタンがなくなり、統合ウィンドウを開けることを確認します。
 人間対エンジンの投了後の棋譜操作は `engineHumanResignNavigation` で検証します。人間が先手・後手の両方で、投了直後も淡い若草色の対局者カードと深緑の手番バッジ・カード全周の枠線を保つことを確認します。その後、指し手列・消費時間列から開始局面・途中の手・投了行を繰り返し選び、盤面と手番表示が選択と一致することを確認します。
 局面編集開始時の棋譜クリアは `boardEditingClearsRecord` で検証します。読込棋譜の先頭・途中・最終局面と対局終了後から編集を開始し、盤面・持ち駒・手番を保持したまま棋譜欄が起動時と同じ1行に戻ることを確認します。メニューと盤上ボタンの両方から編集を終了し、棋譜操作・USI出力・再編集にも編集後の開始局面が使われることを検証します。
 局面編集の直接操作は `boardEditingPieceTransfers` で通常・反転表示それぞれの両側7種類について、駒箱・駒台・盤・相手駒台の間の移動と枚数を検証します。「全ての駒を駒箱へ」は王・玉を含む全40枚を先後共通の生駒として収納し、盤上と両駒台を空にします。`boardEditingKingsStayOnBoard` は王・玉を通常の駒台へ移す操作の拒否を計8ケースで検証します。
@@ -172,4 +172,4 @@ xvfb-run -a env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsumeshogi_ge
 xvfb-run -a -s '-screen 0 1600x1200x24' env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_tsume_search_dialog
 ```
 
-`chessCombinations` はチェス風9セットのおすすめ組み合わせ、盤・駒台・背景の配色、選択状態と再起動後の復元を確認します。
+`pieceCombinations:chess` と `pieceCombinations:alphabet` はチェス風・アルファベット各9セットのおすすめ組み合わせ、盤・駒台・背景の配色、選択状態と再起動後の復元を確認します。
