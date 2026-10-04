@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>対局機能 - ShogiBoardQ</title>
     <meta name="description" content="ShogiBoardQの対局機能を紹介します。USIエンジンの登録から対局の設定・実行・振り返りまでの流れをスクリーンショット付きで解説。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
@@ -23,6 +20,11 @@
     <meta name="twitter:description" content="ShogiBoardQの対局機能を紹介。エンジン登録から対局・振り返りまでの流れを解説。">
     <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/game-play/game-02-playing-engine-log.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/game-play.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/game-play.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
 </head>
 <body>
 
@@ -30,7 +32,15 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/game-play.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="game-play.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/game-play.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/game-play.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/game-play.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
@@ -91,7 +101,7 @@
                 <p class="guide-step-text">「追加」ボタンをクリックし、USIエンジンの実行ファイルを選択します。</p>
                 <div class="screenshot-item">
                     <img src="../images/game-play/engine-02-file-selection.png" alt="エンジン実行ファイルの選択ダイアログ">
-                    <p class="screenshot-caption">ファイル選択ダイアログ：USIエンジンの実行ファイルを選択</p>
+                    <p class="screenshot-caption">ファイル選択ダイアログ：Hayanagiの実行ファイル（hayanagi）を選択</p>
                 </div>
             </div>
 
@@ -257,6 +267,21 @@
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>

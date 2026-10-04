@@ -21,16 +21,26 @@
 <meta content="Learn to register engines, play games, and review them in ShogiBoardQ." name="twitter:description"/>
 <meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/game-play/game-02-playing-engine-log.png" name="twitter:image"/>
 <link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html" hreflang="x-default" rel="alternate"/>
+<link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
+<link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html">
+<link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/game-play.html">
+<link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/game-play.html">
+<link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
 </head>
 <body>
 <!-- Navigation -->
 <nav class="site-nav">
 <div class="nav-inner">
 <a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/game-play.html" hreflang="ja" lang="ja">日本語</a>
+<details class="lang-menu">
+    <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+    <ul>
+        <li><a href="../../guide/game-play.html" lang="ja" hreflang="ja">日本語</a></li>
+        <li><a href="game-play.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+        <li><a href="../../zh-cn/guide/game-play.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+        <li><a href="../../zh-tw/guide/game-play.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+    </ul>
+</details>
 <button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
 <span></span><span></span><span></span>
 </button>
@@ -87,7 +97,7 @@
 <p class="guide-step-text">Click Add and select the executable file for a USI engine.</p>
 <div class="screenshot-item">
 <img alt="Engine executable selection dialog" src="../../images/en/game-play/engine-02-file-selection.png"/>
-<p class="screenshot-caption">File selection dialog: choose a USI engine executable</p>
+<p class="screenshot-caption">File selection dialog: select the Hayanagi executable (hayanagi)</p>
 </div>
 </div>
 <div class="guide-step">
@@ -235,5 +245,20 @@
 <footer class="site-footer">
 <p>© 2025 ShogiBoardQ</p>
 </footer>
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
