@@ -13,6 +13,7 @@
 #include <QJsonObject>
 #include <QLocalServer>
 #include <QLocalSocket>
+#include <QPointer>
 #include <QLatin1StringView>
 #include <QStandardPaths>
 
@@ -132,28 +133,34 @@ void AutomationServer::onNewConnection()
 
 void AutomationServer::onReadyRead()
 {
-    auto* socket = qobject_cast<QLocalSocket*>(sender());
+    // ハンドラがモーダルダイアログを開くと、入れ子のイベントループ中にクライアントが切断し、
+    // onDisconnected() でバッファが消えてソケットも削除され得る。ソケットは QPointer で生存を確認し、
+    // バッファは参照を保持せず毎回引き直す。
+    const QPointer<QLocalSocket> socket = qobject_cast<QLocalSocket*>(sender());
     if (!socket) return;
-    QByteArray& buffer = m_buffers[socket];
-    buffer.append(socket->readAll());
-    if (buffer.size() > kMaxLineBytes) {
+    auto entry = m_buffers.find(socket.data());
+    if (entry == m_buffers.end()) return;
+    entry->append(socket->readAll());
+    if (entry->size() > kMaxLineBytes) {
         const QJsonObject error = AutomationDispatcher::makeError(
             QJsonValue::Null, AutomationErrorCode::InvalidRequest,
             QStringLiteral("Message exceeds %1 bytes").arg(kMaxLineBytes));
+        entry->clear();
         socket->write(QJsonDocument(error).toJson(QJsonDocument::Compact) + '\n');
         socket->disconnectFromServer();
-        buffer.clear();
         return;
     }
-    qsizetype newline = -1;
-    while ((newline = buffer.indexOf('\n')) >= 0) {
-        const QByteArray line = buffer.left(newline);
-        buffer.remove(0, newline + 1);
+    while (socket) {
+        entry = m_buffers.find(socket.data());
+        if (entry == m_buffers.end()) return;
+        const qsizetype newline = entry->indexOf('\n');
+        if (newline < 0) return;
+        const QByteArray line = entry->left(newline);
+        entry->remove(0, newline + 1);
         const QByteArray response = m_dispatcher.handleLine(line);
-        if (!response.isEmpty()) {
-            socket->write(response);
-            socket->flush();
-        }
+        if (response.isEmpty() || !socket || socket->state() != QLocalSocket::ConnectedState) continue;
+        socket->write(response);
+        socket->flush();
     }
 }
 
