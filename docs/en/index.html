@@ -1,355 +1,475 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>ShogiBoardQ - Shogi Playing and Analysis Software Built with Qt6</title>
-<meta content="ShogiBoardQ is a shogi playing and game analysis application built with Qt6 and C++17, featuring USI engine support, multiple game record formats, and CSA network play." name="description"/>
-<meta content="6uVKShyfeRaK8nx6ROgoIuBXb2qdMtwgX8NJfiBrwVM" name="google-site-verification"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="website" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/" property="og:url"/>
-<meta content="ShogiBoardQ - Shogi Playing and Analysis Software Built with Qt6" property="og:title"/>
-<meta content="ShogiBoardQ is a shogi playing and game analysis application built with Qt6 and C++17, featuring USI engine support, multiple game record formats, and CSA network play." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/screenshot-main.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="ShogiBoardQ - Shogi Playing and Analysis Software Built with Qt6" name="twitter:title"/>
-<meta content="A shogi playing and analysis application built with Qt6 and C++17. USI engines, multiple game record formats, and CSA network play." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/screenshot-main.png" name="twitter:image"/>
-<link href="../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShogiBoardQ - Shogi Software for Playing, Analysis, and Tsume Shogi</title>
+    <meta name="description" content="ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 6,000 bundled tsume shogi puzzles, and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.">
+    <meta name="google-site-verification" content="6uVKShyfeRaK8nx6ROgoIuBXb2qdMtwgX8NJfiBrwVM" />
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/">
+    <meta property="og:title" content="ShogiBoardQ - Shogi Software for Playing, Analysis, and Tsume Shogi">
+    <meta property="og:description" content="ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 6,000 bundled tsume shogi puzzles, and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:locale:alternate" content="ja_JP">
+    <meta property="og:locale:alternate" content="zh_CN">
+    <meta property="og:locale:alternate" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="ShogiBoardQ - Shogi Software for Playing, Analysis, and Tsume Shogi">
+    <meta name="twitter:description" content="Play USI engines, analyze games, and solve 6,000 tsume puzzles. Free shogi software for Windows, macOS, and Linux.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/og-image.png">
+    <link rel="icon" type="image/png" href="../images/shogiboardq-icon.png">
+    <link rel="stylesheet" href="../css/style.css?v=20261004">
+    <link rel="stylesheet" href="../css/home.css?v=20261004">
+    <script type="application/ld+json">
+{
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "ShogiBoardQ",
+    "url": "https://hnakada123.github.io/ShogiBoardQ/en/",
+    "description": "ShogiBoardQ is free shogi software for playing against USI engines, studying positions, analyzing game records, solving 6,000 bundled tsume shogi puzzles, and customizing the board with 40 piece styles. It runs on Windows, macOS, and Linux.",
+    "applicationCategory": "GameApplication",
+    "operatingSystem": "Windows, macOS, Linux",
+    "inLanguage": "en",
+    "image": "https://hnakada123.github.io/ShogiBoardQ/images/en/screenshot-main.png",
+    "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+    "downloadUrl": "https://github.com/hnakada123/ShogiBoardQ/releases/latest",
+    "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "JPY"
+    }
+}
+    </script>
 </head>
-<body>
+<body class="home">
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="#">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../index.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="#features">Features</a></li>
-<li><a href="guide/index.html">User Guide</a></li>
-<li><a href="#screenshot">Screenshots</a></li>
-<li><a href="#build">Build</a></li>
-<li><a href="#license">License</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-<li>
-<a class="share-btn-x" href="https://x.com/intent/post?url=https%3A%2F%2Fhnakada123.github.io%2FShogiBoardQ%2Fen%2F&amp;text=ShogiBoardQ+-+Shogi+Playing+and+Analysis+Software+Built+with+Qt6" rel="noopener noreferrer" target="_blank">
-<svg fill="currentColor" height="14" viewBox="0 0 24 24" width="14"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+    <div class="nav-inner">
+        <a href="#top" class="nav-logo"><img src="../images/shogiboardq-icon.png" alt="" width="28" height="28"><span>ShogiBoardQ</span></a>
+        <ul class="nav-links">
+            <li><a href="#highlights">Highlights</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#download">Download</a></li>
+            <li><a href="guide/index.html">User Guide</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+            <li>
+                <a href="https://x.com/intent/post?url=https%3A%2F%2Fhnakada123.github.io%2FShogiBoardQ%2Fen%2F&amp;text=ShogiBoardQ%20-%20Shogi%20Software%20for%20Playing%2C%20Analysis%2C%20and%20Tsume%20Shogi" target="_blank" rel="noopener noreferrer" class="share-btn-x">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                     Share
                 </a>
-</li>
-</ul>
-</div>
+            </li>
+        </ul>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../index.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="index.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../zh-cn/index.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+    </div>
 </nav>
+
+<main id="top">
+
 <!-- Hero -->
-<section class="hero">
-<div class="hero-content">
-<div class="hero-piece-decoration">
-<img alt="" height="40" src="../images/pieces/Sente_kyou45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_kei45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_gin45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_kin45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_ou45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_kin45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_gin45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_kei45.svg" width="40"/>
-<img alt="" height="40" src="../images/pieces/Sente_kyou45.svg" width="40"/>
+<header class="home-hero">
+    <div class="home-hero__inner">
+        <img src="../images/shogiboardq-icon.png" alt="ShogiBoardQ icon" class="home-hero__icon" width="96" height="96">
+        <p class="home-hero__eyebrow">Free and open-source shogi software</p>
+        <h1>ShogiBoardQ</h1>
+        <p class="home-hero__lead">From games and engine analysis to tsume shogi:<br>everything you need to study shogi, in one window.</p>
+        <div class="home-hero__actions">
+            <a href="#download" class="btn btn--wood"><img src="../images/icons/download.svg" alt="">Download</a>
+            <a href="guide/index.html" class="btn btn--ghost">User Guide</a>
+        </div>
+        <p class="home-hero__meta"><span>Windows / macOS / Linux</span><span><span lang="ja">日本語</span> / <span lang="en">English</span> / <span lang="zh-Hans">简体中文</span> / <span lang="zh-Hant">繁體中文</span></span></p>
+    </div>
+    <figure class="home-hero__shot">
+        <div class="window-frame">
+            <div class="window-frame__bar" aria-hidden="true">ShogiBoardQ</div>
+            <a href="../images/en/screenshot-main.png"><img src="../images/en/screenshot-main.png" alt="ShogiBoardQ main window in Consideration mode. Hayanagi&#x27;s three candidate moves are drawn on the board as numbered arrows, and their lines are listed in the Consideration tab." width="1400" height="1000"></a>
+        </div>
+        <figcaption>Consideration mode: compare an engine's candidate moves with on-board arrows and lines (captured on Linux with the English interface)</figcaption>
+    </figure>
+</header>
+
+<!-- Stats -->
+<div class="stats">
+    <ul class="stats__grid">
+        <li class="stats__item"><span class="stats__value">40</span><span class="stats__label">piece styles</span></li>
+        <li class="stats__item"><span class="stats__value">6,000</span><span class="stats__label">bundled tsume puzzles (mate in 3–13)</span></li>
+        <li class="stats__item"><span class="stats__value">7</span><span class="stats__label">game record formats</span></li>
+        <li class="stats__item"><span class="stats__value">4</span><span class="stats__label">interface languages</span></li>
+    </ul>
 </div>
-<img alt="ShogiBoardQ icon" class="hero-icon" height="128" src="../images/shogiboardq-icon.png" width="128"/>
-<h1>ShogiBoardQ</h1>
-<p class="hero-subtitle">Shogi Playing and Analysis Software Built with Qt6</p>
-<div class="hero-badges">
-<span class="badge">Qt 6</span>
-<span class="badge">C++17</span>
-<span class="badge">USI Support</span>
-<span class="badge">CSA Network Play</span>
-<span class="badge">Japanese / English</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+
+<!-- Highlights -->
+<section id="highlights" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Highlights</h2>
+        <p class="section-desc">A quick tour of studying, customizing, and solving puzzles in ShogiBoardQ.</p>
+
+        <article class="highlight">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="../images/icons/eval-graph.svg" alt="">Study &amp; Analysis</p>
+                <h3>Candidate moves as arrows,<br>the game's flow as a graph</h3>
+                <p>Register a USI engine to explore any position in Consideration mode or analyze a whole game at once. The evaluation graph and the results table take you straight to the moves where the game turned.</p>
+                <ul class="check-list">
+                    <li>Candidate moves appear as numbered arrows; drops start from the piece stand</li>
+                    <li>Game Analysis lists each move's score, whether it matched the best move, and the score change</li>
+                    <li>See the engine's best move as an arrow during games; engine-vs-engine games show both sides' thinking</li>
+                    <li>Organize your study with the branch tree, bookmarks, and comments</li>
+                </ul>
+                <p class="link-row">
+                    <a href="guide/consideration.html">Consideration Mode &rarr;</a>
+                    <a href="guide/kifu-analysis.html">Game Analysis &rarr;</a>
+                    <a href="guide/game-play.html">Playing Games &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <a href="../images/en/home/analysis.png"><img src="../images/en/home/analysis.png" alt="Game Analysis results. The evaluation graph shows the game tilting toward White from move 49, next to a table of scores and best moves." width="1400" height="1000" loading="lazy"></a>
+                <figcaption>Game Analysis: the evaluation graph beside the results table</figcaption>
+            </figure>
+        </article>
+
+        <article class="highlight highlight--reverse">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="../images/icons/appearance.svg" alt="">Appearance</p>
+                <h3>40 piece styles,<br>and a board you design</h3>
+                <p>Open View → Game Appearance… to choose pieces, board, background, piece stands, and player cards from samples, and check the whole screen in the live preview.</p>
+                <ul class="piece-row" aria-label="Sample piece styles">
+                    <li><img src="../images/pieces/showcase/standard.png" alt="Standard Pieces" title="Standard Pieces" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/torafu_light.png" alt="Light Tiger Grain" title="Light Tiger Grain" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/wood_walnut.png" alt="Walnut" title="Walnut" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/tint_sakura.png" alt="Pale Cherry" title="Pale Cherry" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/deep_ebony.png" alt="Ebony" title="Ebony" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/deep_navy.png" alt="Iron Navy" title="Iron Navy" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/sengoku.png" alt="Sengoku Kanji" title="Sengoku Kanji" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/chess_facet_wood.png" alt="Facet (Wood)" title="Facet (Wood)" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/chess_atelier_paper.png" alt="Atelier (White)" title="Atelier (White)" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/chess_ribbon_slate.png" alt="Ribbon (Ink)" title="Ribbon (Ink)" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/alphabet_sei_wood.png" alt="Sei (Wood)" title="Sei (Wood)" width="40" height="40" loading="lazy"></li>
+                    <li><img src="../images/pieces/showcase/alphabet_rin_slate.png" alt="Rin (Ink)" title="Rin (Ink)" width="40" height="40" loading="lazy"></li>
+                </ul>
+                <ul class="check-list">
+                    <li>40 piece styles: standard, tiger grain, wood, light, deep, Sengoku Kanji, chess-inspired, and alphabet</li>
+                    <li>26 boards, backgrounds, and piece stands each, 20 player-card styles, and 24 suggested combinations</li>
+                    <li>Your choice also applies to the PV board, tsume shogi, and exported images</li>
+                </ul>
+                <p class="link-row">
+                    <a href="guide/piece-style.html">Piece Styles &rarr;</a>
+                    <a href="guide/board-colors.html">Game Appearance &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <a href="../images/en/home/appearance.png"><img src="../images/en/home/appearance.png" alt="Game Appearance window with Ebony pieces selected and previewed on a Moon White board" width="1180" height="800" loading="lazy"></a>
+                <figcaption>Game Appearance: the Ebony / Moon White combination</figcaption>
+            </figure>
+        </article>
+
+        <article class="highlight">
+            <div class="highlight__text">
+                <p class="highlight__kicker"><img src="../images/icons/tsume-play.svg" alt="">Tsume Shogi</p>
+                <h3>Solve 6,000 tsume shogi puzzles<br>on the board</h3>
+                <p>The release packages include 1,000 puzzles each of mate in 3, 5, 7, 9, 11, and 13. Pick one from the list and checkmate the king while the built-in Hayanagi engine defends.</p>
+                <ul class="check-list">
+                    <li>Browse puzzles as board cards and filter them by progress</li>
+                    <li>Mate within the remaining moves to solve it; valid alternative solutions count too</li>
+                    <li>Review your attempt history and replay the solution</li>
+                    <li>Create puzzles with Mate Search and the Tsume Shogi Generator (GUI and CLI)</li>
+                </ul>
+                <p class="link-row">
+                    <a href="guide/tsume-play.html">Tsume Shogi Play &rarr;</a>
+                    <a href="guide/tsumeshogi-generator.html">Tsume Shogi Generator &rarr;</a>
+                    <a href="guide/tsumi-search.html">Mate Search &rarr;</a>
+                </p>
+            </div>
+            <figure class="shot">
+                <div class="shot-stack">
+                    <a href="../images/en/home/tsume-list.png" class="shot-stack__back"><img src="../images/en/home/tsume-list.png" alt="Tsume shogi puzzle list showing mate-in-5 puzzles as board cards" width="1100" height="800" loading="lazy"></a>
+                    <a href="../images/en/home/tsume-play.png" class="shot-stack__front"><img src="../images/en/home/tsume-play.png" alt="Tsume Shogi Play window where you attack the king defended by Hayanagi" width="760" height="856" loading="lazy"></a>
+                </div>
+                <figcaption>The puzzle list (back) and the Tsume Shogi Play window (front)</figcaption>
+            </figure>
+        </article>
+    </div>
 </section>
-<!-- Screenshot -->
-<section class="section" id="screenshot">
-<div class="section-inner">
-<h2 class="section-title">Screenshots</h2>
-<p class="section-desc">The board, game record, and analysis in one window</p>
-<div class="screenshot-gallery">
-<div class="screenshot-item">
-<img alt="ShogiBoardQ main window with board, game record, and engine analysis panels" height="1300" src="../images/en/screenshot-main.png" width="1800"/>
-<p class="screenshot-caption">Main window: the board, move list, and engine analysis in Consideration mode</p>
-</div>
-</div>
-</div>
-</section>
+
 <!-- Features -->
-<section class="section section--alt" id="features">
-<div class="section-inner">
-<h2 class="section-title">Key Features</h2>
-<p class="section-desc">
-A wide range of tools for playing and studying shogi<br/>
-You can play games in ShogiBoardQ by registering a shogi engine that supports the USI protocol.<br/>
-We thank the developers of these shogi engines for their work.
-</p>
-<div class="features-grid">
-<a class="feature-card-link" href="guide/game-play.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_ou45.svg"/>
-<h3>Playing Games</h3>
-<p>Play human vs. engine, engine vs. engine, or human vs. human games with engines that support the USI protocol.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/hayanagi.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kaku45.svg"/>
-<h3>Hayanagi Shogi Engine</h3>
-<p>A USI engine included as a submodule for games, analysis, and mate search. It also powers the built-in defender in Tsume Shogi Play.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/csa-game.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_hi45.svg"/>
-<h3>CSA Network Play</h3>
-<p>Play over a network through CSA-compatible servers, including floodgate.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/kifu-display.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kaku45.svg"/>
-<h3>Game Record Display</h3>
-<p>View moves, time spent, bookmarks, and comments in the game record dock. Explore variations and browse games with navigation buttons.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/kifu-management.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kin45.svg"/>
-<h3>Game Record Management</h3>
-<p>Import and export major game record formats, including KIF, KI2, CSA, USI, SFEN, and JKF. Records with variations are also supported.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/kifu-analysis.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_gin45.svg"/>
-<h3>Game Analysis</h3>
-<p>Analyze game records with a USI engine. An evaluation graph shows how the position changes with each move.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/consideration.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kei45.svg"/>
-<h3>Consideration Mode</h3>
-<p>Ask an engine to analyze candidate moves from any position, with multiple lines displayed at once.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/tsumi-search.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kyou45.svg"/>
-<h3>Mate Search</h3>
-<p>Search for checkmate with an engine and display the mating line when one is found.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/tsumeshogi-generator.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_fu45.svg"/>
-<h3>Tsume Shogi Generator</h3>
-<p>Generate random candidate positions and use a USI engine to find mates of a specified length. Trim unnecessary pieces to simplify each puzzle.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/tsume-play.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_to45.svg"/>
-<h3>Tsume Shogi Play</h3>
-<p>Choose a puzzle from an SFEN collection and solve it on the board against Hayanagi. Track your attempts and solves, and replay a solution one move at a time.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/mcp-server.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_ou45.svg"/>
-<h3>AI Client Integration (MCP)</h3>
-<p>Ask AI clients such as Claude, Cursor or VS Code to convert records, analyse positions, generate tsume puzzles and drive the window.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/board-edit.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_ryuu45.svg"/>
-<h3>Position Editing</h3>
-<p>Arrange pieces freely to create a position, then start a game or analysis from it.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/kyokumenshu-viewer.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_uma45.svg"/>
-<h3>Position Collection Viewer</h3>
-<p>Load an SFEN position collection and browse it on a board. Import a selected position into the main window for study and analysis.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/joseki.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_narigin45.svg"/>
-<h3>Opening Books</h3>
-<p>Load opening books, view moves for the current position, and play, edit, add, or delete book moves.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/nyugyoku.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_narikei45.svg"/>
-<h3>Entering-King Declaration</h3>
-<p>Calculate impasse points and check the conditions for an entering-king declaration. Declare a win under the 24-point or 27-point rule from the Game menu.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/image-export.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_narikyou45.svg"/>
-<h3>Image Export</h3>
-<p>Export the current board or evaluation graph as an image for a blog or commentary article.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/dock.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_to45.svg"/>
-<h3>Dock Panels</h3>
-<p>Dock, float, or tab panels such as game records, engine information, and evaluation graphs to customize your layout.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/menu.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_ou45.svg"/>
-<h3>Menu Panel</h3>
-<p>Access commands quickly with icon buttons in the menu dock. Customize favorites and button sizes to suit your workflow.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/piece-style.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kin45.svg"/>
-<h3>Piece Styles</h3>
-<p>Choose from Standard Pieces and 20 wood grain and color variations, all with clear Mincho lettering, in View → Game Appearance → Pieces.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/board-colors.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_gin45.svg"/>
-<h3>Game Appearance</h3>
-<p>Customize the board with recommended palettes that match the pieces, or adjust the background, board, piece stands, and grid lines individually.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/piece-sound.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_fu45.svg"/>
-<h3>Piece Sound</h3>
-<p>Hear a piece click on the board with every move. Toggle it in the Settings menu and shape the sound with volume, pitch, and equalizer controls.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/multilanguage.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_hi45.svg"/>
-<h3>Language Support</h3>
-<p>Switch between Japanese, English, and Chinese (Simplified or Traditional) through the application's language settings.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/multi-os.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kaku45.svg"/>
-<h3>Cross-Platform Support</h3>
-<p>Runs on Linux, macOS, and Windows. Qt6 lets you build a native application for each OS from the same source code.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
+<section id="features" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Features</h2>
+        <p class="section-desc">The User Guide explains every feature, organized by task.</p>
+        <p class="feature-intro"><img src="../images/icons/engine.svg" alt=""><span>Games and analysis use a shogi engine that supports the USI protocol. The release packages include the Hayanagi engine. We thank the developers of shogi engines for their work.</span></p>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">Playing</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/game-play.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/game.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Playing Games</h4><p>Play human vs. engine, engine vs. engine, or human vs. human. Legal destinations are highlighted, and an interrupted game resumes with its position and clocks.</p></div>
+                </a></li>
+                <li><a href="guide/hayanagi.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/engine.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Hayanagi Shogi Engine</h4><p>The bundled USI engine. Register it to play and analyze right away; it also defends in Tsume Shogi Play.</p></div>
+                </a></li>
+                <li><a href="guide/csa-game.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/network.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>CSA Network Play</h4><p>Connect to CSA-protocol servers such as floodgate and play as a human or with an engine.</p></div>
+                </a></li>
+                <li><a href="guide/nyugyoku.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/nyugyoku.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Entering-King Declaration</h4><p>Count impasse points and check declarations under the 24-point and 27-point rules.</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">Study &amp; Analysis</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/consideration.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/consideration.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Consideration Mode</h4><p>Let an engine study any position and compare several lines with arrows.</p></div>
+                </a></li>
+                <li><a href="guide/kifu-analysis.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/eval-graph.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Game Analysis</h4><p>Analyze a whole game and follow each move's score on the evaluation graph.</p></div>
+                </a></li>
+                <li><a href="guide/joseki.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/book.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Opening Books</h4><p>Load opening books to show, play, and edit book moves for the current position.</p></div>
+                </a></li>
+                <li><a href="guide/kyokumenshu-viewer.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/position-viewer.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Position Collection Viewer</h4><p>Browse SFEN position collections on a board and import a position into the main window.</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">Records &amp; Positions</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/kifu-display.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/kifu-list.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Game Record Display</h4><p>View moves, times, bookmarks, comments, and variations. Records and coordinates can use Western notation.</p></div>
+                </a></li>
+                <li><a href="guide/kifu-management.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/kifu-file.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Game Record Management</h4><p>Load and save KIF, KI2, CSA, JKF, USI, SFEN, and USEN, and copy or paste records via the clipboard.</p></div>
+                </a></li>
+                <li><a href="guide/board-edit.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/board-edit.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Board Editing</h4><p>Arrange pieces freely with the piece box, then start a game or analysis from that position.</p></div>
+                </a></li>
+                <li><a href="guide/image-export.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/image-export.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Image Export</h4><p>Save or copy the board and the evaluation graph as images.</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">Tsume Shogi</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/tsume-play.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/tsume-play.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Tsume Shogi Play</h4><p>Choose a puzzle, solve it on the board, and review your history and the solution.</p></div>
+                </a></li>
+                <li><a href="guide/tsumi-search.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/mate-search.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Mate Search</h4><p>Search for a mate with a USI engine and show the mating line.</p></div>
+                </a></li>
+                <li><a href="guide/tsumeshogi-generator.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/tsume-generator.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Tsume Shogi Generator</h4><p>Generate puzzles that match your conditions in the GUI or CLI, check them for alternative mates, and save them.</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">Setup &amp; Appearance</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/piece-style.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/piece.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Piece Styles</h4><p>40 styles in all, including tiger grain, Sengoku Kanji, chess-inspired, and alphabet pieces.</p></div>
+                </a></li>
+                <li><a href="guide/board-colors.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/appearance.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Game Appearance</h4><p>Combine pieces, board, background, piece stands, and player cards freely from samples.</p></div>
+                </a></li>
+                <li><a href="guide/dock.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/dock.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Dock Panels</h4><p>Arrange the record, thinking, graph, and other panels freely and save your layout.</p></div>
+                </a></li>
+                <li><a href="guide/menu.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/menu.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Menu Panel</h4><p>Reach commands quickly from an icon menu panel, and register your favorites.</p></div>
+                </a></li>
+                <li><a href="guide/piece-sound.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/piece-sound.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Piece Sound</h4><p>Turn the move sound on or off and adjust its volume, pitch, and tone.</p></div>
+                </a></li>
+                <li><a href="guide/multilanguage.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/language.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Language Support</h4><p>Japanese, English, and Chinese (Simplified or Traditional) interfaces, with a choice of interface font.</p></div>
+                </a></li>
+                <li><a href="guide/multi-os.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/platform.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>Cross-Platform Support</h4><p>Built with Qt 6 for Linux, macOS, and Windows.</p></div>
+                </a></li>
+            </ul>
+        </div>
+
+        <div class="feature-group">
+            <h3 class="feature-group__title">AI Integration</h3>
+            <ul class="mini-grid">
+                <li><a href="guide/mcp-server.html" class="mini-card">
+                    <span class="mini-card__icon"><img src="../images/icons/ai.svg" alt=""></span>
+                    <div class="mini-card__text"><h4>AI Client Integration (MCP)</h4><p>Ask Claude, Cursor, VS Code, Gemini CLI, Codex CLI, and other AI clients to convert records, analyze, generate puzzles, and operate the app.</p></div>
+                </a></li>
+            </ul>
+        </div>
+    </div>
 </section>
-<!-- Build -->
-<section class="section" id="build">
-<div class="section-inner">
-<h2 class="section-title">Build and Release Guides</h2>
-<p class="section-desc">Build the application from source</p>
-<div class="features-grid">
-<a class="feature-card-link" href="guide/linux-build-and-release.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kaku45.svg"/>
-<h3>Linux Build and Release</h3>
-<p>Set up a Linux development environment, build the application, create an AppImage, and publish it on GitHub Releases.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/windows-build-and-release.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_hi45.svg"/>
-<h3>Windows Build and Release</h3>
-<p>Set up a Windows development environment, build the application, create a distribution ZIP, and publish it on GitHub Releases.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-<a class="feature-card-link" href="guide/macos-build-and-release.html">
-<div class="feature-card">
-<img alt="" class="feature-icon" src="../images/pieces/Sente_kin45.svg"/>
-<h3>macOS Build and Release</h3>
-<p>Set up a macOS development environment, build the application, create a DMG, sign and notarize it, and publish it on GitHub Releases.</p>
-<span class="feature-card-more">Learn more →</span>
-</div>
-</a>
-</div>
-</div>
-</section>
+
 <!-- Download -->
-<section class="section section--alt download-section">
-<div class="section-inner">
-<h2 class="section-title">Source Code</h2>
-<p class="section-desc">Get the source code from the GitHub repository</p>
-<a class="download-btn" href="https://github.com/hnakada123/ShogiBoardQ">
-<svg fill="currentColor" height="20" viewBox="0 0 16 16" width="20"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-            View on GitHub
-        </a>
-</div>
+<section id="download" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Download</h2>
+        <p class="section-desc">Get the latest release from GitHub. ShogiBoardQ is free to use.</p>
+        <ul class="download-grid">
+            <li class="dl-card">
+                <h3>Windows</h3>
+                <p class="dl-card__arch">64-bit Windows (x64)</p>
+                <ol>
+                    <li>Download the ZIP and extract all files</li>
+                    <li>Run <code>ShogiBoardQ.exe</code></li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-windows.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">Windows (ZIP)</a>
+            </li>
+            <li class="dl-card">
+                <h3>macOS</h3>
+                <p class="dl-card__arch">Mac with Apple silicon</p>
+                <ol>
+                    <li>Extract the ZIP and open the DMG</li>
+                    <li>Drag <code>ShogiBoardQ.app</code> to Applications</li>
+                    <li>If the first launch is blocked, allow it in System Settings → Privacy &amp; Security</li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-macos.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">macOS (ZIP)</a>
+            </li>
+            <li class="dl-card">
+                <h3>Linux</h3>
+                <p class="dl-card__arch">x86_64 (AppImage)</p>
+                <ol>
+                    <li>Extract the ZIP</li>
+                    <li>Make <code>ShogiBoardQ-linux-x86_64.AppImage</code> executable and run it</li>
+                </ol>
+                <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest/download/ShogiBoardQ-linux.zip" class="btn btn--accent"><img src="../images/icons/download.svg" alt="">Linux (ZIP)</a>
+            </li>
+        </ul>
+        <p class="dl-note">Every package includes the Hayanagi engine and the tsume shogi collections (6,000 puzzles). See the <a href="https://github.com/hnakada123/ShogiBoardQ/releases/latest">release notes</a> (in Japanese) for system requirements and changes.</p>
+
+        <div class="build-box">
+            <h3><img src="../images/icons/code.svg" alt="">Build from Source</h3>
+            <p>Clone the repository with its submodules and build it with Qt 6 and CMake. The User Guide walks through each OS.</p>
+            <div class="build-box__links">
+                <a href="guide/linux-build-and-release.html" class="btn btn--outline">Linux Build Guide</a>
+                <a href="guide/windows-build-and-release.html" class="btn btn--outline">Windows Build Guide</a>
+                <a href="guide/macos-build-and-release.html" class="btn btn--outline">macOS Build Guide</a>
+                <a href="https://github.com/hnakada123/ShogiBoardQ" class="btn btn--outline"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub Repository</a>
+            </div>
+        </div>
+    </div>
 </section>
+
 <!-- License -->
-<section class="section" id="license">
-<div class="section-inner">
-<h2 class="section-title">License</h2>
-<div class="license-content">
-<p>ShogiBoardQ is free software released under the <a href="https://www.gnu.org/licenses/gpl-3.0.html"><strong>GNU General Public License v3.0 (GPL-3.0)</strong></a> license.</p>
-<ul class="license-points">
-<li>You may use, modify, and redistribute this software freely. You do not need to contact the author to use or modify it.</li>
-<li>If you distribute a modified version, you must make its source code available under the same GPL-3.0 license.</li>
-<li>This software is provided with <strong>NO WARRANTY</strong>. The author accepts no liability for any damages arising from the use of this software.</li>
-</ul>
-<p class="license-link">For the full license text, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/LICENSE">LICENSE</a> file.</p>
-</div>
-</div>
+<section id="license" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">License</h2>
+        <div class="license-content">
+            <p>ShogiBoardQ is free software released under the <a href="https://www.gnu.org/licenses/gpl-3.0.html"><strong>GNU General Public License v3.0 (GPL-3.0)</strong></a>.</p>
+            <ul class="license-points">
+                <li>You may use, modify, and redistribute this software freely. You do not need to contact the author to use or modify it.</li>
+                <li>If you distribute a modified version, you must make its source code available under the same GPL-3.0 license.</li>
+                <li>This software is provided with <strong>NO WARRANTY</strong>. The author accepts no liability for any damages arising from the use of this software.</li>
+            </ul>
+            <p class="license-link">For the full license text, see the <a href="https://github.com/hnakada123/ShogiBoardQ/blob/main/LICENSE">LICENSE</a> file.</p>
+        </div>
+    </div>
 </section>
+
+</main>
+
 <!-- Footer -->
-<footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+<footer class="home-footer">
+    <div class="home-footer__inner">
+        <div>
+            <p class="home-footer__brand"><img src="../images/shogiboardq-icon.png" alt="" width="32" height="32">ShogiBoardQ</p>
+            <p>Shogi software for playing, analysis, and tsume shogi</p>
+        </div>
+        <nav aria-label="Site">
+            <h2>Site</h2>
+            <ul>
+                <li><a href="#highlights">Highlights</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#download">Download</a></li>
+                <li><a href="guide/index.html">User Guide</a></li>
+            </ul>
+        </nav>
+        <nav aria-label="Links">
+            <h2>Links</h2>
+            <ul>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ/releases">Releases</a></li>
+                <li><a href="https://github.com/hnakada123/ShogiBoardQ/issues">Bug reports &amp; requests</a></li>
+            </ul>
+        </nav>
+        <nav aria-label="Language">
+            <h2>Language</h2>
+            <ul>
+                <li><a href="../index.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="index.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../zh-cn/index.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/index.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </nav>
+    </div>
+    <p class="home-footer__copy">&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>

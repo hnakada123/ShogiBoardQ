@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <title>局面集ビューア</title>
+  <g fill="none" stroke="#52606d" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 3h14v14M3 7h14v14H3Zm0 5h14M3 16h14M8 7v14m4-14v14"/>
+  </g>
+</svg>

@@ -62,8 +62,8 @@
 }
 
 .build-document pre {
-    background: #1e2d3d;
-    color: #d8e8f4;
+    background: var(--color-code-block);
+    color: var(--color-code-block-text);
     padding: 1.25rem;
     border-radius: 6px;
     overflow-x: auto;
@@ -79,8 +79,8 @@
 }
 
 .build-document blockquote {
-    background: var(--color-blue-light);
-    border-left: 4px solid var(--color-blue);
+    background: var(--color-accent-light);
+    border-left: 4px solid var(--color-accent);
     padding: 1rem 1.25rem;
     border-radius: 0 6px 6px 0;
 }
