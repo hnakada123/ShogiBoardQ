@@ -88,7 +88,7 @@ private slots:
     void standardAndVariantsAreAvailable()
     {
         QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("standard"));
-        QCOMPARE(AppSettings::availablePieceStyles().size(), 31);
+        QCOMPARE(AppSettings::availablePieceStyles().size(), 40);
         QVERIFY(AppSettings::availablePieceStyles().contains(QStringLiteral("sengoku")));
         QCOMPARE(AppSettings::availablePieceStyles().first(), QStringLiteral("standard"));
         for (const auto& removed : {"clear", "wood", "ivory", "dark"})
@@ -114,7 +114,8 @@ private slots:
                                                       + QStringLiteral("45.svg")).pixmap(size, size).toImage();
                         for (int y = 0; y < size; ++y) {
                             for (int x = 0; x < size; ++x) {
-                                if (style == QStringLiteral("sengoku") || style.startsWith(QLatin1String("chess_"))) {
+                                if (style == QStringLiteral("sengoku") || style.startsWith(QLatin1String("chess_"))
+                                    || style.startsWith(QLatin1String("alphabet_"))) {
                                     // 境界の合成による1段階の丸め差は許容し、透過領域は完全一致させる。
                                     const int alpha = image.pixelColor(x, y).alpha();
                                     const int standardAlpha = silhouette.pixelColor(x, y).alpha();
@@ -134,14 +135,22 @@ private slots:
         }
     }
 
-    void chessSymbolsAndPromotionsRender()
+    void symbolsAndPromotionsRender_data()
     {
+        QTest::addColumn<QString>("family");
+        QTest::newRow("chess") << QStringLiteral("chess_");
+        QTest::newRow("alphabet") << QStringLiteral("alphabet_");
+    }
+
+    void symbolsAndPromotionsRender()
+    {
+        QFETCH(QString, family);
         auto& provider = PieceImageProvider::instance();
         int count = 0;
         for (const auto& style : AppSettings::availablePieceStyles()) {
-            if (!style.startsWith(QLatin1String("chess_"))) continue;
+            if (!style.startsWith(family)) continue;
             ++count;
-            // SVG内のPNGが読めず、五角形だけ表示される退行も検出する。
+            // 絵柄・欧文が読み込めず、五角形だけ表示される退行も検出する。
             const QString plain = QStringLiteral("PLNSBR");
             const QString promoted = QStringLiteral("QMOTCU");
             for (int i = 0; i < plain.size(); ++i) {

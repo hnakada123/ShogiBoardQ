@@ -124,7 +124,7 @@ private slots:
         using Component = BoardAppearanceCatalog::Component;
         for (const auto component : {Component::Board, Component::Stand, Component::Information, Component::Background}) {
             const auto samples = BoardAppearanceCatalog::samples(component);
-            QCOMPARE(samples.size(), component == Component::Information ? 20 : 23);
+            QCOMPARE(samples.size(), component == Component::Information ? 20 : 26);
             QSet<QString> names;
             for (const auto& sample : samples) {
                 QVERIFY(!names.contains(sample.name));

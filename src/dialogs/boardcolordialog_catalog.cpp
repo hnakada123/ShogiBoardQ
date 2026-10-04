@@ -45,7 +45,16 @@ const Combination combinations[] = {
     {QT_TRANSLATE_NOOP("BoardColorDialog", "Atelier（墨）"), "chess_atelier_slate", 22, 22, 10, 22},
     {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（木肌）"), "chess_ribbon_wood", 20, 20, 1, 20},
     {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（白）"), "chess_ribbon_paper", 21, 21, 2, 21},
-    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（墨）"), "chess_ribbon_slate", 22, 22, 10, 22}
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "Ribbon（墨）"), "chess_ribbon_slate", 22, 22, 10, 22},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（木肌）"), "alphabet_sei_wood", 23, 23, 1, 23},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（白）"), "alphabet_sei_paper", 24, 24, 2, 24},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "端正（墨）"), "alphabet_sei_slate", 25, 25, 10, 25},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（木肌）"), "alphabet_rin_wood", 23, 23, 1, 23},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（白）"), "alphabet_rin_paper", 24, 24, 2, 24},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "凛（墨）"), "alphabet_rin_slate", 25, 25, 10, 25},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（木肌）"), "alphabet_sumi_wood", 23, 23, 1, 23},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（白）"), "alphabet_sumi_paper", 24, 24, 2, 24},
+    {QT_TRANSLATE_NOOP("BoardColorDialog", "墨（墨）"), "alphabet_sumi_slate", 25, 25, 10, 25}
 };
 
 QListWidget* gallery(QWidget* parent, const QString& name)
@@ -146,7 +155,7 @@ void BoardColorDialog::createWorkspace(QVBoxLayout* layout)
     m_pieceFilter = new QComboBox(piecePage);
     m_pieceFilter->setObjectName(QStringLiteral("appearancePieceFilter"));
     m_pieceFilter->addItems({tr("すべての駒（%1種類）").arg(AppSettings::availablePieceStyles().size()),
-                            tr("虎斑"), tr("木肌"), tr("淡色"), tr("深色"), tr("意匠"), tr("チェス")});
+                            tr("虎斑"), tr("木肌"), tr("淡色"), tr("深色"), tr("意匠"), tr("チェス"), tr("アルファベット")});
     pieceLayout->addWidget(m_pieceFilter);
     m_pieceList = gallery(piecePage, QStringLiteral("appearancePieces"));
     m_pieceList->viewport()->installEventFilter(this);
@@ -266,7 +275,7 @@ void BoardColorDialog::selectComponent(int row)
 void BoardColorDialog::filterPieces(int index)
 {
     const QStringList prefixes{QString(), QStringLiteral("torafu_"), QStringLiteral("wood_"),
-                               QStringLiteral("tint_"), QStringLiteral("deep_"), QStringLiteral("sengoku"), QStringLiteral("chess_")};
+                               QStringLiteral("tint_"), QStringLiteral("deep_"), QStringLiteral("sengoku"), QStringLiteral("chess_"), QStringLiteral("alphabet_")};
     if (index < 0 || index >= prefixes.size()) return;
     for (int row = 0; row < m_pieceList->count(); ++row) {
         auto* item = m_pieceList->item(row);

@@ -703,6 +703,8 @@ private slots:
         // 成駒・持ち駒・駒打ち矢印も標準の駒で描画する。
         board()->board()->setSfen(QStringLiteral(
             "4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
+        // 局面変更に伴う候補手矢印の遅延更新を完了してから、描画確認用の矢印を置く。
+        QCoreApplication::processEvents();
         ShogiView::Arrow drop;
         drop.toFile = 5;
         drop.toRank = 5;
@@ -762,12 +764,16 @@ private slots:
             dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(5);
         else if (style.startsWith(QLatin1String("chess_")))
             dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(6);
+        else if (style.startsWith(QLatin1String("alphabet_")))
+            dialog->findChild<QComboBox*>("appearancePieceFilter")->setCurrentIndex(7);
         QVERIFY(dialog->grab().save(QStringLiteral(AUDIT_DIR "/screenshots/appearance-pieces-%1.png").arg(style)));
         dialog->close();
 
         // キャッシュを作った後でも成駒・持駒・駒打ち矢印が切り替わる。
         board()->board()->setSfen(QStringLiteral(
             "4k4/9/3+r+b+s+n+l+p/9/9/9/+P+L+N+S+B+R3/9/4K4 b 2GSNL8P2gsnl8p 1"));
+        // 局面変更に伴う候補手矢印の遅延更新を完了してから、描画確認用の矢印を置く。
+        QCoreApplication::processEvents();
         ShogiView::Arrow drop;
         drop.toFile = 5;
         drop.toRank = 5;
@@ -804,7 +810,7 @@ private slots:
         auto* list = dialog->findChild<QListWidget*>(listName);
         auto* preview = dialog->findChild<BoardAppearancePreview*>();
         QVERIFY(list && preview);
-        QCOMPARE(list->count(), componentIndex == 2 ? 20 : 23);
+        QCOMPARE(list->count(), componentIndex == 2 ? 20 : 26);
         const auto component = static_cast<BoardAppearanceCatalog::Component>(componentIndex);
         const auto samples = BoardAppearanceCatalog::samples(component);
         ShogiView secondary;
@@ -926,9 +932,11 @@ private slots:
                     QCOMPARE(pieces->item(i)->data(Qt::UserRole).toString(), QStringLiteral("sengoku"));
                 if (family == 6)
                     QVERIFY(pieces->item(i)->data(Qt::UserRole).toString().startsWith(QLatin1String("chess_")));
+                if (family == 7)
+                    QVERIFY(pieces->item(i)->data(Qt::UserRole).toString().startsWith(QLatin1String("alphabet_")));
             }
             QCOMPARE(visible, family == 0 ? static_cast<int>(AppSettings::availablePieceStyles().size())
-                                         : (family == 5 ? 1 : family == 6 ? 9 : 5));
+                                         : (family == 5 ? 1 : family >= 6 ? 9 : 5));
         }
         filter->setCurrentIndex(0);
         combinations->showPopup();
@@ -965,24 +973,47 @@ private slots:
         QCOMPARE(dialog->findChild<QListWidget*>("appearanceStands")->currentRow(), -1);
         QCOMPARE(combinations->currentIndex(), -1);
     }
-    void chessCombinations()
+    void pieceCombinations_data()
     {
+        QTest::addColumn<QString>("family");
+        QTest::addColumn<QStringList>("designs");
+        QTest::addColumn<QStringList>("boardColors");
+        QTest::addColumn<QStringList>("gridColors");
+        QTest::addColumn<QStringList>("backgrounds");
+        QTest::addColumn<int>("filterIndex");
+        QTest::addColumn<int>("firstCombination");
+        QTest::newRow("chess") << QStringLiteral("chess")
+            << QStringList{"facet", "atelier", "ribbon"}
+            << QStringList{"#e4ca98", "#e9ede7", "#3c5055"}
+            << QStringList{"#9e865c", "#a2afa4", "#809294"}
+            << QStringList{"#e9dcc1", "#f0f2ed", "#44555b"} << 6 << 6;
+        QTest::newRow("alphabet") << QStringLiteral("alphabet")
+            << QStringList{"sei", "rin", "sumi"}
+            << QStringList{"#dfc69a", "#dfe5dc", "#384841"}
+            << QStringList{"#a28a60", "#a5afa0", "#809186"}
+            << QStringList{"#e9dec4", "#e9ede7", "#43504b"} << 7 << 15;
+    }
+    void pieceCombinations()
+    {
+        QFETCH(QString, family);
+        QFETCH(QStringList, designs);
+        QFETCH(QStringList, boardColors);
+        QFETCH(QStringList, gridColors);
+        QFETCH(QStringList, backgrounds);
+        QFETCH(int, filterIndex);
+        QFETCH(int, firstCombination);
         click("actionBoardAppearance");
         auto* dialog = window->findChild<BoardColorDialog*>();
         QVERIFY(dialog);
         auto* combinations = dialog->findChild<QComboBox*>("appearanceCombination");
         auto* filter = dialog->findChild<QComboBox*>("appearancePieceFilter");
         QVERIFY(combinations && filter);
-        filter->setCurrentIndex(6);
-        const QStringList designs{"facet", "atelier", "ribbon"};
+        filter->setCurrentIndex(filterIndex);
         const QStringList surfaces{"wood", "paper", "slate"};
-        const QStringList boardColors{"#e4ca98", "#e9ede7", "#3c5055"};
-        const QStringList gridColors{"#9e865c", "#a2afa4", "#809294"};
-        const QStringList backgrounds{"#e9dcc1", "#f0f2ed", "#44555b"};
-        int index = 6;
+        int index = firstCombination;
         for (const auto& design : designs) {
             for (int surface = 0; surface < surfaces.size(); ++surface) {
-                const auto style = QStringLiteral("chess_%1_%2").arg(design, surfaces.at(surface));
+                const auto style = QStringLiteral("%1_%2_%3").arg(family, design, surfaces.at(surface));
                 combinations->showPopup();
                 auto* choices = combinations->view();
                 const auto choice = choices->model()->index(index, 0);
@@ -1010,11 +1041,12 @@ private slots:
         window.reset();
         window = std::make_unique<MainWindow>();
         window->show();
-        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("chess_ribbon_slate"));
+        QCOMPARE(AppSettings::pieceStyle(), QStringLiteral("%1_%2_slate").arg(family, designs.last()));
         QVERIFY(board()->boardColors() == colors);
         click("actionBoardAppearance");
         dialog = window->findChild<BoardColorDialog*>();
-        QCOMPARE(dialog->findChild<QComboBox*>("appearanceCombination")->currentIndex(), 14);
+        QCOMPARE(dialog->findChild<QComboBox*>("appearanceCombination")->currentIndex(), firstCombination + 8);
+        QCOMPARE(dialog->findChild<QComboBox*>("appearancePieceFilter")->currentIndex(), filterIndex);
     }
 
     void boardFlipKeepsLayout()
