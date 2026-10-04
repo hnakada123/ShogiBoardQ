@@ -57,9 +57,12 @@ QString saveViaDialog(QWidget* parent,
 
 // 既存ファイルへ上書き保存。
 // lines には saveFormatForPath(path) が返す形式の行を渡すこと（エンコーディングは拡張子で決まる）。
+// .kif/.ki2 に Shift_JIS で表せない文字がある場合、parent を渡せば UTF-8 で保存するか確認する
+// （キャンセル時は outError が空で false）。parent が nullptr ならダイアログを出さずエラーにする。
 bool overwriteExisting(const QString& path,
                        const QStringList& lines,
-                       QString* outError = nullptr);
+                       QString* outError = nullptr,
+                       QWidget* parent = nullptr);
 
 } // namespace KifuSaveCoordinator
 

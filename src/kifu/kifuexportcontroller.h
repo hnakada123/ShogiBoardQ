@@ -102,11 +102,18 @@ public:
     QString saveToFile();
 
     /**
-     * @brief 棋譜を上書き保存
+     * @brief 棋譜を上書き保存（Shift_JIS で表せない文字の確認・失敗の通知にダイアログを使う）
      * @param filePath 保存先ファイルパス
      * @return 成功時true
      */
     [[nodiscard]] bool overwriteFile(const QString& filePath);
+
+    /**
+     * @brief ダイアログを出さずに指定パスへ保存する（自動化 API 用）
+     * @param errorText 失敗時の理由（Shift_JIS で表せない文字など）
+     * @return 成功時true
+     */
+    [[nodiscard]] bool saveToPathWithoutDialogs(const QString& filePath, QString* errorText);
 
     // --------------------------------------------------------
     // クリップボードコピー（KifuExportClipboardへ委譲）
@@ -169,6 +176,9 @@ signals:
     void statusMessage(const QString& message, int timeout);
 
 private:
+    /// 指定パスへ保存する。dialogParent が nullptr ならダイアログを出さない
+    bool writeToPath(const QString& filePath, QWidget* dialogParent, QString* errorText);
+
     /**
      * @brief USI指し手リストを取得（複数ソースから優先順位で）
      */

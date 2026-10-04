@@ -190,6 +190,23 @@ QString KifuExportController::saveToFile()
 
 bool KifuExportController::overwriteFile(const QString& filePath)
 {
+    QString error;
+    const bool ok = writeToPath(filePath, m_parentWidget, &error);
+    // 確認ダイアログでキャンセルした場合は error が空
+    if (!ok && !error.isEmpty()) {
+        QMessageBox::warning(m_parentWidget, tr("KIF Save Error"), error);
+    }
+    return ok;
+}
+
+bool KifuExportController::saveToPathWithoutDialogs(const QString& filePath, QString* errorText)
+{
+    return writeToPath(filePath, nullptr, errorText);
+}
+
+bool KifuExportController::writeToPath(const QString& filePath, QWidget* dialogParent, QString* errorText)
+{
+    if (errorText) errorText->clear();
     if (m_prepareCallback) m_prepareCallback();
     if (m_deps.gameInfoController) m_deps.gameInfoController->commitPendingEditor();
 
@@ -229,11 +246,11 @@ bool KifuExportController::overwriteFile(const QString& filePath)
         lines = KifuContentBuilder::buildKifuDataList(ctx);
     } else {
         Q_EMIT statusMessage(tr("棋譜データがありません"), 3000);
+        if (errorText) *errorText = tr("棋譜データがありません");
         return false;
     }
 
-    QString error;
-    const bool ok = KifuSaveCoordinator::overwriteExisting(filePath, lines, &error);
+    const bool ok = KifuSaveCoordinator::overwriteExisting(filePath, lines, errorText, dialogParent);
 
     if (ok) {
         if (m_deps.gameInfoController) m_deps.gameInfoController->applyChanges();
@@ -241,8 +258,6 @@ bool KifuExportController::overwriteFile(const QString& filePath)
             m_deps.gameRecord->clearDirty();
         }
         Q_EMIT statusMessage(tr("棋譜を上書き保存しました: %1").arg(filePath), 5000);
-    } else {
-        QMessageBox::warning(m_parentWidget, tr("KIF Save Error"), error);
     }
 
     return ok;

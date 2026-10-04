@@ -226,7 +226,7 @@ ShogiBoardQ --automation [--automation-socket PATH]
 | `position.get` | - | `{sfen, start_sfen, ply, moves[]}` | - |
 | `position.set` | `{sfen, discard_unsaved?}` | `{sfen}` | `-32602` 不正 SFEN、`-32004` 未保存 |
 | `kifu.load` | `{path?, text?, discard_unsaved?}` | `{total_plies, start_sfen, kifu_file}` | `-32003` パス、`-32004` 未保存、`-32005` 読込失敗 |
-| `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32003` パス／既存ファイル |
+| `kifu.save` | `{path, overwrite?}` | `{path, format}` | `-32003` パス／既存ファイル／.kif・.ki2 に Shift_JIS で表せない文字（確認ダイアログは出さず、文字を示して `.kifu`・`.ki2u` を案内） |
 | `kifu.get` | `{format?, from_ply?, max_moves?, max_chars?}` | `{format, total_plies, moves:[{ply,text,usi,time,comment}], text?, truncated}` | - |
 | `kifu.goto` | `{ply}` | `{ply, sfen}` | `-32602` 範囲外 |
 | `action.list` | - | `{actions:[{name,text,enabled,checked,checkable}]}` | - |

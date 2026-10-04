@@ -90,8 +90,9 @@ public:
     [[nodiscard]] bool loadKifuText(const QString& content);
     /// SFEN 局面を反映する。上書き保存先はクリアする
     [[nodiscard]] bool applySfenPosition(const QString& sfen);
-    /// 指定パスへ保存する（形式は拡張子で決定）。成功時は上書き保存先を更新する
-    [[nodiscard]] bool saveKifuToPath(const QString& filePath);
+    /// 指定パスへ保存する（形式は拡張子で決定）。ダイアログは出さず、失敗理由を errorText に返す。
+    /// 成功時は上書き保存先を更新する
+    [[nodiscard]] bool saveKifuToPath(const QString& filePath, QString* errorText = nullptr);
 
 private slots:
     void onAsyncLoadFinished(bool success);

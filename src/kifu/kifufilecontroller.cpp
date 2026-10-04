@@ -271,7 +271,7 @@ bool KifuFileController::applySfenPosition(const QString& sfen)
     return success;
 }
 
-bool KifuFileController::saveKifuToPath(const QString& filePath)
+bool KifuFileController::saveKifuToPath(const QString& filePath, QString* errorText)
 {
     if (m_deps.ensureGameRecordModel) m_deps.ensureGameRecordModel();
     if (m_deps.ensureKifuExportController) m_deps.ensureKifuExportController();
@@ -279,7 +279,7 @@ bool KifuFileController::saveKifuToPath(const QString& filePath)
 
     auto* kec = m_deps.getKifuExportController ? m_deps.getKifuExportController() : nullptr;
     if (!kec) return false;
-    const bool ok = kec->overwriteFile(filePath);
+    const bool ok = kec->saveToPathWithoutDialogs(filePath, errorText);
     if (ok) setOverwriteTarget(filePath);
     return ok;
 }
