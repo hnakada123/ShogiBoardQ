@@ -990,10 +990,11 @@ add_shogi_test(tst_settings_reset
 set_tests_properties(tst_settings_reset PROPERTIES TIMEOUT 20)
 
 # ============================================================
-# Unit 22: App Lifecycle Pipeline (起動/終了フロー構造契約)
+# Unit 22: App Lifecycle Pipeline (起動/終了順序・終了確認の実行時テスト)
 # ============================================================
 add_shogi_test(tst_app_lifecycle_pipeline
     tst_app_lifecycle_pipeline.cpp
+    ${SRC}/app/mainwindowlifecyclepipeline.cpp
     ${SRC}/app/mainwindowlifecyclesequence.cpp
 )
 

@@ -216,6 +216,14 @@ void KifuSubRegistry::refreshGameRecordUpdateDeps()
 // 棋譜データ読み込みサービス
 // ---------------------------------------------------------------------------
 
+void KifuSubRegistry::displayGameRecord(const QList<KifDisplayItem>& disp)
+{
+    if (m_mw.m_isShuttingDown || !m_mw.m_models.kifuRecord) return;
+
+    ensureGameRecordLoadService();
+    m_mw.m_gameRecordLoadService->loadGameRecord(disp);
+}
+
 void KifuSubRegistry::ensureGameRecordLoadService()
 {
     if (!m_mw.m_gameRecordLoadService) {
