@@ -288,7 +288,7 @@ stop応答を10秒遅らせ、terminateを無視する模擬エンジンを使�
 ```bash
 python3 tests/gui/prepare.py
 xvfb-run -d env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_start_game_flow \
-  resumeInterruptedGame resumeInvalidatedByNewRecord
+  resumeInterruptedGame resumeInvalidatedByNewRecord resumeKeepsBoardStable
 xvfb-run -d env QT_QPA_PLATFORM=xcb python3 tests/gui/test_engine_shutdown.py \
   --engine /home/nakada/shogi/Gikou/release \
   --output build/gui-audit/resume-gikou-fixed \
@@ -300,6 +300,11 @@ xvfb-run -d env QT_QPA_PLATFORM=xcb python3 tests/gui/test_engine_shutdown.py \
 棋譜閲覧後の局面復元、再開後の着手、再度の中断・再開を検証する。
 新規棋譜・局面編集による再開情報の破棄2ケースも通過した。
 時計単体テストは、tick間の端数、消費時間の重複計上防止、秒読み／加算、待った用履歴の保持を確認する。
+
+`resumeKeepsBoardStable` は、人間同士／人間先手／人間後手／エンジン同士の4ケースで、
+再開中の各描画時点の盤面位置・大きさ・局面とウィンドウサイズ、および棋譜各列の表示を検証する。
+修正前は棋譜欄の重複再構築で時間見出し等が欠落し、4ケースともウィンドウ幅が27px縮んだ。
+再開時の棋譜復元を既存のセッション開始時の表示同期に統一すると、4ケースともサイズ変更がなくなった。
 
 Gikou・やねうら王・apery_rust × 人間先手／人間後手／エンジン同士 × 思考中／先読み中の
 18ケースも通過した。中断1.5秒後に再開し、局面・残り時間の一致を検査する。
