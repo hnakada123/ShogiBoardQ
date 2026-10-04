@@ -4,9 +4,11 @@
 #include <thread>
 #include <chrono>
 #include <cstdlib>
+#include <csignal>
 
 int main()
 {
+    if (std::getenv("SBQ_MATCH_IGNORE_TERMINATE")) std::signal(SIGTERM, SIG_IGN);
     bool pondering = false;
     bool ponderEnabled = true; // Gikou同様、未報告でも既定値はtrue
     const char* modeEnv = std::getenv("SBQ_MATCH_PONDER_MODE");
