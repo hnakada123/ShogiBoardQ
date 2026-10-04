@@ -4,9 +4,6 @@
 #include "kifubranchtree.h"
 #include "kifubranchnode.h"
 #include "kifunavigationstate.h"
-#include "kifurecordlistmodel.h"
-#include "kifudisplay.h"
-#include "kifupresentation.h"
 #include "livegamesession.h"
 #include "replaycontroller.h"
 
@@ -52,18 +49,10 @@ void GameSessionOrchestrator::handleResumeGame()
     nav->rememberPathSelections(node);
     m_deps.liveSession->discard();
     tree->removeLeaf(terminal);
+    // sessionStarted の表示同期で、手数・時間見出しを含めた棋譜欄を復元する。
+    // ここで簡略な表示に作り直すと列幅が縮み、ウィンドウ全体が再配置される。
     m_deps.liveSession->startFromNode(node);
 
-    m_deps.kifuModel->clearAllItems();
-    const auto path = tree->pathToNode(node);
-    for (auto* entry : path) {
-        auto* item = new KifuDisplay(entry->displayText(), entry->timeText(), entry->comment());
-        if (entry->parent()) {
-            item->beforeSfen = entry->parent()->sfen();
-            item->usiMove = KifuPresentation::usiMove(entry->move());
-        }
-        m_deps.kifuModel->appendItem(item);
-    }
     if (m_deps.playMode) *m_deps.playMode = state.options.mode;
     if (m_deps.currentSfenStr) *m_deps.currentSfenStr = state.options.sfenStart;
     if (m_deps.currentSelectedPly) *m_deps.currentSelectedPly = node->ply();

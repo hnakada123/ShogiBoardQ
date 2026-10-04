@@ -48,9 +48,23 @@
 #include "gamerecordmodel.h"
 #include <QTableView>
 #include <QTableWidget>
+#include <utility>
 
 class TestStartGameFlow : public QObject {
     Q_OBJECT
+    QList<QRect> paintedBoardRects;
+    QList<QSize> paintedWindowSizes;
+    QStringList paintedBoards;
+    bool eventFilter(QObject* object, QEvent* event) override {
+        if (event->type() == QEvent::Paint) {
+            if (auto* view = qobject_cast<ShogiView*>(object)) {
+                paintedBoardRects.append(QRect(view->mapToGlobal(QPoint()), view->size()));
+                paintedWindowSizes.append(view->window()->size());
+                paintedBoards.append(view->board()->convertBoardToSfen());
+            }
+        }
+        return QObject::eventFilter(object, event);
+    }
     std::unique_ptr<MainWindow> window;
     QTimer dialogTimer;
     QStringList messages;
@@ -153,6 +167,63 @@ private slots:
                 for (int ply : {0, 1, 2})
                     QTest::newRow(qPrintable(QString("mode%1-time%2-ply%3").arg(mode).arg(timing).arg(ply)))
                         << mode << timing << ply;
+    }
+    void resumeKeepsBoardStable_data() {
+        QTest::addColumn<int>("mode");
+        for (int mode = 0; mode < 4; ++mode)
+            QTest::newRow(qPrintable(QString("mode%1").arg(mode))) << mode;
+    }
+    void resumeKeepsBoardStable() {
+        QFETCH(int, mode);
+        if (mode) configureEngineGames(0);
+        auto& settings = SettingsCommon::openSettings();
+        settings.setValue("GameSettings/isHuman1", mode == 0 || mode == 1);
+        settings.setValue("GameSettings/isHuman2", mode == 0 || mode == 2);
+        settings.setValue("GameSettings/consecutiveGames", 1);
+        settings.sync();
+        qputenv("AUDIT_ENGINE_WAIT_FOR_STOP", "1");
+        startWindowGame();
+        auto* view = window->findChild<ShogiView*>();
+        const QList<QPair<QPoint, QPoint>> moves = {{{7,7},{7,6}}, {{3,3},{3,4}}};
+        for (int ply = 0; ply < 2; ++ply) {
+            if (mode == 0 || (ply == 0 ? mode == 1 : mode == 2)) {
+                QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(moves[ply].first.x(), moves[ply].first.y()));
+                QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(moves[ply].second.x(), moves[ply].second.y()));
+            } else {
+                QTest::qWait(150);
+                child<QAction>(*window, "actionMakeImmediateMove")->trigger();
+            }
+            QTRY_COMPARE(window->m_match->sfenRecordPtr()->size(), ply + 2);
+        }
+        QTest::qWait(250);
+        child<QAction>(*window, "actionBreakOffGame")->trigger();
+        QTest::qWait(250);
+        const QRect expectedRect(view->mapToGlobal(QPoint()), view->size());
+        const QSize expectedWindowSize = window->size();
+        const QString expectedBoard = view->board()->convertBoardToSfen();
+        const auto* record = window->m_models.kifuRecord;
+        QStringList expectedRecordText;
+        // 中断行を除く全列の表示（開始局面の時間見出し、手数など）を保持する。
+        for (int row = 0; row < record->rowCount() - 1; ++row)
+            for (int column = 0; column < record->columnCount(); ++column)
+                expectedRecordText.append(record->index(row, column).data().toString());
+        paintedBoardRects.clear();
+        paintedWindowSizes.clear();
+        paintedBoards.clear();
+        view->installEventFilter(this);
+        child<QAction>(*window, "actionResumeGame")->trigger();
+        QTest::qWait(500);
+        view->removeEventFilter(this);
+        QVERIFY(!paintedBoardRects.isEmpty());
+        // 遅延レイアウトを含む各描画時点で、盤とウィンドウが動かないことを確認する。
+        for (const auto& rect : std::as_const(paintedBoardRects)) QCOMPARE(rect, expectedRect);
+        for (const auto& size : std::as_const(paintedWindowSizes)) QCOMPARE(size, expectedWindowSize);
+        for (const auto& board : std::as_const(paintedBoards)) QCOMPARE(board, expectedBoard);
+        QStringList resumedRecordText;
+        for (int row = 0; row < record->rowCount(); ++row)
+            for (int column = 0; column < record->columnCount(); ++column)
+                resumedRecordText.append(record->index(row, column).data().toString());
+        QCOMPARE(resumedRecordText, expectedRecordText);
     }
     void resumeInterruptedGame() {
         QFETCH(int, mode);
