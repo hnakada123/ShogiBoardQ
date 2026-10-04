@@ -59,36 +59,6 @@ void Usi::sendPositionAndGoMateCommands(int mateLimitMilliSec, QString& position
 }
 
 // ============================================================
-// 対局通信処理（UsiMatchHandlerへ委譲）
-// ============================================================
-
-void Usi::handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
-                                           QPoint& outFrom, QPoint& outTo,
-                                           const UsiTimingParams& timing,
-                                           QStringList& positionStrList)
-{
-    // 対局時は検討タブ用モデルをクリア
-    m_considerationModel = nullptr;
-
-    m_matchHandler->setClock(m_matchClock);
-    m_matchHandler->handleHumanVsEngineCommunication(positionStr, positionPonderStr, outFrom, outTo,
-                                                     timing, positionStrList);
-}
-
-void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
-                                                        QString& positionPonderStr,
-                                                        QPoint& outFrom, QPoint& outTo,
-                                                        const UsiTimingParams& timing)
-{
-    // 対局時は検討タブ用モデルをクリア
-    m_considerationModel = nullptr;
-
-    m_matchHandler->setClock(m_matchClock);
-    m_matchHandler->handleEngineVsHumanOrEngineMatchCommunication(positionStr, positionPonderStr,
-                                                                  outFrom, outTo, timing);
-}
-
-// ============================================================
 // 棋譜解析
 // ============================================================
 
@@ -152,6 +122,6 @@ void Usi::sendAnalysisCommands(const QString& positionStr, int byoyomiMilliSec, 
         m_analysisStopTimer->start(byoyomiMilliSec);
     }
 
-    // waitForBestMove は呼ばない（非ブロッキング）
+    // 応答はシグナルで受信する。
     // bestmove はシグナル経由で通知される
 }

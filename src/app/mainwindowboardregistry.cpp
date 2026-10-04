@@ -40,7 +40,6 @@
 void MainWindowServiceRegistry::ensureBoardSetupController()
 {
     if (m_mw.m_isShuttingDown) return;
-    if (m_mw.m_boardSetupController) return;
 
     MainWindowDepsFactory::BoardSetupControllerCallbacks cbs;
     cbs.ensurePositionEdit = [this]() { m_foundation->ensurePositionEditController(); };
@@ -70,7 +69,6 @@ void MainWindowServiceRegistry::ensureBoardSetupController()
 void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 {
     if (m_mw.m_isShuttingDown) return;
-    if (m_mw.m_registryParts.posEditCoordinator) return;
 
     m_foundation->ensureUiStatePolicyManager();
 
@@ -90,11 +88,11 @@ void MainWindowServiceRegistry::ensurePositionEditCoordinator()
 
     m_mw.m_compositionRoot->ensurePositionEditCoordinator(m_mw.buildRuntimeRefs(), cbs, &m_mw, m_mw.m_registryParts.posEditCoordinator);
     connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
-            this, &MainWindowServiceRegistry::resetRecordForEditedPosition);
+            this, &MainWindowServiceRegistry::resetRecordForEditedPosition, Qt::UniqueConnection);
     connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingStarted,
-            this, &MainWindowServiceRegistry::clearEvalState);
+            this, &MainWindowServiceRegistry::clearEvalState, Qt::UniqueConnection);
     connect(m_mw.m_registryParts.posEditCoordinator, &PositionEditCoordinator::positionEditingFinished,
-            this, &MainWindowServiceRegistry::resetRecordForEditedPosition);
+            this, &MainWindowServiceRegistry::resetRecordForEditedPosition, Qt::UniqueConnection);
 }
 
 // ---------------------------------------------------------------------------
@@ -167,11 +165,6 @@ void MainWindowServiceRegistry::handleMoveRequested(const QPoint& from, const QP
 
     ensureBoardSetupController();
     if (m_mw.m_boardSetupController) {
-        m_mw.m_boardSetupController->setPlayMode(m_mw.m_state.playMode);
-        m_mw.m_boardSetupController->setMatchCoordinator(m_mw.m_match);
-        m_mw.m_boardSetupController->setSfenRecord(m_mw.m_queryService ? m_mw.m_queryService->sfenRecord() : nullptr);
-        m_mw.m_boardSetupController->setPositionEditController(m_mw.m_posEdit);
-        m_mw.m_boardSetupController->setTimeController(m_mw.m_timeController);
         m_mw.m_boardSetupController->onMoveRequested(from, to);
     }
 }
@@ -184,7 +177,6 @@ void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
 {
     ensureBoardSetupController();
     if (m_mw.m_boardSetupController) {
-        m_mw.m_boardSetupController->setPlayMode(m_mw.m_state.playMode);
         m_mw.m_boardSetupController->onMoveCommitted(
             static_cast<ShogiGameController::Player>(mover), ply);
     }
@@ -203,9 +195,6 @@ void MainWindowServiceRegistry::handleBeginPositionEditing()
 {
     ensurePositionEditCoordinator();
     if (m_mw.m_registryParts.posEditCoordinator) {
-        m_mw.m_registryParts.posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
-        m_mw.m_registryParts.posEditCoordinator->setBoardController(m_mw.m_boardController);
-        m_mw.m_registryParts.posEditCoordinator->setMatchCoordinator(m_mw.m_match);
         m_mw.m_registryParts.posEditCoordinator->beginPositionEditing();
     }
 }
@@ -218,8 +207,6 @@ void MainWindowServiceRegistry::handleFinishPositionEditing()
 {
     ensurePositionEditCoordinator();
     if (m_mw.m_registryParts.posEditCoordinator) {
-        m_mw.m_registryParts.posEditCoordinator->setPositionEditController(m_mw.m_posEdit);
-        m_mw.m_registryParts.posEditCoordinator->setBoardController(m_mw.m_boardController);
         m_mw.m_registryParts.posEditCoordinator->finishPositionEditing();
     }
 }
@@ -243,7 +230,6 @@ void MainWindowServiceRegistry::resetRecordForEditedPosition()
     m_mw.m_kifu.currentSelectedPly = 0;
     m_mw.m_kifu.gameUsiMoves.clear();
     m_mw.m_kifu.gameMoves.clear();
-    m_mw.m_kifu.commentsByRow.clear();
     m_mw.m_kifu.positionStrList = QStringList{QStringLiteral("position sfen ") + sfen};
 
     MainWindowResetService::ModelResetDeps deps;

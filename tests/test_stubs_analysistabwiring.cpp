@@ -110,11 +110,10 @@ void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComme
 
 void CommentCoordinator::onGameRecordCommentChanged(int, const QString&) {}
 
-void CommentCoordinator::onCommentUpdateCallback(int, const QString&) {}
 
 void CommentCoordinator::onBookmarkEditRequested() {}
 
-void CommentCoordinator::onBookmarkUpdateCallback(int, const QString&) {}
+void CommentCoordinator::onBookmarkChanged(int, const QString&) {}
 
 void CommentCoordinator::onNavigationCommentUpdate(int, const QString&, bool) {}
 

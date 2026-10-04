@@ -122,16 +122,6 @@ public:
     void setModelPtrs(UsiCommLogModel* comm1, ShogiEngineThinkingModel* think1,
                       UsiCommLogModel* comm2, ShogiEngineThinkingModel* think2);
 
-    // --- 指し手実行 ---
-
-    bool engineThinkApplyMove(Usi* engine,
-                              QString& positionStr, QString& ponderStr,
-                              QPoint* outFrom, QPoint* outTo);
-    bool engineMoveOnce(Usi* eng,
-                        QString& positionStr, QString& ponderStr,
-                        bool useSelectedField2, int engineIndex,
-                        QPoint* outTo);
-
     // --- USI送信 ---
 
     void sendStopToEngine(Usi* which);

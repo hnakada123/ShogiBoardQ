@@ -71,6 +71,7 @@ public:
 
     explicit PreStartCleanupHandler(const Dependencies& deps, QObject* parent = nullptr);
     ~PreStartCleanupHandler() override = default;
+    void updateDependencies(const Dependencies& deps);
 
 public slots:
     /// 対局開始前のクリーンアップを実行する（→ GameStartCoordinator::requestPreStartCleanup）

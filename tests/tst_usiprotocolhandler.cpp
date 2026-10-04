@@ -5,7 +5,6 @@
 /// エンジンプロセスの起動は不要。
 
 #include <QtTest>
-#include <QElapsedTimer>
 #include <QSignalSpy>
 #include <QMetaObject>
 #include <optional>
@@ -17,10 +16,22 @@ class TestUsiProtocolHandler : public QObject
 {
     Q_OBJECT
 
+private:
+    static bool startProcess(EngineProcessManager& process)
+    {
+        QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+#ifdef Q_OS_WIN
+        path += QStringLiteral(".exe");
+#endif
+        QSignalSpy started(&process, &EngineProcessManager::processStarted);
+        return process.startProcessAsync(path) && (!started.isEmpty() || started.wait(5000));
+    }
+
 private slots:
     void ponderPreservesPredictionAndSendsTime()
     {
         EngineProcessManager process;
+        QVERIFY(startProcess(process));
         UsiProtocolHandler handler;
         handler.setProcessManager(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
@@ -38,6 +49,7 @@ private slots:
     void ponderSendsIncrements()
     {
         EngineProcessManager process;
+        QVERIFY(startProcess(process));
         UsiProtocolHandler handler;
         handler.setProcessManager(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
@@ -51,10 +63,11 @@ private slots:
         UsiProtocolHandler handler;
         QSignalSpy resign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
         QSignalSpy win(&handler, &UsiProtocolHandler::bestMoveWinReceived);
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
         handler.sendGoPonder({});
         handler.sendStop();
         handler.onDataReceived(QStringLiteral("bestmove resign"));
-        QVERIFY(handler.waitForBestMove(10));
+        QCOMPARE(bestmove.count(), 1);
         QCOMPARE(resign.count(), 0);
         handler.sendGoPonder({});
         handler.sendStop();
@@ -64,15 +77,6 @@ private slots:
         handler.sendPonderHit();
         handler.onDataReceived(QStringLiteral("bestmove resign"));
         QCOMPARE(resign.count(), 1);
-    }
-
-    void waitingDoesNotEraseAlreadyReceivedBestmove()
-    {
-        UsiProtocolHandler handler;
-        handler.sendGoDepth(1);
-        handler.onDataReceived(QStringLiteral("bestmove 7g7f"));
-        QVERIFY(handler.waitForBestMoveWithGrace(1, 0));
-        QVERIFY(handler.keepWaitingForBestMove(1));
     }
 
     void stoppedPonderCannotBeHit_data()
@@ -87,11 +91,13 @@ private slots:
     {
         QFETCH(QString, result);
         EngineProcessManager process;
+        QVERIFY(startProcess(process));
         UsiProtocolHandler handler;
         handler.setProcessManager(&process);
         QSignalSpy commands(&process, &EngineProcessManager::commandSent);
         QSignalSpy resign(&handler, &UsiProtocolHandler::bestMoveResignReceived);
         QSignalSpy win(&handler, &UsiProtocolHandler::bestMoveWinReceived);
+        QSignalSpy bestmove(&handler, &UsiProtocolHandler::bestMoveReceived);
         handler.onDataReceived(QStringLiteral("bestmove 8c8d ponder 2g2f"));
         handler.sendGoPonder({});
         commands.clear();
@@ -102,7 +108,7 @@ private slots:
         QCOMPARE(commands.count(), 1);
         QCOMPARE(commands.first().at(0).toString(), QStringLiteral("stop"));
         handler.onDataReceived(result);
-        QVERIFY(handler.waitForBestMove(10));
+        QCOMPARE(bestmove.count(), 2);
         QCOMPARE(handler.currentPhase(), UsiProtocolHandler::SearchPhase::Idle);
         QVERIFY(handler.predictedMove().isEmpty());
         handler.sendPonderHit(); // 回収済みの探索にも送らない
@@ -110,9 +116,9 @@ private slots:
         QCOMPARE(resign.count(), 0);
         QCOMPARE(win.count(), 0);
         handler.sendGoDepth(1);
-        QVERIFY(!handler.waitForBestMove(0)); // 前のbestmoveを再利用しない
+        QCOMPARE(bestmove.count(), 2); // 新しい応答を受けるまでは通知しない
         handler.onDataReceived(QStringLiteral("bestmove 3c3d"));
-        QVERIFY(handler.waitForBestMove(10));
+        QCOMPARE(bestmove.count(), 3);
     }
 
     // ================================================================
@@ -422,26 +428,22 @@ private slots:
         QCOMPARE(spy.count(), 1);
     }
 
-    void waitForUsiOk_afterSendUsi_doesNotReusePreviousFlag()
+    void initializationRequiresFreshResponses()
     {
         UsiProtocolHandler handler;
+        QSignalSpy initialized(&handler, &UsiProtocolHandler::initializationFinished);
         handler.onDataReceived(QStringLiteral("usiok"));
-
-        handler.sendUsi();
-        const bool ok = handler.waitForUsiOk(30);
-
-        QVERIFY(!ok);
-    }
-
-    void waitForReadyOk_afterSendIsReady_doesNotReusePreviousFlag()
-    {
-        UsiProtocolHandler handler;
         handler.onDataReceived(QStringLiteral("readyok"));
-
-        handler.sendIsReady();
-        const bool ok = handler.waitForReadyOk(30);
-
-        QVERIFY(!ok);
+        handler.initializeEngineAsync();
+        handler.onDataReceived(QStringLiteral("readyok")); // usiok前の応答は完了扱いしない
+        QCOMPARE(initialized.count(), 0);
+        handler.onDataReceived(QStringLiteral("usiok"));
+        QCOMPARE(initialized.count(), 0);
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QCOMPARE(initialized.count(), 1);
+        QVERIFY(initialized.first().first().toBool());
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QCOMPARE(initialized.count(), 1);
     }
 
     // ================================================================
@@ -1298,65 +1300,50 @@ private slots:
     }
 
     // ================================================================
-    // 27. 待機系の早期復帰
+    // 27. 非同期初期化のタイムアウトとキャンセル
     // ================================================================
 
-    void waitForUsiOk_abortsOnHardTimeout()
+    void initializationTimeout_data()
     {
-        UsiProtocolHandler handler;
-        handler.markHardTimeout();
-
-        QElapsedTimer timer;
-        timer.start();
-        const bool ok = handler.waitForUsiOk(1000);
-
-        QVERIFY(!ok);
-        QVERIFY2(timer.elapsed() < 250, "waitForUsiOk should abort quickly on hard-timeout");
+        QTest::addColumn<bool>("receivedUsiOk");
+        QTest::newRow("usiok-timeout") << false;
+        QTest::newRow("readyok-timeout") << true;
     }
 
-    void waitForStopOrPonderhit_handlesPreSentSignal()
+    void initializationTimeout()
     {
+        QFETCH(bool, receivedUsiOk);
         UsiProtocolHandler handler;
-        handler.sendStop(); // wait開始前に通知が送信されるケース
-
-        QElapsedTimer timer;
-        timer.start();
-        handler.waitForStopOrPonderhit();
-
-        QVERIFY2(timer.elapsed() < 250,
-                 "waitForStopOrPonderhit should return immediately when stop already sent");
+        QSignalSpy initialized(&handler, &UsiProtocolHandler::initializationFinished);
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.initializeEngineAsync(30);
+        if (receivedUsiOk) handler.onDataReceived(QStringLiteral("usiok"));
+        QCOMPARE(initialized.count(), 0); // 要求は完了を待たずに返る
+        QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 1000);
+        QVERIFY(!initialized.first().first().toBool());
+        QCOMPARE(errors.count(), 1);
+        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QCOMPARE(initialized.count(), 1); // 期限後の応答を採用しない
     }
 
-    void waitForBestMove_abortsOnCancelCurrentOperation()
+    void cancelledInitializationDoesNotCompleteOrTimeout()
     {
         UsiProtocolHandler handler;
-
-        QTimer cancelTimer;
-        cancelTimer.setSingleShot(true);
-        connect(&cancelTimer, &QTimer::timeout,
-                &handler, &UsiProtocolHandler::cancelCurrentOperation);
-        cancelTimer.start(30);
-
-        QElapsedTimer timer;
-        timer.start();
-        const bool ok = handler.waitForBestMove(1000);
-
-        QVERIFY(!ok);
-        QVERIFY2(timer.elapsed() < 300,
-                 "waitForBestMove should abort quickly when operation is canceled");
-    }
-
-    void keepWaitingForBestMove_hardTimeout()
-    {
-        UsiProtocolHandler handler;
-
-        QElapsedTimer timer;
-        timer.start();
-        const bool ok = handler.keepWaitingForBestMove(50);
-
-        QVERIFY(!ok);
-        QVERIFY2(timer.elapsed() < 300,
-                 "keepWaitingForBestMove should return false on hard-timeout");
+        QSignalSpy initialized(&handler, &UsiProtocolHandler::initializationFinished);
+        QSignalSpy errors(&handler, &UsiProtocolHandler::errorOccurred);
+        handler.initializeEngineAsync(30);
+        handler.cancelCurrentOperation();
+        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QTest::qWait(60);
+        QCOMPARE(initialized.count(), 0);
+        QCOMPARE(errors.count(), 0);
+        handler.initializeEngineAsync();
+        handler.onDataReceived(QStringLiteral("usiok"));
+        handler.onDataReceived(QStringLiteral("readyok"));
+        QCOMPARE(initialized.count(), 1);
+        QVERIFY(initialized.first().first().toBool());
     }
 
     // ================================================================

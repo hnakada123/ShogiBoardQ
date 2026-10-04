@@ -68,22 +68,13 @@ public:
 
     // --- 対局通信 ---
 
-    void handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
-                                          QPoint& outFrom, QPoint& outTo,
-                                          const UsiTimingParams& timing,
-                                          QStringList& positionStrList);
-
-    void handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
-                                                       QString& positionPonderStr,
-                                                       QPoint& outFrom, QPoint& outTo,
-                                                       const UsiTimingParams& timing);
-
     QString convertHumanMoveToUsiFormat(const QPoint& outFrom, const QPoint& outTo, bool promote);
 
 private:
     void startAsyncSearch();
     void onSearchTimeout();
     int remainingTimeMs(const UsiTimingParams& timing) const;
+    static constexpr int kUnlimitedSearchTimeoutMs = 30 * 60 * 1000; ///< 無制限対局の安全上限
     enum class Pending { None, PonderStop, Move };
     Pending m_pending = Pending::None;
     QString m_position;
@@ -91,22 +82,11 @@ private:
     UsiTimingParams m_timing;
     QTimer m_responseTimer;
 
-    void executeEngineCommunication(QString& positionStr, QString& positionPonderStr,
-                                    QPoint& outFrom, QPoint& outTo,
-                                    const UsiTimingParams& timing);
-
-    bool processEngineResponse(QString& positionStr, QString& positionPonderStr,
-                               const UsiTimingParams& timing);
-
-    bool sendCommandsAndProcess(QString& positionStr, QString& positionPonderStr,
-                                const UsiTimingParams& timing);
-
     void startPonderingAfterBestMove(QString& positionStr, QString& positionPonderStr,
                                    const UsiTimingParams& timing);
     void appendBestMoveAndStartPondering(QString& positionStr, QString& positionPonderStr,
                                         const UsiTimingParams& timing);
 
-    bool waitAndCheckForBestMoveRemainingTime(const UsiTimingParams& timing);
     UsiTimingParams timingForSearch(const UsiTimingParams& timing, bool pondering) const;
 
     void applyMovesToBoardFromBestMoveAndPonder();

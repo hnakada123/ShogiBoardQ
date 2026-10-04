@@ -33,25 +33,30 @@
 
 PreStartCleanupHandler::PreStartCleanupHandler(const Dependencies& deps, QObject* parent)
     : QObject(parent)
-    , m_boardController(deps.boardController)
-    , m_shogiView(deps.shogiView)
-    , m_kifuRecordModel(deps.kifuRecordModel)
-    , m_kifuBranchModel(deps.kifuBranchModel)
-    , m_lineEditModel1(deps.lineEditModel1)
-    , m_lineEditModel2(deps.lineEditModel2)
-    , m_timeController(deps.timeController)
-    , m_evalChart(deps.evalChart)
-    , m_evalGraphController(deps.evalGraphController)
-    , m_recordPane(deps.recordPane)
-    , m_startSfenStr(deps.startSfenStr)
-    , m_currentSfenStr(deps.currentSfenStr)
-    , m_activePly(deps.activePly)
-    , m_currentSelectedPly(deps.currentSelectedPly)
-    , m_currentMoveIndex(deps.currentMoveIndex)
-    , m_liveGameSession(deps.liveGameSession)
-    , m_branchTree(deps.branchTree)
-    , m_navState(deps.navState)
 {
+    updateDependencies(deps);
+}
+
+void PreStartCleanupHandler::updateDependencies(const Dependencies& deps)
+{
+    m_boardController = deps.boardController;
+    m_shogiView = deps.shogiView;
+    m_kifuRecordModel = deps.kifuRecordModel;
+    m_kifuBranchModel = deps.kifuBranchModel;
+    m_lineEditModel1 = deps.lineEditModel1;
+    m_lineEditModel2 = deps.lineEditModel2;
+    m_timeController = deps.timeController;
+    m_evalChart = deps.evalChart;
+    m_evalGraphController = deps.evalGraphController;
+    m_recordPane = deps.recordPane;
+    m_startSfenStr = deps.startSfenStr;
+    m_currentSfenStr = deps.currentSfenStr;
+    m_activePly = deps.activePly;
+    m_currentSelectedPly = deps.currentSelectedPly;
+    m_currentMoveIndex = deps.currentMoveIndex;
+    m_liveGameSession = deps.liveGameSession;
+    m_branchTree = deps.branchTree;
+    m_navState = deps.navState;
 }
 
 // ============================================================

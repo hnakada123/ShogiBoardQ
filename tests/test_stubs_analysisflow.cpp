@@ -52,11 +52,6 @@ QString Usi::pvKanjiStr() const { return {}; }
 void Usi::setPvKanjiStr(const QString&) {}
 void Usi::parseMoveCoordinates(int&, int&, int&, int&) {}
 void Usi::initializeAndStartEngineCommunication(QString&, QString&) {}
-void Usi::handleHumanVsEngineCommunication(QString&, QString&, QPoint&, QPoint&,
-                                            const UsiTimingParams&, QStringList&) {}
-void Usi::handleEngineVsHumanOrEngineMatchCommunication(QString&, QString&,
-                                                         QPoint&, QPoint&,
-                                                         const UsiTimingParams&) {}
 void Usi::sendGameOverCommand(GameOverResult) {}
 void Usi::sendQuitCommand() {}
 QChar Usi::rankToAlphabet(int) const { return QChar(); }
@@ -90,7 +85,6 @@ void Usi::setBaseSfen(const QString&) {}
 void Usi::flushThinkingInfoBuffer() {}
 void Usi::requestClearThinkingInfo() {}
 void Usi::cleanupEngineProcessAndThread(bool) {}
-bool Usi::startAndInitializeEngine(const QString&, const QString&) { return g_analysisFlowStubStartAndInitSuccess; }
 void Usi::executeTsumeCommunication(QString&, int) {}
 void Usi::sendPositionAndGoMateCommands(int, QString&) {}
 void Usi::cancelCurrentOperation() {}
@@ -296,14 +290,11 @@ void ShogiInfoRecord::setScoreCp(int scoreCp) { m_scoreCp = scoreCp; }
 // === EngineProcessManager スタブ ===
 EngineProcessManager::EngineProcessManager(QObject* parent) : QObject(parent) {}
 EngineProcessManager::~EngineProcessManager() = default;
-bool EngineProcessManager::startProcess(const QString&) { return false; }
-void EngineProcessManager::stopProcess() {}
 bool EngineProcessManager::isRunning() const { return false; }
 QProcess::ProcessState EngineProcessManager::state() const { return QProcess::NotRunning; }
 void EngineProcessManager::sendCommand(const QString&) {}
 void EngineProcessManager::closeWriteChannel() {}
 void EngineProcessManager::pumpPendingOutput() {}
-bool EngineProcessManager::waitForReadyReadAndPump(int) { return false; }
 void EngineProcessManager::setShutdownState(ShutdownState) {}
 void EngineProcessManager::setPostQuitInfoStringLinesLeft(int) {}
 void EngineProcessManager::decrementPostQuitLines() {}
@@ -460,7 +451,7 @@ QSettings& openSettings() { static QSettings s(settingsFilePath(), QSettings::In
 #include "moc_shogiview.cpp"
 #include "moc_elidelabel.cpp"
 
-bool Usi::startAndInitializeEngineAsync(const QString& path, const QString& name) { return startAndInitializeEngine(path, name); }
+bool Usi::startAndInitializeEngineAsync(const QString&, const QString&) { return g_analysisFlowStubStartAndInitSuccess; }
 void Usi::onProcessStarted() {}
 void Usi::onEngineInitialized(bool) {}
 void Usi::onStartTimeout() {}

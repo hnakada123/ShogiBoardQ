@@ -36,7 +36,6 @@ public:
     void setRecordPresenter(GameRecordPresenter* presenter) { m_recordPresenter = presenter; }
     void setStatusBar(QStatusBar* bar) { m_statusBar = bar; }
     void setCurrentMoveIndex(int* index) { m_currentMoveIndex = index; }
-    void setCommentsByRow(QStringList* comments) { m_commentsByRow = comments; }
     void setKifuRecordListModel(KifuRecordListModel* model) { m_kifuRecordModel = model; }
 
     /**
@@ -73,23 +72,16 @@ public slots:
     void onGameRecordCommentChanged(int ply, const QString& comment);
 
     /**
-     * @brief コメント更新コールバック（GameRecordModelから呼ばれる）
-     * @param ply 手数
-     * @param comment コメント
-     */
-    void onCommentUpdateCallback(int ply, const QString& comment);
-
-    /**
      * @brief しおり編集リクエストスロット（RecordPaneのボタンから呼ばれる）
      */
     void onBookmarkEditRequested();
 
     /**
-     * @brief しおり更新コールバック（GameRecordModelから呼ばれる）
+     * @brief GameRecordModel::bookmarkChanged の表示更新
      * @param ply 手数
      * @param bookmark しおり
      */
-    void onBookmarkUpdateCallback(int ply, const QString& bookmark);
+    void onBookmarkChanged(int ply, const QString& bookmark);
 
     /**
      * @brief ナビゲーション起因のコメント表示更新
@@ -112,7 +104,6 @@ private:
     GameRecordPresenter* m_recordPresenter = nullptr;
     QStatusBar* m_statusBar = nullptr;
     int* m_currentMoveIndex = nullptr;
-    QStringList* m_commentsByRow = nullptr;
     KifuRecordListModel* m_kifuRecordModel = nullptr;
 };
 

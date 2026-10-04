@@ -678,7 +678,7 @@ if (isHandicap && whiteToMove) {
 
 `startEvEFirstMoveByBlack()` / `startEvEFirstMoveByWhite()` では:
 - `computeGoTimes()` でUSI時間パラメータを計算
-- `Usi::handleEngineVsHumanOrEngineMatchCommunication()` でエンジンに思考を指示（ブロッキング）
+- `Usi::requestMatchMove()` で非同期に思考を要求し、`matchMoveReady` の受信後に着手処理へ進む
 - `ShogiGameController::validateAndMove()` でエンジンの指し手を盤面に適用
 - 時計の消費時間を設定
 - 棋譜に1行追記

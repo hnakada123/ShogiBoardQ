@@ -8,7 +8,6 @@
 
 #include <QObject>
 #include <QLoggingCategory>
-#include <functional>
 
 Q_DECLARE_LOGGING_CATEGORY(lcApp)
 
@@ -36,20 +35,10 @@ GameRecordModel* GameRecordModelBuilder::build(const Deps& deps)
         QObject::connect(model, &GameRecordModel::commentChanged,
                          deps.commentCoordinator, &CommentCoordinator::onGameRecordCommentChanged);
 
-        // コメント更新時のコールバックを設定
-        // m_kifu.commentsByRow 同期、RecordPresenter通知、UI更新を自動実行
         deps.commentCoordinator->setRecordPresenter(deps.recordPresenter);
         deps.commentCoordinator->setKifuRecordListModel(deps.kifuRecordModel);
-        model->setCommentUpdateCallback(
-            [coordinator = deps.commentCoordinator](int row, const QString& text) {
-                coordinator->onCommentUpdateCallback(row, text);
-            });
-
-        // しおり更新時のコールバックを設定
-        model->setBookmarkUpdateCallback(
-            [coordinator = deps.commentCoordinator](int row, const QString& bookmark) {
-                coordinator->onBookmarkUpdateCallback(row, bookmark);
-            });
+        QObject::connect(model, &GameRecordModel::bookmarkChanged,
+                         deps.commentCoordinator, &CommentCoordinator::onBookmarkChanged);
     }
 
     qCDebug(lcApp).noquote() << "GameRecordModelBuilder::build: created and bound";

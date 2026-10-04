@@ -6,8 +6,6 @@
 
 #include <QObject>
 #include <QProcess>
-#include <QElapsedTimer>
-#include <QPointer>
 #include <QString>
 #include <QStringList>
 #include <memory>
@@ -42,13 +40,9 @@ public:
 
     // --- プロセス管理 ---
     
-    /// エンジンプロセスを起動し、シグナル接続を行う
-    [[nodiscard]] bool startProcess(const QString& engineFile);
-
     /// 非同期起動。戻り値は要求の受付、完了は processStarted で通知する。
     [[nodiscard]] bool startProcessAsync(const QString& engineFile);
     void stopProcessAsync();
-    void stopProcess();
     bool isRunning() const;
     QProcess::ProcessState state() const;
     QString currentEnginePath() const { return m_currentEnginePath; }
@@ -60,13 +54,10 @@ public:
 
     void closeWriteChannel();
 
-    // --- 同期待機サポート ---
+    // --- 未読出力の処理 ---
 
     /// 標準出力/標準エラーを即時処理する（dataReceived/stderrReceivedを同期発行）
     void pumpPendingOutput();
-
-    /// 標準出力の到着を待機し、到着時は自動で出力を処理する
-    [[nodiscard]] bool waitForReadyReadAndPump(int timeoutMs);
 
     // --- 状態管理 ---
     
@@ -130,8 +121,6 @@ private:
     QString m_currentEnginePath;                ///< 現在のエンジンファイルパス
     bool m_startupErrorReported = false;        ///< 起動中のprocessError重複送出防止フラグ
 
-    bool m_transitionInProgress = false;        ///< 起動/停止遷移中フラグ（再入抑止）
-    bool m_stopRequestedDuringTransition = false; ///< 遷移中に受信した停止要求
 
     /// 未読データが残っている場合にイベントループ経由で再読み取りを予約
     void scheduleMoreReading();

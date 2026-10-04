@@ -51,20 +51,12 @@ void GameRecordLoadService::loadGameRecord(const QList<KifDisplayItem>& disp)
     }
     qCDebug(lcApp).noquote() << QStringLiteral("GameRecordModel init: %1 ms").arg(timer.elapsed());
 
-    // commentsByRow の構築
-    if (m_deps.commentsByRow) {
-        m_deps.commentsByRow->clear();
-        m_deps.commentsByRow->resize(rowCount);
-        for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
-            (*m_deps.commentsByRow)[i] = disp[i].comment;
-        }
-    }
     qCDebug(lcApp).noquote() << "displayGameRecord: initialized with" << rowCount << "entries";
 
     // Presenter 側に表示と配線を委譲
     QElapsedTimer presenterTimer;
     presenterTimer.start();
-    presenter->displayAndWire(disp, rowCount, m_deps.recordPane);
+    presenter->displayAndWire(disp, m_deps.recordPane);
     qCDebug(lcApp).noquote() << QStringLiteral("displayAndWire: %1 ms").arg(presenterTimer.elapsed());
     qCDebug(lcApp).noquote() << QStringLiteral("displayGameRecord TOTAL: %1 ms").arg(timer.elapsed());
 }

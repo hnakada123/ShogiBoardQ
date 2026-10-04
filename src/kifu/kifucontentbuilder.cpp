@@ -3,8 +3,6 @@
 
 #include "kifucontentbuilder.h"
 #include "kifurecordlistmodel.h"
-#include <QTableWidget>
-#include <QDateTime>
 #include <QRegularExpression>
 
 static inline QString fwColonLine(const QString& key, const QString& val)
@@ -57,42 +55,7 @@ QStringList KifuContentBuilder::buildKifuDataList(const KifuExportContext& ctx)
 
 QList<KifGameInfoItem> KifuContentBuilder::collectGameInfo(const KifuExportContext& ctx)
 {
-    if (ctx.gameInfoProvided || !ctx.gameInfoItems.isEmpty()) return ctx.gameInfoItems;
-    QList<KifGameInfoItem> items;
-
-    // a) 既存の「対局情報」テーブルがあれば採用
-    // 全行を削除した場合も編集結果を尊重し、初期情報を再生成しない。
-    if (ctx.gameInfoTable) {
-        const int rows = ctx.gameInfoTable->rowCount();
-        for (int r = 0; r < rows; ++r) {
-            const QTableWidgetItem* keyItem   = ctx.gameInfoTable->item(r, 0);
-            const QTableWidgetItem* valueItem = ctx.gameInfoTable->item(r, 1);
-            if (!keyItem)   continue;
-            const QString key = keyItem->text().trimmed();
-            const QString val = valueItem ? valueItem->text().trimmed() : QString();
-            if (!key.isEmpty()) items.push_back({key, val});
-        }
-        return items;
-    }
-
-    // b) 自動生成
-    QString black, white;
-    resolvePlayerNames(ctx, black, white);
-
-    items.push_back({ QStringLiteral("開始日時"), QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm")) });
-    items.push_back({ QStringLiteral("先手"), black });
-    items.push_back({ QStringLiteral("後手"), white });
-
-    const QString sfen = ctx.startSfen.trimmed();
-    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    QString teai = QStringLiteral("平手");
-    if (!sfen.isEmpty()) {
-        const QString pp = sfen.section(QLatin1Char(' '), 0, 0);
-        if (!pp.isEmpty() && pp != initPP) teai = QStringLiteral("その他");
-    }
-    items.push_back({ QStringLiteral("手合割"), teai });
-
-    return items;
+    return KifuExportMetadataBuilder::collect(ctx, KifuExportMetadataBuilder::HeaderStyle::Compact);
 }
 
 QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContext& ctx)
@@ -124,30 +87,12 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
             }
         }
 
-        // さらに ctx.commentsByRow から最新のコメントをマージ（優先度最高）
-        if (ctx.commentsByRow) {
-            for (qsizetype i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
-                if (!ctx.commentsByRow->at(i).isEmpty()) {
-                    result[i].comment = ctx.commentsByRow->at(i);
-                }
-            }
-        }
-
         return result;
     }
 
     // 次点: ライブ記録
     if (ctx.liveDisp && !ctx.liveDisp->isEmpty()) {
         result = *ctx.liveDisp;
-
-        // ctx.commentsByRow からコメントをマージ
-        if (ctx.commentsByRow) {
-            for (qsizetype i = 0; i < result.size() && i < ctx.commentsByRow->size(); ++i) {
-                if (!ctx.commentsByRow->at(i).isEmpty()) {
-                    result[i].comment = ctx.commentsByRow->at(i);
-                }
-            }
-        }
 
         return result;
     }
@@ -165,10 +110,9 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
             it.prettyMove = t;
             it.timeText   = time.isEmpty() ? QStringLiteral("00:00/00:00:00") : time;
 
-            // ctx.commentsByRow からコメントを取得
-            const qsizetype idx = result.size();
-            if (ctx.commentsByRow && idx < ctx.commentsByRow->size()) {
-                it.comment = ctx.commentsByRow->at(idx);
+            if (const auto* item = ctx.recordModel->item(r)) {
+                it.comment = item->comment();
+                it.bookmark = item->bookmark();
             }
 
             result.push_back(it);
@@ -176,41 +120,6 @@ QList<KifDisplayItem> KifuContentBuilder::collectMainline(const KifuExportContex
     }
 
     return result;
-}
-
-void KifuContentBuilder::resolvePlayerNames(const KifuExportContext& ctx, QString& outBlack, QString& outWhite)
-{
-    // MainWindow::resolvePlayerNamesForHeader_ のロジックを移植
-    switch (ctx.playMode) {
-    case PlayMode::HumanVsHuman:
-        outBlack = ctx.human1.isEmpty() ? QObject::tr("先手") : ctx.human1;
-        outWhite = ctx.human2.isEmpty() ? QObject::tr("後手") : ctx.human2;
-        break;
-    case PlayMode::EvenHumanVsEngine:
-        outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
-        break;
-    case PlayMode::EvenEngineVsHuman:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
-        outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
-        break;
-    case PlayMode::EvenEngineVsEngine:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine1"): ctx.engine1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine2"): ctx.engine2;
-        break;
-    case PlayMode::HandicapEngineVsHuman:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
-        outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
-        break;
-    case PlayMode::HandicapHumanVsEngine:
-        outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
-        break;
-    default:
-        outBlack = QObject::tr("先手");
-        outWhite = QObject::tr("後手");
-        break;
-    }
 }
 
 QString KifuContentBuilder::toRichHtmlWithStarBreaksAndLinks(const QString& raw)

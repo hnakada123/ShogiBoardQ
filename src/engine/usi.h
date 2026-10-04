@@ -83,16 +83,6 @@ public:
 
     void initializeAndStartEngineCommunication(QString& engineFile, QString& enginename);
 
-    void handleHumanVsEngineCommunication(QString& positionStr, QString& positionPonderStr,
-                                          QPoint& outFrom, QPoint& outTo,
-                                          const UsiTimingParams& timing,
-                                          QStringList& positionStrList);
-
-    void handleEngineVsHumanOrEngineMatchCommunication(QString& positionStr,
-                                                       QString& positionPonderStr,
-                                                       QPoint& outFrom, QPoint& outTo,
-                                                       const UsiTimingParams& timing);
-
     void sendGameOverCommand(GameOverResult result);
     void sendQuitCommand();
     QChar rankToAlphabet(int rank) const;
@@ -187,7 +177,6 @@ public:
 
     void cleanupEngineProcessAndThread(bool clearThinking = true);
 
-    [[nodiscard]] bool startAndInitializeEngine(const QString& engineFile, const QString& enginename);
     /// 要求受付を返す。実際の初期化完了は engineInitialized、失敗は errorOccurred で通知する。
     [[nodiscard]] bool startAndInitializeEngineAsync(const QString& engineFile, const QString& enginename);
     bool isInitializing() const { return m_initializing; }

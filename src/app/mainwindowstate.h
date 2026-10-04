@@ -92,7 +92,6 @@ struct BranchNavigation {
 struct KifuState {
     QStringList positionStrList;
     QStringList gameUsiMoves;
-    QList<QString> commentsByRow;
     int activePly = 0;
     int currentSelectedPly = 0;
     bool onMainRowGuard = false;

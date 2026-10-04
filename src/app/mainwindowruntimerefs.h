@@ -88,7 +88,6 @@ struct RuntimeKifuRefs {
     int* activePly = nullptr;                              ///< アクティブ手数（外部所有）
     int* currentSelectedPly = nullptr;                     ///< 選択中手数（外部所有）
     QString* saveFileName = nullptr;                       ///< 保存先ファイルパス（外部所有）
-    QList<QString>* commentsByRow = nullptr;             ///< 行別コメント（外部所有）
     bool* onMainRowGuard = nullptr;                        ///< 本譜行ガード（外部所有）
 };
 

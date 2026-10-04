@@ -7,6 +7,7 @@
 
 #include "kifusubregistry.h"
 #include "mainwindow.h"
+#include "mainwindowresetservice.h"
 #include "mainwindowcoreinitcoordinator.h"
 #include "mainwindowfoundationregistry.h"
 
@@ -32,8 +33,6 @@
 
 void MainWindowServiceRegistry::ensurePreStartCleanupHandler()
 {
-    if (m_mw.m_registryParts.preStartCleanupHandler) return;
-
     PreStartCleanupHandler::Dependencies deps;
     deps.boardController = m_mw.m_boardController;
     deps.shogiView = m_mw.m_shogiView;
@@ -56,7 +55,11 @@ void MainWindowServiceRegistry::ensurePreStartCleanupHandler()
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
-    m_mw.m_registryParts.preStartCleanupHandler = new PreStartCleanupHandler(deps, &m_mw);
+    if (!m_mw.m_registryParts.preStartCleanupHandler) {
+        m_mw.m_registryParts.preStartCleanupHandler = new PreStartCleanupHandler(deps, &m_mw);
+    } else {
+        m_mw.m_registryParts.preStartCleanupHandler->updateDependencies(deps);
+    }
 
     qCDebug(lcApp).noquote() << "ensurePreStartCleanupHandler_: created and connected";
 }
@@ -235,10 +238,11 @@ void MainWindowServiceRegistry::refreshSessionLifecycleDeps()
 
     SessionLifecycleDepsFactory::Callbacks callbacks;
     callbacks.clearGameStateFields = [this]() {
-        clearGameStateFields();
+        MainWindowResetService().clearGameStateFields(m_mw.m_state, m_mw.m_player, m_mw.m_kifu);
     };
     callbacks.resetEngineState = [this]() {
-        resetEngineState();
+        MainWindowResetService().resetEngineState(m_mw.m_match, m_mw.m_csaGameCoordinator,
+                                                 m_mw.m_consecutiveGamesController);
     };
     callbacks.performPreStartCleanup = [this]() {
         ensurePreStartCleanupHandler();
@@ -284,52 +288,4 @@ void MainWindowServiceRegistry::refreshSessionLifecycleDeps()
 
     m_mw.m_sessionLifecycle->updateDeps(
         SessionLifecycleDepsFactory::createDeps(m_mw.buildRuntimeRefs(), callbacks));
-}
-
-// ---------------------------------------------------------------------------
-// ゲーム状態フィールドクリア
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::clearGameStateFields()
-{
-    m_mw.m_state.resumeSfenStr.clear();
-    m_mw.m_state.errorOccurred = false;
-
-    m_mw.m_player.humanName1.clear();
-    m_mw.m_player.humanName2.clear();
-    m_mw.m_player.engineName1.clear();
-    m_mw.m_player.engineName2.clear();
-
-    m_mw.m_kifu.positionStrList.clear();
-
-    m_mw.m_player.lastP1Turn = true;
-    m_mw.m_player.lastP1Ms = 0;
-    m_mw.m_player.lastP2Ms = 0;
-
-    m_mw.m_kifu.commentsByRow.clear();
-    m_mw.m_kifu.saveFileName.clear();
-
-    m_mw.m_state.skipBoardSyncForBranchNav = false;
-    m_mw.m_kifu.onMainRowGuard = false;
-
-    m_mw.m_kifu.gameUsiMoves.clear();
-    m_mw.m_kifu.gameMoves.clear();
-}
-
-// ---------------------------------------------------------------------------
-// エンジン状態リセット
-// ---------------------------------------------------------------------------
-
-void MainWindowServiceRegistry::resetEngineState()
-{
-    if (m_mw.m_match) {
-        m_mw.m_match->stopAnalysisEngine();
-        m_mw.m_match->clearGameOverState();
-    }
-    if (m_mw.m_csaGameCoordinator) {
-        m_mw.m_csaGameCoordinator->stopGame();
-    }
-    if (m_mw.m_consecutiveGamesController) {
-        m_mw.m_consecutiveGamesController->reset();
-    }
 }

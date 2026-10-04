@@ -5,7 +5,6 @@
 #include <QJsonObject>
 #include <QTemporaryFile>
 #include <QClipboard>
-#include <QTableWidget>
 #include "bodtextgenerator.h"
 #include "csaformatter.h"
 #include "kifuclipboardservice.h"
@@ -284,21 +283,20 @@ private slots:
     void removedGameInfoStaysEmptyOnExport()
     {
         GameRecordModel model;
-        QTableWidget emptyInfo(0, 2);
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = &emptyInfo;
+        ctx.gameInfoProvided = true;
         ctx.startSfen = kHirateSfen;
         const QString kif = model.toKifLines(ctx).join(QLatin1Char('\n'));
         QVERIFY(!kif.contains(QStringLiteral("開始日時：")));
         QVERIFY(!kif.contains(QStringLiteral("先手：")));
         QVERIFY(!kif.contains(QStringLiteral("後手：")));
         KifuExportContext legacy;
-        legacy.gameInfoTable = &emptyInfo;
+        legacy.gameInfoProvided = true;
         legacy.startSfen = kHirateSfen;
         const QString legacyKif = KifuContentBuilder::buildKifuDataList(legacy).join(QLatin1Char('\n'));
         QVERIFY(!legacyKif.contains(QStringLiteral("開始日時：")));
         QVERIFY(!legacyKif.contains(QStringLiteral("先手：")));
-        ctx.gameInfoTable = nullptr;
+        ctx.gameInfoProvided = false;
         QVERIFY(model.toKifLines(ctx).join(QLatin1Char('\n')).contains(QStringLiteral("開始日時：")));
     }
 
@@ -309,9 +307,8 @@ private slots:
         tree.setRootSfen(initial);
         GameRecordModel model;
         model.setBranchTree(&tree);
-        QTableWidget emptyInfo(0, 2);
         GameRecordModel::ExportContext ctx;
-        ctx.gameInfoTable = &emptyInfo;
+        ctx.gameInfoProvided = true;
         ctx.startSfen = initial;
         QTemporaryFile kif;
         QVERIFY(KifuTestHelper::writeToTempFile(kif, model.toKifLines(ctx).join(QLatin1Char('\n')).toUtf8(), QStringLiteral("kif")));
@@ -611,7 +608,6 @@ private slots:
         model.setComment(1, QStringLiteral("test"));
         model.clear();
 
-        QCOMPARE(model.commentCount(), 0);
         QVERIFY(!model.isDirty());
     }
 

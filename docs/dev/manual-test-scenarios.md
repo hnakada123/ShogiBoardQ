@@ -275,7 +275,7 @@
 - `CommentCoordinator::broadcastComment` によるコメント表示
 - `onRecordRowChangedByPresenter` での未保存コメント確認ロジック
 - `GameRecordModel::commentChanged` シグナル
-- `m_kifu.commentsByRow` の同期
+- 分岐ツリーを正本とするコメントと棋譜欄・コメント欄の表示の一致
 
 ---
 

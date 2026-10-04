@@ -323,7 +323,8 @@ private slots:
         auto* record = window->findChild<GameRecordModel*>();
         QVERIFY(record);
         GameRecordModel::ExportContext context;
-        context.gameInfoTable = table;
+        context.gameInfoItems = controller->gameInfo();
+        context.gameInfoProvided = true;
         const QString kif = record->toKifLines(context).join(QLatin1Char('\n'));
         QVERIFY(kif.contains(QStringLiteral("棋戦：練習対局")));
         QVERIFY(kif.contains(QStringLiteral("場所：自宅")));

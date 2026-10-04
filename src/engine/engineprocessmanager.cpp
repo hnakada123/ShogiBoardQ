@@ -5,6 +5,7 @@
 #include "logcategories.h"
 
 #include <QTimer>
+#include <QPointer>
 
 EngineProcessManager::EngineProcessManager(QObject* parent)
     : QObject(parent)
@@ -13,7 +14,7 @@ EngineProcessManager::EngineProcessManager(QObject* parent)
 
 EngineProcessManager::~EngineProcessManager()
 {
-    stopProcess();
+    stopProcessAsync();
 }
 
 bool EngineProcessManager::isRunning() const

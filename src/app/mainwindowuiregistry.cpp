@@ -33,7 +33,6 @@
 void MainWindowServiceRegistry::ensureRecordPresenter()
 {
     if (m_mw.m_isShuttingDown) return;
-    if (m_mw.m_recordPresenter) return;
 
     GameRecordPresenter::Deps d;
     d.model      = m_mw.m_models.kifuRecord;
@@ -41,7 +40,11 @@ void MainWindowServiceRegistry::ensureRecordPresenter()
 
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
-    m_mw.m_recordPresenter = new GameRecordPresenter(d, &m_mw);
+    if (!m_mw.m_recordPresenter) {
+        m_mw.m_recordPresenter = new GameRecordPresenter(d, &m_mw);
+    } else {
+        m_mw.m_recordPresenter->updateDeps(d);
+    }
 
     m_foundation->ensureCommentCoordinator();
     QObject::connect(
@@ -60,7 +63,6 @@ void MainWindowServiceRegistry::ensureRecordPresenter()
 void MainWindowServiceRegistry::ensureDialogCoordinator()
 {
     if (m_mw.m_isShuttingDown) return;
-    if (m_mw.m_dialogCoordinator) return;
 
     auto refs = m_mw.buildRuntimeRefs();
 

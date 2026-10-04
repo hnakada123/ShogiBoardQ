@@ -40,9 +40,8 @@ void ConsiderationWiring::updateDeps(const Deps& deps)
     m_commLogModel = deps.commLogModel;
     m_playMode = deps.playMode;
     m_currentSfenStr = deps.currentSfenStr;
-    if (deps.ensureDialogCoordinator) {
-        m_ensureDialogCoordinator = deps.ensureDialogCoordinator;
-    }
+    m_ensureDialogCoordinator = deps.ensureDialogCoordinator;
+    if (m_uiController) ensureUIController();
 }
 
 void ConsiderationWiring::setDialogCoordinator(DialogCoordinator* dc)
@@ -53,13 +52,12 @@ void ConsiderationWiring::setDialogCoordinator(DialogCoordinator* dc)
 void ConsiderationWiring::setMatchCoordinator(MatchCoordinator* mc)
 {
     m_match = mc;
+    if (m_uiController) m_uiController->setMatchCoordinator(mc);
 }
 
 void ConsiderationWiring::ensureUIController()
 {
-    if (m_uiController) return;
-
-    m_uiController = new ConsiderationModeUIController(this);
+    if (!m_uiController) m_uiController = new ConsiderationModeUIController(this);
     m_uiController->setConsiderationTabManager(m_considerationTabManager);
     m_uiController->setThinkingEngineInfo(m_thinkingInfo1);
     m_uiController->setShogiView(m_shogiView);
@@ -69,9 +67,9 @@ void ConsiderationWiring::ensureUIController()
 
     // コントローラからのシグナルを接続
     connect(m_uiController, &ConsiderationModeUIController::stopRequested,
-            this, &ConsiderationWiring::handleStopRequest);
+            this, &ConsiderationWiring::handleStopRequest, Qt::UniqueConnection);
     connect(m_uiController, &ConsiderationModeUIController::multiPVChangeRequested,
-            this, &ConsiderationWiring::onMultiPVChangeRequested);
+            this, &ConsiderationWiring::onMultiPVChangeRequested, Qt::UniqueConnection);
 }
 
 void ConsiderationWiring::displayConsiderationDialog()

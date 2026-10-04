@@ -53,14 +53,14 @@ bool AnalysisSessionHandler::startFullAnalysis(const MatchCoordinator::AnalysisO
     // 初期化前に状態とモデルを準備する。待機中の中止・エラーでも安全に復帰でき、
     // 前回の読み筋を新しい探索結果と誤認させない。
     setupModeSpecificWiring(usi, opt);
-    const bool initialized = m_hooks.initAndStartEngine
+    const bool startupAccepted = m_hooks.initAndStartEngine
         && m_hooks.initAndStartEngine(1, opt.enginePath, opt.engineName);
     m_starting = false;
     if (m_startCancelled) {
         stopFullAnalysis();
         return false;
     }
-    if (!initialized) {
+    if (!startupAccepted) {
         handleEngineError(m_startupError.isEmpty() ? opt.enginePath : m_startupError);
         return false;
     }

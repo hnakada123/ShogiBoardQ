@@ -16,7 +16,6 @@ struct ShogiMove;
 /// MainWindow::displayGameRecord から抽出。棋譜読み込み時に
 /// - ゲーム状態（USI指し手・ShogiMove）のクリア
 /// - GameRecordModel の初期化
-/// - commentsByRow の構築
 /// - RecordPresenter への表示委譲
 /// を一括で行う。
 class GameRecordLoadService
@@ -26,7 +25,6 @@ public:
         // State pointers（外部所有）
         QStringList* gameUsiMoves = nullptr;          ///< USI形式指し手リスト
         QList<ShogiMove>* gameMoves = nullptr;      ///< ShogiMove リスト
-        QList<QString>* commentsByRow = nullptr;    ///< 行ごとのコメント配列
 
         // Object pointers（非所有）
         RecordPane* recordPane = nullptr;             ///< 棋譜欄ウィジェット

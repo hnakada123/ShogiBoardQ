@@ -9,36 +9,23 @@
 #include <QStringList>
 #include <QList>
 #include "kiftosfenconverter.h"
-#include "playmode.h"
+#include "kifuexportmetadata.h"
 #include "kifdisplayitem.h"
 #include "kifutypes.h" // ResolvedRow用
 
-class QTableWidget;
 class KifuRecordListModel;
 
 // 保存に必要な情報をまとめた構造体
-struct KifuExportContext {
-    QList<KifGameInfoItem> gameInfoItems;
-    bool gameInfoProvided = false;
+struct KifuExportContext : KifuExportMetadata {
     // UI/Model参照（読み取り専用）
-    const QTableWidget* gameInfoTable = nullptr;
     const KifuRecordListModel* recordModel = nullptr;
     const QList<ResolvedRow>* resolvedRows = nullptr;
     const QList<KifDisplayItem>* liveDisp = nullptr;
 
-    // 編集されたコメント配列（MainWindow::m_commentsByRow）
-    const QList<QString>* commentsByRow = nullptr;
-
     // アクティブな行インデックス（分岐選択時に使用）
     int activeResolvedRow = 0;
 
-    // ゲーム状態
-    QString startSfen;
-    PlayMode playMode = PlayMode::NotStarted;
-    QString human1;
-    QString human2;
-    QString engine1;
-    QString engine2;
+
 };
 
 class KifuContentBuilder
@@ -64,7 +51,6 @@ private:
     // 内部ヘルパ
     static QList<KifGameInfoItem> collectGameInfo(const KifuExportContext& ctx);
     static QList<KifDisplayItem> collectMainline(const KifuExportContext& ctx);
-    static void resolvePlayerNames(const KifuExportContext& ctx, QString& outBlack, QString& outWhite);
 };
 
 #endif // KIFUCONTENTBUILDER_H

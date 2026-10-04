@@ -244,7 +244,6 @@ void KifuSubRegistry::refreshGameRecordLoadDeps()
     GameRecordLoadService::Deps deps;
     deps.gameUsiMoves = &m_mw.m_kifu.gameUsiMoves;
     deps.gameMoves = &m_mw.m_kifu.gameMoves;
-    deps.commentsByRow = &m_mw.m_kifu.commentsByRow;
     deps.recordPane = m_mw.m_recordPane;
     deps.ensureRecordPresenter = [this]() -> GameRecordPresenter* {
         m_registry->ensureRecordPresenter();

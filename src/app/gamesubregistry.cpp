@@ -38,11 +38,11 @@
 
 void MainWindowServiceRegistry::ensureTimeController()
 {
-    if (m_mw.m_timeController) return;
-
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
-    m_mw.m_timeController = new TimeControlController(&m_mw);
+    if (!m_mw.m_timeController) {
+        m_mw.m_timeController = new TimeControlController(&m_mw);
+    }
     m_mw.m_timeController->setTimeDisplayPresenter(m_mw.m_timePresenter);
     m_mw.m_timeController->ensureClock();
 }
@@ -53,11 +53,11 @@ void MainWindowServiceRegistry::ensureTimeController()
 
 void MainWindowServiceRegistry::ensureReplayController()
 {
-    if (m_mw.m_replayController) return;
-
     // Lifetime: owned by MainWindow (QObject parent=&m_mw)
     // Created: once on first use, never recreated
-    m_mw.m_replayController = new ReplayController(&m_mw);
+    if (!m_mw.m_replayController) {
+        m_mw.m_replayController = new ReplayController(&m_mw);
+    }
     m_mw.m_replayController->setClock(m_mw.m_timeController ? m_mw.m_timeController->clock() : nullptr);
     m_mw.m_replayController->setShogiView(m_mw.m_shogiView);
     m_mw.m_replayController->setGameController(m_mw.m_gameController);
@@ -105,12 +105,7 @@ void MainWindowServiceRegistry::ensureGameStateController()
     };
 
     const MainWindowRuntimeRefs refs = m_mw.buildRuntimeRefs();
-    if (!m_mw.m_gameStateController) {
-        m_mw.m_compositionRoot->ensureGameStateController(refs, cbs, &m_mw, m_mw.m_gameStateController);
-        return;
-    }
-
-    m_mw.m_compositionRoot->refreshGameStateControllerDeps(m_mw.m_gameStateController, refs, cbs);
+    m_mw.m_compositionRoot->ensureGameStateController(refs, cbs, &m_mw, m_mw.m_gameStateController);
 }
 
 // ---------------------------------------------------------------------------

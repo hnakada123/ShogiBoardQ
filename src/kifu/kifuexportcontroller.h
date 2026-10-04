@@ -69,7 +69,6 @@ public:
         QStringList* sfenRecord = nullptr;
         QStringList* usiMoves = nullptr;
         QList<ResolvedRow>* resolvedRows = nullptr;
-        QList<QString>* commentsByRow = nullptr;
 
         // 状態値
         QString startSfenStr;
