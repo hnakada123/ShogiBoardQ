@@ -130,14 +130,14 @@ void ShogiView::paintEvent(QPaintEvent *)
     // 5) 盤上の駒
     drawPieces(&painter);
 
-    // 5.5) 矢印（検討機能の最善手表示）
-    m_highlighting->drawArrows(painter, m_layout);
-
     // 描画中に致命的な異常が検知された場合はここで打ち切る。
     if (m_errorOccurred) return;
 
     // 6) 先手/後手の駒台にある「駒」と「枚数」を描画
     drawPiecesStandFeatures(&painter);
+
+    // 6.5) 候補手の矢印（駒台からの始点も駒の上に重ねる）
+    m_highlighting->drawArrows(painter, m_layout);
 
     // 7) 段・筋ラベル（最前面に近いレイヤに載せる）
     drawRanks(&painter);

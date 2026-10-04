@@ -107,6 +107,9 @@ public:
     QRect cachedFieldRect(int file, int rank) const;
     void  invalidateFieldRectCache();
 
+    // 駒文字（大文字は先手、小文字は後手）に対応する駒台セルのウィジェット座標
+    QRect standPieceRect(QChar piece) const;
+
     // ───────────────────────────── 駒画像管理 ────────────────────────────────
     QIcon piece(QChar type) const;                // 駒文字 → アイコン取得
     void  setPieces();                            // 通常向きの画像一括登録

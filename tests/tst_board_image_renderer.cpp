@@ -31,6 +31,7 @@
 #include "appsettings.h"
 #include "boardappearancecatalog.h"
 #include "boardappearancepreview.h"
+#include "candidatearrowcontroller.h"
 
 namespace {
 ShogiViewLayout viewLayout(const ShogiView& view)
@@ -421,6 +422,62 @@ private slots:
                 QVERIFY(qAbs(centerX - QRectF(cell).center().x()) <= 1.0);
             }
         }
+    }
+
+    void dropArrowsStartAtStand_data()
+    {
+        QTest::addColumn<QChar>("piece");
+        QTest::addColumn<int>("standRank");
+        QTest::addColumn<bool>("black");
+        QTest::addColumn<bool>("flipped");
+        const QString pieces = QStringLiteral("PLNSGBR");
+        for (int i = 0; i < pieces.size(); ++i) {
+            for (const bool black : {true, false}) {
+                for (const bool flipped : {false, true}) {
+                    const QByteArray name = QStringLiteral("%1-%2-%3")
+                        .arg(pieces.at(i)).arg(black ? "black" : "white").arg(flipped ? "flipped" : "normal").toUtf8();
+                    QTest::newRow(name.constData()) << pieces.at(i) << (black ? i + 1 : 9 - i) << black << flipped;
+                }
+            }
+        }
+    }
+
+    void dropArrowsStartAtStand()
+    {
+        QFETCH(QChar, piece);
+        QFETCH(int, standRank);
+        QFETCH(bool, black);
+        QFETCH(bool, flipped);
+        const QString sfen = QStringLiteral("4k4/9/9/9/9/9/9/9/4K4 %1 RBGSNLPrbgsnlp 1")
+            .arg(black ? "b" : "w");
+        ShogiBoard model;
+        model.setSfen(sfen);
+        ShogiView view;
+        view.configureFixedSizing(50);
+        view.applyBoardAndRender(&model);
+        view.setFlipMode(flipped);
+        auto arrow = CandidateArrowController::arrowForMove(QStringLiteral("%1*5e").arg(piece), sfen, 1);
+        QVERIFY(arrow);
+        arrow->color = QColor(255, 0, 255);
+        view.setArrows({*arrow});
+        const auto image = renderView(view, 1.0);
+        const QRect source = view.standPieceRect(arrow->dropPiece);
+        QVERIFY(!source.isEmpty());
+        // 描画とは独立した駒台のヒットテストで、先後・反転・駒種の対応を確認する。
+        QCOMPARE(view.clickedSquare(source.center()), QPoint(black ? 10 : 11, standRank));
+        const auto layout = viewLayout(view);
+        const QPointF from(source.center());
+        const QPointF to(view.cachedFieldRect(5, 5).translated(layout.offsetX(), layout.offsetY()).center());
+        // 駒台の駒に始点が隠れず、打ち先まで実際に線が描かれていることを確認する。
+        for (const qreal progress : {0.0, 0.4, 0.6, 0.8}) {
+            const QPoint point = (from + (to - from) * progress).toPoint();
+            QCOMPARE(image.pixelColor(point), arrow->color);
+        }
+        // 線の終端より先にある矢尻の内側を確認し、縁のアンチエイリアスは避ける。
+        const QPointF direction = to - from;
+        const QPointF unit = direction / std::hypot(direction.x(), direction.y());
+        const QPoint head = (to - unit * 5).toPoint();
+        QCOMPARE(image.pixelColor(head), arrow->color);
     }
 
     void rendersHirateToPng()
