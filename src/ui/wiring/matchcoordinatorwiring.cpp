@@ -228,6 +228,8 @@ void MatchCoordinatorWiring::createMatchCoordinator(const MatchCoordinator::Deps
     connect(m_match.get(), &MatchCoordinator::requestAppendGameOverMove,
             this,    &MatchCoordinatorWiring::requestAppendGameOverMove,
             Qt::UniqueConnection);
+    connect(m_match.get(), &MatchCoordinator::gameInterrupted,
+            this, &MatchCoordinatorWiring::gameInterrupted, Qt::UniqueConnection);
 
     connect(m_match.get(), &MatchCoordinator::boardFlipped,
             this,    &MatchCoordinatorWiring::boardFlipped,
@@ -405,6 +407,12 @@ void MatchCoordinatorWiring::wireForwardingSignals(const ForwardingTargets& targ
                          Qt::UniqueConnection);
     }
     if (targets.gameSession) {
+        QObject::connect(this, &MatchCoordinatorWiring::gameInterrupted,
+                         targets.gameSession, &GameSessionOrchestrator::onGameInterrupted,
+                         Qt::UniqueConnection);
+        QObject::connect(this, &MatchCoordinatorWiring::gameStarted,
+                         targets.gameSession, &GameSessionOrchestrator::discardInterruptedGame,
+                         Qt::UniqueConnection);
         QObject::connect(this, &MatchCoordinatorWiring::resignationTriggered,
                          targets.gameSession, &GameSessionOrchestrator::onResignationTriggered,
                          Qt::UniqueConnection);

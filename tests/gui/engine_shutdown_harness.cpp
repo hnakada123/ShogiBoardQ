@@ -12,13 +12,16 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <cstdio>
+#define private public
 #include "mainwindow.h"
+#undef private
 #include "applicationfonts.h"
 #include "startgamedialog.h"
 #include "settingscommon.h"
 #include "enginepondersettings.h"
 #include "shogiview.h"
 #include "usicommlogmodel.h"
+#include "matchcoordinator.h"
 
 static void auditMessage(QtMsgType type, const QMessageLogContext&, const QString& message)
 {
@@ -151,6 +154,39 @@ private slots:
         }
         if (m_stage == 5) {
             if (m_elapsed.elapsed() - m_gameEndTime >= 1500) {
+                if (m_scenario.contains("resume-")) {
+                    auto* match = m_window.m_match;
+                    if (!match || !match->interruptedGame()) {
+                        qCritical() << "MISSING_INTERRUPTED_GAME";
+                        QCoreApplication::exit(5);
+                        return;
+                    }
+                    const auto saved = *match->interruptedGame();
+                    m_stage = 3;
+                    m_searches = m_info = 0;
+                    trigger("actionResumeGame");
+                    auto* clock = match->clock();
+                    if (match->gameOverState().isOver || *match->sfenRecordPtr() != saved.sfens
+                        || qAbs(clock->getPlayer1TimeIntMs() - saved.clock.player1TimeMs) > 100
+                        || qAbs(clock->getPlayer2TimeIntMs() - saved.clock.player2TimeMs) > 100) {
+                        qCritical() << "RESUME_STATE_MISMATCH";
+                        QCoreApplication::exit(6);
+                    }
+                    qInfo() << "RESUME_COMPLETE";
+                    // 先読み中断では人間手番に戻ることもある。再開後の終了を検証する。
+                    if (m_scenario.contains("ponder-")) {
+                        m_stage = 6;
+                        m_gameEndTime = m_elapsed.elapsed();
+                    }
+                    return;
+                }
+                m_stage = 4;
+                closeWindow();
+            }
+            return;
+        }
+        if (m_stage == 6) {
+            if (m_elapsed.elapsed() - m_gameEndTime >= 600) {
                 m_stage = 4;
                 closeWindow();
             }

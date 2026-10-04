@@ -24,6 +24,10 @@
 #include "sessionlifecyclecoordinator.h"
 #include "sessionlifecycledepsfactory.h"
 #include "logcategories.h"
+#include "shogiview.h"
+#include "timecontrolcontroller.h"
+#include "uistatepolicymanager.h"
+#include "gamerecordmodel.h"
 
 #include <functional>
 
@@ -153,6 +157,21 @@ void MainWindowServiceRegistry::refreshGameSessionOrchestratorDeps()
     // === Branch navigation ===
     deps.branchTree = m_mw.m_branchNav.branchTree;
     deps.navState = m_mw.m_branchNav.navState;
+
+    deps.liveSession = m_mw.m_branchNav.liveGameSession;
+    deps.setResumeAvailable = [this](bool available) {
+        m_foundation->ensureUiStatePolicyManager();
+        m_mw.m_uiStatePolicy->setResumeAvailable(available);
+    };
+    deps.prepareResumeUi = [this](int ply) {
+        m_mw.m_kifu.activePly = ply;
+        m_mw.m_state.currentMoveIndex = ply;
+        unlockGameOverStyle();
+        if (m_mw.m_shogiView) m_mw.m_shogiView->setMouseClickMode(true);
+        if (m_mw.m_timeController) m_mw.m_timeController->clearGameEndTime();
+        if (m_mw.m_playerInfoWiring) m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(QDateTime());
+        if (m_mw.m_models.gameRecord) m_mw.m_models.gameRecord->markDirty();
+    };
 
     // === Lazy-init callbacks ===
     deps.ensureGameStateController = [this]() {

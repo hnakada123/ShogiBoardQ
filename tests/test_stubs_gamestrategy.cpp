@@ -677,3 +677,7 @@ void UsiProtocolHandler::onInitializationTimeout() {}
 
 void Usi::onProtocolError(const QString&) {}
 void Usi::onProcessExited() {}
+
+ShogiClock::Snapshot ShogiClock::pauseAndSnapshot() { return {}; }
+void ShogiClock::restoreSnapshot(const Snapshot&) {}
+void ShogiClock::setMeasuredConsiderationTime(int, qint64) {}

@@ -196,6 +196,7 @@ public:
     GameStartCoordinator* menuGameStartCoordinator() const { return m_menuGameStart; }
 
 signals:
+    void gameInterrupted();
     // --- GameStartCoordinator シグナルの転送 ---
 
     /// 終局手の棋譜追記要求

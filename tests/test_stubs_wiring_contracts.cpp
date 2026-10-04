@@ -308,6 +308,9 @@ void GameSessionOrchestrator::updateDeps(const Deps&) {}
 void GameSessionOrchestrator::initializeGame() {}
 void GameSessionOrchestrator::handleResignation() {}
 void GameSessionOrchestrator::handleBreakOffGame() {}
+void GameSessionOrchestrator::handleResumeGame() {}
+void GameSessionOrchestrator::onGameInterrupted() {}
+void GameSessionOrchestrator::discardInterruptedGame() {}
 void GameSessionOrchestrator::movePieceImmediately() {}
 void GameSessionOrchestrator::stopTsumeSearch() {}
 void GameSessionOrchestrator::openWebsiteInExternalBrowser() {}
@@ -420,6 +423,7 @@ void BranchNavigationWiring::onBranchTreeResetForNewGame()
 
 UiStatePolicyManager::UiStatePolicyManager(QObject* parent) : QObject(parent) {}
 void UiStatePolicyManager::applyState(AppState) {}
+void UiStatePolicyManager::setResumeAvailable(bool) {}
 void UiStatePolicyManager::transitionToIdle() {}
 void UiStatePolicyManager::transitionToDuringGame() {}
 void UiStatePolicyManager::transitionToDuringAnalysis() {}

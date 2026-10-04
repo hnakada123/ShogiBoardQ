@@ -226,6 +226,7 @@ add_shogi_test(tst_shogiclock
     tst_shogiclock.cpp
     ${SRC}/common/logcategories.cpp
     ${SRC}/core/shogiclock.cpp
+    ${SRC}/core/shogiclock_snapshot.cpp
     ${SRC}/core/shogiclock_format.cpp
 )
 
@@ -974,6 +975,7 @@ add_shogi_test(tst_gamestrategy
     tst_gamestrategy.cpp
     test_stubs_gamestrategy.cpp
     ${SRC}/game/matchcoordinator.cpp
+    ${SRC}/game/matchcoordinator_resume.cpp
     ${SRC}/game/matchcoordinator_engine.cpp
     ${SRC}/game/matchcoordinator_time.cpp
     ${SRC}/game/humanvshumanstrategy.cpp
@@ -1304,6 +1306,7 @@ add_shogi_test(tst_turn_state_sync
     ${SRC}/core/shogimove.cpp
     ${SRC}/core/shogiutils.cpp
     ${SRC}/core/shogiclock.cpp
+    ${SRC}/core/shogiclock_snapshot.cpp
     ${SRC}/core/shogiclock_format.cpp
     ${EMV_SOURCES}
     ${SRC}/views/shogiview.cpp

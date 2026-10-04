@@ -25,6 +25,47 @@ public:
 
     explicit ShogiClock(QObject *parent = nullptr);
 
+    /// 中断した対局の時計。ミリ秒・秒読み・消費時間・待った用履歴を保持する。
+    struct Snapshot {
+        bool timeLimitSet  = false;
+        bool loseOnTimeout = true;
+        int currentPlayer = 1;
+        qint64 player1TimeMs = 0;
+        qint64 player2TimeMs = 0;
+        qint64 byoyomi1TimeMs = 0;
+        qint64 byoyomi2TimeMs = 0;
+        qint64 bincMs = 0;
+        qint64 wincMs = 0;
+        qint64 player1ConsiderationTimeMs = 0;
+        qint64 player2ConsiderationTimeMs = 0;
+        qint64 player1TotalConsiderationTimeMs = 0;
+        qint64 player2TotalConsiderationTimeMs = 0;
+        int p1LastMoveShownSec = 0;
+        int p2LastMoveShownSec = 0;
+        int p1PrevShownTotalSec = 0;
+        int p2PrevShownTotalSec = 0;
+        int prevShownSecP1 = -1;
+        int prevShownSecP2 = -1;
+        bool byoyomi1Applied = false;
+        bool byoyomi2Applied = false;
+        QStack<qint64> player1TimeHistory;
+        QStack<qint64> player2TimeHistory;
+        QStack<qint64> player1ConsiderationHistory;
+        QStack<qint64> player2ConsiderationHistory;
+        QStack<qint64> player1TotalConsiderationHistory;
+        QStack<qint64> player2TotalConsiderationHistory;
+        QStack<bool> byoyomi1AppliedHistory;
+        QStack<bool> byoyomi2AppliedHistory;
+        QStack<int> p1LastMoveShownSecHistory;
+        QStack<int> p2LastMoveShownSecHistory;
+        QStack<int> p1PrevShownTotalSecHistory;
+        QStack<int> p2PrevShownTotalSecHistory;
+    };
+    Snapshot pauseAndSnapshot();
+    void restoreSnapshot(const Snapshot& state);
+    /// 再開前の消費時間を含めて、外部計測による一手の消費時間を確定する。
+    void setMeasuredConsiderationTime(int player, qint64 elapsedMs);
+
     // --- 設定 ---
 
     void setLoseOnTimeout(bool v);
@@ -197,6 +238,8 @@ private:
     QStack<int>    m_p1PrevShownTotalSecHistory;         ///< 先手前回総考慮の履歴
     QStack<int>    m_p2PrevShownTotalSecHistory;         ///< 後手前回総考慮の履歴
 
+    qint64 m_resumedConsiderationMs[2] = {0, 0};
+    bool m_resumingTurn = false;
     bool m_gameOver = false;                   ///< 終局フラグ
 };
 

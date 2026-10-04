@@ -28,6 +28,12 @@
 #include "mainwindow.h"
 #undef private
 #include "matchcoordinator.h"
+#include "usi.h"
+#include "kifurecordlistmodel.h"
+#include "kifunavigationstate.h"
+#include "kifubranchtree.h"
+#include "kifubranchnode.h"
+#include "kifudisplaycoordinator.h"
 #include "matchcoordinatorwiring.h"
 #include "consecutivegamescontroller.h"
 #include <QTemporaryDir>
@@ -128,6 +134,7 @@ private slots:
     }
     void cleanup() {
         qunsetenv("AUDIT_ENGINE_DELAY");
+        qunsetenv("AUDIT_ENGINE_WAIT_FOR_STOP");
         dialogTimer.stop();
         if (window) {
             if (window->m_consecutiveGamesController) window->m_consecutiveGamesController->reset();
@@ -137,6 +144,115 @@ private slots:
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         KifuPresentation::configure("ja_JP", "auto", false);
     }
+    void resumeInterruptedGame_data() {
+        QTest::addColumn<int>("mode");
+        QTest::addColumn<int>("timing");
+        QTest::addColumn<int>("pausePly");
+        for (int mode = 0; mode < 4; ++mode)
+            for (int timing = 0; timing < 3; ++timing)
+                for (int ply : {0, 1, 2})
+                    QTest::newRow(qPrintable(QString("mode%1-time%2-ply%3").arg(mode).arg(timing).arg(ply)))
+                        << mode << timing << ply;
+    }
+    void resumeInterruptedGame() {
+        QFETCH(int, mode);
+        QFETCH(int, timing);
+        QFETCH(int, pausePly);
+        if (mode) configureEngineGames(0);
+        auto& settings = SettingsCommon::openSettings();
+        settings.setValue("GameSettings/isHuman1", mode == 0 || mode == 1);
+        settings.setValue("GameSettings/isHuman2", mode == 0 || mode == 2);
+        settings.setValue("GameSettings/consecutiveGames", 1);
+        settings.setValue("GameSettings/basicTimeMinutes1", timing == 1 ? 0 : 5);
+        settings.setValue("GameSettings/byoyomiSec1", timing == 1 ? 10 : 0);
+        settings.setValue("GameSettings/addEachMoveSec1", timing == 2 ? 3 : 0);
+        settings.sync();
+        qputenv("AUDIT_ENGINE_WAIT_FOR_STOP", "1");
+        startWindowGame();
+        auto* match = window->m_match;
+        auto* clock = match->clock();
+        auto* view = window->findChild<ShogiView*>();
+        auto* resume = child<QAction>(*window, "actionResumeGame");
+        QVERIFY(!resume->isEnabled());
+        const auto playNext = [&]() {
+            const int ply = static_cast<int>(match->sfenRecordPtr()->size() - 1);
+            const bool human = mode == 0 || (ply % 2 == 0 ? mode == 1 : mode == 2);
+            if (human) {
+                const QList<QPair<QPoint, QPoint>> moves = {
+                    {{7,7},{7,6}}, {{3,3},{3,4}}, {{2,7},{2,6}}, {{8,3},{8,4}}};
+                QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(moves[ply].first.x(), moves[ply].first.y()));
+                QTest::mouseClick(view, Qt::LeftButton, Qt::NoModifier, square(moves[ply].second.x(), moves[ply].second.y()));
+            } else {
+                QTest::qWait(120);
+                child<QAction>(*window, "actionMakeImmediateMove")->trigger();
+            }
+        };
+        for (int ply = 0; ply < pausePly; ++ply) {
+            playNext();
+            QTRY_COMPARE(match->sfenRecordPtr()->size(), ply + 2);
+        }
+        QTest::qWait(160);
+        const auto history = *match->sfenRecordPtr();
+        const auto board = view->board()->convertBoardToSfen();
+        child<QAction>(*window, "actionBreakOffGame")->trigger();
+        QVERIFY(match->gameOverState().isOver);
+        QVERIFY(resume->isEnabled());
+        QVERIFY(match->interruptedGame());
+        const auto saved = match->interruptedGame()->clock;
+        QTest::qWait(250);
+        QVERIFY(!clock->isRunning());
+        if (match->primaryEngine()) QVERIFY(!match->primaryEngine()->isEngineRunning());
+        if (match->secondaryEngine()) QVERIFY(!match->secondaryEngine()->isEngineRunning());
+        // 中断中の棋譜閲覧が再開地点に影響しない。
+        auto* table = window->findChild<RecordPane*>()->kifuView();
+        table->selectRow(0);
+        QTest::qWait(25);
+        resume->trigger();
+        QVERIFY(!match->gameOverState().isOver);
+        QVERIFY(!resume->isEnabled());
+        QCOMPARE(*match->sfenRecordPtr(), history);
+        QCOMPARE(view->board()->convertBoardToSfen(), board);
+        QCOMPARE(clock->currentPlayer(), saved.currentPlayer);
+        QVERIFY(qAbs(clock->getPlayer1TimeIntMs() - saved.player1TimeMs) < 100);
+        QVERIFY(qAbs(clock->getPlayer2TimeIntMs() - saved.player2TimeMs) < 100);
+        QCOMPARE(window->m_models.kifuRecord->rowCount(), pausePly + 1);
+        QVERIFY(!window->m_branchNav.navState->currentNode()->isTerminal());
+        QCOMPARE(window->m_branchNav.navState->currentPly(), pausePly);
+        QString consistencyReason;
+        QVERIFY2(window->m_branchNav.displayCoordinator->verifyDisplayConsistencyDetailed(&consistencyReason),
+                 qPrintable(consistencyReason));
+        QTest::qWait(150);
+        QVERIFY(clock->isRunning());
+        playNext();
+        QTRY_COMPARE(match->sfenRecordPtr()->size(), pausePly + 2);
+        QCOMPARE(match->sfenRecordPtr()->mid(0, history.size()), history);
+        QVERIFY(!match->gameOverState().isOver);
+        child<QAction>(*window, "actionBreakOffGame")->trigger();
+        QVERIFY(resume->isEnabled());
+        const qint64 left = clock->remainingTurnTimeMs(clock->currentPlayer());
+        QTest::qWait(100);
+        resume->trigger();
+        QVERIFY(!match->gameOverState().isOver);
+        QVERIFY(qAbs(clock->remainingTurnTimeMs(clock->currentPlayer()) - left) < 100);
+    }
+
+    void resumeInvalidatedByNewRecord_data() {
+        QTest::addColumn<bool>("edit");
+        QTest::newRow("new-record") << false;
+        QTest::newRow("position-edit") << true;
+    }
+    void resumeInvalidatedByNewRecord() {
+        QFETCH(bool, edit);
+        startWindowGame();
+        child<QAction>(*window, "actionBreakOffGame")->trigger();
+        QVERIFY(child<QAction>(*window, "actionResumeGame")->isEnabled());
+        dialogTimer.start(10);
+        child<QAction>(*window, edit ? "actionStartEditPosition" : "actionNewGame")->trigger();
+        dialogTimer.stop();
+        QVERIFY(!child<QAction>(*window, "actionResumeGame")->isEnabled());
+        QVERIFY(!window->m_match->interruptedGame());
+    }
+
     void screenshotValuesRoundtrip() {
         StartGameDialog d;
         child<QGroupBox>(d,"groupBoxSecondPlayerTimeSettings")->setChecked(true);

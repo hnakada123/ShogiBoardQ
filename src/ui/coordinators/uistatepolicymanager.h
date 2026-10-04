@@ -78,6 +78,7 @@ public:
         GameUndo,
         GameMakeImmediate,
         GameBreakOff,
+        GameResume,
         GameAnalyzeKifu,
         GameCancelAnalysis,
         GameTsumeSearch,
@@ -123,6 +124,7 @@ public:
     bool isEnabled(UiElement element) const;
 
 public slots:
+    void setResumeAvailable(bool available);
     /// 各状態遷移用の便利スロット（シグナル直結用）
     void transitionToIdle();
     void transitionToDuringGame();
@@ -154,6 +156,7 @@ private:
 
     Deps m_deps;
     AppState m_currentState = AppState::Idle;
+    bool m_resumeAvailable = false;
 
     /// ポリシーテーブル: state → (element → policy)
     QHash<AppState, QHash<UiElement, Policy>> m_policyTable;

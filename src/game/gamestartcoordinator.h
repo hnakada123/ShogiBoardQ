@@ -105,6 +105,8 @@ public:
 
     /// StartOptionsを受け取り対局を開始する
     void start(const StartParams& params);
+    /// 時計を設定し直さず、中断時の状態から開始通知・探索を再開する。
+    bool resumeInterruptedGame();
 
     /// 開始前の時計/表示ポリシーを適用する
     void prepare(const Request& req);

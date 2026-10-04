@@ -29,6 +29,7 @@ const QStringList& AutomationActionPolicy::allowedActions()
         QStringLiteral("actionStartGame"),
         QStringLiteral("actionResign"),
         QStringLiteral("actionBreakOffGame"),
+        QStringLiteral("actionResumeGame"),
         QStringLiteral("actionUndoMove"),
         QStringLiteral("actionMakeImmediateMove"),
         QStringLiteral("actionCSA"),

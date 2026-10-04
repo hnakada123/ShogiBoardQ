@@ -215,6 +215,7 @@ set(SRC_APP
     src/app/dockcreationservice.cpp
     src/app/dockcreationservice.h
     src/app/gamesessionorchestrator.cpp
+    src/app/gamesessionorchestrator_resume.cpp
     src/app/gamesessionorchestrator.h
     src/app/mainwindow.cpp
     src/app/mainwindow.h
@@ -315,6 +316,7 @@ set(SRC_CORE
     src/core/shogiboard_edit.cpp
     src/core/shogiboard_sfen.cpp
     src/core/shogiclock.cpp
+    src/core/shogiclock_snapshot.cpp
     src/core/shogiclock_format.cpp
     src/core/shogiclock.h
     src/core/shogimove.cpp
@@ -360,6 +362,7 @@ set(SRC_GAME
     src/game/humanvshumanstrategy.cpp
     src/game/humanvshumanstrategy.h
     src/game/matchcoordinator.cpp
+    src/game/matchcoordinator_resume.cpp
     src/game/matchcoordinator.h
     src/game/matchcoordinator_engine.cpp
     src/game/matchcoordinator_time.cpp

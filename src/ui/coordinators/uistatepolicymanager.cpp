@@ -136,6 +136,8 @@ void UiStatePolicyManager::buildPolicyTable()
     setAll(E::GameBreakOff, P::Disabled);
     set(S::DuringGame,    E::GameBreakOff, P::Enabled);
     set(S::DuringCsaGame, E::GameBreakOff, P::Enabled);
+    setAll(E::GameResume, P::Disabled);
+    set(S::Idle, E::GameResume, P::Enabled);
 
     // 棋譜解析: Idle のみ有効
     setAll(E::GameAnalyzeKifu, P::Disabled);
@@ -210,6 +212,7 @@ void UiStatePolicyManager::buildPolicyTable()
 
 UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement element) const
 {
+    if (element == UiElement::GameResume && !m_resumeAvailable) return Policy::Disabled;
     if (element == UiElement::GameUndo
         || (element == UiElement::GameResign && m_currentState == AppState::DuringGame)) {
         const auto mode = m_deps.getPlayMode ? m_deps.getPlayMode() : PlayMode::NotStarted;
@@ -256,6 +259,12 @@ void UiStatePolicyManager::applyState(AppState state)
 void UiStatePolicyManager::transitionToIdle()
 {
     applyState(AppState::Idle);
+}
+
+void UiStatePolicyManager::setResumeAvailable(bool available)
+{
+    m_resumeAvailable = available;
+    applyPolicy(UiElement::GameResume, effectivePolicy(UiElement::GameResume));
 }
 
 void UiStatePolicyManager::transitionToDuringGame()
@@ -418,6 +427,9 @@ void UiStatePolicyManager::applyPolicy(UiElement element, Policy policy)
         break;
     case UiElement::GameBreakOff:
         applyActionPolicy(ui ? ui->actionBreakOffGame : nullptr, policy);
+        break;
+    case UiElement::GameResume:
+        applyActionPolicy(ui ? ui->actionResumeGame : nullptr, policy);
         break;
     case UiElement::GameAnalyzeKifu:
         applyActionPolicy(ui ? ui->actionAnalyzeKifu : nullptr, policy);

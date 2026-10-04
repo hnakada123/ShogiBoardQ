@@ -22,6 +22,7 @@
 
 #include "matchtypes.h"
 #include "timecontrol.h"
+#include "interruptedgamestate.h"
 #include "startoptions.h"
 #include "analysisoptions.h"
 #include "matchcoordinatorhooks.h"
@@ -117,6 +118,10 @@ public:
 
     /// 中断を処理する（UI→司令塔）
     void handleBreakOff();
+
+    const InterruptedGameState* interruptedGame() const { return m_interruptedGame.get(); }
+    void discardInterruptedGame();
+    bool resumeInterruptedGame();
 
     /// 入玉宣言を処理する
     void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
@@ -298,6 +303,7 @@ public slots:
     void pokeTimeUpdateNow();
 
 signals:
+    void gameInterrupted();
     void playModeChanged();
     /// 盤面反転の通知（→ GameStartCoordinator::boardFlipped へ再送出）
     void boardFlipped(bool nowFlipped);
@@ -375,6 +381,9 @@ private:
     // --- 棋譜/SFEN記録 ---
 
     int m_currentMoveIndex = 0;              ///< 現在の手数インデックス
+    StartOptions m_lastStartOptions;
+    std::unique_ptr<InterruptedGameState> m_interruptedGame;
+    void captureInterruptedGame();
     QStringList* m_sfenHistory = nullptr;     ///< SFEN履歴（共有ポインタ、非所有）
     QStringList m_sharedSfenRecord;          ///< 共有ポインタ未指定時の内部SFEN履歴
     QList<ShogiMove> m_gameMoves;          ///< 対局中の指し手リスト

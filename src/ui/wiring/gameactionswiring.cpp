@@ -34,6 +34,8 @@ void GameActionsWiring::wire()
     QObject::connect(ui->actionCSA,          &QAction::triggered, dlw, &DialogLaunchWiring::displayCsaGameDialog, Qt::UniqueConnection);
     QObject::connect(ui->actionResign,       &QAction::triggered, gso, &GameSessionOrchestrator::handleResignation, Qt::UniqueConnection);
     QObject::connect(ui->actionBreakOffGame, &QAction::triggered, gso, &GameSessionOrchestrator::handleBreakOffGame, Qt::UniqueConnection);
+    QObject::connect(ui->actionResumeGame, &QAction::triggered, gso, &GameSessionOrchestrator::handleResumeGame, Qt::UniqueConnection);
+    QObject::connect(ui->actionStartEditPosition, &QAction::triggered, gso, &GameSessionOrchestrator::discardInterruptedGame, Qt::UniqueConnection);
 
     QObject::connect(ui->actionTsumePlay, &QAction::triggered, dlw, &DialogLaunchWiring::displayTsumePlayDialog, Qt::UniqueConnection);
 

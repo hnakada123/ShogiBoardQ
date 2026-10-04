@@ -276,3 +276,33 @@ stop応答を10秒遅らせ、terminateを無視する模擬エンジンを使�
 実エンジンでは上記18ケースに中断後の再対局9ケースを加えた27ケースがすべて通過し、
 中断後のプロセス残留もなかった。証跡は `build/gui-audit/break-{gikou,yaneuraou,apery}-fixed/`。
 既存GUIテスト `engineVersusEngine` の投了・中断2ケースでも、棋譜と対局操作の解除を確認した。
+
+## 中断した対局の再開
+
+ローカル対局の中断後、対局メニュー／ツールバーの「再開」で同じ対局を続けられる。
+局面・手番・指し手履歴・対局者・時間設定に加え、時計のミリ秒、秒読みの残り、
+その手の消費時間と総消費時間を保持する。中断中やエンジンの再初期化中は時計を進めない。
+棋譜を閲覧して別の手を選択していても中断地点へ戻り、中断行を取り除いて続きを記録する。
+再開情報はアプリ起動中だけ有効で、新規対局・棋譜の読み込み・局面編集などで破棄する。
+
+```bash
+python3 tests/gui/prepare.py
+xvfb-run -d env QT_QPA_PLATFORM=xcb build/gui-audit/test-build/tst_start_game_flow \
+  resumeInterruptedGame resumeInvalidatedByNewRecord
+xvfb-run -d env QT_QPA_PLATFORM=xcb python3 tests/gui/test_engine_shutdown.py \
+  --engine /home/nakada/shogi/Gikou/release \
+  --output build/gui-audit/resume-gikou-fixed \
+  --scenarios break-wait-resume-close break-ponder-wait-resume-close
+```
+
+2026-10-04の検証では、人間同士／人間先手／人間後手／エンジン同士 × 通常時計／秒読み／
+フィッシャー加算 × 0・1・2手後の中断の36ケースが通過した。中断中の時計停止とプロセス終了、
+棋譜閲覧後の局面復元、再開後の着手、再度の中断・再開を検証する。
+新規棋譜・局面編集による再開情報の破棄2ケースも通過した。
+時計単体テストは、tick間の端数、消費時間の重複計上防止、秒読み／加算、待った用履歴の保持を確認する。
+
+Gikou・やねうら王・apery_rust × 人間先手／人間後手／エンジン同士 × 思考中／先読み中の
+18ケースも通過した。中断1.5秒後に再開し、局面・残り時間の一致を検査する。
+中断後0.2秒・1.2秒の観測時に旧エンジンは終了し、再開後のアプリ終了時にも残留しなかった。
+証跡は `build/gui-audit/resume-{gikou,yaneuraou,apery}-fixed/`。
+既存GUIの最大手数、時間切れ、多言語棋譜、連続対局、自動保存、駒落ち後の新規開始16ケースも通過した。

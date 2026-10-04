@@ -8,6 +8,52 @@ class TestShogiClock : public QObject
     Q_OBJECT
 
 private slots:
+    void resumePreservesClock_data()
+    {
+        QTest::addColumn<int>("byoyomi");
+        QTest::addColumn<int>("increment");
+        QTest::newRow("main-time") << 0 << 0;
+        QTest::newRow("byoyomi") << 3 << 0;
+        QTest::newRow("fischer") << 0 << 2;
+    }
+
+    void resumePreservesClock()
+    {
+        QFETCH(int, byoyomi);
+        QFETCH(int, increment);
+        ShogiClock clock;
+        clock.setPlayerTimes(byoyomi ? 0 : 30, 60, byoyomi, byoyomi, increment, increment, true);
+        clock.startClock();
+        QTest::qSleep(35);
+        const auto state = clock.pauseAndSnapshot();
+        QVERIFY(state.player1ConsiderationTimeMs >= 35);
+        const qint64 left = clock.remainingTurnTimeMs(1);
+        QTest::qWait(70);
+        QCOMPARE(clock.remainingTurnTimeMs(1), left);
+        // 中断行による時間確定と、閲覧による手番変更を経ても復元できる。
+        clock.markGameOver();
+        clock.applyByoyomiAndResetConsideration1();
+        clock.setCurrentPlayer(2);
+        clock.restoreSnapshot(state);
+        QCOMPARE(clock.currentPlayer(), 1);
+        QCOMPARE(clock.getPlayer1TimeIntMs(), state.player1TimeMs);
+        QCOMPARE(clock.getPlayer2TimeIntMs(), state.player2TimeMs);
+        QCOMPARE(clock.byoyomi1Applied(), byoyomi != 0);
+        QCOMPARE(clock.getPlayer1TotalConsiderationTime(), QStringLiteral("00:00:00"));
+        clock.startClock();
+        QTest::qSleep(40);
+        clock.finishTurn();
+        const auto resumed = clock.pauseAndSnapshot();
+        QVERIFY(resumed.player1ConsiderationTimeMs >= state.player1ConsiderationTimeMs + 40);
+        QCOMPARE(resumed.player1TimeHistory.size(), state.player1TimeHistory.size());
+        clock.setCurrentPlayer(2);
+        clock.setMeasuredConsiderationTime(1, 40);
+        QCOMPARE(clock.player1ConsiderationMs(), state.player1ConsiderationTimeMs + 40);
+        clock.applyByoyomiAndResetConsideration1();
+        if (byoyomi) QCOMPARE(clock.getPlayer1TimeIntMs(), 3000LL);
+        if (increment) QCOMPARE(clock.getPlayer1TimeIntMs(), resumed.player1TimeMs + 2000);
+    }
+
     void switchAccountsElapsedToOldPlayer()
     {
         ShogiClock clock;

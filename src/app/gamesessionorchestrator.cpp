@@ -8,6 +8,7 @@
 #include "errorbus.h"
 #include "gamestatecontroller.h"
 #include "logcategories.h"
+#include "kifubranchtree.h"
 #include "mainwindowgamestartservice.h"
 #include "matchcoordinator.h"
 #include "replaycontroller.h"
@@ -91,7 +92,15 @@ GameSessionOrchestrator::GameSessionOrchestrator(QObject* parent)
 
 void GameSessionOrchestrator::updateDeps(const Deps& deps)
 {
+    if (m_deps.branchTree != deps.branchTree && m_deps.branchTree) {
+        disconnect(m_deps.branchTree, &KifuBranchTree::treeChanged,
+                   this, &GameSessionOrchestrator::discardInterruptedGame);
+    }
     m_deps = deps;
+    if (m_deps.branchTree) {
+        connect(m_deps.branchTree, &KifuBranchTree::treeChanged,
+                this, &GameSessionOrchestrator::discardInterruptedGame, Qt::UniqueConnection);
+    }
 }
 
 void GameSessionOrchestrator::initializeGame()
