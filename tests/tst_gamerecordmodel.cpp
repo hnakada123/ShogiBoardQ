@@ -84,6 +84,64 @@ private slots:
             QTest::newRow(format) << QString::fromLatin1(format);
     }
 
+    /// 開始日時・終了日時が記録にない棋譜を CSA にしても、変換時刻を対局日時として書かない
+    void csaDoesNotInventGameTimes()
+    {
+        const QStringList usi = {"7g7f", "3c3d"};
+        const QStringList pretty = {QStringLiteral("▲７六歩(77)"), QStringLiteral("△３四歩(33)")};
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* tip = tree.root();
+        for (int i = 0; i < usi.size(); ++i) tip = addTestMove(tree, tip, usi[i], pretty[i]);
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext context;
+        context.startSfen = kHirateSfen;
+        // 読み込んだ棋譜（日時の記載なし）の対局情報をそのまま渡す（画面・CLI の変換と同じ）
+        context.gameInfoProvided = true;
+        context.gameInfoItems = {{QStringLiteral("先手"), QStringLiteral("鈴木")},
+                                 {QStringLiteral("後手"), QStringLiteral("山田")}};
+        const QString csa = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        QVERIFY2(!csa.contains(QStringLiteral("$START_TIME")), qPrintable(csa));
+        QVERIFY2(!csa.contains(QStringLiteral("$END_TIME")), qPrintable(csa));
+
+        // このアプリで対局した開始時刻が分かる場合は記録する
+        context.gameStartDateTime = QDateTime(QDate(2026, 10, 5), QTime(9, 30, 0));
+        const QString live = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        QVERIFY2(live.contains(QStringLiteral("$START_TIME:2026/10/05 09:30:00")), qPrintable(live));
+        QVERIFY(!live.contains(QStringLiteral("$END_TIME")));
+    }
+
+    /// KI2 では、盤上の同じ駒もその地点へ動ける場合だけ「打」を付ける（日本将棋連盟の棋譜表記）
+    void ki2DropMarkerOnlyWhenAmbiguous()
+    {
+        const QString initial = QStringLiteral("4k4/9/9/9/9/9/9/4G4/4K4 b 2G 1");
+        const QStringList usi = {"G*5g", "5a4a", "G*1e"};
+        const QStringList pretty = {QStringLiteral("▲５七金打"), QStringLiteral("△４一玉(51)"),
+                                    QStringLiteral("▲１五金打")};
+        KifuBranchTree tree;
+        tree.setRootSfen(initial);
+        auto* tip = tree.root();
+        for (int i = 0; i < usi.size(); ++i) tip = addTestMove(tree, tip, usi[i], pretty[i]);
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext context;
+        context.startSfen = initial;
+        const QStringList lines = model.toKi2Lines(context);
+        const QString text = lines.join(QLatin1Char('\n'));
+        QVERIFY2(text.contains(QStringLiteral("▲５七金打")), qPrintable(text));  // 5八の金も5七へ動ける
+        QVERIFY2(text.contains(QStringLiteral("▲１五金")), qPrintable(text));
+        QVERIFY2(!text.contains(QStringLiteral("▲１五金打")), qPrintable(text)); // 盤上の金は1五へ動けない
+
+        // 「打」を省いても、読み込むと同じ手順に戻る
+        QTemporaryFile file;
+        QVERIFY(KifuTestHelper::writeToTempFile(file, text.toUtf8(), QStringLiteral("ki2")));
+        KifParseResult result;
+        QString error;
+        QVERIFY2(Ki2ToSfenConverter::parseWithVariations(file.fileName(), result, &error), qPrintable(error));
+        QCOMPARE(result.mainline.usiMoves, usi);
+    }
+
     void allFormatsRoundTripCustomPosition()
     {
         QFETCH(QString, format);

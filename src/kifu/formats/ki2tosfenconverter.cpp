@@ -477,6 +477,11 @@ QString Ki2ToSfenConverter::convertPrettyMoveToKi2(
     }
 
     if (isDrop) {
+        // 棋譜表記の規則では、盤上の同じ種類の駒もその地点へ動ける場合だけ「打」を付ける。
+        // 読み込みでは、盤上から動ける駒がなければ持ち駒を打つ手として解釈する。
+        if (Ki2Lexer::collectCandidates(pieceUpper, false, dstFile, dstRank, blackToMove, boardState).isEmpty()) {
+            ki2Move.remove(QChar(u'打'));
+        }
         const QString usi = NotationUtils::formatSfenDrop(pieceToChar(pieceUpper), dstFile, dstRank);
         applyMoveToBoard(usi, boardState, blackHands, whiteHands, blackToMove);
     } else if (hasSource) {

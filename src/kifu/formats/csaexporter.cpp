@@ -83,11 +83,7 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
 
     // 5) 棋譜情報（対局者名以外）
     bool hasStartTime = false;
-    Q_UNUSED(hasStartTime);
-    bool hasEndTime = false;
-    Q_UNUSED(hasEndTime);
     bool hasTime = false;
-    Q_UNUSED(hasTime);
 
     for (const auto& it : std::as_const(header)) {
         const QString key = it.key.trimmed();
@@ -109,7 +105,6 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         } else if (key == QStringLiteral("終了日時")) {
             QString csaDateTime = CsaFormatter::convertToCsaDateTime(val);
             out << QStringLiteral("$END_TIME:%1").arg(csaDateTime);
-            hasEndTime = true;
         } else if (key == QStringLiteral("持ち時間")) {
             QString timeVal = CsaFormatter::convertToCsaTime(val);
             out << timeVal;
@@ -137,20 +132,11 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
         }
     }
 
-    // 5-2) 棋譜情報がない場合のデフォルト生成
-    if (!hasStartTime) {
-        QString startTimeStr;
-        if (ctx.gameStartDateTime.isValid()) {
-            startTimeStr = ctx.gameStartDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
-        } else {
-            startTimeStr = QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
-        }
-        out << QStringLiteral("$START_TIME:%1").arg(startTimeStr);
-    }
-
-    if (!hasEndTime) {
-        const QString nowStr = QDateTime::currentDateTime().toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"));
-        out << QStringLiteral("$END_TIME:%1").arg(nowStr);
+    // 5-2) 対局情報に開始日時がなくても、このアプリで対局した開始時刻が分かれば記録する。
+    // 記録のない日時（読み込んだ棋譜の変換時刻など）は書かない（$START_TIME/$END_TIME は省略可能）。
+    if (!hasStartTime && ctx.gameStartDateTime.isValid()) {
+        out << QStringLiteral("$START_TIME:%1")
+                   .arg(ctx.gameStartDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss")));
     }
 
     if (!hasTime && ctx.hasTimeControl) {
