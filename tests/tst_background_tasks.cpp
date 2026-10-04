@@ -14,6 +14,7 @@
 #include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "enginepondersettings.h"
+#include "enginegameovernotifier.h"
 #include "tsumethreadbudget.h"
 #include "tsumecollection.h"
 #include "tsume.h"
@@ -55,23 +56,28 @@ private slots:
         qunsetenv("SBQ_MATCH_STOP_DELAY_MS");
         qunsetenv("SBQ_MATCH_EXIT_ON_GO");
         qunsetenv("SBQ_MATCH_NO_USIOK");
+        qunsetenv("SBQ_MATCH_IGNORE_TERMINATE");
         EnginePonderSettings::save(engineName, false, true);
     }
     void processShutdownReapsAfterOwnerIsDestroyed_data()
     {
         QTest::addColumn<bool>("explicitStop");
-        QTest::newRow("destructor") << false;
-        QTest::newRow("repeated-stop") << true;
+        QTest::addColumn<bool>("unresponsive");
+        QTest::newRow("destructor") << false << false;
+        QTest::newRow("repeated-stop") << true << false;
+        QTest::newRow("ignores-quit-and-terminate") << true << true;
     }
     void processShutdownReapsAfterOwnerIsDestroyed()
     {
         QFETCH(bool, explicitStop);
+        QFETCH(bool, unresponsive);
+        if (unresponsive) qputenv("SBQ_MATCH_IGNORE_TERMINATE", "1");
         const auto existing = qApp->findChildren<QProcess*>();
         auto process = std::make_unique<EngineProcessManager>();
         QSignalSpy started(process.get(), &EngineProcessManager::processStarted);
         QVERIFY(process->startProcessAsync(QStringLiteral(MOCK_USI_EXECUTABLE)));
         QTRY_COMPARE(started.count(), 1);
-        process->sendCommand(QStringLiteral("setoption name ReplyDelay value 300"));
+        process->sendCommand(QStringLiteral("setoption name ReplyDelay value %1").arg(unresponsive ? 6000 : 300));
         process->sendCommand(QStringLiteral("go depth 1"));
         QTest::qWait(30);
         const int ticks = m_ticks;
@@ -257,6 +263,68 @@ private slots:
         elapsed.start();
         engine.cleanupEngineProcessAndThread();
         QVERIFY(elapsed.elapsed() < 200);
+    }
+    void gameOverCancelsLateMoveAndReapsBothEngines_data()
+    {
+        QTest::addColumn<bool>("loserIsP1");
+        QTest::addColumn<bool>("nyugyoku");
+        for (bool loserIsP1 : {false, true}) {
+            for (bool nyugyoku : {false, true}) {
+                QTest::newRow(qPrintable(QStringLiteral("%1-loser-%2")
+                    .arg(nyugyoku ? "nyugyoku" : "resign").arg(loserIsP1 ? "p1" : "p2")))
+                    << loserIsP1 << nyugyoku;
+            }
+        }
+    }
+    void gameOverCancelsLateMoveAndReapsBothEngines()
+    {
+        QFETCH(bool, loserIsP1);
+        QFETCH(bool, nyugyoku);
+        EnginePonderSettings::save(engineName, true, true);
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi thinking(nullptr, nullptr, &game), pondering(nullptr, nullptr, &game);
+        QSignalSpy thinkingReady(&thinking, &Usi::engineInitialized);
+        QSignalSpy ponderingReady(&pondering, &Usi::engineInitialized);
+        QSignalSpy thinkingMoves(&thinking, &Usi::matchMoveReady);
+        QSignalSpy ponderingMoves(&pondering, &Usi::matchMoveReady);
+        QSignalSpy thinkingErrors(&thinking, &Usi::errorOccurred);
+        QSignalSpy ponderingErrors(&pondering, &Usi::errorOccurred);
+        QVERIFY(thinking.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QVERIFY(pondering.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QTRY_COMPARE(thinkingReady.size(), 1);
+        QTRY_COMPARE(ponderingReady.size(), 1);
+        const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("300000"), 0, 0, true};
+        const QString position = QStringLiteral("position startpos moves 7g7f");
+        pondering.requestMatchMove(position, {}, timing);
+        QTRY_COMPARE(ponderingMoves.size(), 1);
+        QVERIFY(!ponderingMoves.first().at(3).toString().isEmpty());
+        thinking.sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
+        thinking.requestMatchMove(position, {}, timing);
+        QTest::qWait(30);
+        const auto existing = qApp->findChildren<QProcess*>();
+        Usi* p1 = loserIsP1 ? &thinking : &pondering;
+        Usi* p2 = loserIsP1 ? &pondering : &thinking;
+        const auto sendRaw = [](Usi* engine, const QString& command) { engine->sendRaw(command); };
+        if (nyugyoku)
+            EngineGameOverNotifier::notifyNyugyoku(PlayMode::EvenEngineVsEngine, false, loserIsP1, p1, p2, sendRaw);
+        else
+            EngineGameOverNotifier::notifyResignation(PlayMode::EvenEngineVsEngine, loserIsP1, p1, p2, sendRaw);
+        QList<QPointer<QProcess>> retiring;
+        for (auto* child : qApp->findChildren<QProcess*>())
+            if (!existing.contains(child)) retiring.append(child);
+        // 終局後に返るbestmoveから着手や先読みが再開されないこと。
+        QTest::qWait(400);
+        QCOMPARE(thinkingMoves.size(), 0);
+        QCOMPARE(ponderingMoves.size(), 1);
+        QCOMPARE(thinkingErrors.size(), 0);
+        QCOMPARE(ponderingErrors.size(), 0);
+        QCOMPARE(retiring.size(), 2);
+        for (const auto& process : retiring) QTRY_VERIFY_WITH_TIMEOUT(process.isNull(), 5000);
+        QVERIFY(!thinking.isEngineRunning());
+        QVERIFY(!pondering.isEngineRunning());
     }
     void exitWhileThinkingReportsError()
     {

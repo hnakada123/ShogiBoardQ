@@ -29,8 +29,12 @@ void sendQuitPair(Usi* engine, GameOverResult result, const RawSender& sendRaw)
     if (!engine || !sendRaw) {
         return;
     }
+    // 終局後のbestmoveで着手・先読みを再開させない。quitに応答しない場合も
+    // 非同期の終了監視へ引き渡し、アプリを閉じるまでプロセスを保持しない。
+    engine->cancelCurrentOperation();
+    engine->sendStopCommand();
     sendRaw(engine, QStringLiteral("gameover ") + gameOverResultToString(result));
-    sendRaw(engine, QStringLiteral("quit"));
+    engine->cleanupEngineProcessAndThread(false);
 }
 
 } // namespace
@@ -54,9 +58,7 @@ void notifyResignation(PlayMode playMode,
     if (isEvE(playMode)) {
         Usi* winner = loserIsP1 ? usi2 : usi1;
         Usi* loser = loserIsP1 ? usi1 : usi2;
-        if (loser) {
-            sendRaw(loser, QStringLiteral("gameover ") + gameOverResultToString(GameOverResult::Lose));
-        }
+        sendQuitPair(loser, GameOverResult::Lose, sendRaw);
         sendQuitPair(winner, GameOverResult::Win, sendRaw);
     }
 }

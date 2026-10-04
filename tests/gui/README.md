@@ -184,3 +184,64 @@ xvfb-run -a -s '-screen 0 1600x1200x24' env QT_QPA_PLATFORM=xcb build/gui-audit/
 ```
 
 `pieceCombinations:chess` と `pieceCombinations:alphabet` はチェス風・アルファベット各9セットのおすすめ組み合わせ、盤・駒台・背景の配色、選択状態と再起動後の復元を確認します。
+
+## 実エンジンの終了・残留検証
+
+`engine_shutdown_harness` は実MainWindowを別プロセスで起動し、本体と同じ順序で
+`QApplication::exec()` の終了、MainWindowの破棄、QApplicationの破棄まで実行する。
+`test_engine_shutdown.py` はLinuxの `/proc` でその子孫だけを追跡し、アプリ終了直後と
+500ms後の生存、PID、CPU時間を `results.json` に保存する。通常設定は一時ディレクトリに隔離し、
+指定エンジンをThreads=1、Hash=64MB、定跡無効（対応オプションのみ）で登録する。
+思考情報の受信後に操作するため、初期化だけで終わったケースを思考中の検証には数えない。
+異常時はテストが起動したプロセス群を回収する。
+
+```bash
+python3 tests/gui/prepare.py
+xvfb-run -a env QT_QPA_PLATFORM=xcb python3 tests/gui/test_engine_shutdown.py \
+  --engine /home/nakada/shogi/Gikou/release \
+  --output build/gui-audit/shutdown-gikou
+```
+
+既定の29ケースは、人間先手・人間後手・エンジン同士で、思考中／先読み中／起動直後の
+ウィンドウ終了と終了メニュー、中断直後、中断して再開始、終了確認のキャンセル後の再終了、
+人間参加時の投了直後を検証する。`--repeat` で反復回数を指定できる。
+エンジンを替える場合は `--engine` と `--output` を変更する。
+
+旧UIで可能だったエンジン同士の対局中の投了は、テスト内で投了QActionを有効にして再現する。
+`b9ea8b68` の変更はUIの有効条件であり、終局処理自体はそのまま呼び出す。
+次のケースでは投了から1.5秒後にアプリを閉じ、投了後0.2秒・1.2秒にも生存を記録する。
+1.2秒の観測時点でプロセスが残っていれば失敗する。
+
+```bash
+xvfb-run -a env QT_QPA_PLATFORM=xcb python3 tests/gui/test_engine_shutdown.py \
+  --engine /home/nakada/shogi/Gikou/release \
+  --output build/gui-audit/shutdown-gikou-resign \
+  --modes eve --scenarios legacy-resign-wait-close legacy-ponder-resign-wait-close --repeat 3
+```
+
+2026-10-04、Linux / Qt 6.11.2での検証結果:
+
+| 条件 | Gikou 2 v2.0.2 | やねうら王 | apery_rust |
+|---|---|---|---|
+| 修正前の通常終了（各29ケース） | 残留なし | 残留なし | 残留なし |
+| 旧UIの投了・先読み無効、アプリは開いたまま | 敗者1プロセスが待機 | 同左 | 同左 |
+| 旧UIの投了・先読み有効、アプリは開いたまま | 敗者が約1コア分のCPUで思考継続 | 同左 | 同左 |
+| 上記の後にアプリを通常終了 | 残留なし | 残留なし | 残留なし |
+| 修正後の旧投了経路（先読みON/OFFを各3回） | 全6ケースで投了後0.2秒の観測時に両エンジン消滅 | 同左 | 同左 |
+
+実行ファイルは `/home/nakada/shogi/Gikou/release`、
+`/home/nakada/shogi/YaneuraOu/YaneuraOu-by-gcc`、`/home/nakada/shogi/apery_rust/apery`。
+証跡は `build/gui-audit/shutdown-{gikou,yaneuraou,apery}-{verified,resign-wait,fixed}/`。
+`resign-wait` の修正前ログには `gameover lose` の後で `bestmove` を受け、
+再び `go ponder` を送る通信が記録されている。敗者にquitを送らず、保留中の着手要求も
+取り消していなかったため、終局後に先読みが再開していた。
+修正は両者の要求キャンセル、stop、gameover、quitと非同期の終了監視への引き渡しを行う。
+同じ終了ヘルパーを使う入玉宣言も対象となる。
+
+CTestの `tst_background_tasks` には、遅れて届くbestmoveで着手・先読みを再開しないこと、
+両プロセスの回収、quit処理が遅延しterminateも無視する模擬エンジンの強制終了を追加した。
+遅延応答の4ケースは修正前に失敗し、修正後に通過する。
+修正後はGikouの通常終了29ケースも再実行して残留なし。関連CTest 10件と、
+投了後の棋譜操作・再解析・連続対局を含む既存GUIテスト11ケースも通過した。
+この検証ではアプリの通常終了後に思考が継続する現象自体は再現しておらず、
+報告時のアプリ終了後の残留原因までは断定しない。
