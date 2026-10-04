@@ -145,6 +145,80 @@ img {
     background: rgba(255, 255, 255, 0.15);
 }
 
+/* 4-language switcher (top page and translated guide pages) */
+.lang-menu {
+    position: relative;
+    flex-shrink: 0;
+    margin: 0 auto 0 1rem;
+}
+
+.lang-menu summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    color: #fff;
+    font-size: 0.8rem;
+    line-height: 1.6;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+}
+
+.lang-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.lang-menu summary::after {
+    content: "";
+    width: 0.4rem;
+    height: 0.4rem;
+    margin-left: 0.1rem;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+}
+
+.lang-menu summary:hover,
+.lang-menu[open] summary,
+.lang-menu summary:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.lang-menu ul {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    min-width: 10rem;
+    padding: 0.35rem;
+    list-style: none;
+    background: var(--color-card-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    box-shadow: 0 12px 32px rgba(30, 40, 28, 0.22);
+}
+
+.lang-menu li a {
+    display: block;
+    padding: 0.4rem 0.75rem;
+    border-radius: 6px;
+    color: var(--color-text);
+    font-size: 0.9rem;
+}
+
+.lang-menu li a:hover {
+    background: var(--color-accent-light);
+    color: var(--color-accent-deeper);
+    text-decoration: none;
+}
+
+.lang-menu li a[aria-current="page"] {
+    color: var(--color-accent);
+    font-weight: 700;
+}
+
 html:lang(en) .nav-links {
     gap: 1rem;
 }

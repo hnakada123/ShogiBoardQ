@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>對局 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 對局功能指南：從註冊 USI 引擎到設定、進行與復盤對局，附截圖說明。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/game-play.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/game-play.html">
+    <meta property="og:title" content="對局 - ShogiBoardQ">
+    <meta property="og:description" content="透過逐步截圖了解如何在 ShogiBoardQ 中註冊引擎、進行對局與復盤。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/game-play/game-02-playing-engine-log.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="對局 - ShogiBoardQ">
+    <meta name="twitter:description" content="了解如何在 ShogiBoardQ 中註冊引擎、進行對局與復盤。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/game-play/game-02-playing-engine-log.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/game-play.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/game-play.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/game-play.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/game-play.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/game-play.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/game-play.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/game-play.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="game-play.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#engine-registration">引擎註冊</a></li>
+            <li><a href="#game-start">開始對局</a></li>
+            <li><a href="#playing">對局中</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>對局</h1>
+        <p class="hero-subtitle">從註冊引擎到對局與復盤的流程</p>
+        <div class="hero-badges">
+            <span class="badge">人類對引擎</span>
+            <span class="badge">引擎對引擎</span>
+            <span class="badge">人類對人類</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1: Engine Registration -->
+<section id="engine-registration" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">引擎註冊</h2>
+        <p class="section-desc">註冊用於對局與分析的 USI 引擎</p>
+        <p class="guide-step-text">也可以註冊 ShogiBoardQ 的子模組——將棋引擎 <a href="../../en/guide/hayanagi.html">Hayanagi</a>。執行檔的位置以及棋力等設定，請參閱 Hayanagi 的說明（英文）。</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">開啟引擎註冊對話框</span>
+                </div>
+                <p class="guide-step-text">從選單「設置」→「引擎設置…」開啟引擎註冊對話框。初次使用時尚未註冊任何引擎。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/engine-00-main-screen.png" alt="ShogiBoardQ 主視窗">
+                    <p class="screenshot-caption">主視窗：選擇選單「設置」→「引擎設置…」</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/game-play/engine-01-registration-empty.png" alt="引擎註冊對話框（未註冊引擎）">
+                    <p class="screenshot-caption">引擎註冊對話框：初始狀態</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">選擇引擎執行檔</span>
+                </div>
+                <p class="guide-step-text">點選「添加」按鈕，選擇 USI 引擎的執行檔。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/engine-02-file-selection.png" alt="引擎執行檔選擇對話框">
+                    <p class="screenshot-caption">檔案選擇對話框：選擇 Hayanagi 的執行檔（hayanagi）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">完成引擎註冊</span>
+                </div>
+                <p class="guide-step-text">引擎被正確識別後，會加入列表中。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/game-play/engine-03-registration-added.png" alt="已註冊引擎的列表">
+                    <p class="screenshot-caption">註冊完成：引擎已加入列表</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">引擎設定（選項）</span>
+                </div>
+                <p class="guide-step-text">點選「設置」按鈕，可以變更引擎的各項選項（雜湊大小、執行緒數等）。</p>
+                <p class="guide-step-text">在「後台思考」中啟用「在對手行棋時思考」後，支援此功能的引擎會利用預測的應著，在對手行棋時繼續思考。對於 Gikou 2 等未在選項列表中顯示 USI_Ponder 的引擎也可以設定。原有的 USI_Ponder 設定值會沿用；沒有設定時從停用後台思考開始。</p>
+                <p class="guide-step-text">「即使引擎未報告該選項，也發送 USI_Ponder」通常保持啟用。若引擎回報不支援該選項的錯誤，請將其停用。即使停用此通知，對於支援後台思考的引擎，GUI 仍可開始後台思考。設定依引擎分別儲存，並於下次啟動引擎時生效。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/game-play/engine-04-settings.png" alt="引擎設定對話框">
+                    <p class="screenshot-caption">引擎設定：調整雜湊大小、執行緒數等</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">註冊多個引擎</span>
+                </div>
+                <p class="guide-step-text">可以註冊多個引擎，於對局或引擎對引擎時分別使用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/game-play/engine-05-registration-multiple.png" alt="已註冊多個引擎的列表">
+                    <p class="screenshot-caption">註冊多個引擎：依用途選擇使用</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Game Setup -->
+<section id="game-start" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">對局設定</h2>
+        <p class="section-desc">在對局對話框中設定對局條件</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">對局對話框</span>
+                </div>
+                <p class="guide-step-text">從選單「對局」→「對局…」開啟對局對話框，可以設定以下項目。</p>
+                <ul class="guide-step-text">
+                    <li>對局者（人類或已註冊的引擎）</li>
+                    <li>用時、讀秒與每手加時（費雪制）</li>
+                    <li>初始局面（平手、讓子或當前局面）</li>
+                    <li>棋譜自動保存</li>
+                </ul>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/game-01-setup-dialog.png" alt="對局設定對話框">
+                    <p class="screenshot-caption">對局對話框：設定對局者、用時與初始局面等</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: During Game -->
+<section id="playing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">對局中</h2>
+        <p class="section-desc">在對局畫面中即時查看棋譜與引擎的思考資訊</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">對局畫面</span>
+                </div>
+                <p class="guide-step-text">對局開始後，「思考」分頁會即時顯示引擎的思考資訊。</p>
+                <p class="guide-step-text">在「思考」分頁中啟用「對局中顯示箭頭」後，會以紅色實線在棋盤上顯示行棋方引擎目前的最佳候選著法。啟用「同時顯示後台思考方」後，會以藍色虛線追加顯示正在後台思考的引擎的應著，並在「思考」分頁中顯示其假定的對手著法。後台思考的箭頭表示該預測著法被走出時的應著。顯示設定會被儲存，不會變更引擎本身的後台思考設定。研究模式中的箭頭依照「研究」分頁的設定。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/game-03-playing-thinking-tab.png" alt="對局畫面（思考分頁）">
+                    <p class="screenshot-caption">思考分頁：即時顯示引擎的思考資訊</p>
+                </div>
+                <p class="guide-step-text">在「USI 日誌」分頁中，可以查看 GUI 與引擎之間透過 USI 協定進行的通訊紀錄。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/game-02-playing-engine-log.png" alt="對局畫面（USI 日誌分頁）">
+                    <p class="screenshot-caption">USI 日誌：即時顯示 GUI 與引擎之間的 USI 協定通訊</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">主要變化顯示</span>
+                </div>
+                <p class="guide-step-text">在主要變化顯示視窗中，可以在棋盤上重播引擎的主要變化。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/game-play/game-04-reading-lines.png" alt="主要變化顯示視窗">
+                    <p class="screenshot-caption">主要變化顯示：在棋盤上直觀呈現引擎的主要變化</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">評價值圖表</span>
+                </div>
+                <p class="guide-step-text">透過評價值圖表可以直觀掌握形勢的變化。對局中也會即時更新。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/game-05-eval-graph.png" alt="評價值圖表">
+                    <p class="screenshot-caption">評價值圖表：即時顯示形勢的變化</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">對局信息</span>
+                </div>
+                <p class="guide-step-text">「對局信息」分頁會顯示對局日期、開始時間、先手、後手、讓子、用時規則、結束時間等對局資訊。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/game-06-game-info.png" alt="對局結束後的對局信息">
+                    <p class="screenshot-caption">對局信息：顯示對局的相關資訊</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">變化樹</span>
+                </div>
+                <p class="guide-step-text">「變化樹」分頁不僅顯示本譜，也會顯示變化中的著法。對局中使用「悔棋」撤回後再走出不同的著法時，實際走出的手順會成為本譜，被撤回的手順則作為變化保留。</p>
+                <p class="guide-step-text">對局結束後，棋盤僅供瀏覽，無法移動棋子。若要從中途局面繼續對局，請在棋譜中選擇該局面，並在對局對話框中將初始局面設為「當前局面」後開始對局。新的著法會作為變化記錄。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/game-play/game-07-branch-tree.png" alt="變化樹">
+                    <p class="screenshot-caption">變化樹：顯示本譜以及其他變化的著法</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
