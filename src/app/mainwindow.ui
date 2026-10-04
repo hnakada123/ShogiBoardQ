@@ -112,6 +112,7 @@
     <addaction name="actionUndoMove"/>
     <addaction name="actionMakeImmediateMove"/>
     <addaction name="actionBreakOffGame"/>
+    <addaction name="actionResumeGame"/>
     <addaction name="separator"/>
     <addaction name="actionAnalyzeKifu"/>
     <addaction name="actionCancelAnalyzeKifu"/>
@@ -190,6 +191,7 @@
    <addaction name="actionUndoMove"/>
    <addaction name="actionMakeImmediateMove"/>
    <addaction name="actionBreakOffGame"/>
+    <addaction name="actionResumeGame"/>
    <addaction name="separator"/>
    <addaction name="actionAnalyzeKifu"/>
    <addaction name="actionTsumeShogiSearch"/>
@@ -291,6 +293,12 @@
    <property name="text">
     <string>投了</string>
    </property>
+  </action>
+  <action name="actionResumeGame">
+   <property name="enabled"><bool>false</bool></property>
+   <property name="icon"><iconset><normaloff>:/images/actions/actionStartGame.svg</normaloff>:/images/actions/actionStartGame.svg</iconset></property>
+   <property name="text"><string>再開</string></property>
+   <property name="toolTip"><string>中断した対局を局面・残り時間を引き継いで再開</string></property>
   </action>
   <action name="actionBreakOffGame">
    <property name="icon">

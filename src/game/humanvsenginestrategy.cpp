@@ -238,11 +238,11 @@ void HumanVsEngineStrategy::onEngineMoveReady(QPoint eFrom, QPoint eTo,
     if (m_ctx.clock()) {
         if (m_ctx.gc()->currentPlayer() == ShogiGameController::Player1) {
             // 直前に指したのは後手(P2)
-            m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+            m_ctx.clock()->setMeasuredConsiderationTime(2, thinkMs);
             m_ctx.clock()->applyByoyomiAndResetConsideration2();
         } else {
             // 直前に指したのは先手(P1)
-            m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+            m_ctx.clock()->setMeasuredConsiderationTime(1, thinkMs);
             m_ctx.clock()->applyByoyomiAndResetConsideration1();
         }
     }

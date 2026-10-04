@@ -89,9 +89,9 @@ void HumanVsHumanStrategy::finishTurnTimerAndSetConsideration(int moverPlayer)
     ShogiClock* clock = m_ctx.clock();
     if (clock) {
         if (mover == MatchCoordinator::P1)
-            clock->setPlayer1ConsiderationTime(static_cast<int>(ms));
+            clock->setMeasuredConsiderationTime(1, ms);
         else
-            clock->setPlayer2ConsiderationTime(static_cast<int>(ms));
+            clock->setMeasuredConsiderationTime(2, ms);
     }
     m_turnTimer.invalidate();
     m_turnTimerArmed = false;

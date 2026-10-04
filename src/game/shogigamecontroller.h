@@ -58,6 +58,7 @@ public:
         previousFileTo = square.x();
         previousRankTo = square.y();
     }
+    QPoint previousMoveDestination() const { return QPoint(previousFileTo, previousRankTo); }
     void setCurrentPlayer(const Player);
 
     // --- 指し手処理 ---

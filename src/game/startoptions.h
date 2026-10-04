@@ -32,6 +32,7 @@ struct MatchStartOptions {
 
     QString humanName1;                    ///< 先手の人間対局者名
     QString humanName2;                    ///< 後手の人間対局者名
+    bool resumeFromBreakOff = false;        ///< 中断した手の途中から再開する
 };
 
 #endif // STARTOPTIONS_H

@@ -57,6 +57,8 @@ void ShogiClock::setPlayerTimes(int player1Seconds, int player2Seconds,
     m_clockRunning = false;
     m_turnFinished = false;
     m_gameOver = false;
+    m_resumedConsiderationMs[0] = m_resumedConsiderationMs[1] = 0;
+    m_resumingTurn = false;
 
     m_player1ConsiderationTimeMs = 0;
     m_player2ConsiderationTimeMs = 0;
@@ -77,6 +79,10 @@ void ShogiClock::setCurrentPlayer(int player)
     if (next == m_currentPlayer) return;
     updateClock(); // tick間の経過時間は旧手番へ精算する
     m_currentPlayer = next;
+    m_resumedConsiderationMs[next - 1] = 0;
+    m_resumingTurn = false;
+    if (next == 1) m_player1ConsiderationTimeMs = 0;
+    else m_player2ConsiderationTimeMs = 0;
     m_turnFinished = false;
     if (m_elapsedTimer.isValid()) m_lastTickMs = m_elapsedTimer.elapsed();
 }
@@ -111,7 +117,7 @@ void ShogiClock::startClock()
 {
     if (m_clockRunning) return;
 
-    saveState();
+    if (!m_resumingTurn) saveState();
 
     m_elapsedTimer.restart();
     m_turnFinished = false;

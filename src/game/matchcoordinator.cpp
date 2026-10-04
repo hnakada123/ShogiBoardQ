@@ -345,11 +345,16 @@ void MatchCoordinator::handleNyugyokuDeclaration(Player declarer, bool success, 
 
 void MatchCoordinator::handleBreakOff()
 {
+    if (m_gameOver.isOver) return;
+    captureInterruptedGame();
+    // 時計の精算時に時間切れが確定した場合、中断に上書きしない。
+    if (m_gameOver.isOver) return;
     ensureEngineManager();
     m_engineManager->disconnectArbiterSignals();
 
     ensureGameEndHandler();
     m_gameEndHandler->handleBreakOff();
+    if (m_interruptedGame) emit gameInterrupted();
 }
 
 void MatchCoordinator::appendGameOverLineAndMark(Cause cause, Player loser)
@@ -386,6 +391,8 @@ void MatchCoordinator::markGameOverMoveAppended()
 
 void MatchCoordinator::configureAndStart(const StartOptions& opt)
 {
+    discardInterruptedGame();
+    m_lastStartOptions = opt;
     ensureGameStartOrchestrator();
     m_gameStartOrchestrator->configureAndStart(opt);
 }

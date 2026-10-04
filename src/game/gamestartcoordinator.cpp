@@ -408,3 +408,16 @@ void GameStartCoordinator::setViewHooks(const ViewHooks& hooks)
 {
     m_viewHooks = hooks;
 }
+
+bool GameStartCoordinator::resumeInterruptedGame()
+{
+    if (!m_match || !m_match->interruptedGame()) return false;
+    const auto opt = m_match->interruptedGame()->options;
+    const int ply = static_cast<int>(m_match->interruptedGame()->sfens.size() - 1);
+    if (!m_match->resumeInterruptedGame()) return false;
+    emit started(opt);
+    emit requestSelectKifuRow(ply);
+    if (m_match->clock()) m_match->clock()->startClock();
+    m_match->startInitialEngineMoveIfNeeded();
+    return true;
+}

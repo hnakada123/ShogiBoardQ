@@ -45,7 +45,8 @@ void EngineVsEngineStrategy::start()
     // EvE 用の内部棋譜コンテナを初期化
     m_eveSfenRecord.clear();
     m_eveGameMoves.clear();
-    m_eveMoveIndex = 0;
+    m_eveMoveIndex = m_opt.resumeFromBreakOff && m_ctx.sfenHistory()
+        ? static_cast<int>(m_ctx.sfenHistory()->size() - 1) : 0;
 
     // EvE対局で初手からタイマーを動作させるため、ここで時計を開始する
     if (m_ctx.clock()) {
@@ -63,7 +64,7 @@ void EngineVsEngineStrategy::start()
                              ? MatchCoordinator::P2 : MatchCoordinator::P1);
     m_ctx.updateTurnDisplay(m_ctx.currentTurn());
 
-    initPositionStringsForEvE(m_opt.sfenStart);
+    if (!m_opt.resumeFromBreakOff) initPositionStringsForEvE(m_opt.sfenStart);
 
     connect(m_ctx.usi1(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
     connect(m_ctx.usi2(), &Usi::engineInitialized, this, &EngineVsEngineStrategy::kickNextEvETurn, Qt::UniqueConnection);
@@ -196,10 +197,10 @@ void EngineVsEngineStrategy::onEngineMoveReady(QPoint from, QPoint to,
     if (m_ctx.clock()) {
         const qint64 thinkMs = mover ? mover->lastBestmoveElapsedMs() : 0;
         if (p1ToMove) {
-            m_ctx.clock()->setPlayer1ConsiderationTime(static_cast<int>(thinkMs));
+            m_ctx.clock()->setMeasuredConsiderationTime(1, thinkMs);
             m_ctx.clock()->applyByoyomiAndResetConsideration1();
         } else {
-            m_ctx.clock()->setPlayer2ConsiderationTime(static_cast<int>(thinkMs));
+            m_ctx.clock()->setMeasuredConsiderationTime(2, thinkMs);
             m_ctx.clock()->applyByoyomiAndResetConsideration2();
         }
     }

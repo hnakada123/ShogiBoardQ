@@ -773,3 +773,5 @@ void UsiProtocolHandler::onInitializationTimeout() {}
 
 void Usi::onProtocolError(const QString&) {}
 void Usi::onProcessExited() {}
+
+bool MatchCoordinator::resumeInterruptedGame() { return false; }

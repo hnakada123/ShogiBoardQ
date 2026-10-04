@@ -466,3 +466,10 @@ QStringList KifuBranchTree::sfenListForLine(int lineIndex) const
 
     return result;
 }
+
+bool KifuBranchTree::removeLeaf(KifuBranchNode* node)
+{
+    if (!removeLeafQuiet(node)) return false;
+    notifyTreeChanged();
+    return true;
+}

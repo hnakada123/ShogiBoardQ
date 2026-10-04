@@ -17,6 +17,7 @@ class KifuBranchTree;
 class KifuLoadCoordinator;
 class KifuNavigationState;
 class KifuRecordListModel;
+class LiveGameSession;
 class ReplayController;
 class ShogiGameController;
 
@@ -57,6 +58,9 @@ public:
         // === Branch navigation ===
         KifuBranchTree* branchTree = nullptr;
         KifuNavigationState* navState = nullptr;
+        LiveGameSession* liveSession = nullptr;
+        std::function<void(bool)> setResumeAvailable;
+        std::function<void(int)> prepareResumeUi;
 
         std::function<bool()> confirmDiscardUnsavedKifu;
 
@@ -74,6 +78,9 @@ public slots:
     void initializeGame();
     void handleResignation();
     void handleBreakOffGame();
+    void handleResumeGame();
+    void onGameInterrupted();
+    void discardInterruptedGame();
     void movePieceImmediately();
     void stopTsumeSearch();
     void openWebsiteInExternalBrowser();
@@ -81,6 +88,7 @@ public slots:
 
 private:
     Deps m_deps;
+    int m_interruptedNodeId = -1;
 };
 
 #endif // GAMESESSIONORCHESTRATOR_H
