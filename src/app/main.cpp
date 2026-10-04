@@ -2,23 +2,16 @@
 /// @brief アプリケーションエントリーポイントの実装
 
 #include "mainwindow.h"
-#include "logcategories.h"
 #include "appsettings.h"
-#include "kifupresentation.h"
 #include "applicationfonts.h"
 #include "applicationlogging.h"
+#include "applicationtranslations.h"
 #include "settingsresetcontroller.h"
 
 #include <QApplication>
 #include <QCommandLineParser>
-#include <QLocale>
-#include <QLibraryInfo>
-#include <QTranslator>
 #include <QStyleFactory>
-#include <QGuiApplication>
-#include <QToolTip>
 #include <QIcon>
-#include <QStandardPaths>
 
 static QIcon applicationIcon()
 {
@@ -32,6 +25,29 @@ static QIcon applicationIcon()
 #else
     return QIcon(":/icons/shogiboardq.png");
 #endif
+}
+
+// 翻訳の初期化後、ウィジェットの生成前に共通の外観を設定する。
+static void configureApplicationAppearance(QApplication& app, const QString& language)
+{
+    // Creatorのような「Fusion」スタイルに統一する。
+    app.setStyle(QStyleFactory::create("Fusion"));
+    ApplicationFonts::initialize(AppSettings::uiFontFamily(), language);
+
+    // QDialogButtonBox のデフォルトスタイル（全ダイアログ共通）
+    app.setStyleSheet(QStringLiteral(
+        "QDialogButtonBox QPushButton {"
+        "  background-color: #e0e0e0; border: 1px solid #bdbdbd;"
+        "  border-radius: 3px; padding: 4px 12px; min-width: 70px;"
+        "}"
+        "QDialogButtonBox QPushButton:hover { background-color: #d0d0d0; }"
+        "QDialogButtonBox QPushButton:pressed { background-color: #bdbdbd; }"
+        "QDialogButtonBox QPushButton:default {"
+        "  background-color: #1976d2; color: white; border: 1px solid #1565c0;"
+        "}"
+        "QDialogButtonBox QPushButton:default:hover { background-color: #1e88e5; }"
+        "QDialogButtonBox QPushButton:default:pressed { background-color: #1565c0; }"
+    ));
 }
 
 int main(int argc, char *argv[])
@@ -66,40 +82,10 @@ int main(int argc, char *argv[])
     // アプリケーションアイコンを設定
     a.setWindowIcon(applicationIcon());
 
-    // 言語設定を読み込み、適切な翻訳ファイルをロード
-    QTranslator translator;
-    const QStringList systemLanguages = QLocale::system().uiLanguages();
-    const QString language = KifuPresentation::resolveLanguage(AppSettings::language(),
-        systemLanguages.isEmpty() ? QLocale::system().name() : systemLanguages.first());
-    QTranslator qtTranslator;
-    const QString qtLanguage = language == QStringLiteral("ja_JP") ? QStringLiteral("ja") : language;
-    if (qtTranslator.load(QStringLiteral(":/translations/qt/qtbase_") + qtLanguage + QStringLiteral(".qm"))
-        || qtTranslator.load(QStringLiteral("qtbase_") + qtLanguage, QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
-        a.installTranslator(&qtTranslator);
-    if (translator.load(QCoreApplication::applicationDirPath() + "/ShogiBoardQ_" + language + ".qm"))
-        a.installTranslator(&translator);
-    else
-        qCWarning(lcApp) << "Translation file not found:" << language;
-    KifuPresentation::configure(language, AppSettings::moveNotation(), AppSettings::notationOrigin());
+    // 終了時の設定初期化メッセージも翻訳できるよう、このスコープで保持する。
+    const ApplicationTranslations translations;
 
-    // Creatorのような「Fusion」スタイルに統一する。
-    a.setStyle(QStyleFactory::create("Fusion"));
-    ApplicationFonts::initialize(AppSettings::uiFontFamily(), language);
-
-    // QDialogButtonBox のデフォルトスタイル（全ダイアログ共通）
-    a.setStyleSheet(QStringLiteral(
-        "QDialogButtonBox QPushButton {"
-        "  background-color: #e0e0e0; border: 1px solid #bdbdbd;"
-        "  border-radius: 3px; padding: 4px 12px; min-width: 70px;"
-        "}"
-        "QDialogButtonBox QPushButton:hover { background-color: #d0d0d0; }"
-        "QDialogButtonBox QPushButton:pressed { background-color: #bdbdbd; }"
-        "QDialogButtonBox QPushButton:default {"
-        "  background-color: #1976d2; color: white; border: 1px solid #1565c0;"
-        "}"
-        "QDialogButtonBox QPushButton:default:hover { background-color: #1e88e5; }"
-        "QDialogButtonBox QPushButton:default:pressed { background-color: #1565c0; }"
-    ));
+    configureApplicationAppearance(a, translations.language());
 
     int result;
     {

@@ -208,6 +208,8 @@ set(UI_FILES
 set(SRC_APP
     src/app/applicationlogging.cpp
     src/app/applicationlogging.h
+    src/app/applicationtranslations.cpp
+    src/app/applicationtranslations.h
     src/app/commentcoordinator.cpp
     src/app/commentcoordinator.h
     src/app/dockcreationservice.cpp
