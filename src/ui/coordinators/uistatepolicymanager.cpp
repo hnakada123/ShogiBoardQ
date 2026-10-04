@@ -7,6 +7,7 @@
 #include "recordpane.h"
 #include "engineanalysistab.h"
 #include "boardinteractioncontroller.h"
+#include "playmode.h"
 
 #include <QAction>
 #include "logcategories.h"
@@ -117,12 +118,12 @@ void UiStatePolicyManager::buildPolicyTable()
         set(S::Idle, elem, P::Enabled);
     }
 
-    // 投了: 対局中/CSA中のみ有効
+    // 投了: 対局中/CSA中のみ有効（ローカル対局の人間参加条件は effectivePolicy で判定）
     setAll(E::GameResign, P::Disabled);
     set(S::DuringGame,    E::GameResign, P::Enabled);
     set(S::DuringCsaGame, E::GameResign, P::Enabled);
 
-    // 待った: 対局中のみ有効
+    // 待った: 対局中のみ有効（人間の参加条件は effectivePolicy で判定）
     setAll(E::GameUndo, P::Disabled);
     set(S::DuringGame, E::GameUndo, P::Enabled);
 
@@ -207,14 +208,29 @@ void UiStatePolicyManager::buildPolicyTable()
 // 状態適用
 // ======================================================================
 
+UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement element) const
+{
+    if (element == UiElement::GameUndo
+        || (element == UiElement::GameResign && m_currentState == AppState::DuringGame)) {
+        const auto mode = m_deps.getPlayMode ? m_deps.getPlayMode() : PlayMode::NotStarted;
+        switch (mode) {
+        case PlayMode::HumanVsHuman:
+        case PlayMode::EvenHumanVsEngine:
+        case PlayMode::EvenEngineVsHuman:
+        case PlayMode::HandicapHumanVsEngine:
+        case PlayMode::HandicapEngineVsHuman:
+            break;
+        default:
+            return Policy::Disabled;
+        }
+    }
+    return m_policyTable.value(m_currentState).value(element, Policy::Enabled);
+}
+
 bool UiStatePolicyManager::isEnabled(UiElement element) const
 {
-    const auto& policies = m_policyTable.value(m_currentState);
-    const auto it = policies.find(element);
-    if (it != policies.end()) {
-        return it.value() == Policy::Enabled || it.value() == Policy::Shown;
-    }
-    return true;
+    const auto policy = effectivePolicy(element);
+    return policy == Policy::Enabled || policy == Policy::Shown;
 }
 
 void UiStatePolicyManager::applyState(AppState state)
@@ -227,7 +243,7 @@ void UiStatePolicyManager::applyState(AppState state)
 
     const auto& policies = m_policyTable.value(state);
     for (auto it = policies.constBegin(); it != policies.constEnd(); ++it) {
-        applyPolicy(it.key(), it.value());
+        applyPolicy(it.key(), effectivePolicy(it.key()));
     }
 
     Q_EMIT stateChanged(state);

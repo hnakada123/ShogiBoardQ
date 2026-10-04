@@ -6,7 +6,9 @@
 
 #include <QObject>
 #include <QHash>
+#include <functional>
 
+enum class PlayMode;
 class QAction;
 class RecordPane;
 class EngineAnalysisTab;
@@ -103,6 +105,7 @@ public:
         RecordPane* recordPane = nullptr;
         EngineAnalysisTab* analysisTab = nullptr;
         BoardInteractionController* boardController = nullptr;
+        std::function<PlayMode()> getPlayMode;
     };
 
     explicit UiStatePolicyManager(QObject* parent = nullptr);
@@ -139,6 +142,9 @@ signals:
 private:
     /// ポリシーテーブルを構築する
     void buildPolicyTable();
+
+    /// 対局モードによる制約を反映した現在のポリシーを返す
+    Policy effectivePolicy(UiElement element) const;
 
     /// 個別のUI要素にポリシーを適用する
     void applyPolicy(UiElement element, Policy policy);
