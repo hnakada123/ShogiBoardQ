@@ -212,8 +212,9 @@ void GameEndHandler::handleBreakOff()
 
     appendBreakOffLineAndMark();
 
-    if (u1) u1->sendQuitCommand();
-    if (u2) u2->sendQuitCommand();
+    // quitに応答しない場合もterminate/killまで進める。中断後の思考表示は保持する。
+    if (u1) u1->cleanupEngineProcessAndThread(false);
+    if (u2) u2->cleanupEngineProcessAndThread(false);
 }
 
 // --- 持将棋 ---

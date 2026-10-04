@@ -57,7 +57,7 @@ private:
     qint64 m_searchTime = 0;
     bool m_forcedMove = false;
     bool m_cancelClose = false;
-    qint64 m_resignTime = 0;
+    qint64 m_gameEndTime = 0;
 
     void trigger(const char* name)
     {
@@ -150,7 +150,7 @@ private slots:
             return;
         }
         if (m_stage == 5) {
-            if (m_elapsed.elapsed() - m_resignTime >= 1500) {
+            if (m_elapsed.elapsed() - m_gameEndTime >= 1500) {
                 m_stage = 4;
                 closeWindow();
             }
@@ -186,6 +186,12 @@ private slots:
         if (m_scenario.startsWith("break-") && m_stage == 1) {
             m_stage = m_scenario == "break-restart-close" ? 2 : 4;
             trigger("actionBreakOffGame");
+            if (m_scenario.contains("wait-")) {
+                m_gameEndTime = m_elapsed.elapsed();
+                qInfo() << "GAME_END_COMPLETE";
+                m_stage = 5;
+                return;
+            }
             if (m_stage == 4) closeWindow();
             return;
         }
@@ -195,8 +201,8 @@ private slots:
             m_window.findChild<QAction*>("actionResign")->setEnabled(true);
             trigger("actionResign");
             if (m_scenario.contains("wait-")) {
-                m_resignTime = m_elapsed.elapsed();
-                qInfo() << "RESIGN_COMPLETE";
+                m_gameEndTime = m_elapsed.elapsed();
+                qInfo() << "GAME_END_COMPLETE";
                 m_stage = 5;
                 return;
             }

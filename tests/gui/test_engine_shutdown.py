@@ -37,8 +37,8 @@ def run(args, mode, scenario, iteration):
     samples = {}
     started = time.monotonic()
     timeout = False
-    resign_time = None
-    post_resign = []
+    game_end_time = None
+    post_game_end = []
     with (args.output / f"{label}.log").open("w") as log:
         proc = subprocess.Popen([str(args.harness.resolve())], env=env,
                                 stdout=log, stderr=log, start_new_session=True)
@@ -55,12 +55,12 @@ def run(args, mode, scenario, iteration):
                         samples[pid] = dict(info, exe=info["exe"] or known[pid]["exe"])
                     pending.extend(children(pid))
                 if "wait-" in scenario:
-                    if resign_time is None and "RESIGN_COMPLETE" in (args.output / f"{label}.log").read_text():
-                        resign_time = time.monotonic()
-                    if resign_time is not None and len(post_resign) < 2:
-                        delay = time.monotonic() - resign_time
-                        if delay >= (0.2 if not post_resign else 1.2):
-                            post_resign.append({"seconds": round(delay, 3), "processes": [
+                    if game_end_time is None and "GAME_END_COMPLETE" in (args.output / f"{label}.log").read_text():
+                        game_end_time = time.monotonic()
+                    if game_end_time is not None and len(post_game_end) < 2:
+                        delay = time.monotonic() - game_end_time
+                        if delay >= (0.2 if not post_game_end else 1.2):
+                            post_game_end.append({"seconds": round(delay, 3), "processes": [
                                 info for pid in known if (info := proc_info(pid)) and info["state"] != "Z"]})
                 if time.monotonic() - started > 40:
                     timeout = True
@@ -74,7 +74,7 @@ def run(args, mode, scenario, iteration):
             result = {"case": label, "returncode": proc.poll(), "timeout": timeout,
                       "seconds": round(exit_time, 3), "processes": list(samples.values()),
                       "alive_at_exit": at_exit, "alive_after_500ms": remaining,
-                      "post_resign": post_resign}
+                      "post_game_end": post_game_end}
         finally:
             # 正常終了の観測を終えてから、異常時だけ今回のプロセス群を回収する。
             try:
@@ -95,10 +95,10 @@ def run(args, mode, scenario, iteration):
                         pass
     log_text = (args.output / f"{label}.log").read_text()
     result["closed"] = "CLOSE_REQUEST" in log_text and "MAIN_WINDOW_DESTROYED" in log_text
-    result["post_resign_reaped"] = ("wait-" not in scenario
-        or (len(post_resign) == 2 and not post_resign[-1]["processes"]))
+    result["post_game_end_reaped"] = ("wait-" not in scenario
+        or (len(post_game_end) == 2 and not post_game_end[-1]["processes"]))
     result["passed"] = (result["returncode"] == 0 and result["closed"]
-                        and not remaining and bool(known) and result["post_resign_reaped"])
+                        and not remaining and bool(known) and result["post_game_end_reaped"])
     print(json.dumps(result, ensure_ascii=False), flush=True)
     return result
 
