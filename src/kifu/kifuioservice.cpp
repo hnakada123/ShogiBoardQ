@@ -73,6 +73,25 @@ QString KifuIoService::makeDefaultSaveFileName(PlayMode mode,
     }
 }
 
+QString KifuIoService::charactersNotInShiftJis(const QString& text, int maxCount)
+{
+    if (ShiftJisCodec::encode(text)) return QString();
+
+    // 失敗したときだけ、文字（サロゲートペアは1文字として）ごとに確かめる。
+    QString result;
+    QStringList seen;
+    for (qsizetype i = 0; i < text.size() && seen.size() < maxCount; ++i) {
+        const qsizetype length = (text.at(i).isHighSurrogate() && i + 1 < text.size()
+                                  && text.at(i + 1).isLowSurrogate()) ? 2 : 1;
+        const QString ch = text.mid(i, length);
+        i += length - 1;
+        if (seen.contains(ch) || ShiftJisCodec::encode(ch)) continue;
+        seen.append(ch);
+        result += ch;
+    }
+    return result;
+}
+
 bool KifuIoService::writeKifuFile(const QString& filePath,
                                   const QStringList& kifuLines,
                                   QString* errorText,

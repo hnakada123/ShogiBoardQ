@@ -21,6 +21,9 @@ QString makeDefaultSaveFileName(PlayMode mode,
                                 const QDateTime& now,
                                 const QString& extension = QStringLiteral("kifu"));
 
+/// Shift_JIS で表せない文字を、出現順・重複なしで最大 maxCount 個連結して返す。すべて表せる場合は空文字。
+QString charactersNotInShiftJis(const QString& text, int maxCount = 10);
+
 [[nodiscard]] bool writeKifuFile(const QString& filePath,
                    const QStringList& kifuLines,
                    QString* errorText,

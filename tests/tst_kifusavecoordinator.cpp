@@ -12,6 +12,7 @@
 #include <QTimer>
 
 #include "kifusavecoordinator.h"
+#include "kifuioservice.h"
 
 using KifuSaveCoordinator::SaveFormat;
 
@@ -213,8 +214,83 @@ private slots:
         file.close();
         QString error;
         QVERIFY(!KifuSaveCoordinator::overwriteExisting(path, {QString::fromUtf8("棋譜😀")}, &error));
-        QVERIFY(!error.isEmpty());
+        // ダイアログを出さない呼び出し（自動化 API・CLI）は、保存できない文字を示してエラーにする
+        QVERIFY(error.contains(QString::fromUtf8("😀")));
         QCOMPARE(readAllBytes(path), original);
+    }
+
+    void charactersNotInShiftJis()
+    {
+        QCOMPARE(KifuIoService::charactersNotInShiftJis(QString::fromUtf8("先手：鈴木\n▲７六歩")), QString());
+        // 中国語UIの既定の対局者名「您」と絵文字（サロゲートペア）を、重複なく出現順に返す
+        QCOMPARE(KifuIoService::charactersNotInShiftJis(QString::fromUtf8("先手：您\n後手：您😀X😀")),
+                 QString::fromUtf8("您😀"));
+        QCOMPARE(KifuIoService::charactersNotInShiftJis(QString::fromUtf8("您😀"), 1), QString::fromUtf8("您"));
+    }
+
+    void shiftJisFallback_data()
+    {
+        QTest::addColumn<QMessageBox::StandardButton>("answer");
+        QTest::newRow("save-as-utf8") << QMessageBox::Save;
+        QTest::newRow("cancel") << QMessageBox::Cancel;
+    }
+
+    /// 画面からの保存では、Shift_JIS で表せない文字があれば UTF-8 で保存するか確認する
+    void shiftJisFallback()
+    {
+        QFETCH(QMessageBox::StandardButton, answer);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(QStringLiteral("game.kif"));
+        const QByteArray original("original record\n");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        QCOMPARE(file.write(original), original.size());
+        file.close();
+
+        const QStringList lines{QStringLiteral("#KIF version=2.0 encoding=UTF-8"),
+                                QString::fromUtf8("先手：您"),
+                                QString::fromUtf8("   1 ７六歩(77)   ( 0:01/00:00:01)")};
+        QWidget parent;
+        SaveDialogResponder responder;
+        responder.answer = answer;
+        QString messageText;
+        QTimer::singleShot(0, &responder, [&]() {
+            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) messageText = box->text();
+            responder.respond();
+        });
+        QString error;
+        const bool ok = KifuSaveCoordinator::overwriteExisting(path, lines, &error, &parent);
+        QVERIFY(messageText.contains(QString::fromUtf8("您")));
+        QVERIFY2(error.isEmpty(), qPrintable(error));  // キャンセルはエラーとして通知しない
+        if (answer == QMessageBox::Save) {
+            QVERIFY(ok);
+            // UTF-8 で保存し、先頭行の encoding 宣言も UTF-8 のまま
+            QCOMPARE(readAllTextNormalized(path), lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
+        } else {
+            QVERIFY(!ok);
+            QCOMPARE(readAllBytes(path), original);
+        }
+    }
+
+    /// Shift_JIS で表せる内容なら確認を出さずに Shift_JIS で保存する
+    void shiftJisRepresentableDoesNotAsk()
+    {
+        QTemporaryDir dir;
+        const QString path = dir.filePath(QStringLiteral("game.kif"));
+        QWidget parent;
+        bool asked = false;
+        QTimer::singleShot(0, &parent, [&]() {
+            if (auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget())) {
+                asked = true;
+                box->reject();
+            }
+        });
+        QString error;
+        QVERIFY(KifuSaveCoordinator::overwriteExisting(
+            path, {QStringLiteral("#KIF version=2.0 encoding=UTF-8"), QString::fromUtf8("先手：鈴木")}, &error, &parent));
+        QVERIFY(!asked);
+        QVERIFY(readAllBytes(path).startsWith("#KIF version=2.0 encoding=Shift_JIS"));
     }
 
     void writeFailureHasError()

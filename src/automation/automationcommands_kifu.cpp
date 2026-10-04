@@ -101,8 +101,14 @@ void AutomationCommands::registerKifuCommands(AutomationDispatcher& dispatcher, 
             throw AutomationError(AutomationErrorCode::FileError, QStringLiteral("Directory does not exist: %1").arg(info.dir().path()));
         }
         KifuFileController* controller = requireFileController(context);
-        if (!controller->saveKifuToPath(path)) {
-            throw AutomationError(AutomationErrorCode::FileError, QStringLiteral("Saving failed: %1").arg(path));
+        QString error;
+        if (!controller->saveKifuToPath(path, &error)) {
+            const QString message = error.isEmpty() ? QStringLiteral("Saving failed: %1").arg(path)
+                                                    : QStringLiteral("Saving failed: %1: %2").arg(path, error);
+            throw AutomationError(AutomationErrorCode::FileError, message,
+                                  KifuSaveCoordinator::usesShiftJisForPath(path)
+                                      ? QStringLiteral("Use a .kifu or .ki2u path to save as UTF-8")
+                                      : QString());
         }
         QJsonObject result;
         result[QStringLiteral("path")] = path;

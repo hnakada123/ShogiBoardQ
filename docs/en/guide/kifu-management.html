@@ -202,6 +202,7 @@ PI
 </tbody>
 </table>
 <p class="guide-step-text">KIF, KI2, JKF, and USEN can save variations. CSA and USI save only the main line; KI2 does not save time spent. USI and USEN omit player names, comments, and time spent, and USEN supports only a limited set of game results. Converting CSA times to KIF or JKF discards fractions of a second.</p>
+<p class="guide-step-text">When saving to .kif or .ki2 (Shift_JIS), if player names or comments contain characters that Shift_JIS cannot represent (such as some Simplified or Traditional Chinese characters or emoji), ShogiBoardQ shows those characters and asks whether to save as UTF-8. A file saved as UTF-8 records "encoding=UTF-8" on its first line. To always save as UTF-8, choose .kifu or .ki2u.</p>
 <p class="guide-step-text">For CSA files containing multiple games separated by a line with “/”, only the first game is loaded.</p>
 <p class="guide-step-text">Trailing game-result tokens in USI records are extensions for saving records. They are not part of the USI “position” command used to communicate with engines.</p>
 <p class="guide-step-text">Format references: <a href="https://kakinoki.o.oo7.jp/kif_format.html">KIF</a>, <a href="https://www.shogi.or.jp/faq/kihuhyouki/">move notation used in KI2</a>, <a href="https://www.computer-shogi.org/protocol/record_v3.html">CSA V3.0</a>, <a href="https://github.com/na2hiro/json-kifu-format">JKF</a>, <a href="https://shogidokoro2.stars.ne.jp/usi.html">USI and SFEN</a>, and <a href="https://github.com/mogproject/mog-playground/wiki/USEN-Format">USEN</a>.</p>

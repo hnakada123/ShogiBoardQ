@@ -46,10 +46,42 @@ QStringList withShiftJisHeader(const QStringList& lines)
     return result;
 }
 
-/// 拡張子に応じたエンコーディングで行リストを書き込む
-bool writeLinesForPath(const QString& path, const QStringList& lines, QString* outError)
+/// Shift_JIS で表せない文字があるとき、UTF-8 で保存するか確認する。保存するなら true
+bool confirmUtf8Fallback(QWidget* parent, const QString& characters)
 {
-    const bool shiftJis = usesShiftJisForPath(path);
+    QMessageBox box(
+        QMessageBox::Warning, QObject::tr("Shift_JISで保存できない文字"),
+        QObject::tr("次の文字はShift_JISで保存できません：%1\n\n"
+                    "UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を記録します。").arg(characters),
+        QMessageBox::Save | QMessageBox::Cancel,
+        parent);
+    box.button(QMessageBox::Save)->setText(QObject::tr("UTF-8で保存"));
+    box.button(QMessageBox::Cancel)->setText(QObject::tr("キャンセル"));
+    box.setDefaultButton(QMessageBox::Save);
+    box.setEscapeButton(QMessageBox::Cancel);
+    return box.exec() == QMessageBox::Save;
+}
+
+/// 拡張子に応じたエンコーディングで行リストを書き込む。
+/// .kif/.ki2 に Shift_JIS で表せない文字があれば、parent があれば UTF-8 で保存するか確認し、
+/// parent が無ければ（自動化 API・CLI）エラーにする。確認でキャンセルした場合は outError を空のまま false。
+bool writeLinesForPath(const QString& path, const QStringList& lines, QString* outError, QWidget* parent)
+{
+    bool shiftJis = usesShiftJisForPath(path);
+    if (shiftJis) {
+        const QString missing = KifuIoService::charactersNotInShiftJis(lines.join(QLatin1Char('\n')));
+        if (!missing.isEmpty()) {
+            if (parent == nullptr) {
+                if (outError) {
+                    *outError = QObject::tr("次の文字はShift_JISで保存できません：%1。"
+                                            "UTF-8の形式（.kifu・.ki2u）で保存してください。").arg(missing);
+                }
+                return false;
+            }
+            if (!confirmUtf8Fallback(parent, missing)) return false;
+            shiftJis = false;  // 先頭行の encoding=UTF-8 宣言はそのまま残す
+        }
+    }
     QString err;
     const bool ok = KifuIoService::writeKifuFile(
         path, shiftJis ? withShiftJisHeader(lines) : lines, &err, shiftJis);
@@ -177,7 +209,7 @@ QString saveViaDialog(QWidget* parent,
     }
 
     const QStringList lines = generateLines(format);
-    if (!writeLinesForPath(path, lines, outError)) return QString();
+    if (!writeLinesForPath(path, lines, outError, parent)) return QString();
     return path;
 }
 
@@ -201,9 +233,11 @@ bool confirmDiscardUnsaved(QWidget* parent, bool isDirty, const std::function<bo
 
 bool overwriteExisting(const QString& path,
                        const QStringList& lines,
-                       QString* outError)
+                       QString* outError,
+                       QWidget* parent)
 {
-    return writeLinesForPath(path, lines, outError);
+    if (outError) outError->clear();
+    return writeLinesForPath(path, lines, outError, parent);
 }
 
 } // namespace KifuSaveCoordinator
