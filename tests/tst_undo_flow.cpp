@@ -192,13 +192,14 @@ private slots:
         h.mode = humanBlack ? PlayMode::EvenHumanVsEngine : PlayMode::EvenEngineVsHuman;
         for (int i = 0; i < count; ++i) QVERIFY(h.play(opening.at(i)));
         const QString targetSfen = h.sfens.at(count - 2);
-        const int removedId = h.session.liveNode()->nodeId();
+        const int undoneId = h.session.liveNode()->nodeId();
         h.flow.undoLastTwoMoves();
         verifyPosition(h, count - 2);
         QCOMPARE(h.sfens.last(), targetSfen);
-        QCOMPARE(h.tree.nodeCount(), count - 1);
-        QCOMPARE(h.tree.displayItemsForLine(0).size(), count - 1);
-        QVERIFY(h.tree.nodeAt(removedId) == nullptr);
+        // 取り消した手はツリーに残し、棋譜欄は現在手までを表示する。
+        QCOMPARE(h.tree.nodeCount(), count + 1);
+        QCOMPARE(h.tree.displayItemsForLine(0).size(), count + 1);
+        QVERIFY(h.tree.nodeAt(undoneId) != nullptr);
         QCOMPARE(h.moves.size(), count - 2);
         QCOMPARE(h.usiMoves, opening.mid(0, count - 2));
         QCOMPARE(h.presenter.liveDisp().size(), count - 2);
@@ -212,6 +213,8 @@ private slots:
         QVERIFY(h.play(opening.at(count - 2)));
         QVERIFY(h.play(opening.at(count - 1)));
         verifyPosition(h, count);
+        // 同じ手を指し直すと取り消した手のノードを再利用し、分岐は増えない。
+        QCOMPARE(h.session.liveNode()->nodeId(), undoneId);
         QCOMPARE(h.tree.nodeCount(), count + 1);
         QCOMPARE(h.tree.lineCount(), 1);
         // 同じ局面へ戻るので、駒取り・駒打ちを含めて全盤面と持ち駒が一致する。
@@ -229,11 +232,89 @@ private slots:
         h.dirty = false;
         h.flow.undoLastTwoMoves();
         verifyPosition(h, 0);
-        QCOMPARE(h.tree.nodeCount(), 1);
+        QCOMPARE(h.tree.nodeCount(), opening.size() + 1);
         QVERIFY(!h.dirty);
         QVERIFY(h.play(QStringLiteral("2g2f")));
         QVERIFY(h.play(QStringLiteral("8c8d")));
         verifyPosition(h, 2);
+        // 指し直した手順が本譜、取り消した手順が分岐になる。
+        QCOMPARE(h.tree.lineCount(), 2);
+        QCOMPARE(h.tree.mainLine().size(), 3);
+        QCOMPARE(h.tree.mainLine().last(), h.session.liveNode());
+        QCOMPARE(h.tree.root()->childAt(1)->displayText(), h.tree.displayItemsForLine(1).at(1).prettyMove);
+        QCOMPARE(h.tree.displayItemsForLine(1).size(), opening.size() + 1);
+    }
+
+    void undoThenDifferentMoveKeepsUndoneLineAsVariation()
+    {
+        Harness h;
+        for (int i = 0; i < 6; ++i) QVERIFY(h.play(opening.at(i)));
+        KifuBranchNode* undoneHead = h.session.liveNode()->parent();
+        const QString undoneText = undoneHead->displayText();
+        h.flow.undoLastTwoMoves();
+        verifyPosition(h, 4);
+        QCOMPARE(h.tree.lineCount(), 1);
+        QVERIFY(h.play(QStringLiteral("6g6f")));
+        QVERIFY(h.play(QStringLiteral("8c8d")));
+        verifyPosition(h, 6);
+
+        // 実際に指した手順が本譜（先頭の子）、待ったで取り消した手順が分岐として残る。
+        QCOMPARE(h.tree.lineCount(), 2);
+        QCOMPARE(h.tree.nodeCount(), 9);
+        QCOMPARE(h.tree.mainLine().last(), h.session.liveNode());
+        KifuBranchNode* branchPoint = h.tree.findByPlyOnMainLine(4);
+        QCOMPARE(branchPoint->childCount(), 2);
+        QCOMPARE(branchPoint->childAt(1), undoneHead);
+        QCOMPARE(h.tree.displayItemsForLine(1).at(5).prettyMove, undoneText);
+        QCOMPARE(h.tree.displayItemsForLine(1).size(), 7);
+        QCOMPARE(h.record.rowCount(), 7);
+        // 分岐のある手は棋譜欄で「+」付きになる。
+        QVERIFY(h.record.data(h.record.index(5, 0)).toString().endsWith(QLatin1Char('+')));
+
+        // 対局終了後も実際の手順が本譜のまま確定する。
+        KifuBranchNode* end = h.session.commit();
+        QCOMPARE(end, h.tree.mainLine().last());
+        QCOMPARE(h.tree.mainLine().size(), 7);
+    }
+
+    void replayingUndoneLineRestoresItAsMainLine()
+    {
+        Harness h;
+        for (int i = 0; i < 4; ++i) QVERIFY(h.play(opening.at(i)));
+        KifuBranchNode* firstHead = h.session.liveNode()->parent();
+        h.flow.undoLastTwoMoves();
+        QVERIFY(h.play(QStringLiteral("6g6f")));
+        QVERIFY(h.play(QStringLiteral("8c8d")));
+        KifuBranchNode* secondHead = h.session.liveNode()->parent();
+        KifuBranchNode* branchPoint = h.tree.findByPlyOnMainLine(2);
+        QCOMPARE(branchPoint->childAt(0), secondHead);
+        QCOMPARE(branchPoint->childAt(1), firstHead);
+
+        // 最初の手順に戻ると、その手順が再び本譜になる。
+        h.flow.undoLastTwoMoves();
+        QVERIFY(h.play(opening.at(2)));
+        QVERIFY(h.play(opening.at(3)));
+        verifyPosition(h, 4);
+        QCOMPARE(h.tree.nodeCount(), 7);
+        QCOMPARE(h.tree.lineCount(), 2);
+        QCOMPARE(branchPoint->childAt(0), firstHead);
+        QCOMPARE(branchPoint->childAt(1), secondHead);
+        QCOMPARE(h.tree.mainLine().last(), h.session.liveNode());
+    }
+
+    void terminalAfterUndoBecomesMainLine()
+    {
+        Harness h;
+        for (int i = 0; i < 4; ++i) QVERIFY(h.play(opening.at(i)));
+        KifuBranchNode* undoneHead = h.session.liveNode()->parent();
+        h.flow.undoLastTwoMoves();
+        // 待ったの直後に投了しても、投了で終わる手順が本譜になる。
+        h.updater.appendMove(ShogiMove(), QStringLiteral("▲投了"), QStringLiteral("00:01/00:00:01"));
+        KifuBranchNode* end = h.session.commit();
+        QVERIFY(end != nullptr && end->isTerminal());
+        QCOMPARE(h.tree.mainLine().last(), end);
+        QCOMPARE(h.tree.findByPlyOnMainLine(2)->childAt(1), undoneHead);
+        QCOMPARE(h.tree.lineCount(), 2);
     }
 
     void insufficientMovesAndEngineTurnDoNotChangeState()
@@ -284,14 +365,20 @@ private slots:
         const int calls = h.undoCalls;
         h.flow.undoLastTwoMoves();
         QCOMPARE(h.undoCalls, calls); // 起点より前の棋譜を取り消さない
-        // 別の手を指し直し、分岐だけを取り消す。
+        // 別の手を指し直すと以前の棋譜の分岐になり、取り消しても分岐として残る。
         QVERIFY(h.play(QStringLiteral("6g6f")));
         QVERIFY(h.play(QStringLiteral("8c8d")));
         QCOMPARE(h.tree.lineCount(), 2);
         h.flow.undoLastTwoMoves();
         verifyPosition(h, 2);
-        QCOMPARE(h.tree.lineCount(), 1);
+        QCOMPARE(h.tree.lineCount(), 2);
         QCOMPARE(h.tree.mainLine().last(), originalEnd);
+        // 以前の棋譜の本譜より前には並べない。
+        QVERIFY(h.play(QStringLiteral("9g9f")));
+        QVERIFY(h.play(QStringLiteral("3c3d")));
+        QCOMPARE(h.tree.lineCount(), 3);
+        QCOMPARE(h.tree.mainLine().last(), originalEnd);
+        QCOMPARE(anchor->childAt(1), h.session.liveNode()->parent());
     }
 
     void undoRestoresPreviousDestinationForSameSquareNotation()

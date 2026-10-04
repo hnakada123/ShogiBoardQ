@@ -31,7 +31,7 @@ void KifuBranchTree::clear()
     // 空の状態でシグナルを発行すると受信側で無効なポインタ参照が発生する可能性がある。
     // 呼び出し側が必要に応じてシグナルを発行する。
     m_linesCache.clear();  // メモリ解放 + ダングリングポインタ防止
-    m_linesCacheDirty = true;
+    invalidateLineCache();
     qDeleteAll(m_nodeById);
     m_nodeById.clear();
     m_root = nullptr;
@@ -60,6 +60,22 @@ bool KifuBranchTree::removeLeafQuiet(KifuBranchNode* node)
     node->parent()->removeChild(node);
     std::unique_ptr<KifuBranchNode> removed(m_nodeById.take(node->nodeId()));
     m_linesCache.clear();
+    invalidateLineCache();
+    return true;
+}
+
+bool KifuBranchTree::moveChildQuiet(KifuBranchNode* child, int index)
+{
+    if (child == nullptr || child->parent() == nullptr || nodeAt(child->nodeId()) != child) {
+        return false;
+    }
+    KifuBranchNode* parent = child->parent();
+    if (parent->children().indexOf(child) == index) {
+        return true;
+    }
+    if (!parent->moveChild(child, index)) {
+        return false;
+    }
     invalidateLineCache();
     return true;
 }
@@ -292,6 +308,7 @@ QList<BranchLine> KifuBranchTree::allLines() const
 void KifuBranchTree::invalidateLineCache()
 {
     m_linesCacheDirty = true;
+    ++m_revision;
 }
 
 void KifuBranchTree::collectLinesRecursive(KifuBranchNode* node,

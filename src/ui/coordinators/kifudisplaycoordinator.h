@@ -129,6 +129,7 @@ private:
     LiveGameSession* m_liveSession = nullptr;
     BoardSfenProvider m_boardSfenProvider;
     int m_branchTreeNodeCount = -1;   ///< 分岐ツリーに最後に反映したときのツリーのノード数
+    quint64 m_branchTreeRevision = 0; ///< 分岐ツリーに最後に反映したときの KifuBranchTree::revision()
 
     std::unique_ptr<KifuDisplayPresenter> m_presenter;
     std::unique_ptr<KifuSelectionSync> m_selectionSync;

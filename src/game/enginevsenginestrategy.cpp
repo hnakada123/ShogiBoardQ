@@ -31,7 +31,8 @@ QStringList* EngineVsEngineStrategy::sfenRecordForEvE()
 
 QList<ShogiMove>& EngineVsEngineStrategy::gameMovesForEvE()
 {
-    return m_ctx.sfenHistory() ? m_ctx.gameMovesDirect() : m_eveGameMoves;
+    // 棋譜欄の表記変換・USI指し手列・ライブセッションが参照する共有リストへ記録する。
+    return m_ctx.sfenHistory() ? m_ctx.gameMovesRef() : m_eveGameMoves;
 }
 
 // ============================================================
