@@ -21,6 +21,28 @@
 #include <QSizePolicy>
 #include <QLayout>
 #include <QLabel>
+#include <QProxyStyle>
+
+namespace {
+
+// 対局者名の吹き出しだけ、標準のツールチップより早く表示する。
+class PlayerNameLabelStyle final : public QProxyStyle
+{
+public:
+    explicit PlayerNameLabelStyle(QWidget* label)
+    {
+        setParent(label);
+    }
+
+    int styleHint(StyleHint hint, const QStyleOption* option, const QWidget* widget,
+                  QStyleHintReturn* returnData) const override
+    {
+        if (hint == SH_ToolTip_WakeUpDelay) return 200;
+        return QProxyStyle::styleHint(hint, option, widget, returnData);
+    }
+};
+
+} // namespace
 
 // Highlight基底クラスのデストラクタ（out-of-line定義でweak-vtables警告を回避）
 ShogiView::Highlight::~Highlight() {}
@@ -77,10 +99,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_blackNameLabel->setElideMode(Qt::ElideRight);
     m_blackNameLabel->setWordWrap(true);
     m_blackNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_blackNameLabel->setSlideOnHover(true);
-    m_blackNameLabel->setManualPanEnabled(true);
-    m_blackNameLabel->setSlideSpeed(2);
-    m_blackNameLabel->setSlideInterval(16);
+    m_blackNameLabel->setStyle(new PlayerNameLabelStyle(m_blackNameLabel));
 
     // ───────────────────────────────── 名前ラベル（後手：白） ─────────────────────────────────
     m_whiteNameLabel = new ElideLabel(this);
@@ -88,10 +107,7 @@ ShogiView::ShogiView(QWidget *parent)
     m_whiteNameLabel->setElideMode(Qt::ElideRight);
     m_whiteNameLabel->setWordWrap(true);
     m_whiteNameLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
-    m_whiteNameLabel->setSlideOnHover(true);
-    m_whiteNameLabel->setManualPanEnabled(true);
-    m_whiteNameLabel->setSlideSpeed(2);
-    m_whiteNameLabel->setSlideInterval(16);
+    m_whiteNameLabel->setStyle(new PlayerNameLabelStyle(m_whiteNameLabel));
 
     // ───────────────────────────────── 時計ラベル（後手：白） ─────────────────────────────────
     m_whiteClockLabel = new QLabel(QStringLiteral("00:00:00"), this);
