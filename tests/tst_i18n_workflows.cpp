@@ -3,8 +3,11 @@
 #include <QTableWidget>
 #include <QTemporaryDir>
 #include <QLabel>
+#include <QLibraryInfo>
 #include "kifupresentation.h"
 #include "applicationfonts.h"
+#include "applicationtranslations.h"
+#include "appsettings.h"
 #include "kifuloadparser.h"
 #include "kifubranchtreebuilder.h"
 #include "kifubranchtree.h"
@@ -34,8 +37,79 @@ private slots:
     void initTestCase() { qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8()); }
     void cleanup()
     {
+        AppSettings::setLanguage("system");
+        AppSettings::setMoveNotation("auto");
+        AppSettings::setNotationOrigin(false);
         KifuPresentation::configure("ja_JP", "auto", false);
         ApplicationFonts::initialize();
+    }
+
+    void startupTranslationsLiveForScope_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<QString>("notation");
+        QTest::addColumn<bool>("alwaysOrigin");
+        QTest::addColumn<QString>("resign");
+        QTest::addColumn<QString>("firstRank");
+        QTest::newRow("japanese") << QString("ja_JP") << QString("auto") << false << QString("投了") << QString("一");
+        QTest::newRow("english") << QString("en") << QString("auto") << false << QString("Resign") << QString("a");
+        QTest::newRow("simplified") << QString("zh_CN") << QString("auto") << false << QString("认输") << QString("一");
+        QTest::newRow("traditional") << QString("zh_TW") << QString("auto") << false << QString("認輸") << QString("一");
+        QTest::newRow("japanese-western") << QString("ja_JP") << QString("western") << true << QString("投了") << QString("a");
+        QTest::newRow("english-japanese") << QString("en") << QString("japanese") << true << QString("Resign") << QString("一");
+    }
+
+    void startupTranslationsLiveForScope()
+    {
+        QFETCH(QString, language);
+        QFETCH(QString, notation);
+        QFETCH(bool, alwaysOrigin);
+        QFETCH(QString, resign);
+        QFETCH(QString, firstRank);
+        AppSettings::setLanguage(language);
+        AppSettings::setMoveNotation(notation);
+        AppSettings::setNotationOrigin(alwaysOrigin);
+        QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
+        {
+            const ApplicationTranslations translations(QStringLiteral(TRANSLATIONS_DIR));
+            QCOMPARE(translations.language(), language);
+            QCoreApplication::processEvents();
+            QCOMPARE(KifuPresentation::status("投了"), resign);
+            QCOMPARE(KifuPresentation::rankLabel(1), firstRank);
+            QCOMPARE(KifuPresentation::options().alwaysOrigin, alwaysOrigin);
+        }
+        QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
+    }
+
+    void startupQtTranslationsLiveForScope()
+    {
+        QTranslator reference;
+        if (!reference.load("qtbase_ja", QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+            QSKIP("Qt Japanese translations are not installed");
+        const QString cancel = reference.translate("QPlatformTheme", "Cancel");
+        QVERIFY(!cancel.isEmpty());
+        const QString original = QCoreApplication::translate("QPlatformTheme", "Cancel");
+        AppSettings::setLanguage("ja_JP");
+        {
+            const ApplicationTranslations translations(QStringLiteral(TRANSLATIONS_DIR));
+            QCOMPARE(QCoreApplication::translate("QPlatformTheme", "Cancel"), cancel);
+        }
+        QCOMPARE(QCoreApplication::translate("QPlatformTheme", "Cancel"), original);
+    }
+
+    void missingStartupCatalogKeepsNotationSettings()
+    {
+        QTemporaryDir emptyDirectory;
+        QVERIFY(emptyDirectory.isValid());
+        AppSettings::setLanguage("en");
+        AppSettings::setMoveNotation("western");
+        AppSettings::setNotationOrigin(true);
+        QTest::ignoreMessage(QtWarningMsg, "Translation file not found: \"en\"");
+        const ApplicationTranslations translations(emptyDirectory.path());
+        QCOMPARE(translations.language(), QStringLiteral("en"));
+        QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
+        QCOMPARE(KifuPresentation::rankLabel(1), QStringLiteral("a"));
+        QVERIFY(KifuPresentation::options().alwaysOrigin);
     }
 
     void liveTimeoutIsTerminal_data()
