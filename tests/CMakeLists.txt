@@ -1667,3 +1667,12 @@ add_shogi_test(tst_i18n_workflows tst_i18n_workflows.cpp)
 target_link_libraries(tst_i18n_workflows PRIVATE shogiboardq_static)
 target_compile_definitions(tst_i18n_workflows PRIVATE TRANSLATIONS_DIR="${CMAKE_BINARY_DIR}")
 add_dependencies(tst_i18n_workflows translations)
+
+add_shogi_test(tst_applicationlogging
+    tst_applicationlogging.cpp
+    ${SRC}/app/applicationlogging.cpp
+)
+target_compile_definitions(tst_applicationlogging PRIVATE
+    $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
+)
+set_tests_properties(tst_applicationlogging PROPERTIES TIMEOUT 20)

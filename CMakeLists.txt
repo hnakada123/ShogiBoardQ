@@ -206,6 +206,8 @@ set(UI_FILES
 # ソースファイル一覧の更新: ./scripts/update-sources.sh
 
 set(SRC_APP
+    src/app/applicationlogging.cpp
+    src/app/applicationlogging.h
     src/app/commentcoordinator.cpp
     src/app/commentcoordinator.h
     src/app/dockcreationservice.cpp
