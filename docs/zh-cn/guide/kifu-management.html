@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>棋谱管理 - ShogiBoardQ</title>
+    <meta name="description" content="介绍 ShogiBoardQ 如何读取、保存 KIF、KI2、CSA、JKF、USI、USEN 棋谱，以及复制和粘贴棋谱。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-management.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-management.html">
+    <meta property="og:title" content="棋谱管理 - ShogiBoardQ">
+    <meta property="og:description" content="在 ShogiBoardQ 中管理 KIF、KI2、CSA、JKF、USI、USEN 棋谱，包括文件和剪贴板操作。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/kifu-management/kifu-03-loaded.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="棋谱管理 - ShogiBoardQ">
+    <meta name="twitter:description" content="在 ShogiBoardQ 中管理 KIF、KI2、CSA、JKF、USI、USEN 棋谱，包括文件和剪贴板操作。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/kifu-management/kifu-03-loaded.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-management.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-management.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-management.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-management.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/kifu-management.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/kifu-management.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="kifu-management.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/kifu-management.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#file-load">读取</a></li>
+            <li><a href="#file-save">保存</a></li>
+            <li><a href="#clipboard">剪贴板</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>棋谱管理</h1>
+        <p class="hero-subtitle">以多种格式读取、保存和复制棋谱</p>
+        <div class="hero-badges">
+            <span class="badge">KIF / KI2</span>
+            <span class="badge">CSA</span>
+            <span class="badge">JKF</span>
+            <span class="badge">USI / SFEN</span>
+            <span class="badge">USEN</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<!-- Section 1: File Loading -->
+<section id="file-load" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">读取棋谱文件</h2>
+        <p class="section-desc">支持主要的棋谱格式，也能读取带变化的棋谱</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">支持的格式</span>
+                </div>
+                <p class="guide-step-text">可以读取以下棋谱格式。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>格式</th><th>扩展名</th><th>说明</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>KIF</strong></td><td>.kif .kifu</td><td>Kifu for Windows 的标准格式，记录手数、着法和用时</td></tr>
+                        <tr><td><strong>KI2</strong></td><td>.ki2 .ki2u</td><td>KIF 的简化格式，将着法横向排列记录</td></tr>
+                        <tr><td><strong>CSA</strong></td><td>.csa</td><td>日本计算机将棋协会（CSA）的标准格式，以坐标记录</td></tr>
+                        <tr><td><strong>JKF</strong></td><td>.jkf</td><td>JSON 棋谱格式，以 JSON 结构表示变化</td></tr>
+                        <tr><td><strong>USI / SFEN</strong></td><td>.usi .sfen</td><td>USI 着法序列，或仅包含局面的 SFEN</td></tr>
+                        <tr><td><strong>USEN</strong></td><td>.usen</td><td>USEN 压缩格式，紧凑地编码棋谱</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">打开棋谱文件</span>
+                </div>
+                <p class="guide-step-text">从菜单“文件”→“打开…”打开文件选择对话框（打开棋谱文件）。可以在“文件类型”中筛选要显示的格式。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/kifu-management/kifu-02-file-dialog.png" alt="打开棋谱文件对话框">
+                    <p class="screenshot-caption">文件选择对话框：可选择 KIF、KI2、CSA、JKF、USI、SFEN、USEN 格式的文件</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">显示棋谱</span>
+                </div>
+                <p class="guide-step-text">读取文件后，“棋谱”栏会显示着法和用时，棋盘显示初始局面。可以通过棋谱栏或导航按钮移动到任意局面。对局者、日期、让子等对局信息也会自动读取。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/kifu-management/kifu-03-loaded.png" alt="读取棋谱后的画面">
+                    <p class="screenshot-caption">读取棋谱后：棋谱栏显示着法和用时</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">格式示例</span>
+                </div>
+                <p class="guide-step-text">以下是从平手开始走了“７六歩・３四歩・２六歩”、尚未终局的 3 手棋谱（示例中的日文为各格式规定的记法）。不同格式能记录的信息（对局者、用时等）各不相同。</p>
+                <div class="format-examples">
+                    <div class="format-example">
+                        <h4>KIF 格式（.kif）</h4>
+                        <pre><code>手合割：平手
+先手：鈴木
+後手：山田
+手数----指手---------消費時間--
+   1 ７六歩(77)   ( 0:02/00:00:02)
+   2 ３四歩(33)   ( 0:02/00:00:02)
+   3 ２六歩(27)   ( 0:02/00:00:04)</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>KI2 格式（.ki2）</h4>
+                        <pre><code>先手：鈴木
+後手：山田
+
+▲７六歩    △３四歩    ▲２六歩</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>CSA 格式（.csa）</h4>
+                        <pre><code>'CSA encoding=UTF-8
+V3.0
+N+鈴木
+N-山田
+PI
++
++7776FU
+T2
+-3334FU
+T2
++2726FU
+T2</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>JKF 格式（.jkf）</h4>
+                        <pre><code>{
+  "header": {
+    "先手": "鈴木",
+    "後手": "山田"
+  },
+  "moves": [
+    {},
+    {"move":{"from":{"x":7,"y":7},
+             "to":{"x":7,"y":6},
+             "color":0,"piece":"FU"}},
+    {"move":{"from":{"x":3,"y":3},
+             "to":{"x":3,"y":4},
+             "color":1,"piece":"FU"}},
+    {"move":{"from":{"x":2,"y":7},
+             "to":{"x":2,"y":6},
+             "color":0,"piece":"FU"}}
+  ]
+}</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>USI 格式（.usi）</h4>
+                        <pre><code>position startpos moves 7g7f 3c3d 2g2f</code></pre>
+                    </div>
+                    <div class="format-example">
+                        <h4>USEN 格式（.usen）</h4>
+                        <pre><code>~0.7ku2jm6y2.</code></pre>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: File Save -->
+<section id="file-save" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">保存棋谱文件</h2>
+        <p class="section-desc">可以用 6 种格式保存棋谱</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">另存为</span>
+                </div>
+                <p class="guide-step-text">从菜单“文件”→“另存为…”可以将棋谱以任意格式保存到文件。省略扩展名时，会加上保存对话框中所选筛选器的扩展名；输入扩展名时，由该扩展名决定保存格式。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>格式</th><th>扩展名</th><th>字符编码</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>KIF 格式</td><td>.kif / .kifu</td><td>Shift_JIS / UTF-8</td></tr>
+                        <tr><td>KI2 格式</td><td>.ki2 / .ki2u</td><td>Shift_JIS / UTF-8</td></tr>
+                        <tr><td>CSA 格式</td><td>.csa</td><td>UTF-8</td></tr>
+                        <tr><td>JKF 格式</td><td>.jkf</td><td>UTF-8</td></tr>
+                        <tr><td>USEN 格式</td><td>.usen</td><td>UTF-8</td></tr>
+                        <tr><td>USI 格式</td><td>.usi</td><td>UTF-8</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">KIF、KI2、JKF、USEN 可以保存变化。CSA、USI 只保存本谱，KI2 不保存用时。USI、USEN 不保存对局者、注释和用时，USEN 能表示的终局结果也有限制。将 CSA 以毫秒为单位的用时转换为 KIF、JKF 时，不足 1 秒的部分会被舍去。</p>
+                <p class="guide-step-text">保存为 .kif、.ki2（Shift_JIS）时，如果对局者或注释中含有 Shift_JIS 无法表示的字符（部分简体字、繁体字或表情符号等），会显示这些字符并询问是否“以 UTF-8 保存”。以 UTF-8 保存时，文件第一行会记录“encoding=UTF-8”。若要始终以 UTF-8 保存，请选择 .kifu、.ki2u。</p>
+                <p class="guide-step-text">CSA 文件中有以“/”分隔的多个棋谱时，只读取第一个棋谱。</p>
+                <p class="guide-step-text">USI 格式棋谱末尾的终局代码是用于保存棋谱的扩展，不属于与引擎通信用的 USI“position”命令规范。</p>
+                <p class="guide-step-text">各格式的资料（日文或英文）：<a href="https://kakinoki.o.oo7.jp/kif_format.html">KIF 规范</a>、<a href="https://www.shogi.or.jp/faq/kihuhyouki/">棋谱记法（KI2 的着法记法）</a>、<a href="https://www.computer-shogi.org/protocol/record_v3.html">CSA V3.0 规范</a>、<a href="https://github.com/na2hiro/json-kifu-format">JKF 规范</a>、<a href="https://shogidokoro2.stars.ne.jp/usi.html">USI・SFEN 规范</a>、<a href="https://github.com/mogproject/mog-playground/wiki/USEN-Format">USEN 资料</a>。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">保存</span>
+                </div>
+                <p class="guide-step-text">菜单“文件”→“保存”会以扩展名对应的格式，覆盖保存到最近读取或保存的文件。未设置保存位置、从粘贴或局面集导入、或读取了 .sfen 文件时，会打开“另存为…”。对局结束后的自动保存位置可以在对局对话框中指定。</p>
+                <p class="guide-step-text">棋谱有未保存的修改时，在读取其他棋谱、以新棋谱开始对局、重置为初始画面或退出程序时，会确认是否保存。选择“取消”，或保存被中止、失败时，该操作也会中止。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Clipboard -->
+<section id="clipboard" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">剪贴板操作</h2>
+        <p class="section-desc">可以将棋谱、局面、棋盘图片复制到剪贴板，也可以粘贴棋谱</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">复制棋谱</span>
+                </div>
+                <p class="guide-step-text">从菜单“编辑”→“复制棋谱”可以将当前棋谱以各种格式复制到剪贴板，并粘贴到其他程序中使用。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>菜单项</th><th>内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>KIF 格式</td><td>以 KIF 格式复制整个棋谱</td></tr>
+                        <tr><td>KI2 格式</td><td>以 KI2 格式复制整个棋谱</td></tr>
+                        <tr><td>CSA 格式</td><td>以 CSA 格式复制整个棋谱</td></tr>
+                        <tr><td>USI 格式（截至当前着法）</td><td>以 USI 格式复制到当前显示的着法为止</td></tr>
+                        <tr><td>USI 格式（全部）</td><td>以 USI 格式复制整个棋谱</td></tr>
+                        <tr><td>JSON 棋谱格式</td><td>以 JKF（JSON）格式复制整个棋谱</td></tr>
+                        <tr><td>USEN</td><td>以 USEN 压缩格式复制整个棋谱</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">复制局面</span>
+                </div>
+                <p class="guide-step-text">从菜单“编辑”→“复制局面”可以将当前局面复制到剪贴板。</p>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>菜单项</th><th>内容</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>SFEN 格式</td><td>以 SFEN 字符串复制当前局面</td></tr>
+                        <tr><td>BOD 格式</td><td>以文本棋盘图（BOD）复制当前局面</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">复制棋盘图片</span>
+                </div>
+                <p class="guide-step-text">菜单“编辑”→“复制棋盘图片”会将当前棋盘作为图片复制到剪贴板，方便粘贴到博客或解说文章中。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/kifu-management/kifu-04-board-copy.png" alt="复制到剪贴板的棋盘图片">
+                    <p class="screenshot-caption">复制棋盘图片：将棋盘作为图片复制到剪贴板</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">粘贴棋谱</span>
+                </div>
+                <p class="guide-step-text">菜单“编辑”→“粘贴棋谱…”会打开粘贴棋谱对话框。在文本框中粘贴棋谱，或点击“从剪贴板粘贴”，然后点击“导入”，程序会自动识别格式并读取。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/kifu-management/kifu-05-paste-dialog.png" alt="粘贴棋谱对话框">
+                    <p class="screenshot-caption">粘贴棋谱对话框：自动识别 KIF、KI2、CSA、USI、JKF、USEN、SFEN、BOD 格式</p>
+                </div>
+                <table class="info-table">
+                    <thead>
+                        <tr><th>格式</th><th>自动识别的依据</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>KIF</td><td>包含“手数----”，或有以手数和目标位置开头的行。仅有“手数”“指し手”等词不会判定为 KIF</td></tr>
+                        <tr><td>KI2</td><td>以 ▲、△、▽、☗、☖ 开头并后接目标位置的着法</td></tr>
+                        <tr><td>CSA</td><td>V2/V3 版本行或注释行、PI/P 局面数据、对局者或对局信息，或以 + 或 - 开头并后接数字的着法行</td></tr>
+                        <tr><td>USI</td><td>以 position、startpos、sfen 开头的行，或 SFEN 局面后接着法。也接受 startpos moves ...</td></tr>
+                        <tr><td>JKF</td><td>以 { 或 [ 开头的 JSON 会按 JKF 检查。导入时需要 JKF 对象，仅有 JSON 数组会被拒绝</td></tr>
+                        <tr><td>USEN</td><td>符合以 ~ 分隔的手数与编码序列的 USEN 结构。注释或 URL 中的 ~ 不足以判定</td></tr>
+                        <tr><td>SFEN</td><td>由棋盘、行棋方、持驹、手数 4 个字段组成的局面字符串。带有 sfen 等前缀时会识别为 USI</td></tr>
+                        <tr><td>BOD</td><td>带有持驹标题、边框或格子记法，且没有着法列表的局面图</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">无法识别的文本会尝试按 KIF 读取。识别格式后会检查内容，无法导入时会显示错误。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
