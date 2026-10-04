@@ -74,7 +74,7 @@
 <img alt="ShogiBoardQ main window" src="../../images/en/game-play/engine-00-main-screen.png"/>
 <p class="screenshot-caption">Main window: choose Settings → Engine Settings</p>
 </div>
-<div class="screenshot-item">
+<div class="screenshot-item screenshot-item--compact">
 <img alt="Empty engine registration dialog" src="../../images/en/game-play/engine-01-registration-empty.png"/>
 <p class="screenshot-caption">Engine registration dialog: initial state</p>
 </div>
@@ -96,7 +96,7 @@
 <span class="guide-step-title">Complete Engine Registration</span>
 </div>
 <p class="guide-step-text">Once the engine is recognized successfully, it is added to the list.</p>
-<div class="screenshot-item">
+<div class="screenshot-item screenshot-item--compact">
 <img alt="An engine registered in the list" src="../../images/en/game-play/engine-03-registration-added.png"/>
 <p class="screenshot-caption">Engine registered: the engine now appears in the list</p>
 </div>
@@ -109,7 +109,7 @@
 <p class="guide-step-text">Click Settings to adjust engine options such as hash size and thread count.</p>
 <p class="guide-step-text">Under Pondering, enable Think during the opponent's turn to let a compatible engine think ahead using its predicted reply. This also works with engines such as Gikou 2 that do not list USI_Ponder in their options. Existing USI_Ponder preferences are preserved; engines without a saved setting start with pondering disabled.</p>
 <p class="guide-step-text">Normally leave Send USI_Ponder even if the engine does not report it enabled. Disable it for engines that report an unsupported option error. The GUI can still start pondering for compatible engines when this notification is disabled. Settings are saved per engine and apply the next time the engine starts.</p>
-<div class="screenshot-item">
+<div class="screenshot-item screenshot-item--compact">
 <img alt="Engine settings dialog" src="../../images/en/game-play/engine-04-settings.png"/>
 <p class="screenshot-caption">Engine settings: adjust hash size, thread count, and other options</p>
 </div>
@@ -120,7 +120,7 @@
 <span class="guide-step-title">Register Multiple Engines</span>
 </div>
 <p class="guide-step-text">You can register multiple engines and choose between them for games, including engine vs. engine matches.</p>
-<div class="screenshot-item">
+<div class="screenshot-item screenshot-item--compact">
 <img alt="Multiple registered engines" src="../../images/en/game-play/engine-05-registration-multiple.png"/>
 <p class="screenshot-caption">Multiple registered engines: choose the right one for each task</p>
 </div>
@@ -170,7 +170,7 @@
 <p class="guide-step-text">Once the game starts, the Thinking tab shows the engine's thinking information in real time.</p>
 <p class="guide-step-text">Enable “Show arrows during games” in the Thinking tab to display the engine’s latest best candidate for the side to move as a solid red arrow. “Also show pondering side” adds a blue dashed arrow for the pondering engine’s reply and shows the assumed opponent move in the Thinking tab. This reply is conditional on that predicted move being played. Both display settings are saved and do not change the engine’s pondering setting. During consideration, arrows follow the settings in the Consideration tab.</p>
 <div class="screenshot-item">
-<img alt="Game screen with the game record tab" src="../../images/en/game-play/game-03-playing-thinking-tab.png"/>
+<img alt="Game screen with the Thinking tab" src="../../images/en/game-play/game-03-playing-thinking-tab.png"/>
 <p class="screenshot-caption">Thinking tab: live engine thinking information</p>
 </div>
 <p class="guide-step-text">The USI Communication Log tab shows messages exchanged between the GUI and engine using the USI protocol.</p>
@@ -185,7 +185,7 @@
 <span class="guide-step-title">Principal Variations</span>
 </div>
 <p class="guide-step-text">The principal variation window lets you replay the engine's line on a shogi board.</p>
-<div class="screenshot-item">
+<div class="screenshot-item screenshot-item--compact">
 <img alt="Principal variation window" src="../../images/en/game-play/game-04-reading-lines.png"/>
 <p class="screenshot-caption">Principal variation display: visualize the engine's line on a board</p>
 </div>
@@ -217,7 +217,8 @@
 <span class="guide-step-number">5</span>
 <span class="guide-step-title">Branch Tree</span>
 </div>
-<p class="guide-step-text">The Branch Tree tab shows moves in variations as well as the main line.</p>
+<p class="guide-step-text">The Branch Tree tab shows moves in variations as well as the main line. If you use Take Back during a game and then play a different move, the moves you actually played become the main line and the moves you took back remain as a variation.</p>
+<p class="guide-step-text">After a game ends, the board is view-only and pieces cannot be moved. To continue from an earlier position, select it in the game record and start a new game with Starting Position set to Current Position; the new moves are recorded as a variation.</p>
 <div class="screenshot-item">
 <img alt="Branch Tree display" src="../../images/en/game-play/game-07-branch-tree.png"/>
 <p class="screenshot-caption">Branch Tree: view the main line and alternative continuations</p>
