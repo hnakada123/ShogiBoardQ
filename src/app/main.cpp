@@ -6,6 +6,7 @@
 #include "appsettings.h"
 #include "kifupresentation.h"
 #include "applicationfonts.h"
+#include "applicationlogging.h"
 #include "settingsresetcontroller.h"
 
 #include <QApplication>
@@ -17,63 +18,7 @@
 #include <QGuiApplication>
 #include <QToolTip>
 #include <QIcon>
-#include <QFile>
-#include <QTextStream>
-#include <QDateTime>
 #include <QStandardPaths>
-
-#include <memory>
-
-// ログメッセージハンドラ（デバッグビルド専用）
-//
-// ビルドごとの動作:
-//   デバッグビルド:
-//     - debug.log ファイルを作成し、全レベルのメッセージを出力する
-//     - ソース位置情報（ファイル名、行番号、関数名）も記録される
-//   リリースビルド:
-//     - qDebug/qCDebug はコンパイル時に除去される（QT_NO_DEBUG_OUTPUT）
-//     - qCInfo/qCWarning/qCCritical は空のハンドラで破棄される
-//     - debug.log ファイルは作成されない
-//     - stderr への出力もない
-static std::unique_ptr<QFile> logFile;
-
-[[maybe_unused]] static void messageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-{
-    if (!logFile) return;
-
-    QTextStream out(logFile.get());
-    QString timestamp = QDateTime::currentDateTime().toString("yyyy-MM-dd hh:mm:ss.zzz");
-    QString level;
-    switch (type) {
-    case QtDebugMsg:    level = "DEBUG"; break;
-    case QtInfoMsg:     level = "INFO"; break;
-    case QtWarningMsg:  level = "WARN"; break;
-    case QtCriticalMsg: level = "ERROR"; break;
-    case QtFatalMsg:    level = "FATAL"; break;
-    }
-
-    // カテゴリ（QLoggingCategory使用時のみ出力）
-    QString category;
-    if (context.category && qstrcmp(context.category, "default") != 0) {
-        category = QString(" [%1]").arg(context.category);
-    }
-
-    // ソース位置（デバッグビルドでのみ利用可能）
-    QString location;
-    if (context.file) {
-        const char *file = context.file;
-        if (const char *slash = strrchr(file, '/'))
-            file = slash + 1;
-        else if (const char *bslash = strrchr(file, '\\'))
-            file = bslash + 1;
-        location = QString(" %1:%2").arg(file).arg(context.line);
-        if (context.function)
-            location += QString(" (%1)").arg(context.function);
-    }
-
-    out << timestamp << " [" << level << "]" << category << location << " " << msg << "\n";
-    out.flush();
-}
 
 static QIcon applicationIcon()
 {
@@ -91,15 +36,8 @@ static QIcon applicationIcon()
 
 int main(int argc, char *argv[])
 {
-    // ログハンドラの設定（上記コメント参照）
-#ifdef QT_DEBUG
-    logFile = std::make_unique<QFile>("debug.log");
-    if (logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text)) {
-        qInstallMessageHandler(messageHandler);
-    }
-#else
-    qInstallMessageHandler([](QtMsgType, const QMessageLogContext&, const QString&) {});
-#endif
+    // QApplication の破棄時にもログを出せるよう先に生成する。
+    const ApplicationLogging logging;
 
     QApplication a(argc, argv);
     a.setApplicationName("ShogiBoardQ");
@@ -177,13 +115,6 @@ int main(int argc, char *argv[])
 
     // デストラクタによる設定の再保存も終わってから初期化する。
     result = SettingsResetController::finalizeExit(result);
-
-    // ログファイルのクリーンアップ
-    if (logFile) {
-        qInstallMessageHandler(nullptr);  // デフォルトハンドラに戻す
-        logFile->close();
-        logFile.reset();
-    }
 
     return result;
 }
