@@ -2,7 +2,6 @@
 /// @brief 将棋盤面のハイライト・矢印・手番表示の実装
 
 #include "shogiviewhighlighting.h"
-#include "piecepainter.h"
 #include "shogiboard.h"
 #include "shogiviewlayout.h"
 #include "boardconstants.h"
@@ -309,59 +308,16 @@ void ShogiViewHighlighting::drawArrows(QPainter& painter, const ShogiViewLayout&
     painter.setRenderHint(QPainter::Antialiasing, true);
 
     for (const ShogiView::Arrow& arrow : std::as_const(m_arrows)) {
-        QRect toRect = m_view->cachedFieldRect(arrow.toFile, arrow.toRank);
-        QPointF to(toRect.center().x() + layout.offsetX(), toRect.center().y() + layout.offsetY());
+        const QPoint offset(layout.offsetX(), layout.offsetY());
+        const QRect toRect = m_view->cachedFieldRect(arrow.toFile, arrow.toRank).translated(offset);
+        // 駒打ちは該当する駒台セルを始点とし、盤上の移動と同じ矢印で描く。
+        const QRect fromRect = (arrow.fromFile == 0 || arrow.fromRank == 0)
+            ? m_view->standPieceRect(arrow.dropPiece)
+            : m_view->cachedFieldRect(arrow.fromFile, arrow.fromRank).translated(offset);
+        if (fromRect.isEmpty() || toRect.isEmpty()) continue;
 
-        // 駒打ちの場合
-        if (arrow.fromFile == 0 || arrow.fromRank == 0) {
-            if (arrow.dropPiece != ' ') {
-                const QIcon icon = m_view->piece(arrow.dropPiece);
-                if (!icon.isNull()) {
-                    QRect adjustedRect(toRect.left() + layout.offsetX(),
-                                       toRect.top() + layout.offsetY(),
-                                       toRect.width(),
-                                       toRect.height());
-
-                    painter.setOpacity(0.6);
-                    PiecePainter::draw(painter, icon, adjustedRect, m_view->boardVisuals());
-                    painter.setOpacity(1.0);
-
-                    QPen borderPen(arrow.color);
-                    borderPen.setStyle(arrow.penStyle);
-                    borderPen.setWidth(qMax(2, layout.squareSize() / 20));
-                    painter.setPen(borderPen);
-                    painter.setBrush(Qt::NoBrush);
-                    painter.drawRect(adjustedRect);
-                }
-            }
-
-            if (arrow.priority >= 1 && m_arrows.size() >= 2) {
-                const int fontSize = qMax(10, layout.squareSize() / 4);
-                QFont font = painter.font();
-                font.setPointSize(fontSize);
-                font.setBold(true);
-                painter.setFont(font);
-
-                const int circleRadius = static_cast<int>(fontSize * 0.8);
-                QPointF numPos(to.x() + static_cast<qreal>(toRect.width()) / 3.0,
-                               to.y() + static_cast<qreal>(toRect.height()) / 3.0);
-
-                painter.setPen(Qt::NoPen);
-                painter.setBrush(QColor(255, 255, 255, 230));
-                painter.drawEllipse(numPos, circleRadius, circleRadius);
-
-                painter.setPen(arrow.color);
-                QString priorityText = QString::number(arrow.priority);
-                QRectF textRect(numPos.x() - circleRadius, numPos.y() - circleRadius,
-                               circleRadius * 2, circleRadius * 2);
-                painter.drawText(textRect, Qt::AlignCenter, priorityText);
-            }
-            continue;
-        }
-
-        // 通常の移動：矢印を描画
-        QRect fromRect = m_view->cachedFieldRect(arrow.fromFile, arrow.fromRank);
-        QPointF from(fromRect.center().x() + layout.offsetX(), fromRect.center().y() + layout.offsetY());
+        const QPointF from(fromRect.center());
+        const QPointF to(toRect.center());
 
         const int arrowWidth = qMax(3, layout.squareSize() / 12);
         const int arrowHeadSize = qMax(10, layout.squareSize() / 4);

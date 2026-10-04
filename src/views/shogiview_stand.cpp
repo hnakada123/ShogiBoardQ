@@ -35,6 +35,25 @@ static inline QRect makeStandCellRect(bool flip, int param, int offsetX, int off
     return adjustedRect;
 }
 
+QRect ShogiView::standPieceRect(QChar pieceChar) const
+{
+    if (!m_board || pieceChar == QLatin1Char(' ')) return {};
+
+    const bool black = pieceChar.isUpper();
+    const int firstRank = black ? 6 : 1;
+    for (int rank = firstRank; rank < firstRank + 4; ++rank) {
+        for (int file = 1; file <= 2; ++file) {
+            const QChar cellPiece = black ? rankToBlackShogiPiece(file, rank)
+                                         : rankToWhiteShogiPiece(file, rank);
+            if (cellPiece == pieceChar) {
+                return makeStandCellRect(m_layout.flipMode(), black ? m_layout.param1() : m_layout.param2(),
+                                         m_layout.offsetX(), m_layout.offsetY(), cachedFieldRect(file, rank), black);
+            }
+        }
+    }
+    return {};
+}
+
 // 持駒の配置・当たり判定はセルのまま、木肌は駒台全体を通して描く。
 void ShogiView::drawNormalModeStand(QPainter* painter)
 {
