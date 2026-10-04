@@ -15,6 +15,7 @@
 #include "usiprotocolhandler.h"
 #include "enginepondersettings.h"
 #include "enginegameovernotifier.h"
+#include "gameendhandler.h"
 #include "tsumethreadbudget.h"
 #include "tsumecollection.h"
 #include "tsume.h"
@@ -275,6 +276,77 @@ private slots:
                     << loserIsP1 << nyugyoku;
             }
         }
+    }
+    void breakOffReapsUnresponsiveEngines_data()
+    {
+        QTest::addColumn<bool>("bothEngines");
+        QTest::newRow("human-vs-engine") << false;
+        QTest::newRow("engine-vs-engine") << true;
+    }
+    void breakOffReapsUnresponsiveEngines()
+    {
+        QFETCH(bool, bothEngines);
+        // stopで応答が詰まり、terminateも無視するエンジンを再現する。
+        qputenv("SBQ_MATCH_STOP_DELAY_MS", "10000");
+        qputenv("SBQ_MATCH_IGNORE_TERMINATE", "1");
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi engine1(nullptr, nullptr, &game), engine2(nullptr, nullptr, &game);
+        QSignalSpy ready1(&engine1, &Usi::engineInitialized);
+        QSignalSpy ready2(&engine2, &Usi::engineInitialized);
+        QSignalSpy moves1(&engine1, &Usi::matchMoveReady);
+        QSignalSpy moves2(&engine2, &Usi::matchMoveReady);
+        QVERIFY(engine1.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        if (bothEngines)
+            QVERIFY(engine2.startAndInitializeEngineAsync(QStringLiteral(MOCK_USI_EXECUTABLE), engineName));
+        QTRY_COMPARE(ready1.size(), 1);
+        if (bothEngines) QTRY_COMPARE(ready2.size(), 1);
+        const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("300000"), 0, 0, true};
+        for (Usi* engine : {&engine1, bothEngines ? &engine2 : nullptr}) {
+            if (!engine) continue;
+            engine->sendRaw(QStringLiteral("setoption name ReplyDelay value 300"));
+            engine->requestMatchMove(QStringLiteral("position startpos moves 7g7f"), {}, timing);
+        }
+        QTest::qWait(30);
+
+        GameEndHandler handler;
+        auto mode = bothEngines ? PlayMode::EvenEngineVsEngine : PlayMode::EvenHumanVsEngine;
+        MatchCoordinator::GameOverState gameOver;
+        GameEndHandler::Refs refs;
+        refs.gc = &game;
+        refs.playMode = &mode;
+        refs.gameOver = &gameOver;
+        refs.usi1Provider = [&engine1] { return &engine1; };
+        refs.usi2Provider = [&engine2, bothEngines]() -> Usi* { return bothEngines ? &engine2 : nullptr; };
+        handler.setRefs(refs);
+        GameEndHandler::Hooks hooks;
+        hooks.primaryEngine = [&engine1] { return &engine1; };
+        handler.setHooks(hooks);
+        QSignalSpy ended(&handler, &GameEndHandler::gameEnded);
+        const auto existing = qApp->findChildren<QProcess*>();
+        const int ticks = m_ticks;
+        QElapsedTimer elapsed;
+        elapsed.start();
+        handler.handleBreakOff();
+        handler.handleBreakOff();
+        QVERIFY(elapsed.elapsed() < 200);
+        QCOMPARE(ended.size(), 1);
+        QCOMPARE(gameOver.lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+        QList<QPointer<QProcess>> retiring;
+        for (auto* process : qApp->findChildren<QProcess*>())
+            if (!existing.contains(process)) retiring.append(process);
+
+        // アプリは開いたまま。quitを送るだけではこの期限で終了できない。
+        QTest::qWait(4500);
+        QVERIFY(!engine1.isEngineRunning());
+        QVERIFY(!engine2.isEngineRunning());
+        QCOMPARE(retiring.size(), bothEngines ? 2 : 1);
+        for (const auto& process : retiring) QTRY_VERIFY_WITH_TIMEOUT(process.isNull(), 1500);
+        QCOMPARE(moves1.size(), 0);
+        QCOMPARE(moves2.size(), 0);
+        QVERIFY(m_ticks > ticks + 10);
     }
     void gameOverCancelsLateMoveAndReapsBothEngines()
     {

@@ -245,3 +245,34 @@ CTestの `tst_background_tasks` には、遅れて届くbestmoveで着手・先�
 投了後の棋譜操作・再解析・連続対局を含む既存GUIテスト11ケースも通過した。
 この検証ではアプリの通常終了後に思考が継続する現象自体は再現しておらず、
 報告時のアプリ終了後の残留原因までは断定しない。
+
+### 中断後もアプリを開いたままにする検証
+
+`break-wait-close` と `break-ponder-wait-close` は、中断ボタンの操作後1.5秒間アプリを開き、
+中断後0.2秒・1.2秒のエンジン生存を確認する。観測結果は `post_game_end` に記録する
+（投了シナリオも同じキーを使用する）。
+
+```bash
+xvfb-run -a env QT_QPA_PLATFORM=xcb python3 tests/gui/test_engine_shutdown.py \
+  --engine /home/nakada/shogi/Gikou/release \
+  --output build/gui-audit/break-gikou \
+  --scenarios break-wait-close break-ponder-wait-close
+```
+
+2026-10-04の追加検証では、Gikou・やねうら王・apery_rust × 人間先手・人間後手・
+エンジン同士 × 先読みOFF/ONの18ケースすべてで、中断後0.2秒の観測時に対象エンジンが
+終了していた。投了で見つかった終局後の先読み再開は、中断では再現しなかった。
+証跡は `build/gui-audit/break-{gikou,yaneuraou,apery}-baseline/`。
+
+一方、中断処理はquit送信だけで、終了しないプロセスをterminate/killする監視へ
+引き渡していなかった。`tst_background_tasks::breakOffReapsUnresponsiveEngines` で、
+stop応答を10秒遅らせ、terminateを無視する模擬エンジンを使うと、人間対エンジン・
+エンジン同士の両方で中断4.5秒後もプロセスが生存した。
+中断時も思考表示を保持して非同期の終了監視へ引き渡すよう修正し、
+遅れて届く着手の破棄と、アプリを閉じずにプロセスを回収できることを検証する。
+これは模擬エンジンでの異常応答条件であり、上記3種類の実エンジンで同じ停止不能を
+観測したわけではない。
+修正後は模擬エンジンの2ケースを含む関連CTest 8件が通過した。
+実エンジンでは上記18ケースに中断後の再対局9ケースを加えた27ケースがすべて通過し、
+中断後のプロセス残留もなかった。証跡は `build/gui-audit/break-{gikou,yaneuraou,apery}-fixed/`。
+既存GUIテスト `engineVersusEngine` の投了・中断2ケースでも、棋譜と対局操作の解除を確認した。
