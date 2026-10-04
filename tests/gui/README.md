@@ -92,6 +92,17 @@ xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py \
 
 各シナリオは独立したプロセスで実行し、35秒でタイムアウトする。通常のアプリ設定は使用せず、テスト用一時ディレクトリに隔離する。結果は`build/gui-audit/`に保存される。
 
+`engineMemoryLifecycle` は同じ MainWindow で、人間対エンジン対局・中断、棋譜貼り付け、棋譜解析、
+詰み探索、検討の開始・停止、詰将棋生成画面の開始・停止と開き直しを12周実行する（上限180秒）。
+終了待ちのエンジンプロセスと生成ワーカーが残らないこと、最初の2周で初期化した後は
+画面内の QObject の型別個数が増えないことを検証する。Linux では各周の RSS もログに記録する。
+RSS は Qt の描画キャッシュやアロケーターにも影響されるため、合否は不要オブジェクトの個数と
+処理の終了で判定する。CTest の `tst_memory_lifecycle` はモデル初期化・切替を各100回繰り返す。
+
+```bash
+xvfb-run -a -s '-screen 0 1600x1200x24' python3 tests/gui/run.py engineMemoryLifecycle
+```
+
 `menuPresentation` はメニューパネルの全文ラベル、USI形式の検索、狭いドックでの折り返し、お気に入りの登録を確認し、`menu-panel.png`・`menu-search.png`・`menu-narrow.png`・`menu-favorites.png` を保存します。チェック状態・表示状態の同期、ボタン上からのドラッグ開始、並べ替え・削除、設定の即時保存は CTest の `tst_menu_window` で検証します。
 
 `usiLogPresentation` はUSI通信ログの通常表示・狭いフローティング表示・折り返し表示を確認し、`usi-log-main.png`・`usi-log-narrow.png`・`usi-log-wrapped.png` を保存します。閲覧位置と選択範囲の保持、コピー・消去、送信先別のEnter／ボタン送信、設定復元は CTest の `tst_usilogpanel` で検証します。

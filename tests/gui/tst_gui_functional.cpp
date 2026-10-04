@@ -32,6 +32,8 @@
 #include <QMimeData>
 #include <QPlainTextEdit>
 #include <QProgressBar>
+#include <QProcess>
+#include <QThreadPool>
 #include <QRadioButton>
 #include <QTextEdit>
 #include <QTextBlock>
@@ -95,6 +97,8 @@
 #include "kifuanalysislistmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogiinforecord.h"
+#include "tsumeshogigeneratordialog.h"
+#include "usi.h"
 #include "kifupresentation.h"
 
 class GuiAudit : public QObject
@@ -275,6 +279,7 @@ public slots:
             if ((dialogMode == "file" || dialogMode == "file-lossy") && !qobject_cast<QFileDialog*>(d)) continue;
             if (dialogMode == "save-warning" && !qobject_cast<QMessageBox*>(d)) continue;
             if (dialogMode == "messages" && !qobject_cast<QMessageBox*>(d)) continue;
+            if (dialogMode == "discard" && !qobject_cast<QMessageBox*>(d)) continue;
             if (dialogMode != "auto") dialogTimer.stop();
             dialogHandled = true;
             dialogClass = d->metaObject()->className();
@@ -2716,6 +2721,78 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(boardSfen() != initial, 1500);
         QCOMPARE(record()->kifuView()->model()->rowCount(), 2);
     }
+    void engineMemoryLifecycle()
+    {
+        QMap<QString, int> baseline;
+        for (int cycle = 0; cycle < 12; ++cycle) {
+            armDialog("discard");
+            click("actionNewGame");
+            engineHumanGame();
+            QVERIFY(!QTest::currentTestFailed());
+            armDialog("discard"); // 未保存確認だけを閉じ、次の貼り付け画面は操作対象として残す。
+            engineAnalysis();
+            QVERIFY(!QTest::currentTestFailed());
+            armDialog("discard");
+            engineMateNoMate();
+            QVERIFY(!QTest::currentTestFailed());
+            dialogTimer.stop();
+
+            auto* manager = window->findChild<ConsiderationTabManager*>();
+            QVERIFY(manager);
+            auto* toggle = window->findChild<QToolButton*>("btnConsiderationStart");
+            if (!toggle) {
+                for (auto* button : window->findChildren<QToolButton*>())
+                    if (button->text() == QStringLiteral("検討開始")) toggle = button;
+            }
+            QVERIFY(toggle);
+            toggle->click();
+            QTRY_COMPARE(toggle->text(), QStringLiteral("検討中止"));
+            QTRY_VERIFY(manager->considerationModel()->rowCount() > 0);
+            toggle->click();
+            QTRY_COMPARE(toggle->text(), QStringLiteral("検討開始"));
+
+            // 同じメイン画面から生成画面を開き直す。開始直後と先行生成中の両方で停止する。
+            {
+                TsumeshogiGeneratorDialog dialog(window.get());
+                dialog.show();
+                auto* generator = dialog.findChild<TsumeshogiGenerator*>();
+                QSignalSpy started(generator, &TsumeshogiGenerator::searchPhaseStarted);
+                for (int run = 0; run < 2; ++run) {
+                    started.clear();
+                    auto* start = dialog.findChild<QPushButton*>("generatorStart");
+                    QVERIFY(start);
+                    start->click();
+                    QVERIFY(generator->isRunning());
+                    if (run == 1) QTRY_VERIFY(!started.isEmpty());
+                    dialog.findChild<QPushButton*>("generatorStop")->click();
+                    QVERIFY(!generator->isRunning());
+                }
+                dialog.close();
+            }
+            QTRY_COMPARE_WITH_TIMEOUT(QThreadPool::globalInstance()->activeThreadCount(), 0, 5000);
+            QTRY_VERIFY_WITH_TIMEOUT(qApp->findChildren<QProcess*>().isEmpty(), 7000);
+            QTest::qWait(550); // 遅延した列幅設定と deleteLater も完了させる。
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            for (auto* engine : window->findChildren<Usi*>()) QVERIFY(!engine->isEngineRunning());
+            QMap<QString, int> counts;
+            for (auto* object : window->findChildren<QObject*>())
+                ++counts[QString::fromLatin1(object->metaObject()->className())];
+            if (cycle == 1) baseline = counts;
+            if (cycle > 1) {
+                for (auto it = counts.cbegin(); it != counts.cend(); ++it) {
+                    QVERIFY2(it.value() <= baseline.value(it.key()),
+                             qPrintable(QStringLiteral("cycle %1: %2 grew from %3 to %4")
+                                            .arg(cycle).arg(it.key()).arg(baseline.value(it.key())).arg(it.value())));
+                }
+            }
+            QFile status(QStringLiteral("/proc/self/status"));
+            if (status.open(QIODevice::ReadOnly)) {
+                for (const auto& line : status.readAll().split('\n'))
+                    if (line.startsWith("VmRSS:")) qInfo().noquote() << "cycle" << cycle << line;
+            }
+        }
+    }
+
     void engineHumanGame()
     {
         armDialog("gameEngineWhite"); click("actionStartGame"); QVERIFY(record()->isNavigationDisabled());

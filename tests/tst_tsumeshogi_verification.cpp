@@ -1,6 +1,7 @@
 #include <QtTest>
 #include <QSignalSpy>
 #include <QProcess>
+#include <QPromise>
 
 #include "tsumeshogigenerator.h"
 #include "tsumeshogiverifier.h"
@@ -252,6 +253,43 @@ private slots:
         QCOMPARE(verifier.result().pv.size(), 5);
         QCOMPARE(verifier.result().pv[0], QStringLiteral("7e7b"));
     }
+    void everyExitCancelsPrefetch_data()
+    {
+        QTest::addColumn<int>("exitPath");
+        QTest::newRow("stop") << 0;
+        QTest::newRow("target-reached") << 1;
+        QTest::newRow("engine-error") << 2;
+    }
+    void everyExitCancelsPrefetch()
+    {
+        QFETCH(int, exitPath);
+        TsumeshogiGenerator generator;
+        for (int cycle = 0; cycle < 10; ++cycle) {
+            prepare(generator, kUnique);
+            const auto cancel = generator.m_cancelFlag;
+            QPromise<TsumeshogiCandidateScreener::Batch> pending;
+            pending.start();
+            generator.m_batchWatcher.setFuture(pending.future());
+            QPointer<Usi> engine = generator.m_usi;
+            if (exitPath == 0) generator.stop();
+            else if (exitPath == 1) {
+                generator.m_trimComplete = true;
+                generator.m_verifiedSfen = kUnique;
+                generator.m_verifiedPv = {QStringLiteral("N*2c")};
+                generator.processResult(true, generator.m_verifiedPv);
+            } else generator.onEngineError(QStringLiteral("test engine failure"));
+            QVERIFY(!generator.isRunning());
+            // ワーカーが保持する同じフラグを検査。QFuture::cancel だけでは探索は止まらない。
+            QVERIFY(cancel->load());
+            QVERIFY(pending.isCanceled());
+            pending.finish();
+            QTRY_VERIFY(!generator.m_batchWatcher.isRunning());
+            QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            QVERIFY(engine.isNull());
+            QVERIFY(generator.m_foundSfens.isEmpty());
+        }
+    }
+
     void batchCountsGeneratedPositionsAndKeepsOnlyCandidates()
     {
         TsumeshogiGenerator generator;

@@ -937,6 +937,7 @@ set(SRC_COMMON
     src/common/branchtreeitemroles.h
     src/common/buttonstyles.h
     src/common/tablestyles.h
+    src/common/tablemodelutils.h
     src/common/threadtypes.h
     src/common/dialogutils.cpp
     src/common/dialogutils.h

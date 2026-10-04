@@ -33,7 +33,7 @@ for name in names:
             '-o', f'{logfile},txt', '-o', f'{xmlfile},junitxml'], env=env,
             stdout=stderr, stderr=stderr, start_new_session=True)
         try:
-            code = proc.wait(timeout=35)
+            code = proc.wait(timeout=180 if name == 'engineMemoryLifecycle' else 35)
         except subprocess.TimeoutExpired:
             os.killpg(proc.pid, signal.SIGKILL)
             proc.wait()

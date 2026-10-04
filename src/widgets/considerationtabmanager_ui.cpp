@@ -2,6 +2,7 @@
 /// @brief ConsiderationTabManager のUI構築・フォント管理
 
 #include "considerationtabmanager.h"
+#include "tablemodelutils.h"
 #include "kifumovedelegate.h"
 #include "logviewfontmanager.h"
 #include "buttonstyles.h"
@@ -250,10 +251,11 @@ void ConsiderationTabManager::setConsiderationThinkingModel(ShogiEngineThinkingM
     m_considerationModel = m;
     if (m_considerationView && m) {
         const QSignalBlocker blocker(m_considerationView->horizontalHeader());
-        m_considerationView->setModel(m);
+        TableModelUtils::setModel(m_considerationView, m);
         // 数値列の右寄せ＆3桁カンマ
-        // delegate は m_considerationView を Qt parent として生成されるため、自動削除される
-        auto* delegate = new NumericRightAlignCommaDelegate(m_considerationView);
+        // 検討の開始・終了でモデルを再設定しても同じ delegate を使う。
+        auto* delegate = qobject_cast<NumericRightAlignCommaDelegate*>(m_considerationView->itemDelegateForColumn(0));
+        if (!delegate) delegate = new NumericRightAlignCommaDelegate(m_considerationView);
         for (int c = 0; c < 4; ++c) {
             m_considerationView->setItemDelegateForColumn(c, delegate);
         }

@@ -1613,6 +1613,10 @@ target_link_libraries(tst_background_tasks PRIVATE shogiboardq_static)
 target_compile_definitions(tst_background_tasks PRIVATE MOCK_USI_EXECUTABLE="$<TARGET_FILE:mock_usi_match>")
 add_dependencies(tst_background_tasks mock_usi_match)
 
+# 繰り返し操作中の不要オブジェクトの蓄積を、ウィンドウの破棄前に検証する。
+add_shogi_test(tst_memory_lifecycle tst_memory_lifecycle.cpp)
+target_link_libraries(tst_memory_lifecycle PRIVATE shogiboardq_static)
+
 # 評価値グラフ: 自動範囲・詰み・画像表示・設定保存
 add_shogi_test(tst_evaluationchart
     tst_evaluationchart.cpp
