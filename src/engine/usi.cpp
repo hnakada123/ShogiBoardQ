@@ -325,26 +325,6 @@ void Usi::initializeAndStartEngineCommunication(QString& engineFile, QString& en
     (void)startAndInitializeEngineAsync(engineFile, enginename);
 }
 
-bool Usi::startAndInitializeEngine(const QString& engineFile, const QString& enginename)
-{
-    // プロセス起動
-    if (!m_processManager->startProcess(engineFile)) {
-        cleanupEngineProcessAndThread();
-        return false;
-    }
-
-    // オプション読み込み
-    m_protocolHandler->loadEngineOptions(enginename);
-
-    // 初期化シーケンス実行
-    if (!m_protocolHandler->initializeEngine(enginename)) {
-        cleanupEngineProcessAndThread();
-        return false;
-    }
-
-    return true;
-}
-
 void Usi::cleanupEngineProcessAndThread(bool clearThinking)
 {
     cancelCurrentOperation();

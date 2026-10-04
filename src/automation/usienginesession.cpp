@@ -29,28 +29,6 @@ UsiEngineSession::~UsiEngineSession()
     quit();
 }
 
-bool UsiEngineSession::start(const QString& enginePath, const QString& engineName, QString* error)
-{
-    m_lastError.clear();
-    m_starting = true;
-    bool ok = m_process->startProcess(enginePath);
-    if (ok) {
-        m_handler->loadEngineOptions(engineName);
-        ok = m_handler->initializeEngine(engineName);
-    }
-    m_starting = false;
-    if (!ok) {
-        quit();
-        if (error) {
-            *error = m_lastError.isEmpty()
-                ? QStringLiteral("Failed to start or initialize the engine: %1").arg(enginePath)
-                : m_lastError;
-        }
-        return false;
-    }
-    return true;
-}
-
 bool UsiEngineSession::startAsync(const QString& enginePath, const QString& engineName, QString* error)
 {
     quit();

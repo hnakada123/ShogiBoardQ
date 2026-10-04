@@ -100,11 +100,6 @@ public:
     }
     void handleMaxMovesJishogi() { c_.handleMaxMovesJishogi(); }
     void pokeTimeUpdateNow() { c_.pokeTimeUpdateNow(); }
-    bool engineThinkApplyMove(Usi* engine, QString& positionStr, QString& ponderStr,
-                              QPoint* outFrom, QPoint* outTo) {
-        return c_.m_engineManager->engineThinkApplyMove(engine, positionStr, ponderStr, outFrom, outTo);
-    }
-
 private:
     MatchCoordinator& c_;
 };

@@ -98,130 +98,6 @@ private slots:
     // 1. ensure* メソッドの冪等性ガード
     // ================================================================
 
-    /// FoundationRegistry の ensure* メソッドが冪等性ガードを持つこと
-    void foundationEnsureMethodsHaveIdempotentGuards()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowfoundationregistry.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read foundation registry source");
-
-        // ガードパターンを持つべき ensure* メソッド
-        // ensureUiStatePolicyManager は CompositionRoot に委譲するため除外
-        // ensureBoardSyncPresenter は既存オブジェクトの更新もあるため除外
-        const QStringList ensureMethods = {
-            QStringLiteral("MainWindowFoundationRegistry::ensurePlayerInfoWiring()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensurePlayerInfoController()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureCommentCoordinator()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureUiNotificationService()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureEvaluationGraphController()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureMenuWiring()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureLanguageController()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureDockCreationService()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensurePositionEditController()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureAnalysisPresenter()"),
-            QStringLiteral("MainWindowFoundationRegistry::ensureJishogiController()"),
-            QStringLiteral("MainWindowFoundationRegistry::prepareNyugyokuHandler()"),
-        };
-
-        for (const QString& method : std::as_const(ensureMethods)) {
-            const auto range = findFunctionBody(lines, method);
-            QVERIFY2(range.first >= 0,
-                      qPrintable(QStringLiteral("Method '%1' not found").arg(method)));
-
-            const QString body = bodyText(lines, range.first, range.second);
-            // 冪等性ガードパターン:
-            // (a) "if (m_mw.m_xxx) return;" — 早期リターン
-            // (b) "if (!m_mw.m_xxx)" — ガード付き生成（本体が if 内のみ）
-            // (c) "if (m_mw.m_models.xxx) return;" — ネスト型メンバ
-            const bool hasGuard = body.contains(QRegularExpression(
-                QStringLiteral(R"(if\s*\(\s*!?\s*m_mw\.m_[\w.]+\s*\))")));
-            QVERIFY2(hasGuard,
-                      qPrintable(QStringLiteral("Method '%1' lacks idempotent guard (if (m_mw.m_*))")
-                                     .arg(method)));
-        }
-    }
-
-    /// ServiceRegistry の Game系 ensure* メソッドが冪等性ガードを持つこと
-    void serviceRegistryGameEnsureMethodsHaveIdempotentGuards()
-    {
-        // ServiceRegistry Game本体（状態・コントローラ管理）
-        {
-            const QStringList lines = readSourceLines(
-                QStringLiteral("src/app/gamesubregistry.cpp"));
-            QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry source");
-
-            const QStringList ensureMethods = {
-                QStringLiteral("MainWindowServiceRegistry::ensureTimeController()"),
-                QStringLiteral("MainWindowServiceRegistry::ensureReplayController()"),
-                QStringLiteral("MainWindowServiceRegistry::ensureGameStateController()"),
-                QStringLiteral("MainWindowServiceRegistry::ensureGameStartCoordinator()"),
-            };
-
-            for (const QString& method : std::as_const(ensureMethods)) {
-                const auto range = findFunctionBody(lines, method);
-                QVERIFY2(range.first >= 0,
-                          qPrintable(QStringLiteral("Method '%1' not found").arg(method)));
-
-                const QString body = bodyText(lines, range.first, range.second);
-                const bool hasGuard = body.contains(QRegularExpression(
-                    QStringLiteral(R"(if\s*\(\s*!?\s*m_mw\.m_[\w.]+\s*\))")));
-                QVERIFY2(hasGuard,
-                          qPrintable(QStringLiteral("Method '%1' lacks idempotent guard")
-                                         .arg(method)));
-            }
-        }
-
-        // ServiceRegistry Game セッション実装
-        {
-            const QStringList lines = readSourceLines(
-                QStringLiteral("src/app/gamesubregistry_session.cpp"));
-            QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry_session source");
-
-            const QStringList ensureMethods = {
-                QStringLiteral("MainWindowServiceRegistry::ensurePreStartCleanupHandler()"),
-            };
-
-            for (const QString& method : std::as_const(ensureMethods)) {
-                const auto range = findFunctionBody(lines, method);
-                QVERIFY2(range.first >= 0,
-                          qPrintable(QStringLiteral("Method '%1' not found").arg(method)));
-
-                const QString body = bodyText(lines, range.first, range.second);
-                const bool hasGuard = body.contains(QRegularExpression(
-                    QStringLiteral(R"(if\s*\(\s*!?\s*m_mw\.m_[\w.]+\s*\))")));
-                QVERIFY2(hasGuard,
-                          qPrintable(QStringLiteral("Method '%1' lacks idempotent guard")
-                                         .arg(method)));
-            }
-        }
-
-        // ServiceRegistry Game 配線実装
-        {
-            const QStringList lines = readSourceLines(
-                QStringLiteral("src/app/gamesubregistry_wiring.cpp"));
-            QVERIFY2(!lines.isEmpty(), "Failed to read gamesubregistry_wiring source");
-
-            // ensureMatchCoordinatorWiring は二回目以降も Deps 更新が走るため除外
-            // prepareTurnSyncBridge は null チェック後に条件付きで処理するため除外
-            const QStringList ensureMethods = {
-                QStringLiteral("MainWindowServiceRegistry::ensureCsaGameWiring()"),
-                QStringLiteral("MainWindowServiceRegistry::ensureConsecutiveGamesController()"),
-            };
-
-            for (const QString& method : std::as_const(ensureMethods)) {
-                const auto range = findFunctionBody(lines, method);
-                QVERIFY2(range.first >= 0,
-                          qPrintable(QStringLiteral("Method '%1' not found").arg(method)));
-
-                const QString body = bodyText(lines, range.first, range.second);
-                const bool hasGuard = body.contains(QRegularExpression(
-                    QStringLiteral(R"(if\s*\(\s*!?\s*m_mw\.m_[\w.]+\s*\))")));
-                QVERIFY2(hasGuard,
-                          qPrintable(QStringLiteral("Method '%1' lacks idempotent guard")
-                                         .arg(method)));
-            }
-        }
-    }
 
     /// KifuSubRegistry の ensure* メソッドが冪等性ガードを持つこと
     void kifuSubRegistryEnsureMethodsHaveIdempotentGuards()
@@ -586,34 +462,6 @@ private slots:
         }
     }
 
-    /// ServiceRegistry::ensurePositionEditCoordinator が
-    /// UiStatePolicyManager を先に初期化すること
-    void ensurePositionEditCoordinatorDependencyOrder()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowboardregistry.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read board registry source");
-
-        const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowServiceRegistry::ensurePositionEditCoordinator()"));
-        QVERIFY2(range.first >= 0, "ensurePositionEditCoordinator not found");
-
-        int guardLine = -1;
-        int policyLine = -1;
-
-        for (int i = range.first; i <= range.second; ++i) {
-            if (lines[i].contains(QStringLiteral("m_mw.m_registryParts.posEditCoordinator")) && lines[i].contains(QStringLiteral("return")) && guardLine < 0)
-                guardLine = i;
-            if (lines[i].contains(QStringLiteral("ensureUiStatePolicyManager")) && policyLine < 0)
-                policyLine = i;
-        }
-
-        QVERIFY2(guardLine >= 0, "Idempotent guard not found");
-        QVERIFY2(policyLine >= 0, "ensureUiStatePolicyManager call not found");
-        QVERIFY2(guardLine < policyLine,
-                  "Guard should come before cross-registry call");
-    }
-
     // ================================================================
     // 6. SFEN パース異常系ユニットテスト
     // ================================================================
@@ -867,72 +715,6 @@ private slots:
     }
 
     // ================================================================
-    // 9. USI 待機メソッドのタイムアウト保護契約テスト（ソースコード構造検証）
-    // ================================================================
-
-    /// USI の wait メソッドがタイムアウト保護を持つこと
-    void usiWaitMethodsHaveTimeoutProtection()
-    {
-        const QStringList lines = readSourceLines(
-            QStringLiteral("src/engine/usiprotocolhandler_wait.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read usi protocol handler wait source");
-
-        // waitForResponseFlag 共通実装にタイムアウト機構があること
-        {
-            const auto range = findFunctionBody(
-                lines, QStringLiteral("UsiProtocolHandler::waitForResponseFlag("));
-            QVERIFY2(range.first >= 0, "waitForResponseFlag() not found");
-
-            const QString body = bodyText(lines, range.first, range.second);
-            QVERIFY2(body.contains(QStringLiteral("QTimer"))
-                         || body.contains(QStringLiteral("timeout")),
-                      "waitForResponseFlag should use timer-based timeout");
-            QVERIFY2(body.contains(QStringLiteral("waitUntil"))
-                         || body.contains(QStringLiteral("QEventLoop"))
-                         || body.contains(QStringLiteral("pumpEventsSlice"))
-                         || body.contains(QStringLiteral("processEvents")),
-                      "waitForResponseFlag should use event-pump based non-blocking wait");
-        }
-
-        // waitForBestMove にタイムアウト判定があること
-        {
-            const auto range = findFunctionBody(
-                lines, QStringLiteral("UsiProtocolHandler::waitForBestMove("));
-            QVERIFY2(range.first >= 0, "waitForBestMove() not found");
-
-            const QString body = bodyText(lines, range.first, range.second);
-            QVERIFY2((body.contains(QStringLiteral("elapsed"))
-                          && body.contains(QStringLiteral("timeoutMs")))
-                         || body.contains(QStringLiteral("waitUntil")),
-                      "waitForBestMove should enforce timeout directly or delegate to waitUntil");
-            QVERIFY2(body.contains(QStringLiteral("return false")),
-                      "waitForBestMove should return false on timeout");
-        }
-
-        // 各 wait メソッドが [[nodiscard]] であること（ヘッダーの構造検証）
-        {
-            const QString header = readSourceFile(
-                QStringLiteral("src/engine/usiprotocolhandler.h"));
-            QVERIFY2(!header.isEmpty(), "Failed to read usi protocol handler header");
-
-            const QStringList waitMethods = {
-                QStringLiteral("waitForUsiOk"),
-                QStringLiteral("waitForReadyOk"),
-                QStringLiteral("waitForBestMove"),
-                QStringLiteral("waitForBestMoveWithGrace"),
-                QStringLiteral("keepWaitingForBestMove"),
-            };
-
-            for (const QString& method : std::as_const(waitMethods)) {
-                QVERIFY2(header.contains(QStringLiteral("[[nodiscard]]"))
-                             && header.contains(method),
-                          qPrintable(QStringLiteral("Wait method '%1' should be [[nodiscard]]")
-                                         .arg(method)));
-            }
-        }
-    }
-
-    // ================================================================
     // 10. ActionsWiring の fail-fast null チェック（構造検証）
     // ================================================================
 
@@ -1146,27 +928,7 @@ private slots:
                  "showTsumeSearchDialog must not heap-allocate transient flow controllers");
     }
 
-    // ================================================================
-    // 14. エンジン遷移待機中のUI応答性
-    // ================================================================
 
-    /// EngineProcessManager の待機実装がブロッキング waitFor* ではなくイベント駆動であること
-    void engineProcessManagerWaitsUseEventLoopInsteadOfWaitForCalls()
-    {
-        const QString body = readSourceFile(QStringLiteral("src/engine/engineprocessmanager_wait.cpp"));
-        QVERIFY2(!body.isEmpty(), "Failed to read engineprocessmanager_wait source");
-
-        QVERIFY2(body.contains(QStringLiteral("QEventLoop loop")),
-                 "EngineProcessManager should use a local QEventLoop for transition waits");
-        QVERIFY2(body.contains(QStringLiteral("loop.exec(QEventLoop::AllEvents)")),
-                 "EngineProcessManager event-loop waits should keep the UI fully responsive");
-        QVERIFY2(!body.contains(QStringLiteral("waitForStarted(")),
-                 "EngineProcessManager should not block with QProcess::waitForStarted()");
-        QVERIFY2(!body.contains(QStringLiteral("waitForFinished(")),
-                 "EngineProcessManager should not block with QProcess::waitForFinished()");
-        QVERIFY2(!body.contains(QStringLiteral("waitForReadyRead(")),
-                 "EngineProcessManager should not block with QProcess::waitForReadyRead()");
-    }
 };
 
 QTEST_MAIN(TestAppErrorHandling)

@@ -29,6 +29,12 @@ class LiveGameSession;
 class ShogiGameController;
 class ShogiView;
 class UiStatePolicyManager;
+class MatchCoordinator;
+class CsaGameCoordinator;
+class ConsecutiveGamesController;
+struct GameState;
+struct PlayerState;
+struct KifuState;
 
 /**
  * @brief MainWindow のリセット処理を担当するサービス
@@ -74,6 +80,9 @@ public:
         std::function<void()> updateJosekiWindow;
     };
 
+    void clearGameStateFields(GameState& state, PlayerState& player, KifuState& kifu) const;
+    void resetEngineState(MatchCoordinator* match, CsaGameCoordinator* csa,
+                          ConsecutiveGamesController* consecutive) const;
     void clearSessionDependentUi(const SessionUiDeps& deps) const;
     void clearUiBeforeKifuLoad(const SessionUiDeps& deps) const;
     void resetModels(const ModelResetDeps& deps, const QString& hirateStartSfen) const;

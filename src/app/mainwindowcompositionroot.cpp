@@ -54,8 +54,6 @@ void MainWindowCompositionRoot::ensureDialogCoordinator(
     DialogCoordinatorWiring*& wiring,
     DialogCoordinator*& coordinator)
 {
-    if (coordinator) return;
-
     if (!wiring) {
         wiring = createDialogCoordinatorWiring(parent);
     }
@@ -96,9 +94,9 @@ void MainWindowCompositionRoot::ensureGameStateController(
     QObject* parent,
     GameStateController*& controller)
 {
-    if (controller) return;
-
-    controller = createGameStateController(parent);
+    if (!controller) {
+        controller = createGameStateController(parent);
+    }
     refreshGameStateControllerDeps(controller, refs, cbs);
 }
 
@@ -108,9 +106,9 @@ void MainWindowCompositionRoot::ensureBoardSetupController(
     QObject* parent,
     BoardSetupController*& controller)
 {
-    if (controller) return;
-
-    controller = createBoardSetupController(parent);
+    if (!controller) {
+        controller = createBoardSetupController(parent);
+    }
     refreshBoardSetupControllerDeps(controller, refs, cbs);
 }
 
@@ -120,9 +118,9 @@ void MainWindowCompositionRoot::ensurePositionEditCoordinator(
     QObject* parent,
     PositionEditCoordinator*& coordinator)
 {
-    if (coordinator) return;
-
-    coordinator = createPositionEditCoordinator(parent);
+    if (!coordinator) {
+        coordinator = createPositionEditCoordinator(parent);
+    }
     refreshPositionEditCoordinatorDeps(coordinator, refs, cbs);
 }
 
@@ -132,9 +130,11 @@ void MainWindowCompositionRoot::ensureConsiderationWiring(
     QObject* parent,
     ConsiderationWiring*& wiring)
 {
-    if (wiring) return;
-
-    wiring = createConsiderationWiring(refs, cbs, parent);
+    if (!wiring) {
+        wiring = createConsiderationWiring(refs, cbs, parent);
+    } else {
+        wiring->updateDeps(buildConsiderationDeps(refs, cbs, qobject_cast<QWidget*>(parent)));
+    }
 }
 
 void MainWindowCompositionRoot::ensureCommentCoordinator(
@@ -142,9 +142,9 @@ void MainWindowCompositionRoot::ensureCommentCoordinator(
     QObject* parent,
     CommentCoordinator*& coordinator)
 {
-    if (coordinator) return;
-
-    coordinator = createCommentCoordinator(parent);
+    if (!coordinator) {
+        coordinator = createCommentCoordinator(parent);
+    }
     refreshCommentCoordinatorDeps(coordinator, refs);
 }
 
@@ -153,9 +153,9 @@ void MainWindowCompositionRoot::ensurePvClickController(
     QObject* parent,
     PvClickController*& controller)
 {
-    if (controller) return;
-
-    controller = createPvClickController(parent);
+    if (!controller) {
+        controller = createPvClickController(parent);
+    }
     refreshPvClickControllerDeps(controller, refs);
 }
 
@@ -176,8 +176,6 @@ void MainWindowCompositionRoot::ensurePlayerInfoController(
     QObject* /*parent*/,
     PlayerInfoController*& controller)
 {
-    if (controller) return;
-
     if (refs.uiController.playerInfoWiring) {
         controller = refs.uiController.playerInfoWiring->playerInfoController();
     }
@@ -301,7 +299,7 @@ void MainWindowCompositionRoot::refreshGameStateControllerDeps(
     controller->setMatchCoordinator(refs.gameService.match);
     controller->setTimeController(refs.uiController.timeController);
     controller->setKifuRecordModel(refs.models.kifuRecordModel);
-    controller->setPlayMode(*refs.state.playMode);
+    controller->setPlayMode(refs.state.playMode ? *refs.state.playMode : PlayMode::NotStarted);
 
     GameStateController::Hooks hooks;
     hooks.enableArrowButtons = cbs.enableArrowButtons;
@@ -325,6 +323,8 @@ void MainWindowCompositionRoot::refreshBoardSetupControllerDeps(
     controller->setGameController(refs.gameService.gameController);
     controller->setMatchCoordinator(refs.gameService.match);
     controller->setTimeController(refs.uiController.timeController);
+    controller->setPositionEditController(refs.uiController.positionEditController);
+    controller->setPlayMode(refs.state.playMode ? *refs.state.playMode : PlayMode::NotStarted);
     controller->setSfenRecord(refs.kifu.sfenRecord);
     controller->setGameMoves(refs.kifu.gameMoves);
     controller->setCurrentMoveIndex(refs.state.currentMoveIndex);
@@ -374,14 +374,11 @@ void MainWindowCompositionRoot::refreshCommentCoordinatorDeps(
     CommentCoordinator* coordinator,
     const MainWindowRuntimeRefs& refs)
 {
-    if (refs.ui.analysisTab) {
-        coordinator->setCommentEditor(refs.ui.analysisTab->commentEditor());
-    }
+    coordinator->setCommentEditor(refs.ui.analysisTab ? refs.ui.analysisTab->commentEditor() : nullptr);
     coordinator->setRecordPane(refs.ui.recordPane);
     coordinator->setRecordPresenter(refs.kifuService.recordPresenter);
     coordinator->setStatusBar(refs.ui.statusBar);
     coordinator->setCurrentMoveIndex(refs.state.currentMoveIndex);
-    coordinator->setCommentsByRow(refs.kifu.commentsByRow);
     coordinator->setGameRecordModel(refs.models.gameRecordModel);
     coordinator->setKifuRecordListModel(refs.models.kifuRecordModel);
 }

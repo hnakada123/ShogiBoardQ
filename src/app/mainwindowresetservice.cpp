@@ -2,6 +2,10 @@
 /// @brief MainWindow の状態初期化ロジックの実装
 
 #include "mainwindowresetservice.h"
+#include "mainwindowstate.h"
+#include "matchcoordinator.h"
+#include "csagamecoordinator.h"
+#include "consecutivegamescontroller.h"
 
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
@@ -100,7 +104,6 @@ void MainWindowResetService::clearPresentationState(const ModelResetDeps& deps) 
 
     if (deps.recordPresenter) {
         deps.recordPresenter->clearLiveDisp();
-        deps.recordPresenter->setCommentsByRow({});
     }
 
     if (deps.displayCoordinator) {
@@ -180,5 +183,45 @@ void MainWindowResetService::resetUiState(const UiResetDeps& deps,
 
     if (deps.updateJosekiWindow) {
         deps.updateJosekiWindow();
+    }
+}
+
+void MainWindowResetService::clearGameStateFields(GameState& state, PlayerState& player, KifuState& kifu) const
+{
+    state.resumeSfenStr.clear();
+    state.errorOccurred = false;
+
+    player.humanName1.clear();
+    player.humanName2.clear();
+    player.engineName1.clear();
+    player.engineName2.clear();
+
+    kifu.positionStrList.clear();
+
+    player.lastP1Turn = true;
+    player.lastP1Ms = 0;
+    player.lastP2Ms = 0;
+
+    kifu.saveFileName.clear();
+
+    state.skipBoardSyncForBranchNav = false;
+    kifu.onMainRowGuard = false;
+
+    kifu.gameUsiMoves.clear();
+    kifu.gameMoves.clear();
+}
+
+void MainWindowResetService::resetEngineState(MatchCoordinator* match, CsaGameCoordinator* csa,
+                                              ConsecutiveGamesController* consecutive) const
+{
+    if (match) {
+        match->stopAnalysisEngine();
+        match->clearGameOverState();
+    }
+    if (csa) {
+        csa->stopGame();
+    }
+    if (consecutive) {
+        consecutive->reset();
     }
 }

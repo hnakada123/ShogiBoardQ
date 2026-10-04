@@ -75,6 +75,8 @@ private slots:
         model.setComment(2, QStringLiteral("分岐コメント"));
         model.setBookmark(2, QStringLiteral("分岐しおり"));
         QCOMPARE(branch->comment(), QStringLiteral("分岐コメント"));
+        QCOMPARE(disp[2].comment, QStringLiteral("本譜コメント"));
+        QCOMPARE(disp[2].bookmark, QStringLiteral("本譜しおり"));
         const auto exported = model.collectMainlineForExport();
         QCOMPARE(exported[2].comment, QStringLiteral("本譜コメント"));
         QCOMPARE(exported[2].bookmark, QStringLiteral("本譜しおり"));
@@ -247,8 +249,8 @@ private slots:
         QCOMPARE(spy.count(), 0);
     }
 
-    /// CommentUpdateCallback が変更時に呼ばれること
-    void commentUpdateCallback_calledOnChange()
+    /// commentChanged が変更時に呼ばれること
+    void commentSignal_calledOnChange()
     {
         GameRecordModel model;
         KifuBranchTree tree;
@@ -256,20 +258,15 @@ private slots:
         QList<KifDisplayItem> disp;
         setupBasicModel(model, tree, navState, disp);
 
-        int callbackPly = -1;
-        QString callbackComment;
-        model.setCommentUpdateCallback([&](int ply, const QString& comment) {
-            callbackPly = ply;
-            callbackComment = comment;
-        });
-
-        model.setComment(3, QStringLiteral("コールバックテスト"));
-        QCOMPARE(callbackPly, 3);
-        QCOMPARE(callbackComment, QStringLiteral("コールバックテスト"));
+        QSignalSpy spy(&model, &GameRecordModel::commentChanged);
+        model.setComment(3, QStringLiteral("通知テスト"));
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toInt(), 3);
+        QCOMPARE(spy.at(0).at(1).toString(), QStringLiteral("通知テスト"));
     }
 
-    /// 同じ値の再設定時は CommentUpdateCallback が呼ばれないこと
-    void commentUpdateCallback_notCalledOnSameValue()
+    /// 同じ値の再設定時は commentChanged が呼ばれないこと
+    void commentSignal_notCalledOnSameValue()
     {
         GameRecordModel model;
         KifuBranchTree tree;
@@ -279,13 +276,9 @@ private slots:
 
         model.setComment(1, QStringLiteral("固定コメント"));
 
-        int callCount = 0;
-        model.setCommentUpdateCallback([&](int, const QString&) {
-            ++callCount;
-        });
-
+        QSignalSpy spy(&model, &GameRecordModel::commentChanged);
         model.setComment(1, QStringLiteral("固定コメント"));
-        QCOMPARE(callCount, 0);
+        QCOMPARE(spy.count(), 0);
     }
 
     /// 複数手のコメントが独立して管理されること
@@ -354,8 +347,8 @@ private slots:
         QCOMPARE(disp[2].bookmark, QString());
     }
 
-    /// BookmarkUpdateCallback が変更時に呼ばれること
-    void bookmarkUpdateCallback_calledOnChange()
+    /// bookmarkChanged が変更時に呼ばれること
+    void bookmarkSignal_calledOnChange()
     {
         GameRecordModel model;
         KifuBranchTree tree;
@@ -363,20 +356,15 @@ private slots:
         QList<KifDisplayItem> disp;
         setupBasicModel(model, tree, navState, disp);
 
-        int callbackPly = -1;
-        QString callbackBookmark;
-        model.setBookmarkUpdateCallback([&](int ply, const QString& bookmark) {
-            callbackPly = ply;
-            callbackBookmark = bookmark;
-        });
-
+        QSignalSpy spy(&model, &GameRecordModel::bookmarkChanged);
         model.setBookmark(4, QStringLiteral("しおりテスト"));
-        QCOMPARE(callbackPly, 4);
-        QCOMPARE(callbackBookmark, QStringLiteral("しおりテスト"));
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.at(0).at(0).toInt(), 4);
+        QCOMPARE(spy.at(0).at(1).toString(), QStringLiteral("しおりテスト"));
     }
 
-    /// 同じ値の再設定時は BookmarkUpdateCallback が呼ばれないこと
-    void bookmarkUpdateCallback_notCalledOnSameValue()
+    /// 同じ値の再設定時は bookmarkChanged が呼ばれないこと
+    void bookmarkSignal_notCalledOnSameValue()
     {
         GameRecordModel model;
         KifuBranchTree tree;
@@ -386,13 +374,9 @@ private slots:
 
         model.setBookmark(1, QStringLiteral("固定しおり"));
 
-        int callCount = 0;
-        model.setBookmarkUpdateCallback([&](int, const QString&) {
-            ++callCount;
-        });
-
+        QSignalSpy spy(&model, &GameRecordModel::bookmarkChanged);
         model.setBookmark(1, QStringLiteral("固定しおり"));
-        QCOMPARE(callCount, 0);
+        QCOMPARE(spy.count(), 0);
     }
 
     /// しおりの追加が dirty フラグを立てること
@@ -499,6 +483,8 @@ private slots:
         KifuNavigationState navState;
 
         tree.setRootSfen(kHirateSfen);
+        auto* first = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩"), QStringLiteral("sfen1"));
+        tree.addMove(first, ShogiMove(), QStringLiteral("△３四歩"), QStringLiteral("sfen2"));
 
         QList<KifDisplayItem> disp;
         disp.append(KifDisplayItem(QStringLiteral("開始局面"), QString(),
@@ -529,6 +515,8 @@ private slots:
         KifuNavigationState navState;
 
         tree.setRootSfen(kHirateSfen);
+        auto* first = tree.addMove(tree.root(), ShogiMove(), QStringLiteral("▲７六歩"), QStringLiteral("sfen1"));
+        tree.addMove(first, ShogiMove(), QStringLiteral("△３四歩"), QStringLiteral("sfen2"));
 
         QList<KifDisplayItem> disp;
         {
@@ -586,7 +574,7 @@ private slots:
         setupBasicModel(model, tree, navState, disp);
 
         model.clear();
-        QCOMPARE(model.commentCount(), 0);
+        QVERIFY(!model.isDirty());
 
         // clear 後も bind は維持されている → setComment で容量拡張 + liveDisp 同期
         model.setComment(0, QStringLiteral("クリア後コメント"));
@@ -594,36 +582,44 @@ private slots:
         QCOMPARE(disp[0].comment, QStringLiteral("クリア後コメント"));
     }
 
-    /// ensureCommentCapacity で配列が正しく拡張されること
-    void ensureCommentCapacity_extendsArray()
+    void annotationsWithoutTreeRemainEditable()
     {
         GameRecordModel model;
-        KifuBranchTree tree;
-        KifuNavigationState navState;
-        QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // 初期サイズは 8（開始局面 + 7手）
-        QCOMPARE(model.commentCount(), 8);
-
-        // 範囲外にコメント設定 → 自動拡張
-        model.setComment(15, QStringLiteral("遠い手のコメント"));
-        QVERIFY(model.commentCount() > 15);
-        QCOMPARE(model.comment(15), QStringLiteral("遠い手のコメント"));
+        model.setComment(15, QStringLiteral("コメント"));
+        model.setBookmark(20, QStringLiteral("しおり"));
+        QCOMPARE(model.comment(15), QStringLiteral("コメント"));
+        QCOMPARE(model.bookmark(20), QStringLiteral("しおり"));
+        model.clear();
+        QVERIFY(model.comment(15).isEmpty());
+        QVERIFY(model.bookmark(20).isEmpty());
+        QVERIFY(!model.isDirty());
     }
 
-    /// ensureBookmarkCapacity で配列が正しく拡張されること
-    void ensureBookmarkCapacity_extendsArray()
+    void missingBranchNodeDoesNotUseAnotherLinesAnnotation()
     {
         GameRecordModel model;
         KifuBranchTree tree;
-        KifuNavigationState navState;
+        KifuNavigationState nav;
         QList<KifDisplayItem> disp;
-        setupBasicModel(model, tree, navState, disp);
-
-        // 範囲外にしおり設定 → 自動拡張
-        model.setBookmark(20, QStringLiteral("遠い手のしおり"));
-        QCOMPARE(model.bookmark(20), QStringLiteral("遠い手のしおり"));
+        setupBasicModel(model, tree, nav, disp);
+        model.setComment(6, QStringLiteral("本譜のみ"));
+        model.setBookmark(6, QStringLiteral("本譜のしおり"));
+        auto* branch = tree.addMove(tree.mainLine()[1], ShogiMove(),
+                                   QStringLiteral("△８四歩"), QStringLiteral("branch"));
+        nav.setCurrentNode(branch);
+        QVERIFY(model.comment(6).isEmpty());
+        QVERIFY(model.bookmark(6).isEmpty());
+        model.clearDirty();
+        QSignalSpy comments(&model, &GameRecordModel::commentChanged);
+        QSignalSpy bookmarks(&model, &GameRecordModel::bookmarkChanged);
+        model.setComment(6, QStringLiteral("存在しない手"));
+        model.setBookmark(6, QStringLiteral("存在しない手"));
+        QVERIFY(!model.isDirty());
+        QCOMPARE(comments.count(), 0);
+        QCOMPARE(bookmarks.count(), 0);
+        nav.goToRoot();
+        QCOMPARE(model.comment(6), QStringLiteral("本譜のみ"));
+        QCOMPARE(model.bookmark(6), QStringLiteral("本譜のしおり"));
     }
 
     /// 負の ply でコメント設定してもクラッシュしないこと

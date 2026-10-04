@@ -1357,9 +1357,8 @@ void ConsiderationWiring::updateDeps(const Deps& deps)
     m_commLogModel = deps.commLogModel;
     m_playMode = deps.playMode;
     m_currentSfenStr = deps.currentSfenStr;
-    if (deps.ensureDialogCoordinator) {
-        m_ensureDialogCoordinator = deps.ensureDialogCoordinator;
-    }
+    m_ensureDialogCoordinator = deps.ensureDialogCoordinator;
+    if (m_uiController) ensureUIController();
 }
 ```
 
@@ -1395,53 +1394,28 @@ MainWindowは約40個の `ensure*()` メソッドを持ち、各コンポーネ�
 - **循環依存の回避**: AがBに依存し、BがAに依存する場合も、使用時点で双方が存在すれば問題ない
 - **メモリ節約**: 使用しない機能のオブジェクトは生成されない
 
-#### ガードパターン
+#### 生成と依存更新の契約
 
-全ての `ensure*()` メソッドは同じパターンに従う:
+依存先が対局・読み込み・UI生成で変わるコンポーネントは、次の順で処理する。
 
-```
-1. ガード: 既に存在すれば即 return
-2. 生成: new でオブジェクトを作成（親を this にして Qt の親子関係で寿命管理）
-3. 依存設定: setter や Deps で依存オブジェクトを注入
-```
+1. 未生成なら一度だけ生成する。
+2. 既存インスタンスにも、最新の参照とコールバックを設定する。
+3. シグナル接続は初回のみ、または `Qt::UniqueConnection` で重複を防ぐ。
 
-#### 実例: MainWindowの ensure*() メソッド群
-
-```cpp
-// src/app/mainwindow.cpp
-
-void MainWindow::ensureEvaluationGraphController()
-{
-    if (m_evalGraphController) return;  // ガード: 既に存在すればスキップ
-
-    m_evalGraphController = new EvaluationGraphController(this);
-    m_evalGraphController->setEvalChart(m_evalChart);
-    m_evalGraphController->setMatchCoordinator(m_match);
-    m_evalGraphController->setSfenRecord(m_sfenHistory);
-    m_evalGraphController->setEngine1Name(m_engineName1);
-}
-```
+`MainWindowCompositionRoot` は生成を `create*()`、依存更新を `refresh*Deps()` に分ける。
+更新時には、対局・解析の進行状態を初期化しない。
+依存を持たない `PositionEditController` などの生成専用メソッドは、生成済みなら復帰してよい。
 
 ```cpp
-void MainWindow::ensureDialogCoordinator()
+void MainWindowCompositionRoot::ensureGameStateController(
+    const MainWindowRuntimeRefs& refs,
+    const MainWindowDepsFactory::GameStateControllerCallbacks& callbacks,
+    QObject* parent, GameStateController*& controller)
 {
-    if (m_dialogCoordinator) return;  // ガード
-
-    m_dialogCoordinator = new DialogCoordinator(this, this);
-    m_dialogCoordinator->setMatchCoordinator(m_match);
-    m_dialogCoordinator->setGameController(m_gameController);
-    // ... 追加の依存設定
-}
-```
-
-```cpp
-void MainWindow::ensureTimeController()
-{
-    if (m_timeController) return;  // ガード
-
-    m_timeController = new TimeControlController(this);
-    m_timeController->setTimeDisplayPresenter(m_timePresenter);
-    m_timeController->ensureClock();
+    if (!controller) {
+        controller = createGameStateController(parent);
+    }
+    refreshGameStateControllerDeps(controller, refs, callbacks);
 }
 ```
 
@@ -3216,33 +3190,15 @@ stateDiagram-v2
     Quitting --> [*] : プロセス終了
 ```
 
-#### initializeEngine() の初期化シーケンス
+#### 非同期初期化シーケンス
 
-```
-initializeEngine(engineName)
-  │
-  ├── 1. loadEngineOptions(engineName)
-  │     └── QSettingsからsetoptionコマンド群を読み込み
-  │         USI_Ponderがtrueならm_isPonderEnabled = true
-  │
-  ├── 2. sendUsi()
-  │     └── "usi" を送信
-  │
-  ├── 3. waitForUsiOk(5000ms)
-  │     └── QEventLoopで "usiok" を待機（タイムアウト5秒）
-  │
-  ├── 4. setoptionコマンド群を順次送信
-  │     └── "setoption name Hash value 256" 等
-  │
-  ├── 5. sendIsReady()
-  │     └── "isready" を送信
-  │
-  ├── 6. waitForReadyOk(5000ms)
-  │     └── QEventLoopで "readyok" を待機
-  │
-  └── 7. sendUsiNewGame()
-        └── "usinewgame" を送信
-```
+`Usi::startAndInitializeEngineAsync()` は要求の受付を返す。
+`EngineProcessManager::processStarted` の後、`UsiProtocolHandler::initializeEngineAsync()` が
+`usi` → `usiok` → `setoption` → `isready` → `readyok` → `usinewgame` の順に進める。
+各応答はQtシグナルで受信し、usiok・readyokにはそれぞれ既定5秒のタイマーを設ける。
+成功は `Usi::engineInitialized`、失敗は `errorOccurred` で通知する。
+初期化中の探索要求はキューへ保管し、初期化完了後に送信する。
+キャンセル時は保留要求とタイマーを破棄する。
 
 ### 7.3 EngineProcessManager — プロセス管理
 
@@ -3266,8 +3222,8 @@ quit コマンド送信後、エンジンが出力する残りの応答を制御
 
 | メソッド | 説明 |
 |---------|------|
-| `startProcess(engineFile)` | ファイル存在チェック → QProcess 作成 → 作業ディレクトリ設定 → 起動 |
-| `stopProcess()` | waitForFinished(3s) → terminate → kill の段階的シャットダウン |
+| `startProcessAsync(engineFile)` | ファイル検証後に起動要求を出す。完了は `processStarted` で通知 |
+| `stopProcessAsync()` | プロセスの所有権を終了処理へ移し、quit → terminate → kill をタイマーで進める。管理元の破棄後も回収する |
 | `sendCommand(command)` | コマンド文字列を UTF-8 で書き込み、`commandSent` シグナルを発行 |
 | `setLogIdentity(tag, side, name)` | ログ出力用の識別情報を設定（例: `[E1/▲] YaneuraOu`） |
 
@@ -3292,7 +3248,7 @@ onReadyReadStdout()
 
 **ソース**: `src/engine/usiprotocolhandler.h`, `src/engine/usiprotocolhandler.cpp`
 
-USI プロトコルのコマンド生成・レスポンス解析・待機処理を担当する。
+USI プロトコルのコマンド生成・レスポンス解析・非同期初期化を担当する。
 
 #### 思考フェーズ
 
@@ -3349,22 +3305,19 @@ onDataReceived(line)
   ├── "info ..." → emit infoLineReceived()
   │                 Presenter::onInfoReceived()
   │
-  ├── "readyok" → m_readyOkReceived = true, emit readyOkReceived()
+  ├── "readyok" → emit readyOkReceived()
   │
-  └── "usiok"   → m_usiOkReceived = true, emit usiOkReceived()
+  └── "usiok"   → emit usiOkReceived()
 ```
 
-#### 待機メソッド
+#### 応答待ちとキャンセル
 
-| メソッド | 待機対象 | タイムアウト |
-|---------|---------|------------|
-| `waitForUsiOk(ms)` | `usiOkReceived` シグナル | デフォルト 5000ms |
-| `waitForReadyOk(ms)` | `readyOkReceived` シグナル | デフォルト 5000ms |
-| `waitForBestMove(ms)` | `m_bestMoveReceived` フラグ | 指定 ms |
-| `waitForBestMoveWithGrace(budget, grace)` | 同上 | budget + grace ms |
-| `keepWaitingForBestMove()` | 同上 | 無制限（中断条件あり） |
-
-待機処理は `QEventLoop` で実装されており、`shouldAbortWait()` がタイムアウト宣言・シャットダウン状態・プロセス停止を検出して待機を中断する。
+同期の `waitFor*` APIは設けず、応答シグナルとタイマーで進行する。
+初期化は `initializationFinished(bool)`、対局の着手は `Usi::matchMoveReady` で通知する。
+`UsiMatchHandler` は本探索・先読み停止待ちを管理し、先読みが外れた場合は
+旧探索の `bestmove` を回収してから次の `go` を送る。
+時計と同じ残り時間を期限に使い、無制限対局には30分の安全上限を設ける。
+`cancelCurrentOperation()` は探索の世代を更新し、取消済みの結果の採用を防ぐ。
 
 #### 経過時間の計測
 
@@ -3422,8 +3375,8 @@ Presenter → Usi（モデル更新の中継）
 
 | シグナル | 用途 | 主な接続先 |
 |---------|------|----------|
-| `usiOkReceived()` | usiok 受信完了 | waitForUsiOk の QEventLoop |
-| `readyOkReceived()` | readyok 受信完了 | waitForReadyOk の QEventLoop |
+| `usiOkReceived()` | usiok 受信完了 | 初期化状態の遷移 |
+| `readyOkReceived()` | readyok 受信完了 | 初期化完了の通知 |
 | `bestMoveReceived()` | bestmove 受信 | MatchCoordinator |
 | `bestMoveResignReceived()` | 投了 | MatchCoordinator |
 | `bestMoveWinReceived()` | 入玉宣言勝ち | MatchCoordinator |
@@ -4079,11 +4032,11 @@ struct ResolvedRow {
 
 **ソース**: `src/kifu/gamerecordmodel.h/.cpp`
 
-棋譜データの **Single Source of Truth** として機能するクラス。コメントの一元管理と、各種フォーマットへの出力を担当する。
+`KifuBranchTree` を正本として、コメント・しおりの編集と各種フォーマットへの出力を担当する。ツリー未構築時のみ内部配列へ保存する。
 
 #### 責務
 
-1. **コメント管理**: `setComment(ply, comment)` で内部配列・`KifuBranchTree` ノード・`liveDisp` の3箇所を同期更新
+1. **コメント・しおり管理**: 選択中の分岐のノードを更新し、変更シグナルで表示へ通知。本譜の編集時だけ本譜の `liveDisp` にも反映
 2. **変更追跡**: `isDirty()` で未保存の変更を検出
 3. **棋譜出力**: 6つのフォーマットへの変換メソッドを提供
 
@@ -4092,21 +4045,21 @@ struct ResolvedRow {
 ```
 setComment(ply, comment)
   │
-  ├── m_comments[ply] = comment        … 内部配列（権威）
-  ├── m_branchTree->setComment(...)     … ツリーノードに同期
-  ├── m_liveDisp[ply].comment = comment … 表示データに同期
-  ├── m_commentUpdateCallback(ply, comment) … 外部通知
-  └── emit commentChanged(ply, comment) … シグナル発火
+  ├── 現在の分岐のノードに保存（ツリー未構築時のみ内部配列）
+  ├── 本譜ノードの場合は liveDisp の表示データも更新
+  └── commentChanged(ply, comment)
+        └── CommentCoordinator が棋譜欄とコメント欄を更新
 ```
 
 #### ExportContext — 出力コンテキスト
 
-棋譜出力に必要な情報を一つにまとめた構造体:
+`ExportContext` は `KifuExportMetadata` の別名。UIウィジェットへの参照を含まず、
+`KifuExportMetadataBuilder` が通常出力と簡易KIF保存の対局情報・対局者名生成を共有する。
 
 ```cpp
-struct ExportContext {
-    const QTableWidget* gameInfoTable;  // 対局情報テーブル
-    const KifuRecordListModel* recordModel; // 棋譜表示モデル
+struct KifuExportMetadata {
+    bool gameInfoProvided;             // 空の編集結果も明示できる
+    QList<KifGameInfoItem> gameInfoItems; // UIから抽出済みの値
     QString startSfen;                  // 開始局面SFEN
     PlayMode playMode;                  // 対局モード
     QString human1, human2;             // 人間プレイヤー名
@@ -4757,7 +4710,7 @@ runWithDialog(deps, parent)
         │     ├── Presenter::stopRequested → this::stop
         │     └── Presenter::rowDoubleClicked → this::onResultRowDoubleClicked
         │
-        ├── Usi::startAndInitializeEngine()
+        ├── Usi::startAndInitializeEngineAsync()
         └── AC::startAnalyzeRange()
               │
               ▼ （以下、AnalysisCoordinator の解析サイクル）
@@ -7114,138 +7067,23 @@ MainWindow（ハブ / ファサード）
 
 ---
 
-### 14.3 ensure*() による遅延生成パターン
+### 14.3 ensure*() による遅延生成と依存更新
 
-MainWindow の設計で最も特徴的なパターンが `ensure*()` メソッドによる遅延初期化（Lazy Initialization）である。現在 **36 個**の `ensure*()` メソッドが存在する。
+`MainWindowServiceRegistry` と `MainWindowFoundationRegistry` が利用時点の依存を集め、
+`MainWindowCompositionRoot` や既存のWiringに渡す。生成済みオブジェクトを再利用し、
+可変の依存は呼び出しのたびに更新する。共通の契約は [4.2節](#42-ensure-遅延初期化パターン) を参照。
 
-#### 基本形
+- `GameStateController`、`BoardSetupController`、`PositionEditCoordinator` は、最新の対局・時計・局面編集コントローラを参照する。
+- `CommentCoordinator` と `GameRecordPresenter` は、最新の棋譜モデル・コメント欄へ接続する。
+- `DialogCoordinatorWiring` はコンテキストを更新し、初回のシグナル配線を重複させない。
+- `ConsiderationWiring` は、生成済みのUIコントローラにも更新した依存を渡す。
+- `PreStartCleanupHandler::updateDependencies()` は参照だけを更新する。棋譜の消去は `performCleanup()` で行う。
 
-最もシンプルなパターン。null チェック後にオブジェクトを生成する。
+レジストリ内の状態消去・エンジンリセットは `MainWindowResetService` へ委譲する。
+`ensure*()` は生成と接続の準備を担当し、実際の操作をサービス側に保つ。
 
-```cpp
-// src/app/mainwindow.cpp — ensurePositionEditController
-void MainWindow::ensurePositionEditController()
-{
-    if (m_posEdit) return;
-    m_posEdit = new PositionEditController(this);
-}
-```
-
-#### 依存注入型
-
-生成後に依存オブジェクトを setter で設定するパターン。
-
-```cpp
-// src/app/mainwindow.cpp — ensureEvaluationGraphController
-void MainWindow::ensureEvaluationGraphController()
-{
-    if (m_evalGraphController) return;
-
-    m_evalGraphController = new EvaluationGraphController(this);
-    m_evalGraphController->setEvalChart(m_evalChart);
-    m_evalGraphController->setMatchCoordinator(m_match);
-    m_evalGraphController->setSfenRecord(m_sfenHistory);
-    m_evalGraphController->setEngine1Name(m_engineName1);
-    m_evalGraphController->setEngine2Name(m_engineName2);
-
-    if (m_playerInfoController) {
-        m_playerInfoController->setEvalGraphController(m_evalGraphController);
-    }
-}
-```
-
-#### Deps 構造体 + updateDeps() 型
-
-複雑な依存関係を持つクラスでは、`Deps` 構造体にまとめて渡す。
-
-```cpp
-// src/app/mainwindow.cpp — ensureBoardSyncPresenter
-void MainWindow::ensureBoardSyncPresenter()
-{
-    if (m_boardSync) return;
-
-    BoardSyncPresenter::Deps d;
-    d.gc         = m_gameController;
-    d.view       = m_shogiView;
-    d.bic        = m_boardController;
-    d.sfenRecord = m_sfenHistory;
-    d.gameMoves  = &m_gameMoves;
-
-    m_boardSync = new BoardSyncPresenter(d, this);
-}
-```
-
-#### コンテキスト構造体型
-
-`DialogCoordinator` のように複数のコンテキスト（検討・詰み探索・棋譜解析）を持つ場合、専用のコンテキスト構造体を使い分ける。
-
-```cpp
-// src/app/mainwindow.cpp — ensureDialogCoordinator（簡略版）
-void MainWindow::ensureDialogCoordinator()
-{
-    if (m_dialogCoordinator) return;
-
-    m_dialogCoordinator = new DialogCoordinator(this, this);
-    m_dialogCoordinator->setMatchCoordinator(m_match);
-    m_dialogCoordinator->setGameController(m_gameController);
-
-    // 検討コンテキストを設定
-    DialogCoordinator::ConsiderationContext conCtx;
-    conCtx.gameController = m_gameController;
-    conCtx.gameMoves = &m_gameMoves;
-    // ... 他のフィールド設定 ...
-    m_dialogCoordinator->setConsiderationContext(conCtx);
-
-    // 詰み探索コンテキスト、棋譜解析コンテキストも同様に設定
-    // ...
-
-    // シグナル/スロット接続
-    ensureConsiderationWiring();
-    connect(m_dialogCoordinator, &DialogCoordinator::considerationModeStarted,
-            m_considerationWiring, &ConsiderationWiring::onModeStarted);
-    // ...
-}
-```
-
-#### std::function コールバック型（遅延初期化ギャップの解決）
-
-Wiring クラスなど外部に抽出したクラスが、MainWindow の `ensure*()` を呼び出す必要がある場合、`std::function` コールバックを `Deps` に含める。
-
-```cpp
-// src/app/mainwindow.cpp — ensureConsiderationWiring（抜粋）
-void MainWindow::ensureConsiderationWiring()
-{
-    if (m_considerationWiring) return;
-
-    ConsiderationWiring::Deps deps;
-    deps.parentWidget = this;
-    deps.analysisTab = m_analysisTab;
-    // ... 他の依存 ...
-    deps.ensureDialogCoordinator = [this]() {
-        ensureDialogCoordinator();
-        // 初期化後に最新の依存を反映
-        if (m_considerationWiring) {
-            ConsiderationWiring::Deps updated;
-            // ... 最新ポインタを再設定 ...
-            m_considerationWiring->updateDeps(updated);
-        }
-    };
-
-    m_considerationWiring = new ConsiderationWiring(deps, this);
-}
-```
-
-> **注意**: `connect()` 内のラムダ式は CLAUDE.md で禁止されているが、`Deps` 構造体内のコールバック設定は `connect()` とは無関係なため許可されている。
-
-#### 呼び出しパターン
-
-`ensure*()` は典型的に以下の3箇所から呼ばれる。
-
-1. **コンストラクタ** — 起動時に必須なコンポーネント（`ensureTimeController()`, `ensureLanguageController()` 等）
-2. **他の ensure*() メソッド内** — 依存する先行コンポーネントの確保（`ensureConsiderationUIController()` → `ensureConsiderationWiring()`）
-3. **スロット / 公開メソッド内** — ユーザー操作時のオンデマンド生成（`displayVersionInformation()` → `ensureDialogCoordinator()`）
-
----
+`tst_service_initialization` は本体のMainWindowを使い、繰り返しの生成要求で
+インスタンスが増えないこと、依存の差し替えと局面編集が機能することを確認する。
 
 ### 14.4 コンストラクタの処理フロー
 
@@ -7382,8 +7220,7 @@ m_dockCreationService->setRecordPane(m_recordPane);
 **提供機能**:
 - `broadcastComment()` — コメントを EngineAnalysisTab と RecordPane に配信
 - `onCommentUpdated()` — UI からのコメント更新を処理
-- `onGameRecordCommentChanged()` — GameRecordModel の変更を検知して反映
-- `onCommentUpdateCallback()` — GameRecordModel からのコールバック処理
+- `onGameRecordCommentChanged()` / `onBookmarkChanged()` — GameRecordModel の変更シグナルから表示を更新
 
 **遅延初期化ギャップの解決**:
 
@@ -7674,7 +7511,7 @@ sequenceDiagram
     CW->>CFC: runDirect(deps, params, positionStr)
 
     CFC->>MC: startAnalysis(AnalysisOptions)
-    MC->>USI: startAndInitializeEngine(enginePath)
+    MC->>USI: startAndInitializeEngineAsync(enginePath)
     Note over USI: エンジンプロセス起動<br/>usi → usiok<br/>isready → readyok
     MC->>USI: sendAnalysisCommands(positionStr, byoyomiMs, multiPV)
     Note over USI: position ... を送信<br/>go infinite を送信

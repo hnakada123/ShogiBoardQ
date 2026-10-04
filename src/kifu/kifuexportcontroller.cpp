@@ -6,7 +6,6 @@
 
 #include <QWidget>
 #include <QStatusBar>
-#include <QTableWidget>
 #include "logcategories.h"
 #include <QMessageBox>
 #include <QDir>
@@ -219,7 +218,6 @@ bool KifuExportController::overwriteFile(const QString& filePath)
         if (m_deps.recordPresenter) {
             ctx.liveDisp = &m_deps.recordPresenter->liveDisp();
         }
-        ctx.commentsByRow = m_deps.commentsByRow;
         ctx.activeResolvedRow = m_deps.activeResolvedRow;
         ctx.startSfen = m_deps.startSfenStr;
         ctx.playMode = m_deps.playMode;

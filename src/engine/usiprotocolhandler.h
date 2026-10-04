@@ -11,7 +11,6 @@
 #include <QMap>
 #include <QPoint>
 #include <QElapsedTimer>
-#include <QPointer>
 #include <QTimer>
 #include <optional>
 
@@ -29,7 +28,7 @@ class ShogiGameController;
  * - USIコマンドの生成と送信
  * - USIレスポンスの解析
  * - 対局フローの制御（go, ponder, bestmove等）
- * - 待機処理（usiok, readyok, bestmove）
+ * - 非同期初期化と応答通知（usiok, readyok, bestmove）
  *
  * プロセス管理はEngineProcessManagerに、GUI更新はThinkingInfoPresenterに委譲する。
  *
@@ -69,7 +68,6 @@ public:
     // --- 初期化 ---
     
     /// エンジン初期化シーケンスを実行
-    [[nodiscard]] bool initializeEngine(const QString& engineName);
     
     void initializeEngineAsync(int timeoutMs = 5000);
 
@@ -107,17 +105,6 @@ public:
     void sendSetOption(const QString& name, const QString& value);
     void sendSetOption(const QString& name, const QString& value, const QString& type);
     void sendRaw(const QString& command);
-
-    // --- 待機メソッド ---
-    
-    [[nodiscard]] bool waitForUsiOk(int timeoutMs = 5000);
-    [[nodiscard]] bool waitForReadyOk(int timeoutMs = 5000);
-    [[nodiscard]] bool waitForBestMove(int timeoutMs);
-    [[nodiscard]] bool waitForBestMoveWithGrace(int budgetMs, int graceMs);
-    static constexpr int kKeepWaitingHardTimeoutMs = 30 * 60 * 1000; ///< 無制限待機の安全上限(30分)
-    [[nodiscard]] bool keepWaitingForBestMove(int timeoutMs = kKeepWaitingHardTimeoutMs);
-    /// sendStop()/sendPonderHit() 済みフラグを待機する（中断条件到達時は復帰）
-    void waitForStopOrPonderhit();
 
     // --- 指し手処理 ---
 
@@ -162,12 +149,12 @@ signals:
     void searchCandidateChanged();
     void initializationFinished(bool success);
 
-    void usiOkReceived();              ///< usiok受信（Handler → waitForUsiOk）
-    void readyOkReceived();            ///< readyok受信（Handler → waitForReadyOk）
+    void usiOkReceived();              ///< usiok受信
+    void readyOkReceived();            ///< readyok受信
     void bestMoveReceived();           ///< bestmove受信（Handler → Usi/MatchCoordinator）
     void bestMoveResignReceived();     ///< bestmove resign受信（Handler → MatchCoordinator）
     void bestMoveWinReceived();        ///< bestmove win 入玉宣言勝ち受信（Handler → MatchCoordinator）
-    void stopOrPonderhitSent();        ///< stop/ponderhit送信完了（Handler → waitForStopOrPonderhit）
+    void stopOrPonderhitSent();        ///< stop/ponderhit送信完了
     void errorOccurred(const QString& message); ///< エラー発生（Handler → Usi）
     void infoLineReceived(const QString& line); ///< info行受信（Handler → AnalysisCoordinator）
 
@@ -202,8 +189,6 @@ private:
     /// checkmate行の処理
     void handleCheckmateLine(const QString& line);
     
-    /// 待機中断判定
-    bool shouldAbortWait() const;
 
     /// go本探索の共通前処理
     void beginMainSearch();
@@ -212,8 +197,6 @@ private:
     void updateCandidate(const QString& line);
     SearchCandidate m_searchCandidate;
 
-    /// 待機メソッドの共通実装
-    bool waitForResponseFlag(bool& flag, void(UsiProtocolHandler::*signal)(), int timeoutMs);
 
     /// オペレーションコンテキスト
     quint64 beginOperationContext();
@@ -225,8 +208,6 @@ private:
     ShogiGameController* m_gameController = nullptr;   ///< 対局制御（非所有）
 
     // --- USI状態フラグ ---
-    bool m_usiOkReceived = false;     ///< usiok受信済み
-    bool m_readyOkReceived = false;   ///< readyok受信済み
     bool m_bestMoveReceived = false;  ///< bestmove受信済み
     SpecialMove m_specialMove = SpecialMove::None; ///< 特殊手（投了/入玉宣言勝ち等）
     bool m_isPonderEnabled = false;   ///< GUI側の先読み許可（オプション報告有無とは独立）
@@ -252,10 +233,8 @@ private:
     bool m_winNotified = false;        ///< 入玉宣言勝ちシグナル発行済み（重複防止）
     bool m_squelchResignLogging = false; ///< resign 通知/ログ抑止
     bool m_timeoutDeclared = false;    ///< ハードタイムアウト宣言済み
-    bool m_stopOrPonderhitPending = false; ///< stop/ponderhit送信通知のラッチ
 
     // --- オペレーションコンテキスト ---
-    QPointer<QObject> m_opCtx { nullptr }; ///< 現在のオペレーション（所有、キャンセル時にdelete）
     quint64 m_seq { 0 };               ///< オペレーション通番（キャンセル検出用）
     quint64 m_activeSearchSeq { 0 };   ///< 直近の go 系探索に対応する通番
 

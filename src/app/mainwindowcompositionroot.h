@@ -25,7 +25,9 @@ class PlayerInfoController;
  * @brief ensure* の生成ロジックを集約する CompositionRoot
  *
  * 責務:
- * - 「いつ factory を呼ぶか」と「オブジェクト生成順序の制御」のみ
+ * - ensure* は未生成なら一度だけ生成し、呼び出しごとに現在の依存へ更新する
+ * - create* は生成のみ、refresh*Deps は依存更新のみを行う
+ * - 接続を更新する場合は重複させず、進行中の操作状態は初期化しない
  * - 所有権は MainWindow 側に残す（CompositionRoot は生成結果を out パラメータで返す）
  * - MainWindowDepsFactory は CompositionRoot 内部でのみ使用する
  */

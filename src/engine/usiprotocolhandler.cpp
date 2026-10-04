@@ -82,29 +82,6 @@ void UsiProtocolHandler::setGameController(ShogiGameController* controller)
 // 初期化
 // ============================================================
 
-bool UsiProtocolHandler::initializeEngine(const QString& /*engineName*/)
-{
-    m_reportedOptions.clear();
-
-    sendUsi();
-    if (!waitForUsiOk(5000)) {
-        emit errorOccurred(tr("Timeout waiting for usiok"));
-        return false;
-    }
-
-    sendConfiguredOptions();
-
-    sendIsReady();
-    if (!waitForReadyOk(5000)) {
-        emit errorOccurred(tr("Timeout waiting for readyok"));
-        return false;
-    }
-
-    sendUsiNewGame();
-
-    return true;
-}
-
 void UsiProtocolHandler::sendConfiguredOptions()
 {
     // エンジンが報告したオプションのみ送信する。
@@ -181,7 +158,6 @@ void UsiProtocolHandler::sendCommand(const QString& command)
 void UsiProtocolHandler::sendUsi()
 {
     // 以前のハンドシェイク状態を引き継がない
-    m_usiOkReceived = false;
     (void)beginOperationContext();
     sendCommand("usi");
 }
@@ -189,7 +165,6 @@ void UsiProtocolHandler::sendUsi()
 void UsiProtocolHandler::sendIsReady()
 {
     // 以前のハンドシェイク状態を引き継がない
-    m_readyOkReceived = false;
     (void)beginOperationContext();
     sendCommand("isready");
 }
@@ -336,7 +311,6 @@ void UsiProtocolHandler::sendStop()
         m_predictedOpponentMove.clear();
     }
     sendCommand("stop");
-    m_stopOrPonderhitPending = true;
     emit stopOrPonderhitSent();
 }
 
@@ -352,7 +326,6 @@ void UsiProtocolHandler::sendPonderHit()
     emit searchCandidateChanged();
 
     sendCommand("ponderhit");
-    m_stopOrPonderhitPending = true;
     emit stopOrPonderhitSent();
 
 }
@@ -438,7 +411,6 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     const QString trimmed = line.trimmed();
 
     if (trimmed == QStringLiteral("readyok")) {
-        m_readyOkReceived = true;
         emit readyOkReceived();
         return;
     }
@@ -455,7 +427,6 @@ void UsiProtocolHandler::onDataReceived(const QString& line)
     }
 
     if (trimmed == QStringLiteral("usiok")) {
-        m_usiOkReceived = true;
         emit usiOkReceived();
         return;
     }

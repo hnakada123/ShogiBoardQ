@@ -122,7 +122,7 @@ public:
     void handleNyugyokuDeclaration(Player declarer, bool success, bool isDraw);
 
     /// 対局中の指し手リストを取得する（CSA出力等で使用）
-    const QList<ShogiMove>& gameMoves() const { return m_gameMoves; }
+    const QList<ShogiMove>& gameMoves() const { return gameMovesRef(); }
     /// SFEN履歴への参照を取得する（UI共有用）
     QStringList* sfenRecordPtr() { return m_sfenHistory; }
     /// SFEN履歴への参照を取得する（const版）
@@ -382,6 +382,9 @@ private:
 
     // 外部共有ポインタが設定されていればそれを使う（Deps経由で注入）
     QList<ShogiMove>& gameMovesRef() {
+        return m_externalGameMoves ? *m_externalGameMoves : m_gameMoves;
+    }
+    const QList<ShogiMove>& gameMovesRef() const {
         return m_externalGameMoves ? *m_externalGameMoves : m_gameMoves;
     }
 

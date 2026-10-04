@@ -433,6 +433,7 @@ set(SRC_KIFU
     src/kifu/formats/usitosfenconverter.cpp
     src/kifu/formats/usitosfenconverter.h
     src/kifu/gamerecordmodel.cpp
+    src/kifu/kifuexportmetadata.cpp
     src/kifu/gamerecordmodel.h
     src/kifu/gameinfokeys.h
     src/kifu/kifdisplayitem.h
@@ -533,7 +534,7 @@ set(SRC_ENGINE
     src/engine/engineoptiondescriptions.h
     src/engine/engineoptions.h
     src/engine/engineprocessmanager.cpp
-    src/engine/engineprocessmanager_wait.cpp
+    src/engine/engineprocessmanager_lifecycle.cpp
     src/engine/engineprocessmanager.h
     src/engine/enginesettingsconstants.h
     src/engine/shogiengineinfoparser.cpp
@@ -560,7 +561,6 @@ set(SRC_ENGINE
     src/engine/usiprotocolhandler.cpp
     src/engine/usiprotocolhandler.h
     src/engine/usiprotocolhandler_ops.cpp
-    src/engine/usiprotocolhandler_wait.cpp
 )
 
 set(SRC_NETWORK

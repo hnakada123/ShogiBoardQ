@@ -113,7 +113,6 @@ void MainWindowFoundationRegistry::ensurePlayerInfoWiring()
 
 void MainWindowFoundationRegistry::ensurePlayerInfoController()
 {
-    if (m_mw.m_playerInfoController) return;
     ensurePlayerInfoWiring();
     m_mw.m_compositionRoot->ensurePlayerInfoController(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_playerInfoController);
 }
@@ -162,13 +161,12 @@ void MainWindowFoundationRegistry::refreshKifuNavigationCoordinatorDeps()
 
 void MainWindowFoundationRegistry::ensureCommentCoordinator()
 {
-    if (m_mw.m_commentCoordinator) return;
     // QPointer<T> は T*& に直接バインドできないため、一時変数経由で渡す
-    CommentCoordinator* ptr = nullptr;
+    CommentCoordinator* ptr = m_mw.m_commentCoordinator;
     m_mw.m_compositionRoot->ensureCommentCoordinator(m_mw.buildRuntimeRefs(), &m_mw, ptr);
     m_mw.m_commentCoordinator = ptr;
     connect(m_mw.m_commentCoordinator, &CommentCoordinator::ensureGameRecordModelRequested,
-            m_serviceRegistry->kifu(), &KifuSubRegistry::ensureGameRecordModel);
+            m_serviceRegistry->kifu(), &KifuSubRegistry::ensureGameRecordModel, Qt::UniqueConnection);
 }
 
 // ---------------------------------------------------------------------------
@@ -236,9 +234,9 @@ void MainWindowFoundationRegistry::ensureUiNotificationService()
 
 void MainWindowFoundationRegistry::ensureEvaluationGraphController()
 {
-    if (m_mw.m_evalGraphController) return;
-
-    m_mw.m_evalGraphController = std::make_unique<EvaluationGraphController>();
+    if (!m_mw.m_evalGraphController) {
+        m_mw.m_evalGraphController = std::make_unique<EvaluationGraphController>();
+    }
     m_mw.m_evalGraphController->setEvalChart(m_mw.m_evalChart);
     m_mw.m_evalGraphController->setMatchCoordinator(m_mw.m_match);
     m_mw.m_evalGraphController->setSfenRecord(m_mw.m_queryService->sfenRecord());

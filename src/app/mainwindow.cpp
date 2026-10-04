@@ -178,7 +178,6 @@ MainWindowRuntimeRefs MainWindow::buildRuntimeRefs()
     refs.kifu.activePly = &m_kifu.activePly;
     refs.kifu.currentSelectedPly = &m_kifu.currentSelectedPly;
     refs.kifu.saveFileName = &m_kifu.saveFileName;
-    refs.kifu.commentsByRow = &m_kifu.commentsByRow;
     refs.kifu.onMainRowGuard = &m_kifu.onMainRowGuard;
 
     refs.state.playMode = &m_state.playMode;

@@ -182,9 +182,7 @@ private:
     qint64 queryByoyomiMs();
     bool queryIsHumanSide(ShogiGameController::Player player);
     void updateTurnStatus(int currentPlayer);
-    void clearGameStateFields();
     void resetRecordForEditedPosition();
-    void resetEngineState();
 
     MainWindow& m_mw;  ///< MainWindow への参照（生涯有効）
     MainWindowFoundationRegistry* m_foundation;  ///< 共通基盤レジストリ（子オブジェクト）

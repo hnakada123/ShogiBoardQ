@@ -22,7 +22,6 @@ void KifuExportDepsAssembler::assemble(KifuExportController* controller, const M
     deps.sfenRecord = refs.kifu.sfenRecord;
     deps.usiMoves = refs.kifu.gameUsiMoves;
     deps.resolvedRows = nullptr;  // KifuBranchTree を優先使用
-    deps.commentsByRow = refs.kifu.commentsByRow;
     deps.startSfenStr = refs.state.startSfenStr ? *refs.state.startSfenStr : QString();
     deps.playMode = refs.state.playMode ? *refs.state.playMode : PlayMode::NotStarted;
     deps.humanName1 = refs.player.humanName1 ? *refs.player.humanName1 : QString();

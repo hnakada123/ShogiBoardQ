@@ -9,21 +9,9 @@
 #include "matchcoordinator.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
-
-// ============================================================
-// test_stubs_matchcoordinator.cpp で定義されたトラッカー
-// ============================================================
-namespace MCTracker {
-extern bool gameEndHandlerResignCalled;
-extern bool gameEndHandlerBreakOffCalled;
-extern int  gameEndHandlerEngineResignIdx;
-extern int  gameEndHandlerEngineWinIdx;
-extern bool gameStartOrchestratorConfigureCalled;
-extern bool matchTimekeeperSetTimeControlCalled;
-extern bool analysisSessionStartCalled;
-extern bool analysisSessionStopCalled;
-void reset();
-}
+#include "sfenutils.h"
+#include "usi.h"
+#include <QTemporaryDir>
 
 // ============================================================
 // テストハーネス
@@ -48,7 +36,9 @@ struct MCTestHarness {
 
     MCTestHarness()
     {
-        MCTracker::reset();
+        QString initial = SfenUtils::hirateSfen();
+        gc.newGame(initial);
+        gc.setCurrentPlayer(ShogiGameController::Player1);
 
         MatchCoordinator::Deps deps;
         deps.gc = &gc;
@@ -105,12 +95,18 @@ struct MCTestHarness {
 class Tst_MatchCoordinator : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_config;
 
 private slots:
+    void initTestCase() {
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+    }
     // === Section A: 初期状態 ===
     void initialState_playModeIsNotStarted();
     void initialState_gameOverStateIsCleared();
     void initialState_gameMovesIsEmpty();
+    void gameMovesUsesSharedRecord();
 
     // === Section B: 終局状態管理 ===
     void setGameOver_setsStateAndEmitsSignals();
@@ -129,14 +125,14 @@ private slots:
     void setPlayMode_roundTrip();
 
     // === Section E: デリゲーション ===
-    void handleResign_delegatesToGameEndHandler();
-    void handleEngineResign_delegatesToGameEndHandler();
-    void handleEngineWin_delegatesToGameEndHandler();
-    void handleBreakOff_delegatesToGameEndHandler();
-    void configureAndStart_delegatesToGameStartOrchestrator();
-    void setTimeControlConfig_delegatesToTimekeeper();
-    void startAnalysis_delegatesToAnalysisSession();
-    void stopAnalysisEngine_delegatesToAnalysisSession();
+    void handleResign_endsGame();
+    void handleEngineResign_recordsLoser();
+    void handleEngineWin_recordsWinner();
+    void handleBreakOff_appendsTerminalOnce();
+    void configureAndStart_preparesHumanGame();
+    void setTimeControlConfig_updatesClockPolicy();
+    void startAnalysis_initializesAndStopsRealSession();
+    void stopAnalysisEngine_isIdempotent();
 
     // === Section F: handlePlayerTimeOut ===
     void handlePlayerTimeOut_callsGcMethods();
@@ -168,6 +164,15 @@ void Tst_MatchCoordinator::initialState_gameOverStateIsCleared()
 void Tst_MatchCoordinator::initialState_gameMovesIsEmpty()
 {
     MCTestHarness h;
+    QVERIFY(h.mc->gameMoves().isEmpty());
+}
+
+void Tst_MatchCoordinator::gameMovesUsesSharedRecord()
+{
+    MCTestHarness h;
+    h.gameMoves.append(ShogiMove(QPoint(6, 6), QPoint(6, 5), Piece::BlackPawn, Piece::None, false));
+    QCOMPARE(h.mc->gameMoves(), h.gameMoves);
+    h.gameMoves.clear();
     QVERIFY(h.mc->gameMoves().isEmpty());
 }
 
@@ -359,74 +364,104 @@ void Tst_MatchCoordinator::setPlayMode_roundTrip()
 // Section E: デリゲーション
 // ============================================================
 
-void Tst_MatchCoordinator::handleResign_delegatesToGameEndHandler()
+void Tst_MatchCoordinator::handleResign_endsGame()
 {
     MCTestHarness h;
     h.mc->handleResign();
-    QVERIFY(MCTracker::gameEndHandlerResignCalled);
+    QVERIFY(h.mc->gameOverState().isOver);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
+    QVERIFY(h.showGameOverDialogCalled);
 }
 
-void Tst_MatchCoordinator::handleEngineResign_delegatesToGameEndHandler()
+void Tst_MatchCoordinator::handleEngineResign_recordsLoser()
 {
     MCTestHarness h;
 
     h.mc->handleEngineResign(1);
-    QCOMPARE(MCTracker::gameEndHandlerEngineResignIdx, 1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::Resignation);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
 
-    MCTracker::reset();
+    h.mc->clearGameOverState();
     h.mc->handleEngineResign(2);
-    QCOMPARE(MCTracker::gameEndHandlerEngineResignIdx, 2);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P2);
 }
 
-void Tst_MatchCoordinator::handleEngineWin_delegatesToGameEndHandler()
+void Tst_MatchCoordinator::handleEngineWin_recordsWinner()
 {
     MCTestHarness h;
 
     h.mc->handleEngineWin(1);
-    QCOMPARE(MCTracker::gameEndHandlerEngineWinIdx, 1);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P2);
 
-    MCTracker::reset();
+    h.mc->clearGameOverState();
     h.mc->handleEngineWin(2);
-    QCOMPARE(MCTracker::gameEndHandlerEngineWinIdx, 2);
+    QCOMPARE(h.mc->gameOverState().lastInfo.loser, MatchCoordinator::P1);
 }
 
-void Tst_MatchCoordinator::handleBreakOff_delegatesToGameEndHandler()
+void Tst_MatchCoordinator::handleBreakOff_appendsTerminalOnce()
 {
     MCTestHarness h;
     h.mc->handleBreakOff();
-    QVERIFY(MCTracker::gameEndHandlerBreakOffCalled);
+    QVERIFY(h.mc->gameOverState().isOver);
+    QCOMPARE(h.mc->gameOverState().lastInfo.cause, MatchCoordinator::Cause::BreakOff);
+    QVERIFY(h.mc->gameOverState().moveAppended);
+    QCOMPARE(h.appendKifuLineCount, 1);
 }
 
-void Tst_MatchCoordinator::configureAndStart_delegatesToGameStartOrchestrator()
+void Tst_MatchCoordinator::configureAndStart_preparesHumanGame()
 {
     MCTestHarness h;
     MatchCoordinator::StartOptions opt;
     opt.mode = PlayMode::HumanVsHuman;
+    opt.sfenStart = SfenUtils::hirateSfen();
     h.mc->configureAndStart(opt);
-    QVERIFY(MCTracker::gameStartOrchestratorConfigureCalled);
+    QCOMPARE(h.mc->playMode(), PlayMode::HumanVsHuman);
+    QCOMPARE(h.gc.currentPlayer(), ShogiGameController::Player1);
+    QVERIFY(h.initializeNewGameCalled);
+    QVERIFY(!h.mc->gameOverState().isOver);
 }
 
-void Tst_MatchCoordinator::setTimeControlConfig_delegatesToTimekeeper()
+void Tst_MatchCoordinator::setTimeControlConfig_updatesClockPolicy()
 {
     MCTestHarness h;
     h.mc->setTimeControlConfig(true, 30000, 30000, 0, 0, true);
-    QVERIFY(MCTracker::matchTimekeeperSetTimeControlCalled);
+    QVERIFY(h.mc->timeControl().useByoyomi);
+    QCOMPARE(h.mc->timeControl().byoyomiMs1, 30000);
+    QCOMPARE(h.mc->timeControl().byoyomiMs2, 30000);
 }
 
-void Tst_MatchCoordinator::startAnalysis_delegatesToAnalysisSession()
+void Tst_MatchCoordinator::startAnalysis_initializesAndStopsRealSession()
 {
     MCTestHarness h;
     MatchCoordinator::AnalysisOptions opt;
     opt.mode = PlayMode::ConsiderationMode;
+    opt.enginePath = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
+#ifdef Q_OS_WIN
+    opt.enginePath += QStringLiteral(".exe");
+#endif
+    opt.engineName = QStringLiteral("CoordinatorTest");
+    opt.positionStr = QStringLiteral("position startpos");
     h.mc->startAnalysis(opt);
-    QVERIFY(MCTracker::analysisSessionStartCalled);
+    QVERIFY(h.mc->primaryEngine());
+    QSignalSpy ready(h.mc->primaryEngine(), &Usi::engineInitialized);
+    QTRY_COMPARE_WITH_TIMEOUT(ready.count(), 1, 5000);
+    QCOMPARE(h.mc->playMode(), PlayMode::ConsiderationMode);
+    QSignalSpy ended(h.mc.get(), &MatchCoordinator::considerationModeEnded);
+    h.mc->stopAnalysisEngine();
+    QCOMPARE(ended.count(), 1);
+    QCOMPARE(h.mc->primaryEngine(), nullptr);
 }
 
-void Tst_MatchCoordinator::stopAnalysisEngine_delegatesToAnalysisSession()
+void Tst_MatchCoordinator::stopAnalysisEngine_isIdempotent()
 {
     MCTestHarness h;
+    QSignalSpy ended(h.mc.get(), &MatchCoordinator::considerationModeEnded);
     h.mc->stopAnalysisEngine();
-    QVERIFY(MCTracker::analysisSessionStopCalled);
+    h.mc->stopAnalysisEngine();
+    QCOMPARE(h.mc->primaryEngine(), nullptr);
+    QCOMPARE(ended.count(), 0);
 }
 
 // ============================================================
@@ -436,11 +471,12 @@ void Tst_MatchCoordinator::stopAnalysisEngine_delegatesToAnalysisSession()
 void Tst_MatchCoordinator::handlePlayerTimeOut_callsGcMethods()
 {
     MCTestHarness h;
-    // GC メソッドはスタブで何もしないが、クラッシュしないことを検証
     h.mc->handlePlayerTimeOut(1);
+    QCOMPARE(h.gc.result(), ShogiGameController::Player2Wins);
+    h.gc.resetResult();
+    h.mc->clearGameOverState();
     h.mc->handlePlayerTimeOut(2);
-    // GC がnullでないことが前提、正常実行されることを確認
-    QVERIFY(true);
+    QCOMPARE(h.gc.result(), ShogiGameController::Player1Wins);
 }
 
 // ============================================================

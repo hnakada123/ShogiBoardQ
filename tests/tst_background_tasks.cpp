@@ -2,6 +2,7 @@
 #include <QTemporaryDir>
 #include <QTimer>
 #include <QThread>
+#include <QPointer>
 
 #include "kifuloadcoordinator.h"
 #include "kifuloadparser.h"
@@ -10,6 +11,7 @@
 #include "shogigamecontroller.h"
 #include "shogiboard.h"
 #include "usi.h"
+#include "engineprocessmanager.h"
 #include "usiprotocolhandler.h"
 #include "enginepondersettings.h"
 #include "tsumethreadbudget.h"
@@ -54,6 +56,42 @@ private slots:
         qunsetenv("SBQ_MATCH_EXIT_ON_GO");
         qunsetenv("SBQ_MATCH_NO_USIOK");
         EnginePonderSettings::save(engineName, false, true);
+    }
+    void processShutdownReapsAfterOwnerIsDestroyed_data()
+    {
+        QTest::addColumn<bool>("explicitStop");
+        QTest::newRow("destructor") << false;
+        QTest::newRow("repeated-stop") << true;
+    }
+    void processShutdownReapsAfterOwnerIsDestroyed()
+    {
+        QFETCH(bool, explicitStop);
+        const auto existing = qApp->findChildren<QProcess*>();
+        auto process = std::make_unique<EngineProcessManager>();
+        QSignalSpy started(process.get(), &EngineProcessManager::processStarted);
+        QVERIFY(process->startProcessAsync(QStringLiteral(MOCK_USI_EXECUTABLE)));
+        QTRY_COMPARE(started.count(), 1);
+        process->sendCommand(QStringLiteral("setoption name ReplyDelay value 300"));
+        process->sendCommand(QStringLiteral("go depth 1"));
+        QTest::qWait(30);
+        const int ticks = m_ticks;
+        QElapsedTimer elapsed;
+        elapsed.start();
+        if (explicitStop) {
+            process->stopProcessAsync();
+            process->stopProcessAsync();
+            QVERIFY(!process->isRunning());
+            QVERIFY(process->currentEnginePath().isEmpty());
+        }
+        process.reset();
+        QVERIFY(elapsed.elapsed() < 200);
+        QList<QPointer<QProcess>> retiring;
+        for (auto* child : qApp->findChildren<QProcess*>()) {
+            if (!existing.contains(child)) retiring.append(child);
+        }
+        QCOMPARE(retiring.size(), 1);
+        QTRY_VERIFY_WITH_TIMEOUT(retiring.first().isNull(), 5000);
+        QVERIFY(m_ticks > ticks);
     }
     void allKifuFormatsLoadInBackground()
     {

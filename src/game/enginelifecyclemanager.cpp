@@ -4,24 +4,12 @@
 #include "enginelifecyclemanager.h"
 
 #include "usi.h"
-#include "usitimingparams.h"
 #include "usicommlogmodel.h"
 #include "shogienginethinkingmodel.h"
 #include "shogigamecontroller.h"
 #include "logcategories.h"
 
-#include <limits>
-#include <QThread>
 #include <QDebug>
-
-namespace {
-// qint64 → int の安全な縮小（オーバーフロー防止）
-inline int clampMsToInt(qint64 v) {
-    if (v > std::numeric_limits<int>::max()) return std::numeric_limits<int>::max();
-    if (v < std::numeric_limits<int>::min()) return std::numeric_limits<int>::min();
-    return static_cast<int>(v);
-}
-} // anonymous namespace
 
 // ============================================================
 // 初期化
@@ -249,93 +237,6 @@ void EngineLifecycleManager::initEnginesForEvE(const QString& engineName1,
     m_usi2->setSquelchResignLogging(false);
 
     updateUsiPtrs(m_usi1, m_usi2);
-}
-
-// ============================================================
-// エンジン指し手実行
-// ============================================================
-
-bool EngineLifecycleManager::engineThinkApplyMove(Usi* engine,
-                                                   QString& positionStr,
-                                                   QString& ponderStr,
-                                                   QPoint* outFrom,
-                                                   QPoint* outTo)
-{
-    if (!engine || !m_refs.gc) return false;
-
-    const auto t = m_hooks.computeGoTimes ? m_hooks.computeGoTimes() : GoTimes{};
-
-    const bool useByoyomi = (t.byoyomi > 0);
-
-    const QString btimeStr = QString::number(t.btime);
-    const QString wtimeStr = QString::number(t.wtime);
-
-    QPoint from(-1, -1), to(-1, -1);
-    m_refs.gc->setPromote(false);
-
-    const UsiTimingParams timing{clampMsToInt(t.byoyomi), btimeStr, wtimeStr,
-                                 clampMsToInt(t.binc), clampMsToInt(t.winc), useByoyomi};
-    engine->handleEngineVsHumanOrEngineMatchCommunication(
-        positionStr, ponderStr, from, to, timing);
-
-    if (outFrom) *outFrom = from;
-    if (outTo)   *outTo   = to;
-
-    auto isValidTo = [](const QPoint& p) {
-        return (p.x() >= 1 && p.x() <= 9 && p.y() >= 1 && p.y() <= 9);
-    };
-    if (!isValidTo(to)) {
-        qCDebug(lcGame) << "engineThinkApplyMove: no legal 'to' returned (resign/abort?). from="
-                        << from << "to=" << to;
-        qCDebug(lcGame) << "[Match] engineThinkApplyMove: no legal move (resign/abort?)";
-        return false;
-    }
-
-    return true;
-}
-
-bool EngineLifecycleManager::engineMoveOnce(Usi* eng,
-                                             QString& positionStr,
-                                             QString& ponderStr,
-                                             bool /*useSelectedField2*/,
-                                             int engineIndex,
-                                             QPoint* outTo)
-{
-    if (!m_refs.gc) return false;
-
-    const auto moverBefore = m_refs.gc->currentPlayer();
-    qCDebug(lcGame) << "engineMoveOnce enter"
-                     << "engineIndex=" << engineIndex
-                     << "moverBefore=" << int(moverBefore)
-                     << "thread=" << QThread::currentThread();
-
-    QPoint from, to;
-    if (!engineThinkApplyMove(eng, positionStr, ponderStr, &from, &to)) {
-        qCWarning(lcGame) << "engineThinkApplyMove FAILED";
-        return false;
-    }
-    qCDebug(lcGame) << "engineThinkApplyMove OK from=" << from << "to=" << to;
-
-    if (m_hooks.renderBoardFromGc) m_hooks.renderBoardFromGc();
-
-    switch (moverBefore) {
-    case ShogiGameController::Player1:
-        qCDebug(lcGame) << "calling appendEvalP1";
-        if (m_hooks.appendEvalP1) m_hooks.appendEvalP1();
-        else qCWarning(lcGame) << "appendEvalP1 NOT set";
-        break;
-    case ShogiGameController::Player2:
-        qCDebug(lcGame) << "calling appendEvalP2";
-        if (m_hooks.appendEvalP2) m_hooks.appendEvalP2();
-        else qCWarning(lcGame) << "appendEvalP2 NOT set";
-        break;
-    default:
-        qCWarning(lcGame) << "moverBefore=NoPlayer -> skip eval append";
-        break;
-    }
-
-    if (outTo) *outTo = to;
-    return true;
 }
 
 // ============================================================

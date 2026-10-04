@@ -17,7 +17,7 @@ class UsiProtocolHandler;
  *
  * `Usi` ファサードは思考タブ用のプレゼンタと盤面データを必要とするため、
  * 自動化・CLI ではこのクラスでプロトコルハンドラを直接使う。
- * startAsync() は起動とusiok/readyokをシグナルで処理する。start()は同期互換API。
+ * startAsync() は起動とusiok/readyokをシグナルで処理する。
  */
 class UsiEngineSession : public QObject
 {
@@ -27,8 +27,7 @@ public:
     explicit UsiEngineSession(QObject* parent = nullptr);
     ~UsiEngineSession() override;
 
-    /// エンジンを起動して usi/isready の初期化を行う。失敗時は error に理由を入れる
-    [[nodiscard]] bool start(const QString& enginePath, const QString& engineName, QString* error = nullptr);
+    /// 起動要求の受付を返す。完了は ready、失敗は errorOccurred で通知する。
     [[nodiscard]] bool startAsync(const QString& enginePath, const QString& engineName, QString* error = nullptr);
     /// quit を送ってプロセスを止める（未起動なら何もしない）
     void quit();

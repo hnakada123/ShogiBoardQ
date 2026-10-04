@@ -11,8 +11,11 @@
 #include "settingscommon.h"
 #include "enginepondersettings.h"
 #include "matchtimekeeper.h"
+#include "usi.h"
+#include "sfenutils.h"
+#include <QTemporaryDir>
 
-// 時計・USI・子プロセスは実装を使用。盤面表示だけスタブにする。
+// 本体と同じ時計・USI・子プロセスを使い、応答シグナルで結果を検証する。
 class MatchHarness : public QObject
 {
 public:
@@ -27,21 +30,31 @@ public:
     QString ponder;
     int errors = 0;
     int byoyomi = 5000;
+    int completed = 0;
+    QPoint lastTo{-1, -1};
 
     MatchHarness()
     {
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
         game.setCurrentPlayer(ShogiGameController::Player2);
         protocol.setProcessManager(&process);
         protocol.setGameController(&game);
         match.setClock(&clock);
-        match.setHooks({[this] { ++errors; protocol.cancelCurrentOperation(); }});
+        match.setHooks({[this] { ++errors; protocol.cancelCurrentOperation(); },
+            [this](const QPoint&, const QPoint& to, const QString& result, const QString& nextPonder) {
+                lastTo = to;
+                position = result;
+                ponder = nextPonder;
+                ++completed;
+            }});
         connect(&protocol, &UsiProtocolHandler::bestMoveReceived, this, &MatchHarness::acceptMove);
         connect(&process, &EngineProcessManager::commandSent, this, &MatchHarness::recordCommand);
     }
     ~MatchHarness() override
     {
         protocol.sendQuit();
-        process.stopProcess();
+        process.stopProcessAsync();
         QFile::remove(SettingsCommon::settingsFilePath());
     }
     void acceptMove() { match.onBestMoveReceived(); }
@@ -62,8 +75,13 @@ public:
     bool initialize(const QString& path)
     {
         protocol.loadEngineOptions(QStringLiteral("MatchTest"));
-        if (!process.startProcess(path)) return false;
-        if (!protocol.initializeEngine(QStringLiteral("MatchTest"))) return false;
+        QSignalSpy started(&process, &EngineProcessManager::processStarted);
+        if (!process.startProcessAsync(path)) return false;
+        if (started.isEmpty() && !started.wait(5000)) return false;
+        QSignalSpy initialized(&protocol, &UsiProtocolHandler::initializationFinished);
+        protocol.initializeEngineAsync();
+        if (initialized.isEmpty() && !initialized.wait(5000)) return false;
+        if (!initialized.first().first().toBool()) return false;
         clock.setPlayerTimes(300, 0, 0, byoyomi / 1000, 0, 0, true);
         clock.setCurrentPlayer(2);
         clock.startClock();
@@ -71,10 +89,14 @@ public:
     }
     QPoint reply()
     {
-        QPoint from, to;
+        const int previous = completed;
+        lastTo = QPoint(-1, -1);
         const UsiTimingParams timing{byoyomi, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true};
-        match.handleEngineVsHumanOrEngineMatchCommunication(position, ponder, from, to, timing);
-        return to;
+        match.requestMove(position, ponder, timing);
+        const bool finished = QTest::qWaitFor([&] {
+            return completed > previous || errors > 0 || clock.isGameOver();
+        }, byoyomi + 2000);
+        return finished ? lastTo : QPoint(-1, -1);
     }
     void humanMove(const QString& move)
     {
@@ -88,6 +110,7 @@ public:
 class TestUsiMatchHandler : public QObject
 {
     Q_OBJECT
+    QTemporaryDir m_config;
     QString mockPath() const
     {
         QString path = QCoreApplication::applicationDirPath() + QStringLiteral("/mock_usi_match");
@@ -97,6 +120,11 @@ class TestUsiMatchHandler : public QObject
         return path;
     }
 private slots:
+    void initTestCase()
+    {
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+    }
     void init()
     {
         qunsetenv("SBQ_MATCH_PONDER_MODE");
@@ -244,8 +272,9 @@ private slots:
         QVERIFY(h.start(mockPath()));
         QCOMPARE(h.reply(), QPoint(8, 4));
         QSignalSpy resign(&h.protocol, &UsiProtocolHandler::bestMoveResignReceived);
+        QSignalSpy stopped(&h.protocol, &UsiProtocolHandler::bestMoveReceived);
         h.protocol.sendStop();
-        if (responseReceived) QVERIFY(h.protocol.waitForBestMove(2000));
+        if (responseReceived) QTRY_COMPARE_WITH_TIMEOUT(stopped.count(), 1, 2000);
         h.commands.clear();
         h.humanMove(QStringLiteral("2g2f")); // 元の予測に一致しても新しい探索が必要
         QCOMPARE(h.reply(), QPoint(3, 4));
@@ -258,24 +287,31 @@ private slots:
     }
     void humanMoveApiRecognizesPonderHit()
     {
-        MatchHarness h;
-        QVERIFY(h.start(mockPath()));
-        h.position = QStringLiteral("position startpos moves");
+        EnginePonderSettings::save(QStringLiteral("MatchTest"), true, true);
+        ShogiGameController game;
+        QString sfen = SfenUtils::hirateSfen();
+        game.newGame(sfen);
+        game.setCurrentPlayer(ShogiGameController::Player2);
+        Usi engine(nullptr, nullptr, &game);
+        QSignalSpy initialized(&engine, &Usi::engineInitialized);
+        QSignalSpy moves(&engine, &Usi::matchMoveReady);
+        QVERIFY(engine.startAndInitializeEngineAsync(mockPath(), QStringLiteral("MatchTest")));
+        QTRY_COMPARE_WITH_TIMEOUT(initialized.count(), 1, 5000);
+        QString position = QStringLiteral("position startpos");
         QStringList history;
         const UsiTimingParams timing{5000, QStringLiteral("300000"), QStringLiteral("0"), 0, 0, true};
-        QPoint from(7, 7), to(7, 6);
-        h.match.handleHumanVsEngineCommunication(h.position, h.ponder, from, to, timing, history);
-        QCOMPARE(to, QPoint(8, 4));
-        h.clock.setCurrentPlayer(1);
-        h.clock.applyByoyomiAndResetConsideration2();
-        h.clock.setCurrentPlayer(2);
-        h.commands.clear();
-        from = QPoint(2, 7);
-        to = QPoint(2, 6);
-        h.match.handleHumanVsEngineCommunication(h.position, h.ponder, from, to, timing, history);
-        QCOMPARE(to, QPoint(3, 4));
-        QCOMPARE(h.commands.first(), QStringLiteral("ponderhit"));
+        engine.requestHumanReply(position, {}, QPoint(7, 7), QPoint(7, 6), timing, history);
+        QCOMPARE(history, QStringList{QStringLiteral("position startpos moves 7g7f")});
+        QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 1, 5000);
+        QCOMPARE(moves.first().at(1).toPoint(), QPoint(8, 4));
+        position = moves.first().at(2).toString();
+        const QString ponder = moves.first().at(3).toString();
+        engine.requestHumanReply(position, ponder, QPoint(2, 7), QPoint(2, 6), timing, history);
+        QTRY_COMPARE_WITH_TIMEOUT(moves.count(), 2, 5000);
+        QCOMPARE(moves.last().at(1).toPoint(), QPoint(3, 4));
         QCOMPARE(history.size(), 2);
+        QCOMPARE(history.last(), ponder);
+        engine.cleanupEngineProcessAndThread();
     }
     void actualDeadlineRejectsLateMove()
     {
@@ -285,6 +321,7 @@ private slots:
         h.protocol.sendSetOption(QStringLiteral("ReplyDelay"), QStringLiteral("1100"));
         QCOMPARE(h.reply(), QPoint(-1, -1));
         QVERIFY(h.clock.isGameOver());
+        QCOMPARE(h.errors, 0);
         QCOMPARE(h.position, QStringLiteral("position startpos moves 7g7f"));
     }
     void expiredClockDoesNotStartSearch()

@@ -24,12 +24,13 @@ void DialogCoordinatorWiring::ensure(const Deps& deps)
     const bool firstTime = !m_coordinator;
     if (firstTime) {
         m_coordinator = new DialogCoordinator(deps.parentWidget, deps.parentWidget);
-        DialogCoordinator::Deps dcDeps;
-        dcDeps.matchCoordinator = deps.match;
-        m_coordinator->updateDeps(dcDeps);
         wireSignals(deps);
     }
 
+    DialogCoordinator::Deps dcDeps;
+    dcDeps.matchCoordinator = deps.match;
+    dcDeps.considerationTabManager = deps.analysisTab ? deps.analysisTab->considerationTabManager() : nullptr;
+    m_coordinator->updateDeps(dcDeps);
     bindContexts(deps);
 }
 

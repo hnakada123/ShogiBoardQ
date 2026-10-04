@@ -12,7 +12,6 @@
 #include "usiexporter.h"
 #include "usimoveconverter.h"
 
-#include <QTableWidget>
 #include <QDateTime>
 #include "logcategories.h"
 
@@ -52,18 +51,19 @@ void GameRecordModel::setNavigationState(KifuNavigationState* state)
 void GameRecordModel::initializeFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount)
 {
     m_comments.clear();
-    m_comments.resize(qMax(0, rowCount));
     m_bookmarks.clear();
-    m_bookmarks.resize(qMax(0, rowCount));
-
-    // 読み込んだ本譜のコメント・しおりをツリーとフォールバック配列へ反映する。
     const auto mainline = m_branchTree ? m_branchTree->mainLine() : QList<KifuBranchNode*>();
+    if (!hasBranchTree()) {
+        m_comments.resize(qMax(0, rowCount));
+        m_bookmarks.resize(qMax(0, rowCount));
+    }
     for (qsizetype i = 0; i < disp.size() && i < rowCount; ++i) {
-        m_comments[i] = disp[i].comment;
-        m_bookmarks[i] = disp[i].bookmark;
         if (i < mainline.size()) {
             mainline[i]->setComment(disp[i].comment);
             mainline[i]->setBookmark(disp[i].bookmark);
+        } else if (!hasBranchTree()) {
+            m_comments[i] = disp[i].comment;
+            m_bookmarks[i] = disp[i].bookmark;
         }
     }
 
@@ -88,109 +88,73 @@ void GameRecordModel::clear()
 // コメント操作
 // ========================================
 
-void GameRecordModel::setComment(int ply, const QString& comment)
+void GameRecordModel::setComment(int ply, const QString& text)
 {
-    if (ply < 0) {
-        qCWarning(lcKifu).noquote() << "setComment: invalid ply=" << ply;
-        return;
+    if (ply < 0) return;
+    auto* node = nodeForCurrentLine(ply);
+    if (hasBranchTree() && !node) return;
+    const QString old = comment(ply);
+    if (node) {
+        node->setComment(text);
+    } else {
+        if (m_comments.size() <= ply) m_comments.resize(ply + 1);
+        m_comments[ply] = text;
     }
-
-    // 1) 内部配列を拡張・更新
-    ensureCommentCapacity(ply);
-    const QString oldComment = this->comment(ply);
-    m_comments[ply] = comment;
-
-    // 2) 外部データストアへ同期
-    syncToExternalStores(ply, comment);
-
-    // 3) 変更フラグを設定
-    if (oldComment != comment) {
+    // ライブ履歴は本譜の投影。分岐だけの編集で同じ手数の本譜を上書きしない。
+    if (m_liveDisp && ply < m_liveDisp->size() && isMainlineNode(ply, node)) {
+        (*m_liveDisp)[ply].comment = text;
+    }
+    if (old != text) {
         m_isDirty = true;
-        emit commentChanged(ply, comment);
-
-        // 4) コールバックを呼び出し（RecordPresenterへの通知など）
-        if (m_commentUpdateCallback) {
-            m_commentUpdateCallback(ply, comment);
-        }
+        emit commentChanged(ply, text);
     }
-
-    qCDebug(lcKifu).noquote() << "setComment:"
-                              << " ply=" << ply
-                              << " comment.len=" << comment.size()
-                              << " isDirty=" << m_isDirty;
-}
-
-void GameRecordModel::setCommentUpdateCallback(const CommentUpdateCallback& callback)
-{
-    m_commentUpdateCallback = callback;
 }
 
 QString GameRecordModel::comment(int ply) const
 {
     if (const auto* node = nodeForCurrentLine(ply)) return node->comment();
-    if (ply >= 0 && ply < m_comments.size()) {
-        return m_comments[ply];
-    }
-    return QString();
+    if (!hasBranchTree() && ply >= 0 && ply < m_comments.size()) return m_comments[ply];
+    return {};
 }
 
-void GameRecordModel::ensureCommentCapacity(int ply)
+void GameRecordModel::setBookmark(int ply, const QString& text)
 {
-    while (m_comments.size() <= ply) {
-        m_comments.append(QString());
+    if (ply < 0) return;
+    auto* node = nodeForCurrentLine(ply);
+    if (hasBranchTree() && !node) return;
+    const QString old = bookmark(ply);
+    if (node) {
+        node->setBookmark(text);
+    } else {
+        if (m_bookmarks.size() <= ply) m_bookmarks.resize(ply + 1);
+        m_bookmarks[ply] = text;
     }
-}
-
-// ========================================
-// しおり操作
-// ========================================
-
-void GameRecordModel::setBookmark(int ply, const QString& bookmark)
-{
-    if (ply < 0) {
-        qCWarning(lcKifu).noquote() << "setBookmark: invalid ply=" << ply;
-        return;
+    if (m_liveDisp && ply < m_liveDisp->size() && isMainlineNode(ply, node)) {
+        (*m_liveDisp)[ply].bookmark = text;
     }
-
-    ensureBookmarkCapacity(ply);
-    const QString oldBookmark = this->bookmark(ply);
-    m_bookmarks[ply] = bookmark;
-
-    // 外部データストアへ同期
-    if (m_liveDisp && ply >= 0 && ply < m_liveDisp->size()) {
-        (*m_liveDisp)[ply].bookmark = bookmark;
-    }
-
-    if (auto* node = nodeForCurrentLine(ply)) node->setBookmark(bookmark);
-
-    if (oldBookmark != bookmark) {
+    if (old != text) {
         m_isDirty = true;
-
-        if (m_bookmarkUpdateCallback) {
-            m_bookmarkUpdateCallback(ply, bookmark);
-        }
+        emit bookmarkChanged(ply, text);
     }
 }
 
 QString GameRecordModel::bookmark(int ply) const
 {
     if (const auto* node = nodeForCurrentLine(ply)) return node->bookmark();
-    if (ply >= 0 && ply < m_bookmarks.size()) {
-        return m_bookmarks[ply];
-    }
-    return QString();
+    if (!hasBranchTree() && ply >= 0 && ply < m_bookmarks.size()) return m_bookmarks[ply];
+    return {};
 }
 
-void GameRecordModel::setBookmarkUpdateCallback(const BookmarkUpdateCallback& callback)
+bool GameRecordModel::hasBranchTree() const
 {
-    m_bookmarkUpdateCallback = callback;
+    return m_branchTree && !m_branchTree->isEmpty();
 }
 
-void GameRecordModel::ensureBookmarkCapacity(int ply)
+bool GameRecordModel::isMainlineNode(int ply, const KifuBranchNode* node) const
 {
-    while (m_bookmarks.size() <= ply) {
-        m_bookmarks.append(QString());
-    }
+    if (!hasBranchTree()) return true;
+    const auto nodes = m_branchTree->mainLine();
+    return ply >= 0 && ply < nodes.size() && nodes[ply] == node;
 }
 
 int GameRecordModel::activeRow() const
@@ -203,7 +167,7 @@ int GameRecordModel::activeRow() const
 }
 
 // ========================================
-// 内部ヘルパ：外部データストアへの同期
+// 内部ヘルパ：表示中の分岐ノードの取得
 // ========================================
 
 KifuBranchNode* GameRecordModel::nodeForCurrentLine(int ply) const
@@ -214,20 +178,6 @@ KifuBranchNode* GameRecordModel::nodeForCurrentLine(int ply) const
     if (lineIndex < 0 || lineIndex >= lines.size()) return nullptr;
     const auto& nodes = lines[lineIndex].nodes;
     return ply < nodes.size() ? nodes[ply] : nullptr;
-}
-
-void GameRecordModel::syncToExternalStores(int ply, const QString& comment)
-{
-    // liveDisp への同期
-    if (m_liveDisp) {
-        if (ply >= 0 && ply < m_liveDisp->size()) {
-            (*m_liveDisp)[ply].comment = comment;
-            qCDebug(lcKifu).noquote() << "syncToExternalStores:"
-                                      << " updated liveDisp[" << ply << "]";
-        }
-    }
-
-    if (auto* node = nodeForCurrentLine(ply)) node->setComment(comment);
 }
 
 // ========================================
@@ -263,7 +213,7 @@ QList<KifDisplayItem> GameRecordModel::collectMainlineForExport() const
         result = *m_liveDisp;
     }
 
-    // 最終: 内部配列から最新データをマージ（Single Source of Truth）
+    // ツリー未構築時の編集を反映
     for (qsizetype i = 0; i < result.size(); ++i) {
         if (i < m_comments.size() && !m_comments[i].isEmpty()) {
             result[i].comment = m_comments[i];
@@ -295,132 +245,12 @@ QString GameRecordModel::initialSfenForExport(const QString& fallback) const
 
 QList<KifGameInfoItem> GameRecordModel::collectGameInfo(const ExportContext& ctx)
 {
-    QList<KifGameInfoItem> items;
-
-    // 0) 呼び出し側が対局情報を直接渡した場合（CLI などテーブルを持たない環境）
-    if (ctx.gameInfoProvided || !ctx.gameInfoItems.isEmpty()) {
-        return ctx.gameInfoItems;
-    }
-
-    // a) 既存の「対局情報」テーブルがあれば採用
-    // 全行を削除した場合も編集結果を尊重し、初期情報を再生成しない。
-    if (ctx.gameInfoTable) {
-        const int rows = ctx.gameInfoTable->rowCount();
-        for (int r = 0; r < rows; ++r) {
-            const QTableWidgetItem* keyItem   = ctx.gameInfoTable->item(r, 0);
-            const QTableWidgetItem* valueItem = ctx.gameInfoTable->item(r, 1);
-            if (!keyItem) continue;
-            const QString key = keyItem->text().trimmed();
-            const QString val = valueItem ? valueItem->text().trimmed() : QString();
-            if (!key.isEmpty()) {
-                items.push_back({key, val});
-            }
-        }
-        return items;
-    }
-
-    // b) 自動生成
-    QString black, white;
-    resolvePlayerNames(ctx, black, white);
-
-    // 開始日時の決定（ctx.gameStartDateTimeが有効ならそれを使用、なければ現在時刻）
-    const QDateTime startDateTime = ctx.gameStartDateTime.isValid()
-        ? ctx.gameStartDateTime
-        : QDateTime::currentDateTime();
-
-    // 対局日
-    items.push_back({
-        QStringLiteral("対局日"),
-        startDateTime.toString(QStringLiteral("yyyy/MM/dd"))
-    });
-
-    // 開始日時（秒まで表示）
-    items.push_back({
-        QStringLiteral("開始日時"),
-        startDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))
-    });
-
-    items.push_back({ QStringLiteral("先手"), black });
-    items.push_back({ QStringLiteral("後手"), white });
-
-    const QString sfen = ctx.startSfen.trimmed();
-    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    QString teai = QStringLiteral("平手");
-    if (!sfen.isEmpty()) {
-        const QString pp = sfen.section(QLatin1Char(' '), 0, 0);
-        if (!pp.isEmpty() && pp != initPP) {
-            teai = QStringLiteral("その他");
-        }
-    }
-    items.push_back({ QStringLiteral("手合割"), teai });
-
-    // 持ち時間（時間制御が有効な場合のみ）
-    if (ctx.hasTimeControl) {
-        // mm:ss+ss 形式（初期持ち時間:秒読み+加算秒）
-        const int baseMin = ctx.initialTimeMs / 60000;
-        const int baseSec = (ctx.initialTimeMs % 60000) / 1000;
-        const int byoyomiSec = ctx.byoyomiMs / 1000;
-        const int incrementSec = ctx.fischerIncrementMs / 1000;
-
-        QString timeStr;
-        if (baseMin > 0 || baseSec > 0) {
-            timeStr = QStringLiteral("%1:%2")
-                .arg(baseMin, 2, 10, QLatin1Char('0'))
-                .arg(baseSec, 2, 10, QLatin1Char('0'));
-        } else {
-            timeStr = QStringLiteral("00:00");
-        }
-        if (byoyomiSec > 0) {
-            timeStr += QStringLiteral("+%1").arg(byoyomiSec);
-        } else if (incrementSec > 0) {
-            timeStr += QStringLiteral("+%1").arg(incrementSec);
-        }
-        items.push_back({ QStringLiteral("持ち時間"), timeStr });
-    }
-
-    // 終了日時（ctx.gameEndDateTimeが有効な場合のみ）
-    if (ctx.gameEndDateTime.isValid()) {
-        items.push_back({
-            QStringLiteral("終了日時"),
-            ctx.gameEndDateTime.toString(QStringLiteral("yyyy/MM/dd HH:mm:ss"))
-        });
-    }
-
-    return items;
+    return KifuExportMetadataBuilder::collect(ctx);
 }
 
-void GameRecordModel::resolvePlayerNames(const ExportContext& ctx, QString& outBlack, QString& outWhite)
+void GameRecordModel::resolvePlayerNames(const ExportContext& ctx, QString& black, QString& white)
 {
-    switch (ctx.playMode) {
-    case PlayMode::HumanVsHuman:
-        outBlack = ctx.human1.isEmpty() ? QObject::tr("先手") : ctx.human1;
-        outWhite = ctx.human2.isEmpty() ? QObject::tr("後手") : ctx.human2;
-        break;
-    case PlayMode::EvenHumanVsEngine:
-        outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
-        break;
-    case PlayMode::EvenEngineVsHuman:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
-        outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
-        break;
-    case PlayMode::EvenEngineVsEngine:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine1") : ctx.engine1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine2") : ctx.engine2;
-        break;
-    case PlayMode::HandicapEngineVsHuman:
-        outBlack = ctx.engine1.isEmpty() ? QObject::tr("Engine") : ctx.engine1;
-        outWhite = ctx.human2.isEmpty()  ? QObject::tr("後手")   : ctx.human2;
-        break;
-    case PlayMode::HandicapHumanVsEngine:
-        outBlack = ctx.human1.isEmpty()  ? QObject::tr("先手")   : ctx.human1;
-        outWhite = ctx.engine2.isEmpty() ? QObject::tr("Engine") : ctx.engine2;
-        break;
-    default:
-        outBlack = QObject::tr("先手");
-        outWhite = QObject::tr("後手");
-        break;
-    }
+    KifuExportMetadataBuilder::resolvePlayerNames(ctx, black, white);
 }
 
 // ========================================

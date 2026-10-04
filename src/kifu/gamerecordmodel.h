@@ -10,14 +10,13 @@
 #include <QStringList>
 #include <QList>
 #include <QDateTime>
-#include <functional>
 
 #include "kifdisplayitem.h"
+#include "kifuexportmetadata.h"
 #include "kifparsetypes.h"
 #include "kifubranchtree.h"
 #include "playmode.h"
 
-class QTableWidget;
 class KifuNavigationState;
 class KifuBranchNode;
 
@@ -78,27 +77,10 @@ public:
      * @param comment 新しいコメント
      *
      * この関数は以下のすべてを同期更新します:
-     * - 内部コメント配列 (m_comments)
-     * - KifuBranchTree のノードコメント
-     * - liveDisp[ply].comment
+     * - KifuBranchTree のノード（ツリーがない場合のみ内部配列）
+     * - 本譜に対応する liveDisp[ply].comment
      */
     void setComment(int ply, const QString& comment);
-
-    /**
-     * @brief コメント更新時の外部通知コールバック型
-     * @param ply 更新された手数
-     * @param comment 新しいコメント
-     */
-    using CommentUpdateCallback = std::function<void(int ply, const QString& comment)>;
-
-    /**
-     * @brief コメント更新時の通知コールバックを設定
-     * @param callback コールバック関数
-     *
-     * このコールバックは setComment でコメントが変更された後に呼ばれます。
-     * RecordPresenterへの通知やUI更新に使用します。
-     */
-    void setCommentUpdateCallback(const CommentUpdateCallback& callback);
 
     /**
      * @brief 指定手数のコメントを取得
@@ -106,16 +88,6 @@ public:
      * @return コメント文字列（なければ空文字）
      */
     QString comment(int ply) const;
-
-    /**
-     * @brief コメント配列全体を取得
-     */
-    const QList<QString>& comments() const { return m_comments; }
-
-    /**
-     * @brief コメント配列のサイズ
-     */
-    int commentCount() const { return static_cast<int>(m_comments.size()); }
 
     // --- しおり操作 ---
 
@@ -133,45 +105,12 @@ public:
      */
     QString bookmark(int ply) const;
 
-    /**
-     * @brief しおり更新時の外部通知コールバック型
-     */
-    using BookmarkUpdateCallback = std::function<void(int ply, const QString& bookmark)>;
-
-    /**
-     * @brief しおり更新時の通知コールバックを設定
-     */
-    void setBookmarkUpdateCallback(const BookmarkUpdateCallback& callback);
-
-    /**
-     * @brief しおり配列の容量を確保
-     */
-    void ensureBookmarkCapacity(int ply);
-
     // --- 棋譜出力 ---
 
     /**
      * @brief 出力に必要なコンテキスト情報
      */
-    struct ExportContext {
-        const QTableWidget* gameInfoTable = nullptr;
-        bool gameInfoProvided = false; ///< 空のメタデータも明示的な編集結果として扱う
-        QList<KifGameInfoItem> gameInfoItems;  ///< 対局情報（テーブルが無い環境用。空でなければこちらを優先）
-        QString startSfen;
-        PlayMode playMode = PlayMode::NotStarted;
-        QString human1;
-        QString human2;
-        QString engine1;
-        QString engine2;
-        
-        // --- 時間制御情報（CSA出力用） ---
-        bool hasTimeControl = false;           ///< 時間制御が有効かどうか
-        int initialTimeMs = 0;                 ///< 初期持ち時間（ミリ秒）
-        int byoyomiMs = 0;                     ///< 秒読み（ミリ秒）
-        int fischerIncrementMs = 0;            ///< フィッシャー加算（ミリ秒）
-        QDateTime gameStartDateTime;           ///< 対局開始日時
-        QDateTime gameEndDateTime;             ///< 対局終了日時
-    };
+    using ExportContext = KifuExportMetadata;
 
     /**
      * @brief KIF形式の行リストを生成
@@ -238,12 +177,6 @@ public:
 
     // --- ライブ対局用 ---
 
-    /**
-     * @brief ライブ対局で1手追加時にコメント配列を拡張
-     * @param ply 追加された手数
-     */
-    void ensureCommentCapacity(int ply);
-
     // --- 状態取得 ---
 
     /**
@@ -300,9 +233,7 @@ signals:
      */
     void commentChanged(int ply, const QString& newComment);
 
-    /**
-     * @brief データが変更された（保存が必要）
-     */
+    void bookmarkChanged(int ply, const QString& bookmark);
 private:
     // === ツリーがない場合のフォールバックデータ ===
     QList<QString> m_comments;   ///< 手数インデックス → コメント
@@ -316,13 +247,10 @@ private:
     KifuBranchTree* m_branchTree = nullptr;
     KifuNavigationState* m_navState = nullptr;
 
-    // === コールバック ===
-    CommentUpdateCallback m_commentUpdateCallback;    ///< コメント更新時の通知コールバック
-    BookmarkUpdateCallback m_bookmarkUpdateCallback;  ///< しおり更新時の通知コールバック
-
     // === 内部ヘルパ ===
     KifuBranchNode* nodeForCurrentLine(int ply) const;
-    void syncToExternalStores(int ply, const QString& comment);
+    bool hasBranchTree() const;
+    bool isMainlineNode(int ply, const KifuBranchNode* node) const;
 
 };
 

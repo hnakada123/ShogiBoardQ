@@ -147,37 +147,10 @@ void GameRecordPresenter::appendMoveLine(const QString& prettyMove, const QStrin
     }
 }
 
-void GameRecordPresenter::setCommentsByRow(const QStringList& commentsByRow)
-{
-    m_commentsByRow = commentsByRow;
-}
-
-void GameRecordPresenter::setCommentsFromDisplayItems(const QList<KifDisplayItem>& disp,
-                                                      int rowCount)
-{
-    m_commentsByRow.clear();
-    m_commentsByRow.resize(qMax(0, rowCount));
-
-    const int moveCount = static_cast<int>(disp.size());
-    if (m_commentsByRow.isEmpty()) {
-        return;
-    }
-
-    const int rows = static_cast<int>(m_commentsByRow.size());
-    for (int r = 0; r < rows; ++r) {
-        if (r < moveCount) {
-            m_commentsByRow[r] = disp[r].comment;
-        } else {
-            m_commentsByRow[r].clear();
-        }
-    }
-}
-
 QString GameRecordPresenter::commentForRow(int row) const
 {
-    if (row >= 0 && row < m_commentsByRow.size())
-        return m_commentsByRow[row];
-    return QString();
+    const auto* item = m_d.model ? m_d.model->item(row) : nullptr;
+    return item ? item->comment() : QString();
 }
 
 void GameRecordPresenter::onKifuCurrentRowChanged(const QModelIndex& current,
@@ -223,16 +196,12 @@ void GameRecordPresenter::bindKifuSelection(QTableView* kifuView)
 }
 
 void GameRecordPresenter::displayAndWire(const QList<KifDisplayItem>& disp,
-                                         int rowCount,
                                          RecordPane* recordPane)
 {
     // 1) モデルへ反映（既存のまとめ関数）
     presentGameRecord(disp);
 
-    // 2) コメント配列を Presenter 側で構築（既存の補助関数）
-    setCommentsFromDisplayItems(disp, rowCount);
-
-    // 3) KifuView の currentRowChanged を Presenter が受けて MainWindow へ signal 転送
+    // 2) KifuView の currentRowChanged を Presenter が受けて MainWindow へ signal 転送
     if (recordPane && recordPane->kifuView()) {
         bindKifuSelection(recordPane->kifuView()); // ここで UniqueConnection 済み
     }
@@ -256,9 +225,6 @@ void GameRecordPresenter::removeLastLiveMoves(int count)
     m_liveDisp.resize(qMax(qsizetype(0), m_liveDisp.size() - count));
     if (m_d.model) {
         m_currentMoveIndex = qMax(0, m_d.model->rowCount() - 1);
-        if (m_commentsByRow.size() > m_d.model->rowCount()) {
-            m_commentsByRow.resize(m_d.model->rowCount());
-        }
     }
 }
 

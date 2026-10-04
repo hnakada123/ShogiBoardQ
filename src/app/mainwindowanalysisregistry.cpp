@@ -24,7 +24,6 @@
 void MainWindowServiceRegistry::ensurePvClickController()
 {
     if (m_mw.m_isShuttingDown) return;
-    if (m_mw.m_pvClickController) return;
     m_mw.m_compositionRoot->ensurePvClickController(m_mw.buildRuntimeRefs(), &m_mw, m_mw.m_pvClickController);
 
     // 動的状態へのポインタを設定（onPvRowClicked 呼び出し時に自動同期）
@@ -82,7 +81,6 @@ void MainWindowServiceRegistry::ensureConsiderationPositionService()
 void MainWindowServiceRegistry::ensureConsiderationWiring()
 {
     if (m_mw.m_isShuttingDown) return;
-    if (m_mw.m_considerationWiring) return;
 
     MainWindowDepsFactory::ConsiderationWiringCallbacks cbs;
     cbs.ensureDialogCoordinator = [this]() {

@@ -100,12 +100,6 @@ std::optional<int> UsiProtocolHandler::alphabetToRank(QChar c)
 
 quint64 UsiProtocolHandler::beginOperationContext()
 {
-    if (m_opCtx) {
-        m_opCtx->deleteLater();
-        m_opCtx = nullptr;
-    }
-    m_opCtx = new QObject(this);
-    m_stopOrPonderhitPending = false;
     return ++m_seq;
 }
 
@@ -114,11 +108,6 @@ void UsiProtocolHandler::cancelCurrentOperation()
     invalidateCandidate();
     m_initializationTimer.stop();
     m_initialization = Initialization::Idle;
-    if (m_opCtx) {
-        m_opCtx->deleteLater();
-        m_opCtx = nullptr;
-    }
-    m_stopOrPonderhitPending = false;
     m_bestMoveReceived = false;
     m_phase = SearchPhase::Idle;
     m_predictedOpponentMove.clear();

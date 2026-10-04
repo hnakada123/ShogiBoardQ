@@ -407,50 +407,8 @@ add_shogi_test(tst_kifubranchlistmodel
 # ============================================================
 # Unit 8: GameRecordModel
 # ============================================================
-add_shogi_test(tst_gamerecordmodel
-    tst_gamerecordmodel.cpp
-    test_stubs_kifu_export.cpp
-    ${SRC}/kifu/kifuexportclipboard.cpp
-    ${SRC}/kifu/kifuclipboardservice.cpp
-    ${SRC}/kifu/formats/csatosfenconverter.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/kifu/formats/csalexer.cpp
-    ${SRC}/kifu/formats/csalexer_position.cpp
-    ${SRC}/kifu/formats/jkftosfenconverter.cpp
-    ${SRC}/kifu/formats/jkfmoveparser.cpp
-    ${SRC}/kifu/formats/usitosfenconverter.cpp
-    ${SRC}/kifu/formats/usentosfenconverter.cpp
-    ${SRC}/kifu/formats/usentosfenconverter_decode.cpp
-    ${SRC}/kifu/livegamesession.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/gamerecordmodel.cpp
-    ${SRC}/kifu/formats/usimoveconverter.cpp
-    ${SRC}/kifu/formats/csaexporter.cpp
-    ${SRC}/kifu/formats/csaformatter.cpp
-    ${SRC}/kifu/formats/jkfexporter.cpp
-    ${SRC}/kifu/formats/jkfformatter.cpp
-    ${SRC}/kifu/formats/kifexporter.cpp
-    ${SRC}/kifu/formats/bodtextgenerator.cpp
-    ${SRC}/kifu/formats/ki2exporter.cpp
-    ${SRC}/kifu/formats/usenexporter.cpp
-    ${SRC}/kifu/formats/usiexporter.cpp
-    ${SRC}/kifu/formats/ki2tosfenconverter.cpp
-    ${SRC}/kifu/formats/ki2lexer.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/formats/kiftosfenconverter.cpp
-    ${SRC}/kifu/formats/kiflexer.cpp
-    ${SRC}/kifu/formats/kiflexer_bod.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/kifucontentbuilder.cpp
-)
+add_shogi_test(tst_gamerecordmodel tst_gamerecordmodel.cpp)
+target_link_libraries(tst_gamerecordmodel PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 8a-2: KifuSaveCoordinator (拡張子による保存形式の判定・上書き保存)
@@ -467,38 +425,8 @@ add_shogi_test(tst_kifusavecoordinator
 # ============================================================
 # Unit 8b: Kifu Comment Sync (GameRecordModel ↔ liveDisp / BranchTree)
 # ============================================================
-add_shogi_test(tst_kifu_comment_sync
-    tst_kifu_comment_sync.cpp
-    ${TEST_STUBS}
-    ${SRC}/kifu/gamerecordmodel.cpp
-    ${SRC}/kifu/formats/usimoveconverter.cpp
-    ${SRC}/kifu/formats/csaexporter.cpp
-    ${SRC}/kifu/formats/csaformatter.cpp
-    ${SRC}/kifu/formats/jkfexporter.cpp
-    ${SRC}/kifu/formats/jkfformatter.cpp
-    ${SRC}/kifu/formats/kifexporter.cpp
-    ${SRC}/kifu/formats/bodtextgenerator.cpp
-    ${SRC}/kifu/formats/ki2exporter.cpp
-    ${SRC}/kifu/formats/usenexporter.cpp
-    ${SRC}/kifu/formats/usiexporter.cpp
-    ${SRC}/kifu/formats/ki2tosfenconverter.cpp
-    ${SRC}/kifu/formats/ki2lexer.cpp
-    ${SRC}/kifu/kifubranchtree.cpp
-    ${SRC}/kifu/kifubranchtree_search.cpp
-    ${SRC}/kifu/kifubranchnode.cpp
-    ${SRC}/kifu/kifunavigationstate.cpp
-    ${SRC}/core/shogimove.cpp
-    ${SRC}/core/shogiutils.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/kifu/formats/kiftosfenconverter.cpp
-    ${SRC}/kifu/formats/kiflexer.cpp
-    ${SRC}/kifu/formats/kiflexer_bod.cpp
-    ${SRC}/kifu/kifreader.cpp
-    ${SRC}/kifu/shiftjiscodec.cpp
-    ${SRC}/kifu/kifucontentbuilder.cpp
-)
+add_shogi_test(tst_kifu_comment_sync tst_kifu_comment_sync.cpp)
+target_link_libraries(tst_kifu_comment_sync PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 9: JosekiWindow Settings Persistence
@@ -598,41 +526,14 @@ add_shogi_test(tst_integration
 # ============================================================
 # Unit 13: USI Protocol Handler
 # ============================================================
-add_shogi_test(tst_usiprotocolhandler
-    tst_usiprotocolhandler.cpp
-    test_stubs_usiprotocol.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/engine/usiprotocolhandler.cpp
-    ${SRC}/engine/usiprotocolhandler_ops.cpp
-    ${SRC}/engine/usiprotocolhandler_wait.cpp
-    ${SRC}/services/enginepondersettings.cpp
-    ${SRC}/engine/usimovecoordinateconverter.cpp
-)
+add_shogi_test(tst_usiprotocolhandler tst_usiprotocolhandler.cpp)
+target_link_libraries(tst_usiprotocolhandler PRIVATE shogiboardq_static)
 
 add_executable(mock_usi_match mock_usi_match.cpp)
 target_link_libraries(mock_usi_match PRIVATE Qt6::Core)
-add_shogi_test(tst_usimatchhandler
-    tst_usimatchhandler.cpp
-    test_stubs_usiprotocol.cpp
-    ${SRC}/engine/usimatchhandler.cpp
-    ${SRC}/engine/usiprotocolhandler.cpp
-    ${SRC}/engine/usiprotocolhandler_ops.cpp
-    ${SRC}/engine/usiprotocolhandler_wait.cpp
-    ${SRC}/services/enginepondersettings.cpp
-    ${SRC}/engine/usimovecoordinateconverter.cpp
-    ${SRC}/engine/engineprocessmanager.cpp
-    ${SRC}/engine/engineprocessmanager_wait.cpp
-    ${SRC}/core/shogiclock.cpp
-    ${SRC}/core/shogiclock_format.cpp
-    ${SRC}/game/matchtimekeeper.cpp
-    ${SRC}/core/shogiboard.cpp
-    ${SRC}/core/shogiboard_edit.cpp
-    ${SRC}/core/shogiboard_sfen.cpp
-    ${SRC}/common/logcategories.cpp
-    ${SRC}/common/errorbus.cpp
-    ${SRC}/kifu/formats/parsecommon.cpp
-)
-target_compile_definitions(tst_usimatchhandler PRIVATE USI_MATCH_REAL_PROCESS)
+add_dependencies(tst_usiprotocolhandler mock_usi_match)
+add_shogi_test(tst_usimatchhandler tst_usimatchhandler.cpp)
+target_link_libraries(tst_usimatchhandler PRIVATE shogiboardq_static)
 add_dependencies(tst_usimatchhandler mock_usi_match)
 
 # ============================================================
@@ -999,14 +900,12 @@ add_shogi_test(tst_app_lifecycle_pipeline
 )
 
 # ============================================================
-# Unit 23: App Game Session (対局開始フロー構造契約)
+# Unit 23: App Game Session (実サービスによる対局操作フロー)
 # ============================================================
 add_shogi_test(tst_app_game_session
     tst_app_game_session.cpp
 )
-target_compile_definitions(tst_app_game_session PRIVATE
-    SOURCE_DIR="${CMAKE_SOURCE_DIR}"
-)
+target_link_libraries(tst_app_game_session PRIVATE shogiboardq_static)
 
 # ============================================================
 # Unit 24: App Kifu Load (棋譜ロードフロー構造契約)
@@ -1064,14 +963,9 @@ add_shogi_test(tst_wiring_contracts
 # ============================================================
 # Unit 28: MatchCoordinator (対局進行コーディネータ主要フロー)
 # ============================================================
-add_shogi_test(tst_matchcoordinator
-    tst_matchcoordinator.cpp
-    test_stubs_matchcoordinator.cpp
-    ${SRC}/game/matchcoordinator.cpp
-    ${SRC}/game/matchcoordinator_engine.cpp
-    ${SRC}/game/matchcoordinator_time.cpp
-    ${SRC}/common/logcategories.cpp
-)
+add_shogi_test(tst_matchcoordinator tst_matchcoordinator.cpp)
+target_link_libraries(tst_matchcoordinator PRIVATE shogiboardq_static)
+add_dependencies(tst_matchcoordinator mock_usi_match)
 
 # ============================================================
 # Unit 29: GameStrategy (対局モード別Strategy群テスト)
@@ -1677,3 +1571,8 @@ target_compile_definitions(tst_applicationlogging PRIVATE
     $<$<NOT:$<CONFIG:Debug>>:QT_NO_DEBUG_OUTPUT>
 )
 set_tests_properties(tst_applicationlogging PROPERTIES TIMEOUT 20)
+
+# 実際の生成・配線経路で冪等性と依存更新を検証する。
+add_shogi_test(tst_service_initialization tst_service_initialization.cpp)
+target_sources(tst_service_initialization PRIVATE ${CMAKE_SOURCE_DIR}/resources/shogiboardq.qrc)
+target_link_libraries(tst_service_initialization PRIVATE shogiboardq_static)

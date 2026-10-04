@@ -602,8 +602,6 @@ bool EngineLifecycleManager::isShutdownInProgress() const { return false; }
 void EngineLifecycleManager::setShutdownInProgress(bool) {}
 EngineLifecycleManager::EngineModelPair EngineLifecycleManager::ensureEngineModels(int) { return {}; }
 void EngineLifecycleManager::setModelPtrs(UsiCommLogModel*, ShogiEngineThinkingModel*, UsiCommLogModel*, ShogiEngineThinkingModel*) {}
-bool EngineLifecycleManager::engineThinkApplyMove(Usi*, QString&, QString&, QPoint*, QPoint*) { return false; }
-bool EngineLifecycleManager::engineMoveOnce(Usi*, QString&, QString&, bool, int, QPoint*) { return false; }
 void EngineLifecycleManager::sendStopToEngine(Usi*) {}
 void EngineLifecycleManager::wireResignToArbiter(Usi*, bool) {}
 void EngineLifecycleManager::wireWinToArbiter(Usi*, bool) {}

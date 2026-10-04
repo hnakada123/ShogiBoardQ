@@ -42,12 +42,8 @@ private:
     int         m_currentMoveIndex {0};
 
 public:
-    // 追加：コメントを Presenter 側で管理
-    void setCommentsByRow(const QStringList& commentsByRow);
-
     // disp をモデルに反映し、コメントと行数を整えて、選択変更の配線までを一括実行
     void displayAndWire(const QList<KifDisplayItem>& disp,
-                        int rowCount,
                         RecordPane* recordPane);
 
     // 現在選択されている行インデックス（選択無しは -1）
@@ -58,13 +54,11 @@ signals:
     void currentRowChanged(int row, const QString& comment);
 
 private:
-    void setCommentsFromDisplayItems(const QList<KifDisplayItem>& disp, int rowCount);
     void bindKifuSelection(QTableView* kifuView);
     QString commentForRow(int row) const;
 
     QPointer<QTableView> m_kifuView;
     QMetaObject::Connection m_connRowChanged;
-    QStringList m_commentsByRow;
 
 private slots:
     void onKifuCurrentRowChanged(const QModelIndex& current, const QModelIndex& previous);

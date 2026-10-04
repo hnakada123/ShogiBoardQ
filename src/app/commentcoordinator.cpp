@@ -98,37 +98,8 @@ void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComme
     }
 }
 
-void CommentCoordinator::onGameRecordCommentChanged(int ply, const QString& /*comment*/)
+void CommentCoordinator::onGameRecordCommentChanged(int ply, const QString& comment)
 {
-    qCDebug(lcApp).noquote() << "GameRecordModel::commentChanged ply=" << ply;
-}
-
-void CommentCoordinator::onCommentUpdateCallback(int ply, const QString& comment)
-{
-    qCDebug(lcApp).noquote() << "onCommentUpdateCallback ply=" << ply;
-
-    if (!m_commentsByRow) {
-        qCWarning(lcApp) << "onCommentUpdateCallback: m_commentsByRow is null";
-        return;
-    }
-
-    // m_commentsByRow への同期（互換性・RecordPresenterへの供給用）
-    while (m_commentsByRow->size() <= ply) {
-        m_commentsByRow->append(QString());
-    }
-    (*m_commentsByRow)[ply] = comment;
-
-    // RecordPresenter のコメント配列も更新（行選択時に正しいコメントを表示するため）
-    if (m_recordPresenter) {
-        QStringList updatedComments;
-        updatedComments.reserve(m_commentsByRow->size());
-        for (const QString& c : std::as_const(*m_commentsByRow)) {
-            updatedComments.append(c);
-        }
-        m_recordPresenter->setCommentsByRow(updatedComments);
-        qCDebug(lcApp).noquote() << "Updated RecordPresenter commentsByRow";
-    }
-
     // KifuRecordListModel の該当行を更新
     if (m_kifuRecordModel != nullptr) {
         auto* item = m_kifuRecordModel->item(ply);
@@ -215,9 +186,9 @@ void CommentCoordinator::onNavigationCommentUpdate(int ply, const QString& comme
     broadcastComment(comment, asHtml);
 }
 
-void CommentCoordinator::onBookmarkUpdateCallback(int ply, const QString& bookmark)
+void CommentCoordinator::onBookmarkChanged(int ply, const QString& bookmark)
 {
-    qCDebug(lcApp).noquote() << "onBookmarkUpdateCallback ply=" << ply;
+    qCDebug(lcApp).noquote() << "onBookmarkChanged ply=" << ply;
 
     // KifuRecordListModel の該当行を更新
     if (m_kifuRecordModel != nullptr) {
