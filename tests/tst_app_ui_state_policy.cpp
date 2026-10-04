@@ -10,6 +10,7 @@
 #include "ui_mainwindow.h"
 
 #include "uistatepolicymanager.h"
+#include "playmode.h"
 
 class TestAppUiStatePolicy : public QObject
 {
@@ -378,6 +379,9 @@ private slots:
     void gameResign_enabledDuringGameOrCsa()
     {
         UiStatePolicyManager mgr;
+        UiStatePolicyManager::Deps deps;
+        deps.getPlayMode = []() { return PlayMode::HumanVsHuman; };
+        mgr.updateDeps(deps);
         verifyEnabled(mgr, S::DuringGame, E::GameResign, "GameResign");
         verifyEnabled(mgr, S::DuringCsaGame, E::GameResign, "GameResign");
         verifyDisabled(mgr, S::Idle, E::GameResign, "GameResign");
@@ -385,13 +389,70 @@ private slots:
         verifyDisabled(mgr, S::DuringTsumeSearch, E::GameResign, "GameResign");
     }
 
-    /// GameUndo: DuringGame のみ有効（CSA中は不可）
-    void gameUndo_enabledOnlyDuringGame()
+    void localHumanActions_followPlayMode_data()
     {
+        QTest::addColumn<PlayMode>("mode");
+        QTest::addColumn<bool>("hasHuman");
+        QTest::newRow("human-human") << PlayMode::HumanVsHuman << true;
+        QTest::newRow("human-engine") << PlayMode::EvenHumanVsEngine << true;
+        QTest::newRow("engine-human") << PlayMode::EvenEngineVsHuman << true;
+        QTest::newRow("handicap-human-engine") << PlayMode::HandicapHumanVsEngine << true;
+        QTest::newRow("handicap-engine-human") << PlayMode::HandicapEngineVsHuman << true;
+        QTest::newRow("engine-engine") << PlayMode::EvenEngineVsEngine << false;
+        QTest::newRow("handicap-engine-engine") << PlayMode::HandicapEngineVsEngine << false;
+        QTest::newRow("not-started") << PlayMode::NotStarted << false;
+        QTest::newRow("analysis") << PlayMode::AnalysisMode << false;
+        QTest::newRow("consideration") << PlayMode::ConsiderationMode << false;
+        QTest::newRow("tsume-search") << PlayMode::TsumiSearchMode << false;
+        QTest::newRow("csa") << PlayMode::CsaNetworkMode << false;
+        QTest::newRow("error") << PlayMode::PlayModeError << false;
+    }
+
+    /// 待った・ローカル対局の投了は人間が参加する場合のみ有効。中断は常に可能。
+    void localHumanActions_followPlayMode()
+    {
+        QFETCH(PlayMode, mode);
+        QFETCH(bool, hasHuman);
+        QMainWindow window;
+        Ui::MainWindow ui;
+        ui.setupUi(&window);
         UiStatePolicyManager mgr;
-        verifyEnabled(mgr, S::DuringGame, E::GameUndo, "GameUndo");
-        verifyDisabled(mgr, S::DuringCsaGame, E::GameUndo, "GameUndo");
-        verifyDisabled(mgr, S::Idle, E::GameUndo, "GameUndo");
+        UiStatePolicyManager::Deps deps;
+        deps.ui = &ui;
+        mgr.updateDeps(deps);
+        mgr.transitionToDuringGame();
+        QVERIFY(!mgr.isEnabled(E::GameUndo));
+        QVERIFY(!ui.actionUndoMove->isEnabled());
+        QVERIFY(!mgr.isEnabled(E::GameResign));
+        QVERIFY(!ui.actionResign->isEnabled());
+
+        deps.getPlayMode = [&mode]() { return mode; };
+        mgr.updateDeps(deps);
+        for (const auto state : {S::Idle, S::DuringGame, S::DuringCsaGame, S::DuringAnalysis,
+                                S::DuringTsumeSearch, S::DuringConsideration,
+                                S::DuringPositionEdit, S::Idle}) {
+            mgr.applyState(state);
+            const bool expected = state == S::DuringGame && hasHuman;
+            QCOMPARE(mgr.isEnabled(E::GameUndo), expected);
+            QCOMPARE(ui.actionUndoMove->isEnabled(), expected);
+            const bool canResign = expected || state == S::DuringCsaGame;
+            QCOMPARE(mgr.isEnabled(E::GameResign), canResign);
+            QCOMPARE(ui.actionResign->isEnabled(), canResign);
+            const bool canBreakOff = state == S::DuringGame || state == S::DuringCsaGame;
+            QCOMPARE(mgr.isEnabled(E::GameBreakOff), canBreakOff);
+            QCOMPARE(ui.actionBreakOffGame->isEnabled(), canBreakOff);
+        }
+
+        // 次の対局では最新のモードで有効・無効を再判定する。
+        mode = PlayMode::HumanVsHuman;
+        mgr.transitionToDuringGame();
+        QVERIFY(ui.actionUndoMove->isEnabled());
+        QVERIFY(ui.actionResign->isEnabled());
+        mgr.transitionToIdle();
+        mode = PlayMode::EvenEngineVsEngine;
+        mgr.transitionToDuringGame();
+        QVERIFY(!ui.actionUndoMove->isEnabled());
+        QVERIFY(!ui.actionResign->isEnabled());
     }
 
     /// GameMakeImmediate: DuringGame, DuringCsaGame で有効

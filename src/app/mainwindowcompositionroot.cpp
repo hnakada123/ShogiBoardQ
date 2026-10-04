@@ -16,6 +16,9 @@
 #include "playerinfocontroller.h"
 #include "playerinfowiring.h"
 #include "engineanalysistab.h"
+#include "matchcoordinator.h"
+
+#include <QPointer>
 
 /// ConsiderationWiring::Deps を refs/cbs から組み立てるヘルパー
 static ConsiderationWiring::Deps buildConsiderationDeps(
@@ -404,6 +407,10 @@ void MainWindowCompositionRoot::refreshUiStatePolicyManagerDeps(
     deps.recordPane = refs.ui.recordPane;
     deps.analysisTab = refs.ui.analysisTab;
     deps.boardController = refs.uiController.boardController;
+    // started 通知では MainWindow 側のモード同期より先に UI ポリシーが更新される。
+    deps.getPlayMode = [match = QPointer<MatchCoordinator>(refs.gameService.match)]() {
+        return match ? match->playMode() : PlayMode::NotStarted;
+    };
     controller->updateDeps(deps);
 }
 

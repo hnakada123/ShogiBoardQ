@@ -2489,6 +2489,8 @@ private slots:
     void humanGame()
     {
         armDialog("game"); click("actionStartGame"); QVERIFY(dialogHandled);
+        QVERIFY(action("actionUndoMove")->isEnabled());
+        QVERIFY(action("actionResign")->isEnabled());
         QVERIFY(board()->blackNameLabel()->fullText().contains("Audit Black"));
         QVERIFY(board()->whiteNameLabel()->fullText().contains("Audit White"));
         QVERIFY(record()->isNavigationDisabled());
@@ -2505,6 +2507,7 @@ private slots:
         click("actionUndoMove"); QCOMPARE(boardSfen(), initial);
         armDialog("yes"); click("actionBreakOffGame");
         QTRY_VERIFY(!record()->isNavigationDisabled());
+        QVERIFY(!action("actionUndoMove")->isEnabled());
     }
     void websiteLink()
     {
@@ -2796,6 +2799,8 @@ private slots:
     void engineHumanGame()
     {
         armDialog("gameEngineWhite"); click("actionStartGame"); QVERIFY(record()->isNavigationDisabled());
+        QVERIFY(action("actionUndoMove")->isEnabled());
+        QVERIFY(action("actionResign")->isEnabled());
         QVERIFY(board()->whiteNameLabel()->fullText().contains("Audit USI"));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 7));
         QTest::mouseClick(board(), Qt::LeftButton, Qt::NoModifier, squarePoint(7, 6));
@@ -2804,10 +2809,31 @@ private slots:
         QTRY_VERIFY(!record()->isNavigationDisabled());
         QVERIFY(copy("actionCopyUSIAll").contains("7g7f 3c3d"));
     }
+    void engineVersusEngine_data()
+    {
+        QTest::addColumn<bool>("interrupt");
+        QTest::newRow("engine-resigns") << false;
+        QTest::newRow("user-interrupts") << true;
+    }
     void engineVersusEngine()
     {
+        QFETCH(bool, interrupt);
         armDialog("gameEngines"); click("actionStartGame");
+        QVERIFY(record()->isNavigationDisabled());
+        QVERIFY(!action("actionUndoMove")->isEnabled());
+        QVERIFY(!action("actionResign")->isEnabled());
+        QVERIFY(action("actionBreakOffGame")->isEnabled());
         armDialog("auto");
+        if (interrupt) {
+            QTRY_VERIFY_WITH_TIMEOUT(record()->kifuView()->model()->rowCount() >= 2, 5000);
+            click("actionBreakOffGame");
+            QTRY_VERIFY(!record()->isNavigationDisabled());
+            const QString kifu = copy("actionCopyKIF");
+            QVERIFY(kifu.contains(QStringLiteral("中断")));
+            QVERIFY(!kifu.contains(QStringLiteral("投了")));
+            snapshot("engine-game-interrupted");
+            return;
+        }
         QTRY_VERIFY_WITH_TIMEOUT(record()->kifuView()->model()->rowCount() >= 6, 7000);
         QTRY_VERIFY_WITH_TIMEOUT(!record()->isNavigationDisabled(), 3000);
         QVERIFY(copy("actionCopyKIF").contains(QStringLiteral("投了")));
