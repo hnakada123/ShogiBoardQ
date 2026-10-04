@@ -103,56 +103,38 @@ private slots:
                   "Constructor must call runStartup()");
     }
 
-    /// runStartup() が createFoundationObjects → finalizeAndConfigureUi を順序通り呼ぶこと
-    void phase1_startupStepsAreOrdered()
+    /// 全起動ステップが配線されること（実行順序は実行時テストで検証）
+    void phase1_startupStepsAreWired()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
-
+            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
         const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowLifecyclePipeline::runStartup()"));
-        QVERIFY2(range.first >= 0, "runStartup() not found");
-
-        QString body = bodyText(lines, range);
-        QString firstToken = QStringLiteral("createFoundationObjects");
-        QString lastToken = QStringLiteral("finalizeAndConfigureUi");
-        if (body.contains(QStringLiteral("runLifecycleStartupInternal"))) {
-            const auto internalRange = findFunctionBody(
-                lines, QStringLiteral("MainWindow::runLifecycleStartupInternal()"));
-            QVERIFY2(internalRange.first >= 0, "runLifecycleStartupInternal not found");
-            body = bodyText(lines, internalRange);
-            firstToken = QStringLiteral("createFoundationObjectsForLifecycle");
-            lastToken = QStringLiteral("finalizeAndConfigureUiForLifecycle");
+            lines, QStringLiteral("MainWindowServiceRegistry::createLifecyclePipeline()"));
+        QVERIFY2(range.first >= 0, "Lifecycle wiring not found");
+        const QString body = bodyText(lines, range);
+        const QStringList steps{
+            QStringLiteral("createFoundationObjects"), QStringLiteral("setupUiSkeleton"),
+            QStringLiteral("initializeCoreComponents"), QStringLiteral("initializeEarlyServices"),
+            QStringLiteral("buildGamePanels"), QStringLiteral("restoreWindowAndSync"),
+            QStringLiteral("connectSignals"), QStringLiteral("finalizeAndConfigureUi")};
+        for (const QString& step : steps) {
+            QVERIFY2(body.contains(QStringLiteral("startup.") + step + QStringLiteral(" =")),
+                     qPrintable(QStringLiteral("Startup step is not wired: ") + step));
         }
-
-        // 最初と最後のステップの順序を検証
-        const auto firstStep = body.indexOf(firstToken);
-        const auto lastStep = body.indexOf(lastToken);
-        QVERIFY2(firstStep >= 0, "startup first step not found");
-        QVERIFY2(lastStep >= 0, "startup last step not found");
-        QVERIFY2(firstStep < lastStep,
-                  "createFoundationObjects must precede finalizeAndConfigureUi");
     }
 
     /// connectSignals ステップが SignalRouter を初期化すること
     void phase1_connectSignalsUsesSignalRouter()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
-
-        auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowLifecyclePipeline::connectSignals()"));
-        if (range.first < 0) {
-            range = findFunctionBody(
-                lines, QStringLiteral("MainWindow::connectSignalsForLifecycle()"));
-        }
+            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("MainWindowServiceRegistry::connectSignalsForLifecycle()"));
         QVERIFY2(range.first >= 0, "connectSignals implementation not found");
-
         const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("SignalRouter")),
-                  "connectSignals must reference SignalRouter");
+        QVERIFY2(body.contains(QStringLiteral("m_signalRouter->updateDeps(d)"))
+                     && body.contains(QStringLiteral("m_signalRouter->connectAll()")),
+                 "SignalRouter dependencies must be wired before connecting signals");
     }
 
     // ================================================================
@@ -396,9 +378,15 @@ private slots:
         const auto range = findFunctionBody(lines, QStringLiteral("MainWindow::closeEvent("));
         QVERIFY(range.first >= 0);
         const QString body = bodyText(lines, range);
-        const qsizetype confirmation = body.indexOf(QStringLiteral("confirmCloseJoseki()"));
+        const qsizetype confirmation = body.indexOf(QStringLiteral("m_pipeline->confirmClose()"));
         QVERIFY(confirmation >= 0);
-        QVERIFY(confirmation < body.indexOf(QStringLiteral("runShutdown()")));
+        QVERIFY(confirmation < body.indexOf(QStringLiteral("QMainWindow::closeEvent(e)")));
+        QVERIFY(body.indexOf(QStringLiteral("e->isAccepted()"))
+                < body.indexOf(QStringLiteral("runShutdown()")));
+        QVERIFY(body.contains(QStringLiteral("e->ignore()")));
+        const QString wiring = readSourceFile(QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
+        QVERIFY(wiring.contains(QStringLiteral("deps.confirmDiscardUnsavedKifu =")));
+        QVERIFY(wiring.contains(QStringLiteral("deps.confirmCloseJoseki =")));
         const QString registry = readSourceFile(QStringLiteral("src/app/mainwindowserviceregistry.cpp"));
         QVERIFY(registry.contains(QStringLiteral("return m_kifu->confirmCloseJoseki();")));
         const QString kifuRegistry = readSourceFile(QStringLiteral("src/app/kifusubregistry.cpp"));
@@ -410,52 +398,27 @@ private slots:
     {
         const QStringList lines = readSourceLines(
             QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
-
         const auto range = findFunctionBody(
             lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
         QVERIFY2(range.first >= 0, "runShutdown not found");
-
-        QString body = bodyText(lines, range);
-        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
-            const auto internalRange = findFunctionBody(
-                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
-            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal not found");
-            body = bodyText(lines, internalRange);
-        }
-        QVERIFY2(body.contains(QStringLiteral("m_shutdownDone"))
-                     || body.contains(QStringLiteral("shutdownDone")),
-                  "runShutdown must have double-execution guard");
+        QVERIFY(bodyText(lines, range).contains(QStringLiteral("runOnce(m_shutdownDone)")));
     }
 
     /// runShutdown がエンジン停止と設定保存を行うこと
     void phase7_shutdownSavesAndStopsEngines()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
-
+            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
         const auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
-        QVERIFY2(range.first >= 0, "runShutdown not found");
-
-        QString body = bodyText(lines, range);
-        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
-            const auto internalRange = findFunctionBody(
-                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
-            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal not found");
-            body = bodyText(lines, internalRange);
-        }
-
-        // 設定保存
-        QVERIFY2(body.contains(QStringLiteral("saveWindowAndBoard"))
-                     || body.contains(QStringLiteral("saveDockStates"))
-                     || body.contains(QStringLiteral("saveSettings")),
-                  "Shutdown must save settings");
-
-        // エンジン停止
-        QVERIFY2(body.contains(QStringLiteral("destroyEngines")),
-                  "Shutdown must destroy engines");
+            lines, QStringLiteral("MainWindowServiceRegistry::createLifecyclePipeline()"));
+        QVERIFY2(range.first >= 0, "Lifecycle wiring not found");
+        const QString body = bodyText(lines, range);
+        QVERIFY(body.contains(QStringLiteral("shutdown.saveSettings =")));
+        QVERIFY(body.contains(QStringLiteral("saveWindowAndBoard")));
+        QVERIFY(body.contains(QStringLiteral("saveDockStates")));
+        QVERIFY(body.contains(QStringLiteral("shutdown.destroyEngines =")));
+        QVERIFY(body.contains(QStringLiteral("m_match->destroyEngines()")));
+        QVERIFY(body.contains(QStringLiteral("shutdown.invalidateRuntimeDeps =")));
     }
 
     // ================================================================
@@ -496,21 +459,11 @@ private slots:
     void crossCut_uiPolicyStartsIdle()
     {
         const QStringList lines = readSourceLines(
-            QStringLiteral("src/app/mainwindowlifecyclepipeline.cpp"));
-        QVERIFY2(!lines.isEmpty(), "Failed to read pipeline source");
-
-        auto range = findFunctionBody(
-            lines, QStringLiteral("MainWindowLifecyclePipeline::finalizeAndConfigureUi()"));
-        if (range.first < 0) {
-            range = findFunctionBody(
-                lines, QStringLiteral("MainWindow::finalizeAndConfigureUiForLifecycle()"));
-        }
+            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("MainWindowServiceRegistry::finalizeAndConfigureUiForLifecycle()"));
         QVERIFY2(range.first >= 0, "finalizeAndConfigureUi implementation not found");
-
-        const QString body = bodyText(lines, range);
-        QVERIFY2(body.contains(QStringLiteral("UiStatePolicyManager"))
-                     || body.contains(QStringLiteral("Idle")),
-                  "finalizeAndConfigureUi must initialize UI policy to Idle state");
+        QVERIFY(bodyText(lines, range).contains(QStringLiteral("UiStatePolicyManager::AppState::Idle")));
     }
 
     /// 全フェーズの主要クラスがそれぞれの .h/.cpp ファイルに実装されていること

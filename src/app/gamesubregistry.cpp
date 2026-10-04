@@ -133,6 +133,18 @@ void MainWindowServiceRegistry::ensureGameStartCoordinator()
 // 手番同期サービス
 // ---------------------------------------------------------------------------
 
+void MainWindowServiceRegistry::onTurnManagerChanged(ShogiGameController::Player now)
+{
+    prepareTurnStateSyncService();
+    m_mw.m_turnStateSync->onTurnManagerChanged(now);
+}
+
+void MainWindowServiceRegistry::setCurrentTurn()
+{
+    prepareTurnStateSyncService();
+    m_mw.m_turnStateSync->setCurrentTurn();
+}
+
 void MainWindowServiceRegistry::prepareTurnStateSyncService()
 {
     if (!m_mw.m_turnStateSync) {
@@ -177,6 +189,12 @@ void MainWindowServiceRegistry::refreshTurnStateSyncDeps()
 // ---------------------------------------------------------------------------
 // 手戻しフロー
 // ---------------------------------------------------------------------------
+
+void MainWindowServiceRegistry::undoLastTwoMoves()
+{
+    prepareUndoFlowService();
+    m_mw.m_undoFlowService->undoLastTwoMoves();
+}
 
 void MainWindowServiceRegistry::prepareUndoFlowService()
 {

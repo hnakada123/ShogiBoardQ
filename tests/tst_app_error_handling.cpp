@@ -503,32 +503,15 @@ private slots:
             lines, QStringLiteral("MainWindowLifecyclePipeline::runShutdown()"));
         QVERIFY2(range.first >= 0, "runShutdown() function not found");
 
-        QString body = bodyText(lines, range.first, range.second);
-        if (body.contains(QStringLiteral("runLifecycleShutdownInternal"))) {
-            const auto internalRange = findFunctionBody(
-                lines, QStringLiteral("MainWindow::runLifecycleShutdownInternal("));
-            QVERIFY2(internalRange.first >= 0, "runLifecycleShutdownInternal() not found");
-            body = bodyText(lines, internalRange.first, internalRange.second);
-        }
+        const QString body = bodyText(lines, range.first, range.second);
+        QVERIFY2(body.contains(QStringLiteral("runOnce(m_shutdownDone)")),
+                 "runShutdown must use the guarded shutdown sequence");
 
-        // パターン: ガードチェック → フラグ設定 → 処理本体
-        // 最初の非コメント文がガードであること
-        bool guardIsFirst = false;
-        for (int i = range.first + 1; i <= range.second; ++i) {
-            const QString trimmed = lines[i].trimmed();
-            if (trimmed.isEmpty() || trimmed.startsWith(QStringLiteral("//")))
-                continue;
-
-            guardIsFirst = trimmed.contains(QStringLiteral("m_shutdownDone"));
-            break;
-        }
-        QVERIFY2(guardIsFirst,
-                  "First non-comment statement in runShutdown() should be the guard check");
-
-        // エンジン終了前に null チェックがあること（m_match が nullptr の場合の防御）
-        QVERIFY2(body.contains(QStringLiteral("if (m_mw.m_match)"))
-                     || body.contains(QStringLiteral("if (m_match)")),
-                  "runShutdown() should check m_match before destroyEngines()");
+        // エンジン停止のコールバックは未生成の MatchCoordinator も扱えること
+        const QString wiring = readSourceFile(
+            QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
+        QVERIFY2(wiring.contains(QStringLiteral("if (m_mw.m_match)")),
+                 "Shutdown wiring should check m_match before destroyEngines()");
     }
 
     /// initMatchCoordinator が二重呼び出しでダングリングポインタを防止すること
@@ -1082,11 +1065,11 @@ private slots:
             QVERIFY2(range.first >= 0, "runStartup() not found");
 
             const QString body = bodyText(lines, range.first, range.second);
-            QVERIFY2(body.contains(QStringLiteral("createFoundation"))
-                         || body.contains(QStringLiteral("runLifecycleStartupInternal"))
-                         || body.contains(QStringLiteral("make_unique"))
-                         || body.contains(QStringLiteral("setupUi")),
-                      "runStartup should create foundation objects");
+            QVERIFY2(body.contains(QStringLiteral("MainWindowStartupSequence(m_deps.startup).run()")),
+                     "runStartup must execute the injected startup sequence");
+            const QString wiring = readSourceFile(
+                QStringLiteral("src/app/mainwindowlifecyclewiring.cpp"));
+            QVERIFY(wiring.contains(QStringLiteral("startup.createFoundationObjects =")));
         }
 
         // m_shutdownDone の初期値が false であること（ヘッダーの構造検証）

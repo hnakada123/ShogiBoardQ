@@ -5,7 +5,7 @@
 /// @brief アプリケーション全般設定の永続化
 ///
 /// 言語・UI状態・駒音・メニューウィンドウ・メインウィンドウに関する設定を提供します。
-/// 呼び出し元: main.cpp, mainwindowuibootstrapper.cpp, mainwindowlifecyclepipeline.cpp,
+/// 呼び出し元: main.cpp, mainwindowuibootstrapper.cpp, mainwindowlifecyclewiring.cpp,
 ///             mainwindowappearancecontroller.cpp, languagecontroller.cpp, menuwindow.cpp,
 ///             playerinfowiring.cpp
 

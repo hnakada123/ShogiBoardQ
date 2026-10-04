@@ -6,12 +6,14 @@
 ///
 /// MainWindowServiceRegistry から Kifu 系 ensure* を抽出した独立クラス。
 
+#include <QList>
 #include <QObject>
 
 class MainWindow;
 class MainWindowFoundationRegistry;
 class MainWindowServiceRegistry;
 class QString;
+struct KifDisplayItem;
 
 class KifuSubRegistry : public QObject
 {
@@ -44,6 +46,7 @@ public:
     void clearUiBeforeKifuLoad();
     void updateJosekiWindow();
     void updateKifuExportDeps();
+    void displayGameRecord(const QList<KifDisplayItem>& disp);
 
 private:
     void createBranchNavigationWiring();

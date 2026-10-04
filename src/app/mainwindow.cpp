@@ -2,7 +2,8 @@
 /// @brief MainWindow — UIルートの Facade 実装
 ///
 /// コンストラクタ/デストラクタは MainWindowLifecyclePipeline に委譲し、
-/// 各スロットは controller/coordinator への1行転送のみ行う。
+/// 各スロットはサービスへの転送のみ行う。
+/// Qt イベントの中継と依存参照の組み立てをここに残す。
 /// 業務ロジック・UI詳細ロジック・依存生成ロジックは
 /// MainWindowServiceRegistry または専用クラスに移譲済み。
 
@@ -27,15 +28,15 @@
 #include "kifuloadcoordinator.h"           // IWYU pragma: keep
 #include "positioneditcontroller.h"        // IWYU pragma: keep
 
-// --- Controllers / Services（スロット転送先） ---
-
 // MainWindow を初期化し、主要コンポーネントを構築する。
 // 起動フローの詳細は MainWindowLifecyclePipeline::runStartup() を参照。
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(std::make_unique<Ui::MainWindow>())
-    , m_pipeline(std::make_unique<MainWindowLifecyclePipeline>(*this))
 {
+    m_compositionRoot = std::make_unique<MainWindowCompositionRoot>();
+    m_registry = std::make_unique<MainWindowServiceRegistry>(*this);
+    m_pipeline = m_registry->createLifecyclePipeline();
     m_pipeline->runStartup();
 }
 
@@ -48,8 +49,7 @@ MainWindow::~MainWindow()
 // 待ったボタンを押すと、2手戻る。
 void MainWindow::undoLastTwoMoves()
 {
-    m_registry->prepareUndoFlowService();
-    m_undoFlowService->undoLastTwoMoves();
+    m_registry->undoLastTwoMoves();
 }
 
 void MainWindow::updateJosekiWindow()
@@ -60,22 +60,20 @@ void MainWindow::updateJosekiWindow()
 // TurnManager::changed を受けて UI/Clock を更新（＋手番を GameController に同期）
 void MainWindow::onTurnManagerChanged(ShogiGameController::Player now)
 {
-    m_registry->prepareTurnStateSyncService();
-    m_turnStateSync->onTurnManagerChanged(now);
+    m_registry->onTurnManagerChanged(now);
 }
 
 // 現在の手番を設定する。
 void MainWindow::setCurrentTurn()
 {
-    m_registry->prepareTurnStateSyncService();
-    m_turnStateSync->setCurrentTurn();
+    m_registry->setCurrentTurn();
 }
 
 // 設定ファイルにGUI全体のウィンドウサイズを書き込む。
 // また、将棋盤のマスサイズも書き込む。その後、GUIを終了する。
 void MainWindow::saveSettingsAndClose()
 {
-    if (close()) m_pipeline->shutdownAndQuit();
+    m_pipeline->requestClose();
 }
 
 // 自動化 API の待ち受けを開始する（ServiceRegistryへ委譲）。
@@ -99,17 +97,13 @@ void MainWindow::resetGameState()
 // `displayGameRecord`: Game Record を表示する（GameRecordLoadService に委譲）。
 void MainWindow::displayGameRecord(const QList<KifDisplayItem>& disp)
 {
-    if (!m_models.kifuRecord) return;
-
-    m_registry->prepareGameRecordLoadService();
-    m_gameRecordLoadService->loadGameRecord(disp);
+    m_registry->displayGameRecord(disp);
 }
 
 // `closeEvent`: 親クラスでイベント受理を確認してから shutdown を実行する。
 void MainWindow::closeEvent(QCloseEvent* e)
 {
-    if (!m_isShuttingDown &&
-        (!m_registry->confirmDiscardUnsavedKifu() || !m_registry->confirmCloseJoseki())) {
+    if (!m_pipeline->confirmClose()) {
         e->ignore();
         return;
     }

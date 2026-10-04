@@ -118,9 +118,6 @@ public:
     void displayGameRecord(const QList<KifDisplayItem>& disp);
     void onMoveRequested(const QPoint& from, const QPoint& to);
     void onMoveCommitted(ShogiGameController::Player mover, int ply);
-    // MainWindowLifecyclePipeline 用の内部実行API
-    void runLifecycleStartupInternal();
-    void runLifecycleShutdownInternal(bool& shutdownDone);
     /// 自動化 API（--automation）の待ち受けを開始する（ServiceRegistry へ委譲）
     void startAutomationServer(const QString& socketPath);
 
@@ -134,13 +131,6 @@ private slots:
     void loadBoardFromSfen(const QString& sfen);
 
 private:
-    void createFoundationObjectsForLifecycle();
-    void setupUiSkeletonForLifecycle();
-    void initializeCoreComponentsForLifecycle();
-    void initializeEarlyServicesForLifecycle();
-    void connectSignalsForLifecycle();
-    void finalizeAndConfigureUiForLifecycle();
-
     // --- 状態集約構造体（定義は mainwindowstate.h） ---
     DockWidgets m_docks;
     PlayerState m_player;

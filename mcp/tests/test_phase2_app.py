@@ -114,7 +114,7 @@ async def test_actions_dialogs_and_screenshots(app_env, tmp_path):
         text, state, _ = await _call(session, "get_app_state")
         flipped_before = state["board_flipped"]
         text, data, is_error = await _call(session, "trigger_action", name="actionFlipBoard")
-        assert not is_error and data["triggered"] is True
+        assert not is_error and data["triggered"] is True, text
         await asyncio.sleep(0.3)
         text, state, _ = await _call(session, "get_app_state")
         assert state["board_flipped"] != flipped_before

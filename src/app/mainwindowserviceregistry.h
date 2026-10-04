@@ -11,15 +11,19 @@
 ///
 /// 設計根拠: docs/dev/done/ensure-graph-analysis.md
 
+#include <QList>
 #include <QObject>
 #include <QPoint>
+#include <memory>
 
 #include "matchcoordinatorwiring.h"
 
 class KifuSubRegistry;
 class MainWindow;
 class MainWindowFoundationRegistry;
+class MainWindowLifecyclePipeline;
 class QString;
+struct KifDisplayItem;
 
 /**
  * @brief ドメイン固有の ensure* メソッドと主要操作を管理するサービスレジストリ
@@ -42,6 +46,7 @@ class QString;
  * - mainwindowuibootstrapper.cpp        (UI ブートストラップ)
  * - mainwindowwiringassembler.cpp       (配線アセンブラ)
  * - mainwindowautomationregistry.cpp    (自動化 API サーバー)
+ * - mainwindowlifecyclewiring.cpp       (起動/終了手順の配線)
  */
 class MainWindowServiceRegistry : public QObject
 {
@@ -89,6 +94,9 @@ public:
     void loadBoardFromSfen(const QString& sfen);
     void loadBoardWithHighlights(const QString& currentSfen, const QString& prevSfen);
     void onRecordPaneMainRowChanged(int row);
+    void undoLastTwoMoves();
+    void onTurnManagerChanged(ShogiGameController::Player now);
+    void setCurrentTurn();
 
     // ===== Game系 =====
     void ensureTimeController();
@@ -103,8 +111,6 @@ public:
     void ensureMatchCoordinatorWiring();
     void ensureCsaGameWiring();
     void ensureConsecutiveGamesController();
-    void prepareUndoFlowService();
-    void prepareTurnStateSyncService();
     void prepareTurnSyncBridge();
     [[nodiscard]] bool confirmDiscardUnsavedKifu();
     [[nodiscard]] bool confirmCloseJoseki();
@@ -115,7 +121,7 @@ public:
     void startLiveGameSessionIfNeeded();
 
     // ===== Kifu convenience wrappers =====
-    void prepareGameRecordLoadService();
+    void displayGameRecord(const QList<KifDisplayItem>& disp);
     void updateJosekiWindow();
 
     // ===== DockBootstrapper系 =====
@@ -134,6 +140,9 @@ public:
     void restoreWindowAndSync();
     void finalizeCoordinators();
 
+    // ===== 起動/終了の配線 =====
+    std::unique_ptr<MainWindowLifecyclePipeline> createLifecyclePipeline();
+
     // ===== WiringAssembler系 =====
     void initializeDialogLaunchWiring();
 
@@ -142,6 +151,14 @@ public:
     void ensureAutomationServer(const QString& socketPath);
 
 private:
+    void createFoundationObjectsForLifecycle();
+    void setupUiSkeletonForLifecycle();
+    void initializeCoreComponentsForLifecycle();
+    void initializeEarlyServicesForLifecycle();
+    void connectSignalsForLifecycle();
+    void finalizeAndConfigureUiForLifecycle();
+    void prepareUndoFlowService();
+    void prepareTurnStateSyncService();
     /// エンジン解析タブの依存コンポーネントを設定する
     void configureAnalysisTabDependencies();
     void createLiveGameSessionUpdater();

@@ -32,10 +32,9 @@ bool MainWindowServiceRegistry::confirmCloseJoseki()
     return m_kifu->confirmCloseJoseki();
 }
 
-void MainWindowServiceRegistry::prepareGameRecordLoadService()
+void MainWindowServiceRegistry::displayGameRecord(const QList<KifDisplayItem>& disp)
 {
-    if (m_mw.m_isShuttingDown) return;
-    m_kifu->ensureGameRecordLoadService();
+    m_kifu->displayGameRecord(disp);
 }
 
 void MainWindowServiceRegistry::updateJosekiWindow()
