@@ -3,10 +3,15 @@
 
 #include <QtTest>
 
+#include <QElapsedTimer>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QLocalSocket>
+#include <QPointer>
+#include <QTemporaryDir>
 
 #include "automationdispatcher.h"
+#include "automationserver.h"
 #include "automationcommands.h"
 #include "automationparams.h"
 
@@ -45,7 +50,86 @@ private:
         return dispatcher;
     }
 
+    QTemporaryDir m_config;
+
+    /// サーバー側の接続ソケット（QLocalServer の子）の数
+    static qsizetype serverSocketCount(const AutomationServer& server)
+    {
+        return server.findChildren<QLocalSocket*>().size();
+    }
+
+    static QByteArray request(const QString& socketPath, const QByteArray& line)
+    {
+        QLocalSocket client;
+        client.connectToServer(socketPath);
+        if (!client.waitForConnected(3000)) return QByteArray();
+        client.write(line);
+        client.flush();
+        QByteArray response;
+        QElapsedTimer timer;
+        timer.start();
+        while (!response.endsWith('\n') && timer.elapsed() < 3000) {
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+            response += client.readAll();
+        }
+        return response;
+    }
+
 private slots:
+    void initTestCase()
+    {
+        // listen() が書くエンドポイント情報をユーザーの設定ディレクトリに作らない
+        QVERIFY(m_config.isValid());
+        qputenv("XDG_CONFIG_HOME", m_config.path().toUtf8());
+    }
+
+    /// ダイアログ表示中（入れ子のイベントループ）にクライアントが切断しても、
+    /// 削除済みの接続へ応答を書き込まず、以後の接続を受け付けられる。
+    void clientDisconnectDuringNestedLoopIsSafe()
+    {
+        QTemporaryDir dir(QDir::tempPath() + QStringLiteral("/sbq-XXXXXX"));
+        QVERIFY(dir.isValid());
+        const QString socketPath = dir.filePath(QStringLiteral("a.sock"));
+
+        AutomationServer server;
+        QPointer<QLocalSocket> client = new QLocalSocket(this);
+        bool handled = false;
+        bool socketGoneDuringHandler = false;
+        server.dispatcher().registerMethod(QStringLiteral("nested"), [&](const QJsonObject&) {
+            client->abort();
+            QElapsedTimer timer;
+            timer.start();
+            while (timer.elapsed() < 3000 && serverSocketCount(server) > 0) {
+                QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
+                QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+            }
+            socketGoneDuringHandler = serverSocketCount(server) == 0;
+            handled = true;
+            return QJsonValue(true);
+        });
+        server.dispatcher().registerMethod(QStringLiteral("ping"), [](const QJsonObject&) {
+            return QJsonValue(QStringLiteral("pong"));
+        });
+        QString error;
+        QVERIFY2(server.listen(socketPath, &error), qPrintable(error));
+
+        client->connectToServer(socketPath);
+        QVERIFY(client->waitForConnected(3000));
+        // 2行目は切断後に処理されてはならない
+        client->write(R"({"jsonrpc":"2.0","id":1,"method":"nested"})" "\n"
+                      R"({"jsonrpc":"2.0","id":2,"method":"nested"})" "\n");
+        client->flush();
+        QTRY_VERIFY_WITH_TIMEOUT(handled, 5000);
+        QVERIFY(socketGoneDuringHandler);
+        handled = false;
+        QTest::qWait(100);
+        QVERIFY(!handled);
+
+        const QJsonObject pong = parse(request(socketPath, R"({"jsonrpc":"2.0","id":3,"method":"ping"})" "\n"));
+        QCOMPARE(pong.value(QStringLiteral("result")).toString(), QStringLiteral("pong"));
+        server.close();
+    }
+
     void deferredCallbackMayDeleteItsParent()
     {
         auto* parent = new QObject;
