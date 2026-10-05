@@ -1,162 +1,259 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>CSA Network Play - ShogiBoardQ</title>
-<meta content="A screenshot guide to CSA network play in ShogiBoardQ, from server connection settings to playing games. Supports floodgate and shogi-server." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" property="og:url"/>
-<meta content="CSA Network Play - ShogiBoardQ" property="og:title"/>
-<meta content="Learn to connect to CSA-compatible servers and play network games in ShogiBoardQ." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/csa-game/csa-03-playing.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="CSA Network Play - ShogiBoardQ" name="twitter:title"/>
-<meta content="Learn to connect to CSA-compatible servers and play network games in ShogiBoardQ." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/csa-game/csa-03-playing.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSA Network Game - ShogiBoardQ</title>
+    <meta name="description" content="A screenshot guide to CSA network games in ShogiBoardQ: connect to shogi-server, floodgate and other CSA protocol servers, wait for an opponent, play, and finish the game.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html">
+    <meta property="og:title" content="CSA Network Game - ShogiBoardQ">
+    <meta property="og:description" content="Connect to a CSA protocol server and play network games as a human or with a USI engine in ShogiBoardQ.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/csa-game/csa-03-playing.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CSA Network Game - ShogiBoardQ">
+    <meta name="twitter:description" content="Connect to a CSA protocol server and play network games as a human or with a USI engine in ShogiBoardQ.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/csa-game/csa-03-playing.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/csa-game.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/csa-game.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#connection-setup">Connection Settings</a></li>
-<li><a href="#waiting">Connect &amp; Wait</a></li>
-<li><a href="#playing">During a Game</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/csa-game.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="csa-game.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/csa-game.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/csa-game.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#connection-setup">Connection</a></li>
+            <li><a href="#waiting">Waiting</a></li>
+            <li><a href="#playing">Playing</a></li>
+            <li><a href="#about-csa">Servers</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>CSA Network Play</h1>
-<p class="hero-subtitle">Network games on CSA-compatible servers</p>
-<div class="hero-badges">
-<span class="badge">CSA Protocol</span>
-<span class="badge">shogi-server Support</span>
-<span class="badge">floodgate Support</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface, using a local CSA demonstration server.</p>
-</div>
+    <div class="hero-content">
+        <h1>CSA Network Game</h1>
+        <p class="hero-subtitle">Network games with CSA protocol servers</p>
+        <div class="hero-badges">
+            <span class="badge">CSA Protocol 1.2.1</span>
+            <span class="badge">shogi-server</span>
+            <span class="badge">floodgate</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Connection Setup -->
-<section class="section section--alt" id="connection-setup">
-<div class="section-inner">
-<h2 class="section-title">Connection Settings</h2>
-<p class="section-desc">Enter server connection details in the network game dialog</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Open the Network Game Dialog</span>
-</div>
-<p class="guide-step-text">Choose Game → Network Game (CSA) to open the network game dialog.</p>
-<div class="screenshot-item">
-<img alt="ShogiBoardQ main window" src="../../images/en/csa-game/csa-04-game-start.png"/>
-<p class="screenshot-caption">Main window: choose Game → Network Game (CSA)</p>
-</div>
-<p class="guide-step-text">Configure the following settings.</p>
-<ul class="guide-step-text">
-<li><strong>Local Player</strong>: Choose a human player or USI engine.</li>
-<li><strong>Protocol</strong>: Connect using CSA protocol 1.2.1.</li>
-<li><strong>Host</strong>: The server hostname or IP address.</li>
-<li><strong>Port</strong>: The server port number.</li>
-<li><strong>ID and Password</strong>: Your server login credentials.</li>
-</ul>
-<p class="guide-step-text">You can also select a previous connection from the history to restore its server settings. Passwords are not saved. Connect becomes available when the required fields are valid. For a local shogi-server, use localhost, port 4081 and a password in the form game-name,password (for example, test-600-10,pw). Both players must use the same game name.</p>
-<div class="screenshot-item">
-<img alt="Network Game (CSA) dialog" src="../../images/en/csa-game/csa-01-dialog.png"/>
-<p class="screenshot-caption">Network game dialog: configure the player and server connection</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="connection-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Connection Settings</h2>
+        <p class="section-desc">Set the server and the player on your side</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Open the Network Game Dialog</span>
+                </div>
+                <p class="guide-step-text">Choose Game → Network Game (CSA)… to open the network game dialog. It is available when no game or analysis is running.</p>
+                <table class="info-table">
+                    <tbody>
+                        <tr><td><strong>Player on this side</strong></td><td>Choose Human to play yourself, or Engine to let a USI engine play. Engines are those registered in Settings → Engine Settings, and Engine Settings... changes their options.</td></tr>
+                        <tr><td><strong>Select from history</strong></td><td>Pick a server you connected to before (up to 10) to fill in Host, Port and ID.</td></tr>
+                        <tr><td><strong>Protocol</strong></td><td>The connection uses CSA Protocol 1.2.1.</td></tr>
+                        <tr><td><strong>Host and Port</strong></td><td>The server's host name or IP address, and its port (4081 by default).</td></tr>
+                        <tr><td><strong>ID and Password</strong></td><td>Your login for the server. The password is not saved in the settings file.</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">While a field is missing, a hint such as "Please enter the host address." appears at the bottom of the dialog and Connect stays disabled. Host, ID and password cannot contain spaces.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/csa-game/csa-01-dialog.png" alt="Network Game (CSA) dialog">
+                    <p class="screenshot-caption">Network game dialog: settings for connecting to a local shogi-server as a human player</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Game Conditions on shogi-server</span>
+                </div>
+                <p class="guide-step-text">The server decides the time control and other conditions, so ShogiBoardQ has no settings for them. On shogi-server, enter game-name,password in the Password field. Two players who log in with the same game name play each other.</p>
+                <table class="info-table">
+                    <tbody>
+                        <tr><td><strong>Game name</strong></td><td>name-time-byoyomi, with times in seconds. Example: test-600-10 is 10 minutes plus 10 seconds of byoyomi</td></tr>
+                        <tr><td><strong>Increment (Fischer)</strong></td><td>Add F at the end to add time after every move instead of byoyomi. Example: test-300-10F</td></tr>
+                        <tr><td><strong>Preferred side</strong></td><td>Append -B (Black) or -W (White) to the game name. Example: test-600-10-B,pw</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">When shogi-server runs on your own computer, use localhost as the host and 4081 as the port.</p>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: Waiting -->
-<section class="section" id="waiting">
-<div class="section-inner">
-<h2 class="section-title">Connect &amp; Wait</h2>
-<p class="section-desc">Connect to the server and wait for an opponent</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Connect and Wait</span>
-</div>
-<p class="guide-step-text">Click Connect to connect to the server. Once login succeeds, a waiting screen appears while the server finds an opponent.</p>
-<p class="guide-step-text">Click Communication Log to view messages exchanged with the server. Click Cancel Game to stop waiting.</p>
-<div class="screenshot-item">
-<img alt="Waiting for an opponent" src="../../images/en/csa-game/csa-02-waiting.png"/>
-<p class="screenshot-caption">Waiting screen: looking for an opponent after a successful login</p>
-</div>
-<p class="guide-step-text">Click Communication Log to open a window showing CSA server communication in real time. While connected, press Enter or click Send to send a command. The main CSA log also shows connection status and offers Copy and Clear. It keeps up to 5,000 lines and preserves your reading position when you scroll back.</p>
-<div class="screenshot-item">
-<img alt="CSA communication log window" src="../../images/en/csa-game/csa-02-commlog.png"/>
-<p class="screenshot-caption">Communication log: view server messages and send commands</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="waiting" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Connect and Wait</h2>
+        <p class="section-desc">Log in to the server and wait for an opponent</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">Connect to the Server and Wait</span>
+                </div>
+                <p class="guide-step-text">Clicking Connect opens the waiting window, which goes through connecting, logging in and waiting for an opponent. If the current game record is unsaved, you are first asked whether to discard it.</p>
+                <p class="guide-step-text">When an opponent is found, the server sends the game conditions, ShogiBoardQ agrees to them automatically, and the game starts. Cancel Game stops waiting and logs out.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/csa-game/csa-02-waiting.png" alt="Waiting for an opponent">
+                    <p class="screenshot-caption">Waiting: logged in and waiting for an opponent</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">Check the Communication Log</span>
+                </div>
+                <p class="guide-step-text">Communication Log opens a window that shows what is sent to and received from the server. ▶ marks received lines and ◀ sent lines; the LOGIN password is shown as *****.</p>
+                <p class="guide-step-text">While connected, you can type a command in the field below and send it with Enter or Send. The log keeps up to 5000 lines.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/csa-game/csa-02-commlog.png" alt="CSA log window">
+                    <p class="screenshot-caption">Communication log: the game conditions (Game_Summary) have arrived and ShogiBoardQ has agreed with AGREE</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 3: Playing -->
-<section class="section section--alt" id="playing">
-<div class="section-inner">
-<h2 class="section-title">During a Game</h2>
-<p class="section-desc">Once the game starts, play moves as you would in a local game</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">3</span>
-<span class="guide-step-title">During a Game</span>
-</div>
-<p class="guide-step-text">The CSA Communication Log tab shows server communication in real time. The game record tab lists the moves, and the game clocks show the remaining time.</p>
-<p class="guide-step-text">Resignation, interruption requests, and entering-king declarations are sent on your turn. The server determines the result, including time forfeits. Servers that do not support interruption requests, such as shogi-server, may treat them as illegal actions. After the game ends, you can save or replay the record and start another CSA game.</p>
-<div class="screenshot-item">
-<img alt="Network game in progress" src="../../images/en/csa-game/csa-03-playing.png"/>
-<p class="screenshot-caption">During a game: monitor server communication in the CSA log</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 3 -->
+<section id="playing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Playing</h2>
+        <p class="section-desc">Play on the same screen as in ordinary games</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">The Game Screen</span>
+                </div>
+                <p class="guide-step-text">When you play as a human, click pieces on the board on your turn. The opponent's moves arrive from the server and appear on the board, and the game record lists each move with the time used. The clocks show the time control sent by the server.</p>
+                <p class="guide-step-text">The CSA Log tab at the bottom shows the traffic and the connection status. Copy copies the whole log, Clear clears the view, and you can send commands from the input field. The Game Info tab records the player names and the server's time control.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/csa-game/csa-03-playing.png" alt="During a network game">
+                    <p class="screenshot-caption">During the game: following the server traffic in the CSA Log tab</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">Play with an Engine</span>
+                </div>
+                <p class="guide-step-text">With Engine selected for the player on this side, the engine plays automatically within the server's time control. Thinking, USI Log and the Evaluation Graph are shown as in ordinary games.</p>
+                <p class="guide-step-text">Game → Move Now stops the engine's search and plays its best move so far. When the engine resigns, ShogiBoardQ sends a resignation to the server; when it declares entering king, the declaration is sent to the server.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">Resign, Abort and Entering King Declaration</span>
+                </div>
+                <p class="guide-step-text">On your turn, Resign, Abort and Entering King Declaration in the Game menu are sent to the server. A declaration is sent after you confirm it. They cannot be sent on the opponent's turn.</p>
+                <p class="guide-step-text">The server judges the result, time-outs and whether a declaration is valid. The game continues even if a clock on the screen reaches 0, until the server ends it. Servers that do not support aborting (such as shogi-server) may treat an abort as a foul.</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">End of the Game</span>
+                </div>
+                <p class="guide-step-text">When the game ends, the result and cause are shown and the final row (such as ▲Resign) is added to the game record. The record is not saved automatically, so save it from the File menu if you want to keep it. Afterwards you can replay the record or start another network game.</p>
+                <p class="guide-step-text">If the connection is lost or the engine can no longer return a move, the game ends as aborted.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/csa-game/csa-04-game-end.png" alt="Game over message">
+                    <p class="screenshot-caption">End of the game: Result Loss, Cause Resign</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 4: About CSA Protocol -->
-<section class="section" id="about-csa">
-<div class="section-inner">
-<h2 class="section-title">Supported Servers</h2>
-<p class="section-desc">Play network games on servers that support the CSA protocol</p>
-<div class="judgment-note">
-<ul>
-<li><strong>shogi-server</strong>: An open-source shogi server supporting the CSA protocol. You can also host your own server.</li>
-<li><strong>floodgate</strong>: An online venue for computer shogi based on shogi-server, running around the clock with many participating engines.</li>
-</ul>
-</div>
-</div>
+
+<!-- Section 4 -->
+<section id="about-csa" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Supported Servers</h2>
+        <p class="section-desc">Network games work with servers that support the CSA protocol</p>
+
+        <div class="judgment-note">
+            <ul>
+                <li><strong>shogi-server</strong>: An open-source shogi server that supports the CSA protocol. You can also run your own server.</li>
+                <li><strong>floodgate</strong>: An online venue for computer shogi built on shogi-server. It runs around the clock and many shogi engines take part.</li>
+            </ul>
+        </div>
+
+    </div>
 </section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>

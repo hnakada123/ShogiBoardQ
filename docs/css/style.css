@@ -1058,6 +1058,7 @@ a.feature-card-link:hover .feature-card-more {
 .screenshot-item--compact img {
     width: auto;
     max-width: 100%;
+    margin: 0 auto;
 }
 
 @media (max-width: 640px) {
