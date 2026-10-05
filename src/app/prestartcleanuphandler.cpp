@@ -381,8 +381,8 @@ void PreStartCleanupHandler::ensureBranchTreeRoot()
     }
 
     if (m_branchTree->root() != nullptr) {
-        // ルートが既に存在する場合でも、SFENが異なれば更新する
-        if (m_branchTree->root()->sfen() != rootSfen) {
+        // ルートが既に存在する場合でも、局面が異なれば更新する（手数の表記違いでは作り直さない）
+        if (SfenUtils::normalizeSfenKey(m_branchTree->root()->sfen()) != SfenUtils::normalizeSfenKey(rootSfen)) {
             // setRootSfen()は旧ノードを削除してtreeChangedを同期通知する。
             // 通知先が古い選択ノードを参照しないよう、先に切り離す。
             m_savedCurrentNode = nullptr;

@@ -90,7 +90,19 @@ bool GameStartCoordinator::initializeGame(const Ctx& c, QString& errorMessage)
                        << " c.currentSfenStr=" << (c.currentSfenStr ? c.currentSfenStr->left(50) : "null");
 
     if (startingPosNumber == 0) {
-        // 現在局面から開始
+        // 現在局面から開始。
+        // 読み込んだ棋譜や貼り付けた局面の開始局面は startSfenStr に反映されないことがある。
+        // 開始前クリーンアップは startSfenStr を開始局面として分岐ツリーの根を作り直すため、
+        // 棋譜の開始局面（局面履歴の先頭）に揃える。
+        if (c.startSfenStr && c.sfenRecord && !c.sfenRecord->isEmpty()) {
+            const QString recordStart = c.sfenRecord->first().trimmed();
+            if (!recordStart.isEmpty()
+                && SfenUtils::normalizeSfenKey(recordStart) != SfenUtils::normalizeSfenKey(*c.startSfenStr)) {
+                qCDebug(lcGame).noquote() << "initializeGame: startSfenStr follows the record start="
+                                          << recordStart.left(50);
+                *c.startSfenStr = recordStart;
+            }
+        }
         prepareDataCurrentPosition(c);
 
         qCDebug(lcGame).noquote() << "initializeGame: AFTER prepareDataCurrentPosition"
