@@ -19,6 +19,7 @@
 #include "tablestyles.h"
 #include "engineinfowidget.h"
 #include "shogienginethinkingmodel.h"
+#include "thinkinginfopresenter.h"
 
 namespace {
 constexpr int kColumnWidthLoadDelayMs = 500;
@@ -170,6 +171,9 @@ void EngineAnalysisPresenter::applyThinkingViewColumnWidths(QTableView* v, int v
     // 旧設定の狭い時間列でも、追加した単位まで表示する。
     const QString timeTitle = v->model()->headerData(0, Qt::Horizontal).toString();
     v->setColumnWidth(0, qMax(v->columnWidth(0), v->fontMetrics().horizontalAdvance(timeTitle) + 16));
+    // 評価値列は、訳語の長い詰みの表示（英語では "Mate in 99 plies"）も省略せずに表示する。
+    const QString mateSample = ThinkingInfoPresenter::mateScoreText(QStringLiteral("-99"));
+    v->setColumnWidth(3, qMax(v->columnWidth(3), v->fontMetrics().horizontalAdvance(mateSample) + 16));
     h->blockSignals(false);
 
     QTimer::singleShot(kColumnWidthLoadDelayMs, this, [this, viewIndex]() {

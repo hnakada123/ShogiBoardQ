@@ -185,12 +185,12 @@ Analyzed moves: %1</translation>
         <translation>(Engine) Not implemented</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="399"/>
-        <source>不明（解析不能）</source>
-        <translation>Unknown (unable to analyze)</translation>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="400"/>
+        <source>時間内に詰みを判定できませんでした</source>
+        <translation>Could not determine mate within the time limit</translation>
     </message>
     <message>
-        <location filename="../../src/game/analysissessionhandler.cpp" line="407"/>
+        <location filename="../../src/game/analysissessionhandler.cpp" line="408"/>
         <source>探索が完了しました</source>
         <translation>Search completed</translation>
     </message>
@@ -1458,123 +1458,123 @@ Discard the changes and move?</translation>
 <context>
     <name>ConsiderationTabManager</name>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="65"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="66"/>
         <source>フォントサイズを小さくする</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="74"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="75"/>
         <source>フォントサイズを大きくする</source>
         <translation>Increase font size</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="82"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="83"/>
         <source>検討に使用するエンジンを選択します</source>
         <translation>Select the engine for analysis</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="90"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="91"/>
         <source>エンジン設定</source>
         <translation>Engine Settings</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="92"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="93"/>
         <source>選択したエンジンの設定を変更します</source>
         <translation>Configure the selected engine</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="99"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="100"/>
         <source>時間無制限</source>
         <translation>Unlimited</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="101"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="102"/>
         <source>時間制限なしで検討します</source>
         <translation>Analyze without a time limit</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="106"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="107"/>
         <source>検討時間</source>
         <translation>Analysis Time</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="108"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="109"/>
         <source>指定した秒数まで検討します</source>
         <translation>Analyze for the specified number of seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="117"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="118"/>
         <source>検討時間（秒）を指定します</source>
         <translation>Set the analysis time in seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="122"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="123"/>
         <source>秒まで</source>
         <translation>seconds</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="274"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="275"/>
         <source>表示</source>
         <translation>Show</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="352"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="356"/>
         <source>経過: 000:00</source>
         <translation>Elapsed: 000:00</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="211"/>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="231"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="125"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="126"/>
         <source>経過: 0:00</source>
         <translation>Elapsed: 0:00</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="127"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="128"/>
         <source>検討開始からの経過時間</source>
         <translation>Elapsed time since consideration started</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="136"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="137"/>
         <source>候補手の数</source>
         <translation>Candidate moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="140"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="141"/>
         <source>%1手</source>
         <translation>%1 moves</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="143"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="144"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
         <translation>Specify the number of candidate moves to display in order of evaluation</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="146"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="147"/>
         <source>矢印表示</source>
         <translation>Show Arrows</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="148"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="149"/>
         <source>最善手の矢印を盤面に表示します</source>
         <translation>Displays arrows for the best moves on the board</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="267"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="156"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="363"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="157"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="367"/>
         <source>検討開始</source>
         <translation>Start Consideration</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="268"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="157"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="158"/>
         <source>検討を開始します</source>
         <translation>Start analysis</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="259"/>
-        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="363"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="367"/>
         <source>検討中止</source>
         <translation>Stop</translation>
     </message>
@@ -6827,7 +6827,7 @@ Please restart the application to apply the changes.</translation>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="558"/>
         <source>詰み探索中止</source>
-        <translation>Cancel Tsume Search</translation>
+        <translation>Cancel Mate Search</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="612"/>
@@ -8635,41 +8635,41 @@ Are you sure you want to declare?</translation>
         <translation>Flip the board</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="201"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="202"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="204"/>
         <source>最初の局面に戻る</source>
         <translation>Go to First Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="209"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="210"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="211"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="212"/>
         <source>1手戻る</source>
         <translation>Go Back 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="217"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="218"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="219"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="220"/>
         <source>1手進む</source>
         <translation>Go Forward 1 Move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="225"/>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="226"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="227"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="228"/>
         <source>最後の局面まで進む</source>
         <translation>Go to Last Position</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="234"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="236"/>
         <source>閉じる</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="273"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="275"/>
         <source>手数: %1 / %2</source>
         <translation>Move: %1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/pvboarddialog.cpp" line="275"/>
+        <location filename="../../src/dialogs/pvboarddialog.cpp" line="277"/>
         <source> (開始局面)</source>
         <translation> (Initial Position)</translation>
     </message>
@@ -10403,12 +10403,12 @@ Choose a file with one SFEN position per line.</translation>
 <context>
     <name>ThinkingInfoPresenter</name>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="364"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="369"/>
         <source>詰み</source>
         <translation>Checkmate</translation>
     </message>
     <message>
-        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="366"/>
+        <location filename="../../src/engine/thinkinginfopresenter.cpp" line="82"/>
         <source>%1手詰</source>
         <translation>Mate in %1 plies</translation>
     </message>
@@ -11118,7 +11118,7 @@ This cannot be undone. Reset history?</translation>
     <message>
         <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="90"/>
         <source>探索中は「対局」→「詰み探索中止」で中止できます。</source>
-        <translation>To stop the search, choose Game → Cancel Tsume Search.</translation>
+        <translation>To stop the search, choose Game → Cancel Mate Search.</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeshogisearchdialog.ui" line="115"/>
@@ -11811,12 +11811,12 @@ Check the settings and press Start.</translation>
 <context>
     <name>UsiProtocolHandler</name>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="152"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="159"/>
         <source>Timeout waiting for usiok</source>
         <translation>Timeout waiting for usiok</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="153"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="160"/>
         <source>Timeout waiting for readyok</source>
         <translation>Timeout waiting for readyok</translation>
     </message>
@@ -11826,12 +11826,12 @@ Check the settings and press Start.</translation>
         <translation>Invalid bestmove format: %1</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="53"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="60"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
         <translation>Invalid bestmove format: &quot;%1&quot;</translation>
     </message>
     <message>
-        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="69"/>
+        <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="76"/>
         <source>Invalid bestmove coordinates: &quot;%1&quot;</source>
         <translation>Invalid bestmove coordinates: &quot;%1&quot;</translation>
     </message>

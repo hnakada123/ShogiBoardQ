@@ -63,6 +63,9 @@ public:
     /// 思考開始時の局面SFENを取得
     QString baseSfen() const;
 
+    /// 詰みの評価値の表示文字列（例: "3手詰"）。表の列幅の見積もりにも使う
+    static QString mateScoreText(const QString& plies);
+
     // --- info処理 ---
     
     /// info行を処理してシグナルを発行

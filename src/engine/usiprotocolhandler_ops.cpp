@@ -33,6 +33,13 @@ void UsiProtocolHandler::handleCheckmateLine(const QString& line)
         emit checkmateUnknown();
         return;
     }
+    // info 行を出さずに checkmate だけを返すエンジン（Hayanagi など）でも、思考タブに
+    // 詰み手順の行を残して読み筋を確認できるようにする。先に届いた info 行を反映してから加える
+    if (m_presenter) {
+        m_presenter->flushInfoBuffer();
+        m_presenter->processInfoLine(
+            QStringLiteral("info score mate %1 pv %2").arg(pv.size()).arg(pv.join(QLatin1Char(' '))));
+    }
     emit checkmateSolved(pv);
 }
 

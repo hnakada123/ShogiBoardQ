@@ -396,7 +396,8 @@ void AnalysisSessionHandler::onCheckmateNotImplemented()
 
 void AnalysisSessionHandler::onCheckmateUnknown()
 {
-    finalizeTsumeSearch(tr("不明（解析不能）"));
+    // USI では探索時間を使い切ったときに "checkmate timeout" が返る（結果不明もここに来る）
+    finalizeTsumeSearch(tr("時間内に詰みを判定できませんでした"));
 }
 
 void AnalysisSessionHandler::onTsumeBestMoveReceived()

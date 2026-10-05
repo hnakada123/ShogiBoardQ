@@ -193,10 +193,12 @@ void PvBoardDialog::buildUi()
     mainLayout->addWidget(m_plyLabel);
 
     // ナビゲーションボタン
+    // ⏮⏭ は多くの日本語フォントに無く、代替フォントで小さく（環境によっては絵文字で）描かれるため、
+    // ◀▶ と縦棒を組み合わせて4つのボタンの記号の大きさを揃える（棋譜欄の ▲| ▼| と同じ考え方）
     QHBoxLayout* btnLayout = new QHBoxLayout();
     btnLayout->setSpacing(8);
 
-    m_btnFirst = new QPushButton(QStringLiteral("⏮"), this);
+    m_btnFirst = new QPushButton(QStringLiteral("|◀"), this);
     m_btnFirst->setMinimumWidth(80);
     m_btnFirst->setToolTip(tr("最初の局面に戻る"));
     m_btnFirst->setAccessibleName(tr("最初の局面に戻る"));
@@ -220,7 +222,7 @@ void PvBoardDialog::buildUi()
     connect(m_btnForward, &QPushButton::clicked, this, &PvBoardDialog::onGoForward);
     btnLayout->addWidget(m_btnForward);
 
-    m_btnLast = new QPushButton(QStringLiteral("⏭"), this);
+    m_btnLast = new QPushButton(QStringLiteral("▶|"), this);
     m_btnLast->setMinimumWidth(80);
     m_btnLast->setToolTip(tr("最後の局面まで進む"));
     m_btnLast->setAccessibleName(tr("最後の局面まで進む"));

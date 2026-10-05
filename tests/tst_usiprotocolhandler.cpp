@@ -10,7 +10,9 @@
 #include <optional>
 
 #include "usiprotocolhandler.h"
+#include "thinkinginfopresenter.h"
 #include "engineprocessmanager.h"
+#include "shogiboard.h"
 
 class TestUsiProtocolHandler : public QObject
 {
@@ -348,6 +350,36 @@ private slots:
         QCOMPARE(pv.at(0), QStringLiteral("5e5d"));
         QCOMPARE(pv.at(1), QStringLiteral("4a3b"));
         QCOMPARE(pv.at(2), QStringLiteral("5d5c"));
+    }
+
+    /// info 行を出さずに checkmate だけを返すエンジンでも、思考タブに詰み手順の行を残す
+    void checkmate_solved_addsThinkingRow()
+    {
+        // go mate の前に Usi が行う準備と同じく、探索局面の盤面を渡しておく
+        const QString sfen = QStringLiteral("7k1/9/9/9/9/9/9/9/K8 b RS 1");
+        ShogiBoard board;
+        board.setSfen(sfen);
+        QList<QChar> boardChars;
+        for (const Piece piece : board.boardData()) {
+            boardChars.append(pieceToChar(piece));
+        }
+
+        UsiProtocolHandler handler;
+        ThinkingInfoPresenter presenter;
+        presenter.setBaseSfen(sfen);
+        presenter.setClonedBoardData(boardChars);
+        handler.setPresenter(&presenter);
+        QSignalSpy rows(&presenter, &ThinkingInfoPresenter::thinkingInfoUpdated);
+        QSignalSpy solved(&handler, &UsiProtocolHandler::checkmateSolved);
+
+        handler.onDataReceived(QStringLiteral("checkmate S*1b 2a3a R*2a"));
+
+        QCOMPARE(rows.count(), 1);
+        QVERIFY(rows.at(0).at(3).toString().contains(QStringLiteral("3")));        // 詰み手数
+        QCOMPARE(rows.at(0).at(4).toString(),
+                 QStringLiteral("▲１二銀打△３一玉(21)▲２一飛打"));               // 読み筋
+        QCOMPARE(rows.at(0).at(5).toString(), QStringLiteral("S*1b 2a3a R*2a"));   // USI の読み筋
+        QCOMPARE(solved.count(), 1);
     }
 
     void checkmate_nomate()
