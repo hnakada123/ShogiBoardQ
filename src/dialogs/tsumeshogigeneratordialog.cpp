@@ -13,6 +13,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTableWidget>
+#include <QTimer>
 #include <QToolButton>
 
 TsumeshogiGeneratorDialog::TsumeshogiGeneratorDialog(QWidget* parent)
@@ -46,6 +47,13 @@ void TsumeshogiGeneratorDialog::done(int result)
     onStopClicked();
     saveSettings();
     QDialog::done(result);
+}
+
+void TsumeshogiGeneratorDialog::showEvent(QShowEvent* event)
+{
+    QDialog::showEvent(event);
+    // 説明を開いたまま閉じた場合も、次に開いたとき設定欄を隠さない（配置が決まってから調整する）
+    if (m_btnHelp->isChecked()) QTimer::singleShot(0, this, &TsumeshogiGeneratorDialog::fitSettingsArea);
 }
 
 void TsumeshogiGeneratorDialog::connectDialogSignals()

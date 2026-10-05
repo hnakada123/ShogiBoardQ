@@ -20,6 +20,8 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include <utility>
+
 namespace {
 /// 偶数の直接入力は確定させず、前の値に戻す。
 class OddSpinBox : public QSpinBox
@@ -35,6 +37,42 @@ protected:
         return (valueFromText(input) % 2 != 0) ? QValidator::Acceptable : QValidator::Intermediate;
     }
 };
+
+/// 値が 1 のときは単数形の単位を付ける（英語の「1 piece」と「2 pieces」）。
+/// %n の複数形は翻訳ファイルの検査で扱えないため、単数形を別の訳として持つ。
+class CountSpinBox : public QSpinBox
+{
+public:
+    CountSpinBox(QString one, QString many, QWidget* parent)
+        : QSpinBox(parent)
+        , m_one(std::move(one))
+        , m_many(std::move(many))
+    {
+        connect(this, &QSpinBox::valueChanged, this, &CountSpinBox::updateSuffix);
+        updateSuffix(value());
+    }
+
+private:
+    void updateSuffix(int value) { setSuffix(value == 1 ? m_one : m_many); }
+
+    QString m_one;
+    QString m_many;
+};
+
+/// 内容の高さを希望サイズにする。QScrollArea::sizeHint は内容の大きさを最初に一度だけ記録するため、
+/// 説明の開閉で設定欄の高さが変わらず、スクロールしないと設定が見えなくなる。
+class FittingScrollArea : public QScrollArea
+{
+public:
+    using QScrollArea::QScrollArea;
+
+    QSize sizeHint() const override
+    {
+        if (!widget()) return QScrollArea::sizeHint();
+        const int frame = 2 * frameWidth();
+        return widget()->sizeHint() + QSize(frame, frame);
+    }
+};
 } // namespace
 
 void TsumeshogiGeneratorDialog::setupUi()
@@ -44,18 +82,18 @@ void TsumeshogiGeneratorDialog::setupUi()
     mainLayout->setSpacing(8);
 
     // 文字を拡大した場合や小さい画面でも、設定をスクロールして操作できる。
-    auto* scroll = new QScrollArea(this);
-    scroll->setObjectName(QStringLiteral("generatorSettingsScroll"));
-    scroll->setWidgetResizable(true);
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
-    auto* form = new QWidget(scroll);
+    m_settingsScroll = new FittingScrollArea(this);
+    m_settingsScroll->setObjectName(QStringLiteral("generatorSettingsScroll"));
+    m_settingsScroll->setWidgetResizable(true);
+    m_settingsScroll->setFrameShape(QFrame::NoFrame);
+    m_settingsScroll->setSizeAdjustPolicy(QAbstractScrollArea::AdjustToContents);
+    auto* form = new QWidget(m_settingsScroll);
     auto* formLayout = new QVBoxLayout(form);
     formLayout->setContentsMargins(0, 0, 0, 0);
     buildFormSection(formLayout);
-    scroll->setWidget(form);
-    scroll->setMinimumHeight(180);
-    mainLayout->addWidget(scroll);
+    m_settingsScroll->setWidget(form);
+    m_settingsScroll->setMinimumHeight(180);
+    mainLayout->addWidget(m_settingsScroll);
     buildProgressSection(mainLayout);
     buildResultsSection(mainLayout);
     connectDialogSignals();
@@ -122,20 +160,17 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     m_spinTargetMoves->setSingleStep(2);
     m_spinTargetMoves->setSuffix(tr(" 手詰"));
     leftForm->addRow(tr("目標手数:"), m_spinTargetMoves);
-    m_spinMaxAttack = new QSpinBox(this);
+    m_spinMaxAttack = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
     m_spinMaxAttack->setRange(1, 10);
-    m_spinMaxAttack->setSuffix(tr(" 枚"));
     m_spinMaxAttack->setToolTip(tr("攻方の盤上の駒と持駒の合計枚数の上限です。"));
     leftForm->addRow(tr("攻め駒上限:"), m_spinMaxAttack);
-    m_spinMaxDefend = new QSpinBox(this);
+    m_spinMaxDefend = new CountSpinBox(tr(" 枚", "1 のとき"), tr(" 枚"), this);
     m_spinMaxDefend->setRange(0, 5);
-    m_spinMaxDefend->setSuffix(tr(" 枚"));
     m_spinMaxDefend->setToolTip(tr("玉を除く、玉方の盤上の駒の枚数の上限です。"));
     leftForm->addRow(tr("守り駒上限:"), m_spinMaxDefend);
-    m_spinMaxPositions = new QSpinBox(this);
+    m_spinMaxPositions = new CountSpinBox(tr(" 局面", "1 のとき"), tr(" 局面"), this);
     m_spinMaxPositions->setObjectName(QStringLiteral("generatorMaxPositions"));
     m_spinMaxPositions->setRange(0, 10000);
-    m_spinMaxPositions->setSuffix(tr(" 局面"));
     m_spinMaxPositions->setSpecialValueText(tr("無制限"));
     m_spinMaxPositions->setToolTip(tr("採択した局面がこの件数に達すると終了します。0 は停止するまで生成を続けます。"));
     rightForm->addRow(tr("生成上限:"), m_spinMaxPositions);
@@ -144,9 +179,8 @@ void TsumeshogiGeneratorDialog::buildFormSection(QVBoxLayout* mainLayout)
     m_spinTimeout->setSuffix(tr(" 秒"));
     m_spinTimeout->setToolTip(tr("候補・駒除去後の詰み探索と、それぞれの余詰検査全体に使う時間です。検査時間を超えた局面は採択しません。"));
     rightForm->addRow(tr("探索時間/局面:"), m_spinTimeout);
-    m_spinAttackRange = new QSpinBox(this);
+    m_spinAttackRange = new CountSpinBox(tr(" マス（玉中心）", "1 のとき"), tr(" マス（玉中心）"), this);
     m_spinAttackRange->setRange(1, 8);
-    m_spinAttackRange->setSuffix(tr(" マス（玉中心）"));
     rightForm->addRow(tr("配置範囲:"), m_spinAttackRange);
     auto* options = new QHBoxLayout;
     m_checkAllowFinalAlternatives = new QCheckBox(tr("最終手の複数解を許容する"), this);
