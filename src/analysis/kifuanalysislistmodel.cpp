@@ -146,7 +146,7 @@ QVariant KifuAnalysisListModel::headerData(int section, Qt::Orientation orientat
         switch (section) {
         case 0: return tr("棋譜で実際に指された手。この手を指した後の局面を評価します。");
         case 1: return tr("直前の局面でエンジンが推奨した手。解析範囲の先頭では空欄になります。");
-        case 2: return tr("実際の指し手と候補手が一致すると○を表示します。");
+        case 2: return tr("実際の指し手と候補手が一致すると◯を表示します。");
         case 3: return tr("先手視点の評価値。正は先手有利、負は後手有利です。未取得は「-」で表示します。");
         case 4: return tr("評価値から判定した形勢です。");
         case 5: return tr("直前の解析局面からの評価値の増減（先手視点）。比較できない場合は「-」で表示します。");

@@ -28,6 +28,7 @@
 #include "sfenpositiontracer.h"
 #include "analysisresulthandler.h"
 #include "kifuanalysislistmodel.h"
+#include "kifuanalysisdialog.h"
 
 class TestI18nWorkflows : public QObject
 {
@@ -110,6 +111,38 @@ private slots:
         QCOMPARE(KifuPresentation::status("投了"), QStringLiteral("投了"));
         QCOMPARE(KifuPresentation::rankLabel(1), QStringLiteral("a"));
         QVERIFY(KifuPresentation::options().alwaysOrigin);
+    }
+
+    void kifuAnalysisRangeFollowsWordOrder_data()
+    {
+        QTest::addColumn<QString>("language");
+        QTest::addColumn<QString>("prefix");
+        QTest::addColumn<QString>("middle");
+        QTest::addColumn<QString>("suffix");
+        QTest::newRow("ja") << "ja_JP" << "" << "手目から" << "手目まで";
+        QTest::newRow("en") << "en" << "from move" << "to" << "";
+        QTest::newRow("zh_CN") << "zh_CN" << "从第" << "手到第" << "手";
+    }
+
+    void kifuAnalysisRangeFollowsWordOrder()
+    {
+        // 範囲指定の数値欄の前・間・後ろの文字列を、言語ごとの語順で並べる
+        QFETCH(QString, language);
+        QFETCH(QString, prefix);
+        QFETCH(QString, middle);
+        QFETCH(QString, suffix);
+        QTranslator translator;
+        QVERIFY(translator.load(QStringLiteral(TRANSLATIONS_DIR "/ShogiBoardQ_") + language + ".qm"));
+        qApp->installTranslator(&translator);
+        KifuAnalysisDialog dialog;
+        const auto text = [&dialog](const char* name) {
+            auto* label = dialog.findChild<QLabel*>(QString::fromLatin1(name));
+            return label && !label->isHidden() ? label->text() : QString();
+        };
+        QCOMPARE(text("labelRangePrefix"), prefix);
+        QCOMPARE(text("labelFrom"), middle);
+        QCOMPARE(text("labelTo"), suffix);
+        qApp->removeTranslator(&translator);
     }
 
     void liveTimeoutIsTerminal_data()

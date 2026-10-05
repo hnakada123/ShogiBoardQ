@@ -121,6 +121,9 @@ private:
     
     // フォントサイズを適用
     void applyFontSize();
+
+    // 範囲指定の数値欄の前後に置く文字列を設定する
+    void applyRangeLabels();
 };
 
 #endif // KIFUANALYSISDIALOG_H

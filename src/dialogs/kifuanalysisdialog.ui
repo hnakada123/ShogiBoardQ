@@ -106,6 +106,9 @@
       </widget>
      </item>
      <item>
+      <widget class="QLabel" name="labelRangePrefix"/>
+     </item>
+     <item>
       <widget class="QSpinBox" name="spinBoxStartPly">
        <property name="minimumSize">
         <size>
@@ -122,11 +125,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="labelFrom">
-       <property name="text">
-        <string>手目から</string>
-       </property>
-      </widget>
+      <widget class="QLabel" name="labelFrom"/>
      </item>
      <item>
       <widget class="QSpinBox" name="spinBoxEndPly">
@@ -145,11 +144,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="labelTo">
-       <property name="text">
-        <string>手目まで</string>
-       </property>
-      </widget>
+      <widget class="QLabel" name="labelTo"/>
      </item>
      <item>
       <spacer name="horizontalSpacer">

@@ -33,6 +33,7 @@ KifuAnalysisDialog::KifuAnalysisDialog(QWidget *parent)
     ui->buttonBox->button(QDialogButtonBox::Ok)->setStyleSheet(ButtonStyles::primaryAction());
     ui->btnFontDecrease->setStyleSheet(ButtonStyles::panelToolButton());
     ui->btnFontIncrease->setStyleSheet(ButtonStyles::panelToolButton());
+    applyRangeLabels();
     ui->spinBoxStartPly->setAccessibleName(tr("解析開始手数"));
     ui->spinBoxEndPly->setAccessibleName(tr("解析終了手数"));
     ui->label->setBuddy(ui->byoyomiSec);
@@ -324,6 +325,25 @@ void KifuAnalysisDialog::onFontIncrease()
 void KifuAnalysisDialog::onFontDecrease()
 {
     if (m_fontHelper.decrease()) applyFontSize();
+}
+
+// 範囲指定の数値欄の前後に置く文字列を設定する。
+// 語順は言語ごとに異なるため、1つの文を %1・%2 の位置で分けて数値欄の前・間・後ろに置く。
+void KifuAnalysisDialog::applyRangeLabels()
+{
+    QString pattern = tr("%1手目から%2手目まで");
+    qsizetype first = pattern.indexOf(QStringLiteral("%1"));
+    qsizetype second = pattern.indexOf(QStringLiteral("%2"));
+    if (first < 0 || second < first) {
+        pattern = QStringLiteral("%1手目から%2手目まで");
+        first = pattern.indexOf(QStringLiteral("%1"));
+        second = pattern.indexOf(QStringLiteral("%2"));
+    }
+    ui->labelRangePrefix->setText(pattern.left(first).trimmed());
+    ui->labelFrom->setText(pattern.mid(first + 2, second - first - 2).trimmed());
+    ui->labelTo->setText(pattern.mid(second + 2).trimmed());
+    ui->labelRangePrefix->setVisible(!ui->labelRangePrefix->text().isEmpty());
+    ui->labelTo->setVisible(!ui->labelTo->text().isEmpty());
 }
 
 // フォントサイズを適用
