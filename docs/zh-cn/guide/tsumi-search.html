@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>诘棋搜索 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 诘棋搜索的指南：让已注册的 USI 引擎从棋盘上的局面搜索连续王手的诘杀手顺，并在思考标签页和主要变化显示的棋盘上确认结果。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumi-search.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumi-search.html">
+    <meta property="og:title" content="诘棋搜索 - ShogiBoardQ">
+    <meta property="og:description" content="使用 USI 引擎从棋盘上的局面搜索连续王手的诘杀手顺，并在主要变化显示的棋盘上逐手确认。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/tsumi-search/tsumi-search-thinking.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="诘棋搜索 - ShogiBoardQ">
+    <meta name="twitter:description" content="使用 USI 引擎从棋盘上的局面搜索连续王手的诘杀手顺，并在主要变化显示的棋盘上逐手确认。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/tsumi-search/tsumi-search-thinking.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/tsumi-search.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/tsumi-search.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/tsumi-search.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/tsumi-search.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="tsumi-search.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/tsumi-search.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#position">准备局面</a></li>
+            <li><a href="#settings">搜索设置</a></li>
+            <li><a href="#results">搜索结果</a></li>
+            <li><a href="#pv-board">主要变化显示</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main class="tsumi-search-guide">
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>诘棋搜索</h1>
+        <p class="hero-subtitle">用 USI 引擎调查当前局面是否有诘</p>
+        <div class="hero-badges">
+            <span class="badge">连续王手的诘杀</span>
+            <span class="badge">USI 的 go mate</span>
+            <span class="badge">时间限制・不限时</span>
+            <span class="badge">在棋盘上回放手顺</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<section id="position" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">准备局面</h2>
+        <p class="section-desc">在棋盘上显示要调查的局面</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <h3 class="guide-step-title">显示要调查的局面</h3>
+                </div>
+                <p class="guide-step-text">诘棋搜索从棋盘上显示的局面出发，搜索行棋方以连续王手将死对方玉的手顺。可以直接调查打开棋谱后选择的局面或对局结束时的局面。在对局、研究、棋谱分析和局面编辑过程中无法使用。</p>
+                <p class="guide-step-text">如果要像诘棋那样从头创建局面，请选择“编辑”→“开始编辑局面”摆放棋子，再点击“结束编辑”确定（<a href="board-edit.html">盘面编辑</a>）。请让进攻方成为行棋方。本指南使用“编辑”→“诘棋布局”摆出的例题局面。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="settings" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">搜索设置</h2>
+        <p class="section-desc">在搜索诘棋对话框中选择引擎和搜索时间</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <h3 class="guide-step-title">搜索诘棋对话框</h3>
+                </div>
+                <p class="guide-step-text">选择“对局”→“搜索诘棋…”打开对话框，选择引擎和搜索时间后点击“开始搜索”。所选的引擎和搜索时间下次也会沿用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/tsumi-search/tsumi-search-dialog.png" alt="搜索诘棋对话框" width="560" height="386" loading="lazy">
+                    <p class="screenshot-caption">搜索诘棋对话框：选择引擎和搜索时间后点击“开始搜索”</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">项目</th><th scope="col">说明</th></tr></thead>
+                    <tbody>
+                        <tr><td>搜索引擎</td><td>从“设置”→“引擎设置…”中注册的 USI 引擎中选择。点击“引擎设置…”按钮可以更改所选引擎的选项。</td></tr>
+                        <tr><td>时间限制</td><td>以秒为单位指定搜索时间的上限（默认 20 秒）。</td></tr>
+                        <tr><td>不限时</td><td>一直搜索，直到判明是否有诘。</td></tr>
+                        <tr><td>A− / A+</td><td>更改对话框的文字大小。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">诘棋搜索需要支持 USI 诘棋搜索（go mate）的引擎。可以注册 ShogiBoardQ 的 <a href="hayanagi.html">Hayanagi</a>（仅 Linux 版附带，注册方法请参阅 <a href="hayanagi.html#setup">Hayanagi 指南</a>），或 komori-n 开发并公开的诘棋引擎 <a href="https://github.com/komori-n/KomoringHeights">KomoringHeights</a>。引擎的注册方法请参阅<a href="game-play.html#engine-registration">引擎注册指南</a>。</p>
+                <p class="guide-step-text">搜索过程中可以选择“对局”→“取消诘棋搜索”停止搜索。停止后不会显示结果。</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="results" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">搜索结果</h2>
+        <p class="section-desc">搜索结束后会显示结果，诘杀手顺保留在思考标签页中</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <h3 class="guide-step-title">结果消息</h3>
+                </div>
+                <p class="guide-step-text">搜索结束后，会用消息显示结果。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/tsumi-search/tsumi-search-result.png" alt="诘棋搜索的结果消息" width="191" height="105" loading="lazy">
+                    <p class="screenshot-caption">结果消息：找到诘棋（3 手）</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">消息</th><th scope="col">含义</th></tr></thead>
+                    <tbody>
+                        <tr><td>找到诘棋（N 手）</td><td>找到了诘杀。N 是包括守方应着在内的诘杀手数。</td></tr>
+                        <tr><td>无诘</td><td>已判明连续王手无法将死。</td></tr>
+                        <tr><td>未能在限定时间内判定诘棋</td><td>在指定的时间内未能判明是否有诘。请延长时间，或选择“不限时”重新搜索。</td></tr>
+                        <tr><td>（引擎）尚未实现</td><td>所选引擎不支持诘棋搜索（go mate）。</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <h3 class="guide-step-title">思考标签页中的诘杀手顺</h3>
+                </div>
+                <p class="guide-step-text">找到诘杀后，“思考”标签页中会增加一行诘杀手顺。“评价值”列显示“3 手诘”这样的诘杀手数，“主要变化”列显示诘杀手顺。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/tsumi-search/tsumi-search-thinking.png" alt="思考标签页中显示诘杀手顺的主窗口" width="1300" height="980" loading="lazy">
+                    <p class="screenshot-caption">思考标签页：评价值为“3 手诘”，主要变化为诘杀手顺</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="pv-board" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">主要变化显示</h2>
+        <p class="section-desc">在棋盘上逐手回放诘杀手顺</p>
+        <div class="screenshot-gallery">
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <h3 class="guide-step-title">打开主要变化显示窗口</h3>
+                </div>
+                <p class="guide-step-text">在思考标签页的诘杀手顺行中，点击“棋盘”列的“显示”，即可打开主要变化显示窗口。上方显示诘杀手顺，下方显示搜索的局面。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/tsumi-search/tsumi-search-pv-start.png" alt="主要变化显示窗口的初始局面" width="766" height="845" loading="lazy">
+                    <p class="screenshot-caption">主要变化显示：初始局面（手数 0 / 3）</p>
+                </div>
+            </div>
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <h3 class="guide-step-title">回放诘杀手顺</h3>
+                </div>
+                <p class="guide-step-text">点击“▶”逐手前进，点击“▶|”前进到诘杀的局面。上一步着法会在棋盘上强调显示，手数栏显示当前是第几手。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/tsumi-search/tsumi-search-pv-mate.png" alt="主要变化显示窗口的诘杀局面" width="766" height="845" loading="lazy">
+                    <p class="screenshot-caption">主要变化显示：▲２一飛打将死（手数 3 / 3）</p>
+                </div>
+                <table class="info-table">
+                    <thead><tr><th scope="col">按钮</th><th scope="col">操作</th></tr></thead>
+                    <tbody>
+                        <tr><td>|◀ ／ ▶|</td><td>回到初始局面／前进到最后的局面（诘杀局面）</td></tr>
+                        <tr><td>◀ ／ ▶</td><td>后退一手／前进一手</td></tr>
+                        <tr><td>− ／ ＋</td><td>缩小／放大棋盘（在棋盘上按住 Ctrl 滚动鼠标滚轮也可以）</td></tr>
+                        <tr><td>翻转棋盘</td><td>将棋盘旋转 180 度</td></tr>
+                        <tr><td>A- ／ A+</td><td>更改窗口的文字大小</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+</main>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html#tsume" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

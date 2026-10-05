@@ -1035,7 +1035,8 @@ a.feature-card-link:hover .feature-card-more {
 
 /* --- Appearance Guide Screenshots --- */
 .appearance-guide section[id],
-.tsume-play-guide section[id] {
+.tsume-play-guide section[id],
+.tsumi-search-guide section[id] {
     scroll-margin-top: 4rem;
 }
 
