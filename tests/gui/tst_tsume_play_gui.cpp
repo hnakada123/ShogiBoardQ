@@ -1,4 +1,5 @@
 #include <QtTest>
+#include "appsettings.h"
 #include <QApplication>
 #include <QComboBox>
 #include <QElapsedTimer>
@@ -144,7 +145,10 @@ private slots:
     {
         QFETCH(QString, choice);
         QFETCH(QString, move);
+        // 指せるマスの色分けは移動先の確定で消えるため、駒の表示だけを比べる
+        AppSettings::setLegalMovesVisible(false);
         TsumePlayDialog window;
+        AppSettings::setLegalMovesVisible(true);
         dialog = &window;
         promotionChoice = choice;
         window.setProblem(problems[0], 1, {}, nullptr, 5);
