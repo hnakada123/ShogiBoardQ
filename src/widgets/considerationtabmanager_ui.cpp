@@ -14,6 +14,7 @@
 #include "tablestyles.h"
 #include "analysissettings.h"
 #include "shogienginethinkingmodel.h"
+#include "thinkinginfopresenter.h"
 
 #include <QCheckBox>
 #include <QComboBox>
@@ -278,6 +279,9 @@ void ConsiderationTabManager::applyViewColumnWidths()
         const int width = saved.size() == 6 ? qMax(minimum, saved.at(col)) : minimum;
         m_considerationView->setColumnWidth(col, width);
     }
+    // 評価値列は、訳語の長い詰みの表示（英語では "Mate in 99 plies"）も省略せずに表示する。
+    const int mateWidth = metrics.horizontalAdvance(ThinkingInfoPresenter::mateScoreText(QStringLiteral("-99"))) + 20;
+    m_considerationView->setColumnWidth(3, qMax(m_considerationView->columnWidth(3), mateWidth));
     // 読み筋は残り幅を使う。狭いドックでも横スクロールで閲覧できる。
     m_considerationView->setColumnWidth(5, metrics.horizontalAdvance(QStringLiteral("M")) * 24);
 }

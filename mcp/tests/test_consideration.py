@@ -187,7 +187,7 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
                 assert board["board_sfen"] == pos["sfen"].split()[0]
                 await ui.call("click_dialog_button", dialog=title, text="▶")
                 assert (await ui.board(dialog=title))["board_sfen"] != board["board_sfen"]
-                await ui.call("click_dialog_button", dialog=title, text="⏮")
+                await ui.call("click_dialog_button", dialog=title, text="|◀")
                 assert (await ui.board(dialog=title))["board_sfen"] == board["board_sfen"]
                 await ui.call("close_dialog", dialog=title)
             await ui.set("considerationArrows", False)

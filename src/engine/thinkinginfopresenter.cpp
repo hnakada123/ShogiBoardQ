@@ -77,6 +77,11 @@ QString ThinkingInfoPresenter::baseSfen() const
     return m_baseSfen;
 }
 
+QString ThinkingInfoPresenter::mateScoreText(const QString& plies)
+{
+    return tr("%1手詰").arg(plies);
+}
+
 // ============================================================
 // info処理
 // ============================================================
@@ -363,7 +368,7 @@ void ThinkingInfoPresenter::updateEvaluationInfo(ShogiEngineInfoParser* info, in
         if ((scoreMate == "+") || (scoreMate == "-")) {
             scoreMate = tr("詰み");
         } else {
-            scoreMate = tr("%1手詰").arg(scoreMate);
+            scoreMate = mateScoreText(scoreMate);
         }
         
         info->setScore(scoreMate);
