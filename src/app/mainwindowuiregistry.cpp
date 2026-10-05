@@ -19,12 +19,15 @@
 #include "evaluationchartwidget.h"
 #include "gamerecordpresenter.h"
 #include "kifunavigationcoordinator.h"
+#include "kifudisplaycoordinator.h"
 #include "kifunavigationcontroller.h"
 #include "recordnavigationhandler.h"
 #include "recordnavigationwiring.h"
 #include "shogiview.h"
 #include "uistatepolicymanager.h"
 #include "logcategories.h"
+
+#include <QTimer>
 
 // ---------------------------------------------------------------------------
 // 棋譜表示プレゼンター
@@ -164,6 +167,15 @@ void MainWindowServiceRegistry::clearEvalState()
 
 void MainWindowServiceRegistry::onRecordPaneMainRowChanged(int row)
 {
+    // 未更新のコメントがあれば移る前に確認する。やめたときは、同じ行変更を受け取る
+    // ほかの処理（棋譜欄の強調）が終わってから、選択と強調を現在の手に戻す
+    if (m_mw.m_commentCoordinator && !m_mw.m_commentCoordinator->confirmLeaveEditingMove()) {
+        if (m_mw.m_branchNav.displayCoordinator) {
+            QTimer::singleShot(0, m_mw.m_branchNav.displayCoordinator,
+                               &KifuDisplayCoordinator::restoreCurrentPositionHighlights);
+        }
+        return;
+    }
     ensureRecordNavigationHandler();
     m_mw.m_recordNavWiring->handler()->onMainRowChanged(row);
 }

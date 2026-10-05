@@ -36,30 +36,21 @@ void CommentCoordinator::broadcastComment(const QString& text, bool asHtml)
 
 bool CommentCoordinator::handleRecordRowChangeRequest(int row, const QString& comment)
 {
-    // 未保存コメントの確認
-    const int editingRow = m_commentEditor ? m_commentEditor->currentMoveIndex() : -1;
+    Q_UNUSED(row)
+    // 未更新のコメントはナビゲーションの前に confirmLeaveEditingMove() で確認済み。
+    // まだ編集中なら（確認でキャンセルされた）、選んだ行のコメントで上書きしない
     if (m_commentEditor && m_commentEditor->hasUnsavedComment()) {
-        if (row == editingRow) return true;
-        if (row != editingRow) {
-            if (!m_commentEditor->confirmDiscardUnsavedComment()) {
-                // キャンセル：元の行に戻す
-                if (m_recordPane && m_recordPane->kifuView()) {
-                    QTableView* kifuView = m_recordPane->kifuView();
-                    if (kifuView->model() && editingRow >= 0
-                        && editingRow < kifuView->model()->rowCount()) {
-                        QSignalBlocker blocker(kifuView->selectionModel());
-                        kifuView->setCurrentIndex(
-                            kifuView->model()->index(editingRow, 0));
-                    }
-                }
-                return false;
-            }
-        }
+        return false;
     }
 
     // コメント表示
     broadcastComment(comment, true);
     return true;
+}
+
+bool CommentCoordinator::confirmLeaveEditingMove()
+{
+    return !m_commentEditor || m_commentEditor->confirmDiscardUnsavedComment();
 }
 
 void CommentCoordinator::onCommentUpdated(int moveIndex, const QString& newComment)

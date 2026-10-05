@@ -48,15 +48,21 @@ public:
     /**
      * @brief 棋譜行変更リクエストを処理する
      *
-     * 未保存コメントがある場合は確認ダイアログを表示し、
-     * キャンセル時は元の行に復元する。
-     * OKの場合はコメントを配信する。
+     * 未更新のコメントの確認は、棋譜欄の行変更でナビゲーションする前に
+     * confirmLeaveEditingMove() で済ませている。まだ編集中（確認でキャンセルされた）の
+     * ときは、選んだ行のコメントで上書きしない。それ以外はコメントを配信する。
      *
      * @param row 遷移先の行番号
      * @param comment 遷移先行のコメント
-     * @return true: 行変更を続行, false: キャンセルされた
+     * @return true: コメントを配信した, false: 編集中のため配信しなかった
      */
     bool handleRecordRowChangeRequest(int row, const QString& comment);
+
+    /**
+     * @brief 別の手へ移る前に、未更新のコメントを破棄してよいか確認する
+     * @return true: 移ってよい（未更新のコメントがない、または破棄を選んだ）, false: 移動をやめる
+     */
+    bool confirmLeaveEditingMove();
 
 public slots:
     /**

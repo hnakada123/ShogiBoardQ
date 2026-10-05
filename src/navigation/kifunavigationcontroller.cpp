@@ -406,6 +406,7 @@ void KifuNavigationController::onFirstClicked(bool checked)
 {
     Q_UNUSED(checked)
     qCDebug(lcNavigation).noquote() << "[BUTTON] first clicked";
+    if (!canLeaveCurrentPosition()) return;
     goToFirst();
 }
 
@@ -413,6 +414,7 @@ void KifuNavigationController::onBack10Clicked(bool checked)
 {
     Q_UNUSED(checked)
     qCDebug(lcNavigation).noquote() << "[BUTTON] back10 clicked";
+    if (!canLeaveCurrentPosition()) return;
     goBack(10);
 }
 
@@ -420,6 +422,7 @@ void KifuNavigationController::onPrevClicked(bool checked)
 {
     Q_UNUSED(checked)
     qCDebug(lcNavigation).noquote() << "[BUTTON] prev clicked";
+    if (!canLeaveCurrentPosition()) return;
     goBack(1);
 }
 
@@ -427,6 +430,7 @@ void KifuNavigationController::onNextClicked(bool checked)
 {
     Q_UNUSED(checked)
     qCDebug(lcNavigation).noquote() << "[BUTTON] next clicked";
+    if (!canLeaveCurrentPosition()) return;
     goForward(1);
 }
 
@@ -434,6 +438,7 @@ void KifuNavigationController::onFwd10Clicked(bool checked)
 {
     Q_UNUSED(checked)
     qCDebug(lcNavigation).noquote() << "[BUTTON] fwd10 clicked";
+    if (!canLeaveCurrentPosition()) return;
     goForward(10);
 }
 
@@ -441,6 +446,7 @@ void KifuNavigationController::onLastClicked(bool checked)
 {
     Q_UNUSED(checked)
     qCDebug(lcNavigation).noquote() << "[BUTTON] last clicked";
+    if (!canLeaveCurrentPosition()) return;
     goToLast();
 }
 

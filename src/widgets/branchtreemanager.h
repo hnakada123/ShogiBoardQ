@@ -115,6 +115,8 @@ private:
     int  resolveParentRowForVariation(int row) const;
     int  graphFallbackToPly(int row, int targetPly) const;
     void highlightNodeId(int nodeId, bool centerOn);
+    void scrollToNode(QGraphicsPathItem* item, bool centerOn);   ///< 表示中のときだけノードを見える位置へスクロールする
+    void scrollToCurrentNode();   ///< 強調中のノードを見える位置へスクロールする（表示・リサイズ後）
     int  maxDrawnPly() const;
     void addMoveNumberLabel(int ply);      ///< 本譜にノードが無い手数の「n手目」ラベルを補完する
     void removeMoveNumberLabel(int ply);   ///< 補完ラベルを削除する（本譜ノードが追加されたとき）

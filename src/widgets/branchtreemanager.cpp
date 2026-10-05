@@ -12,6 +12,7 @@
 #include <QSet>
 #include <QTransform>
 #include <QScrollBar>
+#include <QTimer>
 
 // ===================== コンストラクタ / デストラクタ =====================
 
@@ -152,7 +153,32 @@ void BranchTreeManager::highlightNodeId(int nodeId, bool centerOn)
     m_lastHighlightedRow = node.row;
     m_lastHighlightedPly = node.ply;
 
-    if (centerOn && m_branchTree) m_branchTree->centerOn(item);
+    scrollToNode(item, centerOn);
+}
+
+void BranchTreeManager::scrollToNode(QGraphicsPathItem* item, bool centerOn)
+{
+    // 非表示（タブの裏）の間はビューポートの寸法が定まらず、スクロール位置がずれたまま残るため
+    // 何もしない。表示・リサイズ時に eventFilter から合わせ直す
+    if (!m_branchTree || !item || !m_branchTree->isVisible()) return;
+
+    // ノードの上にある「n手目」ラベルも見える範囲に入れる。上端の手数ラベルの行と一緒に
+    // 収まるときは、上端から表示する（手数が読めるように）
+    QRectF area = item->mapRectToScene(item->boundingRect() | item->childrenBoundingRect());
+    if (m_scene && area.bottom() + 8 <= m_branchTree->viewport()->height()) {
+        area.setTop(m_scene->sceneRect().top());
+    }
+    // 見えているときは動かさず、画面外にあるときは中央に寄せる（前後の手も見えるように）
+    const QRectF visible = m_branchTree->mapToScene(m_branchTree->viewport()->rect()).boundingRect();
+    if (centerOn || !visible.contains(area)) {
+        m_branchTree->centerOn(area.center());
+        m_branchTree->ensureVisible(area, 40, 8);
+    }
+}
+
+void BranchTreeManager::scrollToCurrentNode()
+{
+    scrollToNode(m_prevSelected, false);
 }
 
 // ===================== フォールバック探索 =====================
@@ -235,6 +261,12 @@ bool BranchTreeManager::eventFilter(QObject* obj, QEvent* ev)
 {
     if (!obj || ev->type() == QEvent::Destroy) {
         return QObject::eventFilter(obj, ev);
+    }
+
+    // 表示されたとき・大きさが変わったときは、現在の手が見える位置までスクロールする
+    // （表示直後は寸法が確定していないため、レイアウト後に合わせる）
+    if (obj == m_branchTreeViewport && (ev->type() == QEvent::Show || ev->type() == QEvent::Resize)) {
+        QTimer::singleShot(0, this, &BranchTreeManager::scrollToCurrentNode);
     }
 
     if (obj == m_branchTreeViewport && ev->type() == QEvent::FontChange) {

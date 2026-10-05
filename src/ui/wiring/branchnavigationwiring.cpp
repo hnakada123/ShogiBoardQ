@@ -155,6 +155,8 @@ void BranchNavigationWiring::connectDisplaySignals()
     if (m_deps.commentCoordinator) {
         connect(dc, &KifuDisplayCoordinator::commentUpdateRequired,
                 m_deps.commentCoordinator, &CommentCoordinator::onNavigationCommentUpdate);
+        // 利用者の操作で別の手へ移る前に、未更新のコメントの破棄を確認する
+        nc->setLeaveGuard(std::bind(&CommentCoordinator::confirmLeaveEditingMove, m_deps.commentCoordinator));
     }
 
     connect(nc, &KifuNavigationController::recordHighlightRequired,
