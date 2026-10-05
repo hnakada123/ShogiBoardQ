@@ -13,6 +13,27 @@
 #include "playernameservice.h"
 #include "kifparsetypes.h"  // KifGameInfoItem
 
+namespace {
+
+// 検討・棋譜解析・詰み探索のエンジンは対局者ではないため、対局者名を置き換えない
+bool hasMatchPlayers(PlayMode mode)
+{
+    switch (mode) {
+    case PlayMode::HumanVsHuman:
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::EvenEngineVsEngine:
+    case PlayMode::HandicapEngineVsHuman:
+    case PlayMode::HandicapHumanVsEngine:
+    case PlayMode::HandicapEngineVsEngine:
+        return true;
+    default:
+        return false;
+    }
+}
+
+} // namespace
+
 PlayerInfoController::PlayerInfoController(QObject* parent)
     : QObject(parent)
 {
@@ -216,11 +237,12 @@ void PlayerInfoController::onSetEngineNames(const QString& e1, const QString& e2
     // EvE対局時に2番目のエンジン情報を表示
     updateSecondEngineVisibility();
 
-    // 将棋盤の対局者名ラベルを更新
-    applyPlayersNamesForMode();
-
-    // 対局情報タブも更新
-    updateGameInfoForCurrentMatch();
+    // 対局中は将棋盤の対局者名ラベルと対局情報タブを更新する。
+    // 検討などでは読み込んだ棋譜の対局者名を残す。
+    if (hasMatchPlayers(m_playMode)) {
+        applyPlayersNamesForMode();
+        updateGameInfoForCurrentMatch();
+    }
 
     // 評価値グラフコントローラにもエンジン名を設定
     if (m_evalGraphController) {

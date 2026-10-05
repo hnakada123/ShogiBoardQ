@@ -354,7 +354,19 @@ void ConsiderationTabManager::initFontManager()
         if (m_multiPVLabel) m_multiPVLabel->setFont(font);
         if (m_multiPVComboBox) m_multiPVComboBox->setFont(font);
         if (m_showArrowsCheckBox) m_showArrowsCheckBox->setFont(font);
-        if (m_btnStopConsideration) m_btnStopConsideration->setFont(font);
+        if (m_btnStopConsideration) {
+            m_btnStopConsideration->setFont(font);
+            // 開始・中止で幅が変わるとツールバーの折り返しが変わり、下の表が上下に動くため、
+            // 長い方の表示に合わせる
+            const QString currentText = m_btnStopConsideration->text();
+            int width = 0;
+            for (const QString& text : {tr("検討開始"), tr("検討中止")}) {
+                m_btnStopConsideration->setText(text);
+                width = qMax(width, m_btnStopConsideration->sizeHint().width());
+            }
+            m_btnStopConsideration->setText(currentText);
+            m_btnStopConsideration->setMinimumWidth(width);
+        }
 
         if (m_considerationInfo) m_considerationInfo->setFontSize(size);
 
