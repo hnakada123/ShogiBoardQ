@@ -118,8 +118,18 @@ private slots:
         QVERIFY(dialog.findChild<QLabel*>(QStringLiteral("generatorStatus"))->text().contains(QStringLiteral("生成完了")));
         QVERIFY(dialog.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsumeshogi-generator-results.png")));
         dialog.findChild<QToolButton*>(QStringLiteral("generatorHelp"))->setChecked(true);
+        // 説明を開いても設定欄はスクロールせずに全項目が見える（必要ならダイアログが高くなる）
+        auto* settingsScroll = dialog.findChild<QScrollArea*>(QStringLiteral("generatorSettingsScroll"));
+        QTRY_COMPARE(settingsScroll->verticalScrollBar()->maximum(), 0);
+        QVERIFY(table->height() >= 180);
         QTest::qWait(50);
         QVERIFY(dialog.grab().save(QStringLiteral(AUDIT_DIR "/screenshots/tsumeshogi-generator-help.png")));
+        // 閉じると設定欄が縮み、結果一覧に高さが戻る
+        const int tableHeightWithHelp = table->height();
+        dialog.findChild<QToolButton*>(QStringLiteral("generatorHelp"))->setChecked(false);
+        QTRY_VERIFY(table->height() > tableHeightWithHelp);
+        dialog.findChild<QToolButton*>(QStringLiteral("generatorHelp"))->setChecked(true);
+        QTRY_COMPARE(settingsScroll->verticalScrollBar()->maximum(), 0);
         dialog.close();
         QVERIFY(TsumeshogiSettings::tsumeshogiGeneratorHelpExpanded());
         QCOMPARE(TsumeshogiSettings::tsumeshogiGeneratorMaxPositions(), 100);

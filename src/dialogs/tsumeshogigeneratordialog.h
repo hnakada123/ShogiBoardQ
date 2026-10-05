@@ -16,6 +16,7 @@ class QComboBox;
 class QLabel;
 class QProgressBar;
 class QPushButton;
+class QScrollArea;
 class QSpinBox;
 class QTableWidget;
 class QToolButton;
@@ -37,6 +38,7 @@ public:
 
 protected:
     void done(int result) override;
+    void showEvent(QShowEvent* event) override;
 
 private slots:
     void onStartClicked();
@@ -60,6 +62,7 @@ private slots:
     void updateResultActions();
     void updateProgressBar();
     void toggleHelp(bool visible);
+    void fitSettingsArea();
     void showEngineSettingsDialog();
 
 private:
@@ -90,6 +93,7 @@ private:
     QPushButton* m_btnEngineSetting = nullptr;
 
     // 生成設定
+    QScrollArea* m_settingsScroll = nullptr;
     QSpinBox* m_spinTargetMoves = nullptr;
     QSpinBox* m_spinMaxAttack = nullptr;
     QSpinBox* m_spinMaxDefend = nullptr;

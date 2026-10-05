@@ -20,9 +20,12 @@
 #include <QFileInfo>
 #include <QLabel>
 #include <QHeaderView>
+#include <QLayout>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QPushButton>
+#include <QScreen>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QSpinBox>
 #include <QTableWidget>
@@ -226,6 +229,29 @@ void TsumeshogiGeneratorDialog::toggleHelp(bool visible)
 {
     m_labelHelp->setVisible(visible);
     m_btnHelp->setArrowType(visible ? Qt::DownArrow : Qt::RightArrow);
+    if (isVisible()) fitSettingsArea();
+}
+
+void TsumeshogiGeneratorDialog::fitSettingsArea()
+{
+    // 説明を開くと設定欄が高くなる。結果一覧の高さを譲ってもらい、それでも足りなければ
+    // 画面に収まる範囲でダイアログを高くして、設定をスクロールせずに見られるようにする。
+    // 閉じたときは設定欄を縮めて結果一覧へ高さを戻す。説明文から設定欄までの各部品が記録している
+    // 希望サイズを先に破棄し、開閉後の高さで計算させる
+    for (QWidget* w = m_labelHelp->parentWidget(); w && w != m_settingsScroll; w = w->parentWidget()) {
+        if (QLayout* l = w->layout()) l->invalidate();
+        w->updateGeometry();
+    }
+    m_settingsScroll->updateGeometry();
+    layout()->activate();
+    const int missing = m_settingsScroll->widget()->sizeHint().height() - m_settingsScroll->viewport()->height();
+    if (missing <= 0) return;
+    int newHeight = height() + missing;
+    if (const QScreen* s = screen()) {
+        const int frame = frameGeometry().height() - height();
+        newHeight = qMin(newHeight, qMax(height(), s->availableGeometry().height() - frame));
+    }
+    resize(width(), newHeight);
 }
 
 void TsumeshogiGeneratorDialog::showEngineSettingsDialog()
