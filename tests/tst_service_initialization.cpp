@@ -22,6 +22,11 @@
 #include "pvclickcontroller.h"
 #include "considerationwiring.h"
 #include "appsettings.h"
+#include "kifusubregistry.h"
+
+#include <QAbstractButton>
+#include <QApplication>
+#include <QMessageBox>
 
 class TestServiceInitialization : public QObject
 {
@@ -116,6 +121,60 @@ private slots:
         registry->handleFinishPositionEditing();
         QCOMPARE(started.count(), 1);
         QCOMPARE(finished.count(), 1);
+    }
+
+    /// 局面編集を始めると棋譜は開始局面だけになるため、未保存の棋譜があれば先に確認する。
+    /// 「キャンセル」なら編集を始めず棋譜も残し、「破棄」なら編集を始める
+    void beginPositionEditingAsksAboutUnsavedRecord()
+    {
+        MainWindow window;
+        auto* registry = window.m_registry.get();
+        registry->ensurePositionEditCoordinator();
+        registry->kifu()->ensureGameRecordModel();
+        QVERIFY(window.m_models.gameRecord);
+        window.m_models.gameRecord->markDirty();
+
+        auto* editing = window.findChild<PositionEditCoordinator*>();
+        QSignalSpy started(editing, &PositionEditCoordinator::positionEditingStarted);
+
+        answerMessageBox(QMessageBox::RejectRole);
+        registry->handleBeginPositionEditing();
+        QVERIFY(m_answered);
+        QCOMPARE(started.count(), 0);
+        QVERIFY(window.m_models.gameRecord->isDirty());
+
+        answerMessageBox(QMessageBox::DestructiveRole);
+        registry->handleBeginPositionEditing();
+        QVERIFY(m_answered);
+        QCOMPARE(started.count(), 1);
+        registry->handleFinishPositionEditing();
+    }
+
+private:
+    QMessageBox::ButtonRole m_answerRole = QMessageBox::RejectRole;
+    bool m_answered = false;
+
+    void answerMessageBox(QMessageBox::ButtonRole role)
+    {
+        m_answerRole = role;
+        m_answered = false;
+        QTimer::singleShot(0, this, &TestServiceInitialization::respondToMessageBox);
+    }
+
+    void respondToMessageBox()
+    {
+        auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+        if (!box) {
+            QTimer::singleShot(20, this, &TestServiceInitialization::respondToMessageBox);
+            return;
+        }
+        for (QAbstractButton* button : box->buttons()) {
+            if (box->buttonRole(button) == m_answerRole) {
+                m_answered = true;
+                button->click();
+                return;
+            }
+        }
     }
 };
 

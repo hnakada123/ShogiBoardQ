@@ -23,6 +23,7 @@
 #include "commentcoordinator.h"
 #include "evaluationgraphcontroller.h"
 #include "gamerecordupdateservice.h"
+#include "gamesessionorchestrator.h"
 #include "kifunavigationcoordinator.h"
 #include "matchruntimequeryservice.h"
 #include "shogiboard.h"
@@ -193,6 +194,14 @@ void MainWindowServiceRegistry::handleMoveCommitted(int mover, int ply)
 
 void MainWindowServiceRegistry::handleBeginPositionEditing()
 {
+    // 編集を始めると棋譜は開始局面だけになるため、未保存の棋譜は先に保存するか確認する。
+    // やめたときは中断した対局も残す
+    if (!confirmDiscardUnsavedKifu()) return;
+    ensureGameSessionOrchestrator();
+    if (m_mw.m_gameSessionOrchestrator) {
+        m_mw.m_gameSessionOrchestrator->discardInterruptedGame();
+    }
+
     ensurePositionEditCoordinator();
     if (m_mw.m_registryParts.posEditCoordinator) {
         m_mw.m_registryParts.posEditCoordinator->beginPositionEditing();
