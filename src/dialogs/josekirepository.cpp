@@ -5,6 +5,7 @@
 #include "josekiwindow.h"  // JosekiMove 構造体
 #include "logcategories.h"
 
+#include <QCoreApplication>
 #include <QFile>
 #include <QSaveFile>
 #include <QTextStream>
@@ -154,7 +155,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        result.errorMessage = QStringLiteral("ファイルを開けませんでした: %1").arg(filePath);
+        result.errorMessage = QCoreApplication::translate("JosekiRepository", "ファイルを開けませんでした: %1").arg(filePath);
         return result;
     }
 
@@ -272,7 +273,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
     file.close();
 
     if (!hasValidHeader) {
-        result.errorMessage = QStringLiteral(
+        result.errorMessage = QCoreApplication::translate("JosekiRepository",
             "このファイルはやねうら王定跡フォーマット(YANEURAOU-DB2016)ではありません。\n"
             "ヘッダー行（#YANEURAOU-DB2016 等）が見つかりませんでした。\n\n"
             "ファイル: %1").arg(filePath);
@@ -280,7 +281,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
     }
 
     if (!hasSfenLine && hasContentLine) {
-        result.errorMessage = QStringLiteral(
+        result.errorMessage = QCoreApplication::translate("JosekiRepository",
             "定跡ファイルにSFEN行が見つかりませんでした。\n\n"
             "やねうら王定跡フォーマットでは「sfen 」で始まる局面行が必要です。\n\n"
             "ファイル: %1").arg(filePath);
@@ -288,7 +289,7 @@ JosekiLoadResult JosekiRepository::parseFromFile(const QString &filePath)
     }
 
     if (hasSfenLine && !hasMoveLine) {
-        result.errorMessage = QStringLiteral(
+        result.errorMessage = QCoreApplication::translate("JosekiRepository",
             "定跡ファイルに有効な指し手行が見つかりませんでした。\n\n"
             "やねうら王定跡フォーマットでは指し手行に少なくとも5つのフィールド\n"
             "（指し手 予想応手 評価値 深さ 出現頻度）が必要です。\n\n"
@@ -321,7 +322,7 @@ JosekiSaveResult JosekiRepository::serializeToFile(
 
     QSaveFile file(filePath);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        result.errorMessage = QStringLiteral("ファイルを保存できませんでした: %1").arg(filePath);
+        result.errorMessage = QCoreApplication::translate("JosekiRepository", "ファイルを保存できませんでした: %1").arg(filePath);
         return result;
     }
 
@@ -365,13 +366,13 @@ JosekiSaveResult JosekiRepository::serializeToFile(
 
     out.flush();
     if (out.status() != QTextStream::Ok) {
-        result.errorMessage = QStringLiteral("ファイル書き込み中にエラーが発生しました: %1").arg(filePath);
+        result.errorMessage = QCoreApplication::translate("JosekiRepository", "ファイル書き込み中にエラーが発生しました: %1").arg(filePath);
         file.cancelWriting();
         return result;
     }
 
     if (!file.commit()) {
-        result.errorMessage = QStringLiteral("ファイルを保存できませんでした: %1").arg(filePath);
+        result.errorMessage = QCoreApplication::translate("JosekiRepository", "ファイルを保存できませんでした: %1").arg(filePath);
         return result;
     }
     result.success = true;

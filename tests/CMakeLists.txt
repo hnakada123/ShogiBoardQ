@@ -438,6 +438,7 @@ add_shogi_test(tst_josekiwindow
     ${TEST_STUBS}
     ${SRC}/dialogs/josekiwindow.cpp
     ${SRC}/dialogs/josekiwindowio.cpp
+    ${SRC}/dialogs/josekiwindowmerge.cpp
     ${SRC}/dialogs/josekiwindowui.cpp
     ${SRC}/dialogs/josekiwindowui_status.cpp
     ${SRC}/dialogs/josekipresenter.cpp

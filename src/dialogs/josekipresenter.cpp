@@ -167,11 +167,20 @@ bool JosekiPresenter::registerMergeMove(const QString &normalizedSfen, const QSt
                                          const QString &usiMove, const QString &currentFilePath,
                                          QString *errorMessage)
 {
+    return registerMergeMoves({normalizedSfen}, {sfenWithPly}, {usiMove}, currentFilePath, errorMessage);
+}
+
+bool JosekiPresenter::registerMergeMoves(const QStringList &normalizedSfens, const QStringList &sfensWithPly,
+                                          const QStringList &usiMoves, const QString &currentFilePath,
+                                          QString *errorMessage)
+{
     // 保存が成功するまで編集中のデータと登録済み状態を変更しない。
     JosekiRepository updated = *m_repository;
-    const QString key = normalizedSfen + QLatin1Char(':') + usiMove;
-    if (!updated.mergeRegisteredMoves().contains(key)) {
-        updated.registerMergeMove(normalizedSfen, sfenWithPly, usiMove);
+    for (qsizetype i = 0; i < usiMoves.size(); ++i) {
+        const QString key = normalizedSfens.value(i) + QLatin1Char(':') + usiMoves.at(i);
+        if (!updated.mergeRegisteredMoves().contains(key)) {
+            updated.registerMergeMove(normalizedSfens.value(i), sfensWithPly.value(i), usiMoves.at(i));
+        }
     }
     if (!updated.saveToFile(currentFilePath, errorMessage)) return false;
 

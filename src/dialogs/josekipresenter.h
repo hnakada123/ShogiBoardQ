@@ -95,6 +95,17 @@ public:
                            QString *errorMessage = nullptr);
 
     /**
+     * @brief 複数の指し手をまとめて登録し、定跡ファイルへ1回だけ保存する（「全て登録」用）
+     * @param normalizedSfens 正規化SFEN（各指し手の局面）
+     * @param sfensWithPly 手数付きSFEN
+     * @param usiMoves USI形式の指し手
+     * @note 1手ごとに保存すると大きな定跡ファイルでは保存の回数だけ待たされるため。保存に失敗したら何も変更しない。
+     */
+    bool registerMergeMoves(const QStringList &normalizedSfens, const QStringList &sfensWithPly,
+                            const QStringList &usiMoves, const QString &currentFilePath,
+                            QString *errorMessage = nullptr);
+
+    /**
      * @brief 棋譜データからマージエントリを作成する
      * @param sfenList 各手番のSFEN文字列リスト
      * @param moveList 各手のUSI形式指し手リスト

@@ -4,10 +4,12 @@
 #include "josekiwindow.h"
 
 #include "josekirepository.h"
-#include "sfenutils.h"
+#include "kifupresentation.h"
+#include "notationutils.h"
 
 #include <QDockWidget>
 #include <QFileInfo>
+#include <QLocale>
 #include <QMessageBox>
 
 void JosekiWindow::clearTable()
@@ -43,7 +45,7 @@ void JosekiWindow::updateStatusDisplay()
             statusParts << tr("ファイル: %1").arg(QFileInfo(m_currentFilePath).fileName());
         else
             statusParts << tr("ファイル: 未選択");
-        statusParts << tr("局面数: %1").arg(m_repository->positionCount());
+        statusParts << tr("局面数: %1").arg(QLocale().toString(m_repository->positionCount()));
         if (!m_displayEnabled)
             statusParts << tr("【停止中】");
         else
@@ -56,6 +58,9 @@ void JosekiWindow::updateStatusDisplay()
             m_emptyGuideLabel->setText(tr("定跡表示を停止しています。「再開」で表示を再開します。"));
         else if (m_currentSfen.isEmpty())
             m_emptyGuideLabel->setText(tr("将棋盤で局面を表示すると、その局面の定跡を確認できます。"));
+        else if (m_currentFilePath.isEmpty() && !hasData)
+            m_emptyGuideLabel->setText(tr("「開く」で定跡ファイルを読み込むと、表示中の局面の定跡手が表示されます。\n"
+                                        "「新規」で新しい定跡ファイルを作ることもできます。"));
         else
             m_emptyGuideLabel->setText(tr("この局面には定跡が登録されていません。\n"
                                         "「＋追加」で指し手を登録するか、「マージ」から棋譜を取り込めます。"));
@@ -84,15 +89,15 @@ void JosekiWindow::updatePositionSummary()
         plyNumber = parts[3].toInt(&ok);
         if (!ok) plyNumber = 1;
     }
+    // 平手・駒落ちの開始局面は手合の名前、それ以外は手数で示す（任意の局面を「駒落ち」と呼ばない）
+    const QString handicap = (plyNumber == 1) ? NotationUtils::handicapLabelForSfen(m_currentSfen) : QString();
     QString positionDesc;
-    if (plyNumber == 1 && !parts.isEmpty()) {
-        if (SfenUtils::isHirateBoardSfen(parts[0]))
-            positionDesc = tr("初期配置");
-        else
-            positionDesc = tr("駒落ち");
-    } else {
+    if (handicap == QStringLiteral("平手"))
+        positionDesc = tr("初期配置");
+    else if (!handicap.isEmpty())
+        positionDesc = KifuPresentation::infoValue(QStringLiteral("手合割"), handicap);
+    else
         positionDesc = tr("%1手目").arg(plyNumber);
-    }
     m_positionSummaryLabel->setText(tr("%1 (%2番)").arg(positionDesc, turn));
     m_positionSummaryLabel->setToolTip(m_currentSfen);
     m_currentSfenLabel->setText(tr("局面SFEN: %1").arg(m_currentSfen));
@@ -137,7 +142,7 @@ bool JosekiWindow::confirmDiscardChanges()
     if (!m_modified) return true;
     QMessageBox msgBox(this);
     msgBox.setWindowTitle(tr("確認"));
-    msgBox.setText(tr("定跡データに未保存の変更があります。\n変更を破棄しますか？"));
+    msgBox.setText(tr("定跡データに未保存の変更があります。\n保存しますか？"));
     msgBox.setIcon(QMessageBox::Question);
     QPushButton *saveBtn = msgBox.addButton(tr("保存"), QMessageBox::AcceptRole);
     QPushButton *discardBtn = msgBox.addButton(tr("破棄"), QMessageBox::DestructiveRole);

@@ -308,6 +308,43 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
         await ui.call("save_kifu", path=str(tmp_path / "game.kif"))
 
 
+async def test_joseki_play_only_in_game_on_human_turn(coverage_env, tmp_path):
+    # Book moves follow the same rule as board clicks: not outside games, recorded in the game record.
+    book = tmp_path / "play.db"
+    book.write_text("#YANEURAOU-DB2016 1.00\n"
+                    "sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"
+                    "7g7f 3c3d 0 32 1\n", encoding="utf-8")
+    async with mcp_session(coverage_env) as session:
+        ui = UI(session)
+        await ui.call("show_dock", widget="JosekiWindowDock")
+        await ui.click("開く", root="JosekiWindowDock")
+        await ui.file(book)
+        await ui.rows("josekiTable", 1)
+
+        def play_buttons(widgets):
+            return [w for w in widgets if w["class"] == "QPushButton" and w.get("text") == "着手"]
+
+        assert not play_buttons(await ui.widgets(root="JosekiWindowDock"))
+        game = await ui.open("actionStartGame", "StartGameDialog")
+        for widget in ("comboBoxPlayer1", "comboBoxPlayer2"):
+            await ui.call("set_widget_value", target=game, widget=widget, value=0)
+        await ui.call("set_widget_value", target=game, widget="comboBoxStartingPosition", value=1)
+        await ui.click("対局開始", game)
+        for _ in range(100):
+            buttons = play_buttons(await ui.widgets(root="JosekiWindowDock"))
+            if buttons:
+                break
+            await asyncio.sleep(0.05)
+        assert buttons
+        await ui.call("click_widget", widget=buttons[0]["selector"])
+        for _ in range(100):
+            moves = [m["usi"] for m in (await ui.call("get_kifu"))["moves"]]
+            if moves:
+                break
+            await asyncio.sleep(0.05)
+        assert moves == ["7g7f"]
+
+
 async def test_collection_recent_menu(coverage_env, tmp_path):
     async with mcp_session(coverage_env) as session:
         ui = UI(session)

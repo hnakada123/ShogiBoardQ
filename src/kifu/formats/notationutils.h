@@ -45,6 +45,8 @@ QString formatSfenDrop(QChar piece, int toFile, int toRank);
 /// 日本語手合ラベル("平手", "二枚落ち" 等) → 初期 SFEN 文字列
 /// 前後の空白を除いて完全一致で照合し、未知のラベルは平手にフォールバックする。
 QString mapHandicapToSfen(const QString& label);
+/// 盤面が平手・駒落ちの開始局面と同じなら手合の名前（"平手"、"香落ち" など）、どれでもなければ空文字列を返す
+QString handicapLabelForSfen(const QString& sfen);
 
 } // namespace NotationUtils
 

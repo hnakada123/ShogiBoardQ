@@ -77,7 +77,7 @@ signals:
     void registerMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove);
     
     /**
-     * @brief 全ての指し手を一括登録するシグナル
+     * @brief 未登録の指し手をまとめて登録するシグナル（定跡ファイルへの保存は1回）
      * @param entries 登録する棋譜エントリのリスト
      */
     void registerAllMoves(const QList<KifuMergeEntry> &entries);
@@ -151,6 +151,7 @@ private:
     QSet<QString> m_registeredMoves;   ///< 登録済みの指し手セット（「正規化SFEN:USI指し手」形式）
     FontSizeHelper m_fontHelper;            ///< フォントサイズヘルパー
     bool m_lastRegistrationSucceeded = false;
+    bool m_batchRegistering = false;  ///< 「全て登録」の結果を受け取っている間は表を作り直さない
 };
 
 #endif // JOSEKIMERGEDIALOG_H

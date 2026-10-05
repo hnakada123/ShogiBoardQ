@@ -2,6 +2,7 @@
 /// @brief 定跡ウィンドウクラスの実装（薄い View 層）
 /// setupUi() / applyFontSize() は josekiwindowui.cpp に分離
 /// ファイルI/O / 非同期処理は josekiwindowio.cpp に分離
+/// 棋譜からのマージは josekiwindowmerge.cpp に分離
 
 #include "josekiwindow.h"
 #include "dialogutils.h"
@@ -109,11 +110,7 @@ void JosekiWindow::onOpenButtonClicked()
         this, tr("定跡ファイルを開く"), startDir,
         tr("定跡ファイル (*.db);;すべてのファイル (*)"));
 
-    if (!filePath.isEmpty()) {
-        addToRecentFiles(filePath);
-        saveSettings();
-        loadAndApplyFileAsync(filePath);
-    }
+    if (!filePath.isEmpty()) loadAndApplyFileAsync(filePath);
 }
 
 void JosekiWindow::onNewButtonClicked()
@@ -182,8 +179,7 @@ void JosekiWindow::onClearRecentFilesClicked()
     // 「履歴をクリア」は最近使ったファイルのみを対象とし、
     // 現在の編集中データ（未保存変更を含む）は保持する。
     updateRecentFilesMenu();
-    saveSettings();
-    JosekiSettings::setJosekiWindowLastFilePath(QString());
+    saveSettings();  // 履歴にないファイルは前回のファイルとして記録しない（次回は自動読込しない）
 
     if (m_statusLabel) {
         m_statusLabel->setText(tr("最近使ったファイル履歴をクリアしました"));
@@ -206,8 +202,6 @@ void JosekiWindow::onRecentFileClicked()
         updateRecentFilesMenu();
         return;
     }
-    addToRecentFiles(filePath);
-    saveSettings();
     loadAndApplyFileAsync(filePath);
 }
 
@@ -337,8 +331,11 @@ void JosekiWindow::onAddMoveButtonClicked()
     QString normalizedSfen = JosekiPresenter::normalizeSfen(targetSfen);
 
     if (m_presenter->hasDuplicateMove(normalizedSfen, newMove.move)) {
+        SfenPositionTracer tracer;
+        (void)tracer.setFromSfen(targetSfen);
         if (!DialogUtils::confirmAction(this, tr("確認"),
-                tr("指し手「%1」は既に登録されています。\n上書きしますか？").arg(newMove.move),
+                tr("指し手「%1」は既に登録されています。\n上書きしますか？")
+                    .arg(JosekiPresenter::usiMoveToJapanese(newMove.move, tracer)),
                 tr("上書きする"))) {
             return;
         }
@@ -412,7 +409,7 @@ void JosekiWindow::onTableDoubleClicked(int row, int column)
 {
     Q_UNUSED(column);
     if (!m_humanCanPlay) {
-        QMessageBox::information(this, tr("情報"), tr("現在はエンジンの手番のため着手できません。"));
+        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中に自分の手番で指せます。"));
         return;
     }
     if (row >= 0 && row < m_currentMoves.size())
@@ -436,7 +433,7 @@ void JosekiWindow::onContextMenuPlay()
     int row = m_tableWidget->currentRow();
     if (row < 0 || row >= m_currentMoves.size()) return;
     if (!m_humanCanPlay) {
-        QMessageBox::information(this, tr("情報"), tr("現在はエンジンの手番のため着手できません。"));
+        QMessageBox::information(this, tr("情報"), tr("定跡手は、対局中に自分の手番で指せます。"));
         return;
     }
     emit josekiMoveSelected(m_currentMoves[row].move);
@@ -457,83 +454,3 @@ void JosekiWindow::onContextMenuCopyMove()
 }
 
 void JosekiWindow::onRestoreStatusDisplay() { updateStatusDisplay(); }
-
-// ============================================================
-// マージ
-// ============================================================
-
-void JosekiWindow::onMergeFromCurrentKifu()
-{
-    if (isIoBusy()) return;
-    if (!ensureFilePath()) return;
-    emit requestKifuDataForMerge();
-}
-
-void JosekiWindow::setKifuDataForMerge(const QStringList &sfenList, const QStringList &moveList,
-                                        const QStringList &japaneseMoveList, int currentPly)
-{
-    if (isIoBusy()) return;
-    if (moveList.isEmpty()) {
-        QMessageBox::information(this, tr("情報"), tr("棋譜に指し手がありません。"));
-        return;
-    }
-    QList<KifuMergeEntry> entries = m_presenter->buildMergeEntries(sfenList, moveList, japaneseMoveList, currentPly);
-    if (entries.isEmpty()) {
-        QMessageBox::information(this, tr("情報"), tr("登録可能な指し手がありません。"));
-        return;
-    }
-
-    JosekiMergeDialog *dialog = new JosekiMergeDialog(this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setTargetJosekiFile(m_currentFilePath);
-    dialog->setRegisteredMoves(m_repository->mergeRegisteredMoves());
-    connect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
-    connect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
-    dialog->setKifuData(entries);
-    dialog->show();
-}
-
-void JosekiWindow::onMergeFromKifuFile()
-{
-    if (isIoBusy()) return;
-    if (!ensureFilePath()) return;
-
-    QString kifFilePath = QFileDialog::getOpenFileName(
-        this, tr("棋譜ファイルを選択"), QDir::homePath(),
-        tr("KIF形式 (*.kif *.kifu);;すべてのファイル (*)"));
-    if (kifFilePath.isEmpty()) return;
-
-    QList<KifuMergeEntry> entries;
-    QString errorMessage;
-    if (!m_presenter->buildMergeEntriesFromKifFile(kifFilePath, entries, &errorMessage)) {
-        if (errorMessage.isEmpty())
-            QMessageBox::information(this, tr("情報"), tr("棋譜に指し手がありません。"));
-        else
-            QMessageBox::warning(this, tr("エラー"), tr("棋譜ファイルの読み込みに失敗しました。\n%1").arg(errorMessage));
-        return;
-    }
-    if (entries.isEmpty()) {
-        QMessageBox::information(this, tr("情報"), tr("登録可能な指し手がありません。"));
-        return;
-    }
-
-    JosekiMergeDialog *dialog = new JosekiMergeDialog(this);
-    dialog->setAttribute(Qt::WA_DeleteOnClose);
-    dialog->setTargetJosekiFile(m_currentFilePath);
-    dialog->setRegisteredMoves(m_repository->mergeRegisteredMoves());
-    dialog->setWindowTitle(tr("棋譜から定跡にマージ - %1").arg(QFileInfo(kifFilePath).fileName()));
-    connect(dialog, &JosekiMergeDialog::registerMove, this, &JosekiWindow::onMergeRegisterMove);
-    connect(this, &JosekiWindow::mergeRegistrationFinished, dialog, &JosekiMergeDialog::onRegistrationFinished);
-    dialog->setKifuData(entries);
-    dialog->show();
-}
-
-void JosekiWindow::onMergeRegisterMove(const QString &sfen, const QString &sfenWithPly, const QString &usiMove)
-{
-    if (isIoBusy()) return;
-    QString errorMessage;
-    const bool success = m_presenter->registerMergeMove(sfen, sfenWithPly, usiMove, m_currentFilePath, &errorMessage);
-    emit mergeRegistrationFinished(sfen, usiMove, success);
-    if (!success) QMessageBox::warning(this, tr("エラー"), errorMessage);
-    updateJosekiDisplay();
-}
