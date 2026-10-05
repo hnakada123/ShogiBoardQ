@@ -39,7 +39,7 @@
 <context>
     <name>AnalysisResultHandler</name>
     <message>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="172"/>
+        <location filename="../../src/analysis/analysisresulthandler.cpp" line="179"/>
         <source>（定跡）</source>
         <translation>（定跡）</translation>
     </message>
@@ -4277,57 +4277,55 @@ OKを選択すると保存先が指定できます。</source>
         <translation>自定义范围</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="127"/>
         <source>手目から</source>
-        <translation>从第</translation>
+        <translation type="vanished">从第</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="150"/>
         <source>手目まで</source>
-        <translation>至第</translation>
+        <translation type="vanished">至第</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="171"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="166"/>
         <source>0手目は開始局面です。指定した手を指した後の局面を解析します。</source>
         <translation>第 0 手表示初始局面。分析将评价指定着法执行后的局面。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="194"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="189"/>
         <source>時間制限</source>
         <translation>时间限制</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="203"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="198"/>
         <source>1局面あたりの思考時間</source>
         <translation>每个局面的思考时间</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="229"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="224"/>
         <source>秒</source>
         <translation>秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="257"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="252"/>
         <source>「設定」→「エンジン設定」でエンジンを登録してください。</source>
         <translation>请在“设置 → 引擎设置”中注册引擎。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="291"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="286"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="294"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="289"/>
         <source>文字サイズを縮小</source>
         <translation>缩小字号</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="313"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="308"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="316"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="311"/>
         <source>文字サイズを拡大</source>
         <translation>放大字号</translation>
     </message>
@@ -4337,54 +4335,59 @@ OKを選択すると保存先が指定できます。</source>
         <translation>开始分析</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="36"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="37"/>
         <source>解析開始手数</source>
         <translation>分析起始手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="37"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="38"/>
         <source>解析終了手数</source>
         <translation>分析结束手数</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="39"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="40"/>
         <source>解析エンジン</source>
         <translation>分析引擎</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="138"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="139"/>
         <source>約%1秒</source>
         <translation>约 %1 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="140"/>
         <source>約%1分%2秒</source>
         <translation>约 %1 分 %2 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="141"/>
         <source>約%1時間%2分</source>
         <translation>约 %1 小时 %2 分</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="141"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="142"/>
         <source>解析対象: %1局面&#x3000;所要時間の目安: %2</source>
         <translation>%1 个局面 · 预计用时：%2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="142"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="143"/>
         <source>エンジンの起動時間などにより、実際の所要時間は前後します。</source>
         <translation>实际用时可能有所变化，包括引擎启动时间。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="200"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="201"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>尚未选择将棋引擎。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="204"/>
         <source>エラー</source>
         <translation>错误</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="334"/>
+        <source>%1手目から%2手目まで</source>
+        <translation>从第 %1 手到第 %2 手</translation>
     </message>
 </context>
 <context>
@@ -4410,8 +4413,12 @@ OKを選択すると保存先が指定できます。</source>
         <translation>引擎在上一局面推荐的着法。分析范围的首个局面留空。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="149"/>
         <source>実際の指し手と候補手が一致すると○を表示します。</source>
+        <translation type="vanished">实际着法与推荐着法一致时显示圆圈。</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="149"/>
+        <source>実際の指し手と候補手が一致すると◯を表示します。</source>
         <translation>实际着法与推荐着法一致时显示圆圈。</translation>
     </message>
     <message>

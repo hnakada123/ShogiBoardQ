@@ -51,7 +51,7 @@
 <context>
     <name>AnalysisResultHandler</name>
     <message>
-        <location filename="../../src/analysis/analysisresulthandler.cpp" line="172"/>
+        <location filename="../../src/analysis/analysisresulthandler.cpp" line="179"/>
         <source>（定跡）</source>
         <translation>(Book)</translation>
     </message>
@@ -5287,27 +5287,25 @@ Use Add to enter a move or Merge to import a game record.</translation>
         <translation>Custom range</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="127"/>
         <source>手目から</source>
-        <translation>From move</translation>
+        <translation type="vanished">From move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="150"/>
         <source>手目まで</source>
-        <translation>to move</translation>
+        <translation type="vanished">to move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="171"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="166"/>
         <source>0手目は開始局面です。指定した手を指した後の局面を解析します。</source>
         <translation>Move 0 is the starting position. Analysis evaluates the position after each specified move.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="194"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="189"/>
         <source>時間制限</source>
         <translation>Time Limit</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="203"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="198"/>
         <source>1局面あたりの思考時間</source>
         <translation>Thinking time per position</translation>
     </message>
@@ -5316,32 +5314,32 @@ Use Add to enter a move or Merge to import a game record.</translation>
         <translation type="vanished">Time per move</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="229"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="224"/>
         <source>秒</source>
         <translation>sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="257"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="252"/>
         <source>「設定」→「エンジン設定」でエンジンを登録してください。</source>
         <translation>Register an engine in Settings → Engine Settings.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="291"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="286"/>
         <source>A-</source>
         <translation>A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="294"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="289"/>
         <source>文字サイズを縮小</source>
         <translation>Decrease font size</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="313"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="308"/>
         <source>A+</source>
         <translation>A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="316"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.ui" line="311"/>
         <source>文字サイズを拡大</source>
         <translation>Increase font size</translation>
     </message>
@@ -5359,54 +5357,59 @@ Use Add to enter a move or Merge to import a game record.</translation>
         <translation>Start analysis</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="36"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="37"/>
         <source>解析開始手数</source>
         <translation>First move to analyze</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="37"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="38"/>
         <source>解析終了手数</source>
         <translation>Last move to analyze</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="39"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="40"/>
         <source>解析エンジン</source>
         <translation>Analysis engine</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="138"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="139"/>
         <source>約%1秒</source>
         <translation>About %1 sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="139"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="140"/>
         <source>約%1分%2秒</source>
         <translation>About %1 min %2 sec</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="140"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="141"/>
         <source>約%1時間%2分</source>
         <translation>About %1 hr %2 min</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="141"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="142"/>
         <source>解析対象: %1局面&#x3000;所要時間の目安: %2</source>
         <translation>%1 positions · Estimated time: %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="142"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="143"/>
         <source>エンジンの起動時間などにより、実際の所要時間は前後します。</source>
         <translation>Actual duration may vary, including engine startup time.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="200"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="201"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>No shogi engine is selected.</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="203"/>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="204"/>
         <source>エラー</source>
         <translation>Error</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/kifuanalysisdialog.cpp" line="334"/>
+        <source>%1手目から%2手目まで</source>
+        <translation>from move %1 to %2</translation>
     </message>
 </context>
 <context>
@@ -5432,8 +5435,12 @@ Use Add to enter a move or Merge to import a game record.</translation>
         <translation>The engine’s recommended move from the preceding position. Blank for the first position analyzed.</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="149"/>
         <source>実際の指し手と候補手が一致すると○を表示します。</source>
+        <translation type="vanished">A circle indicates that the played move matches the recommended move.</translation>
+    </message>
+    <message>
+        <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="149"/>
+        <source>実際の指し手と候補手が一致すると◯を表示します。</source>
         <translation>A circle indicates that the played move matches the recommended move.</translation>
     </message>
     <message>
