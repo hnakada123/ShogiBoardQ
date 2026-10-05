@@ -4,6 +4,7 @@
 #include <QtTest>
 #include <QMainWindow>
 #include <QDockWidget>
+#include <QTabBar>
 #include <QStandardPaths>
 #include <QFile>
 
@@ -59,6 +60,7 @@ private slots:
     void restoreStartupLayoutIfSet_noLayoutSet_noEffect();
     void resetToDefault_restoresInitialState();
     void resetToDefault_resetsAnalysisResults();
+    void resetToDefault_matchesStartupArrangement();
     void setDocksLocked_persistsState();
     void saveDockStates_persistsState();
 };
@@ -303,6 +305,69 @@ void TestDockLayout::resetToDefault_resetsAnalysisResults()
     QVERIFY(!setup.dock3->isFloating());
     QVERIFY(setup.dock3->isHidden());
     QCOMPARE(setup.mainWindow.dockWidgetArea(setup.dock3), Qt::BottomDockWidgetArea);
+}
+
+/// リセット後の配置は起動時（DockCreationService）と同じになる
+void TestDockLayout::resetToDefault_matchesStartupArrangement()
+{
+    using T = DockLayoutManager::DockType;
+    QMainWindow window;
+    window.setCentralWidget(new QWidget(&window));
+    DockLayoutManager manager(&window);
+    const QList<QPair<T, QString>> specs = {
+        {T::Menu, "Menu"}, {T::Joseki, "Joseki"}, {T::Record, "Record"}, {T::GameInfo, "GameInfo"},
+        {T::Thinking, "Thinking"}, {T::Consideration, "Consideration"}, {T::UsiLog, "UsiLog"},
+        {T::CsaLog, "CsaLog"}, {T::Comment, "Comment"}, {T::BranchTree, "BranchTree"},
+        {T::EvalChart, "EvalChart"}, {T::AnalysisResults, "AnalysisResults"}};
+    QHash<T, QDockWidget*> docks;
+    for (const auto& spec : specs) {
+        auto* dock = new QDockWidget(spec.second, &window);
+        dock->setObjectName(spec.second);
+        dock->setWidget(new QWidget(dock));
+        // 起動時とは違う配置から始める
+        window.addDockWidget(Qt::LeftDockWidgetArea, dock);
+        manager.registerDock(spec.first, dock);
+        docks.insert(spec.first, dock);
+    }
+    window.show();
+    QVERIFY(QTest::qWaitForWindowExposed(&window));
+    docks[T::Thinking]->setFloating(true);
+
+    manager.resetToDefault();
+    QCoreApplication::processEvents();
+
+    // 右: 棋譜とメニュー（メニューは非表示）
+    QCOMPARE(window.dockWidgetArea(docks[T::Record]), Qt::RightDockWidgetArea);
+    QCOMPARE(window.dockWidgetArea(docks[T::Menu]), Qt::RightDockWidgetArea);
+    QVERIFY(docks[T::Menu]->isHidden());
+    // 下: 定跡と棋譜解析も同じタブにまとめて非表示
+    for (T type : {T::Joseki, T::AnalysisResults}) {
+        QCOMPARE(window.dockWidgetArea(docks[type]), Qt::BottomDockWidgetArea);
+        QVERIFY(docks[type]->isHidden());
+    }
+    auto bottomTabs = [&window](QString* current = nullptr) {
+        QStringList tabs;
+        const auto bars = window.findChildren<QTabBar*>();
+        for (QTabBar* bar : bars) {
+            QStringList texts;
+            for (int i = 0; i < bar->count(); ++i) texts << bar->tabText(i);
+            if (!texts.contains(QStringLiteral("Thinking"))) continue;
+            tabs = texts;
+            if (current) *current = bar->tabText(bar->currentIndex());
+        }
+        return tabs;
+    };
+    QString current;
+    QCOMPARE(bottomTabs(&current), QStringList({"GameInfo", "Thinking", "Consideration", "UsiLog", "CsaLog",
+                                                "Comment", "BranchTree", "EvalChart"}));
+    QCOMPARE(current, QStringLiteral("Thinking"));
+
+    // 非表示のドックも表示すると起動時と同じタブに戻る（非表示のドックはタブの一覧に含まれない）
+    for (T type : {T::Menu, T::Joseki, T::AnalysisResults}) docks[type]->show();
+    QCoreApplication::processEvents();
+    QVERIFY(window.tabifiedDockWidgets(docks[T::Record]).contains(docks[T::Menu]));
+    QCOMPARE(bottomTabs(), QStringList({"GameInfo", "Thinking", "Consideration", "UsiLog", "CsaLog",
+                                        "Comment", "BranchTree", "EvalChart", "Joseki", "AnalysisResults"}));
 }
 
 void TestDockLayout::setDocksLocked_persistsState()
