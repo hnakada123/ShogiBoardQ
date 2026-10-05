@@ -8191,7 +8191,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="157"/>
         <source>最初</source>
-        <translation>第一局面</translation>
+        <translation>第一頁</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="158"/>
@@ -8206,7 +8206,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="161"/>
         <source>最後</source>
-        <translation>最後局面</translation>
+        <translation>最後一頁</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumecollectiondialog.cpp" line="175"/>
@@ -8625,7 +8625,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="144"/>
         <source>正解手順を取得しています。探索中止または対局に戻る操作で中断できます。</source>
-        <translation>正在尋找解答。可選擇「停止」或「繼續解題」取消。</translation>
+        <translation>正在尋找解答。可選擇「停止搜尋」或「繼續解題」取消。</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="149"/>
