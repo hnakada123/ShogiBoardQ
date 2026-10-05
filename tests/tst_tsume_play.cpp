@@ -357,14 +357,19 @@ private slots:
     void verifiedCollections_data()
     {
         QTest::addColumn<int>("plies");
-        for (int plies : {3, 5, 7, 9, 11, 13})
-            QTest::newRow(qPrintable(QString::number(plies))) << plies;
+        QTest::addColumn<QString>("version");
+        // 公開している両方の版（20261001版は駒余りを検査して差し替えた新版）を同梱の監査記録で認める
+        for (const QString version : {QStringLiteral("20260926"), QStringLiteral("20261001")}) {
+            for (int plies : {3, 5, 7, 9, 11, 13})
+                QTest::newRow(qPrintable(QStringLiteral("%1/%2").arg(version).arg(plies))) << plies << version;
+        }
     }
     void verifiedCollections()
     {
         QFETCH(int, plies);
+        QFETCH(QString, version);
         const auto path = QFINDTESTDATA("../data/tsumeshogi")
-            + QStringLiteral("/tsume_%1ply_1000_20260926.txt").arg(plies);
+            + QStringLiteral("/tsume_%1ply_1000_%2.txt").arg(plies).arg(version);
         QFile file(path);
         QVERIFY(file.open(QIODevice::ReadOnly));
         const auto contents = file.readAll();

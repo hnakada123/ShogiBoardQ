@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/tsumeshogi">
-        <file alias="validated-collections.json">../data/tsumeshogi/validation_20260926.json</file>
+        <file alias="validated-collections-20260926.json">../data/tsumeshogi/validation_20260926.json</file>
+        <file alias="validated-collections-20261001.json">../data/tsumeshogi/validation_20261001.json</file>
     </qresource>
 </RCC>
