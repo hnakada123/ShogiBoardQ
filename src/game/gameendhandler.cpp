@@ -121,8 +121,13 @@ void GameEndHandler::handleTimeout(Player loser)
 
 void GameEndHandler::handleEngineWin(int idx)
 {
+    if (m_refs.gameOver->isOver) return;
     const Player declarer = (idx == 1 ? Player::P1 : Player::P2);
     handleNyugyokuDeclaration(declarer, true, false);
+    // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言は対局終了の通知で知らせる
+    if (m_refs.gameOver->isOver && m_hooks.showGameOverDialog) {
+        m_hooks.showGameOverDialog(tr("対局終了"), resultMessage(m_refs.gameOver->lastInfo));
+    }
 }
 
 // --- 入玉宣言 ---

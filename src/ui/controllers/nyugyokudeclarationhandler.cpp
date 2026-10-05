@@ -13,6 +13,27 @@
 #include <QSettings>
 #include <QMessageBox>
 
+namespace {
+
+// 手番の対局者が人間か。人間対エンジンでは人間の側の手番だけ宣言できる
+bool isHumanToMove(PlayMode mode, bool senteToMove)
+{
+    switch (mode) {
+    case PlayMode::HumanVsHuman:
+        return true;
+    case PlayMode::EvenHumanVsEngine:
+    case PlayMode::HandicapHumanVsEngine:
+        return senteToMove;
+    case PlayMode::EvenEngineVsHuman:
+    case PlayMode::HandicapEngineVsHuman:
+        return !senteToMove;
+    default:
+        return false;
+    }
+}
+
+} // namespace
+
 NyugyokuDeclarationHandler::NyugyokuDeclarationHandler(QObject* parent)
     : QObject(parent)
 {
@@ -126,6 +147,14 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     // 盤面データの確認
     if (!board) {
         QMessageBox::warning(parentWidget, tr("エラー"), tr("盤面データがありません。"));
+        return false;
+    }
+
+    // 宣言できるのは手番の人間だけ。エンジンの手番で押してもエンジンの代わりには宣言しない
+    const bool senteToMove = !m_gameController
+        || m_gameController->currentPlayer() == ShogiGameController::Player1;
+    if (!isHumanToMove(static_cast<PlayMode>(playMode), senteToMove)) {
+        QMessageBox::information(parentWidget, tr("入玉宣言"), tr("入玉宣言は自分の手番で行います。"));
         return false;
     }
 

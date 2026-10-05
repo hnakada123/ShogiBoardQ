@@ -366,6 +366,16 @@ private slots:
             QCOMPARE(endLines.size(), 1);
             QCOMPARE(detectTerminalType(endLines.takeFirst().at(0).toString()), ending.second);
         }
+        // 入玉宣言は宣言した勝者の印を付け（保存時に勝者を判定するため）、点数による引き分けは持将棋
+        QVERIFY(QMetaObject::invokeMethod(&csaWiring, "onGameEnded", Qt::DirectConnection,
+            Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Lose),
+            Q_ARG(CsaClient::GameEndCause, Cause::Jishogi), Q_ARG(int, 0)));
+        QCOMPARE(endLines.takeFirst().at(0).toString(),
+                 (csa.isBlackSide() ? QStringLiteral("△") : QStringLiteral("▲")) + QStringLiteral("入玉勝ち"));
+        QVERIFY(QMetaObject::invokeMethod(&csaWiring, "onGameEnded", Qt::DirectConnection,
+            Q_ARG(CsaClient::GameResult, CsaClient::GameResult::Draw),
+            Q_ARG(CsaClient::GameEndCause, Cause::Jishogi), Q_ARG(int, 0)));
+        QCOMPARE(endLines.takeFirst().at(0).toString(), QStringLiteral("持将棋"));
 
         GameInfoPaneController metadata;
         QScopedPointer<QWidget> container(metadata.containerWidget());

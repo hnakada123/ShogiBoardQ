@@ -18,6 +18,13 @@ bool isHvE(PlayMode mode)
            mode == PlayMode::HandicapEngineVsHuman;
 }
 
+// 人間対エンジンではエンジンは常に usi1。先手・下手を持つかはモードで決まる
+bool hveEngineIsP1(PlayMode mode)
+{
+    return mode == PlayMode::EvenEngineVsHuman ||
+           mode == PlayMode::HandicapEngineVsHuman;
+}
+
 bool isEvE(PlayMode mode)
 {
     return mode == PlayMode::EvenEngineVsEngine ||
@@ -50,8 +57,8 @@ void notifyResignation(PlayMode playMode,
     }
 
     if (isHvE(playMode)) {
-        const auto result = loserIsP1 ? GameOverResult::Win : GameOverResult::Lose;
-        sendQuitPair(usi1, result, sendRaw);
+        const bool engineLost = loserIsP1 == hveEngineIsP1(playMode);
+        sendQuitPair(usi1, engineLost ? GameOverResult::Lose : GameOverResult::Win, sendRaw);
         return;
     }
 
@@ -79,8 +86,8 @@ void notifyNyugyoku(PlayMode playMode,
             sendQuitPair(usi1, GameOverResult::Draw, sendRaw);
             return;
         }
-        const auto result = loserIsP1 ? GameOverResult::Win : GameOverResult::Lose;
-        sendQuitPair(usi1, result, sendRaw);
+        const bool engineLost = loserIsP1 == hveEngineIsP1(playMode);
+        sendQuitPair(usi1, engineLost ? GameOverResult::Lose : GameOverResult::Win, sendRaw);
         return;
     }
 

@@ -438,6 +438,9 @@ private slots:
             const bool canResign = expected || state == S::DuringCsaGame;
             QCOMPARE(mgr.isEnabled(E::GameResign), canResign);
             QCOMPARE(ui.actionResign->isEnabled(), canResign);
+            // 入玉宣言もエンジン同士の対局では行わない（エンジンが自分で宣言する）
+            QCOMPARE(mgr.isEnabled(E::GameNyugyokuDeclaration), canResign);
+            QCOMPARE(ui.actionNyugyokuDeclaration->isEnabled(), canResign);
             const bool canBreakOff = state == S::DuringGame || state == S::DuringCsaGame;
             QCOMPARE(mgr.isEnabled(E::GameBreakOff), canBreakOff);
             QCOMPARE(ui.actionBreakOffGame->isEnabled(), canBreakOff);
@@ -507,10 +510,13 @@ private slots:
         verifyDisabled(mgr, S::Idle, E::GameStopTsumeSearch, "GameStopTsumeSearch");
     }
 
-    /// GameNyugyokuDeclaration: DuringGame, DuringCsaGame のみ有効
+    /// GameNyugyokuDeclaration: DuringGame（人間が参加する対局）, DuringCsaGame のみ有効
     void gameNyugyokuDeclaration_enabledDuringGameOrCsa()
     {
         UiStatePolicyManager mgr;
+        UiStatePolicyManager::Deps deps;
+        deps.getPlayMode = []() { return PlayMode::HumanVsHuman; };
+        mgr.updateDeps(deps);
         verifyEnabled(mgr, S::DuringGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
         verifyEnabled(mgr, S::DuringCsaGame, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");
         verifyDisabled(mgr, S::Idle, E::GameNyugyokuDeclaration, "GameNyugyokuDeclaration");

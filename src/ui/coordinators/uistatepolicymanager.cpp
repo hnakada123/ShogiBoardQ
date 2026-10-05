@@ -213,8 +213,10 @@ void UiStatePolicyManager::buildPolicyTable()
 UiStatePolicyManager::Policy UiStatePolicyManager::effectivePolicy(UiElement element) const
 {
     if (element == UiElement::GameResume && !m_resumeAvailable) return Policy::Disabled;
+    // 待った・投了・入玉宣言はローカル対局では人間が参加する場合だけ。エンジン同士では行わない
     if (element == UiElement::GameUndo
-        || (element == UiElement::GameResign && m_currentState == AppState::DuringGame)) {
+        || ((element == UiElement::GameResign || element == UiElement::GameNyugyokuDeclaration)
+            && m_currentState == AppState::DuringGame)) {
         const auto mode = m_deps.getPlayMode ? m_deps.getPlayMode() : PlayMode::NotStarted;
         switch (mode) {
         case PlayMode::HumanVsHuman:
