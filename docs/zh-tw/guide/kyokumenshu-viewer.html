@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SFEN 局面集檢視器 - ShogiBoardQ</title>
+    <meta name="description" content="ShogiBoardQ 的 SFEN 局面集檢視器圖文指南：開啟 SFEN 格式的局面集檔案，在棋盤上逐一檢視局面，並將選取的局面匯入主視窗。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kyokumenshu-viewer.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kyokumenshu-viewer.html">
+    <meta property="og:title" content="SFEN 局面集檢視器 - ShogiBoardQ">
+    <meta property="og:description" content="在棋盤上逐一檢視 SFEN 格式的局面集，並將選取的局面匯入主視窗。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/kyokumenshu-viewer/kyokumenshu-01-viewer.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SFEN 局面集檢視器 - ShogiBoardQ">
+    <meta name="twitter:description" content="在棋盤上逐一檢視 SFEN 格式的局面集，並將選取的局面匯入主視窗。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/kyokumenshu-viewer/kyokumenshu-01-viewer.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kyokumenshu-viewer.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kyokumenshu-viewer.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kyokumenshu-viewer.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/kyokumenshu-viewer.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/kyokumenshu-viewer.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/kyokumenshu-viewer.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/kyokumenshu-viewer.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="kyokumenshu-viewer.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#file-format">局面集檔案</a></li>
+            <li><a href="#viewer">瀏覽局面集</a></li>
+            <li><a href="#import">匯入局面</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>SFEN 局面集檢視器</h1>
+        <p class="hero-subtitle">在棋盤上瀏覽 SFEN 格式的局面集，並匯入主視窗</p>
+        <div class="hero-badges">
+            <span class="badge">SFEN 格式</span>
+            <span class="badge">切換局面</span>
+            <span class="badge">翻轉棋盤</span>
+            <span class="badge">匯入主視窗</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="file-format" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">局面集檔案</h2>
+        <p class="section-desc">準備每行寫有一個 SFEN 局面的文字檔案</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">局面集檔案的寫法</span>
+                </div>
+                <p class="guide-step-text">局面集檔案是每行寫一個局面的文字檔案（.sfen 或 .txt）。空行和以「#」開頭的行（註解）會被略過，因此「詰棋局面生成器」儲存的檔案也可以直接開啟。</p>
+                <ul class="guide-step-text">
+                    <li>SFEN：棋盤、行棋方、持駒和手數（手數可省略）。開頭也可以加上「sfen 」</li>
+                    <li>USI 的「position sfen …」「position startpos」以及「startpos」（平手初始局面）：如果「moves」後面有著法，則使用走完這些著法後的局面</li>
+                    <li>SFEN 後面接著「moves」和著法的行（「詰棋局面生成器」勾選「附加著法」後儲存的行）：不使用這些著法，顯示 SFEN 的局面</li>
+                </ul>
+                <p class="guide-step-text">無法讀取為局面的行（棋盤或持駒寫法有誤、包含無法走出的著法等）會被略過，並在檔名旁顯示略過的行數。如果所選檔案中一個局面也沒有，會顯示提示訊息，目前顯示的局面集保持不變。</p>
+                <div class="format-examples">
+                    <div class="format-example">
+                        <h4>positions.sfen 範例</h4>
+                        <pre><code># 鈴木 vs 山田（2026年10月5日）中的3個局面
+l5s1l/4k2b1/1rg1pp1gn/3p2p1p/2P4p1/pPGP1P3/Bp2KSP1P/7R1/LNS2G1NL b sn4p 63
+6s1l/4k2b1/1r2pp1gn/2Gp2p1p/1PbP3p1/5P3/+lp2gSP1P/7R1/1NSK1G1NL w NPsl5p 78
+6s1l/4k4/4pp1gn/2pp2p1p/1BrP3p1/1sP2P3/K1+b1gSP1P/3+l3R1/5G1NL b GSLP2n5p 101</code></pre>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="viewer" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">瀏覽局面集</h2>
+        <p class="section-desc">在檢視器中逐一檢視局面</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">開啟局面集</span>
+                </div>
+                <p class="guide-step-text">選擇「編輯」→「SFEN 局面集檢視器」開啟檢視器。檢視器是獨立於主視窗的視窗，開啟期間也可以操作主視窗。</p>
+                <p class="guide-step-text">按一下「開啟檔案」選擇局面集檔案後，棋盤上會顯示第1個局面。持駒顯示在駒台上，下一手的一方以對局者名稱上的「行棋方」標記表示，棋盤下方顯示「局面：1 / 3」等目前是第幾個局面。按一下「歷史記錄」可以開啟最近使用的檔案（最多5個）。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/kyokumenshu-viewer/kyokumenshu-01-viewer.png" alt="SFEN 局面集檢視器">
+                    <p class="screenshot-caption">SFEN 局面集檢視器：開啟 positions.sfen，顯示第1個局面（先手行棋）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">切換局面與翻轉棋盤</span>
+                </div>
+                <p class="guide-step-text">使用「第一局面」「上一局面」「下一局面」「最後局面」切換局面。按一下「翻轉棋盤」可從後手一方的視角檢視棋盤。</p>
+                <p class="guide-step-text">使用「放大」「縮小」（或在棋盤上按住 Ctrl 捲動滑鼠滾輪）調整棋盤大小時，視窗也會隨棋盤調整大小。棋盤大小在下次開啟時繼續使用。左下角的「A-」「A+」用於調整按鈕和文字的大小。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/kyokumenshu-viewer/kyokumenshu-02-flipped.png" alt="翻轉棋盤後的檢視器">
+                    <p class="screenshot-caption">翻轉棋盤：從後手視角檢視第2個局面（後手行棋）</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="import" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">匯入局面</h2>
+        <p class="section-desc">將選取的局面匯入主視窗</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">將局面匯入主視窗</span>
+                </div>
+                <p class="guide-step-text">顯示要匯入的局面後按一下「選擇」，該局面會成為主視窗的初始局面，棋譜只保留初始局面。之後可以從該局面開始研究，也可以在對局設定的「初始局面」中選擇「目前局面」開始對局。</p>
+                <p class="guide-step-text">如果主視窗有尚未儲存的棋譜，會先詢問是否儲存。匯入的局面作為新的棋譜處理，按一下「儲存」時不會寫入之前開啟的棋譜檔案，而是開啟「另存為」。檢視器會保持開啟，可以接著匯入其他局面。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/kyokumenshu-viewer/kyokumenshu-03-imported.png" alt="匯入局面後的主視窗">
+                    <p class="screenshot-caption">主視窗：將第2個局面作為初始局面匯入</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
