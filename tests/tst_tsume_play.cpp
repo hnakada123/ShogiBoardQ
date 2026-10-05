@@ -7,6 +7,7 @@
 #include <QDir>
 #include <QSqlQuery>
 #include "tsumepositionanalyzer.h"
+#include "version.h"
 #include "tsumeprogressstore.h"
 #include "tsumesolutionreplay.h"
 #include <limits>
@@ -31,6 +32,15 @@ class TestTsumePlay : public QObject
         return {};
     }
 private slots:
+    void builtInCacheKeyFollowsHayanagiVersion()
+    {
+        // 内蔵判定のキャッシュは Hayanagi の版ごとに分け、サブモジュール更新後に古い判定を使わない
+        TsumePositionAnalyzer analyzer;
+        QCOMPARE(analyzer.engineKey(),
+                 QStringLiteral("hayanagi-%1-depth31-v2").arg(QLatin1String(HAYANAGI_VERSION)));
+        QVERIFY(analyzer.engineKey() != QStringLiteral("hayanagi-1.4.0-depth31-v2"));
+    }
+
     void cleanup() { qunsetenv("SHOGI_TEST_MATE_MODE"); }
     void initTestCase()
     {

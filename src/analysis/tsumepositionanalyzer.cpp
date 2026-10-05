@@ -9,7 +9,12 @@
 #include <QElapsedTimer>
 #include <QtConcurrentRun>
 
+#include "version.h"  // Hayanagi の HAYANAGI_VERSION
+
 namespace {
+// 内蔵Hayanagiで初期局面を判定する手数の上限
+constexpr int kBuiltInMaxPlies = 31;
+
 TsumeEvaluation evaluateInternal(shogi::Position position, int milliseconds, bool requireLine,
                                 const std::atomic_bool& stop)
 {
@@ -18,7 +23,7 @@ TsumeEvaluation evaluateInternal(shogi::Position position, int milliseconds, boo
     const TsumeThreadBudget budget;
     shogi::TsumeSearch solver;
     const auto attacker = position.side_to_move();
-    auto search = solver.solve(position, attacker, 31, milliseconds, stop, budget.threads());
+    auto search = solver.solve(position, attacker, kBuiltInMaxPlies, milliseconds, stop, budget.threads());
     if (search.status == shogi::TsumeStatus::NoMate) return {TsumeEvaluation::Status::NoMate, 0, {}, {}};
     if (search.status != shogi::TsumeStatus::Mate) return {};
     TsumeEvaluation result{TsumeEvaluation::Status::Mate, search.plies, {}, {}};
@@ -57,9 +62,13 @@ void TsumePositionAnalyzer::configure(const QString& enginePath, TsumeProgressSt
     m_enginePath = enginePath;
     m_store = store;
     m_engine->setExecutable(enginePath);
-    // 内蔵コアを更新するときは、その参照バージョン（タグ）と判定方式の版も更新する。
-    if (enginePath.isEmpty()) m_engineKey = QStringLiteral("hayanagi-1.4.0-depth31-v2");
-    else {
+    // 内蔵判定の結果は Hayanagi の版と手数上限ごとに保存する。サブモジュールを更新すると版が変わり、
+    // 以前の判定結果は使わない。ShogiBoardQ 側の判定方式を変えたときは末尾の版（v2）を上げる。
+    if (enginePath.isEmpty()) {
+        m_engineKey = QStringLiteral("hayanagi-%1-depth%2-v2")
+                          .arg(QLatin1String(HAYANAGI_VERSION))
+                          .arg(kBuiltInMaxPlies);
+    } else {
         QFile file(enginePath);
         QCryptographicHash hash(QCryptographicHash::Sha256);
         if (file.open(QIODevice::ReadOnly)) hash.addData(&file);
