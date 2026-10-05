@@ -2699,32 +2699,32 @@
     <message>
         <location filename="../../src/engine/engineprocessmanager.cpp" line="233"/>
         <source>The process failed to start.</source>
-        <translation>The process failed to start.</translation>
+        <translation>プロセスを起動できませんでした。</translation>
     </message>
     <message>
         <location filename="../../src/engine/engineprocessmanager.cpp" line="237"/>
         <source>The process crashed.</source>
-        <translation>The process crashed.</translation>
+        <translation>プロセスが異常終了しました。</translation>
     </message>
     <message>
         <location filename="../../src/engine/engineprocessmanager.cpp" line="241"/>
         <source>The process timed out.</source>
-        <translation>The process timed out.</translation>
+        <translation>プロセスがタイムアウトしました。</translation>
     </message>
     <message>
         <location filename="../../src/engine/engineprocessmanager.cpp" line="245"/>
         <source>An error occurred while writing data.</source>
-        <translation>An error occurred while writing data.</translation>
+        <translation>データの書き込み中にエラーが発生しました。</translation>
     </message>
     <message>
         <location filename="../../src/engine/engineprocessmanager.cpp" line="249"/>
         <source>An error occurred while reading data.</source>
-        <translation>An error occurred while reading data.</translation>
+        <translation>データの読み込み中にエラーが発生しました。</translation>
     </message>
     <message>
         <location filename="../../src/engine/engineprocessmanager.cpp" line="254"/>
         <source>An unknown error occurred.</source>
-        <translation>An unknown error occurred.</translation>
+        <translation>不明なエラーが発生しました。</translation>
     </message>
 </context>
 <context>
@@ -6880,7 +6880,7 @@ OKを選択すると保存先が指定できます。</translation>
     <message>
         <location filename="../../src/board/boardimageexporter.cpp" line="48"/>
         <source>No writable image formats are available.</source>
-        <translation>No writable image formats are available.</translation>
+        <translation>保存できる画像形式がありません。</translation>
     </message>
     <message>
         <location filename="../../src/board/boardimageexporter.cpp" line="69"/>
@@ -6890,12 +6890,12 @@ OKを選択すると保存先が指定できます。</translation>
     <message>
         <location filename="../../src/board/boardimageexporter.cpp" line="80"/>
         <source>This image format is not available: %1</source>
-        <translation>This image format is not available: %1</translation>
+        <translation>この画像形式は使用できません: %1</translation>
     </message>
     <message>
         <location filename="../../src/board/boardimageexporter.cpp" line="88"/>
         <source>Failed to save the image: %1</source>
-        <translation>Failed to save the image: %1</translation>
+        <translation>画像を保存できませんでした: %1</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="65"/>
@@ -6921,17 +6921,17 @@ OKを選択すると保存先が指定できます。</translation>
         <location filename="../../src/kifu/kifuexportmetadata.cpp" line="79"/>
         <location filename="../../src/kifu/kifuexportmetadata.cpp" line="84"/>
         <source>Engine</source>
-        <translation>Engine</translation>
+        <translation>エンジン</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuexportmetadata.cpp" line="75"/>
         <source>Engine1</source>
-        <translation>Engine1</translation>
+        <translation>エンジン1</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuexportmetadata.cpp" line="76"/>
         <source>Engine2</source>
-        <translation>Engine2</translation>
+        <translation>エンジン2</translation>
     </message>
     <message>
         <location filename="../../src/game/matchtimekeeper.cpp" line="225"/>
@@ -6946,17 +6946,17 @@ OKを選択すると保存先が指定できます。</translation>
     <message>
         <location filename="../../src/core/shogiutils.cpp" line="30"/>
         <source>The rank must be a value between 1 and 9. (got %1)</source>
-        <translation>The rank must be a value between 1 and 9. (got %1)</translation>
+        <translation>段は1から9の値で指定してください。（%1）</translation>
     </message>
     <message>
         <location filename="../../src/core/shogiutils.cpp" line="49"/>
         <source>The file must be a value between 1 and 9. (got %1)</source>
-        <translation>The file must be a value between 1 and 9. (got %1)</translation>
+        <translation>筋は1から9の値で指定してください。（%1）</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuioservice.cpp" line="102"/>
         <source>File path is empty.</source>
-        <translation>File path is empty.</translation>
+        <translation>ファイルパスが指定されていません。</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuioservice.cpp" line="113"/>
@@ -6966,12 +6966,12 @@ OKを選択すると保存先が指定できます。</translation>
     <message>
         <location filename="../../src/kifu/kifuioservice.cpp" line="126"/>
         <source>Failed to create directory: %1</source>
-        <translation>Failed to create directory: %1</translation>
+        <translation>フォルダを作成できませんでした: %1</translation>
     </message>
     <message>
         <location filename="../../src/kifu/kifuioservice.cpp" line="135"/>
         <source>Could not open the file for writing: %1</source>
-        <translation>Could not open the file for writing: %1</translation>
+        <translation>書き込み用にファイルを開けませんでした: %1</translation>
     </message>
     <message>
         <source>Shift_JIS encoder is not available on this system.</source>
@@ -7840,57 +7840,57 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="20"/>
         <source>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::convertRankCharToInt. Invalid character conversion %1.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::convertRankCharToInt）。段の文字 %1 を変換できません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="47"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The length of the move string %1 is insufficient.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。指し手 %1 の長さが足りません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="75"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert source rank.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動元の段を変換できません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="87"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Invalid stand piece specification.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。持ち駒の指定が正しくありません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="93"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the source square are invalid.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動元の座標が正しくありません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="103"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination file are invalid.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の筋が正しくありません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="113"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. Failed to convert destination rank.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の段を変換できません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="120"/>
         <source>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::parseMoveString. The coordinates of the destination square are invalid.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::parseMoveString）。移動先の座標が正しくありません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="143"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::getPieceKanjiName. The piece character &apos;%1&apos; does not exist.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceKanjiName）。駒の文字「%1」はありません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="160"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The rank value is invalid.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceCharacter）。段の値が正しくありません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/shogiengineinfoparser_board.cpp" line="166"/>
         <source>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</source>
-        <translation>An error occurred in ShogiEngineInfoParser::getPieceCharacter. The file value is invalid.</translation>
+        <translation>読み筋の解析中にエラーが発生しました（ShogiEngineInfoParser::getPieceCharacter）。筋の値が正しくありません。</translation>
     </message>
 </context>
 <context>
@@ -8050,7 +8050,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="159"/>
         <location filename="../../src/dialogs/startgamedialog_settings.cpp" line="173"/>
         <source>You</source>
-        <translation>You</translation>
+        <translation>あなた</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/startgamedialog.ui" line="220"/>
@@ -9631,12 +9631,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/engine/usi.cpp" line="321"/>
         <source>Engine file path is empty.</source>
-        <translation>Engine file path is empty.</translation>
+        <translation>エンジンのファイルパスが指定されていません。</translation>
     </message>
     <message>
         <location filename="../../src/engine/usi.cpp" line="47"/>
         <source>Timeout waiting for bestmove.</source>
-        <translation>Timeout waiting for bestmove.</translation>
+        <translation>エンジンから指し手（bestmove）が返ってきません（タイムアウト）。</translation>
     </message>
     <message>
         <location filename="../../src/engine/usi_async.cpp" line="50"/>
@@ -9756,32 +9756,32 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
     <message>
         <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="152"/>
         <source>Timeout waiting for usiok</source>
-        <translation>Timeout waiting for usiok</translation>
+        <translation>エンジンから usiok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
         <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="153"/>
         <source>Timeout waiting for readyok</source>
-        <translation>Timeout waiting for readyok</translation>
+        <translation>エンジンから readyok が返ってきません（タイムアウト）</translation>
     </message>
     <message>
         <location filename="../../src/engine/usiprotocolhandler.cpp" line="449"/>
         <source>Invalid bestmove format: %1</source>
-        <translation>Invalid bestmove format: %1</translation>
+        <translation>エンジンの指し手（bestmove）の形式が正しくありません: %1</translation>
     </message>
     <message>
         <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="53"/>
         <source>Invalid bestmove format: &quot;%1&quot;</source>
-        <translation>Invalid bestmove format: &quot;%1&quot;</translation>
+        <translation>エンジンの指し手（bestmove）の形式が正しくありません: 「%1」</translation>
     </message>
     <message>
         <location filename="../../src/engine/usiprotocolhandler_ops.cpp" line="69"/>
         <source>Invalid bestmove coordinates: &quot;%1&quot;</source>
-        <translation>Invalid bestmove coordinates: &quot;%1&quot;</translation>
+        <translation>エンジンの指し手（bestmove）の座標が正しくありません: 「%1」</translation>
     </message>
     <message>
         <location filename="../../src/engine/usimovecoordinateconverter.cpp" line="178"/>
         <source>Invalid fileFrom value</source>
-        <translation>Invalid fileFrom value</translation>
+        <translation>移動元の筋の値が正しくありません</translation>
     </message>
 </context>
 <context>
