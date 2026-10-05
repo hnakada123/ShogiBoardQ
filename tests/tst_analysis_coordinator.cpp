@@ -51,6 +51,7 @@ private slots:
     void updatePending_storesData();
     void commitPendingResult_updatesLastCommitted();
     void commitPendingResult_bookMove_clearsUsiPv();
+    void commitPendingResult_resignIsNotAMove();
     void reset_clearsAllPending();
     void mateMetadataSurvivesCommit();
     void missingEvaluationAndDifferences();
@@ -407,6 +408,25 @@ void TestAnalysisCoordinator::commitPendingResult_bookMove_clearsUsiPv()
     QVERIFY(second != nullptr);
     QCOMPARE(second->principalVariation(), QStringLiteral("（定跡）"));
     QCOMPARE(second->usiPv(), QString());
+}
+
+void TestAnalysisCoordinator::commitPendingResult_resignIsNotAMove()
+{
+    // 詰んだ局面ではエンジンが「pv resign」を返す。resign を候補手や読み筋の盤面表示に使わない
+    AnalysisResultHandler handler;
+    KifuAnalysisListModel model;
+    AnalysisResultHandler::Refs refs;
+    refs.analysisModel = &model;
+    handler.setRefs(refs);
+
+    handler.updatePending(2, std::numeric_limits<int>::min(), -1, QStringLiteral("resign"), QStringLiteral("-1"));
+    handler.updatePendingPvKanji(QStringLiteral("▲投了"));
+    handler.commitPendingResult();
+
+    KifuAnalysisResultsDisplay* item = model.item(0);
+    QVERIFY(item != nullptr);
+    QCOMPARE(item->usiPv(), QString());
+    QCOMPARE(item->principalVariation(), QStringLiteral("▲投了"));
 }
 
 void TestAnalysisCoordinator::mateMetadataSurvivesCommit()

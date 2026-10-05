@@ -331,6 +331,34 @@ async def test_collection_recent_menu(coverage_env, tmp_path):
         await ui.call("click_dialog_button", dialog=dialog, widget=button["selector"])
 
 
+async def test_analysis_skips_terminal_row_of_loaded_kifu(coverage_env):
+    # A loaded record keeps a position for its 投了 row; it repeats the last position and is not analyzed.
+    kif = ("手合割：平手\n手数----指手---------消費時間--\n"
+           "   1 ７六歩(77)\n   2 ３四歩(33)\n   3 投了\nまで2手で後手の勝ち\n")
+    async with mcp_session(coverage_env) as session:
+        ui = UI(session)
+        engines = (await ui.call("list_engines"))["engines"]
+        if not any(e["name"] == "TestUsi" for e in engines):
+            pytest.skip("TestUsi is required")
+        assert (await ui.call("load_kifu", text=kif))["total_plies"] == 3
+        dialog = await ui.open("actionAnalyzeKifu", "KifuAnalysisDialog")
+        assert "3局面" in (await ui.read("analysisSummary", dialog))["text"]
+        await ui.call("set_widget_value", target=dialog, widget="comboBoxEngine1", value="TestUsi")
+        await ui.call("set_widget_value", target=dialog, widget="byoyomiSec", value=1)
+        await ui.click("解析開始", dialog)
+        for _ in range(300):
+            state = await ui.call("get_app_state")
+            if state["ui_state"] == "idle":
+                break
+            await asyncio.sleep(0.05)
+        assert state["ui_state"] == "idle"
+        await ui.call("show_dock", widget="AnalysisResultsDock")
+        assert "解析完了 · 3局面" in (await ui.read("analysisStatusLabel"))["text"]
+        table = await ui.read("analysisResultsTable")
+        assert table["row_count"] == 3
+        assert all("投了" not in row[0] for row in table["rows"][1:]), table["rows"]
+
+
 async def test_analysis_results_gui_and_batch_job(coverage_env, tmp_path):
     async with mcp_session(coverage_env) as session:
         ui = UI(session)

@@ -224,6 +224,15 @@ int ShogiEngineInfoParser::parsePvAndSimulateMoves(const QStringList& pvTokens, 
     for (qsizetype i = 0; i < pvTokens.size(); ++i) {
         const QString& token = pvTokens.at(i);
 
+        // 詰んだ局面などでエンジンが返す resign / win は指し手ではなく終局の宣言。
+        // 棋譜と同じ日本語表記にし、表示時に KifuPresentation が表記・言語に合わせる
+        if (token == QLatin1String("resign") || token == QLatin1String("win")) {
+            m_pvKanjiStr += moveSymbol(static_cast<int>(i), algorithm, isPondering)
+                + (token == QLatin1String("resign") ? QStringLiteral("投了") : QStringLiteral("入玉勝ち"));
+            m_pvUsiStr = validUsiMoves.join(QStringLiteral(" "));
+            return 0;
+        }
+
         const int rc = parseMoveString(token, fileFrom, rankFrom, fileTo, rankTo, promote);
         if (rc == INFO_STRING_SPECIAL_CASE) {
             if (i == pvTokens.size() - 1) {
