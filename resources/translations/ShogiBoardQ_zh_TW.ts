@@ -1409,42 +1409,42 @@
 <context>
     <name>CsaClient</name>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="97"/>
+        <location filename="../../src/network/csaclient.cpp" line="114"/>
         <source>既に接続中です</source>
         <translation>已經連接</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="102"/>
+        <location filename="../../src/network/csaclient.cpp" line="119"/>
         <source>ポート番号が不正です: %1</source>
         <translation>端口號無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="138"/>
+        <location filename="../../src/network/csaclient.cpp" line="155"/>
         <source>サーバーに接続されていません</source>
         <translation>未連接到服務器</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="159"/>
+        <location filename="../../src/network/csaclient.cpp" line="176"/>
         <source>対局条件を受信していません</source>
         <translation>尚未收到對局條件</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="191"/>
+        <location filename="../../src/network/csaclient.cpp" line="208"/>
         <source>対局中ではありません</source>
         <translation>當前沒有進行中的對局</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="197"/>
+        <location filename="../../src/network/csaclient.cpp" line="214"/>
         <source>自分の手番ではありません</source>
         <translation>尚未輪到您行棋</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="304"/>
+        <location filename="../../src/network/csaclient.cpp" line="321"/>
         <source>接続がタイムアウトしました</source>
         <translation>連接超時</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaclient.cpp" line="318"/>
+        <location filename="../../src/network/csaclient.cpp" line="335"/>
         <source>メッセージの送信に失敗しました: %1</source>
         <translation>發送消息失敗：%1</translation>
     </message>
@@ -1467,7 +1467,7 @@
         <translation>未指定引擎路徑</translation>
     </message>
     <message>
-        <location filename="../../src/network/csaenginecontroller.cpp" line="91"/>
+        <location filename="../../src/network/csaenginecontroller.cpp" line="93"/>
         <source>エンジン %1 を起動しました</source>
         <translation>引擎 %1 已啓動</translation>
     </message>
@@ -1499,87 +1499,96 @@
         <translation>生成 CSA 著法失敗。</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="200"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="206"/>
         <source>接続完了。ログイン中...</source>
         <translation>已連接。正在登錄...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="211"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="217"/>
         <source>サーバーから切断されました</source>
         <translation>已斷開與服務器的連接</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="223"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="229"/>
         <source>エラー: %1</source>
         <translation>錯誤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="233"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="239"/>
         <source>ログイン成功。対局待ち中...</source>
         <translation>登錄成功。正在等待對局...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="264"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="272"/>
         <source>ログイン失敗: %1</source>
         <translation>登錄失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="272"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="280"/>
         <source>ログアウト完了</source>
         <translation>已退出登錄</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="281"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="289"/>
         <source>対局条件を受信しました</source>
         <translation>已收到對局條件</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="282"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="290"/>
         <source>先手: %1, 後手: %2</source>
         <translation>先手：%1，後手：%2</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="283"/>
-        <source>持時間: %1秒, 秒読み: %2秒</source>
-        <translation>持時：%1 秒，讀秒：%2 秒</translation>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="291"/>
+        <source>持時間: %1秒, 秒読み: %2秒, 加算: %3秒</source>
+        <translation>持時：%1 秒，讀秒：%2 秒，加時：%3 秒</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="289"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="454"/>
+        <source>エンジンが入玉宣言を選択しました</source>
+        <translation>引擎選擇入玉宣言</translation>
+    </message>
+    <message>
+        <source>持時間: %1秒, 秒読み: %2秒</source>
+        <translation type="vanished">持時：%1 秒，讀秒：%2 秒</translation>
+    </message>
+    <message>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="298"/>
         <source>対局条件に同意します...</source>
         <translation>正在同意對局條件...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="297"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="306"/>
         <source>対局開始！</source>
         <translation>對局開始！</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="321"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="330"/>
         <source>対局が拒否されました (ID: %1, 拒否者: %2)</source>
         <translation>對局被拒絕（ID：%1，拒絕方：%2）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="383"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="392"/>
         <source>対局終了: %1 (%2)</source>
         <translation>對局結束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="406"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="415"/>
         <source>対局が中断されました</source>
         <translation>對局已中斷</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="411"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="420"/>
         <source>[RECV] %1</source>
         <translation>[接收] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="417"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="426"/>
         <source>[SEND] %1</source>
         <translation>[發送] %1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csagamecoordinator.cpp" line="436"/>
+        <location filename="../../src/network/csagamecoordinator.cpp" line="445"/>
         <source>エンジンが投了を選択しました</source>
         <translation>引擎選擇認輸</translation>
     </message>
@@ -1713,47 +1722,47 @@
         <translation>取消</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="206"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="224"/>
         <source>新しい接続先</source>
         <translation>新連接</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="274"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="292"/>
         <source>「設定」→「エンジン設定」からエンジンを登録してください。</source>
         <translation>請在“設置 → 引擎設置”中注冊引擎。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="279"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="297"/>
         <source>接続先ホストを入力してください。</source>
         <translation>請輸入主機地址。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="280"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="298"/>
         <source>IDを入力してください。</source>
         <translation>請輸入 ID。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="281"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="299"/>
         <source>パスワードを入力してください。</source>
         <translation>請輸入密碼。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="284"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="302"/>
         <source>接続先ホスト・ID・パスワードに空白や改行は使用できません。</source>
         <translation>主機、ID 和密碼不能包含空白或換行。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="295"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="313"/>
         <source>接続後、対局相手を待ちます。</source>
         <translation>連接後請等待對手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="362"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="380"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csagamedialog.cpp" line="362"/>
+        <location filename="../../src/dialogs/csagamedialog.cpp" line="380"/>
         <source>将棋エンジンが選択されていません。</source>
         <translation>尚未選擇將棋引擎。</translation>
     </message>
@@ -1761,22 +1770,22 @@
 <context>
     <name>CsaGameWiring</name>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="136"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="144"/>
         <source>=== 開始局面 ===</source>
         <translation>=== 初始局面 ===</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="137"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="145"/>
         <source>（１手 / 合計）</source>
         <translation>（每手／累計）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="178"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="186"/>
         <source>CSA通信対局開始: %1 vs %2</source>
         <translation>CSA 網絡對局開始：%1 對 %2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="235"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="244"/>
         <source>対局が終了しました。
 
 結果: %1
@@ -1787,24 +1796,24 @@
 原因：%2</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="243"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="252"/>
         <source>対局終了</source>
         <translation>對局結束</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="247"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="256"/>
         <source>対局終了: %1 (%2)</source>
         <translation>對局結束：%1（%2）</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="302"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="311"/>
         <source>先手番</source>
-        <translation>先手 (Black)</translation>
+        <translation>先手行棋</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="302"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="311"/>
         <source>後手番</source>
-        <translation>後手 (White)</translation>
+        <translation>後手行棋</translation>
     </message>
     <message>
         <source>投了</source>
@@ -1839,7 +1848,7 @@
         <translation type="vanished">初始局面</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="407"/>
+        <location filename="../../src/ui/wiring/csagamewiring.cpp" line="416"/>
         <source>通信対局をキャンセルしました</source>
         <translation>網絡對局已取消</translation>
     </message>
@@ -1989,115 +1998,115 @@
     <message>
         <location filename="../../src/network/csamoveconverter_game.cpp" line="134"/>
         <source>不正行為</source>
-        <translation>作弊</translation>
+        <translation>違規行為</translation>
     </message>
 </context>
 <context>
     <name>CsaMoveProgressHandler</name>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="81"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="74"/>
         <source>相手の指し手: %1 (消費時間: %2ms)</source>
         <translation>對手著法：%1（用時：%2 毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="85"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="78"/>
         <source>不正な形式の指し手を受信しました: %1</source>
         <translation>收到格式無效的著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="86"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="79"/>
         <source>サーバーからの指し手形式が不正です: %1</source>
         <translation>服務器著法格式無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="114"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="106"/>
         <source>不正な座標の指し手を受信しました: %1</source>
         <translation>收到坐標無效的著法：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="115"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="107"/>
         <source>サーバーからの指し手の座標が不正です: %1</source>
         <translation>服務器著法坐標無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="148"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="392"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="139"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="372"/>
         <source>指し手の適用に失敗しました: %1</source>
         <translation>應用著法失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="149"/>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="393"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="140"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="373"/>
         <source>サーバーからの指し手を盤面に適用できません: %1</source>
         <translation>無法將服務器著法應用於棋盤：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="186"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="176"/>
         <source>指し手確認: %1 (消費時間: %2ms)</source>
         <translation>著法已確認：%1（用時：%2 毫秒）</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="190"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="180"/>
         <source>不正な形式の指し手確認を受信しました: %1</source>
         <translation>收到格式無效的著法確認：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="191"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="181"/>
         <source>サーバーからの指し手確認形式が不正です: %1</source>
         <translation>服務器著法確認格式無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="216"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="205"/>
         <source>不正な座標の指し手確認を受信しました: %1</source>
         <translation>收到坐標無效的著法確認：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="217"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="206"/>
         <source>サーバーからの指し手確認の座標が不正です: %1</source>
         <translation>服務器著法確認坐標無效：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="236"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="224"/>
         <source>指し手確認の変換に失敗しました: %1</source>
         <translation>轉換著法確認失敗：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="237"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="225"/>
         <source>サーバーからの指し手確認を変換できません: %1</source>
         <translation>無法轉換服務器的著法確認：%1</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="316"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="296"/>
         <source>エンジンが思考中...</source>
         <translation>引擎思考中...</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="330"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="310"/>
         <source>エンジンが投了しました</source>
         <translation>引擎認輸</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="337"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="317"/>
         <source>エンジンが有効な指し手を返しませんでした</source>
         <translation>引擎未返回有效著法</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="344"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="324"/>
         <source>盤面が取得できませんでした</source>
         <translation>無法獲取棋盤狀態</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="361"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="341"/>
         <source>駒打ちの駒種変換に失敗しました</source>
         <translation>轉換打入棋子種類失敗</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="370"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="350"/>
         <source>指し手の駒種変換に失敗しました</source>
         <translation>轉換移動棋子種類失敗</translation>
     </message>
     <message>
-        <location filename="../../src/network/csamoveprogresshandler.cpp" line="379"/>
+        <location filename="../../src/network/csamoveprogresshandler.cpp" line="359"/>
         <source>CSA形式の指し手: %1</source>
         <translation>CSA 格式著法：%1</translation>
     </message>
@@ -2121,14 +2130,12 @@
         <translation>取消對局</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="125"/>
         <source>文字サイズを縮小</source>
-        <translation>縮小字號</translation>
+        <translation type="vanished">縮小字號</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="131"/>
         <source>文字サイズを拡大</source>
-        <translation>放大字號</translation>
+        <translation type="vanished">放大字號</translation>
     </message>
     <message>
         <location filename="../../src/dialogs/csawaitingdialog.cpp" line="175"/>
@@ -2186,11 +2193,13 @@
         <translation>發送</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="125"/>
         <location filename="../../src/dialogs/csawaitingdialog.cpp" line="249"/>
         <source>フォントサイズを小さくする</source>
         <translation>縮小字號</translation>
     </message>
     <message>
+        <location filename="../../src/dialogs/csawaitingdialog.cpp" line="131"/>
         <location filename="../../src/dialogs/csawaitingdialog.cpp" line="258"/>
         <source>フォントサイズを大きくする</source>
         <translation>放大字號</translation>
@@ -5808,14 +5817,14 @@ OKを選択すると保存先が指定できます。</source>
         <translation>English</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="76"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="77"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="115"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="77"/>
-        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="98"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="78"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="116"/>
         <source>盤面データがありません。</source>
         <translation>沒有棋盤數據。</translation>
     </message>
@@ -6070,21 +6079,25 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="96"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="87"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="97"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="92"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="100"/>
         <source>入玉宣言確認</source>
         <translation>確認入玉宣言</translation>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="93"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="101"/>
         <source>%1が入玉宣言を行います。
 
 宣言条件を満たさない場合は宣言側の負けとなります。
@@ -6096,6 +6109,7 @@ OKを選択すると保存先が指定できます。</source>
     </message>
     <message>
         <location filename="../../src/ui/controllers/nyugyokudeclarationhandler.cpp" line="96"/>
+        <location filename="../../src/ui/wiring/dialoglaunchwiring.cpp" line="105"/>
         <source>宣言する</source>
         <translation>宣言</translation>
     </message>
@@ -6565,12 +6579,12 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/game/matchtimekeeper.cpp" line="225"/>
         <source>先手番</source>
-        <translation>先手 (Black)</translation>
+        <translation>先手行棋</translation>
     </message>
     <message>
         <location filename="../../src/game/matchtimekeeper.cpp" line="225"/>
         <source>後手番</source>
-        <translation>後手 (White)</translation>
+        <translation>後手行棋</translation>
     </message>
     <message>
         <location filename="../../src/core/shogiutils.cpp" line="30"/>
@@ -8286,48 +8300,48 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumePlayDialog</name>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="34"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="35"/>
         <source>詰将棋対局</source>
         <translation>詰棋練習</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="95"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="96"/>
         <source>前の問題</source>
         <translation>上一題</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="97"/>
         <source>次の問題</source>
         <translation>下一題</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="107"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="108"/>
         <source>判定時間:</source>
         <translation>搜索時間：</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="111"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="112"/>
         <source> 秒</source>
         <translation> 秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="119"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="120"/>
         <source>王手を続け、表示された手数以内に詰ませてください。別解も判定します。</source>
         <translation>連續王手，在顯示的手數以內完成詰棋。允許其他正確解法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="133"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="233"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="134"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="236"/>
         <source>正解手順</source>
         <translation>解答</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="163"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="166"/>
         <source>文字サイズを縮小</source>
         <translation>縮小字號</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="168"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="171"/>
         <source>文字サイズを拡大</source>
         <translation>放大字號</translation>
     </message>
@@ -8347,7 +8361,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>重試搜索</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="175"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="178"/>
         <source>一覧に戻る</source>
         <translation>返回題集</translation>
     </message>
@@ -8357,118 +8371,118 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>重新開始此題</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="214"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="217"/>
         <source>将棋盤を縮小する</source>
         <translation>縮小棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="218"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="221"/>
         <source>将棋盤を拡大する</source>
         <translation>放大棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="220"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="223"/>
         <source>盤面の回転</source>
         <translation>翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="336"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="339"/>
         <source>第%1問 — 詰み手数を確認しています…</source>
         <translation>題目 %1 — 正在驗證詰棋手數…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="416"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="419"/>
         <source>詰みと玉方の応手を確認しています…</source>
         <translation>正在驗證詰棋及防守著法…</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="447"/>
         <source>判定が完了していません。不正解とは判定していません。時間を増やして再判定してください。</source>
         <translation>搜索尚未完成，您的著法未被判錯。請增加時間後重試。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="343"/>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="344"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="346"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="347"/>
         <source>あなた</source>
         <translation>您</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="361"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="364"/>
         <source>成りの選択</source>
         <translation>升變</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="361"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="364"/>
         <source>成りますか？</source>
         <translation>將此棋子升變嗎？</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="362"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="365"/>
         <source>成る</source>
         <translation>成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="363"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="366"/>
         <source>成らない</source>
         <translation>不成</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="409"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="412"/>
         <source>第%1問 — %2手詰 ／ 玉方: Hayanagi</source>
         <translation>題目 %1 — %2 手詰／防守：Hayanagi</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="414"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="417"/>
         <source>あなたの手番です。残り%1手以内で詰ませてください。</source>
         <translation>輪到您行棋。請在剩餘 %1 手內完成詰棋。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="417"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="420"/>
         <source>判定を中断しました。判定時間を増やして「再判定」するか、一手戻してください。</source>
         <translation>搜索已暫停。請增加搜索時間後重試，或撤銷上一手。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="420"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="423"/>
         <source>正答済み ／ 挑戦%1回・正答%2回</source>
         <translation>已解答／嘗試 %1 次，解答 %2 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="421"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="424"/>
         <source>未正答 ／ 挑戦%1回</source>
         <translation>未解答／嘗試 %1 次</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="422"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="425"/>
         <source>履歴を保存できません: %1</source>
         <translation>無法保存進度：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="434"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="437"/>
         <source>正解です。玉方を詰ませました！</source>
         <translation>正確！您已將死防守方玉將。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="441"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="444"/>
         <source>この応手で詰みを防がれました。王手を続けても詰みません。</source>
         <translation>此應手可避免詰棋，無法通過連續王手強制將死。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="442"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="445"/>
         <source>この応手により、残り%1手以内では詰みません。一手戻して考え直してください。</source>
         <translation>此應手可避免在剩餘 %1 手內被將死。請撤銷上一手後重試。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="447"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="450"/>
         <source>この局面は王手の連続で詰ませられません。別の問題を選んでください。</source>
         <translation>此局面無法通過連續王手強制將死。請選擇其他題目。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="470"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="473"/>
         <source>王手になる合法手を指してください。二歩・打ち歩詰め・自玉の王手放置はできません。</source>
         <translation>請走合法的王手。禁止二步、打步詰及己方玉將仍被王手的著法。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="128"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="129"/>
         <location filename="../../src/dialogs/tsumeplaydialog_replay.cpp" line="140"/>
         <source>正解手順:</source>
         <translation>解答：</translation>
@@ -8489,7 +8503,7 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
         <translation>最終將死局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="238"/>
+        <location filename="../../src/dialogs/tsumeplaydialog.cpp" line="241"/>
         <source>対局に戻る</source>
         <translation>繼續解題</translation>
     </message>
@@ -8528,12 +8542,12 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>TsumePositionAnalyzer</name>
     <message>
-        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="120"/>
+        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="129"/>
         <source>内蔵判定の時間または31手の上限に達しました。KomoringHeightsで再判定できます。</source>
         <translation>內置引擎已達到時間或 31 手限制。您可以改用 KomoringHeights 重試。</translation>
     </message>
     <message>
-        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="128"/>
+        <location filename="../../src/analysis/tsumepositionanalyzer.cpp" line="137"/>
         <source>エンジンが返した手順を合法な詰み手順として確認できませんでした。</source>
         <translation>引擎返回的變化未能通過合法詰棋驗證。</translation>
     </message>

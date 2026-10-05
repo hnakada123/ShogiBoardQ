@@ -112,6 +112,13 @@ public:
      */
     const QList<Engine>& engineList() const;
 
+    /**
+     * @brief 登録エンジンと接続履歴を設定ファイルから読み直す（入力中の値は残す）
+     *
+     * ダイアログは使い回すため、表示のたびに呼んで前回以降の変更を反映する。
+     */
+    void refreshChoices();
+
 private slots:
     void updateFormState();
     /**

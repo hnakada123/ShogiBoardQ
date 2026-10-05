@@ -11,6 +11,7 @@
 #include <QSettings>
 #include <QMessageBox>
 #include <QRegularExpression>
+#include <QSignalBlocker>
 
 namespace {
 constexpr auto kCsaServerHistoryArray = "CsaServerHistory";
@@ -101,6 +102,23 @@ void CsaGameDialog::connectSignalsAndSlots()
             this, &CsaGameDialog::onFontIncrease);
     connect(ui->toolButtonFontDecrease, &QToolButton::clicked,
             this, &CsaGameDialog::onFontDecrease);
+}
+
+void CsaGameDialog::refreshChoices()
+{
+    const QString engineName = ui->comboBoxEngine->currentText();
+    {
+        // 履歴の再設定で入力欄を書き換えないよう、選択変更の通知を止める
+        const QSignalBlocker engineBlocker(ui->comboBoxEngine);
+        const QSignalBlocker historyBlocker(ui->comboBoxHistory);
+        loadEngineConfigurations();
+        populateUIWithEngines();
+        const int engineIndex = ui->comboBoxEngine->findText(engineName);
+        if (engineIndex >= 0) ui->comboBoxEngine->setCurrentIndex(engineIndex);
+        loadServerHistory();
+        populateUIWithServerHistory();
+    }
+    updateFormState();
 }
 
 // 設定ファイルからエンジン情報を読み込む

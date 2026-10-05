@@ -195,6 +195,11 @@ void GameSessionOrchestrator::handleBreakOffGame()
 
 void GameSessionOrchestrator::movePieceImmediately()
 {
+    auto* csa = deref(m_deps.csaGameCoordinator);
+    if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode && csa) {
+        csa->forceImmediateMove();
+        return;
+    }
     auto* mc = deref(m_deps.match);
     if (mc) {
         mc->forceImmediateMove();

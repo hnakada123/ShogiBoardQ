@@ -84,14 +84,11 @@ public:
      * @note CsaGameCoordinator::ensureMoveProgressHandler() で lambda 経由で設定される。
      */
     struct Hooks {
-        /// @brief ゲーム状態を変更する
-        std::function<void(GameState)> setGameState;
-
         /// @brief ログメッセージを出力する
         std::function<void(const QString&, bool)> logMessage;
 
-        /// @brief エラーメッセージを出力する
-        std::function<void(const QString&)> errorOccurred;
+        /// @brief 続行できないエラーを通知し、対局中なら中断として終局させる
+        std::function<void(const QString&)> failGame;
 
         /// @brief 指し手を通知する (csaMove, usiMove, prettyMove, consumedTimeMs)
         std::function<void(const QString&, const QString&, const QString&, int)> moveMade;

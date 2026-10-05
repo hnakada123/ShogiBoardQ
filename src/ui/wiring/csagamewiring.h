@@ -72,6 +72,8 @@ public:
         QWidget* parentWidget = nullptr;
         std::function<void(const QString&, const QString&, const QString&)> prepareRecord;
         std::function<void(int)> syncPly;
+        /// 終局日時を記録して対局情報に反映する
+        std::function<void()> recordGameEnd;
     };
 
     /**
@@ -287,6 +289,7 @@ private:
     GameRecordUpdateService* m_recordService = nullptr;
     std::function<void(const QString&, const QString&, const QString&)> m_prepareRecord;
     std::function<void(int)> m_syncPly;
+    std::function<void()> m_recordGameEnd;
 
     // 内部状態
     int m_activePly = 0;

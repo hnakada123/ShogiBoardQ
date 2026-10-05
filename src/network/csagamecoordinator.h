@@ -118,8 +118,12 @@ public:
     int whiteTotalTimeMs() const { return m_whiteTotalTimeMs; }
     int blackRemainingMs() const { return m_blackRemainingMs; }
     int whiteRemainingMs() const { return m_whiteRemainingMs; }
+    /// 受信した対局条件（Game_Summary）。持ち時間は CsaClient::GameSummary の各関数で単位換算する
+    const CsaClient::GameSummary& gameSummary() const { return m_gameSummary; }
     void requestChudan();
     void declareWin();
+    /// エンジンが自分の手番で思考中なら、すぐ指させる
+    void forceImmediateMove();
 
     void sendRawCommand(const QString& command);
     QString username() const { return m_options.username; }
@@ -163,6 +167,7 @@ private slots:
     void onRawMessageReceived(const QString& message);
     void onRawMessageSent(const QString& message);
     void onEngineControllerResign();
+    void onEngineControllerWinDeclaration();
     void onEngineControllerInitialized();
     void onEngineControllerError(const QString& message);
 
@@ -171,6 +176,7 @@ private:
     void setupInitialPosition();
     void setupClock();
     void performResign();
+    void failGame(const QString& message);
     void cleanup();
     void ensureMoveProgressHandler();
 

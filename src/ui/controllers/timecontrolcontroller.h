@@ -96,6 +96,13 @@ public:
     void saveTimeControlSettings(bool enabled, qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs);
 
     /**
+     * @brief 時計を使わずに始める対局（CSA通信対局など）の持ち時間と開始日時を記録する
+     *
+     * 持ち時間・秒読み・加算がすべて0なら時間制限なしとして扱う。
+     */
+    void beginGameWithTimeControl(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs);
+
+    /**
      * @brief 時間制御設定を取得
      */
     const TimeControlSettings& settings() const;

@@ -30,14 +30,14 @@ void CsaEngineController::initialize(const InitParams& params)
     m_gameController = params.gameController;
     m_engineName = params.engineName;
 
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    settings.beginReadArray("Engines");
-    settings.setArrayIndex(params.engineNumber);
-    QString enginePath = settings.value("path").toString();
-    settings.endArray();
-
+    // ダイアログで選んだエンジンのパスを優先する（番号は登録一覧が変わるとずれるため）
+    QString enginePath = params.enginePath;
     if (enginePath.isEmpty()) {
-        enginePath = params.enginePath;
+        QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
+        settings.beginReadArray("Engines");
+        settings.setArrayIndex(params.engineNumber);
+        enginePath = settings.value("path").toString();
+        settings.endArray();
     }
 
     if (enginePath.isEmpty()) {
@@ -81,6 +81,8 @@ void CsaEngineController::initialize(const InitParams& params)
     connect(m_engine, &Usi::errorOccurred, this, &CsaEngineController::onEngineError);
     connect(m_engine, &Usi::bestMoveResignReceived,
             this, &CsaEngineController::onEngineResign);
+    connect(m_engine, &Usi::bestMoveWinReceived,
+            this, &CsaEngineController::onEngineWinDeclaration);
 
     m_engine->setLogIdentity(QStringLiteral("[E1]"), QStringLiteral("CSA"), params.engineName);
     (void)m_engine->startAndInitializeEngineAsync(enginePath, params.engineName);
@@ -123,6 +125,11 @@ void CsaEngineController::onMatchMoveReady(const QPoint& from, const QPoint& to,
     emit thinkingFinished(result);
 }
 
+void CsaEngineController::stopThinking()
+{
+    if (m_engine) m_engine->sendStopCommand();
+}
+
 void CsaEngineController::sendGameOver(bool win)
 {
     m_ponderPosition.clear();
@@ -156,4 +163,9 @@ void CsaEngineController::cleanup()
 void CsaEngineController::onEngineResign()
 {
     emit resignRequested();
+}
+
+void CsaEngineController::onEngineWinDeclaration()
+{
+    emit winDeclarationRequested();
 }

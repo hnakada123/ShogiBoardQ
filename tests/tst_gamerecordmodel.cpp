@@ -112,6 +112,28 @@ private slots:
         QVERIFY(!live.contains(QStringLiteral("$END_TIME")));
     }
 
+    /// 持ち時間「無制限」は CSA の時間行を書かない（$TIME_LIMIT:無制限 にしない）
+    void csaOmitsTimeForUnlimitedGame()
+    {
+        const QStringList usi = {"7g7f"};
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        addTestMove(tree, tree.root(), usi.first(), QStringLiteral("▲７六歩(77)"));
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext context;
+        context.startSfen = kHirateSfen;
+        context.gameInfoProvided = true;
+        context.gameInfoItems = {{QStringLiteral("持ち時間"), QStringLiteral("無制限")}};
+        const QString csa = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        QVERIFY2(!csa.contains(QStringLiteral("$TIME")), qPrintable(csa));
+        QVERIFY2(csa.contains(QStringLiteral("+7776FU")), qPrintable(csa));
+
+        context.gameInfoItems = {{QStringLiteral("持ち時間"), QStringLiteral("10:00+10")}};
+        const QString timed = model.toCsaLines(context, usi).join(QLatin1Char('\n'));
+        QVERIFY2(timed.contains(QStringLiteral("$TIME:600+10+0")), qPrintable(timed));
+    }
+
     /// KI2 では、盤上の同じ駒もその地点へ動ける場合だけ「打」を付ける（日本将棋連盟の棋譜表記）
     void ki2DropMarkerOnlyWhenAmbiguous()
     {

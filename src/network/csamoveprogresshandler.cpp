@@ -37,7 +37,7 @@ void CsaMoveProgressHandler::updateTimeTracking(bool isBlackMove, int consumedTi
         if (*m_refs.whiteRemainingMs < 0) *m_refs.whiteRemainingMs = 0;
     }
     // CSAの加算は次の手番の開始時に行う。
-    const int incrementMs = m_refs.gameSummary->increment * m_refs.gameSummary->timeUnitMs();
+    const int incrementMs = m_refs.gameSummary->incrementMs();
     if (isBlackMove) *m_refs.whiteRemainingMs += incrementMs;
     else *m_refs.blackRemainingMs += incrementMs;
 }
@@ -48,16 +48,9 @@ void CsaMoveProgressHandler::syncClockAfterMove(bool startMyTurnClock)
 
     const int blackRemainSec = *m_refs.blackRemainingMs / 1000;
     const int whiteRemainSec = *m_refs.whiteRemainingMs / 1000;
-    const int timeUnitMs = m_refs.gameSummary->timeUnitMs();
-    const int byoyomiBlackUnits = m_refs.gameSummary->hasIndividualTime
-        ? m_refs.gameSummary->byoyomiBlack
-        : m_refs.gameSummary->byoyomi;
-    const int byoyomiWhiteUnits = m_refs.gameSummary->hasIndividualTime
-        ? m_refs.gameSummary->byoyomiWhite
-        : m_refs.gameSummary->byoyomi;
-    const int byoyomiBlackSec = byoyomiBlackUnits * timeUnitMs / 1000;
-    const int byoyomiWhiteSec = byoyomiWhiteUnits * timeUnitMs / 1000;
-    const int incrementSec = m_refs.gameSummary->increment * timeUnitMs / 1000;
+    const int byoyomiBlackSec = m_refs.gameSummary->byoyomiMs(true) / 1000;
+    const int byoyomiWhiteSec = m_refs.gameSummary->byoyomiMs(false) / 1000;
+    const int incrementSec = m_refs.gameSummary->incrementMs() / 1000;
 
     (*m_refs.clock)->setPlayerTimes(blackRemainSec, whiteRemainSec,
                                     byoyomiBlackSec, byoyomiWhiteSec,
@@ -83,8 +76,7 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
     if (move.length() < 7) {
         qCWarning(lcNetwork) << "Invalid CSA move length:" << move;
         m_hooks.logMessage(tr("不正な形式の指し手を受信しました: %1").arg(move), true);
-        m_hooks.errorOccurred(tr("サーバーからの指し手形式が不正です: %1").arg(move));
-        m_hooks.setGameState(GameState::Error);
+        m_hooks.failGame(tr("サーバーからの指し手形式が不正です: %1").arg(move));
         return;
     }
 
@@ -112,8 +104,7 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
                                  << "toRank=" << toRank
                                  << "move=" << move;
             m_hooks.logMessage(tr("不正な座標の指し手を受信しました: %1").arg(move), true);
-            m_hooks.errorOccurred(tr("サーバーからの指し手の座標が不正です: %1").arg(move));
-            m_hooks.setGameState(GameState::Error);
+            m_hooks.failGame(tr("サーバーからの指し手の座標が不正です: %1").arg(move));
             return;
         }
 
@@ -146,8 +137,7 @@ void CsaMoveProgressHandler::handleMoveReceived(const QString& move, int consume
 
     if (!CsaMoveConverter::applyMoveToBoard(move, *m_refs.gameController, *m_refs.usiMoves, *m_refs.sfenHistory, *m_refs.moveCount)) {
         m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(move), true);
-        m_hooks.errorOccurred(tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
-        m_hooks.setGameState(GameState::Error);
+        m_hooks.failGame(tr("サーバーからの指し手を盤面に適用できません: %1").arg(move));
         return;
     }
 
@@ -188,8 +178,7 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
     if (move.length() < 7) {
         qCWarning(lcNetwork) << "Invalid confirmed CSA move length:" << move;
         m_hooks.logMessage(tr("不正な形式の指し手確認を受信しました: %1").arg(move), true);
-        m_hooks.errorOccurred(tr("サーバーからの指し手確認形式が不正です: %1").arg(move));
-        m_hooks.setGameState(GameState::Error);
+        m_hooks.failGame(tr("サーバーからの指し手確認形式が不正です: %1").arg(move));
         return;
     }
 
@@ -214,8 +203,7 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
                                  << "toFile=" << toFile << "toRank=" << toRank
                                  << "move=" << move;
             m_hooks.logMessage(tr("不正な座標の指し手確認を受信しました: %1").arg(move), true);
-            m_hooks.errorOccurred(tr("サーバーからの指し手確認の座標が不正です: %1").arg(move));
-            m_hooks.setGameState(GameState::Error);
+            m_hooks.failGame(tr("サーバーからの指し手確認の座標が不正です: %1").arg(move));
             return;
         }
 
@@ -234,8 +222,7 @@ void CsaMoveProgressHandler::handleMoveConfirmed(const QString& move, int consum
     if (usiMove.isEmpty()) {
         qCWarning(lcNetwork) << "Invalid confirmed CSA move payload:" << move;
         m_hooks.logMessage(tr("指し手確認の変換に失敗しました: %1").arg(move), true);
-        m_hooks.errorOccurred(tr("サーバーからの指し手確認を変換できません: %1").arg(move));
-        m_hooks.setGameState(GameState::Error);
+        m_hooks.failGame(tr("サーバーからの指し手確認を変換できません: %1").arg(move));
         return;
     }
     m_refs.usiMoves->append(usiMove);
@@ -290,19 +277,12 @@ void CsaMoveProgressHandler::startEngineThinking()
     }
 
     // 時間パラメータを計算
-    const int timeUnitMs = m_refs.gameSummary->timeUnitMs();
-    const bool mySideIsBlack = *m_refs.isBlackSide;
-    const int byoyomiMyMs =
-        (m_refs.gameSummary->hasIndividualTime
-             ? (mySideIsBlack ? m_refs.gameSummary->byoyomiBlack
-                              : m_refs.gameSummary->byoyomiWhite)
-             : m_refs.gameSummary->byoyomi)
-        * timeUnitMs;
+    const int byoyomiMyMs = m_refs.gameSummary->byoyomiMs(*m_refs.isBlackSide);
     int blackRemainMs = *m_refs.blackRemainingMs;
     int whiteRemainMs = *m_refs.whiteRemainingMs;
     if (blackRemainMs < 0) blackRemainMs = 0;
     if (whiteRemainMs < 0) whiteRemainMs = 0;
-    const int incMs = m_refs.gameSummary->increment * timeUnitMs;
+    const int incMs = m_refs.gameSummary->incrementMs();
 
     CsaEngineController::ThinkingParams params;
     params.positionCmd = positionCmd;
@@ -390,8 +370,7 @@ void CsaMoveProgressHandler::onEngineThinkingFinished(const CsaEngineController:
         Piece dropPiece = board->pieceCharacter(result.from.x(), result.from.y());
         if (!board->decrementPieceOnStand(dropPiece)) {
             m_hooks.logMessage(tr("指し手の適用に失敗しました: %1").arg(csaMove), true);
-            m_hooks.errorOccurred(tr("サーバーからの指し手を盤面に適用できません: %1").arg(csaMove));
-            m_hooks.setGameState(GameState::Error);
+            m_hooks.failGame(tr("サーバーからの指し手を盤面に適用できません: %1").arg(csaMove));
             return;
         }
         board->movePieceToSquare(dropPiece, 0, 0, toFile, toRank, false);

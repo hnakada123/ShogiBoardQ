@@ -60,6 +60,23 @@ int CsaClient::GameSummary::timeUnitMs() const
     return kMsPerSecond;
 }
 
+int CsaClient::GameSummary::totalTimeMs(bool black) const
+{
+    const int units = hasIndividualTime ? (black ? totalTimeBlack : totalTimeWhite) : totalTime;
+    return units * timeUnitMs();
+}
+
+int CsaClient::GameSummary::byoyomiMs(bool black) const
+{
+    const int units = hasIndividualTime ? (black ? byoyomiBlack : byoyomiWhite) : byoyomi;
+    return units * timeUnitMs();
+}
+
+int CsaClient::GameSummary::incrementMs() const
+{
+    return increment * timeUnitMs();
+}
+
 // ============================================================
 // 初期化
 // ============================================================

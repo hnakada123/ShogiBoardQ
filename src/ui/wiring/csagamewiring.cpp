@@ -51,6 +51,7 @@ CsaGameWiring::CsaGameWiring(const Dependencies& deps, QObject* parent)
     , m_parentWidget(deps.parentWidget)
     , m_prepareRecord(deps.prepareRecord)
     , m_syncPly(deps.syncPly)
+    , m_recordGameEnd(deps.recordGameEnd)
 {
 }
 
@@ -112,6 +113,13 @@ void CsaGameWiring::onGameStarted(const QString& blackName, const QString& white
                                   const QStringList& initialPrettyMoves)
 {
     qCDebug(lcUi) << "onGameStarted:" << blackName << "vs" << whiteName;
+
+    // 対局情報と棋譜の書き出しに使う持ち時間と開始日時を、サーバーの対局条件で置き換える
+    if (m_timeController && m_coordinator) {
+        const CsaClient::GameSummary& summary = m_coordinator->gameSummary();
+        m_timeController->beginGameWithTimeControl(summary.totalTimeMs(true), summary.byoyomiMs(true),
+                                                   summary.incrementMs());
+    }
 
     if (m_prepareRecord && m_sfenHistory && !m_sfenHistory->isEmpty()) {
         const QStringList positions = *m_sfenHistory;
@@ -210,6 +218,7 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
 
     // 棋譜欄に追加
     Q_EMIT appendKifuLineRequested(endLine, elapsedStr);
+    if (m_recordGameEnd) m_recordGameEnd();
 
     // m_sfenHistoryにも終局行用のダミーエントリを追加
     if (m_sfenHistory && !m_sfenHistory->isEmpty()) {
@@ -478,14 +487,7 @@ bool CsaGameWiring::startCsaGame(CsaGameDialog* dialog, QWidget* parent)
         options.playerType = CsaGameCoordinator::PlayerType::Engine;
         options.engineName = dialog->engineName();
         options.engineNumber = dialog->engineNumber();
-        // エンジンパスは設定から取得
-        const QList<CsaGameDialog::Engine>& engineList = dialog->engineList();
-        if (!engineList.isEmpty()) {
-            int idx = dialog->engineNumber();
-            if (idx >= 0 && idx < engineList.size()) {
-                options.enginePath = engineList.at(idx).path;
-            }
-        }
+        options.enginePath = dialog->engineList().value(dialog->engineNumber()).path;
     }
 
     // プレイモード変更を通知

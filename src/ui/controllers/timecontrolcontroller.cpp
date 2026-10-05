@@ -124,6 +124,14 @@ void TimeControlController::saveTimeControlSettings(bool enabled, qint64 baseMs,
                             << "increment=" << incrementMs;
 }
 
+void TimeControlController::beginGameWithTimeControl(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs)
+{
+    saveTimeControlSettings(baseMs > 0 || byoyomiMs > 0 || incrementMs > 0, baseMs, byoyomiMs, incrementMs);
+    clearGameStartTime();
+    recordGameStartTime();
+    clearGameEndTime();
+}
+
 const TimeControlController::TimeControlSettings& TimeControlController::settings() const
 {
     return m_settings;

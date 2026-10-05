@@ -192,6 +192,12 @@ void CsaGameCoordinator::declareWin()
     m_client->declareWin();
 }
 
+void CsaGameCoordinator::forceImmediateMove()
+{
+    if (m_gameState != GameState::InGame || m_playerType != PlayerType::Engine || !m_isMyTurn) return;
+    if (m_engineController) m_engineController->stopThinking();
+}
+
 void CsaGameCoordinator::onConnectionStateChanged(CsaClient::ConnectionState state)
 {
     emit connectionStateChanged(isConnected());
@@ -244,6 +250,8 @@ void CsaGameCoordinator::onLoginSucceeded()
                     this, &CsaGameCoordinator::onEngineControllerError);
             connect(m_engineController, &CsaEngineController::resignRequested,
                     this, &CsaGameCoordinator::onEngineControllerResign);
+            connect(m_engineController, &CsaEngineController::winDeclarationRequested,
+                    this, &CsaGameCoordinator::onEngineControllerWinDeclaration);
         }
         CsaEngineController::InitParams params;
         params.enginePath = m_options.enginePath;
@@ -280,9 +288,10 @@ void CsaGameCoordinator::onGameSummaryReceived(const CsaClient::GameSummary& sum
 
     emit logMessage(tr("対局条件を受信しました"));
     emit logMessage(tr("先手: %1, 後手: %2").arg(summary.blackName, summary.whiteName));
-    emit logMessage(tr("持時間: %1秒, 秒読み: %2秒")
-                        .arg(summary.totalTime)
-                        .arg(summary.byoyomi));
+    emit logMessage(tr("持時間: %1秒, 秒読み: %2秒, 加算: %3秒")
+                        .arg(summary.totalTimeMs(true) / 1000)
+                        .arg(summary.byoyomiMs(true) / 1000)
+                        .arg(summary.incrementMs() / 1000));
 
     setGameState(GameState::WaitingForAgree);
 
@@ -438,6 +447,15 @@ void CsaGameCoordinator::onEngineControllerResign()
     }
 }
 
+void CsaGameCoordinator::onEngineControllerWinDeclaration()
+{
+    if (m_gameState == GameState::InGame) {
+        // 宣言の成否はサーバーが判定する
+        emit logMessage(tr("エンジンが入玉宣言を選択しました"));
+        declareWin();
+    }
+}
+
 void CsaGameCoordinator::onEngineControllerInitialized()
 {
     m_initializingEngine = false;
@@ -447,7 +465,18 @@ void CsaGameCoordinator::onEngineControllerInitialized()
 void CsaGameCoordinator::onEngineControllerError(const QString& message)
 {
     m_initializingEngine = false;
-    setGameState(GameState::Error);
+    failGame(message);
+}
+
+void CsaGameCoordinator::failGame(const QString& message)
+{
+    const bool inGame = (m_gameState == GameState::InGame);
+    if (!inGame) setGameState(GameState::Error);
     m_client->disconnectFromServer();
+    // 対局中に続行できなくなったら中断として終局させ、画面を対局中のまま残さない。
+    // 切断の通知で既に終局していれば何もしない
+    if (inGame) {
+        onClientGameEnded(CsaClient::GameResult::Chudan, CsaClient::GameEndCause::Chudan, 0);
+    }
     emit errorOccurred(message);
 }

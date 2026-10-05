@@ -122,13 +122,13 @@ void CsaWaitingDialog::setupUi()
 
     m_btnFontDecrease = new QToolButton(this);
     m_btnFontDecrease->setText(QStringLiteral("A-"));
-    m_btnFontDecrease->setToolTip(tr("文字サイズを縮小"));
+    m_btnFontDecrease->setToolTip(tr("フォントサイズを小さくする"));
     m_btnFontDecrease->setStyleSheet(ButtonStyles::fontButton());
     fontLayout->addWidget(m_btnFontDecrease);
 
     m_btnFontIncrease = new QToolButton(this);
     m_btnFontIncrease->setText(QStringLiteral("A+"));
-    m_btnFontIncrease->setToolTip(tr("文字サイズを拡大"));
+    m_btnFontIncrease->setToolTip(tr("フォントサイズを大きくする"));
     m_btnFontIncrease->setStyleSheet(ButtonStyles::fontButton());
     fontLayout->addWidget(m_btnFontIncrease);
 
