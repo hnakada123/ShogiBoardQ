@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>定跡機能 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQの定跡機能を紹介します。定跡ファイルの読み込み・表示から、定跡手の着手・編集・追加・削除までの流れをスクリーンショット付きで解説。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
+    <meta name="description" content="ShogiBoardQの定跡機能を紹介します。やねうら王形式の定跡ファイルの読み込み、局面ごとの定跡手の表示、対局中の着手、定跡手の追加・編集・削除、棋譜からのマージをスクリーンショット付きで解説。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
     <meta property="og:title" content="定跡機能 - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQの定跡機能を紹介。定跡ファイルの読み込み・表示から定跡手の編集までの流れをスクリーンショット付きで解説。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/joseki/joseki-06-display-first-move.png">
+    <meta property="og:description" content="やねうら王形式の定跡ファイルを開き、局面ごとの定跡手を表示・編集できます。対局中は定跡手をそのまま指せます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/joseki/joseki-01-window.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="定跡機能 - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQの定跡機能を紹介。定跡ファイルの読み込み・表示から定跡手の編集までの流れを解説。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/joseki/joseki-06-display-first-move.png">
+    <meta name="twitter:description" content="やねうら王形式の定跡ファイルを開き、局面ごとの定跡手を表示・編集できます。対局中は定跡手をそのまま指せます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/joseki/joseki-01-window.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/joseki.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/joseki.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/joseki.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/joseki.html">
 </head>
 <body>
 
@@ -30,16 +32,25 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/joseki.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="joseki.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/joseki.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/joseki.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/joseki.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
-            <li><a href="#joseki-display">定跡表示</a></li>
-            <li><a href="#joseki-move">着手</a></li>
-            <li><a href="#joseki-edit">編集・追加・削除</a></li>
+            <li><a href="#joseki-display">定跡の表示</a></li>
+            <li><a href="#joseki-play">対局で使う</a></li>
+            <li><a href="#joseki-edit">編集</a></li>
+            <li><a href="#joseki-merge">マージ</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -49,106 +60,75 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>定跡機能</h1>
-        <p class="hero-subtitle">定跡ファイルの読み込み・表示から定跡手の編集まで</p>
+        <p class="hero-subtitle">やねうら王形式の定跡ファイルを表示・編集</p>
         <div class="hero-badges">
-            <span class="badge">定跡表示</span>
-            <span class="badge">着手機能</span>
-            <span class="badge">定跡手の編集・追加・削除</span>
+            <span class="badge">やねうら王形式（.db）</span>
+            <span class="badge">定跡手の表示</span>
+            <span class="badge">追加・編集・削除</span>
+            <span class="badge">棋譜からマージ</span>
         </div>
     </div>
 </section>
 
-<!-- Section 1: Joseki Display -->
+<!-- Section 1 -->
 <section id="joseki-display" class="section section--alt">
     <div class="section-inner">
         <h2 class="section-title">定跡の表示</h2>
-        <p class="section-desc">対局画面から定跡ファイルを読み込み、局面に応じた定跡手を表示します</p>
+        <p class="section-desc">定跡ウィンドウで定跡ファイルを開き、表示中の局面の定跡手を確認します</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">対局を開始する</span>
+                    <span class="guide-step-title">定跡ウィンドウを開く</span>
                 </div>
-                <p class="guide-step-text">メニューの「対局」→「対局」から対局ダイアログを開き、対局を開始します。人間 vs エンジンなど、任意の対局条件を設定できます。</p>
+                <p class="guide-step-text">「表示」→「定跡」で定跡ウィンドウを表示します。最初は画面下部のタブに入ります。表が狭いときは、パネルを広げるか別ウィンドウにすると見やすくなります（ドック機能のガイドを参照）。</p>
+                <p class="guide-step-text">「開く」で、やねうら王形式（#YANEURAOU-DB2016）の定跡ファイル（.db）を選びます。やねうら王に付属の standard_book.db なども読み込めます。「新規」で空の定跡を作ることもできます。「履歴」からは最近使ったファイルを開けます。「自動読込」にチェックを付けておくと、次から定跡ウィンドウを表示したときに前回のファイルを読み込みます。</p>
                 <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-01-main-screen.png" alt="ShogiBoardQ メイン画面">
-                    <p class="screenshot-caption">メイン画面：メニューの「対局」→「対局」を選択</p>
-                </div>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-02-game-dialog.png" alt="対局設定ダイアログ">
-                    <p class="screenshot-caption">対局ダイアログ：対局者・時間設定・開始局面などを設定</p>
+                    <img src="../images/joseki/joseki-01-window.png" alt="定跡ウィンドウ">
+                    <p class="screenshot-caption">定跡ウィンドウ：standard_book.db を開いた初期局面</p>
                 </div>
             </div>
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">定跡ドックの確認</span>
+                    <span class="guide-step-title">表の見かた</span>
                 </div>
-                <p class="guide-step-text">定跡ドックは初期状態ではファイルが未選択の状態です。定跡手の一覧表（No.・着手・定跡手・予想応手・編集・削除・評価値・深さ・出現頻度・コメント）が表示されます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-03-dock-initial.png" alt="定跡ドック初期状態">
-                    <p class="screenshot-caption">定跡ドック：初期状態（ファイル未選択）</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">定跡ファイルを選択・読み込み</span>
-                </div>
-                <p class="guide-step-text">「開く」ボタンをクリックして定跡ファイル（.db形式）を選択します。やねうら王の定跡ファイル（standard_book.dbなど）を読み込むことができます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-04-file-selection.png" alt="定跡ファイル選択ダイアログ">
-                    <p class="screenshot-caption">ファイル選択ダイアログ：定跡ファイル（.db）を選択</p>
-                </div>
-                <p class="guide-step-text">読み込みが完了すると、ファイル名・局面数が表示され、ステータスバーに「読込済」と表示されます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-05-file-loaded.png" alt="定跡ファイル読み込み完了">
-                    <p class="screenshot-caption">読み込み完了：ファイル名・局面数（129,971局面）が表示される</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">定跡手の表示</span>
-                </div>
-                <p class="guide-step-text">現在の局面に対応する定跡手が一覧表示されます。各定跡手には評価値・探索深さ・出現頻度などの情報が付与されています。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-06-display-first-move.png" alt="定跡表示画面（初期配置）">
-                    <p class="screenshot-caption">初期配置の定跡手一覧：各手の評価値・深さ・出現頻度を表示</p>
-                </div>
-                <p class="guide-step-text">局面が進むと、その局面に応じた定跡手が自動的に更新されます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-07-display-third-move.png" alt="定跡表示画面（3手目）">
-                    <p class="screenshot-caption">3手目（先手番）の定跡手一覧：局面の進行に応じて自動更新</p>
-                </div>
+                <p class="guide-step-text">表示中の局面に登録されている定跡手が、ファイルに書かれた順に並びます。</p>
+                <ul class="guide-step-text">
+                    <li>定跡手・予想応手：登録されている指し手と、その後に予想される相手の応手</li>
+                    <li>評価値・深さ・出現頻度：定跡ファイルに記録されている評価値、探索深さ、出現回数</li>
+                    <li>コメント：その定跡手に付けたコメント</li>
+                    <li>編集・削除：その定跡手を編集または削除するボタン（着手は対局中のみ）</li>
+                </ul>
+                <p class="guide-step-text">棋譜欄で手を選んだり、対局で手が進んだりすると、その局面の定跡手に切り替わります。手数は区別しないので、同じ局面なら同じ定跡手が表示されます。</p>
+                <p class="guide-step-text">「詳細」を押すと局面と定跡のSFENを表示します。「■ 停止」で定跡の表示を止め、「▶ 再開」で再開します。いちばん下の行には、ファイル名・局面数・この局面の定跡手の数が表示されます。定跡ファイルを開いていないときや、その局面の定跡がないときは、表の中に案内が表示されます。</p>
             </div>
 
         </div>
     </div>
 </section>
 
-<!-- Section 2: Making Moves -->
-<section id="joseki-move" class="section">
+<!-- Section 2 -->
+<section id="joseki-play" class="section">
     <div class="section-inner">
-        <h2 class="section-title">着手機能</h2>
-        <p class="section-desc">定跡手の「着手」ボタンから定跡手を盤面に反映できます</p>
+        <h2 class="section-title">対局で使う</h2>
+        <p class="section-desc">対局中は、自分の手番で定跡手をそのまま指せます</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">定跡手を着手する</span>
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">定跡手を指す</span>
                 </div>
-                <p class="guide-step-text">定跡手一覧の「着手」ボタンをクリックすると、その定跡手が盤面に反映されます。対局中に定跡を参照しながら指し手を選ぶことができます。</p>
+                <p class="guide-step-text">対局中、自分の手番になると「着手」列にボタンが表示されます。ボタンを押すか行をダブルクリックすると、その定跡手を指します（成る・成らないも定跡のとおり）。指した手は、盤面で指した手と同じく棋譜に記録されます。</p>
+                <p class="guide-step-text">エンジンの手番、エンジン同士の対局、対局していないときは「着手」列が空になり、定跡手は指せません。</p>
                 <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-08-make-move.png" alt="定跡手を着手した画面">
-                    <p class="screenshot-caption">着手実行：定跡手が盤面に反映され、対局が進行する</p>
+                    <img src="../images/joseki/joseki-02-play.png" alt="対局中の定跡ウィンドウ">
+                    <p class="screenshot-caption">対局中：自分の手番では「着手」ボタンで定跡手を指せる</p>
                 </div>
             </div>
 
@@ -156,59 +136,83 @@
     </div>
 </section>
 
-<!-- Section 3: Edit, Add, Delete -->
+<!-- Section 3 -->
 <section id="joseki-edit" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">定跡手の編集・追加・削除</h2>
-        <p class="section-desc">定跡手の評価値やコメントを編集したり、新しい定跡手を追加・削除できます</p>
+        <h2 class="section-title">定跡の編集</h2>
+        <p class="section-desc">定跡手を追加・編集・削除し、定跡ファイルに保存します</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">定跡手の編集</span>
-                </div>
-                <p class="guide-step-text">定跡手一覧の「編集」ボタンをクリックすると、編集ダイアログが開きます。予想応手・評価値・探索深さ・出現頻度・コメントを変更できます。変更後は「更新」ボタンで反映します。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-09-edit-move.png" alt="定跡手の編集ダイアログ">
-                    <p class="screenshot-caption">定跡手の編集：予想応手・評価値・探索深さ・出現頻度・コメントを変更</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">2</span>
-                    <span class="guide-step-title">定跡手の追加</span>
-                </div>
-                <p class="guide-step-text">「＋追加」ボタンをクリックすると、追加ダイアログが開きます。指し手（盤上の駒を動かす／持ち駒を打つ）、予想応手、評価情報（評価値・探索深さ・出現頻度）、コメントを設定して新しい定跡手を追加できます。指し手と予想応手は局面に対して合法かどうか確認され、不正な入力がある間は追加できません。予想応手を指定しない場合は「なし」を選びます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-10-add-move.png" alt="定跡手の追加ダイアログ">
-                    <p class="screenshot-caption">定跡手の追加：指し手・予想応手・評価情報・コメントを指定して追加</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
-                    <span class="guide-step-number">3</span>
-                    <span class="guide-step-title">定跡手の削除</span>
-                </div>
-                <p class="guide-step-text">定跡手一覧の「削除」ボタンをクリックすると、確認ダイアログが表示されます。「Yes」をクリックすると定跡手が削除されます。</p>
-                <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-11-delete-confirm.png" alt="定跡手の削除確認ダイアログ">
-                    <p class="screenshot-caption">削除確認：対象の定跡手を確認してから削除を実行</p>
-                </div>
-            </div>
-
-            <div class="guide-step">
-                <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">定跡ファイルの保存</span>
+                    <span class="guide-step-title">定跡手を追加する</span>
                 </div>
-                <p class="guide-step-text">編集・追加・削除後は、「保存」ボタンまたは「別名保存」ボタンで定跡ファイルに変更を保存してください。未保存の変更がある状態で定跡ドックを閉じようとすると、変更を破棄するかどうかの確認ウィンドウが表示されます。</p>
+                <p class="guide-step-text">「＋追加」で、表示中の局面に定跡手を追加します。指し手は「盤上の駒を動かす」か「持ち駒を打つ」を選んで移動元・移動先を指定し、プレビューで確認します。予想応手は「なし」も選べます。</p>
+                <p class="guide-step-text">その局面で指せない手を入力している間は「追加」を押せません。同じ指し手がすでに登録されているときは、上書きするかの確認が表示されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/joseki/joseki-03-add.png" alt="定跡手の追加">
+                    <p class="screenshot-caption">定跡手の追加：指し手をプレビューで確認して追加する</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">定跡手を編集する</span>
+                </div>
+                <p class="guide-step-text">「編集」で、予想応手・評価値・探索深さ・出現頻度・コメントを変更します（指し手そのものは変えられません）。表の行を右クリックすると、着手・編集・削除・指し手のコピーのメニューも使えます。</p>
+                <p class="guide-step-text">変更すると、ファイル名の右に「未保存」と、保存を促す案内が表示されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/joseki/joseki-04-edit.png" alt="定跡手の編集">
+                    <p class="screenshot-caption">定跡手の編集：評価値・探索深さ・出現頻度・コメントを変更</p>
+                </div>
                 <div class="screenshot-item">
-                    <img src="../images/joseki/joseki-12-unsaved-confirm.png" alt="未保存変更の確認ダイアログ">
-                    <p class="screenshot-caption">未保存確認：変更を保存・破棄・キャンセルから選択</p>
+                    <img src="../images/joseki/joseki-05-edited.png" alt="編集後の定跡ウィンドウ">
+                    <p class="screenshot-caption">編集後：コメントが付き、「未保存」と保存の案内が表示される</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">削除と保存</span>
+                </div>
+                <p class="guide-step-text">「削除」を押すと確認が表示され、「削除する」で定跡手を削除します。</p>
+                <p class="guide-step-text">変更は「保存」（上書き）または「別名保存」で定跡ファイルに書き込みます。未保存の変更があるまま「新規」「開く」「履歴」で別のファイルに切り替えたり、定跡ウィンドウやアプリを閉じたりすると、保存するかの確認が表示されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/joseki/joseki-06-delete.png" alt="削除の確認">
+                    <p class="screenshot-caption">削除の確認</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/joseki/joseki-07-unsaved.png" alt="未保存の変更の確認">
+                    <p class="screenshot-caption">未保存の変更があるときの確認</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="joseki-merge" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">棋譜からマージ</h2>
+        <p class="section-desc">棋譜の指し手をまとめて定跡に登録します</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">棋譜の指し手を登録する</span>
+                </div>
+                <p class="guide-step-text">「マージ ▼」→「現在の棋譜から」または「棋譜ファイルから」（KIF形式）を選ぶと、棋譜の本譜の指し手（先手・後手とも）が一覧で表示されます。「登録」で1手ずつ、「全て登録」でまとめて定跡に登録します。</p>
+                <p class="guide-step-text">新しい指し手は予想応手なし・評価値0・深さ0・出現頻度1で登録され、すでにある指し手は出現頻度が1増えます。登録すると定跡ファイルにすぐ保存されます（ほかの未保存の変更も一緒に保存されます）。まだ保存していない新しい定跡の場合は、先に保存先を指定します。「✓登録済」は、このファイルを開いてから登録した指し手を示します。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/joseki/joseki-08-merge.png" alt="棋譜から定跡にマージ">
+                    <p class="screenshot-caption">マージ：棋譜の指し手を1手ずつ、またはまとめて登録する</p>
                 </div>
             </div>
 
@@ -218,13 +222,28 @@
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
 
 <!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>
