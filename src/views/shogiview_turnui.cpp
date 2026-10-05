@@ -11,7 +11,37 @@
 #include <QFontMetrics>
 #include <QPushButton>
 #include <QFrame>
+#include <QGraphicsDropShadowEffect>
+#include <QPainter>
+#include <QPixmap>
 #include <QSizePolicy>
+#include <QStyle>
+#include <QFontInfo>
+
+namespace {
+
+/// 編集終了ボタンの左に置くチェック印（白）。文字の高さに合わせて描く
+QIcon editExitCheckIcon(int px)
+{
+    const qreal dpr = 2.0;
+    QPixmap pixmap(QSize(px, px) * dpr);
+    pixmap.setDevicePixelRatio(dpr);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(Qt::white, qMax(1.5, px * 0.15), Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    painter.drawPolyline(QPolygonF({QPointF(px * 0.18, px * 0.54), QPointF(px * 0.41, px * 0.76),
+                                    QPointF(px * 0.84, px * 0.27)}));
+    return QIcon(pixmap);
+}
+
+/// チェック印の大きさ（文字の高さの8割）
+int editExitIconSize(const QFont& font)
+{
+    return qMax(10, qRound(QFontMetrics(font).height() * 0.8));
+}
+
+} // namespace
 
 // カード背景と手番バッジを生成する。名前ラベルは既存のホバー操作を維持する。
 void ShogiView::ensureTurnLabels()
@@ -136,42 +166,18 @@ void ShogiView::ensureAndPlaceEditExitButton()
     if (!exitBtn) {
         exitBtn = new QPushButton(tr("編集終了"), this);
         exitBtn->setObjectName(QStringLiteral("editExitButton"));
+        exitBtn->setToolTip(tr("局面編集を終了し、この局面を開始局面にします"));
         exitBtn->setVisible(false);
         exitBtn->setFocusPolicy(Qt::NoFocus);
         exitBtn->setCursor(Qt::PointingHandCursor);
         exitBtn->setAutoDefault(false);
         exitBtn->setDefault(false);
         exitBtn->setFlat(false);
+        styleEditExitButton(exitBtn);
         exitBtn->raise();
     }
 
-    const QString solidRedSS = QString::fromLatin1(R"(
-        QPushButton#editExitButton {
-            border: 1px solid #b40000;
-            border-radius: 12px;
-            padding: 4px 12px;
-            color: #ffffff;
-            font-weight: 600;
-            background-color: #e00000;
-        }
-        QPushButton#editExitButton:hover {
-            border: 1px solid #ff4444;
-            background-color: #e00000;
-        }
-        QPushButton#editExitButton:pressed {
-            padding-top: 5px; padding-bottom: 3px;
-            border: 1px solid #8a0000;
-            background-color: #e00000;
-        }
-        QPushButton#editExitButton:disabled {
-            color: rgba(255,255,255,0.75);
-            border-color: #9a0000;
-            background-color: #e00000;
-        }
-    )");
-    exitBtn->setStyleSheet(solidRedSS);
-
-    // ── 右側の"名前ラベル"を基準に配置 ──
+    // ── 右側の対局者カード（駒台と同じ幅）に揃える。カードが無いときは名前ラベル ──
     QLabel* base = nullptr;
     if (bn && wn) {
         const int bx = bn->geometry().center().x();
@@ -180,9 +186,12 @@ void ShogiView::ensureAndPlaceEditExitButton()
     } else {
         base = bn ? bn : wn;
     }
+    QFrame* card = (base && base == bn) ? m_blackPlayerCard : (base ? m_whitePlayerCard : nullptr);
 
     QRect baseGeo;
-    if (base) {
+    if (card && card->isVisible() && card->geometry().isValid()) {
+        baseGeo = card->geometry();
+    } else if (base) {
         baseGeo = base->geometry();
     } else {
         if (m_board) {
@@ -200,8 +209,9 @@ void ShogiView::ensureAndPlaceEditExitButton()
         }
     }
 
-    // 書体とサイズを名前ラベルに合わせる。
+    // 書体とサイズを名前ラベルに合わせ、太字にする。
     QFont buttonFont = base ? base->font() : font();
+    buttonFont.setBold(true);
     exitBtn->setFont(buttonFont);
 
     int x = baseGeo.x();
@@ -211,7 +221,18 @@ void ShogiView::ensureAndPlaceEditExitButton()
 
     fitEditExitButtonFont(exitBtn, w);
 
-    const int hBtn = qMax(exitBtn->sizeHint().height(), 28);
+    // チェック印は文字の高さに合わせて描き直す（幅が足りず詰めた表示では外す）
+    if (exitBtn->property("compact").toBool()) {
+        exitBtn->setIcon(QIcon());
+    } else {
+        const int iconPx = editExitIconSize(exitBtn->font());
+        if (exitBtn->iconSize() != QSize(iconPx, iconPx) || exitBtn->icon().isNull()) {
+            exitBtn->setIcon(editExitCheckIcon(iconPx));
+            exitBtn->setIconSize(QSize(iconPx, iconPx));
+        }
+    }
+
+    const int hBtn = qMax(24, QFontMetrics(exitBtn->font()).height() + 14);
     int  y = 0;
     bool yFixed = false;
 
@@ -239,82 +260,78 @@ void ShogiView::relayoutEditExitButton()
     ensureAndPlaceEditExitButton();
 }
 
-// 「局面編集終了」ボタンの見た目を設定
+// 「局面編集終了」ボタンの見た目を設定（ダイアログの決定ボタンと同じ青系。駒台のカードと同じ角丸）
 void ShogiView::styleEditExitButton(QPushButton* btn)
 {
     if (!btn) return;
 
-    btn->setStyleSheet(
+    btn->setStyleSheet(QStringLiteral(
         "QPushButton#editExitButton {"
-        "  background: #e53935;"
         "  color: #ffffff;"
-        "  border: 1px solid #8e0000;"
-        "  padding: 6px 10px;"
-        "  font-weight: 600;"
-        "  border-radius: 0px;"
+        "  border: 1px solid #155ea8;"
+        "  border-radius: 6px;"
+        "  padding: 4px 10px;"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2a86de, stop:1 #1a6fc6);"
         "}"
         "QPushButton#editExitButton:hover {"
-        "  background: #d32f2f;"
+        "  border-color: #1a69b8;"
+        "  background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #3a94e8, stop:1 #237bd3);"
         "}"
         "QPushButton#editExitButton:pressed {"
-        "  background: #b71c1c;"
+        "  border-color: #114c8c;"
+        "  padding-top: 5px; padding-bottom: 3px;"
+        "  background: #165fae;"
         "}"
+        "QPushButton#editExitButton[compact=\"true\"] { padding: 3px 3px; }"
+        "QPushButton#editExitButton[compact=\"true\"]:pressed { padding-top: 4px; padding-bottom: 2px; }"
         "QPushButton#editExitButton:disabled {"
-        "  background: #bdbdbd;"
-        "  color: #ffffff;"
-        "  border-color: #9e9e9e;"
-        "}"
-        );
+        "  color: #eceff1;"
+        "  border-color: #90a4ae;"
+        "  background: #b0bec5;"
+        "}"));
+
+    // 盤の上に浮かせる薄い影
+    auto* shadow = new QGraphicsDropShadowEffect(btn);
+    shadow->setBlurRadius(12);
+    shadow->setOffset(0, 2);
+    shadow->setColor(QColor(0, 0, 0, 70));
+    btn->setGraphicsEffect(shadow);
 }
 
-// ボタンの文字列が maxWidth に必ず収まるよう、フォントサイズを自動調整（縮小のみ）
+// ボタンの文字列が maxWidth に必ず収まるよう、フォントサイズを自動調整（縮小のみ）。
+// まずチェック印付きで縮め、入らなければ印を外して余白を詰め（compact）、さらに縮める。
 void ShogiView::fitEditExitButtonFont(QPushButton* btn, int maxWidth)
 {
     if (!btn || maxWidth <= 20) return;
 
-    const int inner = qMax(1, maxWidth - 24);
-
     QFont f = btn->font();
-    int point = f.pointSize();
-    int pixel = f.pixelSize();
+    int pixel = QFontInfo(f).pixelSize();
+    if (pixel <= 0) pixel = 16;
 
-    if (point <= 0 && pixel <= 0) {
-        point = 12;
-        f.setPointSize(point);
-        btn->setFont(f);
+    auto withSize = [&f](int px) { QFont tf = f; tf.setPixelSize(px); return tf; };
+    auto textWidth = [btn](const QFont& tf) { return QFontMetrics(tf).horizontalAdvance(btn->text()); };
+    // 通常: 左右の余白10px・枠1px、チェック印と間隔6px
+    auto fitsWithIcon = [&](const QFont& tf) { return textWidth(tf) + editExitIconSize(tf) + 6 + 22 <= maxWidth; };
+    // 詰めた表示: 左右の余白3px・枠1px、印なし
+    auto fitsCompact = [&](const QFont& tf) { return textWidth(tf) + 8 <= maxWidth; };
+
+    bool compact = false;
+    QFont chosen = withSize(qMax(8, pixel * 3 / 4));
+    bool found = false;
+    for (int px = pixel; px >= qMax(10, pixel * 3 / 4); --px) {
+        if (fitsWithIcon(withSize(px))) { chosen = withSize(px); found = true; break; }
     }
-
-    auto fits = [&](const QFont& tf)->bool {
-        QFontMetrics fm(tf);
-        const int textW = fm.horizontalAdvance(btn->text());
-        return textW <= inner;
-    };
-
-    if (fits(f)) {
-        btn->setFont(f);
-        return;
+    if (!found) {
+        compact = true;
+        chosen = withSize(8);
+        for (int px = pixel; px >= 8; --px) {
+            if (fitsCompact(withSize(px))) { chosen = withSize(px); break; }
+        }
     }
-
-    const int minPoint = 8;
-    const int minPixel = 12;
-
-    if (pixel > 0) {
-        int sz = pixel;
-        while (sz > minPixel) {
-            QFont tf = f;
-            tf.setPixelSize(--sz);
-            if (fits(tf)) { btn->setFont(tf); return; }
-        }
-        f.setPixelSize(minPixel);
-        btn->setFont(f);
-    } else {
-        int sz = point;
-        while (sz > minPoint) {
-            QFont tf = f;
-            tf.setPointSize(--sz);
-            if (fits(tf)) { btn->setFont(tf); return; }
-        }
-        f.setPointSize(minPoint);
-        btn->setFont(f);
+    btn->setFont(chosen);
+    if (btn->property("compact").toBool() != compact) {
+        btn->setProperty("compact", compact);
+        btn->style()->unpolish(btn);
+        btn->style()->polish(btn);
     }
 }

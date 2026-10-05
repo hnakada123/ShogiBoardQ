@@ -9922,14 +9922,19 @@ Choose a file with one SFEN position per line.</translation>
         <translation type="vanished">Next Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="32"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="62"/>
         <source>手番</source>
         <translation>Turn</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="137"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="167"/>
         <source>編集終了</source>
         <translation>End Edit</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="169"/>
+        <source>局面編集を終了し、この局面を開始局面にします</source>
+        <translation>Finish editing and use this position as the starting position</translation>
     </message>
     <message>
         <source>詰み探索終了</source>

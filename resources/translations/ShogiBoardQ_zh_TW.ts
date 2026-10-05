@@ -7648,14 +7648,19 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="32"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="62"/>
         <source>手番</source>
         <translation>行棋方</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="137"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="167"/>
         <source>編集終了</source>
         <translation>結束編輯</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="169"/>
+        <source>局面編集を終了し、この局面を開始局面にします</source>
+        <translation>結束局面編輯，並將此局面作為初始局面</translation>
     </message>
     <message>
         <location filename="../../src/views/shogiview_piecebox.cpp" line="61"/>

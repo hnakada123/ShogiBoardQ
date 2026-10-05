@@ -8028,14 +8028,19 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>ShogiView</name>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="32"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="62"/>
         <source>手番</source>
         <translation>手番</translation>
     </message>
     <message>
-        <location filename="../../src/views/shogiview_turnui.cpp" line="137"/>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="167"/>
         <source>編集終了</source>
         <translation>編集終了</translation>
+    </message>
+    <message>
+        <location filename="../../src/views/shogiview_turnui.cpp" line="169"/>
+        <source>局面編集を終了し、この局面を開始局面にします</source>
+        <translation>局面編集を終了し、この局面を開始局面にします</translation>
     </message>
     <message>
         <source>詰み探索終了</source>
