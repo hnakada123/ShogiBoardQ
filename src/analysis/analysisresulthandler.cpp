@@ -28,7 +28,14 @@ QString sanitizeUsiPv(const QString& rawPv, bool isBook)
     if (parenPos > 0) {
         usiPv = usiPv.left(parenPos).trimmed();
     }
-    return usiPv;
+    // 詰んだ局面で返る resign / win は指し手ではないため、候補手や読み筋の盤面表示に使わない
+    QStringList moves;
+    const QStringList tokens = usiPv.split(QLatin1Char(' '), Qt::SkipEmptyParts);
+    for (const QString& token : tokens) {
+        if (token == QLatin1String("resign") || token == QLatin1String("win")) break;
+        moves.append(token);
+    }
+    return moves.join(QLatin1Char(' '));
 }
 
 QString resolveMoveLabel(const AnalysisResultHandler::Refs& refs, int ply)

@@ -80,6 +80,24 @@ void DialogCoordinator::showKifuAnalysisDialogFromContext()
     params.activePly = m_kifuAnalysisCtx.activePly ? *m_kifuAnalysisCtx.activePly : 0;
     params.gameController = m_kifuAnalysisCtx.gameController;
 
+    // 読み込んだ棋譜の本譜には終局行（投了など）の局面も入っている。直前と同じ局面なので解析しない。
+    // 分岐ツリーの本譜と手数が一致する場合だけ、末尾の終局行を除く。
+    QStringList mainSfens;
+    if (params.sfenRecord && m_kifuAnalysisCtx.branchTree) {
+        const auto lines = m_kifuAnalysisCtx.branchTree->allLines();
+        if (!lines.isEmpty() && lines.first().nodes.size() == params.sfenRecord->size()) {
+            const auto& nodes = lines.first().nodes;
+            qsizetype positions = nodes.size();
+            while (positions > 1 && nodes.at(positions - 1) && nodes.at(positions - 1)->isTerminal()) {
+                --positions;
+            }
+            if (positions < params.sfenRecord->size()) {
+                mainSfens = params.sfenRecord->mid(0, positions);
+                params.sfenRecord = &mainSfens;
+            }
+        }
+    }
+
     // USI形式の指し手リストを取得（コンテキストから、またはKifuLoadCoordinatorから）
     // 注: コンテキストのusiMovesが空の場合はKifuLoadCoordinatorから取得
     // 重要: sfenRecordとusiMovesの整合性をチェック（sfenRecord.size() == usiMoves.size() + 1）

@@ -1,8 +1,9 @@
 /// @file tst_usi_info_line_parser.cpp
-/// @brief UsiInfoLineParser のユニットテスト
+/// @brief UsiInfoLineParser と ShogiEngineInfoParser（読み筋の表記）のユニットテスト
 
 #include <QtTest>
 
+#include "shogiengineinfoparser.h"
 #include "usiinfolineparser.h"
 
 class TestUsiInfoLineParser : public QObject
@@ -69,6 +70,23 @@ private slots:
         QVERIFY(!json.contains(QStringLiteral("nodes")));
         QVERIFY(!json.contains(QStringLiteral("score_mate")));
         QCOMPARE(json.value(QStringLiteral("pv")).toArray().size(), 1);
+    }
+
+    void engineInfoParserShowsResignAsTerminalMove()
+    {
+        // 詰んだ局面ではエンジンが指し手の代わりに resign を返す。生の USI 文字列を表示しない
+        ShogiEngineInfoParser parser;
+        parser.setThinkingStartPlayer(ShogiGameController::Player1);
+        QList<QChar> board;  // resign は盤面を参照しない
+        parser.parseEngineOutputAndUpdateState(QStringLiteral("info depth 0 score mate -1 pv resign"),
+                                               nullptr, board, false);
+        QCOMPARE(parser.pvKanjiStr(), QStringLiteral("▲投了"));
+        QCOMPARE(parser.pvUsiStr(), QString());
+
+        parser.setThinkingStartPlayer(ShogiGameController::Player2);
+        parser.parseEngineOutputAndUpdateState(QStringLiteral("info depth 1 score mate 1 pv win"),
+                                               nullptr, board, false);
+        QCOMPARE(parser.pvKanjiStr(), QStringLiteral("△入玉勝ち"));
     }
 };
 
