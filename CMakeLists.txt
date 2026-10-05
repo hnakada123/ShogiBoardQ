@@ -367,6 +367,8 @@ set(SRC_GAME
     src/game/matchcoordinator_time.cpp
     src/game/matchturnhandler.cpp
     src/game/matchturnhandler.h
+    src/game/nyugyokujudgement.cpp
+    src/game/nyugyokujudgement.h
     src/game/piecemoverules.cpp
     src/game/piecemoverules.h
     src/game/prestartcleanuphandler.h

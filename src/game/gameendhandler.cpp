@@ -2,6 +2,8 @@
 /// @brief 終局処理ハンドラの実装
 
 #include "gameendhandler.h"
+#include "nyugyokujudgement.h"
+#include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "shogiclock.h"
 #include "usi.h"
@@ -123,10 +125,23 @@ void GameEndHandler::handleEngineWin(int idx)
 {
     if (m_refs.gameOver->isOver) return;
     const Player declarer = (idx == 1 ? Player::P1 : Player::P2);
-    handleNyugyokuDeclaration(declarer, true, false);
-    // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言は対局終了の通知で知らせる
+    const ShogiBoard* board = m_refs.gc ? m_refs.gc->board() : nullptr;
+    if (!board) {
+        handleNyugyokuDeclaration(declarer, true, false);
+        if (m_refs.gameOver->isOver && m_hooks.showGameOverDialog) {
+            m_hooks.showGameOverDialog(tr("対局終了"), resultMessage(m_refs.gameOver->lastInfo));
+        }
+        return;
+    }
+
+    // エンジンの入玉宣言（bestmove win）も人間の宣言と同じく、盤面から条件と点数を判定する。
+    // 条件を満たさなければ宣言したエンジンの負け、24点法の24〜30点は持将棋。
+    const NyugyokuJudgement::Result result =
+        NyugyokuJudgement::judgeEngineDeclaration(*board, declarer == Player::P1);
+    handleNyugyokuDeclaration(declarer, result.success, result.isDraw);
+    // 人間の宣言は宣言の結果ダイアログで知らせる。エンジンの宣言はここで判定結果を知らせる
     if (m_refs.gameOver->isOver && m_hooks.showGameOverDialog) {
-        m_hooks.showGameOverDialog(tr("対局終了"), resultMessage(m_refs.gameOver->lastInfo));
+        m_hooks.showGameOverDialog(NyugyokuJudgement::resultTitle(), result.message);
     }
 }
 

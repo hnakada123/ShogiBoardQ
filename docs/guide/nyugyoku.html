@@ -196,7 +196,7 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">棋譜への記録</span>
                 </div>
-                <p class="guide-step-text">宣言すると、棋譜欄に「▲入玉勝ち」（宣言失敗は「▲反則負け」、24点法の引き分けは「▲持将棋」）が記録されます。エンジンが入玉宣言した場合も同じように記録され、「対局終了」で結果が表示されます。CSA通信対局では宣言をサーバーへ送り、サーバーが判定します。</p>
+                <p class="guide-step-text">宣言すると、棋譜欄に「▲入玉勝ち」（宣言失敗は「▲反則負け」、24点法の引き分けは「▲持将棋」）が記録されます。エンジンが入玉宣言した場合も同じルールで判定して結果を表示し、条件を満たさなければ宣言したエンジンの負けになります（持将棋のルールが「なし」のときは27点法で判定します）。CSA通信対局では宣言をサーバーへ送り、サーバーが判定します。</p>
                 <div class="screenshot-item">
                     <img src="../images/nyugyoku/nyugyoku-finished.png" alt="入玉宣言後の画面">
                     <p class="screenshot-caption">宣言後：棋譜欄に「▲入玉勝ち」が記録される</p>

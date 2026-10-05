@@ -6,12 +6,9 @@
 #include "shogiboard.h"
 #include "shogigamecontroller.h"
 #include "matchcoordinator.h"
-#include "jishogicalculator.h"
-#include "enginemovevalidator.h"
+#include "nyugyokujudgement.h"
 #include "playmode.h"
-#include "settingscommon.h"
 
-#include <QSettings>
 #include <QMessageBox>
 
 namespace {
@@ -50,93 +47,6 @@ void NyugyokuDeclarationHandler::setMatchCoordinator(MatchCoordinator* match)
     m_match = match;
 }
 
-QString NyugyokuDeclarationHandler::buildConditionDetails(
-    bool kingInEnemyTerritory, int piecesInEnemyTerritory,
-    bool noCheck, int declarationPoints, int jishogiRule, bool isSente) const
-{
-    const QString checkMark = tr("○");
-    const QString crossMark = tr("×");
-
-    QString details = tr("【宣言条件の判定】\n"
-                          "① 玉が敵陣にいる: %1\n"
-                          "② 敵陣に10枚以上: %2 (%3枚)\n"
-                          "③ 王手がかかっていない: %4\n"
-                          "④ 宣言点数: %5点\n")
-        .arg(kingInEnemyTerritory ? checkMark : crossMark,
-             piecesInEnemyTerritory >= 10 ? checkMark : crossMark)
-        .arg(piecesInEnemyTerritory)
-        .arg(noCheck ? checkMark : crossMark,
-             QString::number(declarationPoints));
-
-    if (jishogiRule == 1) {
-        details += tr("\n【24点法】\n");
-    } else {
-        int requiredPoints = isSente ? 28 : 27;
-        details += tr("\n【27点法】\n");
-        details += tr("必要点数: %1点以上\n").arg(requiredPoints);
-    }
-
-    return details;
-}
-
-NyugyokuDeclarationHandler::DeclarationResult
-NyugyokuDeclarationHandler::judge24PointRule(
-    bool kingInEnemyTerritory, bool enoughPieces,
-    bool noCheck, int declarationPoints) const
-{
-    DeclarationResult result;
-
-    if (kingInEnemyTerritory && enoughPieces && noCheck) {
-        if (declarationPoints >= 31) {
-            result.success = true;
-            result.isDraw = false;
-            result.resultText = tr("宣言勝ち");
-            result.conditionDetails = tr("31点以上: 勝ち");
-        } else if (declarationPoints >= 24) {
-            result.success = true;
-            result.isDraw = true;
-            result.resultText = tr("持将棋（引き分け）");
-            result.conditionDetails = tr("24〜30点: 引き分け");
-        } else {
-            result.success = false;
-            result.resultText = tr("宣言失敗（負け）");
-            result.conditionDetails = tr("24点未満: 宣言失敗");
-        }
-    } else {
-        result.success = false;
-        result.resultText = tr("宣言失敗（負け）");
-        result.conditionDetails = tr("条件未達: 宣言失敗");
-    }
-
-    return result;
-}
-
-NyugyokuDeclarationHandler::DeclarationResult
-NyugyokuDeclarationHandler::judge27PointRule(
-    bool kingInEnemyTerritory, bool enoughPieces,
-    bool noCheck, int declarationPoints, bool isSente) const
-{
-    DeclarationResult result;
-    int requiredPoints = isSente ? 28 : 27;
-
-    if (kingInEnemyTerritory && enoughPieces && noCheck && declarationPoints >= requiredPoints) {
-        result.success = true;
-        result.isDraw = false;
-        result.resultText = tr("宣言勝ち");
-        result.conditionDetails = tr("条件達成: 勝ち");
-    } else {
-        result.success = false;
-        result.resultText = tr("宣言失敗（負け）");
-        if (!kingInEnemyTerritory || !enoughPieces || !noCheck) {
-            result.conditionDetails = tr("条件未達: 宣言失敗");
-        } else {
-            result.conditionDetails = tr("点数不足: 宣言失敗");
-        }
-    }
-
-    return result;
-}
-
 bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiBoard* board, int playMode)
 {
     // 対局中かどうかをチェック
@@ -159,11 +69,10 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
         return false;
     }
 
-    // 持将棋ルールの取得（QSettingsから読み込む）
-    QSettings settings(SettingsCommon::settingsFilePath(), QSettings::IniFormat);
-    int jishogiRule = settings.value("GameSettings/jishogiRule", 0).toInt();
+    // 持将棋ルール（対局ダイアログの設定）
+    const int jishogiRule = NyugyokuJudgement::configuredRule();
 
-    if (jishogiRule == 0) {
+    if (jishogiRule != NyugyokuJudgement::Rule24 && jishogiRule != NyugyokuJudgement::Rule27) {
         QMessageBox::warning(parentWidget, tr("入玉宣言"),
             tr("持将棋ルールが「なし」に設定されています。\n"
                "対局ダイアログで「24点法」または「27点法」を選択してください。"));
@@ -188,40 +97,8 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
         return false;
     }
 
-    // 盤面データと点数を計算
-    auto calcResult = JishogiCalculator::calculate(board->boardData(), board->pieceStand());
-
-    // 王手判定
-    EngineMoveValidator validator;
-    bool declarerInCheck = false;
-    const auto& score = isSenteTurn ? calcResult.sente : calcResult.gote;
-
-    if (isSenteTurn) {
-        declarerInCheck = validator.checkIfKingInCheck(EngineMoveValidator::BLACK, board->boardData()) > 0;
-    } else {
-        declarerInCheck = validator.checkIfKingInCheck(EngineMoveValidator::WHITE, board->boardData()) > 0;
-    }
-
-    // 宣言条件の判定
-    bool kingInEnemyTerritory = score.kingInEnemyTerritory;
-    bool enoughPieces = score.piecesInEnemyTerritory >= 10;
-    bool noCheck = !declarerInCheck;
-    int declarationPoints = score.declarationPoints;
-
-    // 条件詳細を生成
-    QString conditionDetails = buildConditionDetails(
-        kingInEnemyTerritory, score.piecesInEnemyTerritory,
-        noCheck, declarationPoints, jishogiRule, isSenteTurn);
-
-    // 結果の判定
-    DeclarationResult result;
-    if (jishogiRule == 1) {
-        result = judge24PointRule(kingInEnemyTerritory, enoughPieces, noCheck, declarationPoints);
-    } else {
-        result = judge27PointRule(kingInEnemyTerritory, enoughPieces, noCheck, declarationPoints, isSenteTurn);
-    }
-
-    conditionDetails += result.conditionDetails;
+    // 宣言条件と点数を盤面から判定する（エンジンの宣言と共通）
+    const NyugyokuJudgement::Result result = NyugyokuJudgement::judge(*board, isSenteTurn, jishogiRule);
 
     // 対局終了処理（MatchCoordinatorを使用）- 先に棋譜を更新
     if (m_match) {
@@ -230,10 +107,7 @@ bool NyugyokuDeclarationHandler::handleDeclaration(QWidget* parentWidget, ShogiB
     }
 
     // 結果ダイアログの表示
-    QString finalMessage = tr("%1の入玉宣言\n\n%2\n\n【結果】%3")
-        .arg(declarerName, conditionDetails, result.resultText);
-
-    QMessageBox::information(parentWidget, tr("入玉宣言結果"), finalMessage);
+    QMessageBox::information(parentWidget, NyugyokuJudgement::resultTitle(), result.message);
 
     return true;
 }

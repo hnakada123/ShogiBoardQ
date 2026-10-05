@@ -9,6 +9,8 @@
 #include "gameendhandler.h"
 #include "shogiclock.h"
 #include "shogigamecontroller.h"
+#include "shogiboard.h"
+#include "nyugyokujudgement.h"
 
 // ============================================================
 // テスト用トラッカー
@@ -39,6 +41,9 @@ void reset()
 }
 
 } // namespace EndTracker
+
+extern ShogiBoard* g_stubGameBoard;
+extern NyugyokuJudgement::Result g_stubNyugyokuResult;
 
 // ============================================================
 // テストハーネス
@@ -170,6 +175,8 @@ private slots:
     void handleNyugyokuDeclaration_fail_declarerLoses();
     void handleNyugyokuDeclaration_alreadyOver_ignored();
     void handleEngineWin_showsGameOverMessage();
+    void handleEngineWin_judgesDeclaration_data();
+    void handleEngineWin_judgesDeclaration();
     void appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime();
 
     // === Section E: 持将棋（最大手数） ===
@@ -379,6 +386,41 @@ void Tst_GameEndHandler::handleEngineWin_showsGameOverMessage()
     QVERIFY(EndTracker::showGameOverDialogCalled);
     QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("後手の入玉宣言")));
     QCOMPARE(EndTracker::events.count(QStringLiteral("save")), 1);
+}
+
+void Tst_GameEndHandler::handleEngineWin_judgesDeclaration_data()
+{
+    QTest::addColumn<bool>("success");
+    QTest::addColumn<bool>("isDraw");
+    QTest::addColumn<int>("cause");
+    QTest::addColumn<int>("loser");
+    // 後手のエンジン（idx=2）が宣言。失敗なら後手の反則負け、24点法の24〜30点は持将棋
+    QTest::newRow("win") << true << false << int(MatchCoordinator::Cause::NyugyokuWin) << int(MatchCoordinator::P1);
+    QTest::newRow("draw") << true << true << int(MatchCoordinator::Cause::Jishogi) << int(MatchCoordinator::P2);
+    QTest::newRow("fail") << false << false << int(MatchCoordinator::Cause::IllegalMove) << int(MatchCoordinator::P2);
+}
+
+void Tst_GameEndHandler::handleEngineWin_judgesDeclaration()
+{
+    QFETCH(bool, success);
+    QFETCH(bool, isDraw);
+    QFETCH(int, cause);
+    QFETCH(int, loser);
+    EndTestHarness h;
+    ShogiBoard board;
+    g_stubGameBoard = &board;
+    g_stubNyugyokuResult = {};
+    g_stubNyugyokuResult.success = success;
+    g_stubNyugyokuResult.isDraw = isDraw;
+    g_stubNyugyokuResult.message = QStringLiteral("判定の説明");
+    h.handler.handleEngineWin(2);
+    g_stubGameBoard = nullptr;
+
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(int(h.gameOver.lastInfo.cause), cause);
+    QCOMPARE(int(h.gameOver.lastInfo.loser), loser);
+    QCOMPARE(EndTracker::lastDialogTitle, QStringLiteral("入玉宣言結果"));
+    QCOMPARE(EndTracker::lastDialogMsg, QStringLiteral("判定の説明"));
 }
 
 void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime()
