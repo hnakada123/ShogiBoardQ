@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSA 网络对局 - ShogiBoardQ</title>
+    <meta name="description" content="图解 ShogiBoardQ 的 CSA 网络对局：连接 shogi-server、floodgate 等支持 CSA 协议的服务器，等待对手，对局中的操作，直至终局。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html">
+    <meta property="og:title" content="CSA 网络对局 - ShogiBoardQ">
+    <meta property="og:description" content="在 ShogiBoardQ 中连接支持 CSA 协议的服务器，以人类或 USI 引擎进行网络对局。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/csa-game/csa-03-playing.png">
+    <meta property="og:locale" content="zh_CN">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CSA 网络对局 - ShogiBoardQ">
+    <meta name="twitter:description" content="在 ShogiBoardQ 中连接支持 CSA 协议的服务器，以人类或 USI 引擎进行网络对局。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-cn/csa-game/csa-03-playing.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/csa-game.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="界面语言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>简体中文</span></summary>
+            <ul>
+                <li><a href="../../guide/csa-game.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/csa-game.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="csa-game.html" lang="zh-Hans" hreflang="zh-Hans" aria-current="page">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/csa-game.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="菜单" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首页</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#connection-setup">连接设置</a></li>
+            <li><a href="#waiting">连接与等待</a></li>
+            <li><a href="#playing">对局中</a></li>
+            <li><a href="#about-csa">支持的服务器</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>CSA 网络对局</h1>
+        <p class="hero-subtitle">与支持 CSA 协议的服务器进行网络对局</p>
+        <div class="hero-badges">
+            <span class="badge">CSA 协议 1.2.1</span>
+            <span class="badge">shogi-server</span>
+            <span class="badge">floodgate</span>
+        </div>
+        <p class="screenshot-note">截图在 Linux 上以简体中文界面拍摄。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="connection-setup" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">连接设置</h2>
+        <p class="section-desc">设置服务器和本方对局者</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">打开网络对局对话框</span>
+                </div>
+                <p class="guide-step-text">选择“对局”→“网络对局 (CSA)…”打开网络对局对话框。仅在没有进行对局或解析时可用。</p>
+                <table class="info-table">
+                    <tbody>
+                        <tr><td><strong>本方对局者</strong></td><td>自己下棋时选择“人类”，让 USI 引擎下棋时选择“引擎”。引擎从“设置”→“引擎设置”中注册的引擎里选择，点击“引擎设置...”可以更改选项。</td></tr>
+                        <tr><td><strong>从历史记录选择</strong></td><td>选择以前连接过的服务器（最多 10 个），会填入主机、端口和 ID。</td></tr>
+                        <tr><td><strong>协议</strong></td><td>使用 CSA 协议 1.2.1 连接。</td></tr>
+                        <tr><td><strong>主机、端口</strong></td><td>服务器的主机名或 IP 地址，以及端口（默认 4081）。</td></tr>
+                        <tr><td><strong>ID、密码</strong></td><td>登录服务器的 ID 和密码。密码不会保存到设置文件中。</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">有未填写的项目时，对话框下方会显示“请输入主机地址。”等提示，“连接”按钮无法点击。主机、ID 和密码中不能包含空格。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/csa-game/csa-01-dialog.png" alt="网络对局 (CSA) 对话框">
+                    <p class="screenshot-caption">网络对局对话框：以人类身份连接本机 shogi-server 的设置</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">shogi-server 的对局条件</span>
+                </div>
+                <p class="guide-step-text">用时等对局条件由服务器决定，ShogiBoardQ 中没有相应设置。使用 shogi-server 时，在密码栏输入“对局名,密码”，以相同对局名登录的两人进行对局。</p>
+                <table class="info-table">
+                    <tbody>
+                        <tr><td><strong>对局名</strong></td><td>格式为“名称-用时-读秒”，时间以秒为单位。例如 test-600-10 表示用时 10 分钟、读秒 10 秒</td></tr>
+                        <tr><td><strong>加时（费舍尔）</strong></td><td>在末尾加 F，则每走一步加时，而不是读秒。例如 test-300-10F</td></tr>
+                        <tr><td><strong>希望先手或后手</strong></td><td>在对局名后加 -B（先手）或 -W（后手）。例如 test-600-10-B,pw</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">在自己的电脑上运行 shogi-server 时，主机填 localhost，端口填 4081。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="waiting" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">连接与等待</h2>
+        <p class="section-desc">登录服务器并等待对手</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">连接服务器并等待</span>
+                </div>
+                <p class="guide-step-text">点击“连接”会打开等待窗口，依次进行连接服务器、登录和等待对手。如果有未保存的棋谱，会先确认是否放弃。</p>
+                <p class="guide-step-text">找到对手后，服务器发来对局条件，ShogiBoardQ 自动同意并开始对局。点击“取消对局”可以停止等待并注销。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/csa-game/csa-02-waiting.png" alt="等待对手的画面">
+                    <p class="screenshot-caption">等待画面：登录成功，正在等待对手</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">查看通信日志</span>
+                </div>
+                <p class="guide-step-text">点击“通信日志”会打开显示与服务器收发内容的窗口。▶ 表示接收的行，◀ 表示发送的行，LOGIN 的密码显示为“*****”。</p>
+                <p class="guide-step-text">连接期间可以在下方输入命令，按 Enter 或点击“发送”发给服务器。日志最多保留 5000 行。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/csa-game/csa-02-commlog.png" alt="CSA 日志窗口">
+                    <p class="screenshot-caption">通信日志：收到对局条件（Game_Summary）并以 AGREE 同意</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="playing" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">对局中</h2>
+        <p class="section-desc">在与普通对局相同的画面中下棋</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">对局中的画面</span>
+                </div>
+                <p class="guide-step-text">以人类身份对局时，轮到自己时点击棋盘上的棋子下棋。对手的着法由服务器发来并反映到棋盘上，棋谱栏记录每步着法和用时。对局时钟显示服务器发来的用时。</p>
+                <p class="guide-step-text">画面下方的“CSA 日志”标签页可以查看收发内容和连接状态。“复制”复制整个日志，“清空”清除显示，也可以从输入栏发送命令。“对局信息”标签页记录对局者姓名和服务器的用时。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-cn/csa-game/csa-03-playing.png" alt="网络对局中的画面">
+                    <p class="screenshot-caption">对局中：一边在 CSA 日志标签页查看与服务器的收发一边对局</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">用引擎对局</span>
+                </div>
+                <p class="guide-step-text">把本方对局者设为“引擎”后，引擎按服务器的用时自动下棋。思考、USI 日志和评价值图表也与普通对局一样显示。</p>
+                <p class="guide-step-text">选择“对局”→“立即落子”可以中止引擎的思考，让它下出当前的最佳着法。引擎认输时向服务器发送认输，引擎入玉宣言时向服务器发送宣言。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">认输、中断和入玉宣言</span>
+                </div>
+                <p class="guide-step-text">轮到自己时，选择“对局”菜单中的“认输”“中断”“入玉宣言”会发送给服务器。入玉宣言在确认后发送。对手回合时无法发送。</p>
+                <p class="guide-step-text">胜负、超时以及入玉宣言是否成立由服务器判定。即使画面上的时钟归零，在服务器通知终局前对局仍会继续。不支持中断的服务器（如 shogi-server）可能把中断判为犯规。</p>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">8</span>
+                    <span class="guide-step-title">终局</span>
+                </div>
+                <p class="guide-step-text">对局结束后会显示结果和原因，棋谱栏记录终局（如“▲认输”）。棋谱不会自动保存，需要保留时请从“文件”菜单保存。终局后可以回放棋谱，或开始下一局网络对局。</p>
+                <p class="guide-step-text">对局中断开连接，或引擎无法返回着法时，对局以“中断”结束。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-cn/csa-game/csa-04-game-end.png" alt="对局结束的提示">
+                    <p class="screenshot-caption">终局：结果“负”，原因“认输”</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 4 -->
+<section id="about-csa" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">支持的服务器</h2>
+        <p class="section-desc">可以在支持 CSA 协议的服务器上进行网络对局</p>
+
+        <div class="judgment-note">
+            <ul>
+                <li><strong>shogi-server</strong>：支持 CSA 协议的开源将棋服务器。也可以自己架设服务器进行对局。</li>
+                <li><strong>floodgate</strong>：基于 shogi-server 的电脑将棋在线对局场。全天候运行，有许多将棋引擎参加。</li>
+            </ul>
+        </div>
+
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

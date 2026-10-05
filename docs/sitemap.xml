@@ -40,6 +40,8 @@
     <loc>https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/csa-game.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -238,6 +240,8 @@
     <loc>https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/csa-game.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
@@ -537,7 +541,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cnguide/consideration.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/consideration.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/consideration.html" />
@@ -547,7 +551,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-twguide/consideration.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/consideration.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/consideration.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/consideration.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/consideration.html" />
@@ -557,7 +561,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cnguide/kifu-analysis.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-analysis.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-analysis.html" />
@@ -567,7 +571,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-twguide/kifu-analysis.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/kifu-analysis.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/kifu-analysis.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/kifu-analysis.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/kifu-analysis.html" />
@@ -577,7 +581,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cnguide/nyugyoku.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/nyugyoku.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/nyugyoku.html" />
@@ -587,7 +591,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-twguide/nyugyoku.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/nyugyoku.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/nyugyoku.html" />
@@ -597,7 +601,7 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cnguide/hayanagi.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html" />
@@ -607,12 +611,32 @@
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-twguide/hayanagi.html</loc>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/hayanagi.html</loc>
     <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html" />
     <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/hayanagi.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/hayanagi.html" />
     <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/hayanagi.html" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/hayanagi.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/csa-game.html</loc>
+    <xhtml:link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/csa-game.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/csa-game.html" />
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
