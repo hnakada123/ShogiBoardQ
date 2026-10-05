@@ -271,3 +271,35 @@ async def test_discard_to_sfen_resets_metadata_history(kifu_env, tmp_path):
         await ui.assert_button_disabled("Redo")
         assert await ui.rows() == []
         assert not await ui.dirty()
+
+
+@pytest.mark.parametrize("source", ["pasted_sfen", "handicap_record"])
+async def test_current_position_game_keeps_record_start(kifu_env, tmp_path, source):
+    # A pasted position or a loaded handicap record keeps its start position (and earlier moves)
+    # when a game starts from the current position.
+    async with mcp_session(kifu_env) as session:
+        ui = GameInfoUi(session, tmp_path)
+        if source == "pasted_sfen":
+            start = "4k4/9/9/9/9/9/9/9/4K4 b G 1"
+            await ui.call("set_position", sfen=start)
+            ply, current = 0, start
+        else:
+            await ui.call("load_kifu", path=str(FIXTURES / "test_handicap_2piece.csa"))
+            start = (await ui.call("goto_ply", ply=0))["sfen"]
+            ply = 2
+            current = (await ui.call("goto_ply", ply=ply))["sfen"]
+        await ui.call("trigger_action", name="actionStartGame")
+        await ui.dialog("対局")
+        for widget in ("comboBoxPlayer1", "comboBoxPlayer2", "comboBoxStartingPosition"):
+            await ui.call("set_widget_value", target="StartGameDialog", widget=widget, value=0)
+        await ui.call("click_dialog_button", dialog="StartGameDialog", text="対局開始")
+        state = await ui.wait("get_app_state", lambda d: d["ui_state"] == "game")
+        assert (state["current_ply"], state["sfen"]) == (ply, current)
+        await ui.call("trigger_action", name="actionBreakOffGame")
+        state = await ui.wait("get_app_state", lambda d: d["ui_state"] == "idle" or d["dialogs"])
+        for window in (await ui.call("list_dialogs"))["windows"]:
+            if window["class"] == "QMessageBox":
+                await ui.call("close_dialog", dialog=window["selector"])
+        await ui.wait("get_app_state", lambda d: d["ui_state"] == "idle")
+        assert (await ui.call("goto_ply", ply=0))["sfen"] == start
+        assert (await ui.call("get_app_state"))["total_plies"] == ply + 1
