@@ -5,6 +5,11 @@
 #include "sfencollectiondialog.h"
 
 #include <QtTest>
+#include <QAbstractButton>
+#include <QApplication>
+#include <QLabel>
+#include <QMessageBox>
+#include <QPushButton>
 #include <QSignalSpy>
 #include <QTemporaryFile>
 #include <QTextStream>
@@ -34,6 +39,16 @@ private:
         out.flush();
         tmp.close();
         return dlg.loadFromFile(tmp.fileName());
+    }
+
+    /// loadFromFile が出すエラーのメッセージボックスを記録して閉じる
+    QString m_messageText;
+    void closeMessageBox()
+    {
+        auto* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+        if (!box) return;
+        m_messageText = box->text();
+        box->buttons().constFirst()->click();
     }
 
 private slots:
@@ -105,6 +120,49 @@ private slots:
         QCOMPARE(dlg.m_sfenList.size(), 1);
     }
 
+    void parseSfenLines_usiPositionCommands_applyMoves()
+    {
+        SfenCollectionDialog dlg;
+        // startpos と USI の position コマンドは moves を指した後の局面にする
+        const int skipped = dlg.parseSfenLines(QStringLiteral(
+            "startpos\n"
+            "position startpos moves 7g7f 3c3d\n"
+            "position sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL w - 2 moves 3c3d\n"));
+        QCOMPARE(skipped, 0);
+        QCOMPARE(dlg.m_sfenList, QList<QString>({
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+            QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3"),
+            QStringLiteral("lnsgkgsnl/1r5b1/pppppp1pp/6p2/9/2P6/PP1PPPPPP/1B5R1/LNSGKGSNL b - 3"),
+        }));
+    }
+
+    void parseSfenLines_sfenWithSolution_keepsProblemPosition()
+    {
+        SfenCollectionDialog dlg;
+        // 詰将棋局面生成が手順を含めて保存した行（SFEN の後に moves と解答手順）は SFEN の局面にする
+        const int skipped = dlg.parseSfenLines(QStringLiteral(
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 7g7f 3c3d\n"
+            "sfen lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1 moves 2g2f\n"));
+        QCOMPARE(skipped, 0);
+        QCOMPARE(dlg.m_sfenList, QList<QString>({
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+            QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1"),
+        }));
+    }
+
+    void parseSfenLines_unreadablePositions_skippedAndCounted()
+    {
+        SfenCollectionDialog dlg;
+        // 4語以上でも局面として読めない行（駒の記号・手番の誤り、指せない手）は数えて飛ばす
+        const int skipped = dlg.parseSfenLines(QStringLiteral(
+            "abc def ghi jkl\n"
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL x - 1\n"
+            "position startpos moves 7g7e\n"
+            "lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL b - 1\n"));
+        QCOMPARE(skipped, 3);
+        QCOMPARE(dlg.m_sfenList.size(), 1);
+    }
+
     void parseSfenLines_commentLines_skipped()
     {
         SfenCollectionDialog dlg;
@@ -134,7 +192,39 @@ private slots:
     void loadFromFile_emptyFile_returnsFalse()
     {
         SfenCollectionDialog dlg;
+        m_messageText.clear();
+        QTimer::singleShot(0, this, &TestSfenCollection::closeMessageBox);
         QVERIFY(!loadTextViaFile(dlg, QString()));
+        QVERIFY(m_messageText.contains(QStringLiteral("局面がありません")));
+    }
+
+    void loadFromFile_noPositions_keepsCurrentCollection()
+    {
+        SfenCollectionDialog dlg;
+        QVERIFY(loadTextViaFile(dlg, validSfenText()));
+        dlg.onGoForward();
+        const QString fileText = dlg.m_fileLabel->text();
+
+        // 局面が1つもないファイルは、知らせたうえで表示中の局面集を残す
+        m_messageText.clear();
+        QTimer::singleShot(0, this, &TestSfenCollection::closeMessageBox);
+        QVERIFY(!loadTextViaFile(dlg, QStringLiteral("hello\nworld\n")));
+        QVERIFY(!m_messageText.isEmpty());
+        QCOMPARE(dlg.m_sfenList.size(), 3);
+        QCOMPARE(dlg.m_currentIndex, 1);
+        QCOMPARE(dlg.m_fileLabel->text(), fileText);
+        QVERIFY(dlg.m_btnSelect->isEnabled());
+    }
+
+    void loadFromFile_skippedLines_shownWithFileName()
+    {
+        SfenCollectionDialog dlg;
+        QVERIFY(loadTextViaFile(dlg, validSfenText() + QStringLiteral("abc def ghi jkl\n")));
+        QCOMPARE(dlg.m_sfenList.size(), 3);
+        QVERIFY(dlg.m_fileLabel->text().contains(QStringLiteral("読めない 1 行を飛ばしました")));
+
+        QVERIFY(loadTextViaFile(dlg, validSfenText()));
+        QVERIFY(!dlg.m_fileLabel->text().contains(QStringLiteral("飛ばしました")));
     }
 
     // ── ナビゲーションテスト ─────────────────────────────

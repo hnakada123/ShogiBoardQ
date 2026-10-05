@@ -67,8 +67,8 @@ private:
     void buildUi();
     /// ファイルを読み込み、行ごとにパースしてm_sfenListを構築
     bool loadFromFile(const QString& filePath);
-    /// テキストを行ごとにパースしてm_sfenListを構築
-    void parseSfenLines(const QString& text);
+    /// テキストを行ごとにパースしてm_sfenListを構築し、局面として読めなかった行の数を返す
+    int parseSfenLines(const QString& text);
     /// 盤面を現在のインデックスで更新
     void updateBoardDisplay();
     /// ボタンの有効/無効を更新

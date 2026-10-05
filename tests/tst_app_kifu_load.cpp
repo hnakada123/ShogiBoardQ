@@ -599,6 +599,20 @@ private slots:
         QVERIFY2(clearIdx > loadIdx, "Target must be cleared after a successful load");
     }
 
+    /// onSfenCollectionPositionSelected は反映した局面を未保存扱いにしないこと
+    /// （局面集から続けて別の局面を選ぶたびに保存の確認が出ないように）
+    void onSfenPositionSelected_doesNotMarkDirty()
+    {
+        const QStringList& lines = kfcLines();
+        const auto range = findFunctionBody(
+            lines, QStringLiteral("KifuFileController::onSfenCollectionPositionSelected"));
+        QVERIFY2(range.first >= 0, "onSfenCollectionPositionSelected not found");
+
+        const QString body = bodyText(lines, range);
+        QVERIFY2(!body.contains(QStringLiteral("markDirty")),
+                  "A position picked from the SFEN collection is still in the collection file");
+    }
+
     /// onSfenCollectionPositionSelected がステータスバーを更新すること
     void onSfenPositionSelected_updatesStatusBar()
     {

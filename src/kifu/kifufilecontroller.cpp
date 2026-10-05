@@ -179,12 +179,11 @@ void KifuFileController::onSfenCollectionPositionSelected(const QString& sfen)
     auto* klc = m_deps.getKifuLoadCoordinator ? m_deps.getKifuLoadCoordinator() : nullptr;
     if (klc) {
         const bool success = klc->loadPositionFromSfen(sfen);
-        // 局面集から反映した局面はファイル由来ではないので、以前のファイルへ上書きさせない
+        // 局面集から反映した局面は棋譜ファイル由来ではないので、以前のファイルへ上書きさせない。
+        // 局面そのものは局面集ファイルに残っているため未保存扱いにはせず、続けて別の局面を
+        // 選んでも保存の確認を出さない（反映後に指し手を進めた場合は通常どおり確認する）
         if (success) {
             clearOverwriteTarget();
-            if (auto* record = m_deps.getGameRecordModel ? m_deps.getGameRecordModel() : nullptr) {
-                record->markDirty();
-            }
         }
         if (m_deps.statusBar) {
             if (success) {
