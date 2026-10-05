@@ -81,22 +81,22 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">開啟網路對局對話框</span>
+                    <span class="guide-step-title">開啟網路對局對話方塊</span>
                 </div>
-                <p class="guide-step-text">選擇「對局」→「網絡對局 (CSA)…」開啟網路對局對話框。僅在沒有進行對局或解析時可用。</p>
+                <p class="guide-step-text">選擇「對局」→「網路對局 (CSA)…」開啟網路對局對話方塊。僅在沒有進行對局或解析時可用。</p>
                 <table class="info-table">
                     <tbody>
-                        <tr><td><strong>本方對局者</strong></td><td>自己下棋時選擇「人類」，讓 USI 引擎下棋時選擇「引擎」。引擎從「設置」→「引擎設置」中註冊的引擎裡選擇，按一下「引擎設置...」可以變更選項。</td></tr>
+                        <tr><td><strong>本方對局者</strong></td><td>自己下棋時選擇「人類」，讓 USI 引擎下棋時選擇「引擎」。引擎從「設定」→「引擎設定」中註冊的引擎裡選擇，按一下「引擎設定...」可以變更選項。</td></tr>
                         <tr><td><strong>從歷史記錄選擇</strong></td><td>選擇以前連線過的伺服器（最多 10 個），會填入主機、連接埠和 ID。</td></tr>
-                        <tr><td><strong>協議</strong></td><td>使用 CSA 協定 1.2.1 連線。</td></tr>
-                        <tr><td><strong>主機、端口</strong></td><td>伺服器的主機名稱或 IP 位址，以及連接埠（預設 4081）。</td></tr>
+                        <tr><td><strong>協定</strong></td><td>使用 CSA 協定 1.2.1 連線。</td></tr>
+                        <tr><td><strong>主機、連接埠</strong></td><td>伺服器的主機名稱或 IP 位址，以及連接埠（預設 4081）。</td></tr>
                         <tr><td><strong>ID、密碼</strong></td><td>登入伺服器的 ID 與密碼。密碼不會儲存到設定檔中。</td></tr>
                     </tbody>
                 </table>
-                <p class="guide-step-text">有未填寫的項目時，對話框下方會顯示「請輸入主機地址。」等提示，「連接」按鈕無法按下。主機、ID 與密碼中不能包含空格。</p>
+                <p class="guide-step-text">有未填寫的項目時，對話方塊下方會顯示「請輸入主機位址。」等提示，「連線」按鈕無法按下。主機、ID 與密碼中不能包含空格。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/csa-game/csa-01-dialog.png" alt="網絡對局 (CSA) 對話框">
-                    <p class="screenshot-caption">網路對局對話框：以人類身分連線到本機 shogi-server 的設定</p>
+                    <img src="../../images/zh-tw/csa-game/csa-01-dialog.png" alt="網路對局 (CSA) 對話方塊">
+                    <p class="screenshot-caption">網路對局對話方塊：以人類身分連線到本機 shogi-server 的設定</p>
                 </div>
             </div>
 
@@ -133,7 +133,7 @@
                     <span class="guide-step-number">3</span>
                     <span class="guide-step-title">連線到伺服器並等待</span>
                 </div>
-                <p class="guide-step-text">按一下「連接」會開啟等待視窗，依序進行連線伺服器、登入與等待對手。如果有未儲存的棋譜，會先確認是否捨棄。</p>
+                <p class="guide-step-text">按一下「連線」會開啟等待視窗，依序進行連線伺服器、登入與等待對手。如果有未儲存的棋譜，會先確認是否捨棄。</p>
                 <p class="guide-step-text">找到對手後，伺服器送來對局條件，ShogiBoardQ 自動同意並開始對局。按一下「取消對局」可以停止等待並登出。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/csa-game/csa-02-waiting.png" alt="等待對手的畫面">
@@ -144,13 +144,13 @@
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">4</span>
-                    <span class="guide-step-title">查看通信日誌</span>
+                    <span class="guide-step-title">查看通訊記錄</span>
                 </div>
-                <p class="guide-step-text">按一下「通信日誌」會開啟顯示與伺服器收發內容的視窗。▶ 表示接收的行，◀ 表示傳送的行，LOGIN 的密碼顯示為「*****」。</p>
-                <p class="guide-step-text">連線期間可以在下方輸入命令，按 Enter 或按一下「發送」傳給伺服器。日誌最多保留 5000 行。</p>
+                <p class="guide-step-text">按一下「通訊記錄」會開啟顯示與伺服器收發內容的視窗。▶ 表示接收的行，◀ 表示傳送的行，LOGIN 的密碼顯示為「*****」。</p>
+                <p class="guide-step-text">連線期間可以在下方輸入指令，按 Enter 或按一下「傳送」傳給伺服器。記錄最多保留 5000 行。</p>
                 <div class="screenshot-item screenshot-item--compact">
-                    <img src="../../images/zh-tw/csa-game/csa-02-commlog.png" alt="CSA 日誌視窗">
-                    <p class="screenshot-caption">通信日誌：收到對局條件（Game_Summary）並以 AGREE 同意</p>
+                    <img src="../../images/zh-tw/csa-game/csa-02-commlog.png" alt="CSA 記錄視窗">
+                    <p class="screenshot-caption">通訊記錄：收到對局條件（Game_Summary）並以 AGREE 同意</p>
                 </div>
             </div>
 
@@ -172,10 +172,10 @@
                     <span class="guide-step-title">對局中的畫面</span>
                 </div>
                 <p class="guide-step-text">以人類身分對局時，輪到自己時按一下棋盤上的棋子下棋。對手的著法由伺服器送來並反映到棋盤上，棋譜欄記錄每步著法與用時。對局時鐘顯示伺服器送來的用時。</p>
-                <p class="guide-step-text">畫面下方的「CSA 日誌」分頁可以查看收發內容與連線狀態。「複製」複製整個日誌，「清空」清除顯示，也可以從輸入欄傳送命令。「對局信息」分頁記錄對局者姓名與伺服器的用時。</p>
+                <p class="guide-step-text">畫面下方的「CSA 記錄」分頁可以查看收發內容與連線狀態。「複製」複製整個記錄，「清除」清除顯示，也可以從輸入欄傳送指令。「對局資訊」分頁記錄對局者姓名與伺服器的用時。</p>
                 <div class="screenshot-item">
                     <img src="../../images/zh-tw/csa-game/csa-03-playing.png" alt="網路對局中的畫面">
-                    <p class="screenshot-caption">對局中：一邊在 CSA 日誌分頁查看與伺服器的收發一邊對局</p>
+                    <p class="screenshot-caption">對局中：一邊在 CSA 記錄分頁查看與伺服器的收發一邊對局</p>
                 </div>
             </div>
 
@@ -184,8 +184,8 @@
                     <span class="guide-step-number">6</span>
                     <span class="guide-step-title">用引擎對局</span>
                 </div>
-                <p class="guide-step-text">把本方對局者設為「引擎」後，引擎依伺服器的用時自動下棋。思考、USI 日誌與評價值圖表也與一般對局一樣顯示。</p>
-                <p class="guide-step-text">選擇「對局」→「立即落子」可以中止引擎的思考，讓它下出當前的最佳著法。引擎認輸時向伺服器傳送認輸，引擎入玉宣言時向伺服器傳送宣言。</p>
+                <p class="guide-step-text">把本方對局者設為「引擎」後，引擎依伺服器的用時自動下棋。思考、USI 記錄與評價值圖表也與一般對局一樣顯示。</p>
+                <p class="guide-step-text">選擇「對局」→「立即落子」可以中止引擎的思考，讓它下出目前的最佳著法。引擎認輸時向伺服器傳送認輸，引擎入玉宣言時向伺服器傳送宣言。</p>
             </div>
 
             <div class="guide-step">
@@ -202,7 +202,7 @@
                     <span class="guide-step-number">8</span>
                     <span class="guide-step-title">終局</span>
                 </div>
-                <p class="guide-step-text">對局結束後會顯示結果與原因，棋譜欄記錄終局（如「▲認輸」）。棋譜不會自動儲存，需要保留時請從「文件」選單儲存。終局後可以重播棋譜，或開始下一局網路對局。</p>
+                <p class="guide-step-text">對局結束後會顯示結果與原因，棋譜欄記錄終局（如「▲認輸」）。棋譜不會自動儲存，需要保留時請從「檔案」選單儲存。終局後可以重播棋譜，或開始下一局網路對局。</p>
                 <p class="guide-step-text">對局中斷線，或引擎無法回傳著法時，對局以「中斷」結束。</p>
                 <div class="screenshot-item screenshot-item--compact">
                     <img src="../../images/zh-tw/csa-game/csa-04-game-end.png" alt="對局結束的提示">
