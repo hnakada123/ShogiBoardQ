@@ -2,6 +2,7 @@
 /// @brief ドックレイアウト管理クラスの実装
 
 #include "dialogfontscale.h"
+#include "dialogutils.h"
 #include "docklayoutmanager.h"
 #include "docksettings.h"
 
@@ -155,11 +156,9 @@ void DockLayoutManager::saveLayoutAs()
     // 既存のレイアウトがあれば上書き確認
     QStringList existingNames = DockSettings::savedDockLayoutNames();
     if (existingNames.contains(name)) {
-        QMessageBox::StandardButton reply = QMessageBox::question(m_mainWindow,
-            tr("確認"),
-            tr("「%1」は既に存在します。上書きしますか？").arg(name),
-            QMessageBox::Yes | QMessageBox::No);
-        if (reply != QMessageBox::Yes) {
+        if (!DialogUtils::confirmAction(m_mainWindow, tr("確認"),
+                                        tr("「%1」は既に存在します。上書きしますか？").arg(name),
+                                        tr("上書きする"))) {
             return;
         }
     }
@@ -197,12 +196,8 @@ void DockLayoutManager::deleteLayout(const QString& name)
 {
     if (!m_mainWindow) return;
 
-    QMessageBox::StandardButton reply = QMessageBox::question(m_mainWindow,
-        tr("確認"),
-        tr("レイアウト「%1」を削除しますか？").arg(name),
-        QMessageBox::Yes | QMessageBox::No);
-
-    if (reply == QMessageBox::Yes) {
+    if (DialogUtils::confirmAction(m_mainWindow, tr("確認"),
+                                   tr("レイアウト「%1」を削除しますか？").arg(name), tr("削除する"))) {
         DockSettings::deleteDockLayout(name);
         updateSavedLayoutsMenu();
     }

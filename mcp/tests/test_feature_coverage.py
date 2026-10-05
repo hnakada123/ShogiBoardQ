@@ -225,9 +225,9 @@ async def test_menu_customization_and_saved_layouts(coverage_env):
         delete = next(item for item in layout["items"] if item["text"] == "削除")
         await ui.call("select_menu_action", widget="menuSavedLayouts", path=[layout["index"], delete["index"]])
         question = await ui.dialog("QMessageBox")
-        # Qt's native standard button text varies with the installed Qt translations.
+        # Confirmations name the action instead of Yes/No (KDE does not translate Yes/No).
         buttons = await ui.widgets(question)
-        yes = next(w for w in buttons if w["class"] == "QPushButton" and w.get("text") in ("&Yes", "Yes", "はい(&Y)"))
+        yes = next(w for w in buttons if w["class"] == "QPushButton" and w.get("text") == "削除する")
         await ui.call("click_widget", target=question, widget=yes["selector"])
         assert all("MCP配置" not in i["text"] for i in (await ui.call("list_menu_actions", widget="menuSavedLayouts"))["items"])
 
@@ -278,7 +278,7 @@ async def test_joseki_add_edit_save_delete_and_merge(coverage_env, tmp_path):
         assert "7g7f" in book.read_text()
         await ui.click("削除", root="JosekiWindowDock")
         question = await ui.dialog("QMessageBox")
-        yes = next(w for w in await ui.widgets(question) if w["class"] == "QPushButton" and w.get("text") in ("&Yes", "Yes", "はい(&Y)"))
+        yes = next(w for w in await ui.widgets(question) if w["class"] == "QPushButton" and w.get("text") == "削除する")
         await ui.call("click_widget", target=question, widget=yes["selector"])
         assert (await ui.read("josekiTable"))["row_count"] == 0
         await ui.click("保存", root="JosekiWindowDock")

@@ -1,6 +1,7 @@
 #ifndef DIALOGUTILS_H
 #define DIALOGUTILS_H
 
+#include <QMessageBox>
 #include <QSize>
 #include <QWidget>
 #include <functional>
@@ -26,6 +27,12 @@ void standardizeDialog(QWidget* dialog);
 
 /// 折り返しラベルの必要な高さを確保し、内容の重なりを防ぐ。
 void fitWrappedLabels(QWidget* dialog);
+
+/// 確認を、実行する操作名のボタンと「キャンセル」で尋ねる。操作を選んだときだけ true を返す。
+/// KDE（KF6）では Yes/No の訳がなく、日本語の画面でも英語のまま表示されるため使わない。
+/// 操作のボタンは QMessageBox::Yes、既定のボタンと Esc はキャンセル。
+bool confirmAction(QWidget* parent, const QString& title, const QString& text,
+                   const QString& actionText, QMessageBox::Icon icon = QMessageBox::Question);
 
 } // namespace DialogUtils
 

@@ -98,4 +98,14 @@ void fitWrappedLabels(QWidget* dialog)
     dialog->resize(dialog->size().expandedTo(dialog->minimumSizeHint()));
 }
 
+bool confirmAction(QWidget* parent, const QString& title, const QString& text,
+                   const QString& actionText, QMessageBox::Icon icon)
+{
+    QMessageBox box(icon, title, text, QMessageBox::Yes | QMessageBox::Cancel, parent);
+    box.button(QMessageBox::Yes)->setText(actionText);
+    box.setDefaultButton(QMessageBox::Cancel);
+    box.setEscapeButton(QMessageBox::Cancel);
+    return box.exec() == QMessageBox::Yes;
+}
+
 } // namespace DialogUtils

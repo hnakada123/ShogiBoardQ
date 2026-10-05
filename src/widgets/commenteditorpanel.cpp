@@ -2,6 +2,7 @@
 /// @brief 棋譜コメント編集パネルクラスの実装
 
 #include "commenteditorpanel.h"
+#include "dialogutils.h"
 #include "buttonstyles.h"
 #include "gamesettings.h"
 #include "logcategories.h"
@@ -161,18 +162,16 @@ bool CommentEditorPanel::confirmDiscardUnsavedComment()
     // 親ウィジェットをQTextEditから取得
     QWidget* parentWidget = m_comment ? m_comment->window() : nullptr;
 
-    QMessageBox::StandardButton reply = QMessageBox::warning(
+    const bool discard = DialogUtils::confirmAction(
         parentWidget,
         tr("未保存のコメント"),
         tr("コメントが編集されていますが、まだ更新されていません。\n"
            "変更を破棄して移動しますか？"),
-        QMessageBox::Yes | QMessageBox::No,
-        QMessageBox::No
-    );
+        tr("破棄して移動"), QMessageBox::Warning);
 
-    qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: reply=" << reply;
+    qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: discard=" << discard;
 
-    if (reply == QMessageBox::Yes) {
+    if (discard) {
         m_isCommentDirty = false;
         updateEditingIndicator();
         qCDebug(lcUi).noquote() << "[CommentEditorPanel] confirmDiscardUnsavedComment: user chose Yes, returning true";
