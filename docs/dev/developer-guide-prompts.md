@@ -326,7 +326,6 @@ docs/dev/developer-guide.md に第11章「views/widgets/dialogs層：Qt UI部品
 - src/widgets/branchtreewidget.h
 - src/widgets/gameinfopanecontroller.h
 - src/dialogs/startgamedialog.h
-- src/dialogs/considerationdialog.h
 
 記述してほしい内容:
 - ShogiView: QGraphicsViewベースの描画、レンダリングレイヤー順序（背景→盤→駒→ハイライト→矢印→駒台→ラベル）、主要メソッド

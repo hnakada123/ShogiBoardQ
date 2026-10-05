@@ -26,7 +26,6 @@
 #include "dialogfontscale.h"
 #include "boardcolordialog.h"
 #include "changeenginesettingsdialog.h"
-#include "considerationdialog.h"
 #include "csagamedialog.h"
 #include "csawaitingdialog.h"
 #include "engineregistrationdialog.h"
@@ -80,7 +79,6 @@ class TestDialogAppearance : public QObject
             dialog->setupEngineOptionsDialog();
             return dialog;
         }
-        if (name == QLatin1String("consideration")) return std::make_unique<ConsiderationDialog>();
         if (name == QLatin1String("csaGame")) return std::make_unique<CsaGameDialog>();
         if (name == QLatin1String("csaWaiting")) return std::make_unique<CsaWaitingDialog>(nullptr);
         if (name == QLatin1String("engines")) return std::make_unique<EngineRegistrationDialog>();
@@ -139,7 +137,7 @@ private slots:
     {
         QTest::addColumn<QString>("name");
         QTest::addColumn<bool>("english");
-        for (const auto* name : {"boardColors", "engineOptions", "consideration", "csaGame", "csaWaiting", "engines",
+        for (const auto* name : {"boardColors", "engineOptions", "csaGame", "csaWaiting", "engines",
              "fontSettings", "jishogi", "josekiMerge", "josekiMove", "analysis", "paste", "sound", "promotion",
              "pv", "sfen", "startGame", "tsumeCollection", "tsumePlay", "generator", "tsumeSearch", "version", "input"}) {
             for (bool english : {false, true})

@@ -1181,95 +1181,76 @@
 <context>
     <name>ConsiderationDialog</name>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="14"/>
         <source>検討</source>
-        <translation>研究</translation>
+        <translation type="vanished">研究</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="20"/>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="38"/>
         <source>エンジン設定</source>
-        <translation>引擎設置</translation>
+        <translation type="vanished">引擎設置</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="63"/>
         <source>思考時間</source>
-        <translation>思考時間</translation>
+        <translation type="vanished">思考時間</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="71"/>
         <source>時間無制限</source>
-        <translation>不限時</translation>
+        <translation type="vanished">不限時</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="95"/>
         <source>検討時間</source>
-        <translation>研究時間</translation>
+        <translation type="vanished">研究時間</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="112"/>
         <source>秒まで</source>
-        <translation>秒</translation>
+        <translation type="vanished">秒</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="137"/>
         <source>候補手</source>
-        <translation>候選著法</translation>
+        <translation type="vanished">候選著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="145"/>
         <source>候補手の数</source>
-        <translation>候選著法</translation>
+        <translation type="vanished">候選著法</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="161"/>
         <source>評価値が大きい順に表示する候補手の数を指定します</source>
-        <translation>指定按評價值從高到低顯示的候選著法數量</translation>
+        <translation type="vanished">指定按評價值從高到低顯示的候選著法數量</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="168"/>
         <source>手</source>
-        <translation>手</translation>
+        <translation type="vanished">手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="208"/>
         <source>A-</source>
-        <translation>A-</translation>
+        <translation type="vanished">A-</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="211"/>
         <source>フォントサイズを小さくする</source>
-        <translation>縮小字號</translation>
+        <translation type="vanished">縮小字號</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="230"/>
         <source>A+</source>
-        <translation>A+</translation>
+        <translation type="vanished">A+</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.ui" line="233"/>
         <source>フォントサイズを大きくする</source>
-        <translation>放大字號</translation>
+        <translation type="vanished">放大字號</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.cpp" line="48"/>
         <source>検討開始</source>
-        <translation>開始研究</translation>
+        <translation type="vanished">開始研究</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.cpp" line="58"/>
         <source>使用できるエンジンがありません。「設定」→「エンジン設定」で登録してください。</source>
-        <translation>沒有可用引擎。請在“設置 → 引擎設置”中注冊。</translation>
+        <translation type="vanished">沒有可用引擎。請在“設置 → 引擎設置”中注冊。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.cpp" line="110"/>
         <source>将棋エンジンが選択されていません。</source>
-        <translation>尚未選擇將棋引擎。</translation>
+        <translation type="vanished">尚未選擇將棋引擎。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/considerationdialog.cpp" line="111"/>
         <source>エラー</source>
-        <translation>錯誤</translation>
+        <translation type="vanished">錯誤</translation>
     </message>
 </context>
 <context>
@@ -1379,16 +1360,19 @@
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="267"/>
         <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="156"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="363"/>
         <source>検討開始</source>
         <translation>開始研究</translation>
     </message>
     <message>
+        <location filename="../../src/widgets/considerationtabmanager.cpp" line="268"/>
         <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="157"/>
         <source>検討を開始します</source>
         <translation>開始分析</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="259"/>
+        <location filename="../../src/widgets/considerationtabmanager_ui.cpp" line="363"/>
         <source>検討中止</source>
         <translation>停止</translation>
     </message>
@@ -1398,9 +1382,8 @@
         <translation>停止研究並關閉引擎</translation>
     </message>
     <message>
-        <location filename="../../src/widgets/considerationtabmanager.cpp" line="268"/>
         <source>検討ダイアログを開いて検討を開始します</source>
-        <translation>打開研究對話框並開始分析</translation>
+        <translation type="vanished">打開研究對話框並開始分析</translation>
     </message>
     <message>
         <location filename="../../src/widgets/considerationtabmanager.cpp" line="330"/>
@@ -6171,12 +6154,12 @@ OKを選択すると保存先が指定できます。</source>
 <context>
     <name>PlayerInfoController</name>
     <message>
-        <location filename="../../src/ui/controllers/playerinfocontroller.cpp" line="102"/>
+        <location filename="../../src/ui/controllers/playerinfocontroller.cpp" line="123"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/ui/controllers/playerinfocontroller.cpp" line="103"/>
+        <location filename="../../src/ui/controllers/playerinfocontroller.cpp" line="124"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
