@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>入玉宣言 - ShogiBoardQ</title>
+    <meta name="description" content="介紹 ShogiBoardQ 的入玉宣言：確認持將棋點數與宣言條件，並依 24 點法或 27 點法進行入玉宣言。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/nyugyoku.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/nyugyoku.html">
+    <meta property="og:title" content="入玉宣言 - ShogiBoardQ">
+    <meta property="og:description" content="在 ShogiBoardQ 中確認持將棋點數與宣言條件，並依 24 點法或 27 點法進行入玉宣言。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/nyugyoku/jishogi-points.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="入玉宣言 - ShogiBoardQ">
+    <meta name="twitter:description" content="在 ShogiBoardQ 中確認持將棋點數與宣言條件，並依 24 點法或 27 點法進行入玉宣言。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/nyugyoku/jishogi-points.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/nyugyoku.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/nyugyoku.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/nyugyoku.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="nyugyoku.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#jishogi-points">持將棋點數</a></li>
+            <li><a href="#nyugyoku-declaration">入玉宣言</a></li>
+            <li><a href="#nyugyoku-result">宣言結果</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>入玉宣言</h1>
+        <p class="hero-subtitle">確認持將棋點數並判定入玉宣言</p>
+        <div class="hero-badges">
+            <span class="badge">持將棋點數</span>
+            <span class="badge">24 點法</span>
+            <span class="badge">27 點法</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="jishogi-points" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">確認持將棋點數</h2>
+        <p class="section-desc">確認目前顯示局面的點數與宣言條件</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">入玉的局面</span>
+                </div>
+                <p class="guide-step-text">雙方的王都進入對方陣地（入玉）後，就很難透過將死取勝。在這樣的局面中，可以確認持將棋點數並進行入玉宣言。本例中先手的王在２二，後手的王已進入５八。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/nyugyoku/nyugyoku-position.png" alt="入玉的局面">
+                    <p class="screenshot-caption">入玉的局面：先手在敵陣有 15 枚棋子，加上持駒共 28 點</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">確認持將棋點數</span>
+                </div>
+                <p class="guide-step-text">選擇「對局」→「持將棋點數」，即可顯示在目前局面中先手、後手各自進行入玉宣言時的判定。不在對局中時也可以使用。</p>
+                <ul class="guide-step-text">
+                    <li>宣言點數：在敵陣中的己方棋子與持駒的點數。飛車、角行（龍、馬）為 5 點，其他為 1 點，王不計入</li>
+                    <li>總點數：盤上全部己方棋子與持駒的點數</li>
+                    <li>宣言條件：王在敵陣中、敵陣中除王以外的棋子在 10 枚以上、沒有被將軍</li>
+                    <li>現在依 24 點法、27 點法宣言時的判定。條件或點數不足時，顯示還需要多少點</li>
+                </ul>
+                <p class="guide-step-text">按一下「複製結果」可將內容複製到剪貼簿。敵陣對先手為一～三段，對後手為七～九段。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/nyugyoku/jishogi-points.png" alt="持將棋點數視窗">
+                    <p class="screenshot-caption">持將棋點數：先手 28 點，依 27 點法宣言勝，依 24 點法和棋；後手敵陣棋子不足，條件未滿足</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="nyugyoku-declaration" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">入玉宣言</h2>
+        <p class="section-desc">在對局中輪到自己時進行入玉宣言</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">設定持將棋規則</span>
+                </div>
+                <p class="guide-step-text">在可能進行入玉宣言的對局中，請在對局對話框的「持將棋」中選擇「24 點法」或「27 點法」。</p>
+                <table class="info-table">
+                    <tbody>
+                        <tr><td><strong>24 點法</strong></td><td>宣言點數 31 點以上為勝，24～30 點為和棋（持將棋）</td></tr>
+                        <tr><td><strong>27 點法</strong></td><td>先手需要 28 點以上、後手需要 27 點以上才能獲勝</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">兩種規則都需要滿足 3 個宣言條件。規則為「無」時嘗試宣言，會提示選擇規則。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/nyugyoku/jishogi-rule-setting.png" alt="對局對話框中的持將棋設定">
+                    <p class="screenshot-caption">對局對話框：在「持將棋」中選擇 24 點法或 27 點法</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/nyugyoku/jishogi-rule-none.png" alt="持將棋規則為「無」時的提示">
+                    <p class="screenshot-caption">規則為「無」時宣言：提示在對局對話框中選擇規則</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">進行入玉宣言</span>
+                </div>
+                <p class="guide-step-text">輪到自己時選擇「對局」→「入玉宣言」，會顯示確認，按一下「宣言」即進行宣言。不滿足宣言條件時宣言方判負，建議先用「持將棋點數」確認。</p>
+                <p class="guide-step-text">入玉宣言由人類對局者在自己的回合進行。引擎的回合無法宣言，引擎之間的對局中該選單無法使用。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/nyugyoku/nyugyoku-confirm.png" alt="入玉宣言的確認">
+                    <p class="screenshot-caption">入玉宣言的確認：按一下「宣言」進行宣言，按一下「取消」繼續對局</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="nyugyoku-result" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">宣言結果</h2>
+        <p class="section-desc">判定宣言條件並結束對局</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">宣言勝</span>
+                </div>
+                <p class="guide-step-text">滿足全部宣言條件時宣言勝，對局結束。結果中會顯示各條件的判定以及所用規則需要的點數。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/nyugyoku/nyugyoku-result-win.png" alt="入玉宣言結果：宣言勝">
+                    <p class="screenshot-caption">宣言勝：滿足條件，達到 27 點法所需的 28 點</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">宣言失敗</span>
+                </div>
+                <p class="guide-step-text">點數不足等不滿足宣言條件時宣言失敗，宣言方判負（犯規負）。依 24 點法宣言點數為 24～30 點時為「持將棋（和棋）」。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/nyugyoku/nyugyoku-result-fail.png" alt="入玉宣言結果：宣言失敗">
+                    <p class="screenshot-caption">宣言失敗：27 點法需要 28 點，實際為 23 點，宣言方判負</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">記錄到棋譜</span>
+                </div>
+                <p class="guide-step-text">宣言後，棋譜欄會記錄「▲入玉勝」（宣言失敗為「▲犯規負」，24 點法和棋為「▲持將棋」）。引擎進行入玉宣言時也會同樣記錄，並以「對局結束」顯示結果。CSA 網路對局中，宣言會傳送到伺服器，由伺服器判定。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/nyugyoku/nyugyoku-finished.png" alt="入玉宣言後的畫面">
+                    <p class="screenshot-caption">宣言後：棋譜欄記錄「▲入玉勝」</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>

@@ -1,169 +1,237 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Entering-King Declaration - ShogiBoardQ</title>
-<meta content="A screenshot guide to entering-king declarations in ShogiBoardQ: check impasse points, make a declaration, and review the result." name="description"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" rel="canonical"/>
-<!-- Open Graph -->
-<meta content="article" property="og:type"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" property="og:url"/>
-<meta content="Entering-King Declaration - ShogiBoardQ" property="og:title"/>
-<meta content="Learn to check impasse points and entering-king declaration results in ShogiBoardQ, with screenshots." property="og:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/nyugyoku/nyugyoku-position.png" property="og:image"/>
-<meta content="en_US" property="og:locale"/>
-<meta content="ShogiBoardQ" property="og:site_name"/>
-<!-- Twitter Card -->
-<meta content="summary_large_image" name="twitter:card"/>
-<meta content="Entering-King Declaration - ShogiBoardQ" name="twitter:title"/>
-<meta content="Learn to check impasse points and entering-king declaration results in ShogiBoardQ." name="twitter:description"/>
-<meta content="https://hnakada123.github.io/ShogiBoardQ/images/en/nyugyoku/nyugyoku-position.png" name="twitter:image"/>
-<link href="../../css/style.css" rel="stylesheet"/>
- <link href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" hreflang="ja" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html" hreflang="en" rel="alternate"/>
-<link href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html" hreflang="x-default" rel="alternate"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entering King Declaration - ShogiBoardQ</title>
+    <meta name="description" content="A screenshot guide to entering king declarations in ShogiBoardQ: check jishogi points and the declaration conditions, then declare under the 24-point or 27-point rule.">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html">
+    <meta property="og:title" content="Entering King Declaration - ShogiBoardQ">
+    <meta property="og:description" content="Check jishogi points and the declaration conditions, then make an entering king declaration under the 24-point or 27-point rule in ShogiBoardQ.">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/nyugyoku/jishogi-points.png">
+    <meta property="og:locale" content="en_US">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Entering King Declaration - ShogiBoardQ">
+    <meta name="twitter:description" content="Check jishogi points and the declaration conditions, then make an entering king declaration under the 24-point or 27-point rule in ShogiBoardQ.">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/en/nyugyoku/jishogi-points.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/nyugyoku.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/nyugyoku.html">
 </head>
 <body>
+
 <!-- Navigation -->
 <nav class="site-nav">
-<div class="nav-inner">
-<a class="nav-logo" href="../index.html">ShogiBoardQ</a>
-<a aria-label="日本語" class="language-switch" href="../../guide/nyugyoku.html" hreflang="ja" lang="ja">日本語</a>
-<button aria-label="Menu" class="nav-toggle" onclick="document.querySelector('.nav-links').classList.toggle('open')">
-<span></span><span></span><span></span>
-</button>
-<ul class="nav-links">
-<li><a href="../index.html">Home</a></li>
-<li><a href="index.html">User Guide</a></li>
-<li><a href="#jishogi-points">Impasse Points</a></li>
-<li><a href="#nyugyoku-declaration">Entering-King Declaration</a></li>
-<li><a href="#nyugyoku-result">Declaration Results</a></li>
-<li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
-</ul>
-</div>
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="Language"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>English</span></summary>
+            <ul>
+                <li><a href="../../guide/nyugyoku.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="nyugyoku.html" lang="en" hreflang="en" aria-current="page">English</a></li>
+                <li><a href="../../zh-cn/guide/nyugyoku.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../../zh-tw/guide/nyugyoku.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="Menu" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="index.html">User Guide</a></li>
+            <li><a href="#jishogi-points">Jishogi Points</a></li>
+            <li><a href="#nyugyoku-declaration">Declaration</a></li>
+            <li><a href="#nyugyoku-result">Results</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
 </nav>
+
 <!-- Hero -->
 <section class="hero hero--sub">
-<div class="hero-content">
-<h1>Entering-King Declaration</h1>
-<p class="hero-subtitle">Check impasse points and entering-king declaration conditions</p>
-<div class="hero-badges">
-<span class="badge">Impasse Points</span>
-<span class="badge">24-Point Rule</span>
-<span class="badge">27-Point Rule</span>
-</div>
-<p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
-</div>
+    <div class="hero-content">
+        <h1>Entering King Declaration</h1>
+        <p class="hero-subtitle">Check jishogi points and judge an entering king declaration</p>
+        <div class="hero-badges">
+            <span class="badge">Jishogi Points</span>
+            <span class="badge">24-Point Rule</span>
+            <span class="badge">27-Point Rule</span>
+        </div>
+        <p class="screenshot-note">Screenshots were captured on Linux with the English interface.</p>
+    </div>
 </section>
-<!-- Section 1: Jishogi Points -->
-<section class="section section--alt" id="jishogi-points">
-<div class="section-inner">
-<h2 class="section-title">Check Impasse Points</h2>
-<p class="section-desc">Calculate points from the current position and check declaration conditions</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">An Entering-King Position</span>
-</div>
-<p class="guide-step-text">When both kings have entered the opponent's camp, ending the game by checkmate becomes difficult. In such positions, you can check impasse points and make an entering-king declaration.</p>
-<div class="screenshot-item">
-<img alt="Entering-king position with kings in the opponent's camp" src="../../images/en/nyugyoku/nyugyoku-position.png"/>
-<p class="screenshot-caption">Entering-king position: Black's king is in the opponent's camp, with many promoted pieces</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">View Impasse Points</span>
-</div>
-<p class="guide-step-text">Choose Game → Jishogi Points to display points for the current position. You can check the following declaration conditions for Black and White.</p>
-<ul class="guide-step-text">
-<li>Whether the king is in the opponent's camp</li>
-<li>Whether at least 10 of that player's pieces are in the opponent's camp</li>
-<li>Whether the king is not in check</li>
-<li>Declaration points: 5 for each major piece and 1 for each minor piece</li>
-<li>The result under the 24-point and 27-point rules</li>
-</ul>
-<div class="screenshot-item">
-<img alt="Impasse points window" src="../../images/en/nyugyoku/jishogi-points.png"/>
-<p class="screenshot-caption">Impasse points: Black has 28 points and wins under the 27-point rule; White has 5 points and loses</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 1 -->
+<section id="jishogi-points" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Check Jishogi Points</h2>
+        <p class="section-desc">See the points and declaration conditions of the displayed position</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">An Entering King Position</span>
+                </div>
+                <p class="guide-step-text">When both kings have entered the opponent's camp, it becomes hard to win by checkmate. In such positions you can check the jishogi points and make an entering king declaration. Here Black's king is on 2b and White's king on 5h.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/nyugyoku/nyugyoku-position.png" alt="An entering king position">
+                    <p class="screenshot-caption">Entering king position: Black has 15 pieces in the enemy camp and 28 points including pieces in hand</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">View Jishogi Points</span>
+                </div>
+                <p class="guide-step-text">Choose Game → Jishogi Points to see what would happen if Black or White declared in the displayed position. It is available outside games, too.</p>
+                <ul class="guide-step-text">
+                    <li>Declaration points: your pieces in the enemy camp plus pieces in hand. Rooks and bishops (dragons and horses) count 5 points, other pieces 1, and the king is not counted</li>
+                    <li>Total points: all your pieces on the board plus pieces in hand</li>
+                    <li>Declaration conditions: the king is in the enemy camp, at least 10 other pieces are in the enemy camp, and the king is not in check</li>
+                    <li>The result of declaring now under the 24-point and 27-point rules. When conditions or points are short, the number of points still needed</li>
+                </ul>
+                <p class="guide-step-text">Copy results copies the contents to the clipboard. The enemy camp is ranks a–c for Black and g–i for White.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/nyugyoku/jishogi-points.png" alt="Jishogi Points window">
+                    <p class="screenshot-caption">Jishogi Points: Black has 28 points, a win under the 27-point rule and a draw under the 24-point rule; White does not have enough pieces in the camp</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 2: Nyugyoku Declaration -->
-<section class="section" id="nyugyoku-declaration">
-<div class="section-inner">
-<h2 class="section-title">Make an Entering-King Declaration</h2>
-<p class="section-desc">Declare from the Game menu</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Select Entering-King Declaration</span>
-</div>
-<p class="guide-step-text">Choose Game → Entering King Declaration. A confirmation dialog appears before the declaration. If the conditions are not met, the declaring side loses, so check Jishogi Points beforehand.</p>
-<div class="screenshot-item">
-<img alt="Entering-king declaration confirmation dialog" src="../../images/en/nyugyoku/nyugyoku-confirm.png"/>
-<p class="screenshot-caption">Declaration confirmation: a warning that failing the conditions results in a loss</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Set the Impasse Rule</span>
-</div>
-<p class="guide-step-text">To make an entering-king declaration, set the impasse rule to the 24-point or 27-point rule in the game dialog. Declarations are unavailable when the rule is set to None.</p>
-<div class="screenshot-item">
-<img alt="Warning when no impasse rule is selected" src="../../images/en/nyugyoku/jishogi-rule-none.png"/>
-<p class="screenshot-caption">Impasse rule set to None: a prompt to select a rule in the game dialog</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 2 -->
+<section id="nyugyoku-declaration" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">Make a Declaration</h2>
+        <p class="section-desc">Declare on your own turn during a game</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Set the Jishogi Rule</span>
+                </div>
+                <p class="guide-step-text">For games where you may declare, choose 24-Point Rule or 27-Point Rule for Jishogi in the game dialog.</p>
+                <table class="info-table">
+                    <tbody>
+                        <tr><td><strong>24-Point Rule</strong></td><td>31 or more declaration points wins; 24–30 points is a draw (impasse)</td></tr>
+                        <tr><td><strong>27-Point Rule</strong></td><td>Black needs 28 or more points and White 27 or more to win</td></tr>
+                    </tbody>
+                </table>
+                <p class="guide-step-text">Both rules also require the three declaration conditions. If you try to declare while the rule is None, you are asked to choose a rule.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/nyugyoku/jishogi-rule-setting.png" alt="Jishogi setting in the game dialog">
+                    <p class="screenshot-caption">Game dialog: choose 24-Point Rule or 27-Point Rule for Jishogi</p>
+                </div>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/nyugyoku/jishogi-rule-none.png" alt="Prompt when the jishogi rule is None">
+                    <p class="screenshot-caption">Declaring while the rule is None: you are asked to choose a rule in the game dialog</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Declare</span>
+                </div>
+                <p class="guide-step-text">On your own turn, choose Game → Entering King Declaration. A confirmation appears; click Declare to declare. If the conditions are not met, the declaring side loses, so check Jishogi Points first.</p>
+                <p class="guide-step-text">A human player declares on their own turn. You cannot declare on the engine's turn, and the menu item is disabled in engine vs. engine games.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/nyugyoku/nyugyoku-confirm.png" alt="Declaration confirmation">
+                    <p class="screenshot-caption">Confirmation: Declare to declare, or Cancel to continue the game</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
-<!-- Section 3: Declaration Result -->
-<section class="section section--alt" id="nyugyoku-result">
-<div class="section-inner">
-<h2 class="section-title">Declaration Results</h2>
-<p class="section-desc">View the results of the declaration checks</p>
-<div class="screenshot-gallery">
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">1</span>
-<span class="guide-step-title">Win by Declaration</span>
-</div>
-<p class="guide-step-text">If all conditions are met, the declaration succeeds. The result window lists each condition and explains the required points and whether the selected 24-point or 27-point rule is satisfied.</p>
-<div class="screenshot-item">
-<img alt="Entering-king declaration result: win" src="../../images/en/nyugyoku/nyugyoku-result-win.png"/>
-<p class="screenshot-caption">Successful declaration: all conditions met, with at least 28 points under the 27-point rule</p>
-</div>
-</div>
-<div class="guide-step">
-<div class="guide-step-header">
-<span class="guide-step-number">2</span>
-<span class="guide-step-title">Failed Declaration (Loss)</span>
-</div>
-<p class="guide-step-text">If the declaration points fall below the required total, the declaration fails and the declaring side loses. The result window shows the points shortfall.</p>
-<div class="screenshot-item">
-<img alt="Entering-king declaration result: failure" src="../../images/en/nyugyoku/nyugyoku-result-fail.png"/>
-<p class="screenshot-caption">Failed declaration: 23 points against the required 28 under the 27-point rule; the declaring side loses</p>
-</div>
-</div>
-</div>
-</div>
+
+<!-- Section 3 -->
+<section id="nyugyoku-result" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">Declaration Results</h2>
+        <p class="section-desc">The declaration is judged and the game ends</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">Declaration Win</span>
+                </div>
+                <p class="guide-step-text">When all the conditions are met, the declaration wins and the game ends. The result shows each condition and the points the rule requires.</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/nyugyoku/nyugyoku-result-win.png" alt="Entering King Declaration Result: declaration win">
+                    <p class="screenshot-caption">Declaration win: the conditions are met and the 28 points the 27-point rule requires are reached</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">Declaration Failed</span>
+                </div>
+                <p class="guide-step-text">If a condition is not met, for example because the points are short, the declaration fails and the declaring side loses (loss by illegal move). Under the 24-point rule, 24–30 points is Jishogi (Draw).</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/en/nyugyoku/nyugyoku-result-fail.png" alt="Entering King Declaration Result: declaration failed">
+                    <p class="screenshot-caption">Declaration failed: 23 points against the 28 the 27-point rule requires, so the declaring side loses</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">In the Game Record</span>
+                </div>
+                <p class="guide-step-text">After a declaration, the game record shows ▲Entering king win (▲Loss by illegal move for a failed declaration and ▲Impasse for a 24-point draw). A declaration by an engine is recorded the same way, and a Game Over message shows the result. In CSA network games the declaration is sent to the server, which judges it.</p>
+                <div class="screenshot-item">
+                    <img src="../../images/en/nyugyoku/nyugyoku-finished.png" alt="Window after the declaration">
+                    <p class="screenshot-caption">After the declaration: ▲Entering king win is recorded in the game record</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
 </section>
+
 <!-- Back Link -->
 <div class="back-link-section">
-<a class="back-link" href="index.html">← Back to User Guide</a>
+    <a href="index.html" class="back-link">← Back to User Guide</a>
 </div>
+
 <!-- Footer -->
 <footer class="site-footer">
-<p>© 2025 ShogiBoardQ</p>
+    <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
 </body>
 </html>
