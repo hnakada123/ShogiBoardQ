@@ -90,6 +90,9 @@ public:
      */
     void updateGameInfoPlayerNames(const QString& blackName, const QString& whiteName);
 
+    /// 開始局面から対局情報の手合割（平手 / その他）を決める
+    static QString handicapLabelForSfen(const QString& startSfen);
+
     /**
      * @brief 対局開始時の対局情報を設定（持ち時間を含む）
      * @param startDateTime 対局開始日時

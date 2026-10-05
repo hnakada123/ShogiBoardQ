@@ -126,25 +126,11 @@ void CsaGameCoordinator::setupClock()
         return;
     }
 
-    const int timeUnitMs = m_gameSummary.timeUnitMs();
-    const int totalTimeBlackUnits = m_gameSummary.hasIndividualTime
-        ? m_gameSummary.totalTimeBlack
-        : m_gameSummary.totalTime;
-    const int totalTimeWhiteUnits = m_gameSummary.hasIndividualTime
-        ? m_gameSummary.totalTimeWhite
-        : m_gameSummary.totalTime;
-    const int byoyomiBlackUnits = m_gameSummary.hasIndividualTime
-        ? m_gameSummary.byoyomiBlack
-        : m_gameSummary.byoyomi;
-    const int byoyomiWhiteUnits = m_gameSummary.hasIndividualTime
-        ? m_gameSummary.byoyomiWhite
-        : m_gameSummary.byoyomi;
-
-    const int totalTimeBlackSec = totalTimeBlackUnits * timeUnitMs / 1000;
-    const int totalTimeWhiteSec = totalTimeWhiteUnits * timeUnitMs / 1000;
-    const int byoyomiBlackSec = byoyomiBlackUnits * timeUnitMs / 1000;
-    const int byoyomiWhiteSec = byoyomiWhiteUnits * timeUnitMs / 1000;
-    const int incrementSec = m_gameSummary.increment * timeUnitMs / 1000;
+    const int totalTimeBlackSec = m_gameSummary.totalTimeMs(true) / 1000;
+    const int totalTimeWhiteSec = m_gameSummary.totalTimeMs(false) / 1000;
+    const int byoyomiBlackSec = m_gameSummary.byoyomiMs(true) / 1000;
+    const int byoyomiWhiteSec = m_gameSummary.byoyomiMs(false) / 1000;
+    const int incrementSec = m_gameSummary.incrementMs() / 1000;
 
     m_initialBlackTimeMs = totalTimeBlackSec * 1000;
     m_initialWhiteTimeMs = totalTimeWhiteSec * 1000;
@@ -192,11 +178,10 @@ void CsaGameCoordinator::ensureMoveProgressHandler()
     m_moveProgressHandler->setRefs(refs);
 
     CsaMoveProgressHandler::Hooks hooks;
-    hooks.setGameState = [this](GameState s) { setGameState(s); };
     hooks.logMessage = [this](const QString& msg, bool isError) {
         emit logMessage(msg, isError);
     };
-    hooks.errorOccurred = [this](const QString& msg) { emit errorOccurred(msg); };
+    hooks.failGame = [this](const QString& msg) { failGame(msg); };
     hooks.moveMade = [this](const QString& csa, const QString& usi,
                             const QString& pretty, int ms) {
         emit moveMade(csa, usi, pretty, ms);

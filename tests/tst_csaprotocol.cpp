@@ -100,6 +100,33 @@ private slots:
         QCOMPARE(gs.timeUnitMs(), expectedMs);
     }
 
+    /// 持ち時間は Time_Unit で換算し、Time+/Time- があれば手番ごとの値を使う
+    void gameSummary_timeControlMs()
+    {
+        CsaClient::GameSummary gs;
+        gs.timeUnit = QStringLiteral("1min");
+        gs.totalTime = 10;
+        gs.byoyomi = 1;
+        gs.increment = 0;
+        QCOMPARE(gs.totalTimeMs(true), 600000);
+        QCOMPARE(gs.totalTimeMs(false), 600000);
+        QCOMPARE(gs.byoyomiMs(false), 60000);
+        QCOMPARE(gs.incrementMs(), 0);
+
+        gs.timeUnit = QStringLiteral("1sec");
+        gs.increment = 10;
+        gs.hasIndividualTime = true;
+        gs.totalTimeBlack = 300;
+        gs.totalTimeWhite = 600;
+        gs.byoyomiBlack = 0;
+        gs.byoyomiWhite = 30;
+        QCOMPARE(gs.totalTimeMs(true), 300000);
+        QCOMPARE(gs.totalTimeMs(false), 600000);
+        QCOMPARE(gs.byoyomiMs(true), 0);
+        QCOMPARE(gs.byoyomiMs(false), 30000);
+        QCOMPARE(gs.incrementMs(), 10000);
+    }
+
     // ========================================
     // GameSummary: 初期化とクリア
     // ========================================

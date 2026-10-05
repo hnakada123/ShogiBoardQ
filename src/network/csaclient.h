@@ -120,6 +120,9 @@ public:
         void clear();
         bool isBlackTurn() const { return myTurn == QStringLiteral("+"); }
         int timeUnitMs() const;     ///< 時間単位をミリ秒に変換
+        int totalTimeMs(bool black) const;  ///< 持時間（ミリ秒）。Time+/Time- の個別設定を反映
+        int byoyomiMs(bool black) const;    ///< 秒読み（ミリ秒）。Time+/Time- の個別設定を反映
+        int incrementMs() const;            ///< 加算時間（ミリ秒）
     };
 
     explicit CsaClient(QObject* parent = nullptr);

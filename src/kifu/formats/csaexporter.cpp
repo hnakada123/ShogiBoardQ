@@ -106,8 +106,8 @@ QStringList CsaExporter::exportLines(const GameRecordModel& model,
             QString csaDateTime = CsaFormatter::convertToCsaDateTime(val);
             out << QStringLiteral("$END_TIME:%1").arg(csaDateTime);
         } else if (key == QStringLiteral("持ち時間")) {
-            QString timeVal = CsaFormatter::convertToCsaTime(val);
-            out << timeVal;
+            // 時間制限のない対局は $TIME を書かずに表す
+            if (val != QStringLiteral("無制限")) out << CsaFormatter::convertToCsaTime(val);
             hasTime = true;
         } else if (key == QStringLiteral("持ち時間(秒/加算)")) {
             out << QStringLiteral("$TIME:%1").arg(val);

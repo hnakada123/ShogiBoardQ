@@ -19,6 +19,7 @@
 #include "csagamewiring.h"
 #include "csagamedialog.h"
 #include "csagamecoordinator.h"
+#include "dialogutils.h"
 #include "boardsetupcontroller.h"
 #include "playerinfowiring.h"
 #include "analysisresultspresenter.h"
@@ -88,7 +89,24 @@ void DialogLaunchWiring::handleNyugyokuDeclaration()
 {
     if (m_deps.playMode && *m_deps.playMode == PlayMode::CsaNetworkMode
         && m_deps.csaGameCoordinator && *m_deps.csaGameCoordinator) {
-        (*m_deps.csaGameCoordinator)->declareWin();
+        CsaGameCoordinator* csa = *m_deps.csaGameCoordinator;
+        // 成否はサーバーが判定する。誤操作で負けないよう、ローカル対局と同じく確認する
+        if (csa->isMyTurn()) {
+            const QString declarer = csa->isBlackSide()
+                ? QCoreApplication::translate("NyugyokuDeclarationHandler", "先手")
+                : QCoreApplication::translate("NyugyokuDeclarationHandler", "後手");
+            if (!DialogUtils::confirmAction(
+                    m_deps.parentWidget,
+                    QCoreApplication::translate("NyugyokuDeclarationHandler", "入玉宣言確認"),
+                    QCoreApplication::translate("NyugyokuDeclarationHandler",
+                                                "%1が入玉宣言を行います。\n\n"
+                                                "宣言条件を満たさない場合は宣言側の負けとなります。\n"
+                                                "本当に宣言しますか？").arg(declarer),
+                    QCoreApplication::translate("NyugyokuDeclarationHandler", "宣言する"))) {
+                return;
+            }
+        }
+        csa->declareWin();
         return;
     }
     auto* sv = m_deps.getShogiView ? m_deps.getShogiView() : nullptr;
@@ -177,6 +195,7 @@ void DialogLaunchWiring::displayCsaGameDialog()
 
     CsaGameDialog* dlg = m_deps.csaGameDialog ? *m_deps.csaGameDialog : nullptr;
     if (!dlg) return;
+    dlg->refreshChoices();
 
     // ダイアログを表示する
     if (dlg->exec() == QDialog::Accepted) {

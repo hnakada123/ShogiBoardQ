@@ -280,23 +280,12 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         break;
     }
 
-    // 手合割の判定
-    const QString sfen = startSfen.trimmed();
-    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    QString handicap = QStringLiteral("平手");
-    if (!sfen.isEmpty()) {
-        const QString pp = sfen.section(QLatin1Char(' '), 0, 0);
-        if (!pp.isEmpty() && pp != initPP) {
-            handicap = QStringLiteral("その他");
-        }
-    }
-
     // 対局情報を設定
     setGameInfoForMatchStart(
         timeInfo.gameStartDateTime,
         blackName,
         whiteName,
-        handicap,
+        handicapLabelForSfen(startSfen),
         timeInfo.hasTimeControl,
         timeInfo.baseTimeMs,
         timeInfo.byoyomiMs,
@@ -337,6 +326,13 @@ void PlayerInfoWiring::onMenuPlayerNamesResolved(const QString& human1, const QS
     const QString startSfen = m_startSfenStr ? *m_startSfenStr : QString();
     TimeControlController* tc = m_timeControllerRef ? *m_timeControllerRef : nullptr;
     resolveNamesWithTimeController(human1, human2, engine1, engine2, playMode, startSfen, tc);
+}
+
+QString PlayerInfoWiring::handicapLabelForSfen(const QString& startSfen)
+{
+    const QString pp = startSfen.trimmed().section(QLatin1Char(' '), 0, 0);
+    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
+    return (pp.isEmpty() || pp == initPP) ? QStringLiteral("平手") : QStringLiteral("その他");
 }
 
 void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,

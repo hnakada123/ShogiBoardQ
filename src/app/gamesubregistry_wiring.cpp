@@ -273,10 +273,22 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
         const auto preparedInfo = gameInfo->gameInfo();
         resetModels(startSfen);
         gameInfo->setGameInfo(preparedInfo);
+        // 持ち時間と開始日時は CsaGameWiring がサーバーの対局条件で TimeControlController に設定済み
+        const auto* tc = m_mw.m_timeController;
+        const QDateTime startTime = tc && tc->gameStartDateTime().isValid()
+                                        ? tc->gameStartDateTime() : QDateTime::currentDateTime();
         m_mw.m_playerInfoWiring->setGameInfoForMatchStart(
-            QDateTime::currentDateTime(), black, white, QString(), false, 0, 0, 0);
+            startTime, black, white, PlayerInfoWiring::handicapLabelForSfen(startSfen),
+            tc && tc->hasTimeControl(), tc ? tc->baseTimeMs() : 0,
+            tc ? tc->byoyomiMs() : 0, tc ? tc->incrementMs() : 0);
         startLiveGameSessionIfNeeded();
         m_kifu->ensureGameRecordUpdateService();
+    };
+    deps.recordGameEnd = [this]() {
+        if (!m_mw.m_timeController) return;
+        m_mw.m_timeController->recordGameEndTime();
+        if (m_mw.m_playerInfoWiring)
+            m_mw.m_playerInfoWiring->updateGameInfoWithEndTime(m_mw.m_timeController->gameEndDateTime());
     };
     deps.syncPly = [this](int ply) {
         m_mw.m_state.currentMoveIndex = ply;

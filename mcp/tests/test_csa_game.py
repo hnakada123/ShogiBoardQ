@@ -120,7 +120,7 @@ class CsaUI:
             await self.call("click_board_square", file=int(file), rank=ord(rank)-ord("a")+1)
         if usi.endswith("+"):
             title = await self.dialog("PromoteDialog")
-            await self.call("click_dialog_button", dialog=title, text="OK")
+            await self.call("click_dialog_button", dialog=title, text="成る")
 
     async def dismiss_end(self):
         title = await self.dialog("QMessageBox")
@@ -198,6 +198,8 @@ async def test_human_moves_resign_and_rematch(csa_env, csa_server, side, tmp_pat
                 await ui.call("save_kifu", path=str(tmp_path / "game.kif"), overwrite=True)
                 saved = (tmp_path / "game.kif").read_text(encoding="cp932")
                 assert "BoardQ" in saved and "Peer" in saved, saved
+                # The time control comes from Game_Summary (audit-300-5), and the end time is recorded.
+                assert "持ち時間：05:00+5" in saved and "終了日時：" in saved, saved
                 converted = await ui.call("convert_kifu", input_path=str(tmp_path / "game.kif"), output_format="usi")
                 assert "7g7f 3c3d" in converted["text"], converted
             finally:
@@ -339,6 +341,10 @@ async def test_server_adjudicates_declarations(csa_env, csa_server, action, comm
             await peer.start()
             await ui.wait_state(ui_state="csa_game")
             await ui.call("trigger_action", name=action)
+            if command == "%KACHI":
+                # The declaration is confirmed first, as in local games.
+                title = await ui.dialog("QMessageBox")
+                await ui.call("click_dialog_button", dialog=title, text="宣言する")
             # shogi-server rejects CHUDAN and a declaration at the initial position.
             await peer.until("#WIN")
             assert "反則" in await ui.dismiss_end()
@@ -456,6 +462,87 @@ for command in sys.stdin:
             await peer.send("%TORYO")
             await peer.until("#LOSE")
             await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
+def write_fake_engine(tmp_path, csa_env, mode):
+    """Register a USI engine that answers `go` according to mode (win / stop / invalid)."""
+    engine = tmp_path / f"fake-{mode}"
+    engine.write_text(f"""#!/usr/bin/env python3
+import sys
+for command in sys.stdin:
+    command = command.strip()
+    if command == 'usi':
+        print('id name Fake\\nusiok', flush=True)
+    elif command == 'isready':
+        print('readyok', flush=True)
+    elif command.startswith('go') and {mode!r} == 'win':
+        print('bestmove win', flush=True)
+    elif command.startswith('go') and {mode!r} == 'invalid':
+        print('bestmove 9z9z', flush=True)
+    elif command == 'stop' and {mode!r} == 'stop':
+        print('bestmove 7g7f', flush=True)
+    elif command == 'quit':
+        break
+""")
+    engine.chmod(0o700)
+    config = Path(csa_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config.write_text(f"[Engines]\nsize=1\n1\\name=Fake\n1\\path={engine}\n")
+
+
+async def test_engine_declares_entering_king(csa_env, csa_server, tmp_path):
+    # bestmove win is sent as %KACHI and the server judges it (illegal at the initial position).
+    write_fake_engine(tmp_path, csa_env, "win")
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(csa_server[0], engine=True)
+        peer = await Peer.connect(csa_server[0])
+        try:
+            await peer.start()
+            await peer.until("%KACHI")
+            await peer.until("#WIN")
+            text = await ui.dismiss_end()
+            assert "負け" in text and "反則" in text, text
+        finally:
+            await peer.close()
+
+
+async def test_engine_moves_immediately_on_request(csa_env, csa_server, tmp_path):
+    write_fake_engine(tmp_path, csa_env, "stop")
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(csa_server[0], engine=True)
+        peer = await Peer.connect(csa_server[0])
+        try:
+            await peer.start()
+            await ui.wait_state(ui_state="csa_game")
+            await asyncio.sleep(0.5)
+            await ui.call("trigger_action", name="actionMakeImmediateMove")
+            await peer.until("+7776FU")
+            await peer.send("%TORYO")
+            await peer.until("#LOSE")
+            await ui.dismiss_end()
+        finally:
+            await peer.close()
+
+
+async def test_engine_error_ends_game(csa_env, csa_server, tmp_path):
+    # An unusable engine reply must not leave the window in the CSA game state.
+    write_fake_engine(tmp_path, csa_env, "invalid")
+    async with mcp_session(csa_env) as session:
+        ui = CsaUI(session)
+        await ui.connect(csa_server[0], engine=True)
+        peer = await Peer.connect(csa_server[0])
+        try:
+            await peer.start()
+            text = await ui.dismiss_end()
+            assert "中断" in text, text
+            error = await ui.dialog("QMessageBox")
+            await ui.call("close_dialog", dialog=error)
+            await peer.until("#WIN")
+            state = await ui.wait_state(ui_state="idle", play_mode="not_started")
+            assert state.get("csa", {}).get("state") != "InGame", state
         finally:
             await peer.close()
 

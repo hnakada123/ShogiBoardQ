@@ -59,6 +59,8 @@ public:
 
     void initialize(const InitParams& params);
     void thinkAsync(const ThinkingParams& params);
+    /// 思考中なら stop を送り、その時点の最善手ですぐ指させる
+    void stopThinking();
     void sendGameOver(bool win);
     void sendQuit();
     void cleanup();
@@ -72,12 +74,14 @@ signals:
     void thinkingFinished(const CsaEngineController::ThinkingResult& result);
     void logMessage(const QString& message, bool isError = false);
     void resignRequested();
+    void winDeclarationRequested();
 
 private slots:
     void onEngineInitialized();
     void onEngineError(const QString& message);
     void onMatchMoveReady(const QPoint& from, const QPoint& to, const QString& position, const QString& ponder);
     void onEngineResign();
+    void onEngineWinDeclaration();
 
 private:
     QString m_engineName;
