@@ -4,25 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ドック機能 - ShogiBoardQ</title>
-    <meta name="description" content="ShogiBoardQのドック機能を紹介します。各パネルをドッキング・フローティング・タブ化して自由にレイアウトをカスタマイズできます。">
-    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
-    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html">
-    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
+    <meta name="description" content="ShogiBoardQのドック機能を紹介します。棋譜・思考・検討・評価値グラフなどのパネルの表示切り替え、ドラッグでの移動・タブ化・フローティング、レイアウトの保存と起動時のレイアウト、固定とリセットをスクリーンショット付きで解説。">
     <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
     <!-- Open Graph -->
     <meta property="og:type" content="article">
     <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
     <meta property="og:title" content="ドック機能 - ShogiBoardQ">
-    <meta property="og:description" content="ShogiBoardQのドック機能を紹介。各パネルをドッキング・フローティング・タブ化して自由にレイアウトをカスタマイズ。">
-    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/dock/dock-02-floating.png">
+    <meta property="og:description" content="棋譜・思考・検討・評価値グラフなどのパネルを自由に配置し、レイアウトを保存して起動時に復元できます。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/dock/dock-04-floating.png">
     <meta property="og:locale" content="ja_JP">
     <meta property="og:site_name" content="ShogiBoardQ">
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="ドック機能 - ShogiBoardQ">
-    <meta name="twitter:description" content="ShogiBoardQのドック機能を紹介。各パネルをドッキング・フローティング・タブ化して自由にレイアウトをカスタマイズ。">
-    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/dock/dock-02-floating.png">
+    <meta name="twitter:description" content="棋譜・思考・検討・評価値グラフなどのパネルを自由に配置し、レイアウトを保存して起動時に復元できます。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/dock/dock-04-floating.png">
     <link rel="stylesheet" href="../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/dock.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
 </head>
 <body>
 
@@ -30,15 +32,24 @@
 <nav class="site-nav">
     <div class="nav-inner">
         <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
-        <a href="../en/guide/dock.html" class="language-switch" lang="en" hreflang="en" aria-label="English">English</a>
+        <details class="lang-menu">
+            <summary aria-label="表示言語"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>日本語</span></summary>
+            <ul>
+                <li><a href="dock.html" lang="ja" hreflang="ja" aria-current="page">日本語</a></li>
+                <li><a href="../en/guide/dock.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../zh-cn/guide/dock.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="../zh-tw/guide/dock.html" lang="zh-Hant" hreflang="zh-Hant">繁體中文</a></li>
+            </ul>
+        </details>
         <button class="nav-toggle" aria-label="メニュー" onclick="document.querySelector('.nav-links').classList.toggle('open')">
             <span></span><span></span><span></span>
         </button>
         <ul class="nav-links">
             <li><a href="../index.html">ホーム</a></li>
             <li><a href="index.html">利用ガイド</a></li>
-            <li><a href="#docked">ドッキング</a></li>
-            <li><a href="#floating">フローティング</a></li>
+            <li><a href="#panels">パネル</a></li>
+            <li><a href="#arrange">配置の変更</a></li>
+            <li><a href="#layouts">レイアウト</a></li>
             <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
         </ul>
     </div>
@@ -48,32 +59,46 @@
 <section class="hero hero--sub">
     <div class="hero-content">
         <h1>ドック機能</h1>
-        <p class="hero-subtitle">パネルを自由に配置してレイアウトをカスタマイズ</p>
+        <p class="hero-subtitle">パネルを自由に配置して画面をカスタマイズ</p>
         <div class="hero-badges">
             <span class="badge">ドッキング</span>
-            <span class="badge">フローティング</span>
             <span class="badge">タブ化</span>
+            <span class="badge">フローティング</span>
+            <span class="badge">レイアウト保存</span>
         </div>
     </div>
 </section>
 
-<!-- Section 1: Docked Layout -->
-<section id="docked" class="section section--alt">
+<!-- Section 1 -->
+<section id="panels" class="section section--alt">
     <div class="section-inner">
-        <h2 class="section-title">ドッキングレイアウト</h2>
-        <p class="section-desc">すべてのパネルをメインウィンドウに統合して表示</p>
+        <h2 class="section-title">パネルと表示の切り替え</h2>
+        <p class="section-desc">メイン画面の棋譜や思考などはドック（パネル）として配置されています</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
                     <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">統合レイアウト</span>
+                    <span class="guide-step-title">既定の配置</span>
                 </div>
-                <p class="guide-step-text">棋譜・エンジン情報・評価値グラフなどの各パネルをメインウィンドウ内にドッキングして、一画面で全情報を確認できます。パネルのタイトルバーをドラッグして上下左右に配置を変更できます。</p>
+                <p class="guide-step-text">盤面の右に「棋譜」、下に「対局情報」「思考」「検討」「USI通信ログ」「CSA通信ログ」「棋譜コメント」「分岐ツリー」「評価値グラフ」がタブでまとまっています。タブをクリックすると表示するパネルを切り替えられます。</p>
+                <p class="guide-step-text">「メニュー」と「定跡」は最初は表示されていません。「棋譜解析」は棋譜解析を始めると表示されます。</p>
                 <div class="screenshot-item">
-                    <img src="../images/dock/dock-01-docked.png" alt="ドッキングレイアウト - すべてのパネルがメインウィンドウに統合">
-                    <p class="screenshot-caption">ドッキングレイアウト：棋譜・エンジン情報・評価値グラフを一画面に統合</p>
+                    <img src="../images/dock/dock-01-default.png" alt="既定の配置">
+                    <p class="screenshot-caption">既定の配置：右に棋譜、下に思考・検討などのタブ（検討中の画面）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">パネルの表示・非表示</span>
+                </div>
+                <p class="guide-step-text">「表示」メニューの下部にパネルの一覧があり、チェックを付けると表示、外すと非表示になります。パネルのタイトルバー右端の × でも閉じられます。閉じたパネルは「表示」メニューから再び表示できます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/dock/dock-02-view-menu.png" alt="「表示」メニューのパネル一覧">
+                    <p class="screenshot-caption">「表示」メニュー：チェックでパネルの表示・非表示を切り替える</p>
                 </div>
             </div>
 
@@ -81,24 +106,83 @@
     </div>
 </section>
 
-<!-- Section 2: Floating Layout -->
-<section id="floating" class="section">
+<!-- Section 2 -->
+<section id="arrange" class="section">
     <div class="section-inner">
-        <h2 class="section-title">フローティングレイアウト</h2>
-        <p class="section-desc">パネルを独立したウィンドウとして自由に配置</p>
+        <h2 class="section-title">配置の変更</h2>
+        <p class="section-desc">パネルをドラッグして、好きな位置や別のウィンドウに移します</p>
 
         <div class="screenshot-gallery">
 
             <div class="guide-step">
                 <div class="guide-step-header">
-                    <span class="guide-step-number">1</span>
-                    <span class="guide-step-title">フローティング表示</span>
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">移動とタブ化</span>
                 </div>
-                <p class="guide-step-text">パネルのタイトルバーをメインウィンドウの外にドラッグすると、独立したフローティングウィンドウとして表示されます。マルチモニター環境では、各モニターにパネルを配置して広い作業領域を活用できます。</p>
+                <p class="guide-step-text">パネルのタイトルバーをドラッグすると、メインウィンドウの上下左右の端へ移動できます。別のパネルの上で離すと、そのパネルとタブにまとまります。パネルどうしの境界をドラッグすると大きさを変えられます。</p>
                 <div class="screenshot-item">
-                    <img src="../images/dock/dock-02-floating.png" alt="フローティングレイアウト - パネルが独立したウィンドウとして表示">
-                    <p class="screenshot-caption">フローティングレイアウト：各パネルを独立ウィンドウとして自由に配置</p>
+                    <img src="../images/dock/dock-03-custom.png" alt="パネルの配置を変えた画面">
+                    <p class="screenshot-caption">配置の例：評価値グラフを棋譜の下に移し、下段に棋譜解析の結果を表示</p>
                 </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">フローティング</span>
+                </div>
+                <p class="guide-step-text">タイトルバーをメインウィンドウの外までドラッグするか、タイトルバーをダブルクリックする（またはタイトルバー右端の ⧉ を押す）と、パネルが独立したウィンドウになります。もう一度ダブルクリックするとメインウィンドウに戻ります。</p>
+                <p class="guide-step-text">複数のモニターを使う場合は、評価値グラフや棋譜解析を別のモニターに置いて広く表示できます。</p>
+                <div class="screenshot-item">
+                    <img src="../images/dock/dock-04-floating.png" alt="パネルを別ウィンドウにした画面">
+                    <p class="screenshot-caption">フローティング：評価値グラフと棋譜解析を別ウィンドウにした例</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="layouts" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">レイアウトの保存と管理</h2>
+        <p class="section-desc">よく使う配置を名前を付けて保存し、いつでも呼び出せます</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">レイアウトを保存する</span>
+                </div>
+                <p class="guide-step-text">「表示」→「ドックレイアウトを保存…」でレイアウト名を入力して保存します。同じ名前のレイアウトがあるときは、上書きするかの確認が表示されます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/dock/dock-05-save-dialog.png" alt="ドックレイアウトを保存">
+                    <p class="screenshot-caption">ドックレイアウトを保存：レイアウト名を入力する</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">保存したレイアウトを使う</span>
+                </div>
+                <p class="guide-step-text">「表示」→「保存済みレイアウト」に保存した名前が並び、それぞれ「復元」「起動時のレイアウトに設定」「削除」を選べます。起動時のレイアウトには★が付き、次回からその配置で起動します。「起動時のレイアウトをクリア」で解除すると、既定の配置で起動します。</p>
+                <p class="guide-step-text">起動時のレイアウトを設定していないときは、メインウィンドウ内の配置は次回起動時に既定に戻ります。「棋譜」「評価値グラフ」「メニュー」「定跡」「棋譜解析」の表示状態と、別ウィンドウにしたときの位置は引き継がれます。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../images/dock/dock-06-saved-layouts.png" alt="保存済みレイアウトのメニュー">
+                    <p class="screenshot-caption">保存済みレイアウト：★が起動時のレイアウト。各レイアウトを復元・削除できる</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">固定とリセット</span>
+                </div>
+                <p class="guide-step-text">「表示」→「ドックを固定」にチェックを付けると、パネルの移動や別ウィンドウ化ができなくなり、誤ってドラッグして配置を崩すことを防げます。パネルの表示・非表示は切り替えられます。</p>
+                <p class="guide-step-text">「表示」→「ドックレイアウトをリセット」を選ぶと、別ウィンドウにしたパネルも含めて、すべてのパネルが既定の配置に戻ります。</p>
             </div>
 
         </div>
@@ -107,13 +191,28 @@
 
 <!-- Back Link -->
 <div class="back-link-section">
-    <a href="index.html" class="back-link">&larr; 利用ガイドに戻る</a>
+    <a href="index.html" class="back-link">← 利用ガイドに戻る</a>
 </div>
 
 <!-- Footer -->
 <footer class="site-footer">
     <p>&copy; 2025 ShogiBoardQ</p>
 </footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
 
 </body>
 </html>

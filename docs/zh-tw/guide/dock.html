@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>面板佈局 - ShogiBoardQ</title>
+    <meta name="description" content="圖解 ShogiBoardQ 的面板（停駐視窗）：棋譜、思考、研究、評價值圖表等面板的顯示切換，拖曳移動、合併為分頁、浮動，儲存佈局與啟動佈局，鎖定與重設。">
+    <link rel="canonical" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/dock.html">
+    <!-- Open Graph -->
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/dock.html">
+    <meta property="og:title" content="面板佈局 - ShogiBoardQ">
+    <meta property="og:description" content="自由排列棋譜、思考、研究、評價值圖表等面板，儲存佈局並在啟動時還原。">
+    <meta property="og:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/dock/dock-04-floating.png">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="ShogiBoardQ">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="面板佈局 - ShogiBoardQ">
+    <meta name="twitter:description" content="自由排列棋譜、思考、研究、評價值圖表等面板，儲存佈局並在啟動時還原。">
+    <meta name="twitter:image" content="https://hnakada123.github.io/ShogiBoardQ/images/zh-tw/dock/dock-04-floating.png">
+    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="alternate" hreflang="ja" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
+    <link rel="alternate" hreflang="en" href="https://hnakada123.github.io/ShogiBoardQ/en/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hans" href="https://hnakada123.github.io/ShogiBoardQ/zh-cn/guide/dock.html">
+    <link rel="alternate" hreflang="zh-Hant" href="https://hnakada123.github.io/ShogiBoardQ/zh-tw/guide/dock.html">
+    <link rel="alternate" hreflang="x-default" href="https://hnakada123.github.io/ShogiBoardQ/guide/dock.html">
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="site-nav">
+    <div class="nav-inner">
+        <a href="../index.html" class="nav-logo">ShogiBoardQ</a>
+        <details class="lang-menu">
+            <summary aria-label="介面語言"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3Z"/></svg><span>繁體中文</span></summary>
+            <ul>
+                <li><a href="../../guide/dock.html" lang="ja" hreflang="ja">日本語</a></li>
+                <li><a href="../../en/guide/dock.html" lang="en" hreflang="en">English</a></li>
+                <li><a href="../../zh-cn/guide/dock.html" lang="zh-Hans" hreflang="zh-Hans">简体中文</a></li>
+                <li><a href="dock.html" lang="zh-Hant" hreflang="zh-Hant" aria-current="page">繁體中文</a></li>
+            </ul>
+        </details>
+        <button class="nav-toggle" aria-label="選單" onclick="document.querySelector('.nav-links').classList.toggle('open')">
+            <span></span><span></span><span></span>
+        </button>
+        <ul class="nav-links">
+            <li><a href="../index.html">首頁</a></li>
+            <li><a href="../../en/guide/index.html">使用指南（英文）</a></li>
+            <li><a href="#panels">面板</a></li>
+            <li><a href="#arrange">調整佈局</a></li>
+            <li><a href="#layouts">佈局</a></li>
+            <li><a href="https://github.com/hnakada123/ShogiBoardQ">GitHub</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero hero--sub">
+    <div class="hero-content">
+        <h1>面板佈局</h1>
+        <p class="hero-subtitle">自由排列面板，自訂主視窗</p>
+        <div class="hero-badges">
+            <span class="badge">停駐</span>
+            <span class="badge">分頁</span>
+            <span class="badge">浮動</span>
+            <span class="badge">儲存佈局</span>
+        </div>
+        <p class="screenshot-note">截圖於 Linux 上以繁體中文介面擷取。</p>
+    </div>
+</section>
+
+<!-- Section 1 -->
+<section id="panels" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">面板與顯示切換</h2>
+        <p class="section-desc">主視窗中的棋譜、思考等都是可停駐的面板</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">1</span>
+                    <span class="guide-step-title">預設佈局</span>
+                </div>
+                <p class="guide-step-text">棋盤右側是「棋譜」，下方以分頁排列「對局資訊」「思考」「研究」「USI 記錄」「CSA 記錄」「註解」「變化樹」「評價值圖表」。按一下分頁即可切換顯示的面板。</p>
+                <p class="guide-step-text">「選單」和「定跡」一開始不顯示。「棋譜分析」在開始分析棋譜時顯示。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/dock/dock-01-default.png" alt="預設佈局">
+                    <p class="screenshot-caption">預設佈局：右側為棋譜，下方為思考、研究等分頁（研究中的畫面）</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">2</span>
+                    <span class="guide-step-title">顯示與隱藏面板</span>
+                </div>
+                <p class="guide-step-text">「檢視」選單下部列出了各個面板，勾選即顯示，取消勾選即隱藏。也可以按一下面板標題列右端的 × 關閉。關閉的面板可以從「檢視」選單重新顯示。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/dock/dock-02-view-menu.png" alt="「檢視」選單中的面板清單">
+                    <p class="screenshot-caption">「檢視」選單：勾選或取消勾選以顯示或隱藏面板</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 2 -->
+<section id="arrange" class="section">
+    <div class="section-inner">
+        <h2 class="section-title">調整佈局</h2>
+        <p class="section-desc">拖曳面板，移到其他位置或獨立的視窗</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">3</span>
+                    <span class="guide-step-title">移動與合併為分頁</span>
+                </div>
+                <p class="guide-step-text">拖曳面板的標題列，可以把面板移到主視窗的上下左右邊緣。放到其他面板上時，兩者會合併為分頁。拖曳面板之間的邊界可以調整大小。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/dock/dock-03-custom.png" alt="調整面板佈局後的畫面">
+                    <p class="screenshot-caption">佈局範例：把評價值圖表移到棋譜下方，下方顯示棋譜分析的結果</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">4</span>
+                    <span class="guide-step-title">浮動面板</span>
+                </div>
+                <p class="guide-step-text">把標題列拖到主視窗之外，或按兩下標題列（或按一下標題列右端的 ⧉），面板就會成為獨立的視窗。再按兩下即可放回主視窗。</p>
+                <p class="guide-step-text">使用多台螢幕時，可以把評價值圖表或棋譜分析放到另一台螢幕上，以更大的面積顯示。</p>
+                <div class="screenshot-item">
+                    <img src="../../images/zh-tw/dock/dock-04-floating.png" alt="面板成為獨立視窗的畫面">
+                    <p class="screenshot-caption">浮動：評價值圖表與棋譜分析成為獨立視窗的範例</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Section 3 -->
+<section id="layouts" class="section section--alt">
+    <div class="section-inner">
+        <h2 class="section-title">儲存與管理佈局</h2>
+        <p class="section-desc">為常用的佈局命名儲存，隨時叫用</p>
+
+        <div class="screenshot-gallery">
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">5</span>
+                    <span class="guide-step-title">儲存佈局</span>
+                </div>
+                <p class="guide-step-text">選擇「檢視」→「儲存面板佈局…」，輸入佈局名稱後儲存。已有同名佈局時，會確認是否覆寫。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/dock/dock-05-save-dialog.png" alt="儲存面板佈局對話方塊">
+                    <p class="screenshot-caption">儲存面板佈局：輸入佈局名稱</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">6</span>
+                    <span class="guide-step-title">使用已儲存的佈局</span>
+                </div>
+                <p class="guide-step-text">「檢視」→「已儲存的佈局」中列出已儲存的名稱，每個佈局都可以選擇「恢復」「設為啟動佈局」「刪除」。啟動佈局帶有 ★，下次啟動時使用該佈局。選擇「清除啟動佈局」後，將以預設佈局啟動。</p>
+                <p class="guide-step-text">未設定啟動佈局時，主視窗內的佈局在下次啟動時恢復為預設。「棋譜」「評價值圖表」「選單」「定跡」「棋譜分析」的顯示狀態和作為獨立視窗時的位置會保留。</p>
+                <div class="screenshot-item screenshot-item--compact">
+                    <img src="../../images/zh-tw/dock/dock-06-saved-layouts.png" alt="已儲存的佈局選單">
+                    <p class="screenshot-caption">已儲存的佈局：★ 表示啟動佈局；每個佈局都可以恢復或刪除</p>
+                </div>
+            </div>
+
+            <div class="guide-step">
+                <div class="guide-step-header">
+                    <span class="guide-step-number">7</span>
+                    <span class="guide-step-title">鎖定與重設</span>
+                </div>
+                <p class="guide-step-text">勾選「檢視」→「鎖定面板」後，面板不能移動或浮動，可以防止誤拖曳打亂佈局。面板仍可顯示或隱藏。</p>
+                <p class="guide-step-text">選擇「檢視」→「重設面板佈局」，包括浮動的面板在內，所有面板都會恢復為預設佈局。</p>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Back Link -->
+<div class="back-link-section">
+    <a href="../../en/guide/index.html" class="back-link">← 返回使用指南（英文）</a>
+</div>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <p>&copy; 2025 ShogiBoardQ</p>
+</footer>
+
+<script>
+document.addEventListener('click', function (event) {
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        if (!menu.contains(event.target)) menu.removeAttribute('open');
+    });
+});
+document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.lang-menu[open]').forEach(function (menu) {
+        menu.removeAttribute('open');
+        menu.querySelector('summary').focus();
+    });
+});
+</script>
+
+</body>
+</html>
