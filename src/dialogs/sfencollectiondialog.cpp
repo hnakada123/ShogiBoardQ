@@ -17,15 +17,10 @@
 #include <QHBoxLayout>
 #include <QPushButton>
 #include <QLabel>
-#include <QFileDialog>
-#include <QFile>
-#include <QTextStream>
-#include <QFileInfo>
 #include <QCloseEvent>
 #include <QWheelEvent>
 #include <QTimer>
 #include <QMenu>
-#include <QMessageBox>
 
 namespace {
 constexpr QSize kMinimumSize{400, 500};
@@ -223,89 +218,6 @@ void SfenCollectionDialog::buildUi()
     mainLayout->addLayout(actionLayout);
 }
 
-void SfenCollectionDialog::onOpenFileClicked()
-{
-    QString lastDir = GameSettings::sfenCollectionLastDirectory();
-    QString filePath = QFileDialog::getOpenFileName(
-        this,
-        tr("SFEN局面集ファイルを開く"),
-        lastDir,
-        tr("テキストファイル (*.txt *.sfen);;すべてのファイル (*)"));
-
-    if (!filePath.isEmpty()) {
-        loadFromFile(filePath);
-    }
-}
-
-bool SfenCollectionDialog::loadFromFile(const QString& filePath)
-{
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return false;
-    }
-
-    QTextStream in(&file);
-    QString text = in.readAll();
-    file.close();
-
-    parseSfenLines(text);
-
-    if (m_sfenList.isEmpty()) {
-        return false;
-    }
-
-    m_currentIndex = 0;
-
-    // ファイル名ラベルを更新
-    QFileInfo fi(filePath);
-    m_fileLabel->setText(tr("ファイル: %1").arg(fi.fileName()));
-    m_fileLabel->setToolTip(fi.absoluteFilePath());
-
-    // 最後に開いたディレクトリを保存
-    GameSettings::setSfenCollectionLastDirectory(fi.absolutePath());
-
-    // 最近使ったファイルリストに追加
-    addToRecentFiles(filePath);
-    saveRecentFiles();
-
-    updateBoardDisplay();
-    updateButtonStates();
-    return true;
-}
-
-void SfenCollectionDialog::parseSfenLines(const QString& text)
-{
-    m_sfenList.clear();
-
-    const QStringList lines = text.split('\n', Qt::SkipEmptyParts);
-    for (const QString& line : std::as_const(lines)) {
-        QString trimmed = line.trimmed();
-        if (trimmed.isEmpty()) {
-            continue;
-        }
-
-        // コメント行（'#' 始まり。詰将棋局面生成のファイル保存が先頭に付ける）は読み飛ばす
-        if (trimmed.startsWith(QLatin1Char('#'))) {
-            continue;
-        }
-
-        // "sfen " プレフィックスを除去
-        if (trimmed.startsWith(QStringLiteral("sfen "), Qt::CaseInsensitive)) {
-            trimmed = trimmed.mid(5);
-        }
-        // "position sfen " プレフィックスを除去
-        if (trimmed.startsWith(QStringLiteral("position sfen "), Qt::CaseInsensitive)) {
-            trimmed = trimmed.mid(14);
-        }
-
-        // SFEN形式の検証: 最低4パート（盤面/手番/持ち駒/手数）
-        QStringList parts = trimmed.split(' ', Qt::SkipEmptyParts);
-        if (parts.size() >= 4) {
-            m_sfenList.append(trimmed);
-        }
-    }
-}
-
 void SfenCollectionDialog::updateBoardDisplay()
 {
     if (m_sfenList.isEmpty() || m_currentIndex < 0 || m_currentIndex >= m_sfenList.size()) {
@@ -379,8 +291,7 @@ void SfenCollectionDialog::onEnlargeBoard()
 {
     if (m_shogiView) {
         m_shogiView->enlargeBoard(false);
-        hideClockLabels();
-        adjustSize();
+        adjustWindowToContents();
     }
 }
 
@@ -388,8 +299,7 @@ void SfenCollectionDialog::onReduceBoard()
 {
     if (m_shogiView) {
         m_shogiView->reduceBoard(false);
-        hideClockLabels();
-        adjustSize();
+        adjustWindowToContents();
     }
 }
 
@@ -448,11 +358,15 @@ void SfenCollectionDialog::adjustWindowToContents()
     if (m_shogiView) {
         m_shogiView->updateBoardSize();
         hideClockLabels();
+        // スクロール領域の中の盤は自動では大きさが変わらないため、マスの大きさに合わせる
+        m_shogiView->resize(m_shogiView->sizeHint());
     }
     // 通常表示は盤全体が入る寸法を優先し、小さい画面ではスクロールで補う。
+    // 拡大・縮小の直後はスクロールバーが出ていることがあるため、ビューポートではなく
+    // スクロール領域（枠なし）の大きさから盤以外の部分の寸法を求める。
     layout()->activate();
     auto* scroll = findChild<QScrollArea*>(QStringLiteral("boardScrollArea"));
-    const QSize controls = size() - scroll->viewport()->size();
+    const QSize controls = size() - scroll->size();
     const QSize available = screen()->availableGeometry().size() - QSize(40, 80);
     resize((m_shogiView->size() + controls).boundedTo(available));
 }
@@ -465,84 +379,4 @@ void SfenCollectionDialog::closeEvent(QCloseEvent* event)
         GameSettings::setSfenCollectionSquareSize(m_shogiView->squareSize());
     }
     QDialog::closeEvent(event);
-}
-
-void SfenCollectionDialog::addToRecentFiles(const QString& filePath)
-{
-    // 既に存在する場合は削除（先頭に移動するため）
-    m_recentFiles.removeAll(filePath);
-
-    // 先頭に追加
-    m_recentFiles.prepend(filePath);
-
-    // 最大5件に制限
-    while (m_recentFiles.size() > 5) {
-        m_recentFiles.removeLast();
-    }
-
-    // メニューを更新
-    updateRecentFilesMenu();
-}
-
-void SfenCollectionDialog::updateRecentFilesMenu()
-{
-    m_recentFilesMenu->clear();
-
-    if (m_recentFiles.isEmpty()) {
-        QAction* emptyAction = m_recentFilesMenu->addAction(tr("（履歴なし）"));
-        emptyAction->setEnabled(false);
-        return;
-    }
-
-    for (const QString& filePath : std::as_const(m_recentFiles)) {
-        QFileInfo fi(filePath);
-        QString displayName = fi.fileName();
-
-        QAction* action = m_recentFilesMenu->addAction(displayName);
-        action->setData(filePath);
-        action->setToolTip(filePath);
-        connect(action, &QAction::triggered, this, &SfenCollectionDialog::onRecentFileClicked);
-    }
-
-    m_recentFilesMenu->addSeparator();
-
-    QAction* clearAction = m_recentFilesMenu->addAction(tr("履歴をクリア"));
-    connect(clearAction, &QAction::triggered, this, &SfenCollectionDialog::onClearRecentFilesClicked);
-}
-
-void SfenCollectionDialog::saveRecentFiles()
-{
-    GameSettings::setSfenCollectionRecentFiles(m_recentFiles);
-}
-
-void SfenCollectionDialog::onRecentFileClicked()
-{
-    QAction* action = qobject_cast<QAction*>(sender());
-    if (!action) {
-        return;
-    }
-
-    QString filePath = action->data().toString();
-    if (filePath.isEmpty()) {
-        return;
-    }
-
-    // ファイルが存在するか確認
-    if (!QFileInfo::exists(filePath)) {
-        QMessageBox::warning(this, tr("エラー"),
-                             tr("ファイルが見つかりません: %1").arg(filePath));
-        m_recentFiles.removeAll(filePath);
-        updateRecentFilesMenu();
-        saveRecentFiles();
-        return;
-    }
-
-    loadFromFile(filePath);
-}
-
-void SfenCollectionDialog::onClearRecentFilesClicked()
-{
-    m_recentFiles.clear();
-    updateRecentFilesMenu();
-    saveRecentFiles();
 }

@@ -1174,6 +1174,8 @@ add_shogi_test(tst_sfen_collection
     ${SRC}/views/shogiview.h
     ${SRC}/widgets/elidelabel.h
     ${SRC}/dialogs/sfencollectiondialog.cpp
+    ${SRC}/dialogs/sfencollectiondialog_io.cpp
+    ${SRC}/automation/sfenvalidationservice.cpp
     ${SRC}/common/dialogfontscale.cpp
     ${SRC}/common/dialogutils.cpp
     ${SRC}/common/errorbus.cpp
@@ -1185,6 +1187,8 @@ add_shogi_test(tst_sfen_collection
     ${SRC}/core/shogimove.cpp
     ${SETTINGS_SOURCES}
 )
+target_include_directories(tst_sfen_collection PRIVATE ${SRC}/automation)
+target_link_libraries(tst_sfen_collection PRIVATE hayanagi_tsume)
 
 # ============================================================
 # Unit: DockLayoutManager テスト

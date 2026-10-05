@@ -4841,17 +4841,17 @@ OKを選択すると保存先が指定できます。</source>
         <translation>棋譜已匯入</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="191"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="190"/>
         <source>局面を反映しました</source>
         <translation>局面已套用</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="193"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="192"/>
         <source>局面の反映に失敗しました</source>
         <translation>套用局面失敗</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifufilecontroller.cpp" line="198"/>
+        <location filename="../../src/kifu/kifufilecontroller.cpp" line="197"/>
         <source>局面の反映に失敗しました（内部エラー）</source>
         <translation>套用局面失敗（內部錯誤）</translation>
     </message>
@@ -5649,7 +5649,7 @@ OKを選択すると保存先が指定できます。</source>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="734"/>
         <source>局面集ビューア</source>
-        <translation>SFEN 局面集查看器</translation>
+        <translation>SFEN 局面集檢視器</translation>
     </message>
     <message>
         <location filename="../../src/app/mainwindow.ui" line="752"/>
@@ -7351,168 +7351,187 @@ UTF-8で保存しますか？ファイルの先頭行に「encoding=UTF-8」を�
 <context>
     <name>SfenCollectionDialog</name>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="37"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="32"/>
         <source>局面集ビューア</source>
-        <translation>SFEN 局面集查看器</translation>
+        <translation>SFEN 局面集檢視器</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="80"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="75"/>
         <source>ファイルを開く</source>
         <translation>開啟檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="81"/>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="231"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="76"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="63"/>
         <source>SFEN局面集ファイルを開く</source>
         <translation>開啟 SFEN 局面集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="87"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="82"/>
         <source>履歴</source>
         <translation>歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="88"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="83"/>
         <source>最近使ったファイルを開く</source>
         <translation>開啟最近使用的檔案</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="96"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="91"/>
         <source>「ファイルを開く」から局面集を選んでください。</source>
         <translation>選擇「開啟檔案」載入局面集。</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="110"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="105"/>
         <source>縮小</source>
         <translation>縮小</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="111"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="106"/>
         <source>将棋盤を縮小する</source>
         <translation>縮小棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="117"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="112"/>
         <source>拡大</source>
         <translation>放大</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="118"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="113"/>
         <source>将棋盤を拡大する</source>
         <translation>放大棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="124"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="119"/>
         <source>盤面の回転</source>
         <translation>翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="125"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="120"/>
         <source>盤面を回転する</source>
         <translation>翻轉棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="146"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="141"/>
         <source>先手</source>
         <translation>先手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="147"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="142"/>
         <source>後手</source>
         <translation>後手</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="158"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="153"/>
         <source>局面集が読み込まれていません</source>
         <translation>尚未載入局面集</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="169"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="164"/>
         <source>最初</source>
         <translation>第一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="171"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="166"/>
         <source>最初の局面に移動</source>
         <translation>跳到第一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="177"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="172"/>
         <source>前へ</source>
         <translation>上一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="179"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="174"/>
         <source>前の局面に移動</source>
         <translation>跳到上一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="185"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="180"/>
         <source>次へ</source>
         <translation>下一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="187"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="182"/>
         <source>次の局面に移動</source>
         <translation>跳到下一局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="193"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="188"/>
         <source>最後</source>
         <translation>最後局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="195"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="190"/>
         <source>最後の局面に移動</source>
         <translation>跳到最後局面</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="208"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="203"/>
         <source>選択</source>
         <translation>選擇</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="210"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="205"/>
         <source>現在の局面をメインGUIに反映する</source>
         <translation>將目前局面套用到主棋盤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="216"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="211"/>
         <source>閉じる</source>
         <translation>關閉</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="233"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="65"/>
         <source>テキストファイル (*.txt *.sfen);;すべてのファイル (*)</source>
         <translation>文字檔案 (*.txt *.sfen);;所有檔案 (*)</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="261"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="78"/>
+        <source>ファイルを開けませんでした: %1</source>
+        <translation>無法開啟檔案：%1</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="92"/>
+        <source>%1 には局面がありません。
+1行に1局面のSFENを書いたファイルを選んでください。</source>
+        <translation>%1 中沒有局面。
+請選擇每行寫有一個 SFEN 局面的檔案。</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="102"/>
         <source>ファイル: %1</source>
         <translation>檔案：%1</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="326"/>
+        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="238"/>
         <source>局面: %1 / %2</source>
         <translation>局面：%1 / %2</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="492"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="166"/>
         <source>（履歴なし）</source>
         <translation>（無歷史記錄）</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="509"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="183"/>
         <source>履歴をクリア</source>
         <translation>清除歷史記錄</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="532"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="77"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="91"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="206"/>
         <source>エラー</source>
         <translation>錯誤</translation>
     </message>
     <message>
-        <location filename="../../src/dialogs/sfencollectiondialog.cpp" line="533"/>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="101"/>
+        <source>ファイル: %1（読めない %2 行を飛ばしました）</source>
+        <translation>檔案：%1（已略過無法讀取的 %2 行）</translation>
+    </message>
+    <message>
+        <location filename="../../src/dialogs/sfencollectiondialog_io.cpp" line="207"/>
         <source>ファイルが見つかりません: %1</source>
         <translation>找不到檔案：%1</translation>
     </message>

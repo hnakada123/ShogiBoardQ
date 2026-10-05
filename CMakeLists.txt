@@ -856,6 +856,7 @@ set(SRC_DIALOGS
     src/dialogs/pvboarddialog.cpp
     src/dialogs/pvboarddialog.h
     src/dialogs/sfencollectiondialog.cpp
+    src/dialogs/sfencollectiondialog_io.cpp
     src/dialogs/sfencollectiondialog.h
     src/dialogs/startgamedialog.cpp
     src/dialogs/startgamedialog.h
