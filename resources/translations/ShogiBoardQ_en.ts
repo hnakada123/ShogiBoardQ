@@ -6329,6 +6329,11 @@ Positions: SFEN / BOD (board diagram)</translation>
         <source>無制限</source>
         <translation>Unlimited</translation>
     </message>
+    <message>
+        <location filename="../../src/common/kifupresentation.cpp" line="232"/>
+        <source>%1+%2秒加算</source>
+        <translation>%1 + %2 s increment</translation>
+    </message>
 </context>
 <context>
     <name>KifuRecordListModel</name>
@@ -8431,12 +8436,12 @@ Are you sure you want to declare?</translation>
         <translation type="vanished">Start Time</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="55"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="56"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
-        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="56"/>
+        <location filename="../../src/ui/wiring/playerinfowiring.cpp" line="57"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
@@ -8646,37 +8651,37 @@ Are you sure you want to declare?</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="65"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="90"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="94"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="110"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="114"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="63"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="67"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="83"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="87"/>
         <source>先手</source>
         <translation>Black</translation>
     </message>
     <message>
         <location filename="../../src/analysis/kifuanalysislistmodel.cpp" line="65"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="91"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="99"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="107"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="115"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="64"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="72"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="80"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="88"/>
         <source>後手</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="95"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="98"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="106"/>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="111"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="68"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="71"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="79"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="84"/>
         <source>Engine</source>
         <translation>Engine</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="102"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="75"/>
         <source>Engine1</source>
         <translation>Engine1</translation>
     </message>
     <message>
-        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="103"/>
+        <location filename="../../src/kifu/kifuexportmetadata.cpp" line="76"/>
         <source>Engine2</source>
         <translation>Engine2</translation>
     </message>

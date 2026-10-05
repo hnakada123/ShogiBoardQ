@@ -385,7 +385,7 @@ async def test_server_time_up(csa_env, csa_server):
             await peer.close()
 
 
-async def test_fischer_time(csa_env, csa_server):
+async def test_fischer_time(csa_env, csa_server, tmp_path):
     async with mcp_session(csa_env) as session:
         ui = CsaUI(session)
         await ui.connect(csa_server[0], game="audit-300-5F")
@@ -405,6 +405,11 @@ async def test_fischer_time(csa_env, csa_server):
             await ui.call("trigger_action", name="actionResign")
             await peer.until("#WIN")
             await ui.dismiss_end()
+            # The increment is recorded apart from byoyomi and exported as the third $TIME field.
+            await ui.call("save_kifu", path=str(tmp_path / "fischer.kif"), overwrite=True)
+            assert "持ち時間：05:00+5秒加算" in (tmp_path / "fischer.kif").read_text(encoding="cp932")
+            converted = await ui.call("convert_kifu", input_path=str(tmp_path / "fischer.kif"), output_format="csa")
+            assert "$TIME:300+0+5" in converted["text"], converted
         finally:
             await peer.close()
 

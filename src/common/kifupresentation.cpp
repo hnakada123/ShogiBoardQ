@@ -224,6 +224,13 @@ QString infoValue(const QString& key, const QString& raw)
     }
     if (key == QStringLiteral("持ち時間") && raw == QStringLiteral("無制限"))
         return translated(QT_TRANSLATE_NOOP("KifuPresentation", "無制限"));
+    if (key == QStringLiteral("持ち時間")) {
+        // フィッシャー加算の書式（KifuExportMetadataBuilder::timeControlText）を表示言語に合わせる
+        static const QRegularExpression increment(QStringLiteral("^(\\d+:\\d{2})\\+(\\d+)秒加算$"));
+        const QRegularExpressionMatch m = increment.match(raw);
+        if (m.hasMatch())
+            return translated(QT_TRANSLATE_NOOP("KifuPresentation", "%1+%2秒加算")).arg(m.captured(1), m.captured(2));
+    }
     return raw;
 }
 }

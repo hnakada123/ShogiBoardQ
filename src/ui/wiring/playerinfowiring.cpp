@@ -2,6 +2,7 @@
 /// @brief プレイヤー情報配線クラスの実装
 
 #include "playerinfowiring.h"
+#include "kifuexportmetadata.h"
 
 #include "logcategories.h"
 #include <QTabWidget>
@@ -285,7 +286,7 @@ void PlayerInfoWiring::resolveNamesAndSetupGameInfo(const QString& human1, const
         timeInfo.gameStartDateTime,
         blackName,
         whiteName,
-        handicapLabelForSfen(startSfen),
+        KifuExportMetadataBuilder::handicapLabel(startSfen),
         timeInfo.hasTimeControl,
         timeInfo.baseTimeMs,
         timeInfo.byoyomiMs,
@@ -328,13 +329,6 @@ void PlayerInfoWiring::onMenuPlayerNamesResolved(const QString& human1, const QS
     resolveNamesWithTimeController(human1, human2, engine1, engine2, playMode, startSfen, tc);
 }
 
-QString PlayerInfoWiring::handicapLabelForSfen(const QString& startSfen)
-{
-    const QString pp = startSfen.trimmed().section(QLatin1Char(' '), 0, 0);
-    const QString initPP = QStringLiteral("lnsgkgsnl/1r5b1/ppppppppp/9/9/9/PPPPPPPPP/1B5R1/LNSGKGSNL");
-    return (pp.isEmpty() || pp == initPP) ? QStringLiteral("平手") : QStringLiteral("その他");
-}
-
 void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
                                                 const QString& blackName,
                                                 const QString& whiteName,
@@ -365,29 +359,9 @@ void PlayerInfoWiring::setGameInfoForMatchStart(const QDateTime& startDateTime,
     items.append({GameInfoKeys::kHandicap, handicap.isEmpty() ? QStringLiteral("平手") : handicap});
 
     // 未開始の「未設定」と、時間制限のない対局を区別する。
-    if (hasTimeControl) {
-        const int baseMin = static_cast<int>(baseTimeMs / 60000);
-        const int baseSec = static_cast<int>((baseTimeMs % 60000) / 1000);
-        const int byoyomiSec = static_cast<int>(byoyomiMs / 1000);
-        const int incrementSec = static_cast<int>(incrementMs / 1000);
-
-        QString timeStr;
-        if (baseMin > 0 || baseSec > 0) {
-            timeStr = QStringLiteral("%1:%2")
-                .arg(baseMin, 2, 10, QLatin1Char('0'))
-                .arg(baseSec, 2, 10, QLatin1Char('0'));
-        } else {
-            timeStr = QStringLiteral("00:00");
-        }
-        if (byoyomiSec > 0) {
-            timeStr += QStringLiteral("+%1").arg(byoyomiSec);
-        } else if (incrementSec > 0) {
-            timeStr += QStringLiteral("+%1").arg(incrementSec);
-        }
-        items.append({GameInfoKeys::kTimeControl, timeStr});
-    } else {
-        items.append({GameInfoKeys::kTimeControl, QStringLiteral("無制限")});
-    }
+    items.append({GameInfoKeys::kTimeControl,
+                  hasTimeControl ? KifuExportMetadataBuilder::timeControlText(baseTimeMs, byoyomiMs, incrementMs)
+                                 : QStringLiteral("無制限")});
 
     m_gameInfoController->setGameInfoForMatch(items);
 
@@ -416,26 +390,7 @@ void PlayerInfoWiring::updateGameInfoWithTimeControl(bool hasTimeControl,
         return;
     }
 
-    // 持ち時間文字列を生成
-    const int baseMin = static_cast<int>(baseTimeMs / 60000);
-    const int baseSec = static_cast<int>((baseTimeMs % 60000) / 1000);
-    const int byoyomiSec = static_cast<int>(byoyomiMs / 1000);
-    const int incrementSec = static_cast<int>(incrementMs / 1000);
-
-    QString timeStr;
-    if (baseMin > 0 || baseSec > 0) {
-        timeStr = QStringLiteral("%1:%2")
-            .arg(baseMin, 2, 10, QLatin1Char('0'))
-            .arg(baseSec, 2, 10, QLatin1Char('0'));
-    } else {
-        timeStr = QStringLiteral("00:00");
-    }
-    if (byoyomiSec > 0) {
-        timeStr += QStringLiteral("+%1").arg(byoyomiSec);
-    } else if (incrementSec > 0) {
-        timeStr += QStringLiteral("+%1").arg(incrementSec);
-    }
-
+    const QString timeStr = KifuExportMetadataBuilder::timeControlText(baseTimeMs, byoyomiMs, incrementMs);
     m_gameInfoController->updateGameInfoValue(GameInfoKeys::kTimeControl, timeStr);
 
     qCDebug(lcUi) << "updateGameInfoWithTimeControl:"

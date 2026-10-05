@@ -290,6 +290,15 @@ QString convertToCsaDateTime(const QString& dateTimeStr)
 
 QString convertToCsaTime(const QString& timeStr)
 {
+    // 対局情報の持ち時間（フィッシャー加算）: "mm:ss+加算秒秒加算" → "$TIME:秒+0+加算"
+    static const QRegularExpression reIncrement(
+        QStringLiteral("^(\\d+):(\\d{2})\\+(\\d+)秒加算$"));
+    const QRegularExpressionMatch inc = reIncrement.match(timeStr);
+    if (inc.hasMatch()) {
+        const int totalSeconds = inc.captured(1).toInt() * 60 + inc.captured(2).toInt();
+        return QStringLiteral("$TIME:%1+0+%2").arg(totalSeconds).arg(inc.captured(3).toInt());
+    }
+
     // 対局情報の持ち時間: "mm:ss+秒読み" → "$TIME:秒+秒読み+0"
     static const QRegularExpression reV22(
         QStringLiteral("(\\d+):(\\d{2})\\+(\\d+)"));

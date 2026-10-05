@@ -21,6 +21,7 @@
 #include "gamerecordupdateservice.h"
 #include "gameinfopanecontroller.h"
 #include "gamesessionorchestrator.h"
+#include "kifuexportmetadata.h"
 #include "kifufilecontroller.h"
 #include "kifunavigationcoordinator.h"
 #include "matchruntimequeryservice.h"
@@ -278,7 +279,7 @@ void MainWindowServiceRegistry::ensureCsaGameWiring()
         const QDateTime startTime = tc && tc->gameStartDateTime().isValid()
                                         ? tc->gameStartDateTime() : QDateTime::currentDateTime();
         m_mw.m_playerInfoWiring->setGameInfoForMatchStart(
-            startTime, black, white, PlayerInfoWiring::handicapLabelForSfen(startSfen),
+            startTime, black, white, KifuExportMetadataBuilder::handicapLabel(startSfen),
             tc && tc->hasTimeControl(), tc ? tc->baseTimeMs() : 0,
             tc ? tc->byoyomiMs() : 0, tc ? tc->incrementMs() : 0);
         startLiveGameSessionIfNeeded();

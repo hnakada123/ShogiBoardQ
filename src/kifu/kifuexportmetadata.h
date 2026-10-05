@@ -32,6 +32,10 @@ namespace KifuExportMetadataBuilder {
 enum class HeaderStyle { Full, Compact };
 QList<KifGameInfoItem> collect(const KifuExportMetadata& ctx, HeaderStyle style = HeaderStyle::Full);
 void resolvePlayerNames(const KifuExportMetadata& ctx, QString& black, QString& white);
+/// 開始局面から対局情報の手合割（平手 / その他）を決める
+QString handicapLabel(const QString& startSfen);
+/// 対局情報の持ち時間。秒読みは「mm:ss+秒」、フィッシャー加算は「mm:ss+秒秒加算」で区別する
+QString timeControlText(qint64 baseMs, qint64 byoyomiMs, qint64 incrementMs);
 }
 
 #endif // KIFUEXPORTMETADATA_H

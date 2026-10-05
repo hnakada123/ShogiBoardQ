@@ -68,6 +68,9 @@ private slots:
         QCOMPARE(infoValue("先手", "佐藤 一郎"), QStringLiteral("佐藤 一郎"));
         QCOMPARE(infoValue("棋戦", "平手"), QStringLiteral("平手"));
         QCOMPARE(infoValue("手合割", "独自ルール"), QStringLiteral("独自ルール"));
+        QCOMPARE(infoValue("持ち時間", "10:00+10"), QStringLiteral("10:00+10"));
+        QCOMPARE(infoValue("持ち時間", "05:00+10秒加算"), QStringLiteral("05:00+10秒加算"));
+        QCOMPARE(infoValue("持ち時間", "各10分"), QStringLiteral("各10分"));
         QCOMPARE(status("投了についてのコメント"), QStringLiteral("投了についてのコメント"));
     }
 };
