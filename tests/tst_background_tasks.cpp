@@ -398,6 +398,36 @@ private slots:
         QVERIFY(!thinking.isEngineRunning());
         QVERIFY(!pondering.isEngineRunning());
     }
+    void gameOverResultFollowsEngineSeat_data()
+    {
+        QTest::addColumn<PlayMode>("mode");
+        QTest::addColumn<bool>("loserIsP1");
+        QTest::addColumn<QString>("expected");
+        // 人間対エンジンではエンジンは常に usi1。先手・下手のエンジンが負けたら lose を送る
+        QTest::newRow("engine-white-wins") << PlayMode::EvenHumanVsEngine << true << "gameover win";
+        QTest::newRow("engine-white-loses") << PlayMode::EvenHumanVsEngine << false << "gameover lose";
+        QTest::newRow("engine-black-loses") << PlayMode::EvenEngineVsHuman << true << "gameover lose";
+        QTest::newRow("engine-black-wins") << PlayMode::EvenEngineVsHuman << false << "gameover win";
+        QTest::newRow("handicap-engine-lower-loses") << PlayMode::HandicapEngineVsHuman << true << "gameover lose";
+        QTest::newRow("handicap-engine-upper-loses") << PlayMode::HandicapHumanVsEngine << false << "gameover lose";
+    }
+
+    void gameOverResultFollowsEngineSeat()
+    {
+        QFETCH(PlayMode, mode);
+        QFETCH(bool, loserIsP1);
+        QFETCH(QString, expected);
+        ShogiGameController game;
+        QString initial = SfenUtils::hirateSfen();
+        game.newGame(initial);
+        Usi engine(nullptr, nullptr, &game);
+        QStringList sent;
+        const auto sendRaw = [&sent](Usi*, const QString& command) { sent << command; };
+        EngineGameOverNotifier::notifyResignation(mode, loserIsP1, &engine, nullptr, sendRaw);
+        EngineGameOverNotifier::notifyNyugyoku(mode, false, loserIsP1, &engine, nullptr, sendRaw);
+        QCOMPARE(sent, QStringList({expected, expected}));
+    }
+
     void exitWhileThinkingReportsError()
     {
         qputenv("SBQ_MATCH_EXIT_ON_GO", "1");

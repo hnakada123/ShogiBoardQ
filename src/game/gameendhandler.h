@@ -125,6 +125,7 @@ signals:
 
 private:
     void displayResultsAndUpdateGui(const GameEndInfo& info);
+    QString resultMessage(const GameEndInfo& info) const;
 
     /// USI gameover コマンド送信ヘルパー
     void sendRawToEngineHelper(Usi* which, const QString& cmd);

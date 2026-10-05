@@ -206,6 +206,32 @@ private slots:
         QCOMPARE(items[2].prettyMove, QStringLiteral("▲投了"));
     }
 
+    void declarationWinnerIsSideToMove_data()
+    {
+        QTest::addColumn<QString>("terminal");
+        QTest::addColumn<QString>("winner");
+        // 入玉宣言は宣言する側の手番で行う。▲７六歩の次は後手番なので、記号がなければ後手の勝ち
+        QTest::newRow("unmarked") << QStringLiteral("入玉勝ち") << QStringLiteral("後手");
+        QTest::newRow("white-mark") << QStringLiteral("△入玉勝ち") << QStringLiteral("後手");
+        QTest::newRow("black-mark") << QStringLiteral("▲入玉勝ち") << QStringLiteral("先手");
+    }
+
+    void declarationWinnerIsSideToMove()
+    {
+        QFETCH(QString, terminal);
+        QFETCH(QString, winner);
+        KifuBranchTree tree;
+        tree.setRootSfen(kHirateSfen);
+        auto* tip = addTestMove(tree, tree.root(), QStringLiteral("7g7f"), QStringLiteral("▲７六歩(77)"));
+        tree.addTerminalMove(tip, TerminalType::DeclarationWin, terminal);
+        GameRecordModel model;
+        model.setBranchTree(&tree);
+        GameRecordModel::ExportContext ctx;
+        ctx.startSfen = kHirateSfen;
+        const QStringList lines = model.toKifLines(ctx);
+        QVERIFY2(lines.contains(QStringLiteral("まで1手で%1の勝ち").arg(winner)), qPrintable(lines.join('\n')));
+    }
+
     void handicapTurnsAndWinner_data()
     {
         QTest::addColumn<QString>("format");

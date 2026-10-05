@@ -169,6 +169,8 @@ private slots:
     void handleNyugyokuDeclaration_draw_jishogi();
     void handleNyugyokuDeclaration_fail_declarerLoses();
     void handleNyugyokuDeclaration_alreadyOver_ignored();
+    void handleEngineWin_showsGameOverMessage();
+    void appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime();
 
     // === Section E: 持将棋（最大手数） ===
 
@@ -363,6 +365,41 @@ void Tst_GameEndHandler::handleNyugyokuDeclaration_alreadyOver_ignored()
     h.handler.handleNyugyokuDeclaration(MatchCoordinator::P1, true, false);
 
     QCOMPARE(spy.count(), 0);
+}
+
+void Tst_GameEndHandler::handleEngineWin_showsGameOverMessage()
+{
+    // エンジンの入玉宣言（bestmove win）は宣言ダイアログを通らないため、対局終了を知らせる
+    EndTestHarness h;
+    h.handler.handleEngineWin(2);
+
+    QVERIFY(h.gameOver.isOver);
+    QCOMPARE(h.gameOver.lastInfo.cause, MatchCoordinator::Cause::NyugyokuWin);
+    QCOMPARE(h.gameOver.lastInfo.loser, MatchCoordinator::P1);
+    QVERIFY(EndTracker::showGameOverDialogCalled);
+    QVERIFY(EndTracker::lastDialogMsg.contains(QStringLiteral("後手の入玉宣言")));
+    QCOMPARE(EndTracker::events.count(QStringLiteral("save")), 1);
+}
+
+void Tst_GameEndHandler::appendGameOverLineAndMark_nyugyokuWin_usesDeclarerTime()
+{
+    // 入玉勝ちの行は宣言した勝者の手番の行なので、勝者の消費時間を記録する
+    EndTestHarness h;
+    h.gameOver.isOver = true;
+    GameEndHandler::Hooks hooks;
+    hooks.turnEpochFor = [](MatchCoordinator::Player p) -> qint64 {
+        EndTracker::events.append(p == MatchCoordinator::P1 ? QStringLiteral("epoch-P1")
+                                                            : QStringLiteral("epoch-P2"));
+        return -1;
+    };
+    hooks.appendKifuLine = [](const QString& line, const QString&) {
+        EndTracker::lastAppendedLine = line;
+    };
+    h.handler.setHooks(hooks);
+    h.handler.appendGameOverLineAndMark(MatchCoordinator::Cause::NyugyokuWin, MatchCoordinator::P2);
+
+    QCOMPARE(EndTracker::lastAppendedLine, QStringLiteral("▲入玉勝ち"));
+    QCOMPARE(EndTracker::events, QStringList{QStringLiteral("epoch-P1")});
 }
 
 // ============================================================

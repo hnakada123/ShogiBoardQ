@@ -151,7 +151,7 @@ static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove
             .arg(QString::number(lastActualMoveNo), lastMoveBySente ? goteStr : senteStr);
     }
 
-    // 入玉勝ち: 手番記号で判定
+    // 入玉勝ち: 手番記号で判定。記号がなければ、最後の指し手の次の手番（宣言した側）の勝ち
     if (stripped.contains(QStringLiteral("入玉勝ち"))) {
         if (terminalMove.startsWith(QStringLiteral("▲"))) {
             return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), senteStr);
@@ -159,7 +159,7 @@ static QString buildEndingLine(int lastActualMoveNo, const QString& terminalMove
             return QStringLiteral("まで%1手で%2の勝ち").arg(QString::number(lastActualMoveNo), goteStr);
         }
         return QStringLiteral("まで%1手で%2の勝ち")
-            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? senteStr : goteStr);
+            .arg(QString::number(lastActualMoveNo), lastMoveBySente ? goteStr : senteStr);
     }
 
     // 不戦勝/不戦敗

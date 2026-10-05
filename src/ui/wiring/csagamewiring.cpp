@@ -197,10 +197,13 @@ void CsaGameWiring::onGameEnded(CsaClient::GameResult result,
     const bool loserIsBlack = (iAmLoser == isBlackSide);
 
     // 終局行テキストを生成
-    const QString endLine = buildEndLineText(cause, loserIsBlack);
+    const bool isDraw = (result == CsaClient::GameResult::Draw);
+    const QString endLine = buildEndLineText(cause, loserIsBlack, isDraw);
 
-    // 消費時間をフォーマット
-    const int totalMs = loserIsBlack ? m_coordinator->blackTotalTimeMs()
+    // 消費時間をフォーマット。終局行はその行を行った手番側の時間で、入玉宣言勝ちでは宣言した勝者
+    const bool moverIsBlack = (cause == CsaClient::GameEndCause::Jishogi && !isDraw)
+                                  ? !loserIsBlack : loserIsBlack;
+    const int totalMs = moverIsBlack ? m_coordinator->blackTotalTimeMs()
                                      : m_coordinator->whiteTotalTimeMs();
 
     const QString elapsedStr = KifuParseCommon::formatTimeText(consumedTimeMs, totalMs + consumedTimeMs);
@@ -325,9 +328,10 @@ void CsaGameWiring::onMoveHighlightRequested(const QPoint& from, const QPoint& t
     }
 }
 
-QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack) const
+QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw) const
 {
     const QString mark = loserIsBlack ? QStringLiteral("▲") : QStringLiteral("△");
+    const QString winMark = loserIsBlack ? QStringLiteral("△") : QStringLiteral("▲");
 
     // Keep the record canonical; the presentation layer translates the terminal label.
     using Cause = CsaClient::GameEndCause;
@@ -338,7 +342,8 @@ QString CsaGameWiring::buildEndLineText(CsaClient::GameEndCause cause, bool lose
     case Cause::IllegalAction:
     case Cause::OuteSennichite: return mark + QStringLiteral("反則負け");
     case Cause::Sennichite: return QStringLiteral("千日手");
-    case Cause::Jishogi: return QStringLiteral("入玉勝ち");
+    // 入玉宣言は宣言した勝者の印を付ける（棋譜の保存時に勝者を判定するため）。点数による引き分けは持将棋
+    case Cause::Jishogi: return isDraw ? QStringLiteral("持将棋") : winMark + QStringLiteral("入玉勝ち");
     case Cause::MaxMoves: return QStringLiteral("最大手数到達");
     default: return QStringLiteral("中断");
     }

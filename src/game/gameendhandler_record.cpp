@@ -78,24 +78,29 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
     case Cause::Timeout:        line = QStringLiteral("%1時間切れ").arg(mark); break;
     }
 
-    const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(loser) : -1;
+    // 終局行の消費時間は、その行（投了・宣言など）を行った手番側のもの。
+    // 入玉宣言勝ちでは宣言した勝者が手番側になる。
+    const Player mover = (cause == Cause::NyugyokuWin)
+                             ? (loser == Player::P1 ? Player::P2 : Player::P1)
+                             : loser;
+    const qint64 epochMs = m_hooks.turnEpochFor ? m_hooks.turnEpochFor(mover) : -1;
     qint64 considerMs = 0;
     if (epochMs > 0) {
         const qint64 now = QDateTime::currentMSecsSinceEpoch();
         considerMs = now - epochMs;
         if (considerMs < 0) considerMs = 0;
     } else {
-        considerMs = (loser == Player::P1) ? m_refs.clock->player1ConsiderationMs()
+        considerMs = (mover == Player::P1) ? m_refs.clock->player1ConsiderationMs()
                                             : m_refs.clock->player2ConsiderationMs();
     }
 
-    if (loser == Player::P1) m_refs.clock->setPlayer1ConsiderationTime(int(considerMs));
+    if (mover == Player::P1) m_refs.clock->setPlayer1ConsiderationTime(int(considerMs));
     else                     m_refs.clock->setPlayer2ConsiderationTime(int(considerMs));
 
-    if (loser == Player::P1) m_refs.clock->applyByoyomiAndResetConsideration1();
+    if (mover == Player::P1) m_refs.clock->applyByoyomiAndResetConsideration1();
     else                     m_refs.clock->applyByoyomiAndResetConsideration2();
 
-    const QString elapsed = (loser == Player::P1)
+    const QString elapsed = (mover == Player::P1)
                                 ? m_refs.clock->player1ConsiderationAndTotalTime()
                                 : m_refs.clock->player2ConsiderationAndTotalTime();
 
@@ -106,7 +111,7 @@ void GameEndHandler::appendGameOverLineAndMark(Cause cause, Player loser)
 
 // --- 結果表示 ---
 
-void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
+QString GameEndHandler::resultMessage(const GameEndInfo& info) const
 {
     const bool loserIsP1 = (info.loser == Player::P1);
     const QString loserJP = loserIsP1 ? tr("先手") : tr("後手");
@@ -132,7 +137,12 @@ void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
     default:
         msg = tr("対局が終了しました。"); break;
     }
+    return msg;
+}
 
+void GameEndHandler::displayResultsAndUpdateGui(const GameEndInfo& info)
+{
+    const QString msg = resultMessage(info);
     if (m_hooks.showGameOverDialog) m_hooks.showGameOverDialog(tr("対局終了"), msg);
     qCDebug(lcGame) << "Game ended";
 

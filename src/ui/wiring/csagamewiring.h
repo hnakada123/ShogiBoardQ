@@ -258,7 +258,7 @@ private:
      * @param loserIsBlack 敗者が先手かどうか
      * @return 終局行テキスト
      */
-    QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack) const;
+    QString buildEndLineText(CsaClient::GameEndCause cause, bool loserIsBlack, bool isDraw) const;
 
     void appendInitialKifuLine(const QString& prettyMove, const QString& sfen);
     QString buildNumberedKifuLine(const QString& prettyMove) const;
