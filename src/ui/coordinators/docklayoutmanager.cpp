@@ -81,52 +81,41 @@ void DockLayoutManager::resetToDefault()
         if (d) m_mainWindow->removeDockWidget(d);
     }
 
-    // メニューウィンドウ（デフォルトは非表示）
-    if (menuDock) {
-        m_mainWindow->addDockWidget(Qt::LeftDockWidgetArea, menuDock);
-        menuDock->setVisible(false);
-    }
-
-    // 定跡ドック（デフォルトは非表示）
-    if (josekiDock) {
-        m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, josekiDock);
-        josekiDock->setVisible(false);
-    }
-
-    // 棋譜解析結果も初期位置へ戻す（デフォルトは非表示）。
-    if (analysisResultsDock) {
-        m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, analysisResultsDock);
-        analysisResultsDock->setVisible(false);
-    }
-
-    // 上段右: 棋譜
+    // 起動時（DockCreationService）と同じ配置に戻す。
+    // 右: 棋譜。メニューは棋譜とタブにまとめる（既定は非表示）
     if (recordDock) {
         m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, recordDock);
         recordDock->setVisible(true);
     }
+    if (menuDock) {
+        m_mainWindow->addDockWidget(Qt::RightDockWidgetArea, menuDock);
+        if (recordDock) m_mainWindow->tabifyDockWidget(recordDock, menuDock);
+        menuDock->setVisible(false);
+    }
 
-    // 下段: 全ドックをタブ化して配置
-    // タブ順: 評価値グラフ, 対局情報, USI通信ログ, CSA通信ログ, 棋譜コメント, 分岐ツリー, 検討, 思考
-    QList<QDockWidget*> bottomDocks = {
-        evalChartDock, gameInfoDock, usiLogDock, csaLogDock,
-        commentDock, branchTreeDock, considerationDock, thinkingDock
+    // 下: 起動時と同じ順にタブ化する。定跡と棋譜解析は既定で非表示
+    const QList<QDockWidget*> bottomDocks = {
+        gameInfoDock, thinkingDock, considerationDock, usiLogDock, csaLogDock,
+        commentDock, branchTreeDock, evalChartDock, josekiDock, analysisResultsDock
     };
-
     QDockWidget* prevDock = nullptr;
-    for (QDockWidget* d : std::as_const(bottomDocks)) {
+    for (QDockWidget* d : bottomDocks) {
         if (!d) continue;
         if (!prevDock) {
             m_mainWindow->addDockWidget(Qt::BottomDockWidgetArea, d);
         } else {
             m_mainWindow->tabifyDockWidget(prevDock, d);
         }
-        d->setVisible(true);
+        d->setVisible(d != josekiDock && d != analysisResultsDock);
         prevDock = d;
     }
 
-    // 思考タブをアクティブに
+    // 起動時と同じく思考タブと棋譜を前面にする
     if (thinkingDock) {
         thinkingDock->raise();
+    }
+    if (recordDock) {
+        recordDock->raise();
     }
 
     // ドックのサイズを調整
