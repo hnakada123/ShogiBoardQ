@@ -1,4 +1,5 @@
 #include "tsumeplaydialog.h"
+#include "appsettings.h"
 #include "boardinteractioncontroller.h"
 #include "buttonstyles.h"
 #include "dialogutils.h"
@@ -145,6 +146,8 @@ void TsumePlayDialog::buildUi()
     m_view->setNameFontScale(0.3);
     m_view->installEventFilter(this);
     m_interaction = new BoardInteractionController(m_view, m_game, this);
+    // 「表示」→「指せるマスを表示」の設定に従う（メイン画面と同じ）
+    m_interaction->setLegalMovesVisible(AppSettings::legalMovesVisible());
     connect(m_view, &ShogiView::clicked, m_interaction, &BoardInteractionController::onLeftClick);
     connect(m_view, &ShogiView::rightClicked, m_interaction, &BoardInteractionController::onRightClick);
     connect(m_interaction, &BoardInteractionController::moveRequested, this, &TsumePlayDialog::requestMove);
