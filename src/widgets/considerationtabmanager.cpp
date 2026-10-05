@@ -265,7 +265,7 @@ void ConsiderationTabManager::setConsiderationRunning(bool running)
     } else {
         qCDebug(lcUi).noquote() << "[ConsiderationTabManager::setConsiderationRunning] setting button to '検討開始'";
         m_btnStopConsideration->setText(tr("検討開始"));
-        m_btnStopConsideration->setToolTip(tr("検討ダイアログを開いて検討を開始します"));
+        m_btnStopConsideration->setToolTip(tr("検討を開始します"));
         m_stopButtonConnection = connect(
             m_btnStopConsideration, &QToolButton::clicked,
             this, &ConsiderationTabManager::startConsiderationRequested);

@@ -70,6 +70,17 @@ class UI:
         widgets = (await self.call("get_widget_text", **args))["widgets"]
         return next(w for w in widgets if "board_sfen" in w)
 
+    async def arrows(self, predicate, timeout=5):
+        # The board redraws its arrows on the next event-loop pass after a change,
+        # so a read that arrives first can still see the previous arrows.
+        deadline = asyncio.get_running_loop().time() + timeout
+        while True:
+            arrows = (await self.board())["arrows"]
+            if predicate(arrows):
+                return arrows
+            assert asyncio.get_running_loop().time() < deadline, arrows
+            await asyncio.sleep(0.05)
+
     async def open_pv(self):
         # Navigation replaces the model asynchronously. A queued click is discarded
         # if its persistent index is invalidated; reacquire the rows before retrying.
@@ -142,11 +153,11 @@ async def test_stop_does_not_restore_arrows(consideration_env):
     async with mcp_session(consideration_env) as session:
         ui = UI(session)
         await ui.start(multipv=3)
-        assert len((await ui.board())["arrows"]) == 3
+        await ui.arrows(lambda arrows: len(arrows) == 3)
         await ui.stop()
         await ui.set("considerationArrows", False)
         await ui.set("considerationArrows", True)
-        assert (await ui.board())["arrows"] == []
+        await ui.arrows(lambda arrows: arrows == [])
 
 
 async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
@@ -180,13 +191,12 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
                 assert (await ui.board(dialog=title))["board_sfen"] == board["board_sfen"]
                 await ui.call("close_dialog", dialog=title)
             await ui.set("considerationArrows", False)
-            assert (await ui.board())["arrows"] == []
+            await ui.arrows(lambda arrows: arrows == [])
             await ui.set("considerationArrows", True)
-            arrows = (await ui.board())["arrows"]
-            assert [a["priority"] for a in arrows] == [1, 2, 3]
+            arrows = await ui.arrows(lambda arrows: [a["priority"] for a in arrows] == [1, 2, 3])
             await ui.call("trigger_action", name="actionFlipBoard")
             assert (await ui.board())["flipped"] is True
-            assert (await ui.board())["arrows"] == arrows
+            await ui.arrows(lambda current: current == arrows)
             font = (await ui.widget("considerationView"))["font_point_size"]
             await ui.click("considerationFontIncrease")
             assert (await ui.widget("considerationView"))["font_point_size"] == font + 1
@@ -201,6 +211,50 @@ async def test_navigation_pv_board_and_display(consideration_env, tmp_path):
             await ui.stop()
         for name in ("considerationUnlimited", "considerationTimed", "considerationSeconds"):
             assert (await ui.widget(name))["enabled"] is True
+
+
+async def test_keeps_loaded_player_names(consideration_env):
+    async def names():
+        black = (await ui.widget("blackNameLabel"))["text"]
+        white = (await ui.widget("whiteNameLabel"))["text"]
+        rows = {row[0]: row[1] for row in (await ui.widget("gameInfoTable"))["rows"][1:]}
+        kif = (await ui.call("get_kifu", format="kif"))["text"]
+        return black, white, rows["先手"], rows["後手"], "先手：テスト先手" in kif, "後手：テスト後手" in kif
+
+    async with mcp_session(consideration_env) as session:
+        ui = UI(session)
+        await ui.call("load_kifu", path=str(FIXTURES / "test_basic.kif"))
+        await ui.call("goto_ply", ply=2)
+        loaded = await names()
+        assert "テスト先手" in loaded[0] and "テスト後手" in loaded[1], loaded
+        assert loaded[2:] == ("テスト先手", "テスト後手", True, True), loaded
+        await ui.start()
+        try:
+            assert await names() == loaded
+        finally:
+            await ui.stop()
+        assert await names() == loaded
+
+
+async def test_start_stop_button_keeps_width(consideration_env):
+    # In English the two labels differ a lot ("Start Consideration" / "Stop"). A width change
+    # moves the toolbar's wrap point, and the tables below jump on every start and stop.
+    config = Path(consideration_env["XDG_CONFIG_HOME"]) / "ShogiBoardQ" / "ShogiBoardQ.ini"
+    config.write_text(config.read_text(encoding="utf-8") + "[%General]\nlanguage=en\n", encoding="utf-8")
+    async with mcp_session(consideration_env) as session:
+        ui = UI(session)
+        await ui.call("show_dock", widget="ConsiderationDock")
+        idle = await ui.widget("considerationStartStop")
+        assert idle["text"] == "Start Consideration"
+        view = (await ui.widget("considerationView"))["geometry"]
+        await ui.click("considerationStartStop")
+        running = await ui.wait("considerationStartStop", "text", "Stop")
+        try:
+            assert running["geometry"]["width"] == idle["geometry"]["width"]
+            assert (await ui.widget("considerationView"))["geometry"] == view
+        finally:
+            await ui.click("considerationStartStop")
+            await ui.wait("considerationStartStop", "text", "Start Consideration")
 
 
 async def test_switch_engine_and_restart(consideration_env):
@@ -222,7 +276,7 @@ async def test_switch_engine_and_restart(consideration_env):
         for _ in range(2):
             await ui.start(multipv=3)
             await ui.stop()
-            assert (await ui.board())["arrows"] == []
+            await ui.arrows(lambda arrows: arrows == [])
 
 
 async def test_saves_changed_settings_without_starting(consideration_env):
@@ -275,9 +329,9 @@ async def test_white_drop_arrows(consideration_env):
         await ui.call("set_position", sfen="4k4/9/9/9/9/9/9/9/4K4 w g 1")
         await ui.start(multipv=10)
         try:
-            arrows = (await ui.board())["arrows"]
+            arrows = await ui.arrows(lambda arrows: any(a["from_file"] == 0 for a in arrows))
             drops = [a for a in arrows if a["from_file"] == 0]
-            assert drops and all(a["drop_piece"] == "g" for a in drops)
+            assert all(a["drop_piece"] == "g" for a in drops)
         finally:
             await ui.stop()
 
@@ -320,4 +374,4 @@ async def test_cancel_immediately_after_start(consideration_env):
             # Do not wait for any PV: cancellation can arrive while isready is pending.
             await ui.stop()
             assert (await ui.call("get_app_state"))["ui_state"] == "idle"
-            assert (await ui.board())["arrows"] == []
+            await ui.arrows(lambda arrows: arrows == [])
